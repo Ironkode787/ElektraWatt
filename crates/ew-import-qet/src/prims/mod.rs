@@ -34,6 +34,7 @@ pub mod shapes;
 pub mod terminal;
 pub mod text;
 
+use std::cell::OnceCell;
 use std::collections::BTreeSet;
 
 use ew_interop_api::{Code, ReportEntry, Severity, SourceLocation};
@@ -41,7 +42,9 @@ use ew_schema::{Dir4, Primitive, TextSlot};
 use ew_units::{Nm, Pt2};
 use roxmltree::Node;
 
+use crate::MAX_ENTRIES_PER_DEFINITION;
 use crate::decimal::Decimal;
+use crate::xml::LineIndex;
 
 /// An item that cannot be mapped (missing required attribute, unparsable number, too few points). The
 /// dispatcher reports it as EW-IMP-002 (error) and skips the item.
@@ -76,6 +79,10 @@ pub struct Parsed {
 }
 
 /// The per-definition parsing context: the coordinate origin, where findings are located, and the findings.
+///
+/// One context serves the nodes of one document: the line index behind [`PrimCtx::location`] is built from
+/// the first node's document on first use. At most [`MAX_ENTRIES_PER_DEFINITION`] findings are kept;
+/// further ones are only counted, and [`PrimCtx::take_entries`] summarises them in one EW-IMP-001 entry.
 pub struct PrimCtx<'a> {
     /// The x of the origin of definition coordinates, in px. QET stores primitive coordinates relative to the
     /// element's hotspot already (its editor puts the hotspot at the scene origin; `hotspot_x`/`hotspot_y`
@@ -87,10 +94,14 @@ pub struct PrimCtx<'a> {
     pub file: &'a str,
     /// The definition's path (`embed://…`), for [`SourceLocation::member`].
     pub member: Option<&'a str>,
-    /// Findings, in order.
+    /// Findings, in order; at most [`MAX_ENTRIES_PER_DEFINITION`].
     pub entries: Vec<ReportEntry>,
     /// Font families already reported as substituted in this definition (EW-IMP-006 once per family).
     pub reported_families: BTreeSet<String>,
+    /// Findings beyond the cap: their number and highest severity.
+    suppressed: (usize, Severity),
+    /// Line starts of the document, built on first use.
+    lines: OnceCell<LineIndex>,
 }
 
 impl<'a> PrimCtx<'a> {
@@ -103,25 +114,61 @@ impl<'a> PrimCtx<'a> {
             member,
             entries: Vec::new(),
             reported_families: BTreeSet::new(),
+            suppressed: (0, Severity::Info),
+            lines: OnceCell::new(),
         }
     }
 
-    /// The location of `node`: file, member, `item` = the element name, and its 1-based line.
+    /// The location of `node`: file, member, `item` = the element name, and its 1-based line (by bisection
+    /// in the document's line index, not by rescanning the text).
     pub fn location(&self, node: Node<'_, '_>) -> SourceLocation {
-        let line = node.document().text_pos_at(node.range().start).row;
+        let lines = self
+            .lines
+            .get_or_init(|| LineIndex::new(node.document().input_text()));
         SourceLocation {
             file: self.file.to_owned(),
             member: self.member.map(str::to_owned),
             item: Some(node.tag_name().name().to_owned()),
-            line: Some(line),
+            line: Some(lines.line(node.range().start)),
             ..SourceLocation::default()
         }
     }
 
-    /// Records a finding at `node`.
+    /// Records a finding at `node`, or only counts it once [`MAX_ENTRIES_PER_DEFINITION`] are recorded.
     pub fn report(&mut self, node: Node<'_, '_>, code: Code, severity: Severity, message: impl Into<String>) {
+        if self.entries.len() >= MAX_ENTRIES_PER_DEFINITION {
+            self.suppressed = (self.suppressed.0 + 1, self.suppressed.1.max(severity));
+            return;
+        }
         let entry = ReportEntry::new(code, severity, message).at(self.location(node));
         self.entries.push(entry);
+    }
+
+    /// Takes the findings, in order, followed by one EW-IMP-001 entry with the number of findings beyond
+    /// the cap (and the highest severity among them) if there were any. Leaves the context without
+    /// findings.
+    pub fn take_entries(&mut self) -> Vec<ReportEntry> {
+        let mut entries = std::mem::take(&mut self.entries);
+        let (n, severity) = std::mem::replace(&mut self.suppressed, (0, Severity::Info));
+        if n > 0 {
+            entries.push(
+                ReportEntry::new(
+                    Code::LIMIT,
+                    severity,
+                    format!(
+                        "{n} further findings in this definition not listed: at most \
+                         {MAX_ENTRIES_PER_DEFINITION} are reported per definition"
+                    ),
+                )
+                .at(SourceLocation {
+                    file: self.file.to_owned(),
+                    member: self.member.map(str::to_owned),
+                    item: Some("definition".to_owned()),
+                    ..SourceLocation::default()
+                }),
+            );
+        }
+        entries
     }
 
     /// Records an unsupported value (EW-IMP-004, info) at `node`.
@@ -243,5 +290,52 @@ pub fn parse_description(description: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: 
                 format!("<{name}> skipped: {message}"),
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// C1: findings beyond the cap are counted, not located, and summarised with their highest severity.
+    #[test]
+    fn findings_are_capped_and_summarised() {
+        let xml = format!(
+            "<description>\n{}<line x1=\"0\"/>\n</description>",
+            "<x/>\n".repeat(MAX_ENTRIES_PER_DEFINITION + 4)
+        );
+        let doc = roxmltree::Document::parse(&xml).unwrap();
+        let mut ctx = PrimCtx::new(
+            "t.elmt",
+            Some("embed://import/a.elmt"),
+            Decimal::ZERO,
+            Decimal::ZERO,
+        );
+        let mut out = Parsed::default();
+        parse_description(doc.root_element(), &mut ctx, &mut out);
+        let entries = ctx.take_entries();
+        assert_eq!(entries.len(), MAX_ENTRIES_PER_DEFINITION + 1);
+        // Lines are those of `text_pos_at`: the description is on line 1, the first child on line 2.
+        assert_eq!(entries[0].location.as_ref().unwrap().line, Some(2));
+        assert_eq!(
+            entries[MAX_ENTRIES_PER_DEFINITION - 1]
+                .location
+                .as_ref()
+                .unwrap()
+                .line,
+            Some(u32::try_from(MAX_ENTRIES_PER_DEFINITION).unwrap() + 1)
+        );
+        let last = entries.last().unwrap();
+        assert_eq!((last.code, last.severity), (Code::LIMIT, Severity::Error));
+        assert_eq!(
+            last.message,
+            "5 further findings in this definition not listed: at most 1000 are reported per definition"
+        );
+        let loc = last.location.as_ref().unwrap();
+        assert_eq!(
+            (loc.member.as_deref(), loc.item.as_deref(), loc.line),
+            (Some("embed://import/a.elmt"), Some("definition"), None)
+        );
+        assert!(ctx.take_entries().is_empty());
     }
 }

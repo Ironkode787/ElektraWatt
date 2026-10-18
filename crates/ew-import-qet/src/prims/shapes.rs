@@ -28,6 +28,8 @@
 //! no stroke. The line itself is not shortened. A zero-length line (`|d| = 0`) gets no markers and no report.
 //! `end1` markers come before `end2` markers.
 
+use std::collections::BTreeMap;
+
 use ew_schema::{
     ArcPrim, Bounds, CirclePrim, Colour, EllipsePrim, Extra, LinePrim, PolygonPrim, PolylinePrim, Primitive,
     RectPrim, Stroke,
@@ -306,19 +308,52 @@ pub fn arc(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed) -> Resul
     Ok(())
 }
 
-/// `polygon`.
+/// The index `k` of a polygon coordinate attribute `x<k>` or `y<k>`: `k` in canonical decimal (no sign, no
+/// leading zero), at least 1, fitting `u32`. Other names give `None`.
+fn coordinate_index(digits: &str) -> Option<u32> {
+    if digits.is_empty() || digits.starts_with('0') || !digits.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    digits.parse().ok()
+}
+
+/// `polygon`. The attributes are walked once into a map by point index, so the cost is
+/// O(attributes · log points), not a lookup per coordinate.
 ///
 /// # Errors
 ///
 /// [`ItemError`] for an unparsable coordinate or fewer than two points.
 pub fn polygon(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed) -> Result<(), ItemError> {
+    // Index → (x value, y value). For a duplicated name (refused by the XML parser anyway) the first wins,
+    // as with `Node::attribute`.
+    let mut coords: BTreeMap<u32, (Option<&str>, Option<&str>)> = BTreeMap::new();
+    for a in node.attributes() {
+        let name = a.name();
+        let (is_x, digits) = match name.as_bytes().first() {
+            Some(b'x') => (true, &name[1..]),
+            Some(b'y') => (false, &name[1..]),
+            _ => continue,
+        };
+        let Some(k) = coordinate_index(digits) else {
+            continue;
+        };
+        let slot = coords.entry(k).or_default();
+        let value = if is_x { &mut slot.0 } else { &mut slot.1 };
+        value.get_or_insert(a.value());
+    }
+    let value = |name: String, v: &str| -> Result<Decimal, ItemError> {
+        Decimal::parse(v).map_err(|e| ItemError(format!("attribute {name}={v:?}: {e}")))
+    };
     let mut points = Vec::new();
-    for k in 1.. {
-        let xname = format!("x{k}");
-        if node.attribute(xname.as_str()).is_none() {
+    // Consecutive indices from 1 until `x<k>` is missing; a missing `y<k>` is an error.
+    for (expected, (&k, &(x, y))) in (1u32..).zip(&coords) {
+        let (true, Some(x)) = (k == expected, x) else {
             break;
-        }
-        points.push(ctx.point(node, &xname, &format!("y{k}"))?);
+        };
+        let x = ctx.rel_x(value(format!("x{k}"), x)?)?;
+        let y = y.ok_or_else(|| ItemError(format!("missing attribute y{k}")))?;
+        let y = ctx.rel_y(value(format!("y{k}"), y)?)?;
+        points.push(Pt2::new(x, y));
     }
     if points.len() < 2 {
         return Err(ItemError(format!(
@@ -512,6 +547,22 @@ mod tests {
         assert_eq!(m.fill, Some(colour));
     }
 
+    /// M8, importer half: `color:blue` on a line is an `Rgb` stroke colour, which `ew-scene` lowers to a blue
+    /// stroke brush (`ew-scene` test `stroke_colour_becomes_the_stroke_brush`).
+    #[test]
+    fn line_color_blue_is_an_rgb_stroke() {
+        let (r, out, entries) = run(r#"<line x1="0" y1="0" x2="10" y2="0" style="color:blue"/>"#, line);
+        r.unwrap();
+        assert!(entries.is_empty());
+        let Primitive::Line(l) = only_prim(&out) else {
+            panic!()
+        };
+        assert_eq!(
+            l.stroke.as_ref().unwrap().colour,
+            Colour::Rgb(ew_schema::Rgb([0x00, 0x00, 0xff]))
+        );
+    }
+
     #[test]
     fn marker_without_stroke_fills_by_layer() {
         let m = end_marker("triangle", p(0, 100), p(0, 0), Nm(10), None)
@@ -698,6 +749,21 @@ mod tests {
             panic!()
         };
         assert_eq!(g.points.len(), 2);
+    }
+
+    /// C2: only canonical indices count (as `format!("x{k}")` lookups did), in index order, whatever the
+    /// attribute order.
+    #[test]
+    fn polygon_reads_canonical_indices_in_order() {
+        let xml = r#"<polygon y2="1" x2="1" x02="5" y02="5" x0="7" y0="7" y1="0" x1="0" y3="9" xa="3"/>"#;
+        let (r, out, _) = run(xml, polygon);
+        r.unwrap();
+        let Primitive::Polygon(g) = only_prim(&out) else {
+            panic!()
+        };
+        assert_eq!(g.points, vec![p(0, 0), p(px("1").0, px("1").0)]);
+        let (r, ..) = run(r#"<polygon x1="0" y1="0" x2="z" y2="1"/>"#, polygon);
+        assert_eq!(r.unwrap_err().0, "attribute x2=\"z\": not a decimal number");
     }
 
     #[test]

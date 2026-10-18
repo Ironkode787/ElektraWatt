@@ -16,7 +16,6 @@ workspace = true
 
 [dependencies]
 ew-interop-api = { path = "../ew-interop-api" }
-ew-plcaddr = { path = "../ew-plcaddr" }
 ew-schema = { path = "../ew-schema" }
 ew-units = { path = "../ew-units" }
 ew-ids = { path = "../ew-ids" }

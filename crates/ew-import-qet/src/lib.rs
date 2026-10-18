@@ -6,18 +6,23 @@
 //! This version reads one **element definition** (`.elmt`, WP-S3.05 second half; doc 14 §4.1–§4.3, §4.10):
 //! its geometry and terminals become a [`SymbolDef`](ew_schema::SymbolDef) on the QET 10 px grid with QET's element-origin
 //! anchor, and its function semantics a generated [`FnDef`](ew_schema::FnDef), both as library copies of the per-project
-//! "QET import" library ([`QET_IMPORT_LIBRARY`]). The `.qet` project importer and the golden CSV bootstrap
-//! are later work packages; they reuse [`read_element`] for every embedded definition.
+//! "QET import" library, whose `library_id` is the project ID (doc 05 §13.2,
+//! [`ImportContext::project`](ew_interop_api::ImportContext::project)) and whose human key is
+//! [`QET_IMPORT_LIBRARY_KEY`]. The `.qet` project importer and the golden CSV bootstrap are later work packages; they reuse [`read_element`] for
+//! every embedded definition.
 //!
 //! # Pipeline
 //!
-//! 1. **XML** ([`read_element`]): `roxmltree` with DTDs refused and the node and depth limits of
-//!    [`Limits`](ew_interop_api::Limits); the root must be `<definition type="element">`. Malformed XML or another root is an
-//!    [`ImportError`](ew_interop_api::ImportError); everything below is item-level and becomes report entries, never a panic.
+//! 1. **XML** ([`read_element`]): a flat pre-scan refuses inputs over the depth and attribute-count limits of
+//!    [`Limits`](ew_interop_api::Limits) before parsing ([`xml::prescan`]); then `roxmltree` with DTDs refused
+//!    and the node limit; the root must be `<definition type="element">`. Malformed XML or another root is an
+//!    [`ImportError`](ew_interop_api::ImportError); everything below is item-level and becomes report entries,
+//!    never a panic. At most [`MAX_ENTRIES_PER_DEFINITION`] findings are listed per definition; the rest are
+//!    counted in one EW-IMP-001 entry.
 //! 2. **Identity** ([`canon`]): the SHA-256 of the definition's canonical XML is the identity key
 //!    `qet:eldef:<64 hex>` (doc 14 §2.3, §4.3), never its `embed://` path; the symbol's item ID is
 //!    `v5(lineage namespace, key)` and the FnDef's `v5(lineage namespace, key + "#fndef")`, the copy IDs
-//!    `v5(NS_LIBCOPY, QET_IMPORT_LIBRARY ‖ item)`.
+//!    `v5(NS_LIBCOPY, project ‖ item)`.
 //! 3. **Primitives** ([`prims`]): one parser per QET primitive by the mapping table there; exact decimal
 //!    coordinates, which QET stores relative to the hotspot already (`hotspot_x`/`hotspot_y` only place the
 //!    bounding box), so they are used as they are ([`decimal`]); the style mini-language ([`style`]).
@@ -37,7 +42,7 @@
 //! | `FnDef.cps` | one per terminal: designation = `name`, or the 1-based definition order when the name is empty (an `Ident` cannot be empty); `extra["qet.name"] = ""` marks such a fallback, `extra["qet.type"]` keeps `Generic`/`Inner`/`Outer` |
 //! | `FnDef.extra` | `qet.kind` = the `kindInformations` as an object; `source_ref` |
 //! | `ItemMeta` | `sources` (below), `foreign_terms = true`, status released |
-//! | `LibCopy` | `library_id` = [`QET_IMPORT_LIBRARY`], `version` = `"1.0.0"`, `sha256` over the item's canonical compact JSON (doc 05 §13.2) |
+//! | `LibCopy` | `library_id` = the project ID, `version` = `"1.0.0"`, `sha256` over the item's canonical compact JSON (doc 05 §13.2) |
 //!
 //! **Provenance** (`ItemMeta.sources`, in this order, each only when known): `qet.file:<file name>`,
 //! `qet.path:<definition path>`, `qet.name:<the first name in document order>`, `qet.uuid:<uuid>`,
@@ -70,10 +75,15 @@ pub const IMPORTER_ID: &str = "qet";
 /// The importer version, recorded in every report; bumped on every mapping change.
 pub const IMPORTER_VERSION: &str = "0.1.0";
 
-/// The library ID of the per-project "QET import" library (FR-SYM-018, doc 07 §2.6). A random v4 UUID minted
-/// once for this purpose; **fixed forever**, since every imported symbol's copy ID derives from it
-/// (`v5(NS_LIBCOPY, QET_IMPORT_LIBRARY ‖ item)`).
-pub const QET_IMPORT_LIBRARY: Uuid = Uuid::from_u128(0x161fddec_32fc_4f8e_8eea_d31107fcf660);
+/// The human key of the per-project "QET import" library (FR-SYM-018, doc 07 §2.6), for hosts that name
+/// the library in the UI and in provenance. It is not an ID: the library's `library_id` is the project ID
+/// (doc 05 §13.2), so every copy ID is `v5(NS_LIBCOPY, project ‖ item)`.
+pub const QET_IMPORT_LIBRARY_KEY: &str = "qet-import";
+
+/// The most findings listed for one element definition; further findings are counted in one EW-IMP-001
+/// entry, so a hostile definition cannot make the report (or the time to locate its entries) grow without
+/// bound (doc 14 §11).
+pub const MAX_ENTRIES_PER_DEFINITION: usize = 1_000;
 
 /// **Provisional** library ID of EW's built-in system items (`ew.gen.ip`, `ew.gen.blackbox`, …), until the
 /// system library gets its own decided identity. References to built-in items also carry their key in

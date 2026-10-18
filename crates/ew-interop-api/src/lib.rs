@@ -12,7 +12,8 @@
 //!
 //! - [`Importer`]: `id`, `version`, `detect` (content first, name last) and `import`.
 //! - [`ImportInput`]: the file name (never a path), the bytes and their SHA-256.
-//! - [`ImportContext`]: the lineage to import into ([`LineageInfo`]), the `as_of` date and the [`Limits`].
+//! - [`ImportContext`]: the project, the lineage to import into ([`LineageInfo`]), the `as_of` date and the
+//!   [`Limits`].
 //! - [`ImportBatch`]: `ew-schema` records, library documents and the [`ImportReport`].
 //! - [`ImportReport`] of [`ReportEntry`]s with a [`Code`] (`EW-IMP-nnn`), a [`Severity`], an optional
 //!   [`DefectClass`] and a [`SourceLocation`]; [`SourceInfo`] and [`ImportStats`].
@@ -26,6 +27,11 @@
 //! - `import` takes the whole input as an [`ImportInput`] instead of a streaming `Source`, and an
 //!   [`ImportContext`] without hints, options, cancellation or progress; those arrive with the project
 //!   importers.
+//! - [`ImportContext`] carries the target project's ID (`project`, required), which doc 14 §2.1 leaves to
+//!   the host: project-local library copies use it as their `library_id` (doc 05 §13.2).
+//! - `ImportContext.lineage` and `ImportContext.as_of` are `Option`s: without a lineage the importer starts
+//!   a new one and emits its `ImportLineage` record in the batch (doc 14 §2.3); without an `as_of` date the
+//!   importer stamps no dates, since it never reads the wall clock.
 //! - [`ImportBatch`] carries library documents beside the records, and no `assets` or `provenance` vectors
 //!   yet: library items keep their provenance in `ItemMeta.sources` and `extra["source_ref"]`.
 //! - `Proposal`, `TableImage` and the `Exporter` trait are left to WP-S3.09; [`ReportEntry`] has no
@@ -55,7 +61,7 @@ mod report;
 
 pub use ew_schema::SourceRef;
 pub use importer::{Detection, ImportBatch, ImportContext, ImportError, Importer, Limits, LineageInfo};
-pub use input::{ImportInput, InputNameError};
+pub use input::{ImportInput, InputNameError, check_file_name};
 pub use report::{
     Code, CodeParseError, DefectClass, ImportReport, ImportStats, ReportEntry, Severity, SourceInfo,
     SourceLocation,

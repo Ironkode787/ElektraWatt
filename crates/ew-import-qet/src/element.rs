@@ -8,13 +8,14 @@ use std::collections::BTreeMap;
 
 use ew_ids::{Id, Uuid, v5};
 use ew_interop_api::{
-    Code, Detection, ImportBatch, ImportContext, ImportError, ImportInput, ImportReport, Importer, Limits,
-    LineageInfo, ReportEntry, Severity, SourceInfo, SourceLocation, SourceRef,
+    Detection, ImportBatch, ImportContext, ImportError, ImportInput, ImportReport, Importer, InputNameError,
+    Limits, LineageInfo, ReportEntry, SourceInfo, SourceRef, check_file_name,
 };
 use ew_mltext::{Ident, LangTag, MlText};
 use ew_schema::{
     AnchorPolicy, CpDef, Discipline, FnDef, FnFlags, ImportLineage, ItemMeta, KeyedList, LibCopy,
-    LibDocument, LibItem, LibRef, LineageAnchor, Record, RepType, Set, Sha256, SymbolCp, SymbolDef,
+    LibDocument, LibItem, LibRef, Library, LineageAnchor, Project, Record, RepType, Set, Sha256, SymbolCp,
+    SymbolDef,
 };
 use ew_units::Grid;
 use roxmltree::{Document, Node, ParsingOptions};
@@ -37,10 +38,31 @@ pub const LINEAGE_KEY: &str = "qet:lineage";
 /// project, its collection path (`embed://import/…`).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct ElementSource<'a> {
-    /// The source file name.
-    pub file: &'a str,
+    file: &'a str,
+    path: Option<&'a str>,
+}
+
+impl<'a> ElementSource<'a> {
+    /// The source `file` name and, for a definition embedded in a project, its collection `path`
+    /// (`embed://…`, not validated).
+    ///
+    /// # Errors
+    ///
+    /// [`InputNameError`] if `file` is empty or is a path (see [`check_file_name`]).
+    pub fn new(file: &'a str, path: Option<&'a str>) -> Result<ElementSource<'a>, InputNameError> {
+        check_file_name(file)?;
+        Ok(ElementSource { file, path })
+    }
+
+    /// The source file name (never a path).
+    pub fn file(&self) -> &'a str {
+        self.file
+    }
+
     /// The definition's collection path inside a project, if any.
-    pub path: Option<&'a str>,
+    pub fn path(&self) -> Option<&'a str> {
+        self.path
+    }
 }
 
 /// One imported definition.
@@ -118,12 +140,13 @@ fn item_sha256<T: Serialize>(item: &T) -> Sha256 {
     Sha256(sha2::Sha256::digest(json.as_bytes()).into())
 }
 
-/// A library copy of `item` with ID `item_id` in the QET import library.
-fn lib_copy<T: Serialize>(item_id: Id<LibItem>, item: T) -> LibCopy<T> {
+/// A library copy of `item` with ID `item_id` in the project's QET import library, whose `library_id` is
+/// the project ID (doc 05 §13.2).
+fn lib_copy<T: Serialize>(library: Id<Library>, item_id: Id<LibItem>, item: T) -> LibCopy<T> {
     LibCopy {
-        id: v5::lib_copy_id(crate::QET_IMPORT_LIBRARY, item_id.as_uuid()),
+        id: v5::lib_copy_id(library.as_uuid(), item_id.as_uuid()),
         v: 1,
-        library_id: Id::from_uuid(crate::QET_IMPORT_LIBRARY),
+        library_id: library,
         item_id,
         version: ITEM_VERSION.to_owned(),
         sha256: item_sha256(&item),
@@ -131,33 +154,35 @@ fn lib_copy<T: Serialize>(item_id: Id<LibItem>, item: T) -> LibCopy<T> {
     }
 }
 
-/// Reads one element definition from `xml` into the lineage `lineage` (see the crate documentation for the
-/// mapping). The nesting depth is checked by a flat scan first and the tree is parsed on a thread with a
-/// stack sized for it ([`crate::xml`]).
+/// Reads one element definition from `xml` into the lineage `lineage`, as library copies of the QET import
+/// library of `project` (see the crate documentation for the mapping). The nesting depth and the attribute
+/// counts are checked by a flat scan first ([`crate::xml::prescan`]) and the tree is parsed on a thread with
+/// a stack sized for the depth ([`crate::xml`]).
 ///
 /// # Errors
 ///
 /// [`ImportError::Malformed`] for malformed XML or a DOCTYPE; [`ImportError::LimitExceeded`] for an exceeded
-/// node, depth or attribute limit; [`ImportError::Unsupported`] if the root is not
-/// `<definition type="element">`.
+/// node, depth, attribute-count or attribute-size limit, or for a definition with more than 65,535
+/// terminals (`what` is `"terminals per element definition"`; EW-IMP-001 for the file);
+/// [`ImportError::Unsupported`] if the root is not `<definition type="element">`.
 pub fn read_element(
     xml: &str,
     src: &ElementSource<'_>,
     lineage: &LineageInfo,
+    project: Id<Project>,
     limits: &Limits,
 ) -> Result<ElementImport, ImportError> {
-    let depth = crate::xml::max_depth(xml, limits.max_xml_depth).ok_or(ImportError::LimitExceeded {
-        what: "XML depth".into(),
-        limit: u64::from(limits.max_xml_depth),
-    })?;
-    crate::xml::with_parser_stack(depth, || read_on_stack(xml, src, lineage, limits))
+    let depth = crate::xml::prescan(xml, limits)?;
+    let library: Id<Library> = Id::from_uuid(project.as_uuid());
+    crate::xml::with_parser_stack(depth, || read_on_stack(xml, src, lineage, library, limits))
 }
 
-/// [`read_element`] after the depth guard, on the parser thread.
+/// [`read_element`] after the pre-scan, on the parser thread.
 fn read_on_stack(
     xml: &str,
     src: &ElementSource<'_>,
     lineage: &LineageInfo,
+    library: Id<Library>,
     limits: &Limits,
 ) -> Result<ElementImport, ImportError> {
     let doc = parse_xml(xml, limits)?;
@@ -176,15 +201,8 @@ fn read_on_stack(
         .and_then(|n| n.attribute("uuid"))
         .map(str::to_owned);
 
-    let mut ctx = PrimCtx::new(src.file, src.path, Decimal::ZERO, Decimal::ZERO);
-    let mut entries: Vec<ReportEntry> = Vec::new();
-    let location = |node: Node<'_, '_>| SourceLocation {
-        file: src.file.to_owned(),
-        member: src.path.map(str::to_owned),
-        item: Some(node.tag_name().name().to_owned()),
-        line: Some(node.document().text_pos_at(node.range().start).row),
-        ..SourceLocation::default()
-    };
+    // Every finding goes through `ctx`: located by its line index and capped per definition.
+    let mut ctx = PrimCtx::new(src.file(), src.path(), Decimal::ZERO, Decimal::ZERO);
 
     // Names.
     let mut names: Vec<(LangTag, String)> = Vec::new();
@@ -194,20 +212,22 @@ fn read_on_stack(
             .children()
             .filter(|c| c.is_element() && c.tag_name().name() == "name")
         {
-            let text = name.text().unwrap_or("").trim().to_owned();
+            // The text nodes around a comment join, and white space collapses, as in the canonical XML.
+            let raw: String = name
+                .children()
+                .filter(Node::is_text)
+                .filter_map(|c| c.text())
+                .collect();
+            let text = canon::collapse_whitespace(&raw);
             if first_name.is_none() && !text.is_empty() {
                 first_name = Some(text.clone());
             }
             let lang = name.attribute("lang").unwrap_or("");
             match LangTag::parse_lenient(lang) {
                 Ok(tag) => names.push((tag, text)),
-                Err(_) => entries.push(
-                    ReportEntry::new(
-                        Code::DROPPED_BY_DESIGN,
-                        Severity::Info,
-                        format!("name with language {lang:?} dropped: not a language tag"),
-                    )
-                    .at(location(name)),
+                Err(_) => ctx.unsupported(
+                    name,
+                    format!("name with language {lang:?} dropped: not a language tag"),
                 ),
             }
         }
@@ -232,17 +252,18 @@ fn read_on_stack(
         match node.tag_name().name() {
             "description" => prims::parse_description(node, &mut ctx, &mut parsed),
             "uuid" | "names" | "kindInformations" | "informations" | "elementInformations" => {}
-            other => entries.push(
-                ReportEntry::new(
-                    Code::DROPPED_BY_DESIGN,
-                    Severity::Info,
-                    format!("unsupported element <{other}> dropped"),
-                )
-                .at(location(node)),
-            ),
+            other => ctx.unsupported(node, format!("unsupported element <{other}> dropped")),
         }
     }
-    entries.append(&mut ctx.entries);
+
+    // CP indices are `u16`.
+    let too_many_terminals = || ImportError::LimitExceeded {
+        what: "terminals per element definition".into(),
+        limit: u64::from(u16::MAX),
+    };
+    if u16::try_from(parsed.terminals.len()).is_err() {
+        return Err(too_many_terminals());
+    }
 
     // Identity.
     let digest = canon::identity_sha256(root);
@@ -259,8 +280,8 @@ fn read_on_stack(
         .unwrap_or(Value::Null)
     };
 
-    let mut sources = vec![format!("qet.file:{}", src.file)];
-    if let Some(p) = src.path {
+    let mut sources = vec![format!("qet.file:{}", src.file())];
+    if let Some(p) = src.path() {
         sources.push(format!("qet.path:{p}"));
     }
     if let Some(n) = &first_name {
@@ -280,7 +301,7 @@ fn read_on_stack(
     };
 
     // Function semantics.
-    let resolution = fndef::resolve(&link_type, &kind, src.path, parsed.terminals.len());
+    let resolution = fndef::resolve(&link_type, &kind, src.path(), parsed.terminals.len());
     let (fndef_ref, fndef_copy) = match resolution {
         Resolution::Builtin(builtin) => {
             let item: Id<LibItem> = Id::from_uuid(Uuid::new_v5(&crate::BUILTIN_LIBRARY, builtin.as_bytes()));
@@ -296,19 +317,14 @@ fn read_on_stack(
         }
         Resolution::Generated(g) => {
             if let Some((code, severity, message)) = g.finding {
-                entries.push(ReportEntry::new(code, severity, message).at(SourceLocation {
-                    file: src.file.to_owned(),
-                    member: src.path.map(str::to_owned),
-                    item: Some("definition".to_owned()),
-                    line: Some(root.document().text_pos_at(root.range().start).row),
-                    ..SourceLocation::default()
-                }));
+                ctx.report(root, code, severity, message);
             }
             let cps = parsed
                 .terminals
                 .iter()
                 .enumerate()
                 .map(|(i, t)| {
+                    let idx = u16::try_from(i).map_err(|_| too_many_terminals())?;
                     let mut extra = BTreeMap::new();
                     extra.insert("qet.type".to_owned(), Value::String(t.kind.clone()));
                     let designation = match Ident::from_input(&t.name) {
@@ -319,8 +335,8 @@ fn read_on_stack(
                                 .unwrap_or_else(|_| unreachable!("a decimal is an identifier"))
                         }
                     };
-                    CpDef {
-                        idx: i as u16,
+                    Ok(CpDef {
+                        idx,
                         designation,
                         alias: None,
                         discipline: Discipline::Electrical,
@@ -332,9 +348,9 @@ fn read_on_stack(
                         clamp: None,
                         physical: true,
                         extra,
-                    }
+                    })
                 })
-                .collect::<Vec<_>>();
+                .collect::<Result<Vec<_>, ImportError>>()?;
             // Terminals are numbered by definition order, so a duplicate `idx` cannot occur; `Malformed` is the
             // closest importer error (ImportError has no internal-error variant).
             let cps = KeyedList::from_vec(cps).map_err(|e| ImportError::Malformed {
@@ -360,12 +376,12 @@ fn read_on_stack(
                 extra,
             };
             let r = LibRef {
-                library: Id::from_uuid(crate::QET_IMPORT_LIBRARY),
+                library,
                 item: fndef_item,
                 version_req: "^1".to_owned(),
                 extra: BTreeMap::new(),
             };
-            (r, Some(lib_copy(fndef_item, def)))
+            (r, Some(lib_copy(library, fndef_item, def)))
         }
     };
 
@@ -375,20 +391,21 @@ fn read_on_stack(
         .iter()
         .enumerate()
         .map(|(i, t)| {
+            let idx = u16::try_from(i).map_err(|_| too_many_terminals())?;
             let mut extra = BTreeMap::new();
             if let Some(u) = &t.uuid {
                 extra.insert("qet.uuid".to_owned(), Value::String(u.clone()));
             }
-            SymbolCp {
-                idx: i as u16,
-                fn_cp: i as u16,
+            Ok(SymbolCp {
+                idx,
+                fn_cp: idx,
                 pos: t.pos,
                 dir: t.dir.clone(),
                 discipline: Discipline::Electrical,
                 extra,
-            }
+            })
         })
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>, ImportError>>()?;
     // Terminals are numbered by definition order, so a duplicate `idx` cannot occur; `Malformed` is the
     // closest importer error (ImportError has no internal-error variant).
     let cps = KeyedList::from_vec(cps).map_err(|e| ImportError::Malformed {
@@ -422,13 +439,102 @@ fn read_on_stack(
     };
 
     Ok(ElementImport {
-        symbol: lib_copy(symbol_item, symbol),
+        symbol: lib_copy(library, symbol_item, symbol),
         fndef: fndef_copy,
-        entries,
+        entries: ctx.take_entries(),
         version,
         link_type,
         key,
     })
+}
+
+/// Whether the first start tag of `head` is `<definition>` with a `type` attribute of `element`. Skips a
+/// BOM, the XML declaration and other processing instructions, comments, a DOCTYPE and white space; a head
+/// that ends first gives `false`.
+fn root_is_element_definition(head: &[u8]) -> bool {
+    fn skip_space(mut b: &[u8]) -> &[u8] {
+        while let [c, rest @ ..] = b {
+            if !matches!(c, b' ' | b'\t' | b'\n' | b'\r') {
+                break;
+            }
+            b = rest;
+        }
+        b
+    }
+    /// The bytes after the first `end` in `b`.
+    fn after<'b>(b: &'b [u8], end: &[u8]) -> Option<&'b [u8]> {
+        let at = b.windows(end.len()).position(|w| w == end)?;
+        b.get(at + end.len()..)
+    }
+    let mut rest = head.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(head);
+    loop {
+        rest = skip_space(rest);
+        if let Some(r) = rest.strip_prefix(b"<?") {
+            let Some(r) = after(r, b"?>") else { return false };
+            rest = r;
+        } else if let Some(r) = rest.strip_prefix(b"<!--") {
+            let Some(r) = after(r, b"-->") else { return false };
+            rest = r;
+        } else if let Some(r) = rest.strip_prefix(b"<!") {
+            // A DOCTYPE, with an optional internal subset in brackets.
+            let mut depth = 0u32;
+            let mut end = None;
+            for (i, c) in r.iter().enumerate() {
+                match c {
+                    b'[' => depth += 1,
+                    b']' => depth = depth.saturating_sub(1),
+                    b'>' if depth == 0 => {
+                        end = Some(i + 1);
+                        break;
+                    }
+                    _ => {}
+                }
+            }
+            let Some(r) = end.and_then(|e| r.get(e..)) else {
+                return false;
+            };
+            rest = r;
+        } else {
+            break;
+        }
+    }
+    let Some(mut tag) = rest.strip_prefix(b"<definition") else {
+        return false;
+    };
+    if !matches!(tag.first(), Some(b' ' | b'\t' | b'\n' | b'\r' | b'>' | b'/')) {
+        return false;
+    }
+    // The attributes of the start tag.
+    loop {
+        tag = skip_space(tag);
+        let Some(&c) = tag.first() else { return false };
+        if c == b'>' || c == b'/' {
+            return false;
+        }
+        let name_len = tag
+            .iter()
+            .position(|c| matches!(c, b' ' | b'\t' | b'\n' | b'\r' | b'=' | b'>' | b'/'))
+            .unwrap_or(tag.len());
+        let (attr, after_name) = tag.split_at(name_len);
+        let Some(after_eq) = skip_space(after_name).strip_prefix(b"=") else {
+            return false;
+        };
+        let value_start = skip_space(after_eq);
+        let Some((&quote, value)) = value_start.split_first() else {
+            return false;
+        };
+        if quote != b'"' && quote != b'\'' {
+            return false;
+        }
+        let Some(len) = value.iter().position(|&c| c == quote) else {
+            return false;
+        };
+        let (val, after_val) = value.split_at(len);
+        if attr == b"type" && val == b"element" {
+            return true;
+        }
+        tag = after_val.get(1..).unwrap_or_default();
+    }
 }
 
 /// The importer of standalone `.elmt` element definition files.
@@ -448,11 +554,12 @@ impl Importer for QetElementImporter {
         crate::IMPORTER_VERSION
     }
 
-    /// `Certain` when the head contains `<definition` and `type="element"`; `Maybe(30)` for a name ending
-    /// in `.elmt`; otherwise `No`.
+    /// `Certain` when the root element in the head is `<definition type="element">` (after an optional BOM,
+    /// XML declaration, processing instructions, comments, DOCTYPE and white space), so that a project
+    /// embedding definitions is not claimed; otherwise `Maybe(30)` for a name ending in `.elmt`, else `No`.
+    /// A head that ends before the root start tag is complete is judged by the name alone.
     fn detect(&self, head: &[u8], name: &str) -> Detection {
-        let has = |needle: &[u8]| head.windows(needle.len()).any(|w| w == needle);
-        if has(b"<definition") && (has(b"type=\"element\"") || has(b"type='element'")) {
+        if root_is_element_definition(head) {
             Detection::Certain
         } else if name.to_ascii_lowercase().ends_with(".elmt") {
             Detection::Maybe(30)
@@ -462,14 +569,17 @@ impl Importer for QetElementImporter {
     }
 
     fn import(&self, input: &ImportInput, ctx: &mut ImportContext) -> Result<ImportBatch, ImportError> {
-        let size = input.bytes.len() as u64;
+        let size = input.bytes().len() as u64;
         if size > ctx.limits.max_input_bytes {
             return Err(ImportError::LimitExceeded {
                 what: "input size".into(),
                 limit: ctx.limits.max_input_bytes,
             });
         }
-        let bytes = input.bytes.strip_prefix(b"\xEF\xBB\xBF").unwrap_or(&input.bytes);
+        let bytes = input
+            .bytes()
+            .strip_prefix(b"\xEF\xBB\xBF")
+            .unwrap_or(input.bytes());
         let xml = std::str::from_utf8(bytes).map_err(|e| ImportError::Unsupported {
             message: format!("not UTF-8 at byte {}", e.valid_up_to()),
         })?;
@@ -480,7 +590,7 @@ impl Importer for QetElementImporter {
             None => {
                 let namespace = v5::lineage_namespace(
                     crate::IMPORTER_ID,
-                    &v5::LineageAnchor::FirstImportSha256(input.sha256),
+                    &v5::LineageAnchor::FirstImportSha256(input.sha256()),
                 )
                 .unwrap_or_else(|_| unreachable!("\"qet\" is a valid importer name"));
                 let id: Id<ImportLineage> = v5::imported_id(namespace, LINEAGE_KEY);
@@ -489,10 +599,10 @@ impl Importer for QetElementImporter {
                     v: 1,
                     importer: Ident::from_input(crate::IMPORTER_ID)
                         .unwrap_or_else(|_| unreachable!("\"qet\" is an identifier")),
-                    source_name: input.name.clone(),
-                    anchor: LineageAnchor::FirstImportSha256(Sha256(input.sha256)),
+                    source_name: input.name().to_owned(),
+                    anchor: LineageAnchor::FirstImportSha256(Sha256(input.sha256())),
                     namespace: Id::from_uuid(namespace),
-                    last_source_sha256: Some(Sha256(input.sha256)),
+                    last_source_sha256: Some(Sha256(input.sha256())),
                     last_run: None,
                     extra: BTreeMap::new(),
                 }));
@@ -500,18 +610,17 @@ impl Importer for QetElementImporter {
             }
         };
 
-        let src = ElementSource {
-            file: &input.name,
-            path: None,
-        };
-        let el = read_element(xml, &src, &lineage, &ctx.limits)?;
+        let src = ElementSource::new(input.name(), None).map_err(|e| ImportError::Unsupported {
+            message: e.to_string(),
+        })?;
+        let el = read_element(xml, &src, &lineage, ctx.project, &ctx.limits)?;
 
         let mut report = ImportReport::new(
             crate::IMPORTER_ID,
             crate::IMPORTER_VERSION,
             SourceInfo {
-                name: input.name.clone(),
-                sha256: input.sha256,
+                name: input.name().to_owned(),
+                sha256: input.sha256(),
                 size,
                 format: "qet-element".to_owned(),
                 format_version: el.version.clone(),

@@ -375,6 +375,13 @@ allowed = ["CC0-1.0"]
 glob = "docs/plan/tools/.gitignore"
 allowed = ["CC0-1.0"]
 
+# L8 (test fixtures): own test fixtures under crates/*/tests/fixtures/ are CC0-1.0 (19 §2.1 L8, LR-11); the
+# longer glob beats the crate rule. A crate rule longer than this glob (26 characters) would win instead; such a
+# crate needs its own lengthened fixtures glob, e.g. `crates/<crate>/tests/fixtures/**`.
+[[path]]
+glob = "crates/*/tests/fixtures/**"
+allowed = ["CC0-1.0"]
+
 # ---------------------------------------------------------------------------------------------------------------
 # L12: CI workflows, scripts and tools (MIT OR Apache-2.0), so that others may copy the gates.
 [[path]]

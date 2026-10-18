@@ -156,14 +156,16 @@ pub struct QtFont {
     pub family: String,
     /// The point size: field 1, or field 2 (pixel size) × 0.75 when field 1 is `-1`.
     pub point_size: Decimal,
-    /// Bold: weight (field 4) ≥ 63 in the Qt 5 form (exactly 10 fields), ≥ 600 in the Qt 6 form (11 or more).
+    /// Bold: weight (field 4) ≥ 63 in the Qt 5 form, ≥ 600 in the Qt 6 form. A string is Qt 6 only with at
+    /// least 16 fields or a weight above 99; the optional trailing style name of Qt 5 does not matter.
     pub bold: bool,
     /// Italic: style (field 5) is not `0`.
     pub italic: bool,
 }
 
 /// Parses a `QFont::toString()` string: comma-separated, at least 6 fields; `None` if it has fewer fields,
-/// a field that should be a number is not one, or the resulting point size is not positive.
+/// a field that should be a number is not one, the resulting point size (after the pixel size × 0.75 path)
+/// is not positive, is above 1,000 pt or has more than 6 decimal places.
 ///
 /// ```
 /// # use ew_import_qet::prims::text::parse_qt_font;
@@ -185,11 +187,17 @@ pub fn parse_qt_font(font: &str) -> Option<QtFont> {
     if point_size.is_zero() || point_size.is_negative() {
         return None;
     }
+    // Bounded sizes only: at most 1,000 pt and 6 decimal places.
+    if point_size.exp() < -6 || point_size.checked_sub(Decimal::from_int(1_000)).ok()?.mantissa() > 0 {
+        return None;
+    }
     let weight: i64 = fields[4].parse().ok()?;
     let style: i64 = fields[5].parse().ok()?;
-    // Qt 6 writes 11 or more fields with weights on the 1..1000 scale; Qt 5 writes 10 with 0..99. Anything
-    // shorter than 10 fields is read like Qt 5.
-    let bold_from = if fields.len() >= 11 { 600 } else { 63 };
+    // Qt 5 writes 10 fields, or 11 with a trailing style name, with weights on the 0..99 scale; Qt 6 writes
+    // 16 or more fields with weights on the 1..1000 scale. A string is Qt 6 only with at least 16 fields or
+    // a weight above 99; anything else is read like Qt 5.
+    let qt6 = fields.len() >= 16 || weight > 99;
+    let bold_from = if qt6 { 600 } else { 63 };
     Some(QtFont {
         family: fields[0].to_owned(),
         point_size,
@@ -518,6 +526,34 @@ mod tests {
         // Qt 5 weight 63 is bold, 62 is not.
         assert_eq!(font("Noto Sans,10,-1,5,63,0,0,0,0,0"), Some(ident("qet.10.b")));
         assert_eq!(font("Noto Sans,10,-1,5,62,0,0,0,0,0"), Some(ident("qet.10")));
+    }
+
+    #[test]
+    fn qt5_and_qt6_font_forms_with_and_without_style_names() {
+        let bold = |f: &str| parse_qt_font(f).unwrap().bold;
+        // Qt 5: 10 fields, or 11 with a style name.
+        assert!(bold("Arial,8,-1,5,75,0,0,0,0,0"));
+        assert!(!bold("Arial,8,-1,5,50,0,0,0,0,0"));
+        assert!(bold("Arial,8,-1,5,75,0,0,0,0,0,Bold"));
+        assert!(!bold("Arial,8,-1,5,50,0,0,0,0,0,Regular"));
+        // Qt 6: 16 fields, 17 with a style name.
+        assert!(bold("Arial,8,-1,5,700,0,0,0,0,0,0,0,0,0,0,1"));
+        assert!(!bold("Arial,8,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"));
+        assert!(bold("Arial,8,-1,5,700,0,0,0,0,0,0,0,0,0,0,1,Bold"));
+        // A weight above 99 is Qt 6 whatever the field count.
+        assert!(!bold("Arial,8,-1,5,500,0,0,0,0,0,Regular"));
+        assert!(bold("Arial,8,-1,5,600,0,0,0,0,0,Regular"));
+    }
+
+    #[test]
+    fn font_point_size_is_bounded() {
+        let font = |size: &str| parse_qt_font(&format!("Arial,{size},-1,5,50,0,0,0,0,0"));
+        for bad in ["1e6", "1001", "9.1234567"] {
+            assert!(font(bad).is_none(), "{bad}");
+        }
+        for good in ["1000", "9.123456"] {
+            assert!(font(good).is_some(), "{good}");
+        }
     }
 
     #[test]

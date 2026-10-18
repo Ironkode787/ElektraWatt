@@ -201,16 +201,19 @@ pub struct Stroke {
     pub join: Join,
     /// Dash pattern; `None` is solid.
     pub dash: Option<Dash>,
+    /// What the stroke paints with; [`Brush::BLACK`] unless set with [`Stroke::with_brush`].
+    pub brush: Brush,
 }
 
 impl Stroke {
-    /// A solid stroke of `width` with butt caps and miter joins.
+    /// A solid black stroke of `width` with butt caps and miter joins.
     pub const fn solid(width: Nm) -> Stroke {
         Stroke {
             width,
             cap: Cap::Butt,
             join: Join::Miter,
             dash: None,
+            brush: Brush::BLACK,
         }
     }
 
@@ -236,6 +239,19 @@ impl Stroke {
             dash: Some(pattern.scaled(self.width)),
             ..self
         }
+    }
+
+    /// This stroke painted with `brush`.
+    ///
+    /// ```
+    /// use ew_dl::{Brush, Color, Pen, Stroke};
+    ///
+    /// let blue = Brush::Solid(Color::from_rgb8(0, 0, 255));
+    /// assert_eq!(Stroke::pen(Pen::P026).brush, Brush::BLACK);
+    /// assert_eq!(Stroke::pen(Pen::P026).with_brush(blue).brush, blue);
+    /// ```
+    pub fn with_brush(self, brush: Brush) -> Stroke {
+        Stroke { brush, ..self }
     }
 }
 
@@ -271,6 +287,17 @@ mod tests {
         assert_eq!(mm, [0.13, 0.18, 0.26, 0.42, 0.52, 1.30]);
         let s = Stroke::pen(Pen::P013);
         assert_eq!((s.cap, s.join, s.dash), (Cap::Butt, Join::Miter, None));
+        assert_eq!(s.brush, Brush::Solid(Color::BLACK));
+    }
+
+    /// M8: a stroke carries its colour; the constructors default to black and keep it through `dashed`.
+    #[test]
+    fn stroke_brush() {
+        let red = Brush::Solid(Color::from_rgb8(255, 0, 0));
+        let s = Stroke::solid(Nm(100)).with_brush(red).dashed(DashPattern::Dot12);
+        assert_eq!(s.brush, red);
+        assert_eq!(s.width, Nm(100));
+        assert_ne!(s, Stroke::solid(Nm(100)).dashed(DashPattern::Dot12));
     }
 
     /// FR-SYM-003 acceptance values: dash 1.04 / gap 0.52 mm and dot 0.26 / gap 0.52 mm at 0.26 mm.

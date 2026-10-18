@@ -23,7 +23,7 @@
 //! | `Arc` | [`Path::arc`] about the box centre ([`num::arc_to_cubics`](ew_dl::num::arc_to_cubics)), never filled |
 //! | `Polygon` | [`Path::polygon`] if `closed`, else [`Path::polyline`] (a fill then closes implicitly) |
 //! | `Text` | a [`PlacedText`] with [`TextSource::Static`] |
-//! | `Image` | an [`Item::image`] over its rectangle, in a group carrying the variant (images turn and mirror with the symbol) |
+//! | `Image` | an [`Item::image`] over its rectangle, in a group carrying the variant (images turn and mirror with the symbol); its [`ImageData`] carries the asset's SHA-256 with format PNG and **empty bytes**, a placeholder until assets reach the scene, so renderers must resolve the bytes by hash |
 //! | `Unknown` | nothing |
 //!
 //! A primitive with neither stroke nor fill draws nothing and is omitted.
@@ -33,10 +33,11 @@
 //!   inside the box.
 //! - **Pens** ([`stroke`]): house pens map one to one to [`DlPen`]s; an explicit width is
 //!   [`DlStroke::solid`]; an unknown pen counts as 0.26 mm. Dash patterns are scaled by the width
-//!   ([`DashPattern::scaled`]). Butt caps and miter joins throughout.
-//! - **Colours** ([`colour`]): `ByLayer` (and unknown colours) resolve to [`LAYER_COLOUR`], a placeholder
-//!   black until layer colours exist. `ew-dl` strokes carry no colour yet (they paint black), so a stroke
-//!   colour is not represented; fills are [`Brush::Solid`].
+//!   ([`DashPattern::scaled`]). Butt caps and miter joins throughout. The stroke's colour becomes its
+//!   [`Brush::Solid`] ([`DlStroke::with_brush`]).
+//! - **Colours** ([`colour`]): `Rgb` maps one to one; `ByLayer` (and unknown colours) resolve to
+//!   [`LAYER_COLOUR`], a placeholder black until layer colours exist. Strokes and fills are both
+//!   [`Brush::Solid`].
 //! - **Drop shadow** (FR-SYM-003): a `RectPrim.shadow` of `s > 0` adds a filled shape offset by `(s, s)`,
 //!   **down and to the right** on the sheet, painted before the box, in the box's stroke colour (else its
 //!   fill colour). For a box without corner radii and `s` below its width and height, the shape is only the
@@ -221,6 +222,9 @@ pub fn lower(def: &SymbolDef, variant: Orient2) -> SymbolGeometry {
 
 /// The items of one primitive in the symbol frame (R0), before the variant: zero, one or (a box with a
 /// drop shadow) two items; texts give none.
+///
+/// An `Image` lowers to an item whose [`ImageData`] carries the asset's SHA-256 with format PNG and **empty
+/// bytes**: a placeholder until assets reach the scene, so renderers must resolve the bytes by hash.
 pub fn lower_primitive(prim: &Primitive) -> Vec<Item> {
     let fill_of = |c: &Option<Colour>| c.as_ref().map(|c| Brush::Solid(colour(c)));
     let item = |path: Path, s: &Option<Stroke>, fill: Option<Brush>| {
@@ -353,6 +357,7 @@ pub fn stroke(s: &Stroke) -> DlStroke {
         Pen::Width(w) => DlStroke::solid(*w),
         Pen::Unknown(_) => DlStroke::pen(DlPen::P026),
     };
+    let base = base.with_brush(Brush::Solid(colour(&s.colour)));
     match &s.dash {
         Dash::Dash42 => base.dashed(DashPattern::Dash42),
         Dash::Dot12 => base.dashed(DashPattern::Dot12),

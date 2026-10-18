@@ -252,6 +252,14 @@ fn composed_display_list() {
                                         ),
                                     },
                                 ),
+                                brush: Solid(
+                                    Color {
+                                        r: 0,
+                                        g: 0,
+                                        b: 0,
+                                        a: 255,
+                                    },
+                                ),
                             },
                         ),
                         fill: None,

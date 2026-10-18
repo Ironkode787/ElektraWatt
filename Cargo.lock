@@ -331,7 +331,6 @@ dependencies = [
  "ew-ids",
  "ew-interop-api",
  "ew-mltext",
- "ew-plcaddr",
  "ew-schema",
  "ew-units",
  "roxmltree",

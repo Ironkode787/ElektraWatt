@@ -29,9 +29,10 @@ use ew_units::{Angle2, MAX_SAFE_INTEGER, Nm};
 const PX_NUM: i128 = 793_750;
 /// Nanometres per QET pixel, denominator.
 const PX_DEN: i128 = 3;
-/// The largest exponent magnitude [`Decimal::parse`] accepts; larger values are out of any useful range
-/// (and smaller ones round to zero).
-const MAX_EXP: i32 = 60;
+/// The literal exponent of [`Decimal::parse`] saturates here.
+const EXP_LITERAL_MAX: i64 = 1_000_000;
+/// Mantissas of parsed decimals are below this: 32 significant digits.
+const MAX_MANTISSA: i128 = 10i128.pow(32);
 
 /// Why a string is not a usable decimal.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -39,7 +40,7 @@ pub enum DecimalError {
     /// Not of the form `[+-]digits[.digits][e[+-]digits]` (this includes `nan`, `inf` and the empty
     /// string).
     Syntax,
-    /// More significant digits than an `i128` holds.
+    /// More than 32 significant digits (counted from the first to the last non-zero digit).
     TooLong,
     /// The converted value is outside ±(2⁵³ − 1) nm or the `i32` range of [`Angle2`].
     OutOfRange,
@@ -76,7 +77,8 @@ impl Decimal {
     /// Zero.
     pub const ZERO: Decimal = Decimal { mantissa: 0, exp: 0 };
 
-    /// `mantissa × 10^exp`, normalised.
+    /// `mantissa × 10^exp`, normalised. The exponent saturates at `i32::MAX` (only reachable with an
+    /// exponent within a few digits of it).
     pub fn new(mantissa: i128, exp: i32) -> Decimal {
         let (mut m, mut e) = (mantissa, exp);
         if m == 0 {
@@ -84,7 +86,7 @@ impl Decimal {
         }
         while m % 10 == 0 {
             m /= 10;
-            e += 1;
+            e = e.saturating_add(1);
         }
         Decimal { mantissa: m, exp: e }
     }
@@ -118,10 +120,24 @@ impl Decimal {
     /// surrounding ASCII white space is ignored. This is the output grammar of `QString::number` (and of
     /// hand-edited files with a leading `+` or `.5`).
     ///
+    /// The value is held exactly. Leading zeros cost nothing, and trailing zeros of the integer or fraction
+    /// part are folded into the exponent (or dropped), so neither counts towards the length limit: at most
+    /// **32 significant digits** (from the first to the last non-zero digit) are accepted. With
+    /// |m| < 10³², `m × 793_750` and `m × 1000` always fit `i128`, so the conversions never overflow for a
+    /// negative exponent and their "10^k ≥ 10^38 rounds to zero" shortcut stays exact. (`QString::number`
+    /// writes at most 17 significant digits.)
+    ///
+    /// The exponent literal saturates at ±1 000 000. That changes no conversion result for any input
+    /// shorter than a million characters: such values are out of range or round to zero either way. A total
+    /// exponent that does not fit `i32` gives zero when negative (every conversion rounds it to zero) and
+    /// [`DecimalError::OutOfRange`] when positive. Any other exponent is accepted; whether the converted
+    /// value is in range is decided by [`Decimal::px_to_nm`] and [`Decimal::deg_to_angle`], so values below
+    /// 0.5 nm are zero, not errors.
+    ///
     /// # Errors
     ///
-    /// [`DecimalError::Syntax`] for anything else, [`DecimalError::TooLong`] if the significant digits
-    /// overflow `i128`, [`DecimalError::OutOfRange`] if the exponent exceeds ±60 for a non-zero value.
+    /// [`DecimalError::Syntax`] for anything else, [`DecimalError::TooLong`] for more than 32 significant
+    /// digits, [`DecimalError::OutOfRange`] for a non-zero value whose exponent exceeds `i32::MAX`.
     pub fn parse(s: &str) -> Result<Decimal, DecimalError> {
         let s = s.trim_matches(|c: char| c.is_ascii_whitespace());
         let b = s.as_bytes();
@@ -137,26 +153,19 @@ impl Decimal {
             }
             _ => false,
         };
-        let mut mantissa: i128 = 0;
-        let mut exp: i64 = 0;
+        let mut acc = Digits::default();
         let mut digits = 0usize;
-        let push = |d: u8, mantissa: &mut i128| -> Result<(), DecimalError> {
-            *mantissa = mantissa
-                .checked_mul(10)
-                .and_then(|m| m.checked_add(i128::from(d - b'0')))
-                .ok_or(DecimalError::TooLong)?;
-            Ok(())
-        };
         while i < b.len() && b[i].is_ascii_digit() {
-            push(b[i], &mut mantissa)?;
+            acc.push(b[i] - b'0', false)?;
             digits += 1;
             i += 1;
         }
+        // Zeros at the end of the integer part are worth a power of ten, unless a fraction digit follows.
+        acc.held_int = acc.pending;
         if i < b.len() && b[i] == b'.' {
             i += 1;
             while i < b.len() && b[i].is_ascii_digit() {
-                push(b[i], &mut mantissa)?;
-                exp -= 1;
+                acc.push(b[i] - b'0', true)?;
                 digits += 1;
                 i += 1;
             }
@@ -164,6 +173,7 @@ impl Decimal {
         if digits == 0 {
             return Err(DecimalError::Syntax);
         }
+        let mut literal: i64 = 0;
         if i < b.len() && (b[i] == b'e' || b[i] == b'E') {
             i += 1;
             let exp_negative = match b.get(i) {
@@ -180,56 +190,76 @@ impl Decimal {
             let start = i;
             let mut e: i64 = 0;
             while i < b.len() && b[i].is_ascii_digit() {
-                // Saturate: anything this large is out of range below anyway.
-                e = (e * 10 + i64::from(b[i] - b'0')).min(1_000_000);
+                e = (e * 10 + i64::from(b[i] - b'0')).min(EXP_LITERAL_MAX);
                 i += 1;
             }
             if i == start {
                 return Err(DecimalError::Syntax);
             }
-            exp += if exp_negative { -e } else { e };
+            literal = if exp_negative { -e } else { e };
         }
         if i != b.len() {
             return Err(DecimalError::Syntax);
         }
-        if mantissa == 0 {
+        if acc.mantissa == 0 {
             return Ok(Decimal::ZERO);
         }
-        let d = Decimal::new(if negative { -mantissa } else { mantissa }, 0);
-        let exp = exp + i64::from(d.exp);
-        if exp.abs() > i64::from(MAX_EXP) {
-            return Err(DecimalError::OutOfRange);
+        let mut m = if negative { -acc.mantissa } else { acc.mantissa };
+        let mut exp = acc.exp + literal;
+        exp += i64::try_from(acc.held_int).map_err(|_| DecimalError::TooLong)?;
+        while m % 10 == 0 {
+            m /= 10;
+            exp += 1;
         }
-        Ok(Decimal::new(d.mantissa, exp as i32))
+        match i32::try_from(exp) {
+            Ok(exp) => Ok(Decimal { mantissa: m, exp }),
+            Err(_) if exp < 0 => Ok(Decimal::ZERO),
+            Err(_) => Err(DecimalError::OutOfRange),
+        }
     }
 
     /// The two values brought to the common (smaller) exponent, or `None` on overflow.
     fn aligned(self, other: Decimal) -> Option<(i128, i128, i32)> {
         let e = self.exp.min(other.exp);
         let scale = |d: Decimal| -> Option<i128> {
-            let shift = u32::try_from(d.exp - e).ok()?;
+            let shift = u32::try_from(d.exp.checked_sub(e)?).ok()?;
             d.mantissa.checked_mul(10i128.checked_pow(shift)?)
         };
         Some((scale(self)?, scale(other)?, e))
     }
 
-    /// `self + other`, exactly.
+    /// `self + other`, exactly. If either operand is zero the other is returned as it is, whatever the
+    /// exponent gap.
     ///
     /// # Errors
     ///
-    /// [`DecimalError::OutOfRange`] on overflow.
+    /// [`DecimalError::OutOfRange`] if the exact sum needs more digits than an `i128` holds.
     pub fn checked_add(self, other: Decimal) -> Result<Decimal, DecimalError> {
+        if other.is_zero() {
+            return Ok(self);
+        }
+        if self.is_zero() {
+            return Ok(other);
+        }
         let (a, b, e) = self.aligned(other).ok_or(DecimalError::OutOfRange)?;
         Ok(Decimal::new(a.checked_add(b).ok_or(DecimalError::OutOfRange)?, e))
     }
 
-    /// `self − other`, exactly.
+    /// `self − other`, exactly. `x − 0` is `x` for any exponent (the path of a coordinate made relative to
+    /// an origin of zero).
     ///
     /// # Errors
     ///
-    /// [`DecimalError::OutOfRange`] on overflow.
+    /// [`DecimalError::OutOfRange`] if the exact difference needs more digits than an `i128` holds.
     pub fn checked_sub(self, other: Decimal) -> Result<Decimal, DecimalError> {
-        self.checked_add(Decimal::new(-other.mantissa, other.exp))
+        if other.is_zero() {
+            return Ok(self);
+        }
+        let negated = Decimal {
+            mantissa: other.mantissa.checked_neg().ok_or(DecimalError::OutOfRange)?,
+            exp: other.exp,
+        };
+        self.checked_add(negated)
     }
 
     /// `self × other`, exactly.
@@ -242,7 +272,8 @@ impl Decimal {
             .mantissa
             .checked_mul(other.mantissa)
             .ok_or(DecimalError::OutOfRange)?;
-        Ok(Decimal::new(m, self.exp + other.exp))
+        let exp = self.exp.checked_add(other.exp).ok_or(DecimalError::OutOfRange)?;
+        Ok(Decimal::new(m, exp))
     }
 
     /// `self / 2`, exactly (`m × 5 × 10^(e − 1)`).
@@ -252,13 +283,14 @@ impl Decimal {
     /// [`DecimalError::OutOfRange`] on overflow.
     pub fn half(self) -> Result<Decimal, DecimalError> {
         let m = self.mantissa.checked_mul(5).ok_or(DecimalError::OutOfRange)?;
-        Ok(Decimal::new(m, self.exp - 1))
+        let exp = self.exp.checked_sub(1).ok_or(DecimalError::OutOfRange)?;
+        Ok(Decimal::new(m, exp))
     }
 
     /// `m × num / den` rounded half to even, for `num`, `den` > 0; `None` on overflow.
     fn scaled_round(self, num: i128, den: i128) -> Option<i128> {
         if self.exp >= 0 {
-            let p = 10i128.checked_pow(self.exp as u32)?;
+            let p = 10i128.checked_pow(u32::try_from(self.exp).ok()?)?;
             let n = self.mantissa.checked_mul(num)?.checked_mul(p)?;
             Some(div_round_half_even(n, den))
         } else {
@@ -295,7 +327,7 @@ impl Decimal {
         if nm.abs() > i128::from(MAX_SAFE_INTEGER) {
             return Err(DecimalError::OutOfRange);
         }
-        Ok(Nm(nm as i64))
+        i64::try_from(nm).map(Nm).map_err(|_| DecimalError::OutOfRange)
     }
 
     /// The value as degrees converted to 10⁻³ degree, rounded half to even, with the sign kept (QET's
@@ -321,13 +353,18 @@ impl Decimal {
 
     /// The value as a plain decimal string without exponent and without trailing zeros: `9`, `9.75`,
     /// `-0.5`, `1234570`. Used for style keys (`qet.9.75`).
+    ///
+    /// The string has |exp| digits, so callers bound the value first (the font parser bounds point sizes).
     pub fn to_plain_string(self) -> String {
         let neg = self.mantissa < 0;
         let digits = self.mantissa.unsigned_abs().to_string();
         let body = if self.exp >= 0 {
-            format!("{digits}{}", "0".repeat(self.exp as usize))
+            format!(
+                "{digits}{}",
+                "0".repeat(usize::try_from(self.exp).unwrap_or_default())
+            )
         } else {
-            let k = self.exp.unsigned_abs() as usize;
+            let k = usize::try_from(self.exp.unsigned_abs()).unwrap_or_default();
             if digits.len() > k {
                 let (int, frac) = digits.split_at(digits.len() - k);
                 format!("{int}.{frac}")
@@ -336,6 +373,49 @@ impl Decimal {
             }
         };
         if neg { format!("-{body}") } else { body }
+    }
+}
+
+/// The digits of a literal collected by [`Decimal::parse`]: zeros after the first non-zero digit are held
+/// back (`pending`) and multiplied in only when a later non-zero digit arrives.
+#[derive(Default)]
+struct Digits {
+    mantissa: i128,
+    /// Power of ten from the fraction digits already multiplied in (zero or negative).
+    exp: i64,
+    /// Zeros seen since the last non-zero digit.
+    pending: usize,
+    /// How many of the pending zeros belong to the integer part (set once it ends).
+    held_int: usize,
+}
+
+impl Digits {
+    fn push(&mut self, d: u8, fraction: bool) -> Result<(), DecimalError> {
+        if d == 0 {
+            if self.mantissa != 0 {
+                self.pending = self.pending.saturating_add(1);
+            } else if fraction {
+                // Leading zero of the fraction: no digit yet, but the exponent moves.
+                self.exp -= 1;
+            }
+            return Ok(());
+        }
+        let shift = u32::try_from(self.pending.saturating_add(1)).map_err(|_| DecimalError::TooLong)?;
+        let m = 10i128
+            .checked_pow(shift)
+            .and_then(|scale| self.mantissa.checked_mul(scale))
+            .and_then(|m| m.checked_add(i128::from(d)))
+            .filter(|m| *m < MAX_MANTISSA)
+            .ok_or(DecimalError::TooLong)?;
+        if fraction {
+            // Every fraction digit since the last flush, zeros included, moves the exponent.
+            let moved = self.pending - self.held_int + 1;
+            self.exp -= i64::try_from(moved).map_err(|_| DecimalError::TooLong)?;
+        }
+        self.mantissa = m;
+        self.pending = 0;
+        self.held_int = 0;
+        Ok(())
     }
 }
 
@@ -404,8 +484,6 @@ mod tests {
         ] {
             assert_eq!(Decimal::parse(bad), Err(DecimalError::Syntax), "{bad:?}");
         }
-        assert_eq!(Decimal::parse("1e61"), Err(DecimalError::OutOfRange));
-        assert_eq!(Decimal::parse("1e-61"), Err(DecimalError::OutOfRange));
         assert_eq!(Decimal::parse(&"9".repeat(40)), Err(DecimalError::TooLong));
     }
 
@@ -484,5 +562,57 @@ mod tests {
             assert!(r == 0 || 4 * r * r < 4 * n + 4 * r, "{n}");
             assert!(4 * n < 4 * r * r + 4 * r + 1, "{n}");
         }
+    }
+
+    #[test]
+    fn tiny_values_round_to_zero() {
+        let tiny = format!("0.{}1", "0".repeat(70));
+        for s in ["1e-61", "-1e-61", tiny.as_str(), "1e-1000000", "1e-99999999999"] {
+            let v = Decimal::parse(s).unwrap();
+            assert_eq!(v.px_to_nm(), Ok(Nm(0)), "{s}");
+            assert_eq!(v.deg_to_angle(), Ok(Angle2(0)), "{s}");
+        }
+        assert!(
+            Decimal::parse("1e-61")
+                .unwrap()
+                .checked_sub(Decimal::ZERO)
+                .is_ok()
+        );
+        assert_eq!(Decimal::ZERO.checked_sub(d("1e-61")).unwrap(), d("-1e-61"));
+    }
+
+    #[test]
+    fn huge_values_are_out_of_range_on_conversion() {
+        for s in ["1e40", "1e+99999999999"] {
+            let v = Decimal::parse(s).unwrap();
+            assert_eq!(v.px_to_nm(), Err(DecimalError::OutOfRange), "{s}");
+        }
+    }
+
+    #[test]
+    fn trailing_zeros_do_not_count() {
+        assert_eq!(d(&format!("1.{}", "0".repeat(100))), Decimal::from_int(1));
+        assert_eq!(d(&format!("1{}e-100", "0".repeat(100))), Decimal::from_int(1));
+        let big = d(&format!("10{}", "0".repeat(40)));
+        assert_eq!((big.mantissa(), big.exp()), (1, 41));
+        assert_eq!(d("10.5"), Decimal::new(105, -1));
+        assert_eq!(d("100.005"), Decimal::new(100_005, -3));
+    }
+
+    #[test]
+    fn significant_digit_limit() {
+        let ok = "0.12345678901234567890123456789012";
+        assert_eq!(d(ok).mantissa(), 12_345_678_901_234_567_890_123_456_789_012);
+        assert!(d(ok).px_to_nm().is_ok());
+        assert_eq!(
+            Decimal::parse("0.123456789012345678901234567890123"),
+            Err(DecimalError::TooLong)
+        );
+        // 0.000123456… px = 32.66… nm: leading zeros do not count towards the limit.
+        assert_eq!(d(&format!("0.000{}", &ok[2..])).px_to_nm(), Ok(Nm(33)));
+        assert_eq!(
+            Decimal::parse(&format!("1{}1", "0".repeat(31))),
+            Err(DecimalError::TooLong)
+        );
     }
 }

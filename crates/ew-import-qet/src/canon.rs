@@ -23,6 +23,9 @@
 //! 4. **Dropped:** comments, processing instructions, the XML declaration, the DOCTYPE (refused anyway) and
 //!    everything outside the `<definition>` element.
 //!
+//! The imported names of a definition (`SymbolDef.name`, the provenance `qet.name:`) are collapsed the same
+//! way ([`collapse_whitespace`]), so that two definitions with one identity key have one name.
+//!
 //! The result is UTF-8 without a trailing newline. The digest is SHA-256 over those bytes, and the identity
 //! key is `qet:eldef:<64 lower-case hex digits>` ([`identity_key`]).
 
@@ -104,21 +107,32 @@ fn write_element(node: Node<'_, '_>, out: &mut String) {
     out.push('>');
 }
 
-/// Writes the pending text, trimmed and with white-space runs collapsed, and clears it.
-fn flush_text(text: &mut String, out: &mut String) {
-    let mut first = true;
+/// `text` with leading and trailing XML white space (space, tab, LF, CR) removed and every inner run of it
+/// collapsed to one space; nothing is escaped. The imported names of definitions are collapsed with this,
+/// exactly as the canonical XML collapses texts.
+///
+/// ```
+/// assert_eq!(ew_import_qet::canon::collapse_whitespace(" a \n\t b  "), "a b");
+/// ```
+pub fn collapse_whitespace(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
     for word in text.split(is_xml_space).filter(|w| !w.is_empty()) {
-        if !first {
+        if !out.is_empty() {
             out.push(' ');
         }
-        first = false;
-        for c in word.chars() {
-            match c {
-                '&' => out.push_str("&amp;"),
-                '<' => out.push_str("&lt;"),
-                '>' => out.push_str("&gt;"),
-                c => out.push(c),
-            }
+        out.push_str(word);
+    }
+    out
+}
+
+/// Writes the pending text, trimmed and with white-space runs collapsed, and clears it.
+fn flush_text(text: &mut String, out: &mut String) {
+    for c in collapse_whitespace(text).chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            c => out.push(c),
         }
     }
     text.clear();

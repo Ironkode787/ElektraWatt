@@ -173,6 +173,40 @@ fn drop_shadow_of_a_square_box_is_the_l_shape() {
     assert_eq!(bx.stroke, Some(dl_stroke()));
 }
 
+/// M8: a line's stroke colour reaches the display list as the stroke's brush. The `Rgb` colour is what
+/// the QET importer makes of `style="color:blue"` (`ew-import-qet` test `line_color_blue_is_an_rgb_stroke`;
+/// the importer cannot be a dependency of `ew-scene`); `ByLayer` is the documented placeholder black.
+#[test]
+fn stroke_colour_becomes_the_stroke_brush() {
+    let blue = Brush::Solid(Color::from_rgb8(0, 0, 0xff));
+    let line = |colour| {
+        let prim = Primitive::Line(LinePrim {
+            from: pt(0, 0),
+            to: pt(10 * MM, 0),
+            stroke: Some(Stroke {
+                colour,
+                ..schema_stroke()
+            }),
+            extra: Extra::new(),
+        });
+        let items = lower_primitive(&prim);
+        assert_eq!(items.len(), 1);
+        path_item(&items[0]).stroke.clone().unwrap()
+    };
+    let s = line(Colour::Rgb(Rgb([0, 0, 0xff])));
+    assert_eq!(s.brush, blue);
+    assert_eq!(s, dl_stroke().with_brush(blue));
+    assert_eq!(line(Colour::ByLayer).brush, Brush::Solid(LAYER_COLOUR));
+    // Dashed strokes keep the colour.
+    let dashed = stroke(&Stroke {
+        dash: Dash::Dash42,
+        colour: Colour::Rgb(Rgb([0, 0, 0xff])),
+        ..schema_stroke()
+    });
+    assert_eq!(dashed.brush, blue);
+    assert_eq!(dashed.dash, Some(DashPattern::Dash42.scaled(DlPen::P026.width())));
+}
+
 #[test]
 fn drop_shadow_uses_the_stroke_colour_then_the_fill_colour() {
     let r = rect(0, 0, 10 * MM, 6 * MM);
@@ -579,5 +613,44 @@ fn anchor_ties_snap_toward_zero() {
     for (x, want) in [(2 * MM, 0), (-2 * MM, 0), (6 * MM, 4 * MM), (-6 * MM, -4 * MM)] {
         def.anchor = AnchorPolicy::Named(pt(x, 0));
         assert_eq!(resolve_anchor(&def), pt(want, 0), "x = {x}");
+    }
+}
+
+/// Twice the signed (shoelace) area of the polygon through `pts`, in nm².
+fn signed_area2(pts: &[Pt2]) -> i128 {
+    let mut sum = 0i128;
+    for (i, a) in pts.iter().enumerate() {
+        let b = pts[(i + 1) % pts.len()];
+        sum += i128::from(a.x.0) * i128::from(b.y.0) - i128::from(b.x.0) * i128::from(a.y.0);
+    }
+    sum
+}
+
+#[test]
+fn arc_sweep_flips_under_a_mirrored_variant() {
+    let prim = Primitive::Arc(ArcPrim {
+        rect: Bounds(rect(0, 0, 20 * MM, 10 * MM)),
+        start: Angle2(0),
+        sweep: Angle2(90_000),
+        stroke: Some(schema_stroke()),
+        extra: Extra::new(),
+    });
+    let def = symbol(vec![prim], vec![], vec![]);
+    let points = |variant: Orient2| -> Vec<Pt2> {
+        let g = lower(&def, variant);
+        assert_eq!(g.graphics.items.len(), 1);
+        path_item(&g.graphics.items[0]).path.points().collect()
+    };
+    let (r0, m0) = (points(Orient2::R0), points(Orient2::M0));
+    let (r90, m90) = (points(Orient2::R90), points(Orient2::M90));
+    let (a_r0, a_m0) = (signed_area2(&r0), signed_area2(&m0));
+    let (a_r90, a_m90) = (signed_area2(&r90), signed_area2(&m90));
+    assert_ne!(a_r0, 0);
+    assert_ne!(a_r90, 0);
+    assert_eq!(a_m0, -a_r0);
+    assert_eq!(a_m90, -a_r90);
+    assert_eq!(r0.len(), m0.len());
+    for (r, m) in r0.iter().zip(&m0) {
+        assert_eq!((m.x, m.y), (Nm(-r.x.0), r.y));
     }
 }

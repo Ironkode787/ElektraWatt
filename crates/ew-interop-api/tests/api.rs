@@ -3,9 +3,10 @@
 
 //! Tests of the importer API data types.
 
+use ew_ids::{Id, Uuid};
 use ew_interop_api::{
     Code, DefectClass, Detection, ImportBatch, ImportContext, ImportError, ImportInput, ImportReport,
-    Importer, InputNameError, Limits, ReportEntry, Severity, SourceInfo, SourceLocation,
+    Importer, InputNameError, Limits, ReportEntry, Severity, SourceInfo, SourceLocation, check_file_name,
 };
 
 fn hex(bytes: &[u8]) -> String {
@@ -47,19 +48,35 @@ fn defect_class_display() {
 }
 
 #[test]
+fn input_accessors_and_file_name_rule() {
+    let input = ImportInput::new("x.elmt", b"abc".to_vec()).unwrap();
+    assert_eq!(input.name(), "x.elmt");
+    assert_eq!(&input.bytes()[..], b"abc");
+    assert_eq!(
+        hex(&input.sha256()),
+        "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    );
+    assert_eq!(check_file_name(""), Err(InputNameError::Empty));
+    for bad in ["a/b", "a\\b", "c:x", "a\0b"] {
+        assert_eq!(check_file_name(bad), Err(InputNameError::NotAFileName), "{bad:?}");
+    }
+    assert_eq!(check_file_name("x.elmt"), Ok(()));
+}
+
+#[test]
 fn input_new_hashes_and_validates_names() {
     let empty = ImportInput::new("a.elmt", b"".to_vec()).unwrap();
     assert_eq!(
-        hex(&empty.sha256),
+        hex(&empty.sha256()),
         "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     );
     let abc = ImportInput::new("a.elmt", b"abc".to_vec()).unwrap();
     assert_eq!(
-        hex(&abc.sha256),
+        hex(&abc.sha256()),
         "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
     );
-    assert_eq!(abc.name, "a.elmt");
-    assert_eq!(&abc.bytes[..], b"abc");
+    assert_eq!(abc.name(), "a.elmt");
+    assert_eq!(&abc.bytes()[..], b"abc");
 
     assert_eq!(
         ImportInput::new("", Vec::new()).unwrap_err(),
@@ -147,6 +164,19 @@ fn limits_default() {
     assert_eq!(l.max_attribute_bytes, 16 * 1024 * 1024);
     assert_eq!(l.max_input_bytes, 512 * 1024 * 1024);
     assert_eq!(l.max_xml_nodes, 10_000_000);
+    assert_eq!(l.max_xml_attributes_per_element, 8_192);
+    assert_eq!(l.max_xml_attributes, 1_048_576);
+}
+
+#[test]
+fn context_names_the_project() {
+    let project = Id::from_uuid(Uuid::from_u128(0x0192_f3a4_5b6c_7d8e_8f01_2345_6789_ab00));
+    let ctx = ImportContext::new(project);
+    assert_eq!(ctx.project, project);
+    assert_eq!(
+        (ctx.lineage, ctx.as_of, ctx.limits),
+        (None, None, Limits::default())
+    );
 }
 
 struct Tiny;
@@ -170,7 +200,7 @@ impl Importer for Tiny {
 
     fn import(&self, input: &ImportInput, _ctx: &mut ImportContext) -> Result<ImportBatch, ImportError> {
         let source = SourceInfo {
-            name: input.name.clone(),
+            name: input.name().to_owned(),
             ..SourceInfo::default()
         };
         Ok(ImportBatch {
@@ -188,7 +218,9 @@ fn importer_is_object_safe() {
     assert_eq!(importer.detect(b"", "a.x"), Detection::Maybe(10));
     assert_eq!(importer.detect(b"", "a.y"), Detection::No);
     let input = ImportInput::new("a.x", b"data".to_vec()).unwrap();
-    let batch = importer.import(&input, &mut ImportContext::default()).unwrap();
+    let batch = importer
+        .import(&input, &mut ImportContext::new(Id::from_uuid(Uuid::nil())))
+        .unwrap();
     assert!(batch.records.is_empty() && batch.lib.is_empty());
     assert_eq!(batch.report.importer, "tiny");
     assert!(Detection::No < Detection::Maybe(0));

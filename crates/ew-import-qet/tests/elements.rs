@@ -7,14 +7,14 @@
 use std::collections::BTreeMap;
 
 use ew_ids::{Id, Uuid, v5};
-use ew_import_qet::{BUILTIN_LIBRARY, ElementSource, QET_IMPORT_LIBRARY, QetElementImporter, read_element};
+use ew_import_qet::{BUILTIN_LIBRARY, ElementSource, QetElementImporter, read_element};
 use ew_interop_api::{
-    Code, Detection, ImportBatch, ImportContext, ImportError, ImportInput, Importer, Limits, LineageInfo,
-    Severity,
+    Code, Detection, ImportBatch, ImportContext, ImportError, ImportInput, Importer, InputNameError, Limits,
+    LineageInfo, Severity,
 };
 use ew_schema::{
     AnchorPolicy, Colour, ContactKind, Dash, Dir4, FnDef, InternalKind, LibCopy, LibDocument,
-    PassThroughSpec, Pen, PotentialType, Primitive, Record, RepType, Rgb, SlotKind, SymbolDef,
+    PassThroughSpec, Pen, PotentialType, Primitive, Project, Record, RepType, Rgb, SlotKind, SymbolDef,
 };
 use ew_units::{Angle2, Grid, Nm, Pt2};
 use sha2::Digest;
@@ -26,11 +26,16 @@ fn fixture(name: &str) -> Vec<u8> {
     std::fs::read(path).unwrap()
 }
 
+/// The project imported into.
+const PROJECT: Uuid = Uuid::from_u128(0x0192_f3a4_5b6c_7d8e_8f01_2345_6789_ab00);
+
+fn ctx() -> ImportContext {
+    ImportContext::new(Id::<Project>::from_uuid(PROJECT))
+}
+
 fn import(name: &str) -> ImportBatch {
     let input = ImportInput::new(name, fixture(name)).unwrap();
-    QetElementImporter
-        .import(&input, &mut ImportContext::default())
-        .unwrap()
+    QetElementImporter.import(&input, &mut ctx()).unwrap()
 }
 
 fn parts(batch: &ImportBatch) -> (&LibCopy<SymbolDef>, Option<&LibCopy<FnDef>>) {
@@ -152,15 +157,16 @@ fn identity_and_provenance() {
         .unwrap();
     assert!(key.starts_with("qet:eldef:") && key.len() == 10 + 64);
     assert_eq!(s.item_id.as_uuid(), Uuid::new_v5(&namespace, key.as_bytes()));
-    assert_eq!(s.library_id.as_uuid(), QET_IMPORT_LIBRARY);
-    assert_eq!(s.id, v5::lib_copy_id(QET_IMPORT_LIBRARY, s.item_id.as_uuid()));
+    // H2: the QET import library is project-local, so its `library_id` is the project ID (doc 05 §13.2).
+    assert_eq!(s.library_id.as_uuid(), PROJECT);
+    assert_eq!(s.id, v5::lib_copy_id(PROJECT, s.item_id.as_uuid()));
     let f = f.unwrap();
     assert_eq!(
         f.item_id.as_uuid(),
         Uuid::new_v5(&namespace, format!("{key}#fndef").as_bytes())
     );
     assert_eq!(s.item.fndef.item, f.item_id);
-    assert_eq!(s.item.fndef.library.as_uuid(), QET_IMPORT_LIBRARY);
+    assert_eq!(s.item.fndef.library.as_uuid(), PROJECT);
     assert_eq!(s.version, "1.0.0");
 
     // The copy hash is the hash of the item's canonical compact JSON.
@@ -188,10 +194,22 @@ fn identity_and_provenance() {
     // The same bytes under another file name: the same definition, the same IDs (content-addressed key,
     // file-anchored lineage).
     let renamed = ImportInput::new("other-name.elmt", bytes.clone()).unwrap();
-    let again = QetElementImporter
-        .import(&renamed, &mut ImportContext::default())
-        .unwrap();
+    let again = QetElementImporter.import(&renamed, &mut ctx()).unwrap();
     assert_eq!(parts(&again).0.id, s.id);
+
+    // Another project: the same items (lineage-derived), other copies (library = project).
+    let other = Uuid::from_u128(0x0192_f3a4_5b6c_7d8e_8f01_2345_6789_ab01);
+    let input = ImportInput::new("contact_no.elmt", bytes).unwrap();
+    let elsewhere = QetElementImporter
+        .import(&input, &mut ImportContext::new(Id::from_uuid(other)))
+        .unwrap();
+    let (s2, f2) = parts(&elsewhere);
+    assert_eq!(s2.item_id, s.item_id);
+    assert_eq!(s2.library_id.as_uuid(), other);
+    assert_eq!(s2.id, v5::lib_copy_id(other, s.item_id.as_uuid()));
+    assert_ne!(s2.id, s.id);
+    assert_eq!(s2.item.fndef.library.as_uuid(), other);
+    assert_eq!(f2.unwrap().library_id.as_uuid(), other);
 }
 
 #[test]
@@ -205,11 +223,17 @@ fn deterministic_and_schema_valid() {
             let json = serde_json::to_string(d).unwrap();
             let back: LibDocument = serde_json::from_str(&json).unwrap();
             assert_eq!(&back, d, "{name}");
+            d.validate().unwrap();
+            let strict = LibDocument::from_value(serde_json::to_value(d).unwrap()).unwrap();
+            assert_eq!(&strict, d, "{name}");
         }
         for r in &a.records {
             let json = serde_json::to_string(r).unwrap();
             let back: Record = serde_json::from_str(&json).unwrap();
             assert_eq!(&back, r, "{name}");
+            r.validate().unwrap();
+            let strict = Record::from_value(serde_json::to_value(r).unwrap()).unwrap();
+            assert_eq!(&strict, r, "{name}");
         }
         assert!(!a.report.has_errors(), "{name}: {:?}", a.report.entries);
     }
@@ -281,11 +305,12 @@ fn arc_lamp_and_category_path() {
         namespace: Uuid::from_u128(2),
     };
     let xml = String::from_utf8(fixture("arc_lamp.elmt")).unwrap();
-    let src = ElementSource {
-        file: "project.qet",
-        path: Some("embed://import/10_electric/40_signaling/lamp.elmt"),
-    };
-    let el = read_element(&xml, &src, &lineage, &Limits::default()).unwrap();
+    let src = ElementSource::new(
+        "project.qet",
+        Some("embed://import/10_electric/40_signaling/lamp.elmt"),
+    )
+    .unwrap();
+    let el = read_element(&xml, &src, &lineage, Id::from_uuid(PROJECT), &Limits::default()).unwrap();
     let f = &el.fndef.unwrap().item;
     assert_eq!(f.category.0.as_str(), "Lamp");
     assert!(el.entries.iter().all(|e| e.code != Code::BLACK_BOX));
@@ -383,9 +408,7 @@ fn interruption_points_reference_the_builtin() {
     let xml = r#"<definition type="element" version="0.80" link_type="next_report">
         <description><terminal x="0" y="0" orientation="w" name=""/></description></definition>"#;
     let input = ImportInput::new("ip.elmt", xml.as_bytes().to_vec()).unwrap();
-    let batch = QetElementImporter
-        .import(&input, &mut ImportContext::default())
-        .unwrap();
+    let batch = QetElementImporter.import(&input, &mut ctx()).unwrap();
     let (s, f) = parts(&batch);
     assert!(f.is_none());
     assert_eq!(s.item.fndef.library.as_uuid(), BUILTIN_LIBRARY);
@@ -407,9 +430,7 @@ fn unsupported_constructs_are_reported_not_fatal() {
           <terminal x="0" y="0" orientation="q"/>
         </description></definition>"#;
     let input = ImportInput::new("bad.elmt", xml.as_bytes().to_vec()).unwrap();
-    let batch = QetElementImporter
-        .import(&input, &mut ImportContext::default())
-        .unwrap();
+    let batch = QetElementImporter.import(&input, &mut ctx()).unwrap();
     let c = codes(&batch);
     let count = |code| c.iter().filter(|(k, _)| *k == code).count();
     // Unknown language, unknown root child, unknown end, two style pairs, unknown element: info.
@@ -429,7 +450,7 @@ fn unsupported_constructs_are_reported_not_fatal() {
 fn file_level_errors() {
     let run = |xml: &[u8]| {
         let input = ImportInput::new("x.elmt", xml.to_vec()).unwrap();
-        QetElementImporter.import(&input, &mut ImportContext::default())
+        QetElementImporter.import(&input, &mut ctx())
     };
     assert!(matches!(
         run(b"<definition type=\"element\">"),
@@ -467,7 +488,7 @@ fn file_level_errors() {
     assert!(run(b"\xEF\xBB\xBF<definition type=\"element\"/>").is_ok());
     // Size limit.
     let input = ImportInput::new("x.elmt", b"<definition type=\"element\"/>".to_vec()).unwrap();
-    let mut ctx = ImportContext::default();
+    let mut ctx = ctx();
     ctx.limits.max_input_bytes = 4;
     assert!(matches!(
         QetElementImporter.import(&input, &mut ctx),
@@ -484,7 +505,7 @@ fn existing_lineage_emits_no_lineage_record() {
     let input = ImportInput::new("contact_no.elmt", fixture("contact_no.elmt")).unwrap();
     let mut ctx = ImportContext {
         lineage: Some(lineage),
-        ..ImportContext::default()
+        ..ctx()
     };
     let batch = QetElementImporter.import(&input, &mut ctx).unwrap();
     assert!(batch.records.is_empty());
@@ -499,4 +520,141 @@ fn detection() {
     assert_eq!(d.detect(&fixture("contact_no.elmt"), "x.bin"), Detection::Certain);
     assert_eq!(d.detect(b"garbage", "A.ELMT"), Detection::Maybe(30));
     assert_eq!(d.detect(b"<project>", "a.qet"), Detection::No);
+}
+
+#[test]
+fn element_source_refuses_paths() {
+    assert_eq!(
+        ElementSource::new("dir/x.elmt", None).unwrap_err(),
+        InputNameError::NotAFileName
+    );
+    assert_eq!(ElementSource::new("", None).unwrap_err(), InputNameError::Empty);
+    let src = ElementSource::new("x.elmt", Some("embed://import/a/b.elmt")).unwrap();
+    assert_eq!(src.file(), "x.elmt");
+    assert_eq!(src.path(), Some("embed://import/a/b.elmt"));
+}
+
+/// A definition of `n` terminals.
+fn definition_with_terminals(n: usize) -> String {
+    let mut xml = String::from("<definition type=\"element\"><description>");
+    for _ in 0..n {
+        xml.push_str("<terminal x=\"0\" y=\"0\" orientation=\"n\"/>");
+    }
+    xml.push_str("</description></definition>");
+    xml
+}
+
+fn fixed_lineage() -> LineageInfo {
+    LineageInfo {
+        id: Id::from_uuid(Uuid::from_u128(1)),
+        namespace: Uuid::from_u128(2),
+    }
+}
+
+#[test]
+fn more_than_65535_terminals_are_refused() {
+    let src = ElementSource::new("big.elmt", None).unwrap();
+    let project = Id::from_uuid(PROJECT);
+    let limits = Limits::default();
+    let err = read_element(
+        &definition_with_terminals(65_536),
+        &src,
+        &fixed_lineage(),
+        project,
+        &limits,
+    )
+    .unwrap_err();
+    assert!(matches!(
+        &err,
+        ImportError::LimitExceeded { what, limit: 65_535 } if what == "terminals per element definition"
+    ));
+    let el = read_element(
+        &definition_with_terminals(65_535),
+        &src,
+        &fixed_lineage(),
+        project,
+        &limits,
+    )
+    .unwrap();
+    let last = el.symbol.item.cps.iter().last().unwrap();
+    assert_eq!((last.idx, last.fn_cp), (65_534, 65_534));
+}
+
+#[test]
+fn names_are_whitespace_collapsed_like_the_identity() {
+    let make = |name: &str| {
+        format!(
+            "<definition type=\"element\"><names><name lang=\"en\">{name}</name></names>\
+             <description><terminal x=\"0\" y=\"0\" orientation=\"n\"/></description></definition>"
+        )
+    };
+    let src = ElementSource::new("x.elmt", None).unwrap();
+    let read = |xml: &str| {
+        read_element(
+            xml,
+            &src,
+            &fixed_lineage(),
+            Id::from_uuid(PROJECT),
+            &Limits::default(),
+        )
+        .unwrap()
+    };
+    let plain = read(&make("Synthetic NO contact"));
+    for messy in [
+        "Synthetic\n   NO  contact",
+        "  Synthetic NO <!-- c -->contact\t",
+        "Synthetic <!-- c --> NO contact",
+    ] {
+        let other = read(&make(messy));
+        assert_eq!(other.key, plain.key, "{messy:?}");
+        assert_eq!(other.symbol.item.name, plain.symbol.item.name, "{messy:?}");
+        assert_eq!(other.symbol, plain.symbol, "{messy:?}");
+        assert_eq!(other.symbol.sha256, plain.symbol.sha256, "{messy:?}");
+    }
+    let en = ew_mltext::LangTag::parse_lenient("en").unwrap();
+    assert_eq!(plain.symbol.item.name.get(&en), Some("Synthetic NO contact"));
+    assert!(
+        plain
+            .symbol
+            .item
+            .meta
+            .sources
+            .contains(&"qet.name:Synthetic NO contact".to_owned())
+    );
+}
+
+#[test]
+fn detection_checks_the_root_element() {
+    let d = QetElementImporter;
+    let project = b"<?xml version=\"1.0\"?><project version=\"0.80\"><collection><element name=\"a.elmt\"><definition type=\"element\" version=\"0.80\">";
+    assert_eq!(d.detect(project, "p.qet"), Detection::No);
+    assert_eq!(d.detect(project, "p.elmt"), Detection::Maybe(30));
+    assert_eq!(
+        d.detect(
+            b"<!-- <project> --><definition version=\"0.8\" type = 'element'>",
+            "x"
+        ),
+        Detection::Certain
+    );
+    assert_ne!(
+        d.detect(b"<definitionx type=\"element\">", "x"),
+        Detection::Certain
+    );
+    assert_eq!(
+        d.detect(
+            b"\xEF\xBB\xBF<?xml version=\"1.0\"?>\n<?pi x?><definition type=\"element\">",
+            "x"
+        ),
+        Detection::Certain
+    );
+    assert_ne!(
+        d.detect(b"<definition type=\"thumbnail\">", "x"),
+        Detection::Certain
+    );
+    // An incomplete start tag falls back to the extension rule.
+    assert_eq!(
+        d.detect(b"<definition type=\"ele", "a.elmt"),
+        Detection::Maybe(30)
+    );
+    assert_eq!(d.detect(b"<definition", "a.bin"), Detection::No);
 }

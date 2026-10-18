@@ -6,7 +6,7 @@
 use std::fmt;
 
 use ew_ids::{Id, Uuid};
-use ew_schema::{Date, ImportLineage, LibDocument, Record};
+use ew_schema::{Date, ImportLineage, LibDocument, Project, Record};
 
 use crate::{ImportInput, ImportReport};
 
@@ -40,28 +40,46 @@ pub struct Limits {
     pub max_input_bytes: u64,
     /// Deepest accepted XML element nesting.
     pub max_xml_depth: u32,
-    /// Most XML nodes (elements, attributes, texts) in one document.
+    /// Most XML nodes in one document: elements, texts, comments and processing instructions. Attributes
+    /// are not nodes; they are bounded by [`Limits::max_xml_attributes`] and
+    /// [`Limits::max_xml_attributes_per_element`].
     pub max_xml_nodes: u32,
     /// Longest accepted XML attribute value, in bytes.
     pub max_attribute_bytes: usize,
+    /// Most attributes on one XML element. Enforced before the XML is parsed, by a flat scan.
+    ///
+    /// The default, 8,192, is set by the parser rather than by the formats: `roxmltree` 0.21.1 checks each
+    /// attribute of an element against every earlier one for duplicates, so parsing is quadratic in the
+    /// attributes of one element (measured in release: 16,384 take about 0.3 s, 65,536 about 3.8 s, 8,192
+    /// about 75 ms), and a hostile element must still be read or refused within the 1 s of doc 14 §11.
+    pub max_xml_attributes_per_element: u32,
+    /// Most XML attributes in one document. Enforced before the XML is parsed, by a flat scan.
+    pub max_xml_attributes: u32,
 }
 
 impl Default for Limits {
     /// The values of doc 14 §11: XML depth ≤ 256, attribute value ≤ 16 MiB; inputs up to 512 MiB and
-    /// 10 million XML nodes (the DXF file limit and a node count that parses in well under a second).
+    /// 10 million XML nodes (the DXF file limit and a node count that parses in well under a second);
+    /// 8,192 attributes per element (see [`Limits::max_xml_attributes_per_element`]) and 1,048,576 per
+    /// document.
     fn default() -> Limits {
         Limits {
             max_input_bytes: 512 * 1024 * 1024,
             max_xml_depth: 256,
             max_xml_nodes: 10_000_000,
             max_attribute_bytes: 16 * 1024 * 1024,
+            max_xml_attributes_per_element: 8_192,
+            max_xml_attributes: 1_048_576,
         }
     }
 }
 
 /// What an import runs against (doc 14 §2.1 `ImportCx`, minimal form): plain data, never the model.
-#[derive(Clone, PartialEq, Eq, Debug, Default)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ImportContext {
+    /// The project imported into. Project-local library items, such as the per-project "QET import"
+    /// library, use it as their `library_id` (doc 05 §13.2).
+    pub project: Id<Project>,
     /// The lineage to import into; `None` creates a new one, whose `ImportLineage` record the importer
     /// emits in the batch with the importer's natural anchor (doc 14 §2.3).
     pub lineage: Option<LineageInfo>,
@@ -69,6 +87,18 @@ pub struct ImportContext {
     pub as_of: Option<Date>,
     /// Input limits.
     pub limits: Limits,
+}
+
+impl ImportContext {
+    /// A context for importing into `project`: a new lineage, no `as_of` date and the default [`Limits`].
+    pub fn new(project: Id<Project>) -> ImportContext {
+        ImportContext {
+            project,
+            lineage: None,
+            as_of: None,
+            limits: Limits::default(),
+        }
+    }
 }
 
 /// The result of one import (doc 14 §2.1): format-level records with final IDs, embedded library
