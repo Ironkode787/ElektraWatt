@@ -58,7 +58,7 @@ A and C tied. A won on the grounds that C's strengths can be grafted onto A as d
 
 ## Amendments
 
-Accepted on 2026-10-18. The decision text above is unchanged; this entry refines it.
+Accepted on 2026-10-18. The decision text above is unchanged; these entries refine it.
 
 1. **Raw reads behind a policy-checked feature** (2026-10-18, core team;
    [architecture](../design/04-architecture.md) §3 rule 1; ADR-0002 amendment 2). Rust cannot restrict an item's
@@ -74,6 +74,22 @@ Accepted on 2026-10-18. The decision text above is unchanged; this entry refines
    is compiled with the raw API present: the feature check stops a crate from requesting it, and ADR-0002
    amendment 2 says what covers the rest. A source-level guard for that remainder (for example a per-crate clippy
    `disallowed-methods` list) is open ([decision log](../plan/06-decision-log.md) §5.1, v0.5).
+2. **A source-level guard: `cargo xtask check-raw-read`** (2026-10-18, core team;
+   [architecture](../design/04-architecture.md) §3 rule 1; decision log ID-50). The remainder that amendment 1 left
+   open is closed by a source check rather than per-crate clippy configuration, which every new crate would have to
+   remember. `cargo xtask check-raw-read` fails when the Rust source of any workspace package other than `ew-model`,
+   `ew-derive`, `ew-commands` and `ew-store` invokes `raw_read!`, names the `raw-read` feature, or calls an item
+   that `ew-model` declares only under that feature. Test code is exempt, as the feature rule's dev exemption is:
+   the `tests/` and `benches/` directories and `#[cfg(test)]` items. The check takes the gated item names from
+   `ew-model`'s own source, so a newly gated reader is covered without a list to maintain; a false positive gets an
+   allowlist entry with a reason in `ci/dep-rules.toml`, never an inline suppression. It runs in `cargo xtask ci`
+   beside `check-features` (CI-PR-09).
+3. **No row-carrying types above the transaction layer** (2026-10-18, core team, after the review of WP-S1.04;
+   [architecture](../design/04-architecture.md) §3 rule 1; decision log ID-59). A full `Op` carries the before and
+   after rows, so handing ops, diffs or history entries to a front-end would be an untracked read by another route.
+   The normal public surface of `ew-commands` therefore carries no row: diffs, preview ops and history entries are
+   summaries (op kind, record kind, key and the changed field paths). Full ops are reachable only under its
+   dev-only `testkit` feature, which `ci/dep-rules.toml` bans outside dev edges.
 
 ## Consequences
 

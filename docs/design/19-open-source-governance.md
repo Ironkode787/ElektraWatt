@@ -644,6 +644,12 @@ SQLite (public domain), OCCT (LGPL-2.1 with its exception, the source offer and 
 fonts and icons. The ETIM attribution and the QET entries of `NOTICE` follow. Any SBOM component without a notice
 fails the release (NFR-LIC-08, **R**).
 
+`cargo about` lists crates only, so it cannot produce the notices of non-crate material such as the OFL-1.1 Noto
+Sans fonts in `assets/fonts/`. The release pipeline therefore assembles those notices from the root `NOTICE`, which
+holds one entry per committed third-party asset, into the artefact's `THIRD-PARTY-NOTICES.html` beside the
+cargo-about output (18 §7.4, CI-R-07). Each font entry carries the copyright line, the licence text and the
+trademark line of the font's name table (name ID 7), which `NOTICE` gains for Noto Sans (decision log ID-51).
+
 ---
 
 ## 6. Outputs

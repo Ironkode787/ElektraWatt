@@ -261,6 +261,18 @@ pub struct SheetTransform { pub scale_ppb: u32, pub offset: Pt2 }   // QET frame
 The transform is stored as an integer scale in parts per 10⁹ plus an nm offset, so every writer applies it with the
 integer arithmetic of §4.3 rule 4 instead of a float `Affine`.
 
+**Cell text** (WP-S3.02; decision log ID-39, ID-41). A labelled cell prints its label, one space and the value;
+v0 has no tab stops. `ShrinkToFit` reduces the style size down to `min_cap_height`, measured as printed through the
+page-to-sheet transform (§2.8); text that still does not fit is drawn at that size and overflows the cell, and the
+form finding `Overflow` reports it, because clipping is forbidden. `Ellipsis` cuts the text, appends "…" and reports
+it; `Error` draws the text unshrunk and reports it. Cell text is inset 2 QET px (0.529 mm) from the left and right
+edges, and middle alignment centres the cap height. A cell with no room at all (inset width ≤ 0, or shrinking that
+reaches size 0) draws nothing and reports the finding of its own policy (`ShrinkLimit`, `Truncated` or `Error`); v0
+has no separate finding kind for it (ID-62). An asset cell draws the image of its `AssetRef`, fitted by the
+recorded intrinsic size, or filling the inset area when the size is unknown ([05](05-project-format-and-persistence.md)
+§13.3; ID-61); a logo cell too small for its insets draws no image and reports an `Error` finding that carries the
+placeholder text (ID-63).
+
 **`form_type`** (the placeholder set a form accepts, FR-REP-034) is **deferred to WP-S3.02**, which defines its
 encoding and appends it to `FormDef` (decision log ID-16). Until then placeholder validity is checked against `kind`
 and, for a report form, the report kind of the block that uses it; a file that carries `form_type` keeps it in
@@ -278,9 +290,17 @@ PDF or table produced with them, are not subject to EW's copyleft (NFR-LIC-09).
 A placeholder is `{scope.path | filter …}`. Unknown paths are a form load error; paths invalid for the form type
 are rejected (FR-REP-034).
 
+**Unresolved placeholders render empty** (decision log ID-40). At lowering, a placeholder that yields no value
+renders as empty text, and the form finding `Binding` names the cell and the placeholder. This covers a valid path
+without a value (`{revision.current.checker.name}` while no checker is set, golden U-03) and anything that escaped
+the load check: an unknown scope or path, a computed `{= …}` cell before the formula engine exists, or a malformed
+template. The raw `{…}` text is never printed; a form that wants a visible fallback writes `| default("—")`, which
+counts as a value. An unsupported filter passes the value through unfiltered and is reported. `{{` and `}}` print
+literal braces.
+
 | Scope | Examples | Valid in |
 |---|---|---|
-| `project` | `{project.description}`, `{project.reference}`, `{project.drawing_id}`, `{project.object}`, `{project.document_title}` (the cover subtitle "Electrical Definition"), `{project.created \| date}`, `{project.edited \| date}`, `{project.supply \| supply}`, `{project.control_voltage}`, `{project.consumption}` | all |
+| `project` | `{project.description}`, `{project.reference}`, `{project.drawing_id}`, `{project.object}`, `{project.document_title}` (the cover subtitle "Electrical Definition"), `{project.created \| date}`, `{project.edited \| date}`, `{project.supply \| supply}`, `{project.control_voltage}`, `{project.consumption}`; `{project.logo}`, the logo asset reference of the basic project's company data, which a cell draws as the image and prints no text for, and `{project.notice}`, the notice text of the same company data ([07](07-symbols-parts-macros.md) §2.8; decision log ID-40) | all |
 | `party.<role>` | `{party.customer.name}`, `{party.end_user.address.city}` (personal data, §7 pitfall 14) | all |
 | `revision` | `{revision.current.label}`, `{revision.current.state}`, `{revision.current.author.name}`, `{revision.current.checker.name}`, `{revision.current.date \| date}` | frame, title block, cover |
 | `page` | `{page.folio}`, `{page.prev}`, `{page.next}`, `{page.title}` ("Power Supply 1 - Main Current"), `{page.description}` (override or project description, §2.7), `{page.function}` (`=P01`), `{page.location}` (`+J-E-2416`), `{page.scale}` ("1:10" on 902, FR-PAG-023), `{page.document_kind}` (`&EFS`, FR-PAG-028, 1.0), `{page.last_changed_in}` ([15](15-checks-revisions-collaboration.md) §5.6) | frame, title block |
@@ -288,7 +308,7 @@ are rejected (FR-REP-034).
 | `block`, `group` | `{block.title}`, `{block.page_index}`, `{block.page_count}`, `{block.as_of}`, `{group.key}`, `{group.strip.tag}`, `{group.cable.part}` | report |
 | `row` | `{row.<column key>}` | report data area |
 | `profile` | colour rows (voltage, function, colour name, code), size rows | cover, embedded |
-| `export` | `{export.date \| date}`, `{export.status_mark}`, `{ew.version}` | all |
+| `export` | `{export.date \| date}`, `{export.status_mark}`, `{ew.version}` (the root `ew` holds only `ew.version`) | all |
 
 Filters: `date` (project format, FR-PRJ-023), `supply` (structured supply → "1 x 230 VAC + N + PE, 50 Hz", D-18),
 `qty(unit, decimals)`, `tag(full | displayed)`, `ml(lang)` or `ml(stacked: [nl-NL, en-GB], sep: " / ")`
@@ -307,8 +327,10 @@ tracked reads only (FR-EXT-011).
   `project.drawing_id`; "Revision:" → `revision.current.label`; the `=` and `+` cells → `page.function`,
   `page.location`; the party cell → one party role (below); "Object:" → `project.object` ("J-E-2416");
   "Checked:", "Author:" → revision checker and author; "Creation:", "Saved:" → `project.created`,
-  `project.edited`; "Page:", "Prev:", "Next:" → page order; the logo and notice → company assets of the basic
-  project.
+  `project.edited`; "Page:", "Prev:", "Next:" → page order; the logo and notice → `project.logo` and
+  `project.notice`, the company assets of the basic project (§2.6). Every labelled cell prints label, one space and
+  value (§2.5). This QET-compatible title block has **no scale cell**, by design: it reproduces the reference
+  layout. FR-REP-037's scale cell binds `page.scale` in forms that declare one (decision log ID-41).
 - **`page.description`** resolves to `Page.description_override` if set, else `project.description` ("Expansion
   Control Cabinets"). An override raises the info finding EW-CORE-023 naming the page (FR-REP-036, D-06).
   `Page.title` is the per-page page description and TOC title (FR-PAG-010); it is not an override.

@@ -1172,6 +1172,10 @@ Libraries are `.ewlib` text directories in the project format at every tier
   8 MiB and 100,000 nodes, read by usvg with external references disabled ([14](14-interop.md) §11).
 - **Lifetime.** The model keeps an asset's bytes while any record or undo entry references them. A save writes newly
   referenced files and deletes unreferenced ones, so undoing an image deletion restores the file at the next save.
+- **Format and size** (decision log ID-61). When an asset is imported, the asset store sniffs its magic bytes and
+  records its format (PNG, JPEG or SVG) and its intrinsic size (PNG `IHDR`, JPEG `SOF`, SVG `viewBox` or
+  `width`/`height`). Readers such as the forms layer trust the resulting `AssetRef {sha256, format, size}` and never
+  sniff; an asset without a known size fills its cell's inset area instead of being fitted.
 - **SVG** is rendered by EW's own pipeline and never executed.
 - **STEP** files are not embedded by default (open question 8). `PartCopy` references `sha256(STEP)`; meshes live in
   the OS cache, and without the STEP file the 3D view shows the part's bounding box.

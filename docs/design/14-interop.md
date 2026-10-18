@@ -161,8 +161,9 @@ pub struct Limits {                    // §11; a violation refuses the file or 
 // Limits::element_definition(): the defaults with max_input_bytes = 16 MiB, max_xml_attributes = 131,072
 // and max_xml_nodes = 262,144, for standalone element definitions (kilobytes and hundreds of primitives in
 // practice); 512 MiB, 1,048,576 attributes and 1,000,000 nodes stay the defaults for project files, whose
-// importer reads them under its own budget. The element importer applies the stricter of the context's limit and the
-// preset, field by field (Limits::stricter).
+// importer reads them under its own budget. Limits::stricter(self, other) is the field-wise minimum of all eight
+// limits, so a caller can only tighten, never loosen, the limits it is given; the element importer reads with
+// ctx.limits.stricter(Limits::element_definition()).
 // crate constant, not a Limits member: MAX_ENTRIES_PER_DEFINITION = 1,000 report entries per element
 // definition; the rest are summarised in one EW-IMP-001 entry
 pub struct ImportBatch {
@@ -175,7 +176,7 @@ pub struct ImportBatch {
 
 The attribute work budget exists because `roxmltree` 0.21.1 checks the duplicate attributes of an element
 quadratically, so a document can stay under both attribute counts and still be slow: the budget bounds the sum over
-all elements of the squared attribute count. `max_xml_nodes` counts nodes, not attributes (the pre-scan counts the root, elements and comments as a lower bound; roxmltree also counts texts and processing instructions); a project
+all elements of the squared attribute count. `max_xml_nodes` counts nodes (the document root, elements, texts, comments and processing instructions), not attributes; the pre-scan counts the root, elements and comments as a lower bound, and the parser's own limit also counts texts and processing instructions; a project
 importer may raise it explicitly under its own budget.
 
 `ew-interop-api` implements `ImportCx` as `ImportContext`, in a minimal form (`project`, `lineage`, `as_of`,
@@ -531,9 +532,14 @@ Each distinct definition (identified by the hash of its canonical XML, not by it
 `SymbolDef` and a generated `FnDef` in the per-project "QET import" library (FR-SYM-018, FR-IMP-008), with source
 element name, path, UUID and definition version as provenance. The library's `library_id` is the target project's
 ID (`ImportCx.project`, §2.1) and its human key is `qet-import` ([05](05-project-format-and-persistence.md) §13.2).
-Built-in FnDefs that the importer references, such as the interruption-point FnDef of §4.6, live in the system
-library, whose `library_id` is not named yet: `ew-import-qet` uses a provisional constant until WP-S1.19a names it
-([07](07-symbols-parts-macros.md) open question 17). Primitives map one to one:
+Built-in FnDefs that the importer references live in the system library, whose `library_id` is not named yet:
+`ew-import-qet` uses the provisional 7202fd8b-1024-4bf1-9e99-670772eaa589, the same as the starter content, until
+WP-S1.19a names it ([07](07-symbols-parts-macros.md) open question 17). The importer has exactly one built-in FnDef,
+the interruption point `ew.fn.ip` of §4.6 (`BUILTIN_FNDEF_KEYS`), referenced by key in `LibRef.extra["key"]` with
+`version_req` `^0.1` (`BUILTIN_VERSION_REQ`), because every starter item is version 0.1.0; `ew.gen.ip` is its
+*symbol* key ([07](07-symbols-parts-macros.md) §2.3; decision log ID-33). The generic black box of EW-IMP-119 is not
+a built-in: it is a generated FnDef in the "QET import" library at version 1.0.0, referenced with `^1`. Primitives
+map one to one:
 
 | QET primitive | EW geometry | Notes |
 |---|---|---|
@@ -563,8 +569,8 @@ library, whose `library_id` is not named yet: `ew-import-qet` uses a provisional
   Rules such as EW-POT-013 need `PassThrough` semantics, so Golden C's MF-23 depends on steps 1–3 resolving T55's
   and S56's elements.
 - **Link type.** `simple` and `master` form devices; `slave` forms auxiliary functions; `next_report` and
-  `previous_report` become interruption points (built-in FnDef, not generated); `terminal` forms terminals;
-  `thumbnail` becomes a graphic.
+  `previous_report` become interruption points (the built-in FnDef `ew.fn.ip`, §4.3, not generated); `terminal`
+  forms terminals; `thumbnail` becomes a graphic.
 
 ### 4.4 Element instances → devices, functions, representations
 

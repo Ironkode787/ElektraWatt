@@ -221,14 +221,14 @@ sessions (G6).
 | `ew-model` | GPL | `Table<T>` of `ew-schema` records, the `Model` snapshot, `Op` apply and invert, base reverse indexes, structural invariants, link delete policies; the raw read API only behind the `raw-read` feature (rule 1) | ew-schema, ew-ids, ew-units, ew-mltext, ew-rds; imbl 7.0.2, smol_str 0.3.6 **(verify)** |
 | `ew-rhai` | GPL | rhai engine configuration plus the formula and rule profiles (pure, tracked reads, operation limits) | rhai 1.26.1 |
 | `ew-derive` | GPL | All domain queries (§6.4) and the tracked-read context `Q` | ew-memo, ew-model, ew-rds, ew-rhai, ew-plcaddr, icu |
-| `ew-commands` | GPL | `Command`, `DynCommand`, `TxBuilder`, normalisers, validators, numbering engine, `History`, previews, macros, `ApplyImport` | ew-derive |
+| `ew-commands` | GPL | `Command`, `DynCommand`, `TxBuilder`, normalisers, validators, numbering engine, `History`, previews, macros, `ApplyImport` | ew-derive, ew-model (enables `raw-read`), ew-schema, ew-ids, ew-units, ew-mltext, ew-rds; dev: ew-ids/testkit |
 | `ew-checks` | GPL | Rule engine, rule packs, the `RuleImpl` trait and registry (Rust and rhai rules implemented here), online checks as queries, offline check jobs, waivers, quick fixes | ew-derive, ew-rhai, toml 1.1.8, fluent-bundle 0.16.0, sha2 **(verify)** |
 | `ew-sqlview` | GPL | Read-only SQL projection: materialisation, `api_v1_*` views, sandbox, `ew_natural` collation; the SQL rule implementations registered into `ew-checks` | rusqlite 0.40.2 (`bundled`, `functions`, `hooks`, `limits`), ew-checks |
 | `ew-library` | GPL | Parts, symbol, form and macro libraries as canonical `.ewlib` text directories at every tier (system, community, company, user); one derived SQLite FTS5 index per user in the cache; embedding used items into projects (§7.7) | ew-format, rusqlite 0.40.2 |
 | `ew-store` | GPL | Save protocol, `.~ew.lock`, journal, recovery, watcher, external-change diff, `.ewz` transport, as-built archive, git commits and tags | ew-format, notify 8.2.0, zip 9.0.4, gix 0.89.0, etcetera or directories **(verify)** |
-| `ew-text` | GPL | Fonts and the memoised `shaped_text` query: one text stack for screen, pagination and paper | parley 0.12.0, fontique 0.12.0, skrifa 0.48.0, harfrust 0.14.0 |
+| `ew-text` | GPL | Fonts and the memoised `shaped_text` query: one text stack for screen, pagination and paper | ew-dl, ew-units; parley 0.12.0, fontique 0.12.0, skrifa 0.44.0, harfrust 0.12.0 (through parley), sha2 0.10.9 |
 | `ew-reports` | GPL | Built-in report row queries, user SQL reports through the sandboxed query API of `ew-sqlview` (never links rusqlite), pagination into virtual pages, XLSX and CSV tables | ew-derive, ew-sqlview, ew-text, rust_xlsxwriter 0.100.0, csv 1.4.0 |
-| `ew-scene` | GPL | Model to display lists per page and layer, forms engine (frames, title blocks, report forms), text through `ew-text`, spatial index, hit-testing; PDF underlays (1.0) | ew-reports, ew-dl, ew-text; ew-schema (symbol lowering reads `SymbolDef` records by reference), ew-units, ew-ids, ew-mltext; rstar 0.13.0, hayro 0.8.0 (underlays, 1.0) |
+| `ew-scene` | GPL | Model to display lists per page and layer, forms engine (frames, title blocks, report forms), text through `ew-text`, spatial index, hit-testing; PDF underlays (1.0) | ew-reports, ew-dl, ew-text; ew-schema (symbol lowering reads `SymbolDef` records by reference), ew-units, ew-ids, ew-mltext; serde_json; rstar 0.13.0, hayro 0.8.0 (underlays, 1.0) |
 | `ew-render2d` | GPL | wgpu 2D renderer: lyon tessellation once per symbol, instancing, screen-space lines, glyph atlas | wgpu 30.0.1, lyon_tessellation 1.0.22 |
 | `ew-render-cpu` | GPL | vello_cpu renderer: GPU-less fallback, thumbnails, golden PNGs, banded printing | vello_cpu 0.3.0 |
 | `ew-export` | GPL | PDF (outline, links, named destinations, page labels, PDF/A-2b), SVG, DXF, PNG (through `ew-render-cpu`) | krilla 0.8.2, krilla-svg 0.8.1, dxf 0.6.2, ew-render-cpu |
@@ -242,7 +242,7 @@ sessions (G6).
 | `ew-import-tables` | GPL | The golden CSV bootstrap behind `ew import csv`, the round-trip table reader and translation tables; reused by `ew-testkit` | csv, calamine |
 | `ew-script`, `ew-plugin-host` | GPL | rhai automation bindings over queries and commands (profile from `ew-rhai`); WIT world and host on the wasmtime LTS line current at plugin launch (48.x in development), plugin export roles (§10.4), plugin rule implementations registered into `ew-checks`, the `secret-get` capability (v1.x) | ew-rhai; wasmtime LTS, wit-bindgen 0.63.0 |
 | `ew-jobs` | GPL | Scheduler, progress, cancellation, staleness tagging, adopt-if-unchanged | rayon |
-| `ew-api` | GPL | The `Session` facade shared by every front-end; registers the SQL and plugin rule implementations at session start; composes `.ewpp` export jobs from `ew-mfg` data, `ew-export` PDF/DXF and `ew-panel` glb | everything above except UI |
+| `ew-api` | GPL | The `Session` facade shared by every front-end; registers the SQL and plugin rule implementations at session start; composes `.ewpp` export jobs from `ew-mfg` data, `ew-export` PDF/DXF and `ew-panel` glb | v0: ew-commands, ew-model, ew-schema (no `raw-read`); dev: ew-commands/testkit, ew-model/raw-read; eventually everything above except UI |
 | `ew-viewmodel` | GPL | Toolkit-agnostic panel models: navigator trees, table rows with edit→command mapping, property-grid rows with provenance, message lists, each with a revision stamp | ew-api |
 | `ew-ui` | GPL | egui widgets, canvas host, tools (state machines), command palette, keymaps, the action registry behind every menu, the 3D transform gizmo over `ew-render3d`'s camera and pick API | egui 0.37.0, egui_tiles 0.17.1, egui_table 0.10.0, egui_ltreeview 0.9.0, transform-gizmo-egui 0.11.0 |
 | `ew-viewer` (1.0) | GPL | The read-only `.ewpp` wiring viewer on `ew-ui` widgets, used by the `ew-wiring-viewer` binary and the "Preview package" view of the Manufacturing workspace | ew-ewpp, ew-ui, ew-render-cpu, hayro 0.8.0 (after the fidelity check) |
@@ -319,11 +319,12 @@ graph TD
   stepp --> units
   model --> schema & ids & units & mltext & rds
   derive --> model & memo & rhai & plcaddr
-  cmd --> derive
+  cmd --> derive & model & schema & ids & units & mltext & rds
   checks --> derive & rhai
   sqlv --> derive & checks
   lib --> schema & format
   store --> format & model
+  text --> dl & units
   rep --> derive & sqlv & text
   scene --> rep & dl & text & schema & units & ids & mltext
   r2d --> dl
@@ -340,7 +341,7 @@ graph TD
   itab --> iapi
   script --> cmd & rhai
   plug --> cmd & sqlv & checks
-  api --> store & cmd & checks & sqlv & lib & scene & exp & plc & panel & mfg & imp & icat & itab & script & plug & jobs
+  api --> store & cmd & checks & sqlv & lib & scene & exp & plc & panel & mfg & imp & icat & itab & script & plug & jobs & model & schema
   vm --> api
   ui --> vm & r2d & rcpu & r3d
   viewer --> ewpp & ui & rcpu
@@ -357,7 +358,13 @@ graph TD
    the cargo feature `raw-read`. Only `ew-derive`, `ew-commands` and `ew-store` may enable it (and `ew-model`'s own
    tests); `cargo xtask check-features` enforces this through a `[[banned_features]]` entry of `ci/dep-rules.toml`
    with `allowed_packages`. Every other crate reads the model only through the tracked context `Q` (inside queries)
-   or through `TxBuilder` (inside commands), and a query receives only `&Q` (ADR-0002 amendment 2).
+   or through `TxBuilder` (inside commands), and a query receives only `&Q` (ADR-0002 amendment 2). Because cargo
+   features are additive, a crate above `ew-derive` compiles with the raw API present; `cargo xtask check-raw-read`
+   therefore fails when non-test source outside `ew-model`, `ew-derive`, `ew-commands` and `ew-store` invokes
+   `raw_read!`, names the `raw-read` feature or calls a raw-read item (ADR-0001 amendment 2). `ew-api` enables
+   `raw-read` only as a dev-dependency. Rows do not leave by another route either: the normal public surface of
+   `ew-commands` carries no row, and its diffs, preview ops and history entries are summaries (op kind, record kind,
+   key, changed field paths); full ops exist only under its dev-only `testkit` feature (ADR-0001 amendment 3).
 2. **SQLite.** Only `ew-sqlview` and `ew-library` link rusqlite. `ew-reports` runs user SQL through the sandboxed
    query API of `ew-sqlview`, and importers receive SQLite content only as a `TableImage` (§10.6).
 3. **UI toolkit and GPU.** Only `ew-ui`, `ew-viewer`, the app binary and the `ew-wiring-viewer` binary know egui.
@@ -547,6 +554,12 @@ impl Session {
 }
 ```
 
+**v0** (WP-S1.04; decision log ID-42). `execute` and `commit` return a `Receipt {rev, outcome, created, passes}`
+and `undo` and `redo` a `Restored {rev, context, label}`; both carry the `Rev` shown above. `preview` runs
+synchronously and returns the `Preview` until the job pool of WP-S1.05 wraps it in a `JobHandle`, and a `Cost::Bulk`
+command sent to `execute` is refused with `CmdError::NeedsPreview`. [Extensibility](17-extensibility.md) §4 lists the
+v0 facade.
+
 Tools hand `Box<dyn DynCommand>` to the session ([schematic editor](06-schematic-editor.md) §4.1). The untyped
 `AnyCommand { name, params }` of scripts, plugins and MCP implements `DynCommand` after its parameters have been
 validated against the command's JSON Schema ([extensibility](17-extensibility.md) §2.1).
@@ -556,7 +569,8 @@ validated against the command's JSON Schema ([extensibility](17-extensibility.md
 1. **Run.** `Command::run` executes against `TxBuilder`, a scratch snapshot with read-your-writes. Handlers may
    query it, for example for the "next free counter on page 103".
 2. **Normalise** (from D). Deterministic normalisers may add ops to the same transaction, with at most three
-   passes; non-convergence is a bug. The registry, with the order of the editor's normalisers, is
+   productive passes plus one confirming pass; non-convergence is a bug (`CmdError::Internal`, ADR-0008
+   amendment 2). The registry, with the order of the editor's normalisers, is
    [schematic editor](06-schematic-editor.md) §3.2. The normaliser families are:
    - online numbering of new devices;
    - instantiation of CPs for new functions;
@@ -569,7 +583,8 @@ validated against the command's JSON Schema ([extensibility](17-extensibility.md
    - clamp pick for terminals;
    - solenoid binding of valve coils to channels ([PLC and bus](10-plc-and-bus.md));
    - the fluid normalisers ([fluid power](11-fluid-power.md)).
-3. **Validate.** Structural invariants, then prevent rules in the active mode (§4.6).
+3. **Validate.** Structural invariants, then prevent rules in the active mode (§4.6). The prevent hook stays unwired
+   until WP-S1.15, a documented known gap of M1 (decision log ID-58).
 4. **Commit.** Swap in the new `Model` (O(1)), bump `Rev`, and push to `History`, coalescing if the coalesce key
    matches. Send the transaction to the writer thread for the journal.
 5. **Notify.** Publish a change feed `{rev, touched keys, touched pages}`. View-models compare revision stamps.
@@ -580,7 +595,10 @@ validated against the command's JSON Schema ([extensibility](17-extensibility.md
 - **Mechanism.** Ops hold before/after `Arc`s, so they are O(1) to create and their inverse is a swap. Undo
   applies the inverse ops as a **new** revision, which keeps `changed_at` monotonic and memo validation sound.
 - **Scope and limits.** One project-wide stack (G3), bounded at 500 steps or 256 MB. Each entry restores page,
-  viewport and selection. The stack survives saving, and a saved marker drives the dirty flag.
+  viewport and selection. The stack survives saving, and a saved marker drives the dirty flag. Marker lines count
+  towards the 500; the 256 MB counts only the rows the history alone keeps alive, by in-memory size, and one step
+  larger than that is kept alone. Undo and redo run the structural invariants but not the prevent rules (ADR-0008
+  amendment 2).
 - **Coalescing.** One drag is one step. Typing in one cell merges until focus leaves. A table fill-down or an Excel
   paste is one step.
 - **External reload** arrives as an undoable diff transaction (§7.4), so the stack survives a git pull.
@@ -1003,8 +1021,9 @@ flowchart LR
 
 ### 8.3 Text and fonts
 
-- **One text stack for screen and paper** in `ew-text`: parley 0.12.0, fontique 0.12.0, skrifa 0.48.0 and harfrust
-  0.14.0. `shaped_text` is memoised, so screen, report pagination and PDF share glyph positions and line breaks.
+- **One text stack for screen and paper** in `ew-text`: parley 0.12.0, fontique 0.12.0, skrifa 0.44.0 and harfrust
+  0.12.0 (through parley). `shaped_text` is memoised, so screen, report pagination and PDF share glyph positions and
+  line breaks.
 - **Fonts.** One bundled OFL sans family is the default, with osifont (ISO 3098 style) as an option. Tahoma is never
   bundled: QET imports substitute it and record the substitution (G14; default font in ADR-0028).
 - **Text styles are model data** (D-29). A minimum-printed-height check runs at print scale (D-31).

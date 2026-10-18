@@ -65,13 +65,42 @@
 
 ## Amendments
 
-Accepted on 2026-10-18. The decision text above is unchanged; this entry refines it.
+Accepted on 2026-10-18. The decision text above is unchanged; these entries refine it.
 
 1. **Confirmation of non-undoable operations** (2026-10-18; [UX/UI](../design/16-ux-ui.md) §7–§8). Confirming every
    export would train users to click through. Every non-undoable operation is therefore **flagged** as a marker line
    in the history, and only the **destructive** ones ask for confirmation: library writes outside the project,
    overwriting an existing file, purging library copies, and the empty-project import checkpoint. FR-UI-023 and
    NFR-UX-07 state the same rule.
+2. **Normaliser passes, the undo stack, coalescing and validation** (2026-10-18, core team, after the first
+   implementation, WP-S1.04, and its review; [architecture](../design/04-architecture.md) §5.1–§5.3,
+   [schematic editor](../design/06-schematic-editor.md) §3.2, §3.9). This entry fixes what the decision leaves open:
+   - **Passes.** "At most three passes" means three productive passes plus one confirming pass that changes nothing;
+     a fourth productive pass is non-convergence (`CmdError::Internal`) and refuses the command. Each normaliser
+     converges within one run for its own cascades (junction clean-up uses a worklist), so passes only carry effects
+     from one normaliser to the next.
+   - **Bounds.** The 500 counts history entries, marker lines included. The 256 MB counts only what the history
+     alone keeps alive: the `before` rows of each step, and the `after` rows that are no longer live after an undo,
+     estimated from the rows' in-memory size, not from their JSON length. The oldest entries go first; a single step
+     larger than the budget is kept alone. If the saved state falls off the stack, the model stays dirty until the
+     next save.
+   - **Coalescing.** An undoable transaction whose `coalesce_key` equals that of the top step merges into it: the
+     ops are concatenated, the step keeps the first transaction's page, viewport, selection and label, and takes the
+     latest command and origin. A marker line or another command on top ends the run. Every new transaction drops
+     the redo branch.
+   - **Markers** (amendment 1). A non-undoable transaction without ops, such as an export, is a *transparent*
+     marker that undo and redo pass over. One with ops, such as the empty-project import checkpoint, is a
+     *barrier*: undo stops there and reports that nothing before it can be undone.
+   - **Empty transactions.** An undoable transaction without ops commits nothing: no revision, no history entry and
+     no change-feed entry.
+   - **Validation of undo and redo.** Undo and redo apply their ops as a new revision through the structural
+     invariants, but not through the prevent rules. Linear undo and redo only restore states that were committed
+     before, and a prevent rule that refused an undo would trap the user, for example after the strictness or a
+     rule pack changed. A violation in the restored state is reported by the online checks instead (ADR-0009).
+   - **Bulk commands** sent to the interactive `execute` path are refused with `CmdError::NeedsPreview`; they run as
+     preview, then commit. `commit` adopts the candidate when the snapshot is unchanged, applies the prepared ops
+     when only unrelated keys changed (the read set is unchanged), and otherwise re-runs the command, which is the
+     optimistic rebase of the decision.
 
 ## Consequences
 

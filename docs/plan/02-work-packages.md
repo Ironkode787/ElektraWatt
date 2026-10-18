@@ -39,8 +39,9 @@ by hand.
 8. [Requirement coverage](#8-requirement-coverage)
 9. [Work packages](#9-work-packages)
 10. [Appendix A: CSV format and the totals script](#appendix-a-csv-format-and-the-totals-script)
-11. [Sources](#sources)
-12. [Open questions](#open-questions)
+11. [Appendix B: follow-up tasks from the implementation cycles](#appendix-b-follow-up-tasks-from-the-implementation-cycles)
+12. [Sources](#sources)
+13. [Open questions](#open-questions)
 
 ---
 
@@ -2675,6 +2676,35 @@ python3 -I docs/plan/tools/totals.py --check && python3 -I docs/plan/tools/sched
 
 The generated tables sit between `<!-- generated:NAME -->` and `<!-- /generated:NAME -->` markers. A change to the
 CSV is a pull request that also contains the regenerated documents; the `--check` modes keep them honest.
+
+---
+
+## Appendix B: follow-up tasks from the implementation cycles
+
+The implementation cycles and their reviews leave small tasks that belong to a WP but are not yet in its code: a
+decision of the [decision log](06-decision-log.md) §2.4 that the code must follow, or a check that the design adds.
+Each task is well below 0.5 pw and is absorbed by its host WP's estimate or by the 20 % integration reserve, so the
+CSV and every total are unchanged. A task is closed by the commit that implements it; the decision row stays.
+
+| Task | Content | Host WP | Due | Source |
+|---|---|---|---|---|
+| FT-01 | `cargo xtask check-raw-read`: fail on `raw_read!`, the `raw-read` feature or a raw-read item in non-test source outside `ew-model`, `ew-derive`, `ew-commands` and `ew-store`; part of `cargo xtask ci` | WP-S1.05 | Cycle 6 (CI hygiene) | ID-50; [ADR-0001](../adr/0001-core-model-persistent-maps.md) amendment 2 |
+| FT-02 | Assert that `ICU4X_DATA_DIR` is unset in every CI build now, and in the release build with CI-R-03 | WP-S6.02 (CI); WP-S6.07 (release) | Cycle 6 (CI hygiene) | ID-52; [18](../design/18-quality-security-release.md) §3.5 |
+| FT-03 | Add the Noto Sans trademark line (name ID 7) to `NOTICE` | WP-S3.02 | Cycle 6 | ID-51 |
+| FT-04 | Release gate: assemble the non-crate notices (fonts) from `NOTICE` into `THIRD-PARTY-NOTICES.html` beside the cargo-about output; fail on an SBOM component without a notice | WP-S6.07 | With the release pipeline | ID-51; [19](../design/19-open-source-governance.md) §5.3; [18](../design/18-quality-security-release.md) CI-R-07 |
+| FT-05 | Forms: an unresolved or unbound placeholder renders as empty text with the `Binding` finding, never as raw `{…}`; `project.logo` and `project.notice` bind the basic project's company data | WP-S3.02 | Cycle 6 (fix round) | ID-40; [09](../design/09-reports-forms-output.md) §2.6 |
+| FT-06 | `ew-text` style test: compare the printed em within 0.005 mm now that doc 20 §17.5 reads 7.05 and 1.30 | WP-S3.02 | Cycle 6 (fix round) | ID-38 |
+| FT-07 | `ew-import-qet`: the one built-in FnDef is `ew.fn.ip` with `version_req` `^0.1` (`BUILTIN_FNDEF_KEYS`, `BUILTIN_VERSION_REQ`) | WP-S3.05 | Cycle 6 (fix round) | ID-33; [14](../design/14-interop.md) §4.3 |
+| FT-08 | Starter content: the `handle` link point of `ew.iec.switch-2p-manual` and no drawn linkage except the MCB's; PE and FE graphics, text slots and the content lint; regenerate the `@qet10` edition | WP-S7.02 | Cycle 6 (fix round) | ID-35, ID-36 |
+| FT-09 | `ew-scene` symbol lowering: flip text alignment under the orientation variants as [07](../design/07-symbols-parts-macros.md) §4.1 states | WP-S3.01 | Cycle 6 | ID-49 |
+| FT-10 | First PNG approval: check VR-01 (coil against resistor) and VR-02 (hook of the changeover contact) | WP-S3.04 | M1 PNG approval | ID-34; [20](../design/20-golden-project.md) §3.3 |
+| FT-11 | `ew-commands`: three productive passes plus one confirming pass; junction clean-up by worklist; history budget by the in-memory size of the rows only the history keeps alive | WP-S1.04 | Cycle 5 review fix round | ID-43, ID-44; [ADR-0008](../adr/0008-transactions-undo-preview.md) amendment 2 |
+| FT-12 | `ew-commands` command rules: colliding explicit counter edits rejected with a proposal; off-grid positions and routes rejected; `edit.delete` Bulk by delete-plan size; `device.place_from_part` unregistered; disallowed representation types refused; vanished hint targets reported; junction dissolve keeps the assigned wire number | WP-S1.04 | Cycle 5 review fix round | ID-53, ID-54, ID-55, ID-60 |
+| FT-13 | `ew-commands` interface: parameter schemas reject unknown open-enum tags; parameter document limits; `Origin::Cli { confirmed }`; a public surface of summaries only, full ops under `testkit` | WP-S1.04 | Cycle 5 review fix round | ID-56, ID-57, ID-59; [ADR-0001](../adr/0001-core-model-persistent-maps.md) amendment 3 |
+| FT-14 | The dedicated `HumanOnly` subcommands that set `confirmed` after the typed confirmation; `undo` refusing a `HumanOnly` step from a script, MCP, plugin or Python origin; the `Origin` members `sha256`, `session` and `version` | WP-S1.22 | Before the first `HumanOnly` command | ID-57; [17](../design/17-extensibility.md) §2.3, §4 |
+| FT-15 | Wire the prevent hook to the rule engine, which closes the known gap of duplicate terminal designations | WP-S1.15 | With the rule engine | ID-58 |
+| FT-16 | Cross-page `rep.move` with the IP-pair replacement of FR-CON-043, and a test of `ip.continue` refusing an external connection point once a fixture has an `ExternalRef` | WP-S1.07 | With the WP | ID-46 |
+| FT-17 | Asset import: sniff the magic bytes and record format and intrinsic size in `AssetRef {sha256, format, size}`, which the forms layer trusts | WP-S1.09 | With the asset store | ID-61; [05](../design/05-project-format-and-persistence.md) §13.3 |
 
 ---
 

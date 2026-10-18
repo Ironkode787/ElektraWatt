@@ -160,6 +160,12 @@ placement command `device.place` (`PlaceSymbol` with a `PlaceTarget`) registers 
 `symbol.place` as `CommandMeta.aliases`, and the journal always records `device.place`. Entity references in parameters are UUIDs; front-ends that
 accept tags (`.ewcmd`, CLI, MCP) resolve them first through `find` (§3.5).
 
+**Parameter schemas are the client contract** (FR-EXT-015; decision log ID-56). They reject unknown tags of open
+enums, which records keep for forward compatibility (ARCH §7.6): a client learns of a new value from the catalogue,
+never by sending it. Before validation, a parameter document is limited to 4 MiB, a nesting depth of 64, 1,048,576
+items per array and 1 MiB per string; a validation error shows at most 256 characters of the offending instance,
+after the JSON Pointer of the first error.
+
 ### 2.2 Query registry
 
 Only **public** queries are reachable from CLI, rhai automation, MCP, plugins and Python. Each has a name, a key
@@ -220,6 +226,14 @@ can defeat it, but no agent, plugin, replay or pipeline step can reach the gate 
 
 The exposure class is declared in `CommandMeta` and checked in the `ew-commands` commit pipeline (validate step,
 ARCH §5.2), so no front-end can bypass it; `ew-api` only sets the origin.
+
+*v0* (WP-S1.04; decision log ID-42, ID-45). The engine checks the exposure first, before `run`. Its `Origin` carries
+the variants above with their identifying name only (file, script, client, plugin ID); the `sha256`, `session` and
+`version` members join when the front-ends that know them land (WP-S1.22, WP-S1.23). All 23 v0 commands are `Edit`
+and `Preview`. `Origin::Cli` carries a `confirmed` flag, and a `HumanOnly` command is admitted only from `Origin::Gui`
+or from a CLI origin with `confirmed` set (FR-EXT-030; decision log ID-57); the dedicated subcommands that set it
+after the typed confirmation above arrive with the CLI work package (WP-S1.22). Before the first `HumanOnly` command
+ships, `undo` must refuse a `HumanOnly` step from a script, MCP, plugin or Python origin (§4).
 
 ### 2.4 Project-resident extension content and trust
 
@@ -520,6 +534,15 @@ impl Session {
     pub fn trust_state(&self) -> TrustState;          // content hash, decision, gated files
 }
 ```
+
+**v0** (WP-S1.04; decision log ID-42). `Session` is a thin facade over the `ew-commands` `Engine`, with no
+persistence, no threads and no queries yet: `new` and `from_records` (instead of `open`), `world`, `execute` and
+`execute_with`, `preview` and `preview_with`, `commit`, `undo`, `redo`, `history`, `drain_changes` (the change feed),
+`registry` (instead of `commands`), `mark_saved` and `is_dirty`. The `_with` forms take the origin, the editor context
+and the coalescing key. `execute` and `commit` return a `Receipt {rev, outcome, created, passes}` and `undo` and
+`redo` a `Restored {rev, context, label}`; `preview` is synchronous until the job pool of WP-S1.05 returns a
+`JobHandle`, and a `Cost::Bulk` command sent to `execute` is refused with `CmdError::NeedsPreview`. `ew-api` depends
+on `ew-commands`, `ew-model` without `raw-read`, and `ew-schema` (ARCH §3).
 
 - **Concurrency.** A `ReadOnly` session reads one generation and follows later generations through the watcher as
   "External change" (ARCH §7.4); results carry their `Rev`. A `Writable` session holds the lock; a second writer

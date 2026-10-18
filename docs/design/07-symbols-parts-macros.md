@@ -214,6 +214,12 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   CPs live in the representation's `box: BoxSpec`, [03](03-domain-model.md) §6, [06](06-schematic-editor.md) §2.7),
   the junction dot and bevel, and the derived linkage are system symbols with fixed keys. Importers and the engine
   rely on these keys.
+- **Keys and item IDs of the starter library** (decision log ID-33). An item ID is v5(library, key), and a symbol
+  and a FnDef must never share one, so FnDefs are keyed `ew.fn.<name>`: the interruption point is the symbol
+  `ew.gen.ip` with the FnDef `ew.fn.ip`. Every starter item is version 0.1.0 with status `draft`. Importers
+  reference a built-in FnDef by key with `version_req` `^0.1`: `ew-import-qet` has exactly one, `ew.fn.ip`
+  ([14](14-interop.md) §4.3). Until WP-S1.19a names the system library, the starter content and the importer use
+  the provisional `library_id` 7202fd8b-1024-4bf1-9e99-670772eaa589 (open question 17).
 
 ### 2.4 Function definitions and connection-point designations
 
@@ -498,6 +504,10 @@ preview shows:
    QET-import symbols for starter symbols on QET-grid pages. The starter set therefore ships a second, **generated**
    edition with `grid = QET 10 px`: every CP offset keeps its count of grid steps (`k·g` → `k·7_937_500/3` nm),
    graphics and slot positions scale by the same ratio and round to the nm, and text heights stay style-driven. The
+   scaling is `v · 7_937_500 / 12_000_000` rounded with ties toward zero; 0.5 mm becomes 1.25 px, so the edition's
+   graphics lie on no whole-pixel grid, and its lint requires instead that every graphic, slot and link-point
+   coordinate equals the scaled value of its native twin, while every CP lies exactly on the QET 10 px grid
+   (decision log ID-34). The
    edition has its own item IDs (key suffix `@qet10`), is linted like the native edition, is never drawn by hand,
    and is checked visually on the Golden A pages before the starter set is frozen (FR-SYM-030; ADR-0027
    recommendation 8). The full 1.0 library gets no such edition.
@@ -512,11 +522,18 @@ preview shows:
    the origin), because the integer cell lookup of [06](06-schematic-editor.md) §5.1 requires anchors on the grid.
 6. **Text readability.** Text primitives and slots are never mirrored and never render at R180 or R90: on a symbol
    at R180 they render at R0, on a symbol at R90 at R270, reading from the bottom or the right of the sheet
-   ([06](06-schematic-editor.md) §2.5).
+   ([06](06-schematic-editor.md) §2.5). Under a mirroring variant the glyphs stay unmirrored and the text's
+   horizontal alignment flips (left ↔ right), so the text stays on the same side of the symbol and readable; §4.1
+   states the rule for all eight variants (decision log ID-49).
 7. **Exchange** (FR-SYM-022) maps CPs by `fn_cp`, then by designation. The preview lists unmapped CPs, and a CP that
    carries a connection must be mapped.
 8. **Linkages** (FR-SYM-014) are derived lines between `link_points` of the functions related by a `DeviceLink`
-   or by one device's actuator and contacts. A symbol without a link point gets its anchor as the fallback.
+   or by one device's actuator and contacts. A symbol without a link point gets its anchor as the fallback. A
+   `SymbolDef` never draws a mechanical linkage in its graphics: pole to pole, pole to handle, actuator to contacts
+   and actuator to process valve are all derived (decision log ID-35). A multi-pole symbol therefore declares a link
+   point per pole and one for its actuator: `ew.iec.switch-2p-manual` declares `pole1`, `pole2` and `handle` at
+   (11, 6) mm, and the derived chain runs pole1 → pole2 → handle. The one exception is the internal pole linkage
+   of the MCB, which is part of the MCB graphic ([20](20-golden-project.md) §17.4: 0.13 mm, dashed 4:2).
 9. **Licence.** Every symbol has an SPDX licence. Shipped symbols carry `CC-BY-SA-4.0 WITH
    KiCad-libraries-exception` if counsel confirms that the SPDX-listed exception covers control-cabinet projects
    and machine files, otherwise a project-specific exception (`AdditionRef-…`, SPDX 3.0 syntax, verify)
@@ -668,6 +685,29 @@ Variant `v ∈ {R0, R90, R180, R270, M0, M90, M180, M270}` maps a point by an in
 
 Geometry, CP positions and CP directions transform exactly in `i64` nm. Arcs swap their sweep direction under
 mirror. Text anchors transform; text glyphs do not.
+
+**Text under a variant** (decision log ID-49). A text primitive or slot is laid out in the symbol frame with its
+anchor, rotation and alignment, and placed in three steps:
+1. The anchor transforms with the variant's matrix like any point.
+2. The glyphs are never mirrored. The text renders at its *readable* rotation: the transformed baseline direction
+   if that reads left to right or bottom to top, otherwise turned by 180° (§3.2 rule 6; `readable_angle` of
+   `ew-scene`).
+3. The horizontal alignment (left ↔ right; centre stays) flips exactly when step 2 turned the text by 180°. The
+   vertical alignment (top ↔ bottom; middle and baseline stay) flips when exactly one of "step 2 turned the text"
+   and "the variant mirrors" applies.
+
+The text then occupies the box that the variant maps its unrotated box to, so it keeps its side of the anchor and
+of the symbol and stays readable. For a text without its own rotation:
+
+| Variant | A R0 | B R90 | C R180 | D R270 | E M0 | F M90 | G M180 | H M270 |
+|---|---|---|---|---|---|---|---|---|
+| Rendered as | R0 | R270 | R0 | R270 | R0 | R270 | R0 | R270 |
+| Horizontal alignment | kept | flipped | flipped | kept | flipped | kept | kept | flipped |
+| Vertical alignment | kept | flipped | flipped | kept | kept | flipped | flipped | kept |
+
+The plain mirror E is the case the project owner decided (left ↔ right). Under F and G the transformed baseline
+already reads correctly, so no turn is needed: the horizontal alignment stays and only the mirrored axis flips
+(top ↔ bottom).
 
 **Invariance.** Every CP offset and the anchor offset from the symbol origin are multiples of the connection grid
 `g` (§3.2 rules 1 and 5), and the matrix entries are 0 or ±1. Every transformed offset is therefore again a
@@ -939,16 +979,16 @@ native-grid projects place the native edition.
 
 | Symbol key | FnDef (CPs) | Golden use |
 |---|---|---|
-| `ew.iec.switch-2p-manual` | 2 poles, PassThrough{opens}, `switches_n_with_l` (1–2, 3–4) | S51, folio 101; dashed linkage from link points |
+| `ew.iec.switch-2p-manual` | 2 poles, PassThrough{opens}, `switches_n_with_l` (1–2, 3–4) | S51, folio 101; dashed linkage derived from the link points `pole1` → `pole2` → `handle` (§3.2 rule 8) |
 | `ew.iec.mcb-1pn` | ProtectionOvercurrent, 1–2 and N–N pass-through (1, 2, N, N) | -101F1, F55 |
 | `ew.iec.mcb-1p` | 1–2 (1 alias L1, 2 alias T1 from part) | -102F1 |
 | `ew.iec.thermostat-nc` | NC pass-through 5–3 ▲U-12 | T55; splits N-55 into N-55T (EF-01) |
 | `ew.iec.position-switch-no` | NO 13–14 | S56 |
 | `ew.iec.lamp`, `ew.iec.heater` | loads (X1, X2), (L, N, PE) | E56, E55 |
 | `ew.iec.terminal`, `ew.iec.terminal-pe`, `ew.gen.strip-segment` | feed-through `Short` per level; PE with rail contact | 1X1, -X1031 (two segments at 103-A3 and 103-A10), -X1032 |
-| `ew.iec.pe`, `ew.iec.fe`, `ew.iec.plug-pin` | earth roles PE and FE; plug pin | folio 101 earth; CPX FE screw; X1 pins on 106 |
+| `ew.iec.pe`, `ew.iec.fe`, `ew.iec.plug-pin` | earth roles PE and FE; plug pin. PE is the earth sign inside a circle (IEC 60417-5019), FE the plain earth sign (IEC 60417-5018), as the ruling of decision log ID-36 identifies them (not yet verified against the standard, like every `iec60617_ref`); their text slots sit at x = 6 mm (PE, clear of the circle) and 4 mm (FE), and a content lint guards the assignment | folio 101 earth ([reference drawing](../research/reference-drawing.md) §1.5); CPX FE screw; X1 pins on 106 |
 | `ew.gen.blackbox` | from the part pattern | -102G1, -102F2, CPX power blocks on 106 |
-| `ew.gen.ip`, `ew.gen.external-arrow`, junction dot and bevel, cable marker, wire marker | built in; the wire marker is the graphic of a `PageItem::WireMarker` ([03](03-domain-model.md) §6) | L-1, N-1, 24VDC-1 …; J-E-206 points; -106W1 marker; "2.5 BK" on W7 |
+| `ew.gen.ip`, `ew.gen.external-arrow`, junction dot and bevel, cable marker, wire marker | built in (the interruption point's FnDef is `ew.fn.ip`, §2.3); the wire marker is the graphic of a `PageItem::WireMarker` ([03](03-domain-model.md) §6) | L-1, N-1, 24VDC-1 …; J-E-206 points; -106W1 marker; "2.5 BK" on W7 |
 | `ew.bus.dp-port`, `ew.bus.dp-connector` | BusPort | -201U1 on folio 3; anchor at graphics gives "3-B2" (D-14) |
 | `ew.ovw.module`, `ew.ovw.valve-top` | overview of the assembly view | generated overview on 201/202 |
 | `ew.iso.valve-5-2-sol-spring` | fluid 5/2, ports 1–5, solenoid 14 with manual override, spring | 28 valves, 203–206 |
@@ -1229,4 +1269,7 @@ The eleven rows this document proposed are in the catalogues:
     document names yet; `ew-import-qet` uses a provisional constant (`BUILTIN_LIBRARY`). *Recommendation:*
     WP-S1.19a mints the system library's fixed UUID, held by `ew-ids` beside `NS_LIBCOPY`, before format 0.1 is
     released; the importer then switches to it, which changes the copy IDs of imported built-in references once,
-    while no released file exists (decision log ID-24).
+    while no released file exists (decision log ID-24). *Still open (2026-10-18):* the starter content of WP-S7.02
+    uses the same provisional UUID 7202fd8b-1024-4bf1-9e99-670772eaa589 for its symbols and FnDefs, so content and
+    importer switch together; the importer's one built-in FnDef key is `ew.fn.ip` with `version_req` `^0.1`
+    (decision log ID-33).

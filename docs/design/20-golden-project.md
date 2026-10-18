@@ -263,6 +263,13 @@ PNGs. This first approval includes the visual check of the scaled graphics of th
 (§2.1 rule 4) on every Golden A page. From then on the approved PNGs are the visual oracle; they contain only
 anonymised content.
 
+The first approval also settles these starter-symbol items, raised by the review of WP-S7.02 (decision log ID-34):
+
+| Item | Symbols | Check |
+|---|---|---|
+| VR-01 | `ew.iec.coil` (rectangle 4 × 8 mm), `ew.iec.resistor` (3 × 8 mm) | The coil and the resistor are told apart at print size on folios 101–106; if not, the coil's proportions change before the starter set is frozen |
+| VR-02 | `ew.iec.contact-co`, `ew.iec.contact-nc` | The NC side of the changeover contact shows the same hook as `contact-nc` |
+
 ### 3.4 Intended differences from the reference set (Golden A)
 
 | # | Folio(s) | Reference | Golden A | Reason |
@@ -991,7 +998,7 @@ a bound value (FR-REP-035); no per-page free-text field exists.
 
 | Cell | x (mm) | y (mm) | Native px | Binding | Printed pt | Align |
 |---|---|---|---|---|---|---|
-| Logo | 9.79–21.79 | 182.02–199.76 | 46 × 68 | company logo asset (placeholder SVG) | — | fit |
+| Logo | 9.79–21.79 | 182.02–199.76 | 46 × 68 | company logo asset `project.logo` (placeholder SVG) | — | fit |
 | Page description | 21.79–172.62 | 182.02–190.89 | 578 × 34 | page description (§5) | 8.88 | left, middle |
 | Project | 21.79–131.92 | 190.89–195.33 | 422 × 17 | "Project: " + project reference | 6.66 | left |
 | Description | 21.79–131.92 | 195.33–199.76 | 422 × 17 | "Description: " + project description | 6.66 | left |
@@ -1001,14 +1008,21 @@ a bound value (FR-REP-035); no per-page free-text field exists.
 | Location (+) | 172.62–199.76 | 190.89–199.76 | 104 × 34 | page `+` | 8.88 | centre |
 | Party | 199.76–226.90 | 182.02–186.46 | 104 × 17 | ▲U-01 | 6.66 | left |
 | Object | 199.76–226.90 | 186.46–190.89 | 104 × 17 | "Object: " + object id | 6.66 | left |
-| Checked | 199.76–226.90 | 190.89–195.33 | 104 × 17 | "Checked: " + revision checker | 6.66 | left, value tabbed |
-| Author | 199.76–226.90 | 195.33–199.76 | 104 × 17 | "Author: " + revision author | 6.66 | left, value tabbed |
+| Checked | 199.76–226.90 | 190.89–195.33 | 104 × 17 | "Checked: " + revision checker | 6.66 | left |
+| Author | 199.76–226.90 | 195.33–199.76 | 104 × 17 | "Author: " + revision author | 6.66 | left |
 | Creation | 226.90–254.04 | 182.02–186.46 | 104 × 17 | "Creation: " + project created date | 5.92 | centre |
 | Saved | 226.90–254.04 | 186.46–190.89 | 104 × 17 | "Saved: " + project edited date (model value, never file time) | 5.92 | centre |
 | Page | 254.04–281.18 | 182.02–186.46 | 104 × 17 | "Page: " + folio label | 8.88 | centre |
 | Prev | 254.04–267.61 | 186.46–190.89 | 52 × 17 | "Prev: " + previous folio | 5.92 | centre |
 | Next | 267.61–281.18 | 186.46–190.89 | 52 × 17 | "Next: " + next folio | 5.92 | centre |
-| Notice | 226.90–281.18 | 190.89–199.76 | 208 × 34 | company notice (placeholder), up to 4 lines | 5.18 | centre |
+| Notice | 226.90–281.18 | 190.89–199.76 | 208 × 34 | company notice `project.notice` (placeholder), up to 4 lines | 5.18 | centre |
+
+Every labelled cell prints the label, one space and the value; v0 has no tab stops (decision log ID-41). A cell
+that shrinks to its minimum printed cap height and still does not fit reports the overflow and lets the text run
+over the cell edge, because clipping is forbidden ([09](09-reports-forms-output.md) §2.5). An unbound value
+prints nothing after the label: Golden A's "Checked:" stays empty while the checker is unset (U-03). This title
+block has no scale cell, by design, because it reproduces the reference layout. FR-REP-037's scale cell applies to
+forms that declare one.
 
 ### 17.3 Cover, section dividers, embedded boxes
 
@@ -1040,14 +1054,15 @@ a bound value (FR-REP-035); no per-page free-text field exists.
 ### 17.5 Text styles and fonts
 
 Text styles are model data bound to slot kinds (FR-SYM-013, D-29). Printed pt = native pt × 0.98628; native pt =
-QET px × 0.75.
+QET px × 0.75. The em is `round(px × 793 750 / 3)` nm natively (`ew-text`'s built-in table), and the printed em
+column rounds that value times 0.986282578 to 0.01 mm (decision log ID-38).
 
 | Style | QET px | Native pt | Printed pt | Printed em (mm) | Uses |
 |---|---|---|---|---|---|
 | `cover.title` | 48 | 36.00 | 35.51 | 12.53 | cover "J-E-2416" |
 | `section.id` (bold) | 37 | 27.75 | 27.37 | 9.66 | "=P01+J-E-2416" on dividers |
 | `section.subtitle` | 29 | 21.75 | 21.45 | 7.57 | divider subtitle |
-| `cover.subtitle` | 27 | 20.25 | 19.97 | 7.04 | "Electrical Definition" |
+| `cover.subtitle` | 27 | 20.25 | 19.97 | 7.05 | "Electrical Definition" |
 | `box.title` | 21 | 15.75 | 15.53 | 5.48 | "PART DATA" |
 | `cover.table` | 16 | 12.00 | 11.84 | 4.18 | cover upper block, table headers |
 | `tag.main` | 13 | 9.75 | 9.62 | 3.39 | every device and strip tag, captions |
@@ -1056,8 +1071,8 @@ QET px × 0.75.
 | `data.small` | 9 | 6.75 | 6.66 | 2.35 | part data at symbols, xrefs under arrows, terminal labels, title-block fields, PLC addresses, function texts |
 | `pin` | 8 | 6.00 | 5.92 | 2.09 | Creation/Saved/Prev/Next, PSU and CPX pins, valve ports, cable part texts |
 | `xref.device` | 7 | 5.25 | 5.18 | 1.83 | "(201-E1)", notice, overview module texts, "Switch to "ON"", layout labels |
-| `cp.small` | 5 | 3.75 | 3.70 | 1.31 | MCB and switch pin numbers, "DP" |
-| `marker` | 5 | 3.75 | 3.70 | 1.31 | wire- and cable-marker texts |
+| `cp.small` | 5 | 3.75 | 3.70 | 1.30 | MCB and switch pin numbers, "DP" |
+| `marker` | 5 | 3.75 | 3.70 | 1.30 | wire- and cable-marker texts |
 
 **Fonts.** The fixture pins the bundled default family (Noto Sans Regular and Bold, OFL-1.1, ▲U-29, ADR-0028).
 **Tahoma is never bundled, embedded or required**: CI machines have no Tahoma, and AC-13 fails if any embedded font is

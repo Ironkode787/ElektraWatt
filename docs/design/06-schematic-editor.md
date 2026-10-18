@@ -189,7 +189,10 @@ is always derived; the representation stores only overrides of position, rotatio
 height comes from the text style bound to the slot kind (FR-SYM-013, D-29), so dragging a label moves it but never
 resizes it. Texts stay readable from the bottom or the right of the sheet (common drawing practice; the governing
 clause is unverified), so slot text never renders at R180 or R90: on a symbol at R180 it renders at R0, on a symbol
-at R90 at R270 (reading bottom to top); a mirror never mirrors glyphs.
+at R90 at R270 (reading bottom to top); a mirror never mirrors glyphs. Instead, under a mirroring variant (E–H) and
+wherever the readable rotation turns a text by 180°, the text's alignment flips (left ↔ right, and top ↔ bottom where
+the variant reverses that axis), so the text keeps its side of the symbol and stays readable (decision log ID-49;
+the rule for all eight variants is [07](07-symbols-parts-macros.md) §4.1).
 
 ### 2.6 Devices, functions, main and auxiliary
 
@@ -290,7 +293,16 @@ case is the test contactor -K1 of FR-XRF-017 ("13-14 /105.3, 21-22 /106.5").
 ### 3.1 Editor commands
 
 Every command has a stable dotted name and a JSON Schema (FR-EXT-015). `Cost::Bulk` commands always run as preview
-jobs (ARCH §5.1).
+jobs (ARCH §5.1). The Bulk threshold of `edit.delete` counts the records affected, which is the size of the delete
+plan, not the number of selected targets (decision log ID-55).
+
+*v0* (WP-S1.04; decision log ID-45, ID-55). 23 commands are registered, all exposure `Edit`, stability `Preview`
+and undoable: those of the table except `page.copy`, `page.move`, `rep.exchange_symbol`, `ip.arrange`, `box.*`,
+`item.place`, `edit.paste` and `macro.insert`, which arrive with their work packages, plus `connection.delete`,
+`structure.create_node`, `section.create`, `report_block.create`, `device.create`, `terminal.add`, `cable.create`
+and `conductor.add`. The alias `device.place_from_part` stays unregistered until parts exist (WP-S1.19a). A
+placement whose `rep_type` the page type does not allow is refused (§2.2), and an autoconnect hint whose target
+vanished is dropped and reported in the outcome's notices.
 
 | Command (`NAME`) | Parameters (abridged) | Cost | Notes |
 |---|---|---|---|
@@ -317,7 +329,29 @@ jobs (ARCH §5.1).
 Normalisers add ops to the same transaction, at most three passes (ARCH §5.2). ARCH §5.2 lists the normaliser
 families and names this table as their **registry**: a new normaliser is added here, with its owner, before it
 ships. The order is the order within one pass; a normaliser whose input another one creates in the same pass sees
-it in the next pass. All are deterministic and break ties by ID.
+it in the next pass. All are deterministic and break ties by ID. "At most three passes" means three productive passes
+plus one confirming pass that changes nothing; a fourth pass that still changes something is non-convergence,
+reported as `CmdError::Internal`, and the command is refused (decision log ID-44). Each normaliser converges within
+one run for its own cascades, so the passes only carry effects from one normaliser to another: junction clean-up,
+for example, works through a worklist, so a dissolve that leaves another junction with two connections is handled in
+the same run.
+
+**v0** (WP-S1.04; decision log ID-44). `ew-commands` runs rows 2, 4, 7, 8 and 12 in this order (`ORDER`, asserted by
+a test). Row 2 records nothing, because CPs are derived and no override exists yet. Row 4 numbers within the scope
+(page of the main representation, letter) and skips devices with a terminal aspect, a frozen tag or a scheme other
+than the page-based default (ID-48). Row 7 splits by an exact integer point-on-route test; W′ keeps its ID and
+number and W″ is new and `Unassigned`. Row 8 keeps, when a junction dissolves, the member that carries an assigned
+wire number (rows 8 and 11, FR-NUM-023); if both members carry different assigned numbers the command is rejected
+rather than losing one (ID-60). Row 12 leaves every new connection `Unassigned` until a wire-numbering scheme exists
+(WP-S1.11). The other rows arrive with their owners' work packages. The prevent hook of the validate step stays
+unwired until WP-S1.15, so M1 accepts, for example, duplicate terminal designations; this is a documented known gap
+(ID-58).
+
+**Explicit counter edits** (FR-NUM-029; decision log ID-53). Row 4 renumbers only collisions that the edit itself
+creates by placing a new device, moving a main representation or changing a page. A `fields.set` that sets a tag's
+letter or counter to a value that collides on the page is rejected in the strict style of ADR-0009, with the next
+free counter proposed, and is never silently replaced. Duplicates that already exist in a lenient project stay
+findings.
 
 | # | Normaliser | Effect | Owner |
 |---|---|---|---|
@@ -387,7 +421,9 @@ Rules:
   replaced by an IP pair whose name is proposed from the potential ("24VDC-1" or the next free name of its series),
   listed and editable in the preview. The user may instead drop those connections; the preview then lists them as
   removed, so the connectivity change is explicit, never silent (FR-CON-043). **Cut and paste** is delete plus
-  paste and follows §3.6: connections to outside the selection are not copied.
+  paste and follows §3.6: connections to outside the selection are not copied. *v0* (WP-S1.04, decision log ID-46)
+  rejects a cross-page move that would leave a connection end behind, and leaves page-less connections (bridges)
+  untouched; the IP-pair replacement arrives with WP-S1.07, which carries FR-CON-043.
 - **Structure follows the page** unless the device has an explicit slot; moving the only representation of a device
   to a page of another location asks whether to keep the old location as an explicit slot (FR-PRJ-019).
 - **Deleting a representation** leaves its function unplaced; deleting a device follows the delete policies and
@@ -769,7 +805,7 @@ before commit.
 propose_folio(after):
   n = after.number + 1
   if n is inside after's section range and no drawn page, divider or report block uses n: return n
-  else: return after.label + "." + smallest free k            (sub-page, sorts directly after `after`)
+  else: return {number: after.number, label: [after.label + "."] + smallest free k}   (sub-page, sorts directly after `after`)
 ```
 
 Inserting after 103 in the reference project proposes 104; inserting after 101 while 102 exists proposes 101.1, and
@@ -786,7 +822,9 @@ depends on the tool:
 Snap targets within 8 screen px win over the grid. Alt means one thing per tool: in the Place tool it suppresses
 autoconnect proposals, in the graphic, text and route-edit tools it suspends object snaps and the fine grid. CPs
 never leave the connection grid in any tool. All snapping works on grid indices, never on float equality
-(ADR-0005).
+(ADR-0005). The grid rule binds every origin, scripts, command logs and MCP included (decision log ID-54): a command
+rejects a position off the page's connection grid (`Page.grid`, ADR-0027) and a route with a point off the grid or
+an end that does not meet its CP. GUI tools snap before they issue the command, so they never meet the rejection.
 
 ---
 
