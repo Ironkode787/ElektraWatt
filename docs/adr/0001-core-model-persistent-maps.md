@@ -64,8 +64,9 @@ Accepted on 2026-10-18. The decision text above is unchanged; this entry refines
    [architecture](../design/04-architecture.md) §3 rule 1; ADR-0002 amendment 2). Rust cannot restrict an item's
    visibility to chosen dependent crates, so decision 3 is implemented as follows. The table fields stay
    `pub(crate)`. The raw read API that the layers directly above the model need (`Model::table`, `Model::lib`,
-   `Model::indexes`, `Model::row` and the getters of `Table` and `BaseIndexes`) is compiled only with the cargo
-   feature **`raw-read`** of `ew-model`. Only `ew-derive` (which builds the tracked context `Q` on it),
+   `Model::indexes`, `Model::row`, `Model::delete_plan` and the getters of `Table` and `BaseIndexes`) is compiled
+   only with the cargo feature **`raw-read`** of `ew-model`. `delete_plan` is gated because the `Op`s it returns
+   carry row contents; `Model::apply` and `Model::apply_with` stay public. Only `ew-derive` (which builds the tracked context `Q` on it),
    `ew-commands` (`TxBuilder`, normalisers, validators) and `ew-store` (save, external-change diff) may enable it,
    plus `ew-model`'s own tests. `cargo xtask check-features` enforces the list through a `[[banned_features]]`
    entry of `ci/dep-rules.toml` with `allowed_packages`. Every other crate reads through `Q` (queries) or

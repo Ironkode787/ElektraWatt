@@ -151,12 +151,14 @@ pub struct TargetHints {               // copied from the target project or basi
 pub struct Limits {                    // §11; a violation refuses the file or skips the item (EW-IMP-001)
     pub max_input_bytes: u64,          // 512 MiB
     pub max_xml_depth: u32,            // 256
-    pub max_xml_nodes: u32,            // 10 million elements and texts; attributes have their own limits
+    pub max_xml_nodes: u32,            // 1,000,000 elements and texts; attributes have their own limits
     pub max_attribute_bytes: usize,    // 16 MiB per attribute value
-    pub max_attributes_per_element: u32,      // 8,192 (roxmltree checks duplicates quadratically per element)
-    pub max_attributes_per_document: u32,     // 1,048,576
-    pub max_report_entries_per_definition: u32, // 1,000; the rest summarised in one EW-IMP-001 entry
+    pub max_xml_attributes_per_element: u32,  // 8,192 (roxmltree checks duplicates quadratically per element)
+    pub max_xml_attributes: u32,       // 1,048,576 per document
+    pub max_xml_attribute_work: u64,   // 2^26: the sum over elements of (attribute count)^2
 }
+// crate constant, not a Limits member: MAX_ENTRIES_PER_DEFINITION = 1,000 report entries per element
+// definition; the rest are summarised in one EW-IMP-001 entry
 pub struct ImportBatch {
     pub records: Vec<ew_schema::AnyRecord>,   // sorted by (kind, id); IDs already final
     pub assets: Vec<AssetBlob>,               // {sha256, media_type, bytes}: logos, images (ARCH §10.6)
@@ -164,6 +166,11 @@ pub struct ImportBatch {
     pub provenance: Vec<SourceRef>,           // provenance[i] belongs to records[i]
 }
 ```
+
+The attribute work budget exists because `roxmltree` 0.21.1 checks the duplicate attributes of an element
+quadratically, so a document can stay under both attribute counts and still be slow: the budget bounds the sum over
+all elements of the squared attribute count. `max_xml_nodes` counts elements and texts, not attributes; a project
+importer may raise it explicitly under its own budget.
 
 `ew-interop-api` implements `ImportCx` as `ImportContext`, in a minimal form (`project`, `lineage`, `as_of`,
 `limits`); the other members arrive with the importers that need them.
@@ -1191,7 +1198,7 @@ allocator of [18](18-quality-security-release.md) §3.12. The per-parser values:
 
 | Parser | Limits beyond NFR-SEC-02 |
 |---|---|
-| XML (QET, parts XML, AML, GSDML, IODD, BMEcat) | DTD refused (no internal or external entities, no XInclude); depth ≤ 256; attribute value ≤ 16 MiB; base64 payload ≤ 64 MiB decoded; decoded images ≤ 16,384 × 16,384 px; ≤ 8,192 attributes per element and ≤ 1,048,576 per document; ≤ 10 million nodes per document, counting elements and texts (attributes count against the attribute limits) |
+| XML (QET, parts XML, AML, GSDML, IODD, BMEcat) | DTD refused (no internal or external entities, no XInclude); depth ≤ 256; attribute value ≤ 16 MiB; base64 payload ≤ 64 MiB decoded; decoded images ≤ 16,384 × 16,384 px; ≤ 8,192 attributes per element (`max_xml_attributes_per_element`) and ≤ 1,048,576 per document (`max_xml_attributes`); attribute work ≤ 2^26, the sum over elements of the squared attribute count (`max_xml_attribute_work`); ≤ 1,000,000 nodes per document (`max_xml_nodes`), counting elements and texts, not attributes; a project importer may raise the node limit explicitly under its own budget |
 | Archives (EDZ 7z/ZIP, QETZ, `.ewz`, XLSX) | ≤ 100,000 entries; ≤ 2 GiB expanded; ≤ 512 MiB per entry; ratio ≤ 200 : 1 per entry; names with `..`, absolute or drive paths, `\`, `:` or NUL rejected; symlink and encrypted entries refused; 7z solid block ≤ 512 MiB |
 | DXF | file ≤ 512 MiB; ≤ 5 million entities; block nesting ≤ 32; INSERT/MINSERT expansion ≤ 10 million primitives; spline control points ≤ 100,000; coordinates finite and within ±2^62 nm after scaling |
 | CSV, XLSX | ≤ 1,000,000 rows; ≤ 1,024 columns; cell ≤ 32 KiB; formulas never evaluated |
@@ -1201,9 +1208,12 @@ allocator of [18](18-quality-security-release.md) §3.12. The per-parser values:
 | External tools (ODA converter) | runs on a copy in a temporary directory; timeout 120 s; output read under the DXF limits |
 
 **Report volume.** One hostile element definition could produce a finding per primitive. Report entries are
-therefore capped at 1,000 per element definition; the rest are summarised in one EW-IMP-001 entry that gives their
-count. The attribute counts and this cap (`Limits`, §2.1) serve the rule above: a hostile input is rejected within
-1 s and 256 MB of extra allocation.
+therefore capped at 1,000 per element definition (the crate constant `MAX_ENTRIES_PER_DEFINITION`); the rest are
+summarised in one EW-IMP-001 entry that gives their count. The attribute counts, the attribute work budget, the
+node limit and this cap (`Limits`, §2.1) serve the rule above: a hostile input is rejected within 1 s and 256 MB of
+extra allocation. Report locations use a sparse line index (one checkpoint per 64 KiB of input), so memory stays
+O(size / 64 KiB) whatever the number of newlines. The attribute work budget and the node default are what make the
+1 s / 256 MB rule hold against inputs that stay under the per-element and per-document attribute counts.
 
 **Fuzz targets:** `qet_project`, `qet_element`, `qet_titleblock`, `qetz`, `edz_7z`, `edz_zip`, `parts_xml`,
 `eplan_table`, `dxf`, `dwg` (1.x), `table_xlsx`, `table_csv`, `xliff`, `svg_logo`, `pdf_underlay`, `bmecat` (1.x), plus the
