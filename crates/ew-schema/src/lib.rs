@@ -34,6 +34,15 @@
 //! assert_eq!(serde_json::to_string(&record).unwrap(), line);
 //! ```
 //!
+//! # Reading
+//!
+//! [`parse_value`] rejects repeated member names (doc 05 §3.6); [`normalize_nfc`] is the loader's NFC pass;
+//! [`Record::load`] keeps a malformed known variant as `Unknown` and returns it as a [`MalformedVariant`]
+//! (EW-CORE-017), while [`Record::from_value`] and serde's `Deserialize` reject it. Enums are read tag first:
+//! only a tag that names no known variant is newer data. Sets ([`Set`]) and keyed lists ([`KeyedList`])
+//! keep their canonical order and reject unsorted input. Every typed-reading error carries the JSON Pointer
+//! of the value ([`SchemaError::path`]).
+//!
 //! # What is persisted
 //!
 //! | Module area | Kinds (rank) |
@@ -74,29 +83,32 @@ mod project;
 mod proxy;
 mod record;
 mod schema;
+mod set;
+mod track;
 mod value;
 
 pub use connect::{
-    AcDc, Bond, BondKind, BridgeKind, BridgeSpec, BusLine, CircuitClass, Conductor, Connection,
-    ConnectionKind, Junction, JunctionStyle, JunctionWiring, NumberSpec, PotentialDef, PotentialEarthing,
-    PotentialEnv, PotentialType, WireFlags, WireOverrides, WireProps,
+    AcDc, AssignedNumber, BevelSpec, Bond, BondKind, BridgeKind, BridgeSpec, BusLine, CircuitClass,
+    Conductor, Connection, ConnectionKind, Junction, JunctionStyle, JunctionWiring, NumberSpec, PotentialDef,
+    PotentialEarthing, PotentialEnv, PotentialType, WireFlags, WireOverrides, WireProps,
 };
 pub use device::{
     AccessoryKind, Cable, CoreIdMode, CpOverride, Device, DeviceAspects, DeviceKind, DeviceState, FnRole,
     FrozenTag, Function, FunctionKind, IpDirection, IpSpec, LabelMode, LengthSource, LevelRole, LevelSpec,
     Strip, StripAccessory, TagPrint, TagScheme, TagSign, TagSpec, Terminal, TerminalGroup,
 };
-pub use error::SchemaError;
-pub use json::{Extra, MAX_SAFE_INTEGER, Open, check_value};
+pub use error::{MalformedVariant, SchemaError};
+pub use json::{Extra, MAX_SAFE_INTEGER, Open, check_value, normalize_nfc};
 pub use kind::{FORMAT, FileRule, Kind, KindRegistry, KindStatus, PERSONAL_DATA_FIELDS, SCHEMA_VERSIONS};
 pub use library::{
     Align, AnchorPolicy, ArcPrim, Arrangement, CableCore, CategoryKey, CirclePrim, ClampKey, Colour,
-    Confidence, ContactKind, CpData, CpDef, Dash, DataArea, Dir4, Discipline, EllipsePrim, ExtraVariant,
-    ExtraVariantKind, FnDef, FnFlags, FormCell, FormDef, FormKind, FrameColumns, FrameGrid, FrameRows,
-    FreeProp, ImagePrim, InternalKind, InternalLinkDef, ItemMeta, ItemStatus, LibCopy, LibItem, Library,
-    LinePrim, NamedPoint, OrderUnit, Overflow, Part, PartCopy, PartKind, PartSections, Pen, PolygonPrim,
-    PolylinePrim, Primitive, RectPrim, RepType, Rgb, RowTemplate, RowTemplates, SheetSpec, SheetTransform,
-    Side, SlotKind, Stroke, SymbolCp, SymbolDef, TableStyle, TemplateFn, TextPrim, TextSlot, WrapPolicy,
+    Confidence, ContactKind, CpData, CpDef, Dash, DataArea, Deprecation, Dir4, Discipline, EllipsePrim,
+    ExtraVariant, ExtraVariantKind, FnDef, FnFlags, FormCell, FormDef, FormKind, FrameColumns, FrameGrid,
+    FrameRows, FreeProp, ImagePrim, InternalKind, InternalLinkDef, ItemMeta, ItemStatus, LibCopy, LibItem,
+    Library, LinePrim, NamedPoint, OrderUnit, Overflow, Part, PartCopy, PartKind, PartSections,
+    PassThroughSpec, Pen, PolygonPrim, PolylinePrim, Primitive, RectPrim, RepType, Rgb, RowTemplate,
+    RowTemplates, SheetSpec, SheetTransform, ShrinkSpec, Side, SlotKind, Stroke, SymbolCp, SymbolDef,
+    TableStyle, TemplateFn, TextPrim, TextSlot, WrapPolicy,
 };
 pub use page::{
     BoxCp, BoxSpec, ContinuationPolicy, EmbedSpec, EmptyPolicy, Folio, GroupBreak, GroupSpec,
@@ -105,12 +117,14 @@ pub use page::{
 };
 pub use project::{
     Address, DateFormat, DecimalSeparator, EarthingSystem, ExternalRef, Formatting, ImportLineage, ImportRun,
-    IpPairing, IpPairingMode, IpPairingScope, LineageAnchor, MasterData, Party, PartyRole, Project,
-    ProjectKind, ProjectLanguages, ProjectSettings, Section, StructureNode, SupplyOrigin, SupplySpec,
-    TagCase,
+    IpPairing, IpPairingMode, IpPairingScope, LineageAnchor, LineageCopy, MasterData, Party, PartyRole,
+    Project, ProjectKind, ProjectLanguages, ProjectSettings, Section, StructureNode, SupplyOrigin,
+    SupplySpec, TagCase,
 };
 pub use record::{AnchorRef, AnyRecord, LibDocument, Record};
 pub use schema::{kind_schema, schema_file_name, schema_files};
+pub use set::{Keyed, KeyedList, Set};
+pub use track::parse_value;
 pub use value::{
     AnyId, Bounds, ColourCode, ColourSpec, Csa, Date, Endpoint, ExternalRefId, IecColour, LibRef, PartRef,
     PartUse, Quantity, Sha256, Slot, SourceRef, StructureAssignment, TechVal, TechValue, Unit,

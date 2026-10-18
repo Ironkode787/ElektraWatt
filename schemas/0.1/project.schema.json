@@ -2,7 +2,7 @@
   "$defs": {
     "Address": {
       "additionalProperties": true,
-      "description": "A postal address (doc 03 §5). Plain strings are NFC; the writer normalises.",
+      "description": "A postal address (doc 03 §5). Its plain strings are NFC; the loader normalises them (module docs).",
       "properties": {
         "city": {
           "description": "City.",
@@ -41,7 +41,8 @@
       "type": "string"
     },
     "DateFormat": {
-      "anyOf": [
+      "description": "Printed date format.",
+      "oneOf": [
         {
           "const": "dd_mm_yyyy",
           "description": "dd-mm-yyyy.",
@@ -52,16 +53,17 @@
           "description": "ISO 8601, yyyy-mm-dd.",
           "type": "string"
         }
-      ],
-      "description": "Printed date format."
+      ]
     },
     "Dec3": {
-      "description": "A decimal with at most three fraction digits, no trailing zeros, no unit (doc 05 §3.2).",
-      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]{0,2}[1-9])?$",
+      "description": "A canonical decimal string: at most three fraction digits, no trailing fraction zeros, no leading zeros, no plus sign, no \"-0\", no exponent, no white space, no unit (doc 05 §3.2). The pattern bounds the integer part to 16 digits; the exact i64 range of the thousandths (about 9.2 x 10^15) is checked by the reader.",
+      "maxLength": 21,
+      "pattern": "^(?:0|-?[1-9][0-9]{0,15}(?:\\.[0-9]{0,2}[1-9])?|-?0\\.[0-9]{0,2}[1-9])$",
       "type": "string"
     },
     "DecimalSeparator": {
-      "anyOf": [
+      "description": "Printed decimal separator.",
+      "oneOf": [
         {
           "const": "point",
           "description": "\"0.75\".",
@@ -72,11 +74,11 @@
           "description": "\"0,75\".",
           "type": "string"
         }
-      ],
-      "description": "Printed decimal separator."
+      ]
     },
     "EarthingSystem": {
-      "anyOf": [
+      "description": "Earthing system of the supply.",
+      "oneOf": [
         {
           "const": "tn_s",
           "description": "TN-S.",
@@ -97,8 +99,7 @@
           "description": "IT.",
           "type": "string"
         }
-      ],
-      "description": "Earthing system of the supply."
+      ]
     },
     "Formatting": {
       "additionalProperties": true,
@@ -141,9 +142,9 @@
       "type": "object"
     },
     "Ident": {
-      "description": "An NFC identifier without surrounding white space (doc 05 §3.2).",
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
       "minLength": 1,
-      "pattern": "^\\S(.*\\S)?$",
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
       "type": "string"
     },
     "IpPairing": {
@@ -166,7 +167,8 @@
       "type": "object"
     },
     "IpPairingMode": {
-      "anyOf": [
+      "description": "Interruption-point pairing mode.",
+      "oneOf": [
         {
           "const": "star",
           "description": "One star source refers to all others.",
@@ -177,11 +179,11 @@
           "description": "Points pair in sort order.",
           "type": "string"
         }
-      ],
-      "description": "Interruption-point pairing mode."
+      ]
     },
     "IpPairingScope": {
-      "anyOf": [
+      "description": "Interruption-point pairing scope.",
+      "oneOf": [
         {
           "const": "project",
           "description": "The whole project.",
@@ -197,12 +199,12 @@
           "description": "Per location node (`+`).",
           "type": "string"
         }
-      ],
-      "description": "Interruption-point pairing scope."
+      ]
     },
     "LangTag": {
-      "description": "A canonical BCP 47 language tag such as en-GB.",
+      "description": "A canonical BCP 47 language tag such as en-GB (language in lower case, script in title case, region in upper case). JSON Schema cannot express that variant and extension subtags are unique; no registry is consulted, so qq-QQ is accepted.",
       "minLength": 2,
+      "pattern": "^(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4,8})(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*(?:-[a-wy-z0-9](?:-[a-z0-9]{2,8})+)*(?:-x(?:-[a-z0-9]{1,8})+)?$",
       "type": "string"
     },
     "MasterData": {
@@ -223,6 +225,10 @@
         "description": {
           "$ref": "#/$defs/MlText",
           "description": "Project description (\"Expansion Control Cabinets\"); the title block prints it unless a page\noverrides it (D-06)."
+        },
+        "document_title": {
+          "$ref": "#/$defs/MlText",
+          "description": "The cover subtitle (\"Electrical Definition\", doc 20 §4.1), distinct from `long_description`\n(doc 03 §5). Appended, since 0.1."
         },
         "drawing_id": {
           "anyOf": [
@@ -296,10 +302,14 @@
             "type": "string"
           },
           "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4,8})(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*(?:-[a-wy-z0-9](?:-[a-z0-9]{2,8})+)*(?:-x(?:-[a-z0-9]{1,8})+)?$",
+            "type": "string"
+          },
           "type": "object"
         }
       ],
-      "description": "Multilingual text: a neutral string, or an object keyed by BCP 47 tags (doc 05 §3.2)."
+      "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags with non-empty string values (doc 05 §3.2). JSON Schema cannot express that all text is NFC or that the keys are in ascending byte order; the reader rejects both."
     },
     "Party": {
       "additionalProperties": true,
@@ -335,7 +345,8 @@
       "type": "object"
     },
     "PartyRole": {
-      "anyOf": [
+      "description": "The role of a [`Party`].",
+      "oneOf": [
         {
           "const": "customer",
           "description": "Customer.",
@@ -366,11 +377,11 @@
           "description": "Engineer.",
           "type": "string"
         }
-      ],
-      "description": "The role of a [`Party`]."
+      ]
     },
     "ProjectKind": {
-      "anyOf": [
+      "description": "What a project is (FR-PRJ-026).",
+      "oneOf": [
         {
           "const": "schematic",
           "description": "A schematic project (the default).",
@@ -386,8 +397,7 @@
           "description": "A macro project.",
           "type": "string"
         }
-      ],
-      "description": "What a project is (FR-PRJ-026)."
+      ]
     },
     "ProjectLanguages": {
       "additionalProperties": true,
@@ -402,7 +412,8 @@
           "items": {
             "$ref": "#/$defs/LangTag"
           },
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         }
       },
       "required": [
@@ -579,7 +590,8 @@
       "type": "object"
     },
     "TagCase": {
-      "anyOf": [
+      "description": "Tag case sensitivity (the record form of `ew_mltext::CaseSensitivity`).",
+      "oneOf": [
         {
           "const": "sensitive",
           "description": "Tags differing only in case are different.",
@@ -590,11 +602,11 @@
           "description": "Tags differing only in case collide.",
           "type": "string"
         }
-      ],
-      "description": "Tag case sensitivity (the record form of `ew_mltext::CaseSensitivity`)."
+      ]
     },
     "Unit": {
-      "anyOf": [
+      "description": "The units of doc 03 §3.2 and the order units of FR-PRT-026. Persisted as the unit symbol in ASCII\n(`\"mm2\"`, `\"degC\"`), so files stay greppable; rendering uses the typographic symbol.",
+      "oneOf": [
         {
           "const": "mm2",
           "description": "Square millimetre (cross-sections).",
@@ -650,11 +662,12 @@
           "description": "Set (order unit).",
           "type": "string"
         }
-      ],
-      "description": "The units of doc 03 §3.2 and the order units of FR-PRT-026. Persisted as the unit symbol in ASCII\n(`\"mm2\"`, `\"degC\"`), so files stay greppable; rendering uses the typographic symbol."
+      ]
     },
     "Uuid": {
       "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
       "type": "string"
     }

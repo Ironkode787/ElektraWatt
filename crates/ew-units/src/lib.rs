@@ -27,8 +27,9 @@
 //!
 //! # What is not persisted
 //!
-//! - [`Rect`] has no serde implementation: doc 05 defines no JSON encoding for it, so its encoding is an
-//!   `ew-schema` decision.
+//! - [`Rect`] has no serde implementation, by design. Doc 05 §3.2 defines its JSON encoding as
+//!   `[[x0, y0], [x1, y1]]` (two `Pt2`, minimum corner first; a reversed rectangle is a schema violation),
+//!   and `ew-schema` implements it (its `Bounds` type), keeping this crate free of it.
 //! - The f64 boundary helpers ([`Nm::from_mm_f64`], [`Nm::to_mm_f64`], [`Angle2::from_degrees_f64`]) exist
 //!   for importers and renderers only. They round **half toward zero**.
 //! - `Quantity`, `Csa` and the unit set are deferred to `ew-schema` (WP-S1.02); this crate provides only

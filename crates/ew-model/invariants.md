@@ -76,7 +76,6 @@ Fields are written as `kind.path`. "referrers" means the generic referrer index.
 |-------|--------|--------|-------|
 | project.source_ref.lineage | import_lineage | forbid | referrers |
 | project.supply.origin.source | external_ref | unlink (cleared) | referrers |
-| import_lineage.anchor.copy.of | import_lineage | forbid | referrers |
 | structure_node.parent | structure_node | forbid | structure_children |
 | structure_node.source_ref.lineage | import_lineage | forbid | referrers |
 | section.source_ref.lineage | import_lineage | forbid | referrers |
@@ -135,6 +134,7 @@ The following ID-valued fields are not links.
 | import_lineage.namespace | Computed v5 namespace, not a record |
 | import_lineage.anchor.qet_project_uuid | Foreign project UUID |
 | import_lineage.last_run | `import_run` is a reserved kind without a table in v0 |
+| import_lineage.anchor.copy.of | the namespace of the original lineage, not a record ID |
 | report_block.manual.include[] / exclude[] | Kind-erased selection; a stale ID selects nothing |
 | report_block.source.sql_query.file | Asset ID of a query file |
 | library_id, item_id, meta.status.deprecated.successor.* of part, symbol, fndef and form; part.manufacturer.*, part.function_template[].fndef.*, symbol.fndef.* | Library identity, or LibRef into an external library |

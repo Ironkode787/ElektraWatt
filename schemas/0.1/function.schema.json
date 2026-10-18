@@ -55,7 +55,8 @@
       "type": "object"
     },
     "FnRole": {
-      "anyOf": [
+      "description": "Main or auxiliary function.",
+      "oneOf": [
         {
           "const": "main",
           "description": "The main function (the default).",
@@ -66,11 +67,11 @@
           "description": "An auxiliary function.",
           "type": "string"
         }
-      ],
-      "description": "Main or auxiliary function."
+      ]
     },
     "FunctionKind": {
-      "anyOf": [
+      "description": "The kind of a function.",
+      "oneOf": [
         {
           "const": "normal",
           "description": "An ordinary function (the default).",
@@ -94,17 +95,17 @@
           "description": "A black box whose CPs come from the part's pattern.",
           "type": "string"
         }
-      ],
-      "description": "The kind of a function."
+      ]
     },
     "Ident": {
-      "description": "An NFC identifier without surrounding white space (doc 05 §3.2).",
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
       "minLength": 1,
-      "pattern": "^\\S(.*\\S)?$",
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
       "type": "string"
     },
     "IpDirection": {
-      "anyOf": [
+      "description": "Signal direction of an interruption point.",
+      "oneOf": [
         {
           "const": "source",
           "description": "Source.",
@@ -120,8 +121,7 @@
           "description": "Undirected.",
           "type": "string"
         }
-      ],
-      "description": "Signal direction of an interruption point."
+      ]
     },
     "IpSpec": {
       "additionalProperties": true,
@@ -176,10 +176,14 @@
             "type": "string"
           },
           "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4,8})(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*(?:-[a-wy-z0-9](?:-[a-z0-9]{2,8})+)*(?:-x(?:-[a-z0-9]{1,8})+)?$",
+            "type": "string"
+          },
           "type": "object"
         }
       ],
-      "description": "Multilingual text: a neutral string, or an object keyed by BCP 47 tags (doc 05 §3.2)."
+      "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags with non-empty string values (doc 05 §3.2). JSON Schema cannot express that all text is NFC or that the keys are in ascending byte order; the reader rejects both."
     },
     "SourceRef": {
       "additionalProperties": true,
@@ -202,6 +206,8 @@
     },
     "Uuid": {
       "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
       "type": "string"
     }

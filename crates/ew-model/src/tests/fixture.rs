@@ -134,7 +134,7 @@ pub(crate) fn structure_node(
         v: 1,
         aspect: Open::Known(aspect),
         code: ident(code),
-        aliases: vec![],
+        aliases: Default::default(),
         parent,
         description: MlText::default(),
         order: 0,
@@ -196,7 +196,7 @@ pub(crate) fn device(device_id: Id<Device>, letter: &str, counter: u32) -> Devic
         parts: vec![],
         function_text: MlText::default(),
         process_tag: None,
-        tech_data: vec![],
+        tech_data: Default::default(),
         state: DeviceState::default(),
         source_ref: None,
         aspects: DeviceAspects::default(),
@@ -251,7 +251,7 @@ pub(crate) fn function(
         def,
         role,
         kind: FunctionKind::Normal,
-        cp_overrides: vec![],
+        cp_overrides: Default::default(),
         source_ref: None,
         extra: Extra::new(),
     }
@@ -272,7 +272,7 @@ pub(crate) fn ip_function(function_id: Id<Function>, name: &str, direction: IpDi
             external: None,
             extra: Extra::new(),
         }),
-        cp_overrides: vec![],
+        cp_overrides: Default::default(),
         source_ref: None,
         extra: Extra::new(),
     }
@@ -293,8 +293,8 @@ pub(crate) fn rep(
         pos: pt0(),
         orient: Default::default(),
         rep_type: RepType::MultiLine,
-        pin_map: vec![],
-        text_slots: vec![],
+        pin_map: Default::default(),
+        text_slots: Default::default(),
         arrangement: None,
         box_: None,
         source_ref: None,
@@ -381,24 +381,26 @@ pub(crate) fn fndef(fndef_id: Id<FnDef>, cps: &[&str]) -> LibCopy<FnDef> {
         meta: Default::default(),
         category: (ident("ew"), ident("test"), ident("fixture")),
         contact_kind: ContactKind::Terminal,
-        cps: cps
-            .iter()
-            .enumerate()
-            .map(|(i, d)| CpDef {
-                idx: i as u16,
-                designation: ident(d),
-                alias: None,
-                discipline: Default::default(),
-                potential_role: None,
-                source_output: false,
-                optional: false,
-                level: None,
-                side: None,
-                clamp: None,
-                physical: true,
-                extra: Extra::new(),
-            })
-            .collect(),
+        cps: ew_schema::KeyedList::from_vec(
+            cps.iter()
+                .enumerate()
+                .map(|(i, d)| CpDef {
+                    idx: i as u16,
+                    designation: ident(d),
+                    alias: None,
+                    discipline: Default::default(),
+                    potential_role: None,
+                    source_output: false,
+                    optional: false,
+                    level: None,
+                    side: None,
+                    clamp: None,
+                    physical: true,
+                    extra: Extra::new(),
+                })
+                .collect(),
+        )
+        .expect("distinct CP indexes"),
         internal: vec![],
         flags: Default::default(),
         extra: Extra::new(),
@@ -410,13 +412,13 @@ pub(crate) fn symbol(symbol_id: Id<SymbolDef>) -> LibCopy<SymbolDef> {
     let item = SymbolDef {
         meta: Default::default(),
         name: MlText::default(),
-        keywords: vec![],
+        keywords: Default::default(),
         rep_type: RepType::MultiLine,
         fndef: lib_ref(0x9101),
         grid: grid(),
         graphics: vec![],
-        cps: vec![],
-        text_slots: vec![],
+        cps: Default::default(),
+        text_slots: Default::default(),
         arrangements: vec![],
         anchor: Default::default(),
         link_points: vec![],
@@ -460,10 +462,10 @@ pub(crate) fn part(part_id: Id<Part>, part_number: &str) -> LibCopy<Part> {
         gtin: None,
         description: MlText::default(),
         category: None,
-        tech_data: vec![],
-        free_props: vec![],
+        tech_data: Default::default(),
+        free_props: Default::default(),
         unit: Default::default(),
-        cp_pattern: vec![],
+        cp_pattern: Default::default(),
         function_template: vec![],
         sections: Default::default(),
         extra: Extra::new(),
@@ -496,7 +498,7 @@ pub(crate) fn mini_golden_parts() -> (Project, Vec<Record>, Vec<LibDocument>) {
     };
 
     let mut loc = structure_node(LOC, Aspect::Location, "J-E-2416", None);
-    loc.aliases = vec![ident("JE2416")];
+    loc.aliases = vec![ident("JE2416")].into();
 
     let mut x1031 = strip(DEV_X1031, "X", 1031);
     x1031

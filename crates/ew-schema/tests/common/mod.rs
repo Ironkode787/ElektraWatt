@@ -8,6 +8,8 @@
 
 #![allow(dead_code)]
 
+pub mod lines;
+
 /// `(token, UUID)`: `@TOKEN` in a template becomes the UUID.
 pub const IDS: &[(&str, &str)] = &[
     ("PRJ", "3f2b8c1e-6d4a-5e07-9b1c-2a7d4e9f0c13"),

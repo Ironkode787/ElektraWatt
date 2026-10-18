@@ -44,7 +44,7 @@ pub fn symbol(graphics: Vec<Primitive>, cps: Vec<SymbolCp>, text_slots: Vec<Text
     SymbolDef {
         meta: ItemMeta::default(),
         name: MlText::default(),
-        keywords: vec![],
+        keywords: Default::default(),
         rep_type: RepType::MultiLine,
         fndef: LibRef {
             library: Id::from_uuid(Uuid::nil()),
@@ -54,7 +54,7 @@ pub fn symbol(graphics: Vec<Primitive>, cps: Vec<SymbolCp>, text_slots: Vec<Text
         },
         grid: Grid::QET_10PX,
         graphics,
-        cps,
+        cps: ew_schema::KeyedList::from_vec(cps).expect("distinct CP indexes"),
         text_slots,
         arrangements: vec![],
         anchor: AnchorPolicy::Origin,

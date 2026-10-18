@@ -4,18 +4,22 @@
 //! Shared serde helpers: the `extra` map, the number rule for unknown content, default predicates and the
 //! [`Open`] wrapper that gives a foreign enum its `Unknown` catch-all.
 
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 
-use serde::de::Error as _;
+use ew_mltext::to_nfc;
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 use crate::SchemaError;
+use crate::track::{check_value_at, de_open, path_of, raise, variant_names};
 
 /// The `extra` map of a record or value object: unknown members of a newer format minor and namespaced
 /// `plugin.<id>.*` keys (FR-EXT-021). It is flattened last and written in byte-wise key order (doc 05 §3.1).
 ///
-/// A writer never puts a known member name of the same object into it.
+/// A writer never puts a known member name of the same object into it: the member would be written twice.
+/// [`Record::validate`](crate::Record::validate) detects it.
 pub type Extra = BTreeMap<String, Value>;
 
 /// The largest integer magnitude a persisted integer may have (doc 05 §3.2): 2⁵³ − 1.
@@ -59,17 +63,65 @@ pub fn check_value(value: &Value) -> Result<(), SchemaError> {
 pub(crate) fn de_extra<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Extra, D::Error> {
     let map = Extra::deserialize(deserializer)?;
     for (key, value) in &map {
-        check_value(value).map_err(|e| D::Error::custom(format!("member \"{key}\": {e}")))?;
+        check_value_at(value, &mut path_of(key)).map_err(raise)?;
     }
     Ok(map)
 }
 
-/// `deserialize_with` for the `Unknown(Value)` catch-all variants: reads any JSON value and applies
-/// [`check_value`].
-pub(crate) fn de_unknown<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Value, D::Error> {
-    let value = Value::deserialize(deserializer)?;
-    check_value(&value).map_err(D::Error::custom)?;
-    Ok(value)
+/// Normalises every string of `value` to Unicode Normalization Form C, member names included, at every
+/// depth, and returns whether anything changed (doc 05 §3.1: "a non-NFC string read from disk is
+/// normalised in memory, and its file counts as non-canonical").
+///
+/// `ew-schema`'s typed readers stay strict ([`MlText`](ew_mltext::MlText) and [`Ident`](ew_mltext::Ident)
+/// reject non-NFC text). The format loader (`ew-format`) calls this function on the parsed value of every
+/// line **before** typed deserialisation and marks the file for rewriting when it returns `true`, so plain
+/// `String` members are covered by the same pass. If normalising a member name would make it equal to
+/// another name of the same object, that name is left as it is (the object keeps both members).
+///
+/// ```
+/// use serde_json::json;
+///
+/// let mut v = json!({"title": {"de-DE": "Lu\u{0308}fter"}, "Lu\u{0308}fter": ["Lu\u{0308}fter"]});
+/// assert!(ew_schema::normalize_nfc(&mut v));
+/// assert_eq!(v, json!({"title": {"de-DE": "Lüfter"}, "Lüfter": ["Lüfter"]}));
+/// assert!(!ew_schema::normalize_nfc(&mut v));
+/// ```
+pub fn normalize_nfc(value: &mut Value) -> bool {
+    match value {
+        Value::String(s) => match to_nfc(s) {
+            Cow::Borrowed(_) => false,
+            Cow::Owned(n) => {
+                *s = n;
+                true
+            }
+        },
+        Value::Array(items) => items
+            .iter_mut()
+            .fold(false, |changed, v| normalize_nfc(v) | changed),
+        Value::Object(map) => {
+            let mut changed = false;
+            for v in map.values_mut() {
+                changed |= normalize_nfc(v);
+            }
+            let renames: Vec<(String, String)> = map
+                .keys()
+                .filter_map(|k| match to_nfc(k) {
+                    Cow::Owned(n) => Some((k.clone(), n)),
+                    Cow::Borrowed(_) => None,
+                })
+                .collect();
+            for (old, new) in renames {
+                if !map.contains_key(&new) {
+                    if let Some(v) = map.remove(&old) {
+                        map.insert(new, v);
+                        changed = true;
+                    }
+                }
+            }
+            changed
+        }
+        Value::Null | Value::Bool(_) | Value::Number(_) => false,
+    }
 }
 
 /// `skip_serializing_if` predicate: the value equals its type's default.
@@ -106,6 +158,11 @@ pub(crate) fn is_v1(v: &u16) -> bool {
 /// with the `Unknown` variant every persisted enum needs (ADR-0011 amendment 1): a value written by a newer
 /// minor stays readable and is written back unchanged.
 ///
+/// It is read tag first like every persisted enum when `T` has a derived enum deserialiser: a tag `T` does
+/// not name is kept as `Unknown`, a tag it names with a malformed payload is a malformed variant. For a
+/// hand-written `T` such as `ew_rds::Aspect`, whose names cannot be learnt, a value `T` accepts is known
+/// and any other string or one-member object is kept as `Unknown`.
+///
 /// ```
 /// use ew_rds::Aspect;
 /// use ew_schema::Open;
@@ -114,14 +171,26 @@ pub(crate) fn is_v1(v: &u16) -> bool {
 /// assert_eq!(known, Open::Known(Aspect::Location));
 /// let unknown: Open<Aspect> = serde_json::from_str("\"zone\"").unwrap();
 /// assert_eq!(serde_json::to_string(&unknown).unwrap(), "\"zone\"");
+/// assert!(serde_json::from_str::<Open<Aspect>>("7").is_err());
 /// ```
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Debug, Serialize)]
 #[serde(untagged)]
 pub enum Open<T> {
     /// A value this reader understands.
     Known(T),
     /// A value of a newer format, kept verbatim.
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    Unknown(Value),
+}
+
+impl<'de, T: DeserializeOwned> Deserialize<'de> for Open<T> {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        de_open(
+            deserializer,
+            variant_names(|d| T::deserialize(d)),
+            |d| T::deserialize(d).map(Open::Known),
+            Open::Unknown,
+        )
+    }
 }
 
 impl<T> Open<T> {

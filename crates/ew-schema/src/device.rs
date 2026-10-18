@@ -3,19 +3,26 @@
 
 //! Devices with their typed aspects and functions (ADR-0006, doc 03 §7, §10–§12): `device` (rank 31) and
 //! `function` (32).
+//!
+//! Strings are NFC (doc 05 §3.1): `MlText` and `Ident` members reject other text, and plain `String`
+//! members are normalised with every other string by the loader's [`normalize_nfc`](crate::normalize_nfc)
+//! pass before typed reading.
 
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_units::Nm;
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde_json::{Map, Value};
 
-use crate::ExternalRef;
-use crate::json::{Extra, de_extra, de_unknown, is_default, is_false, is_v1, v1};
+use crate::json::{Extra, de_extra, is_default, is_false, is_v1, v1};
 use crate::library::{FnDef, Side};
 use crate::proxy::{IdentS, MlTextS, NmS, UuidS};
+use crate::set::{KeyedList, keyed};
+use crate::track::{ValueDe, buffer, de_member, open_enum, raise};
 use crate::value::{PartRef, PartUse, SourceRef, StructureAssignment, TechValue};
+use crate::{ExternalRef, SchemaError};
 
 // ---------------------------------------------------------------------------------------------------------
 // Device
@@ -27,7 +34,12 @@ use crate::value::{PartRef, PartUse, SourceRef, StructureAssignment, TechValue};
 /// `terminal` and `cable`; `assembly`, `plc_station`, `plc_module`, `bus_node` and `valve_terminal` arrive
 /// with their work packages and are kept in `extra` until then, which already places them after `cable`.
 /// `user_props` has no field-level definition yet and is kept in `extra` too.
+///
+/// Deserialisation takes the aspects out of the object first and reads each at its own path, because
+/// serde reads flattened fields from a buffer that loses the paths of errors inside them.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(remote = "Self")]
+#[schemars(rename = "Device")]
 pub struct Device {
     /// The record ID.
     #[schemars(with = "UuidS")]
@@ -62,8 +74,8 @@ pub struct Device {
     #[schemars(with = "Option<IdentS>")]
     pub process_tag: Option<Ident>,
     /// Technical data, keyed by `key` (FR-DEV-009).
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub tech_data: Vec<TechValue>,
+    #[serde(default, skip_serializing_if = "KeyedList::is_empty")]
+    pub tech_data: KeyedList<TechValue>,
     /// Lifecycle state; default used.
     #[serde(default, skip_serializing_if = "is_default")]
     pub state: DeviceState,
@@ -76,6 +88,45 @@ pub struct Device {
     /// Unknown members and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+impl Serialize for Device {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        Device::serialize(self, serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Device {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let mut value = buffer(deserializer)?;
+        let aspects = match &mut value {
+            Value::Object(map) => DeviceAspects::take(map).map_err(raise)?,
+            _ => DeviceAspects::default(),
+        };
+        let mut device = Device::deserialize(ValueDe(&value)).map_err(|e| raise(e.0))?;
+        device.aspects = aspects;
+        Ok(device)
+    }
+}
+
+impl DeviceAspects {
+    /// Removes the known aspects from a device object and reads them.
+    fn take(map: &mut Map<String, Value>) -> Result<DeviceAspects, SchemaError> {
+        fn aspect<T: DeserializeOwned>(
+            map: &mut Map<String, Value>,
+            key: &str,
+        ) -> Result<Option<T>, SchemaError> {
+            match map.remove(key) {
+                Some(value) => de_member(key, &value),
+                None => Ok(None),
+            }
+        }
+        Ok(DeviceAspects {
+            strip: aspect(map, "strip")?,
+            terminal: aspect(map, "terminal")?,
+            cable: aspect(map, "cable")?,
+        })
+    }
 }
 
 /// The stored tag data (doc 03 §8.2).
@@ -114,6 +165,8 @@ impl TagSpec {
 /// The numbering scheme of a tag.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "TagScheme")]
 pub enum TagScheme {
     /// The project's active scheme (the default).
     #[default]
@@ -123,9 +176,8 @@ pub enum TagScheme {
     /// Parent designation, separator, letter and counter (FR-NUM-013).
     Child,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// A frozen product designation (doc 03 §8.5): "S51" printed without the product sign.
@@ -145,6 +197,8 @@ pub struct FrozenTag {
 /// Whether a frozen tag prints its product sign on pages.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "TagSign")]
 pub enum TagSign {
     /// "-S51" (the default).
     #[default]
@@ -152,15 +206,16 @@ pub enum TagSign {
     /// "S51".
     Hidden,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// A device's UI and numbering hint. Doc 03 enumerates only these kinds so far; others are kept as
 /// [`DeviceKind::Unknown`] until the list is decided.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "DeviceKind")]
 pub enum DeviceKind {
     /// Power supply.
     Psu,
@@ -169,14 +224,15 @@ pub enum DeviceKind {
     /// Blank manifold or valve-terminal position (doc 11 §2.7).
     BlankingPlate,
     /// A kind of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Device lifecycle state (FR-DEV-026).
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "DeviceState")]
 pub enum DeviceState {
     /// In use (the default).
     #[default]
@@ -188,9 +244,8 @@ pub enum DeviceState {
     /// Not fitted.
     NotFitted,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// The typed aspects of a device (ADR-0006), flattened into the device record in this order.
@@ -245,6 +300,8 @@ fn is_side2(side: &Side) -> bool {
 /// What the terminals of a strip print.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "LabelMode")]
 pub enum LabelMode {
     /// The terminal designation (the default).
     #[default]
@@ -252,9 +309,8 @@ pub enum LabelMode {
     /// The terminal's function text ("1+", FR-TRM-021).
     FunctionText,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// One strip accessory placed after terminal `after_seq`.
@@ -274,6 +330,8 @@ pub struct StripAccessory {
 /// Kind of a strip accessory.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "AccessoryKind")]
 pub enum AccessoryKind {
     /// End plate.
     EndPlate,
@@ -286,14 +344,15 @@ pub enum AccessoryKind {
     /// Cover.
     Cover,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Where a strip prints its tag (FR-TRM-011).
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "TagPrint")]
 pub enum TagPrint {
     /// Once per strip segment (the default).
     #[default]
@@ -301,9 +360,8 @@ pub enum TagPrint {
     /// Once per page.
     PerPage,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// A caption over a range of terminals.
@@ -359,6 +417,8 @@ pub struct LevelSpec {
 /// The role of a terminal level.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "LevelRole")]
 pub enum LevelRole {
     /// Main level (the default).
     #[default]
@@ -366,9 +426,8 @@ pub enum LevelRole {
     /// Auxiliary level.
     Aux,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// The `Cable` aspect (doc 03 §12).
@@ -392,6 +451,8 @@ pub struct Cable {
 /// additive variants of a later format.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "LengthSource")]
 pub enum LengthSource {
     /// No length yet (the default); blocks release.
     #[default]
@@ -401,14 +462,15 @@ pub enum LengthSource {
     /// From the cable part (pre-assembled length).
     FromPart,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// How the cores of a cable are identified.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "CoreIdMode")]
 pub enum CoreIdMode {
     /// By number.
     Number,
@@ -417,9 +479,8 @@ pub enum CoreIdMode {
     /// By number and colour.
     Both,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -452,8 +513,8 @@ pub struct Function {
     #[serde(default, skip_serializing_if = "is_default")]
     pub kind: FunctionKind,
     /// CP overrides, keyed by `idx` (FR-DEV-008).
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub cp_overrides: Vec<CpOverride>,
+    #[serde(default, skip_serializing_if = "KeyedList::is_empty")]
+    pub cp_overrides: KeyedList<CpOverride>,
     /// Import provenance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_ref: Option<SourceRef>,
@@ -465,6 +526,8 @@ pub struct Function {
 /// Main or auxiliary function.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "FnRole")]
 pub enum FnRole {
     /// The main function (the default).
     #[default]
@@ -472,14 +535,15 @@ pub enum FnRole {
     /// An auxiliary function.
     Aux,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// The kind of a function.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "FunctionKind")]
 pub enum FunctionKind {
     /// An ordinary function (the default).
     #[default]
@@ -489,9 +553,8 @@ pub enum FunctionKind {
     /// A black box whose CPs come from the part's pattern.
     BlackBox,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// An interruption point (doc 03 §10).
@@ -520,6 +583,8 @@ pub struct IpSpec {
 /// Signal direction of an interruption point.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "IpDirection")]
 pub enum IpDirection {
     /// Source.
     Source,
@@ -528,9 +593,8 @@ pub enum IpDirection {
     /// Undirected.
     Undirected,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// An override of one instantiated connection point (FR-DEV-008).
@@ -557,3 +621,21 @@ pub struct CpOverride {
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
 }
+
+keyed!(CpOverride, idx: u16);
+
+open_enum!(
+    TagScheme,
+    TagSign,
+    DeviceKind,
+    DeviceState,
+    LabelMode,
+    AccessoryKind,
+    TagPrint,
+    LevelRole,
+    LengthSource,
+    CoreIdMode,
+    FnRole,
+    FunctionKind,
+    IpDirection,
+);

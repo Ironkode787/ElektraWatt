@@ -1,13 +1,14 @@
 {
   "$defs": {
     "Ident": {
-      "description": "An NFC identifier without surrounding white space (doc 05 §3.2).",
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
       "minLength": 1,
-      "pattern": "^\\S(.*\\S)?$",
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
       "type": "string"
     },
     "LineageAnchor": {
-      "anyOf": [
+      "description": "The anchor of an [`ImportLineage`] (doc 14 §2.3).",
+      "oneOf": [
         {
           "additionalProperties": false,
           "description": "QET 0.200+ project UUID.",
@@ -36,26 +37,10 @@
         },
         {
           "additionalProperties": false,
-          "description": "\"Import as copy\" number `n` of another lineage.",
+          "description": "\"Import as copy\" number `n` of another lineage: `{\"copy\": {\"of\": <namespace>, \"n\": n}}`.",
           "properties": {
             "copy": {
-              "properties": {
-                "n": {
-                  "description": "The copy number.",
-                  "format": "uint32",
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "of": {
-                  "$ref": "#/$defs/Uuid",
-                  "description": "The original lineage."
-                }
-              },
-              "required": [
-                "of",
-                "n"
-              ],
-              "type": "object"
+              "$ref": "#/$defs/LineageCopy"
             }
           },
           "required": [
@@ -76,8 +61,28 @@
           ],
           "type": "object"
         }
+      ]
+    },
+    "LineageCopy": {
+      "additionalProperties": true,
+      "description": "The payload of [`LineageAnchor::Copy`].",
+      "properties": {
+        "n": {
+          "description": "The copy number.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "of": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The **namespace** of the original lineage (`ImportLineage.namespace`), as in\n`ew_ids::v5::LineageAnchor::Copy` and ADR-0004 amendment 4, not its record ID."
+        }
+      },
+      "required": [
+        "of",
+        "n"
       ],
-      "description": "The anchor of an [`ImportLineage`] (doc 14 §2.3)."
+      "type": "object"
     },
     "Sha256": {
       "description": "A SHA-256 digest sha256:<64 lower-case hex> (doc 05 §3.2).",
@@ -86,6 +91,8 @@
     },
     "Uuid": {
       "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
       "type": "string"
     }

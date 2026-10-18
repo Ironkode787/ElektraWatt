@@ -1,7 +1,24 @@
 {
   "$defs": {
+    "AssignedNumber": {
+      "additionalProperties": true,
+      "description": "The payload of [`NumberSpec::Assigned`].",
+      "properties": {
+        "counter": {
+          "description": "The counter.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "counter"
+      ],
+      "type": "object"
+    },
     "BridgeKind": {
-      "anyOf": [
+      "description": "Kind of a terminal bridge.",
+      "oneOf": [
         {
           "const": "plug_in",
           "description": "Plug-in bridge.",
@@ -22,8 +39,7 @@
           "description": "Bridge between levels.",
           "type": "string"
         }
-      ],
-      "description": "Kind of a terminal bridge."
+      ]
     },
     "BridgeSpec": {
       "additionalProperties": true,
@@ -103,7 +119,8 @@
       "type": "array"
     },
     "ConnectionKind": {
-      "anyOf": [
+      "description": "The kind of a connection (doc 08 §2.3). `Fluid(FluidLine)` (doc 11) and `SingleLine` (1.0) are additive\nvariants of their work packages; until then a file's value is kept as [`ConnectionKind::Unknown`], which\njoins no net (doc 05 §10.3 rule 3).",
+      "oneOf": [
         {
           "const": "wire",
           "description": "One conductor (the default).",
@@ -158,8 +175,7 @@
           "description": "A link between CPs of two functions of one part that no FnDef declares.",
           "type": "string"
         }
-      ],
-      "description": "The kind of a connection (doc 08 §2.3). `Fluid(FluidLine)` (doc 11) and `SingleLine` (1.0) are additive\nvariants of their work packages; until then a file's value is kept as [`ConnectionKind::Unknown`], which\njoins no net (doc 05 §10.3 rule 3)."
+      ]
     },
     "Csa": {
       "anyOf": [
@@ -196,12 +212,14 @@
       "description": "A cross-section: a Dec3 string in mm², {\"awg\": n} or {\"kcmil\": Dec3} (doc 08 §4.6)."
     },
     "Dec3": {
-      "description": "A decimal with at most three fraction digits, no trailing zeros, no unit (doc 05 §3.2).",
-      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]{0,2}[1-9])?$",
+      "description": "A canonical decimal string: at most three fraction digits, no trailing fraction zeros, no leading zeros, no plus sign, no \"-0\", no exponent, no white space, no unit (doc 05 §3.2). The pattern bounds the integer part to 16 digits; the exact i64 range of the thousandths (about 9.2 x 10^15) is checked by the reader.",
+      "maxLength": 21,
+      "pattern": "^(?:0|-?[1-9][0-9]{0,15}(?:\\.[0-9]{0,2}[1-9])?|-?0\\.[0-9]{0,2}[1-9])$",
       "type": "string"
     },
     "Endpoint": {
-      "anyOf": [
+      "description": "One end of a connection, a definition or a bond (ADR-0007, doc 03 §9): a connection point of a function\nor a junction. Encoding (doc 05 §3.2): `{\"cp\": [function, idx]}` or `{\"junction\": id}`.\n\n```\nuse ew_schema::Endpoint;\n\nlet e: Endpoint = serde_json::from_str(r#\"{\"cp\":[\"d40b6e93-25f7-5c1a-9e8d-7a3f1c05b6e2\",0]}\"#).unwrap();\nassert!(matches!(e, Endpoint::Cp(_, 0)));\n```",
+      "oneOf": [
         {
           "additionalProperties": false,
           "description": "Connection point `idx` of a function; its ID `v5(function, idx)` is derived, never stored.",
@@ -241,23 +259,23 @@
           ],
           "type": "object"
         }
-      ],
-      "description": "One end of a connection, a definition or a bond (ADR-0007, doc 03 §9): a connection point of a function\nor a junction. Encoding (doc 05 §3.2): `{\"cp\": [function, idx]}` or `{\"junction\": id}`.\n\n```\nuse ew_schema::Endpoint;\n\nlet e: Endpoint = serde_json::from_str(r#\"{\"cp\":[\"d40b6e93-25f7-5c1a-9e8d-7a3f1c05b6e2\",0]}\"#).unwrap();\nassert!(matches!(e, Endpoint::Cp(_, 0)));\n```"
+      ]
     },
     "Ident": {
-      "description": "An NFC identifier without surrounding white space (doc 05 §3.2).",
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
       "minLength": 1,
-      "pattern": "^\\S(.*\\S)?$",
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
       "type": "string"
     },
     "Nm": {
-      "description": "A length in nanometres (doc 05 §3.2).",
+      "description": "A length in nanometres (doc 05 §3.2). Written without fraction or exponent; JSON Schema cannot tell 5 from 5.0, the reader rejects the latter.",
       "maximum": 9007199254740991,
       "minimum": -9007199254740991,
       "type": "integer"
     },
     "NumberSpec": {
-      "anyOf": [
+      "description": "The wire number of a connection (doc 03 §8.7).",
+      "oneOf": [
         {
           "const": "unassigned",
           "description": "Not numbered; prints \"?\" (the default).",
@@ -265,21 +283,10 @@
         },
         {
           "additionalProperties": false,
-          "description": "A counter assigned by the numbering rule.",
+          "description": "A counter assigned by the numbering rule: `{\"assigned\": {\"counter\": n}}`.",
           "properties": {
             "assigned": {
-              "properties": {
-                "counter": {
-                  "description": "The counter.",
-                  "format": "uint32",
-                  "minimum": 0,
-                  "type": "integer"
-                }
-              },
-              "required": [
-                "counter"
-              ],
-              "type": "object"
+              "$ref": "#/$defs/AssignedNumber"
             }
           },
           "required": [
@@ -300,8 +307,7 @@
           ],
           "type": "object"
         }
-      ],
-      "description": "The wire number of a connection (doc 03 §8.7)."
+      ]
     },
     "PartRef": {
       "additionalProperties": true,
@@ -331,6 +337,7 @@
     "Pt2": {
       "description": "A point [x, y] in nanometres, y downwards (doc 05 §3.2).",
       "items": false,
+      "maxItems": 2,
       "minItems": 2,
       "prefixItems": [
         {
@@ -367,6 +374,8 @@
     },
     "Uuid": {
       "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
       "type": "string"
     },

@@ -1,7 +1,8 @@
 {
   "$defs": {
     "BondKind": {
-      "anyOf": [
+      "description": "Bond kinds.",
+      "oneOf": [
         {
           "const": "pelv_0v_pe",
           "description": "The one 0 V–PE bond of a PELV system.",
@@ -22,11 +23,11 @@
           "description": "Shield bonding.",
           "type": "string"
         }
-      ],
-      "description": "Bond kinds."
+      ]
     },
     "Endpoint": {
-      "anyOf": [
+      "description": "One end of a connection, a definition or a bond (ADR-0007, doc 03 §9): a connection point of a function\nor a junction. Encoding (doc 05 §3.2): `{\"cp\": [function, idx]}` or `{\"junction\": id}`.\n\n```\nuse ew_schema::Endpoint;\n\nlet e: Endpoint = serde_json::from_str(r#\"{\"cp\":[\"d40b6e93-25f7-5c1a-9e8d-7a3f1c05b6e2\",0]}\"#).unwrap();\nassert!(matches!(e, Endpoint::Cp(_, 0)));\n```",
+      "oneOf": [
         {
           "additionalProperties": false,
           "description": "Connection point `idx` of a function; its ID `v5(function, idx)` is derived, never stored.",
@@ -66,8 +67,7 @@
           ],
           "type": "object"
         }
-      ],
-      "description": "One end of a connection, a definition or a bond (ADR-0007, doc 03 §9): a connection point of a function\nor a junction. Encoding (doc 05 §3.2): `{\"cp\": [function, idx]}` or `{\"junction\": id}`.\n\n```\nuse ew_schema::Endpoint;\n\nlet e: Endpoint = serde_json::from_str(r#\"{\"cp\":[\"d40b6e93-25f7-5c1a-9e8d-7a3f1c05b6e2\",0]}\"#).unwrap();\nassert!(matches!(e, Endpoint::Cp(_, 0)));\n```"
+      ]
     },
     "SourceRef": {
       "additionalProperties": true,
@@ -90,6 +90,8 @@
     },
     "Uuid": {
       "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
       "type": "string"
     }

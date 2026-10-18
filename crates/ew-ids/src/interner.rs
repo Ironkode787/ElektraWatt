@@ -139,7 +139,11 @@ impl<T> Interner<T> {
         })
     }
 
-    /// The ID behind `dense`, or `None` if `dense` did not come from this interner.
+    /// The ID behind `dense`, or `None` if its index is outside this interner's range.
+    ///
+    /// A `Dense` carries no interner identity: an index from a different interner that happens to be in
+    /// range is not detected and resolves to an unrelated ID of this one. Callers must only pass indices
+    /// this interner produced.
     pub fn try_resolve(&self, dense: Dense<T>) -> Option<Id<T>> {
         self.ids.get(dense.as_usize()).copied()
     }

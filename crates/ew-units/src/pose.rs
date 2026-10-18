@@ -3,7 +3,9 @@
 
 //! `Quat9` and `Pose3`: integer 3D poses.
 
-use serde::de::Error as _;
+use std::fmt;
+
+use serde::de::{self, Error as _, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::json::SafeInt;
@@ -158,7 +160,8 @@ impl<'de> Deserialize<'de> for Quat9 {
 /// f64 mm (glam `DVec3`) appears only in 3D maths and f32 only in GPU buffers; neither is persisted.
 /// Conversions live in the crates that need them (`ew-panel`).
 ///
-/// **JSON:** `{"t":[x,y,z],"q":[w,x,y,z]}`; both members are required and no others are allowed.
+/// **JSON:** `{"t":[x,y,z],"q":[w,x,y,z]}`, object form only (the array form `[t, q]` is rejected); both
+/// members are required, none may repeat and no others are allowed.
 ///
 /// ```
 /// use ew_units::{Nm, Pose3, Quat9};
@@ -168,13 +171,52 @@ impl<'de> Deserialize<'de> for Quat9 {
 /// assert_eq!(serde_json::to_string(&pose).unwrap(), json);
 /// assert_eq!(serde_json::from_str::<Pose3>(json).unwrap(), pose);
 /// ```
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, Serialize)]
 pub struct Pose3 {
     /// Translation `[x, y, z]` in nm.
     pub t: [Nm; 3],
     /// Rotation.
     pub q: Quat9,
+}
+
+#[derive(Deserialize)]
+#[serde(field_identifier, rename_all = "lowercase")]
+enum PoseField {
+    T,
+    Q,
+}
+
+/// Deserialised by hand so that only the object form is accepted (a derived impl would also take `[t, q]`).
+impl<'de> Deserialize<'de> for Pose3 {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        deserializer.deserialize_struct("Pose3", &["t", "q"], PoseVisitor)
+    }
+}
+
+struct PoseVisitor;
+
+impl<'de> Visitor<'de> for PoseVisitor {
+    type Value = Pose3;
+
+    fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(r#"an object {"t": [x, y, z], "q": [w, x, y, z]}"#)
+    }
+
+    fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Pose3, A::Error> {
+        let (mut t, mut q) = (None, None);
+        while let Some(field) = map.next_key()? {
+            match field {
+                PoseField::T if t.is_none() => t = Some(map.next_value()?),
+                PoseField::Q if q.is_none() => q = Some(map.next_value()?),
+                _ => return Err(de::Error::custom("duplicate pose member")),
+            }
+        }
+        match (t, q) {
+            (Some(t), Some(q)) => Ok(Pose3 { t, q }),
+            (None, _) => Err(de::Error::missing_field("t")),
+            (_, None) => Err(de::Error::missing_field("q")),
+        }
+    }
 }
 
 impl Pose3 {
@@ -257,6 +299,8 @@ mod tests {
             r#"{"t":[0,0,0]}"#,
             r#"{"q":[1000000000,0,0,0]}"#,
             r#"{"t":[0,0,0],"q":[1000000000,0,0,0],"r":1}"#,
+            r#"[[0,0,0],[1000000000,0,0,0]]"#,
+            r#"{"t":[0,0,0],"t":[0,0,0],"q":[1000000000,0,0,0]}"#,
         ] {
             assert!(serde_json::from_str::<Pose3>(bad).is_err(), "{bad}");
         }

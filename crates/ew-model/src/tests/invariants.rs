@@ -6,7 +6,7 @@
 use ew_ids::{Id, Uuid};
 use ew_rds::Aspect;
 use ew_schema::{
-    Connection, Device, FnRole, Function, IpDirection, Junction, PageType, PinMapEntry, Record,
+    Connection, Device, FnRole, Function, IpDirection, Junction, KeyedList, PageType, PinMapEntry, Record,
     Representation, StructureNode,
 };
 
@@ -230,9 +230,8 @@ fn inv004_function_moved_rejected() {
 // ---------------------------------------------------------------------------------------------------------
 // EW-INV-005
 
-fn pin_map_rep(second_symbol_cp: u16) -> Representation {
-    let mut r = rep(nid(0x10_000), PAGE_101, vec![FN_101F1]);
-    r.pin_map = [(0, 0), (second_symbol_cp, 1)]
+fn pin_map_entries(second_symbol_cp: u16) -> Vec<PinMapEntry> {
+    [(0, 0), (second_symbol_cp, 1)]
         .into_iter()
         .map(|(symbol_cp, idx)| PinMapEntry {
             symbol_cp,
@@ -240,7 +239,12 @@ fn pin_map_rep(second_symbol_cp: u16) -> Representation {
             idx,
             extra: Default::default(),
         })
-        .collect();
+        .collect()
+}
+
+fn pin_map_rep(second_symbol_cp: u16) -> Representation {
+    let mut r = rep(nid(0x10_000), PAGE_101, vec![FN_101F1]);
+    r.pin_map = KeyedList::from_vec(pin_map_entries(second_symbol_cp)).expect("distinct symbol CPs");
     r
 }
 
@@ -251,11 +255,11 @@ fn inv005_pin_map_unique_ok() {
     assert!(apply(&m, &[ins(pin_map_rep(1))]).is_ok());
 }
 
-/// A pin map with a repeated symbol CP is rejected.
+/// A pin map with a repeated symbol CP cannot be built: `KeyedList` makes the violation unrepresentable
+/// (the `pin_map_unique` check stays as a backstop for rows that bypass the constructor).
 #[test]
 fn inv005_pin_map_unique_rejected() {
-    let m = mini_golden();
-    rejected_by(apply(&m, &[ins(pin_map_rep(0))]), crate::PIN_MAP_UNIQUE);
+    assert!(KeyedList::from_vec(pin_map_entries(0)).is_err());
 }
 
 // ---------------------------------------------------------------------------------------------------------

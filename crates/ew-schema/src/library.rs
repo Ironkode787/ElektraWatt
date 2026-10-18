@@ -3,6 +3,10 @@
 
 //! Library documents embedded in a project under `lib/` (doc 05 §3.4, §13.2; doc 07 §2; doc 09 §2.5):
 //! `part` (the part copy), `symbol`, `fndef` and `form`, each a [`LibCopy`] of its item.
+//!
+//! Strings are NFC (doc 05 §3.1): `MlText` and `Ident` members reject other text, and plain `String`
+//! members are normalised with every other string by the loader's [`normalize_nfc`](crate::normalize_nfc)
+//! pass before typed reading.
 
 use std::borrow::Cow;
 use std::collections::BTreeMap;
@@ -13,13 +17,16 @@ use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_units::{Angle2, Grid, Nm, Pt2};
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
-use serde::de::Error as _;
+use serde::de::{DeserializeOwned, Error as _};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde_json::Value;
+use serde_json::{Map, Value};
 
+use crate::SchemaError;
 use crate::connect::PotentialType;
-use crate::json::{Extra, de_extra, de_unknown, is_default, is_false, is_true, is_v1, r#true, v1};
+use crate::json::{Extra, de_extra, is_default, is_false, is_true, is_v1, r#true, v1};
 use crate::proxy::{Angle2S, GridS, IdentS, MlTextS, NmS, Pt2S, UuidS};
+use crate::set::{KeyedList, Set, keyed};
+use crate::track::{buffer, de_here, de_member, invalid, open_enum, raise};
 use crate::value::{Bounds, ColourSpec, Csa, Date, LibRef, Sha256, TechValue};
 
 // ---------------------------------------------------------------------------------------------------------
@@ -30,7 +37,10 @@ use crate::value::{Bounds, ColourSpec, Csa, Date, LibRef, Sha256, TechValue};
 ///
 /// `sha256` is taken over the canonical compact JSON of the item's own members, without `id` and the copy
 /// metadata, so the copy's hash equals the published item's (EW-CORE-014).
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+///
+/// Deserialisation reads the copy metadata itself and hands the remaining members to the item's own
+/// deserialiser, so errors inside the item keep their paths (a flattened field would lose them).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, JsonSchema)]
 pub struct LibCopy<T> {
     /// The copy ID.
     #[schemars(with = "UuidS")]
@@ -51,6 +61,36 @@ pub struct LibCopy<T> {
     /// The item.
     #[serde(flatten)]
     pub item: T,
+}
+
+impl<'de, T: DeserializeOwned> Deserialize<'de> for LibCopy<T> {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        fn take<U: DeserializeOwned>(map: &mut Map<String, Value>, key: &str) -> Result<U, SchemaError> {
+            match map.remove(key) {
+                Some(value) => de_member(key, &value),
+                None => Err(invalid(format!("missing field `{key}`"))),
+            }
+        }
+        let Value::Object(mut map) = buffer(deserializer)? else {
+            return Err(raise(invalid("a library document is an object")));
+        };
+        let mut read = || -> Result<LibCopy<T>, SchemaError> {
+            let v = match map.remove("$v") {
+                Some(value) => de_member("$v", &value)?,
+                None => v1(),
+            };
+            Ok(LibCopy {
+                id: take(&mut map, "id")?,
+                v,
+                library_id: take(&mut map, "library_id")?,
+                item_id: take(&mut map, "item_id")?,
+                version: take(&mut map, "version")?,
+                sha256: take(&mut map, "sha256")?,
+                item: de_here(&Value::Object(std::mem::take(&mut map)))?,
+            })
+        };
+        read().map_err(raise)
+    }
 }
 
 /// The marker type of library IDs (`library_id`, `LibRef.library`).
@@ -105,6 +145,8 @@ impl ItemMeta {
 /// Confidence of one section of library data.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "Confidence")]
 pub enum Confidence {
     /// Checked against a source.
     Verified,
@@ -113,32 +155,39 @@ pub enum Confidence {
     /// Test data.
     Test,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Status of a library item.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "ItemStatus")]
 pub enum ItemStatus {
     /// Draft.
     Draft,
     /// Released (the default).
     #[default]
     Released,
-    /// Deprecated, with an optional successor.
-    Deprecated {
-        /// The successor.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        successor: Option<LibRef>,
-    },
+    /// Deprecated, with an optional successor: `{"deprecated": {"successor": …}}`.
+    Deprecated(Deprecation),
     /// Withdrawn.
     Withdrawn,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// The payload of [`ItemStatus::Deprecated`].
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct Deprecation {
+    /// The successor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub successor: Option<LibRef>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
 }
 
 /// A three-level function category `[category, group, definition]`, such as
@@ -154,6 +203,8 @@ pub(crate) type CategoryKeyS = (IdentS, IdentS, IdentS);
 /// A house pen or an explicit width (doc 07 §2.3, FR-SYM-003): `"p026"` or `{"width": nm}`.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "Pen")]
 pub enum Pen {
     /// 0.13 mm.
     P013,
@@ -170,14 +221,15 @@ pub enum Pen {
     /// An explicit width.
     Width(#[schemars(with = "NmS")] Nm),
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// A dash pattern scaled by the pen width (doc 07 §2.3).
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "Dash")]
 pub enum Dash {
     /// Solid (the default).
     #[default]
@@ -189,9 +241,8 @@ pub enum Dash {
     /// Dash-dot.
     DashDot,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// An sRGB colour, `"#rrggbb"` in lower case.
@@ -245,6 +296,8 @@ impl JsonSchema for Rgb {
 /// A drawing colour: the layer's colour (the default) or an explicit sRGB value.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "Colour")]
 pub enum Colour {
     /// The layer's colour (the default).
     #[default]
@@ -252,9 +305,8 @@ pub enum Colour {
     /// An explicit colour.
     Rgb(Rgb),
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// How a primitive is stroked.
@@ -276,6 +328,8 @@ pub struct Stroke {
 /// A graphic primitive in nanometres, relative to its owner's origin (doc 07 §2.3).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "Primitive")]
 pub enum Primitive {
     /// A straight line.
     Line(LinePrim),
@@ -296,9 +350,8 @@ pub enum Primitive {
     /// An image asset.
     Image(ImagePrim),
     /// A primitive of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// A straight line.
@@ -475,6 +528,8 @@ pub struct ImagePrim {
 /// Text alignment at the anchor point: nine positions.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "Align")]
 pub enum Align {
     /// Top left.
     TopLeft,
@@ -495,14 +550,15 @@ pub enum Align {
     /// Bottom right.
     BottomRight,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// One of four directions on the sheet.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "Dir4")]
 pub enum Dir4 {
     /// Up (−y).
     Up,
@@ -513,9 +569,8 @@ pub enum Dir4 {
     /// Left (−x).
     Left,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -525,6 +580,8 @@ pub enum Dir4 {
 /// representations are derived, never stored (ADR-0006 amendment 3).
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "RepType")]
 pub enum RepType {
     /// Multi-line (the default).
     #[default]
@@ -546,14 +603,15 @@ pub enum RepType {
     /// Graphic.
     Graphic,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Discipline of a connection point.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "Discipline")]
 pub enum Discipline {
     /// Electrical (the default).
     #[default]
@@ -567,9 +625,8 @@ pub enum Discipline {
     /// Bus.
     Bus,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Graphics plus CP geometry (doc 07 §2.3), library item kind `symbol`.
@@ -583,9 +640,9 @@ pub struct SymbolDef {
     #[schemars(with = "MlTextS")]
     pub name: MlText,
     /// Search keywords (a set, sorted).
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[schemars(with = "Vec<IdentS>")]
-    pub keywords: Vec<Ident>,
+    #[serde(default, skip_serializing_if = "Set::is_empty")]
+    #[schemars(with = "Set<IdentS>")]
+    pub keywords: Set<Ident>,
     /// Representation type; default multi-line.
     #[serde(default, skip_serializing_if = "is_default")]
     pub rep_type: RepType,
@@ -598,8 +655,8 @@ pub struct SymbolDef {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub graphics: Vec<Primitive>,
     /// Connection points, keyed by `idx`.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub cps: Vec<SymbolCp>,
+    #[serde(default, skip_serializing_if = "KeyedList::is_empty")]
+    pub cps: KeyedList<SymbolCp>,
     /// Typed text slots.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub text_slots: Vec<TextSlot>,
@@ -677,6 +734,8 @@ pub struct TextSlot {
 /// What a text slot prints (doc 07 §2.3).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "SlotKind")]
 pub enum SlotKind {
     /// Device tag.
     Tag,
@@ -703,9 +762,8 @@ pub enum SlotKind {
     /// Contact image.
     ContactImage,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// A named set of visible text slots, by index into `text_slots` ("full", "tag + rating").
@@ -725,6 +783,8 @@ pub struct Arrangement {
 /// Where a symbol's cross-reference anchor lies (FR-SYM-010).
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "AnchorPolicy")]
 pub enum AnchorPolicy {
     /// The symbol origin (the default).
     #[default]
@@ -736,9 +796,8 @@ pub enum AnchorPolicy {
     /// A named point.
     Named(#[schemars(with = "Pt2S")] Pt2),
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// A named point of a symbol.
@@ -774,15 +833,16 @@ pub struct ExtraVariant {
 /// Kind of a stored symbol variant.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "ExtraVariantKind")]
 pub enum ExtraVariantKind {
     /// Contact image.
     ContactImage,
     /// CP variant.
     CpVariant,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -802,8 +862,8 @@ pub struct FnDef {
     /// Contact kind.
     pub contact_kind: ContactKind,
     /// Connection points, keyed by `idx`.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub cps: Vec<CpDef>,
+    #[serde(default, skip_serializing_if = "KeyedList::is_empty")]
+    pub cps: KeyedList<CpDef>,
     /// Internal connectivity.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub internal: Vec<InternalLinkDef>,
@@ -818,6 +878,8 @@ pub struct FnDef {
 /// Contact kinds (doc 03 §7).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "ContactKind")]
 pub enum ContactKind {
     /// Normally open.
     No,
@@ -840,9 +902,8 @@ pub enum ContactKind {
     /// Valve.
     Valve,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// One connection point of a function definition (doc 03 §7).
@@ -890,20 +951,23 @@ pub struct CpDef {
 /// otherwise).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "Side")]
 pub enum Side {
     /// Side 1.
     Side1,
     /// Side 2.
     Side2,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// The clamp of a terminal CP (doc 08 §2.3): `{"clamp": "a"}`, `{"shaft": 1}` or `"rail_foot"`.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "ClampKey")]
 pub enum ClampKey {
     /// A wire clamp a, b, c ….
     Clamp(char),
@@ -912,9 +976,8 @@ pub enum ClampKey {
     /// The rail foot of a PE terminal.
     RailFoot,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// One internal link between two CPs of a definition.
@@ -934,19 +997,27 @@ pub struct InternalLinkDef {
 /// Kind of an internal link.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "InternalKind")]
 pub enum InternalKind {
     /// A short: the CPs are one signal.
     Short,
     /// A pass-through pair: propagates the potential type; `opens` sets "switched".
-    PassThrough {
-        /// The contact can open.
-        #[serde(default, skip_serializing_if = "is_false")]
-        opens: bool,
-    },
+    PassThrough(PassThroughSpec),
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// The payload of [`InternalKind::PassThrough`].
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct PassThroughSpec {
+    /// The contact can open.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub opens: bool,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
 }
 
 /// Flags of a function definition.
@@ -1013,17 +1084,17 @@ pub struct Part {
     #[schemars(with = "Option<CategoryKeyS>")]
     pub category: Option<CategoryKey>,
     /// Technical data, keyed by `key`.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub tech_data: Vec<TechValue>,
+    #[serde(default, skip_serializing_if = "KeyedList::is_empty")]
+    pub tech_data: KeyedList<TechValue>,
     /// Free properties, keyed by `key`.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub free_props: Vec<FreeProp>,
+    #[serde(default, skip_serializing_if = "KeyedList::is_empty")]
+    pub free_props: KeyedList<FreeProp>,
     /// Order unit; default piece.
     #[serde(default, skip_serializing_if = "is_default")]
     pub unit: OrderUnit,
     /// CP pattern, keyed by `idx` (FR-PRT-008).
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub cp_pattern: Vec<CpData>,
+    #[serde(default, skip_serializing_if = "KeyedList::is_empty")]
+    pub cp_pattern: KeyedList<CpData>,
     /// Function template (FR-PRT-007).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub function_template: Vec<TemplateFn>,
@@ -1038,6 +1109,8 @@ pub struct Part {
 /// Part kinds (doc 07 §2.5).
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "PartKind")]
 pub enum PartKind {
     /// A device (the default).
     #[default]
@@ -1071,26 +1144,27 @@ pub enum PartKind {
     /// Configured product.
     Configured,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Order unit of a part (FR-PRT-026).
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "OrderUnit")]
 pub enum OrderUnit {
     /// Piece (the default).
     #[default]
     Piece,
-    /// Metre.
+    /// Metre, written `m` like the unit of a `Quantity` (doc 05 §3.2).
+    #[serde(rename = "m")]
     Metre,
     /// Set.
     Set,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// A free property (EPLAN free properties, user fields).
@@ -1237,6 +1311,8 @@ pub struct FormDef {
 /// Form kinds.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "FormKind")]
 pub enum FormKind {
     /// Page frame.
     Frame,
@@ -1251,9 +1327,8 @@ pub enum FormKind {
     /// Label.
     Label,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Sheet size.
@@ -1369,21 +1444,29 @@ pub struct FormCell {
 /// Overflow policy of a form cell.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "Overflow")]
 pub enum Overflow {
-    /// Shrink down to a minimum cap height.
-    ShrinkToFit {
-        /// The minimum printed cap height.
-        #[schemars(with = "NmS")]
-        min_cap_height: Nm,
-    },
+    /// Shrink down to a minimum cap height: `{"shrink_to_fit": {"min_cap_height": nm}}`.
+    ShrinkToFit(ShrinkSpec),
     /// Cut with an ellipsis.
     Ellipsis,
     /// Report an error.
     Error,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// The payload of [`Overflow::ShrinkToFit`].
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct ShrinkSpec {
+    /// The minimum printed cap height.
+    #[schemars(with = "NmS")]
+    pub min_cap_height: Nm,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
 }
 
 /// The data area of a report form.
@@ -1451,14 +1534,15 @@ pub struct RowTemplate {
 /// Text wrapping in a row.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "WrapPolicy")]
 pub enum WrapPolicy {
     /// No wrapping (the default).
     #[default]
     None,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Lines and fills of a report table.
@@ -1481,3 +1565,33 @@ impl TableStyle {
         *self == TableStyle::default()
     }
 }
+
+keyed!(SymbolCp, idx: u16);
+keyed!(CpDef, idx: u16);
+keyed!(CpData, idx: u16);
+keyed!(FreeProp, key: Ident);
+
+open_enum!(
+    Confidence,
+    ItemStatus,
+    Pen,
+    Dash,
+    Colour,
+    Primitive,
+    Align,
+    Dir4,
+    RepType,
+    Discipline,
+    SlotKind,
+    AnchorPolicy,
+    ExtraVariantKind,
+    ContactKind,
+    Side,
+    ClampKey,
+    InternalKind,
+    PartKind,
+    OrderUnit,
+    FormKind,
+    Overflow,
+    WrapPolicy,
+);

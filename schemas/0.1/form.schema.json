@@ -1,7 +1,8 @@
 {
   "$defs": {
     "Align": {
-      "anyOf": [
+      "description": "Text alignment at the anchor point: nine positions.",
+      "oneOf": [
         {
           "const": "top_left",
           "description": "Top left.",
@@ -47,11 +48,12 @@
           "description": "Bottom right.",
           "type": "string"
         }
-      ],
-      "description": "Text alignment at the anchor point: nine positions."
+      ]
     },
     "Angle2": {
-      "description": "An angle in 10^-3 degree, counter-clockwise on the sheet (doc 05 §3.2).",
+      "description": "An angle in 10^-3 degree, counter-clockwise on the sheet, within the i32 range (doc 05 §3.2).",
+      "maximum": 2147483647,
+      "minimum": -2147483648,
       "type": "integer"
     },
     "ArcPrim": {
@@ -130,7 +132,8 @@
       "type": "object"
     },
     "Colour": {
-      "anyOf": [
+      "description": "A drawing colour: the layer's colour (the default) or an explicit sRGB value.",
+      "oneOf": [
         {
           "const": "by_layer",
           "description": "The layer's colour (the default).",
@@ -149,11 +152,11 @@
           ],
           "type": "object"
         }
-      ],
-      "description": "A drawing colour: the layer's colour (the default) or an explicit sRGB value."
+      ]
     },
     "Confidence": {
-      "anyOf": [
+      "description": "Confidence of one section of library data.",
+      "oneOf": [
         {
           "const": "verified",
           "description": "Checked against a source.",
@@ -169,11 +172,11 @@
           "description": "Test data.",
           "type": "string"
         }
-      ],
-      "description": "Confidence of one section of library data."
+      ]
     },
     "Dash": {
-      "anyOf": [
+      "description": "A dash pattern scaled by the pen width (doc 07 §2.3).",
+      "oneOf": [
         {
           "const": "solid",
           "description": "Solid (the default).",
@@ -194,8 +197,7 @@
           "description": "Dash-dot.",
           "type": "string"
         }
-      ],
-      "description": "A dash pattern scaled by the pen width (doc 07 §2.3)."
+      ]
     },
     "DataArea": {
       "additionalProperties": true,
@@ -228,6 +230,24 @@
       "description": "An authored date YYYY-MM-DD (doc 05 §3.2).",
       "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
       "type": "string"
+    },
+    "Deprecation": {
+      "additionalProperties": true,
+      "description": "The payload of [`ItemStatus::Deprecated`].",
+      "properties": {
+        "successor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LibRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The successor."
+        }
+      },
+      "type": "object"
     },
     "EllipsePrim": {
       "additionalProperties": true,
@@ -320,7 +340,8 @@
       "type": "object"
     },
     "FormKind": {
-      "anyOf": [
+      "description": "Form kinds.",
+      "oneOf": [
         {
           "const": "frame",
           "description": "Page frame.",
@@ -351,8 +372,7 @@
           "description": "Label.",
           "type": "string"
         }
-      ],
-      "description": "Form kinds."
+      ]
     },
     "FrameColumns": {
       "additionalProperties": true,
@@ -455,7 +475,7 @@
     },
     "Grid": {
       "additionalProperties": false,
-      "description": "A reduced rational grid step num/den in nanometres (doc 05 §3.2).",
+      "description": "A rational grid step num/den in nanometres (doc 05 §3.2). JSON Schema cannot express that num/den is reduced or at least 1 nm (num >= den): the reader rejects unreduced and sub-nanometre steps.",
       "properties": {
         "den": {
           "maximum": 9007199254740991,
@@ -475,9 +495,9 @@
       "type": "object"
     },
     "Ident": {
-      "description": "An NFC identifier without surrounding white space (doc 05 §3.2).",
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
       "minLength": 1,
-      "pattern": "^\\S(.*\\S)?$",
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
       "type": "string"
     },
     "ImagePrim": {
@@ -558,7 +578,8 @@
       "type": "object"
     },
     "ItemStatus": {
-      "anyOf": [
+      "description": "Status of a library item.",
+      "oneOf": [
         {
           "const": "draft",
           "description": "Draft.",
@@ -571,23 +592,10 @@
         },
         {
           "additionalProperties": false,
-          "description": "Deprecated, with an optional successor.",
+          "description": "Deprecated, with an optional successor: `{\"deprecated\": {\"successor\": …}}`.",
           "properties": {
             "deprecated": {
-              "properties": {
-                "successor": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/LibRef"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ],
-                  "description": "The successor."
-                }
-              },
-              "type": "object"
+              "$ref": "#/$defs/Deprecation"
             }
           },
           "required": [
@@ -600,8 +608,7 @@
           "description": "Withdrawn.",
           "type": "string"
         }
-      ],
-      "description": "Status of a library item."
+      ]
     },
     "LibRef": {
       "additionalProperties": true,
@@ -668,34 +675,30 @@
             "type": "string"
           },
           "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4,8})(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*(?:-[a-wy-z0-9](?:-[a-z0-9]{2,8})+)*(?:-x(?:-[a-z0-9]{1,8})+)?$",
+            "type": "string"
+          },
           "type": "object"
         }
       ],
-      "description": "Multilingual text: a neutral string, or an object keyed by BCP 47 tags (doc 05 §3.2)."
+      "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags with non-empty string values (doc 05 §3.2). JSON Schema cannot express that all text is NFC or that the keys are in ascending byte order; the reader rejects both."
     },
     "Nm": {
-      "description": "A length in nanometres (doc 05 §3.2).",
+      "description": "A length in nanometres (doc 05 §3.2). Written without fraction or exponent; JSON Schema cannot tell 5 from 5.0, the reader rejects the latter.",
       "maximum": 9007199254740991,
       "minimum": -9007199254740991,
       "type": "integer"
     },
     "Overflow": {
-      "anyOf": [
+      "description": "Overflow policy of a form cell.",
+      "oneOf": [
         {
           "additionalProperties": false,
-          "description": "Shrink down to a minimum cap height.",
+          "description": "Shrink down to a minimum cap height: `{\"shrink_to_fit\": {\"min_cap_height\": nm}}`.",
           "properties": {
             "shrink_to_fit": {
-              "properties": {
-                "min_cap_height": {
-                  "$ref": "#/$defs/Nm",
-                  "description": "The minimum printed cap height."
-                }
-              },
-              "required": [
-                "min_cap_height"
-              ],
-              "type": "object"
+              "$ref": "#/$defs/ShrinkSpec"
             }
           },
           "required": [
@@ -713,11 +716,11 @@
           "description": "Report an error.",
           "type": "string"
         }
-      ],
-      "description": "Overflow policy of a form cell."
+      ]
     },
     "Pen": {
-      "anyOf": [
+      "description": "A house pen or an explicit width (doc 07 §2.3, FR-SYM-003): `\"p026\"` or `{\"width\": nm}`.",
+      "oneOf": [
         {
           "const": "p013",
           "description": "0.13 mm.",
@@ -761,8 +764,7 @@
           ],
           "type": "object"
         }
-      ],
-      "description": "A house pen or an explicit width (doc 07 §2.3, FR-SYM-003): `\"p026\"` or `{\"width\": nm}`."
+      ]
     },
     "PolygonPrim": {
       "additionalProperties": true,
@@ -836,7 +838,8 @@
       "type": "object"
     },
     "Primitive": {
-      "anyOf": [
+      "description": "A graphic primitive in nanometres, relative to its owner's origin (doc 07 §2.3).",
+      "oneOf": [
         {
           "additionalProperties": false,
           "description": "A straight line.",
@@ -954,12 +957,12 @@
           ],
           "type": "object"
         }
-      ],
-      "description": "A graphic primitive in nanometres, relative to its owner's origin (doc 07 §2.3)."
+      ]
     },
     "Pt2": {
       "description": "A point [x, y] in nanometres, y downwards (doc 05 §3.2).",
       "items": false,
+      "maxItems": 2,
       "minItems": 2,
       "prefixItems": [
         {
@@ -1169,6 +1172,20 @@
       ],
       "type": "object"
     },
+    "ShrinkSpec": {
+      "additionalProperties": true,
+      "description": "The payload of [`Overflow::ShrinkToFit`].",
+      "properties": {
+        "min_cap_height": {
+          "$ref": "#/$defs/Nm",
+          "description": "The minimum printed cap height."
+        }
+      },
+      "required": [
+        "min_cap_height"
+      ],
+      "type": "object"
+    },
     "Stroke": {
       "additionalProperties": true,
       "description": "How a primitive is stroked.",
@@ -1261,23 +1278,25 @@
     },
     "Uuid": {
       "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
       "type": "string"
     },
     "WrapPolicy": {
-      "anyOf": [
+      "description": "Text wrapping in a row.",
+      "oneOf": [
         {
           "const": "none",
           "description": "No wrapping (the default).",
           "type": "string"
         }
-      ],
-      "description": "Text wrapping in a row."
+      ]
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "description": "An embedded library copy (doc 07 §2.1, doc 05 §13.2): `$k`, `id` (the copy ID\n`v5(NS_LIBCOPY, library ‖ item)`), `$v`, the copy metadata, then the item's own members.\n\n`sha256` is taken over the canonical compact JSON of the item's own members, without `id` and the copy\nmetadata, so the copy's hash equals the published item's (EW-CORE-014).",
+  "description": "An embedded library copy (doc 07 §2.1, doc 05 §13.2): `$k`, `id` (the copy ID\n`v5(NS_LIBCOPY, library ‖ item)`), `$v`, the copy metadata, then the item's own members.\n\n`sha256` is taken over the canonical compact JSON of the item's own members, without `id` and the copy\nmetadata, so the copy's hash equals the published item's (EW-CORE-014).\n\nDeserialisation reads the copy metadata itself and hands the remaining members to the item's own\ndeserialiser, so errors inside the item keep their paths (a flattened field would lose them).",
   "properties": {
     "$k": {
       "const": "form",

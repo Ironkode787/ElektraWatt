@@ -13,8 +13,8 @@ use ew_interop_api::{
     Severity,
 };
 use ew_schema::{
-    AnchorPolicy, Colour, ContactKind, Dash, Dir4, FnDef, InternalKind, LibCopy, LibDocument, Pen,
-    PotentialType, Primitive, Record, RepType, Rgb, SlotKind, SymbolDef,
+    AnchorPolicy, Colour, ContactKind, Dash, Dir4, FnDef, InternalKind, LibCopy, LibDocument,
+    PassThroughSpec, Pen, PotentialType, Primitive, Record, RepType, Rgb, SlotKind, SymbolDef,
 };
 use ew_units::{Angle2, Grid, Nm, Pt2};
 use sha2::Digest;
@@ -111,7 +111,13 @@ fn contact_no() {
     assert_eq!(des, ["13", "14"]);
     assert_eq!(f.internal.len(), 1);
     assert_eq!((f.internal[0].a, f.internal[0].b), (0, 1));
-    assert_eq!(f.internal[0].kind, InternalKind::PassThrough { opens: true });
+    assert_eq!(
+        f.internal[0].kind,
+        InternalKind::PassThrough(PassThroughSpec {
+            opens: true,
+            extra: Default::default()
+        })
+    );
     assert_eq!(f.extra["qet.kind"]["state"], "NO");
     assert_eq!(batch.report.source.format_version.as_deref(), Some("0.80"));
     assert_eq!(batch.report.source.detail.as_deref(), Some("link type slave"));

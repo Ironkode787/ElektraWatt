@@ -1,7 +1,8 @@
 {
   "$defs": {
     "AccessoryKind": {
-      "anyOf": [
+      "description": "Kind of a strip accessory.",
+      "oneOf": [
         {
           "const": "end_plate",
           "description": "End plate.",
@@ -27,8 +28,7 @@
           "description": "Cover.",
           "type": "string"
         }
-      ],
-      "description": "Kind of a strip accessory."
+      ]
     },
     "Cable": {
       "additionalProperties": true,
@@ -57,7 +57,8 @@
       "type": "object"
     },
     "CoreIdMode": {
-      "anyOf": [
+      "description": "How the cores of a cable are identified.",
+      "oneOf": [
         {
           "const": "number",
           "description": "By number.",
@@ -73,16 +74,17 @@
           "description": "By number and colour.",
           "type": "string"
         }
-      ],
-      "description": "How the cores of a cable are identified."
+      ]
     },
     "Dec3": {
-      "description": "A decimal with at most three fraction digits, no trailing zeros, no unit (doc 05 §3.2).",
-      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]{0,2}[1-9])?$",
+      "description": "A canonical decimal string: at most three fraction digits, no trailing fraction zeros, no leading zeros, no plus sign, no \"-0\", no exponent, no white space, no unit (doc 05 §3.2). The pattern bounds the integer part to 16 digits; the exact i64 range of the thousandths (about 9.2 x 10^15) is checked by the reader.",
+      "maxLength": 21,
+      "pattern": "^(?:0|-?[1-9][0-9]{0,15}(?:\\.[0-9]{0,2}[1-9])?|-?0\\.[0-9]{0,2}[1-9])$",
       "type": "string"
     },
     "DeviceKind": {
-      "anyOf": [
+      "description": "A device's UI and numbering hint. Doc 03 enumerates only these kinds so far; others are kept as\n[`DeviceKind::Unknown`] until the list is decided.",
+      "oneOf": [
         {
           "const": "psu",
           "description": "Power supply.",
@@ -98,11 +100,11 @@
           "description": "Blank manifold or valve-terminal position (doc 11 §2.7).",
           "type": "string"
         }
-      ],
-      "description": "A device's UI and numbering hint. Doc 03 enumerates only these kinds so far; others are kept as\n[`DeviceKind::Unknown`] until the list is decided."
+      ]
     },
     "DeviceState": {
-      "anyOf": [
+      "description": "Device lifecycle state (FR-DEV-026).",
+      "oneOf": [
         {
           "const": "used",
           "description": "In use (the default).",
@@ -123,8 +125,7 @@
           "description": "Not fitted.",
           "type": "string"
         }
-      ],
-      "description": "Device lifecycle state (FR-DEV-026)."
+      ]
     },
     "FrozenTag": {
       "additionalProperties": true,
@@ -145,13 +146,14 @@
       "type": "object"
     },
     "Ident": {
-      "description": "An NFC identifier without surrounding white space (doc 05 §3.2).",
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
       "minLength": 1,
-      "pattern": "^\\S(.*\\S)?$",
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
       "type": "string"
     },
     "LabelMode": {
-      "anyOf": [
+      "description": "What the terminals of a strip print.",
+      "oneOf": [
         {
           "const": "designation",
           "description": "The terminal designation (the default).",
@@ -162,11 +164,11 @@
           "description": "The terminal's function text (\"1+\", FR-TRM-021).",
           "type": "string"
         }
-      ],
-      "description": "What the terminals of a strip print."
+      ]
     },
     "LengthSource": {
-      "anyOf": [
+      "description": "The source of a cable length (FR-CBL-009). The committed sources `Estimated` and `Routed` (1.0) are\nadditive variants of a later format.",
+      "oneOf": [
         {
           "const": "missing",
           "description": "No length yet (the default); blocks release.",
@@ -190,11 +192,11 @@
           "description": "From the cable part (pre-assembled length).",
           "type": "string"
         }
-      ],
-      "description": "The source of a cable length (FR-CBL-009). The committed sources `Estimated` and `Routed` (1.0) are\nadditive variants of a later format."
+      ]
     },
     "LevelRole": {
-      "anyOf": [
+      "description": "The role of a terminal level.",
+      "oneOf": [
         {
           "const": "main",
           "description": "Main level (the default).",
@@ -205,8 +207,7 @@
           "description": "Auxiliary level.",
           "type": "string"
         }
-      ],
-      "description": "The role of a terminal level."
+      ]
     },
     "LevelSpec": {
       "additionalProperties": true,
@@ -240,13 +241,17 @@
             "type": "string"
           },
           "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4,8})(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*(?:-[a-wy-z0-9](?:-[a-z0-9]{2,8})+)*(?:-x(?:-[a-z0-9]{1,8})+)?$",
+            "type": "string"
+          },
           "type": "object"
         }
       ],
-      "description": "Multilingual text: a neutral string, or an object keyed by BCP 47 tags (doc 05 §3.2)."
+      "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags with non-empty string values (doc 05 §3.2). JSON Schema cannot express that all text is NFC or that the keys are in ascending byte order; the reader rejects both."
     },
     "Nm": {
-      "description": "A length in nanometres (doc 05 §3.2).",
+      "description": "A length in nanometres (doc 05 §3.2). Written without fraction or exponent; JSON Schema cannot tell 5 from 5.0, the reader rejects the latter.",
       "maximum": 9007199254740991,
       "minimum": -9007199254740991,
       "type": "integer"
@@ -315,7 +320,8 @@
       "type": "object"
     },
     "Side": {
-      "anyOf": [
+      "description": "A terminal side (doc 08 §2.1: side 1 is internal and side 2 external unless `Strip.field_side` says\notherwise).",
+      "oneOf": [
         {
           "const": "side1",
           "description": "Side 1.",
@@ -326,8 +332,7 @@
           "description": "Side 2.",
           "type": "string"
         }
-      ],
-      "description": "A terminal side (doc 08 §2.1: side 1 is internal and side 2 external unless `Strip.field_side` says\notherwise)."
+      ]
     },
     "Slot": {
       "anyOf": [
@@ -514,7 +519,8 @@
       "type": "object"
     },
     "TagPrint": {
-      "anyOf": [
+      "description": "Where a strip prints its tag (FR-TRM-011).",
+      "oneOf": [
         {
           "const": "per_segment",
           "description": "Once per strip segment (the default).",
@@ -525,11 +531,11 @@
           "description": "Once per page.",
           "type": "string"
         }
-      ],
-      "description": "Where a strip prints its tag (FR-TRM-011)."
+      ]
     },
     "TagScheme": {
-      "anyOf": [
+      "description": "The numbering scheme of a tag.",
+      "oneOf": [
         {
           "const": "default",
           "description": "The project's active scheme (the default).",
@@ -553,11 +559,11 @@
           "description": "Parent designation, separator, letter and counter (FR-NUM-013).",
           "type": "string"
         }
-      ],
-      "description": "The numbering scheme of a tag."
+      ]
     },
     "TagSign": {
-      "anyOf": [
+      "description": "Whether a frozen tag prints its product sign on pages.",
+      "oneOf": [
         {
           "const": "shown",
           "description": "\"-S51\" (the default).",
@@ -568,8 +574,7 @@
           "description": "\"S51\".",
           "type": "string"
         }
-      ],
-      "description": "Whether a frozen tag prints its product sign on pages."
+      ]
     },
     "TagSpec": {
       "additionalProperties": true,
@@ -620,7 +625,7 @@
           "description": "An identifier such as the tripping curve `C`."
         }
       ],
-      "description": "The value of a [`TechValue`]."
+      "description": "The value of a [`TechValue`], told apart by JSON type: an object is a [`Quantity`], a string an\n[`Ident`]. Any other JSON type is kept as [`TechVal::Unknown`]; an object that is not a quantity or a\nstring that is not an identifier is a malformed variant (`quantity`, `ident`)."
     },
     "TechValue": {
       "additionalProperties": true,
@@ -707,7 +712,8 @@
       "type": "object"
     },
     "Unit": {
-      "anyOf": [
+      "description": "The units of doc 03 §3.2 and the order units of FR-PRT-026. Persisted as the unit symbol in ASCII\n(`\"mm2\"`, `\"degC\"`), so files stay greppable; rendering uses the typographic symbol.",
+      "oneOf": [
         {
           "const": "mm2",
           "description": "Square millimetre (cross-sections).",
@@ -763,18 +769,19 @@
           "description": "Set (order unit).",
           "type": "string"
         }
-      ],
-      "description": "The units of doc 03 §3.2 and the order units of FR-PRT-026. Persisted as the unit symbol in ASCII\n(`\"mm2\"`, `\"degC\"`), so files stay greppable; rendering uses the typographic symbol."
+      ]
     },
     "Uuid": {
       "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
       "type": "string"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "description": "Everything with one tag; the single owner of parts (ADR-0006, doc 03 §7, rank 31). The printed tag is\nderived from `tag`, the numbering scheme and the main representation; it is stored nowhere.\n\nAspects follow the known members, flattened in the order of doc 05 §3.1. v0 implements `strip`,\n`terminal` and `cable`; `assembly`, `plc_station`, `plc_module`, `bus_node` and `valve_terminal` arrive\nwith their work packages and are kept in `extra` until then, which already places them after `cable`.\n`user_props` has no field-level definition yet and is kept in `extra` too.",
+  "description": "Everything with one tag; the single owner of parts (ADR-0006, doc 03 §7, rank 31). The printed tag is\nderived from `tag`, the numbering scheme and the main representation; it is stored nowhere.\n\nAspects follow the known members, flattened in the order of doc 05 §3.1. v0 implements `strip`,\n`terminal` and `cable`; `assembly`, `plc_station`, `plc_module`, `bus_node` and `valve_terminal` arrive\nwith their work packages and are kept in `extra` until then, which already places them after `cable`.\n`user_props` has no field-level definition yet and is kept in `extra` too.\n\nDeserialisation takes the aspects out of the object first and reads each at its own path, because\nserde reads flattened fields from a buffer that loses the paths of errors inside them.",
   "properties": {
     "$k": {
       "const": "device",

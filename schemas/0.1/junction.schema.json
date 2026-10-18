@@ -1,7 +1,19 @@
 {
   "$defs": {
+    "BevelSpec": {
+      "additionalProperties": true,
+      "description": "The payload of [`JunctionStyle::Bevel`].",
+      "properties": {
+        "orient": {
+          "$ref": "#/$defs/Orient2",
+          "description": "Orientation of the bevel; default `r0`."
+        }
+      },
+      "type": "object"
+    },
     "JunctionStyle": {
-      "anyOf": [
+      "description": "How a junction is drawn.",
+      "oneOf": [
         {
           "const": "dot",
           "description": "A dot.",
@@ -9,16 +21,10 @@
         },
         {
           "additionalProperties": false,
-          "description": "A bevelled corner.",
+          "description": "A bevelled corner: `{\"bevel\": {\"orient\": …}}`.",
           "properties": {
             "bevel": {
-              "properties": {
-                "orient": {
-                  "$ref": "#/$defs/Orient2",
-                  "description": "Orientation of the bevel."
-                }
-              },
-              "type": "object"
+              "$ref": "#/$defs/BevelSpec"
             }
           },
           "required": [
@@ -26,11 +32,11 @@
           ],
           "type": "object"
         }
-      ],
-      "description": "How a junction is drawn."
+      ]
     },
     "JunctionWiring": {
-      "anyOf": [
+      "description": "The physical wires behind a junction (doc 03 §9.2).",
+      "oneOf": [
         {
           "const": "star",
           "description": "The first CP is wired to every other CP.",
@@ -41,8 +47,7 @@
           "description": "Consecutive CPs are wired.",
           "type": "string"
         }
-      ],
-      "description": "The physical wires behind a junction (doc 03 §9.2)."
+      ]
     },
     "Orient2": {
       "description": "Orientation: rotation clockwise on the sheet, optionally mirrored (doc 05 §3.2).",
@@ -61,6 +66,7 @@
     "Pt2": {
       "description": "A point [x, y] in nanometres, y downwards (doc 05 §3.2).",
       "items": false,
+      "maxItems": 2,
       "minItems": 2,
       "prefixItems": [
         {
@@ -97,6 +103,8 @@
     },
     "Uuid": {
       "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
       "type": "string"
     }

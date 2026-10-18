@@ -51,7 +51,8 @@
       "type": "object"
     },
     "ClampKey": {
-      "anyOf": [
+      "description": "The clamp of a terminal CP (doc 08 §2.3): `{\"clamp\": \"a\"}`, `{\"shaft\": 1}` or `\"rail_foot\"`.",
+      "oneOf": [
         {
           "additionalProperties": false,
           "description": "A wire clamp a, b, c ….",
@@ -88,8 +89,7 @@
           "description": "The rail foot of a PE terminal.",
           "type": "string"
         }
-      ],
-      "description": "The clamp of a terminal CP (doc 08 §2.3): `{\"clamp\": \"a\"}`, `{\"shaft\": 1}` or `\"rail_foot\"`."
+      ]
     },
     "ColourCode": {
       "anyOf": [
@@ -121,7 +121,8 @@
       "type": "array"
     },
     "Confidence": {
-      "anyOf": [
+      "description": "Confidence of one section of library data.",
+      "oneOf": [
         {
           "const": "verified",
           "description": "Checked against a source.",
@@ -137,8 +138,7 @@
           "description": "Test data.",
           "type": "string"
         }
-      ],
-      "description": "Confidence of one section of library data."
+      ]
     },
     "CpData": {
       "additionalProperties": true,
@@ -245,9 +245,28 @@
       "type": "string"
     },
     "Dec3": {
-      "description": "A decimal with at most three fraction digits, no trailing zeros, no unit (doc 05 §3.2).",
-      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]{0,2}[1-9])?$",
+      "description": "A canonical decimal string: at most three fraction digits, no trailing fraction zeros, no leading zeros, no plus sign, no \"-0\", no exponent, no white space, no unit (doc 05 §3.2). The pattern bounds the integer part to 16 digits; the exact i64 range of the thousandths (about 9.2 x 10^15) is checked by the reader.",
+      "maxLength": 21,
+      "pattern": "^(?:0|-?[1-9][0-9]{0,15}(?:\\.[0-9]{0,2}[1-9])?|-?0\\.[0-9]{0,2}[1-9])$",
       "type": "string"
+    },
+    "Deprecation": {
+      "additionalProperties": true,
+      "description": "The payload of [`ItemStatus::Deprecated`].",
+      "properties": {
+        "successor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LibRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The successor."
+        }
+      },
+      "type": "object"
     },
     "FreeProp": {
       "additionalProperties": true,
@@ -269,9 +288,9 @@
       "type": "object"
     },
     "Ident": {
-      "description": "An NFC identifier without surrounding white space (doc 05 §3.2).",
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
       "minLength": 1,
-      "pattern": "^\\S(.*\\S)?$",
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
       "type": "string"
     },
     "ItemMeta": {
@@ -333,7 +352,8 @@
       "type": "object"
     },
     "ItemStatus": {
-      "anyOf": [
+      "description": "Status of a library item.",
+      "oneOf": [
         {
           "const": "draft",
           "description": "Draft.",
@@ -346,23 +366,10 @@
         },
         {
           "additionalProperties": false,
-          "description": "Deprecated, with an optional successor.",
+          "description": "Deprecated, with an optional successor: `{\"deprecated\": {\"successor\": …}}`.",
           "properties": {
             "deprecated": {
-              "properties": {
-                "successor": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/LibRef"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ],
-                  "description": "The successor."
-                }
-              },
-              "type": "object"
+              "$ref": "#/$defs/Deprecation"
             }
           },
           "required": [
@@ -375,8 +382,7 @@
           "description": "Withdrawn.",
           "type": "string"
         }
-      ],
-      "description": "Status of a library item."
+      ]
     },
     "LibRef": {
       "additionalProperties": true,
@@ -413,21 +419,26 @@
             "type": "string"
           },
           "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4,8})(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*(?:-[a-wy-z0-9](?:-[a-z0-9]{2,8})+)*(?:-x(?:-[a-z0-9]{1,8})+)?$",
+            "type": "string"
+          },
           "type": "object"
         }
       ],
-      "description": "Multilingual text: a neutral string, or an object keyed by BCP 47 tags (doc 05 §3.2)."
+      "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags with non-empty string values (doc 05 §3.2). JSON Schema cannot express that all text is NFC or that the keys are in ascending byte order; the reader rejects both."
     },
     "OrderUnit": {
-      "anyOf": [
+      "description": "Order unit of a part (FR-PRT-026).",
+      "oneOf": [
         {
           "const": "piece",
           "description": "Piece (the default).",
           "type": "string"
         },
         {
-          "const": "metre",
-          "description": "Metre.",
+          "const": "m",
+          "description": "Metre, written `m` like the unit of a `Quantity` (doc 05 §3.2).",
           "type": "string"
         },
         {
@@ -435,11 +446,11 @@
           "description": "Set.",
           "type": "string"
         }
-      ],
-      "description": "Order unit of a part (FR-PRT-026)."
+      ]
     },
     "PartKind": {
-      "anyOf": [
+      "description": "Part kinds (doc 07 §2.5).",
+      "oneOf": [
         {
           "const": "device",
           "description": "A device (the default).",
@@ -515,8 +526,7 @@
           "description": "Configured product.",
           "type": "string"
         }
-      ],
-      "description": "Part kinds (doc 07 §2.5)."
+      ]
     },
     "PartSections": {
       "additionalProperties": true,
@@ -533,7 +543,8 @@
       "type": "object"
     },
     "PotentialType": {
-      "anyOf": [
+      "description": "Potential types (doc 03 §9.1, FR-CON-010).",
+      "oneOf": [
         {
           "const": "l1",
           "description": "Phase L1.",
@@ -599,8 +610,7 @@
           "description": "Undefined.",
           "type": "string"
         }
-      ],
-      "description": "Potential types (doc 03 §9.1, FR-CON-010)."
+      ]
     },
     "Quantity": {
       "additionalProperties": true,
@@ -627,7 +637,8 @@
       "type": "string"
     },
     "Side": {
-      "anyOf": [
+      "description": "A terminal side (doc 08 §2.1: side 1 is internal and side 2 external unless `Strip.field_side` says\notherwise).",
+      "oneOf": [
         {
           "const": "side1",
           "description": "Side 1.",
@@ -638,8 +649,7 @@
           "description": "Side 2.",
           "type": "string"
         }
-      ],
-      "description": "A terminal side (doc 08 §2.1: side 1 is internal and side 2 external unless `Strip.field_side` says\notherwise)."
+      ]
     },
     "TechVal": {
       "anyOf": [
@@ -652,7 +662,7 @@
           "description": "An identifier such as the tripping curve `C`."
         }
       ],
-      "description": "The value of a [`TechValue`]."
+      "description": "The value of a [`TechValue`], told apart by JSON type: an object is a [`Quantity`], a string an\n[`Ident`]. Any other JSON type is kept as [`TechVal::Unknown`]; an object that is not a quantity or a\nstring that is not an identifier is a malformed variant (`quantity`, `ident`)."
     },
     "TechValue": {
       "additionalProperties": true,
@@ -702,7 +712,8 @@
       "type": "object"
     },
     "Unit": {
-      "anyOf": [
+      "description": "The units of doc 03 §3.2 and the order units of FR-PRT-026. Persisted as the unit symbol in ASCII\n(`\"mm2\"`, `\"degC\"`), so files stay greppable; rendering uses the typographic symbol.",
+      "oneOf": [
         {
           "const": "mm2",
           "description": "Square millimetre (cross-sections).",
@@ -758,18 +769,19 @@
           "description": "Set (order unit).",
           "type": "string"
         }
-      ],
-      "description": "The units of doc 03 §3.2 and the order units of FR-PRT-026. Persisted as the unit symbol in ASCII\n(`\"mm2\"`, `\"degC\"`), so files stay greppable; rendering uses the typographic symbol."
+      ]
     },
     "Uuid": {
       "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
       "type": "string"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "description": "An embedded library copy (doc 07 §2.1, doc 05 §13.2): `$k`, `id` (the copy ID\n`v5(NS_LIBCOPY, library ‖ item)`), `$v`, the copy metadata, then the item's own members.\n\n`sha256` is taken over the canonical compact JSON of the item's own members, without `id` and the copy\nmetadata, so the copy's hash equals the published item's (EW-CORE-014).",
+  "description": "An embedded library copy (doc 07 §2.1, doc 05 §13.2): `$k`, `id` (the copy ID\n`v5(NS_LIBCOPY, library ‖ item)`), `$v`, the copy metadata, then the item's own members.\n\n`sha256` is taken over the canonical compact JSON of the item's own members, without `id` and the copy\nmetadata, so the copy's hash equals the published item's (EW-CORE-014).\n\nDeserialisation reads the copy metadata itself and hands the remaining members to the item's own\ndeserialiser, so errors inside the item keep their paths (a flattened field would lose them).",
   "properties": {
     "$k": {
       "const": "part",

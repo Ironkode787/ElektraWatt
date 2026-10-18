@@ -3,6 +3,10 @@
 
 //! Connectivity records (ADR-0007, doc 03 §9, §12, doc 08 §2): `connection` (rank 34), `junction` (35),
 //! `conductor` (36), `potential_def` (38) and `bond` (41).
+//!
+//! Strings are NFC (doc 05 §3.1): `MlText` and `Ident` members reject other text, and plain `String`
+//! members are normalised with every other string by the loader's [`normalize_nfc`](crate::normalize_nfc)
+//! pass before typed reading.
 
 use ew_ids::Id;
 use ew_mltext::Ident;
@@ -11,8 +15,9 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::json::{Extra, de_extra, de_unknown, is_default, is_false, is_v1, v1};
+use crate::json::{Extra, de_extra, is_default, is_false, is_v1, v1};
 use crate::proxy::{Dec3S, IdentS, NmS, Orient2S, Pt2S, UuidS};
+use crate::track::open_enum;
 use crate::value::{ColourSpec, Csa, Endpoint, PartRef, SourceRef};
 use crate::{Device, Page};
 
@@ -63,6 +68,8 @@ pub struct Connection {
 /// joins no net (doc 05 §10.3 rule 3).
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "ConnectionKind")]
 pub enum ConnectionKind {
     /// One conductor (the default).
     #[default]
@@ -78,9 +85,8 @@ pub enum ConnectionKind {
     /// A link between CPs of two functions of one part that no FnDef declares.
     Internal,
     /// A kind of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// A terminal bridge (doc 08 §2.3): the connections of one group are one bridge object.
@@ -100,6 +106,8 @@ pub struct BridgeSpec {
 /// Kind of a terminal bridge.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "BridgeKind")]
 pub enum BridgeKind {
     /// Plug-in bridge.
     PlugIn,
@@ -110,9 +118,8 @@ pub enum BridgeKind {
     /// Bridge between levels.
     InterLevel,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// A bus line and the cable that carries it (FR-CBL-008).
@@ -230,21 +237,39 @@ impl WireFlags {
 /// The wire number of a connection (doc 03 §8.7).
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "NumberSpec")]
 pub enum NumberSpec {
     /// Not numbered; prints "?" (the default).
     #[default]
     Unassigned,
-    /// A counter assigned by the numbering rule.
-    Assigned {
-        /// The counter.
-        counter: u32,
-    },
+    /// A counter assigned by the numbering rule: `{"assigned": {"counter": n}}`.
+    Assigned(AssignedNumber),
     /// A frozen number (FR-NUM-011).
     Frozen(#[schemars(with = "IdentS")] Ident),
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// The payload of [`NumberSpec::Assigned`].
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct AssignedNumber {
+    /// The counter.
+    pub counter: u32,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+impl AssignedNumber {
+    /// The counter `counter` with no extra members.
+    pub fn new(counter: u32) -> AssignedNumber {
+        AssignedNumber {
+            counter,
+            extra: Extra::new(),
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -287,34 +312,43 @@ pub struct Junction {
 /// How a junction is drawn.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "JunctionStyle")]
 pub enum JunctionStyle {
     /// A dot.
     Dot,
-    /// A bevelled corner.
-    Bevel {
-        /// Orientation of the bevel.
-        #[serde(default, skip_serializing_if = "is_default")]
-        #[schemars(with = "Orient2S")]
-        orient: Orient2,
-    },
+    /// A bevelled corner: `{"bevel": {"orient": …}}`.
+    Bevel(BevelSpec),
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// The payload of [`JunctionStyle::Bevel`].
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct BevelSpec {
+    /// Orientation of the bevel; default `r0`.
+    #[serde(default, skip_serializing_if = "is_default")]
+    #[schemars(with = "Orient2S")]
+    pub orient: Orient2,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
 }
 
 /// The physical wires behind a junction (doc 03 §9.2).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "JunctionWiring")]
 pub enum JunctionWiring {
     /// The first CP is wired to every other CP.
     Star,
     /// Consecutive CPs are wired.
     Chain,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -400,6 +434,8 @@ pub struct PotentialDef {
 /// Potential types (doc 03 §9.1, FR-CON-010).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "PotentialType")]
 pub enum PotentialType {
     /// Phase L1.
     L1,
@@ -428,14 +464,15 @@ pub enum PotentialType {
     /// Undefined.
     Undefined,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Circuit classes (doc 03 §9.1, FR-CON-022).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "CircuitClass")]
 pub enum CircuitClass {
     /// Mains.
     Mains,
@@ -448,9 +485,8 @@ pub enum CircuitClass {
     /// Protective earth.
     Pe,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// The electrical environment of a potential definition.
@@ -481,20 +517,23 @@ impl PotentialEnv {
 /// AC or DC.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "AcDc")]
 pub enum AcDc {
     /// Alternating current.
     Ac,
     /// Direct current.
     Dc,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Earthing of an extra-low-voltage potential.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "PotentialEarthing")]
 pub enum PotentialEarthing {
     /// Protective extra-low voltage.
     Pelv,
@@ -503,9 +542,8 @@ pub enum PotentialEarthing {
     /// Floating.
     Floating,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// An intentional link of two potentials that does not merge them (doc 03 §9.6, rank 41).
@@ -537,6 +575,8 @@ pub struct Bond {
 
 /// Bond kinds.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(remote = "Self")]
+#[schemars(rename = "BondKind")]
 pub enum BondKind {
     /// The one 0 V–PE bond of a PELV system.
     #[serde(rename = "pelv_0v_pe")]
@@ -551,7 +591,19 @@ pub enum BondKind {
     #[serde(rename = "shield")]
     Shield,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
+
+open_enum!(
+    ConnectionKind,
+    BridgeKind,
+    NumberSpec,
+    JunctionStyle,
+    JunctionWiring,
+    PotentialType,
+    CircuitClass,
+    AcDc,
+    PotentialEarthing,
+    BondKind,
+);

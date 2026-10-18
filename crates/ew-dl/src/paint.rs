@@ -123,8 +123,7 @@ pub enum DashPattern {
     /// Dotted 1:2: dot 1 × width, gap 2 × width. With butt caps the dot is a square. At 0.26 mm: dot
     /// 0.26 mm, gap 0.52 mm (the "External Connection" box).
     Dot12,
-    /// Dash-dot 4:2:1:2: dash 4 × width, gap 2, dot 1, gap 2. Doc 07 names the pattern without ratios;
-    /// these extend the two defined patterns and await confirmation in doc 07.
+    /// Dash-dot 4:2:1:2: dash 4 × width, gap 2, dot 1, gap 2 (the ratio given in doc 07 §2.3).
     DashDot,
 }
 

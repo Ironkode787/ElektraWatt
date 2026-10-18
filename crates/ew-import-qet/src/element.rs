@@ -13,8 +13,8 @@ use ew_interop_api::{
 };
 use ew_mltext::{Ident, LangTag, MlText};
 use ew_schema::{
-    AnchorPolicy, CpDef, Discipline, FnDef, FnFlags, ImportLineage, ItemMeta, LibCopy, LibDocument, LibItem,
-    LibRef, LineageAnchor, Record, RepType, Sha256, SymbolCp, SymbolDef,
+    AnchorPolicy, CpDef, Discipline, FnDef, FnFlags, ImportLineage, ItemMeta, KeyedList, LibCopy,
+    LibDocument, LibItem, LibRef, LineageAnchor, Record, RepType, Set, Sha256, SymbolCp, SymbolDef,
 };
 use ew_units::Grid;
 use roxmltree::{Document, Node, ParsingOptions};
@@ -334,7 +334,13 @@ fn read_on_stack(
                         extra,
                     }
                 })
-                .collect();
+                .collect::<Vec<_>>();
+            // Terminals are numbered by definition order, so a duplicate `idx` cannot occur; `Malformed` is the
+            // closest importer error (ImportError has no internal-error variant).
+            let cps = KeyedList::from_vec(cps).map_err(|e| ImportError::Malformed {
+                line: None,
+                message: format!("generated function definition has duplicate connection points: {e}"),
+            })?;
             let mut extra = BTreeMap::new();
             if !kind.is_empty() {
                 let obj = kind
@@ -382,14 +388,20 @@ fn read_on_stack(
                 extra,
             }
         })
-        .collect();
+        .collect::<Vec<_>>();
+    // Terminals are numbered by definition order, so a duplicate `idx` cannot occur; `Malformed` is the
+    // closest importer error (ImportError has no internal-error variant).
+    let cps = KeyedList::from_vec(cps).map_err(|e| ImportError::Malformed {
+        line: None,
+        message: format!("generated symbol has duplicate connection points: {e}"),
+    })?;
     let mut extra = BTreeMap::new();
     extra.insert("qet.link_type".to_owned(), Value::String(link_type.clone()));
     extra.insert("source_ref".to_owned(), source_ref(&key));
     let symbol = SymbolDef {
         meta,
         name: MlText::from_langs(names),
-        keywords: Vec::new(),
+        keywords: Set::default(),
         rep_type: if link_type == "thumbnail" {
             RepType::Graphic
         } else {

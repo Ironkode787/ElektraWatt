@@ -1,7 +1,8 @@
 {
   "$defs": {
     "ClampKey": {
-      "anyOf": [
+      "description": "The clamp of a terminal CP (doc 08 §2.3): `{\"clamp\": \"a\"}`, `{\"shaft\": 1}` or `\"rail_foot\"`.",
+      "oneOf": [
         {
           "additionalProperties": false,
           "description": "A wire clamp a, b, c ….",
@@ -38,11 +39,11 @@
           "description": "The rail foot of a PE terminal.",
           "type": "string"
         }
-      ],
-      "description": "The clamp of a terminal CP (doc 08 §2.3): `{\"clamp\": \"a\"}`, `{\"shaft\": 1}` or `\"rail_foot\"`."
+      ]
     },
     "Confidence": {
-      "anyOf": [
+      "description": "Confidence of one section of library data.",
+      "oneOf": [
         {
           "const": "verified",
           "description": "Checked against a source.",
@@ -58,11 +59,11 @@
           "description": "Test data.",
           "type": "string"
         }
-      ],
-      "description": "Confidence of one section of library data."
+      ]
     },
     "ContactKind": {
-      "anyOf": [
+      "description": "Contact kinds (doc 03 §7).",
+      "oneOf": [
         {
           "const": "no",
           "description": "Normally open.",
@@ -113,8 +114,7 @@
           "description": "Valve.",
           "type": "string"
         }
-      ],
-      "description": "Contact kinds (doc 03 §7)."
+      ]
     },
     "CpDef": {
       "additionalProperties": true,
@@ -213,8 +213,27 @@
       "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
       "type": "string"
     },
+    "Deprecation": {
+      "additionalProperties": true,
+      "description": "The payload of [`ItemStatus::Deprecated`].",
+      "properties": {
+        "successor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LibRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The successor."
+        }
+      },
+      "type": "object"
+    },
     "Discipline": {
-      "anyOf": [
+      "description": "Discipline of a connection point.",
+      "oneOf": [
         {
           "const": "electrical",
           "description": "Electrical (the default).",
@@ -240,8 +259,7 @@
           "description": "Bus.",
           "type": "string"
         }
-      ],
-      "description": "Discipline of a connection point."
+      ]
     },
     "FnFlags": {
       "additionalProperties": true,
@@ -259,13 +277,14 @@
       "type": "object"
     },
     "Ident": {
-      "description": "An NFC identifier without surrounding white space (doc 05 §3.2).",
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
       "minLength": 1,
-      "pattern": "^\\S(.*\\S)?$",
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
       "type": "string"
     },
     "InternalKind": {
-      "anyOf": [
+      "description": "Kind of an internal link.",
+      "oneOf": [
         {
           "const": "short",
           "description": "A short: the CPs are one signal.",
@@ -276,13 +295,7 @@
           "description": "A pass-through pair: propagates the potential type; `opens` sets \"switched\".",
           "properties": {
             "pass_through": {
-              "properties": {
-                "opens": {
-                  "description": "The contact can open.",
-                  "type": "boolean"
-                }
-              },
-              "type": "object"
+              "$ref": "#/$defs/PassThroughSpec"
             }
           },
           "required": [
@@ -290,8 +303,7 @@
           ],
           "type": "object"
         }
-      ],
-      "description": "Kind of an internal link."
+      ]
     },
     "InternalLinkDef": {
       "additionalProperties": true,
@@ -382,7 +394,8 @@
       "type": "object"
     },
     "ItemStatus": {
-      "anyOf": [
+      "description": "Status of a library item.",
+      "oneOf": [
         {
           "const": "draft",
           "description": "Draft.",
@@ -395,23 +408,10 @@
         },
         {
           "additionalProperties": false,
-          "description": "Deprecated, with an optional successor.",
+          "description": "Deprecated, with an optional successor: `{\"deprecated\": {\"successor\": …}}`.",
           "properties": {
             "deprecated": {
-              "properties": {
-                "successor": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/LibRef"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ],
-                  "description": "The successor."
-                }
-              },
-              "type": "object"
+              "$ref": "#/$defs/Deprecation"
             }
           },
           "required": [
@@ -424,8 +424,7 @@
           "description": "Withdrawn.",
           "type": "string"
         }
-      ],
-      "description": "Status of a library item."
+      ]
     },
     "LibRef": {
       "additionalProperties": true,
@@ -451,8 +450,20 @@
       ],
       "type": "object"
     },
+    "PassThroughSpec": {
+      "additionalProperties": true,
+      "description": "The payload of [`InternalKind::PassThrough`].",
+      "properties": {
+        "opens": {
+          "description": "The contact can open.",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
     "PotentialType": {
-      "anyOf": [
+      "description": "Potential types (doc 03 §9.1, FR-CON-010).",
+      "oneOf": [
         {
           "const": "l1",
           "description": "Phase L1.",
@@ -518,8 +529,7 @@
           "description": "Undefined.",
           "type": "string"
         }
-      ],
-      "description": "Potential types (doc 03 §9.1, FR-CON-010)."
+      ]
     },
     "Sha256": {
       "description": "A SHA-256 digest sha256:<64 lower-case hex> (doc 05 §3.2).",
@@ -527,7 +537,8 @@
       "type": "string"
     },
     "Side": {
-      "anyOf": [
+      "description": "A terminal side (doc 08 §2.1: side 1 is internal and side 2 external unless `Strip.field_side` says\notherwise).",
+      "oneOf": [
         {
           "const": "side1",
           "description": "Side 1.",
@@ -538,18 +549,19 @@
           "description": "Side 2.",
           "type": "string"
         }
-      ],
-      "description": "A terminal side (doc 08 §2.1: side 1 is internal and side 2 external unless `Strip.field_side` says\notherwise)."
+      ]
     },
     "Uuid": {
       "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
       "type": "string"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "description": "An embedded library copy (doc 07 §2.1, doc 05 §13.2): `$k`, `id` (the copy ID\n`v5(NS_LIBCOPY, library ‖ item)`), `$v`, the copy metadata, then the item's own members.\n\n`sha256` is taken over the canonical compact JSON of the item's own members, without `id` and the copy\nmetadata, so the copy's hash equals the published item's (EW-CORE-014).",
+  "description": "An embedded library copy (doc 07 §2.1, doc 05 §13.2): `$k`, `id` (the copy ID\n`v5(NS_LIBCOPY, library ‖ item)`), `$v`, the copy metadata, then the item's own members.\n\n`sha256` is taken over the canonical compact JSON of the item's own members, without `id` and the copy\nmetadata, so the copy's hash equals the published item's (EW-CORE-014).\n\nDeserialisation reads the copy metadata itself and hands the remaining members to the item's own\ndeserialiser, so errors inside the item keep their paths (a flattened field would lose them).",
   "properties": {
     "$k": {
       "const": "fndef",

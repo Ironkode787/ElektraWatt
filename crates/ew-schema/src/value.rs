@@ -5,12 +5,16 @@
 //! doc 05 §3.2: `Quantity`, `Unit`, `Csa`, `ColourCode`, `ColourSpec`, the `Rect` encoding ([`Bounds`]),
 //! authored dates, hashes, endpoints, structure slots, part and library references, tech values and
 //! import provenance.
+//!
+//! Strings are NFC (doc 05 §3.1): `MlText` and `Ident` members reject other text, and plain `String`
+//! members are normalised with every other string by the loader's [`normalize_nfc`](crate::normalize_nfc)
+//! pass before typed reading.
 
 use std::borrow::Cow;
 use std::fmt;
 use std::str::FromStr;
 
-use ew_ids::Id;
+use ew_ids::{Id, Uuid};
 use ew_mltext::Ident;
 use ew_units::{Dec3, Pt2, Rect};
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
@@ -19,8 +23,10 @@ use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 
-use crate::json::{Extra, de_extra, de_unknown};
+use crate::json::{Extra, de_extra};
 use crate::proxy::{Dec3S, IdentS, Pt2S, UuidS};
+use crate::set::keyed;
+use crate::track::{buffer, de_here, de_member, invalid, malformed, not_a_variant, open_enum};
 use crate::{
     ExternalRef, Function, ImportLineage, Junction, LibItem, Library, Part, SchemaError, StructureNode,
 };
@@ -64,6 +70,8 @@ impl Quantity {
 /// The units of doc 03 §3.2 and the order units of FR-PRT-026. Persisted as the unit symbol in ASCII
 /// (`"mm2"`, `"degC"`), so files stay greppable; rendering uses the typographic symbol.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(remote = "Self")]
+#[schemars(rename = "Unit")]
 pub enum Unit {
     /// Square millimetre (cross-sections).
     #[serde(rename = "mm2")]
@@ -99,9 +107,8 @@ pub enum Unit {
     #[serde(rename = "set")]
     Set,
     /// A unit of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -155,22 +162,30 @@ impl Serialize for Csa {
 }
 
 impl<'de> Deserialize<'de> for Csa {
+    /// Tag first (doc 05 §10.3 rule 3): a string starting with a digit or `-` is the `mm2` form, the keys
+    /// `awg` and `kcmil` name the other forms; any other string or one-member object is kept as
+    /// [`Csa::Unknown`]. A known form whose payload does not parse is a malformed variant.
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = de_unknown(deserializer)?;
-        match &value {
+        let value = buffer(deserializer)?;
+        let parsed = match &value {
             Value::String(s) if s.starts_with(|c: char| c.is_ascii_digit() || c == '-') => {
-                s.parse::<Dec3>().map(Csa::Mm2).map_err(D::Error::custom)
+                ("mm2", s.parse::<Dec3>().map(Csa::Mm2).map_err(invalid))
             }
+            Value::String(_) => return Ok(Csa::Unknown(value)),
             Value::Object(map) if map.len() == 1 => {
                 if let Some(n) = map.get("awg") {
-                    return i8::deserialize(n).map(Csa::Awg).map_err(D::Error::custom);
+                    ("awg", de_member("awg", n).map(Csa::Awg))
+                } else if let Some(d) = map.get("kcmil") {
+                    ("kcmil", de_member("kcmil", d).map(Csa::Kcmil))
+                } else {
+                    return Ok(Csa::Unknown(value));
                 }
-                if let Some(d) = map.get("kcmil") {
-                    return Dec3::deserialize(d).map(Csa::Kcmil).map_err(D::Error::custom);
-                }
-                Ok(Csa::Unknown(value))
             }
-            _ => Ok(Csa::Unknown(value)),
+            _ => return Err(not_a_variant()),
+        };
+        match parsed {
+            (_, Ok(csa)) => Ok(csa),
+            (variant, Err(e)) => malformed(variant, e, value, Csa::Unknown),
         }
     }
 }
@@ -305,10 +320,34 @@ pub enum ColourCode {
     Unknown(Value),
 }
 
+impl ColourCode {
+    /// A company code, or [`SchemaError::CompanyCodeIsIec`] for one of the 14 IEC 60757 codes: written as
+    /// a string, it would re-read as [`ColourCode::Iec`].
+    ///
+    /// ```
+    /// use ew_schema::ColourCode;
+    ///
+    /// assert!(ColourCode::company("DBU".parse().unwrap()).is_ok());
+    /// assert!(ColourCode::company("BK".parse().unwrap()).is_err());
+    /// ```
+    pub fn company(code: Ident) -> Result<ColourCode, SchemaError> {
+        if code.as_str().parse::<IecColour>().is_ok() {
+            Err(SchemaError::CompanyCodeIsIec(code.as_str().to_owned()))
+        } else {
+            Ok(ColourCode::Company(code))
+        }
+    }
+}
+
 impl Serialize for ColourCode {
+    /// Fails for a [`ColourCode::Company`] holding an IEC 60757 code (built without
+    /// [`ColourCode::company`]), which would otherwise re-read as a different variant.
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match self {
             ColourCode::Iec(c) => serializer.serialize_str(c.as_str()),
+            ColourCode::Company(c) if c.as_str().parse::<IecColour>().is_ok() => Err(
+                serde::ser::Error::custom(SchemaError::CompanyCodeIsIec(c.as_str().to_owned())),
+            ),
             ColourCode::Company(c) => c.serialize(serializer),
             ColourCode::Foreign(c) => {
                 let mut map = serializer.serialize_map(Some(1))?;
@@ -321,22 +360,27 @@ impl Serialize for ColourCode {
 }
 
 impl<'de> Deserialize<'de> for ColourCode {
+    /// Tag first: a string is an IEC code or else a company code (which must be an [`Ident`]); the key
+    /// `foreign` names the foreign form; any other one-member object is kept as [`ColourCode::Unknown`].
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = de_unknown(deserializer)?;
-        match &value {
+        let value = buffer(deserializer)?;
+        let parsed = match &value {
             Value::String(s) => match s.parse::<IecColour>() {
-                Ok(c) => Ok(ColourCode::Iec(c)),
-                Err(()) => s
-                    .parse::<Ident>()
-                    .map(ColourCode::Company)
-                    .map_err(D::Error::custom),
+                Ok(c) => return Ok(ColourCode::Iec(c)),
+                Err(()) => (
+                    "company",
+                    s.parse::<Ident>().map(ColourCode::Company).map_err(invalid),
+                ),
             },
-            Value::Object(map) if map.len() == 1 && map.contains_key("foreign") => {
-                Ident::deserialize(&map["foreign"])
-                    .map(ColourCode::Foreign)
-                    .map_err(D::Error::custom)
-            }
-            _ => Ok(ColourCode::Unknown(value)),
+            Value::Object(map) if map.len() == 1 => match map.get("foreign") {
+                Some(code) => ("foreign", de_member("foreign", code).map(ColourCode::Foreign)),
+                None => return Ok(ColourCode::Unknown(value)),
+            },
+            _ => return Err(not_a_variant()),
+        };
+        match parsed {
+            (_, Ok(code)) => Ok(code),
+            (variant, Err(e)) => malformed(variant, e, value, ColourCode::Unknown),
         }
     }
 }
@@ -685,15 +729,16 @@ impl JsonSchema for Sha256 {
 /// ```
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "Endpoint")]
 pub enum Endpoint {
     /// Connection point `idx` of a function; its ID `v5(function, idx)` is derived, never stored.
     Cp(#[schemars(with = "UuidS")] Id<Function>, u16),
     /// A junction.
     Junction(#[schemars(with = "UuidS")] Id<Junction>),
     /// A form of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 impl Endpoint {
@@ -732,16 +777,21 @@ impl Serialize for Slot {
 }
 
 impl<'de> Deserialize<'de> for Slot {
+    /// Tag first: `"none"`; a canonical node ID; a string that is a UUID in another spelling (upper case,
+    /// braces, no hyphens) is a malformed node ID; any other string or one-member object is kept as
+    /// [`Slot::Unknown`].
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = de_unknown(deserializer)?;
-        Ok(match &value {
-            Value::String(s) if s == "none" => Slot::None,
+        let value = buffer(deserializer)?;
+        match &value {
+            Value::String(s) if s == "none" => Ok(Slot::None),
             Value::String(s) => match s.parse::<Id<StructureNode>>() {
-                Ok(id) => Slot::Node(id),
-                Err(_) => Slot::Unknown(value),
+                Ok(id) => Ok(Slot::Node(id)),
+                Err(e) if Uuid::try_parse(s).is_ok() => malformed("node", invalid(e), value, Slot::Unknown),
+                Err(_) => Ok(Slot::Unknown(value)),
             },
-            _ => Slot::Unknown(value),
-        })
+            Value::Object(map) if map.len() == 1 => Ok(Slot::Unknown(value)),
+            _ => Err(not_a_variant()),
+        }
     }
 }
 
@@ -878,8 +928,12 @@ pub struct TechValue {
     pub extra: Extra,
 }
 
-/// The value of a [`TechValue`].
-#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+keyed!(TechValue, key: Ident);
+
+/// The value of a [`TechValue`], told apart by JSON type: an object is a [`Quantity`], a string an
+/// [`Ident`]. Any other JSON type is kept as [`TechVal::Unknown`]; an object that is not a quantity or a
+/// string that is not an identifier is a malformed variant (`quantity`, `ident`).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, JsonSchema)]
 #[serde(untagged)]
 pub enum TechVal {
     /// A quantity such as 20 A.
@@ -888,7 +942,22 @@ pub enum TechVal {
     Ident(#[schemars(with = "IdentS")] Ident),
     /// A form of a newer format, kept verbatim.
     #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    Unknown(Value),
+}
+
+impl<'de> Deserialize<'de> for TechVal {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = buffer(deserializer)?;
+        let parsed = match &value {
+            Value::Object(_) => ("quantity", de_here(&value).map(TechVal::Quantity)),
+            Value::String(s) => ("ident", s.parse::<Ident>().map(TechVal::Ident).map_err(invalid)),
+            _ => return Ok(TechVal::Unknown(value)),
+        };
+        match parsed {
+            (_, Ok(v)) => Ok(v),
+            (variant, Err(e)) => malformed(variant, e, value, TechVal::Unknown),
+        }
+    }
 }
 
 /// The import provenance of a record (doc 14 §2.3, ADR-0004 amendment 1): the lineage and the source key
@@ -910,3 +979,5 @@ pub type AnyId = Id<()>;
 
 /// A reference to an external target, used where doc 03 names `ExternalRefId`.
 pub type ExternalRefId = Id<ExternalRef>;
+
+open_enum!(Unit, Endpoint,);

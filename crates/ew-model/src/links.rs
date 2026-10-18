@@ -261,12 +261,6 @@ pub static LINKS: &[LinkDecl] = &[
         }
         Some(AnyRow::Project(Arc::new(p)))
     })),
-    // import_lineage
-    link!(ImportLineage."anchor.copy.of" -> ImportLineage, Forbid, None, |v, out| {
-        if let ew_schema::LineageAnchor::Copy { of, .. } = &v.anchor {
-            id(*of, out);
-        }
-    }),
     // structure_node
     link!(StructureNode."parent" -> StructureNode, Forbid, Some(I::StructureChildren), |v, out| opt(v.parent, out)),
     lineage_link!(StructureNode),
@@ -433,6 +427,11 @@ pub static NOT_LINKS: &[(&str, &str, &str)] = &[
         "import_lineage",
         "anchor.qet_project_uuid",
         "a foreign project UUID",
+    ),
+    (
+        "import_lineage",
+        "anchor.copy.of",
+        "the namespace of the original lineage (`ImportLineage.namespace`), not a record ID",
     ),
     (
         "import_lineage",

@@ -5,13 +5,14 @@
 //! tagged by `$k` as the first member (doc 05 §3.1).
 
 use ew_ids::{Id, Uuid};
-use serde::de::{DeserializeOwned, Error as _};
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 
-use crate::json::check_value;
+use crate::MalformedVariant;
 use crate::kind::{FileRule, Kind};
 use crate::library::{FnDef, FormDef, LibCopy, Part, SymbolDef};
+use crate::track::{buffer_strict, check_value_at, de_here, parse_value, raise, with_context};
 use crate::value::Endpoint;
 use crate::{
     Bond, Conductor, Connection, Device, ExternalRef, Function, ImportLineage, Junction, Page, PotentialDef,
@@ -40,21 +41,36 @@ fn take_kind(value: Value) -> Result<(String, Map<String, Value>), SchemaError> 
 
 /// Typed deserialisation of one kind, with the `$v` check: migrations run before this step
 /// (ADR-0011 decision 3), so a typed reader sees exactly the version it implements.
-fn typed<T: DeserializeOwned, E: serde::de::Error>(
+fn typed<T: DeserializeOwned>(
     kind: Kind,
     map: Map<String, Value>,
     version: impl Fn(&T) -> u16,
-) -> Result<T, E> {
-    let t: T = serde_json::from_value(Value::Object(map)).map_err(E::custom)?;
+) -> Result<T, SchemaError> {
+    let t: T = de_here(&Value::Object(map))?;
     let (found, expected) = (version(&t), kind.schema_version());
     if found != expected {
-        return Err(E::custom(SchemaError::UnsupportedVersion {
+        return Err(SchemaError::UnsupportedVersion {
             kind: kind.name(),
             found,
             expected,
-        }));
+        });
     }
     Ok(t)
+}
+
+/// The number rule over a whole record or document, with the path of the offending number.
+fn check_numbers(value: &Value) -> Result<(), SchemaError> {
+    check_value_at(value, &mut String::new())
+}
+
+/// Re-reads the compact serialisation of `value` with the duplicate-rejecting parser: a known member name
+/// placed in an `extra` map (or a plugin key equal to an aspect name) would be written twice.
+fn validate_written<T: Serialize>(value: &T) -> Result<(), SchemaError> {
+    let text = serde_json::to_string(value).map_err(|e| SchemaError::Invalid {
+        path: String::new(),
+        message: e.to_string(),
+    })?;
+    parse_value(&text).map(|_| ())
 }
 
 /// Where a record's anchor comes from (doc 05 §2.2, anchor column).
@@ -283,15 +299,63 @@ impl Serialize for Record {
     }
 }
 
-impl<'de> Deserialize<'de> for Record {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = Value::deserialize(deserializer)?;
-        check_value(&value).map_err(D::Error::custom)?;
-        let original = value.clone();
-        let (k, map) = take_kind(value).map_err(D::Error::custom)?;
-        let Some(kind) = Kind::from_name(&k) else {
-            return Ok(Record::Unknown(original));
+impl Record {
+    /// Reads one JSON Lines record from its text: [`parse_value`] (duplicate member names rejected), then
+    /// [`Record::from_value`]. NFC normalisation, if wanted, goes between the two
+    /// ([`normalize_nfc`](crate::normalize_nfc)).
+    pub fn from_json(line: &str) -> Result<Record, SchemaError> {
+        Record::from_value(parse_value(line)?)
+    }
+
+    /// Strict typed reading of a parsed record. Every error carries the JSON Pointer, relative to the
+    /// record, of the value it concerns ([`SchemaError::path`]); a known variant with a malformed payload
+    /// is [`SchemaError::MalformedVariant`].
+    pub fn from_value(value: Value) -> Result<Record, SchemaError> {
+        with_context(false, || Record::read(value)).0
+    }
+
+    /// The loader's typed reading (ADR-0011 amendment 2): like [`Record::from_value`], except that a
+    /// value whose tag names a known variant but whose payload does not parse is kept verbatim as that
+    /// enum's `Unknown` and returned in the list, which `ew-format` reports as EW-CORE-017. Like any
+    /// `Unknown` value it re-emits in byte-wise key order; an untouched record is written back as its
+    /// original line by the format writer (doc 05 §10.3).
+    ///
+    /// ```
+    /// use ew_schema::Record;
+    ///
+    /// let line = r#"{"$k":"function","id":"1d6f3a92-7c05-5b8e-94a1-e3c2087f5d19","def":"5b9e2d70-3c41-5f8a-b6d2-19e4c7a03f58","kind":{"ip":{"direction":"source","name":" bad"}}}"#;
+    /// assert!(Record::from_json(line).is_err());
+    /// let (record, malformed) = Record::load(ew_schema::parse_value(line).unwrap()).unwrap();
+    /// assert_eq!((malformed[0].path.as_str(), malformed[0].variant.as_str()), ("/kind", "ip"));
+    /// assert_eq!(serde_json::to_string(&record).unwrap(), line);
+    /// ```
+    pub fn load(value: Value) -> Result<(Record, Vec<MalformedVariant>), SchemaError> {
+        let (result, malformed) = with_context(true, || Record::read(value));
+        result.map(|r| (r, malformed))
+    }
+
+    /// Checks that the record's serialisation has no repeated member name, which happens when an
+    /// `extra` map holds the name of a known member. The format writer calls it in debug builds.
+    pub fn validate(&self) -> Result<(), SchemaError> {
+        validate_written(self)
+    }
+
+    fn read(value: Value) -> Result<Record, SchemaError> {
+        check_numbers(&value)?;
+        let kind = match value.get("$k") {
+            Some(Value::String(k)) => Kind::from_name(k),
+            _ => return Err(SchemaError::MissingKind),
         };
+        let Some(kind) = kind else {
+            return Ok(Record::Unknown(value));
+        };
+        if kind.is_library() {
+            return Err(SchemaError::WrongFamily(kind.name().into()));
+        }
+        if kind.status() != crate::KindStatus::Implemented {
+            return Ok(Record::Unknown(value));
+        }
+        let (_, map) = take_kind(value)?;
         Ok(match kind {
             Kind::Project => Record::Project(typed(kind, map, |r: &Project| r.v)?),
             Kind::ImportLineage => Record::ImportLineage(typed(kind, map, |r: &ImportLineage| r.v)?),
@@ -308,11 +372,16 @@ impl<'de> Deserialize<'de> for Record {
             Kind::PotentialDef => Record::PotentialDef(typed(kind, map, |r: &PotentialDef| r.v)?),
             Kind::Bond => Record::Bond(typed(kind, map, |r: &Bond| r.v)?),
             Kind::ReportBlock => Record::ReportBlock(typed(kind, map, |r: &ReportBlock| r.v)?),
-            k if k.is_library() => {
-                return Err(D::Error::custom(SchemaError::WrongFamily(k.name().into())));
-            }
-            _ => Record::Unknown(original),
+            k => return Err(SchemaError::UnknownKind(k.name().into())),
         })
+    }
+}
+
+impl<'de> Deserialize<'de> for Record {
+    /// [`Record::from_value`] over the input, which is first read with duplicate member names rejected.
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = buffer_strict(deserializer)?;
+        Record::from_value(value).map_err(raise)
     }
 }
 
@@ -362,24 +431,58 @@ impl Serialize for LibDocument {
     }
 }
 
-impl<'de> Deserialize<'de> for LibDocument {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = Value::deserialize(deserializer)?;
-        check_value(&value).map_err(D::Error::custom)?;
-        let original = value.clone();
-        let (k, map) = take_kind(value).map_err(D::Error::custom)?;
-        let Some(kind) = Kind::from_name(&k) else {
-            return Ok(LibDocument::Unknown(original));
+impl LibDocument {
+    /// Reads one library document from its text: [`parse_value`], then [`LibDocument::from_value`].
+    pub fn from_json(text: &str) -> Result<LibDocument, SchemaError> {
+        LibDocument::from_value(parse_value(text)?)
+    }
+
+    /// Strict typed reading of a parsed library document; see [`Record::from_value`].
+    pub fn from_value(value: Value) -> Result<LibDocument, SchemaError> {
+        with_context(false, || LibDocument::read(value)).0
+    }
+
+    /// The loader's typed reading; see [`Record::load`].
+    pub fn load(value: Value) -> Result<(LibDocument, Vec<MalformedVariant>), SchemaError> {
+        let (result, malformed) = with_context(true, || LibDocument::read(value));
+        result.map(|d| (d, malformed))
+    }
+
+    /// Checks that the document's serialisation has no repeated member name; see [`Record::validate`].
+    pub fn validate(&self) -> Result<(), SchemaError> {
+        validate_written(self)
+    }
+
+    fn read(value: Value) -> Result<LibDocument, SchemaError> {
+        check_numbers(&value)?;
+        let kind = match value.get("$k") {
+            Some(Value::String(k)) => Kind::from_name(k),
+            _ => return Err(SchemaError::MissingKind),
         };
+        let Some(kind) = kind else {
+            return Ok(LibDocument::Unknown(value));
+        };
+        if !kind.is_library() {
+            return Err(SchemaError::WrongFamily(kind.name().into()));
+        }
+        if kind.status() != crate::KindStatus::Implemented {
+            return Ok(LibDocument::Unknown(value));
+        }
+        let (_, map) = take_kind(value)?;
         Ok(match kind {
             Kind::Part => LibDocument::Part(typed(kind, map, |d: &LibCopy<Part>| d.v)?),
             Kind::Symbol => LibDocument::Symbol(typed(kind, map, |d: &LibCopy<SymbolDef>| d.v)?),
             Kind::Fndef => LibDocument::Fndef(typed(kind, map, |d: &LibCopy<FnDef>| d.v)?),
             Kind::Form => LibDocument::Form(typed(kind, map, |d: &LibCopy<FormDef>| d.v)?),
-            k if !k.is_library() => {
-                return Err(D::Error::custom(SchemaError::WrongFamily(k.name().into())));
-            }
-            _ => LibDocument::Unknown(original),
+            k => return Err(SchemaError::UnknownKind(k.name().into())),
         })
+    }
+}
+
+impl<'de> Deserialize<'de> for LibDocument {
+    /// [`LibDocument::from_value`] over the input, read with duplicate member names rejected.
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = buffer_strict(deserializer)?;
+        LibDocument::from_value(value).map_err(raise)
     }
 }

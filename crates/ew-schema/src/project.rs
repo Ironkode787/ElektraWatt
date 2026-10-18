@@ -3,6 +3,10 @@
 
 //! Project and structure records (doc 03 §5): `project` and `import_lineage` in `project.jsonl`;
 //! `structure_node`, `section` and `external_ref` in `structure.jsonl`.
+//!
+//! Strings are NFC (doc 05 §3.1): `MlText` and `Ident` members reject other text, and plain `String`
+//! members are normalised with every other string by the loader's [`normalize_nfc`](crate::normalize_nfc)
+//! pass before typed reading.
 
 use ew_ids::Id;
 use ew_mltext::{Ident, LangTag, MlText};
@@ -12,8 +16,10 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::json::{Extra, Open, de_extra, de_unknown, is_default, is_false, is_v1, v1};
+use crate::json::{Extra, Open, de_extra, is_default, is_false, is_v1, v1};
 use crate::proxy::{AspectS, Dec3S, IdentS, LangTagS, MlTextS, UuidS};
+use crate::set::Set;
+use crate::track::open_enum;
 use crate::value::{AnyId, Date, Quantity, Sha256, SourceRef};
 
 /// The marker type of `import_run` IDs (rank 72, reserved in v0).
@@ -104,6 +110,11 @@ pub struct MasterData {
     /// Edited date: day precision, merged by maximum, feeds the "Saved" cell (FR-PRJ-029).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub edited: Option<Date>,
+    /// The cover subtitle ("Electrical Definition", doc 20 §4.1), distinct from `long_description`
+    /// (doc 03 §5). Appended, since 0.1.
+    #[serde(default, skip_serializing_if = "MlText::is_empty")]
+    #[schemars(with = "MlTextS")]
+    pub document_title: MlText,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -139,6 +150,8 @@ pub struct Party {
 /// The role of a [`Party`].
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "PartyRole")]
 pub enum PartyRole {
     /// Customer.
     Customer,
@@ -153,12 +166,11 @@ pub enum PartyRole {
     /// Engineer.
     Engineer,
     /// A role of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
-/// A postal address (doc 03 §5). Plain strings are NFC; the writer normalises.
+/// A postal address (doc 03 §5). Its plain strings are NFC; the loader normalises them (module docs).
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct Address {
     /// Street and number.
@@ -208,6 +220,8 @@ pub struct SupplySpec {
 
 /// Earthing system of the supply.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(remote = "Self")]
+#[schemars(rename = "EarthingSystem")]
 pub enum EarthingSystem {
     /// TN-S.
     #[serde(rename = "tn_s")]
@@ -222,9 +236,8 @@ pub enum EarthingSystem {
     #[serde(rename = "it")]
     It,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Where the supply comes from (doc 03 §5).
@@ -289,20 +302,23 @@ pub struct IpPairing {
 /// Interruption-point pairing mode.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "IpPairingMode")]
 pub enum IpPairingMode {
     /// One star source refers to all others.
     Star,
     /// Points pair in sort order.
     Chain,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Interruption-point pairing scope.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "IpPairingScope")]
 pub enum IpPairingScope {
     /// The whole project.
     Project,
@@ -311,9 +327,8 @@ pub enum IpPairingScope {
     /// Per location node (`+`).
     Location,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Formatting conventions (doc 03 §5): date format, decimal separator and tag case sensitivity.
@@ -343,43 +358,46 @@ impl Formatting {
 /// Printed date format.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "DateFormat")]
 pub enum DateFormat {
     /// dd-mm-yyyy.
     DdMmYyyy,
     /// ISO 8601, yyyy-mm-dd.
     Iso8601,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Printed decimal separator.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "DecimalSeparator")]
 pub enum DecimalSeparator {
     /// "0.75".
     Point,
     /// "0,75".
     Comma,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Tag case sensitivity (the record form of `ew_mltext::CaseSensitivity`).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "TagCase")]
 pub enum TagCase {
     /// Tags differing only in case are different.
     Sensitive,
     /// Tags differing only in case collide.
     Insensitive,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Source and translation languages of a project.
@@ -389,9 +407,9 @@ pub struct ProjectLanguages {
     #[schemars(with = "LangTagS")]
     pub source: LangTag,
     /// Translation languages (a set, sorted).
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[schemars(with = "Vec<LangTagS>")]
-    pub translations: Vec<LangTag>,
+    #[serde(default, skip_serializing_if = "Set::is_empty")]
+    #[schemars(with = "Set<LangTagS>")]
+    pub translations: Set<LangTag>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -400,6 +418,8 @@ pub struct ProjectLanguages {
 /// What a project is (FR-PRJ-026).
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "ProjectKind")]
 pub enum ProjectKind {
     /// A schematic project (the default).
     #[default]
@@ -409,9 +429,8 @@ pub enum ProjectKind {
     /// A macro project.
     Macro,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -451,25 +470,34 @@ pub struct ImportLineage {
 /// The anchor of an [`ImportLineage`] (doc 14 §2.3).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "LineageAnchor")]
 pub enum LineageAnchor {
     /// QET 0.200+ project UUID.
     QetProjectUuid(#[schemars(with = "UuidS")] AnyId),
     /// SHA-256 of the lineage's first imported file.
     FirstImportSha256(Sha256),
-    /// "Import as copy" number `n` of another lineage.
-    Copy {
-        /// The original lineage.
-        #[schemars(with = "UuidS")]
-        of: Id<ImportLineage>,
-        /// The copy number.
-        n: u32,
-    },
+    /// "Import as copy" number `n` of another lineage: `{"copy": {"of": <namespace>, "n": n}}`.
+    Copy(LineageCopy),
     /// A fixed label, such as `"golden"` for the golden CSV bootstrap.
     Fixed(#[schemars(with = "IdentS")] Ident),
     /// An anchor of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// The payload of [`LineageAnchor::Copy`].
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct LineageCopy {
+    /// The **namespace** of the original lineage (`ImportLineage.namespace`), as in
+    /// `ew_ids::v5::LineageAnchor::Copy` and ADR-0004 amendment 4, not its record ID.
+    #[schemars(with = "UuidS")]
+    pub of: AnyId,
+    /// The copy number.
+    pub n: u32,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -491,9 +519,9 @@ pub struct StructureNode {
     #[schemars(with = "IdentS")]
     pub code: Ident,
     /// Import spellings that map to this node ("JE2416"; a set, sorted); never printed (D-03).
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[schemars(with = "Vec<IdentS>")]
-    pub aliases: Vec<Ident>,
+    #[serde(default, skip_serializing_if = "Set::is_empty")]
+    #[schemars(with = "Set<IdentS>")]
+    pub aliases: Set<Ident>,
     /// Parent node of the same aspect.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
@@ -571,3 +599,15 @@ pub struct ExternalRef {
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
 }
+
+open_enum!(
+    PartyRole,
+    EarthingSystem,
+    IpPairingMode,
+    IpPairingScope,
+    DateFormat,
+    DecimalSeparator,
+    TagCase,
+    ProjectKind,
+    LineageAnchor,
+);

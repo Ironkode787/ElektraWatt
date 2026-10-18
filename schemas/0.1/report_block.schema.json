@@ -1,7 +1,8 @@
 {
   "$defs": {
     "ContinuationPolicy": {
-      "anyOf": [
+      "description": "Continuation numbering of report pages.",
+      "oneOf": [
         {
           "const": "sub_page",
           "description": "907, 907.1, 907.2 … (the default).",
@@ -12,8 +13,7 @@
           "description": "907, 908, 909 …",
           "type": "string"
         }
-      ],
-      "description": "Continuation numbering of report pages."
+      ]
     },
     "EmbedSpec": {
       "additionalProperties": true,
@@ -35,7 +35,8 @@
       "type": "object"
     },
     "EmptyPolicy": {
-      "anyOf": [
+      "description": "What a block without rows prints.",
+      "oneOf": [
         {
           "const": "omit_pages",
           "description": "No pages (the default).",
@@ -54,11 +55,11 @@
           ],
           "type": "object"
         }
-      ],
-      "description": "What a block without rows prints."
+      ]
     },
     "GroupBreak": {
-      "anyOf": [
+      "description": "What happens at a group change.",
+      "oneOf": [
         {
           "const": "none",
           "description": "Rows continue.",
@@ -74,8 +75,7 @@
           "description": "A new folio.",
           "type": "string"
         }
-      ],
-      "description": "What happens at a group change."
+      ]
     },
     "GroupSpec": {
       "additionalProperties": true,
@@ -96,9 +96,9 @@
       "type": "object"
     },
     "Ident": {
-      "description": "An NFC identifier without surrounding white space (doc 05 §3.2).",
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
       "minLength": 1,
-      "pattern": "^\\S(.*\\S)?$",
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
       "type": "string"
     },
     "ManualSelection": {
@@ -110,14 +110,16 @@
           "items": {
             "$ref": "#/$defs/Uuid"
           },
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         },
         "include": {
           "description": "Entities always included.",
           "items": {
             "$ref": "#/$defs/Uuid"
           },
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         }
       },
       "type": "object"
@@ -133,14 +135,19 @@
             "type": "string"
           },
           "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4,8})(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*(?:-[a-wy-z0-9](?:-[a-z0-9]{2,8})+)*(?:-x(?:-[a-z0-9]{1,8})+)?$",
+            "type": "string"
+          },
           "type": "object"
         }
       ],
-      "description": "Multilingual text: a neutral string, or an object keyed by BCP 47 tags (doc 05 §3.2)."
+      "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags with non-empty string values (doc 05 §3.2). JSON Schema cannot express that all text is NFC or that the keys are in ascending byte order; the reader rejects both."
     },
     "Pt2": {
       "description": "A point [x, y] in nanometres, y downwards (doc 05 §3.2).",
       "items": false,
+      "maxItems": 2,
       "minItems": 2,
       "prefixItems": [
         {
@@ -171,7 +178,8 @@
       "type": "array"
     },
     "ReportKind": {
-      "anyOf": [
+      "description": "The built-in report kinds of the MVP (doc 09 §2.4); later kinds arrive as additive variants.",
+      "oneOf": [
         {
           "const": "profile_tables",
           "description": "Colour and size tables (embedded).",
@@ -267,11 +275,11 @@
           "description": "Check report.",
           "type": "string"
         }
-      ],
-      "description": "The built-in report kinds of the MVP (doc 09 §2.4); later kinds arrive as additive variants."
+      ]
     },
     "ReportSource": {
-      "anyOf": [
+      "description": "The row source of a report block: `{\"kind\": \"<report kind>\"}` or `{\"sql_query\": {\"api\", \"file\"}}`.",
+      "oneOf": [
         {
           "additionalProperties": false,
           "description": "A built-in report kind (doc 09 §2.4).",
@@ -298,8 +306,7 @@
           ],
           "type": "object"
         }
-      ],
-      "description": "The row source of a report block: `{\"kind\": \"<report kind>\"}` or `{\"sql_query\": {\"api\", \"file\"}}`."
+      ]
     },
     "SortKey": {
       "additionalProperties": true,
@@ -359,6 +366,8 @@
     },
     "Uuid": {
       "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
       "type": "string"
     }
@@ -398,10 +407,13 @@
       "description": "What to print without rows; default no pages."
     },
     "first_folio": {
-      "description": "The first folio (907).",
+      "description": "The first folio (907). Required for a page-oriented block (a structural invariant the model\nchecks), ignored when `embedded` is set (doc 09 §2.2, decision ID-16).",
       "format": "uint32",
       "minimum": 0,
-      "type": "integer"
+      "type": [
+        "integer",
+        "null"
+      ]
     },
     "form": {
       "$ref": "#/$defs/Uuid",
@@ -468,8 +480,7 @@
     "$k",
     "id",
     "source",
-    "form",
-    "first_folio"
+    "form"
   ],
   "title": "report_block",
   "type": "object"

@@ -39,7 +39,7 @@ use std::collections::BTreeMap;
 
 use ew_interop_api::{Code, Severity};
 use ew_mltext::Ident;
-use ew_schema::{CategoryKey, ContactKind, InternalKind, InternalLinkDef, PotentialType};
+use ew_schema::{CategoryKey, ContactKind, InternalKind, InternalLinkDef, PassThroughSpec, PotentialType};
 
 /// How the links between a function's terminals are generated.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -446,7 +446,14 @@ fn generated_key(
     let internal = match rule {
         InternalRule::None => Vec::new(),
         InternalRule::PassThroughPair { opens } if terminals == 2 => {
-            vec![link(0, 1, InternalKind::PassThrough { opens })]
+            vec![link(
+                0,
+                1,
+                InternalKind::PassThrough(PassThroughSpec {
+                    opens,
+                    extra: Default::default(),
+                }),
+            )]
         }
         InternalRule::PassThroughPair { .. } => {
             finding = Some((
@@ -475,6 +482,7 @@ fn generated_key(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ew_schema::PassThroughSpec;
 
     fn kind(pairs: &[(&str, &str)]) -> BTreeMap<String, String> {
         pairs
@@ -523,7 +531,13 @@ mod tests {
         assert_eq!(g.contact_kind, ContactKind::No);
         assert_eq!(g.internal.len(), 1);
         assert_eq!((g.internal[0].a, g.internal[0].b), (0, 1));
-        assert_eq!(g.internal[0].kind, InternalKind::PassThrough { opens: true });
+        assert_eq!(
+            g.internal[0].kind,
+            InternalKind::PassThrough(PassThroughSpec {
+                opens: true,
+                extra: Default::default()
+            })
+        );
         assert_eq!(g.finding, None);
 
         let g = generated_of(resolve(
@@ -564,7 +578,13 @@ mod tests {
         );
         assert!(g.internal.is_empty());
         let g = generated_of(resolve("master", &kind(&[("type", "protection")]), None, 2));
-        assert_eq!(g.internal[0].kind, InternalKind::PassThrough { opens: true });
+        assert_eq!(
+            g.internal[0].kind,
+            InternalKind::PassThrough(PassThroughSpec {
+                opens: true,
+                extra: Default::default()
+            })
+        );
         let g = generated_of(resolve("master", &kind(&[("type", "plc")]), None, 8));
         assert_eq!(g.contact_kind, ContactKind::PlcIo);
     }
@@ -585,7 +605,13 @@ mod tests {
         assert_eq!(cat(&g), ["Terminal", "generic", "generic"]);
         assert_eq!(g.potential_role, None);
         let g = generated_of(resolve("terminal", &kind(&[("type", "diode")]), None, 2));
-        assert_eq!(g.internal[0].kind, InternalKind::PassThrough { opens: false });
+        assert_eq!(
+            g.internal[0].kind,
+            InternalKind::PassThrough(PassThroughSpec {
+                opens: false,
+                extra: Default::default()
+            })
+        );
         let g = generated_of(resolve("terminal", &kind(&[("type", "ground")]), None, 1));
         assert_eq!(g.potential_role, Some(PotentialType::Pe));
     }

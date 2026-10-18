@@ -3,6 +3,10 @@
 
 //! Pages, representations and report blocks (doc 03 §6, doc 09 §2.2): `page` (rank 30) and its
 //! page-owned `representation` (33), and `report_block` (45).
+//!
+//! Strings are NFC (doc 05 §3.1): `MlText` and `Ident` members reject other text, and plain `String`
+//! members are normalised with every other string by the loader's [`normalize_nfc`](crate::normalize_nfc)
+//! pass before typed reading.
 
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
@@ -11,9 +15,11 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::json::{Extra, de_extra, de_unknown, is_default, is_false, is_v1, v1};
+use crate::json::{Extra, de_extra, is_default, is_false, is_v1, v1};
 use crate::library::{Dir4, FormDef, Primitive, RepType, SymbolDef};
 use crate::proxy::{Angle2S, GridS, IdentS, MlTextS, Orient2S, Pt2S, UuidS};
+use crate::set::{KeyedList, Set, keyed};
+use crate::track::open_enum;
 use crate::value::{AnyId, Bounds, SourceRef, StructureAssignment};
 use crate::{Function, Section};
 
@@ -85,6 +91,8 @@ pub struct Folio {
 /// Page type (FR-PAG-001). `report` pages are always generated, never stored.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "PageType")]
 pub enum PageType {
     /// Title page (cover form).
     TitlePage,
@@ -115,14 +123,15 @@ pub enum PageType {
     /// Report (generated only).
     Report,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// The scale of a page (doc 03 §6): `"not_to_scale"` (the default, omitted) or `{"one_to": n}` for 1:n.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "Scale")]
 pub enum Scale {
     /// Not to scale (schematics).
     #[default]
@@ -130,9 +139,8 @@ pub enum Scale {
     /// 1:n (layout pages: "1:10" on 902).
     OneTo(u32),
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -173,11 +181,11 @@ pub struct Representation {
     #[serde(default, skip_serializing_if = "is_default")]
     pub rep_type: RepType,
     /// Symbol CP → function CP, keyed by symbol CP.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub pin_map: Vec<PinMapEntry>,
+    #[serde(default, skip_serializing_if = "KeyedList::is_empty")]
+    pub pin_map: KeyedList<PinMapEntry>,
     /// Text-slot overrides only, keyed by slot.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub text_slots: Vec<SlotOverride>,
+    #[serde(default, skip_serializing_if = "KeyedList::is_empty")]
+    pub text_slots: KeyedList<SlotOverride>,
     /// Named slot set of the symbol (FR-SYM-012).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<IdentS>")]
@@ -295,8 +303,10 @@ pub struct ReportBlock {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub section: Option<Id<Section>>,
-    /// The first folio (907).
-    pub first_folio: u32,
+    /// The first folio (907). Required for a page-oriented block (a structural invariant the model
+    /// checks), ignored when `embedded` is set (doc 09 §2.2, decision ID-16).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub first_folio: Option<u32>,
     /// Continuation numbering; default sub-pages 907, 907.1 … (FR-PAG-030).
     #[serde(default, skip_serializing_if = "is_default")]
     pub continuation: ContinuationPolicy,
@@ -321,15 +331,16 @@ pub struct ReportBlock {
 /// The row source of a report block: `{"kind": "<report kind>"}` or `{"sql_query": {"api", "file"}}`.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "ReportSource")]
 pub enum ReportSource {
     /// A built-in report kind (doc 09 §2.4).
     Kind(ReportKind),
     /// A user SQL report in `reports/<file>.sql` (untrusted until the project is trusted).
     SqlQuery(SqlQuery),
     /// A source of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// A user SQL report.
@@ -348,6 +359,8 @@ pub struct SqlQuery {
 /// The built-in report kinds of the MVP (doc 09 §2.4); later kinds arrive as additive variants.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "ReportKind")]
 pub enum ReportKind {
     /// Colour and size tables (embedded).
     ProfileTables,
@@ -388,22 +401,21 @@ pub enum ReportKind {
     /// Check report.
     CheckReport,
     /// A kind of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Explicit include and exclude lists of entity IDs (sets, sorted).
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct ManualSelection {
     /// Entities always included.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[schemars(with = "Vec<UuidS>")]
-    pub include: Vec<AnyId>,
+    #[serde(default, skip_serializing_if = "Set::is_empty")]
+    #[schemars(with = "Set<UuidS>")]
+    pub include: Set<AnyId>,
     /// Entities always excluded.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[schemars(with = "Vec<UuidS>")]
-    pub exclude: Vec<AnyId>,
+    #[serde(default, skip_serializing_if = "Set::is_empty")]
+    #[schemars(with = "Set<UuidS>")]
+    pub exclude: Set<AnyId>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -447,6 +459,8 @@ pub struct GroupSpec {
 /// What happens at a group change.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "GroupBreak")]
 pub enum GroupBreak {
     /// Rows continue.
     #[default]
@@ -456,14 +470,15 @@ pub enum GroupBreak {
     /// A new folio.
     NewFolio,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Continuation numbering of report pages.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "ContinuationPolicy")]
 pub enum ContinuationPolicy {
     /// 907, 907.1, 907.2 … (the default).
     #[default]
@@ -471,14 +486,15 @@ pub enum ContinuationPolicy {
     /// 907, 908, 909 …
     NextFolio,
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// What a block without rows prints.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "EmptyPolicy")]
 pub enum EmptyPolicy {
     /// No pages (the default).
     #[default]
@@ -486,9 +502,8 @@ pub enum EmptyPolicy {
     /// One page with this text.
     OnePage(#[schemars(with = "MlTextS")] MlText),
     /// A value of a newer format, kept verbatim.
-    #[serde(untagged)]
-    #[schemars(skip)]
-    Unknown(#[serde(deserialize_with = "de_unknown")] Value),
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Placement of an embedded report block.
@@ -503,3 +518,16 @@ pub struct EmbedSpec {
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
 }
+
+keyed!(PinMapEntry, symbol_cp: u16);
+keyed!(SlotOverride, slot: u16);
+
+open_enum!(
+    PageType,
+    Scale,
+    ReportSource,
+    ReportKind,
+    GroupBreak,
+    ContinuationPolicy,
+    EmptyPolicy,
+);
