@@ -27,8 +27,11 @@
 //! - `visible_if` ([`eval_visible_if`]) hides a cell.
 //! - The printed text is the label (in the bindings' language, [`ml_text`]) and the filled value
 //!   ([`fill`]) joined by one space; either alone if the other is empty. A value that resolves to an
-//!   asset draws an image over the cell inset by [`CELL_PADDING`] (an [`ImageData`] with the asset's hash,
-//!   format PNG and **empty bytes**, as for symbol images: renderers resolve the bytes by hash).
+//!   asset draws an image in the cell inset by [`CELL_PADDING`] (an [`ImageData`] with the asset's hash and
+//!   [`AssetRef::format`] and **empty bytes**, as for symbol images: renderers resolve the bytes by hash).
+//!   With a known intrinsic size ([`AssetRef::size`]) the image is fitted inside the inset with its aspect
+//!   ratio preserved and centred; without one it fills the inset. A cell too small to hold the inset
+//!   reports [`OverflowKind::Error`] and draws no image.
 //! - The style key resolves through the built-in table ([`ew_text::builtin`]); an unknown key uses
 //!   `text.normal` and is reported.
 //! - Placement: see [`CELL_PADDING`]; left/right text is inset by it, middle alignment centres the cap
@@ -52,8 +55,8 @@ mod sheet;
 mod text;
 
 pub use bindings::{
-    BindingError, BindingFinding, Bindings, BoundValue, Filled, PageBindings, SCOPES, eval_visible_if, fill,
-    ml_text,
+    AssetRef, BindingError, BindingFinding, Bindings, BoundValue, Filled, PageBindings, SCOPES,
+    eval_visible_if, fill, ml_text,
 };
 pub use geometry::{
     DEFAULT_FRAME_LINE, EXTRA_LINE_WIDTH, EXTRA_SHOW_GRID, FrameGeometry, title_block_origin,
@@ -63,7 +66,7 @@ pub use text::{CELL_PADDING, ELLIPSIS, OverflowKind};
 
 use std::sync::Arc;
 
-use ew_dl::{DisplayList, ImageData, ImageFormat, Item, Path, Stroke as DlStroke, Transform};
+use ew_dl::{DisplayList, ImageData, Item, Path, Stroke as DlStroke, Transform};
 use ew_schema::{FormCell, FormDef, Primitive};
 use ew_text::{DEFAULT_STYLE_KEY, FontSet, TextStyle, builtin};
 use ew_units::{Nm, Pt2, Rect};
@@ -325,17 +328,27 @@ impl Lowerer<'_> {
             .map(|v| fill(v, self.bindings))
             .unwrap_or_default();
         self.binding_findings(at, filled.findings);
-        if let Some(hash) = filled.asset {
-            let inset = Rect::from_points(
-                rect.min() + Pt2::new(CELL_PADDING, CELL_PADDING),
-                rect.max() - Pt2::new(CELL_PADDING, CELL_PADDING),
-            );
-            let data = ImageData {
-                sha256: hash,
-                format: ImageFormat::Png,
-                bytes: Arc::from(Vec::new()),
-            };
-            self.push(Item::image(Arc::new(data), inset));
+        if let Some(asset) = filled.asset {
+            let pad = 2 * CELL_PADDING.0;
+            if rect.width().0 <= pad || rect.height().0 <= pad {
+                // No room for the image inside its insets: report it, draw nothing.
+                self.out.findings.push(FormFinding::Overflow {
+                    cell: at,
+                    text: cell.value.clone().unwrap_or_default(),
+                    kind: OverflowKind::Error,
+                });
+            } else {
+                let inset = Rect::from_points(
+                    rect.min() + Pt2::new(CELL_PADDING, CELL_PADDING),
+                    rect.max() - Pt2::new(CELL_PADDING, CELL_PADDING),
+                );
+                let data = ImageData {
+                    sha256: asset.sha256,
+                    format: asset.format,
+                    bytes: Arc::from(Vec::new()),
+                };
+                self.push(Item::image(Arc::new(data), fit_image(inset, asset.size)));
+            }
         }
         let label = cell
             .label
@@ -388,6 +401,31 @@ impl Lowerer<'_> {
                 .map(|finding| FormFinding::Binding { cell, finding }),
         );
     }
+}
+
+/// The largest rectangle of the aspect ratio `size` (width, height; only the ratio matters) that fits in
+/// `inset`, centred in it. Integer arithmetic: the shorter side is `round(box side × ratio)` with exact ties
+/// toward zero, and the leftover is split by halving toward zero. Without a usable size the image fills
+/// `inset`.
+fn fit_image(inset: Rect, size: Option<(u32, u32)>) -> Rect {
+    let Some((iw, ih)) = size.filter(|&(w, h)| w > 0 && h > 0) else {
+        return inset;
+    };
+    let (bw, bh) = (i128::from(inset.width().0), i128::from(inset.height().0));
+    let (iw, ih) = (i128::from(iw), i128::from(ih));
+    let round = |n: i128, d: i128| {
+        let (q, r) = (n / d, n % d);
+        if 2 * r > d { q + 1 } else { q }
+    };
+    // Width-limited when the box is relatively taller than the image: iw / ih >= bw / bh.
+    let (dw, dh) = if iw * bh >= ih * bw {
+        (bw, round(bw * ih, iw))
+    } else {
+        (round(bh * iw, ih), bh)
+    };
+    let (dx, dy) = ((bw - dw) / 2, (bh - dh) / 2);
+    let min = inset.min() + Pt2::new(Nm(dx as i64), Nm(dy as i64));
+    Rect::from_points(min, min + Pt2::new(Nm(dw as i64), Nm(dh as i64)))
 }
 
 /// An item moved by a pure translation: paths point by point, anything else in a translated group.

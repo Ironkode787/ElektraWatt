@@ -87,10 +87,26 @@ pub(crate) fn lay_out(fonts: &FontSet, text: &str, style: &TextStyle, spec: &Box
     let mut shaped = fonts.shape(text, &style, wrap);
     let mut overflow = None;
     let mut shown = text.to_owned();
+    if avail_w <= Nm::ZERO && !text.is_empty() {
+        // The box is not wider than its two insets: nothing can be drawn in it. Report it under the
+        // policy's own kind and draw nothing (never a zero-size run).
+        return Laid {
+            items: Vec::new(),
+            shaped,
+            overflow: Some(match spec.overflow {
+                Some(Overflow::Ellipsis) => OverflowKind::Truncated,
+                Some(Overflow::Error) => OverflowKind::Error,
+                Some(Overflow::Unknown(_)) => OverflowKind::UnknownPolicy,
+                Some(Overflow::ShrinkToFit(_)) | None => OverflowKind::ShrinkLimit,
+            }),
+        };
+    }
     if !fits(&shaped, &style) {
         match spec.overflow {
             Some(Overflow::ShrinkToFit(sh)) => {
-                let min = min_size(fonts, &style, sh.min_cap_height, spec.sheet);
+                // The lowest permitted size: the one whose printed cap height is the minimum, but never
+                // above the style's own size (shrinking must not enlarge).
+                let floor = min_size(fonts, &style, sh.min_cap_height, spec.sheet).min(style.size);
                 let mut size = style.size;
                 loop {
                     let next = if spec.max_lines <= 1 && shaped.advance().0 > 0 {
@@ -101,8 +117,16 @@ pub(crate) fn lay_out(fonts: &FontSet, text: &str, style: &TextStyle, spec: &Box
                     } else {
                         Nm(size.0 - (size.0 / 50).max(1))
                     };
-                    if next < min {
-                        style = style.with_size(min.max(Nm(1)));
+                    if next <= Nm::ZERO {
+                        // Not shrinkable to a drawable size: draw nothing.
+                        return Laid {
+                            items: Vec::new(),
+                            shaped,
+                            overflow: Some(OverflowKind::ShrinkLimit),
+                        };
+                    }
+                    if next < floor {
+                        style = style.with_size(floor);
                         shaped = fonts.shape(text, &style, wrap);
                         if !fits(&shaped, &style) {
                             overflow = Some(OverflowKind::ShrinkLimit);
@@ -118,17 +142,26 @@ pub(crate) fn lay_out(fonts: &FontSet, text: &str, style: &TextStyle, spec: &Box
                 }
             }
             Some(Overflow::Ellipsis) => {
+                // The longest prefix (cut at a char boundary, trailing whitespace trimmed) whose
+                // "…"-terminated text fits, or the bare ellipsis when none does. A shorter prefix is never
+                // wider, so a binary search over the cut index finds the cut that dropping one char at a
+                // time would, with O(log n) shapings instead of O(n).
                 let chars: Vec<(usize, char)> = text.char_indices().collect();
-                let mut keep = chars.len();
-                loop {
-                    keep = keep.saturating_sub(1);
+                let candidate = |keep: usize| {
                     let cut = chars.get(keep).map_or(text.len(), |c| c.0);
-                    shown = format!("{}{ELLIPSIS}", text[..cut].trim_end());
-                    shaped = fonts.shape(&shown, &style, None);
-                    if keep == 0 || shaped.advance() <= avail_w {
-                        break;
+                    format!("{}{ELLIPSIS}", text[..cut].trim_end())
+                };
+                let (mut lo, mut hi) = (0, chars.len().saturating_sub(1));
+                while lo < hi {
+                    let mid = lo + (hi - lo).div_ceil(2);
+                    if fonts.shape(&candidate(mid), &style, None).advance() <= avail_w {
+                        lo = mid;
+                    } else {
+                        hi = mid - 1;
                     }
                 }
+                shown = candidate(lo);
+                shaped = fonts.shape(&shown, &style, None);
                 overflow = Some(OverflowKind::Truncated);
             }
             Some(Overflow::Error) => overflow = Some(OverflowKind::Error),
@@ -220,4 +253,88 @@ pub(crate) fn place(
             }))
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ew_text::bundled;
+
+    /// The straightforward algorithm: drop one char at a time and re-shape the whole candidate.
+    fn reference_ellipsis(fonts: &FontSet, text: &str, style: &TextStyle, avail_w: Nm) -> String {
+        let chars: Vec<(usize, char)> = text.char_indices().collect();
+        let mut keep = chars.len();
+        loop {
+            keep = keep.saturating_sub(1);
+            let cut = chars.get(keep).map_or(text.len(), |c| c.0);
+            let shown = format!("{}{ELLIPSIS}", text[..cut].trim_end());
+            if keep == 0 || fonts.shape(&shown, style, None).advance() <= avail_w {
+                return shown;
+            }
+        }
+    }
+
+    #[test]
+    fn ellipsis_cut_equals_the_one_char_at_a_time_reference() {
+        let fonts = bundled();
+        let texts = [
+            "Power Supply 1 - Main Current",
+            "A page title far too long for the large description cell of the title block.",
+            "Zuführung für Überwachung — größere Längen",
+            "Température 0.75 mm² ±5 % (€ 12)",
+            "Trailing spaces   here    and   there   ",
+            "   leading spaces and more words after them",
+            "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+            "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+            "x",
+            "ab",
+            "日本語のテキストと mixed ⇄ glyphs ∞ missing",
+            "emoji 🙂🙂🙂 and combining e\u{301}e\u{301}e\u{301}e\u{301} marks",
+            "a\tb\u{7}c\u{FE0F}d",
+            "AVAVAVAVAVAVAVAVAVAVAVAVAVAVAVAVAV To To To Ty Ty",
+        ];
+        let style = TextStyle::regular(Nm(3_175_000));
+        let mut compared = 0;
+        for text in texts {
+            let full = fonts.shape(text, &style, None).advance().0;
+            // Cell widths from "nothing fits" up to "everything fits".
+            for avail in [
+                1,
+                2_000_000,
+                5_000_000,
+                9_000_000,
+                15_000_000,
+                30_000_000,
+                full - 1,
+                full + 1,
+            ] {
+                let avail_w = Nm(avail.max(1));
+                let rect = Rect::from_points(
+                    Pt2::ORIGIN,
+                    Pt2::new(Nm(avail_w.0 + 2 * CELL_PADDING.0), Nm(8_000_000)),
+                );
+                let spec = BoxSpec {
+                    rect,
+                    halign: -1,
+                    valign: 0,
+                    padding: CELL_PADDING,
+                    overflow: Some(&Overflow::Ellipsis),
+                    max_lines: 1,
+                    sheet: SheetMap::IDENTITY,
+                };
+                let laid = lay_out(fonts, text, &style, &spec);
+                if fonts.shape(text, &style, None).advance() <= avail_w {
+                    assert_eq!(laid.overflow, None, "{text:?} at {avail}");
+                    assert_eq!(laid.shaped.run.text, text);
+                    continue;
+                }
+                let want = reference_ellipsis(fonts, text, &style, avail_w);
+                assert_eq!(laid.overflow, Some(OverflowKind::Truncated));
+                assert_eq!(laid.shaped.run.text, want, "{text:?} at {avail}");
+                assert!(want.ends_with(ELLIPSIS));
+                compared += 1;
+            }
+        }
+        assert!(compared >= 60, "{compared}");
+    }
 }

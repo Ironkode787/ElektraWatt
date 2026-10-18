@@ -69,6 +69,40 @@ fn missing_glyphs_are_reported_once_in_order() {
 }
 
 #[test]
+fn control_characters_are_reported_when_drawn_as_notdef() {
+    for text in ["a\tb", "a\u{7}b"] {
+        let s = bundled().shape(text, &style("data.small"), None);
+        let ch = text.chars().nth(1).unwrap();
+        assert_eq!(s.missing, vec![ch], "{text:?}");
+        // The character is drawn as the visible .notdef glyph.
+        assert!(s.run.glyphs.iter().any(|g| g.id == 0), "{text:?}");
+    }
+    // Line breaks end a line and are not reported.
+    assert!(bundled().shape("a\r\nb", &style("pin"), None).missing.is_empty());
+}
+
+#[test]
+fn default_ignorable_code_points_are_not_reported() {
+    let st = style("data.small");
+    for ch in [
+        '\u{FE0F}',
+        '\u{200B}',
+        '\u{200D}',
+        '\u{00AD}',
+        '\u{FEFF}',
+        '\u{2060}',
+        '\u{E0100}',
+    ] {
+        let text = format!("a{ch}b");
+        let s = bundled().shape(&text, &st, None);
+        assert!(s.missing.is_empty(), "U+{:04X}", ch as u32);
+    }
+    // Real missing characters next to them are still reported.
+    let s = bundled().shape("a\u{FE0F}\u{21C4}b", &st, None);
+    assert_eq!(s.missing, vec!['\u{21C4}']);
+}
+
+#[test]
 fn deterministic_across_runs_and_font_load_order() {
     let texts = [
         "J-E-2416",

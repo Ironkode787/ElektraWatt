@@ -220,14 +220,53 @@ fn same_face(face: &Face, font: &parley::FontData) -> bool {
     font.data.id() == face.data.id() && font.index == u32::from(face.info.key.face_index)
 }
 
-/// The characters of `text` without a glyph in `face`, first occurrence order, each once. Control
-/// characters (line breaks, tabs) are not glyphs and are skipped.
+/// Code points with the Unicode `Default_Ignorable_Code_Point` property (UAX #44,
+/// `DerivedCoreProperties.txt`) that a text stack renders invisibly: soft hyphen, joiners and marks,
+/// variation selectors, bidi controls, the byte order mark and similar. A face needs no glyph for them, so
+/// lacking one is not a missing glyph for [`Shaped::missing`]. This is a small explicit list of the ranges
+/// below, not the full property; no Unicode data crate is involved.
+const DEFAULT_IGNORABLE: &[(u32, u32)] = &[
+    (0x00AD, 0x00AD),
+    (0x034F, 0x034F),
+    (0x061C, 0x061C),
+    (0x115F, 0x1160),
+    (0x17B4, 0x17B5),
+    (0x180B, 0x180E),
+    (0x200B, 0x200F),
+    (0x202A, 0x202E),
+    (0x2060, 0x206F),
+    (0x3164, 0x3164),
+    (0xFE00, 0xFE0F),
+    (0xFEFF, 0xFEFF),
+    (0xFFA0, 0xFFA0),
+    (0xE0100, 0xE01EF),
+];
+
+fn is_default_ignorable(ch: char) -> bool {
+    let c = u32::from(ch);
+    DEFAULT_IGNORABLE.iter().any(|&(lo, hi)| (lo..=hi).contains(&c))
+}
+
+/// Characters that end a line instead of becoming a glyph (the mandatory breaks of the line breaker).
+fn is_line_break(ch: char) -> bool {
+    matches!(
+        ch,
+        '\n' | '\r' | '\u{0B}' | '\u{0C}' | '\u{85}' | '\u{2028}' | '\u{2029}'
+    )
+}
+
+/// The characters of `text` that were drawn as the face's `.notdef` glyph (id 0, a visible box), first
+/// occurrence order, each once. A character is missing when the face's character map has no glyph for it;
+/// this includes control characters such as tabs, which are shaped to `.notdef` like any other unmapped
+/// character. Not reported: line breaks (they end a line and produce no glyph) and default-ignorable code
+/// points ([`DEFAULT_IGNORABLE`]), which render invisibly.
 fn missing_chars(face: &Face, text: &str) -> Vec<char> {
     let font = face.font_ref();
     let charmap = font.charmap();
     let mut out: Vec<char> = Vec::new();
     for ch in text.chars() {
-        if !ch.is_control() && charmap.map(ch).is_none() && !out.contains(&ch) {
+        let unmapped = charmap.map(ch).is_none();
+        if unmapped && !is_line_break(ch) && !is_default_ignorable(ch) && !out.contains(&ch) {
             out.push(ch);
         }
     }

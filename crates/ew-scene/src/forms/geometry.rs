@@ -174,4 +174,45 @@ mod tests {
         assert_eq!(edge(header, col, 17), Nm(275_166_667));
         assert_eq!(edge(None, col, 2), Nm(31_750_000));
     }
+
+    mod props {
+        use super::*;
+        use proptest::prelude::*;
+
+        /// A grid step `num / den` nm of at least 1 nm.
+        fn grid() -> impl Strategy<Value = Grid> {
+            (1u64..=2_000_000_000, 1u64..=1_000)
+                .prop_filter_map("grid at least 1 nm", |(n, d)| Grid::new(n, d).ok())
+        }
+
+        /// Round-half-down on the magnitude: a different route than `edge` takes to the same rounding.
+        fn round_ties_toward_zero(n: i128, d: i128) -> i128 {
+            let q = (2 * n.abs() + d - 1) / (2 * d);
+            if n < 0 { -q } else { q }
+        }
+
+        proptest! {
+            #![proptest_config(ProptestConfig { cases: 256, ..ProptestConfig::default() })]
+
+            /// `edge(header, step, k) = round(header + k × step)` over exact rationals, ties toward zero.
+            #[test]
+            fn edge_is_the_exact_rational(
+                header in proptest::option::of(grid()),
+                step in grid(),
+                k in -10_000i64..=10_000,
+            ) {
+                let (hn, hd) = header.map_or((0i128, 1i128), |h| (i128::from(h.num()), i128::from(h.den())));
+                let (sn, sd) = (i128::from(step.num()), i128::from(step.den()));
+                // (hn / hd) + k × (sn / sd) over the common denominator hd × sd.
+                let want = round_ties_toward_zero(hn * sd + i128::from(k) * sn * hd, hd * sd);
+                prop_assert_eq!(i128::from(edge(header, step, k).0), want);
+            }
+
+            /// Edges of a grid are non-decreasing in `k`.
+            #[test]
+            fn edges_are_monotonic(header in proptest::option::of(grid()), step in grid(), k in 0i64..=10_000) {
+                prop_assert!(edge(header, step, k) <= edge(header, step, k + 1));
+            }
+        }
+    }
 }

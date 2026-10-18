@@ -19,6 +19,7 @@
 
 use std::collections::BTreeMap;
 
+use ew_dl::ImageFormat;
 use ew_mltext::{LangTag, MlText};
 use ew_schema::{Date, DateFormat};
 
@@ -41,8 +42,40 @@ pub enum BoundValue {
         /// The displayed tag (`-F1`).
         displayed: String,
     },
-    /// An asset by SHA-256 (a logo); prints no text, the cell draws the image.
-    Asset([u8; 32]),
+    /// An asset (a logo); prints no text, the cell draws the image.
+    Asset(AssetRef),
+}
+
+/// An image asset a placeholder resolves to: its content hash, its encoding and, when known, its intrinsic
+/// size. The bytes stay in the asset store; renderers resolve them by hash.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct AssetRef {
+    /// SHA-256 of the encoded file, as computed by the asset store.
+    pub sha256: [u8; 32],
+    /// How the file is encoded.
+    pub format: ImageFormat,
+    /// The intrinsic width and height in any common unit (pixels, SVG user units); only their ratio is
+    /// used. `None`, or a zero side, means unknown: the image then fills its box.
+    pub size: Option<(u32, u32)>,
+}
+
+impl AssetRef {
+    /// An asset of unknown intrinsic size.
+    pub const fn new(sha256: [u8; 32], format: ImageFormat) -> AssetRef {
+        AssetRef {
+            sha256,
+            format,
+            size: None,
+        }
+    }
+
+    /// The same asset with its intrinsic size.
+    pub const fn with_size(self, width: u32, height: u32) -> AssetRef {
+        AssetRef {
+            size: Some((width, height)),
+            ..self
+        }
+    }
 }
 
 /// A source of placeholder values.
@@ -168,7 +201,7 @@ pub struct Filled {
     /// The text to print.
     pub text: String,
     /// The first asset a placeholder resolved to, if any.
-    pub asset: Option<[u8; 32]>,
+    pub asset: Option<AssetRef>,
     /// What to report.
     pub findings: Vec<BindingFinding>,
 }
@@ -373,8 +406,8 @@ fn fill_with(template: &str, bindings: &dyn Bindings, unresolved_empty: bool) ->
                 }
                 PlaceholderKind::Path { path, filters } => {
                     match eval_placeholder(&raw, &path, &filters, bindings, &mut out.findings) {
-                        Some(BoundValue::Asset(h)) => {
-                            out.asset.get_or_insert(h);
+                        Some(BoundValue::Asset(a)) => {
+                            out.asset.get_or_insert(a);
                         }
                         Some(v) => out.text.push_str(&render(&v, bindings)),
                         None => {
@@ -493,7 +526,11 @@ mod tests {
             },
         )
         .unwrap();
-        b.set("page.logo", BoundValue::Asset([7; 32])).unwrap();
+        b.set(
+            "page.logo",
+            BoundValue::Asset(AssetRef::new([7; 32], ImageFormat::Svg)),
+        )
+        .unwrap();
         b
     }
 
@@ -683,7 +720,7 @@ mod tests {
     fn asset_sets_asset() {
         let f = fill("a{page.logo}b", &b());
         assert_eq!(f.text, "ab");
-        assert_eq!(f.asset, Some([7; 32]));
+        assert_eq!(f.asset, Some(AssetRef::new([7; 32], ImageFormat::Svg)));
         assert!(f.findings.is_empty());
     }
 

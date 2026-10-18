@@ -5,10 +5,10 @@
 
 use std::fmt::Write as _;
 
-use ew_dl::{DisplayList, ItemKind, PathEl};
+use ew_dl::{DisplayList, ImageFormat, ItemKind, PathEl};
 use ew_scene::forms::{
-    BindingFinding, BoundValue, CELL_PADDING, CellOwner, CellRef, FormFinding, OverflowKind, PageBindings,
-    SheetMap, lower_form,
+    AssetRef, BindingFinding, BoundValue, CELL_PADDING, CellOwner, CellRef, FormFinding, OverflowKind,
+    PageBindings, SheetMap, lower_form,
 };
 use ew_schema::{Date, FormDef, LibDocument};
 use ew_text::bundled;
@@ -72,7 +72,11 @@ fn bindings() -> PageBindings {
         BoundValue::Date(Date::new(2025, 4, 14).unwrap()),
     )
     .unwrap();
-    b.set("project.logo", BoundValue::Asset([7; 32])).unwrap();
+    b.set(
+        "project.logo",
+        BoundValue::Asset(AssetRef::new([7; 32], ImageFormat::Svg)),
+    )
+    .unwrap();
     b
 }
 

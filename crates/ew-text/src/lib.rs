@@ -29,7 +29,13 @@
 //!    equal to the face's **units per em**, with display scale 1, no quantisation and no hinting, and a
 //!    line height of exactly ascent + descent + line gap. harfrust works in integer font units and
 //!    parley's scale factor is then exactly 1.0, so every position parley reports is a whole number of
-//!    font units held exactly in an `f32` (static fonts; sums stay below 2²⁴).
+//!    font units held exactly in an `f32` (static fonts) **as long as a line's total advance stays below
+//!    2²⁴ = 16 777 216 font units**, the largest range in which `f32` holds every integer; that is about
+//!    28 000 glyphs of typical Latin text at 1000 units per em. Beyond that bound the shaper's running
+//!    positions are rounded to the `f32` grid (steps of 2 units from 2²⁴, then 4, and so on), so positions
+//!    are no longer whole font units and no longer scale exactly with the em height. They remain
+//!    deterministic, because the same operations on the same inputs round identically on every platform;
+//!    only the exactness claim below ends there.
 //! 3. A maximum width in nm is converted to font units by `floor(width × upem / size)` before breaking,
 //!    so breaking compares exact integers.
 //! 4. Each `f32` is converted to nm by [`units_to_nm`]: the float's exact binary value times the em height
@@ -37,8 +43,9 @@
 //!    `i128`. No floating-point arithmetic happens after parley; in particular `Nm::from_mm_f64` is not
 //!    used, because the exact rational conversion needs no float product at all.
 //!
-//! Consequently positions scale exactly with the em height (they are integers times `size / upem`), and the
-//! same font bytes, text, style and width give the same glyph ids and nm positions on every platform.
+//! Consequently, for lines below that bound, positions scale exactly with the em height (they are integers
+//! times `size / upem`), and in every case the same font bytes, text, style and width give the same glyph
+//! ids and nm positions on every platform.
 //! `f32`/`f64` never reach a display-list value: the only float values are parley's internal ones,
 //! confined to `shape.rs`, and the unscaled font metrics read through skrifa in `fonts.rs` (whole font
 //! units, rounded).
