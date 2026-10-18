@@ -13,3 +13,16 @@ publish = false
 
 [lints]
 workspace = true
+
+[dependencies]
+# Persistent maps for the memo store: O(1) snapshots (`Store::fork`) and deterministic order (ADR-0002
+# decision 4; ARCH §3 crate table). MPL-2.0+.
+imbl = "7.0.2"
+# The inline dependency list of a memo (`SmallVec<(DepKey, observed)>`, ADR-0002 decision 4).
+smallvec = "1.16.3"
+# Statistics per query family and per commit are emitted as `tracing` events (ADR-0002 decision 4). Without
+# default features: no proc-macro attributes, only the event macros and the core.
+tracing = { version = "0.1.44", default-features = false, features = ["std"] }
+
+[dev-dependencies]
+proptest = { version = "1.12.0", default-features = false, features = ["std"] }
