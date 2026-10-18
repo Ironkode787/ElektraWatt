@@ -49,6 +49,8 @@ jobs:
         run: cargo fmt --all --check
       - name: cargo clippy
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: cargo clippy (all features)
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 
   # CI-PR-02, CI-PR-03, CI-PR-04
   test-linux:
@@ -70,6 +72,14 @@ jobs:
         run: cargo build --workspace --locked
       - name: cargo nextest
         run: cargo nextest run --workspace --locked --profile ci
+      # Feature-gated code (for example ew-ids/testkit) is only compiled and tested with its feature on.
+      - name: cargo nextest (all features)
+        run: cargo nextest run --workspace --all-features --locked --profile ci
+      # nextest does not run doctests.
+      - name: cargo test --doc
+        run: cargo test --doc --workspace --locked
+      - name: cargo test --doc (all features)
+        run: cargo test --doc --workspace --all-features --locked
 
   test-windows:
     name: test-windows
@@ -90,6 +100,14 @@ jobs:
         run: cargo build --workspace --locked
       - name: cargo nextest
         run: cargo nextest run --workspace --locked --profile ci
+      # Feature-gated code (for example ew-ids/testkit) is only compiled and tested with its feature on.
+      - name: cargo nextest (all features)
+        run: cargo nextest run --workspace --all-features --locked --profile ci
+      # nextest does not run doctests.
+      - name: cargo test --doc
+        run: cargo test --doc --workspace --locked
+      - name: cargo test --doc (all features)
+        run: cargo test --doc --workspace --all-features --locked
 
   test-macos:
     name: test-macos
@@ -110,6 +128,14 @@ jobs:
         run: cargo build --workspace --locked
       - name: cargo nextest
         run: cargo nextest run --workspace --locked --profile ci
+      # Feature-gated code (for example ew-ids/testkit) is only compiled and tested with its feature on.
+      - name: cargo nextest (all features)
+        run: cargo nextest run --workspace --all-features --locked --profile ci
+      # nextest does not run doctests.
+      - name: cargo test --doc
+        run: cargo test --doc --workspace --locked
+      - name: cargo test --doc (all features)
+        run: cargo test --doc --workspace --all-features --locked
 
   # CI-PR-09
   supply-chain:
@@ -142,6 +168,9 @@ jobs:
         run: cargo vet --locked
       - name: dependency rules
         run: cargo xtask check-deps
+      # CI-PR-09 feature bans: testkit, test-confirm, inspection, unchecked and egui_mcp on non-test edges only.
+      - name: feature bans
+        run: cargo xtask check-features
       - name: build-script allowlist
         run: cargo xtask check-build-scripts
       - name: workflow lint

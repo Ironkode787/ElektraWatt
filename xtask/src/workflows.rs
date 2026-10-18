@@ -9,6 +9,9 @@
 //! - The workflow declares a top-level `permissions:` block whose `contents` is `read` and which grants no
 //!   `write` scope; jobs that need more (release jobs) widen it per job.
 //! - No `permissions: write-all` anywhere.
+//! - No `pull_request_target` trigger (it runs fork code with a privileged token).
+//! - Every `actions/checkout` step sets `persist-credentials: false`, so later steps cannot reuse the token.
+//! - `${{ secrets.… }}` appears only in a job named `release`.
 //!
 //! The parser is deliberately line-based (no YAML dependency): it understands block mappings, `- uses:` list
 //! items, comments and block scalars (`run: |`), which is all a workflow file needs here.
@@ -123,10 +126,15 @@ pub fn check_text(file: &str, text: &str) -> Vec<String> {
     let mut v = Vec::new();
 
     for line in &lines {
+        let at = format!("{file}:{}", line.number);
+        if line.content.contains("pull_request_target") {
+            v.push(format!(
+                "{at}: `pull_request_target` runs fork code with a privileged token; use `pull_request`"
+            ));
+        }
         let Some((key, value)) = key_value(line.content) else {
             continue;
         };
-        let at = format!("{file}:{}", line.number);
         match key {
             "uses" => check_uses(&at, value, line.comment, &mut v),
             "permissions" if value == "write-all" => {
@@ -139,7 +147,78 @@ pub fn check_text(file: &str, text: &str) -> Vec<String> {
     }
 
     check_top_level_permissions(file, &lines, &mut v);
+    check_checkout_credentials(file, &lines, &mut v);
+    check_secrets(file, text, &mut v);
     v
+}
+
+/// Index range of the step (list item) that contains `lines[at]`: from the nearest enclosing `- ` line to
+/// the line before the next line that is indented no deeper than that item.
+fn step_range(lines: &[Line<'_>], at: usize) -> (usize, usize) {
+    let start = (0..=at)
+        .rev()
+        .find(|&i| lines[i].content.starts_with("- ") && lines[i].indent <= lines[at].indent)
+        .unwrap_or(at);
+    let indent = lines[start].indent;
+    let end = (start + 1..lines.len())
+        .find(|&i| lines[i].indent <= indent)
+        .unwrap_or(lines.len());
+    (start, end)
+}
+
+/// Every `actions/checkout` step sets `persist-credentials: false`.
+fn check_checkout_credentials(file: &str, lines: &[Line<'_>], v: &mut Vec<String>) {
+    for (i, line) in lines.iter().enumerate() {
+        let Some(("uses", value)) = key_value(line.content) else {
+            continue;
+        };
+        if !value.starts_with("actions/checkout@") {
+            continue;
+        }
+        let (start, end) = step_range(lines, i);
+        let credentials_dropped = lines[start..end]
+            .iter()
+            .any(|l| key_value(l.content) == Some(("persist-credentials", "false")));
+        if !credentials_dropped {
+            v.push(format!(
+                "{file}:{}: `{value}` needs `persist-credentials: false` in its `with:` block",
+                line.number
+            ));
+        }
+    }
+}
+
+/// `${{ secrets.… }}` only inside a job named `release`. Works on the raw lines (a `run:` block can use a
+/// secret too) and skips comment-only lines.
+fn check_secrets(file: &str, text: &str, v: &mut Vec<String>) {
+    let mut in_jobs = false;
+    let mut job_indent: Option<usize> = None;
+    let mut job: Option<&str> = None;
+    for (i, raw) in text.lines().enumerate() {
+        let trimmed = raw.trim();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+        let indent = raw.len() - raw.trim_start().len();
+        if indent == 0 {
+            in_jobs = trimmed.starts_with("jobs:");
+            job_indent = None;
+            job = None;
+        } else if in_jobs {
+            let job_indent = *job_indent.get_or_insert(indent);
+            if indent == job_indent {
+                job = trimmed.split_once(':').map(|(name, _)| name.trim());
+            }
+        }
+        let squeezed: String = trimmed.chars().filter(|c| !c.is_whitespace()).collect();
+        if squeezed.contains("${{secrets.") && job != Some("release") {
+            let place = job.map_or_else(|| "outside any job".to_owned(), |j| format!("in job `{j}`"));
+            v.push(format!(
+                "{file}:{}: `secrets` used {place}; secrets belong only in the `release` job",
+                i + 1
+            ));
+        }
+    }
 }
 
 fn check_uses(at: &str, value: &str, comment: Option<&str>, v: &mut Vec<String>) {
@@ -228,17 +307,17 @@ mod tests {
     #[test]
     fn pinned_action_with_version_comment_passes() {
         let text = workflow(&format!(
-            "      - uses: actions/checkout@{SHA} # v7.0.1\n      - name: x\n        uses: \"a/b/sub@{SHA}\" # v1\n"
+            "      - uses: actions/cache@{SHA} # v7.0.1\n      - name: x\n        uses: \"a/b/sub@{SHA}\" # v1\n"
         ));
         assert_eq!(check_text("ci.yml", &text), Vec::<String>::new());
     }
 
     #[test]
     fn tag_pinned_action_fails() {
-        let v = check_text("ci.yml", &workflow("      - uses: actions/checkout@v7 # v7\n"));
+        let v = check_text("ci.yml", &workflow("      - uses: actions/cache@v7 # v7\n"));
         assert_eq!(v.len(), 1, "{v:?}");
         assert!(
-            v[0].contains("ci.yml:9: action `actions/checkout@v7` is not pinned"),
+            v[0].contains("ci.yml:9: action `actions/cache@v7` is not pinned"),
             "{v:?}"
         );
     }
@@ -256,7 +335,7 @@ mod tests {
     fn missing_version_comment_fails() {
         let v = check_text(
             "ci.yml",
-            &workflow(&format!("      - uses: actions/checkout@{SHA}\n")),
+            &workflow(&format!("      - uses: actions/cache@{SHA}\n")),
         );
         assert_eq!(v.len(), 1, "{v:?}");
         assert!(v[0].contains("trailing version comment"), "{v:?}");
@@ -302,6 +381,89 @@ mod tests {
         let v = check_text("ci.yml", text);
         assert_eq!(v.len(), 1, "{v:?}");
         assert!(v[0].contains("ci.yml:6: `permissions: write-all`"), "{v:?}");
+    }
+
+    #[test]
+    fn pull_request_target_fails_in_every_form() {
+        for on in [
+            "on: pull_request_target\n",
+            "on: [push, pull_request_target]\n",
+            "on:\n  pull_request_target:\n    types: [opened]\n",
+            "on:\n  - pull_request_target\n",
+        ] {
+            let text = format!("{on}permissions:\n  contents: read\njobs: {{}}\n");
+            let v = check_text("ci.yml", &text);
+            assert_eq!(v.len(), 1, "{on:?}: {v:?}");
+            assert!(v[0].contains("`pull_request_target`"), "{v:?}");
+        }
+        // Mentions in comments and run blocks are not triggers.
+        let text =
+            workflow("      - run: |\n          echo pull_request_target\n      # pull_request_target\n");
+        assert_eq!(check_text("ci.yml", &text), Vec::<String>::new());
+    }
+
+    #[test]
+    fn checkout_without_persist_credentials_false_fails() {
+        let bare = workflow(&format!("      - uses: actions/checkout@{SHA} # v7.0.1\n"));
+        let v = check_text("ci.yml", &bare);
+        assert_eq!(v.len(), 1, "{v:?}");
+        assert!(
+            v[0].contains("ci.yml:9:") && v[0].contains("persist-credentials: false"),
+            "{v:?}"
+        );
+
+        let wrong = workflow(&format!(
+            "      - uses: actions/checkout@{SHA} # v7.0.1\n        with:\n          persist-credentials: true\n"
+        ));
+        assert_eq!(check_text("ci.yml", &wrong).len(), 1);
+
+        // A neighbouring step's setting does not count; a `name:`-first step is found.
+        let neighbour = workflow(&format!(
+            "      - uses: actions/checkout@{SHA} # v7.0.1\n      - uses: other/x@{SHA} # v1\n        with:\n          persist-credentials: false\n"
+        ));
+        assert_eq!(check_text("ci.yml", &neighbour).len(), 1);
+
+        let good = workflow(&format!(
+            "      - name: checkout\n        uses: actions/checkout@{SHA} # v7.0.1\n        with:\n          fetch-depth: 0\n          persist-credentials: false\n      - run: ls\n"
+        ));
+        assert_eq!(check_text("ci.yml", &good), Vec::<String>::new());
+    }
+
+    #[test]
+    fn secrets_outside_release_job_fail() {
+        let text =
+            workflow("      - run: deploy\n        env:\n          TOKEN: ${{ secrets.DEPLOY_TOKEN }}\n");
+        let v = check_text("ci.yml", &text);
+        assert_eq!(v.len(), 1, "{v:?}");
+        assert!(
+            v[0].contains("ci.yml:11:") && v[0].contains("in job `build`"),
+            "{v:?}"
+        );
+
+        // Inside a run block, without spaces, and the built-in token too.
+        let text = workflow("      - run: |\n          curl -H ${{secrets.GITHUB_TOKEN}} x\n");
+        assert_eq!(check_text("ci.yml", &text).len(), 1);
+
+        // Workflow-level env is outside any job.
+        let text = "on: [push]\npermissions:\n  contents: read\nenv:\n  T: ${{ secrets.T }}\njobs: {}\n";
+        let v = check_text("ci.yml", text);
+        assert_eq!(v.len(), 1, "{v:?}");
+        assert!(v[0].contains("outside any job"), "{v:?}");
+
+        // Comments are fine.
+        let text = workflow("      # never ${{ secrets.X }}\n      - run: ls\n");
+        assert_eq!(check_text("ci.yml", &text), Vec::<String>::new());
+    }
+
+    #[test]
+    fn secrets_in_release_job_pass() {
+        let text = "on: [push]\npermissions:\n  contents: read\njobs:\n  build:\n    runs-on: x\n  release:\n    runs-on: x\n    steps:\n      - run: sign\n        env:\n          K: ${{ secrets.SIGNING_KEY }}\n";
+        assert_eq!(check_text("ci.yml", text), Vec::<String>::new());
+        // The next job after release is not covered.
+        let text = format!("{text}  publish:\n    env:\n      K: ${{{{ secrets.K }}}}\n");
+        let v = check_text("ci.yml", &text);
+        assert_eq!(v.len(), 1, "{v:?}");
+        assert!(v[0].contains("in job `publish`"), "{v:?}");
     }
 
     #[test]

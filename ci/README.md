@@ -16,17 +16,17 @@ The job names are the GitHub status-check names to mark as required.
 
 | ID | Workflow / job | Content | Reproduce locally |
 |---|---|---|---|
-| CI-PR-01 | `ci.yml` / `lint` (ubuntu-24.04) | `cargo fmt --all --check`; `cargo clippy --workspace --all-targets --locked -- -D warnings` | `cargo fmt --all --check` and `cargo clippy --workspace --all-targets --locked -- -D warnings` |
-| CI-PR-02 | `ci.yml` / `test-linux` (ubuntu-24.04) | `cargo build --workspace --locked`; `cargo nextest run --workspace --locked --profile ci` | `cargo build --workspace --locked` and `cargo nextest run --workspace --locked` |
+| CI-PR-01 | `ci.yml` / `lint` (ubuntu-24.04) | `cargo fmt --all --check`; `cargo clippy --workspace --all-targets --locked -- -D warnings`, and again with `--all-features` | `cargo fmt --all --check` and both clippy runs |
+| CI-PR-02 | `ci.yml` / `test-linux` (ubuntu-24.04) | `cargo build --workspace --locked`; `cargo nextest run --workspace --locked --profile ci`, and again with `--all-features` (feature-gated tests such as `ew-ids/testkit`); `cargo test --doc --workspace --locked`, and again with `--all-features` (nextest does not run doctests) | `cargo build --workspace --locked`, `cargo nextest run --workspace [--all-features] --locked` and `cargo test --doc --workspace [--all-features] --locked` |
 | CI-PR-03 | `ci.yml` / `test-windows` (windows-2025) | as CI-PR-02 | as CI-PR-02, on Windows |
 | CI-PR-04 | `ci.yml` / `test-macos` (macos-15, arm64) | as CI-PR-02 | as CI-PR-02, on macOS |
-| CI-PR-09 | `ci.yml` / `supply-chain` (ubuntu-24.04) | `cargo deny check`; `cargo audit`; `cargo vet`; `cargo xtask check-deps`, `check-build-scripts`, `check-workflows`; third-party notices with cargo-about 0.9.2 (NFR-LIC-08); MSRV check of the permissive crates with Rust 1.85.0 | `cargo deny --locked check`, `cargo audit`, `cargo vet --locked`, the three `cargo xtask` checks, `cargo about generate -o target/THIRD-PARTY-NOTICES.txt ci/third-party-notices.hbs`, and the MSRV commands below |
+| CI-PR-09 | `ci.yml` / `supply-chain` (ubuntu-24.04) | `cargo deny check`; `cargo audit`; `cargo vet`; `cargo xtask check-deps`, `check-features`, `check-build-scripts`, `check-workflows`; third-party notices with cargo-about 0.9.2 (NFR-LIC-08); MSRV check of the permissive crates with Rust 1.85.0 | `cargo deny --locked check`, `cargo audit`, `cargo vet --locked`, the four `cargo xtask` checks, `cargo about generate -o target/THIRD-PARTY-NOTICES.txt ci/third-party-notices.hbs`, and the MSRV commands below |
 | CI-PR-10 | `docs.yml` / `legal-docs` (ubuntu-24.04) | `docs/plan/tools/{totals,schedule,trace}.py --check` and `doccheck.py`; `reuse lint` (reuse-tool 6.2.0; NFR-LIC-01, NFR-LIC-02); `cargo xtask check-licence-map` (licence map, collective notice, crate licences and the licence boundary of the permissive layer: 19 §5.1, NFR-LIC-10, NFR-MAINT-02); `cargo xtask check-anonymisation` (NFR-PRIV-09); `cargo xtask check-governance-files` (NFR-DOC-08); rustdoc build with `-D warnings` (NFR-MAINT-08). On pull requests only: `cargo xtask check-dco` over the PR's commits (NFR-LIC-03); the LG-2 block, which fails a PR from anyone who is not an owner, member or collaborator while the plugin and design exception texts are missing from `LICENSES/` (NFR-LIC-12); and the RFC reference, which fails a PR labelled `format-major`, `api-break` or `licence` whose description does not mention `rfcs/` (NFR-DOC-09) | `python3 -I docs/plan/tools/totals.py --check` (and the other three); `python -m reuse lint`; `cargo xtask check-licence-map`, `check-anonymisation`, `check-governance-files`, `check-dco origin/main..HEAD`; `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked` |
 | CI-PR-15 | `docs.yml` / `docs-diagrams` (ubuntu-24.04) | Renders every Mermaid block under `docs/` and in the root Markdown with mermaid-cli 12.0.0 (container image pinned by digest) and fails on any error | `python3 -I ci/render-mermaid.py --image <image@sha256:…>` (needs docker); `--extract-only` lists the blocks without docker |
 
-`cargo xtask ci` runs fmt, clippy, nextest and the six repository checks (`check-deps`, `check-build-scripts`,
-`check-workflows`, `check-licence-map`, `check-anonymisation`, `check-governance-files`) in sequence and prints a
-summary: the local mirror of the Rust part of the PR set. `check-dco` needs a revision range and is run on its own.
+`cargo xtask ci` runs fmt, clippy, nextest and the doctests (each with the default features and with `--all-features`)
+and the seven repository checks (`check-deps`, `check-features`, `check-build-scripts`, `check-workflows`,
+`check-licence-map`, `check-anonymisation`, `check-governance-files`) in sequence and prints a summary: the local mirror of the Rust part of the PR set. `check-dco` needs a revision range and is run on its own.
 
 The licence-boundary check that 18 §5.2 lists under CI-PR-09 is part of `check-licence-map` and therefore runs in
 `legal-docs`, next to the licence map it shares its policy file with; the dependency-rule part of the same
@@ -43,17 +43,38 @@ cargo +1.85.0 check --locked -p ew-units -p ew-ids -p ew-mltext -p ew-rds -p ew-
 git checkout Cargo.lock   # locally: restore the committed lockfile afterwards
 ```
 
+## Feature bans (`cargo xtask check-features`)
+
+CI-PR-09 requires that test-only and unsafe features never reach a non-test target. `[[banned_features]]` in
+[`dep-rules.toml`](dep-rules.toml) lists `{ crate, feature, allowed_kinds }` (`ew-ids/testkit` and
+`ew/test-confirm` on dev edges only; rhai `unchecked` and egui `inspection` nowhere) and `banned_crates` lists
+crates that may only be dev-dependencies (`egui_mcp`). The check reads the declared dependencies of every
+workspace package from `cargo metadata` and fails when a banned feature is requested on an edge whose kind
+(`normal`, `dev`, `build`) is not allowed, when a banned crate is a non-dev dependency, or when a package's own
+`default` feature forwards a banned feature (`default = ["ew-ids/testkit"]`, also through other local
+features). The message names the package, dependency, feature and kind. Features that a dependency enables
+by default are out of scope here; they would have to be named on the edge by the dependent crate.
+
+## Anonymisation guard (`cargo xtask check-anonymisation [--require-entries]`)
+
+Every committed file that is not binary is scanned: files with a UTF-16 byte-order mark are decoded as UTF-16,
+all other files as UTF-8 with invalid sequences replaced (so Latin-1 text is still scanned); a file with a NUL
+byte in its first 8 KiB is binary and skipped. While `denylist.sha256` has no entries the guard cannot match
+anything: the check prints a `WARNING` line and still exits 0, because supplying the entries is an owner action
+and must not block CI. `--require-entries` turns that warning into a failure; no workflow uses it yet, the
+maintainers switch it on once the list is committed (gate G-M0-06).
+
 ## Policy files
 
 | File | Checked by | Content |
 |---|---|---|
-| [`dep-rules.toml`](dep-rules.toml) | `cargo xtask check-deps` | Layers, the permitted crate-to-crate edges (the ARCH §3 graph), external-crate owners (rusqlite, egui, wgpu), the importer rule and the `ew-import-qet` confinement (NFR-MAINT-01, ADR-0024) |
-| [`build-scripts.allowlist`](build-scripts.allowlist) | `cargo xtask check-build-scripts` | Every package with a build script, after review (ADR-0023, NFR-SEC-10) |
+| [`dep-rules.toml`](dep-rules.toml) | `cargo xtask check-deps`, `check-features` | Layers, the permitted crate-to-crate edges (the ARCH §3 graph), external-crate owners (rusqlite and `libsqlite3-sys`, egui, wgpu; glob patterns cover the hyphenated sub-crates such as `egui-winit` and `wgpu-core`), the importer rule and the `ew-import-qet` confinement (NFR-MAINT-01, ADR-0024); the banned features and crates of `check-features` (below) |
+| [`build-scripts.allowlist`](build-scripts.allowlist) | `cargo xtask check-build-scripts` | Every package with a build script in the all-features dependency graph, after review (ADR-0023, NFR-SEC-10) |
 | [`../deny.toml`](../deny.toml) | `cargo deny check` | Licence allowlist (NFR-LIC-04), advisories, bans, sources |
 | [`../supply-chain/`](../supply-chain) | `cargo vet` | Audits and the exemption list frozen at the first commit (ADR-0023). No public audit sets are imported yet, because `imports.lock` would record the auditors' names and e-mail addresses (decision log ID-4; ADR-0023 amendment 3: audits name the GitHub handle; audit sets are not imported while the public-repository rule stands) |
 | [`licence-map.toml`](licence-map.toml) | `cargo xtask check-licence-map` | The path-to-licence map of 19 §2.1 (longest glob wins; unmapped paths fail), the files allowed to keep third-party copyright notices, where GPL-2.0 may appear, and the licence allowlist of the permissive layer's dependency closure (NFR-MAINT-02) |
 | [`../REUSE.toml`](../REUSE.toml), [`../LICENSES/`](../LICENSES) | `reuse lint`, `cargo xtask check-licence-map` | Licence annotations for the files that cannot carry an SPDX header; the licence texts |
-| [`denylist.sha256`](denylist.sha256) | `cargo xtask check-anonymisation` | SHA-256 digests of confidential word n-grams (n ≤ 3), never the tokens themselves (NFR-PRIV-09, 20 §3.5). Committed without entries: the maintainers add them (below) |
+| [`denylist.sha256`](denylist.sha256) | `cargo xtask check-anonymisation` | SHA-256 digests of confidential word n-grams (n ≤ 3), never the tokens themselves (NFR-PRIV-09, 20 §3.5). Committed without entries: the maintainers add them (below); until then the check prints a warning and passes |
 | [`../about.toml`](../about.toml), [`third-party-notices.hbs`](third-party-notices.hbs) | `cargo about generate` (CI-PR-09) | The cargo-about licence allowlist (the deny.toml list; the workspace's own `publish = false` crates are ignored) and the plain-text template of the third-party notice file (NFR-LIC-08). CI only generates the file, so a crate without a usable licence fails; the release pipeline (CI-R-07, WP-S6.07) ships it in every artefact |
 | [`render-mermaid.py`](render-mermaid.py) | CI-PR-15 | Mermaid extraction and rendering |
 
@@ -65,7 +86,9 @@ git checkout Cargo.lock   # locally: restore the committed lockfile afterwards
 - Every workflow declares a top-level `permissions:` block with `contents: read` and no write scope; a job that
   needs more widens it for that job only. `permissions: write-all` is never used. `cargo xtask check-workflows`
   enforces these rules (NFR-SEC-19).
-- No workflow runs fork code with secrets; `pull_request_target` is not used.
+- No workflow runs fork code with secrets; `pull_request_target` is not used, every `actions/checkout` sets
+  `persist-credentials: false`, and `${{ secrets.… }}` appears only in a job named `release`; `check-workflows`
+  enforces all three.
 - CI tools are installed at pinned versions: through `taiki-e/install-action`, which verifies checksums, or with
   `cargo install --locked --version`.
 - Tests are never retried (NFR-MAINT-13; `retries = 0` in [`.config/nextest.toml`](../.config/nextest.toml)).
@@ -99,7 +122,8 @@ These settings cannot be committed; a repository owner applies them under Settin
   `cargo xtask denylist-hash "<phrase>"` locally for each customer, end-user and person name and each project or
   drawing number, keep the digests of the distinctive n-grams and append them to `denylist.sha256`. The tokens
   themselves never go into the repository, an issue or a CI log; the guard's messages name file and line only.
-  Until entries exist the guard runs but cannot match anything (gate G-M0-06 needs the list committed).
+  Until entries exist the guard runs but cannot match anything and prints a warning (gate G-M0-06 needs the list
+  committed); then enable `--require-entries` in `docs.yml`.
 
 Both workflows run on every pull request, so all seven jobs can be required checks. `docs-diagrams`
 renders every diagram each time (about 90 blocks, a few minutes) rather than filtering on changed paths, because

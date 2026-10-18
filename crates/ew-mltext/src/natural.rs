@@ -7,6 +7,7 @@ use std::cmp::Ordering;
 
 use unicode_normalization::UnicodeNormalization;
 use unicode_normalization::char::canonical_combining_class;
+use unicode_properties::{GeneralCategory, UnicodeGeneralCategory};
 
 use crate::to_nfc;
 
@@ -19,10 +20,6 @@ const NUMBER: u8 = 0x04;
 const LETTER: u8 = 0x05;
 // Element marker of levels 2 and 3 (above END, so the prefix rule holds there too).
 const CHAR: u8 = 0x01;
-
-/// ASCII characters that Unicode classifies as symbols (Sc, Sk, Sm); the other ASCII punctuation
-/// characters are punctuation (P*).
-const ASCII_SYMBOLS: &str = "$+<=>^`|~";
 
 /// A byte string whose order (`Ord`, equally `memcmp`) is the natural order of the text it was made from
 /// (FR-NUM-018, FR-I18N-010).
@@ -45,20 +42,54 @@ fn push_code_point(key: &mut Vec<u8>, c: char) {
     key.extend_from_slice(&v.to_be_bytes()[1..]);
 }
 
+/// The level-1 class of a non-digit character, by Unicode general category: separators (Z*), ASCII white
+/// space and control characters are white space, P* is punctuation, S* is a symbol, everything else
+/// (letters, marks, other numbers such as `²`, unassigned code points) sorts with the letters.
 fn class(c: char) -> u8 {
-    if c.is_whitespace() || c.is_control() {
-        SPACE
-    } else if c.is_ascii_punctuation() {
-        if ASCII_SYMBOLS.contains(c) {
-            SYMBOL
-        } else {
-            PUNCTUATION
-        }
-    } else if c.is_alphanumeric() {
-        LETTER
-    } else {
-        SYMBOL
+    if c.is_ascii_whitespace() || c.is_control() {
+        return SPACE;
     }
+    match c.general_category() {
+        GeneralCategory::SpaceSeparator
+        | GeneralCategory::LineSeparator
+        | GeneralCategory::ParagraphSeparator => SPACE,
+        GeneralCategory::ConnectorPunctuation
+        | GeneralCategory::DashPunctuation
+        | GeneralCategory::OpenPunctuation
+        | GeneralCategory::ClosePunctuation
+        | GeneralCategory::InitialPunctuation
+        | GeneralCategory::FinalPunctuation
+        | GeneralCategory::OtherPunctuation => PUNCTUATION,
+        GeneralCategory::MathSymbol
+        | GeneralCategory::CurrencySymbol
+        | GeneralCategory::ModifierSymbol
+        | GeneralCategory::OtherSymbol => SYMBOL,
+        _ => LETTER,
+    }
+}
+
+/// The decimal value (0-9) of a character of general category Nd, or `None`.
+///
+/// Unicode encodes every Nd script as contiguous ascending runs of ten digits starting at zero, and
+/// adjacent scripts (the mathematical digits) as whole multiples of ten, so the value is the offset from the
+/// start of the contiguous Nd run, modulo 10.
+fn decimal_value(c: char) -> Option<u8> {
+    if let Some(d) = c.to_digit(10) {
+        return u8::try_from(d).ok();
+    }
+    if c.general_category() != GeneralCategory::DecimalNumber {
+        return None;
+    }
+    let mut offset = 0u32;
+    let mut cur = u32::from(c);
+    while let Some(prev) = cur.checked_sub(1).and_then(char::from_u32) {
+        if prev.general_category() != GeneralCategory::DecimalNumber {
+            break;
+        }
+        offset += 1;
+        cur -= 1;
+    }
+    u8::try_from(offset % 10).ok()
 }
 
 /// The natural-sort key of `s`, the ElektraWatt natural order (version 1).
@@ -68,11 +99,14 @@ fn class(c: char) -> u8 {
 /// levels; a later level only breaks ties of the earlier ones.
 ///
 /// 1. **Primary.** The NFC text is decomposed (NFD), combining marks are dropped and letters are
-///    lower-cased. The result is split into elements: each run of ASCII digits is **one number** that
-///    compares by value (leading zeros ignored), every other character is one element. Elements compare
-///    by class first, `white space < punctuation < symbols < numbers < letters` (the class order of the
-///    Unicode collation root: `-` before `+` before digits before letters), then by code point. A string
-///    that is a prefix of another sorts first.
+///    lower-cased. The result is split into elements: each run of decimal digits (general category Nd,
+///    ASCII or any script, mixed runs allowed) is **one number** that compares by its decimal value
+///    (leading zeros ignored), every other character is one element. Elements are classed by Unicode
+///    general category (separators Z* and ASCII white space are white space, P* punctuation, S* symbols,
+///    everything else letters) and compare by class first, `white space < punctuation < symbols < numbers <
+///    letters` (the class order of the Unicode collation root: `-` before `+` before digits before
+///    letters), then by code point. So the en dash (punctuation) sorts before `+` (a symbol). A string that
+///    is a prefix of another sorts first.
 /// 2. **Secondary.** The lower-cased NFC text, code point by code point: accents (`A1 < Ä1 < A2`) and
 ///    leading zeros (`X01 < X1`).
 /// 3. **Tertiary.** The NFC text, code point by code point: case, upper case first (`K1 < k1 < K2`).
@@ -101,17 +135,17 @@ pub fn natural_key(s: &str) -> NaturalKey {
     let mut i = 0;
     while i < primary.len() {
         let c = primary[i];
-        if c.is_ascii_digit() {
-            let start = i;
-            while i < primary.len() && primary[i].is_ascii_digit() {
+        if decimal_value(c).is_some() {
+            let mut digits = Vec::new();
+            while let Some(d) = primary.get(i).copied().and_then(decimal_value) {
+                digits.push(d);
                 i += 1;
             }
-            let digits = &primary[start..i];
-            let significant = &digits[digits.iter().take_while(|&&d| d == '0').count()..];
+            let significant = &digits[digits.iter().take_while(|&&d| d == 0).count()..];
             key.push(NUMBER);
             let len = u32::try_from(significant.len()).unwrap_or(u32::MAX);
             key.extend_from_slice(&len.to_be_bytes());
-            key.extend(significant.iter().map(|&d| d as u8));
+            key.extend(significant.iter().map(|&d| b'0' + d));
         } else {
             key.push(class(c));
             push_code_point(&mut key, c);
@@ -205,6 +239,44 @@ mod tests {
         assert_eq!(natural_cmp("", " "), Ordering::Less);
         assert_eq!(natural_cmp("_", "+"), Ordering::Less);
         assert_eq!(natural_cmp("+J-E-2416", "-101F1"), Ordering::Greater);
+    }
+
+    #[test]
+    fn unicode_general_categories() {
+        // Non-ASCII punctuation is punctuation, not a symbol: en dash and ellipsis before `+`.
+        assert_eq!(natural_cmp("\u{2013}", "+"), Ordering::Less);
+        assert_eq!(natural_cmp("\u{2026}", "+"), Ordering::Less);
+        assert_eq!(natural_cmp("\u{ab}", "\u{20ac}"), Ordering::Less);
+        // Symbols: euro (Sc), multiplication sign (Sm) sort after punctuation, before digits.
+        assert_eq!(natural_cmp("-", "\u{20ac}"), Ordering::Less);
+        assert_eq!(natural_cmp("\u{d7}", "0"), Ordering::Less);
+        // Non-ASCII white space (no-break space, ideographic space) is white space.
+        assert_eq!(natural_cmp("\u{a0}", "-"), Ordering::Less);
+        assert_eq!(natural_cmp("\u{3000}", "-"), Ordering::Less);
+        // Other numbers (superscript two) are not decimal digits: they sort with the letters.
+        assert_eq!(natural_cmp("9", "\u{b2}"), Ordering::Less);
+    }
+
+    #[test]
+    fn non_ascii_decimal_digits_are_numbers() {
+        // Arabic-Indic 12 against 3: by value, so after; against 13: before.
+        assert_eq!(natural_cmp("\u{661}\u{662}", "3"), Ordering::Greater);
+        assert_eq!(natural_cmp("\u{661}\u{662}", "13"), Ordering::Less);
+        assert_eq!(
+            sorted(&["X\u{661}\u{660}", "X9", "X\u{662}"]),
+            ["X\u{662}", "X9", "X\u{661}\u{660}"]
+        );
+        // Mixed scripts form one number: 1 followed by Arabic-Indic 2 is 12, above 11 and below 13.
+        assert_eq!(natural_cmp("1\u{662}", "11"), Ordering::Greater);
+        assert_eq!(natural_cmp("1\u{662}", "13"), Ordering::Less);
+        assert_eq!(decimal_value('\u{ff19}'), Some(9));
+        assert_eq!(decimal_value('\u{1d7ff}'), Some(9));
+        assert_eq!(decimal_value('\u{1d7ce}'), Some(0));
+        assert_eq!(decimal_value('\u{1d7d8}'), Some(0));
+        assert_eq!(decimal_value('a'), None);
+        assert_eq!(natural_cmp("\u{669}", "A"), Ordering::Less);
+        // Same value, different script: distinguished by the later levels, never equal.
+        assert_ne!(natural_key("\u{661}"), natural_key("1"));
     }
 
     #[test]

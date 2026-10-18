@@ -12,6 +12,7 @@ mod anonymise;
 mod build_scripts;
 mod dco;
 mod deps;
+mod features;
 mod governance;
 mod licence;
 mod repo;
@@ -28,16 +29,21 @@ usage: cargo xtask <command>
 commands:
   check-deps           crate-dependency rules of ARCH §3 (policy: ci/dep-rules.toml)
   check-build-scripts  every package with a build script is allowlisted (ci/build-scripts.allowlist)
-  check-workflows      actions pinned by commit SHA, read-only default token (.github/workflows/)
+  check-features       banned features and crates only on dev edges (ci/dep-rules.toml: banned_features)
+  check-workflows      actions pinned by commit SHA, read-only default token, no pull_request_target,
+                       credential-free checkouts, secrets only in `release` (.github/workflows/)
   check-licence-map    path licences, collective notice, crate licences, permissive-layer licence boundary
                        (ci/licence-map.toml, REUSE.toml)
-  check-anonymisation  no committed word n-gram is on the confidential-token list (ci/denylist.sha256)
+  check-anonymisation [--require-entries]
+                       no committed word n-gram is on the confidential-token list (ci/denylist.sha256);
+                       --require-entries fails when the list has no digests
   check-governance-files
                        the governance files of NFR-DOC-08 exist and are not empty
   check-dco <range>    every non-merge commit in the git range has a Signed-off-by trailer
   denylist-hash <phrase>
                        print the digests of the phrase's 1-, 2- and 3-grams for ci/denylist.sha256
-  ci                   fmt, clippy, nextest and the repository checks above (except check-dco), with a summary
+  ci                   fmt, clippy and nextest (default and all features), doctests and the repository checks
+                       above (except check-dco), with a summary
   help                 this text
 ";
 
@@ -47,9 +53,17 @@ fn main() -> ExitCode {
     let result = match command {
         "check-deps" => run_check("check-deps", check_deps),
         "check-build-scripts" => run_check("check-build-scripts", check_build_scripts),
+        "check-features" => run_check("check-features", check_features),
         "check-workflows" => run_check("check-workflows", check_workflows),
         "check-licence-map" => run_check("check-licence-map", check_licence_map),
-        "check-anonymisation" => run_check("check-anonymisation", check_anonymisation),
+        "check-anonymisation" => match args.get(1).map(String::as_str) {
+            None => run_check("check-anonymisation", check_anonymisation),
+            Some("--require-entries") => run_check("check-anonymisation", check_anonymisation_strict),
+            Some(other) => {
+                eprint!("check-anonymisation: unknown argument `{other}`\n\n{USAGE}");
+                Ok(false)
+            }
+        },
         "check-governance-files" => run_check("check-governance-files", check_governance_files),
         "check-dco" => match args.get(1) {
             Some(range) => check_dco(range),
@@ -154,8 +168,19 @@ fn check_deps() -> Result<Violations> {
 fn check_build_scripts() -> Result<Violations> {
     let root = workspace_root();
     let allowlist = build_scripts::load_allowlist(&root.join("ci/build-scripts.allowlist"))?;
-    let with_build_script = build_scripts::packages_with_build_script(&metadata()?);
+    // All features: a build script behind a non-default feature is still part of the supply chain.
+    let with_build_script = build_scripts::packages_with_build_script(&metadata_all_features(&root)?);
     Ok(build_scripts::check(&allowlist, &with_build_script))
+}
+
+fn check_features() -> Result<Violations> {
+    let root = workspace_root();
+    let policy = deps::Policy::load(&root.join("ci/dep-rules.toml"))?;
+    let rules = features::Rules {
+        features: &policy.banned_features,
+        crates: &policy.banned_crates,
+    };
+    Ok(features::check(&rules, &features::from_metadata(&metadata()?)))
 }
 
 fn check_workflows() -> Result<Violations> {
@@ -208,18 +233,34 @@ pub(crate) fn check_licence_map_at(root: &Path) -> Result<Violations> {
 }
 
 fn check_anonymisation() -> Result<Violations> {
-    check_anonymisation_at(&workspace_root())
+    check_anonymisation_at(&workspace_root(), false)
 }
 
-/// `check-anonymisation` for the repository at `root` (NFR-PRIV-09). Files that are not valid UTF-8 are skipped.
-pub(crate) fn check_anonymisation_at(root: &Path) -> Result<Violations> {
+/// `check-anonymisation --require-entries`: the empty-list warning becomes a failure.
+fn check_anonymisation_strict() -> Result<Violations> {
+    check_anonymisation_at(&workspace_root(), true)
+}
+
+/// `check-anonymisation` for the repository at `root` (NFR-PRIV-09). Binary files (a NUL byte in the first
+/// 8 KiB) are skipped; every other file is decoded by [`anonymise::decode`]. An empty denylist prints a
+/// warning and passes (the entries are an owner action), unless `require_entries` is set.
+pub(crate) fn check_anonymisation_at(root: &Path, require_entries: bool) -> Result<Violations> {
     let list = root.join("ci/denylist.sha256");
     let text = std::fs::read_to_string(&list).with_context(|| format!("reading {}", list.display()))?;
     let denylist = anonymise::parse_denylist(&text).with_context(|| format!("parsing {}", list.display()))?;
+    if denylist.is_empty() {
+        if require_entries {
+            return Ok(vec![
+                "ci/denylist.sha256 has no entries; the guard is inactive (--require-entries, NFR-PRIV-09)"
+                    .to_owned(),
+            ]);
+        }
+        eprintln!("{}", anonymise::EMPTY_WARNING);
+    }
     let mut files = Vec::new();
     for path in repo::list_files(root)? {
         let bytes = std::fs::read(root.join(&path)).with_context(|| format!("reading {path}"))?;
-        if let Ok(text) = String::from_utf8(bytes) {
+        if let Some(text) = anonymise::decode(&bytes) {
             files.push((path, text));
         }
     }
@@ -265,7 +306,7 @@ fn denylist_hash(phrase: &str) {
 /// Runs the local mirror of the per-PR CI set and prints a summary. Every step runs, even after a failure,
 /// so one invocation shows everything that needs fixing.
 fn ci() -> Result<bool> {
-    let cargo_steps: [(&str, &[&str]); 3] = [
+    let cargo_steps: [(&str, &[&str]); 7] = [
         ("fmt", &["fmt", "--all", "--check"]),
         (
             "clippy",
@@ -279,10 +320,34 @@ fn ci() -> Result<bool> {
                 "warnings",
             ],
         ),
+        (
+            "clippy-all-features",
+            &[
+                "clippy",
+                "--workspace",
+                "--all-targets",
+                "--all-features",
+                "--locked",
+                "--",
+                "-D",
+                "warnings",
+            ],
+        ),
         ("nextest", &["nextest", "run", "--workspace", "--locked"]),
+        (
+            "nextest-all-features",
+            &["nextest", "run", "--workspace", "--all-features", "--locked"],
+        ),
+        // nextest does not run doctests.
+        ("doctests", &["test", "--doc", "--workspace", "--locked"]),
+        (
+            "doctests-all-features",
+            &["test", "--doc", "--workspace", "--all-features", "--locked"],
+        ),
     ];
-    let checks: [Check; 6] = [
+    let checks: [Check; 7] = [
         ("check-deps", check_deps),
+        ("check-features", check_features),
         ("check-build-scripts", check_build_scripts),
         ("check-workflows", check_workflows),
         ("check-licence-map", check_licence_map),
@@ -314,7 +379,7 @@ fn ci() -> Result<bool> {
 
     println!("\nsummary:");
     for (name, passed) in &summary {
-        println!("  {:<24} {}", name, if *passed { "ok" } else { "FAILED" });
+        println!("  {:<26} {}", name, if *passed { "ok" } else { "FAILED" });
     }
     let failed = summary.iter().filter(|(_, passed)| !passed).count();
     if failed > 0 {

@@ -32,6 +32,12 @@ pub struct Policy {
     /// Crates whose dependents are restricted.
     #[serde(default)]
     pub confined: Vec<Confined>,
+    /// Features that may only be enabled on the listed dependency kinds (`cargo xtask check-features`).
+    #[serde(default)]
+    pub banned_features: Vec<crate::features::BannedFeature>,
+    /// Crates that may only be dev-dependencies (`cargo xtask check-features`).
+    #[serde(default)]
+    pub banned_crates: Vec<String>,
 }
 
 /// Layer membership of the workspace packages.
@@ -103,7 +109,8 @@ impl Policy {
 }
 
 /// The kind of a declared dependency.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Kind {
     /// `[dependencies]`.
     Normal,
@@ -114,7 +121,7 @@ pub enum Kind {
 }
 
 impl Kind {
-    fn label(self) -> &'static str {
+    pub(crate) fn label(self) -> &'static str {
         match self {
             Kind::Normal => "dependency",
             Kind::Dev => "dev-dependency",
@@ -446,7 +453,7 @@ mod tests {
         reason = "rule 2"
 
         [[external_owner]]
-        crates = ["egui", "egui_*"]
+        crates = ["egui", "egui_*", "egui-*"]
         owners = ["g-ui", "app", "g-viewer"]
         reason = "rule 3"
 
@@ -587,6 +594,43 @@ mod tests {
             &v,
             "external: `g-model` depends on `egui_extras` (dev-dependency)",
         );
+    }
+
+    #[test]
+    fn hyphenated_egui_crate_outside_owner_fails() {
+        let v = with(("g-model", "egui-winit", Kind::Normal));
+        assert_violation(&v, "external: `g-model` depends on `egui-winit` (dependency)");
+        // The owner may use it.
+        let mut edges = clean_edges();
+        edges.push(("g-ui", "egui-winit", Kind::Normal));
+        assert_eq!(check(&policy(), &graph(&edges)), Vec::<String>::new());
+    }
+
+    /// The real owner rules cover the hyphenated sub-crates and the SQLite system crate.
+    #[test]
+    fn real_owner_rules_cover_hyphenated_crates() {
+        let root = crate::workspace_root();
+        let policy = Policy::load(&root.join("ci/dep-rules.toml")).expect("policy loads");
+        let covered = |name: &str| {
+            policy
+                .external_owner
+                .iter()
+                .any(|r| r.crates.iter().any(|p| wildcard_match(p, name)))
+        };
+        for name in [
+            "egui-winit",
+            "egui-kittest",
+            "egui_extras",
+            "wgpu-types",
+            "wgpu-core",
+            "wgpu-hal",
+            "libsqlite3-sys",
+        ] {
+            assert!(
+                covered(name),
+                "{name} is not covered by an [[external_owner]] rule"
+            );
+        }
     }
 
     #[test]

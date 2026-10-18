@@ -19,6 +19,8 @@ serde.workspace = true
 unicode-normalization.workspace = true
 # UTS #39 confusable skeletons, mixed-script detection and the General Security Profile (ADR-0005).
 unicode-security = "0.1.2"
+# General categories for the natural-order classes (white space, punctuation, symbol, decimal digit).
+unicode-properties = { version = "0.1.4", default-features = false, features = ["general-category"] }
 
 [dev-dependencies]
 proptest = { version = "1.12.0", default-features = false, features = ["std"] }

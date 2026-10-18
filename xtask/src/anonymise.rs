@@ -9,6 +9,11 @@
 //! space, UTF-8). A digest found in `ci/denylist.sha256` fails the check. Only hashes are committed, so the
 //! confidential tokens never enter the repository; the messages name file and line, never the matched words,
 //! because CI logs are public.
+//!
+//! The list ships without entries until the maintainers add them; the check then prints [`EMPTY_WARNING`]
+//! and passes (an owner action must not block CI), and `--require-entries` turns the warning into a failure.
+//! Files are decoded by [`decode`]: UTF-16 by its byte-order mark, everything else as lossy UTF-8, binary
+//! files (NUL byte in the first 8 KiB) skipped.
 
 use std::collections::HashSet;
 
@@ -150,6 +155,39 @@ pub fn phrase_digests(phrase: &str) -> Vec<(usize, usize, String)> {
     out
 }
 
+/// The warning printed while `ci/denylist.sha256` has no entries: the guard cannot match anything then.
+pub const EMPTY_WARNING: &str = "check-anonymisation: WARNING: ci/denylist.sha256 has no entries; the guard is \
+inactive until the maintainers add hashes (owner action, NFR-PRIV-09)";
+
+/// Bytes at the start of a file that are searched for a NUL byte to recognise binary files.
+const BINARY_PROBE: usize = 8 * 1024;
+
+/// Decodes a committed file for scanning, or `None` for a binary file.
+///
+/// A file that starts with a UTF-16 byte-order mark is decoded as UTF-16 (little or big endian). Otherwise a
+/// file with a NUL byte in its first 8 KiB is binary and skipped. Everything else is decoded as UTF-8, and
+/// invalid sequences become U+FFFD instead of hiding the whole file, so Latin-1 text is still scanned.
+pub fn decode(bytes: &[u8]) -> Option<String> {
+    let utf16 = |rest: &[u8], little_endian: bool| {
+        let units = rest.chunks_exact(2).map(|p| {
+            if little_endian {
+                u16::from_le_bytes([p[0], p[1]])
+            } else {
+                u16::from_be_bytes([p[0], p[1]])
+            }
+        });
+        char::decode_utf16(units)
+            .map(|r| r.unwrap_or(char::REPLACEMENT_CHARACTER))
+            .collect::<String>()
+    };
+    match bytes {
+        [0xff, 0xfe, rest @ ..] => Some(utf16(rest, true)),
+        [0xfe, 0xff, rest @ ..] => Some(utf16(rest, false)),
+        _ if bytes[..bytes.len().min(BINARY_PROBE)].contains(&0) => None,
+        _ => Some(String::from_utf8_lossy(bytes).into_owned()),
+    }
+}
+
 /// Checks `files` (path, content) against `denylist`. Files under `LICENSES/` are skipped.
 pub fn check(files: &[(String, String)], denylist: &HashSet<Hash>) -> Vec<String> {
     let mut v = Vec::new();
@@ -221,6 +259,71 @@ mod tests {
         assert!(!v[0].to_lowercase().contains("acme"));
     }
 
+    /// `check` over a file decoded from raw bytes, as `check-anonymisation` does.
+    fn check_bytes(path: &str, bytes: &[u8]) -> Vec<String> {
+        let denylist = parse_denylist(ACME_PANELS).unwrap();
+        let files: Vec<(String, String)> = decode(bytes).map(|t| (path.to_owned(), t)).into_iter().collect();
+        check(&files, &denylist)
+    }
+
+    #[test]
+    fn utf16_files_are_decoded_and_scanned() {
+        let text = "id\nAcme Panels\n";
+        let le: Vec<u8> = [0xff, 0xfe]
+            .into_iter()
+            .chain(text.encode_utf16().flat_map(u16::to_le_bytes))
+            .collect();
+        let be: Vec<u8> = [0xfe, 0xff]
+            .into_iter()
+            .chain(text.encode_utf16().flat_map(u16::to_be_bytes))
+            .collect();
+        for (name, bytes) in [("le.csv", le), ("be.csv", be)] {
+            let v = check_bytes(name, &bytes);
+            assert_eq!(v.len(), 1, "{name}: {v:#?}");
+            assert!(
+                v[0].starts_with(&format!("{name}:2: a 2-word sequence")),
+                "{v:#?}"
+            );
+        }
+    }
+
+    #[test]
+    fn latin1_files_are_scanned_lossily() {
+        // 0xe9 is e-acute in Latin-1 and invalid UTF-8; the ASCII words must still be found.
+        let bytes = b"caf\xe9 menu\nAcme Panels\n";
+        assert!(String::from_utf8(bytes.to_vec()).is_err());
+        let v = check_bytes("notes.txt", bytes);
+        assert_eq!(v.len(), 1, "{v:#?}");
+        assert!(v[0].starts_with("notes.txt:2:"), "{v:#?}");
+    }
+
+    #[test]
+    fn binary_files_are_skipped() {
+        let bytes = b"\x89PNG\0\0\0Acme Panels";
+        assert_eq!(decode(bytes), None);
+        assert!(check_bytes("logo.png", bytes).is_empty());
+        // A NUL after the probe window does not make a file binary.
+        let mut late = b"Acme Panels ".repeat(1000);
+        late.push(0);
+        assert!(decode(&late).is_some());
+    }
+
+    #[test]
+    fn empty_denylist_fails_when_entries_are_required() {
+        let dir = std::env::temp_dir().join(format!("xtask-anon-{}", std::process::id()));
+        std::fs::create_dir_all(dir.join("ci")).unwrap();
+        std::fs::write(dir.join("ci/denylist.sha256"), "# no entries\n").unwrap();
+        // The strict path returns before the repository is listed, so no git repository is needed.
+        let v = crate::check_anonymisation_at(&dir, true).unwrap();
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(v.len(), 1, "{v:#?}");
+        assert!(v[0].contains("--require-entries"), "{v:#?}");
+        assert!(
+            EMPTY_WARNING.starts_with("check-anonymisation: WARNING: ci/denylist.sha256 has no entries;"),
+            "{EMPTY_WARNING}"
+        );
+    }
+
     #[test]
     fn malformed_denylist_is_rejected() {
         assert!(parse_denylist("ABCDEF").is_err());
@@ -231,7 +334,7 @@ mod tests {
     #[test]
     fn real_repository_passes() {
         let root = crate::workspace_root();
-        let violations = crate::check_anonymisation_at(&root).unwrap();
+        let violations = crate::check_anonymisation_at(&root, false).unwrap();
         assert_eq!(violations, Vec::<String>::new());
     }
 }

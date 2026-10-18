@@ -3,7 +3,8 @@
 
 //! `check-build-scripts`: every package in the dependency graph (workspace or external) that has a
 //! `custom-build` target (a `build.rs`) must be listed in `ci/build-scripts.allowlist` (ADR-0023 decision 1,
-//! NFR-SEC-10). The allowlist holds one crate name per line; `#` starts a comment.
+//! NFR-SEC-10). The graph is the all-features metadata, so a build script behind a non-default feature is
+//! seen too. The allowlist holds one crate name per line; `#` starts a comment.
 
 use std::collections::BTreeSet;
 use std::path::Path;
@@ -73,12 +74,14 @@ mod tests {
         assert!(check(&allow, &found).is_empty());
     }
 
-    /// The real dependency graph matches the committed allowlist.
+    /// The real dependency graph (all features) matches the committed allowlist.
     #[test]
     fn real_workspace_passes() {
         let root = crate::workspace_root();
         let allow = load_allowlist(&root.join("ci/build-scripts.allowlist")).expect("allowlist loads");
-        let found = packages_with_build_script(&crate::metadata().expect("cargo metadata runs"));
+        let found = packages_with_build_script(
+            &crate::metadata_all_features(&root).expect("cargo metadata --all-features runs"),
+        );
         assert_eq!(check(&allow, &found), Vec::<String>::new());
     }
 }
