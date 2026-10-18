@@ -189,10 +189,10 @@ is always derived; the representation stores only overrides of position, rotatio
 height comes from the text style bound to the slot kind (FR-SYM-013, D-29), so dragging a label moves it but never
 resizes it. Texts stay readable from the bottom or the right of the sheet (common drawing practice; the governing
 clause is unverified), so slot text never renders at R180 or R90: on a symbol at R180 it renders at R0, on a symbol
-at R90 at R270 (reading bottom to top); a mirror never mirrors glyphs. Instead, under a mirroring variant (E–H) and
-wherever the readable rotation turns a text by 180°, the text's alignment flips (left ↔ right, and top ↔ bottom where
-the variant reverses that axis), so the text keeps its side of the symbol and stays readable (decision log ID-49;
-the rule for all eight variants is [07](07-symbols-parts-macros.md) §4.1).
+at R90 at R270 (reading bottom to top); a mirror never mirrors glyphs. Instead the text's alignment flips: left ↔
+right when the readable rotation turns the text by 180°, top ↔ bottom when exactly one of that turn and a mirror
+applies, so the text keeps its side of the symbol and stays readable (decision log ID-49; the table for all eight
+variants is in [07](07-symbols-parts-macros.md) §4.1).
 
 ### 2.6 Devices, functions, main and auxiliary
 
