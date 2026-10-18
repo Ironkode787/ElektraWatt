@@ -165,7 +165,7 @@ page to the native grid is a 1.x command (FR-PAG-022).
 
 ### 2.5 Representations: variants, orientation, text slots
 
-A placed symbol is a `Representation{functions, page, symbol{id, variant}, pos, orient, rep_type, pin_map,
+A placed symbol is a `Representation{functions, page, symbol, variant, pos, orient, rep_type, pin_map,
 text_slots}` ([03](03-domain-model.md) §6). The editor exposes three independent choices while placing:
 
 1. **Orientation variant A–H** (FR-SYM-004, FR-SYM-015), mapped onto `Orient2`:
@@ -226,7 +226,8 @@ auxiliary function drawn inside its own device's box (the 13-14 contact of -102F
 
 Cross-references are relations between representations; their texts are derived by `xref_text(rep)` from the
 target's anchor cell and the project's format ([03](03-domain-model.md) §10, FR-XRF-001). The editor never stores
-xref text. The format is a project scheme (FR-PRJ-008):
+xref text. The format is a project scheme (FR-PRJ-008), persisted as `ProjectSettings.xref_format`
+([03](03-domain-model.md) §5.1):
 
 ```toml
 [xref]

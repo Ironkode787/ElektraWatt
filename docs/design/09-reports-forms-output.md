@@ -112,20 +112,34 @@ by the schema-steward batch, Open question 7):
 ```rust
 pub struct ReportBlock {
     pub id: Id<ReportBlock>,                 // UUIDv7; generated pages are v5(id, page_index) (ADR-0004)
-    pub source: ReportSource,                // Kind { kind: ReportKind, params } | SqlQuery { api: "v1", file } (reports/<uuid>.sql)
-    pub filter: Option<FilterExpr>,          // typed predicate or pure rhai expression (FR-EXT-011)
+    pub source: ReportSource,                // Kind(ReportKind) | SqlQuery { api: "v1", file } (reports/<uuid>.sql)
     pub manual: ManualSelection,             // + include / exclude entity IDs (FR-REP-027)
-    pub sort: SmallVec<SortKey>,             // column key, direction; natural collation
-    pub group: Option<GroupSpec>,            // key, break: None | NewPage | NewFolio, header/footer rows
-    pub form: FormRef,                       // first-page form; its `continuation` names the next form
+    pub sort: SmallVec<SortKey>,             // { key, descending }; natural collation
+    pub group: Option<GroupSpec>,            // { key, break: None | NewPage | NewFolio }
+    pub form: Id<FormDef>,                   // first-page form; its `continuation` names the next form
     pub section: Option<Id<Section>>,
-    pub first_folio: u32,                    // 907
+    pub first_folio: Option<u32>,            // 907; required for page-oriented blocks, ignored when embedded
     pub continuation: ContinuationPolicy,    // + SubPage (907, 907.1, …; default, FR-PAG-030) | NextFolio
     pub title: MlText,                       // + page-title format: "Wire List {n}", "Terminal Diagram {group}"
     pub empty: EmptyPolicy,                  // + OmitPages | OnePage("No entries")
-    pub embedded: Option<EmbedSpec>,         // { page, rect, overflow } for page-embedded tables
+    pub embedded: Option<EmbedSpec>,         // { page, rect } for page-embedded tables (§3.4)
+    pub source_ref: Option<SourceRef>,       // import provenance (14 §2.3)
+    // later, appended (kept in `extra` until then): params, filter (WP-S3.03)
 }
 ```
+
+**Encodings and deferred members** (decision log ID-16):
+- `source` is `{"kind": "<report kind>"}` with the snake_case names of §2.4, or
+  `{"sql_query": {"api": "v1", "file": "<uuid>"}}`.
+- `params` (report-kind parameters) and `filter` (§3.3: a typed predicate or a pure rhai expression) are **deferred
+  to WP-S3.03**. They will be appended as top-level members of the block, not inside `source`, so adding them is
+  additive; a file that carries them keeps them in `extra` until then.
+- **Group header and footer rows** are not a `GroupSpec` member. A block emits them when its form's data area has a
+  `group_header` or `group_footer` template (§2.5), so `GroupSpec` is `{key, break}`.
+- **`first_folio`** is required for a page-oriented block (a structural invariant) and ignored when `embedded` is
+  set: an embedded block has no folio.
+- **`EmbedSpec`** is `{page, rect}`. It has no overflow member: an embedded block overflows by its cells' `Overflow`
+  policy and the rule of §3.4.
 
 Golden A holds **11 page blocks** (TOC 2, BOM 901, 903, 904, 905, 906, 907, 908, 909, 910, 911) and **4 embedded
 blocks** (PART DATA on 201, 202 and 902, plus one `profile_tables` block on the cover whose form gives each group,
@@ -225,18 +239,18 @@ rather than the model.
 ```rust
 pub struct FormDef {
     pub kind: FormKind,                      // Frame | TitleBlock | Cover | Divider | Report | Label
-    pub form_type: FormType,                 // fixes the valid placeholders (FR-REP-034), e.g. Report(TerminalFamily)
     pub sheet: SheetSpec,                    // A4 landscape 297 × 210 mm, or custom
     pub page_to_sheet: Option<SheetTransform>, // uniform scale + offset, integer, QET-compatible frames only (FR-PAG-029); None = scale 1
     pub grid: Option<FrameGrid>,             // columns, rows, header bands, labels (FR-PAG-014)
-    pub title_block: Option<FormRef>,
+    pub title_block: Option<Id<FormDef>>,
     pub graphics: Vec<Primitive>,            // rules, boxes, drop shadows (REF-105), logo asset refs (FR-SYM-025)
     pub cells: Vec<FormCell>,                // static cells: labels + placeholders
     pub data: Option<DataArea>,              // Report forms only
-    pub continuation: Option<FormRef>,       // EPLAN "next form" (FR-REP-032)
-    pub meta: ItemMeta,                      // key, version, licence CC-BY-SA-4.0 + exception, sources, status (03 §7)
+    pub continuation: Option<Id<FormDef>>,   // EPLAN "next form" (FR-REP-032)
+    pub meta: ItemMeta,                      // key, licence CC-BY-SA-4.0 + exception, sources, status (03 §7)
 }
-pub struct DataArea { pub rect: Rect, pub header: RowTemplate, pub rows: BTreeMap<RowKind, RowTemplate>, pub grid: TableStyle }
+pub struct DataArea { pub rect: Rect, pub header: RowTemplate, pub rows: RowTemplates, pub grid: TableStyle }
+pub struct RowTemplates { pub data: Option<RowTemplate>, pub group_header: Option<RowTemplate>, pub group_footer: Option<RowTemplate>, pub heading: Option<RowTemplate> }   // one template per RowKind
 pub struct RowTemplate { pub height: Nm, pub cells: Vec<FormCell>, pub wrap: WrapPolicy }   // default WrapPolicy::None
 pub struct FormCell { pub rect: Rect, pub label: Option<MlText>, pub value: Placeholder,
                       pub style: TextStyleRef, pub align: Align, pub overflow: Overflow, pub visible_if: Option<Cond> }
@@ -246,6 +260,11 @@ pub struct SheetTransform { pub scale_ppb: u32, pub offset: Pt2 }   // QET frame
 
 The transform is stored as an integer scale in parts per 10⁹ plus an nm offset, so every writer applies it with the
 integer arithmetic of §4.3 rule 4 instead of a float `Affine`.
+
+**`form_type`** (the placeholder set a form accepts, FR-REP-034) is **deferred to WP-S3.02**, which defines its
+encoding and appends it to `FormDef` (decision log ID-16). Until then placeholder validity is checked against `kind`
+and, for a report form, the report kind of the block that uses it; a file that carries `form_type` keeps it in
+`extra`.
 
 **The house report form of the reference** ([golden](20-golden-project.md) §16): table x 16.31–277.27 mm, header
 and data rows 6.52 mm, header fill #C0C0C0, grid 0.183 mm, text style `text.normal` 8.88 pt, **23 data rows per
@@ -261,7 +280,7 @@ are rejected (FR-REP-034).
 
 | Scope | Examples | Valid in |
 |---|---|---|
-| `project` | `{project.description}`, `{project.reference}`, `{project.drawing_id}`, `{project.object}`, `{project.created \| date}`, `{project.edited \| date}`, `{project.supply \| supply}`, `{project.control_voltage}`, `{project.consumption}` | all |
+| `project` | `{project.description}`, `{project.reference}`, `{project.drawing_id}`, `{project.object}`, `{project.document_title}` (the cover subtitle "Electrical Definition"), `{project.created \| date}`, `{project.edited \| date}`, `{project.supply \| supply}`, `{project.control_voltage}`, `{project.consumption}` | all |
 | `party.<role>` | `{party.customer.name}`, `{party.end_user.address.city}` (personal data, §7 pitfall 14) | all |
 | `revision` | `{revision.current.label}`, `{revision.current.state}`, `{revision.current.author.name}`, `{revision.current.checker.name}`, `{revision.current.date \| date}` | frame, title block, cover |
 | `page` | `{page.folio}`, `{page.prev}`, `{page.next}`, `{page.title}` ("Power Supply 1 - Main Current"), `{page.description}` (override or project description, §2.7), `{page.function}` (`=P01`), `{page.location}` (`+J-E-2416`), `{page.scale}` ("1:10" on 902, FR-PAG-023), `{page.document_kind}` (`&EFS`, FR-PAG-028, 1.0), `{page.last_changed_in}` ([15](15-checks-revisions-collaboration.md) §5.6) | frame, title block |
@@ -436,7 +455,7 @@ report_pages(block):
 
 ### 3.4 Embedded report blocks
 
-An embedded block (`embedded: { page, rect, overflow }`) renders its rows into a rectangle on an interactive page
+An embedded block (`embedded: {page, rect}`) renders its rows into a rectangle on an interactive page
 through the form's data area (FR-REP-028, FR-REP-029). It does not join the page order.
 
 | Golden block | Page | Rows | Source |

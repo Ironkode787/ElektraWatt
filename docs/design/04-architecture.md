@@ -209,7 +209,7 @@ sessions (G6).
 | `ew-rds` | P | IEC 81346 parser and formatter (strict and lenient); identifier sets as data: EN 81346-2:2009 single letters (default), IEC 81346-2:2019, IEC 60750 legacy. Node codes are atomic tokens: parsing first matches the longest known node code or alias of the aspect and only then splits at prefix characters, so `+J-E-2416` stays one code | serde |
 | `ew-schema` | P | **The persisted record type of every entity kind** (plain serde structs), kind registry, per-kind schema versions, JSON Schemas | serde, schemars 1.2.3 |
 | `ew-format` | P | JSONL canonical reader and writer, sharding rules, manifest, upgrade chain on `serde_json::Value`, 3-way record merge core, conflict records | serde_json 1.0.154, serde_path_to_error 0.1.20, semver 1.0.28, sha2 **(verify)** |
-| `ew-interop-api` | P | `Importer`/`Exporter` traits over `ew-schema` records: `ImportBatch`, `ImportReport`, `SourceRef`, `TableImage`, `Proposal` (§10.6) | — |
+| `ew-interop-api` | P | `Importer`/`Exporter` traits over `ew-schema` records: `ImportBatch`, `ImportReport`, `SourceRef`, `TableImage`, `Proposal` (§10.6) | ew-schema, ew-ids, ew-units |
 | `ew-dl` | P | Display-list IR: paths, glyph runs, images, groups, symbol instances, link sources and targets, entity tags; `ShapedRun` carries its `layout_box`; own hashable colour type (no peniko: renderer crates convert) | kurbo 0.13.1, libm 0.2 (deterministic trigonometry), uuid |
 | `ew-step-proto` | P | STEP worker IPC contract and cache format | postcard 1.1.3, rkyv 0.8.18 |
 | `ew-memo` | P | Generic memo engine: revisions, dependency recording, early cut-off, durability levels, LRU, statistics, oracle hooks, and a generic reverse-dependency API per query family. Knows nothing about ECAD. Not published to crates.io until it has two owners | imbl 7.0.2 (MPL-2.0+) |
@@ -218,7 +218,7 @@ sessions (G6).
 | `ew-devdesc` | P | Device descriptions: GSD, GSDML and IODD (ESI and EDS at 1.x) | quick-xml |
 | `ew-ewpp` | P | `.ewpp` record types, JSON Schemas, reader, writer and package diff | zip 9.0.4, csv 1.4.0 |
 | `ew-plugin-wit`, `ew-plugin-sdk` (v1.x) | P | WIT package `elektrawatt:plugin` and the guest SDK with typed bindings generated from the JSON Schemas | wit-bindgen 0.63.0 |
-| `ew-model` | GPL | `Table<T>` of `ew-schema` records, the `Model` snapshot, `Op` apply and invert, base reverse indexes, structural invariants, link delete policies | imbl 7.0.2, smol_str 0.3.6 **(verify)** |
+| `ew-model` | GPL | `Table<T>` of `ew-schema` records, the `Model` snapshot, `Op` apply and invert, base reverse indexes, structural invariants, link delete policies | ew-schema, ew-ids, ew-units, ew-mltext, ew-rds; imbl 7.0.2, smol_str 0.3.6 **(verify)** |
 | `ew-rhai` | GPL | rhai engine configuration plus the formula and rule profiles (pure, tracked reads, operation limits) | rhai 1.26.1 |
 | `ew-derive` | GPL | All domain queries (§6.4) and the tracked-read context `Q` | ew-memo, ew-model, ew-rds, ew-rhai, ew-plcaddr, icu |
 | `ew-commands` | GPL | `Command`, `DynCommand`, `TxBuilder`, normalisers, validators, numbering engine, `History`, previews, macros, `ApplyImport` | ew-derive |
@@ -228,7 +228,7 @@ sessions (G6).
 | `ew-store` | GPL | Save protocol, `.~ew.lock`, journal, recovery, watcher, external-change diff, `.ewz` transport, as-built archive, git commits and tags | ew-format, notify 8.2.0, zip 9.0.4, gix 0.89.0, etcetera or directories **(verify)** |
 | `ew-text` | GPL | Fonts and the memoised `shaped_text` query: one text stack for screen, pagination and paper | parley 0.12.0, fontique 0.12.0, skrifa 0.48.0, harfrust 0.14.0 |
 | `ew-reports` | GPL | Built-in report row queries, user SQL reports through the sandboxed query API of `ew-sqlview` (never links rusqlite), pagination into virtual pages, XLSX and CSV tables | ew-derive, ew-sqlview, ew-text, rust_xlsxwriter 0.100.0, csv 1.4.0 |
-| `ew-scene` | GPL | Model to display lists per page and layer, forms engine (frames, title blocks, report forms), text through `ew-text`, spatial index, hit-testing; PDF underlays (1.0) | ew-text, rstar 0.13.0, hayro 0.8.0 (underlays, 1.0) |
+| `ew-scene` | GPL | Model to display lists per page and layer, forms engine (frames, title blocks, report forms), text through `ew-text`, spatial index, hit-testing; PDF underlays (1.0) | ew-reports, ew-dl, ew-text; ew-schema (symbol lowering reads `SymbolDef` records by reference), ew-units, ew-ids, ew-mltext; rstar 0.13.0, hayro 0.8.0 (underlays, 1.0) |
 | `ew-render2d` | GPL | wgpu 2D renderer: lyon tessellation once per symbol, instancing, screen-space lines, glyph atlas | wgpu 30.0.1, lyon_tessellation 1.0.22 |
 | `ew-render-cpu` | GPL | vello_cpu renderer: GPU-less fallback, thumbnails, golden PNGs, banded printing | vello_cpu 0.3.0 |
 | `ew-export` | GPL | PDF (outline, links, named destinations, page labels, PDF/A-2b), SVG, DXF, PNG (through `ew-render-cpu`) | krilla 0.8.2, krilla-svg 0.8.1, dxf 0.6.2, ew-render-cpu |
@@ -237,7 +237,7 @@ sessions (G6).
 | `ew-panel` | GPL | Layout queries, collision reconciler, routing graph, negotiated-congestion routing, lengths, duct fill, 2D panel projection; glTF (glb) and STL writer for `layout_scene` | parry3d 0.31.1, pathfinding 4.16.0, petgraph 0.8.3, glam 0.34.1, gltf-json **(verify)** |
 | `ew-render3d` | GPL | wgpu 3D: instancing, feature edges, transparency, CAD camera, picking; a toolkit-agnostic camera, pick and constraint API that `ew-ui`'s gizmo drives (Rule 3) | wgpu 30.0.1, meshopt 0.7.0 |
 | `ew-mfg` | GPL | Production package content, wire lists with lengths, ferrules, labels, data-driven machine and label profiles | ew-panel, ew-ewpp, zip, csv, rust_xlsxwriter |
-| `ew-import-qet`, `ew-import-eplan`, `ew-import-dxf` | GPL | QET `.qet`/`.qetz`; EDZ (7-Zip and ZIP), EPLAN XML/XLSX; DXF (DWG behind a feature) | roxmltree 0.21.1, quick-xml, ew-plcaddr (QET); sevenz-rust2 0.24.0, zip, calamine, csv (EPLAN); dxf 0.6.2, acadrust 0.6.4 (MPL-2.0) |
+| `ew-import-qet`, `ew-import-eplan`, `ew-import-dxf` | GPL | QET `.qet`/`.qetz`; EDZ (7-Zip and ZIP), EPLAN XML/XLSX; DXF (DWG behind a feature) | roxmltree 0.21.1, quick-xml, ew-plcaddr, ew-schema, ew-units, ew-ids, ew-mltext, ew-dl (QET: records and `ew-dl`'s deterministic arc helpers, [14](14-interop.md) §4.3); sevenz-rust2 0.24.0, zip, calamine, csv (EPLAN); dxf 0.6.2, acadrust 0.6.4 (MPL-2.0) |
 | `ew-import-catalog` | GPL | Parts from CSV/XLSX (MVP), BMEcat and ETIM xChange (1.x), behind `ew-interop-api` | csv, calamine, quick-xml |
 | `ew-import-tables` | GPL | The golden CSV bootstrap behind `ew import csv`, the round-trip table reader and translation tables; reused by `ew-testkit` | csv, calamine |
 | `ew-script`, `ew-plugin-host` | GPL | rhai automation bindings over queries and commands (profile from `ew-rhai`); WIT world and host on the wasmtime LTS line current at plugin launch (48.x in development), plugin export roles (§10.4), plugin rule implementations registered into `ew-checks`, the `secret-get` capability (v1.x) | ew-rhai; wasmtime LTS, wit-bindgen 0.63.0 |
@@ -314,10 +314,10 @@ graph TD
   end
   schema --> units & ids & mltext & rds
   format --> schema
-  iapi --> schema
+  iapi --> schema & ids & units
   dl --> units
   stepp --> units
-  model --> schema
+  model --> schema & ids & units & mltext & rds
   derive --> model & memo & rhai & plcaddr
   cmd --> derive
   checks --> derive & rhai
@@ -325,7 +325,7 @@ graph TD
   lib --> schema & format
   store --> format & model
   rep --> derive & sqlv & text
-  scene --> rep & dl & text
+  scene --> rep & dl & text & schema & units & ids & mltext
   r2d --> dl
   rcpu --> dl
   exp --> dl & rcpu
@@ -335,7 +335,7 @@ graph TD
   r3d --> panel
   mfg --> rep & panel & ewpp
   imp --> iapi
-  imp -- "ew-import-qet" --> plcaddr
+  imp -- "ew-import-qet" --> plcaddr & schema & units & ids & mltext & dl
   icat --> iapi
   itab --> iapi
   script --> cmd & rhai
@@ -367,6 +367,12 @@ graph TD
 5. **Model entities are the schema records.** `ew-model` wraps `ew-schema` record structs in tables. The GPL layer
    adds behaviour (ops, indexes, invariants, derivation) but no second data definition. Third parties can
    therefore read, write and validate EW files with the permissive crates alone.
+6. **Foundation edges** (2026-10-18, ADR-0024 amendment 5). GPL crates may depend directly on the permissive
+   foundation crates (`ew-units`, `ew-ids`, `ew-mltext`, `ew-rds`, `ew-schema`, `ew-dl`); every such edge is drawn.
+   The graph above is the source; `ci/dep-rules.toml` lists the same edges in `[allowed_edges]`, and
+   `cargo xtask check-deps` enforces that file. A change adds the edge to both in the same pull request. Such an edge
+   never relaxes rule 1: `ew-scene` reads `SymbolDef` records by reference for symbol lowering, but reads the model
+   only through `Q`.
 
 ---
 
@@ -411,30 +417,32 @@ pub struct Row<T>   { value: Arc<T>, changed_at: Rev }
 
 ### 4.2 Entities
 
-This table summarises the shape of each entity and the reason for it. Field-level schema:
-[domain model](03-domain-model.md), which is normative together with `ew-schema`.
+This table summarises the shape of each entity and the reason for it; it is a summary, not a schema. The
+field-level schema is the [domain model](03-domain-model.md) together with `ew-schema`, and for report blocks and
+forms [09](09-reports-forms-output.md) §2.2 and §2.5: **where this summary differs from them, they are normative**
+(decision log ID-12).
 
 | Concept | Record (authored fields only) | Notes and reference |
 |---|---|---|
-| Project | `Project { master, parties: [Party{role}], supply: SupplySpec, settings, profiles, languages, derivation_profile, user_prop_defs, extra }` | Customer and end user are separate roles (D-30). Supply is structured (REF-002) |
+| Project | `Project { master, parties: [Party{role, name, address, personal_data}], supply: Option<SupplySpec>, control_voltage, rated_consumption, settings: ProjectSettings, languages, derivation_profile, kind, user_prop_defs, completed, source_ref, extra }` | Customer and end user are separate roles (D-30). Supply is structured (REF-002). Numbering, wire-numbering and xref schemes and the colour and size profiles live inside `settings` ([03](03-domain-model.md) §5.1) |
 | Structure | `StructureNode { aspect, code, parent, description: MlText, order }` | One canonical node for `+J-E-2416`. Spelling is a property of the node (D-03) |
 | Section, Page | `Section { number, folio_range, title }`; `Page { folio: Folio{section, number, label}, kind, structure, form, title: MlText, description_override: Option<MlText>, scale, grid, … }` | `title` is the page description; without `description_override` the title block prints the project description (D-06). No stored revision, prev/next or title-block text |
-| Device | `Device { tag: TagSpec, kind, parent: Option<Id<Device>>, parts: SmallVec<PartUse{part, qty}>, function_text: MlText, process_tag, tech_data, state, aspects: DeviceAspects, extra }` | `TagSpec { letter, counter, scheme, frozen: Option<FrozenTag> }`. The printed tag is derived. **Parts attach only to devices**, so the BOM aggregates one path |
-| Function | `Function { device: Option<Id<Device>>, def: FnDefRef, role: Main/Aux, kind: Normal/Ip/BlackBox, cp_overrides: SmallVec<CpOverride{idx, designation, alias, unused}>, … }` | `device` is None if and only if the kind is `Ip`. **Connection points (CPs) are instantiated from the function definition** (symbol or part pin pattern). Only overrides are stored (from B). The internal `idx` keeps duplicate printed designations unique (REF-029) |
-| Representation | `Representation { functions, page, symbol, variant, pos: Pt2, orient, rep_type, pin_map, text_slots }` | One function, many drawings: `rep_type` is MultiLine, SingleLine, Overview, Fluid, Topology, ContactImage, StripSegment or Graphic. An unplaced function simply has no representation. One strip drawn in two segments (D-42). **Panel fronts are not stored:** the query `panel_front_reps(dev)` derives them from placements, and a PanelLayout page hosts one `SurfaceView` (D-02) |
+| Device | `Device { tag: TagSpec, kind: Option<DeviceKind>, parent: Option<Id<Device>>, position, structure, parts: SmallVec<PartUse{part: PartRef{copy: Id<Part>, variant}, qty}>, function_text: MlText, process_tag, tech_data: [TechValue{key, value}], state, aspects: DeviceAspects, user_props, extra }` | `TagSpec { letter, counter, scheme, frozen: Option<FrozenTag> }`. The printed tag is derived. **Parts attach only to devices**, so the BOM aggregates one path |
+| Function | `Function { device: Option<Id<Device>>, def: Id<FnDef>, role: Main/Aux, kind: Normal/Ip(IpSpec)/BlackBox, cp_overrides: SmallVec<CpOverride{idx, designation, alias, description, unused}>, … }` | `device` is None if and only if the kind is `Ip`. **Connection points (CPs) are instantiated from the function definition** (symbol or part pin pattern). Only overrides are stored (from B). The internal `idx` keeps duplicate printed designations unique (REF-029) |
+| Representation | `Representation { functions, page, symbol: Id<SymbolDef>, variant: u8, pos: Pt2, orient, rep_type, pin_map, text_slots, arrangement, box }` | One function, many drawings: `rep_type` is MultiLine, SingleLine, Overview, Fluid, Topology, ContactImage, StripSegment or Graphic. An unplaced function simply has no representation. One strip drawn in two segments (D-42). **Panel fronts are not stored:** the query `panel_front_reps(dev)` derives them from placements, and a PanelLayout page hosts one `SurfaceView` (D-02) |
 | Connection | `Connection { a: Endpoint, b: Endpoint, page: Option<Id<Page>>, route: SmallVec<Pt2>, kind: Wire/Core(Id<Conductor>)/Bridge(BridgeSpec)/Fluid/Bus(BusLine)/Overview/Internal/SingleLine (1.0), overrides: WireOverrides, number: NumberSpec }` | `Endpoint = Cp{function, idx} \| Junction(id)`. Overview connections are excluded from nets. Strip-editor bridges and page-less internal links have no page and live in the shard of the device that owns endpoint `a` |
-| Junction | `Junction { page, at, style: Dot/Bevel{orient}, wiring: Chain/Star, sequence: SmallVec<Id<Connection>> }` | Explicit T-node order (REF-034, D-20). `wiring` decides the physical wires; Dot defaults to Star, Bevel to Chain |
-| Interruption point | A `Function` of kind `Ip { name, direction, scope }` without a device, with a representation; it lives in the page file of its representation | Pairing is derived: star or chain, by name and scope |
-| Potential, net | `PotentialDef { at: Endpoint, name, ptype: Option, voltage, env }`; `NetDef { at, props }` (signal level); `Bond { a, b, kind }` | Potentials themselves are derived. Bonds link potentials without merging them (D-22) |
-| Terminal strip, terminal | Strip = `Device` with aspect `Strip`; terminal = `Device` with aspect `Terminal { strip, seq, designation, levels }` | **A terminal is a device**, as in EPLAN. Its levels and clamps are CPs carrying level and side (from B; TWIN terminals). Designation rules: §4.6 |
-| Cable, conductor | Cable = `Device` with aspect `Cable { length: LengthSource }`; `Conductor { cable, core, colour: ColourCode, csa: Dec3, shield }` | `ColourCode` is the IEC 60757 enum plus profile-declared company codes (DBU), so "BR" cannot be stored in strict mode; imports keep it as a lenient-only foreign code (EW-CORE-031) (D-17) |
+| Junction | `Junction { page, at, style: Dot/Bevel{orient}, wiring: Option<Star/Chain>, sequence: SmallVec<Id<Connection>> }` | Explicit T-node order (REF-034, D-20). `wiring` decides the physical wires; absent, Dot means Star and Bevel means Chain |
+| Interruption point | A `Function` of kind `Ip(IpSpec { name, direction, star_source, sort, external })` without a device, with a representation; it lives in the page file of its representation | Pairing is derived: star or chain, by name within the scope set in `ProjectSettings.ip_pairing` |
+| Potential, net | `PotentialDef { at: Endpoint, name, ptype: Option, voltage, env, circuit_class: Option, props: WireProps }`; `NetDef { at, props }` (signal level); `Bond { a, b, kind, via }` | Potentials themselves are derived. Bonds link potentials without merging them (D-22) |
+| Terminal strip, terminal | Strip = `Device` with aspect `Strip`; terminal = `Device` with aspect `Terminal { strip, seq, designation, levels, rail_bonded }` | **A terminal is a device**, as in EPLAN. Its levels and clamps are CPs carrying level and side (`side1` or `side2`, from B; TWIN terminals). Designation rules: §4.6 |
+| Cable, conductor | Cable = `Device` with aspect `Cable { length: LengthSource, core_id_mode, pre_assembled }`; `Conductor { cable, core, colour: Option<ColourSpec>, csa: Option<Csa>, shield, pair }` | `ColourSpec` is one or two `ColourCode`s: the IEC 60757 enum plus profile-declared company codes (DBU), so "BR" cannot be stored in strict mode; imports keep it as a lenient-only foreign code (EW-CORE-031) (D-17). `Csa` keeps mm², AWG or kcmil in its original unit |
 | PLC | Station and module are device aspects `PlcStation`, `PlcModule { slot, type_ident, start: IoStarts{input, output}, part_use, … }`; `Channel { module, number, kind, data_type, address: Auto/Manual/Excluded/Tbd, state: Option, symbol, comment: MlText, binding: Option<Endpoint> }` | `Auto` addresses are derived from the module start and the address map of the part use (D-26). `Tbd` is a typed open item (D-15). Channel IDs are `v5(module, "channel", number)` |
 | Bus | `BusPort` aspect on functions; `LogicalNet`, `PhysicalNet` | Termination is a property, not free text (REF-061) |
 | Fluid | CPs with `discipline = Pneumatic` and port role 1/2/3/4/5/12/14; fluid lines are `Connection{kind: Fluid}` with `TubeSpec`; `Medium` | One graph engine for both disciplines |
 | Layout, 3D | `LayoutSpace`, `Enclosure`, `MountingSurface`, `Carrier { kind: Rail/Duct/Busbar/Surface, part, path }`, `Placement3D { device, function: Option, carrier, pose: Pose3, locked }`, `RouteOverride { connection, path }` | **No tag text is stored** (D-02). Poses are relative to the carrier. Overrides are keyed by connection ID, so they survive re-routing |
-| Library copies | `PartCopy`, `SymbolDef`, `FnDef`, `FormDef`, `MacroDef`, manufacturer, PLC-profile, machine-profile and label-profile copies, each with `{library_id, item_id, version, sha256}` | The project opens without its libraries (G2). Copy IDs are item-based (§4.4) |
+| Library copies | `PartCopy`, `SymbolDef`, `FnDef`, `FormDef`, `MacroDef`, manufacturer, PLC-profile, machine-profile and label-profile copies, each with `{library_id, item_id, version, sha256}`; project records reference them by typed copy IDs (`Id<Part>`, `Id<SymbolDef>`, `Id<FnDef>`, `Id<FormDef>`) | The project opens without its libraries (G2). Copy IDs are item-based (§4.4) |
 | Revision | `Revision { label, date, author, checker: Option, description, state: Open/Released/Withdrawn, page_notes, sign_off: Option, release: Option<ReleaseRecord> }`; `ReleaseRecord { generation, approval, rule_packs, derivation_profile, archive, git_tag, content_digest, page_digests, changed_pages }` | One table, one format (D-05); four-eyes rule (D-34). Withdrawing a release adds a separate `Withdrawn` record that points to it (§7.8) |
-| Reports, notes | `ReportBlock { kind, query, filter, sort, form, section, first_folio }`; `Waiver`; `Comment`; `ExternalRef { project, location, device, connection }` | Report pages are derived (§11). External connections to J-E-206 are typed (REF-018) |
+| Reports, notes | `ReportBlock { source: Kind(ReportKind)/SqlQuery{api, file}, manual, sort, group, form, section, first_folio: Option, continuation, title, empty, embedded: Option<EmbedSpec{page, rect}> }`; `Waiver`; `Comment`; `ExternalRef { project, location, device, connection }` | Report pages are derived (§11); `params` and `filter` arrive with WP-S3.03 ([09](09-reports-forms-output.md) §2.2). External connections to J-E-206 are typed (REF-018) |
 
 ### 4.3 Device aspects: one device, several roles
 

@@ -221,7 +221,18 @@ numbers live in `Connection.number`. A released revision's report snapshots live
      `valve_terminal`), as in the ARCH §7.3 example;
   4. the `extra` map (unknown members and namespaced `plugin.<id>.*` keys, FR-EXT-021), in byte-wise key order.
 - **Defaults omitted.** A member equal to its schema default is not written: `None`, empty arrays and maps, `false`
-  flags and default enum variants.
+  flags and default enum variants. Where the default is not the type's zero value the schema names it. The v0
+  defaults: `Page.scale` `not_to_scale`; `Representation.rep_type` and `SymbolDef.rep_type` `multi_line`;
+  `Junction.wiring` absent means the style's default (Dot: star, Bevel: chain); `Cable.length` `missing`;
+  `ItemMeta.status` `released`; `CpDef.discipline` and `SymbolCp.discipline` `electrical`; `Strip.field_side`
+  `side2`; `CpDef.physical` `true` (written only as `false`).
+- **`extra` at every depth.** Every JSON object of the format, records and nested value objects (`Quantity`,
+  `PartRef`, `Folio`, `WireOverrides` …) alike, has its own `extra` map, flattened last, so a member that a newer
+  minor appends at any depth survives a load and a save (ADR-0011 amendment 2).
+- **Import provenance last.** `source_ref?{lineage, key}` ([14](14-interop.md) §2.3) is the last declared member of
+  every project record kind except `import_lineage`; in a device only the flattened aspects and `extra` follow it.
+- **`$v` is checked.** A typed reader accepts only the registry's `$v` of each kind; older records are migrated first
+  (§10.2).
 
 ### 3.2 Value encodings
 
@@ -235,16 +246,40 @@ numbers live in `Connection.number`. A released revision's report snapshots live
 | `Angle2` | integer in 10⁻³ degree; default 0 omitted. Free texts and graphics only; symbol representations use `Orient2` | `"angle":45000` |
 | `Pose3` | `{"t":[x,y,z],"q":[w,x,y,z]}`, `q` in 10⁻⁹, sign-normalised (w > 0, else the first non-zero component > 0) | `{"t":[0,500000000,0],"q":[1000000000,0,0,0]}` |
 | `Dec3` | decimal string: at most 3 fraction digits, no trailing zeros, no `+`, `-0` or exponent, never a unit | `"0.75"`, `"40"`, `"1"` |
-| `Quantity`; `TechValue` | `{"value": Dec3, "unit"}`; `{"key", "value"}` whose value is a `Quantity` object or an `Ident` string, told apart by JSON type | `{"key":"i_out","value":{"value":"20","unit":"A"}}`, `{"key":"curve","value":"C"}` |
+| `Quantity`; `TechValue` | `{"value": Dec3, "unit": Unit}` with the unit spellings below; `{"key", "value"}` whose value is a `Quantity` object or an `Ident` string, told apart by JSON type. A key qualified by a classification scheme is `"<scheme>:<id>"` (schemes `etim`, `eclass`, `iec_cdd`); a plain key without a colon is a native or project property. Booleans and enumeration values are `Ident`s (`"true"`, `"false"`, the member) until a typed form is needed ([07](07-symbols-parts-macros.md) §2.5) | `{"key":"i_out","value":{"value":"20","unit":"A"}}`, `{"key":"curve","value":"C"}`, `{"key":"etim:EF001234","value":"true"}` |
+| `Csa` | a bare `Dec3` string in mm²; `{"awg": n}` with 1/0 as 0, 2/0 as −1, 3/0 as −2, 4/0 as −3; `{"kcmil": Dec3}` | `"2.5"`, `{"awg":18}`, `{"kcmil":"250"}` |
 | `MlText` | string (neutral) or object keyed by sorted BCP 47 tags | `"1+"`, `{"en-GB":"Power Supply 1 - Main Current"}` |
 | `Ident` | NFC string without surrounding white space | `"A9F78116"` |
-| `ColourSpec` | one or two IEC 60757 or profile-declared codes; a foreign code (lenient projects only, EW-CORE-031) is the enum's data variant | `["BK"]`, `["GN","YE"]`, `["DBU"]`, `[{"foreign":"BR"}]` |
+| `ColourSpec` | an array of one or two `ColourCode`s. A `ColourCode` is a string: one of the 14 IEC 60757 codes (`BK` … `SR`), else a company code, which the colour profile must declare (EW-CORE-031 checks it; it is not a parse error); a foreign code (lenient projects only, EW-CORE-031) is the data variant `{"foreign": code}` | `["BK"]`, `["GN","YE"]`, `["DBU"]`, `[{"foreign":"BR"}]` |
 | Authored date | `"YYYY-MM-DD"` | `"2025-04-14"` (a revision date, entered by a person) |
-| Enum | unit variant as a snake_case string; data variant as a one-member object | `"tbd"`, `{"core":"<id>"}`, `{"manual":"Q0.1"}` |
+| Enum | unit variant as a snake_case string; data variant as a one-member object. Persisted enums are open: an unknown value is kept as `Unknown` and written back unchanged (§10.3); the JSON Schemas omit the catch-all (§10.4) | `"tbd"`, `{"core":"<id>"}`, `{"manual":"Q0.1"}` |
 | `Endpoint` | `{"cp":[function, idx]}` or `{"junction": id}` | `{"cp":["d40b6e93-…",0]}` |
 | Structure slot | absent = inherit; a node ID; `"none"` | `"location":"a41f6c2d-…"` |
 | Sequence / set / keyed list | model order / sorted by element JSON / sorted by key | `route`; `aliases`; `cp_overrides` by `idx` |
+| `Rgb` | `"#rrggbb"`, lower-case hex | `"#c0c0c0"` |
+| `Pen` | a house pen `"p013"`, `"p018"`, `"p026"`, `"p042"`, `"p052"`, `"p130"`, or `{"width": Nm}` | `"p026"`, `{"width":183000}` |
+| `Primitive` | a one-member object named by the primitive kind: `line`, `polyline`, `rect`, `circle`, `ellipse`, `arc`, `polygon`, `text`, `image` | `{"line":{"from":[0,0],"to":[0,8000000],"stroke":{"pen":"p026"}}}` |
+| `CategoryKey` | a three-element array: category, group, definition | `["ProtectionOvercurrent","MCB","1P+N"]` |
+| `SortKey` | `{"key": Ident, "descending": bool}`, `descending` omitted when false | `{"key":"folio"}` |
 | Hash | `"sha256:<64 lower-case hex>"` | manifest, library copies |
+
+**Unit spellings** (`Quantity.unit`, ADR-0005 amendment 4). Units are written in ASCII so files stay greppable;
+rendering ("mm²", "°C") is a query. Geometric lengths are `Nm`, never a `Quantity`.
+
+| JSON | Unit | Used for |
+|---|---|---|
+| `mm2` | square millimetre | cross-sections |
+| `A` | ampere | currents |
+| `V` | volt | voltages |
+| `Hz` | hertz | frequencies |
+| `bar` | bar | pressures |
+| `degC` | degree Celsius | temperatures |
+| `kg` | kilogram | masses |
+| `W` | watt | losses and power |
+| `m` | metre | lengths in technical data; the order quantity of cables |
+| `piece` | piece | counts; the default order unit |
+| `set` | set | order unit |
+| any other string | `Unknown`, kept verbatim | a unit of a newer format |
 
 **There are no floats anywhere** (ADR-0005). A number with a fraction or an exponent is a schema violation
 (EW-CORE-007).
@@ -314,6 +349,11 @@ Library copies (`lib/**`) are pretty JSON, one document per item (ARCH §7.3):
 - every array or object whose compact form is ≤ 100 bytes is written inline, with `": "` and `", "` separators, so
   a 200-point symbol stays readable;
 - the copy metadata `library_id`, `item_id`, `version` and `sha256` (ARCH §4.2) follow `$k` and `id` (§13.2).
+- the item's members follow. Every item kind carries `meta: ItemMeta`, a provenance object with `key?`
+  (`pxc.2904602`), `licence?` (an SPDX expression), `sources: Vec<String>`, `as_of?: Date`, `confidence` (section
+  name → `verified`, `unverified` or `test`), `status` (`draft`, `released`, `deprecated{successor?}` or
+  `withdrawn`; default `released`) and `foreign_terms: bool` ([07](07-symbols-parts-macros.md) §2.1, §2.5).
+  `ItemMeta` has no `version`: a document stores its version once (§13.2).
 
 The exception is `lib/profiles/` (1.0): machine and label profiles keep their TOML source form, so that the hash
 over the item's own text equals that of the published item. The copy metadata `{library_id, item_id, version,
@@ -366,6 +406,7 @@ copy of that item under `lib/manufacturers/` ([07](07-symbols-parts-macros.md) �
   "item_id": "8b42c7d9-…",
   "version": "1.2.0",
   "sha256": "sha256:9f2c…",
+  "meta": {"licence": "CC0-1.0", "sources": ["golden tables"]},
   "manufacturer": {"library": "6a1d0f3e-…", "item": "0f7b2c94-…", "version_req": "^1"},
   "part_number": "2904602",
   "description": {"en-GB": "Power supply 1 AC / 24 V DC, 20 A"},
@@ -377,11 +418,11 @@ copy of that item under `lib/manufacturers/` ([07](07-symbols-parts-macros.md) �
     {"idx": 4, "designation": "+", "potential_role": "l_plus"},
     {"idx": 5, "designation": "-", "potential_role": "m"},
     {"idx": 6, "designation": "-", "potential_role": "m"}
-  ],
-  "licence": "CC0-1.0",
-  "source": "golden tables"
+  ]
 }
 ```
+
+`meta` is the part's provenance object (§3.4); the part's version is the copy metadata `version` alone.
 
 ### 3.6 Loader limits
 
@@ -558,7 +599,7 @@ flowchart TD
   H --> M{"All match?"}
   M -- yes --> P["Parse, migrate, build tables and indexes"]
   M -- no --> C["Classify (§6.2)"] --> P
-  P --> I["Integrity EW-CORE-001 … 016 on the pool"]
+  P --> I["Integrity EW-CORE-001 … 017 on the pool"]
   I --> J{"Leftover journal?"}
   J -- yes --> R["Recovery dialog (§8.3)"]
   J -- no --> O["First page interactive, warm-up continues"]
@@ -587,10 +628,10 @@ snapshots, git history and `.ewz` backups.
 ### 6.3 Integrity findings
 
 `ew check --integrity` (FR-CHK-012, MVP) runs on every open, after merges and from the CLI; cross-file
-reconciliation after merges (§11.5) is FR-COL-016 (1.0). The findings are the integrity rules EW-CORE-001 … 016 of
+reconciliation after merges (§11.5) is FR-COL-016 (1.0). The findings are the integrity rules EW-CORE-001 … 017 of
 [checks, revisions and collaboration](15-checks-revisions-collaboration.md) §4.2 (kind `integrity`, never
-waivable). A finding marked **R** blocks release: EW-CORE-002, -003, -005 … -009, -011, -012, -013 and -015, and
-EW-CORE-016 only where outputs are affected.
+waivable). A finding marked **R** blocks release: EW-CORE-002, -003, -005 … -009, -011, -012, -013, -015 and -017,
+and EW-CORE-016 only where outputs are affected.
 
 | ID | Finding | Severity | Quick fix |
 |---|---|---|---|
@@ -600,7 +641,7 @@ EW-CORE-016 only where outputs are affected.
 | EW-CORE-004 | Orphan or sync-conflict copy | warning | Compare; merge the copy as an external change (§9); delete |
 | EW-CORE-005 | JSON syntax error at file:line | error; R; read-only | `ew fmt --repair`: discard the line, with an `.ewz` backup |
 | EW-CORE-006 | Git conflict markers in a JSONL file | error; R | Converted into conflict records (§11.4) |
-| EW-CORE-007 | Schema violation: wrong type, missing member, a float, an unparseable value such as a bare undeclared colour code "BR" (a lenient import writes `{"foreign":"BR"}`, §3.2) | error; R | The line is quarantined verbatim and references to it are reported |
+| EW-CORE-007 | Schema violation: wrong type, missing member, a float, an unparseable value such as a `Dec3` with four fraction digits. An undeclared company colour code such as "BR" parses as a company code and is reported by EW-CORE-031; a lenient import writes `{"foreign":"BR"}` (§3.2) | error; R | The line is quarantined verbatim and references to it are reported |
 | EW-CORE-008 | Dangling reference | error; R | The link's delete policy, as a previewed fix |
 | EW-CORE-009 | Duplicate `($k, id)` within or across files | error; R | Cross-file move reconciliation (§11.5), else keep one |
 | EW-CORE-010 | A record in the wrong file | info | Moved at the next save |
@@ -609,7 +650,8 @@ EW-CORE-016 only where outputs are affected.
 | EW-CORE-013 | Uniqueness collision after a merge: tag or counter, terminal designation, wire number, PLC address or symbol taken twice, or an interruption-point name that breaks "at most one star source per name and scope; in chain mode an even count, ordered by sort key" (EW-CORE-052, ADR-0009 amendment 1; [15](15-checks-revisions-collaboration.md) §6.4) | error; R | "Renumber the newer": renumber all but the keeper (frozen or released value first, then the record present in the merge base, then the older UUIDv7); one previewed command per merge |
 | EW-CORE-014 | A library copy whose content does not match its `sha256` | warning | Mark it locally modified, or re-embed it |
 | EW-CORE-015 | An asset missing or not matching its hash name | error; R | Re-import; drop the reference |
-| EW-CORE-016 | Unknown kinds, members or variants from a newer format | info; R where outputs are affected | Upgrade EW |
+| EW-CORE-016 | Unknown kinds, members or variants from a newer format (a malformed value of a known variant is EW-CORE-017) | info; R where outputs are affected | Upgrade EW |
+| EW-CORE-017 | Malformed value of a known variant: an enum value whose tag names a variant this reader knows but whose payload does not parse, such as `{"core": 5}` or `{"cp": ["<id>"]}`. The value is kept verbatim as `Unknown` (ADR-0011 amendment 2) and derivations treat it as unknown (§10.3) | error; R | Re-enter the value in the property grid, which shows the raw value |
 
 ### 6.4 Concurrent readers
 
@@ -791,6 +833,10 @@ In the table, R is the reader's format, F the file's format and M its `min_reade
 - **Migrations.** Each is a pure function `fn(serde_json::Value) -> Result<Value>`, one per kind and step. Migrations
   run after parsing and before typed deserialisation, with `serde_path_to_error` reporting paths. They are never
   deleted (NFR-REL-05).
+- **`$v` check.** Typed deserialisation (`ew-schema`) accepts only the registry's `$v` of each kind and rejects any
+  other ("migrate first"). A record whose `$v` is newer than the registry's can come only from a newer major, which
+  this reader opens read-only (§10.1); it is kept verbatim like a record of an unknown kind (§10.3) and reported as
+  EW-CORE-016 (ADR-0011 amendment 2).
 - **Small upgrade diffs.** A major that changes only connections rewrites only connection records, so `ew upgrade`
   yields a small git diff (FR-EXT-008).
 - **Same chain everywhere.** Macros, catalogue items and archives carry `$v` and use the same chain.
@@ -815,7 +861,7 @@ Unknown data is preserved as follows:
 |---|---|
 | Member of a known kind | Kept in `extra` and written after the known members. While the record is untouched, its **original line** is written verbatim, so a file from a newer minor survives a save byte-identical, whatever member order that minor used (FR-COL-010) |
 | Kind | The line is kept verbatim in the file it was read from, since its ownership rule is unknown. It sorts after the known kinds, by `$k` name, then by ID |
-| Enum variant | `Unknown(Value)`: the record stays editable, and the value is written back unchanged |
+| Enum variant | `Unknown(Value)`: the record stays editable, and the value is written back unchanged. A value whose tag names a *known* variant but whose payload does not parse is kept the same way and reported as EW-CORE-017, because a known variant's payload never changes within a major |
 | File listed in the manifest | Never rewritten or deleted; EW-CORE-016 |
 | `plugin.<id>.*` keys | Kept in `extra`, merged per key, and kept without the plugin (FR-EXT-021) |
 
@@ -830,8 +876,9 @@ memory.
   - `record.schema.json`, a `oneOf` keyed by `$k`;
   - one schema per kind and per library document.
 
-  Additional members are allowed by default; a strict variant forbids them. The schemas also go into the generated
-  format specification (NFR-DOC-06) and into every as-built archive (NFR-REL-10).
+  Additional members are allowed by default; a strict variant forbids them. The `Unknown` catch-alls are omitted:
+  the schemas of a format describe the variants it defines, and a newer minor's variant validates against that
+  minor's schemas (ADR-0011 amendment 2). The schemas also go into the generated format specification (NFR-DOC-06) and into every as-built archive (NFR-REL-10).
 - **Permissive-only reader.** A sample reader built on the permissive crates alone validates the golden project in
   CI (SC-11).
 - **Fixture corpus.** `fixtures/format/<version>/` holds the golden project and the QET-derived examples as each
@@ -1089,6 +1136,9 @@ Libraries are `.ewlib` text directories in the project format at every tier
   - Project-local items, including the per-project "QET import" library, use UUIDv7 or element-hash UUIDv5 IDs,
     with `library_id` = the project ID.
 - **Metadata** is `{library_id, item_id, version, sha256}` (ARCH §4.2), with `version` the item's semantic version.
+  `ItemMeta` carries no `version`. An embedded copy stores the version once, in this metadata; a library record
+  (`.ewlib`, [07](07-symbols-parts-macros.md) §2.2) stores it once, in its own top-level `version` member after `id`.
+  The hash rule therefore needs no exception (decision log ID-14).
   `sha256` is computed over the canonical compact JSON of the item's own fields, without `id`, `library` and these
   four members, so the copy's hash equals the published item's; EW-CORE-014 checks it. A project therefore opens,
   renders and exports without its libraries (NFR-REL-11).
@@ -1099,8 +1149,8 @@ Libraries are `.ewlib` text directories in the project format at every tier
   - "Update from library" is a previewed command (FR-PRT-014).
   - "Purge unused library copies" is explicit and previewed, and also offered at release. Saving never removes a
     copy, because that would be a hidden model change.
-- **Provenance and licence** are stored per copy (FR-PRT-017, NFR-LIC-07). Embedded copies do not bring projects
-  under EW's copyleft (NFR-LIC-09).
+- **Provenance and licence** are stored per copy, in the item's `meta` object (§3.4; FR-PRT-017, NFR-LIC-07).
+  Embedded copies do not bring projects under EW's copyleft (NFR-LIC-09).
 
 ### 13.3 Assets
 
@@ -1282,7 +1332,7 @@ member, so an EW version bump does not invalidate the checked-in fixture.
 | D-08 free-text wire rule | Only explicit overrides are stored (W7), never derived properties (W8) |
 | D-11, D-12 empty and duplicate designations | Stored as authored data under lenient import and reported as findings (FR-CHK-016); strict mode prevents new ones, and duplicates that a merge creates are EW-CORE-013 |
 | D-15 "TBD" address | The typed value `"tbd"`, which blocks release |
-| D-17 core colour "BR" | `ColourSpec` admits IEC 60757 and declared codes. A foreign code exists only in a lenient (imported) project, written `{"foreign":"BR"}` and reported by EW-CORE-031 with the quick fix "use BN"; a strict project rejects it. A hand-edited bare "BR" is quarantined (EW-CORE-007) |
+| D-17 core colour "BR" | `ColourSpec` admits IEC 60757 and declared codes. A foreign code exists only in a lenient (imported) project, written `{"foreign":"BR"}` and reported by EW-CORE-031 with the quick fix "use BN"; a strict project rejects it. A hand-edited bare "BR" parses as a company code and is reported by EW-CORE-031 |
 | D-22 0 V–PE merged by a wire | A `bond` record with `via` W27 |
 | D-30, D-34 parties and approval | Parties stored by role. `ReleaseRecord.approval` is written only by the release command, which enforces checker ≠ author |
 
@@ -1300,7 +1350,7 @@ QET stores evaluated labels and per-folio title-block strings, and these produce
 | Lock with heartbeat; read-only mode; takeover; lock loss | Must | — | — | — |
 | Journal, snapshots, recovery dialog | Must; undo rebuild Should | — | — | — |
 | External-change apply; merge panel for collisions | Must | — | — | — |
-| Integrity EW-CORE-001 … 016 on open and after merges, with the EW-CORE-013 "renumber the newer" quick fix (FR-CHK-012) | Must | Cross-file reconciliation (§11.5), FR-COL-016 | — | — |
+| Integrity EW-CORE-001 … 017 on open and after merges, with the EW-CORE-013 "renumber the newer" quick fix (FR-CHK-012) | Must | Cross-file reconciliation (§11.5), FR-COL-016 | — | — |
 | Fault-injection harness (§5.6) | Must | — | — | — |
 | Cloud warning, conflict copies, placeholders | Should | — | — | — |
 | `.ewz` pack and open; `.ewz` as CLI input; `--omit-personal-data` (FR-OUT-025) | Must | — | — | — |
@@ -1330,7 +1380,7 @@ QET stores evaluated labels and per-folio title-block strings, and these produce
   - [09](09-reports-forms-output.md): the "Saved" binding and the release context;
   - [12](12-panel-layout.md): layout records;
   - [13](13-manufacturing-outputs.md): `.ewpp` reuses the ZIP rules of §12;
-  - [15](15-checks-revisions-collaboration.md): the integrity rules EW-CORE-001 … 016, the release gate, merge and
+  - [15](15-checks-revisions-collaboration.md): the integrity rules EW-CORE-001 … 017, the release gate, merge and
     conflict panels;
   - [16](16-ux-ui.md): dialogs;
   - [17](17-extensibility.md): CLI catalogue;
@@ -1395,7 +1445,7 @@ The eleven rows this document proposed are in the catalogues:
    the release context. The manifest stays time-free.
 2. **Release of the integrity check.** FR-CHK-012 (MVP) and FR-COL-016 (1.0) described the same check, and
    FR-CHK-012's acceptance already demands the renumber offer for a merged duplicate (-102F3 twice) at MVP.
-   **Resolved:** EW-CORE-001 … 016 and the EW-CORE-013 "renumber the newer" quick fix belong to MVP under
+   **Resolved:** EW-CORE-001 … 017 and the EW-CORE-013 "renumber the newer" quick fix belong to MVP under
    FR-CHK-012; FR-COL-016 (1.0) is narrowed to cross-file reconciliation (§11.5) and the full conflict-panel flow,
    and references FR-CHK-012.
 3. **Schema order versus byte-identical preservation.** "Fields in schema order" (ARCH §7.3) and FR-COL-010 can

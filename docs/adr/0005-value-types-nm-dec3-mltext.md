@@ -70,6 +70,16 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    updates would silently reorder sort keys, whereas a specified order is stable across EW versions and platforms
    (NFR-I18N-03, NFR-REL-07). ICU stays available for language-sensitive *display* sorting in the GPL query layer
    (`ew-derive` already lists icu). The `ew-mltext` row of the architecture drops icu from its dependencies.
+4. **Value-type encodings in `ew-schema`** (2026-10-18, core team;
+   [project format](../design/05-project-format-and-persistence.md) §3.2, [domain model](../design/03-domain-model.md)
+   §3.2–§3.4, ADR-0011 amendment 2). `Quantity`, `Unit`, `Csa`, `ColourCode` and `ColourSpec` are format types and
+   live in `ew-schema` (WP-S1.02); `ew-units` keeps the numeric primitives. The first implementation fixes their JSON
+   encodings: `Quantity.unit` is an ASCII unit spelling (`mm2`, `A`, `V`, `Hz`, `bar`, `degC`, `kg`, `W`, `m`,
+   `piece`, `set`; any other string is kept as an unknown unit); `Csa` is a bare `Dec3` string in mm², `{"awg": n}`
+   (1/0 is 0, 2/0 is −1, and so on) or `{"kcmil": Dec3}`; `ColourCode` is a string, one of the 14 IEC 60757 codes or
+   else a company code, or `{"foreign": code}`; `ColourSpec` is an array of one or two codes; `Rgb` is `"#rrggbb"` in
+   lower case; `Pen` is a house pen such as `"p026"` or `{"width": nm}`. Whether the colour profile declares a company
+   code is a model check (EW-CORE-031), not a parse error. Rendering stays a query; no unit text is stored.
 
 ## Consequences
 

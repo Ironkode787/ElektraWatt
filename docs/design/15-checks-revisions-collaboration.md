@@ -35,7 +35,7 @@ protocol, lock record, merge-driver internals, archive layout) stay in [05](05-p
 |---|---|---|
 | Rule engine, modes, schemes, waivers, quick fixes, messages, F1 help | All behaviour | Record shapes: [03](03-domain-model.md) §19 (amended in §2 below) |
 | Rule IDs and codes | The ID scheme (§2.2) and the registry: ID, code, kind, modes, default severity, scope, release and requirement of every rule (§4) | Rule content: EW-POT, EW-TERM, EW-CORE-031 … 037 in [08](08-connections-terminals-cables.md) §8; EW-PLC, EW-SAF, EW-PRC, EW-BUS, EW-IOL in [10](10-plc-and-bus.md) §3.10; EW-FL in [11](11-fluid-power.md) §6; EW-LAY and EW-THM in [12](12-panel-layout.md) §4, §11.8; EW-MFG in [13](13-manufacturing-outputs.md) §4.6; EW-IMP in [14](14-interop.md) §2.5; EW-LIB in [07](07-symbols-parts-macros.md) §6.2 |
-| Integrity check | Rule IDs EW-CORE-001 … 016 | Detection and quick fixes: [05](05-project-format-and-persistence.md) §6.3 |
+| Integrity check | Rule IDs EW-CORE-001 … 017 | Detection and quick fixes: [05](05-project-format-and-persistence.md) §6.3 |
 | Revisions | Lifecycle, sign-off, gate, page change status, change lists, clouds, transmittals | Release file sequence and archive layout: [05](05-project-format-and-persistence.md) §14; revision overview form and status mark: [09](09-reports-forms-output.md) |
 | Collaboration | Workflows, branch-safe counters, merge UI, visual review, comments, work copies | Lock record, journal, external-change diff, merge-driver algorithm: [05](05-project-format-and-persistence.md) §7, §9, §11 |
 | Screens | Behaviour and content | Widgets and layout: [16](16-ux-ui.md) |
@@ -171,7 +171,7 @@ CI-06 → EW-TERM-004, FI-02 and FI-07 → EW-FL-013, FI-03 → EW-FL-002.
 |---|---|
 | `id`, `code`, `class` | §2.2 |
 | `title`, `message` | Fluent message ID, default `rule-<id lower case>` (ADR-0019 example: `message = "rule-ew-pot-013"`), with attribute `.title` (§3.8) |
-| `kind` | `safety`, `conflict`, `completeness` or `hygiene`; `integrity` for findings about the stored project, the check run and the release workflow (EW-CORE-001 … 016, EW-CORE-083/084, EW-REL), which are never waivable and never pending; `import` for the EW-IMP findings of an import run. The kind drives pending display ([06](06-schematic-editor.md) §3.10) and waiver limits (§2.5); §4 gives every rule's kind. Rows of kind `structural` in §4 are guarantees of the schema, listed for traceability, not rules that run |
+| `kind` | `safety`, `conflict`, `completeness` or `hygiene`; `integrity` for findings about the stored project, the check run and the release workflow (EW-CORE-001 … 017, EW-CORE-083/084, EW-REL), which are never waivable and never pending; `import` for the EW-IMP findings of an import run. The kind drives pending display ([06](06-schematic-editor.md) §3.10) and waiver limits (§2.5); §4 gives every rule's kind. Rows of kind `structural` in §4 are guarantees of the schema, listed for traceability, not rules that run |
 | `severity`, `release_severity` | `error`, `warning`, `info`. `release_severity` applies in release mode and to `ew check` (§3.2) |
 | `modes` | Subset of `online`, `offline`, `prevent`, `release`, `export`; EW-REL rules run in the gate only (§3.2), the integrity rules in the integrity run (§4.2), EW-IMP in the import run (§4.10) and EW-LIB in the library linter (§4.11) |
 | `scope` | `project`, `page`, `potential`, `net`, `strip`, `cable`, `device`, `module`, `station`, `cfg` (configuration project, requested by [10](10-plc-and-bus.md)), `lnet`, `pnet`, `fluid_net`, `space`, `surface`, `carrier`. The scope is the memo key of `checks(scope)`, not the finding granularity: EW-CORE-061 runs in scope `project` and emits one finding per text style; EW-CORE-053 runs per `page` and emits one finding per cross-reference. "Transaction" in [06](06-schematic-editor.md) means a prevent rule, evaluated at commit, not a memo scope |
@@ -181,7 +181,7 @@ CI-06 → EW-TERM-004, FI-02 and FI-07 → EW-FL-013, FI-03 → EW-FL-002.
 | `open_item` | The finding also appears in the open-items list (REF-094) |
 | `fixes` | Declarative quick fixes `{command, params}` or a Rust fix provider |
 | `docs` | Relative documentation path, resolved in the bundled docs (§3.8) |
-| `waivable` | `true` by default; `false` for every rule of kind `integrity` (EW-CORE-001 … 016, EW-CORE-083/084, the EW-REL rules) |
+| `waivable` | `true` by default; `false` for every rule of kind `integrity` (EW-CORE-001 … 017, EW-CORE-083/084, the EW-REL rules) |
 | `since`, `retired` | Pack versions |
 
 ### 2.4 Schemes and settings
@@ -541,11 +541,11 @@ this table. EW-LIB is not a project pack: the library linter runs it (§4.11), a
 ### 4.2 EW-CORE
 
 **Integrity (class 100).** The findings of the integrity check of [05](05-project-format-and-persistence.md) §6.3
-are EW-CORE-001 … 016, with the detection and quick fixes given there. They run on open, after merges and in
+are EW-CORE-001 … 017, with the detection and quick fixes given there. They run on open, after merges and in
 `ew check --integrity` (FR-CHK-012, MVP), including the "renumber the newer" fix of EW-CORE-013 (§6.4);
 cross-file reconciliation after merges is FR-COL-016 (1.0).
-- **Blocking release:** EW-CORE-002, -003, -005 … -009, -011, -012, -013 and -015; EW-CORE-016 (unknown data from
-  a newer format) only where outputs are affected.
+- **Blocking release:** EW-CORE-002, -003, -005 … -009, -011, -012, -013, -015 and -017; EW-CORE-016 (unknown
+  data from a newer format) only where outputs are affected.
 - **Not blocking:** EW-CORE-001, -004, -010, -014, and EW-CORE-016 where no output is affected.
 - **Not waivable:** every `integrity` row (§2.3). A dangling reference or a conflict record is repaired, never
   accepted.
@@ -568,6 +568,7 @@ cross-file reconciliation after merges is FR-COL-016 (1.0).
 | EW-CORE-014 | Library copy modified | A library copy whose content does not match its `sha256`; mark it locally modified, or re-embed it | integrity | n | warning | project | MVP | FR-CHK-012 | — | 05 §6.3 |
 | EW-CORE-015 | Asset missing | An asset missing or not matching its hash name | integrity | n r | error | project | MVP | FR-CHK-012 | — | 05 §6.3 |
 | EW-CORE-016 | Data from a newer format | Unknown kinds, members or variants; blocks release only where outputs are affected | integrity | n r | info (release: error where outputs are affected) | project | MVP | FR-CHK-012 | — | 05 §6.3 |
+| EW-CORE-017 | Malformed known variant | An enum value whose tag names a variant this reader knows but whose payload does not parse; kept verbatim as `Unknown` (ADR-0011 amendment 2) and treated as unknown by derivations | integrity | n r | error | project | MVP | FR-CHK-012 | — | 05 §6.3 |
 
 **Pages, cables, devices, references, texts and the rule system.**
 
@@ -579,7 +580,7 @@ cross-file reconciliation after merges is FR-COL-016 (1.0).
 | EW-CORE-024 | Required report block missing | A report block that the declared applicable standards require is missing: the EN 60204-1 clause 17 set (through EW-EN60204-015) or the IEC 61439-1 clause 11 routine-verification checklist; off when no standard is declared | completeness | o r | warning/error | project | 1.0 | FR-CHK-054, FR-MFG-036, FR-MFG-037 | D-09 | 15 |
 | EW-CORE-025 | TOC fixpoint not reached | Page order and TOC page count did not settle within three rounds; the largest count is used | hygiene | o r | warning | project | MVP | FR-REP-003 | — | 09 §3.1 |
 | EW-CORE-026 | Report coverage gap | A strip, cable or PLC station that no report block of its family covers | completeness | o r | info/warning | project | MVP | FR-REP-047 | D-09 | 09 §7 |
-| EW-CORE-031 | Invalid core colour | Core colour not an IEC 60757 or profile code. A prevent rule: only a lenient import stores a foreign code such as "BR", with the quick fix "use BN" | conflict | p o r | error | cable | MVP | FR-CHK-032 | D-17; MF-11 | 08 §8.1 |
+| EW-CORE-031 | Invalid core colour | Core colour not an IEC 60757 or profile code. An undeclared company code parses as a company code (05 §3.2) and is caught here. A prevent rule: only a lenient import stores a foreign code such as "BR", with the quick fix "use BN" | conflict | p o r | error | cable | MVP | FR-CHK-032 | D-17; MF-11 | 08 §8.1 |
 | EW-CORE-032 | Core differs from the part | Core differs from the cable part's core definition | conflict | o r | warning | cable | MVP | FR-CHK-032 | D-17 | 08 §8.1 |
 | EW-CORE-033 | Cable without length | No routed, manual or part length; blocks release | completeness | o r | error | cable | MVP | FR-CHK-033 | D-19; EF-08 | 08 §8.1 |
 | EW-CORE-034 | External connection without cable | A wired external connection point without a cable core | completeness | o r | warning | page | MVP | FR-CHK-033 | D-19; EF-07, MF-27 | 08 §8.1 |
@@ -1580,7 +1581,7 @@ C = detected by a check, A = assisted by a tool, not checked.
 - [03](03-domain-model.md) §18–§19: the record kinds, amended in §2.1.
 - [04](04-architecture.md) §5.2, §6, §7.5, §7.8, §10.2, §12 and ADR-0003, 0008, 0009, 0012, 0013, 0017, 0019, 0020:
   commit pipeline, memo engine, merge, archive, projection, rule engine.
-- [05](05-project-format-and-persistence.md) §6, §7, §9, §11, §14: integrity findings (EW-CORE-001 … 016), lock,
+- [05](05-project-format-and-persistence.md) §6, §7, §9, §11, §14: integrity findings (EW-CORE-001 … 017), lock,
   external change, driver, release sequence, archive.
 - [06](06-schematic-editor.md) §3.10: online display and pending style. [09](09-reports-forms-output.md): report
   forms, status mark, export dates.
@@ -1686,7 +1687,7 @@ EW-THM-002 … 004 → FR-THM-012.
 11. **Duplicate rows.** FR-REV-018/FR-COL-018 and FR-REV-019/FR-COL-019 say the same. *Recommendation:* keep the
     REV rows; mark the COL rows as referring to them, keeping their IDs. **Decided** 2026-10-18 as recommended
     (decision log DEC-080 item 4): the REV rows absorb the COL rows' detail, and the COL rows refer to them.
-12. **FR-CHK-012 (MVP) against FR-COL-016 (1.0).** **Resolved:** FR-CHK-012 owns EW-CORE-001 … 016 on open and after
+12. **FR-CHK-012 (MVP) against FR-COL-016 (1.0).** **Resolved:** FR-CHK-012 owns EW-CORE-001 … 017 on open and after
     merges at MVP, including EW-CORE-013's "renumber the newer" fix (§6.4); FR-COL-016 (1.0) is cross-file
     reconciliation and the full conflict-panel flow.
 13. **Schema amendments.** **Resolved:** adopted before the revision record kinds freeze at M1: `Revision.purpose`,

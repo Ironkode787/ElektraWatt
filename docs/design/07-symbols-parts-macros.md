@@ -98,7 +98,10 @@ flowchart LR
 - Every library has a UUID (`library_id`).
 - Every item has an `item_id` that stays the same across versions, a human key (`pxc.2904602`, `ew.iec.mcb-1pn`)
   and a semantic `version` (`MAJOR.MINOR.PATCH`). Authored items get UUIDv7; imported items get
-  `v5(import namespace, source key)` (ADR-0004), so re-importing the same CSV or EDZ updates items in place.
+  `v5(import namespace, source key)` (ADR-0004), so re-importing the same CSV or EDZ updates items in place. The
+  version is stored once per document, never in `ItemMeta`: a library record carries it as its top-level `version`
+  member after `id` (the item ID), an embedded copy in its copy metadata
+  ([05](05-project-format-and-persistence.md) §13.2; decision log ID-14).
 - **Identity is the pair `(library_id, item_id)`, never a name.** Two libraries may both contain a part called
   "2904602" without either one shadowing the other.
 - **Published versions are immutable.** `ew lib pack` refuses to publish different content under an existing
@@ -126,7 +129,8 @@ part's accessories, a macro's parts.
   published library item.
 - **Files.** Each copy is one pretty-printed file, `lib/<kind>/<copy_id>.json`: `$k`, `id` (the copy ID),
   `library_id`, `item_id`, `version`, `sha256`, then the item's fields (05 §3.4, example in §3.5). In Rust this is
-  `LibCopy<T>{copy_id, library_id, item_id, version, sha256, item: T}` with `item` flattened on write.
+  `LibCopy<T>{id, library_id, item_id, version, sha256, item: T}` (`id` is the copy ID, typed `Id<T>`) with `item`
+  flattened on write.
 
 ### 2.2 Library directory and index
 
@@ -163,7 +167,7 @@ question 1).
 
 ```rust
 pub struct SymbolDef {                       // library item kind "symbol"
-    pub meta: ItemMeta,                      // key "ew.iec.mcb-1pn", version, licence, sources, status (§2.1)
+    pub meta: ItemMeta,                      // key "ew.iec.mcb-1pn", licence, sources, status (§2.1); no version (§2.1)
     pub name: MlText, pub keywords: Vec<Ident>,
     pub rep_type: RepType,                   // MultiLine | SingleLine | Overview | Fluid | Topology
                                              //   | ContactImage | PanelFront | StripSegment | Graphic
@@ -278,7 +282,7 @@ The library item `Part` is the full record. A `PartCopy` (03 §7) is `LibCopy<Pa
 
 ```rust
 pub struct Part {
-    pub meta: ItemMeta,                    // key, version, licence, sources, as_of, confidence per section, status
+    pub meta: ItemMeta,                    // key, licence, sources, as_of, confidence per section, status
     pub kind: PartKind,                    // Device | Terminal | Cable | Wire | Ferrule | Marker | Duct | Rail
                                            //   | Busbar | EndBracket | Enclosure | MountingPlate | Tube
                                            //   | Accessory | Configured
@@ -288,7 +292,7 @@ pub struct Part {
     pub order_number: Option<Ident>, pub gtin: Option<Ident>,
     pub description: MlText,               // a noun phrase, never ratings (D-35, FR-DEV-010)
     pub category: CategoryKey, pub classification: Vec<ClassRef>,   // {scheme: Etim|Eclass|IecCdd|Native, id, version}
-    pub tech_data: Vec<TechValue>,         // {key: PropKey{scheme, id}, value: Quantity(Dec3, unit) | Ident | Bool | Enum}
+    pub tech_data: Vec<TechValue>,         // {key: Ident, value: Quantity | Ident}: key "<scheme>:<id>" or native (below)
     pub free_props: Vec<FreeProp>,         // {key: Ident, value: MlText}: EPLAN <freeproperty>, user fields
     pub unit: OrderUnit,                   // Piece | Metre | Set; quantities are Dec3 (FR-PRT-026)
     pub cp_pattern: Vec<CpData>,           // {idx, designation, potential_role, level, side, clamp, csa ranges,
@@ -312,6 +316,14 @@ pub struct Part {
     pub docs: Vec<DocRef>,                 // datasheet references as text; images only as asset hashes
 }
 ```
+
+**Technical-data keys** (decided 2026-10-18, decision log ID-15). `tech_data` uses the one `TechValue{key, value}`
+encoding of [05](05-project-format-and-persistence.md) §3.2 on parts and devices alike. A key qualified by a
+classification scheme is spelled `"<scheme>:<id>"` inside `key` (`etim:EF001234`; schemes `etim`, `eclass`,
+`iec_cdd`), and a plain key without a colon is a native or project property (`i_out`, `curve`). Booleans and
+enumeration values are `Ident` values (`"true"`, `"false"`, the enumeration member) until a typed form is needed. One
+encoding for every property keeps the v0 schema small; ETIM features arrive only with WP-S1.28 (FR-PRT-018), which
+may append a typed value variant without changing stored keys.
 
 Part data is organised in **data levels**. Each level lists its consumers and the release that first needs it:
 

@@ -55,7 +55,7 @@ F = file format, M = file `min_reader`):
 
 ## Amendments
 
-Accepted on 2026-10-18. The decision text above is unchanged; this entry refines it.
+Accepted on 2026-10-18. The decision text above is unchanged; these entries refine it.
 
 1. **Append-only members and original-line preservation** (2026-10-18;
    [project format](../design/05-project-format-and-persistence.md) §10.3, open question 3). "Fields in schema
@@ -65,6 +65,23 @@ Accepted on 2026-10-18. The decision text above is unchanged; this entry refines
      which feeds `min_reader`;
    - every persisted enum has an `Unknown(Value)` catch-all, so a new variant stays additive;
    - an untouched record with unknown content is written back as its **original line**.
+2. **What `ew-schema` v0 fixed** (2026-10-18, core team;
+   [project format](../design/05-project-format-and-persistence.md) §3.1, §6.3, §10.2, §10.4). The first
+   implementation of decisions 1, 3 and 4 and of amendment 1 settles four points:
+   - **`extra` at every depth.** Every JSON object of the format, records and nested value objects alike, carries
+     its own `extra` map, so a member that a newer minor appends to a nested object survives a load and a save.
+   - **Schemas describe the known form.** The `Unknown` catch-alls of amendment 1 are omitted from the generated
+     JSON Schemas: the schemas of format F validate what F defines, and a value of a newer minor validates against
+     that minor's schemas.
+   - **`$v` is checked, not guessed.** Typed deserialisation rejects a record whose `$v` differs from the registry's
+     version of its kind ("migrate first": the chain of decision 3 runs before it). A record with a newer `$v`,
+     which only a newer major can write and which is therefore opened read-only, is kept verbatim like a record of
+     an unknown kind and reported as EW-CORE-016.
+   - **A malformed known variant is damage, not newer data.** A value whose enum tag names a variant this reader
+     knows but whose payload does not parse is still preserved verbatim in `Unknown`, so nothing is lost, and the
+     integrity check reports it as EW-CORE-017 (error, blocks release) instead of treating it as data from a newer
+     format. Within a major a known variant's payload never changes type (decision 1, amendment 1), so such a value
+     cannot come from a newer minor.
 
 ## Consequences
 

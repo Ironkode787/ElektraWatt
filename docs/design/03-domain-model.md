@@ -44,6 +44,14 @@ J-E-2416) is the running example; its full acceptance specification lives in [20
 
 - `Record { field: Type }` names a persisted `ew-schema` record or value type. `XId` abbreviates `Id<X>` (a UUID,
   ADR-0004), `T?` is `Option<T>`, and `Vec<T>` stands for any ordered sequence (`SmallVec` in code).
+- A reference to an embedded library copy is typed by the item kind: `Id<Part>`, `Id<SymbolDef>`, `Id<FnDef>`,
+  `Id<FormDef>` (the copy ID, [05](05-project-format-and-persistence.md) §13.2). The older names `PartCopyId`,
+  `FnDefRef` and `FormRef` in this document mean these types (decision log ID-13).
+- Field names are the `ew-schema` member names and equal their JSON names, except where the JSON name is a Rust
+  keyword: `StructureAssignment.type`, `Representation.box` and `GroupSpec.break` (Rust `type_`, `box_`, `break_`).
+- Every record kind that an importer can create, that is every project record kind except `ImportLineage`, ends
+  with `source_ref?{lineage, key}` (import provenance, [14](14-interop.md) §2.3): the last declared member, followed
+  only by the flattened device aspects and `extra`. The tables below do not repeat it (decision log ID-20).
 - Value types (`Nm`, `Pt2`, `Grid`, `Orient2`, `Angle2`, `Pose3`, `Dec3`, `MlText`, `Ident`, `ColourSpec`) are
   defined in §3.
 - This document is the normative field-level schema, together with `ew-schema`; [architecture](04-architecture.md)
@@ -99,6 +107,9 @@ J-E-2416) is the running example; its full acceptance specification lives in [20
 | `IpSpec.star_source`, `IpSpec.sort`, `IpSpec.external`; `Function.device` optional for IPs | §10 | Star and chain pairing (FR-XRF-007), external points (FR-XRF-012) |
 | `BusPort.termination` | §14 | Connector termination as a property (FR-BUS-004) |
 | `Representation.assembly_view` | §6, §7 | Assembly overviews generated from children (FR-DEV-023, D-10) |
+| `MasterData.document_title` | §5 | The cover subtitle "Electrical Definition" is its own field, distinct from `long_description` ([20](20-golden-project.md) §4.1) |
+| `ProjectSettings` record shapes: `numbering`, `wire_numbering`, `xref_format`, `colour_profile`, `size_profile`, `wire_default`, `frames` | §5.1 | Fixed before M1, so the derivations of the golden PDF read one shape (decision log ID-17) |
+| `UserPropDef`, `user_props` | §5 | Minimal definition of the user properties of FR-PRJ-007 (decision log ID-16) |
 
 **Schema batches adopted before `ew-schema` v0 freezes** (the revision record kinds before M1). They refine the
 records of this document; the owning feature document gives the behaviour.
@@ -106,10 +117,10 @@ records of this document; the owning feature document gives the behaviour.
 | Batch | Additions | Section | Owner |
 |---|---|---|---|
 | Value types | `Angle2` for free texts and graphics; `ColourCode::Foreign(Ident)`, lenient mode only | §3 | [14](14-interop.md) |
-| Library items | `ItemMeta{key, version, licence, sources, as_of, confidence, status}`, `foreign_terms`, `LibRef{library, item, version_req}`, manufacturer copies; `SymbolCp.fn_cp`; three-level FnDef category; `FnFlags.n_isolation`; `CpDef.source_output`, `CpDef.optional`; `Part.free_props`; `PartCopy.sections.fluid` | §6, §7 | [07](07-symbols-parts-macros.md), [08](08-connections-terminals-cables.md), [11](11-fluid-power.md) |
+| Library items | `ItemMeta{key, licence, sources, as_of, confidence, status}` (no `version`: the document's own `version` member, [05](05-project-format-and-persistence.md) §13.2), `foreign_terms`, `LibRef{library, item, version_req}`, manufacturer copies; `SymbolCp.fn_cp`; three-level FnDef category; `FnFlags.n_isolation`; `CpDef.source_output`, `CpDef.optional`; `Part.free_props`; `PartCopy.sections.fluid` | §6, §7 | [07](07-symbols-parts-macros.md), [08](08-connections-terminals-cables.md), [11](11-fluid-power.md) |
 | Representations and page items | `Representation.box` (black boxes), `Representation.arrangement`; `PageItem::WireMarker{connections}`, `FreeText` role `PathFunction`, `MacroBox`, `SurfaceView`, `ModelView`, `Dimension`, `Underlay` (1.0) | §6 | [06](06-schematic-editor.md), [07](07-symbols-parts-macros.md), [12](12-panel-layout.md), [14](14-interop.md) |
 | Macros | `ValueSet{name, values}`, `MacroInstance`, `PlaceholderGroup` | §7 | [07](07-symbols-parts-macros.md) |
-| Report blocks and forms | `ReportBlock.source = SqlQuery{api, file}`, `manual`, `continuation`, `title`, `empty`, `EmbedSpec.overflow`; `FormDef.page_to_sheet`, `FormDef.continuation` | §6 | [09](09-reports-forms-output.md) |
+| Report blocks and forms | `ReportBlock.source = SqlQuery{api, file}`, `manual`, `continuation`, `title`, `empty`; `FormDef.page_to_sheet`, `FormDef.continuation`; `EmbedSpec.overflow` withdrawn (overflow follows the cells' policy, [09](09-reports-forms-output.md) §3.4) | §6 | [09](09-reports-forms-output.md) |
 | Connections and potentials | `ConnectionKind` payloads `Bridge(BridgeSpec)`, `Bus(BusLine)`, `SingleLine{conductors}` (1.0); `PotentialDef.ptype` optional, `env.earthing`; `ClampKey`; `WireOverrides.length`, `WireOverrides.ends`; `Strip.groups`, `Strip.field_side`; `Junction.fitting` | §9, §11, §15 | [08](08-connections-terminals-cables.md), [12](12-panel-layout.md), [13](13-manufacturing-outputs.md) |
 | PLC and bus | `Owner` per field group, `ExchangeStamp`, `allocation`, `symbols`; `PlcStation.order`; `PlcModule.start: IoStarts`, `part_use`, `safety`; `Channel.state` optional, `target`, `signal_range`, `safety`; derived `PhysicalNet` segments with `order_hint`, `PhysicalNet.medium` | §13, §14 | [10](10-plc-and-bus.md) |
 | Fluid power | `ValveModel.sections`; `FluidPortRole` additions; `Medium.code`, `line_kind_tubes`; `TubeOverrides`; `ProjectSettings.fluid.default_tube`; `CpOverride.closure`; `DeviceKind::BlankingPlate`; no `FluidLine.tag` | §15 | [11](11-fluid-power.md) |
@@ -281,6 +292,9 @@ classDiagram
   is a query over the output language (FR-I18N-009), never stored text, so "0.75 mm ²" and "50hz" (D-18) cannot be
   stored.
 - **`Csa = Mm2(Dec3) | Awg(i8) | Kcmil(Dec3)`** keeps AWG and kcmil in their original unit (FR-CON-032).
+- **Persisted spellings.** `Unit` is persisted in ASCII (`mm2`, `A`, `V`, `Hz`, `bar`, `degC`, `kg`, `W`, `m`,
+  `piece`, `set`), `Csa` as a bare `Dec3` in mm², `{"awg": n}` or `{"kcmil": Dec3}`; the encodings are in
+  [05](05-project-format-and-persistence.md) §3.2 (ADR-0005 amendment 4).
 - Part quantities are `Dec3` with the part's order unit (piece, metre, set; FR-PRT-026), so -3W1's PROFIBUS cable
   counts in metres.
 
@@ -300,6 +314,8 @@ classDiagram
   company codes declared by the colour profile, each with a base code and shade (DBU = BU, dark), plus
   `Foreign(Ident)` for codes outside both.
 - **`ColourSpec`** is one or two codes: GNYE is `[GN, YE]`.
+- **Parsing.** A stored string that is not one of the 14 IEC codes is read as a company code. Whether the active
+  colour profile declares it is a model check (EW-CORE-031), not a schema error
 - No free-text colour exists. `Foreign` is allowed only in lenient mode: the prevent rule EW-CORE-031 rejects it in
   strict projects, so a native project can never store the core colour "BR" of -106W1 (D-17). The QET importer
   keeps "BR" as `Foreign("BR")`, reports it in the migration report (MF-11) and offers the quick fix "use BN" from
@@ -406,18 +422,19 @@ classDiagram
     +origin: SupplyOrigin?
   }
   class ProjectSettings {
-    +identifier_set: IdentifierSetRef
-    +numbering: NumberingScheme
+    +identifier_set: Ident?
+    +ip_pairing: IpPairing?
+    +formatting: Formatting
+    +numbering: NumberingSettings
     +wire_numbering: WireNumberingScheme
     +xref_format: XrefFormat
-    +ip_pairing: IpPairing
     +colour_profile: ColourProfile
     +size_profile: SizeProfile
+    +wire_default: WireProps
+    +frames: FrameDefaults
     +checks: CheckSettings
     +fluid: FluidSettings
     +mfg: MfgSettings
-    +frames: FrameDefaults
-    +formatting: Formatting
   }
   class StructureNode {
     +aspect: Aspect
@@ -468,10 +485,11 @@ classDiagram
 
 | Entity and purpose | Kind | Key attributes | Relationships, identity, lifecycle | Invariants |
 |---|---|---|---|---|
-| `Project`: master data, parties, supply and settings of one cabinet project | A, one row | `master{description: MlText, long_description: MlText, project_ref: Ident, drawing_id: Ident, object_id: Ident, manufacturing_year: u16, created: Date, edited: Date}`; `control_voltage` (V); `rated_consumption` (A); `languages{source, translations}`; `derivation_profile` ("2027.1"); `kind: Schematic \| Basic \| Macro` (FR-PRJ-026); `completed?{date, by, reopen_reason?}` (added, [15](15-checks-revisions-collaboration.md) §5.10); `extra` | Created from a basic project (FR-PRJ-009); the derivation profile changes only by a previewed upgrade (FR-PRJ-011). `edited` has day precision, merges by maximum and feeds the title-block "Saved" cell; there is no stored save time (FR-PRJ-029) | S: exactly one row. Chk at release: drawing id present (FR-PRJ-002) |
+| `Project`: master data, parties, supply and settings of one cabinet project | A, one row | `master{description: MlText, long_description: MlText, document_title: MlText` (added: the cover subtitle "Electrical Definition", [20](20-golden-project.md) §4.1; appended, since 0.1), `project_ref: Ident, drawing_id: Ident, object_id: Ident, manufacturing_year: u16, created: Date, edited: Date}`; `control_voltage` (V); `rated_consumption` (A); `languages{source, translations}`; `derivation_profile` ("2027.1"); `kind: Schematic \| Basic \| Macro` (FR-PRJ-026); `supply?` (absent in basic and macro projects); `user_prop_defs: Vec<UserPropDef>` (below, FR-PRJ-007); `completed?{date, by, reopen_reason?}` (added, [15](15-checks-revisions-collaboration.md) §5.10); `extra` | Created from a basic project (FR-PRJ-009); the derivation profile changes only by a previewed upgrade (FR-PRJ-011). `edited` has day precision, merges by maximum and feeds the title-block "Saved" cell; there is no stored save time (FR-PRJ-029) | S: exactly one row. Chk at release: drawing id present (FR-PRJ-002) |
 | `Party`: a person or organisation in a role | A, inside `Project` | `role: Customer \| EndUser \| PanelBuilder \| Author \| Checker \| Engineer`; `name: MlText`; `address{street, postcode, city, country}`; `personal_data: bool` (FR-PRJ-024) | Form cells and revisions refer to parties by role (FR-PRJ-003) | S: a form cell binds exactly one role (D-30) |
 | `SupplySpec`: the incoming supply | A, value | `phases: u8`, `neutral`, `pe: bool`, `earthing: TN-S \| TN-C-S \| TT \| IT`, `u_nom: Dec3` (V), `frequency: Dec3` (Hz), `origin?{upstream_rating (A), ik_max (kA), source: ExternalRefId}` | Rendered by a format: "1 x 230 VAC + N + PE, 50 Hz" (FR-PRJ-004, FR-PRJ-006) | Chk: frequency 50 or 60 Hz |
-| `ProjectSettings`: named, versioned schemes | A | identifier set (EN 81346-2:2009 by default, ADR-0026), numbering and wire-numbering schemes, xref format, IP pairing `{mode: Star \| Chain, scope: Project \| Function \| Location}`, colour and size profiles, `checks: CheckSettings` (§19), `fluid{default_tube}` (§15), `mfg: MfgSettings` (§17), frame defaults per page type, formatting (date dd-mm-yyyy or ISO 8601, decimal separator), tag case sensitivity | Inherited from the basic project, project level wins; exportable as files (FR-PRJ-008) | — |
+| `ProjectSettings`: named, versioned schemes | A | `identifier_set?: Ident` (EN 81346-2:2009 by default, ADR-0026); `ip_pairing?{mode: Star \| Chain, scope: Project \| Function \| Location}` (the pairing scope of every interruption point, §10); `formatting{date: DdMmYyyy \| Iso8601, decimal_separator: Point \| Comma, tag_case: Sensitive \| Insensitive}`; the schemes of §5.1: `numbering`, `wire_numbering`, `xref_format`, `colour_profile`, `size_profile`, `wire_default`, `frames`; later `checks: CheckSettings` (§19), `fluid{default_tube}` (§15), `mfg: MfgSettings` (§17) | Inherited from the basic project, project level wins; exportable as files (FR-PRJ-008) | — |
+| `UserPropDef` (added): a project-local property definition (FR-PRJ-007) | A, inside `Project.user_prop_defs`, keyed by `key` | `key: Ident` (snake_case, unique in the project); `label: MlText`; `value_kind: Text \| Number \| Bool \| Date \| Enum{options: Vec<Ident>} \| Quantity{unit: Unit}`; `scope`: a set of `Project \| Page \| Device \| Function \| Connection`; later appended: `default`, `category`, `personal_data: bool` (FR-PRJ-024, 1.0) and the part scope | Values live on the records of a scope as `user_props: Vec<UserPropValue{key, value}>`, keyed by `key`. `value` is encoded like a tech value ([05](05-project-format-and-persistence.md) §3.2): a `Quantity` object, an `MlText` for Text, otherwise a string read by the definition's kind (`Dec3` for Number, `"true"` or `"false"`, the enum option, `"YYYY-MM-DD"`). Implemented with WP-S1.12; until then `user_prop_defs` and `user_props` stay in `extra` | P: a value's key is defined, the definition's scope includes the record's kind, and the value parses as the definition's kind |
 | `StructureNode`: one identifier in one aspect tree | A, `structure.jsonl` | `aspect`; `code: Ident` (atomic, FR-PRJ-017); `aliases: Vec<Ident>` (added); `parent?`; `description: MlText`; `order: u32` (defines sort order, FR-PRJ-012) | Pages, devices, layout spaces and external refs point to nodes. UUIDv7. Rename and merge are previewed commands (FR-PRJ-018) | S: parent has the same aspect; tree acyclic. P: code unique among siblings. Chk EW-RDS-002 (FR-CHK-027): a code with prefix characters, such as "J-E-2416", is reported as info in the `drafting` and `full` schemes, not in `pre-delivery` |
 | `StructureAssignment`: which node a page or device belongs to, per aspect | A, value on `Page`, `Device`, `StructureBox` | one slot per aspect: `Inherit \| None \| Node(StructureNodeId)` | Device resolution: explicit slot, else the structure box around its main representation, else the page of its main representation (FR-PRJ-019) | — |
 | `StructureBox` (added): dotted or dash-dot box that assigns a structure | A, page-owned | `outline: Vec<Pt2>`, line style, `caption: MlText`, `assigns`, `external?` | Containment of a representation's anchor point is derived (FR-PRJ-020) | — |
@@ -503,6 +521,104 @@ EN 81346 and EPLAN's identifier blocks:
 | `StructureNode` | rendered identifiers, structure-identifier overview (FR-REP-017) | Structure identifier management, identifier blocks | none: `plant`/`location` element-info strings and folio `plant`/`locmach` attributes |
 | `StructureBox` | structure of enclosed representations | Structure box | dotted shapes without semantics |
 | `ExternalRef` | external xref texts "+J-E-206 / JE-N1000-03" | none typed (structure box plus free text) | none (free text) |
+
+### 5.1 Project settings: record shapes
+
+The schemes that the golden PDF needs at M1 have a fixed record shape (decision log ID-17), so the work packages
+that implement them do not re-open it. Each is an optional member appended to `ProjectSettings` in `project.jsonl`.
+Until the owning work package adds the typed struct to `ew-schema`, a file that carries the member keeps it in
+`ProjectSettings.extra`, unchanged ([05](05-project-format-and-persistence.md) §10.3). Member names are JSON names,
+and enums use the snake_case encoding of 05 §3.2. Schemes are copied into the project, so the project level wins
+(FR-PRJ-008); `key` and `name` record which scheme the copy came from.
+
+| Member | Shape | Golden A | Implemented by |
+|---|---|---|---|
+| `numbering` | `{default: Ident, schemes: Vec<DeviceNumberingScheme>}`, schemes keyed by `key`; `TagSpec.scheme = Named(key)` selects a non-default scheme | default `page-based` | WP-S1.06 (`device_tag` reads the format), WP-S1.11 (counters, renumbering) |
+| `wire_numbering` | `WireNumberingScheme`, one active scheme | connection-oriented `{page}.{counter}`, scope page, cores not numbered, not printed | WP-S1.11 |
+| `xref_format` | `XrefFormat` | the QET-style preset of [06](06-schematic-editor.md) §2.8 | WP-S1.08 |
+| `colour_profile` | `ColourProfile` | company "DBU/WH 24 V", 15 rows ([08](08-connections-terminals-cables.md) §4.2) | WP-S1.07 (wire properties), WP-S3.03 (cover table) |
+| `size_profile` | `SizeProfile` | "0.75/1.5": Control 0.75 mm², Mains 1.5 mm², PE by class | WP-S1.07, WP-S3.03 |
+| `wire_default` | `WireProps`, level 1 of the chain (§9.5) | unset | WP-S1.07 |
+| `frames` | `FrameDefaults` | the QET-compatible A4 frame; its no-grid variant for title, TOC, divider and report pages | WP-S3.02 |
+
+**`DeviceNumberingScheme`** (§8.2, FR-NUM-005 … FR-NUM-007):
+
+| Member | Type and encoding | Default |
+|---|---|---|
+| `key` | `Ident` (`"page-based"`) | required |
+| `name` | `MlText` | empty |
+| `format` | format string: the tokens of §8.2 step 3 (`{letter}`, `{counter}`, `{subcounter}`, `{page}`, `{column}`, `{row}`) and literal separators | required; golden `"{page}{letter}{counter}"` |
+| `rules` | `Vec<{select: {aspect?, letter?, kind?}, format}>` in model order, first match wins; `aspect` names a device aspect (`"strip"`, `"terminal"`, `"cable"` …), `letter` is an `Ident`, `kind` a `DeviceKind` string (§7) | empty; golden `{select: {aspect: "strip"}, format: "{letter}{page}{counter}"}` (-X1031, §8.4) |
+| `counter_scope` | `"project"`, `"page"`, `"row"`, `"column"` or `{"structure": <aspect>}` (FR-NUM-006) | `"page"` |
+| `counted_rep_types` | set of `RepType`s that can be the main representation (§8.2 step 4) | absent: every type except `contact_image` and `panel_front` |
+| `reuse_gaps` | `bool` (§8.6) | `true`, written only as `false` |
+| `online` | `bool`: number new devices at commit (FR-NUM-007) | `true`, written only as `false` |
+| `child_separator` | string between the parent's and the child's designation (§8.5) | `"-"` |
+
+Counters are not settings. The counter is `TagSpec.counter`, and "next free" is derived from the snapshot (§8.6), so
+no stored counter table exists to merge.
+
+**`WireNumberingScheme`** ([08](08-connections-terminals-cables.md) §5.2, FR-NUM-019 … FR-NUM-021):
+
+| Member | Type and encoding | Default |
+|---|---|---|
+| `key`, `name` | `Ident`, `MlText` | required, empty |
+| `orientation` | `"connection"` or `"potential"` | `"connection"` |
+| `format` | format string with the tokens of 08 §5.2 | required; golden `"{page}.{counter}"` |
+| `counter_scope` | `"page"`, `"potential"` or `"project"` | `"page"` |
+| `number_cores` | `bool` | `false` |
+| `online` | `bool`; without it new wires print "?" (FR-NUM-021) | `false` |
+| `display` | `"none"`, `"per_segment"`, `"once_per_page"` or `"both_ends"` (FR-CON-026) | `"none"` (golden: not printed) |
+
+Format groups, net extension and formula tokens (1.0, 08 §5.2) are later appended members.
+
+**`XrefFormat`** ([06](06-schematic-editor.md) §2.8, FR-XRF-001 … FR-XRF-004, FR-XRF-008, FR-XRF-025):
+
+| Member | Type and encoding | Golden (QET-style preset) |
+|---|---|---|
+| `key`, `name` | `Ident`, `MlText` | `"qet-style"` |
+| `ip` | format string; tokens `{page}`, `{page_index}`, `{row}`, `{column}`, `{function}`, `{location}` | `"{page}-{row}{column}"` |
+| `aux_to_main` | format string | `"({page}-{row}{column})"` |
+| `main_to_aux` | format string with `{list}`, whose items use `ip` | `"∞ {list}"` |
+| `structure` | `"when_different"` (default) or `"always"` | `"when_different"` |
+| `same_page` | `"full"` (default) or `"zone_only"` | `"full"` |
+| `matrix` | `{per_row: u8, max: u8, overflow: String}` | `{per_row: 3, max: 9, overflow: "…"}` |
+
+The TOML of 06 §2.8 is the exchange form of the same scheme (`when-different` there is `when_different` here). The
+contact-image settings of 06 §2.8 are a later member owned by WP-S1.08.
+
+**`ColourProfile`** ([08](08-connections-terminals-cables.md) §4.2, §4.4):
+
+| Member | Type and encoding |
+|---|---|
+| `key`, `name` | `Ident` (`"company.dbu-wh-24v"`), `MlText` |
+| `basis`, `basis_note` | `"standard"` or `"company_convention"` (D-37); `MlText` |
+| `verified` | `bool`, default `false` |
+| `codes` | the company codes, keyed by `code`: `{code: Ident, base: <IEC code>, shade: "light" \| "dark", export_as?: Ident, names: MlText}` (DBU = BU, dark) |
+| `rows` | `Vec<{group: MlText, function: MlText, select: ProfileSelect, colour: ColourSpec}>` in cover-table order |
+
+**`SizeProfile`** (08 §4.2):
+
+| Member | Type and encoding |
+|---|---|
+| `key`, `name`, `verified` | as in `ColourProfile` |
+| `class_rules` | `Vec<{select: ProfileSelect, class: CircuitClass}>`, first match wins |
+| `pe_class` | `"highest_at_ends"` (FR-CON-038; the default) |
+| `bond_rule` | `{colour_from: "pe", class_from: "non_pe_side"}` (the default) |
+| `rows` | `Vec<{class: CircuitClass, csa: Csa}>`, keyed by `class` |
+
+`ProfileSelect` is `{ptype: Vec<PotentialType>, ac_dc?: AcDc, u_min?: Dec3, u_max?: Dec3, discipline?: Discipline,
+analogue?: bool}`. An absent or empty member matches anything. Values use the record spellings (`l_plus`, `dc`), not
+the spellings of the TOML exchange form (`"L+"`, `"DC"`).
+
+**`FrameDefaults`** ([06](06-schematic-editor.md) §2.4, FR-PAG-018) is `{default?: Id<FormDef>, per_page_type:
+Vec<{page_type: PageType, form: Id<FormDef>}>}`, keyed by `page_type`. A drawn page's frame is `Page.form`, else the
+entry of its page type, else `default`. Generated report pages take the form of their block (`ReportBlock.form`),
+divider pages the entry for `section_divider`.
+
+Not shaped here, and kept in `extra` until their work packages: `checks` (WP-S1.15), `fluid` ([11](11-fluid-power.md)),
+`mfg` ([13](13-manufacturing-outputs.md)), the marker mode of [08](08-connections-terminals-cables.md) §4.5, text
+styles and export schemes (WP-S3.02, WP-S3.04).
 
 ---
 
@@ -563,7 +679,7 @@ classDiagram
   class Representation {
     +functions: Vec~FunctionId~
     +page: PageId
-    +symbol: SymbolRef
+    +symbol: Id~SymbolDef~
     +variant: u8
     +pos: Pt2
     +orient: Orient2
@@ -628,10 +744,10 @@ classDiagram
 | `Page`: one drawn sheet | A, `pages/<uuid>.jsonl` | `folio: Folio{section?, number: u32, label?: Ident}` (sparse, gaps allowed, labels "101a", "101.1"; FR-PAG-005/006); `kind: PageType`; `structure`; `form?` (frame override); `title: MlText` (page description); `description_override?` (added, D-06); `scale: OneTo(u32) \| NotToScale`; `grid: Grid` | Owns its representations, connections, junctions, interruption-point functions with their representations, macro instances, embedded report blocks and page items ([05](05-project-format-and-persistence.md) §2.2). UUIDv7. Delete cascades page-owned rows (FR-PAG-025) | P: full page name `=P01+J-E-2416/101` unique (FR-PAG-012). Chk: a description override is reported (FR-REP-036) |
 | `PageType`: governs page semantics | value | see diagram (FR-PAG-001) | Overview, Graphic, AssemblyOverview and PanelLayout pages create no net connections and disable autoconnect; Report pages reject edits (FR-PAG-002) | S: a `Report` page is never stored; it is always generated |
 | `FormDef`: frame, title block, cover, report form or label | L, `lib/forms/` | frame: sheet size, margins, `columns{count, start_index, width: Grid, labels}`, `rows{count, labels, skip_io, height: Grid}`, header bands, title-block form, grid and no-grid variants; cells with typed placeholders (FR-REP-032/033); `page_to_sheet?: SheetTransform` (uniform integer scale and offset, QET-compatible frames only, FR-PAG-029); `continuation?: FormRef` (the "next form" of report pages, FR-REP-032) | Assigned by project default, page-type default, or page override (FR-PAG-018) | S: placeholders valid for the form kind (FR-REP-034) |
-| `Representation` (the symbol instance): one drawing of one or more functions | A, page-owned | `functions`, `page`, `symbol: SymbolRef{id, variant}`, `pos: Pt2`, `orient: Orient2`, `rep_type: MultiLine \| SingleLine \| Overview \| Fluid \| Topology \| ContactImage \| StripSegment \| Graphic`, `pin_map` (symbol CP → function CP), `text_slots` (overrides only), `arrangement?` (named slot set of the symbol, FR-SYM-012), `box?: BoxSpec{outline: Vec<Pt2>, cps: Vec<(idx, Pt2, Dir4)>, inner: Vec<Primitive>}` (black boxes drawn with the built-in symbol `ew.gen.blackbox`; part box macros fill it on placement), `assembly_view?` (added) | One function has 0..n representations; with none it is unplaced (FR-DEV-003). UUIDv7. Panel fronts are not stored: `panel_front_reps(dev)` derives them from placements (§16), and a PanelLayout page hosts one `SurfaceView` | S: its functions exist and belong to one device (IPs excepted); each symbol CP maps to at most one function CP |
+| `Representation` (the symbol instance): one drawing of one or more functions | A, page-owned | `functions`, `page`, `symbol: Id<SymbolDef>` and `variant: u8` (default 0: the stored contact-image or CP variant; orientation variants A–H are derived), two members as in [05](05-project-format-and-persistence.md) §3.5, because the variant is chosen per placement while `symbol` names the one embedded copy that every placement shares, `pos: Pt2`, `orient: Orient2`, `rep_type: MultiLine \| SingleLine \| Overview \| Fluid \| Topology \| ContactImage \| StripSegment \| Graphic` (default `MultiLine`), `pin_map` (symbol CP → function CP), `text_slots` (overrides only), `arrangement?` (named slot set of the symbol, FR-SYM-012), `box?: BoxSpec{outline: Vec<Pt2>, cps: Vec<(idx, Pt2, Dir4)>, inner: Vec<Primitive>}` (black boxes drawn with the built-in symbol `ew.gen.blackbox`; part box macros fill it on placement), `assembly_view?` (added) | One function has 0..n representations; with none it is unplaced (FR-DEV-003). UUIDv7. Panel fronts are not stored: `panel_front_reps(dev)` derives them from placements (§16), and a PanelLayout page hosts one `SurfaceView` | S: its functions exist and belong to one device (IPs excepted); each symbol CP maps to at most one function CP |
 | `SymbolDef`: graphics plus CP geometry | L, `lib/symbols/` | `meta: ItemMeta` (below); primitives in nm; `cps: Vec<SymbolCp{idx, fn_cp, pos, dir, discipline}>` on the connection grid, where `fn_cp` is the FnDef CP the symbol draws (a symbol may draw a subset); text slots and named `arrangements`; anchor policy (origin, label, centre, named point; FR-SYM-010); `fndef: LibRef`; `rep_type` (including `PanelFront` for 2D front graphics); variants A–H plus contact-image and CP variants | Representations reference it; geometry is memoised at library durability | Chk (FR-SYM-020): CPs on grid, unique indices, anchor defined; `fn_cp` exists in the FnDef |
 | `PageItem` (added): page content without electrical meaning | A, page-owned (rank 43 of [05](05-project-format-and-persistence.md) §2.2) | `kind: Graphic{shape, stroke, dash, fill, angle: Angle2} \| FreeText{text: MlText or bound property, role: Plain \| PathFunction{columns}, angle: Angle2} \| Image{asset sha256} \| WireMarker{connections: Vec<ConnectionId>, fields} \| MacroBox{outline, key, kind, rep_type, variant, target_library, generated?: LibRef} \| SurfaceView{surface, side, datum_at, clip?, label_mode, layers} \| ModelView \| Dimension \| Underlay{asset sha256, page, transform, opacity}`; `layer` | A wire marker only displays the overrides of its connections, in the listed order (a group "1.5 DBU DBU WH WH" over four); it carries no data of its own. A `PathFunction` text is the automatic function text of the functions in its column range (FR-DEV-011). A macro box frames the content that "Generate macros" saves as a macro version (FR-MAC-013); inserting a macro never inserts its box. `SurfaceView`, `ModelView` and `Dimension` belong to layout pages (§16, 1.0 for the last two); an `Underlay` (1.0) is read by no engineering query | — |
-| `ReportBlock`: a report placed in the page order | A, `report-blocks.jsonl`; an embedded block lives in the file of its page | `source: Kind{kind, params} \| SqlQuery{api: "v1", file}` (the SQL lives in `reports/<uuid>.sql`), `filter`, `manual` (include and exclude entity IDs, FR-REP-027), `sort`, `group`, `form`, `section?`, `first_folio`, `continuation: SubPage \| NextFolio` (default SubPage: 907, 907.1 …; FR-PAG-030), `title` (format with `{n}`, `{count}`, `{group}`), `empty: OmitPages \| OnePage(text)`, `embedded?{page, rect, overflow}` | Its pages are derived (`report_pages(block)`, IDs v5) and join `page_order()` (FR-REP-001) | Chk: folio collision with a drawn page (FR-REP-041) |
+| `ReportBlock`: a report placed in the page order | A, `report-blocks.jsonl`; an embedded block lives in the file of its page | `source: Kind(ReportKind) \| SqlQuery{api: "v1", file}` (`{"kind": "wire_list"}`; the SQL lives in `reports/<uuid>.sql`), `manual` (include and exclude entity IDs, FR-REP-027), `sort: Vec<SortKey{key, descending}>`, `group?{key, break}`, `form: Id<FormDef>`, `section?`, `first_folio?` (required for page-oriented blocks, ignored when `embedded` is set), `continuation: SubPage \| NextFolio` (default SubPage: 907, 907.1 …; FR-PAG-030), `title` (format with `{n}`, `{count}`, `{group}`), `empty: OmitPages \| OnePage(text)`, `embedded?{page, rect}`; later appended: `params` and `filter` (WP-S3.03, [09](09-reports-forms-output.md) §2.2) | Its pages are derived (`report_pages(block)`, IDs v5) and join `page_order()` (FR-REP-001) | S: a page-oriented block has `first_folio`. Chk: folio collision with a drawn page (FR-REP-041) |
 
 **Derived from pages.** `page_order()` sorts sections, then folios by natural order, including generated pages.
 From it come Prev/Next (empty on the first and last page, FR-PAG-013), the TOC rows with "Location (+)"
@@ -819,20 +935,28 @@ classDiagram
 |---|---|---|---|---|
 | `FnDef`: what a function is, independent of how it looks | L, `lib/fndefs/` | `category`: a three-level key category / group / definition (e.g. `ProtectionOvercurrent / MCB / 1P+N`; the first two levels map to a letter code through the identifier set, FR-NUM-004, and filter compatible parts; FR-SYM-005); `contact_kind: NO \| NC \| CO \| Coil \| Pole \| Terminal \| BlackBox \| PlcIo \| BusPort \| Valve …`; `cps: Vec<CpDef>`; `internal: Vec<{a, b, kind: Short \| PassThrough{opens: bool}}>` (added detail); `flags{switches_n_with_l, n_isolation}` (added; `n_isolation` marks neutral isolating terminals, which EW-POT-013 reports as info); `valve_model?` (§15) | Symbols, functions and part function templates reference it (FR-SYM-005) | Chk: CP indices unique |
 | `CpDef`: one CP of a definition | value | `idx: u16` (internal, unique); `designation: Ident` (duplicates allowed: two "N" on a 1P+N MCB, REF-029); `alias?` ("L1", REF-030); `discipline: Electrical \| Pneumatic \| Vacuum \| Hydraulic \| Bus`; `potential_role?` (PSU "+" is L+, "−" is M, PE pin is PE); `source_output: bool` (added: the CP is an output of a source function, such as PSU +/− or a transformer secondary, and roots `potential_flow`); `optional: bool` (added: may stay free by design, such as the Out entry of a terminating bus connector or a parallel duplicate pin, so EW-POT-009 skips it); `level?`, `side?`, `clamp?: ClampKey` (terminals, §11); `port_role?` (fluid, §15); `physical: bool` (false for internal points such as a VMPA coil) | Part CP patterns refine it with clamp data (cross-section range, maximum conductors, twin-ferrule permission; FR-PRT-008) | — |
-| `Function`: one logical element (a pole set, a contact, a coil, a PSU, a valve, an IP) | A, device shard; an IP function lives in the page file of its representation and follows it on a page move ([05](05-project-format-and-persistence.md) §2.2) | `device?` (None only for IPs, added); `def`; `role: Main \| Aux`; `kind: Normal \| Ip(IpSpec) \| BlackBox`; `cp_overrides: Vec<CpOverride{idx, designation?, alias?, description?, unused: bool, closure?: Plug(PartRef) \| Silencer(PartRef) \| Blanked}>` (FR-DEV-008; `closure` added for fluid ports, §15); `bus_port?` (§14) | Placing a part creates its template functions unplaced (FR-DEV-017); UUIDv7, or `v5(device_id, template_index)` from the template | S: exactly one Main per device (FR-DEV-004); `device` is None if and only if `kind` is Ip (ADR-0009); overrides name existing indices. Chk (FR-CHK-036): more auxiliaries than the main part's contacts |
+| `Function`: one logical element (a pole set, a contact, a coil, a PSU, a valve, an IP) | A, device shard; an IP function lives in the page file of its representation and follows it on a page move ([05](05-project-format-and-persistence.md) §2.2) | `device?` (None only for IPs, added); `def: Id<FnDef>`; `role: Main \| Aux`; `kind: Normal \| Ip(IpSpec) \| BlackBox`; `cp_overrides: Vec<CpOverride{idx, designation?, alias?, description?, unused: bool, closure?: Plug(PartRef) \| Silencer(PartRef) \| Blanked}>` (FR-DEV-008; `closure` added for fluid ports, §15); `bus_port?` (§14) | Placing a part creates its template functions unplaced (FR-DEV-017); UUIDv7, or `v5(device_id, template_index)` from the template | S: exactly one Main per device (FR-DEV-004); `device` is None if and only if `kind` is Ip (ADR-0009); overrides name existing indices. Chk (FR-CHK-036): more auxiliaries than the main part's contacts |
 | `ConnectionPoint`: an instantiated CP | D | `id = v5(function, idx)`, effective designation and alias, level/side/clamp, discipline, potential role, `unused`, world position per representation | Endpoint of connections; member of nets; pin of a channel | — |
-| `Device`: everything with one tag; the single owner of parts (ADR-0006) | A, device shard | `tag: TagSpec` (§8); `kind: DeviceKind` (UI and numbering hint, including `BlankingPlate` for a blank manifold position, §15); `parent?`; `position?: u32` (added: order inside the parent); `structure` (added); `parts: Vec<PartUse>`; `function_text: MlText` (manual; the automatic text falls back to the path function text, FR-DEV-011); `process_tag?: Ident` (TA05-V-15 on field device -203Q1, never renumbered, FR-DEV-012); `tech_data: Vec<TechValue{key, value: Quantity or Ident}>` (40 A, C10, 15 °C, 6 A; FR-DEV-009); `state`; `aspects: DeviceAspects`; `user_props`, `extra` | Functions, aspects, children, placements and channels hang off it. UUIDv7 | S: parent graph acyclic. P: full tag unique in its scope (FR-NUM-012). S: aspect combinations consistent (Terminal excludes Strip and Cable) |
+| `Device`: everything with one tag; the single owner of parts (ADR-0006) | A, device shard | `tag: TagSpec` (§8); `kind?: DeviceKind` (UI and numbering hint, below); `parent?`; `position?: u32` (added: order inside the parent); `structure` (added); `parts: Vec<PartUse>`; `function_text: MlText` (manual; the automatic text falls back to the path function text, FR-DEV-011); `process_tag?: Ident` (TA05-V-15 on field device -203Q1, never renumbered, FR-DEV-012); `tech_data: Vec<TechValue{key, value: Quantity or Ident}>` (keys `"<scheme>:<id>"` or native, [05](05-project-format-and-persistence.md) §3.2) (40 A, C10, 15 °C, 6 A; FR-DEV-009); `state`; `aspects: DeviceAspects`; `user_props`, `extra` | Functions, aspects, children, placements and channels hang off it. UUIDv7 | S: parent graph acyclic. P: full tag unique in its scope (FR-NUM-012). S: aspect combinations consistent (Terminal excludes Strip and Cable) |
 | `DeviceAspects`: typed roles of one device (arch §4.3) | A, value | strip, terminal, cable, assembly, PLC station, PLC module, bus node, valve terminal | One device may carry several at once (FR-DEV-024) | Removing an aspect keeps the device's UUID and references (FR-PLC-001) |
 | `Assembly` aspect: configured product with child devices | A, value | `configs: Vec<AssemblyConfig{label: MlText, order_code: Ident, part?: PartRef, covers: Vec<DeviceId>}>`; `bom_basis: Assembly \| Components` | Children are devices whose `parent` is the assembly, ordered by `position` (FR-DEV-020/022) | S: `covers` lists only descendants. Chk: overview vs children (FR-CHK-022) |
 | `ValveTerminal` aspect | A, value | `pilot_supply: Internal \| External`, `positions` (derived from children), vendor configurator data? | Combined with PlcStation, BusNode and Assembly on -201U1 ([11](11-fluid-power.md) §3.2) | Chk (FR-FLU-022, 1.x): slot occupancy vs order code |
-| `PartUse` / `PartRef`: a part on a device | A, value | `part: PartRef{copy: PartCopyId, variant?}`, `qty: Dec3` in the part's order unit | Parts attach only to devices, so the BOM aggregates one path (FR-DEV-015) | S: referenced copy embedded |
+| `PartUse` / `PartRef`: a part on a device | A, value | `part: PartRef{copy: Id<Part>, variant?}`, `qty: Dec3` in the part's order unit | Parts attach only to devices, so the BOM aggregates one path (FR-DEV-015) | S: referenced copy embedded |
 | `PartCopy` (the project's view of a catalogue `Part`) | L, `lib/parts/` | `meta: ItemMeta`; manufacturer as `LibRef` to a manufacturer record embedded under `lib/manufacturers/` (master list, FR-PRT-002), part number, type, order number, `description: MlText`, typed tech data, `free_props: Vec<{key, value: MlText}>` (EPLAN free properties, user fields), ECLASS/ETIM classes (FR-PRT-018), dimensions W×H×D (Nm), mass, mount kind; `function_template`; `cp_pattern`; contact data (FR-PRT-009); `sections{plc: AddressMap, thermal{p_loss W, i_rated A}, model3d: sha256, drilling, cable_cores, wire, ferrule, duct, rail, enclosure, tube, fluid}` (FR-PRT-010; `fluid` per [11](11-fluid-power.md) §2.6); accessories; structured alternatives (FR-PRT-004); `configured?{order_code, components: Vec<PartUse>}` (FR-PRT-006) | Renders and reports read only the copy (FR-PRT-013) | Chk (FR-CHK-024): incomplete mandatory data |
 | `PartVariant` | L, value | `key: Ident`, overrides of data sections and macros | Selected by `PartRef.variant` (FR-PRT-003, 1.0) | — |
 | `DeviceLink` (added): functional relation between devices | A, device shard of `from` | `from`, `to`, `kind: Drives \| Linkage` | Valve -201U3-Q1 drives field device -203Q1 (process tag TA05-V-15); the link drives the dashed linkage graphic (FR-SYM-014) and the valve's printed text: its function-text slot prints the automatic function text, else the tracked process tag of the driven device, so used valves store no function text ([11](11-fluid-power.md) §3.1) | S: endpoints exist; no self-link |
 | `MacroDef`: reusable fragment | L, `lib/macros/` | `meta: ItemMeta`; kind `Window \| Symbol \| Page`; variants per representation type; records in the project format with an insertion point; variables with field-path bindings; value sets `Vec<ValueSet{name, values}>` (FR-MAC-004); `groups: Vec<PlaceholderGroup{name, members, include: Option<VarName>}>` | `InsertMacro` remaps IDs and numbers the new devices (arch §5.5); a group whose `include` variable is false is removed before the remap. Placed instances reach the groups through `MacroInstance.macro`, so a group is never a separate project record | — |
 | `MacroInstance` (added): provenance of one placed macro | A, the file of its anchor page (rank 46 of [05](05-project-format-and-persistence.md) §2.2) | `macro` (copy ID of the `MacroDef`), `variant`, `value_set?`, `values: BTreeMap<VarName, Value>` (the values used), `members: Vec<(local_id, Id)>` (fragment-local ID → created record) | "Where used" and provenance at MVP; from 1.0 the placeholder object to which another value set can be re-applied (FR-MAC-008) | — |
 
-**Library items** ([07](07-symbols-parts-macros.md) §2.1). Every library item carries `ItemMeta{key, version,
+**Device kinds.** `DeviceKind` is a hint for UI defaults and for the selectors of numbering rules (§5.1, §8.2), never
+a type: behaviour comes from aspects and functions. It is an open enum persisted as a snake_case string. The v0 list
+holds the kinds that a derivation or the golden project names: `psu` (-102G1), `terminal` and `blanking_plate` (a
+blank manifold position, §15). Further kinds, such as `external_partner` for external bus partners (§14), are
+appended as variants when their work package needs them. Any other string is kept as `Unknown` and written back
+unchanged; derivations treat it as "no kind", while numbering-rule selectors and UI palettes may still match it by its
+string. Kinds are therefore catalogue data, not an exhaustive Rust list (decision log ID-16).
+
+**Library items** ([07](07-symbols-parts-macros.md) §2.1). Every library item carries `ItemMeta{key,
 licence, sources, as_of, confidence per section (verified, unverified, test), status: Draft | Released |
 Deprecated{successor: Option<LibRef>} | Withdrawn}` and, for imported content under foreign terms, the flag
 `foreign_terms`. Items reference each other by `LibRef{library, item, version_req}`; project records reference the
@@ -1158,7 +1282,7 @@ classDiagram
 | Entity and purpose | Kind | Key attributes | Relationships, identity, lifecycle | Invariants |
 |---|---|---|---|---|
 | `Connection`: one explicit logical edge with a route (ADR-0007) | A; page-owned when drawn, else in the shard of the device that owns endpoint `a` | `a, b: Endpoint = Cp{function, idx} \| Junction(JunctionId)`; `page?` (added: None for strip-editor bridges and page-less internal links); `route: Vec<Pt2>` (nm, orthogonal, FR-CON-007); `kind: Wire \| Core(ConductorId) \| Bridge(BridgeSpec{kind, group, shaft}) \| Fluid(FluidLine) \| Bus(BusLine{cable?}) \| Overview \| Internal \| SingleLine{conductors: u8}` (`SingleLine` is 1.0; at MVP single-line pages draw connections as `Overview`, which join no nets); `overrides: WireOverrides` (the CDP level); `number: NumberSpec` (wire number or fluid line tag) | Several connections may share one CP; their order is the order of the junction sequence or, for direct connections, ascending ID (FR-CON-006). Moving representations never changes connectivity (FR-CON-004) | S: endpoints exist and differ; `Fluid` joins fluid CPs, `Bus` joins bus-port CPs, the other kinds join electrical CPs. `Overview` and `SingleLine` connections never join nets (FR-CON-002, FR-CON-029) |
-| `Junction`: explicit T-node (REF-034, D-20) | A, page-owned | `at: Pt2`, `style: Dot \| Bevel{orient}`, `wiring: Chain \| Star` (added; default Star for Dot, Chain for Bevel), `sequence: Vec<ConnectionId>`, `fitting?: PartRef` (fluid pages only: a drawn fluid T is a physical tee, [11](11-fluid-power.md) §5.1) | Created and cleaned up by normalisers | S: every connection ending at the junction is in `sequence` and vice versa; at least three connections |
+| `Junction`: explicit T-node (REF-034, D-20) | A, page-owned | `at: Pt2`, `style: Dot \| Bevel{orient}`, `wiring?: Chain \| Star` (added; absent: the style's default, Dot → Star, Bevel → Chain), `sequence: Vec<ConnectionId>`, `fitting?: PartRef` (fluid pages only: a drawn fluid T is a physical tee, [11](11-fluid-power.md) §5.1) | Created and cleaned up by normalisers | S: every connection ending at the junction is in `sequence` and vice versa; at least three connections |
 | `WireOverrides`: explicit per-connection values (CDP) | A, value | `csa?`, `colour?: ColourSpec`, `wire_part?`, `insulation?`, `function?`, `flags{shielded, twisted}`, `show_marker`; added: `length?: Nm` (manual length on the carrier connection, which works without a layout space, [12](12-panel-layout.md) §9) and `ends: SmallVec<[EndOverride{at: CpRef, treatment?, part?, strip_len?, marker?, no_marker}; 2]>` (per-end treatment, keyed by CP, [13](13-manufacturing-outputs.md) §2.3) | Rendered as a wire marker on request (FR-CON-023, FR-CON-024). The number-transfer normaliser moves `length` and `ends` together with the wire number when the carrier connection changes ([08](08-connections-terminals-cables.md) §5.1) | Chk: override equal to the derived value ("move override to profile" quick fix) |
 | `PotentialDef`: names and types a potential | A, device shard | `at: Endpoint`, `name: Ident`, `ptype?: PotentialType` (None = naming only; a set type wins over propagation; `switched` is always derived from opening pass-through pairs), `voltage: Dec3` (V), `env{ac_dc, frequency, earthing?: Pelv \| Selv \| Floating}`, `circuit_class?` (added), `props: WireProps` (added) | Optionally drawn as a definition-point symbol (FR-CON-010). The golden potentials L-S … N-55S are naming-only definitions | Chk: two definitions with different name or type in one potential (EW-POT-017) |
 | `NetDef`: properties for one signal or net | A, device shard | `at: Endpoint`, `scope: Signal \| Net` (added), `props: WireProps` | FR-CON-016 | — |
@@ -1341,7 +1465,7 @@ classDiagram
 
 | Entity and purpose | Kind | Key attributes | Relationships, identity, lifecycle | Invariants |
 |---|---|---|---|---|
-| Interruption point: `Function{kind: Ip(IpSpec), device: None}` with one CP and a representation (arch §4.2) | A; function in the page file of its representation, which it follows on a page move ([05](05-project-format-and-persistence.md) §2.2); representation page-owned | `name: Ident` ("L-1"); `direction: Source \| Target \| Undirected` (signal direction, independent of the arrow glyph's orientation, FR-XRF-009); `star_source: bool` (added); `sort?: i32` (chain order, added); `external?: ExternalRefId` (added) | Its CP joins the local net; the pair joins nets across pages (§9.3). "Create counterpart" makes the partner on a chosen page (FR-XRF-014) | P: in star mode at most one star source per name and scope; in chain mode an even count, ordered by sort key (ADR-0009). Chk (FR-CHK-017): unpaired, ambiguous |
+| Interruption point: `Function{kind: Ip(IpSpec), device: None}` with one CP and a representation (arch §4.2) | A; function in the page file of its representation, which it follows on a page move ([05](05-project-format-and-persistence.md) §2.2); representation page-owned | `name: Ident` ("L-1"); `direction: Source \| Target \| Undirected` (signal direction, independent of the arrow glyph's orientation, FR-XRF-009); `star_source: bool` (added); `sort?: i32` (chain order, added); `external?: ExternalRefId` (added) | Its CP joins the local net; the pair joins nets across pages (§9.3). "Create counterpart" makes the partner on a chosen page (FR-XRF-014) The pairing scope is the project setting `ip_pairing.scope` (§5), not a member of `IpSpec`. | P: in star mode at most one star source per name and scope; in chain mode an even count, ordered by sort key (ADR-0009). Chk (FR-CHK-017): unpaired, ambiguous |
 | External connection point: an IP with `external = Some(ref)` | A | as above | Never pairs inside the project; prints the external target "+J-E-206 / JE-N1000-03" (FR-XRF-012) | Chk (FR-CHK-033): external connection without a cable |
 | `XrefFormat`: how relations print | A, in `ProjectSettings` | tokens `{page}` (folio label, QET `%F`), `{page_index}` (`%f`), `{row}` (`%l`), `{column}` (`%c`), `{function}` (`%M`), `{location}` (`%LM`), separators; main marker "∞ "; auxiliary wrap "(…)"; matrix layout (FR-XRF-008) | Presets "102-A1" (`%F-%l%c`), "(201-E1)", "/101.16" (FR-XRF-002) | — |
 | `XrefRelation` | D | kinds: IP pair (star or chain), main ↔ auxiliary function, same function in another representation type (overview ↔ detail), pair cross-reference (1.x), external | Computed from functions and representations; never stored (FR-XRF-001) | — |
@@ -1398,7 +1522,8 @@ classDiagram
   class TerminalCp {
     <<derived>>
     +level: u8
-    +side: Internal or External
+    +side: Side1 or Side2
+    +facing: Internal or External
     +clamp: Clamp a b c, Shaft or RailFoot
   }
   class StripAccessory {
@@ -1436,7 +1561,7 @@ classDiagram
 |---|---|---|---|---|
 | Strip: `Device` with `Strip` aspect | A | tag (-X1031), `label_mode: Designation \| FunctionText`, `designation_scheme?` (FR-NUM-024), `accessories: Vec<StripAccessory{after_seq, kind, part}>` (FR-TRM-016), `tag_print: PerSegment \| PerPage` (FR-TRM-011); added: `groups: Vec<TerminalGroup{from_seq, to_seq, label: MlText}>` (range captions such as "Pneumatics" and "Spare", FR-TRM-010) and `field_side: Side1 \| Side2` (default Side2, FR-TRM-012) | Drawn as one or more `StripSegment` representations of its main function: -X1031 at 103-A3 and 103-A10 is one device and one BOM row (D-42) | S: no Terminal or Cable aspect on the same device |
 | Terminal: `Device` with `Terminal` aspect; **a terminal is a device** (arch §4.2) | A | `strip: DeviceId`, `seq: u32` (drawn and mounting order, independent of the designation, FR-TRM-003), `designation: Ident`, `levels: Vec<LevelSpec{level: u8, role: Main \| Aux}>`, `rail_bonded: bool` (FR-TRM-017); part per terminal (mixed parts allowed, FR-TRM-018); `function_text` (the printed label "1+", FR-TRM-010); `state` (Spare) | May exist unplaced and be placed from the strip editor (FR-TRM-015). Its full designation is the strip tag plus ":" plus designation | P: designation non-empty (D-11) and unique within the strip (D-12), checked at transaction end so swaps need no temporary names (FR-TRM-002, FR-TRM-022). S: `strip` has a Strip aspect |
-| Terminal CPs | D | `level`, `side: Internal \| External`, `clamp: ClampKey = Clamp(char) \| Shaft(u8) \| RailFoot` from the part pattern; PT 2.5-TWIN = level 1, clamp a (side 1), clamps b and c (side 2), plus bridge shafts; a PE terminal adds a rail foot for carrier bonding (1.0) | Internal connectivity from the FnDef: a feed-through joins all CPs of a level, shaft included (`Short`), a disconnect terminal by state (FR-TRM-020) | — |
+| Terminal CPs | D | `level`, `side: Side1 \| Side2` (the physical clamp side from the part's CP pattern, persisted on `CpDef.side` and `CpData.side` as `"side1"` or `"side2"`) and the derived `facing: Internal \| External` (side 2 faces the field unless `Strip.field_side` says otherwise, [08](08-connections-terminals-cables.md) §2.1), `clamp: ClampKey = Clamp(char) \| Shaft(u8) \| RailFoot` from the part pattern; PT 2.5-TWIN = level 1, clamp a (side 1), clamps b and c (side 2), plus bridge shafts; a PE terminal adds a rail foot for carrier bonding (1.0) | Internal connectivity from the FnDef: a feed-through joins all CPs of a level, shaft included (`Short`), a disconnect terminal by state (FR-TRM-020) | — |
 | Bridge: `Connection{kind: Bridge(BridgeSpec)}` | A; page-owned when drawn, else in the strip's shard | `BridgeSpec{kind: PlugIn \| Saddle \| Wire \| InterLevel, group: u16, shaft: u8}`; the connections of one group (a comb over consecutive `seq` on one shaft) are one bridge object, and only the first carries the part in `overrides.wire_part`, read as level-6 data | Joins signals into one potential (§9.3); appears in terminal diagrams and the BOM (once per group), never as a wire (FR-TRM-007) | S: both ends are terminal CPs. P: a group runs over consecutive `seq` on one shaft, and groups do not overlap |
 | `TerminalRow` | D | designation, level, function text, part, potential, internal and external targets (device, CP, cable and core), bridges, spare | `terminal_rows(strip)` feeds terminal diagrams (FR-REP-009) and assembly lists | — |
 
@@ -1508,8 +1633,8 @@ classDiagram
 
 | Entity and purpose | Kind | Key attributes | Relationships, identity, lifecycle | Invariants |
 |---|---|---|---|---|
-| Cable: `Device` with `Cable` aspect | A | tag (-106W1), part, `length: LengthSource = Manual(Nm) \| FromPart \| Estimated(C) \| Routed(C) \| Missing` (FR-CBL-009/010), `core_id_mode` (FR-CBL-006), `pre_assembled` and connector parts (FR-CBL-013) | Its main function is drawn as the cable definition line and marker; drawing the line runs a command that assigns the crossed connections (FR-CBL-002), so assignment is explicit, not geometric | Chk (FR-CHK-033): no length; release blocks |
-| `Conductor`: one core or shield | A, cable's shard | `core: Ident` ("1", "BK", "A"), `colour: ColourSpec`, `csa: Csa`, `shield: bool` (FR-CBL-007), `pair?` (FR-CBL-019) | Generated from the part's core definition on assignment (FR-CBL-004); a drawn connection becomes `kind: Core(conductor)` (FR-CBL-003). One core may span several pages through IPs | Chk (FR-CHK-032): colours outside IEC 60757 or different from the part |
+| Cable: `Device` with `Cable` aspect | A | tag (-106W1), part, `length: LengthSource = Manual(Nm) \| FromPart \| Estimated(C) \| Routed(C) \| Missing` (default `Missing`) (FR-CBL-009/010), `core_id_mode` (FR-CBL-006), `pre_assembled` and connector parts (FR-CBL-013) | Its main function is drawn as the cable definition line and marker; drawing the line runs a command that assigns the crossed connections (FR-CBL-002), so assignment is explicit, not geometric | Chk (FR-CHK-033): no length; release blocks |
+| `Conductor`: one core or shield | A, cable's shard | `core: Ident` ("1", "BK", "A"), `colour?: ColourSpec`, `csa?: Csa` (absent while unknown), `shield: bool` (FR-CBL-007), `pair?` (FR-CBL-019) | Generated from the part's core definition on assignment (FR-CBL-004); a drawn connection becomes `kind: Core(conductor)` (FR-CBL-003). One core may span several pages through IPs | Chk (FR-CHK-032): colours outside IEC 60757 or different from the part |
 | `CableRow`, `CableEnds` | D | per core: source and target (device, CP, location), spare; ends from conductor endpoints (FR-CBL-012) | `cable_rows(cable)` feeds cable diagrams and overviews (FR-REP-012/013) | — |
 
 **Golden.** -106W1 and -106W2 (Festo NEBU-G78W5-K-2-N-LE5): cores BK, BU, GNYE, WH, BN (drawn "BR"), length

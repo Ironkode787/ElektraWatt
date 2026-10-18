@@ -117,7 +117,7 @@ flowchart LR
 | `Strip` aspect | `label_mode`, `designation_scheme?`, `accessories`, `tag_print`, `groups`, `field_side` | A; shard |
 | `Cable` aspect | `length: LengthSource`, `core_id_mode`, `pre_assembled` | A; shard |
 | `Conductor` | `cable`, `core`, `colour: ColourSpec`, `csa: Csa`, `shield`, `pair?` | A; the cable's shard |
-| `ColourProfile`, `SizeProfile`, `WireNumberingScheme` | §4.2, §5.2 | A; in `ProjectSettings` (`project.jsonl`) |
+| `ColourProfile`, `SizeProfile`, `WireNumberingScheme` | §4.2, §5.2 | A; in `ProjectSettings` (`project.jsonl`), record shapes in [03](03-domain-model.md) §5.1 |
 | `CpDef` (library) | `designation`, `discipline`, `potential_role`, `source_output`, `optional`, `level`, `side`, `clamp`, `physical` | L; [07](07-symbols-parts-macros.md) §2.4 |
 | `FnDef` (library) | `category`, `internal: [{a, b, Short \| PassThrough{opens}}]`, `flags{switches_n_with_l, n_isolation}` | L |
 

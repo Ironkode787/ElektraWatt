@@ -104,6 +104,12 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    steward (verified against the published text), so `CODE_OF_CONDUCT.md` keeps that licence and the Covenant's
    copyright line and is the one exception to decision 1's documentation row (`CC-BY-4.0`). `LICENSES/` holds the
    CC-BY-SA-4.0 text.
+5. **Direct edges to the foundation crates** (2026-10-18, core team; [architecture](../design/04-architecture.md) §3
+   rule 6). GPL crates may depend directly on the permissive foundation crates `ew-units`, `ew-ids`, `ew-mltext`,
+   `ew-rds`, `ew-schema` and `ew-dl` instead of reaching their types through re-exports. The boundary is unchanged,
+   because every such edge points from the GPL layer into the permissive one. Each edge is drawn in the architecture
+   graph, which is the source, and listed in `ci/dep-rules.toml`, which `cargo xtask check-deps` enforces; the two
+   change in the same pull request. Decision 4 is untouched: only `ew-api` depends on `ew-import-qet`.
 
 ## Consequences
 
