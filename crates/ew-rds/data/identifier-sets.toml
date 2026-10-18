@@ -1,0 +1,352 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+#
+# The identifier sets shipped in ew-rds (ADR-0026 decisions 1-3, FR-NUM-003): for each set, the letter code a
+# function category gets and the letter codes it also accepts without an EW-RDS-003 finding.
+#
+# Rules for this file:
+# - No standard text or table is copied (NFR-COMP-05). Category descriptions are written by the project.
+# - Every mapping carries `verified`. No mapping has been checked against a licensed copy of the standards yet,
+#   so all are `false` and EW-RDS-003 findings stay advisory (ADR-0026, Consequences). Set a mapping to `true`
+#   only after that check, and say in the commit which edition and table it was checked against.
+# - Sources of the unverified mappings: docs/research/standards.md §1.4-§1.5 (2009 single letters as quoted by
+#   the QElectroTech documentation, 2019 classes after the CCI table, IEC 60750 letters from author knowledge)
+#   and ADR-0026 amendment 1 (Q with QM for directional valves, S for main and door switches, U for
+#   valve-terminal assemblies and modules in the 2009 set).
+# - A category key is the first level of an FnDef category (docs/design/07-symbols-parts-macros.md §2.4),
+#   UpperCamelCase ASCII. An optional `group` (the second level) refines it; a lookup tries the
+#   category-and-group row first, then the category row.
+# - Letter codes are 1-3 letters A-Z. I and O never appear in a letter code (EW-RDS-007), and a set's
+#   `reserved` letters are never the first letter of one of its codes.
+# - A category may be missing from a set: its devices then get no suggestion from that set.
+#
+# src/sets/data.rs is generated from this file. After a change, run
+#     EW_RDS_BLESS=1 cargo test -p ew-rds --test identifier_sets
+# and commit both files; the test fails while they disagree.
+
+[[set]]
+key = "EN81346-2:2009"
+title = "EN 81346-2:2009 single-letter classes"
+reserved = ["D"]
+
+[[set]]
+key = "IEC81346-2:2019"
+title = "IEC 81346-2:2019 classes and subclasses"
+# A is not used as a class code; D, J, L, V, Y and Z are reserved.
+reserved = ["A", "D", "J", "L", "V", "Y", "Z"]
+
+[[set]]
+key = "IEC60750-legacy"
+title = "IEC 60750 / DIN 40719-2 legacy letters"
+reserved = []
+
+# --- Protection ---------------------------------------------------------------------------------------------
+
+[[category]]
+key = "ProtectionOvercurrent"
+description = "Protects a circuit against overcurrent: miniature circuit breakers, fuses, electronic circuit breakers"
+[category.letters]
+"EN81346-2:2009" = { letter = "F", verified = false }
+"IEC81346-2:2019" = { letter = "FC", verified = false }
+"IEC60750-legacy" = { letter = "F", verified = false }
+
+[[category]]
+key = "ProtectionResidualCurrent"
+description = "Disconnects a circuit on residual current to earth: RCDs and RCBOs"
+[category.letters]
+"EN81346-2:2009" = { letter = "F", verified = false }
+"IEC81346-2:2019" = { letter = "FB", verified = false }
+"IEC60750-legacy" = { letter = "F", verified = false }
+
+[[category]]
+key = "ProtectionOvervoltage"
+description = "Limits transient overvoltages: surge protective devices"
+[category.letters]
+"EN81346-2:2009" = { letter = "F", verified = false }
+"IEC81346-2:2019" = { letter = "FA", verified = false }
+"IEC60750-legacy" = { letter = "F", verified = false }
+
+# --- Power conversion ---------------------------------------------------------------------------------------
+
+[[category]]
+key = "PowerSupplyAcDc"
+description = "Converts mains AC into a regulated DC control voltage: 24 V power supply units"
+[category.letters]
+"EN81346-2:2009" = { letter = "G", verified = false }
+"IEC81346-2:2019" = { letter = "TC", alternatives = ["TB"], verified = false }
+"IEC60750-legacy" = { letter = "G", verified = false }
+
+[[category]]
+key = "TransformerAcAc"
+description = "Transforms one AC voltage into another: control and isolating transformers"
+[category.letters]
+"EN81346-2:2009" = { letter = "T", verified = false }
+"IEC81346-2:2019" = { letter = "TA", verified = false }
+"IEC60750-legacy" = { letter = "T", verified = false }
+
+[[category]]
+key = "FrequencyConverter"
+description = "Feeds a motor with variable voltage and frequency: frequency converters and drives"
+[category.letters]
+"EN81346-2:2009" = { letter = "T", verified = false }
+"IEC81346-2:2019" = { letter = "TA", verified = false }
+"IEC60750-legacy" = { letter = "U", verified = false }
+
+# --- Switching ----------------------------------------------------------------------------------------------
+
+[[category]]
+key = "SwitchingMain"
+description = "Isolates or switches the main supply by hand: main switches, disconnectors, load-break switches"
+[category.letters]
+"EN81346-2:2009" = { letter = "Q", alternatives = ["S"], verified = false }
+"IEC81346-2:2019" = { letter = "QB", verified = false }
+"IEC60750-legacy" = { letter = "Q", verified = false }
+
+[[category]]
+key = "SwitchingPower"
+description = "Switches a load circuit under remote control: contactors and power circuit breakers"
+[category.letters]
+"EN81346-2:2009" = { letter = "Q", verified = false }
+"IEC81346-2:2019" = { letter = "QA", verified = false }
+"IEC60750-legacy" = { letter = "K", verified = false }
+
+[[category]]
+key = "Relay"
+description = "Relays a control signal: auxiliary, coupling and time relays"
+[category.letters]
+"EN81346-2:2009" = { letter = "K", verified = false }
+"IEC81346-2:2019" = { letter = "KF", verified = false }
+"IEC60750-legacy" = { letter = "K", verified = false }
+
+# --- Control and communication ------------------------------------------------------------------------------
+
+[[category]]
+key = "Controller"
+description = "Processes signals and data: PLC CPUs, I/O modules, bus couplers and gateways"
+[category.letters]
+"EN81346-2:2009" = { letter = "K", verified = false }
+"IEC81346-2:2019" = { letter = "KE", verified = false }
+"IEC60750-legacy" = { letter = "A", alternatives = ["K"], verified = false }
+
+[[category]]
+key = "NetworkSwitch"
+description = "Forwards data between network segments: industrial Ethernet switches"
+[category.letters]
+"EN81346-2:2009" = { letter = "K", verified = false }
+"IEC81346-2:2019" = { letter = "KF", verified = false }
+"IEC60750-legacy" = { letter = "A", alternatives = ["K"], verified = false }
+
+[[category]]
+key = "ValveTerminalNode"
+description = "Connects a valve terminal to its fieldbus and controls its valves: valve-terminal bus nodes"
+[category.letters]
+"EN81346-2:2009" = { letter = "K", alternatives = ["U"], verified = false }
+"IEC81346-2:2019" = { letter = "KE", verified = false }
+"IEC60750-legacy" = { letter = "A", alternatives = ["K"], verified = false }
+
+[[category]]
+key = "ValveTerminalModule"
+description = "Carries and drives the valves of a valve terminal: electrical sub-bases and valve modules"
+[category.letters]
+"EN81346-2:2009" = { letter = "U", alternatives = ["K"], verified = false }
+"IEC81346-2:2019" = { letter = "UA", alternatives = ["KF"], verified = false }
+"IEC60750-legacy" = { letter = "A", verified = false }
+
+# --- Sensing and manual command -----------------------------------------------------------------------------
+
+[[category]]
+key = "SensingTemperature"
+description = "Senses a temperature and signals it: thermostats, temperature switches and sensors"
+[category.letters]
+"EN81346-2:2009" = { letter = "B", verified = false }
+"IEC81346-2:2019" = { letter = "BT", verified = false }
+"IEC60750-legacy" = { letter = "B", verified = false }
+
+[[category]]
+key = "SensingPosition"
+description = "Senses a position or presence and signals it: door switches, limit switches, proximity sensors"
+[category.letters]
+"EN81346-2:2009" = { letter = "B", alternatives = ["S"], verified = false }
+"IEC81346-2:2019" = { letter = "BG", verified = false }
+"IEC60750-legacy" = { letter = "S", alternatives = ["B"], verified = false }
+
+[[category]]
+key = "SensingPressure"
+description = "Senses a pressure and signals it: pressure switches and transmitters"
+[category.letters]
+"EN81346-2:2009" = { letter = "B", verified = false }
+"IEC81346-2:2019" = { letter = "BP", verified = false }
+"IEC60750-legacy" = { letter = "B", verified = false }
+
+[[category]]
+key = "ManualCommand"
+description = "Turns a manual action into a control signal: push-buttons, selector switches, emergency-stop units"
+[category.letters]
+"EN81346-2:2009" = { letter = "S", verified = false }
+"IEC81346-2:2019" = { letter = "SJ", alternatives = ["SF", "SK"], verified = false }
+"IEC60750-legacy" = { letter = "S", verified = false }
+
+# --- Indication, light and heat -----------------------------------------------------------------------------
+
+[[category]]
+key = "IndicatorLight"
+description = "Shows a state by light: pilot lights, signal lamps, signal towers"
+[category.letters]
+"EN81346-2:2009" = { letter = "P", verified = false }
+"IEC81346-2:2019" = { letter = "PF", verified = false }
+"IEC60750-legacy" = { letter = "H", verified = false }
+
+[[category]]
+key = "Meter"
+description = "Measures and displays a value: meters, panel instruments and scalar displays"
+[category.letters]
+"EN81346-2:2009" = { letter = "P", verified = false }
+"IEC81346-2:2019" = { letter = "PG", verified = false }
+"IEC60750-legacy" = { letter = "P", verified = false }
+
+[[category]]
+key = "Lighting"
+description = "Gives light for working: cabinet lamps and luminaires"
+[category.letters]
+"EN81346-2:2009" = { letter = "E", verified = false }
+"IEC81346-2:2019" = { letter = "EA", verified = false }
+"IEC60750-legacy" = { letter = "E", verified = false }
+
+[[category]]
+key = "Heating"
+description = "Heats electrically: enclosure heaters and fan heaters"
+[category.letters]
+"EN81346-2:2009" = { letter = "E", verified = false }
+"IEC81346-2:2019" = { letter = "EB", verified = false }
+"IEC60750-legacy" = { letter = "E", verified = false }
+
+[[category]]
+key = "Fan"
+description = "Moves air through an enclosure: filter fans and enclosure fans"
+[category.letters]
+"EN81346-2:2009" = { letter = "G", alternatives = ["E"], verified = false }
+"IEC81346-2:2019" = { letter = "GQ", verified = false }
+"IEC60750-legacy" = { letter = "E", verified = false }
+
+# --- Drives and actuators -----------------------------------------------------------------------------------
+
+[[category]]
+key = "MotorRotary"
+description = "Turns electrical energy into rotation: electric motors"
+[category.letters]
+"EN81346-2:2009" = { letter = "M", verified = false }
+"IEC81346-2:2019" = { letter = "MA", verified = false }
+"IEC60750-legacy" = { letter = "M", verified = false }
+
+[[category]]
+key = "SolenoidActuator"
+description = "Moves a part by electromagnetic force: solenoids, magnetic brakes and clutches"
+[category.letters]
+"EN81346-2:2009" = { letter = "M", verified = false }
+"IEC81346-2:2019" = { letter = "MB", verified = false }
+"IEC60750-legacy" = { letter = "Y", verified = false }
+
+[[category]]
+key = "CylinderFluid"
+description = "Moves a part by fluid power: pneumatic and hydraulic cylinders"
+[category.letters]
+"EN81346-2:2009" = { letter = "M", verified = false }
+"IEC81346-2:2019" = { letter = "MM", verified = false }
+"IEC60750-legacy" = { letter = "M", verified = false }
+
+[[category]]
+key = "ValveDirectional"
+description = "Opens, closes or redirects a fluid flow on command: directional and shut-off valves"
+[category.letters]
+"EN81346-2:2009" = { letter = "Q", alternatives = ["QM"], verified = false }
+"IEC81346-2:2019" = { letter = "QM", verified = false }
+"IEC60750-legacy" = { letter = "Y", verified = false }
+
+[[category]]
+key = "ValvePilot"
+description = "Controls another valve with a small fluid signal: pilot valves"
+[category.letters]
+"EN81346-2:2009" = { letter = "Q", alternatives = ["K"], verified = false }
+"IEC81346-2:2019" = { letter = "KH", verified = false }
+"IEC60750-legacy" = { letter = "Y", verified = false }
+
+# --- Connecting and guiding ---------------------------------------------------------------------------------
+
+[[category]]
+key = "Terminal"
+description = "Connects conductors at a fixed point: terminals and terminal strips"
+[category.letters]
+"EN81346-2:2009" = { letter = "X", verified = false }
+"IEC81346-2:2019" = { letter = "XD", verified = false }
+"IEC60750-legacy" = { letter = "X", verified = false }
+
+[[category]]
+key = "TerminalEarth"
+description = "Connects protective-earth and functional-earth conductors: PE and FE terminals"
+[category.letters]
+"EN81346-2:2009" = { letter = "X", verified = false }
+"IEC81346-2:2019" = { letter = "XE", verified = false }
+"IEC60750-legacy" = { letter = "X", verified = false }
+
+[[category]]
+key = "ConnectorSignal"
+description = "Connects signal and bus lines detachably: plug connectors, sockets and bus connectors"
+[category.letters]
+"EN81346-2:2009" = { letter = "X", verified = false }
+"IEC81346-2:2019" = { letter = "XG", verified = false }
+"IEC60750-legacy" = { letter = "X", verified = false }
+
+[[category]]
+key = "CablePower"
+description = "Carries supply and load current: power cables and conductors"
+[category.letters]
+"EN81346-2:2009" = { letter = "W", verified = false }
+"IEC81346-2:2019" = { letter = "WD", verified = false }
+"IEC60750-legacy" = { letter = "W", verified = false }
+
+[[category]]
+key = "CableSignal"
+description = "Carries control signals or data: control, fieldbus and network cables"
+[category.letters]
+"EN81346-2:2009" = { letter = "W", verified = false }
+"IEC81346-2:2019" = { letter = "WG", verified = false }
+"IEC60750-legacy" = { letter = "W", verified = false }
+
+[[category]]
+key = "EarthingBar"
+description = "Collects earthing and equipotential-bonding conductors: PE and earthing bars"
+[category.letters]
+"EN81346-2:2009" = { letter = "W", alternatives = ["X"], verified = false }
+"IEC81346-2:2019" = { letter = "WE", verified = false }
+"IEC60750-legacy" = { letter = "X", verified = false }
+
+# --- Holding, restricting, assemblies -----------------------------------------------------------------------
+
+[[category]]
+key = "Enclosure"
+description = "Encloses and carries equipment: cabinets, enclosures and housings"
+[category.letters]
+"EN81346-2:2009" = { letter = "U", verified = false }
+"IEC81346-2:2019" = { letter = "UC", verified = false }
+
+[[category]]
+key = "MountingAccessory"
+description = "Holds equipment or cables in position: mounting rails, cable glands, holders"
+[category.letters]
+"EN81346-2:2009" = { letter = "U", verified = false }
+"IEC81346-2:2019" = { letter = "UA", verified = false }
+
+[[category]]
+key = "Resistor"
+description = "Limits a current or dissipates energy: resistors and braking resistors"
+[category.letters]
+"EN81346-2:2009" = { letter = "R", verified = false }
+"IEC81346-2:2019" = { letter = "RA", verified = false }
+"IEC60750-legacy" = { letter = "R", verified = false }
+
+[[category]]
+key = "Assembly"
+description = "Combines several main functions in one unit that no single category describes"
+[category.letters]
+"EN81346-2:2009" = { letter = "A", verified = false }
+"IEC60750-legacy" = { letter = "A", verified = false }

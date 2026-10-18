@@ -13,3 +13,13 @@ publish = false
 
 [lints]
 workspace = true
+
+[dependencies]
+# Aspect and LetterCode carry the strict serde encodings of doc 05 §3.2.
+serde.workspace = true
+
+[dev-dependencies]
+proptest = { version = "1.12.0", default-features = false, features = ["std"] }
+serde_json = "1.0.154"
+# Reads data/identifier-sets.toml in tests/identifier_sets.rs, which generates and checks src/sets/data.rs.
+toml.workspace = true
