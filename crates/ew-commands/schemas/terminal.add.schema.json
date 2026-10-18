@@ -1,0 +1,134 @@
+{
+  "$defs": {
+    "Ident": {
+      "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
+      "minLength": 1,
+      "type": "string"
+    },
+    "LevelRole": {
+      "description": "The role of a terminal level.",
+      "oneOf": [
+        {
+          "const": "main",
+          "description": "Main level (the default).",
+          "type": "string"
+        },
+        {
+          "const": "aux",
+          "description": "Auxiliary level.",
+          "type": "string"
+        }
+      ]
+    },
+    "LevelSpec": {
+      "additionalProperties": true,
+      "description": "One level of a multi-level terminal.",
+      "properties": {
+        "level": {
+          "description": "Level number.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "role": {
+          "$ref": "#/$defs/LevelRole",
+          "description": "Role; default main."
+        }
+      },
+      "required": [
+        "level"
+      ],
+      "type": "object"
+    },
+    "MlText": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minProperties": 1,
+          "type": "object"
+        }
+      ],
+      "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags in ascending order with non-empty string values (doc 05 §3.2)."
+    },
+    "TerminalSpec": {
+      "additionalProperties": false,
+      "description": "One terminal of `terminal.add`.",
+      "properties": {
+        "designation": {
+          "$ref": "#/$defs/Ident",
+          "description": "The designation, unique within the strip."
+        },
+        "function_text": {
+          "$ref": "#/$defs/MlText",
+          "description": "The function text (\"1+\")."
+        },
+        "levels": {
+          "description": "Levels.",
+          "items": {
+            "$ref": "#/$defs/LevelSpec"
+          },
+          "type": "array"
+        },
+        "rail_bonded": {
+          "default": false,
+          "description": "Bonded to the rail.",
+          "type": "boolean"
+        },
+        "seq": {
+          "description": "The drawn and mounting order; default one more than the highest in the strip.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "designation"
+      ],
+      "type": "object"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`terminal.add`: terminals of a strip; a terminal is a device with the terminal aspect (doc 03 §11).\n\nFor each terminal in order: a device `{tag: {letter: the strip's letter, counter: seq}, kind:\nterminal, structure: the strip's structure, function_text, terminal: {strip, seq, designation, levels,\nrail_bonded}}` and its main function `{def: fndef}`. Rejected: the strip is not a device with the strip\naspect; a designation already used in the strip or twice in the list; a sequence number already used.\nOutcome: the first new terminal device.",
+  "properties": {
+    "fndef": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The terminal FnDef copy."
+    },
+    "strip": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The strip device."
+    },
+    "terminals": {
+      "description": "The terminals, at least one.",
+      "items": {
+        "$ref": "#/$defs/TerminalSpec"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "strip",
+    "fndef",
+    "terminals"
+  ],
+  "title": "terminal.add",
+  "type": "object"
+}

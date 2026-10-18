@@ -1,0 +1,66 @@
+{
+  "$defs": {
+    "Pt2": {
+      "description": "A point or a displacement [x, y] in nanometres, y downwards (doc 05 §3.2).",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`rep.move`: moves representations by a delta, optionally to another page (doc 06 §3.4). Moves never\nchange connectivity (FR-CON-004).\n\nEvery representation's `pos` moves by `delta`; with `page`, its `page` becomes `page`. Routes follow:\nfor each connection with an endpoint CP drawn by a moved representation (a CP of one of its functions,\nthe connection on the representation's old page), if both ends are drawn by moved representations\nthe whole route translates by `delta`; otherwise the route end at the moved endpoint follows\n(`geometry::follow_end`: the end vertex moves by `delta`, its neighbour keeps the segment orthogonal).\nA cross-page move also moves every connection whose both ends move to the new page; a connection with\nonly one end on a moved representation (or ending at a junction) is rejected, because the IP-pair\nreplacement of FR-CON-043 is not in v0. Online numbering renumbers a main representation's device whose\npage-based tag collides on the new page (FR-NUM-029). Outcome: none. Coalesce one drag with a key.",
+  "properties": {
+    "delta": {
+      "$ref": "#/$defs/Pt2",
+      "default": [
+        0,
+        0
+      ],
+      "description": "The displacement; default `[0, 0]`."
+    },
+    "page": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The target page of a cross-page move."
+    },
+    "reps": {
+      "description": "The representations, at least one.",
+      "items": {
+        "$ref": "#/$defs/Uuid"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "reps"
+  ],
+  "title": "rep.move",
+  "type": "object"
+}

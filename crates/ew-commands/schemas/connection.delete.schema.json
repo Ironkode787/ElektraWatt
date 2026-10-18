@@ -1,0 +1,28 @@
+{
+  "$defs": {
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`connection.delete`: removes connections through the delete policies (they leave junction sequences;\nbonds lose their `via`). A junction left with two or fewer connections is cleaned up by normaliser #8.\nEvery connection must exist. Outcome: none.",
+  "properties": {
+    "connections": {
+      "description": "The connections, at least one.",
+      "items": {
+        "$ref": "#/$defs/Uuid"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "connections"
+  ],
+  "title": "connection.delete",
+  "type": "object"
+}

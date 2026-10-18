@@ -242,13 +242,16 @@ dependencies = [
  "ew-jobs",
  "ew-library",
  "ew-mfg",
+ "ew-model",
  "ew-panel",
  "ew-plc",
  "ew-plugin-host",
  "ew-scene",
+ "ew-schema",
  "ew-script",
  "ew-sqlview",
  "ew-store",
+ "serde_json",
 ]
 
 [[package]]
@@ -268,6 +271,16 @@ name = "ew-commands"
 version = "0.0.0"
 dependencies = [
  "ew-derive",
+ "ew-ids",
+ "ew-mltext",
+ "ew-model",
+ "ew-rds",
+ "ew-schema",
+ "ew-units",
+ "proptest",
+ "schemars",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

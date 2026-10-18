@@ -1,0 +1,143 @@
+{
+  "$defs": {
+    "Ident": {
+      "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
+      "minLength": 1,
+      "type": "string"
+    },
+    "IpDirection": {
+      "description": "Signal direction of an interruption point.",
+      "oneOf": [
+        {
+          "const": "source",
+          "description": "Source.",
+          "type": "string"
+        },
+        {
+          "const": "target",
+          "description": "Target.",
+          "type": "string"
+        },
+        {
+          "const": "undirected",
+          "description": "Undirected.",
+          "type": "string"
+        }
+      ]
+    },
+    "Orient2": {
+      "description": "Orientation: rotation clockwise on the sheet, optionally mirrored (doc 05 §3.2).",
+      "enum": [
+        "r0",
+        "r90",
+        "r180",
+        "r270",
+        "m0",
+        "m90",
+        "m180",
+        "m270"
+      ],
+      "type": "string"
+    },
+    "Pt2": {
+      "description": "A point or a displacement [x, y] in nanometres, y downwards (doc 05 §3.2).",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`ip.place`: an interruption point (FR-XRF-006 … FR-XRF-014, doc 03 §10): the IP function and its one\nrepresentation in one transaction (EW-INV-013).\n\nCreates `Function {device: none, def, role: main, kind: ip {name, direction, star_source, sort,\nexternal}}` and `Representation {functions: [f], page, symbol, pos, orient, rep_type: multi_line}`.\n`def` is `fndef` or the copy the symbol's `fndef` resolves to (must be embedded). The page, the symbol\ncopy and an external reference must exist. The pairing scope is the project's `ip_pairing` setting, not\na record field. Outcome: the IP function.",
+  "properties": {
+    "direction": {
+      "$ref": "#/$defs/IpDirection",
+      "description": "Signal direction."
+    },
+    "external": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "An external target (an external connection point)."
+    },
+    "fndef": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The FnDef copy; default the symbol's."
+    },
+    "name": {
+      "$ref": "#/$defs/Ident",
+      "description": "The pairing name (\"L-1\")."
+    },
+    "orient": {
+      "$ref": "#/$defs/Orient2",
+      "default": "r0",
+      "description": "The orientation."
+    },
+    "page": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The page."
+    },
+    "pos": {
+      "$ref": "#/$defs/Pt2",
+      "description": "The insertion point."
+    },
+    "sort": {
+      "description": "Chain order.",
+      "format": "int32",
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "star_source": {
+      "default": false,
+      "description": "The star source of its name.",
+      "type": "boolean"
+    },
+    "symbol": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The IP symbol copy."
+    }
+  },
+  "required": [
+    "page",
+    "symbol",
+    "pos",
+    "name",
+    "direction"
+  ],
+  "title": "ip.place",
+  "type": "object"
+}

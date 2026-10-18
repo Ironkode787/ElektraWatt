@@ -1,0 +1,158 @@
+{
+  "$defs": {
+    "ColourCode": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "foreign": {
+              "$ref": "#/$defs/Ident"
+            }
+          },
+          "required": [
+            "foreign"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "An IEC 60757 or profile-declared company colour code, or {\"foreign\": code} (doc 05 §3.2)."
+    },
+    "ColourSpec": {
+      "description": "One or two colour codes (doc 03 §3.4).",
+      "items": {
+        "$ref": "#/$defs/ColourCode"
+      },
+      "maxItems": 2,
+      "minItems": 1,
+      "type": "array"
+    },
+    "ConductorSpec": {
+      "additionalProperties": false,
+      "description": "One conductor of `cable.create` and `conductor.add`.",
+      "properties": {
+        "colour": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ColourSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Core colour."
+        },
+        "core": {
+          "$ref": "#/$defs/Ident",
+          "description": "Core identification (\"1\", \"BK\", \"A\")."
+        },
+        "csa": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Csa"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Core cross-section."
+        },
+        "pair": {
+          "description": "Twisted pair number.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "shield": {
+          "default": false,
+          "description": "A shield rather than a core.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "core"
+      ],
+      "type": "object"
+    },
+    "Csa": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Dec3"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "awg": {
+              "maximum": 127,
+              "minimum": -128,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "awg"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kcmil": {
+              "$ref": "#/$defs/Dec3"
+            }
+          },
+          "required": [
+            "kcmil"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "A cross-section: a Dec3 string in mm², {\"awg\": n} or {\"kcmil\": Dec3} (doc 08 §4.6)."
+    },
+    "Dec3": {
+      "description": "A canonical decimal string: at most three fraction digits, no trailing fraction zeros, no leading zeros, no plus sign, no \"-0\", no exponent, no white space, no unit (doc 05 §3.2). The pattern bounds the integer part to 16 digits; the exact i64 range of the thousandths (about 9.2 x 10^15) is checked by the reader.",
+      "maxLength": 21,
+      "pattern": "^(?:0|-?[1-9][0-9]{0,15}(?:\\.[0-9]{0,2}[1-9])?|-?0\\.[0-9]{0,2}[1-9])$",
+      "type": "string"
+    },
+    "Ident": {
+      "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
+      "minLength": 1,
+      "type": "string"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`conductor.add`: conductors of an existing cable. Rejected: the device has no cable aspect; a core\nalready used in the cable or twice in the list. Outcome: the first new conductor.",
+  "properties": {
+    "cable": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The cable device."
+    },
+    "conductors": {
+      "description": "The conductors, at least one.",
+      "items": {
+        "$ref": "#/$defs/ConductorSpec"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "cable",
+    "conductors"
+  ],
+  "title": "conductor.add",
+  "type": "object"
+}

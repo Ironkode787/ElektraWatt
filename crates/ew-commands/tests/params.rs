@@ -1,0 +1,309 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! Command parameters as JSON (C-8): every registered command has an example that validates against its
+//! schema, resolves and round-trips; wrong parameters are rejected with the JSON Pointer of the culprit.
+
+mod common;
+
+use std::collections::BTreeSet;
+
+use common::fixture::*;
+use common::*;
+use ew_commands::{AnyCommand, CmdError, CommandRegistry, validate_schema};
+use serde_json::{Value, json};
+
+/// One example parameter object per command, referencing the golden IDs.
+fn examples() -> Vec<(&'static str, Value)> {
+    let fn_a = json!({"cp": {"function": FN_102F2.to_string(), "idx": 1}});
+    let fn_b = json!({"cp": {"function": FN_102G1.to_string(), "idx": 1}});
+    vec![
+        (
+            "page.create",
+            json!({"after": PAGE_102.to_string(), "title": "Control"}),
+        ),
+        (
+            "page.delete",
+            json!({"pages": [PAGE_101.to_string()], "delete_devices": true}),
+        ),
+        (
+            "page.renumber",
+            json!({"scope": {"pages": [PAGE_101.to_string(), PAGE_102.to_string()]},
+                "start": 110, "step": 2, "keep_gaps": true}),
+        ),
+        (
+            "structure.create_node",
+            json!({"aspect": "function", "code": "P02", "parent": FUNC_P01.to_string(),
+                "aliases": ["P2"], "description": "Second"}),
+        ),
+        (
+            "section.create",
+            json!({"number": 2, "folio_range": [200, 299], "title": "Wiring", "divider": true}),
+        ),
+        (
+            "report_block.create",
+            json!({"source": {"kind": "device_list"}, "form": FORM.to_string(),
+                "section": SEC1.to_string(), "first_folio": 150}),
+        ),
+        (
+            "device.create",
+            json!({"letter": "K", "counter": 3, "kind": "psu", "function_text": "Relay"}),
+        ),
+        (
+            "device.place",
+            json!({"page": PAGE_102.to_string(), "symbol": SYM_TWO.to_string(), "pos": [0, 10_000_000],
+                "orient": "r90", "variant": 0,
+                "target": {"new_device": {"letter": "K"}},
+                "connect": [{"cp": 0, "to": {"junction": {"junction": J5.to_string()}}}]}),
+        ),
+        (
+            "rep.move",
+            json!({"reps": [REP_102F2.to_string()], "delta": [1_000_000, -2_000_000],
+                "page": PAGE_101.to_string()}),
+        ),
+        (
+            "rep.transform",
+            json!({"reps": [REP_102F2.to_string(), REP_102G1.to_string()], "rotate": 1, "mirror": true}),
+        ),
+        (
+            "connection.draw",
+            json!({"a": fn_a, "b": fn_b, "page": PAGE_102.to_string(), "route": [[0, 0], [10, 0]]}),
+        ),
+        (
+            "connection.route",
+            json!({"connection": CON_W22.to_string(), "route": [[0, 0], [5, 5]]}),
+        ),
+        ("connection.delete", json!({"connections": [CON_W22.to_string()]})),
+        (
+            "junction.edit",
+            json!({"junction": J5.to_string(), "style": "dot", "wiring": "star",
+                "sequence": [CON_J5_IN.to_string(), CON_W22.to_string(), CON_W27.to_string()]}),
+        ),
+        (
+            "ip.place",
+            json!({"page": PAGE_101.to_string(), "symbol": SYM.to_string(), "pos": [0, 0],
+                "name": "L-2", "direction": "source", "star_source": true, "sort": 3}),
+        ),
+        (
+            "ip.continue",
+            json!({"ip": FN_IP_101.to_string(), "page": PAGE_102.to_string(), "pos": [10, 20]}),
+        ),
+        (
+            "potential.define",
+            json!({"at": {"cp": {"function": FN_102G1.to_string(), "idx": 4}}, "name": "24VDC",
+                "voltage": "24"}),
+        ),
+        (
+            "terminal.add",
+            json!({"strip": DEV_X1031.to_string(), "fndef": FNDEF_TERMINAL.to_string(),
+                "terminals": [{"designation": "4", "seq": 4, "rail_bonded": true}]}),
+        ),
+        (
+            "cable.create",
+            json!({"letter": "W", "counter": 2, "conductors": [{"core": "1", "shield": false, "pair": 1}]}),
+        ),
+        (
+            "conductor.add",
+            json!({"cable": DEV_3W1.to_string(), "conductors": [{"core": "D"}]}),
+        ),
+        (
+            "fields.set",
+            json!({"kind": "device", "targets": [DEV_102F2.to_string()], "path": "tag.counter", "value": 5}),
+        ),
+        (
+            "edit.delete",
+            json!({"targets": [{"kind": "device", "id": DEV_102F2.to_string()}]}),
+        ),
+        (
+            "numbering.renumber",
+            json!({"scope": "project", "scheme": "page_based",
+                "options": {"skip_frozen": true, "only_nonconforming": false, "close_gaps": true}}),
+        ),
+    ]
+}
+
+fn any(name: &str, params: Value) -> AnyCommand {
+    AnyCommand {
+        name: name.into(),
+        params,
+    }
+}
+
+fn invalid(name: &str, params: Value) -> (String, String, String) {
+    match CommandRegistry::builtin().resolve(&any(name, params)) {
+        Err(CmdError::InvalidParams {
+            command,
+            path,
+            message,
+        }) => (command, path, message),
+        Err(other) => panic!("expected InvalidParams, got {other:?}"),
+        Ok(_) => panic!("expected the parameters to be rejected"),
+    }
+}
+
+#[test]
+fn every_registered_command_has_an_example() {
+    let registry = CommandRegistry::builtin();
+    let registered: BTreeSet<&str> = registry.commands().map(|c| c.meta().name).collect();
+    let covered: BTreeSet<&str> = examples().iter().map(|(n, _)| *n).collect();
+    assert_eq!(registered.len(), 23);
+    assert_eq!(registered, covered);
+    assert_eq!(examples().len(), covered.len(), "one example per command");
+}
+
+#[test]
+fn examples_validate_against_their_schema() {
+    let registry = CommandRegistry::builtin();
+    for (name, params) in examples() {
+        let schema = registry.get(name).expect("registered").schema();
+        assert_eq!(validate_schema(schema, &params), Ok(()), "{name}");
+    }
+}
+
+#[test]
+fn examples_resolve_and_round_trip() {
+    let registry = CommandRegistry::builtin();
+    for (name, params) in examples() {
+        let schema = registry.get(name).expect("registered").schema();
+        let resolved = registry
+            .resolve(&any(name, params))
+            .unwrap_or_else(|e| panic!("{name}: {e}"));
+        assert_eq!(resolved.name(), name);
+        let json = resolved.to_json();
+        assert_eq!(validate_schema(schema, &json), Ok(()), "{name}: serialised form");
+        let again = registry
+            .resolve(&any(name, json.clone()))
+            .unwrap_or_else(|e| panic!("{name}: round trip: {e}"));
+        assert_eq!(again.to_json(), json, "{name}");
+    }
+}
+
+#[test]
+fn a_missing_required_member_is_reported_at_the_object() {
+    let (command, path, message) = invalid("connection.route", json!({"connection": CON_W22.to_string()}));
+    assert_eq!(command, "connection.route");
+    assert_eq!(path, "");
+    assert!(message.contains("`route`"), "{message}");
+    let (_, path, _) = invalid("fields.set", json!({}));
+    assert_eq!(path, "");
+}
+
+#[test]
+fn an_unknown_member_is_reported_at_the_member() {
+    let (_, path, message) = invalid("page.create", json!({"after": PAGE_102.to_string(), "bogus": 1}));
+    assert_eq!(path, "/bogus");
+    assert!(message.contains("bogus"), "{message}");
+    // Inside a nested variant object as well.
+    let (_, path, _) = invalid(
+        "connection.draw",
+        json!({"a": {"cp": {"function": FN_102F2.to_string(), "idx": 1, "extra": 0}},
+            "b": {"junction": {"junction": J5.to_string()}}}),
+    );
+    assert_eq!(path, "/a/cp/extra");
+}
+
+#[test]
+fn a_wrong_type_deep_inside_is_reported_with_its_pointer() {
+    let a = json!({"cp": {"function": FN_102F2.to_string(), "idx": "one"}});
+    let b = json!({"junction": {"junction": J5.to_string()}});
+    let (_, path, message) = invalid("connection.draw", json!({"a": a, "b": b}));
+    assert_eq!(path, "/a/cp/idx");
+    assert!(message.contains("expected integer"), "{message}");
+
+    let a = json!({"cp": {"function": FN_102F2.to_string(), "idx": 1}});
+    let (_, path, _) = invalid(
+        "connection.draw",
+        json!({"a": a, "b": b, "route": [[0, 0], ["x", 1]]}),
+    );
+    assert_eq!(path, "/route/1/0");
+
+    let (_, path, _) = invalid(
+        "connection.route",
+        json!({"connection": CON_W22.to_string(), "route": [[0, 0], [1]]}),
+    );
+    assert_eq!(path, "/route/1", "a point needs two coordinates");
+}
+
+#[test]
+fn a_wrong_enum_variant_is_rejected() {
+    let (_, path, _) = invalid(
+        "ip.place",
+        json!({"page": PAGE_101.to_string(), "symbol": SYM.to_string(), "pos": [0, 0],
+            "name": "L-2", "direction": "sideways"}),
+    );
+    assert_eq!(path, "/direction");
+    let (_, path, _) = invalid(
+        "page.create",
+        json!({"after": PAGE_102.to_string(), "kind": "nonsense"}),
+    );
+    assert_eq!(path, "/kind");
+    // An externally tagged variant that does not exist.
+    let (_, path, _) = invalid("page.renumber", json!({"scope": {"everything": []}, "start": 1}));
+    assert_eq!(path, "/scope");
+}
+
+#[test]
+fn the_error_of_a_named_variant_points_into_it() {
+    let (_, path, _) = invalid(
+        "page.renumber",
+        json!({"scope": {"pages": [PAGE_101.to_string(), 7]}, "start": 1}),
+    );
+    assert_eq!(path, "/scope/pages/1");
+}
+
+#[test]
+fn a_malformed_uuid_is_reported_where_it_stands() {
+    let (_, path, _) = invalid("connection.delete", json!({"connections": ["not-a-uuid"]}));
+    assert_eq!(path, "/connections/0");
+}
+
+#[test]
+fn parameters_of_the_wrong_shape_are_rejected_at_the_root() {
+    let (_, path, message) = invalid("page.create", json!([1, 2]));
+    assert_eq!(path, "");
+    assert!(message.contains("expected object"), "{message}");
+}
+
+#[test]
+fn an_alias_resolves_to_the_canonical_command() {
+    let registry = CommandRegistry::builtin();
+    let (_, params) = examples()
+        .into_iter()
+        .find(|(n, _)| *n == "device.place")
+        .expect("example");
+    let resolved = registry.resolve(&any("symbol.place", params.clone())).unwrap();
+    assert_eq!(resolved.name(), "device.place");
+    let (command, _, _) = invalid("symbol.place", json!({}));
+    assert_eq!(command, "device.place", "errors name the canonical command");
+    let via_alias = AnyCommand::of(&*resolved);
+    assert_eq!(via_alias.name, "device.place");
+}
+
+#[test]
+fn an_unknown_name_is_an_unknown_command() {
+    let err = CommandRegistry::builtin()
+        .resolve(&any("page.explode", json!({})))
+        .map(|_| ())
+        .unwrap_err();
+    assert_eq!(
+        err,
+        CmdError::UnknownCommand {
+            name: "page.explode".into()
+        }
+    );
+}
+
+#[test]
+fn any_command_runs_with_validated_parameters_only() {
+    let mut e = engine(golden_model());
+    let bad = any("connection.route", json!({"connection": CON_W22.to_string()}));
+    let err = e.execute(&bad).unwrap_err();
+    assert!(matches!(err, CmdError::InvalidParams { .. }), "{err:?}");
+    assert_eq!(e.model().rev().0, 0);
+    let good = any(
+        "connection.route",
+        json!({"connection": CON_W22.to_string(), "route": [[0, 0], [5, 5]]}),
+    );
+    e.execute(&good).unwrap();
+    assert_eq!(e.model().rev().0, 1);
+}

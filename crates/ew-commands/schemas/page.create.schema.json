@@ -1,0 +1,304 @@
+{
+  "$defs": {
+    "Grid": {
+      "additionalProperties": false,
+      "description": "A rational grid step num/den in nanometres (doc 05 §3.2); num/den must be reduced and at least 1 nm.",
+      "properties": {
+        "den": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "num": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "num",
+        "den"
+      ],
+      "type": "object"
+    },
+    "Ident": {
+      "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
+      "minLength": 1,
+      "type": "string"
+    },
+    "MlText": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minProperties": 1,
+          "type": "object"
+        }
+      ],
+      "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags in ascending order with non-empty string values (doc 05 §3.2)."
+    },
+    "PageType": {
+      "description": "Page type (FR-PAG-001). `report` pages are always generated, never stored.",
+      "oneOf": [
+        {
+          "const": "title_page",
+          "description": "Title page (cover form).",
+          "type": "string"
+        },
+        {
+          "const": "table_of_contents",
+          "description": "Table of contents.",
+          "type": "string"
+        },
+        {
+          "const": "section_divider",
+          "description": "Section divider.",
+          "type": "string"
+        },
+        {
+          "const": "graphic",
+          "description": "Graphic page without electrical meaning.",
+          "type": "string"
+        },
+        {
+          "const": "single_line",
+          "description": "Single-line diagram.",
+          "type": "string"
+        },
+        {
+          "const": "multi_line",
+          "description": "Multi-line schematic.",
+          "type": "string"
+        },
+        {
+          "const": "overview",
+          "description": "Overview.",
+          "type": "string"
+        },
+        {
+          "const": "bus_topology",
+          "description": "Bus topology.",
+          "type": "string"
+        },
+        {
+          "const": "fluid",
+          "description": "Fluid-power schematic.",
+          "type": "string"
+        },
+        {
+          "const": "assembly_overview",
+          "description": "Assembly overview.",
+          "type": "string"
+        },
+        {
+          "const": "panel_layout",
+          "description": "Panel layout.",
+          "type": "string"
+        },
+        {
+          "const": "model_view",
+          "description": "3D model view.",
+          "type": "string"
+        },
+        {
+          "const": "external_document",
+          "description": "External document.",
+          "type": "string"
+        },
+        {
+          "const": "report",
+          "description": "Report (generated only).",
+          "type": "string"
+        }
+      ]
+    },
+    "Slot": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "const": "none"
+        }
+      ],
+      "description": "A structure slot: a structure node ID or \"none\"; absent means inherit (doc 05 §3.2)."
+    },
+    "StructureAssignment": {
+      "additionalProperties": true,
+      "description": "Which structure node a page, device or structure box belongs to, one slot per aspect (doc 03 §5).\nMembers follow the canonical aspect order of `ew_rds::Aspect`; the product aspect is the device tree and\nhas no slot.\n\n```\nuse ew_schema::StructureAssignment;\n\nlet s: StructureAssignment = serde_json::from_str(\n    r#\"{\"function\":\"7d2c95e0-1f4a-5b38-a6e7-0c93b5d1f284\",\"location\":\"none\"}\"#,\n).unwrap();\nassert!(s.installation_site.is_none()); // absent: inherit\n```",
+      "properties": {
+        "document_kind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`&` (pages only)."
+        },
+        "function": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`=`"
+        },
+        "functional_assignment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`==`"
+        },
+        "installation_site": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`++`"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`+`"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`%`"
+        },
+        "user_defined": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`#`"
+        }
+      },
+      "type": "object"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`page.create`: a new drawn page (FR-PAG-005, doc 06 §5.6).\n\nThe folio is `{section, number, label}` when `number` is given. Otherwise `after` names the page to\ninsert after and the folio is proposed (doc 06 §5.6): `after.number + 1` if it lies in the section's\nrange (any number when the page has no section) and no page, divider or report block of that section\nuses it; else the sub-page `{after.number, label}` with label `k` (or `<after.label>.k`) for the\nsmallest free `k ≥ 1`. The section is `after`'s; a different explicit `section` is rejected.\n\nRejected: neither `number` nor `after`; a folio another page of the section already has; kind `report`\n(report pages are generated, EW-INV-012). The section and form must exist.",
+  "properties": {
+    "after": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The page to insert after, when the folio is proposed."
+    },
+    "form": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The frame form copy."
+    },
+    "grid": {
+      "$ref": "#/$defs/Grid",
+      "default": {
+        "den": 3,
+        "num": 7937500
+      },
+      "description": "The wiring grid; default the QET 10 px grid."
+    },
+    "kind": {
+      "$ref": "#/$defs/PageType",
+      "default": "multi_line",
+      "description": "The page type; default multi-line."
+    },
+    "label": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The label of an explicit folio (sub-pages)."
+    },
+    "number": {
+      "description": "An explicit folio number.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "section": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The section of an explicit folio."
+    },
+    "structure": {
+      "$ref": "#/$defs/StructureAssignment",
+      "description": "The page's structure assignment."
+    },
+    "title": {
+      "$ref": "#/$defs/MlText",
+      "description": "The page title."
+    }
+  },
+  "title": "page.create",
+  "type": "object"
+}

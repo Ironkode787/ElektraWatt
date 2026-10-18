@@ -1,0 +1,260 @@
+{
+  "commands": [
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "cable.create",
+      "params_version": 1,
+      "schema": "cable.create.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "conductor.add",
+      "params_version": 1,
+      "schema": "conductor.add.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "connection.delete",
+      "params_version": 1,
+      "schema": "connection.delete.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "connection.draw",
+      "params_version": 1,
+      "schema": "connection.draw.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "connection.route",
+      "params_version": 1,
+      "schema": "connection.route.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "device.create",
+      "params_version": 1,
+      "schema": "device.create.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [
+        "device.place_from_part",
+        "symbol.place"
+      ],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "device.place",
+      "params_version": 1,
+      "schema": "device.place.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "edit.delete",
+      "params_version": 1,
+      "schema": "edit.delete.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "fields.set",
+      "params_version": 1,
+      "schema": "fields.set.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "ip.continue",
+      "params_version": 1,
+      "schema": "ip.continue.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "ip.place",
+      "params_version": 1,
+      "schema": "ip.place.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "junction.edit",
+      "params_version": 1,
+      "schema": "junction.edit.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "bulk",
+      "exposure": "edit",
+      "name": "numbering.renumber",
+      "params_version": 1,
+      "schema": "numbering.renumber.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "page.create",
+      "params_version": 1,
+      "schema": "page.create.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "bulk",
+      "exposure": "edit",
+      "name": "page.delete",
+      "params_version": 1,
+      "schema": "page.delete.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "bulk",
+      "exposure": "edit",
+      "name": "page.renumber",
+      "params_version": 1,
+      "schema": "page.renumber.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "potential.define",
+      "params_version": 1,
+      "schema": "potential.define.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "rep.move",
+      "params_version": 1,
+      "schema": "rep.move.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "rep.transform",
+      "params_version": 1,
+      "schema": "rep.transform.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "report_block.create",
+      "params_version": 1,
+      "schema": "report_block.create.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "section.create",
+      "params_version": 1,
+      "schema": "section.create.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "structure.create_node",
+      "params_version": 1,
+      "schema": "structure.create_node.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "terminal.add",
+      "params_version": 1,
+      "schema": "terminal.add.schema.json",
+      "stability": "preview",
+      "undoable": true
+    }
+  ]
+}

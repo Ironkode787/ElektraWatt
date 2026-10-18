@@ -14,5 +14,29 @@ publish = false
 [lints]
 workspace = true
 
+[features]
+# A seeded, reproducible ID source for the tests of dependent crates (`ew_commands::testkit`). Test-only by
+# policy: `cargo xtask check-features` allows it on dev-dependency edges only (ci/dep-rules.toml).
+testkit = ["ew-ids/testkit"]
+
 [dependencies]
+# The tracked read layer; no query is used yet (previews and prevent rules read through it from WP-S1.05 on).
 ew-derive = { path = "../ew-derive" }
+# A transaction reads the `before` rows of its ops: the untracked read API (ARCH §3 rule 1, ADR-0001
+# amendment 1), allowed on this normal edge by `cargo xtask check-features`.
+ew-model = { path = "../ew-model", features = ["raw-read"] }
+ew-schema = { path = "../ew-schema" }
+ew-ids = { path = "../ew-ids" }
+ew-units = { path = "../ew-units" }
+ew-mltext = { path = "../ew-mltext" }
+ew-rds = { path = "../ew-rds" }
+serde.workspace = true
+# Command parameters as JSON (`AnyCommand`, the journal form of a transaction), the field paths of
+# `fields.set` and of `diff_model`.
+serde_json = "1.0.154"
+# The JSON Schema of every command's parameters (FR-EXT-015, doc 17 §2.1).
+schemars = "1.2.3"
+
+[dev-dependencies]
+ew-ids = { path = "../ew-ids", features = ["testkit"] }
+proptest = { version = "1.12.0", default-features = false, features = ["std"] }

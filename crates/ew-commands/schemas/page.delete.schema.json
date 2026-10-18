@@ -1,0 +1,33 @@
+{
+  "$defs": {
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`page.delete`: removes pages with everything they own (FR-PAG-025, doc 06 §3.4).\n\nEach page is removed through the delete policies: its representations, connections and junctions\ncascade, and an interruption-point function goes with its representation. Devices stay, unplaced,\nunless `delete_devices` is set: then every device that had a representation of one of its functions on\na deleted page and has none left anywhere is removed too (with its functions and their remaining\nconnections). Bulk: it always previews (doc 06 §3.1).",
+  "properties": {
+    "delete_devices": {
+      "default": false,
+      "description": "Also delete devices left without any representation.",
+      "type": "boolean"
+    },
+    "pages": {
+      "description": "The pages, at least one.",
+      "items": {
+        "$ref": "#/$defs/Uuid"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "pages"
+  ],
+  "title": "page.delete",
+  "type": "object"
+}

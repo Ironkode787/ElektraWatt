@@ -1,0 +1,419 @@
+{
+  "$defs": {
+    "Cable": {
+      "additionalProperties": true,
+      "description": "The `Cable` aspect (doc 03 §12).",
+      "properties": {
+        "core_id_mode": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CoreIdMode"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How cores are identified (FR-CBL-006)."
+        },
+        "length": {
+          "$ref": "#/$defs/LengthSource",
+          "description": "Where the length comes from; default missing (EW-CORE-033)."
+        },
+        "pre_assembled": {
+          "description": "Pre-assembled cable (FR-CBL-013).",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "ColourCode": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "foreign": {
+              "$ref": "#/$defs/Ident"
+            }
+          },
+          "required": [
+            "foreign"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "An IEC 60757 or profile-declared company colour code, or {\"foreign\": code} (doc 05 §3.2)."
+    },
+    "ColourSpec": {
+      "description": "One or two colour codes (doc 03 §3.4).",
+      "items": {
+        "$ref": "#/$defs/ColourCode"
+      },
+      "maxItems": 2,
+      "minItems": 1,
+      "type": "array"
+    },
+    "ConductorSpec": {
+      "additionalProperties": false,
+      "description": "One conductor of `cable.create` and `conductor.add`.",
+      "properties": {
+        "colour": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ColourSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Core colour."
+        },
+        "core": {
+          "$ref": "#/$defs/Ident",
+          "description": "Core identification (\"1\", \"BK\", \"A\")."
+        },
+        "csa": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Csa"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Core cross-section."
+        },
+        "pair": {
+          "description": "Twisted pair number.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "shield": {
+          "default": false,
+          "description": "A shield rather than a core.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "core"
+      ],
+      "type": "object"
+    },
+    "CoreIdMode": {
+      "description": "How the cores of a cable are identified.",
+      "oneOf": [
+        {
+          "const": "number",
+          "description": "By number.",
+          "type": "string"
+        },
+        {
+          "const": "colour",
+          "description": "By colour.",
+          "type": "string"
+        },
+        {
+          "const": "both",
+          "description": "By number and colour.",
+          "type": "string"
+        }
+      ]
+    },
+    "Csa": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Dec3"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "awg": {
+              "maximum": 127,
+              "minimum": -128,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "awg"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kcmil": {
+              "$ref": "#/$defs/Dec3"
+            }
+          },
+          "required": [
+            "kcmil"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "A cross-section: a Dec3 string in mm², {\"awg\": n} or {\"kcmil\": Dec3} (doc 08 §4.6)."
+    },
+    "Dec3": {
+      "description": "A canonical decimal string: at most three fraction digits, no trailing fraction zeros, no leading zeros, no plus sign, no \"-0\", no exponent, no white space, no unit (doc 05 §3.2). The pattern bounds the integer part to 16 digits; the exact i64 range of the thousandths (about 9.2 x 10^15) is checked by the reader.",
+      "maxLength": 21,
+      "pattern": "^(?:0|-?[1-9][0-9]{0,15}(?:\\.[0-9]{0,2}[1-9])?|-?0\\.[0-9]{0,2}[1-9])$",
+      "type": "string"
+    },
+    "Ident": {
+      "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
+      "minLength": 1,
+      "type": "string"
+    },
+    "LengthSource": {
+      "description": "The source of a cable length (FR-CBL-009). The committed sources `Estimated` and `Routed` (1.0) are\nadditive variants of a later format.",
+      "oneOf": [
+        {
+          "const": "missing",
+          "description": "No length yet (the default); blocks release.",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Entered by hand.",
+          "properties": {
+            "manual": {
+              "$ref": "#/$defs/Nm"
+            }
+          },
+          "required": [
+            "manual"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "from_part",
+          "description": "From the cable part (pre-assembled length).",
+          "type": "string"
+        }
+      ]
+    },
+    "MlText": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minProperties": 1,
+          "type": "object"
+        }
+      ],
+      "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags in ascending order with non-empty string values (doc 05 §3.2)."
+    },
+    "Nm": {
+      "description": "A length in nanometres (doc 05 §3.2). Written without fraction or exponent; JSON Schema cannot tell 5 from 5.0, the reader rejects the latter.",
+      "maximum": 9007199254740991,
+      "minimum": -9007199254740991,
+      "type": "integer"
+    },
+    "PartRef": {
+      "additionalProperties": true,
+      "description": "A part on a device (doc 03 §7): the embedded copy and an optional part variant (FR-PRT-003).",
+      "properties": {
+        "copy": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The copy ID of the embedded part, `v5(NS_LIBCOPY, library ‖ item)`."
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A variant key of the part."
+        }
+      },
+      "required": [
+        "copy"
+      ],
+      "type": "object"
+    },
+    "PartUse": {
+      "additionalProperties": true,
+      "description": "A part use on a device (ADR-0006): the part and its quantity in the part's order unit.",
+      "properties": {
+        "part": {
+          "$ref": "#/$defs/PartRef",
+          "description": "The part."
+        },
+        "qty": {
+          "$ref": "#/$defs/Dec3",
+          "description": "The quantity in the part's order unit (pieces, metres, sets)."
+        }
+      },
+      "required": [
+        "part",
+        "qty"
+      ],
+      "type": "object"
+    },
+    "Slot": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "const": "none"
+        }
+      ],
+      "description": "A structure slot: a structure node ID or \"none\"; absent means inherit (doc 05 §3.2)."
+    },
+    "StructureAssignment": {
+      "additionalProperties": true,
+      "description": "Which structure node a page, device or structure box belongs to, one slot per aspect (doc 03 §5).\nMembers follow the canonical aspect order of `ew_rds::Aspect`; the product aspect is the device tree and\nhas no slot.\n\n```\nuse ew_schema::StructureAssignment;\n\nlet s: StructureAssignment = serde_json::from_str(\n    r#\"{\"function\":\"7d2c95e0-1f4a-5b38-a6e7-0c93b5d1f284\",\"location\":\"none\"}\"#,\n).unwrap();\nassert!(s.installation_site.is_none()); // absent: inherit\n```",
+      "properties": {
+        "document_kind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`&` (pages only)."
+        },
+        "function": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`=`"
+        },
+        "functional_assignment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`==`"
+        },
+        "installation_site": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`++`"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`+`"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`%`"
+        },
+        "user_defined": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`#`"
+        }
+      },
+      "type": "object"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`cable.create`: a cable device with its conductors (doc 03 §12).\n\nCreates `Device {tag: {letter, counter}, parts, function_text, structure, cable}` (no function) and one\n`Conductor {cable, core, colour, csa, shield, pair}` per spec, in order. Rejected: two specs with the\nsame core. Outcome: the cable device.",
+  "properties": {
+    "cable": {
+      "$ref": "#/$defs/Cable",
+      "default": {},
+      "description": "The cable aspect."
+    },
+    "conductors": {
+      "description": "The conductors.",
+      "items": {
+        "$ref": "#/$defs/ConductorSpec"
+      },
+      "type": "array"
+    },
+    "counter": {
+      "description": "An explicit counter.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "function_text": {
+      "$ref": "#/$defs/MlText",
+      "description": "Manual function text."
+    },
+    "letter": {
+      "$ref": "#/$defs/Ident",
+      "default": "W",
+      "description": "The letter code; default \"W\"."
+    },
+    "parts": {
+      "description": "Part uses.",
+      "items": {
+        "$ref": "#/$defs/PartUse"
+      },
+      "type": "array"
+    },
+    "structure": {
+      "$ref": "#/$defs/StructureAssignment",
+      "description": "Own structure assignment."
+    }
+  },
+  "title": "cable.create",
+  "type": "object"
+}

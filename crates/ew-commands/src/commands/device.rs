@@ -1,0 +1,586 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! Device and representation commands: `device.create`, `device.place`, `rep.move`, `rep.transform`.
+
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
+
+use ew_ids::Id;
+use ew_mltext::{Ident, MlText};
+use ew_schema::{
+    Connection, ConnectionKind, Device, DeviceAspects, DeviceKind, Endpoint, Extra, FnDef, FnRole, Function,
+    FunctionKind, Junction, Kind, LibCopy, NumberSpec, Page, PartUse, RepType, Representation, Strip,
+    StructureAssignment, SymbolDef, TagSpec,
+};
+use ew_units::{Orient2, Pt2};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
+use crate::command::{Command, Outcome};
+use crate::commands::common::EndpointParam;
+use crate::error::CmdError;
+use crate::geometry::{add, follow_end, rep_cps, sub, translate};
+use crate::meta::CommandMeta;
+use crate::proxy::{IdentS, MlTextS, Orient2S, Pt2S, UuidS};
+use crate::tx::TxBuilder;
+
+/// `device.create`: a device without a representation (FR-DEV-001), optionally with its main function.
+///
+/// Creates `Device {tag: {letter, counter}, kind, parts, function_text, structure, strip aspect}` and, with
+/// `main_fndef`, `Function {device, def: main_fndef, role: main, kind: normal}`. An explicit `counter` is
+/// kept (a typed tag); without one the device stays unnumbered until its main function is placed (online
+/// numbering, normaliser #4). The part copies and the FnDef copy must exist. Outcome: the device.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct CreateDevice {
+    /// The letter code ("F").
+    #[schemars(with = "IdentS")]
+    pub letter: Ident,
+    /// An explicit counter.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub counter: Option<u32>,
+    /// UI and numbering hint.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<DeviceKind>,
+    /// Part uses.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub parts: Vec<PartUse>,
+    /// Manual function text.
+    #[serde(default, skip_serializing_if = "MlText::is_empty")]
+    #[schemars(with = "MlTextS")]
+    pub function_text: MlText,
+    /// Own structure assignment.
+    #[serde(default, skip_serializing_if = "StructureAssignment::is_empty")]
+    pub structure: StructureAssignment,
+    /// The strip aspect, for a terminal strip.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub strip: Option<Strip>,
+    /// The FnDef copy of the main function to create.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub main_fndef: Option<Id<FnDef>>,
+}
+
+impl Command for CreateDevice {
+    const NAME: &'static str = "device.create";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        for part in &self.parts {
+            tx.require::<LibCopy<ew_schema::Part>>(part.part.copy)?;
+        }
+        if let Some(fndef) = self.main_fndef {
+            tx.require::<LibCopy<FnDef>>(fndef)?;
+        }
+        let id: Id<Device> = tx.mint();
+        tx.insert(Device {
+            id,
+            v: 1,
+            tag: TagSpec::new(self.letter.clone(), self.counter),
+            kind: self.kind.clone(),
+            parent: None,
+            position: None,
+            structure: self.structure.clone(),
+            parts: self.parts.clone(),
+            function_text: self.function_text.clone(),
+            process_tag: None,
+            tech_data: Default::default(),
+            state: Default::default(),
+            source_ref: None,
+            aspects: DeviceAspects {
+                strip: self.strip.clone(),
+                ..DeviceAspects::default()
+            },
+            extra: Extra::new(),
+        })?;
+        if let Some(def) = self.main_fndef {
+            insert_function(tx, Some(id), def, FnRole::Main)?;
+        }
+        Ok(Outcome::primary((Kind::Device, id.cast())))
+    }
+}
+
+/// Which device a placed representation belongs to (doc 06 §3.3).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+pub enum PlaceTarget {
+    /// A new device with a new main function; its counter comes from online numbering.
+    NewDevice {
+        /// The letter code (the identifier-set lookup from the FnDef category is WP-S1.11).
+        #[schemars(with = "IdentS")]
+        letter: Ident,
+        /// The FnDef copy; default the copy the symbol's `fndef` resolves to.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[schemars(with = "Option<UuidS>")]
+        fndef: Option<Id<FnDef>>,
+        /// UI and numbering hint.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        kind: Option<DeviceKind>,
+    },
+    /// Another representation of an existing function (FR-DEV-003).
+    ExistingFunction {
+        /// The function.
+        #[schemars(with = "UuidS")]
+        function: Id<Function>,
+    },
+    /// A new function of an existing device (FR-DEV-038).
+    JoinDevice {
+        /// The device.
+        #[schemars(with = "UuidS")]
+        device: Id<Device>,
+        /// The FnDef copy; default the copy the symbol's `fndef` resolves to.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[schemars(with = "Option<UuidS>")]
+        fndef: Option<Id<FnDef>>,
+        /// The role; default auxiliary.
+        #[serde(default = "aux")]
+        role: FnRole,
+    },
+}
+
+fn aux() -> FnRole {
+    FnRole::Aux
+}
+
+/// An accepted autoconnect hint, as an explicit connection (ADR-0007: autoconnect is an editing aid; the
+/// command carries the result).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ConnectHint {
+    /// The symbol CP of the new representation (`SymbolCp.idx`).
+    pub cp: u16,
+    /// The other end: a CP or a junction.
+    pub to: EndpointParam,
+}
+
+/// `device.place` (`PlaceSymbol`, doc 06 §3.3): places a symbol and creates the device and function as the
+/// target requires.
+///
+/// - The page and the symbol copy must exist. The representation is `{functions: [f], page, symbol,
+///   variant, pos, orient, rep_type}`; `rep_type` defaults to the symbol's.
+/// - `new_device`: a device `{tag: {letter, counter: none}, kind}` and a main function `{def}`; `def` is
+///   `fndef` or the FnDef copy `v5(NS_LIBCOPY, library ‖ item)` of the symbol's `fndef` reference, which
+///   must be embedded (else rejected with a hint to pass `fndef`).
+/// - `existing_function`: the function must exist and must not be an interruption point (`ip.place`).
+/// - `join_device`: a new function of the device with the given role (a second main function is rejected
+///   by EW-INV-002).
+/// - Every hint creates a wire `{a: the hint's CP, b: to, page}` without a route; the hint's symbol CP is
+///   mapped to a function CP as the derived pin map does (`(functions[0], fn_cp)`); an unknown symbol CP
+///   or a point on a connection as `to` is rejected. A hint ending at a junction appends the wire to the
+///   junction's sequence.
+///
+/// Online numbering (normaliser #4) gives a new device its counter; a symbol dropped onto a wire splits it
+/// (normaliser #7). Outcome: the representation. Aliases `device.place_from_part`, `symbol.place`.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct PlaceSymbol {
+    /// The page.
+    #[schemars(with = "UuidS")]
+    pub page: Id<Page>,
+    /// The symbol copy.
+    #[schemars(with = "UuidS")]
+    pub symbol: Id<SymbolDef>,
+    /// The insertion point.
+    #[schemars(with = "Pt2S")]
+    pub pos: Pt2,
+    /// The orientation.
+    #[serde(default)]
+    #[schemars(with = "Orient2S")]
+    pub orient: Orient2,
+    /// The representation type; default the symbol's.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rep_type: Option<RepType>,
+    /// The stored contact-image or CP variant.
+    #[serde(default)]
+    pub variant: u8,
+    /// Which device the representation belongs to.
+    pub target: PlaceTarget,
+    /// Accepted autoconnect hints.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub connect: Vec<ConnectHint>,
+}
+
+impl Command for PlaceSymbol {
+    const NAME: &'static str = "device.place";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME).with_aliases(&["device.place_from_part", "symbol.place"])
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        tx.require::<Page>(self.page)?;
+        let symbol = tx.require::<LibCopy<SymbolDef>>(self.symbol)?;
+        // Check the hints before anything is written.
+        for hint in &self.connect {
+            if !symbol.item.cps.as_slice().iter().any(|cp| cp.idx == hint.cp) {
+                return tx.reject(format!(
+                    "the symbol has no connection point {}; pick one of its CPs",
+                    hint.cp
+                ));
+            }
+            if matches!(hint.to, EndpointParam::OnConnection { .. }) {
+                return tx.reject(
+                    "a connect hint cannot end on a point of a connection; draw that wire with `connection.draw`",
+                );
+            }
+            hint.to.check(tx)?;
+        }
+        let function = match &self.target {
+            PlaceTarget::NewDevice { letter, fndef, kind } => {
+                let def = place_fndef(tx, &symbol, *fndef)?;
+                let device: Id<Device> = tx.mint();
+                tx.insert(Device {
+                    id: device,
+                    v: 1,
+                    tag: TagSpec::new(letter.clone(), None),
+                    kind: kind.clone(),
+                    parent: None,
+                    position: None,
+                    structure: StructureAssignment::default(),
+                    parts: Vec::new(),
+                    function_text: MlText::default(),
+                    process_tag: None,
+                    tech_data: Default::default(),
+                    state: Default::default(),
+                    source_ref: None,
+                    aspects: DeviceAspects::default(),
+                    extra: Extra::new(),
+                })?;
+                insert_function(tx, Some(device), def, FnRole::Main)?
+            }
+            PlaceTarget::ExistingFunction { function } => {
+                let f = tx.require::<Function>(*function)?;
+                if matches!(f.kind, FunctionKind::Ip(_)) {
+                    return tx
+                        .reject("an interruption point is placed with `ip.place`; pick another function");
+                }
+                *function
+            }
+            PlaceTarget::JoinDevice { device, fndef, role } => {
+                tx.require::<Device>(*device)?;
+                let def = place_fndef(tx, &symbol, *fndef)?;
+                insert_function(tx, Some(*device), def, role.clone())?
+            }
+        };
+        let rep: Id<Representation> = tx.mint();
+        tx.insert(Representation {
+            id: rep,
+            v: 1,
+            functions: vec![function],
+            page: self.page,
+            symbol: self.symbol,
+            variant: self.variant,
+            pos: self.pos,
+            orient: self.orient,
+            rep_type: self
+                .rep_type
+                .clone()
+                .unwrap_or_else(|| symbol.item.rep_type.clone()),
+            pin_map: Default::default(),
+            text_slots: Default::default(),
+            arrangement: None,
+            box_: None,
+            source_ref: None,
+            extra: Extra::new(),
+        })?;
+        for hint in &self.connect {
+            let Some(fn_cp) = symbol
+                .item
+                .cps
+                .as_slice()
+                .iter()
+                .find(|cp| cp.idx == hint.cp)
+                .map(|cp| cp.fn_cp)
+            else {
+                return tx.reject("the symbol lost a connection point");
+            };
+            let Some(to) = hint.to.endpoint() else {
+                return tx.reject("a connect hint cannot end on a point of a connection");
+            };
+            let id: Id<Connection> = tx.mint();
+            tx.insert(Connection {
+                id,
+                v: 1,
+                a: Endpoint::Cp(function, fn_cp),
+                b: to.clone(),
+                page: Some(self.page),
+                route: Vec::new(),
+                kind: ConnectionKind::Wire,
+                overrides: Default::default(),
+                number: NumberSpec::default(),
+                source_ref: None,
+                extra: Extra::new(),
+            })?;
+            if let Endpoint::Junction(j) = to {
+                tx.update::<Junction>(j, |j| j.sequence.push(id))?;
+            }
+        }
+        Ok(Outcome::primary((Kind::Representation, rep.cast())))
+    }
+}
+
+fn zero() -> Pt2 {
+    Pt2::ORIGIN
+}
+
+/// `rep.move`: moves representations by a delta, optionally to another page (doc 06 §3.4). Moves never
+/// change connectivity (FR-CON-004).
+///
+/// Every representation's `pos` moves by `delta`; with `page`, its `page` becomes `page`. Routes follow:
+/// for each connection with an endpoint CP drawn by a moved representation (a CP of one of its functions,
+/// the connection on the representation's old page), if both ends are drawn by moved representations
+/// the whole route translates by `delta`; otherwise the route end at the moved endpoint follows
+/// (`geometry::follow_end`: the end vertex moves by `delta`, its neighbour keeps the segment orthogonal).
+/// A cross-page move also moves every connection whose both ends move to the new page; a connection with
+/// only one end on a moved representation (or ending at a junction) is rejected, because the IP-pair
+/// replacement of FR-CON-043 is not in v0. Online numbering renumbers a main representation's device whose
+/// page-based tag collides on the new page (FR-NUM-029). Outcome: none. Coalesce one drag with a key.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct MoveReps {
+    /// The representations, at least one.
+    #[schemars(with = "Vec<UuidS>")]
+    pub reps: Vec<Id<Representation>>,
+    /// The displacement; default `[0, 0]`.
+    #[serde(default = "zero")]
+    #[schemars(with = "Pt2S")]
+    pub delta: Pt2,
+    /// The target page of a cross-page move.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub page: Option<Id<Page>>,
+}
+
+impl Command for MoveReps {
+    const NAME: &'static str = "rep.move";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if self.reps.is_empty() {
+            return tx.reject("give at least one representation to move");
+        }
+        if let Some(page) = self.page {
+            tx.require::<Page>(page)?;
+        }
+        let ids: BTreeSet<Id<Representation>> = self.reps.iter().copied().collect();
+        let mut reps: Vec<Arc<Representation>> = Vec::new();
+        for id in &ids {
+            reps.push(tx.require::<Representation>(*id)?);
+        }
+        // The connections with an end at a function of a moved representation, in ID order.
+        let mut connections: BTreeSet<Id<Connection>> = BTreeSet::new();
+        for rep in &reps {
+            for f in drawn_functions(rep) {
+                connections.extend(tx.connections_of_function(f));
+            }
+        }
+        let drawn = |e: &Endpoint, page: Id<Page>| -> bool {
+            e.function().is_some_and(|f| {
+                reps.iter()
+                    .any(|r| r.page == page && drawn_functions(r).contains(&f))
+            })
+        };
+        let mut changed: Vec<Connection> = Vec::new();
+        for cid in connections {
+            let c = tx.require::<Connection>(cid)?;
+            let Some(page) = c.page else {
+                continue;
+            };
+            let (a, b) = (drawn(&c.a, page), drawn(&c.b, page));
+            if !a && !b {
+                continue;
+            }
+            let mut next = (*c).clone();
+            if let Some(new_page) = self.page.filter(|np| *np != page) {
+                if !(a && b) {
+                    return tx.reject(format!(
+                        "connection {cid} would keep one end behind on the old page; move both ends \
+                         together (the interruption-point replacement of FR-CON-043 is not available yet)"
+                    ));
+                }
+                next.page = Some(new_page);
+            }
+            if a && b {
+                translate(&mut next.route, self.delta);
+            } else {
+                follow_end(&mut next.route, a, self.delta);
+            }
+            changed.push(next);
+        }
+        for c in changed {
+            tx.put(c);
+        }
+        let (delta, page) = (self.delta, self.page);
+        for rep in reps {
+            tx.update::<Representation>(rep.id, |r| {
+                r.pos = add(r.pos, delta);
+                if let Some(p) = page {
+                    r.page = p;
+                }
+            })?;
+        }
+        Ok(Outcome::default())
+    }
+}
+
+/// `rep.transform`: rotates, mirrors or changes the variant of representations about their insertion point
+/// (doc 06 §3.4).
+///
+/// The new orientation is `orient.then(r(rotate))`, then `.then(m0)` when `mirror` (rotation clockwise in
+/// quarter turns, `rotate` in 0..=3, then a mirror about the vertical axis). `variant`, when given,
+/// replaces the stored variant. Routes follow: each attached connection's route end at a CP drawn by a
+/// transformed representation follows that CP's displacement (`geometry::follow_end`); CPs whose geometry
+/// is unknown (symbol without CPs) leave routes unchanged. Outcome: none.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct TransformReps {
+    /// The representations, at least one.
+    #[schemars(with = "Vec<UuidS>")]
+    pub reps: Vec<Id<Representation>>,
+    /// Quarter turns clockwise, 0 to 3.
+    #[serde(default)]
+    pub rotate: u8,
+    /// Mirror after rotating.
+    #[serde(default)]
+    pub mirror: bool,
+    /// A new variant.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub variant: Option<u8>,
+}
+
+impl Command for TransformReps {
+    const NAME: &'static str = "rep.transform";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if self.reps.is_empty() {
+            return tx.reject("give at least one representation to transform");
+        }
+        if self.rotate > 3 {
+            return tx.reject("`rotate` counts quarter turns and must be 0 to 3");
+        }
+        let ids: BTreeSet<Id<Representation>> = self.reps.iter().copied().collect();
+        // The displacement of each drawn function CP that moves, by (page, function, CP).
+        let mut moves: BTreeMap<(Id<Page>, Id<Function>, u16), Pt2> = BTreeMap::new();
+        let mut updated: Vec<Representation> = Vec::new();
+        for id in &ids {
+            let old = tx.require::<Representation>(*id)?;
+            let mut orient = old.orient.then(Orient2::from_parts(false, self.rotate));
+            if self.mirror {
+                orient = orient.then(Orient2::M0);
+            }
+            let mut new = (*old).clone();
+            new.orient = orient;
+            if let Some(v) = self.variant {
+                new.variant = v;
+            }
+            let before = rep_cps(tx, &old);
+            for after in rep_cps(tx, &new) {
+                let Some(b) = before.iter().find(|c| c.symbol_cp == after.symbol_cp) else {
+                    continue;
+                };
+                let d = sub(after.pos, b.pos);
+                if d != Pt2::ORIGIN {
+                    moves.entry((old.page, after.function, after.idx)).or_insert(d);
+                }
+            }
+            updated.push(new);
+        }
+        let functions: BTreeSet<Id<Function>> = moves.keys().map(|(_, f, _)| *f).collect();
+        let mut connections: BTreeSet<Id<Connection>> = BTreeSet::new();
+        for f in functions {
+            connections.extend(tx.connections_of_function(f));
+        }
+        for cid in connections {
+            let c = tx.require::<Connection>(cid)?;
+            let Some(page) = c.page else {
+                continue;
+            };
+            let end = |e: &Endpoint| -> Option<Pt2> {
+                match e {
+                    Endpoint::Cp(f, idx) => moves.get(&(page, *f, *idx)).copied(),
+                    _ => None,
+                }
+            };
+            let (da, db) = (end(&c.a), end(&c.b));
+            let mut next = (*c).clone();
+            match (da, db) {
+                (Some(a), Some(b)) if a == b => translate(&mut next.route, a),
+                _ => {
+                    if let Some(a) = da {
+                        follow_end(&mut next.route, true, a);
+                    }
+                    if let Some(b) = db {
+                        follow_end(&mut next.route, false, b);
+                    }
+                }
+            }
+            tx.put(next);
+        }
+        for rep in updated {
+            tx.put(rep);
+        }
+        Ok(Outcome::default())
+    }
+}
+
+/// The functions a representation draws: its `functions` and the functions of its pin map.
+fn drawn_functions(rep: &Representation) -> BTreeSet<Id<Function>> {
+    rep.functions
+        .iter()
+        .copied()
+        .chain(rep.pin_map.as_slice().iter().map(|p| p.function))
+        .collect()
+}
+
+/// The FnDef copy of a new function: the one given, else the copy the symbol's `fndef` reference resolves
+/// to; either must be embedded.
+fn place_fndef(
+    tx: &TxBuilder<'_>,
+    symbol: &LibCopy<SymbolDef>,
+    given: Option<Id<FnDef>>,
+) -> Result<Id<FnDef>, CmdError> {
+    if let Some(def) = given {
+        tx.require::<LibCopy<FnDef>>(def)?;
+        return Ok(def);
+    }
+    let r = &symbol.item.fndef;
+    let def: Id<FnDef> = ew_ids::v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid());
+    if !tx.exists::<LibCopy<FnDef>>(def) {
+        return tx.reject(
+            "the function definition of the symbol is not embedded in the project; pass `fndef` or embed it",
+        );
+    }
+    Ok(def)
+}
+
+/// Inserts a normal function of `device` with the given definition and role.
+fn insert_function(
+    tx: &mut TxBuilder<'_>,
+    device: Option<Id<Device>>,
+    def: Id<FnDef>,
+    role: FnRole,
+) -> Result<Id<Function>, CmdError> {
+    let id: Id<Function> = tx.mint();
+    tx.insert(Function {
+        id,
+        v: 1,
+        device,
+        def,
+        role,
+        kind: FunctionKind::Normal,
+        cp_overrides: Default::default(),
+        source_ref: None,
+        extra: Extra::new(),
+    })
+}

@@ -1,0 +1,112 @@
+{
+  "$defs": {
+    "KindName": {
+      "description": "The record kinds a command may name generically (`edit.delete`, `fields.set`).",
+      "oneOf": [
+        {
+          "const": "structure_node",
+          "description": "`structure_node`.",
+          "type": "string"
+        },
+        {
+          "const": "section",
+          "description": "`section`.",
+          "type": "string"
+        },
+        {
+          "const": "external_ref",
+          "description": "`external_ref`.",
+          "type": "string"
+        },
+        {
+          "const": "page",
+          "description": "`page`.",
+          "type": "string"
+        },
+        {
+          "const": "device",
+          "description": "`device`.",
+          "type": "string"
+        },
+        {
+          "const": "function",
+          "description": "`function`.",
+          "type": "string"
+        },
+        {
+          "const": "representation",
+          "description": "`representation`.",
+          "type": "string"
+        },
+        {
+          "const": "connection",
+          "description": "`connection`.",
+          "type": "string"
+        },
+        {
+          "const": "junction",
+          "description": "`junction`.",
+          "type": "string"
+        },
+        {
+          "const": "conductor",
+          "description": "`conductor`.",
+          "type": "string"
+        },
+        {
+          "const": "potential_def",
+          "description": "`potential_def`.",
+          "type": "string"
+        },
+        {
+          "const": "bond",
+          "description": "`bond`.",
+          "type": "string"
+        },
+        {
+          "const": "report_block",
+          "description": "`report_block`.",
+          "type": "string"
+        }
+      ]
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`fields.set` (`SetFields`): sets one field on one or more records of one kind.\n\nFor each target in order: the record's serde JSON form gets `value` at `path` (a JSON `null` removes the\nmember, which resets it to its default); intermediate objects are created, except that a path below a\ndevice aspect ([`ASPECTS`]) requires the aspect to exist; the JSON is read back into the record type\nand put. Rejected with [`CmdError::InvalidParams`] at `/path`: a path not in [`SETTABLE`] for the kind;\nat `/value`: a value the record type does not accept (the deserialisation error as message). Targets\nmust exist and be distinct; there is at least one. Invariants and prevent rules apply at the end of the\ntransaction, so a swap of two terminal designations over two commands is not possible here, but one\n`fields.set` that leaves a duplicate is caught later by prevent rules (ADR-0009). Outcome: none.\nCoalesce typing in one cell with a key (FR-UI-009).",
+  "properties": {
+    "kind": {
+      "$ref": "#/$defs/KindName",
+      "description": "The kind of every target."
+    },
+    "path": {
+      "description": "The dotted field path.",
+      "type": "string"
+    },
+    "targets": {
+      "description": "The records.",
+      "items": {
+        "$ref": "#/$defs/Uuid"
+      },
+      "type": "array"
+    },
+    "value": {
+      "description": "The new value in the field's JSON encoding; `null` resets it."
+    }
+  },
+  "required": [
+    "kind",
+    "targets",
+    "path",
+    "value"
+  ],
+  "title": "fields.set",
+  "type": "object"
+}

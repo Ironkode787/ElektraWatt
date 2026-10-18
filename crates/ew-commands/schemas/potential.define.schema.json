@@ -1,0 +1,531 @@
+{
+  "$defs": {
+    "AcDc": {
+      "description": "AC or DC.",
+      "oneOf": [
+        {
+          "const": "ac",
+          "description": "Alternating current.",
+          "type": "string"
+        },
+        {
+          "const": "dc",
+          "description": "Direct current.",
+          "type": "string"
+        }
+      ]
+    },
+    "CircuitClass": {
+      "description": "Circuit classes (doc 03 §9.1, FR-CON-022).",
+      "oneOf": [
+        {
+          "const": "mains",
+          "description": "Mains.",
+          "type": "string"
+        },
+        {
+          "const": "control",
+          "description": "Control.",
+          "type": "string"
+        },
+        {
+          "const": "analogue",
+          "description": "Analogue.",
+          "type": "string"
+        },
+        {
+          "const": "bus",
+          "description": "Bus.",
+          "type": "string"
+        },
+        {
+          "const": "pe",
+          "description": "Protective earth.",
+          "type": "string"
+        }
+      ]
+    },
+    "ColourCode": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "foreign": {
+              "$ref": "#/$defs/Ident"
+            }
+          },
+          "required": [
+            "foreign"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "An IEC 60757 or profile-declared company colour code, or {\"foreign\": code} (doc 05 §3.2)."
+    },
+    "ColourSpec": {
+      "description": "One or two colour codes (doc 03 §3.4).",
+      "items": {
+        "$ref": "#/$defs/ColourCode"
+      },
+      "maxItems": 2,
+      "minItems": 1,
+      "type": "array"
+    },
+    "Csa": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Dec3"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "awg": {
+              "maximum": 127,
+              "minimum": -128,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "awg"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kcmil": {
+              "$ref": "#/$defs/Dec3"
+            }
+          },
+          "required": [
+            "kcmil"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "A cross-section: a Dec3 string in mm², {\"awg\": n} or {\"kcmil\": Dec3} (doc 08 §4.6)."
+    },
+    "Dec3": {
+      "description": "A canonical decimal string with at most three fraction digits, no trailing fraction zeros and no unit (doc 05 §3.2).",
+      "maxLength": 21,
+      "type": "string"
+    },
+    "EndpointParam": {
+      "description": "An endpoint named in command parameters: a function CP, a junction, or a point on an existing\nconnection (which splits it and creates a junction there, doc 06 §3.5).\n\nJSON: `{\"cp\": {\"function\": \"…\", \"idx\": 1}}`, `{\"junction\": {\"junction\": \"…\"}}`,\n`{\"on_connection\": {\"connection\": \"…\", \"at\": [x, y]}}`.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "Connection point `idx` of a function.",
+          "properties": {
+            "cp": {
+              "additionalProperties": false,
+              "properties": {
+                "function": {
+                  "$ref": "#/$defs/Uuid",
+                  "description": "The function."
+                },
+                "idx": {
+                  "description": "The CP index.",
+                  "format": "uint16",
+                  "maximum": 65535,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "function",
+                "idx"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "cp"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A junction.",
+          "properties": {
+            "junction": {
+              "additionalProperties": false,
+              "properties": {
+                "junction": {
+                  "$ref": "#/$defs/Uuid",
+                  "description": "The junction."
+                }
+              },
+              "required": [
+                "junction"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "junction"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A point on an existing connection's route.",
+          "properties": {
+            "on_connection": {
+              "additionalProperties": false,
+              "properties": {
+                "at": {
+                  "$ref": "#/$defs/Pt2",
+                  "description": "The point (on the route, if the connection has one)."
+                },
+                "connection": {
+                  "$ref": "#/$defs/Uuid",
+                  "description": "The connection to split."
+                }
+              },
+              "required": [
+                "connection",
+                "at"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "on_connection"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Ident": {
+      "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
+      "minLength": 1,
+      "type": "string"
+    },
+    "PartRef": {
+      "additionalProperties": true,
+      "description": "A part on a device (doc 03 §7): the embedded copy and an optional part variant (FR-PRT-003).",
+      "properties": {
+        "copy": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The copy ID of the embedded part, `v5(NS_LIBCOPY, library ‖ item)`."
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A variant key of the part."
+        }
+      },
+      "required": [
+        "copy"
+      ],
+      "type": "object"
+    },
+    "PotentialEarthing": {
+      "description": "Earthing of an extra-low-voltage potential.",
+      "oneOf": [
+        {
+          "const": "pelv",
+          "description": "Protective extra-low voltage.",
+          "type": "string"
+        },
+        {
+          "const": "selv",
+          "description": "Safety extra-low voltage.",
+          "type": "string"
+        },
+        {
+          "const": "floating",
+          "description": "Floating.",
+          "type": "string"
+        }
+      ]
+    },
+    "PotentialEnv": {
+      "additionalProperties": true,
+      "description": "The electrical environment of a potential definition.",
+      "properties": {
+        "ac_dc": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AcDc"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "AC or DC."
+        },
+        "earthing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PotentialEarthing"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "PELV, SELV or floating."
+        },
+        "frequency": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Dec3"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Frequency (Hz)."
+        }
+      },
+      "type": "object"
+    },
+    "PotentialType": {
+      "description": "Potential types (doc 03 §9.1, FR-CON-010).",
+      "oneOf": [
+        {
+          "const": "l1",
+          "description": "Phase L1.",
+          "type": "string"
+        },
+        {
+          "const": "l2",
+          "description": "Phase L2.",
+          "type": "string"
+        },
+        {
+          "const": "l3",
+          "description": "Phase L3.",
+          "type": "string"
+        },
+        {
+          "const": "l",
+          "description": "Single-phase line.",
+          "type": "string"
+        },
+        {
+          "const": "n",
+          "description": "Neutral.",
+          "type": "string"
+        },
+        {
+          "const": "pe",
+          "description": "Protective earth.",
+          "type": "string"
+        },
+        {
+          "const": "pen",
+          "description": "Combined PE and N.",
+          "type": "string"
+        },
+        {
+          "const": "fe",
+          "description": "Functional earth.",
+          "type": "string"
+        },
+        {
+          "const": "l_plus",
+          "description": "DC positive.",
+          "type": "string"
+        },
+        {
+          "const": "l_minus",
+          "description": "DC negative.",
+          "type": "string"
+        },
+        {
+          "const": "m",
+          "description": "DC mid or 0 V.",
+          "type": "string"
+        },
+        {
+          "const": "signal",
+          "description": "Signal.",
+          "type": "string"
+        },
+        {
+          "const": "undefined",
+          "description": "Undefined.",
+          "type": "string"
+        }
+      ]
+    },
+    "Pt2": {
+      "description": "A point or a displacement [x, y] in nanometres, y downwards (doc 05 §3.2).",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "WireFlags": {
+      "additionalProperties": true,
+      "description": "Shielded and twisted flags of a wire.",
+      "properties": {
+        "shielded": {
+          "description": "Shielded.",
+          "type": "boolean"
+        },
+        "twisted": {
+          "description": "Twisted.",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "WireProps": {
+      "additionalProperties": true,
+      "description": "Wire properties (doc 08 §4.1): the values one level of the inheritance chain may set.",
+      "properties": {
+        "colour": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ColourSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Colour."
+        },
+        "csa": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Csa"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cross-section."
+        },
+        "flags": {
+          "$ref": "#/$defs/WireFlags",
+          "description": "Shielded and twisted flags."
+        },
+        "function": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Wire function."
+        },
+        "insulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Insulation type."
+        },
+        "wire_part": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PartRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Wire part."
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`potential.define`: names and types a potential at a CP or a junction (FR-CON-010).\n\nCreates `PotentialDef {at, name, ptype, voltage, env, circuit_class, props}`. `at` must be a CP of an\nexisting function or an existing junction (a point on a connection is rejected). Outcome: the\ndefinition.",
+  "properties": {
+    "at": {
+      "$ref": "#/$defs/EndpointParam",
+      "description": "The definition point."
+    },
+    "circuit_class": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CircuitClass"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Circuit class."
+    },
+    "env": {
+      "$ref": "#/$defs/PotentialEnv",
+      "description": "AC/DC, frequency and earthing."
+    },
+    "name": {
+      "$ref": "#/$defs/Ident",
+      "description": "The potential name."
+    },
+    "props": {
+      "$ref": "#/$defs/WireProps",
+      "description": "Wire properties at the potential level."
+    },
+    "ptype": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PotentialType"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The type; absent means naming only."
+    },
+    "voltage": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Dec3"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Voltage (V)."
+    }
+  },
+  "required": [
+    "at",
+    "name"
+  ],
+  "title": "potential.define",
+  "type": "object"
+}

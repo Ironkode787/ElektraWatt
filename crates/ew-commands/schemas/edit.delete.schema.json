@@ -1,0 +1,117 @@
+{
+  "$defs": {
+    "KindName": {
+      "description": "The record kinds a command may name generically (`edit.delete`, `fields.set`).",
+      "oneOf": [
+        {
+          "const": "structure_node",
+          "description": "`structure_node`.",
+          "type": "string"
+        },
+        {
+          "const": "section",
+          "description": "`section`.",
+          "type": "string"
+        },
+        {
+          "const": "external_ref",
+          "description": "`external_ref`.",
+          "type": "string"
+        },
+        {
+          "const": "page",
+          "description": "`page`.",
+          "type": "string"
+        },
+        {
+          "const": "device",
+          "description": "`device`.",
+          "type": "string"
+        },
+        {
+          "const": "function",
+          "description": "`function`.",
+          "type": "string"
+        },
+        {
+          "const": "representation",
+          "description": "`representation`.",
+          "type": "string"
+        },
+        {
+          "const": "connection",
+          "description": "`connection`.",
+          "type": "string"
+        },
+        {
+          "const": "junction",
+          "description": "`junction`.",
+          "type": "string"
+        },
+        {
+          "const": "conductor",
+          "description": "`conductor`.",
+          "type": "string"
+        },
+        {
+          "const": "potential_def",
+          "description": "`potential_def`.",
+          "type": "string"
+        },
+        {
+          "const": "bond",
+          "description": "`bond`.",
+          "type": "string"
+        },
+        {
+          "const": "report_block",
+          "description": "`report_block`.",
+          "type": "string"
+        }
+      ]
+    },
+    "TargetRef": {
+      "additionalProperties": false,
+      "description": "A record named by kind and ID.",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The ID."
+        },
+        "kind": {
+          "$ref": "#/$defs/KindName",
+          "description": "The kind."
+        }
+      },
+      "required": [
+        "kind",
+        "id"
+      ],
+      "type": "object"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`edit.delete`: removes the selected records with everything the delete policies take along\n(FR-DEV-030): each target in order through `TxBuilder::delete`; a target already removed by an earlier\ntarget's cascade is skipped. Deleting a representation leaves its function unplaced (an IP function goes\nwith it); deleting a device removes its functions, their representations and connections. A target that\ndoes not exist at the start is `NotFound`; a forbid link (a strip with terminals, a referenced structure\nnode) rejects the whole command (`ModelError::Referenced`). Cost: `Bulk` above 500 targets. Outcome:\nnone.",
+  "properties": {
+    "targets": {
+      "description": "The selected records, at least one.",
+      "items": {
+        "$ref": "#/$defs/TargetRef"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "targets"
+  ],
+  "title": "edit.delete",
+  "type": "object"
+}

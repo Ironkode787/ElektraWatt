@@ -1,0 +1,83 @@
+{
+  "$defs": {
+    "PageScope": {
+      "description": "Which pages `page.renumber` renumbers.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "The listed pages.",
+          "properties": {
+            "pages": {
+              "items": {
+                "$ref": "#/$defs/Uuid"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "pages"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Every page of a section.",
+          "properties": {
+            "section": {
+              "$ref": "#/$defs/Uuid"
+            }
+          },
+          "required": [
+            "section"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "project",
+          "description": "Every page of the project.",
+          "type": "string"
+        }
+      ]
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`page.renumber`: renumbers folio numbers (FR-PAG-007). References are by ID, so every xref, tag and\nTOC row follows without further ops.\n\nThe pages in scope are ordered by (section number, folio number, label in natural order, ID); pages\nsharing a folio number (sub-pages) keep their labels and move together. With `keep_gaps`, a page gets\n`start + (old − first_old) × step`; without, the i-th distinct old number (from 0) becomes\n`start + i × step`. `step` is at least 1. A new folio that equals the folio of a page outside the scope\nin the same section is rejected. Bulk.",
+  "properties": {
+    "keep_gaps": {
+      "default": false,
+      "description": "Keep the gaps between the old numbers.",
+      "type": "boolean"
+    },
+    "scope": {
+      "$ref": "#/$defs/PageScope",
+      "description": "The pages to renumber."
+    },
+    "start": {
+      "description": "The first new number.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "step": {
+      "default": 1,
+      "description": "The increment; default 1.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "scope",
+    "start"
+  ],
+  "title": "page.renumber",
+  "type": "object"
+}

@@ -1,0 +1,291 @@
+{
+  "$defs": {
+    "BridgeKind": {
+      "description": "Kind of a terminal bridge.",
+      "oneOf": [
+        {
+          "const": "plug_in",
+          "description": "Plug-in bridge.",
+          "type": "string"
+        },
+        {
+          "const": "saddle",
+          "description": "Saddle jumper.",
+          "type": "string"
+        },
+        {
+          "const": "wire",
+          "description": "Wire bridge.",
+          "type": "string"
+        },
+        {
+          "const": "inter_level",
+          "description": "Bridge between levels.",
+          "type": "string"
+        }
+      ]
+    },
+    "BridgeSpec": {
+      "additionalProperties": true,
+      "description": "A terminal bridge (doc 08 §2.3): the connections of one group are one bridge object.",
+      "properties": {
+        "group": {
+          "description": "Group number on the strip.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "kind": {
+          "$ref": "#/$defs/BridgeKind",
+          "description": "Bridge kind."
+        },
+        "shaft": {
+          "description": "The shaft.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "group",
+        "shaft"
+      ],
+      "type": "object"
+    },
+    "BusLine": {
+      "additionalProperties": true,
+      "description": "A bus line and the cable that carries it (FR-CBL-008).",
+      "properties": {
+        "cable": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The cable device."
+        }
+      },
+      "type": "object"
+    },
+    "ConnectionKind": {
+      "description": "The kind of a connection (doc 08 §2.3). `Fluid(FluidLine)` (doc 11) and `SingleLine` (1.0) are additive\nvariants of their work packages; until then a file's value is kept as [`ConnectionKind::Unknown`], which\njoins no net (doc 05 §10.3 rule 3).",
+      "oneOf": [
+        {
+          "const": "wire",
+          "description": "One conductor (the default).",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A cable core or shield.",
+          "properties": {
+            "core": {
+              "$ref": "#/$defs/Uuid"
+            }
+          },
+          "required": [
+            "core"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A terminal bridge; joins potentials, never a wire.",
+          "properties": {
+            "bridge": {
+              "$ref": "#/$defs/BridgeSpec"
+            }
+          },
+          "required": [
+            "bridge"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A single-line bus connection between bus-port CPs.",
+          "properties": {
+            "bus": {
+              "$ref": "#/$defs/BusLine"
+            }
+          },
+          "required": [
+            "bus"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "overview",
+          "description": "Excluded from nets.",
+          "type": "string"
+        },
+        {
+          "const": "internal",
+          "description": "A link between CPs of two functions of one part that no FnDef declares.",
+          "type": "string"
+        }
+      ]
+    },
+    "EndpointParam": {
+      "description": "An endpoint named in command parameters: a function CP, a junction, or a point on an existing\nconnection (which splits it and creates a junction there, doc 06 §3.5).\n\nJSON: `{\"cp\": {\"function\": \"…\", \"idx\": 1}}`, `{\"junction\": {\"junction\": \"…\"}}`,\n`{\"on_connection\": {\"connection\": \"…\", \"at\": [x, y]}}`.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "Connection point `idx` of a function.",
+          "properties": {
+            "cp": {
+              "additionalProperties": false,
+              "properties": {
+                "function": {
+                  "$ref": "#/$defs/Uuid",
+                  "description": "The function."
+                },
+                "idx": {
+                  "description": "The CP index.",
+                  "format": "uint16",
+                  "maximum": 65535,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "function",
+                "idx"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "cp"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A junction.",
+          "properties": {
+            "junction": {
+              "additionalProperties": false,
+              "properties": {
+                "junction": {
+                  "$ref": "#/$defs/Uuid",
+                  "description": "The junction."
+                }
+              },
+              "required": [
+                "junction"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "junction"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A point on an existing connection's route.",
+          "properties": {
+            "on_connection": {
+              "additionalProperties": false,
+              "properties": {
+                "at": {
+                  "$ref": "#/$defs/Pt2",
+                  "description": "The point (on the route, if the connection has one)."
+                },
+                "connection": {
+                  "$ref": "#/$defs/Uuid",
+                  "description": "The connection to split."
+                }
+              },
+              "required": [
+                "connection",
+                "at"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "on_connection"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Pt2": {
+      "description": "A point or a displacement [x, y] in nanometres, y downwards (doc 05 §3.2).",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`connection.draw` (`Connect`, doc 06 §3.5, §4.4): one explicit connection.\n\n- Each end is a CP, a junction or a point on an existing connection. A point on connection W (on its\n  route, if W has one; W must have a page) creates a junction `{page: W.page, at, style: dot, wiring:\n  style default}` there and splits W at it (`normalise::split_connection`: W′ keeps W's ID and ends at\n  the junction, W″ starts there); the junction's sequence is `[W′, W″, new connection]`.\n- The new connection is `{a, b, page, route, kind}`; its number stays unassigned. An end at an\n  existing junction appends the new connection to that junction's sequence.\n- `page` defaults to the page of a split connection, else none (a page-less bridge).\n- Rejected: both ends the same endpoint (CI-01); both ends on the same connection; a named record\n  that does not exist (`NotFound`). Outcome: the new connection.",
+  "properties": {
+    "a": {
+      "$ref": "#/$defs/EndpointParam",
+      "description": "First endpoint."
+    },
+    "b": {
+      "$ref": "#/$defs/EndpointParam",
+      "description": "Second endpoint."
+    },
+    "kind": {
+      "$ref": "#/$defs/ConnectionKind",
+      "default": "wire",
+      "description": "The connection kind; default a wire."
+    },
+    "page": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The page it is drawn on."
+    },
+    "route": {
+      "description": "Orthogonal route in nm.",
+      "items": {
+        "$ref": "#/$defs/Pt2"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "a",
+    "b"
+  ],
+  "title": "connection.draw",
+  "type": "object"
+}

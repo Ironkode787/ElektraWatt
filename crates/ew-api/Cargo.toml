@@ -33,3 +33,13 @@ ew-import-tables = { path = "../ew-import-tables" }
 ew-script = { path = "../ew-script" }
 ew-plugin-host = { path = "../ew-plugin-host" }
 ew-jobs = { path = "../ew-jobs" }
+# The snapshot type and its revision. Without `raw-read`: the Session hands snapshots out and never reads rows
+# itself (ARCH §3 rule 1: the untracked read API stays with ew-derive, ew-commands and ew-store).
+ew-model = { path = "../ew-model" }
+# The record types of `Session::from_records`.
+ew-schema = { path = "../ew-schema" }
+
+[dev-dependencies]
+ew-commands = { path = "../ew-commands", features = ["testkit"] }
+ew-model = { path = "../ew-model", features = ["raw-read"] }
+serde_json = "1.0.154"

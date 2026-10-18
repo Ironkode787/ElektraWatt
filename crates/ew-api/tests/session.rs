@@ -1,0 +1,135 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! The Session facade v0: construction, the interactive path, previews, undo and redo, the change feed,
+//! the dirty flag, the registry and determinism under a seeded ID source.
+
+use ew_api::{AnyCommand, CmdError, Origin, Session, SessionOptions, Submit};
+use ew_commands::rows::model_lines;
+use ew_commands::testkit::seeded_ids;
+
+const PROJECT: &str = r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
+
+fn session(seed: u64) -> Session {
+    let project = serde_json::from_str(PROJECT).unwrap();
+    Session::from_records(
+        project,
+        [],
+        [],
+        SessionOptions {
+            ids: Some(seeded_ids(seed)),
+            ..SessionOptions::default()
+        },
+    )
+    .unwrap()
+}
+
+fn page(number: u32) -> AnyCommand {
+    AnyCommand {
+        name: "page.create".into(),
+        params: serde_json::json!({ "number": number }),
+    }
+}
+
+#[test]
+fn execute_undo_redo_and_the_change_feed() {
+    let mut s = session(1);
+    assert_eq!(s.world().rev.0, 0);
+    let r = s.execute(&page(1)).unwrap();
+    assert_eq!(r.rev.0, 1);
+    assert_eq!(s.world().rev.0, 1);
+    assert!(s.is_dirty());
+    let changes = s.drain_changes();
+    assert_eq!(changes.len(), 1);
+    assert_eq!(changes[0].rev.0, 1);
+    assert_eq!(changes[0].touched_pages.len(), 1);
+
+    let u = s.undo().unwrap();
+    assert_eq!(u.rev.0, 2);
+    assert_eq!(u.label, "page.create");
+    assert!(!s.is_dirty());
+    let r2 = s.redo().unwrap();
+    assert_eq!(r2.rev.0, 3);
+    assert!(s.is_dirty());
+    s.mark_saved();
+    assert!(!s.is_dirty());
+    assert_eq!(s.drain_changes().len(), 2);
+    assert_eq!(s.history().entries().len(), 1);
+}
+
+#[test]
+fn preview_commits_nothing_until_commit() {
+    let mut s = session(2);
+    let p = s.preview(&page(2)).unwrap();
+    assert_eq!(s.world().rev.0, 0);
+    assert_eq!(p.diff().len(), 1);
+    assert!(s.drain_changes().is_empty());
+    let r = s.commit(p).unwrap();
+    assert_eq!(r.rev.0, 1);
+    assert_eq!(s.drain_changes().len(), 1);
+}
+
+#[test]
+fn bulk_commands_need_a_preview() {
+    let mut s = session(3);
+    let renumber = AnyCommand {
+        name: "page.renumber".into(),
+        params: serde_json::json!({ "scope": "project", "start": 1 }),
+    };
+    assert!(matches!(s.execute(&renumber), Err(CmdError::NeedsPreview { .. })));
+}
+
+#[test]
+fn invalid_parameters_are_rejected_with_their_path() {
+    let mut s = session(4);
+    let bad = AnyCommand {
+        name: "page.create".into(),
+        params: serde_json::json!({ "number": 1, "bogus": true }),
+    };
+    match s.execute(&bad) {
+        Err(CmdError::InvalidParams { command, .. }) => assert_eq!(command, "page.create"),
+        other => panic!("expected InvalidParams, got {other:?}"),
+    }
+    assert_eq!(s.world().rev.0, 0);
+}
+
+#[test]
+fn the_origin_and_context_are_recorded() {
+    let mut s = session(5);
+    let submit = Submit::from(Origin::Cli {
+        subcommand: "apply".into(),
+    });
+    s.execute_with(&page(3), submit).unwrap();
+    let entry = &s.history().entries()[0];
+    assert_eq!(entry.transaction().origin.label(), "cli:apply");
+    assert_eq!(entry.transaction().command.name, "page.create");
+}
+
+#[test]
+fn the_registry_lists_every_command() {
+    let s = session(6);
+    let names: Vec<&str> = s.registry().names().collect();
+    assert_eq!(names.len(), 23);
+    assert!(names.contains(&"device.place"));
+    assert!(s.registry().get("symbol.place").is_some(), "aliases resolve");
+}
+
+#[test]
+fn the_same_commands_and_seed_give_identical_records() {
+    let mut a = session(9);
+    let mut b = session(9);
+    for n in [1, 2, 5] {
+        a.execute(&page(n)).unwrap();
+        b.execute(&page(n)).unwrap();
+    }
+    assert_eq!(model_lines(&a.world().model), model_lines(&b.world().model));
+    let mut c = session(10);
+    for n in [1, 2, 5] {
+        c.execute(&page(n)).unwrap();
+    }
+    assert_ne!(
+        model_lines(&a.world().model),
+        model_lines(&c.world().model),
+        "another seed mints other IDs"
+    );
+}

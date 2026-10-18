@@ -1,0 +1,52 @@
+{
+  "$defs": {
+    "Pt2": {
+      "description": "A point or a displacement [x, y] in nanometres, y downwards (doc 05 §3.2).",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`connection.route`: replaces a connection's route (FR-CON-007). Connectivity is unchanged. Outcome: the\nconnection. Coalesce route drags with a key.",
+  "properties": {
+    "connection": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The connection."
+    },
+    "route": {
+      "description": "The new route in nm.",
+      "items": {
+        "$ref": "#/$defs/Pt2"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "connection",
+    "route"
+  ],
+  "title": "connection.route",
+  "type": "object"
+}

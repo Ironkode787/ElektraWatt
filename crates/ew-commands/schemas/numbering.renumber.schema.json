@@ -1,0 +1,113 @@
+{
+  "$defs": {
+    "DeviceScope": {
+      "description": "Which devices `numbering.renumber` renumbers.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "The listed devices.",
+          "properties": {
+            "selection": {
+              "items": {
+                "$ref": "#/$defs/Uuid"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "selection"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The devices whose main representation is on one of the pages.",
+          "properties": {
+            "pages": {
+              "items": {
+                "$ref": "#/$defs/Uuid"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "pages"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "project",
+          "description": "Every device.",
+          "type": "string"
+        }
+      ]
+    },
+    "NumberingScheme": {
+      "description": "The numbering scheme.",
+      "oneOf": [
+        {
+          "const": "page_based",
+          "description": "`{page}{letter}{counter}`, counters unique per page of the main representation and letter.",
+          "type": "string"
+        }
+      ]
+    },
+    "RenumberOptions": {
+      "additionalProperties": false,
+      "description": "Options of `numbering.renumber` (FR-NUM-009).",
+      "properties": {
+        "close_gaps": {
+          "default": true,
+          "description": "Close counter gaps: counters become 1, 2, 3 … in order; otherwise a conforming counter is kept.",
+          "type": "boolean"
+        },
+        "only_nonconforming": {
+          "default": false,
+          "description": "Renumber only devices without a counter or whose counter collides in their scope.",
+          "type": "boolean"
+        },
+        "skip_frozen": {
+          "default": true,
+          "description": "Leave devices with a frozen tag alone (always true in v0: a frozen tag is never renumbered).",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`numbering.renumber` (`RenumberDevices`): renumbers device counters under the page-based scheme.\n\nThe devices in scope that take part in numbering (`numbering::numbered`: no terminal aspect, no frozen\ntag, default scheme) and are placed are grouped by (page of the main representation, letter). In each\ngroup the devices are ordered by their main representation's position, column first (x, then y), then\nby ID. Counters held by devices of the group outside the scope are reserved. Then, in order:\n\n- `only_nonconforming`: a device keeps its counter unless it has none or shares it with an earlier\n  device of the group (or a reserved one); those get the lowest free counter, one that no device of\n  the group keeps and no earlier device was given;\n- else with `close_gaps` (the default): each device gets the lowest counter that is neither reserved\n  nor given to an earlier device, so the group reads 1, 2, 3 … in position order;\n- else: as `only_nonconforming` (a device keeps a counter that is not reserved and not taken by an\n  earlier device; the others get the lowest free one).\n\nOnly counters change: identities and every reference by ID stay, so the topology is identical and no\nreference is orphaned (Golden B, FR-NUM-008). Running it twice changes nothing the second time. Bulk.\nOutcome: none.",
+  "properties": {
+    "options": {
+      "$ref": "#/$defs/RenumberOptions",
+      "default": {
+        "close_gaps": true,
+        "only_nonconforming": false,
+        "skip_frozen": true
+      },
+      "description": "The options."
+    },
+    "scheme": {
+      "$ref": "#/$defs/NumberingScheme",
+      "default": "page_based",
+      "description": "The scheme."
+    },
+    "scope": {
+      "$ref": "#/$defs/DeviceScope",
+      "description": "The devices to renumber."
+    }
+  },
+  "required": [
+    "scope"
+  ],
+  "title": "numbering.renumber",
+  "type": "object"
+}

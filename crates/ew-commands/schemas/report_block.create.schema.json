@@ -1,0 +1,438 @@
+{
+  "$defs": {
+    "ContinuationPolicy": {
+      "description": "Continuation numbering of report pages.",
+      "oneOf": [
+        {
+          "const": "sub_page",
+          "description": "907, 907.1, 907.2 … (the default).",
+          "type": "string"
+        },
+        {
+          "const": "next_folio",
+          "description": "907, 908, 909 …",
+          "type": "string"
+        }
+      ]
+    },
+    "EmbedSpec": {
+      "additionalProperties": true,
+      "description": "Placement of an embedded report block.",
+      "properties": {
+        "page": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The page."
+        },
+        "rect": {
+          "$ref": "#/$defs/Rect",
+          "description": "The area on the page."
+        }
+      },
+      "required": [
+        "page",
+        "rect"
+      ],
+      "type": "object"
+    },
+    "EmptyPolicy": {
+      "description": "What a block without rows prints.",
+      "oneOf": [
+        {
+          "const": "omit_pages",
+          "description": "No pages (the default).",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "One page with this text.",
+          "properties": {
+            "one_page": {
+              "$ref": "#/$defs/MlText"
+            }
+          },
+          "required": [
+            "one_page"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "GroupBreak": {
+      "description": "What happens at a group change.",
+      "oneOf": [
+        {
+          "const": "none",
+          "description": "Rows continue.",
+          "type": "string"
+        },
+        {
+          "const": "new_page",
+          "description": "A new page.",
+          "type": "string"
+        },
+        {
+          "const": "new_folio",
+          "description": "A new folio.",
+          "type": "string"
+        }
+      ]
+    },
+    "GroupSpec": {
+      "additionalProperties": true,
+      "description": "Grouping of report rows.",
+      "properties": {
+        "break": {
+          "$ref": "#/$defs/GroupBreak",
+          "description": "What happens at a group change; default nothing."
+        },
+        "key": {
+          "$ref": "#/$defs/Ident",
+          "description": "The group key column."
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "type": "object"
+    },
+    "Ident": {
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "ManualSelection": {
+      "additionalProperties": true,
+      "description": "Explicit include and exclude lists of entity IDs (sets, sorted).",
+      "properties": {
+        "exclude": {
+          "description": "Entities always excluded.",
+          "items": {
+            "$ref": "#/$defs/Uuid"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "include": {
+          "description": "Entities always included.",
+          "items": {
+            "$ref": "#/$defs/Uuid"
+          },
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "type": "object"
+    },
+    "MlText": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minProperties": 1,
+          "type": "object"
+        }
+      ],
+      "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags in ascending order with non-empty string values (doc 05 §3.2)."
+    },
+    "Pt2": {
+      "description": "A point [x, y] in nanometres, y downwards (doc 05 §3.2).",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "Rect": {
+      "description": "A rectangle [[x0, y0], [x1, y1]] in nanometres, minimum corner first (doc 05 §3.2).",
+      "items": false,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/Pt2"
+        },
+        {
+          "$ref": "#/$defs/Pt2"
+        }
+      ],
+      "type": "array"
+    },
+    "ReportKind": {
+      "description": "The built-in report kinds of the MVP (doc 09 §2.4); later kinds arrive as additive variants.",
+      "oneOf": [
+        {
+          "const": "profile_tables",
+          "description": "Colour and size tables (embedded).",
+          "type": "string"
+        },
+        {
+          "const": "part_data",
+          "description": "PART DATA box (embedded).",
+          "type": "string"
+        },
+        {
+          "const": "toc",
+          "description": "Table of contents.",
+          "type": "string"
+        },
+        {
+          "const": "structure_overview",
+          "description": "Structure-identifier and device-tag overview.",
+          "type": "string"
+        },
+        {
+          "const": "parts_summary",
+          "description": "Summarised parts list.",
+          "type": "string"
+        },
+        {
+          "const": "parts_list",
+          "description": "Parts list per device part line.",
+          "type": "string"
+        },
+        {
+          "const": "device_list",
+          "description": "Device list.",
+          "type": "string"
+        },
+        {
+          "const": "terminal_diagram",
+          "description": "Terminal diagram per strip.",
+          "type": "string"
+        },
+        {
+          "const": "terminal_overview",
+          "description": "Terminal-strip overview.",
+          "type": "string"
+        },
+        {
+          "const": "cable_overview_diagrams",
+          "description": "Cable overview and per-cable diagrams.",
+          "type": "string"
+        },
+        {
+          "const": "wire_list",
+          "description": "Wire list.",
+          "type": "string"
+        },
+        {
+          "const": "plc_overview",
+          "description": "PLC overview.",
+          "type": "string"
+        },
+        {
+          "const": "io_list",
+          "description": "I/O assignment list.",
+          "type": "string"
+        },
+        {
+          "const": "potential_overview",
+          "description": "Potential overview.",
+          "type": "string"
+        },
+        {
+          "const": "revision_overview",
+          "description": "Revision overview.",
+          "type": "string"
+        },
+        {
+          "const": "open_items",
+          "description": "Open items.",
+          "type": "string"
+        },
+        {
+          "const": "numbering_report",
+          "description": "Numbering report.",
+          "type": "string"
+        },
+        {
+          "const": "enclosure_legend",
+          "description": "Enclosure legend.",
+          "type": "string"
+        },
+        {
+          "const": "check_report",
+          "description": "Check report.",
+          "type": "string"
+        }
+      ]
+    },
+    "ReportSource": {
+      "description": "The row source of a report block: `{\"kind\": \"<report kind>\"}` or `{\"sql_query\": {\"api\", \"file\"}}`.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A built-in report kind (doc 09 §2.4).",
+          "properties": {
+            "kind": {
+              "$ref": "#/$defs/ReportKind"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A user SQL report in `reports/<file>.sql` (untrusted until the project is trusted).",
+          "properties": {
+            "sql_query": {
+              "$ref": "#/$defs/SqlQuery"
+            }
+          },
+          "required": [
+            "sql_query"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "SortKey": {
+      "additionalProperties": true,
+      "description": "One sort key: a column key and a direction.",
+      "properties": {
+        "descending": {
+          "description": "Descending order; default ascending.",
+          "type": "boolean"
+        },
+        "key": {
+          "$ref": "#/$defs/Ident",
+          "description": "The column key."
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "type": "object"
+    },
+    "SqlQuery": {
+      "additionalProperties": true,
+      "description": "A user SQL report.",
+      "properties": {
+        "api": {
+          "description": "The SQL projection API version (`\"v1\"`).",
+          "type": "string"
+        },
+        "file": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The UUID naming `reports/<uuid>.sql`."
+        }
+      },
+      "required": [
+        "api",
+        "file"
+      ],
+      "type": "object"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`report_block.create`: a report block (doc 03 §6, doc 09 §2.2).\n\nCreates a `ReportBlock` with the given members (`manual`, `sort`, `group`, `continuation`, `empty`\ndefault). Rejected with a message: a page-oriented block (no `embedded`) without `first_folio`\n(EW-INV-014): `first_folio` is required unless `embedded` is set. The form copy, the section and the\nembedding page must exist (else not found). Outcome: the new block.",
+  "properties": {
+    "continuation": {
+      "$ref": "#/$defs/ContinuationPolicy",
+      "default": "sub_page",
+      "description": "Overflow policy."
+    },
+    "embedded": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/EmbedSpec"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Embedding into a drawn page."
+    },
+    "empty": {
+      "$ref": "#/$defs/EmptyPolicy",
+      "default": "omit_pages",
+      "description": "What an empty report prints."
+    },
+    "first_folio": {
+      "description": "The first folio of a page-oriented block.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "form": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The report form copy."
+    },
+    "group": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GroupSpec"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Grouping."
+    },
+    "manual": {
+      "$ref": "#/$defs/ManualSelection",
+      "description": "Manual inclusions and exclusions."
+    },
+    "section": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The section."
+    },
+    "sort": {
+      "description": "Sort keys.",
+      "items": {
+        "$ref": "#/$defs/SortKey"
+      },
+      "type": "array"
+    },
+    "source": {
+      "$ref": "#/$defs/ReportSource",
+      "description": "What the block lists."
+    },
+    "title": {
+      "$ref": "#/$defs/MlText",
+      "description": "Title."
+    }
+  },
+  "required": [
+    "source",
+    "form"
+  ],
+  "title": "report_block.create",
+  "type": "object"
+}

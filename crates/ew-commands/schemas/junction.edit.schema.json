@@ -1,0 +1,125 @@
+{
+  "$defs": {
+    "BevelSpec": {
+      "additionalProperties": true,
+      "description": "The payload of [`JunctionStyle::Bevel`].",
+      "properties": {
+        "orient": {
+          "$ref": "#/$defs/Orient2",
+          "description": "Orientation of the bevel; default `r0`."
+        }
+      },
+      "type": "object"
+    },
+    "JunctionStyle": {
+      "description": "How a junction is drawn.",
+      "oneOf": [
+        {
+          "const": "dot",
+          "description": "A dot.",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A bevelled corner: `{\"bevel\": {\"orient\": …}}`.",
+          "properties": {
+            "bevel": {
+              "$ref": "#/$defs/BevelSpec"
+            }
+          },
+          "required": [
+            "bevel"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Orient2": {
+      "description": "Orientation: rotation clockwise on the sheet, optionally mirrored (doc 05 §3.2).",
+      "enum": [
+        "r0",
+        "r90",
+        "r180",
+        "r270",
+        "m0",
+        "m90",
+        "m180",
+        "m270"
+      ],
+      "type": "string"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "WiringChoice": {
+      "description": "The wiring choice of `junction.edit`.",
+      "oneOf": [
+        {
+          "const": "star",
+          "description": "Star: the first member is wired to every other.",
+          "type": "string"
+        },
+        {
+          "const": "chain",
+          "description": "Chain: consecutive members are wired.",
+          "type": "string"
+        },
+        {
+          "const": "style_default",
+          "description": "The style's default (Dot: star, Bevel: chain): the stored member is cleared.",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`junction.edit`: style, wiring and sequence of a junction (FR-CON-005, doc 06 §3.5).\n\nEach given member replaces the stored one; `sequence` must be a permutation of the connections ending\nat the junction (else rejected). Outcome: the junction. Coalesce consecutive reorders with a key.",
+  "properties": {
+    "junction": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The junction."
+    },
+    "sequence": {
+      "description": "A new wiring order.",
+      "items": {
+        "$ref": "#/$defs/Uuid"
+      },
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "style": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/JunctionStyle"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "A new style."
+    },
+    "wiring": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WiringChoice"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "A new wiring."
+    }
+  },
+  "required": [
+    "junction"
+  ],
+  "title": "junction.edit",
+  "type": "object"
+}

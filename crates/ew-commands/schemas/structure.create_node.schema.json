@@ -1,0 +1,86 @@
+{
+  "$defs": {
+    "Aspect": {
+      "description": "The IEC 81346 aspect of a structure tree (doc 03 §5).",
+      "enum": [
+        "functional_assignment",
+        "function",
+        "installation_site",
+        "location",
+        "document_kind",
+        "user_defined",
+        "type"
+      ],
+      "type": "string"
+    },
+    "Ident": {
+      "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
+      "minLength": 1,
+      "type": "string"
+    },
+    "MlText": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minProperties": 1,
+          "type": "object"
+        }
+      ],
+      "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags in ascending order with non-empty string values (doc 05 §3.2)."
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`structure.create_node`: one identifier in one aspect tree (doc 03 §5, FR-PRJ-017).\n\nCreates `StructureNode {aspect, code, aliases (sorted set), parent, description, order: 0}`. Rejected:\nthe product aspect (the device tree is never a structure node); a parent of another aspect\n(EW-INV-011, checked here with a message); a sibling (same aspect and parent) with the same code. The\nparent must exist. Outcome: the new node.",
+  "properties": {
+    "aliases": {
+      "description": "Import spellings that map to this node.",
+      "items": {
+        "$ref": "#/$defs/Ident"
+      },
+      "type": "array"
+    },
+    "aspect": {
+      "$ref": "#/$defs/Aspect",
+      "description": "The aspect tree."
+    },
+    "code": {
+      "$ref": "#/$defs/Ident",
+      "description": "The atomic code (\"J-E-2416\")."
+    },
+    "description": {
+      "$ref": "#/$defs/MlText",
+      "description": "Description."
+    },
+    "parent": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The parent node of the same aspect."
+    }
+  },
+  "required": [
+    "aspect",
+    "code"
+  ],
+  "title": "structure.create_node",
+  "type": "object"
+}

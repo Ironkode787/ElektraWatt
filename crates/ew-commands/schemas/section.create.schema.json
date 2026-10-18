@@ -1,0 +1,65 @@
+{
+  "$defs": {
+    "MlText": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minProperties": 1,
+          "type": "object"
+        }
+      ],
+      "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags in ascending order with non-empty string values (doc 05 §3.2)."
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`section.create`: a folio range with a title (doc 03 §6, FR-PAG-008).\n\nCreates `Section {number, folio_range, title, divider}`. Rejected: `folio_range.0 > folio_range.1`; a\nsection with the same number; a range that overlaps another section's range. Outcome: the new section.",
+  "properties": {
+    "divider": {
+      "default": false,
+      "description": "Whether a divider page is generated.",
+      "type": "boolean"
+    },
+    "folio_range": {
+      "description": "First and last folio.",
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "number": {
+      "description": "Section number.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "title": {
+      "$ref": "#/$defs/MlText",
+      "description": "Title."
+    }
+  },
+  "required": [
+    "number",
+    "folio_range"
+  ],
+  "title": "section.create",
+  "type": "object"
+}

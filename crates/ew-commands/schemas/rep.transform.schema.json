@@ -1,0 +1,51 @@
+{
+  "$defs": {
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`rep.transform`: rotates, mirrors or changes the variant of representations about their insertion point\n(doc 06 §3.4).\n\nThe new orientation is `orient.then(r(rotate))`, then `.then(m0)` when `mirror` (rotation clockwise in\nquarter turns, `rotate` in 0..=3, then a mirror about the vertical axis). `variant`, when given,\nreplaces the stored variant. Routes follow: each attached connection's route end at a CP drawn by a\ntransformed representation follows that CP's displacement (`geometry::follow_end`); CPs whose geometry\nis unknown (symbol without CPs) leave routes unchanged. Outcome: none.",
+  "properties": {
+    "mirror": {
+      "default": false,
+      "description": "Mirror after rotating.",
+      "type": "boolean"
+    },
+    "reps": {
+      "description": "The representations, at least one.",
+      "items": {
+        "$ref": "#/$defs/Uuid"
+      },
+      "type": "array"
+    },
+    "rotate": {
+      "default": 0,
+      "description": "Quarter turns clockwise, 0 to 3.",
+      "format": "uint8",
+      "maximum": 255,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "variant": {
+      "description": "A new variant.",
+      "format": "uint8",
+      "maximum": 255,
+      "minimum": 0,
+      "type": [
+        "integer",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "reps"
+  ],
+  "title": "rep.transform",
+  "type": "object"
+}

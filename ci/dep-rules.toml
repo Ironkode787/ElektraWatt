@@ -67,7 +67,7 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 "ew-model" = ["ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds"]
 "ew-rhai" = []
 "ew-derive" = ["ew-model", "ew-memo", "ew-rhai", "ew-plcaddr"]
-"ew-commands" = ["ew-derive"]
+"ew-commands" = ["ew-derive", "ew-model", "ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds"]
 "ew-checks" = ["ew-derive", "ew-rhai"]
 "ew-sqlview" = ["ew-derive", "ew-checks"]
 "ew-library" = ["ew-schema", "ew-format"]
@@ -94,7 +94,7 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 "ew-api" = [
   "ew-store", "ew-commands", "ew-checks", "ew-sqlview", "ew-library", "ew-scene", "ew-export", "ew-plc",
   "ew-panel", "ew-mfg", "ew-import-qet", "ew-import-eplan", "ew-import-dxf", "ew-import-catalog",
-  "ew-import-tables", "ew-script", "ew-plugin-host", "ew-jobs",
+  "ew-import-tables", "ew-script", "ew-plugin-host", "ew-jobs", "ew-model", "ew-schema",
 ]
 "ew-viewmodel" = ["ew-api"]
 "ew-ui" = ["ew-viewmodel", "ew-render2d", "ew-render-cpu", "ew-render3d"]
@@ -129,6 +129,11 @@ reason = "ARCH §3 rule 3 (GPU)"
 # allowed_kinds lists the dependency kinds (normal, dev, build) on which enabling the feature is fine.
 [[banned_features]]
 crate = "ew-ids"
+feature = "testkit"
+allowed_kinds = ["dev"]
+
+[[banned_features]]
+crate = "ew-commands"
 feature = "testkit"
 allowed_kinds = ["dev"]
 
