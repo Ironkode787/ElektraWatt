@@ -100,61 +100,81 @@ impl<T: Entity> Default for Table<T> {
 }
 
 impl<T: Entity> Table<T> {
-    /// The record with this ID.
-    pub fn get(&self, id: &RowId<T>) -> Option<&Arc<T>> {
-        self.rows.get(id).map(|row| &row.value)
+    raw_read! {
+        /// The record with this ID.
+        fn get(&self, id: &RowId<T>) -> Option<&Arc<T>> {
+            self.rows.get(id).map(|row| &row.value)
+        }
     }
 
-    /// The row (record and `changed_at`) with this ID.
-    pub fn row(&self, id: &RowId<T>) -> Option<&Row<T>> {
-        self.rows.get(id)
+    raw_read! {
+        /// The row (record and `changed_at`) with this ID.
+        fn row(&self, id: &RowId<T>) -> Option<&Row<T>> {
+            self.rows.get(id)
+        }
     }
 
-    /// Whether a row with this ID exists.
-    pub fn contains(&self, id: &RowId<T>) -> bool {
-        self.rows.contains_key(id)
+    raw_read! {
+        /// Whether a row with this ID exists.
+        fn contains(&self, id: &RowId<T>) -> bool {
+            self.rows.contains_key(id)
+        }
     }
 
-    /// Every record in ID order.
-    pub fn iter(&self) -> impl Iterator<Item = (&RowId<T>, &Arc<T>)> + '_ {
-        self.rows.iter().map(|(id, row)| (id, &row.value))
+    raw_read! {
+        /// Every record in ID order.
+        fn iter(&self) -> impl Iterator<Item = (&RowId<T>, &Arc<T>)> + '_ {
+            self.rows.iter().map(|(id, row)| (id, &row.value))
+        }
     }
 
-    /// Every row in ID order.
-    pub fn rows(&self) -> impl Iterator<Item = (&RowId<T>, &Row<T>)> + '_ {
-        self.rows.iter()
+    raw_read! {
+        /// Every row in ID order.
+        fn rows(&self) -> impl Iterator<Item = (&RowId<T>, &Row<T>)> + '_ {
+            self.rows.iter()
+        }
     }
 
-    /// Every ID in order.
-    pub fn ids(&self) -> impl Iterator<Item = RowId<T>> + '_ {
-        self.rows.keys().copied()
+    raw_read! {
+        /// Every ID in order.
+        fn ids(&self) -> impl Iterator<Item = RowId<T>> + '_ {
+            self.rows.keys().copied()
+        }
     }
 
-    /// The number of rows.
-    pub fn len(&self) -> usize {
-        self.rows.len()
+    raw_read! {
+        /// The number of rows.
+        fn len(&self) -> usize {
+            self.rows.len()
+        }
     }
 
-    /// Whether the table is empty.
-    pub fn is_empty(&self) -> bool {
-        self.rows.is_empty()
+    raw_read! {
+        /// Whether the table is empty.
+        fn is_empty(&self) -> bool {
+            self.rows.is_empty()
+        }
     }
 
-    /// The revision that last inserted, changed or removed a row of this table.
-    pub fn changed_at(&self) -> Rev {
-        self.changed_at
+    raw_read! {
+        /// The revision that last inserted, changed or removed a row of this table.
+        fn changed_at(&self) -> Rev {
+            self.changed_at
+        }
     }
 
-    /// Whether both tables hold the same IDs with equal records (`changed_at` stamps are ignored).
-    pub fn same_rows(&self, other: &Table<T>) -> bool {
-        self.rows.len() == other.rows.len()
-            && self
-                .rows
-                .iter()
-                .zip(other.rows.iter())
-                .all(|((ia, ra), (ib, rb))| {
-                    ia == ib && (Arc::ptr_eq(&ra.value, &rb.value) || ra.value == rb.value)
-                })
+    raw_read! {
+        /// Whether both tables hold the same IDs with equal records (`changed_at` stamps are ignored).
+        fn same_rows(&self, other: &Table<T>) -> bool {
+            self.rows.len() == other.rows.len()
+                && self
+                    .rows
+                    .iter()
+                    .zip(other.rows.iter())
+                    .all(|((ia, ra), (ib, rb))| {
+                        ia == ib && (Arc::ptr_eq(&ra.value, &rb.value) || ra.value == rb.value)
+                    })
+        }
     }
 
     pub(crate) fn put(&mut self, id: RowId<T>, value: Option<Arc<T>>, rev: Rev) {

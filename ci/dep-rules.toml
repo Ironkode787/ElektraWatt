@@ -16,8 +16,10 @@
 # - a [[confined]] crate has a direct dependent outside its list, or is reachable from a forbidden crate.
 #
 # Separately, `cargo xtask check-features` reads [[banned_features]] and banned_crates (18 §5.2 CI-PR-09): a
-# banned feature must not be requested on a dependency edge whose kind is not in allowed_kinds, a banned crate
-# may only be a dev-dependency, and no workspace package's own `default` feature may reach a banned feature.
+# banned feature must not be requested on a dependency edge whose kind is not in allowed_kinds (unless the
+# package is in the rule's allowed_packages), a banned crate may only be a dev-dependency, no workspace package's
+# own `default` feature may reach a banned feature, and with a non-empty allowed_packages no package outside it
+# may forward the feature (`dep/feature`) from any of its own features.
 #
 # Changing an edge here is an architecture change: it needs the matching change in 04-architecture.md §3
 # (and an ADR where the rules themselves change).
@@ -144,6 +146,14 @@ allowed_kinds = []
 crate = "ew"
 feature = "test-confirm"
 allowed_kinds = ["dev"]
+
+# ARCH §3 rule 1, ADR-0002 decision 1: the untracked read API of ew-model. The tracked read layer, the
+# transaction layer and the writer may enable it; any crate may enable it for tests.
+[[banned_features]]
+crate = "ew-model"
+feature = "raw-read"
+allowed_kinds = ["dev"]
+allowed_packages = ["ew-derive", "ew-commands", "ew-store"]
 
 # ARCH §3 Rule 4: importers depend on ew-interop-api, their parsers and permissive helpers only; they never
 # see ew-model. Packages matching `pattern` may depend on permissive workspace crates only.

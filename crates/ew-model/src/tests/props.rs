@@ -12,19 +12,20 @@ use ew_ids::{Id, Uuid};
 use ew_mltext::MlText;
 use ew_rds::Aspect;
 use ew_schema::{
-    Bond, Conductor, Connection, Device, Endpoint, ExternalRef, FnRole, Function, ImportLineage, Junction,
-    Kind, LibCopy, Open, Page, PotentialDef, Record, ReportBlock, Representation, Section, StructureNode,
+    Bond, Conductor, Connection, Device, Endpoint, ExternalRef, FnRole, Function, FunctionKind,
+    ImportLineage, Junction, Kind, LibCopy, Open, Page, PotentialDef, Record, ReportBlock, Representation,
+    Section, StructureNode,
 };
 use ew_units::{Nm, Pt2};
 use proptest::prelude::*;
 use serde_json::json;
 
 use super::fixture::{
-    DEV_3W1, FNDEF_CONTACT, FNDEF_MCB, PAGE_102, conductor, connection, cp, device, function, mini_golden,
-    mini_golden_parts, structure_node,
+    DEV_3W1, FNDEF_CONTACT, FNDEF_MCB, LOC, PAGE_101, PAGE_102, conductor, connection, cp, device, function,
+    mini_golden, mini_golden_parts, strip, structure_node,
 };
 use crate::entity::{AnyKey, table_keys};
-use crate::{AnyRow, BaseIndexes, Entity, Model, Op, Rev, invert_batch};
+use crate::{AnyRow, BaseIndexes, Entity, Model, ModelError, Op, Rev, invert_batch};
 
 // ---------------------------------------------------------------------------------------------------------
 // The abstract plan
@@ -48,6 +49,29 @@ enum Action {
     TouchDevice(u32),
     /// Pushes one route point onto an existing connection.
     TouchConnectionRoute(u32),
+    /// Moves an existing aux function to another device (`functions_by_device`).
+    RepointFunctionDevice(u32, u32),
+    /// Re-points end `end % 2` of a connection whose that end is a CP to a CP of another device function
+    /// (`connections_by_endpoint`, CP key).
+    RepointConnectionEndpoint(u32, u32, u16, u16),
+    /// Re-points the b end of a CP-ended connection to a junction and appends it to the junction's sequence
+    /// (`connections_by_endpoint`, junction key).
+    MoveConnectionToJunction(u32, u32),
+    /// Re-points a junction end of a connection to a device-function CP and removes it from that junction's
+    /// sequence.
+    MoveConnectionOffJunction(u32, u32, u16),
+    /// Gives a location node other than the root another location node as parent (`structure_children`).
+    ReparentStructureNode(u32, u32),
+    /// Sets `Device.parent` to another device, or clears it when `sel_p % 4 == 0` (`device_children`).
+    ReparentDevice(u32, u32),
+    /// A new strip device (no functions).
+    AddStrip(u32),
+    /// Re-points `terminal.strip` of an existing terminal to any other device (`terminals_by_strip`).
+    RepointTerminalStrip(u32, u32),
+    /// Moves a representation between `PAGE_101` and `PAGE_102` (`reps_by_page`).
+    RepointRepresentationPage(u32, u32),
+    /// Sets the page of a connection to `PAGE_101`, `PAGE_102` or none (`connections_by_page`).
+    RepointConnectionPage(u32, u32),
 }
 
 fn action() -> impl Strategy<Value = Action> {
@@ -61,6 +85,18 @@ fn action() -> impl Strategy<Value = Action> {
         any::<u32>().prop_map(Action::AddConductor),
         any::<u32>().prop_map(Action::TouchDevice),
         any::<u32>().prop_map(Action::TouchConnectionRoute),
+        (any::<u32>(), any::<u32>()).prop_map(|(f, d)| Action::RepointFunctionDevice(f, d)),
+        (any::<u32>(), any::<u32>(), any::<u16>(), any::<u16>())
+            .prop_map(|(c, f, i, e)| Action::RepointConnectionEndpoint(c, f, i, e)),
+        (any::<u32>(), any::<u32>()).prop_map(|(c, j)| Action::MoveConnectionToJunction(c, j)),
+        (any::<u32>(), any::<u32>(), any::<u16>())
+            .prop_map(|(c, f, i)| Action::MoveConnectionOffJunction(c, f, i)),
+        (any::<u32>(), any::<u32>()).prop_map(|(n, p)| Action::ReparentStructureNode(n, p)),
+        (any::<u32>(), any::<u32>()).prop_map(|(d, p)| Action::ReparentDevice(d, p)),
+        any::<u32>().prop_map(Action::AddStrip),
+        (any::<u32>(), any::<u32>()).prop_map(|(t, s)| Action::RepointTerminalStrip(t, s)),
+        (any::<u32>(), any::<u32>()).prop_map(|(r, p)| Action::RepointRepresentationPage(r, p)),
+        (any::<u32>(), any::<u32>()).prop_map(|(c, p)| Action::RepointConnectionPage(c, p)),
     ]
 }
 
@@ -81,9 +117,308 @@ fn pick<T: Clone>(items: &[T], sel: u32) -> Option<T> {
     (!items.is_empty()).then(|| items[sel as usize % items.len()].clone())
 }
 
-/// The ops of one action against `m` (empty if there is nothing to act on).
-fn action_ops(m: &Model, action: Action, counter: &mut u32) -> Vec<Op> {
+/// No invariant may reject the action.
+const NONE: &[&str] = &[];
+
+/// The ops of one action against `m` (empty if there is nothing to act on) and the IDs of the invariants
+/// the model may legitimately reject them with (the action is then dropped; any other rejection is a bug).
+fn action_ops(m: &Model, action: Action, counter: &mut u32) -> (Vec<Op>, &'static [&'static str]) {
     match action {
+        // A delete plan covers link policies only (`Model::delete_plan`): removing a device's Main function
+        // while an Aux function remains is the transaction's business and rejected by EW-INV-002.
+        Action::DeleteViaPlan(_) => (plain_ops(m, action, counter), &[crate::ONE_MAIN_FUNCTION]),
+        Action::AddStrip(_)
+        | Action::AddStructureNode(_)
+        | Action::AddDeviceWithMain(_)
+        | Action::AddAuxFunction(_)
+        | Action::AddConnection(..)
+        | Action::AddConductor(_)
+        | Action::TouchDevice(_)
+        | Action::TouchConnectionRoute(_) => (plain_ops(m, action, counter), NONE),
+        Action::RepointFunctionDevice(sel_f, sel_d) => {
+            let moved: Vec<_> = m
+                .table::<Function>()
+                .iter()
+                .filter(|(_, f)| {
+                    f.role == FnRole::Aux && !matches!(f.kind, FunctionKind::Ip(_)) && f.device.is_some()
+                })
+                .map(|(_, f)| f.clone())
+                .collect();
+            let Some(before) = pick(&moved, sel_f) else {
+                return (vec![], NONE);
+            };
+            let targets: Vec<Id<Device>> = m
+                .table::<Device>()
+                .iter()
+                .map(|(id, _)| *id)
+                .filter(|d| Some(*d) != before.device)
+                .collect();
+            let Some(target) = pick(&targets, sel_d) else {
+                return (vec![], NONE);
+            };
+            let mut after = (*before).clone();
+            after.device = Some(target);
+            (
+                vec![Op::update(Function::wrap(before), AnyRow::of(after))],
+                // The target had no functions (no Main) or a representation drew the aux with its old device.
+                &[crate::ONE_MAIN_FUNCTION, crate::REP_ONE_DEVICE],
+            )
+        }
+        Action::RepointConnectionEndpoint(sel_c, sel_f, idx, end) => {
+            let b_end = end % 2 == 1;
+            let end_of = |c: &Connection| if b_end { c.b.clone() } else { c.a.clone() };
+            let cands: Vec<_> = m
+                .table::<Connection>()
+                .iter()
+                .filter(|(_, c)| matches!(end_of(c), Endpoint::Cp(..)))
+                .map(|(_, c)| c.clone())
+                .collect();
+            let Some(before) = pick(&cands, sel_c) else {
+                return (vec![], NONE);
+            };
+            let Endpoint::Cp(old_fn, _) = end_of(&before) else {
+                return (vec![], NONE);
+            };
+            let funcs = device_functions(m, Some(old_fn));
+            let Some(target) = pick(&funcs, sel_f) else {
+                return (vec![], NONE);
+            };
+            let mut after = (*before).clone();
+            let endpoint = Endpoint::Cp(target, idx % 4);
+            if b_end {
+                after.b = endpoint;
+            } else {
+                after.a = endpoint;
+            }
+            (
+                vec![Op::update(Connection::wrap(before), AnyRow::of(after))],
+                // The new end can equal the other end.
+                &[crate::ENDPOINTS_DIFFER],
+            )
+        }
+        Action::MoveConnectionToJunction(sel_c, sel_j) => {
+            let junctions: Vec<_> = m.table::<Junction>().iter().map(|(_, j)| j.clone()).collect();
+            let Some(junction) = pick(&junctions, sel_j) else {
+                return (vec![], NONE);
+            };
+            let cands: Vec<_> = m
+                .table::<Connection>()
+                .iter()
+                .filter(|(_, c)| matches!(c.b, Endpoint::Cp(..)) && c.a != Endpoint::Junction(junction.id))
+                .map(|(_, c)| c.clone())
+                .collect();
+            let Some(before) = pick(&cands, sel_c) else {
+                return (vec![], NONE);
+            };
+            let mut after = (*before).clone();
+            after.b = Endpoint::Junction(junction.id);
+            let mut sequence = (*junction).clone();
+            sequence.sequence.push(before.id);
+            (
+                vec![
+                    Op::update(Connection::wrap(before), AnyRow::of(after)),
+                    Op::update(Junction::wrap(junction), AnyRow::of(sequence)),
+                ],
+                NONE,
+            )
+        }
+        Action::MoveConnectionOffJunction(sel_c, sel_f, idx) => {
+            let cands: Vec<_> = m
+                .table::<Connection>()
+                .iter()
+                .filter(|(_, c)| matches!(c.a, Endpoint::Junction(_)) || matches!(c.b, Endpoint::Junction(_)))
+                .map(|(_, c)| c.clone())
+                .collect();
+            let Some(before) = pick(&cands, sel_c) else {
+                return (vec![], NONE);
+            };
+            let funcs = device_functions(m, None);
+            let Some(target) = pick(&funcs, sel_f) else {
+                return (vec![], NONE);
+            };
+            let endpoint = Endpoint::Cp(target, idx % 4);
+            let mut after = (*before).clone();
+            let junction = if let Endpoint::Junction(j) = before.a {
+                after.a = endpoint;
+                j
+            } else if let Endpoint::Junction(j) = before.b {
+                after.b = endpoint;
+                j
+            } else {
+                return (vec![], NONE);
+            };
+            let Some(old) = m.table::<Junction>().row(&junction).map(|r| r.value().clone()) else {
+                return (vec![], NONE);
+            };
+            let mut sequence = (*old).clone();
+            sequence.sequence.retain(|c| *c != before.id);
+            (
+                vec![
+                    Op::update(Connection::wrap(before), AnyRow::of(after)),
+                    Op::update(Junction::wrap(old), AnyRow::of(sequence)),
+                ],
+                // The new end can equal the other end.
+                &[crate::ENDPOINTS_DIFFER],
+            )
+        }
+        Action::ReparentStructureNode(sel_n, sel_p) => {
+            let nodes: Vec<_> = m
+                .table::<StructureNode>()
+                .iter()
+                .filter(|(id, n)| **id != LOC && n.aspect == Open::Known(Aspect::Location))
+                .map(|(_, n)| n.clone())
+                .collect();
+            let Some(before) = pick(&nodes, sel_n) else {
+                return (vec![], NONE);
+            };
+            let parents: Vec<Id<StructureNode>> = m
+                .table::<StructureNode>()
+                .iter()
+                .filter(|(id, n)| {
+                    n.aspect == Open::Known(Aspect::Location)
+                        && **id != before.id
+                        && Some(**id) != before.parent
+                })
+                .map(|(id, _)| *id)
+                .collect();
+            // Odd selectors (or no existing candidate) move the node under a fresh location node added in the
+            // same action, so the re-point is exercised even when the batch added a single node.
+            let mut ops = Vec::new();
+            let parent = match pick(&parents, sel_p / 2) {
+                Some(parent) if sel_p % 2 == 0 => parent,
+                _ => {
+                    let id = fresh(counter);
+                    let node = structure_node(id, Aspect::Location, &format!("N{counter}"), Some(LOC));
+                    ops.push(Op::insert(AnyRow::of(node)));
+                    id
+                }
+            };
+            let mut after = (*before).clone();
+            after.parent = Some(parent);
+            ops.push(Op::update(StructureNode::wrap(before), AnyRow::of(after)));
+            (
+                ops,
+                // The new parent can be a descendant of the node.
+                &[crate::STRUCTURE_ACYCLIC],
+            )
+        }
+        Action::ReparentDevice(sel_d, sel_p) => {
+            let devices: Vec<_> = m.table::<Device>().iter().map(|(_, d)| d.clone()).collect();
+            let Some(before) = pick(&devices, sel_d) else {
+                return (vec![], NONE);
+            };
+            let parent = if sel_p % 4 == 0 {
+                None
+            } else {
+                let parents: Vec<Id<Device>> =
+                    devices.iter().map(|d| d.id).filter(|d| *d != before.id).collect();
+                pick(&parents, sel_p / 4)
+            };
+            if parent == before.parent {
+                return (vec![], NONE);
+            }
+            let mut after = (*before).clone();
+            after.parent = parent;
+            (
+                vec![Op::update(Device::wrap(before), AnyRow::of(after))],
+                // The new parent can be a descendant of the device.
+                &[crate::DEVICE_ACYCLIC],
+            )
+        }
+        Action::RepointTerminalStrip(sel_t, sel_s) => {
+            let terminals: Vec<_> = m
+                .table::<Device>()
+                .iter()
+                .filter(|(_, d)| d.aspects.terminal.is_some())
+                .map(|(_, d)| d.clone())
+                .collect();
+            let Some(before) = pick(&terminals, sel_t) else {
+                return (vec![], NONE);
+            };
+            let old = before.aspects.terminal.as_ref().map(|t| t.strip);
+            // Even selectors pick among the strips (an accepted re-point), odd ones among all devices (mostly
+            // the documented rejection).
+            let strips_only = sel_s % 2 == 0;
+            let targets: Vec<Id<Device>> = m
+                .table::<Device>()
+                .iter()
+                .filter(|(id, d)| Some(**id) != old && (!strips_only || d.aspects.strip.is_some()))
+                .map(|(id, _)| *id)
+                .collect();
+            let sel_s = sel_s / 2;
+            let Some(target) = pick(&targets, sel_s) else {
+                return (vec![], NONE);
+            };
+            let mut after = (*before).clone();
+            if let Some(t) = after.aspects.terminal.as_mut() {
+                t.strip = target;
+            }
+            (
+                vec![Op::update(Device::wrap(before), AnyRow::of(after))],
+                // The target can be any device, one without a strip aspect included.
+                &[crate::TERMINAL_STRIP],
+            )
+        }
+        Action::RepointRepresentationPage(sel_r, sel_p) => {
+            let reps: Vec<_> = m
+                .table::<Representation>()
+                .iter()
+                .map(|(_, r)| r.clone())
+                .collect();
+            let Some(before) = pick(&reps, sel_r) else {
+                return (vec![], NONE);
+            };
+            let page = if sel_p % 2 == 0 { PAGE_101 } else { PAGE_102 };
+            if page == before.page || !m.table::<Page>().contains(&page) {
+                return (vec![], NONE);
+            }
+            let mut after = (*before).clone();
+            after.page = page;
+            (
+                vec![Op::update(Representation::wrap(before), AnyRow::of(after))],
+                NONE,
+            )
+        }
+        Action::RepointConnectionPage(sel_c, sel_p) => {
+            let connections: Vec<_> = m.table::<Connection>().iter().map(|(_, c)| c.clone()).collect();
+            let Some(before) = pick(&connections, sel_c) else {
+                return (vec![], NONE);
+            };
+            let page = match sel_p % 3 {
+                0 => Some(PAGE_101),
+                1 => Some(PAGE_102),
+                _ => None,
+            };
+            if page == before.page || page.is_some_and(|p| !m.table::<Page>().contains(&p)) {
+                return (vec![], NONE);
+            }
+            let mut after = (*before).clone();
+            after.page = page;
+            (
+                vec![Op::update(Connection::wrap(before), AnyRow::of(after))],
+                NONE,
+            )
+        }
+    }
+}
+
+/// The functions that have a device (so no interruption points), without `except`.
+fn device_functions(m: &Model, except: Option<Id<Function>>) -> Vec<Id<Function>> {
+    m.table::<Function>()
+        .iter()
+        .filter(|(id, f)| f.device.is_some() && Some(**id) != except)
+        .map(|(id, _)| *id)
+        .collect()
+}
+
+/// The ops of the insert, delete and touch actions (the ones that change no link field of a row).
+fn plain_ops(m: &Model, action: Action, counter: &mut u32) -> Vec<Op> {
+    match action {
+        Action::AddStrip(sel) => {
+            let id = fresh(counter);
+            let letter = ["X", "Y"][sel as usize % 2];
+            vec![Op::insert(AnyRow::of(strip(id, letter, *counter)))]
+        }
         Action::DeleteViaPlan(sel) => {
             let keys = table_keys(m);
             pick(&keys, sel)
@@ -138,12 +473,9 @@ fn action_ops(m: &Model, action: Action, counter: &mut u32) -> Vec<Op> {
             if fa == fb {
                 fb = funcs[(b as usize + 1) % funcs.len()];
             }
-            let con = connection(
-                fresh(counter),
-                Some(PAGE_102),
-                cp(fa, ia % 4),
-                Endpoint::Cp(fb, ib % 4),
-            );
+            // PAGE_102 may have been removed by an earlier delete plan; a connection without a page is valid.
+            let page = m.table::<Page>().contains(&PAGE_102).then_some(PAGE_102);
+            let con = connection(fresh(counter), page, cp(fa, ia % 4), Endpoint::Cp(fb, ib % 4));
             vec![Op::insert(AnyRow::of(con))]
         }
         Action::AddConductor(sel) => {
@@ -178,25 +510,40 @@ fn action_ops(m: &Model, action: Action, counter: &mut u32) -> Vec<Op> {
             ));
             vec![Op::update(Connection::wrap(before), AnyRow::of(after))]
         }
+        other => unreachable!("{other:?} is not a plain action"),
     }
 }
 
 /// Interprets a batch against `start`: each action runs on a scratch model that has applied the actions
-/// before it; an action the model rejects is dropped. The result is the op list of the whole batch.
-fn interpret(start: &Model, actions: &[Action], counter: &mut u32) -> Vec<Op> {
+/// before it. An action with nothing to act on, or one the model rejects with an invariant the action may
+/// legitimately hit (see [`action_ops`]), is dropped; any other rejection is a bug and panics. The result is
+/// the op list of the whole batch and, per action, whether it was applied.
+fn interpret_traced(start: &Model, actions: &[Action], counter: &mut u32) -> (Vec<Op>, Vec<bool>) {
     let mut scratch = start.clone();
     let mut all = Vec::new();
+    let mut applied = Vec::new();
     for action in actions {
-        let ops = action_ops(&scratch, *action, counter);
+        let (ops, allowed) = action_ops(&scratch, *action, counter);
         if ops.is_empty() {
+            applied.push(false);
             continue;
         }
-        if let Ok(next) = scratch.apply(&ops, scratch.rev().next()) {
-            scratch = next;
-            all.extend(ops);
+        match scratch.apply(&ops, scratch.rev().next()) {
+            Ok(next) => {
+                scratch = next;
+                all.extend(ops);
+                applied.push(true);
+            }
+            Err(ModelError::Invariant { id, .. }) if allowed.contains(&id) => applied.push(false),
+            Err(e) => panic!("{action:?} was rejected unexpectedly: {e:?}"),
         }
     }
-    all
+    (all, applied)
+}
+
+/// The op list of a batch, see [`interpret_traced`].
+fn interpret(start: &Model, actions: &[Action], counter: &mut u32) -> Vec<Op> {
+    interpret_traced(start, actions, counter).0
 }
 
 /// Interprets a batch on `m` and applies it as the next revision; the batch must apply in one go.
@@ -405,8 +752,57 @@ fn generator_produces_nontrivial_batches() {
 
     let keys = table_keys(&m);
     let longest = (0..keys.len())
-        .map(|i| action_ops(&m, Action::DeleteViaPlan(i as u32), &mut counter).len())
+        .map(|i| {
+            action_ops(&m, Action::DeleteViaPlan(i as u32), &mut counter)
+                .0
+                .len()
+        })
         .max()
         .unwrap_or(0);
     assert!(longest > 1, "no delete cascaded");
+}
+
+/// Over a fixed deterministic sample of plans, every link-update action is applied (not dropped) at least
+/// once, so the generator provably moves index entries from one key to another for every listed link.
+#[test]
+fn generator_exercises_link_updates() {
+    use proptest::strategy::ValueTree;
+    use proptest::test_runner::TestRunner;
+    use std::collections::BTreeMap;
+
+    let start = mini_golden();
+    let mut runner = TestRunner::deterministic();
+    let strategy = batch();
+    let mut applied: BTreeMap<String, u32> = BTreeMap::new();
+    let mut dropped: BTreeMap<String, u32> = BTreeMap::new();
+    for _ in 0..400 {
+        let actions = strategy.new_tree(&mut runner).expect("a plan").current();
+        let mut counter = 0;
+        let (_, flags) = interpret_traced(&start, &actions, &mut counter);
+        for (action, was_applied) in actions.iter().zip(flags) {
+            let name = format!("{action:?}");
+            let name = name.split('(').next().unwrap_or_default().to_owned();
+            *(if was_applied { &mut applied } else { &mut dropped })
+                .entry(name)
+                .or_default() += 1;
+        }
+    }
+    eprintln!("applied: {applied:?}\ndropped: {dropped:?}");
+    for name in [
+        "RepointFunctionDevice",
+        "RepointConnectionEndpoint",
+        "MoveConnectionToJunction",
+        "MoveConnectionOffJunction",
+        "ReparentStructureNode",
+        "ReparentDevice",
+        "AddStrip",
+        "RepointTerminalStrip",
+        "RepointRepresentationPage",
+        "RepointConnectionPage",
+    ] {
+        assert!(
+            applied.get(name).copied().unwrap_or(0) > 0,
+            "{name} was never applied: {applied:?}"
+        );
+    }
 }

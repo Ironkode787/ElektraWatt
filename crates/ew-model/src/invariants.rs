@@ -59,12 +59,16 @@ pub const TERMINAL_STRIP: &str = "EW-INV-007";
 pub const STRUCTURE_ACYCLIC: &str = "EW-INV-008";
 /// EW-INV-009: device parent chains are acyclic (assembly graph).
 pub const DEVICE_ACYCLIC: &str = "EW-INV-009";
-/// EW-INV-010: a terminal is neither a strip nor a cable.
-pub const TERMINAL_ASPECTS: &str = "EW-INV-010";
+/// EW-INV-010: the terminal, strip and cable aspects exclude each other.
+pub const EXCLUSIVE_ASPECTS: &str = "EW-INV-010";
 /// EW-INV-011: a structure node's parent has the same aspect.
 pub const STRUCTURE_SAME_ASPECT: &str = "EW-INV-011";
 /// EW-INV-012: a `Report` page is never stored.
 pub const NO_STORED_REPORT_PAGE: &str = "EW-INV-012";
+/// EW-INV-013: an interruption-point function has exactly one representation.
+pub const IP_ONE_REPRESENTATION: &str = "EW-INV-013";
+/// EW-INV-014: a page-oriented report block has a first folio.
+pub const REPORT_BLOCK_FOLIO: &str = "EW-INV-014";
 
 /// The structural catalogue in evaluation order.
 pub static RULES: &[Rule] = &[
@@ -128,9 +132,9 @@ pub static RULES: &[Rule] = &[
         statement: "Device parent chains are acyclic (the assembly graph)",
     },
     Rule {
-        id: TERMINAL_ASPECTS,
+        id: EXCLUSIVE_ASPECTS,
         class: RuleClass::Structural,
-        statement: "A device with the terminal aspect has neither the strip nor the cable aspect",
+        statement: "A device carries at most one of the terminal, strip and cable aspects (a terminal is neither a                     strip nor a cable; a strip is neither a terminal nor a cable)",
     },
     Rule {
         id: STRUCTURE_SAME_ASPECT,
@@ -141,6 +145,16 @@ pub static RULES: &[Rule] = &[
         id: NO_STORED_REPORT_PAGE,
         class: RuleClass::Structural,
         statement: "A page of kind Report is never stored; report pages are generated from report blocks",
+    },
+    Rule {
+        id: IP_ONE_REPRESENTATION,
+        class: RuleClass::Structural,
+        statement: "A function of kind Ip has exactly one representation, which owns it: the function lives in the                     page of that representation and is removed with it",
+    },
+    Rule {
+        id: REPORT_BLOCK_FOLIO,
+        class: RuleClass::Structural,
+        statement: "A page-oriented report block (one without embedded) has a first_folio",
     },
 ];
 
@@ -205,9 +219,11 @@ pub(crate) fn check(m: &Model, scope: &Scope) -> Result<(), ModelError> {
     terminal_strip(m, scope)?;
     structure_acyclic(m, scope)?;
     device_acyclic(m, scope)?;
-    terminal_aspects(m, scope)?;
+    exclusive_aspects(m, scope)?;
     structure_same_aspect(m, scope)?;
-    no_stored_report_page(m, scope)
+    no_stored_report_page(m, scope)?;
+    ip_one_representation(m, scope)?;
+    report_block_folio(m, scope)
 }
 
 /// EW-INV-001 with the forbid policy.
@@ -218,7 +234,7 @@ fn refs_resolve(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                 for (_, link) in links_from(key.0) {
                     for t in link.targets_of(&row) {
                         let target = (link.to, t.id());
-                        if get_row(m, &target).is_none() {
+                        if get_row(m, &target).is_none() && !link.lib_ref {
                             return Err(violation(
                                 REFS_RESOLVE,
                                 format!(
@@ -549,14 +565,26 @@ fn device_acyclic(m: &Model, scope: &Scope) -> Result<(), ModelError> {
 }
 
 /// EW-INV-010: touched devices.
-fn terminal_aspects(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+fn exclusive_aspects(m: &Model, scope: &Scope) -> Result<(), ModelError> {
     for key in scope.of_kind(Kind::Device) {
         if let Some(d) = m.devices.get(&typed(key)) {
             let a = &d.aspects;
-            if a.terminal.is_some() && (a.strip.is_some() || a.cable.is_some()) {
+            let present: Vec<&str> = [
+                ("terminal", a.terminal.is_some()),
+                ("strip", a.strip.is_some()),
+                ("cable", a.cable.is_some()),
+            ]
+            .into_iter()
+            .filter_map(|(name, on)| on.then_some(name))
+            .collect();
+            if present.len() > 1 {
                 return Err(violation(
-                    TERMINAL_ASPECTS,
-                    format!("terminal {} also carries a strip or cable aspect", d.id),
+                    EXCLUSIVE_ASPECTS,
+                    format!(
+                        "device {} carries the {} aspects, which exclude each other",
+                        d.id,
+                        present.join(" and ")
+                    ),
                     vec![*key],
                 ));
             }
@@ -605,6 +633,66 @@ fn no_stored_report_page(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                     format!(
                         "page {} is of kind Report; report pages are generated, never stored",
                         p.id
+                    ),
+                    vec![*key],
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// The functions a representation names (drawn functions and pin-map targets).
+fn rep_functions(rep: &Representation, out: &mut BTreeSet<Id<Function>>) {
+    out.extend(rep.functions.iter().copied());
+    out.extend(rep.pin_map.iter().map(|p| p.function));
+}
+
+/// EW-INV-013: touched functions and the functions named by touched representations, before and after.
+fn ip_one_representation(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+    let mut fns: BTreeSet<Id<Function>> = scope.of_kind(Kind::Function).map(typed).collect();
+    for key in scope.of_kind(Kind::Representation) {
+        if let Some(r) = scope.before_of::<Representation>(key) {
+            rep_functions(r, &mut fns);
+        }
+        if let Some(r) = m.reps.get(&typed(key)) {
+            rep_functions(r, &mut fns);
+        }
+    }
+    for f in fns {
+        let Some(function) = m.functions.get(&f) else {
+            continue;
+        };
+        if !matches!(function.kind, FunctionKind::Ip(_)) {
+            continue;
+        }
+        let reps: Vec<Id<Representation>> = m.idx.reps_by_function.get(&f).copied().collect();
+        if reps.len() != 1 {
+            let mut keys = vec![key_of(Kind::Function, f)];
+            keys.extend(reps.iter().map(|r| key_of(Kind::Representation, *r)));
+            return Err(violation(
+                IP_ONE_REPRESENTATION,
+                format!(
+                    "interruption-point function {f} has {} representations (exactly one required: it owns the                      function)",
+                    reps.len()
+                ),
+                keys,
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// EW-INV-014: touched report blocks.
+fn report_block_folio(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+    for key in scope.of_kind(Kind::ReportBlock) {
+        if let Some(b) = m.report_blocks.get(&typed(key)) {
+            if b.embedded.is_none() && b.first_folio.is_none() {
+                return Err(violation(
+                    REPORT_BLOCK_FOLIO,
+                    format!(
+                        "report block {} is page-oriented (no embedded) but has no first_folio",
+                        b.id
                     ),
                     vec![*key],
                 ));

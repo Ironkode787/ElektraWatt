@@ -15,7 +15,7 @@ use ew_schema::{
     LibDocument, LibRef, MasterData, NumberSpec, Open, Page, PageType, Part, PartRef, PartUse, PotentialDef,
     PotentialEnv, PotentialType, Project, ProjectKind, ProjectSettings, Record, RepType, Representation,
     Scale, Section, Sha256, SheetSpec, Side, Slot, Strip, StructureAssignment, StructureNode, SymbolDef,
-    TagPrint, TagSpec, Terminal, TerminalGroup, WireOverrides, WireProps,
+    TagPrint, TagSpec, TemplateFn, Terminal, TerminalGroup, WireOverrides, WireProps,
 };
 use ew_units::{Dec3, Grid, Nm, Pt2};
 
@@ -471,6 +471,53 @@ pub(crate) fn part(part_id: Id<Part>, part_number: &str) -> LibCopy<Part> {
         extra: Extra::new(),
     };
     lib_copy(part_id, item)
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// LibRef helpers (a `LibRef` resolves to the embedded copy `v5(NS_LIBCOPY, library ‖ item)`)
+
+/// The library of the `LibRef` helpers.
+pub(crate) const LIBRARY_X: Uuid = Uuid::from_u128(0x9200);
+/// An item of [`LIBRARY_X`].
+pub(crate) const ITEM_X: Uuid = Uuid::from_u128(0x9201);
+/// Another item of [`LIBRARY_X`].
+pub(crate) const ITEM_Y: Uuid = Uuid::from_u128(0x9202);
+
+/// A `LibRef` to `item` of `library`.
+pub(crate) fn lib_ref_to(library: Uuid, item: Uuid) -> LibRef {
+    LibRef {
+        library: Id::from_uuid(library),
+        item: Id::from_uuid(item),
+        version_req: "*".into(),
+        extra: Extra::new(),
+    }
+}
+
+/// The FnDef copy that a `LibRef` to `item` of `library` resolves to: its ID is `lib_copy_id(library, item)`.
+pub(crate) fn fndef_copy_for(library: Uuid, item: Uuid, cps: &[&str]) -> LibCopy<FnDef> {
+    let mut copy = fndef(ew_ids::v5::lib_copy_id(library, item), cps);
+    copy.library_id = Id::from_uuid(library);
+    copy.item_id = Id::from_uuid(item);
+    copy
+}
+
+/// A symbol copy whose `fndef` names `item` of `library`.
+pub(crate) fn symbol_using(symbol_id: Id<SymbolDef>, library: Uuid, item: Uuid) -> LibCopy<SymbolDef> {
+    let mut copy = symbol(symbol_id);
+    copy.item.fndef = lib_ref_to(library, item);
+    copy
+}
+
+/// A part copy whose single function template names `item` of `library`.
+pub(crate) fn part_using(part_id: Id<Part>, part_number: &str, library: Uuid, item: Uuid) -> LibCopy<Part> {
+    let mut copy = part(part_id, part_number);
+    copy.item.function_template = vec![TemplateFn {
+        fndef: lib_ref_to(library, item),
+        main: true,
+        cps: vec![],
+        extra: Extra::new(),
+    }];
+    copy
 }
 
 // ---------------------------------------------------------------------------------------------------------

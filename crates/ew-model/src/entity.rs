@@ -22,7 +22,18 @@ use crate::rev::{Rev, RowId, Table};
 pub type AnyKey = (Kind, AnyId);
 
 mod sealed {
-    pub trait Sealed {}
+    use crate::model::Model;
+    use crate::rev::Table;
+
+    /// Seals [`Entity`](super::Entity) and holds its table accessor: a method of a trait that other crates
+    /// cannot name is not callable from them, so the accessor stays behind the `raw-read` gate
+    /// ([`Model::table`](crate::Model) is the gated way in).
+    pub trait Sealed {
+        /// This kind's table in a model.
+        fn table(model: &Model) -> &Table<Self>
+        where
+            Self: crate::Entity;
+    }
 }
 
 /// A record type stored in its own [`Table`] of the [`Model`]: every implemented record kind of
@@ -40,9 +51,6 @@ pub trait Entity: sealed::Sealed + Clone + PartialEq + fmt::Debug + Send + Sync 
 
     /// The row's ID.
     fn id(&self) -> RowId<Self>;
-
-    /// This kind's table in a model.
-    fn table(model: &Model) -> &Table<Self>;
 
     /// Wraps a record into a kind-erased row.
     fn wrap(row: Arc<Self>) -> AnyRow;
@@ -66,31 +74,43 @@ pub struct LibraryCopies {
 }
 
 impl LibraryCopies {
-    /// Part copies.
-    pub fn parts(&self) -> &Table<LibCopy<Part>> {
-        &self.parts
+    raw_read! {
+        /// Part copies.
+        fn parts(&self) -> &Table<LibCopy<Part>> {
+            &self.parts
+        }
     }
 
-    /// Symbol copies.
-    pub fn symbols(&self) -> &Table<LibCopy<SymbolDef>> {
-        &self.symbols
+    raw_read! {
+        /// Symbol copies.
+        fn symbols(&self) -> &Table<LibCopy<SymbolDef>> {
+            &self.symbols
+        }
     }
 
-    /// Function-definition copies.
-    pub fn fndefs(&self) -> &Table<LibCopy<FnDef>> {
-        &self.fndefs
+    raw_read! {
+        /// Function-definition copies.
+        fn fndefs(&self) -> &Table<LibCopy<FnDef>> {
+            &self.fndefs
+        }
     }
 
-    /// Form copies.
-    pub fn forms(&self) -> &Table<LibCopy<FormDef>> {
-        &self.forms
+    raw_read! {
+        /// Form copies.
+        fn forms(&self) -> &Table<LibCopy<FormDef>> {
+            &self.forms
+        }
     }
 }
 
 macro_rules! entities {
     ($( $variant:ident : $ty:ty, $marker:ty, $($field:ident).+ ; )*) => {
         $(
-            impl sealed::Sealed for $ty {}
+            impl sealed::Sealed for $ty {
+                fn table(model: &Model) -> &Table<Self> {
+                    &model.$($field).+
+                }
+            }
 
             impl Entity for $ty {
                 const KIND: Kind = Kind::$variant;
@@ -98,10 +118,6 @@ macro_rules! entities {
 
                 fn id(&self) -> RowId<Self> {
                     self.id
-                }
-
-                fn table(model: &Model) -> &Table<Self> {
-                    &model.$($field).+
                 }
 
                 fn wrap(row: Arc<Self>) -> AnyRow {

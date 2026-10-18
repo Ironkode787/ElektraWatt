@@ -14,6 +14,12 @@ publish = false
 [lints]
 workspace = true
 
+[features]
+# The untracked read API (`Model::table`, `row`, `lib`, `indexes`, the table and index getters): ARCH §3
+# rule 1, ADR-0002 decision 1. Off by default. `cargo xtask check-features` allows it on normal edges of
+# ew-derive, ew-commands and ew-store only, and on dev-dependency edges (ci/dep-rules.toml).
+raw-read = []
+
 [dependencies]
 ew-schema = { path = "../ew-schema" }
 ew-ids = { path = "../ew-ids" }

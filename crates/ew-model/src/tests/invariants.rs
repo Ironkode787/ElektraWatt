@@ -7,14 +7,15 @@ use ew_ids::{Id, Uuid};
 use ew_rds::Aspect;
 use ew_schema::{
     Connection, Device, FnRole, Function, IpDirection, Junction, KeyedList, PageType, PinMapEntry, Record,
-    Representation, StructureNode,
+    ReportBlock, Representation, StructureNode,
 };
+use serde_json::json;
 
 use super::fixture::{
     CON_J5_IN, CON_W22, CON_W27, DEV_3W1, DEV_101F1, DEV_102F2, DEV_102G1, DEV_X1031, FN_101F1, FN_102F2,
-    FN_102F2_AUX, FN_102G1, FN_IP_101, FN_T3, FNDEF_CONTACT, J5, LOC, PAGE_101, PAGE_102, SEC1, at_junction,
-    conductor, connection, cp, device, function, ip_function, mini_golden, mini_golden_parts, page, rep,
-    structure_node, terminal,
+    FN_102F2_AUX, FN_102G1, FN_IP_101, FN_T3, FNDEF_CONTACT, FORM, FUNC_P01, J5, LOC, PAGE_101, PAGE_102,
+    REP_IP_101, SEC1, at_junction, cable, conductor, connection, cp, device, function, ip_function,
+    mini_golden, mini_golden_parts, page, rep, strip, structure_node, terminal,
 };
 use crate::{AnyRow, Entity, Model, ModelError, Op, RULES, Rev, RowId};
 
@@ -141,12 +142,13 @@ fn inv002_main_moved_away_rejected() {
 // ---------------------------------------------------------------------------------------------------------
 // EW-INV-003
 
-/// A new interruption point without a device is accepted.
+/// A new interruption point without a device is accepted, together with its one representation.
 #[test]
 fn inv003_device_iff_not_ip_ok() {
     let m = mini_golden();
     let f = ip_function(nid(0x10_000), "L-9", IpDirection::Source);
-    assert!(apply(&m, &[ins(f)]).is_ok());
+    let r = rep(nid(0x10_001), PAGE_101, vec![f.id]);
+    assert!(apply(&m, &[ins(f), ins(r)]).is_ok());
 }
 
 /// A Normal function without a device is rejected.
@@ -198,12 +200,13 @@ fn inv004_rep_one_device_ok() {
     assert!(apply(&m, &[ins(r)]).is_ok());
 }
 
-/// An interruption-point function may be drawn with a device's function.
+/// A new interruption-point function may be drawn with a device's function (in one batch with its representation).
 #[test]
 fn inv004_ip_function_excepted_ok() {
     let m = mini_golden();
-    let r = rep(nid(0x10_000), PAGE_101, vec![FN_101F1, FN_IP_101]);
-    assert!(apply(&m, &[ins(r)]).is_ok());
+    let ip = ip_function(nid(0x10_000), "L-9", IpDirection::Source);
+    let r = rep(nid(0x10_001), PAGE_101, vec![FN_101F1, ip.id]);
+    assert!(apply(&m, &[ins(ip), ins(r)]).is_ok());
 }
 
 /// A representation drawing functions of two devices is rejected.
@@ -459,7 +462,62 @@ fn inv010_terminal_aspects_rejected() {
         .clone();
     let mut t = terminal(nid(0x10_000), DEV_X1031, 5, "5");
     t.aspects.strip = strip_aspect;
-    rejected_by(apply(&m, &[ins(t)]), crate::TERMINAL_ASPECTS);
+    rejected_by(apply(&m, &[ins(t)]), crate::EXCLUSIVE_ASPECTS);
+}
+
+/// A strip and a cable, each with its single aspect, are accepted.
+#[test]
+fn inv010_strip_and_cable_alone_ok() {
+    let m = mini_golden();
+    let ops = [
+        ins(strip(nid(0x10_000), "X", 2000)),
+        ins(cable(nid(0x10_001), "W", 2)),
+    ];
+    assert!(apply(&m, &ops).is_ok());
+}
+
+/// A terminal that also has the cable aspect is rejected.
+#[test]
+fn inv010_terminal_cable_rejected() {
+    let m = mini_golden();
+    let cable_aspect = m
+        .row(&Device::key(DEV_3W1))
+        .unwrap()
+        .get::<Device>()
+        .unwrap()
+        .aspects
+        .cable
+        .clone();
+    assert!(cable_aspect.is_some());
+    let mut t = terminal(nid(0x10_000), DEV_X1031, 5, "5");
+    t.aspects.cable = cable_aspect;
+    rejected_by(apply(&m, &[ins(t)]), crate::EXCLUSIVE_ASPECTS);
+}
+
+/// A strip that also has the cable aspect is rejected.
+#[test]
+fn inv010_strip_cable_rejected() {
+    let m = mini_golden();
+    let mut s = strip(nid(0x10_000), "X", 2000);
+    s.aspects.cable = cable(nid(0x10_001), "W", 2).aspects.cable;
+    assert!(s.aspects.cable.is_some());
+    rejected_by(apply(&m, &[ins(s)]), crate::EXCLUSIVE_ASPECTS);
+}
+
+/// Adding the strip aspect to the existing cable by an update is rejected.
+#[test]
+fn inv010_aspect_added_by_update_rejected() {
+    let m = mini_golden();
+    let strip_aspect = m
+        .row(&Device::key(DEV_X1031))
+        .unwrap()
+        .get::<Device>()
+        .unwrap()
+        .aspects
+        .strip
+        .clone();
+    let op = upd(&m, DEV_3W1, |d: &mut Device| d.aspects.strip = strip_aspect);
+    rejected_by(apply(&m, &[op]), crate::EXCLUSIVE_ASPECTS);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -479,6 +537,39 @@ fn inv011_structure_same_aspect_rejected() {
     let m = mini_golden();
     let n = structure_node(nid(0x10_000), Aspect::Function, "F2", Some(LOC));
     rejected_by(apply(&m, &[ins(n)]), crate::STRUCTURE_SAME_ASPECT);
+}
+
+/// A model with one child (a Function node) under the root `FUNC_P01`, which no record's structure slot names.
+fn model_with_function_child() -> (Model, Id<StructureNode>) {
+    let m = mini_golden();
+    let child = nid(0x10_000);
+    let n = structure_node(child, Aspect::Function, "P01.1", Some(FUNC_P01));
+    (apply(&m, &[ins(n)]).expect("same aspect"), child)
+}
+
+/// Changing only a parent's aspect while its child keeps the old one is rejected (the children of a touched node are evaluated).
+#[test]
+fn inv011_parent_aspect_changed_rejected() {
+    let (m, _) = model_with_function_child();
+    let op = upd(&m, FUNC_P01, |n: &mut StructureNode| {
+        n.aspect = ew_schema::Open::Known(Aspect::Location);
+    });
+    rejected_by(m.apply(&[op], Rev(2)), crate::STRUCTURE_SAME_ASPECT);
+}
+
+/// Changing a parent's aspect together with its children's, in one batch, is accepted.
+#[test]
+fn inv011_parent_and_children_changed_together_ok() {
+    let (m, child) = model_with_function_child();
+    let ops = [
+        upd(&m, FUNC_P01, |n: &mut StructureNode| {
+            n.aspect = ew_schema::Open::Known(Aspect::Location);
+        }),
+        upd(&m, child, |n: &mut StructureNode| {
+            n.aspect = ew_schema::Open::Known(Aspect::Location);
+        }),
+    ];
+    assert!(m.apply(&ops, Rev(2)).is_ok());
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -502,18 +593,178 @@ fn inv012_no_stored_report_page_rejected() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
+// EW-INV-013
+
+/// A function and a representation, a new interruption point drawn once, in one batch.
+fn new_ip_with_rep(function: u128, representation: u128) -> [Op; 2] {
+    let f = ip_function(nid(function), "L-9", IpDirection::Source);
+    let r = rep(nid(representation), PAGE_101, vec![f.id]);
+    [ins(f), ins(r)]
+}
+
+/// A new interruption point with its one representation, created in one batch, is accepted.
+#[test]
+fn inv013_ip_with_one_rep_ok() {
+    let m = mini_golden();
+    assert!(apply(&m, &new_ip_with_rep(0x10_000, 0x10_001)).is_ok());
+}
+
+/// A new interruption point without any representation is rejected.
+#[test]
+fn inv013_ip_without_rep_rejected() {
+    let m = mini_golden();
+    let f = ip_function(nid(0x10_000), "L-9", IpDirection::Source);
+    rejected_by(apply(&m, &[ins(f)]), crate::IP_ONE_REPRESENTATION);
+}
+
+/// A second representation of an interruption point is rejected.
+#[test]
+fn inv013_second_rep_rejected() {
+    let m = mini_golden();
+    let r = rep(nid(0x10_000), PAGE_102, vec![FN_IP_101]);
+    rejected_by(apply(&m, &[ins(r)]), crate::IP_ONE_REPRESENTATION);
+}
+
+/// Removing the only representation of an interruption point, without the function, is rejected.
+#[test]
+fn inv013_rep_removed_without_function_rejected() {
+    let m = mini_golden();
+    let op = Op::delete(m.row(&Representation::key(REP_IP_101)).unwrap());
+    rejected_by(apply(&m, &[op]), crate::IP_ONE_REPRESENTATION);
+}
+
+/// Repointing a representation to another interruption point leaves the old one bare and the new one drawn twice.
+#[test]
+fn inv013_rep_repointed_rejected() {
+    let x = nid(0x10_000);
+    let m = apply(&mini_golden(), &new_ip_with_rep(0x10_000, 0x10_001)).unwrap();
+    let op = upd(&m, REP_IP_101, |r: &mut Representation| r.functions = vec![x]);
+    rejected_by(m.apply(&[op], Rev(2)), crate::IP_ONE_REPRESENTATION);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// EW-INV-014
+
+/// A report block of the built-in kind `toc`; page-oriented unless it is embedded on `embedded`.
+fn report_block(n: u128, first_folio: Option<u32>, embedded: Option<Id<ew_schema::Page>>) -> ReportBlock {
+    let mut v = json!({
+        "id": Uuid::from_u128(n).to_string(),
+        "source": {"kind": "toc"},
+        "form": FORM.as_uuid().to_string(),
+    });
+    if let Some(folio) = first_folio {
+        v["first_folio"] = json!(folio);
+    }
+    if let Some(page) = embedded {
+        v["embedded"] = json!({"page": page.as_uuid().to_string(), "rect": [[0, 0], [1000, 1000]]});
+    }
+    serde_json::from_value(v).expect("a valid report block")
+}
+
+/// A page-oriented report block with a first folio is accepted.
+#[test]
+fn inv014_report_block_folio_ok() {
+    let m = mini_golden();
+    let b = report_block(0x10_000, Some(907), None);
+    assert!(apply(&m, &[ins(b)]).is_ok());
+}
+
+/// An embedded report block needs no first folio.
+#[test]
+fn inv014_embedded_without_folio_ok() {
+    let m = mini_golden();
+    let b = report_block(0x10_000, None, Some(PAGE_101));
+    assert!(b.embedded.is_some() && b.first_folio.is_none());
+    assert!(apply(&m, &[ins(b)]).is_ok());
+}
+
+/// A page-oriented report block without a first folio is rejected.
+#[test]
+fn inv014_report_block_folio_rejected() {
+    let m = mini_golden();
+    let b = report_block(0x10_000, None, None);
+    rejected_by(apply(&m, &[ins(b)]), crate::REPORT_BLOCK_FOLIO);
+}
+
+/// Making an embedded block without a folio page-oriented (`embedded` removed) is rejected.
+#[test]
+fn inv014_embedded_removed_rejected() {
+    let m = mini_golden();
+    let b = report_block(0x10_000, None, Some(PAGE_101));
+    let id = b.id;
+    let m = m.apply(&[ins(b)], Rev(1)).unwrap();
+    let op = upd(&m, id, |b: &mut ReportBlock| b.embedded = None);
+    rejected_by(m.apply(&[op], Rev(2)), crate::REPORT_BLOCK_FOLIO);
+}
+
+// ---------------------------------------------------------------------------------------------------------
 // Catalogue
 
-/// Every rule of `RULES` (14 of them) has its table row in `invariants.md`.
+/// The names in backticks of the last (Tests) cell of the catalogue row of `rule`.
+fn catalogue_tests(catalogue: &str, rule: &str) -> Vec<String> {
+    let prefix = format!("| {rule} |");
+    let row = catalogue
+        .lines()
+        .find(|l| l.starts_with(&prefix))
+        .unwrap_or_else(|| panic!("{rule} has no row in invariants.md"));
+    let cell = row
+        .trim_end()
+        .trim_end_matches('|')
+        .rsplit('|')
+        .next()
+        .expect("a last cell");
+    cell.split('`').skip(1).step_by(2).map(str::to_owned).collect()
+}
+
+/// Whether `source` has a test function `name`: `fn name(` whose attribute and doc-comment lines above it
+/// include `#[test]`.
+fn has_test(source: &str, name: &str) -> bool {
+    let signature = format!("fn {name}(");
+    let lines: Vec<&str> = source.lines().collect();
+    let Some(at) = lines.iter().position(|l| l.trim_start().starts_with(&signature)) else {
+        return false;
+    };
+    lines[..at]
+        .iter()
+        .rev()
+        .map(|l| l.trim())
+        .take_while(|l| l.starts_with("///") || l.starts_with("#["))
+        .any(|l| l == "#[test]")
+}
+
+/// Every rule of `RULES` (16 of them) has its table row in `invariants.md`; every test the row names exists
+/// as a `#[test]` function, with at least one accepting (`_ok`) and one rejecting (`rejected`/`referenced`) test.
 #[test]
 fn every_catalogue_rule_has_a_test() {
     let catalogue = include_str!("../../invariants.md");
-    assert_eq!(RULES.len(), 14);
+    let invariant_tests = include_str!("invariants.rs");
+    let ops_tests = include_str!("ops.rs");
+    assert_eq!(RULES.len(), 16);
     for rule in RULES {
-        let row = format!("| {} |", rule.id);
+        let names = catalogue_tests(catalogue, rule.id);
+        assert!(!names.is_empty(), "{} names no tests in invariants.md", rule.id);
+        for name in &names {
+            let (file, source, fn_name) = match name.strip_prefix("ops::") {
+                Some(n) => ("ops.rs", ops_tests, n),
+                None => ("invariants.rs", invariant_tests, name.as_str()),
+            };
+            assert!(
+                has_test(source, fn_name),
+                "{}: the test {name} named in invariants.md is not a #[test] fn in src/tests/{file}",
+                rule.id
+            );
+        }
+        let base = |n: &str| n.rsplit("::").next().unwrap_or(n).to_owned();
         assert!(
-            catalogue.lines().any(|l| l.starts_with(&row)),
-            "{} has no row in invariants.md",
+            names.iter().any(|n| base(n).ends_with("_ok")),
+            "{} names no accepting test (a name ending in _ok)",
+            rule.id
+        );
+        assert!(
+            names
+                .iter()
+                .any(|n| base(n).contains("rejected") || base(n).contains("referenced")),
+            "{} names no rejecting test (a name containing rejected or referenced)",
             rule.id
         );
     }

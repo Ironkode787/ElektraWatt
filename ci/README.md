@@ -55,6 +55,12 @@ workspace package from `cargo metadata` and fails when a banned feature is reque
 features). The message names the package, dependency, feature and kind. Features that a dependency enables
 by default are out of scope here; they would have to be named on the edge by the dependent crate.
 
+A `[[banned_features]]` entry may also list `allowed_packages`: the named workspace packages may enable the
+feature on a dependency edge of any kind and may forward it from any of their own features, while any other
+package that forwards it from a `[features]` entry (not only `default`) is reported as a back door. The
+untracked read API of `ew-model` (`raw-read`, ARCH §3 rule 1) is banned this way: dev edges anywhere, normal
+edges only in `ew-derive`, `ew-commands` and `ew-store`.
+
 ## Anonymisation guard (`cargo xtask check-anonymisation [--require-entries]`)
 
 Every committed file that is not binary is scanned: files with a UTF-16 byte-order mark are decoded as UTF-16,

@@ -271,110 +271,142 @@ fn row_entries(row: &AnyRow) -> BTreeSet<IxEntry> {
 }
 
 impl BaseIndexes {
-    /// `Function.device` → functions.
-    pub fn functions_by_device(&self) -> &RevIndex<Id<Device>, Id<Function>> {
-        &self.functions_by_device
-    }
-
-    /// `Representation.page` → representations.
-    pub fn reps_by_page(&self) -> &RevIndex<Id<Page>, Id<Representation>> {
-        &self.reps_by_page
-    }
-
-    /// `Representation.functions` and `pin_map[].function` → representations.
-    pub fn reps_by_function(&self) -> &RevIndex<Id<Function>, Id<Representation>> {
-        &self.reps_by_function
-    }
-
-    /// `Connection.page` → connections.
-    pub fn connections_by_page(&self) -> &RevIndex<Id<Page>, Id<Connection>> {
-        &self.connections_by_page
-    }
-
-    /// `Connection.a`/`b` → connections, by CP `(function, idx)` or junction.
-    pub fn connections_by_endpoint(&self) -> &RevIndex<EndpointKey, Id<Connection>> {
-        &self.connections_by_endpoint
-    }
-
-    /// `Junction.page` → junctions.
-    pub fn junctions_by_page(&self) -> &RevIndex<Id<Page>, Id<Junction>> {
-        &self.junctions_by_page
-    }
-
-    /// Strip device → terminal devices whose `terminal.strip` names it.
-    pub fn terminals_by_strip(&self) -> &RevIndex<Id<Device>, Id<Device>> {
-        &self.terminals_by_strip
-    }
-
-    /// Cable device → conductors.
-    pub fn conductors_by_cable(&self) -> &RevIndex<Id<Device>, Id<Conductor>> {
-        &self.conductors_by_cable
-    }
-
-    /// Structure node → child nodes (`children_by_parent` of the structure trees).
-    pub fn structure_children(&self) -> &RevIndex<Id<StructureNode>, Id<StructureNode>> {
-        &self.structure_children
-    }
-
-    /// Device → child devices (`children_by_parent` of the assembly graph).
-    pub fn device_children(&self) -> &RevIndex<Id<Device>, Id<Device>> {
-        &self.device_children
-    }
-
-    /// Section → pages.
-    pub fn pages_by_section(&self) -> &RevIndex<Id<Section>, Id<Page>> {
-        &self.pages_by_section
-    }
-
-    /// `PotentialDef.at` → potential definitions, by endpoint.
-    pub fn potential_defs_by_endpoint(&self) -> &RevIndex<EndpointKey, Id<PotentialDef>> {
-        &self.potential_defs_by_endpoint
-    }
-
-    /// `Bond.a`/`b` → bonds, by endpoint.
-    pub fn bonds_by_endpoint(&self) -> &RevIndex<EndpointKey, Id<Bond>> {
-        &self.bonds_by_endpoint
-    }
-
-    /// The generic referrer index of every link without a named index: target key →
-    /// `(link position in LINKS, referrer ID)`.
-    pub fn referrers(&self) -> &RevIndex<AnyKey, (LinkId, AnyId)> {
-        &self.referrers
-    }
-
-    /// Builds the indexes from scratch, stamping every key with the model's revision.
-    pub fn rebuild(model: &crate::Model) -> BaseIndexes {
-        let mut idx = BaseIndexes::default();
-        let rev = model.rev();
-        let project = AnyRow::Project(std::sync::Arc::clone(model.project()));
-        idx.update(None, Some(&project), rev);
-        for key in crate::entity::table_keys(model) {
-            let row = crate::entity::get_row(model, &key);
-            idx.update(None, row.as_ref(), rev);
+    raw_read! {
+        /// `Function.device` → functions.
+        fn functions_by_device(&self) -> &RevIndex<Id<Device>, Id<Function>> {
+            &self.functions_by_device
         }
-        idx
     }
 
-    /// Whether both index sets hold the same entries (`changed_at` stamps are ignored).
-    pub fn same_entries(&self, other: &BaseIndexes) -> bool {
-        self.functions_by_device.same_entries(&other.functions_by_device)
-            && self.reps_by_page.same_entries(&other.reps_by_page)
-            && self.reps_by_function.same_entries(&other.reps_by_function)
-            && self.connections_by_page.same_entries(&other.connections_by_page)
-            && self
-                .connections_by_endpoint
-                .same_entries(&other.connections_by_endpoint)
-            && self.junctions_by_page.same_entries(&other.junctions_by_page)
-            && self.terminals_by_strip.same_entries(&other.terminals_by_strip)
-            && self.conductors_by_cable.same_entries(&other.conductors_by_cable)
-            && self.structure_children.same_entries(&other.structure_children)
-            && self.device_children.same_entries(&other.device_children)
-            && self.pages_by_section.same_entries(&other.pages_by_section)
-            && self
-                .potential_defs_by_endpoint
-                .same_entries(&other.potential_defs_by_endpoint)
-            && self.bonds_by_endpoint.same_entries(&other.bonds_by_endpoint)
-            && self.referrers.same_entries(&other.referrers)
+    raw_read! {
+        /// `Representation.page` → representations.
+        fn reps_by_page(&self) -> &RevIndex<Id<Page>, Id<Representation>> {
+            &self.reps_by_page
+        }
+    }
+
+    raw_read! {
+        /// `Representation.functions` and `pin_map[].function` → representations.
+        fn reps_by_function(&self) -> &RevIndex<Id<Function>, Id<Representation>> {
+            &self.reps_by_function
+        }
+    }
+
+    raw_read! {
+        /// `Connection.page` → connections.
+        fn connections_by_page(&self) -> &RevIndex<Id<Page>, Id<Connection>> {
+            &self.connections_by_page
+        }
+    }
+
+    raw_read! {
+        /// `Connection.a`/`b` → connections, by CP `(function, idx)` or junction.
+        fn connections_by_endpoint(&self) -> &RevIndex<EndpointKey, Id<Connection>> {
+            &self.connections_by_endpoint
+        }
+    }
+
+    raw_read! {
+        /// `Junction.page` → junctions.
+        fn junctions_by_page(&self) -> &RevIndex<Id<Page>, Id<Junction>> {
+            &self.junctions_by_page
+        }
+    }
+
+    raw_read! {
+        /// Strip device → terminal devices whose `terminal.strip` names it.
+        fn terminals_by_strip(&self) -> &RevIndex<Id<Device>, Id<Device>> {
+            &self.terminals_by_strip
+        }
+    }
+
+    raw_read! {
+        /// Cable device → conductors.
+        fn conductors_by_cable(&self) -> &RevIndex<Id<Device>, Id<Conductor>> {
+            &self.conductors_by_cable
+        }
+    }
+
+    raw_read! {
+        /// Structure node → child nodes (`children_by_parent` of the structure trees).
+        fn structure_children(&self) -> &RevIndex<Id<StructureNode>, Id<StructureNode>> {
+            &self.structure_children
+        }
+    }
+
+    raw_read! {
+        /// Device → child devices (`children_by_parent` of the assembly graph).
+        fn device_children(&self) -> &RevIndex<Id<Device>, Id<Device>> {
+            &self.device_children
+        }
+    }
+
+    raw_read! {
+        /// Section → pages.
+        fn pages_by_section(&self) -> &RevIndex<Id<Section>, Id<Page>> {
+            &self.pages_by_section
+        }
+    }
+
+    raw_read! {
+        /// `PotentialDef.at` → potential definitions, by endpoint.
+        fn potential_defs_by_endpoint(&self) -> &RevIndex<EndpointKey, Id<PotentialDef>> {
+            &self.potential_defs_by_endpoint
+        }
+    }
+
+    raw_read! {
+        /// `Bond.a`/`b` → bonds, by endpoint.
+        fn bonds_by_endpoint(&self) -> &RevIndex<EndpointKey, Id<Bond>> {
+            &self.bonds_by_endpoint
+        }
+    }
+
+    raw_read! {
+        /// The generic referrer index of every link without a named index: target key →
+        /// `(link position in LINKS, referrer ID)`.
+        fn referrers(&self) -> &RevIndex<AnyKey, (LinkId, AnyId)> {
+            &self.referrers
+        }
+    }
+
+    raw_read! {
+        /// Builds the indexes from scratch, stamping every key with the model's revision.
+        fn rebuild(model: &crate::Model) -> BaseIndexes {
+            let mut idx = BaseIndexes::default();
+            let rev = model.rev();
+            let project = AnyRow::Project(std::sync::Arc::clone(model.project()));
+            idx.update(None, Some(&project), rev);
+            for key in crate::entity::table_keys(model) {
+                let row = crate::entity::get_row(model, &key);
+                idx.update(None, row.as_ref(), rev);
+            }
+            idx
+        }
+    }
+
+    raw_read! {
+        /// Whether both index sets hold the same entries (`changed_at` stamps are ignored).
+        fn same_entries(&self, other: &BaseIndexes) -> bool {
+            self.functions_by_device.same_entries(&other.functions_by_device)
+                && self.reps_by_page.same_entries(&other.reps_by_page)
+                && self.reps_by_function.same_entries(&other.reps_by_function)
+                && self.connections_by_page.same_entries(&other.connections_by_page)
+                && self
+                    .connections_by_endpoint
+                    .same_entries(&other.connections_by_endpoint)
+                && self.junctions_by_page.same_entries(&other.junctions_by_page)
+                && self.terminals_by_strip.same_entries(&other.terminals_by_strip)
+                && self.conductors_by_cable.same_entries(&other.conductors_by_cable)
+                && self.structure_children.same_entries(&other.structure_children)
+                && self.device_children.same_entries(&other.device_children)
+                && self.pages_by_section.same_entries(&other.pages_by_section)
+                && self
+                    .potential_defs_by_endpoint
+                    .same_entries(&other.potential_defs_by_endpoint)
+                && self.bonds_by_endpoint.same_entries(&other.bonds_by_endpoint)
+                && self.referrers.same_entries(&other.referrers)
+        }
     }
 
     /// Applies the delta of one row change: removes the entries of `before` that `after` lacks and adds

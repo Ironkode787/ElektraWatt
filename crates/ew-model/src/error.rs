@@ -66,6 +66,15 @@ pub enum ModelError {
         /// The duplicated key (the smallest one if there are several).
         key: AnyKey,
     },
+    /// Two records (or library documents) of a kind this reader does not know share one `($k, id)`
+    /// (EW-CORE-009). A duplicate of a reserved kind, which the registry knows, is
+    /// [`ModelError::DuplicateRecord`].
+    DuplicateUnknownRecord {
+        /// The `$k` name.
+        kind: String,
+        /// The duplicated ID (the smallest `($k, id)` if there are several).
+        id: ew_schema::AnyId,
+    },
     /// The key names no record.
     NotFound {
         /// The key.
@@ -112,6 +121,7 @@ impl fmt::Display for ModelError {
             ModelError::Invariant { id, message, .. } => write!(f, "{id}: {message}"),
             ModelError::Prevented { rule, message, .. } => write!(f, "{rule}: {message}"),
             ModelError::DuplicateRecord { key } => write!(f, "duplicate record {}", KeyFmt(key)),
+            ModelError::DuplicateUnknownRecord { kind, id } => write!(f, "duplicate record {kind}:{id}"),
             ModelError::NotFound { key } => write!(f, "no record {}", KeyFmt(key)),
         }
     }

@@ -4,14 +4,14 @@
 //! Tests of the op layer, the delete plans (FR-DEV-030, doc 03 §4.2), loading and snapshots.
 
 use std::collections::BTreeSet;
-use std::time::Instant;
+use std::sync::Arc;
 
 use ew_ids::{Id, Uuid};
 use ew_mltext::MlText;
 use ew_rds::Aspect;
 use ew_schema::{
-    Bond, Conductor, Connection, ConnectionKind, Date, Device, Function, Junction, Kind, Page, PotentialDef,
-    Project, Record, Representation, StructureNode,
+    Bond, Conductor, Connection, ConnectionKind, Date, Device, FnDef, Function, Junction, Kind, LibCopy,
+    LibDocument, Page, Part, PotentialDef, Project, Record, Representation, StructureNode, SymbolDef,
 };
 use serde_json::json;
 
@@ -413,7 +413,8 @@ fn delete_plan_cable_cascades_conductors_and_unlinks_cores() {
     plan_applies(&m, &ops);
 }
 
-/// Deleting a page removes what is drawn on it; the functions stay unplaced (FR-PAG-025).
+/// Deleting a page removes what is drawn on it and the interruption-point functions its representations own;
+/// device functions stay unplaced (FR-PAG-025).
 #[test]
 fn delete_plan_page_cascades_page_owned_rows() {
     let m = mini_golden();
@@ -424,10 +425,58 @@ fn delete_plan_page_cascades_page_owned_rows() {
             removed::<Page>(PAGE_101),
             removed::<Representation>(REP_101F1),
             removed::<Representation>(REP_IP_101),
+            removed::<Function>(FN_IP_101),
             removed::<Connection>(CON_W11A),
         ],
     );
     plan_applies(&m, &ops);
+}
+
+/// Deleting the representation of an interruption point removes the function it owns and its connections.
+#[test]
+fn delete_plan_ip_representation_cascades_its_function() {
+    let m = mini_golden();
+    let ops = m
+        .delete_plan(&<Representation as Entity>::key(REP_IP_102))
+        .unwrap();
+    assert_plan(
+        &ops,
+        &[
+            removed::<Representation>(REP_IP_102),
+            removed::<Function>(FN_IP_102),
+            removed::<Connection>(CON_W11B),
+        ],
+    );
+    plan_applies(&m, &ops);
+}
+
+/// Deleting an interruption-point function removes its representation and its connections.
+#[test]
+fn delete_plan_ip_function_cascades_its_representation() {
+    let m = mini_golden();
+    let ops = m.delete_plan(&<Function as Entity>::key(FN_IP_101)).unwrap();
+    assert_plan(
+        &ops,
+        &[
+            removed::<Function>(FN_IP_101),
+            removed::<Representation>(REP_IP_101),
+            removed::<Connection>(CON_W11A),
+        ],
+    );
+    plan_applies(&m, &ops);
+}
+
+/// Deleting the representation of a device function removes only it: the device function stays unplaced.
+#[test]
+fn delete_plan_device_rep_keeps_device_function() {
+    let m = mini_golden();
+    let ops = m
+        .delete_plan(&<Representation as Entity>::key(REP_101F1))
+        .unwrap();
+    assert_plan(&ops, &[removed::<Representation>(REP_101F1)]);
+    let m1 = m.apply(&ops, Rev(1)).unwrap();
+    assert!(m1.table::<Function>().get(&FN_101F1).is_some());
+    assert!(m1.table::<Representation>().get(&REP_101F1).is_none());
 }
 
 /// A `forbid` link with a remaining referrer rejects the plan.
@@ -526,6 +575,118 @@ fn referrers_lists_links() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
+// LibRef links
+
+/// The mini golden project with extra library documents.
+fn golden_with_lib(extra: Vec<LibDocument>) -> Model {
+    let (project, records, mut lib) = mini_golden_parts();
+    lib.extend(extra);
+    Model::from_records(project, records, lib).expect("valid")
+}
+
+fn fndef_key(copy: &LibCopy<FnDef>) -> AnyKey {
+    <LibCopy<FnDef> as Entity>::key(copy.id)
+}
+
+/// A model embedding an FnDef copy and a symbol copy that names it; the keys of both.
+fn model_with_symbol_on_fndef() -> (Model, AnyKey, AnyKey) {
+    let copy = fndef_copy_for(LIBRARY_X, ITEM_X, &["1"]);
+    let sym = symbol_using(nid(0x9300), LIBRARY_X, ITEM_X);
+    let fkey = fndef_key(&copy);
+    let skey = <LibCopy<SymbolDef> as Entity>::key(sym.id);
+    let m = golden_with_lib(vec![LibDocument::Fndef(copy), LibDocument::Symbol(sym)]);
+    (m, fkey, skey)
+}
+
+/// An FnDef copy that an embedded symbol names through its `LibRef` cannot be removed (forbid link) until the symbol is.
+#[test]
+fn lib_ref_fndef_copy_in_use_is_referenced() {
+    let (m, fkey, skey) = model_with_symbol_on_fndef();
+    match m.delete_plan(&fkey).unwrap_err() {
+        ModelError::Referenced {
+            link,
+            target,
+            referrer,
+        } => {
+            assert_eq!(link, "symbol.fndef.item");
+            assert_eq!(target, fkey);
+            assert_eq!(referrer, skey);
+        }
+        other => panic!("expected Referenced, got {other:?}"),
+    }
+    let raw = Op::delete(m.row(&fkey).unwrap());
+    assert!(matches!(
+        m.apply(&[raw], Rev(1)).unwrap_err(),
+        ModelError::Referenced { link, .. } if link == "symbol.fndef.item"
+    ));
+
+    let plan = m.delete_plan(&skey).unwrap();
+    assert_plan(&plan, &[(skey, false)]);
+    let m1 = m.apply(&plan, Rev(1)).unwrap();
+    let plan = m1.delete_plan(&fkey).unwrap();
+    assert_plan(&plan, &[(fkey, false)]);
+    assert!(m1.apply(&plan, Rev(2)).is_ok());
+}
+
+/// An FnDef copy that an embedded part names in a function template cannot be removed until the part is.
+#[test]
+fn lib_ref_part_template_fndef_in_use_is_referenced() {
+    let copy = fndef_copy_for(LIBRARY_X, ITEM_X, &["1"]);
+    let part = part_using(nid(0x9400), "TPL-1", LIBRARY_X, ITEM_X);
+    let fkey = fndef_key(&copy);
+    let pkey = <LibCopy<Part> as Entity>::key(part.id);
+    let m = golden_with_lib(vec![LibDocument::Fndef(copy), LibDocument::Part(part)]);
+    match m.delete_plan(&fkey).unwrap_err() {
+        ModelError::Referenced {
+            link,
+            target,
+            referrer,
+        } => {
+            assert_eq!(link, "part.function_template[].fndef.item");
+            assert_eq!(target, fkey);
+            assert_eq!(referrer, pkey);
+        }
+        other => panic!("expected Referenced, got {other:?}"),
+    }
+    let raw = Op::delete(m.row(&fkey).unwrap());
+    assert!(matches!(
+        m.apply(&[raw], Rev(1)).unwrap_err(),
+        ModelError::Referenced { link, .. } if link == "part.function_template[].fndef.item"
+    ));
+
+    let plan = m.delete_plan(&pkey).unwrap();
+    assert_plan(&plan, &[(pkey, false)]);
+    let m1 = m.apply(&plan, Rev(1)).unwrap();
+    let plan = m1.delete_plan(&fkey).unwrap();
+    assert_plan(&plan, &[(fkey, false)]);
+    assert!(m1.apply(&plan, Rev(2)).is_ok());
+}
+
+/// A `LibRef` to an item the project does not embed is no link: it loads, passes the integrity check and may be inserted.
+#[test]
+fn lib_ref_unembedded_target_is_not_a_link() {
+    let sym = symbol_using(nid(0x9300), LIBRARY_X, ITEM_Y);
+    let m = golden_with_lib(vec![LibDocument::Symbol(sym)]);
+    assert!(m.integrity_check().is_ok());
+
+    let extra = symbol_using(nid(0x9301), LIBRARY_X, ITEM_Y);
+    let m = mini_golden();
+    assert!(m.apply(&[Op::insert(AnyRow::of(extra))], Rev(1)).is_ok());
+}
+
+/// `referrers` of an embedded FnDef copy lists the symbol through the `symbol.fndef.item` link.
+#[test]
+fn lib_ref_referrers_lists_symbol() {
+    let (m, fkey, skey) = model_with_symbol_on_fndef();
+    let found: Vec<(String, AnyKey)> = m
+        .referrers(&fkey)
+        .into_iter()
+        .map(|(link, k)| (link.path(), k))
+        .collect();
+    assert_eq!(found, vec![("symbol.fndef.item".to_string(), skey)]);
+}
+
+// ---------------------------------------------------------------------------------------------------------
 // Loading
 
 /// Two records with one key, or a project record among the records, are duplicates.
@@ -581,6 +742,169 @@ fn from_records_keeps_unknown_records() {
     assert!(plain.unknown_records().is_empty());
 }
 
+fn unknown_record(kind: &str, id: &str) -> Record {
+    Record::Unknown(json!({"$k": kind, "id": id}))
+}
+
+fn unknown_lib_document(kind: &str, id: &str) -> LibDocument {
+    LibDocument::Unknown(json!({"$k": kind, "id": id}))
+}
+
+/// `($k, id)` of a kept unknown value.
+fn kind_and_id(v: &serde_json::Value) -> (String, String) {
+    (
+        v["$k"].as_str().unwrap().to_owned(),
+        v["id"].as_str().unwrap().to_owned(),
+    )
+}
+
+/// An ID with the smaller full ID and the larger bytes 8-15.
+const ID_LOW_FULL: &str = "00000000-0000-0000-0000-0000000000ff";
+/// An ID with the larger full ID and the smaller bytes 8-15.
+const ID_HIGH_FULL: &str = "ffffffff-0000-0000-0000-000000000001";
+
+fn load_records(extra: Vec<Record>) -> Result<Model, ModelError> {
+    let (project, mut records, lib) = mini_golden_parts();
+    records.extend(extra);
+    Model::from_records(project, records, lib)
+}
+
+fn load_lib(extra: Vec<LibDocument>) -> Result<Model, ModelError> {
+    let (project, records, mut lib) = mini_golden_parts();
+    lib.extend(extra);
+    Model::from_records(project, records, lib)
+}
+
+/// The expected `($k, id)` order: per kind, the ID with the smaller bytes 8-15 first.
+fn expected_order(kinds: &[&str]) -> Vec<(String, String)> {
+    kinds
+        .iter()
+        .flat_map(|k| [ID_HIGH_FULL, ID_LOW_FULL].map(|id| ((*k).to_owned(), id.to_owned())))
+        .collect()
+}
+
+/// Unknown records are ordered by kind rank, then bytes 8-15 of the ID, then the full ID; kinds without a rank
+/// follow, by `$k` text; the input order does not matter.
+#[test]
+fn from_records_orders_unknown_records_by_line_order() {
+    let mut input = vec![];
+    for kind in ["zz_future", "channel", "logical_net", "aa_early"] {
+        for id in [ID_LOW_FULL, ID_HIGH_FULL] {
+            input.push(unknown_record(kind, id));
+        }
+    }
+    // `logical_net` has rank 12, `channel` rank 37; the unregistered kinds follow by `$k` text.
+    let expected = expected_order(&["logical_net", "channel", "aa_early", "zz_future"]);
+    let order = |m: &Model| -> Vec<(String, String)> {
+        m.unknown_records()
+            .iter()
+            .map(|r| match r {
+                Record::Unknown(v) => kind_and_id(v),
+                other => panic!("not an unknown record: {other:?}"),
+            })
+            .collect()
+    };
+
+    let forward = load_records(input.clone()).unwrap();
+    assert_eq!(order(&forward), expected);
+    input.reverse();
+    let backward = load_records(input.clone()).unwrap();
+    assert_eq!(order(&backward), expected);
+    input.swap(1, 6);
+    input.swap(0, 3);
+    let scrambled = load_records(input).unwrap();
+    assert_eq!(order(&scrambled), expected);
+    assert!(forward.content_eq(&scrambled));
+}
+
+/// A duplicate `($k, id)` of an unknown record is rejected: `DuplicateRecord` for a reserved kind,
+/// `DuplicateUnknownRecord` for an unregistered one; one ID under two kinds is accepted.
+#[test]
+fn from_records_rejects_duplicate_unknown_records() {
+    let x: Id<()> = nid(0x7001);
+    let xs = x.as_uuid().to_string();
+    assert_eq!(
+        load_records(vec![
+            unknown_record("channel", &xs),
+            unknown_record("channel", &xs)
+        ])
+        .unwrap_err(),
+        ModelError::DuplicateRecord {
+            key: (Kind::Channel, x)
+        }
+    );
+    assert_eq!(
+        load_records(vec![
+            unknown_record("zz_future", &xs),
+            unknown_record("zz_future", &xs)
+        ])
+        .unwrap_err(),
+        ModelError::DuplicateUnknownRecord {
+            kind: "zz_future".into(),
+            id: x
+        }
+    );
+    let m = load_records(vec![
+        unknown_record("channel", &xs),
+        unknown_record("zz_future", &xs),
+        unknown_record("zz_other", &xs),
+    ])
+    .unwrap();
+    assert_eq!(m.unknown_records().len(), 3);
+}
+
+/// Library documents of unknown kinds are ordered by `$k` text, then bytes 8-15 of the ID, then the full ID;
+/// a duplicate `($k, id)` is rejected.
+#[test]
+fn from_records_orders_unknown_lib_documents() {
+    let mut input = vec![];
+    for kind in ["zz_lib", "manufacturer", "macro"] {
+        for id in [ID_LOW_FULL, ID_HIGH_FULL] {
+            input.push(unknown_lib_document(kind, id));
+        }
+    }
+    let expected = expected_order(&["macro", "manufacturer", "zz_lib"]);
+    let order = |m: &Model| -> Vec<(String, String)> {
+        m.unknown_lib_documents()
+            .iter()
+            .map(|d| match d {
+                LibDocument::Unknown(v) => kind_and_id(v),
+                other => panic!("not an unknown document: {other:?}"),
+            })
+            .collect()
+    };
+    let forward = load_lib(input.clone()).unwrap();
+    assert_eq!(order(&forward), expected);
+    input.reverse();
+    input.swap(0, 4);
+    let scrambled = load_lib(input).unwrap();
+    assert_eq!(order(&scrambled), expected);
+    assert!(forward.content_eq(&scrambled));
+
+    let low: Id<()> = ID_LOW_FULL.parse().unwrap();
+    assert_eq!(
+        load_lib(vec![
+            unknown_lib_document("zz_lib", ID_LOW_FULL),
+            unknown_lib_document("zz_lib", ID_LOW_FULL)
+        ])
+        .unwrap_err(),
+        ModelError::DuplicateUnknownRecord {
+            kind: "zz_lib".into(),
+            id: low
+        }
+    );
+    assert_eq!(
+        load_lib(vec![
+            unknown_lib_document("macro", ID_LOW_FULL),
+            unknown_lib_document("macro", ID_LOW_FULL)
+        ])
+        .unwrap_err(),
+        ModelError::DuplicateRecord {
+            key: (Kind::Macro, low)
+        }
+    );
+}
+
 /// The indexes of a loaded model equal a fresh rebuild; a few entries are spot-checked.
 #[test]
 fn rebuilt_indexes_equal_loaded_indexes() {
@@ -607,9 +931,8 @@ fn rebuilt_indexes_equal_loaded_indexes() {
 // ---------------------------------------------------------------------------------------------------------
 // Snapshots and settings
 
-/// Cloning a large model is cheap (smoke test, not a benchmark).
-#[test]
-fn clone_is_constant_time_smoke() {
+/// A model with 10 001 structure nodes (and no other record).
+fn large_model() -> Model {
     let (project, _, _) = mini_golden_parts();
     let mut records = vec![Record::StructureNode(structure_node(
         LOC,
@@ -622,15 +945,39 @@ fn clone_is_constant_time_smoke() {
     }
     let m = Model::from_records(project, records, []).unwrap();
     assert_eq!(m.table::<StructureNode>().len(), 10_001);
-    let start = Instant::now();
-    for _ in 0..1_000 {
-        std::hint::black_box(m.clone());
-    }
-    assert!(
-        start.elapsed().as_secs_f64() < 1.0,
-        "1000 clones took {:?}",
-        start.elapsed()
-    );
+    m
+}
+
+/// A clone shares every table, the project row and the unknown records with the original instead of copying them.
+#[test]
+fn clone_shares_structure() {
+    let m = large_model();
+    let c = m.clone();
+    assert!(m.structure.rows.ptr_eq(&c.structure.rows));
+    assert!(m.devices.rows.ptr_eq(&c.devices.rows));
+    assert!(m.functions.rows.ptr_eq(&c.functions.rows));
+    assert!(m.connections.rows.ptr_eq(&c.connections.rows));
+    assert!(m.lib.fndefs.rows.ptr_eq(&c.lib.fndefs.rows));
+    assert!(m.lib.symbols.rows.ptr_eq(&c.lib.symbols.rows));
+    assert!(Arc::ptr_eq(&m.project.value, &c.project.value));
+    assert!(Arc::ptr_eq(&m.unknown, &c.unknown));
+    assert!(Arc::ptr_eq(&m.unknown_lib, &c.unknown_lib));
+}
+
+/// Applying a batch shares the tables it does not touch with the old snapshot.
+#[test]
+fn apply_shares_untouched_tables() {
+    let m = mini_golden();
+    let m1 = m
+        .apply(&[Op::insert(AnyRow::of(new_node(0x20000, LOC)))], Rev(1))
+        .unwrap();
+    assert!(!m.structure.rows.ptr_eq(&m1.structure.rows));
+    assert!(m.devices.rows.ptr_eq(&m1.devices.rows));
+    assert!(m.functions.rows.ptr_eq(&m1.functions.rows));
+    assert!(m.connections.rows.ptr_eq(&m1.connections.rows));
+    assert!(m.lib.fndefs.rows.ptr_eq(&m1.lib.fndefs.rows));
+    assert!(Arc::ptr_eq(&m.project.value, &m1.project.value));
+    assert!(Arc::ptr_eq(&m.unknown, &m1.unknown));
 }
 
 /// The strictness is read from `settings.extra.checks.strictness`; anything unreadable is strict.

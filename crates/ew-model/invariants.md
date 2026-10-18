@@ -41,11 +41,13 @@ This follows doc 05 §6.3 and doc 15 §4.2.
 
 ## 3. Structural invariants
 
-Every row has the class `Structural`. Test functions live in `src/tests/invariants.rs` unless a module is named.
+Every row has the class `Structural`. Test functions live in `src/tests/invariants.rs` unless a module is named
+(`ops::name` is `src/tests/ops.rs`). The test `every_catalogue_rule_has_a_test` checks that every rule of `RULES` has
+a row here, and that every test named in its row exists, with at least one accepting and one rejecting test.
 
 | ID | Class | Statement | Touched keys considered | Tests |
 |----|-------|-----------|-------------------------|-------|
-| EW-INV-001 | Structural | Every link field of a record names an existing record of its target kind (link table in section 4). A removed record has no referrer left. A referrer through a forbid link makes the removal `ModelError::Referenced`. A referrer through a cascade or unlink link is a violation: the transaction must include `Model::delete_plan`. | Outgoing links of every touched record. For every removed key, its referrers through each link (named base index or the generic referrer index). | `inv001_refs_resolve_ok`<br>`inv001_refs_resolve_rejected`<br>`inv001_removed_target_with_cascade_referrer_rejected`<br>`inv001_forbid_referenced`<br>`integrity_check_on_load_rejected` |
+| EW-INV-001 | Structural | Every link field of a record names an existing record of its target kind (link table in section 4). A removed record has no referrer left. A referrer through a forbid link makes the removal `ModelError::Referenced`. A referrer through a cascade or unlink link is a violation: the transaction must include `Model::delete_plan`. | Outgoing links of every touched record. For every removed key, its referrers through each link (named base index or the generic referrer index). | `inv001_refs_resolve_ok`<br>`inv001_refs_resolve_rejected`<br>`inv001_removed_target_with_cascade_referrer_rejected`<br>`inv001_forbid_referenced`<br>`integrity_check_on_load_rejected`<br>`ops::lib_ref_unembedded_target_is_not_a_link`<br>`ops::lib_ref_fndef_copy_in_use_is_referenced`<br>`ops::lib_ref_part_template_fndef_in_use_is_referenced` |
 | EW-INV-002 | Structural | A device that has functions has exactly one function of role Main (FR-DEV-004). A device without functions is allowed in v0. | Touched devices. The old and the new `device` of every touched function. | `inv002_one_main_function_ok`<br>`inv002_zero_functions_ok`<br>`inv002_one_main_function_rejected`<br>`inv002_main_moved_away_rejected` |
 | EW-INV-003 | Structural | `Function.device` is None if and only if the function's kind is `Ip` (ADR-0009 amendment 2). | Touched functions. | `inv003_device_iff_not_ip_ok`<br>`inv003_device_iff_not_ip_rejected`<br>`inv003_ip_with_device_rejected` |
 | CI-01 | Structural | Both endpoints of a connection exist and differ. Existence is reported through EW-INV-001 (the endpoint links). | Touched connections. | `ci01_endpoints_differ_ok`<br>`ci01_endpoints_differ_rejected` |
@@ -56,9 +58,11 @@ Every row has the class `Structural`. Test functions live in `src/tests/invarian
 | EW-INV-007 | Structural | The strip of a terminal is a device with the strip aspect (doc 03, Terminal). | Touched devices with the terminal aspect. `terminals_by_strip` of touched devices. | `inv007_terminal_strip_ok`<br>`inv007_terminal_strip_rejected`<br>`inv007_strip_aspect_removed_rejected` |
 | EW-INV-008 | Structural | Structure node parent chains are acyclic. | The parent chain from every touched structure node. | `inv008_structure_acyclic_ok`<br>`inv008_structure_acyclic_rejected`<br>`inv008_self_parent_rejected` |
 | EW-INV-009 | Structural | Device parent chains are acyclic (the assembly graph, ADR-0009 decision 2). | The parent chain from every touched device. | `inv009_device_acyclic_ok`<br>`inv009_device_acyclic_rejected`<br>`inv009_self_parent_rejected` |
-| EW-INV-010 | Structural | A device with the terminal aspect has neither the strip nor the cable aspect (doc 03, Device). | Touched devices. | `inv010_terminal_aspects_ok`<br>`inv010_terminal_aspects_rejected` |
-| EW-INV-011 | Structural | The parent of a structure node has the same aspect (doc 03, StructureNode). | Touched structure nodes. `structure_children` of touched nodes. | `inv011_structure_same_aspect_ok`<br>`inv011_structure_same_aspect_rejected` |
+| EW-INV-010 | Structural | A device carries at most one of the terminal, strip and cable aspects: a terminal is neither a strip nor a cable, and a strip is neither a terminal nor a cable (doc 03, Device and Strip). | Touched devices. | `inv010_terminal_aspects_ok`<br>`inv010_strip_and_cable_alone_ok`<br>`inv010_terminal_aspects_rejected`<br>`inv010_terminal_cable_rejected`<br>`inv010_strip_cable_rejected`<br>`inv010_aspect_added_by_update_rejected` |
+| EW-INV-011 | Structural | The parent of a structure node has the same aspect (doc 03, StructureNode). | Touched structure nodes. `structure_children` of touched nodes. | `inv011_structure_same_aspect_ok`<br>`inv011_parent_and_children_changed_together_ok`<br>`inv011_structure_same_aspect_rejected`<br>`inv011_parent_aspect_changed_rejected` |
 | EW-INV-012 | Structural | A page of kind Report is never stored. Report pages are generated from report blocks (doc 03, PageType). | Touched pages. | `inv012_no_stored_report_page_ok`<br>`inv012_no_stored_report_page_rejected` |
+| EW-INV-013 | Structural | A function of kind `Ip` has exactly one representation. The representation owns it: the function lives in the page of that representation (doc 05 §2.2, row 32) and `Model::delete_plan` removes it with its last representation. Evaluated at the end of the batch, so `ip.place` may create both in one transaction. | Touched functions. The functions named (`functions[]`, `pin_map[].function`) by the old and the new row of every touched representation. | `inv013_ip_with_one_rep_ok`<br>`inv013_ip_without_rep_rejected`<br>`inv013_second_rep_rejected`<br>`inv013_rep_removed_without_function_rejected`<br>`inv013_rep_repointed_rejected`<br>`ops::delete_plan_ip_representation_cascades_its_function` |
+| EW-INV-014 | Structural | A page-oriented report block (one without `embedded`) has a `first_folio` (doc 03 §6, ReportBlock; doc 09 §2.2). | Touched report blocks. | `inv014_report_block_folio_ok`<br>`inv014_embedded_without_folio_ok`<br>`inv014_report_block_folio_rejected`<br>`inv014_embedded_removed_rejected` |
 
 ## 4. Link table and delete policies
 
@@ -69,6 +73,32 @@ The field-mask test `tests::field_mask` compares both lists with the JSON Schema
 Policies follow doc 03 §4.2. Where doc 03 is silent, the policy is forbid for master data and library copies,
 and unlink for optional cross-references. `cascade` and `unlink` are computed by `Model::delete_plan`.
 Tests for it are in `src/tests/ops.rs`. `apply` never executes them.
+
+**Ownership cascade.** Besides the link policies, `Model::delete_plan` removes an interruption-point function
+together with its last representation (EW-INV-013, doc 05 §2.2 row 32). The function's connections then cascade
+through `connection.a`/`b`, and its potential definitions and bonds are dropped. Tests:
+`delete_plan_page_cascades_page_owned_rows`, `delete_plan_ip_representation_cascades_its_function`,
+`delete_plan_ip_function_cascades_its_representation`, `delete_plan_device_rep_keeps_device_function`.
+
+**`LibRef` links.** `symbol.fndef` and `part.function_template[].fndef` are `LibRef{library, item}`. Within a project
+a `LibRef` resolves to the embedded copy of `(library, item)` (doc 07 §3.1), whose ID is `v5(NS_LIBCOPY, library ‖
+item)` (doc 05 §13.2). The link's target is that copy ID, computed from the referring row alone. The field is a link
+exactly while the copy is embedded (`LinkDecl::lib_ref`):
+
+- while the copy exists, removing it is `ModelError::Referenced`;
+- a `LibRef` to an item the project does not embed is not a dangling reference, so a project opens without its
+  libraries (NFR-REL-11);
+- a second copy minted by "keep both" (`‖ version`) is never the resolution of a `LibRef`.
+
+The decision is deterministic: the index entry depends on the row only, and the link's state on the snapshot only.
+
+**Reading the model.** The untracked read API (`Model::table`, `row`, `lib`, `indexes`, `referrers` and the table
+and index getters) is behind the cargo feature `raw-read` of `ew-model` (ARCH §3 rule 1, ADR-0002 decision 1). Only
+`ew-derive`, `ew-commands` and `ew-store` enable it on a normal dependency edge; `cargo xtask check-features`
+enforces this. Prevent rules do not read the model directly: `PreventHook::check(&Model, &[AnyKey])` is implemented
+by `ew-commands`, which builds the tracked query context from the candidate model through `ew-derive` and calls
+the prevent rules of `ew-checks` with it. `ew-checks` reads through queries only (ADR-0019) and does not enable
+`raw-read`.
 
 Fields are written as `kind.path`. "referrers" means the generic referrer index.
 
@@ -124,6 +154,8 @@ Fields are written as `kind.path`. "referrers" means the generic referrer index.
 | report_block.source_ref.lineage | import_lineage | forbid | referrers |
 | form.title_block | form | forbid | referrers |
 | form.continuation | form | forbid | referrers |
+| symbol.fndef.item (with `.library`) | fndef (copy `v5(NS_LIBCOPY, library ‖ item)`) | forbid, while the copy is embedded | referrers |
+| part.function_template[].fndef.item (with `.library`) | fndef (copy `v5(NS_LIBCOPY, library ‖ item)`) | forbid, while the copy is embedded | referrers |
 
 ### Not links
 
@@ -137,7 +169,10 @@ The following ID-valued fields are not links.
 | import_lineage.anchor.copy.of | the namespace of the original lineage, not a record ID |
 | report_block.manual.include[] / exclude[] | Kind-erased selection; a stale ID selects nothing |
 | report_block.source.sql_query.file | Asset ID of a query file |
-| library_id, item_id, meta.status.deprecated.successor.* of part, symbol, fndef and form; part.manufacturer.*, part.function_template[].fndef.*, symbol.fndef.* | Library identity, or LibRef into an external library |
+| library_id, item_id of part, symbol, fndef and form | Library identity of the copy, not a reference |
+| meta.status.deprecated.successor.* of part, symbol, fndef and form | `LibRef` to a library item offered by "update from library"; never resolved to an embedded copy |
+| part.manufacturer.* | `LibRef` to a manufacturer record, which has no library-copy table in v0 |
+| symbol.fndef.library, part.function_template[].fndef.library | The library half of the `LibRef` links above (the `.item` field carries the link) |
 
 Each kind's own `id` is identity, not a link.
 

@@ -15,6 +15,16 @@
 //!   [`Policy::Unlink`] are computed by [`Model::delete_plan`](crate::Model::delete_plan), which a
 //!   transaction includes (WP-S1.04), and `apply` only verifies the result.
 //!
+//! Two link fields are **`LibRef` links** ([`LinkDecl::lib_ref`]): `symbol.fndef` and
+//! `part.function_template[].fndef` name a library item by `{library, item}`, and within a project such a
+//! reference resolves to the embedded copy of `(library, item)` (doc 07 §3.1), whose ID is
+//! `v5(NS_LIBCOPY, library ‖ item)` (doc 05 §13.2). The target ID is therefore a pure function of the
+//! referring row, and the field is a link exactly while that copy is embedded: an embedded symbol keeps
+//! its FnDef copy alive ([`Policy::Forbid`]), while a reference to an item the project does not carry (an
+//! external library item, a provisional built-in item) names nothing and is not dangling, so a project
+//! still opens without its libraries (NFR-REL-11). Other `LibRef`s (successors, manufacturers) are not
+//! links; see [`NOT_LINKS`].
+//!
 //! [`NOT_LINKS`] lists every other ID-valued member of the persisted schema with the reason it is not a
 //! link. The field-mask test checks `LINKS ∪ NOT_LINKS ∪ {every kind's own id}` against the JSON Schemas
 //! in `schemas/0.1`, so adding an ID field to a record without declaring it fails CI.
@@ -23,7 +33,7 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use ew_ids::Id;
-use ew_schema::{AnyId, ConnectionKind, Endpoint, FunctionKind, Kind, Slot, SourceRef};
+use ew_schema::{AnyId, ConnectionKind, Endpoint, FunctionKind, Kind, LibRef, Slot, SourceRef};
 
 use crate::entity::{AnyKey, AnyRow};
 
@@ -108,6 +118,11 @@ pub struct LinkDecl {
     pub policy: Policy,
     /// The named base index fed by this link, if any.
     pub index: Option<IndexName>,
+    /// A `LibRef` link (module documentation): the target is the embedded copy
+    /// `v5(NS_LIBCOPY, library ‖ item)`, and the field is a link only while that copy exists. A missing
+    /// target is not a violation of EW-INV-001; removing an existing target that is still named is
+    /// [`ModelError::Referenced`](crate::ModelError::Referenced).
+    pub lib_ref: bool,
     pub(crate) targets: TargetsFn,
     pub(crate) unlink: Option<UnlinkFn>,
 }
@@ -139,6 +154,7 @@ impl std::fmt::Debug for LinkDecl {
             .field("to", &self.to)
             .field("policy", &self.policy)
             .field("index", &self.index)
+            .field("lib_ref", &self.lib_ref)
             .finish()
     }
 }
@@ -183,6 +199,15 @@ fn junction(e: &Endpoint, out: &mut Vec<Target>) {
     }
 }
 
+/// The embedded copy a `LibRef` resolves to: `v5(NS_LIBCOPY, library ‖ item)` (doc 05 §13.2). A second copy
+/// minted by "keep both" (`‖ version`) is never the resolution of a `LibRef`.
+fn lib_ref(r: &LibRef, out: &mut Vec<Target>) {
+    out.push(Target::Id(ew_ids::v5::lib_copy_id(
+        r.library.as_uuid(),
+        r.item.as_uuid(),
+    )));
+}
+
 fn gone<T>(del: &BTreeSet<AnyKey>, kind: Kind, id: Id<T>) -> bool {
     del.contains(&(kind, id.cast()))
 }
@@ -199,12 +224,34 @@ macro_rules! link {
             to: Kind::$to,
             policy: Policy::$policy,
             index: $index,
+            lib_ref: false,
             targets: |row, $out| {
                 if let AnyRow::$from($v) = row {
                     $body
                 }
             },
             unlink: $unlink,
+        }
+    };
+}
+
+/// A `LibRef` link to an FnDef copy: forbid, served by the generic referrer index, conditional on the copy
+/// being embedded ([`LinkDecl::lib_ref`]).
+macro_rules! fndef_lib_ref_link {
+    ($from:ident . $field:literal, |$v:ident, $out:ident| $body:expr) => {
+        LinkDecl {
+            from: Kind::$from,
+            field: $field,
+            to: Kind::Fndef,
+            policy: Policy::Forbid,
+            index: None,
+            lib_ref: true,
+            targets: |row, $out| {
+                if let AnyRow::$from($v) = row {
+                    $body
+                }
+            },
+            unlink: None,
         }
     };
 }
@@ -413,6 +460,12 @@ pub static LINKS: &[LinkDecl] = &[
     // library copies
     link!(Form."title_block" -> Form, Forbid, None, |v, out| opt(v.item.title_block, out)),
     link!(Form."continuation" -> Form, Forbid, None, |v, out| opt(v.item.continuation, out)),
+    fndef_lib_ref_link!(Symbol."fndef.item", |v, out| lib_ref(&v.item.fndef, out)),
+    fndef_lib_ref_link!(Part."function_template[].fndef.item", |v, out| {
+        for t in &v.item.function_template {
+            lib_ref(&t.fndef, out);
+        }
+    }),
 ];
 
 /// Every ID-valued schema member that is **not** a link, as `(kind name, field path, reason)`. Each
@@ -456,96 +509,94 @@ pub static NOT_LINKS: &[(&str, &str, &str)] = &[
     (
         "part",
         "library_id",
-        "library identity of the copy (external library)",
+        "library identity of the copy, not a reference",
     ),
-    (
-        "part",
-        "item_id",
-        "library identity of the copy (external library)",
-    ),
+    ("part", "item_id", "library identity of the copy, not a reference"),
     (
         "part",
         "meta.status.deprecated.successor.library",
-        "LibRef into an external library",
+        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
     ),
     (
         "part",
         "meta.status.deprecated.successor.item",
-        "LibRef into an external library",
+        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
     ),
-    ("part", "manufacturer.library", "LibRef into an external library"),
-    ("part", "manufacturer.item", "LibRef into an external library"),
+    (
+        "part",
+        "manufacturer.library",
+        "LibRef to a manufacturer record, which has no library-copy table in v0",
+    ),
+    (
+        "part",
+        "manufacturer.item",
+        "LibRef to a manufacturer record, which has no library-copy table in v0",
+    ),
     (
         "part",
         "function_template[].fndef.library",
-        "LibRef into an external library",
-    ),
-    (
-        "part",
-        "function_template[].fndef.item",
-        "LibRef into an external library",
+        "the library half of the LibRef link part.function_template[].fndef.item (the copy ID is v5(NS_LIBCOPY, library ‖ item))",
     ),
     (
         "symbol",
         "library_id",
-        "library identity of the copy (external library)",
+        "library identity of the copy, not a reference",
     ),
     (
         "symbol",
         "item_id",
-        "library identity of the copy (external library)",
+        "library identity of the copy, not a reference",
     ),
     (
         "symbol",
         "meta.status.deprecated.successor.library",
-        "LibRef into an external library",
+        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
     ),
     (
         "symbol",
         "meta.status.deprecated.successor.item",
-        "LibRef into an external library",
+        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
     ),
-    ("symbol", "fndef.library", "LibRef into an external library"),
-    ("symbol", "fndef.item", "LibRef into an external library"),
+    (
+        "symbol",
+        "fndef.library",
+        "the library half of the LibRef link symbol.fndef.item (the copy ID is v5(NS_LIBCOPY, library ‖ item))",
+    ),
     (
         "fndef",
         "library_id",
-        "library identity of the copy (external library)",
+        "library identity of the copy, not a reference",
     ),
     (
         "fndef",
         "item_id",
-        "library identity of the copy (external library)",
+        "library identity of the copy, not a reference",
     ),
     (
         "fndef",
         "meta.status.deprecated.successor.library",
-        "LibRef into an external library",
+        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
     ),
     (
         "fndef",
         "meta.status.deprecated.successor.item",
-        "LibRef into an external library",
+        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
     ),
     (
         "form",
         "library_id",
-        "library identity of the copy (external library)",
+        "library identity of the copy, not a reference",
     ),
-    (
-        "form",
-        "item_id",
-        "library identity of the copy (external library)",
-    ),
+    ("form", "item_id", "library identity of the copy, not a reference"),
     (
         "form",
         "meta.status.deprecated.successor.library",
-        "LibRef into an external library",
+        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
     ),
     (
         "form",
         "meta.status.deprecated.successor.item",
-        "LibRef into an external library",
+        "LibRef to a library item offered by update from library, never resolved to an embedded copy",
     ),
 ];
 
