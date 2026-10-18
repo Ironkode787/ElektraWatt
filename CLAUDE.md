@@ -37,6 +37,33 @@ Rules:
 6. **Verification is cheap, rework is not:** always end worker tasks with a mechanical check (build, tests, lint,
    link/Mermaid check, ID-existence grep) so failures surface before an Opus review.
 
+## Effort by difficulty (dynamic routing)
+
+Choose **model and effort per task from its expected difficulty**, not per role. When delegating with the Agent
+tool or a workflow `agent()` call, always set both `model` and `effort` from this ladder (this instruction is the
+explicit request that permits setting `effort` on delegated work):
+
+| Level | Difficulty | Signals | Model / effort |
+|---|---|---|---|
+| D1 | Trivial | Mechanical, one file or pattern, fully specified, verifiable by a command | `haiku` / `low` |
+| D2 | Routine | Closed spec, follows an existing pattern, ≤ 3 files, tests or checks exist | `sonnet` / `medium` |
+| D3 | Moderate | Several files or docs, judgment inside a decided design, synthesis of many sources | `sonnet` / `high` |
+| D4 | Hard | Open design choice, core crates, cross-cutting change, debugging without a repro | `opus` / `high` |
+| D5 | Critical | File format, data-loss, safety, concurrency, security, licence boundary, irreversible | `opus` / `xhigh` |
+
+Score with five questions; each "yes" adds a level above D1 (cap D5): Is the spec open (a choice is not yet
+decided)? Does it touch more than 3 files, or a public API/format? Is there no existing pattern to copy? Would a mistake
+be expensive or hard to detect (data, safety, legal)? Is verification weak (no tests/checks)?
+
+- **Escalate on failure:** a task that comes back blocked, fails its verification, or is rejected in review is re-run
+  one level up (with the failed attempt's notes). Two escalations without success → hand to `lead-designer` /
+  `lead-programmer`.
+- **De-escalate on evidence:** when a kind of task succeeds first time at a level three times in a row, start the
+  next one a level lower.
+- **Batch triage:** for fan-outs, score all items in one Haiku/`low` call, then route each item; use
+  `.claude/workflows/routed-tasks.js` (run with Workflow `scriptPath`, `args: {tasks: [{id, prompt, difficulty?}]}`).
+- The main session's own effort is chosen by the user; this ladder governs delegated work.
+
 ## Repository rules
 
 - Commit on the working branch, then merge into `main` and push both (owner's standing instruction).
