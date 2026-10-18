@@ -1,0 +1,4 @@
+key,number,folio_from,folio_to,title,divider
+1,1,100,199,Wiring Definition,true
+2,2,200,299,Pneumatics,true
+9,9,900,999,Nomenclature,true

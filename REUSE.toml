@@ -59,3 +59,10 @@ path = "assets/fonts/**"
 precedence = "aggregate"
 SPDX-FileCopyrightText = ["Copyright 2015 Google Inc. All Rights Reserved.", "2026 The ElektraWatt contributors"]
 SPDX-License-Identifier = "OFL-1.1"
+
+# L8: the golden fixture (19 §2.1 L8, doc 20 §3.1): CSV tables and generated outputs cannot carry a header.
+[[annotations]]
+path = "golden/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
+SPDX-License-Identifier = "CC0-1.0"

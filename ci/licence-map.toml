@@ -400,6 +400,12 @@ allowed = ["CC0-1.0"]
 glob = "crates/*/tests/fixtures/**"
 allowed = ["CC0-1.0"]
 
+# L8 (golden fixture): golden/ holds the anonymised golden project, its tables, generator and expected outputs
+# (19 §2.1 L8, ADR-0024, doc 20 §3.1).
+[[path]]
+glob = "golden/**"
+allowed = ["CC0-1.0"]
+
 # ---------------------------------------------------------------------------------------------------------------
 # L12: CI workflows, scripts and tools (MIT OR Apache-2.0), so that others may copy the gates.
 [[path]]

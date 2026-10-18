@@ -1,0 +1,16 @@
+key,voltage_class,function,potential_type,colour,code
+1,24 VDC,Positive,L+,Dark Blue,DBU
+2,24 VDC,Signal,"signal, 24 V DC",Dark Blue,DBU
+3,24 VDC,0V,M,White,WH
+4,230 VAC,Live,L,Black,BK
+5,230 VAC,Signal,"signal, 230 V AC",Black,BK
+6,230 VAC,Neutral,N,Blue,BU
+7,230 VAC,Earth,PE,Yellow / Green,GNYE
+8,400 VAC,Phase 1,L1,Black,BK
+9,400 VAC,Phase 2,L2,Black,BK
+10,400 VAC,Phase 3,L3,Black,BK
+11,400 VAC,Neutral,N,Blue,BU
+12,400 VAC,Earth,PE,Yellow / Green,GNYE
+13,Analogue Signals,Positive,signal +,Gray,GY
+14,Analogue Signals,Negative,signal −,White,WH
+15,Analogue Signals,Earth,PE,Yellow / Green,GNYE

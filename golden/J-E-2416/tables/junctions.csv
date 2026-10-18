@@ -1,0 +1,7 @@
+key,page,cell,dx,dy,style,wiring,sequence
+J1,101,C11,,,dot,,J1.feed;W13;W14
+J2,101,C13,,,dot,,J2.feed;W15;W16
+J3,102,C6,,,bevel,,J3.1;W20;W21
+J4,102,D7,,,bevel,,J4.1;W24;W25
+J5,102,D5,,,bevel,star,J5.feed;W22;W27.102
+J6,102,D6,,,bevel,star,J6.feed;W23;W26.102

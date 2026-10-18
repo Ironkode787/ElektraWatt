@@ -1,0 +1,14 @@
+key,number,label,section,kind,title,form,function,location,scale,grid
+1,1,,,title_page,Title Page,ew.frame.qet-a4-landscape-nogrid,=P01,+J-E-2416,,qet10
+3,3,,,bus_topology,Bus Topology - Profibus,ew.frame.qet-a4-landscape-grid,=P01,+J-E-2416,,qet10
+101,101,,1,multi_line,Power Supply 1 - Main Current,ew.frame.qet-a4-landscape-grid,=P01,+J-E-2416,,qet10
+102,102,,1,multi_line,Power Supply 2 - Control Current,ew.frame.qet-a4-landscape-grid,=P01,+J-E-2416,,qet10
+103,103,,1,multi_line,Power Supply 3 - Control Current Distribution,ew.frame.qet-a4-landscape-grid,=P01,+J-E-2416,,qet10
+106,106,,1,multi_line,Power Supply 4 - Pneumatics,ew.frame.qet-a4-landscape-grid,=P01,+J-E-2416,,qet10
+201,201,,2,assembly_overview,Valve Manifold Overview 1,ew.frame.qet-a4-landscape-grid,=P01,+J-E-2416,,qet10
+202,202,,2,assembly_overview,Valve Manifold Overview 2,ew.frame.qet-a4-landscape-grid,=P01,+J-E-2416,,qet10
+203,203,,2,fluid,Valve Manifold 1,ew.frame.qet-a4-landscape-grid,=P01,+J-E-2416,,qet10
+204,204,,2,fluid,Valve Manifold 2,ew.frame.qet-a4-landscape-grid,=P01,+J-E-2416,,qet10
+205,205,,2,fluid,Valve Manifold 3,ew.frame.qet-a4-landscape-grid,=P01,+J-E-2416,,qet10
+206,206,,2,fluid,Valve Manifold 4,ew.frame.qet-a4-landscape-grid,=P01,+J-E-2416,,qet10
+902,902,,9,panel_layout,Cabinet Layout,ew.frame.qet-a4-landscape-grid,=P01,+J-E-2416,10,qet10
