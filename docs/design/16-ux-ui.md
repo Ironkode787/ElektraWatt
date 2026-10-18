@@ -519,7 +519,7 @@ the device navigator" (06 §8, D-10).
 - **Modes:** tree, list and table (FR-UI-008), switchable per instance; the page navigator adds a thumbnail mode
   from the cached page thumbnails (FR-UI-005, §14).
 - **Scale:** virtualised to 100,000 rows; scrolling stays inside the frame budget (FR-UI-007, NFR-PERF-15).
-- **Sorting:** natural, by ICU collation (X2 before X10; FR-I18N-010); folios in page order.
+- **Sorting:** natural, by the specified order of `ew-mltext` (X2 before X10; FR-I18N-010); folios in page order.
 - **Badges** are text plus icon: unplaced, frozen, generated, Tbd, spare, finding count ("E 2").
 - **Keyboard:** arrows; Left and Right collapse and expand; Enter opens the main representation; Space toggles
   selection; F2 edits an authored label; Delete runs the domain delete command, with a preview when it cascades;
@@ -1106,7 +1106,7 @@ they rank exact tag matches first, then by score.
 ### 15.2 Navigator flattening and filtering
 
 1. A query keyed on (navigator kind, source revisions) builds an `Arc<NodeTable>` with labels, badges and search
-   keys: case-folded NFC tokens split at word and digit boundaries, plus an ICU natural-sort key.
+   keys: case-folded NFC tokens split at word and digit boundaries, plus the natural-sort key of `ew-mltext`.
 2. The visible list `Vec<(depth, NodeId)>` is a depth-first walk over expanded nodes, rebuilt in O(visible rows) on
    a revision change or expand/collapse; the widget paints only the rows in view.
 3. A node matches when every query token prefixes one of its tokens or a facet matches. Up to 20,000 nodes the

@@ -281,6 +281,9 @@ vectors.
 | Import-lineage namespace | `v5(NS_IMPORT, importer ‖ anchor kind ‖ anchor value)` | `dxf␟sha256␟<64 lower-case hex>` | yes (`ImportLineage.namespace`) |
 | Imported record | `v5(lineage namespace, source_key)` | the source key byte for byte, e.g. `qet:el:<uuid>` | yes |
 
+`ew-ids::v5::lineage_namespace(importer, anchor)` implements the lineage-namespace row; the importer is required in
+lower-case ASCII.
+
 **Worked example.** For the module `0192f3a4-5b6c-7d8e-8f01-23456789abd0`, `plc_channel_id(m, 3) = v5(m,
 "channel␟3")` = `c3cb5781-8135-54b1-8948-9f118e22553d`. For an import lineage anchored on the SHA-256 of an empty
 file, `v5(NS_IMPORT, "dxf␟sha256␟e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")` =

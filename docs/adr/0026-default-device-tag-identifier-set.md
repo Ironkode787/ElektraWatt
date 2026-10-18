@@ -74,6 +74,11 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
 2. **EW-RDS-003 on frozen tags** (2026-10-18; [15 checks](../design/15-checks-revisions-collaboration.md) §4.3).
    The rule reports at **warning** for frozen and new tags alike. A scheme parameter `frozen_severity` lets a company
    lower it for frozen tags.
+3. **Identifier-set data, open items** (2026-10-18; [07](../design/07-symbols-parts-macros.md) open question 12; status
+   unchanged). `ew-rds` ships the sets as data with 37 project-defined category keys, every row `verified = false`.
+   The keys must be aligned with the FnDef library taxonomy when WP-S1.19a / WP-S7.02 define it, and the IEC 60750
+   letters and several 2009/2019 rows await verification against the standards (PQ-08) before the pilot preview.
+   Nothing is decided about the taxonomy itself.
 
 ## Consequences
 

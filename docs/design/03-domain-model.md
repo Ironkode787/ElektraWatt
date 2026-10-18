@@ -914,6 +914,10 @@ optionally a CP:
    child valve:                   =P01+J-E-2416-201U3-Q1
 ```
 
+The canonical aspect order of a full designation is `==`, `=`, `++`, `+`, `&`, `#`, `%`, `-`: the type sign `%` and the
+`#` aspect come after `&` and before the product `-` (decider: core team, fixed by the first implementation,
+`ew-rds::Aspect`).
+
 `ew-rds` parses with a strict IEC 81346 grammar for input and a lenient grammar for imports that keeps
 non-conforming tags as opaque text with a warning (FR-NUM-015). Structure codes are atomic tokens in both strict and
 lenient mode, so "J-E-2416" is never re-parsed into "+J", "-E", "-2416" (FR-PRJ-017).

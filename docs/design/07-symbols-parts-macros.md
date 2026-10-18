@@ -188,7 +188,10 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
 
 **Rules.**
 - **Pens.** `Pen` is one of the house pens 0.13, 0.18, 0.26, 0.42, 0.52 and 1.30 mm, or an explicit `Nm` width.
-  Dash patterns scale with pen width (FR-SYM-003), so the S51 linkage prints dash 1.04 / gap 0.52 mm at 0.26 mm.
+  Dash patterns scale with pen width (FR-SYM-003), so the S51 linkage prints dash 1.04 / gap 0.52 mm at 0.26 mm. The patterns, as dash:gap ratios in units of the pen
+  width, are `Dash42` 4:2, `Dot12` 1:2 and `DashDot` 4:2:1:2 (dash, gap, dot, gap), fixed by `ew-dl`. House pens
+  default to butt caps and miter joins so dashes print at nominal length, and every writer sets the miter limit to 4.0
+  explicitly because PDF defaults to 10 and SVG to 4.
 - **Orientation variants A–H are never stored.** They are derived from the source variant (§4.1, FR-SYM-004), with
   the letter mapping of [06](06-schematic-editor.md) §2.5. Only the contact-image and CP variants are stored as
   extra variants.
@@ -1182,7 +1185,11 @@ The eleven rows this document proposed are in the catalogues:
     QET's maintainers (PQ-34).
 12. **EDZ function-definition mapping.** EPLAN `functiondef` category/group/id values must map to EW FnDefs.
     *Recommendation:* ship a mapping table as data; unknown IDs fall back to a generic black-box FnDef with a review
-    list in the import report.
+    list in the import report. *Note (2026-10-18):* `ew-rds` ships its identifier sets as data
+    (`crates/ew-rds/data/identifier-sets.toml`) with 37 project-defined category keys, every row `verified = false`.
+    The category keys must be aligned with the FnDef library taxonomy when WP-S1.19a / WP-S7.02 define it, and the
+    IEC 60750 letters and several 2009/2019 rows await verification against the standards (PQ-08) before the pilot
+    preview. Nothing is decided about the taxonomy itself.
 13. **Quality profiles per category.** The criteria of §3.4 are EW defaults. *Recommendation:* ship them as
     editable data per category and confirm the "production-ready" criteria with the pilot's shop policies (PQ-22).
 14. **QET-grid edition of the starter set.** Golden A is on the QET 10 px grid (20 §2.1), FR-SYM-007 requires it to

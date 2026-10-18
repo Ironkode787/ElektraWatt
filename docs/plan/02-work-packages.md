@@ -790,7 +790,7 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Field | Value |
 |---|---|
 | Objective | Build the value types every other crate relies on, in the permissive layer. |
-| Scope in | `ew-units` (Nm, rational grid, Orient2, Pose3, Dec3); `ew-ids` (UUIDv7/v5, interner); `ew-mltext` (MlText, NFC, confusables, ICU natural sort); `ew-rds` (IEC 81346 strict and lenient grammar, identifier sets EN 81346-2:2009, IEC 81346-2:2019, IEC 60750 as data) |
+| Scope in | `ew-units` (Nm, rational grid, Orient2, Pose3, Dec3); `ew-ids` (UUIDv7/v5, interner); `ew-mltext` (MlText, NFC, confusables, specified natural sort); `ew-rds` (IEC 81346 strict and lenient grammar, identifier sets EN 81346-2:2009, IEC 81346-2:2019, IEC 60750 as data) |
 | Scope out | Numbering rules (WP-S1.11) |
 | Deliverables | Four published-quality crates with docs and property tests |
 | Depends on | — (can start at month 0) |

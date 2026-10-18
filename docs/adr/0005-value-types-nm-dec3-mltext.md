@@ -59,6 +59,17 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    and static-text rotations follow Qt's clockwise-positive convention and are negated by the importer. `Orient2`
    keeps its clockwise Rn (QET element `orientation`), so R90 corresponds to `Angle2(270_000)`. `ew-dl`'s
    deterministic helpers implement the rotation; `ew-units` only stores the value.
+3. **Natural order without ICU** (2026-10-18, project owner (delegated, 2026-10-18);
+   [architecture](../design/04-architecture.md) §3, [02b](../design/02b-requirements-extended.md) FR-I18N-010).
+   `ew-mltext` implements a *specified, deterministic natural order* instead of ICU collation. **Primary level:** NFD
+   with accents stripped, lower-cased; ASCII digit runs compare by value; character classes order white space <
+   punctuation < symbols < digits < letters (the Unicode collation root order). **Secondary level:** accents and
+   leading zeros. **Tertiary level:** case, upper case first. Keys are byte-comparable, and equal keys mean equal NFC
+   text. *Why:* `icu` 2.3.1 declares `rust-version` 1.88, above the permissive crates' MSRV 1.85 (NFR-MAINT-03); it
+   pulls about twenty crates into a format crate that third parties use to read and write files; and ICU table
+   updates would silently reorder sort keys, whereas a specified order is stable across EW versions and platforms
+   (NFR-I18N-03, NFR-REL-07). ICU stays available for language-sensitive *display* sorting in the GPL query layer
+   (`ew-derive` already lists icu). The `ew-mltext` row of the architecture drops icu from its dependencies.
 
 ## Consequences
 

@@ -428,7 +428,7 @@ report_pages(block):
 - **Filters** are typed predicates over row columns or source entities (`location within +J-E-2416`,
   `state != Deactivated`, `has_part`) or a pure rhai expression. Manual include and exclude lists hold entity IDs and
   survive renumbering (FR-REP-027). Example: a BOM block filtered to `+J-E-2416` omits the `+FIELD` process valves.
-- **Sorting** uses ICU collation with numeric ordering in the project's *source* language, independent of OS locale
+- **Sorting** uses the specified natural order of `ew-mltext` (numeric runs by value; ADR-0005 amendment 3; ICU only for language-sensitive display sorting) in the project's *source* language, independent of OS locale
   and display language, so every language export sorts identically (FR-I18N-010, NFR-I18N-03). The reference BOM's
   ASCII order ("+" < "-" < digits) cannot occur.
 - **Grouping** keys a page set per strip, cable, station, location or section (EPLAN's function-related reports).
@@ -555,6 +555,9 @@ surface, carriers, placements, features and dims plus frame, labels, tables and 
 | `revision` | revision clouds and marks (1.0) | — | page change status ([15](15-checks-revisions-collaboration.md) §5.6, §5.8) |
 | `highlights` | screen only, never exported | — | session |
 
+Layers paint from bottom to top in the table order: frame, symbols, wires, labels, tables, revision, highlights; panel
+pages paint surface, carriers, placements, features, dims, then frame, labels, tables, highlights.
+
 The frame layer of folio 103 depends on Prev/Next (102 and 106) and project data, so a wire edit on 103 never
 rebuilds its title block, and renumbering 103 → 104 rebuilds only the title blocks of 102, 104 and 106 (plus the
 `labels` layers that print "103-…" xrefs or the strip tags -X1031/-X1032, §8.2). The page-to-sheet transform of the
@@ -571,7 +574,7 @@ sequential assembly in page order (FR-OUT-001, ARCH §2).
 | `Glyphs(ShapedRun)` | glyph run from the shared shaping result, subset-embedded font, text with real space glyphs for extraction | FR-OUT-008, D-33 |
 | `Image`, SVG asset | raster image; SVG logos as vectors via krilla-svg | FR-SYM-025 |
 | `Instance(symbol, transform)` | the symbol's paths under the instance transform | — |
-| `LinkSource` | link annotation over the xref text's bounding box → named destination | FR-OUT-005, FR-XRF-019 |
+| `LinkSource` | link annotation over the xref text's bounding box (the `layout_box` of its `ShapedRun`: advance × ascent/descent in run space, filled by `ew-text`) → named destination | FR-OUT-005, FR-XRF-019 |
 | `LinkTarget` | named destination at the anchor (XYZ, zoom unchanged) | FR-OUT-007 |
 | Row `LinkRef` | link annotation per linked cell (BOM folio, wire ends, PLC xref, TOC rows) | FR-REP-042 |
 | `page_order` + sections | outline: front matter, "Section 1 – Wiring Definition" → 100 … 106, "Section 2 – Pneumatics", "Section 9 – Nomenclature"; each entry "101 Power Supply 1 - Main Current"; optional structure level | FR-OUT-004 |
