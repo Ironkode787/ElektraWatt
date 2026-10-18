@@ -13,7 +13,7 @@
 use std::sync::Arc;
 
 use ew_ids::Id;
-use ew_schema::{Endpoint, Function, LibCopy, Page, Representation, SymbolDef};
+use ew_schema::{Connection, Endpoint, Function, LibCopy, Page, Representation, SymbolDef};
 use ew_units::{Grid, Nm, Pt2};
 
 use crate::error::CmdError;
@@ -269,6 +269,46 @@ pub fn require_on_grid(tx: &TxBuilder<'_>, page: Id<Page>, pos: Pt2, field: &str
         grid_name(grid),
         nearest(grid, pos)
     ))
+}
+
+/// D3 for a split point: the point at which a junction is placed on connection `w` (drawn on `page`) by
+/// `connection.draw` or a `device.place` hint. It is accepted when it is on the grid like any position
+/// ([`require_on_grid`]), or, per coordinate that is off the grid, when that coordinate is the constant
+/// coordinate of an axis-aligned segment of `w`'s route that contains the point and equals that
+/// coordinate of one of `w`'s ends at a CP drawn on `page`: the CP-exact rule of [`require_route`] (a CP
+/// can sit up to 1 nm off a rational grid, and the wire leaving it keeps that coordinate), so such a wire
+/// stays branchable. No other tolerance applies. A point that is not on the route is left to the split
+/// itself to refuse. `field` is the JSON Pointer of the point.
+pub fn require_split_point(
+    tx: &TxBuilder<'_>,
+    w: &Connection,
+    page: Id<Page>,
+    at: Pt2,
+    field: &str,
+) -> Result<(), CmdError> {
+    let grid = tx.require::<Page>(page)?.grid;
+    if point_in_range(at) {
+        let exact: Vec<Pt2> = [&w.a, &w.b]
+            .into_iter()
+            .filter_map(|e| match e {
+                Endpoint::Cp(function, idx) => cp_position(tx, *function, *idx, page),
+                _ => None,
+            })
+            .collect();
+        // Whether `at` lies on a segment of the route that stays at coordinate `c` of `axis`.
+        let on_constant = |axis: fn(Pt2) -> Nm, c: Nm| {
+            w.route
+                .windows(2)
+                .any(|s| on_segment(at, s[0], s[1]) && axis(s[0]) == c && axis(s[1]) == c)
+        };
+        let ok_x = on_grid(grid, at.x) || (exact.iter().any(|c| c.x == at.x) && on_constant(|p| p.x, at.x));
+        let ok_y = on_grid(grid, at.y) || (exact.iter().any(|c| c.y == at.y) && on_constant(|p| p.y, at.y));
+        if ok_x && ok_y {
+            return Ok(());
+        }
+    }
+    // Not accepted: it is out of range or off the grid, which `require_on_grid` refuses with the remedy.
+    require_on_grid(tx, page, at, field)
 }
 
 /// D3 for a route given to `connection.draw` or `connection.route` on `page` (an empty route has no

@@ -20,7 +20,9 @@ use serde::{Deserialize, Serialize};
 use crate::command::{Command, Outcome};
 use crate::commands::common::EndpointParam;
 use crate::error::CmdError;
-use crate::geometry::{OutOfRange, add, follow_end, rep_cps_checked, require_on_grid, sub, translate};
+use crate::geometry::{
+    OutOfRange, add, follow_end, rep_cps_checked, require_on_grid, require_split_point, sub, translate,
+};
 use crate::meta::CommandMeta;
 use crate::proxy::{IdentS, MlTextS, Orient2S, Pt2S, UuidS};
 use crate::tx::TxBuilder;
@@ -388,7 +390,7 @@ fn split_for_hint(
             "connection {connection} has no page, so a junction cannot be placed on it; give it a page first"
         ));
     };
-    require_on_grid(tx, page, at, field)?;
+    require_split_point(tx, &w, page, at, field)?;
     let junction: Id<Junction> = tx.mint();
     tx.insert(Junction {
         id: junction,

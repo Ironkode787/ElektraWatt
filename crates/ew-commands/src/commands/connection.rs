@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 use crate::command::{Command, Outcome};
 use crate::commands::common::EndpointParam;
 use crate::error::CmdError;
-use crate::geometry::{require_on_grid, require_route};
+use crate::geometry::{require_on_grid, require_route, require_split_point};
 use crate::meta::CommandMeta;
 use crate::normalise::split_connection;
 use crate::proxy::{Dec3S, IdentS, Orient2S, Pt2S, UuidS};
@@ -51,7 +51,7 @@ fn resolve_end(
                      give it a page first"
                 ));
             };
-            require_on_grid(tx, page, *at, &format!("{field}/on_connection/at"))?;
+            require_split_point(tx, &w, page, *at, &format!("{field}/on_connection/at"))?;
             let junction: Id<Junction> = tx.mint();
             tx.insert(Junction {
                 id: junction,

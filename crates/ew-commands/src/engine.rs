@@ -500,7 +500,24 @@ impl Engine {
     /// preview from another engine or session, or from before the model was replaced, always takes the
     /// re-run path: its command is validated against this engine's registry and run on the current model,
     /// so a foreign candidate never replaces the model.
+    ///
+    /// The commit is submitted as the preview was for a preview of this engine and generation; a foreign
+    /// preview is committed from this engine's default origin (its own origin and context mean nothing
+    /// here), so exposure is judged by the committing side. [`Engine::commit_with`] names the submission.
     pub fn commit(&mut self, preview: Preview) -> Result<Receipt, CmdError> {
+        let ours = preview.base.engine == self.id && preview.base.generation == self.generation;
+        let submit = if ours {
+            preview.submit.clone()
+        } else {
+            self.default_submit()
+        };
+        self.commit_with(preview, submit)
+    }
+
+    /// [`Engine::commit`] with an explicit submission of the committing side: the exposure of the command
+    /// is judged by `submit.origin` (also on the paths that apply a prepared candidate, where the
+    /// preview's own origin is not trusted), and `submit` is what the history step records.
+    pub fn commit_with(&mut self, preview: Preview, submit: Submit) -> Result<Receipt, CmdError> {
         let Preview {
             candidate,
             ops,
@@ -508,7 +525,6 @@ impl Engine {
             base,
             command,
             meta,
-            submit,
             outcome,
             created,
             passes,
@@ -516,6 +532,13 @@ impl Engine {
         } = preview;
         let base_rev = base.rev;
         let ours = base.engine == self.id && base.generation == self.generation;
+        if ours && !meta.exposure.allows(&submit.origin) {
+            return Err(CmdError::Exposure {
+                command: meta.name.into(),
+                exposure: meta.exposure,
+                origin: submit.origin,
+            });
+        }
         if ours && base_rev == self.model.rev() {
             let prepared = Prepared {
                 candidate,

@@ -29,8 +29,10 @@
 //! therefore behind the cargo feature **`raw-read`**, off by default:
 //!
 //! - gated: `Model::table`, `lib`, `indexes`, `row`, `contains`, `referrers`, `project`, `project_row`,
-//!   `unknown_records`, `unknown_lib_documents` and `delete_plan` (its ops carry the current rows as
-//!   `before`, so it reads the model like `row` does); the getters of [`Table`], [`LibraryCopies`] and
+//!   `unknown_records`, `unknown_lib_documents`, `delete_plan` and `delete_plan_many` (their ops carry the
+//!   current rows as `before`, so they read the model like `row` does) and `apply_unchecked` (the planning
+//!   snapshot of a transaction in progress, which runs the ops without the invariant check and returns the
+//!   resulting model, so it exposes every row); the getters of [`Table`], [`LibraryCopies`] and
 //!   [`BaseIndexes`], and `BaseIndexes::rebuild`;
 //! - always public: [`Model::from_records`], [`Model::apply`], [`Model::apply_with`],
 //!   [`Model::integrity_check`], [`Model::content_eq`], [`Model::rev`], [`Model::strictness`],
