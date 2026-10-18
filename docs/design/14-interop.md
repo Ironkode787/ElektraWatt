@@ -153,7 +153,7 @@ pub struct Limits {                    // §11; a violation refuses the file or 
     pub max_xml_depth: u32,            // 256
     pub max_xml_nodes: u32,            // 10 million elements and texts; attributes have their own limits
     pub max_attribute_bytes: usize,    // 16 MiB per attribute value
-    pub max_attributes_per_element: u32,      // 65,536
+    pub max_attributes_per_element: u32,      // 8,192 (roxmltree checks duplicates quadratically per element)
     pub max_attributes_per_document: u32,     // 1,048,576
     pub max_report_entries_per_definition: u32, // 1,000; the rest summarised in one EW-IMP-001 entry
 }
@@ -1191,7 +1191,7 @@ allocator of [18](18-quality-security-release.md) §3.12. The per-parser values:
 
 | Parser | Limits beyond NFR-SEC-02 |
 |---|---|
-| XML (QET, parts XML, AML, GSDML, IODD, BMEcat) | DTD refused (no internal or external entities, no XInclude); depth ≤ 256; attribute value ≤ 16 MiB; base64 payload ≤ 64 MiB decoded; decoded images ≤ 16,384 × 16,384 px; ≤ 65,536 attributes per element and ≤ 1,048,576 per document; ≤ 10 million nodes per document, counting elements and texts (attributes count against the attribute limits) |
+| XML (QET, parts XML, AML, GSDML, IODD, BMEcat) | DTD refused (no internal or external entities, no XInclude); depth ≤ 256; attribute value ≤ 16 MiB; base64 payload ≤ 64 MiB decoded; decoded images ≤ 16,384 × 16,384 px; ≤ 8,192 attributes per element and ≤ 1,048,576 per document; ≤ 10 million nodes per document, counting elements and texts (attributes count against the attribute limits) |
 | Archives (EDZ 7z/ZIP, QETZ, `.ewz`, XLSX) | ≤ 100,000 entries; ≤ 2 GiB expanded; ≤ 512 MiB per entry; ratio ≤ 200 : 1 per entry; names with `..`, absolute or drive paths, `\`, `:` or NUL rejected; symlink and encrypted entries refused; 7z solid block ≤ 512 MiB |
 | DXF | file ≤ 512 MiB; ≤ 5 million entities; block nesting ≤ 32; INSERT/MINSERT expansion ≤ 10 million primitives; spline control points ≤ 100,000; coordinates finite and within ±2^62 nm after scaling |
 | CSV, XLSX | ≤ 1,000,000 rows; ≤ 1,024 columns; cell ≤ 32 KiB; formulas never evaluated |
