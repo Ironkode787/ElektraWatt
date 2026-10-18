@@ -15,6 +15,7 @@ mod deps;
 mod features;
 mod governance;
 mod licence;
+mod raw_read;
 mod repo;
 mod symbols;
 mod workflows;
@@ -31,6 +32,7 @@ commands:
   check-deps           crate-dependency rules of ARCH §3 (policy: ci/dep-rules.toml)
   check-build-scripts  every package with a build script is allowlisted (ci/build-scripts.allowlist)
   check-features       banned features and crates only on dev edges (ci/dep-rules.toml: banned_features)
+  check-raw-read       no raw read of ew-model outside its readers (ci/dep-rules.toml: raw_read)
   check-workflows      actions pinned by commit SHA, read-only default token, no pull_request_target,
                        credential-free checkouts, secrets only in `release` (.github/workflows/)
   check-licence-map    path licences, collective notice, crate licences, permissive-layer licence boundary
@@ -58,6 +60,7 @@ fn main() -> ExitCode {
         "check-deps" => run_check("check-deps", check_deps),
         "check-build-scripts" => run_check("check-build-scripts", check_build_scripts),
         "check-features" => run_check("check-features", check_features),
+        "check-raw-read" => raw_read::run(&workspace_root()),
         "check-workflows" => run_check("check-workflows", check_workflows),
         "check-licence-map" => run_check("check-licence-map", check_licence_map),
         "check-anonymisation" => match args.get(1).map(String::as_str) {
@@ -193,6 +196,10 @@ fn check_features() -> Result<Violations> {
         crates: &policy.banned_crates,
     };
     Ok(features::check(&rules, &features::from_metadata(&metadata()?)))
+}
+
+fn check_raw_read() -> Result<Violations> {
+    raw_read::violations(&workspace_root())
 }
 
 fn check_workflows() -> Result<Violations> {
@@ -357,9 +364,10 @@ fn ci() -> Result<bool> {
             &["test", "--doc", "--workspace", "--all-features", "--locked"],
         ),
     ];
-    let checks: [Check; 7] = [
+    let checks: [Check; 8] = [
         ("check-deps", check_deps),
         ("check-features", check_features),
+        ("check-raw-read", check_raw_read),
         ("check-build-scripts", check_build_scripts),
         ("check-workflows", check_workflows),
         ("check-licence-map", check_licence_map),

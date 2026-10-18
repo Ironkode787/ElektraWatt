@@ -98,7 +98,10 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 ]
 "ew-viewmodel" = ["ew-api"]
 "ew-ui" = ["ew-viewmodel", "ew-render2d", "ew-render-cpu", "ew-render3d"]
-"ew-testkit" = ["ew-import-tables"]
+# The synthetic S-XL generator (WP-S1.05) emits records and builds the model snapshot.
+"ew-testkit" = [
+  "ew-import-tables", "ew-model", "ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds",
+]
 "elektrawatt" = ["ew-ui", "ew-print"]
 "ew" = ["ew-api", "ew-print"]
 "ew-step-worker" = ["ew-step-proto"]
@@ -109,6 +112,9 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 # ew-commands' own integration tests enable its `testkit` feature (row dumps, `Preview::ops`, history ops),
 # which is crate-private otherwise (ARCH §3 rule 1).
 "ew-commands" = ["ew-commands"]
+# ew-testkit's tests and benches load generated projects through the Session facade and run commands
+# (WP-S1.05 benchmark harness).
+"ew-testkit" = ["ew-api", "ew-commands"]
 
 # ew-derive's agreement tests compare its main-representation and tag rules with the numbering of ew-commands.
 "ew-derive" = ["ew-commands"]
@@ -179,3 +185,21 @@ crate = "ew-import-qet"
 only_direct_dependents = ["ew-api"]
 never_reached_from = ["ew-plugin-host", "@permissive"]
 reason = "ADR-0024 decision 4 (QET-derived code)"
+
+# `cargo xtask check-raw-read` (ADR-0001 amendment 2, decision log ID-50, FT-01): the non-test Rust source of a
+# workspace package outside `readers` must not invoke the `raw_read!` macro, name the `raw-read` feature, or call
+# an item that ew-model declares only under that feature. The gated items are read from ew-model's own source,
+# so a newly gated reader is covered without a list to maintain. Test code is exempt: the `tests/`, `benches/`
+# and `examples/` directories and `#[cfg(test)]` items and modules. A false positive gets an `[[raw_read.allow]]`
+# entry (file, item, reason); inline suppressions are not honoured, and an entry that matches nothing fails.
+[raw_read]
+crate = "ew-model"
+feature = "raw-read"
+macro = "raw_read"
+readers = ["ew-model", "ew-derive", "ew-commands", "ew-store"]
+# The guard's own source names the feature and the macro.
+exempt_packages = ["xtask"]
+# [[raw_read.allow]]
+# path = "crates/ew-example/src/lib.rs"   # relative to the workspace root, forward slashes
+# item = "parts"                          # a gated item name, "raw_read!" or "raw-read"
+# reason = "a third-party Parts type, not ew-model's LibraryCopies"

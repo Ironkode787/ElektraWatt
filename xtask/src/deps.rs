@@ -38,6 +38,9 @@ pub struct Policy {
     /// Crates that may only be dev-dependencies (`cargo xtask check-features`).
     #[serde(default)]
     pub banned_crates: Vec<String>,
+    /// The source-level guard for a gated feature's readers (`cargo xtask check-raw-read`).
+    #[serde(default)]
+    pub raw_read: Option<crate::raw_read::RawReadPolicy>,
 }
 
 /// Layer membership of the workspace packages.

@@ -188,6 +188,9 @@ jobs:
         run: cargo vet --locked
       - name: dependency rules
         run: cargo xtask check-deps
+      # ADR-0001 amendment 2 (FT-01, ID-50): no raw read of ew-model in non-test source outside its readers.
+      - name: raw-read source guard
+        run: cargo xtask check-raw-read
       # CI-PR-09 feature bans: testkit, test-confirm, inspection, unchecked and egui_mcp on non-test edges only.
       - name: feature bans
         run: cargo xtask check-features
