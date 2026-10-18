@@ -86,13 +86,19 @@ pub struct Limits {
 
 impl Limits {
     /// The limits for a standalone element definition: the defaults with `max_input_bytes` of 16 MiB
-    /// (16,777,216).
+    /// (16,777,216), `max_xml_attributes` of 131,072 and `max_xml_nodes` of 262,144.
     ///
-    /// A standalone QET element definition is kilobytes. The 512 MiB default stays that of project files,
-    /// whose importer reads them under its own time and memory budget.
+    /// A standalone QET element definition is kilobytes and has at most hundreds of primitives. The 512 MiB
+    /// input, 1,048,576 attributes and 1,000,000 nodes stay those of project files, whose importer reads
+    /// them under its own time and memory budget. The two counts are lowered because, under the general
+    /// defaults, a 16 MiB element file of about 349,000 three-attribute `<text>` primitives imported in
+    /// 0.7 s but allocated about 0.5 GB extra, twice the 256 MB budget of doc 14 §11 (review N7). Under the
+    /// preset about 44,000 such primitives fit, well under 100 MiB extra.
     pub fn element_definition() -> Limits {
         Limits {
             max_input_bytes: 16 * 1024 * 1024,
+            max_xml_attributes: 131_072,
+            max_xml_nodes: 262_144,
             ..Limits::default()
         }
     }

@@ -562,7 +562,8 @@ fn fixed_lineage() -> LineageInfo {
 fn more_than_65535_terminals_are_refused() {
     let src = ElementSource::new("big.elmt", None).unwrap();
     let project = Id::from_uuid(PROJECT);
-    let limits = Limits::element_definition();
+    // The project-file default: 65,535 terminals of 3 attributes exceed the element preset's attribute cap.
+    let limits = Limits::default();
     let err = read_element(
         &definition_with_terminals(65_536),
         &src,

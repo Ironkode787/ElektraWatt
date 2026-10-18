@@ -10,16 +10,18 @@ use std::fmt::Write as _;
 use std::time::{Duration, Instant};
 
 use ew_ids::{Id, Uuid};
-use ew_import_qet::QetElementImporter;
 use ew_import_qet::decimal::Decimal;
 use ew_import_qet::prims::shapes::polygon;
 use ew_import_qet::prims::{Parsed, PrimCtx};
 use ew_import_qet::xml::{LineIndex, prescan};
+use ew_import_qet::{ElementImport, ElementSource, QetElementImporter, read_element};
 use ew_import_qet::{
     MAX_ENTRIES_PER_DEFINITION, MAX_UNSUPPORTED_STYLE_PAIRS_KEPT, MAX_UNSUPPORTED_STYLE_PAIRS_PER_DEFINITION,
 };
-use ew_interop_api::{Code, ImportBatch, ImportContext, ImportError, ImportInput, Importer, Limits};
-use ew_schema::{LibDocument, Primitive};
+use ew_interop_api::{
+    Code, ImportBatch, ImportContext, ImportError, ImportInput, Importer, Limits, LineageInfo,
+};
+use ew_schema::Primitive;
 
 /// The time a hostile input may take: 1 s in release (doc 14 §11), with slack for debug builds.
 fn budget() -> Duration {
@@ -39,9 +41,23 @@ fn timed_import(text: &str) -> (Result<ImportBatch, ImportError>, Duration) {
     (result, start.elapsed())
 }
 
+/// Reads `text` as an element definition directly under `limits` (the importer always applies the
+/// element-definition preset, so the project-file default is reachable only this way) and returns the
+/// result with the time it took.
+fn timed_read(text: &str, limits: &Limits) -> (Result<ElementImport, ImportError>, Duration) {
+    let src = ElementSource::new("x.elmt", None).unwrap();
+    let lineage = LineageInfo {
+        id: Id::from_uuid(Uuid::from_u128(1)),
+        namespace: Uuid::from_u128(2),
+    };
+    let start = Instant::now();
+    let result = read_element(text, &src, &lineage, Id::from_uuid(Uuid::from_u128(1)), limits);
+    (result, start.elapsed())
+}
+
 /// The shared checks of the two finding-flood tests.
 fn check_flood(text: &str, name: &str) {
-    const CHILDREN: usize = 200_000;
+    const CHILDREN: usize = 100_000;
     let (result, elapsed) = timed_import(text);
     eprintln!("{name}: {elapsed:?}");
     assert!(elapsed < budget(), "{name} took {elapsed:?}");
@@ -49,9 +65,9 @@ fn check_flood(text: &str, name: &str) {
     assert_eq!(report.entries.len(), MAX_ENTRIES_PER_DEFINITION + 1);
     let last = report.entries.last().unwrap();
     assert_eq!(last.code, Code::LIMIT);
-    // 200 000 unsupported elements and one black-box finding, of which 1 000 are listed.
+    // 100 000 unsupported elements and one black-box finding, of which 1 000 are listed.
     let suppressed = CHILDREN + 1 - MAX_ENTRIES_PER_DEFINITION;
-    assert_eq!(suppressed, 199_001);
+    assert_eq!(suppressed, 99_001);
     assert!(
         last.message
             .starts_with(&format!("{suppressed} further findings")),
@@ -67,11 +83,11 @@ fn check_flood(text: &str, name: &str) {
     assert_eq!(report.entries[k].location.as_ref().unwrap().line, Some(expected));
 }
 
-/// C1: 200 000 unsupported root children give a capped, linear report.
+/// C1: 100 000 unsupported root children give a capped, linear report.
 #[test]
 fn many_root_findings_are_linear() {
     let mut text = String::from("<definition type=\"element\">\n");
-    for _ in 0..200_000 {
+    for _ in 0..100_000 {
         text.push_str("<x/>\n");
     }
     text.push_str("</definition>");
@@ -82,7 +98,7 @@ fn many_root_findings_are_linear() {
 #[test]
 fn many_description_findings_are_linear() {
     let mut text = String::from("<definition type=\"element\"><description>\n");
-    for _ in 0..200_000 {
+    for _ in 0..100_000 {
         text.push_str("<x/>\n");
     }
     text.push_str("</description></definition>");
@@ -196,7 +212,8 @@ fn attribute_flood_across_elements_is_refused() {
         text.push_str(&element);
     }
     text.push_str("</definition>");
-    let (result, elapsed) = timed_import(&text);
+    // 1,048,592 attributes: over the project-file default (the element preset refuses far earlier).
+    let (result, elapsed) = timed_read(&text, &Limits::default());
     eprintln!("attribute_flood_across_elements_is_refused: {elapsed:?}");
     assert!(elapsed < budget(), "took {elapsed:?}");
     assert_eq!(
@@ -258,8 +275,10 @@ fn flood_text(count: usize, attrs: usize) -> String {
 /// check of the parser can run.
 #[test]
 fn attribute_work_flood_is_refused_before_parsing() {
+    // 1,036,800 attributes: under the default count, so the work budget is what refuses it (the element
+    // preset would refuse the count first).
     let text = flood_text(128, 8_100);
-    let (result, elapsed) = timed_import(&text);
+    let (result, elapsed) = timed_read(&text, &Limits::default());
     eprintln!("attribute_work_flood_is_refused_before_parsing: {elapsed:?}");
     assert_eq!(
         result.err(),
@@ -274,15 +293,26 @@ fn attribute_work_flood_is_refused_before_parsing() {
     }
 }
 
-/// N2: a moderate attribute work (1 000 x 200^2 = 40 000 000, below 2^26) still imports in time.
+/// N2: a moderate attribute work (1 000 x 200^2 = 40 000 000, below 2^26) still imports in time under the
+/// project-file default (200,000 attributes, over the element preset's count).
 #[test]
 fn many_moderate_elements_import_within_budget() {
     let text = flood_text(1_000, 200);
-    let (result, elapsed) = timed_import(&text);
+    let (result, elapsed) = timed_read(&text, &Limits::default());
     eprintln!("many_moderate_elements_import_within_budget: {elapsed:?}");
     assert!(elapsed < budget(), "took {elapsed:?}");
-    let report = result.unwrap().report;
-    assert!(report.entries.len() <= MAX_ENTRIES_PER_DEFINITION + 1);
+    assert!(result.unwrap().entries.len() <= MAX_ENTRIES_PER_DEFINITION + 1);
+}
+
+/// N2/N7: the same shape under the element preset (500 x 200^2 = 20 000 000, 100,000 attributes) imports
+/// through the importer in time.
+#[test]
+fn moderate_elements_under_the_element_preset_import_within_budget() {
+    let text = flood_text(500, 200);
+    let (result, elapsed) = timed_import(&text);
+    eprintln!("moderate_elements_under_the_element_preset_import_within_budget: {elapsed:?}");
+    assert!(elapsed < budget(), "took {elapsed:?}");
+    assert!(result.unwrap().report.entries.len() <= MAX_ENTRIES_PER_DEFINITION + 1);
 }
 
 /// `count` unsupported root children without whitespace between them (which would add text nodes).
@@ -293,16 +323,16 @@ fn node_flood_text(count: usize) -> String {
     text
 }
 
-/// N3: a node count just under the default limit imports, with a capped report.
+/// N3: a node count just under the project-file default imports, with a capped report.
 #[test]
 fn nodes_just_under_the_default_import_within_budget() {
     let text = node_flood_text(999_000);
-    let (result, elapsed) = timed_import(&text);
+    let (result, elapsed) = timed_read(&text, &Limits::default());
     eprintln!("nodes_just_under_the_default_import_within_budget: {elapsed:?}");
     assert!(elapsed < budget(), "took {elapsed:?}");
-    let report = result.unwrap().report;
-    assert_eq!(report.entries.len(), MAX_ENTRIES_PER_DEFINITION + 1);
-    assert_eq!(report.entries.last().unwrap().code, Code::LIMIT);
+    let entries = result.unwrap().entries;
+    assert_eq!(entries.len(), MAX_ENTRIES_PER_DEFINITION + 1);
+    assert_eq!(entries.last().unwrap().code, Code::LIMIT);
 }
 
 /// N3: more nodes than the default limit are refused by the pre-scan, not by the parser.
@@ -314,10 +344,54 @@ fn node_flood_is_refused_by_the_prescan() {
         limit: 1_000_000,
     };
     assert_eq!(prescan(&text, &Limits::default()), Err(expected.clone()));
-    let (result, elapsed) = timed_import(&text);
+    let (result, elapsed) = timed_read(&text, &Limits::default());
     eprintln!("node_flood_is_refused_by_the_prescan: {elapsed:?}");
     assert_eq!(result.err(), Some(expected));
     assert!(elapsed < budget(), "took {elapsed:?}");
+}
+
+/// N7: a node count just under the element preset (262,144) imports through the importer, with a capped
+/// report.
+#[test]
+fn nodes_just_under_the_element_preset_import_within_budget() {
+    let text = node_flood_text(262_142);
+    let (result, elapsed) = timed_import(&text);
+    eprintln!("nodes_just_under_the_element_preset_import_within_budget: {elapsed:?}");
+    assert!(elapsed < budget(), "took {elapsed:?}");
+    let report = result.unwrap().report;
+    assert_eq!(report.entries.len(), MAX_ENTRIES_PER_DEFINITION + 1);
+    assert_eq!(report.entries.last().unwrap().code, Code::LIMIT);
+}
+
+/// N7: the element preset refuses 262,144 nodes, by the pre-scan.
+#[test]
+fn element_preset_refuses_node_flood() {
+    let text = node_flood_text(262_144);
+    let expected = ImportError::LimitExceeded {
+        what: "XML node count".into(),
+        limit: 262_144,
+    };
+    assert_eq!(
+        prescan(&text, &Limits::element_definition()),
+        Err(expected.clone())
+    );
+    let (result, elapsed) = timed_import(&text);
+    eprintln!("element_preset_refuses_node_flood: {elapsed:?}");
+    assert_eq!(result.err(), Some(expected));
+    assert!(elapsed < budget(), "took {elapsed:?}");
+}
+
+/// N7: the worst case per byte, `<text>` primitives of three attributes each, just under the preset's
+/// attribute cap (43,000 x 3 = 129,000 of 131,072), imports within the budget.
+#[test]
+fn worst_case_text_primitives_under_the_preset_import_within_budget() {
+    let mut text = String::from("<definition type=\"element\"><description>");
+    text.push_str(&"<text x=\"0\" y=\"0\" font=\"a,1,1,1,1,1\"/>".repeat(43_000));
+    text.push_str("</description></definition>");
+    let (result, elapsed) = timed_import(&text);
+    eprintln!("worst_case_text_primitives_under_the_preset_import_within_budget: {elapsed:?}");
+    assert!(elapsed < budget(), "took {elapsed:?}");
+    assert!(result.is_ok(), "{result:?}");
 }
 
 /// N4: `roxmltree` reserves a node per `<` and an attribute per `=` of the whole input (about 72 bytes
@@ -329,16 +403,26 @@ fn markup_character_flood_is_refused_before_parsing() {
         what: "XML markup characters".into(),
         limit: 3_048_576,
     };
+    let preset = ImportError::LimitExceeded {
+        what: "XML markup characters".into(),
+        limit: 655_360,
+    };
     let flood = 16_000_000;
     for (name, body) in [
         ("comment", format!("<!--{}-->", "<".repeat(flood))),
         ("text", "=".repeat(flood)),
     ] {
         let text = format!("<definition type=\"element\">{body}</definition>");
+        // Through the importer, under the element preset: 2 x 262,144 + 131,072.
         let (result, elapsed) = timed_import(&text);
         eprintln!("markup_character_flood_is_refused_before_parsing ({name}): {elapsed:?}");
-        assert_eq!(result.err(), Some(expected.clone()), "{name}");
+        assert_eq!(result.err(), Some(preset.clone()), "{name}");
         assert!(elapsed < budget(), "{name} took {elapsed:?}");
+        // Under the project-file default: 2 x 1,000,000 + 1,048,576.
+        let (result, elapsed) = timed_read(&text, &Limits::default());
+        eprintln!("markup_character_flood_is_refused_before_parsing ({name}, default): {elapsed:?}");
+        assert_eq!(result.err(), Some(expected.clone()), "{name} default");
+        assert!(elapsed < budget(), "{name} default took {elapsed:?}");
     }
 }
 
@@ -351,7 +435,8 @@ fn markup_characters_under_the_bound_import_within_budget() {
         "<definition type=\"element\"><!--{}-->{texts}</definition>",
         "<".repeat(1_000_000)
     );
-    let (result, elapsed) = timed_import(&text);
+    // The default's bound is 2 x 1,000,000 + 1,048,576; the element preset's is 655,360.
+    let (result, elapsed) = timed_read(&text, &Limits::default());
     eprintln!("markup_characters_under_the_bound_import_within_budget: {elapsed:?}");
     assert!(elapsed < budget(), "took {elapsed:?}");
     assert!(result.is_ok(), "{result:?}");
@@ -359,33 +444,24 @@ fn markup_characters_under_the_bound_import_within_budget() {
 
 /// The number of `qet.style.*` entries over all primitives of the imported symbol, counted in its debug
 /// form (the keys are the only places that spelling occurs in these inputs).
-fn style_entries(batch: &ImportBatch) -> usize {
-    let symbols: Vec<_> = batch
-        .lib
-        .iter()
-        .filter_map(|d| match d {
-            LibDocument::Symbol(s) => Some(s),
-            _ => None,
-        })
-        .collect();
-    assert_eq!(symbols.len(), 1);
-    format!("{:?}", symbols[0].item).matches("qet.style.").count()
+fn style_entries(el: &ElementImport) -> usize {
+    format!("{:?}", el.symbol.item).matches("qet.style.").count()
 }
 
-/// The shared checks of the two style-pair floods (N5).
-fn check_style_flood(text: &str, name: &str) -> ImportBatch {
-    let (result, elapsed) = timed_import(text);
+/// The shared checks of the style-pair floods (N5), read under `limits`.
+fn check_style_flood(text: &str, name: &str, limits: &Limits) -> ElementImport {
+    let (result, elapsed) = timed_read(text, limits);
     eprintln!("{name}: {elapsed:?}");
     assert!(elapsed < budget(), "{name} took {elapsed:?}");
-    let batch = result.unwrap();
-    let kept = style_entries(&batch);
+    let el = result.unwrap();
+    let kept = style_entries(&el);
     assert!(
         kept <= MAX_UNSUPPORTED_STYLE_PAIRS_PER_DEFINITION,
         "{name}: {kept} kept"
     );
     assert!(kept > 0, "{name}: nothing kept");
-    assert!(batch.report.entries.len() <= MAX_ENTRIES_PER_DEFINITION + 2);
-    batch
+    assert!(el.entries.len() <= MAX_ENTRIES_PER_DEFINITION + 2);
+    el
 }
 
 /// N5: one `<line>` whose `style` attribute holds 1 500 000 distinct unsupported pairs (about 14 MiB) keeps
@@ -400,15 +476,18 @@ fn one_huge_style_attribute_is_capped() {
         "<definition type=\"element\"><description><line x1=\"0\" y1=\"0\" x2=\"10\" y2=\"0\" style=\"{style}\"/></description></definition>"
     );
     assert!(text.len() > 13 << 20);
-    let batch = check_style_flood(&text, "one_huge_style_attribute_is_capped");
-    assert_eq!(style_entries(&batch), MAX_UNSUPPORTED_STYLE_PAIRS_KEPT);
+    let el = check_style_flood(
+        &text,
+        "one_huge_style_attribute_is_capped",
+        &Limits::element_definition(),
+    );
+    assert_eq!(style_entries(&el), MAX_UNSUPPORTED_STYLE_PAIRS_KEPT);
 }
 
-/// N5: 200 000 lines of 3 unsupported pairs each keep at most 1 000 pairs in total.
-#[test]
-fn many_small_style_attributes_are_capped_per_definition() {
+/// `lines` `<line>` primitives of 3 unsupported style pairs each.
+fn style_lines_text(lines: usize) -> String {
     let mut text = String::from("<definition type=\"element\"><description>\n");
-    for i in 0..200_000 {
+    for i in 0..lines {
         writeln!(
             text,
             "<line x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\" style=\"a{i}:v;b:v;c:v\"/>"
@@ -416,10 +495,13 @@ fn many_small_style_attributes_are_capped_per_definition() {
         .unwrap();
     }
     text.push_str("</description></definition>");
-    let batch = check_style_flood(&text, "many_small_style_attributes_are_capped_per_definition");
-    assert_eq!(style_entries(&batch), MAX_UNSUPPORTED_STYLE_PAIRS_PER_DEFINITION);
-    let summary = batch
-        .report
+    text
+}
+
+/// The shared assertions of the two per-definition style-cap tests: 1 000 kept, the rest summarised.
+fn check_style_cap(el: &ElementImport, dropped: usize) {
+    assert_eq!(style_entries(el), MAX_UNSUPPORTED_STYLE_PAIRS_PER_DEFINITION);
+    let summary = el
         .entries
         .iter()
         .find(|e| e.message.contains("unsupported style pairs dropped: at most"))
@@ -427,10 +509,35 @@ fn many_small_style_attributes_are_capped_per_definition() {
     assert!(
         summary
             .message
-            .starts_with("599000 unsupported style pairs dropped"),
+            .starts_with(&format!("{dropped} unsupported style pairs dropped")),
         "{}",
         summary.message
     );
+}
+
+/// N5: 200 000 lines of 3 unsupported pairs each (1,000,000 attributes, over the element preset's count)
+/// keep at most 1 000 pairs in total under the project-file default.
+#[test]
+fn many_small_style_attributes_are_capped_per_definition() {
+    let text = style_lines_text(200_000);
+    let el = check_style_flood(
+        &text,
+        "many_small_style_attributes_are_capped_per_definition",
+        &Limits::default(),
+    );
+    check_style_cap(&el, 599_000);
+}
+
+/// N5/N7: the same under the element preset, 25 000 lines (125,000 attributes, 75,000 pairs).
+#[test]
+fn many_small_style_attributes_are_capped_per_definition_under_the_preset() {
+    let text = style_lines_text(25_000);
+    let el = check_style_flood(
+        &text,
+        "many_small_style_attributes_are_capped_per_definition_under_the_preset",
+        &Limits::element_definition(),
+    );
+    check_style_cap(&el, 74_000);
 }
 
 /// A definition whose `section` element holds `n` bytes of plain text, built as one buffer.

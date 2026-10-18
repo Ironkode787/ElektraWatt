@@ -174,10 +174,14 @@ fn limits_default() {
 fn limits_element_definition_and_stricter() {
     let e = Limits::element_definition();
     assert_eq!(e.max_input_bytes, 16_777_216);
+    assert_eq!(e.max_xml_attributes, 131_072);
+    assert_eq!(e.max_xml_nodes, 262_144);
     assert_eq!(
         e,
         Limits {
             max_input_bytes: 16_777_216,
+            max_xml_attributes: 131_072,
+            max_xml_nodes: 262_144,
             ..Limits::default()
         }
     );
@@ -189,7 +193,9 @@ fn limits_element_definition_and_stricter() {
     };
     let m = ctx.stricter(e);
     assert_eq!(m.max_input_bytes, 1000);
-    assert_eq!(m.max_xml_nodes, 1_000_000);
+    // The preset's node and attribute caps win over the default's.
+    assert_eq!(m.max_xml_nodes, 262_144);
+    assert_eq!(m.max_xml_attributes, 131_072);
     assert_eq!(Limits::default().stricter(e), e);
 }
 

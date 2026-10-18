@@ -158,9 +158,10 @@ pub struct Limits {                    // §11; a violation refuses the file or 
     pub max_xml_attribute_work: u64,   // 2^26: the sum over elements of (attribute count)^2
     pub max_text_bytes: u32,           // 1 MiB per text node or CDATA section; the pre-scan counts the bytes between `>` and the next `<`
 }
-// Limits::element_definition(): the defaults with max_input_bytes = 16 MiB, for standalone element
-// definitions (kilobytes in practice); 512 MiB stays the default for project files, whose importer reads
-// them under its own budget. The element importer applies the stricter of the context's limit and the
+// Limits::element_definition(): the defaults with max_input_bytes = 16 MiB, max_xml_attributes = 131,072
+// and max_xml_nodes = 262,144, for standalone element definitions (kilobytes and hundreds of primitives in
+// practice); 512 MiB, 1,048,576 attributes and 1,000,000 nodes stay the defaults for project files, whose
+// importer reads them under its own budget. The element importer applies the stricter of the context's limit and the
 // preset, field by field (Limits::stricter).
 // crate constant, not a Limits member: MAX_ENTRIES_PER_DEFINITION = 1,000 report entries per element
 // definition; the rest are summarised in one EW-IMP-001 entry
@@ -1203,7 +1204,7 @@ allocator of [18](18-quality-security-release.md) §3.12. The per-parser values:
 
 | Parser | Limits beyond NFR-SEC-02 |
 |---|---|
-| XML (QET, parts XML, AML, GSDML, IODD, BMEcat) | DTD refused (no internal or external entities, no XInclude); depth ≤ 256; attribute value ≤ 16 MiB; base64 payload ≤ 64 MiB decoded; decoded images ≤ 16,384 × 16,384 px; ≤ 8,192 attributes per element (`max_xml_attributes_per_element`) and ≤ 1,048,576 per document (`max_xml_attributes`); attribute work ≤ 2^26, the sum over elements of the squared attribute count (`max_xml_attribute_work`); ≤ 1,000,000 nodes per document (`max_xml_nodes`), counting nodes (root, elements and comments in the pre-scan; texts and processing instructions by the parser), not attributes; a project importer may raise the node limit explicitly under its own budget; at most 2 × `max_xml_nodes` + `max_xml_attributes` markup bytes (`<` and `=`, 3,048,576 by default), because roxmltree 0.21.1 reserves about 72 bytes per such byte before any node limit applies; each text node or CDATA section ≤ 1 MiB (`max_text_bytes`), because text is copied several times downstream and no other bound covers it; a standalone element definition is read under the preset `Limits::element_definition()`, an input of ≤ 16 MiB |
+| XML (QET, parts XML, AML, GSDML, IODD, BMEcat) | DTD refused (no internal or external entities, no XInclude); depth ≤ 256; attribute value ≤ 16 MiB; base64 payload ≤ 64 MiB decoded; decoded images ≤ 16,384 × 16,384 px; ≤ 8,192 attributes per element (`max_xml_attributes_per_element`) and ≤ 1,048,576 per document (`max_xml_attributes`); attribute work ≤ 2^26, the sum over elements of the squared attribute count (`max_xml_attribute_work`); ≤ 1,000,000 nodes per document (`max_xml_nodes`), counting nodes (root, elements and comments in the pre-scan; texts and processing instructions by the parser), not attributes; a project importer may raise the node limit explicitly under its own budget; at most 2 × `max_xml_nodes` + `max_xml_attributes` markup bytes (`<` and `=`, 3,048,576 by default), because roxmltree 0.21.1 reserves about 72 bytes per such byte before any node limit applies; each text node or CDATA section ≤ 1 MiB (`max_text_bytes`), because text is copied several times downstream and no other bound covers it; a standalone element definition is read under the preset `Limits::element_definition()`, an input of ≤ 16 MiB with ≤ 131,072 attributes and ≤ 262,144 nodes (review N7: under the general limits a 16 MiB file of about 349,000 three-attribute `<text>` primitives allocated about 0.5 GB extra; under the preset about 44,000 fit, well under 100 MiB) |
 | Archives (EDZ 7z/ZIP, QETZ, `.ewz`, XLSX) | ≤ 100,000 entries; ≤ 2 GiB expanded; ≤ 512 MiB per entry; ratio ≤ 200 : 1 per entry; names with `..`, absolute or drive paths, `\`, `:` or NUL rejected; symlink and encrypted entries refused; 7z solid block ≤ 512 MiB |
 | DXF | file ≤ 512 MiB; ≤ 5 million entities; block nesting ≤ 32; INSERT/MINSERT expansion ≤ 10 million primitives; spline control points ≤ 100,000; coordinates finite and within ±2^62 nm after scaling |
 | CSV, XLSX | ≤ 1,000,000 rows; ≤ 1,024 columns; cell ≤ 32 KiB; formulas never evaluated |
