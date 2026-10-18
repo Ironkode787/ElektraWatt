@@ -1,0 +1,34 @@
+SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+SPDX-License-Identifier: CC0-1.0
+
+ElektraWatt third-party notices
+================================
+
+This file lists third-party material committed to this repository. The notices of third-party Rust crates are
+generated per release with cargo-about (about.toml, ci/third-party-notices.hbs).
+
+Bundled fonts (assets/fonts/, ADR-0028)
+---------------------------------------
+
+Noto Sans is licensed under the SIL Open Font License, Version 1.1 (OFL-1.1); the licence text is
+LICENSES/OFL-1.1.txt. The files are unmodified copies of the static unhinted TrueType instances of the
+upstream repository at the commit named in each Source URL (the repository publishes no release tags), and
+are pinned by SHA-256 in crates/ew-text (ADR-0028 recommendation 6).
+
+assets/fonts/NotoSans-Regular.ttf
+  Family:    Noto Sans Regular
+  Version:   Version 2.003
+  Copyright: Copyright 2015 Google Inc. All Rights Reserved.
+  Source:    https://raw.githubusercontent.com/notofonts/notosans/f10dc31fb679345cf9ab0cc4fdca061d03a78b82/fonts/ttf/unhinted/instance_ttf/NotoSans-Regular.ttf
+  Retrieved: 2026-10-18
+  SHA-256:   d89e0448854cb0f11e0609ed472511e59b12966a4c8ef37a3706752a78be0ada
+  Size:      348428 bytes
+
+assets/fonts/NotoSans-Bold.ttf
+  Family:    Noto Sans Bold
+  Version:   Version 2.003
+  Copyright: Copyright 2015 Google Inc. All Rights Reserved.
+  Source:    https://raw.githubusercontent.com/notofonts/notosans/f10dc31fb679345cf9ab0cc4fdca061d03a78b82/fonts/ttf/unhinted/instance_ttf/NotoSans-Bold.ttf
+  Retrieved: 2026-10-18
+  SHA-256:   8caac57b9ed492ab8a0501f1f1573d83a08822be36dd3f255e05964e12105f8d
+  Size:      349072 bytes

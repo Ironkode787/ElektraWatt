@@ -38,3 +38,11 @@ wasm-bindgen-shared # hashes two of its own source files into an env var; runs `
 libm # 0.2.16: reads CARGO_* and TARGET env vars, emits cfg flags and rustc-env values only; writes no files
 rustix # 1.1.5 (tempfile via insta, dev-only): probe-compiles snippets with rustc into OUT_DIR, deletes the artifact, emits cfg flags
 ref-cast # 1.0.27 (schemars, WP-S1.02): runs `rustc --version` for cfg flags, writes private.rs to OUT_DIR only
+#
+# Reviewed at WP-S3.02 (ew-text: parley's ICU4X line segmentation and normalisation data). The four build
+# scripts are identical: they read the ICU4X_DATA_DIR environment variable and emit cfg flags only; they run no
+# command, write no file and open no network connection.
+icu_locale_fallback_data # 2.3.0
+icu_normalizer_data # 2.3.0
+icu_properties_data # 2.3.0
+icu_segmenter_data # 2.3.0

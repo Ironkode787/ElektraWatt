@@ -1,0 +1,50 @@
+{
+  "$k": "form",
+  "id": "c80af135-34f8-574c-8f52-756bd24c7bd0",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "dba467ba-6992-5d05-bbcc-20250aec6582",
+  "version": "1.0.0",
+  "sha256": "sha256:d3b09798d4f818b00f0090abba374cb066f2b1cb60d7484111369d9f1db9f483",
+  "kind": "frame",
+  "sheet": {
+    "width": 297000000,
+    "height": 210000000
+  },
+  "page_to_sheet": {
+    "scale_ppb": 986282578,
+    "offset": [
+      9790000,
+      9790000
+    ]
+  },
+  "grid": {
+    "header_band": {
+      "num": 15875000,
+      "den": 3
+    },
+    "columns": {
+      "count": 17,
+      "width": {
+        "num": 15875000,
+        "den": 1
+      }
+    },
+    "rows": {
+      "count": 8,
+      "height": {
+        "num": 63500000,
+        "den": 3
+      }
+    },
+    "ew.frame.line_width": 264583
+  },
+  "title_block": "496e5258-a93b-5354-84af-c2c185e84d54",
+  "meta": {
+    "key": "ew.frame.qet-a4-landscape-grid",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "docs/design/20-golden-project.md §17.1",
+      "docs/design/14-interop.md §4.2"
+    ]
+  }
+}

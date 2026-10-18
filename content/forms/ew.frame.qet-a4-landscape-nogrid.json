@@ -1,0 +1,52 @@
+{
+  "$k": "form",
+  "id": "ec586fad-385b-599d-a76d-59c893506f00",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "a2d8fab0-082a-5759-8085-e8fc6b6b7ad4",
+  "version": "1.0.0",
+  "sha256": "sha256:cd6a73ab807ec2a306d79bd2875dff2ac94303ca659ad874d4e320f9fb13d8a0",
+  "kind": "frame",
+  "sheet": {
+    "width": 297000000,
+    "height": 210000000
+  },
+  "page_to_sheet": {
+    "scale_ppb": 986282578,
+    "offset": [
+      9790000,
+      9790000
+    ]
+  },
+  "grid": {
+    "header_band": {
+      "num": 15875000,
+      "den": 3
+    },
+    "columns": {
+      "count": 17,
+      "width": {
+        "num": 15875000,
+        "den": 1
+      }
+    },
+    "rows": {
+      "count": 8,
+      "height": {
+        "num": 63500000,
+        "den": 3
+      }
+    },
+    "ew.frame.line_width": 264583,
+    "ew.frame.show_grid": false
+  },
+  "title_block": "496e5258-a93b-5354-84af-c2c185e84d54",
+  "meta": {
+    "key": "ew.frame.qet-a4-landscape-nogrid",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "docs/design/20-golden-project.md §17.1",
+      "docs/design/14-interop.md §4.2"
+    ]
+  },
+  "ew.layout.estimated": true
+}

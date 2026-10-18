@@ -8,7 +8,12 @@
 //! ADR-0015's memoised `symbol_geometry(symbol, variant)`: a library [`SymbolDef`](ew_schema::SymbolDef)
 //! and an orientation variant give an `ew-dl` display list, the placed CPs and texts, the resolved anchor
 //! and the bounds, all in the symbol's own frame.
+//!
+//! WP-S3.02 adds [`forms`]: frame geometry from the frame grid, the page-to-sheet transform
+//! ([`forms::SheetMap`], FR-PAG-029), placeholder bindings and the lowering of frame and title-block forms
+//! to the `frame` layer ([`forms::lower_form`]), with text shaped by `ew-text`.
 
 #![forbid(unsafe_code)]
 
+pub mod forms;
 pub mod symbol;

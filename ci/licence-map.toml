@@ -330,6 +330,11 @@ allowed = ["CC0-1.0"]
 glob = "REUSE.toml"
 allowed = ["CC0-1.0"]
 
+# The third-party notice file (19 §2.4: root metadata, L11).
+[[path]]
+glob = "NOTICE"
+allowed = ["CC0-1.0"]
+
 [[path]]
 glob = ".gitignore"
 allowed = ["CC0-1.0"]

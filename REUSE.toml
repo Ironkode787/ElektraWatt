@@ -43,3 +43,11 @@ path = "content/**"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "CC-BY-SA-4.0"
+
+# L14: bundled third-party fonts (Noto Sans Regular and Bold, OFL-1.1; ADR-0028), binary files. The fonts' own
+# copyright line comes first, then the collective notice for the selection (NFR-LIC-10); provenance in NOTICE.
+[[annotations]]
+path = "assets/fonts/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = ["Copyright 2015 Google Inc. All Rights Reserved.", "2026 The ElektraWatt contributors"]
+SPDX-License-Identifier = "OFL-1.1"

@@ -13,3 +13,18 @@ publish = false
 
 [lints]
 workspace = true
+
+[features]
+default = ["bundled-fonts"]
+bundled-fonts = []
+
+[dependencies]
+ew-dl = { path = "../ew-dl" }
+ew-units = { path = "../ew-units" }
+parley = { version = "0.12.0", default-features = false, features = ["std"] }
+fontique = { version = "0.12.0", default-features = false, features = ["std"] }
+skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
+sha2 = { workspace = true }
+
+[dev-dependencies]
+insta = { version = "1.49.0", default-features = false }

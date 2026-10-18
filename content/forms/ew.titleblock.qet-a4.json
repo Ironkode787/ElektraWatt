@@ -1,0 +1,608 @@
+{
+  "$k": "form",
+  "id": "496e5258-a93b-5354-84af-c2c185e84d54",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "d38c6aef-caca-5f8f-bca6-b885a286739e",
+  "version": "1.0.0",
+  "sha256": "sha256:f4cacf8dbcde3441d4d5aac9cebb7099f48cb25302a915c630ea911b79afc78a",
+  "kind": "title_block",
+  "sheet": {
+    "width": 275166667,
+    "height": 17991667
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          12170833,
+          0
+        ],
+        "to": [
+          12170833,
+          17991667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          165100000,
+          0
+        ],
+        "to": [
+          165100000,
+          17991667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          192616667,
+          0
+        ],
+        "to": [
+          192616667,
+          17991667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          220133333,
+          0
+        ],
+        "to": [
+          220133333,
+          17991667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          247650000,
+          0
+        ],
+        "to": [
+          247650000,
+          8995833
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          123825000,
+          8995833
+        ],
+        "to": [
+          123825000,
+          17991667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          261408333,
+          4497917
+        ],
+        "to": [
+          261408333,
+          8995833
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          192616667,
+          4497917
+        ],
+        "to": [
+          275166667,
+          4497917
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          12170833,
+          8995833
+        ],
+        "to": [
+          275166667,
+          8995833
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          12170833,
+          13493750
+        ],
+        "to": [
+          165100000,
+          13493750
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          192616667,
+          13493750
+        ],
+        "to": [
+          220133333,
+          13493750
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    }
+  ],
+  "cells": [
+    {
+      "rect": [
+        [
+          0,
+          0
+        ],
+        [
+          12170833,
+          17991667
+        ]
+      ],
+      "value": "{project.logo}",
+      "style": "text.normal",
+      "align": "centre",
+      "overflow": "error"
+    },
+    {
+      "rect": [
+        [
+          12170833,
+          0
+        ],
+        [
+          165100000,
+          8995833
+        ]
+      ],
+      "value": "{page.title}",
+      "style": "text.normal",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          12170833,
+          8995833
+        ],
+        [
+          123825000,
+          13493750
+        ]
+      ],
+      "label": {
+        "en-GB": "Project:"
+      },
+      "value": "{project.reference}",
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          12170833,
+          13493750
+        ],
+        [
+          123825000,
+          17991667
+        ]
+      ],
+      "label": {
+        "en-GB": "Description:"
+      },
+      "value": "{page.description}",
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          123825000,
+          8995833
+        ],
+        [
+          165100000,
+          13493750
+        ]
+      ],
+      "label": {
+        "en-GB": "Drawing:"
+      },
+      "value": "{project.drawing_id}",
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          123825000,
+          13493750
+        ],
+        [
+          165100000,
+          17991667
+        ]
+      ],
+      "label": {
+        "en-GB": "Revision:"
+      },
+      "value": "{revision.current.label}",
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          165100000,
+          0
+        ],
+        [
+          192616667,
+          8995833
+        ]
+      ],
+      "value": "{page.function}",
+      "style": "text.normal",
+      "align": "centre",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          165100000,
+          8995833
+        ],
+        [
+          192616667,
+          17991667
+        ]
+      ],
+      "value": "{page.location}",
+      "style": "text.normal",
+      "align": "centre",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          192616667,
+          0
+        ],
+        [
+          220133333,
+          4497917
+        ]
+      ],
+      "label": {
+        "en-GB": "End user:"
+      },
+      "value": "{party.end_user.name}",
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          192616667,
+          4497917
+        ],
+        [
+          220133333,
+          8995833
+        ]
+      ],
+      "label": {
+        "en-GB": "Object:"
+      },
+      "value": "{project.object}",
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          192616667,
+          8995833
+        ],
+        [
+          220133333,
+          13493750
+        ]
+      ],
+      "label": {
+        "en-GB": "Checked:"
+      },
+      "value": "{revision.current.checker.name}",
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          192616667,
+          13493750
+        ],
+        [
+          220133333,
+          17991667
+        ]
+      ],
+      "label": {
+        "en-GB": "Author:"
+      },
+      "value": "{revision.current.author.name}",
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          220133333,
+          0
+        ],
+        [
+          247650000,
+          4497917
+        ]
+      ],
+      "label": {
+        "en-GB": "Creation:"
+      },
+      "value": "{project.created | date}",
+      "style": "pin",
+      "align": "centre",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          220133333,
+          4497917
+        ],
+        [
+          247650000,
+          8995833
+        ]
+      ],
+      "label": {
+        "en-GB": "Saved:"
+      },
+      "value": "{project.edited | date}",
+      "style": "pin",
+      "align": "centre",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          247650000,
+          0
+        ],
+        [
+          275166667,
+          4497917
+        ]
+      ],
+      "label": {
+        "en-GB": "Page:"
+      },
+      "value": "{page.folio}",
+      "style": "text.normal",
+      "align": "centre",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          247650000,
+          4497917
+        ],
+        [
+          261408333,
+          8995833
+        ]
+      ],
+      "label": {
+        "en-GB": "Prev:"
+      },
+      "value": "{page.prev}",
+      "style": "pin",
+      "align": "centre",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          261408333,
+          4497917
+        ],
+        [
+          275166667,
+          8995833
+        ]
+      ],
+      "label": {
+        "en-GB": "Next:"
+      },
+      "value": "{page.next}",
+      "style": "pin",
+      "align": "centre",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          220133333,
+          8995833
+        ],
+        [
+          275166667,
+          17991667
+        ]
+      ],
+      "value": "{project.notice}",
+      "style": "xref.device",
+      "align": "centre",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      },
+      "ew.cell.max_lines": 4
+    }
+  ],
+  "meta": {
+    "key": "ew.titleblock.qet-a4",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "docs/design/20-golden-project.md §17.2",
+      "docs/design/09-reports-forms-output.md §2.7"
+    ]
+  }
+}
