@@ -1,0 +1,43 @@
+{
+  "$k": "fndef",
+  "id": "47f43d7c-1db4-5ef7-b9d8-ec25d11c1180",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "7c7b78ae-9fe1-53a4-8df5-8ec10eecf60e",
+  "version": "0.1.0",
+  "sha256": "sha256:003c92ca925a9f3625a36deeda0db24b9e019d196ad6968ff1729535d4d52c42",
+  "meta": {
+    "key": "ew.fn.contact-no",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "Relay",
+    "Contact",
+    "NO"
+  ],
+  "contact_kind": "no",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "13"
+    },
+    {
+      "idx": 1,
+      "designation": "14"
+    }
+  ],
+  "internal": [
+    {
+      "a": 0,
+      "b": 1,
+      "kind": {
+        "pass_through": {
+          "opens": true
+        }
+      }
+    }
+  ]
+}

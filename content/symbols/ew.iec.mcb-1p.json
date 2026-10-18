@@ -1,0 +1,299 @@
+{
+  "$k": "symbol",
+  "id": "58d84b52-454f-5d3a-964e-186faed371df",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "25639ed4-4da9-5244-bbfa-f0b9dfbd78dc",
+  "version": "0.1.0",
+  "sha256": "sha256:c042d87bf2e873fe0e0420e47e602a58aa8f73a63f3e0bd1a7422f61eaebc03c",
+  "meta": {
+    "key": "ew.iec.mcb-1p",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Miniature circuit breaker, 1 pole"
+  },
+  "keywords": [
+    "breaker",
+    "mcb",
+    "overcurrent"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "a9d08d61-e896-5ecd-8f6b-2b330d8f522b",
+    "version_req": "^0.1",
+    "key": "ew.fn.mcb-1p"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          0,
+          0
+        ],
+        "to": [
+          0,
+          5000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          16000000
+        ],
+        "to": [
+          0,
+          12000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          12000000
+        ],
+        "to": [
+          -2000000,
+          5000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -1000000,
+          4000000
+        ],
+        "to": [
+          1000000,
+          6000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -1000000,
+          6000000
+        ],
+        "to": [
+          1000000,
+          4000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -1000000,
+          8500000
+        ],
+        "to": [
+          2000000,
+          8500000
+        ],
+        "stroke": {
+          "pen": "p013",
+          "dash": "dash42"
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            2000000,
+            7000000
+          ],
+          [
+            4000000,
+            10000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            4000000,
+            8500000
+          ],
+          [
+            4500000,
+            7500000
+          ],
+          [
+            5500000,
+            9500000
+          ],
+          [
+            6000000,
+            8500000
+          ]
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "up"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        16000000
+      ],
+      "dir": "down"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -4000000,
+        8000000
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "manufacturer",
+      "pos": [
+        8000000,
+        5000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "part_number",
+      "pos": [
+        8000000,
+        8000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "tech_data",
+      "pos": [
+        8000000,
+        11000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -4000000,
+        12000000
+      ],
+      "align": "middle_right"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        1000000,
+        2000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        1000000,
+        14000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "tag + rating",
+      "slots": [
+        0,
+        3
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      0,
+      8000000
+    ]
+  },
+  "link_points": [
+    {
+      "name": "pole",
+      "pos": [
+        -1000000,
+        8500000
+      ]
+    }
+  ]
+}

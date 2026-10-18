@@ -1,0 +1,34 @@
+{
+  "$k": "fndef",
+  "id": "4b7c02a4-e6c5-5baf-b3b2-1a4eacaaa3c5",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "e3258a41-006c-523a-b926-4122d12d67f8",
+  "version": "0.1.0",
+  "sha256": "sha256:45bf78ca58af4a4362ebf6538b959b8eb25d21e5bf2e98af2c75b1c802f3aa45",
+  "meta": {
+    "key": "ew.fn.process-valve-2way",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "ValveDirectional",
+    "ProcessValve",
+    "TwoWay"
+  ],
+  "contact_kind": "valve",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic"
+    }
+  ]
+}

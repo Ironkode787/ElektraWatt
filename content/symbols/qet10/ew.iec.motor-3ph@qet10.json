@@ -1,0 +1,263 @@
+{
+  "$k": "symbol",
+  "id": "09bbc96c-d562-53fc-a229-aece72a2b508",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "e3e8e09c-84e4-5733-b360-e5f2edb060ca",
+  "version": "0.1.0",
+  "sha256": "sha256:bc0f742a247987e9a9b732750d77ed72c67108a873297394fdb0454180cbab42",
+  "meta": {
+    "key": "ew.iec.motor-3ph@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Motor, three-phase"
+  },
+  "keywords": [
+    "motor",
+    "three-phase"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "d4ebc807-03a6-569c-98a1-bb4ac469a6ca",
+    "version_req": "^0.1",
+    "key": "ew.fn.motor-3ph"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "circle": {
+        "centre": [
+          0,
+          5291667
+        ],
+        "r": 3968750,
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -2645833,
+          0
+        ],
+        "to": [
+          -2645833,
+          2315104
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          0
+        ],
+        "to": [
+          0,
+          1322917
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          2645833,
+          0
+        ],
+        "to": [
+          2645833,
+          2315104
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          3968750,
+          5291667
+        ],
+        "to": [
+          5291667,
+          5291667
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "text": {
+        "pos": [
+          0,
+          4630208
+        ],
+        "text": "M",
+        "align": "centre"
+      }
+    },
+    {
+      "text": {
+        "pos": [
+          0,
+          6614583
+        ],
+        "text": "3~",
+        "align": "centre"
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        -2645833,
+        0
+      ],
+      "dir": "up"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "up"
+    },
+    {
+      "idx": 2,
+      "fn_cp": 2,
+      "pos": [
+        2645833,
+        0
+      ],
+      "dir": "up"
+    },
+    {
+      "idx": 3,
+      "fn_cp": 3,
+      "pos": [
+        5291667,
+        5291667
+      ],
+      "dir": "right"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -5291667,
+        5291667
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -5291667,
+        2645833
+      ],
+      "align": "middle_right"
+    },
+    {
+      "kind": "tech_data",
+      "pos": [
+        -5291667,
+        7937500
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        -1984375,
+        661458
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        661458,
+        661458
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 2
+      },
+      "pos": [
+        3307292,
+        661458
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 3
+      },
+      "pos": [
+        5953125,
+        4630208
+      ],
+      "align": "bottom_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      0,
+      5291667
+    ]
+  }
+}

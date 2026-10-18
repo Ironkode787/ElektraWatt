@@ -16,6 +16,7 @@ mod features;
 mod governance;
 mod licence;
 mod repo;
+mod symbols;
 mod workflows;
 
 use std::path::{Path, PathBuf};
@@ -42,6 +43,9 @@ commands:
   check-dco <range>    every non-merge commit in the git range has a Signed-off-by trailer
   denylist-hash <phrase>
                        print the digests of the phrase's 1-, 2- and 3-grams for ci/denylist.sha256
+  symbols-qet10 [--check]
+                       seal the native library documents and generate the QET edition (content/symbols/qet10);
+                       --check changes nothing and fails when the committed files differ
   ci                   fmt, clippy and nextest (default and all features), doctests and the repository checks
                        above (except check-dco), with a summary
   help                 this text
@@ -79,6 +83,14 @@ fn main() -> ExitCode {
             }
             None => {
                 eprint!("denylist-hash needs the phrase as one argument\n\n{USAGE}");
+                Ok(false)
+            }
+        },
+        "symbols-qet10" => match args.get(1).map(String::as_str) {
+            None => symbols::run(&workspace_root(), false),
+            Some("--check") => symbols::run(&workspace_root(), true),
+            Some(other) => {
+                eprint!("symbols-qet10: unknown argument `{other}`\n\n{USAGE}");
                 Ok(false)
             }
         },

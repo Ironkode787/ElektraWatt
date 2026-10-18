@@ -1,0 +1,175 @@
+{
+  "$k": "symbol",
+  "id": "59094380-4004-56b7-b9bb-781ed7bb245e",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "c545e0a9-b225-5e92-885a-f5931b0f90f5",
+  "version": "0.1.0",
+  "sha256": "sha256:03d34669f0b4810e4f3690aeccbe244b8b3e8ef0c85b99cdae1c4438ee5c3422",
+  "meta": {
+    "key": "ew.iec.contact-nc@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Contact, normally closed"
+  },
+  "keywords": [
+    "break",
+    "contact",
+    "nc"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "e3233518-01a5-53e8-9fc3-47b847a4f9db",
+    "version_req": "^0.1",
+    "key": "ew.fn.contact-nc"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "polyline": {
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            2645833
+          ],
+          [
+            -1984375,
+            2645833
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          7937500
+        ],
+        "to": [
+          0,
+          5291667
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          5291667
+        ],
+        "to": [
+          -1322917,
+          2645833
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "up"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        7937500
+      ],
+      "dir": "down"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -3307292,
+        3968750
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "xref",
+      "pos": [
+        2645833,
+        3968750
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        661458,
+        1322917
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        661458,
+        6614583
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ],
+  "link_points": [
+    {
+      "name": "link",
+      "pos": [
+        -661458,
+        3968750
+      ]
+    }
+  ]
+}

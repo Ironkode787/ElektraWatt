@@ -1,0 +1,206 @@
+{
+  "$k": "symbol",
+  "id": "6a8491f2-1df9-57c7-90ce-447a391145b9",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "d3ebbd5e-9b39-556c-a2f4-948b2ccb959a",
+  "version": "0.1.0",
+  "sha256": "sha256:f6bff09c3065b65dc6d5f8ff811aaa7a42b3c88a278d89e6240d5635e11650db",
+  "meta": {
+    "key": "ew.iec.position-switch-no@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Position switch, normally open, roller"
+  },
+  "keywords": [
+    "door",
+    "limit",
+    "no",
+    "position",
+    "switch"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "962af61e-25e5-51b2-870b-1d30bddae6d0",
+    "version_req": "^0.1",
+    "key": "ew.fn.position-switch-no"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          0,
+          0
+        ],
+        "to": [
+          0,
+          2645833
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          7937500
+        ],
+        "to": [
+          0,
+          5291667
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          5291667
+        ],
+        "to": [
+          -1322917,
+          2645833
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -661458,
+          3968750
+        ],
+        "to": [
+          -2315104,
+          3968750
+        ],
+        "stroke": {
+          "pen": "p013",
+          "dash": "dash42"
+        }
+      }
+    },
+    {
+      "circle": {
+        "centre": [
+          -3307292,
+          3968750
+        ],
+        "r": 992187,
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "up"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        7937500
+      ],
+      "dir": "down"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        1984375,
+        3307292
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "tech_data",
+      "pos": [
+        1984375,
+        5291667
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        -661458,
+        661458
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        -661458,
+        7276042
+      ],
+      "align": "middle_right",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "tag + rating",
+      "slots": [
+        0,
+        1
+      ]
+    }
+  ],
+  "link_points": [
+    {
+      "name": "link",
+      "pos": [
+        -661458,
+        3968750
+      ]
+    }
+  ]
+}

@@ -1321,10 +1321,12 @@ dependencies = [
  "anyhow",
  "cargo_metadata",
  "serde",
+ "serde_json",
  "sha2",
  "spdx",
  "toml",
  "unicode-normalization",
+ "uuid",
 ]
 
 [[package]]

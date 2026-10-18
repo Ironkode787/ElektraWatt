@@ -1,0 +1,22 @@
+{
+  "$k": "fndef",
+  "id": "a0d5b37a-fb2c-52dd-9633-2a47f11c9c22",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "2c4b506a-0063-5b62-957e-30f7f209a33e",
+  "version": "0.1.0",
+  "sha256": "sha256:843f487905b62102bb26b5432fc2d93c14ea74a24042889ed072d6007467eed5",
+  "meta": {
+    "key": "ew.fn.strip-segment",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "Terminal",
+    "Strip",
+    "Segment"
+  ],
+  "contact_kind": "terminal"
+}

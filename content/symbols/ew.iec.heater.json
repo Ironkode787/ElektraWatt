@@ -1,0 +1,250 @@
+{
+  "$k": "symbol",
+  "id": "2e2b3932-b4ef-5f90-a0dc-0e4534b502aa",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "64def00a-cdf5-5e38-80de-2c28bda2b1a2",
+  "version": "0.1.0",
+  "sha256": "sha256:bda24e8fdb3e570f6d49d387220e3f7d6fbcf4f9948248d432ef8a5d46aaaad5",
+  "meta": {
+    "key": "ew.iec.heater",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Heater"
+  },
+  "keywords": [
+    "heater",
+    "heating",
+    "load"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "b27e3d26-3a4b-519a-b716-7b17a6f86cd6",
+    "version_req": "^0.1",
+    "key": "ew.fn.heater"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          0,
+          0
+        ],
+        "to": [
+          0,
+          4000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            -2000000,
+            4000000
+          ],
+          [
+            2000000,
+            12000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          12000000
+        ],
+        "to": [
+          0,
+          16000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          2000000,
+          8000000
+        ],
+        "to": [
+          4000000,
+          8000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            -1500000,
+            5000000
+          ],
+          [
+            1500000,
+            6000000
+          ],
+          [
+            -1500000,
+            7000000
+          ],
+          [
+            1500000,
+            8000000
+          ],
+          [
+            -1500000,
+            9000000
+          ],
+          [
+            1500000,
+            10000000
+          ],
+          [
+            -1500000,
+            11000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "up"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        16000000
+      ],
+      "dir": "down"
+    },
+    {
+      "idx": 2,
+      "fn_cp": 2,
+      "pos": [
+        4000000,
+        8000000
+      ],
+      "dir": "right"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -4000000,
+        8000000
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -4000000,
+        12000000
+      ],
+      "align": "middle_right"
+    },
+    {
+      "kind": "tech_data",
+      "pos": [
+        6000000,
+        11000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        1000000,
+        2000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        1000000,
+        14000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 2
+      },
+      "pos": [
+        5000000,
+        7000000
+      ],
+      "align": "bottom_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      0,
+      8000000
+    ]
+  }
+}

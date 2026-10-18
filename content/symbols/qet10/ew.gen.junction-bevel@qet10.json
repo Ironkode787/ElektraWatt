@@ -1,0 +1,51 @@
+{
+  "$k": "symbol",
+  "id": "bd66805c-f206-58d6-906a-c02a4658a44a",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "219822ec-d46a-5561-b30a-ad27c1605cf7",
+  "version": "0.1.0",
+  "sha256": "sha256:11faf95ec26e39131f931e7242e3ffebffa43ef595ab092387c50d46c5ad1220",
+  "meta": {
+    "key": "ew.gen.junction-bevel@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Junction bevel"
+  },
+  "keywords": [
+    "bevel",
+    "junction"
+  ],
+  "rep_type": "graphic",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "eb4253e4-0648-5c66-ab0f-50c288facffb",
+    "version_req": "^0.1",
+    "key": "ew.fn.graphic"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          -661458,
+          0
+        ],
+        "to": [
+          0,
+          661458
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "$k": "symbol",
+  "id": "d6a9fa36-ffc4-5a46-b9bf-3b1707a83d80",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "8e2bd37c-548c-5e79-abb1-4d84bb349763",
+  "version": "0.1.0",
+  "sha256": "sha256:f25d22d32161c0567f9eab84ce33950594a71f9255641faa67ac11998f168a7b",
+  "meta": {
+    "key": "ew.ovw.module",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Overview module"
+  },
+  "keywords": [
+    "module",
+    "overview"
+  ],
+  "rep_type": "overview",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "d31d70bd-d668-5fa0-b956-64604e9ffd62",
+    "version_req": "^0.1",
+    "key": "ew.fn.overview"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            0,
+            0
+          ],
+          [
+            24000000,
+            16000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        0,
+        -1000000
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "manufacturer",
+      "pos": [
+        12000000,
+        3000000
+      ],
+      "align": "centre",
+      "visible": true
+    },
+    {
+      "kind": "part_number",
+      "pos": [
+        12000000,
+        8000000
+      ],
+      "align": "centre",
+      "visible": true
+    },
+    {
+      "kind": "type_designation",
+      "pos": [
+        12000000,
+        13000000
+      ],
+      "align": "centre",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ],
+  "anchor": "graphic_centre"
+}

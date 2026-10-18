@@ -1,0 +1,46 @@
+{
+  "$k": "symbol",
+  "id": "a3e1ca3e-3980-5465-84d0-2b8e3c5a97b7",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "49ef4070-f43a-579a-bfe1-de6f6792965c",
+  "version": "0.1.0",
+  "sha256": "sha256:5c96763c7eb1041383074d1ba74a8148a5c764c0e5f9f7feed8e56cafc0e2ceb",
+  "meta": {
+    "key": "ew.gen.junction-dot@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Junction dot"
+  },
+  "keywords": [
+    "dot",
+    "junction"
+  ],
+  "rep_type": "graphic",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "eb4253e4-0648-5c66-ab0f-50c288facffb",
+    "version_req": "^0.1",
+    "key": "ew.fn.graphic"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "circle": {
+        "centre": [
+          0,
+          0
+        ],
+        "r": 330729,
+        "fill": "by_layer"
+      }
+    }
+  ]
+}

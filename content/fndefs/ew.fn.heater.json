@@ -1,0 +1,39 @@
+{
+  "$k": "fndef",
+  "id": "cceed251-3c8c-576f-b066-4ca933334f2f",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "b27e3d26-3a4b-519a-b716-7b17a6f86cd6",
+  "version": "0.1.0",
+  "sha256": "sha256:454c32c514e2925b5e637121c1dbb6f0ed9a5cfc0974b248b96298d22d3e4bed",
+  "meta": {
+    "key": "ew.fn.heater",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "Heating",
+    "EnclosureHeater",
+    "1P"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "L",
+      "potential_role": "l"
+    },
+    {
+      "idx": 1,
+      "designation": "N",
+      "potential_role": "n"
+    },
+    {
+      "idx": 2,
+      "designation": "PE",
+      "potential_role": "pe"
+    }
+  ]
+}

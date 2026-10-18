@@ -1,0 +1,63 @@
+{
+  "$k": "fndef",
+  "id": "4a6591ec-0505-5e86-a200-9627fdf1d84f",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "6f5d7b7a-330e-5915-9880-9d9ffa8846b4",
+  "version": "0.1.0",
+  "sha256": "sha256:3527a0101a641325d327fade2bc707a77e8b0ed883f685f600e8f4ae30f526df",
+  "meta": {
+    "key": "ew.fn.switch-2p-manual",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "SwitchingMain",
+    "ManualSwitch",
+    "2P"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1"
+    },
+    {
+      "idx": 1,
+      "designation": "2"
+    },
+    {
+      "idx": 2,
+      "designation": "3"
+    },
+    {
+      "idx": 3,
+      "designation": "4"
+    }
+  ],
+  "internal": [
+    {
+      "a": 0,
+      "b": 1,
+      "kind": {
+        "pass_through": {
+          "opens": true
+        }
+      }
+    },
+    {
+      "a": 2,
+      "b": 3,
+      "kind": {
+        "pass_through": {
+          "opens": true
+        }
+      }
+    }
+  ],
+  "flags": {
+    "switches_n_with_l": true
+  }
+}

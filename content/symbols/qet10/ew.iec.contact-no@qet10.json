@@ -1,0 +1,169 @@
+{
+  "$k": "symbol",
+  "id": "37686d26-7757-5554-86fe-1cf0f6d36923",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "24ae5db5-1a2c-562a-bea2-6f52764c0d45",
+  "version": "0.1.0",
+  "sha256": "sha256:931d4e1de50dce7b5facb545e903540f73f51158d7342f6d3bb8047f55ee3a61",
+  "meta": {
+    "key": "ew.iec.contact-no@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Contact, normally open"
+  },
+  "keywords": [
+    "contact",
+    "make",
+    "no"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "7c7b78ae-9fe1-53a4-8df5-8ec10eecf60e",
+    "version_req": "^0.1",
+    "key": "ew.fn.contact-no"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          0,
+          0
+        ],
+        "to": [
+          0,
+          2645833
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          7937500
+        ],
+        "to": [
+          0,
+          5291667
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          5291667
+        ],
+        "to": [
+          -1322917,
+          2645833
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "up"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        7937500
+      ],
+      "dir": "down"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -2645833,
+        3968750
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "xref",
+      "pos": [
+        2645833,
+        3968750
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        661458,
+        1322917
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        661458,
+        6614583
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ],
+  "link_points": [
+    {
+      "name": "link",
+      "pos": [
+        -661458,
+        3968750
+      ]
+    }
+  ]
+}

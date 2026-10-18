@@ -1,0 +1,105 @@
+{
+  "$k": "symbol",
+  "id": "2c451cf5-c022-5716-b314-7defbf574f21",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "0f72d20c-8a4f-5f42-bc24-0a1224fad631",
+  "version": "0.1.0",
+  "sha256": "sha256:24bfcae5b7b701d698645dc0cfa40a1c6626fca1470f34efd68eb23aeebd3d09",
+  "meta": {
+    "key": "ew.gen.blackbox",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Black-box frame"
+  },
+  "keywords": [
+    "black-box",
+    "box",
+    "frame"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "8f2f5a49-a5bc-5d27-815c-47dd24106efb",
+    "version_req": "^0.1",
+    "key": "ew.fn.blackbox"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            0,
+            0
+          ],
+          [
+            40000000,
+            24000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        0,
+        -1000000
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        20000000,
+        12000000
+      ],
+      "align": "centre",
+      "visible": true
+    },
+    {
+      "kind": "part_number",
+      "pos": [
+        40000000,
+        -1000000
+      ],
+      "align": "bottom_right",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      0,
+      12000000
+    ]
+  },
+  "ew.note": "Outline only. The connection points and the final outline come from Representation.box (BoxSpec) and the part's connection-point pattern."
+}

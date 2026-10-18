@@ -1,0 +1,120 @@
+{
+  "$k": "symbol",
+  "id": "4f6bee27-45fb-5898-a9f7-48a91ddce41c",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "323c7992-8e12-5e74-ab40-2344bd35c743",
+  "version": "0.1.0",
+  "sha256": "sha256:490cb13670c3d1670f87b30edc9b58a59aeb4c4a322f4e349b74f55c4579738f",
+  "meta": {
+    "key": "ew.gen.external-arrow@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "External connection arrow"
+  },
+  "keywords": [
+    "arrow",
+    "external",
+    "reference"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "24b10e2f-f603-5464-a6ed-bec5c9e799fe",
+    "version_req": "^0.1",
+    "key": "ew.fn.external-arrow"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          0,
+          0
+        ],
+        "to": [
+          3307292,
+          0
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            3307292,
+            -992187
+          ],
+          [
+            5291667,
+            0
+          ],
+          [
+            3307292,
+            992187
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": "p026"
+        },
+        "fill": "by_layer"
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "left"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "function_text",
+      "pos": [
+        2645833,
+        -1322917
+      ],
+      "align": "bottom_centre",
+      "visible": true
+    },
+    {
+      "kind": "xref",
+      "pos": [
+        2645833,
+        1322917
+      ],
+      "align": "top_centre",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      5291667,
+      0
+    ]
+  }
+}

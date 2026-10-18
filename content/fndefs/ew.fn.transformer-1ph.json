@@ -1,0 +1,42 @@
+{
+  "$k": "fndef",
+  "id": "06e53fbb-a92f-51ea-83d6-5f4da167a8be",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "67d1bd23-c52b-5dca-8392-f0e7221776a4",
+  "version": "0.1.0",
+  "sha256": "sha256:cacfd6798245c160a4bd0a1b4fb9c1371cef5b9b72a0c17231323703e09ae884",
+  "meta": {
+    "key": "ew.fn.transformer-1ph",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "TransformerAcAc",
+    "Transformer",
+    "1P"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1U1"
+    },
+    {
+      "idx": 1,
+      "designation": "1U2"
+    },
+    {
+      "idx": 2,
+      "designation": "2U1",
+      "source_output": true
+    },
+    {
+      "idx": 3,
+      "designation": "2U2",
+      "source_output": true
+    }
+  ]
+}

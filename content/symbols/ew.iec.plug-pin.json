@@ -1,0 +1,144 @@
+{
+  "$k": "symbol",
+  "id": "611824e9-fd95-51cd-9b02-29cac91a3502",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "07af65e4-71d5-50ca-aae9-ed2513db4672",
+  "version": "0.1.0",
+  "sha256": "sha256:2cdf90d772e1c5739d0d786ed06b503004296e268e9c432ae825ae114f771135",
+  "meta": {
+    "key": "ew.iec.plug-pin",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Plug pin"
+  },
+  "keywords": [
+    "connector",
+    "pin",
+    "plug"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "579099eb-a863-5648-a459-83aee1f43978",
+    "version_req": "^0.1",
+    "key": "ew.fn.plug-pin"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          0,
+          0
+        ],
+        "to": [
+          0,
+          3000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            -1000000,
+            3000000
+          ],
+          [
+            1000000,
+            3000000
+          ],
+          [
+            0,
+            5000000
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": "p026"
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          5000000
+        ],
+        "to": [
+          0,
+          8000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "up"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        8000000
+      ],
+      "dir": "down"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -3000000,
+        4000000
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        3000000,
+        4000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ]
+}

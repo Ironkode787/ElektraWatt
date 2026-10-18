@@ -1,0 +1,255 @@
+{
+  "$k": "symbol",
+  "id": "28d03957-d8ac-5f96-ad48-22645501210d",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "c2ec65cb-4074-5a11-b7b0-322418f090d5",
+  "version": "0.1.0",
+  "sha256": "sha256:92b87582274f9794b8b6f32055680abdd4a4c6114bfee631c9136f5399aceef2",
+  "meta": {
+    "key": "ew.iec.transformer-1ph@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Transformer, single-phase"
+  },
+  "keywords": [
+    "source",
+    "transformer"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "67d1bd23-c52b-5dca-8392-f0e7221776a4",
+    "version_req": "^0.1",
+    "key": "ew.fn.transformer-1ph"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "circle": {
+        "centre": [
+          0,
+          5291667
+        ],
+        "r": 2645833,
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "circle": {
+        "centre": [
+          3968750,
+          5291667
+        ],
+        "r": 2645833,
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          0
+        ],
+        "to": [
+          0,
+          2645833
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          7937500
+        ],
+        "to": [
+          0,
+          10583333
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          0
+        ],
+        "to": [
+          5291667,
+          2976562
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          7606771
+        ],
+        "to": [
+          5291667,
+          10583333
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "up"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        10583333
+      ],
+      "dir": "down"
+    },
+    {
+      "idx": 2,
+      "fn_cp": 2,
+      "pos": [
+        5291667,
+        0
+      ],
+      "dir": "up"
+    },
+    {
+      "idx": 3,
+      "fn_cp": 3,
+      "pos": [
+        5291667,
+        10583333
+      ],
+      "dir": "down"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -3968750,
+        5291667
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "tech_data",
+      "pos": [
+        7937500,
+        5291667
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        7937500,
+        2645833
+      ],
+      "align": "middle_left"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        -661458,
+        1322917
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        -661458,
+        9260417
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 2
+      },
+      "pos": [
+        5953125,
+        1322917
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 3
+      },
+      "pos": [
+        5953125,
+        9260417
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      2645833,
+      5291667
+    ]
+  }
+}

@@ -1,0 +1,153 @@
+{
+  "$k": "symbol",
+  "id": "4b7243ff-1926-5d6c-a2d6-c2166b61f95b",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "fc3a2e91-a879-57c7-82b1-1b79078f5218",
+  "version": "0.1.0",
+  "sha256": "sha256:37ba7edb2f2cdd5af2c011d7390b20a6fa544570adaf319aa325b1b0c0e149b5",
+  "meta": {
+    "key": "ew.iec.fe@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Functional earth"
+  },
+  "keywords": [
+    "earth",
+    "fe",
+    "functional"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "3b7ad438-49bb-5b91-9425-b912e14eedb1",
+    "version_req": "^0.1",
+    "key": "ew.fn.fe"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          0,
+          0
+        ],
+        "to": [
+          0,
+          2645833
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -1984375,
+          2645833
+        ],
+        "to": [
+          1984375,
+          2645833
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -1322917,
+          3307292
+        ],
+        "to": [
+          1322917,
+          3307292
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -661458,
+          3968750
+        ],
+        "to": [
+          661458,
+          3968750
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "circle": {
+        "centre": [
+          0,
+          3307292
+        ],
+        "r": 2645833,
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "up"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        3968750,
+        1322917
+      ],
+      "align": "middle_left"
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        3968750,
+        3307292
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "$k": "fndef",
+  "id": "ea9f1781-2d6e-52c0-846d-499fb9b5e18d",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "f1bbcfe6-3cad-56c0-a2ce-7391ffc36f47",
+  "version": "0.1.0",
+  "sha256": "sha256:b79fd5480f27a8bc019c20eba488e1719acf14afce0a5923e563b8f173aef3f9",
+  "meta": {
+    "key": "ew.fn.resistor",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "Resistor",
+    "Resistor",
+    "Fixed"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1"
+    },
+    {
+      "idx": 1,
+      "designation": "2"
+    }
+  ]
+}

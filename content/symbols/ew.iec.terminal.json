@@ -1,0 +1,132 @@
+{
+  "$k": "symbol",
+  "id": "fb0c6a31-2c09-5f3d-8bb0-43a12041a33a",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "e44d6631-d463-5c0f-be60-229bf365904b",
+  "version": "0.1.0",
+  "sha256": "sha256:cad83892bf9b05dd22581579c24d231164c93f75573347fb687153ff9e1c56f4",
+  "meta": {
+    "key": "ew.iec.terminal",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Terminal"
+  },
+  "keywords": [
+    "feed-through",
+    "terminal"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "e6f46588-2ed1-594f-857b-4810ffe4a028",
+    "version_req": "^0.1",
+    "key": "ew.fn.terminal"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          0,
+          -4000000
+        ],
+        "to": [
+          0,
+          -1000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "circle": {
+        "centre": [
+          0,
+          0
+        ],
+        "r": 1000000,
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          1000000
+        ],
+        "to": [
+          0,
+          4000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        4000000
+      ],
+      "dir": "down"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        -4000000
+      ],
+      "dir": "up"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -3000000,
+        0
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        3000000,
+        0
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ]
+}

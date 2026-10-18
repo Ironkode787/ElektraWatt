@@ -1,0 +1,144 @@
+{
+  "$k": "symbol",
+  "id": "3e3498f0-2636-524b-97f5-0a2795065a68",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "0eea9b90-c92a-5cc6-a512-bf1cf104eeb0",
+  "version": "0.1.0",
+  "sha256": "sha256:96fa49784234b76cc63968e00c9a6ac76eb0f4a916060a3a210321ff6beb42c0",
+  "meta": {
+    "key": "ew.iec.plug-pin@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Plug pin"
+  },
+  "keywords": [
+    "connector",
+    "pin",
+    "plug"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "579099eb-a863-5648-a459-83aee1f43978",
+    "version_req": "^0.1",
+    "key": "ew.fn.plug-pin"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          0,
+          0
+        ],
+        "to": [
+          0,
+          1984375
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            -661458,
+            1984375
+          ],
+          [
+            661458,
+            1984375
+          ],
+          [
+            0,
+            3307292
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": "p026"
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          3307292
+        ],
+        "to": [
+          0,
+          5291667
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "up"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        5291667
+      ],
+      "dir": "down"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -1984375,
+        2645833
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        1984375,
+        2645833
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ]
+}

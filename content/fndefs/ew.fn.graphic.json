@@ -1,0 +1,22 @@
+{
+  "$k": "fndef",
+  "id": "2c38898e-6848-5acc-95e5-d8c5b8f702ab",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "eb4253e4-0648-5c66-ab0f-50c288facffb",
+  "version": "0.1.0",
+  "sha256": "sha256:669a3a61072749d2f688b66cea553cf1b0d1cd36627e1caabcbcec82085ade57",
+  "meta": {
+    "key": "ew.fn.graphic",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "Graphic",
+    "Decoration",
+    "Generic"
+  ],
+  "contact_kind": "black_box"
+}

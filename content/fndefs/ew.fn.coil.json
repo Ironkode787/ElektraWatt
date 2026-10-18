@@ -1,0 +1,32 @@
+{
+  "$k": "fndef",
+  "id": "5d1ab4de-706a-5b85-b463-8b15311c4f39",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "aebc618c-20bb-54eb-bda5-a82355802f37",
+  "version": "0.1.0",
+  "sha256": "sha256:956304c8a5d96ff4f4f32b9a3519669bd88e0e3caac2c0341a7d66a3b24e5a3d",
+  "meta": {
+    "key": "ew.fn.coil",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "Relay",
+    "Coil",
+    "A1A2"
+  ],
+  "contact_kind": "coil",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "A1"
+    },
+    {
+      "idx": 1,
+      "designation": "A2"
+    }
+  ]
+}

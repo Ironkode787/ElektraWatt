@@ -1,0 +1,90 @@
+{
+  "$k": "symbol",
+  "id": "068ab0fa-8482-55cc-a37a-a4dd8e6fc3ab",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "5e0004dd-1cdb-5b98-87cf-4c0e787d2be7",
+  "version": "0.1.0",
+  "sha256": "sha256:876f247a7c3065c0c02d1b4e241bcb5d694c631afe60ef6cfa524aef322714d2",
+  "meta": {
+    "key": "ew.gen.strip-segment",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Terminal strip segment"
+  },
+  "keywords": [
+    "segment",
+    "strip",
+    "terminal"
+  ],
+  "rep_type": "strip_segment",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "2c4b506a-0063-5b62-957e-30f7f209a33e",
+    "version_req": "^0.1",
+    "key": "ew.fn.strip-segment"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            0,
+            0
+          ],
+          [
+            8000000,
+            12000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p013",
+          "dash": "dash42"
+        }
+      }
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        0,
+        -1000000
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        4000000,
+        6000000
+      ],
+      "align": "centre",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ]
+}

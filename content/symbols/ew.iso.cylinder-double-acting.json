@@ -1,0 +1,219 @@
+{
+  "$k": "symbol",
+  "id": "196326c5-5e19-5fcb-a517-f6f52087fe43",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "03799d6f-5a61-52ca-a71f-f32115fe047e",
+  "version": "0.1.0",
+  "sha256": "sha256:2a0452d2df4a11969e4a2b65c54c68502caaf6451c8847c793dbbe193718c8fb",
+  "meta": {
+    "key": "ew.iso.cylinder-double-acting",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Cylinder, double-acting"
+  },
+  "keywords": [
+    "actuator",
+    "cylinder",
+    "double-acting",
+    "pneumatic"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "3e54d172-19a6-5704-9be8-3c21d992112d",
+    "version_req": "^0.1",
+    "key": "ew.fn.cylinder-double-acting"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            0,
+            0
+          ],
+          [
+            8000000,
+            24000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          12000000
+        ],
+        "to": [
+          8000000,
+          12000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          4000000,
+          12000000
+        ],
+        "to": [
+          4000000,
+          32000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          4000000
+        ],
+        "to": [
+          -4000000,
+          4000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          20000000
+        ],
+        "to": [
+          -4000000,
+          20000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        -4000000,
+        4000000
+      ],
+      "dir": "left",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        -4000000,
+        20000000
+      ],
+      "dir": "left",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        10000000,
+        8000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        10000000,
+        16000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        -1000000,
+        3000000
+      ],
+      "align": "bottom_right",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        -1000000,
+        19000000
+      ],
+      "align": "bottom_right",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2,
+        3
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      4000000,
+      12000000
+    ]
+  },
+  "link_points": [
+    {
+      "name": "rod",
+      "pos": [
+        4000000,
+        32000000
+      ]
+    }
+  ]
+}

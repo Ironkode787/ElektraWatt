@@ -1,0 +1,28 @@
+{
+  "$k": "fndef",
+  "id": "e211d3fb-b89a-56a8-96c3-c44dbaec2fb8",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "24b10e2f-f603-5464-a6ed-bec5c9e799fe",
+  "version": "0.1.0",
+  "sha256": "sha256:3561431bd7b3983e4321706b82e2567cc82b45b483c27015b1437a3d1293d026",
+  "meta": {
+    "key": "ew.fn.external-arrow",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "ExternalReference",
+    "Arrow",
+    "Point"
+  ],
+  "contact_kind": "terminal",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1"
+    }
+  ]
+}

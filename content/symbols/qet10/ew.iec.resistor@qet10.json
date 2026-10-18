@@ -1,0 +1,160 @@
+{
+  "$k": "symbol",
+  "id": "90f74504-f4d3-5b05-a1c4-6ffe08ac1069",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "a64442c6-047e-50b8-b0fb-c76a308f1f06",
+  "version": "0.1.0",
+  "sha256": "sha256:18d2eafe503f39c632d5dbafbd40156c0cc7fa876024374aea4464e1d1ad59fb",
+  "meta": {
+    "key": "ew.iec.resistor@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Resistor"
+  },
+  "keywords": [
+    "resistor"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "f1bbcfe6-3cad-56c0-a2ce-7391ffc36f47",
+    "version_req": "^0.1",
+    "key": "ew.fn.resistor"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          0,
+          0
+        ],
+        "to": [
+          0,
+          1322917
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            -992187,
+            1322917
+          ],
+          [
+            992187,
+            6614583
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          6614583
+        ],
+        "to": [
+          0,
+          7937500
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "up"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        7937500
+      ],
+      "dir": "down"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -1984375,
+        3968750
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "tech_data",
+      "pos": [
+        1984375,
+        3968750
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        661458,
+        661458
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        661458,
+        7276042
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ]
+}

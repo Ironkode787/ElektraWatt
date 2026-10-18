@@ -1,0 +1,22 @@
+{
+  "$k": "fndef",
+  "id": "8df554db-f5b8-5993-9d31-ae3be38b0c7a",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "d31d70bd-d668-5fa0-b956-64604e9ffd62",
+  "version": "0.1.0",
+  "sha256": "sha256:6a718e9abf0baf3f31599afb0fefc304cfaffcabc695d3b54d8292611cbe79a5",
+  "meta": {
+    "key": "ew.fn.overview",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "Assembly",
+    "Overview",
+    "Generic"
+  ],
+  "contact_kind": "black_box"
+}

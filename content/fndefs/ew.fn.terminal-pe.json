@@ -1,0 +1,64 @@
+{
+  "$k": "fndef",
+  "id": "b6fcabd7-1796-5aab-82de-23ab3d0d6cd2",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "3577cf46-1065-5c1e-a32d-50d8bf78b147",
+  "version": "0.1.0",
+  "sha256": "sha256:dca058c763b56c0d4bd52b26e53891a7835e40b10d1764b315a880df481c4752",
+  "meta": {
+    "key": "ew.fn.terminal-pe",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "TerminalEarth",
+    "PE",
+    "1Level"
+  ],
+  "contact_kind": "terminal",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "potential_role": "pe",
+      "level": 1,
+      "side": "side1",
+      "clamp": {
+        "clamp": "a"
+      }
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "potential_role": "pe",
+      "level": 1,
+      "side": "side2",
+      "clamp": {
+        "clamp": "a"
+      }
+    },
+    {
+      "idx": 2,
+      "designation": "RF",
+      "potential_role": "pe",
+      "level": 1,
+      "clamp": "rail_foot",
+      "physical": false
+    }
+  ],
+  "internal": [
+    {
+      "a": 0,
+      "b": 1,
+      "kind": "short"
+    },
+    {
+      "a": 0,
+      "b": 2,
+      "kind": "short"
+    }
+  ]
+}

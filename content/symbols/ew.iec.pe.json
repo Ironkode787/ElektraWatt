@@ -1,0 +1,141 @@
+{
+  "$k": "symbol",
+  "id": "e2d6945d-b52e-5352-895b-2082f52163cf",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "7fd3e88f-ffb6-5c63-ab19-f5236457f89b",
+  "version": "0.1.0",
+  "sha256": "sha256:5ab8695f22bce6d0a93f5ba74f1861602d8116d4048ac63b35783f3b9be858e8",
+  "meta": {
+    "key": "ew.iec.pe",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Protective earth"
+  },
+  "keywords": [
+    "earth",
+    "pe",
+    "protective"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "5577d486-8f2b-55ca-b96d-fc598876290f",
+    "version_req": "^0.1",
+    "key": "ew.fn.pe"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          0,
+          0
+        ],
+        "to": [
+          0,
+          4000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -3000000,
+          4000000
+        ],
+        "to": [
+          3000000,
+          4000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -2000000,
+          5000000
+        ],
+        "to": [
+          2000000,
+          5000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -1000000,
+          6000000
+        ],
+        "to": [
+          1000000,
+          6000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "up"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        4000000,
+        2000000
+      ],
+      "align": "middle_left"
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        4000000,
+        5000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "$k": "fndef",
+  "id": "35c36073-2986-5d72-b7b9-4589385962b4",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "d4ebc807-03a6-569c-98a1-bb4ac469a6ca",
+  "version": "0.1.0",
+  "sha256": "sha256:70e2299f04c2e65adc7e03eede637284b81d31e28d1d31123dea6eb532cc8a27",
+  "meta": {
+    "key": "ew.fn.motor-3ph",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "MotorRotary",
+    "Motor",
+    "3P"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "U1",
+      "potential_role": "l1"
+    },
+    {
+      "idx": 1,
+      "designation": "V1",
+      "potential_role": "l2"
+    },
+    {
+      "idx": 2,
+      "designation": "W1",
+      "potential_role": "l3"
+    },
+    {
+      "idx": 3,
+      "designation": "PE",
+      "potential_role": "pe"
+    }
+  ]
+}

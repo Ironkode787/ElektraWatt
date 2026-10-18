@@ -1,0 +1,196 @@
+{
+  "$k": "symbol",
+  "id": "b0f8e0f4-e86d-579b-ab03-d70fe1df2041",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "b16abfcc-ea37-5856-851f-da7c75e188f7",
+  "version": "0.1.0",
+  "sha256": "sha256:deb216a22fce66aca14bbcd9f94b4688e43a9cde0c1b7042d51c305dec4433c8",
+  "meta": {
+    "key": "ew.iec.lamp@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Lamp"
+  },
+  "keywords": [
+    "lamp",
+    "light",
+    "load"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "5f8cdc08-b9d7-5a47-a366-c7d99418f979",
+    "version_req": "^0.1",
+    "key": "ew.fn.lamp"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          0,
+          0
+        ],
+        "to": [
+          0,
+          1984375
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "circle": {
+        "centre": [
+          0,
+          3968750
+        ],
+        "r": 1984375,
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          5953125
+        ],
+        "to": [
+          0,
+          7937500
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -1322917,
+          2645833
+        ],
+        "to": [
+          1322917,
+          5291667
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -1322917,
+          5291667
+        ],
+        "to": [
+          1322917,
+          2645833
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "up"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        7937500
+      ],
+      "dir": "down"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -3307292,
+        3968750
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        3307292,
+        2645833
+      ],
+      "align": "middle_left"
+    },
+    {
+      "kind": "tech_data",
+      "pos": [
+        3307292,
+        5291667
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        661458,
+        661458
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        661458,
+        7276042
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "$k": "symbol",
+  "id": "04b0176e-f66e-58b0-bcd6-7a9933aeab4f",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "ef17600b-882e-5aa8-9da9-39f73befaf82",
+  "version": "0.1.0",
+  "sha256": "sha256:8724aa49d6e6d50f96311c4c6a0630f68132a3e8bd859389031027c45b7910b8",
+  "meta": {
+    "key": "ew.gen.wire-marker@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Wire marker"
+  },
+  "keywords": [
+    "marker",
+    "wire"
+  ],
+  "rep_type": "graphic",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "eb4253e4-0648-5c66-ab0f-50c288facffb",
+    "version_req": "^0.1",
+    "key": "ew.fn.graphic"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            -1984375,
+            -661458
+          ],
+          [
+            1984375,
+            661458
+          ]
+        ],
+        "fill": {
+          "rgb": "#ffffff"
+        }
+      }
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "function_text",
+      "pos": [
+        0,
+        0
+      ],
+      "align": "centre",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0
+      ]
+    }
+  ]
+}

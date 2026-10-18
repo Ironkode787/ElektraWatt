@@ -1,0 +1,29 @@
+{
+  "$k": "fndef",
+  "id": "42cda040-6e1c-59c9-a7a6-051633364977",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "5577d486-8f2b-55ca-b96d-fc598876290f",
+  "version": "0.1.0",
+  "sha256": "sha256:b003b61587488f10bceae9522a40b895f44a5e2bac1fc1d1dc2132ef53da0afc",
+  "meta": {
+    "key": "ew.fn.pe",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "EarthingBar",
+    "ProtectiveEarth",
+    "Point"
+  ],
+  "contact_kind": "terminal",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "PE",
+      "potential_role": "pe"
+    }
+  ]
+}

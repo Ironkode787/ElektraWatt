@@ -1,0 +1,85 @@
+{
+  "$k": "symbol",
+  "id": "98298804-bd11-54b8-aa55-8c26b16e27ea",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "c242012c-d7d6-55ed-9ff9-e7a96d0477f6",
+  "version": "0.1.0",
+  "sha256": "sha256:7ad738181e47f273af1510920e1e8bc10a69255c09cf2328fb2d9f86ffd48d10",
+  "meta": {
+    "key": "ew.ovw.valve-top@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Overview valve, top view"
+  },
+  "keywords": [
+    "overview",
+    "valve"
+  ],
+  "rep_type": "overview",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "d31d70bd-d668-5fa0-b956-64604e9ffd62",
+    "version_req": "^0.1",
+    "key": "ew.fn.overview"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            0,
+            0
+          ],
+          [
+            3968750,
+            7937500
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "circle": {
+        "centre": [
+          1984375,
+          3968750
+        ],
+        "r": 992187,
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "part_number",
+      "pos": [
+        1984375,
+        9260417
+      ],
+      "align": "top_centre",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0
+      ]
+    }
+  ],
+  "anchor": "graphic_centre"
+}

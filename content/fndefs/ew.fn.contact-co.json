@@ -1,0 +1,56 @@
+{
+  "$k": "fndef",
+  "id": "140e95b6-7992-5d4d-bc2e-1e350b75eb3c",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "f64d1567-35ec-5a10-95b8-0498cf3e9469",
+  "version": "0.1.0",
+  "sha256": "sha256:7c01e0be0d27db58c6720d5cf31ddd305d19136c6fce2c945c210acbf4c4100e",
+  "meta": {
+    "key": "ew.fn.contact-co",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "Relay",
+    "Contact",
+    "CO"
+  ],
+  "contact_kind": "co",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "11"
+    },
+    {
+      "idx": 1,
+      "designation": "12"
+    },
+    {
+      "idx": 2,
+      "designation": "14"
+    }
+  ],
+  "internal": [
+    {
+      "a": 0,
+      "b": 1,
+      "kind": {
+        "pass_through": {
+          "opens": true
+        }
+      }
+    },
+    {
+      "a": 0,
+      "b": 2,
+      "kind": {
+        "pass_through": {
+          "opens": true
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "$k": "symbol",
+  "id": "d727496a-97bc-5ce3-9878-885f46993f16",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "2d8497b2-fdde-58a7-b895-069533b58292",
+  "version": "0.1.0",
+  "sha256": "sha256:50b954496c3fee1939f490666dd7b2bea229995743a29d369b140973682bd616",
+  "meta": {
+    "key": "ew.gen.external-arrow",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "External connection arrow"
+  },
+  "keywords": [
+    "arrow",
+    "external",
+    "reference"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "24b10e2f-f603-5464-a6ed-bec5c9e799fe",
+    "version_req": "^0.1",
+    "key": "ew.fn.external-arrow"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          0,
+          0
+        ],
+        "to": [
+          5000000,
+          0
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            5000000,
+            -1500000
+          ],
+          [
+            8000000,
+            0
+          ],
+          [
+            5000000,
+            1500000
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": "p026"
+        },
+        "fill": "by_layer"
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "left"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "function_text",
+      "pos": [
+        4000000,
+        -2000000
+      ],
+      "align": "bottom_centre",
+      "visible": true
+    },
+    {
+      "kind": "xref",
+      "pos": [
+        4000000,
+        2000000
+      ],
+      "align": "top_centre",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      8000000,
+      0
+    ]
+  }
+}

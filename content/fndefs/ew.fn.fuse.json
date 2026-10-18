@@ -1,0 +1,43 @@
+{
+  "$k": "fndef",
+  "id": "b68921c2-f21f-5671-8e7a-9ba828c47bd2",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "5ff86c65-8bf2-5a3d-851a-70294a7b0ec1",
+  "version": "0.1.0",
+  "sha256": "sha256:5df5c5e088dfde7dffb7c5f56d4e5c554113b89ababa102347ecd40f6e53f611",
+  "meta": {
+    "key": "ew.fn.fuse",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "ProtectionOvercurrent",
+    "Fuse",
+    "1P"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1"
+    },
+    {
+      "idx": 1,
+      "designation": "2"
+    }
+  ],
+  "internal": [
+    {
+      "a": 0,
+      "b": 1,
+      "kind": {
+        "pass_through": {
+          "opens": true
+        }
+      }
+    }
+  ]
+}

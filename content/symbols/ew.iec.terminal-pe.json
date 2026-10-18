@@ -1,0 +1,193 @@
+{
+  "$k": "symbol",
+  "id": "1b079945-899a-58a0-8e94-d661841e31f5",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "1d2d8963-3115-5a07-a173-4028ff9794bb",
+  "version": "0.1.0",
+  "sha256": "sha256:ad7db3e628ac861c6172537191bb5a77a21f4db0e80713d7f63e86c52885e070",
+  "meta": {
+    "key": "ew.iec.terminal-pe",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Terminal, protective earth"
+  },
+  "keywords": [
+    "earth",
+    "pe",
+    "terminal"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "3577cf46-1065-5c1e-a32d-50d8bf78b147",
+    "version_req": "^0.1",
+    "key": "ew.fn.terminal-pe"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          0,
+          -4000000
+        ],
+        "to": [
+          0,
+          -1000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "circle": {
+        "centre": [
+          0,
+          0
+        ],
+        "r": 1000000,
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          1000000
+        ],
+        "to": [
+          0,
+          4000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          1000000,
+          0
+        ],
+        "to": [
+          3000000,
+          0
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          3000000,
+          -1500000
+        ],
+        "to": [
+          3000000,
+          1500000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          4000000,
+          -1000000
+        ],
+        "to": [
+          4000000,
+          1000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5000000,
+          -500000
+        ],
+        "to": [
+          5000000,
+          500000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        4000000
+      ],
+      "dir": "down"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        -4000000
+      ],
+      "dir": "up"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -3000000,
+        0
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        7000000,
+        0
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ]
+}

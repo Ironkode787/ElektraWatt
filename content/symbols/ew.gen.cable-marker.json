@@ -1,0 +1,80 @@
+{
+  "$k": "symbol",
+  "id": "2f8f5bcb-e81e-512a-8144-438221e80d34",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "bfa00dcb-aec4-57c3-9da2-94660a467231",
+  "version": "0.1.0",
+  "sha256": "sha256:a5eec7509d450fd231471590b7e11ca77c5f912d2f6ecb12782604734591ef3a",
+  "meta": {
+    "key": "ew.gen.cable-marker",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Cable marker"
+  },
+  "keywords": [
+    "cable",
+    "marker"
+  ],
+  "rep_type": "graphic",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "eb4253e4-0648-5c66-ab0f-50c288facffb",
+    "version_req": "^0.1",
+    "key": "ew.fn.graphic"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            -6000000,
+            -2000000
+          ],
+          [
+            6000000,
+            2000000
+          ]
+        ],
+        "rx": 1000000,
+        "ry": 1000000,
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        0,
+        0
+      ],
+      "align": "centre",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ]
+}

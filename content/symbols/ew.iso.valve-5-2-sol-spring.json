@@ -1,0 +1,545 @@
+{
+  "$k": "symbol",
+  "id": "f89eb83d-94db-5efc-8ea9-fb89ed66b515",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "d32db5ff-36ed-53d6-9cf2-f82c50e7ad74",
+  "version": "0.1.0",
+  "sha256": "sha256:2da7e9646622766c33c6d724d0c5bd58633cdc8edd551a8f00df134ad177e932",
+  "meta": {
+    "key": "ew.iso.valve-5-2-sol-spring",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "5/2 valve, solenoid and spring"
+  },
+  "keywords": [
+    "5/2",
+    "pneumatic",
+    "solenoid",
+    "valve"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "953db918-4c70-57d8-a7dc-97bd0818d957",
+    "version_req": "^0.1",
+    "key": "ew.fn.valve-5-2-sol-spring"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            0,
+            0
+          ],
+          [
+            16000000,
+            16000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            16000000,
+            0
+          ],
+          [
+            32000000,
+            16000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          20000000,
+          0
+        ],
+        "to": [
+          20000000,
+          -4000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          28000000,
+          0
+        ],
+        "to": [
+          28000000,
+          -4000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          20000000,
+          16000000
+        ],
+        "to": [
+          20000000,
+          20000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          24000000,
+          16000000
+        ],
+        "to": [
+          24000000,
+          20000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          28000000,
+          16000000
+        ],
+        "to": [
+          28000000,
+          20000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          20000000,
+          0
+        ],
+        "to": [
+          20000000,
+          16000000
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            19000000,
+            14000000
+          ],
+          [
+            21000000,
+            14000000
+          ],
+          [
+            20000000,
+            16000000
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": "p013"
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          24000000,
+          16000000
+        ],
+        "to": [
+          28000000,
+          0
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            27000000,
+            2000000
+          ],
+          [
+            28500000,
+            2000000
+          ],
+          [
+            28000000,
+            0
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": "p013"
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          8000000,
+          16000000
+        ],
+        "to": [
+          4000000,
+          0
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            3500000,
+            2000000
+          ],
+          [
+            5000000,
+            2000000
+          ],
+          [
+            4000000,
+            0
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": "p013"
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          12000000,
+          0
+        ],
+        "to": [
+          12000000,
+          16000000
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            11000000,
+            14000000
+          ],
+          [
+            13000000,
+            14000000
+          ],
+          [
+            12000000,
+            16000000
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": "p013"
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            -8000000,
+            4000000
+          ],
+          [
+            0,
+            12000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -8000000,
+          12000000
+        ],
+        "to": [
+          0,
+          4000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            -12000000,
+            6000000
+          ],
+          [
+            -8000000,
+            10000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            32000000,
+            8000000
+          ],
+          [
+            33000000,
+            6000000
+          ],
+          [
+            35000000,
+            10000000
+          ],
+          [
+            37000000,
+            6000000
+          ],
+          [
+            39000000,
+            10000000
+          ],
+          [
+            40000000,
+            8000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        24000000,
+        20000000
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        28000000,
+        -4000000
+      ],
+      "dir": "up",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 2,
+      "fn_cp": 2,
+      "pos": [
+        28000000,
+        20000000
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 3,
+      "fn_cp": 3,
+      "pos": [
+        20000000,
+        -4000000
+      ],
+      "dir": "up",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 4,
+      "fn_cp": 4,
+      "pos": [
+        20000000,
+        20000000
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -12000000,
+        -1000000
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -12000000,
+        14000000
+      ],
+      "align": "top_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        25000000,
+        18000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        29000000,
+        -2000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 2
+      },
+      "pos": [
+        29000000,
+        18000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 3
+      },
+      "pos": [
+        21000000,
+        -2000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 4
+      },
+      "pos": [
+        21000000,
+        18000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      16000000,
+      8000000
+    ]
+  }
+}

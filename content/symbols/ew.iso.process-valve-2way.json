@@ -1,0 +1,211 @@
+{
+  "$k": "symbol",
+  "id": "0c537e81-73c1-5ca4-b372-671fe25ef984",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "ec485dc8-9367-5dbd-ac70-2ccb630ad08d",
+  "version": "0.1.0",
+  "sha256": "sha256:59c1ad29e54955737097baef5e03fbe75fc297f10d20726b3d7c043ce05028e0",
+  "meta": {
+    "key": "ew.iso.process-valve-2way",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Process valve, 2-way"
+  },
+  "keywords": [
+    "2-way",
+    "process",
+    "valve"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "e3258a41-006c-523a-b926-4122d12d67f8",
+    "version_req": "^0.1",
+    "key": "ew.fn.process-valve-2way"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          0,
+          0
+        ],
+        "to": [
+          0,
+          4000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            -4000000,
+            4000000
+          ],
+          [
+            4000000,
+            4000000
+          ],
+          [
+            -4000000,
+            12000000
+          ],
+          [
+            4000000,
+            12000000
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          12000000
+        ],
+        "to": [
+          0,
+          16000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          8000000
+        ],
+        "to": [
+          4000000,
+          8000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "up",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        16000000
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -5000000,
+        8000000
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -5000000,
+        12000000
+      ],
+      "align": "middle_right"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        1000000,
+        1000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        1000000,
+        15000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2,
+        3
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      0,
+      8000000
+    ]
+  },
+  "link_points": [
+    {
+      "name": "stem",
+      "pos": [
+        4000000,
+        8000000
+      ]
+    }
+  ]
+}

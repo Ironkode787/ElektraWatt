@@ -1,0 +1,39 @@
+{
+  "$k": "fndef",
+  "id": "155ca6d7-6510-5ea2-a0ca-6f3e405259d0",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "579099eb-a863-5648-a459-83aee1f43978",
+  "version": "0.1.0",
+  "sha256": "sha256:bfc233dd000de4068ea308f99e1d36ceaffbde5fa3f867956183ed0e99b00f29",
+  "meta": {
+    "key": "ew.fn.plug-pin",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "ConnectorSignal",
+    "PlugPin",
+    "Single"
+  ],
+  "contact_kind": "terminal",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1"
+    },
+    {
+      "idx": 1,
+      "designation": "2"
+    }
+  ],
+  "internal": [
+    {
+      "a": 0,
+      "b": 1,
+      "kind": "short"
+    }
+  ]
+}

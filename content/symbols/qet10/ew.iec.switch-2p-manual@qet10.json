@@ -1,0 +1,334 @@
+{
+  "$k": "symbol",
+  "id": "88ca8636-ec40-566b-8a12-b22d04562170",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "978b78d1-a563-594b-b98a-2cfe4b9f4512",
+  "version": "0.1.0",
+  "sha256": "sha256:78e15a6b019c61b3983433b4026305b8d36c5edd20c5b1787b81210a02065c49",
+  "meta": {
+    "key": "ew.iec.switch-2p-manual@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Switch, 2 poles, manual actuator"
+  },
+  "keywords": [
+    "disconnector",
+    "isolator",
+    "main-switch",
+    "manual",
+    "switch"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "6f5d7b7a-330e-5915-9880-9d9ffa8846b4",
+    "version_req": "^0.1",
+    "key": "ew.fn.switch-2p-manual"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          0,
+          0
+        ],
+        "to": [
+          0,
+          2645833
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          7937500
+        ],
+        "to": [
+          0,
+          5291667
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          5291667
+        ],
+        "to": [
+          -1322917,
+          2645833
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          0
+        ],
+        "to": [
+          5291667,
+          2645833
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          7937500
+        ],
+        "to": [
+          5291667,
+          5291667
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          5291667
+        ],
+        "to": [
+          3968750,
+          2645833
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          4630208,
+          3968750
+        ],
+        "to": [
+          7276042,
+          3968750
+        ],
+        "stroke": {
+          "pen": "p013",
+          "dash": "dash42"
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            7276042,
+            3307292
+          ],
+          [
+            8598958,
+            4630208
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "up"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        7937500
+      ],
+      "dir": "down"
+    },
+    {
+      "idx": 2,
+      "fn_cp": 2,
+      "pos": [
+        5291667,
+        0
+      ],
+      "dir": "up"
+    },
+    {
+      "idx": 3,
+      "fn_cp": 3,
+      "pos": [
+        5291667,
+        7937500
+      ],
+      "dir": "down"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -2645833,
+        3968750
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "manufacturer",
+      "pos": [
+        9921875,
+        1984375
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "part_number",
+      "pos": [
+        9921875,
+        3968750
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "tech_data",
+      "pos": [
+        9921875,
+        5953125
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -2645833,
+        6614583
+      ],
+      "align": "middle_right"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        661458,
+        1322917
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        661458,
+        6614583
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 2
+      },
+      "pos": [
+        5953125,
+        1322917
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 3
+      },
+      "pos": [
+        5953125,
+        6614583
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "tag + rating",
+      "slots": [
+        0,
+        3
+      ]
+    }
+  ],
+  "link_points": [
+    {
+      "name": "pole1",
+      "pos": [
+        -661458,
+        3968750
+      ]
+    },
+    {
+      "name": "pole2",
+      "pos": [
+        4630208,
+        3968750
+      ]
+    }
+  ]
+}

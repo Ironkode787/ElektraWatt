@@ -1,0 +1,29 @@
+{
+  "$k": "fndef",
+  "id": "e0942ca9-3913-5032-9116-8aa88c3d4013",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "3b7ad438-49bb-5b91-9425-b912e14eedb1",
+  "version": "0.1.0",
+  "sha256": "sha256:f322882d0a76e34ce4f2ce4f95a1f64a4c1eba264705d2ca9eb4ae487b331355",
+  "meta": {
+    "key": "ew.fn.fe",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "EarthingBar",
+    "FunctionalEarth",
+    "Point"
+  ],
+  "contact_kind": "terminal",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "FE",
+      "potential_role": "fe"
+    }
+  ]
+}

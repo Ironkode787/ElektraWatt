@@ -1,0 +1,32 @@
+{
+  "$k": "fndef",
+  "id": "c15149e0-a49b-52a4-8e9b-dede426d0f22",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "5f8cdc08-b9d7-5a47-a366-c7d99418f979",
+  "version": "0.1.0",
+  "sha256": "sha256:d77c78dda0ccab7fd0b3bced29e728dce7c9ae7058bb683937386059ddce7078",
+  "meta": {
+    "key": "ew.fn.lamp",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "Lighting",
+    "Lamp",
+    "Cabinet"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "X1"
+    },
+    {
+      "idx": 1,
+      "designation": "X2"
+    }
+  ]
+}

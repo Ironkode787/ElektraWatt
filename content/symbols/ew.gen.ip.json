@@ -1,0 +1,114 @@
+{
+  "$k": "symbol",
+  "id": "83cdf540-204c-5161-9c85-c819484b0b57",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "d26089d1-247f-5b69-b19a-e7c369dbea11",
+  "version": "0.1.0",
+  "sha256": "sha256:4ac75ded9a4aab80556e7cacd1951f2474207849bb317c399f29919c4175f9b8",
+  "meta": {
+    "key": "ew.gen.ip",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Interruption point"
+  },
+  "keywords": [
+    "interruption",
+    "ip",
+    "reference"
+  ],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "71f84e74-578d-5835-9a77-cfdaf8057ecd",
+    "version_req": "^0.1",
+    "key": "ew.fn.ip"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          0,
+          -4000000
+        ],
+        "to": [
+          0,
+          -3000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            -1500000,
+            -3000000
+          ],
+          [
+            1500000,
+            -3000000
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": "p026"
+        },
+        "fill": "by_layer"
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        -4000000
+      ],
+      "dir": "up"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "function_text",
+      "pos": [
+        3000000,
+        -2000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "xref",
+      "pos": [
+        1000000,
+        1000000
+      ],
+      "align": "top_right",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1
+      ]
+    }
+  ]
+}
