@@ -39,7 +39,9 @@
    - **BM:** a 4-core 2018+ x64 CPU or Apple M1, 8 GB RAM (16 GB recommended at L/XL), an integrated GPU with DX12,
      Vulkan or Metal, 1920 × 1080 and a local SSD.
    - **BM-noGPU:** the same machine without a hardware adapter.
-3. **Size classes.** These are the G6 bounds, with XL raised to the ARCH §6.7 case:
+3. **Size classes.** These are the G6 bounds, with the XL device bound raised from 40,000 to 50,000 to cover the
+   ARCH §6.7 estimate case XL-A ([02c](../design/02c-nonfunctional-requirements.md) §2.1). XL always means the class
+   bound below, and XL-A the estimate case:
 
    | Class | Pages | Devices | Connections | CPs | Terminals | PLC channels | 3D placements |
    |---|---|---|---|---|---|---|---|

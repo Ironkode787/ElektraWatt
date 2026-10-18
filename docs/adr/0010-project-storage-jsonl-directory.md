@@ -1,6 +1,6 @@
 # ADR-0010: Project storage: UUID-named JSONL directory, manifest-last save, external journal, lock file
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -33,9 +33,16 @@ J-E-2416.ew/                     # folder name chosen by the user; content is UU
                                  #   potential/net definitions, bonds
   layout/<space-uuid>.jsonl      # enclosures, surfaces, carriers, placements, route overrides, committed routes
   lib/{symbols,fndefs,forms,parts,macros}/<uuid>.json   # embedded library copies, pretty-printed
+  lib/manufacturers/<copy_id>.json                      # manufacturer copies (MVP; amendment 2)
+  lib/plc-profiles/<copy_id>.json                       # PLC address profiles (1.0; amendment 2)
+  lib/profiles/<copy_id>.toml    # machine and label profiles in their TOML source form (1.0; amendment 2)
   rules/<uuid>.toml (+ rules/<uuid>/)  reports/<uuid>.sql
                                  # project rule packs and user reports (untrusted until the project is trusted)
-  assets/<sha256>.svg|png
+  scripts/<uuid>.rhai  jobs/<uuid>.ewjobs   # automation scripts and jobsets (1.0, untrusted; amendment 2)
+  imports/<run-uuid>.jsonl       # one import run per file (MVP; amendment 2)
+  exchange/<config-project-uuid>.jsonl      # PLC exchange records and foreign IDs (1.0; amendment 2)
+  assets/<sha256>.svg|png|jpg|glb           # logos, images; opt-in embeddable meshes (.glb, 1.0; amendment 2)
+  trust.sig                      # project trust signature (1.0; amendment 2)
   .gitattributes  .gitignore  .ew/ (per-user view state, git-ignored)  .~ew.lock (git-ignored)
 ```
 
@@ -80,6 +87,30 @@ anyway, runs `ew check --integrity` and offers journal replay or the last good g
 - **Transport.** `.ewz` is a ZIP of the directory, opened by extraction or read-only.
 - **Nothing else.** No working database and no derived data on disk.
 
+## Amendments
+
+Accepted on 2026-10-18. The decision text above is unchanged; these entries refine it.
+
+1. **Commit point, roll-forward and lock record** (2026-10-18;
+   [project format](../design/05-project-format-and-persistence.md) §5.3, §7). With the order temp → rename →
+   manifest, a crash between two renames would leave generation g partly overwritten, so NFR-REL-01 ("previous or
+   new generation") would not hold. The save protocol therefore writes the complete new manifest as a durable
+   **intent** (`manifest.json.tmp-<g+1>`) after all temps are durable and *before* the first rename; the next open
+   rolls forward every temp whose hash matches the intent, then the intent. A fault-injection harness kills the
+   writer at random points on ext4, NTFS and APFS, and every reopen must yield g or g+1. The lock record is
+   `{lock: 1, session, user, host, pid, pid_started, app_version, started_at}`. The holder refreshes the lock's
+   modification time every 5 minutes and re-reads the session ID, so it detects a lost lock. A lock is stale when
+   the PID on the same host is dead or its start time differs, or when the lock is older than `lock.stale_after`
+   (default 60 minutes). A confirmed takeover renames the stale lock **without replacement** before creating its
+   own, so of two instances taking over the same stale lock only one succeeds.
+2. **Further project files** (2026-10-18; [project format](../design/05-project-format-and-persistence.md) §2).
+   The layout above gains: `scripts/<uuid>.rhai` and `jobs/<uuid>.ewjobs` (1.0, under the trust store);
+   `imports/<run-uuid>.jsonl` (MVP; one import run per file, so runs never conflict with project data);
+   `exchange/<config-project-uuid>.jsonl` (1.0; PLC exchange records and foreign IDs, included in the as-built
+   archive); `lib/manufacturers/`, `lib/plc-profiles/` and `lib/profiles/` (machine and label profiles kept in
+   their TOML source form, so their SHA-256 equals the published item); `trust.sig` at the root (1.0); and opt-in
+   embeddable meshes `assets/<sha256>.glb` (1.0). Asset extensions are svg, png, jpg and glb.
+
 ## Consequences
 
 ### Positive
@@ -91,6 +122,9 @@ anyway, runs `ew check --integrity` and offers journal replay or the last good g
   usually succeed.
 - The format is readable and writable with the permissive crates alone (`ew-format`, `ew-schema`).
 - The journal never reaches git or a sync client.
+- Libraries reuse this storage design: a `.ewlib` library is a directory in the same canonical format, with the
+  same writer, manifest-last save, lock and merge driver
+  ([symbols, parts and macros](../design/07-symbols-parts-macros.md) §2.1–§2.2).
 
 ### Negative
 
@@ -98,18 +132,7 @@ anyway, runs `ew check --integrity` and offers journal replay or the last good g
 - Small projects still get many shard files: the golden project fills about 80 of the 256.
 - Moving a representation to another page rewrites two page files; git sees a delete and an add.
 - Directory sync is not available through Rust's std on Windows (**verify**), so the durability of renames relies
-  on NTFS's metadata journal. The fault-injection harness of pending amendment 1 must cover NTFS.
-
-## Pending amendments
-
-1. **Commit point and roll-forward** ([project format](../design/05-project-format-and-persistence.md) §5.3, open
-   question 5). With the order temp → rename → manifest, a crash between two renames leaves generation g partly
-   overwritten, so NFR-REL-01 ("previous or new generation") is not guaranteed. The proposed fix writes the complete
-   new manifest as a durable **intent** (`manifest.json.tmp-<g+1>`) after all temps and *before* the first rename; the
-   next open rolls forward every temp whose hash matches the intent. A fault-injection harness kills the writer at
-   random points on ext4, NTFS and APFS. *Recommendation:* accept and fold into the save protocol above.
-2. **Scripts and jobsets in the project** (same document, open question 11). *Recommendation:* add
-   `scripts/<uuid>.rhai` and `jobs/<uuid>.ewjobs` at 1.0, under the trust store.
+  on NTFS's metadata journal. The fault-injection harness of amendment 1 must cover NTFS.
 
 ## Alternatives considered
 
@@ -129,7 +152,8 @@ anyway, runs `ew check --integrity` and offers journal replay or the last good g
   [ADR-0011](0011-format-versioning-and-migration.md), [ADR-0012](0012-git-integration.md),
   [ADR-0013](0013-revisions-and-as-built-archive.md), [ADR-0022](0022-platform-matrix-and-performance-budgets.md), [ADR-0024](0024-licence-set-and-permissive-gpl-boundary.md).
 - **Design:** [architecture](../design/04-architecture.md) §7.1–§7.4;
-  [project format](../design/05-project-format-and-persistence.md) §2–§9, §12, §15.
+  [project format](../design/05-project-format-and-persistence.md) §2–§9, §12, §13, §15;
+  [symbols, parts and macros](../design/07-symbols-parts-macros.md) §2.
 - **Requirements:** FR-COL-001, FR-COL-002, FR-COL-003, FR-COL-004, FR-COL-005, FR-COL-006, FR-COL-007,
-  FR-COL-008, FR-COL-009, NFR-REL-01, NFR-REL-02, NFR-REL-03, NFR-REL-04, NFR-REL-11, NFR-PLAT-05, NFR-PERF-12,
+  FR-COL-008, FR-COL-009, FR-COL-026, NFR-REL-01, NFR-REL-02, NFR-REL-03, NFR-REL-04, NFR-REL-11, NFR-PLAT-05, NFR-PERF-12,
   NFR-PRIV-05.

@@ -51,7 +51,7 @@
    debug builds it also rebuilds from scratch and compares. A field-mask test fails when a new scene field is not
    reconciled.
 4. **Collision and picking.**
-   - Collision (EW-L006) uses a BVH broad phase and a hull-then-mesh narrow phase.
+   - Collision (EW-LAY-006) uses a BVH broad phase and a hull-then-mesh narrow phase.
    - Picking is a CPU ray cast against the same BVHs. It is deterministic and needs no GPU readback.
    - An ID buffer is optional, for hover feedback only.
 5. **STEP worker.** STEP is read in a separate executable, `ew-step-worker`. It links occt-sys 7.8.1 and
@@ -87,7 +87,7 @@
      top and bottom faces in pin-list order and `geometry_quality = generated` in every output that uses it.
 7. **Routing.** Negotiated-congestion rip-up and re-route runs over the duct graph on a fork (Class II). Its paths
    and lengths become model data only through the explicit, previewed `RouteWires` command, as
-   `Committed<T>{value, input_hash, rev}`. EW-L011 flags a committed route whose input hash is stale (ADR-0003).
+   `Committed<T>{value, input_hash, rev}`. EW-LAY-011 flags a committed route whose input hash is stale (ADR-0003).
 8. **Build isolation.** The worker builds in its own CI job with cached OCCT artefacts. The rest of the application
    builds with Rust and a C compiler only (NFR-MAINT-09). No build script downloads binaries (ADR-0023).
 9. **GPU-less hosts.** 3D runs on DX12 WARP or a software Vulkan adapter where one exists, using LOD1. Otherwise the
@@ -118,7 +118,7 @@
 - The opencascade wrapper's STEP coverage is partial. Its gaps must be closed by bindings inside the worker and
   proven on a vendor STEP corpus before M4.
 - A second process lifetime must be supervised. An OS sandbox for the worker (no network, read its input, write
-  only its cache) is a 1.x Could ([18](../design/18-quality-security-release.md) [P18-9]).
+  only its cache) is a 1.x Could (NFR-SEC-21, [18](../design/18-quality-security-release.md) §11).
 
 ## Alternatives considered
 
@@ -146,4 +146,4 @@
   C-5, C-6, C-9.
 - **Requirements:** FR-LAY-019, FR-LAY-020, FR-LAY-021, FR-LAY-022, FR-LAY-023, FR-LAY-028, FR-LAY-040, FR-LAY-045,
   FR-LAY-046, FR-LAY-051; FR-EXP-008; NFR-PERF-16, NFR-PERF-17, NFR-PERF-18, NFR-REL-12, NFR-PLAT-03,
-  NFR-MAINT-09, NFR-LIC-08, NFR-SEC-03, NFR-SEC-04.
+  NFR-MAINT-09, NFR-LIC-08, NFR-SEC-03, NFR-SEC-04, NFR-SEC-21.

@@ -1,6 +1,6 @@
 # ADR-0021: Importers emit format-level records; QET first; EDZ as 7-Zip; DWG via acadrust plus ODA
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
+**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
 
 ## Context
 
@@ -35,7 +35,7 @@
        fn import(&self, src: &mut dyn Source, cx: &ImportCx) -> Result<ImportBatch, ImportError>;
    }
    pub struct ImportBatch { pub records: Vec<ew_schema::AnyRecord>,   // sorted by (kind, id); IDs final
-                            pub assets: Vec<AssetBlob>,              // logos, images (14 OQ2 amendment)
+                            pub assets: Vec<AssetBlob>,              // logos, images (amendment 1)
                             pub report: ImportReport, pub provenance: Vec<SourceRef> }
    ```
 
@@ -49,7 +49,7 @@
      and reported later, and human decisions travel as `Proposal`s attached to report entries.
 2. **Identity.** Imported records get `v5(namespace, source_hash, source_id)` IDs and keep a `SourceRef` (QET UUID,
    EDZ part number, DXF handle; ADR-0004). Re-importing the same file therefore updates records in place instead of
-   duplicating them.
+   duplicating them. Amendment 2 anchors the namespace on an import lineage.
 3. **Applying an import.** `ApplyImport` turns a batch into a previewed transaction: rendered candidate pages plus
    entity and report diffs (ADR-0008).
    - Normalisers and validators run in **lenient** mode (ADR-0009).
@@ -101,6 +101,28 @@
 
    Each importer has a `cargo-fuzz` target (NFR-SEC-02, NFR-SEC-03).
 
+## Amendments
+
+Accepted on 2026-10-18 ([14](../design/14-interop.md) §2.1–§2.4, open questions 1, 2 and 15). The decision text above
+is unchanged; these entries refine it.
+
+1. **Assets in the batch** (2026-10-18). `ImportBatch` carries `assets: Vec<AssetBlob>`: content-addressed logos
+   and images, written by the host to `assets/<sha256>.<ext>`.
+2. **Lineage and import runs** (2026-10-18; ADR-0004 amendment 1). Imported records carry
+   `source_ref{lineage, key}`, and their IDs are `v5(namespace, source_key)` with the namespace anchored on an
+   `ImportLineage` (the QET project UUID, or the SHA-256 of the lineage's first imported file). `ImportLineage`
+   records live in `project.jsonl`; each import persists an `ImportRun` record in `imports/<run-uuid>.jsonl`, so runs
+   never conflict with project data (FR-IMP-040, FR-IMP-041). A source may also be imported as a copy into a new
+   lineage (FR-IMP-045).
+3. **Table images and proposals** (2026-10-18). `ew-interop-api` gains `TableImage` (table name → rows of typed
+   cells), which the host fills through `ew-library`'s hardened read-only opener, so a QETZ importer reads its
+   `project.sqlite` member without linking rusqlite. It also gains `Proposal`: format-level intent attached to a
+   report entry, which `ApplyImport` turns into a command once the user accepts it.
+4. **Underlays** (2026-10-18). From 1.0 a PDF or DXF page can be imported as an `Underlay` page item (FR-IMP-030).
+5. **Plugin importers** (1.x) obtain record IDs only through the host's ID minting for a source key; the host
+   re-mints and compares every ID and validates every record against its JSON Schema before `ApplyImport`
+   (FR-EXT-037).
+
 ## Consequences
 
 **Positive**
@@ -119,7 +141,7 @@
   `TargetHints`.
 - **Memory.** Large batches are held in memory between parsing and `ApplyImport`.
 - **QETZ.** The `project.sqlite` member needs a host-side opener and a neutral table image passed through `ImportCx`
-  ([14](../design/14-interop.md) OQ15).
+  (amendment 3; [14](../design/14-interop.md) OQ15).
 - **Per-project formulas.** Reading each project's own formulas multiplies the test matrix: xref, report label,
   folio and conductor formulas.
 - **Two-licence crate.** `ew-import-qet` mixes GPL-2.0-or-later and GPL-3.0-or-later files and needs REUSE
@@ -146,6 +168,7 @@
   [ADR-0028](0028-default-drawing-fonts.md).
 - **Design:** [04 architecture](../design/04-architecture.md) §3, §10.6; [14 interop](../design/14-interop.md);
   [interop-formats](../research/interop-formats.md); [plc-bus-fluid](../research/plc-bus-fluid.md) §3.1.
-- **Requirements:** FR-IMP-001 to FR-IMP-037 (in particular FR-IMP-001, FR-IMP-002, FR-IMP-003, FR-IMP-004, FR-IMP-005,
+- **Requirements:** FR-IMP-001 to FR-IMP-045 (in particular FR-IMP-001, FR-IMP-002, FR-IMP-003, FR-IMP-004, FR-IMP-005,
   FR-IMP-006, FR-IMP-008, FR-IMP-009, FR-IMP-010, FR-IMP-020, FR-IMP-024, FR-IMP-025, FR-IMP-032, FR-IMP-036,
-  FR-IMP-037); FR-PLC-029, FR-PLC-032; NFR-SEC-02, NFR-SEC-03, NFR-LIC-05, NFR-LIC-06, NFR-UX-06.
+  FR-IMP-037, FR-IMP-040, FR-IMP-041, FR-IMP-045); FR-EXT-037; FR-PLC-029, FR-PLC-032; NFR-SEC-02, NFR-SEC-03,
+  NFR-SEC-18, NFR-LIC-05, NFR-LIC-06, NFR-UX-06.

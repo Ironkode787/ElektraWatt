@@ -1,6 +1,6 @@
 # Extensibility: CLI, scripting, SQL, plugins and agents
 
-**Status:** Draft v0.1 · **Date:** 2026-10-17 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies every way to drive, extend or query ElektraWatt (EW) other than the GUI: the
 `ew` command-line tool, the headless `Session` API behind it, rhai formulas, rules and automation scripts, the
@@ -154,7 +154,10 @@ pub struct CommandMeta {
 
 `ew commands --json` prints the catalogue; the reference documentation is generated from it (NFR-DOC-06). An
 `AnyCommand { name, params: serde_json::Value }` is validated against `params_schema`, deserialised into the typed
-command and run by the commit pipeline (ARCH §5.2). Entity references in parameters are UUIDs; front-ends that
+command and run by the commit pipeline (ARCH §5.2); after validation it implements the object-safe `DynCommand`
+companion of ARCH §5.1, which `Session::preview` and `Session::execute` take. Aliases resolve to one command: the
+placement command `device.place` (`PlaceSymbol` with a `PlaceTarget`) registers `device.place_from_part` and
+`symbol.place` as `CommandMeta.aliases`, and the journal always records `device.place`. Entity references in parameters are UUIDs; front-ends that
 accept tags (`.ewcmd`, CLI, MCP) resolve them first through `find` (§3.5).
 
 ### 2.2 Query registry
@@ -188,14 +191,14 @@ pub enum Origin { Gui, Cli { subcommand: String }, CmdLog { file: String, sha256
 
 | Exposure | Front-ends allowed | Commands (examples) |
 |---|---|---|
-| `Edit` | GUI, CLI (`apply`), scripts, MCP, plugins, Python | `device.place`, `connection.draw`, `fields.set`, `numbering.renumber`, `page.renumber`, `plc.readdress`, `macro.insert`, `plugin.data.set` |
+| `Edit` | GUI, CLI (`apply`), scripts, MCP, plugins, Python | `device.place` (aliases `device.place_from_part`, `symbol.place`), `connection.draw`, `fields.set`, `numbering.renumber`, `page.renumber`, `plc.readdress`, `macro.insert`, `plugin.data.set` |
 | `HumanOnly` | GUI; a dedicated CLI subcommand confirmed on a terminal (below) | `revision.approve`, `revision.release`, `revision.withdraw`, `waiver.create` / `waiver.remove`, `scheme.set_severity` and the other `scheme.*` edits including company locks, `pack.enable` / `pack.disable`, `project.set_strictness`, completing and reopening a project (FR-REV-013, 1.0), `trust.*`, `plugin.install` / `plugin.remove`, `library.write` |
 | `Import` | GUI import wizard, `ew import` | `ApplyImport` (plugins reach it only through the importer contract, §10) |
 | `Internal` | normalisers | CP instantiation, online numbering |
 
 `HumanOnly` commands are refused with `CmdError::Exposure` when the origin is a command log (`ew apply`), a script,
 an MCP session, a plugin or Python (jobsets submit no commands at all, §3.6). This is what keeps an agent, a replayed `.ewcmd` or a third-party
-plugin from waiving EW-POT-013 or demoting EW-PLC-12 to make a release gate pass (FR-CHK-009, FR-REV-007, D-34;
+plugin from waiving EW-POT-013 or demoting EW-PLC-012 to make a release gate pass (FR-CHK-009, FR-REV-007, D-34;
 [15](15-checks-revisions-collaboration.md) §2.5, §5.4).
 
 **`HumanOnly` on the command line.** Only the dedicated subcommands (`ew revision approve|release|withdraw`,
@@ -206,9 +209,11 @@ command, with origin `Cli{subcommand}`:
 2. If the command can proceed, EW prints the change summary on the controlling terminal and asks the person to type
    the revision label, the rule ID of the waiver, or `trust` / `install`. There is no `--yes` flag.
 3. Without a controlling terminal (CI runner, pipe, `nohup`), the subcommand exits 2 with "HumanOnly: needs an
-   interactive terminal". Test builds of `ew-testkit` confirm through a test hook that release builds do not
-   contain, so the fault-injection test of `ew revision release` ([05](05-project-format-and-persistence.md) §14)
-   still runs in CI.
+   interactive terminal". Test builds of `ew-testkit` confirm through a test-build confirmation hook that release
+   builds do not contain (asserted absent in release binaries like the egui inspection feature; the tests are in
+   [18](18-quality-security-release.md)), so the fault-injection test of
+   `ew revision release` ([05](05-project-format-and-persistence.md) §14) and the Golden A-R sign-off of the
+   acceptance runner (`ew revision approve --as <checker>`, [20](20-golden-project.md) §2.4) still run in CI.
 
 Like four-eyes sign-off, this is a process control, not an authentication: a person who scripts a pseudo-terminal
 can defeat it, but no agent, plugin, replay or pipeline step can reach the gate by accident.
@@ -224,7 +229,7 @@ ARCH §5.2), so no front-end can bypass it; `ew-api` only sets the origin.
 | Shipped rule packs, report pack, built-in machine profiles | EW installation | Run | Run |
 | Project rule packs (TOML, rhai, SQL) | `rules/` | Not run; EW-CORE-084 | Run |
 | User SQL reports | `reports/` | One placeholder page "Report not run: project not trusted" ([09](09-reports-forms-output.md) §3.5) | Run |
-| Machine profiles with `expr` columns or an `sql:` row source | embedded profile copies ([13](13-manufacturing-outputs.md) §7) | Refused | Run |
+| Machine and label profiles with `expr` columns or an `sql:` row source | embedded profile copies `lib/profiles/<copy_id>.toml` ([13](13-manufacturing-outputs.md) §7) | Refused | Run |
 | Automation scripts | `scripts/<uuid>.rhai` (1.0) | Listed, not runnable | Run on explicit user action only |
 | Jobsets | `jobs/<uuid>.ewjobs` (1.0) | `ew jobs run` refuses | Run on explicit invocation |
 | Command macros (`.ewcmd`, exported rhai) | `lib/macros` | Shown, not runnable; window/page macros insert as data | Run on explicit action |
@@ -233,13 +238,14 @@ ARCH §5.2), so no front-end can bypass it; `ew-api` only sets the origin.
 
 Pure formulas run in untrusted projects because a project cannot render without them and the formula profile has
 no I/O, deterministic operation limits and tracked reads only. This adopts [02c](02c-nonfunctional-requirements.md)
-open question 2 and [15](15-checks-revisions-collaboration.md) §3.9; ADR-0020 should record it.
+open question 2 and [15](15-checks-revisions-collaboration.md) §3.9; ADR-0020 records it (amendment 3), together
+with the gate on machine-profile `expr` columns.
 
 **The trust hash** ([05](05-project-format-and-persistence.md) §13.4) covers exactly the gated content:
 
 ```text
 gated   = regular files under rules/, reports/, scripts/, jobs/
-        + embedded machine-profile copies that contain an expr column or an sql: row source
+        + embedded profile copies under lib/profiles/ that contain an expr column or an sql: row source
         + lib/macros/<uuid>.json items that are command macros (.ewcmd log or exported rhai)
 lines   = for f in gated, sorted by path bytes: "<path>\t<sha256(f)>\n"
 content_sha256 = sha256("ew-trust/1\n" ‖ lines)
@@ -255,7 +261,8 @@ trust entry    = {project id, content_sha256, signer?, decision, decided_at (loc
   the new hash. The banner names the changed files and offers a text diff against the last trusted version, whose
   text the trust store caches (Should, 1.0).
 - **Signer (1.0, Should).** A company signs the gated content of its basic project with an Ed25519 key:
-  `ew trust sign --key company.key` writes `trust.sig` at the project root over `content_sha256`. A user may trust
+  `ew trust sign --key company.key` writes `trust.sig` at the project root ([05](05-project-format-and-persistence.md)
+  §2.1, 1.0) over `content_sha256`. A user may trust
   a signer's key fingerprint once; content signed by it is then trusted. Keys and decisions live only in the user's
   configuration directory, never in the project.
 - **CI.** Runners have empty trust stores. `--trust <sha256>` (or `EW_TRUST`) trusts exactly that content hash for
@@ -284,7 +291,7 @@ trust entry    = {project id, content_sha256, signer?, decision, decided_at (loc
 |---|---|
 | Binary | `ew` (GPL), a thin `clap` front-end over `ew-api`; same build and version as the GUI |
 | Project argument | First positional argument, or `--project <dir \| .ewz>`, else the nearest ancestor of the working directory holding an EW `manifest.json` |
-| Locks | Readers (`check`, `export`, `query`, `sql`, `render`, `diff`, `review`, `jobs run`) take no lock and read one generation; while a save is in progress they retry for up to 5 s, then exit 2. Writers (`apply`, `fmt`, `upgrade`, `recover`, `import --into`, `revision approve\|release\|withdraw`, `waiver add\|remove`, `merge resolve`, `script run`, `mcp --writable`) take `.~ew.lock` or exit 2 naming the holder ([05](05-project-format-and-persistence.md) §6.4) |
+| Locks | Readers (`check`, `export`, `query`, `sql`, `render`, `diff`, `review`, `jobs run`) take no lock and read one generation; while a save is in progress they retry for up to 5 s, then exit 2. Writers (`apply`, `import`, `fmt` (writing), `upgrade`, `recover`, `revision approve\|release\|withdraw`, `waiver add\|remove`, `merge resolve`, `script run`, `trust sign`, `mcp --writable`, and the GUI) take `.~ew.lock` or exit 2 naming the holder ([05](05-project-format-and-persistence.md) §6.4) |
 | Output | Results to stdout; diagnostics to stderr. `--json` prints one object with `"$schema": "ew.<command>-result/<n>"` (FR-EXT-024). Human-readable text is not an API |
 | Language | `--lang <BCP 47>` selects `MlText` output; machine formats (JSON, CSV for machines) are locale-independent |
 | Dates | Outputs take dates from the release context, `--as-of`, `SOURCE_DATE_EPOCH` or the model, never the wall clock ([09](09-reports-forms-output.md) §4.3) |
@@ -305,11 +312,16 @@ FR-EXT-002 fixes three codes for every subcommand:
 
 CI scripts should treat 2 as an infrastructure failure, not as "the drawing has errors".
 
+**The one exception: `ew merge-driver`.** Git treats every exit code up to 128 as "conflicts remain", so the merge
+driver exits 0 (clean), 1 (conflict records written) or 129 for a caught internal error (any failure exits with
+129 or higher), so that git reports a failure instead of a conflict ([05](05-project-format-and-persistence.md)
+§11).
+
 ### 3.3 Catalogue
 
 | Group | Subcommand | Purpose | Rel | Req |
 |---|---|---|---|---|
-| Inspect | `ew check [--scheme <s>] [--mode release\|offline] [--gate] [--integrity] [--pages <range> \| --structure <rds>] [--packs-as-of <label>] [--format text\|json\|junit\|sarif] [--baseline <git-rev \| rev:<label> \| findings.json>]` | Rule engine in release mode by default; `--gate` adds the EW-REL rules of the open revision; `--pages 101-106` or `--structure =P01+J-E-2416` restrict an offline run; `--packs-as-of V2.0` reproduces a released check report; `--baseline` exits 1 only on new unwaived errors ([15](15-checks-revisions-collaboration.md) §3.2, §3.3, §3.9, §6.3). SARIF from 1.0 | MVP (`--baseline` Should; SARIF 1.0) | FR-EXT-002, FR-EXT-024, FR-EXT-025*; FR-CHK-048, FR-CHK-053 proposed in [15](15-checks-revisions-collaboration.md) |
+| Inspect | `ew check [--scheme <s>] [--mode release\|offline] [--gate] [--integrity] [--pages <range> \| --structure <rds>] [--packs-as-of <label>] [--format text\|json\|junit\|sarif] [--baseline <git-rev \| rev:<label> \| findings.json>]` | Rule engine in release mode by default; `--gate` adds the EW-REL rules of the open revision; `--pages 101-106` or `--structure =P01+J-E-2416` restrict an offline run; `--packs-as-of V2.0` reproduces a released check report; `--baseline` exits 1 only on new unwaived errors ([15](15-checks-revisions-collaboration.md) §3.2, §3.3, §3.9, §6.3). SARIF from 1.0 | MVP (`--baseline` Should; SARIF 1.0) | FR-EXT-002, FR-EXT-024, FR-EXT-025; FR-CHK-048, FR-CHK-053 ([15](15-checks-revisions-collaboration.md)) |
 | | `ew query <name> <key> [--json] [--explain]` | Any public query; `--explain` adds dependency trail, memo state, provenance | MVP | FR-EXT-005 |
 | | `ew verify-derived` | Cold recomputation against memos | MVP | FR-EXT-005 |
 | | `ew find <pattern> [--kind …]` | Tags, part numbers, texts → entities | MVP | FR-UI-020 |
@@ -317,28 +329,30 @@ CI scripts should treat 2 as an infrastructure failure, not as "the drawing has 
 | | `ew commands [--json]`, `ew queries [--json]`, `ew schema <name>` | Registries and JSON Schemas | MVP | FR-EXT-015, NFR-DOC-06 |
 | Output | `ew export pdf\|svg\|png` `[--pages 101-106] [--lang] [--omit-personal-data]`; `ew export dxf` (1.0) | Page output ([09](09-reports-forms-output.md) §4) | MVP; DXF 1.0 (FR-OUT-015) | FR-EXT-003 |
 | | `ew export bom [--mode component\|assembly]`, `wires`, `terminals`, `cables` `[--format xlsx\|csv\|pdf]` | Report row sources | MVP | FR-EXT-003 |
-| | `ew export report --block <name\|id> --format pdf\|xlsx\|csv` | Any report block | MVP | FR-EXT-027* |
-| | `ew export plc-aml [--config <c>] [--apc 1.4.0\|1.2.0]`, `plc-xlsx`, `plcopen`, `ewpp [--release]`, `machine <profile>`, `labels <set>`, `drilling --surface <s>`, `tubes`, `ewz [--strip-personal-data]` | Domain exports ([10](10-plc-and-bus.md) §7, [13](13-manufacturing-outputs.md), [11](11-fluid-power.md), [05](05-project-format-and-persistence.md)) | 1.0 | FR-EXT-003 |
+| | `ew export report --block <name\|id> --format pdf\|xlsx\|csv` | Any report block, including the fluid report blocks (tube cut list, valve-terminal configuration, medium overview, [11](11-fluid-power.md) §8.3), which have no subcommands of their own | MVP | FR-EXT-027 |
+| | `ew export plc-aml [--config <c>] [--apc 1.4.0\|1.2.0]`, `plc-xlsx`, `plcopen`, `ewpp [--release]`, `machine <profile>` (shipped profile ids `generic-csv`, `generic-xlsx`, `komax-topconvert-csv`, `rittal-wt-csv`), `labels <set>`, `drilling --surface <s>`, `tubes`, `ewz`; every export that writes project content takes `--omit-personal-data` | Domain exports ([10](10-plc-and-bus.md) §7, [13](13-manufacturing-outputs.md) §7.2, [11](11-fluid-power.md) §8.3, [05](05-project-format-and-persistence.md)) | 1.0 | FR-EXT-003 |
 | | `ew render --page <folio> --png [--dpi n]` | One page via the CPU renderer | MVP | FR-EXT-004 |
 | | `ew print --pages <range>` | OS print adapter | MVP (Should) | FR-EXT-009 |
 | | `ew review <base> <head> [--out dir]` | Visual comparison ([15](15-checks-revisions-collaboration.md) §6.6) | 1.0 | FR-COL-017 |
-| Import | `ew import qet\|csv` (MVP); `ew import io-list` (MVP, Should); `ew import qet --batch <dir> --out <dir>`, `edz\|dxf\|plc-aml\|table` (1.0) | Options per [14](14-interop.md) §13 and [10](10-plc-and-bus.md) §7 | MVP / 1.0 | FR-EXT-008, FR-PLC-038, FR-IMP-023, FR-EXT-028* |
+| Import | `ew import qet\|csv` (MVP); `ew import io-list` (MVP, Should); `ew import qet --batch <dir> --out <dir>`, `edz\|dxf\|plc-aml\|table` (1.0) | Options per [14](14-interop.md) §13 and [10](10-plc-and-bus.md) §7 | MVP / 1.0 | FR-EXT-008, FR-PLC-038, FR-IMP-023, FR-EXT-028 |
 | | `ew verify-migration <project> --reference <pdf>` | Migration verifier | MVP | FR-IMP-021 |
-| Edit | `ew apply <project> <file.ewcmd> [--preview] [--one-step]` | Replay a command log (§3.5) | MVP | FR-EXT-029* |
+| Edit | `ew apply <project> <file.ewcmd> [--preview] [--one-step]` | Replay a command log (§3.5) | MVP | FR-EXT-029 |
 | | `ew script run <file.rhai> [--param k=v] [--preview]` | Automation script (§5.5) | 1.0 | FR-EXT-012 |
 | | `ew jobs run <file.ewjobs> [--keep-going]` | Jobset (§3.6) | 1.0 | FR-EXT-010 |
 | Format, VCS | `ew fmt [--check] [--repair]`, `ew upgrade`, `ew recover`, `ew git setup [--global] [--hooks]` | [05](05-project-format-and-persistence.md) | MVP | FR-EXT-008 |
 | | `ew diff [<from>] [<to>] [--queries …] [--json]`, `ew diff --textconv <file>` | Entity diff with derived tags | MVP | FR-COL-013 |
+| | `ew diff <a.ewpp> <b.ewpp> --wires` | Package mode: the wire change list between two production packages ([13](13-manufacturing-outputs.md) §3.5) | 1.0 | FR-MFG-004 |
 | | `ew merge-driver %O %A %B %L %P`, `ew merge resolve` | Git merge driver ([05](05-project-format-and-persistence.md) §11.1) | MVP (Should) / 1.0 | FR-COL-014 |
 | Revisions | `ew revision approve --as <party>`, `ew revision release <label>`, `ew revision withdraw <label> --reason <text>` (all `HumanOnly`, §2.3); `ew archive verify\|rebuild` (1.0) | [05](05-project-format-and-persistence.md) §14, [15](15-checks-revisions-collaboration.md) §5.4–§5.10 | MVP / 1.0 | FR-REV-005, FR-REV-006 |
 | | `ew waiver list` (MVP); `ew waiver add <rule> --target <tag\|id:…> --reason <text>`, `ew waiver remove <id>` (1.0, `HumanOnly`) | Waivers without the GUI ([15](15-checks-revisions-collaboration.md) §2.5) | MVP / 1.0 | FR-CHK-009 |
 | Domain | `ew plc status <file>`; `ew mfg asbuilt <order>` (1.0); `ew mfg feedback import`, `ew mfg import-status` (1.x); `ew lib lint\|render\|pack` (1.0) | [10](10-plc-and-bus.md), [13](13-manufacturing-outputs.md), [07](07-symbols-parts-macros.md) | 1.0 / 1.x | — |
-| Trust | `ew trust status\|grant\|revoke`, `ew trust sign --key <k>` (1.0) | §2.4 | MVP | FR-EXT-031* |
+| Trust | `ew trust status\|grant\|revoke`, `ew trust sign --key <k>` (1.0) | §2.4 | MVP | FR-EXT-031 |
 | Agents | `ew mcp [<project>] [--stdio\|--listen 127.0.0.1:0] [--include-personal-data] [--include-confidential]`; `--writable --approve elicit\|tty` (1.0); `ew mcp --attach` (1.x) | §7 | MVP (Could) / 1.0 / 1.x | FR-EXT-016, FR-EXT-017, FR-EXT-018 |
 | Plugins | `ew plugin install <file.ewplugin>\|list\|info\|enable\|disable\|remove\|verify` | §8 | 1.x | FR-EXT-019, -020 |
 | About | `ew about [--json]`: version, commit, render backend, licence summary, output statement, third-party notices, `PRIVACY.md` | [19](19-open-source-governance.md) | MVP | NFR-LIC-08, NFR-LIC-09 |
+| Smoke | `elektrawatt --smoke <project>`: the GUI binary opens the project, renders its pages and exits; the release smoke test, run under the network sandbox | [18](18-quality-security-release.md) §12.2 | MVP | — |
 
-\* provisional IDs, see [Proposed new requirements](#proposed-new-requirements).
+This table is the authoritative CLI catalogue; ARCH §10.1 summarises its groups.
 
 ### 3.4 Examples on the golden project
 
@@ -381,7 +395,7 @@ device_tag(3f6a2c1e-8b4d-5e21-…) @ rev 214
   depends on
     TagSpec              devices/10.jsonl     letter F · counter 1 (stored, rev 37) · scheme Default · not frozen
     identifier set       project.jsonl        EN 81346-2:2009 single letters · derivation profile 2027.1
-    numbering rule       project.jsonl        page-based "-{folio}{letter}{counter}"
+    numbering rule       project.jsonl        page-based "{page}{letter}{counter}" (the formatter adds "-")
     main representation  pages/<uuid>.jsonl   folio 101, cell B8 (lowest page, row, column)
     structure            =P01 (page 101) · +J-E-2416 (canonical node; alias "JE2416")
   provenance  letter ← main function FnDef "MCB 1P+N", category ProtectionOvercurrent → F · counter ← online numbering
@@ -399,7 +413,7 @@ used by the macro recorder, the journal and the golden variants (`b-renumber.ewc
 
 ```json
 {"$schema":"ew.cmdlog/1","base":{"project":"0192f0a1-…","generation":214},"label":"Golden B plus one example line"}
-{"cmd":"numbering.renumber","params":{"scope":"project","scheme":"-{folio}{letter}{counter}","include_frozen":true,"order":["column","row"]}}
+{"cmd":"numbering.renumber","params":{"scope":"project","scheme":"{page}{letter}{counter}","include_frozen":true,"order":["column","row"]}}
 {"cmd":"page.renumber","params":{"scope":{"section":1},"start":101,"step":1,"keep_gaps":false}}
 {"cmd":"fields.set","params":{"targets":[{"ref":"tag:-103X1"}],"path":"function_text","value":{"en-GB":"Pneumatics"}}}
 ```
@@ -411,7 +425,7 @@ new tag -103X1, because references resolve when their line runs, after B1 rename
   `find` immediately before their line runs. An ambiguous or missing reference stops the replay with exit 2.
 - **Exposure.** Every line is checked against the command registry before the first line runs. A `HumanOnly`
   command anywhere in the log refuses the whole replay with exit 2, so a log can never approve, release, waive or
-  trust (§2.3, FR-EXT-030*). Golden A-R's sign-off is therefore a terminal step after the overlay, not a log line
+  trust (§2.3, FR-EXT-030). Golden A-R's sign-off is therefore a terminal step after the overlay, not a log line
   ([15](15-checks-revisions-collaboration.md) §10.3).
 - **Semantics.** Without `--preview`, each line commits as its own transaction with origin `CmdLog`; `--one-step`
   wraps the log into one composite command (one undo step). `--preview` runs the whole log on a fork and prints
@@ -495,9 +509,9 @@ impl Session {
     pub fn find(&self, pattern: &FindPattern) -> Result<Vec<EntityHit>, QueryError>;
     pub fn sql(&self, select: &str, ctx: SqlContext) -> Result<SqlResult, SqlError>;  // §6; Class II, stamped rev
     pub fn commands(&self) -> &CommandCatalogue;
-    pub fn preview(&self, cmd: AnyCommand) -> JobHandle<Preview>;                 // fork; diff_model + diff_query
+    pub fn preview(&self, cmd: Box<dyn DynCommand>) -> JobHandle<Preview>;        // fork; diff_model + diff_query
     pub fn commit(&mut self, p: Preview) -> Result<Rev, CmdError>;                // rebase-checked (ARCH §2)
-    pub fn execute(&mut self, cmd: AnyCommand) -> Result<Rev, CmdError>;
+    pub fn execute(&mut self, cmd: &dyn DynCommand) -> Result<Rev, CmdError>;     // e.g. a validated AnyCommand
     pub fn undo(&mut self) -> Result<Rev, CmdError>;  pub fn redo(&mut self) -> Result<Rev, CmdError>;  // session history
     pub fn check(&self, req: CheckRequest) -> JobHandle<CheckRun>;
     pub fn export(&self, req: ExportRequest, sink: &mut dyn Sink) -> JobHandle<ExportReport>;
@@ -533,7 +547,7 @@ host registers it, and enforces operation and depth limits ([rust-ecosystem](../
 
 | Profile | Used by | API | Writes | Trust | Rel |
 |---|---|---|---|---|---|
-| **Formula** | title-block and report cells `{= …}`, report-block filters, value-set variables (FR-MAC-015), tag and wire-number formats (FR-NUM-026), machine-profile `expr` columns | read-only context object of the call site | none; returns one value | runs untrusted (§2.4); machine-profile `expr` excepted | MVP (engine, cells, filters; FR-EXT-011) / 1.0 (formats, value sets; open question 17) |
+| **Formula** | title-block and report cells `{= …}`, report-block filters, value-set variables (FR-MAC-015), tag and wire-number formats (FR-NUM-026), machine-profile `expr` columns | read-only context object of the call site | none; returns one value | runs untrusted (§2.4); machine-profile `expr` excepted | MVP (engine, cells, filters; FR-EXT-011) / 1.0 (formats FR-NUM-026, value sets FR-MAC-015; open question 17) |
 | **Rule** | `impl = "rhai"` rules ([15](15-checks-revisions-collaboration.md) §3.7) | scope object (`device`, `potential`, `strip`, `page`, `station`) and `finding(target, args)` | findings only | trust-gated for project packs | MVP |
 | **Automation** | `ew script run`, GUI script runner, exported macros | `query`, `find`, `sql`, `preview`, `submit`, `batch`, `emit`, `param` | commands | trust-gated; explicit run only | 1.0 |
 
@@ -577,8 +591,8 @@ source hash with library durability ([04](04-architecture.md) §6.2).
 // Title-block cell (09 §2.6): draft marker on unreleased revisions
 {= if revision.current.state == "released" { "" } else { "DRAFT " + revision.current.label } }
 
-// Pilot strip rule as a format formula (FR-NUM-026, 1.0): -X1031 = X + folio 103 + counter 1
-`-${tag.letter}${main.folio}${tag.counter}`
+// Pilot strip rule as a format formula (FR-NUM-026, 1.0): X + folio 103 + counter 1; the formatter adds "-" → -X1031
+`${tag.letter}${main.folio}${tag.counter}`
 
 // Value-set variable for the valve typical of folios 203–206 (FR-MAC-015): Q0.1, Q0.3, Q0.5, Q0.7
 `Q${module}.${2 * pos - 1}`
@@ -622,7 +636,7 @@ linear-time regex function (`regex` crate) with a 1,000-character pattern limit.
 let station = find("-201U1")[0];
 let spare = query("plc_rows", station).filter(|r| r.state == "spare" && r.target != ());
 submit("fields.set", #{
-    targets: spare.map(|r| r.target),            // the 20 spare valves -201U5-QM1 … -202U2-QM4 on Q2 … Q6
+    targets: spare.map(|r| r.target),            // the 20 spare valves -201U5-Q1 … -202U2-Q4 on Q2 … Q6
     path:    "function_text",
     value:   ml(param("text"))
 });
@@ -682,7 +696,7 @@ views.
 | `api_v1_device` | device | `id, tag, tag_full, letter, counter, frozen, kind, parent_id, structure_function, structure_location, function_text, process_tag, state, main_page_id, main_folio, main_cell, has_part, manufacturer, part_number, tech_data, aspects, placed` | — | MVP |
 | `api_v1_function` | function | `id, device_id, device_tag, role, kind, fndef, category, page_id, folio, cell, xref_text` | — | MVP |
 | `api_v1_page` | page incl. generated | `id, folio, label, section, kind, title, description, description_overridden, structure_function, structure_location, prev_folio, next_folio, generated, report_block_id, physical_index` | 36 | MVP |
-| `api_v1_cp` | connected or named CP | `id, function_id, device_id, device_tag, cp, idx, discipline, potential_id, potential_name, role (source, sink, through, terminal, ip, passive), unused, page_id, cell` | — | MVP* |
+| `api_v1_cp` | connected or named CP | `id, function_id, device_id, device_tag, cp, idx, discipline, potential_id, potential_name, role, unused, page_id, cell`; `i_load` (1.0). `role` is derived: `source` (the CP definition is a source output, `CpDef.source_output`), `through` (CPs of a pass-through pair in `FnDef.internal`), `load` (supply CPs of consumer functions) or `other`. `i_load` is the part's electrical load current for that supply CP (decimal text in A, empty when unknown; [07](07-symbols-parts-macros.md) part data, ADR-0017 amendment 3) | — | MVP* (`i_load` 1.0) |
 | `api_v1_wire` | physical wire or bridge | `id, number, kind, from_device_id, from_tag, from_cp, from_level, from_clamp, to_device_id, to_tag, to_cp, to_level, to_clamp, potential_id, potential_name, csa, csa_unit, colour, colour_iec, wire_part, length_nm, length_source, cable_id, cable_tag, core, pages, prov_csa, prov_colour` ([08](08-connections-terminals-cables.md) §10) | 50 | MVP |
 | `api_v1_terminal` | terminal | `id, strip_id, strip_tag, designation, printed, seq, part_number, levels, potential_id, potential_name, potential_type, state, rail_bonded, page_id, cell` | 28 | MVP |
 | `api_v1_cable` | cable | `id, tag, part_number, cores, length_nm, length_source, from_location, to_location, external_end, shield, pages` | 3 | MVP |
@@ -695,8 +709,9 @@ views.
 | `api_v1_placement` | placement | `id, device_id, device_tag, space_id, carrier_id, carrier_kind, x_nm, y_nm, z_nm, rotation, locked, collides` | — | 1.0 |
 | `api_v1_fluid_line`, `api_v1_valve_position`, `api_v1_medium` | tube, valve position, medium | columns owned by [11](11-fluid-power.md) §8.3 | 16, 28, 0 | 1.0* |
 
-\* views beyond the FR-EXT-007 list, proposed as FR-EXT-032. Person columns (`author`, `checker`) are omitted when
-the context asks for personal-data minimisation (§7.4).
+\* views beyond the FR-EXT-007 list, added by FR-EXT-032 (ADR-0017 amendment 2); like every view, they stay
+`Preview` until the 1.0 freeze (§11). Person columns (`author`, `checker`) are omitted when the context asks for
+personal-data minimisation (§7.4).
 
 ### 6.2 Sandbox
 
@@ -708,8 +723,8 @@ the context asks for personal-data minimisation (§7.4).
 | Authorizer denies | `ATTACH`, `DETACH`, all `PRAGMA`s, every DDL and DML, transactions and savepoints, `ANALYZE`, `REINDEX`, direct reads of `t_*` from top-level SQL |
 | Functions | SQLite core scalars and aggregates, window functions, JSON functions, `ew_ml`, `ew_regexp`, collation `ew_natural` (X2 < X10). `random()` and `randomblob()` denied; date and time functions overridden to reject `'now'` |
 | Registration | EW functions flagged `SQLITE_DETERMINISTIC \| SQLITE_INNOCUOUS`, as required with `trusted_schema = OFF` |
-| Limits (`SQLITE_LIMIT_*`) | `LENGTH` 16 MiB, `SQL_LENGTH` 256 KiB, `COLUMN` 256, `EXPR_DEPTH` 200, `COMPOUND_SELECT` 50, `VDBE_OP` 250,000, `FUNCTION_ARG` 32, `ATTACHED` 0, `LIKE_PATTERN_LENGTH` 1,000, `VARIABLE_NUMBER` 256, `TRIGGER_DEPTH` 0, `WORKER_THREADS` 0 |
-| Deadline (progress handler every 10,000 VM steps; `sqlite3_interrupt` from the job) | user report 2 s ([09](09-reports-forms-output.md) §3.5); SQL rule 10 s; MCP 5 s; `ew sql` 60 s (`--timeout`) |
+| Limits (`SQLITE_LIMIT_*`) | `LENGTH` 16 MiB, `SQL_LENGTH` 256 KiB, `COLUMN` 256, `EXPR_DEPTH` 200, `COMPOUND_SELECT` 50, `VDBE_OP` 250,000 (a prepare-time program-size cap whose enforcement by current SQLite is **(verify)**), `FUNCTION_ARG` 32, `ATTACHED` 0, `LIKE_PATTERN_LENGTH` 1,000, `VARIABLE_NUMBER` 256, `TRIGGER_DEPTH` 0, `WORKER_THREADS` 0 |
+| Deadline (progress handler every 10,000 VM steps; `sqlite3_interrupt` from the job): the runtime bound, whatever `VDBE_OP` enforces | user report 2 s ([09](09-reports-forms-output.md) §3.5); SQL rule 10 s; MCP 5 s; `ew sql` 60 s (`--timeout`) |
 | Result caps | report 100,000 rows; MCP 1,000 rows and 1 MiB; `ew sql` 1,000,000 rows and 256 MiB |
 
 The sandbox is fuzzed with hostile SQL (recursive-CTE bombs, deep expressions, authorizer bypass attempts) per
@@ -738,11 +753,11 @@ row limits, the deadline and the projection's memory gate (NFR-PERF-13).
 | GUI live bridge | `ew mcp --attach` connects to the running GUI over a user-only local socket or named pipe | ghost previews accepted in the GUI | 1.x (Could) |
 
 - **Off by default.** Neither the GUI nor the CLI ever starts `ew mcp` implicitly (NFR-SEC-08). An administrator
-  policy can disable it entirely (proposed P18-10 of [18](18-quality-security-release.md)); `ew mcp` then exits 2
+  policy can disable it entirely (NFR-PLAT-08); `ew mcp` then exits 2
   with "disabled by policy".
 - **Transports.** stdio, or Streamable HTTP on `127.0.0.1` / `::1` with a random port and a per-session bearer
   token printed once to stderr. The server validates the `Origin` header against DNS rebinding and offers no option
-  to bind another interface (FR-EXT-026*).
+  to bind another interface (FR-EXT-026).
 - **Scope.** One session serves the one project it opened. No tool reads files outside that project, and no tool
   writes files at all.
 - **Implementation.** rmcp 3.5.1 **(verify)** over `ew-api`. While the GUI holds the lock, a headless session is
@@ -759,7 +774,7 @@ row limits, the deadline and the projection's memory gate (NFR-PERF-13).
 | `run_checks` | scheme, mode (`offline` \| `release`), scope | findings: rule, severity, target tags, page, cell, message, rule page | MVP |
 | `list_commands` | filter | names, parameter schemas, exposure | MVP |
 | `preview_command` | name, params | `preview_id`, digest, model diff with derived tags, `diff_query` deltas, affected pages | MVP |
-| `render_page` | folio, dpi ≤ 150 | PNG through the CPU renderer | MVP (Could, FR-EXT-034*) |
+| `render_page` | folio, dpi ≤ 150 | PNG through the CPU renderer | MVP (Could, FR-EXT-034) |
 | `commit_preview` | `preview_id` | new revision; listed only in writable sessions | 1.0 |
 
 Resources: `ew://api/v1/views` (view DDL and column docs), `ew://commands`, `ew://queries`, `ew://rules/<id>` (the
@@ -801,7 +816,7 @@ sequenceDiagram
 The agent's model may run at a remote provider that EW cannot see (NFR-PRIV-08). By default, MCP responses omit
 every field `ew-schema` marks as personal data (engineer, checker, party persons) and project identifiers marked
 confidential (project reference, drawing id, party names). `--include-personal-data` and
-`--include-confidential` lift this per session, and `project_info` states the active policy (FR-EXT-033*).
+`--include-confidential` lift this per session, and `project_info` states the active policy (FR-EXT-033).
 
 ### 7.5 Live bridge (1.x)
 
@@ -818,8 +833,9 @@ channel and the recommended way to let an agent edit.
 
 - **Engine.** wasmtime on an **LTS line** (every 12th release, 24 months of security fixes,
   [gaps-and-corrections](../research/gaps-and-corrections.md) §3.3), with the Component Model and wit-bindgen
-  0.63.0. ARCH §2 names the 48.x line; plugins ship after 1.0, so they launch on the LTS line current then
-  (open question 3). Moving LTS lines does not change the WIT world, so plugins need no rebuild.
+  0.63.0. Plugins run on the wasmtime LTS line current at plugin launch, and development runs on the 48.x LTS line
+  until then (ARCH §2, ADR-0020 amendment 2; open question 3). Moving LTS lines does not change the WIT world, so
+  plugins need no rebuild.
 - **WASI.** WASI 0.2 **(verify)** with: an empty environment; pre-opened directories only for granted file
   capabilities; a monotonic clock for progress; a wall clock virtualised to the export `as_of` date; `wasi:random`
   seeded from `(plugin id, input digest)`; no `wasi:sockets`. Network, when granted, goes through a host-mediated
@@ -834,7 +850,7 @@ channel and the recommended way to let an agent edit.
 
 ### 8.2 WIT world `elektrawatt:plugin@1`
 
-A sketch; the normative `.wit` files live in the permissive `ew-plugin-wit` crate (FR-EXT-036*):
+A sketch; the normative `.wit` files live in the permissive `ew-plugin-wit` crate (FR-EXT-036):
 
 ```wit
 package elektrawatt:plugin@1.0.0;
@@ -885,7 +901,8 @@ interface io {                                         // resources owned by the
 }
 
 interface ui { show-form: func(form-json: string) -> option<string>; }            // capability dialogs
-interface host { log: func(level: u8, message: string); progress: func(done: u64, total: u64) -> bool; }
+interface host { log: func(level: u8, message: string); progress: func(done: u64, total: u64) -> bool;
+                 secret-get: func(name: string) -> option<string>; }             // capability secret.get
 
 interface importer { use io.{source, import-cx}; use types.{ew-error};
   record batch { records: list<string>, provenance: list<string>, assets: list<tuple<string, list<u8>>>, report-json: string }
@@ -912,9 +929,10 @@ world plugin { include base;
   those; `plugin.toml` must declare the same set.
 - **JSON at the boundary.** Queries return JSON per their published schema, and records cross as canonical JSONL
   lines of `ew-schema` kinds. The WIT stays small and does not change when a format minor adds a field; the guest
-  SDK generates typed Rust bindings from the same JSON Schemas (open question 1).
-- **Context restrictions.** In `rules` and `report-columns` calls, only `model` on the given snapshot and `host`
-  are usable; `edit`, `io` and `ui` return `denied`, which keeps rules pure and deterministic.
+  SDK generates typed Rust bindings from the same JSON Schemas (ADR-0020 amendment 1; open question 1).
+- **Context restrictions.** In `rules` and `report-columns` calls, only `model` on the given snapshot and the
+  logging and progress functions of `host` are usable; `edit`, `io` and `ui` return `denied` and `host.secret-get`
+  returns `none`, which keeps rules pure and deterministic.
 
 ### 8.3 Package, manifest and capabilities
 
@@ -956,6 +974,7 @@ memory_mib = 256
 | `files.read` / `files.write` | `"picker"` (one user-chosen file per call) or `"dir:<purpose>"` (a pre-opened directory the user selects at install or run) | off |
 | `dialogs` | `ui.show-form` | off |
 | `network` | host HTTP to listed hosts, e.g. `["api.example-mt.invalid"]` for a machine-translation plugin (FR-I18N-015) | none |
+| `secret.get` | `host.secret-get(name)`: a named secret from the OS credential store, granted per plugin at install and never readable by other plugins (1.x, before the first connector plugin; ADR-0020 amendment 4) | off |
 
 A component whose imports exceed its declared capabilities is refused at install. A call outside the granted set
 returns `ew-error{code: "denied"}`.
@@ -988,7 +1007,7 @@ fuel exhaustion in a rule yields EW-CORE-083 deterministically.
 - **Install** shows the capabilities, limits, licence, publisher, key fingerprint and registry countersignature
   ([19](19-open-source-governance.md) §4). Approval is stored in the user's configuration directory, never in a
   project. Company deployments may pre-approve plugins, or forbid installation and developer mode, through
-  administrator policy (proposed P18-10 of [18](18-quality-security-release.md)).
+  administrator policy (NFR-PLAT-08).
 - **Update** shows the capability diff and asks again only when capabilities grow.
 - **Remove** keeps all plugin data in projects (§2.5).
 - **Projects declare dependencies**: `project.plugins = [{id, version_req, purpose}]`. Opening a project with a
@@ -1074,7 +1093,7 @@ serves a permissive standalone tool and an EW plugin.
 
 ## 11. API stability and versioning
 
-| Surface | Version identifier | Promise from 1.0 | Breaking change | CI guard |
+| Surface | Version identifier | Promise from 1.0 | Breaking change | CI guard (CI-PR-14 of [18](18-quality-security-release.md) §5.2, NFR-MAINT-10) |
 |---|---|---|---|---|
 | Project format | `format` major.minor (ADR-0011) | minors additive; every released fixture opens | yearly window, migration, fixture | fixture corpus (NFR-REL-05) |
 | Permissive crates | crate semver, declared MSRV (NFR-MAINT-03) | Rust semver | crate major | semver check on the public API, e.g. cargo-semver-checks **(verify version)** |
@@ -1094,7 +1113,8 @@ serves a permissive standalone tool and an EW plugin.
 - **`Preview` items after 1.0** appear in catalogues with `"stability": "preview"`. MCP and plugins see them only
   when the session or manifest opts in.
 - **The guard.** A PR that changes any snapshot above in a breaking way fails unless it carries the `api-break`
-  label, an ADR reference and a release-note entry (proposed NFR-MAINT-10).
+  label, an ADR reference and a release-note entry (NFR-MAINT-10, run as the per-PR job CI-PR-14 of
+  [18](18-quality-security-release.md) §5.2; cargo-semver-checks stays **(verify)** until the M0 spike pins it).
 
 ---
 
@@ -1108,7 +1128,7 @@ governance belong to [19](19-open-source-governance.md).
 |---|---|---|---|
 | File format, JSON Schemas, permissive crates | data; MIT OR Apache-2.0 code | none | no |
 | `ew` CLI invoked as a process; `ew mcp` | separate programs communicating by arguments, pipes, sockets | normally separate works (GPL FAQ, general knowledge) | no |
-| `ew-plugin-wit` and `ew-plugin-sdk` | WIT files and guest bindings, MIT OR Apache-2.0 (FR-EXT-036*) | none: plugins contain no GPL code | no |
+| `ew-plugin-wit` and `ew-plugin-sdk` | WIT files and guest bindings, MIT OR Apache-2.0 (FR-EXT-036) | none: plugins contain no GPL code | no |
 | WASM component loaded through `elektrawatt:plugin@1` | same process, runtime linking by wasmtime | uncertain without a written permission | **yes, ADR-0025** |
 | rhai scripts, SQL, rule packs, machine profiles, forms | inputs interpreted by EW | generally not derivative; state it explicitly | clarifying sentence (open question 5) |
 | Python programs importing `elektrawatt` (`ew-py`) | in-process import of a GPL extension module | plausibly a combined work | not covered by a WIT-only exception (open question 4) |
@@ -1167,7 +1187,7 @@ contributor) and P6 (library maintainer) and journey J6 (automated quality gate)
 | Touchpoint | Behaviour | Req |
 |---|---|---|
 | Trust banner | "This project contains 2 rule files and 1 SQL report that have not run. [Review…]". It appears only when gated content exists; affected report pages and EW-CORE-084 findings link to it | FR-EXT-014 |
-| Trust dialog | Files with kind, size and hash; what each kind can do ("rhai: no file or network access"); diff against the last trusted version; signer fingerprint; Trust content, Trust signer, Keep untrusted | FR-EXT-014, FR-EXT-031* |
+| Trust dialog | Files with kind, size and hash; what each kind can do ("rhai: no file or network access"); diff against the last trusted version; signer fingerprint; Trust content, Trust signer, Keep untrusted | FR-EXT-014, FR-EXT-031 |
 | Script runner (1.0) | Project and user scripts; parameter form from the header; Preview (diff) → Run; console; cancel; trust state | FR-EXT-012 |
 | Macro recorder (1.0) | Record, stop, "Export as rhai" with parameter lifting | FR-EXT-013 |
 | SQL console (1.0, Should) | Read-only editor over `api_v1` with completion from `ew sql schema`, "as of revision n", export CSV/XLSX, "Save as report" | FR-EXT-006 |
@@ -1239,10 +1259,10 @@ contributor) and P6 (library maintainer) and journey J6 (automated quality gate)
 
 | Scenario | Command or script | Expected result |
 |---|---|---|
-| CI gate on Golden A | `ew check --scheme pre-delivery --format junit` | Exit 1; 42 errors, 32 warnings, 28 infos, 1 waived (AC-21); EF-01 (EW-POT-013 on T55, S56), EF-02 (EW-PLC-12, 28 findings under map H1), EF-03 (station address Tbd) among them |
+| CI gate on Golden A | `ew check --scheme pre-delivery --format junit` | Exit 1; 42 errors, 32 warnings, 28 infos, 1 waived (AC-21); EF-01 (EW-POT-013 on T55, S56), EF-02 (EW-PLC-012, 28 findings under map H1), EF-03 (station address Tbd) among them |
 | CI gate on Golden A-R | same, then `ew check --gate` after the person's sign-off | Exit 0 both times; after the person released V2.0, the release jobset (§3.6) writes PDF, BOM, wire list, terminal plans and the Komax CSV (FR-EXT-010) |
 | Explain a tag | `ew query device_tag -101F1 --explain` | Trail of §3.4: TagSpec F/1, folio 101, identifier set, structure =P01 +J-E-2416 (FR-EXT-005) |
-| Explain an address | `ew query channel_addresses -201U3 --explain` | Q0.0 … Q0.7: -201U3 is the first output module of station -201U1, so its `Auto` start is byte 0; part 533361's map gives 8 channels. The trail shows coil 14 of -201U3-QM1 bound to channel 1 (Q0.1) while map H1 assigns channel 0, which is why EW-PLC-12 fires (D-26, [10](10-plc-and-bus.md) §9.2) |
+| Explain an address | `ew query channel_addresses -201U3 --explain` | Q0.0 … Q0.7: -201U3 is the first output module of station -201U1, so its `Auto` start is byte 0; part 533361's map gives 8 channels. The trail shows coil 14 of -201U3-Q1 bound to channel 1 (Q0.1) while map H1 assigns channel 0, which is why EW-PLC-012 fires (D-26, [10](10-plc-and-bus.md) §9.2) |
 | D-25 visible in SQL | report below | Four loads on 24VDC-1, all protected by -102F2 Out1 |
 | Terminal count | `ew sql "SELECT count(*) FROM api_v1_terminal"` | 28 |
 | Golden B | `ew apply golden/J-E-2416.ew variants/b-renumber.ewcmd --preview` | Step 1: exactly the 10 tag changes of [20](20-golden-project.md) §2.2; step 2: 2 tags (-106W1/-106W2 → -104W1/-104W2) and 14 xref texts; undo restores bytes (AC-18) |
@@ -1251,7 +1271,7 @@ contributor) and P6 (library maintainer) and journey J6 (automated quality gate)
 | Company lint | `desc-rating.rhai` (§5.4) | None on Golden A (EF-25); on a migrated project with folio 901's descriptions, warnings on "10A C", "4A C", "16 B" and "20A" (D-35) |
 | Agent question | MCP `sql_query` with the D-25 report | Rows as below; the agent explains that valve and electronics supplies share one 6 A channel |
 | Agent edit | MCP `preview_command(numbering.renumber, strips on folio 103)`, then `commit_preview` | Diff lists -X1031 → -103X1 and -X1032 → -103X2; nothing changes until the person approves; one undo step tagged `mcp:<client>` |
-| Decoder plugin (1.x) | action `build-assembly-from-order-code` on -201U1 with a test decoder: order code 1 (51E-F13GCQP-D+H2GG) covers 195740 and 550208 of -201U1, order code 2 (32P-VGL-R-…-28MS) the MPA section ([20](20-golden-project.md) §6.2) | Slot-list proposal as a preview of -201U1's children; EW-FL-03 reports that the drawn MPA section holds the CPX block -202U1 (550208), which order code 2 does not contain (D-40, FR-FLU-022) |
+| Decoder plugin (1.x) | action `build-assembly-from-order-code` on -201U1 with a test decoder: order code 1 (51E-F13GCQP-D+H2GG) covers 195740 and 550208 of -201U1, order code 2 (32P-VGL-R-…-28MS) the MPA section ([20](20-golden-project.md) §6.2) | Slot-list proposal as a preview of -201U1's children; EW-FL-003 reports that the drawn MPA section holds the CPX block -202U1 (550208), which order code 2 does not contain (D-40, FR-FLU-022) |
 
 The D-25 report, as an SQL file in `reports/` (1.0) or as `ew sql` text (MVP):
 
@@ -1262,7 +1282,7 @@ SELECT p.name AS potential, p.protected_by_tag || ':' || p.protected_by_cp AS ch
        c.device_tag AS load, c.cp AS pin
 FROM api_v1_cp AS c
 JOIN api_v1_potential AS p ON p.id = c.potential_id
-WHERE p.ptype = 'L+' AND CAST(p.voltage AS REAL) = 24 AND c.role = 'sink'
+WHERE p.ptype = 'L+' AND CAST(p.voltage AS REAL) = 24 AND c.role = 'load'
 ORDER BY channel COLLATE ew_natural, load COLLATE ew_natural, pin COLLATE ew_natural;
 ```
 
@@ -1277,9 +1297,12 @@ The supply pins of -102F1 and -102F2 have the role `through` (protective devices
 | 24VDC-1 | -102F2:Out1 | -202U1 | 5 |
 
 Pins 4 and 5 are "24V El" and "24V Val" of the CPX terminals ([20](20-golden-project.md) §6.1, §7.3); the spare
-channels 24VDC-2 … 24VDC-4 feed only terminals and have no sinks. A "total current per channel" column, as in the
-ARCH §11 wording of this report, needs a load current per pin that neither the views nor the part model carry yet
-(open question 20).
+channels 24VDC-2 … 24VDC-4 feed only terminals and have no loads. A "total current per channel" column, as in the
+ARCH §11 wording of this report, needs a load current per pin: from 1.0 parts carry an optional load current per
+supply CP and `api_v1_cp.i_load` exposes it, so the 1.0 report adds `SUM(CAST(c.i_load AS REAL))` per channel
+(ADR-0017 amendment 3; open question 20). The built-in check against the 6 A rating of the MICO channel is
+EW-POT-018 (FR-CHK-041; EW-PLC-014 covers PLC module outputs, [15](15-checks-revisions-collaboration.md) §4.4).
+Until then the report lists the loads with their protective device and channel, without currents, as above.
 
 ### 17.2 Defects this area prevents or exposes
 
@@ -1305,7 +1328,7 @@ ARCH §11 wording of this report, needs a load current per pin that neither the 
 | CLI | check (text, JSON, JUnit; `--gate`, run scopes, `--packs-as-of`; `--baseline` Should), query/explain, verify-derived, find, sql, commands, export pdf/svg/png/bom/wires/terminals/cables/report, render, print (Should), import qet/csv, import io-list (Should), verify-migration, apply `.ewcmd`, diff/textconv, fmt, upgrade, recover, git setup, merge-driver (Should), revision approve/release/withdraw, waiver list, trust, about | export dxf and domain exports, import edz/dxf/plc-aml/table, import qet `--batch`, jobs run, script run, SARIF, review, archive verify/rebuild, waiver add/remove, plc status, mfg asbuilt, lib, trust sign | mfg feedback import, import-status; plugin subcommands; `ew mcp --attach` | `--yes` for `HumanOnly` subcommands: never |
 | Session API | `ew-api` for CLI and MCP | stable at the 1.0 freeze | Python wheel | — |
 | rhai | engine, formula profile (cells, filters), rule profile | tag and wire-number formats, value-set formulas, automation scripts, macro export | — | event hooks: not planned |
-| SQL | projection, sandbox, MVP views incl. proposed `cp`, `structure`, `xref`, `revision`, `meta` | user SQL reports, SQL rules, `plc_channel`, `placement`, fluid views, SQL console | — | write path: never |
+| SQL | projection, sandbox, MVP views incl. `cp`, `structure`, `xref`, `revision`, `meta` (FR-EXT-032; `Preview` until 1.0) | user SQL reports, SQL rules, `plc_channel`, `placement`, fluid views, SQL console | — | write path: never |
 | Trust | content-hash trust store, banner, `--trust` | signer, diff against last trusted | — | — |
 | MCP | read-only headless (Could) | ask-first writes (Should) | GUI live bridge (Could) | non-loopback transport: never |
 | Plugins | — | — | WASM components, capabilities, signing, dialogs, plugin data, registry (IDEA-095), network capability | native dylib plugins: never |
@@ -1330,7 +1353,7 @@ ARCH §11 wording of this report, needs a load current per pin that neither the 
   - [14](14-interop.md): contracts and import CLI;
   - [15](15-checks-revisions-collaboration.md): rule packs, EW-CORE-083/084, SARIF, `HumanOnly` commands;
   - [16](16-ux-ui.md): dialogs of §14;
-  - [18](18-quality-security-release.md): the tests of §13 and the API guard;
+  - [18](18-quality-security-release.md): the tests of §13 and the API guard (CI-PR-14, NFR-MAINT-10);
   - [19](19-open-source-governance.md): exception wording, registry policy;
   - [20](20-golden-project.md): `.ewcmd` variants and acceptance criteria.
 
@@ -1339,53 +1362,51 @@ ARCH §11 wording of this report, needs a load current per pin that neither the 
 | `ew` (bin) | GPL | CLI, `ew mcp` (rmcp), merge driver, textconv, jobsets, terminal confirmation of `HumanOnly` subcommands |
 | `ew-api` | GPL | Session facade, query registry, origin assignment, trust state, registration of SQL and plugin rule implementations into `ew-checks` |
 | `ew-commands` | GPL | `CommandMeta` registry (names, schemas, exposure) and the exposure check in the commit pipeline (with [15](15-checks-revisions-collaboration.md) §12) |
-| `ew-script` | GPL | rhai automation profile and its bindings over queries and commands; the formula and rule profiles share its engine configuration (crate placement: open question 16) |
-| `ew-sqlview` | GPL | projection, `api_v1` views, statement gate and sandbox; executes SQL reports and SQL rules |
-| `ew-checks` | GPL | rule engine and scheduling; rhai rules with the rule profile; SQL and plugin rules through a `RuleImpl` trait registered by `ew-api`, so `ew-checks` gains no dependency on `ew-sqlview` or `ew-plugin-host` (ARCH §3 graph) |
-| `ew-plugin-host` | GPL | wasmtime LTS, linker per capability, limits, signatures, compiled-component cache, dialogs bridge |
+| `ew-rhai` | GPL | rhai engine configuration of §5.2 and the formula and rule profiles; below `ew-derive`, `ew-checks` and `ew-script` (ARCH §3) |
+| `ew-script` | GPL | rhai automation profile and its bindings over queries and commands, on the engine configuration of `ew-rhai` |
+| `ew-sqlview` | GPL | projection, `api_v1` views, statement gate and sandbox; executes SQL reports; implements the SQL rule implementations of the `ew-checks` registry (edge `ew-sqlview → ew-checks`) and projects findings into `api_v1_message` |
+| `ew-checks` | GPL | rule engine and scheduling; owns the `RuleImpl` trait and its registry and implements Rust and rhai rules itself (rule profile from `ew-rhai`); SQL and plugin rules are implemented by `ew-sqlview` and `ew-plugin-host` and registered by `ew-api` at session start, so `ew-checks` never depends on either (ARCH §3, §12) |
+| `ew-plugin-host` | GPL | wasmtime on the LTS line current at plugin launch (48.x in development), linker per capability, limits, signatures, compiled-component cache, dialogs bridge, the `secret-get` capability (1.x); implements plugin rules for the `ew-checks` registry (edge `ew-plugin-host → ew-checks`) |
 | `ew-py` (1.x) | GPL | pyo3 wheel |
 | `ew-interop-api` | P | importer and exporter contracts |
-| `ew-plugin-wit`, `ew-plugin-sdk` (1.x, proposed) | P | WIT package, guest bindings, adapters for `ew-interop-api` |
+| `ew-plugin-wit`, `ew-plugin-sdk` (1.x, ARCH §3) | P | WIT package, guest bindings generated from the JSON Schemas, adapters for `ew-interop-api` |
 
 ---
 
 ## Requirements covered
 
-**Elaborated here:** FR-EXT-001 … FR-EXT-024; NFR-SEC-05, NFR-SEC-06, NFR-SEC-07, NFR-SEC-08.
+**Elaborated here:** FR-EXT-001 … FR-EXT-037; NFR-SEC-05, NFR-SEC-06, NFR-SEC-07, NFR-SEC-08; NFR-MAINT-10.
 
 **Also specified in part:** FR-CHK-006, FR-CHK-007 (rhai and SQL execution), FR-CHK-009 (`ew waiver`,
-`HumanOnly`), FR-CHK-013 (plugin rule demotion), FR-REP-031 (SQL side), FR-NUM-026, FR-MAC-015 (formula profile),
+`HumanOnly`), FR-CHK-013 (plugin rule demotion), FR-CHK-041 (D-25 load currents), FR-CHK-048, FR-CHK-053 (check
+options), FR-REP-031 (SQL side), FR-NUM-026, FR-MAC-015 (formula profile),
 FR-REV-005, FR-REV-006, FR-REV-007 (CLI side and `HumanOnly`), FR-COL-013, FR-COL-014, FR-COL-017 (CLI side),
 FR-PLC-038, FR-IMP-023 (import subcommands), FR-EXP-004 (table round trip from the CLI), FR-IMP-021
-(`ew verify-migration`), FR-FLU-022 (decoder role), FR-UI-023 (origins), FR-I18N-015 (network capability),
-NFR-SEC-02, NFR-SEC-03 (plugin packages, SQL fuzzing), NFR-SEC-09, NFR-PLAT-04 (`ew` and `ew mcp` in a container),
+(`ew verify-migration`), FR-MFG-004 (package diff), FR-FLU-022 (decoder role), FR-UI-023 (origins), FR-I18N-015
+(network capability), NFR-SEC-02, NFR-SEC-03 (plugin packages, SQL fuzzing), NFR-SEC-09, NFR-PLAT-04 (`ew` and
+`ew mcp` in a container), NFR-PLAT-08 (administrator policy for MCP and plugins),
 NFR-PERF-19 (cancellation), NFR-PRIV-01, NFR-PRIV-05, NFR-PRIV-06, NFR-PRIV-08, NFR-REL-07, NFR-REL-12,
 NFR-MAINT-04 (wasmtime LTS), NFR-LIC-05, NFR-LIC-08, NFR-LIC-09, NFR-DOC-02, NFR-DOC-06, NFR-DOC-07.
 
 ### Proposed new requirements
 
-For the editors of [02b](02b-requirements-extended.md) and [02c](02c-nonfunctional-requirements.md). FR-EXT-025
-keeps the number [15](15-checks-revisions-collaboration.md) proposed; the rest continue from it. Other documents
-already refer to these numbers: FR-EXT-027 is P09-10 of [09](09-reports-forms-output.md), FR-EXT-032 carries the
-fluid views of [11](11-fluid-power.md), FR-EXT-036 is cited by [19](19-open-source-governance.md). All IDs are
-provisional.
-
-| Proposed ID | Requirement | Prio | Release | Source | Acceptance criterion |
-|---|---|---|---|---|---|
-| FR-EXT-025 | `ew check` shall offer SARIF 2.1.0 output with logical locations (page, entity) and a physical location (project file and line of the primary target's record). | Should | 1.0 | [15](15-checks-revisions-collaboration.md) §8 (same row there) | GitHub code scanning shows the Golden A findings grouped by rule. |
-| FR-EXT-026 | `ew mcp` on loopback shall require a per-session random token, validate the `Origin` header and offer no configuration that binds a non-loopback interface. | Must | MVP | NFR-SEC-08; [02c](02c-nonfunctional-requirements.md) proposal | A request without the token, or with a foreign `Origin`, is refused; no flag binds 0.0.0.0. |
-| FR-EXT-027 | `ew export report --block <name or id> --format <pdf, xlsx or csv> [--lang <tag>]` shall export any report block. | Should | MVP | [09](09-reports-forms-output.md) P09-10; FR-REP-030 | Exporting block 908 as XLSX gives the 56 rows of folios 908–908.2. |
-| FR-EXT-028 | `ew import table <xlsx> --project <p>` shall import a table round trip as a previewed command with the exit codes of FR-EXT-002. | Should | 1.0 | [14](14-interop.md) OQ 14, §8 | Changing two function texts in an exported device table and importing it previews and commits exactly two field changes. |
-| FR-EXT-029 | `ew apply <project> <file.ewcmd> [--preview] [--one-step]` shall replay a JSONL command log with tag, ID and folio references resolved at run time. | Must | MVP | §3.5; [20](20-golden-project.md) §2.2, §20.2 | `b-renumber.ewcmd --preview` on Golden A lists exactly the 10 + 2 tag changes and 14 xref changes of AC-18. |
-| FR-EXT-030 | Every command shall declare an exposure class, checked in the commit pipeline; `HumanOnly` commands (approve, release, withdraw, waivers, scheme edits, pack enablement, strictness, project completion, trust, plugin install, library writes) shall be refused for command-log, jobset, script, MCP, plugin and Python origins, and on the CLI shall run only from their dedicated subcommands after a confirmation typed on a controlling terminal. | Must | MVP | §2.3; D-34; FR-REV-007; [15](15-checks-revisions-collaboration.md) §2.5, §5.4 | An MCP `preview_command(waiver.create)` and a plugin `submit(revision.release)` fail with an exposure error; a `.ewcmd` containing `revision.approve` exits 2 before its first line; `ew revision approve` with stdin redirected from `/dev/null` and no terminal exits 2. |
-| FR-EXT-031 | Trust shall cover exactly the gated content of §2.4 by content hash; it shall lapse when that content changes outside the user's session, be grantable non-interactively per invocation (`--trust <sha256>`) and, from 1.0, by signer key. | Must | MVP | §2.4; FR-EXT-014; [05](05-project-format-and-persistence.md) §13.4 | After a git pull that changes one rule file, the banner reappears listing that file; `ew check --trust <hash>` in CI runs the project pack. |
-| FR-EXT-032 | The projection shall additionally expose `api_v1_meta`, `api_v1_cp`, `api_v1_structure`, `api_v1_xref` and `api_v1_revision` at MVP and `api_v1_fluid_line`, `api_v1_valve_position` and `api_v1_medium` at 1.0, with the columns of §6.1. | Should | MVP | §6.1; [11](11-fluid-power.md) proposal | The D-25 report of §17.1 returns the four rows shown; `api_v1_xref` returns 64 rows on Golden A. |
-| FR-EXT-033 | MCP responses shall omit personal-data and confidential project fields unless the session was started with an explicit flag, and shall be capped at 1,000 rows and 1 MiB per response. | Must | MVP | §7.4; NFR-PRIV-06, NFR-PRIV-08 | A golden MCP transcript contains no engineer, checker or party values; a 5,000-row query returns 1,000 rows flagged truncated. |
-| FR-EXT-034 | `ew mcp` shall offer a `render_page` tool returning a PNG of one folio through the CPU renderer at ≤ 150 dpi. | Could | MVP | §7.2; FR-EXT-004 | `render_page(103)` equals `ew render --page 103 --png --dpi 150`. |
-| FR-EXT-035 | Plugins shall be distributed as signed `.ewplugin` packages whose manifest declares exports and capabilities matching the component's imports and exports; projects shall declare required plugins, which EW lists but never installs automatically. | Must | 1.x | §8.3, §8.5 | A package whose component imports `edit` without declaring `model.write` is refused; opening a project needing a missing plugin lists it and blocks release on its rules. |
-| FR-EXT-036 | The WIT package `elektrawatt:plugin` and a guest SDK shall be published as MIT OR Apache-2.0 crates (`ew-plugin-wit`, `ew-plugin-sdk`) in the closed permissive layer. | Must | 1.x | ADR-0024, ADR-0025; [oss-landscape](../research/oss-landscape.md) §7.3 | The licence-boundary check passes for both crates; a sample plugin builds against them alone. |
-| FR-EXT-037 | Plugin importers shall obtain record IDs only from `import-cx.mint-id(source-key)`; the host shall re-mint and compare every ID and validate every record against its JSON Schema before `ApplyImport`. | Must | 1.x | §10; ADR-0004, ADR-0021 | A test importer emitting one record with a foreign UUID is refused with its report and the model unchanged. |
-| NFR-MAINT-10 | Snapshots of the command and query registries, CLI help and JSON output schemas, `api_v1` columns, the WIT package and the MCP tool list shall be checked per PR; a breaking change fails unless it carries an `api-break` label, an ADR reference and a release note. | Must | MVP | §11 | Renaming a column of `api_v1_wire` fails the PR job. |
+The fourteen rows this document proposed are in the catalogues with the numbers it suggested
+([02b](02b-requirements-extended.md) §10 and [02c](02c-nonfunctional-requirements.md)):
+- SARIF output of `ew check` → **FR-EXT-025** (one row with [15](15-checks-revisions-collaboration.md)'s proposal);
+- loopback `ew mcp` with a per-session token and an `Origin` check → **FR-EXT-026**;
+- `ew export report --block` → **FR-EXT-027** (one row with the proposal of [09](09-reports-forms-output.md));
+- `ew import table` → **FR-EXT-028** ([14](14-interop.md) §13);
+- `ew apply` replaying a command log → **FR-EXT-029**;
+- exposure classes and the `HumanOnly` rules → **FR-EXT-030**;
+- trust by content hash and signer → **FR-EXT-031**;
+- the further `api_v1` views, including the fluid views of [11](11-fluid-power.md) §8.3 → **FR-EXT-032**;
+- MCP data minimisation and response caps → **FR-EXT-033**;
+- the MCP `render_page` tool → **FR-EXT-034**;
+- signed `.ewplugin` packages and declared plugin dependencies → **FR-EXT-035**;
+- the permissive `ew-plugin-wit` and `ew-plugin-sdk` crates → **FR-EXT-036** (cited by
+  [19](19-open-source-governance.md));
+- record IDs of plugin importers minted and checked by the host → **FR-EXT-037**;
+- the API compatibility guard → **NFR-MAINT-10** (02c), run as CI-PR-14 of [18](18-quality-security-release.md).
 
 ---
 
@@ -1393,17 +1414,17 @@ provisional.
 
 1. **Typed WIT versus a JSON boundary.** ARCH §10.4 speaks of "typed read queries". Mirroring every query and
    record kind as WIT records would duplicate `ew-schema` and force a WIT change for every additive format field.
-   *Recommendation:* keep JSON at the boundary (queries per published schema, records as canonical JSONL), generate
-   typed guest bindings from the same JSON Schemas in `ew-plugin-sdk`, and record this reading in ADR-0020.
-2. **Command logs and new subcommands.** ARCH §10.1 lists no `ew apply`, `ew trust`, `ew commands`, `ew find`,
+   **Resolved:** JSON stays at the boundary (queries per published schema, records as canonical JSONL), and
+   `ew-plugin-sdk` generates typed guest bindings from the same JSON Schemas (ADR-0020 amendment 1, §8.2).
+2. **Command logs and new subcommands.** ARCH §10.1 listed no `ew apply`, `ew trust`, `ew commands`, `ew find`,
    `ew revision`, `ew waiver`, `ew about` or `ew plugin`, but Golden B and C already depend on `.ewcmd` files and
-   [15](15-checks-revisions-collaboration.md) on `ew revision approve`. *Recommendation:* adopt the catalogue of
-   §3.3 as the amended ARCH §10.1 table and add FR-EXT-029 … FR-EXT-031 to 02b.
+   [15](15-checks-revisions-collaboration.md) on `ew revision approve`. **Resolved:** §3.3 is the authoritative CLI
+   catalogue and ARCH §10.1 summarises its groups; FR-EXT-029 … FR-EXT-031 are in 02b.
 3. **wasmtime LTS line for the plugin launch.** The 48.x LTS line (2026-08) is supported for 24 months, until
-   about 2028-08, shortly after 1.0 ships (month 15–18). *Recommendation:* replace "48.x LTS" in ARCH §2/§3 with
-   "the LTS line current at the plugin launch" (by the every-12th rule 60.x from about 2027-08 or 72.x from about
-   2028-08, **verify**), and develop the host on 48.x until then; NFR-MAINT-04 already requires moving before
-   support ends. ADR-0020 lists this as pending amendment 2.
+   about 2028-08, shortly after 1.0 ships (month 15–18). **Resolved:** ARCH §2 and §3 and ADR-0020 (amendment 2)
+   now read "the wasmtime LTS line current at plugin launch" (by the every-12th rule 60.x from about 2027-08 or 72.x
+   from about 2028-08, **verify**), with development on 48.x until then; NFR-MAINT-04 already requires moving
+   before support ends.
 4. **Python and the plugin exception.** A WIT-only exception does not cover Python programs importing the GPL
    `elektrawatt` module, although private use is unaffected because the GPL governs distribution.
    *Recommendation:* ask counsel to extend the permission to programs that use only the documented Python API of
@@ -1419,10 +1440,11 @@ provisional.
 7. **Confidential fields in MCP.** Which fields count as "confidential" (project reference, drawing id, parties)
    beyond those already marked personal in `ew-schema`. *Recommendation:* add a `confidential` marker next to the
    personal-data marker in `ew-schema`, defaulting to the reference project's anonymisation list, and reuse it for
-   `.ewz --strip-personal-data`.
+   `ew export ewz --omit-personal-data`.
 8. **Profile `expr` columns versus formulas.** Pure rhai runs untrusted as a formula, but [13](13-manufacturing-outputs.md)
-   §7 gates machine-profile `expr` columns. *Recommendation:* keep the gate, since machine files leave the building
-   and nothing needs them to open or render a project; state the exception in ADR-0020 with the formula rule.
+   §7 gates machine-profile `expr` columns. **Resolved:** the gate stays, since machine files leave the building and
+   nothing needs them to open or render a project; ADR-0020 amendment 3 states the exception together with the
+   formula rule (§2.4).
 9. **Plugin-defined record kinds.** Some plugins (a decoder's slot list, a vendor configurator state) need more
    than 1 MiB of per-record data. The format already preserves unknown kinds verbatim (ARCH §7.6).
    *Recommendation:* defer to 1.x+; if needed, allow namespaced kinds `plugin.<id>.<kind>` stored in their own
@@ -1434,28 +1456,29 @@ provisional.
     bundles verify offline but need an identity provider for publishing. *Recommendation:* ship Ed25519 at 1.x,
     decide on Sigstore countersignatures together with the registry (IDEA-095) in [19](19-open-source-governance.md).
 12. **`api_v1` before 1.0.** The views are a public contract from MVP while the format still upgrades on every
-    release before 1.0 (ARCH §7.6). *Recommendation:* mark `api_v1` `Preview` until the 1.0 freeze, keep the golden
-    acceptance SQL as the compatibility corpus, and treat column renames after MVP as release-note items.
-13. **Merge-driver argument list.** ARCH §7.5 and FR-COL-014 write `%O %A %B %P`, while
-    [05](05-project-format-and-persistence.md) §11.1 configures `%O %A %B %L %P`. *Recommendation:* adopt 05's form
-    (the marker size `%L` is needed for conflict rendering) and amend ARCH §7.5 and FR-COL-014.
+    release before 1.0 (ARCH §7.6). **Resolved:** `api_v1` is `Preview` until the 1.0 freeze and the golden
+    acceptance SQL is its compatibility corpus (ADR-0017 amendment 2, ARCH §10.2); column renames after MVP are
+    release-note items (§11).
+13. **Merge-driver argument list.** ARCH §7.5 and FR-COL-014 wrote `%O %A %B %P`, while
+    [05](05-project-format-and-persistence.md) §11.1 configures `%O %A %B %L %P`. **Resolved:** the canonical form is
+    `ew merge-driver %O %A %B %L %P` (`%L`, the marker size, is used for conflict rendering) and the four-argument
+    form stays accepted (ARCH §7.5); its exit codes are 0, 1 and 129 (§3.2).
 14. **Read-only MCP at MVP.** FR-EXT-016 is MVP Could although QET already ships an MCP server (VIS OQ10).
     *Recommendation:* keep Could; the read tools are thin wrappers over `query`, `sql` and `check`, so promote to
     Should if the spine finishes on time ([02b](02b-requirements-extended.md) OQ 15).
 15. **Plugin `actions` and `decoder` roles.** ARCH §10.4 lists importers, exporters, rules, report columns and
     machine profiles as plugin exports; FR-FLU-022 and IDEA-026 need decoders and interactive actions.
-    *Recommendation:* add both roles to ADR-0020; actions use only `Edit` commands through preview and commit, so
-    the security model does not change.
-16. **Where the formula engine lives.** Formulas are evaluated inside queries in `ew-derive`, but ARCH §3 lists rhai
-    only under `ew-checks` and `ew-script`, and both sit above `ew-derive` in the crate graph. *Recommendation:* put
-    the engine configuration of §5.2 and the formula and rule profiles into a small GPL crate (`ew-rhai`, or a module
-    of `ew-derive`) that `ew-derive`, `ew-checks` and `ew-script` depend on; `ew-script` keeps only the automation
-    profile. Amend the ARCH §3 table and graph.
-17. **Release of rhai formats.** FR-EXT-011 (MVP) names tag and wire-number formats and tests a looping tag format,
-    while FR-NUM-026 and FR-MAC-015 put rhai formats and value-set formulas at 1.0. *Recommendation:* keep the
-    formula profile able to evaluate format formulas from MVP, so FR-EXT-011's acceptance test runs on a test-only
-    tag format, and keep the user-facing options of FR-NUM-026 and FR-MAC-015 at 1.0; reword FR-EXT-011 to "the
-    formula hosts of §5.1 as their features land".
+    **Resolved:** ADR-0020 amendment 4 and ARCH §10.4 add both roles, together with the `secret-get` capability of
+    §8.3; actions use only `Edit` commands through preview and commit, so the security model does not change.
+16. **Where the formula engine lives.** Formulas are evaluated inside queries in `ew-derive`, but ARCH §3 listed rhai
+    only under `ew-checks` and `ew-script`, and both sit above `ew-derive` in the crate graph. **Resolved:** ARCH §3
+    adds the GPL `ew-rhai` crate with the engine configuration of §5.2 and the formula and rule profiles, on which
+    `ew-derive`, `ew-checks` and `ew-script` depend; `ew-script` keeps only the automation profile (§19).
+17. **Release of rhai formats.** FR-EXT-011 (MVP) named tag and wire-number formats and tested a looping tag format,
+    while FR-NUM-026 and FR-MAC-015 put rhai formats and value-set formulas at 1.0. **Resolved:** the formula engine
+    and profile exist from MVP (title-block formulas, report filters, simple rule expressions), FR-EXT-011 now reads
+    "for the formula hosts of 17 §5.1 as their features land" and its criterion runs on a test-only tag format, and
+    the user-facing format formulas (FR-NUM-026) and value-set formulas (FR-MAC-015) stay at 1.0.
 18. **Releasing from a pipeline.** Some teams will want `ew revision release` as a CI step after a forge approval.
     The terminal rule of §2.3 refuses it. *Recommendation:* keep the refusal for 1.0: [15](15-checks-revisions-collaboration.md)
     §6.3 already releases on `main` by a person, and a forge approval is not an EW party. Revisit in 1.x together
@@ -1466,11 +1489,11 @@ provisional.
     the online budget of §8.4, otherwise add the entitlement with an ADR ([18](18-quality-security-release.md)
     open question 13).
 20. **Load current for D-25.** ARCH §11 and ADR-0017 describe the D-25 report with "total current per MICO channel",
-    and [09](09-reports-forms-output.md) §3.5 sketches a `current` column, but no view column and no part field
-    holds a load current per pin. *Recommendation:* add a load current to the part's electrical data
-    ([07](07-symbols-parts-macros.md)) and expose it as `api_v1_cp.i_load` (decimal text, A, empty when unknown) at
-    1.0, sourced like the `load_summary` row source of [08](08-connections-terminals-cables.md) §10; until then the
-    report lists loads without currents, as in §17.1.
-21. **DXF export at MVP?** FR-EXT-003 lists `dxf` among the MVP exports, while FR-OUT-015 and
-    [09](09-reports-forms-output.md) §9 put DXF page output at 1.0. *Recommendation:* follow FR-OUT-015 (1.0), as
-    §3.3 does, and drop `dxf` from FR-EXT-003's MVP list.
+    and [09](09-reports-forms-output.md) §3.5 sketched a `current` column, but no view column and no part field
+    held a load current per pin. **Resolved:** parts gain an optional electrical load current per supply CP
+    ([07](07-symbols-parts-macros.md)), exposed as `api_v1_cp.i_load` (decimal text, A, empty when unknown) at 1.0
+    together with the derived `role` of §6.1 (ADR-0017 amendment 3), sourced like the `load_summary` row source of
+    [08](08-connections-terminals-cables.md) §10; until then the report lists loads without currents, as in §17.1.
+21. **DXF export at MVP?** FR-EXT-003 listed `dxf` among the MVP exports, while FR-OUT-015 and
+    [09](09-reports-forms-output.md) §9 put DXF page output at 1.0. **Resolved:** DXF page export is 1.0, as §3.3
+    shows, and FR-EXT-003's MVP list is pdf, svg, png, bom, wires, terminals, cables and report.

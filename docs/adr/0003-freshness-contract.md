@@ -50,8 +50,8 @@ pub struct Committed<T> { value: T, input_hash: InputHash, rev: Rev }   // hash 
 
 - Producers: `RouteWires` (paths and lengths), `FreezeNumbers` (frozen wire numbers) and `ReleaseRevision`
   (released report snapshots).
-- When the hash of the current inputs no longer equals `input_hash`, a check flags the value: **EW-L011** for
-  routes, EW-MFG-01 for lengths, EW-THM-05 for thermal results, and **EW-REL-002** for any other committed value
+- When the hash of the current inputs no longer equals `input_hash`, a check flags the value: **EW-LAY-011** for
+  routes, EW-MFG-001 for lengths, EW-THM-005 for thermal results, and **EW-REL-002** for any other committed value
   that a release output uses, such as a frozen report snapshot
   ([checks, revisions and collaboration](../design/15-checks-revisions-collaboration.md) §4.8). "Re-route" is an
   explicit, previewed command (FR-LAY-046).

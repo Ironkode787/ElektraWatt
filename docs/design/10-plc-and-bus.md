@@ -1,6 +1,6 @@
 # PLC, I/O and fieldbus
 
-**Status:** Draft v0.1 · **Date:** 2026-10-17 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) models PLC configuration projects, stations, modules,
 channels and fieldbus networks. It defines how EW derives addresses, symbols, function texts and targets instead of
@@ -32,7 +32,7 @@ folios 3, 106 and 201–206.
 |---|---|
 | PLC and bus records, derived PLC queries, address profiles, part PLC and bus sections, symbols, target tracking, EW-PLC/EW-SAF/EW-PRC/EW-BUS/EW-IOL rule content, PLC exchange formats, device descriptions | this document |
 | Valve fluid function, ports 1–5, tubes, media, EW-FL rules, `valve_terminal_config` report | [11-fluid-power](11-fluid-power.md) |
-| Assembly overview generation (201/202), child tags -201U3-QM1, DeviceLink | [03](03-domain-model.md) §7, [06](06-schematic-editor.md), [07](07-symbols-parts-macros.md) |
+| Assembly overview generation (201/202), child tags -201U3-Q1, DeviceLink | [03](03-domain-model.md) §7, [06](06-schematic-editor.md), [07](07-symbols-parts-macros.md) |
 | Bus line connections, cable -3W1 as a cable, card supply potentials | [08-connections-terminals-cables](08-connections-terminals-cables.md) |
 | Forms, pagination, XLSX/CSV mechanics, the `_ew` round-trip sheet | [09-reports-forms-output](09-reports-forms-output.md) |
 | Generic import/export contracts, QET `plc_*` element info, EDZ PLC data | [14-interop](14-interop.md) |
@@ -67,7 +67,7 @@ flowchart LR
   ST --> MOD["-201U3 … -201U8, -202U2<br/>PlcModule, positional slots 1–7"]
   MOD --> CH["Channel 0 … 7 per module<br/>56 records"]
   PART["Part 533361: io width, channel map,<br/>solenoid-position map"] -.->|maps| CH
-  CH -- "binding" --> COIL["coil 14 CP of -201U3-QM1<br/>internal, physical = false"]
+  CH -- "binding" --> COIL["coil 14 CP of -201U3-Q1<br/>internal, physical = false"]
   COIL --- FLU["fluid function 5/2, ports 1–5<br/>folio 203"]
   BP --- LN["LogicalNet PROFIBUS DP<br/>master: external partner JE-N1000-03"]
   BP --- PN["PhysicalNet: derived segment<br/>external end · -3W1 · -3X1 · -201U1:DP"]
@@ -76,8 +76,8 @@ flowchart LR
 The **channel is the hub** (PBF §2.4). Its binding joins the electrical or internal model, its address the PLC
 process image, its symbol the PLC software, its target the field function and, through a `DeviceLink`, the process
 tag. Nothing a channel displays is stored as text anywhere else (ARCH §1.2, principle 1). Every record below is an
-`ew-schema` record. The fields marked *proposed* refine [03](03-domain-model.md) §13–§14 and are listed in the Open
-questions (3, 4, 6, 15 and 22) for the schema-steward rule (ARCH §7.6).
+`ew-schema` record. The fields marked *added* refine the first draft of [03](03-domain-model.md) §13–§14; the
+schema-steward batch (ARCH §7.6) adopted them, and 03 §13–§14 lists them (Open questions 3, 4, 6, 15 and 22).
 
 ### 2.2 Configuration project
 
@@ -91,13 +91,13 @@ pub struct PlcConfigProject {
     pub name: Ident,                     // "PLC1"
     pub profile: AddressProfileRef,      // "siemens-tia-intl@2027.1" (§2.5)
     pub cpu: Option<Id<Device>>,         // None in Golden A: the DP master sits in +J-E-206
-    pub allocation: Allocation,          // proposed: Packed (default) | SlotBased (1.x)
-    pub ownership: Ownership,            // proposed: an Owner per field group, see the table below (FR-PLC-033)
-    pub symbols: SymbolPolicy,           // proposed: { template: Option<String>, strict_iec: bool, tag_table: Ident }
-    pub exchange: Option<ExchangeStamp>, // proposed: { format, version, file_sha256, direction, rev, date };
-                                         //   replaces 03's foreign_ids + last_exchange; body in exchange/ (§4.2)
+    pub allocation: Allocation,          // added: Packed (default) | SlotBased (1.x)
+    pub ownership: Ownership,            // added: an Owner per field group, see the table below (FR-PLC-033)
+    pub symbols: SymbolPolicy,           // added: { template: Option<String>, strict_iec: bool, tag_table: Ident }
+    pub exchange: Option<ExchangeStamp>, // added: { format, version, file_sha256, direction, rev, date };
+                                         //   replaces foreign_ids + last_exchange; body in exchange/ (§4.2)
 }
-pub enum Owner { Ecad, Plc, Shared }     // proposed (03 has EcadOwns | PlcOwns); Shared: a one-sided change
+pub enum Owner { Ecad, Plc, Shared }     // added (replaces EcadOwns | PlcOwns); Shared: a one-sided change
                                          //   applies, a two-sided change is a conflict
 ```
 
@@ -124,16 +124,16 @@ pub struct PlcStation {                  // device aspect (ARCH §4.3)
     pub role: StationRole,               // Cpu | HeadStation | IoDevice | ValveTerminal | IoLinkMaster | Drive | ExternalPartner
     pub firmware: Option<Ident>,
     pub dd: Option<DeviceDescRef>,       // §2.8
-    pub order: Option<u32>,              // proposed: address-allocation order; never derived from tags
+    pub order: Option<u32>,              // added: address-allocation order; never derived from tags
 }
 pub struct PlcModule {                   // device aspect on the station device or on a child device
     pub slot: SlotPath,                  // Rack{rack, slot, subslot} | Positional
     pub type_ident: TypeIdent,           // { order_number: "533361", dd_module: Option<Ident> }
-    pub start: IoStarts,                 // proposed refinement of ARCH's single `start`: { input: AddrSpec, output: AddrSpec }
-    pub part_use: Option<u8>,            // proposed, replaces 03's `address_map` ref: which PartUse supplies the
+    pub start: IoStarts,                 // added, one start per direction: { input: AddrSpec, output: AddrSpec }
+    pub part_use: Option<u8>,            // added, replaces the `address_map` ref: which PartUse supplies the
                                          //   PLC section (maps included) if the device has several parts
     pub integrated: bool,                // created with the station; not deletable alone (FR-PLC-003)
-    pub safety: Option<SafetyModule>,    // proposed: §2.9
+    pub safety: Option<SafetyModule>,    // added: §2.9
 }
 ```
 
@@ -143,7 +143,7 @@ The `Assembly` aspect sits on the device that carries the configurator order cod
 whose bus interface is a separate module (an SI unit, a CPX-AP interface) carries `Assembly` on the head device and
 `PlcStation` plus `BusNode` on that module. A multi-pin valve terminal
 without a bus node has no station at all: its coils are wired through a multi-pin cable to physical channels of
-another module. This answers [03](03-domain-model.md) Open question 6.
+another module. [03](03-domain-model.md) §13 states the same rule (its Open question 6, resolved).
 
 **Slots.** `SlotPath::Rack` holds rack, slot and subslot for racks and remote I/O, authored or imported from TIA.
 `SlotPath::Positional` derives the slot as the 1-based rank of the module among the station's I/O-module descendants,
@@ -164,15 +164,15 @@ pub struct Channel {                     // shard of its module device; id = v5(
     pub kind: ChannelKind,               // Di | Do | Ai | Ao | Counter | MultiFunction{mode} | IoLinkPort | PowerSupply
     pub data_type: PlcDataType,          // profile vocabulary + canonical bit width ("Bool" = 1)
     pub address: AddrSpec,               // Auto | Manual(PlcAddress) | Excluded | Tbd
-    pub state: Option<ChannelState>,     // proposed Option (03: ChannelState); explicit Spare | Reserved |
-                                         //   Deactivated; None = derived (§3.2)
+    pub state: Option<ChannelState>,     // added Option: explicit Spare | Reserved | Deactivated;
+                                         //   None = derived (§3.2, FR-PLC-019)
     pub symbol: Option<Ident>,           // manual; automatic from the template (§3.4)
     pub comment: MlText,                 // PLC comment; exported as AML/TIA comment
     pub binding: Option<Endpoint>,       // signal CP: a module pin, or the served coil's internal CP
     pub aux_pins: SmallVec<ChannelPin>,  // { role: Supply | M | Shield, cp }
-    pub target: Option<Id<Function>>,    // proposed: manual target override (§3.5)
-    pub signal_range: Option<Ident>,     // proposed: "4..20 mA"
-    pub safety: Option<SafetyChannel>,   // proposed: §2.9
+    pub target: Option<Id<Function>>,    // added: manual target override (§3.5, FR-PLC-054)
+    pub signal_range: Option<Ident>,     // added: "4..20 mA"
+    pub safety: Option<SafetyChannel>,   // added: §2.9
 }
 ```
 
@@ -181,8 +181,8 @@ pub struct Channel {                     // shard of its module device; id = v5(
   `v5(module_id, "channel", number)`, following ADR-0004's "instantiated → v5" rule. Two branches that add the
   same channel produce the same record, and an AML export can use the ID directly (§4.2).
 - **Invariants.** S: a channel belongs to exactly one module (ARCH §4.6). P: a CP is in at most one channel
-  (FR-PLC-005). P: addresses do not overlap within configuration project and area (EW-PLC-01). P: symbols are unique
-  per configuration project (EW-PLC-07). Strict mode rejects; lenient mode (imports) reports (ADR-0009).
+  (FR-PLC-005). P: addresses do not overlap within configuration project and area (EW-PLC-001). P: symbols are unique
+  per configuration project (EW-PLC-007). Strict mode rejects; lenient mode (imports) reports (ADR-0009).
 - **Determined values.** EPLAN's manual / automatic / determined triple (PBF §2.1, lesson 2) applies to every text a
   channel shows. The determined value is printed and exported; the property grid shows its provenance.
 
@@ -190,9 +190,9 @@ pub struct Channel {                     // shard of its module device; id = v5(
 |---|---|---|---|
 | Designation | `Channel.designation` | part pattern over `number` | MVP |
 | Symbol | `Channel.symbol` | template over the target (§3.4) | 1.0 (FR-PLC-017) |
-| Function text | none: it is edited at the target device | the target device's determined function text | MVP for direct targets; 1.0 for traced targets |
+| Function text | none: it is edited at the target device | the target device's determined function text, else the tracked process tag of the device it drives (§3.4) | MVP for direct targets; 1.0 for traced targets |
 | Comment | `Channel.comment` | `{function_text}` at export, if empty | 1.0 |
-| Target | `Channel.target` (proposed) | target tracking (§3.5) | MVP direct; 1.0 traced (FR-PLC-018) |
+| Target | `Channel.target` (FR-PLC-054) | target tracking (§3.5) | MVP direct; 1.0 traced (FR-PLC-018) |
 
 ### 2.5 Addresses and address profiles
 
@@ -203,13 +203,14 @@ Switching a project from Siemens to IEC notation changes one setting, not 56 rec
 | `AddrSpec` | Meaning | Prints | Class ([03](03-domain-model.md) §1.1) |
 |---|---|---|---|
 | `Auto` | module start + address-map offset (§3.1) | "Q0.1" | D |
-| `Manual(a)` | deliberate value; every deviation from the derived value is reported (EW-PLC-12) | "Q0.1" | F |
+| `Manual(a)` | deliberate value; every deviation from the derived value is reported (EW-PLC-012) | "Q0.1" | F |
 | `Excluded` | "do not include in addressing" (EPLAN 20380): no address, skipped by allocation | "" | A |
-| `Tbd` | typed open item; listed in open items and blocks release (EW-PLC-15, D-15) | "TBD" | A |
+| `Tbd` | typed open item; listed in open items and blocks release (EW-PLC-015, D-15) | "TBD" | A |
 
 **Address profiles are versioned data** (FR-PLC-008). Built-in profiles ship with EW and are never removed, like
-derivation profiles (NFR-REL-09). A project pins `id@version`. A user profile file is embedded in the project, so the
-project renders identically without the installation that created it (NFR-REL-11, Open question 13).
+derivation profiles (NFR-REL-09). A project pins `id@version`. A user profile file is embedded in the project as a
+library copy of kind `plc_profile` in `lib/plc-profiles/` ([05](05-project-format-and-persistence.md) §2.2), so the
+project renders identically without the installation that created it (NFR-REL-11).
 
 ```toml
 # built-in profile "siemens-tia-intl", version 2027.1
@@ -305,10 +306,10 @@ The valve part 571334 declares `solenoids = ["14"]` in its fluid section ([11](1
 - **Map language.** `bit_of` and `channel` accept `"<k>n[+<c>]"` (`"n"`, `"16n"`), `"<k>p[+<c>]"` (`"2p"`,
   `"2p+1"`) or an explicit list (`[1, 3, 5, 7]`). Analog channels use `"16n"` with `size = word`. The part
   linter rejects anything else. There is no scripting: maps are data, deterministic and safe to merge.
-- **Supply groups** type the card-supply CPs (FR-PLC-024) and say which channels they feed. EW-PLC-13 and EW-PLC-14
+- **Supply groups** type the card-supply CPs (FR-PLC-024) and say which channels they feed. EW-PLC-013 and EW-PLC-014
   read them (§3.10).
 - **The bus-port signal map** resolves per-core pins where a multi-line representation of the port exists. It
-  answers [08](08-connections-terminals-cables.md) Open question 5 (proposed FR-BUS row (h)).
+  answers [08](08-connections-terminals-cables.md) Open question 5 (FR-BUS-023).
 
 ### 2.7 Bus model
 
@@ -330,15 +331,15 @@ pub enum NetAddress {
 }
 pub struct LogicalNet  { pub bus: BusSystem, pub name: Ident, pub master: Option<Endpoint>, pub rate: Option<BusRate>,
                          pub space: AddressSpace }                      // address space as in 03 §14
-pub struct PhysicalNet { pub name: Ident, pub medium: Medium,           // proposed: medium (copper, fibre, …)
-                         pub order_hint: Vec<Id<Function>> }            // proposed; replaces 03's stored segments (§3.8)
+pub struct PhysicalNet { pub name: Ident, pub medium: Medium,           // added: medium (copper, fibre, …)
+                         pub order_hint: Vec<Id<Function>> }            // added; segments are derived (§3.8)
 ```
 
 - **Logical networks** carry addressing, rate and master (FR-BUS-002). Ports read the rate; they never copy it.
 - **Physical networks** are named records. Their **segments are derived** from `Bus` connections, connector
   through-links and plug-on links (`bus_segments`, §3.8). `order_hint` orders members that are not drawn on any
-  topology page. This refines [03](03-domain-model.md) §14, where segments are authored (Open question 6): a stored
-  member order would be a second copy of what the topology page already states.
+  topology page. [03](03-domain-model.md) §14 derives them the same way (Open question 6): a stored member order
+  would be a second copy of what the topology page already states.
 - **Bus connectors** are devices of kind `BusConnector` with a port function (role Passive). That function has an
   In entry (A1, B1), an Out entry (A2, B2, optional CPs), a device side and `termination`. -3X1 mates with -201U1's
   DP socket through a `Bus` connection without a cable.
@@ -379,7 +380,7 @@ pub struct SafetyChannel { pub evaluation: Evaluation,          // OneOoOne | On
 ```
 
 Safety channels render in a distinct style (hatched channel field plus an "F" marker, never colour alone,
-FR-UI-025) in overviews and lists. EW-SAF-01 … EW-SAF-03 check them (§3.10). SIL/PL calculation and F-program
+FR-UI-025) in overviews and lists. EW-SAF-001 … EW-SAF-003 check them (§3.10). SIL/PL calculation and F-program
 generation are out of scope (FR-PLC-041; [vision](00-vision-and-scope.md) §4: no PLC programming).
 
 ### 2.10 Derived queries
@@ -399,7 +400,7 @@ configuration project or network (ARCH §6.3).
 | `plc_rows(station)` (ARCH §6.4) | report rows | all of the above | Memo |
 | `bus_segments(pnet)` | ordered member chains with ends | `Bus` connections, connector links, `order_hint` | Memo |
 | `net_members(lnet)` | ports, stations, master | `BusPort.logical_net` | Memo |
-| `exchange_image(cfg)` | neutral exchange structure (§4.2) and its hash | all of the above | Memo, because the online rule EW-PLC-16 reads the hash; exporters read it on their fork |
+| `exchange_image(cfg)` | neutral exchange structure (§4.2) and its hash | all of the above | Memo, because the online rule EW-PLC-016 reads the hash; exporters read it on their fork |
 
 `ew query channel_addresses -201U3 --explain` prints the dependency trail and provenance of each address
 (ARCH §6.8).
@@ -451,7 +452,7 @@ fn module_starts(q: &Q, cfg: Id<PlcConfigProject>) -> Arc<StartMap> {
   (`start = { digital = 0, analog = 0 }`, unverified TIA defaults) therefore cannot collide, and an inserted module
   after a PLC import does not land on a PLC-owned start (§3.9). A Manual start set *inside* the Auto path (for
   example -201U5 = Q4) makes the following Auto modules skip it (-201U7 → Q5, -201U8 → Q6, -202U2 → Q7); the
-  re-address preview lists every such move. EW-PLC-01 therefore fires only where a Manual value is involved: two
+  re-address preview lists every such move. EW-PLC-001 therefore fires only where a Manual value is involved: two
   overlapping Manual starts, or a Manual channel address inside another channel's range.
 - **Inserting or widening** a module shifts the following Auto modules, which the preview also lists (§3.9).
 
@@ -467,7 +468,7 @@ station, slot and the part's member pattern.
 | -201U6 … -201U8, -202U2 | 4–7 | Q3 … Q6 | Q3.0 … Q6.7 | unchanged |
 
 **Renumbering never re-addresses.** Tags, folios and page order are not inputs of A1 or A2. Golden B1 and B2 leave
-every channel address unchanged (proposed row (f)).
+every channel address unchanged (FR-PLC-055).
 
 ### 3.2 Channel states (A3)
 
@@ -477,7 +478,7 @@ The effective state comes from `channel_states(module)`:
 2. `address = Tbd` gives `Tbd`.
 3. A bound channel takes the state of its target device (FR-DEV-026): used → `Used`, spare → `Spare`, reserved →
    `Reserved`, not fitted → `Deactivated`.
-4. An unbound channel that the position map *claims* gives `Reserved`, and EW-FL-02 reports the unbound solenoid.
+4. An unbound channel that the position map *claims* gives `Reserved`, and EW-FL-002 reports the unbound solenoid.
    The map claims channel c if it assigns c to solenoid s of position p, a valve child at p declares s, and s is
    unbound or bound to c.
 5. Any other unbound channel gives the part's `unbound` state: `Deactivated` for valve-terminal modules, `Spare` by
@@ -487,25 +488,28 @@ On Golden A, every coil is bound "as drawn" to channel 2p + 1. Under H1, channel
 that coil is bound elsewhere, so the channel is not claimed. Under H2, channel 2p is assigned to coil 12, which no
 monostable 571334 declares. **Both hypotheses therefore give 8 used, 20 spare and 28 deactivated channels**
 ([20](20-golden-project.md) §11.2). The PLC overview lists all 56. New I/O-list blocks default to
-`state != Deactivated` and list 28 rows ([09](09-reports-forms-output.md) Open question 9; proposed row (a)).
+`state != Deactivated` and list 28 rows (FR-PLC-019, FR-PLC-023).
 
 ### 3.3 Binding and normalisers
 
+The normalisers run in the commit pipeline (ARCH §5.2); [06](06-schematic-editor.md) §3.2 holds the registry and
+their order.
+
 | Normaliser (ARCH §5.2) | Trigger | Effect |
 |---|---|---|
-| N1 channel instantiation | `PlcModule` added, or the module's part changed | Creates channels 0 … n−1 with v5 IDs from the part's `channels`. Surplus channels are removed only after a confirmation that lists their bindings, symbols and exchange records (proposed row (d)) |
-| N2 solenoid binding | a valve child added to, or moved within, a module that has a position map | Binds each declared solenoid's coil CP to the channel the map assigns, if that channel is unbound; otherwise the coil stays unbound and EW-FL-02 reports it. An explicit binding in the command wins: QET import "as drawn" (A7), a macro value set of type `ChannelBinding` ([07](07-symbols-parts-macros.md) §2.7) (proposed row (b)). This is the normaliser that [11](11-fluid-power.md) lists as N-FL-3; it is implemented once, in `ew-commands` |
+| N1 channel instantiation | `PlcModule` added, or the module's part changed | Creates channels 0 … n−1 with v5 IDs from the part's `channels`. Surplus channels are removed only after a confirmation that lists their bindings, symbols and exchange records (FR-PLC-053) |
+| N2 solenoid binding | a valve child added to, or moved within, a module that has a position map; or a coil function that N-FL-1 of [11](11-fluid-power.md) creates after a valve's part changed | Binds each declared solenoid's coil CP to the channel the map assigns, if that channel is unbound; otherwise the coil stays unbound and EW-FL-002 reports it. An explicit binding in the command wins: QET import "as drawn" (A7), a macro value set of type `ChannelBinding` ([07](07-symbols-parts-macros.md) §2.7) (FR-PLC-051). This is the single implementation, in `ew-commands`; N-FL-3 in [11](11-fluid-power.md) §4.2 is a reference to it |
 | N3 module pin binding | a channel created on a module with physical pins | `binding` = the module CP given by the part's channel → pin map |
-| N4 logical-net inheritance | a `Bus` connection joins a port without a logical net to one that has one | Assigns that net; conflicting nets are left as they are and reported (proposed EW-BUS-10) |
+| N4 logical-net inheritance | a `Bus` connection joins a port without a logical net to one that has one | Assigns that net; conflicting nets are left as they are and reported (EW-BUS-010, FR-BUS-024) |
 
 **Bindings point at CPs, never at copies.** For a physical channel, `binding` is the module pin. For an internal
 channel (valve-terminal solenoid outputs, IO-Link process data), `binding` is the served coil's internal CP
 (`CpDef.physical = false`) directly. No connection record exists, so wire lists, terminal diagrams and wire-length
 calculation contain nothing to exclude, while the PLC overview, the I/O list and target tracking read the binding
-(FR-PLC-006). [08](08-connections-terminals-cables.md) §2.3 names "channel pin to a non-physical coil CP" as an
-example of an `Internal` connection; Open question 5 proposes dropping that example.
+(FR-PLC-006). `Internal` connections remain for other device-internal links between CPs of one part's functions
+([08](08-connections-terminals-cables.md) §2.3).
 
-**Drag-bind** (FR-PLC-020). Dropping channel 1 of -201U3 from the PLC navigator onto the coil of -201U3-QM1 on folio
+**Drag-bind** (FR-PLC-020). Dropping channel 1 of -201U3 from the PLC navigator onto the coil of -201U3-Q1 on folio
 203 runs `plc.bind_channel{channel, endpoint}`. It clears a previous binding of the same CP in the same transaction
 (FR-PLC-005) and is one undo step.
 
@@ -515,9 +519,9 @@ module exists (Golden C fix-script step 6), `ApplyImport` resolves each pending 
 configuration project's profile (prefixes "" and "%"):
 1. **Derived match.** The coil's module (the valve's parent `PlcModule`) has exactly one unbound channel whose
    derived `Auto` address equals the text: bind the coil to it and keep `Auto`. This is the "as drawn" binding;
-   on Golden C all 28 texts resolve this way to channels 2p + 1, and EW-PLC-12 then reports EF-02 under H1.
+   on Golden C all 28 texts resolve this way to channels 2p + 1, and EW-PLC-012 then reports EF-02 under H1.
 2. **No derived match.** Bind the coil to the channel the position map assigns, set that channel's address to
-   `Manual(text)` so the print is preserved, and let EW-PLC-12 (discriminator `manual`) report the deviation.
+   `Manual(text)` so the print is preserved, and let EW-PLC-012 (discriminator `manual`) report the deviation.
 3. **Ambiguous or no module.** The text goes to the import review list (FR-IMP-017 uncertain matches); nothing is
    bound.
 
@@ -531,18 +535,23 @@ tag without the product sign and suppressed identifiers), `{target.function_text
 - collapses runs of underscores;
 - strips leading and trailing underscores;
 - prefixes `_` when the result starts with a digit. IEC 61131-3 allows a leading underscore followed by a digit
-  (verify against Ed. 4; Open question 10).
+  (verify against Ed. 4); FR-PLC-017's example is `_201U3_Q1_14`.
 
 | Template | Target | Result |
 |---|---|---|
-| `{target.process_tag\|target.dt}` | -201U3-QM1, which drives -203Q1 (TA05-V-15) | `TA05_V_15` |
-| same | spare valve -201U5-QM1 (no process tag) | `_201U5_QM1`, unless the template is `{target.process_tag}` alone, which gives no symbol (Golden A at 1.0) |
-| `{target.dt}_{pin}` | -201U3-QM1:14 | `_201U3_QM1_14`; after renumbering -201U3 to -201U4, `_201U4_QM1_14` |
+| `{target.process_tag\|target.dt}` | -201U3-Q1, which drives -203Q1 (TA05-V-15) | `TA05_V_15` |
+| same | spare valve -201U5-Q1 (no process tag) | `_201U5_Q1`, unless the template is `{target.process_tag}` alone, which gives no symbol (Golden A at 1.0) |
+| `{target.dt}_{pin}` | -201U3-Q1:14 | `_201U3_Q1_14`; after renumbering -201U3 to -201U4, `_201U4_Q1_14` |
 
-A manual symbol always wins and never follows renumbering. Uniqueness (EW-PLC-07) is tested on the determined,
-cleaned symbol, so "TA05-V-15" and "TA05_V_15" on two channels collide. Function texts are never typed at the
-channel. Editing the valve's function text on folio 203 changes folio 908, the I/O list and the AML comment in the
-same commit (FR-PLC-022).
+A manual symbol always wins and never follows renumbering. Uniqueness (EW-PLC-007) is tested on the determined,
+cleaned symbol, so "TA05-V-15" and "TA05_V_15" on two channels collide.
+
+**Function texts** are never typed at the channel. The function-text column of the PLC overview and the I/O list
+prints the target's function text, else the tracked process tag of the device the target drives
+(`DeviceLink{Drives}`, [11](11-fluid-power.md) §3.1, §3.3). Used valves carry no function text of their own, so
+-201U3-Q1 prints TA05-V-15 from -203Q1; "Spare" stays a manual function text of the spare valves. Reports keep
+function text and process tag as separate columns. Editing -203Q1's process tag, or a valve's manual function
+text on folio 203, changes folio 908, the I/O list and the AML comment in the same commit (FR-PLC-022).
 
 ### 3.5 Target tracking (A4)
 
@@ -553,7 +562,7 @@ fn channel_targets(q: &Q, module: Id<Device>) -> Arc<TargetMap> {
         if let Some(f) = ch.target { out.emit(ch, f, Source::Manual, []); continue; }
         let Some(cp) = ch.binding else { out.none(ch); continue; };
         let f = q.cp_function(cp);
-        if f.device != Some(module) { out.emit(ch, f.id, Source::Direct, []); continue; } // coil of -201U3-QM1
+        if f.device != Some(module) { out.emit(ch, f.id, Source::Direct, []); continue; } // coil of -201U3-Q1
         let sig = q.signal_of(cp);                 // nets joined by wires, cores, IP pairs, terminal levels, plug pins
         let cands = sig.cps().filter(|c| is_field_function(q, c) && !is_plc_cp(q, c) && !same_device(q, c, module));
         let Some(best) = cands.min_by_key(|c| (category_rank(q, c), page_order(q, c), cell(q, c), c.id)) // deterministic
@@ -566,14 +575,14 @@ fn channel_targets(q: &Q, module: Id<Device>) -> Arc<TargetMap> {
 
 - **Within the signal only.** Tracking follows the signal level of [03](03-domain-model.md) §9.3: wires, cores,
   interruption-point pairs, terminal levels and plug pins. It never crosses bridges, which join potentials, so a DI
-  never "finds" every load on a common 24 V rail. FR-PLC-018's text says "through … bridges"; Open question 19
-  proposes amending it.
+  never "finds" every load on a common 24 V rail. FR-PLC-018 says the same: through connections, terminals,
+  terminal levels and plug pins.
 - **Field functions** are sensors, actuators, coils, lamps, contacts and valve solenoids. Terminals, plugs, cables
   and PLC CPs are passed through, never chosen.
 - **Ambiguity** (several candidates) picks deterministically by category rank (coil and actuator before contact),
   then page order, cell and ID. The row is flagged "ambiguous" in the I/O list and in the "why this value?" view
-  (FR-UI-011). A manual `target` resolves it.
-- **Process tags** follow one `DeviceLink{Drives}` hop: the valve -201U3-QM1 drives the field device -203Q1
+  (FR-UI-011). A manual `target` resolves it (FR-PLC-054).
+- **Process tags** follow one `DeviceLink{Drives}` hop: the valve -201U3-Q1 drives the field device -203Q1
   (+FIELD, ▲U-07), so `target.process_tag` of channel 1 is TA05-V-15 (FR-DEV-012, FR-DEV-028).
 - **Address at terminals** (FR-PLC-018 option, EPLAN 20854/20855): with the option set, the text slot `PlcAddress`
   of a terminal on a traced path shows the channel address.
@@ -587,7 +596,7 @@ them are internal valve-coil channels.
 |---|---|---|---|---|
 | Module box with channel pins | MultiLine | pin designation and the address, symbol and function-text slots per channel | yes | main representation of each channel |
 | Coil on a fluid valve | Fluid (203–206) | address and function text slots of the valve | no wire (internal CP) | target of the PLC-overview xref |
-| PLC overview box (proposed row (c)) | Overview | every channel of a module or station: number, address, symbol, function text, state | no (`Overview` connections) | per channel to its main representation (EPLAN 20301) |
+| PLC overview box (FR-PLC-052) | Overview | every channel of a module or station: number, address, symbol, function text, state | no (`Overview` connections) | per channel to its main representation (EPLAN 20301) |
 | Station bus port | BusTopology (3) | DT, order code 1, part type, "Node {address}" | bus nets | aux → main "(201-E1)" |
 | Card power connector | MultiLine (106) | pins 1–5 and FE | yes | aux → main "(201-E1)" |
 | Assembly front view | AssemblyOverview (201–202) | modules and valves in manifold order | no | "∞ 203-B4" (FR-XRF-016) |
@@ -614,7 +623,7 @@ The valve terminal is **one device tree in three disciplines** (ARCH §4.3, REF-
 | -201U2, -201U9 | 552286, 533354 | children, no I/O | 201 |
 | -201U3 … -201U8, -202U2 | 533361 | children with `PlcModule` (positional slots 1–7), 8 channels each | 201, 202 (overview), 203–206 (aux label "(201-E4)") |
 | -202U1, -202U3 | 550208, 533354 | children, no I/O; -202U1 carries the second power connector | 202, 106 |
-| -201U3-QM1 … -202U2-QM4 | 571334 | 28 valve children: fluid function (ports 1–5) + coil-14 function with internal CP | 203–206 |
+| -201U3-Q1 … -202U2-Q4 | 571334 | 28 valve children: fluid function (ports 1–5) + coil-14 function with internal CP | 203–206 |
 
 - **Spare positions** are real valves in state spare (U-36) whose coils are bound. Their channels are spare. A
   blanked position (no valve) gives deactivated channels.
@@ -622,7 +631,7 @@ The valve terminal is **one device tree in three disciplines** (ARCH §4.3, REF-
   their part data differs (PBF §8.2). EW ships the Festo CPX/MPA part data of the golden project as test data.
 - **Order codes** (51E-F13GCQP-D+H2GG, 32P-VGL-R-MAHAHAHA…-28MS) are stored verbatim on the assembly. Children are
   built by hand or in the rack/slot editor at 1.0. Configurator decoders that expand an order code into children are
-  1.x plugins (IDEA-026). Slot-occupancy validation (EW-FL-03, D-40) is in [11](11-fluid-power.md).
+  1.x plugins (IDEA-026). Slot-occupancy validation (EW-FL-003, D-40) is in [11](11-fluid-power.md).
 
 ### 3.8 Bus topology, addresses and termination
 
@@ -631,12 +640,12 @@ The valve terminal is **one device tree in three disciplines** (ARCH §4.3, REF-
 2. Its edges are `Bus` connections (with or without a cable), each connector's internal through-link and plug-on
    links.
 3. Each connected component within one `PhysicalNet` is a segment. For line buses (PROFIBUS, RS-485) the component
-   must be a path. A branch is reported by EW-BUS-06 as a stub.
+   must be a path. A branch is reported by EW-BUS-006 as a stub.
 4. Ends are degree-1 nodes. An external interruption point counts as an end.
 5. Member order walks from the master end: the end whose port is the logical net's master, or the external end
    whose `ExternalRef` names the master; failing that, from the end with the smallest (`order_hint` position, ID).
 
-**Termination (EW-BUS-04).** At each end, the termination state of the nearest terminating element (connector port
+**Termination (EW-BUS-004).** At each end, the termination state of the nearest terminating element (connector port
 or device port with a switch) must be On, and every other terminating element on the segment must be Off. An
 external end whose state is unknown gives one info (FR-BUS-016). On Golden A the segment is external end
 (JE-N1000-03, master) · -3W1 · -3X1 (On) · -201U1:DP, the order of FR-BUS-003 and [03](03-domain-model.md) §14. It
@@ -645,26 +654,26 @@ text changes from "Switch to "ON"" to "Switch to "OFF"" because the text is a pr
 `termination` (FR-BUS-004).
 
 **Addresses.**
-- `AddrValue::Tbd` renders "TBD", appears in the open-items list and blocks release (EW-BUS-01, FR-CHK-034).
+- `AddrValue::Tbd` renders "TBD", appears in the open-items list and blocks release (EW-BUS-001, FR-CHK-034).
 - `NotApplicable` is for ports without addresses (IO-Link device side).
 - Ranges, segment lengths and PROFINET name rules are data with a `verified` flag. Unverified constants report at
-  most a warning (proposed FR-CHK-046 of [15](15-checks-revisions-collaboration.md) §3.2; NFR-COMP-05).
+  most a warning (FR-CHK-046; NFR-COMP-05).
 
 | Bus | Release | Address data | Main checks |
 |---|---|---|---|
-| PROFIBUS DP | MVP (model, address, termination); 1.0 (rates from GSD) | station address 0–125 (unverified), rate from the logical net (9.6 kbit/s … 12 Mbit/s) | EW-BUS-01, -02, -04, -05, -06 |
-| PROFINET IO | 1.0 | device name, IPv4, mask, gateway, P1/P2 neighbours, MRP role | EW-BUS-01, -03, -07 |
-| IO-Link | 1.0 | port number; mode IO-Link / DI / DQ / deactivated; class A or B | EW-IOL-01, -02 |
-| EtherCAT | 1.0 structure; 1.x E-bus budget | position after the coupler, alias; rail order from layout at 1.0 ([12](12-panel-layout.md)) | EW-BUS-08 (1.x) |
-| EtherNet/IP, AS-Interface | 1.x | IP, mask, RPI, DLR; 1–31, 1A–31B | EW-BUS-01, -02 |
-| CANopen, Modbus | Later | node ID 1–127; IP + unit ID | EW-BUS-01 |
+| PROFIBUS DP | MVP (model, address, termination); 1.0 (rates from GSD) | station address 0–125 (unverified), rate from the logical net (9.6 kbit/s … 12 Mbit/s) | EW-BUS-001, -002, -004, -005, -006 |
+| PROFINET IO | 1.0 | device name, IPv4, mask, gateway, P1/P2 neighbours, MRP role | EW-BUS-001, -003, -007 |
+| IO-Link | 1.0 | port number; mode IO-Link / DI / DQ / deactivated; class A or B | EW-IOL-001, -002 |
+| EtherCAT | 1.0 structure; 1.x E-bus budget | position after the coupler, alias; rail order from layout at 1.0 ([12](12-panel-layout.md)) | EW-BUS-008 (1.x) |
+| EtherNet/IP, AS-Interface | 1.x | IP, mask, RPI, DLR; 1–31, 1A–31B | EW-BUS-001, -002 |
+| CANopen, Modbus | Later | node ID 1–127; IP + unit ID | EW-BUS-001 |
 
 **IO-Link ports (1.0, FR-BUS-012).** A master port is a channel of kind `MultiFunction{mode}` with modes IO-Link,
 DI, DQ and deactivated. The master's part declares the port window (fixed bytes per port, or a configurable maximum
 such as 32 bytes ▲). In IO-Link mode the connected device's IODD supplies the process-data lengths and a struct
 data type: the Balluff sample's 88 input bits give an 11-byte input window and a struct-typed symbol. The module's
 I/O width is the sum of its port windows in their current modes, so a mode change re-runs A1 for the following
-Auto modules (§8, item 10). EW-IOL-02 compares the IODD lengths with the window.
+Auto modules (§8, item 10). EW-IOL-002 compares the IODD lengths with the window.
 
 ### 3.9 Commands, freezing and ownership
 
@@ -692,47 +701,47 @@ mode it is reported. Inserting the same module after an import moves nothing: th
 ### 3.10 Check rules
 
 The EW-PLC pack ships at MVP with the rules marked MVP and is complete at 1.0 (FR-CHK-005). Rules are registered
-Rust functions unless noted. Scopes are `checks(scope)` keys (ARCH §12). EW-PLC-01, -05, -07, -15 and -16 use the
+Rust functions unless noted. Scopes are `checks(scope)` keys (ARCH §12). EW-PLC-001, -005, -007, -015 and -016 use the
 configuration-project scope `cfg`, which [15](15-checks-revisions-collaboration.md) §2.3 lists at this document's
 request. Pack membership and the MVP subset match [15](15-checks-revisions-collaboration.md) §4.1 and §4.5.
 
 | Rule | Checks | Scope | Modes | Severity | Release | Requirement | Golden A |
 |---|---|---|---|---|---|---|---|
-| EW-PLC-01 | Duplicate address as bit-range overlap in configuration project and area (IW0 vs I1.3); word alignment warning | cfg | online, prevent (strict) | error | MVP | FR-PLC-044 | 0 |
-| EW-PLC-02 | Address outside the module's I/O range | module | online | error | MVP | FR-PLC-044 | 0 |
-| EW-PLC-03 | Bit index outside the profile's unit width | module | online | error | MVP | FR-PLC-044 | 0 |
-| EW-PLC-04 | Channel kind ≠ connected function (DO to a proximity sensor) | module | offline | warning | 1.0 | FR-PLC-046 | 0 |
-| EW-PLC-05 | Symbol not a valid identifier for the target profile | cfg | export, release | error | 1.0 | FR-PLC-047 | 0 |
-| EW-PLC-06 | *Retired.* Spare channels are listed by reports and counts (FR-PLC-019), not as findings | — | — | — | — | — | — |
-| EW-PLC-07 | Duplicate determined symbol in a configuration project | cfg | online, prevent | error | MVP | FR-PLC-016 | 0 |
-| EW-PLC-08 | Used channel without address | module | online (warning), export (error) | warning | MVP | FR-PLC-044 | 0 |
-| EW-PLC-09 | Channel with address or symbol but no connection, not spare | module | online | warning | 1.0 | FR-PLC-046 | 0 |
-| EW-PLC-10 | Data-type width ≠ channel width (Bool on a 16-bit AI) | module | online | error | 1.0 | FR-PLC-046 | 0 |
-| EW-PLC-11 | Module in a disallowed slot; `Max_Module`; maximum I/O length | station | prevent, online | error | 1.0 | FR-PLC-028 | 0 |
-| EW-PLC-12 | Binding or address ≠ part map (discriminators `binding` and `manual`); supersedes EW-NUM-002 (FR-CHK-037) for addresses | module | online | error | MVP | FR-PLC-045 | **28 under H1, 0 under H2 (EF-02)** |
-| EW-PLC-13 | Card supply group unconnected or fed from a wrong potential type (FE on PE); supersedes EW-POT-003 (FR-CHK-030) for PLC supply CPs | station | online | warning | 1.0 | FR-PLC-048 | 2 (EF-22) |
-| EW-PLC-14 | Summed output load (coil power from part data) > channel, group, module or feeding-channel rating | station | offline | warning | 1.0 | FR-PLC-048 | 0; evaluation lists MICO Out1 (EF-24, D-25) |
-| EW-PLC-15 | `Tbd` module start or channel address | cfg | online (info), release (error) | error at release | MVP | FR-PLC-013 | 0 (the `Tbd` bus address is EW-BUS-01) |
-| EW-PLC-16 | Exchange drift: the configuration project changed since the last exchange (§4.4) | cfg | online | info | 1.0 | FR-PLC-035 | 0 |
-| EW-SAF-01 | F-destination address missing, duplicate in a logical net or in the project, or outside the DD range | project | online | error | 1.0 | FR-PLC-042 | — |
-| EW-SAF-02 | 1oo2 pair incomplete or wired to different devices | module | offline | error | 1.0 | FR-PLC-043 | — |
-| EW-SAF-03 | F-DI sensor not supplied from the module's test-pulse pin | module | offline | warning | 1.0 | FR-PLC-043 | — |
-| EW-PRC-01 | Process tag does not match the scheme; duplicate on different devices | project | online | warning | 1.0 | FR-PLC-049 | 0 |
-| EW-PRC-02 | Instrument-list tag without device or channel (open item) | project | online | info | 1.0 | FR-PLC-050 | — |
-| EW-BUS-01 | Bus address missing (open item) or duplicate in a logical net | lnet | online, release | error | MVP | FR-BUS-015 | 1 (EF-03) |
-| EW-BUS-02 | Address outside the bus range | lnet | online | warning until verified | 1.0 | FR-BUS-018 | 0 |
-| EW-BUS-03 | PROFINET name invalid or duplicate; IP duplicate or outside the subnet | lnet | online | error | 1.0 | FR-BUS-017 | — |
-| EW-BUS-04 | Termination not On at exactly both segment ends | pnet | online | error; info for unknown external ends | MVP | FR-BUS-016 | 1 info (EF-16) |
-| EW-BUS-05 | Rate not supported by a slave (GSD) | lnet | online | error | 1.0 | FR-BUS-009, -018 | 0 (rate unset ▲U-22) |
-| EW-BUS-06 | Segment length, station count or stubs over the limit for the rate | pnet | offline | warning | 1.0 | FR-BUS-018 | 0 |
-| EW-BUS-07 | Logical net without master (an external partner counts) | lnet | online | warning | 1.0 | FR-BUS-018 | 0 |
-| EW-BUS-08 | EtherCAT E-bus current budget | station | online | error | 1.x | FR-BUS-020 | — |
-| EW-BUS-09 | Bus port on a non-bus cable or the wrong connector type | pnet | online | warning | 1.0 | FR-BUS-018 | 0 |
-| EW-BUS-10 | Ports joined by `Bus` connections but in different logical nets (proposed row (i)) | pnet | online | warning | 1.0 | proposed | 0 |
-| EW-IOL-01 | Port class mismatch; IODD device on a port not in IO-Link mode | module | online | error | 1.0 | FR-BUS-019 | — |
-| EW-IOL-02 | Process data > port window; cable longer than the maximum | module | online | warning | 1.0 | FR-BUS-019 | — |
+| EW-PLC-001 | Duplicate address as bit-range overlap in configuration project and area (IW0 vs I1.3); word alignment warning | cfg | online, prevent (strict) | error | MVP | FR-PLC-044 | 0 |
+| EW-PLC-002 | Address outside the module's I/O range | module | online | error | MVP | FR-PLC-044 | 0 |
+| EW-PLC-003 | Bit index outside the profile's unit width | module | online | error | MVP | FR-PLC-044 | 0 |
+| EW-PLC-004 | Channel kind ≠ connected function (DO to a proximity sensor) | module | offline | warning | 1.0 | FR-PLC-046 | 0 |
+| EW-PLC-005 | Symbol not a valid identifier for the target profile | cfg | export, release | error | 1.0 | FR-PLC-047 | 0 |
+| EW-PLC-006 | *Retired.* Spare channels are listed by reports and counts (FR-PLC-019), not as findings | — | — | — | — | — | — |
+| EW-PLC-007 | Duplicate determined symbol in a configuration project | cfg | online, prevent | error | MVP | FR-PLC-016 | 0 |
+| EW-PLC-008 | Used channel without address | module | online (warning), export (error) | warning | MVP | FR-PLC-044 | 0 |
+| EW-PLC-009 | Channel with address or symbol but no connection, not spare | module | online | warning | 1.0 | FR-PLC-046 | 0 |
+| EW-PLC-010 | Data-type width ≠ channel width (Bool on a 16-bit AI) | module | online | error | 1.0 | FR-PLC-046 | 0 |
+| EW-PLC-011 | Module in a disallowed slot; `Max_Module`; maximum I/O length | station | prevent, online | error | 1.0 | FR-PLC-028 | 0 |
+| EW-PLC-012 | Binding or address ≠ part map (discriminators `binding` and `manual`); supersedes EW-NUM-002 (FR-CHK-037) for addresses | module | online | error | MVP | FR-PLC-045 | **28 under H1, 0 under H2 (EF-02)** |
+| EW-PLC-013 | Card supply group unconnected or fed from a wrong potential type (FE on PE); supersedes EW-POT-003 (FR-CHK-030) for PLC supply CPs | station | online | warning | 1.0 | FR-PLC-048 | 2 (EF-22) |
+| EW-PLC-014 | Summed output load (coil power from part data) > channel, group, module or feeding-channel rating | station | offline | warning | 1.0 | FR-PLC-048 | 0; evaluation lists MICO Out1 (EF-24, D-25) |
+| EW-PLC-015 | `Tbd` module start or channel address | cfg | online (info), release (error) | error at release | MVP | FR-PLC-013 | 0 (the `Tbd` bus address is EW-BUS-001) |
+| EW-PLC-016 | Exchange drift: the configuration project changed since the last exchange (§4.4) | cfg | online | info | 1.0 | FR-PLC-035 | 0 |
+| EW-SAF-001 | F-destination address missing, duplicate in a logical net or in the project, or outside the DD range | project | online | error | 1.0 | FR-PLC-042 | — |
+| EW-SAF-002 | 1oo2 pair incomplete or wired to different devices | module | offline | error | 1.0 | FR-PLC-043 | — |
+| EW-SAF-003 | F-DI sensor not supplied from the module's test-pulse pin | module | offline | warning | 1.0 | FR-PLC-043 | — |
+| EW-PRC-001 | Process tag does not match the scheme; duplicate on different devices | project | online | warning | 1.0 | FR-PLC-049 | 0 |
+| EW-PRC-002 | Instrument-list tag without device or channel (open item) | project | online | info | 1.0 | FR-PLC-050 | — |
+| EW-BUS-001 | Bus address missing (open item) or duplicate in a logical net | lnet | online, release | error | MVP | FR-BUS-015 | 1 (EF-03) |
+| EW-BUS-002 | Address outside the bus range | lnet | online | warning until verified | 1.0 | FR-BUS-018 | 0 |
+| EW-BUS-003 | PROFINET name invalid or duplicate; IP duplicate or outside the subnet | lnet | online | error | 1.0 | FR-BUS-017 | — |
+| EW-BUS-004 | Termination not On at exactly both segment ends | pnet | online | error; info for unknown external ends | MVP | FR-BUS-016 | 1 info (EF-16) |
+| EW-BUS-005 | Rate not supported by a slave (GSD) | lnet | online | error | 1.0 | FR-BUS-009, -018 | 0 (rate unset ▲U-22) |
+| EW-BUS-006 | Segment length, station count or stubs over the limit for the rate | pnet | offline | warning | 1.0 | FR-BUS-018 | 0 |
+| EW-BUS-007 | Logical net without master (an external partner counts) | lnet | online | warning | 1.0 | FR-BUS-018 | 0 |
+| EW-BUS-008 | EtherCAT E-bus current budget | station | online | error | 1.x | FR-BUS-020 | — |
+| EW-BUS-009 | Bus port on a non-bus cable or the wrong connector type | pnet | online | warning | 1.0 | FR-BUS-018 | 0 |
+| EW-BUS-010 | Ports joined by `Bus` connections but in different logical nets | pnet | online | warning | 1.0 | FR-BUS-024 | 0 |
+| EW-IOL-001 | Port class mismatch; IODD device on a port not in IO-Link mode | module | online | error | 1.0 | FR-BUS-019 | — |
+| EW-IOL-002 | Process data > port window; cable longer than the maximum | module | online | warning | 1.0 | FR-BUS-019 | — |
 
-**EW-PLC-12 and the odd-bit question (D-26).** Folios 203–206 bind coil 14 of position p to channel 2p + 1. If the
+**EW-PLC-012 and the odd-bit question (D-26).** Folios 203–206 bind coil 14 of position p to channel 2p + 1. If the
 VMPA1-FB-EMG-8 assigns the lower bit to solenoid 14 (H1, suspected but unverified), the printed Q0.1 … Q6.7
 address unused coil-12 outputs: a functional bug, not a style choice. EW does not decide this in code. The
 solenoid-position map of part 533361 is data with confidence `test`:
@@ -746,10 +755,11 @@ Q0.2 …) and "open the part's PLC section". Setting the map's confidence to `ve
 reference or the pilot's PLC program, PQ-15).
 
 **One defect, one finding.** Following the supersession table of [15](15-checks-revisions-collaboration.md) §3.6
-(proposed FR-CHK-045): EW-PLC-12 supersedes EW-NUM-002 (FR-CHK-037) for addresses, EW-PLC-13 supersedes EW-POT-003
-(FR-CHK-030) at 1.0 (EF-10 → EF-22), and EW-BUS-01 supersedes EW-CORE-044 (FR-CHK-034) for bus addresses.
-EW-PLC-15 covers only module starts and channel addresses, so it never reports the bus `Tbd`. Every rule ID has its
-documentation page (NFR-DOC-02).
+(FR-CHK-045): EW-PLC-012 supersedes EW-NUM-002 (FR-CHK-037) for addresses, EW-PLC-013 supersedes EW-POT-003
+(FR-CHK-030) at 1.0 (EF-10 → EF-22), EW-BUS-001 supersedes EW-CORE-044 (FR-CHK-034) for bus addresses, and
+EW-PLC-015 supersedes EW-CORE-044 for module starts and channel addresses. EW-PLC-015 covers only module starts and
+channel addresses, so it never reports the bus `Tbd`, and each `Tbd` yields exactly one finding. Every rule ID has
+its documentation page (NFR-DOC-02).
 
 ---
 
@@ -759,9 +769,9 @@ documentation page (NFR-DOC-02).
 
 | Format | Direction | Version | Release | Requirements | Implementation |
 |---|---|---|---|---|---|
-| AutomationML AR APC | export, import | CAEX 2.15 write; CAEX 2.15 and 3.0 read; AR APC 1.4.0 | 1.0 Must | FR-PLC-029, -031, -032, -033 | `ew-caex` (proposed permissive) + `ew-plc` |
+| AutomationML AR APC | export, import | CAEX 2.15 write; CAEX 2.15 and 3.0 read; AR APC 1.4.0 | 1.0 Must | FR-PLC-029, -031, -032, -033 | `ew-caex` (permissive) + `ew-plc` |
 | AR APC 1.2.0 | export | for older TIA versions and EPLAN | 1.0 Should | FR-PLC-030 | same writer, version table |
-| TIA "PLC Tags" XLSX | export, import | 10 fixed columns | 1.0 Must | FR-PLC-036 | rust_xlsxwriter, calamine |
+| TIA "PLC Tags" XLSX | export, import | 10 fixed columns | 1.0 Must | FR-PLC-036 | dedicated exporter and importer in `ew-plc` (rust_xlsxwriter, calamine), not a machine profile (§4.5) |
 | PLCopen XML GVL | export | TC6 v2.01 | 1.0 Must | FR-PLC-037 | quick-xml; `plcopen` crate in tests only (C-9) |
 | Generic I/O list | export, import | CSV dialects, XLSX | MVP Should | FR-PLC-038, FR-EXP-002 … -004 | `ew-reports` row source |
 | Instrument / I/O list | import | CSV, XLSX | 1.0 Should | FR-PLC-050 | `ew-plc` |
@@ -774,8 +784,8 @@ editing and records the revision it reflects (FR-EXP-001). Release-mode exports 
 
 ### 4.2 Exchange image and identity
 
-Parsers and writers work on a **neutral `ExchangeImage`** in a permissive crate, so third parties can reuse them
-without GPL code (ARCH §3; [02b](02b-requirements-extended.md) Open question 13):
+Parsers and writers work on a **neutral `ExchangeImage`** in the permissive crate `ew-caex`, so third parties can
+reuse them without GPL code (ARCH §3):
 
 ```rust
 pub struct ExchangeImage { pub project: XProject, pub stations: Vec<XStation>, pub tags: Vec<XTag>,
@@ -788,15 +798,16 @@ pub struct XKey { pub foreign_id: Option<String>, pub ew_id: Option<Uuid> }
 
 - **Export** projects the model into an image (`exchange_image(cfg)`) and writes it. Imports parse a file into an
   image, and `ew-plc` (GPL) matches and merges it against the model.
-- **EW identity travels with the file** (proposed row (g)). CAEX `ID`s are the EW UUIDs of station and module
+- **EW identity travels with the file** (FR-PLC-056). CAEX `ID`s are the EW UUIDs of station and module
   devices and the v5 channel IDs; tag IDs are `v5(channel, "tag")`. The XLSX and CSV formats carry the channel ID in
   a hidden column. `ProductDesignation IEC` carries the derived tag, `LocationIdentifier IEC` the location. The
   verified samples show these two attributes in TIA Selection Tool exports (PBF §3.1, finding 6); whether TIA Portal
   keeps them, and EW's GUIDs, on a CAx re-export is unverified (§8, item 6) and part of SC-8.
 - **The last exchange snapshot** is the merge base. It is stored as canonical JSONL in
   `exchange/<config-project-uuid>.jsonl`: one record per exchanged station, module, channel and tag, holding the
-  exchanged field values and the foreign-ID map. A separate file keeps it out of `project.jsonl` merges, travels
-  through git, and lets a colleague merge a TIA re-export (Open question 2).
+  exchanged field values and the foreign-ID map (kinds `exchange_record` and `foreign_id`, ranks 70 and 71 of
+  [05](05-project-format-and-persistence.md) §2.2; included in the as-built archive). A separate file keeps it out
+  of `project.jsonl` merges, travels through git, and lets a colleague merge a TIA re-export.
 
 ### 4.3 AML AR APC export
 
@@ -894,24 +905,26 @@ stations present in the file. A station missing from the file is untouched unles
 
 - **Imported module starts become `Manual(…)`;** the snapshot records them as PLC-supplied, which is what the
   "address owned by PLC1" message cites. Channel addresses stay `Auto`, so they still follow the part map and
-  EW-PLC-12 still applies.
+  EW-PLC-012 still applies.
 - The preview groups changes per channel and shows the affected folios. The commit is **one undoable transaction**
   that includes the new snapshot, so undo restores both.
 - Re-importing an unchanged export gives an empty diff (FR-PLC-032).
 
-**Drift (EW-PLC-16).** The online rule compares `hash(exchange_image(cfg))` with the snapshot's hash and reports
+**Drift (EW-PLC-016).** The online rule compares `hash(exchange_image(cfg))` with the snapshot's hash and reports
 "changed since the AML exchange of <date>". The second clause of FR-PLC-035 (the foreign file is newer) needs file
-access, which queries never have. It is evaluated in the exchange dialog and by `ew plc status <file>` (Open
-question 12).
+access, which queries never have, so FR-PLC-035 evaluates it in the exchange dialog and by `ew plc status <file>`
+only.
 
 ### 4.5 TIA "PLC Tags" XLSX
 
 Sheet "PLC Tags", columns exactly: Name, Path, Data Type, Logical Address, Comment, Hmi Visible, Hmi Accessible,
-Hmi Writeable, Typeobject ID, Version ID (FR-PLC-036). One row per channel with a determined symbol:
+Hmi Writeable, Typeobject ID, Version ID (FR-PLC-036). The workbook is written and read by a dedicated exporter and
+importer in `ew-plc`, not by a machine or label profile of [13](13-manufacturing-outputs.md) §5.4 and §7, because
+its round trip needs code. One row per channel with a determined symbol:
 
 | Name | Path | Data Type | Logical Address | Comment | Hmi Visible | Hmi Accessible | Hmi Writeable | Typeobject ID | Version ID |
 |---|---|---|---|---|---|---|---|---|---|
-| TA05_V_15 | EW_IO | Bool | %Q0.1 | TA05-V-15 (-201U3-QM1) | True | True | True | | |
+| TA05_V_15 | EW_IO | Bool | %Q0.1 | TA05-V-15 (-201U3-Q1) | True | True | True | | |
 
 - The path is `SymbolPolicy.tag_table`. HMI flags are a configuration-project setting; their TIA defaults are
   unverified.
@@ -931,7 +944,7 @@ One GVL `IO_ElektraWatt` per configuration project, with one variable per used c
 <globalVars name="IO_ElektraWatt">
   <variable name="TA05_V_15" address="%QX0.1">
     <type><BOOL/></type>
-    <documentation><xhtml xmlns="http://www.w3.org/1999/xhtml">TA05-V-15 · -201U3-QM1:14</xhtml></documentation>
+    <documentation><xhtml xmlns="http://www.w3.org/1999/xhtml">TA05-V-15 · -201U3-Q1:14</xhtml></documentation>
   </variable>
 </globalVars>
 ```
@@ -948,28 +961,28 @@ One GVL `IO_ElektraWatt` per configuration project, with one variable per used c
 
 The I/O-list row source (§5) exports with the FR-PLC-023 columns, one row per channel, through the
 [09](09-reports-forms-output.md) §4.6 machinery: CSV dialects `excel-nl`, `excel-en`, `rfc4180` (FR-EXP-003) and
-XLSX with a hidden `id` column and the `_ew` sheet (FR-EXP-004).
+XLSX with a hidden `id` column and the hidden `_ew` and `_ew_base` sheets (FR-EXP-004,
+[14](14-interop.md) §8.1).
 
 - **Keys.** The row ID is the channel ID. Re-import matches by ID, then by (station, slot, channel number)
   (FR-PLC-038).
-- **Three-way in XLSX.** This document proposes that the `_ew` sheet also store the exported cell values of the
-  editable columns: symbol, comment, signal range and state. Re-import then compares file, base and current model
-  per cell. It reports EW edits made since the export without any project-side storage, as FR-EXP-004 asks. CSV has
-  no hidden sheet, so a CSV re-import is a two-way diff with a warning.
+- **Three-way in XLSX.** The hidden `_ew_base` sheet holds the exported cell values of the editable columns:
+  symbol, comment, signal range and state. Re-import then compares file, base and current model per cell. It
+  reports EW edits made since the export without any project-side storage, as FR-EXP-004 asks. CSV has no hidden
+  sheet, so a CSV re-import is a two-way diff with a warning.
 - **Editable columns** are the manual fields only. Edits to derived columns (address, function text, target) are
-  reported as "derived value, not applied" with the reason ("edit the start of -201U3" or "edit the valve's function
-  text").
-- **Excel safety.** Tags such as "-201U3" are string cells in XLSX. The CSV presets apply the guard of
-  [09](09-reports-forms-output.md) Open question 8.
+  reported as "derived value, not applied" with the reason ("edit the start of -201U3" or "edit the process tag of
+  -203Q1").
+- **Excel safety.** Tags such as "-201U3" are string cells in XLSX. The CSV presets apply the formula guard of
+  NFR-SEC-17 ([09](09-reports-forms-output.md) §4.6).
 
 Golden A: the default block exports 28 rows (§3.2). Editing three comments in Dutch Excel (`excel-nl`) and
-re-importing changes exactly three fields in one transaction. FR-PLC-038's criterion edits three *function texts*
-instead, which this design reports as derived; Open question 20 resolves the difference.
+re-importing changes exactly three fields in one transaction, which is FR-PLC-038's criterion.
 
 **Instrument-list import** (1.0, FR-PLC-050). Rows hold tag, description, signal type, range, field location and
 preferred station. They create placeholder field devices (state "supplied by others") with the process tag and
 pre-assign spare channels of the matching kind in station order. A 10-row list with 8 DO tags against the golden
-station assigns 8 spare channels of -201U5 and -201U6 and lists 2 tags as EW-PRC-02 open items. Generating whole
+station assigns 8 spare channels of -201U5 and -201U6 and lists 2 tags as EW-PRC-002 open items. Generating whole
 schematics from such a list is IDEA-025 in [07](07-symbols-parts-macros.md) and [17](17-extensibility.md).
 
 ### 4.8 Later formats
@@ -985,15 +998,15 @@ schematics from such a list is IDEA-025 in [07](07-symbols-parts-macros.md) and 
 
 1. **Add the file.** The user adds a GSD, GSDML or IODD file to a company or user catalogue (`ew-library`). EW records
    hash, origin and licence note and keeps the file in the catalogue directory, never in a project.
-2. **Parse.** The parser produces a device type in the permissive `ew-devdesc` crate (proposed). Parsers are
+2. **Parse.** The parser produces a device type in the permissive `ew-devdesc` crate (ARCH §3). Parsers are
    streaming, reject DTDs and external entities, and enforce the limits of NFR-SEC-02. Each has a cargo-fuzz target
    (NFR-SEC-03).
 3. **Link.** The user links order numbers to device-type entries: one part ↔ one DAP or module ident. The part
    supplies what the DD lacks (§2.8).
 4. **Build.** The rack/slot editor (1.0, FR-PLC-028) places modules into slots, validated against `FixedInSlots`,
-   `AllowedInSlots`, `Max_Module` and the maximum I/O lengths (EW-PLC-11). N1 then expands channels.
+   `AllowedInSlots`, `Max_Module` and the maximum I/O lengths (EW-PLC-011). N1 then expands channels.
 
-A CPX-FB13 GSD gives the golden node its supported rates for EW-BUS-05. The ABB FENA GSDML V2.31 sample yields
+A CPX-FB13 GSD gives the golden node its supported rates for EW-BUS-005. The ABB FENA GSDML V2.31 sample yields
 physical slots 0..2, fixed slot 0, port submodule 32769 and the F_Dest_Add range 1..65534 (FR-PLC-026). The Balluff
 IODD creates pins L+, Other, L−, C/Q with core colours BN, WH, BU, BK on the connecting M12 cable (FR-BUS-013).
 
@@ -1002,7 +1015,8 @@ IODD creates pins L+, Other, L−, C/Q with core colours BN, WH, BU, BK on the c
 - **Determinism.** The same model and options give byte-identical AML, XLSX, PLCopen and CSV files on every platform
   and thread count (FR-EXP-006, NFR-REL-07). Order is fixed, IDs are v5, dates come from the export's document date
   (revision date or `SOURCE_DATE_EPOCH`), and XLSX workbook properties are set explicitly.
-- **Privacy.** Exports hold no person fields when the personal-data option is set (FR-EXP-009, NFR-PRIV-06).
+- **Privacy.** Exports hold no person fields when `--omit-personal-data` is set (AML: FR-EXP-009; XLSX and CSV
+  report tables: FR-OUT-025; NFR-PRIV-06).
 - **Hostile input.** AML, PLCopen, GSD, GSDML, IODD, ESI, EDS and CSV/XLSX parsers enforce the NFR-SEC-02 limits.
   Imported identifiers are NFC-normalised and confusable-checked (ARCH §4.5). An import never executes content and
   changes the model only through the previewed command.
@@ -1017,9 +1031,9 @@ with natural sort for tags.
 
 | Block kind | Rows | Columns | Release |
 |---|---|---|---|
-| `plc_overview` (FR-PLC-022, FR-REP-019) | one per channel of a station or module, all states | module DT, part, address, channel number, designation, kind, symbol, function text, target DT, state, link to the main representation | MVP |
-| `io_list` (FR-PLC-023) | one per channel; default filter `state != Deactivated` | configuration project, CPU, station and bus address, rack.slot.subslot, module DT and part, channel number, designation, kind, address, symbol, data type, comment, function text, process tag, target DT and pin, target page and cell, passed terminals, signal range, F-address, state | MVP (target columns from 1.0) |
-| `plc_card_list` ([09](09-reports-forms-output.md) P09-1) | one per module | station, slot path, module DT, part, type ident, start and length per direction, used / spare / reserved / deactivated counts | 1.0 |
+| `plc_overview` (FR-PLC-022, FR-REP-019) | one per channel of a station or module, all states | module DT, part, address, channel number, designation, kind, symbol, function text (else the tracked process tag, §3.4), process tag, target DT, state, link to the main representation | MVP |
+| `io_list` (FR-PLC-023) | one per channel; default filter `state != Deactivated` | configuration project, CPU, station and bus address, rack.slot.subslot, module DT and part, channel number, designation, kind, address, symbol, data type, comment, function text (else the tracked process tag, §3.4), process tag, target DT and pin, target page and cell, passed terminals, signal range, F-address, state | MVP (target columns from 1.0) |
+| `plc_card_list` (FR-REP-045) | one per module | station, slot path, module DT, part, type ident, start and length per direction, used / spare / reserved / deactivated counts | 1.0 |
 | `network_address_list` (FR-BUS-008) | one per port with an address | logical net, station DT, device type, address or name, IP, mask, master flag, rate, configuration project, `Tbd` flag | 1.0 |
 | `bus_overview` (FR-REP-020, FR-BUS-007) | per logical net, then per segment member | position, station DT, port, address, connector DT, termination, cable DT, cable length, external flag | 1.0 |
 | `bus_cable_list` (FR-BUS-008) | one per bus cable | cable DT, bus system, part, length (source), from, to, segment | 1.0 |
@@ -1028,13 +1042,14 @@ with natural sort for tags.
 
 The open-items list (FR-REP-021) receives every `Tbd` start, channel and bus address, every unassigned
 instrument-list tag and every used channel without a main representation. The SQL projection exposes
-`api_v1_plc_channel` at 1.0 (FR-EXT-007) with the `io_list` columns plus IDs. The user SQL report "24 V loads per
-MICO channel" (ARCH §11) joins it with potentials.
+`api_v1_plc_channel` at 1.0 (FR-EXT-007) with the `io_list` columns plus IDs. The D-25 user SQL report "24 V loads
+per protective channel" (ARCH §11, ADR-0017) reads `api_v1_cp` and `api_v1_potential`; from 1.0 it sums the load
+currents `api_v1_cp.i_load` per channel, which EW-PLC-014 compares with the channel rating (ADR-0017 amendment 3).
 
 Golden A, folio 908: 56 rows on 908, 908.1 and 908.2 (23 rows per page). Station address "TBD"; addresses Q0.0 …
-Q6.7; valve DTs; function texts TA05-V-15 … or "Spare"; states 8 used, 20 spare, 28 deactivated; one link per bound
-row to the valve on 203–206 (AC-29). The network address list has two rows: JE-N1000-03 (master, external) and
--201U1 (slave, `Tbd` flagged).
+Q6.7; valve DTs; printed function texts TA05-V-15 … (the driven devices' process tags) or "Spare"; states 8 used,
+20 spare, 28 deactivated; one link per bound row to the valve on 203–206 (AC-29). The network address list has two
+rows: JE-N1000-03 (master, external) and -201U1 (slave, `Tbd` flagged).
 
 ---
 
@@ -1044,11 +1059,11 @@ row to the valve on 203–206 (AC-29). The network address list has two rows: JE
 |---|---|---|---|
 | PLC navigator, tree | configuration project → station (role icon) → rack → module (slot) → channel; bus ports under the station; badges for unplaced, `Tbd` and finding count; drag a channel onto a pin or coil to bind | MVP | FR-PLC-020, FR-UI-007 |
 | PLC grid (table mode) | the columns of FR-PLC-021; filters unassigned, duplicate, spare, unplaced, safety, per bus, per configuration project, `Tbd`; fill-down, pattern fill (`TA05_V_{n:02}`), Excel paste, each edit one command | MVP Should | FR-PLC-021, FR-UI-008 |
-| Property grid | address with provenance: *"Q0.1 · derived: -201U3 output start Q0 (auto, packed, slot 1) + 533361 channel map n → bit 1"*; function text *"TA05-V-15 · from -201U3-QM1"*; override marker and "reset to derived" | MVP | FR-UI-010 |
+| Property grid | address with provenance: *"Q0.1 · derived: -201U3 output start Q0 (auto, packed, slot 1) + 533361 channel map n → bit 1"*; function text *"TA05-V-15 · process tag of -203Q1, driven by -201U3-Q1"*; override marker and "reset to derived" | MVP | FR-UI-010 |
 | Re-address preview | old → new address per channel, affected folios, symbol changes, rendered candidate pages; accept or cancel | MVP Should | FR-PLC-014, FR-UI-022 |
-| Message panel | EW-PLC-12 jumps to the coil on 203; quick fixes "rebind to map channel", "set -3X1 termination On", "clean symbol", "re-address module"; waivers need a reason | MVP | FR-UI-021 |
+| Message panel | EW-PLC-012 jumps to the coil on 203; quick fixes "rebind to map channel", "set -3X1 termination On", "clean symbol", "re-address module"; waivers need a reason | MVP | FR-UI-021 |
 | PLC workspace | PLC navigator, grid, bus navigator, exchange dialog and the fluid pages side by side | 1.0 | FR-UI-003, FR-UI-006 |
-| Rack/slot editor | drag modules from the device type into allowed slots; valve-terminal slot list next to the stored order code; live EW-PLC-11 | 1.0 | FR-PLC-028 |
+| Rack/slot editor | drag modules from the device type into allowed slots; valve-terminal slot list next to the stored order code; live EW-PLC-011 | 1.0 | FR-PLC-028 |
 | Bus navigator | logical nets → ports; physical nets → derived segments with ends; termination toggles; rate at the net | 1.0 | FR-UI-006 |
 | Exchange dialog | format and version (CAEX 2.15 or 3.0 read; AR APC 1.4.0 or 1.2.0), station scope, document date, personal-data option; import preview tabs: added, removed, changed, conflicts, parking | 1.0 | FR-PLC-029 … -036, FR-EXP-009 |
 
@@ -1065,12 +1080,12 @@ row to the valve on 203–206 (AC-29). The network address list has two rows: JE
 ## 7. CLI and automation
 
 - **Export.** `ew export plc-aml --config PLC1 [--apc 1.4.0|1.2.0]`, `ew export plc-xlsx` and `ew export plcopen`
-  at 1.0 (FR-EXT-003). `ew export report --block 908 --format xlsx` and the `io_list` block at MVP
-  ([09](09-reports-forms-output.md) P09-10).
+  at 1.0 (FR-EXT-003). `ew export report --block 908 --format xlsx` and the `io_list` block at MVP (FR-EXT-027,
+  [09](09-reports-forms-output.md) §4.6).
 - **Import.** `ew import plc-aml <file> --preview --json` prints the diff of §4.4 and applies it only with
-  `--accept <resolutions.json>` (1.0). `ew import io-list <file>` applies a generic I/O-list round trip (MVP
-  Should, FR-PLC-038). `ew plc status <file>` reports drift (1.0). The subcommand names are fixed in
-  [17](17-extensibility.md) §3.3.
+  `--accept <choices.json>` (the per-conflict choices of the preview; 1.0). `ew import io-list <file>` applies a
+  generic I/O-list round trip (MVP Should, FR-PLC-038). `ew plc status <file>` reports drift (1.0). The subcommand
+  names are fixed in [17](17-extensibility.md) §3.3.
 - **Queries and SQL.** `ew query channel_addresses -201U3 --explain`;
   `ew sql "select address, symbol, state from api_v1_plc_channel"` (1.0).
 - **Gates.** `ew check --scheme pre-delivery` reports EF-02 and EF-03 on Golden A and exits 1.
@@ -1085,35 +1100,35 @@ row to the valve on 203–206 (AC-29). The network address list has two rows: JE
 
 1. **Unconfirmed absolute addresses.** Golden starts are relative to the node (▲U-22). Until the PLC side owns the
    starts, exported tag addresses carry a warning, and the I/O list shows a "relative" marker per station.
-2. **Word and bit overlap.** `IW0` overlaps `I1.3`. EW-PLC-01 compares bit intervals, never strings, and word
+2. **Word and bit overlap.** `IW0` overlaps `I1.3`. EW-PLC-001 compares bit intervals, never strings, and word
    alignment is a warning only.
 3. **Module part changes and station deletion** shift later Auto ranges; both are previewed (§3.3, §3.9), and
    PLC-owned starts never move.
 4. **Git merges.** Two branches adding modules to one station cannot create overlapping Auto ranges: Auto starts
    are derived after the merge and skip occupied ranges (§3.1). Overlapping Manual values set on both branches
-   surface in the post-merge integrity check (INT-13 in [05](05-project-format-and-persistence.md) §6.3) and in
-   EW-PLC-01. v5 channel IDs prevent duplicate channel records.
-5. **Symbols.** Cleaning can make two symbols equal ("TA05-V-15" and "TA05_V_15"); EW-PLC-07 tests the cleaned
-   value. Leading digits get "_" (Open question 10). TIA quoting rules are opt-in.
+   surface in the post-merge integrity check (EW-CORE-013, [05](05-project-format-and-persistence.md) §6.3) and in
+   EW-PLC-001. v5 channel IDs prevent duplicate channel records.
+5. **Symbols.** Cleaning can make two symbols equal ("TA05-V-15" and "TA05_V_15"); EW-PLC-007 tests the cleaned
+   value. Leading digits get "_" (FR-PLC-017, FR-PLC-047). TIA quoting rules are opt-in.
 6. **Foreign GUIDs.** TIA may replace EW's IDs on re-export (unverified). Matching then falls back to IEC tags, and
    ambiguous cases go to the parking list instead of being guessed.
 7. **Partial exports.** A file holding one station never deletes the others (§4.4 scope rule).
 8. **Multilingual comments.** AML carries every language. The TIA XLSX carries one, and its re-import touches only
    that language.
 9. **Bistable valves and blanking plates.** Both solenoids are claimed and bound by N2. Empty positions give
-   deactivated channels. EW-FL-02 compares solenoids with bound channels.
+   deactivated channels. EW-FL-002 compares solenoids with bound channels.
 10. **IO-Link mode changes** alter channel kind and data width, and thereby the module's I/O width and the starts
     of later modules. The change is previewed.
-11. **External partners.** Their address and termination are often unknown. EW-BUS-04 reports an info, and
-    EW-BUS-07 accepts an external master. Plant-wide F-address uniqueness can only be checked within the project
+11. **External partners.** Their address and termination are often unknown. EW-BUS-004 reports an info, and
+    EW-BUS-007 accepts an external master. Plant-wide F-address uniqueness can only be checked within the project
     and against values entered on external partners.
 12. **`Tbd` vs `NotApplicable` vs empty.** Only `Tbd` is an open item. An empty value on a used channel is
-    EW-PLC-08.
+    EW-PLC-008.
 13. **Spreadsheet edits of derived columns** are reported, never applied (§4.7).
 14. **Scale.** At XL (10,000 channels) `address_index(cfg)` sorts once per commit that touches addresses; AML is
-    written streaming. Performance targets are proposed in row (j).
+    written streaming. NFR-PERF-22 budgets AML export and import preview at 10 s each.
 15. **Unverified constants.** Bus ranges, segment lengths, IO-Link limits, PROFINET name rules and the analog
-    default starts ship with `verified = false` and report at most warnings (NFR-COMP-05).
+    default starts ship with `verified = false` and report at most warnings (FR-CHK-046, NFR-COMP-05).
 
 ---
 
@@ -1126,24 +1141,24 @@ row to the valve on 203–206 (AC-29). The network address list has two rows: JE
 | 3 | -201U1's bus-port function (aux) on a BusTopology page; -3X1 bus connector with `termination = On`; `Bus` line with cable -3W1; external point "DP" with `ExternalRef` JE-N1000-03 in +J-E-206 | "-201U1 (201-E1)"; "Festo / 51E-F13GCQP-D+H2GG / CPX FB13 / Node TBD" from manufacturer, order code 1, part type and `address = Tbd`; "Switch to "ON"" from `termination`; "To J-E-206 / JE-N1000-03" from the ExternalRef | FR-BUS-001 … -006 |
 | 106 | the card power connector functions of -201U1 and -202U1 (aux) with typed pins 1–5 and FE; cables -106W1, -106W2 | potentials per pin; FE on PE reported (EF-10 at MVP, EF-22 at 1.0) | FR-PLC-024, FR-PLC-048 |
 | 201–202 | assembly overview generated from the children in manifold order | "∞ 203-B4" … "∞ 206-B4"; 4 valves on -202U2 | FR-DEV-023, FR-XRF-016 |
-| 203–206 | 28 valve representations, each drawing fluid function + coil function; 28 bindings | Q0.1 … Q6.7 from `channel_addresses`; TA05-V-xx or "Spare" from the valve's function text | FR-PLC-011, FR-FLU-005 |
+| 203–206 | 28 valve representations, each drawing fluid function + coil function; 28 bindings | Q0.1 … Q6.7 from `channel_addresses`; TA05-V-xx from the driven device's process tag (used valves carry no function text), or the manual function text "Spare" | FR-PLC-011, FR-FLU-005 |
 | 908 (new) | `plc_overview` report block | 56 rows on 908–908.2 | FR-PLC-022 |
 
 ### 9.2 Module -201U3 under H1 and H2
 
-| Ch | Bound to | Address | State | Function text | Symbol (1.0) | EW-PLC-12 H1 / H2 |
+| Ch | Bound to | Address | State | Function text | Symbol (1.0) | EW-PLC-012 H1 / H2 |
 |---|---|---|---|---|---|---|
 | 0 | — | Q0.0 | deactivated | — | — | — / — |
-| 1 | -201U3-QM1 coil 14 | Q0.1 | used | TA05-V-15 | TA05_V_15 | error (expects ch 0, Q0.0) / — |
+| 1 | -201U3-Q1 coil 14 | Q0.1 | used | TA05-V-15 | TA05_V_15 | error (expects ch 0, Q0.0) / — |
 | 2 | — | Q0.2 | deactivated | — | — | — / — |
-| 3 | -201U3-QM2 coil 14 | Q0.3 | used | TA05-V-33 | TA05_V_33 | error / — |
+| 3 | -201U3-Q2 coil 14 | Q0.3 | used | TA05-V-33 | TA05_V_33 | error / — |
 | 4 | — | Q0.4 | deactivated | — | — | — / — |
-| 5 | -201U3-QM3 coil 14 | Q0.5 | used | TA05-V-18 | TA05_V_18 | error / — |
+| 5 | -201U3-Q3 coil 14 | Q0.5 | used | TA05-V-18 | TA05_V_18 | error / — |
 | 6 | — | Q0.6 | deactivated | — | — | — / — |
-| 7 | -201U3-QM4 coil 14 | Q0.7 | used | TA05-V-17 | TA05_V_17 | error / — |
+| 7 | -201U3-Q4 coil 14 | Q0.7 | used | TA05-V-17 | TA05_V_17 | error / — |
 
 -201U4 repeats the pattern on Q1 with TA05-V-36, -38, -16 and -37. -201U5 … -202U2 have spare valves on Q2 … Q6.
-Totals: 8 used, 20 spare, 28 deactivated; EW-PLC-12 gives 28 or 0 findings (AC-29, EF-02). At 1.0 the exports hold
+Totals: 8 used, 20 spare, 28 deactivated; EW-PLC-012 gives 28 or 0 findings (AC-29, EF-02). At 1.0 the exports hold
 7 modules, 8 tags and 8 links (AC-30), and the bus checks give AC-31.
 
 ### 9.3 Defects prevented
@@ -1153,13 +1168,13 @@ Totals: 8 used, 20 spare, 28 deactivated; EW-PLC-12 gives 28 or 0 findings (AC-2
 | D-01 -4W1 / -4X1 in the BOM | -3W1 and -3X1 are real devices; their tags are derived, and the topology page holds no free text |
 | D-09 no PLC overview or I/O list | `plc_overview` (908) and `io_list` blocks at MVP; bus reports at 1.0 |
 | D-10 overview 5 vs 4 valves | overview generated from the assembly's children; channels and positions come from the same children |
-| D-15 "Node TBD"; termination as text | typed `Tbd` (EW-BUS-01 blocks release, EF-03); termination is a property checked by EW-BUS-04 |
-| D-16 FE on PE at -201U1:3 | pin role FE in part data; EW-POT-003 (FR-CHK-030, EF-10) at MVP, superseded by EW-PLC-13 (EF-22) at 1.0 |
-| D-25 crossed supply pairs, one 6 A channel | supply groups El/Val; EW-PLC-14 load evaluation; load summary (FR-REP-026) |
-| D-26 odd-bit addresses | addresses derived from part maps; EW-PLC-12 under H1; the decision is part data with confidence |
+| D-15 "Node TBD"; termination as text | typed `Tbd` (EW-BUS-001 blocks release, EF-03); termination is a property checked by EW-BUS-004 |
+| D-16 FE on PE at -201U1:3 | pin role FE in part data; EW-POT-003 (FR-CHK-030, EF-10) at MVP, superseded by EW-PLC-013 (EF-22) at 1.0 |
+| D-25 crossed supply pairs, one 6 A channel | supply groups El/Val; EW-PLC-014 load evaluation; load summary (FR-REP-026) |
+| D-26 odd-bit addresses | addresses derived from part maps; EW-PLC-012 under H1; the decision is part data with confidence |
 | D-27 untagged valves | child devices with derived tags; process tags on field devices; automatic symbols from them |
 | D-36 order code vs components | order codes on the `Assembly` aspect; channels from component parts |
-| D-40 CPX block inside the MPA section | -202U1 carries no `PlcModule`, so addressing is unaffected; slot validation EW-FL-03 (1.x) |
+| D-40 CPX block inside the MPA section | -202U1 carries no `PlcModule`, so addressing is unaffected; slot validation EW-FL-003 (1.x) |
 | D-41 assembly tagged from two pages | positional slots from `Device.position`, never from tags or pages |
 
 ---
@@ -1174,7 +1189,7 @@ Totals: 8 used, 20 spare, 28 deactivated; EW-PLC-12 gives 28 or 0 findings (AC-2
 | Representations | channel pins, coil binding on fluid pages, assembly overview, PLC overview box (Should) | generated bus topology overview | — | — |
 | UI | PLC navigator, grid (Should), drag-bind | PLC workspace, bus navigator, exchange dialog, rack/slot editor | process-tag navigator | — |
 | Exchange | generic I/O list CSV/XLSX round trip (Should) | AML AR APC 1.4.0 (+1.2.0) export and import with 3-way merge; TIA tag XLSX; PLCopen GVL; instrument-list import | TST import; L5X; TwinCAT | TIA Openness bridge |
-| Checks | EW-PLC-01, -02, -03, -07, -08, -12, -15; EW-BUS-01, -04 | all other EW-PLC, EW-SAF, EW-PRC, EW-BUS, EW-IOL rules | EW-BUS-08 | — |
+| Checks | EW-PLC-001, -002, -003, -007, -008, -012, -015; EW-BUS-001, -004 | all other EW-PLC, EW-SAF, EW-PRC, EW-BUS, EW-IOL rules | EW-BUS-008 | — |
 | Reports | `plc_overview`, `io_list`, open items | `plc_card_list`, bus reports, IO-Link and safety lists | — | — |
 
 The MVP column is what the golden acceptance criteria need: AC-31 at milestone M2 and AC-29 at the MVP release.
@@ -1188,25 +1203,25 @@ installations) closes by 1.0 ([20](20-golden-project.md) §22; [vision](00-visio
 | Crate | Role here |
 |---|---|
 | `ew-schema` | `PlcConfigProject`, aspects, `Channel`, bus records, exchange snapshot records |
-| `ew-plcaddr` (proposed, permissive) | `PlcAddress`, profile data model, grammar engine, bit-interval arithmetic; used by `ew-derive` and the QET importer (Open question 1) |
-| `ew-caex`, `ew-devdesc` (proposed, permissive) | CAEX 2.15/3.0 read and write, `ExchangeImage`; GSD, GSDML, IODD (ESI, EDS at 1.x) |
+| `ew-plcaddr` (permissive, ARCH §3) | `PlcAddress`, profile data model, grammar engine, bit-interval arithmetic; used by `ew-derive`, `ew-plc` and the QET importer |
+| `ew-caex`, `ew-devdesc` (permissive, ARCH §3) | CAEX 2.15/3.0 read and write, `ExchangeImage`; GSD, GSDML, IODD (ESI, EDS at 1.x) |
 | `ew-derive` | the queries of §2.10 |
 | `ew-commands` | normalisers N1–N4; `plc.*` commands |
 | `ew-checks` | EW-PLC, EW-SAF, EW-PRC, EW-BUS and EW-IOL rules |
-| `ew-plc` | exchange orchestration, matching and merge, writers for TIA XLSX, PLCopen and L5X, rack/slot logic |
+| `ew-plc` | exchange orchestration, matching and merge, the TIA "PLC Tags" XLSX exporter and importer, writers for PLCopen and L5X, rack/slot logic |
 | `ew-reports`, `ew-scene` | row sources of §5; text slots and property arrangements |
 | `ew-viewmodel`, `ew-ui` | navigator, grid, dialogs |
 | `ew-import-qet` | emits `plc_*` element info and recognised "Q0.1" texts as pending channel bindings (FR-IMP-011, FR-IMP-017); it never sees `ew-model` (ARCH §3, rule 4). `ApplyImport` in `ew-commands` resolves them by A7 (§3.3) |
 
 | Document | Relation |
 |---|---|
-| [03](03-domain-model.md) | records refined here (Open questions 2–6, 15, 22) |
-| [05](05-project-format-and-persistence.md) | kind ranks; proposed `exchange/` directory and `plc_profile` library kind (Open questions 2, 13) |
+| [03](03-domain-model.md) | the records of §13–§14 with this document's refinements, adopted in the schema-steward batch (Open questions 3, 4, 6, 15, 22) |
+| [05](05-project-format-and-persistence.md) | kind ranks; the `exchange/` directory (ranks 70, 71) and the `plc_profile` library kind in `lib/plc-profiles/` (Open questions 2, 13) |
 | [06](06-schematic-editor.md) | page types, text slots, xref formats |
 | [07](07-symbols-parts-macros.md) | part sections L2, confidence, valve typical with `ChannelBinding` value sets |
 | [08](08-connections-terminals-cables.md) | `Bus` lines, cables, supply potentials, `Internal` connections |
-| [09](09-reports-forms-output.md) | blocks 908 and `io_list`, `_ew` sheet, CSV guard |
-| [11](11-fluid-power.md) | valve model, `ValveTerminal` aspect, N-FL-3 (= N2), EW-FL-02/03, valve-terminal configuration report |
+| [09](09-reports-forms-output.md) | blocks 908 and `io_list`, `_ew` and `_ew_base` sheets, CSV guard |
+| [11](11-fluid-power.md) | valve model, `ValveTerminal` aspect, N-FL-3 (= N2), EW-FL-002/003, valve-terminal configuration report |
 | [12](12-panel-layout.md) | EtherCAT rail order, placement of PLC hardware |
 | [14](14-interop.md) | generic import and export, QET and EDZ PLC mapping |
 | [15](15-checks-revisions-collaboration.md) | rule engine, configuration-project scope, release gate |
@@ -1216,31 +1231,31 @@ installations) closes by 1.0 ([20](20-golden-project.md) §22; [vision](00-visio
 
 ## Requirements covered
 
-- **PLC:** FR-PLC-001 … FR-PLC-050.
-- **BUS:** FR-BUS-001 … FR-BUS-022.
+- **PLC:** FR-PLC-001 … FR-PLC-056.
+- **BUS:** FR-BUS-001 … FR-BUS-024.
 - **EXP (PLC exchange):** FR-EXP-001, FR-EXP-002, FR-EXP-003, FR-EXP-004, FR-EXP-006, FR-EXP-009.
 - **Core rows with a PLC or bus part (02a):** FR-DEV-012, FR-DEV-023, FR-DEV-024, FR-DEV-026, FR-DEV-028,
-  FR-DEV-034, FR-PRT-010, FR-REP-019, FR-REP-020, FR-REP-021, FR-REP-026, FR-CHK-005, FR-CHK-030, FR-CHK-034,
-  FR-CHK-037, FR-CHK-042, FR-XRF-016, FR-CBL-008, FR-MAC-004, FR-NUM-027.
+  FR-DEV-034, FR-PRT-010, FR-REP-019, FR-REP-020, FR-REP-021, FR-REP-026, FR-REP-045, FR-CHK-005, FR-CHK-030,
+  FR-CHK-034, FR-CHK-037, FR-CHK-042, FR-CHK-045, FR-CHK-046, FR-XRF-016, FR-CBL-008, FR-MAC-004, FR-NUM-027.
 - **Other 02b rows touched:** FR-FLU-005, FR-IMP-011, FR-IMP-017, FR-UI-003, FR-UI-006, FR-UI-007, FR-UI-008,
-  FR-UI-010, FR-UI-011, FR-UI-021, FR-UI-022, FR-UI-025, FR-UI-026, FR-EXT-003, FR-EXT-007.
-- **Non-functional:** NFR-REL-07, NFR-REL-09, NFR-REL-11, NFR-SEC-02, NFR-SEC-03, NFR-LIC-06, NFR-PRIV-06,
-  NFR-COMP-05, NFR-PERF-08, NFR-PERF-09, NFR-DOC-02, NFR-UX-03.
+  FR-UI-010, FR-UI-011, FR-UI-021, FR-UI-022, FR-UI-025, FR-UI-026, FR-EXT-003, FR-EXT-007, FR-EXT-027.
+- **Non-functional:** NFR-REL-07, NFR-REL-09, NFR-REL-11, NFR-SEC-02, NFR-SEC-03, NFR-SEC-17, NFR-LIC-06,
+  NFR-PRIV-06, NFR-COMP-05, NFR-PERF-08, NFR-PERF-09, NFR-PERF-22, NFR-DOC-02, NFR-UX-03.
 
 ### Proposed new requirements
 
-| ID | Requirement | Prio | Release | Source | Acceptance criterion | Target |
-|---|---|---|---|---|---|---|
-| FR-PLC-nnn (a) | The effective channel state shall be derived: explicit state, else `Tbd`, else the bound target device's state (used, spare, reserved; not fitted → deactivated), else reserved when claimed by the position map, else the part's unbound state; I/O-list blocks shall default to `state != Deactivated`. | Must | MVP | [03](03-domain-model.md) OQ 9; [09](09-reports-forms-output.md) OQ 9 | Golden A gives 8 used, 20 spare and 28 deactivated under H1 and under H2; folio 908 lists 56 rows and the default I/O list 28. | 02b PLC |
-| FR-PLC-nnn (b) | When a valve child is added to or moved within a module with a solenoid-position map, a normaliser shall bind each declared solenoid to the channel the map assigns, if that channel is unbound, in the same transaction, unless the command supplies an explicit binding. | Must | MVP | [03](03-domain-model.md) §13 | Adding a 571334 child at position index 2 of a new 533361 module binds coil 14 to channel 4 under H1 and to channel 5 under H2. | 02b PLC |
-| FR-PLC-nnn (c) | The system shall place a module's or station's PLC overview box showing every channel with number, address, symbol, function text and state and a cross-reference to each channel's main representation; connections drawn on it join no nets. | Should | MVP | PBF §2.7; EPLAN 20301 | The overview of -201U3 shows Q0.0 … Q0.7; the four bound rows print the cells of their valves on 203; drawing on it changes no potential. | 02b PLC |
-| FR-PLC-nnn (d) | Channel IDs shall be `v5(module_id, "channel", number)`; changing a module's part shall add missing channels and remove surplus channels only after a confirmation listing their bindings, symbols and exchange records. | Must | MVP | ADR-0004; PBF §11 (invariant 6) | Replacing 533361 by a 16-output part adds channels 8–15 and changes nothing else; replacing it by a 4-output part lists 4 channels and asks. | 02b PLC |
-| FR-PLC-nnn (e) | A channel shall accept a manual target function that overrides target tracking. | Should | 1.0 | EPLAN 20449; PBF §2.8 | Assigning -203Q1 as target of an unwired DI shows -203Q1 and TA05-V-15 in the I/O list; removing it restores the traced target. | 02b PLC |
-| FR-PLC-nnn (f) | Renumbering devices or pages shall never change a derived PLC address. | Must | MVP | ARCH §1.2; D-01 | `channel_addresses` of the 7 golden modules are identical before and after Golden B1 and B2. | 02b PLC |
-| FR-PLC-nnn (g) | PLC exports shall carry EW identity: CAEX IDs equal to EW UUIDs (v5 for channels and tags), hidden ID columns in XLSX and CSV, and `ProductDesignation IEC` and `LocationIdentifier IEC` attributes. | Must | 1.0 | PBF §3.1, §3.7; ADR-0004 | Re-importing a golden AML whose IDs were replaced still matches all 7 modules by `ProductDesignation IEC`; an unchanged re-import gives an empty diff. | 02b PLC |
-| FR-BUS-nnn (h) | Bus-port part data shall define a signal map from bus signals (A, B, DGND, VP, shield; TD±, RD±) to connector pins, so that a multi-line port representation resolves per-core connections and core colours of the bus cable. | Should | 1.0 | [08](08-connections-terminals-cables.md) OQ 5; PBF §5.3 | With a multi-line representation of -3X1, -3W1's cores A and B land on pins 8 and 3 ▲ and take their colours from the cable part. | 02b BUS |
-| FR-BUS-nnn (i) | EW-BUS-10 shall report ports joined by bus connections that belong to different logical networks. | Should | 1.0 | PBF §5.2 | Moving -201U1:DP to a second logical net while -3W1 joins it to the master yields EW-BUS-10. | 02b BUS |
-| NFR-PERF-nn (j) | AML export and import preview of 10,000 channels shall each finish in ≤ 10 s on BM, on a fork, while editing continues. | Should | 1.0 | G6; ADR-0022 | Timed on the XL fixture in the nightly gate. | 02c PERF |
+The ten rows this document proposed are in the catalogues:
+- derived effective channel state and the I/O-list default filter → covered by the existing **FR-PLC-019**
+  ([02b](02b-requirements-extended.md)), which now carries the derivation;
+- solenoid-binding normaliser (N2) → **FR-PLC-051** (02b);
+- PLC overview box → **FR-PLC-052** (02b);
+- v5 channel IDs and confirmed removal of surplus channels → **FR-PLC-053** (02b);
+- manual channel target → **FR-PLC-054** (02b);
+- renumbering never changes a derived PLC address → **FR-PLC-055** (02b);
+- EW identity in PLC exports → **FR-PLC-056** (02b);
+- bus-port signal map → **FR-BUS-023** (02b);
+- EW-BUS-010 for ports of different logical nets joined by bus connections → **FR-BUS-024** (02b);
+- AML export and import-preview budget → **NFR-PERF-22** ([02c](02c-nonfunctional-requirements.md)).
 
 ---
 
@@ -1248,23 +1263,26 @@ installations) closes by 1.0 ([20](20-golden-project.md) §22; [vision](00-visio
 
 1. **Crate placement of the address grammar.** ARCH §3 puts address grammars in `ew-plc`, which depends on
    `ew-commands`. `ew-derive` (rendering, `channel_addresses`) and the QET importer (parsing "Q0.1") cannot depend
-   on it. *Recommendation:* move `PlcAddress`, profiles and the grammar engine into a permissive `ew-plcaddr` crate
-   in the closed lower layer. Split `ew-caex` and `ew-devdesc` likewise (02b Open question 13), and amend ARCH §3.
-2. **Exchange snapshot storage.** No file in [05](05-project-format-and-persistence.md) holds the merge base.
-   *Recommendation:* `exchange/<config-project-uuid>.jsonl` with kinds `exchange_record` and `foreign_id`, new ranks
-   in the kind registry, included in the as-built archive; `PlcConfigProject.exchange` keeps only the stamp.
+   on it. **Resolved:** ARCH §3 adds the permissive crates `ew-plcaddr` (`PlcAddress`, profiles, grammar engine, bit
+   intervals), `ew-caex` and `ew-devdesc`; `ew-plc` keeps exchange orchestration, merge, writers and rack/slot logic
+   (§11).
+2. **Exchange snapshot storage.** No file in [05](05-project-format-and-persistence.md) held the merge base.
+   **Resolved:** 05 §2.2 adds `exchange/<config-project-uuid>.jsonl` (1.0) with the kinds `exchange_record` and
+   `foreign_id` (ranks 70, 71), included in the as-built archive; `PlcConfigProject.exchange` keeps only the stamp
+   (§4.2).
 3. **`PlcModule.start` per direction.** ARCH §4.2 has one `start`, but mixed modules need an input and an output
-   start, as AR APC's `Address` list shows. *Recommendation:* adopt `IoStarts { input, output }`.
-4. **Station allocation order.** Auto allocation needs an order that does not depend on tags. *Recommendation:* add
-   `PlcStation.order: Option<u32>`, falling back to the UUIDv7 creation order. Never order by tag, page or bus
-   address.
+   start, as AR APC's `Address` list shows. **Resolved:** the schema-steward batch adopts `IoStarts { input, output }`
+   ([03](03-domain-model.md) §13).
+4. **Station allocation order.** Auto allocation needs an order that does not depend on tags. **Resolved:**
+   `PlcStation.order: Option<u32>` is adopted, falling back to the UUIDv7 creation order, never tag, page or bus
+   address ([03](03-domain-model.md) §13).
 5. **Channel binding vs `Internal` connection.** [03](03-domain-model.md) and [20](20-golden-project.md) bind the
    coil CP directly, while [08](08-connections-terminals-cables.md) §2.3 cites the channel-to-coil link as an
-   example of `Internal`. *Recommendation:* direct binding, as here. Keep `Internal` for other device-internal links
-   and change 08's example.
-6. **Authored vs derived bus segments.** [03](03-domain-model.md) §14 stores `PhysicalNet.segments`, which
-   duplicates the topology drawing. *Recommendation:* derive segments (`bus_segments`) and keep only `order_hint`
-   for undrawn members; amend 03.
+   example of `Internal`. **Resolved:** `Channel.binding` only; `Internal` remains for other device-internal links
+   between CPs of one part's functions, and 08 §2.3 uses such a link as its example (§3.3).
+6. **Authored vs derived bus segments.** [03](03-domain-model.md) §14 stored `PhysicalNet.segments`, which
+   duplicates the topology drawing. **Resolved:** segments are derived by `bus_segments(pnet)`, and `PhysicalNet`
+   keeps only `order_hint` for undrawn members and `medium` (03 §14, §2.7).
 7. **The odd-bit question (D-26).** Whether VMPA1-FB-EMG-8 puts coil 14 on the even bit decides 28 findings or none
    (PQ-15, U-23). *Recommendation:* keep H1 as the golden test input with confidence `test`; confirm from the
    vendor manual or the pilot's PLC program before 1.0, then set `verified` with the source.
@@ -1276,31 +1294,32 @@ installations) closes by 1.0 ([20](20-golden-project.md) §22; [vision](00-visio
    plausible but unverified). *Recommendation:* make a TIA V21 export of a DP master system with a CPX-FB13 slave a
    precondition for accepting FR-PLC-031's DP part and AC-30 (02b Open question 12), and take the station and module
    `TypeIdentifier` forms from it.
-10. **Leading-digit symbols.** FR-PLC-017's example `201U3_QM1_14` breaks FR-PLC-047's strict IEC rule (no leading
-    digit). *Recommendation:* `ident()` prefixes `_` (`_201U3_QM1_14`), after verifying that IEC 61131-3 Ed. 4 still
-    allows a leading underscore before a digit; amend FR-PLC-017's criterion.
-11. **I/O-list rows in FR-PLC-023.** Its criterion expects 56 golden rows; the default filter here gives 28.
-    *Recommendation:* amend the criterion to name the filter ("56 rows with the filter off, 28 by default"), as
-    [09](09-reports-forms-output.md) Open question 9 proposes.
-12. **"Foreign file newer" in EW-PLC-16.** Queries cannot read files. *Recommendation:* evaluate that clause in the
-    exchange dialog and in `ew plc status <file>` only; amend FR-PLC-035's wording.
+10. **Leading-digit symbols.** FR-PLC-017's example `201U3_Q1_14` broke FR-PLC-047's strict IEC rule (no leading
+    digit). **Resolved:** `ident()` prefixes `_`, and FR-PLC-017's example and criterion use `_201U3_Q1_14`; that
+    IEC 61131-3 Ed. 4 still allows a leading underscore before a digit stays to verify (§3.4).
+11. **I/O-list rows in FR-PLC-023.** Its criterion expected 56 golden rows; the default filter here gives 28.
+    **Resolved:** FR-PLC-023's criterion expects the same 28 rows in PDF and XLSX, 56 with the deactivated filter off
+    ([09](09-reports-forms-output.md) Open question 9).
+12. **"Foreign file newer" in EW-PLC-016.** Queries cannot read files. **Resolved:** FR-PLC-035 evaluates that
+    clause in the exchange dialog and in `ew plc status <file>` only (§4.4).
 13. **Storage of address profiles.** [05](05-project-format-and-persistence.md) §2.2 lists the library kinds part,
-    symbol, fndef, form and macro, but no address profile. *Recommendation:* built-in profiles are versioned and
-    never removed (like derivation profiles); a user profile is embedded as a new library kind `plc_profile` in
-    `lib/plc-profiles/<id>.json` with `{library_id, item_id, version, sha256}`; amend 05.
+    symbol, fndef, form and macro, but no address profile. **Resolved:** built-in profiles are versioned and never
+    removed, and a user profile is embedded as the library kind `plc_profile` in `lib/plc-profiles/<copy_id>.json`
+    (1.0; 05 §2.2, §3.4).
 14. **Low-adoption crates (C-9).** gsd-parser, plcopen, l5x, taktora-ethercat-esi and ioddengine are below the
     adoption threshold. *Recommendation:* use plcopen and l5x in tests only; vendor gsd-parser and
     taktora-ethercat-esi under a named owner, or write own parsers; never take them as unreviewed runtime
     dependencies.
-15. **Manual target field.** `Channel.target` is not in [03](03-domain-model.md) §13. *Recommendation:* adopt it
-    through the schema-steward rule with proposed row (e).
+15. **Manual target field.** `Channel.target` was not in [03](03-domain-model.md) §13. **Resolved:** adopted in the
+    schema-steward batch, with FR-PLC-054 as its requirement.
 16. **Exchange test installations.** SC-8 needs TIA Portal V21, an older TIA (V17) for AR APC 1.2.0, and CODESYS
     3.5. The CAEX 2.15 XSD licence for CI validation is unverified. *Recommendation:* ask the pilot user for access
     or sample exports (PQ-19); vendor the XSD only if its licence permits, else validate structurally in CI and with
     the AutomationML editor in the exchange test.
 17. **Rule constants.** Bus ranges, segment lengths, IO-Link limits, PROFINET name rules and TIA's default analog
-    starts are unverified. *Recommendation:* ship them with `verified = false` (warnings only) and budget a
-    verification pass against PI, IO-Link Community and vendor manuals before 1.0.
+    starts are unverified. **Resolved:** they ship with `verified = false` and report at most warnings (FR-CHK-046);
+    the verification pass against PI, IO-Link Community and vendor manuals is scheduled in the global plan's
+    verification register before 1.0.
 18. **Tag tables without a CPU.** In the TIA sample, `TagTable` elements sit under the CPU `DeviceItem`. Golden A has
     `cpu: None` (the DP master is the external partner JE-N1000-03), so the AML has no CPU to hang the 8 tags on.
     *Recommendation:* write the tag table under the `AutomationProject` element (as in §4.3) and test in SC-8 whether
@@ -1308,27 +1327,28 @@ installations) closes by 1.0 ([20](20-golden-project.md) §22; [vision](00-visio
     say so in the export dialog.
 19. **Target tracking and bridges.** FR-PLC-018 says tracking follows "connections, terminals and bridges", while
     §3.5 (and [03](03-domain-model.md) §9.3) stops at bridges, because a bridge joins potentials and would make a DI
-    "find" every load on a 24 V rail. *Recommendation:* keep the signal-level rule and amend FR-PLC-018 to "through
-    connections, terminals, terminal levels and plug pins"; validate with the EPLAN users of 03 Open question 2.
+    "find" every load on a 24 V rail. **Resolved:** the signal-level rule stays, and FR-PLC-018 reads "through
+    connections, terminals, terminal levels and plug pins" (§3.5); 03 Open question 2 still collects EPLAN users'
+    feedback on signal boundaries.
 20. **Function texts in spreadsheet round trips.** FR-PLC-038's criterion edits 3 function texts in Excel, but a
-    channel's function text is derived from its target (§2.4, §4.7). *Recommendation:* amend the criterion to edit 3
-    comments; as a 1.0 Could, offer "apply to target" for a function-text cell whose channel has exactly one `Direct`
-    or `Manual` target, written to the target device's function text in the same previewed transaction.
+    channel's function text is derived from its target (§2.4, §4.7). **Resolved:** FR-PLC-038's criterion edits 3
+    comments (§4.7); an "apply to target" action for function-text cells has no requirement row and stays a
+    candidate for a later release.
 21. **Wording of FR-PLC-045 and FR-PLC-015.** FR-PLC-045's criterion speaks of "imported manual addresses Q0.1 …",
     but A7 (§3.3) imports them as bindings with `Auto` addresses; FR-PLC-015's criterion changes "the address map of
-    571334", but the maps live on the module part 533361 (571334 declares only its solenoids). *Recommendation:*
-    amend both criteria ("imported bindings", "the solenoid-position map of 533361"); the finding counts stay 28 / 0.
+    571334", but the maps live on the module part 533361 (571334 declares only its solenoids). **Resolved:** both
+    criteria read "imported bindings" and "the solenoid-position map of 533361"; the finding counts stay 28 / 0.
 22. **Schema deltas against [03](03-domain-model.md) §13–§14.** Besides Open questions 3, 4, 6 and 15, this document
     changes `PlcConfigProject.ownership` from `EcadOwns | PlcOwns` to an `Owner` per field group (adding `Shared`),
     replaces `foreign_ids` and `last_exchange` by `exchange: ExchangeStamp` plus the `exchange/` file, adds
     `allocation` and `symbols`, replaces `PlcModule.address_map` by `part_use`, makes `Channel.state` optional
     (derived when absent) and adds `PlcModule.safety`, `Channel.signal_range`, `Channel.safety` and
-    `PhysicalNet.medium`. *Recommendation:* accept them in one schema-steward PR before `ew-schema` v0 freezes, and
-    update 03 §13–§14 in the same change.
+    `PhysicalNet.medium`. **Resolved:** one schema-steward batch adopts them before `ew-schema` v0 freezes, and
+    03 §13–§14 lists them (§2).
 23. **Direction of the golden bus segment.** FR-BUS-003 and [03](03-domain-model.md) §14 list the segment master
-    first (JE-N1000-03 → -3W1 → -3X1 → -201U1 DP); [20](20-golden-project.md) §11.1 lists it from -201U1.
-    *Recommendation:* A5 orders master-first (§3.8); amend 20 §11.1 so that the `bus_overview` expectation has one
-    order.
+    first (JE-N1000-03 → -3W1 → -3X1 → -201U1 DP); [20](20-golden-project.md) §11.1 listed it from -201U1.
+    **Resolved:** master-first everywhere: A5 orders that way (§3.8), and 20 §11.1 lists the segment
+    JE-N1000-03 → -3W1 → -3X1 → -201U1:DP.
 24. **Auto allocation around Manual ranges.** A1 places Auto ranges at the first free range at or after the cursor,
     which matches TIA's "next free address" behaviour as far as known (unverified). *Recommendation:* keep first-fit
     with the stable cursor; confirm with the pilot user's PLC programmers (PQ-19) that inserted modules should take

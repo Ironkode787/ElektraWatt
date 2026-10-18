@@ -1,6 +1,6 @@
 # Panel layout: 2D, 3D, routing, wire lengths and thermal
 
-**Status:** Draft v0.1 · **Date:** 2026-10-17 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document designs the physical side of an ElektraWatt (EW) project: layout spaces, enclosures and
 mounting surfaces modelled at 1:1 in nanometres, rails and ducts as parametric carriers, placements bound to
@@ -64,13 +64,13 @@ PBF = [plc-bus-fluid](../research/plc-bus-fluid.md); C-nn and G-nn =
 
 | Crate | Layout responsibility |
 |---|---|
-| `ew-panel` | Layout queries, snapping engine, placement commands, collision reconciler, routing graph, negotiated-congestion router, lengths, duct fill, bundles, surface features, thermal queries (VIS OQ6, 02b OQ6), and the 2D projection of surfaces (the geometry layers of `surface_view_dl`, arch §3); MVP 2D overlap index on rstar 0.13.0, already a workspace dependency of `ew-scene` |
+| `ew-panel` | Layout queries, snapping engine, placement commands, collision reconciler, routing graph, negotiated-congestion router, lengths, duct fill, bundles, surface features, thermal queries (VIS OQ6, 02b OQ6), the 2D projection of surfaces (the geometry layers of PanelLayout display lists, §5.2, arch §3), and the glTF (glb) and STL writer for `layout_scene` (§14); MVP 2D overlap index on rstar 0.13.0, already a workspace dependency of `ew-scene` |
 | `ew-render3d` | wgpu 3D renderer: instancing, feature edges, transparency, CAD camera, CPU ray picking, gizmo (transform-gizmo-egui 0.11.0) |
 | `ew-step-proto` (permissive) | Worker IPC frames (postcard) and cache artefact formats (rkyv, glb) |
 | `ew-step-worker` (bin) | OCCT via occt-sys 7.8.1 + opencascade 0.3.0 (LGPL-2.1, C-5): STEP read, tessellation, edges, hulls, frames, features; HLR in 1.x |
 | `ew-scene`, `ew-dl` | Composition of PanelLayout and ModelView pages: frame and title block, embedded tables, label text shaping (`shaped_text`), and the IR emitted to the renderers (ADR-0015) |
-| `ew-reports`, `ew-export`, `ew-mfg` | Legend, hole table, cut list and thermal row sources; surface DXF; `.ewpp` layout members |
-| `ew-checks` | Pack EW-LAYOUT (EW-L0nn) and the EW-THM rules |
+| `ew-reports`, `ew-export`, `ew-mfg`, `ew-api` | Legend, hole table, cut list and thermal row sources; surface DXF; `.ewpp` content from `ew-mfg`, composed by `ew-api` with the `ew-panel` glb (arch §3) |
+| `ew-checks` | Pack EW-LAYOUT (EW-LAY-0nn) and the EW-THM rules ([15](15-checks-revisions-collaboration.md) §4.5.4, §4.6) |
 
 ### 1.3 Design rules
 
@@ -95,14 +95,14 @@ flowchart LR
   LS["LayoutSpace / Enclosure /<br/>MountingSurface / Carrier"] --> GEO
   PL["Placement3D<br/>{device, part, carrier, pose}"] --> GEO
   DEV["Device (schematic)"] --> LBL["layout_label(p)"]
-  GEO --> P2D["surface_view_dl(page)<br/>folio 902 at 1:10"]
+  GEO --> P2D["page_display_list(page, layer, lang)<br/>panel layers, folio 902 at 1:10"]
   LBL --> P2D
   GEO --> SC["layout_scene(space)"] --> R3D["ew-render3d"]
-  SC --> REC["collision reconciler<br/>(parry3d BVH)"] --> L006["EW-L006/L007"]
+  SC --> REC["collision reconciler<br/>(parry3d BVH)"] --> L006["EW-LAY-006/007"]
   SC --> RG["routing_graph(space)<br/>Class II"] --> RW["RouteWires (committed)"]
   RW --> LEN["lengths, fill, bundles"] --> MFG["wire list, machines, .ewpp"]
   GEO --> FEAT["surface_features(surface)"] --> DXF["DXF, hole table"]
-  GEO --> TH["thermal(space) Class II"] --> THR["thermal report, EW-THM-01"]
+  GEO --> TH["thermal(space) Class II"] --> THR["thermal report, EW-THM-001"]
 ```
 
 ---
@@ -127,8 +127,9 @@ flowchart LR
 
 ### 2.2 Records
 
-The authored records are those of 03 §16 and arch §4.2. They all live in `layout/<space-uuid>.jsonl` (05 §2, kinds
-50–56). Additions are marked **(add)** and collected in Open question 2.
+The authored records are those of 03 §16 and arch §4.2. They all live in `layout/<space-uuid>.jsonl` (05 §2, kind
+ranks 50–56, plus 57 `routing_path` and 58 `surface_feature`). Fields and kinds marked **(add)** are this document's
+additions to the first draft of 03 §16; the schema-steward batch adopted them (Open question 2).
 
 | Record | Authored fields | Notes |
 |---|---|---|
@@ -137,8 +138,8 @@ The authored records are those of 03 §16 and arch §4.2. They all live in `layo
 | `MountingSurface` | `enclosure`, `kind: Plate \| DoorInside \| DoorOutside \| Side \| Roof \| Floor \| Gland`, `device?` (plate NSYPMM107 as child of -UC1), `frame`, `usable: Vec<Pt2>`, `max_depth`, `pe_bond` | Created from the enclosure part's surface templates (FR-LAY-002/003) |
 | `Carrier` | `surface`, `kind: Rail \| Duct \| Busbar \| Surface`, `part?`, `path: Vec<Pt2>` (surface frame), `params` (§2.4), `pe_bond` | Layout-only part, counted in the BOM (FR-LAY-008) |
 | `Placement3D` | `device`, `function?`, `part: PartRef?` **(add)**, `segment: SeqRange?` **(add)**, `carrier: CarrierRef`, `pose`, `variant?`, `locked` | §2.3 |
-| `RouteOverride` | `connection` (physical wire ID, 08 §3.8), `path: Vec<RouteNodeRef>`, `pinned`, `bundle: Ident?` **(add)**, `seq: u32?` **(add)** | Survives re-routing (FR-LAY-047, FR-LAY-054). A manual length is not stored here but in `WireOverrides.length` **(add)** of the wire's carrier connection, as [13](13-manufacturing-outputs.md) §3.3 assumes, so that it also exists without a layout space (Open question 16) |
-| `committed_route` | `wire`, `path: Vec<RouteNodeRef>`, `len: LengthBreakdown`, `input_hash` | `Committed<T>` without `rev` (05 §2); ID `v5(connection, "route")` |
+| `RouteOverride` | `connection` (physical wire ID, 08 §3.8), `path: Vec<RouteNodeRef>`, `pinned`, `bundle: Ident?` **(add)**, `seq: u32?` **(add)** | Survives re-routing (FR-LAY-047, FR-LAY-054). A manual length is not stored here but in `WireOverrides.length` **(add)** of the wire's carrier connection ([03](03-domain-model.md) §9, [13](13-manufacturing-outputs.md) §3.3), so that it also exists without a layout space (Open question 16) |
+| `committed_route` | `wire`, `path: Vec<RouteNodeRef>`, `len: LengthBreakdown` (ending in the unrounded calibrated length `L_cal`, §9), `input_hash` | `Committed<T>` without `rev` (05 §2); ID `v5(connection, "route")`; rounding happens once, when the `WireRecord` is built ([13](13-manufacturing-outputs.md) §3.3) |
 | `RoutingPath` **(add)** | `space`, `kind: FreeAir \| Hinge{loop_allowance} \| WiringHole{feature} \| Guide`, `points: Vec<RouteAnchor>`, `class_set`, `cost_factor` | User routing paths (FR-LAY-043/044) |
 | `SurfaceFeature` **(add)** | `surface`, `side: Front \| Back`, `feature: Hole \| Thread \| Cutout \| Slot \| Keyhole \| Custom`, `at`, params | User-authored machining features (FR-LAY-056); all others are derived |
 
@@ -160,14 +161,14 @@ use, `locked = false`, no segment, no variant.
 |---|---|---|
 | `device` | The placed device | Structural: exists; delete policy `cascade` (03 §4.2) |
 | `function?` | One function placed separately, e.g. the door handle function of a door-coupled switch | Must belong to `device` |
-| `part?` **(add)** | Which `PartUse` of the device this placement realises; `None` = the primary mountable part (the first part use whose part has `mech.mount_kind`) | EW-L003 if it names no part use of the device (FR-LAY-007, PM §4.2 `part_ref`) |
-| `segment?` **(add)** | Terminal range `{from_seq, to_seq}` when a strip is placed in pieces on several carriers | Ranges of one strip are disjoint and cover what is placed |
+| `part?` **(add)** | Which `PartUse` of the device this placement realises; `None` = the primary mountable part (the first part use whose part has `mech.mount_kind`) | EW-LAY-003 if it names no part use of the device (FR-LAY-007, FR-LAY-059, PM §4.2 `part_ref`) |
+| `segment?` **(add)** | Terminal range `{from_seq, to_seq}` when a strip is placed in pieces on several carriers (FR-LAY-063) | Ranges of one strip are disjoint and cover what is placed |
 | `carrier` | `CarrierRef = Carrier(Id) \| Surface(Id) \| Placement(Id)`; `Placement` is piggy-back mounting (1.0 Could) | Delete policy `forbid`; §3.6 |
 | `pose` | Relative to the carrier frame | Constrained per carrier kind (below) |
 | `variant?` | Panel-macro variant (mounting orientation, e.g. a PSU mounted lying) | Must exist in the part |
 | `locked` | Excluded from push, swap and auto-fill | — |
 
-**Pose constraints per carrier kind** (validated in the command, reported by EW-L010 after imports and merges):
+**Pose constraints per carrier kind** (validated in the command, reported by EW-LAY-010 after imports and merges):
 
 | Carrier | Degrees of freedom | Stored pose |
 |---|---|---|
@@ -189,7 +190,7 @@ fill, temperatures. Each is a query (§2.6).
 | Surface | — | the surface's own frame and usable polygon | — |
 
 The label "40×60" of folio 902 is generated from `width = 40 mm`, `height = 60 mm` (▲, the reference's order is
-ambiguous; PM §5.3). In Golden A all five ducts and the three rails carry the placeholder parts of BOM rows 26–27
+ambiguous; PM §5.3). In Golden A all five ducts and the three rails carry the placeholder parts of BOM rows 24–25
 (▲U-27), which FR-CHK-034 reports as open items (EF-17); the unlabelled lower duct D5 additionally has a test type
 (▲U-26).
 
@@ -201,9 +202,9 @@ Part data is defined in [07](07-symbols-parts-macros.md) §2.5 (`MechData`, `Mod
 | Level ([07](07-symbols-parts-macros.md)) | Field | Unit | Consumer | Release |
 |---|---|---|---|---|
 | L3 | `width`, `height`, `depth` | nm | footprint, box macro, enclosure fit | MVP |
-| L3 | `mount_kind: Ts35x7_5 \| Ts35x15 \| Ts32 \| Ts15 \| Screw \| BusbarAdapter \| DoorCutout \| OnParent \| None` | — | snapping, EW-L010, mountable predicate | MVP |
+| L3 | `mount_kind: Ts35x7_5 \| Ts35x15 \| Ts32 \| Ts15 \| Screw \| BusbarAdapter \| DoorCutout \| OnParent \| None` | — | snapping, EW-LAY-010, mountable predicate | MVP |
 | L3 | `rail_offset` | nm vector | rail pose → part origin | MVP |
-| L3 | `clearance {top, bottom, left, right, front}` | nm | padding while snapping (MVP), keep-outs EW-L007 (1.0) | MVP / 1.0 |
+| L3 | `clearance {top, bottom, left, right, front}` | nm | padding while snapping (MVP), keep-outs EW-LAY-007 (1.0) | MVP / 1.0 |
 | L3 | `front_2d` (outline polylines in the part frame) | nm | 2D outline at scale | MVP |
 | L3 | `mass` | g | door mass rule (FR-LAY-033) | 1.0 |
 | L5 | `model3d {sha256, source_hint, embeddable, vendor_transform, units}` | — | STEP pipeline (§6.2) | 1.0 |
@@ -218,13 +219,13 @@ Part data is defined in [07](07-symbols-parts-macros.md) §2.5 (`MechData`, `Mod
 
 | Field | Type | Meaning |
 |---|---|---|
-| `designation` | Ident | Must equal the schematic CP designation, or map through the macro's mapping table (EW-L005) |
+| `designation` | Ident | Must equal the schematic CP designation, or map through the macro's mapping table (EW-LAY-005) |
 | `cp_idx` | u16 | Index into the template FnDef, so duplicated designations ("+#1", "+#2" of -102G1) stay distinct |
 | `level`, `clamp` | u8, `ClampKey` | Locus on multi-level and twin terminals (`ClampKey` in 08 §2.3, clamp rules in 08 §6.3): PT 2.5-TWIN has clamp a on side 1 and b, c on side 2 |
 | `pos`, `dir` | nm vector, unit vector ×10⁹ | Entry point of the clamp opening; insertion direction into the clamp |
 | `clamp_type` | `Screw \| Spring \| PushIn \| Idc \| RingStud(M) \| Plug` | Ferrule rules, torque list |
 | `csa_solid`, `csa_fine`, `csa_ferrule` | `Dec3` ranges mm² | Ferrule selection, EW-MFG pre-flight |
-| `max_conductors`, `twin_ferrule_ok` | u8, bool | EN 60204-1 13.1 check (M-08) |
+| `max_conductors`, `twin_ferrule_ok` | u8, bool | EN 60204-1 13.1 check (EW-EN60204-008) |
 | `strip_len`, `insertion_depth` | nm | End allowance in the length formula (§9) |
 | `torque` | `Dec3` N·m | Checklists (FR-MFG-037) |
 | `test_access` | bool | Continuity test points |
@@ -243,7 +244,7 @@ Optional accuracy fields for robot wiring stay out of v1 (PARK-07); the record i
 | `rail_occupancy(carrier)` | sorted intervals `(s0, s1, placement, padding, locked)` incl. strips and group accessories | I, memo per carrier | placements on the carrier, geometry |
 | `strip_layout(p)` | per terminal: s, width; end covers, brackets per group | I, memo | strip terminals by `seq`, part widths, accessories |
 | `carrier_order(carrier)` | placements in physical order | I, cold | rail occupancy (consumed by [10](10-plc-and-bus.md) for EtherCAT and rack order) |
-| `surface_view_dl(page, layer)` | 2D display list | I, memo + LRU | geometry, labels, carriers, features, form |
+| `page_display_list(page, layer, lang)` of a PanelLayout page | 2D display list per panel layer (§5.2) | I, memo + LRU | geometry, labels, carriers, features, form |
 | `layout_legend(surface)` | legend rows | I, memo | placements, carriers, parts (FR-LAY-012) |
 | `surface_features(surface)` | merged feature list with origins | I, memo | part patterns, carrier fixings, enclosure, `SurfaceFeature` |
 | `layout_scene(space)` | instances `{placement, mesh hash, world pose, state}` | I, memo (arch §6.4) | geometry, Class III mesh refs |
@@ -252,21 +253,21 @@ Optional accuracy fields for robot wiring stay out of v1 (PARK-07); the record i
 | `route_status(wire)` | `Fresh \| Stale(fields) \| Unrouted` | I, cold | committed route, recomputed input hash |
 | `duct_fill(space)` | fill per edge | I, memo | committed routes, wire ODs, duct areas |
 | `bundle_sequence(space)` | bundle key and `seq` per wire, with overrides applied (§8.7) | I, memo | committed routes, strips, `RouteOverride.bundle/seq` (consumed by [13](13-manufacturing-outputs.md)) |
-| `panel_front_reps(dev)` | derived "panel front" representations for navigation (Open question 1) | I, cold | placements of the device, layout pages |
+| `panel_front_reps(dev)` | derived "panel front" representations for navigation and "show all representations" (arch §6.4; Open question 1) | I, cold | placements of the device, layout pages |
 | `wire_length(wire)` | `LengthBreakdown`, source | I (reads committed) | committed route, policy, overrides |
 | `thermal(space)` | `ThermalResult` | II, job | placements, loss models, load model, enclosure, inputs, coefficient set |
 
 ### 2.7 The mountable predicate
 
-EW-L001 and the unplaced list need one exact definition of "a device that must appear in the layout of its
+EW-LAY-001 and the unplaced list need one exact definition of "a device that must appear in the layout of its
 location":
 
 | Case | Result | GP example |
 |---|---|---|
-| Device location ≠ any layout space location, or device marked *supplied by others* | not considered | field valves -203Q1 … -203Q8 (TA05-V-15 …) in +FIELD ▲U-07 (20 §6.2) |
+| Device location ≠ any layout space location, or device marked *supplied by others* (FR-DEV-037) | not considered | field valves -203Q1 … -203Q8 (TA05-V-15 …) in +FIELD ▲U-07 (20 §6.2) |
 | Part use with `mount_kind` ∉ {`None`, `OnParent`} | Mountable (primary part) | -102G1, -201U2, -201U9 |
 | No part, device kind physical (switch, lamp, protective device, terminal strip …) | Mountable, footprint unknown | S56, E56 (no parts, EF-04) |
-| `mount_kind = OnParent`, or a child of a placed strip or sub-base | Exempt: mounted with its parent | -X1031:1 … 20; valves -201U3-QM1 …; the DP plug -3X1 (Festo 532216) on -201U1 |
+| `mount_kind = OnParent`, or a child of a placed strip or sub-base | Exempt: mounted with its parent | -X1031:1 … 20; valves -201U3-Q1 …; the DP plug -3X1 (Festo 532216) on -201U1 |
 | Terminal of a strip | Exempt: placed through `strip_layout` | 1X1:PE |
 | Cable, conductor, wire, interruption point, external device | Exempt | -106W1, -3W1 |
 | Enclosure and surface devices | Exempt: they are the layout | -UC1, NSYPMM107 plate |
@@ -282,7 +283,7 @@ location":
   with its part, and one `MountingSurface` per template in the enclosure part. At MVP the template set is
   box-shaped: plate, with door and gland templates read but used from 1.0 (FR-LAY-003). Dimensions are never typed on
   the page; changing the part re-derives the surfaces' usable polygons and reports placements that no longer fit
-  (EW-L010).
+  (EW-LAY-010).
 - **Families.** Schneider Thalassa PLA polyester wall enclosures (NSYPLA1074G with NSYPMM107, folio 902) have no
   system punching: rails and ducts are screwed to the plate, which creates fixing features (§10). Rittal AX compact
   enclosures behave the same way. Rittal VX25 frame enclosures add a punching lattice (25 mm pitch *(unverified)*)
@@ -318,7 +319,7 @@ While the user drags, the tool computes the snap result each frame without commi
 ```text
 snap_on_rail(rail, device, cursor, mode):
   s_cursor = project(cursor, rail.axis)                 // only rails within snap distance (default 15 px)
-  require compatible(device.mount_kind, rail.profile)   // else refuse; EW-L010
+  require compatible(device.mount_kind, rail.profile)   // else refuse; EW-LAY-010
   w   = footprint.width + clearance.left + clearance.right
   occ = rail_occupancy(rail)                            // sorted (s0, s1, id, locked), padding included
   s   = snap(s_cursor, targets = occupant edges ∪ {0, L} ∪ plate grid ∪ column edges of the rail above)
@@ -345,16 +346,18 @@ snap_on_rail(rail, device, cursor, mode):
 - **Terminal strips are placed as a whole** (FR-LAY-015): one `Placement3D` of the strip device; `strip_layout`
   positions the terminals by `seq` with their part widths, adds end covers per strip end from the terminal part's
   accessories, and recomputes on every strip change. Adding a terminal in the schematic lengthens the placed strip in
-  the next derivation; if the rail overflows, EW-L010 reports it. A strip may be split across carriers with
+  the next derivation; if the rail overflows, EW-LAY-010 reports it. A strip may be split across carriers with
   `segment` ranges, and it stays one BOM row (D-42).
-- **Group accessories.** End brackets are declared in part data as `AccessoryRef{per: Group}` ([07](07-symbols-parts-macros.md)
-  §2.5). A group is a maximal run of abutting strip placements on one rail. `rail_occupancy` derives one bracket per
-  strip boundary in the run plus one at each run end, so k abutting strips need k + 1 brackets. GP rail R2 holds
-  1X1, -X1031 and -X1032 abutting: **4** brackets, as on folio 902 and in BOM row 25 (proposed requirement, Open
-  question 4).
+- **Group accessories** (FR-LAY-060, MVP). A group is a maximal run of abutting strip placements on one rail.
+  Wherever strips are placed, `rail_occupancy` derives one end bracket per strip boundary in the run plus one at each
+  run end, so k abutting strips need k + 1 brackets. GP rail R2 holds 1X1, -X1031 and -X1032 abutting: **4**
+  brackets, as on folio 902 and in BOM row 26 ([20](20-golden-project.md) §14.1). Strips that are not placed, and
+  bridges, use authored part uses (bridge parts on their `BridgeSpec` connections). From 1.0 the part-data accessory
+  lists (`AccessoryRef{per: Group}`, [07](07-symbols-parts-macros.md) §2.5; FR-PRT-005, FR-REP-051) declare the
+  bracket part and must reproduce the same golden count.
 - **Assemblies and PLC racks.** Children of one assembly (the valve terminal -201U1 … -202U3) or of one PLC station
   on one carrier are kept contiguous and in physical order (`Device.position`, module slot). `PlaceAssembly{device,
-  carrier, at}` places all members abutting; inserting a missing member uses push mode. EW-L016 (proposed) reports
+  carrier, at}` places all members abutting; inserting a missing member uses push mode. EW-LAY-016 (FR-LAY-061) reports
   gaps and order differences, so the layout cannot contradict the manifold order that also generates the overview
   on 201/202 (D-10). `carrier_order` gives [10](10-plc-and-bus.md) the EtherCAT and rack order (1.0).
 
@@ -362,18 +365,18 @@ snap_on_rail(rail, device, cursor, mode):
 
 | Event | Effect | Never |
 |---|---|---|
-| Device part changes (wider MCB on -102F1) | `placement_geometry` re-derives the footprint at the same pose; an overlap with -102F2 is reported (EW-L006, FR-LAY-007) | neighbours are moved |
+| Device part changes (wider MCB on -102F1) | `placement_geometry` re-derives the footprint at the same pose; an overlap with -102F2 is reported (EW-LAY-006, FR-LAY-007) | neighbours are moved |
 | Device renumbered (T55 → T57) | the label changes in the same commit; no file under `layout/` changes (FR-LAY-006, D-01, D-02) | stored label text |
 | Device deleted | placement cascades; the transaction lists it in the preview; routes of its wires become unrouted | orphan placement |
-| Device location changes (+J-E-2416 → +J-E-206) | placement kept; EW-L004 with quick fixes "remove placement" and "move to the layout space of +J-E-206" | silent move |
-| Terminal added to a placed strip | strip length grows; EW-L010 on overflow | rail auto-extension |
-| Part use removed that a placement names | EW-L003; quick fix "realise the primary part" | silent retarget |
+| Device location changes (+J-E-2416 → +J-E-206) | placement kept; EW-LAY-004 with quick fixes "remove placement" and "move to the layout space of +J-E-206" | silent move |
+| Terminal added to a placed strip | strip length grows; EW-LAY-010 on overflow | rail auto-extension |
+| Part use removed that a placement names | EW-LAY-003; quick fix "realise the primary part" | silent retarget |
 
 ### 3.6 Carrier deletion
 
 `Placement3D.carrier` has delete policy `forbid`. `DeleteCarrier{carrier, then: RemovePlacements | RehomeToSurface}`
 is the only way to delete an occupied carrier. `RehomeToSurface` converts each pose to the equivalent surface pose,
-after which EW-L010 reports the devices as "rail device not on a rail". Both variants are previewed.
+after which EW-LAY-010 reports the devices as "rail device not on a rail". Both variants are previewed.
 
 ### 3.7 Commands
 
@@ -392,33 +395,34 @@ after which EW-L010 reports the devices as "rail device not on a rail". Both var
 
 ## 4. Layout checks (EW-LAYOUT)
 
-The rule IDs are those of 02b (EW-L001 … EW-L011) plus proposed additions; [15](15-checks-revisions-collaboration.md)
-registers final severities and numeric codes (pack rank 130, e.g. EW-L011 → `130011`). Online rules are memoised
+The rule IDs, final severities and numeric codes are registered in [15](15-checks-revisions-collaboration.md) §4.5.4
+(family EW-LAY, class 130, e.g. EW-LAY-011 → `130011`); EW-LAY-012 … 016 and 020 … 026 are this document's
+additions to the 02b set EW-LAY-001 … 011. Online rules are memoised
 `checks(scope)` queries per surface or carrier (arch §12, ADR-0019); 3D collision and routing rules are Class II and
 show their revision stamp.
 
 | Rule | Finding | Severity | Mode | Release | Implementation | Quick fix |
 |---|---|---|---|---|---|---|
-| EW-L001 | Mountable device without placement in the layout space of its location (§2.7; FR-LAY-017, FR-CHK-039) | warning; error at release | online, release | MVP | `unplaced(space)` | open unplaced list; place on active rail |
-| EW-L002 | Placement without device | structural (cascade) | prevent | MVP | invariant; on lenient import an unmatched QET rectangle becomes a layout graphic, never a placement | — |
-| EW-L003 | Placement's part use is not on the device | error | online | MVP | `Placement3D.part` ∉ `device.parts` | realise primary part |
-| EW-L004 | Device location ≠ layout space location | warning | online | MVP | structure query | remove / move placement |
-| EW-L005 | CP3D pattern does not cover the device's physical schematic CPs (after the macro mapping table) | error (blocks routing of affected wires) | online | 1.0 | designation multiset per function | open macro editor; add mapping entry |
-| EW-L006 | Overlap or collision: 2D footprints per surface (MVP); 3D solids, door closed (1.0) | error | online (2D); II (3D) | MVP / 1.0 | §7 | — |
-| EW-L007 | Clearance zone violated, with the amount | warning | II | 1.0 | `distance` on keep-outs | — |
-| EW-L008 | Duct edge over fill limit: warning limit, error limit (shop policy) | warning / error | online on committed routes | 1.0 | `duct_fill` | re-route; widen duct |
-| EW-L009 | Wire unroutable (no path, blocked stub, pinned path broken) | error | II | 1.0 | router report | add routing path |
-| EW-L010 | Carrier compatibility: mount kind ≠ carrier profile; pose off the carrier; outside the usable polygon or depth range; rail or strip overflow | error | online | MVP | pose and occupancy validation | move to compatible carrier |
-| EW-L011 | Committed route or length stale (input hash changed) | warning; error at release | online | 1.0 | `route_status` | re-route the listed wires |
-| EW-L012 (add) | Machining feature conflict: web below minimum (feature–feature, feature–edge), hole under another device; duplicate holes merged (info) | warning | online | 1.0 | `surface_features` (FR-LAY-057) | — |
-| EW-L013 (add) | Door-swing collision, with the angle | error | II | 1.x | sweep (FR-LAY-031) | — |
-| EW-L014 (add) | Pre-assembled cable route longer than its length minus connector allowances | error | II | 1.0 | FR-LAY-050 | choose a longer cable part |
-| EW-L015 (add) | Wire in a duct whose class set excludes its segregation class (manual or pinned paths) | warning / error by policy | online | 1.0 | FR-LAY-048 | re-route |
-| EW-L016 (add) | Assembly or rack members not contiguous or not in physical order on their carrier | warning | online | MVP | `carrier_order` vs `Device.position` | reorder by position |
-| EW-L020 … L026 (add) | Placement rules (FR-LAY-033/034): depth containment, thermal zoning, EMC segregation distance, operator height, door mass, cable-entry zone, handle-axis alignment | warning | online | 1.0 (Could) | rhai/Rust rules with constants as data, `verified` flag | — |
+| EW-LAY-001 | Mountable device without placement in the layout space of its location (§2.7; FR-LAY-017, FR-CHK-039) | warning; error at release | online, release | MVP | `unplaced(space)` | open unplaced list; place on active rail |
+| EW-LAY-002 | Placement without device | structural (cascade) | prevent | MVP | invariant; on lenient import an unmatched QET rectangle becomes a layout graphic, never a placement | — |
+| EW-LAY-003 | Placement's part use is not on the device (FR-LAY-059) | error | online | MVP | `Placement3D.part` ∉ `device.parts` | realise primary part |
+| EW-LAY-004 | Device location ≠ layout space location | warning | online | MVP | structure query | remove / move placement |
+| EW-LAY-005 | CP3D pattern does not cover the device's physical schematic CPs (after the macro mapping table) | error (blocks routing of affected wires) | online | 1.0 | designation multiset per function | open macro editor; add mapping entry |
+| EW-LAY-006 | Overlap or collision: 2D footprints per surface (MVP); 3D solids, door closed (1.0) | error | online (2D); II (3D) | MVP / 1.0 | §7 | — |
+| EW-LAY-007 | Clearance zone violated, with the amount | warning | II | 1.0 | `distance` on keep-outs | — |
+| EW-LAY-008 | Duct edge over fill limit: warning limit, error limit (shop policy) | warning / error | online on committed routes | 1.0 | `duct_fill` | re-route; widen duct |
+| EW-LAY-009 | Wire unroutable (no path, blocked stub, pinned path broken) | error | II | 1.0 | router report | add routing path |
+| EW-LAY-010 | Carrier compatibility: mount kind ≠ carrier profile; pose off the carrier; outside the usable polygon or depth range; rail or strip overflow | error | online | MVP | pose and occupancy validation | move to compatible carrier |
+| EW-LAY-011 | Committed route or length stale (input hash changed) | warning; error at release | online | 1.0 | `route_status` | re-route the listed wires |
+| EW-LAY-012 | Machining feature conflict: web below minimum (feature–feature, feature–edge), hole under another device; duplicate holes merged (info) | warning | online | 1.0 | `surface_features` (FR-LAY-057) | — |
+| EW-LAY-013 | Door-swing collision, with the angle | error | II | 1.x | sweep (FR-LAY-031) | — |
+| EW-LAY-014 | Pre-assembled cable route longer than its length minus connector allowances | error | II | 1.0 | FR-LAY-050 | choose a longer cable part |
+| EW-LAY-015 | Wire in a duct whose class set excludes its segregation class (manual or pinned paths) | warning / error by policy | online | 1.0 | FR-LAY-048 | re-route |
+| EW-LAY-016 | Assembly or rack members not contiguous or not in physical order on their carrier (FR-LAY-061) | warning | online | MVP | `carrier_order` vs `Device.position` | reorder by position |
+| EW-LAY-020 … 026 | Placement rules (FR-LAY-033/034): depth containment, thermal zoning, EMC segregation distance, operator height, door mass, cable-entry zone, handle-axis alignment | warning | online | 1.0 (Could) | rhai/Rust rules with constants as data, `verified` flag | — |
 
 Rule constants (fill limits, clearances, heights, segregation distances) ship with a `verified` flag; an
-unverified constant reports at most a warning (02b proposed FR-CHK-nnn).
+unverified constant reports at most a warning (FR-CHK-046).
 
 ---
 
@@ -448,10 +452,10 @@ which leaves the grid columns right of the plate for the legend. Changing the sc
 
 ### 5.2 Layers of the display list
 
-`surface_view_dl(page, layer)` follows the layer rule of arch §6.4: a placement move rebuilds `placements` and
-`labels` only, never `frame` or `tables`. Arch §6.4 lists only the schematic layers (frame, symbols, wires, labels,
-highlights); the panel layers below, like `tables` ([09](09-reports-forms-output.md) Open question 16), are
-additions that the integration pass must add there.
+A PanelLayout page is drawn by the same `page_display_list(page, layer, lang)` query as every page (arch §6.4,
+ADR-0015 amendment 2), with the panel-page layers surface, carriers, placements, features and dims plus the shared
+frame, labels, tables and highlights ([09](09-reports-forms-output.md) §4.1). The layer rule holds: a placement
+move rebuilds `placements` and `labels` only, never `frame` or `tables`.
 
 | Layer | Content | Line and text style |
 |---|---|---|
@@ -463,6 +467,7 @@ additions that the integration pass must add there.
 | `dims` | associative dimensions (1.0) | ISO 129-1 style *(unverified edition)* |
 | `tables` | PART DATA, legend | form |
 | `frame` | frame and title block | form |
+| `highlights` | selection, collision and fill highlights; screen only, never exported | — |
 
 Every item carries an `EntityRef` (placement, carrier, feature), so hit-testing, selection sync and "show all
 representations" work on folio 902 as on schematic pages (FR-UI-007).
@@ -474,7 +479,7 @@ representations" work on folio 902 as on schematic pages (FR-UI-007).
   `=P01+J-E-2416-X1031` appears in the legend (FR-LAY-009). Frozen tags print as frozen ("S51", "T55", sign hidden).
 - A strip segment of one terminal (`segment` with `from_seq = to_seq`) or a placement of one function prints the
   full designation ("-X1031:1"). A terminal is a device (arch §4.2) but is placed only through its strip.
-- **Fitting policy** (proposed requirement). The label keeps its style's paper height. The fit test compares the
+- **Fitting policy** (FR-LAY-062). The label keeps its style's paper height. The fit test compares the
   label's ink box from `shaped_text` plus 0.1 mm per side with the footprint's paper rectangle. If it does not fit,
   the label is rotated by 90°; if it still does not fit, it is placed outside with a leader; otherwise it becomes a
   balloon with the legend position. It is never shrunk: the reference's rotated labels at 1.88–3.40 pt (RD §1.12)
@@ -509,8 +514,8 @@ PART DATA box of folio 902 is kept for fidelity with the reference and is bound 
 
 `layout_scene(space)` derives one instance per visible solid: enclosure walls, doors, surfaces, carriers (parametric
 prisms generated in `ew-panel`, never STEP), placements (mesh hash or box), keep-outs (hidden by default), routed
-wires (polylines), unrouted wires as straight CP-to-CP lines (EPLAN's "connection diagram in 3D"; proposed, Open
-question 17) and the routing debug overlay. Instances carry the placement ID, the world pose (f32 relative to a
+wires (polylines), unrouted wires as straight CP-to-CP lines (EPLAN's "connection diagram in 3D"; FR-LAY-064) and
+the routing debug overlay. Instances carry the placement ID, the world pose (f32 relative to a
 space-local origin to avoid precision loss) and a state (selected, colliding, stale). Repeated parts share one mesh
 (the 20 PT 2.5-TWIN terminals of -X1031 are one mesh, 20 instances).
 
@@ -584,9 +589,10 @@ bottom), terminal side 1 top and side 2 bottom, PSU inputs L, N, PE on the botto
 3. CP picking: click a face or a detected hole; the hit gives `pos`, the face normal or hole axis gives `dir`. The
    designation is drag-assigned from the part's function template, which lists each CP with level and clamp (for
    -102G1: L, N, PE, +#1, +#2, −#1, −#2). Clamp data fields follow.
-4. Mapping table for spelling differences ("Out1" ↔ "Out 1", "24V" ↔ "+"), read by EW-L005 (FR-LAY-027).
+4. Mapping table for spelling differences between macro and schematic (macro pins "Out 1" … "Out 4" against the
+   schematic CPs "Out1" … "Out4" of -102F2, "24V" ↔ "+"), read by EW-LAY-005 (FR-LAY-027).
 5. Drilling and cut-out sketch on a mounting face, keep-out boxes (prefilled from `clearance`), marker carriers.
-6. Validation: EW-L005 coverage, duplicate CPs, CP inside the solid (ray test), `dir` pointing out of the body.
+6. Validation: EW-LAY-005 coverage, duplicate CPs, CP inside the solid (ray test), `dir` pointing out of the body.
 
 Saving updates the project's part copy (undoable); "publish to library" writes the user or company library, which
 is not undoable and asks for confirmation (arch §5.3). CP suggestions from detected holes are 1.x (FR-LAY-025).
@@ -607,17 +613,17 @@ parametric shapes.
    plate); neighbours on one rail with penetration ≤ 0.1 mm; members of one assembly; thin solids excluded.
 3. Narrow phase: `intersection_test` on L1; L2 only where L1 intersects. Since 0.31 the result names the sub-shape,
    which the 3D view highlights (FR-LAY-028).
-4. Clearance: `distance` between soft keep-outs and solids; EW-L007 reports `required − actual` (FR-LAY-029).
+4. Clearance: `distance` between soft keep-outs and solids; EW-LAY-007 reports `required − actual` (FR-LAY-029).
 5. Door closed (FR-LAY-030): door-surface placements posed at the closed door against plate placements and the
    enclosure interior; door cut-outs against the door's reinforcement keep-out.
 6. Door swing (1.x, FR-LAY-031): sub-sweeps of at most 15° with `sweep_time_of_impact`, or 5° discrete steps as the
-   fallback; EW-L013 reports the first contact angle.
+   fallback; EW-LAY-013 reports the first contact angle.
 
 **Interaction.** While dragging, the dragged placement is tested against the BVH at L0 and L1 every frame and shown
 as a red ghost on contact; full L2 results come at drag end (NFR-PERF-17). Findings are sorted by the pair of
 placement IDs, so the message list is deterministic.
 
-**MVP 2D overlap.** Before 3D exists, EW-L006 tests footprint rectangles (plus clearance padding in rail direction)
+**MVP 2D overlap.** Before 3D exists, EW-LAY-006 tests footprint rectangles (plus clearance padding in rail direction)
 per surface with an rstar index. The 1.0 implementation replaces it under the same rule ID.
 
 ---
@@ -640,7 +646,7 @@ carrier, segment, index)`, so the graph is identical on every run.
 | Wiring holes | through-plate passages (1.x, FR-LAY-044) | front ↔ rear |
 
 A blocked stub (no line of sight to any of 9 candidates) becomes a direct free-air edge with cost factor 3 and is
-flagged; if even that intersects, the wire is EW-L009. The golden graph has about 400 duct nodes and 150 stubs; a
+flagged; if even that intersects, the wire is EW-LAY-009. The golden graph has about 400 duct nodes and 150 stubs; a
 2,000-wire cabinet stays under 10,000 nodes.
 
 ### 8.2 What is routed
@@ -650,8 +656,8 @@ flagged; if even that intersects, the wire is EW-L009. The golden graph has abou
 | Physical wire (08 §3.8) | one route between its two CP3D stubs | Key = physical wire ID (the target-side connection UUID); through junctions and interruption-point pairs the decomposition of 08 applies, so W13 and W14 from F55:2 are two routes |
 | Wire bridge (jumper wire) | a wire | — |
 | Plug-in bridge | not routed | a bridge connection with its part (FR-TRM-007) |
-| Multi-core cable inside the space (-106W1, -106W2) | one object with its outer diameter, from the centroid of end A's CPs to end B's connector CP; core breakouts added per core | length check EW-L014 (FR-LAY-050) |
-| Cable leaving the space (-3W1; the supply cable -101W1 of A-R, ▲U-20) | internal route to its cable entry; the external length is authored | Open question 7 |
+| Multi-core cable inside the space (-106W1, -106W2) | one object with its outer diameter, from the centroid of end A's CPs to end B's connector CP; core breakouts added per core | length check EW-LAY-014 (FR-LAY-050) |
+| Cable leaving the space (-3W1; the supply cable -101W1 of A-R, ▲U-20) | internal route to its cable entry; the external length is authored | FR-CBL-020 (§9) |
 | Bus cable | as a cable with class `BUS` | -3W1 |
 | Tube (1.x) | `RouteTubes` on the same graph with a fluid class mask ([11](11-fluid-power.md), FR-FLU-024) | — |
 
@@ -689,13 +695,13 @@ for iter in 1..=max_iter (policy 3..10, default 8):
         rip_up(w)
         cost_w(e) = base(e) × (1 + h[e]) × (1 + p_fac × over(e, w))
         //  over(e, w) = max(0, occ[e] + area(w) − cap[e]) / cap[e]
-        path[w] = astar(stub_a(w), stub_b(w), cost_w, class_mask(w))   // None → EW-L009
+        path[w] = astar(stub_a(w), stub_b(w), cost_w, class_mask(w))   // None → EW-LAY-009
         add(w)
     overflow = Σ max(0, occ[e] − cap[e])
     if overflow == 0: break
     for e with occ[e] > cap[e]: h[e] += h_inc × (occ[e] − cap[e]) / cap[e]
     if overflow did not fall in 2 iterations: break
-report EW-L008 for every edge still over its error limit
+report EW-LAY-008 for every edge still over its error limit
 ```
 
 Wire areas are integer µm² with π/4 ≈ 355/452. Wires are routed sequentially within an iteration, which keeps the
@@ -711,12 +717,12 @@ sequential repair pass (Open question 11). Both are thread-count independent.
 - **Input hash per wire** = SHA-256 over the canonical encoding of: both end CP3D world positions and directions
   (pose chain, part geometry hash), the wire's routing properties (OD, class, csa), the geometry hashes of the
   carriers and routing paths on its committed path, its `RouteOverride`, and the routing and length policy. Other
-  wires are excluded on purpose: moving -102F2 stales only the wires at -102F2 (EW-L011), not the cabinet.
-- **Fill is recomputed** online from the committed routes (`duct_fill`), so a re-route of one wire updates EW-L008
+  wires are excluded on purpose: moving -102F2 stales only the wires at -102F2 (EW-LAY-011), not the cabinet.
+- **Fill is recomputed** online from the committed routes (`duct_fill`), so a re-route of one wire updates EW-LAY-008
   immediately.
-- **Overrides** (FR-LAY-047): a pinned path is used verbatim; a broken pinned path (deleted duct) yields EW-L009
+- **Overrides** (FR-LAY-047): a pinned path is used verbatim; a broken pinned path (deleted duct) yields EW-LAY-009
   with reason "pinned path broken" and keeps the override for the user to repair.
-- **Release** (FR-MFG-025): the pre-delivery scheme fails while any EW-L011 or EW-L009 finding is open.
+- **Release** (FR-MFG-025): the pre-delivery scheme fails while any EW-LAY-011 or EW-LAY-009 finding is open.
 
 ### 8.6 Duct fill
 
@@ -748,7 +754,8 @@ and "re-route" runs `RouteWires{scope: Wires(ids)}`, a previewed transaction for
 **Formula** (FR-LAY-051; PM §6.8):
 
 `L_raw = stub_A + path + stub_B + Δz_A + Δz_B + a_A + a_B + reserve + Σ family offsets`
-`L_cal = L_raw × calibration`; `L_out = ⌈L_cal / increment⌉ × increment`
+`L_cal = L_raw × calibration`, stored unrounded in the committed route; `L_out = ⌈L_cal / increment⌉ × increment`,
+computed once, when the `WireRecord` is built ([13](13-manufacturing-outputs.md) §3.3, FR-MFG-051)
 
 | Term | Source |
 |---|---|
@@ -756,9 +763,9 @@ and "re-route" runs `RouteWires{scope: Wires(ids)}`, a previewed transaction for
 | `path` | graph edges along centrelines, including the slot entries, joints and user paths |
 | `Δz` | height of the CP above the plate minus the duct mid-depth, per end; forgetting it gives systematically short wires (PM §11 pitfall 4) |
 | `a` | per-end allowance: `strip_len + insertion_depth + bend allowance` (default 2 × OD, policy) |
-| `reserve` | policy: fixed (default 100 mm) or proportional, plus a door extra and the hinge loop allowance |
+| `reserve` | `MfgSettings.reserve` ([03](03-domain-model.md) §17): fixed (default 100 mm) or proportional, plus a door extra and the hinge loop allowance |
 | family offset | per device family, from calibration (FR-LAY-052) |
-| `increment` | machine profile (1, 5 or 10 mm) |
+| `increment` | `MfgSettings.length_increment`: one project increment (default 10 mm); machine profiles only declare their resolution and never re-round (FR-MFG-051) |
 
 All terms are `Nm`; the calibration factor is a rational (`1030/1000`). Every length carries a `LengthBreakdown`
 and a source, aligned with `LengthSource` of [08](08-connections-terminals-cables.md) §7.6: `Routed`, `Estimated`
@@ -777,7 +784,7 @@ or `Missing`.
 | Δz B (60 − 30) | 30 mm |
 | Allowances 2 × (10 strip + 2 insertion + 6 bend) | 36 mm |
 | Reserve | 100 mm |
-| **L_raw** | **806 mm** → output **810 mm** at a 10 mm increment |
+| **L_raw** | **806 mm** in the committed route → **810 mm** in the `WireRecord` at the 10 mm project increment |
 | With calibration 1.03 | 830.18 mm → **840 mm** |
 
 **Estimated lengths** (FR-LAY-053, HMW-13). Without CP3D data or with an incomplete duct network, each end is the
@@ -787,9 +794,9 @@ Source `Estimated`, flagged in the wire list and blocking only machine profiles 
 (EW-MFG pre-flight, FR-MFG-024).
 
 **Cable lengths** (FR-CBL-010). A shop-cut cable fully inside the space takes `Routed` from its committed route. A
-pre-assembled cable keeps `FromPart` (-106W1, -106W2: 2 m ▲); its route only feeds EW-L014. For a cable that leaves
+pre-assembled cable keeps `FromPart` (-106W1, -106W2: 2 m ▲); its route only feeds EW-LAY-014. For a cable that leaves
 the space, the routed internal part to the cable entry is added to the authored external length; the length source
-shows both (proposed requirement).
+shows both (FR-CBL-020). On Golden A-R, -3W1's sum is the 10 m of U-21.
 
 ---
 
@@ -806,7 +813,7 @@ shows both (proposed requirement).
 
 Feature IDs are derived (`H1 … Hn` sorted by tool class, then v, then u). Two devices sharing one fixing produce one
 merged hole (info); a web below the minimum, a hole closer to the edge than the minimum web, or a hole under another
-device raises EW-L012 (FR-LAY-057). Tap-drill cores M4 3.3, M5 4.2, M6 5.0 mm *(unverified)* are data.
+device raises EW-LAY-012 (FR-LAY-057). Tap-drill cores M4 3.3, M5 4.2, M6 5.0 mm *(unverified)* are data.
 
 **Outputs** (owned with [13](13-manufacturing-outputs.md)): DXF per surface (FR-MFG-028: CIRCLE for holes, closed
 LWPOLYLINE for cut-outs, one layer per tool or feature class such as `DRILL_4.2`, `TAP_M5`, `CUT`, the outline on its
@@ -839,7 +846,7 @@ load model, simultaneity default, rated-value default).
 | Loss model (part thermal section) | P_eff | Typical parts |
 |---|---|---|
 | `Quadratic{p_n, i_n}` (default, FR-THM-001) | `p_n × (I_b / i_n)²` | MCBs, switches, contactors, terminals |
-| `Efficiency{eta}` (proposed) | `P_out × (1/η − 1)` with P_out from the load model of the output potential | PSUs (-102G1), drives |
+| `Efficiency{eta}` (FR-THM-001) | `P_out × (1/η − 1)` with P_out from the load model of the output potential | PSUs (-102G1), drives |
 | `Constant{p, duty}` | `p × duty` | electronics, lamps (E56 duty 0), fans |
 | `PerChannel{p_on, on_fraction}` | `channels × p_on × on_fraction`, counting positions in state `used` | valve coils of -201U3 … -202U2 |
 | `Heater` | excluded from Q_V; used for heating capacity | E55 |
@@ -865,7 +872,7 @@ verify)*. These factors reproduce the handbook's installation-type formulas, e.g
 | Surface balance (climate sizing) | `ΔT_mean = Q_V / (k_w · A_e)` | `k_w` of the enclosure material | "Mean temperature rise, enclosure surface method" |
 
 The TR's enclosure constant k (from its figures) and the wall coefficient `k_w` are different quantities; EW keeps
-them in different fields (Open question 5). EW ships only a **synthetic test set** for CI, labelled as not taken
+them in different fields (FR-THM-004). EW ships only a **synthetic test set** for CI, labelled as not taken
 from the TR (NFR-LIC-06).
 
 ### 11.5 Temperature at mounting height
@@ -873,7 +880,7 @@ from the TR (NFR-LIC-06).
 Each placement gets `T_air(h) = t_u_max + Δt(h_rel)`, with `h_rel` = top edge of its bounding box over the internal
 height (conservative; centre by policy). `Δt(h_rel)` is piecewise linear through (0.5, Δt_0.5) and (1.0, Δt_1.0);
 below mid-height the coefficient set's profile shape applies, and without one EW holds Δt_0.5 constant and flags
-"default profile shape". EW-THM-01 reports a device whose `t_amb_max` is below `T_air` (FR-THM-006).
+"default profile shape". EW-THM-001 reports a device whose `t_amb_max` is below `T_air` (FR-THM-006).
 
 ### 11.6 Climate devices
 
@@ -902,13 +909,13 @@ Severities as registered in [15](15-checks-revisions-collaboration.md) §4.6:
 
 | Rule | Finding | Severity | Release |
 |---|---|---|---|
-| EW-THM-01 | Device ambient limit below predicted air temperature at its height (FR-THM-006) | error | 1.0 |
-| EW-THM-02 (add) | Required cooling or heating not covered by the placed climate devices | error | 1.0 |
-| EW-THM-03 (add) | Placed device without loss data; result marked incomplete | warning | 1.0 |
-| EW-THM-04 (add) | Unverified or test coefficients used in a release | warning (release) | 1.0 |
-| EW-THM-05 (add) | Thermal result stale at release | error (release) | 1.0 |
-| EW-THM-06 (add in 15) | 10.10.4.2 conditions not met: a component above 80 % of its free-air rating, or InA above 630 A | warning | 1.0 |
-| EW-THM-07 (add in 15) | Method not applicable: horizontal partitions treated as one compartment (FR-THM-010 is 1.x) | warning | 1.0 |
+| EW-THM-001 | Device ambient limit below predicted air temperature at its height (FR-THM-006) | error | 1.0 |
+| EW-THM-002 | Required cooling or heating not covered by the placed climate devices (FR-THM-007, FR-THM-012) | error | 1.0 |
+| EW-THM-003 | Placed device without loss data; result marked incomplete (FR-THM-012) | warning | 1.0 |
+| EW-THM-004 | Unverified or test coefficients used in a release (FR-THM-012) | warning (release) | 1.0 |
+| EW-THM-005 | Thermal result stale at release; supersedes EW-REL-002 for thermal results (FR-THM-012) | error (release) | 1.0 |
+| EW-THM-006 | 10.10.4.2 conditions not met: a component above 80 % of its free-air rating, or InA above 630 A | warning | 1.0 |
+| EW-THM-007 | Method not applicable: horizontal partitions treated as one compartment (FR-THM-010 is 1.x) | warning | 1.0 |
 
 ---
 
@@ -985,7 +992,7 @@ Metal, 1920×1080, local SSD) and are gated nightly (NFR-PERF-20, ADR-0022).
 | `RouteWires`, 2,000 wires | ≤ 5 s | NFR-PERF-16 | < 10k nodes, integer A\*, ≤ 10 iterations, rip-up only on overflow |
 | Re-route one wire | ≤ 50 ms | NFR-PERF-16 | A\* against committed occupancy and history |
 | STEP import 20 MB / cached reopen | ≤ 30 s / ≤ 1 s | NFR-PERF-18 | worker pool; rkyv memory-mapped cache |
-| Thermal recalculation, 500 placements | ≤ 200 ms (proposed) | proposed NFR | one pass over placements; coefficient lookups |
+| Thermal recalculation, 500 placements | ≤ 200 ms | NFR-PERF-23 | one pass over placements; coefficient lookups |
 | Project open with layout | inside NFR-PERF-03 | NFR-PERF-03 | meshes load lazily on first 3D view; layout records are small |
 | Memory | mesh cache LRU 512 MB ▲; GPU one mesh per unique part | NFR-PERF-13 | Class III cache outside the model |
 
@@ -995,13 +1002,13 @@ Metal, 1920×1080, local SSD) and are gated nightly (NFR-PERF-20, ADR-0022).
 
 | Output | Source query | Release | Consumers |
 |---|---|---|---|
-| PanelLayout pages (folio 902), PDF/SVG/PNG | `surface_view_dl` | MVP | `ew export pdf`, print |
+| PanelLayout pages (folio 902), PDF/SVG/PNG | `page_display_list` with the panel layers (§5.2) | MVP | `ew export pdf`, print |
 | Placement legend, PART DATA, mounting list | `layout_legend`, `device_part_lines` | MVP (embedded) / 1.0 (page reports, FR-REP-023) | pages, XLSX, CSV |
-| BOM lines for enclosure, plate, rails, ducts, brackets | carriers, group accessories | MVP | `bom_rows` (D-04) |
+| BOM lines for enclosure, plate, rails, ducts, brackets | carriers, group accessories | MVP | `bom_rows` (FR-REP-007, D-04) |
 | Model views | `layout_scene`, cached part projections | 1.0 | pages |
 | Routes, lengths, bundles, route as duct names | committed routes, `wire_length` | 1.0 | WireRecord, machine profiles, `.ewpp` ([13](13-manufacturing-outputs.md)) |
 | Surface DXF, hole tables, cut lists | `surface_features`, carriers | 1.0 | FR-MFG-028 … 030 |
-| glTF (`.glb`, node names = placement UUIDs, DT and part in extras) and STL per layout space | `layout_scene` | 1.0 | FR-EXP-007, `.ewpp` layout member, wiring viewer |
+| glTF (`.glb`, node names = placement UUIDs, DT and part in extras) and STL per layout space | `layout_scene`, written by `ew-panel` | 1.0 | FR-EXP-007, `.ewpp` layout member, wiring viewer |
 | STEP AP242 assembly named by DTs | worker `ExportStep` | 1.0 (Could) | FR-EXP-008 |
 | Thermal report | `thermal(space)` | 1.0 | FR-THM-009, design verification record |
 | SQL view `api_v1_placement` | projection | 1.0 | user reports, MCP (FR-EXT-007) |
@@ -1013,12 +1020,12 @@ Every output is deterministic: no wall-clock times, members and rows in derived 
 ## 15. Edge cases and pitfalls
 
 1. **Treating the layout as a drawing.** Users will "just draw a rectangle". Free graphics are allowed on layout
-   pages but never count in the BOM or in EW-L001 (FR-LAY-008).
+   pages but never count in the BOM or in EW-LAY-001 (FR-LAY-008).
 2. **Vendor origins and units.** Normalise to the rail-clip origin, keep the vendor transform, validate against
    W×H×D, detect inch files (FR-LAY-021).
 3. **Snap clips penetrate rails** in vendor models: exclude by the allowed-contact rule, not by tolerance.
 4. **Strip growth.** A terminal added on folio 103 lengthens -X1031 silently in many tools; EW recomputes and
-   reports overflow (EW-L010).
+   reports overflow (EW-LAY-010).
 5. **Two meanings of "carrier".** [08](08-connections-terminals-cables.md) §3.8 calls the connection that holds a
    physical wire's number its "carrier connection"; the layout `Carrier` is a rail or duct. Routes key on the
    physical wire ID, never on the layout carrier.
@@ -1029,10 +1036,10 @@ Every output is deterministic: no wall-clock times, members and rows in derived 
    and a shuffle-order CI test prevent it.
 9. **Overrides lost on regeneration.** Pins, bundles, manual lengths and locks are keyed by UUID and survive.
 10. **Concurrent edits.** Two branches that both place on rail R1 merge cleanly record by record and overlap
-    afterwards; the post-merge integrity check reports EW-L006 (ADR-0012).
+    afterwards; the post-merge integrity check reports EW-LAY-006 (ADR-0012).
 11. **Copy-paste between projects** remaps carrier IDs; a placement whose carrier did not come along is re-homed to
-    the target surface and reported (EW-L010).
-12. **Thermal with missing data.** A device without loss data would make Q_V optimistic; EW reports EW-THM-03 and
+    the target surface and reported (EW-LAY-010).
+12. **Thermal with missing data.** A device without loss data would make Q_V optimistic; EW reports EW-THM-003 and
     marks the result incomplete instead of assuming zero.
 13. **Heaters and door lamps.** Thermostat-controlled heaters (E55, setpoint 15 °C on T55) are not losses in the
     summer case; door lamps (E56) have duty 0 by default.
@@ -1055,23 +1062,23 @@ Every output is deterministic: no wall-clock times, members and rows in derived 
    and R3 below D5 are test assumptions ▲ (20 §13).
 3. Placements in carrier order (20 §13): R1 -102G1, -101F1, -102F1, -102F2, T55, S51; R2 1X1, -X1031, -X1032 with 4
    derived end brackets; R3 -201U1, -201U2, -201U3 … -201U8, -202U1, -202U2, -202U3 placed with `PlaceAssembly`
-   (the valve terminal on its rail-mounting kit ▲, Open question 15).
+   (the valve terminal on its rail-mounting kit, a test part of ▲U-27; Open question 15).
 4. Folio 902 is a PanelLayout page of the plate at 1:10 ▲, "Cabinet Layout · Scale 1:10" in the title block, the
    PART DATA block bound to -UC1, the legend right of the plate. Labels: "T55" (not "T51"), "S51", "1X1",
    "-X1031", "-X1032", "-201U3".
-5. EW-L001 lists exactly F55, E55, E56, S56 and -201U9 (EF-05); -XPE, -3X1, the 28 valves and the field valves in
-   +FIELD are exempt (§2.7). No command can create a placement without a device (EW-L002).
+5. EW-LAY-001 lists exactly F55, E55, E56, S56 and -201U9 (EF-05); -XPE, -3X1, the 28 valves and the field valves in
+   +FIELD are exempt (§2.7). No command can create a placement without a device (EW-LAY-002).
 6. Renaming T55 → T57 changes folios 101, 901, 902 and 910 in one commit and no layout file (20 §19, D-02).
 
 ### 16.2 Golden A-R (1.0, AC-34, AC-36)
 
 - F55 is placed after S51 on R1; -201U9 is inserted between -201U8 and -202U1 in push mode, shifting -202U1 …
   -202U3 by its width; E55 goes low on the plate; S56 and E56 go on the door frame (a Side surface near the door
-  opening, Open question 8), reached by a free-air routing path along the side wall. EW-L001 is then 0.
-- 3D shows no EW-L006 finding. `RouteWires` commits lengths for every internal wire (W4 … W34 with both ends in
+  opening, Open question 8), reached by a free-air routing path along the side wall. EW-LAY-001 is then 0.
+- 3D shows no EW-LAY-006 finding. `RouteWires` commits lengths for every internal wire (W4 … W34 with both ends in
   +J-E-2416; W1–W3 come from +J-E-206); -106W1 and -106W2 route as cables with their part length of 2 m (▲, "K-2"
-  read as 2 m, *unverified*) checked by EW-L014; folio 907 shows the wire lengths and folio 906 the cable lengths.
-  Moving -102G1 marks exactly its wires stale (EW-L011) until re-routed.
+  read as 2 m, *unverified*) checked by EW-LAY-014; folio 907 shows the wire lengths and folio 906 the cable lengths.
+  Moving -102G1 marks exactly its wires stale (EW-LAY-011) until re-routed.
 - PE continuity (EF-23): 1X1:PE and -X1032:1–5 are rail-bonded terminals on R2, rails R1–R3 and the plate declare
   `pe_bond`, and -XPE is the plate's PE stud, so the continuity rule finds no isolated PE CP without a drawn wire
   (FR-LAY-058, FR-CHK-029, D-21).
@@ -1079,9 +1086,9 @@ Every output is deterministic: no wall-clock times, members and rows in derived 
   3 W, 28 coils × 1 W × 0.5 = 14 W, wiring and terminals 5 W → **Q_V = 43 W**. A_e = 2.25 m² (wall-mounted);
   with `k_w` = 3.5 W/(m²·K) for polyester *(unverified)* the mean rise is **5.5 K**. With t_i_max 45 °C and t_u_max
   35 °C, Q_E = 43 − 3.5 × 2.25 × 10 = −35.8 W: no cooling needed. The heater requirement for +10 °C inside at
-  −10 °C outside is 3.5 × 2.25 × 20 = **158 W**; EW-THM-02 reports E55 if its part's heating power is lower (U-14).
-  With T55's actual setpoint of 15 °C as t_i_min the requirement would be 3.5 × 2.25 × 25 = 197 W; the golden keeps
-  the +10 °C test value of FR-THM-007.
+  −10 °C outside is 3.5 × 2.25 × 20 = **158 W**; EW-THM-002 reports E55 if its part's heating power is lower
+  (U-14). With T55's actual setpoint of 15 °C as t_i_min the requirement would be 3.5 × 2.25 × 25 = 197 W; the
+  golden keeps the +10 °C test value of FR-THM-007.
   With the synthetic TR set (x = 0.715, taken from STD §8.2; k = 0.374, c = 1.25, d = 1 invented to match the surface
   method) Δt_0.5 = 5.5 K and Δt_1.0 = 6.9 K, so -102G1 at h_rel 0.8 sees 35 + 5.5 + 0.6 × 1.4 = 41.3 °C.
 - The coil term is PM §6.12's illustrative assumption (all 28 coils, 50 % on). The `PerChannel` model would count
@@ -1100,8 +1107,8 @@ difference is listed. The "40x60" texts become duct carriers. Unmatched items st
 
 | Defect | Class | Mechanism here |
 |---|---|---|
-| D-02 T51 vs T55; free rectangles | S | Placements reference devices; labels are `layout_label`; EW-L002 |
-| D-32 layout incomplete, not to scale | S + C | True-scale projection with the scale in the title block; EW-L001 and the unplaced list |
+| D-02 T51 vs T55; free rectangles | S | Placements reference devices; labels are `layout_label`; EW-LAY-002 |
+| D-32 layout incomplete, not to scale | S + C | True-scale projection with the scale in the title block; EW-LAY-001 and the unplaced list |
 | D-04 BOM without enclosure, plate, ducts, rails, brackets | S | Carriers and group accessories are BOM lines from the layout (FR-LAY-004, -005, -008) |
 | D-01 stale tags after renumber | S | Labels and legend are derived; layout files untouched by renumbering |
 | D-03 "+JE2416" vs "+J-E-2416" | S | One structure node; identifier suppression prints "-X1031" |
@@ -1109,7 +1116,7 @@ difference is listed. The "40x60" texts become duct carriers. Unmatched items st
 | D-19 missing lengths | C | Routed, estimated or manual lengths with source; release gate on missing and stale lengths |
 | D-29, D-31 shrunk label text | S + C | Paper-height label styles; rotate, leader or balloon, never shrink |
 | D-05, D-06 title-block drift on 902 | S | Layout pages are ordinary pages with bound title blocks |
-| D-10 overview vs layout order | S + C | Assembly members placed in `Device.position` order; EW-L016 |
+| D-10 overview vs layout order | S + C | Assembly members placed in `Device.position` order; EW-LAY-016 |
 
 ---
 
@@ -1121,16 +1128,17 @@ difference is listed. The "40x60" texts become duct carriers. Unmatched items st
 | Rails, ducts | parametric, straight segments, BOM | busbar systems with straight bars | — | bent copper (FR-LAY-036) |
 | Placements | device-bound, part-derived footprints, live labels, rail snapping (free/push/swap), strip and assembly placement, auto-fill, group brackets | piggy-back mounting, door items | enclosure selection assistant | — |
 | 2D pages | folio 902 at scale, legend, PART DATA, label fitting | associative dimensions, hole-table drawings, model views (painter's) | OCCT HLR views | section views |
-| Checks | EW-L001 … L004, L006 (2D), L010, L016 | L005 … L009, L011 … L012, L014, L015, L020 … L026, EW-THM | EW-L013 door swing | — |
-| 3D | — | wgpu view, STEP worker, LODs, box macros, macro editor, CP3D, unrouted connection lines (proposed) | CP suggestion from holes; saved views (proposed, Open question 17) | — |
+| Checks | EW-LAY-001 … 004, 006 (2D), 010, 016 | EW-LAY-005 … 009, 011, 012, 014, 015, 020 … 026; EW-THM-001 … 007 | EW-LAY-013 door swing | — |
+| 3D | — | wgpu view, STEP worker, LODs, box macros, macro editor, CP3D, unrouted connection lines (FR-LAY-064) | CP suggestion from holes; saved views (FR-LAY-065); macros carrying placements (FR-LAY-066) | — |
 | Collision | 2D footprint overlap | BVH + hull + mesh, clearance, door closed | door swing | — |
 | Routing and lengths | — | graph, A\*, negotiated congestion, `RouteWires`, overrides, segregation, fill heat-map, cables as objects, lengths, calibration, estimates, bundles, wiring manager | wiring holes, tube routing, feedback calibration | robot-grade paths |
-| Features and machining | — | features, EW-L012, DXF, hole tables, cut lists | — | Perforex/Steinhauer NC, RiPanel AML |
+| Features and machining | — | features, EW-LAY-012, DXF, hole tables, cut lists | — | Perforex/Steinhauer NC, RiPanel AML |
 | Thermal | — | single compartment, TR 60890 with user data, climate sizing, per-placement check, report | multi-compartment | forced-ventilation curves |
 | Exchange | — | glTF and STL, STEP AP242 (Could) | — | 3D PDF (FR-OUT-024) |
 
-The MVP slice is the thin S4 slice of BS OQ2 and VIS OQ1: 17 LAY rows (FR-LAY-001, -002, -004 … -018). It must be
-staffed explicitly in the plan, because arch §15.2 starts stream S4 after the 2D editor MVP for small teams.
+The MVP slice is the thin S4 slice of BS OQ2 and VIS OQ1: 21 LAY rows (FR-LAY-001, -002, -004 … -018 and
+-059 … -062). It must be staffed explicitly in the plan, because arch §15.2 starts stream S4 after the 2D editor MVP
+for small teams.
 
 ---
 
@@ -1152,70 +1160,77 @@ staffed explicitly in the plan, because arch §15.2 starts stream S4 after the 2
 
 ## Requirements covered
 
-- **LAY (02b §4):** FR-LAY-001 … FR-LAY-058.
-- **THM (02b §5):** FR-THM-001 … FR-THM-011.
+- **LAY (02b §4):** FR-LAY-001 … FR-LAY-066.
+- **THM (02b §5):** FR-THM-001 … FR-THM-012.
 - **Shared with other areas:** FR-PAG-003 (model-view page), FR-PRT-010, FR-PRT-011 (part sections and dimensions
-  read by the layout), FR-REP-023, FR-REP-028 (legend, PART DATA on 902), FR-CBL-010 (routed cable lengths),
-  FR-TRM-016 (group accessories), FR-TRM-017 (rail bonding at 1.0), FR-CHK-005 (EW-LAYOUT pack content),
-  FR-CHK-029 (PE through carriers), FR-CHK-039 (unplaced devices), FR-IMP-019, FR-IMP-027 (layout migration, EDZ
-  patterns), FR-EXP-007, FR-EXP-008 (glTF/STL, STEP), FR-MFG-025 (release gate on stale routes), FR-MFG-028,
-  FR-MFG-029, FR-MFG-030 (surface DXF, hole tables, cut lists, with 13), FR-MFG-041 (thermal in the design
+  read by the layout), FR-PRT-005 (part-data accessories from 1.0), FR-REP-007, FR-REP-023, FR-REP-028 (layout
+  objects in the BOM, legend, PART DATA on 902), FR-CBL-010, FR-CBL-020 (routed and routed-plus-external cable
+  lengths), FR-DEV-037 (supplied by others), FR-TRM-016 (group accessories), FR-TRM-017 (rail bonding at 1.0),
+  FR-CHK-005 (EW-LAYOUT pack content), FR-CHK-029 (PE through carriers), FR-CHK-039 (unplaced devices), FR-CHK-046
+  (unverified constants), FR-IMP-019, FR-IMP-027 (layout migration, EDZ patterns), FR-EXP-007, FR-EXP-008
+  (glTF/STL, STEP), FR-MFG-025 (release gate on stale routes), FR-MFG-028, FR-MFG-029, FR-MFG-030 (surface DXF,
+  hole tables, cut lists, with 13), FR-MFG-051 (single rounding of lengths), FR-MFG-041 (thermal in the design
   verification record), FR-FLU-024 (tube routing hook), FR-UI-003, FR-UI-006, FR-UI-007, FR-UI-022, FR-UI-024,
   FR-UI-029 (Panel 3D workspace, layout navigator, "show all representations", routing preview, Class II staleness,
   3D canvas).
 - **Non-functional (02c):** NFR-PERF-03, NFR-PERF-04, NFR-PERF-05, NFR-PERF-09, NFR-PERF-13, NFR-PERF-16,
-  NFR-PERF-17, NFR-PERF-18, NFR-PERF-20, NFR-REL-07, NFR-REL-12, NFR-PLAT-03, NFR-SEC-03, NFR-SEC-04, NFR-LIC-06,
+  NFR-PERF-17, NFR-PERF-18, NFR-PERF-20, NFR-PERF-23, NFR-REL-07, NFR-REL-12, NFR-PLAT-03, NFR-SEC-03, NFR-SEC-04,
+  NFR-LIC-06,
   NFR-LIC-08, NFR-MAINT-09, NFR-COMP-04, NFR-A11Y-01 … NFR-A11Y-03.
 
 ### Proposed new requirements
 
-| Proposed ID | Requirement | Prio | Release | Source | Acceptance criterion | Target |
-|---|---|---|---|---|---|---|
-| FR-LAY-nnn | A placement shall name which of its device's part uses it realises, defaulting to the primary mountable part; further mountable part uses (e.g. a door handle) may have their own placements, and EW-L003 shall report a placement whose part use no longer exists on the device. | Must | MVP | PM §4.2 (`part_ref`), §4.5; ARCH §4.2; D-02 | -201U1 with parts 195740 and 550208 has one placement realising 195740; removing 550208 changes nothing on folio 902; removing 195740 raises EW-L003. | 02b LAY |
-| FR-LAY-nnn | Accessories declared per group (end brackets) shall be derived from the rail occupancy as one per strip boundary within a run of abutting strips plus one per run end, and counted in the BOM with the strips' DTs; this is the placement rule behind FR-TRM-016. | Should | MVP | RD §4.12; 20 §14 row 25; FR-TRM-016; 07 OQ5 | Golden rail R2 yields 4 end brackets; moving -X1032 50 mm away from -X1031 yields 5. | 02b LAY |
-| FR-LAY-nnn | Placements of the children of one assembly or PLC station on one carrier shall be kept contiguous and in physical order; inserting a missing member shall use push mode, and EW-L016 shall report gaps or order differences against `Device.position` or the module slot. | Should | MVP | D-10; 20 §13 (A-R); PBF (EtherCAT order) | Inserting -201U9 between -201U8 and -202U1 shifts -202U1 … -202U3 by its width; swapping -201U3 and -201U4 on R3 raises EW-L016. | 02b LAY |
-| FR-LAY-nnn | Placement labels on layout pages shall keep the paper height of their text style; a label whose ink box (plus 0.1 mm per side) does not fit its footprint is rotated by 90°, then placed outside with a leader, then replaced by a balloon to the legend, and is never scaled. | Should | MVP | RD §1.12; D-29; D-31; 20 §17.5 | Every label on golden folio 902 at 1:10 prints in `xref.device` at 1.83 mm em with no scaling; "-101F1" prints rotated inside its 1.8 mm-wide footprint. | 02b LAY |
-| FR-LAY-nnn | The 3D view shall show each unrouted wire as a straight line between its two CP3D positions (EPLAN's connection diagram), highlight it end to end on selection and replace it by the routed polyline once a route is committed. | Should | 1.0 | EF §15 (connection diagrams in 3D) | Before `RouteWires`, golden W29 shows as one straight line from -102F2:Out1 to -X1031:1/a; after accepting the routing preview the line is replaced by its routed path. | 02b LAY |
-| FR-LAY-nnn | A terminal strip may be placed in segments (terminal ranges by sequence) on several carriers, remaining one device and one BOM row. | Could | 1.0 | D-42; PM §5.4 | -X1031 placed as 1–10 on R2 and 11–20 on R3 keeps one BOM row with quantity 20. | 02b LAY |
-| FR-CBL-nnn | For a cable with one end outside its layout space, the length shall be the committed internal route to its cable entry plus an authored external length, and the length source shall show both parts. | Should | 1.0 | D-19; FR-CBL-010; 20 U-21 | With an external length of 9.4 m ▲, golden -3W1 shows 9.4 m plus its internal route, with source "routed + manual"; moving -201U1 marks only the internal part stale. | 02a CBL |
-| FR-THM-nnn | Each part's thermal section shall declare a loss model (quadratic with P_n and I_n, efficiency for power supplies and drives, constant with duty factor, or per channel with coil power and on-fraction, or heater), and P_eff shall be computed by that model, with the quadratic law of FR-THM-001 as the default. | Must | 1.0 | PM §6.12; STD §8.2 | -102G1 at 8 A output with η 0.93 contributes 14.5 W; 28 coils at 1 W with on-fraction 0.5 contribute 14 W; E55 (heater) contributes 0 W to Q_V. | 02b THM |
-| FR-THM-nnn | The thermal check set shall report insufficient climate capacity (EW-THM-02), placed devices without loss data with the result marked incomplete (EW-THM-03), unverified or test coefficients in a release (EW-THM-04) and a stale thermal result at release (EW-THM-05). | Should | 1.0 | NFR-COMP-04; 02b proposed FR-CHK-nnn; 15 §4.6 | With a test heating power of 100 W ▲ for E55 against the required 158 W, EW-THM-02 names E55; removing MICO's loss data raises EW-THM-03 and the report states "incomplete". | 02b THM |
-| NFR-PERF-nn | A thermal recalculation of a layout space with 500 placements shall finish within 200 ms as a job on BM. | Should | 1.0 | §13 | Measured on the XL fixture's largest layout space in the nightly gate. | 02c PERF |
+The ten rows this document proposed are in the catalogues, together with two 1.x rows that Open question 17 asked
+for:
+- placement names the part use it realises (EW-LAY-003) → **FR-LAY-059** ([02b](02b-requirements-extended.md));
+- group accessories (end brackets) derived from rail occupancy → **FR-LAY-060** (02b, MVP);
+- contiguous assemblies and PLC racks on their carrier (EW-LAY-016) → **FR-LAY-061** (02b);
+- label fitting at paper height, never scaled → **FR-LAY-062** (02b);
+- terminal strips placed in segments → **FR-LAY-063** (02b);
+- unrouted wires as straight lines in 3D → **FR-LAY-064** (02b);
+- saved 3D views → **FR-LAY-065** (02b, 1.x Could; from Open question 17);
+- window macros that carry placements → **FR-LAY-066** (02b, 1.x Could; from Open question 17);
+- routed-plus-external length of cables leaving the layout space → **FR-CBL-020** ([02a](02a-requirements-core.md));
+- loss model per part → covered by the reworded existing **FR-THM-001** (02b);
+- thermal check set EW-THM-002 … 005 → **FR-THM-012** (02b);
+- thermal recalculation budget → **NFR-PERF-23** ([02c](02c-nonfunctional-requirements.md)).
 
 ---
 
 ## Open questions
 
-1. **PanelFront representations.** Arch §4.2 lists "panel front" among `Representation` types and [06](06-schematic-editor.md)
-   §2.2 offers "PanelFront projections" on PanelLayout pages. Storing a positioned representation on folio 902 next
+1. **PanelFront representations.** Arch §4.2 listed "panel front" among `Representation` types and [06](06-schematic-editor.md)
+   §2.2 offered "PanelFront projections" on PanelLayout pages. Storing a positioned representation on folio 902 next
    to a `Placement3D` would create two sources of truth for one physical position, the D-02 class again.
-   *Recommendation:* store no PanelFront representation rows; derive them from placements (`panel_front_reps(dev)`)
-   for navigation and "show all representations", and amend the wording of arch §4.2 and 06 §2.2.
+   **Resolved:** no PanelFront representation rows are stored; `panel_front_reps(dev)` derives them from placements
+   for navigation and "show all representations" (arch §4.2, §6.4), a PanelLayout page hosts one `SurfaceView`, and
+   symbols may still carry `rep_type` PanelFront for their 2D front graphics.
 2. **Schema additions.** `Placement3D.part`, `Placement3D.segment`, `RouteOverride.bundle/seq`,
    `WireOverrides.length`, `LayoutSpace.install`, record kinds `routing_path` and `surface_feature`, and page items
-   `SurfaceView`, `ModelView` and `Dimension` are not in arch §4.2, [03](03-domain-model.md) §16 or
-   [05](05-project-format-and-persistence.md) §2. *Recommendation:* accept them through the schema-steward rule before
-   `ew-schema` v0 freezes (layout kinds as 57–58 in `layout/<space>.jsonl`, page items in page files,
-   `WireOverrides.length` on the carrier connection); `assets/` must also accept `.glb` for embeddable meshes.
+   `SurfaceView`, `ModelView` and `Dimension` were not in arch §4.2, [03](03-domain-model.md) §16 or
+   [05](05-project-format-and-persistence.md) §2. **Resolved:** the schema-steward batch adds them to 03 §16 (with
+   `RouteNodeRef`, `LayoutSpace.thermal` and the carrier delete policy *forbid*), and 05 §2 adds the kinds
+   `routing_path` and `surface_feature` (ranks 57, 58 in `layout/<space>.jsonl`), the page items as `page_item`
+   variants and `assets/<sha256>.glb` for embeddable meshes (1.0).
 3. **Golden plate and rail geometry.** U-26 fixes the enclosure test size and the scale but not the plate's usable
    area, the rail lengths or the gland plate. *Recommendation:* add test values to [20](20-golden-project.md) §13
    (for example a 650 × 900 mm usable plate and a bottom gland surface ▲) and confirm the real NSYPMM107 data with
    the pilot (PQ-24).
-4. **End brackets: per strip or per group.** Golden BOM row 25 has 4 brackets for 3 abutting strips, while
-   [07](07-symbols-parts-macros.md) OQ5 proposes authored part uses on strips at MVP, which would give 6 unless
-   hand-adjusted; FR-TRM-016 (1.0) already expects 4. *Recommendation:* derive group accessories from the rail
-   occupancy wherever the strips are placed, from MVP (proposed FR-LAY-nnn); use authored part uses only for strips
-   that are not placed.
+4. **End brackets: per strip or per group.** Golden BOM row 26 has 4 brackets for 3 abutting strips, while
+   [07](07-symbols-parts-macros.md) OQ5 proposed authored part uses on strips at MVP, which would give 6 unless
+   hand-adjusted; FR-TRM-016 (1.0) already expects 4. **Resolved:** end brackets are derived from the rail occupancy
+   wherever strips are placed, from MVP (FR-LAY-060); unplaced strips and bridges use authored part uses, and the
+   part-data accessory lists of FR-PRT-005 (1.0) must reproduce the same golden counts (§3.4).
 5. **Two "k" values in FR-THM-004.** Its acceptance ("k = 3.5 W/(m²·K) … mean rise 5.5 K") is the surface-balance
-   method with the wall coefficient, not the TR 60890 enclosure constant read from its figures. *Recommendation:*
-   reword FR-THM-004's acceptance to the surface method and add a second acceptance on the synthetic TR coefficient
-   set (§16.2), keeping both fields separate in the data model.
-6. **Loss law in FR-THM-001.** P_n·(I_b/I_n)² cannot produce the golden PSU loss of 14.5 W. *Recommendation:* adopt
-   the loss-model row (proposed FR-THM-nnn) and amend FR-THM-001's text to "by the part's loss model, default
-   quadratic".
-7. **Cables leaving the layout space.** FR-CBL-010's acceptance expects a routed length for -3W1, which runs to
-   +J-E-206. *Recommendation:* adopt the routed-plus-external rule (proposed FR-CBL-nnn) and restate the acceptance
-   for -3W1 accordingly; the golden A-R value of 10 m (U-21) is then the sum.
+   method with the wall coefficient, not the TR 60890 enclosure constant read from its figures. **Resolved:**
+   FR-THM-004's first criterion uses the surface-balance method with k_w = 3.5 W/(m²·K) (5.5 K ± 0.1 K), its second
+   the synthetic TR coefficient set of §16.2, and the data model keeps k and k_w apart (FR-THM-007 writes k_w).
+6. **Loss law in FR-THM-001.** P_n·(I_b/I_n)² cannot produce the golden PSU loss of 14.5 W. **Resolved:** FR-THM-001
+   computes P_eff by the part's loss model (Quadratic default, Efficiency, Constant, PerChannel, Heater), which
+   absorbs the proposed loss-model row (§11.2).
+7. **Cables leaving the layout space.** FR-CBL-010's acceptance expected a routed length for -3W1, which runs to
+   +J-E-206. **Resolved:** FR-CBL-020 adds the routed-plus-external rule, and FR-CBL-010's criterion reads "-3W1 shows
+   routed internal plus external length (Golden A-R: 10 m, U-21); moving -201U1 marks it stale" (§9).
 8. **"Door frame" placements** for S56 and E56 in A-R. NSYPLA enclosures have no separate frame surface.
    *Recommendation:* model them on a Side surface strip near the door opening for A-R; add a `Frame` surface kind only
    with frame enclosures in 1.x; confirm the real positions with the pilot (PQ-24).
@@ -1241,21 +1256,21 @@ staffed explicitly in the plan, because arch §15.2 starts stream S4 after the 2
 15. **How the valve terminal is mounted.** [20](20-golden-project.md) §13 puts -201U1 … -202U3 on rail R3, and
     EF-23 lets the CPX earth screws reach the plate through R1–R3, while FR-LAY-056's acceptance expects drilling
     patterns of "screw-mounted modules -201U1 … -202U3". CPX/VMPA terminals can be wall-mounted or rail-mounted
-    with a mounting kit *(unverified)*. *Recommendation:* keep the golden on R3 with a rail-mounting kit test part
-    (▲, part of U-27), amend FR-LAY-056's acceptance to the rail and duct fixing holes plus one screw-mounted test
-    part, and confirm the real mounting with the pilot (PQ-24).
+    with a mounting kit *(unverified)*. **Resolved:** the golden stays on R3 with a rail-mounting-kit test part
+    (▲U-27), and FR-LAY-056's criterion reads "the golden plate's feature list contains the rail and duct fixing
+    holes at the configured pitch and the pattern of one screw-mounted test part"; the real mounting is a pilot
+    question (PQ-24).
 16. **Where a manual wire length lives.** Neither [03](03-domain-model.md) nor 02b has a field for it; a field on
     `RouteOverride` would live in the layout file, while [13](13-manufacturing-outputs.md) §3.3 reads it from the
-    carrier connection's overrides. *Recommendation:* store
-    it as `WireOverrides.length` on the carrier connection, next to 13's per-end treatment overrides, so that
-    projects without a layout space can enter lengths; keep `RouteOverride` for path, pin, bundle and sequence, and
-    add the field to `WireOverrides` in [03](03-domain-model.md) §9.
+    carrier connection's overrides. **Resolved:** the schema-steward batch adds `WireOverrides.length: Option<Nm>` on
+    the carrier connection, next to the per-end overrides `WireOverrides.ends`, both moved by the number-transfer
+    normaliser ([03](03-domain-model.md) §9); `RouteOverride` keeps path, pin, bundle and sequence (§2.2).
 17. **Pro Panel parity items without a requirement.** EPLAN offers connection diagrams in the 3D layout (unrouted
     connections as straight lines) and up to 10 saved 3D views (2026) (EF §15); macros that also carry
     mounting-layout placements are common EPLAN practice *(unverified here)*. 02a/02b have no row for them, and
-    window macros (FR-MAC-001) carry no placements. *Recommendation:* adopt the proposed 1.0 Should row for unrouted
-    CP-to-CP lines (cheap: CP3D positions exist); park saved views and placement-carrying macros at 1.x; until then
-    an inserted macro adds its devices to the unplaced list.
-18. **"One function, e.g. a terminal".** FR-LAY-006 and [03](03-domain-model.md) §16 describe a single-terminal
-    placement as a function placement, but a terminal is a device (arch §4.2). *Recommendation:* reword both to
-    "one function (e.g. a door handle) or one strip segment (e.g. a single terminal)", matching §2.3 and §5.3.
+    window macros (FR-MAC-001) carry no placements. **Resolved:** unrouted CP-to-CP lines are FR-LAY-064 (1.0,
+    Should); saved 3D views (FR-LAY-065) and window macros carrying placements (FR-LAY-066) are 1.x Could rows; until
+    then an inserted macro adds its devices to the unplaced list.
+18. **"One function, e.g. a terminal".** FR-LAY-006 and [03](03-domain-model.md) §16 described a single-terminal
+    placement as a function placement, but a terminal is a device (arch §4.2). **Resolved:** both read "one function
+    (e.g. a door handle) or one strip segment (e.g. a single terminal)", matching §2.3 and §5.3.

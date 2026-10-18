@@ -1,6 +1,6 @@
 # Brainstorm: lessons, ideas and open questions
 
-**Status:** Draft v0.1 · **Date:** 2026-10-17 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
 
 **Purpose.** This is the structured record of the ElektraWatt (EW) brainstorm. It turns the 42 defects of the
 reference drawing set into product ideas, catalogues 109 candidate ideas with value, effort and a suggested release,
@@ -61,7 +61,7 @@ Four root causes explain all 42 defects
 | L6 | **Terminals, junctions** | D-11 a "3+" terminal without designation. D-12 "1+" × 4 … "PE" × 5. D-20 dots and bevels mixed; daisy-chain order implicit | Terminal = device with levels and clamps (PT 2.5-TWIN); designation prevent rule, lenient on import; `Junction` with sequence | I, S | 007, 097 |
 | L7 | **PLC and bus** | D-15 node address "TBD", termination as text "Switch to ON". D-26 only odd bits Q0.1/Q0.3 …. D-27 28 valves and the TA05-V-xx process valves untagged | Channel as hub object with part address map; typed `Tbd`; termination property; child tags; process tags | S, C | 005, 012, 027, 039, 069 |
 | L8 | **Fluid** | D-28 no supply on port 1, no exhaust or silencer on 3/5, no tube sizes | Fluid ports and media on the graph engine; tube specs; `EW-FL` rules | C | 013 |
-| L9 | **Panel layout** | D-32 F55, E55, E56, S56, -201U9 missing; no rails; not to scale | Layout from devices; unplaced-device check L001; true-scale projections | S, C | 070, 071 |
+| L9 | **Panel layout** | D-32 F55, E55, E56, S56, -201U9 missing; no rails; not to scale | Layout from devices; unplaced-device check EW-LAY-001; true-scale projections | S, C | 070, 071 |
 | L10 | **Document quality** | D-07 no bookmarks or links, raster logo. D-29 tag text 8.88 vs 9.62 pt. D-31 3.70 pt text (≈ 0.95 mm cap height). D-33 page labels 1…18, lost spaces ("SK3110.000") | Navigable PDF/A with `/PageLabels`; text styles per slot kind; printed-height check | S, C | 042, 044, 048 |
 | L11 | **Project data, revisions, roles** | D-05 revision "1", "V1.0", "V1", "V2.0". D-06 folio 101 "Control Cabinet Expansion". D-30 "Customer" shows the end user. D-34 author = checker | Title blocks bound to project properties; one revision table; typed party roles; four-eyes release invariant | S, I | 023, 048, 084 |
 | L12 | **Missing deliverables** | D-09 no wire list, terminal or cable diagram, PLC or potential overview, wire numbers. D-19 no supply cable, no cable lengths | Report blocks as derived pages (903–911); cables as devices with a length source; release gate | S, C | 005, 029, 033, 045 |
@@ -87,7 +87,7 @@ Four root causes explain all 42 defects
 | IDEA-003 ★ | **Potential-driven wire properties with provenance:** colour and size from profile rules ("DBU/WH 24 V", 0.75/1.5 mm²); folio 1 tables generated from the profile; markers show deviations only | H | M | MVP | CON | Fixes D-08 in the user's own drawing style (REF-008); machine-readable data for every wire |
 | IDEA-004 | Explicit bonds (PELV 0 V–PE); FE vs PE from part pin functions | M | M | MVP | CON | D-16, D-22, REF-038 |
 | IDEA-005 | Typed open items (`Tbd` address, node, length, part) in an open-items view | H | L | MVP | CHK | D-15, D-19, REF-094; feeds the release gate |
-| IDEA-006 | Configured assemblies with derived child tags (-201U3-QM1) and BOM in assembly or component mode | H | M | MVP | DEV | D-27, D-36, D-41; the CPX/VMPA manifold is the test |
+| IDEA-006 | Configured assemblies with derived child tags (-201U3-Q1) and BOM in assembly or component mode | H | M | MVP | DEV | D-27, D-36, D-41; the CPX/VMPA manifold is the test |
 | IDEA-007 | One strip, many segments; terminals as devices with levels and clamps; junctions with connection sequence | H | M | MVP | TRM | D-11, D-12, D-20, D-42; PT 2.5-TWIN clamps distinguishable |
 | IDEA-008 | Typed external connections to +J-E-206 / JE-N1000-03; live resolution when that project is open | M | M | MVP / 1.x | PRJ | REF-018 on folios 3, 101; live part per G15 |
 | IDEA-009 | Load budget per potential and protective device (MICO 6 A per channel, -102G1 20 A); cover "Consumption" computed | M | M | 1.0 | CHK | D-25, G15 |
@@ -137,7 +137,7 @@ Four root causes explain all 42 defects
 | IDEA-038 | Waivers with reason, author, date in the release report | M | L | MVP | CHK | Strict checks, legitimate exceptions (D-25) |
 | IDEA-039 | PLC address-map validation (coil 14/12 bit order) and overview-vs-detail counts | H | M | MVP | CHK | D-26, D-10; golden criterion 8 |
 | IDEA-040 | Company rules in rhai or SQL over `api_v1` views | M | M | 1.0 | CHK | No Rust needed (ADR-0017, ADR-0019) |
-| IDEA-041 | EN 60204-1 pack (M-01 … M-15), licensed tables as data | M | H | 1.0 | CHK | Table values cannot be shipped |
+| IDEA-041 | EN 60204-1 pack (EW-EN60204-001 … 015, after the M-01 … M-15 list of [standards](../research/standards.md) §7), licensed tables as data | M | H | 1.0 | CHK | Table values cannot be shipped |
 | IDEA-042 | Data lints: rating in description, manufacturer mismatch, "50hz"/"15c", confusables, printed text height | M | L | 1.0 | CHK | D-18, D-31, D-35 |
 | IDEA-043 | "Why this value?" view: provenance and dependency trail of any derived value | M | L | 1.0 | UI | GUI face of `ew query --explain` (architecture §6.8) |
 
@@ -216,7 +216,7 @@ anywhere. User projects and QET elements are never used for model training
 
 | ID | Idea | V | E | Rel. | Area | Rationale |
 |---|---|---|---|---|---|---|
-| IDEA-085 | Headless `ew mcp`: `query`, `sql_query`, `find`, `run_checks`, `preview_command`, `commit_preview` | M | M | 1.0 | EXT | Parity with QET's MCP server |
+| IDEA-085 | Headless `ew mcp`: read tools `query`, `sql_query`, `find`, `run_checks`, `preview_command` (MVP, Could); ask-first `commit_preview` (1.0) | M | M | MVP / 1.0 | EXT | Parity with QET's MCP server |
 | IDEA-086 | GUI live bridge: agent commands as ghost previews with diff; user accepts or rejects | M | M | 1.x | EXT | Ask-first made visible (G10) |
 | IDEA-087 | Migration triage: agent batches QET findings into proposed quick fixes | M | L | 1.x | IMP | Hundreds of D-11/D-12-type findings |
 | IDEA-088 | Datasheet-to-part drafting, flagged "AI-drafted, unverified" until approved | M | M | 1.x | PRT | Part data is the onboarding bottleneck |
@@ -227,7 +227,7 @@ anywhere. User projects and QET elements are never used for model training
 | ID | Idea | V | E | Rel. | Area | Rationale |
 |---|---|---|---|---|---|---|
 | IDEA-090 ★ | **Open parts and symbol library:** per-record licence and provenance, ETIM classes, CI linter, generators, rendered previews in PRs | H | H | 1.0 (infra) / 1.x (packs) | PRT | The Data Portal is EPLAN's largest moat, and its terms forbid reuse ([oss-landscape](../research/oss-landscape.md) §6.2) |
-| IDEA-091 | Manufacturer data partnerships with the makers in the reference set (Phoenix Contact, Festo, Schneider Electric, Siemens, Rittal, Murrelektronik, Eaton) | H | M | 1.x | PRT | They already produce EPLAN data |
+| IDEA-091 | Manufacturer data partnerships with the makers in the reference set (Phoenix Contact, Festo, Schneider Electric, Siemens, Rittal, Murrelektronik, Eaton); outreach starts after MVP | H | M | 1.0 (Should, non-gating) | PRT | They already produce EPLAN data; the first manufacturer-reviewed pack is a 1.0 target that does not gate the release, because its timing depends on a third party |
 | IDEA-092 | Own IEC 60617 / ISO 1219 symbol set (CC-BY-SA-4.0 + design exception), starting with ~40 golden symbols | H | M | MVP | SYM | QET elements cannot be bundled |
 | IDEA-093 | Wholesaler catalogue import: BMEcat, ETIM xChange | M | M | 1.0 | PRT | ETIM is common at Dutch wholesalers |
 | IDEA-094 | Publish permissive crates (`ew-rds`, `ew-schema`, `ew-format`, `ew-interop-api`, CAEX, GSDML) | M | M | 1.0 | EXT | No Rust crate exists for GSDML or CAEX |
@@ -249,7 +249,7 @@ anywhere. User projects and QET elements are never used for model training
 
 | ID | Idea | V | E | Rel. | Area | Rationale |
 |---|---|---|---|---|---|---|
-| IDEA-103 | Golden project rebuilt defect-free (anonymised, CC0) as tutorial and CI fixture | H | L | MVP | DOC | Best adoption tool ([golden project](20-golden-project.md)) |
+| IDEA-103 | Golden project rebuilt with every determinable defect fixed (anonymised, CC0) as tutorial and CI fixture | H | L | MVP | DOC | Best adoption tool ([golden project](20-golden-project.md)) |
 | IDEA-104 | Rule page per check ID (why, clause, fix), linked from messages and F1 | M | L | MVP | DOC | Teachable checks (G13) |
 | IDEA-105 | Concept guides EPLAN↔EW, QET↔EW; "from QET" migration guide | M | L | MVP | DOC | Vocabulary is the first barrier |
 | IDEA-106 | Translations EN, NL, DE first (Weblate, Fluent, PO) | M | L | 1.0 | I18N | Home markets |
@@ -376,13 +376,16 @@ quadrantChart
 
 ## 7. Questions for the pilot user
 
-Consolidated from the open questions of all research notes. "Decides" names what the answer changes.
+Consolidated from the open questions of all research notes and design documents; this is the single list of pilot
+questions, and the design documents cite these IDs instead of keeping their own. "Decides" names what the answer
+changes. Until a question is answered, the documented defaults and the ▲ test values of
+[20](20-golden-project.md) apply.
 
 | ID | Question | Decides | Source |
 |---|---|---|---|
 | **Projects and files** | | | |
 | PQ-01 | Page, device and wire counts of your largest projects of the last three years? Do customers send EPLAN projects that large? | Size classes S–XL (ADR-0022) | G6 OQ1 |
-| PQ-02 | Can you share the `.qet` of the reference project and 5–10 other QET projects (custom title blocks, company collections)? | Importer acceptance; "3-B0" | reference OQ15, interop OQ2 |
+| PQ-02 | Can you share the `.qet` of the reference project and 5–10 other QET projects (custom title blocks, company collections)? | Importer acceptance; "3-B0"; the Golden C counts that depend on the file (are J-E-206-L/N/PE QET reports or plain elements, how are the wire-marker texts split) | reference OQ15, interop OQ2, [14](14-interop.md) |
 | PQ-03 | Will you move to QET 0.200 / `.qetz` before migrating? | `.qetz` in MVP | interop OQ3 |
 | PQ-04 | How often do customers send EPLAN projects, DWG or DXF? | IDEA-101, IDEA-102 priority | interop OQ9, OQ10 |
 | **Conventions** | | | |
@@ -390,33 +393,35 @@ Consolidated from the open questions of all research notes. "Decides" names what
 | PQ-06 | Connection grid for new symbols: 4 mm or 2.5 mm? Keep the 0-based 17 × 8 frame for new projects? | ADR-0027; frame default | G4, standards OQ9 |
 | PQ-07 | Keep the Tahoma look (self-installed font) or switch to Noto Sans or osifont? | ADR-0028 | G14 |
 | PQ-08 | Is page-based numbering (-101F1) a house rule? Keep fixed tags for template devices (S51 …)? Canonical "+J-E-2416"? | Numbering defaults | reference OQ1, OQ2 |
-| PQ-09 | What does a revision cycle look like (approval, as-built)? Index format? What changed in V2.0 on 101 and 106? | Revision model | reference OQ3, eplan OQ9 |
+| PQ-09 | What does a revision cycle look like (approval, as-built)? Index format? What changed in V2.0 on 101 and 106? Who may act as checker when an engineer draws alone? Should exports of an open revision carry a "DRAFT" status mark by default? | Revision model; checker role; status-mark default | reference OQ3, eplan OQ9, [15](15-checks-revisions-collaboration.md) |
 | PQ-10 | On X1031/X1032, is each drawn terminal one PT 2.5-TWIN or one level? "1+" designations or numbers with function text? | Terminal default | reference OQ4, eplan OQ7 |
 | PQ-11 | Should the title-block "Customer" show the contracting party or the end user? | Party binding (D-30) | reference OQ12 |
 | PQ-12 | Reports as folios 903–911 in section 9, or as separate documents? | Report-block defaults | reference OQ16 |
+| PQ-36 | Minimum printed text height? Technical-data notation ("C10" or "10A C")? How are the main PE point and the enclosure tagged (-XPE, -UC1)? | Text-height scheme parameter (FR-CHK-023); technical-data formats; per-class numbering rules | [20](20-golden-project.md) U-31, U-32, U-34 |
 | **Reference content** | | | |
 | PQ-13 | Are T55 and S56 really in the neutral, or is the F55 pole labelling wrong? | Golden fix of D-13 (safety) | reference OQ5 |
 | PQ-14 | Can you decode the Festo order codes or share configurator exports? Is -202U1 550208? Is 533354 a supply or end plate? 4 or 5 valves on -202U2? | Assembly model; IDEA-026 | reference OQ7, plc OQ7 |
-| PQ-15 | Are odd bits Q0.1/Q0.3 … correct? PROFIBUS station address, master, baud rate, termination? | Check PLC-12 | reference OQ8, plc OQ1, OQ3 |
-| PQ-16 | Part numbers of S56, E56, MICO 4.10? Is S51 Eaton 533356? NEBU core per pin; pin 3 PE or FE? | Golden BOM; D-16, D-17 | reference OQ9, OQ14 |
-| PQ-17 | Size and colour of PE wires and the 0 V–PE bond? Incoming supply cable? | Size profile; D-19, D-38 | reference OQ10 |
+| PQ-15 | Are odd bits Q0.1/Q0.3 … correct? PROFIBUS station address, master, baud rate, termination? | Check EW-PLC-012 | reference OQ8, plc OQ1, OQ3 |
+| PQ-16 | Part numbers of S56, E56, MICO 4.10? Is S51 Eaton 533356? NEBU core per pin; pin 3 PE or FE? Are the CPX earth screws FE or PE? | Golden BOM; D-16, D-17; FE roles | reference OQ9, OQ14, [08](08-connections-terminals-cables.md) |
+| PQ-17 | Size and colour of PE wires and the 0 V–PE bond? Incoming supply cable? Earthing system of the supply (TN-S, TN-C-S, TT)? | Size profile; D-19, D-38; `SupplySpec.earthing` | reference OQ10 |
 | PQ-18 | Structure of TA05-V-15? Does the end user supply instrument lists? Tube sizes and colours? | IDEA-012, IDEA-031 | reference OQ11, plc OQ8, OQ9 |
 | **PLC** | | | |
-| PQ-19 | Which PLC platforms and versions (TIA V18–V21, CODESYS 3.5, TwinCAT, Rockwell)? Who owns addresses? Sample AML exports? | AML dialects; IDEA-067 | plc OQ2, interop OQ5, OQ6 |
+| PQ-19 | Which PLC platforms and versions (TIA V18–V21, CODESYS 3.5, TwinCAT, Rockwell)? Who owns addresses? Sample AML exports? Do your PLC programmers accept first-fit automatic allocation of module addresses around manually fixed ranges? | AML dialects; IDEA-067; the first-fit allocation rule of [10](10-plc-and-bus.md) | plc OQ2, interop OQ5, OQ6, [10](10-plc-and-bus.md) |
 | PQ-20 | F-PLCs or safety relays in use? Which safety data must drawings carry? | IDEA-068 | plc OQ10 |
 | **Shop floor** | | | |
 | PQ-21 | Which wire-processing and marking machines (Komax, Rittal WT, Weidmüller WPC, printers)? Templates and feedback samples? | First profiles (IDEA-055) | panel OQ2, interop OQ7 |
-| PQ-22 | Shop policies: marking scheme, reserve length, duct fill limit, ferrule colours (DIN or French), bundle size? | Manufacturing defaults | panel OQ3 |
+| PQ-22 | Shop policies: marking scheme, wire-number format, reserve length, duct fill limit, ferrule colours (DIN or French), bundle size? Which data make a part "production-ready" in your shop? | Manufacturing defaults; part quality levels ([07](07-symbols-parts-macros.md) §3.4) | panel OQ3, [07](07-symbols-parts-macros.md) |
 | PQ-23 | Printed lists, Windows tablets, iPads or phones on the floor? Network there? | Viewer platform, QR (B7) | panel OQ10, G6 OQ2 |
-| PQ-24 | True-scale layouts and drilling plans needed? Manual or CNC machining? Real NSYPLA1074G size; where are F55, E55, E56, S56, -201U9? | IDEA-063, IDEA-071 | reference OQ13, panel OQ1, OQ6 |
+| PQ-24 | True-scale layouts and drilling plans needed? Manual or CNC machining? Real NSYPLA1074G and NSYPMM107 dimensions and device widths; where are F55, E55, E56, S56, -201U9? Is the valve terminal rail-mounted or screwed to the plate? | IDEA-063, IDEA-071; golden layout values | reference OQ13, panel OQ1, OQ6, [12](12-panel-layout.md) |
 | **IT and collaboration** | | | |
 | PQ-25 | Local PCs, RDP/Citrix or GPU-less VDI? Windows versions? | CPU renderer priority | G6 OQ2 |
-| PQ-26 | Projects on SMB, SharePoint/OneDrive or git? Two editors at once? | Locks vs merges; B9 | G1 OQ3 |
+| PQ-26 | Projects on SMB, SharePoint/OneDrive or git? Two editors at once? Would work copies with a merge back (without git) be enough? | Locks vs merges; B9; work-copy priority (FR-COL-022) | G1 OQ3, [15](15-checks-revisions-collaboration.md) |
 | PQ-27 | Do EPLAN-trained colleagues expect autoconnect? Can you name two EPLAN users and one QET user for the M2 test? | ADR-0007 validation | G5 OQ4 |
 | **Customers and documents** | | | |
 | PQ-28 | Project languages (NL, EN, DE, FR)? Bilingual pages or one PDF per language? Company dictionary? | `MlText` defaults | G7 OQ6 |
 | PQ-29 | Required PDF/A level? May the native project be embedded? DCC/ICC codes or EN 301 549 required? | PDF profile, tagged PDF | standards OQ3, OQ12; G8 OQ7 |
 | PQ-30 | Does purchasing use ETIM data or an ERP classification? | IDEA-093 | eplan OQ4 |
+| PQ-35 | Are your cabinets delivered as electrical equipment of machines under EN 60204-1, as assemblies under IEC 61439-1/-2, or both? | Default check scheme (`machinery-en60204` or `assembly-iec61439`); verification checklists | [15](15-checks-revisions-collaboration.md) §4.7 |
 | **Project and community** | | | |
 | PQ-31 | Will anything be sold under the ElektraWatt name? Who is steward and holds the signing identity? Will the employer confirm the code release? | ADR-0030; [governance](19-open-source-governance.md) | G11, oss OQ1, OQ3 |
 | PQ-32 | Which manufacturers would you ask, as their customer, to publish open data? | IDEA-091 order | oss OQ5 |
@@ -428,55 +433,50 @@ Consolidated from the open questions of all research notes. "Decides" names what
 ## Requirements covered
 
 None directly. This document is upstream of the requirement catalogues and records candidate ideas, not
-requirements. Every FR area appears in the `Area` column of §3. The editors of
-[02a](02a-requirements-core.md), [02b](02b-requirements-extended.md) and
-[02c](02c-nonfunctional-requirements.md) should cite `IDEA-nnn` and `REF-nnn` as sources, so that the trace from
-defect to idea to requirement stays complete.
+requirements. Every FR area appears in the `Area` column of §3. The catalogues [02a](02a-requirements-core.md),
+[02b](02b-requirements-extended.md) and [02c](02c-nonfunctional-requirements.md) cite `IDEA-nnn`, `REF-nnn` and
+`D-nn` in their Source column, so that the trace from defect to idea to requirement stays complete.
 
 ### Proposed new requirements
 
-Ideas unlikely to arise from a feature-driven catalogue. IDs are provisional (`P` = proposed); the requirement
-editor assigns final numbers.
-
-| ID | Requirement | Release | Priority | Source |
-|---|---|---|---|---|
-| FR-MAC-P01 | The system shall generate pages, devices, PLC channels and terminals from a tabular I/O list (CSV/XLSX), instantiating one macro per row with the row as its value set, as one previewed transaction. | 1.0 | Should | IDEA-025 |
-| FR-DEV-P01 | The system shall provide an extension point for configurator decoders that expand an assembly's order code (e.g. 32P-VGL-R-MAHAHA…-28MS) into child devices and parts, previewed before commit. | 1.x | Could | IDEA-026 |
-| FR-COL-P01 | The system shall render a visual comparison of two project states (commits, revisions or working copy): changed pages before and after with highlighted differences, and an entity change list with derived tags; available headless for CI. | 1.0 | Should | IDEA-078 |
-| FR-COL-P02 | The system shall anchor review comments to entities (device, connection, page region), keep them through renumbering and moves, and track their status (open, resolved). | 1.0 | Should | IDEA-080 |
-| FR-MFG-P01 | The system shall provide a read-only wiring viewer that opens a production package without the project or parts database and shows per wire its endpoints, wire data, a 3D highlight and the schematic region. | 1.0 | Should | IDEA-057 |
-| FR-MFG-P02 | The system shall print a machine-readable code (QR) on wire, bundle and cable labels that identifies the item in the production package and resolves offline in the wiring viewer. | 1.x | Should | IDEA-058 |
-| FR-REP-P01 | The system shall report labour-estimate quantities (wires per cross-section, ferrules, terminals, devices, routed length) and convert them to hours with a user-maintained rate table. | 1.x | Could | IDEA-062 |
-| FR-IMP-P01 | The system shall compare each imported QET page with the corresponding page of a reference PDF (visual overlay and text comparison) and list deviations in the migration report. | MVP | Should | IDEA-098 |
-| FR-IMP-P02 | The system shall convert recognisable free texts in imported pages (wire markers such as "2.5 BK", PLC addresses such as "Q0.1", port numbers, process tags) into typed properties and list uncertain matches for review. | MVP | Must | IDEA-097 |
-| FR-EXT-P01 | The system shall show commands proposed by an MCP agent as a ghost preview with a model diff in the GUI and apply them only on explicit user acceptance. | 1.x | Could | IDEA-086 |
-| FR-UI-P01 | The system shall show, for any derived value, its provenance and the inputs it was derived from, in the GUI and through `ew query --explain`. | 1.0 | Should | IDEA-043 |
-| FR-OUT-P01 | The system shall export a review copy of the PDF with a watermark and with personal metadata (author and checker names, XMP person fields) removed. | 1.0 | Should | IDEA-050 |
+The twelve rows this document proposed (provisional IDs with `P`) are in the catalogues:
+- Added to [02a](02a-requirements-core.md) as: FR-MAC-P01 (macro per I/O-list row) → **FR-MAC-017**;
+  FR-DEV-P01 (configurator decoders) → **FR-DEV-036**; FR-REP-P01 (labour estimate) → **FR-REP-044**.
+- Covered by an existing 02a row: FR-OUT-P01 (review copy) → **FR-OUT-025** (omit personal data), with the
+  watermark as the status mark of **FR-OUT-021**.
+- Covered by existing [02b](02b-requirements-extended.md) rows: FR-COL-P01 (visual comparison) → **FR-COL-017**;
+  FR-COL-P02 (entity-anchored comments) → **FR-COL-018**; FR-MFG-P01 (read-only wiring viewer) → **FR-MFG-033**;
+  FR-MFG-P02 (QR codes on labels) → **FR-MFG-014**; FR-IMP-P01 (migration verifier) → **FR-IMP-021**; FR-IMP-P02
+  (free text to typed data) → **FR-IMP-017**; FR-EXT-P01 (GUI live bridge for MCP) → **FR-EXT-018**; FR-UI-P01
+  ("why this value?" view) → **FR-UI-011**.
 
 ---
 
 ## Open questions
 
-1. **Traceability.** 02a/02b/02c do not exist yet, so §3 cites areas, not FR IDs. *Recommendation:* give every
-   requirement row a `Source` column (IDEA-nnn, REF-nnn, D-nn) and check in CI that every ★ idea maps to at
-   least one Must requirement.
+1. **Traceability.** §3 cites areas, not FR IDs, because it was written before 02a/02b/02c. The catalogues now
+   have a `Source` column (IDEA-nnn, REF-nnn, D-nn), but not every ★ idea is cited there yet. *Recommendation:*
+   check in CI that every ★ idea maps to at least one Must requirement.
 2. **Folio 902 in the MVP.** The MVP must reproduce the reference set, which includes folio 902. The architecture
    starts stream S4 (layout) after the 2D editor MVP for a team of two or three (architecture §15.2). The spine
-   renders 902 from bootstrapped data, but the pilot user must also *draw* new layouts. *Recommendation:* pull a
-   thin S4 slice into the MVP (IDEA-071: one mounting surface, rails and ducts as parametric rectangles,
-   device-bound placements with `layout_label`, check L001). STEP, collision and routing stay in 1.0. The plan
-   should confirm staffing.
+   renders 902 from bootstrapped data, but the pilot user must also *draw* new layouts. **Resolved:** a thin S4
+   slice is MVP (IDEA-071: one mounting surface, rails and ducts as parametric rectangles, device-bound placements
+   with `layout_label`, check EW-LAY-001; FR-LAY-006 … FR-LAY-017 in [02b](02b-requirements-extended.md)); STEP,
+   collision and routing stay in 1.0, and the plan confirms the staffing.
 3. **Depth of I/O-list generation in 1.0.** *Recommendation:* flat value sets only (one macro per row,
    placeholders). Conditional, Cogineer-like rules follow in 1.x, once real typicals are collected from the pilot
    user.
-4. **Packaging of the wiring viewer.** *Recommendation:* a separate read-only binary (`ew-viewer`) in the same
-   workspace, opening `.ewpp` only and sharing the 3D renderer. A wasm build follows in 1.x if PQ-23 shows
-   iPads or phones.
-5. **QR payload.** *Recommendation:* an opaque short code (package-hash prefix plus wire number) that resolves
-   offline, with an optional per-company URL template. No URL by default: nothing leaves the shop and no links
-   go dead within the retention period.
-6. **AI as a non-bet.** *Recommendation:* keep IDEA-085 as a 1.0 Should for parity with QET. Decide on the live
-   bridge (IDEA-086) after measuring use of the headless server in the 1.0 beta.
+4. **Packaging of the wiring viewer.** **Resolved:** the `ew-viewer` crate opens `.ewpp` only and shares the 3D
+   renderer; a small `ew-wiring-viewer` binary serves shop PCs, and the Manufacturing workspace reuses it as
+   "Preview package" ([architecture](04-architecture.md) §3, [13](13-manufacturing-outputs.md)). A WebAssembly
+   tablet build stays a later option if PQ-23 shows iPads or phones.
+5. **QR payload.** **Resolved:** an opaque short code (package ID plus a stable wire key) that resolves offline,
+   with an optional per-company URL template that is off by default (FR-MFG-014,
+   [13](13-manufacturing-outputs.md) §11.2), so nothing leaves the shop and no links go dead within the retention
+   period.
+6. **AI as a non-bet.** *Recommendation:* keep IDEA-085's ask-first writes as a 1.0 Should for parity with QET
+   (FR-EXT-017; the read-only tools are MVP Could, FR-EXT-016). Decide on the live bridge (IDEA-086, FR-EXT-018)
+   after measuring use of the headless server in the 1.0 beta.
 7. **Thermal scope.** IDEA-076 is a question mark (M value, H effort) but in the v1 brief. *Recommendation:*
    single compartment with user-supplied coefficients in 1.0; multi-compartment and vendor curves in 1.x.
 8. **Labour estimate.** *Recommendation:* ship IDEA-062 first as a user SQL report example and promote it to a

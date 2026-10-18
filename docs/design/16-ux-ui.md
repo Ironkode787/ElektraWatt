@@ -1,13 +1,13 @@
 # User experience and user interface
 
-**Status:** Draft v0.1 · **Date:** 2026-10-17 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how people work with ElektraWatt (EW): the main window and its docking
 workspace, navigators, canvas tabs, the property grid with provenance, the command palette and keymaps, table
 editing with bulk previews, history, notifications for background jobs, the first-run company-standard wizard,
 aids for users coming from EPLAN and QElectroTech (QET), accessibility, theming, UI localisation, help, the
 performance budgets as the user perceives them, and the usability test that gates M2 and 1.0. It elaborates
-FR-UI-001 … FR-UI-037 of [02b](02b-requirements-extended.md) and the NFR-A11Y and NFR-UX rows of
+FR-UI-001 … FR-UI-051 of [02b](02b-requirements-extended.md) and the NFR-A11Y and NFR-UX rows of
 [02c](02c-nonfunctional-requirements.md) on the egui shell behind `ew-ui` and `ew-viewmodel` fixed by the
 [architecture](04-architecture.md) §9 and ADR-0014. Canvas tools are specified in [06](06-schematic-editor.md) and
 domain panels in their area documents; this document owns the shell they live in and the rules they share.
@@ -48,7 +48,7 @@ The UI is a client of the `Session` facade (`ew-api`). It reads view-models comp
 |---|---|---|---|
 | Panel models | `ew-viewmodel` | navigator trees, table rows with edit→command mapping, property-grid rows with provenance, message, history and job lists, the selection model, the action registry view | depend on egui, wgpu or winit; keep model data of its own |
 | Widgets and interaction | `ew-ui` | egui widgets, egui_tiles docking, 2D and 3D canvas hosts, the tool host, palette, keymaps, theme tokens, UI string loading | write the model other than through `Session` |
-| Shell | `elektrawatt` (bin) | eframe app, muda menus, rfd file dialogs, arboard clipboard, crash handler, OS file drops, opening help in the browser | — |
+| Shell | `elektrawatt` (bin) | eframe app, muda menus on macOS and Windows (an egui menu bar from `ew-ui` on Linux, §3.2), rfd file dialogs, arboard clipboard, crash handler, OS file drops, opening help in the browser | — |
 
 ```mermaid
 sequenceDiagram
@@ -173,7 +173,7 @@ pub struct ActionMeta {
 ```
 
 For a model command, name, parameter schema, cost, undoability and the language-neutral aliases (retired names,
-`device.place_from_part`) come from its `CommandMeta` ([17](17-extensibility.md) §2.1, FR-EXT-015), shared with the
+such as `device.place_from_part` and `symbol.place` for `device.place`) come from its `CommandMeta` ([17](17-extensibility.md) §2.1, FR-EXT-015), shared with the
 CLI, rhai, MCP and plugins; `ActionMeta` adds only what the GUI needs. The palette searches both alias lists. A
 predicate that fails carries a reason key ("needs a selected device", "project is read-only") shown in the
 palette and in tooltips.
@@ -182,7 +182,7 @@ palette and in tooltips.
 
 | Data | Location | Format | Notes |
 |---|---|---|---|
-| User settings: UI language, theme, scale, minimum font size, reduce motion, keymap preset, first-run answers, update-check opt-in, recent projects, default basic project, user display name | OS configuration directory, `elektrawatt/settings.toml` | TOML with `version` | Unknown keys preserved; an unreadable file yields defaults, a `.bad-<n>` copy and a banner (proposed [P16-9]) |
+| User settings: UI language, theme, scale, minimum font size, reduce motion, keymap preset, first-run answers, update-check opt-in, recent projects, default basic project, user display name | OS configuration directory, `elektrawatt/settings.toml` | TOML with `version` | Unknown keys preserved; an unreadable file yields defaults, a `.bad-<n>` copy and a banner (FR-UI-049) |
 | Keymaps | `elektrawatt/keymaps/<name>.toml` | TOML (§4.4) | Import and export (FR-UI-013) |
 | Workspaces | `elektrawatt/workspaces/<name>.json` | serialised egui_tiles tree plus pane configs | FR-UI-002 |
 | Per-project view state: open tabs, viewport per page, jump history (last 50), last selection, navigator expansion and filters, table column layouts, active workspace, highlight sets | `<name>.ew/.ew/u-<hash>/view.json`, `<hash>` from `user@host` ([05](05-project-format-and-persistence.md) §1) | JSON | git-ignored; per user, so users of a shared folder do not overwrite each other; never project data (FR-UI-033) |
@@ -243,7 +243,7 @@ Menus are generated from the action registry (§2.4) and show the active keymap'
 | Menu | Content (MVP) | Added at 1.0 |
 |---|---|---|
 | File | New project from basic project, Open, Open recent, Close, Save, Save As, Save a Copy, Import (QET, CSV), Export (PDF, SVG, BOM, wire list, terminals, cables, `.ewz`), Print, Project trust, Quit | Import EDZ, DXF, EPLAN parts XML; Export DXF, AML, TIA XLSX, PLCopen, `.ewpp`, machine profiles |
-| Edit | Undo, Redo, Cut, Copy, Paste, Paste as representation, Duplicate, Delete, Select all, Find, Find and replace, History | — |
+| Edit | Undo, Redo, Cut, Copy, Copy tag list, Copy as image, Paste, Paste as representation, Duplicate, Delete, Select all, Find, Find and replace, History | Multi-format copy (FR-UI-051) |
 | View | Workspaces, Panels, Zoom, Fit page, Grid, Highlight potential, Side by side, Wire-colour view, Theme, UI scale, Maximise canvas | Second window, Dark sheet |
 | Insert | Symbol, Device from part, Macro, Connection, Interruption point, Potential definition point, Wire marker, Black box, Structure box, Text, Graphic, Image, Report block | Dimension (FR-SYM-026) |
 | Project | Properties, Parties, Structure identifiers, Settings and schemes, Report blocks, Revisions (new, release), Company standard (run wizard, edit basic project), Derivation-profile upgrade | Revision compare |
@@ -261,7 +261,7 @@ Menus are generated from the action registry (§2.4) and show the active keymap'
 - **Windows:** muda menu on the window's HWND, with Alt mnemonics from the Fluent labels (**verify** HWND access
   through eframe).
 - **Linux:** muda attaches only to GTK windows, which eframe/winit does not create (**verify**). EW draws the menu
-  bar with egui from the same registry (Open question 1).
+  bar with egui from the same registry (FR-UI-001; Open question 1).
 - Enabled states update at most once per frame after a selection change. macOS menus show no tooltips, so the
   reason a command is disabled is shown in the palette.
 
@@ -387,7 +387,7 @@ code editors.
 | none or `>` | actions, by label, aliases and ID | "renum" → Renumber devices… Ctrl+Shift+N |
 | `@` | objects: tags, part numbers, potentials, wire IDs (find index) | "@-102F" → -102F1, -102F2 |
 | `#` | pages by folio or title | "#pneu" → 106, 200 |
-| `:` | a cell in the project's xref format | ":103-A1" opens folio 103 with A1 centred (06 proposed FR-UI-nnn) |
+| `:` | a cell in the project's xref format | ":103-A1" opens folio 103 with A1 centred (FR-UI-039) |
 | `?` | help topics and rule IDs | "?EW-POT-013" |
 
 - **Ranking** is the deterministic score of §15.1, with a recency boost from the last 50 invocations. An empty query
@@ -431,6 +431,7 @@ alt = "Alt+N"                  # second binding for keyboards without that key; 
 | Command palette | Ctrl+K (alias Ctrl+Shift+P) | ⌘K |
 | New project from basic project, Open, Save, Save As | Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Shift+S | ⌘ equivalents |
 | Print, Export PDF… | Ctrl+P, Ctrl+Shift+E | ⌘P, ⇧⌘E |
+| Copy, Copy tag list, Copy as image (FR-UI-040) | Ctrl+C ([06](06-schematic-editor.md) §6); the other two through the Edit menu, the context menu and the palette | ⌘C |
 | Find and replace | Ctrl+H | ⌥⌘F (⌘H is reserved by macOS) |
 | Run the active check scheme | F7 | F7 |
 | Next and previous finding | F8, Shift+F8 | F8, ⇧F8 |
@@ -483,7 +484,7 @@ edit, check, clipboard, help. Shift+F10 or the Menu key opens them from the keyb
 | Navigation | Show all representations (Alt+D) · Highlight potential (H) · Follow cross-reference (F), only on xref texts |
 | Edit | Freeze tag · Rotate · Mirror · Delete |
 | Check | Quick fixes for 2 findings ▸ Mark CP 13 unused, Mark CP 14 unused (EF-09, D-23) |
-| Clipboard | Copy · Copy tag "-102F2" · Copy full designation "=P01+J-E-2416-102F2" |
+| Clipboard | Copy (the fragment as text with its header) · Copy tag list (TSV) · Copy as image (PNG) (FR-UI-040; one multi-format copy at 1.0, FR-UI-051) |
 | Help | Help on load-distribution devices (F1) |
 
 ### 4.8 Drag and drop
@@ -494,7 +495,7 @@ the item floating at the grid cursor (arrows move it, Enter commits).
 | Source | Target | Result | Keyboard equivalent |
 |---|---|---|---|
 | Symbol browser item ([07](07-symbols-parts-macros.md) §5) | page canvas | Place tool in Floating state; drop commits `device.place` | Enter on the item |
-| Part browser item | page canvas | `device.place` with `target = FromPart` (alias `device.place_from_part`, 06 Open question 14); remaining functions appear as unplaced (FR-UI-017) | Enter on the item |
+| Part browser item | page canvas | `device.place` with `target = FromPart` (`device.place_from_part` and `symbol.place` are registered aliases; the journal records `device.place`, [17](17-extensibility.md) §2.1); remaining functions appear as unplaced (FR-UI-017) | Enter on the item |
 | Macro | page canvas | `InsertMacro` ghost with conflict list (FR-MAC-005) | Enter on the macro |
 | Unplaced function (device navigator) | page canvas | new representation of the existing function (FR-UI-007) | "Place on canvas…" |
 | PLC channel (PLC navigator) | coil or channel symbol | binds the channel (FR-PLC-020) | "Bind to…" with target picker |
@@ -530,8 +531,8 @@ the device navigator" (06 §8, D-10).
 | Navigator | Tree levels | Table-mode columns, badges | Drag source to | Golden A content | Release | Domain doc |
 |---|---|---|---|---|---|---|
 | Pages | structure (=, +) → section → page; flat and section views | folio, title, type, frame, change status, generated badge | reorder (renumber preview) | 36 pages: 13 page records (1, 3, 101–103, 106, 201–206, 902) and 23 generated pages (2, 2.1, 100, 200, 900, 901, 901.1, 903 … 911) | MVP | [06](06-schematic-editor.md), [09](09-reports-forms-output.md) |
-| Devices | structure → device → functions (main or auxiliary, placed or unplaced) → representations; parts | DT, kind, function text, part, main location, findings | canvas | assembly -201U1 → children -201U2 … -201U9, -202U1 … -202U3 → 28 valves -201U3-QM1 … -202U2-QM4; S56 and E56 without part | MVP | 06, [07](07-symbols-parts-macros.md) |
-| Connections | potential → connection, or flat | wire ID, from, to, potential, csa, colour code, source, number, page | — | W1–W44 | MVP ([P16-7]) | [08](08-connections-terminals-cables.md) |
+| Devices | structure → device → functions (main or auxiliary, placed or unplaced) → representations; parts | DT, kind, function text, part, main location, findings | canvas | assembly -201U1 → children -201U2 … -201U9, -202U1 … -202U3 → 28 valves -201U3-Q1 … -202U2-Q4; S56 and E56 without part | MVP | 06, [07](07-symbols-parts-macros.md) |
+| Connections | potential → connection, or flat | wire ID, from, to, potential, csa, colour code, source, number, page | — | W1–W44 | MVP (FR-UI-005) | [08](08-connections-terminals-cables.md) |
 | Terminal strips | strip → terminal → clamps | designation, function text, level, part, potential, sides, bridge, state | strip editor (FR-TRM-013) | 1X1 (3), -X1031 (20, 12 spare), -X1032 (5, 1 spare) | MVP | 08 |
 | Cables | cable → conductors | colour code, csa, assignment, potential | edit-cable table (FR-CBL-016) | -3W1, -106W1, -106W2 (-101W1 in Golden A-R) | MVP | 08 |
 | PLC | configuration project → station → rack → module → channel; bus ports | the PLC grid columns (FR-PLC-021) | coil or channel symbol | station -201U1, modules -201U3 … -201U8 and -202U2 (output bytes Q0 … Q6), 56 channels: 8 used, 20 spare, 28 deactivated | MVP (FR-PLC-020) | [10](10-plc-and-bus.md) |
@@ -552,7 +553,8 @@ dock like navigators.
 The filter bar matches free text against row tokens (case-folded, NFC, prefix match) and accepts facets with
 autocompletion: `page:103`, `potential:24VDC-1`, `state:spare`, `kind:terminal`, `part:2904602`, `has:finding`,
 `unplaced`, `frozen`. Matches keep their ancestors, which expand automatically. A filter answers within 100 ms
-per keystroke at XL (NFR-PERF-15; §15.2). Filters are saved per navigator instance in `.ew/`.
+per keystroke at XL (NFR-PERF-15; §15.2). Filters are saved per navigator instance in the per-user view state
+`.ew/u-<hash>/view.json` (§2.5).
 
 ### 5.4 Selection synchronisation
 
@@ -684,7 +686,7 @@ is one command (FR-UI-036).
 ### 7.5 When a table edit opens a preview
 
 An edit commits directly, with a toast "Set function text on 12 terminals · Undo", unless one of these holds; then
-the bulk preview opens ([P16-3]):
+the bulk preview opens (FR-UI-044):
 1. it touches more than 500 entities (`Cost::Bulk`, as for large pastes in 06 §8);
 2. it changes an identifier that leaves the building (tag, terminal designation, wire number, PLC address, folio)
    on more than one entity;
@@ -744,7 +746,7 @@ deleted. Applying is one `table.apply_changes` command (FR-EXP-004).
 History                                        oldest kept: step 1 · 12 MB of 256 MB
   redo   Set colour BN on W39                       GUI        106
 > now    Renumber pages (section 1)                 GUI        2, 103, 104, 201, 202
-         Rebind -201U3-QM1 coil 14 to channel 0      quick fix EW-PLC-12   203
+         Rebind -201U3-Q1 coil 14 to channel 0      quick fix EW-PLC-012   203
   ------ saved · generation 214 ---------------------------------------------
          External change (git a1b2c3d, 12 records)  external   103, 106
          Set function text "Reserve" on 12 terminals of -X1031   GUI   103
@@ -762,8 +764,8 @@ History                                        oldest kept: step 1 · 12 MB of 2
 - **Bounds.** 500 steps or 256 MB (ARCH §5.3); the header shows the oldest step kept.
 - **Non-undoable operations** appear as marker lines. EW asks for confirmation only when such an operation
   destroys or overwrites data: library writes outside the project, overwriting an existing file, purging unused
-  library copies, and the import checkpoint into an empty project. This narrows FR-UI-023 and ARCH §5.3, which
-  confirm every non-undoable operation ([P16-12]; Open question 3).
+  library copies, and the import checkpoint into an empty project, as FR-UI-023, ARCH §5.3 and ADR-0008 now state
+  (Open question 3).
 
 ### 8.2 Notification classes
 
@@ -777,7 +779,7 @@ History                                        oldest kept: step 1 · 12 MB of 2
 | OS notification | long job finished while the window is unfocused | — | "PDF export finished" | OS | 
 
 - Toasts never hold the only path to an action. The **notifications log** (status-bar entry) keeps the last 100
-  notifications of the session with their actions while those are valid ([P16-1]; NFR-A11Y-04).
+  notifications of the session with their actions while those are valid (FR-UI-042; NFR-A11Y-04).
 - At most three toasts are visible; repeated toasts of one kind coalesce ("3 external changes applied"). EW makes
   no sounds. OS notifications are a 1.x Could, opt-in.
 
@@ -792,7 +794,7 @@ records, otherwise a phase text), elapsed time and Cancel. A finished job leaves
 | Fresh | plain value | "810 mm" |
 | Computing | clock icon and phase text | "routing 3 of 5 wires" |
 | Behind (Rev < current) | hatched background, "as of rev n", re-run action | "Offline check as of rev 212 · 3 edits since · Re-run" |
-| Stale committed value | pin icon, hatch, text | "810 mm · re-route pending" (EW-L011) |
+| Stale committed value | pin icon, hatch, text | "810 mm · re-route pending" (EW-LAY-011) |
 | Failed | error icon, cause, remedy | "STEP import failed: file has no solids · Replace model" |
 | Blocking release | the same, with "blocks release" | stale lengths at release (FR-REV-007) |
 
@@ -865,7 +867,7 @@ shipped defaults plus the pilot's basic project made with this wizard.
 
 ### 9.3 Glossary and aliases
 
-The glossary feeds the documentation page (NFR-DOC-05), the in-app glossary panel ([P16-4]) and the palette
+The glossary feeds the documentation page (NFR-DOC-05), the in-app glossary panel (FR-UI-045) and the palette
 aliases (NFR-UX-03) from one source file per locale.
 
 | EW term | EPLAN term | QET term | Note |
@@ -890,7 +892,7 @@ aliases (NFR-UX-03) from one source file per locale.
 - **Shortcuts.** KiCad users get the KiCad-like preset at MVP. The EPLAN-like preset ships at 1.0 after
   confirmation (FR-UI-014). For the M2 test, a usability build carries a preview preset to collect bindings (Open
   question 5).
-- **Tips** are one-time, dismissible notes, all switched off by one setting ([P16-8]). Triggers:
+- **Tips** are one-time, dismissible notes, all switched off by one setting (FR-UI-048). Triggers:
   - a graphic line drawn onto a CP (a QET habit): "Lines have no electrical meaning; press W to draw a connection",
     with the quick fix "convert to connection" (06 §8);
   - typing into a derived tag: "Tags are derived from the numbering rule. Freeze this tag, or change the rule";
@@ -916,7 +918,7 @@ aliases (NFR-UX-03) from one source file per locale.
 | Toasts, banners | Alert / Status | message | live polite (banners assertive once) |
 
 - **The schematic's accessible representation** is the navigators and tables (FR-UI-026). The canvas exposes the
-  page, the tool hint and the selection, not every primitive. At 1.0, **Describe page** ([P16-5]) produces a text
+  page, the tool hint and the selection, not every primitive. At 1.0, **Describe page** (FR-UI-046) produces a text
   list in reading order: devices by cell with tag, function text and part; then connections grouped by potential;
   then interruption points with their target cells, for example "24VDC-1 at 102-H15, continues at 103-A1".
 - **Large lists** expose position and set size (`position_in_set`, `size_of_set`, **verify**), so a screen reader
@@ -956,7 +958,7 @@ Severity colours reuse three highlight hues, but they never share a shape: findi
 highlights are halos with a name chip, so an error icon on a vermillion-highlighted net stays unambiguous.
 
 **Wire colours.** Effective colours always print or display with their IEC 60757 code. The optional wire-colour
-view ([P16-6]) strokes each connection in its effective colour, labels it with the code ("DBU" on W29), gives WH
+view (FR-UI-047) strokes each connection in its effective colour, labels it with the code ("DBU" on W29), gives WH
 and YE wires a 1 px dark casing so they stay visible on white, and draws GNYE as alternating green and yellow 2 mm
 dashes (FR-UI-025). The view never reaches the PDF.
 
@@ -994,7 +996,7 @@ every overlay slot against the sheet (≥ 3:1) per PR (NFR-A11Y-04).
 
 ### 11.2 Print-true page colours
 
-The sheet is rendered as it prints in every theme ([P16-2]): white paper, authored line and text colours, the
+The sheet is rendered as it prints in every theme (FR-UI-043): white paper, authored line and text colours, the
 frame and title block as in the PDF. Themes change only the chrome and the canvas surround. Display lists never
 contain theme colours; highlights live in the session-only highlight layer (06 §7). **Preview as printed** switches
 between colour and monochrome so the user sees what `ew print` in monochrome mode produces.
@@ -1054,9 +1056,9 @@ renderer's final pass, applied to the screen only. Thumbnails, PNG export, PDF a
   an automated WCAG 2.1 AA scan without critical violations (NFR-A11Y-06, 1.0).
 - **Tutorials** (Help ▸ Tutorials) open the tutorial page and a fresh copy of its sample project; at MVP tutorials
   1, 2, 4 and 6, at 1.0 also 3 and 5 (NFR-DOC-03).
-- **About** shows the version, render backend, privacy state, `PRIVACY.md`, third-party notices and the
-  engineering-verification disclaimer (the About-dialog row proposed in [02c](02c-nonfunctional-requirements.md)
-  "Proposed new requirements"; NFR-COMP-04). Help ▸ Verify derived data runs
+- **About** shows the version, render backend, privacy state, `PRIVACY.md`, third-party notices, the
+  engineering-verification disclaimer and the support status computed offline from the planned support end
+  (FR-UI-038; [18](18-quality-security-release.md) §7.5; NFR-COMP-04). Help ▸ Verify derived data runs
   `ew verify-derived` as a job (ARCH §6.8).
 
 ---
@@ -1235,7 +1237,7 @@ for layout in {QWERTY-US, QWERTZ-DE, AZERTY-FR}:
    BR1 … BR5; selecting the 12 spare rows (5–10, 15–20) and filling the function text "Reserve" is one command with
    an undo toast and no preview (rule §7.5); undo restores "2+" … "4-".
 8. **PLC.** The PLC navigator shows station -201U1 with modules -201U3 … -201U8 and -202U2 (Q0 … Q6) and 56
-   channels (8 used, 20 spare, 28 deactivated); EW-PLC-12 reports 28 findings under map H1 (EF-02).
+   channels (8 used, 20 spare, 28 deactivated); EW-PLC-012 reports 28 findings under map H1 (EF-02).
 9. **Unplaced devices.** The list shows F55, E55, E56, S56 and -201U9 (EF-05); dragging F55 onto rail 1 removes it.
 10. **Renumber.** Folio 106 → 104 through Page ▸ Renumber pages opens the preview of §7.6: 2 tags, 14 xrefs; Accept
     is one undo step (AC-18).
@@ -1278,9 +1280,9 @@ findings (06 OQ7), the EPLAN-like bindings (FR-UI-014), the glossary (NFR-DOC-05
 
 | Round | When | Participants | Build | Tasks |
 |---|---|---|---|---|
-| R0 formative | month 4–5, when the viewer and the place and wire tools exist | ≥ 2 (the pilot user and a colleague) | development build | T1, T2, T8; think-aloud only ([P16-10]) |
+| R0 formative | as soon as the R0 viewer build and the place and wire tools exist (WP-S2.03, WP-S2.04), within WP-S2.12 before M2 of the [work breakdown](../plan/02-work-packages.md#wp-s212-usability-rounds-r0-and-r1) | ≥ 2 (the pilot user and a colleague) | development build | T1, T2, T8; think-aloud only (NFR-UX-09) |
 | R1 summative | before M2 exit | ≥ 2 EPLAN users, ≥ 1 QET user (PQ-27) | M2 release candidate | T1–T8; T6 for QET users |
-| R2 summative | before 1.0 | ≥ 5: ≥ 2 EPLAN, ≥ 2 QET, ≥ 1 PLC programmer (P3); a wireman (P2) for T11 | 1.0 release candidate | T1–T11 |
+| R2 summative | before 1.0 (M6, [WP-S2.16](../plan/02-work-packages.md#wp-s216-usability-round-r2-and-fixes)) | ≥ 5: ≥ 2 EPLAN, ≥ 2 QET, ≥ 1 PLC programmer (P3); a wireman (P2) for T11 | 1.0 release candidate | T1–T11 |
 
 **Screening.** At least one year of production work in EPLAN Electric P8 or QET; at least one participant per
 summative round on a QWERTZ or AZERTY keyboard (NFR-I18N-06); at R2 one session on a GPU-less RDP host
@@ -1293,8 +1295,9 @@ any identity.
   layout ([02c](02c-nonfunctional-requirements.md) §1.4), offline.
 - **Fixture GP-UT.** Golden A without -102F1 and its four wires W20, W21, W24 and W25 and, for R2, without the
   binding of -201U3 channel 1, plus a basic project built with the shipped defaults (the pilot's own basic project
-  replaces it in pilot sessions, which keeps its logo and notice out of the repository). GP-UT is to be added to
-  [20](20-golden-project.md) as a fixture variant. Each session starts from a fresh copy.
+  replaces it in pilot sessions, which keeps its logo and notice out of the repository). GP-UT is the fixture
+  variant `variants/gp-ut.ewcmd` of [20](20-golden-project.md) §2, with the shipped-defaults basic project of 20
+  §3.1. Each session starts from a fresh copy.
 - **Session.** 90 minutes: a moderator and a note-taker, think-aloud, screen and audio recording with written
   consent. In-app help (F1, tooltips, glossary) is allowed and counts as unassisted; the moderator intervenes only
   after 2 minutes without progress or on request, and that counts as an assist. T6 runs without documentation
@@ -1306,7 +1309,7 @@ any identity.
 
 | ID | Instruction (paraphrased) | Persona, journey | Success criterion (checked on the saved project) | Limit | Round |
 |---|---|---|---|---|---|
-| T1 Place | "Add the 16 A miniature circuit breaker A9F78116 to folio 102 between the PSU and the load distribution." | P1, J1 | a device with part A9F78116 on 102, main representation between -102G1 (102-B6) and -102F2 (102-E7), tag derived by the numbering rule (-102F1 when the rule reuses the free counter), not frozen | 5 min | R0–R2 |
+| T1 Place | "Add the 16 A miniature circuit breaker A9F78116 to folio 102 between the PSU and the load distribution." | P1, J1 | a device with part A9F78116 on 102, main representation between -102G1 (102-B6) and -102F2 (102-E7), tag derived by the numbering rule: -102F1, because the next free counter fills gaps ([03](03-domain-model.md) §8.6), not frozen | 5 min | R0–R2 |
 | T2 Wire | "Connect its input to both + outputs of the PSU and its output to both 24 V inputs of -102F2." | P1, J1 | connections -102G1:+#1 and +#2 → new MCB:1 and new MCB:2 → -102F2:24VDC#1 and #2 exist (the W20, W21, W24, W25 topology); no unconnected-CP finding on them | 6 min | R0–R2 |
 | T3 Terminal strip | "Insert a terminal between -X1031:4 and :5, then set the function text of all spare terminals to 'Reserve'." | P1, P2 | terminal inserted with a unique designation and no prevent-rule violation; the function texts of the 12 spare terminals read "Reserve"; the fill is one undo step | 8 min | R1, R2 |
 | T4 Renumber | "Folio 106 should become 104. Check what changes before you apply it." | P1, J5 | folio 104 exists; -104W1 and -104W2; the participant opened the Tags, Xrefs or Pages tab before Accept | 5 min | R1, R2 |
@@ -1314,8 +1317,8 @@ any identity.
 | T6 Timed circuit | QET users: "From the company basic project, draw the folio 102 circuit and export a PDF." | P1, J1 | -102G1, -102F1, -102F2 with parts and wires; PDF within 30 min (NFR-UX-04) | 30 min | R1, R2 |
 | T7 Finding | "The check reports a safety problem on folio 101. Find it, explain it and record a waiver." | P4, J5 | jumped to T55; read the rule page or detail; waiver with a reason | 6 min | R1, R2 |
 | T8 Navigation | "On folio 101, follow L-1 to its continuation and come back." | P1 | xref jump and Back used | 2 min | R0–R2 |
-| T9 Layout | "Place F55 on the DIN rail of the mounting plate." | P1, J3 | EW-L001 no longer lists F55 | 6 min | R2 |
-| T10 PLC | "Bind channel 1 of -201U3 to valve -201U3-QM1 with process tag TA05-V-15, then export the TIA tag table." | P3, J4 | binding exists; symbol TA05_V_15 in the export | 8 min | R2 |
+| T9 Layout | "Place F55 on the DIN rail of the mounting plate." | P1, J3 | EW-LAY-001 no longer lists F55 | 6 min | R2 |
+| T10 PLC | "Bind channel 1 of -201U3 to valve -201U3-Q1 with process tag TA05-V-15, then export the TIA tag table." | P3, J4 | binding exists; symbol TA05_V_15 in the export | 8 min | R2 |
 | T11 Shop floor | "In the production package, find wire W29 and both of its ends." | P2, J3 | wire found, both ends named ([13](13-manufacturing-outputs.md)) | 5 min | R2 |
 
 The **core tasks** of NFR-UX-01 are T1–T5. With three R1 participants that is 15 attempts, so ≥ 12 unassisted
@@ -1416,53 +1419,57 @@ CC-BY-4.0 plus EW's own ECAD icons under CC-BY-SA-4.0 like the symbols, all reco
 ## Requirements covered
 
 This document elaborates:
-- **UI:** FR-UI-001 … FR-UI-037 (all rows of [02b](02b-requirements-extended.md) §9). The canvas-tool detail of
-  FR-UI-015 … FR-UI-019 is in [06](06-schematic-editor.md) §4 and §6, and the 3D canvas of FR-UI-029 in
-  [12](12-panel-layout.md) §12.2; this document hosts both.
-- **A11Y and UX:** NFR-A11Y-01 … NFR-A11Y-04 and NFR-A11Y-06 (documentation, §13); NFR-UX-01 … NFR-UX-08,
+- **UI:** FR-UI-001 … FR-UI-051 (all rows of [02b](02b-requirements-extended.md) §9; FR-UI-038 and FR-UI-050 are
+  shared with [18](18-quality-security-release.md)). The canvas-tool detail of FR-UI-015 … FR-UI-019 is in
+  [06](06-schematic-editor.md) §4 and §6, as are the clipboard and pending-finding rows FR-UI-040, FR-UI-041 and
+  FR-UI-051, and the 3D canvas of FR-UI-029 is in [12](12-panel-layout.md) §12.2; this document hosts them.
+- **A11Y and UX:** NFR-A11Y-01 … NFR-A11Y-04 and NFR-A11Y-06 (documentation, §13); NFR-UX-01 … NFR-UX-09,
   including the protocol required by NFR-UX-01 and SC-9. NFR-A11Y-05 (tagged PDF) is owned by
   [09](09-reports-forms-output.md).
 - **Touched here and owned elsewhere:** FR-PRJ-009, FR-PRJ-010 (wizard flow), FR-PRJ-011, FR-PRJ-018, FR-PRJ-027;
-  FR-PAG-024, FR-PAG-026; FR-SYM-026; FR-DEV-019, FR-DEV-031, FR-DEV-032; FR-NUM-008, FR-NUM-010; FR-XRF-013;
-  FR-MAC-005; FR-CHK-008, FR-CHK-009, FR-CHK-010, FR-CHK-014, FR-CHK-015; FR-REV-007; FR-TRM-013; FR-CBL-016;
-  FR-PLC-014, FR-PLC-020, FR-PLC-021; FR-LAY-013; FR-REP-042; FR-EXP-004; FR-EXT-005, FR-EXT-015, FR-EXT-018;
-  FR-I18N-001, FR-I18N-002, FR-I18N-005, FR-I18N-009, FR-I18N-010, FR-I18N-011.
+  FR-PAG-024, FR-PAG-026; FR-SYM-026; FR-DEV-019, FR-DEV-031, FR-DEV-032; FR-NUM-007, FR-NUM-008, FR-NUM-010;
+  FR-XRF-013; FR-MAC-005; FR-CHK-008, FR-CHK-009, FR-CHK-010, FR-CHK-014, FR-CHK-015; FR-REV-007; FR-TRM-013;
+  FR-CBL-016; FR-PLC-014, FR-PLC-020, FR-PLC-021; FR-LAY-013; FR-REP-042; FR-EXP-004; FR-EXT-005, FR-EXT-015,
+  FR-EXT-018; FR-I18N-001, FR-I18N-002, FR-I18N-005, FR-I18N-009, FR-I18N-010, FR-I18N-011.
 - **Other non-functional rows:** NFR-PERF-02 … NFR-PERF-09, NFR-PERF-11, NFR-PERF-15, NFR-PERF-19; NFR-PLAT-03;
   NFR-PRIV-01 … NFR-PRIV-04, NFR-PRIV-06, NFR-PRIV-07; NFR-I18N-01, NFR-I18N-02, NFR-I18N-06, NFR-I18N-07;
   NFR-DOC-01 … NFR-DOC-06; NFR-COMP-04, NFR-COMP-06.
 
 ### Proposed new requirements
 
-IDs are provisional; the editors of 02b and 02c assign final numbers.
+The twelve rows this document proposed are in the catalogues:
+- notifications log → **FR-UI-042** ([02b](02b-requirements-extended.md) §9);
+- print-true sheet in every theme, dark sheet as a 1.0 view transform → **FR-UI-043** (02b);
+- when a table edit opens the bulk preview → **FR-UI-044** (02b);
+- in-app glossary panel → **FR-UI-045** (02b);
+- "Describe page" → **FR-UI-046** (02b);
+- wire-colour view → **FR-UI-047** (02b);
+- connection and PLC navigators at MVP, 3 cables in the criterion → amendment of the existing **FR-UI-005** (02b);
+- contextual tips for EPLAN and QET users → **FR-UI-048** (02b);
+- versioned settings, keymap and workspace files → **FR-UI-049** (02b);
+- formative usability round R0 → **NFR-UX-09** ([02c](02c-nonfunctional-requirements.md));
+- native menus on macOS and Windows, egui menu bar on Linux → amendment of the existing **FR-UI-001** (02b);
+- marker lines for non-undoable operations, confirmation only for destructive ones → amendment of the existing
+  **FR-UI-023** (02b).
 
-| Proposed ID | Requirement | Prio | Release | Source | Acceptance criterion | Target |
-|---|---|---|---|---|---|---|
-| FR-UI-nnn [P16-1] | A notifications log shall keep the session's last 100 notifications with their actions for as long as the actions are valid, so that no action depends on a toast's display time. | Should | MVP | NFR-A11Y-04 | An external-change toast that has disappeared can still be undone from the log. | 02b UI |
-| FR-UI-nnn [P16-2] | The sheet shall render in print colours in every UI theme; an optional dark-sheet view transform shall affect the screen only, never thumbnails, PNG, PDF or print. | Should | MVP (dark sheet 1.0) | G8; ARCH §8.1 | In the dark theme, the canvas of folio 103 matches `ew render --page 103 --png` within the visual-diff threshold; enabling the dark sheet leaves the PNG unchanged. | 02b UI |
-| FR-UI-nnn [P16-3] | A table edit shall commit directly with an undo toast unless it touches more than 500 entities, changes an outgoing identifier (tag, designation, wire number, address, folio) on more than one entity, contains an invalid or ambiguous cell, or comes from a file; then it opens the bulk preview. | Should | MVP | ARCH §5.4; FR-UI-022 | Filling the function text "Reserve" over the 12 spare -X1031 terminals is one undo step without preview; pasting 20 terminal designations opens the preview. | 02b UI |
-| FR-UI-nnn [P16-4] | An in-app glossary panel shall map EPLAN and QET terms to EW terms, search in every UI locale and generate the palette aliases from the same source as the documentation glossary. | Should | MVP | NFR-DOC-05, NFR-UX-03 | Searching "folio report" shows "interruption point" and offers the insert command. | 02b UI |
-| FR-UI-nnn [P16-5] | A "Describe page" command shall produce an accessible text summary of a page in reading order: devices with tag, function text and part; connections by potential; interruption points with target cells. | Should | 1.0 | G8; NFR-A11Y-02 | On folio 102 it lists -102G1, -102F1 and -102F2 with parts, and "24VDC-1 at 102-H15, continues at 103-A1". | 02b UI |
-| FR-UI-nnn [P16-6] | An optional wire-colour view shall stroke connections in their effective colour with the IEC 60757 code, case WH and YE wires and stripe GNYE, as a view only. | Could | MVP | FR-UI-025 | With the view on, W29 shows "DBU" and W27 is striped; the PDF exported with the view on is byte-identical to the one exported with it off. | 02b UI |
-| FR-UI-nnn [P16-7] (amends FR-UI-005) | MVP navigators shall also include connections (with the wire list as table mode) and the PLC navigator of FR-PLC-020; the acceptance counts 3 cables on Golden A. | Must | MVP | FR-PLC-020; 08 §9; VIS §9 | The navigators list W1–W44, the 56 channels of -201U1, 22 IP pairs, 3 strips and 3 cables. | 02b UI |
-| FR-UI-nnn [P16-8] | One-time contextual tips for users coming from EPLAN or QET shall be offered for known habits (graphic line on a CP, typing into a derived tag, editing a generated page) and be switchable off by one setting. | Could | MVP | G13; IDEA-105 | Drawing a graphic line onto a CP shows the tip once with "convert to connection"; with tips off, nothing is shown. | 02b UI |
-| FR-UI-nnn [P16-9] | User settings, keymaps and workspaces shall be versioned files that preserve unknown keys; an unreadable file shall yield defaults, a backup copy and a banner. | Should | MVP | G1, G2 | A settings file with a key from a newer version keeps the key after an older version saves; a corrupted file yields defaults and `settings.toml.bad-1`. | 02b UI |
-| NFR-UX-nn [P16-10] | A formative usability round with at least two participants shall run in month 4–5 on the read-only viewer and the place and wire tools; its findings are triaged before M2. | Should | MVP | SC-9; ADR-0007 | The R0 report exists before the M2 test is scheduled. | 02c UX |
-| FR-UI-001 amendment [P16-11] | The shell shall use native menus (muda) on macOS and Windows and an egui-drawn menu bar on Linux, all generated from one action registry with identical entries, accelerators and enabled states. | Must | MVP | ADR-0014 pending amendment 1; Open question 1 | A kittest flow on Linux and a manual check on macOS and Windows list the same File menu entries and accelerators. | 02b UI |
-| FR-UI-023 amendment [P16-12] | Non-undoable operations shall appear as marker lines in the history; only those that destroy or overwrite data (library writes outside the project, overwriting a file, purging library copies, the empty-project import checkpoint) shall ask for confirmation. | Must | MVP | ADR-0008 pending amendment 1; Open question 3 | Exporting the golden PDF to a new file asks nothing and adds a marker line; exporting over an existing file asks once. | 02b UI |
+The "go to page or cell" row is **FR-UI-039**, one row with [06](06-schematic-editor.md)'s proposal, and the
+About dialog of §13 is **FR-UI-038**.
 
 ## Open questions
 
 1. **Menus on Linux.** muda attaches menus only to GTK windows, and eframe/winit creates none (**verify**).
-   *Recommendation:* draw the menu bar with egui on Linux from the same action registry and keep muda on macOS and
-   Windows; amend FR-UI-001 as [P16-11].
-2. **Navigator rows of FR-UI-005/006.** FR-UI-006 places the PLC navigator at 1.0 while FR-PLC-020 makes it MVP
-   Must; FR-UI-005 omits the connection navigator that [08](08-connections-terminals-cables.md) §9 uses for the wire
-   list; its acceptance counts 4 cables, but Golden A has 3 (-3W1, -106W1, -106W2; -101W1 exists only in Golden
-   A-R). *Recommendation:* adopt [P16-7].
-3. **Confirming non-undoable operations.** ARCH §5.3 says such operations are "flagged and confirmed"; confirming
-   every export would train users to click through. *Recommendation:* flag all of them in the history and confirm
-   only destructive ones (library writes, overwriting files, purges, the empty-project import checkpoint); record
-   this in ADR-0008 (its pending amendment 1) and amend FR-UI-023 as [P16-12].
+   **Resolved:** EW draws the menu bar with egui on Linux from the same action registry and keeps muda on macOS and
+   Windows, as amended FR-UI-001 and ADR-0014 (amendment 1) state.
+2. **Navigator rows of FR-UI-005/006.** FR-UI-006 placed the PLC navigator at 1.0 while FR-PLC-020 makes it MVP
+   Must; FR-UI-005 omitted the connection navigator that [08](08-connections-terminals-cables.md) §9 uses for the
+   wire list; its acceptance counted 4 cables, but Golden A has 3 (-3W1, -106W1, -106W2; -101W1 exists only in
+   Golden A-R). **Resolved:** FR-UI-005 now includes the connection navigator (wire list as table mode) and the PLC
+   navigator, its criterion lists W1–W44, the 56 channels of -201U1, 22 IP pairs, 3 strips and 3 cables, and
+   FR-UI-006 no longer lists PLC.
+3. **Confirming non-undoable operations.** ARCH §5.3 said such operations are "flagged and confirmed"; confirming
+   every export would train users to click through. **Resolved:** every non-undoable operation is a marker line in
+   the history and only destructive ones ask (library writes, overwriting files, purges, the empty-project import
+   checkpoint), as ARCH §5.3, ADR-0008 (amendment 1) and amended FR-UI-023 state (§8.1).
 4. **Help viewer.** Opening bundled HTML in the system browser is simple, but sandboxed Linux packages need the
    OpenURI portal and lose the anchor on some desktops (**verify**). *Recommendation:* use the system browser at
    MVP and reconsider an in-app viewer only if R1 shows friction.
@@ -1470,8 +1477,8 @@ IDs are provisional; the editors of 02b and 02c assign final numbers.
    bindings. *Recommendation:* a "preview" preset in the usability build only, built from R0 notes; record first
    keys pressed (§19.5) and ship after two EPLAN users confirm at R2 (02b Open question 14).
 6. **Accessible-name enforcement.** egui_kittest 0.37 fails on unnamed *input* widgets; NFR-A11Y-02 requires all
-   interactive widgets. *Recommendation:* add an `ew-ui` test helper that walks the AccessKit tree after every
-   kittest step and fails on any focusable node without a name.
+   interactive widgets. **Resolved:** an `ew-ui` test helper walks the AccessKit tree after every kittest flow and
+   fails on any focusable node without a name (ADR-0014 amendment 2; §10.5).
 7. **Dark canvas expectations.** Users of dark IDEs may expect a dark sheet; print-true is safer for colour codes.
    *Recommendation:* print-true by default, the dark sheet as a 1.0 option, and ask in R1 and R2.
 8. **Table preview threshold.** The 500-entity limit and the identifier rule of §7.5 are judgement calls.

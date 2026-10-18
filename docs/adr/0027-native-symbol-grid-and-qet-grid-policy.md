@@ -52,8 +52,8 @@ users
    (FR-PAG-022, Could). It must keep every connection and every cross-reference cell, or refuse with a report.
    Pages are never converted automatically.
 4. **A basic-project setting "grid for new pages"** is restricted to the native grid (default) or the QET 10 px grid
-   ([06](../design/06-schematic-editor.md) OQ6). A migrating company can then keep extending QET-style projects
-   until it adopts native symbols.
+   ([06](../design/06-schematic-editor.md) OQ6; FR-PAG-031). A migrating company can then keep extending QET-style
+   projects until it adopts native symbols.
 5. **Visible grids.** The status bar and a page badge show the active grid ("4 mm" or "QET 10 px"), and the cursor
    readout shows the page cell (FR-UI-018, FR-UI-034).
 6. **If the pilot prefers QET-like density on A4, choose 2.5 mm instead.** Everything above applies unchanged with
@@ -65,9 +65,9 @@ users
    QET-grid pages. The starter set therefore ships a second, generated edition (item-key suffix `@qet10`): every CP
    keeps its count of grid steps (`k · 4 mm` → `k · 7_937_500/3` nm), graphics and slot positions scale by the same
    ratio (about 0.66 at 4 mm, 1.06 at 2.5 mm) and round to the nm, and text heights stay style-driven. It is linted
-   like the native edition and never drawn by hand. The full 1.0 library gets no such edition
-   ([07](../design/07-symbols-parts-macros.md) §3.2 rule 2, OQ14; proposed FR-SYM-nnn in 07's "Proposed new
-   requirements").
+   like the native edition, visually checked on Golden A pages before the starter set is frozen, and never drawn by
+   hand. The full 1.0 library gets no such edition ([07](../design/07-symbols-parts-macros.md) §3.2 rule 2, OQ14;
+   FR-SYM-030).
 
 ## Consequences
 
@@ -114,5 +114,5 @@ It is due before spine lane 2 draws the starter symbol set, that is by week 2 of
   [07 symbols, parts and macros](../design/07-symbols-parts-macros.md) §3.2, OQ9;
   [14 interop](../design/14-interop.md) §4.2; [16 UX/UI](../design/16-ux-ui.md);
   [20 golden project](../design/20-golden-project.md); [gaps-and-corrections](../research/gaps-and-corrections.md) G4.
-- **Requirements:** FR-PAG-020, FR-PAG-021, FR-PAG-022, FR-SYM-007, FR-SYM-009, FR-SYM-015, FR-SYM-018, FR-SYM-020, FR-XRF-021,
+- **Requirements:** FR-PAG-020, FR-PAG-021, FR-PAG-022, FR-PAG-031, FR-SYM-007, FR-SYM-009, FR-SYM-015, FR-SYM-018, FR-SYM-020, FR-SYM-030, FR-XRF-021,
   FR-IMP-008, FR-IMP-021, FR-UI-015, FR-UI-018, FR-UI-034; NFR-UX-01, NFR-UX-08.

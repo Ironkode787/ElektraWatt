@@ -1,6 +1,6 @@
 # ElektraWatt vision and scope
 
-**Status:** Draft v0.1 · **Date:** 2026-10-17 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document states why ElektraWatt (EW) exists, who it is for, what it must achieve and what it
 deliberately leaves out. It fixes the release targets (MVP, 1.0, 1.x, Later) per capability area, so that the
@@ -196,10 +196,11 @@ release. After a change, "wires changed since V1.0" is a derived list for the sh
 
 ### J4 PLC I/O round trip with TIA Portal (1.0)
 
--201U1 is a PLC station, bus node and assembly; sub-bases -201U3 … -201U8 are modules with address maps →
-channels Q0.0 … Q6.7 are addressed automatically and bound to valve coils with function texts (TA05-V-15,
-"Spare") → AML AR APC or TIA tag XLSX export → the programmer edits symbols in TIA Portal → re-import with a diff
-preview and per-channel conflicts.
+-201U1 is a PLC station, bus node, assembly and valve terminal; sub-bases -201U3 … -201U8 and -202U2 are modules
+whose part data carries the address map → channels Q0.0 … Q6.7 are addressed automatically and bound to valve
+coils, and their texts come from the process tags of the driven field devices (TA05-V-15) or from "Spare" → AML
+AR APC or TIA tag XLSX export → the programmer edits symbols in TIA Portal → re-import with a diff preview and
+per-channel conflicts.
 
 ### J5 Review, change and revision compare (MVP; compare 1.0)
 
@@ -233,7 +234,7 @@ EPLAN restructured its portfolio in 2026; Electric P8 now has four tiers
 | PLC and bus planning, ERP integration | Advanced | PLC/bus model MVP; AML/TIA/CODESYS exchange 1.0; ERP via CSV/XLSX |
 | Revision management, translation, multi-user, project management | Pro | Revisions MVP; translation (XLIFF, PDF per language) 1.0; multi-user via git and locks |
 | Cable-length calculation, 3D cabinet routing | Pro / separate Pro Panel product | 1.0 |
-| API extensions | Premium | CLI MVP; rhai and MCP 1.0; WASM plugins and Python 1.x |
+| API extensions | Premium | CLI and rhai formulas MVP, read-only `ew mcp` MVP (Could); rhai automation and ask-first MCP writes 1.0; WASM plugins and Python 1.x |
 | Data Portal (> 2 million device data sets, about 500 manufacturers) | All tiers | No equivalent (see below) |
 | AI assistant (Copilot, Platform 2027) | Platform | MCP for a user-chosen agent; nothing bundled |
 | Linux, macOS | Not available | Supported |
@@ -312,7 +313,7 @@ parked. Indicatively, MVP corresponds to milestone M2 (month 6–7) and 1.0 to m
 | Area | MVP | 1.0 | 1.x | Later |
 |---|---|---|---|---|
 | **PRJ** project & structure | Master data, party roles (D-30), structured supply, IEC 81346 structure nodes (=P01, +J-E-2416), sections, company basic project | Multiple structure aspects in navigators, external project references resolved when open | Multi-project workspaces | — |
-| **PAG** pages & frames | Page types, sparse folios, generated section dividers, 17 × 8 frame, Prev/Next, page navigator | Frame/form editor, A3 and other sheet sizes | — | — |
+| **PAG** pages & frames | Page types, sparse folios, sub-pages for report continuations (901.1), generated section dividers, 17 × 8 frame, Prev/Next, page navigator | Frame/form editor, A3 and other sheet sizes | — | — |
 | **SYM** symbols | Starter IEC 60617 and ISO 1219 set for the golden project; QET element import; symbol editor (Should) | Full IEC 60617 and ISO 1219 library, symbol linting | Generated symbol families | — |
 | **DEV** devices | Devices, functions, main/aux, black boxes, assemblies with children (valve terminal), spares | Device selection by function, aspects for all PLC and bus roles | — | — |
 | **NUM** tags & numbering | Identifier sets (EN 81346-2:2009 default, IEC 81346-2:2019, IEC 60750), page-based rule -101F1, frozen tags, previewed renumber | Wire-number and terminal-numbering schemes per profile | Numbering from PLC data | — |
@@ -336,7 +337,7 @@ parked. Indicatively, MVP corresponds to milestone M2 (month 6–7) and 1.0 to m
 | **EXP** data exchange | BOM, wire, terminal CSV/XLSX; Excel round trip of tables | AML, PLCopen XML, glTF/STL of the cabinet | EW→QET export (if requested) | EPLAN XML export |
 | **UI** interface | egui shell, navigators, property grid with provenance, command palette, keymaps, accessibility, CPU fallback | PLC, Fluid, Panel 3D and Manufacturing workspaces, second monitors | — | Alternative chrome |
 | **EXT** CLI, scripting, plugins | `ew` CLI (export, check, query, sql, render, import, diff, fmt), rhai formulas; headless read-only `ew mcp` (Could) | rhai automation and recorded macros, jobsets, `ew mcp` with ask-first writes | WASM plugins, Python wheel, MCP GUI live bridge | — |
-| **COL** storage & collaboration | JSONL format, save protocol, lock, journal, recovery, `ew diff`; merge driver (Should) | Merge driver and integrity check (Must), format freeze | Optional local git history | Real-time co-editing |
+| **COL** storage & collaboration | JSONL format, save protocol, lock, journal, recovery, `ew diff`, integrity check on open and after merges; merge driver (Should) | Merge driver (Must), cross-file reconciliation with the conflict panel, format freeze | Optional local git history | Real-time co-editing |
 | **I18N** project languages | `MlText` in the model, one project language | XLIFF export/import, PDF per language | Dictionary and translation memory | — |
 
 ---
@@ -400,20 +401,21 @@ This is a scope document. It does not elaborate individual requirements. It is n
 
 ### Proposed new requirements
 
-To be numbered by the editors of 02a/02c if no equivalent row exists.
-
-| Proposed ID | Requirement | Release | Priority | Source |
-|---|---|---|---|---|
-| FR-PRJ-nnn | The system shall provide a company-standard wizard that creates a basic project (SVG logo, title-block form, colour and size profile, identifier set, numbering scheme, structure identifiers, revision format, project languages) from which new projects inherit | MVP | Must | G13; D-03, D-05, D-06, D-08 |
-| FR-IMP-nnn | A QET import shall produce a migration report as a check run that lists every lenient-mode violation and every detected reference-defect class (duplicate or empty designations, mixed tag schemes, devices without parts), each with a quick fix where one exists | MVP | Must | SC-4; D-03, D-11, D-12 |
-| NFR-DOC-nn | Every release shall ship the anonymised golden project J-E-2416 (CC0) as sample project, tutorial basis and CI fixture | MVP | Must | SC-1; ADR-0024 |
-| NFR-COMP-nn | The UI, documentation, licence texts and every release report shall state that EW checks do not replace engineering verification; release reports list the rule-pack versions and waivers applied | MVP | Must | ADR-0030 (PLD) |
-| NFR-UX-nn | Before M2, a moderated usability test with at least two EPLAN users and one QET user shall reach ≥ 80 % unassisted completion of the core tasks; it is repeated at 1.0 with at least five users | MVP | Must | SC-9; ADR-0007 |
+The five rows this document proposed are in the catalogues. Each one was merged into an existing row that carries
+its substance:
+- company-standard wizard that creates a basic project → **FR-PRJ-010** ([02a](02a-requirements-core.md));
+- QET migration report as a check run → **FR-IMP-003** ([02b](02b-requirements-extended.md));
+- anonymised golden project shipped as sample, tutorial basis and CI fixture → **NFR-DOC-04**
+  ([02c](02c-nonfunctional-requirements.md));
+- statement that EW checks do not replace engineering verification → **NFR-COMP-04**
+  ([02c](02c-nonfunctional-requirements.md));
+- moderated usability test before M2 and at 1.0 → **NFR-UX-01** ([02c](02c-nonfunctional-requirements.md)).
 
 ## Open questions
 
-1. **Does the MVP need folio 902's 2D panel layout?** It is part of the reference set. *Recommendation:* yes, as a
-   2D panel front bound to devices with part dimensions and an unplaced-devices list; 3D stays in 1.0.
+1. **Does the MVP need folio 902's 2D panel layout?** It is part of the reference set. **Resolved:** yes; the 2D
+   panel front bound to devices, its legend and the unplaced-device check are MVP (FR-LAY-006 … FR-LAY-017 in
+   [02b](02b-requirements-extended.md)), and 3D stays in 1.0.
 2. **Must the pilot ever deliver native EPLAN projects?** *Recommendation:* assume not (AS-1), collect evidence
    during the pilot, keep EPLAN XML export at Later.
 3. **Compete with QET, or coordinate?** *Recommendation:* coordinate: publish the format specification, contact
@@ -422,15 +424,18 @@ To be numbered by the editors of 02a/02c if no equivalent row exists.
    M0–M1.
 5. **Are the G6 size classes right?** *Recommendation:* recalibrate L/XL from the pilot's three largest projects
    before the M0 spike.
-6. **Where do thermal calculation (THM) and the read-only wiring viewer live?** [Architecture](04-architecture.md)
-   §3 names no crate for either. *Recommendation:* THM as queries in `ew-panel`; the viewer as a Manufacturing
-   workspace of the `elektrawatt` binary reading `.ewpp`. The architecture owner should confirm.
-7. **Golden A with or without D-13?** *Recommendation:* as drawn, with EW-POT-013 reported (acceptance
-   criterion 8), plus a corrected variant once the pilot confirms the real wiring.
+6. **Where do thermal calculation (THM) and the read-only wiring viewer live?** **Resolved:** THM runs as queries
+   in `ew-panel` ([12](12-panel-layout.md) §1.2); the viewer is the `ew-viewer` crate, used by a small
+   `ew-wiring-viewer` binary for shop PCs and by the "Preview package" view of the Manufacturing workspace
+   ([architecture](04-architecture.md) §3, [13](13-manufacturing-outputs.md)).
+7. **Golden A with or without D-13?** **Resolved:** Golden A keeps the wiring as drawn, with EW-POT-013 reported
+   (EF-01, acceptance criterion 8), and Golden A-R carries a rewired test variant ([20](20-golden-project.md) §2.4)
+   until the pilot confirms the real wiring (PQ-13).
 8. **UI languages at MVP?** *Recommendation:* English and Dutch at MVP, German by 1.0, via Weblate.
 9. **When must the open ADRs be decided?** *Recommendation:* ADR-0025 and ADR-0030 before the first external
    contribution and the first signed release; ADR-0027 and ADR-0028 before spine lane 2 builds the symbol set
    (weeks 2–5).
-10. **Headless MCP in the MVP?** QET already ships one. *Recommendation:* read-only `ew mcp` (query, SQL, checks)
-    as MVP Could; ask-first writes at 1.0.
+10. **Headless MCP in the MVP?** QET already ships one. **Resolved:** read-only `ew mcp` (query, SQL, checks) is
+    MVP Could (FR-EXT-016) and ask-first writes are 1.0 Should (FR-EXT-017), both in
+    [02b](02b-requirements-extended.md).
 11. **North American standards?** *Recommendation:* Later; confirm the pilot has no UL 508A or NFPA 79 work.

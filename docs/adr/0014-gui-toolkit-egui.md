@@ -1,6 +1,6 @@
 # ADR-0014: GUI toolkit: egui/eframe behind `ew-ui`, over a toolkit-agnostic `ew-viewmodel`
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -28,7 +28,8 @@
 1. **Toolkit.** egui/eframe 0.37 with egui_tiles, egui_table and egui_ltreeview; muda 0.21.2 for native menus and
    rfd 0.17.2 for native file dialogs.
 2. **Confinement.** Only `ew-ui` and the `elektrawatt` binary know egui; only the renderers know wgpu
-   ([architecture](../design/04-architecture.md) §3, rule 3; enforced by CI, NFR-MAINT-01).
+   ([architecture](../design/04-architecture.md) §3, rule 3; enforced by CI, NFR-MAINT-01). Amendment 3 adds the
+   wiring viewer.
 3. **View-model layer.** `ew-viewmodel` provides toolkit-agnostic panel models: navigator trees, table rows with their
    edit → command mapping, property-grid rows with provenance, message lists. Each is a plain Rust structure computed
    from queries and stamped with the revision it reflects. egui calls them every frame, which is cheap when memos hit
@@ -42,6 +43,22 @@
    `inspection` feature and `egui_mcp` are compiled **only** into test builds; CI asserts that release binaries do not
    contain the inspection code path, because it listens on a TCP port when enabled (NFR-SEC-09).
 
+## Amendments
+
+Accepted on 2026-10-18. The decision text above is unchanged; these entries refine it.
+
+1. **Menus on Linux** (2026-10-18; [UX/UI](../design/16-ux-ui.md), open question 1). muda attaches menus only to GTK
+   windows, which eframe/winit does not create (**verify**). EW therefore uses native menus through muda on macOS
+   and Windows and draws the menu bar with egui on Linux. All menus are generated from one action registry.
+   FR-UI-001 asks for native menus on macOS and Windows.
+2. **Accessible-name coverage** (2026-10-18; same document, open question 6). egui_kittest fails only on unnamed
+   *input* widgets, while NFR-A11Y-02 covers all interactive widgets. An `ew-ui` test helper therefore walks the
+   AccessKit tree after every kittest flow and fails on any unnamed focusable node.
+3. **Wiring viewer** (2026-10-18; [manufacturing outputs](../design/13-manufacturing-outputs.md),
+   [architecture](../design/04-architecture.md) §3). The read-only `.ewpp` wiring viewer of 1.0 is built on
+   `ew-ui` widgets. Rule 3 therefore reads: only `ew-ui`, `ew-viewer`, the app binary and the `ew-wiring-viewer`
+   binary know egui; only the renderers know wgpu.
+
 ## Consequences
 
 ### Positive
@@ -54,21 +71,13 @@
 
 ### Negative
 
-- The look is not native; native menus (muda) and dialogs (rfd) mitigate this on macOS and Windows.
+- The look is not native; native menus (muda) and dialogs (rfd) mitigate this on macOS and Windows. On Linux the
+  menu bar is drawn by egui (amendment 1).
 - Quarterly lock-step upgrades are recurring work, and a skipped quarter makes the next one larger.
 - Immediate mode puts all UI state in the application; view-models must be cheap to recompute every frame.
 - Text editing in egui is weaker than in native toolkits; long multi-line texts (comments, function texts with
   several languages) need care.
 - AccessKit's platform adapters do not yet support rich text or hypertext.
-
-## Pending amendments
-
-1. **Menus on Linux** ([UX/UI](../design/16-ux-ui.md), open question 1). muda attaches menus only to GTK windows,
-   which eframe/winit does not create (**verify**). *Recommendation:* draw the menu bar with egui on Linux from the
-   same action registry, keep muda on macOS and Windows, and amend FR-UI-001 to "native menus on macOS and Windows".
-2. **Accessible-name coverage** (same document, open question 6). egui_kittest fails only on unnamed *input*
-   widgets, while NFR-A11Y-02 covers all interactive widgets. *Recommendation:* add an `ew-ui` test helper that walks
-   the AccessKit tree after every kittest flow.
 
 ## Alternatives considered
 

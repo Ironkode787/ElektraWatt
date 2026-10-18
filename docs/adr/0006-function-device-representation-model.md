@@ -1,6 +1,6 @@
 # ADR-0006: Function / Device / Representation model with typed device aspects
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -59,6 +59,25 @@ subclasses cannot express a device that is a PLC station, a bus node and an asse
   function whose CPs are ports 1/2/3/4/5.
 - The overview on folios 201 and 202 is a representation generated from the assembly's children in physical order.
 
+## Amendments
+
+Accepted on 2026-10-18. The decision text above is unchanged; these entries refine it.
+
+1. **Interruption-point functions without a device** (2026-10-18; [domain model](../design/03-domain-model.md) §7).
+   An interruption point such as 24VDC-1 belongs to no physical device. `Function.device` is therefore optional,
+   with the structural invariant "None if and only if the kind is `Ip`" (ADR-0009, amendment 2), and `Function`
+   gains `kind: Normal | Ip(IpSpec) | BlackBox`. An IP function lives in the page file of its representation.
+2. **The valve-terminal `Assembly` aspect lives on -201U1** (2026-10-18; [PLC and bus](../design/10-plc-and-bus.md),
+   [fluid power](../design/11-fluid-power.md) §3.2). -201U1 carries four aspects: `PlcStation` (role valve
+   terminal), `BusNode`, `Assembly` and `ValveTerminal`. `AssemblyConfig.covers` maps each order code to the child
+   devices it covers. A part-less assembly device is allowed for valve terminals without an integrated bus node.
+3. **Panel-front representations are derived** (2026-10-18; [panel layout](../design/12-panel-layout.md)). No
+   panel-front `Representation` rows are stored: the query `panel_front_reps(dev)` derives them from the device's
+   placements, for navigation and "show all representations", and a PanelLayout page hosts one `SurfaceView` of
+   the placements. One physical position therefore has one record (D-02). Symbols may still carry 2D front
+   graphics for that view. The stored representation types are multi-line, single-line, overview, fluid, bus
+   topology, contact image, strip segment and graphic ([domain model](../design/03-domain-model.md) §6).
+
 ## Consequences
 
 ### Positive
@@ -66,8 +85,9 @@ subclasses cannot express a device that is a PLC station, a bus node and an asse
 - The BOM aggregates a single path, `bom_rows(mode)` over parts on devices, assembly children and carriers. One strip
   with several segments is one row with a quantity (D-04, D-42), in assembly or component mode (D-36).
 - The overview cannot disagree with the details, because it is generated from the assembly's children (D-10).
-- Child devices get derived tags such as -201U3-QM1 from their parent (D-27, D-41).
-- Layout labels come from the device a placement references (D-02).
+- Child devices get derived tags such as -201U3-Q1 from their parent (D-27, D-41).
+- Layout labels come from the device a placement references, and panel fronts are derived from the placements
+  (amendment 3), so the layout cannot drift from the schematic (D-02).
 - Xrefs between representations of one device (main/aux, overview/detail) are relations, not texts (FR-XRF-015,
   FR-XRF-016).
 - The valve terminal's dual nature is explicit, so the PLC, bus and fluid views show one identity.
@@ -84,17 +104,6 @@ subclasses cannot express a device that is a PLC station, a bus node and an asse
 - QET users must learn the device/function split; the QET importer maps master/slave elements to main and auxiliary
   functions (FR-IMP-009).
 
-## Pending amendments
-
-These refinements come from the [domain model](../design/03-domain-model.md) (§7 and open questions 5 and 6). They
-do not change the decision above.
-1. **Interruption-point functions without a device.** An interruption point such as 24VDC-1 belongs to no physical
-   device. *Recommendation:* make `Function.device` optional, with the structural invariant "None if and only if
-   the kind is `Ip`", and add `kind: Normal | Ip | BlackBox` to `Function`, as the domain model §7 does.
-2. **Where the valve-terminal `Assembly` aspect lives.** *Recommendation:* keep it on -201U1 for the golden
-   project, with `AssemblyConfig.covers` mapping the order codes to the children, and allow a part-less assembly
-   device for valve terminals without an integrated bus node ([PLC and bus](../design/10-plc-and-bus.md)).
-
 ## Alternatives considered
 
 | Alternative | Why rejected |
@@ -110,7 +119,8 @@ do not change the decision above.
   [ADR-0007](0007-explicit-connections-and-autoconnect.md), [ADR-0009](0009-invariant-catalogue.md), [ADR-0018](0018-reports-forms-engine-and-machine-profiles.md).
 - **Design:** [architecture](../design/04-architecture.md) §4.2, §4.3; [domain model](../design/03-domain-model.md)
   §7, §11–§13; [connections, terminals and cables](../design/08-connections-terminals-cables.md) §6;
-  [PLC and bus](../design/10-plc-and-bus.md); [panel layout](../design/12-panel-layout.md).
+  [PLC and bus](../design/10-plc-and-bus.md); [fluid power](../design/11-fluid-power.md) §3.2;
+  [panel layout](../design/12-panel-layout.md).
 - **Requirements:** FR-DEV-001, FR-DEV-002, FR-DEV-003, FR-DEV-004, FR-DEV-005, FR-DEV-015, FR-DEV-019,
   FR-DEV-020, FR-DEV-021, FR-DEV-022, FR-DEV-023, FR-DEV-024, FR-NUM-013, FR-TRM-001, FR-TRM-004, FR-TRM-011,
   FR-PLC-004, FR-LAY-006, FR-REP-005, FR-REP-006, FR-XRF-015, FR-XRF-016, FR-IMP-009.

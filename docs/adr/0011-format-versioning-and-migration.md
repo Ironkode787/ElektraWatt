@@ -1,6 +1,6 @@
 # ADR-0011: Format versioning, per-kind migration and format-change windows
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -53,6 +53,19 @@ F = file format, M = file `min_reader`):
 | F.major < R.major | Migrate in memory; the first save asks and writes `<name>.ew.pre-<F>.ewz` beside the project (NFR-REL-06) |
 | `"unstable": true`, read by a release build | Read-only with a warning |
 
+## Amendments
+
+Accepted on 2026-10-18. The decision text above is unchanged; this entry refines it.
+
+1. **Append-only members and original-line preservation** (2026-10-18;
+   [project format](../design/05-project-format-and-persistence.md) §10.3, open question 3). "Fields in schema
+   order" and byte-identical preservation (FR-COL-010, NFR-REL-04) could disagree when a newer minor inserts
+   members. The rules are therefore:
+   - new members are optional, **appended** after the existing members of their kind and tagged `since = "1.n"`,
+     which feeds `min_reader`;
+   - every persisted enum has an `Unknown(Value)` catch-all, so a new variant stays additive;
+   - an untouched record with unknown content is written back as its **original line**.
+
 ## Consequences
 
 ### Positive
@@ -70,17 +83,7 @@ F = file format, M = file `min_reader`):
 - The yearly window delays breaking improvements by up to a year after 1.0.
 - Preserving unknown data means the writer must keep members it does not understand and must never reorder them in
   untouched records.
-- Every persisted enum needs a catch-all variant so that a new variant stays additive.
-
-## Pending amendments
-
-1. **Append-only members and original-line preservation**
-   ([project format](../design/05-project-format-and-persistence.md) §10.3, open question 3). "Fields in schema
-   order" and byte-identical preservation (FR-COL-010, NFR-REL-04) can disagree when a newer minor inserts members.
-   The proposed rules: new members are optional, **appended** after the existing members of their kind and tagged
-   `since = "1.n"` (which feeds `min_reader`); every persisted enum has an `Unknown(Value)` catch-all; a record with
-   unknown content is written back as its **original line** while untouched. *Recommendation:* accept and add these
-   rules to the decision.
+- Every persisted enum needs a catch-all variant so that a new variant stays additive (amendment 1).
 
 ## Alternatives considered
 

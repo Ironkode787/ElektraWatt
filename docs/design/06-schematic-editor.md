@@ -1,6 +1,6 @@
 # Schematic editor
 
-**Status:** Draft v0.1 · **Date:** 2026-10-17 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) edits schematic pages: multi-line, single-line, overview,
 bus-topology, fluid and graphic pages, together with their frames, folios and sections. It covers symbol placement,
@@ -104,14 +104,14 @@ The page type governs what a page can contain and what drawing means on it (FR-P
 | Page type | Representation types offered | Wire tool creates | Autoconnect | Joins nets | Reference folios |
 |---|---|---|---|---|---|
 | MultiLine | MultiLine, ContactImage, StripSegment | `Wire` (electrical) | on | yes | 101, 102, 103, 106 |
-| SingleLine | SingleLine | MVP: `Overview` kind; 1.0: single-line connection with conductor count (FR-CON-029, Open question 13) | on | MVP: no; 1.0: mapped onto the multi-line connections | — |
+| SingleLine | SingleLine | MVP: `Overview` kind; 1.0: `SingleLine{conductors}` connection (FR-CON-044, FR-CON-029) | on | MVP: no; 1.0: mapped onto the multi-line connections | — |
 | Overview | Overview | `Overview` | off | no | — |
 | AssemblyOverview | Overview with `assembly_view` (generated) | `Overview` | off | no | 201, 202 |
 | BusTopology | Topology (bus ports, connectors, single-line bus cables) | `Bus` | on, bus ports only | bus nets | 3 |
 | Fluid | Fluid | `Fluid` with line kind | on, fluid ports only | fluid graph only (FR-FLU-002) | 203–206 |
 | Graphic | Graphic | nothing (graphics tools only) | off | no | — |
 | TitlePage | cover form content, page items | nothing | off | no | 1 |
-| PanelLayout | PanelFront projections of placements ([12](12-panel-layout.md)) | nothing | off | no | 902 |
+| PanelLayout | `SurfaceView` of placements (derived; [12](12-panel-layout.md)) | nothing | off | no | 902 |
 | ModelView (1.0), ExternalDocument (1.x) | — | nothing | off | no | — |
 | TableOfContents, SectionDivider, Report | generated, read-only | edits refused with a link to the report block or section (FR-PAG-002) | — | — | 2, 100, 200, 900, 901, 903–911 |
 
@@ -132,8 +132,8 @@ on a graphic page.
 - **Full page name** `=P01+J-E-2416/101` is derived from the page structure and folio. Duplicates are a prevent rule
   (FR-PAG-012).
 - **Page order** is `page_order()`, which merges drawn pages, dividers and report pages. Prev/Next, TOC, outline and
-  `/PageLabels` come from it (FR-PAG-013). A report block that overflows continues on sub-pages `<folio>.<n>`, as
-  proposed in [20-golden-project](20-golden-project.md).
+  `/PageLabels` come from it (FR-PAG-013). A report block that overflows continues on sub-pages `<folio>.<n>`
+  (FR-PAG-030; [20-golden-project](20-golden-project.md) §16).
 - **Page title and description.** The page title ("Power Supply 1 - Main Current") is `Page.title`; the title-block
   "Description" inherits the project description unless `description_override` is set, which a check reports
   (FR-PAG-010, FR-REP-036; field split per [03](03-domain-model.md) OQ1).
@@ -146,7 +146,7 @@ A page has three distinct geometric systems. Mixing them up is the most common s
 |---|---|---|---|
 | **Frame grid** (columns, rows) | the frame `FormDef`: column count, start index, width; row count, labels, height; header bands (FR-PAG-014) | anchor cells and cross-reference texts | 17 columns 0–16 of 60 px, 8 rows A–H of 80 px, 20 px header bands (FR-PAG-015) |
 | **Snap grids** | `Page.grid` (connection grid) plus a fine grid | CPs, wire bends (connection grid); graphics and texts (fine grid) | QET 10 px = `7_937_500/3` nm on imported pages; native 4 mm proposed (ADR-0027) |
-| **Sheet transform** | the frame form's page-to-sheet transform (proposed in [20](20-golden-project.md)) | paper output only | scale 0.986282578, offset 9.79 mm; native frames scale 1 |
+| **Sheet transform** | the frame form's page-to-sheet transform (`FormDef.page_to_sheet`, QET-compatible frames only; FR-PAG-029) | paper output only | scale 0.986282578, offset 9.79 mm; native frames scale 1 |
 
 Shipped frames:
 - **QET-compatible A4 landscape**, grid and no-grid variants with one title block (FR-PAG-015, FR-PAG-017). Golden
@@ -159,8 +159,9 @@ Frames are assigned by project default, page-type default and page override (FR-
 
 **Snap grids per page.** The active connection grid is shown in the status bar and as a page badge; QET-grid pages
 carry a "10 px" marker (FR-PAG-021, FR-UI-018). CPs of symbols are always on the page's connection grid
-(FR-SYM-009). Graphics and texts snap to the fine grid: 1 mm on native pages and 1 px (`793_750/3` nm) on QET pages;
-Alt suppresses snapping for them. Converting a QET page to the native grid is a 1.x command (FR-PAG-022).
+(FR-SYM-009). Graphics and texts snap to the fine grid: on native pages 0.5 mm for graphics and 1 mm for texts
+(ADR-0027 recommendation 1), on QET pages 1 px (`793_750/3` nm); Alt suppresses snapping for them. Converting a QET
+page to the native grid is a 1.x command (FR-PAG-022).
 
 ### 2.5 Representations: variants, orientation, text slots
 
@@ -217,7 +218,7 @@ a box edge; structure assignment is a derived default that EPLAN users expect to
 
 **Black-box geometry.** A black box has no library symbol: its outline, the positions of its device CPs on the
 outline and its inner graphics ("AC ~ / 24 VDC" on -102G1, the "24VDC" and "GND" fields of -102F2) are page
-geometry. This document proposes a `BoxSpec` on `Representation` for them (Open question 1). CPs stay on the
+geometry, stored in `Representation.box: BoxSpec` ([03](03-domain-model.md) §6; FR-DEV-039). CPs stay on the
 connection grid and on the outline; resizing the box moves its CPs along the outline and connections follow. An
 auxiliary function drawn inside its own device's box (the 13-14 contact of -102F2) prints no cross-reference.
 
@@ -233,7 +234,7 @@ ip          = "{page}-{row}{column}"     # interruption-point partner: "102-A1" 
 aux_to_main = "({page}-{row}{column})"   # on an auxiliary function: "(201-E1)"
 main_to_aux = "∞ {list}"                 # on the main function: "∞ 3-B2, 106-G3"; list items use `ip`
 structure   = "when-different"           # "+J-E-206/…" only when the target page's structure differs (FR-XRF-004)
-same_page   = "full"                     # or "zone-only" (proposed, IEC 61082-1 style "/H16")
+same_page   = "full"                     # or "zone-only" (FR-XRF-025, IEC 61082-1 style "/H16")
 matrix      = { per_row = 3, max = 9, overflow = "…" }   # one-to-many points (FR-XRF-008)
 ```
 
@@ -295,7 +296,7 @@ jobs (ARCH §5.1).
 | `page.create` | folio, kind, section, structure, title, form?, grid | Interactive | folio proposal §5.6 |
 | `page.copy`, `page.move`, `page.delete` | pages, target section or folio | Bulk | delete leaves devices unplaced unless chosen (FR-PAG-025) |
 | `page.renumber` | scope, start, step, keep_gaps | Bulk | FR-PAG-007; Golden B2 |
-| `device.place` (`PlaceSymbol`) | page, symbol, pos, orient, rep_type, target, autoconnect hints | Interactive | §3.3; part-first placement is `target = FromPart` (Open question 14) |
+| `device.place` (`PlaceSymbol`) | page, symbol, pos, orient, rep_type, target, autoconnect hints | Interactive | §3.3; part-first placement is `target = FromPart`; `device.place_from_part` and `symbol.place` are `CommandMeta.aliases` ([17](17-extensibility.md) §2.1), and the journal records `device.place` |
 | `rep.move`, `rep.transform` | reps, delta or page; rotate, mirror, variant | Interactive | routes follow (FR-CON-004) |
 | `rep.exchange_symbol` | rep, symbol, CP mapping | Interactive | FR-SYM-022 |
 | `connection.draw` (`Connect`) | a, b (CP, junction or point on a connection), route, kind | Interactive | §4.4 |
@@ -312,25 +313,33 @@ jobs (ARCH §5.1).
 
 ### 3.2 Normalisers that run behind the editor
 
-Normalisers add ops to the same transaction, at most three passes (ARCH §5.2). The editor relies on these, in this
-order:
+Normalisers add ops to the same transaction, at most three passes (ARCH §5.2). ARCH §5.2 lists the normaliser
+families and names this table as their **registry**: a new normaliser is added here, with its owner, before it
+ships. The order is the order within one pass; a normaliser whose input another one creates in the same pass sees
+it in the next pass. All are deterministic and break ties by ID.
 
-1. **CP instantiation** for new functions from FnDef or part pattern (FR-DEV-002). Only overrides persist.
-2. **Online numbering**: new devices get the next free counter in their scope (FR-NUM-007). Moving a main
-   representation that makes a page-based tag collide assigns the next free counter in the same transaction
-   ([03](03-domain-model.md) proposed FR-NUM-nnn): -101F1 dragged to folio 102 becomes -102F3.
-3. **Autoconnect hint conversion**: hints accepted in the ghost become `Connection` ops after re-validation against
-   the candidate snapshot (ADR-0007). A hint whose target vanished is dropped and reported in the toast.
-4. **Connection split**: a symbol dropped onto a wire splits it (FR-CON-008, §5.3).
-5. **Junction clean-up**: a junction left with two connections dissolves into one connection; a junction left with
-   one connection is deleted together with it, and the preview lists both.
-6. **Conductor assignment** for wires crossed by a cable definition line ([08](08-connections-terminals-cables.md)).
-7. **Online wire numbering**: new connections get the next number of the active wire-numbering scheme when online
-   numbering is on, otherwise they stay `Unassigned` and print "?" (FR-NUM-019, FR-NUM-021).
+| # | Normaliser | Effect | Owner |
+|---|---|---|---|
+| 1 | **Valve functions from the part** (N-FL-1) | Creates or removes a valve's valve and coil functions per the part's `solenoids` | [11](11-fluid-power.md) §4.2 |
+| 2 | **CP instantiation** | Creates the CPs of new functions from FnDef or part pattern (FR-DEV-002); only overrides persist | this document; [07](07-symbols-parts-macros.md) §4.2 |
+| 3 | **Channel instantiation** (N1) | Creates a module's channels with v5 IDs from the part's `channels` | [10](10-plc-and-bus.md) §3.3 |
+| 4 | **Online numbering** | New devices get the next free counter in their scope (FR-NUM-007). Moving a main representation that makes a page-based tag collide assigns the next free counter in the same transaction (FR-NUM-029): -101F1 dragged to folio 102 becomes -102F3 | this document |
+| 5 | **Valve position and child counter** (N-FL-2) | Lowest free or requested position in the module; the child counter follows the position | [11](11-fluid-power.md) §4.2 |
+| 6 | **Autoconnect hint conversion** | Hints accepted in the ghost become `Connection` ops after re-validation against the candidate snapshot (ADR-0007); a hint whose target vanished is dropped and reported in the toast | this document |
+| 7 | **Connection split** | A symbol dropped onto a wire splits it (FR-CON-008, §5.3) | this document |
+| 8 | **Junction clean-up** | A junction left with two connections dissolves into one connection; a junction left with one connection is deleted together with it, and the preview lists both (invariant CI-04) | this document; [08](08-connections-terminals-cables.md) §3.1 |
+| 9 | **Conductor assignment** | Wires crossed by a cable definition line become cores | [08](08-connections-terminals-cables.md) §7.2 |
+| 10 | **Clamp pick** | A wire ending on a terminal without a clamp gets the first free clamp of the drawn side | [08](08-connections-terminals-cables.md) §6.3 |
+| 11 | **Number transfer** | When an edit changes a physical wire's carrier connection, moves its `NumberSpec`, its `WireOverrides.ends` and `WireOverrides.length` to the new carrier and rewrites records keyed by the old wire ID (`Bond.via`) | [08](08-connections-terminals-cables.md) §5.1; end overrides [13](13-manufacturing-outputs.md) §2.3 |
+| 12 | **Online wire numbering** | New wires get the next number of the active wire-numbering scheme when online numbering is on, otherwise they stay `Unassigned` and print "?" (FR-NUM-019, FR-NUM-021) | [08](08-connections-terminals-cables.md) §5.2 |
+| 13 | **Solenoid binding** (N2 = N-FL-3) | Binds each declared solenoid's coil to the channel the part's position map assigns, if that channel is unbound; an explicit binding in the command wins | [10](10-plc-and-bus.md) §3.3 |
+| 14 | **Module pin binding** (N3) | Binds a new physical channel to the module pin of the part's channel map | [10](10-plc-and-bus.md) §3.3 |
+| 15 | **Logical-net inheritance** (N4) | A bus connection to a port without a logical net assigns the net of the other port | [10](10-plc-and-bus.md) §3.3 |
+| 16 | **Drives link** (N-FL-4) | The first tube from a valve working port to a consumer port of another device adds `DeviceLink{Drives}` | [11](11-fluid-power.md) §4.2 |
+| 17 | **Tube counter** (N-FL-5) | A new tube connection gets its counter when a line-tag scheme is active | [11](11-fluid-power.md) §4.2 |
 
-The ARCH §5.2 list names five normalisers; split and online wire numbering are additions of this document, and
-auto-routing (§5.4) runs inside `connection.draw` and `rep.move` themselves, so a script gets the same route as the
-mouse.
+Auto-routing (§5.4) is not a normaliser: it runs inside `connection.draw` and `rep.move` themselves, so a script
+gets the same route as the mouse.
 
 ### 3.3 Placing symbols and assigning devices
 
@@ -341,7 +350,7 @@ pub enum PlaceTarget {
     NewDevice { letter: Option<Ident> },           // letter from the FnDef category via the identifier set (FR-NUM-004)
     FromPart { part: PartRef },                    // device + template functions; the chosen one is placed (FR-DEV-017)
     Function(Id<Function>),                        // another representation of an existing function (FR-DEV-003)
-    JoinDevice { device: Id<Device>, role: Role }, // the user typed the tag of an existing device (proposed FR-DEV-nnn)
+    JoinDevice { device: Id<Device>, role: Role }, // the user typed the tag of an existing device (FR-DEV-038)
 }
 pub struct AutoconnectHint { pub cp: u16, pub to: HintTarget }
 pub enum HintTarget {
@@ -376,7 +385,7 @@ Rules:
   identities and, because it is a move, connectivity (FR-CON-004): each connection whose other end stays behind is
   replaced by an IP pair whose name is proposed from the potential ("24VDC-1" or the next free name of its series),
   listed and editable in the preview. The user may instead drop those connections; the preview then lists them as
-  removed, so the connectivity change is explicit, never silent (Open question 11). **Cut and paste** is delete plus
+  removed, so the connectivity change is explicit, never silent (FR-CON-043). **Cut and paste** is delete plus
   paste and follows §3.6: connections to outside the selection are not copied.
 - **Structure follows the page** unless the device has an explicit slot; moving the only representation of a device
   to a page of another location asks whether to keep the old location as an explicit slot (FR-PRJ-019).
@@ -393,9 +402,11 @@ Rules:
 - **Junctions.** Ending a wire on the interior of another connection's segment creates a `Junction` and splits that
   connection. Style defaults to Dot; wiring defaults to Star for Dot and Chain for Bevel ([03](03-domain-model.md)
   OQ7). `sequence` stores connection IDs; the editor shows each member by its far endpoint, e.g. (+#1, -102F1:1,
-  +#2) for J3. The initial sequence lists the two parts of the split connection ordered by the anchor cells of their
-  far endpoints in reading order (row, then column), so on a top-down diagram the feeding device comes first, and
-  appends the new branch. The junction's property page shows its sequence as a reorderable list together with the
+  +#2) for J3. The initial sequence lists the two parts of the split connection ordered by flow distance from the
+  potential's source ([08](08-connections-terminals-cables.md) §3.2, §3.6), with reading order (row, then column of
+  the far endpoints' anchor cells) as the tie-break, so the feeding device comes first, and appends the new branch;
+  the M2 usability test confirms this default (PQ-27). The junction's property page shows its sequence as a
+  reorderable list together with the
   **physical wires it produces** ("W13 F55:2 → E55:L; W14 F55:2 → E56:X2"), so the user edits the wiring order the
   shop will cut, not a graphic. A junction whose feed cannot be determined is reported by EW-POT-011
   ([15](15-checks-revisions-collaboration.md) §4.4).
@@ -417,8 +428,9 @@ Rules:
   the left, one colour code per conductor ("2.5 BK BU"). The project's marker mode decides which connections show
   markers (all, deviations, explicit overrides, none; FR-CON-024). In modes that show markers for connections
   without a `WireMarker` item, the scene places them at a derived position. A group marker over several connections
-  is a proposed extension of `PageItem::WireMarker` (Open question 2). Colour fields accept only IEC 60757 codes and
-  profile-declared company codes such as DBU (FR-CON-019); typing "BR" offers "BN" (D-17).
+  is one `PageItem::WireMarker{connections}`, whose list order is the printed order ([03](03-domain-model.md) §6,
+  FR-CON-039). Colour fields accept only IEC 60757 codes and profile-declared company codes such as DBU
+  (FR-CON-019); typing "BR" offers "BN" (D-17).
 - **Wire numbers on the canvas** are derived texts placed by the project's display rule (each segment, once per
   page or at both ends, FR-CON-026); unassigned connections show "?" (FR-NUM-021). The editor never stores the
   printed number, so a page renumber or a route edit cannot leave a stale number behind (FR-NUM-023).
@@ -426,12 +438,13 @@ Rules:
 ### 3.6 Copy, paste and duplicate
 
 The clipboard carries a **project fragment** in the macro format ([07](07-symbols-parts-macros.md), ARCH §5.5): JSONL
-records of the selection, the embedded library copies they use (symbols, FnDefs, parts, by `sha256`), the
-structure nodes they reference (by aspect and code) and a format stamp. arboard 3.7.0 offers text and images only
-([rust-ecosystem](../research/rust-ecosystem.md)), so at MVP the fragment travels as **text** behind a
-`#ew-fragment v1` header line; another EW instance recognises the header, any other application sees JSON Lines.
-"Copy tag list" (TSV) and "Copy as image" (PNG) are separate commands. A multi-format clipboard (fragment, TSV, PNG
-and a vector flavour at once) needs platform code and is 1.0 (proposed FR-UI-nnn). A pasted fragment is untrusted
+records of the selection, the embedded library copies they use (symbols, FnDefs, parts, with their copy metadata
+`{library_id, item_id, version, sha256}`), the structure nodes they reference (by aspect and code) and a format
+stamp. arboard 3.7.0 offers text and images only ([rust-ecosystem](../research/rust-ecosystem.md)), so at MVP the
+fragment travels as **text** behind a `#ew-fragment v1` header line; another EW instance recognises the header, any
+other application sees JSON Lines (FR-UI-040). "Copy tag list" (TSV) and "Copy as image" (PNG) are separate
+commands. A multi-format clipboard (fragment, TSV, PNG and a vector flavour at once) needs platform code and is 1.0
+(FR-UI-051). A pasted fragment is untrusted
 input: it is schema-validated with the importer's size limits and never carries rule packs, reports or scripts.
 
 Paste (`edit.paste`, FR-DEV-029, FR-UI-036):
@@ -442,8 +455,11 @@ Paste (`edit.paste`, FR-DEV-029, FR-UI-036):
    resulting tags.
 3. **Structure.** Nodes rebind by (aspect, code) or alias; unknown nodes map to the target page's structure, and the
    ghost lists the mapping.
-4. **Library copies.** An identical copy (same `sha256`) is reused; otherwise the copy is added. Two different
-   versions of one library item can coexist and are reported for a later "update from library" (FR-SYM-016).
+4. **Library copies.** A copy of an item the target already embeds in the same version (same `sha256`) is reused,
+   and a copy of an item it does not embed is added. For another version of an embedded item the paste asks for
+   one of three choices ([07](07-symbols-parts-macros.md) §2.1): update the existing copy (a previewed "update from
+   library", FR-SYM-016), adapt the pasted records to the existing copy, or keep both, which mints the
+   version-qualified copy ID `v5(NS_LIBCOPY, library_id ‖ item_id ‖ version)` for the second copy.
 5. **Connections** are copied only when both ends are copied. The ghost counts the dropped ones ("3 connections not
    copied: one end outside the selection").
 6. **IP names** are kept and may pair with points already in the target. The ghost lists new pairings so that an
@@ -478,8 +494,8 @@ property, FR-SYM-024), `Image` (content-addressed SVG or PNG, FR-SYM-025) and `W
 and print flags are 1.0 (FR-PAG-026).
 
 A **path function text** is a free text tied to a column range. It becomes the automatic function text of the
-representations in those columns unless they carry a manual text (FR-DEV-011). It needs a role on `FreeText`
-(Open question 3).
+representations in those columns unless they carry a manual text (FR-DEV-011). It is a `FreeText` with role
+`PathFunction{columns}` ([03](03-domain-model.md) §6).
 
 Mechanical linkages between related functions (an actuator and its contacts; a valve and a process valve) are
 derived dashed lines, not graphics (FR-SYM-014, FR-DEV-028). Dragging the actuator moves its linkage, and the
@@ -513,28 +529,30 @@ re-evaluates only its page and potential (ADR-0019). Findings show in the messag
 on the canvas as a severity icon at the target's anchor plus a patterned halo (FR-UI-025). Hovering shows the
 message, the rule ID and the quick fixes.
 
-Rule IDs are those of [15](15-checks-revisions-collaboration.md) §4. The `kind` column is the rule's kind (15 §2.3),
-which decides the pending display below; 15 §2.5 fixes EW-POT-013 and EW-POT-006 as `safety`, the other kinds are
-this document's proposal for the rule definitions.
+Rule IDs, kinds and scopes are those of the [15](15-checks-revisions-collaboration.md) §4 catalogue, whose Kind
+column (kinds per 15 §2.3) decides the pending display below; this document defines only how each kind is shown
+while drawing. A scope is the memo key of `checks(scope)` (15 §2.3); prevent rules are evaluated at commit, on the
+candidate snapshot, not as a memo scope.
 
 | Rule (requirement) | Kind | Scope | Shown | Reference example |
 |---|---|---|---|---|
-| Prevent rules: EW-RDS-004 tag unique (FR-NUM-012), EW-TERM-001/-002 terminal designation non-empty and unique (FR-TRM-002), EW-CORE-052 one star source per IP name | conflict | transaction | the commit is refused with the reason (strict mode) | a second -102F1 under `=P01+J-E-2416` |
+| Prevent rules: EW-RDS-004 tag unique (FR-NUM-012), EW-TERM-001/-002 terminal designation non-empty and unique (FR-TRM-002), EW-CORE-052 at most one star source per IP name and scope, an even count in chain mode (FR-CHK-017) | conflict | device; strip; potential; evaluated at commit | the commit is refused with the reason (strict mode) | a second -102F1 under `=P01+J-E-2416` |
 | EW-POT-013 N switching (FR-CHK-019) | safety | potential | immediately, error | T55 and S56 on 101 (EF-01, D-13) |
 | EW-POT-001 type conflict without bond (FR-CHK-028) | conflict | potential | immediately, with quick fix "declare bond" | 0V wired to -X1032 on 103 (D-22) |
 | EW-POT-006 PE smaller than line (FR-CHK-020) | safety | potential | immediately, error | W6 on 101 (EF-06, D-38) |
-| EW-CORE-051 unpaired IP (FR-CHK-017) | completeness | page, name | pending while the page is being edited | PE-1.1 before 103 exists |
+| EW-CORE-051 unpaired IP (FR-CHK-017) | completeness | potential | pending while the page is being edited | PE-1.1 before 103 exists |
 | EW-POT-009 unconnected CP (FR-CHK-018) | completeness | page | pending while the page is being edited | -102F2:13, :14 (EF-09, D-23) |
 | EW-CORE-041 device without part (FR-CHK-024) | completeness | device | pending while the page is being edited | S56, E56 (EF-04) |
 | EW-CORE-034 external connection without cable (FR-CHK-033) | completeness | page | pending while the page is being edited | J-E-206 → 1X1 (EF-07, D-19) |
-| EW-CORE-053 xref target cell empty or outside the frame (FR-CHK-035) | hygiene | xref | immediately, warning | "3-B0" (D-14) |
+| EW-CORE-053 xref target cell empty or outside the frame (FR-CHK-035) | hygiene | page (one finding per cross-reference) | immediately, warning | "3-B0" (D-14) |
 | EW-NUM-001 frozen tag deviates (FR-CHK-025); EW-RDS-003 letter code (FR-CHK-026) | hygiene | device | info; warning | S51 … 1X1 (EF-15); T55 (EF-18) |
-| EW-CORE-061 printed cap height below minimum (FR-CHK-023) | hygiene | text style | immediately, warning | styles `cp.small`, `marker` (EF-12, D-31) |
+| EW-CORE-061 printed cap height below minimum (FR-CHK-023) | hygiene | project (one finding per text style) | immediately, warning | styles `cp.small`, `marker` (EF-12, D-31) |
+| EW-CORE-071 graphic line ending on a CP (FR-CON-001) | hygiene | page | info, quick fix "convert to connection" | a QET-imported line drawn onto a CP (§8 pitfall 5) |
 
 **Pending findings.** Completeness rules (unconnected CP, unpaired IP, missing part, missing cable) fire on every
 half-drawn circuit. On the page being edited they show in a muted "pending" style and do not raise the error
 counter until the user leaves the page or runs a check; they always appear at full severity in check runs, exports
-and the release gate (proposed FR-UI-nnn, Open question 7). This is the `drafting` scheme of
+and the release gate (FR-UI-041, Open question 7). This is the `drafting` scheme of
 [15](15-checks-revisions-collaboration.md) §4.9. Safety and conflict rules are never muted. An online rule has a
 budget of 5 ms per commit (NFR-PERF-09); one that exceeds it three times in 100 commits is demoted to deferred for
 the session and logged (FR-CHK-013, 15 §3.1).
@@ -556,7 +574,7 @@ pub enum ToolOutput {
     Cancel,                       // Escape: drop overlay and preview; model revision unchanged
 }
 // `Command` (ARCH §5.1) has an associated const and serde supertraits, so it is not dyn-compatible.
-// `DynCommand` is its object-safe companion with a blanket impl (Open question 15).
+// `DynCommand` is its object-safe companion with a blanket impl (ARCH §5.1, Open question 15).
 pub trait DynCommand: Send {
     fn name(&self) -> &'static str;
     fn cost(&self) -> Cost;
@@ -714,7 +732,7 @@ W″ (c2 → B):
 - W″ gets a new UUIDv7 and, with online wire numbering on, the next number of the scheme (FR-NUM-019); otherwise
   it stays unassigned and prints "?" (FR-NUM-021);
 - both keep W's overrides (FR-CON-008);
-- the preview names both resulting wires (proposed FR-CON-nnn).
+- the preview names both resulting wires (FR-CON-008).
 
 ### 5.4 Orthogonal auto-route
 
@@ -735,7 +753,8 @@ Routes are stored as nm vertices (FR-CON-007). Wire crossings render as plain cr
 The editor previews what [03](03-domain-model.md) §9.2 derives: a junction in Star wiring joins its first sequence
 member to every other member, and one in Chain wiring joins consecutive members. Through an IP pair, the drawn parts
 on both pages form one wire with the ID of the target-side connection. The junction property page renders the
-resulting rows from `physical_wires(net)` before commit.
+resulting rows from `physical_wires_of(potential)` (ARCH §6.4; [08](08-connections-terminals-cables.md) §3.8)
+before commit.
 
 ### 5.6 Folio proposal for a new page
 
@@ -774,7 +793,7 @@ never leave the connection grid in any tool. All snapping works on grid indices,
 - Clicking an xref or IP text jumps to its target; Back and Forward walk the jump history with the previous
   viewport (FR-UI-019, FR-XRF-019). Hovering an xref for 300 ms shows a CPU-rendered preview of the target region.
 - **Go to** (Ctrl+G) accepts a page or a cell in the project's xref format: "103-A1" opens folio 103 with cell A1
-  centred (proposed FR-UI-nnn).
+  centred (FR-UI-039).
 - The status bar shows the cursor in mm and as a cell ("103-A1"), the grid, snap mode, selection count, render
   backend and running jobs (FR-UI-034, FR-UI-028).
 - Level of detail: text below 2 px renders as a bar, and hairlines clamp to 1 px (ARCH §8.2). Panning and zooming a
@@ -833,9 +852,9 @@ direction of R and which of X and Y mirrors horizontally **(verify)**; where KiC
 KiCad.
 
 **Accessibility.** Every tool is operable from the keyboard (NFR-A11Y-01). The selected object is announced as a live
-region ("-102G1, power supply 24 V DC, 7 connections"; FR-UI-026, NFR-A11Y-02), and the navigators are the
-accessible representation of the page. Highlights and findings use pattern plus colour (NFR-A11Y-03). Wire colours
-always show their IEC 60757 code.
+region ("-102G1, power supply 24 V DC, 7 connection points, 9 wires"; FR-UI-026, NFR-A11Y-02), and the navigators
+are the accessible representation of the page. Highlights and findings use pattern plus colour (NFR-A11Y-03). Wire
+colours always show their IEC 60757 code.
 
 ---
 
@@ -865,9 +884,9 @@ export start (FR-OUT-001).
    symbols. The ghost warns ("12 CPs off the page grid"). The remedies are to keep QET symbols on QET pages or to
    convert the page (FR-PAG-022, 1.x).
 4. **QET anchors.** QET-imported symbols keep QET's element-origin anchor so that imported texts match the source,
-   including "3-B0"; FR-CHK-035 then reports the empty cell ([20](20-golden-project.md) proposed FR-IMP-nnn).
-5. **Graphic lines used as wires** (a QET habit). A graphic line ending on a CP has no meaning; a proposed EW-CORE
-   lint reports it at info with the quick fix "convert to connection".
+   including "3-B0"; FR-CHK-035 then reports the empty cell (FR-IMP-038).
+5. **Graphic lines used as wires** (a QET habit). A graphic line ending on a CP has no meaning; the lint EW-CORE-071
+   (kind hygiene, online, MVP) reports it at info with the quick fix "convert to connection".
 6. **Two CPs at one point.** Hit-testing offers a chooser after a short hold.
 7. **Junction dissolution.** Deleting one branch of a three-way junction merges the remaining two connections into
    one, which keeps the UUID of the connection first in the sequence. If both carried frozen numbers, the dropped
@@ -923,7 +942,7 @@ same cell. The walkthrough uses the starter library (FR-SYM-007).
 | 6 | Potential navigator: define L and N (230 V AC, 50 Hz) at 1X1:1 and 1X1:2 and PE at 1X1:PE, all undrawn (a `PotentialDef` sits at an endpoint, not on a wire) | `potential.define` × 3 | W1–W3 are typed L, N, PE. As devices are added, types propagate through S51, -101F1, F55 and T55 by FnDef pass-through pairs (FR-CON-011). Until step 20, downstream potentials carry their first source IP's name or the fallback `<tag>:<CP>` ([03](03-domain-model.md) §9.4) |
 | 7 | Insert the 2-pole switch at B2, variant A (pins 1/3 top, 2/4 bottom) | `device.place` with 2 hints | Ghost: CPs 2 and 4 face down onto 1X1:1 and 1X1:2; commit creates W4, W5. Online numbering proposes -101S1; typing "S51" freezes it |
 | 8 | Assign part Eaton 533356 | `fields.set` | "Eaton", "533356" and "40A" from part and technical data (FR-DEV-016) |
-| 9 | Marker tool across W4, W5 below S51: size 2.5 | `item.place` + overrides | Marker "2.5 BK BU": the size is the override, the colours come from the profile (Open question 8) |
+| 9 | Marker tool across W4, W5 below S51: size 2.5 | `item.place` + overrides | Marker "2.5 BK BU": the size is the override, the colours come from the profile (FR-CON-039; [20](20-golden-project.md) §8.1) |
 | 10 | Insert part A9P52610 at B8 | `device.place` (from part) | Device -101F1 (letter F from the MCB category, first F on 101); CPs 1, 2, N#1, N#2 printed "N" (FR-DEV-006) |
 | 11 | Wire S51:1 → -101F1:1 and S51:3 → -101F1:N#1 over row A; marker above S51 (2.5) | 2 × `connection.draw`, `item.place` | W7, W9 |
 | 12 | Insert part 5SY4204-7 at B12, type "F55"; wire -101F1:1 → F55:1 and -101F1:N#1 → F55:N#1 | `device.place`, 2 × `connection.draw` | W8, W10 are second connections on the -101F1 CPs (daisy chain, FR-CON-006); the scene draws the reference's bevels where the routes diverge |
@@ -934,7 +953,7 @@ same cell. The walkthrough uses the starter library (FR-SYM-007).
 | 17 | Earth symbol at D5; wire 1X1:PE → -XPE | `device.place`, `connection.draw` | -XPE by its class rule, tag hidden. W6 gets 1.5 mm² GNYE by rule: **PE smaller than line** (EF-06, D-38) with the quick fix "set W6 to 2.5 mm²" |
 | 18 | Wire E55:PE down to G15; `P` ends the wire in IP "PE-1.1", Source | `connection.draw` ending in a new IP (1 transaction) | Pending: unpaired IP |
 | 19 | Wire -101F1:2 and -101F1:N#2 to H16, each ending in an IP: "L-1", "N-1", Source | 2 × `connection.draw` ending in a new IP | Pending: two unpaired IPs. Potentials L-1 and N-1 take the IP names |
-| 20 | Potential navigator: name L-S at S51:1, N-S at S51:3, L-55 at F55:2, N-55 at F55:N#2, N-55T at T55:3 and N-55S at S56:14, all undrawn, names only (type left unset, Open question 12) | `potential.define` × 6 | The golden names of [20](20-golden-project.md) §7.3; the types stay derived, so N-55T and N-55S remain "N, switched" |
+| 20 | Potential navigator: name L-S at S51:1, N-S at S51:3, L-55 at F55:2, N-55 at F55:N#2, N-55T at T55:3 and N-55S at S56:14, all undrawn, names only (`ptype` unset, [03](03-domain-model.md) §9.4) | `potential.define` × 6 | The golden names of [20](20-golden-project.md) §7.3; the types stay derived, so N-55T and N-55S remain "N, switched" |
 
 About 45 transactions, each one undo step. Folio 101 now shows the error findings EF-01 and EF-06 at once; the
 completeness findings stay pending until the engineer leaves the page.
@@ -1068,59 +1087,63 @@ This document elaborates the interactive part of:
 - **SYM (placement):** FR-SYM-004, FR-SYM-006, FR-SYM-009, FR-SYM-010, FR-SYM-011, FR-SYM-012, FR-SYM-013,
   FR-SYM-014, FR-SYM-015, FR-SYM-018, FR-SYM-021, FR-SYM-022, FR-SYM-023, FR-SYM-024, FR-SYM-025, FR-SYM-026.
 - **DEV:** FR-DEV-001 … FR-DEV-009, FR-DEV-011, FR-DEV-013, FR-DEV-014, FR-DEV-016, FR-DEV-017, FR-DEV-018,
-  FR-DEV-019, FR-DEV-022, FR-DEV-023, FR-DEV-028 … FR-DEV-032, FR-DEV-035.
+  FR-DEV-019, FR-DEV-022, FR-DEV-023, FR-DEV-028 … FR-DEV-032, FR-DEV-035, FR-DEV-038, FR-DEV-039.
 - **NUM (editor side):** FR-NUM-001, FR-NUM-002, FR-NUM-004, FR-NUM-007, FR-NUM-008, FR-NUM-010, FR-NUM-012,
-  FR-NUM-016, FR-NUM-021, FR-NUM-022, FR-NUM-023, FR-NUM-028.
-- **XRF:** FR-XRF-001 … FR-XRF-024.
+  FR-NUM-016, FR-NUM-021, FR-NUM-022, FR-NUM-023, FR-NUM-028, FR-NUM-029.
+- **XRF:** FR-XRF-001 … FR-XRF-025.
 - **CON (drawing interaction; semantics in 08):** FR-CON-001 … FR-CON-008, FR-CON-010, FR-CON-012, FR-CON-014,
-  FR-CON-019, FR-CON-023, FR-CON-024, FR-CON-025, FR-CON-026, FR-CON-027, FR-CON-031.
+  FR-CON-019, FR-CON-023, FR-CON-024, FR-CON-025, FR-CON-026, FR-CON-027, FR-CON-031, FR-CON-039, FR-CON-043,
+  FR-CON-044.
 - **PRJ, MAC:** FR-PRJ-019, FR-PRJ-020, FR-PRJ-021; FR-MAC-005.
 - **CHK (online display):** FR-CHK-008, FR-CHK-013, FR-CHK-017, FR-CHK-018, FR-CHK-019, FR-CHK-020,
   FR-CHK-023, FR-CHK-024, FR-CHK-025, FR-CHK-026, FR-CHK-028, FR-CHK-033, FR-CHK-035.
 - **UI (canvas):** FR-UI-007, FR-UI-009, FR-UI-010, FR-UI-012, FR-UI-013, FR-UI-015, FR-UI-016, FR-UI-017,
   FR-UI-018, FR-UI-019, FR-UI-020, FR-UI-021, FR-UI-022, FR-UI-023, FR-UI-025, FR-UI-026, FR-UI-028, FR-UI-033,
-  FR-UI-034, FR-UI-035, FR-UI-036.
+  FR-UI-034, FR-UI-035, FR-UI-036, FR-UI-039, FR-UI-040, FR-UI-041, FR-UI-051.
 - **Non-functional:** NFR-PERF-04, NFR-PERF-05, NFR-PERF-06, NFR-PERF-08, NFR-PERF-09, NFR-PERF-19, NFR-REL-07,
   NFR-REL-08, NFR-A11Y-01, NFR-A11Y-02, NFR-A11Y-03, NFR-UX-01, NFR-UX-03, NFR-UX-04, NFR-UX-07, NFR-UX-08.
 
 Referenced here and elaborated elsewhere: FR-PAG-003 ([12](12-panel-layout.md)); FR-PAG-004, FR-PAG-011,
-FR-PAG-016, FR-PAG-019, FR-PAG-023, FR-PAG-026, FR-PAG-027, FR-PAG-028, FR-REP-036, FR-REP-041, FR-OUT-001,
+FR-PAG-016, FR-PAG-019, FR-PAG-023, FR-PAG-026, FR-PAG-027, FR-PAG-028, FR-PAG-029, FR-PAG-030, FR-REP-036,
+FR-REP-041, FR-OUT-001,
 FR-OUT-005, FR-OUT-007 ([09](09-reports-forms-output.md)); FR-SYM-003, FR-SYM-007, FR-SYM-016, FR-SYM-027,
 FR-SYM-028, FR-PRT-009, FR-MAC-008 ([07](07-symbols-parts-macros.md)); FR-CON-011, FR-CON-029, FR-NUM-009,
 FR-NUM-018, FR-NUM-019, FR-TRM-002, FR-CHK-021 ([08](08-connections-terminals-cables.md)); FR-CHK-038
 ([15](15-checks-revisions-collaboration.md)); FR-FLU-002 ([11](11-fluid-power.md)); FR-PRJ-008, FR-PRJ-009
-([16](16-ux-ui.md) §9.2); FR-UI-011, FR-UI-014 ([16](16-ux-ui.md));
+([16](16-ux-ui.md) §9.2); FR-UI-011, FR-UI-014 ([16](16-ux-ui.md)); FR-IMP-038 ([14](14-interop.md));
 FR-EXT-015, FR-EXT-018 ([17](17-extensibility.md)); FR-I18N-001, FR-I18N-005.
 
 ### Proposed new requirements
 
-| Proposed ID | Requirement | Prio | Release | Source | Acceptance criterion | Target |
-|---|---|---|---|---|---|---|
-| FR-DEV-nnn | Entering the tag of an existing device on a newly placed function shall offer to join that device, as an auxiliary function or as another representation of an existing function with the same FnDef and CP designations, committed as one transaction. | Must | MVP | EPL §3.2, REF-020 | Placing an NO-contact symbol and typing "-102F2" makes it an auxiliary function of -102F2; one undo restores the separate device. | 02a DEV |
-| FR-DEV-nnn | A black box's outline, device-CP positions on the outline and inner graphics shall be stored with its representation and editable with grips; CPs stay on the outline and the connection grid while connections follow. | Must | MVP | REF-028, FR-DEV-013 | Widening -102G1's box by two grid steps keeps its 7 device CPs (L, N, PE, +#1, +#2, −#1, −#2) on the outline and all 7 connected. | 02a DEV |
-| FR-CON-nnn | One wire marker shall be able to display the effective properties of several adjacent connections as a group (cross-section at the left, one colour code per conductor), with its position authored and its content derived. | Must | MVP | REF-035, FR-CON-023, D-08 | Golden folio 101 prints "2.5 BK BU" below and above S51 from the overrides on W4, W5, W7, W9. | 02a CON |
-| FR-CON-nnn | Splitting a connection by inserting a symbol shall keep the original UUID and wire number on the part at its `a` end, give the other part a new identity (with the next wire number under online wire numbering, else unassigned), and copy the overrides to both. | Should | MVP | FR-CON-008, FR-NUM-019, FR-NUM-023 | Inserting a contact into W13 keeps W13's UUID and number on the F55:2 side; with online wire numbering off, the new part shows "?". | 02a CON |
-| FR-UI-nnn | "Go to" shall accept a folio or a cell in the project's cross-reference format and open that page with the cell centred. | Should | MVP | G5, IDEA-019 | Typing "103-A1" opens folio 103 with cell A1 centred; "/103.A1" works after switching to the EPLAN preset. | 02b UI |
-| FR-UI-nnn | Copy shall put the selection on the system clipboard as a project fragment (the macro format with embedded library copies) in a text flavour with a version header, which another EW instance pastes as records; "Copy tag list" and "Copy as image" shall put a TSV tag list and a PNG rendering on the clipboard. | Should | MVP | ARCH §5.5, FR-UI-036, rust-ecosystem (arboard: text and images) | Copying the -102G1 group in one EW instance and pasting it into a project open in another instance inserts the devices; "Copy tag list" pasted into a spreadsheet yields one tag per row. | 02b UI |
-| FR-UI-nnn | Copy shall offer the fragment, a TSV tag list, a PNG and a vector rendering (SVG, EMF on Windows, PDF on macOS) as simultaneous clipboard flavours, so the target application picks the richest one. | Could | 1.0 | rust-ecosystem (vector clipboard is platform code) | One copy of the -102G1 group pastes as devices into EW, as a table into a spreadsheet and as a vector picture into a word processor. | 02b UI |
-| FR-UI-nnn | Completeness findings (unconnected CP, unpaired interruption point, device without part) on the page being edited shall show in a pending style that does not raise the error count until the page is left or a check runs; safety and conflict findings are never pending. | Should | MVP | G5, IDEA-034 | While folio 101 is being drawn, the unpaired L-1 is pending and EW-POT-013 on T55 is an error; after switching to 102, L-1 counts as an error (EW-CORE-051) until paired. | 02b UI |
-| FR-CON-nnn | Moving a representation to another page shall keep its connectivity: each connection whose other end stays behind becomes an interruption-point pair with a name proposed from the potential, listed and editable in the preview; dropping the connections instead is an explicit preview choice. | Should | MVP | FR-CON-004, ADR-0007 | Dragging -102F1 onto folio 104 creates IP pairs for its two drawn connections (to J3 and J4), named after +24V and +24V-F, and the wire list is unchanged. | 02a CON |
-| FR-CON-nnn | Connections drawn on single-line pages shall join no net and produce no physical wire; from 1.0 they carry a conductor count and are mapped onto the multi-line connections (FR-CON-029). | Must | MVP | FR-PAG-002, FR-CON-029 | A single-line feed drawn between -101F1 and -102G1 on a single-line overview page adds no row to the wire list. | 02a CON |
-| FR-XRF-nnn | The cross-reference format shall offer a same-page form that prints only the cell (e.g. "H16" or "/H16") when source and target are on one page. | Could | MVP | STD §2.2 (IEC 61082-1) | Two "24VDC-9" points on folio 104 print "/F3" and "/A1" with `same_page = "zone-only"`. | 02a XRF |
+The eleven rows this document proposed are in the catalogues:
+- joining an existing device by typing its tag → **FR-DEV-038** ([02a](02a-requirements-core.md));
+- black-box outline, device-CP positions and inner graphics on the representation → **FR-DEV-039** (02a);
+- one wire marker over a group of connections → **FR-CON-039** (02a);
+- split keeps UUID and number on the `a` part → covered by the existing **FR-CON-008** (02a), which now carries the
+  rule;
+- cross-page move keeps connectivity through IP pairs → **FR-CON-043** (02a);
+- single-line connections join no net → **FR-CON-044** (02a);
+- same-page cross-reference form → **FR-XRF-025** (02a);
+- "Go to" a folio or cell → **FR-UI-039** ([02b](02b-requirements-extended.md), one row with
+  [16](16-ux-ui.md)'s proposal);
+- fragment on the clipboard as text, "Copy tag list" and "Copy as image" → **FR-UI-040** (02b);
+- multi-format clipboard → **FR-UI-051** (02b);
+- pending completeness findings → **FR-UI-041** (02b).
 
 ## Open questions
 
 1. **Black-box geometry in the model.** [Domain model](03-domain-model.md) §7 makes black boxes functions of kind
-   `BlackBox` but gives `Representation` no place for an outline, CP positions or inner graphics.
-   *Recommendation:* add `Representation.box: Option<BoxSpec{outline: Vec<Pt2>, cps: Vec<(idx, Pt2, dir)>,
-   inner: Vec<Primitive>}>` with the built-in symbol `ew.gen.blackbox` ([07](07-symbols-parts-macros.md) §2.3
-   already defers to this question), through the schema-steward rule (ARCH §7.6); part box macros fill it on
-   placement, laying out the part's CP pattern on the outline in pattern order (07 §4.2).
-2. **Wire-marker groups.** `PageItem::WireMarker{connection, fields}` covers one connection; the reference draws
-   groups ("2.5 BK BU" across two conductors, "1.5 DBU DBU WH WH" across four). *Recommendation:* change it to
-   `connections: Vec<ConnectionId>` with the order defining the printed order.
-3. **Path function texts.** FR-DEV-011 needs a free text that applies to a column range. *Recommendation:* add a
-   role `FreeText{role: Plain | PathFunction{columns: Range}}`; the derived automatic function text reads it.
+   `BlackBox` but gave `Representation` no place for an outline, CP positions or inner graphics.
+   **Resolved:** the schema-steward batch (ARCH §7.6) adds `Representation.box: Option<BoxSpec{outline: Vec<Pt2>,
+   cps: Vec<(idx, Pt2, dir)>, inner: Vec<Primitive>}>` with the built-in symbol `ew.gen.blackbox` to 03 §6
+   (FR-DEV-039); part box macros fill it on placement, laying out the part's CP pattern on the outline in pattern
+   order ([07](07-symbols-parts-macros.md) §4.2).
+2. **Wire-marker groups.** `PageItem::WireMarker{connection, fields}` covered one connection; the reference draws
+   groups ("2.5 BK BU" across two conductors, "1.5 DBU DBU WH WH" across four). **Resolved:**
+   `PageItem::WireMarker{connections: Vec<Id<Connection>>, fields}`, with the order defining the printed order
+   (03 §6, FR-CON-039).
+3. **Path function texts.** FR-DEV-011 needs a free text that applies to a column range. **Resolved:** `FreeText`
+   has a role `Plain | PathFunction{columns}` (03 §6); the derived automatic function text reads it.
 4. **Variant letters.** The A–H mapping to `Orient2` (A–D rotations clockwise, E–H mirrored) is our choice; EPLAN's
    letter order is unverified. *Recommendation:* keep the mapping as data in the keymap-independent symbol settings
    and confirm it with two EPLAN users in the M2 test (PQ-27).
@@ -1131,14 +1154,14 @@ FR-EXT-015, FR-EXT-018 ([17](17-extensibility.md)); FR-I18N-001, FR-I18N-005.
    pages keep the QET grid, so one project mixes grids (pitfall 3). *Recommendation:* add a basic-project setting
    "grid for new pages" restricted to the native grid or the QET 10 px grid, default native, and let the pilot
    choose (PQ-06, ADR-0027).
-7. **Pending findings.** Muting completeness findings during editing reduces noise but could hide problems.
-   *Recommendation:* adopt the proposed FR-UI row and measure in the M2 test whether users miss pending findings;
-   keep pending findings visible as muted icons on the canvas in any case.
-8. **Override granularity of the golden markers.** [20-golden-project](20-golden-project.md) §8.2 lists W4, W5,
+7. **Pending findings.** Muting completeness findings during editing reduces noise but could hide problems. The
+   pending style is adopted as FR-UI-041. *Recommendation:* measure in the M2 test whether users miss pending
+   findings; keep pending findings visible as muted icons on the canvas in any case.
+8. **Override granularity of the golden markers.** [20-golden-project](20-golden-project.md) §8.2 listed W4, W5,
    W7, W9 and W20–W25 as "size, colour (CDP)", but each colour equals the profile value, which the redundant-override
-   rule EW-POT-016 ([08](08-connections-terminals-cables.md) §4.5) would report. *Recommendation:* store only the
-   cross-section override on these wires; markers show effective colours, so the print is unchanged and no rule
-   fires. Align §8.2 of 20.
+   rule EW-POT-016 ([08](08-connections-terminals-cables.md) §4.5) would report. **Resolved:** these wires carry
+   a cross-section override only, and their colours stay at level 2 (profile). Markers print the effective colour,
+   so the drawing is unchanged and EW-POT-016 stays silent on Golden A; 20 §8.1 and §8.2 read the same.
 9. **IP direction default.** The edge heuristic fits the reference but not every drawing style.
    *Recommendation:* keep it as the default, add "direction from the potential's source" as an option, and revisit
    after importing the QET corpus, whose folio reports carry explicit directions.
@@ -1146,25 +1169,26 @@ FR-EXT-015, FR-EXT-018 ([17](17-extensibility.md)); FR-I18N-001, FR-I18N-005.
     *Recommendation:* "in path" with the EPLAN cell format ("13-14 /105.A3") for native basic projects; the QET style
     in the pilot basic project.
 11. **Cross-page moves of connected symbols.** Turning cut connections into IP pairs invents names, but dropping
-    them would let a move change connectivity, which FR-CON-004 forbids. *Recommendation:* generate IP pairs by
-    default for a move (proposed FR-CON-nnn), propose names from the potential, list them in the preview with
-    "drop these connections" as the explicit alternative; cut and paste stays delete plus paste.
+    them would let a move change connectivity, which FR-CON-004 forbids. **Resolved** (FR-CON-043): a move
+    generates IP pairs by default, proposes names from the potential and lists them in the preview with "drop these
+    connections" as the explicit alternative; cut and paste stays delete plus paste.
 12. **Naming-only potential definitions.** The walkthrough names L-S … N-55S without fixing their types, so that
-    N-55T and N-55S stay "N, switched" by propagation. [03](03-domain-model.md) §9 gives `PotentialDef.ptype` no
-    "not set" value besides `Undefined`, and §9.4 does not say whether a definition with `Undefined` overrides the
-    propagated type. *Recommendation:* make `ptype` optional (`None` = name only) and state in 03 §9.4 that a
-    definition's type, when set, wins over propagation but `switched` is still derived from opening pass-through
-    pairs.
-13. **Single-line connection kind.** `ConnectionKind` ([03](03-domain-model.md) §9) has no single-line member, and
-    a `Wire` drawn on a single-line page would join nets and duplicate physical wires. *Recommendation:* at MVP draw
-    single-line connections as kind `Overview`; for 1.0 add `SingleLine{conductors: u8}`, excluded from nets and
-    wire lists and mapped onto the multi-line connections by FR-CON-029 ([08](08-connections-terminals-cables.md)).
-14. **Command name for part-first placement.** [07](07-symbols-parts-macros.md) §5 and [16](16-ux-ui.md) §4.8 use
-    `device.place_from_part`; this document uses `device.place` with `target = FromPart`. *Recommendation:* keep
-    one command, `device.place`, and register `device.place_from_part` as an alias in its `CommandMeta.aliases`
-    ([17](17-extensibility.md) §2.1), so palette, CLI and MCP accept both and the journal records one name.
-15. **Object safety of `Command`.** Arch §5.1 declares `trait Command: Serialize + DeserializeOwned + Send` with a
-    `const NAME` and uses `&dyn Command` in `Session::preview`; such a trait is not dyn-compatible in Rust.
-    *Recommendation:* keep `Command` for typed handlers and add the object-safe `DynCommand` of §4.1 with a blanket
-    impl; `Session::preview`, `Session::execute` and the tools take `&dyn DynCommand` / `Box<dyn DynCommand>`, and
-    `AnyCommand` (17 §2.1) implements it after schema validation. Amend ARCH §5.1 in its next revision.
+    N-55T and N-55S stay "N, switched" by propagation. [03](03-domain-model.md) §9 gave `PotentialDef.ptype` no
+    "not set" value besides `Undefined`. **Resolved:** `ptype` is optional (`None` = name only); 03 §9.4 states that
+    a definition's type, when set, wins over propagation, while `switched` is always derived from opening
+    pass-through pairs.
+13. **Single-line connection kind.** `ConnectionKind` ([03](03-domain-model.md) §9) had no single-line member, and
+    a `Wire` drawn on a single-line page would join nets and duplicate physical wires. **Resolved** (FR-CON-044):
+    at MVP single-line pages draw connections as kind `Overview` (no nets); 1.0 adds `SingleLine{conductors: u8}`,
+    excluded from nets and wire lists and mapped onto the multi-line connections by FR-CON-029
+    ([08](08-connections-terminals-cables.md) §2.3).
+14. **Command name for part-first placement.** [07](07-symbols-parts-macros.md) §5 and [16](16-ux-ui.md) §4.8 used
+    `device.place_from_part`; this document uses `device.place` with `target = FromPart`. **Resolved:** one command,
+    `device.place` (`PlaceSymbol` with `PlaceTarget`); `device.place_from_part` and `symbol.place` are registered in
+    its `CommandMeta.aliases` ([17](17-extensibility.md) §2.1), so palette, CLI and MCP accept them and the journal
+    records `device.place`.
+15. **Object safety of `Command`.** Arch §5.1 declared `trait Command: Serialize + DeserializeOwned + Send` with a
+    `const NAME` and used `&dyn Command` in `Session::preview`; such a trait is not dyn-compatible in Rust.
+    **Resolved:** `Command` stays for typed handlers, and the object-safe `DynCommand` of §4.1 is added with a
+    blanket impl; `Session::preview`, `Session::execute` and the tools take `&dyn DynCommand` /
+    `Box<dyn DynCommand>`, and `AnyCommand` (17 §2.1) implements it after schema validation (ARCH §5.1).

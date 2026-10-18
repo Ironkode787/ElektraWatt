@@ -1,6 +1,6 @@
 # ADR-0008: Transactions, undo/redo and preview-as-fork
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -33,7 +33,8 @@
 1. **Run** the command against `TxBuilder`.
 2. **Normalise:** deterministic normalisers add ops to the same transaction, at most three passes (non-convergence is
    a bug). They number new devices, instantiate CPs, clean up junctions, turn autoconnect hints into connections
-   (ADR-0007) and assign conductors.
+   (ADR-0007) and assign conductors; the full list of normaliser families is the registry in
+   [schematic editor](../design/06-schematic-editor.md) §3.2.
 3. **Validate:** structural invariants, then prevent rules in the project's mode (ADR-0009).
 4. **Commit:** swap in the new `Model` (O(1)), bump `Rev`, push to `History` (coalescing on a matching key) and hand
    the transaction to the writer thread for the journal (ADR-0010).
@@ -49,7 +50,8 @@
 - The stack survives saving; a saved marker drives the dirty flag. An external reload arrives as one undoable
   "External change" transaction.
 - **Not undoable**, flagged in command metadata and confirmed: library writes outside the project, exports, file
-  operations, and a bulk import into an empty project (a checkpoint).
+  operations, and a bulk import into an empty project (a checkpoint). Amendment 1 limits the confirmation to the
+  destructive ones.
 
 ### Preview is a fork
 
@@ -60,6 +62,16 @@
 - **Jobs return commands or prepared transactions with their read set.** If no key in the read set changed since the
   job's revision, the session applies the transaction; otherwise it re-runs the deterministic command on the current
   snapshot (optimistic rebase).
+
+## Amendments
+
+Accepted on 2026-10-18. The decision text above is unchanged; this entry refines it.
+
+1. **Confirmation of non-undoable operations** (2026-10-18; [UX/UI](../design/16-ux-ui.md) §7–§8). Confirming every
+   export would train users to click through. Every non-undoable operation is therefore **flagged** as a marker line
+   in the history, and only the **destructive** ones ask for confirmation: library writes outside the project,
+   overwriting an existing file, purging library copies, and the empty-project import checkpoint. FR-UI-023 and
+   NFR-UX-07 state the same rule.
 
 ## Consequences
 
@@ -90,14 +102,6 @@
 | **SQLite session extension** | Tied to SQLite as the live model (rejected in ADR-0001) |
 | **Hand-written inverse commands** | Every command needs a second, error-prone implementation; before/after ops invert by swapping |
 | **Per-page undo stacks** | Cross-page edits (renumber, IP pairing, import) have no single page |
-
-## Pending amendments
-
-1. **Confirmation of non-undoable operations** ([UX/UI](../design/16-ux-ui.md), open question 3). Confirming every
-   export would train users to click through. *Recommendation:* flag all non-undoable operations in the history,
-   confirm only destructive ones (library writes, overwriting files, purges, the empty-project import checkpoint),
-   record that rule here, and amend FR-UI-023 and NFR-UX-07, which still ask for confirmation of every
-   non-undoable operation.
 
 ## Related
 

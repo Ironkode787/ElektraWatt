@@ -1,6 +1,6 @@
 # ADR-0007: Connection model: explicit connections and junction sequences; autoconnect as an editing aid
 
-**Status:** Accepted, to be validated with two EPLAN users and one QET user before M2 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18 · to be validated with two EPLAN users and one QET user before M2 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -43,6 +43,24 @@ The reference project adds concrete needs:
 7. **Several connections on one CP** keep a defined order (daisy-chaining, FR-CON-006): the junction sequence where
    a junction exists, otherwise ascending connection ID.
 
+## Amendments
+
+Accepted on 2026-10-18. The decision text above is unchanged; these entries refine it.
+
+1. **Optional `Connection.page`** (2026-10-18; [domain model](../design/03-domain-model.md) §9,
+   [project format](../design/05-project-format-and-persistence.md) §2.2). Bridges defined in the strip editor and
+   internal links (channel to coil) are not drawn, so `page` is an `Option`. Such page-less rows live in the shard of
+   the device that owns endpoint `a`. The connection kinds are refined with the domain model: `Bridge(BridgeSpec)`,
+   `Bus(BusLine)` and, from 1.0, `SingleLine`.
+2. **Junction style and wiring** (2026-10-18; [domain model](../design/03-domain-model.md) §9.2). A junction is
+   `Junction { page, at, style: Dot | Bevel{orient}, wiring: Chain | Star, sequence }`. **Star** joins the first CP
+   of the sequence to every other CP; **Chain** joins consecutive CPs; each non-first branch connection gives one
+   physical wire with its ID. Dot junctions default to Star from the first sequence member and Bevel junctions to
+   Chain (the golden reading of folio 101); J5 and J6 of the golden project are set to Star. The default initial
+   sequence orders the parts of a split connection by flow distance from the source, with reading order as the
+   tie-break ([schematic editor](../design/06-schematic-editor.md) §3.5). QET imports, where only geometry is
+   available, use the same defaults; the pilot user confirms them in the M2 usability test.
+
 ## Consequences
 
 ### Positive
@@ -75,18 +93,6 @@ The moderated usability test of NFR-UX-01 (two EPLAN users, one QET user) must a
 
 If the test fails, the remedy is better autoconnect UX (defaults, modifiers, a re-autoconnect command), not
 autoconnect as model semantics. Changing the model would need a new ADR that supersedes this one.
-
-## Pending amendments
-
-These refinements come from the [domain model](../design/03-domain-model.md) (§9 and open questions 3 and 7). They
-do not change the decision above.
-1. **Optional `Connection.page`.** Bridges defined in the strip editor and internal links (channel to coil) are not
-   drawn. *Recommendation:* make `page` an `Option`; such rows live in the shard of the device that owns endpoint
-   `a` ([project format](../design/05-project-format-and-persistence.md) §2.2).
-2. **Junction wiring.** The domain model refines the junction to `style: Dot | Bevel{orient}` plus
-   `wiring: Chain | Star`. *Recommendation:* adopt both, with Dot junctions defaulting to Star from the first
-   sequence member and Bevel junctions to Chain (the golden reading of folio 101); confirm with the pilot user and
-   with QET imports, where only geometry is available.
 
 ## Alternatives considered
 

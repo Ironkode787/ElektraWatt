@@ -1,7 +1,7 @@
 # ElektraWatt architecture specification
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Decided by:** chief architect, after a judge panel over four
-competing proposals (A incremental, B ECS, C relational, D retained/object model)
+**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Decided by:** chief architect, after a judge
+panel over four competing proposals (A incremental, B ECS, C relational, D retained/object model)
 **Scope:** ElektraWatt (EW) v1:
 - Electric P8-class schematics;
 - PLC and I/O;
@@ -13,8 +13,8 @@ competing proposals (A incremental, B ECS, C relational, D retained/object model
 Fixed constraints: Rust, open source, 2–4 developers, cross-platform offline-first desktop.
 
 > **Conventions.**
-> - "Golden project" means the reference project J-E-2416 (`[reference-drawing.md](../research/reference-drawing.md) §4).
-> - D-nn are the reference set's defects (`[reference-drawing.md](../research/reference-drawing.md) §3).
+> - "Golden project" means the reference project J-E-2416 ([reference-drawing.md](../research/reference-drawing.md) §4).
+> - D-nn are the reference set's defects ([reference-drawing.md](../research/reference-drawing.md) §3).
 > - G-n and C-n are items in [gaps-and-corrections.md](../research/gaps-and-corrections.md), which overrides the other research notes.
 > - Crate versions come from the research notes. **(verify)** marks a version or API not confirmed there.
 > - Performance figures are **estimates**, to be confirmed by the M0 spike (§15).
@@ -56,7 +56,7 @@ about A (Appendix A). The four that matter most:
 | UI | egui/eframe 0.37 behind `ew-ui`, over a toolkit-agnostic `ew-viewmodel` |
 | 2D rendering | One display-list IR (`ew-dl`); wgpu canvas plus an always-built vello_cpu path; krilla PDF/A-2b |
 | 3D / CAD | Own wgpu 3D renderer; parry3d; out-of-process OCCT STEP worker (occt-sys / opencascade) |
-| Extensibility | `ew` CLI, rhai (v1), WASM components on the wasmtime 48 LTS line (v1.x), MCP off by default, Python wheel (v1.x) |
+| Extensibility | `ew` CLI, rhai (v1), WASM components on the wasmtime LTS line current at plugin launch (v1.x), MCP off by default, Python wheel (v1.x) |
 | Licensing | App GPL-3.0-or-later with a plugin exception; permissive lower layer MIT OR Apache-2.0 (owner decision) |
 
 **Why A rather than C** (the scores tied 22–22; §17 has the detail):
@@ -153,7 +153,7 @@ flowchart LR
 | **Job pool** (rayon 1.12.0 **(verify)**) | Each job runs on a `World` fork, a (model, memo snapshot) pair cloned in O(1). Jobs never block edits and are never invalidated by them. Results carry their `Rev`, and the UI shows a staleness badge when `Rev < current`. Cancellation is cooperative |
 | **Writer thread** | Serialises immutable snapshots with the save protocol (§7.4). Appends the journal and fsyncs at least once per second. Writes recovery snapshots to the OS state directory. Saving never blocks the UI |
 | **Watcher** (notify 8.2.0) | Detects git pulls and foreign writes, ignoring its own by manifest generation. A foreign generation is loaded on the pool, diffed entity by entity, and offered as one undoable "External change" transaction (§7.4) |
-| **Plugin host** | wasmtime 48.x LTS line (49.0.3 is current; we pin the LTS line). Plugins read through query handles on a snapshot and write only by submitting commands |
+| **Plugin host** | The wasmtime LTS line current at plugin launch; development runs on the 48.x LTS line (49.0.3 is current). Plugins read through query handles on a snapshot and write only by submitting commands |
 | **`ew-step-worker`** | Out-of-process OCCT via occt-sys 7.8.1 + opencascade 0.3.0 (LGPL-2.1, C-5). Supervised with timeouts and restart. Results are cached by `sha256(file) + worker_version`. A crash or a pathological vendor file cannot touch the model |
 | **MCP** | `ew mcp` opens the project headless with the same `Session` API, read-only while the GUI holds the lock. A GUI "live bridge" with ask-first writes follows in v1.x (G10) |
 
@@ -173,6 +173,14 @@ flowchart LR
 prepared transaction together with its read set:
 - if no key in that read set has changed since the job's revision, the session applies it;
 - otherwise the session re-runs the deterministic command on the current snapshot (optimistic rebase).
+
+**Panics.** The panic strategy is [quality, security and release](18-quality-security-release.md) §12.3. Release
+builds keep `panic = "unwind"`:
+- on job-pool threads (importers, rhai, SQL, checks, exports, report pagination) the panic is caught by the job's
+  `catch_unwind`, so the job fails with a report while the model stays unchanged and the session keeps running
+  (NFR-REL-12);
+- on every other thread (UI, writer, commit pipeline) the hook asks the writer thread to flush the journal and then
+  aborts; the next start offers recovery (NFR-REL-13).
 
 **Platforms.**
 - Windows 10 22H2+ and 11 (x64);
@@ -195,43 +203,57 @@ sessions (G6).
 
 | Crate | Layer | Responsibility | Key dependencies |
 |---|---|---|---|
-| `ew-units` | P | `Nm(i64)`, `Pt2`, `Rect`, rational `Grid{num,den}`, `Orient2` (8 variants), `Pose3` (nm + quaternion rounded to 1e-9), fixed-point `Dec3` (mm², A, V) | serde 1.0.229; kurbo 0.13.1 and glam 0.34.1 conversions behind features |
+| `ew-units` | P | `Nm(i64)`, `Pt2`, `Rect`, rational `Grid{num,den}`, `Orient2` (8 variants), `Angle2(i32)` (10⁻³ degree; free texts and graphics only), `Pose3` (nm + quaternion rounded to 1e-9), fixed-point `Dec3` (mm², A, V) | serde 1.0.229; kurbo 0.13.1 and glam 0.34.1 conversions behind features |
 | `ew-ids` | P | `Id<T>`: UUIDv7 for new records, UUIDv5 for instantiated, imported and generated ones; per-session `u32` interner | uuid 1.28.0 |
 | `ew-mltext` | P | `MlText` with EPLAN neutral-xor-languages semantics, BCP 47 `LangTag`, NFC, confusable detection, natural-sort keys | unicode-normalization 0.1.26, unicode-security 0.1.2, icu 2.3.1 |
-| `ew-rds` | P | IEC 81346 parser and formatter (strict and lenient); identifier sets as data: EN 81346-2:2009 single letters (default), IEC 81346-2:2019, IEC 60750 legacy | — |
+| `ew-rds` | P | IEC 81346 parser and formatter (strict and lenient); identifier sets as data: EN 81346-2:2009 single letters (default), IEC 81346-2:2019, IEC 60750 legacy. Node codes are atomic tokens: parsing first matches the longest known node code or alias of the aspect and only then splits at prefix characters, so `+J-E-2416` stays one code | — |
 | `ew-schema` | P | **The persisted record type of every entity kind** (plain serde structs), kind registry, per-kind schema versions, JSON Schemas | serde, schemars 1.2.3 |
 | `ew-format` | P | JSONL canonical reader and writer, sharding rules, manifest, upgrade chain on `serde_json::Value`, 3-way record merge core, conflict records | serde_json 1.0.154, serde_path_to_error 0.1.20, semver 1.0.28, sha2 **(verify)** |
-| `ew-interop-api` | P | `Importer`/`Exporter` traits over `ew-schema` records: `ImportBatch`, `ImportReport`, `SourceRef` | — |
+| `ew-interop-api` | P | `Importer`/`Exporter` traits over `ew-schema` records: `ImportBatch`, `ImportReport`, `SourceRef`, `TableImage`, `Proposal` (§10.6) | — |
 | `ew-dl` | P | Display-list IR: paths, glyph runs, images, groups, symbol instances, link sources and targets, entity tags | kurbo, peniko 0.6.1 |
 | `ew-step-proto` | P | STEP worker IPC contract and cache format | postcard 1.1.3, rkyv 0.8.18 |
-| `ew-memo` | P | Generic memo engine: revisions, dependency recording, early cut-off, durability levels, LRU, statistics, oracle hooks. Knows nothing about ECAD. Not published to crates.io until it has two owners | imbl 7.0.2 (MPL-2.0+) |
+| `ew-memo` | P | Generic memo engine: revisions, dependency recording, early cut-off, durability levels, LRU, statistics, oracle hooks, and a generic reverse-dependency API per query family. Knows nothing about ECAD. Not published to crates.io until it has two owners | imbl 7.0.2 (MPL-2.0+) |
+| `ew-plcaddr` | P | `PlcAddress`, PLC address profiles as data, the address-grammar engine, bit intervals | — |
+| `ew-caex` | P | CAEX 2.15/3.0 model and `ExchangeImage` | quick-xml 0.42.0 |
+| `ew-devdesc` | P | Device descriptions: GSD, GSDML and IODD (ESI and EDS at 1.x) | quick-xml |
+| `ew-ewpp` | P | `.ewpp` record types, JSON Schemas, reader, writer and package diff | zip 9.0.4, csv 1.4.0 |
+| `ew-plugin-wit`, `ew-plugin-sdk` (v1.x) | P | WIT package `elektrawatt:plugin` and the guest SDK with typed bindings generated from the JSON Schemas | wit-bindgen 0.63.0 |
 | `ew-model` | GPL | `Table<T>` of `ew-schema` records, the `Model` snapshot, `Op` apply and invert, base reverse indexes, structural invariants, link delete policies | imbl 7.0.2, smol_str 0.3.6 **(verify)** |
-| `ew-derive` | GPL | All domain queries (§6.4) and the tracked-read context `Q` | ew-memo, ew-model, ew-rds, icu |
-| `ew-commands` | GPL | `Command`, `TxBuilder`, normalisers, validators, numbering engine, `History`, previews, macros, `ApplyImport` | ew-derive |
-| `ew-checks` | GPL | Rule engine, rule packs, online checks as queries, offline check jobs, waivers, quick fixes | ew-derive, rhai 1.26.1, toml 1.1.8 |
-| `ew-sqlview` | GPL | Read-only SQL projection: materialisation, `api_v1_*` views, sandbox, `ew_natural` collation | rusqlite 0.40.2 (`bundled`, `functions`, `hooks`, `limits`) |
-| `ew-library` | GPL | Parts, symbol, form and macro catalogues in SQLite with FTS5; embedding used items into projects | rusqlite 0.40.2 |
-| `ew-store` | GPL | Save protocol, `.~ew.lock`, journal, recovery, watcher, external-change diff, `.ewz` transport, as-built archive | ew-format, notify 8.2.0, zip 9.0.4, etcetera or directories **(verify)** |
-| `ew-reports` | GPL | Built-in report row queries, user SQL reports, pagination into virtual pages, XLSX and CSV tables | ew-derive, rust_xlsxwriter 0.100.0, csv 1.4.0 |
-| `ew-scene` | GPL | Model to display lists per page and layer, forms engine (frames, title blocks, report forms), text shaping, spatial index, hit-testing | parley 0.12.0, fontique 0.12.0, skrifa 0.48.0, harfrust 0.14.0, rstar 0.13.0 |
+| `ew-rhai` | GPL | rhai engine configuration plus the formula and rule profiles (pure, tracked reads, operation limits) | rhai 1.26.1 |
+| `ew-derive` | GPL | All domain queries (§6.4) and the tracked-read context `Q` | ew-memo, ew-model, ew-rds, ew-rhai, ew-plcaddr, icu |
+| `ew-commands` | GPL | `Command`, `DynCommand`, `TxBuilder`, normalisers, validators, numbering engine, `History`, previews, macros, `ApplyImport` | ew-derive |
+| `ew-checks` | GPL | Rule engine, rule packs, the `RuleImpl` trait and registry (Rust and rhai rules implemented here), online checks as queries, offline check jobs, waivers, quick fixes | ew-derive, ew-rhai, toml 1.1.8, fluent-bundle 0.16.0, sha2 **(verify)** |
+| `ew-sqlview` | GPL | Read-only SQL projection: materialisation, `api_v1_*` views, sandbox, `ew_natural` collation; the SQL rule implementations registered into `ew-checks` | rusqlite 0.40.2 (`bundled`, `functions`, `hooks`, `limits`), ew-checks |
+| `ew-library` | GPL | Parts, symbol, form and macro libraries as canonical `.ewlib` text directories at every tier (system, community, company, user); one derived SQLite FTS5 index per user in the cache; embedding used items into projects (§7.7) | ew-format, rusqlite 0.40.2 |
+| `ew-store` | GPL | Save protocol, `.~ew.lock`, journal, recovery, watcher, external-change diff, `.ewz` transport, as-built archive, git commits and tags | ew-format, notify 8.2.0, zip 9.0.4, gix 0.89.0, etcetera or directories **(verify)** |
+| `ew-text` | GPL | Fonts and the memoised `shaped_text` query: one text stack for screen, pagination and paper | parley 0.12.0, fontique 0.12.0, skrifa 0.48.0, harfrust 0.14.0 |
+| `ew-reports` | GPL | Built-in report row queries, user SQL reports through the sandboxed query API of `ew-sqlview` (never links rusqlite), pagination into virtual pages, XLSX and CSV tables | ew-derive, ew-sqlview, ew-text, rust_xlsxwriter 0.100.0, csv 1.4.0 |
+| `ew-scene` | GPL | Model to display lists per page and layer, forms engine (frames, title blocks, report forms), text through `ew-text`, spatial index, hit-testing; PDF underlays (1.0) | ew-text, rstar 0.13.0, hayro 0.8.0 (underlays, 1.0) |
 | `ew-render2d` | GPL | wgpu 2D renderer: lyon tessellation once per symbol, instancing, screen-space lines, glyph atlas | wgpu 30.0.1, lyon_tessellation 1.0.22 |
 | `ew-render-cpu` | GPL | vello_cpu renderer: GPU-less fallback, thumbnails, golden PNGs, banded printing | vello_cpu 0.3.0 |
-| `ew-export` | GPL | PDF (outline, links, named destinations, page labels, PDF/A-2b), SVG, DXF, PNG | krilla 0.8.2, krilla-svg 0.8.1, dxf 0.6.2 |
-| `ew-plc` | GPL | Address grammars and part address maps; AML AR APC (CAEX 2.15 write, 2.15 and 3.0 read); TIA tag XLSX; PLCopen XML; GSDML | quick-xml 0.42.0, calamine 0.36.1 |
-| `ew-panel` | GPL | Layout queries, collision reconciler, routing graph, negotiated-congestion routing, lengths, duct fill, 2D panel projection | parry3d 0.31.1, pathfinding 4.16.0, petgraph 0.8.3, glam 0.34.1 |
+| `ew-export` | GPL | PDF (outline, links, named destinations, page labels, PDF/A-2b), SVG, DXF, PNG (through `ew-render-cpu`) | krilla 0.8.2, krilla-svg 0.8.1, dxf 0.6.2, ew-render-cpu |
+| `ew-print` | GPL | OS print adapters with per-OS features (§8.4) | ew-export, ew-render-cpu |
+| `ew-plc` | GPL | Exchange orchestration, merge and writers: AML AR APC (CAEX 2.15 write, 2.15 and 3.0 read, through `ew-caex`), the TIA "PLC Tags" XLSX exporter and importer, PLCopen XML; rack and slot logic | ew-plcaddr, ew-caex, ew-devdesc, quick-xml 0.42.0, calamine 0.36.1 |
+| `ew-panel` | GPL | Layout queries, collision reconciler, routing graph, negotiated-congestion routing, lengths, duct fill, 2D panel projection; glTF (glb) and STL writer for `layout_scene` | parry3d 0.31.1, pathfinding 4.16.0, petgraph 0.8.3, glam 0.34.1, gltf-json **(verify)** |
 | `ew-render3d` | GPL | wgpu 3D: instancing, feature edges, transparency, CAD camera, picking, gizmo | wgpu 30.0.1, meshopt 0.7.0, transform-gizmo-egui 0.11.0 |
-| `ew-mfg` | GPL | Production package `.ewpp`, wire lists, ferrules, labels, data-driven machine export profiles | zip, csv, rust_xlsxwriter |
-| `ew-import-qet`, `ew-import-eplan`, `ew-import-dxf` | GPL | QET `.qet`/`.qetz`; EDZ (7-Zip and ZIP), EPLAN XML/XLSX; DXF (DWG behind a feature) | roxmltree 0.21.1, quick-xml; sevenz-rust2 0.24.0, zip; dxf 0.6.2, acadrust 0.6.4 (MPL-2.0) |
-| `ew-script`, `ew-plugin-host` | GPL | rhai bindings over queries and commands; WIT world and host | rhai 1.26.1; wasmtime 48.x LTS, wit-bindgen 0.63.0 |
+| `ew-mfg` | GPL | Production package content, wire lists with lengths, ferrules, labels, data-driven machine and label profiles | ew-panel, ew-ewpp, zip, csv, rust_xlsxwriter |
+| `ew-import-qet`, `ew-import-eplan`, `ew-import-dxf` | GPL | QET `.qet`/`.qetz`; EDZ (7-Zip and ZIP), EPLAN XML/XLSX; DXF (DWG behind a feature) | roxmltree 0.21.1, quick-xml, ew-plcaddr (QET); sevenz-rust2 0.24.0, zip, calamine, csv (EPLAN); dxf 0.6.2, acadrust 0.6.4 (MPL-2.0) |
+| `ew-import-catalog` | GPL | Parts from CSV/XLSX (MVP), BMEcat and ETIM xChange (1.x), behind `ew-interop-api` | csv, calamine, quick-xml |
+| `ew-import-tables` | GPL | The golden CSV bootstrap behind `ew import csv`, the round-trip table reader and translation tables; reused by `ew-testkit` | csv, calamine |
+| `ew-script`, `ew-plugin-host` | GPL | rhai automation bindings over queries and commands (profile from `ew-rhai`); WIT world and host on the wasmtime LTS line current at plugin launch (48.x in development), plugin export roles (§10.4), plugin rule implementations registered into `ew-checks`, the `secret-get` capability (v1.x) | ew-rhai; wasmtime LTS, wit-bindgen 0.63.0 |
 | `ew-jobs` | GPL | Scheduler, progress, cancellation, staleness tagging, adopt-if-unchanged | rayon |
-| `ew-api` | GPL | The `Session` facade shared by every front-end | everything above except UI |
+| `ew-api` | GPL | The `Session` facade shared by every front-end; registers the SQL and plugin rule implementations at session start; composes `.ewpp` export jobs from `ew-mfg` data, `ew-export` PDF/DXF and `ew-panel` glb | everything above except UI |
 | `ew-viewmodel` | GPL | Toolkit-agnostic panel models: navigator trees, table rows with edit→command mapping, property-grid rows with provenance, message lists, each with a revision stamp | ew-api |
-| `ew-ui` | GPL | egui widgets, canvas host, tools (state machines), command palette, keymaps | egui 0.37.0, egui_tiles 0.17.1, egui_table 0.10.0, egui_ltreeview 0.9.0 |
-| `elektrawatt` (bin) | GPL | eframe shell, native menus, dialogs, clipboard, crash handler | eframe 0.37.0, egui-wgpu 0.37.0, muda 0.21.2, rfd 0.17.2, arboard 3.7.0 |
-| `ew` (bin) | GPL | CLI, `ew mcp`, merge driver, textconv | clap **(verify)**, rmcp 3.5.1 **(verify)** |
+| `ew-ui` | GPL | egui widgets, canvas host, tools (state machines), command palette, keymaps, the action registry behind every menu | egui 0.37.0, egui_tiles 0.17.1, egui_table 0.10.0, egui_ltreeview 0.9.0 |
+| `ew-viewer` (1.0) | GPL | The read-only `.ewpp` wiring viewer on `ew-ui` widgets, used by the `ew-wiring-viewer` binary and the "Preview package" view of the Manufacturing workspace | ew-ewpp, ew-ui, ew-render-cpu, hayro 0.8.0 (after the fidelity check) |
+| `elektrawatt` (bin) | GPL | eframe shell, native menus on macOS and Windows (egui menu bar on Linux), dialogs, clipboard, crash handler | eframe 0.37.0, egui-wgpu 0.37.0, muda 0.21.2, rfd 0.17.2, arboard 3.7.0, ew-print |
+| `ew` (bin) | GPL | CLI, `ew mcp`, merge driver, textconv, migration verifier | clap **(verify)**, rmcp 3.5.1 **(verify)**, ew-print, hayro 0.8.0 (`ew verify-migration`) |
+| `ew-wiring-viewer` (bin, 1.0) | GPL | Small read-only viewer for shop PCs | ew-viewer |
 | `ew-step-worker` (bin) | GPL (links LGPL OCCT) | STEP reading, tessellation, feature edges, hulls, mounting frames | occt-sys 7.8.1, opencascade 0.3.0, gltf 1.4.1 |
-| `ew-testkit` | GPL | Golden builders (CSV bootstrap, command DSL), S–XL generator, oracle comparator, acceptance runner | insta 1.49.0, proptest 1.12.0, criterion 0.8.2, dify 0.8.0, hayro 0.8.0 |
+| `ew-testkit` | GPL | Golden builders (CSV bootstrap through `ew-import-tables`, command DSL), S–XL and XL-A generators, oracle comparator, acceptance runner | insta 1.49.0, proptest 1.12.0, criterion 0.8.2, dify 0.8.0, hayro 0.8.0 (test use) |
 | `ew-py` (v1.x) | GPL | Python wheel of the headless core | pyo3 0.30.1 |
+
+`xtask` and `fuzz/` are development-only and outside the product crate table; they never ship in release artefacts.
 
 Arrows point from a crate to its dependencies:
 
@@ -248,33 +270,45 @@ graph TD
     dl[ew-dl]
     stepp[ew-step-proto]
     memo[ew-memo]
+    plcaddr[ew-plcaddr]
+    caex[ew-caex]
+    devdesc[ew-devdesc]
+    ewpp[ew-ewpp]
+    pwit["ew-plugin-wit / -sdk (v1.x)"]
   end
   subgraph GPLL["Application layer: GPL-3.0-or-later"]
     model[ew-model]
+    rhai[ew-rhai]
     derive[ew-derive]
     cmd[ew-commands]
     checks[ew-checks]
     sqlv[ew-sqlview]
     lib[ew-library]
     store[ew-store]
+    text[ew-text]
     rep[ew-reports]
     scene[ew-scene]
     r2d[ew-render2d]
     rcpu[ew-render-cpu]
     exp[ew-export]
+    print[ew-print]
     plc[ew-plc]
     panel[ew-panel]
     r3d[ew-render3d]
     mfg[ew-mfg]
     imp["ew-import-qet / -eplan / -dxf"]
+    icat[ew-import-catalog]
+    itab[ew-import-tables]
     script[ew-script]
     plug[ew-plugin-host]
     jobs[ew-jobs]
     api[ew-api]
     vm[ew-viewmodel]
     ui[ew-ui]
+    viewer[ew-viewer]
     app["elektrawatt (bin)"]
     cli["ew (bin): CLI, MCP, merge driver"]
+    wv["ew-wiring-viewer (bin)"]
     stepw["ew-step-worker (bin)"]
   end
   schema --> units & ids & mltext & rds
@@ -283,38 +317,47 @@ graph TD
   dl --> units
   stepp --> units
   model --> schema
-  derive --> model & memo
+  derive --> model & memo & rhai & plcaddr
   cmd --> derive
-  checks --> derive
-  sqlv --> derive
-  lib --> schema
+  checks --> derive & rhai
+  sqlv --> derive & checks
+  lib --> schema & format
   store --> format & model
-  rep --> derive
-  scene --> rep & dl
+  rep --> derive & sqlv & text
+  scene --> rep & dl & text
   r2d --> dl
   rcpu --> dl
-  exp --> dl
-  plc --> cmd
+  exp --> dl & rcpu
+  print --> exp & rcpu
+  plc --> cmd & plcaddr & caex & devdesc
   panel --> cmd & stepp
   r3d --> panel
-  mfg --> rep
+  mfg --> rep & panel & ewpp
   imp --> iapi
-  script --> cmd
-  plug --> cmd & sqlv
-  api --> store & cmd & checks & sqlv & lib & scene & exp & plc & panel & mfg & imp & script & plug & jobs
+  imp -- "ew-import-qet" --> plcaddr
+  icat --> iapi
+  itab --> iapi
+  script --> cmd & rhai
+  plug --> cmd & sqlv & checks
+  api --> store & cmd & checks & sqlv & lib & scene & exp & plc & panel & mfg & imp & icat & itab & script & plug & jobs
   vm --> api
   ui --> vm & r2d & rcpu & r3d
-  app --> ui
-  cli --> api
+  viewer --> ewpp & ui & rcpu
+  app --> ui & print
+  cli --> api & print
+  wv --> viewer
   stepw --> stepp
 ```
 
 **Rules.**
 1. **Model access.** `ew-model` tables are `pub(crate)`. Other crates read the model only through the tracked
    context `Q` (inside queries) or through `TxBuilder` (inside commands).
-2. **SQLite.** Only `ew-sqlview` and `ew-library` link rusqlite.
-3. **UI toolkit and GPU.** Only `ew-ui` and the app binary know egui. Only the renderers know wgpu.
-4. **Importers** depend on `ew-interop-api` and their parsers only. They never see `ew-model`.
+2. **SQLite.** Only `ew-sqlview` and `ew-library` link rusqlite. `ew-reports` runs user SQL through the sandboxed
+   query API of `ew-sqlview`, and importers receive SQLite content only as a `TableImage` (§10.6).
+3. **UI toolkit and GPU.** Only `ew-ui`, `ew-viewer`, the app binary and the `ew-wiring-viewer` binary know egui.
+   Only the renderers know wgpu.
+4. **Importers** depend on `ew-interop-api`, their parsers and permissive helpers such as `ew-plcaddr` only. They
+   never see `ew-model`.
 5. **Model entities are the schema records.** `ew-model` wraps `ew-schema` record structs in tables. The GPL layer
    adds behaviour (ops, indexes, invariants, derivation) but no second data definition. Third parties can
    therefore read, write and validate EW files with the permissive crates alone.
@@ -332,14 +375,17 @@ pub struct Model {                         // one immutable snapshot; Clone is O
     pub(crate) structure: Table<StructureNode>,
     pub(crate) pages: Table<Page>,         pub(crate) sections: Table<Section>,
     pub(crate) devices: Table<Device>,     // incl. strips, terminals, cables, assemblies, PLC stations/modules
-    pub(crate) functions: Table<Function>, // logical functions; CPs instantiated from the function definition
-    pub(crate) reps: Table<Representation>,// drawings of functions: multi-line, overview, fluid, topology, panel front
+    pub(crate) functions: Table<Function>, // logical functions incl. interruption points; CPs instantiated from
+                                           //   the function definition
+    pub(crate) reps: Table<Representation>,// drawings of functions: multi-line, single-line, overview, fluid, topology,
+                                           //   contact image, strip segment, graphic (panel fronts are derived)
     pub(crate) connections: Table<Connection>, pub(crate) junctions: Table<Junction>,
     pub(crate) conductors: Table<Conductor>,   pub(crate) channels: Table<Channel>,
     pub(crate) potential_defs: Table<PotentialDef>, pub(crate) net_defs: Table<NetDef>, pub(crate) bonds: Table<Bond>,
     pub(crate) layout: LayoutTables,       // spaces, enclosures, surfaces, carriers, placements, route overrides
     pub(crate) committed: CommittedTables, // routes, lengths, frozen numbers, released report snapshots (§6.5)
-    pub(crate) lib: LibraryCopies,         // embedded parts, symbols, function defs, forms, macros
+    pub(crate) lib: LibraryCopies,         // embedded library copies: parts, manufacturers, symbols, function
+                                           //   defs, forms, macros, PLC, machine and label profiles
     pub(crate) report_blocks: Table<ReportBlock>, pub(crate) revisions: Table<Revision>,
     pub(crate) waivers: Table<Waiver>, pub(crate) comments: Table<Comment>, pub(crate) ext_refs: Table<ExternalRef>,
     pub(crate) idx: BaseIndexes,           // reverse-FK indexes; maintained by Op::apply, rebuilt on load, never saved
@@ -359,26 +405,29 @@ pub struct Row<T>   { value: Arc<T>, changed_at: Rev }
 
 ### 4.2 Entities
 
+This table summarises the shape of each entity and the reason for it. Field-level schema:
+[domain model](03-domain-model.md), which is normative together with `ew-schema`.
+
 | Concept | Record (authored fields only) | Notes and reference |
 |---|---|---|
 | Project | `Project { master, parties: [Party{role}], supply: SupplySpec, settings, profiles, languages, derivation_profile, user_prop_defs, extra }` | Customer and end user are separate roles (D-30). Supply is structured (REF-002) |
 | Structure | `StructureNode { aspect, code, parent, description: MlText, order }` | One canonical node for `+J-E-2416`. Spelling is a property of the node (D-03) |
-| Section, Page | `Section { number, folio_range, title }`; `Page { folio: Folio{section, number, label}, kind, structure, form, description: Option<MlText>, scale, grid }` | `description = None` inherits the project description (D-06). No stored revision, prev/next or title-block text |
+| Section, Page | `Section { number, folio_range, title }`; `Page { folio: Folio{section, number, label}, kind, structure, form, title: MlText, description_override: Option<MlText>, scale, grid, … }` | `title` is the page description; without `description_override` the title block prints the project description (D-06). No stored revision, prev/next or title-block text |
 | Device | `Device { tag: TagSpec, kind, parent: Option<Id<Device>>, parts: SmallVec<PartUse{part, qty}>, function_text: MlText, process_tag, tech_data, state, aspects: DeviceAspects, extra }` | `TagSpec { letter, counter, scheme, frozen: Option<FrozenTag> }`. The printed tag is derived. **Parts attach only to devices**, so the BOM aggregates one path |
-| Function | `Function { device, def: FnDefRef, role: Main/Aux, cp_overrides: SmallVec<CpOverride{idx, designation, alias, unused}> }` | **Connection points (CPs) are instantiated from the function definition** (symbol or part pin pattern). Only overrides are stored (from B). The internal `idx` keeps duplicate printed designations unique (REF-029) |
-| Representation | `Representation { functions, page, symbol, variant, pos: Pt2, orient, rep_type, pin_map, text_slots }` | One function, many drawings: multi-line, overview, fluid, bus topology, panel front, strip segment. An unplaced function simply has no representation. One strip drawn in two segments (D-42) |
-| Connection | `Connection { a: Endpoint, b: Endpoint, page, route: SmallVec<Pt2>, kind: Wire/Core(Id<Conductor>)/Bridge/Fluid/Bus/Overview/Internal, overrides: WireOverrides, number: NumberSpec }` | `Endpoint = Cp{function, idx} \| Junction(id)`. Overview connections are excluded from nets |
-| Junction | `Junction { page, at, style: Dot/Bevel, sequence: SmallVec<Id<Connection>> }` | Explicit T-node order (REF-034, D-20) |
-| Interruption point | A `Function` of kind `Ip { name, direction, scope }` with a representation | Pairing is derived: star or chain, by name and scope |
-| Potential, net | `PotentialDef { at: Endpoint, name, ptype, voltage, env }`; `NetDef { at, props }` (signal level); `Bond { a, b, kind }` | Potentials themselves are derived. Bonds link potentials without merging them (D-22) |
+| Function | `Function { device: Option<Id<Device>>, def: FnDefRef, role: Main/Aux, kind: Normal/Ip/BlackBox, cp_overrides: SmallVec<CpOverride{idx, designation, alias, unused}>, … }` | `device` is None if and only if the kind is `Ip`. **Connection points (CPs) are instantiated from the function definition** (symbol or part pin pattern). Only overrides are stored (from B). The internal `idx` keeps duplicate printed designations unique (REF-029) |
+| Representation | `Representation { functions, page, symbol, variant, pos: Pt2, orient, rep_type, pin_map, text_slots }` | One function, many drawings: `rep_type` is MultiLine, SingleLine, Overview, Fluid, Topology, ContactImage, StripSegment or Graphic. An unplaced function simply has no representation. One strip drawn in two segments (D-42). **Panel fronts are not stored:** the query `panel_front_reps(dev)` derives them from placements, and a PanelLayout page hosts one `SurfaceView` (D-02) |
+| Connection | `Connection { a: Endpoint, b: Endpoint, page: Option<Id<Page>>, route: SmallVec<Pt2>, kind: Wire/Core(Id<Conductor>)/Bridge(BridgeSpec)/Fluid/Bus(BusLine)/Overview/Internal/SingleLine (1.0), overrides: WireOverrides, number: NumberSpec }` | `Endpoint = Cp{function, idx} \| Junction(id)`. Overview connections are excluded from nets. Strip-editor bridges and page-less internal links have no page and live in the shard of the device that owns endpoint `a` |
+| Junction | `Junction { page, at, style: Dot/Bevel{orient}, wiring: Chain/Star, sequence: SmallVec<Id<Connection>> }` | Explicit T-node order (REF-034, D-20). `wiring` decides the physical wires; Dot defaults to Star, Bevel to Chain |
+| Interruption point | A `Function` of kind `Ip { name, direction, scope }` without a device, with a representation; it lives in the page file of its representation | Pairing is derived: star or chain, by name and scope |
+| Potential, net | `PotentialDef { at: Endpoint, name, ptype: Option, voltage, env }`; `NetDef { at, props }` (signal level); `Bond { a, b, kind }` | Potentials themselves are derived. Bonds link potentials without merging them (D-22) |
 | Terminal strip, terminal | Strip = `Device` with aspect `Strip`; terminal = `Device` with aspect `Terminal { strip, seq, designation, levels }` | **A terminal is a device**, as in EPLAN. Its levels and clamps are CPs carrying level and side (from B; TWIN terminals). Designation rules: §4.6 |
-| Cable, conductor | Cable = `Device` with aspect `Cable { length: LengthSource }`; `Conductor { cable, core, colour: ColourCode, csa: Dec3, shield }` | `ColourCode` is the IEC 60757 enum plus profile-declared company codes (DBU), so "BR" cannot be stored (D-17) |
-| PLC | Station and module are device aspects `PlcStation`, `PlcModule { slot, type_ident, start: AddrSpec, address_map }`; `Channel { module, number, kind, data_type, address: Auto/Manual/Excluded/Tbd, state, symbol, comment: MlText, binding: Option<Endpoint> }` | `Auto` addresses are derived from the module start and the part's address map (D-26). `Tbd` is a typed open item (D-15) |
+| Cable, conductor | Cable = `Device` with aspect `Cable { length: LengthSource }`; `Conductor { cable, core, colour: ColourCode, csa: Dec3, shield }` | `ColourCode` is the IEC 60757 enum plus profile-declared company codes (DBU), so "BR" cannot be stored in strict mode; imports keep it as a lenient-only foreign code (EW-CORE-031) (D-17) |
+| PLC | Station and module are device aspects `PlcStation`, `PlcModule { slot, type_ident, start: IoStarts{input, output}, part_use, … }`; `Channel { module, number, kind, data_type, address: Auto/Manual/Excluded/Tbd, state: Option, symbol, comment: MlText, binding: Option<Endpoint> }` | `Auto` addresses are derived from the module start and the address map of the part use (D-26). `Tbd` is a typed open item (D-15). Channel IDs are `v5(module, "channel", number)` |
 | Bus | `BusPort` aspect on functions; `LogicalNet`, `PhysicalNet` | Termination is a property, not free text (REF-061) |
 | Fluid | CPs with `discipline = Pneumatic` and port role 1/2/3/4/5/12/14; fluid lines are `Connection{kind: Fluid}` with `TubeSpec`; `Medium` | One graph engine for both disciplines |
 | Layout, 3D | `LayoutSpace`, `Enclosure`, `MountingSurface`, `Carrier { kind: Rail/Duct/Busbar/Surface, part, path }`, `Placement3D { device, function: Option, carrier, pose: Pose3, locked }`, `RouteOverride { connection, path }` | **No tag text is stored** (D-02). Poses are relative to the carrier. Overrides are keyed by connection ID, so they survive re-routing |
-| Library copies | `PartCopy`, `SymbolDef`, `FnDef`, `FormDef`, `MacroDef`, each with `{library_id, item_id, version, sha256}` | The project opens without its libraries (G2) |
-| Revision | `Revision { label, date, author, checker, description, state: Open/Released, generation, archive: Option<ArchiveRef>, rule_packs, derivation_profile }` | One table, one format (D-05); four-eyes rule (D-34) |
+| Library copies | `PartCopy`, `SymbolDef`, `FnDef`, `FormDef`, `MacroDef`, manufacturer, PLC-profile, machine-profile and label-profile copies, each with `{library_id, item_id, version, sha256}` | The project opens without its libraries (G2). Copy IDs are item-based (§4.4) |
+| Revision | `Revision { label, date, author, checker: Option, description, state: Open/Released/Withdrawn, page_notes, sign_off: Option, release: Option<ReleaseRecord> }`; `ReleaseRecord { generation, approval, rule_packs, derivation_profile, archive, git_tag, content_digest, page_digests, changed_pages }` | One table, one format (D-05); four-eyes rule (D-34). Withdrawing a release adds a separate `Withdrawn` record that points to it (§7.8) |
 | Reports, notes | `ReportBlock { kind, query, filter, sort, form, section, first_folio }`; `Waiver`; `Comment`; `ExternalRef { project, location, device, connection }` | Report pages are derived (§11). External connections to J-E-206 are typed (REF-018) |
 
 ### 4.3 Device aspects: one device, several roles
@@ -395,7 +444,8 @@ pub struct DeviceAspects {
 ```
 
 **The dual-nature valve terminal is explicit** (REF-098, folios 201–206):
-- -201U1 is one device carrying `PlcStation` + `BusNode` + `Assembly`;
+- -201U1 is one device carrying four aspects: `PlcStation` (role valve terminal), `BusNode`, `Assembly` and
+  `ValveTerminal`;
 - the sub-bases -201U3 … -201U8 are child devices carrying `PlcModule`;
 - each valve is a child device of its sub-base;
 - each valve has a coil function bound to a `Channel` (Q0.1 …) and a pneumatic function whose CPs are ports
@@ -409,7 +459,10 @@ pub struct DeviceAspects {
 | New records | UUIDv7 (uuid 1.28.0) |
 | Instantiated children (CPs) | `v5(function_id, idx)`, computed and never stored, used for PDF destinations and external references |
 | Generated report pages | `v5(report_block_id, page_index)`, so PDF named destinations stay stable |
-| Imported records | `v5(namespace, source_file_hash, source_id)`, so re-importing the same QET file updates in place; `source_ref` keeps provenance |
+| Imported records | `v5(lineage namespace, source key)`: the namespace is anchored on an import lineage (the QET project UUID, or the SHA-256 of the lineage's first imported file), so re-importing an edited QET file updates unchanged items in place; `source_ref{lineage, key}` keeps provenance |
+| Functions created from a part's function template | `v5(device_id, template_index)` |
+| PLC channels | `v5(module_id, "channel", number)`, stored because a channel carries authored data |
+| Embedded library copies | `v5(NS_LIBCOPY, library_id ‖ item_id)`; only an explicit "keep both" after a cross-project paste mints `v5(NS_LIBCOPY, library_id ‖ item_id ‖ version)` |
 
 Within a session, IDs are interned to dense `u32` values for union-find arrays and similar hot structures.
 
@@ -435,8 +488,8 @@ designations, or renumbering a strip, needs no two-phase rename. This fixes the 
 
 | Class | Invariants | Behaviour |
 |---|---|---|
-| **Structural** (always on) | References resolve, with generated delete policies `cascade`/`unlink`/`forbid` (from D); one main function per device; assembly graph acyclic; a placement references a device; a channel belongs to exactly one module; connection endpoints exist and differ; a representation's functions exist; a released revision has a checker who is not the author (D-34) | Reject the transaction |
-| **Prevent** (rule-pack configurable) | Terminal designation non-empty (D-11) and unique per strip (D-12); device tag unique within its structure scope; PLC address unique per area; interruption-point name unique per scope and direction; conductor colours consistent with the cable part | **Strict mode** rejects the transaction. **Lenient mode** (imports, legacy projects) turns a violation into a check message. The migration report lists every message |
+| **Structural** (always on) | References resolve, with generated delete policies `cascade`/`unlink`/`forbid` (from D); one main function per device; `Function.device` is None if and only if the kind is `Ip`; assembly graph acyclic; a placement references a device; a channel belongs to exactly one module; connection endpoints exist and differ; a representation's functions exist; a released revision has a checker who is not the author (D-34) | Reject the transaction |
+| **Prevent** (rule-pack configurable) | Terminal designation non-empty (D-11) and unique per strip (D-12); device tag unique within its structure scope; PLC address unique per area; at most one star source per interruption-point name and scope, and in chain mode an even count ordered by sort key (unpaired and ambiguous points are check findings); conductor colours consistent with the cable part | **Strict mode** rejects the transaction. **Lenient mode** (imports, legacy projects) turns a violation into a check message. The migration report lists every message |
 
 The enumerated catalogue (about 40 rules) lives in `ew-model/invariants.md`, with a stable ID per rule, and is
 tested one by one.
@@ -454,31 +507,49 @@ tested one by one.
 | `Op` | `Put { key, before: Option<AnyRow>, after: Option<AnyRow> }` | `TxBuilder` | Undo stack (`Arc`s); journal (field diffs) |
 
 ```rust
-pub trait Command: Serialize + DeserializeOwned + Send {
+pub trait Command: Serialize + DeserializeOwned + Send {         // typed handlers; not dyn-compatible
     const NAME: &'static str;                                   // "device.place", "numbering.renumber"
     fn cost(&self) -> Cost { Cost::Interactive }                // Bulk ⇒ always a preview job
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError>;   // deterministic in (snapshot, self)
 }
+pub trait DynCommand: Send {                                    // object-safe companion
+    fn name(&self) -> &'static str;
+    fn cost(&self) -> Cost;
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError>;
+    fn to_json(&self) -> serde_json::Value;                     // journal, macro recorder, command logs
+}
+impl<C: Command> DynCommand for C { /* blanket impl: forwards to Command */ }
 impl Session {
-    pub fn world(&self) -> World;                                  // O(1): model + memo snapshot
-    pub fn preview(&self, cmd: &dyn Command) -> JobHandle<Preview>; // candidate World + diffs; nothing committed
-    pub fn commit(&mut self, p: Preview) -> Result<Rev>;           // rebase-checked
-    pub fn execute(&mut self, cmd: &dyn Command) -> Result<Rev>;   // interactive path
+    pub fn world(&self) -> World;                                         // O(1): model + memo snapshot
+    pub fn preview(&self, cmd: Box<dyn DynCommand>) -> JobHandle<Preview>; // candidate World + diffs; nothing committed
+    pub fn commit(&mut self, p: Preview) -> Result<Rev>;                  // rebase-checked
+    pub fn execute(&mut self, cmd: &dyn DynCommand) -> Result<Rev>;       // interactive path
     pub fn undo(&mut self) -> Result<Rev>;  pub fn redo(&mut self) -> Result<Rev>;
 }
 ```
+
+Tools hand `Box<dyn DynCommand>` to the session ([schematic editor](06-schematic-editor.md) §4.1). The untyped
+`AnyCommand { name, params }` of scripts, plugins and MCP implements `DynCommand` after its parameters have been
+validated against the command's JSON Schema ([extensibility](17-extensibility.md) §2.1).
 
 ### 5.2 Commit pipeline (UI thread)
 
 1. **Run.** `Command::run` executes against `TxBuilder`, a scratch snapshot with read-your-writes. Handlers may
    query it, for example for the "next free counter on page 103".
 2. **Normalise** (from D). Deterministic normalisers may add ops to the same transaction, with at most three
-   passes; non-convergence is a bug. Normalisers handle:
+   passes; non-convergence is a bug. The registry, with the order of the editor's normalisers, is
+   [schematic editor](06-schematic-editor.md) §3.2. The normaliser families are:
    - online numbering of new devices;
    - instantiation of CPs for new functions;
    - junction clean-up;
    - conversion of autoconnect hints into explicit connections (G5);
-   - conductor assignment.
+   - conductor assignment;
+   - connection split when a symbol is dropped onto a wire;
+   - online wire numbering;
+   - number transfer, including `WireOverrides.ends` and length;
+   - clamp pick for terminals;
+   - solenoid binding of valve coils to channels ([PLC and bus](10-plc-and-bus.md));
+   - the fluid normalisers ([fluid power](11-fluid-power.md)).
 3. **Validate.** Structural invariants, then prevent rules in the active mode (§4.6).
 4. **Commit.** Swap in the new `Model` (O(1)), bump `Rev`, and push to `History`, coalescing if the coalesce key
    matches. Send the transaction to the writer thread for the journal.
@@ -494,8 +565,10 @@ impl Session {
 - **Coalescing.** One drag is one step. Typing in one cell merges until focus leaves. A table fill-down or an Excel
   paste is one step.
 - **External reload** arrives as an undoable diff transaction (§7.4), so the stack survives a git pull.
-- **Not undoable** (flagged and confirmed, as in EPLAN): library writes outside the project, exports, file
-  operations, and the bulk import into an empty project (a checkpoint).
+- **Not undoable**, as in EPLAN: library writes outside the project, exports, file operations, and the bulk import
+  into an empty project (a checkpoint). Every non-undoable operation is flagged as a marker line in the history.
+  Only the destructive ones ask for confirmation: library writes outside the project, overwriting an existing file,
+  purging library copies and the empty-project import checkpoint (ADR-0008).
 
 ### 5.4 Preview is a fork
 
@@ -556,6 +629,10 @@ pub fn device_tag(q: &Q, dev: Id<Device>) -> Arc<Tag> { /* reads TagSpec, struct
    on itself, iterates inside one query, for at most three rounds.
 6. **Statistics** per query and per commit: hits, verifications, re-executions, cut-offs. They are emitted through
    `tracing` and asserted in the perf gate.
+7. **Reverse dependencies.** A generic API returns, per query family, the memos whose recorded reads include a given
+   key. The online check engine builds its `rdeps` index from it
+   ([checks, revisions and collaboration](15-checks-revisions-collaboration.md) §3.3). The M0 spike measures its
+   memory; above budget the engine falls back to coarse page and shard keys.
 
 **Out of v1:**
 - parallel evaluation of the main store;
@@ -581,19 +658,22 @@ The estimated size is 1.5–2.5 kLOC. Two owners are required by the end of the 
 |---|---|---|---|
 | `page_order()` incl. generated pages | pages, sections, report blocks, `report_page_count` | Memo | Source of Prev/Next, TOC, PDF outline and `/PageLabels` (REF-073) |
 | `function_cps(f)` | function definition, overrides | Cold | CP instantiation |
-| `device_tag(dev)` → `{full, displayed(page)}` | `TagSpec`, identifier set, structure nodes, main representation's folio, assembly parent | Memo | EPLAN-style identifier suppression; child tags `-201U3-QM1` (D-27, D-41) |
+| `device_tag(dev)` → `{full, displayed(page)}` | `TagSpec`, identifier set, structure nodes, main representation's folio, assembly parent | Memo | EPLAN-style identifier suppression; child tags `-201U3-Q1` (D-27, D-41) |
 | `rep_anchor_cell(rep)` | position, the symbol's anchor policy, form grid | Cold | Derived from the symbol definition, never from rendered geometry; fixes "3-B0" (D-14) |
 | `xref_text(rep)` | partners' anchor cells, xref format | Memo | Star or chain interruption points; "(201-E1)", "∞ 203-B4" |
 | `page_local_nets(page)` | connections, junctions, reps on the page | Memo | Union-find over a few thousand edges |
 | `stitch_graph()` | local nets, IP pairing, bridges, conductors, terminal side links, bonds | Memo | Nodes are local nets, about 10–15 % of CPs |
-| `potential_partition()` | stitch graph, potential defs, net defs | Memo | `PotentialId` = definition point, else the minimum CP id, so it is stable under unrelated edits. Canonical name plus IP aliases (D-24) |
+| `potential_partition()` | stitch graph, potential defs, net defs | Memo | `PotentialId` = the minimum `PotentialDef` ID when the potential has one or more definitions, else the minimum CP ID, so it is stable under unrelated edits. Canonical name plus IP aliases (D-24) |
+| `physical_wires_of(potential)` | potential members, connections, junction wiring, IP pairs | Memo | One entry per physical CP-to-CP wire, keyed by the UUID of its target-side connection. Source of the wire list, routing and `WireRecord` |
+| `potential_flow(potential)` | potential members, source-output CPs, function definitions | Memo | Flow rooted at the source-output CPs; the protective device per load; source of the potential overview |
 | `wire_props_of(potential)` | overrides, net defs, potential defs, profile | Memo | Precedence: connection override (CDP) > net definition > potential definition > profile rule (type × voltage × circuit class) > project default. Every value carries **provenance** (D-08) |
 | `channel_addresses(module)` | module start, part address map, channel specs | Memo | One edit re-addresses a module (D-26) |
 | `terminal_rows(strip)`, `cable_rows(cable)`, `plc_rows(station)` | terminals, levels, bridges, conductors, channels | Memo | Sources of terminal, cable and PLC reports (REF-045/049/060) |
 | `device_part_lines(dev)` → `bom_rows(mode)` | parts on devices, assembly children, carriers, accessories | Memo | Assembly and component modes (D-04, D-36) |
 | `toc_rows()`, `title_block(page)`, `layout_label(placement)` | page order, project data, overrides, revisions, tags | Memo | Bound fields only; overrides explicit and flagged (D-05, D-06, D-02) |
 | `checks(scope)` (page, potential, strip, station) | rule inputs | Memo | Online message panel (§12) |
-| `page_display_list(page, layer)` | per-layer inputs | Memo + LRU | Layers: frame, symbols, wires, labels, highlights. A wire edit never rebuilds the title block |
+| `page_display_list(page, layer, lang)` | per-layer inputs | Memo + LRU | Schematic layers: frame, symbols, wires, labels, tables, revision, highlights. Panel-page layers: surface, carriers, placements, features, dims, plus frame, labels, tables and highlights. A wire edit never rebuilds the title block |
+| `panel_front_reps(dev)` | placements of the device, surfaces | Cold | Derived panel-front representations for navigation and "show all representations" (§4.2) |
 | `layout_scene(space)` | placements, carriers, mesh refs, committed routes | Memo | Input to the 3D reconciler (§8.5) |
 | `sql_table(api_table)` | the table's sources | Class II | SQL projection (§10.2) |
 
@@ -613,8 +693,9 @@ The estimated size is 1.5–2.5 kLOC. Two owners are required by the end of the 
 - report snapshots of a released revision.
 
 They are **authored outputs of commands** (`RouteWires`, `FreezeNumbers`, `ReleaseRevision`), stored as
-`Committed<T> { value, input_hash, rev }`. A check (`EW-L011`, route stale) flags them when the input hash no
-longer matches. "Re-route" is an explicit, previewed command.
+`Committed<T> { value, input_hash, rev }`. A check flags them when the input hash no longer matches: `EW-LAY-011`
+for routes, `EW-MFG-001` for lengths, `EW-THM-005` for thermal results and `EW-REL-002` for any other committed value
+a release output uses. "Re-route" is an explicit, previewed command.
 
 **Frozen on purpose.** `TagSpec.frozen`, `NumberSpec::Frozen` and `AddrSpec::Manual` hold deliberate overrides. The
 numbering report lists every frozen value and its deviation from the rule.
@@ -631,10 +712,11 @@ layouts. These rules are therefore **versioned data**, and each project pins one
 This is how a 2027 project opens in 2037 with identical tags, cross-references and wire numbers, which the
 Machinery Regulation's retention period demands (G2).
 
-### 6.7 XL cost estimates
+### 6.7 XL-A cost estimates
 
-The XL case is 2,000 pages, 50k devices, about 150k functions, 200k connections, about 500k instantiated CPs, 20k
-terminals and 10k channels, on the G6 baseline machine.
+The estimate case XL-A is 2,000 pages, 50k devices, about 150k functions, 200k connections, about 500k instantiated
+CPs, 20k terminals and 10k channels, on the G6 baseline machine. XL itself always means the class bound of
+[non-functional requirements](02c-nonfunctional-requirements.md) §2.1 (5,000 pages, 250k connections).
 
 | Operation | Work | Estimate |
 |---|---|---|
@@ -646,7 +728,7 @@ terminals and 10k channels, on the G6 baseline machine.
 | Change the colour of "24 V DC" in the profile | wire properties of all 24 V potentials (about 60k wires) | ~30 ms |
 | Full BOM / full online check set (cold) | aggregation / per scope in parallel on a fork | ~20 ms / 1–3 s |
 | SQL projection, full build | about 2M rows into SQLite | 2–5 s job; then per-table refresh |
-| Memory | model and indexes ~250 MB; memos ≤ 300 MB (gated); display-list LRU ~100 MB; undo ≤ 256 MB; projection ≤ 500 MB, file-backed in the local cache at XL | ~1–1.5 GB peak, within the 4 GB budget |
+| Memory | model and indexes ~250 MB; memos ≤ 300 MB (gated); display-list LRU ~100 MB; undo ≤ 256 MB; projection ≤ 500 MB, file-backed in the local cache at XL size | ~1–1.5 GB peak, within the 4 GB budget |
 
 The one honest hotspot is **global connectivity**. It costs 5–10 ms per committed wire edit, which is acceptable
 per commit but not per drag frame. The design accounts for this.
@@ -683,25 +765,37 @@ Rules for the files:
 J-E-2416.ew/                          # name chosen by the user; content is UUID-named
   manifest.json                       # written LAST: format, min_reader, generator, generation, sha256 per file
   project.jsonl                       # project row, parties, settings, colour/size/numbering/xref profiles,
-                                      #   identifier set, languages, derivation_profile, user property definitions
+                                      #   identifier set, languages, derivation_profile, user property definitions,
+                                      #   import lineages
   structure.jsonl                     # structure nodes (=P01, +J-E-2416, +J-E-206 …), sections 1/2/9
   revisions.jsonl  report-blocks.jsonl  waivers.jsonl  comments.jsonl
   pages/<page-uuid>.jsonl             # page row + page-owned rows: representations, connections, junctions,
                                       #   interruption-point functions, graphics, placed report blocks
   devices/<xx>.jsonl                  # 256 shards by the LAST id byte (v7's leading bytes are time):
                                       #   devices (incl. strips, terminals, cables, assemblies, PLC), functions,
-                                      #   conductors, channels, potential/net defs, bonds
+                                      #   conductors, channels, potential/net defs, bonds, page-less connections
   layout/<space-uuid>.jsonl           # enclosures, surfaces, carriers, placements, route overrides, committed routes
+  imports/<run-uuid>.jsonl            # one import run per file (MVP), so runs never conflict with project data
+  exchange/<config-project-uuid>.jsonl  # PLC exchange records and foreign IDs (1.0; part of the as-built archive)
   lib/symbols/<uuid>.json  lib/fndefs/<uuid>.json  lib/forms/<uuid>.json  lib/parts/<uuid>.json  lib/macros/<uuid>.json
+  lib/manufacturers/<copy_id>.json  lib/plc-profiles/<copy_id>.json (1.0)
                                       # embedded library copies, pretty-printed (rarely co-edited)
-  rules/*.toml  reports/*.sql         # project rule packs and user reports (untrusted until the project is trusted)
-  assets/<sha256>.svg|png             # logos, images
+  lib/profiles/<copy_id>.toml         # machine and label profiles in their TOML source form (1.0)
+  rules/<uuid>.toml (+ rules/<uuid>/)  reports/<uuid>.sql
+                                      # project rule packs (the pack ID lives inside the TOML; rhai, SQL, Fluent
+                                      #   and docs in the directory) and user reports
+  scripts/<uuid>.rhai  jobs/<uuid>.ewjobs   # automation scripts and jobsets (1.0)
+                                      # rules, reports, scripts and jobs are untrusted until the project is trusted
+  assets/<sha256>.svg|png|jpg|glb     # logos, images; opt-in embeddable meshes (.glb, 1.0)
+  trust.sig                           # project trust signature (1.0)
   .gitattributes  .gitignore          # *.jsonl merge=elektrawatt diff=elektrawatt; ignore .ew/ and .~ew.lock
   .ew/                                # per-user view state and caches (git-ignored)
   .~ew.lock                           # G1 lock (git-ignored)
 ```
 
-At XL this is about 2,300 files: few enough for Defender, OneDrive and git, and local enough for merges.
+At XL-A (§6.7) this is about 2,300 files plus one per embedded library item: few enough for Defender, OneDrive and
+git, and local enough for merges. The full layout and the kind registry are in
+[project format](05-project-format-and-persistence.md) §2.
 
 **Ownership determines the file.** A row belongs to its page file if it is page-scoped, to its layout-space file if
 it is layout-scoped, and to the shard of its owning device otherwise. A typical edit rewrites one to three files.
@@ -709,9 +803,9 @@ it is layout-scoped, and to the shard of its owning device otherwise. A typical 
 ### 7.3 Canonical JSON Lines
 
 ```json
-{"$k":"device","id":"0192f1c4-5a10-7c3e-8b21-6f0d9a4e2b10","tag":{"letter":"G","counter":1},"kind":"psu","parts":[{"part":"0192e7d0-…","qty":1}],"function_text":{"en-GB":"Power supply 24 V DC"}}
-{"$k":"device","id":"0192f1c4-77a2-7d10-9c3e-1a2b3c4d5e10","tag":{"letter":"X","counter":null},"kind":"terminal","terminal":{"strip":"0192f1c4-…","seq":3,"designation":"3"},"parts":[{"part":"0192e7d1-…","qty":1}]}
-{"$k":"connection","id":"0192f3a0-…","a":{"cp":["0192f1c4-5a11-…",4]},"b":{"cp":["0192f1c4-77a3-…",1]},"page":"0192f0aa-…","kind":"wire","route":[[95250000,63500000],[95250000,71120000]]}
+{"$k":"device","id":"0192f1c4-5a10-7c3e-8b21-6f0d9a4e2b10","tag":{"letter":"G","counter":1},"kind":"psu","parts":[{"part":{"copy":"0192e7d0-…"},"qty":"1"}],"function_text":{"en-GB":"Power supply 24 V DC"}}
+{"$k":"device","id":"0192f1c4-77a2-7d10-9c3e-1a2b3c4d5e10","tag":{"letter":"X"},"kind":"terminal","parts":[{"part":{"copy":"0192e7d1-…"},"qty":"1"}],"terminal":{"strip":"0192f1c4-…","seq":3,"designation":"3"}}
+{"$k":"connection","id":"0192f3a0-…","a":{"cp":["0192f1c4-5a11-…",4]},"b":{"cp":["0192f1c4-77a3-…",1]},"page":"0192f0aa-…","route":[[95250000,63500000],[95250000,71120000]]}
 ```
 
 **Writer rules.**
@@ -734,11 +828,14 @@ Library copies are one pretty-printed JSON document per item, because they are l
 ### 7.4 Save, open, recovery, external change
 
 - **Incremental save.** Each `Op` maps to file keys (for page-scoped rows, the old and the new page), so the dirty
-  set falls out of the transaction log. The writer thread runs the G1 protocol from the immutable snapshot:
+  set falls out of the transaction log. The writer thread runs the G1 protocol from the immutable snapshot
+  ([project format](05-project-format-and-persistence.md) §5):
   1. write every dirty file to `name.tmp-<gen>` and `sync_all` it;
-  2. rename it over the target;
-  3. write `manifest.json` last;
-  4. sync the directory where supported.
+  2. write the complete new manifest as a durable **intent** (`manifest.json.tmp-<gen>`) before the first rename;
+     this is the commit point, and an interrupted save rolls forward on the next open;
+  3. rename each temp over its target;
+  4. rename the intent over `manifest.json` last;
+  5. sync the directory where supported.
 
   An M-class save takes well under 200 ms (estimate) and never blocks the UI.
 - **Open.** Verify the hashes against the manifest. A mismatch means an interrupted save, a hand edit or a merge:
@@ -749,9 +846,13 @@ Library copies are one pretty-printed JSON document per item, because they are l
   - Rotating recovery snapshots (three generations, as QET does) are written every 2 minutes while the project is
     dirty.
   - On restart, the app offers a replay onto the last good generation.
-- **Lock.** `.~ew.lock` is created with `create_new` and holds `{user, host, pid, app_version, started_at}`.
+- **Lock.** `.~ew.lock` is created with `create_new` and holds
+  `{lock: 1, session, user, host, pid, pid_started, app_version, started_at}`.
   - A held lock opens the project read-only.
-  - A stale lock (same host and a dead pid, or older than a configurable age) can be taken over.
+  - The holder refreshes the lock every 5 minutes and re-reads the session ID, so it notices a lost lock.
+  - A stale lock (same host and a dead PID or a different PID start time, or older than `lock.stale_after`,
+    default 60 minutes) can be taken over after confirmation. The takeover renames the stale lock **without
+    replacement**, so only one of two competing instances wins.
   - No OS byte-range locks are used over SMB.
 - **External change (git pull, a colleague).**
   1. Load the new generation on the pool.
@@ -764,13 +865,15 @@ Library copies are one pretty-printed JSON document per item, because they are l
 
 ### 7.5 Git integration
 
-- **Merge driver.** `ew merge-driver %O %A %B %P` merges three-way per `($k, id)` record, then per field.
+- **Merge driver.** `ew merge-driver %O %A %B %L %P` (the four-argument form without `%L` is accepted too) merges
+  three-way per `($k, id)` record, then per field.
   - Disjoint field edits on one record merge cleanly.
   - A true conflict is written as a `{"$k":"conflict","id":…,"ours":…,"theirs":…}` record (from B). The file stays
-    valid and loadable, git gets a non-zero exit, and EW shows a resolution panel.
+    valid and loadable, git gets exit code 1, and EW shows a resolution panel.
+  - A caught internal error exits 129, because git reads any code up to 128 as "conflicts written" (ADR-0012).
 - **Cross-file semantics.** Git calls drivers per file, so the post-merge hook and every open run
-  `ew check --integrity`. It covers dangling references, duplicate counters, duplicate interruption-point names and
-  prevent-rule violations, each reported with a quick fix.
+  `ew check --integrity`. It covers dangling references, duplicate counters, interruption-point pairing conflicts
+  (more than one star source per name and scope) and prevent-rule violations, each reported with a quick fix.
 - **Diff.** `ew diff --textconv` prints entity diffs with **derived** tags, for example "-102F1: part A9F78116 → …",
   not UUIDs.
 - **Local history.** Optional git local history via gix 0.89.0, as KiCad does.
@@ -779,7 +882,9 @@ Library copies are one pretty-printed JSON document per item, because they are l
 
 1. **Two-part format version.**
    - A minor bump is additive. Readers preserve unknown fields in each record's `extra` map, and **unknown record
-     kinds verbatim**.
+     kinds verbatim**. New members are optional, appended after the existing members of their kind and tagged
+     `since`; every persisted enum has an `Unknown` catch-all; an untouched record with unknown content is written
+     back as its original line (ADR-0011).
    - A major bump refuses to open, or opens read-only.
 2. **Per-kind schema versions** (`"$v"`, omitted when 1). Migrations are pure `serde_json::Value` functions per
    kind and per step (from B). They are never deleted.
@@ -794,32 +899,47 @@ Library copies are one pretty-printed JSON document per item, because they are l
 
 ### 7.7 Libraries and catalogues
 
-- **Catalogues.** Company and user catalogues are SQLite (rusqlite, bundled, FTS5) at user or company level, fed
-  from EDZ, BMEcat, ETIM or CSV. Their git form is the same JSONL as projects.
+- **Catalogues.** Libraries are canonical text at every tier (system, community, company, user): `.ewlib`
+  directories in the project format, with the same writer, manifest-last save, lock and merge driver. They are fed
+  from EDZ, BMEcat, ETIM or CSV. Published library versions are immutable. `ew-library` builds one derived SQLite
+  FTS5 index per user in the local cache, rebuilt incrementally per library generation, for full-text search; no
+  SQLite file is ever opened on a share ([symbols, parts and macros](07-symbols-parts-macros.md) §2.1–§2.2).
 - **Projects never read catalogues at render time.** They embed a `PartCopy`, and "update from library" is a
-  previewed command.
+  previewed command. The copy ID is `v5(NS_LIBCOPY, library_id ‖ item_id)` (§4.4), and `sha256` is taken over the
+  canonical compact JSON of the item's own fields. A cross-project paste of another version offers three choices:
+  update the existing copy (previewed), adapt the pasted records to the existing copy, or keep both.
 - **Foreign SQLite files** (QETZ `project.sqlite`, third-party catalogues) are opened read-only with
   `trusted_schema=OFF`, defensive mode and a schema check, because a hostile file can carry views or triggers (from
   C).
 
 ### 7.8 Revisions and the as-built archive
 
-Releasing a revision does five things:
-1. runs the release gate (§12);
-2. stamps the revision `Released` with its generation, rule-pack versions and derivation profile;
-3. freezes committed computations;
-4. writes an **as-built archive** containing the canonical text at that generation, the embedded libraries, the
-   PDF/A-2b, the `.ewpp` production package and the SHA-256 sums (G2);
-5. if the project is a git repository, creates a tag `ew/rev/<label>`.
+Releasing a revision is one atomic command (ADR-0013; [project format](05-project-format-and-persistence.md) §14.1)
+that runs these steps in this order:
+1. runs the release gate (§12) on a fork;
+2. freezes committed computations and saves generation g;
+3. if the project is a git repository, commits the project directory at g (after asking);
+4. builds and verifies an **as-built archive** containing the canonical text at that generation, the embedded
+   libraries, the PDF/A-2b, the `.ewpp` production package and the SHA-256 sums (G2);
+5. if the project is a git repository, creates the tag `ew/rev/<label>`;
+6. stamps the revision `Released` with its `ReleaseRecord` (generation g, rule-pack versions, derivation profile,
+   approval, archive name and hash, page digests), saved as generation g+1.
+
+A failure after the freeze leaves the revision Open, with no archive or tag referenced. Revision states are Open,
+Released and Withdrawn; withdrawing a release adds a separate `Withdrawn` record that points to it.
 
 **The archive goes next to the project**, by default `<parent>/<name>.ew-archive/<label>.ewarchive`, at a
 configurable path. It never goes inside the project directory, so git history stays small.
 
+**Page change status** compares per-page content digests with those of the last release
+(`ReleaseRecord.page_digests` and `changed_pages`;
+[checks, revisions and collaboration](15-checks-revisions-collaboration.md) §5.6).
+
 **Revision comparison** loads the archived text into a second, read-only `Model` and diffs it against the current
 one:
-- `diff_model` gives the property comparison (EPLAN Pro tier) and the page change status;
+- `diff_model` gives the property comparison (EPLAN Pro tier);
 - `diff_query` gives the BOM, wire-list, terminal and PLC-address deltas, "wires changed since V1.0"
-  (`[panel-manufacturing.md](../research/panel-manufacturing.md) §7.1), and revision clouds from the changed representations.
+  ([panel-manufacturing.md](../research/panel-manufacturing.md) §7.1), and revision clouds from the changed representations.
 
 ---
 
@@ -830,9 +950,9 @@ one:
 ```mermaid
 flowchart LR
   M[Model snapshot] --> Q["ew-derive queries<br/>tags, xrefs, wire props, title block"]
-  Q --> DL["page_display_list(page, layer)<br/>Arc&lt;DisplayList&gt; in nm (ew-dl)"]
+  Q --> DL["page_display_list(page, layer, lang)<br/>Arc&lt;DisplayList&gt; in nm (ew-dl)"]
   SG["symbol_geometry(symbol, variant)<br/>library durability"] --> DL
-  TX["shaped_text(string, style, font)"] --> DL
+  TX["shaped_text(string, style, font)<br/>ew-text"] --> DL
   DL --> GPU["ew-render2d (wgpu 30)"]
   DL --> CPU["ew-render-cpu (vello_cpu)<br/>fallback, thumbnails, goldens, print bands"]
   DL --> PDF["krilla: outline, links,<br/>named destinations, page labels, PDF/A-2b"]
@@ -862,8 +982,8 @@ flowchart LR
 
 ### 8.3 Text and fonts
 
-- **One text stack for screen and paper:** parley 0.12.0, fontique 0.12.0, skrifa 0.48.0 and harfrust 0.14.0.
-  `shaped_text` is memoised, so screen and PDF share glyph positions and line breaks.
+- **One text stack for screen and paper** in `ew-text`: parley 0.12.0, fontique 0.12.0, skrifa 0.48.0 and harfrust
+  0.14.0. `shaped_text` is memoised, so screen, report pagination and PDF share glyph positions and line breaks.
 - **Fonts.** One bundled OFL sans family is the default, with osifont (ISO 3098 style) as an option. Tahoma is never
   bundled: QET imports substitute it and record the substitution (G14; default font in ADR-0028).
 - **Text styles are model data** (D-29). A minimum-printed-height check runs at print scale (D-31).
@@ -879,10 +999,12 @@ flowchart LR
   - tagged PDF (PDF/UA-1) as an option (G8).
 
   krilla has no optional content (layers, C-11), and v1 does not offer layers.
-- **SVG, DXF and PNG.** An own SVG writer; DXF (AC1015, layer mapping) via dxf 0.6.2; PNG via vello_cpu.
-- **Printing.** PDF is the print master. Small adapters hand it to the OS: the xdg Print portal or CUPS on Linux,
-  PDFKit on macOS, and `PrintDlgEx` with banded vello_cpu rendering on Windows. Scale-to-fit stamps the scale,
-  folio ranges and monochrome mode are supported, and `ew print` prints from the CLI (G9).
+- **SVG, DXF and PNG.** An own SVG writer; DXF (AC1015, layer mapping) via dxf 0.6.2; PNG through `ew-export` →
+  `ew-render-cpu` (vello_cpu). PNGs compare within the dify tolerance across platforms; PDF, SVG, XLSX, CSV, JSONL
+  and `.ewpp` stay byte-identical (ADR-0015).
+- **Printing.** PDF is the print master. Small adapters in `ew-print` hand it to the OS: the xdg Print portal or CUPS
+  on Linux, PDFKit on macOS, and `PrintDlgEx` with banded vello_cpu rendering on Windows. Scale-to-fit stamps the
+  scale, folio ranges and monochrome mode are supported, and `ew print` prints from the CLI (G9).
 
 ### 8.5 3D
 
@@ -895,9 +1017,10 @@ flowchart LR
   reconciler. It diffs successive scene outputs by placement ID and applies insert, update and refit operations.
   Debug read-tracking and the field-mask test guard it (from D).
 - **Picking and gizmo.** Picking is a CPU ray cast. The gizmo is transform-gizmo-egui 0.11.0.
-- **2D panel pages** (folio 902) are projections of mounting surfaces through the same 2D IR. Layout labels are
-  `layout_label` queries (D-02).
-- **Routing** is Class II: negotiated-congestion rip-up and re-route over the duct graph (`[panel-manufacturing.md](../research/panel-manufacturing.md)
+- **3D export.** `ew-panel` writes glTF (glb) and STL from `layout_scene`.
+- **2D panel pages** (folio 902) are projections of mounting surfaces through the same 2D IR: a PanelLayout page
+  hosts one `SurfaceView` of the placements. Layout labels are `layout_label` queries (D-02).
+- **Routing** is Class II: negotiated-congestion rip-up and re-route over the duct graph ([panel-manufacturing.md](../research/panel-manufacturing.md)
   §6.7), on a fork. Results become committed computations only through the explicit `RouteWires` command (§6.5).
 
 ### 8.6 STEP worker
@@ -923,7 +1046,8 @@ flowchart LR
 - an ecosystem of docking, tables and trees: egui_tiles 0.17.1, egui_table 0.10.0, egui_ltreeview 0.9.0.
 
 The costs we accept:
-- **Non-native look.** Mitigated by native menus (muda) and dialogs (rfd).
+- **Non-native look.** Mitigated by native menus (muda) on macOS and Windows, an egui-drawn menu bar on Linux (all
+  generated from one action registry), and native dialogs (rfd).
 - **Breaking minors every 6–10 weeks.** Absorbed by a quarterly lock-step upgrade of egui, wgpu and winit, at about
   one day each.
 - **Weaker text editing.**
@@ -943,9 +1067,9 @@ instead, so a later chrome swap replaces only `ew-ui`.
 | Layout | Canvas in the centre. Left dock: page, device, terminal, cable, PLC and potential navigators. Right dock: property grid. Bottom dock: messages, search results, table editors. Saved **workspaces**: Schematic, PLC, Fluid, Panel 3D, Manufacturing. egui viewports for second monitors |
 | Navigators and tables | Virtualised to 100k rows. Fill-down, pattern fill and paste from Excel compile to **one** command. Generic Excel round trip of any table keyed by its `id` column, with a diff preview (from C) |
 | Property grid | Schema-driven from `ew-schema` metadata (type, unit, enum options, Fluent label key). Values show their provenance (*"0.75 mm² · from potential 24VDC-1 via profile 'DBU/WH 24 V'"*), an override marker and "reset to derived"; `‹varies›` for multi-selection |
-| Canvas tools | State machines returning `Transient(overlay)`, `Preview(Command)` or `Commit(Command)`. Drags use a GPU transform overlay. Semantic ghosts (autoconnect, paste with renumber) use a fork. Commits happen on mouse release |
+| Canvas tools | State machines returning `Transient(overlay)`, `Preview(command)` or `Commit(command)`, with the command as a boxed `DynCommand` (§5.1). Drags use a GPU transform overlay. Semantic ghosts (autoconnect, paste with renumber) use a fork. Commits happen on mouse release |
 | Keyboard-first | Command palette over every `Command`; keymap presets "EW", "KiCad-like" and "EPLAN-like"; grid-step cursor; "next connection point" and "next unconnected point"; back/forward over xref jumps; native macOS menu bar via muda 0.21.2 |
-| Accessibility (G8) | No meaning in colour alone: wire colours always shown with their IEC 60757 code, GNYE striped, highlights as Okabe–Ito colour plus pattern, severities as icon plus colour. Full keyboard operation. AccessKit names enforced by kittest. The selected object's description is exposed as a live region. High-contrast theme; UI scale to 300 % |
+| Accessibility (G8) | No meaning in colour alone: wire colours always shown with their IEC 60757 code, GNYE striped, highlights as Okabe–Ito colour plus pattern, severities as icon plus colour. Full keyboard operation. AccessKit names enforced: an `ew-ui` test helper walks the AccessKit tree after every kittest flow and fails on any unnamed focusable node. The selected object's description is exposed as a live region. High-contrast theme; UI scale to 300 % |
 | i18n | UI strings via fluent-bundle 0.16.0 (Weblate); docs via mdbook-i18n-helpers (PO). icu 2.3.1 formats report numbers and dates. Project content uses `MlText`, a separate concern |
 | Testing hooks | `egui_mcp` and the `egui/inspection` feature are compiled **only** into test builds. CI asserts that release binaries do not contain the `EGUI_INSPECTION` code path (G10) |
 
@@ -955,14 +1079,24 @@ instead, so a later chrome swap replaces only `ew-ui`.
 
 ### 10.1 CLI `ew`
 
-`ew` is the headless `Session`. Panel builders can fail CI on `ew check --scheme pre-delivery`.
+`ew` is the headless `Session`. Panel builders can fail CI on `ew check --scheme pre-delivery`. The authoritative
+catalogue, with options, releases and requirements, is [extensibility](17-extensibility.md) §3.3; this table
+summarises its groups.
 
-| Area | Subcommands |
+| Group | Subcommands |
 |---|---|
-| Checks and inspection | `ew check [--scheme pre-delivery] [--integrity]` (CI exit codes); `ew query <name> <key> [--json] [--explain]`; `ew sql <project> "<select>" --format csv\|json\|xlsx`; `ew sql dump`; `ew verify-derived` |
-| Output | `ew export pdf\|svg\|dxf\|bom\|wires\|terminals\|cables\|plc-aml\|plc-xlsx\|ewpp\|machine <profile>`; `ew render --page 103 --png` (CPU backend: ideal for CI and agents); `ew jobs run release.ewjobs` (KiCad-style jobsets, from D); `ew print` |
-| Import and format | `ew import qet\|edz\|dxf\|csv`; `ew diff`; `ew merge-driver`; `ew fmt [--check]`; `ew upgrade` |
-| Automation | `ew script run`; `ew mcp` |
+| Inspect | `ew check [--scheme <s>] [--gate] [--integrity] [--format …\|sarif] [--baseline …]` (CI exit codes); `ew query <name> <key> [--json] [--explain]`; `ew verify-derived`; `ew find`; `ew sql <project> "<select>"`, `ew sql dump`, `ew sql schema`; `ew commands`, `ew queries`, `ew schema <name>` |
+| Output | `ew export pdf\|svg\|png\|dxf`, `bom`, `wires`, `terminals`, `cables`; `ew export report --block <name\|id>`; `ew export plc-aml\|plc-xlsx\|plcopen\|ewpp\|machine <profile>\|labels\|drilling\|tubes\|ewz`; `ew render --page 103 --png` (CPU backend: ideal for CI and agents); `ew print`; `ew review <base> <head>`. Every export that writes project content takes `--omit-personal-data` |
+| Import | `ew import qet\|csv\|io-list\|edz\|dxf\|plc-aml\|table`; `ew verify-migration <project> --reference <pdf>` |
+| Edit | `ew apply <project> <file.ewcmd>`; `ew script run`; `ew jobs run <file.ewjobs>` (KiCad-style jobsets, from D) |
+| Format and VCS | `ew fmt [--check]`, `ew upgrade`, `ew recover`, `ew git setup [--global] [--hooks]`; `ew diff`, `ew diff --textconv`, `ew diff <a.ewpp> <b.ewpp> --wires`; `ew merge-driver %O %A %B %L %P`, `ew merge resolve` |
+| Revisions and waivers | `ew revision approve\|release\|withdraw`; `ew archive verify\|rebuild`; `ew waiver list\|add\|remove` |
+| Domain | `ew plc status`; `ew mfg …`; `ew lib lint\|render\|pack` |
+| Trust, agents, plugins | `ew trust status\|grant\|revoke\|sign`; `ew mcp [--stdio\|--listen 127.0.0.1:0]`; `ew plugin install\|list\|…` (v1.x) |
+| About and smoke | `ew about [--json]`; the release smoke flag `elektrawatt --smoke <project>` (open, render, exit) |
+
+Human-only commands (approve, release, withdraw, waivers and the like) run on the CLI only through their dedicated
+subcommands, after an interactive terminal confirmation (§10.4).
 
 ### 10.2 The read-only SQL projection (`ew-sqlview`)
 
@@ -970,7 +1104,10 @@ C's best idea, made a derived artefact.
 - **What it is.** A job on a fork materialises the model and selected query results into an SQLite database: in
   memory up to L size, file-backed in the local cache directory at XL. Internal `t_*` tables sit behind
   **versioned public views** `api_v1_*`: device, function, page, wire, terminal, cable, conductor, potential,
-  plc_channel, bom_component, bom_assembly, placement, message.
+  plc_channel, bom_component, bom_assembly, placement, message, plus meta, cp, structure, xref, revision, fluid_line,
+  valve_position and medium (columns in [extensibility](17-extensibility.md) §6.1 and
+  [fluid power](11-fluid-power.md) §8.3). `api_v1` is marked **Preview** until the 1.0 freeze; the golden acceptance
+  SQL is its compatibility corpus.
 - **Refresh.** Per table, keyed by the `changed_at` revision of each source table or query. The projection carries
   its `Rev`, and consumers see "as of revision n" (Class II).
 - **What it serves:**
@@ -981,10 +1118,13 @@ C's best idea, made a derived artefact.
   - acceptance tests (§13);
   - machine-export profiles;
   - Excel round trips.
-- **Sandbox.** Reads run on a separate connection with `query_only`. An authorizer denies `ATTACH`, `PRAGMA` writes,
-  `load_extension` and non-allowlisted functions. A `progress_handler` enforces a deadline, and `SQLITE_LIMIT_*`
-  limits apply. The feasibility judge verified these APIs in the rusqlite source. The collation `ew_natural`
-  (X2 < X10) and the function `ew_ml(text, lang)` are registered.
+- **Sandbox.** Reads run on a separate read-only connection with `query_only`, one statement per call. An authorizer
+  denies `ATTACH`/`DETACH`, every `PRAGMA`, DDL, DML, transactions, `ANALYZE`, `REINDEX`, direct `t_*` reads,
+  `load_extension` and non-allowlisted functions. A `progress_handler` enforces a deadline and bounds the runtime;
+  `SQLITE_LIMIT_*` limits apply, with `VDBE_OP` treated as a prepare-time program-size cap whose enforcement is
+  **(verify)**. Result caps are 100,000 rows per report, 1,000 rows and 1 MiB per MCP response, and 1,000,000 rows
+  and 256 MiB for `ew sql` (ADR-0017). The feasibility judge verified these APIs in the rusqlite source. The
+  collation `ew_natural` (X2 < X10) and the function `ew_ml(text, lang)` are registered.
 - **Trust.** SQL text that arrives inside a received project (user reports, rule packs) is treated like scripts:
   it does not run until the user trusts the project (§10.6). The built-in packs are trusted.
 - **Contract lifetime.** `api_v1` lives as long as format major 1. Stored queries declare `api = "v1"`. A new view
@@ -996,12 +1136,19 @@ C's best idea, made a derived artefact.
 - **What rhai covers:** rule expressions, tag and wire-number formats, title-block formulas, report filters and
   recorded macros.
 - **Inside queries, scripts are pure.** They read only through tracked accessors, so a formula is as incremental as
-  Rust. They have no I/O, and operation, depth and string-size limits apply.
+  Rust. They have no I/O, and operation, depth and string-size limits apply. The engine configuration and the
+  formula and rule profiles live in `ew-rhai`.
+- **Trust.** Pure formulas (title-block formulas, report filters, tag and wire-number formats, value-set formulas)
+  run in untrusted projects. Rule packs, machine-profile `expr` columns and automation scripts in a received project
+  wait for the trust prompt (§10.6).
 - **Automation scripts** call `query()` and `submit()`.
 
 ### 10.4 Plugins: WASM components (v1.x)
 
-Plugins are WASM components on the wasmtime 48.x LTS line, with wit-bindgen 0.63.0.
+Plugins are WASM components on **the wasmtime LTS line current at plugin launch** (development runs on 48.x until
+then), with wit-bindgen 0.63.0. Queries and records cross the boundary as published JSON Schemas and canonical
+JSONL; the permissive `ew-plugin-sdk` generates typed guest bindings from the same schemas, so an additive format
+field needs no WIT change (ADR-0020).
 
 **What the WIT world `elektrawatt:plugin@1` provides:**
 - typed read queries (§6.4);
@@ -1011,19 +1158,27 @@ Plugins are WASM components on the wasmtime 48.x LTS line, with wit-bindgen 0.63
 - capability-scoped file handles;
 - **declarative forms**: dialogs the host renders, so plugins never touch the UI toolkit (from D).
 
-**What a plugin can export:** importers, exporters, rules, report columns and machine profiles.
+**What a plugin can export:** importers, exporters, rules, report columns, machine profiles, decoders and actions.
+Actions only submit edit commands through preview and commit. Plugin rules are registered into the `ew-checks`
+rule registry by `ew-api` (§12).
 
 **Data and controls:**
 - Plugin data lives under namespaced `plugin.<id>.*` keys. It is persisted, merged and undoable, and it survives
   when the plugin is not installed (from B).
 - Calls run under fuel or epoch deadlines and `StoreLimits`. Manifests are signed, capabilities are approved by the
   user at install, and the plugin's ID appears in the undo history.
+- **Secrets (v1.x, before the first connector plugin).** A host capability `secret-get(name)`, backed by the OS
+  credential store, is granted per plugin at install and is never readable by other plugins.
+- **Human-only commands** (approve, release, withdraw, waivers, schemes, strictness, trust and the like) are refused
+  for plugins, scripts, Python, MCP and command-log replays.
 
 ### 10.5 MCP and Python
 
 - **MCP.** `ew mcp` (rmcp 3.5.1 **(verify)**) exposes `query`, `sql_query`, `find`, `run_checks`,
   `preview_command` (a diff computed on a fork) and `commit_preview`.
-  - It is off by default and reachable over stdio or localhost only. Writes are ask-first.
+  - It is off by default and reachable over stdio or loopback only (`--listen 127.0.0.1:0`, with a per-session
+    random token and an `Origin` check; a non-loopback address is refused). Writes are ask-first.
+  - Personal-data and confidential project fields are omitted unless the session was started with an explicit flag.
   - An agent edit is an ordinary journalled, undoable transaction tagged `origin=mcp`.
 - **Python (v1.x).** A pyo3 0.30.1 wheel of the headless core. There is no embedded interpreter.
 
@@ -1033,7 +1188,11 @@ Plugins are WASM components on the wasmtime 48.x LTS line, with wit-bindgen 0.63
 // ew-interop-api (MIT OR Apache-2.0): no model, no GPL dependency
 pub trait Importer { fn sniff(&self, head: &[u8], path: &Path) -> Confidence;
                      fn import(&self, src: &mut dyn Source, cx: &ImportCx) -> Result<ImportBatch>; }
-pub struct ImportBatch { pub records: Vec<ew_schema::AnyRecord>, pub report: ImportReport, pub provenance: Vec<SourceRef> }
+pub struct ImportBatch { pub records: Vec<ew_schema::AnyRecord>,    // each imported record carries source_ref{lineage, key}
+                         pub assets: Vec<AssetBlob>,                // content-addressed logos and images
+                         pub report: ImportReport,                  // entries may carry a Proposal (human decision)
+                         pub provenance: Vec<SourceRef> }
+pub struct TableImage { pub tables: BTreeMap<String, Vec<Vec<Cell>>> } // filled by the host, e.g. a QETZ project.sqlite
 pub trait Exporter { fn export(&self, view: &ExportView, opts: &ExportOpts, sink: &mut dyn Sink) -> Result<ExportReport>; }
 ```
 
@@ -1044,6 +1203,14 @@ pub trait Exporter { fn export(&self, view: &ExportView, opts: &ExportOpts, sink
 
 `ApplyImport` turns a batch into a previewed transaction: normalisers and validators run in **lenient** mode, and
 the migration report is the resulting check run.
+- **Lineage and runs.** Imported IDs are `v5(lineage namespace, source key)` (§4.4). `ImportLineage` records live in
+  `project.jsonl`; each import persists an `ImportRun` in `imports/<run-uuid>.jsonl` with its import-only findings
+  and statistics (ADR-0021).
+- **SQLite sources.** The host, not the importer, opens a foreign SQLite file with `ew-library`'s hardened read-only
+  opener and passes its content as a `TableImage`, so importers never link rusqlite (§3 rules 2 and 4).
+- **Proposals.** A `Proposal` attached to a report entry is format-level intent (merge two structure nodes, bind a
+  free text to a field); `ApplyImport` turns an accepted proposal into a command.
+- **Underlays (1.0).** A PDF or DXF page can be imported as a locked `Underlay` page item.
 
 | Threat (G10) | Control |
 |---|---|
@@ -1064,16 +1231,18 @@ the migration report is the resulting check run.
   - parts list (assembly and component modes), summarised parts list, device list;
   - terminal diagram and strip overview;
   - cable diagram and overview, wire list;
-  - PLC card overview and assignment list;
+  - PLC overview (one row per channel of a station, folio 908), PLC card list (one row per module, 1.0) and I/O
+    assignment list;
   - bus, potential, structure-identifier and revision overviews;
   - enclosure legend, tube list, open items.
 - **User reports** are an SQL query over `api_v1_*` views plus a form. They live in the project or in the company
   basic project. Examples:
-  - "24 V loads with their protective device and total current per MICO channel" (D-25);
+  - "24 V loads with their protective device and total current per MICO channel" (D-25; currents from 1.0, when
+    `api_v1_cp` exposes the load current per pin);
   - "terminals per cable with the PLC address at the far end";
   - a customer nameplate list.
 
-  This goes beyond EPLAN, whose report types are predefined (`[eplan-features.md](../research/eplan-features.md) §7).
+  This goes beyond EPLAN, whose report types are predefined ([eplan-features.md](../research/eplan-features.md) §7).
 
 **Forms** are declarative `FormDef` data in nm:
 - header, data and footer areas;
@@ -1091,7 +1260,7 @@ fields do not exist** (D-05, D-06, D-30).
 - `report_pages(block)` paginates rows into virtual pages, which `page_order()` merges with drawn pages. TOC,
   Prev/Next and the PDF outline therefore always include them.
 - There is no "update reports" button, because nothing can be outdated. A check guards folio collisions.
-- Golden folios 903–911 are blocks.
+- Golden folios 2, 901 and 903–911 are blocks.
 
 **Embedded report blocks** are page items bound to a filtered row source. Examples: the "PART DATA" boxes on 201,
 202 and 902, and the cover's colour and size tables generated from the active profile (REF-005, D-08).
@@ -1101,8 +1270,16 @@ disagree.
 
 **Machine-export profiles are data** (from C). A profile is TOML:
 `{row_source (built-in query or api_v1 view), filter, column map, value transforms, limits, encoding, line endings, header}`.
-Komax (TopConvert CSV), Rittal WT CSV, label printers and TIA tag XLSX ship as profiles, so a new machine format is
-usually a TOML file (`[panel-manufacturing.md](../research/panel-manufacturing.md) §8).
+Two profile kinds share this machinery:
+- **machine profiles** (`ew.machine-profile/1`) for wire-processing machines: a generic CSV and XLSX wire list,
+  Komax (TopConvert CSV) and Rittal WT CSV ship as the profiles `generic-csv`, `generic-xlsx`,
+  `komax-topconvert-csv` and `rittal-wt-csv`;
+- **label profiles** (`ew.label-profile/1`) for marking software and label printers
+  ([manufacturing outputs](13-manufacturing-outputs.md) §5.4).
+
+A new machine format is therefore usually a TOML file ([panel-manufacturing.md](../research/panel-manufacturing.md)
+§8). The TIA "PLC Tags" XLSX is not a profile: it is a fixed-format exporter and importer in `ew-plc`, because its
+round trip needs code ([PLC and bus](10-plc-and-bus.md) §4.5).
 
 **At release**, report outputs are frozen into the archive (§7.8) as committed computations.
 
@@ -1111,43 +1288,57 @@ usually a TOML file (`[panel-manufacturing.md](../research/panel-manufacturing.m
 ## 12. Checks and rule engine
 
 A rule is
-`{id, class, severity, modes: [online|offline|prevent|release], scope, impl, params, message: FluentKey, docs_url}`:
+`{id, code, class, severity, modes: [online|offline|prevent|release|export], scope, impl, params, message, docs_url}`
+(ADR-0019; the catalogue is [checks, revisions and collaboration](15-checks-revisions-collaboration.md) §4):
+- IDs are `<OWNER>-<FAMILY>-<NUMBER>` with three digits, for example EW-POT-013, and never reused. Each rule also has
+  a six-digit code `CCCNNN` (class plus number) from a registry in `ew-checks`;
 - classes mirror EPLAN: 001 terminals, 003 cables, 005 connections, 017 numbering;
-- EW adds classes for layout (L001–L011), PLC, bus, fluid and EN 60204-1.
+- EW adds classes for integrity, layout (EW-LAYOUT pack, EW-LAY-001 … EW-LAY-026), PLC, bus, fluid, thermal,
+  manufacturing, EN 60204-1, import and the release gate;
+- `message` is a Fluent message ID `rule-<id>` with `.title` and `.hint` attributes (from B).
 
 ```toml
 [[rule]]
 id = "EW-POT-013"
-title = "rule.pot013.title"                 # Fluent key; message localised (from B)
+code = "005013"                             # class 005 + number
 severity = "error"
 modes = ["online", "release"]
 scope = "potential"
-impl = "rust:pot.n_switching"               # or "rhai:<expr>" or "sql:pot/013.sql" (offline/release only)
-docs = "https://<docs>/rules/EW-POT-013"
+impl = "rust:pot.n_switching@1"             # or "rhai:<expr>" or "sql:pot/013.sql" (offline/release only)
+message = "rule-ew-pot-013"                 # Fluent message with .title and .hint; localised
+docs = "rules/ew-pot-013"
 ```
 
-- **Implementations.**
-  - Registered Rust functions cover graph-heavy and online rules.
+- **Implementations.** `ew-checks` owns the `RuleImpl` trait and the registry.
+  - Registered Rust functions cover graph-heavy and online rules; `ew-checks` implements them, and the rhai rules,
+    itself.
   - rhai expressions cover simple company rules, for example "letter T requires a temperature-sensing definition".
   - SQL queries over the projection cover offline and release packs, and suit domain experts writing rules without
-    Rust.
+    Rust. `ew-sqlview` implements them, and `ew-plugin-host` implements plugin rules (v1.x). `ew-api` registers both
+    at session start, so `ew-checks` never depends on either.
 - **Online rules are memoised queries** `checks(scope)`, so a wire edit re-evaluates only its page, potential and
   strip. A rule that exceeds its 5 ms budget per commit is demoted to deferred and logged (from C).
 - **Prevent rules** are commit validators (§4.6). **Offline rules** run as Class II jobs: PE continuity across
-  rails, configurator validation, clearance.
-- **Rule packs** are versioned directories (`ruleset = "EN60204-1:2018+A1:2025"`) of TOML, Rust references, rhai and
-  SQL. Shipped packs: `EW-CORE`, `EW-IEC81346`, `EW-TERM`, `EW-POT`, `EW-PLC`, `EW-BUS`, `EW-FL`, `EW-LAYOUT` and
-  `EW-REL`. Companies add packs without forking. Licensed threshold tables plug in per organisation. A released
-  revision records the pack versions it was checked against.
+  rails, configurator validation, clearance. **Export rules** run on the exporter's fork before it writes, for
+  example the manufacturing pre-flight.
+- **Rule packs** are versioned directories (`ruleset = "EN60204-1:2018+A1:2025"`) of TOML, Rust references, rhai,
+  SQL and Fluent messages. Shipped packs: `EW-CORE`, `EW-IEC81346`, `EW-TERM`, `EW-POT`, `EW-PLC`, `EW-BUS`, `EW-FL`,
+  `EW-LAYOUT`, `EW-THM`, `EW-MFG`, `EW-EN60204` and `EW-REL`. The domain packs ship their MVP subsets at MVP and are
+  complete at 1.0. Companies add packs without forking. Licensed threshold tables plug in per organisation. A
+  released revision records the pack versions it was checked against.
+- **Schemes** set enablement, severity and mode per rule: `drafting` (default while editing), `pre-delivery`
+  (default release scheme), `migration`, `full`, `manufacturing`, `machinery-en60204` and `assembly-iec61439`.
 - **Waivers** are entities `{rule, target, reason, author, date}` and appear in the release report.
 - **Quick fixes** are previewed commands, for example "rename +JE2416 → +J-E-2416", "move override to profile" or
   "create incoming supply cable".
-- **Release gate.** `ew check --scheme pre-delivery` must report zero unwaived errors. Blocking items:
+- **Release gate.** `ew check --scheme pre-delivery` must report zero unwaived errors. The EW-REL rules run only in
+  the gate, the approve dialog and `ew check --gate`. The blockers are release-scheme rules at error severity:
   - `Tbd` values;
-  - author = checker;
-  - stale Class II results or committed computations;
-  - unplaced devices;
-  - cables without length.
+  - author = checker, and a missing or stale sign-off (EW-REL);
+  - stale Class II results or committed computations (EW-REL-002);
+  - devices without schematic representation (EW-CORE-047);
+  - devices without layout placement, counted only where the device's location has a layout space (EW-LAY-001);
+  - cables without length (EW-CORE-033).
 
 ---
 
@@ -1163,7 +1354,7 @@ docs = "https://<docs>/rules/EW-POT-013"
 | **UI** | egui_kittest flows with accessible-name enforcement; headless view-model tests (property grid `‹varies›`, provenance, table edits → one command) |
 | **Fuzzing** | cargo-fuzz 0.13.2 on the JSONL loader and migration chain, the merge driver, QET/QETZ, DXF, EDZ (7z and ZIP), AML, EPLAN XML, the STEP IPC decoder, and the SQL sandbox (hostile SQL must not escape the authorizer) |
 | **SQL compile test** | Every `.sql` file (report pack, rule packs, acceptance) is prepared against the current projection schema; an `EXPLAIN QUERY PLAN` lint flags full scans on L-sized tables |
-| **Performance and memory gate** | Synthetic S/M/L/XL projects made by replicating the golden model (G6). criterion 0.8.2 measures: open, warm-up, move, draw wire, renumber folio, profile change, BOM, full check, PDF of 500 pages, save, projection build. **Engine statistics** (hits, re-executions, cut-offs per edit) are asserted, not just timed. The memory gate covers memo bytes per family and peak RSS. A nightly job fails on > 15 % regression |
+| **Performance and memory gate** | Synthetic S/M/L/XL projects and the XL-A estimate case (§6.7), made by replicating the golden model (G6). criterion 0.8.2 measures: open, warm-up, move, draw wire, renumber folio, profile change, BOM, full check, PDF of 500 pages, save, projection build. **Engine statistics** (hits, re-executions, cut-offs per edit) are asserted, not just timed. The memory gate covers memo bytes per family and peak RSS. A nightly job fails on > 15 % regression |
 | **Platforms** | Windows (incl. a DX12 WARP job), macOS arm64, Ubuntu; a CPU-renderer job; a network-sandbox job that fails on any unexpected connection (G12) |
 
 **CI pipeline.**
@@ -1198,7 +1389,7 @@ docs = "https://<docs>/rules/EW-POT-013"
 | Defect | Class | Mechanism |
 |---|---|---|
 | D-01 stale -4W1 after renumber | S | Tags exist only as `device_tag`. BOM, layout and xrefs read the same query |
-| D-02 layout T51 vs T55; free rectangles | S | `Placement3D` and panel-front representations reference a device; labels come from `layout_label`. An orphan-graphic check covers the rest |
+| D-02 layout T51 vs T55; free rectangles | S | `Placement3D` references a device, and panel fronts are derived from placements (`panel_front_reps`); labels come from `layout_label`. An orphan-graphic check covers the rest |
 | D-03 mixed schemes, "+JE2416" | S + C | One canonical structure node; numbering rules per project; frozen tags explicit and reported |
 | D-04 BOM incomplete, duplicated, no quantities | S | `bom_rows` aggregates parts on devices, assembly children, carriers and accessories; one strip is one row with a quantity |
 | D-05 four revision formats | S | One `Revision` table and format; the title block reads it |
@@ -1222,13 +1413,13 @@ docs = "https://<docs>/rules/EW-POT-013"
 | D-23 unconnected 13-14 | C | Unconnected-CP rule unless marked `unused` |
 | D-24 five IP names on one net | S | Canonical potential name with aliases |
 | D-25 crossed supply pairs, one channel | C | Load summary per channel and potential; potential-pair report (user SQL example, §11) |
-| D-26 odd-bit addresses | S + C | `channel_addresses` from the module start and the part address map; `EW-PLC-12` |
+| D-26 odd-bit addresses | S + C | `channel_addresses` from the module start and the part address map; `EW-PLC-012` |
 | D-27 untagged valves and process valves | S | Child devices of the assembly with derived tags; typed `process_tag` and field location |
 | D-28 fluid model incomplete | C | `EW-FL` rules: supply on port 1, exhaust or silencer, tube spec |
 | D-29 tag text sizes vary | S | Text styles bound to slot kind |
 | D-30 customer vs end user | S | Typed party roles |
 | D-31 3.70 pt text | C | Printed-height check at print scale |
-| D-32 layout incomplete | C | `L001` unplaced devices; layout derived from devices |
+| D-32 layout incomplete | C | `EW-LAY-001` unplaced devices; layout derived from devices |
 | D-33 physical page labels, lost spaces | S | `/PageLabels`; glyph runs with real spaces |
 | D-34 author = checker | I | Structural invariant on release |
 | D-35 description misuse | S + C | Separate description and technical-data fields from the part; "rating in description" lint |
@@ -1247,7 +1438,7 @@ docs = "https://<docs>/rules/EW-POT-013"
   QET's `%F-%l%c` equivalent (C-15).
 - **Profiles.** The house colour profile "DBU/WH 24 V" and the size profile (0.75 / 1.5 mm²) generate folio 1's
   tables.
-- **Generated pages.** Section dividers 100, 200 and 900 and report folios 903–911 are generated.
+- **Generated pages.** Section dividers 100, 200 and 900 and report folios 2, 901 and 903–911 are generated.
 - **Expected check results.** `ew check --scheme pre-delivery` reports exactly the expected open items: D-13 unless
   corrected, D-26, the TBD address, missing parts on S56 and E56, and unplaced devices.
 
@@ -1264,8 +1455,8 @@ The critical path to the golden PDF is not only the model. It is also **symbols,
 |---|---|---|
 | 0–2 | `ew-units`, `ew-ids`, `ew-mltext`, `ew-rds`; `ew-schema` v0 for the golden subset (co-owned) | `ew-dl`; symbol, function-definition and form record kinds in `ew-schema` |
 | 2–5 | `ew-model` (tables, ops, base indexes, invariants); `ew-commands` (`TxBuilder`, `History`, normalisers, about 20 commands, preview fork) | Starter symbol set as data: about 40 IEC 60617 and ISO 1219 symbols used by J-E-2416. Minimal **QET element reader** (`.elmt` geometry and terminals embedded in `.qet`) into a per-project "QET import" library on its native grid |
-| 3–5 | **M0 perf spike:** synthetic L and XL replicated from the golden project; cold-query latency for move, wire, renumber and profile change; global connectivity; open time and memory. **Output:** the list of queries to memoise and the go/fallback decision (§6.1) | `ew-scene` frames and forms: QET-compatible 17 × 8 frame, title block with bound fields, text stack and bundled fonts |
-| 5–9 | `ew-derive` (structure, tags, anchors, xrefs, two-level nets, potentials, wire properties, page order, TOC, BOM, title block), cold first; `ew-memo` for the queries M0 selected; oracle mode | `ew-render-cpu` and PNG goldens; `ew-reports` pagination (TOC, BOM 901, terminal, wire); `ew import csv` golden bootstrap |
+| 3–5 | **M0 perf spike:** synthetic L and XL replicated from the golden project; cold-query latency for move, wire, renumber and profile change; global connectivity; open time and memory. **Output:** the list of queries to memoise and the go/fallback decision (§6.1) | `ew-text` and `ew-scene` frames and forms: QET-compatible 17 × 8 frame, title block with bound fields, text stack and bundled fonts |
+| 5–9 | `ew-derive` (structure, tags, anchors, xrefs, two-level nets, potentials, wire properties, page order, TOC, BOM, title block), cold first; `ew-memo` for the queries M0 selected; oracle mode | `ew-render-cpu` and PNG goldens; `ew-reports` pagination (TOC, BOM 901, terminal, wire); `ew import csv` golden bootstrap (`ew-import-tables`) |
 | 6–9 | `ew-format` and `ew-store`: JSONL writer and reader, manifest, save protocol, journal, lock | krilla PDF: outline, links, named destinations, page labels, PDF/A-2b |
 | 9–12 | `ew-sqlview` v0 and the acceptance runner; `ew query --explain`; perf gate in CI | Integration: `ew export pdf golden/`; visual and PDF structure tests |
 
@@ -1361,7 +1552,7 @@ and golden data, not mocks.
 | Salsa decision gate not clean (salsa cancels readers on write) (feasibility) | Salsa rejected by ADR. The M0 spike compares cold vs memoised instead (§15.1) |
 | Macro and rhai-in-query complexity (feasibility) | Tracked access by module privacy (`&Q` only), not a macro DSL; rhai in queries limited to pure formulas (§6.1, §10.3) |
 | No PDF in the spine; the golden critical path is symbols and forms (feasibility) | Two-lane spine with symbols, forms and krilla PDF from week 0; minimal QET element reader; CSV bootstrap (§15.1) |
-| Unflagged or inconsistent versions (directories 6.0.0, rayon 1.12.0; "wasmtime 49.0.3 pinned to 48 LTS") (feasibility, longevity) | Marked **(verify)**; "48.x LTS line, 49.0.3 current" (§2, §3) |
+| Unflagged or inconsistent versions (directories 6.0.0, rayon 1.12.0; "wasmtime 49.0.3 pinned to 48 LTS") (feasibility, longevity) | Marked **(verify)**; "the LTS line current at plugin launch, 48.x in development, 49.0.3 current" (§2, §3) |
 | Memo memory at XL not shown; no granularity rule (domain) | Granularity rules, per-potential grouping, memory gate, explicit XL budget (§6.3, §6.7) |
 | Revision diff: where the frozen model lives was vague (domain) | As-built archive with canonical text, loaded into a read-only `Model` for `diff_model` and `diff_query`; git tag (§7.8) |
 | Report types are a fixed enum; no user reports (domain) | User SQL reports over the projection, plus built-in typed reports (§10.2, §11) |

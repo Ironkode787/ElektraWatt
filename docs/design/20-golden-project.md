@@ -1,6 +1,6 @@
 # Golden project: acceptance-test specification
 
-**Status:** Draft v0.1 · **Date:** 2026-10-17 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document turns the reference project (cabinet J-E-2416 from the pilot user's reference drawing
 set) into ElektraWatt's (EW) executable acceptance specification. It fixes the data EW must hold as a model
@@ -88,6 +88,12 @@ A fourth fixture, **Golden A-R** (A plus the resolution overlay `resolutions/*.c
 the drawings: it supplies test values for the ▲ gaps so that release, layout, routing and manufacturing outputs can
 be tested before the pilot answers.
 
+A fifth fixture, **GP-UT** (`variants/gp-ut.ewcmd`), is the start state of the usability tests of
+[16](16-ux-ui.md) §19: Golden A without -102F1 and its wires W20, W21, W24 and W25 and, for round R2, also without
+the binding of channel 1 of -201U3. It comes with a basic project built from the shipped defaults; the pilot's own
+basic project replaces it only in pilot sessions, so no company logo or notice text enters the repository. With
+the gap-filling counter rule of [domain model](03-domain-model.md) §8.6, task T1 re-creates the MCB as -102F1.
+
 ```mermaid
 flowchart LR
   T["tables/*.csv<br/>(this document)"] -->|"ew import csv"| A["Golden A<br/>golden/J-E-2416.ew"]
@@ -104,18 +110,23 @@ flowchart LR
 ### 2.1 Golden A rules
 
 1. **Tags.** Printed tags are kept. S51, F55, T55, E55, S56, E56 and 1X1 are frozen tags (`FrozenTag{sign:
-   Hidden}`, FR-NUM-010, ADR-0003). -X1031 and -X1032 are derived by the strip rule `-{letter}{folio}{counter}`; -UC1 and
-   -XPE by per-class rules ▲U-34; every other tag by the page-based rule `-{folio}{letter}{counter}`; valves by the
-   child rule (-201U3-QM1, FR-DEV-021). Letters follow the shipped EN 81346-2:2009 single-letter set (ADR-0026).
+   Hidden}`, FR-NUM-010, ADR-0003). -X1031 and -X1032 are derived by the strip rule `{letter}{page}{counter}`; -UC1
+   and -XPE by per-class rules ▲U-34; every other tag by the page-based rule `{page}{letter}{counter}`; valves by
+   the child rule `{parent}-{letter}{counter}` (-201U3-Q1, FR-DEV-021). The formatter adds the leading "-" of the
+   product aspect; formats never contain it ([domain model](03-domain-model.md) §8.2). Letters follow the shipped
+   EN 81346-2:2009 single-letter set (ADR-0026), which maps directional valves to Q.
 2. **Fixes.** Every defect of class S or I in [architecture](04-architecture.md) §14 is fixed in the model; class C
    defects are fixed where the correct value is determinable; the rest stay and are reported (§18).
 3. **Safety.** D-13 is *not* fixed, because the correct wiring is unknown (▲U-11): EW-POT-013 must report it.
 4. **Grid.** All drawn pages sit on the QET 10 px grid, stored exactly as a rational grid (ADR-0005, ADR-0027).
+   Their symbols come from the `@qet10` edition of the starter library, which is generated from the native edition
+   and never drawn by hand (FR-SYM-030; ADR-0027 recommendation 8, still Proposed). The first PNG approval (§3.3)
+   also checks the scaled graphics of that edition on every Golden A page before the starter set is frozen.
 5. **Visuals.** Folios reproduce the reference except the intended differences of §3.4.
 
 ### 2.2 Golden B
 
-**Step B1:** `RenumberDevices{scope: project, scheme: "-{folio}{letter}{counter}", include_frozen: true, order:
+**Step B1:** `RenumberDevices{scope: project, scheme: "{page}{letter}{counter}", include_frozen: true, order:
 [column, row]}`. Letters stay (`TagSpec.letter`); only formats and counters change. Exactly ten tags change:
 
 | Golden A | Golden B | Golden A | Golden B |
@@ -156,16 +167,39 @@ executable.
 
 | Gap | Test value in A-R ▲ | Clears |
 |---|---|---|
-| U-11 T55/S56 in N | Contacts moved into the L path: F55:2 → T55 → E55:L and F55:2 → S56 → E56 | EF-01 |
+| U-11 T55/S56 in N | Contacts moved into the L path: F55:2 → T55 → E55:L and F55:2 → S56 → E56 (wire ends below) | EF-01 |
 | U-23 address map | Map H2 "coil 14 = channel 2p + 1" | EF-02 |
 | U-22 station address | 3, network 1.5 Mbit/s | EF-03 |
-| U-13 S56, E56 parts | Test catalogue parts `TEST-DOORSW-1`, `TEST-LAMP-1` (flagged test data) | EF-04 |
+| U-13 S56, E56 parts | Test catalogue parts `TEST-DOORSW-1`, `TEST-LAMP-1` (flagged test data, clamp data in `tables/clamps.csv`) | EF-04 |
 | U-26 placements | F55 at the end of row 1; -201U9 between -201U8 and -202U1; E55 low on the plate; S56, E56 on the door frame | EF-05 |
 | U-19 PE sizes | W6 explicit 2.5 mm² GNYE | EF-06 |
 | U-20 supply cable | -101W1, 3 cores L/N/PE 2.5 mm² ▲ | EF-07 |
 | U-21 bus cable length | -3W1 = 10 m | EF-08 |
-| U-27 accessory parts | Test parts for bridges, end brackets, rails, ducts | EF-17 |
-| U-03 checker | `<checker>` ≠ author | release gate |
+| U-27 accessory parts | Test parts for bridges, end brackets, rails, ducts, the -X1031 end cover, a rail-mounting kit for the valve terminal on R3 and one screw-mounted test part on the plate (§13) | EF-17 |
+| U-25 fluid supply and tubes | Medium "compressed air 6 bar [1:4:1]" fed to -201U9:1 through a supply line F17 from an air-supply point; default tube PU 6×4 BU (`ProjectSettings.fluid.default_tube`); manual length 1,200 mm on F1–F17; silencers (`CpOverride.closure`) on ports 3 and 5 of -201U9 and -202U3; plugs on ports 2 and 4 of the 20 spare valves | EF-13, EF-20, EF-21 |
+| U-03 checker | `<checker>` ≠ author, approved by the acceptance runner (below) | release gate |
+
+**Rewiring of the F55 circuit (U-11).** The six wire identities stay, so the shop set keeps its 31 wires
+([13](13-manufacturing-outputs.md) §15.1) and the A-R finishing-task list is exact; only the ends change:
+
+| W | Golden A | Golden A-R |
+|---|---|---|
+| 13 | F55:2 → E55:L | F55:2 → T55:5 |
+| 14 | F55:2 → E56:X2 | F55:2 → S56:13 |
+| 15 | F55:N#2 → T55:5 | F55:N#2 → E55:N |
+| 16 | F55:N#2 → S56:13 | F55:N#2 → E56:X1 |
+| 17 | T55:3 → E55:N | T55:3 → E55:L |
+| 18 | S56:14 → E56:X1 | S56:14 → E56:X2 |
+
+J1 and J2 keep their sequences. The naming-only definitions follow the switched conductor: N-55T becomes L-55T
+(T55:3, E55:L) and N-55S becomes L-55S (S56:14, E56:X2); L-55 now holds F55:2, T55:5 and S56:13, and N-55 holds
+F55:N#2, E55:N and E56:X1.
+
+**Sign-off.** `HumanOnly` commands are refused in a replay ([15](15-checks-revisions-collaboration.md) §5.4), and a
+sign-off is bound to a content digest that a static CSV cannot hold. The A-R acceptance runner therefore applies
+the overlay, saves, and then calls the CLI `ew revision approve --as <checker>`; the terminal confirmation comes
+from the test harness's test-build confirmation hook ([18](18-quality-security-release.md)), which release builds
+lack. It is never a line of a `.ewcmd` script.
 
 ---
 
@@ -178,13 +212,19 @@ golden/
   J-E-2416.ew/                 # checked-in project fixture (CC0); generated by `ew import csv golden/J-E-2416/tables`
   J-E-2416/
     README.md                  # what the fixture is, licence CC0-1.0 (ADR-0024), anonymisation statement
-    tables/*.csv               # source of truth: §4–§14 of this document as CSV (UTF-8, natural order)
+    tables/*.csv               # source of truth: §4–§14 of this document as CSV (UTF-8, natural order);
+                               #   tables/clamps.csv holds the ▲ clamp test data of 13 §15.2, A-R test parts included
     resolutions/*.csv          # Golden A-R overlay (§2.4), every value flagged test data
+    history/V1.0/              # synthetic V1.0 state for revision compare and clouds: Golden A with one ▲ test
+                               #   change each on 101 and 106 (FR-REV-014, FR-REV-016); the real V1.0 stays historic
     expected/                  # pages, toc, title_blocks, xrefs, tags, bom_component, bom_assembly, terminals,
                                #   wires, potentials, cables, plc, fluid, placements, findings_mvp, findings_1_0,
-                               #   release_blockers (CSV); geometry/frame.json; text/<folio>.csv; png/<folio>.png
+                               #   findings_manufacturing, findings_en60204, release_blockers (CSV);
+                               #   mfg/*.csv (Komax and Rittal WT rows, manual.csv with finishing tasks, consumables);
+                               #   geometry/frame.json; text/<folio>.csv; png/<folio>.png
     acceptance/*.sql           # queries over the api_v1 views producing expected/*.csv (ADR-0017)
-    variants/                  # b-renumber.ewcmd, b2019-identifier-set.ewcmd, c-fix.ewcmd
+    variants/                  # b-renumber.ewcmd, b2019-identifier-set.ewcmd, c-fix.ewcmd, gp-ut.ewcmd
+    basic-project/             # basic project built from the shipped defaults (GP-UT sessions, §2)
     assets/logo-placeholder.svg
 ```
 
@@ -216,7 +256,9 @@ Following [architecture](04-architecture.md) §13, Golden A is built three ways:
 
 **Approved PNGs.** At M1 the team and the pilot user compare EW's rendering of every reproduced folio with the
 reference PDF in a private review, list any difference not in §3.4, fix it or add it to §3.4, and then approve the
-PNGs. From then on the approved PNGs are the visual oracle; they contain only anonymised content.
+PNGs. This first approval includes the visual check of the scaled graphics of the generated `@qet10` symbol edition
+(§2.1 rule 4) on every Golden A page. From then on the approved PNGs are the visual oracle; they contain only
+anonymised content.
 
 ### 3.4 Intended differences from the reference set (Golden A)
 
@@ -245,7 +287,7 @@ PNGs. From then on the approved PNGs are the visual oracle; they contain only an
 
 - Party, person and title-block values in `tables/` are the placeholders of §1.2; the logo is
   `assets/logo-placeholder.svg` (CC0). The pilot's real values live only in their private company basic project.
-- A CI guard (proposed NFR-PRIV-nn) normalises every committed text file into word n-grams (n ≤ 3), hashes them
+- A CI guard (NFR-PRIV-09) normalises every committed text file into word n-grams (n ≤ 3), hashes them
   with SHA-256 and fails on any match with `ci/denylist.sha256`, a list of hashes of forbidden tokens supplied by
   the maintainers. Only hashes are committed.
 - Golden C and the migration verifier (AC-25 … AC-27) run in a private CI job against the private store; the
@@ -293,7 +335,7 @@ Person and party fields are marked personal data (NFR-PRIV-06).
 | `=` function | =P01 | ▲U-05 | every page and device |
 | `+` location | +J-E-2416 (alias "JE2416", never printed) | This cabinet | every in-cabinet device; layout space |
 | `+` location | +J-E-206 | Upstream cabinet; external references only | ExternalRef targets on 3 and 101 |
-| `+` location | +FIELD ▲U-07 | Process field | 8 process valves TA05-V-xx |
+| `+` location | +FIELD ▲U-07 | Process field | 8 field devices -203Q1 … -203Q8 (process valves TA05-V-xx) |
 | External device | JE-N1000-03 in +J-E-206 ▲U-06 | Supply origin and PROFIBUS master | 4 ExternalRef uses (L, N, PE, DP) |
 
 Sections: 1 "Wiring Definition" (100–199), 2 "Pneumatics" (200–299), 9 "Nomenclature" (900–999). Folios 1, 2 and 3
@@ -305,16 +347,17 @@ these equal the page's structure (FR-NUM-002).
 | Setting | Golden A value |
 |---|---|
 | Identifier set | EN 81346-2:2009 single letters (ADR-0026) |
-| Numbering | page-based `-{folio}{letter}{counter}`; strips `-{letter}{folio}{counter}`; children `{parent}-{letter}{counter}`; order column then row |
-| Cross-reference format | `{folio}-{row}{column}`, the QET `%F-%l%c` equivalent (C-15); aux → main in parentheses "(201-E1)"; main → aux after "∞" |
+| Numbering | page-based `{page}{letter}{counter}`; strips `{letter}{page}{counter}`; children `{parent}-{letter}{counter}`; order column then row; next free counter = the lowest unused counter in the scope (gaps are filled, [domain model](03-domain-model.md) §8.6) |
+| Cross-reference format | `{page}-{row}{column}`, the QET `%F-%l%c` equivalent (C-15); aux → main in parentheses "(201-E1)"; main → aux after "∞" |
 | Xref anchor policy | per symbol (FR-SYM-010): named anchor points placed so that the cells of §15 result, e.g. module aux symbol at its centre (203-B4), CPX power box at its left edge (106-G3), bus port at its graphics (3-B2); interruption points at the arrow tip |
 | Frame | QET-compatible A4 landscape, 17 columns 0–16, 8 rows A–H, grid and no-grid variants (§17) |
 | Date / units | dd-mm-yyyy; SI spacing and decimal point (en) |
 | Colour / size profile | "DBU/WH 24 V" / control 0.75 mm², mains 1.5 mm² (§7) |
 | Wire markers | mode "only explicit overrides" (FR-CON-024) |
-| Wire numbers | connection-oriented `{folio}.{counter}`, not printed on pages ▲U-33 |
+| Wire numbers | connection-oriented `{page}.{counter}`, counter scope page, cores not numbered, not printed on pages ▲U-33 (§8.1) |
+| Manufacturing | length increment 10 mm and fixed reserve 100 mm (`MfgSettings`, [13](13-manufacturing-outputs.md) §2.3, §3.3); destination marking; DIN 46228-4 ferrule colours |
 | Text styles, font | §17.5; bundled default font ▲U-29 |
-| Check scheme | `pre-delivery` with the parameters of §18 |
+| Check scheme | `pre-delivery` with the parameters of §18; minimum printed cap height 1.2 mm ▲U-31 |
 | Derivation profile | the first shipped profile (FR-PRJ-011) |
 
 ---
@@ -342,7 +385,7 @@ these equal the page's structure (FR-NUM-002).
 The project has **36 pages**: 18 reproduced folios, 2 continuation pages (2.1, 901.1) and 16 generated report pages
 (§16). Folio gaps (4–99, 104, 105, 107–199 …) are kept (FR-PAG-005). Prev/Next are computed over page order: folio 1
 Prev empty, 911 Next empty (FR-PAG-013). Continuation pages take sub-page labels `<folio>.<n>` and sort naturally
-(FR-PAG-006; open question 2). Every page carries `=P01` and `+J-E-2416`.
+(FR-PAG-006, FR-PAG-030). Every page carries `=P01` and `+J-E-2416`.
 
 ---
 
@@ -381,34 +424,39 @@ Representation cells are the anchor cells; the cross-reference cells that must m
 | 30 | -202U3 | Supply or end plate ▲U-24 | Festo 533354 | ▲ | 202-E4 | 902 |
 | 31 | -UC1 ▲U-34 | Enclosure | Schneider Electric NSYPLA1074G | — | 902 (layout) | — |
 | 32 | mounting plate, child of -UC1 ▲ | Mounting plate, PE-bonded | Schneider Electric NSYPMM107 | PE stud (bonds -XPE) | 902 (layout) | — |
-| 33–60 | -201U3-QM1 … -202U2-QM4 | 28 × 5/2 solenoid valve (§6.2) | Festo 571334 each | coil 14; ports 1–5 | 203–206 | 201/202 front view |
-| 61–68 | TA05-V-15 … TA05-V-37 (§6.2) | Process valves with double-acting actuators | supplied by others ▲ | actuator ports A, B ▲ | 203-G | — |
+| 33–60 | -201U3-Q1 … -202U2-Q4 | 28 × 5/2 solenoid valve (§6.2) | Festo 571334 each | coil 14; ports 1–5 | 203–206 | 201/202 front view |
+| 61–68 | -203Q1 … -203Q8 ▲U-07 (process tags TA05-V-15 … TA05-V-37, §6.2) | Process valves with double-acting actuators | supplied by others ▲ | actuator ports A, B ▲ | 203-G | — |
 
 Terminal devices (3 + 20 + 5) are listed in §9, not here. The device-tag overview (folio 910) lists devices 1–68.
 
 ### 6.2 Valve terminal and field devices
 
--201U1 carries the `Assembly`, `PlcStation` and `BusNode` aspects; -201U2 … -201U9 and -202U1 … -202U3 are its
-children with their own page-based tags, in manifold order; each valve is a child of its sub-base with a child tag
-([architecture](04-architecture.md) §4.3). The assembly holds both configurator order codes and the mapping of
-order codes to children (▲U-24): order code 1 = 195740 and 550208 of -201U1; order code 2 = all other children.
+-201U1 carries the `Assembly`, `PlcStation`, `BusNode` and `ValveTerminal` aspects; -201U2 … -201U9 and -202U1 …
+-202U3 are its children with their own page-based tags, in manifold order; each valve is a child of its sub-base
+with a child tag ([architecture](04-architecture.md) §4.3). The assembly holds both configurator order codes and the
+mapping of order codes to children (▲U-24): order code 1 = 195740 and 550208 of -201U1; order code 2 = all other
+children.
 
-| Valves | Parent | Positions | State | Function texts (positions 1–4) |
+| Valves | Parent | Positions | State | Printed in the function-text slot (positions 1–4) |
 |---|---|---|---|---|
-| -201U3-QM1 … QM4 | -201U3 | 1–4 | used | TA05-V-15, TA05-V-33, TA05-V-18, TA05-V-17 |
-| -201U4-QM1 … QM4 | -201U4 | 1–4 | used | TA05-V-36, TA05-V-38, TA05-V-16, TA05-V-37 |
-| -201U5 … -201U8-QM1 … QM4 | -201U5 … -201U8 | 1–4 | spare (16) | Spare |
-| -202U2-QM1 … QM4 | -202U2 | 1–4 | spare (4) | Spare |
+| -201U3-Q1 … Q4 | -201U3 | 1–4 | used | TA05-V-15, TA05-V-33, TA05-V-18, TA05-V-17 (tracked process tags; no function text stored) |
+| -201U4-Q1 … Q4 | -201U4 | 1–4 | used | TA05-V-36, TA05-V-38, TA05-V-16, TA05-V-37 (tracked process tags; no function text stored) |
+| -201U5 … -201U8-Q1 … Q4 | -201U5 … -201U8 | 1–4 | spare (16) | Spare (manual function text) |
+| -202U2-Q1 … Q4 | -202U2 | 1–4 | spare (4) | Spare (manual function text) |
+
+Used valves carry no function text. Their function-text slot prints the automatic function text, else the process
+tag of the field device they drive (`DeviceLink{Drives}`, [11](11-fluid-power.md) §3.1, §3.3); "Spare" is a manual
+function text. Reports keep function text and process tag in separate columns.
 
 | Field device (DT ▲U-07) | Process tag | Location | Driven by (DeviceLink) |
 |---|---|---|---|
-| -203Q1 … -203Q4 | TA05-V-15, TA05-V-33, TA05-V-18, TA05-V-17 | +FIELD ▲ | -201U3-QM1 … QM4 |
-| -203Q5 … -203Q8 | TA05-V-36, TA05-V-38, TA05-V-16, TA05-V-37 | +FIELD ▲ | -201U4-QM1 … QM4 |
+| -203Q1 … -203Q4 | TA05-V-15, TA05-V-33, TA05-V-18, TA05-V-17 | +FIELD ▲ | -201U3-Q1 … Q4 |
+| -203Q5 … -203Q8 | TA05-V-36, TA05-V-38, TA05-V-16, TA05-V-37 | +FIELD ▲ | -201U4-Q1 … Q4 |
 
 Each field device has a 2-way process-valve function and a double-acting actuator function joined by a dashed
-mechanical linkage (FR-SYM-014, FR-DEV-028). Field devices are marked *supplied by others* (proposed FR-DEV-nnn):
-excluded from the BOM, FR-CHK-024 and EW-L001, included in fluid lines and PLC target tracking. Valve and field
-tags are not printed on 203–206 (property arrangement, FR-SYM-012); they appear in reports.
+mechanical linkage (FR-SYM-014, FR-DEV-028). Field devices are marked *supplied by others* (FR-DEV-037): excluded
+from the BOM, from EW-CORE-041 (FR-CHK-024) and from EW-LAY-001, included in fluid lines and PLC target tracking.
+Valve and field tags are not printed on 203–206 (property arrangement, FR-SYM-012); they appear in reports.
 
 ---
 
@@ -445,10 +493,11 @@ cover table of folio 1 is generated from these 15 rows (REF-005):
 | BU | — | 1.5 mm² |
 | GNYE | 0.75 mm² | 1.5 mm² |
 
-Circuit class: AC potentials at 230 V are mains, 24 V DC potentials are control. A PE connection takes the class of
-the highest-class potential at the devices on its two ends ([domain model](03-domain-model.md) §9.1; proposed
-FR-CON-nnn). The cover note "If size or sign is not indicated in diagram, standard size or sign is to be used." is
-printed because the wire-marker mode is "only explicit overrides".
+Circuit class: AC potentials at 230 V are mains, 24 V DC potentials are control. A PE connection takes the highest
+circuit class of its two ends: at a device end from the device's own potentials, at a terminal end from the potentials
+on the terminal's strip ([domain model](03-domain-model.md) §9.1; FR-CON-038). The cover note "If size or sign is not
+indicated in diagram, standard size or sign is to be used." is printed because the wire-marker mode is "only explicit
+overrides".
 
 ### 7.3 Potentials
 
@@ -486,75 +535,87 @@ bond (FR-CON-014, D-22). W27 is listed in the wire list with potential "0V ⇄ P
 ### 8.1 Rules
 
 - A row is a **physical wire** between two device or terminal CPs. Interruption points are transparent; junctions
-  resolve by their wiring mode (Dot = Star from the first sequence member, Bevel = Chain), per
-  [domain model](03-domain-model.md) §9.2.
-- **Size and colour sources:** CDP = explicit override, printed as a wire marker; rule = profile (§7); core = the
-  cable conductor; bond = the bond rule.
-- Wire numbers follow ▲U-33 (`{folio}.{counter}` for W1–W34); cable cores are identified by cable and core, not
-  numbered (FR-NUM-019).
+  resolve by their wiring mode, per [domain model](03-domain-model.md) §9.2. Dot defaults to Star from the first
+  sequence member, Bevel to Chain; J5 and J6 are set to Star (§8.3).
+- **Size and colour sources:** CDP = explicit override, printed as a wire marker; rule or profile = the colour and
+  size profile (§7); core = the cable conductor; bond = the bond rule. The golden CDPs set the cross-section only;
+  their colours come from the profile (level 2), so the markers print the effective colour and EW-POT-016 stays
+  silent.
+- **Wire numbers** (▲U-33) are connection-oriented `{page}.{counter}` with counter scope page, for W1–W34; cable
+  cores are identified by cable and core, not numbered (FR-NUM-019); numbers are not printed on pages. The column
+  "No." is derived by the numbering order of [08](08-connections-terminals-cables.md) §5.2: the page of the From
+  end, the From end's cell (column, then row), the To end's cell, then the wire ID. The cells are those of the CPs
+  on the QET grid. Where the From and To cells cannot separate two wires, the wire ID decides, which the document
+  cannot state in advance; the column then gives the range of the group, marked "(tie)". `expected/wires.csv` is
+  generated by the acceptance runner with this rule and holds the exact numbers.
 
 ### 8.2 Wire table
 
-| W | Folio | From | To | Potential | Size, colour (source) | Via |
-|---|---|---|---|---|---|---|
-| 1 | 101 | ext. J-E-206-L (+J-E-206 / JE-N1000-03) | 1X1:1 field | L | 1.5 BK (rule) ▲U-20 | no cable (EF-07) |
-| 2 | 101 | ext. J-E-206-N | 1X1:2 field | N | 1.5 BU (rule) | idem |
-| 3 | 101 | ext. J-E-206-PE | 1X1:PE field | PE | 1.5 GNYE (rule) | idem |
-| 4 | 101 | 1X1:1 internal | S51:2 | L | 2.5 BK (CDP, marker below S51) | — |
-| 5 | 101 | 1X1:2 internal | S51:4 | N | 2.5 BU (CDP) | — |
-| 6 | 101 | 1X1:PE internal | -XPE:PE | PE | 1.5 GNYE (rule) ▲U-19 | EF-06 |
-| 7 | 101 | S51:1 | -101F1:1 | L-S | 2.5 BK (CDP, marker above S51) | chain at -101F1:1 |
-| 8 | 101 | -101F1:1 | F55:1 | L-S | 1.5 BK (rule) | chain |
-| 9 | 101 | S51:3 | -101F1:N#1 | N-S | 2.5 BU (CDP) | chain at -101F1:N#1 |
-| 10 | 101 | -101F1:N#1 | F55:N#1 | N-S | 1.5 BU (rule) | chain |
-| 11 | 101→102 | -101F1:2 | -102G1:L | L-1 | 1.5 BK (rule) | IP L-1 |
-| 12 | 101→102 | -101F1:N#2 | -102G1:N | N-1 | 1.5 BU (rule) | IP N-1 |
-| 13 | 101 | F55:2 | E55:L | L-55 | 1.5 BK (rule) | J1 |
-| 14 | 101 | F55:2 | E56:X2 ▲ | L-55 | 1.5 BK (rule) | J1 |
-| 15 | 101 | F55:N#2 | T55:5 | N-55 | 1.5 BU (rule) | J2 |
-| 16 | 101 | F55:N#2 | S56:13 ▲ | N-55 | 1.5 BU (rule) | J2 |
-| 17 | 101 | T55:3 | E55:N | N-55T | 1.5 BU (rule) | — |
-| 18 | 101 | S56:14 ▲ | E56:X1 ▲ | N-55S | 1.5 BU (rule) | — |
-| 19 | 101→103 | E55:PE | -X1032:1/b | PE | 1.5 GNYE (rule, mains device) | IP PE-1.1 |
-| 20 | 102 | -102G1:+#1 | -102F1:1 | +24V | 1.5 DBU (CDP) | J3 |
-| 21 | 102 | -102G1:+#2 | -102F1:1 | +24V | 1.5 DBU (CDP) | J3; 2 wires on -102F1:1 |
-| 22 | 102 | -102G1:−#1 | -102F2:GND#1 | 0V | 1.5 WH (CDP) | J5 |
-| 23 | 102 | -102G1:−#2 | -102F2:GND#2 | 0V | 1.5 WH (CDP) | J6 |
-| 24 | 102 | -102F1:2 | -102F2:24VDC#1 | +24V-F | 1.5 DBU (CDP) | J4 |
-| 25 | 102 | -102F1:2 | -102F2:24VDC#2 | +24V-F | 1.5 DBU (CDP) | J4 |
-| 26 | 102→103 | -102G1:−#2 | -X1031:11/a | 0V | 0.75 WH (rule) | J6; IP 0VDC |
-| 27 | 102→103 | -102G1:−#1 | -X1032:2/a | B1 (0V ⇄ PE) | 0.75 GNYE (bond rule) ▲U-19 | J5; IP PE-0VDC |
-| 28 | 102→103 | -102G1:PE | -X1032:2/b | PE | 1.5 GNYE (rule, mains device) | IP PE-1.2 |
-| 29 | 102→103 | -102F2:Out1 | -X1031:1/a | 24VDC-1 | 0.75 DBU (rule) | IP 24VDC-1 |
-| 30 | 102→103 | -102F2:Out2 | -X1031:5/a | 24VDC-2 | 0.75 DBU (rule) | IP 24VDC-2 |
-| 31 | 102→103 | -102F2:Out3 | -X1031:7/a | 24VDC-3 | 0.75 DBU (rule) | IP 24VDC-3 |
-| 32 | 102→103 | -102F2:Out4 | -X1031:9/a | 24VDC-4 | 0.75 DBU (rule) | IP 24VDC-4 |
-| 33 | 103→106 | -X1032:3/b | -201U1:FE | PE | 0.75 GNYE (rule, control device) | IP PE-1.3 |
-| 34 | 103→106 | -X1032:4/b | -202U1:FE | PE | 0.75 GNYE (rule, control device) | IP PE-1.4 |
-| 35 | 103→106 | -X1031:12/b | -201U1:1 (0V Val) | 0V | -106W1 BK (core) | IP 0VDC-AIR2 |
-| 36 | 103→106 | -X1031:11/b | -201U1:2 (0V El) | 0V | -106W1 BU (core) | IP 0VDC-AIR1 |
-| 37 | 103→106 | -X1032:3/a | -201U1:3 | PE | -106W1 GNYE (core) | IP PE-AIR1 |
-| 38 | 103→106 | -X1031:2/b | -201U1:4 (24V El) | 24VDC-1 | -106W1 WH (core) | IP 24VDC-AIR2 |
-| 39 | 103→106 | -X1031:1/b | -201U1:5 (24V Val) | 24VDC-1 | -106W1 BN (core; drawn "BR") | IP 24VDC-AIR1 |
-| 40 | 103→106 | -X1031:14/b | -202U1:1 | 0V | -106W2 BK (core) | IP 0VDC-AIR4 |
-| 41 | 103→106 | -X1031:13/b | -202U1:2 | 0V | -106W2 BU (core) | IP 0VDC-AIR3 |
-| 42 | 103→106 | -X1032:1/a | -202U1:3 | PE | -106W2 GNYE (core) | IP PE-AIR2 |
-| 43 | 103→106 | -X1031:4/b | -202U1:4 | 24VDC-1 | -106W2 WH (core) | IP 24VDC-AIR4 |
-| 44 | 103→106 | -X1031:3/b | -202U1:5 | 24VDC-1 | -106W2 BN (core) | IP 24VDC-AIR3 |
+| W | No. | Folio | From | To | Potential | Size, colour (source) | Via |
+|---|---|---|---|---|---|---|---|
+| 1 | 101.1 | 101 | ext. J-E-206-L (+J-E-206 / JE-N1000-03) | 1X1:1 field | L | 1.5 BK (rule) ▲U-20 | no cable (EF-07) |
+| 2 | 101.2–.3 (tie) | 101 | ext. J-E-206-N | 1X1:2 field | N | 1.5 BU (rule) | idem |
+| 3 | 101.2–.3 (tie) | 101 | ext. J-E-206-PE | 1X1:PE field | PE | 1.5 GNYE (rule) | idem |
+| 4 | 101.5 | 101 | 1X1:1 internal | S51:2 | L | 2.5 (CDP) BK (profile), marker below S51 | — |
+| 5 | 101.7 | 101 | 1X1:2 internal | S51:4 | N | 2.5 (CDP) BU (profile) | — |
+| 6 | 101.8 | 101 | 1X1:PE internal | -XPE:PE | PE | 1.5 GNYE (rule) ▲U-19 | EF-06 |
+| 7 | 101.4 | 101 | S51:1 | -101F1:1 | L-S | 2.5 (CDP) BK (profile), marker above S51 | chain at -101F1:1 |
+| 8 | 101.10 | 101 | -101F1:1 | F55:1 | L-S | 1.5 BK (rule) | chain |
+| 9 | 101.6 | 101 | S51:3 | -101F1:N#1 | N-S | 2.5 (CDP) BU (profile) | chain at -101F1:N#1 |
+| 10 | 101.9 | 101 | -101F1:N#1 | F55:N#1 | N-S | 1.5 BU (rule) | chain |
+| 11 | 101.11–.12 (tie) | 101→102 | -101F1:2 | -102G1:L | L-1 | 1.5 BK (rule) | IP L-1 |
+| 12 | 101.11–.12 (tie) | 101→102 | -101F1:N#2 | -102G1:N | N-1 | 1.5 BU (rule) | IP N-1 |
+| 13 | 101.17 | 101 | F55:2 | E55:L | L-55 | 1.5 BK (rule) | J1 |
+| 14 | 101.18 | 101 | F55:2 | E56:X2 ▲ | L-55 | 1.5 BK (rule) | J1 |
+| 15 | 101.13 | 101 | F55:N#2 | T55:5 | N-55 | 1.5 BU (rule) | J2 |
+| 16 | 101.14 | 101 | F55:N#2 | S56:13 ▲ | N-55 | 1.5 BU (rule) | J2 |
+| 17 | 101.15 | 101 | T55:3 | E55:N | N-55T | 1.5 BU (rule) | — |
+| 18 | 101.19 | 101 | S56:14 ▲ | E56:X1 ▲ | N-55S | 1.5 BU (rule) | — |
+| 19 | 101.16 | 101→103 | E55:PE | -X1032:1/b | PE | 1.5 GNYE (rule, mains device) | IP PE-1.1 |
+| 20 | 102.1–.2 (tie) | 102 | -102G1:+#1 | -102F1:1 | +24V | 1.5 (CDP) DBU (profile) | J3 |
+| 21 | 102.1–.2 (tie) | 102 | -102G1:+#2 | -102F1:1 | +24V | 1.5 (CDP) DBU (profile) | J3; 2 wires on -102F1:1 |
+| 22 | 102.8–.10 (tie) | 102 | -102G1:−#1 | -102F2:GND#1 | 0V | 1.5 (CDP) WH (profile) | J5 |
+| 23 | 102.8–.10 (tie) | 102 | -102G1:−#2 | -102F2:GND#2 | 0V | 1.5 (CDP) WH (profile) | J6 |
+| 24 | 102.3–.4 (tie) | 102 | -102F1:2 | -102F2:24VDC#1 | +24V-F | 1.5 (CDP) DBU (profile) | J4 |
+| 25 | 102.3–.4 (tie) | 102 | -102F1:2 | -102F2:24VDC#2 | +24V-F | 1.5 (CDP) DBU (profile) | J4 |
+| 26 | 102.11 | 102→103 | -102G1:−#2 | -X1031:11/a | 0V | 0.75 WH (rule) | J6; IP 0VDC |
+| 27 | 102.8–.10 (tie) | 102→103 | -102G1:−#1 | -X1032:2/a | B1 (0V ⇄ PE) | 0.75 GNYE (bond rule) ▲U-19 | J5; IP PE-0VDC |
+| 28 | 102.7 | 102→103 | -102G1:PE | -X1032:2/b | PE | 1.5 GNYE (rule, mains device) | IP PE-1.2 |
+| 29 | 102.5 | 102→103 | -102F2:Out1 | -X1031:1/a | 24VDC-1 | 0.75 DBU (rule) | IP 24VDC-1 |
+| 30 | 102.6 | 102→103 | -102F2:Out2 | -X1031:5/a | 24VDC-2 | 0.75 DBU (rule) | IP 24VDC-2 |
+| 31 | 102.12 | 102→103 | -102F2:Out3 | -X1031:7/a | 24VDC-3 | 0.75 DBU (rule) | IP 24VDC-3 |
+| 32 | 102.13 | 102→103 | -102F2:Out4 | -X1031:9/a | 24VDC-4 | 0.75 DBU (rule) | IP 24VDC-4 |
+| 33 | 103.1 | 103→106 | -X1032:3/b | -201U1:FE | PE | 0.75 GNYE (rule, control device) | IP PE-1.3 |
+| 34 | 103.2 | 103→106 | -X1032:4/b | -202U1:FE | PE | 0.75 GNYE (rule, control device) | IP PE-1.4 |
+| 35 | — | 103→106 | -X1031:12/b | -201U1:1 (0V Val) | 0V | -106W1 BK (core) | IP 0VDC-AIR2 |
+| 36 | — | 103→106 | -X1031:11/b | -201U1:2 (0V El) | 0V | -106W1 BU (core) | IP 0VDC-AIR1 |
+| 37 | — | 103→106 | -X1032:3/a | -201U1:3 | PE | -106W1 GNYE (core) | IP PE-AIR1 |
+| 38 | — | 103→106 | -X1031:2/b | -201U1:4 (24V El) | 24VDC-1 | -106W1 WH (core) | IP 24VDC-AIR2 |
+| 39 | — | 103→106 | -X1031:1/b | -201U1:5 (24V Val) | 24VDC-1 | -106W1 BN (core; drawn "BR") | IP 24VDC-AIR1 |
+| 40 | — | 103→106 | -X1031:14/b | -202U1:1 | 0V | -106W2 BK (core) | IP 0VDC-AIR4 |
+| 41 | — | 103→106 | -X1031:13/b | -202U1:2 | 0V | -106W2 BU (core) | IP 0VDC-AIR3 |
+| 42 | — | 103→106 | -X1032:1/a | -202U1:3 | PE | -106W2 GNYE (core) | IP PE-AIR2 |
+| 43 | — | 103→106 | -X1031:4/b | -202U1:4 | 24VDC-1 | -106W2 WH (core) | IP 24VDC-AIR4 |
+| 44 | — | 103→106 | -X1031:3/b | -202U1:5 | 24VDC-1 | -106W2 BN (core) | IP 24VDC-AIR3 |
 
 In marker mode "only explicit overrides" exactly the four reference marker groups print: below and above S51
 (W4, W5; W7, W9), below -102G1 (W20–W23) and above -102F2 (W24, W25).
 
 ### 8.3 Junctions and bridges
 
-| Junction | Folio | Style, wiring | Sequence |
-|---|---|---|---|
-| J1 | 101 | Dot, Star | F55:2 → W13, W14 |
-| J2 | 101 | Dot, Star | F55:N#2 → W15, W16 |
-| J3 | 102 | Bevel, Chain | W20, W21 into -102F1:1 |
-| J4 | 102 | Bevel, Chain | -102F1:2 → W24, W25 |
-| J5 | 102 | Bevel | -102G1:−#1 → W22, W27 |
-| J6 | 102 | Bevel | -102G1:−#2 → W23, W26 |
+| Junction | Folio | Style | Wiring | Sequence |
+|---|---|---|---|---|
+| J1 | 101 | Dot | Star (default), from F55:2 | F55:2 → W13, W14 |
+| J2 | 101 | Dot | Star (default), from F55:N#2 | F55:N#2 → W15, W16 |
+| J3 | 102 | Bevel | Chain (default) | W20, W21 into -102F1:1 |
+| J4 | 102 | Bevel | Chain (default) | -102F1:2 → W24, W25 |
+| J5 | 102 | Bevel | Star (set), from the PSU CP -102G1:−#1 | -102G1:−#1 → W22, W27 |
+| J6 | 102 | Bevel | Star (set), from the PSU CP -102G1:−#2 | -102G1:−#2 → W23, W26 |
+
+A new branch's default place in the sequence follows [08](08-connections-terminals-cables.md): the parts of a split
+connection are ordered by flow distance from the source, with reading order (row, then column of the far
+endpoints' anchor cells) as the tie-break, and the new branch is appended. The M2 usability test confirms it
+(PQ-27).
 
 The bevels of the 101 top bus are daisy chains on -101F1 CPs (W7/W8, W9/W10; FR-CON-006), not junctions.
 
@@ -573,8 +634,10 @@ Bridges are defined in the strip editor (`page = None`) and drawn by the strip s
 
 ## 9. Terminal strips
 
-Designations are unique sequential numbers; the reference group labels become terminal function texts, printed
-through `label_mode = FunctionText` so that the drawing looks as before while lists are unambiguous (FR-TRM-021).
+Designations are unique sequential numbers. The labels the reference prints at the terminals ("1+", "2-", "PE")
+become terminal function texts, printed through `label_mode = FunctionText` so that the drawing looks as before
+while lists are unambiguous (FR-TRM-021). The range captions "Pneumatics" and "Spare" are strip groups
+(`Strip.groups`, FR-TRM-010), not function texts.
 
 **1X1** (+J-E-2416, 101-D2):
 
@@ -619,7 +682,10 @@ Clamp c of every terminal is free. The strip prints its tag once per segment (FR
 | 5 | PE | — | — | spare |
 
 Accessories: four end brackets (left of 1X1, between 1X1 and -X1031, between -X1031 and -X1032, right of -X1032),
-part TBD ▲U-27.
+part TBD ▲U-27; and one end cover after -X1031:20, a strip-end accessory of the PT 2.5-TWIN part (test part in
+Golden A-R, ▲U-27). The end cover counts in the terminal assembly list and the strip length
+([13](13-manufacturing-outputs.md) §15.4); it becomes a BOM row with the accessory rows of FR-TRM-016 at 1.0, so
+folio 901 keeps its 27 rows at MVP.
 
 ---
 
@@ -633,7 +699,8 @@ part TBD ▲U-27.
 | -101W1 (A-R only) | ▲U-20, 3 cores 2.5 mm² ▲ | ▲ | +J-E-206 → 1X1 field side | L, N, PE on W1–W3 |
 
 Golden A holds 13 conductors (A-R: 16). Core cross-sections come from the cable parts (▲). Core colours are
-validated against the part's core definition; "BR" cannot be stored (FR-CON-019, FR-CBL-005).
+validated against the part's core definition. A native project cannot store "BR" (FR-CON-019, FR-CBL-005); only a
+lenient import keeps it, as a foreign colour code with the quick fix "use BN" (MF-11).
 
 ---
 
@@ -645,7 +712,7 @@ validated against the part's core definition; "BR" cannot be stored (FR-CON-019,
 |---|---|
 | Logical network | PROFIBUS DP; master = external partner JE-N1000-03 in +J-E-206 (FR-BUS-005), not in the BOM; data rate unset ▲U-22 |
 | Slave | -201U1, bus port "DP", station address `Tbd` (EF-03) |
-| Physical segment | -201U1:DP — -3X1 (plugged on the port, termination On) — -3W1 — JE-N1000-03 (external end, termination unknown, EF-16) |
+| Physical segment | master first: JE-N1000-03 (external end, termination unknown, EF-16) → -3W1 → -3X1 (plugged on the port, termination On) → -201U1:DP; the segment is derived from the `Bus` connections (`bus_segments`, [10](10-plc-and-bus.md) §3.8) |
 | Folio 3 texts | "Festo / 51E-F13GCQP-D+H2GG / CPX FB13 / Node TBD" rendered from the assembly's order code 1, the part type and the station address (`Tbd` prints "TBD"); "Switch to "ON"" rendered from `-3X1.termination = On` (FR-BUS-004) |
 
 ### 11.2 Station, modules and the address map
@@ -654,28 +721,30 @@ validated against the part's core definition; "BR" cannot be stored (FR-CON-019,
 |---|---|
 | Configuration project | one, address profile "Siemens TIA (international)" (FR-PLC-008) |
 | Station | -201U1, role valve terminal / DP slave |
-| Modules | -201U3 … -201U8, -202U2 in manifold slots 1–7; `start: Auto`; output bytes Q0 … Q6 in manifold order (FR-PLC-012); absolute start relative to the node ▲U-22 |
+| Modules | -201U3 … -201U8, -202U2 in manifold slots 1–7 (`SlotPath::Positional`); output start `Auto` (`IoStarts`); output bytes Q0 … Q6 in manifold order (FR-PLC-012); absolute start relative to the node ▲U-22 |
 | Channel map (part 533361) | channel n → bit n, 8 DO channels per module |
 | Solenoid-position map (part 533361) | test input H1: position p (0–3) → coil 14 on channel 2p, coil 12 on channel 2p + 1 ▲U-23 |
 | Valve part 571334 | solenoids `[14]`, monostable |
 | Bindings (as drawn) | coil 14 of position p → channel 2p + 1, so the derived addresses print Q n.1, .3, .5, .7 |
 | Channel states | 8 used, 20 spare, 28 deactivated (neither bound nor claimed) |
-| EW-PLC-12 | H1: 28 findings, one per binding (EF-02). H2 ("coil 14 on channel 2p + 1"): none. Choosing H1 or H2 is a part-data edit, never code (FR-PLC-011, FR-PLC-045) |
+| EW-PLC-012 | H1: 28 findings, one per binding (EF-02). H2 ("coil 14 on channel 2p + 1"): none. Choosing H1 or H2 is a part-data edit, never code (FR-PLC-011, FR-PLC-045) |
 
 ### 11.3 Channel map (folio 908)
 
 | Module | Byte | Bit 1 | Bit 3 | Bit 5 | Bit 7 | Bits 0, 2, 4, 6 |
 |---|---|---|---|---|---|---|
-| -201U3 | Q0 | QM1 TA05-V-15 | QM2 TA05-V-33 | QM3 TA05-V-18 | QM4 TA05-V-17 | deactivated |
-| -201U4 | Q1 | QM1 TA05-V-36 | QM2 TA05-V-38 | QM3 TA05-V-16 | QM4 TA05-V-37 | deactivated |
-| -201U5 | Q2 | QM1 Spare | QM2 Spare | QM3 Spare | QM4 Spare | deactivated |
+| -201U3 | Q0 | Q1 TA05-V-15 | Q2 TA05-V-33 | Q3 TA05-V-18 | Q4 TA05-V-17 | deactivated |
+| -201U4 | Q1 | Q1 TA05-V-36 | Q2 TA05-V-38 | Q3 TA05-V-16 | Q4 TA05-V-37 | deactivated |
+| -201U5 | Q2 | Q1 Spare | Q2 Spare | Q3 Spare | Q4 Spare | deactivated |
 | -201U6 | Q3 | Spare | Spare | Spare | Spare | deactivated |
 | -201U7 | Q4 | Spare | Spare | Spare | Spare | deactivated |
 | -201U8 | Q5 | Spare | Spare | Spare | Spare | deactivated |
 | -202U2 | Q6 | Spare | Spare | Spare | Spare | deactivated |
 
-Folio 908 lists all 56 channels Q0.0 … Q6.7 with address, valve, function text, state and a cross-reference to the
-coil's representation on 203–206 (FR-PLC-022). Symbols are empty in Golden A; from 1.0 they derive from the
+The valve column names the valve child (Q1 = -201U3-Q1 …) and its printed text: the process tag of the driven
+field device, or the manual function text "Spare". Folio 908 lists all 56 channels Q0.0 … Q6.7 with address, valve,
+function text, process tag (separate columns), state and a cross-reference to the coil's representation on 203–206
+(FR-PLC-022). Symbols are empty in Golden A; from 1.0 they derive from the
 template `{target.process_tag}` with IEC 61131-3 cleaning (TA05_V_15, FR-PLC-017, FR-PLC-047).
 
 ---
@@ -686,21 +755,29 @@ template `{target.process_tag}` with IEC 61131-3 cleaning (TA05_V_15, FR-PLC-017
 |---|---|---|---|---|
 | 28 × 571334 | 5/2 monostable | 3, 1, 5 at the top; 2 and 4 at the bottom | solenoid 14 with manual override; spring return | 8 used valves → one actuator each |
 
-| Lines | From | To | Spec |
-|---|---|---|---|
-| F1, F2 | -201U3-QM1:2, :4 | -203Q1 (TA05-V-15) actuator A, B ▲ | tube unspecified ▲U-25 |
-| F3, F4 | -201U3-QM2:2, :4 | -203Q2 (TA05-V-33) | ▲ |
-| F5, F6 | -201U3-QM3:2, :4 | -203Q3 (TA05-V-18) | ▲ |
-| F7, F8 | -201U3-QM4:2, :4 | -203Q4 (TA05-V-17) | ▲ |
-| F9, F10 | -201U4-QM1:2, :4 | -203Q5 (TA05-V-36) | ▲ |
-| F11, F12 | -201U4-QM2:2, :4 | -203Q6 (TA05-V-38) | ▲ |
-| F13, F14 | -201U4-QM3:2, :4 | -203Q7 (TA05-V-16) | ▲ |
-| F15, F16 | -201U4-QM4:2, :4 | -203Q8 (TA05-V-37) | ▲ |
+| Lines | From | To | Spec (Golden A) | Spec (Golden A-R ▲U-25) |
+|---|---|---|---|---|
+| F1, F2 | -201U3-Q1:2, :4 | -203Q1 (TA05-V-15) actuator A, B ▲ | tube unspecified ▲U-25 | PU 6×4 BU (default tube), 1,200 mm manual |
+| F3, F4 | -201U3-Q2:2, :4 | -203Q2 (TA05-V-33) | ▲ | as F1 |
+| F5, F6 | -201U3-Q3:2, :4 | -203Q3 (TA05-V-18) | ▲ | as F1 |
+| F7, F8 | -201U3-Q4:2, :4 | -203Q4 (TA05-V-17) | ▲ | as F1 |
+| F9, F10 | -201U4-Q1:2, :4 | -203Q5 (TA05-V-36) | ▲ | as F1 |
+| F11, F12 | -201U4-Q2:2, :4 | -203Q6 (TA05-V-38) | ▲ | as F1 |
+| F13, F14 | -201U4-Q3:2, :4 | -203Q7 (TA05-V-16) | ▲ | as F1 |
+| F15, F16 | -201U4-Q4:2, :4 | -203Q8 (TA05-V-37) | ▲ | as F1 |
+| F17 (A-R only) | air-supply point (`MediumDef` "compressed air 6 bar [1:4:1]") | -201U9:1 | — | as F1 |
 
 As drawn (D-28): no supply line to port 1 (-201U9, -202U3), no exhaust treatment on 3/5, no medium; the 20 spare
-valves' working ports are open and not marked blanked (▲U-25). Fluid symbols print the bound coil's address and the
-valve's function text as derived texts (FR-FLU-005). The overview on 201/202 is generated from the assembly
-children in physical order with break marks between 201 and 202 and four valves on -202U2 (FR-DEV-023, D-10).
+valves' working ports are open and not marked blanked (▲U-25). Fluid symbols print the bound coil's address and, in
+the function-text slot, the automatic function text or else the process tag of the driven field device (§6.2,
+FR-FLU-005). The overview on 201/202 is generated from the assembly children in physical order with break marks
+between 201 and 202 and four valves on -202U2 (FR-DEV-023, D-10).
+
+**Golden A-R fluid overlay** (§2.4, ▲U-25): F17 brings the medium to -201U9:1; the galleries carry it to every
+valve. Silencers close ports 3 and 5 of -201U9 and -202U3, and plugs close ports 2 and 4 of the 20 spare valves
+(`CpOverride.closure`). `expected/fluid.csv` then holds the tube list of 17 lines, F1–F17, each PU 6×4 BU at
+1,200 mm (source manual), and the media zones of [11](11-fluid-power.md) §5.3. EF-13, EF-20 and EF-21 clear; EF-14
+(spare positions, info) stays.
 
 ---
 
@@ -729,11 +806,16 @@ order only); the model holds carriers in plate millimetres from the test dimensi
 |---|---|---|
 | R1 | -102G1, -101F1, -102F1, -102F2, T55 (label "T55", not "T51"), S51 | F55 after S51 |
 | R2 | end bracket, 1X1, end bracket, -X1031, end bracket, -X1032, end bracket | — |
-| R3 | -201U1, -201U2, -201U3 … -201U8, -202U1, -202U2, -202U3 | -201U9 between -201U8 and -202U1 (push mode) |
-| other | — | E55 low on the plate; S56 and E56 on the door frame |
+| R3 | -201U1, -201U2, -201U3 … -201U8, -202U1, -202U2, -202U3 | -201U9 between -201U8 and -202U1 (push mode); the valve terminal sits on a rail-mounting-kit test part ▲U-27 |
+| other | — | E55 low on the plate; S56 and E56 on the door frame; one screw-mounted test part on the plate ▲U-27 |
 
 Labels are `layout_label(placement)`: "-X1031", "-X1032" by identifier suppression (FR-LAY-009), frozen tags as
 printed. In Golden A five devices are unplaced (EF-05).
+
+**Mounting and drilling (A-R, 1.0).** The golden valve terminal stays rail-mounted on R3; its rail-mounting kit is
+a test part, and the real mounting is a pilot question (PQ-24). For FR-LAY-056, the plate's feature list of Golden
+A-R contains the rail and duct fixing holes at the configured pitch and the drilling pattern of the one
+screw-mounted test part ([12](12-panel-layout.md) §10).
 
 ---
 
@@ -743,37 +825,43 @@ printed. In Golden A five devices are unplaced (EF-05).
 
 | Pos | Qty | Unit | Manufacturer | Part number | Description | Tags | Folios |
 |---|---|---|---|---|---|---|---|
-| 1 | 1 | pc | Eaton | 533356 ▲U-16 | Main switch, 2-pole, 40 A | S51 | 101 |
-| 2 | 1 | pc | Schneider Electric | A9P52610 | Miniature circuit breaker 1P+N, C, 10 A | -101F1 | 101 |
-| 3 | 1 | pc | Siemens | 5SY4204-7 | Miniature circuit breaker 1P+N, C, 4 A | F55 | 101 |
-| 4 | 1 | pc | Rittal | SK 3110.000 | Thermostat | T55 | 101 |
-| 5 | 1 | pc | Rittal | SK 3102.000 | Enclosure heater ▲U-14 | E55 | 101 |
-| 6 | 2 | pc | Phoenix Contact | UK 5 N | Feed-through terminal | 1X1:1, 1X1:2 | 101 |
-| 7 | 1 | pc | Phoenix Contact | USLKG 5 ▲U-17 | PE terminal | 1X1:PE | 101 |
-| 8 | 1 | pc | Phoenix Contact | 2904602 | Power supply 1 AC / 24 V DC / 20 A | -102G1 | 102 |
-| 9 | 1 | pc | Schneider Electric | A9F78116 | Miniature circuit breaker 1P, B, 16 A | -102F1 | 102 |
-| 10 | 1 | pc | Murrelektronik | MICO 4.10 ▲U-15 | Electronic load distribution, 4 channels | -102F2 | 102 |
-| 11 | 20 ▲U-09 | pc | Phoenix Contact | PT 2.5-TWIN | Feed-through terminal, 3 connections | -X1031:1 … 20 | 103 |
-| 12 | 5 | pc | Phoenix Contact | PT 2.5-TWIN-PE | PE terminal, 3 connections | -X1032:1 … 5 | 103 |
-| 13 | 2 | pc | Festo | NEBU-G78W5-K-2-N-LE5 | Connecting cable 7/8", 5-pin, open end | -106W1, -106W2 | 106 |
-| 14 | 1 | pc | Festo | 532216 | PROFIBUS DP plug with terminating resistor | -3X1 | 3 |
-| 15 | ▲U-21 | m | Siemens | 6XV1830-0EH10 | PROFIBUS FC standard cable | -3W1 | 3 |
+| 1 | 1 | pc | Festo | 532216 | PROFIBUS DP plug with terminating resistor | -3X1 | 3 |
+| 2 | ▲U-21 | m | Siemens | 6XV1830-0EH10 | PROFIBUS FC standard cable | -3W1 | 3 |
+| 3 | 1 | pc | Eaton | 533356 ▲U-16 | Main switch, 2-pole, 40 A | S51 | 101 |
+| 4 | 2 | pc | Phoenix Contact | UK 5 N | Feed-through terminal | 1X1:1, 1X1:2 | 101 |
+| 5 | 1 | pc | Phoenix Contact | USLKG 5 ▲U-17 | PE terminal | 1X1:PE | 101 |
+| 6 | 1 | pc | Schneider Electric | A9P52610 | Miniature circuit breaker 1P+N, C, 10 A | -101F1 | 101 |
+| 7 | 1 | pc | Siemens | 5SY4204-7 | Miniature circuit breaker 1P+N, C, 4 A | F55 | 101 |
+| 8 | 1 | pc | Rittal | SK 3110.000 | Thermostat | T55 | 101 |
+| 9 | 1 | pc | Rittal | SK 3102.000 | Enclosure heater ▲U-14 | E55 | 101 |
+| 10 | 1 | pc | Phoenix Contact | 2904602 | Power supply 1 AC / 24 V DC / 20 A | -102G1 | 102 |
+| 11 | 1 | pc | Schneider Electric | A9F78116 | Miniature circuit breaker 1P, B, 16 A | -102F1 | 102 |
+| 12 | 1 | pc | Murrelektronik | MICO 4.10 ▲U-15 | Electronic load distribution, 4 channels | -102F2 | 102 |
+| 13 | 20 ▲U-09 | pc | Phoenix Contact | PT 2.5-TWIN | Feed-through terminal, 3 connections | -X1031:1 … 20 | 103 |
+| 14 | 5 | pc | Phoenix Contact | PT 2.5-TWIN-PE | PE terminal, 3 connections | -X1032:1 … 5 | 103 |
+| 15 | 2 | pc | Festo | NEBU-G78W5-K-2-N-LE5 | Connecting cable 7/8", 5-pin, open end | -106W1, -106W2 | 106 |
 | 16 | 1 | pc | Festo | 195740 | CPX-FB13 bus node, PROFIBUS DP | -201U1 | 201 |
 | 17 | 2 | pc | Festo | 550208 | CPX-M-GE-EV-S-7/8-5POL interlinking block with supply | -201U1, -202U1 | 201, 202 |
 | 18 | 1 | pc | Festo | 552286 | VMPA-FB-EPLM-G pneumatic interface | -201U2 | 201 |
 | 19 | 7 | pc | Festo | 533361 | VMPA1-FB-EMG-8 electronic module, 4 positions | -201U3 … -201U8, -202U2 | 201, 202 |
-| 20 | 28 | pc | Festo | 571334 | 5/2 monostable solenoid valve | -201U3-QM1 … -202U2-QM4 | 203–206 |
-| 21 | 2 | pc | Festo | 533354 | VMPA1-FB-SP supply plate ▲U-24 | -201U9, -202U3 | 201, 202 |
+| 20 | 2 | pc | Festo | 533354 | VMPA1-FB-SP supply plate ▲U-24 | -201U9, -202U3 | 201, 202 |
+| 21 | 28 | pc | Festo | 571334 | 5/2 monostable solenoid valve | -201U3-Q1 … -202U2-Q4 | 203–206 |
 | 22 | 1 | pc | Schneider Electric | NSYPLA1074G | Enclosure, polyester | -UC1 | 902 |
 | 23 | 1 | pc | Schneider Electric | NSYPMM107 | Mounting plate | -UC1 (plate) | 902 |
-| 24 | 6 | pc | ▲ | TBD | Plug-in bridge (pole count per use) | -X1031, -X1032 | 103 |
-| 25 | 4 | pc | ▲ | TBD | End bracket | 1X1, -X1031, -X1032 | 902 |
-| 26 | ▲ | m | ▲ | TBD | DIN rail TS 35 (3 rows; length from carriers) | -UC1 | 902 |
-| 27 | ▲ | m | ▲ | TBD | Wiring duct 40×60 (5 segments; length from carriers) | -UC1 | 902 |
+| 24 | ▲ | m | ▲ | TBD | DIN rail TS 35 (3 rows; length from carriers) | -UC1 | 902 |
+| 25 | ▲ | m | ▲ | TBD | Wiring duct 40×60 (5 segments; length from carriers) | -UC1 | 902 |
+| 26 | 4 | pc | ▲ | TBD | End bracket | 1X1, -X1031, -X1032 | 902 |
+| 27 | 6 | pc | ▲ | TBD | Plug-in bridge (pole count per use) | -X1031, -X1032 | 103 |
 
 27 rows: folio 901 holds 23, folio 901.1 holds 4. S56 and E56 have no rows (no parts, EF-04); field devices and the
-external master are excluded. Consecutive tags are compressed into ranges (proposed FR-REP-nnn). Descriptions come
-from part data, never ratings (D-35).
+external master are excluded. Consecutive tags are compressed into ranges (FR-REP-046). Descriptions come from part
+data, never ratings (D-35).
+
+**Row order** (the component-mode key of [09](09-reports-forms-output.md)): device rows sort by the page order of the
+row's first main representation, then its position (column, then row, the numbering order of §4.4), then the part
+number, so the folio-3 rows come first. Rows without a schematic representation follow in the layout-legend order of
+[12](12-panel-layout.md) §5.4: enclosure, plate, carriers (rails before ducts), then accessories, sorted by part
+number and description. The table is generated with this key, not typed in reference order.
 
 ### 14.2 Assembly mode (`ew export bom --mode assembly`)
 
@@ -855,14 +943,16 @@ pages are derived (ADR-0018).
 | 904 | Terminal Diagram -X1031 | Terminal diagram | `terminal_rows(-X1031)` | 20 | 1 |
 | 905 | Terminal Diagram -X1032 | Terminal diagram | `terminal_rows(-X1032)` | 5 | 1 |
 | 906 | Cable Overview and Diagrams | Cable overview + diagrams (012, 013) | `cable_rows` | 3 + 13 cores + 4 headings = 20 | 1 |
-| 907 | Wire List 1–3 | Wire list (014) | physical wires + bridges | 44 + 6 = 50 | 3 (907, 907.1, 907.2) |
-| 908 | PLC Overview -201U1 1–3 | PLC card overview (019) | `plc_rows(-201U1)` | 56 | 3 |
+| 907 | Wire List 1–3 | Wire list (014) | physical wires, then a separate bridge block (bridges are never wire rows) | 44 + 6 = 50 | 3 (907, 907.1, 907.2) |
+| 908 | PLC Overview -201U1 1–3 | PLC overview (019), one row per channel | `plc_overview` over `plc_rows(-201U1)` | 56 | 3 |
 | 909 | Potential Overview | Potential overview (016) | `potential_partition()` | 19 + bond = 20 | 1 |
 | 910 | Device Tag Overview 1–4 | Structure-identifier and device-tag overview (017) | structure nodes, `device_tag` | 4 + 68 = 72 | 4 |
 | 911 | Revision Overview | Revision overview (018) | revisions | 2 | 1 |
 
 Column content: 903–905 per §9 (terminal, function text, part, clamp a/b targets with cable and core, bridge,
-state); 906 per §10; 907 per §8.2 plus wire number, wire part, page references; 908 per §11.3; 909 per §7.3 with
+state); 906 per §10; 907 per §8.2 plus wire number, wire part and page references (the wire-part column shows only
+explicitly assigned wire parts at MVP and is therefore empty on Golden A; profile-derived wire parts fill it from
+1.0, FR-CON-033); 908 per §11.3; 909 per §7.3 with
 member *counts* (not lists) so that rows never wrap; 910 with full designation, function text, part, main
 location; 911 with label, date, author, checker, state, changed pages (101, 106 for V2.0). Report rows link back to
 their source objects (FR-REP-042).
@@ -874,8 +964,9 @@ their source objects (FR-REP-042).
 ### 17.1 Sheet, frame and grid
 
 The model holds every drawn page at QET native size; the golden frame form declares a **page-to-sheet transform**
-(scale 0.986282578, offset 9.79 mm right and down) that reproduces QET's fit-to-page print on A4 (proposed
-FR-PAG-nnn). Native EW frames use scale 1. All printed values below are in mm from the sheet's top-left corner.
+(scale 0.986282578, offset 9.79 mm right and down) that reproduces QET's fit-to-page print on A4 (FR-PAG-029;
+`FormDef.page_to_sheet`, QET-compatible frames only). Native EW frames use scale 1. All printed values below are in mm
+from the sheet's top-left corner.
 
 | Item | Native (QET px; 1 px = 25.4/96 mm) | Printed |
 |---|---|---|
@@ -966,11 +1057,11 @@ QET px × 0.75.
 | `marker` | 5 | 3.75 | 3.70 | 1.31 | wire- and cable-marker texts |
 
 **Fonts.** The fixture pins the bundled default family (Noto Sans Regular and Bold, OFL-1.1, ▲U-29, ADR-0028).
-**Tahoma is never bundled, embedded or required**: CI machines have no Tahoma, and AC-13 fails if any embedded font
-is Tahoma. Acceptance compares strings, anchors and sizes, not glyph outlines (§3.3). The PDF embeds subsets and
-records no substitution for Golden A (it was built with the default font; PDF pipeline per ADR-0015); Golden C records "Tahoma → default font"
-in the migration report and in XMP (FR-IMP-020). Layout labels keep their paper height at any view scale
-(FR-LAY-010), so the reference's 1.88–3.40 pt rotated labels do not recur.
+**Tahoma is never bundled, embedded or required**: CI machines have no Tahoma, and AC-13 fails if any embedded font is
+Tahoma. Acceptance compares strings, anchors and sizes, not glyph outlines (§3.3). The PDF embeds subsets and records
+no substitution for Golden A (it was built with the default font; PDF pipeline per ADR-0015); Golden C records "Tahoma
+→ default font" in the migration report and in XMP (FR-IMP-020). Layout labels keep their paper height at any view
+scale (FR-LAY-010), so the reference's 1.88–3.40 pt rotated labels do not recur.
 
 ---
 
@@ -978,31 +1069,33 @@ in the migration report and in XMP (FR-IMP-020). Layout labels keep their paper 
 
 ### 18.1 Pre-delivery scheme, MVP rules (`expected/findings_mvp.csv`)
 
-Parameters: minimum printed cap height 1.2 mm ▲U-31 (font cap ratio 0.714 ▲), reported per text style; EW-PLC-12
-with map H1 ▲U-23. A more specific rule supersedes a generic one for the same target (EW-PLC-12 over FR-CHK-037 for
-addresses; FR-CHK-025 over FR-CHK-037 for tags; EW-L001 implements FR-CHK-039; proposed FR-CHK-nnn).
+Parameters: minimum printed cap height 1.2 mm ▲U-31 (font cap ratio 0.714 ▲), reported per text style (FR-CHK-051);
+EW-PLC-012 with map H1 ▲U-23. A more specific rule supersedes a generic one for the same target (FR-CHK-045,
+[15](15-checks-revisions-collaboration.md) §3.6): EW-PLC-012 over EW-NUM-002 (FR-CHK-037) for addresses, EW-NUM-001
+(FR-CHK-025) over EW-NUM-002 for tags; EW-LAY-001 implements FR-CHK-039. The rule IDs are the final IDs of
+[15](15-checks-revisions-collaboration.md) §10.1, and the CSV carries them.
 
 | EF | Rule | Severity | Targets | Count | Defect |
 |---|---|---|---|---|---|
 | EF-01 | EW-POT-013 N switching (FR-CHK-019) | error | T55 (N-55 → N-55T), S56 (N-55 → N-55S) | 2 | D-13 |
-| EF-02 | EW-PLC-12 binding ≠ part map (FR-PLC-045) | error | 28 coil bindings Q0.1 … Q6.7 (odd bits) | 28 | D-26 |
-| EF-03 | EW-BUS-01 missing bus address, open item (FR-BUS-015, FR-CHK-034) | error | -201U1 DP station address `Tbd` | 1 | D-15 |
-| EF-04 | FR-CHK-024 device without part | warning | S56, E56 | 2 | D-04 |
-| EF-05 | EW-L001 unplaced device (FR-LAY-017, FR-CHK-039) | error | F55, E55, E56, S56, -201U9 | 5 | D-32 |
-| EF-06 | FR-CHK-020 PE smaller than line | error | W6 (1.5 < 2.5 at 1X1) | 1 | D-38 |
-| EF-07 | FR-CHK-033 external connection without cable | warning | +J-E-206 → 1X1 (W1–W3) | 1 | D-19 |
-| EF-08 | FR-CHK-033 cable without length | error | -3W1 | 1 | D-19 |
-| EF-09 | FR-CHK-018 unconnected CP | warning | -102F2:13, -102F2:14 | 2 | D-23 |
-| EF-10 | FR-CHK-030 FE pin on PE | warning | -201U1:3, -202U1:3 (part data FE ▲U-18) | 2 | D-16 |
-| EF-11 | FR-CHK-031 BU on a non-N conductor | warning ▲ | W36, W41 (vendor core BU on 0V) | 2 | — |
-| EF-12 | FR-CHK-023 text below minimum height | warning | styles `cp.small`, `marker` | 2 | D-31 |
-| EF-13 | EW-FL-01 unconnected working ports (FR-FLU-018) | warning | 20 spare valves, ports 2 and 4 | 20 | D-28 |
-| EF-14 | EW-FL-04 spare positions (FR-FLU-017) | info | 20 spare valve positions | 20 | — |
-| EF-15 | FR-CHK-025 frozen tag deviates from scheme | info | S51, F55, T55, E55, S56, E56, 1X1 | 7 | D-03 |
-| EF-16 | EW-BUS-04 segment end termination unknown (FR-BUS-016) | info | external end at JE-N1000-03 | 1 | D-15 |
-| EF-17 | FR-CHK-034 placeholder part | error | TBD bridge, end bracket, rail, duct | 4 | D-04 |
-| EF-18 | FR-CHK-026 letter code vs function category | warning ▲U-37 | T55 (T for a temperature switch) | 1 | D-03 |
-| EF-19 | FR-CHK-024 on -XPE, waived (waiver W-1 "PE stud is part of NSYPMM107") | waived | -XPE | 1 | — |
+| EF-02 | EW-PLC-012 binding ≠ part map (FR-PLC-045) | error | 28 coil bindings Q0.1 … Q6.7 (odd bits) | 28 | D-26 |
+| EF-03 | EW-BUS-001 missing bus address, open item (FR-BUS-015, FR-CHK-034) | error | -201U1 DP station address `Tbd` | 1 | D-15 |
+| EF-04 | EW-CORE-041 device without part (FR-CHK-024) | warning | S56, E56 | 2 | D-04 |
+| EF-05 | EW-LAY-001 unplaced device (FR-LAY-017, FR-CHK-039) | error (release) | F55, E55, E56, S56, -201U9 | 5 | D-32 |
+| EF-06 | EW-POT-006 PE smaller than line (FR-CHK-020) | error | W6 (1.5 < 2.5 at 1X1) | 1 | D-38 |
+| EF-07 | EW-CORE-034 external connection without cable (FR-CHK-033) | warning | +J-E-206 → 1X1 (W1–W3) | 1 | D-19 |
+| EF-08 | EW-CORE-033 cable without length (FR-CHK-033) | error | -3W1 | 1 | D-19 |
+| EF-09 | EW-POT-009 unconnected CP (FR-CHK-018) | warning | -102F2:13, -102F2:14 | 2 | D-23 |
+| EF-10 | EW-POT-003 FE pin on PE (FR-CHK-030) | warning | -201U1:3, -202U1:3 (part data FE ▲U-18) | 2 | D-16 |
+| EF-11 | EW-POT-005 BU on a non-N conductor (FR-CHK-031) | warning ▲ | W36, W41 (vendor core BU on 0V) | 2 | — |
+| EF-12 | EW-CORE-061 text below minimum height (FR-CHK-023, FR-CHK-051) | warning | styles `cp.small`, `marker` | 2 | D-31 |
+| EF-13 | EW-FL-001 unconnected working ports (FR-FLU-018) | warning | 20 spare valves, ports 2 and 4 | 20 | D-28 |
+| EF-14 | EW-FL-004 spare positions (FR-FLU-017) | info | 20 spare valve positions | 20 | — |
+| EF-15 | EW-NUM-001 frozen tag deviates from scheme (FR-CHK-025) | info | S51, F55, T55, E55, S56, E56, 1X1 | 7 | D-03 |
+| EF-16 | EW-BUS-004 segment end termination unknown (FR-BUS-016) | info | external end at JE-N1000-03 | 1 | D-15 |
+| EF-17 | EW-CORE-043 placeholder part (FR-CHK-034) | error (release) | TBD bridge, end bracket, rail, duct | 4 | D-04 |
+| EF-18 | EW-RDS-003 letter code vs function category (FR-CHK-026) | warning ▲U-37 | T55 (T for a temperature switch) | 1 | D-03 |
+| EF-19 | EW-CORE-041 on -XPE, waived (waiver W-1 "PE stud is part of NSYPMM107") | waived | -XPE | 1 | — |
 
 Totals: **42 errors, 32 warnings, 28 infos, 1 waived.** Every other rule of the MVP packs reports nothing on Golden
 A: in particular FR-CHK-016 (designations), FR-CHK-017 (22 pairs, 4 external points), FR-CHK-022 (generated
@@ -1013,19 +1106,34 @@ overview), FR-CHK-028 (one bond), FR-CHK-032 (BN), FR-CHK-035 (3-B2) and FR-CHK-
 
 | EF | Rule | Severity | Targets | Count | Defect |
 |---|---|---|---|---|---|
-| EF-20 | EW-FL-10 manifold without supply on port 1 (FR-FLU-020) | warning | the valve-terminal assembly -201U1 | 1 | D-28 |
-| EF-21 | EW-FL-07 line without tube specification | warning | F1 … F16 | 16 | D-28 |
-| EF-22 | EW-PLC-13 card supply fed from wrong potential type (FR-PLC-048); supersedes EF-10 | warning | -201U1:3, -202U1:3 | 2 | D-16 |
-| EF-23 | FR-CHK-029 PE continuity | — | none: 1X1:PE, -XPE, -X1032 and the CPX FE screws reach the plate through rails R1–R3 | 0 | D-21 |
-| EF-24 | EW-PLC-14 / FR-CHK-041 load vs channel rating | — | none at the test loads; the evaluation lists MICO Out1 feeding 24V El and 24V Val of -201U1 and -202U1 | 0 | D-25 |
-| EF-25 | FR-CHK-040 description lint | — | none | 0 | D-35 |
+| EF-20 | EW-FL-010 manifold without supply on port 1 (FR-FLU-020) | warning | the valve-terminal assembly -201U1 | 1 | D-28 |
+| EF-21 | EW-FL-007 line without tube specification | warning | F1 … F16 | 16 | D-28 |
+| EF-22 | EW-PLC-013 card supply fed from wrong potential type (FR-PLC-048); supersedes EF-10 | warning | -201U1:3, -202U1:3 | 2 | D-16 |
+| EF-23 | EW-POT-007 PE continuity (FR-CHK-029) | — | none: 1X1:PE, -XPE, -X1032 and the CPX FE screws reach the plate through rails R1–R3 | 0 | D-21 |
+| EF-24 | EW-POT-018 with EW-PLC-014 load vs channel rating (FR-CHK-041) | — | none at the test loads; the evaluation lists MICO Out1 feeding 24V El and 24V Val of -201U1 and -202U1 | 0 | D-25 |
+| EF-25 | EW-CORE-065 description lint (FR-CHK-040) | — | none | 0 | D-35 |
 
 ### 18.3 Release gate
 
 `ew revision release V2.0` on Golden A is refused (FR-REV-007) and lists exactly: the 42 pre-delivery errors of
-§18.1 and "checker not set" (FR-REV-005). On Golden A-R (§2.4) the release succeeds: V2.0 becomes Released, the
-as-built archive (canonical text, embedded libraries, PDF/A-2b, SHA-256 sums; ADR-0013) is written and verified, and the
-revision overview 911 shows V2.0 Released with changed pages 101 and 106 (FR-REV-006, FR-REV-008).
+§18.1 and EW-REL-001 "checker not set" (FR-REV-005). On Golden A-R (§2.4) the acceptance runner first calls
+`ew revision approve --as <checker>` (never a `.ewcmd` line, §2.4), and the release then succeeds: V2.0 becomes
+Released, the as-built archive (canonical text, embedded libraries, PDF/A-2b, SHA-256 sums; ADR-0013) is written and
+verified, and the revision overview 911 shows V2.0 Released with changed pages 101 and 106 (FR-REV-006, FR-REV-008).
+
+### 18.4 Manufacturing scheme (`expected/findings_manufacturing.csv`, 1.0)
+
+The `manufacturing` scheme extends `pre-delivery` with the EW-MFG pack ([15](15-checks-revisions-collaboration.md)
+§4.9). On Golden A its expectation is the §18.1 findings (EW-CORE-033 on -3W1 included) plus 31 × EW-MFG-001 (no
+usable length for the shop wires W4–W34), 4 × EW-MFG-008 (undetermined ends at S56 and E56) and 1 × EW-MFG-010
+(unverified manufacturing data). On Golden A-R the only manufacturing finding is EW-MFG-010. The scheme never changes
+§18.1, §18.2 or AC-22.
+
+### 18.5 Machinery scheme (`expected/findings_en60204.csv`, 1.0)
+
+The opt-in `machinery-en60204` scheme adds the EW-EN60204 pack; its golden expectation is §18.1 plus the golden
+column of [15](15-checks-revisions-collaboration.md) §4.7. Whether the reference cabinet is delivered under EN 60204-1
+or IEC 61439 is a pilot question (PQ-35); AC-22 stays unchanged.
 
 ---
 
@@ -1043,41 +1151,41 @@ gates.
 | D-05 | Four revision formats | Prevent: revision table (FR-REV-002, FR-REV-003) | Title blocks; schema test | "V2.0" on all 36 pages; Page has no revision field; 911 lists V1.0, V2.0 | M1 |
 | D-06 | Description drift on 101 | Prevent: bound description, explicit overrides (FR-REP-036) | Title blocks; set an override on 101 | Uniform text; an override is reported as info and shown in the property grid | M1 |
 | D-07 | No bookmarks, links, page labels | Feature: FR-OUT-004 … 006 | PDF structure | Outline by section and page; 64 xref links; `/PageLabels` = folio labels | M1 |
-| D-08 | Free-text wire rule | Prevent: `wire_props_of` with provenance; generated cover tables (FR-CON-017, FR-REP-038) | `ew query wire_props W29 --explain`; change 24 V colour in the profile | W29 0.75 DBU "profile"; W20 1.5 DBU "CDP"; one commit updates folio 1, 907 and colour-dependent texts | M1 |
+| D-08 | Free-text wire rule | Prevent: `wire_props_of` with provenance; generated cover tables (FR-CON-017, FR-REP-038) | `ew query wire_props W29 --explain`; change 24 V colour in the profile | W29 0.75 DBU "profile"; W20 1.5 mm² from CDP, DBU from profile; one commit updates folio 1, 907 and colour-dependent texts | M1 |
 | D-09 | No wire, terminal, cable, PLC, potential reports; no wire numbers | Feature: report blocks 903–911; FR-NUM-019 | Export | 16 generated pages per §16; W1–W34 numbered, unique, stable under moves | M1 |
 | D-10 | Overview 5 vs 4 valves | Prevent: generated overview (FR-DEV-023); FR-CHK-022 | Render 202; C import | 4 valves on -202U2; C: MF-14 | M1 |
 | D-11 | Terminal without designation | Invariant (FR-TRM-002), strict | Command sets designation "" on -X1031:8 | Rejected; C: MF-08 (lenient) | M1 |
 | D-12 | Duplicate designations | Invariant, unique per strip | Set -X1031:3 to "4"; swap 3 ↔ 4 in one transaction | First rejected, swap accepted; C: MF-09 | M1 |
 | D-13 | T55, S56 in the neutral | EW-POT-013 | Check run; A-R rewiring | EF-01 (2); clears in A-R; a 2-pole switch in L and N is not reported | M2 |
 | D-14 | "3-B0" | Prevent: anchor policy (FR-SYM-010, FR-XRF-005); FR-CHK-035 | Render 201; force origin anchor on the bus port | "3-B2"; forcing the origin reports "3-B0: empty cell"; C: MF-13 | M1 |
-| D-15 | Node "TBD"; termination as text | Typed `Tbd`, EW-BUS-01; termination property, EW-BUS-04 | Check; set -3X1 Off | EF-03 blocks release; "Switch to "ON"" rendered; Off yields an EW-BUS-04 error | M2 |
-| D-16 | FE vs PE mixed | FR-CHK-030 (MVP), EW-PLC-13 (1.0) | Check | EF-10, then EF-22 at 1.0 | M2 |
-| D-17 | Core colour "BR" | `ColourCode` (FR-CON-019), FR-CBL-005, FR-CHK-032 | Render 106; CSV import of "BR" | "BN" printed; strict import rejects "BR", lenient reports it; C: MF-11 | M1 |
+| D-15 | Node "TBD"; termination as text | Typed `Tbd`, EW-BUS-001; termination property, EW-BUS-004 | Check; set -3X1 Off | EF-03 blocks release; "Switch to "ON"" rendered; Off yields an EW-BUS-004 error | M2 |
+| D-16 | FE vs PE mixed | EW-POT-003 (FR-CHK-030, MVP), EW-PLC-013 (1.0) | Check | EF-10, then EF-22 at 1.0 | M2 |
+| D-17 | Core colour "BR" | `ColourCode` (FR-CON-019), FR-CBL-005, FR-CHK-032; prevent rule EW-CORE-031 | Render 106; CSV import of "BR" | "BN" printed; strict import rejects "BR", lenient keeps it as a foreign code and reports it with the quick fix "use BN"; C: MF-11 | M1 |
 | D-18 | Typos, manufacturer names, "50hz" | Manufacturer master (FR-PRT-002), typed values, FR-CHK-040 (1.0) | Render 1, 101, 102; seed "10A C" into a description | §3.4 rows 7–8; the seeded description is linted at 1.0 | M1 / 1.0 |
-| D-19 | No supply cable; no lengths | FR-CHK-033 | Check | EF-07, EF-08; release blocked by EF-08 | M2 |
+| D-19 | No supply cable; no lengths | EW-CORE-034, EW-CORE-033 (FR-CHK-033) | Check | EF-07, EF-08; release blocked by EF-08 | M2 |
 | D-20 | Junction notation mixed | Junction entities with style and wiring (FR-CON-005) | Wire list | W13/W14 star at F55:2; W7/W8 chain on -101F1:1; dots and bevels drawn as in the reference | M1 |
 | D-21 | PE continuity not drawn | Rail bonding (FR-CON-015, FR-TRM-017); FR-CHK-029 (1.0) | Potential partition; clear `rail_bonded` on -X1032 | 1X1:PE and -X1032 in one PE potential; clearing the flag isolates -X1032 (finding at 1.0) | MVP / 1.0 |
 | D-22 | 0V–PE by a plain wire | Bond B1 (FR-CON-014), FR-CHK-028 | Replace B1 by a plain wire | Golden A clean; the replacement is reported; C: MF-16 | M1 |
-| D-23 | 13-14 unconnected | FR-CHK-018 | Check; mark both CPs unused | EF-09 warnings become infos | M2 |
+| D-23 | 13-14 unconnected | EW-POT-009 (FR-CHK-018) | Check; mark both CPs unused | EF-09 warnings become infos | M2 |
 | D-24 | Five IP names on one net | Canonical name and aliases (FR-CON-012) | 909 | 24VDC-1 with AIR1–AIR4; 0V with 0VDC, AIR1–AIR4; PE with 7 aliases | M1 |
-| D-25 | Crossed supply pairs, one channel | Load summary (FR-REP-026), EW-PLC-14 | 1.0 load report | EF-24 evaluation; no error at test loads | 1.0 |
-| D-26 | Odd-bit addresses | EW-PLC-12 | Check under H1 and H2 | 28 findings / none (EF-02) | M2 |
+| D-25 | Crossed supply pairs, one channel | Load summary (FR-REP-026), EW-PLC-014 | 1.0 load report | EF-24 evaluation; no error at test loads | 1.0 |
+| D-26 | Odd-bit addresses | EW-PLC-012 | Check under H1 and H2 | 28 findings / none (EF-02) | M2 |
 | D-27 | Untagged valves and process valves | Child tags (FR-DEV-021), process tag, field location (FR-DEV-027) | 908, 910 | 28 child tags; 8 field devices with process tags in +FIELD; C: MF-20 | M1 |
-| D-28 | Fluid model incomplete | EW-FL-01 (MVP), EW-FL-07, EW-FL-10 (1.0) | Check | EF-13; EF-20, EF-21 at 1.0 | M2 / 1.0 |
+| D-28 | Fluid model incomplete | EW-FL-001 (MVP), EW-FL-007, EW-FL-010 (1.0) | Check; A-R fluid overlay | EF-13; EF-20, EF-21 at 1.0; all three clear on Golden A-R (§12) | M2 / 1.0 |
 | D-29 | Tag text sizes vary | Text styles (FR-SYM-013) | Text CSV of 101, 202, 203–206 | Every device tag in `tag.main` | M1 |
 | D-30 | Customer vs end user | Party roles (FR-PRJ-003) | Cover and title blocks | Cover binds customer; title block binds per U-01; C: MF-06 | M1 |
-| D-31 | 3.70 pt texts | FR-CHK-023 | Check | EF-12 (2 styles) | M2 |
-| D-32 | Layout incomplete, not to scale | EW-L001; page scale (FR-LAY-010) | Check; render 902 | EF-05; "Scale 1:10" printed; A-R clears EF-05 | MVP |
+| D-31 | 3.70 pt texts | EW-CORE-061 (FR-CHK-023) | Check | EF-12 (2 styles) | M2 |
+| D-32 | Layout incomplete, not to scale | EW-LAY-001; page scale (FR-LAY-010) | Check; render 902 | EF-05; "Scale 1:10" printed; A-R clears EF-05 | MVP |
 | D-33 | Physical page labels; lost spaces | FR-OUT-006, FR-OUT-008 | Text extraction of 101 | "SK 3110.000" with its space; physical page 6 labelled "101" | M1 |
 | D-34 | Author = checker | Release invariant (FR-REV-005) | Release with checker unset / = author / `<checker>` | Refused, refused, accepted (A-R) | MVP |
 | D-35 | BOM description misuse | Separate description and technical data (FR-DEV-010); FR-CHK-040 | 901 | Descriptions per §14; ratings only at symbols; EF-25 | M1 |
 | D-36 | Order code vs components | Assembly aspect, BOM modes (FR-DEV-020, FR-REP-005) | 901 and assembly export | Rows 16–21 vs A1, A2 (§14); folio 3 prints order code 1 from the assembly | M1 |
 | D-37 | Colour-profile basis | Profiles name their basis (FR-CON-020) | Profile metadata; cover | Basis "company convention", DBU declared a company code; cover basis text per ▲U-35 | M1 |
-| D-38 | PE smaller than line | FR-CHK-020 | Check; A-R | EF-06; cleared by W6 = 2.5 | M2 |
+| D-38 | PE smaller than line | EW-POT-006 (FR-CHK-020) | Check; A-R | EF-06; cleared by W6 = 2.5 | M2 |
 | D-39 | IP order not systematic | Assisted: sort tool (FR-XRF-013) | Arrange IPs on 102 by name | As drawn N-1 above L-1; after the command L-1 above N-1; no check | MVP |
-| D-40 | CPX block inside MPA section | Assisted: configurator validation EW-FL-03 (1.x, plugin) | — | No finding before 1.x; kept as ▲U-24 | 1.x |
+| D-40 | CPX block inside MPA section | Assisted: configurator validation EW-FL-003 (1.x, plugin) | — | No finding before 1.x; kept as ▲U-24 | 1.x |
 | D-41 | Assembly tagged from two pages | One assembly identity (FR-DEV-022) | Assembly export; 201/202 | One assembly -201U1 with children on both pages; break marks generated | M1 |
-| D-42 | Strip drawn twice | One strip, two segments (FR-TRM-011) | 103, 901 | One -X1031 device with segments at 103-A3 and 103-A10; one BOM row; C: MF-10 | M1 |
+| D-42 | Strip drawn twice | One strip, two segments (FR-TRM-011); merged at import (FR-IMP-013) | 103, 901 | One -X1031 device with segments at 103-A3 and 103-A10; one BOM row; C: MF-10 (info) | M1 |
 
 ---
 
@@ -1085,44 +1193,48 @@ gates.
 
 ### 20.1 Expected migration report
 
-`ew import qet <original>.qet` runs in lenient mode and must import 18 folios with no structural error and the 64
-cross-reference texts as printed in the reference, "3-B0" included: imported symbols keep QET's element-origin
-anchor (proposed FR-IMP-nnn). Counts marked ▲ depend on the file (PQ-02).
+`ew import qet <original>.qet` runs the `migration` scheme in lenient mode ([15](15-checks-revisions-collaboration.md)
+§10.2): every enabled rule of `pre-delivery` at its pre-delivery severity, prevent violations as findings, plus the
+EW-IMP findings of the import run. It must import 18 folios with no structural error and the 64 cross-reference
+texts as printed in the reference, "3-B0" included: imported symbols keep QET's element-origin anchor (FR-IMP-038).
+Counts marked ▲ depend on the file (PQ-02). The code column gives the live rule, or the import code where only the
+import run knows the fact ([14](14-interop.md) §15.2).
 
-| MF | Finding class | Defect | Expected | Quick fix |
-|---|---|---|---|---|
-| MF-01 | Stored label differs from the formula result | D-01 | -3W1 (stored -4W1), -3X1 (stored -4X1) | use derived tag |
-| MF-02 | Structure-code spelling variants | D-03 | "+JE2416" vs "+J-E-2416" | merge into +J-E-2416, keep alias |
-| MF-03 | Plain-text labels become frozen tags | D-03 | S51, F55, T55, E55, S56, E56, 1X1 (▲ others) | convert to scheme where conforming |
-| MF-04 | Per-folio revision values conflict | D-05 | 4 formats on 18 folios | create revisions V1.0, V2.0; drop per-page values |
-| MF-05 | Per-folio description differs | D-06 | folio 101 | drop override |
-| MF-06 | Title-block party differs from cover party | D-30 | "Customer" cell = end user | bind per ▲U-01 (manual) |
-| MF-07 | Wire-marker texts converted to overrides (FR-IMP-017) | D-08 | 4 marker groups → 10 CDPs (W4, W5, W7, W9, W20–W25) | — (info) |
-| MF-08 | Terminal without designation | D-11 | 1 (-X1031, 8th terminal) | designate |
-| MF-09 | Duplicate terminal designations | D-12 | 8 groups: 1+, 2+, 4+, 1-, 2-, 3-, 4- on X1031; PE on X1032 | renumber 1–n, move labels to function text |
-| MF-10 | Strip drawn as two elements with one tag | D-42 | -X1031 | merge into one strip, two segments |
-| MF-11 | Colour code not in IEC 60757 | D-17 | "BR" on -106W1, -106W2 | map to BN |
-| MF-12 | Manufacturer and part spelling | D-18 | "Murr Elektronik", "Schneider", "Eaton / Holec", "UK5N / ULSKG5" | map to master; split alternatives (FR-PRT-004) |
-| MF-13 | Xref target cell empty | D-14 | "3-B0" | anchor policy "label" → "3-B2" |
-| MF-14 | Hand-drawn overview ≠ children | D-10 | -202U2: 5 drawn, 4 in detail | regenerate overview from assembly |
-| MF-15 | Layout review queue (FR-IMP-019) | D-02 | proposals T51 → T55, X1031 → -X1031, X1032 → -X1032; exact matches for the others ▲ | confirm |
-| MF-16 | 0V–PE connection without bond | D-22 | W27 | declare bond B1 |
-| MF-17 | Several IP names on one potential | D-24 | 24VDC-1, 0V, PE | — (info, canonical names) |
-| MF-18 | "Node TBD" recognised as `Tbd` | D-15 | -201U1 | — |
-| MF-19 | PLC address texts recognised (FR-IMP-017) | D-26 | 28 texts Q0.1 … Q6.7 | bind after MF-20 |
-| MF-20 | Valve symbols without device | D-27 | 28 | build assembly and children (script step 6) |
-| MF-21 | Imported nomenclature table differs from the derived BOM | D-04 | rows -4W1, -4X1 gone; missing parts added | — (info) |
-| MF-22 | Font substitution (FR-IMP-020) | — | Tahoma → default font | — (info) |
-| MF-23 | EW-POT-013 | D-13 | T55, S56 | — |
-| MF-24 | FR-CHK-018 | D-23 | -102F2:13, 14 | mark unused |
-| MF-25 | FR-CHK-023 (threshold 1.8 mm per FR-CHK-023's criterion) | D-31 | imported 3.70 pt texts | apply text styles |
-| MF-26 | Text sizes not styled | D-29 | tags at 8.88 pt | apply `tag.main` |
-| MF-27 | External connection without cable | D-19 | +J-E-206 → 1X1 | — |
+| MF | Finding class | Code | Defect | Expected | Quick fix |
+|---|---|---|---|---|---|
+| MF-01 | Stored label differs from the formula result | EW-IMP-101 | D-01 | -3W1 (stored -4W1), -3X1 (stored -4X1) | use derived tag |
+| MF-02 | Structure-code spelling variants | EW-RDS-010 | D-03 | "+JE2416" vs "+J-E-2416" | merge into +J-E-2416, keep alias |
+| MF-03 | Plain-text labels become frozen tags | EW-IMP-103 | D-03 | S51, F55, T55, E55, S56, E56, 1X1 (▲ others) | convert to scheme where conforming |
+| MF-04 | Per-folio revision values conflict | EW-IMP-104 | D-05 | 4 formats on 18 folios | create revisions V1.0, V2.0; drop per-page values |
+| MF-05 | Per-folio description differs | EW-CORE-023 | D-06 | folio 101 | drop override |
+| MF-06 | Title-block party differs from cover party | EW-IMP-106 | D-30 | "Customer" cell = end user | bind per ▲U-01 (manual) |
+| MF-07 | Wire-marker texts converted to overrides (FR-IMP-017) | EW-IMP-107 | D-08 | 4 marker groups → 10 CDPs (W4, W5, W7, W9, W20–W25), cross-section only | — (info) |
+| MF-08 | Terminal without designation | EW-TERM-001 | D-11 | 1 (-X1031, 8th terminal) | designate |
+| MF-09 | Duplicate terminal designations | EW-TERM-002 | D-12 | 8 groups: 1+, 2+, 4+, 1-, 2-, 3-, 4- on X1031; PE on X1032 | renumber 1–n, move labels to function text |
+| MF-10 | Strip drawn as two elements with one tag, merged at import (FR-IMP-013) | EW-IMP-109 | D-42 | -X1031: one strip with two segments (info) | split (not applied) |
+| MF-11 | Colour code not in IEC 60757 | EW-CORE-031 | D-17 | "BR" on -106W1, -106W2 | kept foreign; quick fix BN |
+| MF-12 | Manufacturer and part spelling | EW-IMP-007, EW-IMP-008 | D-18 | "Murr Elektronik", "Schneider", "Eaton / Holec", "UK5N / ULSKG5" | map to master; split "UK5N / ULSKG5" into UK 5 N (1, 2) and USLKG 5 (PE) |
+| MF-13 | Xref target cell empty | EW-CORE-053 | D-14 | "3-B0" | anchor policy "graphics" → "3-B2" |
+| MF-14 | Hand-drawn overview ≠ children | EW-CORE-046 | D-10 | -202U2: 5 drawn, 4 in detail | regenerate overview from assembly |
+| MF-15 | Layout review queue (FR-IMP-019) | EW-IMP-111 | D-02 | proposals T51 → T55, X1031 → -X1031, X1032 → -X1032; exact matches for the others ▲ | confirm |
+| MF-16 | 0V–PE connection without bond | EW-POT-001 | D-22 | W27 | declare bond B1 |
+| MF-17 | Several IP names on one potential | EW-IMP-121 | D-24 | 24VDC-1, 0V, PE | — (info, canonical names) |
+| MF-18 | "Node TBD" recognised as `Tbd` | EW-IMP-107 | D-15 | -201U1 | — |
+| MF-19 | PLC address texts recognised (FR-IMP-017) | EW-IMP-107 | D-26 | 28 texts Q0.1 … Q6.7 | bind after MF-20 |
+| MF-20 | Valve symbols without device | EW-IMP-112 | D-27 | 28 | build assembly and children (script step 6) |
+| MF-21 | Imported nomenclature table differs from the derived BOM | EW-IMP-113 | D-04 | rows -4W1, -4X1 gone; missing parts added | — (info) |
+| MF-22 | Font substitution (FR-IMP-020) | EW-IMP-006 | — | Tahoma → default font | — (info) |
+| MF-23 | N switching | EW-POT-013 | D-13 | T55, S56 | — |
+| MF-24 | Unconnected CP (FR-CHK-018) | EW-POT-009 | D-23 | -102F2:13, 14 | mark unused |
+| MF-25 | Text below minimum height: FR-CHK-023 (scheme minimum 1.2 mm cap height) | EW-CORE-061 | D-31 | imported 3.70 pt texts | apply text styles |
+| MF-26 | Text sizes not styled | EW-CORE-063 | D-29 | tags at 8.88 pt | apply `tag.main` |
+| MF-27 | External connection without cable | EW-CORE-034 | D-19 | +J-E-206 → 1X1 | — |
 
 ### 20.2 Fix script `variants/c-fix.ewcmd`
 
-1. Apply quick fixes MF-01, MF-02, MF-04, MF-05, MF-08, MF-09, MF-10, MF-11, MF-12, MF-13, MF-16 (each a previewed
-   command, FR-CHK-010).
+1. Apply quick fixes MF-01, MF-02, MF-04, MF-05, MF-08, MF-09, MF-11, MF-12, MF-13, MF-16 (each a previewed
+   command, FR-CHK-010). Confirm MF-10: the strip the importer merged is the correct result (D-42), so its "split"
+   fix is not applied and the step changes nothing for it.
 2. Bind the party cell per U-01 (MF-06).
 3. Exchange QET-import symbols for starter-library symbols through `symbol-map.csv` (FR-SYM-022), keeping CPs by
    index.
@@ -1170,23 +1282,23 @@ Commands run on `golden/J-E-2416.ew` unless stated. "Exact" means the comparison
 | AC-20 | D-01 replay: renumbering folio 3 → 4 updates -3W1/-3X1 to -4W1/-4X1 and "3-B2" to "4-B2" in every output, writes only that page's file, and undo restores all | FR-PAG-007, FR-NUM-001 | M1 |
 | AC-21 | `ew check --scheme pre-delivery` reports exactly `findings_mvp.csv` (§18.1: 42 errors, 32 warnings, 28 infos, 1 waived) and exits 1 | FR-CHK-042, FR-EXT-002 | M2 |
 | AC-22 | With the 1.0 packs the findings equal §18.1 plus §18.2 (EF-22 superseding EF-10) | FR-CHK-005 | 1.0 |
-| AC-23 | Release of V2.0 is refused on Golden A with exactly the blockers of §18.3 and succeeds on Golden A-R, writing a verified as-built archive | FR-REV-005 … FR-REV-008 | MVP |
+| AC-23 | Release of V2.0 is refused on Golden A with exactly the blockers of §18.3 and succeeds on Golden A-R after the runner's `ew revision approve --as <checker>` (§2.4), writing a verified as-built archive | FR-REV-005 … FR-REV-008 | MVP |
 | AC-24 | Every regression test of §19 passes at or after its gate | SC-2 | per row |
 | AC-25 | Golden C: `ew import qet` imports 18 folios without structural error, reproduces the 64 texts as printed and lists exactly MF-01 … MF-27 | FR-IMP-003, FR-IMP-006, FR-IMP-009, FR-IMP-010 | M2 |
 | AC-26 | Golden C plus `c-fix.ewcmd` is equivalent to Golden A (§20.3) | FR-IMP-004, FR-CHK-010 | M2 |
 | AC-27 | The migration verifier compares the Golden C import with the reference PDF and reports only the deltas of §3.4 that apply to an import (font, 3-B0 flagged) | FR-IMP-021 | MVP |
 | AC-28 | GUI flows (egui_kittest) on Golden A: follow "102-A1" from 101-H16 and back; select W29 and see "0.75 mm² · from potential 24VDC-1 via profile DBU/WH 24 V"; change its colour and undo; add a terminal to -X1031 with ghost preview; every frame ≤ 16 ms | FR-UI-010, FR-UI-019, NFR-PERF-04 | M2 |
-| AC-29 | Folio 908 equals §11.3 (56 channels); EW-PLC-12 gives 28 / 0 findings under H1 / H2 by a part-data edit only; changing -201U5's start re-addresses only its 8 channels | FR-PLC-011, FR-PLC-012, FR-PLC-022, FR-PLC-045 | MVP |
+| AC-29 | Folio 908 equals §11.3 (56 channels); EW-PLC-012 gives 28 / 0 findings under H1 / H2 by a part-data edit only; changing -201U5's start re-addresses only its 8 channels | FR-PLC-011, FR-PLC-012, FR-PLC-022, FR-PLC-045 | MVP |
 | AC-30 | `ew export plc-aml` of station -201U1 (Q0.0 … Q6.7) is valid AR APC 1.4.0 on CAEX 2.15 and imports into TIA Portal without errors; TIA tag XLSX and PLCopen GVL exports contain the 8 used channels with symbols TA05_V_15 … | FR-PLC-029, FR-PLC-036, FR-PLC-037, SC-8 | M3 |
-| AC-31 | Bus: EW-BUS-04 reports no error with -3X1 On and one info for the external end; -3X1 Off gives an error; JE-N1000-03 is the master in the network list and absent from the BOM | FR-BUS-004, FR-BUS-005, FR-BUS-015, FR-BUS-016 | M2 |
-| AC-32 | Fluid: 28 valve children, overviews 201/202 generated (4 valves on -202U2, break marks, "∞" xrefs), 16 lines F1–F16 to 8 field devices, derived address texts; tube list at 1.0 | FR-FLU-004, FR-FLU-005, FR-FLU-006, FR-FLU-012 | MVP / M3 |
-| AC-33 | 2D layout: folio 902 is generated from placements in the order of §13 with derived labels, PART DATA block, legend and "Scale 1:10"; EW-L001 lists 5 devices; no command can create a placement without a device | FR-LAY-006, FR-LAY-009, FR-LAY-010, FR-LAY-012, FR-LAY-017 | MVP |
-| AC-34 | 3D and routing on Golden A-R: no collisions (EW-L006), `RouteWires` commits lengths for every internal wire, folio 907 shows them; moving -102G1 marks affected lengths stale (EW-L011) until re-routed | FR-LAY-019, FR-LAY-028, FR-LAY-046, FR-LAY-051 | M4 |
-| AC-35 | Manufacturing on Golden A-R: the `.ewpp` holds the wire list with lengths, ferrules and markers; the Komax and Rittal WT profile outputs are row-identical to folio 907; the -X1031 assembly list is complete; the package is byte-deterministic | FR-MFG-001, FR-MFG-016, FR-MFG-020, FR-MFG-021, FR-MFG-031, SC-7 | 1.0 |
+| AC-31 | Bus: EW-BUS-004 reports no error with -3X1 On and one info for the external end; -3X1 Off gives an error; JE-N1000-03 is the master in the network list and absent from the BOM | FR-BUS-004, FR-BUS-005, FR-BUS-015, FR-BUS-016 | M2 |
+| AC-32 | Fluid: 28 valve children, overviews 201/202 generated (4 valves on -202U2, break marks, "∞" xrefs), 16 lines F1–F16 to 8 field devices, derived address texts; tube list of Golden A-R (F1–F17, §12) at 1.0 | FR-FLU-004, FR-FLU-005, FR-FLU-006, FR-FLU-012 | MVP / M3 |
+| AC-33 | 2D layout: folio 902 is generated from placements in the order of §13 with derived labels, PART DATA block, legend and "Scale 1:10"; EW-LAY-001 lists 5 devices; no command can create a placement without a device | FR-LAY-006, FR-LAY-009, FR-LAY-010, FR-LAY-012, FR-LAY-017 | MVP |
+| AC-34 | 3D and routing on Golden A-R: no collisions (EW-LAY-006), `RouteWires` commits lengths for every internal wire, folio 907 shows them; moving -102G1 marks affected lengths stale (EW-LAY-011) until re-routed | FR-LAY-019, FR-LAY-028, FR-LAY-046, FR-LAY-051 | M4 |
+| AC-35 | Manufacturing on Golden A-R: the `.ewpp` holds the wire list with lengths (rounded once to the 10 mm project increment), ferrules and markers; every Komax and Rittal WT row equals the folio 907 row with the same RowId, and the machine and manual lists (`expected/mfg/*.csv`) together cover W1–W44; the -X1031 assembly list is complete; the package is byte-deterministic | FR-MFG-001, FR-MFG-016, FR-MFG-020, FR-MFG-021, FR-MFG-031, SC-7 | 1.0 |
 | AC-36 | Thermal: with the test power losses of `tables/thermal.csv` ▲ the thermal report of +J-E-2416 equals the hand calculation in `expected/thermal.csv` within 1 % | FR-THM-001, FR-THM-009 | M4 |
 | AC-37 | SVG of every page keeps text as text (MVP); DXF AC1015 of folios 101–106 has the configured layers and re-imports as graphic pages within 0.01 mm (1.0) | FR-OUT-013, FR-OUT-015, FR-IMP-032 | MVP / M3 |
 | AC-38 | EDZ: importing a vendor EDZ for one golden part (▲, as available) updates its embedded part copy through a previewed command listing changed fields | FR-IMP-025, FR-PRT-014 | M3 |
-| AC-39 | The anonymisation guard (§3.5) passes on `golden/`, `docs/` and `expected/`; party and person fields hold placeholders | NFR-DOC-04, NFR-PRIV-06 | M1 |
+| AC-39 | The anonymisation guard (§3.5) passes on `golden/`, `docs/` and `expected/`; party and person fields hold placeholders | NFR-DOC-04, NFR-PRIV-06, NFR-PRIV-09 | M1 |
 | AC-40 | Every release ships Golden A (CC0) as sample project; it opens offline without libraries or system fonts and passes its acceptance CSVs | NFR-DOC-04, NFR-REL-11 | MVP |
 | AC-41 | Two branches editing disjoint fields (function text of -102F2; colour override of W20) merge cleanly with `ew merge-driver`; editing the same field yields one conflict record | FR-COL-013, FR-COL-014 | MVP |
 | AC-42 | With nl-NL translations of page descriptions and function texts, the Dutch PDF has identical geometry, tags and cross-references; only translated texts differ | FR-I18N-005 | 1.0 |
@@ -1206,7 +1318,7 @@ Timing follows [architecture](04-architecture.md) §15.2; the global plan sets d
 | **M4** | month 12 | AC-34, AC-36; AC-22 for EW-LAYOUT |
 | **1.0** | months 15–18 | all AC-01 … AC-42 and every §19 row except D-40 |
 
-The acceptance runner reports pass/fail per AC and per D-nn (proposed NFR-MAINT-nn).
+The acceptance runner reports pass/fail per AC and per D-nn (NFR-MAINT-11).
 
 ---
 
@@ -1217,7 +1329,7 @@ The acceptance runner reports pass/fail per AC and per D-nn (proposed NFR-MAINT-
 | U | Item | Golden A test value | Used in | PQ |
 |---|---|---|---|---|
 | U-01 | Title-block party cell | label "End user:", end-user role | §17.2, D-30 | PQ-11 |
-| U-02 | Earthing system | TN-S | §4.1 | new |
+| U-02 | Earthing system | TN-S | §4.1 | PQ-17 |
 | U-03 | Checker of V2.0 | unset (A-R `<checker>`) | §18.3 | PQ-09 |
 | U-04 | Revision history | V1.0 released (historic), V2.0 open "Changes on 101 and 106" | §4.1 | PQ-09 |
 | U-05 | Meaning of =P01 | description empty | §4.3 | PQ-08 |
@@ -1240,19 +1352,19 @@ The acceptance runner reports pass/fail per AC and per D-nn (proposed NFR-MAINT-
 | U-22 | Station address, rate, absolute start | `Tbd`; unset; relative Q0 (A-R 3, 1.5 Mbit/s) | §11 | PQ-15 |
 | U-23 | Coil-14 bit of VMPA1-FB-EMG-8 | H1 (even) | EF-02 | PQ-15 |
 | U-24 | Festo configuration | -202U1 = 550208; 533354 supply plate; 4 valves; order-code split per §6.2 | §6, §14 | PQ-14 |
-| U-25 | Tubes, supply, spare ports | unspecified; no supply; open | §12 | PQ-18 |
+| U-25 | Tubes, supply, spare ports | unspecified; no supply; open (A-R: PU 6×4 BU, 1,200 mm, supply line F17 to -201U9:1, silencers and plugs, §2.4) | §12 | PQ-18 |
 | U-26 | Enclosure size, scale, missing placements, lower duct | 1000 × 750 × 420 mm; 1:10; unplaced; unknown | §13 | PQ-24 |
-| U-27 | Accessory and carrier parts | placeholders TBD | §14, EF-17 | PQ-24 |
+| U-27 | Accessory and carrier parts; valve-terminal mounting | placeholders TBD (A-R: test parts incl. the -X1031 end cover, a rail-mounting kit on R3 and one screw-mounted part) | §9, §13, §14, EF-17 | PQ-24 |
 | U-28 | Report folios 903–911 | in section 9 | §16 | PQ-12 |
 | U-29 | Drawing font | Noto Sans | §17.5 | PQ-07 |
-| U-30 | Logo and notice in the public fixture | placeholders | §3.5 | new |
-| U-31 | Minimum text height | 1.2 mm cap height | EF-12 | new |
-| U-32 | Technical-data format | "C10", "C4", "B16", "20 A", "40 A", "6 A", "15 °C" | §3.4 | new |
-| U-33 | Wire-number format | `{folio}.{counter}`, not printed | §8.1 | PQ-22 |
-| U-34 | -XPE, -UC1 identity and numbering | per-class rules; -XPE without own part (waiver) | §6 | new |
+| U-30 | Logo and notice in the public fixture | placeholders | §3.5 | — (public-repository rule) |
+| U-31 | Minimum text height | 1.2 mm cap height | EF-12 | PQ-36 |
+| U-32 | Technical-data format | "C10", "C4", "B16", "20 A", "40 A", "6 A", "15 °C" | §3.4 | PQ-36 |
+| U-33 | Wire-number format | `{page}.{counter}`, not printed | §8.1 | PQ-22 |
+| U-34 | -XPE, -UC1 identity and numbering | per-class rules; -XPE without own part (waiver) | §6 | PQ-36 |
 | U-35 | Cover basis text | "IEC60757 / EN60204-1" kept, profile basis shown in metadata | D-37 | PQ-05 |
 | U-36 | Spare valves fitted or blanked | valves fitted (28 × 571334) | §14 | PQ-14 |
-| U-37 | Letter mapping of the shipped 2009 set | T55 reported, S51 and S56 accepted | EF-18 | PQ-08 |
+| U-37 | Letter mapping of the shipped 2009 set (`verified = false`) | T55 reported; accepted: S for S51 and S56, U for the valve-terminal assembly and modules -201U1 … -201U9 and -202U1 … -202U3, Q for the valves (QM as an accepted alternative) | EF-18 | PQ-08 |
 
 ### 23.2 Questions for the pilot user
 
@@ -1279,15 +1391,19 @@ Each answer replaces a test value; the PQ numbers refer to [brainstorm](01-brain
     (U-03, U-04; PQ-09)
 11. Should the title-block party cell show the customer or the end user? (U-01; PQ-11)
 12. Where do F55, E55, E56, S56 and -201U9 sit in the cabinet; what is the enclosure's real size; which rails,
-    end brackets, bridges and lower duct do you use; do you want layouts at a stated scale? (U-26, U-27; PQ-24)
+    end brackets, bridges, end covers and lower duct do you use; is the valve terminal rail-mounted or screwed to the
+    plate; do you want layouts at a stated scale? (U-26, U-27; PQ-24)
 13. Where do TA05-V-xx belong (plant area, location code), and which tube sizes and supply arrangement does the
     manifold have? (U-07, U-25; PQ-18)
 14. Are report folios 903–911 welcome in section 9 or should they be separate documents? Which wire-number format,
     technical-data notation ("C10" or "10A C") and minimum text height do you want? (U-28, U-31, U-32, U-33; PQ-12,
-    PQ-22)
+    PQ-22, PQ-36)
 15. Do you keep the Tahoma look (your own installed font) or accept the bundled font? Should the cover keep citing
     "IEC60757 / EN60204-1" for the DBU/WH convention? (U-29, U-35; PQ-05, PQ-07)
-16. Is the earthing system TN-S? (U-02)
+16. Is the earthing system TN-S? (U-02; PQ-17)
+17. How do you tag the main PE point and the enclosure (-XPE, -UC1), and does the PE stud count as part of the
+    mounting plate? (U-34; PQ-36)
+18. Is the cabinet delivered under EN 60204-1 or as an IEC 61439 assembly? (§18.5; PQ-35)
 
 ---
 
@@ -1297,86 +1413,91 @@ This document elaborates the golden-project acceptance criteria of:
 
 - **PRJ:** FR-PRJ-001 … FR-PRJ-005, FR-PRJ-011, FR-PRJ-012, FR-PRJ-013, FR-PRJ-017, FR-PRJ-020, FR-PRJ-021.
 - **PAG:** FR-PAG-001, FR-PAG-005, FR-PAG-006, FR-PAG-007, FR-PAG-008, FR-PAG-009, FR-PAG-011, FR-PAG-013,
-  FR-PAG-015, FR-PAG-017, FR-PAG-019, FR-PAG-020, FR-PAG-023.
-- **SYM:** FR-SYM-003, FR-SYM-007, FR-SYM-010, FR-SYM-012, FR-SYM-013, FR-SYM-014, FR-SYM-022.
-- **DEV:** FR-DEV-006, FR-DEV-007, FR-DEV-010, FR-DEV-012, FR-DEV-020 … FR-DEV-024, FR-DEV-026, FR-DEV-027, FR-DEV-028.
+  FR-PAG-015, FR-PAG-017, FR-PAG-019, FR-PAG-020, FR-PAG-023, FR-PAG-029, FR-PAG-030.
+- **SYM:** FR-SYM-003, FR-SYM-007, FR-SYM-010, FR-SYM-012, FR-SYM-013, FR-SYM-014, FR-SYM-022, FR-SYM-030.
+- **DEV:** FR-DEV-006, FR-DEV-007, FR-DEV-010, FR-DEV-012, FR-DEV-020 … FR-DEV-024, FR-DEV-026, FR-DEV-027, FR-DEV-028,
+  FR-DEV-037.
 - **NUM:** FR-NUM-001, FR-NUM-002, FR-NUM-003, FR-NUM-005, FR-NUM-008, FR-NUM-010, FR-NUM-013, FR-NUM-014,
   FR-NUM-018, FR-NUM-019.
 - **CON:** FR-CON-005, FR-CON-006, FR-CON-009 … FR-CON-012, FR-CON-014, FR-CON-015, FR-CON-017, FR-CON-019 …
-  FR-CON-022, FR-CON-024, FR-CON-034.
+  FR-CON-022, FR-CON-024, FR-CON-034, FR-CON-038.
 - **XRF:** FR-XRF-005, FR-XRF-009, FR-XRF-012, FR-XRF-013, FR-XRF-015, FR-XRF-020, FR-XRF-024.
 - **TRM:** FR-TRM-002, FR-TRM-005, FR-TRM-007, FR-TRM-009, FR-TRM-010, FR-TRM-011, FR-TRM-016, FR-TRM-017, FR-TRM-021.
 - **CBL:** FR-CBL-001, FR-CBL-005, FR-CBL-008, FR-CBL-009.
 - **PRT:** FR-PRT-002, FR-PRT-004, FR-PRT-014, FR-PRT-015.
 - **REP:** FR-REP-003 … FR-REP-006, FR-REP-009, FR-REP-012, FR-REP-013, FR-REP-014, FR-REP-016, FR-REP-017,
-  FR-REP-018, FR-REP-019, FR-REP-026, FR-REP-028, FR-REP-033, FR-REP-035, FR-REP-036, FR-REP-038, FR-REP-042.
+  FR-REP-018, FR-REP-019, FR-REP-026, FR-REP-028, FR-REP-033, FR-REP-035, FR-REP-036, FR-REP-038, FR-REP-042,
+  FR-REP-046.
 - **OUT:** FR-OUT-002, FR-OUT-004 … FR-OUT-008, FR-OUT-013, FR-OUT-015, FR-OUT-018, FR-OUT-019.
 - **CHK:** FR-CHK-005, FR-CHK-010, FR-CHK-016 … FR-CHK-020, FR-CHK-022 … FR-CHK-026, FR-CHK-028 … FR-CHK-035,
-  FR-CHK-037 … FR-CHK-042.
-- **REV:** FR-REV-002, FR-REV-003, FR-REV-005 … FR-REV-008.
+  FR-CHK-037 … FR-CHK-042, FR-CHK-045, FR-CHK-051, FR-CHK-052, FR-CHK-058.
+- **REV:** FR-REV-002, FR-REV-003, FR-REV-005 … FR-REV-008, FR-REV-014, FR-REV-016.
 - **PLC, BUS:** FR-PLC-011, FR-PLC-012, FR-PLC-017, FR-PLC-022, FR-PLC-029, FR-PLC-036, FR-PLC-037, FR-PLC-045,
   FR-PLC-047, FR-PLC-048; FR-BUS-004, FR-BUS-005, FR-BUS-015, FR-BUS-016.
 - **FLU:** FR-FLU-004, FR-FLU-005, FR-FLU-006, FR-FLU-012, FR-FLU-017, FR-FLU-018, FR-FLU-020.
 - **LAY, THM, MFG:** FR-LAY-006, FR-LAY-009, FR-LAY-010, FR-LAY-012, FR-LAY-013, FR-LAY-017, FR-LAY-019,
-  FR-LAY-028, FR-LAY-046, FR-LAY-051; FR-THM-001, FR-THM-009; FR-MFG-001, FR-MFG-016, FR-MFG-020, FR-MFG-021,
+  FR-LAY-028, FR-LAY-046, FR-LAY-051, FR-LAY-056; FR-THM-001, FR-THM-009; FR-MFG-001, FR-MFG-016, FR-MFG-020, FR-MFG-021,
   FR-MFG-031.
 - **IMP, EXP:** FR-IMP-003, FR-IMP-004, FR-IMP-006, FR-IMP-009, FR-IMP-010, FR-IMP-016, FR-IMP-017, FR-IMP-019 …
-  FR-IMP-022, FR-IMP-025, FR-IMP-032; FR-EXP-005.
+  FR-IMP-022, FR-IMP-025, FR-IMP-032, FR-IMP-038; FR-EXP-005.
 - **UI, EXT, COL, I18N:** FR-UI-010, FR-UI-019; FR-EXT-002; FR-COL-013, FR-COL-014; FR-I18N-005.
 - **Non-functional:** NFR-PERF-03, NFR-PERF-04, NFR-PERF-09, NFR-PERF-11, NFR-REL-04, NFR-REL-07, NFR-REL-08,
-  NFR-REL-11, NFR-PRIV-06, NFR-DOC-04, NFR-UX-08.
+  NFR-REL-11, NFR-PRIV-06, NFR-PRIV-09, NFR-DOC-04, NFR-MAINT-11, NFR-UX-08.
 
 ### Proposed new requirements
 
-| Proposed ID | Requirement | Prio | Release | Source | Acceptance criterion | Target |
-|---|---|---|---|---|---|---|
-| FR-PAG-nnn | A frame form shall declare a page-to-sheet transform (uniform scale and offset) applied identically by PDF, SVG, PNG and print; native EW frames use scale 1. | Must | MVP | REF-096, §17.1, ADR-0027 | The golden frame prints with scale 0.986282578 and offset 9.79 mm and meets AC-01. | 02a PAG |
-| FR-PAG-nnn | A report block whose rows exceed one page shall continue on sub-pages `<first folio>.<n>` and never occupy the next folio. | Must | MVP | §16, FR-PAG-006, FR-REP-041 | The golden wire list occupies 907, 907.1, 907.2 and 908 stays the PLC overview. | 02a PAG |
-| FR-DEV-nnn | Devices shall carry a scope "supplied by others" that excludes them from the BOM, part checks and layout checks, and keeps them in cross-references, fluid lines and PLC target tracking. | Should | MVP | REF-064, D-27, §6.2 | The 8 golden field devices are absent from folio 901 and EF-04/EF-05 and present in F1–F16 and folio 910. | 02a DEV |
-| FR-CON-nnn | A PE connection shall take the circuit class of the highest-class potential at the devices on its two ends for size and colour rules. | Must | MVP | [domain model](03-domain-model.md) §9.1, D-38 | W19 and W28 derive 1.5 mm², W33 and W34 0.75 mm². | 02a CON |
-| FR-LAY-nnn | EW-L001 shall treat a device without part whose function definition is panel-mountable as mountable with unknown footprint. | Must | MVP | FR-LAY-013, D-32 | S56 and E56 appear among the five unplaced golden devices. | 02b LAY |
-| FR-REP-nnn | Report columns listing tags shall compress consecutive tags of one parent into natural-order ranges. | Should | MVP | §14 | The 571334 row of folio 901 prints "-201U3-QM1 … -202U2-QM4" in one row. | 02a REP |
-| FR-CHK-nnn | A rule definition shall declare which rules it supersedes for the same target and cause, so that one defect yields one finding. | Should | MVP | §18.1, ADR-0019 | Golden A reports EW-PLC-12 and not also FR-CHK-037 for the 28 bindings. | 02a CHK |
-| FR-CHK-nnn | The text-height rule shall report per text style with the list of affected pages and counts. | Should | MVP | D-31, FR-CHK-023 | Golden A yields exactly two findings (`cp.small`, `marker`). | 02a CHK |
-| FR-IMP-nnn | QET-import symbols shall keep QET's element-origin cross-reference anchor, so imported xref texts equal QET's, and FR-CHK-035 shall report those pointing to empty cells. | Must | MVP | D-14, C-15, SC-4 | Golden C prints "3-B0" and reports MF-13. | 02b IMP |
-| NFR-PRIV-nn | CI shall reject committed files containing any word n-gram (n ≤ 3) whose SHA-256 is on the maintainers' confidential-token list; only hashes are committed. | Must | MVP | public-repository rules, NFR-DOC-04 | Committing a fixture with a listed token fails CI; AC-39 passes. | 02c PRIV |
-| NFR-MAINT-nn | The acceptance runner shall report pass/fail per AC-nn of this document and per D-nn regression test, and each milestone gate shall evaluate its AC subset (§22). | Must | MVP | ARCH §13 | The M1 job prints a table of AC-01 … AC-20 and AC-39 results. | 02c MAINT |
+The eleven rows this document proposed are in the catalogues:
+- Added to [02a](02a-requirements-core.md) as: page-to-sheet transform → **FR-PAG-029**; sub-page continuation of
+  report blocks → **FR-PAG-030**; scope "supplied by others" → **FR-DEV-037**; PE class from the two ends →
+  **FR-CON-038**; tag ranges in report columns → **FR-REP-046**.
+- Covered by 02a rows adopted from [15](15-checks-revisions-collaboration.md): rule supersession → **FR-CHK-045**;
+  text-height findings per style → **FR-CHK-051**.
+- Added to [02b](02b-requirements-extended.md) as: element-origin anchor of QET-import symbols → **FR-IMP-038** (one
+  row with the proposal of [14](14-interop.md)); covered by the refined **FR-LAY-017**: part-less devices with a
+  panel-mountable function definition count as mountable.
+- Added to [02c](02c-nonfunctional-requirements.md) as: anonymisation guard → **NFR-PRIV-09**; acceptance runner per
+  AC-nn and D-nn → **NFR-MAINT-11** (one row with the proposal of 02a).
 
 ## Open questions
 
-1. **FR-CHK-042 wording.** It lists "D-13, D-26, the TBD address, missing parts of S56 and E56 and unplaced
+1. **FR-CHK-042 wording.** It listed "D-13, D-26, the TBD address, missing parts of S56 and E56 and unplaced
    devices", while §18.1 derives 19 finding rows from the shipped rules (for example EF-08, EF-11, EF-17).
-   *Recommendation:* reword FR-CHK-042's criterion to "exactly `findings_mvp.csv` of 20-golden-project §18.1" and
-   keep that file as the single source.
-2. **Sub-page numbering.** FR-PAG-006 is Should, but the golden page plan needs sub-pages (2.1, 901.1, 907.1 …).
-   *Recommendation:* raise FR-PAG-006 to Must MVP together with the proposed continuation rule; the alternative
-   (gapped first folios such as 903, 905, 910 …) breaks the architecture's fixed "903–911" block folios.
+   **Resolved:** FR-CHK-042's criterion reads "reports exactly the rows of `findings_mvp.csv` (§18.1)"
+   ([02a](02a-requirements-core.md)), and that file, with the final rule IDs, is the single source.
+2. **Sub-page numbering.** The golden page plan needs sub-pages (2.1, 901.1, 907.1 …). **Resolved:** FR-PAG-006 is
+   Must at MVP together with the continuation rule FR-PAG-030 ([02a](02a-requirements-core.md)), so the fixed
+   "903–911" block folios hold.
 3. **Page-to-sheet transform vs native frames.** Reproducing QET's fit-to-page print needs a transform in the frame
-   form. *Recommendation:* keep the transform for QET-compatible frames only and print native EW frames at 1:1;
-   do not rescale the model, which would break the exact QET grid (ADR-0027).
+   form. **Resolved:** FR-PAG-029 and `FormDef.page_to_sheet` ([domain model](03-domain-model.md) §6) apply the
+   transform on QET-compatible frames only; native EW frames print at 1:1, and the model is never rescaled, which
+   would break the exact QET grid (ADR-0027).
 4. **Golden B letters.** [Reference analysis](../research/reference-drawing.md) §4.4 proposes letter changes in
    Golden B (-101Q1, -101B1); the architecture's `TagSpec.letter` makes renumbering a counter operation.
    *Recommendation:* Golden B keeps letters (§2.2); letter changes are tested only by B′ (identifier-set switch).
 5. **-XPE and -UC1 numbering.** Neither fits the page-based or strip rule, and freezing them would change
    FR-CHK-025's seven frozen tags. *Recommendation:* per-device-class numbering rules in the pilot's basic project
    (as [domain model](03-domain-model.md) OQ 8 recommends for strips), with -XPE's missing part handled by waiver
-   W-1 until U-34 is answered.
+   W-1 until U-34 (PQ-36) is answered.
 6. **FR-CHK-031 on vendor cable cores.** The rule as written reports the BU cores of the Festo cables on 0V
-   (EF-11). *Recommendation:* keep reporting at warning, allow a waiver per cable part, and let
-   [15](15-checks-revisions-collaboration.md) decide whether cores with part-defined colours are exempt.
-7. **Text-height threshold.** FR-CHK-023's example threshold of 1.8 mm would also flag the house style's 6.66 pt
-   texts (≈ 1.7 mm cap height). *Recommendation:* make the minimum a scheme parameter, ship 1.2 mm in the golden
-   scheme (▲U-31) and let the pilot choose; Golden C uses 1.8 mm only to reproduce FR-CHK-023's criterion.
-8. **EW-L001 and part-less devices.** FR-LAY-013/017 count S56 and E56 as unplaced although they have no part.
-   *Recommendation:* adopt the proposed FR-LAY-nnn (mountable function definition counts).
+   (EF-11). *Recommendation:* keep reporting at warning and allow a waiver per cable part, as
+   [15](15-checks-revisions-collaboration.md) open question 6 also recommends (no exemption for part-defined core
+   colours; part-scoped waivers from 1.0).
+7. **Text-height threshold.** A threshold of 1.8 mm would also flag the house style's 6.66 pt texts (≈ 1.7 mm cap
+   height). **Resolved:** the rule measures the printed cap height (ISO 3098 nominal size), the minimum is a scheme
+   parameter, and the pilot basic project and every golden scheme, Golden C included, use 1.2 mm (▲U-31): EF-12 and
+   MF-25 report `cp.small` and `marker`, one finding per style (FR-CHK-023, FR-CHK-051).
+8. **EW-LAY-001 and part-less devices.** FR-LAY-013/017 count S56 and E56 as unplaced although they have no part.
+   **Resolved:** FR-LAY-017 counts a part-less device with a panel-mountable function definition as mountable with
+   unknown footprint ([02b](02b-requirements-extended.md)).
 9. **Folio 901 mode.** *Recommendation:* folio 901 in component mode (closest to the reference and to EPLAN's
    detailed parts list) and assembly mode as the purchasing export; revisit if the pilot orders by order code only.
 10. **Conductor count drift.** [Domain model](03-domain-model.md) §20 counts 16 conductors including the ▲ supply
-    cable; Golden A has 13 because EF-07 requires the cable to be missing. *Recommendation:* the domain model's
-    table should say "13 (16 with the A-R supply cable)".
+    cable; Golden A has 13 because EF-07 requires the cable to be missing. **Resolved:** the domain model's table
+    says "13 (16 with the A-R supply cable)" and counts 3 cables (4 with -101W1).
 11. **Visual oracle bootstrapping.** The first approval of PNGs needs the confidential PDF. *Recommendation:* run
     the approval once in a private session with the pilot (§3.3), commit only EW-rendered PNGs, and repeat it only
     when §3.4 changes.
 12. **Order-code split.** Which components belong to order code 1 vs 2 is unknown (U-24), and the assembly-mode BOM
-    depends on it. *Recommendation:* store the split as `AssemblyConfig.covers` data per order code (domain model
-    OQ 6) and keep the §14.2 split as a test input until the order codes are decoded.
+    depends on it. *Recommendation:* store the split as `AssemblyConfig.covers` data per order code
+    ([domain model](03-domain-model.md) §7) and keep the §14.2 split as a test input until the order codes are
+    decoded (PQ-14).

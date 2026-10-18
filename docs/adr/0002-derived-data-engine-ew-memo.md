@@ -1,6 +1,6 @@
 # ADR-0002: Derived-data engine: cold-first queries plus a cut-down memo layer (`ew-memo`); no salsa
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -74,6 +74,18 @@ Initial policy for representative queries ([architecture](../design/04-architect
 | `page_display_list(page, layer)` | Memo + LRU |
 | `sql_table(api_table)` | Class II job (ADR-0003, ADR-0017) |
 
+## Amendments
+
+Accepted on 2026-10-18. The decision text above is unchanged; this entry refines it.
+
+1. **Reverse dependencies per query family** (2026-10-18;
+   [checks, revisions and collaboration](../design/15-checks-revisions-collaboration.md) §3.3, open question 18;
+   [architecture](../design/04-architecture.md) §6.2). `ew-memo` v1 also offers a generic API that returns, per query
+   family, the memos whose recorded reads include a given key. It stays ECAD-agnostic. The online check engine
+   builds its `rdeps` index from it, so a commit re-evaluates exactly the check scopes whose last evaluation read a
+   touched key. The M0 spike measures its memory (≤ 40 MB estimated at XL); above budget the engine falls back to
+   coarse page and shard keys with re-verification of the matching scopes.
+
 ## Consequences
 
 ### Positive
@@ -94,7 +106,7 @@ Initial policy for representative queries ([architecture](../design/04-architect
 
 - EW owns a memo engine. Its correctness rests on the oracle, the command-sequence fuzzer and the access rules.
 - There is no parallel speed-up on the interactive path. Global connectivity remains the hotspot at 5–10 ms per
-  committed wire edit at XL (estimate); live highlighting during a drag uses page-local nets only.
+  committed wire edit in the XL-A estimate case; live highlighting during a drag uses page-local nets only.
 - Promotion decisions need profiling infrastructure from week 3: the synthetic S/M/L/XL fixtures and the
   perf gate (ADR-0022).
 - Memory must be actively policed (granularity rules, LRU, memory gate).

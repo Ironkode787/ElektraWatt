@@ -1,6 +1,6 @@
 # ADR-0013: Revisions and the as-built archive outside the project directory
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -29,7 +29,7 @@
    [project format](../design/05-project-format-and-persistence.md) §14.1:
    1. the **release gate**, on a fork: zero unwaived errors in the release scheme, no `Tbd` values, checker ≠
       author, no stale Class II results or committed computations, no unplaced devices and no cables without
-      length (FR-REV-007, ADR-0003, ADR-0019);
+      length (FR-REV-007, ADR-0003, ADR-0019; the rules behind each blocker are named in amendment 1);
    2. the **freeze** (`FreezeNumbers`, committed routes brought up to date) as an ordinary transaction, then a save
       of generation g;
    3. in a git worktree and with the user's consent, a commit of the project directory at g;
@@ -46,7 +46,8 @@
    a new revision record (FR-REV-009).
 5. **Comparison** loads the archived text into a second, read-only `Model` with its pinned derivation profile and
    rule packs, and diffs it against the current model:
-   - `diff_model` gives the property comparison and the page change status;
+   - `diff_model` gives the property comparison and the page change status (the page change status is refined by
+     amendment 2);
    - `diff_query` gives BOM, wire-list, terminal and PLC-address deltas, "wires changed since V1.0", and revision
      clouds from the changed representations.
 
@@ -54,6 +55,31 @@
 reproduction from the archive and page change status (FR-REV-001 … FR-REV-012, FR-REV-020). 1.0: property
 comparison, BOM, wire, terminal and PLC deltas, revision clouds (FR-REV-014 … FR-REV-016), and the JSON Schemas and
 format specification inside the archive (NFR-REL-10).
+
+## Amendments
+
+Accepted on 2026-10-18. The decision text above is unchanged; these entries refine it.
+
+1. **Release-gate rules** (2026-10-18; [checks, revisions and collaboration](../design/15-checks-revisions-collaboration.md)
+   §5.4–§5.5). The gate's blockers are release-scheme rules at error severity: EW-CORE-047 (device without
+   schematic representation), EW-LAY-001 (device without layout placement, counted only where the device's location
+   has a layout space), EW-CORE-033 (cable without length), `Tbd` values, author = checker, a missing or stale
+   sign-off (EW-REL; FR-REV-021) and stale committed computations (EW-REL-002). The release order is the one of
+   decision 2, as in [project format](../design/05-project-format-and-persistence.md) §14.1: gate, freeze and save
+   of generation g, git commit (asked), archive built and verified, tag, stamp in generation g+1. The release is
+   atomic (NFR-REL-15): a failure after the freeze leaves the revision Open with no archive or tag referenced.
+2. **Page change status from page digests** (2026-10-18; same document §5.6). The `ReleaseRecord` stores a content
+   digest, per-page content digests (`page_digests`) and the list of changed pages (`changed_pages`). The page
+   change status of the open revision compares the current page digests with those of the last release; historic
+   or imported revisions without digests fall back to their declared page notes (FR-REV-022). `diff_model` and
+   `diff_query` stay for the property comparison and the BOM, wire, terminal and PLC deltas.
+3. **States `Open`, `Released`, `Withdrawn`** (2026-10-18; same document §5.1, §5.10). A released record never
+   changes state (decision 4). Withdrawing a release (`ew revision withdraw <label> --reason <text>`, a human-only
+   command) adds a separate record in state `Withdrawn` that points to the released revision (`withdraws`) and
+   carries the reason; the withdrawn revision and its archive stay unchanged.
+4. **Archive verification and rebuild** (2026-10-18; [project format](../design/05-project-format-and-persistence.md)
+   §14). `ew archive verify <file>` checks sums, schema validity and PDF reproduction, and `ew archive rebuild
+   <label>` recreates a missing archive from the git tag and marks it as rebuilt (FR-REV-025, 1.0).
 
 ## Consequences
 
@@ -69,13 +95,13 @@ format specification inside the archive (NFR-REL-10).
 ### Negative
 
 - A missing archive disables comparison. EW explains why and points to `ew archive rebuild` from the git tag
-  (proposed for 1.0).
+  (amendment 4; FR-REV-025, 1.0).
 - Archives must be stored and backed up separately from the project; a share or repository backup alone is not
   enough.
 - Releasing in a git worktree requires a commit of the project directory at the released generation before the tag;
   EW must ask before committing and never push.
-- Release becomes a multi-step operation that must be atomic: a failure after the freeze must leave the revision
-  Open and remove partial archives and tags; the freeze itself stays as an ordinary, undoable transaction.
+- Release becomes a multi-step operation that must be atomic (NFR-REL-15): a failure after the freeze must leave the
+  revision Open and remove partial archives and tags; the freeze itself stays as an ordinary, undoable transaction.
 
 ## Alternatives considered
 
@@ -95,6 +121,7 @@ format specification inside the archive (NFR-REL-10).
   [ADR-0015](0015-display-list-renderers-pdf.md), [ADR-0018](0018-reports-forms-engine-and-machine-profiles.md), [ADR-0019](0019-rule-engine-and-rule-packs.md).
 - **Design:** [architecture](../design/04-architecture.md) §7.8; [project format](../design/05-project-format-and-persistence.md)
   §14 (release sequence, archive layout); [checks, revisions and collaboration](../design/15-checks-revisions-collaboration.md)
-  §5.
+  §5.1–§5.10.
 - **Requirements:** FR-REV-001, FR-REV-002, FR-REV-003, FR-REV-004, FR-REV-005, FR-REV-006, FR-REV-007, FR-REV-008,
-  FR-REV-009, FR-REV-010, FR-REV-011, FR-REV-012, FR-REV-014, FR-REV-015, FR-REV-016, FR-REV-020, NFR-REL-10.
+  FR-REV-009, FR-REV-010, FR-REV-011, FR-REV-012, FR-REV-014, FR-REV-015, FR-REV-016, FR-REV-020, FR-REV-021,
+  FR-REV-022, FR-REV-025, NFR-REL-10, NFR-REL-15.

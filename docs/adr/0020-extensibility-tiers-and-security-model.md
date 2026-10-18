@@ -1,6 +1,6 @@
 # ADR-0020: Extensibility tiers and security model (CLI, rhai, WASM on wasmtime LTS, MCP, Python)
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
+**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
 
 ## Context
 
@@ -47,18 +47,21 @@
    - No I/O function is registered.
    - Operation, call-depth and string-size limits apply, and `unchecked` is banned.
 4. **WASM plugins.**
-   - **Runtime.** Plugins are WASM components on a wasmtime LTS line (48.x today), with wit-bindgen 0.63.0.
+   - **Runtime.** Plugins are WASM components on a wasmtime LTS line (48.x today), with wit-bindgen 0.63.0
+     (amendment 2 fixes which LTS line).
    - **What the WIT world `elektrawatt:plugin@1` offers:**
      - typed read queries and `sql-query` against the projection sandbox;
      - `submit(command)` and `preview(command) → diff`;
      - capability-scoped file handles;
      - **declarative dialogs that the host renders**, so plugins never touch the UI toolkit.
-   - **What plugins export:** importers, exporters, rules, report columns and machine profiles.
+   - **What plugins export:** importers, exporters, rules, report columns and machine profiles (amendment 4 adds
+     decoders and actions).
    - **Plugin data** lives under namespaced `plugin.<id>.*` keys. It is persisted, merged and undoable, and it
      survives when the plugin is not installed.
 5. **MCP.** `ew mcp` (rmcp) never starts implicitly.
    - **Transport.** It listens on stdio, or on loopback only (`127.0.0.1` / `::1`) with a per-session random token
-     and an `Origin` check against DNS rebinding. There is no option to bind another interface (NFR-SEC-08).
+     and an `Origin` check against DNS rebinding. There is no option to bind another interface (NFR-SEC-08,
+     FR-EXT-026).
    - **Scope.** One session serves the one project it opened. While the GUI holds the project lock, a headless
      session is read-only (FR-EXT-016).
    - **Writes** are ask-first. `commit_preview` applies a previewed command only after explicit user approval, bound
@@ -66,7 +69,7 @@
      journalled, undoable transaction with `origin=mcp`. `HumanOnly` commands cannot be previewed.
    - **Data minimisation.** Fields `ew-schema` marks as personal data (engineer, checker, party persons) and
      confidential project identifiers (project reference, drawing id, party names) are omitted by default, because
-     the agent's model may run at a remote provider ([17](../design/17-extensibility.md) §7.4).
+     the agent's model may run at a remote provider ([17](../design/17-extensibility.md) §7.4; FR-EXT-033).
 6. **Python** is a wheel of the headless core, not an embedded interpreter.
 7. **Security model:**
 
@@ -77,6 +80,29 @@
    | Plugins | Capability manifest approved at install; WASI pre-opened directories only; no network unless granted; fuel or epoch deadlines and `StoreLimits` per call; signed manifests (Ed25519); plugin ID shown in the undo history |
    | Agents, plugins and scripts gaming the gate | `HumanOnly` exposure for waivers, schemes, strictness, approval and release |
    | Debug endpoints | egui inspection and egui_mcp compiled only into test builds; a CI assertion on release binaries (ADR-0023) |
+
+## Amendments
+
+Accepted on 2026-10-18 ([17](../design/17-extensibility.md) open questions 1, 3 and 8, §2.3–§2.4). The decision text
+above is unchanged; these entries refine it.
+
+1. **JSON at the WIT boundary** (2026-10-18). Queries and records cross the boundary as published JSON Schemas and
+   canonical JSONL. Typed guest bindings are generated from the same schemas in `ew-plugin-sdk`, so an additive
+   format field needs no WIT change. The WIT package and the guest SDK are permissive crates (`ew-plugin-wit`,
+   `ew-plugin-sdk`, FR-EXT-036).
+2. **LTS line** (2026-10-18). Plugins run on **the wasmtime LTS line current at plugin launch**, not on a fixed
+   48.x, because 48.x support ends about when 1.0 ships. Development continues on 48.x until then.
+3. **Trust gating of formulas and profiles** (2026-10-18). Pure formulas (title-block formulas, report filters,
+   tag and wire-number formats, value-set formulas) run in untrusted projects, because they read only through
+   tracked accessors and have no I/O. Machine-profile `expr` columns in received projects stay trust-gated,
+   because machine files leave the building (FR-EXT-031).
+4. **Plugin roles and secrets** (2026-10-18). Plugins export importers, exporters, rules, report columns, machine
+   profiles, decoders and actions; actions only submit edit commands through preview and commit. A host
+   capability `secret-get(name)`, backed by the OS credential store, is granted per plugin at install and is never
+   readable by other plugins (1.x, before the first connector plugin).
+5. **`HumanOnly` commands** (2026-10-18; FR-EXT-030). They are refused for command-log replays, plugins, scripts,
+   Python and MCP. On the CLI only the dedicated `HumanOnly` subcommands run them, and only after an interactive
+   terminal confirmation.
 
 ## Consequences
 
@@ -102,17 +128,6 @@
 - **Licence boundary for plugins.** The licensing of proprietary plugins depends on the plugin exception, which is
   still open (ADR-0025).
 
-## Pending amendments
-
-From [17](../design/17-extensibility.md) OQ1, OQ3 and OQ8, not yet accepted:
-1. **JSON at the WIT boundary.** Queries and records cross the boundary as published JSON Schemas and canonical
-   JSONL. Typed guest bindings are generated from the same schemas in `ew-plugin-sdk`, so an additive format field
-   needs no WIT change.
-2. **LTS line.** Pin "the wasmtime LTS line current at plugin launch" instead of 48.x, because 48.x support ends
-   about when 1.0 ships. Development continues on 48.x until then.
-3. **Profile expressions.** Machine-profile `expr` columns in received projects stay trust-gated, although pure rhai
-   formulas run untrusted, because machine files leave the building.
-
 ## Alternatives considered
 
 | Alternative | Why rejected |
@@ -134,5 +149,6 @@ From [17](../design/17-extensibility.md) OQ1, OQ3 and OQ8, not yet accepted:
 - **Design:** [04 architecture](../design/04-architecture.md) §10; [17 extensibility](../design/17-extensibility.md);
   [18 quality, security and release](../design/18-quality-security-release.md) §11;
   [gaps-and-corrections](../research/gaps-and-corrections.md) G10.
-- **Requirements:** FR-EXT-001 to FR-EXT-024; NFR-SEC-01, NFR-SEC-02, NFR-SEC-03, NFR-SEC-05, NFR-SEC-06, NFR-SEC-07,
+- **Requirements:** FR-EXT-001 to FR-EXT-024, FR-EXT-026, FR-EXT-029 to FR-EXT-031, FR-EXT-033 to FR-EXT-037;
+  NFR-SEC-01, NFR-SEC-02, NFR-SEC-03, NFR-SEC-05, NFR-SEC-06, NFR-SEC-07,
   NFR-SEC-08, NFR-SEC-09, NFR-REL-12, NFR-PRIV-08, NFR-PLAT-04.

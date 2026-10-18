@@ -73,7 +73,9 @@
    - Headers read `GPL-3.0-or-later WITH LicenseRef-ElektraWatt-plugin-exception`, or the `AdditionRef-` form. During
      M0, test both forms with reuse-tool 6.x and cargo-deny, and adopt the one both accept.
 6. **Timing.** Adopt the exception together with the design-exception text for symbols and forms (ADR-0024), in one
-   brief to counsel and one adoption event. This must happen before the first non-maintainer PR is merged (LG-2).
+   brief to counsel and one adoption event. The same brief collects the other open legal points of the design
+   documents (SPDX `AdditionRef-` syntax, design-exception coverage, CRA steward scope). This must happen before the
+   first non-maintainer PR is merged (LG-2; NFR-LIC-12).
    The exception is applied in the same commit that adds the headers to every GPL-layer file.
 
 ## Consequences
@@ -119,4 +121,5 @@ non-maintainer is merged (gate LG-2), and in any case before the plugin host is 
   [19 open-source governance](../design/19-open-source-governance.md) §2.1, §3.2, §3.3, OQ1, OQ8;
   [04 architecture](../design/04-architecture.md) §3; [oss-landscape](../research/oss-landscape.md) §7.3;
   [gaps-and-corrections](../research/gaps-and-corrections.md) C-8.
-- **Requirements:** NFR-LIC-02, NFR-LIC-05, NFR-LIC-09; FR-EXT-019, FR-EXT-020, FR-EXT-023.
+- **Requirements:** NFR-LIC-02, NFR-LIC-05, NFR-LIC-09, NFR-LIC-12; FR-EXT-019, FR-EXT-020, FR-EXT-023,
+  FR-EXT-036.

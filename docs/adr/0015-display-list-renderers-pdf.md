@@ -1,6 +1,6 @@
 # ADR-0015: One display-list IR; wgpu canvas plus an always-built CPU renderer; krilla PDF/A-2b; PDF as print master
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -40,7 +40,7 @@ flowchart LR
    `Image`, `Instance(SymbolGeomId, Transform)` and `Group`. Items carry an optional `EntityRef` (picking,
    highlight) and a `LinkSource`/`LinkTarget` (xref to named destination). It is built by layered, memoised
    `page_display_list(page, layer)` queries; layers are frame, symbols, wires, labels and highlights, so a wire edit
-   never rebuilds the title block.
+   never rebuilds the title block. Amendment 2 adds the language to the key and refines the layers.
 2. **Screen: wgpu.** `ew-render2d` draws inside an `egui_wgpu` paint callback on the shared device. Symbols are
    tessellated once per (symbol, variant) with lyon and drawn instanced; lines are expanded to screen width in the
    vertex shader; text comes from a glyph atlas. A backdated layer `Arc` (ADR-0002) lets the renderer keep its
@@ -65,6 +65,33 @@ FR-OUT-014, FR-OUT-017 … FR-OUT-020, FR-OUT-022). 1.0: DXF page export (FR-OUT
 NFR-A11Y-05), draft stamps on unreleased revisions (FR-OUT-021) and PDF/A-3b with attachments (FR-OUT-003, Could).
 Later: optional content (FR-OUT-023), DWG pages (FR-OUT-016) and 3D PDF (FR-OUT-024).
 
+## Amendments
+
+Accepted on 2026-10-18. The decision text above is unchanged; these entries refine it.
+
+1. **Print adapters, PNG export and the PDF rasteriser** (2026-10-18;
+   [reports, forms and output](../design/09-reports-forms-output.md), open questions 4 and 5;
+   [manufacturing outputs](../design/13-manufacturing-outputs.md), open question 12;
+   [interop](../design/14-interop.md), open question 10; [architecture](../design/04-architecture.md) §3). The OS
+   print adapters live in a GPL crate `ew-print` with per-OS features, depending on `ew-export` and
+   `ew-render-cpu`; `ew-export` depends on `ew-render-cpu` for PNG.
+   The text stack and the memoised `shaped_text` query live in the GPL crate `ew-text`, below `ew-reports` and
+   `ew-scene`. All three crates are GPL, so the licence layering is unaffected. The PDF rasteriser hayro 0.8.0
+   becomes a runtime dependency of the migration verifier (`ew verify-migration`, MVP), of PDF underlays (1.0) and
+   of the `.ewpp` wiring viewer (after a fidelity check on the golden PDF, with per-page SVG as the fallback); it
+   stays a test dependency of `ew-testkit`.
+2. **Display-list key and layers** (2026-10-18; [reports, forms and output](../design/09-reports-forms-output.md),
+   open question 16). The query is
+   `page_display_list(page, layer, lang)`: the display language is part of the key, so a per-language PDF is the
+   same derivation with another key. Schematic pages have the layers frame, symbols, wires, labels, tables,
+   revision and highlights. Panel-layout pages have the layers surface, carriers, placements, features and dims,
+   plus frame, labels, tables and highlights.
+3. **PNG determinism** (2026-10-18; [reports, forms and output](../design/09-reports-forms-output.md), open
+   question 12). vello_cpu may choose different SIMD paths per
+   CPU, so PNGs compare **within the dify tolerance** across platforms (FR-OUT-014, NFR-REL-07). Byte identity
+   stays for PDF, SVG, XLSX, CSV, JSONL and `.ewpp`. If the M0 spike finds a deterministic scalar vello_cpu mode,
+   `ew render` and the CI goldens use it, and PNG returns to byte identity on the same platform.
+
 ## Consequences
 
 ### Positive
@@ -86,17 +113,10 @@ Later: optional content (FR-OUT-023), DWG pages (FR-OUT-016) and 3D PDF (FR-OUT-
 
 ## Pending amendments
 
-These follow-ups come from [reports, forms and output](../design/09-reports-forms-output.md) (open questions 5,
-11, 12):
-1. **Print adapters and PNG export** need `ew-render-cpu`, on which `ew-export` does not depend in
-   [architecture](../design/04-architecture.md) §3. *Recommendation:* add a GPL crate `ew-print` (depending on
-   `ew-export` and `ew-render-cpu`, with per-OS features) and the edge `ew-export → ew-render-cpu`; both crates are
-   GPL, so the licence layering is unaffected.
-2. **`/PageLabels` with literal prefixes** (one label range per page) are valid PDF, but krilla's API support is
+This follow-up comes from [reports, forms and output](../design/09-reports-forms-output.md) (open question 11) and
+stays open:
+1. **`/PageLabels` with literal prefixes** (one label range per page) are valid PDF, but krilla's API support is
    unverified. *Recommendation:* verify in the spine (weeks 6–9); fall back to a pdf-writer post-step.
-3. **PNG byte identity.** vello_cpu may choose different SIMD paths per CPU. *Recommendation:* use a scalar path in
-   deterministic mode if available; otherwise rephrase FR-OUT-014 and NFR-REL-07 so that PNGs compare within the
-   dify tolerance, and keep byte identity for PDF, SVG, XLSX and CSV.
 
 ## Alternatives considered
 
@@ -114,7 +134,7 @@ These follow-ups come from [reports, forms and output](../design/09-reports-form
 - **ADRs:** [ADR-0002](0002-derived-data-engine-ew-memo.md), [ADR-0004](0004-identity-uuidv7-uuidv5.md),
   [ADR-0005](0005-value-types-nm-dec3-mltext.md), [ADR-0013](0013-revisions-and-as-built-archive.md),
   [ADR-0014](0014-gui-toolkit-egui.md), [ADR-0016](0016-3d-renderer-wgpu-and-out-of-process-step-worker.md), [ADR-0018](0018-reports-forms-engine-and-machine-profiles.md), [ADR-0022](0022-platform-matrix-and-performance-budgets.md), [ADR-0028](0028-default-drawing-fonts.md).
-- **Design:** [architecture](../design/04-architecture.md) §8.1–§8.4, §13;
+- **Design:** [architecture](../design/04-architecture.md) §3, §6.4, §8.1–§8.4, §13;
   [reports, forms and output](../design/09-reports-forms-output.md) §4, §6;
   [golden project](../design/20-golden-project.md) §17.
 - **Requirements:** FR-OUT-001, FR-OUT-002, FR-OUT-003, FR-OUT-004, FR-OUT-005, FR-OUT-006, FR-OUT-007, FR-OUT-008,

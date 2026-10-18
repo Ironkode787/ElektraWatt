@@ -1,6 +1,6 @@
 # ADR-0012: Git integration: semantic merge driver, textconv, in-file conflict records, post-merge integrity
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -39,7 +39,8 @@
    hashes merged per path with `pending` where both changed, and `merged: true`.
 5. **Post-merge integrity.** Because the driver sees one file at a time, `ew check --integrity` runs after every
    merge (optional `post-merge` hook) and on every open. It reports dangling references, duplicate counters,
-   duplicate interruption-point names and prevent-rule violations, each with a previewed quick fix.
+   interruption-point pairing conflicts (more than one star source per name and scope) and prevent-rule
+   violations, each with a previewed quick fix.
 6. **Diff.** `ew diff --textconv <file>` renders records with **derived** tags, for example
    `-102F1: part A9F78116 → …`. `ew diff <from> <to> [--queries bom,wires,terminals,plc,xref]` builds both models and
    runs `diff_model` and `diff_query`.
@@ -50,6 +51,22 @@ and after merges (FR-CHK-012) and the merge driver as a Should (FR-COL-014). 1.0
 conflict-resolution panel (FR-COL-015) and the visual comparison of project states (FR-COL-017). 1.x: local history
 (FR-COL-020). Later: real-time co-editing on the operation log (FR-COL-021).
 
+## Amendments
+
+Accepted on 2026-10-18. The decision text above is unchanged except for the integrity wording of decision 5,
+which follows ADR-0009.
+
+1. **Interruption-point pairing in the integrity check** (2026-10-18; ADR-0009 amendment 1). Decision 5 uses the
+   prevent rule's wording: at most one star source per name and scope; in chain mode an even count, ordered by
+   sort key. A merge that brings two star sources of one name into one scope is reported (EW-CORE-013, EW-CORE-052)
+   with the quick fix "renumber the newer".
+2. **Merge-driver exit codes** (2026-10-18; [project format](../design/05-project-format-and-persistence.md) §11,
+   [extensibility](../design/17-extensibility.md) §3.2). Git reads any exit code up to 128 from a merge driver as
+   "conflicts written". `ew merge-driver` therefore exits 0 when the merge is clean, 1 when it wrote conflict
+   records, and 129 for a caught internal error (any failure ≥ 129). This is the only exception to the 0/1/2 exit
+   scheme of the other subcommands (FR-EXT-002). The canonical configuration is the five-argument form
+   `ew merge-driver %O %A %B %L %P`.
+
 ## Consequences
 
 ### Positive
@@ -59,7 +76,7 @@ conflict-resolution panel (FR-COL-015) and the visual comparison of project stat
 - Semantic clashes surface as check messages with quick fixes instead of corrupt files. Branch-safe counters
   (renumbering the newer -103F1 to -103F2) are one example.
 - Merges without the driver still work better than with pretty JSON, thanks to one record per line ordered by random
-  ID bits (ADR-0010). Leftover conflict markers are converted into conflict records by the loader.
+  ID bits (ADR-0010). Leftover conflict markers are converted into conflict records by the loader (FR-COL-025).
 - Reviewers read changes as engineering facts ("-102F1: part …"), not UUIDs.
 
 ### Negative
@@ -90,6 +107,7 @@ conflict-resolution panel (FR-COL-015) and the visual comparison of project stat
   [ADR-0011](0011-format-versioning-and-migration.md), [ADR-0013](0013-revisions-and-as-built-archive.md), [ADR-0019](0019-rule-engine-and-rule-packs.md).
 - **Design:** [architecture](../design/04-architecture.md) §7.5, §16 (risk 9);
   [project format](../design/05-project-format-and-persistence.md) §11;
-  [checks, revisions and collaboration](../design/15-checks-revisions-collaboration.md) §6.
-- **Requirements:** FR-COL-013, FR-COL-014, FR-COL-015, FR-COL-016, FR-COL-017, FR-COL-020, FR-COL-021, FR-CHK-012,
-  NFR-SEC-03.
+  [checks, revisions and collaboration](../design/15-checks-revisions-collaboration.md) §6;
+  [extensibility](../design/17-extensibility.md) §3.
+- **Requirements:** FR-COL-013, FR-COL-014, FR-COL-015, FR-COL-016, FR-COL-017, FR-COL-020, FR-COL-021, FR-COL-024,
+  FR-COL-025, FR-CHK-012, FR-EXT-002, NFR-SEC-03.

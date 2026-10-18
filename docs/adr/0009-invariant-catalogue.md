@@ -1,6 +1,6 @@
 # ADR-0009: Invariant catalogue: structural vs configurable prevent rules; lenient import
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -37,8 +37,8 @@
    - terminal designation non-empty (D-11) and unique per strip (D-12);
    - device tag unique within its structure scope;
    - PLC address unique per area, tested as bit-range overlap within the configuration project (`IW0` against
-     `I1.3`; EW-PLC-01, FR-PLC-044), and a CP in at most one channel (FR-PLC-005);
-   - interruption-point name unique per scope and direction;
+     `I1.3`; EW-PLC-001, FR-PLC-044), and a CP in at most one channel (FR-PLC-005);
+   - interruption-point name unique per scope and direction (reworded by amendment 1);
    - conductor colours consistent with the cable part (D-17).
 4. **Strictness is a project setting.**
    - `Strict` (default for new projects): a violation rejects the transaction with
@@ -52,6 +52,19 @@
 5. **Catalogue.** The enumerated catalogue (about 40 rules) lives in `ew-model/invariants.md`, with a stable ID per
    rule, and every rule has its own unit test. `ew check --integrity` re-evaluates the whole catalogue on open and
    after merges (ADR-0012).
+
+## Amendments
+
+Accepted on 2026-10-18. The decision text above is unchanged; these entries refine it.
+
+1. **Interruption-point pairing** (2026-10-18; [domain model](../design/03-domain-model.md), open question 4).
+   "Name unique per scope and direction" would forbid the star mode, in which one source feeds targets of the same
+   name on several pages (FR-XRF-007, FR-XRF-008). The prevent rule therefore reads: **at most one star source per
+   name and scope; in chain mode an even count, ordered by sort key.** Unpaired and ambiguous points are findings of
+   the check of FR-CHK-017 (EW-CORE-052). The integrity check uses the same wording (ADR-0012, FR-CHK-012).
+2. **Interruption-point functions without a device** (2026-10-18; same document, open question 5; ADR-0006,
+   amendment 1). A new structural invariant: **`Function.device` is None if and only if the function's kind is
+   `Ip`.**
 
 ## Consequences
 
@@ -72,16 +85,6 @@
   ADR-0001 guards them.
 - A transaction can be rejected late, after normalisers ran. The error must name the rule and the object.
 
-## Pending amendments
-
-1. **Interruption-point uniqueness** ([domain model](../design/03-domain-model.md), open question 4). "Name unique
-   per scope and direction" forbids a star mode in which one source feeds targets of the same name on several
-   pages (FR-XRF-008). *Recommendation:* reword the prevent rule to "at most one star source per name and scope; in
-   chain mode an even count, ordered by sort key", and leave unpaired and ambiguous points to the check of
-   FR-CHK-017. The same wording must be used by the integrity check (ADR-0012).
-2. **Interruption-point functions without a device** (same document, open question 5; ADR-0006). If accepted, add
-   the structural invariant "`Function.device` is None if and only if the function's kind is `Ip`".
-
 ## Alternatives considered
 
 | Alternative | Why rejected |
@@ -100,4 +103,4 @@
   §4.2; [checks, revisions and collaboration](../design/15-checks-revisions-collaboration.md) §3.5;
   [interop](../design/14-interop.md) §3.3.
 - **Requirements:** FR-DEV-004, FR-DEV-030, FR-TRM-002, FR-TRM-022, FR-NUM-012, FR-PLC-005, FR-PLC-044,
-  FR-XRF-008, FR-CHK-011, FR-CHK-012, FR-CHK-016, FR-CHK-017, FR-IMP-003, FR-REV-005, NFR-MAINT-06, NFR-UX-06.
+  FR-XRF-007, FR-XRF-008, FR-CHK-011, FR-CHK-012, FR-CHK-016, FR-CHK-017, FR-IMP-003, FR-REV-005, NFR-MAINT-06, NFR-UX-06.

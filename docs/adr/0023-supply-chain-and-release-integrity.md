@@ -1,6 +1,6 @@
 # ADR-0023: Supply chain and release integrity
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
+**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
 
 ## Context
 
@@ -35,7 +35,7 @@
    | Licence boundary | The closure of every permissive crate contains no GPL, LGPL or AGPL crate (NFR-MAINT-02) |
    | Dependency rules | The ARCH §3 rules over direct dependencies, including `ew-plugin-host` ↛ `ew-import-qet` |
    | Low-adoption crates | Test-only, or vendored with a named owner (C-9) |
-   | CI hardening | Third-party actions pinned by commit SHA; read-only default tokens; self-hosted runners never run fork PRs |
+   | CI hardening | Third-party actions pinned by commit SHA; read-only default tokens; self-hosted runners never run fork PRs (NFR-SEC-19) |
    | Hygiene | `reuse lint`, DCO sign-off check |
 
 2. **Per release.** Releases are built by CI from a signed tag, in a protected `release` environment that needs a
@@ -66,6 +66,19 @@
 5. **Updates** are installed only on a user action, after signature verification. There is no silent auto-update
    (NFR-SEC-15).
 
+## Amendments
+
+Accepted on 2026-10-18. The decision text above is unchanged; these entries refine it.
+
+1. **Builds before the signing identity exists** (2026-10-18; [18](../design/18-quality-security-release.md),
+   [19](../design/19-open-source-governance.md) LG-4). Until LG-4 is met, the project publishes only unsigned
+   nightlies carrying the banner **"unsigned development build"**. It creates no version tags (`vX.Y.Z`) and no
+   signed or tagged release.
+2. **The cargo-deny licence allowlist** (2026-10-18; NFR-LIC-04). This ADR and ADR-0024 use one list:
+   `Apache-2.0 WITH LLVM-exception` is on it now; BSL-1.0 is added only if `cargo deny list` at M0 shows it; the
+   osifont licence expression is added only if ADR-0028 bundles that font, with the exact SPDX expression verified
+   with counsel. GPL-2.0-only, AGPL and non-OSI licences are denied.
+
 ## Consequences
 
 **Positive**
@@ -73,12 +86,12 @@
   first signed release. Nothing has to be retrofitted before 2027-12-11.
 - Dependency compromise, build-time downloads and licence-boundary mistakes are caught before merge, not at release.
 - Users can verify any artefact offline: signed sums and an embedded release key.
-- **Reproducibility.** Unsigned Linux binaries rebuilt independently from the tag should be bit-identical. This is
-  proposed for 1.0 in [18](../design/18-quality-security-release.md) [P18-3].
+- **Reproducibility.** Unsigned Linux binaries rebuilt independently from the tag should be bit-identical
+  (NFR-SEC-20, Should, 1.0; [18](../design/18-quality-security-release.md) §16).
 
 **Negative**
 - **No signed release without an organisation.** Signing needs an organisation that holds the identity (ADR-0030).
-  Until it exists, only unsigned nightlies labelled "development build" are published.
+  Until it exists, only unsigned nightlies labelled "unsigned development build" are published (amendment 1).
 - **cargo-vet audits** cost reviewer time on every dependency bump, including the quarterly UI-stack upgrade.
 - **Long OCCT build.** OCCT's C++ build has to be cached in a separate job (ADR-0016), and the build-script allowlist
   needs maintenance.
@@ -103,7 +116,8 @@
   [ADR-0020](0020-extensibility-tiers-and-security-model.md), [ADR-0024](0024-licence-set-and-permissive-gpl-boundary.md),
   [ADR-0029](0029-network-telemetry-crash-reporting-policy.md), [ADR-0030](0030-legal-steward-cra-role-support-signing.md).
 - **Design:** [04 architecture](../design/04-architecture.md) §13;
-  [18 quality, security and release](../design/18-quality-security-release.md) §5.4, §9, §10, §11, §13;
+  [18 quality, security and release](../design/18-quality-security-release.md) §5.4, §9, §10, §11, §13, §16;
+  [19 open-source governance](../design/19-open-source-governance.md) §3.3;
   [gaps-and-corrections](../research/gaps-and-corrections.md) G10, G11, C-5, C-9.
 - **Requirements:** NFR-SEC-01, NFR-SEC-09, NFR-SEC-10, NFR-SEC-11, NFR-SEC-12, NFR-SEC-13, NFR-SEC-14, NFR-SEC-15,
-  NFR-MAINT-02, NFR-MAINT-03, NFR-MAINT-05, NFR-LIC-04, NFR-LIC-08, NFR-COMP-01.
+  NFR-SEC-19, NFR-SEC-20, NFR-MAINT-02, NFR-MAINT-03, NFR-MAINT-05, NFR-LIC-04, NFR-LIC-08, NFR-COMP-01.

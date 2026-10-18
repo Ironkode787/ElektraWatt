@@ -42,11 +42,11 @@ decision differs, the goldens are re-baselined once.
    drawing font of new projects and the substitution target for imports.
 2. **Optional: osifont** as an ISO 3098-style font, selectable per text style or per project. Its SPDX expression is
    to be verified (likely `GPL-3.0-or-later WITH Font-exception-2.0`). Bundling it adds that expression to the
-   bundled-asset allowlist of ADR-0024; NFR-LIC-04 currently names only OFL-1.1 for fonts and must be amended with
-   it.
+   bundled-asset allowlist of ADR-0024 and ADR-0023; NFR-LIC-04 already provides for adding it only if this ADR
+   bundles the font, with the exact expression verified with counsel.
 3. **A symbol fallback.** Bundle an OFL symbol fallback for glyphs the default lacks, such as "∞" and "⇄". The
    candidates are the Noto symbol and math families, with coverage to be verified. Export reports every character
-   without a glyph in the project's font set ([09](../design/09-reports-forms-output.md) P09-9).
+   without a glyph in the project's font set (FR-OUT-027; [09](../design/09-reports-forms-output.md) §7).
 4. **Never bundle Tahoma.** QET import maps Tahoma, and the other UI families QET writes ("Sans Serif",
    "MS Shell Dlg 2", Arial, Helvetica, Liberation Sans), to the default font.
    - It keeps the point sizes.
@@ -59,7 +59,8 @@ decision differs, the goldens are re-baselined once.
    - The byte-identity guarantee no longer holds for that project.
    - The as-built archive records the font by name and hash, without embedding the font file beyond the PDF subset.
 6. **Pin font versions.** A later EW release that updates a bundled font ships it as a new font version. Projects
-   keep the version their derivation profile names (ADR-0003), so line breaks do not shift in reopened projects.
+   keep the version their derivation profile names (ADR-0003), so line breaks do not shift in reopened projects
+   (NFR-REL-17). Moving to the new version is the opt-in, previewed profile upgrade of FR-PRJ-011.
 
 ## Consequences
 
@@ -99,11 +100,12 @@ switch to Noto Sans or osifont). It is due before spine lane 2 builds the text s
 ## Related
 
 - **ADRs:** [ADR-0003](0003-freshness-contract.md), [ADR-0015](0015-display-list-renderers-pdf.md), [ADR-0021](0021-importers-emit-format-level-records.md),
+  [ADR-0023](0023-supply-chain-and-release-integrity.md),
   [ADR-0024](0024-licence-set-and-permissive-gpl-boundary.md) (bundled-asset licences),
   [ADR-0027](0027-native-symbol-grid-and-qet-grid-policy.md).
 - **Design:** [04 architecture](../design/04-architecture.md) §8.3; [09 reports, forms and output](../design/09-reports-forms-output.md)
   §2.8, §4.3; [14 interop](../design/14-interop.md) §4.10; [19 open-source governance](../design/19-open-source-governance.md)
   §2.1 (L14); [20 golden project](../design/20-golden-project.md) §17.5;
   [gaps-and-corrections](../research/gaps-and-corrections.md) G14.
-- **Requirements:** FR-SYM-013, FR-OUT-008, FR-OUT-009, FR-IMP-020, FR-IMP-033, FR-CHK-023, FR-I18N-016; NFR-REL-07,
-  NFR-REL-11, NFR-LIC-04, NFR-LIC-06, NFR-LIC-08, NFR-PLAT-06.
+- **Requirements:** FR-SYM-013, FR-OUT-008, FR-OUT-009, FR-OUT-027, FR-IMP-020, FR-IMP-033, FR-CHK-023, FR-I18N-016,
+  FR-PRJ-011; NFR-REL-07, NFR-REL-11, NFR-REL-17, NFR-LIC-04, NFR-LIC-06, NFR-LIC-08, NFR-PLAT-06.

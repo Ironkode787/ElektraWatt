@@ -63,6 +63,9 @@ be expensive or hard to detect (data, safety, legal)? Is verification weak (no t
 - **Batch triage:** for fan-outs, score all items in one Haiku/`low` call, then route each item; use
   `.claude/workflows/routed-tasks.js` (run with Workflow `scriptPath`, `args: {tasks: [{id, prompt, difficulty?}]}`).
 - The main session's own effort is chosen by the user; this ladder governs delegated work.
+- **Changing models mid-run:** do not edit-and-resume a workflow whose stages run concurrently — replay follows call
+  order, so finished agents can be re-run live. Stop it after the last expensive agent finishes and launch a fresh
+  workflow containing only the remaining agents.
 
 ## Repository rules
 

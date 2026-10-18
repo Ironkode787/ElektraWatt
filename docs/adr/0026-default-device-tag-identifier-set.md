@@ -1,6 +1,6 @@
 # ADR-0026: Default device-tag identifier set for new projects
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** project owner (decided 2026-10-17)
+**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** project owner (decided 2026-10-17)
 
 ## Context
 
@@ -46,7 +46,7 @@
    - **New devices.** A new device gets its letter from the active set through its `FnDef` or part category
      (FR-NUM-004). The engineer may override it, and the override is stored in `TagSpec.letter`.
    - **Conformance.** EW-RDS-003 (warning) reports a letter that does not match the device's category in the active
-     set, with a suggestion (FR-CHK-026).
+     set, with a suggestion (FR-CHK-026). Amendment 2 fixes its severity for frozen tags.
    - **Display.** Printing and display never re-map stored letters. A tag reads the same until someone changes it.
 5. **The identifier set is pinned per project** and is part of the project's derivation profile (ADR-0003).
    Upgrading EW never changes a project's set.
@@ -60,6 +60,21 @@
    - It proposes `IEC60750-legacy` when only that set explains a project's letters.
    - It never switches a project to the 2019 set; that is the explicit renumber above.
 
+## Amendments
+
+Accepted on 2026-10-18. The decision text above is unchanged; these entries refine it.
+
+1. **Valve letter and accepted alternatives in the shipped 2009 set** (2026-10-18;
+   [07 symbols, parts and macros](../design/07-symbols-parts-macros.md),
+   [20 golden project](../design/20-golden-project.md)). The shipped EN 81346-2:2009 set maps directional valves to
+   **Q**, with QM listed as an accepted alternative (no EW-RDS-003 finding). The golden valves are therefore
+   -201U3-Q1 … -202U2-Q4, and their PLC symbols read `_201U3_Q1_14` and so on. The same mapping accepts **S** for
+   S51 and S56 and **U** for the valve-terminal assemblies and modules -201U1 … -201U9 and -202U1 … -202U3; these
+   rows carry `verified = false`. The pilot confirms the mapping (PQ-08).
+2. **EW-RDS-003 on frozen tags** (2026-10-18; [15 checks](../design/15-checks-revisions-collaboration.md) §4.3).
+   The rule reports at **warning** for frozen and new tags alike. A scheme parameter `frozen_severity` lets a company
+   lower it for frozen tags.
+
 ## Consequences
 
 **Positive**
@@ -69,10 +84,9 @@
 - **Familiar letters.** New projects use the letters the pilot's engineers, shop floor and customers already know.
   Migrated and new projects in one company look alike.
 - **Expected findings on Golden A.** EW-RDS-003 reports exactly T55, a T for a temperature switch (golden EF-18).
-  S51 and S56 are accepted as alternatives in the shipped 2009 mapping. For the count to stay 1, U must also be
-  accepted for the valve-terminal assemblies -201U1 … -201U9 and -202U1 … -202U3, which the 2009 list would class
-  as K (bus node) or U (holding). That mapping assumption (golden U-37, which names only S51 and S56 so far) is to
-  be confirmed with the pilot (PQ-08).
+  S51 and S56 (S) and the valve-terminal assemblies and modules -201U1 … -201U9 and -202U1 … -202U3 (U, which the
+  2009 list would otherwise class as K for a bus node) are accepted alternatives in the shipped 2009 mapping, and the
+  valves use Q (amendment 1). The pilot confirms this mapping (PQ-08).
 - **Later sets are data.** Further sets (an NFPA 79 letter set, a company set) can be added later as data, without a
   code change.
 

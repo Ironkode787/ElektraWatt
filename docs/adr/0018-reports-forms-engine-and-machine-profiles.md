@@ -1,6 +1,6 @@
 # ADR-0018: Reports and forms engine; report blocks as derived pages; machine-export profiles as data
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
+**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
 
 ## Context
 
@@ -31,10 +31,11 @@
      - parts list in assembly and component modes, summarised parts list, device list;
      - terminal diagram and strip overview;
      - cable diagram and overview, wire list;
-     - PLC card overview and I/O assignment list;
+     - PLC overview (one row per channel of a station, folio 908) and I/O assignment list;
      - potential, structure-identifier, revision and numbering overviews, open items, check report.
 
-     At 1.0: terminal line-up, device connection and plug diagrams, bus reports, enclosure legend as pages and
+     At 1.0: PLC card list (one row per module), terminal line-up, device connection and plug diagrams, bus
+     reports, enclosure legend as pages and
      mounting list, fluid lists (tubes, valve terminals, media), load summary, purchasing views, thermal report,
      verification checklists.
    - **User reports** (1.0) are an SQL query over the `api_v1_*` views (ADR-0017) plus a form. They are stored in
@@ -74,8 +75,8 @@
    - **Shipped profiles (1.0):** a generic CSV/XLSX wire list (FR-MFG-019), Komax TopConvert CSV (FR-MFG-020),
      Rittal WT 24/36 and WT C CSV (FR-MFG-021) and Weidmüller WPC (FR-MFG-022, Should). Label-printer presets and
      the TIA tag XLSX also ship as profiles (ARCH §11; [13](../design/13-manufacturing-outputs.md) §5.4,
-     [10](../design/10-plc-and-bus.md)).
-   - **Pre-flight.** Exports run the pre-flight rules EW-MFG-01 … 06 first (FR-MFG-024): length routed or explicitly
+     [10](../design/10-plc-and-bus.md)); amendment 1 separates the two.
+   - **Pre-flight.** Exports run the pre-flight rules EW-MFG-001 … 006 first (FR-MFG-024): length routed or explicitly
      estimated, cross-section and wire type within the machine's range, ferrule in the magazine, marker fits, no
      duplicate wire number, bundle fits the bin. Rejected wires go to `manual.csv` with the reason per row.
    - **Release mode** refuses stale Class II inputs and stale committed computations.
@@ -113,6 +114,26 @@ columns = [
 ]
 ```
 
+## Amendments
+
+Accepted on 2026-10-18. The decision text above is unchanged; these entries refine it.
+
+1. **Machine profiles, label profiles and the TIA tag XLSX** (2026-10-18;
+   [13](../design/13-manufacturing-outputs.md) §5.4, §7; [10](../design/10-plc-and-bus.md) §4.5). Two profile kinds
+   share the TOML profile machinery of decision 6: **machine profiles** (`schema = "ew.machine-profile/1"`, for
+   wire-processing machines such as Komax and Rittal WT; shipped IDs `generic-csv`, `generic-xlsx`,
+   `komax-topconvert-csv` and `rittal-wt-csv`) and **label profiles** (`schema = "ew.label-profile/1"`, for
+   marking software and label printers). The TIA "PLC Tags" XLSX is **not** a profile: it is a fixed-format
+   exporter and importer in `ew-plc` (FR-PLC-036), because its round trip needs code.
+2. **Text measurement through `ew-text`** (2026-10-18; [09](../design/09-reports-forms-output.md), open question 4;
+   [architecture](../design/04-architecture.md) §3). Fonts and the memoised `shaped_text` query live in the GPL
+   crate `ew-text`, below both `ew-reports` and `ew-scene`, so pagination measures wrapped rows with the same
+   shaping as the page renderer. `ew-reports` calls the sandboxed query API of `ew-sqlview` for SQL report blocks
+   and never links rusqlite.
+3. **Report terms** (2026-10-18; [09](../design/09-reports-forms-output.md) §2.4). The *PLC overview* is the row
+   source `plc_overview`, one row per channel of a station (folio 908); the *PLC card list* is `plc_card_list`,
+   one row per module (1.0); the *I/O assignment list* is `io_list` (FR-PLC-023).
+
 ## Consequences
 
 **Positive**
@@ -126,12 +147,12 @@ columns = [
   profile changes (ADR-0003 derivation profiles).
 
 **Negative**
-- **Text measurement.** Pagination is a derived query that needs text measurement for wrapped rows. Shaping lives in
-  `ew-scene`, which depends on `ew-reports`. [09](../design/09-reports-forms-output.md) OQ4 proposes a small
-  `ew-text` crate below both. Until it exists, `ew-reports` paginates fixed-height rows only.
+- **Text measurement.** Pagination is a derived query that needs text measurement for wrapped rows. Shaping was
+  planned in `ew-scene`, which depends on `ew-reports`; amendment 2 moves it into `ew-text` below both. Until
+  `ew-text` exists in the spine, `ew-reports` paginates fixed-height rows only.
 - **TOC fixpoint.** The TOC's page count depends on itself. It iterates inside one query, for at most three rounds
   (ADR-0002).
-- **SQL report page counts** are Class II. See the proposed amendment in ADR-0017.
+- **SQL report page counts** are Class II. ADR-0017 (amendment 1) defines how they enter `page_order()`.
 - **Forms editor.** A forms editor with live preview is needed so that companies can reproduce their title blocks.
   Until 1.0 that is a real cost on stream S3.
 - **Expressiveness.** Declarative profiles cannot express every vendor quirk. Value transforms may use pure rhai,
@@ -153,9 +174,10 @@ columns = [
 - **ADRs:** [ADR-0001](0001-core-model-persistent-maps.md), [ADR-0002](0002-derived-data-engine-ew-memo.md), [ADR-0003](0003-freshness-contract.md), [ADR-0004](0004-identity-uuidv7-uuidv5.md), [ADR-0013](0013-revisions-and-as-built-archive.md), [ADR-0015](0015-display-list-renderers-pdf.md),
   [ADR-0017](0017-read-only-sql-projection-api-v1.md), [ADR-0019](0019-rule-engine-and-rule-packs.md),
   [ADR-0024](0024-licence-set-and-permissive-gpl-boundary.md).
-- **Design:** [04 architecture](../design/04-architecture.md) §6.4, §11; [09 reports](../design/09-reports-forms-output.md);
-  [13 manufacturing](../design/13-manufacturing-outputs.md) §7; [20 golden project](../design/20-golden-project.md).
+- **Design:** [04 architecture](../design/04-architecture.md) §3, §6.4, §11; [09 reports](../design/09-reports-forms-output.md);
+  [10 PLC and bus](../design/10-plc-and-bus.md) §4.5; [13 manufacturing](../design/13-manufacturing-outputs.md) §5.4,
+  §7; [20 golden project](../design/20-golden-project.md).
 - **Requirements:** FR-REP-001, FR-REP-002, FR-REP-003, FR-REP-004, FR-REP-005, FR-REP-009, FR-REP-012, FR-REP-014,
   FR-REP-019, FR-REP-021, FR-REP-028, FR-REP-030, FR-REP-031, FR-REP-032, FR-REP-033, FR-REP-035, FR-REP-036,
   FR-REP-038, FR-REP-041, FR-REP-042; FR-MFG-018, FR-MFG-019, FR-MFG-020, FR-MFG-021, FR-MFG-022, FR-MFG-024, FR-MFG-025, FR-MFG-027,
-  FR-MFG-031; FR-CHK-038; NFR-PERF-10, NFR-REL-07.
+  FR-MFG-031; FR-PLC-023, FR-PLC-036; FR-CHK-038; NFR-PERF-10, NFR-REL-07.

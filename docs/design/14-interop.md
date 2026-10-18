@@ -1,6 +1,6 @@
 # Interoperability: import, export and migration
 
-**Status:** Draft v0.1 · **Date:** 2026-10-17 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) reads and writes foreign formats: the permissive
 importer and exporter contracts, the QElectroTech (QET) migration path in detail, EPLAN part and report data, DXF
@@ -53,22 +53,22 @@ C-15 `%f` versus `%F`).
 |---|---|---|---|---|
 | QET `.qet` 0.3–0.200, embedded `.elmt`, title blocks | read | `ew-import-qet` (roxmltree 0.21.1) | MVP | FR-IMP-006 … FR-IMP-021 |
 | QET `.qetz` formats 2–4 | read | `ew-import-qet` (zip 9.0.4); `project.sqlite` read by the host through `ew-library` (§4.14) | 1.x | FR-IMP-024 |
-| QET `.elmt` directory (the user's QET collection) | read | `ew-import-qet` (§4.3 mapper) into a user library | 1.0 (proposed in [07](07-symbols-parts-macros.md) §3.6) | — (07 proposal) |
-| Golden tables (CSV) | read | `golden-csv` importer, the CSV bootstrap of ARCH §13, exposed as `ew import csv` (crate placement: Open question 17) | MVP | FR-IMP-022 |
-| Parts CSV/XLSX | read | column mapper into a user or company library ([07](07-symbols-parts-macros.md) §3.6) | MVP | FR-PRT-016 (07) |
+| QET `.elmt` directory (the user's QET collection) | read | `ew-import-qet` (§4.3 mapper) into a user library | 1.0 ([07](07-symbols-parts-macros.md) §3.6) | FR-SYM-029 (07) |
+| Golden tables (CSV) | read | `golden-csv` importer in `ew-import-tables` (ARCH §3), the CSV bootstrap of ARCH §13, exposed as `ew import csv` and reused by `ew-testkit` | MVP | FR-IMP-022 |
+| Parts CSV/XLSX | read | `ew-import-catalog` column mapper into a user or company library ([07](07-symbols-parts-macros.md) §3.6) | MVP | FR-PRT-016 (07) |
 | EDZ (7-Zip, ZIP) | read | `ew-import-eplan` (sevenz-rust2 0.24.0, zip, quick-xml 0.42.0) | 1.0 | FR-IMP-025 … FR-IMP-027 |
 | EPLAN parts XML | read | `ew-import-eplan` | 1.0 | FR-IMP-028 |
 | EPLAN report exports (XLSX/CSV) | read | `ew-import-eplan` (calamine 0.36.1, csv 1.4.0) | 1.0 | FR-IMP-029 |
-| PDF/DXF underlays | read | `ew-import-dxf`; PDF via hayro 0.8.0 (runtime use: Open question 10) | 1.0 | FR-IMP-030 |
+| PDF/DXF underlays | read | `ew-import-dxf`; PDF via hayro 0.8.0 in `ew-scene`, a runtime dependency from 1.0 (ARCH §3) | 1.0 | FR-IMP-030 |
 | EPLAN `.epj` project XML | read | experimental, behind a flag | Later | FR-IMP-031 |
 | DXF R12–2018 | read | `ew-import-dxf` (dxf 0.6.2) | 1.0 | FR-IMP-032 … FR-IMP-035 |
 | DXF AC1015 pages | write | `ew-export` (dxf 0.6.2) | 1.0 | FR-OUT-015 (09) |
 | DWG | read | ODA File Converter (user-installed); acadrust 0.6.4 behind a feature | 1.0 / 1.x | FR-IMP-036, FR-IMP-037 |
-| XLSX/CSV tables | read/write | `ew-reports` (rust_xlsxwriter 0.100.0, csv 1.4.0); calamine 0.36.1 for reading (Open question 17) | MVP | FR-EXP-002 … FR-EXP-005 |
-| XLIFF 2.1, translation CSV | read/write | quick-xml, csv; same crate as the table round trip (Open question 17) | 1.0 | FR-I18N-006, FR-I18N-007 |
-| glTF 2.0, STL | write | `layout_scene` of `ew-panel` and a glb writer, gltf 1.4.1 ([12](12-panel-layout.md) §14) | 1.0 | FR-EXP-007 (12) |
+| XLSX/CSV tables | read/write | written by `ew-reports` (rust_xlsxwriter 0.100.0, csv 1.4.0); read by `ew-import-tables` (calamine 0.36.1, csv) | MVP | FR-EXP-002 … FR-EXP-005 |
+| XLIFF 2.1, translation CSV | read/write | quick-xml, csv; the translation tables of `ew-import-tables`, next to the table round trip (ARCH §3) | 1.0 | FR-I18N-006, FR-I18N-007 |
+| glTF 2.0, STL | write | the glTF (glb) and STL writer of `ew-panel` for `layout_scene` (gltf-json **(verify)**, ARCH §3; [12](12-panel-layout.md) §14) | 1.0 | FR-EXP-007 (12) |
 | STEP AP214/AP242 | read / write | `ew-step-worker` (OCCT) | 1.0 | FR-LAY-021 (12), FR-EXP-008 |
-| AML AR APC 1.4.0 and 1.2.0, TIA "PLC Tags" XLSX, PLCopen XML, generic and instrument I/O lists, GSD/GSDML/IODD (ESI, EDS at 1.x) | read/write | `ew-plc` (+ proposed permissive `ew-caex`, `ew-devdesc`) | MVP (generic I/O list, Should) / 1.0 / 1.x | FR-PLC-025 … FR-PLC-039, FR-PLC-050, FR-BUS-013 (10) |
+| AML AR APC 1.4.0 and 1.2.0, TIA "PLC Tags" XLSX, PLCopen XML, generic and instrument I/O lists, GSD/GSDML/IODD (ESI, EDS at 1.x) | read/write | `ew-plc` with the permissive `ew-caex`, `ew-devdesc` and `ew-plcaddr` (ARCH §3) | MVP (generic I/O list, Should) / 1.0 / 1.x | FR-PLC-025 … FR-PLC-039, FR-PLC-050, FR-BUS-013 (10) |
 | BMEcat 2005, ETIM xChange, ECLASS XML | read | `ew-import-eplan` sibling module `catalogue` | 1.x | FR-PRT-020 (07) |
 | QET `.qet` 0.100 | write | `ew-export` | 1.x | FR-EXP-010 |
 | EPLAN-importable XML | write | — | Later | FR-EXP-011 |
@@ -93,12 +93,13 @@ graph TD
     schema[ew-schema records]
     iapi["ew-interop-api<br/>Importer, ImportBatch, ImportReport,<br/>SourceRef, Exporter, ExportView"]
     rds[ew-rds lenient grammar]
-    caex["ew-caex (proposed, 10)"]
+    caex["ew-caex, ew-devdesc (10)"]
   end
   subgraph GPL["Application layer (GPL-3.0-or-later)"]
     qet["ew-import-qet<br/>(ported QET code, no plugin exception)"]
     epl[ew-import-eplan]
     dxf[ew-import-dxf]
+    itab["ew-import-tables<br/>(golden CSV, table round trip)"]
     cmd["ew-commands: ApplyImport,<br/>import passes, table.apply_changes"]
     exp["ew-export, ew-reports, ew-plc, ew-mfg"]
   end
@@ -107,6 +108,7 @@ graph TD
   qet --> iapi
   epl --> iapi
   dxf --> iapi
+  itab --> iapi
   cmd --> iapi
   exp --> iapi
 ```
@@ -146,7 +148,7 @@ pub struct TargetHints {               // copied from the target project or basi
 }
 pub struct ImportBatch {
     pub records: Vec<ew_schema::AnyRecord>,   // sorted by (kind, id); IDs already final
-    pub assets: Vec<AssetBlob>,               // {sha256, media_type, bytes}: logos, images (amendment, OQ 2)
+    pub assets: Vec<AssetBlob>,               // {sha256, media_type, bytes}: logos, images (ARCH §10.6)
     pub report: ImportReport,
     pub provenance: Vec<SourceRef>,           // provenance[i] belongs to records[i]
 }
@@ -154,7 +156,7 @@ pub struct ImportBatch {
 
 **Rules.**
 - **Purity.** `import` reads only `src`. It never opens another file, follows an external reference or touches the
-  network (proposed NFR below). It is deterministic: the same bytes, options, hints and `as_of` give a
+  network (NFR-SEC-18). It is deterministic: the same bytes, options, hints and `as_of` give a
   byte-identical batch.
 - **No dangling references.** A batch must satisfy the structural invariants of ARCH §4.6 on its own plus the
   hinted target. An item whose reference cannot be resolved is dropped and reported (EW-IMP-003); it is never
@@ -197,7 +199,7 @@ pub struct ExportReport { pub rev: Rev, pub outputs: Vec<OutputMeta{name, sha256
 
 ADR-0004 fixes imported IDs as `v5(namespace, source_file_hash, source_id)`. Hashing each new file version would
 mint new IDs whenever the pilot edits a `.qet` in QET during the transition ([02b](02b-requirements-extended.md)
-OQ 5). EW therefore anchors the hash in an **import lineage**:
+OQ 5). EW therefore anchors the hash in an **import lineage** (ADR-0004 amendment 1, FR-IMP-002, FR-IMP-040):
 
 ```text
 ImportLineage { id, importer: "qet", source_name: "<file name, no path>", anchor: Anchor, namespace: Uuid,
@@ -212,7 +214,7 @@ record id = v5(namespace, source_key)
 With `FirstImportSha256` the formula is literally ADR-0004's, with `source_file_hash` read as "hash of the
 lineage's first file". Re-importing the identical file reproduces every ID and yields an empty diff (FR-IMP-002).
 Re-importing an edited file into the same lineage keeps the IDs of every item whose source key is unchanged
-(Open question 1).
+(FR-IMP-040).
 
 **Source keys** are stable strings derived from the source's own identifiers:
 
@@ -253,8 +255,8 @@ pub enum Proposal { MergeStructure{from, into}, SetFields{target, fields}, BindT
   acceptance is `lost_connections == 0`.
 - A `Proposal` is format-level intent. `ApplyImport` translates an accepted proposal into a command inside the import
   transaction; a pending one becomes a quick fix on the finding.
-- **`ImportRun`** (new record kind, proposed for [05](05-project-format-and-persistence.md) as
-  `imports/<run-uuid>.jsonl`) persists `{lineage, importer, importer_version, source info, as_of, options digest,
+- **`ImportRun`** (record kind `import_run`, rank 72, one file `imports/<run-uuid>.jsonl` per run,
+  [05](05-project-format-and-persistence.md) §2.1; FR-IMP-041) persists `{lineage, importer, importer_version, source info, as_of, options digest,
   entries, stats, record_hashes, acknowledged}`. `record_hashes` maps each imported record ID to a 128-bit hash of
   the record as imported; it is the base of the re-import diff (§3.4). The run survives saves and merges, so
   import-only facts such as "Tahoma substituted" or "custom SQL dropped" stay visible after the import (MF-22
@@ -473,7 +475,7 @@ rejected (§14).
 - **Frame.** A border of 17 × 60 px columns, 8 × 80 px rows and 20 px headers maps to the shipped QET-compatible
   frame (FR-PAG-015) instead of a duplicate form; other borders become frame forms in the "QET import" library.
   Column numbering keeps the source offset (the reference numbers 0–16). The form carries the page-to-sheet
-  transform of QET's fit-to-page export (proposed in [20](20-golden-project.md) §17.1: scale 0.986282578, offset
+  transform of QET's fit-to-page export ([20](20-golden-project.md) §17.1, FR-PAG-029: scale 0.986282578, offset
   9.79 mm on the golden frame), so printed geometry matches the reference to ±0.2 mm (REF-096).
 
 ### 4.3 Element definitions → symbols and function definitions
@@ -497,7 +499,8 @@ element name, path, UUID and definition version as provenance. Primitives map on
   (the historical tokens `hight` and `eleve` are accepted), `filling`, `color`, `antialias`. Line weights map to the
   house widths of [20](20-golden-project.md) §17.4 (`thin` 0.5 px, `normal` 1 px).
 - **Anchor policy.** QET-import symbols keep QET's **element-origin** cross-reference anchor, so imported xref
-  texts equal QET's, "3-B0" included (proposed FR-IMP-nnn below; [07](07-symbols-parts-macros.md) §3.6).
+  texts equal QET's, "3-B0" included (FR-IMP-038; [07](07-symbols-parts-macros.md) §3.6). The MF-13 quick fix sets
+  the anchor policy "graphics" (a named anchor on the bus-port graphics), which gives "3-B2".
 - **Function semantics.** The generated FnDef is resolved in this order:
   1. a `symbol-map.csv` row (element UUID or path → EW FnDef and CP map; generalises FR-IMP-018);
   2. `kindInformations`: master `coil|protection|commutator|plc`; slave `simple|power|delayOn|delayOff|delayOnOff`
@@ -525,7 +528,7 @@ element name, path, UUID and definition version as provenance. Primitives map on
 | `voltage_rating`, `current_rating` | `tech_data` as `Quantity` when parsable ("40A" → 40 A), else text with EW-IMP-008 |
 | `width`, `height`, `depth` | part dimensions when the part is created from element information |
 | `plc_type`, `plc_address`, `plc_function`, `plc_comment`, `plc_crossref` | pending channel binding (P7) |
-| `exclude_from_bom` | device scope "supplied by others" (proposed in [20](20-golden-project.md)) |
+| `exclude_from_bom` | device scope "supplied by others" (FR-DEV-037; [20](20-golden-project.md) §6.2) |
 | `comment`, `notes` | `Comment` anchored to the representation |
 
 #### 4.4.1 Tag inference
@@ -534,8 +537,9 @@ element name, path, UUID and definition version as provenance. Primitives map on
    result is what QET printed. If the stored `label` differs, the derived tag wins and EW-IMP-101 reports the stale
    copy (D-01: stored -4W1, printed and derived -3W1).
 2. **No formula.** Parse `label` leniently. Test the product part against candidate rules with the folio label of
-   the master's page: R1 `-{folio}{letter}{counter}` (-101F1), R2 `-{letter}{folio}{counter}` (X1031 on folio 103),
-   R3 `-{letter}{counter}`.
+   the master's page: R1 `{page}{letter}{counter}` (-101F1), R2 `{letter}{page}{counter}` (X1031 on folio 103),
+   R3 `{letter}{counter}`. The leading aspect sign is added by the formatter and is never part of a format
+   ([03](03-domain-model.md) §8.2).
 3. **Choose rules.** The project rule is the candidate explaining most labels; a letter class gets its own rule when
    another candidate explains all its labels (X → R2). The choice is an `AdoptRule` proposal, accepted by default.
 4. **Conforming** labels become derived `TagSpec{letter, counter, scheme}` with the counter taken from the label.
@@ -564,7 +568,7 @@ importer reconstructs QET's pairs exactly:
    (→ `Target`). An unlinked report becomes an unpaired IP (FR-CHK-017).
 2. **Name** each pair from the first non-empty of: the source's `label`, the target's `label`, the `function` of
    the conductor at the source. Both ends get the same name; a differing target name is kept as an alias and
-   reported (EW-IMP-115). A pair without any name gets `IP-{folio}-{cell}` and a warning.
+   reported (EW-IMP-115). A pair without any name gets `IP-{page}-{cell}` and a warning.
 3. **Group** pairs by `(name, scope key)`. A single-pair group needs no mode.
 4. **Multi-pair groups** use chain mode with `IpSpec.sort = 2i, 2i+1` for pair `i`, so EW's chain order
    reproduces QET's pairs. If the target project requires star mode, the group is reported (EW-IMP-115) with the
@@ -599,8 +603,8 @@ texts) and 10 main/aux pairs on 9 devices (20 texts): 64 texts, equal to the ref
 - The connection is `Connection{kind: Wire, a: Cp{function, idx}, b: Cp{…}, page}`; `idx` is the definition index of
   the terminal.
 - **Route.** Stored `<segment>`s are replayed from end 1 into `route` points. Conductors without segments get the
-  path QET computes (ported profile algorithm), stored explicitly, so EW draws them exactly as QET did (proposed
-  FR-IMP-nnn).
+  path QET computes (ported profile algorithm), stored explicitly, so EW draws them exactly as QET did
+  (FR-IMP-043).
 - **Properties.** A non-empty `num` → `NumberSpec::Frozen` (FR-IMP-012, 08 §5.3), an empty one → `Unassigned`; `conductor_color` and `conductor_section` →
   overrides, pruned by pass P2; colour text through the alias table (BR → BN proposed, §4.12); `function` and
   `tension_protocol` → `PotentialDef` candidates (pass P1); display attributes (`numsize`, `onetextperfolio`,
@@ -717,7 +721,7 @@ the recognisers of FR-IMP-017:
 | Recogniser | Pattern (default, configurable in the hints) | Attachment | Target |
 |---|---|---|---|
 | Wire marker | `^(?:(\d+(?:[.,]\d+)?)\s*(?:mm²\|mm2)?\s+)?COLOUR(?:\s+COLOUR)*$`, COLOUR from IEC 60757, profile codes (DBU) and aliases; matches "2.5 BK BU", "1.5 DBU", "WH", "2,5 BK" | conductors crossing the text's reach band (perpendicular to the text, ±2 grid steps), ordered along the text; one colour per crossed wire, or one colour for all of them (medium confidence) | CDP overrides (level 7), pruned by pass P2: "1.5 DBU" keeps only the 1.5 mm² override, because DBU equals the profile |
-| PLC address | `^%?(I\|Q\|E\|A)(\d+)\.([0-7])$`, `^%?(IW\|QW\|EW\|AW)\d+$` | nearest coil or I/O element within one frame cell | pending channel binding (pass P7), then `Channel.address = Manual(Q0.1)` ([10](10-plc-and-bus.md) §3.3) |
+| PLC address | `^%?(I\|Q\|E\|A)(\d+)\.([0-7])$`, `^%?(IW\|QW\|EW\|AW)\d+$` | nearest coil or I/O element within one frame cell | pending channel binding (pass P7), then a binding: the channel keeps its `Auto` address when the text equals the derived address, else the text is kept as `Manual(Q0.1)` ([10](10-plc-and-bus.md) §3.3, A7) |
 | Process tag | project regex, default `^[A-Z]{2}\d{2}-[A-Z]-\d{2}$`; "Spare" | nearest valve or field element | `Device.process_tag` ("TA05-V-15"); "Spare" → state Spare proposed |
 | Port number | `^(1\|2\|3\|4\|5\|12\|14\|82\|84)$` and grouped "3 1 5" | nearest terminal of a fluid symbol | CP designation and port role |
 | Bus address | `^Node\s+(\d+\|TBD)$` | bus node element | `BusPort.address = Value(n)` or `Tbd` on the node's bus port (D-15; [03](03-domain-model.md) §14) |
@@ -732,8 +736,8 @@ the recognisers of FR-IMP-017:
 - **Colour aliases.** The shipped table maps foreign colour notations to IEC 60757: BR → BN, SW → BK, BL → BU,
   RT → RD, GE → YE, WS → WH, GR → GY, GNGE and "GN/YE" → GNYE. GR is ambiguous (German *grau*, but "green" in some
   English shorthand), so its proposal is medium confidence. Mapping is a proposal; until accepted the core keeps
-  `ColourCode::Foreign("BR")`, which only lenient imports can create (EW-CORE-031, FR-CBL-005, FR-CHK-032; Open
-  question 3).
+  `ColourCode::Foreign("BR")`, which only lenient imports can create (FR-IMP-044, EW-CORE-031, FR-CBL-005,
+  FR-CHK-032; [03](03-domain-model.md) §3.4).
 - **Fluid symbols** (FR-IMP-018): QET's 5/2 valve has six unnamed generic terminals. A `symbol-map.csv` row maps
   terminal positions to ports 1–5 and the coil 14 function, so the 28 golden valves import with ports and coils.
 
@@ -755,7 +759,7 @@ the recognisers of FR-IMP-017:
 - **Assemblies.** Elements of valve or module classes without a tag (the 28 valves on 203–206) are reported
   (EW-IMP-112). Drawn overview positions per module are counted against the slaves on the detail pages
   (EW-IMP-110: 5 drawn on -202U2 against 4). The assembly and its children are built after `ApplyImport` by the
-  valve-terminal reconstruction assistant of [11](11-fluid-power.md) (proposed FR-IMP-nnn there; Golden C fix step
+  valve-terminal reconstruction assistant of [11](11-fluid-power.md) (FR-IMP-039; Golden C fix step
   6): -201U1 with its 11 children -201U2 … -202U3 and the 28 valves, bound to Q0.1 … Q6.7. EW-CORE-046
   (FR-CHK-022) then takes over from EW-IMP-110.
 
@@ -771,7 +775,7 @@ by NFR-MAINT-01). The host
 therefore opens the SQLite member with `ew-library`'s hardened opener (read-only, `trusted_schema=OFF`, defensive
 mode, schema check against `meta`, `project_property`, `folio`, `folio_property`, `element`, `element_info`, `link`, `conductor`,
 `terminal_strip`, `strip_terminal`, `strip_bridge`, `strip_bridge_terminal`; any view or trigger rejects the file,
-ARCH §7.7) and passes the importer a neutral `TableImage` of those tables through `ImportCx` (Open question 15).
+ARCH §7.7) and passes the importer a neutral `TableImage` of those tables through `ImportCx` (ARCH §10.6).
 
 ### 4.15 Migration verifier and acceptance
 
@@ -781,9 +785,9 @@ ARCH §7.7) and passes the importer a neutral `TableImage` of those tables throu
   swamp the result. Pages pair by folio label, else by order (the reference PDF has physical page labels, D-33).
   Expected deltas are declared per project. For Golden C they are the [20](20-golden-project.md) §3.4 items that
   apply to an import (AC-27): the font substitution, and "3-B0" listed as flagged. "3-B0" matches the reference
-  because the import reproduces it (§4.3); MF-13 reports it. FR-IMP-021's criterion still names the corrected
-  "3-B2" (Open question 4). `ew verify-migration <project> --reference <pdf>` prints the deviations. The verifier makes hayro a
-  runtime dependency of the shipped `ew` binary (Open question 10).
+  because the import reproduces it (§4.3); MF-13 reports it. FR-IMP-021's criterion expects exactly these deltas
+  (Open question 4). `ew verify-migration <project> --reference <pdf>` prints the deviations. The verifier makes
+  hayro a runtime dependency of the shipped `ew` binary (ARCH §3; Open question 10).
 - **Corpus acceptance** (SC-4, FR-IMP-006): at least 22 of the 24 QET example projects (C-14) and every pilot
   project import without a structural error; `photovoltaique.qet` (31 of 64 wires with modern ends) and
   `schema_indus.qet` (integer ends only) lose no connection; pass P4 reports no print-equivalence deviation on the
@@ -910,7 +914,9 @@ may be confidential (Open question 10).
 Coordinates are `f64` in the file. Conversion is `round_half_even(v × unit_nm)` after a finiteness and range check.
 INSERT rotations, bulge arcs and spline flattening use `ew-dl`'s pure-Rust `libm`-style trigonometry
 ([09](09-reports-forms-output.md) §4.3), never platform `sin`/`cos` or fused multiply-add, so the result is the same
-on every platform.
+on every platform. The rotation angles of `TEXT`, `MTEXT` and `INSERT` entities that become free texts and graphics
+are stored as `Angle2` (10⁻³ degree, `round_half_even`, [03](03-domain-model.md) §3.1); geometry inside a block
+that becomes a symbol is transformed into the symbol frame, whose placements keep `Orient2`.
 
 ### 6.2 Import targets
 
@@ -931,7 +937,7 @@ on every platform.
 6. Snap CPs to the native connection grid (ADR-0027). If any CP moves by more than 0.1 mm, offer a uniform scale that
    puts the CP spacing on the grid, or "move CPs" (EW-IMP-256).
 7. CP direction is the outward normal of the nearest bounding-box side; the FnDef is a black box with n CPs.
-8. Save into a user library with provenance and licence "vendor terms, not redistributable" (LL-11 in
+8. Save into a user library with provenance and licence "vendor terms, not redistributable" (EW-LIB-011 in
    [07](07-symbols-parts-macros.md) §5).
 
 A vendor block with ATTDEFs PIN1–PIN4 yields a symbol with four CPs on the native grid.
@@ -991,9 +997,9 @@ Specified in [10](10-plc-and-bus.md) §4 and summarised here for completeness:
 | TIA Selection Tool AML; Rockwell L5X, Beckhoff TE1120 | import; export | — | 1.x | FR-PLC-034, FR-PLC-039 |
 | TIA Openness bridge | — | separate Windows tool outside the Rust core | Later | FR-PLC-040 |
 
-AML, GSD, GSDML and IODD parsers follow the importer rules of §2.1 and §11 (pure, limits, fuzz targets). Whether
-they move into the permissive `ew-caex` and `ew-devdesc` crates proposed in [10](10-plc-and-bus.md) §4.9 is
-[02b](02b-requirements-extended.md) OQ 13.
+AML, GSD, GSDML and IODD parsers follow the importer rules of §2.1 and §11 (pure, limits, fuzz targets). They live
+in the permissive `ew-caex` and `ew-devdesc` crates of ARCH §3 ([10](10-plc-and-bus.md) §4.9); `ew-plc` keeps the
+exchange orchestration, merge and writers.
 
 ### 7.3 Catalogues (1.x)
 
@@ -1109,11 +1115,11 @@ Not legal advice; the rows marked *verify* need a review before the release that
 | Subject | Constraint | EW handling |
 |---|---|---|
 | EPLAN Data Portal | Terms reportedly restrict downloaded data to EPLAN products (*verify* the primary text); downloads need an EPLAN service agreement | User-initiated, local EDZ import of factual part data; notice once per session; no bundling, mirroring, scraping or download; provenance per part; prefer manufacturers' own download sites (NFR-LIC-06, K-5) |
-| Manufacturer EDZ, STEP, DXF, pictures | Per vendor; usually use but no redistribution | User or company library only; `embeddable` flag per part; LL-11 blocks packs without an explicit licence |
+| Manufacturer EDZ, STEP, DXF, pictures | Per vendor; usually use but no redistribution | User or company library only; `embeddable` flag per part; EW-LIB-011 blocks packs without an explicit licence |
 | EPLAN `.epj`/`.ema` | Undocumented; EU Directive 2009/24/EC permits observation for interoperability (*verify*) | Later, experimental, built from observed outputs only; no decompilation of EPLAN binaries |
 | EPLAN `.elk`/`.edb`/`.zw1` | Closed | Never |
 | QET source code | GPL-2.0-or-later | Ported only into `ew-import-qet`, with notices and `NOTICE` entry; no plugin exception; plugins never link it (NFR-LIC-05, C-8) |
-| QET element collection | Free inside diagrams; CC-BY 3.0 outside; anti-ML clause | Never bundled; elements embedded in a user's project go to its "QET import" library; on-demand conversion only into a user library (07); never training data; geometry-fingerprint check LL-06 |
+| QET element collection | Free inside diagrams; CC-BY 3.0 outside; anti-ML clause | Never bundled; elements embedded in a user's project go to its "QET import" library; on-demand conversion only into a user library (07); never training data; geometry-fingerprint check EW-LIB-006 |
 | QET example projects | GPL; embed collection elements | Test fixtures fetched at a pinned commit in CI, never committed or shipped (§12) |
 | IEC 60617 database | No extraction for sharing | Own drawings; optional S-number reference |
 | ECLASS | Licensed | IRDIs and values from user files only; no dictionary content |
@@ -1186,7 +1192,7 @@ are specified in [16](16-ux-ui.md).
 | **DXF import** | Units with an extents preview, layer list with visibility and mapping, model or paper space, target choice |
 | **DXF→symbol wizard** | Block list with thumbnails, attribute mapping, CP pick tool, grid-snap result with the scale proposal |
 | **Table round trip** | "Export table…" and "Import changes…" with a per-cell diff grid and conflict resolution |
-| **CLI** (FR-EXT-008) | `ew import qet <file> [--into <project>] [--basic <project>] [--lineage auto\|new\|<id>] [--proposals pending\|safe\|all] [--report json\|csv\|md]` (MVP); `ew import qet --batch <dir> --out <dir>` (FR-IMP-023, 1.0); `ew import csv <dir>` (MVP); `ew import edz <file> --library <lib>` (1.0); `ew import dxf <file> --as page\|underlay\|symbol [--units mm]` (1.0); `ew import table <xlsx> --project <p>` (1.0, a proposed FR-EXT row of [17](17-extensibility.md), Open question 14); `ew verify-migration <project> --reference <pdf>` (MVP). Exit codes follow FR-EXT-002: 0 committed without errors, 1 committed with error findings, 2 refused or usage error |
+| **CLI** (FR-EXT-008) | `ew import qet <file> [--into <project>] [--basic <project>] [--lineage auto\|new\|<id>] [--proposals pending\|safe\|all] [--report json\|csv\|md]` (MVP); `ew import qet --batch <dir> --out <dir>` (FR-IMP-023, 1.0); `ew import csv <dir>` (MVP); `ew import edz <file> --library <lib>` (1.0); `ew import dxf <file> --as page\|underlay\|symbol [--units mm]` (1.0); `ew import table <xlsx> --project <p>` (1.0, FR-EXT-028 of [17](17-extensibility.md) §3.3); `ew verify-migration <project> --reference <pdf>` (MVP). Exit codes follow FR-EXT-002: 0 committed without errors, 1 committed with error findings, 2 refused or usage error |
 | **Concept glossary** | The wizard and the migration report link the QET ↔ EW glossary (element → symbol and FnDef, master/slave → main/auxiliary function, folio report → interruption point, conductor → connection; NFR-DOC-05) |
 
 The CLI default `--proposals pending` applies no proposal, so headless imports are reproducible and Golden C lists
@@ -1201,11 +1207,12 @@ The body already covers default formulas (§4.8), shared UUIDs (§4.7), NaN and 
 
 1. **"Fixing" while importing.** The importer reproduces what QET printed, "3-B0" and "6-A1" included, and offers
    corrections as quick fixes. Silent corrections would break the migration verifier and the user's trust.
-2. **Rotated free texts** keep their source rotation; the "readable from bottom or right" rule of
+2. **Rotated free texts** keep their source rotation as an `Angle2` (10⁻³ degree; QET text `rotation` and DXF
+   `TEXT`/`INSERT` angles alike, [03](03-domain-model.md) §3.1); the "readable from bottom or right" rule of
    [06](06-schematic-editor.md) §2.5 applies only to text slots.
 3. **Non-UTF-8 XML prologs** in old files: ISO-8859-1 and Windows-1252 are transcoded; other encodings are refused.
 4. **A folio report linked to a report on the same folio** is kept and reported as a degenerate pair.
-5. **Terminals without a strip header** and without a label prefix form a strip per folio named `X?{folio}`,
+5. **Terminals without a strip header** and without a label prefix form a strip per folio named `X?{page}`,
    reported for review.
 6. **Duplicate designations used as function texts** ("1+" ×4): the quick fix renumbers 1–n and moves the old
    designation into the terminal's function text, which is how Golden A prints "1+" ([08](08-connections-terminals-cables.md) §6.8).
@@ -1260,13 +1267,13 @@ rule (§2.5).
 | MF-04 | EW-IMP-104 | — | MF-18 | EW-IMP-107 | — |
 | MF-05 | EW-IMP-105 | EW-CORE-023 (FR-REP-036) | MF-19 | EW-IMP-107 | — |
 | MF-06 | EW-IMP-106 | — | MF-20 | EW-IMP-112 | — |
-| MF-07 | EW-IMP-107 | — | MF-21 | EW-IMP-113 | EW-CORE-049 (duplicate, Open question 16) |
-| MF-08 | — | EW-TERM-001 | MF-22 | EW-IMP-006 | EW-CORE-064 (duplicate, Open question 16) |
+| MF-07 | EW-IMP-107 | — | MF-21 | EW-IMP-113 | — (EW-CORE-049 only for part-list pages kept as graphics; Open question 16) |
+| MF-08 | — | EW-TERM-001 | MF-22 | EW-IMP-006 | — (EW-CORE-064 retired; Open question 16) |
 | MF-09 | — | EW-TERM-002 | MF-23 | — | EW-POT-013 |
 | MF-10 | EW-IMP-109 | — | MF-24 | — | EW-POT-009 (FR-CHK-018) |
 | MF-11 | EW-IMP-007 (alias proposal BN) | EW-CORE-031 | MF-25 | — | EW-CORE-061 (FR-CHK-023, 1.8 mm) |
 | MF-12 | EW-IMP-007 / -008 (manufacturer master; FR-PRT-004 split of "UK5N / ULSKG5") | — | MF-26 | EW-IMP-114 | EW-CORE-063 |
-| MF-13 | — | EW-CORE-053 (FR-CHK-035) | MF-27 | — | EW-CORE-034 |
+| MF-13 | — | EW-CORE-053 (FR-CHK-035); quick fix: anchor policy "graphics" → "3-B2" | MF-27 | — | EW-CORE-034 |
 | MF-14 | EW-IMP-110 | EW-CORE-046 once the assembly exists (FR-CHK-022) | | | |
 
 ### 15.3 Defects detected at import and prevented afterwards
@@ -1290,7 +1297,7 @@ rule (§2.5).
 | D-20 junctions | junction elements → `Junction` (EW-IMP-118) | explicit junction sequence |
 | D-22 0 V–PE wire | MF-16 | `Bond` |
 | D-24 IP names | MF-17 | canonical potential name |
-| D-26 odd bits | MF-19, then EW-PLC-12 | derived addresses |
+| D-26 odd bits | MF-19, then EW-PLC-012 | derived addresses |
 | D-27 untagged valves | MF-20 | child tags |
 | D-29, D-31 text sizes | MF-26, MF-25 | text styles |
 | D-30 parties | MF-06 | party roles |
@@ -1305,11 +1312,11 @@ rule (§2.5).
 | Contracts, lineage, import run, migration report, input limits and fuzz targets (FR-IMP-005) | ● | | | |
 | QET `.qet` 0.3–0.200: pages, symbols, devices, main/aux, IPs, conductors, strips, title blocks, tables, fonts | ● | | | |
 | QET cables (Should), text to data, fluid symbol map (Should), layout binding (Should), verifier (Should) | ● | | | |
-| Re-import into a lineage (proposed, Should) | ● | | | |
+| Re-import into a lineage (FR-IMP-040, Should) | ● | | | |
 | `ew import csv` golden bootstrap | ● | | | |
 | Table export and round trip, CSV dialects, BOM for purchasing, deterministic exports | ● | | | |
 | Parts CSV/XLSX into libraries (07); generic I/O list round trip (10, Should) | ● | | | |
-| `ew import qet --batch`; import as copy (proposed, Could); QET `.elmt` collection into a user library (07, proposed) | | ● | | |
+| `ew import qet --batch`; import as copy (FR-IMP-045, Could); QET `.elmt` collection into a user library (FR-SYM-029, 07) | | ● | | |
 | EDZ (7-Zip and ZIP), extras, parts XML | | ● | | |
 | EPLAN report spreadsheets, underlays (Should) | | ● | | |
 | DXF import, SHX substitution, DXF→symbol wizard, part outlines and drilling patterns | | ● | | |
@@ -1335,61 +1342,66 @@ rule (§2.5).
 | [12 panel layout](12-panel-layout.md), [13 manufacturing](13-manufacturing-outputs.md) | folio 902 binding, STEP pipeline, drilling DXF, profiles |
 | [15 checks](15-checks-revisions-collaboration.md), [16 UX](16-ux-ui.md), [17 extensibility](17-extensibility.md), [18 quality](18-quality-security-release.md) | `EW-IMP` catalogue, panels, CLI and WIT importers, fuzz and corpus CI jobs |
 | [20 golden project](20-golden-project.md) | Golden C, MF-01 … MF-27, AC-25 … AC-27, AC-37, AC-38 |
-| Crates | `ew-interop-api`, `ew-schema`, `ew-rds`, `ew-import-qet`, `ew-import-eplan`, `ew-import-dxf`, `ew-commands`, `ew-reports`, `ew-export`, `ew-library`; roxmltree 0.21.1, quick-xml 0.42.0, sevenz-rust2 0.24.0, zip 9.0.4, rusqlite 0.40.2, dxf 0.6.2, acadrust 0.6.4, calamine 0.36.1, csv 1.4.0, rust_xlsxwriter 0.100.0, usvg 0.48.1, hayro 0.8.0, gltf 1.4.1 (placement of calamine, csv, hayro and gltf against the ARCH §3 table: Open questions 10 and 17) |
+| Crates | `ew-interop-api`, `ew-schema`, `ew-rds`, `ew-import-qet`, `ew-import-eplan`, `ew-import-dxf`, `ew-import-tables`, `ew-import-catalog`, `ew-caex`, `ew-devdesc`, `ew-plcaddr`, `ew-commands`, `ew-reports`, `ew-export`, `ew-panel`, `ew-library`; roxmltree 0.21.1, quick-xml 0.42.0, sevenz-rust2 0.24.0, zip 9.0.4, rusqlite 0.40.2 (through `ew-library` only), dxf 0.6.2, acadrust 0.6.4, calamine 0.36.1, csv 1.4.0, rust_xlsxwriter 0.100.0, usvg 0.48.1, hayro 0.8.0, gltf-json **(verify)**, placed as in the ARCH §3 table (calamine and csv in `ew-import-eplan` and `ew-import-tables`, hayro at runtime in `ew` and `ew-scene`, the glb writer in `ew-panel`) |
 
 ---
 
 ## Requirements covered
 
-- **IMP:** FR-IMP-001 … FR-IMP-037.
+- **IMP:** FR-IMP-001 … FR-IMP-045 (FR-IMP-039, the valve-terminal reconstruction assistant, is owned by
+  [11](11-fluid-power.md) and used in §4.13).
 - **EXP:** FR-EXP-001 … FR-EXP-011.
 - **Related core rows elaborated for import:** FR-PRJ-002, FR-PRJ-003, FR-PRJ-009, FR-PRJ-018, FR-PRJ-021,
-  FR-PAG-015, FR-PAG-021, FR-PAG-022, FR-PAG-026, FR-SYM-018, FR-SYM-025, FR-NUM-010, FR-NUM-014, FR-NUM-015,
+  FR-PAG-015, FR-PAG-021, FR-PAG-022, FR-PAG-026, FR-PAG-029, FR-SYM-018, FR-SYM-025, FR-SYM-029, FR-DEV-037,
+  FR-NUM-010, FR-NUM-014, FR-NUM-015,
   FR-XRF-003, FR-TRM-002, FR-CBL-005, FR-PRT-002, FR-PRT-004, FR-PRT-014, FR-PRT-016, FR-PRT-017, FR-PRT-020,
   FR-CHK-010, FR-CHK-011, FR-CHK-017, FR-CHK-022, FR-CHK-032, FR-CHK-035, FR-REP-030, FR-REP-036, FR-OUT-015
-  (round trip), FR-BUS-004, FR-I18N-006, FR-I18N-007, FR-I18N-008, FR-EXT-002, FR-EXT-008.
+  (round trip), FR-BUS-004, FR-I18N-006, FR-I18N-007, FR-I18N-008, FR-EXT-002, FR-EXT-008, FR-EXT-028.
 - **Summarised, owned elsewhere:** FR-PLC-025 … FR-PLC-040, FR-PLC-050, FR-BUS-013 ([10](10-plc-and-bus.md));
   FR-LAY-021, FR-EXP-007, FR-EXP-008 ([12](12-panel-layout.md)); FR-MFG-028 ([13](13-manufacturing-outputs.md)).
-- **Non-functional:** NFR-SEC-02, NFR-SEC-03, NFR-REL-07, NFR-REL-12, NFR-PRIV-01, NFR-PRIV-06, NFR-LIC-05,
-  NFR-LIC-06, NFR-MAINT-01, NFR-DOC-05, NFR-UX-06, NFR-PERF-08, NFR-PERF-18, NFR-PERF-19.
+- **Non-functional:** NFR-SEC-02, NFR-SEC-03, NFR-SEC-18, NFR-REL-07, NFR-REL-12, NFR-PRIV-01, NFR-PRIV-06,
+  NFR-LIC-05, NFR-LIC-06, NFR-MAINT-01, NFR-DOC-05, NFR-UX-06, NFR-PERF-08, NFR-PERF-18, NFR-PERF-19,
+  NFR-PERF-25.
 
 ### Proposed new requirements
 
-| Proposed ID | Requirement | Prio | Release | Source | Acceptance criterion |
-|---|---|---|---|---|---|
-| FR-IMP-nnn | QET-import symbols shall keep QET's element-origin cross-reference anchor, so imported xref texts equal QET's, and FR-CHK-035 shall report those pointing to empty cells. | Must | MVP | [20](20-golden-project.md) proposal; D-14, C-15 | Golden C prints "3-B0" and reports MF-13. |
-| FR-IMP-nnn | Imports shall belong to a lineage anchored on the QET project UUID or the first imported file's hash; re-importing an edited source into its lineage shall keep the IDs of unchanged source keys and preview a diff classed unchanged, source-changed, EW-changed, conflict, added and removed, never deleting silently. | Should | MVP | 02b OQ 5; ADR-0004 | Re-importing the reference `.qet` after adding one terminal in QET adds one terminal and its connections, keeps a function-text edit made in EW, and lists no other change. |
-| FR-IMP-nnn | Each import shall persist an import run with its import-only findings, statistics and record hashes, shown together with the live lenient findings as the migration report. | Must | MVP | FR-IMP-003; MF-22 | After saving and reopening Golden C, MF-22 is still listed as an info. |
-| FR-IMP-nnn | The QET importer shall infer numbering rules per letter class from formulas and labels, keep conforming tags derived with their source counters and freeze the rest, listing the inferred rules for confirmation. | Must | MVP | D-01, D-03; FR-IMP-011 | Golden C derives -101F1, -3W1 and -X1031 and freezes exactly S51, F55, T55, E55, S56, E56 and 1X1. |
-| FR-IMP-nnn | Conductors without stored segments shall receive the path QET computes for them, stored as an explicit route. | Must | MVP | IF §1.4; FR-IMP-021 | The migration verifier reports no conductor-path deviation on the QET corpus pages. |
-| FR-IMP-nnn | Foreign colour notations (BR, SW, BL, RT, GE, WS, GR, GNGE) shall map to IEC 60757 codes through a shipped alias table as proposals; unaccepted values stay foreign codes allowed only in lenient mode. | Must | MVP | D-17; FR-CBL-005; 08 EW-CORE-031 | "BR" on -106W1 is listed with the proposal BN; accepting it prints BN. |
-| FR-IMP-nnn | A source may be imported as a copy into a new lineage, so the same file can be imported twice into one project without ID collisions. | Could | 1.0 | §3.4 | Importing one `.qet` twice "as copy" yields two disjoint record sets. |
-| NFR-SEC-nn | Importers shall read only the bytes of the selected source: no external XML entities, XInclude, DXF IMAGE file references, SVG external references or sibling files, and no network access. | Must | MVP | G10; NFR-SEC-02 | A DXF whose IMAGEDEF points to a local file and an SVG logo referencing a URL import with placeholders, and a file-access trace shows no other file opened. |
-| NFR-PERF-nn | On BM, a reference-size `.qet` shall reach the import preview within 2 s, a 3.5 MB corpus file within 5 s, an M-class QET project within 30 s, and the batch import of the 24 corpus files within 2 min. | Should | MVP | G6; IF §10 | Timed in the nightly perf gate on the corpus and on a synthetic M-class `.qet` written by `ew-testkit`. |
+The nine rows this document proposed are in the catalogues:
+- element-origin cross-reference anchor for QET-import symbols → **FR-IMP-038**
+  ([02b](02b-requirements-extended.md) §7, one row with [20](20-golden-project.md)'s proposal);
+- import lineage and re-import without duplicates → **FR-IMP-040** (02b);
+- persisted import run and the migration report → **FR-IMP-041** (02b);
+- numbering-rule inference per letter class → **FR-IMP-042** (02b);
+- QET-computed paths for conductors without segments → **FR-IMP-043** (02b);
+- foreign colour notations through the alias table → **FR-IMP-044** (02b);
+- import as a copy into a new lineage → **FR-IMP-045** (02b);
+- importer purity (only the selected bytes, no network) → **NFR-SEC-18**
+  ([02c](02c-nonfunctional-requirements.md));
+- import time budgets on BM → **NFR-PERF-25** (02c).
 
 ---
 
 ## Open questions
 
 1. **ADR-0004 and lineage.** The lineage anchor reinterprets `source_file_hash` as the hash of the lineage's first
-   file (or the QET project UUID). *Recommendation:* amend ADR-0004 and FR-IMP-002's text accordingly; the same-file
-   acceptance criterion is unchanged.
+   file (or the QET project UUID). **Resolved:** ADR-0004 amendment 1 anchors the namespace on an `ImportLineage`,
+   and FR-IMP-002's text says so (with FR-IMP-040); its same-file criterion is unchanged.
 2. **Contract and format additions.** `ImportBatch.assets`, the `source_ref` member on imported records, and the
-   `ImportLineage` and `ImportRun` record kinds are not in ARCH §10.6 or [05](05-project-format-and-persistence.md).
-   *Recommendation:* add them; lineages in `project.jsonl`, runs as `imports/<run-uuid>.jsonl`, so runs never cause
-   merge conflicts on project data.
-3. **Foreign colour codes.** [03](03-domain-model.md) §3.4 says "BR" cannot be stored and the importer maps it to BN,
+   `ImportLineage` and `ImportRun` record kinds were not in ARCH §10.6 or [05](05-project-format-and-persistence.md).
+   **Resolved:** ARCH §10.6 adds `assets`, `source_ref`, `TableImage` and `Proposal`, and 05 §2.1 stores lineages in
+   `project.jsonl` (rank 15) and runs as `imports/<run-uuid>.jsonl` (rank 72), so runs never cause merge conflicts on
+   project data.
+3. **Foreign colour codes.** [03](03-domain-model.md) §3.4 said "BR" cannot be stored and the importer maps it to BN,
    while FR-CBL-005, FR-CHK-032, FR-IMP-014, EW-CORE-031 and MF-11 expect it reported with a quick fix.
-   *Recommendation:* add a lenient-only `ColourCode::Foreign(Ident)` guarded by EW-CORE-031 as a prevent rule, and
-   update 03 §3.4 and [08](08-connections-terminals-cables.md) §12 item 14 ("'BR' maps to BN") to "kept foreign,
-   BN proposed".
-4. **FR-IMP-009 and FR-IMP-021 acceptance.** Both criteria expect the corrected "3-B2", while Golden C, AC-25 and the
-   proposed anchor requirement reproduce "3-B0". *Recommendation:* reword FR-IMP-009's criterion to "as printed,
-   '3-B0' included; '3-B2' after the MF-13 quick fix", and FR-IMP-021's expected deltas to those of AC-27 (font
-   substitution, "3-B0" flagged).
+   **Resolved:** 03 §3.4 adds the lenient-only `ColourCode::Foreign(Ident)`, guarded by the prevent rule EW-CORE-031,
+   and [08](08-connections-terminals-cables.md) §12 keeps "BR" foreign with BN proposed (FR-IMP-044); D-17 stays
+   prevented in native projects.
+4. **FR-IMP-009 and FR-IMP-021 acceptance.** Both criteria expected the corrected "3-B2", while Golden C, AC-25 and
+   the anchor requirement FR-IMP-038 reproduce "3-B0". **Resolved:** FR-IMP-009's criterion expects the texts as
+   printed, "3-B0" included, and "3-B2" only after the MF-13 quick fix, and FR-IMP-021 expects the deltas of AC-27
+   (font substitution, "3-B0" flagged).
 5. **MF-10 in the fix script.** FR-IMP-013 merges the two -X1031 segments at import, while
-   [20](20-golden-project.md) §20.2 applies MF-10 as a quick fix. *Recommendation:* MF-10 becomes an info with a
-   "split" quick fix; step 1 of the fix script confirms it and changes nothing.
+   [20](20-golden-project.md) §20.2 applied MF-10 as a quick fix. **Resolved:** MF-10 is an info with a "split" quick
+   fix, and step 1 of the fix script in 20 §20.2 confirms it and changes nothing.
 6. **Proposal defaults.** *Recommendation:* CLI `--proposals pending` (reproducible, Golden C lists all findings);
    GUI pre-ticks high-confidence proposals; `--proposals safe` for batch migration.
 7. **Licence layer of QET mapping.** `ew-import-qet` is GPL because of ported code, so third parties cannot reuse it
@@ -1401,36 +1413,39 @@ rule (§2.5).
 9. **EPLAN spreadsheet presets.** Column names depend on the EPLAN UI language and the customer's report scheme.
    *Recommendation:* ship German and English presets only after obtaining real exports (PQ-04); until then the mapper
    starts empty.
-10. **Underlay storage and hayro at runtime.** Embedding a customer PDF bloats and may leak the project, and hayro is
+10. **Underlay storage and hayro at runtime.** Embedding a customer PDF bloats and may leak the project, and hayro was
     only a dependency of `ew-testkit` in ARCH §3 and §13, while the migration verifier (MVP, `ew verify-migration`)
-    and PDF underlays (1.0) need it at runtime. *Recommendation:* reference underlays by hash with an "embed" opt-in;
-    accept hayro as a runtime dependency of the verifier at MVP and of the underlay renderer at 1.0, and record it
-    in ADR-0015 and the ARCH §3 crate table.
+    and PDF underlays (1.0) need it at runtime. **Resolved:** underlays are referenced by hash with an "embed"
+    opt-in (§5.5), and ARCH §3 makes hayro a runtime dependency of the `ew` binary for the verifier at MVP and of
+    `ew-scene` for underlays at 1.0, recorded in ADR-0015.
 11. **SHX table.** Width factors of the substitutes are unverified. *Recommendation:* ship the table as data with a
     `verified` flag, calibrated on the DXF corpus.
 12. **QET mirror semantics.** The order of mirror and rotation in QET 0.200 is unverified. *Recommendation:* fix the
     mapping by rendering corpus pages with mirrored elements in QET and in EW at M2, before the pilot migrates.
-13. **Re-import during the transition.** The value of FR-IMP-nnn (lineage re-import) depends on whether the pilot keeps
+13. **Re-import during the transition.** The value of FR-IMP-040 (lineage re-import) depends on whether the pilot keeps
     editing in QET after the first import (PQ-03). *Recommendation:* keep it Should at MVP; drop it to 1.0 if the
     pilot migrates project by project without returning to QET.
-14. **`ew import table`.** The table round trip (FR-EXP-004, MVP) has no CLI subcommand in FR-EXT-008;
-    [17](17-extensibility.md) proposes a new FR-EXT row for it at 1.0. *Recommendation:* adopt that row with the exit
-    codes of §13; at MVP the round trip is available in the GUI only.
+14. **`ew import table`.** The table round trip (FR-EXP-004, MVP) had no CLI subcommand in FR-EXT-008;
+    [17](17-extensibility.md) proposed a new FR-EXT row for it at 1.0. **Resolved:** FR-EXT-028 adds
+    `ew import table` at 1.0 with the exit codes of FR-EXT-002 (§13); at MVP the round trip is available in the GUI
+    only.
 15. **QETZ and the rusqlite rule.** Reading `project.sqlite` inside the importer would break ARCH §3 rules 2 and 4.
-    *Recommendation:* add a neutral `TableImage` (table name → rows of typed cells) to `ew-interop-api`, filled by
-    the host through `ew-library`'s hardened opener; the QETZ importer stays pure and fuzzable with synthetic images.
-16. **Duplicate IDs for import-only facts.** [15](15-checks-revisions-collaboration.md) defines EW-CORE-049 (BOM
+    **Resolved:** `ew-interop-api` has a neutral `TableImage` (table name → rows of typed cells), filled by the host
+    through `ew-library`'s hardened opener (ARCH §10.6), so the QETZ importer stays pure and fuzzable with
+    synthetic images.
+16. **Duplicate IDs for import-only facts.** [15](15-checks-revisions-collaboration.md) defined EW-CORE-049 (BOM
     sync, scope "import") and EW-CORE-064 (font substituted on import) for the same facts as EW-IMP-113 and
     EW-IMP-006; ADR-0028 already cites EW-IMP-006. Two IDs for one fact break the "one row per condition" rule of
-    §2.5 and the stable-ID registry. *Recommendation:* keep the `EW-IMP` codes (class 160) for facts that exist only
-    in the import run, retire EW-CORE-064, and keep EW-CORE-049 only as a live rule for hand-drawn part-list pages
-    that survive the import as graphics.
-17. **Crate placement of table readers and the CSV bootstrap.** ARCH §3 lists calamine only under `ew-plc`, csv
-    under `ew-reports` and `ew-mfg`, gltf only under `ew-step-worker`, and puts the CSV bootstrap in `ew-testkit`.
+    §2.5 and the stable-ID registry. **Resolved:** facts that exist only in the import run use the `EW-IMP` codes
+    (class 160); EW-CORE-064 is retired and its ID never reused, MF-22 maps to EW-IMP-006, and EW-CORE-049 stays
+    only as a live rule for hand-drawn part-list pages that survive the import as graphics, so MF-21 maps to
+    EW-IMP-113 (15 §4.2, §10.2; §15.2).
+17. **Crate placement of table readers and the CSV bootstrap.** ARCH §3 listed calamine only under `ew-plc`, csv
+    under `ew-reports` and `ew-mfg`, gltf only under `ew-step-worker`, and put the CSV bootstrap in `ew-testkit`.
     This document needs calamine and csv in `ew-import-eplan` (report spreadsheets, §5.4) and for reading round-trip
     tables (§8.2) and translation files (§8.5), a glb writer for FR-EXP-007, and `ew import csv` in the shipped `ew`
     binary (FR-EXT-008, MVP),
-    which must not depend on a test crate. *Recommendation:* move the `golden-csv` importer into a small GPL
-    `ew-import-tables` crate (importer rules, also home of the round-trip table reader with calamine and csv),
-    which `ew-testkit` reuses; add calamine and csv to `ew-import-eplan`; record the glTF writer's crate in
-    [12](12-panel-layout.md) §1.2; amend the ARCH §3 table accordingly.
+    which must not depend on a test crate. **Resolved:** ARCH §3 adds the GPL `ew-import-tables` crate (the
+    `golden-csv` importer behind `ew import csv`, the round-trip table reader and the translation tables; csv and
+    calamine), which `ew-testkit` reuses, adds calamine and csv to `ew-import-eplan`, and gives `ew-panel` the glTF
+    (glb) and STL writer for `layout_scene` ([12](12-panel-layout.md) §1.2).

@@ -68,14 +68,16 @@
    Analytics could only ever be added by a new ADR: opt-in, aggregated, with a documented schema and a public
    dashboard.
 5. **Data minimisation elsewhere.**
-   - Exports offer to omit person fields from page text, reports and XMP (NFR-PRIV-06).
+   - Exports offer to omit person fields from page text, reports and XMP (`--omit-personal-data`; NFR-PRIV-06,
+     FR-OUT-025).
    - No project data goes to any AI or translation service. Agents connect through MCP by the user's choice
      (NFR-PRIV-08).
 6. **Documented and tested.**
    - `PRIVACY.md` lists every flow and is shown in the About dialog, and any change to it requires an ADR
      (NFR-PRIV-07).
    - A CI job runs the GUI smoke flows and the CLI in a network namespace with only loopback up, under `strace`. It
-     fails on any `AF_INET`/`AF_INET6` socket or DNS attempt outside the allowlisted `ew mcp --loopback` test.
+     fails on any `AF_INET`/`AF_INET6` socket or DNS attempt outside the allowlisted `ew mcp --listen 127.0.0.1:0`
+     test (loopback only; any non-loopback address is refused).
    - A second run with the update check opted in asserts the exact request against a mock server.
    - Windows and macOS are observed manually for each minor.
 
@@ -130,4 +132,5 @@ If the recommendation is accepted:
   [18 quality, security and release](../design/18-quality-security-release.md) §9.3, §12, OQ5;
   [16 UX/UI](../design/16-ux-ui.md) (first run); [gaps-and-corrections](../research/gaps-and-corrections.md) G11,
   G12.
-- **Requirements:** NFR-PRIV-01 to NFR-PRIV-08; NFR-SEC-09, NFR-SEC-15; NFR-PERF-02; NFR-REL-13; NFR-PLAT-06.
+- **Requirements:** NFR-PRIV-01 to NFR-PRIV-08; NFR-SEC-09, NFR-SEC-15; NFR-PERF-02; NFR-REL-13; NFR-PLAT-06;
+  FR-OUT-025, FR-EXT-026.

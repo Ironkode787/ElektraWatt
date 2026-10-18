@@ -1,6 +1,6 @@
 # ADR-0005: Values: i64 nm coordinates, rational grids, `Dec3` quantities, `MlText`
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -32,7 +32,7 @@ All value types live in the permissive crates `ew-units` and `ew-mltext`.
 |---|---|---|
 | `Nm(i64)` | Linear coordinate in nanometres | The only linear unit in the model and in files: page coordinates, symbol geometry, 3D translations, wire and cable lengths. Range ±9.2 × 10⁹ m |
 | `Grid { num, den }` | Rational grid step in nm | QET 10 px = `7_937_500/3` nm. Snapping uses the grid index `k`; the stored coordinate is `round(k × num / den)`, an error of at most 0.5 nm. Cell lookups use integer arithmetic on the frame's rational grid (FR-PAG-020). The native connection grid is ADR-0027's decision |
-| `Orient2` | Eight variants: four rotations, each optionally mirrored (FR-SYM-004) | The orientation of every symbol representation; no float angles in 2D. Free texts and graphics imported at other angles are open point 1 |
+| `Orient2` | Eight variants: four rotations, each optionally mirrored (FR-SYM-004) | The orientation of every symbol representation; no float angles in 2D. Free texts and graphics at other angles use `Angle2` (amendment 1) |
 | `Pose3` | Three `Nm` plus a unit quaternion | Quaternion components stored as `i64` in units of 10⁻⁹. f64 mm (glam `DVec3`) only in 3D maths, f32 only in GPU buffers; neither is persisted |
 | `Dec3` | Fixed point, three decimals (`i64` thousandths), written as a decimal string ("0.75") | Cross-sections, currents, voltages, frequencies, pressures, temperatures, losses and part quantities. `Quantity { value: Dec3, unit }` carries its unit; AWG and kcmil stay in their original unit (FR-CON-032) |
 | `MlText` | `Neutral(String) \| Langs(BTreeMap<LangTag, String>)` | EPLAN's mutual exclusion; BCP 47 `LangTag` (`nl-NL`, `de-DE`, `en-GB`). The display language is a query key |
@@ -40,6 +40,17 @@ All value types live in the permissive crates `ew-units` and `ew-mltext`.
 
 Rendering ("0.75 mm²", "6 A", a decimal comma in nl and de) is a query over the output language and project
 settings. Rendered text is never stored.
+
+## Amendments
+
+Accepted on 2026-10-18. The decision text above is unchanged; this entry refines it.
+
+1. **Integer angle for free texts and graphics** (2026-10-18; [domain model](../design/03-domain-model.md) §3.1,
+   [interop](../design/14-interop.md)). QET free texts keep their source rotation, and DXF `INSERT` and `TEXT`
+   entities may be rotated by any angle; `Orient2` holds neither. `ew-units` therefore adds `Angle2(i32)`, an angle
+   in units of 10⁻³ degree, used **only** by free texts and graphics. Symbol representations keep `Orient2`. The
+   trigonometry runs in `ew-dl`'s deterministic helpers. The JSON encoding is the integer, and the default 0 is
+   omitted. The type exists before the QET importer's free-text pass lands.
 
 ## Consequences
 
@@ -73,19 +84,11 @@ settings. Rendered text is never stored.
 | **Floats for electrical values** | Non-deterministic sums and comparisons in checks and reports |
 | **Plain strings plus a separate translation table** | Loses EPLAN's neutral-or-languages semantics; translations drift from their source |
 
-## Open points
-
-1. **Arbitrary angles in 2D.** QET free texts keep their source rotation
-   ([interop](../design/14-interop.md) §14), and DXF `INSERT` and `TEXT` entities may be rotated by any angle;
-   `Orient2` holds neither. *Recommendation:* add an integer angle type to `ew-units` (for example `Angle2(i32)` in
-   units of 10⁻³ degree) for free texts and graphics only, keep `Orient2` for symbols, compute the trigonometry in
-   `ew-dl`'s deterministic helpers, and record the type in this ADR before the QET importer's free-text pass lands.
-
 ## Related
 
 - **ADRs:** [ADR-0001](0001-core-model-persistent-maps.md), [ADR-0010](0010-project-storage-jsonl-directory.md),
   [ADR-0015](0015-display-list-renderers-pdf.md), [ADR-0021](0021-importers-emit-format-level-records.md), [ADR-0027](0027-native-symbol-grid-and-qet-grid-policy.md).
-- **Design:** [architecture](../design/04-architecture.md) §4.5; [domain model](../design/03-domain-model.md) §3;
+- **Design:** [architecture](../design/04-architecture.md) §3, §4.5; [domain model](../design/03-domain-model.md) §3;
   [project format](../design/05-project-format-and-persistence.md) §3.2; research G4 and G7 in
   [gaps and corrections](../research/gaps-and-corrections.md).
 - **Requirements:** FR-PAG-020, FR-PAG-021, FR-PAG-022, FR-IMP-008, FR-CON-019, FR-CON-032, FR-PRT-026,
