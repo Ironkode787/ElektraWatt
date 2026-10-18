@@ -13,13 +13,13 @@ use ew_mltext::{Ident, LangTag, MlText};
 use ew_rds::Aspect;
 use ew_units::Dec3;
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 use crate::json::{Extra, Open, de_extra, is_default, is_false, is_v1, v1};
 use crate::proxy::{AspectS, Dec3S, IdentS, LangTagS, MlTextS, UuidS};
 use crate::set::Set;
-use crate::track::open_enum;
+use crate::track::{invalid, malformed, open_enum};
 use crate::value::{AnyId, Date, Quantity, Sha256, SourceRef};
 
 /// The marker type of `import_run` IDs (rank 72, reserved in v0).
@@ -503,6 +503,20 @@ pub struct LineageCopy {
 // ---------------------------------------------------------------------------------------------------------
 // Structure
 
+/// Reads [`StructureNode::aspect`]: an [`Open<Aspect>`] that refuses `product` (doc 03 §5).
+fn de_structure_aspect<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Open<Aspect>, D::Error> {
+    let aspect = Open::<Aspect>::deserialize(deserializer)?;
+    if matches!(aspect, Open::Known(Aspect::Product)) {
+        return malformed(
+            "product",
+            invalid("the product aspect is the device tree and never a structure node (doc 03 §5)"),
+            Value::String("product".into()),
+            Open::Unknown,
+        );
+    }
+    Ok(aspect)
+}
+
 /// One identifier in one aspect tree (doc 03 §5, rank 20).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct StructureNode {
@@ -512,7 +526,9 @@ pub struct StructureNode {
     /// Per-kind schema version `$v`, omitted when 1.
     #[serde(rename = "$v", default = "v1", skip_serializing_if = "is_v1")]
     pub v: u16,
-    /// The aspect tree.
+    /// The aspect tree. `product` is the device tree and never a structure node (doc 03 §5): the strict
+    /// reader rejects it and the loader reports it like a malformed known variant.
+    #[serde(deserialize_with = "de_structure_aspect")]
     #[schemars(with = "AspectS")]
     pub aspect: Open<Aspect>,
     /// The atomic code ("J-E-2416", FR-PRJ-017).

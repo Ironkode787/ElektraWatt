@@ -729,12 +729,23 @@ fn normalize_nfc_keeps_both_members_on_a_key_collision() {
     let text = format!(r#"{{"{DECOMPOSED}":1,"{COMPOSED}":2}}"#);
     let mut value = parse_value(&text).unwrap();
     assert_eq!(value.as_object().unwrap().len(), 2);
-    // nothing could be changed: the decomposed name stays, the object keeps both members
-    assert!(!normalize_nfc(&mut value));
+    // the decomposed name stays and the object keeps both members; the value is still non-canonical
+    assert!(normalize_nfc(&mut value));
     let map = value.as_object().unwrap();
     assert_eq!(map.len(), 2);
     assert_eq!(map[DECOMPOSED], json!(1));
     assert_eq!(map[COMPOSED], json!(2));
+}
+
+#[test]
+fn normalisation_can_unsort_a_set_and_the_strict_reader_then_rejects_it() {
+    let line = fill(r#"{"$k":"structure_node","id":"@FN_P01","aspect":"location","code":"Z1"}"#);
+    let mut value = parse_value(&line).unwrap();
+    value["aliases"] = json!([DECOMPOSED, "Lz"]);
+    // "Lu" + combining diaeresis sorts before "Lz"; the composed form does not
+    assert!(normalize_nfc(&mut value));
+    assert_eq!(value["aliases"], json!([COMPOSED, "Lz"]));
+    expect_unsorted(Record::from_value(value).unwrap_err(), "/aliases/1");
 }
 
 #[test]
@@ -942,4 +953,57 @@ fn open_aspect_keeps_unknown_aspects_and_rejects_other_shapes() {
     };
     assert!(known.aspect.known().is_some());
     expect_invalid(&node("7"), "/aspect");
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// The product aspect is never a structure node; keyed and set-like members of library documents
+
+#[test]
+fn structure_node_rejects_the_product_aspect_in_both_readers() {
+    let line = fill(r#"{"$k":"structure_node","id":"@FN_P01","aspect":"product","code":"Z1"}"#);
+    match record_err(&line) {
+        SchemaError::MalformedVariant(m) => {
+            assert_eq!(m.path, "/aspect");
+            assert!(m.message.contains("doc 03 §5"), "{}", m.message);
+        }
+        other => panic!("expected a malformed variant, got {other:?}"),
+    }
+    let value = parse_value(&line).unwrap();
+    let (record, findings) = Record::load(value.clone()).unwrap();
+    assert_eq!(findings.len(), 1, "{findings:?}");
+    assert_eq!(findings[0].path, "/aspect");
+    assert!(findings[0].message.contains("doc 03 §5"));
+    // kept verbatim, like any malformed known variant
+    assert_eq!(serde_json::to_value(&record).unwrap(), value);
+    // other aspects are untouched
+    assert_canonical(&fill(
+        r#"{"$k":"structure_node","id":"@FN_P01","aspect":"location","code":"Z1"}"#,
+    ));
+}
+
+#[test]
+fn extra_variant_cps_and_arrangement_slots_are_ordered() {
+    let doc = golden_lib(r#""$k":"symbol""#);
+    let cp = |idx: u32| format!(r#"{{"idx":{idx},"fn_cp":{idx},"pos":[0,0],"dir":"up"}}"#);
+    let variant = |cps: &str| {
+        sub(
+            &doc,
+            r#""anchor":{"slot":"tag"}"#,
+            &format!(r#""anchor":{{"slot":"tag"}},"extra_variants":[{{"kind":"cp_variant","cps":{cps}}}]"#),
+        )
+    };
+    assert_lib_canonical(&variant(&format!("[{},{}]", cp(0), cp(1))));
+    expect_unsorted(
+        lib_err(&variant(&format!("[{},{}]", cp(1), cp(0)))),
+        "/extra_variants/0/cps/1",
+    );
+    expect_duplicate_key(
+        lib_err(&variant(&format!("[{},{}]", cp(1), cp(1)))),
+        "/extra_variants/0/cps/1",
+        "1",
+    );
+    let arrangement = |slots: &str| sub(&doc, r#""slots":[0,1]}"#, &format!(r#""slots":{slots}}}"#));
+    assert_lib_canonical(&arrangement("[0,1,2]"));
+    expect_unsorted(lib_err(&arrangement("[1,0]")), "/arrangements/0/slots/1");
+    expect_duplicate_key(lib_err(&arrangement("[1,1]")), "/arrangements/0/slots/1", "1");
 }

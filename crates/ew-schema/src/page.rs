@@ -303,8 +303,8 @@ pub struct ReportBlock {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub section: Option<Id<Section>>,
-    /// The first folio (907). Required for a page-oriented block (a structural invariant the model
-    /// checks), ignored when `embedded` is set (doc 09 §2.2, decision ID-16).
+    /// The first folio (907). Required for a page-oriented block (the model's rule EW-INV-014
+    /// enforces it), ignored when `embedded` is set (doc 09 §2.2, decision ID-16).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub first_folio: Option<u32>,
     /// Continuation numbering; default sub-pages 907, 907.1 … (FR-PAG-030).

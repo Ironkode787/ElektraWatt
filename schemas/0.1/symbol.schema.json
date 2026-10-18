@@ -140,14 +140,15 @@
           "description": "The name."
         },
         "slots": {
-          "description": "Indices of the visible slots.",
+          "description": "Indices of the visible slots (a set, sorted).",
           "items": {
             "format": "uint16",
             "maximum": 65535,
             "minimum": 0,
             "type": "integer"
           },
-          "type": "array"
+          "type": "array",
+          "uniqueItems": true
         }
       },
       "required": [
@@ -383,7 +384,7 @@
       "description": "A stored symbol variant with its own graphics and CPs.",
       "properties": {
         "cps": {
-          "description": "Its CPs.",
+          "description": "Its CPs, keyed by `idx`.",
           "items": {
             "$ref": "#/$defs/SymbolCp"
           },

@@ -407,7 +407,7 @@
       "description": "What to print without rows; default no pages."
     },
     "first_folio": {
-      "description": "The first folio (907). Required for a page-oriented block (a structural invariant the model\nchecks), ignored when `embedded` is set (doc 09 §2.2, decision ID-16).",
+      "description": "The first folio (907). Required for a page-oriented block (the model's rule EW-INV-014\nenforces it), ignored when `embedded` is set (doc 09 §2.2, decision ID-16).",
       "format": "uint32",
       "minimum": 0,
       "type": [

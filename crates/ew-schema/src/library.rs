@@ -772,9 +772,9 @@ pub struct Arrangement {
     /// The name.
     #[schemars(with = "IdentS")]
     pub name: Ident,
-    /// Indices of the visible slots.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub slots: Vec<u16>,
+    /// Indices of the visible slots (a set, sorted).
+    #[serde(default, skip_serializing_if = "Set::is_empty")]
+    pub slots: Set<u16>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -822,9 +822,9 @@ pub struct ExtraVariant {
     /// Its graphics.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub graphics: Vec<Primitive>,
-    /// Its CPs.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub cps: Vec<SymbolCp>,
+    /// Its CPs, keyed by `idx`.
+    #[serde(default, skip_serializing_if = "KeyedList::is_empty")]
+    pub cps: KeyedList<SymbolCp>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

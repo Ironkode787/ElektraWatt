@@ -91,7 +91,7 @@
     },
     "aspect": {
       "$ref": "#/$defs/Aspect",
-      "description": "The aspect tree."
+      "description": "The aspect tree. `product` is the device tree and never a structure node (doc 03 §5): the strict\nreader rejects it and the loader reports it like a malformed known variant."
     },
     "code": {
       "$ref": "#/$defs/Ident",

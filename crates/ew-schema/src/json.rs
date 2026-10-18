@@ -76,7 +76,13 @@ pub(crate) fn de_extra<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Ext
 /// reject non-NFC text). The format loader (`ew-format`) calls this function on the parsed value of every
 /// line **before** typed deserialisation and marks the file for rewriting when it returns `true`, so plain
 /// `String` members are covered by the same pass. If normalising a member name would make it equal to
-/// another name of the same object, that name is left as it is (the object keeps both members).
+/// another name of the same object, that name is left as it is (the object keeps both members) and the
+/// call still returns `true`, because a non-NFC name remains in the value.
+///
+/// Normalisation can leave a set unsorted or duplicated (`["Lu\u{0308}fter", "Lz"]` becomes
+/// `["Lüfter", "Lz"]`, and `"Lüfter"` sorts after `"Lz"` in byte order). The strict reader then rejects the
+/// value as [`SchemaError::UnsortedList`](crate::SchemaError::UnsortedList) or `DuplicateKey`. The file is
+/// non-canonical (this function returned `true`); `ew-format` re-serialises it sorted and flags it.
 ///
 /// ```
 /// use serde_json::json;
@@ -111,11 +117,12 @@ pub fn normalize_nfc(value: &mut Value) -> bool {
                 })
                 .collect();
             for (old, new) in renames {
-                if !map.contains_key(&new) {
-                    if let Some(v) = map.remove(&old) {
-                        map.insert(new, v);
-                        changed = true;
-                    }
+                if map.contains_key(&new) {
+                    // A collision leaves a non-NFC key in place, so the value is still non-canonical.
+                    changed = true;
+                } else if let Some(v) = map.remove(&old) {
+                    map.insert(new, v);
+                    changed = true;
                 }
             }
             changed

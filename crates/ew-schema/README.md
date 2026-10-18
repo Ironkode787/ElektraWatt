@@ -58,14 +58,19 @@ Rules every struct follows:
   built in memory is written sorted, and the reader rejects unsorted or repeated input
   (`SchemaError::UnsortedList`, `SchemaError::DuplicateKey`, each with the path of the element):
   - a **set** is a `Set<T>`, sorted by the compact JSON text of its elements, byte-wise (`aliases`,
-    `translations`, `keywords`, `manual.include`, `manual.exclude`);
+    `translations`, `keywords`, `manual.include`, `manual.exclude`, the `slots` of an arrangement);
   - a **keyed list** is a `KeyedList<T>` (`T: Keyed`), sorted by key in the key type's natural order
-    (`cp_overrides`, `cp_pattern`, `cps` of symbols and function definitions by `idx`; `tech_data` and
+    (`cp_overrides`, `cp_pattern`, `cps` of symbols, stored extra variants and function definitions by `idx`; `tech_data` and
     `free_props` by `key`; `pin_map` by `symbol_cp`; `text_slots` by `slot`).
 - **Strings are NFC** (doc 05 §3.1). `ew-schema` stays strict: `MlText` and `Ident` reject non-NFC text.
   The format loader (`ew-format`) calls `normalize_nfc` on the parsed value of every line **before** typed
   deserialisation and marks the file as non-canonical when it returns `true`; plain `String` members are
-  covered by the same pass, so the typed reader never sees a non-NFC string from a file.
+  covered by the same pass, so the typed reader never sees a non-NFC string from a file. The function
+  returns `true` when any string changed **or** two member names of one object collide after
+  normalisation (the non-NFC name then stays in place). Normalising can also leave a set unsorted or
+  duplicated (`["Lu\u{0308}fter", "Lz"]` becomes `["Lüfter", "Lz"]`); the strict reader then rejects it as
+  `UnsortedList` or `DuplicateKey`. Such a file is non-canonical, and `ew-format` re-serialises it sorted
+  and flags it.
 - **`Orient2` has no catch-all**: its eight values are the dihedral group of the square, which is closed, so
   a newer format cannot add a value. It is the one persisted enumeration without `Unknown`.
 - Field types from the foundation crates name a schema stand-in with `#[schemars(with = "…")]`
@@ -126,7 +131,11 @@ Format 0.1 is unreleased; these entries record what changed since the first gold
 |---|---|---|
 | `MasterData.document_title: MlText` appended after `edited` | 0.1 | The cover subtitle (doc 03 §5, doc 20 §4.1) |
 | `ReportBlock.first_folio` optional | 0.1 | Required for page-oriented blocks, ignored when `embedded` is set (doc 09 §2.2, ID-16) |
-| `OrderUnit::Metre` written `"m"` (was `"metre"`) | 0.1 | One spelling with `Unit::M` (doc 05 §3.2) |
+| `OrderUnit::Metre` written `"m"` (was `"metre"`), 2026-10-18 | 0.1 | One spelling with `Unit::M` (doc 05 §3.2). The pre-release spelling `metre` is **not** read as an alias; it now loads as `Unknown` |
+| `Set` sort key | 0.1 | The compact JSON text of the element, in byte order: `"ab!"` precedes `"ab"` because `!` sorts before the closing `"` |
+| `StructureNode.aspect` rejects `product` | 0.1 | The product aspect is the device tree (doc 03 §5); the strict reader fails with `MalformedVariant` at `/aspect`, `load` reports it and keeps the value |
+| `ExtraVariant.cps` is a `KeyedList` by `idx`, `Arrangement.slots` a `Set` | 0.1 | Unsorted or repeated input is rejected; the schemas gain `uniqueItems` for `slots` |
+| `normalize_nfc` returns `true` on a key collision | 0.1 | A non-NFC name remains, so the file is non-canonical |
 | `LineageAnchor::Copy.of` holds the original lineage's **namespace** | 0.1 | As `ew_ids::v5::LineageAnchor::Copy` and ADR-0004 amendment 4 |
 | Object payloads of enum variants carry `extra` | 0.1 | No change on the wire |
 | Sets and keyed lists are enforced on read | 0.1 | Files that were unsorted were never canonical |
