@@ -16,7 +16,6 @@
 anyhow
 camino
 generic-array
-libc
 proc-macro2
 quote
 serde
@@ -24,3 +23,12 @@ serde_core
 serde_json
 thiserror
 zmij
+#
+# Reviewed at WP-S1.01 (ew-units, ew-ids and their dev-dependencies). None opens a network connection or
+# downloads anything.
+getrandom # 0.4.3: emits a memory-sanitizer cfg flag only
+libc # runs `rustc --version` (and `freebsd-version` / `emcc -dumpversion` on those targets); cfg flags only
+num-traits # autocfg probe compile for one cfg flag (proptest, dev-only)
+rustversion # runs `rustc --version`, writes version.expr to OUT_DIR
+wasm-bindgen # wasm targets only in practice: version cfg via a vendored rustversion, link args for emscripten
+wasm-bindgen-shared # hashes two of its own source files into an env var; runs `git rev-parse HEAD` (local)
