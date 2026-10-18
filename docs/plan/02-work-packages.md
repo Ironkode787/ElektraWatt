@@ -2003,7 +2003,7 @@ S4 starts with the thin MVP slice that [panel layout](../design/12-panel-layout.
 | Field | Value |
 |---|---|
 | Objective | Show the cabinet in 3D with CAD navigation inside its own workspace. |
-| Scope in | `ew-render3d` with instancing, LODs, feature edges, transparency, CAD camera, picking and gizmo; parametric prisms for carriers; unrouted-wire lines; Panel 3D workspace with layout navigators |
+| Scope in | `ew-render3d` with instancing, LODs, feature edges, transparency, CAD camera, picking and the gizmo API, with the transform-gizmo-egui gizmo itself in `ew-ui` (ADR-0016 amendment 1); parametric prisms for carriers; unrouted-wire lines; Panel 3D workspace with layout navigators |
 | Scope out | Hidden-line views (1.x) |
 | Deliverables | 3D view and workspace |
 | Depends on | WP-S2.02, WP-S4.01, WP-S2.06 |

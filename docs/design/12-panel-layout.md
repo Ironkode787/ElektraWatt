@@ -65,7 +65,8 @@ PBF = [plc-bus-fluid](../research/plc-bus-fluid.md); C-nn and G-nn =
 | Crate | Layout responsibility |
 |---|---|
 | `ew-panel` | Layout queries, snapping engine, placement commands, collision reconciler, routing graph, negotiated-congestion router, lengths, duct fill, bundles, surface features, thermal queries (VIS OQ6, 02b OQ6), the 2D projection of surfaces (the geometry layers of PanelLayout display lists, §5.2, arch §3), and the glTF (glb) and STL writer for `layout_scene` (§14); MVP 2D overlap index on rstar 0.13.0, already a workspace dependency of `ew-scene` |
-| `ew-render3d` | wgpu 3D renderer: instancing, feature edges, transparency, CAD camera, CPU ray picking, gizmo (transform-gizmo-egui 0.11.0) |
+| `ew-render3d` | wgpu 3D renderer: instancing, feature edges, transparency, CAD camera, CPU ray picking, and the toolkit-agnostic camera, pick and constraint API behind the gizmo |
+| `ew-ui` | The 3D gizmo (transform-gizmo-egui 0.11.0) over that API, because only `ew-ui` may know egui (arch §3 Rule 3, ADR-0016 amendment 1) |
 | `ew-step-proto` (permissive) | Worker IPC frames (postcard) and cache artefact formats (rkyv, glb) |
 | `ew-step-worker` (bin) | OCCT via occt-sys 7.8.1 + opencascade 0.3.0 (LGPL-2.1, C-5): STEP read, tessellation, edges, hulls, frames, features; HLR in 1.x |
 | `ew-scene`, `ew-dl` | Composition of PanelLayout and ModelView pages: frame and title block, embedded tables, label text shaping (`shaped_text`), and the IR emitted to the renderers (ADR-0015) |
@@ -945,7 +946,8 @@ navigator and with schematic pages ("show all representations", FR-UI-007).
   orthographic/perspective toggle, fit all and fit selection (FR-UI-029).
 - **Picking:** CPU ray cast against the parry3d BVH (L1, then L2), deterministic and without GPU read-back; hover is
   throttled to one ray per frame. Picks resolve to placement, carrier, CP3D or feature.
-- **Gizmo:** transform-gizmo-egui constrained to the carrier's degrees of freedom: a rail placement shows one axis
+- **Gizmo:** transform-gizmo-egui in `ew-ui`, constrained to the carrier's degrees of freedom through
+  `ew-render3d`'s constraint API: a rail placement shows one axis
   and snaps exactly like the 2D tool (FR-UI-029 acceptance); surface items show two axes and a 90° rotation ring;
   door items a free ring.
 - **Display:** enclosure transparency slider, door open/closed, layer filters (enclosure, carriers, devices, wires,

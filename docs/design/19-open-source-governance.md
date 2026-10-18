@@ -346,6 +346,13 @@ remedy key, a report, an importer, a machine profile and a migration (NFR-MAINT-
 non-programmers (§3.6, §3.7); the AI-use policy; and the confidentiality rules (LR-12): never attach customer
 drawings, and use the placeholders `<customer>`, `<project ref>` and so on.
 
+**Dependency audits** (resolved 2026-10-18, open question 18). Every new crates.io dependency passes cargo-deny,
+cargo-vet 0.10.2 and, if it has a build script, the build-script allowlist (ADR-0023). The `who` field of a
+cargo-vet audit is the contributor's GitHub handle, never a personal name or e-mail address, and the project imports
+no public audit sets, because their `imports.lock` entries record auditors' names and addresses, which the
+public-repository rule bans (UD-8 of the decision log). Every audit is therefore the project's own; the rule is
+revisited when a steward exists (ADR-0023 amendment 3). `CONTRIBUTING.md` states it in its dependency section.
+
 **AI-use policy.** The core team itself works with AI assistance, so the policy regulates use and does not ban it.
 1. **Disclose.** PRs disclose AI assistance in the template. Commits may name the tool in a trailer such as
    `Assisted-by:` or `Co-Authored-By:`. The `Signed-off-by:` is always a human's.
@@ -852,3 +859,9 @@ as:
     release environment depend on one person. *Recommendation:* create a GitHub organisation at M0 with two owners
     from the core team, transfer the repository (GitHub keeps redirects), and hand organisation ownership to the
     steward under LG-4; this is recorded as NFR-COMP-08.
+18. **cargo-vet attribution and audit imports.** cargo-vet records an auditor in each audit's `who` field, and
+    imported audit sets carry other organisations' auditor names and e-mail addresses into `imports.lock`.
+    **Resolved** (2026-10-18, project owner (delegated, 2026-10-18); ADR-0023 amendment 3): `who` is the
+    contributor's GitHub handle; no public audit sets are imported while the public-repository rule stands, which
+    costs reviewer time that imports would save (§3.5). Revisit when a steward exists, for example by importing
+    through a steward-held mirror that strips personal data.

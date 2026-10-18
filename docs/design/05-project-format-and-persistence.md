@@ -230,6 +230,7 @@ numbers live in `Connection.number`. A released revision's report snapshots live
 | `Id<T>` | lower-case hyphenated UUID | `"c7a90e35-42d8-5f61-8b03-9d2e6f1a47c2"` |
 | Integer, `Nm` | integer with \|n\| ≤ 2⁵³ − 1 (safe for JavaScript and jq); no `-0` or exponent | `137583333` |
 | `Pt2`, `Grid` | `[x, y]` in nm; reduced `{"num","den"}` with `den` > 0 | `[42333333,15875000]`, `{"num":7937500,"den":3}` |
+| `Rect` | `[[x0, y0], [x1, y1]]`: two `Pt2`, the minimum corner first (`x0 ≤ x1`, `y0 ≤ y1`); a degenerate rectangle is allowed, a reversed one is a schema violation. Persisted by the embedded `report_block` (`embedded.rect`), form `DataArea.rect` and `FormCell.rect` (title-block and report cells), and `SurfaceView.clip`. `ew-schema` implements the encoding; `ew-units` keeps `Rect` free of serde | `[[10000000,180000000],[120000000,270000000]]` |
 | `Orient2` | string; default `"r0"` omitted | `"r90"`, `"m0"` |
 | `Angle2` | integer in 10⁻³ degree; default 0 omitted. Free texts and graphics only; symbol representations use `Orient2` | `"angle":45000` |
 | `Pose3` | `{"t":[x,y,z],"q":[w,x,y,z]}`, `q` in 10⁻⁹, sign-normalised (w > 0, else the first non-zero component > 0) | `{"t":[0,500000000,0],"q":[1000000000,0,0,0]}` |
@@ -248,6 +249,44 @@ numbers live in `Connection.number`. A released revision's report snapshots live
 **There are no floats anywhere** (ADR-0005). A number with a fraction or an exponent is a schema violation
 (EW-CORE-007).
 
+### 3.2a Derived identities
+
+UUIDv5 IDs (ADR-0004 amendments 1, 2 and 4) are computed from a namespace and a name. The bytes that enter the hash
+are part of the format and never change; `ew-ids` (`v5` module) implements them and pins them with fixed test
+vectors.
+
+- **Namespace:** the parent UUID the formula names, or a fixed constant. Each constant is a random v4 UUID minted
+  once, fixed forever and held by `ew-ids`:
+
+  | Constant | Value | Used by |
+  |---|---|---|
+  | `NS_LIBCOPY` | `04c1640f-8857-4dfc-9bff-e9baad47fb47` | embedded library copies (§13.2) |
+  | `NS_IMPORT` | `7b75186c-f28e-49ce-b7f7-26b137095a65` | import-lineage namespaces ([14](14-interop.md) §2.3) |
+
+- **Name:** the UTF-8 bytes of the components' canonical text forms, joined by U+001F (UNIT SEPARATOR, written ␟):
+  UUIDs lower-case hyphenated; integers in decimal without sign, padding or separators; the literals `channel` and
+  `route` verbatim; source keys and version strings exactly as given. U+001F cannot occur in a UUID or a decimal
+  integer, so the joined name is unambiguous.
+- **Hash:** `Uuid::new_v5(namespace, name)` (SHA-1, RFC 9562 §5.5).
+
+| ID | Formula | Name bytes | Stored? |
+|---|---|---|---|
+| Connection point | `v5(function, idx)` | `2` | no; only `CpOverride` rows |
+| Generated report page | `v5(report_block, page_index)` | `7` | no |
+| Function from a part's function template | `v5(device, template_index)` | `3` | yes |
+| PLC channel | `v5(module, "channel", number)` | `channel␟3` | yes |
+| Committed route | `v5(connection, "route")` | `route` | yes |
+| Embedded library copy | `v5(NS_LIBCOPY, library ‖ item)` | `<library uuid>␟<item uuid>` | yes (file name) |
+| "Keep both" library copy | `v5(NS_LIBCOPY, library ‖ item ‖ version)` | `<library uuid>␟<item uuid>␟2.1.0` | yes (file name) |
+| Import-lineage namespace | `v5(NS_IMPORT, importer ‖ anchor kind ‖ anchor value)` | `dxf␟sha256␟<64 lower-case hex>` | yes (`ImportLineage.namespace`) |
+| Imported record | `v5(lineage namespace, source_key)` | the source key byte for byte, e.g. `qet:el:<uuid>` | yes |
+
+**Worked example.** For the module `0192f3a4-5b6c-7d8e-8f01-23456789abd0`, `plc_channel_id(m, 3) = v5(m,
+"channel␟3")` = `c3cb5781-8135-54b1-8948-9f118e22553d`. For an import lineage anchored on the SHA-256 of an empty
+file, `v5(NS_IMPORT, "dxf␟sha256␟e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")` =
+`a1ba512b-c515-50c5-af0b-26fa3b5599f5`. Importers emit source keys in NFC (§3.1), so the stored `source_ref.key`
+re-derives the record's ID.
+
 ### 3.3 Line order
 
 Records sort by kind rank, then by the ID's bytes 8–15 read as a big-endian `u64` (the random bits), then by the
@@ -259,9 +298,9 @@ append at the same spot. Random-bits order scatters them, so plain-git and web m
 
 **The order needs truly random bytes 8–15.** `ew-ids` therefore generates UUIDv7 by RFC 9562 §6.2 method 3
 (ADR-0004 amendment 3): a sub-millisecond fraction in `rand_a` and 62 fresh CSPRNG bits in `rand_b` for every ID.
-It puts no counter in `rand_b`. If uuid
-1.28's default `now_v7` context keeps a monotonic counter in the leading `rand_b` bits, `ew-ids` assembles the
-bits itself through uuid's builder API **(verify both)**. UUIDv5 bytes are hash-random anyway. Sharding uses
+It puts no counter in `rand_b`. The uuid crate's `ContextV7` keeps a 42-bit counter spanning `rand_a` and the
+top 30 bits of `rand_b` (checked in uuid 1.28.0), so `ew-ids` does not use `Uuid::now_v7` and assembles the bits
+itself. UUIDv5 bytes are hash-random anyway. Sharding uses
 byte 15, which is random under both schemes. Loading records in any order yields the same tables, and therefore
 the same bytes on save (NFR-REL-07).
 
@@ -1370,7 +1409,8 @@ The eleven rows this document proposed are in the catalogues:
    stale age and the takeover rename without replacement.
 6. **Manifest in git.** The `generation` line conflicts in merges made without the driver. *Recommendation:* keep
    the manifest tracked, since clones need its format, `min_reader` and hashes, and tolerate the trivial conflict
-   (§6.2, §11.4). An untracked generation would lose interrupted-save detection on shares.
+   (§6.2, §11.4). An untracked generation would lose interrupted-save detection on shares. **Decided** 2026-10-18
+   as recommended (decision log DEC-080 item 3).
 7. **Git commits by EW at release.** A tag needs a commit. *Recommendation:* ask, commit only the project directory
    ("Release <label>") and never push. Skip the tag, with a message, when unrelated changes are staged. Confirm with
    the pilot user (PQ-09, PQ-26).
@@ -1390,9 +1430,11 @@ The eleven rows this document proposed are in the catalogues:
     clock bits and `rand_b` with 62 fresh random bits for every ID, never a counter. A CI test checks that 10,000 IDs
     minted within one millisecond spread evenly over shards and sort positions.
 13. **Fixed 256 shards.** Small projects get about 80 shard files. A size-dependent shard count would complicate
-    merges between differently sized projects. *Recommendation:* keep 256.
+    merges between differently sized projects. *Recommendation:* keep 256. **Decided** 2026-10-18 as recommended
+    (decision log DEC-080 item 1).
 14. **macOS package bundle.** A `.ew` bundle would show the project as one document in Finder, but would hinder git
-    tools. *Recommendation:* no bundle in v1; reconsider at 1.x if macOS pilot users ask.
+    tools. *Recommendation:* no bundle in v1; reconsider at 1.x if macOS pilot users ask. **Decided** 2026-10-18 as
+    recommended (decision log DEC-080 item 2).
 15. **Catalogue storage form.** ARCH §7.7 and FR-PRT-012 described SQLite catalogues per tier, which an earlier
     draft of §13.1 followed with a versioned publication scheme on shares, while [07](07-symbols-parts-macros.md)
     §2.2 made `.ewlib` text directories canonical at every tier and SQLite a derived per-user index in the cache.
@@ -1412,3 +1454,9 @@ The eleven rows this document proposed are in the catalogues:
     principle 3 (no user text in internal names). **Resolved:** `rules/<uuid>.toml` plus an optional
     `rules/<uuid>/` directory for rhai, SQL, Fluent and doc files, with the human pack ID inside the TOML; 15 §3.7
     uses the same form. Shipped and company pack directories may keep their own internal layout.
+18. **`Rect` encoding.** §3.2 defined none, so `ew-units` shipped `Rect` without serde, yet embedded report blocks,
+    form cells and data areas, and `SurfaceView.clip` persist rectangles. **Resolved** (2026-10-18): two `Pt2`,
+    minimum corner first (§3.2), implemented in `ew-schema`. It reuses the `Pt2` form and has one spelling per value;
+    `{x, y, w, h}` would have added a second number shape.
+19. **UUIDv5 name bytes.** ADR-0004 named the formulas but not the bytes hashed. **Resolved** (ADR-0004 amendment 4):
+    components joined by U+001F, and lineage namespaces derived from `NS_IMPORT` (§3.2a).

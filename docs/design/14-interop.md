@@ -207,9 +207,27 @@ ImportLineage { id, importer: "qet", source_name: "<file name, no path>", anchor
 Anchor = QetProjectUuid(Uuid)          # QET 0.200+ <project uuid>
        | FirstImportSha256([u8; 32])   # older files: hash of the file at first import
        | Copy{ of: Id<ImportLineage>, n: u32 }   # "import as copy" (§3.4)
-namespace = v5(NS_EW_IMPORT, importer ‖ anchor)
-record id = v5(namespace, source_key)
+       | Fixed(&'static str)           # "golden": the golden CSV bootstrap (§8.4)
+namespace = v5(NS_IMPORT, importer ␟ anchor kind ␟ anchor value)     # ␟ = U+001F, 05 §3.2a
+record id = v5(namespace, source_key)                               # source key byte for byte
 ```
+
+**Namespace derivation** (ADR-0004 amendment 4). The anchor is never used as the namespace itself; every lineage
+namespace is a UUIDv5 under the fixed constant `NS_IMPORT` = `7b75186c-f28e-49ce-b7f7-26b137095a65`, which `ew-ids`
+owns beside `NS_LIBCOPY`. The name is built by the layout of [05](05-project-format-and-persistence.md) §3.2a:
+
+| Anchor | Name bytes (`importer` = `ImportLineage.importer`, lower case) | Example |
+|---|---|---|
+| `QetProjectUuid(u)` | `qet␟project␟<u, lower-case hyphenated>` | `qet␟project␟6f1c9a0e-3b7d-4e2f-8a5c-1d0e9b8a7c6f` |
+| `FirstImportSha256(d)` | `<importer>␟sha256␟<d as 64 lower-case hex digits>` | `dxf␟sha256␟e3b0c442…7852b855` |
+| `Copy{of, n}` | `<importer>␟copy␟<namespace of the lineage of>␟<n>` | `qet␟copy␟a1ba512b-…␟2` |
+| `Fixed(label)` | `<importer>␟fixed␟<label>` | `csv␟fixed␟golden` |
+
+The namespace is stored in `ImportLineage.namespace` and computed once, when the lineage is created. A copy names its
+original by namespace rather than by record ID, so two branches that import the same file as a copy mint the same
+IDs. Importers emit source keys in NFC, so the stored `source_ref.key` re-derives every record ID. The worked
+vector of 05 §3.2a (the empty file's digest gives `a1ba512b-c515-50c5-af0b-26fa3b5599f5`) is a fixed test of
+`ew-ids`.
 
 With `FirstImportSha256` the formula is literally ADR-0004's, with `source_file_hash` read as "hash of the
 lineage's first file". Re-importing the identical file reproduces every ID and yields an empty diff (FR-IMP-002).
@@ -229,7 +247,7 @@ Re-importing an edited file into the same lineage keeps the IDs of every item wh
 | DXF entity | `dxf:{layout}\|{handle}`; R12 files without handles: `dxf:{layout}\|#{n}` | handle-stable |
 | EPLAN report row (§5.4) | `eplan:{target}\|{row key}`, the row key being the mapped DT plus designation (`=P01+J-E-2416-X1031:1`) | stable while the DT is |
 | Spreadsheet row | the hidden `id` column (§8) | stable |
-| Golden CSV | `{table}\|{row key}` in the fixed namespace `"golden"`, i.e. `v5("golden", table, row key)` ([20](20-golden-project.md) §3.2) | stable |
+| Golden CSV | `{table}\|{row key}` in the lineage anchored `Fixed("golden")`, i.e. `v5(v5(NS_IMPORT, "csv␟fixed␟golden"), "{table}\|{row key}")` ([20](20-golden-project.md) §3.2) | stable |
 
 **Persisted provenance.** Every imported record carries `source_ref: {lineage, key}`. Locations (file, member,
 folio, cell, line) live only in the import run, which keeps entity files small. Golden C's equivalence test ignores
@@ -491,7 +509,7 @@ element name, path, UUID and definition version as provenance. Primitives map on
 | `ellipse x y width height`, `circle x y diameter` | ellipse, circle | `x y` is the bounding box's top-left |
 | `arc x y width height start angle` | elliptic arc | degrees; 0° at 3 o'clock; positive span counter-clockwise on screen, so a point is `(cx + rx·cosθ, cy − ry·sinθ)`; trigonometry from `ew-dl`'s deterministic implementation |
 | `polygon x1 … xn y1 … yn closed` | polyline or closed polygon | |
-| `text x y text size\|font color rotation` | static symbol text | font per §4.10 |
+| `text x y text size\|font color rotation` | static symbol text | font per §4.10; `rotation` is Qt's clockwise-positive angle and becomes the negated `Angle2` (counter-clockwise positive, [03](03-domain-model.md) §3.1; ADR-0005 amendment 2) |
 | `dynamic_text`, legacy `input tagg` | text slot | `label` → tag slot, `function` → function-text slot, `CompositeText` → slot with a format; `UserText` → static text |
 | `terminal x y orientation name type uuid` | connection point | index = definition order; designation = `name` (empty allowed); direction from `orientation`; `type` Generic, Inner or Outer kept |
 
@@ -750,7 +768,9 @@ the recognisers of FR-IMP-017:
   element information, with the derived BOM (EW-IMP-113: on the reference, rows -4W1 and -4X1 disappear and missing
   parts appear).
 - **Shapes, `<inputs>` and `<images>`** become `PageItem::Graphic`, `FreeText` and `Image` items; QET pen styles map
-  to the dash patterns of 20 §17.4.
+  to the dash patterns of 20 §17.4. A free text's `rotation` counts clockwise (Qt), so the importer stores it
+  negated as an `Angle2`, which counts counter-clockwise as seen on the sheet (ADR-0005 amendment 2): QET 90°
+  becomes `Angle2(-90_000)`.
 - **Layout pages** (FR-IMP-019): a page whose rectangles carry tag-like texts is offered as a layout page. Pass P6
   scores each text against derived tags: exact (-102G1), after identifier suppression ("X1031" → -X1031), and fuzzy
   within the same letter and number group (Levenshtein ≤ 1: "T51" → T55, folio 101's 5x group). Every binding is a
@@ -912,10 +932,14 @@ may be confidential (Open question 10).
 | Not imported | 3DFACE, 3DSOLID, REGION, BODY (ACIS), proxy objects (EW-IMP-253) |
 
 Coordinates are `f64` in the file. Conversion is `round_half_even(v × unit_nm)` after a finiteness and range check.
+DXF y points up and sheet y down, so the importer flips y (`y_sheet = y_top − y`, with `y_top` the top of the
+imported extents) and leaves x as it is.
 INSERT rotations, bulge arcs and spline flattening use `ew-dl`'s pure-Rust `libm`-style trigonometry
 ([09](09-reports-forms-output.md) §4.3), never platform `sin`/`cos` or fused multiply-add, so the result is the same
 on every platform. The rotation angles of `TEXT`, `MTEXT` and `INSERT` entities that become free texts and graphics
-are stored as `Angle2` (10⁻³ degree, `round_half_even`, [03](03-domain-model.md) §3.1); geometry inside a block
+are stored as `Angle2` (10⁻³ degree, `round_half_even`, [03](03-domain-model.md) §3.1) with their DXF value
+unchanged: DXF counts counter-clockwise with y up, and after the importer's y flip the same value is
+counter-clockwise as seen on the sheet, which is `Angle2`'s sense (ADR-0005 amendment 2). Geometry inside a block
 that becomes a symbol is transformed into the symbol frame, whose placements keep `Orient2`.
 
 ### 6.2 Import targets
@@ -1072,7 +1096,8 @@ terminal part once with its quantity and 571334 once with quantity 28 (D-04).
 
 `ew import csv <tables dir>` (FR-IMP-022) reads the golden tables of [20](20-golden-project.md) (pages, structure,
 devices, parts, potentials, connections, terminals, cables, PLC, fluid, placements), with IDs
-`v5("golden", table, row key)`. It runs in **strict** mode: Golden A must contain no prevent-rule violation, so the
+`v5(namespace, "{table}|{row key}")` in the fixed lineage `Fixed("golden")`, whose namespace is
+`v5(NS_IMPORT, "csv␟fixed␟golden")` (§2.3). It runs in **strict** mode: Golden A must contain no prevent-rule violation, so the
 bootstrap is itself a test. `ew import csv` followed by `ew export pdf` produces the 18 folios plus 903–911 (SC-1).
 
 ### 8.5 Translation exchange: XLIFF 2.1 and CSV (1.0)
@@ -1209,8 +1234,9 @@ The body already covers default formulas (§4.8), shared UUIDs (§4.7), NaN and 
 
 1. **"Fixing" while importing.** The importer reproduces what QET printed, "3-B0" and "6-A1" included, and offers
    corrections as quick fixes. Silent corrections would break the migration verifier and the user's trust.
-2. **Rotated free texts** keep their source rotation as an `Angle2` (10⁻³ degree; QET text `rotation` and DXF
-   `TEXT`/`INSERT` angles alike, [03](03-domain-model.md) §3.1); the "readable from bottom or right" rule of
+2. **Rotated free texts** keep their source rotation as an `Angle2` (10⁻³ degree, counter-clockwise positive as
+   seen on the sheet, [03](03-domain-model.md) §3.1): QET text `rotation` negated, DXF `TEXT`/`INSERT` angles
+   unchanged (§4.13, §6.1); the "readable from bottom or right" rule of
    [06](06-schematic-editor.md) §2.5 applies only to text slots.
 3. **Non-UTF-8 XML prologs** in old files: ISO-8859-1 and Windows-1252 are transcoded; other encodings are refused.
 4. **A folio report linked to a report on the same folio** is kept and reported as a degenerate pair.

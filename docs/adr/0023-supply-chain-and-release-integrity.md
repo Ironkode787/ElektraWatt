@@ -78,6 +78,12 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    `Apache-2.0 WITH LLVM-exception` is on it now; BSL-1.0 is added only if `cargo deny list` at M0 shows it; the
    osifont licence expression is added only if ADR-0028 bundles that font, with the exact SPDX expression verified
    with counsel. GPL-2.0-only, AGPL and non-OSI licences are denied.
+3. **cargo-vet attribution; no imported audits** (2026-10-18, project owner (delegated, 2026-10-18);
+   [19](../design/19-open-source-governance.md) §3.5, OQ18). The tool is cargo-vet 0.10.2. The `who` field of an
+   audit names the contributor's GitHub handle, never a personal name or e-mail address. Decision 1's "covered by
+   imported audits" is not used while the public-repository rule stands, because `imports.lock` would record other
+   organisations' auditor names and e-mail addresses: every crate needs the project's own audit or a frozen
+   exemption. The cost is more review time per dependency bump. Revisit when a steward exists.
 
 ## Consequences
 

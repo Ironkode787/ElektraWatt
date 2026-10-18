@@ -29,7 +29,7 @@ Every reference in the model is a typed `Id<T>` (crate `ew-ids`, permissive). Ta
 | New authored records | **UUIDv7** (uuid 1.28.0) | Time-ordered leading bytes, random tail; minted locally |
 | Instantiated connection points | **`v5(function_id, idx)`** | Computed, never stored. Only `CpOverride` rows are persisted. `idx` is the CP's index in the function definition, which also keeps duplicate printed designations distinct (FR-DEV-006) |
 | Generated report pages | **`v5(report_block_id, page_index)`** | PDF named destinations on generated report folios (2, 901 and 903–911 in the golden project) stay stable |
-| Imported records | **`v5(namespace, source_file_hash, source_id)`** | With a `source_ref` that keeps provenance (QET element UUID, EDZ part number, DXF handle). The namespace is anchored on an import lineage (amendment 1) |
+| Imported records | **`v5(namespace, source_file_hash, source_id)`** | With a `source_ref` that keeps provenance (QET element UUID, EDZ part number, DXF handle). The namespace is anchored on an import lineage (amendment 1) and derived from `NS_IMPORT` (amendment 4) |
 | Functions created from a part's function template | **`v5(device_id, template_index)`** | Amendment 2. Example: the 13-14 signal contact of -102F2, created from the MICO 4.10 template |
 | PLC channels | **`v5(module_id, "channel", number)`** | Amendment 2. Stored, because a channel carries authored data; two branches that add the same module mint the same channel IDs |
 | Embedded library copies | **`v5(NS_LIBCOPY, library_id ‖ item_id)`** | Amendment 2. One copy per catalogue item and project. Only an explicit "keep both" after a cross-project paste of another version mints `v5(NS_LIBCOPY, library_id ‖ item_id ‖ version)` for the second copy |
@@ -44,7 +44,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
 
 1. **Import lineage** (2026-10-18; [interop](../design/14-interop.md) §2.3). The namespace of imported records is
    anchored on an `ImportLineage`: the QET project UUID (QET 0.200+), or the SHA-256 of the lineage's *first*
-   imported file. Records are `v5(namespace, source_key)` and carry `source_ref{lineage, key}`. With the first-file
+   imported file (amendment 4 derives the namespace from the anchor). Records are `v5(namespace, source_key)` and carry `source_ref{lineage, key}`. With the first-file
    anchor the formula is literally this ADR's, with `source_file_hash` read as "hash of the lineage's first file".
    Re-importing an edited file therefore keeps the IDs of unchanged source keys (FR-IMP-002, FR-IMP-040).
 2. **Further v5 identities** (2026-10-18; [domain model](../design/03-domain-model.md) §4.1,
@@ -56,10 +56,30 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    identical files.
 3. **UUIDv7 method** (2026-10-18; [project format](../design/05-project-format-and-persistence.md) §3.3). `ew-ids`
    fills `rand_a` with sub-millisecond clock bits and `rand_b` with 62 fresh random bits for every ID (RFC 9562
-   §6.2 method 3). It never puts a counter in `rand_b`, because line order and sharding use bytes 8–15. If the uuid
-   crate's default v7 context keeps a counter there (**verify**), `ew-ids` assembles the bits itself through uuid's
-   builder API. A CI test checks that 10,000 IDs minted within one millisecond spread evenly over shards and sort
-   positions.
+   §6.2 method 3). It never puts a counter in `rand_b`, because line order and sharding use bytes 8–15. The uuid
+   crate's `ContextV7` keeps a 42-bit counter spanning `rand_a` and the top 30 bits of `rand_b` (checked in uuid
+   1.28.0), so `ew-ids` does not use `Uuid::now_v7` and assembles the bits itself. A CI test checks that 10,000 IDs
+   minted within one millisecond spread evenly over shards and sort positions.
+4. **Name layout and import namespaces** (2026-10-18; [project format](../design/05-project-format-and-persistence.md)
+   §3.2a, [interop](../design/14-interop.md) §2.3). The first code fixed the bytes that enter every UUIDv5 hash;
+   they are part of the file format and never change. `ew-ids` (`v5` module) owns them, with fixed test vectors.
+   - **Namespace:** the parent UUID the formula names, or a fixed constant. Two exist, each a random v4 UUID minted
+     once and fixed forever: `NS_LIBCOPY` = `04c1640f-8857-4dfc-9bff-e9baad47fb47` (embedded library copies) and
+     `NS_IMPORT` = `7b75186c-f28e-49ce-b7f7-26b137095a65` (import-lineage namespaces). `ew-ids` holds both.
+   - **Name:** the UTF-8 bytes of the components' canonical text forms joined by U+001F (UNIT SEPARATOR, written ␟
+     below): UUIDs as lower-case hyphenated strings; integers in decimal without sign, padding or separators; the
+     literals `channel` and `route` verbatim; source keys and version strings as given. U+001F cannot occur in a
+     UUID or a decimal integer, so the joined name is unambiguous. Example: `plc_channel_id(m, 3) = v5(m, "channel\u{1F}3")`;
+     for m = `0192f3a4-5b6c-7d8e-8f01-23456789abd0` this is `c3cb5781-8135-54b1-8948-9f118e22553d`.
+   - **Hash:** `Uuid::new_v5(namespace, name)` (SHA-1, RFC 9562 §5.5).
+   - **Imported records** are `imported_id(namespace, source_key) = v5(namespace, source_key)`, with the source key
+     used byte for byte. Importers emit keys in NFC, so the stored `source_ref.key` re-derives the same ID.
+   - **The lineage anchor is not itself the namespace.** Amendment 1 left open how the 32-byte SHA-256 of a
+     lineage's first file becomes a UUID. Every lineage namespace is `v5(NS_IMPORT, importer ␟ anchor kind ␟ anchor
+     value)`; the digest enters as 64 lower-case hex digits (`"dxf␟sha256␟<hex>"`) and a QET project UUID as
+     `"qet␟project␟<uuid>"`. One EW-owned root keeps foreign values out of the namespace position and separates
+     importers. Taking the digest's first 16 bytes with the version and variant bits forced would also work, but it
+     would be a second, ad-hoc derivation beside v5. The anchor table is in interop §2.3.
 
 ## Consequences
 

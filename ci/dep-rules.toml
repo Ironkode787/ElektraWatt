@@ -89,7 +89,7 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 ]
 "ew-viewmodel" = ["ew-api"]
 "ew-ui" = ["ew-viewmodel", "ew-render2d", "ew-render-cpu", "ew-render3d"]
-"ew-testkit" = []
+"ew-testkit" = ["ew-import-tables"]
 "elektrawatt" = ["ew-ui", "ew-print"]
 "ew" = ["ew-api", "ew-print"]
 "ew-step-worker" = ["ew-step-proto"]

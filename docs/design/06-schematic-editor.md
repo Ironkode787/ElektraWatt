@@ -696,6 +696,12 @@ outside the drawing area → None, reported by FR-CHK-035
   `column = ⌊(k_x − 2)/6⌋`, `row = "ABCDEFGH"[⌊(k_y − 2)/8⌋]`: the L-1 anchor at (1010 px, 620 px) gives
   `k = (101, 62)` and cell H16. A point on the native 4 mm grid is an exact integer in nm, so the formula applies to
   it without any rounding. Only off-grid points (free texts) use the stored nm value directly.
+- **Where it lives** (2026-10-18). The exact lookup is the cold derivation `cell_of(point, page) -> Option<Cell>` in
+  `ew-derive`: the page supplies its frame form and its connection grid, and the function snaps the point to its
+  grid index before evaluating the formula above. `rep_anchor_cell`, the cursor's cell readout (FR-UI-034) and
+  the empty-cell check call it. `ew-units` provides only the integer primitives (`Grid::snap` and the plain
+  Euclidean `Grid::cell(x, origin)`), which know nothing about frames or the snap-first rule; calling
+  `Grid::cell` on a stored nm value directly is the pitfall above.
 
 ### 5.2 Autoconnect candidate search
 

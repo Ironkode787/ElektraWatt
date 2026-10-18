@@ -43,7 +43,7 @@ settings. Rendered text is never stored.
 
 ## Amendments
 
-Accepted on 2026-10-18. The decision text above is unchanged; this entry refines it.
+Accepted on 2026-10-18. The decision text above is unchanged; these entries refine it.
 
 1. **Integer angle for free texts and graphics** (2026-10-18; [domain model](../design/03-domain-model.md) §3.1,
    [interop](../design/14-interop.md)). QET free texts keep their source rotation, and DXF `INSERT` and `TEXT`
@@ -51,6 +51,14 @@ Accepted on 2026-10-18. The decision text above is unchanged; this entry refines
    in units of 10⁻³ degree, used **only** by free texts and graphics. Symbol representations keep `Orient2`. The
    trigonometry runs in `ew-dl`'s deterministic helpers. The JSON encoding is the integer, and the default 0 is
    omitted. The type exists before the QET importer's free-text pass lands.
+2. **Rotation sense of `Angle2`** (2026-10-18, project owner (delegated, 2026-10-18); [domain model](../design/03-domain-model.md)
+   §3.1, [interop](../design/14-interop.md) §4.3, §4.13, §6.1). 0 points along +x (3 o'clock), and a positive
+   `Angle2` rotates **counter-clockwise as seen by the viewer on the sheet**, although sheet y points down: a point
+   (x, y) rotated by θ becomes (x cos θ + y sin θ, −x sin θ + y cos θ). This is QET's arc convention ("positive span
+   counter-clockwise on screen") and leaves DXF angle values unchanged after the importer's y flip. QET free-text
+   and static-text rotations follow Qt's clockwise-positive convention and are negated by the importer. `Orient2`
+   keeps its clockwise Rn (QET element `orientation`), so R90 corresponds to `Angle2(270_000)`. `ew-dl`'s
+   deterministic helpers implement the rotation; `ew-units` only stores the value.
 
 ## Consequences
 

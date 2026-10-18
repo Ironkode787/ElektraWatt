@@ -1684,7 +1684,8 @@ EW-THM-002 … 004 → FR-THM-012.
     (§5.6, `ReleaseRecord.page_digests` and `changed_pages`); `diff_model` and `diff_query` stay for property
     comparison and deltas; ARCH §7.8 and ADR-0013 follow. Revision states are Open, Released and Withdrawn.
 11. **Duplicate rows.** FR-REV-018/FR-COL-018 and FR-REV-019/FR-COL-019 say the same. *Recommendation:* keep the
-    REV rows; mark the COL rows as referring to them, keeping their IDs.
+    REV rows; mark the COL rows as referring to them, keeping their IDs. **Decided** 2026-10-18 as recommended
+    (decision log DEC-080 item 4): the REV rows absorb the COL rows' detail, and the COL rows refer to them.
 12. **FR-CHK-012 (MVP) against FR-COL-016 (1.0).** **Resolved:** FR-CHK-012 owns EW-CORE-001 … 016 on open and after
     merges at MVP, including EW-CORE-013's "renumber the newer" fix (§6.4); FR-COL-016 (1.0) is cross-file
     reconciliation and the full conflict-panel flow.

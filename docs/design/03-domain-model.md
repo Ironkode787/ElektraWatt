@@ -250,14 +250,25 @@ classDiagram
 - **`Pt2 { x, y }`** on pages has its origin at the top-left corner of the sheet, x to the right and y downwards.
   This is QET's convention, so imported geometry needs no flip.
 - **`Grid { num, den }`** is a rational step in nm. The QET 10 px grid is `7_937_500/3` nm (1 px = 25.4/96 mm =
-  `793_750/3` nm). The native EW connection grid is proposed as 4 mm = `4_000_000/1` (ADR-0027, proposed), with
-  fine grids of 0.5 mm for graphics and 1 mm for text slots. Points snap to grid indices `k`, and the stored
+  `793_750/3` nm). The native EW connection grid is 4 mm = `4_000_000/1`, with fine grids of 0.5 mm for graphics and
+  1 mm for text slots: ADR-0027's recommendation, the default in force since 2026-10-18 while the ADR stays Proposed
+  until the pilot confirms it at G-M0 (decision log DEC-043). Points snap to grid indices `k`, and the stored
   coordinate is `round(k × num / den)`, an error of at most 0.5 nm.
+- **`Rect`** is an axis-aligned closed rectangle of two `Pt2`, always normalised (minimum corner first). It is
+  persisted in embedded report blocks, form cells and data areas and `SurfaceView.clip`; the JSON encoding is
+  `[[x0, y0], [x1, y1]]` ([05](05-project-format-and-persistence.md) §3.2).
 - **`Orient2`** has eight variants: four rotations, each optionally mirrored (FR-SYM-004). Symbol representations
-  use only `Orient2`.
+  use only `Orient2`. Rn rotates clockwise as seen on the sheet, following QET's element `orientation`
+  ([06](06-schematic-editor.md) §2.5).
 - **`Angle2(i32)`** is an angle in units of 10⁻³ degree, used only by free texts and graphics (QET free texts, DXF
   `INSERT` and `TEXT`), so imports keep arbitrary angles without floats in files (ADR-0005). The JSON encoding is the
-  integer; the default 0 is omitted. Trigonometry runs in the deterministic helpers of `ew-dl`.
+  integer; the default 0 is omitted. **Sense** (ADR-0005 amendment 2): 0 points along +x (3 o'clock), and a
+  positive angle rotates **counter-clockwise as seen on the sheet**, although sheet y points down. A point (x, y)
+  rotated by θ about the origin becomes (x cos θ + y sin θ, −x sin θ + y cos θ). This is QET's arc convention and
+  keeps DXF angles unchanged after the importer's y flip; QET free-text rotations, which Qt counts clockwise, are
+  negated on import ([14](14-interop.md) §4.3, §4.13, §6.1). It is the opposite of `Orient2`'s clockwise Rn, so R90
+  corresponds to `Angle2(270_000)`. Trigonometry runs in the deterministic helpers of `ew-dl`, which implement this
+  rotation.
 - **`Pose3`** is a translation of three `Nm` plus a unit quaternion whose four components are stored as `i64` in
   units of 10⁻⁹, so files never carry floats (arch §7.3). f64 mm appears only in 3D maths, f32 only in GPU buffers.
 
@@ -307,7 +318,7 @@ classDiagram
 | Function created from a part's function template | `v5(device_id, template_index)` | the 13-14 signal contact of -102F2, created from the MICO 4.10 template |
 | Generated report page | `v5(report_block_id, page_index)` | folio 901, "Partlist 1" |
 | PLC channel | `v5(module_id, "channel", number)`; stored, because it carries authored data | channel 1 of -201U3 |
-| Imported record | `v5(namespace, source_key)`; the namespace is anchored on an `ImportLineage` (QET project UUID, or the SHA-256 of the lineage's first imported file), and the record carries `source_ref{lineage, key}` (ADR-0004, ADR-0021, [14](14-interop.md) §2.3) | a QET `<element uuid>` |
+| Imported record | `v5(namespace, source_key)`; the namespace is anchored on an `ImportLineage` (QET project UUID, or the SHA-256 of the lineage's first imported file) and derived from it as `v5(NS_IMPORT, …)` ([05](05-project-format-and-persistence.md) §3.2a), and the record carries `source_ref{lineage, key}` (ADR-0004, ADR-0021, [14](14-interop.md) §2.3) | a QET `<element uuid>` |
 | Derived aggregate | the minimum member ID or its definition point (§9.4) | potential 24VDC-1 |
 
 Tags, folios, designations, wire numbers and addresses are **properties, never identity** (arch §1.2 principle 4).
@@ -466,7 +477,7 @@ classDiagram
 | `StructureBox` (added): dotted or dash-dot box that assigns a structure | A, page-owned | `outline: Vec<Pt2>`, line style, `caption: MlText`, `assigns`, `external?` | Containment of a representation's anchor point is derived (FR-PRJ-020) | — |
 | `ExternalRef`: a target in another project or cabinet | A | `project?`, `location: StructureNodeId` (+J-E-206), `device: Ident` ("JE-N1000-03"), `connection?: Ident` ("L") | Used by external connection points (§10), cable ends (FR-CBL-015) and external bus partners (§14) | Chk: stale when the referenced project is available and the target changed (FR-PRJ-022) |
 | `Comment`: review note | A, `comments.jsonl` | `anchor: EntityRef \| (PageId, Pt2)`, `author`, `status: Open \| Resolved`, `text: MlText`; added: `kind: Note \| Issue`, `revision?`, `parent?` (thread), `resolved?{by, date}` ([15](15-checks-revisions-collaboration.md) §6.7) | Anchored by UUID, so it survives renumbering (FR-COL-018) | — |
-| `ImportLineage` (added): the identity anchor of one imported source | A, `project.jsonl` | `importer` ("qet"), `source_name` (file name, no path), `anchor: QetProjectUuid \| FirstImportSha256 \| Copy{of, n}`, `namespace: Uuid`, `last_source_sha256`, `last_run` | Re-importing into the lineage keeps the IDs of unchanged source keys (FR-IMP-002, FR-IMP-040) | — |
+| `ImportLineage` (added): the identity anchor of one imported source | A, `project.jsonl` | `importer` ("qet"), `source_name` (file name, no path), `anchor: QetProjectUuid \| FirstImportSha256 \| Copy{of, n} \| Fixed(label)`, `namespace: Uuid` (derived from the anchor, [14](14-interop.md) §2.3), `last_source_sha256`, `last_run` | Re-importing into the lineage keeps the IDs of unchanged source keys (FR-IMP-002, FR-IMP-040) | — |
 | `ImportRun` (added): one persisted import | A, `imports/<run-uuid>.jsonl` | `lineage`, importer and version, source info, `as_of`, options digest, report entries and stats, `record_hashes` (the re-import base), acknowledged entries | Written in the import transaction; never conflicts with project data; import-only facts (EW-IMP findings such as a font substitution) stay visible after the import (FR-IMP-041) | — |
 
 **Aspects and their signs.** Signs and sub-level separators are project settings (FR-PRJ-016); the defaults follow

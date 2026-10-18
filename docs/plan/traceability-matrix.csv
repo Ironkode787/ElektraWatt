@@ -124,7 +124,7 @@ FR-COL-015,FR-COL,Must,1.0,yes,WP-S2.15,M5,1.x
 FR-COL-016,FR-COL,Must,1.0,yes,WP-S1.31,M5,1.x
 FR-COL-017,FR-COL,Should,1.0,yes,WP-S2.15,M5,1.x
 FR-COL-018,FR-COL,Should,1.0,yes,WP-S1.31,M5,1.x
-FR-COL-019,FR-COL,Should,1.x,yes,WP-S1.34,1.x,1.x
+FR-COL-019,FR-COL,Could,1.x,yes,WP-S1.34,1.x,1.x
 FR-COL-020,FR-COL,Should,1.x,yes,WP-S1.34,1.x,1.x
 FR-COL-021,FR-COL,Could,Later,NO,,,
 FR-COL-022,FR-COL,Should,1.0,yes,WP-S1.31,M5,1.x

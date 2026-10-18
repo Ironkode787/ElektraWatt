@@ -211,7 +211,7 @@ These rows are moved by the levers (lever (a): 8, lever (b): 16). They are owed 
 | FR-COL-015 | Must | A conflict-resolution panel shall show each conflict record… | WP-S2.15 | 1.x | c |
 | FR-COL-016 | Must | After a merge, a record found in two files together with a… | WP-S1.31 | 1.x | c |
 | FR-COL-017 | Should | A visual comparison of two project states (commits, revisio… | WP-S2.15 | 1.x | c |
-| FR-COL-018 | Should | Review comments shall anchor to entities (device, connectio… | WP-S1.31 | 1.x | c |
+| FR-COL-018 | Should | Refers to FR-REV-018, the row of record, which now holds th… | WP-S1.31 | 1.x | c |
 | FR-COL-022 | Should | A work copy shall record its base generation and merge back… | WP-S1.31 | 1.x | c |
 | FR-EXP-007 | Should | The cabinet shall be exportable as glTF 2.0 (`.glb`, node n… | WP-S4.09 | 1.x | c |
 | FR-EXT-010 | Must | Jobsets (`ew jobs run release.ewjobs`) shall declare checks… | WP-S1.32 | 1.x | c |
@@ -256,7 +256,7 @@ These rows are moved by the levers (lever (a): 8, lever (b): 16). They are owed 
 | FR-REV-014 | Must | compare the current project with a released revision (or tw… | WP-S1.31 | 1.x | c |
 | FR-REV-015 | Must | derive BOM, wire-list, terminal and PLC-address deltas betw… | WP-S1.31 | 1.x | c |
 | FR-REV-016 | Should | mark changed representations with revision clouds or marker… | WP-S1.31 | 1.x | c |
-| FR-REV-018 | Should | keep review comments (author, status, anchor to page, posit… | WP-S1.31 | 1.x | c |
+| FR-REV-018 | Should | keep review comments (author, status open or resolved, anch… | WP-S1.31 | 1.x | c |
 | FR-REV-023 | Should | give revisions an issue purpose and log transmittal records… | WP-S1.31 | 1.x | c |
 | FR-REV-024 | Should | block the release of a revision while review comments of ki… | WP-S1.31 | 1.x | c |
 | FR-REV-025 | Should | provide `ew archive verify <file>`, which checks sums, sche… | WP-S1.31 | 1.x | c |

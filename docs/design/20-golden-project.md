@@ -235,8 +235,9 @@ The original `.qet` and the reference PDF live in a private store reachable only
 ### 3.2 Build paths and their equivalence
 
 Following [architecture](04-architecture.md) §13, Golden A is built three ways:
-- **(a) data bootstrap:** `ew import csv` over `tables/`, with IDs `v5(namespace "golden", table, row key)`
-  (ADR-0004), so the result is reproducible;
+- **(a) data bootstrap:** `ew import csv` over `tables/`, with IDs `v5(namespace, "{table}|{row key}")` in
+  the fixed import lineage `Fixed("golden")` (ADR-0004 amendment 4, [14](14-interop.md) §2.3), so the result is
+  reproducible;
 - **(b) builder DSL:** the same content issued as commands, which exercises the command layer;
 - **(c) checked-in fixture:** the committed output of (a).
 

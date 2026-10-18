@@ -32,9 +32,12 @@
 
 ## Decision
 
-**Pending.** In the interim, spine lane 2 builds `ew-scene`, the frame forms and the PNG/PDF goldens with Noto Sans,
-as [09](../design/09-reports-forms-output.md) §2.8 and [14](../design/14-interop.md) §4.10 already assume. If the
-decision differs, the goldens are re-baselined once.
+**Pending.** **Default in force since 2026-10-18** (decision log DEC-044; project owner (delegated, 2026-10-18)):
+work proceeds on the recommendation below, with Noto Sans (OFL-1.1) as the default drawing font; osifont is not
+bundled until its SPDX expression is verified. Spine lane 2 builds `ew-scene`, the frame forms and the PNG/PDF
+goldens with Noto Sans, as [09](../design/09-reports-forms-output.md) §2.8 and [14](../design/14-interop.md) §4.10
+already assume. The pilot user confirms it at G-M0; a different pilot decision re-baselines the starter symbols and
+goldens once.
 
 ## Recommendation
 

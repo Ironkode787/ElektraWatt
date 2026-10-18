@@ -235,7 +235,7 @@ sessions (G6).
 | `ew-print` | GPL | OS print adapters with per-OS features (§8.4) | ew-export, ew-render-cpu |
 | `ew-plc` | GPL | Exchange orchestration, merge and writers: AML AR APC (CAEX 2.15 write, 2.15 and 3.0 read, through `ew-caex`), the TIA "PLC Tags" XLSX exporter and importer, PLCopen XML; rack and slot logic | ew-plcaddr, ew-caex, ew-devdesc, quick-xml 0.42.0, calamine 0.36.1 |
 | `ew-panel` | GPL | Layout queries, collision reconciler, routing graph, negotiated-congestion routing, lengths, duct fill, 2D panel projection; glTF (glb) and STL writer for `layout_scene` | parry3d 0.31.1, pathfinding 4.16.0, petgraph 0.8.3, glam 0.34.1, gltf-json **(verify)** |
-| `ew-render3d` | GPL | wgpu 3D: instancing, feature edges, transparency, CAD camera, picking, gizmo | wgpu 30.0.1, meshopt 0.7.0, transform-gizmo-egui 0.11.0 |
+| `ew-render3d` | GPL | wgpu 3D: instancing, feature edges, transparency, CAD camera, picking; a toolkit-agnostic camera, pick and constraint API that `ew-ui`'s gizmo drives (Rule 3) | wgpu 30.0.1, meshopt 0.7.0 |
 | `ew-mfg` | GPL | Production package content, wire lists with lengths, ferrules, labels, data-driven machine and label profiles | ew-panel, ew-ewpp, zip, csv, rust_xlsxwriter |
 | `ew-import-qet`, `ew-import-eplan`, `ew-import-dxf` | GPL | QET `.qet`/`.qetz`; EDZ (7-Zip and ZIP), EPLAN XML/XLSX; DXF (DWG behind a feature) | roxmltree 0.21.1, quick-xml, ew-plcaddr (QET); sevenz-rust2 0.24.0, zip, calamine, csv (EPLAN); dxf 0.6.2, acadrust 0.6.4 (MPL-2.0) |
 | `ew-import-catalog` | GPL | Parts from CSV/XLSX (MVP), BMEcat and ETIM xChange (1.x), behind `ew-interop-api` | csv, calamine, quick-xml |
@@ -244,7 +244,7 @@ sessions (G6).
 | `ew-jobs` | GPL | Scheduler, progress, cancellation, staleness tagging, adopt-if-unchanged | rayon |
 | `ew-api` | GPL | The `Session` facade shared by every front-end; registers the SQL and plugin rule implementations at session start; composes `.ewpp` export jobs from `ew-mfg` data, `ew-export` PDF/DXF and `ew-panel` glb | everything above except UI |
 | `ew-viewmodel` | GPL | Toolkit-agnostic panel models: navigator trees, table rows with edit→command mapping, property-grid rows with provenance, message lists, each with a revision stamp | ew-api |
-| `ew-ui` | GPL | egui widgets, canvas host, tools (state machines), command palette, keymaps, the action registry behind every menu | egui 0.37.0, egui_tiles 0.17.1, egui_table 0.10.0, egui_ltreeview 0.9.0 |
+| `ew-ui` | GPL | egui widgets, canvas host, tools (state machines), command palette, keymaps, the action registry behind every menu, the 3D transform gizmo over `ew-render3d`'s camera and pick API | egui 0.37.0, egui_tiles 0.17.1, egui_table 0.10.0, egui_ltreeview 0.9.0, transform-gizmo-egui 0.11.0 |
 | `ew-viewer` (1.0) | GPL | The read-only `.ewpp` wiring viewer on `ew-ui` widgets, used by the `ew-wiring-viewer` binary and the "Preview package" view of the Manufacturing workspace | ew-ewpp, ew-ui, ew-render-cpu, hayro 0.8.0 (after the fidelity check) |
 | `elektrawatt` (bin) | GPL | eframe shell, native menus on macOS and Windows (egui menu bar on Linux), dialogs, clipboard, crash handler | eframe 0.37.0, egui-wgpu 0.37.0, muda 0.21.2, rfd 0.17.2, arboard 3.7.0, ew-print |
 | `ew` (bin) | GPL | CLI, `ew mcp`, merge driver, textconv, migration verifier | clap **(verify)**, rmcp 3.5.1 **(verify)**, ew-print, hayro 0.8.0 (`ew verify-migration`) |
@@ -310,6 +310,7 @@ graph TD
     cli["ew (bin): CLI, MCP, merge driver"]
     wv["ew-wiring-viewer (bin)"]
     stepw["ew-step-worker (bin)"]
+    testkit[ew-testkit]
   end
   schema --> units & ids & mltext & rds
   format --> schema
@@ -347,6 +348,7 @@ graph TD
   cli --> api & print
   wv --> viewer
   stepw --> stepp
+  testkit --> itab
 ```
 
 **Rules.**
@@ -355,7 +357,11 @@ graph TD
 2. **SQLite.** Only `ew-sqlview` and `ew-library` link rusqlite. `ew-reports` runs user SQL through the sandboxed
    query API of `ew-sqlview`, and importers receive SQLite content only as a `TableImage` (§10.6).
 3. **UI toolkit and GPU.** Only `ew-ui`, `ew-viewer`, the app binary and the `ew-wiring-viewer` binary know egui.
-   Only the renderers know wgpu.
+   Only the renderers know wgpu. Egui integrations of other libraries count as egui: the 3D gizmo
+   (transform-gizmo-egui) lives in `ew-ui`, and `ew-render3d` exposes a camera, pick and constraint API that knows
+   no toolkit (amended 2026-10-18, ADR-0016 amendment 1). When `ew-ui` adds the gizmo, the egui
+   `[[external_owner]]` rule of `ci/dep-rules.toml` lists `transform-gizmo-egui` in its `crates`, so no crate outside
+   the four owners can depend on it.
 4. **Importers** depend on `ew-interop-api`, their parsers and permissive helpers such as `ew-plcaddr` only. They
    never see `ew-model`.
 5. **Model entities are the schema records.** `ew-model` wraps `ew-schema` record structs in tables. The GPL layer
@@ -459,7 +465,7 @@ pub struct DeviceAspects {
 | New records | UUIDv7 (uuid 1.28.0) |
 | Instantiated children (CPs) | `v5(function_id, idx)`, computed and never stored, used for PDF destinations and external references |
 | Generated report pages | `v5(report_block_id, page_index)`, so PDF named destinations stay stable |
-| Imported records | `v5(lineage namespace, source key)`: the namespace is anchored on an import lineage (the QET project UUID, or the SHA-256 of the lineage's first imported file), so re-importing an edited QET file updates unchanged items in place; `source_ref{lineage, key}` keeps provenance |
+| Imported records | `v5(lineage namespace, source key)`: the namespace is anchored on an import lineage (the QET project UUID, or the SHA-256 of the lineage's first imported file) and derived from it as `v5(NS_IMPORT, …)` ([05](05-project-format-and-persistence.md) §3.2a, ADR-0004 amendment 4), so re-importing an edited QET file updates unchanged items in place; `source_ref{lineage, key}` keeps provenance |
 | Functions created from a part's function template | `v5(device_id, template_index)` |
 | PLC channels | `v5(module_id, "channel", number)`, stored because a channel carries authored data |
 | Embedded library copies | `v5(NS_LIBCOPY, library_id ‖ item_id)`; only an explicit "keep both" after a cross-project paste mints `v5(NS_LIBCOPY, library_id ‖ item_id ‖ version)` |
@@ -660,6 +666,7 @@ The estimated size is 1.5–2.5 kLOC. Two owners are required by the end of the 
 | `function_cps(f)` | function definition, overrides | Cold | CP instantiation |
 | `device_tag(dev)` → `{full, displayed(page)}` | `TagSpec`, identifier set, structure nodes, main representation's folio, assembly parent | Memo | EPLAN-style identifier suppression; child tags `-201U3-Q1` (D-27, D-41) |
 | `rep_anchor_cell(rep)` | position, the symbol's anchor policy, form grid | Cold | Derived from the symbol definition, never from rendered geometry; fixes "3-B0" (D-14) |
+| `cell_of(point, page)` | the page's frame form and connection grid | Cold | Exact frame-cell lookup: snaps the point to its grid index first, then evaluates on the rational grid ([06](06-schematic-editor.md) §5.1, FR-PAG-020). Used by `rep_anchor_cell` and the cursor readout; `ew-units` has only the integer `Grid` primitives |
 | `xref_text(rep)` | partners' anchor cells, xref format | Memo | Star or chain interruption points; "(201-E1)", "∞ 203-B4" |
 | `page_local_nets(page)` | connections, junctions, reps on the page | Memo | Union-find over a few thousand edges |
 | `stitch_graph()` | local nets, IP pairing, bridges, conductors, terminal side links, bonds | Memo | Nodes are local nets, about 10–15 % of CPs |
@@ -1016,7 +1023,8 @@ flowchart LR
 - **Reconciler.** Mutable acceleration structures (parry3d BVHs, GPU instance buffers) are kept in step by a
   reconciler. It diffs successive scene outputs by placement ID and applies insert, update and refit operations.
   Debug read-tracking and the field-mask test guard it (from D).
-- **Picking and gizmo.** Picking is a CPU ray cast. The gizmo is transform-gizmo-egui 0.11.0.
+- **Picking and gizmo.** Picking is a CPU ray cast. The gizmo is transform-gizmo-egui 0.11.0, hosted by `ew-ui`
+  over `ew-render3d`'s camera, pick and constraint API, because only `ew-ui` may know egui (§3 Rule 3).
 - **3D export.** `ew-panel` writes glTF (glb) and STL from `layout_scene`.
 - **2D panel pages** (folio 902) are projections of mounting surfaces through the same 2D IR: a PanelLayout page
   hosts one `SurfaceView` of the placements. Layout labels are `layout_label` queries (D-02).

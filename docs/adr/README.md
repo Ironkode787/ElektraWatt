@@ -21,7 +21,7 @@
 | [0013](0013-revisions-and-as-built-archive.md) | Revisions and the as-built archive outside the project directory | Accepted (amended 2026-10-18) | 2026-10-17 | One Revision table; as-built archive outside the project directory |
 | [0014](0014-gui-toolkit-egui.md) | GUI toolkit: egui/eframe behind `ew-ui`, over a toolkit-agnostic `ew-viewmodel` | Accepted (amended 2026-10-18) | 2026-10-17 | egui/eframe behind `ew-ui`, over a toolkit-agnostic `ew-viewmodel` |
 | [0015](0015-display-list-renderers-pdf.md) | One display-list IR; wgpu canvas plus an always-built CPU renderer; krilla PDF/A-2b; PDF as print master | Accepted (amended 2026-10-18) | 2026-10-17 | One display-list IR; wgpu canvas plus CPU renderer; krilla PDF/A-2b; PDF as print master |
-| [0016](0016-3d-renderer-wgpu-and-out-of-process-step-worker.md) | 3D renderer on wgpu; out-of-process OCCT STEP worker via occt-sys | Accepted | 2026-10-17 | Own wgpu 3D renderer; out-of-process OCCT STEP worker |
+| [0016](0016-3d-renderer-wgpu-and-out-of-process-step-worker.md) | 3D renderer on wgpu; out-of-process OCCT STEP worker via occt-sys | Accepted (amended 2026-10-18) | 2026-10-17 | Own wgpu 3D renderer; out-of-process OCCT STEP worker |
 | [0017](0017-read-only-sql-projection-api-v1.md) | Read-only SQL projection with versioned `api_v1` views | Accepted (amended 2026-10-18) | 2026-10-17 | Read-only SQLite projection with versioned `api_v1` views |
 | [0018](0018-reports-forms-engine-and-machine-profiles.md) | Reports and forms engine; report blocks as derived pages; machine-export profiles as data | Accepted (amended 2026-10-18) | 2026-10-17 | One reports/forms engine; report blocks as derived pages; machine profiles as data |
 | [0019](0019-rule-engine-and-rule-packs.md) | Rule engine and rule packs | Accepted (amended 2026-10-18) | 2026-10-17 | Declarative rules in rule packs; severity, waivers, prevent/detect modes |
@@ -32,8 +32,8 @@
 | [0024](0024-licence-set-and-permissive-gpl-boundary.md) | Licence set and the permissive/GPL crate boundary | Accepted (amended 2026-10-18) | 2026-10-17 | Licence map per path; permissive format crates, GPL application, enforced boundary |
 | [0025](0025-gpl-plugin-exception-wording.md) | Wording of the GPL plugin exception | Proposed | 2026-10-17 | Wording of the GPL plugin exception (pending counsel) |
 | [0026](0026-default-device-tag-identifier-set.md) | Default device-tag identifier set for new projects | Accepted (amended 2026-10-18) | 2026-10-17 | EN 81346-2:2009 single-letter identifier set as default for new projects |
-| [0027](0027-native-symbol-grid-and-qet-grid-policy.md) | Native symbol and connection grid; policy for QET-grid pages | Proposed | 2026-10-17 | Native symbol and connection grid; policy for QET-grid pages (pending pilot input) |
-| [0028](0028-default-drawing-fonts.md) | Default drawing fonts | Proposed | 2026-10-17 | Default drawing fonts (pending; interim Noto Sans) |
+| [0027](0027-native-symbol-grid-and-qet-grid-policy.md) | Native symbol and connection grid; policy for QET-grid pages | Proposed | 2026-10-17 | Native symbol and connection grid; policy for QET-grid pages (pending pilot input; the 4 mm default is in force since 2026-10-18) |
+| [0028](0028-default-drawing-fonts.md) | Default drawing fonts | Proposed | 2026-10-17 | Default drawing fonts (pending pilot input; the Noto Sans default is in force since 2026-10-18) |
 | [0029](0029-network-telemetry-crash-reporting-policy.md) | Network, telemetry and crash-reporting policy | Proposed | 2026-10-17 | Network, telemetry and crash-reporting policy (pending) |
 | [0030](0030-legal-steward-cra-role-support-signing.md) | Legal steward, CRA role, support period and signing identity | Proposed | 2026-10-17 | Legal steward, CRA role, support period and signing identity (pending) |
 

@@ -1,9 +1,11 @@
 # Decision log
 
-**Status:** Draft v0.2 · **Date:** 2026-10-18 · **Part of:** ElektraWatt plan
+**Status:** Draft v0.3 · **Date:** 2026-10-18 (v0.3: decisions of the first implementation day, §2.4 and §5.1) ·
+**Part of:** ElektraWatt plan
 
 **Purpose.** This is the decision log of ElektraWatt (EW). **Part A** records what has been decided: the user
-decisions of 2026-10-17 and every Accepted ADR, one line each. **Part B** is the register of what is still open: the
+decisions of 2026-10-17, every Accepted ADR and the decisions of the first implementation day (2026-10-18), one
+line each. **Part B** is the register of what is still open: the
 questions that the design documents carry in their "Open questions" sections and the five Proposed ADRs (0025, 0027,
 0028, 0029, 0030), consolidated and deduplicated into 85 numbered decisions (DEC-001 to DEC-085), each with its
 options, a recommendation, a decision owner, the gate or work package by which it is needed, the impact if it is late
@@ -17,7 +19,8 @@ November 2026) and move with the scenario.
 
 ## Summary for decision makers
 
-**The state in one paragraph.** Eight user decisions and 25 Accepted ADRs are fixed (Part A). 85 decisions are
+**The state in one paragraph.** Eight user decisions, 25 Accepted ADRs and seven decisions of the first
+implementation day (2026-10-18, two of them interim defaults) are fixed (Part A). 85 decisions are
 open (Part B): 37 wait for the pilot user, 24 for the project owner,
 21 for the core team and 3 for counsel (several more need counsel's input). DEC-081 to DEC-085 were added with
 version 0.2 for the re-planned pilot preview, the external and internal dates, the CRA status of the preview, the
@@ -52,6 +55,10 @@ when they are submitted; and the legal items that are already overdue or hard:
 the publication consent (DEC-013, "now", the content is public), the employer statement (DEC-014) and the SPDX test
 (DEC-016). The pilot's data requests (QET corpus DEC-073, size data DEC-029) have a lead time of
 months, so they go out at the kick-off.
+
+**Defaults already in force.** Since 2026-10-18 the 4 mm native grid (DEC-043) and Noto Sans (DEC-044) are the
+working basis, so the output lane does not wait; both rows stay open until the pilot confirms them at G-M0, and
+DEC-080 items 1 to 4 are confirmed (§2.4).
 
 **What happens if nothing is decided.** The documented defaults apply: 4 mm grid, Noto Sans, classic single letters,
 DBU/WH colours, 3 developers, no grants, no signed release, no non-maintainer merge (`blocked:LG-2`), local-only crash
@@ -102,7 +109,9 @@ has lead time and a cost that [global plan §13.4](01-global-plan.md#134-costs-t
    conventions and what the pilot's shop does; this includes the employer where the employer must act. *Core team*:
    architecture, engineering defaults, verification outcomes. *Counsel*: legal wording and legal interpretation. A
    decision with two roles names the one who decides first and the one consulted in brackets.
-6. **Status.** Every row is *Open* on 2026-10-18. Closing a row is described in §5.
+6. **Status.** Every row is *Open* on 2026-10-18. Closing a row is described in §5. A row whose recommendation is
+   already the working basis says "Default in force since *date*" in its recommendation cell and stays open; §2.4
+   lists these interim decisions.
 
 ### 1.3 Gates, months and dates
 
@@ -180,8 +189,8 @@ All 25 are Accepted; those marked *amended* took amendments on 2026-10-18 that a
 | [ADR-0001](../adr/0001-core-model-persistent-maps.md) | Core model: typed Rust records in persistent maps (imbl); one `Model` value is the single source of truth and everything printed is derived. |  |
 | [ADR-0002](../adr/0002-derived-data-engine-ew-memo.md) | Derived-data engine: cold-first queries plus a cut-down memo layer (`ew-memo`); no salsa. | amended; the performance spike (DEC-028) closes the open part |
 | [ADR-0003](../adr/0003-freshness-contract.md) | Freshness contract: classes I to III, frozen-on-purpose identifiers, committed computations, versioned derivation profiles. |  |
-| [ADR-0004](../adr/0004-identity-uuidv7-uuidv5.md) | Identity: UUIDv7 for authored records, UUIDv5 for instantiated, imported and generated ones. | amended (import lineage, UUIDv7 method) |
-| [ADR-0005](../adr/0005-value-types-nm-dec3-mltext.md) | Values: `i64` nanometre coordinates, rational grids, `Dec3` quantities, `MlText`. | amended |
+| [ADR-0004](../adr/0004-identity-uuidv7-uuidv5.md) | Identity: UUIDv7 for authored records, UUIDv5 for instantiated, imported and generated ones. | amended (import lineage, UUIDv7 method, UUIDv5 name layout and `NS_IMPORT`) |
+| [ADR-0005](../adr/0005-value-types-nm-dec3-mltext.md) | Values: `i64` nanometre coordinates, rational grids, `Dec3` quantities, `MlText`. | amended (`Angle2`, its counter-clockwise rotation sense) |
 | [ADR-0006](../adr/0006-function-device-representation-model.md) | Function / Device / Representation model with typed device aspects. | amended |
 | [ADR-0007](../adr/0007-explicit-connections-and-autoconnect.md) | Explicit connections and junction sequences are the model; autoconnect is an editing aid. | amended; validation with EPLAN and QET users is DEC-078 |
 | [ADR-0008](../adr/0008-transactions-undo-preview.md) | Transactions, undo/redo and preview-as-fork; every write is a serialisable command. | amended |
@@ -192,15 +201,15 @@ All 25 are Accepted; those marked *amended* took amendments on 2026-10-18 that a
 | [ADR-0013](../adr/0013-revisions-and-as-built-archive.md) | Revisions and the as-built archive outside the project directory. | amended |
 | [ADR-0014](../adr/0014-gui-toolkit-egui.md) | GUI toolkit: egui/eframe behind `ew-ui`, over a toolkit-agnostic `ew-viewmodel`. | amended |
 | [ADR-0015](../adr/0015-display-list-renderers-pdf.md) | One display-list IR; wgpu canvas plus an always-built CPU renderer; krilla PDF/A-2b; PDF as print master. | amended |
-| [ADR-0016](../adr/0016-3d-renderer-wgpu-and-out-of-process-step-worker.md) | 3D renderer on wgpu; out-of-process OCCT STEP worker. |  |
+| [ADR-0016](../adr/0016-3d-renderer-wgpu-and-out-of-process-step-worker.md) | 3D renderer on wgpu; out-of-process OCCT STEP worker. | amended (the gizmo lives in `ew-ui`) |
 | [ADR-0017](../adr/0017-read-only-sql-projection-api-v1.md) | Read-only SQL projection with versioned `api_v1` views. | amended |
 | [ADR-0018](../adr/0018-reports-forms-engine-and-machine-profiles.md) | Reports and forms engine; report blocks as derived pages; machine-export profiles as data. | amended |
 | [ADR-0019](../adr/0019-rule-engine-and-rule-packs.md) | Rule engine and rule packs. | amended (packs, export mode, rule-ID scheme) |
 | [ADR-0020](../adr/0020-extensibility-tiers-and-security-model.md) | Extensibility tiers and security model: CLI, rhai, WASM on the wasmtime LTS line, MCP, Python. | amended (pure formulas run untrusted; JSON at the WIT boundary) |
 | [ADR-0021](../adr/0021-importers-emit-format-level-records.md) | Importers emit format-level records; QET first; EDZ as 7-Zip; DWG via acadrust plus ODA. | amended |
 | [ADR-0022](../adr/0022-platform-matrix-and-performance-budgets.md) | Platform matrix and performance budgets (S/M/L/XL) as CI-enforced requirements. |  |
-| [ADR-0023](../adr/0023-supply-chain-and-release-integrity.md) | Supply chain and release integrity: pinned toolchain, SBOM, signing, provenance. | amended; the SignPath fallback is DEC-018 |
-| [ADR-0024](../adr/0024-licence-set-and-permissive-gpl-boundary.md) | Licence set and the permissive/GPL crate boundary, enforced in CI. | amended (further permissive crates, one allowlist) |
+| [ADR-0023](../adr/0023-supply-chain-and-release-integrity.md) | Supply chain and release integrity: pinned toolchain, SBOM, signing, provenance. | amended (cargo-vet audits name the GitHub handle, no imported audit sets); the SignPath fallback is DEC-018 |
+| [ADR-0024](../adr/0024-licence-set-and-permissive-gpl-boundary.md) | Licence set and the permissive/GPL crate boundary, enforced in CI. | amended (further permissive crates, one allowlist, the Code of Conduct's CC-BY-SA-4.0) |
 | [ADR-0026](../adr/0026-default-device-tag-identifier-set.md) | Default device-tag identifier set: EN 81346-2:2009 single letters; IEC 81346-2:2019 and IEC 60750 selectable. | amended; the leniency on S is DEC-046 |
 
 ### 2.3 Planning inputs used by the plan
@@ -219,6 +228,23 @@ the gates' GB-n and this list's PI-n are different lists.
 | PI-5 | At least 20 % reserve for integration, hardening and bug fixing; documentation, release engineering and community and pilot support are work packages. | PA-8 reserve; PA-6 what an estimate contains; PA-11 background load | [Work breakdown](02-work-packages.md) |
 | PI-6 | The architecture's indicative 15 to 18 months to 1.0 is not met; the realistic plan-of-record dates are the pilot preview at month 25 (Nov 2028), the MVP at month 40 (Feb 2030) and 1.0 at month 63 (Jan 2032). | none: a result of the schedule model | [Global plan](01-global-plan.md#36-can-v1-fit-1518-months) §3.6; [milestones.csv](milestones.csv) |
 | PI-7 | External lead times (the signing enrolment of at least 12 months, counsel, the trademark search) are modelled as lags and as money, not as person-weeks. | PA-9 schedule model; PA-10 external costs | [Global plan](01-global-plan.md#92-ordering-rules) §9.2 rule 5, §13.4 |
+
+### 2.4 Decisions of 2026-10-18 (first implementation day)
+
+On 2026-10-18 the first code landed (WP-S0.01, WP-S0.02 and the first half of WP-S1.01), and the project owner
+delegated the product-owner role to that development session. These decisions are recorded with the decider
+"project owner (delegated, 2026-10-18)", or the core team for engineering details the code had to fix. They take no
+confirmation away from the pilot user: DEC-043 and DEC-044 stay open in Part B until the pilot confirms them at G-M0.
+
+| # | Decision | Decider | Recorded in |
+|---|---|---|---|
+| ID-1 | **Native grid default (DEC-043, interim).** The 4 mm native connection grid (`Grid{4_000_000, 1}`), 0.5 mm graphics and 1 mm text grids, and QET-grid pages kept permanently are the working basis now, so the output lane can draw the starter symbols. ADR-0027 stays Proposed; the pilot user and two EPLAN users confirm at G-M0, and a different decision re-baselines the starter symbols and goldens once. | Project owner (delegated, 2026-10-18) | [ADR-0027](../adr/0027-native-symbol-grid-and-qet-grid-policy.md); DEC-043; [03](../design/03-domain-model.md) §3.1 |
+| ID-2 | **Default font (DEC-044, interim).** Noto Sans (OFL-1.1) is the default drawing font now; osifont is not bundled until its SPDX expression is verified. ADR-0028 stays Proposed; the pilot user confirms at G-M0. | Project owner (delegated, 2026-10-18) | [ADR-0028](../adr/0028-default-drawing-fonts.md); DEC-044 |
+| ID-3 | **Low-impact defaults, DEC-080 items 1 to 4.** Confirmed as written: 256 fixed shards; no macOS package bundle for `.ew` in v1; the manifest stays tracked in git; FR-REV-018/019 are the rows of record and FR-COL-018/019 refer to them, keeping their IDs. Items 5 to 9 stay open for their own gates. | Project owner (delegated, 2026-10-18) | §3.3; [05](../design/05-project-format-and-persistence.md) OQ6, OQ13, OQ14; [15](../design/15-checks-revisions-collaboration.md) OQ11; [02a](../design/02a-requirements-core.md), [02b](../design/02b-requirements-extended.md) |
+| ID-4 | **cargo-vet attribution.** The `who` field of an audit is the contributor's GitHub handle; public audit sets are not imported while the public-repository rule (UD-8) stands, because `imports.lock` would record auditors' names and e-mail addresses; revisit when a steward exists. | Project owner (delegated, 2026-10-18) | [ADR-0023](../adr/0023-supply-chain-and-release-integrity.md) amendment 3; [19](../design/19-open-source-governance.md) §3.5, OQ18 |
+| ID-5 | **`Angle2` rotation sense.** Positive angles rotate counter-clockwise as seen on the sheet, 0 at 3 o'clock; QET text rotations are negated on import, DXF angles kept. | Project owner (delegated, 2026-10-18) | [ADR-0005](../adr/0005-value-types-nm-dec3-mltext.md) amendment 2; [03](../design/03-domain-model.md) §3.1; [14](../design/14-interop.md) §4.3, §4.13, §6.1 |
+| ID-6 | **Code of Conduct licence.** `CODE_OF_CONDUCT.md` keeps the Contributor Covenant 3.0's own licence, CC-BY-SA-4.0, not the documentation licence CC-BY-4.0. | Core team (fact verified against the published text) | [ADR-0024](../adr/0024-licence-set-and-permissive-gpl-boundary.md) amendment 4; [19](../design/19-open-source-governance.md) §2.1, §2.3 |
+| ID-7 | **Engineering details fixed by the first code.** The UUIDv5 name layout and the `NS_IMPORT` constant for import-lineage namespaces; the `Rect` JSON encoding; the exact frame-cell lookup `cell_of(point, page)` in `ew-derive`; the 3D gizmo in `ew-ui`; the `ew-testkit` → `ew-import-tables` edge. | Core team | [ADR-0004](../adr/0004-identity-uuidv7-uuidv5.md) amendment 4; [05](../design/05-project-format-and-persistence.md) §3.2, §3.2a; [06](../design/06-schematic-editor.md) §5.1; [ADR-0016](../adr/0016-3d-renderer-wgpu-and-out-of-process-step-worker.md) amendment 1; [04](../design/04-architecture.md) §3 |
 
 ---
 
@@ -346,8 +372,8 @@ DEC-081 to DEC-085 were added with version 0.2 and sit here by topic, after DEC-
 
 | ID | Question and options | Recommendation | Owner | Needed by | Impact if late | Sources |
 |---|---|---|---|---|---|---|
-| **DEC-043** | **ADR-0027 native grid.** Which native connection grid do new symbols use (ADR-0027), and does the frame keep its 0-based 17 x 8 form?<br>*Options:* 4 mm (recommended); 2.5 mm (QET-like density on A4); frame 0-based 17 x 8 or EPLAN-style 1-based | 4 mm native grid, QET-grid pages kept permanently, 0.5 mm graphics and 1 mm text grids, confirmed with two EPLAN users from the NFR-UX-01 test group before the starter set is drawn. 2.5 mm applies unchanged if the pilot prefers density. | Pilot user (with the project owner and two EPLAN users) | **G-M0**: Spine week 2 (mid-Nov 2026, PD-4, CP-01); G-M0 | Starter-symbol work (WP-S3.01, WP-S7.02) and FR-SYM-009 / FR-PAG-021 wait; the output lane stalls; symbols drawn on the wrong grid are redrawn. | ADR-0027; 02a OQ14; 06 OQ6; 07 OQ9; 00 OQ9; PQ-06 |
-| **DEC-044** | **ADR-0028 default fonts.** Which fonts are the default (ADR-0028): Noto Sans, osifont as an option, Tahoma never bundled?<br>*Options:* Noto Sans default with optional osifont; keep the Tahoma look via a user-installed system font; osifont bundled or not (licence expression to verify) | Noto Sans (OFL-1.1), optional osifont per style or project once its SPDX expression is verified, an OFL symbol fallback, Tahoma and the other QET UI families mapped to the default and reported in the migration report. | Pilot user (with the project owner) | **G-M0**: Spine week 3 (late Nov 2026, PD-5, CP-01); G-M0 | Frame forms and PNG/PDF goldens (WP-S3.02) are built on Noto Sans in the interim and re-baselined once if the decision differs. | ADR-0028; 00 OQ9; PQ-07 |
+| **DEC-043** | **ADR-0027 native grid.** Which native connection grid do new symbols use (ADR-0027), and does the frame keep its 0-based 17 x 8 form?<br>*Options:* 4 mm (recommended); 2.5 mm (QET-like density on A4); frame 0-based 17 x 8 or EPLAN-style 1-based | 4 mm native grid, QET-grid pages kept permanently, 0.5 mm graphics and 1 mm text grids, confirmed with two EPLAN users from the NFR-UX-01 test group before the starter set is drawn. 2.5 mm applies unchanged if the pilot prefers density. **Default in force since 2026-10-18** (§2.4 ID-1; project owner (delegated, 2026-10-18)): work proceeds on this recommendation; the pilot user and two EPLAN users still confirm it. | Pilot user (with the project owner and two EPLAN users) | **G-M0**: Spine week 2 (mid-Nov 2026, PD-4, CP-01); G-M0 | With the default in force the output lane no longer waits; a different pilot decision re-baselines the starter symbols and goldens once (WP-S3.01, WP-S7.02, FR-SYM-009, FR-PAG-021). | ADR-0027; 02a OQ14; 06 OQ6; 07 OQ9; 00 OQ9; PQ-06 |
+| **DEC-044** | **ADR-0028 default fonts.** Which fonts are the default (ADR-0028): Noto Sans, osifont as an option, Tahoma never bundled?<br>*Options:* Noto Sans default with optional osifont; keep the Tahoma look via a user-installed system font; osifont bundled or not (licence expression to verify) | Noto Sans (OFL-1.1), optional osifont per style or project once its SPDX expression is verified, an OFL symbol fallback, Tahoma and the other QET UI families mapped to the default and reported in the migration report. **Default in force since 2026-10-18** (§2.4 ID-2; project owner (delegated, 2026-10-18)): Noto Sans now, osifont not bundled until its SPDX expression is verified; the pilot user still confirms it. | Pilot user (with the project owner) | **G-M0**: Spine week 3 (late Nov 2026, PD-5, CP-01); G-M0 | Frame forms and PNG/PDF goldens (WP-S3.02) are built on Noto Sans in the interim and re-baselined once if the decision differs. | ADR-0028; 00 OQ9; PQ-07 |
 | **DEC-045** | **QET-grid page conversion priority.** Is converting QET-grid pages to the native grid raised from Could/1.x (FR-PAG-022) to Should/1.0, and what is the "grid for new pages" default in the pilot basic project?<br>*Options:* Keep Could/1.x; raise to Should/1.0 if the pilot mostly extends migrated projects; new-page grid native (default) or QET 10 px | Raise FR-PAG-022 only if the pilot mostly extends migrated projects; ship the basic-project setting "grid for new pages", default native, pilot decides. | Pilot user | **G-M3**: Before WP-S3.10 (month 39, Jan 2030); with the lever (b) decision | Neither 4 mm nor 2.5 mm is commensurable with QET's 127/48 mm, so native symbols cannot be placed on migrated pages until conversion exists. | ADR-0027 (QET-grid consequence); 06 OQ6; PQ-06 |
 | **DEC-046** | **Tag conventions and letter-code leniency.** Which tag conventions hold for the pilot basic project: page-based numbering as a house rule, fixed tags for template devices, canonical location spelling, and the letter-code leniency?<br>*Options:* Page-based -101F1 versus fixed S51/T55; "+J-E-2416" (atomic node code) versus "+JE2416"; ADR-0026 mapping accepting S for S51 and S56 (strict 2009 letters would be Q and B); severity of EW-RDS-003 | Keep "+J-E-2416" with an info finding in the drafting scheme, accept S as the shipped leniency (only T55 reported, golden U-37) recorded in the ew-rds mapping with verified=false, warning for frozen and new tags with a frozen_severity parameter. | Pilot user | **G-M1**: Before the goldens freeze (WP-S7.01, month 12, Oct 2027); G-M1 | Goldens for numbering, check findings and letter-code conformance are frozen on assumptions and re-baselined later. | 02a OQ2; ADR-0026 (leniency note); PQ-08 |
 | **DEC-047** | **Strip and terminal conventions.** How are -X1031 and -X1032 modelled: one PT 2.5-TWIN or one level per drawn terminal, "1+" as designation or as printed function text, and which per-class numbering rule applies?<br>*Options:* Sequential 1-20 with "1+" as function text and 20+5 TWIN; designations "1+", "1-", "PE"; 10+5 TWIN; numbering rule per device class in the pilot basic project | Adopt the golden proposal (sequential designations, function text, 20+5) and per-class numbering rules for strips, and confirm with the pilot before the terminal-diagram goldens freeze. | Pilot user | **G-M1**: Before the terminal-diagram goldens freeze (WP-S7.01, month 12, Oct 2027; WP-S3.03, month 9, Jul 2027); G-M1 | Terminal diagrams (903 to 905) and the strip BOM are frozen on a guess. | 02a OQ5; 03 OQ8; PQ-10 |
@@ -408,19 +434,20 @@ DEC-081 to DEC-085 were added with version 0.2 and sit here by topic, after DEC-
 
 | ID | Question and options | Recommendation | Owner | Needed by | Impact if late | Sources |
 |---|---|---|---|---|---|---|
-| **DEC-080** | **Low-impact defaults (batch).** Confirm the low-impact defaults of §3.3 as one batch.<br>*Options:* Accept all; strike or change single rows | Accept as written in one core-team review at G-M0 and re-check the later rows at the gate named in each row. | Core team | **G-M0** for the spine rows; later rows at the gate in §3.3 | Single rows reopen during the build; small, but each costs a review. | §3.3; 05 OQ6, OQ13, OQ14; 08 OQ11; 12 OQ11; 15 OQ6, OQ11, OQ17, OQ19; 20 OQ4, OQ6 |
+| **DEC-080** | **Low-impact defaults (batch).** Confirm the low-impact defaults of §3.3 as one batch.<br>*Options:* Accept all; strike or change single rows | Accept as written in one core-team review at G-M0 and re-check the later rows at the gate named in each row. **Items 1 to 4 confirmed on 2026-10-18** (§2.4 ID-3; project owner (delegated, 2026-10-18)); items 5 to 9 stay open for their gates. | Core team | **G-M0** for the spine rows; later rows at the gate in §3.3 | Single rows reopen during the build; small, but each costs a review. | §3.3; 05 OQ6, OQ13, OQ14; 08 OQ11; 12 OQ11; 15 OQ6, OQ11, OQ17, OQ19; 20 OQ4, OQ6 |
 
 ### 3.3 Low-impact defaults to confirm as one batch
 
 DEC-080 confirms these in a single core-team review. Each row has a default that the documents already
-use; a row is struck or changed only if someone objects.
+use; a row is struck or changed only if someone objects. Items 1 to 4 were confirmed early, on 2026-10-18 (§2.4
+ID-3).
 
 | # | Default | Confirm by | Sources |
 |---|---|---|---|
-| 1 | Keep 256 fixed shards even though small projects then have about 80 shard files. | G-M0 (before the format spec is written, WP-S1.09, month 4, Feb 2027) | 05 OQ13 |
-| 2 | No macOS package bundle for `.ew` in v1; reconsider at 1.x if macOS pilot users ask. | G-M0 | 05 OQ14 |
-| 3 | The manifest stays tracked in git; the trivial `generation` conflict of merges made without the driver is tolerated. | G-M0 | 05 OQ6 |
-| 4 | Duplicate requirement rows FR-REV-018/FR-COL-018 and FR-REV-019/FR-COL-019: keep the REV rows, the COL rows refer to them and keep their IDs. | G-M0 (catalogue edit) | 15 OQ11 |
+| 1 | Keep 256 fixed shards even though small projects then have about 80 shard files. | **Confirmed 2026-10-18** (project owner (delegated, 2026-10-18)); was due at G-M0, before the format spec is written (WP-S1.09, month 4, Feb 2027) | 05 OQ13 |
+| 2 | No macOS package bundle for `.ew` in v1; reconsider at 1.x if macOS pilot users ask. | **Confirmed 2026-10-18** (project owner (delegated, 2026-10-18)) | 05 OQ14 |
+| 3 | The manifest stays tracked in git; the trivial `generation` conflict of merges made without the driver is tolerated. | **Confirmed 2026-10-18** (project owner (delegated, 2026-10-18)) | 05 OQ6 |
+| 4 | Duplicate requirement rows FR-REV-018/FR-COL-018 and FR-REV-019/FR-COL-019: keep the REV rows, the COL rows refer to them and keep their IDs. | **Confirmed 2026-10-18** (project owner (delegated, 2026-10-18)); catalogue edit applied: FR-REV-018/019 absorb the COL rows' detail, FR-COL-018/019 refer to them | 15 OQ11 |
 | 5 | Golden B keeps letters (`TagSpec.letter`); letter changes are tested only by B-prime (identifier-set switch). | G-M1 (WP-S7.01, month 12, Oct 2027) | 20 OQ4 |
 | 6 | BU cores of vendor cables on 0 V (EF-11): keep the warning, no exemption, part-scoped waiver from 1.0. | G-M1 (WP-S1.16 rule text, month 25, Nov 2028) | 08 OQ11; 15 OQ6; 20 OQ6 |
 | 7 | Released-number tombstones are read from the `FreezeNumbers` committed computation, not from the archive; confirm with the numbering design of 06. | WP-S1.11 (month 19, May 2028); G-M2 | 15 OQ17 |
@@ -640,6 +667,17 @@ only in private CI and in private review sessions (DEC-073, DEC-059).
   item in the next gate pack.
 - **Never recorded here:** names of people, customers or the panel builder, project or drawing identifiers, the
   confidentiality notice, e-mail addresses and local paths ([20](../design/20-golden-project.md) §3.5).
+- **Interim defaults.** When work must proceed before the owner of a row decides, the project owner may put the
+  row's recommendation in force as the working basis. The row stays open, its recommendation cell says "Default in
+  force since *date*", and §2.4 lists it, so this log remains the single register.
+
+### 5.1 Change history
+
+| Version | Date | Change |
+|---|---|---|
+| 0.1 | 2026-10-18 | First register: Part A, 80 open decisions, the pilot questionnaire. |
+| 0.2 | 2026-10-18 | DEC-081 to DEC-085 for the re-planned pilot preview, the dates, the CRA status of the preview, the community channels and the version numbering. |
+| 0.3 | 2026-10-18 | First implementation day (WP-S0.01, WP-S0.02, half of WP-S1.01). **Recorded** (§2.4): the 4 mm grid and Noto Sans defaults in force (DEC-043, DEC-044, both still open); DEC-080 items 1 to 4 confirmed; cargo-vet attribution by GitHub handle with no imported audit sets (ADR-0023 amendment 3); the `Angle2` rotation sense (ADR-0005 amendment 2); the Code of Conduct's CC-BY-SA-4.0 (ADR-0024 amendment 4); the UUIDv5 name layout and `NS_IMPORT` (ADR-0004 amendment 4); the `Rect` encoding; `cell_of` in `ew-derive`; the gizmo in `ew-ui` (ADR-0016 amendment 1); the `ew-testkit` → `ew-import-tables` edge. **Still open for the pilot user:** confirmation of DEC-043 and DEC-044 at G-M0 (with two EPLAN users for the grid), and every other pilot row. **Still open for the project owner in person:** the legal gates (LG-1 to LG-6, with DEC-013, DEC-014, DEC-016 and counsel's rows), the GitHub organisation and repository settings (governance OQ17, NFR-COMP-08, branch protection), and funding (DEC-005 and the NLnet proposals). |
 
 ---
 

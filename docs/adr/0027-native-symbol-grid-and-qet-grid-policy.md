@@ -34,7 +34,11 @@ users
 
 ## Decision
 
-**Pending.** Independent of the outcome:
+**Pending.** **Default in force since 2026-10-18** (decision log DEC-043; project owner (delegated, 2026-10-18)):
+work proceeds on the recommendation below, that is the 4 mm native connection grid (`Grid{4_000_000, 1}`), 0.5 mm
+graphics and 1 mm text grids, and QET-grid pages kept permanently, so the output lane can draw the starter symbols.
+The pilot user and two EPLAN users confirm it at G-M0; a different pilot decision re-baselines the starter symbols
+and goldens once. Independent of the outcome:
 - symbol definitions carry their grid (`SymbolDef.grid`), so code paths do not depend on the choice;
 - the golden project is reproduced on the QET 10 px grid (ADR-0005; [20](../design/20-golden-project.md) §2.1);
 - imported QET pages keep their grid (FR-PAG-021).

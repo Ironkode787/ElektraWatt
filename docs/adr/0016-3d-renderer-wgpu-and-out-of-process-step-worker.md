@@ -1,6 +1,6 @@
 # ADR-0016: 3D renderer on wgpu; out-of-process OCCT STEP worker via occt-sys
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
+**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
 
 ## Context
 
@@ -93,6 +93,17 @@
 9. **GPU-less hosts.** 3D runs on DX12 WARP or a software Vulkan adapter where one exists, using LOD1. Otherwise the
    3D view is disabled with an explanation, and the 2D panel projection (the folio 902 type) stays available
    (NFR-PLAT-03).
+
+## Amendments
+
+Accepted on 2026-10-18. The decision text above is unchanged; this entry refines it.
+
+1. **The gizmo lives in `ew-ui`** (2026-10-18; [architecture](../design/04-architecture.md) §3 Rule 3, §8.5;
+   [panel layout](../design/12-panel-layout.md) §1.2, §12.2). Decision 1 lists transform-gizmo-egui among the
+   renderer's parts, but ARCH §3 Rule 3 allows egui only in `ew-ui`, `ew-viewer` and the two binaries.
+   `ew-render3d` therefore exposes a toolkit-agnostic API (camera matrices, CPU picks, and the carrier's degrees of
+   freedom as constraints), and `ew-ui` hosts transform-gizmo-egui 0.11.0 on top of it. The renderer stays
+   testable without egui and Rule 3 needs no exception; the cost is a thin adapter in `ew-ui`.
 
 ## Consequences
 
