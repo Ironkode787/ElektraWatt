@@ -75,7 +75,8 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    amendment 2 says what covers the rest. A source-level guard for that remainder (for example a per-crate clippy
    `disallowed-methods` list) is open ([decision log](../plan/06-decision-log.md) §5.1, v0.5).
 2. **A source-level guard: `cargo xtask check-raw-read`** (2026-10-18, core team;
-   [architecture](../design/04-architecture.md) §3 rule 1; decision log ID-50). The remainder that amendment 1 left
+   [architecture](../design/04-architecture.md) §3 rule 1; decision log ID-50; implementation tracked as task FT-01 of
+   the work breakdown, cycle 6). The remainder that amendment 1 left
    open is closed by a source check rather than per-crate clippy configuration, which every new crate would have to
    remember. `cargo xtask check-raw-read` fails when the Rust source of any workspace package other than `ew-model`,
    `ew-derive`, `ew-commands` and `ew-store` invokes `raw_read!`, names the `raw-read` feature, or calls an item

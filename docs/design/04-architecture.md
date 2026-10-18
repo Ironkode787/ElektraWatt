@@ -359,8 +359,8 @@ graph TD
    tests); `cargo xtask check-features` enforces this through a `[[banned_features]]` entry of `ci/dep-rules.toml`
    with `allowed_packages`. Every other crate reads the model only through the tracked context `Q` (inside queries)
    or through `TxBuilder` (inside commands), and a query receives only `&Q` (ADR-0002 amendment 2). Because cargo
-   features are additive, a crate above `ew-derive` compiles with the raw API present; `cargo xtask check-raw-read`
-   therefore fails when non-test source outside `ew-model`, `ew-derive`, `ew-commands` and `ew-store` invokes
+   features are additive, a crate above `ew-derive` compiles with the raw API present; `cargo xtask check-raw-read` (task FT-01,
+   cycle 6) therefore fails when non-test source outside `ew-model`, `ew-derive`, `ew-commands` and `ew-store` invokes
    `raw_read!`, names the `raw-read` feature or calls a raw-read item (ADR-0001 amendment 2). `ew-api` enables
    `raw-read` only as a dev-dependency. Rows do not leave by another route either: the normal public surface of
    `ew-commands` carries no row, and its diffs, preview ops and history entries are summaries (op kind, record kind,

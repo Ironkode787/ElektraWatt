@@ -2705,6 +2705,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-15 | Wire the prevent hook to the rule engine, which closes the known gap of duplicate terminal designations | WP-S1.15 | With the rule engine | ID-58 |
 | FT-16 | Cross-page `rep.move` with the IP-pair replacement of FR-CON-043, and a test of `ip.continue` refusing an external connection point once a fixture has an `ExternalRef` | WP-S1.07 | With the WP | ID-46 |
 | FT-17 | Asset import: sniff the magic bytes and record format and intrinsic size in `AssetRef {sha256, format, size}`, which the forms layer trusts | WP-S1.09 | With the asset store | ID-61; [05](../design/05-project-format-and-persistence.md) §13.3 |
+| FT-18 | Grid rule follow-ups of the cycle-5 re-review: a split point on a junction-to-junction piece of an off-grid (CP-exact) wire is still refused, and routes derived by `rep.move`/`rep.transform` are not grid-checked; both are settled with the auto-route re-solve of [06](../design/06-schematic-editor.md) §5.4 | WP-S1.07 | With the WP | ID-54; review cycle 5 part 2 (N1 limitation, N2) |
 
 ---
 

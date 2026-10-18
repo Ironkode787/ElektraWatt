@@ -798,4 +798,4 @@ only in private CI and in private review sessions (DEC-073, DEC-059).
    `ew-text`; (c) a per-crate clippy `disallowed-methods` list for the raw API, decided with the code lead.
    *Status (v0.7):* (a) still open, and the starter content now uses the same provisional UUID (ID-33); (b) closed:
    the project owner decided the rule for all eight variants (ID-49, [07](../design/07-symbols-parts-macros.md)
-   §4.1); (c) closed as `cargo xtask check-raw-read` (ID-50).
+   §4.1); (c) decided as `cargo xtask check-raw-read`, implementation tracked as FT-01 (ID-50).
