@@ -86,6 +86,21 @@ pub const QET_IMPORT_LIBRARY_KEY: &str = "qet-import";
 /// bound (doc 14 §11).
 pub const MAX_ENTRIES_PER_DEFINITION: usize = 1_000;
 
+/// The most `key:value` pairs of one `style` attribute that [`style::parse_style`] parses (review N5). The
+/// rest of the attribute is not scanned beyond counting its pairs for the report, so a megabyte-sized
+/// `style` attribute costs one linear pass and no allocation per pair (doc 14 §4.3, §11).
+pub const MAX_STYLE_PAIRS_PER_PRIMITIVE: usize = 64;
+
+/// The most unsupported style pairs one primitive keeps in its `extra` (`qet.style.<key>`), in document
+/// order (review N5); the others are counted and reported once per primitive (EW-IMP-004). Without this
+/// bound a single attribute of distinct keys would fill the map, and the emitted `SymbolDef`, without limit.
+pub const MAX_UNSUPPORTED_STYLE_PAIRS_KEPT: usize = 8;
+
+/// The most unsupported style pairs kept in `extra` over all primitives of one element definition (review
+/// N5); beyond it nothing more is kept and one EW-IMP-004 summary entry per definition names the dropped
+/// total. It bounds the size of the imported `SymbolDef` regardless of the number of primitives.
+pub const MAX_UNSUPPORTED_STYLE_PAIRS_PER_DEFINITION: usize = 1_000;
+
 /// **Provisional** library ID of EW's built-in system items (`ew.gen.ip`, `ew.gen.blackbox`, …), until the
 /// system library gets its own decided identity. References to built-in items also carry their key in
 /// `LibRef.extra["key"]`, so they can be re-pointed by key.

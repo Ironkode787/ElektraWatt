@@ -62,6 +62,8 @@ use std::collections::BTreeMap;
 
 use ew_schema::{Colour, Dash, Pen, Rgb, Stroke};
 
+use crate::MAX_STYLE_PAIRS_PER_PRIMITIVE;
+
 /// The parsed `style` attribute of one primitive.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct StyleSpec {
@@ -69,8 +71,12 @@ pub struct StyleSpec {
     pub stroke: Option<Stroke>,
     /// The fill; `None` for `filling:none`, an absent `filling` or an unsupported one.
     pub fill: Option<Colour>,
-    /// Unsupported `(key, value)` pairs in source order (a repeated key is listed once per occurrence).
+    /// Unsupported `(key, value)` pairs in source order (a repeated key is listed once per occurrence); they
+    /// come from the first [`MAX_STYLE_PAIRS_PER_PRIMITIVE`] pairs only.
     pub unsupported: Vec<(String, String)>,
+    /// The number of pairs after the first [`MAX_STYLE_PAIRS_PER_PRIMITIVE`], which were counted but not
+    /// parsed (so not known to be supported or not).
+    pub dropped_pairs: usize,
 }
 
 impl Default for StyleSpec {
@@ -85,12 +91,14 @@ impl Default for StyleSpec {
             }),
             fill: None,
             unsupported: vec![],
+            dropped_pairs: 0,
         }
     }
 }
 
 /// Parses a `style` attribute by the table of the module documentation. Never fails: anything it cannot map
-/// is listed in [`StyleSpec::unsupported`].
+/// is listed in [`StyleSpec::unsupported`]. Only the first [`MAX_STYLE_PAIRS_PER_PRIMITIVE`] non-empty
+/// segments are parsed; the later ones are only counted ([`StyleSpec::dropped_pairs`]).
 pub fn parse_style(style: &str) -> StyleSpec {
     let mut pen = Pen::P026;
     let mut dash = Dash::Solid;
@@ -98,13 +106,22 @@ pub fn parse_style(style: &str) -> StyleSpec {
     let mut stroked = true;
     let mut fill: Option<Colour> = None;
     let mut unsupported: Vec<(String, String)> = Vec::new();
+    let mut dropped_pairs = 0;
     let trim = |s: &str| s.trim_matches(|c: char| c.is_ascii_whitespace()).to_string();
 
-    for raw in style.split(';') {
+    let mut segments = style.split(';');
+    let mut parsed = 0;
+    for raw in segments.by_ref() {
         let segment = trim(raw);
         if segment.is_empty() {
             continue;
         }
+        if parsed == MAX_STYLE_PAIRS_PER_PRIMITIVE {
+            // The pair beyond the cap: it and all later ones are only counted.
+            dropped_pairs = 1;
+            break;
+        }
+        parsed += 1;
         let Some((raw_key, raw_value)) = segment.split_once(':') else {
             unsupported.push((segment.clone(), String::new()));
             continue;
@@ -172,6 +189,10 @@ pub fn parse_style(style: &str) -> StyleSpec {
         }
     }
 
+    dropped_pairs += segments
+        .filter(|s| !s.bytes().all(|b| b.is_ascii_whitespace()))
+        .count();
+
     let stroke = if stroked {
         Some(Stroke {
             pen,
@@ -186,6 +207,7 @@ pub fn parse_style(style: &str) -> StyleSpec {
         stroke,
         fill,
         unsupported,
+        dropped_pairs,
     }
 }
 
@@ -343,6 +365,28 @@ mod tests {
         assert_eq!(spec.stroke, StyleSpec::default().stroke);
         assert_eq!(spec.fill, None);
         assert_eq!(spec.unsupported, vec![pair("font", "x"), pair("bogus", "")]);
+    }
+
+    #[test]
+    fn pairs_beyond_the_cap_are_counted_not_parsed() {
+        let style = (0..1_000)
+            .map(|i| format!("k{i}:v"))
+            .collect::<Vec<_>>()
+            .join(";");
+        let spec = parse_style(&style);
+        assert_eq!(spec.unsupported.len(), MAX_STYLE_PAIRS_PER_PRIMITIVE);
+        assert_eq!(spec.unsupported[0], pair("k0", "v"));
+        assert_eq!(spec.unsupported[63], pair("k63", "v"));
+        assert_eq!(spec.dropped_pairs, 1_000 - MAX_STYLE_PAIRS_PER_PRIMITIVE);
+        // Exactly at the cap nothing is dropped; empty segments do not count.
+        let at_cap = (0..64).map(|i| format!("k{i}:v")).collect::<Vec<_>>().join(";;");
+        let spec = parse_style(&format!("{at_cap};; ;"));
+        assert_eq!(spec.unsupported.len(), 64);
+        assert_eq!(spec.dropped_pairs, 0);
+        // A supported pair after the cap is not applied.
+        let spec = parse_style(&format!("{at_cap};line-style:dashed"));
+        assert_eq!(stroke_of(&spec).dash, Dash::Solid);
+        assert_eq!(spec.dropped_pairs, 1);
     }
 
     #[test]

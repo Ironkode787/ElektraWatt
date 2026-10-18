@@ -10,14 +10,16 @@ use std::fmt::Write as _;
 use std::time::{Duration, Instant};
 
 use ew_ids::{Id, Uuid};
-use ew_import_qet::MAX_ENTRIES_PER_DEFINITION;
 use ew_import_qet::QetElementImporter;
 use ew_import_qet::decimal::Decimal;
 use ew_import_qet::prims::shapes::polygon;
 use ew_import_qet::prims::{Parsed, PrimCtx};
 use ew_import_qet::xml::{LineIndex, prescan};
+use ew_import_qet::{
+    MAX_ENTRIES_PER_DEFINITION, MAX_UNSUPPORTED_STYLE_PAIRS_KEPT, MAX_UNSUPPORTED_STYLE_PAIRS_PER_DEFINITION,
+};
 use ew_interop_api::{Code, ImportBatch, ImportContext, ImportError, ImportInput, Importer, Limits};
-use ew_schema::Primitive;
+use ew_schema::{LibDocument, Primitive};
 
 /// The time a hostile input may take: 1 s in release (doc 14 §11), with slack for debug builds.
 fn budget() -> Duration {
@@ -352,4 +354,80 @@ fn markup_characters_under_the_bound_import_within_budget() {
     eprintln!("markup_characters_under_the_bound_import_within_budget: {elapsed:?}");
     assert!(elapsed < budget(), "took {elapsed:?}");
     assert!(result.is_ok(), "{result:?}");
+}
+
+/// The number of `qet.style.*` entries over all primitives of the imported symbol, counted in its debug
+/// form (the keys are the only places that spelling occurs in these inputs).
+fn style_entries(batch: &ImportBatch) -> usize {
+    let symbols: Vec<_> = batch
+        .lib
+        .iter()
+        .filter_map(|d| match d {
+            LibDocument::Symbol(s) => Some(s),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(symbols.len(), 1);
+    format!("{:?}", symbols[0].item).matches("qet.style.").count()
+}
+
+/// The shared checks of the two style-pair floods (N5).
+fn check_style_flood(text: &str, name: &str) -> ImportBatch {
+    let (result, elapsed) = timed_import(text);
+    eprintln!("{name}: {elapsed:?}");
+    assert!(elapsed < budget(), "{name} took {elapsed:?}");
+    let batch = result.unwrap();
+    let kept = style_entries(&batch);
+    assert!(
+        kept <= MAX_UNSUPPORTED_STYLE_PAIRS_PER_DEFINITION,
+        "{name}: {kept} kept"
+    );
+    assert!(kept > 0, "{name}: nothing kept");
+    assert!(batch.report.entries.len() <= MAX_ENTRIES_PER_DEFINITION + 2);
+    batch
+}
+
+/// N5: one `<line>` whose `style` attribute holds 1 500 000 distinct unsupported pairs (about 14 MiB) keeps
+/// at most 8 of them.
+#[test]
+fn one_huge_style_attribute_is_capped() {
+    let mut style = String::with_capacity(15_000_000);
+    for i in 0..1_500_000 {
+        write!(style, "k{i}:v;").unwrap();
+    }
+    let text = format!(
+        "<definition type=\"element\"><description><line x1=\"0\" y1=\"0\" x2=\"10\" y2=\"0\" style=\"{style}\"/></description></definition>"
+    );
+    assert!(text.len() > 13 << 20);
+    let batch = check_style_flood(&text, "one_huge_style_attribute_is_capped");
+    assert_eq!(style_entries(&batch), MAX_UNSUPPORTED_STYLE_PAIRS_KEPT);
+}
+
+/// N5: 200 000 lines of 3 unsupported pairs each keep at most 1 000 pairs in total.
+#[test]
+fn many_small_style_attributes_are_capped_per_definition() {
+    let mut text = String::from("<definition type=\"element\"><description>\n");
+    for i in 0..200_000 {
+        writeln!(
+            text,
+            "<line x1=\"0\" y1=\"0\" x2=\"1\" y2=\"0\" style=\"a{i}:v;b:v;c:v\"/>"
+        )
+        .unwrap();
+    }
+    text.push_str("</description></definition>");
+    let batch = check_style_flood(&text, "many_small_style_attributes_are_capped_per_definition");
+    assert_eq!(style_entries(&batch), MAX_UNSUPPORTED_STYLE_PAIRS_PER_DEFINITION);
+    let summary = batch
+        .report
+        .entries
+        .iter()
+        .find(|e| e.message.contains("unsupported style pairs dropped: at most"))
+        .expect("the summary entry");
+    assert!(
+        summary
+            .message
+            .starts_with("599000 unsupported style pairs dropped"),
+        "{}",
+        summary.message
+    );
 }

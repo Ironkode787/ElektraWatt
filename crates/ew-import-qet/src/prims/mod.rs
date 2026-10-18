@@ -42,9 +42,9 @@ use ew_schema::{Dir4, Primitive, TextSlot};
 use ew_units::{Nm, Pt2};
 use roxmltree::Node;
 
-use crate::MAX_ENTRIES_PER_DEFINITION;
 use crate::decimal::Decimal;
 use crate::xml::LineIndex;
+use crate::{MAX_ENTRIES_PER_DEFINITION, MAX_UNSUPPORTED_STYLE_PAIRS_PER_DEFINITION};
 
 /// An item that cannot be mapped (missing required attribute, unparsable number, too few points). The
 /// dispatcher reports it as EW-IMP-002 (error) and skips the item.
@@ -100,6 +100,8 @@ pub struct PrimCtx<'a> {
     pub reported_families: BTreeSet<String>,
     /// Findings beyond the cap: their number and highest severity.
     suppressed: (usize, Severity),
+    /// Unsupported style pairs kept in `extra` so far, and those dropped for the definition's budget.
+    style_pairs: (usize, usize),
     /// The document's sparse line index, built on first use.
     lines: OnceCell<LineIndex>,
 }
@@ -115,6 +117,7 @@ impl<'a> PrimCtx<'a> {
             entries: Vec::new(),
             reported_families: BTreeSet::new(),
             suppressed: (0, Severity::Info),
+            style_pairs: (0, 0),
             lines: OnceCell::new(),
         }
     }
@@ -149,6 +152,25 @@ impl<'a> PrimCtx<'a> {
     pub fn take_entries(&mut self) -> Vec<ReportEntry> {
         let mut entries = std::mem::take(&mut self.entries);
         let (n, severity) = std::mem::replace(&mut self.suppressed, (0, Severity::Info));
+        let (_, style_dropped) = std::mem::take(&mut self.style_pairs);
+        if style_dropped > 0 {
+            entries.push(
+                ReportEntry::new(
+                    Code::DROPPED_BY_DESIGN,
+                    Severity::Info,
+                    format!(
+                        "{style_dropped} unsupported style pairs dropped: at most \
+                         {MAX_UNSUPPORTED_STYLE_PAIRS_PER_DEFINITION} are kept per definition"
+                    ),
+                )
+                .at(SourceLocation {
+                    file: self.file.to_owned(),
+                    member: self.member.map(str::to_owned),
+                    item: Some("definition".to_owned()),
+                    ..SourceLocation::default()
+                }),
+            );
+        }
         if n > 0 {
             entries.push(
                 ReportEntry::new(
@@ -168,6 +190,17 @@ impl<'a> PrimCtx<'a> {
             );
         }
         entries
+    }
+
+    /// Claims room for `wanted` unsupported style pairs in the definition's budget
+    /// ([`MAX_UNSUPPORTED_STYLE_PAIRS_PER_DEFINITION`]) and returns how many fit; the others are counted for
+    /// the summary entry of [`PrimCtx::take_entries`].
+    pub fn claim_style_pairs(&mut self, wanted: usize) -> usize {
+        let room = MAX_UNSUPPORTED_STYLE_PAIRS_PER_DEFINITION - self.style_pairs.0;
+        let granted = wanted.min(room);
+        self.style_pairs.0 += granted;
+        self.style_pairs.1 += wanted - granted;
+        granted
     }
 
     /// Records an unsupported value (EW-IMP-004, info) at `node`.

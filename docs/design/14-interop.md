@@ -151,7 +151,7 @@ pub struct TargetHints {               // copied from the target project or basi
 pub struct Limits {                    // §11; a violation refuses the file or skips the item (EW-IMP-001)
     pub max_input_bytes: u64,          // 512 MiB
     pub max_xml_depth: u32,            // 256
-    pub max_xml_nodes: u32,            // 1,000,000 elements and texts; attributes have their own limits
+    pub max_xml_nodes: u32,            // 1,000,000; the pre-scan counts the root, elements and comments as a lower bound; roxmltree's own limit also counts texts and processing instructions; attributes have their own limits
     pub max_attribute_bytes: usize,    // 16 MiB per attribute value
     pub max_xml_attributes_per_element: u32,  // 8,192 (roxmltree checks duplicates quadratically per element)
     pub max_xml_attributes: u32,       // 1,048,576 per document
@@ -1209,7 +1209,7 @@ allocator of [18](18-quality-security-release.md) §3.12. The per-parser values:
 
 **Report volume.** One hostile element definition could produce a finding per primitive. Report entries are
 therefore capped at 1,000 per element definition (the crate constant `MAX_ENTRIES_PER_DEFINITION`); the rest are
-summarised in one EW-IMP-001 entry that gives their count. The attribute counts, the attribute work budget, the
+summarised in one EW-IMP-001 entry that gives their count. At most 64 style pairs are parsed per primitive, and at most 8 unsupported pairs per primitive and 1,000 per definition are kept in `extra`; the rest are reported by count. The attribute counts, the attribute work budget, the
 node limit and this cap (`Limits`, §2.1) serve the rule above: a hostile input is rejected within 1 s and 256 MB of
 extra allocation. Report locations use a sparse line index (one checkpoint per 64 KiB of input), so memory stays
 O(size / 64 KiB) whatever the number of newlines. The attribute work budget and the node default are what make the

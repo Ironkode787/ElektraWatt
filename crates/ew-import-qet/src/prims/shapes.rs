@@ -40,18 +40,40 @@ use roxmltree::Node;
 use super::{ItemError, Parsed, PrimCtx};
 use crate::decimal::{Decimal, DecimalError, div_round_half_even, isqrt_round};
 use crate::style::{StyleSpec, parse_style};
+use crate::{MAX_STYLE_PAIRS_PER_PRIMITIVE, MAX_UNSUPPORTED_STYLE_PAIRS_KEPT};
 
 /// Maps an exact-decimal arithmetic failure to an [`ItemError`].
 fn ov<T>(r: Result<T, DecimalError>, what: &str) -> Result<T, ItemError> {
     r.map_err(|e| ItemError(format!("{what}: {e}")))
 }
 
-/// Parses the `style` attribute of `node`, reporting each unsupported pair and keeping it in `extra`.
+/// Parses the `style` attribute of `node`, reporting unsupported pairs and keeping them in `extra`, within
+/// the bounds of review N5: at most [`MAX_UNSUPPORTED_STYLE_PAIRS_KEPT`] per primitive (the others reported
+/// once by count), at most [`crate::MAX_UNSUPPORTED_STYLE_PAIRS_PER_DEFINITION`] per definition (see
+/// [`PrimCtx::claim_style_pairs`]), and only the first [`MAX_STYLE_PAIRS_PER_PRIMITIVE`] pairs parsed.
 fn style(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, extra: &mut Extra) -> StyleSpec {
     let s = parse_style(node.attribute("style").unwrap_or(""));
-    for (k, v) in &s.unsupported {
+    let kept = s.unsupported.len().min(MAX_UNSUPPORTED_STYLE_PAIRS_KEPT);
+    let granted = ctx.claim_style_pairs(kept);
+    for (k, v) in &s.unsupported[..granted] {
         ctx.unsupported(node, format!("style {k}:{v} not supported"));
         extra.insert(format!("qet.style.{k}"), serde_json::Value::String(v.clone()));
+    }
+    let over_cap = s.unsupported.len() - kept;
+    if over_cap > 0 {
+        ctx.unsupported(
+            node,
+            format!("{over_cap} further unsupported style pairs dropped"),
+        );
+    }
+    if s.dropped_pairs > 0 {
+        ctx.unsupported(
+            node,
+            format!(
+                "{} further style pairs not parsed: at most {MAX_STYLE_PAIRS_PER_PRIMITIVE} are read per primitive",
+                s.dropped_pairs
+            ),
+        );
     }
     s
 }
@@ -780,6 +802,51 @@ mod tests {
         assert_eq!(
             rc.extra["qet.style.line-style"],
             serde_json::Value::String("wavy".to_owned())
+        );
+    }
+
+    #[test]
+    fn unsupported_style_pairs_kept_are_capped_per_primitive() {
+        let style = (0..20).map(|i| format!("k{i}:v")).collect::<Vec<_>>().join(";");
+        let xml = format!(r#"<rect x="0" y="0" width="1" height="1" style="{style}"/>"#);
+        let (r, out, entries) = run(&xml, rect);
+        r.unwrap();
+        let Primitive::Rect(rc) = only_prim(&out) else {
+            panic!()
+        };
+        let kept: Vec<_> = rc.extra.keys().filter(|k| k.starts_with("qet.style.")).collect();
+        assert_eq!(kept.len(), MAX_UNSUPPORTED_STYLE_PAIRS_KEPT);
+        assert!(rc.extra.contains_key("qet.style.k0") && rc.extra.contains_key("qet.style.k7"));
+        assert!(!rc.extra.contains_key("qet.style.k8"));
+        assert_eq!(entries.len(), MAX_UNSUPPORTED_STYLE_PAIRS_KEPT + 1);
+        let last = entries.last().unwrap();
+        assert_eq!(last.code, Code::DROPPED_BY_DESIGN);
+        assert_eq!(last.message, "12 further unsupported style pairs dropped");
+    }
+
+    #[test]
+    fn style_pairs_beyond_the_definition_budget_are_summarised() {
+        let mut ctx = PrimCtx::new("t.elmt", None, Decimal::from_int(0), Decimal::from_int(0));
+        let style = (0..3).map(|i| format!("k{i}:v")).collect::<Vec<_>>().join(";");
+        let xml = format!(r#"<rect x="0" y="0" width="1" height="1" style="{style}"/>"#);
+        let doc = roxmltree::Document::parse(&xml).unwrap();
+        let mut kept = 0;
+        for _ in 0..400 {
+            let mut out = Parsed::default();
+            rect(doc.root_element(), &mut ctx, &mut out).unwrap();
+            let Primitive::Rect(rc) = &out.graphics[0] else {
+                panic!()
+            };
+            kept += rc.extra.keys().filter(|k| k.starts_with("qet.style.")).count();
+        }
+        assert_eq!(kept, crate::MAX_UNSUPPORTED_STYLE_PAIRS_PER_DEFINITION);
+        let entries = ctx.take_entries();
+        let last = entries.last().unwrap();
+        assert_eq!(last.code, Code::DROPPED_BY_DESIGN);
+        assert!(
+            last.message.starts_with("200 unsupported style pairs dropped"),
+            "{}",
+            last.message
         );
     }
 
