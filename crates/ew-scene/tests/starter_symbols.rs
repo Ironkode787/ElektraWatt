@@ -1084,6 +1084,22 @@ fn earth_symbols_pe_has_the_circle_and_fe_has_none() {
                 d.who()
             ));
         }
+        // No text slot anchor of the protective earth may lie inside or on its circle (exact, in nm).
+        for p in all_graphics(&d.copy.item) {
+            let Primitive::Circle(c) = p else { continue };
+            let r2 = i128::from(c.r.0) * i128::from(c.r.0);
+            for (i, slot) in d.copy.item.text_slots.iter().enumerate() {
+                let dx = i128::from(slot.pos.x.0) - i128::from(c.centre.x.0);
+                let dy = i128::from(slot.pos.y.0) - i128::from(c.centre.y.0);
+                if dx * dx + dy * dy <= r2 {
+                    problems.push(format!(
+                        "{} ({ed:?}): text slot {i} at {:?} lies inside or on the circle",
+                        d.who(),
+                        slot.pos
+                    ));
+                }
+            }
+        }
     }
     assert_eq!(seen.len(), 4, "pe and fe must exist in both editions: {seen:?}");
     assert_clean("earth symbols", &problems);

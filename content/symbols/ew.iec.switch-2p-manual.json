@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "9ee97e04-d5e6-59ed-8685-52bdceb940ad",
   "version": "0.1.0",
-  "sha256": "sha256:d7bea665d90485b6efeeb697f554b695bbef34213f9021d6adf647339ebf0707",
+  "sha256": "sha256:9912fc74b8518796680e4a819e907a2a981e17886596f0181f3c5b03fca2f3a8",
   "meta": {
     "key": "ew.iec.switch-2p-manual",
     "licence": "CC-BY-SA-4.0",
@@ -311,6 +311,13 @@
       "name": "pole2",
       "pos": [
         7000000,
+        6000000
+      ]
+    },
+    {
+      "name": "handle",
+      "pos": [
+        11000000,
         6000000
       ]
     }
