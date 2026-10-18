@@ -1,0 +1,42 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: CC0-1.0
+
+# The ElektraWatt cargo workspace. Crate layout and dependency rules: docs/design/04-architecture.md §3;
+# the rules are enforced by `cargo xtask check-deps` against ci/dep-rules.toml.
+
+[workspace]
+resolver = "3"
+members = ["crates/*", "bin/*", "xtask"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+# MSRV of the permissive crates (docs/design/18-quality-security-release.md §6.2); the application itself
+# builds with the exact toolchain of rust-toolchain.toml.
+rust-version = "1.85"
+repository = "https://github.com/Ironkode787/ElektraWatt"
+
+# Only the development tools (xtask) use external crates so far. Product crates get theirs with their own
+# work packages.
+[workspace.dependencies]
+anyhow = "1.0.104"
+cargo_metadata = "0.23.1"
+serde = { version = "1.0.229", features = ["derive"] }
+toml = "1.1.8"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+# A small, deliberate set on top of clippy's defaults. CI runs clippy with `-D warnings`, so each `warn`
+# below blocks a merge.
+[workspace.lints.clippy]
+# No debugging leftovers in committed code.
+dbg_macro = "warn"
+# Unfinished code paths are tracked in issues, not left as panics.
+todo = "warn"
+unimplemented = "warn"
+# Any future `unsafe` exception carries a SAFETY comment (NFR-SEC-04).
+undocumented_unsafe_blocks = "warn"
+# Leaking resources is never intended.
+mem_forget = "warn"

@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: CC0-1.0
+
+[alias]
+# Repository policy checks and the local mirror of the per-PR CI set: `cargo xtask --help`.
+xtask = "run --quiet --package xtask --"

@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[package]
+name = "ew-print"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "GPL-3.0-or-later"
+description = "OS print adapters with per-OS features."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+ew-export = { path = "../ew-export" }
+ew-render-cpu = { path = "../ew-render-cpu" }

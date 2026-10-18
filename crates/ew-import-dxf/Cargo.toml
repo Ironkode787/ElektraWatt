@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[package]
+name = "ew-import-dxf"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "GPL-3.0-or-later"
+description = "DXF importer, with DWG behind a feature."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+ew-interop-api = { path = "../ew-interop-api" }

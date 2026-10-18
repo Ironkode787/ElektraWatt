@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+#
+# Packages allowed to have a build script (`custom-build` target), checked by `cargo xtask
+# check-build-scripts` over the whole dependency graph (ADR-0023 decision 1, NFR-SEC-10). One crate name per
+# line. Add a name only after reading its build.rs: no network access, no binary download, writes only
+# under OUT_DIR. Downloader build scripts are banned (C-5).
+#
+# Reviewed at M0 (WP-S0.01): all of these run `rustc --version` or a probe compile to set cfg flags, and at
+# most write a generated module to OUT_DIR.
+anyhow
+camino
+proc-macro2
+quote
+serde
+serde_core
+serde_json
+thiserror
+zmij

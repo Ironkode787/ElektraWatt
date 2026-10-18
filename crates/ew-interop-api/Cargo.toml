@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+name = "ew-interop-api"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Importer and exporter traits over ew-schema records: import batches, reports, source references, table images and proposals."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+ew-schema = { path = "../ew-schema" }

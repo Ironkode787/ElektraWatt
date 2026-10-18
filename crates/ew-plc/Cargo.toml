@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[package]
+name = "ew-plc"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "GPL-3.0-or-later"
+description = "PLC exchange orchestration, merge and writers (AML, TIA PLC tags, PLCopen XML), rack and slot logic."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+ew-commands = { path = "../ew-commands" }
+ew-plcaddr = { path = "../ew-plcaddr" }
+ew-caex = { path = "../ew-caex" }
+ew-devdesc = { path = "../ew-devdesc" }

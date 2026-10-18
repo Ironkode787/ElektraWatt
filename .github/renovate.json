@@ -1,0 +1,15 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Renovate updates GitHub Actions only (docs/design/18-quality-security-release.md section 5.4). Cargo dependencies move in the quarterly upgrade train or for an advisory, each with a cargo-vet audit, never by bot.",
+  "enabledManagers": ["github-actions"],
+  "pinDigests": true,
+  "schedule": ["before 6am on monday"],
+  "automerge": false,
+  "packageRules": [
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions",
+      "pinDigests": true
+    }
+  ]
+}

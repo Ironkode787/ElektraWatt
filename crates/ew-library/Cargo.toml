@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[package]
+name = "ew-library"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "GPL-3.0-or-later"
+description = "Parts, symbol, form and macro libraries as canonical .ewlib text directories, with a derived full-text index."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+ew-schema = { path = "../ew-schema" }
+ew-format = { path = "../ew-format" }

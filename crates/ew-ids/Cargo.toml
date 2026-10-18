@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+name = "ew-ids"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Typed identifiers: UUIDv7 for new records, UUIDv5 for instantiated, imported and generated ones, and a per-session interner."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true

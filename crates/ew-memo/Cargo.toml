@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+name = "ew-memo"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Generic memo engine: revisions, dependency recording, early cut-off, durability levels, LRU, statistics and oracle hooks."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true

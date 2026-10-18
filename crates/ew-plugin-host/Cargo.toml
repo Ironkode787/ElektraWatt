@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[package]
+name = "ew-plugin-host"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "GPL-3.0-or-later"
+description = "WebAssembly plugin host: WIT world, plugin export roles and plugin rule implementations."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+ew-commands = { path = "../ew-commands" }
+ew-sqlview = { path = "../ew-sqlview" }
+ew-checks = { path = "../ew-checks" }

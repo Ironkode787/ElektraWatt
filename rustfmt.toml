@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: CC0-1.0
+
+# Stable options only.
+edition = "2024"
+max_width = 110
+newline_style = "Unix"

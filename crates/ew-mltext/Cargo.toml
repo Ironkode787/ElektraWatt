@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+name = "ew-mltext"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Multilingual text with EPLAN neutral-xor-languages semantics, BCP 47 language tags, NFC, confusable detection and natural-sort keys."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true

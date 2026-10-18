@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[package]
+name = "ew-ui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "GPL-3.0-or-later"
+description = "egui widgets, canvas host, tools, command palette, keymaps and the action registry."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+ew-viewmodel = { path = "../ew-viewmodel" }
+ew-render2d = { path = "../ew-render2d" }
+ew-render-cpu = { path = "../ew-render-cpu" }
+ew-render3d = { path = "../ew-render3d" }

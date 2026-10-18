@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[package]
+name = "ew-reports"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "GPL-3.0-or-later"
+description = "Built-in report row queries, sandboxed user SQL reports, pagination into virtual pages, and XLSX and CSV tables."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+ew-derive = { path = "../ew-derive" }
+ew-sqlview = { path = "../ew-sqlview" }
+ew-text = { path = "../ew-text" }

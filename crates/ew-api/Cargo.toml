@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[package]
+name = "ew-api"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "GPL-3.0-or-later"
+description = "The Session facade shared by every front-end."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+ew-store = { path = "../ew-store" }
+ew-commands = { path = "../ew-commands" }
+ew-checks = { path = "../ew-checks" }
+ew-sqlview = { path = "../ew-sqlview" }
+ew-library = { path = "../ew-library" }
+ew-scene = { path = "../ew-scene" }
+ew-export = { path = "../ew-export" }
+ew-plc = { path = "../ew-plc" }
+ew-panel = { path = "../ew-panel" }
+ew-mfg = { path = "../ew-mfg" }
+ew-import-qet = { path = "../ew-import-qet" }
+ew-import-eplan = { path = "../ew-import-eplan" }
+ew-import-dxf = { path = "../ew-import-dxf" }
+ew-import-catalog = { path = "../ew-import-catalog" }
+ew-import-tables = { path = "../ew-import-tables" }
+ew-script = { path = "../ew-script" }
+ew-plugin-host = { path = "../ew-plugin-host" }
+ew-jobs = { path = "../ew-jobs" }

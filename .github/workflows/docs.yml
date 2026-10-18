@@ -1,0 +1,58 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# Documentation checks of gate G-M0 (docs/design/18-quality-security-release.md §5.2): CI-PR-10 legal-docs
+# (skeleton: the plan and document checks; WP-S0.02 adds reuse lint, DCO, the licence map and the
+# anonymisation guard to the same job) and CI-PR-15 docs-diagrams. Both jobs run on every pull request:
+# legal-docs will hold checks that apply to every change (DCO, reuse lint), and a required status check
+# must report on every pull request (a path-filtered workflow is shown as "Expected" and blocks the merge).
+
+name: docs
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # CI-PR-10 (skeleton)
+  legal-docs:
+    name: legal-docs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: plan and document checks
+        run: |
+          python3 -I docs/plan/tools/totals.py --check
+          python3 -I docs/plan/tools/schedule.py --check
+          python3 -I docs/plan/tools/trace.py --check
+          python3 -I docs/plan/tools/doccheck.py
+
+  # CI-PR-15
+  docs-diagrams:
+    name: docs-diagrams
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      # mermaid-cli 12.0.0, pinned by the digest of its multi-arch image index (ghcr.io, resolved
+      # 2026-10-18). The image is only run here, never distributed. Update tag and digest together.
+      MERMAID_CLI_IMAGE: ghcr.io/mermaid-js/mermaid-cli/mermaid-cli@sha256:fa995339034aae7e5cd4f61482248b7f5c51be355b1a6f6eda11a2bbf8401f5f
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: pull mermaid-cli
+        run: docker pull "$MERMAID_CLI_IMAGE"
+      - name: render every Mermaid block
+        run: python3 -I ci/render-mermaid.py --image "$MERMAID_CLI_IMAGE"

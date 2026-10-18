@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[package]
+name = "elektrawatt"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "GPL-3.0-or-later"
+description = "The ElektraWatt desktop application."
+repository.workspace = true
+publish = false
+
+[[bin]]
+name = "elektrawatt"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+ew-ui = { path = "../../crates/ew-ui" }
+ew-print = { path = "../../crates/ew-print" }

@@ -1,0 +1,162 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# Per-PR CI set of gate G-M0 (docs/design/18-quality-security-release.md §5.2): CI-PR-01 lint,
+# CI-PR-02/03/04 tests on Linux, Windows and macOS, CI-PR-09 supply-chain. Job names are the required
+# status checks (ci/README.md). Hardening per §5.4 and NFR-SEC-19: actions pinned by commit SHA with a
+# version comment (Renovate keeps them current), read-only default token, no secrets, no test retries
+# (NFR-MAINT-13; .config/nextest.toml sets retries = 0).
+
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+  CARGO_INCREMENTAL: "0"
+  # Keep in step with rust-toolchain.toml and the workspace rust-version in Cargo.toml.
+  RUST_TOOLCHAIN: "1.99.0"
+  RUST_MSRV: "1.85.0"
+
+jobs:
+  # CI-PR-01
+  lint:
+    name: lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: cargo fmt
+        run: cargo fmt --all --check
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+  # CI-PR-02, CI-PR-03, CI-PR-04
+  test-linux:
+    name: test-linux
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: cargo-nextest@0.9.148
+      - name: cargo build
+        run: cargo build --workspace --locked
+      - name: cargo nextest
+        run: cargo nextest run --workspace --locked --profile ci
+
+  test-windows:
+    name: test-windows
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: cargo-nextest@0.9.148
+      - name: cargo build
+        run: cargo build --workspace --locked
+      - name: cargo nextest
+        run: cargo nextest run --workspace --locked --profile ci
+
+  test-macos:
+    name: test-macos
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: cargo-nextest@0.9.148
+      - name: cargo build
+        run: cargo build --workspace --locked
+      - name: cargo nextest
+        run: cargo nextest run --workspace --locked --profile ci
+
+  # CI-PR-09
+  supply-chain:
+    name: supply-chain
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      # install-action verifies the checksums of the prebuilt binaries it downloads.
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: cargo-deny@0.20.2,cargo-audit@0.22.2
+      # install-action has no prebuilt cargo-vet 0.10.2; build it from crates.io with its own lockfile.
+      # RUSTFLAGS is cleared so that new rustc warnings in the tool's own code cannot break its installation.
+      - name: install cargo-vet
+        env:
+          RUSTFLAGS: ""
+        run: cargo install cargo-vet --locked --version 0.10.2
+      - name: cargo deny
+        run: cargo deny --locked check
+      - name: cargo audit
+        run: cargo audit
+      - name: cargo vet
+        run: cargo vet --locked
+      - name: dependency rules
+        run: cargo xtask check-deps
+      - name: build-script allowlist
+        run: cargo xtask check-build-scripts
+      - name: workflow lint
+        run: cargo xtask check-workflows
+      # MSRV of the permissive crates (NFR-MAINT-03, 18 §6.2), built against an MSRV lockfile produced by
+      # the MSRV-aware resolver, so the application lockfile can move ahead. The committed Cargo.lock is not
+      # modified in the repository; the generated one lives only in this job.
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_MSRV }}
+      - name: MSRV check of the permissive crates
+        env:
+          CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS: fallback
+        run: |
+          cargo +"$RUST_MSRV" generate-lockfile
+          cargo +"$RUST_MSRV" check --locked \
+            -p ew-units -p ew-ids -p ew-mltext -p ew-rds -p ew-schema -p ew-format -p ew-interop-api \
+            -p ew-dl -p ew-step-proto -p ew-memo -p ew-plcaddr -p ew-caex -p ew-devdesc -p ew-ewpp

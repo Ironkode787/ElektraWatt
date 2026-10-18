@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[package]
+name = "ew-derive"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "GPL-3.0-or-later"
+description = "All domain queries and the tracked-read context."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+ew-model = { path = "../ew-model" }
+ew-memo = { path = "../ew-memo" }
+ew-rhai = { path = "../ew-rhai" }
+ew-plcaddr = { path = "../ew-plcaddr" }

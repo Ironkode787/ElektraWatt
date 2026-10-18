@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[package]
+name = "ew-checks"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "GPL-3.0-or-later"
+description = "Rule engine, rule packs, the rule-implementation registry, online and offline checks, waivers and quick fixes."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+ew-derive = { path = "../ew-derive" }
+ew-rhai = { path = "../ew-rhai" }

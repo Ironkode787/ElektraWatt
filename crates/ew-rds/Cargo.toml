@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+name = "ew-rds"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "IEC 81346 reference-designation parser and formatter with identifier sets as data."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true

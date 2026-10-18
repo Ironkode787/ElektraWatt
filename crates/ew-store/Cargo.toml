@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[package]
+name = "ew-store"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "GPL-3.0-or-later"
+description = "Save protocol, lock file, journal, recovery, watcher, external-change diff, transport, as-built archive and git integration."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+ew-format = { path = "../ew-format" }
+ew-model = { path = "../ew-model" }

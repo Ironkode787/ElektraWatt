@@ -7,9 +7,24 @@ that works with Git.
 
 ## Status
 
-The design phase is complete as **draft v0.1**. There is **no code yet**. The repository holds the design documents,
+The design phase is complete as **draft v0.1**. The repository holds the design documents,
 30 architecture decision records (25 Accepted, 5 Proposed), a work breakdown and a global plan. The first milestone
 (M0) starts after the pre-M0 decisions listed in the [decision log](docs/plan/06-decision-log.md).
+
+The cargo workspace with every crate skeleton of [architecture §3](docs/design/04-architecture.md#3-crate-and-workspace-layout),
+the policy checks in `xtask` and the per-PR CI ([ci/README.md](ci/README.md)) now exist. There is **no functionality
+yet**: the crates are empty.
+
+## Building
+
+The pinned toolchain in `rust-toolchain.toml` is installed automatically by rustup. Tests run with
+[cargo-nextest](https://nexte.st).
+
+```sh
+cargo build --workspace --locked
+cargo nextest run --workspace
+cargo xtask ci      # fmt, clippy, nextest and the repository policy checks, as in CI
+```
 
 ## Key decisions
 

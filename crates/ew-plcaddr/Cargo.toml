@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+name = "ew-plcaddr"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "PLC addresses, PLC address profiles as data, the address-grammar engine and bit intervals."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true

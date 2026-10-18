@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[package]
+name = "ew-scene"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "GPL-3.0-or-later"
+description = "Model to display lists per page and layer, forms engine, spatial index and hit-testing."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+ew-reports = { path = "../ew-reports" }
+ew-dl = { path = "../ew-dl" }
+ew-text = { path = "../ew-text" }

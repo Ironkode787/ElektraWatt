@@ -1,0 +1,131 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# Crate-dependency rules of docs/design/04-architecture.md §3 (Rules 2-4 and the dependency graph),
+# NFR-MAINT-01 and ADR-0024 decision 4, in machine form. Checked by `cargo xtask check-deps` over
+# `cargo metadata` (direct, declared dependencies of every workspace package, all kinds and targets).
+#
+# The check fails when:
+# - a workspace package is missing from [layers] or [allowed_edges], or this file names a package that
+#   neither exists nor is listed under `planned`;
+# - a workspace-to-workspace edge is not listed in [allowed_edges] (dev-dependencies may also use
+#   [allowed_dev_edges]): this is "no crate depends on a crate above it" in checkable form;
+# - a permissive crate depends on a non-permissive workspace crate (any dependency kind);
+# - an external crate matched by an [[external_owner]] rule is a direct dependency of a non-owner;
+# - an importer depends on a workspace crate outside the permissive layer;
+# - a [[confined]] crate has a direct dependent outside its list, or is reachable from a forbidden crate.
+#
+# Changing an edge here is an architecture change: it needs the matching change in 04-architecture.md §3
+# (and an ADR where the rules themselves change).
+
+[layers]
+# MIT OR Apache-2.0; closed under dependencies (ADR-0024 decision 2).
+permissive = [
+  "ew-units", "ew-ids", "ew-mltext", "ew-rds", "ew-schema", "ew-format", "ew-interop-api", "ew-dl",
+  "ew-step-proto", "ew-memo", "ew-plcaddr", "ew-caex", "ew-devdesc", "ew-ewpp",
+]
+# GPL-3.0-or-later application layer, including the binaries.
+gpl = [
+  "ew-model", "ew-rhai", "ew-derive", "ew-commands", "ew-checks", "ew-sqlview", "ew-library", "ew-store",
+  "ew-text", "ew-reports", "ew-scene", "ew-render2d", "ew-render-cpu", "ew-export", "ew-print", "ew-plc",
+  "ew-panel", "ew-render3d", "ew-mfg", "ew-import-qet", "ew-import-eplan", "ew-import-dxf",
+  "ew-import-catalog", "ew-import-tables", "ew-script", "ew-plugin-host", "ew-jobs", "ew-api",
+  "ew-viewmodel", "ew-ui", "ew-testkit", "elektrawatt", "ew", "ew-step-worker",
+]
+# Development-only packages outside the product crate table; they may not be depended on.
+tools = ["xtask"]
+# Crates of §3 that are not in the workspace yet (1.0 and v1.x). They may appear in owner lists only;
+# when one is added to the workspace it moves to a layer above and gets an [allowed_edges] entry.
+planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "ew-py"]
+
+# Every permitted direct edge between workspace packages: the arrows of the §3 Mermaid graph.
+# Every workspace package has an entry, even when empty.
+[allowed_edges]
+"ew-units" = []
+"ew-ids" = []
+"ew-mltext" = []
+"ew-rds" = []
+"ew-schema" = ["ew-units", "ew-ids", "ew-mltext", "ew-rds"]
+"ew-format" = ["ew-schema"]
+"ew-interop-api" = ["ew-schema"]
+"ew-dl" = ["ew-units"]
+"ew-step-proto" = ["ew-units"]
+"ew-memo" = []
+"ew-plcaddr" = []
+"ew-caex" = []
+"ew-devdesc" = []
+"ew-ewpp" = []
+"ew-model" = ["ew-schema"]
+"ew-rhai" = []
+"ew-derive" = ["ew-model", "ew-memo", "ew-rhai", "ew-plcaddr"]
+"ew-commands" = ["ew-derive"]
+"ew-checks" = ["ew-derive", "ew-rhai"]
+"ew-sqlview" = ["ew-derive", "ew-checks"]
+"ew-library" = ["ew-schema", "ew-format"]
+"ew-store" = ["ew-format", "ew-model"]
+"ew-text" = []
+"ew-reports" = ["ew-derive", "ew-sqlview", "ew-text"]
+"ew-scene" = ["ew-reports", "ew-dl", "ew-text"]
+"ew-render2d" = ["ew-dl"]
+"ew-render-cpu" = ["ew-dl"]
+"ew-export" = ["ew-dl", "ew-render-cpu"]
+"ew-print" = ["ew-export", "ew-render-cpu"]
+"ew-plc" = ["ew-commands", "ew-plcaddr", "ew-caex", "ew-devdesc"]
+"ew-panel" = ["ew-commands", "ew-step-proto"]
+"ew-render3d" = ["ew-panel"]
+"ew-mfg" = ["ew-reports", "ew-panel", "ew-ewpp"]
+"ew-import-qet" = ["ew-interop-api", "ew-plcaddr"]
+"ew-import-eplan" = ["ew-interop-api"]
+"ew-import-dxf" = ["ew-interop-api"]
+"ew-import-catalog" = ["ew-interop-api"]
+"ew-import-tables" = ["ew-interop-api"]
+"ew-script" = ["ew-commands", "ew-rhai"]
+"ew-plugin-host" = ["ew-commands", "ew-sqlview", "ew-checks"]
+"ew-jobs" = []
+"ew-api" = [
+  "ew-store", "ew-commands", "ew-checks", "ew-sqlview", "ew-library", "ew-scene", "ew-export", "ew-plc",
+  "ew-panel", "ew-mfg", "ew-import-qet", "ew-import-eplan", "ew-import-dxf", "ew-import-catalog",
+  "ew-import-tables", "ew-script", "ew-plugin-host", "ew-jobs",
+]
+"ew-viewmodel" = ["ew-api"]
+"ew-ui" = ["ew-viewmodel", "ew-render2d", "ew-render-cpu", "ew-render3d"]
+"ew-testkit" = []
+"elektrawatt" = ["ew-ui", "ew-print"]
+"ew" = ["ew-api", "ew-print"]
+"ew-step-worker" = ["ew-step-proto"]
+"xtask" = []
+
+# Additional edges allowed for dev-dependencies only (for example a test helper crate). None yet.
+[allowed_dev_edges]
+
+# ARCH §3 Rule 2: only ew-sqlview and ew-library link rusqlite.
+[[external_owner]]
+crates = ["rusqlite"]
+owners = ["ew-sqlview", "ew-library"]
+reason = "ARCH §3 rule 2 (SQLite)"
+
+# ARCH §3 Rule 3: only ew-ui, ew-viewer, the app binary and the ew-wiring-viewer binary know egui.
+[[external_owner]]
+crates = ["egui", "eframe", "egui-wgpu", "egui_*"]
+owners = ["ew-ui", "ew-viewer", "elektrawatt", "ew-wiring-viewer"]
+reason = "ARCH §3 rule 3 (UI toolkit)"
+
+# ARCH §3 Rule 3: only the renderers know wgpu.
+[[external_owner]]
+crates = ["wgpu"]
+owners = ["ew-render2d", "ew-render3d"]
+reason = "ARCH §3 rule 3 (GPU)"
+
+# ARCH §3 Rule 4: importers depend on ew-interop-api, their parsers and permissive helpers only; they never
+# see ew-model. Packages matching `pattern` may depend on permissive workspace crates only.
+[importers]
+pattern = "ew-import-*"
+
+# ADR-0024 decision 4 and NFR-LIC-05: QET-derived code is confined. Only ew-api depends on ew-import-qet;
+# ew-plugin-host and the permissive crates never reach it, directly or transitively ("@permissive" stands
+# for every crate of the permissive layer).
+[[confined]]
+crate = "ew-import-qet"
+only_direct_dependents = ["ew-api"]
+never_reached_from = ["ew-plugin-host", "@permissive"]
+reason = "ADR-0024 decision 4 (QET-derived code)"
