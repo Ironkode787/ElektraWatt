@@ -14,6 +14,8 @@ Noto Sans is licensed under the SIL Open Font License, Version 1.1 (OFL-1.1); th
 LICENSES/OFL-1.1.txt. The files are unmodified copies of the static unhinted TrueType instances of the
 upstream repository at the commit named in each Source URL (the repository publishes no release tags), and
 are pinned by SHA-256 in crates/ew-text (ADR-0028 recommendation 6).
+Noto is a trademark of Google Inc. (font name table entry 7); the trademark line is reproduced here as the
+OFL-1.1 requires for redistributed copies (decision ID-51).
 
 assets/fonts/NotoSans-Regular.ttf
   Family:    Noto Sans Regular
