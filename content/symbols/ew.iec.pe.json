@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "7fd3e88f-ffb6-5c63-ab19-f5236457f89b",
   "version": "0.1.0",
-  "sha256": "sha256:5ab8695f22bce6d0a93f5ba74f1861602d8116d4048ac63b35783f3b9be858e8",
+  "sha256": "sha256:7998de70d96105ac123b2c06cca90e023e2e3dc31f0ddf9f6ec72125cd5cb6dd",
   "meta": {
     "key": "ew.iec.pe",
     "licence": "CC-BY-SA-4.0",
@@ -87,6 +87,18 @@
           1000000,
           6000000
         ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "circle": {
+        "centre": [
+          0,
+          5000000
+        ],
+        "r": 4000000,
         "stroke": {
           "pen": "p026"
         }

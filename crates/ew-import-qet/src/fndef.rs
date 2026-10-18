@@ -511,11 +511,11 @@ mod tests {
         let none = BTreeMap::new();
         assert_eq!(
             resolve("next_report", &none, None, 1),
-            Resolution::Builtin("ew.gen.ip")
+            Resolution::Builtin("ew.fn.ip")
         );
         assert_eq!(
             resolve("previous_report", &none, None, 1),
-            Resolution::Builtin("ew.gen.ip")
+            Resolution::Builtin("ew.fn.ip")
         );
     }
 

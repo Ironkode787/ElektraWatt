@@ -1062,6 +1062,33 @@ fn geometry_rules() {
     assert_clean("geometry rules", &problems);
 }
 
+/// IEC 60417-5019 / -5018: protective earth is the earth sign inside a circle, functional earth is the plain
+/// earth sign. Guards against the two symbols being swapped again.
+#[test]
+fn earth_symbols_pe_has_the_circle_and_fe_has_none() {
+    let mut seen = BTreeSet::new();
+    let mut problems = Vec::new();
+    for (ed, d) in symbols() {
+        let want = match d.key.strip_suffix(QET_SUFFIX).unwrap_or(&d.key) {
+            "ew.iec.pe" => 1,
+            "ew.iec.fe" => 0,
+            _ => continue,
+        };
+        seen.insert(d.key.clone());
+        let circles = all_graphics(&d.copy.item)
+            .filter(|p| matches!(p, Primitive::Circle(_)))
+            .count();
+        if circles != want {
+            problems.push(format!(
+                "{} ({ed:?}): {circles} circle graphic(s), expected {want} (protective earth is the earth sign inside a circle, functional earth has none)",
+                d.who()
+            ));
+        }
+    }
+    assert_eq!(seen.len(), 4, "pe and fe must exist in both editions: {seen:?}");
+    assert_clean("earth symbols", &problems);
+}
+
 fn is_white(c: &Colour) -> bool {
     matches!(c, Colour::Rgb(rgb) if rgb.0 == [255, 255, 255])
 }

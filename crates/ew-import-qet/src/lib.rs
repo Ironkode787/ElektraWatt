@@ -28,7 +28,7 @@
 //!    coordinates, which QET stores relative to the hotspot already (`hotspot_x`/`hotspot_y` only place the
 //!    bounding box), so they are used as they are ([`decimal`]); the style mini-language ([`style`]).
 //! 4. **Function semantics** ([`fndef`]): `kindInformations`, then the shipped category-path table, then a
-//!    generic black box (EW-IMP-119); interruption points reference the built-in `ew.gen.ip` FnDef.
+//!    generic black box (EW-IMP-119); interruption points reference the built-in `ew.fn.ip` FnDef.
 //!
 //! # Records
 //!
@@ -101,11 +101,19 @@ pub const MAX_UNSUPPORTED_STYLE_PAIRS_KEPT: usize = 8;
 /// total. It bounds the size of the imported `SymbolDef` regardless of the number of primitives.
 pub const MAX_UNSUPPORTED_STYLE_PAIRS_PER_DEFINITION: usize = 1_000;
 
-/// **Provisional** library ID of EW's built-in system items (`ew.gen.ip`, `ew.gen.blackbox`, …), until the
+/// **Provisional** library ID of EW's built-in system items (the FnDef `ew.fn.ip`, …), until the
 /// system library gets its own decided identity. References to built-in items also carry their key in
 /// `LibRef.extra["key"]`, so they can be re-pointed by key.
 pub const BUILTIN_LIBRARY: Uuid = Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
 
 /// The key of the built-in interruption-point FnDef that `next_report` and `previous_report` elements
-/// reference instead of a generated one (doc 07 §2.3, doc 14 §4.3).
-pub const IP_FNDEF_KEY: &str = "ew.gen.ip";
+/// reference instead of a generated one (doc 07 §2.3, doc 14 §4.3). The FnDef is `ew.fn.ip`; `ew.gen.ip` is the
+/// key of the interruption-point *symbol* and must not be used for a FnDef reference.
+pub const IP_FNDEF_KEY: &str = "ew.fn.ip";
+
+/// The keys of every built-in FnDef the importer can reference (`Resolution::Builtin`). The starter content
+/// must hold a FnDef for each of them (see `tests/builtin_refs.rs`).
+pub const BUILTIN_FNDEF_KEYS: [&str; 1] = [IP_FNDEF_KEY];
+
+/// The `version_req` of a reference to a built-in FnDef. The starter content items are version `0.1.0`.
+pub const BUILTIN_VERSION_REQ: &str = "^0.1";

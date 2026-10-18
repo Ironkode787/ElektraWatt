@@ -46,7 +46,7 @@ must not share an item id). A reference by key can be re-pointed (`LibRef.extra[
   `ew_ids::v5::imported_id`). The `@qet10` edition derives its ids from the suffixed key.
 - `id = v5(NS_LIBCOPY, library_id ‖ U+001F ‖ item_id)` (`ew_ids::v5::lib_copy_id`).
 - `version` is `0.1.0`; a symbol's `fndef` reference has `version_req` `^0.1` and carries the FnDef key in `key`.
-- `sha256` is the SHA-256 of the compact JSON of the item's own members (every member except `$k`, `id`, `library_id`,
+- `sha256` is the SHA-256 of the compact JSON of the item's own members (every member except `$k`, `id`, `$v`, `library_id`,
   `item_id`, `version` and `sha256`), in file order, as `sha256:` plus 64 hexadecimal digits (EW-CORE-014).
 - All of this is written by `cargo xtask symbols-qet10`; never edit ids or hashes by hand.
 
@@ -62,8 +62,9 @@ must not share an item id). A reference by key can be re-pointed (`LibRef.extra[
   `dash42`, `p052` is reserved for the valve double bar.
 - **Orientation variants** A to H are never stored; they are derived (`ew_scene::symbol::lower`).
 - The CP direction is the direction a wire leaves the CP.
-- The linkage between the poles of the switch and the MCB, and between actuator and process valve, is derived from the
-  `link_points` (FR-SYM-014); only the actuator handle and the internal release marks are drawn.
+- The linkage between the poles of the manual switch, and between an actuator and its process valve, is derived from the
+  related functions and the `link_points` (FR-SYM-014) and is not drawn in the symbol; the MCB's internal linkage between
+  its own poles is part of the MCB symbol (doc 20 §17.4, 0.13 mm dashed).
 
 ## The `@qet10` edition
 

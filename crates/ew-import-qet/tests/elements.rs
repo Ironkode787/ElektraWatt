@@ -419,7 +419,12 @@ fn interruption_points_reference_the_builtin() {
     let (s, f) = parts(&batch);
     assert!(f.is_none());
     assert_eq!(s.item.fndef.library.as_uuid(), BUILTIN_LIBRARY);
-    assert_eq!(s.item.fndef.extra["key"], "ew.gen.ip");
+    assert_eq!(s.item.fndef.extra["key"], "ew.fn.ip");
+    assert_eq!(s.item.fndef.version_req, "^0.1");
+    assert_eq!(
+        s.item.fndef.item.as_uuid(),
+        Uuid::new_v5(&BUILTIN_LIBRARY, b"ew.fn.ip")
+    );
     assert_eq!(batch.report.stats.per_kind.get("fndef"), None);
     assert_eq!(batch.report.stats.per_kind["symbol"], 1);
 }

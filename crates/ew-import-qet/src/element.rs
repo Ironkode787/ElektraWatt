@@ -71,7 +71,7 @@ pub struct ElementImport {
     /// The symbol.
     pub symbol: LibCopy<SymbolDef>,
     /// The generated function definition; `None` when the symbol references a built-in one
-    /// (`next_report`, `previous_report` → `ew.gen.ip`).
+    /// (`next_report`, `previous_report` → `ew.fn.ip`).
     pub fndef: Option<LibCopy<FnDef>>,
     /// Findings, in order.
     pub entries: Vec<ReportEntry>,
@@ -311,7 +311,7 @@ fn read_on_stack(
             let r = LibRef {
                 library: Id::from_uuid(crate::BUILTIN_LIBRARY),
                 item,
-                version_req: "^1".to_owned(),
+                version_req: crate::BUILTIN_VERSION_REQ.to_owned(),
                 extra,
             };
             (r, None)
