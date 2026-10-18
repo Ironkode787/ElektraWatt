@@ -192,8 +192,8 @@ mod tests {
         35510, 27370, 21450, 19970, 15530, 11840, 9620, 8880, 8140, 6660, 5920, 5180, 3700, 3700,
     ];
     const PRINTED_EM_NM: [i128; 14] = [
-        12_530_000, 9_660_000, 7_570_000, 7_040_000, 5_480_000, 4_180_000, 3_390_000, 3_130_000, 2_870_000,
-        2_350_000, 2_090_000, 1_830_000, 1_310_000, 1_310_000,
+        12_530_000, 9_660_000, 7_570_000, 7_050_000, 5_480_000, 4_180_000, 3_390_000, 3_130_000, 2_870_000,
+        2_350_000, 2_090_000, 1_830_000, 1_300_000, 1_300_000,
     ];
     const PRINT_FACTOR: i128 = 986_282_578;
 
@@ -255,14 +255,13 @@ mod tests {
         }
     }
 
-    /// The doc's printed em column is rounded to 0.01 mm from the already rounded printed pt, so one cell
-    /// (`cover.subtitle`: exact 7.0458 mm, doc 7.04) differs from rounding the exact value; the exact
-    /// printed em must lie within 0.006 mm of the doc value.
+    /// Doc 20 §17.5 gives the printed em rounded to 0.01 mm (decision log ID-38), so the exact printed em
+    /// (em × 0.986282578, truncated to nm) must lie within half a step, 0.005 mm, of the doc value.
     #[test]
     fn printed_em_matches_doc() {
         for (r, want) in builtin().rows().iter().zip(PRINTED_EM_NM) {
             let exact = (i128::from(r.em().0) * PRINT_FACTOR) / 1_000_000_000;
-            assert!((exact - want).abs() <= 6_000, "{}: {exact} vs {want}", r.key);
+            assert!((exact - want).abs() <= 5_000, "{}: {exact} vs {want}", r.key);
         }
     }
 
