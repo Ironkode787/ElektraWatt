@@ -1,0 +1,1338 @@
+# Project format and persistence
+
+**Status:** Draft v0.1 · **Date:** 2026-10-17 · **Part of:** ElektraWatt design document set
+
+**Purpose.** This document specifies how an ElektraWatt (EW) project lives on disk and travels between machines:
+- the directory layout and the canonical JSON Lines encoding;
+- the manifest and its generations, and the save protocol;
+- the lock, the crash journal and recovery, and external-change handling;
+- `.ewz` transport, format versioning and git integration;
+- library embedding and the as-built archive.
+
+It elaborates [architecture](04-architecture.md) §7 and ADR-0010 … ADR-0013 without changing their decisions.
+Refinements are marked and repeated in the open questions. The crates concerned are `ew-format` (MIT OR
+Apache-2.0), `ew-store` and `ew-library` (GPL-3.0-or-later).
+
+**Contents**
+1. [Principles and locations](#1-principles-and-locations)
+2. [Directory layout and record ownership](#2-directory-layout-and-record-ownership)
+3. [Canonical encoding](#3-canonical-encoding)
+4. [Manifest and generations](#4-manifest-and-generations)
+5. [Save protocol](#5-save-protocol)
+6. [Open, verification and integrity](#6-open-verification-and-integrity)
+7. [Lock file](#7-lock-file)
+8. [Crash journal and recovery](#8-crash-journal-and-recovery)
+9. [External changes](#9-external-changes)
+10. [Format versioning and migration](#10-format-versioning-and-migration)
+11. [Git integration](#11-git-integration)
+12. [`.ewz` transport](#12-ewz-transport)
+13. [Libraries, catalogues and embedding](#13-libraries-catalogues-and-embedding)
+14. [Revisions and the as-built archive](#14-revisions-and-the-as-built-archive)
+15. [Platform, share and cloud-sync pitfalls](#15-platform-share-and-cloud-sync-pitfalls)
+16. [UI and UX touchpoints](#16-ui-and-ux-touchpoints)
+17. [The reference project on disk](#17-the-reference-project-on-disk)
+18. [Scope by release](#18-scope-by-release)
+19. [Dependencies](#19-dependencies)
+20. [Requirements covered](#requirements-covered)
+21. [Open questions](#open-questions)
+
+---
+
+## 1. Principles and locations
+
+1. **Text is canonical at rest, the `Model` in memory** (ARCH §7.1): no working database, no derived data, no blobs
+   except content-addressed assets.
+2. **Each record lives in exactly one file**, chosen by an ownership rule (§2.2); files group records by page,
+   device shard or layout space, never one file per object. A typical edit rewrites one to three files.
+3. **Names from UUIDs, hashes and fixed words only.** There are no reserved names or case collisions, and internal
+   paths stay ≤ 120 characters (NFR-PLAT-05).
+4. **A generation is complete or absent.** The manifest goes into place last (NFR-REL-01).
+5. **No machine-, user- or time-specific project data:** no wall-clock save times, absolute paths or view state
+   (NFR-REL-07, FR-UI-033). Authored dates (a revision date, the edited date of open question 1) are model data.
+6. **Unknown bytes are never dropped** (NFR-REL-04).
+7. **Crash protection lives outside the project** (§8). EW writes only to the project, to sibling archive and
+   backup files the user chose, and to per-user OS directories, never to its installation directory (NFR-PLAT-07).
+
+| Location | Content | In git |
+|---|---|---|
+| `<name>.ew/` | Project data (§2) | Yes |
+| `<name>.ew/.ew/u-<hash>/` | Per-user view state in `view.json`: open pages, viewports, jump history, workspace (FR-UI-033). `<hash>` = 8 hex digits of SHA-256(`user@host`), so the users of a shared folder do not overwrite each other. From 1.0 also `base.ewz`, the base generation of a work copy ([15](15-checks-revisions-collaboration.md) §6.8) | Ignored |
+| `<name>.ew/.~ew.lock` | Lock record (§7); `.~ew.lock.stale-<session>` after a takeover | Ignored |
+| `<name>.ew/.~ew.requests/` | "Request edit" files (1.x, [15](15-checks-revisions-collaboration.md) §6.2) | Ignored |
+| OS state directory | Journal and recovery snapshots (§8); user-only permissions; removed on clean close, leftovers pruned after 30 days (NFR-PRIV-05) | Never |
+| OS cache directory | STEP meshes, thumbnails, the file-backed SQL projection at XL, read-only `.ewz` extractions, compiled and indexed library catalogues (§13.1) | Never |
+| OS data directory | User library and installed community packs ([07](07-symbols-parts-macros.md) §2.1) | Never |
+| OS configuration directory | Settings, recent projects, **trust decisions** (§13.4) | Never |
+| `<parent>/<name>.ew-archive/` (configurable) | As-built archives (§14) | Not in the project history |
+
+The OS directories are `$XDG_STATE_HOME`, `$XDG_CACHE_HOME`, `$XDG_DATA_HOME` and `$XDG_CONFIG_HOME` (each with an
+`elektrawatt/` subfolder) on Linux; `~/Library/Application Support/ElektraWatt` and `~/Library/Caches/ElektraWatt`
+on macOS; and `%LOCALAPPDATA%\ElektraWatt` on Windows, never the roaming profile. Where one base directory serves
+several roles (macOS, Windows), EW uses the subfolders `config/`, `data/`, `state/` and, on Windows, `cache/`. The
+mapping crate (etcetera or directories) is **(verify)**, as in ARCH §3.
+
+**Equivalents.** EW maps the EPLAN and QElectroTech project forms ([EPLAN features](../research/eplan-features.md)
+§2, §13; [gaps and corrections](../research/gaps-and-corrections.md) G1) as follows:
+
+| EPLAN | QElectroTech | ElektraWatt |
+|---|---|---|
+| `*.elk` file plus `*.edb` project database | one `.qet` XML file (or `.qetz`) | `<name>.ew/` text directory (§2) |
+| `*.elp` packed project, `*.zw1` backup | copy of the `.qet` | `.ewz` (§12) |
+| `*.ell` revision project, `*.elr` completed project | none (per-folio `indexrev` text) | as-built archive (§14); the completed state of [15](15-checks-revisions-collaboration.md) §5.10 (1.0) |
+| `*.zw9` basic project | none (copy of an existing project) | an `.ew` directory with `Project.kind = Basic` ([07](07-symbols-parts-macros.md) §2.8) |
+| Open modes Default, Exclusive, Read-only; multi-user editing (Pro tier) | none | Edit or read-only through `.~ew.lock` (§7); parallel work through git branches or work copies; co-editing Later (FR-COL-021) |
+| — | three rotating crash snapshots | journal plus three snapshot slots outside the project (§8) |
+
+---
+
+## 2. Directory layout and record ownership
+
+### 2.1 Layout of the golden project
+
+The reference project on disk ([golden project](20-golden-project.md), fixture `golden/J-E-2416.ew`). Golden IDs are
+UUIDv5 values derived from the golden tables ([golden project](20-golden-project.md) §3.2). Records later created in
+the GUI get UUIDv7 IDs (ADR-0004).
+
+```text
+J-E-2416.ew/                      # folder name chosen by the user; everything inside is UUID-named
+  manifest.json                   # written LAST (§4): format, generation, SHA-256 of every file below
+  project.jsonl                   # project (master data, parties as placeholders, supply, settings: identifier set,
+                                  #   numbering, xref format, profile "DBU/WH 24 V", size profile, derivation profile),
+                                  #   plc_config_project, logical_net and physical_net (PROFIBUS)
+  structure.jsonl                 # =P01, +J-E-2416 (alias JE2416), +J-E-206, +FIELD; sections 1, 2, 9;
+                                  #   external_ref ×4 (J-E-206 L, N, PE; DP master JE-N1000-03)
+  revisions.jsonl                 # V1.0 (released, historic), V2.0 (open)
+  report-blocks.jsonl             # 11 page-oriented report blocks: TOC, 901, 903 … 911
+  waivers.jsonl                   # W-1 on -XPE      (comments.jsonl absent: empty tables write no file)
+  pages/<uuid>.jsonl              # 13 files, one per drawn page: 1, 3, 101–103, 106, 201–206, 902. Generated pages
+                                  #   (2, 2.1, 100, 200, 900, 901, 901.1, 903–911) have no file: they are derived
+  devices/<xx>.jsonl              # ≈ 80 of 256 shards, e.g. c2.jsonl holds -102G1 and everything anchored to it
+  layout/<uuid>.jsonl             # layout space +J-E-2416: -UC1, plate, ducts, rails, placements
+  lib/{symbols,fndefs,forms,parts,macros}/<uuid>.json
+                                  # embedded copies (§13): ≈ 40 symbols, the QET-compatible frame and report forms,
+                                  #   23 parts (533356, A9P52610, 2904602, PT 2.5-TWIN, 571334 …), the 203–206 typical
+  assets/<sha256>.svg             # placeholder logo
+  .gitattributes  .gitignore      # §11.1; not listed in the manifest
+```
+
+Optional directories are absent in the golden project:
+- `rules/<uuid>.toml` (a project rule pack; its rhai and SQL files go into `rules/<uuid>/`; the human pack ID such
+  as `ew-pot` lives inside the file, open question 17) and `reports/<uuid>.sql` (user SQL reports);
+- from 1.0, `scripts/<uuid>.rhai` and `jobs/<uuid>.ewjobs` (open question 11).
+
+None of their content runs until the user trusts the project (NFR-SEC-05, §13.4).
+
+### 2.2 Kind registry and ownership
+
+`ew-schema` holds a **kind registry**: the `$k` name, a fixed **rank** (sort order, §3.3) and an **ownership
+rule**. Ranks are never reused or renumbered.
+
+| Rank | `$k` | File | Anchor |
+|---|---|---|---|
+| 10–14 | `project`, `plc_config_project`, `logical_net`, `physical_net`, `medium` | `project.jsonl` | — |
+| 20–22 | `structure_node`, `section`, `external_ref` | `structure.jsonl` | — |
+| 30 | `page` | `pages/<id>.jsonl` | own ID |
+| 31 | `device` (with every aspect: strip, terminal, cable, assembly, PLC, bus, valve terminal) | shard | own ID |
+| 32 | `function` | shard; an interruption-point (IP) function without a device goes to its page | `device`; IP: page of its representation |
+| 33, 35 | `representation`, `junction` | page file | `page` |
+| 34 | `connection` | page file if `page` is set, else a shard | `page`, else the device owning endpoint `a` |
+| 36, 37 | `conductor`, `channel` | shard | `cable`, `module` |
+| 38–41 | `potential_def`, `net_def`, `medium_def`, `bond` | shard (junction endpoint: its page) | device owning `at` (bond: `a`) |
+| 42 | `device_link` | shard | `from` |
+| 43–45 | `page_item`, `structure_box`, embedded `report_block` | page file | `page` / `embedded.page` |
+| 45 (same kind) | page-oriented `report_block` | `report-blocks.jsonl` | — |
+| 50–56 | `layout_space`, `enclosure`, `mounting_surface`, `carrier`, `placement`, `route_override`, `committed_route` | `layout/<space>.jsonl` | space via carrier → surface → enclosure |
+| 60–62 | `revision`, `waiver`, `comment` | own root file | — |
+| — | `part`, `symbol`, `fndef`, `form`, `macro` (library copies) | `lib/<kind>s/<id>.json`, one pretty document each (§3.4) | own ID |
+| 255 | `conflict` | file of its target | target |
+
+A shard is `devices/<xx>.jsonl`, where `xx` is the anchor ID's last byte as two lower-case hex digits. The
+[domain model](03-domain-model.md) §14 allows a `LogicalNet` in its master's shard or in `project.jsonl`; this
+format always uses `project.jsonl`, so that a change of master (in the golden project the external partner
+JE-N1000-03) does not re-key the net.
+
+**Follow relations.** Some records take their file from another record. A transaction that changes one of these
+source fields re-keys the dependent records, and the writer marks both their old and their new files dirty:
+
+| Source field changes | Records re-keyed |
+|---|---|
+| `Representation.page` of an IP representation | its IP function |
+| `Function.device` | page-less connections, potential, net and medium definitions and bonds at the function's CPs |
+| `Carrier.surface`, `MountingSurface.enclosure`, `Enclosure.space` | dependent layout records |
+
+A property test guards the table: after any random command sequence, incremental saves must equal a full save,
+byte for byte (proposed NFR-REL-nn).
+
+**Committed computations** (`Committed<T>{value, input_hash, rev}`, ADR-0003) are persisted without `rev`, which is
+a session-local counter. A routed path is a `committed_route` record with ID `v5(connection, "route")`. Frozen wire
+numbers live in `Connection.number`. A released revision's report snapshots live in its archive (§14).
+
+---
+
+## 3. Canonical encoding
+
+### 3.1 Files and records
+
+- **Files.** UTF-8 without BOM, LF line endings on every platform, one record per line, a final LF, no blank lines.
+  A file that would be empty is not written; if it exists, it is deleted.
+- **Lines.** Each line is a compact JSON object: no whitespace outside strings. String escaping equals serde_json's
+  compact output:
+  - `"` and `\` are escaped;
+  - control characters become `\b \f \n \r \t` or `\u00xx`;
+  - non-ASCII characters stay raw;
+  - `/` is never escaped.
+
+  The form is close to RFC 8785 (JCS), but members follow the schema order and numbers are integers only.
+- **Strings are NFC** (ARCH §7.3). A non-NFC string read from disk is normalised in memory, and its file counts as
+  non-canonical, so it is rewritten at the next save; `ew fmt --check` reports it.
+- **Member order:**
+  1. `"$k"`, `"id"`, `"$v"` (per-kind schema version, omitted when 1, §10.2);
+  2. known members in **schema declaration order**;
+  3. flattened device aspects (`strip`, `terminal`, `cable`, `assembly`, `plc_station`, `plc_module`, `bus_node`,
+     `valve_terminal`), as in the ARCH §7.3 example;
+  4. the `extra` map (unknown members and namespaced `plugin.<id>.*` keys, FR-EXT-021), in byte-wise key order.
+- **Defaults omitted.** A member equal to its schema default is not written: `None`, empty arrays and maps, `false`
+  flags and default enum variants.
+
+### 3.2 Value encodings
+
+| Type | JSON | Example |
+|---|---|---|
+| `Id<T>` | lower-case hyphenated UUID | `"c7a90e35-42d8-5f61-8b03-9d2e6f1a47c2"` |
+| Integer, `Nm` | integer with \|n\| ≤ 2⁵³ − 1 (safe for JavaScript and jq); no `-0` or exponent | `137583333` |
+| `Pt2`, `Grid` | `[x, y]` in nm; reduced `{"num","den"}` with `den` > 0 | `[42333333,15875000]`, `{"num":7937500,"den":3}` |
+| `Orient2` | string; default `"r0"` omitted | `"r90"`, `"m0"` |
+| `Pose3` | `{"t":[x,y,z],"q":[w,x,y,z]}`, `q` in 10⁻⁹, sign-normalised (w > 0, else the first non-zero component > 0) | `{"t":[0,500000000,0],"q":[1000000000,0,0,0]}` |
+| `Dec3` | decimal string: at most 3 fraction digits, no trailing zeros, no `+`, `-0` or exponent, never a unit | `"0.75"`, `"40"`, `"1"` |
+| `Quantity`; `TechValue` | `{"value": Dec3, "unit"}`; `{"key", "value"}` whose value is a `Quantity` object or an `Ident` string, told apart by JSON type | `{"key":"i_out","value":{"value":"20","unit":"A"}}`, `{"key":"curve","value":"C"}` |
+| `MlText` | string (neutral) or object keyed by sorted BCP 47 tags | `"1+"`, `{"en-GB":"Power Supply 1 - Main Current"}` |
+| `Ident` | NFC string without surrounding white space | `"A9F78116"` |
+| `ColourSpec` | one or two IEC 60757 or profile-declared codes | `["BK"]`, `["GN","YE"]`, `["DBU"]` |
+| Authored date | `"YYYY-MM-DD"` | `"2024-07-12"` (a revision date, entered by a person) |
+| Enum | unit variant as a snake_case string; data variant as a one-member object | `"tbd"`, `{"core":"<id>"}`, `{"manual":"Q0.1"}` |
+| `Endpoint` | `{"cp":[function, idx]}` or `{"junction": id}` | `{"cp":["d40b6e93-…",0]}` |
+| Structure slot | absent = inherit; a node ID; `"none"` | `"location":"a41f6c2d-…"` |
+| Sequence / set / keyed list | model order / sorted by element JSON / sorted by key | `route`; `aliases`; `cp_overrides` by `idx` |
+| Hash | `"sha256:<64 lower-case hex>"` | manifest, library copies |
+
+**There are no floats anywhere** (ADR-0005). A number with a fraction or an exponent is a schema violation
+(INT-07).
+
+### 3.3 Line order
+
+Records sort by kind rank, then by the ID's bytes 8–15 read as a big-endian `u64` (the random bits), then by the
+full ID.
+
+**Why the random bits.** UUIDv7's leading bytes are a timestamp, so time order would make additions on two branches
+append at the same spot. Random-bits order scatters them, so plain-git and web merges succeed far more often
+(ADR-0010).
+
+**The order needs truly random bytes 8–15.** `ew-ids` therefore generates UUIDv7 by RFC 9562 §6.2 method 3: a
+sub-millisecond fraction in `rand_a` and 62 CSPRNG bits in `rand_b`. It puts no counter in `rand_b`. If uuid
+1.28's default `now_v7` context keeps a monotonic counter in the leading `rand_b` bits, `ew-ids` assembles the
+bits itself through uuid's builder API **(verify both)**. UUIDv5 bytes are hash-random anyway. Sharding uses
+byte 15, which is random under both schemes. Loading records in any order yields the same tables, and therefore
+the same bytes on save (NFR-REL-07).
+
+### 3.4 Library documents
+
+Library copies (`lib/**`) are pretty JSON, one document per item (ARCH §7.3):
+- 2-space indentation, member order as in §3.1, LF and a final newline;
+- every array or object whose compact form is ≤ 100 bytes is written inline, with `": "` and `", "` separators, so
+  a 200-point symbol stays readable;
+- the copy metadata `library_id`, `item_id`, `version` and `sha256` (ARCH §4.2) follow `$k` and `id` (§13.2).
+
+### 3.5 Example records (golden project)
+
+Folio 101's page file holds the page row, the -101F1 representation and wire W7 (S51:1 → -101F1:1):
+
+```json
+{"$k":"page","id":"8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a","folio":{"section":"0e8b3d61-a74c-5f12-b5e9-82d4c1f06a3e","number":101},"kind":"multi_line","structure":{"function":"7d2c95e0-1f4a-5b38-a6e7-0c93b5d1f284","location":"a41f6c2d-8e05-5d97-b3c1-5f2e8a7d9c60"},"title":{"en-GB":"Power Supply 1 - Main Current"},"grid":{"num":7937500,"den":3}}
+{"$k":"representation","id":"6f03d8a5-c912-5e7b-8a40-1d5b39e2f7c6","functions":["3e7a1c58-90d4-5b26-8f3a-6c0d2e9b417e"],"page":"8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a","symbol":"2c7e9b40-5a18-5f63-9d2c-b8a1e07f4396","pos":[137583333,31750000]}
+{"$k":"connection","id":"b29e4f17-8d63-5a0c-9f71-3c6a2e8d05b1","a":{"cp":["d40b6e93-25f7-5c1a-9e8d-7a3f1c05b6e2",0]},"b":{"cp":["3e7a1c58-90d4-5b26-8f3a-6c0d2e9b417e",0]},"page":"8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a","route":[[42333333,15875000],[137583333,15875000]],"overrides":{"csa":"2.5","colour":["BK"],"show_marker":true}}
+```
+
+- **Page.** The record has no description override and no revision, Prev/Next or title-block text (D-05, D-06). It
+  uses `title` and `description_override` as the [domain model](03-domain-model.md) §1.2 amends ARCH §4.2.
+- **Representation.** Its position (10 px grid indices 52, 12) lies in cell B8.
+- **W7.** Its 2.5 mm² BK is an explicit override (CDP) with a marker. W8 (-101F1:1 → F55:1) has **no**
+  `overrides` member: its 1.5 mm² BK is derived (D-08).
+
+Shard `devices/c2.jsonl` holds -102G1 (ID ending `c2`) and, after it (rank 32 after 31), its main function:
+
+```json
+{"$k":"device","id":"c7a90e35-42d8-5f61-8b03-9d2e6f1a47c2","tag":{"letter":"G","counter":1},"kind":"psu","parts":[{"part":{"copy":"e5d2a8f1-0c37-5b94-8e6a-4f1d93c7b025"},"qty":"1"}],"function_text":{"en-GB":"Power supply 1 AC / 24 V DC"},"tech_data":[{"key":"i_out","value":{"value":"20","unit":"A"}}]}
+{"$k":"function","id":"1d6f3a92-7c05-5b8e-94a1-e3c2087f5d19","device":"c7a90e35-42d8-5f61-8b03-9d2e6f1a47c2","def":"5b9e2d70-3c41-5f8a-b6d2-19e4c7a03f58","kind":"black_box"}
+```
+
+Shard `devices/2a.jsonl` holds terminal 1 of -X1031 (ID ending `2a`). It prints its function text "1+" through
+the strip's `label_mode` ([domain model](03-domain-model.md) §8.4):
+
+```json
+{"$k":"device","id":"f19c3a7e-6b02-5e48-9d5a-c7e1340b8f2a","tag":{"letter":"X"},"kind":"terminal","parts":[{"part":{"copy":"a07c4e19-d25b-5f83-9c16-4e8b0d7a2f35"},"qty":"1"}],"function_text":"1+","terminal":{"strip":"58e2b1d0-4c97-5a3f-8e16-d09a72c5e3f1","seq":1,"designation":"1"}}
+```
+
+`parts[].part` is a `PartRef{copy, variant?}` and `qty` a `Dec3` in the part's order unit (-3W1 counts in metres;
+[domain model](03-domain-model.md) §3.2, §7).
+
+The text "-102G1" appears in no file. It derives from `{G, 1}`, the page-based scheme and the folio of the main
+representation ([domain model](03-domain-model.md) §8.2). An excerpt of `lib/parts/e5d2a8f1-….json` (2904602;
+library IDs and the hash abbreviated):
+
+```json
+{
+  "$k": "part",
+  "id": "e5d2a8f1-0c37-5b94-8e6a-4f1d93c7b025",
+  "library_id": "6a1d0f3e-…",
+  "item_id": "8b42c7d9-…",
+  "version": "1.2.0",
+  "sha256": "sha256:9f2c…",
+  "manufacturer": "Phoenix Contact",
+  "part_number": "2904602",
+  "description": {"en-GB": "Power supply 1 AC / 24 V DC, 20 A"},
+  "cp_pattern": [
+    {"idx": 0, "designation": "L"},
+    {"idx": 1, "designation": "N"},
+    {"idx": 2, "designation": "PE", "potential_role": "pe"},
+    {"idx": 3, "designation": "+", "potential_role": "l_plus"},
+    {"idx": 4, "designation": "+", "potential_role": "l_plus"},
+    {"idx": 5, "designation": "-", "potential_role": "m"},
+    {"idx": 6, "designation": "-", "potential_role": "m"}
+  ],
+  "licence": "CC0-1.0",
+  "source": "golden tables"
+}
+```
+
+### 3.6 Loader limits
+
+The JSONL loader is a hardened parser under NFR-SEC-02 and is fuzzed together with the migration chain
+(NFR-SEC-03). Its limits:
+- lines ≤ 16 MiB, files ≤ 512 MiB, ≤ 100,000 files, JSON nesting ≤ 64;
+- duplicate member names rejected;
+- only regular files are read. Symbolic links and junctions inside the project are not followed (proposed
+  NFR-SEC-nn), because a received project could otherwise make EW read, export or overwrite a file outside its
+  directory.
+
+---
+
+## 4. Manifest and generations
+
+`manifest.json` is pretty-printed with one file per line, sorted by path, so that line merges stay local:
+
+```json
+{
+  "format": "1.0",
+  "min_reader": "1.0",
+  "generator": "ElektraWatt 1.0.0",
+  "project": "3f2b8c1e-6d4a-5e07-9b1c-2a7d4e9f0c13",
+  "generation": 1,
+  "files": {
+    "assets/4b1f…e2.svg": "sha256:4b1f…e2",
+    "devices/c2.jsonl": "sha256:…",
+    "lib/parts/e5d2a8f1-0c37-5b94-8e6a-4f1d93c7b025.json": "sha256:…",
+    "pages/8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a.jsonl": "sha256:…",
+    "project.jsonl": "sha256:…",
+    "…": "…"
+  }
+}
+```
+
+| Member | Meaning |
+|---|---|
+| `format` | Two-part format of the writer's schema (§10.1). Never lowered |
+| `min_reader` | Lowest format a reader needs. Computed from the `since` metadata of every kind, member and enum variant actually present, so a 1.3 writer that uses no newer feature writes `"1.0"` |
+| `generator` | Program and version that wrote this generation |
+| `project` | The project row's ID: key for the journal, the trust store and "two copies open" warnings |
+| `generation` | +1 per save; after a git merge, max(ours, theirs) + 1 (§11.3) |
+| `files` | Every EW file except the manifest, the git files, `.ew/`, the lock files, `.~ew.requests/` and temps |
+| `merged` | `true` only when written by the merge driver: the hashes are not authoritative |
+| `unstable` | `true` when written by a development build with an unreleased schema (§10.4) |
+
+The manifest carries **no wall-clock time**. Saving an unchanged project writes nothing. The title block's "Saved"
+date is model data (open question 1).
+
+---
+
+## 5. Save protocol
+
+### 5.1 Dirty set
+
+Each `Op{key, before, after}` maps to `file_key(before)` and `file_key(after)` (both, when a row changes files),
+plus the follow relations of §2.2. The dirty set thus falls out of the transaction log, with no scanning. A file
+whose bytes turn out unchanged (an edit undone) is skipped in step 3.
+
+### 5.2 Steps
+
+```mermaid
+sequenceDiagram
+  participant UI as UI thread (Session)
+  participant W as Writer thread
+  participant FS as Project directory
+  UI->>W: save(snapshot at rev r, dirty set D, base generation g)
+  W->>FS: re-read lock and manifest (our session? still g?)
+  W->>W: serialise files of D, hash, drop unchanged
+  W->>FS: write name.tmp-(g+1) with create_new, sync_all
+  W->>FS: write manifest.json.tmp-(g+1), sync_all, sync directories
+  W->>W: journal save-begin and sync it
+  Note over W,FS: commit point: generation g+1 is decided
+  W->>FS: rename each temp over its target
+  W->>FS: rename manifest temp over manifest.json, sync directories
+  W->>FS: delete dropped files and stale temps
+  W->>UI: saved(g+1, rev r): the History gets the saved marker
+```
+
+1. **Trigger:** Ctrl+S, the CLI or idle auto-save (§5.5). Saves are serialised; a save requested during a save runs
+   next with the union of both dirty sets.
+2. **Pre-check:** the lock still holds our session (§7), and `manifest.json` still hashes to what we last wrote or
+   loaded. Otherwise the external-change flow (§9) runs first, so a pull is never overwritten.
+3. **Serialise** each dirty file from the snapshot (§3), hash it, drop files equal to their manifest hash, and mark
+   empty files for removal.
+4. **Temps:** `<name>.tmp-<g+1>` beside its target, `create_new`, `sync_all` (`F_FULLFSYNC` on Apple platforms,
+   G1).
+5. **Intent:** the complete new manifest as `manifest.json.tmp-<g+1>`, `sync_all`, then sync the touched
+   directories on Linux and macOS. On Windows, directory sync is unavailable and the NTFS metadata log is relied on
+   **(verify)**. The writer then journals `save-begin{gen, writes, removes}` (§8.1) and syncs the journal.
+6. **Renames:** each temp over its target. On Windows, `ERROR_SHARING_VIOLATION` and `ERROR_ACCESS_DENIED`
+   (antivirus, indexer, sync client) are retried with backoff 10 … 1,000 ms. After that, EW reports "save
+   incomplete" and retries the roll-forward (§5.3) every 5 s.
+7. **Manifest:** rename the intent over `manifest.json`, then sync the directories.
+8. **Clean-up:** delete the files that left the manifest (deleted pages, emptied shards) and stale temps.
+9. **Bookkeeping:** journal `save-done`, start a new segment (§8), and move the saved marker to rev r. Later commits
+   stay dirty.
+
+The save never blocks the UI. Budgets: S/M ≤ 200 ms, L ≤ 500 ms, XL ≤ 2 s (NFR-PERF-12).
+
+### 5.3 Commit point and roll-forward (refinement of ADR-0010)
+
+**The gap.** ARCH §7.4 orders temp → rename → manifest. Renames are atomic only per file, so a crash between two
+renames leaves generation g partly overwritten.
+
+**The fix.** The intent manifest of step 5 is durable *before* the first rename, and every temp it lists is already
+durable. A crash at any point therefore leaves a state that resolves to g or g+1:
+
+| Crash between | On disk | Next open (lock held) |
+|---|---|---|
+| Steps 1 and 5 | g intact plus stray temps | Delete temps; open g |
+| Steps 5 and 7 | Complete intent; each data file at g or g+1, the rest as temps | **Roll forward:** rename every temp whose hash matches the intent, then the intent; open g+1 |
+| Steps 7 and 8 | g+1 complete, removed files still present | Delete those named in the journal's `save-begin{removes}`; report the rest (INT-04) |
+| Intent present, but for some file neither the target nor a temp matches the intent hash | Mixed, not repairable from disk | INT-02: journal recovery (§8) or a best-effort read-only load |
+
+The fault-injection harness of NFR-REL-01 (§5.6) kills the writer at random points of steps 4–8 on ext4, NTFS
+and APFS. Every reopen must yield g or g+1.
+
+### 5.4 Failures (NFR-REL-03)
+
+| Failure | Behaviour |
+|---|---|
+| Disk full, quota or permission error before the commit point | Delete our temps; g intact; project stays dirty; cause and remedy shown ("free 40 MB on S:") |
+| Same after the commit point; SMB disconnect | Background roll-forward retries; "save incomplete" status. The journal is local, so no edit is lost |
+| Lock lost (§7.4) or project directory gone | Nothing written; read-only switch; Save a Copy or Save As offered |
+
+### 5.5 Save variants
+
+- **Save As** writes a full generation to a new directory and moves the lock. The project ID stays. At XL it takes
+  at most 15 s (NFR-PERF-12).
+- **Save a Copy as new project** assigns a new project ID and keeps record IDs, so `ew diff` against the original
+  stays meaningful. **New project from basic project** re-IDs every record as `v5(new_project_seed, source_id)`
+  ([07](07-symbols-parts-macros.md) §2.8).
+- **Work copy** (1.0): `<name>.work-<user>.ew/` plus its base generation in `.ew/base.ewz`, merged back three-way
+  inside the original's lock ([15](15-checks-revisions-collaboration.md) §6.8).
+- **Auto-save** is `save.mode = manual | idle(<s>)`, default `manual` (open question 9). The journal protects
+  unsaved work in both modes.
+- **No-op save.** With an empty dirty set, saving writes nothing. When only the manifest is stale (after a hand edit
+  or a merge), saving writes just the manifest. Files that were non-canonical at open are rewritten at the next
+  save.
+
+### 5.6 Fault-injection design (NFR-REL-01, NFR-REL-03)
+
+[Quality, security and release](18-quality-security-release.md) runs the harness; this is its design:
+- **One I/O seam.** Every file operation of `ew-store` (create, write, `sync_all`, directory sync, rename, unlink,
+  lock create) goes through a `Vfs` trait. Production uses `std::fs`; tests use `FaultVfs`, which numbers each call.
+- **Kill mode.** A child process saves the golden project and the M fixture through `FaultVfs` and aborts at call
+  k. The parent reopens with the real file system and asserts generation g or g+1, a model digest equal to one
+  of the two generations and no integrity finding above info. 1,000 random k per file system on ext4, NTFS and
+  APFS (NFR-REL-01).
+- **Power-loss mode** (Linux, nightly). `FaultVfs` keeps writes that no `sync_all` has covered in a buffer and
+  drops them at the crash point. This proves that every rename follows a durable temp and that the intent is
+  durable before the first rename. Here the "not repairable" row of §5.3 may occur, but only as a reported INT-02,
+  never as a silent mixed generation (NFR-REL-01).
+- **Error mode.** ENOSPC, EACCES, EROFS and, on Windows, `ERROR_SHARING_VIOLATION` are injected at each call: g
+  stays intact, the project stays dirty, and the message names cause and remedy (NFR-REL-03).
+
+---
+
+## 6. Open, verification and integrity
+
+### 6.1 Sequence
+
+```mermaid
+flowchart TD
+  S[Open] --> L{"create .~ew.lock"}
+  L -- created --> RW[Edit mode]
+  L -- "held by a live session" --> RO["Read-only (§7)"]
+  L -- "EACCES or EROFS" --> RO
+  RW --> T{"manifest.json.tmp-n?"}
+  T -- complete --> F["Roll forward (§5.3)"] --> H
+  T -- torn --> D[Delete temps] --> H
+  T -- none --> H["Hash listed files in parallel"]
+  RO --> H
+  H --> M{"All match?"}
+  M -- yes --> P["Parse, migrate, build tables and indexes"]
+  M -- no --> C["Classify (§6.2)"] --> P
+  P --> I["Integrity INT-01 … INT-16 on the pool"]
+  I --> J{"Leftover journal?"}
+  J -- yes --> R["Recovery dialog (§8.3)"]
+  J -- no --> O["First page interactive, warm-up continues"]
+```
+
+- **Read-only openers never roll forward.** If one meets temps, it retries every 200 ms for up to 5 s.
+- **Parallel parse.** Files are parsed in parallel into ordered tables, so the result does not depend on order.
+- **Budget.** Opening stays within NFR-PERF-03 (S ≤ 0.5 s … XL ≤ 20 s). Hashing the roughly 250 MB of an XL
+  project takes well under a second in parallel (estimate, to be measured in the M0 spike).
+
+### 6.2 Classifying hash mismatches
+
+A mismatch is classified, loaded anyway and explained (FR-COL-004):
+
+| Evidence | Class | Action |
+|---|---|---|
+| The hash matches after CRLF → LF | Line-ending conversion (`core.autocrlf`, an editor) | Info; rewritten at the next save |
+| `merged: true`, or `MERGE_HEAD` or rebase state in an ancestor `.git` | Git merge or rebase | Integrity check; manifest rewritten at the next save |
+| Files differ, valid, no temps | Foreign edit (hand edit, checkout, a tool) | "Changed outside ElektraWatt: 2 files" notice; integrity check |
+| A listed file is missing | Partial copy, sparse checkout, sync unfinished | INT-03, read-only. On cloud paths, re-check after 5 s first |
+| An unlisted file matching an EW or sync-conflict name pattern (§15) | Orphan or conflict copy | INT-04 |
+
+The "last good generation" of FR-COL-004 is not a second copy on disk. Earlier states come from the recovery
+snapshots, git history and `.ewz` backups.
+
+### 6.3 Integrity findings
+
+`ew check --integrity` (FR-CHK-012, FR-COL-016) runs on every open, after merges and from the CLI.
+[Checks, revisions and collaboration](15-checks-revisions-collaboration.md) §4.2 maps the findings one to one to
+rule IDs: EW-CORE-0nn = INT-nn. A finding marked **R** blocks release: INT-02, -03, -05 … -09, -11, -12, -13 and
+-15 as there, and INT-16 only where outputs are affected (a refinement of §4.2 there, which blocks every INT-16).
+
+| ID | Finding | Severity | Quick fix |
+|---|---|---|---|
+| INT-01 | Manifest missing, unparseable or with conflict markers | warning | Rebuild it (`ew check --integrity --fix-manifest`) |
+| INT-02 | Mixed generation that cannot roll forward | error; R | Journal recovery; best-effort read-only load |
+| INT-03 | A listed file is missing | error; R | Restore it from git or the sync client; drop the entry |
+| INT-04 | Orphan or sync-conflict copy | warning | Compare; merge the copy as an external change (§9); delete |
+| INT-05 | JSON syntax error at file:line | error; R; read-only | `ew fmt --repair`: discard the line, with an `.ewz` backup |
+| INT-06 | Git conflict markers in a JSONL file | error; R | Converted into conflict records (§11.4) |
+| INT-07 | Schema violation: wrong type, missing member, a float, an unknown colour code such as "BR" | error; R | The line is quarantined verbatim and references to it are reported |
+| INT-08 | Dangling reference | error; R | The link's delete policy, as a previewed fix |
+| INT-09 | Duplicate `($k, id)` within or across files | error; R | Cross-file move reconciliation (§11.5), else keep one |
+| INT-10 | A record in the wrong file | info | Moved at the next save |
+| INT-11 | Conflict records present | error; R | Merge panel (FR-COL-015) |
+| INT-12 | Structural invariant violated (ADR-0009) | error; R | Listed; the next transaction touching the key must restore it |
+| INT-13 | Uniqueness collision after a merge: tag or counter, terminal designation, wire number, IP star source, PLC address or symbol ([15](15-checks-revisions-collaboration.md) §6.4) | error; R | Renumber all but the keeper: frozen or released value first, then the record present in the merge base, then the older UUIDv7; one previewed command per merge |
+| INT-14 | A library copy whose content does not match its `sha256` | warning | Mark it locally modified, or re-embed it |
+| INT-15 | An asset missing or not matching its hash name | error; R | Re-import; drop the reference |
+| INT-16 | Unknown kinds, members or variants from a newer format | info; R where outputs are affected | Upgrade EW |
+
+### 6.4 Concurrent readers
+
+**Reading commands take no lock** (`ew export`, `ew check`, `ew sql`, `ew render`). They read the manifest and then
+the files, and verify the hashes. While a save is in progress they retry for up to 5 s, then exit with code 2.
+Their output therefore reflects exactly one generation (proposed FR-COL-nnn).
+
+**Writing commands take the lock or refuse:** `ew fmt`, `ew upgrade`, `ew import` into an existing project and
+`ew revision release`.
+
+---
+
+## 7. Lock file
+
+### 7.1 Record and acquisition
+
+`.~ew.lock` is not project data, so it may carry times. It extends the ADR-0010 record `{user, host, pid,
+app_version, started_at}` with a format number, the session ID and the PID's start time:
+
+```json
+{"lock":1,"session":"01a14728-8400-7c3e-9b21-6f0d9a4e2b10","user":"<os user>","host":"<host>","pid":48211,"pid_started":"2026-10-17T07:41:58Z","app_version":"ElektraWatt 1.0.0","started_at":"2026-10-17T07:42:10Z"}
+```
+
+- **Acquisition.** EW creates the lock with `create_new` (O_EXCL; SMB2 `FILE_CREATE`) and syncs it. It uses no
+  byte-range locks (G1).
+- **Two paths, one lock.** A project opened through a UNC path and through a mapped drive meets the same physical
+  lock file.
+- **Read-only fallback.** A lock creation that fails with EACCES or EROFS (a read-only share or a mail attachment
+  folder) opens the project read-only and says why.
+
+### 7.2 Heartbeat and lock loss
+
+- **Heartbeat.** The holder refreshes the lock's modification time every 5 minutes (`File::set_modified`) and
+  re-reads the session ID.
+- **Lock loss.** If the session ID is no longer its own, the holder has lost the lock (proposed FR-COL-nnn). It
+  switches to read-only at once. Its unsaved changes stay in memory and in the journal, and it offers "Save a Copy"
+  or "Merge into current" (the external-change flow, then re-acquiring the lock if it is free).
+
+### 7.3 Read-only mode
+
+The banner reads `Read-only: locked by <user>@<host> since <time>` (FR-COL-006). The project reloads silently when
+the holder saves, because read-only sessions have no local edits. When the lock disappears, EW offers "Switch to
+editing".
+
+### 7.4 Stale locks and takeover
+
+**Stale.** A lock is stale in either of two cases:
+- same host, and the PID is dead or its start time differs (PID reuse);
+- its modification time is older than `lock.stale_after` (default 60 min, configurable; open question 10).
+
+**Takeover.** It always needs confirmation, showing holder, host and "last seen 3 h ago". Then:
+1. EW renames `.~ew.lock` **without replacement** (`renameat2(RENAME_NOREPLACE)` on Linux, `renamex_np(RENAME_EXCL)`
+   on macOS, `MoveFileExW` without `MOVEFILE_REPLACE_EXISTING` on Windows) to `.~ew.lock.stale-<stale session>`.
+   Two instances taking over the same stale lock aim at the same target name, so only one rename succeeds. A plain
+   replacing rename would let the slower one move the winner's fresh lock away.
+2. The winner creates its own lock with `create_new` and re-reads it after 2 s.
+3. Where a file system cannot rename without replacement (some CIFS and NFS mounts **(verify)**), EW falls back to
+   the plain rename, and the re-read of step 2 plus the heartbeat's session check (§7.2) detect the loser.
+
+A laptop that wakes after a takeover detects the loss at its next heartbeat (§7.2). `.~ew.lock.stale-*` files
+older than `lock.stale_after` are deleted at the next open.
+
+---
+
+## 8. Crash journal and recovery
+
+### 8.1 Journal
+
+The journal lives in `<state>/journal/<project id>-<8 hex of SHA-256(canonical path)>/`. It holds one JSONL
+segment per base generation and three snapshot slots. The example records W20's colour change from DBU to BU
+(folio 102):
+
+```json
+{"j":"open","v":1,"project":"3f2b8c1e-…","path":"<canonical project path>","base":231,"base_manifest":"sha256:…","app_version":"ElektraWatt 1.0.0","session":"01a14728-…"}
+{"j":"tx","seq":17,"t":1792241530117,"cmd":"connection.set_overrides","origin":"gui","ops":[{"k":["connection","5e07c3b9-…"],"set":{"overrides":{"colour":["BU"]}},"was":{"overrides":{"colour":["DBU"]}}}]}
+{"j":"snap","seq":40,"slot":1}
+{"j":"save-begin","gen":232,"writes":17,"removes":["devices/9f.jsonl"]}
+{"j":"save-done","gen":232}
+```
+
+- **Entries.**
+  - `tx` holds field-level diffs: `set` for the after-values, `was` for the before-values, and `put` or `del` with
+    whole records.
+  - Undo and redo are journalled as the transactions they are.
+  - `t` (epoch ms) and the absolute `path` serve only the recovery dialog. The journal is not project data and
+    never leaves the user-only state directory (NFR-PRIV-05).
+- **Durability.** Group commit syncs every entry within 1 s of its commit (NFR-REL-02). It also syncs at once on
+  focus loss, before a save and in the panic hook, with a 500 ms deadline (NFR-REL-13).
+- **Snapshots.** Every 2 minutes while the project is dirty (ARCH §7.4), the next slot receives:
+  - the full canonical content of every file that differs from the base generation;
+  - a `snap.json` with `{base, base_manifest, seq, files{path: sha256}}`.
+
+  At XL this is the dirty overlay, not the whole project.
+- **Lifecycle.**
+  - A successful save starts a new segment; the old one goes after the next snapshot.
+  - A clean close deletes the directory (NFR-PRIV-05).
+  - At start-up, leftovers older than 30 days are pruned and logged.
+  - If the state directory is unavailable, EW shows "unsaved changes are not crash-protected" and editing continues.
+
+### 8.2 Recovery
+
+1. **Find** a leftover journal whose `project` matches. The path hash only tells clones apart.
+2. **Load** the current disk generation G.
+3. **If G is the journal's base** (same manifest hash):
+   - take the newest valid snapshot, falling back to an older slot or to none;
+   - overlay its files on G;
+   - replay `tx` entries after the snapshot's `seq`, stopping at the first torn line.
+
+   The result is the live model at the crash, minus at most 1 s of commits (NFR-REL-02; NFR-REL-08: journal replay
+   equals live state).
+4. **If the base moved** (a pull or a colleague's save after the crash), replay the field diffs as a candidate
+   transaction against G. A field whose current value differs from `was` is a collision, resolved in the merge panel
+   (§9).
+5. **Open dirty.** The recovered model opens with unsaved changes. Its transactions are rebuilt into the undo
+   history from `set` and `was` (proposed FR-COL-nnn).
+
+### 8.3 Dialog
+
+At start-up, and when opening a project with a leftover journal, EW shows project, path, time of the last change and
+the number of unsaved transactions. The choices are "Recover", "Open without recovering" (the journal is kept 30
+days) and "Discard". The CLI equivalent is `ew recover <project> [--list | --apply | --discard]`.
+
+---
+
+## 9. External changes
+
+1. **Detection.**
+   - `notify` 8.2.0 watches the project recursively, excluding `.ew/`, temps and the lock.
+   - A `stat` of `manifest.json` runs on window focus.
+   - On network file systems (detected through `statfs` or `GetDriveType`), the manifest is polled every 3 s,
+     because inotify misses remote writes on CIFS mounts **(verify)**.
+2. **Own writes.** Events from our own save window are ignored when the manifest afterwards is the one we wrote.
+3. **Quiescence.** Wait until no event has arrived for 750 ms and no git operation is running (`index.lock`,
+   `MERGE_HEAD`, `rebase-merge/` or `rebase-apply/` in the git directory of an ancestor `.git`; a `.git` file, as in
+   linked worktrees and submodules, is resolved to its `gitdir`).
+4. **Diff.** Load the incoming generation on the pool. Compute `diff_model(baseline, incoming)` and
+   `diff_model(baseline, current)`, where the baseline is the last saved or loaded model.
+5. **Apply or merge.**
+   - **No collision** (no field changed differently on both sides): apply the incoming diff as **one undoable
+     transaction**. The label is "External change", with the git commit added when gix can read it ("git a1b2c3d:
+     Merge branch 'rework-102'"). The baseline becomes the incoming model, and remaining local edits keep the project
+     dirty.
+   - **Collision:** the merge panel opens with base, ours and theirs per field (FR-COL-007).
+6. **Undo.** Undoing an external change restores the pre-pull state in memory. Saving would then write it over the
+   pulled files, and the undo entry says so.
+
+If git writes into the directory during an EW save, the pre-checks of §5.2 narrow the window, and EW re-hashes the
+written files after each save. The integrity report names any overwritten file and offers "re-apply incoming from
+git", read from the object database. The journal holds every EW transaction, so nothing is lost on the EW side.
+
+---
+
+## 10. Format versioning and migration
+
+### 10.1 Versions and reader decisions
+
+- **Version scheme** (ADR-0011): `format` is `major.minor`. Minors are additive, majors break.
+- **Before 1.0:** formats are `0.x`, and every step counts as breaking.
+
+In the table, R is the reader's format, F the file's format and M its `min_reader`:
+
+| Condition | Behaviour |
+|---|---|
+| M > R | Refuse; nothing written |
+| Same major, F ≤ R | Normal. A save writes `format = max(F, R)` and recomputes `min_reader` |
+| Same major, F > R, M ≤ R | Read-write with a banner: "written by a newer ElektraWatt; unknown data preserved". The stamp stays F |
+| F.major > R.major, M ≤ R | Read-only |
+| F.major < R.major | Migrate in memory. The first save asks first and writes `<name>.ew.pre-<F>.ewz` beside the project (NFR-REL-06) |
+| `unstable: true` in a release build | Read-only with a warning |
+
+### 10.2 Per-kind versions and migrations
+
+- **`$v` bumps.** A `$v` bump breaks its kind, so it is allowed only in a format major: after 1.0, only in the
+  yearly window (FR-COL-011). Within a major, kinds change only by additions.
+- **Migrations.** Each is a pure function `fn(serde_json::Value) -> Result<Value>`, one per kind and step. Migrations
+  run after parsing and before typed deserialisation, with `serde_path_to_error` reporting paths. They are never
+  deleted (NFR-REL-05).
+- **Small upgrade diffs.** A major that changes only connections rewrites only connection records, so `ew upgrade`
+  yields a small git diff (FR-EXT-008).
+- **Same chain everywhere.** Macros, catalogue items and archives carry `$v` and use the same chain.
+
+### 10.3 Additive change rules and preservation
+
+The schema-steward rule (ARCH §7.6) requires every format PR to ship a migration, a fixture, regenerated schemas and
+docs. Additive changes also follow four rules:
+
+1. **New members** are optional with a default, are **appended** after the existing members of their kind, and
+   carry `since = "1.n"`, which feeds `min_reader`.
+2. **New kinds** take a new rank and declare their ownership.
+3. **Enums.** Every persisted enum has an `Unknown(serde_json::Value)` catch-all, so adding a variant is additive.
+   Derivations treat `Unknown` conservatively: an unknown connection kind joins no net and is drawn grey and dashed.
+   It blocks release (INT-16).
+4. **No breaking edits.** Within a major, no member changes type, meaning or unit, or moves to another kind.
+
+Unknown data is preserved as follows:
+
+| Unknown | Handling |
+|---|---|
+| Member of a known kind | Kept in `extra` and written after the known members. While the record is untouched, its **original line** is written verbatim, so a file from a newer minor survives a save byte-identical, whatever member order that minor used (FR-COL-010) |
+| Kind | The line is kept verbatim in the file it was read from, since its ownership rule is unknown. It sorts after the known kinds, by `$k` name, then by ID |
+| Enum variant | `Unknown(Value)`: the record stays editable, and the value is written back unchanged |
+| File listed in the manifest | Never rewritten or deleted; INT-16 |
+| `plugin.<id>.*` keys | Kept in `extra`, merged per key, and kept without the plugin (FR-EXT-021) |
+
+Original lines are held only for records with unknown content. A project in the current format costs no extra
+memory.
+
+### 10.4 Schemas, fixtures and development builds
+
+- **JSON Schemas** (FR-COL-012). `ew-schema` generates JSON Schema 2020-12 (schemars 1.2.3; the draft is
+  schemars 1.x's default **(verify)**) under `schemas/<format>/`, licensed MIT OR Apache-2.0:
+  - `manifest.schema.json`;
+  - `record.schema.json`, a `oneOf` keyed by `$k`;
+  - one schema per kind and per library document.
+
+  Additional members are allowed by default; a strict variant forbids them. The schemas also go into the generated
+  format specification (NFR-DOC-06) and into every as-built archive (NFR-REL-10).
+- **Permissive-only reader.** A sample reader built on the permissive crates alone validates the golden project in
+  CI (SC-11).
+- **Fixture corpus.** `fixtures/format/<version>/` holds the golden project and the QET-derived examples as each
+  released format wrote them. Every build opens them, saves them and compares the result with the expected migration
+  output (NFR-REL-05).
+- **Development builds** with an unreleased schema write `"unstable": true` and warn on every save. Release builds
+  open such projects read-only, because an unreleased member may still be renamed.
+
+---
+
+## 11. Git integration
+
+### 11.1 Repository files and configuration
+
+EW maintains a marked block in the project's own `.gitattributes` and `.gitignore`. Nested attribute files work, so
+a project can live inside a larger repository. Lines that users add outside the block are kept.
+
+```gitattributes
+# >>> ElektraWatt (managed) >>>
+*.jsonl          text eol=lf merge=elektrawatt diff=elektrawatt
+lib/**/*.json    text eol=lf merge=elektrawatt diff=elektrawatt
+manifest.json    text eol=lf merge=elektrawatt
+rules/**         text eol=lf
+reports/*.sql    text eol=lf
+assets/*         binary
+# <<< ElektraWatt (managed) <<<
+```
+
+From 1.0 the block adds `scripts/** text eol=lf` and `jobs/** text eol=lf` (open question 11). The managed
+`.gitignore` block lists `.ew/`, `.~ew.lock`, `.~ew.lock.stale-*`, `.~ew.requests/` and `*.tmp-*` (which covers
+the intent `manifest.json.tmp-<g>`). `eol=lf` protects the manifest hashes from `core.autocrlf`.
+
+Git never takes driver definitions from a repository, which is a security property. `ew git setup [--global]
+[--hooks]` writes them after the user agrees (proposed FR-COL-nnn). The status bar shows "merge driver not
+configured" for a project in a worktree without them.
+
+```ini
+[merge "elektrawatt"]
+    name = ElektraWatt record merge
+    driver = ew merge-driver %O %A %B %L %P
+[diff "elektrawatt"]
+    textconv = ew diff --textconv
+    cachetextconv = true
+```
+
+ADR-0012, ARCH §7.5 and FR-COL-014 write the signature as `%O %A %B %P`; the driver accepts both forms, and the
+CLI catalogue of [17](17-extensibility.md) §3.3 uses the one above. `cachetextconv` caches per blob, so cached
+labels can lag a later renumbering; `ew diff` (§11.6) is always exact.
+
+### 11.2 Merge driver
+
+- **When git calls it:** only for paths changed on both sides.
+- **Arguments:** `%O`, `%A` and `%B` are temporary files holding the ancestor, ours (where the result goes) and
+  theirs. `%L` (marker size) is ignored, because the driver writes conflict records instead of markers. `%P`
+  selects the handling.
+
+```mermaid
+flowchart TD
+  P["%P"] --> K{"manifest.json?"}
+  K -- yes --> MM["Manifest merge (§11.3)"]
+  K -- no --> R["Parse O, A, B"]
+  R --> E{"Parse error or newer major?"}
+  E -- yes --> F["Keep A, add a file-level conflict record, exit 1"]
+  E -- no --> U["Migrate older sides to the newest $v"]
+  U --> X["Three-way per (kind, id), then per field"]
+  X --> Z{Conflicts?}
+  Z -- no --> C0["Write canonical result to %A, exit 0"]
+  Z -- yes --> C1["Keep the surviving value in place, add conflict records, exit 1"]
+```
+
+**Record level** (value of the key in O, A, B; − = absent):
+
+| O | A | B | Result |
+|---|---|---|---|
+| − | a | − | a (and symmetrically b when only B added) |
+| − | a | b | a when a = b (the same v5 import or library copy on both sides), else a field merge with an empty base |
+| o | − | − | deleted |
+| o | − | b | deleted if b = o, else a **delete/modify conflict** that keeps b (symmetric for A) |
+| o | a | b | field merge |
+
+**Field level**, by `ew-schema` annotation:
+
+| Strategy | Used for | Rule |
+|---|---|---|
+| `object` | Structs and string-keyed maps: `overrides`, `tag`, aspects, `settings`, `extra`, `MlText` languages | Recursive, member by member; an absent member counts as its default |
+| `atomic` | Leaves: scalars, enums, `Pt2`, `Pose3`, ordered sequences (`route`, `Junction.sequence`); `MlText` switching between neutral and multilingual | a = o → b; b = o → a; a = b → a; else conflict |
+| `keyed(<member>)` | `cp_overrides` (idx), `tech_data` (key), `parties` (role) | Merged as a map by key, written sorted |
+| `set` | `aliases` | (o ∩ a ∩ b) ∪ (a ∖ o) ∪ (b ∖ o), sorted |
+| `max` | `Project.master.edited` (open question 1) | max(a, b) |
+
+**Conflict records.** The target keeps **ours** (or the surviving side of a delete/modify), so the file stays
+loadable. One conflict record per target, sorted last, holds only the conflicting members as partial objects. A
+deleted side is `"deleted"`. In library documents the conflict becomes a top-level `"$conflict"` member. The
+example is W20 after both branches of §11.7 changed its colour:
+
+```json
+{"$k":"conflict","id":"5e07c3b9-1a4d-5f82-a6c3-90d8e2b71f4c","kind":"connection","base":{"overrides":{"colour":["DBU"]}},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}}
+```
+
+When a side does not parse or comes from a newer major, the driver keeps A (B if A is the failing side) and
+appends one **file-level** conflict record,
+`{"$k":"conflict","id":v5(path),"kind":"file","side":"theirs","lines":[…]}`, holding the other side's lines
+verbatim as strings, so nothing is lost and the file still loads.
+
+**Exit codes and tests.** 0 = clean; 1 = conflict records written; ≥ 129 = internal error, which git treats as a
+failure rather than a conflict. This is the one exception to the 0/1/2 scheme of [17](17-extensibility.md) §3.2,
+because git reads any non-zero code up to 128 as "conflicts written". The driver is fuzzed (NFR-SEC-03), and CI
+checks `merge(o,a,a) = a` and `merge(o,o,b) = b` (ARCH §13).
+
+### 11.3 Manifest merge
+
+The driver writes:
+- `generation = max(a, b) + 1`;
+- `format` and `min_reader` as the maximum of both sides, and `generator` from ours;
+- `files` merged three-way per path, with `"sha256:pending"` where both sides changed;
+- `merged: true`.
+
+The open path treats the result as in §6.2, and the next save writes a clean manifest.
+
+### 11.4 Without the driver
+
+GitHub web merges and clones without `ew git setup` fall back to git's text merge:
+- **Merges mostly succeed:** one record per line, ordered by random bits, keeps conflicts rare (ADR-0012).
+- **The manifest conflicts** on the `generation` line, and any resolution is acceptable (§6.2).
+- **Leftover markers become conflict records.** The loader reads each hunk's ours and theirs lines as complete
+  records, plus the base when the diff3 style is used, and turns them into conflict records (INT-06, proposed
+  FR-COL-nnn). The project then opens in the merge panel instead of failing.
+
+### 11.5 Post-merge integrity
+
+Git merges file by file, so whole-project semantics are checked afterwards: on open, or through a `post-merge` hook
+installed by `ew git setup --hooks`.
+
+- **Cross-file move.** Branch A moves a representation from folio 101 to 102, and branch B changes its symbol
+  variant on 101. The page-101 driver run sees a delete/modify, so it keeps B's record and adds a conflict record;
+  the page-102 file holds A's record. On load, the duplicate ID together with that conflict record is reconciled by
+  a field merge: page and position from A, variant from B. The result is shown for confirmation (INT-09; proposed
+  FR-COL-nnn, 1.0).
+- **Branch-safe counters** (ARCH risk 9). Two branches each add a device on folio 103 that numbers as -103F1. INT-13
+  offers renumbering the newer one to -103F2 (FR-COL-016).
+
+### 11.6 textconv and `ew diff`
+
+- **`ew diff --textconv <file>`.** Git passes only a single blob, so EW renders one record per line in file order,
+  with labels derived from the **working tree**, e.g. `connection -102G1:+ → -102F1:1 (folio 102)
+  overrides.csa="1.5" overrides.colour=DBU`. Historic tags may therefore print as they read today. Git does not
+  pass the path either, so `ew` finds the project by looking the record IDs up in the `*.ew` projects of the
+  current worktree; unknown IDs print as kind and short ID.
+- **`ew diff [<from>] [<to>] [--queries bom,wires,terminals,plc,xref] [--json]`** is exact (FR-COL-013).
+  - Each side can be a directory, an `.ewz`, an `.ewarchive`, `git:<rev>` (read through gix) or `rev:<label>`.
+  - Both models are built, and `diff_model` and `diff_query` run with tags derived on each side.
+  - The JSON output feeds the visual review of FR-COL-017.
+
+### 11.7 Worked example (golden AC-41)
+
+The base: W20 (-102G1:+#1 → -102F1:1, folio 102) carries `overrides {csa "1.5", colour DBU}`.
+- Branch A changes -102F2's function text (a device shard) and W20's colour to BU (the page-102 file).
+- Branch B changes W20's cross-section to 2.5.
+
+On merge:
+- git takes the device shard from A, because only A changed it;
+- the manifest goes through §11.3;
+- the driver merges the page-102 file: `object` recursion into `overrides` yields csa "2.5" from B and colour BU
+  from A, with exit 0.
+
+If B had also set the colour, to WH, BU would stay in place, the conflict record of §11.2 would be written and the
+driver would exit 1. EW then opens with INT-11, and resolving the conflict is one undoable transaction (FR-COL-015).
+
+### 11.8 Local history (1.x)
+
+The optional local history (FR-COL-020) commits each save to a private repository under the OS state directory
+(gix 0.89.0). It applies KiCad-style retention limits on count, age and size. A state restores as a separate
+read-only project. The user's own repository is never touched.
+
+---
+
+## 12. `.ewz` transport
+
+`.ewz` is a deterministic ZIP of the project directory (FR-COL-009, NFR-REL-07):
+
+```text
+J-E-2416.ewz
+  mimetype        "application/vnd.elektrawatt.project+zip": first entry, stored, no extra field
+  …               all other entries sorted byte-wise by path, Deflate; never .ew/, the lock files,
+                  .~ew.requests/, temps or .git/
+```
+
+- **Determinism.** Every entry has DOS time 1980-01-01 00:00:00, or the date rule of
+  [09](09-reports-forms-output.md) §4.3 when `SOURCE_DATE_EPOCH` or an export date is set; mode 0644 and the UTF-8
+  flag. No extended timestamps, no comments. The Deflate level is fixed and the compressor is pinned through
+  `Cargo.lock`, so bytes are identical for the same project, date setting and EW version.
+- **Opening.**
+  - "Extract and open" unpacks into `<name>.ew/` beside the file or into a chosen folder, and never into an
+    existing one.
+  - "Open read-only" extracts to `<cache>/ewz/<sha256>/`; editing then requires Save As.
+  - Every CLI command that takes a project path also accepts an `.ewz`, opened read-only.
+- **Limits** (FR-IMP-005, NFR-SEC-02).
+  - At most 100,000 entries, 2 GiB expanded and 512 MiB per entry, with a compression-ratio cap of 200 : 1 per
+    entry, as for every archive reader ([14](14-interop.md) §11).
+  - The extractor rejects `..`, absolute paths, drive letters, backslashes, `:` and NUL in names, duplicate names
+    (exact or case-insensitive), symbolic-link and encrypted entries, and paths outside the layout of §2.1.
+  - The extracted manifest must verify.
+- **Uses.**
+  - Hand-over by e-mail (the golden `.ewz` is estimated at about 200 KB).
+  - The format-upgrade backup (§10.1).
+  - `ew export ewz [--strip-personal-data]`. From 1.0 it replaces person fields with placeholders on a fork before
+    packing (FR-EXP-009).
+
+---
+
+## 13. Libraries, catalogues and embedding
+
+### 13.1 Tiers
+
+| Tier | Location | Form | Writes |
+|---|---|---|---|
+| System | Installation directory | SQLite `.ewcat` (rusqlite bundled, FTS5), built in CI from the repository's text form | Never (FR-PRT-012) |
+| Company | Path from settings or an MSI policy key, often SMB | **MVP:** `.ewcat` published as `<name>.<version>.ewcat`, plus a pointer `<name>.ewcat.json` replaced by temp + rename; readers open read-only. **1.0:** text library `<name>.ewlib/` (canonical JSONL, sharded like `devices/`, git-friendly; FR-PRT-028), compiled into a local cache `.ewcat` keyed by its manifest hash | Librarian, by publishing |
+| User | OS data directory | `.ewcat` | Yes |
+| Project | `lib/` | Pretty JSON per item | Commands only |
+
+- **No SQLite writes on a share.** Nobody writes SQLite on a network share, and no reader holds a file that a
+  publication must replace. Readers open a published `.ewcat` with the URI parameter `immutable=1`, which skips
+  SQLite's file locking and is safe because a published file is never modified. A Windows sharing violation
+  therefore cannot block publishing; superseded versions are deleted by the next publication once older than
+  30 days.
+- **Pending alignment.** [Symbols, parts and macros](07-symbols-parts-macros.md) §2.2 makes `.ewlib` text
+  directories canonical at every tier from MVP, with SQLite only as a derived per-user index in the cache
+  directory. That would replace the System, Company and User rows above and the pointer publication (open
+  question 15).
+- **Foreign SQLite files** (QETZ, third-party catalogues) open read-only with `trusted_schema=OFF`, defensive mode
+  and a schema check (ARCH §7.7, NFR-SEC-06).
+- **Item content** is specified in [symbols, parts and macros](07-symbols-parts-macros.md). The record kinds
+  (`part`, `symbol`, `fndef`, `form`, `macro`) are the same in every tier, so embedding is a copy.
+
+### 13.2 Embedding
+
+- **Copy identity** is `v5(NS_LIBCOPY, library_id ‖ item_id)`: one copy per catalogue item and project. Doc
+  [07](07-symbols-parts-macros.md) §2.1 uses content addressing, `v5(NS_LIBCOPY, sha256)`, instead (open
+  question 16).
+  - Two branches embedding the same item version produce identical files.
+  - Updates to different versions conflict, as they should.
+  - Project-local items, including the per-project "QET import" library, use UUIDv7 or element-hash UUIDv5 IDs,
+    with `library_id` = the project ID.
+- **Metadata** is `{library_id, item_id, version, sha256}` (ARCH §4.2), with `version` the item's semantic version.
+  `sha256` is computed over the canonical compact JSON of the item without these four members, and INT-14 checks
+  it. A project therefore opens, renders and exports without its libraries (NFR-REL-11).
+- **Closure.** Embedding is transitive: a part pulls in its template's FnDefs and its macros, a macro its symbols,
+  parts and forms, a symbol its FnDef, and a form its assets.
+- **When copies come and go.**
+  - The first command that uses an item embeds it in the same transaction (FR-PRT-013, FR-MAC-007).
+  - "Update from library" is a previewed command (FR-PRT-014).
+  - "Purge unused library copies" is explicit and previewed, and also offered at release. Saving never removes a
+    copy, because that would be a hidden model change.
+- **Provenance and licence** are stored per copy (FR-PRT-017, NFR-LIC-07). Embedded copies do not bring projects
+  under EW's copyleft (NFR-LIC-09).
+
+### 13.3 Assets
+
+- **Naming.** `assets/<sha256>.<ext>`, with `ext` ∈ {svg, png, jpg} at MVP. Raster images are at most 16 MiB; SVG
+  files at most 8 MiB and 100,000 nodes, read by usvg with external references disabled ([14](14-interop.md) §11).
+- **Lifetime.** The model keeps an asset's bytes while any record or undo entry references them. A save writes newly
+  referenced files and deletes unreferenced ones, so undoing an image deletion restores the file at the next save.
+- **SVG** is rendered by EW's own pipeline and never executed.
+- **STEP** files are not embedded by default (open question 8). `PartCopy` references `sha256(STEP)`; meshes live in
+  the OS cache, and without the STEP file the 3D view shows the part's bounding box.
+
+### 13.4 Trust store
+
+**Where.** Trust decisions for `rules/`, `reports/` and, from 1.0, `scripts/` and `jobs/` (NFR-SEC-05, FR-EXT-014)
+are kept in the user's configuration directory.
+
+**What.** Each entry is `{project, content_sha256, signer?, decision}`. The hash is taken over the sorted paths and
+hashes of those directories, so a changed rule file asks again. **Trust is never read from the project directory**,
+because a received project could otherwise ship its own "trusted" flag.
+
+---
+
+## 14. Revisions and the as-built archive
+
+### 14.1 Release sequence
+
+`ew revision release V2.0` and the GUI command run, in order (FR-REV-006):
+
+1. **Gate.** Run on a fork at the saved generation: zero unwaived errors in the release scheme, no `Tbd` values,
+   checker ≠ author, no stale Class II results or committed computations (FR-REV-007, ADR-0013). The R findings of
+   §6.3, among them conflict records (INT-11) and unknown data that affects outputs (INT-16), also block.
+2. **Freeze.** A transaction applies the freeze policy (`FreezeNumbers`, committed routes brought up to date), then
+   EW saves generation g. The archive therefore contains the frozen values.
+3. **Git, when the project is in a worktree.** The project directory must be committed at g. With consent, EW
+   commits only that directory as "Release V2.0" and records commit C (open question 7).
+4. **Archive.**
+   - Build it from snapshot g plus the explicit **release context** (date, label).
+   - Write `V2.0.ewarchive.tmp-<g>` and sync it.
+   - Verify it: re-read the ZIP, check the sums, and check that the canonical text hashes equal manifest g.
+   - Rename it into place.
+5. **Tag.** Create the annotated tag `ew/rev/V2.0` on C. Its message carries the archive's SHA-256.
+6. **Stamp.** A transaction sets `Released` and writes `ReleaseRecord{generation g, released_on, approval,
+   rule_packs, derivation_profile, archive{name, sha256}, git_tag}`, plus `content_digest`, `page_digests` and
+   `changed_pages` ([15](15-checks-revisions-collaboration.md) §5.5). EW then saves generation g+1 and leaves it
+   for the user's next commit. The tag therefore points at the commit of generation g, whose `revisions.jsonl`
+   still reads V2.0 Open; the archive's `ARCHIVE.json` carries the release facts.
+
+**On failure.**
+- A failure in steps 4–6 leaves the revision Open and removes the temp, plus any archive or tag created by this run.
+  The freeze of step 2 stays, as an ordinary undoable transaction in the history.
+- A crash leaves at most a complete but unreferenced archive. The next open offers "incomplete release V2.0: discard
+  or complete".
+
+This gives the release atomicity that [02a](02a-requirements-core.md) proposes as NFR-REL-nn (repeated below).
+
+### 14.2 Archive layout
+
+```text
+J-E-2416.ew-archive/V2.0.ewarchive      deterministic ZIP as in §12
+  mimetype                              "application/vnd.elektrawatt.archive+zip"
+  ARCHIVE.json                          project, revision {id, label}, generation g, release context,
+                                        derivation profile, rule-pack versions, generator, format
+  project/                              the canonical project directory at generation g, incl. lib/ and assets/
+  pdf/<drawing id>_V2.0.pdf             PDF/A-2b (one per display language from 1.0)
+  reports/<report-block id>.csv         frozen report rows: the committed snapshots of FR-REV-011
+  check/report.json  check/report.pdf   findings, waivers, scheme, pack versions, disclaimer (FR-CHK-014)
+  ewpp/<project>-V2.0.ewpp              production package when present (1.0)
+  schemas/  spec/                       JSON Schemas and format specification (1.0, NFR-REL-10)
+  SHA256SUMS                            `sha256sum -c` format over all other entries
+```
+
+- **File name.** The sanitised label: characters outside [A-Za-z0-9._-] become `_`, and Windows reserved names get
+  a `_` prefix (a label "CON" is invalid even with an extension).
+- **No path in the project.** `ReleaseRecord.archive` stores only name and hash. EW searches the default root
+  `<parent>/<name>.ew-archive/` and the archive roots configured per user or company.
+- **Inside a worktree.** If the default root lies inside a git worktree, EW warns and proposes a location outside
+  it. It never adds archives to git.
+
+### 14.3 Use
+
+- **Comparison** (FR-REV-014, FR-REV-015). `project/` loads into a second, read-only `Model` with its pinned
+  derivation profile and rule packs, and `diff_model` and `diff_query` run against the current model (ADR-0013). If
+  no archive is found, EW explains why and points to `ew archive rebuild`.
+- **Reproduction** (FR-REV-010). Rendering `project/` with the release context reproduces the archived PDF's page
+  content.
+- **Verify and rebuild** (1.0, proposed FR-REV-nnn).
+  - `ew archive verify <file>` checks the sums, the schemas and the reproduction.
+  - `ew archive rebuild <label>` recreates a missing archive from the git tag and marks it "rebuilt".
+- **Immutability.** Archives are never modified (FR-REV-009).
+
+---
+
+## 15. Platform, share and cloud-sync pitfalls
+
+| # | Pitfall | Mitigation |
+|---|---|---|
+| 1 | Windows `MAX_PATH` = 260. Long paths need both `LongPathsEnabled` and the `longPathAware` manifest flag, and relative paths are always limited (G1). Explorer, zip tools and git without `core.longpaths` still fail on long paths | Internal paths ≤ 120 characters; `longPathAware` set; std verbatim paths; warning when the project root path exceeds 130 characters |
+| 2 | Reserved names (`CON`, `PRN`, `AUX`, `NUL`, `COM1–9`, `LPT1–9`, also with superscript digits and with any extension, G1); trailing dots or spaces; the characters `<>:"/\|?*` | No user text in internal names; folder names and archive labels validated and sanitised |
+| 3 | Case-insensitive file systems (NTFS, default APFS) | Lower-case hex only; `.ewz` rejects case-insensitive duplicates |
+| 4 | Antivirus, indexer or sync client holding a file during a rename; memory-mapped files blocking renames | Retry with backoff and roll-forward (§5.2); project files are read fully and closed, never mapped |
+| 5 | Defender scanning every opened file | About 2,300 files at XL (ADR-0010); measured in the Windows perf job; Dev Drive mentioned in the docs **(verify)** |
+| 6 | `core.autocrlf` | `eol=lf`; CRLF recognised and classified (§6.2) |
+| 7 | Partial cloud sync (OneDrive, Dropbox, iCloud, Google Drive) delivering a mixed generation | Manifest hashes; re-check after 5 s on cloud paths before reporting |
+| 8 | Conflict copies: OneDrive `name-<HOST>.jsonl`, Dropbox `(… conflicted copy …)`, Syncthing `.sync-conflict-…`, iCloud `name 2.jsonl` **(verify patterns)** | INT-04 lists them; "merge this copy" applies its records as an external change |
+| 9 | Online-only placeholders (OneDrive Files On-Demand; iCloud `.<name>.icloud` stubs on older macOS, dataless files on newer releases **(verify)**) | Detected by attribute or name; "N files not downloaded"; read-only open |
+| 10 | Lock files reach a cloud folder late, so two editors can open the project within the sync delay | Cloud warning at open (FR-COL-008); git or SMB recommended for teams (PQ-26); a lock that changes under a live session raises a contention warning |
+| 11 | Detecting cloud folders | OneDrive environment variables, `~/Library/CloudStorage/`, `~/Library/Mobile Documents/`, Dropbox `info.json` **(verify)** |
+| 12 | SMB directory caching (about 10 s) and unreliable change notification; NFS attribute caching | The manifest is authoritative, not directory listings; 3 s polling; SMB 2.1/3 (NFR-PLAT-05); `O_EXCL` on NFSv3+ |
+| 13 | Symbolic links or junctions in received projects | Not followed (§3.6). Hard links are harmless, because saving replaces files by rename |
+| 14 | One project reached through two paths, or copied in Explorer | One physical lock file; "two copies of project … are open" when two open directories share a project ID |
+| 15 | Read-only locations; a laptop asleep with the project open on a share | Read-only open with the reason; heartbeat and lock-loss handling (§7) |
+
+---
+
+## 16. UI and UX touchpoints
+
+Screens are specified in [UX and UI](16-ux-ui.md). Persistence provides:
+
+| Touchpoint | Behaviour |
+|---|---|
+| Status bar | Dirty dot, generation, badges (network share, cloud folder, read-only, merge driver missing), save progress and failures with cause and remedy (NFR-UX-07) |
+| File commands | Save, Save As, Save a Copy, Export `.ewz`, Open `.ewz`; all non-blocking |
+| Recovery dialog (§8.3) | At start-up and on open |
+| Lock banner and dialogs (§7) | Holder, "since", "last seen"; take over, notify when free, switch to editing; lock lost |
+| External-change toast | "External change applied: 12 records on folios 103 and 106 (git a1b2c3d)", with Undo and Show changes |
+| Merge panel | Base, ours and theirs per field, with derived tags. External-change collisions at MVP; conflict records at 1.0 (FR-COL-015) |
+| Banners | Integrity (read-only on INT-05); newer minor, newer major, older major (with backup), unstable format; untrusted rules, reports or scripts |
+| Project settings → Storage | Save mode, lock stale age, archive roots, git status with "Set up merge driver", purge unused library copies |
+
+---
+
+## 17. The reference project on disk
+
+### 17.1 Size
+
+The golden project has about 200 files and is well under 1 MB:
+- 5 root JSONL files and the manifest;
+- 13 page files;
+- about 80 device shards (256 × (1 − e^(−96/256)) ≈ 80 for 96 devices, terminals included, with everything else
+  following its anchor);
+- 1 layout file, about 100 library documents and 1 asset.
+
+The fixture comparison of [golden project](20-golden-project.md) §3.2 ignores only the manifest's `generator`
+member, so an EW version bump does not invalidate the checked-in fixture.
+
+### 17.2 Edits and the files they write
+
+| Edit (golden) | Files written besides the manifest |
+|---|---|
+| Renumber folio 3 → 4 (AC-20, the D-01 replay) | Folio 3's page file only: one op on the page row. -3W1 becomes -4W1 everywhere because no tag is stored ([domain model](03-domain-model.md) §8.6) |
+| Golden B2: folio 106 → 104 | Folio 106's page file only. Two tags and 14 xref texts change in the outputs; none of them is in a file |
+| Golden B1: page-based renumbering of 10 tags | The shards of the 10 devices (their `TagSpec`: frozen text cleared, scheme and counter set); `project.jsonl` only if the command changes the project's strip rule instead of per-device schemes. After undo and save, every data file is byte-identical to Golden A again; only `generation` differs (AC-18) |
+| 24 V DC colour changed in the profile (AC-12) | `project.jsonl` only. No wire record stores a derived colour |
+| W29 colour override set, then undone | Nothing, not even the manifest: step 3 of §5.2 drops the unchanged file, so the dirty set is empty |
+| Valve-manifold macro inserted on a new page | The new page file, the new devices' shards, and `lib/macros/…` if not yet embedded |
+
+### 17.3 Defects the format prevents
+
+| Defect | How persistence prevents it |
+|---|---|
+| D-01 stale -4W1 / -4X1 | Files hold `TagSpec{letter, counter}` and folios, never printed tags. No BOM is stored |
+| D-02 "T51" on the layout, free rectangles | `placement` records reference a device ID and carry no label text. A missing device is INT-08 |
+| D-03 "+JE2416" vs "+J-E-2416" | One `structure_node` with `aliases`. Device and page records hold node IDs, never spellings |
+| D-04, D-42 BOM gaps, strip drawn twice | One strip `device` record, whatever the number of segment representations. Quantities are `Dec3` in `parts[].qty` |
+| D-05 four revision formats | One `revisions.jsonl`; the schema has no per-page revision member |
+| D-06 description drift on 101 | `Page.title` plus an optional, flagged `description_override`. No title-block text exists in any file |
+| D-08 free-text wire rule | Only explicit overrides are stored (W7), never derived properties (W8) |
+| D-11, D-12 empty and duplicate designations | Stored as authored data under lenient import and reported as findings (FR-CHK-016); strict mode prevents new ones, and duplicates that a merge creates are INT-13 |
+| D-15 "TBD" address | The typed value `"tbd"`, which blocks release |
+| D-17 core colour "BR" | `ColourSpec` admits IEC 60757 and declared codes only. A hand-typed "BR" is quarantined (INT-07) |
+| D-22 0 V–PE merged by a wire | A `bond` record with `via` W27 |
+| D-30, D-34 parties and approval | Parties stored by role. `ReleaseRecord.approval` is written only by the release command, which enforces checker ≠ author |
+
+QET stores evaluated labels and per-folio title-block strings, and these produced D-01, D-05 and D-06
+([reference analysis](../research/reference-drawing.md) §3).
+
+---
+
+## 18. Scope by release
+
+| Capability | MVP | 1.0 | 1.x | Later |
+|---|---|---|---|---|
+| Layout, canonical JSONL, kind registry and ownership, `ew fmt` | Must | — | — | — |
+| Manifest, save protocol with roll-forward, failure handling | Must | — | — | — |
+| Lock with heartbeat; read-only mode; takeover; lock loss | Must | — | — | — |
+| Journal, snapshots, recovery dialog | Must; undo rebuild Should | — | — | — |
+| External-change apply; merge panel for collisions | Must | — | — | — |
+| Integrity INT-01 … INT-16 on open and after merges, with the INT-13 renumber quick fix (FR-CHK-012) | Must | Cross-file reconciliation (§11.5), FR-COL-016 | — | — |
+| Fault-injection harness (§5.6) | Must | — | — | — |
+| Cloud warning, conflict copies, placeholders | Should | — | — | — |
+| `.ewz` pack and open; `.ewz` as CLI input | Must | Personal-data stripping | — | — |
+| Versioning, migrations, preservation, JSON Schemas, `ew upgrade`, fixture corpus | Must | Format freeze, yearly window | — | — |
+| Merge driver, conflict records, `ew git setup`, textconv, `ew diff`, conflict-marker loading | Should (AC-41 at MVP) | Must; conflict panel (FR-COL-015) | Plugin-key merges | — |
+| Embedded copies; SQLite catalogues with versioned publication | Must | `.ewlib/` text libraries | Community repository snapshots | — |
+| As-built archive (text, libraries, PDF, report snapshots, sums) and git tag | Must | Schemas, spec, `.ewpp`, `ew archive verify` and `rebuild` | — | — |
+| Archive loading for revision comparison (FR-REV-014, FR-REV-015) | — | Must | — | — |
+| Work copies with a recorded base ([15](15-checks-revisions-collaboration.md) §6.8) | — | Should | — | — |
+| "Request edit" files next to the lock | — | — | Should | — |
+| STEP embedding option | — | Could | — | — |
+| Local history via gix | — | — | Should | — |
+| Real-time co-editing | — | — | — | FR-COL-021 (the op log stays CRDT-ready) |
+
+---
+
+## 19. Dependencies
+
+**Documents.**
+- **Inputs:** the [architecture](04-architecture.md) (§3, §4, §7; ADR-0004, ADR-0005, ADR-0009 … ADR-0013,
+  ADR-0017 for the cached SQL projection, ADR-0020 for trust, ADR-0024 for the permissive boundary), the
+  [domain model](03-domain-model.md) and the archive limits of [interop](14-interop.md) §11.
+- **Docs that use this one:**
+  - [07](07-symbols-parts-macros.md): item content, library directories (open questions 15 and 16);
+  - [09](09-reports-forms-output.md): the "Saved" binding and the release context;
+  - [12](12-panel-layout.md): layout records;
+  - [13](13-manufacturing-outputs.md): `.ewpp` reuses the ZIP rules of §12;
+  - [15](15-checks-revisions-collaboration.md): INT rule IDs, merge and conflict panels;
+  - [16](16-ux-ui.md): dialogs;
+  - [17](17-extensibility.md): CLI catalogue;
+  - [18](18-quality-security-release.md): fault injection, the incremental-equals-full property, fixture corpus,
+    driver fuzzing, SMB and cloud jobs;
+  - [20](20-golden-project.md): fixture and acceptance criteria.
+
+| Crate | Layer | Role | Key dependencies |
+|---|---|---|---|
+| `ew-ids` | P | UUIDv7 (method 3), UUIDv5 | uuid 1.28.0 |
+| `ew-schema` | P | Records, kind registry, ranks, `since`, merge strategies, JSON Schemas | serde 1.0.229, schemars 1.2.3 |
+| `ew-format` | P | Canonical reader and writer, manifest, migrations, three-way record merge, conflict records | serde_json 1.0.154, serde_path_to_error 0.1.20, semver 1.0.28, sha2 **(verify)** |
+| `ew-store` | GPL | Save, lock, journal, recovery, watcher, external-change diff, `.ewz`, archive, git glue, `Vfs` seam (§5.6) | ew-format, ew-model, notify 8.2.0, zip 9.0.4, etcetera or directories **(verify)**; added to ARCH §3: gix 0.89.0 for `git:<rev>` reads, release commits, tags and local history (with the `git` CLI as fallback for commits and tags, **(verify)**) |
+| `ew-library` | GPL | Catalogues, publication, embedding | rusqlite 0.40.2 |
+| `ew` (bin) | GPL | `merge-driver`, `diff`, `fmt`, `upgrade`, `git setup`, `recover`, `archive` | clap **(verify)** |
+
+The permissive crates alone can read, validate, write and merge a project (FR-EXT-023, SC-11).
+
+---
+
+## Requirements covered
+
+- **COL:** FR-COL-001 … FR-COL-016, FR-COL-020; FR-COL-021 (scope only).
+- **REV:** FR-REV-006, FR-REV-007 (gate inputs), FR-REV-008, FR-REV-009, FR-REV-010, FR-REV-011, FR-REV-014,
+  FR-REV-015 (archive loading).
+- **PRT, MAC, PRJ:** FR-PRT-012, FR-PRT-013, FR-PRT-014, FR-PRT-017, FR-PRT-028, FR-MAC-007, FR-PRJ-001 (edited
+  date), FR-PRJ-011.
+- **CHK, EXT, IMP, EXP, UI:** FR-CHK-012, FR-EXT-008, FR-EXT-014, FR-EXT-021, FR-EXT-023, FR-IMP-002, FR-IMP-005,
+  FR-EXP-009, FR-UI-033.
+- **Non-functional:**
+  - REL: NFR-REL-01 … NFR-REL-08 (NFR-REL-07 for project files and `.ewz`; NFR-REL-08 for journal replay),
+    NFR-REL-10, NFR-REL-11, NFR-REL-13;
+  - PRIV, PLAT, PERF: NFR-PRIV-05; NFR-PLAT-05, NFR-PLAT-07; NFR-PERF-03, NFR-PERF-12;
+  - SEC: NFR-SEC-02, NFR-SEC-03, NFR-SEC-05, NFR-SEC-06;
+  - DOC, MAINT, LIC: NFR-DOC-06, NFR-DOC-07; NFR-MAINT-07; NFR-LIC-07.
+
+### Proposed new requirements
+
+| Proposed ID | Requirement | Prio | Release | Source | Acceptance criterion | Target |
+|---|---|---|---|---|---|---|
+| NFR-REL-nn | For any sequence of committed transactions, incremental saves shall produce files byte-identical to a full save of the final model. | Must | MVP | §2.2, §5.1 | **PR:** proptest command sequences on GP and the M fixture compare the digests of incremental and full saves after every step. | 02c REL |
+| NFR-REL-nn | A release shall be atomic: archive written and verified, tag created and revision stamped, or the revision stays open with no archive or tag referenced. (Same as the 02a proposal; one ID to be assigned.) | Must | MVP | 02a proposal; ADR-0013; FR-REV-006 | **N:** killing `ew revision release` at random points on Golden A-R leaves V2.0 Open, or Released with a verifying archive. | 02c REL |
+| NFR-SEC-nn | The project loader shall read only regular files inside the project directory, follow no symbolic links or junctions, and never read trust decisions from the project. | Must | MVP | G10; §3.6, §13.4 | **PR:** a fixture whose page file is a symlink to a file outside opens with INT-03 and reads nothing outside. | 02c SEC |
+| FR-COL-nnn | `ew git setup [--global] [--hooks]` shall write the merge-driver and textconv configuration after consent; the GUI shall show the driver status for projects in a git worktree and offer the setup. Should at MVP; Must from 1.0, as FR-COL-014. | Should | MVP | ADR-0012; §11.1 | On a fresh clone of the golden repository, `ew git setup` and then AC-41 pass; without setup the status bar shows "merge driver not configured". | 02b COL |
+| FR-COL-nnn | The loader shall turn git conflict markers in JSONL files into conflict records (ours, theirs, base when diff3 is used), so that a text-merged project opens in the merge panel. | Should | MVP | §11.4 | A page file text-merged with markers on W20 opens with one conflict and resolves into a canonical file. | 02b COL |
+| FR-COL-nnn | The lock holder shall refresh the lock at least every 5 minutes and detect its loss; on loss it shall switch to read-only, keep unsaved changes in memory and the journal, and offer Save a Copy or merge. | Must | MVP | G1; §7 | A takeover from a second host makes the first instance read-only within 5 minutes, and its edits survive in a copy. | 02b COL |
+| FR-COL-nnn | Read-only sessions and CLI commands shall read exactly one generation while another process saves, retrying until manifest and file hashes agree. | Must | MVP | §6.4 | `ew export pdf` looped during 100 GUI saves always yields the digest of one of the saved generations. | 02b COL |
+| FR-COL-nnn | Recovery shall rebuild the undo history of the recovered transactions. | Should | MVP | §8.2; ARCH §5.3 | After a kill and the recovery of 5 edits, 5 undo steps return to the base generation. | 02b COL |
+| FR-COL-nnn | After a merge, a record found in two files together with a delete/modify conflict record shall be reconciled by a three-way field merge and shown for confirmation. | Should | 1.0 | §11.5 | Branch A moves a -101F1 representation to folio 102 and branch B changes its variant; the merged project has one representation on 102 with B's variant. | 02b COL |
+| FR-REV-nnn | `ew archive verify <file>` shall check sums, schema validity and PDF reproduction; `ew archive rebuild <label>` shall recreate a missing archive from the git tag, marked as rebuilt. | Should | 1.0 | ADR-0013; NFR-REL-10 | Deleting the V2.0 archive and rebuilding it from `ew/rev/V2.0` yields an archive that verifies and is marked rebuilt. | 02a REV |
+| FR-PRJ-nnn | The edited date of FR-PRJ-001 (day precision) shall be set by a normaliser on the first commit of a calendar day, merged by maximum and bound by the title-block "Saved" cell; no file carries a wall-clock save time. | Should | MVP | FR-PRJ-001; 02a OQ3; golden §17.2; NFR-REL-07 | GP prints "Saved: 12-07-2024" from the model; saving twice on one day changes no data file. | 02a PRJ |
+
+---
+
+## Open questions
+
+1. **Source of the "Saved" date.** 02a OQ3 proposes `saved_at` in the manifest. FR-PRJ-001 already stores an
+   edited date as master data, the [golden project](20-golden-project.md) §17.2 and
+   [09](09-reports-forms-output.md) bind "Saved" to it, and NFR-REL-07 forbids wall-clock times in project files.
+   *Recommendation:* adopt the proposed FR-PRJ-nnn (`Project.master.edited`, day precision, `max` merge, an
+   injectable clock for tests). Release exports take the date from the release context. The manifest
+   stays time-free.
+2. **Release of the integrity check.** FR-CHK-012 (MVP) and FR-COL-016 (1.0) describe the same check, and
+   FR-CHK-012's acceptance already demands the renumber offer for a merged duplicate (-102F3 twice) at MVP.
+   *Recommendation:* INT-01 … INT-16 and the INT-13 renumber quick fix belong to MVP under FR-CHK-012;
+   cross-file reconciliation (§11.5) and the full conflict-panel flow belong to 1.0 under FR-COL-016.
+   Edit FR-COL-016 to reference FR-CHK-012 and narrow it to those 1.0 parts.
+3. **Schema order versus byte-identical preservation.** "Fields in schema order" (ARCH §7.3) and FR-COL-010 can
+   disagree when a newer minor inserts several members. *Recommendation:* amend ADR-0011 with the append-only
+   member rule of §10.3, and adopt original-line preservation for untouched records with unknown content.
+4. **ARCH §7.3 examples.** The examples write `"counter":null`, `"qty":1` and `"part":"<id>"`. The writer rules
+   omit nulls, `PartUse.qty` is a `Dec3` string, and `PartUse.part` is a `PartRef{copy, variant?}`
+   ([domain model](03-domain-model.md) §7). *Recommendation:* correct them to `"tag":{"letter":"X"}`,
+   `"qty":"1"` and `"part":{"copy":"<id>"}` at the next architecture revision.
+5. **Commit point.** ADR-0010's step order cannot guarantee "previous or new generation" (NFR-REL-01).
+   *Recommendation:* amend ADR-0010 with the durable intent manifest and roll-forward of §5.3, verified by the
+   fault-injection test.
+6. **Manifest in git.** The `generation` line conflicts in merges made without the driver. *Recommendation:* keep
+   the manifest tracked, since clones need its format, `min_reader` and hashes, and tolerate the trivial conflict
+   (§6.2, §11.4). An untracked generation would lose interrupted-save detection on shares.
+7. **Git commits by EW at release.** A tag needs a commit. *Recommendation:* ask, commit only the project directory
+   ("Release <label>") and never push. Skip the tag, with a message, when unrelated changes are staged. Confirm with
+   the pilot user (PQ-09, PQ-26).
+8. **STEP embedding.** Embedding makes 3D complete everywhere but bloats history. *Recommendation:* off by default at
+   1.0, with a project option that copies STEP files into `assets/` and documents git LFS. Decide at M4 on the
+   pilot's cabinets.
+9. **Auto-save default.** EPLAN users expect immediate persistence; git users want deliberate saves.
+   *Recommendation:* `manual` with the journal always on, plus an `idle(30 s)` option. Validate in the M2 usability
+   test and with PQ-26.
+10. **Lock stale age.** *Recommendation:* 60 minutes with a 5-minute heartbeat. The setting is exposed and
+    takeovers are logged. Revisit after the pilot's first months on SMB (PQ-26, AS-3).
+11. **Scripts and jobsets in the project.** ARCH §7.2 has no place for them. *Recommendation:* add
+    `scripts/<uuid>.rhai` and `jobs/<uuid>.ewjobs` at 1.0, under the trust store of §13.4.
+12. **UUIDv7 method.** Random-bits ordering and sharding assume that bytes 8–15 are random. *Recommendation:* specify
+    RFC 9562 method 3 in `ew-ids`, and add a CI test that 10,000 IDs generated within one millisecond spread evenly
+    over shards and sort positions.
+13. **Fixed 256 shards.** Small projects get about 80 shard files. A size-dependent shard count would complicate
+    merges between differently sized projects. *Recommendation:* keep 256.
+14. **macOS package bundle.** A `.ew` bundle would show the project as one document in Finder, but would hinder git
+    tools. *Recommendation:* no bundle in v1; reconsider at 1.x if macOS pilot users ask.
+15. **Catalogue storage form.** ARCH §7.7 and FR-PRT-012 describe SQLite catalogues per tier, which §13.1 follows
+    with a versioned publication scheme on shares. [07](07-symbols-parts-macros.md) §2.2 and its open question 1
+    make `.ewlib` text directories canonical at every tier and SQLite a derived per-user index in the cache.
+    *Recommendation:* adopt 07's form. It removes SQLite from shares entirely (ADR-0010's reason for rejecting
+    SQLite), reuses this document's writer, manifest, lock and merge driver for libraries, and still meets
+    FR-PRT-012 (SQLite with FTS5) and FR-PRT-028 from MVP. Then replace the tier table of §13.1 and amend ARCH §7.7.
+16. **Copy identity.** §13.2 names a copy `v5(NS_LIBCOPY, library_id ‖ item_id)`; [07](07-symbols-parts-macros.md)
+    §2.1 names it `v5(NS_LIBCOPY, sha256)`. The item-based ID makes "update from library" rewrite one
+    `lib/` file and leaves every `Representation.symbol`, `Function.def` and `PartRef.copy` untouched, so diffs and
+    merges stay small; the content ID dedupes pastes and lets two versions coexist.
+    *Recommendation:* use the item-based ID, and mint `v5(NS_LIBCOPY, library_id ‖ item_id ‖ version)` only when a
+    user chooses "keep both versions" after a cross-project paste. Record the choice in ADR-0004's pending
+    amendments and align 07.
+17. **Rule-pack file names.** [15](15-checks-revisions-collaboration.md) §3.7 stores project packs as
+    `rules/<pack-id>.toml`, using the human pack ID such as `ew-pot`, while §2.1 here names them by UUID, in line
+    with principle 3 (no user text in internal names). *Recommendation:* keep `rules/<uuid>.toml` plus
+    `rules/<uuid>/`, with the pack ID inside the file, and align 15.

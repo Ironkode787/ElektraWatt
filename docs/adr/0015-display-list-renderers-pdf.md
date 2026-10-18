@@ -1,0 +1,122 @@
+# ADR-0015: One display-list IR; wgpu canvas plus an always-built CPU renderer; krilla PDF/A-2b; PDF as print master
+
+**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+
+## Context
+
+- **Every output must agree exactly.** Screen, PDF, SVG, DXF, PNG and print must show the same geometry, title
+  blocks and cross-reference labels (FR-OUT-018). A label such as "∞ 203-B4" or "102-A1" that wraps differently on
+  paper than on screen is a defect. The frame must match the reference set's to ±0.2 mm (FR-PAG-019).
+- **Some machines have no GPU.** RDP, VDI and Citrix sessions may offer no hardware adapter. wgpu's DX12 backend
+  recognises WARP, but other hosts may get no adapter at all (G6). CI runners have no GPU either.
+- **The reference PDF lacks navigation.** It has no bookmarks, no hyperlinks and physical page labels 1…18, so a
+  viewer's "page 5" means folio 101 (D-07, D-33). Text extraction loses spaces ("SK3110.000").
+- **Archival and determinism.** Customers archive PDFs, and PDF/A is the expected format. The same model must
+  produce the same bytes on every platform (FR-OUT-019, NFR-REL-07).
+- **Printing.** Native print stacks differ per OS; HPGL plotters are not required.
+- **Ecosystem** ([Rust ecosystem](../research/rust-ecosystem.md) §3, §6.2):
+  - krilla 0.8.2 supports PDF/A-1 to -4, PDF/UA-1, outlines, page labels, links and named destinations, but **not
+    optional content** (C-11).
+  - vello_cpu 0.3.0 is the more mature vello path.
+  - lyon tessellates once for instancing.
+  - parley, skrifa and harfrust form one text stack.
+
+## Decision
+
+```mermaid
+flowchart LR
+  Q["ew-derive queries<br/>tags, xrefs, wire props, title block"] --> DL["page_display_list(page, layer)<br/>Arc&lt;DisplayList&gt; in nm (ew-dl)"]
+  SG["symbol_geometry(symbol, variant)"] --> DL
+  TX["shaped_text(string, style, font)"] --> DL
+  DL --> GPU["ew-render2d (wgpu)"]
+  DL --> CPU["ew-render-cpu (vello_cpu)"]
+  DL --> PDF["ew-export: krilla PDF/A-2b"]
+  DL --> SVG["SVG writer"]
+  DL --> DXF["DXF via dxf"]
+  DL --> HIT["rstar index + kurbo picking"]
+```
+
+1. **One IR.** The permissive `ew-dl` display list, in nm: `Path(BezPath, Stroke, Brush)`, `Glyphs(Arc<ShapedRun>)`,
+   `Image`, `Instance(SymbolGeomId, Transform)` and `Group`. Items carry an optional `EntityRef` (picking,
+   highlight) and a `LinkSource`/`LinkTarget` (xref to named destination). It is built by layered, memoised
+   `page_display_list(page, layer)` queries; layers are frame, symbols, wires, labels and highlights, so a wire edit
+   never rebuilds the title block.
+2. **Screen: wgpu.** `ew-render2d` draws inside an `egui_wgpu` paint callback on the shared device. Symbols are
+   tessellated once per (symbol, variant) with lyon and drawn instanced; lines are expanded to screen width in the
+   vertex shader; text comes from a glyph atlas. A backdated layer `Arc` (ADR-0002) lets the renderer keep its
+   vertex buffers.
+3. **CPU renderer, always built and tested.** `ew-render-cpu` (vello_cpu) renders the same IR. It is the canvas
+   fallback where wgpu cannot get an adapter after DX12 WARP, and it produces CI goldens, thumbnails and banded print
+   rasters. The perf gate requires ≥ 30 fps for an A4 page on it (NFR-PERF-06).
+4. **One text stack** for screen and paper: parley, fontique, skrifa and harfrust with bundled fonts (default font in
+   ADR-0028). `shaped_text` is memoised, so screen and PDF share glyph positions and line breaks.
+5. **PDF: krilla.** PDF/A-2b by default; PDF/A-3b or -4f only when attachments are embedded (C-10). An outline from
+   `page_order` and sections; a named destination per xref target and a link annotation per xref text;
+   `/PageLabels` equal to the folios; subset embedded fonts and glyph runs with real spaces; optional tagged PDF
+   (PDF/UA-1). **No optional-content layers in v1.**
+6. **Other outputs.** An own SVG writer; DXF (AC1015, layer mapping) via dxf 0.6.2; PNG via vello_cpu.
+7. **Printing.** PDF is the print master. Small per-OS adapters hand it to the OS: the xdg Print portal or CUPS on
+   Linux, PDFKit on macOS, `PrintDlgEx` with banded vello_cpu rendering on Windows. Scale-to-fit stamps the scale;
+   folio ranges and monochrome mode are supported; `ew print` prints from the CLI.
+
+**Scope by release.** MVP: the wgpu canvas with the CPU fallback, PDF/A-2b with outline, links, named destinations,
+page labels and XMP metadata, SVG, PNG and printing (FR-OUT-001, FR-OUT-002, FR-OUT-004 … FR-OUT-011, FR-OUT-013,
+FR-OUT-014, FR-OUT-017 … FR-OUT-020, FR-OUT-022). 1.0: DXF page export (FR-OUT-015), tagged PDF (FR-OUT-012,
+NFR-A11Y-05), draft stamps on unreleased revisions (FR-OUT-021) and PDF/A-3b with attachments (FR-OUT-003, Could).
+Later: optional content (FR-OUT-023), DWG pages (FR-OUT-016) and 3D PDF (FR-OUT-024).
+
+## Consequences
+
+### Positive
+
+- Identical geometry and text on every backend, because every backend consumes the same IR and shaped runs.
+- CI renders golden PNGs and rasterises PDFs without a GPU; GPU/CPU parity is sampled.
+- GPU-less RDP and VDI users keep every 2D function (NFR-PLAT-03, FR-UI-028).
+- D-07 and D-33 are fixed by construction: outline, links, named destinations and folio page labels come from the
+  model. Named destinations use stable v5 IDs (ADR-0004), so links survive regeneration.
+- The print path is small: one PDF plus thin OS adapters.
+
+### Negative
+
+- Two 2D renderers to maintain, kept honest by parity tests.
+- No PDF layers in v1 (FR-OUT-023 is Later). Adding them needs an upstream krilla patch or a pdf-writer post-step.
+- Banded raster printing on Windows spools large jobs.
+- Bundled fonts mean the reference set's Tahoma is substituted on import, which may reflow imported texts
+  (ADR-0028).
+
+## Pending amendments
+
+These follow-ups come from [reports, forms and output](../design/09-reports-forms-output.md) (open questions 5,
+11, 12):
+1. **Print adapters and PNG export** need `ew-render-cpu`, on which `ew-export` does not depend in
+   [architecture](../design/04-architecture.md) §3. *Recommendation:* add a GPL crate `ew-print` (depending on
+   `ew-export` and `ew-render-cpu`, with per-OS features) and the edge `ew-export → ew-render-cpu`; both crates are
+   GPL, so the licence layering is unaffected.
+2. **`/PageLabels` with literal prefixes** (one label range per page) are valid PDF, but krilla's API support is
+   unverified. *Recommendation:* verify in the spine (weeks 6–9); fall back to a pdf-writer post-step.
+3. **PNG byte identity.** vello_cpu may choose different SIMD paths per CPU. *Recommendation:* use a scalar path in
+   deterministic mode if available; otherwise rephrase FR-OUT-014 and NFR-REL-07 so that PNGs compare within the
+   dify tolerance, and keep byte identity for PDF, SVG, XLSX and CSV.
+
+## Alternatives considered
+
+| Alternative | Why rejected |
+|---|---|
+| **Separate renderers per output** | Screen and paper drift apart: the title-block and xref-label class of defects |
+| **Typst for drawings** | Strong for free-form documents; EPLAN-style forms are fixed-grid pages better served by an own forms engine (ADR-0018) |
+| **vello (GPU compute) as the screen renderer** | Self-described experimental for compute-capable GPUs; the IR keeps it an option once vello_gpu matures |
+| **GPU-only rendering** | Fails on GPU-less hosts and in CI |
+| **HPGL output for plotters** | Plotters accept PDF through the OS driver (G9) |
+| **Optional content in v1** | Not supported by krilla (C-11); not needed for the golden project |
+
+## Related
+
+- **ADRs:** [ADR-0002](0002-derived-data-engine-ew-memo.md), [ADR-0004](0004-identity-uuidv7-uuidv5.md),
+  [ADR-0005](0005-value-types-nm-dec3-mltext.md), [ADR-0013](0013-revisions-and-as-built-archive.md),
+  [ADR-0014](0014-gui-toolkit-egui.md), [ADR-0016](0016-3d-renderer-wgpu-and-out-of-process-step-worker.md), [ADR-0018](0018-reports-forms-engine-and-machine-profiles.md), [ADR-0022](0022-platform-matrix-and-performance-budgets.md), [ADR-0028](0028-default-drawing-fonts.md).
+- **Design:** [architecture](../design/04-architecture.md) §8.1–§8.4, §13;
+  [reports, forms and output](../design/09-reports-forms-output.md) §4, §6;
+  [golden project](../design/20-golden-project.md) §17.
+- **Requirements:** FR-OUT-001, FR-OUT-002, FR-OUT-003, FR-OUT-004, FR-OUT-005, FR-OUT-006, FR-OUT-007, FR-OUT-008,
+  FR-OUT-009, FR-OUT-010, FR-OUT-011, FR-OUT-012, FR-OUT-013, FR-OUT-014, FR-OUT-015, FR-OUT-016, FR-OUT-017,
+  FR-OUT-018, FR-OUT-019, FR-OUT-020, FR-OUT-021, FR-OUT-022, FR-OUT-023, FR-OUT-024, FR-PAG-019, FR-UI-028, NFR-PLAT-02, NFR-PLAT-03, NFR-PERF-06, NFR-PERF-11, NFR-REL-07, NFR-A11Y-05.
