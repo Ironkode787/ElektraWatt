@@ -11,8 +11,10 @@
 //! (`supply`, `qty`, `ml`, `range`, …) are reported as [`BindingFinding::UnsupportedFilter`] and pass the value
 //! through unchanged.
 //!
-//! Nothing is silently dropped: an unresolved path, an unknown scope and a computed cell (`{= …}`, not in v0)
-//! print the placeholder verbatim and are reported, and a malformed template prints verbatim as a whole.
+//! Nothing is silently dropped: an unresolved path renders as empty text and is reported
+//! ([`BindingFinding::Unresolved`]; the raw `{path}` is never drawn), while an unknown scope and a computed
+//! cell (`{= …}`, not in v0) print the placeholder verbatim and are reported, and a malformed template prints
+//! verbatim as a whole.
 //! [`eval_visible_if`] fills an expression the same way and tests the text for truthiness.
 //!
 //! Validating placeholders against the form type (FR-REP-034) is not done here.
@@ -166,7 +168,7 @@ impl Bindings for PageBindings {
 /// Something worth reporting while filling a template.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum BindingFinding {
-    /// The path resolved to nothing; the placeholder prints verbatim.
+    /// The path resolved to nothing; the placeholder renders as empty text.
     Unresolved {
         /// The placeholder as written, braces included.
         placeholder: String,
@@ -208,7 +210,7 @@ pub struct Filled {
 
 /// Fills `template` from `bindings`.
 pub fn fill(template: &str, bindings: &dyn Bindings) -> Filled {
-    fill_with(template, bindings, false)
+    fill_with(template, bindings)
 }
 
 /// Evaluates a `visible_if` expression: the filled text, trimmed, is visible unless it is empty, `false` or `0`;
@@ -219,7 +221,7 @@ pub fn eval_visible_if(expr: &str, bindings: &dyn Bindings) -> (bool, Vec<Bindin
         Some(rest) => (true, rest.trim()),
         None => (false, expr),
     };
-    let filled = fill_with(rest, bindings, true);
+    let filled = fill_with(rest, bindings);
     if filled
         .findings
         .iter()
@@ -382,7 +384,7 @@ fn parse_template(template: &str) -> Option<Vec<Piece>> {
     Some(pieces)
 }
 
-fn fill_with(template: &str, bindings: &dyn Bindings, unresolved_empty: bool) -> Filled {
+fn fill_with(template: &str, bindings: &dyn Bindings) -> Filled {
     let mut out = Filled::default();
     let Some(pieces) = parse_template(template) else {
         out.text = template.to_owned();
@@ -410,12 +412,9 @@ fn fill_with(template: &str, bindings: &dyn Bindings, unresolved_empty: bool) ->
                             out.asset.get_or_insert(a);
                         }
                         Some(v) => out.text.push_str(&render(&v, bindings)),
-                        None => {
-                            if !unresolved_empty {
-                                out.text.push_str(&raw);
-                            }
-                            out.findings.push(BindingFinding::Unresolved { placeholder: raw });
-                        }
+                        // An unbound or unresolved placeholder renders as empty text and is reported; the
+                        // raw `{path}` is never drawn.
+                        None => out.findings.push(BindingFinding::Unresolved { placeholder: raw }),
                     }
                 }
             },
@@ -603,9 +602,9 @@ mod tests {
     }
 
     #[test]
-    fn unresolved_prints_verbatim_with_filters() {
+    fn unresolved_renders_empty_with_filters() {
         let f = fill("{page.missing | upper}", &b());
-        assert_eq!(f.text, "{page.missing | upper}");
+        assert_eq!(f.text, "");
         assert_eq!(
             f.findings,
             vec![BindingFinding::Unresolved {

@@ -7,7 +7,7 @@ use std::time::Instant;
 
 use ew_dl::{DisplayList, ImageFormat, ItemKind, ShapedRun, Transform};
 use ew_scene::forms::{
-    AssetRef, BoundValue, CELL_PADDING, FormFinding, OverflowKind, PageBindings, lower_form,
+    AssetRef, BindingFinding, BoundValue, CELL_PADDING, FormFinding, OverflowKind, PageBindings, lower_form,
 };
 use ew_schema::FormDef;
 use ew_text::{builtin, bundled};
@@ -497,4 +497,53 @@ fn logo_in_a_cell_smaller_than_its_insets_is_reported() {
     let out = lower_form(&form, None, &logo(asset), bundled());
     assert!(images(&out.display_list).is_empty());
     assert_eq!(overflow_kinds(&out.findings), vec![OverflowKind::Error]);
+}
+
+// -- unresolved placeholders ------------------------------------------------------------------------------
+
+fn unresolved(findings: &[FormFinding]) -> Vec<&str> {
+    findings
+        .iter()
+        .filter_map(|f| match f {
+            FormFinding::Binding {
+                finding: BindingFinding::Unresolved { placeholder },
+                ..
+            } => Some(placeholder.as_str()),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn unresolved_placeholder_draws_nothing_and_is_reported() {
+    let cell = |value: &str| {
+        json!({
+            "rect": [[0, 0], [40_000_000, 8_000_000]],
+            "value": value,
+            "style": "text.normal",
+            "align": "middle_left",
+            "overflow": "error",
+        })
+    };
+    let form = form_with(
+        40_000_000,
+        8_000_000,
+        json!([cell("{revision.current.checker.name}")]),
+        json!([]),
+    );
+    let out = lower_form(&form, None, &PageBindings::new(), bundled());
+    assert!(runs(&out.display_list).is_empty());
+    assert_eq!(unresolved(&out.findings), vec!["{revision.current.checker.name}"]);
+    // A mixed template keeps its resolved parts and literals; the unresolved part is empty.
+    let form = form_with(
+        40_000_000,
+        8_000_000,
+        json!([cell("A {page.title} B {page.nope | upper} C")]),
+        json!([]),
+    );
+    let out = lower_form(&form, None, &bindings("T"), bundled());
+    let r = runs(&out.display_list);
+    assert_eq!(r.len(), 1);
+    assert_eq!(r[0].text, "A T B  C");
+    assert_eq!(unresolved(&out.findings), vec!["{page.nope | upper}"]);
 }

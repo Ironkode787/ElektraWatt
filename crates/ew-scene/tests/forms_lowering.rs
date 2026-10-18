@@ -325,8 +325,10 @@ fn unresolved_and_overflowing_cells_are_reported() {
     assert!(unresolved.contains(&"{page.title}"));
     assert!(unresolved.contains(&"{project.created | date}"));
     assert!(!unresolved.contains(&"{page.folio}"));
-    // Unresolved placeholders print verbatim.
-    assert!(summary(&out.display_list).contains("text \"Project: {project.reference}\""));
+    // Unresolved placeholders render empty: the label remains, the raw `{path}` is never drawn.
+    let drawn = summary(&out.display_list);
+    assert!(drawn.contains("text \"Project:\""), "{drawn}");
+    assert!(!drawn.contains('{'), "{drawn}");
 }
 
 #[test]

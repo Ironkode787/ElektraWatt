@@ -19,7 +19,8 @@
 //!
 //! # Snapshots
 //!
-//! The two inline snapshots at the end (`ew.iec.mcb-1pn` at R0, `ew.iec.contact-no` at M90) are updated by
+//! The two inline snapshots at the end (`ew.iec.mcb-1pn` at R0, `ew.iec.contact-no` at M90) list cps, texts
+//! and, per lowered item, kind, pen and geometry in integer nm. They are updated by
 //! hand: cargo-insta may be unavailable, so after an intended change to a symbol or to `lower` run the
 //! test, copy the received text into the `@r#"..."#` literal and review the diff.
 //!
@@ -1255,6 +1256,48 @@ fn render_variant(out: &mut String, v: Orient2, g: &SymbolGeometry) {
     writeln!(out, "  anchor {}", pt_s(g.anchor)).unwrap();
     writeln!(out, "  bounds {} {}", pt_s(g.bounds.min()), pt_s(g.bounds.max())).unwrap();
     writeln!(out, "  items {}", g.graphics.items.len()).unwrap();
+    for (i, item) in g.graphics.items.iter().enumerate() {
+        writeln!(out, "    {i} {}", render_item(item)).unwrap();
+    }
+}
+
+/// One line per lowered item: the kind, the pen (width, dash, colour) and the geometry in integer nm.
+/// Circles and arcs are lowered to cubic Beziers, so they appear as their `C` elements.
+fn render_item(item: &ew_dl::Item) -> String {
+    use ew_dl::{Brush, ItemKind, PathEl};
+    let colour = |b: &Brush| {
+        let Brush::Solid(c) = b;
+        format!("#{:02x}{:02x}{:02x}{:02x}", c.r, c.g, c.b, c.a)
+    };
+    match &item.kind {
+        ItemKind::Path(p) => {
+            let els: Vec<String> = p
+                .path
+                .els
+                .iter()
+                .map(|e| match e {
+                    PathEl::MoveTo(a) => format!("M{}", pt_s(*a)),
+                    PathEl::LineTo(a) => format!("L{}", pt_s(*a)),
+                    PathEl::QuadTo(a, b) => format!("Q{}{}", pt_s(*a), pt_s(*b)),
+                    PathEl::CubicTo(a, b, c) => format!("C{}{}{}", pt_s(*a), pt_s(*b), pt_s(*c)),
+                    PathEl::ClosePath => "Z".to_owned(),
+                })
+                .collect();
+            let pen = p.stroke.as_ref().map_or("none".to_owned(), |s| {
+                let dash = s.dash.as_ref().map_or(String::new(), |d| {
+                    let seg: Vec<String> = d.segments.iter().map(|n| n.0.to_string()).collect();
+                    format!(" dash[{}]@{}", seg.join(","), d.offset.0)
+                });
+                format!("w{}{dash} {}", s.width.0, colour(&s.brush))
+            });
+            let fill = p.fill.as_ref().map_or("none".to_owned(), colour);
+            format!("path pen {pen} fill {fill} {}", els.join(" "))
+        }
+        ItemKind::Glyphs(r) => format!("glyphs {:?} at {} size {}", r.text, pt_s(r.origin), r.size.0),
+        ItemKind::Image(i) => format!("image {} {}", pt_s(i.rect.min()), pt_s(i.rect.max())),
+        ItemKind::Instance(_) => "instance".to_owned(),
+        ItemKind::Group(g) => format!("group of {}", g.items.len()),
+    }
 }
 
 fn render_symbol(key: &str, v: Orient2) -> Option<String> {
@@ -1285,6 +1328,20 @@ fn snapshot_mcb_1pn_r0() {
       anchor (4000000,8000000)
       bounds (-4000000,0) (15000000,16000000)
       items 14
+        0 path pen w260000 #000000ff fill none M(0,0) L(0,5000000)
+        1 path pen w260000 #000000ff fill none M(0,16000000) L(0,12000000)
+        2 path pen w260000 #000000ff fill none M(0,12000000) L(-2000000,5000000)
+        3 path pen w260000 #000000ff fill none M(-1000000,4000000) L(1000000,6000000)
+        4 path pen w260000 #000000ff fill none M(-1000000,6000000) L(1000000,4000000)
+        5 path pen w260000 #000000ff fill none M(12000000,0) L(12000000,5000000)
+        6 path pen w260000 #000000ff fill none M(12000000,16000000) L(12000000,12000000)
+        7 path pen w260000 #000000ff fill none M(12000000,12000000) L(10000000,5000000)
+        8 path pen w260000 #000000ff fill none M(11000000,4000000) L(13000000,6000000)
+        9 path pen w260000 #000000ff fill none M(11000000,6000000) L(13000000,4000000)
+        10 path pen w130000 dash[520000,260000]@0 #000000ff fill none M(-1000000,8500000) L(2000000,8500000)
+        11 path pen w260000 #000000ff fill none M(2000000,7000000) L(2000000,10000000) L(4000000,10000000) L(4000000,7000000) Z
+        12 path pen w130000 #000000ff fill none M(4000000,8500000) L(4500000,7500000) L(5500000,9500000) L(6000000,8500000)
+        13 path pen w130000 dash[520000,260000]@0 #000000ff fill none M(6000000,8500000) L(11000000,8500000)
     "#);
 }
 
@@ -1305,6 +1362,9 @@ fn snapshot_contact_no_m90() {
       anchor (0,0)
       bounds (-12000000,-4000000) (0,4000000)
       items 3
+        0 path pen w260000 #000000ff fill none M(0,0) L(-4000000,0)
+        1 path pen w260000 #000000ff fill none M(-12000000,0) L(-8000000,0)
+        2 path pen w260000 #000000ff fill none M(-8000000,0) L(-4000000,2000000)
     "#);
 }
 

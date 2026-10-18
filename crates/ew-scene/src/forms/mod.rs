@@ -47,7 +47,7 @@
 //! - Characters without a glyph are reported ([`FormFinding::MissingGlyphs`], FR-OUT-027).
 //!
 //! The title-block cells of the golden project are bindings only (FR-REP-033, FR-REP-035): this module
-//! never invents a value; an unresolved placeholder prints verbatim and is reported.
+//! never invents a value; an unresolved placeholder renders as empty text and is reported.
 
 mod bindings;
 mod geometry;
