@@ -177,7 +177,7 @@ pub struct ConnectHint {
 ///   it (as `connection.draw` does) and ends the wire at the junction (the point must be on the page's
 ///   connection grid). A hint whose function, junction or connection no longer exists is dropped and
 ///   reported as a notice instead of failing the command.
-/// - The effective `rep_type` must be one the page's type allows (doc 06 §2.2, [`allowed_rep_types`]);
+/// - The effective `rep_type` must be one the page's type allows (doc 06 §2.2, `allowed_rep_types`);
 ///   else the placement is rejected with the list of allowed types.
 ///
 /// Online numbering (normaliser #4) gives a new device its counter; a symbol dropped onto a wire splits it
