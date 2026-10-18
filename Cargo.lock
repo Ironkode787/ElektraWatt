@@ -392,7 +392,15 @@ dependencies = [
 name = "ew-import-tables"
 version = "0.0.0"
 dependencies = [
+ "ew-ids",
  "ew-interop-api",
+ "ew-mltext",
+ "ew-rds",
+ "ew-schema",
+ "ew-units",
+ "serde",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]

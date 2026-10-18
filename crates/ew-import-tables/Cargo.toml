@@ -16,3 +16,14 @@ workspace = true
 
 [dependencies]
 ew-interop-api = { path = "../ew-interop-api" }
+ew-schema = { path = "../ew-schema" }
+ew-ids = { path = "../ew-ids" }
+ew-units = { path = "../ew-units" }
+ew-mltext = { path = "../ew-mltext" }
+ew-rds = { path = "../ew-rds" }
+# `Serialize` bound of the library item hash.
+serde.workspace = true
+# `extra` members and the item hash over the canonical compact JSON of library items (doc 05 §13.2).
+serde_json = "1.0.154"
+# The library item hash of project-local parts (doc 05 §13.2).
+sha2.workspace = true
