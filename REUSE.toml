@@ -1,0 +1,31 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: CC0-1.0
+
+# REUSE annotations (REUSE specification 3.3) for the files that cannot carry an SPDX header, or whose tools
+# rewrite them. Every other file carries the header itself. The licences follow the path map of
+# docs/design/19-open-source-governance.md §2.1, held in machine form in ci/licence-map.toml; `cargo xtask
+# check-licence-map` checks these annotations against that map too. Globs: `*` does not cross `/`, `**` does.
+
+version = 1
+
+# L11: generated or tool-rewritten configuration (CC0-1.0). cargo-vet rewrites supply-chain/ without comments.
+[[annotations]]
+path = ["Cargo.lock", ".github/renovate.json", "supply-chain/**", "docs/plan/tools/.gitignore"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
+SPDX-License-Identifier = "CC0-1.0"
+
+# L11: the AI-assistance configuration (agent role files with YAML front matter, settings JSON, workflows).
+[[annotations]]
+path = ".claude/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
+SPDX-License-Identifier = "CC0-1.0"
+
+# L9: documentation without headers (Markdown and CSV under docs/) and the root prose files README.md and
+# CLAUDE.md (CC-BY-4.0).
+[[annotations]]
+path = ["docs/**.md", "docs/**.csv", "README.md", "CLAUDE.md"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
+SPDX-License-Identifier = "CC-BY-4.0"

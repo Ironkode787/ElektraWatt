@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """Effort totals and CSV consistency checks of the ElektraWatt plan (Python 3 standard library only).
 
 Reads docs/plan/work-packages.csv. Writes the effort tables (generated blocks) of docs/plan/02-work-packages.md

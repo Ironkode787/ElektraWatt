@@ -7,7 +7,7 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
-description = "Repository policy checks (crate-dependency rules, build-script allowlist, workflow pinning) and the local mirror of the per-PR CI set."
+description = "Repository policy checks (crate-dependency rules, build-script allowlist, workflow pinning, licence map and boundary, anonymisation guard, DCO, governance files) and the local mirror of the per-PR CI set."
 repository.workspace = true
 publish = false
 
@@ -18,4 +18,7 @@ workspace = true
 anyhow.workspace = true
 cargo_metadata.workspace = true
 serde.workspace = true
+sha2.workspace = true
+spdx.workspace = true
 toml.workspace = true
+unicode-normalization.workspace = true

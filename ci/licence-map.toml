@@ -1,0 +1,423 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# The path-to-licence map of docs/design/19-open-source-governance.md §2.1 (ADR-0024 decision 1 and
+# amendment 2) in machine form, checked by `cargo xtask check-licence-map` (19 §5.1, rules LR-01 … LR-04).
+#
+# Every committed file except the licence texts under LICENSES/ must match at least one [[path]] glob. The
+# longest matching glob (in characters) wins; two different rules with the same length that both match a file
+# are a policy error. The file's SPDX licence expression, read from its header (first 10 lines) or from its
+# REUSE.toml annotation, must be one of the rule's `allowed` expressions. A rule with `crate = true` covers a
+# workspace crate: the `license` field of the crate's Cargo.toml must equal its single allowed expression.
+#
+# Glob syntax is the one of REUSE.toml (REUSE specification 3.3): `*` matches any run of characters except
+# `/`, `**` matches any run of characters including `/`; there are no other special characters. A path not
+# matched by any rule fails (LR-11: unknown files, such as a committed third-party fixture, are rejected).
+#
+# Changing a row here is a licence change: it needs the matching change in 19 §2.1 and LICENSE.md, and the
+# RFC process of 19 §3.4 (label `licence`).
+
+# ---------------------------------------------------------------------------------------------------------------
+# L1: application and GPL-layer crates, binaries. `GPL-3.0-or-later WITH LicenseRef-ElektraWatt-plugin-exception`
+# once ADR-0025 is accepted; until then plain `GPL-3.0-or-later` (ADR-0025 "Pending", LG-2).
+# Crates of 19 §2.1 that do not exist yet (ew-viewer, ew-py, ew-wiring-viewer) are listed so that they land
+# in the right row.
+[[path]]
+glob = "crates/ew-model/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-rhai/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-derive/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-commands/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-checks/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-sqlview/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-library/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-store/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-text/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-reports/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-scene/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-render2d/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-render-cpu/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-export/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-print/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-plc/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-panel/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-render3d/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-mfg/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-import-eplan/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-import-dxf/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-import-catalog/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-import-tables/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-script/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-plugin-host/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-jobs/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-api/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-viewmodel/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-ui/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-viewer/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-testkit/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+[[path]]
+glob = "crates/ew-py/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+# The binaries elektrawatt, ew, ew-step-worker (and ew-wiring-viewer when it exists).
+[[path]]
+glob = "bin/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+# ---------------------------------------------------------------------------------------------------------------
+# L2: ew-import-qet, files written by EW: GPL-3.0-or-later with no exception (C-8, NFR-LIC-05).
+[[path]]
+glob = "crates/ew-import-qet/**"
+allowed = ["GPL-3.0-or-later"]
+crate = true
+
+# L3: ported QET code, the only place where GPL-2.0 may appear (LR-04). The directory does not exist yet.
+[[path]]
+glob = "crates/ew-import-qet/src/qet_port/**"
+allowed = ["GPL-2.0-or-later"]
+
+# ---------------------------------------------------------------------------------------------------------------
+# L4: the closed permissive layer (ADR-0024 decision 2 and amendment 1). Must equal [layers].permissive of
+# ci/dep-rules.toml plus the planned ew-plugin-wit and ew-plugin-sdk; the boundary check below takes its crate
+# list from dep-rules.toml.
+[[path]]
+glob = "crates/ew-units/**"
+allowed = ["MIT OR Apache-2.0"]
+crate = true
+
+[[path]]
+glob = "crates/ew-ids/**"
+allowed = ["MIT OR Apache-2.0"]
+crate = true
+
+[[path]]
+glob = "crates/ew-mltext/**"
+allowed = ["MIT OR Apache-2.0"]
+crate = true
+
+[[path]]
+glob = "crates/ew-rds/**"
+allowed = ["MIT OR Apache-2.0"]
+crate = true
+
+[[path]]
+glob = "crates/ew-schema/**"
+allowed = ["MIT OR Apache-2.0"]
+crate = true
+
+[[path]]
+glob = "crates/ew-format/**"
+allowed = ["MIT OR Apache-2.0"]
+crate = true
+
+[[path]]
+glob = "crates/ew-interop-api/**"
+allowed = ["MIT OR Apache-2.0"]
+crate = true
+
+[[path]]
+glob = "crates/ew-dl/**"
+allowed = ["MIT OR Apache-2.0"]
+crate = true
+
+[[path]]
+glob = "crates/ew-step-proto/**"
+allowed = ["MIT OR Apache-2.0"]
+crate = true
+
+[[path]]
+glob = "crates/ew-memo/**"
+allowed = ["MIT OR Apache-2.0"]
+crate = true
+
+[[path]]
+glob = "crates/ew-plcaddr/**"
+allowed = ["MIT OR Apache-2.0"]
+crate = true
+
+[[path]]
+glob = "crates/ew-caex/**"
+allowed = ["MIT OR Apache-2.0"]
+crate = true
+
+[[path]]
+glob = "crates/ew-devdesc/**"
+allowed = ["MIT OR Apache-2.0"]
+crate = true
+
+[[path]]
+glob = "crates/ew-ewpp/**"
+allowed = ["MIT OR Apache-2.0"]
+crate = true
+
+[[path]]
+glob = "crates/ew-plugin-wit/**"
+allowed = ["MIT OR Apache-2.0"]
+crate = true
+
+[[path]]
+glob = "crates/ew-plugin-sdk/**"
+allowed = ["MIT OR Apache-2.0"]
+crate = true
+
+# ---------------------------------------------------------------------------------------------------------------
+# L9: documentation and the root prose files (CC-BY-4.0). LICENSE.md is L11 (below).
+[[path]]
+glob = "docs/**"
+allowed = ["CC-BY-4.0"]
+
+[[path]]
+glob = "*.md"
+allowed = ["CC-BY-4.0"]
+
+# The Contributor Covenant 3.0 text is licensed CC-BY-SA-4.0 by its steward (its Attribution section), not
+# CC-BY-4.0 as 19 §2.1 L9 and §2.3 first assumed ("verify"). The file keeps the Covenant's own licence, as 19
+# §2.1 and §2.3 now record.
+[[path]]
+glob = "CODE_OF_CONDUCT.md"
+allowed = ["CC-BY-SA-4.0"]
+
+# ---------------------------------------------------------------------------------------------------------------
+# L11: repository metadata and configuration without creative content (CC0-1.0).
+[[path]]
+glob = "LICENSE.md"
+allowed = ["CC0-1.0"]
+
+[[path]]
+glob = "REUSE.toml"
+allowed = ["CC0-1.0"]
+
+[[path]]
+glob = ".gitignore"
+allowed = ["CC0-1.0"]
+
+[[path]]
+glob = ".gitattributes"
+allowed = ["CC0-1.0"]
+
+[[path]]
+glob = "Cargo.toml"
+allowed = ["CC0-1.0"]
+
+[[path]]
+glob = "Cargo.lock"
+allowed = ["CC0-1.0"]
+
+[[path]]
+glob = "rust-toolchain.toml"
+allowed = ["CC0-1.0"]
+
+[[path]]
+glob = "rustfmt.toml"
+allowed = ["CC0-1.0"]
+
+[[path]]
+glob = "deny.toml"
+allowed = ["CC0-1.0"]
+
+[[path]]
+glob = "about.toml"
+allowed = ["CC0-1.0"]
+
+[[path]]
+glob = ".cargo/**"
+allowed = ["CC0-1.0"]
+
+[[path]]
+glob = ".config/**"
+allowed = ["CC0-1.0"]
+
+[[path]]
+glob = ".github/**"
+allowed = ["CC0-1.0"]
+
+# cargo-vet rewrites these files and drops comments, so they are annotated in REUSE.toml.
+[[path]]
+glob = "supply-chain/**"
+allowed = ["CC0-1.0"]
+
+# The AI-assistance configuration (agent roles, settings, workflows).
+[[path]]
+glob = ".claude/**"
+allowed = ["CC0-1.0"]
+
+[[path]]
+glob = "docs/plan/tools/.gitignore"
+allowed = ["CC0-1.0"]
+
+# ---------------------------------------------------------------------------------------------------------------
+# L12: CI workflows, scripts and tools (MIT OR Apache-2.0), so that others may copy the gates.
+[[path]]
+glob = ".github/workflows/**"
+allowed = ["MIT OR Apache-2.0"]
+
+[[path]]
+glob = "ci/**"
+allowed = ["MIT OR Apache-2.0"]
+
+# Prose in ci/ is documentation (L9).
+[[path]]
+glob = "ci/**.md"
+allowed = ["CC-BY-4.0"]
+
+[[path]]
+glob = "xtask/**"
+allowed = ["MIT OR Apache-2.0"]
+crate = true
+
+[[path]]
+glob = "docs/plan/tools/**"
+allowed = ["MIT OR Apache-2.0"]
+
+# ---------------------------------------------------------------------------------------------------------------
+# LR-04 and NFR-LIC-05: GPL-2.0 (ported QElectroTech code) may appear only here, in files and in the rows above.
+[gpl2]
+only_in = "crates/ew-import-qet/src/qet_port/**"
+
+# ---------------------------------------------------------------------------------------------------------------
+# Files that may carry third-party copyright lines above the collective notice (NFR-LIC-10, 19 §2.3). Every
+# other file carries exactly one copyright line, `<year> The ElektraWatt contributors`.
+[notices]
+third_party = ["CODE_OF_CONDUCT.md", "crates/ew-import-qet/src/qet_port/**"]
+
+# ---------------------------------------------------------------------------------------------------------------
+# The licence-boundary allowlist (NFR-MAINT-02, 19 LR-03, ADR-0024 decision 2 and amendment 3): every package in
+# the dependency closure (normal, build and dev, all features) of every permissive crate must have a `license`
+# expression that is satisfiable from these licences. An OR needs one allowed operand, an AND needs all.
+[boundary]
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Zlib",
+  "Unicode-3.0",
+  "MPL-2.0",
+  "CC0-1.0",
+]

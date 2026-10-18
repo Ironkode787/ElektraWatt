@@ -41,7 +41,8 @@ cargo xtask ci      # fmt, clippy, nextest and the repository policy checks, as 
 | Documentation | CC-BY-4.0 |
 
 The licence set is planned and pending the legal gates ([ADR-0024](docs/adr/0024-licence-set-and-permissive-gpl-boundary.md),
-[governance](docs/design/19-open-source-governance.md)); no licence files exist yet.
+[governance](docs/design/19-open-source-governance.md)). The licence texts are in `LICENSES/`, indexed by
+[LICENSE.md](LICENSE.md); the plugin and design exceptions are pending (ADR-0025).
 
 ## Headline plan
 
@@ -64,7 +65,9 @@ The AI-assisted dates rest on weak evidence and are an internal target only. Det
 
 ## Contributing
 
-Roles, the DCO, the RFC and ADR process and the AI-use policy are described in the
-[open-source governance document](docs/design/19-open-source-governance.md). `CONTRIBUTING.md` will follow with the
-first code. Until then, comments on the documents and the Proposed ADRs are the most useful input. The repository is
-public: do not include customer data, personal names or confidential material in issues or pull requests.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow, the DCO, the AI-use policy and the confidentiality rules,
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [SECURITY.md](SECURITY.md) (private vulnerability reporting) and
+[LICENSE.md](LICENSE.md) (the licence index). Roles, the RFC and ADR process and the AI-use policy are described in
+the [open-source governance document](docs/design/19-open-source-governance.md). Comments on the documents and the
+Proposed ADRs are welcome. The repository is public: do not include customer data, personal names or confidential
+material in issues or pull requests.

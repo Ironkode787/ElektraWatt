@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """Milestone dates, schedules and budget of the ElektraWatt plan (Python 3 standard library only).
 
 Reads docs/plan/work-packages.csv and runs the schedule model of engine.py for every scenario of the plan.

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """Schedule model of the ElektraWatt plan (GA-7 / PA-9), standard library only.
 
 Resource-constrained list scheduling with generalist developers:

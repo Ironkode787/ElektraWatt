@@ -1,0 +1,44 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: CC0-1.0
+
+name: Part data
+description: Part data is missing or wrong.
+title: "[Part data]: "
+labels: ["part-data"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This repository is public. Do not attach customer drawings, project files or personal data; use placeholders such as `<customer>` or `<project ref>`. Report security issues privately (see SECURITY.md), not here.
+
+        Only data with a redistribution licence or from public datasheets can be used. Never submit EDZ or Data Portal content, or ECLASS dictionary content.
+  - type: input
+    id: part
+    attributes:
+      label: Manufacturer and part number
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: What is missing or wrong?
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Source of the data
+      description: A public datasheet link, or the source and its redistribution licence.
+    validations:
+      required: true
+  - type: input
+    id: licence
+    attributes:
+      label: Licence of the source
+  - type: checkboxes
+    id: confidentiality
+    attributes:
+      label: Confidentiality
+      options:
+        - label: I have removed customer data, personal data and confidential material from this issue.
+          required: true

@@ -22,7 +22,10 @@ repository = "https://github.com/Ironkode787/ElektraWatt"
 anyhow = "1.0.104"
 cargo_metadata = "0.23.1"
 serde = { version = "1.0.229", features = ["derive"] }
+sha2 = "0.10.9"
+spdx = "0.13.6"
 toml = "1.1.8"
+unicode-normalization = "0.1.26"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
@@ -40,3 +43,12 @@ unimplemented = "warn"
 undocumented_unsafe_blocks = "warn"
 # Leaking resources is never intended.
 mem_forget = "warn"
+
+# The anonymisation guard (`cargo xtask check-anonymisation`) hashes every word n-gram of the repository (about
+# 2.5 million SHA-256 digests). The hashing code is generic and is instantiated inside xtask, so xtask itself is
+# optimised in the dev profile; that keeps the guard at a few seconds. Product crates are unaffected.
+[profile.dev.package.xtask]
+opt-level = 2
+
+[profile.dev.package.sha2]
+opt-level = 3

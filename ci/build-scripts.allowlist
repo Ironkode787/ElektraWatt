@@ -8,8 +8,15 @@
 #
 # Reviewed at M0 (WP-S0.01): all of these run `rustc --version` or a probe compile to set cfg flags, and at
 # most write a generated module to OUT_DIR.
+#
+# Added at M0 (WP-S0.02, xtask dependencies sha2 0.10 and spdx): generic-array 0.14.7 runs `rustc --version`
+# through version_check and sets one cfg; libc 0.2.191 (via cpufeatures) runs `rustc --version`, and only on
+# FreeBSD or Emscripten targets `freebsd-version` or `emcc --version`, then sets cfg flags. Neither writes files
+# or uses the network.
 anyhow
 camino
+generic-array
+libc
 proc-macro2
 quote
 serde

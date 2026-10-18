@@ -79,7 +79,7 @@ texts in `LICENSES/` are exempt, as the REUSE specification provides.
 | L6 | Built-in rule packs, report packs and machine profiles: data files (TOML, rhai, SQL, Fluent) | `packs/` | `MIT OR Apache-2.0` | ADR-0024 decision 1 (answers [15](15-checks-revisions-collaboration.md) OQ16; open question 12) |
 | L7 | Symbols, FnDefs, frames, forms, page and report templates, macros, basic-project examples | system library in `content/`; repositories `elektrawatt-symbols`, `elektrawatt-macros` | `CC-BY-SA-4.0 WITH <design exception>` (§3.1, LR-07; open question 2) | ADR-0024, [07](07-symbols-parts-macros.md) §3.8 |
 | L8 | Project-authored part facts, the manufacturer master, example and tutorial projects, the golden fixture, the hostile test corpus | `elektrawatt-parts`, `examples/`, `golden/`, `fuzz/corpus/own/` | `CC0-1.0` | ADR-0024, NFR-DOC-04 |
-| L9 | Documentation: design docs, ADRs, RFCs, the mdBook, the format-specification prose, rule pages, the root prose files (`README.md`, `GOVERNANCE.md`, `CONTRIBUTING.md`, `SECURITY.md`, `PRIVACY.md`, `TRADEMARKS.md`, `ROADMAP.md`) | `docs/`, `rfcs/`, `book/`, root `*.md` except `LICENSE.md` | `CC-BY-4.0` | ADR-0024; `CODE_OF_CONDUCT.md` is CC-BY-4.0 too but keeps the Contributor Covenant's copyright line (§2.3) |
+| L9 | Documentation: design docs, ADRs, RFCs, the mdBook, the format-specification prose, rule pages, the root prose files (`README.md`, `GOVERNANCE.md`, `CONTRIBUTING.md`, `SECURITY.md`, `PRIVACY.md`, `TRADEMARKS.md`, `ROADMAP.md`) | `docs/`, `rfcs/`, `book/`, root `*.md` except `LICENSE.md` | `CC-BY-4.0` | ADR-0024; `CODE_OF_CONDUCT.md` is the one exception: the Contributor Covenant 3.0 text is `CC-BY-SA-4.0` and keeps the Covenant's copyright line (§2.3) |
 | L10 | UI translations (`.ftl`) and documentation translations (PO) | inside L1 crates; `book/po/` | the licence of the containing path (L1 or L9) | §3.7 |
 | L11 | Repository metadata and configuration without creative content: `.gitignore`, `.gitattributes`, `REUSE.toml`, `deny.toml`, workspace `Cargo.toml` and `Cargo.lock`, `rust-toolchain.toml`, `CODEOWNERS`, `FUNDING.yml`, issue and PR templates, `LICENSE.md` | `.github/` (except `workflows/`), root files | `CC0-1.0` | no creative content to protect |
 | L12 | CI workflows, scripts and tools | `.github/workflows/`, `ci/`, `xtask/` | `MIT OR Apache-2.0` | ADR-0024 ("CI scripts"); others may copy the gates |
@@ -149,7 +149,8 @@ Governance adds no record kind. It relies on fields other documents define:
   the collective EW line below them for EW modifications, and are listed in `NOTICE` with the source repository,
   the path and the commit (NFR-LIC-05). The same applies to any file copied from a permissively licensed project
   (LR-05) and to third-party prose: `CODE_OF_CONDUCT.md` carries the Contributor Covenant's own
-  `SPDX-FileCopyrightText` and its CC-BY-4.0 attribution (**verify** that the 3.0 text keeps CC-BY-4.0).
+  `SPDX-FileCopyrightText` and its licence, which is `CC-BY-SA-4.0` for the 3.0 text (verified 2026-10-18 against
+  the published text; the earlier assumption of CC-BY-4.0 was wrong), so `LICENSES/` holds that text as well.
 - **Who owns what.** The copyright in a contribution belongs to its author, or to the author's employer when Dutch
   law deems the employer the maker (Auteurswet art. 7, for works made in the course of employment, unless agreed
   otherwise; for software see also Directive 2009/24/EC art. 2(3); **verify** both with counsel). The project takes

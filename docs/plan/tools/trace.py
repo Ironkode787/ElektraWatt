@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """Traceability generator for the ElektraWatt plan.
 
 Reads (repo-relative, stdlib only):

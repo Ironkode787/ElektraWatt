@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+#
+# Anonymisation guard (NFR-PRIV-09, docs/design/20-golden-project.md §3.5, 19 LR-12), checked by
+# `cargo xtask check-anonymisation` over every committed text file.
+#
+# Format: one lower-case hex SHA-256 digest per line; lines starting with `#` and blank lines are ignored.
+# Each digest is the hash of a forbidden word n-gram (n = 1, 2 or 3): the text is normalised to Unicode NFC,
+# lower-cased and split into words at every character that is not alphanumeric, and the words of the n-gram
+# are joined by one space and hashed as UTF-8.
+#
+# Owner workflow: the confidential tokens (customer, end-user and person names, project and drawing numbers) are
+# held by the maintainers and never enter the repository, its issues or its CI logs. To add one, run
+#     cargo xtask denylist-hash "<phrase>"
+# locally, keep the digests of the distinctive n-grams (drop the 1-grams of common words such as "de" or "bv":
+# they would block every file that contains them) and append them below. Comments must not name the token.
+#
+# No entries yet: the maintainers add them (owner action of WP-S0.02).

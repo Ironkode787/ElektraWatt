@@ -20,12 +20,18 @@ The job names are the GitHub status-check names to mark as required.
 | CI-PR-02 | `ci.yml` / `test-linux` (ubuntu-24.04) | `cargo build --workspace --locked`; `cargo nextest run --workspace --locked --profile ci` | `cargo build --workspace --locked` and `cargo nextest run --workspace --locked` |
 | CI-PR-03 | `ci.yml` / `test-windows` (windows-2025) | as CI-PR-02 | as CI-PR-02, on Windows |
 | CI-PR-04 | `ci.yml` / `test-macos` (macos-15, arm64) | as CI-PR-02 | as CI-PR-02, on macOS |
-| CI-PR-09 | `ci.yml` / `supply-chain` (ubuntu-24.04) | `cargo deny check`; `cargo audit`; `cargo vet`; `cargo xtask check-deps`, `check-build-scripts`, `check-workflows`; MSRV check of the permissive crates with Rust 1.85.0 | `cargo deny --locked check`, `cargo audit`, `cargo vet --locked`, the three `cargo xtask` checks, and the MSRV commands below |
-| CI-PR-10 | `docs.yml` / `legal-docs` (ubuntu-24.04) | Skeleton: `docs/plan/tools/{totals,schedule,trace}.py --check` and `doccheck.py`. WP-S0.02 adds `reuse lint`, the DCO check, the licence-map check and the anonymisation guard to this job | `python3 -I docs/plan/tools/totals.py --check` (and the other three) |
+| CI-PR-09 | `ci.yml` / `supply-chain` (ubuntu-24.04) | `cargo deny check`; `cargo audit`; `cargo vet`; `cargo xtask check-deps`, `check-build-scripts`, `check-workflows`; third-party notices with cargo-about 0.9.2 (NFR-LIC-08); MSRV check of the permissive crates with Rust 1.85.0 | `cargo deny --locked check`, `cargo audit`, `cargo vet --locked`, the three `cargo xtask` checks, `cargo about generate -o target/THIRD-PARTY-NOTICES.txt ci/third-party-notices.hbs`, and the MSRV commands below |
+| CI-PR-10 | `docs.yml` / `legal-docs` (ubuntu-24.04) | `docs/plan/tools/{totals,schedule,trace}.py --check` and `doccheck.py`; `reuse lint` (reuse-tool 6.2.0; NFR-LIC-01, NFR-LIC-02); `cargo xtask check-licence-map` (licence map, collective notice, crate licences and the licence boundary of the permissive layer: 19 §5.1, NFR-LIC-10, NFR-MAINT-02); `cargo xtask check-anonymisation` (NFR-PRIV-09); `cargo xtask check-governance-files` (NFR-DOC-08); rustdoc build with `-D warnings` (NFR-MAINT-08). On pull requests only: `cargo xtask check-dco` over the PR's commits (NFR-LIC-03); the LG-2 block, which fails a PR from anyone who is not an owner, member or collaborator while the plugin and design exception texts are missing from `LICENSES/` (NFR-LIC-12); and the RFC reference, which fails a PR labelled `format-major`, `api-break` or `licence` whose description does not mention `rfcs/` (NFR-DOC-09) | `python3 -I docs/plan/tools/totals.py --check` (and the other three); `python -m reuse lint`; `cargo xtask check-licence-map`, `check-anonymisation`, `check-governance-files`, `check-dco origin/main..HEAD`; `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked` |
 | CI-PR-15 | `docs.yml` / `docs-diagrams` (ubuntu-24.04) | Renders every Mermaid block under `docs/` and in the root Markdown with mermaid-cli 12.0.0 (container image pinned by digest) and fails on any error | `python3 -I ci/render-mermaid.py --image <image@sha256:…>` (needs docker); `--extract-only` lists the blocks without docker |
 
-`cargo xtask ci` runs fmt, clippy, nextest and the three policy checks in sequence and prints a summary: the
-local mirror of the Rust part of the PR set.
+`cargo xtask ci` runs fmt, clippy, nextest and the six repository checks (`check-deps`, `check-build-scripts`,
+`check-workflows`, `check-licence-map`, `check-anonymisation`, `check-governance-files`) in sequence and prints a
+summary: the local mirror of the Rust part of the PR set. `check-dco` needs a revision range and is run on its own.
+
+The licence-boundary check that 18 §5.2 lists under CI-PR-09 is part of `check-licence-map` and therefore runs in
+`legal-docs`, next to the licence map it shares its policy file with; the dependency-rule part of the same
+boundary (no permissive crate depends on a GPL workspace crate, `ew-import-qet` confinement) stays in `check-deps`
+in `supply-chain`.
 
 The MSRV step builds the permissive crates against a lockfile that the MSRV-aware resolver generates inside
 the job (18 §6.2), so the committed application lockfile can move ahead of the MSRV:
@@ -45,6 +51,10 @@ git checkout Cargo.lock   # locally: restore the committed lockfile afterwards
 | [`build-scripts.allowlist`](build-scripts.allowlist) | `cargo xtask check-build-scripts` | Every package with a build script, after review (ADR-0023, NFR-SEC-10) |
 | [`../deny.toml`](../deny.toml) | `cargo deny check` | Licence allowlist (NFR-LIC-04), advisories, bans, sources |
 | [`../supply-chain/`](../supply-chain) | `cargo vet` | Audits and the exemption list frozen at the first commit (ADR-0023). No public audit sets are imported yet, because `imports.lock` would record the auditors' names and e-mail addresses (open decision) |
+| [`licence-map.toml`](licence-map.toml) | `cargo xtask check-licence-map` | The path-to-licence map of 19 §2.1 (longest glob wins; unmapped paths fail), the files allowed to keep third-party copyright notices, where GPL-2.0 may appear, and the licence allowlist of the permissive layer's dependency closure (NFR-MAINT-02) |
+| [`../REUSE.toml`](../REUSE.toml), [`../LICENSES/`](../LICENSES) | `reuse lint`, `cargo xtask check-licence-map` | Licence annotations for the files that cannot carry an SPDX header; the licence texts |
+| [`denylist.sha256`](denylist.sha256) | `cargo xtask check-anonymisation` | SHA-256 digests of confidential word n-grams (n ≤ 3), never the tokens themselves (NFR-PRIV-09, 20 §3.5). Committed without entries: the maintainers add them (below) |
+| [`../about.toml`](../about.toml), [`third-party-notices.hbs`](third-party-notices.hbs) | `cargo about generate` (CI-PR-09) | The cargo-about licence allowlist (the deny.toml list; the workspace's own `publish = false` crates are ignored) and the plain-text template of the third-party notice file (NFR-LIC-08). CI only generates the file, so a crate without a usable licence fails; the release pipeline (CI-R-07, WP-S6.07) ships it in every artefact |
 | [`render-mermaid.py`](render-mermaid.py) | CI-PR-15 | Mermaid extraction and rendering |
 
 ## Rules for the workflows
@@ -71,10 +81,25 @@ These settings cannot be committed; a repository owner applies them under Settin
 - Block force pushes and deletions; no direct pushes (changes land through pull requests only, administrators
   included).
 - Require one approving review by someone other than the author; dismiss stale approvals on new commits.
-- Require review from Code Owners (the `CODEOWNERS` file arrives with WP-S0.02/WP-S0.03).
+- Require review from Code Owners ([`.github/CODEOWNERS`](../.github/CODEOWNERS); a second named owner per
+  critical path is due by M1, gate G-M0-13).
 - Settings → Code security: enable secret scanning with push protection.
 - Settings → Actions → General: require actions to be pinned to a full-length commit SHA, and set the default
   workflow permissions to "Read repository contents".
+
+## Other owner actions (WP-S0.02, WP-S0.03)
+
+- Settings → Code security: enable **private vulnerability reporting**, the channel that `SECURITY.md` (and,
+  until the conduct contacts exist, `CODE_OF_CONDUCT.md`) points to.
+- Settings → General: enable **require contributors to sign off on web-based commits**, so that commits made in
+  the GitHub web editor carry the DCO trailer (19 §3.2).
+- Create the labels `format-major`, `api-break`, `licence` (RFC reference check) and `blocked:LG-2` (label for
+  non-maintainer pull requests while ADR-0025 is pending).
+- **Denylist hashes** (NFR-PRIV-09): the maintainers who hold the confidential-token list run
+  `cargo xtask denylist-hash "<phrase>"` locally for each customer, end-user and person name and each project or
+  drawing number, keep the digests of the distinctive n-grams and append them to `denylist.sha256`. The tokens
+  themselves never go into the repository, an issue or a CI log; the guard's messages name file and line only.
+  Until entries exist the guard runs but cannot match anything (gate G-M0-06 needs the list committed).
 
 Both workflows run on every pull request, so all seven jobs can be required checks. `docs-diagrams`
 renders every diagram each time (about 90 blocks, a few minutes) rather than filtering on changed paths, because

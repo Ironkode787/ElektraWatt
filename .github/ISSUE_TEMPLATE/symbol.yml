@@ -1,0 +1,41 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: CC0-1.0
+
+name: Symbol
+description: A symbol or function is missing or wrong.
+title: "[Symbol]: "
+labels: ["symbol"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This repository is public. Do not attach customer drawings, project files or personal data; use placeholders such as `<customer>` or `<project ref>`. Report security issues privately (see SECURITY.md), not here.
+
+        Do not upload symbols copied from other libraries or vendor files.
+  - type: input
+    id: symbol
+    attributes:
+      label: Symbol or function needed
+    validations:
+      required: true
+  - type: input
+    id: standard
+    attributes:
+      label: Standard reference
+      description: The identifier only, for example an IEC 60617 identifier. Never the graphic from the database.
+  - type: textarea
+    id: graphic
+    attributes:
+      label: Expected graphic
+      description: Describe the graphic in your own words.
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+  - type: checkboxes
+    id: confidentiality
+    attributes:
+      label: Confidentiality
+      options:
+        - label: I have removed customer data, personal data and confidential material from this issue.
+          required: true

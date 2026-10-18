@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """Mechanical checks for the ElektraWatt documents (Python 3 standard library only).
 
   python3 -I docs/plan/tools/doccheck.py [files...]   # default: every .md under docs/ plus README.md and CLAUDE.md

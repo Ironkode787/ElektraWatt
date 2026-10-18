@@ -1,0 +1,30 @@
+{{!--
+SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+SPDX-License-Identifier: MIT OR Apache-2.0
+
+Template of the third-party notice file (NFR-LIC-08), rendered by cargo-about with about.toml:
+    cargo about generate -o target/THIRD-PARTY-NOTICES.txt ci/third-party-notices.hbs
+Plain text: one section per licence, listing the crates under it and then the licence text.
+--}}
+ElektraWatt third-party notices
+===============================
+
+This file lists the licences of third-party components bundled in ElektraWatt releases (NFR-LIC-08).
+
+Licences used:
+{{#each overview}}
+- {{name}} ({{count}} crate(s))
+{{/each}}
+{{#each licenses}}
+
+------------------------------------------------------------------------------------------------------------------
+{{name}} ({{id}})
+------------------------------------------------------------------------------------------------------------------
+
+Used by:
+{{#each used_by}}
+- {{crate.name}} {{crate.version}}{{#if crate.repository}} ({{crate.repository}}){{/if}}
+{{/each}}
+
+{{{text}}}
+{{/each}}

@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: CC0-1.0
+
+# Review routing (docs/design/19-open-source-governance.md §2.5; NFR-MAINT-07). Owners are GitHub handles only,
+# never personal names or e-mail addresses. Branch protection requires a review from a code owner. The last
+# matching pattern wins.
+
+# Default owner of every path.
+* @Ironkode787
+
+# Critical paths (NFR-MAINT-07). A second named owner is due for each of them by M1 (gate G-M0-13); until then
+# the repository owner is the only code owner.
+/crates/ew-memo/ @Ironkode787
+/crates/ew-model/ @Ironkode787
+/crates/ew-format/ @Ironkode787
+/crates/ew-derive/ @Ironkode787
+
+# CI, policy and licensing: changes here change what every pull request is checked against.
+/.github/ @Ironkode787
+/ci/ @Ironkode787
+/LICENSES/ @Ironkode787
+/LICENSE.md @Ironkode787
+/REUSE.toml @Ironkode787
+/deny.toml @Ironkode787

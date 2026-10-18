@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """Shared helpers for the ElektraWatt plan tools (Python 3 standard library only).
 
 Used by schedule.py and totals.py. Reads docs/plan/work-packages.csv; knows the milestone order, the calendar
