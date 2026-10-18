@@ -547,3 +547,68 @@ fn unresolved_placeholder_draws_nothing_and_is_reported() {
     assert_eq!(r[0].text, "A T B  C");
     assert_eq!(unresolved(&out.findings), vec!["{page.nope | upper}"]);
 }
+
+/// Lowers one cell with the template `value` and the title binding `T`; the texts drawn and the binding
+/// findings.
+fn lower_template(value: &str) -> (Vec<String>, Vec<BindingFinding>) {
+    let cell = json!({
+        "rect": [[0, 0], [40_000_000, 8_000_000]],
+        "value": value,
+        "style": "text.normal",
+        "align": "middle_left",
+        "overflow": "error",
+    });
+    let form = form_with(40_000_000, 8_000_000, json!([cell]), json!([]));
+    let out = lower_form(&form, None, &bindings("T"), bundled());
+    let texts = runs(&out.display_list).iter().map(|r| r.text.clone()).collect();
+    let findings = out
+        .findings
+        .into_iter()
+        .filter_map(|f| match f {
+            FormFinding::Binding { finding, .. } => Some(finding),
+            _ => None,
+        })
+        .collect();
+    (texts, findings)
+}
+
+#[test]
+fn unknown_scope_placeholder_renders_empty_with_its_finding() {
+    let (texts, findings) = lower_template("{foo.bar}");
+    assert!(texts.is_empty());
+    assert_eq!(
+        findings,
+        vec![BindingFinding::UnknownScope {
+            placeholder: "{foo.bar}".to_owned()
+        }]
+    );
+    let (texts, _) = lower_template("A {foo.bar} {page.title}");
+    assert_eq!(texts, vec!["A  T".to_owned()]);
+}
+
+#[test]
+fn computed_placeholder_renders_empty_with_its_finding() {
+    let (texts, findings) = lower_template("{= 1 + 1}");
+    assert!(texts.is_empty());
+    assert_eq!(
+        findings,
+        vec![BindingFinding::Computed {
+            placeholder: "{= 1 + 1}".to_owned()
+        }]
+    );
+}
+
+#[test]
+fn malformed_template_draws_nothing_with_its_finding() {
+    for t in ["{page.title", "Title {page.title} {oops", "a } b"] {
+        let (texts, findings) = lower_template(t);
+        assert!(texts.is_empty(), "{t}: {texts:?}");
+        assert_eq!(
+            findings,
+            vec![BindingFinding::Malformed {
+                template: t.to_owned()
+            }],
+            "{t}"
+        );
+    }
+}

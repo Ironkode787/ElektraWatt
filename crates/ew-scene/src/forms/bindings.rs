@@ -11,10 +11,10 @@
 //! (`supply`, `qty`, `ml`, `range`, …) are reported as [`BindingFinding::UnsupportedFilter`] and pass the value
 //! through unchanged.
 //!
-//! Nothing is silently dropped: an unresolved path renders as empty text and is reported
-//! ([`BindingFinding::Unresolved`]; the raw `{path}` is never drawn), while an unknown scope and a computed
-//! cell (`{= …}`, not in v0) print the placeholder verbatim and are reported, and a malformed template prints
-//! verbatim as a whole.
+//! Nothing is silently dropped, and no placeholder text is ever drawn (decision log ID-40): an unresolved
+//! path ([`BindingFinding::Unresolved`]), an unknown scope ([`BindingFinding::UnknownScope`]) and a computed
+//! cell (`{= …}`, [`BindingFinding::Computed`], not in v0) render as empty text and are reported, and a
+//! malformed template ([`BindingFinding::Malformed`]) yields no text at all and is reported.
 //! [`eval_visible_if`] fills an expression the same way and tests the text for truthiness.
 //!
 //! Validating placeholders against the form type (FR-REP-034) is not done here.
@@ -173,7 +173,7 @@ pub enum BindingFinding {
         /// The placeholder as written, braces included.
         placeholder: String,
     },
-    /// The scope is not one of [`SCOPES`]; the placeholder prints verbatim.
+    /// The scope is not one of [`SCOPES`]; the placeholder renders as empty text.
     UnknownScope {
         /// The placeholder as written.
         placeholder: String,
@@ -185,12 +185,12 @@ pub enum BindingFinding {
         /// The filter name.
         filter: String,
     },
-    /// A computed cell (`{= …}`), not implemented in v0; prints verbatim.
+    /// A computed cell (`{= …}`), not implemented in v0; renders as empty text.
     Computed {
         /// The placeholder as written.
         placeholder: String,
     },
-    /// Unbalanced braces or an unparsable placeholder; the whole template prints verbatim.
+    /// Unbalanced braces or an unparsable placeholder; the whole template yields no text.
     Malformed {
         /// The template.
         template: String,
@@ -387,7 +387,6 @@ fn parse_template(template: &str) -> Option<Vec<Piece>> {
 fn fill_with(template: &str, bindings: &dyn Bindings) -> Filled {
     let mut out = Filled::default();
     let Some(pieces) = parse_template(template) else {
-        out.text = template.to_owned();
         out.findings.push(BindingFinding::Malformed {
             template: template.to_owned(),
         });
@@ -398,11 +397,9 @@ fn fill_with(template: &str, bindings: &dyn Bindings) -> Filled {
             Piece::Literal(l) => out.text.push_str(&l),
             Piece::Placeholder { raw, kind } => match kind {
                 PlaceholderKind::Computed => {
-                    out.text.push_str(&raw);
                     out.findings.push(BindingFinding::Computed { placeholder: raw });
                 }
                 PlaceholderKind::UnknownScope => {
-                    out.text.push_str(&raw);
                     out.findings
                         .push(BindingFinding::UnknownScope { placeholder: raw });
                 }
@@ -580,7 +577,7 @@ mod tests {
             "{page.folio | default(x}",
         ] {
             let f = fill(t, &b());
-            assert_eq!(f.text, t, "{t}");
+            assert_eq!(f.text, "", "{t}");
             assert_eq!(
                 f.findings,
                 vec![BindingFinding::Malformed { template: st(t) }],
@@ -592,7 +589,7 @@ mod tests {
     #[test]
     fn unknown_scope() {
         let f = fill("a {foo.bar} b", &b());
-        assert_eq!(f.text, "a {foo.bar} b");
+        assert_eq!(f.text, "a  b");
         assert_eq!(
             f.findings,
             vec![BindingFinding::UnknownScope {
@@ -686,7 +683,7 @@ mod tests {
     #[test]
     fn computed_cell() {
         let f = fill("x {= 1 + 1} y", &b());
-        assert_eq!(f.text, "x {= 1 + 1} y");
+        assert_eq!(f.text, "x  y");
         assert_eq!(
             f.findings,
             vec![BindingFinding::Computed {

@@ -296,7 +296,7 @@ without a value (`{revision.current.checker.name}` while no checker is set, gold
 the load check: an unknown scope or path, a computed `{= …}` cell before the formula engine exists, or a malformed
 template. The raw `{…}` text is never printed; a form that wants a visible fallback writes `| default("—")`, which
 counts as a value. An unsupported filter passes the value through unfiltered and is reported. `{{` and `}}` print
-literal braces.
+literal braces. The rule covers every unresolvable placeholder (unbound, unresolved, unknown scope, computed) and a malformed template draws nothing; the raw placeholder text is never drawn.
 
 | Scope | Examples | Valid in |
 |---|---|---|
