@@ -154,7 +154,7 @@ keeps no aliases:
 |---|---|
 | Two-digit numbers in EW-PLC, EW-SAF, EW-PRC, EW-BUS, EW-IOL, EW-FL, EW-THM, EW-MFG and EW-EN60204 | The same number with three digits: EW-PLC-012 → EW-PLC-012, EW-BUS-001 → EW-BUS-001 |
 | The fused layout form EW-Lnnn | EW-LAY-nnn with the same number: EW-L001 → EW-LAY-001, EW-L011 → EW-LAY-011 |
-| INT-01 … INT-16 ([05](05-project-format-and-persistence.md) §6.3) | EW-CORE-001 … EW-CORE-016 |
+| INT-01 … INT-16 ([05](05-project-format-and-persistence.md) §6.3) | EW-CORE-001 … EW-CORE-016; EW-CORE-017 was added later and has no earlier form |
 | LL-01 … LL-12 ([07](07-symbols-parts-macros.md) §6.2) | EW-LIB-001 … EW-LIB-012 |
 | EW-CORE-064 (font substituted on import) | Retired; the import finding EW-IMP-006 reports the fact |
 
@@ -162,7 +162,11 @@ keeps no aliases:
 ([standards](../research/standards.md) §1.6), M-01 … M-15 (standards §7), and the PLC, bus and fluid lists of
 [plc-bus-fluid](../research/plc-bus-fluid.md). They appear as "STD XR-04" in the Req. column of §4, beside the
 requirement. Invariant IDs name structural invariants, not rules: CI-nn in [08](08-connections-terminals-cables.md)
-§3.1 and FI-nn in [11](11-fluid-power.md). Their prevent-class members report through rules: CI-05 → EW-CORE-036,
+§3.1 and FI-nn in [11](11-fluid-power.md). The structural invariants that `ew-model` enforces take `EW-INV-nnn`
+(`crates/ew-model/invariants.md`, ADR-0009 decision 5), except CI-01 and CI-04, which keep their doc 08 IDs.
+`EW-INV` is not a rule family: it has no code, pack or registry entry, and the registry test above does not treat it
+as a rule ID. A violation found on open is reported as EW-CORE-008 (EW-INV-001, a dangling reference) or
+EW-CORE-012 (any other). Their prevent-class members report through rules: CI-05 → EW-CORE-036,
 CI-06 → EW-TERM-004, FI-02 and FI-07 → EW-FL-013, FI-03 → EW-FL-002.
 
 ### 2.3 Rule definition

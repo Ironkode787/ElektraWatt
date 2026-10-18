@@ -151,7 +151,7 @@ rule**. Ranks are never reused or renumbered.
 | 20–22 | `structure_node`, `section`, `external_ref` | `structure.jsonl` | — |
 | 30 | `page` | `pages/<id>.jsonl` | own ID |
 | 31 | `device` (with every aspect: strip, terminal, cable, assembly, PLC, bus, valve terminal) | shard | own ID |
-| 32 | `function` | shard; an interruption-point (IP) function without a device goes to its page | `device`; IP: page of its representation |
+| 32 | `function` | shard; an interruption-point (IP) function without a device goes to its page, which owns it: deleting the page or the IP representation deletes the function (ADR-0009 amendment 3), and an IP function has exactly one representation (EW-INV-013) | `device`; IP: page of its representation |
 | 33, 35 | `representation`, `junction` | page file | `page` |
 | 34 | `connection` | page file if `page` is set, else a shard | `page`, else the device owning endpoint `a` |
 | 36, 37 | `conductor`, `channel` | shard | `cable`, `module` |
@@ -255,7 +255,8 @@ numbers live in `Connection.number`. A released revision's report snapshots live
 | Enum | unit variant as a snake_case string; data variant as a one-member object. Persisted enums are open: an unknown value is kept as `Unknown` and written back unchanged (§10.3); the JSON Schemas omit the catch-all (§10.4) | `"tbd"`, `{"core":"<id>"}`, `{"manual":"Q0.1"}` |
 | `Endpoint` | `{"cp":[function, idx]}` or `{"junction": id}` | `{"cp":["d40b6e93-…",0]}` |
 | Structure slot | absent = inherit; a node ID; `"none"` | `"location":"a41f6c2d-…"` |
-| Sequence / set / keyed list | model order / sorted by element JSON / sorted by key | `route`; `aliases`; `cp_overrides` by `idx` |
+| `Aspect` (of a structure node) | snake_case string: `functional_assignment`, `function`, `installation_site`, `location`, `document_kind`, `user_defined`, `type`. `product` (`-`) is the device tree and never a `StructureNode.aspect`: the reader rejects it there and the JSON Schemas omit it ([03](03-domain-model.md) §5); another unknown string is kept like any open enum value (§10.3) | `"location"` |
+| Sequence / set / keyed list | A sequence keeps model order. A **set** is sorted by the compact JSON text of its elements in byte order, so `"ab!"` precedes `"ab"` (`!` is 0x21, `"` is 0x22); the sets are `aliases`, `translations`, `keywords`, `manual.include`, `manual.exclude` and `Arrangement.slots`. A **keyed list** is sorted by its key in the key type's order (integers numerically, `Ident` keys byte-wise): `cp_overrides`, `cp_pattern` and `cps` (of `SymbolDef`, `FnDef` and `ExtraVariant`) by `idx`, `tech_data` and `free_props` by `key`, `pin_map` by `symbol_cp`, `text_slots` by `slot`. The reader rejects an unsorted set or keyed list and a duplicate element or key. NFC normalisation on load (§3.1) can change a set's order; `ew-format` re-sorts it when it rewrites the non-canonical file | `route`; `aliases`; `cp_overrides` by `idx` |
 | `Rgb` | `"#rrggbb"`, lower-case hex | `"#c0c0c0"` |
 | `Pen` | a house pen `"p013"`, `"p018"`, `"p026"`, `"p042"`, `"p052"`, `"p130"`, or `{"width": Nm}` | `"p026"`, `{"width":183000}` |
 | `Primitive` | a one-member object named by the primitive kind: `line`, `polyline`, `rect`, `circle`, `ellipse`, `arc`, `polygon`, `text`, `image` | `{"line":{"from":[0,0],"to":[0,8000000],"stroke":{"pen":"p026"}}}` |
@@ -341,6 +342,11 @@ top 30 bits of `rand_b` (checked in uuid 1.28.0), so `ew-ids` does not use `Uuid
 itself. UUIDv5 bytes are hash-random anyway. Sharding uses
 byte 15, which is random under both schemes. Loading records in any order yields the same tables, and therefore
 the same bytes on save (NFR-REL-07).
+
+**Unknown and reserved kinds.** Records of a kind this reader does not know, and of a reserved kind that has a
+rank but no table yet (such as `import_run`, or the layout kinds before WP-S4.01), are kept and written in the same
+order: by rank where the registry knows the kind, else after every known kind, ordered by the `$k` text byte-wise,
+and then by the ID order above. A duplicate `($k, id)` among them is EW-CORE-009 like any other (§6.3).
 
 ### 3.4 Library documents
 
@@ -643,7 +649,7 @@ and EW-CORE-016 only where outputs are affected.
 | EW-CORE-006 | Git conflict markers in a JSONL file | error; R | Converted into conflict records (§11.4) |
 | EW-CORE-007 | Schema violation: wrong type, missing member, a float, an unparseable value such as a `Dec3` with four fraction digits. An undeclared company colour code such as "BR" parses as a company code and is reported by EW-CORE-031; a lenient import writes `{"foreign":"BR"}` (§3.2) | error; R | The line is quarantined verbatim and references to it are reported |
 | EW-CORE-008 | Dangling reference | error; R | The link's delete policy, as a previewed fix |
-| EW-CORE-009 | Duplicate `($k, id)` within or across files | error; R | Cross-file move reconciliation (§11.5), else keep one |
+| EW-CORE-009 | Duplicate `($k, id)` within or across files, records of unknown and reserved kinds included (§3.3) | error; R | Cross-file move reconciliation (§11.5), else keep one |
 | EW-CORE-010 | A record in the wrong file | info | Moved at the next save |
 | EW-CORE-011 | Conflict records present | error; R | Merge panel (FR-COL-015) |
 | EW-CORE-012 | Structural invariant violated (ADR-0009) | error; R | Listed; the next transaction touching the key must restore it |
@@ -831,8 +837,9 @@ In the table, R is the reader's format, F the file's format and M its `min_reade
 - **`$v` bumps.** A `$v` bump breaks its kind, so it is allowed only in a format major: after 1.0, only in the
   yearly window (FR-COL-011). Within a major, kinds change only by additions.
 - **Migrations.** Each is a pure function `fn(serde_json::Value) -> Result<Value>`, one per kind and step. Migrations
-  run after parsing and before typed deserialisation, with `serde_path_to_error` reporting paths. They are never
-  deleted (NFR-REL-05).
+  run after parsing and before typed deserialisation. They are never deleted (NFR-REL-05). Error paths are JSON
+  Pointers: typed reading in `ew-schema` reports the path of the failing value itself (`SchemaError::path`), and a
+  migration step reports its own (ADR-0011 amendment 3).
 - **`$v` check.** Typed deserialisation (`ew-schema`) accepts only the registry's `$v` of each kind and rejects any
   other ("migrate first"). A record whose `$v` is newer than the registry's can come only from a newer major, which
   this reader opens read-only (§10.1); it is kept verbatim like a record of an unknown kind (§10.3) and reported as
@@ -860,7 +867,7 @@ Unknown data is preserved as follows:
 | Unknown | Handling |
 |---|---|
 | Member of a known kind | Kept in `extra` and written after the known members. While the record is untouched, its **original line** is written verbatim, so a file from a newer minor survives a save byte-identical, whatever member order that minor used (FR-COL-010) |
-| Kind | The line is kept verbatim in the file it was read from, since its ownership rule is unknown. It sorts after the known kinds, by `$k` name, then by ID |
+| Kind | The line is kept verbatim in the file it was read from, since its ownership rule is unknown. It sorts after the known kinds by the `$k` text byte-wise, then in ID order; a reserved kind with a rank sorts by its rank (§3.3) |
 | Enum variant | `Unknown(Value)`: the record stays editable, and the value is written back unchanged. A value whose tag names a *known* variant but whose payload does not parse is kept the same way and reported as EW-CORE-017, because a known variant's payload never changes within a major |
 | File listed in the manifest | Never rewritten or deleted; EW-CORE-016 |
 | `plugin.<id>.*` keys | Kept in `extra`, merged per key, and kept without the plugin (FR-EXT-021) |
@@ -876,7 +883,8 @@ memory.
   - `record.schema.json`, a `oneOf` keyed by `$k`;
   - one schema per kind and per library document.
 
-  Additional members are allowed by default; a strict variant forbids them. The `Unknown` catch-alls are omitted:
+  Additional members are allowed. Format 0.1 publishes no "strict" variant that forbids them: the typed reader is
+  the strict check (ADR-0011 amendment 3). The `Unknown` catch-alls are omitted:
   the schemas of a format describe the variants it defines, and a newer minor's variant validates against that
   minor's schemas (ADR-0011 amendment 2). The schemas also go into the generated format specification (NFR-DOC-06) and into every as-built archive (NFR-REL-10).
 - **Permissive-only reader.** A sample reader built on the permissive crates alone validates the golden project in
@@ -1134,7 +1142,9 @@ Libraries are `.ewlib` text directories in the project format at every tier
   - Only an explicit "keep both" after a cross-project paste of another version
     ([06](06-schematic-editor.md) §3.6) mints `v5(NS_LIBCOPY, library_id ‖ item_id ‖ version)` for the second copy.
   - Project-local items, including the per-project "QET import" library, use UUIDv7 or element-hash UUIDv5 IDs,
-    with `library_id` = the project ID.
+    with `library_id` = the project ID. The "QET import" library's human key is `qet-import`; the importer
+    receives the project ID as `ImportCx.project` ([14](14-interop.md) §2.1), because importers never read the
+    model (decision log ID-24).
 - **Metadata** is `{library_id, item_id, version, sha256}` (ARCH §4.2), with `version` the item's semantic version.
   `ItemMeta` carries no `version`. An embedded copy stores the version once, in this metadata; a library record
   (`.ewlib`, [07](07-symbols-parts-macros.md) §2.2) stores it once, in its own top-level `version` member after `id`.
@@ -1143,7 +1153,10 @@ Libraries are `.ewlib` text directories in the project format at every tier
   four members, so the copy's hash equals the published item's; EW-CORE-014 checks it. A project therefore opens,
   renders and exports without its libraries (NFR-REL-11).
 - **Closure.** Embedding is transitive: a part pulls in its template's FnDefs, its macros and its manufacturer, a
-  macro its symbols, parts and forms, a symbol its FnDef, and a form its assets.
+  macro its symbols, parts and forms, a symbol its FnDef, and a form its assets. Within the project, a `LibRef`
+  between embedded items resolves to the embedded copy and is a forbid link: a copy that another embedded copy
+  references cannot be deleted or purged. A `LibRef` into a library that is not embedded is not a link
+  ([03](03-domain-model.md) §4.2).
 - **When copies come and go.**
   - The first command that uses an item embeds it in the same transaction (FR-PRT-013, FR-MAC-007).
   - "Update from library" is a previewed command (FR-PRT-014).
@@ -1392,7 +1405,7 @@ QET stores evaluated labels and per-folio title-block strings, and these produce
 |---|---|---|---|
 | `ew-ids` | P | UUIDv7 (method 3), UUIDv5 | uuid 1.28.0 |
 | `ew-schema` | P | Records, kind registry, ranks, `since`, merge strategies, JSON Schemas | serde 1.0.229, schemars 1.2.3 |
-| `ew-format` | P | Canonical reader and writer, manifest, migrations, three-way record merge, conflict records | serde_json 1.0.154, serde_path_to_error 0.1.20, semver 1.0.28, sha2 **(verify)** |
+| `ew-format` | P | Canonical reader and writer, manifest, migrations, three-way record merge, conflict records | serde_json 1.0.154, semver 1.0.28, sha2 **(verify)** |
 | `ew-store` | GPL | Save, lock, journal, recovery, watcher, external-change diff, `.ewz`, archive, git glue, `Vfs` seam (§5.6) | ew-format, ew-model, notify 8.2.0, zip 9.0.4, etcetera or directories **(verify)**; added to ARCH §3: gix 0.89.0 for `git:<rev>` reads, release commits, tags and local history (with the `git` CLI as fallback for commits and tags, **(verify)**) |
 | `ew-library` | GPL | Registry of installed `.ewlib` libraries, the derived per-user search index, embedding closure | ew-format, rusqlite 0.40.2 |
 | `ew` (bin) | GPL | `merge-driver`, `diff`, `fmt`, `upgrade`, `git setup`, `recover`, `archive` | clap **(verify)** |

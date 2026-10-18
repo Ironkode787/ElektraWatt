@@ -349,7 +349,8 @@ Every link field declares a delete policy, generated into `ew-model` (arch §4.6
 |---|---|---|
 | `Function.device` | cascade | deleting a device deletes its functions, their representations and connections ending at their CPs, listed in the preview (FR-DEV-030) |
 | `Device.parent` | forbid, or cascade by explicit choice | an assembly cannot lose its children silently |
-| `Representation.functions` | cascade (representation removed) | the function stays and becomes unplaced (FR-PAG-025) |
+| `Representation.functions` | cascade (representation removed) | the function stays and becomes unplaced (FR-PAG-025); an interruption-point function does not stay: it is deleted with its only representation (next row) |
+| An interruption-point function's representation (deleted alone or with its page) | cascade: the IP function is deleted, and the connections at its CP with it | an IP function has no device and is owned by its page (ADR-0009 amendment 3); EW-INV-013: a function of kind `Ip` has exactly one representation |
 | `Representation.page`, page-owned rows | cascade | deleting a page leaves its devices unplaced unless the user deletes them |
 | `Connection.a/b` (CP or junction) | cascade | a connection never dangles |
 | `Terminal.strip` | forbid | a strip with terminals cannot be deleted alone |
@@ -360,6 +361,19 @@ Every link field declares a delete policy, generated into `ew-model` (arch §4.6
 | `Placement3D.carrier` | forbid; `DeleteCarrier` removes or re-homes its placements explicitly | [12](12-panel-layout.md) §3.6 |
 | `StructureNode` referenced by pages or devices | forbid; use the merge command (FR-PRJ-018) | |
 | `Waiver.target` (fingerprint or part selector) | none; an unmatched waiver is reported (EW-CORE-081) | |
+
+**Policy by link class.** The complete list is the link table of `crates/ew-model/invariants.md` §4, which
+`ew-model` implements; the classes are:
+- **Cascade** for page-owned rows (`Representation.page`, `Connection.page`, `Junction.page`, an embedded
+  `ReportBlock`'s page, and an IP function with its representation) and for `Function.device`. A connection
+  cascades with either endpoint, a representation with any of its functions, a conductor with its cable.
+- **Unlink** for optional cross-references: `SupplySpec.origin.source`, `IpSpec.external`, the bus cable of a
+  `Connection.kind` and `Bond.via` are cleared; `Connection.kind = Core` reverts to `Wire`; a deleted connection
+  leaves `Junction.sequence`. `PotentialDef.at` and `Bond.a`/`b` drop the record.
+- **Forbid** for master data and structure (structure nodes, sections, forms, `Device.parent`, `Terminal.strip`),
+  library copies (`Representation.symbol`, `Function.def`, `PartRef.copy`), `source_ref.lineage`, and a `LibRef`
+  that resolves to a copy embedded in the project: that copy cannot be deleted or purged while it is referenced
+  ([05](05-project-format-and-persistence.md) §13.2). A `LibRef` into an external library is not a link.
 
 **Lifecycle states.**
 - `Device.state`: `Used`, `Spare`, `Reserved`, `NotFitted` (FR-DEV-026).
@@ -507,7 +521,7 @@ EN 81346 and EPLAN's identifier blocks:
 | Function | `=` | `StructureNode` | =P01 |
 | InstallationSite | `++` | `StructureNode` (1.0) | — |
 | Location | `+` | `StructureNode` | +J-E-2416 (alias "JE2416"), +J-E-206, +FIELD ▲ |
-| Product | `-` | the device tree (`Device.parent`), not `StructureNode` | -101F1, -201U3-Q1 |
+| Product | `-` | the device tree (`Device.parent`), never a `StructureNode`: `product` is not a valid `StructureNode.aspect`, and the reader rejects it there ([05](05-project-format-and-persistence.md) §3.2) | -101F1, -201U3-Q1 |
 | DocumentKind | `&` | `StructureNode`, pages only, excluded from device numbering | &EFS (optional) |
 | UserDefined | `#` | `StructureNode` (1.0) | — |
 | Type | `%` (sign unverified) | `StructureNode` (1.x) | — |
@@ -742,7 +756,7 @@ classDiagram
 |---|---|---|---|---|
 | `Section`: a folio range with a title | A, `structure.jsonl` | `number: u16` (1, 2, 9), `folio_range: (u32, u32)` (100–199), `title: MlText` ("Wiring Definition"), `divider: bool` | Its divider page is a generated page (FR-PAG-009) | Chk (FR-CHK-038): a page outside its section's range |
 | `Page`: one drawn sheet | A, `pages/<uuid>.jsonl` | `folio: Folio{section?, number: u32, label?: Ident}` (sparse, gaps allowed, labels "101a", "101.1"; FR-PAG-005/006); `kind: PageType`; `structure`; `form?` (frame override); `title: MlText` (page description); `description_override?` (added, D-06); `scale: OneTo(u32) \| NotToScale`; `grid: Grid` | Owns its representations, connections, junctions, interruption-point functions with their representations, macro instances, embedded report blocks and page items ([05](05-project-format-and-persistence.md) §2.2). UUIDv7. Delete cascades page-owned rows (FR-PAG-025) | P: full page name `=P01+J-E-2416/101` unique (FR-PAG-012). Chk: a description override is reported (FR-REP-036) |
-| `PageType`: governs page semantics | value | see diagram (FR-PAG-001) | Overview, Graphic, AssemblyOverview and PanelLayout pages create no net connections and disable autoconnect; Report pages reject edits (FR-PAG-002) | S: a `Report` page is never stored; it is always generated |
+| `PageType`: governs page semantics | value | see diagram (FR-PAG-001) | Overview, Graphic, AssemblyOverview and PanelLayout pages create no net connections and disable autoconnect; Report pages reject edits (FR-PAG-002) | S: a `Report` page is never stored; it is always generated (EW-INV-012). The persisted enum keeps the `report` value only so that generated pages share the page-type vocabulary: it is derived-only |
 | `FormDef`: frame, title block, cover, report form or label | L, `lib/forms/` | frame: sheet size, margins, `columns{count, start_index, width: Grid, labels}`, `rows{count, labels, skip_io, height: Grid}`, header bands, title-block form, grid and no-grid variants; cells with typed placeholders (FR-REP-032/033); `page_to_sheet?: SheetTransform` (uniform integer scale and offset, QET-compatible frames only, FR-PAG-029); `continuation?: FormRef` (the "next form" of report pages, FR-REP-032) | Assigned by project default, page-type default, or page override (FR-PAG-018) | S: placeholders valid for the form kind (FR-REP-034) |
 | `Representation` (the symbol instance): one drawing of one or more functions | A, page-owned | `functions`, `page`, `symbol: Id<SymbolDef>` and `variant: u8` (default 0: the stored contact-image or CP variant; orientation variants A–H are derived), two members as in [05](05-project-format-and-persistence.md) §3.5, because the variant is chosen per placement while `symbol` names the one embedded copy that every placement shares, `pos: Pt2`, `orient: Orient2`, `rep_type: MultiLine \| SingleLine \| Overview \| Fluid \| Topology \| ContactImage \| StripSegment \| Graphic` (default `MultiLine`), `pin_map` (symbol CP → function CP), `text_slots` (overrides only), `arrangement?` (named slot set of the symbol, FR-SYM-012), `box?: BoxSpec{outline: Vec<Pt2>, cps: Vec<(idx, Pt2, Dir4)>, inner: Vec<Primitive>}` (black boxes drawn with the built-in symbol `ew.gen.blackbox`; part box macros fill it on placement), `assembly_view?` (added) | One function has 0..n representations; with none it is unplaced (FR-DEV-003). UUIDv7. Panel fronts are not stored: `panel_front_reps(dev)` derives them from placements (§16), and a PanelLayout page hosts one `SurfaceView` | S: its functions exist and belong to one device (IPs excepted); each symbol CP maps to at most one function CP |
 | `SymbolDef`: graphics plus CP geometry | L, `lib/symbols/` | `meta: ItemMeta` (below); primitives in nm; `cps: Vec<SymbolCp{idx, fn_cp, pos, dir, discipline}>` on the connection grid, where `fn_cp` is the FnDef CP the symbol draws (a symbol may draw a subset); text slots and named `arrangements`; anchor policy (origin, label, centre, named point; FR-SYM-010); `fndef: LibRef`; `rep_type` (including `PanelFront` for 2D front graphics); variants A–H plus contact-image and CP variants | Representations reference it; geometry is memoised at library durability | Chk (FR-SYM-020): CPs on grid, unique indices, anchor defined; `fn_cp` exists in the FnDef |
@@ -1465,7 +1479,7 @@ classDiagram
 
 | Entity and purpose | Kind | Key attributes | Relationships, identity, lifecycle | Invariants |
 |---|---|---|---|---|
-| Interruption point: `Function{kind: Ip(IpSpec), device: None}` with one CP and a representation (arch §4.2) | A; function in the page file of its representation, which it follows on a page move ([05](05-project-format-and-persistence.md) §2.2); representation page-owned | `name: Ident` ("L-1"); `direction: Source \| Target \| Undirected` (signal direction, independent of the arrow glyph's orientation, FR-XRF-009); `star_source: bool` (added); `sort?: i32` (chain order, added); `external?: ExternalRefId` (added) | Its CP joins the local net; the pair joins nets across pages (§9.3). "Create counterpart" makes the partner on a chosen page (FR-XRF-014) The pairing scope is the project setting `ip_pairing.scope` (§5), not a member of `IpSpec`. | P: in star mode at most one star source per name and scope; in chain mode an even count, ordered by sort key (ADR-0009). Chk (FR-CHK-017): unpaired, ambiguous |
+| Interruption point: `Function{kind: Ip(IpSpec), device: None}` with one CP and a representation (arch §4.2) | A; function in the page file of its representation, which it follows on a page move ([05](05-project-format-and-persistence.md) §2.2); representation page-owned | `name: Ident` ("L-1"); `direction: Source \| Target \| Undirected` (signal direction, independent of the arrow glyph's orientation, FR-XRF-009); `star_source: bool` (added); `sort?: i32` (chain order, added); `external?: ExternalRefId` (added) | Its CP joins the local net; the pair joins nets across pages (§9.3). "Create counterpart" makes the partner on a chosen page (FR-XRF-014). The pairing scope is the project setting `ip_pairing.scope` (§5), not a member of `IpSpec`. Owned by its page: deleting the page or the IP representation deletes the function and the connections at its CP (ADR-0009 amendment 3). | S: `device` is None and the function has exactly one representation (ADR-0009 amendments 2 and 3; EW-INV-003, EW-INV-013). P: in star mode at most one star source per name and scope; in chain mode an even count, ordered by sort key (ADR-0009). Chk (FR-CHK-017): unpaired, ambiguous |
 | External connection point: an IP with `external = Some(ref)` | A | as above | Never pairs inside the project; prints the external target "+J-E-206 / JE-N1000-03" (FR-XRF-012) | Chk (FR-CHK-033): external connection without a cable |
 | `XrefFormat`: how relations print | A, in `ProjectSettings` | tokens `{page}` (folio label, QET `%F`), `{page_index}` (`%f`), `{row}` (`%l`), `{column}` (`%c`), `{function}` (`%M`), `{location}` (`%LM`), separators; main marker "∞ "; auxiliary wrap "(…)"; matrix layout (FR-XRF-008) | Presets "102-A1" (`%F-%l%c`), "(201-E1)", "/101.16" (FR-XRF-002) | — |
 | `XrefRelation` | D | kinds: IP pair (star or chain), main ↔ auxiliary function, same function in another representation type (overview ↔ detail), pair cross-reference (1.x), external | Computed from functions and representations; never stored (FR-XRF-001) | — |

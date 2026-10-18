@@ -91,6 +91,12 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    CPU, so PNGs compare **within the dify tolerance** across platforms (FR-OUT-014, NFR-REL-07). Byte identity
    stays for PDF, SVG, XLSX, CSV, JSONL and `.ewpp`. If the performance spike (gate G-SP) finds a deterministic scalar vello_cpu mode,
    `ew render` and the CI goldens use it, and PNG returns to byte identity on the same platform.
+4. **Stroke colour in the display list** (2026-10-18, core team;
+   [symbols, parts and macros](../design/07-symbols-parts-macros.md) §2.3;
+   [architecture](../design/04-architecture.md) §8.1). Doc 07 primitives carry a stroke colour, and wire colours
+   must render, so `ew-dl`'s `Stroke` carries a `brush` (default black) beside its width, caps, joins and dash
+   pattern. The IR item stays `Path(BezPath, Stroke, Brush)`; its third member is the fill brush. Lowering resolves a
+   primitive's `ByLayer` colour to a concrete brush, so renderers and writers never see `ByLayer`.
 
 ## Consequences
 

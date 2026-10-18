@@ -6,7 +6,7 @@
 
 | ADR | Title | Status | Date | Decision |
 |---|---|---|---|---|
-| [0001](0001-core-model-persistent-maps.md) | Core model: typed Rust records in persistent maps; everything printed is derived | Accepted | 2026-10-17 | Typed Rust records in persistent maps are the single source of truth; everything printed is derived |
+| [0001](0001-core-model-persistent-maps.md) | Core model: typed Rust records in persistent maps; everything printed is derived | Accepted (amended 2026-10-18) | 2026-10-17 | Typed Rust records in persistent maps are the single source of truth; everything printed is derived |
 | [0002](0002-derived-data-engine-ew-memo.md) | Derived-data engine: cold-first queries plus a cut-down memo layer (`ew-memo`); no salsa | Accepted (amended 2026-10-18) | 2026-10-17 | Derived data via cold-first queries plus a cut-down memo layer (`ew-memo`); no salsa |
 | [0003](0003-freshness-contract.md) | Freshness contract: classes I–III, frozen-on-purpose identifiers, committed computations, versioned derivation profiles | Accepted | 2026-10-17 | Freshness classes I-III, frozen-on-purpose identifiers, committed computations, versioned derivation profiles |
 | [0004](0004-identity-uuidv7-uuidv5.md) | Identity: UUIDv7 for authored records, UUIDv5 for instantiated, imported and generated ones | Accepted (amended 2026-10-18) | 2026-10-17 | UUIDv7 for authored records; UUIDv5 for instantiated, imported and generated ones |

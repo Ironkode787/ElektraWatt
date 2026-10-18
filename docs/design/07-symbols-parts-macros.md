@@ -195,7 +195,9 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   Dash patterns scale with pen width (FR-SYM-003), so the S51 linkage prints dash 1.04 / gap 0.52 mm at 0.26 mm. The patterns, as dash:gap ratios in units of the pen
   width, are `Dash42` 4:2, `Dot12` 1:2 and `DashDot` 4:2:1:2 (dash, gap, dot, gap), fixed by `ew-dl`. House pens
   default to butt caps and miter joins so dashes print at nominal length, and every writer sets the miter limit to 4.0
-  explicitly because PDF defaults to 10 and SVG to 4.
+  explicitly because PDF defaults to 10 and SVG to 4. In the display list, `ew-dl`'s `Stroke` carries the stroke
+  colour as a `brush` (default black); lowering resolves `ByLayer` to a concrete colour, so wire colours render
+  (ADR-0015 amendment 4).
 - **Orientation variants A–H are never stored.** They are derived from the source variant (§4.1, FR-SYM-004), with
   the letter mapping of [06](06-schematic-editor.md) §2.5. Only the contact-image and CP variants are stored as
   extra variants.
@@ -601,7 +603,7 @@ company library**, never directly into a project. A project then picks the resul
 | Source | Release | Mapping | Rules |
 |---|---|---|---|
 | CSV/XLSX parts | MVP | column mapper with saved mappings; dedupe on (manufacturer, normalised part number) | report of new, updated and rejected rows (FR-PRT-016) |
-| QET project elements | MVP | `.elmt` definitions embedded in a `.qet` become symbols in the project's "QET import" library, on their native grid with source element name and UUID (FR-SYM-018, FR-IMP-008) | never leaves the project unless the user forks it; keeps QET's element-origin anchor so imported xrefs equal QET's (Golden C, MF-13) |
+| QET project elements | MVP | `.elmt` definitions embedded in a `.qet` become symbols in the project's "QET import" library, on their native grid with source element name and UUID (FR-SYM-018, FR-IMP-008) | never leaves the project unless the user forks it; keeps QET's element-origin anchor so imported xrefs equal QET's (Golden C, MF-13); the library's `library_id` is the project ID and its key `qet-import` ([05](05-project-format-and-persistence.md) §13.2) |
 | QET element collection on demand | 1.0 (FR-SYM-029) | a user-selected directory of `.elmt` files (the user's QET installation) becomes a **user** library, `meta.licence = LicenseRef-QET-elements` with QET's `ELEMENTS.LICENSE` attached and the flag `foreign_terms` | QET's terms allow use in diagrams freely and redistribution under CC-BY 3.0 with a no-ML-training clause ([oss-landscape](../research/oss-landscape.md) §2.6). Those terms are incompatible with EW's CC-BY-SA-4.0 packs, so such items are never bundled, never merged into an EW pack (`ew lib pack` refuses `foreign_terms`), and never used for model training (NFR-LIC-06) |
 | `symbol-map.csv` | MVP | QET element UUID or path → EW symbol key + CP map; generalises the pneumatic table of FR-IMP-018 | used by FR-SYM-022 exchange; Golden C step 3 |
 | EDZ (7-Zip or ZIP) | 1.0 | `*.part.xml`: `P_ARTICLE_PARTNR`, `_MANUFACTURER`, `_ORDERNR`, `_TYPENR`, `_DESCR1/2` (`de_DE@…;en_US@…;` → `MlText`, FR-I18N-008); `<functiontemplate>` pins (`connectionDesignation`, `connectiondescription`, `terminalNr`, `functiondefinition`) → CP pattern and template FnDefs through the `functiondefcategory/group/id` mapping table (Open question 12); drilling positions, CP patterns and accessories where present (FR-IMP-025/027) | **terms notice** before the first EDZ import of a session (FR-IMP-026); `.ema` geometry never reproduced; `.e3d` ignored; pictures stored only in the user library; source file hash and import date recorded |
@@ -1222,3 +1224,9 @@ The eleven rows this document proposed are in the catalogues:
     parts importer (MVP) or BMEcat and ETIM xChange (1.x). **Resolved:** the GPL crate `ew-import-catalog` (csv,
     calamine, quick-xml) behind `ew-interop-api` is added to ARCH §3, so that it obeys the importer rules of ARCH §3
     rule 4 and NFR-MAINT-01.
+17. **System library identity.** Imported references to built-in items (the interruption-point FnDef that QET
+    folio reports map to, [14](14-interop.md) §4.3 and §4.6) need the system library's `library_id`, which no
+    document names yet; `ew-import-qet` uses a provisional constant (`BUILTIN_LIBRARY`). *Recommendation:*
+    WP-S1.19a mints the system library's fixed UUID, held by `ew-ids` beside `NS_LIBCOPY`, before format 0.1 is
+    released; the importer then switches to it, which changes the copy IDs of imported built-in references once,
+    while no released file exists (decision log ID-24).

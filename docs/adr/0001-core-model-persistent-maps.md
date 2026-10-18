@@ -1,6 +1,6 @@
 # ADR-0001: Core model: typed Rust records in persistent maps; everything printed is derived
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -55,6 +55,24 @@ A and C tied. A won on the grounds that C's strengths can be grafted onto A as d
    saved.
 6. **Deliberate exceptions are authored data, not caches.** Frozen tags, frozen wire numbers, manual PLC addresses
    and committed routes are stored on purpose and checked against their rule (ADR-0003).
+
+## Amendments
+
+Accepted on 2026-10-18. The decision text above is unchanged; this entry refines it.
+
+1. **Raw reads behind a policy-checked feature** (2026-10-18, core team;
+   [architecture](../design/04-architecture.md) §3 rule 1; ADR-0002 amendment 2). Rust cannot restrict an item's
+   visibility to chosen dependent crates, so decision 3 is implemented as follows. The table fields stay
+   `pub(crate)`. The raw read API that the layers directly above the model need (`Model::table`, `Model::lib`,
+   `Model::indexes`, `Model::row` and the getters of `Table` and `BaseIndexes`) is compiled only with the cargo
+   feature **`raw-read`** of `ew-model`. Only `ew-derive` (which builds the tracked context `Q` on it),
+   `ew-commands` (`TxBuilder`, normalisers, validators) and `ew-store` (save, external-change diff) may enable it,
+   plus `ew-model`'s own tests. `cargo xtask check-features` enforces the list through a `[[banned_features]]`
+   entry of `ci/dep-rules.toml` with `allowed_packages`. Every other crate reads through `Q` (queries) or
+   `TxBuilder` (commands), as decision 3 says. Cargo features are additive, so a crate that depends on `ew-derive`
+   is compiled with the raw API present: the feature check stops a crate from requesting it, and ADR-0002
+   amendment 2 says what covers the rest. A source-level guard for that remainder (for example a per-crate clippy
+   `disallowed-methods` list) is open ([decision log](../plan/06-decision-log.md) §5.1, v0.5).
 
 ## Consequences
 

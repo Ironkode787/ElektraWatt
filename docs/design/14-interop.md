@@ -120,7 +120,8 @@ graph TD
 ### 2.1 Importer contract
 
 The contract of [architecture](04-architecture.md) §10.6 is kept; this section fixes its members. Everything here
-lives in `ew-interop-api` and depends only on `ew-schema`, `ew-ids`, `ew-units`, `ew-mltext` and `ew-rds`.
+lives in `ew-interop-api`, which depends directly only on `ew-schema` and `ew-ids` (and `sha2` for the input
+digest); value types reach it through `ew-schema`'s records.
 
 ```rust
 pub trait Importer: Send + Sync {
@@ -133,6 +134,7 @@ pub enum Confidence { No, Maybe(u8), Certain }
 pub trait Source { fn name(&self) -> &str; fn len(&self) -> u64; fn sha256(&mut self) -> [u8; 32];
                    fn read(&mut self, limit: u64) -> Result<Bytes, LimitError>; }   // no path, no sibling access
 pub struct ImportCx<'a> {
+    pub project: Id<Project>,          // target project ID: library_id of the "QET import" library (§4.3)
     pub lineage: LineageInfo,          // namespace for v5 IDs (§2.3)
     pub as_of: Date,                   // command parameter; no wall clock (07 §3.6)
     pub limits: Limits,                // §11
@@ -146,6 +148,15 @@ pub struct TargetHints {               // copied from the target project or basi
     pub frames: Vec<FrameFingerprint>, pub symbol_map: Vec<SymbolMapRow>, pub font_map: Vec<FontMapRow>,
     pub text_patterns: TextPatterns,   // §4.12
 }
+pub struct Limits {                    // §11; a violation refuses the file or skips the item (EW-IMP-001)
+    pub max_input_bytes: u64,          // 512 MiB
+    pub max_xml_depth: u32,            // 256
+    pub max_xml_nodes: u32,            // 10 million elements and texts; attributes have their own limits
+    pub max_attribute_bytes: usize,    // 16 MiB per attribute value
+    pub max_attributes_per_element: u32,      // 65,536
+    pub max_attributes_per_document: u32,     // 1,048,576
+    pub max_report_entries_per_definition: u32, // 1,000; the rest summarised in one EW-IMP-001 entry
+}
 pub struct ImportBatch {
     pub records: Vec<ew_schema::AnyRecord>,   // sorted by (kind, id); IDs already final
     pub assets: Vec<AssetBlob>,               // {sha256, media_type, bytes}: logos, images (ARCH §10.6)
@@ -153,6 +164,9 @@ pub struct ImportBatch {
     pub provenance: Vec<SourceRef>,           // provenance[i] belongs to records[i]
 }
 ```
+
+`ew-interop-api` implements `ImportCx` as `ImportContext`, in a minimal form (`project`, `lineage`, `as_of`,
+`limits`); the other members arrive with the importers that need them.
 
 **Rules.**
 - **Purity.** `import` reads only `src`. It never opens another file, follows an external reference or touches the
@@ -206,7 +220,7 @@ ImportLineage { id, importer: "qet", source_name: "<file name, no path>", anchor
                 last_source_sha256, last_run: Id<ImportRun> }
 Anchor = QetProjectUuid(Uuid)          # QET 0.200+ <project uuid>
        | FirstImportSha256([u8; 32])   # older files: hash of the file at first import
-       | Copy{ of: Id<ImportLineage>, n: u32 }   # "import as copy" (§3.4)
+       | Copy{ of: Uuid, n: u32 }             # "import as copy" (§3.4); of = the original lineage's namespace (ADR-0004 amendment 4)
        | Fixed(&'static str)           # "golden": the golden CSV bootstrap (§8.4)
 namespace = v5(NS_IMPORT, importer ␟ anchor kind ␟ anchor value)     # ␟ = U+001F, 05 §3.2a
 record id = v5(namespace, source_key)                               # source key byte for byte
@@ -480,9 +494,11 @@ rejected (§14).
   10 px grid therefore lands on `round(k × 7_937_500 / 3)` nm with grid index `k`, and FR-IMP-008's "0 nm deviation"
   is an equality test on indices.
 - **Axes.** QET's origin is the top-left and y points down, like `Pt2` (03 §3.1); no flip is applied.
-- **Instances.** Element `x`, `y` is the hotspot; definition coordinates are relative to `hotspot_x`, `hotspot_y`.
-  A terminal's page position is `instance + R(orientation, mirror)·(terminal − hotspot)`, exact in integers because
-  rotations are multiples of 90°.
+- **Instances.** Element `x`, `y` places the definition origin, the hotspot. QET writes definition coordinates
+  already relative to the hotspot; `hotspot_x`, `hotspot_y` only place the bounding box (`width`, `height`) around
+  it. The importer therefore takes definition coordinates as written (hotspot = definition origin). A terminal's
+  page position is `instance + R(orientation, mirror)·terminal`, exact in integers because rotations are multiples
+  of 90°.
 - **Orientation.** `orientation` k = 0–3 maps to R(90k): R0, R90, R180, R270, clockwise on the sheet
   ([06](06-schematic-editor.md) §2.5, where Mn mirrors about the symbol's vertical axis and then rotates by n). With
   QET 0.200 `mirror`, and assuming QET mirrors in the element frame before rotating: `horizontal` → M(90k),
@@ -500,14 +516,18 @@ rejected (§14).
 
 Each distinct definition (identified by the hash of its canonical XML, not by its `embed://` path) becomes a
 `SymbolDef` and a generated `FnDef` in the per-project "QET import" library (FR-SYM-018, FR-IMP-008), with source
-element name, path, UUID and definition version as provenance. Primitives map one to one:
+element name, path, UUID and definition version as provenance. The library's `library_id` is the target project's
+ID (`ImportCx.project`, §2.1) and its human key is `qet-import` ([05](05-project-format-and-persistence.md) §13.2).
+Built-in FnDefs that the importer references, such as the interruption-point FnDef of §4.6, live in the system
+library, whose `library_id` is not named yet: `ew-import-qet` uses a provisional constant until WP-S1.19a names it
+([07](07-symbols-parts-macros.md) open question 17). Primitives map one to one:
 
 | QET primitive | EW geometry | Notes |
 |---|---|---|
 | `line x1 y1 x2 y2 end1 end2 length1 length2` | path segment with end markers | `simple`, `triangle`, `circle`, `diamond` ends; unsupported ends expand to polygons |
 | `rect x y width height rx ry` | rectangle, optionally rounded | corner radius semantics per definition version (verify on corpus) |
 | `ellipse x y width height`, `circle x y diameter` | ellipse, circle | `x y` is the bounding box's top-left |
-| `arc x y width height start angle` | elliptic arc | degrees; 0° at 3 o'clock; positive span counter-clockwise on screen, so a point is `(cx + rx·cosθ, cy − ry·sinθ)`; trigonometry from `ew-dl`'s deterministic implementation |
+| `arc x y width height start angle` | elliptic arc | degrees; 0° at 3 o'clock; positive span counter-clockwise on screen, so a point is `(cx + rx·cosθ, cy − ry·sinθ)`; the importer keeps `start` and `angle` as given, and lowering in `ew-scene` evaluates the arc with `ew-dl`'s deterministic trigonometry |
 | `polygon x1 … xn y1 … yn closed` | polyline or closed polygon | |
 | `text x y text size\|font color rotation` | static symbol text | font per §4.10; `rotation` is Qt's clockwise-positive angle and becomes the negated `Angle2` (counter-clockwise positive, [03](03-domain-model.md) §3.1; ADR-0005 amendment 2) |
 | `dynamic_text`, legacy `input tagg` | text slot | `label` → tag slot, `function` → function-text slot, `CompositeText` → slot with a format; `UserText` → static text |
@@ -702,8 +722,10 @@ variable has an EW xref-format token (FR-XRF-003):
 
 ### 4.10 Fonts and text styles
 
-- Qt `QFont::toString()` strings come in the Qt 5 form (10 fields, weight 0–99) and the Qt 6 form (11+ fields,
-  weight 1–1000), both within one file. Fields used: family, point size (pixel size × 0.75 when the point size is
+- Qt `QFont::toString()` strings come in the Qt 5 form (10 fields, or 11 with a trailing style name; weight 0–99)
+  and the Qt 6 form (16 or more fields, weight 1–1000), both within one file. A string is read as Qt 6 when it has
+  at least 16 fields or its weight exceeds 99, otherwise as Qt 5: the field count alone does not tell an 11-field
+  Qt 5 string from Qt 6. Fields used: family, point size (pixel size × 0.75 when the point size is
   −1), weight (bold at ≥ 63 on the Qt 5 scale, ≥ 600 on the Qt 6 scale), italic.
 - Families map through the font table of the hints: Tahoma, "Sans Serif", "MS Shell Dlg 2", Arial, Helvetica and
   Liberation Sans → the bundled default family (Noto Sans, proposed ADR-0028). Bundled families map to themselves.
@@ -934,8 +956,9 @@ may be confidential (Open question 10).
 Coordinates are `f64` in the file. Conversion is `round_half_even(v × unit_nm)` after a finiteness and range check.
 DXF y points up and sheet y down, so the importer flips y (`y_sheet = y_top − y`, with `y_top` the top of the
 imported extents) and leaves x as it is.
-INSERT rotations, bulge arcs and spline flattening use `ew-dl`'s pure-Rust `libm`-style trigonometry
-([09](09-reports-forms-output.md) §4.3), never platform `sin`/`cos` or fused multiply-add, so the result is the same
+INSERT rotations, bulge arcs and spline flattening use the deterministic helpers of `ew-dl`, its pure-Rust
+`libm`-style trigonometry (the `ew-import-dxf` → `ew-dl` edge is added with WP-S3.19;
+[09](09-reports-forms-output.md) §4.3), never platform `sin`/`cos` or fused multiply-add, so the result is the same
 on every platform. The rotation angles of `TEXT`, `MTEXT` and `INSERT` entities that become free texts and graphics
 are stored as `Angle2` (10⁻³ degree, `round_half_even`, [03](03-domain-model.md) §3.1) with their DXF value
 unchanged: DXF counts counter-clockwise with y up, and after the importer's y flip the same value is
@@ -1168,7 +1191,7 @@ allocator of [18](18-quality-security-release.md) §3.12. The per-parser values:
 
 | Parser | Limits beyond NFR-SEC-02 |
 |---|---|
-| XML (QET, parts XML, AML, GSDML, IODD, BMEcat) | DTD refused (no internal or external entities, no XInclude); depth ≤ 256; attribute value ≤ 16 MiB; base64 payload ≤ 64 MiB decoded; decoded images ≤ 16,384 × 16,384 px |
+| XML (QET, parts XML, AML, GSDML, IODD, BMEcat) | DTD refused (no internal or external entities, no XInclude); depth ≤ 256; attribute value ≤ 16 MiB; base64 payload ≤ 64 MiB decoded; decoded images ≤ 16,384 × 16,384 px; ≤ 65,536 attributes per element and ≤ 1,048,576 per document; ≤ 10 million nodes per document, counting elements and texts (attributes count against the attribute limits) |
 | Archives (EDZ 7z/ZIP, QETZ, `.ewz`, XLSX) | ≤ 100,000 entries; ≤ 2 GiB expanded; ≤ 512 MiB per entry; ratio ≤ 200 : 1 per entry; names with `..`, absolute or drive paths, `\`, `:` or NUL rejected; symlink and encrypted entries refused; 7z solid block ≤ 512 MiB |
 | DXF | file ≤ 512 MiB; ≤ 5 million entities; block nesting ≤ 32; INSERT/MINSERT expansion ≤ 10 million primitives; spline control points ≤ 100,000; coordinates finite and within ±2^62 nm after scaling |
 | CSV, XLSX | ≤ 1,000,000 rows; ≤ 1,024 columns; cell ≤ 32 KiB; formulas never evaluated |
@@ -1176,6 +1199,11 @@ allocator of [18](18-quality-security-release.md) §3.12. The per-parser values:
 | SVG logos | usvg with external references disabled; ≤ 8 MiB; ≤ 100,000 nodes |
 | PDF underlays | ≤ 10,000 pages; rendering as a cancellable job with a per-page deadline |
 | External tools (ODA converter) | runs on a copy in a temporary directory; timeout 120 s; output read under the DXF limits |
+
+**Report volume.** One hostile element definition could produce a finding per primitive. Report entries are
+therefore capped at 1,000 per element definition; the rest are summarised in one EW-IMP-001 entry that gives their
+count. The attribute counts and this cap (`Limits`, §2.1) serve the rule above: a hostile input is rejected within
+1 s and 256 MB of extra allocation.
 
 **Fuzz targets:** `qet_project`, `qet_element`, `qet_titleblock`, `qetz`, `edz_7z`, `edz_zip`, `parts_xml`,
 `eplan_table`, `dxf`, `dwg` (1.x), `table_xlsx`, `table_csv`, `xliff`, `svg_logo`, `pdf_underlay`, `bmecat` (1.x), plus the

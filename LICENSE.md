@@ -22,13 +22,14 @@ header differ, CI fails; the file header is what applies to that file.
 | L5 | JSON Schemas (from their first release) | `schemas/` | `MIT OR Apache-2.0` |
 | L6 | Built-in rule packs, report packs and machine profiles: their data files (from their first release) | `packs/` | `MIT OR Apache-2.0` |
 | L7 | Symbols, function definitions, frames, forms, templates, macros (from their first release) | `content/`; the symbol and macro repositories | `CC-BY-SA-4.0` with a design exception (see below) |
-| L8 | Project-authored part facts, examples, tutorials, the golden fixture, the own test corpus (from their first release) | `examples/`, `golden/`, `fuzz/corpus/own/`; the parts repository | `CC0-1.0` |
+| L8 | Project-authored part facts, examples, tutorials, the golden fixture, the own test corpus and the crates' test fixtures (from their first release) | `examples/`, `golden/`, `fuzz/corpus/own/`, `crates/*/tests/fixtures/`; the parts repository | `CC0-1.0` |
 | L9 | Documentation and the root prose files | `docs/`, `README.md`, `CONTRIBUTING.md`, `SECURITY.md`, `CLAUDE.md`, `ci/README.md` | `CC-BY-4.0` |
 | L9 | The Code of Conduct (Contributor Covenant 3.0, third-party text) | `CODE_OF_CONDUCT.md` | `CC-BY-SA-4.0`, the Covenant's own licence |
 | L11 | Repository metadata and configuration | `LICENSE.md`, `REUSE.toml`, `Cargo.toml`, `Cargo.lock`, `deny.toml`, `about.toml`, `rust-toolchain.toml`, `rustfmt.toml`, `.gitignore`, `.gitattributes`, `.cargo/`, `.config/`, `.github/` (except `workflows/`), `supply-chain/`, `.claude/` | `CC0-1.0` |
 | L12 | CI workflows, scripts and tools | `.github/workflows/`, `ci/`, `xtask/`, `docs/plan/tools/` | `MIT OR Apache-2.0` |
 
-Rows L5 to L8 have no files yet; they are listed so that contributions land in the right row. Bundled third-party
+Rows L5 to L7 have no files yet, and L8 only the crates' test fixtures; they are listed so that contributions land in
+the right row. Bundled third-party
 assets (fonts, icons, data) keep their own licences on a separate allowlist and are listed in `NOTICE` when the
 first one is added (19 §2.1 L13 to L15).
 

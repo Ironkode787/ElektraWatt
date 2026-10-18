@@ -208,8 +208,8 @@ sessions (G6).
 | `ew-mltext` | P | `MlText` with EPLAN neutral-xor-languages semantics, BCP 47 `LangTag`, NFC, confusable detection, natural-sort keys | unicode-normalization 0.1.26, unicode-security 0.1.2 |
 | `ew-rds` | P | IEC 81346 parser and formatter (strict and lenient); identifier sets as data: EN 81346-2:2009 single letters (default), IEC 81346-2:2019, IEC 60750 legacy. Node codes are atomic tokens: parsing first matches the longest known node code or alias of the aspect and only then splits at prefix characters, so `+J-E-2416` stays one code | serde |
 | `ew-schema` | P | **The persisted record type of every entity kind** (plain serde structs), kind registry, per-kind schema versions, JSON Schemas | serde, schemars 1.2.3 |
-| `ew-format` | P | JSONL canonical reader and writer, sharding rules, manifest, upgrade chain on `serde_json::Value`, 3-way record merge core, conflict records | serde_json 1.0.154, serde_path_to_error 0.1.20, semver 1.0.28, sha2 **(verify)** |
-| `ew-interop-api` | P | `Importer`/`Exporter` traits over `ew-schema` records: `ImportBatch`, `ImportReport`, `SourceRef`, `TableImage`, `Proposal` (§10.6) | ew-schema, ew-ids, ew-units |
+| `ew-format` | P | JSONL canonical reader and writer, sharding rules, manifest, upgrade chain on `serde_json::Value`, 3-way record merge core, conflict records | serde_json 1.0.154, semver 1.0.28, sha2 **(verify)** |
+| `ew-interop-api` | P | `Importer`/`Exporter` traits over `ew-schema` records: `ImportBatch`, `ImportReport`, `SourceRef`, `TableImage`, `Proposal` (§10.6) | ew-schema, ew-ids; sha2 (input digest) |
 | `ew-dl` | P | Display-list IR: paths, glyph runs, images, groups, symbol instances, link sources and targets, entity tags; `ShapedRun` carries its `layout_box`; own hashable colour type (no peniko: renderer crates convert) | kurbo 0.13.1, libm 0.2 (deterministic trigonometry), uuid |
 | `ew-step-proto` | P | STEP worker IPC contract and cache format | postcard 1.1.3, rkyv 0.8.18 |
 | `ew-memo` | P | Generic memo engine: revisions, dependency recording, early cut-off, durability levels, LRU, statistics, oracle hooks, and a generic reverse-dependency API per query family. Knows nothing about ECAD. Not published to crates.io until it has two owners | imbl 7.0.2 (MPL-2.0+) |
@@ -218,7 +218,7 @@ sessions (G6).
 | `ew-devdesc` | P | Device descriptions: GSD, GSDML and IODD (ESI and EDS at 1.x) | quick-xml |
 | `ew-ewpp` | P | `.ewpp` record types, JSON Schemas, reader, writer and package diff | zip 9.0.4, csv 1.4.0 |
 | `ew-plugin-wit`, `ew-plugin-sdk` (v1.x) | P | WIT package `elektrawatt:plugin` and the guest SDK with typed bindings generated from the JSON Schemas | wit-bindgen 0.63.0 |
-| `ew-model` | GPL | `Table<T>` of `ew-schema` records, the `Model` snapshot, `Op` apply and invert, base reverse indexes, structural invariants, link delete policies | ew-schema, ew-ids, ew-units, ew-mltext, ew-rds; imbl 7.0.2, smol_str 0.3.6 **(verify)** |
+| `ew-model` | GPL | `Table<T>` of `ew-schema` records, the `Model` snapshot, `Op` apply and invert, base reverse indexes, structural invariants, link delete policies; the raw read API only behind the `raw-read` feature (rule 1) | ew-schema, ew-ids, ew-units, ew-mltext, ew-rds; imbl 7.0.2, smol_str 0.3.6 **(verify)** |
 | `ew-rhai` | GPL | rhai engine configuration plus the formula and rule profiles (pure, tracked reads, operation limits) | rhai 1.26.1 |
 | `ew-derive` | GPL | All domain queries (§6.4) and the tracked-read context `Q` | ew-memo, ew-model, ew-rds, ew-rhai, ew-plcaddr, icu |
 | `ew-commands` | GPL | `Command`, `DynCommand`, `TxBuilder`, normalisers, validators, numbering engine, `History`, previews, macros, `ApplyImport` | ew-derive |
@@ -237,7 +237,7 @@ sessions (G6).
 | `ew-panel` | GPL | Layout queries, collision reconciler, routing graph, negotiated-congestion routing, lengths, duct fill, 2D panel projection; glTF (glb) and STL writer for `layout_scene` | parry3d 0.31.1, pathfinding 4.16.0, petgraph 0.8.3, glam 0.34.1, gltf-json **(verify)** |
 | `ew-render3d` | GPL | wgpu 3D: instancing, feature edges, transparency, CAD camera, picking; a toolkit-agnostic camera, pick and constraint API that `ew-ui`'s gizmo drives (Rule 3) | wgpu 30.0.1, meshopt 0.7.0 |
 | `ew-mfg` | GPL | Production package content, wire lists with lengths, ferrules, labels, data-driven machine and label profiles | ew-panel, ew-ewpp, zip, csv, rust_xlsxwriter |
-| `ew-import-qet`, `ew-import-eplan`, `ew-import-dxf` | GPL | QET `.qet`/`.qetz`; EDZ (7-Zip and ZIP), EPLAN XML/XLSX; DXF (DWG behind a feature) | roxmltree 0.21.1, quick-xml, ew-plcaddr, ew-schema, ew-units, ew-ids, ew-mltext, ew-dl (QET: records and `ew-dl`'s deterministic arc helpers, [14](14-interop.md) §4.3); sevenz-rust2 0.24.0, zip, calamine, csv (EPLAN); dxf 0.6.2, acadrust 0.6.4 (MPL-2.0) |
+| `ew-import-qet`, `ew-import-eplan`, `ew-import-dxf` | GPL | QET `.qet`/`.qetz`; EDZ (7-Zip and ZIP), EPLAN XML/XLSX; DXF (DWG behind a feature) | roxmltree 0.21.1, quick-xml, ew-schema, ew-units, ew-ids, ew-mltext (QET: records and value types, [14](14-interop.md) §4.3); sevenz-rust2 0.24.0, zip, calamine, csv (EPLAN); dxf 0.6.2, acadrust 0.6.4 (MPL-2.0) |
 | `ew-import-catalog` | GPL | Parts from CSV/XLSX (MVP), BMEcat and ETIM xChange (1.x), behind `ew-interop-api` | csv, calamine, quick-xml |
 | `ew-import-tables` | GPL | The golden CSV bootstrap behind `ew import csv`, the round-trip table reader and translation tables; reused by `ew-testkit` | csv, calamine |
 | `ew-script`, `ew-plugin-host` | GPL | rhai automation bindings over queries and commands (profile from `ew-rhai`); WIT world and host on the wasmtime LTS line current at plugin launch (48.x in development), plugin export roles (§10.4), plugin rule implementations registered into `ew-checks`, the `secret-get` capability (v1.x) | ew-rhai; wasmtime LTS, wit-bindgen 0.63.0 |
@@ -314,7 +314,7 @@ graph TD
   end
   schema --> units & ids & mltext & rds
   format --> schema
-  iapi --> schema & ids & units
+  iapi --> schema & ids
   dl --> units
   stepp --> units
   model --> schema & ids & units & mltext & rds
@@ -335,7 +335,7 @@ graph TD
   r3d --> panel
   mfg --> rep & panel & ewpp
   imp --> iapi
-  imp -- "ew-import-qet" --> plcaddr & schema & units & ids & mltext & dl
+  imp -- "ew-import-qet" --> schema & units & ids & mltext
   icat --> iapi
   itab --> iapi
   script --> cmd & rhai
@@ -352,8 +352,12 @@ graph TD
 ```
 
 **Rules.**
-1. **Model access.** `ew-model` tables are `pub(crate)`. Other crates read the model only through the tracked
-   context `Q` (inside queries) or through `TxBuilder` (inside commands).
+1. **Model access** (amended 2026-10-18, ADR-0001 amendment 1). `ew-model`'s tables are `pub(crate)`, and its raw
+   read API (`Model::table`, `lib`, `indexes`, `row`, the `Table` and `BaseIndexes` getters) is compiled only with
+   the cargo feature `raw-read`. Only `ew-derive`, `ew-commands` and `ew-store` may enable it (and `ew-model`'s own
+   tests); `cargo xtask check-features` enforces this through a `[[banned_features]]` entry of `ci/dep-rules.toml`
+   with `allowed_packages`. Every other crate reads the model only through the tracked context `Q` (inside queries)
+   or through `TxBuilder` (inside commands), and a query receives only `&Q` (ADR-0002 amendment 2).
 2. **SQLite.** Only `ew-sqlview` and `ew-library` link rusqlite. `ew-reports` runs user SQL through the sandboxed
    query API of `ew-sqlview`, and importers receive SQLite content only as a `TableImage` (§10.6).
 3. **UI toolkit and GPU.** Only `ew-ui`, `ew-viewer`, the app binary and the `ew-wiring-viewer` binary know egui.
@@ -383,7 +387,8 @@ graph TD
 ```rust
 pub struct Model {                         // one immutable snapshot; Clone is O(1)
     pub(crate) rev: Rev,                   // monotonic on the main line
-    pub(crate) project: Row<Project>,      // master data, parties, settings, profiles, derivation_profile
+    pub(crate) project: Row<Project>,      // master data, parties, settings (with the colour and size
+                                           //   profiles), derivation_profile
     pub(crate) structure: Table<StructureNode>,
     pub(crate) pages: Table<Page>,         pub(crate) sections: Table<Section>,
     pub(crate) devices: Table<Device>,     // incl. strips, terminals, cables, assemblies, PLC stations/modules
@@ -976,8 +981,9 @@ flowchart LR
   DL --> HIT["rstar index + kurbo exact picking"]
 ```
 
-- **IR items.** `Path(BezPath, Stroke, Brush)`, `Glyphs(Arc<ShapedRun>)` (with its `layout_box`), `Image`,
-  `Instance(SymbolGeomId, Transform)`, `Group`. Items carry an optional `EntityRef` (picking, highlight) and a
+- **IR items.** `Path(BezPath, Stroke, Brush)` (the `Stroke` carries width, caps, joins, dash and its own `brush`,
+  default black; the third member is the fill brush; ADR-0015 amendment 4), `Glyphs(Arc<ShapedRun>)` (with its
+  `layout_box`), `Image`, `Instance(SymbolGeomId, Transform)`, `Group`. Items carry an optional `EntityRef` (picking, highlight) and a
   `LinkSource`/`LinkTarget` (xref to named destination), from which the PDF gets its link annotations (D-07, D-33).
 - **Early cut-off reaches the GPU.** A layer query that returns the same backdated `Arc` lets the renderer keep its
   vertex buffers.

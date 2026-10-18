@@ -82,6 +82,13 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
      integrity check reports it as EW-CORE-017 (error, blocks release) instead of treating it as data from a newer
      format. Within a major a known variant's payload never changes type (decision 1, amendment 1), so such a value
      cannot come from a newer minor.
+3. **Error paths and schema variants** (2026-10-18, core team;
+   [project format](../design/05-project-format-and-persistence.md) §10.2, §10.4). Typed reading in `ew-schema`
+   reports the JSON Pointer of the failing value itself (`SchemaError::path`, such as `"/kind/bridge/kind"`), so
+   decision 3's `serde_path_to_error` is not used: `ew-format` reports the path that `ew-schema` returns, and a
+   migration step reports its own. Decision 4's schemas are published in one form only for format 0.1, which allows
+   additional members; the "strict" variant that forbids them is not generated, because the typed reader is the
+   strict check. A strict variant returns only if a third-party consumer needs one.
 
 ## Consequences
 

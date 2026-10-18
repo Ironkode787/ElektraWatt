@@ -76,7 +76,7 @@ Initial policy for representative queries ([architecture](../design/04-architect
 
 ## Amendments
 
-Accepted on 2026-10-18. The decision text above is unchanged; this entry refines it.
+Accepted on 2026-10-18. The decision text above is unchanged; these entries refine it.
 
 1. **Reverse dependencies per query family** (2026-10-18;
    [checks, revisions and collaboration](../design/15-checks-revisions-collaboration.md) §3.3, open question 18;
@@ -85,6 +85,14 @@ Accepted on 2026-10-18. The decision text above is unchanged; this entry refines
    builds its `rdeps` index from it, so a commit re-evaluates exactly the check scopes whose last evaluation read a
    touched key. The performance spike (G-SP) measures its memory (≤ 40 MB estimated at XL); above budget the engine falls back to
    coarse page and shard keys with re-verification of the matching scopes.
+2. **"Does not compile" in practice** (2026-10-18, core team; ADR-0001 amendment 1;
+   [architecture](../design/04-architecture.md) §3 rule 1). Rust cannot limit visibility to chosen crates, so
+   decision 1's guarantee is carried by two facts: the raw read API of `ew-model` exists only with its cargo feature
+   `raw-read`, which only `ew-derive`, `ew-commands` and `ew-store` may enable (`cargo xtask check-features`); and a
+   query receives only `&Q`, which exposes tracked accessors and never the `Model` itself. A crate outside the
+   dependency cone of those three cannot name the raw API at all. Because cargo features are additive, crates that
+   depend on `ew-derive` compile with the raw API present; for them the guarantee rests on `Q` being the only handle
+   a query gets, on review, and on oracle mode.
 
 ## Consequences
 

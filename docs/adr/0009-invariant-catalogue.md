@@ -65,6 +65,15 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
 2. **Interruption-point functions without a device** (2026-10-18; same document, open question 5; ADR-0006,
    amendment 1). A new structural invariant: **`Function.device` is None if and only if the function's kind is
    `Ip`.**
+3. **Interruption-point functions belong to their page** (2026-10-18, core team;
+   [domain model](../design/03-domain-model.md) §4.2, §10;
+   [project format](../design/05-project-format-and-persistence.md) §2.2). An IP function has no device to own it
+   (amendment 2), and the format already files it with the page of its representation, so its lifecycle follows
+   that file: deleting the page, or the IP function's representation, cascades the IP function, and the
+   connections at its CP cascade as for any function. A new structural invariant, **EW-INV-013: a function of kind
+   `Ip` has exactly one representation**, evaluated at transaction end like every structural invariant. An IP
+   function therefore never lacks an owning file and never sits on two pages; the catalogue is
+   `crates/ew-model/invariants.md` (decision 5).
 
 ## Consequences
 

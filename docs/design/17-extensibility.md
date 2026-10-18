@@ -1074,7 +1074,7 @@ serves a permissive standalone tool and an EW plugin.
 | `Importer::id`, `version`; `Exporter::id` | `[exports] importer` and `exporter` entries in `plugin.toml`, with the plugin version | id namespaced `<plugin-id>.<name>`; recorded in the import run and the export report |
 | `sniff(head, path)` | `sniff(importer-id, head, name)` | file name only, never a path; at most 64 KiB of head |
 | `Source::read(limit)` | `source.read(limit)` | limits of NFR-SEC-02; no sibling files |
-| `ImportCx{lineage, as_of, limits, hints, options}` | `import-cx` resource | options validated against the importer's JSON Schema |
+| `ImportCx{project, lineage, as_of, limits, hints, options}` | `import-cx` resource | options validated against the importer's JSON Schema |
 | v5 record IDs (ADR-0004, [14](14-interop.md) §2.3) | `import-cx.mint-id(source-key)` | every record ID must equal the minted ID of its `provenance` key; the host re-mints and compares |
 | `ImportBatch{records, assets, report, provenance}` | `batch` (JSONL lines, assets, report JSON) | each line validated with `ew-schema` (JSON Schema plus serde), sorted, then structural invariants on batch plus hints |
 | `ApplyImport` | not reachable from plugins | the host runs it as a previewed, lenient transaction (FR-IMP-001) |
