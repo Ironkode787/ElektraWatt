@@ -224,6 +224,10 @@ pub struct SourcePackage {
     pub manifest_text: String,
     /// Declared dependencies and `[features]`, as `check-features` reads them.
     pub manifest: features::Package,
+    /// Whether the package's normal-dependency closure inside the workspace contains the gated crate. A
+    /// package that cannot reach it cannot name its readers either, so it is not scanned (its own types may
+    /// share method names with the readers, such as a CSV `Table::rows`).
+    pub reaches_gated_crate: bool,
 }
 
 /// The result of one run of the check.
@@ -1264,7 +1268,10 @@ pub fn check_packages(policy: &RawReadPolicy, packages: &[SourcePackage]) -> Out
     let mut found = Vec::new();
     let mut scanned = 0;
     for pkg in packages {
-        if policy.readers.contains(&pkg.name) || policy.exempt_packages.contains(&pkg.name) {
+        if policy.readers.contains(&pkg.name)
+            || policy.exempt_packages.contains(&pkg.name)
+            || !pkg.reaches_gated_crate
+        {
             continue;
         }
         scanned += 1;
@@ -1325,6 +1332,43 @@ fn collect_rs(dir: &Path, root: &Path, is_package_root: bool, out: &mut Vec<(Str
     Ok(())
 }
 
+/// The workspace packages whose normal-dependency closure inside the workspace contains `krate`, plus
+/// `krate` itself. Dev and build dependencies do not count: they cannot enable a feature on the normal edge
+/// of the package's library.
+fn reaches(metadata: &cargo_metadata::Metadata, krate: &str) -> BTreeSet<String> {
+    let workspace: BTreeSet<String> = metadata
+        .workspace_packages()
+        .iter()
+        .map(|p| p.name.to_string())
+        .collect();
+    let mut deps: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for p in metadata.workspace_packages() {
+        let direct = p
+            .dependencies
+            .iter()
+            .filter(|d| matches!(d.kind, cargo_metadata::DependencyKind::Normal))
+            .map(|d| d.name.clone())
+            .filter(|n| workspace.contains(n))
+            .collect();
+        deps.insert(p.name.to_string(), direct);
+    }
+    let mut out = BTreeSet::new();
+    for name in &workspace {
+        let mut stack = vec![name.clone()];
+        let mut seen = BTreeSet::new();
+        while let Some(n) = stack.pop() {
+            if n == krate {
+                out.insert(name.clone());
+                break;
+            }
+            if seen.insert(n.clone()) {
+                stack.extend(deps.get(&n).into_iter().flatten().cloned());
+            }
+        }
+    }
+    out
+}
+
 /// Reads the policy and the packages of the workspace at `root`.
 fn load(root: &Path) -> Result<(RawReadPolicy, Vec<SourcePackage>)> {
     let policy = crate::deps::Policy::load(&root.join(POLICY_FILE))?
@@ -1332,6 +1376,7 @@ fn load(root: &Path) -> Result<(RawReadPolicy, Vec<SourcePackage>)> {
         .with_context(|| format!("{POLICY_FILE} has no [raw_read] section (ADR-0001 amendment 2)"))?;
     let metadata = crate::metadata()?;
     let manifests = features::from_metadata(&metadata);
+    let reach = reaches(&metadata, &policy.krate);
     let mut packages = Vec::new();
     for (meta, manifest) in metadata.workspace_packages().iter().zip(manifests) {
         let manifest_dir = meta
@@ -1357,6 +1402,7 @@ fn load(root: &Path) -> Result<(RawReadPolicy, Vec<SourcePackage>)> {
             files,
             manifest_text,
             manifest,
+            reaches_gated_crate: reach.contains(meta.name.as_str()),
         });
     }
     Ok((policy, packages))
@@ -1503,6 +1549,7 @@ mod tests {
             files: files(sources),
             manifest_text: manifest_text.into(),
             manifest,
+            reaches_gated_crate: true,
         }
     }
 
@@ -1513,6 +1560,21 @@ mod tests {
             manifest("ew-model", vec![], &[]),
             "",
         )
+    }
+
+    #[test]
+    fn a_package_that_cannot_reach_the_gated_crate_is_not_scanned() {
+        let src = "pub struct Table; impl Table { pub fn rows(&self) {} } pub fn f(t: &Table) { let _ = Table::rows(t); }";
+        let mut app = package(
+            "csv-tool",
+            &[("crates/csv-tool/src/lib.rs", src)],
+            manifest("csv-tool", vec![], &[]),
+            "",
+        );
+        app.reaches_gated_crate = false;
+        let out = check_packages(&policy(), &[model_package(), app]);
+        assert!(out.violations.is_empty(), "{:?}", out.violations);
+        assert_eq!(out.packages_scanned, 0);
     }
 
     /// The outcome for a synthetic workspace: the fixture ew-model plus one package `app`.
