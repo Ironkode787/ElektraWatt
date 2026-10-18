@@ -145,8 +145,8 @@ impl Model {
     /// 4. The structural invariants are evaluated on the candidate, limited to the touched keys and their
     ///    index neighbours (ADR-0009 decision 1); the first violation rejects the whole batch. Removing a
     ///    record that a `forbid` link still names is [`ModelError::Referenced`]; `cascade` and `unlink`
-    ///    are not executed here (see [`Model::delete_plan`]), so a remaining referrer is a violation of
-    ///    EW-INV-001.
+    ///    are not executed here (see `Model::delete_plan`, behind `raw-read`), so a remaining referrer is
+    ///    a violation of EW-INV-001.
     /// 5. The prevent hook, if any, checks the candidate.
     ///
     /// `apply(ops)` followed by `apply(invert_batch(ops))` restores every row value and index entry; only

@@ -52,14 +52,17 @@ crates that may only be dev-dependencies (`egui_mcp`). The check reads the decla
 workspace package from `cargo metadata` and fails when a banned feature is requested on an edge whose kind
 (`normal`, `dev`, `build`) is not allowed, when a banned crate is a non-dev dependency, or when a package's own
 `default` feature forwards a banned feature (`default = ["ew-ids/testkit"]`, also through other local
-features). The message names the package, dependency, feature and kind. Features that a dependency enables
+features). Forwarding is followed transitively through the workspace features (`dep/feature`, `dep?/feature`
+and local features): the edge rule also applies to a feature that reaches a banned one (a normal edge that
+requests `ew-derive/raw` fails when `raw = ["ew-model/raw-read"]`). The message names the package, dependency,
+feature and kind, and prints the chain of features down to the banned one. Features that a dependency enables
 by default are out of scope here; they would have to be named on the edge by the dependent crate.
 
 A `[[banned_features]]` entry may also list `allowed_packages`: the named workspace packages may enable the
 feature on a dependency edge of any kind and may forward it from any of their own features, while any other
-package that forwards it from a `[features]` entry (not only `default`) is reported as a back door. The
-untracked read API of `ew-model` (`raw-read`, ARCH §3 rule 1) is banned this way: dev edges anywhere, normal
-edges only in `ew-derive`, `ew-commands` and `ew-store`.
+package with a `[features]` entry (not only `default`) that reaches it, directly or through other workspace
+features, is reported as a back door. The untracked read API of `ew-model` (`raw-read`, ARCH §3 rule 1) is
+banned this way: dev edges anywhere, normal edges only in `ew-derive`, `ew-commands` and `ew-store`.
 
 ## Anonymisation guard (`cargo xtask check-anonymisation [--require-entries]`)
 

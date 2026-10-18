@@ -163,9 +163,10 @@ fn limits_default() {
     assert_eq!(l.max_xml_depth, 256);
     assert_eq!(l.max_attribute_bytes, 16 * 1024 * 1024);
     assert_eq!(l.max_input_bytes, 512 * 1024 * 1024);
-    assert_eq!(l.max_xml_nodes, 10_000_000);
+    assert_eq!(l.max_xml_nodes, 1_000_000);
     assert_eq!(l.max_xml_attributes_per_element, 8_192);
     assert_eq!(l.max_xml_attributes, 1_048_576);
+    assert_eq!(l.max_xml_attribute_work, 67_108_864);
 }
 
 #[test]

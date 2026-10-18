@@ -12,8 +12,8 @@
 //!   links name live records, and a removed record has no referrer left;
 //! - the delete policies: [`Policy::Forbid`] makes [`Model::apply`](crate::Model::apply) reject the
 //!   removal ([`ModelError::Referenced`](crate::ModelError::Referenced)); [`Policy::Cascade`] and
-//!   [`Policy::Unlink`] are computed by [`Model::delete_plan`](crate::Model::delete_plan), which a
-//!   transaction includes (WP-S1.04), and `apply` only verifies the result.
+//!   [`Policy::Unlink`] are computed by `Model::delete_plan` (behind `raw-read`), which a transaction
+//!   includes (WP-S1.04), and `apply` only verifies the result.
 //!
 //! Two link fields are **`LibRef` links** ([`LinkDecl::lib_ref`]): `symbol.fndef` and
 //! `part.function_template[].fndef` name a library item by `{library, item}`, and within a project such a

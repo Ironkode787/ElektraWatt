@@ -100,7 +100,7 @@ pub struct PrimCtx<'a> {
     pub reported_families: BTreeSet<String>,
     /// Findings beyond the cap: their number and highest severity.
     suppressed: (usize, Severity),
-    /// Line starts of the document, built on first use.
+    /// The document's sparse line index, built on first use.
     lines: OnceCell<LineIndex>,
 }
 
@@ -119,17 +119,16 @@ impl<'a> PrimCtx<'a> {
         }
     }
 
-    /// The location of `node`: file, member, `item` = the element name, and its 1-based line (by bisection
-    /// in the document's line index, not by rescanning the text).
+    /// The location of `node`: file, member, `item` = the element name, and its 1-based line (from the
+    /// document's sparse line index: at most 64 KiB scanned per finding, never the whole text).
     pub fn location(&self, node: Node<'_, '_>) -> SourceLocation {
-        let lines = self
-            .lines
-            .get_or_init(|| LineIndex::new(node.document().input_text()));
+        let text = node.document().input_text();
+        let lines = self.lines.get_or_init(|| LineIndex::new(text));
         SourceLocation {
             file: self.file.to_owned(),
             member: self.member.map(str::to_owned),
             item: Some(node.tag_name().name().to_owned()),
-            line: Some(lines.line(node.range().start)),
+            line: Some(lines.line(text, node.range().start)),
             ..SourceLocation::default()
         }
     }

@@ -982,6 +982,17 @@ fn structure_node_rejects_the_product_aspect_in_both_readers() {
 }
 
 #[test]
+fn malformed_variant_message_names_the_path_once() {
+    let line = fill(r#"{"$k":"structure_node","id":"@FN_P01","aspect":"product","code":"Z1"}"#);
+    let strict = record_err(&line).to_string();
+    assert_eq!(strict.matches("\"/aspect\"").count(), 1, "{strict}");
+    let (_, findings) = Record::load(parse_value(&line).unwrap()).unwrap();
+    assert_eq!(findings.len(), 1, "{findings:?}");
+    let finding = findings[0].to_string();
+    assert_eq!(finding.matches("\"/aspect\"").count(), 1, "{finding}");
+}
+
+#[test]
 fn extra_variant_cps_and_arrangement_slots_are_ordered() {
     let doc = golden_lib(r#""$k":"symbol""#);
     let cp = |idx: u32| format!(r#"{{"idx":{idx},"fn_cp":{idx},"pos":[0,0],"dir":"up"}}"#);

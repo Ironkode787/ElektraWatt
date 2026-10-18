@@ -40,9 +40,18 @@ pub struct Limits {
     pub max_input_bytes: u64,
     /// Deepest accepted XML element nesting.
     pub max_xml_depth: u32,
-    /// Most XML nodes in one document: elements, texts, comments and processing instructions. Attributes
-    /// are not nodes; they are bounded by [`Limits::max_xml_attributes`] and
-    /// [`Limits::max_xml_attributes_per_element`].
+    /// Most XML nodes in one document: the document root, elements, texts, comments and processing
+    /// instructions. Attributes are not nodes; they are bounded by [`Limits::max_xml_attributes`],
+    /// [`Limits::max_xml_attributes_per_element`] and [`Limits::max_xml_attribute_work`].
+    ///
+    /// The default, 1,000,000, keeps a hostile document within the 1 s and 256 MB of doc 14 §11 (measured in
+    /// release: a million empty elements parse in about 0.2 s into about 125 MB; ten million take about
+    /// 2.1 s and 1.2 GB). Element definitions and typical projects stay far below it. A project importer that
+    /// must read larger `.qet` files may raise it explicitly, under its own time and memory budget.
+    ///
+    /// An XML importer may derive further bounds from it and [`Limits::max_xml_attributes`]: the QET importer
+    /// refuses an input with more than `2 × max_xml_nodes + max_xml_attributes` `<` and `=` bytes, because
+    /// its parser reserves memory for each of them before parsing.
     pub max_xml_nodes: u32,
     /// Longest accepted XML attribute value, in bytes.
     pub max_attribute_bytes: usize,
@@ -55,21 +64,31 @@ pub struct Limits {
     pub max_xml_attributes_per_element: u32,
     /// Most XML attributes in one document. Enforced before the XML is parsed, by a flat scan.
     pub max_xml_attributes: u32,
+    /// Most attribute work in one document: the sum, over its elements, of the square of each element's
+    /// attribute count. Enforced before the XML is parsed, by a flat scan.
+    ///
+    /// The parser's duplicate-attribute check is quadratic per element (see
+    /// [`Limits::max_xml_attributes_per_element`]), so the parse time of a document grows with this sum,
+    /// which the per-element and per-document counts alone do not bound: 128 elements of 8,100 attributes
+    /// (10 MB, within both counts) took 13.4 s. The default, 2^26 = 67,108,864, admits one element at the
+    /// 8,192 cap, or about 1,000 elements of 256 attributes, in about 90 ms.
+    pub max_xml_attribute_work: u64,
 }
 
 impl Default for Limits {
-    /// The values of doc 14 §11: XML depth ≤ 256, attribute value ≤ 16 MiB; inputs up to 512 MiB and
-    /// 10 million XML nodes (the DXF file limit and a node count that parses in well under a second);
-    /// 8,192 attributes per element (see [`Limits::max_xml_attributes_per_element`]) and 1,048,576 per
-    /// document.
+    /// The values of doc 14 §11: XML depth ≤ 256, attribute value ≤ 16 MiB; inputs up to 512 MiB (the DXF
+    /// file limit); 1,000,000 XML nodes (see [`Limits::max_xml_nodes`]); 8,192 attributes per element (see
+    /// [`Limits::max_xml_attributes_per_element`]), 1,048,576 per document and an attribute work of 2^26
+    /// (see [`Limits::max_xml_attribute_work`]).
     fn default() -> Limits {
         Limits {
             max_input_bytes: 512 * 1024 * 1024,
             max_xml_depth: 256,
-            max_xml_nodes: 10_000_000,
+            max_xml_nodes: 1_000_000,
             max_attribute_bytes: 16 * 1024 * 1024,
             max_xml_attributes_per_element: 8_192,
             max_xml_attributes: 1_048_576,
+            max_xml_attribute_work: 1 << 26,
         }
     }
 }

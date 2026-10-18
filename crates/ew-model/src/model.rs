@@ -280,95 +280,101 @@ impl Model {
             .collect()
     }
 
-    /// The ops a transaction must contain to remove `key` under the delete policies (doc 03 §4.2,
-    /// FR-DEV-030): the removal itself, every `cascade` referrer (transitively), every `unlink` referrer
-    /// with its reference cleared (or dropped, for a mandatory field), modifications first, then removals,
-    /// each in key order.
-    ///
-    /// Besides the link policies, the plan applies one ownership rule (doc 05 §2.2 row 32, EW-INV-013): an
-    /// interruption-point function is owned by its representation, so removing its last representation
-    /// removes the function as well, and with it the connections at its CPs (`connection.a`/`b` cascade)
-    /// and the definitions and bonds there (unlink, dropped).
-    ///
-    /// A referrer through a `forbid` link that the plan does not remove itself is
-    /// [`ModelError::Referenced`]. The plan covers link policies only: other invariants (one main function
-    /// per device, for instance) are the transaction's business and are checked by [`Model::apply`].
-    pub fn delete_plan(&self, key: &AnyKey) -> Result<Vec<Op>, ModelError> {
-        if key.0 == Kind::Project {
-            return Err(ModelError::Malformed {
-                key: *key,
-                reason: "the project row cannot be removed",
-            });
-        }
-        if get_row(self, key).is_none() {
-            return Err(ModelError::NotFound { key: *key });
-        }
-        let mut deleted: BTreeSet<AnyKey> = BTreeSet::from([*key]);
-        let mut work = vec![*key];
-        let mut blockers: BTreeSet<(AnyKey, LinkId, AnyKey)> = BTreeSet::new();
-        let mut unlinks: BTreeMap<AnyKey, BTreeSet<LinkId>> = BTreeMap::new();
-        loop {
-            while let Some(target) = work.pop() {
-                for (lid, link) in links_to(target.0) {
-                    for src in self.referrers_via(lid, &target) {
-                        let referrer = (link.from, src);
-                        let drop = match (link.policy, link.unlink) {
-                            (Policy::Cascade, _) => true,
-                            (Policy::Forbid, _) => {
-                                blockers.insert((referrer, lid, target));
-                                false
-                            }
-                            (Policy::Unlink, Some(unlink)) => {
-                                let row = get_row(self, &referrer).expect("verified referrer");
-                                let dropped = unlink(&row, &deleted).is_none();
-                                if !dropped {
-                                    unlinks.entry(referrer).or_default().insert(lid);
+    raw_read! {
+        /// The ops a transaction must contain to remove `key` under the delete policies (doc 03 §4.2,
+        /// FR-DEV-030): the removal itself, every `cascade` referrer (transitively), every `unlink` referrer
+        /// with its reference cleared (or dropped, for a mandatory field), modifications first, then removals,
+        /// each in key order.
+        ///
+        /// Besides the link policies, the plan applies one ownership rule (doc 05 §2.2 row 32, EW-INV-013): an
+        /// interruption-point function is owned by its representation, so removing its last representation
+        /// removes the function as well, and with it the connections at its CPs (`connection.a`/`b` cascade)
+        /// and the definitions and bonds there (unlink, dropped).
+        ///
+        /// A referrer through a `forbid` link that the plan does not remove itself is
+        /// [`ModelError::Referenced`]. The plan covers link policies only: other invariants (one main function
+        /// per device, for instance) are the transaction's business and are checked by [`Model::apply`].
+        ///
+        /// Gated by `raw-read`, like the other untracked readers: the plan carries the current rows of the
+        /// removed and modified records in its ops (`before`), so it reads the model. A transaction builder
+        /// that holds the feature (`TxBuilder` in `ew-commands`) calls it; [`Model::apply`] consumes the ops.
+        fn delete_plan(&self, key: &AnyKey) -> Result<Vec<Op>, ModelError> {
+            if key.0 == Kind::Project {
+                return Err(ModelError::Malformed {
+                    key: *key,
+                    reason: "the project row cannot be removed",
+                });
+            }
+            if get_row(self, key).is_none() {
+                return Err(ModelError::NotFound { key: *key });
+            }
+            let mut deleted: BTreeSet<AnyKey> = BTreeSet::from([*key]);
+            let mut work = vec![*key];
+            let mut blockers: BTreeSet<(AnyKey, LinkId, AnyKey)> = BTreeSet::new();
+            let mut unlinks: BTreeMap<AnyKey, BTreeSet<LinkId>> = BTreeMap::new();
+            loop {
+                while let Some(target) = work.pop() {
+                    for (lid, link) in links_to(target.0) {
+                        for src in self.referrers_via(lid, &target) {
+                            let referrer = (link.from, src);
+                            let drop = match (link.policy, link.unlink) {
+                                (Policy::Cascade, _) => true,
+                                (Policy::Forbid, _) => {
+                                    blockers.insert((referrer, lid, target));
+                                    false
                                 }
-                                dropped
+                                (Policy::Unlink, Some(unlink)) => {
+                                    let row = get_row(self, &referrer).expect("verified referrer");
+                                    let dropped = unlink(&row, &deleted).is_none();
+                                    if !dropped {
+                                        unlinks.entry(referrer).or_default().insert(lid);
+                                    }
+                                    dropped
+                                }
+                                (Policy::Unlink, None) => {
+                                    unreachable!("unlink link {} without unlink fn", link.path())
+                                }
+                            };
+                            if drop && deleted.insert(referrer) {
+                                work.push(referrer);
                             }
-                            (Policy::Unlink, None) => {
-                                unreachable!("unlink link {} without unlink fn", link.path())
-                            }
-                        };
-                        if drop && deleted.insert(referrer) {
-                            work.push(referrer);
                         }
                     }
                 }
+                let orphans = self.orphaned_ip_functions(&deleted);
+                if orphans.is_empty() {
+                    break;
+                }
+                for f in orphans {
+                    deleted.insert(f);
+                    work.push(f);
+                }
             }
-            let orphans = self.orphaned_ip_functions(&deleted);
-            if orphans.is_empty() {
-                break;
+            if let Some((referrer, lid, target)) = blockers.iter().find(|(r, _, _)| !deleted.contains(r)) {
+                return Err(ModelError::Referenced {
+                    link: LINKS[*lid].path(),
+                    target: *target,
+                    referrer: *referrer,
+                });
             }
-            for f in orphans {
-                deleted.insert(f);
-                work.push(f);
+            let mut ops = Vec::new();
+            for (referrer, lids) in &unlinks {
+                if deleted.contains(referrer) {
+                    continue;
+                }
+                let before = get_row(self, referrer).expect("verified referrer");
+                let mut after = before.clone();
+                for lid in lids {
+                    let unlink = LINKS[*lid].unlink.expect("unlink link");
+                    after = unlink(&after, &deleted).expect("a modifying unlink keeps its record");
+                }
+                ops.push(Op::update(before, after));
             }
+            for k in &deleted {
+                ops.push(Op::delete(get_row(self, k).expect("planned row exists")));
+            }
+            Ok(ops)
         }
-        if let Some((referrer, lid, target)) = blockers.iter().find(|(r, _, _)| !deleted.contains(r)) {
-            return Err(ModelError::Referenced {
-                link: LINKS[*lid].path(),
-                target: *target,
-                referrer: *referrer,
-            });
-        }
-        let mut ops = Vec::new();
-        for (referrer, lids) in &unlinks {
-            if deleted.contains(referrer) {
-                continue;
-            }
-            let before = get_row(self, referrer).expect("verified referrer");
-            let mut after = before.clone();
-            for lid in lids {
-                let unlink = LINKS[*lid].unlink.expect("unlink link");
-                after = unlink(&after, &deleted).expect("a modifying unlink keeps its record");
-            }
-            ops.push(Op::update(before, after));
-        }
-        for k in &deleted {
-            ops.push(Op::delete(get_row(self, k).expect("planned row exists")));
-        }
-        Ok(ops)
     }
 
     /// The interruption-point functions that a planned removal leaves without a representation: named by a

@@ -92,8 +92,10 @@ exactly while the copy is embedded (`LinkDecl::lib_ref`):
 
 The decision is deterministic: the index entry depends on the row only, and the link's state on the snapshot only.
 
-**Reading the model.** The untracked read API (`Model::table`, `row`, `lib`, `indexes`, `referrers` and the table
-and index getters) is behind the cargo feature `raw-read` of `ew-model` (ARCH §3 rule 1, ADR-0002 decision 1). Only
+**Reading the model.** The untracked read API (`Model::table`, `row`, `lib`, `indexes`, `referrers`, `delete_plan`
+and the table and index getters) is behind the cargo feature `raw-read` of `ew-model` (ARCH §3 rule 1, ADR-0002
+decision 1). `delete_plan` is part of it because its ops carry the current rows (`before`); `apply` and `apply_with`
+only consume ops and stay public. Only
 `ew-derive`, `ew-commands` and `ew-store` enable it on a normal dependency edge; `cargo xtask check-features`
 enforces this. Prevent rules do not read the model directly: `PreventHook::check(&Model, &[AnyKey])` is implemented
 by `ew-commands`, which builds the tracked query context from the candidate model through `ew-derive` and calls

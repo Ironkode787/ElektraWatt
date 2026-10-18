@@ -15,7 +15,7 @@
 //!   by [`Model::apply`], which returns a new snapshot.
 //! - [`Op`]: an invertible row put; [`invert_batch`] undoes a batch (applied as a new revision).
 //! - [`LINKS`]: every link field with its target kind, delete [`Policy`] and index;
-//!   [`Model::delete_plan`] computes the cascade and unlink ops a removal needs.
+//!   `Model::delete_plan` (with `raw-read`) computes the cascade and unlink ops a removal needs.
 //! - [`RULES`]: the structural invariants, catalogued in `invariants.md`; prevent rules plug in through
 //!   [`PreventHook`].
 //!
@@ -29,17 +29,31 @@
 //! therefore behind the cargo feature **`raw-read`**, off by default:
 //!
 //! - gated: `Model::table`, `lib`, `indexes`, `row`, `contains`, `referrers`, `project`, `project_row`,
-//!   `unknown_records` and `unknown_lib_documents`; the getters of [`Table`], [`LibraryCopies`] and
+//!   `unknown_records`, `unknown_lib_documents` and `delete_plan` (its ops carry the current rows as
+//!   `before`, so it reads the model like `row` does); the getters of [`Table`], [`LibraryCopies`] and
 //!   [`BaseIndexes`], and `BaseIndexes::rebuild`;
 //! - always public: [`Model::from_records`], [`Model::apply`], [`Model::apply_with`],
-//!   [`Model::delete_plan`], [`Model::integrity_check`], [`Model::content_eq`], [`Model::rev`],
-//!   [`Model::strictness`], [`invert_batch`], and the declarative tables [`LINKS`] and [`RULES`].
+//!   [`Model::integrity_check`], [`Model::content_eq`], [`Model::rev`], [`Model::strictness`],
+//!   [`invert_batch`], and the declarative tables [`LINKS`] and [`RULES`]. `apply` and `apply_with`
+//!   consume ops; they return no row.
 //!
 //! Only `ew-derive` (the tracked read layer), `ew-commands` (a transaction reads the `before` rows of its
 //! ops) and `ew-store` (the writer) may enable it on a normal dependency edge; any crate may enable it on a
 //! dev-dependency edge, for tests. `cargo xtask check-features` enforces this from the `[[banned_features]]`
 //! table of `ci/dep-rules.toml`. Without the feature the accessors are crate-private, so this crate's own
 //! tests use them unchanged, and the part of the example below that reads rows runs only with the feature.
+//!
+//! Without the feature a gated reader does not compile outside this crate:
+//!
+#![cfg_attr(not(feature = "raw-read"), doc = "```compile_fail")]
+#![cfg_attr(feature = "raw-read", doc = "```")]
+//! fn plan(m: &ew_model::Model, key: &ew_model::AnyKey) -> Vec<ew_model::Op> {
+//!     m.delete_plan(key).unwrap_or_default()
+//! }
+//! fn row(m: &ew_model::Model, key: &ew_model::AnyKey) -> Option<ew_model::AnyRow> {
+//!     m.row(key)
+//! }
+//! ```
 //!
 //! Prevent rules follow the same rule. [`PreventHook::check`] receives the candidate `&Model`; its
 //! implementer is `ew-commands`, which holds `raw-read`, builds the tracked query context from the candidate

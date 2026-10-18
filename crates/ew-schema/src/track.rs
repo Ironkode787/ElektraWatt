@@ -694,10 +694,16 @@ pub(crate) fn malformed<T, E: de::Error>(
     if matches!(inner, SchemaError::MalformedVariant(_)) {
         return Err(raise(inner));
     }
+    let path = current_path();
+    // The finding names its own path; an inner message at that same path would repeat it.
+    let message = match inner {
+        SchemaError::Invalid { path: p, message } if p == path => message,
+        other => other.to_string(),
+    };
     let finding = MalformedVariant {
-        path: current_path(),
+        path,
         variant: variant.to_owned(),
-        message: inner.to_string(),
+        message,
     };
     if is_lenient() {
         CTX.with(|c| {

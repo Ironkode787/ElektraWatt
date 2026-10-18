@@ -13,9 +13,10 @@
 //!
 //! # Pipeline
 //!
-//! 1. **XML** ([`read_element`]): a flat pre-scan refuses inputs over the depth and attribute-count limits of
-//!    [`Limits`](ew_interop_api::Limits) before parsing ([`xml::prescan`]); then `roxmltree` with DTDs refused
-//!    and the node limit; the root must be `<definition type="element">`. Malformed XML or another root is an
+//! 1. **XML** ([`read_element`]): a flat pre-scan refuses inputs over the depth, attribute-count,
+//!    attribute-work and node limits of [`Limits`](ew_interop_api::Limits), or with more `<` and `=` bytes
+//!    than the parser may reserve memory for, before parsing ([`xml::prescan`]); then `roxmltree` with DTDs
+//!    refused and the node limit; the root must be `<definition type="element">`. Malformed XML or another root is an
 //!    [`ImportError`](ew_interop_api::ImportError); everything below is item-level and becomes report entries,
 //!    never a panic. At most [`MAX_ENTRIES_PER_DEFINITION`] findings are listed per definition; the rest are
 //!    counted in one EW-IMP-001 entry.

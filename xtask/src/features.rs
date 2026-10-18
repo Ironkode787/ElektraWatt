@@ -9,19 +9,22 @@
 //! declared dependencies of every workspace package (`cargo metadata`: the features requested on each edge
 //! and its kind) and fails when
 //!
-//! - a banned feature is requested on an edge whose kind is not in the rule's `allowed_kinds` and whose
-//!   package is not in its `allowed_packages`;
-//! - a package outside a rule's non-empty `allowed_packages` forwards the banned feature from any of its own
-//!   features (`dep/feature` or `dep?/feature`): an opt-in feature would otherwise be a back door;
+//! - a banned feature, or any workspace feature that reaches it, is requested on an edge whose kind is not in
+//!   the rule's `allowed_kinds` and whose package is not in its `allowed_packages`;
+//! - a package outside a rule's non-empty `allowed_packages` has a feature that reaches the banned feature:
+//!   directly (`dep/feature` or `dep?/feature`) or through other workspace features, local or of other
+//!   workspace packages. An opt-in feature would otherwise be a back door;
 //! - a banned crate is a dependency of any kind other than `dev`;
-//! - a workspace package's own `default` feature reaches a banned feature (its own, or one forwarded to a
-//!   dependency as `dep/feature` or `dep?/feature`); a package in the rule's `allowed_packages` is exempt for
-//!   the forwarded case.
+//! - a workspace package's own `default` feature reaches a banned feature (its own, or one forwarded through
+//!   a dependency); a package in the rule's `allowed_packages` is exempt for the forwarded case.
+//!
+//! "Reaches" is followed transitively over the workspace feature graph whose nodes are `(package, feature)`
+//! pairs; a violation prints the chain of hops down to the banned feature.
 //!
 //! Building the list of packages from `cargo metadata` is separate from checking it, so the unit tests can
 //! feed synthetic graphs with seeded violations.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use serde::Deserialize;
 
@@ -103,6 +106,11 @@ pub fn from_metadata(metadata: &cargo_metadata::Metadata) -> Vec<Package> {
 
 /// Checks `packages` against `rules` and returns every violation, sorted.
 pub fn check(rules: &Rules<'_>, packages: &[Package]) -> Vec<String> {
+    let reaches: Vec<Reach> = rules
+        .features
+        .iter()
+        .map(|ban| Reach::compute(ban, packages))
+        .collect();
     let mut v = Vec::new();
     for p in packages {
         for d in &p.deps {
@@ -114,28 +122,122 @@ pub fn check(rules: &Rules<'_>, packages: &[Package]) -> Vec<String> {
                     d.kind.label()
                 ));
             }
-            for ban in rules.features.iter().filter(|b| b.krate == d.name) {
-                if d.features.contains(&ban.feature)
-                    && !ban.allowed_kinds.contains(&d.kind)
-                    && !ban.allowed_packages.contains(&p.name)
-                {
-                    v.push(format!(
-                        "feature ban: `{}` enables `{}/{}` on a {}; allowed on: {} (18 §5.2 CI-PR-09)",
-                        p.name,
-                        d.name,
-                        ban.feature,
-                        d.kind.label(),
-                        allowed_label(ban)
-                    ));
-                }
-            }
         }
-        check_forwarding(rules, p, &mut v);
-        check_default_features(rules, p, &mut v);
+        for (ban, reach) in rules.features.iter().zip(&reaches) {
+            check_edges(ban, reach, p, &mut v);
+            check_forwarding(ban, reach, p, &mut v);
+            check_default_features(ban, reach, p, &mut v);
+        }
     }
     v.sort();
     v.dedup();
     v
+}
+
+/// A `(package, feature)` node of the workspace feature graph.
+type Node = (String, String);
+
+/// The nodes that enable one banned feature through any chain of workspace features, each with its next hop
+/// toward the banned feature (`None` for the banned feature itself).
+struct Reach {
+    next: BTreeMap<Node, Option<Node>>,
+}
+
+impl Reach {
+    /// Computes the set as a deterministic fixed point; a cycle of features adds nothing and terminates.
+    fn compute(ban: &BannedFeature, packages: &[Package]) -> Self {
+        let mut sorted: Vec<&Package> = packages.iter().collect();
+        sorted.sort_by(|a, b| a.name.cmp(&b.name));
+        let mut next: BTreeMap<Node, Option<Node>> = BTreeMap::new();
+        next.insert((ban.krate.clone(), ban.feature.clone()), None);
+        loop {
+            let mut changed = false;
+            for p in &sorted {
+                for (f, items) in &p.features {
+                    let node = (p.name.clone(), f.clone());
+                    if next.contains_key(&node) {
+                        continue;
+                    }
+                    let hop = items
+                        .iter()
+                        .map(|item| leads_to(p, item))
+                        .find(|target| next.contains_key(target));
+                    if let Some(target) = hop {
+                        next.insert(node, Some(target));
+                        changed = true;
+                    }
+                }
+            }
+            if !changed {
+                return Self { next };
+            }
+        }
+    }
+
+    fn contains(&self, package: &str, feature: &str) -> bool {
+        self.next.contains_key(&(package.to_owned(), feature.to_owned()))
+    }
+
+    /// The hop after `node`, if it is in the set and not the banned feature itself.
+    fn hop(&self, node: &Node) -> Option<&Node> {
+        self.next.get(node)?.as_ref()
+    }
+
+    /// The hops from `(package, feature)` down to the banned feature, joined with ` -> `.
+    fn chain(&self, package: &str, feature: &str) -> String {
+        let mut node = (package.to_owned(), feature.to_owned());
+        let mut out = vec![format!("{}/{}", node.0, node.1)];
+        while let Some(next) = self.hop(&node) {
+            out.push(format!("{}/{}", next.0, next.1));
+            node = next.clone();
+        }
+        out.join(" -> ")
+    }
+}
+
+/// The node a `[features]` item of `p` enables: `dep/feature` (or `dep?/feature`) leads to the feature of the
+/// dependency's package, any other item to a feature of `p` itself.
+fn leads_to(p: &Package, item: &str) -> Node {
+    match forwarded(p, item) {
+        Some((krate, feature)) => (krate.to_owned(), feature.to_owned()),
+        None => (
+            p.name.clone(),
+            item.strip_prefix("dep:").unwrap_or(item).to_owned(),
+        ),
+    }
+}
+
+/// A dependency edge of a kind or package the ban does not allow must not request a feature that reaches
+/// the banned one.
+fn check_edges(ban: &BannedFeature, reach: &Reach, p: &Package, v: &mut Vec<String>) {
+    if ban.allowed_packages.contains(&p.name) {
+        return;
+    }
+    for d in p.deps.iter().filter(|d| !ban.allowed_kinds.contains(&d.kind)) {
+        for f in d.features.iter().filter(|f| reach.contains(&d.name, f)) {
+            if d.name == ban.krate && *f == ban.feature {
+                v.push(format!(
+                    "feature ban: `{}` enables `{}/{}` on a {}; allowed on: {} (18 §5.2 CI-PR-09)",
+                    p.name,
+                    d.name,
+                    ban.feature,
+                    d.kind.label(),
+                    allowed_label(ban)
+                ));
+            } else {
+                v.push(format!(
+                    "feature ban: `{}` enables `{}/{f}` on a {}, which enables `{}/{}` ({}); allowed on: {} (18 §5.2 CI-PR-09)",
+                    p.name,
+                    d.name,
+                    d.kind.label(),
+                    ban.krate,
+                    ban.feature,
+                    reach.chain(&d.name, f),
+                    allowed_label(ban)
+                ));
+            }
+        }
+    }
 }
 
 fn allowed_label(ban: &BannedFeature) -> String {
@@ -169,63 +271,66 @@ fn forwarded<'a>(p: &'a Package, item: &'a str) -> Option<(&'a str, &'a str)> {
     Some((krate, feature))
 }
 
-/// A package outside the `allowed_packages` of a package-restricted ban must not forward the banned feature
-/// from any of its features.
-fn check_forwarding(rules: &Rules<'_>, p: &Package, v: &mut Vec<String>) {
-    for ban in rules
-        .features
-        .iter()
-        .filter(|b| !b.allowed_packages.is_empty() && !b.allowed_packages.contains(&p.name))
-    {
-        for (f, items) in &p.features {
-            for item in items {
-                if forwarded(p, item) == Some((ban.krate.as_str(), ban.feature.as_str())) {
-                    v.push(format!(
-                        "feature ban: `{}` forwards `{}/{}` from its feature `{f}`; only {} may enable it",
-                        p.name,
-                        ban.krate,
-                        ban.feature,
-                        ban.allowed_packages.join(", ")
-                    ));
-                }
-            }
-        }
+/// A package outside the `allowed_packages` of a package-restricted ban must not have a feature that reaches
+/// the banned feature, directly or through other workspace features. `default` is left to
+/// [`check_default_features`].
+fn check_forwarding(ban: &BannedFeature, reach: &Reach, p: &Package, v: &mut Vec<String>) {
+    if ban.allowed_packages.is_empty() || ban.allowed_packages.contains(&p.name) || p.name == ban.krate {
+        return;
+    }
+    for f in p.features.keys().filter(|f| *f != "default") {
+        let node = (p.name.clone(), f.clone());
+        let Some(hop) = reach.hop(&node) else {
+            continue;
+        };
+        let direct = hop.0 == ban.krate && hop.1 == ban.feature;
+        let chain = if direct {
+            String::new()
+        } else {
+            format!(" ({})", reach.chain(&p.name, f))
+        };
+        v.push(format!(
+            "feature ban: `{}` forwards `{}/{}` from its feature `{f}`{chain}; only {} may enable it",
+            p.name,
+            ban.krate,
+            ban.feature,
+            ban.allowed_packages.join(", ")
+        ));
     }
 }
 
-/// The package's `default` feature, followed through its own features, must not reach a banned feature.
-fn check_default_features(rules: &Rules<'_>, p: &Package, v: &mut Vec<String>) {
-    let mut seen: BTreeSet<&str> = BTreeSet::new();
-    let mut todo = vec!["default"];
-    while let Some(feature) = todo.pop() {
-        if !seen.insert(feature) {
-            continue;
-        }
-        let banned_own = rules
-            .features
-            .iter()
-            .any(|b| b.krate == p.name && b.feature == feature);
-        if banned_own {
+/// The package's `default` feature, followed through the workspace features, must not reach a banned feature.
+fn check_default_features(ban: &BannedFeature, reach: &Reach, p: &Package, v: &mut Vec<String>) {
+    if !reach.contains(&p.name, "default") {
+        return;
+    }
+    if ban.krate == p.name {
+        v.push(format!(
+            "feature ban: the `default` features of `{}` enable its banned feature `{}`",
+            p.name, ban.feature
+        ));
+        return;
+    }
+    if ban.allowed_packages.contains(&p.name) {
+        return;
+    }
+    // The first hop that leaves the package, and the feature of the package it leaves from.
+    let mut node = (p.name.clone(), "default".to_owned());
+    while let Some(next) = reach.hop(&node) {
+        if next.0 != p.name {
+            let direct = next.0 == ban.krate && next.1 == ban.feature;
+            let chain = if direct {
+                String::new()
+            } else {
+                format!(" ({})", reach.chain(&p.name, "default"))
+            };
             v.push(format!(
-                "feature ban: the `default` features of `{}` enable its banned feature `{feature}`",
-                p.name
+                "feature ban: the `default` features of `{}` enable `{}/{}` (via `{}`){chain}",
+                p.name, next.0, next.1, node.1
             ));
+            return;
         }
-        for item in p.features.get(feature).into_iter().flatten() {
-            match forwarded(p, item) {
-                Some((krate, forwarded)) => {
-                    if rules.features.iter().any(|b| {
-                        b.krate == krate && b.feature == forwarded && !b.allowed_packages.contains(&p.name)
-                    }) {
-                        v.push(format!(
-                            "feature ban: the `default` features of `{}` enable `{krate}/{forwarded}` (via `{feature}`)",
-                            p.name
-                        ));
-                    }
-                }
-                None => todo.push(item.strip_prefix("dep:").unwrap_or(item)),
-            }
-        }
+        node = next.clone();
     }
 }
 
@@ -449,6 +554,101 @@ mod tests {
         let v = run(&[own]);
         assert_eq!(v.len(), 1, "{v:#?}");
         assert!(v[0].contains("banned feature `raw-read`"), "{v:#?}");
+    }
+
+    #[test]
+    fn raw_read_forwarded_two_levels_fails() {
+        let derive = package(
+            "ew-derive",
+            vec![dep("ew-model", Kind::Normal, &[])],
+            &[("raw", &["ew-model/raw-read"])],
+        );
+        // Requested on an edge.
+        let v = run(&[
+            derive.clone(),
+            package("ew-reports", vec![dep("ew-derive", Kind::Normal, &["raw"])], &[]),
+        ]);
+        assert_eq!(v.len(), 1, "{v:#?}");
+        assert!(
+            v[0].contains("`ew-reports` enables `ew-derive/raw`")
+                && v[0].contains("ew-derive/raw -> ew-model/raw-read"),
+            "{v:#?}"
+        );
+        // Forwarded from an own feature.
+        let v = run(&[
+            derive.clone(),
+            package(
+                "ew-reports",
+                vec![dep("ew-derive", Kind::Normal, &[])],
+                &[("x", &["ew-derive/raw"])],
+            ),
+        ]);
+        assert_eq!(v.len(), 1, "{v:#?}");
+        assert!(
+            v[0].contains("`ew-reports` forwards `ew-model/raw-read` from its feature `x`")
+                && v[0].contains("ew-reports/x -> ew-derive/raw -> ew-model/raw-read"),
+            "{v:#?}"
+        );
+        // Three hops through a local feature, on a build edge.
+        let deep = package(
+            "ew-derive",
+            vec![dep("ew-model", Kind::Normal, &[])],
+            &[("raw", &["inner"]), ("inner", &["ew-model?/raw-read"])],
+        );
+        let v = run(&[
+            deep,
+            package("ew-reports", vec![dep("ew-derive", Kind::Build, &["raw"])], &[]),
+        ]);
+        assert_eq!(v.len(), 1, "{v:#?}");
+        assert!(
+            v[0].contains("`ew-reports` enables `ew-derive/raw` on a build-dependency")
+                && v[0].contains("ew-derive/raw -> ew-derive/inner -> ew-model/raw-read"),
+            "{v:#?}"
+        );
+    }
+
+    #[test]
+    fn allowed_package_exposing_a_forwarding_feature_passes() {
+        let p = package(
+            "ew-derive",
+            vec![dep("ew-model", Kind::Normal, &[])],
+            &[("raw", &["ew-model/raw-read"]), ("default", &["raw"])],
+        );
+        assert_eq!(run(&[p]), Vec::<String>::new());
+    }
+
+    #[test]
+    fn dev_edge_to_a_forwarding_feature_passes() {
+        let derive = package(
+            "ew-derive",
+            vec![dep("ew-model", Kind::Normal, &[])],
+            &[("raw", &["ew-model/raw-read"])],
+        );
+        let reports = package("ew-reports", vec![dep("ew-derive", Kind::Dev, &["raw"])], &[]);
+        assert_eq!(run(&[derive, reports]), Vec::<String>::new());
+    }
+
+    #[test]
+    fn testkit_through_an_opt_in_feature_on_a_normal_edge_fails() {
+        let fix = package(
+            "fix",
+            vec![dep("ew-ids", Kind::Dev, &[])],
+            &[("default", &[]), ("fixtures", &["ew-ids/testkit"])],
+        );
+        assert_eq!(run(std::slice::from_ref(&fix)), Vec::<String>::new());
+        let app = package("app", vec![dep("fix", Kind::Normal, &["fixtures"])], &[]);
+        let v = run(&[fix, app]);
+        assert_eq!(v.len(), 1, "{v:#?}");
+        assert!(
+            v[0].contains("`app` enables `fix/fixtures`") && v[0].contains("fix/fixtures -> ew-ids/testkit"),
+            "{v:#?}"
+        );
+    }
+
+    #[test]
+    fn forwarding_cycle_terminates() {
+        let p = package("cyc", vec![], &[("a", &["b"]), ("b", &["a"])]);
+        assert_eq!(run(&[p]), Vec::<String>::new());
     }
 
     /// The real workspace satisfies the real feature bans, and a seeded `ew-ids/testkit` normal edge fails.

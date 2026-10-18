@@ -162,8 +162,9 @@ fn lib_copy<T: Serialize>(library: Id<Library>, item_id: Id<LibItem>, item: T) -
 /// # Errors
 ///
 /// [`ImportError::Malformed`] for malformed XML or a DOCTYPE; [`ImportError::LimitExceeded`] for an exceeded
-/// node, depth, attribute-count or attribute-size limit, or for a definition with more than 65,535
-/// terminals (`what` is `"terminals per element definition"`; EW-IMP-001 for the file);
+/// node, depth, attribute-count, attribute-work, markup-character or attribute-size limit, or for a
+/// definition with more than 65,535 terminals (`what` is `"terminals per element definition"`; EW-IMP-001
+/// for the file);
 /// [`ImportError::Unsupported`] if the root is not `<definition type="element">`.
 pub fn read_element(
     xml: &str,
