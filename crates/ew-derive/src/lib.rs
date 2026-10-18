@@ -54,7 +54,7 @@ mod toc;
 mod tracker;
 
 pub use bom::{BomMode, BomRow, BomRowKey, BomRows, DevicePartLines, LineSource, PartLine};
-pub use cell::{Cell, CellOf, RepAnchorCell};
+pub use cell::{Cell, CellOf, RepAnchorCell, anchor_point, frame_grid};
 pub use cps::{Cp, FunctionCps};
 pub use pages::{
     GeneratedPage, Origin, PageEntry, PageOrder, PageOrderV, PageRef, PageRefStructure, PageTitle,

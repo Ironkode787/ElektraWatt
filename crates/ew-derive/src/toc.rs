@@ -6,9 +6,10 @@
 use std::sync::Arc;
 
 use ew_mltext::MlText;
+use ew_rds::{Aspect, RdsSyntax};
 
 use crate::Q;
-use crate::pages::PageRef;
+use crate::pages::{PageOrder, PageRef, PageRefStructure, PageTitle};
 use crate::query::{Policy, Query};
 
 /// One row of the table of contents.
@@ -37,7 +38,22 @@ impl Query for TocRows {
     const POLICY: Policy = Policy::Memo;
 
     fn run(q: &Q, _key: &()) -> Arc<Vec<TocRow>> {
-        let _ = q;
-        Arc::new(Vec::new())
+        let syntax = RdsSyntax::default();
+        let order = q.get::<PageOrder>(());
+        let rows = order
+            .entries
+            .iter()
+            .map(|entry| {
+                let structure = q.get::<PageRefStructure>(entry.page);
+                TocRow {
+                    page: entry.page,
+                    folio: entry.folio.clone(),
+                    title: (*q.get::<PageTitle>(entry.page)).clone(),
+                    function: structure.render_aspect(Aspect::Function, &syntax),
+                    location: structure.render_aspect(Aspect::Location, &syntax),
+                }
+            })
+            .collect();
+        Arc::new(rows)
     }
 }

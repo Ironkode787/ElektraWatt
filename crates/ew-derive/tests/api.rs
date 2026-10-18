@@ -189,10 +189,9 @@ fn query_bodies_see_only_tracked_accessors() {
     let m = small().build();
     let rec = Rc::new(RecordingTracker::new());
     let q = Q::with_tracker(&m, Box::new(Rc::clone(&rec)));
-    assert_eq!(
-        *q.get::<EveryAccessor>(()),
-        1 + 1 + 1 + 1 + 1 + 0 + 1 + 1 + 1 + 0 + 1
-    );
+    // 1 device, 1 page, 1 function, 1 rep on the page, 1 function of the device, no connected CP,
+    // 1 symbol and 1 fndef, the profile pin, no revision, the tag.
+    assert_eq!(*q.get::<EveryAccessor>(()), 9);
     let reads: Vec<DepKey> = rec
         .reads()
         .into_iter()

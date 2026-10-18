@@ -5,6 +5,12 @@
 //! whose page scopes the counters `ew-commands` assigns, and the devices the command layer numbers are
 //! exactly the devices whose tag comes from the page-based scheme. If the two drifted, two devices with
 //! distinct counters in the command layer's scope could print the same tag.
+//!
+//! **This test pins a provisional rule (design decision 1 of WP-S1.06).** Both layers take the main
+//! representation as the smallest-ID representation of the smallest-ID main function. Doc 03 §8.2 step 4
+//! (lowest page order, row, column among the counted representation types) replaces that rule in
+//! WP-S1.11, and it must replace it in `ew_commands::numbering` and in `ew_derive::MainRep` in the same
+//! change; this test is the guard that fails if only one of them moves.
 
 mod common;
 
