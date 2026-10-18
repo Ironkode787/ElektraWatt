@@ -291,6 +291,19 @@ glob = "schemas/**"
 allowed = ["MIT OR Apache-2.0"]
 
 # ---------------------------------------------------------------------------------------------------------------
+# L7: symbols, function definitions, frames, forms, templates and macros shipped as data (CC-BY-SA-4.0; the design
+# exception of ADR-0024 is added to the expression once adopted, LG-2). JSON cannot carry headers: REUSE.toml.
+[[path]]
+glob = "content/**"
+allowed = ["CC-BY-SA-4.0"]
+
+# L14: bundled third-party fonts keep their own licence and notices (OFL-1.1 for Noto Sans, ADR-0028); the
+# notice rule lists the path under [notices].third_party. Binary files: REUSE.toml annotations.
+[[path]]
+glob = "assets/fonts/**"
+allowed = ["OFL-1.1"]
+
+# ---------------------------------------------------------------------------------------------------------------
 # L9: documentation and the root prose files (CC-BY-4.0). LICENSE.md is L11 (below).
 [[path]]
 glob = "docs/**"
@@ -415,7 +428,7 @@ only_in = "crates/ew-import-qet/src/qet_port/**"
 # Files that may carry third-party copyright lines above the collective notice (NFR-LIC-10, 19 §2.3). Every
 # other file carries exactly one copyright line, `<year> The ElektraWatt contributors`.
 [notices]
-third_party = ["CODE_OF_CONDUCT.md", "crates/ew-import-qet/src/qet_port/**"]
+third_party = ["CODE_OF_CONDUCT.md", "crates/ew-import-qet/src/qet_port/**", "assets/fonts/**"]
 
 # ---------------------------------------------------------------------------------------------------------------
 # The licence-boundary allowlist (NFR-MAINT-02, 19 LR-03, ADR-0024 decision 2 and amendment 3): every package in

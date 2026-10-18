@@ -36,3 +36,10 @@ path = ["docs/**.md", "docs/**.csv", "README.md", "CLAUDE.md"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "CC-BY-4.0"
+
+# L7: shipped library content as JSON documents (symbols, function definitions, forms), which cannot carry headers.
+[[annotations]]
+path = "content/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
+SPDX-License-Identifier = "CC-BY-SA-4.0"
