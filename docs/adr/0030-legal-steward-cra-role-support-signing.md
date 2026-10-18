@@ -16,8 +16,15 @@
     SBOM, vulnerability handling, a support period normally of at least five years, technical documentation, an EU
     declaration of conformity and CE marking (self-assessment for the default category; details **verify**).
   - **Dates:** reporting of actively exploited vulnerabilities and severe incidents (Art. 14) has applied since
-    2026-09-11, and all other obligations apply from 2027-12-11. With MVP in month 6–7 and 1.0 in months 15–18,
-    **every 1.0 release ships under full application**.
+    2026-09-11, and all other obligations apply from 2027-12-11. In the plan of record the first public binary
+    release (0.1.0, the MVP) is in February 2030 and 1.0 in January 2032 ([global plan](../plan/01-global-plan.md)
+    §5.1, [milestones.csv](../plan/milestones.csv)), so **every public release ships under full application**. The
+    pilot preview 0.0.x (milestone M-PP, for the pilot only and unsigned) and the nightly CLI builds for the pilot
+    also fall after 2027-12-11; whether such pilot-only builds are "made available on the market" is a question
+    for counsel (global plan §5.3).
+- **Lead time.** Signing enrolment (D-U-N-S, Apple organisation, Artifact Signing identity validation) takes at
+  least 12 months of calendar time, so the phase-1 identity holder must be named in the first 90 days of the plan
+  (PD-7a, global plan §14) even though this ADR is decided in full only by gate G-M1 (PD-7).
 - **Product Liability Directive (EU) 2024/2853** (**unverified**). Software is a product, for products placed on
   the market after 2026-12-09. FOSS supplied outside a commercial activity is excluded. EW's PE-sizing,
   N-switching and load checks are safety-relevant engineering aids.

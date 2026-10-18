@@ -525,7 +525,7 @@ flowchart TD
 - **Read-only openers never roll forward.** If one meets temps, it retries every 200 ms for up to 5 s.
 - **Parallel parse.** Files are parsed in parallel into ordered tables, so the result does not depend on order.
 - **Budget.** Opening stays within NFR-PERF-03 (S ≤ 0.5 s … XL ≤ 20 s). Hashing the roughly 250 MB of an XL
-  project takes well under a second in parallel (estimate, to be measured in the M0 spike).
+  project takes well under a second in parallel (estimate, to be measured in the performance spike (gate G-SP)).
 
 ### 6.2 Classifying hash mismatches
 

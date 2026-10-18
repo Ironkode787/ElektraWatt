@@ -71,8 +71,8 @@ C-n, ARCH, VIS, ADR-00nn). This file adds:
   (§2.1), and a warm OS file cache unless a row says "cold".
 - **Statistics.** A single operation passes on the median of 10 runs, with no run above 1.5 × budget. A latency
   passes on its p99 over at least 1,000 samples of a scripted gesture sequence.
-- **Estimates and requirements.** The figures of ARCH §6.7 are estimates. The budgets here are requirements. The M0
-  spike measures them. A budget changes only by a reviewed change to this file that cites the measurement.
+- **Estimates and requirements.** The figures of ARCH §6.7 are estimates. The budgets here are requirements. The performance
+  spike (gate G-SP, [global plan](../plan/01-global-plan.md) §5.1) measures them. A budget changes only by a reviewed change to this file that cites the measurement.
 
 ---
 
@@ -81,7 +81,7 @@ C-n, ARCH, VIS, ADR-00nn). This file adds:
 ### 2.1 Project-size classes
 
 The classes are assumptions (AS-2), to be recalibrated against the pilot user's three largest projects before
-the M0 spike (VIS open question 5). The page, device, connection and placement bounds are those of G6. The XL
+the performance spike (G-SP; VIS open question 5). The page, device, connection and placement bounds are those of G6. The XL
 device bound is raised from 40,000 to 50,000 to cover the ARCH §6.7 estimate case. The other columns use the
 ARCH §6.7 ratios: functions = 3 × devices, CPs = 2.5 × connections, terminals = 0.4 × devices, channels = 0.2 ×
 devices.
@@ -167,7 +167,7 @@ platforms are built for every release and fixed when reported, but a failure doe
 | NFR-REL-04 | Opening and saving an unchanged project shall be byte-identical. Unknown fields and unknown record kinds shall be preserved verbatim, and no save may drop data that EW cannot interpret. | Must | MVP | ADR-0011; ARCH §7.6; FR-COL-010 | **PR:** `load(save(m)) = m`, byte-stable on GP and the QET corpus; a fixture with an unknown `"$k"` survives a save. |
 | NFR-REL-05 | Format compatibility rules: (a) every released format fixture opens in every later build, and migrations are never deleted; (b) a reader opens newer minors of its major with a warning; (c) newer majors are refused or opened read-only; (d) after 1.0, majors change only in a yearly window, and development builds that write an unreleased format warn. | Must | MVP / 1.0 | ADR-0011; FR-COL-010, FR-COL-011 | **PR:** the fixture-corpus job; a format change without migration, fixture, schema and docs fails (schema-steward rule). |
 | NFR-REL-06 | Before the first save that rewrites a project in a newer format major (before 1.0: a newer format), EW shall ask for confirmation and write an `.ewz` of the original generation next to the project (new). | Should | MVP | ADR-0011; FR-COL-029 | **PR:** saving an older fixture leaves an `.ewz` that reopens to the original bytes. |
-| NFR-REL-07 | For the same model, settings, EW version and derivation profile, every output shall be byte-identical across Windows, macOS and Linux, thread counts and record load order. This covers project files (JSONL), PDF, SVG, XLSX/CSV reports, `.ewpp`, machine and PLC exports, routing, lengths, ferrule selection, bundle sequencing and check findings. PNG output is identical within the dify tolerance across platforms (ADR-0015); if the M0 spike finds a deterministic scalar mode of the CPU renderer, `ew render` and the CI goldens use it and PNG is byte-identical again on the same platform. No output carries wall-clock timestamps, random IDs or absolute paths: dates come from the model or from an explicit export setting. | Must | MVP / 1.0 | ARCH §1.2 (8), §13; PMF §11; FR-OUT-019; ADR-0015 | **PR:** shuffle-order and serial-versus-parallel digests; **N:** cross-platform comparison of GP output digests, and of GP PNG renders within the dify tolerance. |
+| NFR-REL-07 | For the same model, settings, EW version and derivation profile, every output shall be byte-identical across Windows, macOS and Linux, thread counts and record load order. This covers project files (JSONL), PDF, SVG, XLSX/CSV reports, `.ewpp`, machine and PLC exports, routing, lengths, ferrule selection, bundle sequencing and check findings. PNG output is identical within the dify tolerance across platforms (ADR-0015); if the performance spike (G-SP) finds a deterministic scalar mode of the CPU renderer, `ew render` and the CI goldens use it and PNG is byte-identical again on the same platform. No output carries wall-clock timestamps, random IDs or absolute paths: dates come from the model or from an explicit export setting. | Must | MVP / 1.0 | ARCH §1.2 (8), §13; PMF §11; FR-OUT-019; ADR-0015 | **PR:** shuffle-order and serial-versus-parallel digests; **N:** cross-platform comparison of GP output digests, and of GP PNG renders within the dify tolerance. |
 | NFR-REL-08 | Derived data shall be correct by test. Memoised results shall equal a cold recomputation. These properties shall hold: `undo(all) ∘ apply(cmds) = id`, journal replay = live state, preview + commit = execute, and renumbering keeps all references. | Must | MVP | ARCH §6.8, §13; ADR-0002, ADR-0008 | **PR:** oracle on GP plus short proptest runs; **N:** full oracle and the command-sequence fuzzer; `ew verify-derived` reports zero differences on every fixture. |
 | NFR-REL-09 | A project pinned to a derivation profile shall print byte-identical tags, cross-references and wire numbers in every later EW release. Shipped profiles are never removed and keep their golden tests. | Must | MVP | ADR-0003; ARCH §6.6; FR-PRJ-011 | **PR:** golden outputs per shipped profile. |
 | NFR-REL-10 | An as-built archive shall be self-contained: canonical text, embedded libraries, PDF/A-2b, `.ewpp`, SHA-256 sums, and the JSON Schemas and format specification of its format version. It shall open read-only in every EW release for at least 10 years after its creation, and its PDF and JSONL shall stay interpretable without EW. | Must | 1.0 | G2; ADR-0013; ARCH §7.8; Regulation (EU) 2023/1230 retention (article unverified) | **R:** the GP V1.0 archive passes `sha256sum -c` and veraPDF PDF/A-2b, and validates against the included schemas with a permissive-only reader; every release's archive joins the fixture corpus. |
@@ -352,11 +352,11 @@ steward exists and what role it takes is ADR-0030 (proposed).
 | NFR-UX-02 | The System Usability Scale score shall be ≥ 68 at M2 and ≥ 75 at 1.0 (new targets). | Should | MVP / 1.0 | — | **S:** SUS questionnaire in the NFR-UX-01 sessions. |
 | NFR-UX-03 | EPLAN and QET vocabulary shall work as command-palette aliases (e.g. "folio report", "master/slave", "plot frame"), the EPLAN-like keymap is validated by two EPLAN users at 1.0, and UI terms follow IEC 81346 and EPLAN usage (device, function, CDP, interruption point). | Must | MVP / 1.0 | G5, G13; FR-UI-012, FR-UI-014 | **PR:** palette tests for each glossary term of NFR-DOC-05; **S:** keymap confirmation. |
 | NFR-UX-04 | Starting from the company basic project and without documentation, a QET user shall draw the folio 102 circuit (-102G1, -102F1, -102F2 with wires) and export a PDF within 30 minutes (new target). | Should | MVP | G13; FR-UI-030 | **S:** timed task in the NFR-UX-01 sessions. |
-| NFR-UX-05 | The pilot user shall complete three consecutive new production projects in EW without QET, with no hand-maintained report page, no slower than their own QET baseline on a reference-size project. | Must | MVP | SC-3 | **S:** pilot log and timing. |
-| NFR-UX-06 | Importing a reference-size QET project of the pilot user and resolving its migration report to zero errors shall take the pilot user at most 1 hour (new target). | Should | MVP | SC-4; FR-IMP-003 | **S:** pilot log. |
+| NFR-UX-05 | The pilot user shall complete three consecutive new production projects in EW without QET, with no hand-maintained report page, no slower than their own QET baseline on a reference-size project. | Must | MVP | SC-3 | **S:** pilot log and timing; the clock starts at G-M2 and the criterion closes at G-M3 ([gates](../plan/03-gates.md#83-success-criteria-by-gate) §8.3). |
+| NFR-UX-06 | Importing a reference-size QET project of the pilot user and resolving its migration report to zero errors shall take the pilot user at most 1 hour (new target). | Should | MVP | SC-4; FR-IMP-003 | **S:** pilot log; in the plan's lean variant the migration ships after the MVP and SC-4 closes at G-M3 (vision §9.1). |
 | NFR-UX-07 | Every edit shall be undoable or flagged as a marker line in the history; destructive non-undoable operations (library writes outside the project, overwriting an existing file, purging library copies, the empty-project import checkpoint) are confirmed (ARCH §5.3). Every bulk command is previewable, no modal dialog blocks editing while a job runs, Escape cancels every tool, and every message states cause and remedy and carries its rule ID. | Must | MVP | ARCH §5.3, §5.4; ADR-0008; FR-UI-022, FR-UI-023 | **PR:** kittest cancels each registered tool with Escape; exporting the GP PDF to a new file asks nothing and adds a marker line, while exporting over an existing file asks once; a lint checks that every Fluent message of a rule has a remedy key. |
 | NFR-UX-08 | GP shall reproduce from the shipped defaults (EN 81346-2:2009 letter codes, QET-compatible frame, xref format) and the pilot's company basic project, with no further settings edits. | Must | MVP | ADR-0026; G13; FR-PRJ-009 | **PR:** the acceptance runner builds GP from the defaults and the basic project only. |
-| NFR-UX-09 | A formative usability round with at least two participants shall run in month 4–5 on the read-only viewer and the place and wire tools; its findings are triaged before M2. | Should | MVP | SC-9; ADR-0007; 16 §19.2 (round R0) | **S:** the round's report exists before the M2 test of NFR-UX-01 is scheduled. |
+| NFR-UX-09 | A formative usability round (R0) with at least two participants shall run as soon as the viewer and the place and wire tools exist, which the plan of record reaches with the pilot preview (M-PP; checkpoint CP-05 in [gates](../plan/03-gates.md#25-checkpoints-between-gates) §2.5); its findings are triaged before the R1 round and the M2 test. | Should | MVP | SC-9; ADR-0007; 16 §19.2 (round R0) | **S:** the round's report exists before the M2 test of NFR-UX-01 is scheduled. |
 
 ---
 
@@ -448,7 +448,7 @@ carries the support status proposed by 18 [P18-8].
    for 50,000 devices on 2,000 pages and 200,000 connections. This file takes the larger value of each source
    (5,000 pages, 50,000 devices, 250,000 connections), so the XL fixture is about 25 % above the estimate case.
    *Recommendation:* gate on the class bound, keep XL-A for comparison with the estimates, and recalibrate L and XL
-   from the pilot's largest projects before the M0 spike. Lower the bounds rather than relax the budgets.
+   from the pilot's largest projects before the performance spike (G-SP). Lower the bounds rather than relax the budgets.
 2. **Pure formulas in untrusted projects.** rhai formulas inside queries (tag and wire-number formats, title-block
    formulas) are scripts, and without them an untrusted project cannot render. ARCH §10.6 says embedded scripts never
    auto-run. *Recommendation:* evaluate pure formulas in untrusted projects, because they run with no I/O, under
@@ -467,7 +467,7 @@ carries the support status proposed by 18 [P18-8].
    engine-statistics counts per PR (NFR-PERF-20). Counts do not depend on runner speed.
 7. **Targets marked "new target".** These are L commit p99, bulk-preview, full-save, cancel, soak, fuzz durations,
    advisory waivers, disclosure times, coverage, CI wall time, SUS and task times. *Recommendation:* confirm the
-   performance ones at the M0 spike, the usability ones at the M2 study and the security ones with the steward
+   performance ones at the performance spike (G-SP), the usability ones at the M2 study and the security ones with the steward
    (ADR-0030). Then remove the "new target" marks.
 8. **Pending owner decisions.** NFR-PRIV-04 (crash upload) depends on ADR-0029, and NFR-COMP-01 … 03,
    NFR-COMP-07, NFR-COMP-08, NFR-LIC-11, NFR-LIC-13 (the steward's role) and NFR-SEC-12 (signing identity) depend

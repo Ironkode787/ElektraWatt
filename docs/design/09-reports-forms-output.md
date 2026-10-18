@@ -634,7 +634,7 @@ partial file (FR-UI-024).
   XML IDs may not contain colons); links as `<a href="103.svg#ew-r-<uuid>">`.
 - **PNG (MVP, FR-OUT-014).** vello_cpu through `ew-render-cpu` at a chosen DPI (`ew render --page 103 --png --dpi
   150`). vello_cpu may choose different SIMD paths per CPU, so PNGs compare within the dify tolerance across
-  platforms; if the M0 spike finds a deterministic scalar mode, `ew render` and the CI goldens use it and PNG returns
+  platforms; if the performance spike (gate G-SP) finds a deterministic scalar mode, `ew render` and the CI goldens use it and PNG returns
   to byte identity on the same platform (ADR-0015 amendment 3).
 - **DXF (1.0, FR-OUT-015).** dxf 0.6.2, AC1015, `$INSUNITS` = mm, layer mapping per scheme (default `EW-FRAME`,
   `EW-SYMBOLS`, `EW-WIRES`, `EW-TEXTS`, `EW-GRAPHICS`, `EW-TABLES`); symbols as `BLOCK`/`INSERT` named by symbol and
@@ -955,7 +955,7 @@ The thirteen rows this document proposed are in the catalogues:
 12. **PNG byte identity.** vello_cpu may choose different SIMD paths per CPU. NFR-REL-07 lists PNG among the
     byte-identical outputs and FR-OUT-014's criterion says "the same image on all CI platforms". **Resolved:**
     ADR-0015 amendment 3: PNGs compare within the dify tolerance across platforms, byte identity stays for PDF, SVG,
-    XLSX, CSV, JSONL and `.ewpp`, and a deterministic scalar vello_cpu mode, if the M0 spike finds one, restores PNG
+    XLSX, CSV, JSONL and `.ewpp`, and a deterministic scalar vello_cpu mode, if the performance spike (gate G-SP) finds one, restores PNG
     byte identity on the same platform (§4.4).
 13. **PDF/A level and embedding for customers.** PQ-29 asks which level is required and whether the native project
     may be embedded. *Recommendation:* keep PDF/A-2b without attachments as the default; offer A-3b per scheme only

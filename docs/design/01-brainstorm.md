@@ -427,6 +427,23 @@ changes. Until a question is answered, the documented defaults and the ▲ test 
 | PQ-32 | Which manufacturers would you ask, as their customer, to publish open data? | IDEA-091 order | oss OQ5 |
 | PQ-33 | Is "zero network traffic by default" acceptable? Should a crash endpoint exist, run by whom? | ADR-0029 | G12 OQ8 |
 | PQ-34 | Should we contact the QET maintainers about coordination? | IDEA-108 | oss OQ7 |
+| **Added by the consolidation (PQ-37 … PQ-52)** | | | |
+| PQ-37 | May the anonymised technical content of the reference project (tags, part numbers, wiring, order codes) stay in the public repository as CC0? Does the end customer's contract require its consent too? | DEC-013; G-M0 (LG-5, overdue) | [plan/06](../plan/06-decision-log.md) Part C |
+| PQ-38 | Will the employer sign the copyright statement (LG-1), including one-way consent that its staff's contributions may later move from GPL to MIT OR Apache-2.0 where the permissive layer needs them? | DEC-014; G-M0 target, G-M1 hard (LG-1); WP-S0.04 | [plan/06](../plan/06-decision-log.md) Part C |
+| PQ-39 | Can the employer fund a fourth developer from month 4 (or later), and will it file the WBSO application for 2027 in December 2026? | DEC-003, DEC-005; G-M0; PD-3 by month 2; WP-S0.07 | [plan/06](../plan/06-decision-log.md) Part C |
+| PQ-40 | Are your first EW projects new projects, or do you need to continue existing QET projects immediately (which would pull QET project migration into the MVP)? | DEC-002; G-M0; WP-S3.10 to WP-S3.13 | [plan/06](../plan/06-decision-log.md) Part C |
+| PQ-41 | Do you ever have to deliver native EPLAN projects, or do you have UL 508A / NFPA 79 work? | DEC-007; G-M0, re-check G-M3 | [plan/06](../plan/06-decision-log.md) Part C |
+| PQ-42 | Can you time two reference-size projects in QET (hours per task) during the first months as the baseline for SC-3? | DEC-029; G-M0 to G-M1; SC-3 at G-M3 | [plan/06](../plan/06-decision-log.md) Part C |
+| PQ-43 | Do you size cabinet climate and heat today? With which method (IEC TR 60890, a vendor tool) and which enclosure data? | DEC-011; G-M1 (lever c); WP-S4.10; thermal calculation is a 1.x item until answered | [plan/06](../plan/06-decision-log.md) Part C |
+| PQ-44 | Which licensed standards do you own (IEC 81346-1:2022, EN 60204-1, IEC 60445, IEC 61439, ISO 1219-1/-2, IEC TR 60890) and could you help verify the constants that ship unverified? | DEC-006; G-M3, G-M5; until answered all such rules run with verified=false (warnings only) | [plan/06](../plan/06-decision-log.md) Part C |
+| PQ-45 | Which UI languages do you and your colleagues need (Dutch at the MVP, German by 1.0)? | DEC-009; G-M2; WP-S2.08, WP-S7.07; default English and Dutch at MVP, German by 1.0 | [plan/06](../plan/06-decision-log.md) Part C |
+| PQ-46 | Do you share your own or converted QET element collections with partners or customers? | DEC-025; G-M3; WP-S3.10 to WP-S3.12; default company-library export with QET's licence file and a warning, never community packs | [plan/06](../plan/06-decision-log.md) Part C |
+| PQ-47 | Will you take part in a one-time private review session in which the first golden PNGs are compared with the confidential PDF? | DEC-059; G-M1; WP-S3.04 (AC-14); default goldens approved by inspection only | [plan/06](../plan/06-decision-log.md) Part C |
+| PQ-48 | Do customers require technician names in as-built records, or are pseudonymous codes acceptable? | DEC-041; G-M4; WP-S5.08; default pseudonymous codes, no names in customer exports | [plan/06](../plan/06-decision-log.md) Part C |
+| PQ-49 | Are the field wires W1 to W3 and the cable -101W1 made in the shop or on site? | DEC-070; G-M4; WP-S5.01; default flagged "field" and excluded from machine files | [plan/06](../plan/06-decision-log.md) Part C |
+| PQ-50 | Do you need the legend position numbers of a layout frozen at release, so revised drawings keep their numbers? | DEC-070; G-M4; WP-S4.01; default derived positions that renumber when devices change | [plan/06](../plan/06-decision-log.md) Part C |
+| PQ-51 | Which cross-reference style do you want on native pages ("/101.H16" EPLAN style or the QET style you use today), and how should contact images and interruption-point directions look in your house style? | DEC-050; G-M2; WP-S7.03, R0; default EPLAN style on native frames, QET style in the pilot basic project | [plan/06](../plan/06-decision-log.md) Part C |
+| PQ-52 | Do you estimate labour from the wire list? Which I/O-list typicals (per card or per device) could you share? | DEC-012; G-M5; WP-S3.15, WP-S1.29; default labour estimate as an example SQL report, flat I/O-list value sets | [plan/06](../plan/06-decision-log.md) Part C |
 
 ---
 

@@ -35,7 +35,7 @@ Stale memos would recreate the D-01 class invisibly. This is risk 1 of
    queries read through the same accessors.
 2. **Phase 1 (spine): cold.** Queries are computed on demand, with a request-scoped cache that prevents repeated
    work within one top-level evaluation. No engine is needed, and contributors write plain functions.
-3. **Phase 2 (from the M0 spike, weeks 3–5): memoise where measured.** A query is promoted to `Memo` when profiling
+3. **Phase 2 (from the performance spike, gate G-SP of the plan, right after the core model WP WP-S1.03): memoise where measured.** A query is promoted to `Memo` when profiling
    on the synthetic L/XL projects shows it on an interactive path. Promotion and demotion are one-line policy
    changes.
 4. **`ew-memo` v1 contains exactly:**
@@ -83,7 +83,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; this entry refines
    [architecture](../design/04-architecture.md) §6.2). `ew-memo` v1 also offers a generic API that returns, per query
    family, the memos whose recorded reads include a given key. It stays ECAD-agnostic. The online check engine
    builds its `rdeps` index from it, so a commit re-evaluates exactly the check scopes whose last evaluation read a
-   touched key. The M0 spike measures its memory (≤ 40 MB estimated at XL); above budget the engine falls back to
+   touched key. The performance spike (G-SP) measures its memory (≤ 40 MB estimated at XL); above budget the engine falls back to
    coarse page and shard keys with re-verification of the matching scopes.
 
 ## Consequences
@@ -107,8 +107,9 @@ Accepted on 2026-10-18. The decision text above is unchanged; this entry refines
 - EW owns a memo engine. Its correctness rests on the oracle, the command-sequence fuzzer and the access rules.
 - There is no parallel speed-up on the interactive path. Global connectivity remains the hotspot at 5–10 ms per
   committed wire edit in the XL-A estimate case; live highlighting during a drag uses page-local nets only.
-- Promotion decisions need profiling infrastructure from week 3: the synthetic S/M/L/XL fixtures and the
-  perf gate (ADR-0022).
+- Promotion decisions need profiling infrastructure before the performance spike (G-SP): the synthetic S/M/L/XL
+  fixtures and the perf gate (ADR-0022). The date of the spike is the plan's ([global plan](../plan/01-global-plan.md)
+  §14, PD-8; [milestones.csv](../plan/milestones.csv)), not a calendar week of the spine.
 - Memory must be actively policed (granularity rules, LRU, memory gate).
 
 ## Alternatives considered

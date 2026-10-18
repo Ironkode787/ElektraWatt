@@ -29,7 +29,7 @@ users
 - **Incommensurable grids.** Neither 4 mm nor 2.5 mm is an integer multiple of 127/48 mm. CPs must lie on their
   page's connection grid (FR-SYM-009), so native symbols cannot be placed on QET-grid pages, and QET-import symbols
   cannot be placed on native pages.
-- **Timing.** The spine's lane 2 draws the starter set in weeks 2–5. The symbol set cannot be drawn before this
+- **Timing.** The spine's lane 2 draws the starter set in effort weeks 2–5 of the spine (04 §15.1; dates in plan/01). The symbol set cannot be drawn before this
   decision ([07](../design/07-symbols-parts-macros.md) OQ9, PQ-06).
 
 ## Decision

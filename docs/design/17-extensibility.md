@@ -1114,7 +1114,7 @@ serves a permissive standalone tool and an EW plugin.
   when the session or manifest opts in.
 - **The guard.** A PR that changes any snapshot above in a breaking way fails unless it carries the `api-break`
   label, an ADR reference and a release-note entry (NFR-MAINT-10, run as the per-PR job CI-PR-14 of
-  [18](18-quality-security-release.md) §5.2; cargo-semver-checks stays **(verify)** until the M0 spike pins it).
+  [18](18-quality-security-release.md) §5.2; cargo-semver-checks stays **(verify)** until the M0 CI setup, WP-S0.01, pins it).
 
 ---
 
@@ -1334,6 +1334,10 @@ Until then the report lists the loads with their protective device and channel, 
 | Plugins | — | — | WASM components, capabilities, signing, dialogs, plugin data, registry (IDEA-095), network capability | native dylib plugins: never |
 | Crates | permissive layer closed and CI-checked | published to crates.io (FR-EXT-023) | `ew-plugin-wit`, `ew-plugin-sdk` | — |
 
+These labels describe the full scope. The plan's lean variant, if PD-1 is adopted, moves the rhai automation scripts,
+jobsets and the ask-first MCP writes from 1.0 to 1.x ([vision](00-vision-and-scope.md) §9.1,
+[global plan](../plan/01-global-plan.md) §14), and the headless read-only MCP server from the MVP to 1.0.
+
 ---
 
 ## 19. Dependencies
@@ -1421,7 +1425,7 @@ The fourteen rows this document proposed are in the catalogues with the numbers 
    [15](15-checks-revisions-collaboration.md) on `ew revision approve`. **Resolved:** §3.3 is the authoritative CLI
    catalogue and ARCH §10.1 summarises its groups; FR-EXT-029 … FR-EXT-031 are in 02b.
 3. **wasmtime LTS line for the plugin launch.** The 48.x LTS line (2026-08) is supported for 24 months, until
-   about 2028-08, shortly after 1.0 ships (month 15–18). **Resolved:** ARCH §2 and §3 and ADR-0020 (amendment 2)
+   about 2028-08. In the plan of record 1.0 ships in January 2032 ([global plan](../plan/01-global-plan.md) §5.1) and WASM plugins in 1.x (§6.4 there), so this line ends long before the plugin launch. **Resolved:** ARCH §2 and §3 and ADR-0020 (amendment 2)
    now read "the wasmtime LTS line current at plugin launch" (by the every-12th rule 60.x from about 2027-08 or 72.x
    from about 2028-08, **verify**), with development on 48.x until then; NFR-MAINT-04 already requires moving
    before support ends.

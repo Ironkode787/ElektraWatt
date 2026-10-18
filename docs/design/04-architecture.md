@@ -17,7 +17,7 @@ Fixed constraints: Rust, open source, 2–4 developers, cross-platform offline-f
 > - D-nn are the reference set's defects ([reference-drawing.md](../research/reference-drawing.md) §3).
 > - G-n and C-n are items in [gaps-and-corrections.md](../research/gaps-and-corrections.md), which overrides the other research notes.
 > - Crate versions come from the research notes. **(verify)** marks a version or API not confirmed there.
-> - Performance figures are **estimates**, to be confirmed by the M0 spike (§15).
+> - Performance figures are **estimates**, to be confirmed by the performance spike, gate G-SP of the plan (§15).
 >
 > This document follows the public-repository rules: it names no customer, end user, project reference, drawing
 > id, person or company.
@@ -605,7 +605,7 @@ pub fn device_tag(q: &Q, dev: Id<Device>) -> Arc<Tag> { /* reads TagSpec, struct
 - **Phase 1 (spine): cold.** Every query runs in **cold mode**: computed on demand, with a request-scoped cache
   that prevents repeated work within one top-level evaluation. No engine is needed, and contributors write plain
   functions.
-- **Phase 2 (from the M0 spike): memoise where profiled.** A query is promoted to `Memo` when profiling on the
+- **Phase 2 (from the performance spike, G-SP): memoise where profiled.** A query is promoted to `Memo` when profiling on the
   synthetic L/XL projects shows it on an interactive path. Every promotion is a one-line policy change, and the
   oracle verifies it.
 - **Fallback.** If a query family cannot meet its budget with `ew-memo` within memory limits, it falls back to
@@ -631,7 +631,7 @@ pub fn device_tag(q: &Q, dev: Id<Device>) -> Arc<Tag> { /* reads TagSpec, struct
    `tracing` and asserted in the perf gate.
 7. **Reverse dependencies.** A generic API returns, per query family, the memos whose recorded reads include a given
    key. The online check engine builds its `rdeps` index from it
-   ([checks, revisions and collaboration](15-checks-revisions-collaboration.md) §3.3). The M0 spike measures its
+   ([checks, revisions and collaboration](15-checks-revisions-collaboration.md) §3.3). The performance spike (G-SP) measures its
    memory; above budget the engine falls back to coarse page and shard keys.
 
 **Out of v1:**
@@ -1446,21 +1446,27 @@ docs = "rules/ew-pot-013"
 
 ## 15. Spine build order and parallel streams
 
-### 15.1 The spine (weeks 0–12): two lanes from day one
+### 15.1 The spine: two lanes from day one
 
 The critical path to the golden PDF is not only the model. It is also **symbols, page geometry and frame forms**
 (feasibility judge). The spine therefore runs as two lanes that meet at `ew-schema` and the query catalogue.
 
-| Weeks | Lane 1: core (dev 1) | Lane 2: output (dev 2) |
+**Effort, not calendar.** The first column below counts *effort weeks* of two full-time lanes. It fixes the order
+and the dependencies of the spine's work, not dates. The calendar is the plan of record: the spine ends at milestone
+M1, which the [global plan](../plan/01-global-plan.md) dates in §5.1 and §7 and
+[milestones.csv](../plan/milestones.csv) (month 15 for three developers and the lean scope, because the same work
+shares the team with the rest of S0, S1, S3, S6 and S7).
+
+| Effort weeks | Lane 1: core (dev 1) | Lane 2: output (dev 2) |
 |---|---|---|
 | 0–2 | `ew-units`, `ew-ids`, `ew-mltext`, `ew-rds`; `ew-schema` v0 for the golden subset (co-owned) | `ew-dl`; symbol, function-definition and form record kinds in `ew-schema` |
 | 2–5 | `ew-model` (tables, ops, base indexes, invariants); `ew-commands` (`TxBuilder`, `History`, normalisers, about 20 commands, preview fork) | Starter symbol set as data: about 40 IEC 60617 and ISO 1219 symbols used by J-E-2416. Minimal **QET element reader** (`.elmt` geometry and terminals embedded in `.qet`) into a per-project "QET import" library on its native grid |
-| 3–5 | **M0 perf spike:** synthetic L and XL replicated from the golden project; cold-query latency for move, wire, renumber and profile change; global connectivity; open time and memory. **Output:** the list of queries to memoise and the go/fallback decision (§6.1) | `ew-text` and `ew-scene` frames and forms: QET-compatible 17 × 8 frame, title block with bound fields, text stack and bundled fonts |
-| 5–9 | `ew-derive` (structure, tags, anchors, xrefs, two-level nets, potentials, wire properties, page order, TOC, BOM, title block), cold first; `ew-memo` for the queries M0 selected; oracle mode | `ew-render-cpu` and PNG goldens; `ew-reports` pagination (TOC, BOM 901, terminal, wire); `ew import csv` golden bootstrap (`ew-import-tables`) |
+| 3–5 | **Performance spike (gate G-SP in the plan, right after WP-S1.03):** synthetic L and XL replicated from the golden project; cold-query latency for move, wire, renumber and profile change; global connectivity; open time and memory. **Output:** the list of queries to memoise and the go/fallback decision (§6.1) | `ew-text` and `ew-scene` frames and forms: QET-compatible 17 × 8 frame, title block with bound fields, text stack and bundled fonts |
+| 5–9 | `ew-derive` (structure, tags, anchors, xrefs, two-level nets, potentials, wire properties, page order, TOC, BOM, title block), cold first; `ew-memo` for the queries the performance spike selected; oracle mode | `ew-render-cpu` and PNG goldens; `ew-reports` pagination (TOC, BOM 901, terminal, wire); `ew import csv` golden bootstrap (`ew-import-tables`) |
 | 6–9 | `ew-format` and `ew-store`: JSONL writer and reader, manifest, save protocol, journal, lock | krilla PDF: outline, links, named destinations, page labels, PDF/A-2b |
 | 9–12 | `ew-sqlview` v0 and the acceptance runner; `ew query --explain`; perf gate in CI | Integration: `ew export pdf golden/`; visual and PDF structure tests |
 
-**Spine exit (M1, week 12).**
+**Spine exit (M1).** The exit criteria are the content of gate G-M1 ([gates](../plan/03-gates.md) §5):
 - `ew export pdf golden/J-E-2416.ew` produces the 18 folios plus report folios 903–911.
 - §4.15 criteria 1–7 and 9 pass: pages, frame, xrefs, tags, BOM, terminals, wire data, PDF structure.
 - The acceptance SQL/CSV pairs pass with the oracle on, still without a GUI.
@@ -1477,19 +1483,24 @@ and golden data, not mocks.
 | Stream | Owns | First deliverables | 2 devs | 3 devs | 4 devs |
 |---|---|---|---|---|---|
 | **S1 Core and derivation** | Model breadth (cables, PLC, bus, fluid, assemblies, revisions), numbering, `ew-checks` and packs, merge driver and integrity, projection breadth, plugin and MCP read API | Full golden model; `ew check` with §4.15 criterion 8 | dev A | dev 1 | dev 1 |
-| **S2 Interaction** | egui shell, `ew-render2d`, tools, navigators, property grid, keymaps, a11y, view-models | Read-only viewer first, then place, wire, move and undo on folios 101–106 | dev B | dev 2 (week 6 with a third dev) | dev 2 |
+| **S2 Interaction** | egui shell, `ew-render2d`, tools, navigators, property grid, keymaps, a11y, view-models | Read-only viewer first, then place, wire, move and undo on folios 101–106 | dev B | dev 2 | dev 2 |
 | **S3 Documents and migration** | Report pack and form editor, SVG/DXF, **full QET importer** (folio reports → IPs, master/slave → main/aux, per-project `%F`/`%f` formulas, potentials from connectivity), EDZ parts, AML/TIA/PLCopen, manufacturing outputs and machine profiles, `.ewpp` | QET corpus (24 examples) and the pilot's projects; Komax CSV and wire list | dev A | dev 3 | dev 3 |
-| **S4 Physical** | Layout model, STEP worker, `ew-render3d`, collision reconciler, routing, lengths, duct fill, 2D panel projection | Folio 902 driven by placements; wire lengths in the wire list | dev B, after the 2D editor MVP | dev 2, after M2 | dev 4 (from month 4) |
+| **S4 Physical** | Layout model, STEP worker, `ew-render3d`, collision reconciler, routing, lengths, duct fill, 2D panel projection | Folio 902 driven by placements; wire lengths in the wire list | dev B, from the start of WP-S4.01 | dev 2, from the start of WP-S4.01 | dev 4 (joins at month 4 in the plan) |
 
-**Indicative milestones** (the global plan sets dates):
+**Milestones.** The content of each milestone is below; the dates are the plan's (see
+[global plan](../plan/01-global-plan.md) §3.4 and §5.1 and [milestones.csv](../plan/milestones.csv)). The "plan of
+record" column quotes month *n* counted from November 2026 for three developers and the lean scope; other team sizes
+and the re-baseline at G-M1 are in the plan.
 
-| Milestone | Month | Content |
+| Milestone | Plan of record | Content |
 |---|---|---|
-| M1 | 3 | Spine exit |
-| M2 | 6–7 | Interactive 2D editor MVP, full QET import of the corpus, check packs and report pack, usability test with two EPLAN users and one QET user |
-| M3 | 9 | PLC, bus and fluid breadth; manufacturing outputs; EDZ and AML exchange |
-| M4 | 12 | 3D panel, routing and lengths |
-| v1.0 | 15–18 | Hardening, docs, format freeze |
+| M1 | month 15 | Spine exit: the headless golden PDF (§15.1) |
+| M-PP (pilot preview, release 0.0.x) | month 25 | A slice of S1 and S2 for the pilot only: interactive 2D editing of new projects with the starter symbols, core reports, PDF and core online checks; unsigned build; gate G-PP |
+| M2 (MVP) | month 40 | Interactive 2D editor MVP, QET import of the corpus (the plan's lean variant ships the project migration in the next 0.x, see [vision](00-vision-and-scope.md) §9.1), check packs and report pack, 2D panel front, usability test with two EPLAN users and one QET user, first signed release |
+| M3 | month 46 | PLC, bus and fluid 1.0; QET migration; EDZ, AML, TIA tag and PLCopen exchange; DXF and DWG |
+| M4 | month 57 | 3D panel, collision, routing and lengths; manufacturing outputs and machine profiles |
+| M5 | month 58 | 1.0 feature complete (beta) |
+| M6 (v1.0) | month 63 | Hardening, docs, format freeze, signed 1.0 |
 
 **Rotating schema-steward role.** Every format change passes the steward rule (§7.6).
 
@@ -1500,7 +1511,7 @@ and golden data, not mocks.
 | # | Risk | Mitigation |
 |---|---|---|
 | 1 | **Stale memos** recreate the D-01 class invisibly | Untracked reads do not compile; cold mode by default; oracle in CI, debug and nightly; command fuzzer; `ew verify-derived`; `ew query --explain`; any query can be dropped back to cold with a one-line change |
-| 2 | **Interactive latency at L/XL** (global connectivity, bulk edits) | Two-level nets with stable `PotentialId`s; backdating; bulk commands as preview jobs; M0 spike at week 3 with a named fallback (§6.1); engine statistics asserted in the perf gate |
+| 2 | **Interactive latency at L/XL** (global connectivity, bulk edits) | Two-level nets with stable `PotentialId`s; backdating; bulk commands as preview jobs; performance spike (G-SP) early in the spine with a named fallback (§6.1); engine statistics asserted in the perf gate |
 | 3 | **Memory at XL** (memos, projection, undo) | Granularity rules (§6.3); LRU; memory gate; file-backed projection at XL; 256 MB undo cap |
 | 4 | **`ew-memo` bus factor** | Small v1 engine (1.5–2.5 kLOC); generic crate with design notes; two owners by M1; most contributors write plain functions |
 | 5 | **Derivation drift** across EW versions changes archived drawings | Pinned derivation profiles; golden tests per profile; as-built archive with PDF |
@@ -1509,7 +1520,7 @@ and golden data, not mocks.
 | 8 | **SQL projection becomes a fragile public contract or an attack surface** | Versioned `api_v1` tied to the format major; sandbox; trust prompt; fuzzing; SQL is never a write path |
 | 9 | **Semantic merge conflicts** after git merges | Record- and field-level merge driver; in-file conflict records; post-merge integrity check with quick fixes; branch-safe "next free" counters |
 | 10 | **Licence-boundary mistakes** (GPL code reaching permissive crates; ported QET code) | Closed permissive layer from the first commit; CI licence-boundary check; REUSE headers; DCO; QET-derived code only in `ew-import-qet` |
-| 11 | **Symbols and forms on the golden critical path** | Spine lane 2 from week 0; starter symbol set; QET element reader |
+| 11 | **Symbols and forms on the golden critical path** | Spine lane 2 from the start; starter symbol set; QET element reader |
 | 12 | **EPLAN users expect autoconnect semantics** | Autoconnect as an assistant that creates explicit connections with a ghost preview; usability test before M2 (ADR-0007) |
 
 **What we explicitly do NOT build in v1:**
@@ -1549,9 +1560,9 @@ and golden data, not mocks.
 |---|---|
 | Hand-rolled engine is the largest novel infrastructure on the critical path; parallel fork evaluation and memo merge-back are subtle (feasibility, domain) | Cold-first queries; `ew-memo` without parallel evaluation, sharded locks or merge-back; adopt-if-unchanged only (§2, §6.1–6.2) |
 | Bus factor of one on the engine and the `Op` set (feasibility, longevity) | Two owners by M1; small generic engine; contributors write plain functions (§15.1, risk 4) |
-| Salsa decision gate not clean (salsa cancels readers on write) (feasibility) | Salsa rejected by ADR. The M0 spike compares cold vs memoised instead (§15.1) |
+| Salsa decision gate not clean (salsa cancels readers on write) (feasibility) | Salsa rejected by ADR. The performance spike compares cold vs memoised instead (§15.1) |
 | Macro and rhai-in-query complexity (feasibility) | Tracked access by module privacy (`&Q` only), not a macro DSL; rhai in queries limited to pure formulas (§6.1, §10.3) |
-| No PDF in the spine; the golden critical path is symbols and forms (feasibility) | Two-lane spine with symbols, forms and krilla PDF from week 0; minimal QET element reader; CSV bootstrap (§15.1) |
+| No PDF in the spine; the golden critical path is symbols and forms (feasibility) | Two-lane spine with symbols, forms and krilla PDF from the start; minimal QET element reader; CSV bootstrap (§15.1) |
 | Unflagged or inconsistent versions (directories 6.0.0, rayon 1.12.0; "wasmtime 49.0.3 pinned to 48 LTS") (feasibility, longevity) | Marked **(verify)**; "the LTS line current at plugin launch, 48.x in development, 49.0.3 current" (§2, §3) |
 | Memo memory at XL not shown; no granularity rule (domain) | Granularity rules, per-potential grouping, memory gate, explicit XL budget (§6.3, §6.7) |
 | Revision diff: where the frozen model lives was vague (domain) | As-built archive with canonical text, loaded into a read-only `Model` for `diff_model` and `diff_query`; git tag (§7.8) |

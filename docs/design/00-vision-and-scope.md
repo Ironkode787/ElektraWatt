@@ -101,8 +101,8 @@ the baseline machine (4-core 2018+ x64 or Apple M1, 8 GB RAM, integrated GPU).
 |---|---|---|---|
 | SC-1 | **Golden reproduction.** From the model alone, EW regenerates the 18 folios plus report folios 903–911, and all nine acceptance criteria of [reference analysis](../research/reference-drawing.md) §4.15 pass (frame ±0.2 mm; 22 interruption-point pairs and 9 main/aux sets exact; no -4W1, no T51) | MVP (headless at M1) | Acceptance SQL/CSV runner, PDF structure tests |
 | SC-2 | **Defect prevention.** No command can produce a D-nn of class S or I ([architecture](04-architecture.md) §14); `ew check --scheme pre-delivery` reports every class-C defect present in a source project (assisted D-39, D-40 excluded) | MVP (2D); 1.0 (layout, PLC, fluid) | Golden B renumber, command fuzzer, imported-defect fixture |
-| SC-3 | **Pilot switch.** The pilot user completes three consecutive new production projects in EW without QET, with no hand-maintained report page, no slower than their own QET baseline on a reference-size project | MVP exit | Pilot log and timing |
-| SC-4 | **QET migration.** ≥ 22 of the 24 QET example projects and every pilot project import without structural errors; cross-reference texts identical; every lenient-mode violation (D-11, D-12 …) in the migration report | MVP | QET corpus fixture |
+| SC-3 | **Pilot switch.** The pilot user completes three consecutive new production projects in EW without QET, with no hand-maintained report page, no slower than their own QET baseline on a reference-size project | From the MVP: the clock starts at G-M2, the criterion closes at G-M3 (target within six months of 0.1.0), at G-M6 at the latest ([gates](../plan/03-gates.md#83-success-criteria-by-gate) §8.3) | Pilot log and timing |
+| SC-4 | **QET migration.** ≥ 22 of the 24 QET example projects and every pilot project import without structural errors; cross-reference texts identical; every lenient-mode violation (D-11, D-12 …) in the migration report | MVP at full scope; closed at G-M3 in the plan of record, where lever (b) ships the migration in the 0.x release after the MVP (§9.1, [gates](../plan/03-gates.md#83-success-criteria-by-gate) §8.3) | QET corpus fixture |
 | SC-5 | **Performance.** Frame ≤ 16 ms while editing; open S ≤ 0.5 s, M ≤ 2 s, L ≤ 5 s, XL ≤ 20 s; full check S ≤ 2 s, XL ≤ 60 s; XL peak memory ≤ 4 GB; ≥ 30 fps for an A4 page on the CPU renderer | MVP (S/M), 1.0 (L/XL) | Nightly gate, fails on > 15 % regression |
 | SC-6 | **Determinism and longevity.** Byte-identical project files and PDF on all platforms; every released format fixture opens in every later build; a pinned derivation profile reproduces tags, xrefs and wire numbers after an upgrade | MVP; 1.0 (format freeze) | Shuffle-order tests, fixture corpus, per-profile goldens |
 | SC-7 | **Manufacturing.** The golden `.ewpp` holds the wire list with routed lengths and ferrules; Komax and Rittal WT files load in the machine software without manual edits; printed wire list and machine file are row-identical | 1.0 | Golden 3D fixture; machine acceptance with a partner shop |
@@ -133,6 +133,7 @@ These are deliberate. A feature request in one of these areas needs an explicit 
 | Our own UI toolkit, B-rep kernel or incremental framework | egui, the OCCT worker and the cut-down `ew-memo` (ADR-0002, ADR-0014, ADR-0016) |
 | UL 508A, NFPA 79, CSA in v1 | Later, as rule packs |
 | Certification of designs | EW checks do not replace engineering verification (ADR-0030) |
+| Functional-safety calculation: PL, PFHd, SIL or MTTFd verification of safety functions (ISO 13849-1, IEC 62061) | EW stores and exports the safety data of parts and safety functions (§9.2) and does not calculate or certify; SISTEMA remains the verification tool |
 
 ---
 
@@ -307,38 +308,77 @@ product decisions. When two requirements conflict, the lower-numbered principle 
 **Release targets.** **MVP** = what the pilot user needs to stop using QET for new projects: interactive 2D
 schematics reproducing the reference set, QET import, core reports, PDF, checks. **1.0** = full v1 scope: adds
 PLC/bus/fluid breadth, manufacturing outputs, 3D panel, EDZ/DXF/AML exchange. **1.x** = after 1.0. **Later** =
-parked. Indicatively, MVP corresponds to milestone M2 (month 6–7) and 1.0 to months 15–18
-([architecture](04-architecture.md) §15.2; the plan sets dates).
+parked. A **pilot preview** (milestone M-PP, release 0.0.x, an unsigned build for the pilot only) sits before the
+MVP: interactive 2D editing of *new* projects with the starter symbols, the core reports, PDF and the core online
+checks; it adds no release column, because it is a slice of MVP rows ([global plan](../plan/01-global-plan.md)
+§5.3). The mapping to milestones is MVP = M2, 1.0 = M6 ([architecture](04-architecture.md) §15.2).
+
+**Dates are not set here.** The calendar is the plan of record: see [global plan](../plan/01-global-plan.md)
+§3.4 and §5.1 and [milestones.csv](../plan/milestones.csv). For the plan of record (three developers, lean scope,
+month 1 = November 2026) these are M-PP at month 25, M2 (MVP) at month 40 and M6 (1.0) at month 63; the plan
+re-baselines them from measured velocity at G-M1.
 
 | Area | MVP | 1.0 | 1.x | Later |
 |---|---|---|---|---|
 | **PRJ** project & structure | Master data, party roles (D-30), structured supply, IEC 81346 structure nodes (=P01, +J-E-2416), sections, company basic project | Multiple structure aspects in navigators, external project references resolved when open | Multi-project workspaces | — |
 | **PAG** pages & frames | Page types, sparse folios, sub-pages for report continuations (901.1), generated section dividers, 17 × 8 frame, Prev/Next, page navigator | Frame/form editor, A3 and other sheet sizes | — | — |
 | **SYM** symbols | Starter IEC 60617 and ISO 1219 set for the golden project; QET element import; symbol editor (Should) | Full IEC 60617 and ISO 1219 library, symbol linting | Generated symbol families | — |
-| **DEV** devices | Devices, functions, main/aux, black boxes, assemblies with children (valve terminal), spares | Device selection by function, aspects for all PLC and bus roles | — | — |
+| **DEV** devices | Devices, functions, main/aux, black boxes, assemblies with children (valve terminal), spares | Device selection by function, aspects for all PLC and bus roles | Safety-function records (required PL/SIL, category, subsystems) | — |
 | **NUM** tags & numbering | Identifier sets (EN 81346-2:2009 default, IEC 81346-2:2019, IEC 60750), page-based rule -101F1, frozen tags, previewed renumber | Wire-number and terminal-numbering schemes per profile | Numbering from PLC data | — |
 | **CON** connections | Explicit connections, junctions with sequence, potentials, bonds, wire properties with provenance, wire numbers | Net definitions per signal, clamp-capacity data | — | — |
 | **XRF** cross-references | Star/chain interruption points, main/aux and overview xrefs, contact images, configurable format | Potential cross-reference lists | — | — |
 | **TRM** terminals | Strips, terminals as devices, levels, TWIN terminals, bridges, terminal table editor | Accessories (end plates, markers) in the BOM | Terminal configurator exports | — |
-| **CBL** cables | Cables and conductors with IEC 60757 colours, single-line bus cables | Lengths from routing, cable catalogue | — | — |
-| **PRT** parts | Embedded part copies, company catalogue (SQLite), CSV import, manufacturer master list | EDZ part import, EPLAN parts XML, ECLASS/ETIM fields, accessories | BMEcat/ETIM import, community parts repository | Online parts service |
+| **CBL** cables | Cables and conductors with IEC 60757 colours, single-line bus cables | Lengths from routing, cable catalogue | Installation method and grouping data for cable sizing | — |
+| **PRT** parts | Embedded part copies, company catalogue (SQLite), CSV import, manufacturer master list | EDZ part import, EPLAN parts XML, ECLASS/ETIM fields, accessories | BMEcat/ETIM import, community parts repository, functional-safety part data (B10d, MTTFd, PFHd, DCavg, category, PL/SIL) | Online parts service |
 | **MAC** macros & templates | Window and page macros with value sets (folios 203–206 as one typical), basic project | Representation variants, placeholder objects | Rule-based project generation | — |
-| **REP** reports | TOC, BOM (assembly and component modes), terminal, cable, wire, PLC, potential, structure-identifier and revision overviews; XLSX/CSV | User SQL reports with forms, embedded report blocks for all types | More report packs | — |
+| **REP** reports | TOC, BOM (assembly and component modes), terminal, cable, wire, PLC, potential, structure-identifier and revision overviews; XLSX/CSV | User SQL reports with forms, embedded report blocks for all types | More report packs, interconnection diagram between cabinets | — |
 | **OUT** page output | PDF/A-2b with outline, links, named destinations, page labels; SVG; PNG; printing | DXF page export, tagged PDF (PDF/UA-1) option | — | PDF layers |
-| **CHK** checks | Rule engine, EW-CORE/IEC81346/TERM/POT packs incl. EW-POT-013, pre-delivery scheme, waivers, quick fixes | PLC, bus, fluid, layout and EN 60204-1 packs; SQL rules | Company packs as plugins | UL 508A/NFPA 79 packs |
+| **CHK** checks | Rule engine, EW-CORE/IEC81346/TERM/POT packs incl. EW-POT-013, pre-delivery scheme, waivers, quick fixes | PLC, bus, fluid, layout and EN 60204-1 packs; SQL rules | Company packs as plugins, conductor cross-section sizing check (rule data as packs), voltage drop | UL 508A/NFPA 79 packs |
 | **REV** revisions | Managed revisions, four-eyes release, release gate, as-built archive | Revision compare, change lists, clouds | PDF annotation import | — |
 | **PLC** PLC & I/O | Stations, modules, channels, auto addresses from part maps, PLC overview | AML AR APC (CAEX 2.15) export/import, TIA tag XLSX, PLCopen XML, GSD/GSDML, safety flags | L5X, TwinCAT, more vendor profiles | TIA Openness bridge |
 | **BUS** fieldbus | Bus ports, Profibus topology page, termination as property | PROFINET, IO-Link, EtherCAT structure and checks, bus reports | EtherNet/IP, AS-i | CANopen, Modbus |
 | **FLU** fluid power | Pneumatic ISO 1219 symbols, ports 1–5/12/14, fluid connections | Media propagation, tube specs, tube list, fluid BOM | 3D tube routing | Hydraulics |
-| **LAY** panel layout | 2D panel front bound to devices with part dimensions (folio 902), unplaced-device list | 3D cabinet, rails, ducts, STEP via worker, collision, routing, lengths, duct fill, door cut-outs, basic busbars | Bayed suites, door-swing sweep | Bent copper |
+| **LAY** panel layout | 2D panel front bound to devices with part dimensions (folio 902), unplaced-device list | 3D cabinet, rails, ducts, STEP via worker, collision, routing, lengths, duct fill, door cut-outs, basic busbars | Bayed suites, door-swing sweep, topology (routing-path networks for field cables) | Bent copper |
 | **THM** thermal | — | Single-compartment calculation (IEC TR 60890 / IEC 61439-1 10.10), climate sizing | Multi-compartment | Forced-ventilation curves |
 | **MFG** manufacturing | Wire list and terminal plans as reports | `.ewpp`, ferrules, labels, Komax/Rittal WT/generic profiles, drilling DXF, checklists, read-only wiring viewer | Wiring status logging, more machine profiles | NC formats, tablet viewer |
-| **IMP** import | QET `.qet`, `.elmt`, title blocks; `ew import csv` | EDZ, DXF, EPLAN parts XML | QETZ, DWG (acadrust or ODA) | EPLAN project XML (experimental) |
-| **EXP** data exchange | BOM, wire, terminal CSV/XLSX; Excel round trip of tables | AML, PLCopen XML, glTF/STL of the cabinet | EW→QET export (if requested) | EPLAN XML export |
+| **IMP** import | QET `.qet`, `.elmt`, title blocks; `ew import csv` | EDZ, DXF, EPLAN parts XML, DWG through the user-installed ODA converter (Should) | QETZ, native DWG (acadrust) | EPLAN project XML (experimental) |
+| **EXP** data exchange | BOM, wire, terminal CSV/XLSX; Excel round trip of tables | AML, PLCopen XML, glTF/STL of the cabinet | EW→QET export (if requested) | EPLAN XML export, SISTEMA / VDMA 66413 data export |
 | **UI** interface | egui shell, navigators, property grid with provenance, command palette, keymaps, accessibility, CPU fallback | PLC, Fluid, Panel 3D and Manufacturing workspaces, second monitors | — | Alternative chrome |
 | **EXT** CLI, scripting, plugins | `ew` CLI (export, check, query, sql, render, import, diff, fmt), rhai formulas; headless read-only `ew mcp` (Could) | rhai automation and recorded macros, jobsets, `ew mcp` with ask-first writes | WASM plugins, Python wheel, MCP GUI live bridge | — |
 | **COL** storage & collaboration | JSONL format, save protocol, lock, journal, recovery, `ew diff`, integrity check on open and after merges; merge driver (Should) | Merge driver (Must), cross-file reconciliation with the conflict panel, format freeze | Optional local git history | Real-time co-editing |
 | **I18N** project languages | `MlText` in the model, one project language | XLIFF export/import, PDF per language | Dictionary and translation memory | — |
+
+### 9.1 Release labels describe full scope; the plan's lean variant
+
+> **Note (pending decision PD-1).** The release labels in the table above and in every FR row of
+> [02a](02a-requirements-core.md) and [02b](02b-requirements-extended.md) describe the **full v1 scope**. The
+> [global plan](../plan/01-global-plan.md) plans a **lean variant** of that scope (its plan of record, decision
+> PD-1 in §14 of the plan, not yet taken by the owner; see also the [decision log](../plan/06-decision-log.md)).
+> If PD-1 is adopted, the labels of the items below move as listed and a single catalogue edit applies them; until
+> then the labels stand and the plan's milestone columns carry the difference
+> ([WBS](../plan/02-work-packages.md#7-scope-levers) §7).
+
+| Lever | Moves | Items affected (area) |
+|---|---|---|
+| (a) | MVP Should and Could work to 1.0 | Headless read-only `ew mcp` (EXT), symbol editor (SYM), QET migration assistants for cables, fluid map, layout binding and reconstruction (IMP) |
+| (b) | QET project migration from the MVP to the 0.x release after it (M3) | QET project import, formulas, strips, tables, corpus and migration verifier (IMP; SC-4 closes at G-M3); QET element import stays in the MVP |
+| (c) | Breadth beyond the four binding v1 additions (PLC/I-O, manufacturing outputs, 3D panel with routing and lengths, EPLAN/QET/DXF import) from 1.0 to 1.x | Thermal calculation (THM), project translations and XLIFF (I18N), revision compare, change lists, clouds and the review and merge UI (REV), forms editor and ISO 5457 frames (PAG), macro placeholders and variants (MAC), automation scripts, jobsets and MCP writes (EXT), editor completion (UI), GSD/GSDML/IODD import (PLC), model views, busbars, bonding and glTF/STL/STEP export (LAY, EXP), verification checklists and the read-only wiring viewer (MFG), the full IEC 60617 and ISO 1219 libraries (SYM) |
+
+PLC/I-O, manufacturing outputs, 3D panel layout with routing and wire lengths, and QET, EDZ and DXF import stay
+in 1.0 under every variant. SC-3 and SC-4 timing follows the gates in either variant (§3.2).
+
+### 9.2 Scope boundaries: functional-safety data, topology and cable sizing
+
+Three EPLAN-class areas were not placed in the release table above. The lead designer decided them as follows;
+the requirement rows carry the source "EPLAN feature inventory; scope-boundary decision (vision §9.2)".
+
+| Area | Decision | Release | Requirement rows |
+|---|---|---|---|
+| **Functional-safety data** (ISO 13849-1, IEC 62061) | Parts carry B10d, MTTFd, PFHd, DCavg and category, PL and SIL metadata; project safety functions carry the required PL or SIL, category and the devices of their subsystems. EW **stores and exports** these values | 1.x, Should | FR-PRT-036, FR-DEV-040 |
+| **SISTEMA / VDMA 66413 export** | A data export of safety-function subsystems for SISTEMA | Later, Could | FR-EXP-012 |
+| **Safety calculation** | PL, PFHd and SIL are **not calculated or certified** by EW (non-goal, §4) | Non-goal | none |
+| **Topology** (EPLAN Topology) | Routing-path networks for field cables outside the cabinet and interconnection diagrams between cabinets. The external-connection lists between cabinets (FR-PRJ-021, FR-XRF-012, FR-BUS-005) are already in scope and are unchanged | 1.x, Could | FR-LAY-067, FR-REP-052 |
+| **Conductor cross-section sizing** (IEC 60364-5-52, EN 60204-1 Annex D) | A check with a suggestion for the smallest adequate cross-section from installation method, grouping and ambient factors. The rule data is supplied as packs; no copyrighted table is shipped (K-5, FR-CHK-046). Voltage drop stays FR-CHK-059 and short-circuit calculation stays a non-goal | 1.x, Should | FR-CBL-021, FR-CHK-062 |
 
 ---
 
@@ -348,7 +388,7 @@ parked. Indicatively, MVP corresponds to milestone M2 (month 6–7) and 1.0 to m
 
 | ID | Constraint |
 |---|---|
-| K-1 | **Team:** 2–4 developers plus AI assistance. The spine runs as two lanes (core, output) for 12 weeks |
+| K-1 | **Team:** 2–4 developers plus AI assistance. The spine runs as two lanes (core, output); its effort is in [architecture](04-architecture.md) §15.1, its calendar in the [global plan](../plan/01-global-plan.md) |
 | K-2 | **Rust:** core and application in Rust. FFI only where justified: OCCT in an out-of-process STEP worker, bundled SQLite |
 | K-3 | **Licences** (ADR-0024): application GPL-3.0-or-later with a plugin exception (wording pending, ADR-0025); a closed permissive layer; QET-derived code only in `ew-import-qet`; QET elements not merged into EW libraries |
 | K-4 | **Platforms** (ADR-0022): Windows 10 22H2+ and 11 x64, macOS on Apple silicon (Intel best effort), Ubuntu 22.04+ and Debian 12+; GPU-less operation through DX12 WARP or the CPU renderer |
@@ -423,7 +463,7 @@ its substance:
 4. **What is the pilot's QET baseline for SC-3?** *Recommendation:* time two reference-size projects in QET during
    M0–M1.
 5. **Are the G6 size classes right?** *Recommendation:* recalibrate L/XL from the pilot's three largest projects
-   before the M0 spike.
+   before the performance spike (gate G-SP, [global plan](../plan/01-global-plan.md) §14, PD-8).
 6. **Where do thermal calculation (THM) and the read-only wiring viewer live?** **Resolved:** THM runs as queries
    in `ew-panel` ([12](12-panel-layout.md) §1.2); the viewer is the `ew-viewer` crate, used by a small
    `ew-wiring-viewer` binary for shop PCs and by the "Preview package" view of the Manufacturing workspace
@@ -434,7 +474,7 @@ its substance:
 8. **UI languages at MVP?** *Recommendation:* English and Dutch at MVP, German by 1.0, via Weblate.
 9. **When must the open ADRs be decided?** *Recommendation:* ADR-0025 and ADR-0030 before the first external
    contribution and the first signed release; ADR-0027 and ADR-0028 before spine lane 2 builds the symbol set
-   (weeks 2–5).
+   (PD-4 and PD-5, [global plan](../plan/01-global-plan.md) §14).
 10. **Headless MCP in the MVP?** QET already ships one. **Resolved:** read-only `ew mcp` (query, SQL, checks) is
     MVP Could (FR-EXT-016) and ask-first writes are 1.0 Should (FR-EXT-017), both in
     [02b](02b-requirements-extended.md).

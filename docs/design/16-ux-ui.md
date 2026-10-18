@@ -1482,7 +1482,7 @@ About dialog of §13 is **FR-UI-038**.
 7. **Dark canvas expectations.** Users of dark IDEs may expect a dark sheet; print-true is safer for colour codes.
    *Recommendation:* print-true by default, the dark sheet as a 1.0 option, and ask in R1 and R2.
 8. **Table preview threshold.** The 500-entity limit and the identifier rule of §7.5 are judgement calls.
-   *Recommendation:* measure preview latency at the M0 spike and observe in R1 whether users expect a preview for
+   *Recommendation:* measure preview latency at the performance spike (gate G-SP) and observe in R1 whether users expect a preview for
    smaller edits; adjust before MVP.
 9. **Recordings and consent.** Session recordings contain faces, voices and possibly employer projects.
    *Recommendation:* keep recordings and session logs local to the moderator, delete them 90 days after the

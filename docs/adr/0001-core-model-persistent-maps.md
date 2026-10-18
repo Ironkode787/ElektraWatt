@@ -73,7 +73,7 @@ A and C tied. A won on the grounds that C's strengths can be grafted onto A as d
 
 - A new failure mode replaces the old one: a **stale memo**. ADR-0002 guards it (untracked reads do not compile;
   oracle mode in CI).
-- Every printed string costs a query. Interactive latency at L/XL depends on memoisation and on the M0 spike. Global
+- Every printed string costs a query. Interactive latency at L/XL depends on memoisation and on the performance spike (gate G-SP). Global
   connectivity is estimated at 5–10 ms per committed wire edit in the XL-A estimate case
   ([architecture](../design/04-architecture.md) §6.7).
 - Overrides must be modelled explicitly (an override field, its provenance and "reset to derived"), never by writing

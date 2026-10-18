@@ -1,30 +1,55 @@
 # ElektraWatt
 
-An open-source, cross-platform desktop application for designing and documenting electrical control cabinets —
-schematics, PLC/I-O, fluid power, 2D/3D panel layout and manufacturing outputs — with EPLAN-class engineering
-depth. Written in Rust.
+ElektraWatt (EW) is an open-source, offline-first desktop application for electrical control-cabinet design, written
+in Rust. It aims at the functionality of EPLAN Electric P8 class tools: schematics, devices and parts, terminals and
+cables, PLC and fluid power, panel layout, reports, manufacturing outputs and checks, in a plain-text project format
+that works with Git.
 
-> **Status: design phase.** There is no code yet. This repository currently holds the design documentation and the
-> research behind it.
+## Status
 
-## Key decisions so far
+The design phase is complete as **draft v0.1**. There is **no code yet**. The repository holds the design documents,
+30 architecture decision records (25 Accepted, 5 Proposed), a work breakdown and a global plan. The first milestone
+(M0) starts after the pre-M0 decisions listed in the [decision log](docs/plan/06-decision-log.md).
+
+## Key decisions
 
 | Topic | Decision |
 |---|---|
 | Language | Rust |
-| Platform | Cross-platform desktop (Windows, macOS, Linux), offline-first, projects as files on disk |
-| Team | 2–4 developers |
-| v1 scope | Schematics (EPLAN Electric P8 class), PLC / I-O integration, manufacturing outputs, 3D panel layout, import from QElectroTech, EPLAN (EDZ parts) and DXF |
-| Licence (planned) | Application GPL-3.0-or-later; reusable format/SDK crates MIT OR Apache-2.0 |
-| Architecture | Typed Rust model in persistent maps; everything printed is a derived query; egui shell with own wgpu renderers; JSON Lines project directory — see [architecture](docs/design/04-architecture.md) |
+| Platforms | Cross-platform desktop (Windows, macOS, Linux), offline-first ([ADR-0022](docs/adr/0022-platform-matrix-and-performance-budgets.md)) |
+| Team | 2 to 4 developers with AI assistance |
+| v1 scope | Electric P8-class schematics, PLC and I/O, fluid power, 3D panel layout, manufacturing outputs, QET/EDZ/DXF import ([vision](docs/design/00-vision-and-scope.md)) |
+| Application licence | GPL-3.0-or-later |
+| Format crates | MIT OR Apache-2.0 |
+| Symbols and templates | CC-BY-SA-4.0, with a design exception |
+| Part data and examples | CC0 |
+| Documentation | CC-BY-4.0 |
 
-## Documentation
+The licence set is planned and pending the legal gates ([ADR-0024](docs/adr/0024-licence-set-and-permissive-gpl-boundary.md),
+[governance](docs/design/19-open-source-governance.md)); no licence files exist yet.
 
-- [Architecture specification](docs/design/04-architecture.md)
-- [Research notes](docs/research/) — EPLAN feature inventory, standards, Rust ecosystem, interop formats,
-  open-source landscape, reference-drawing analysis, panel & manufacturing, PLC/bus/fluid, gaps & corrections
-- [Architecture proposals](docs/research/architecture-proposals/) — the four competing proposals evaluated by the
-  judge panel
+## Headline plan
 
-The remaining design documents (vision, requirements, domain model, feature designs, ADRs) and the global plan
-(milestones, work packages, gates) are being written and will land in `docs/`.
+Month 0 is November 2026. Dates come from [milestones.csv](docs/plan/milestones.csv), lean scope, 3 developers.
+
+| | M1 spine exit | M-PP pilot preview | M2 MVP | M6 release 1.0 |
+|---|---|---|---|---|
+| Plan of record (external) | Jan 2028 | Nov 2028 | Feb 2030 | Jan 2032 |
+| AI-assisted internal target | Oct 2027 | Jun 2028 | Jun 2029 | Jan 2031 |
+
+The AI-assisted dates rest on weak evidence and are an internal target only. Details: [plan guide](docs/plan/README.md),
+[global plan](docs/plan/01-global-plan.md).
+
+## Where to start
+
+- [Documentation map](docs/README.md): reading orders for decision makers, developers and domain experts.
+- [ADR index](docs/adr/README.md) and [plan guide](docs/plan/README.md).
+- [CLAUDE.md](CLAUDE.md) and [.claude/agents](.claude/agents): the model-routing setup for AI-assisted work (Opus for
+  lead decisions, Sonnet for specified work, Haiku for mechanical tasks).
+
+## Contributing
+
+Roles, the DCO, the RFC and ADR process and the AI-use policy are described in the
+[open-source governance document](docs/design/19-open-source-governance.md). `CONTRIBUTING.md` will follow with the
+first code. Until then, comments on the documents and the Proposed ADRs are the most useful input. The repository is
+public: do not include customer data, personal names or confidential material in issues or pull requests.

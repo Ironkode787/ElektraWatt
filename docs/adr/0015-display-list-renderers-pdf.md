@@ -89,7 +89,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
 3. **PNG determinism** (2026-10-18; [reports, forms and output](../design/09-reports-forms-output.md), open
    question 12). vello_cpu may choose different SIMD paths per
    CPU, so PNGs compare **within the dify tolerance** across platforms (FR-OUT-014, NFR-REL-07). Byte identity
-   stays for PDF, SVG, XLSX, CSV, JSONL and `.ewpp`. If the M0 spike finds a deterministic scalar vello_cpu mode,
+   stays for PDF, SVG, XLSX, CSV, JSONL and `.ewpp`. If the performance spike (gate G-SP) finds a deterministic scalar vello_cpu mode,
    `ew render` and the CI goldens use it, and PNG returns to byte identity on the same platform.
 
 ## Consequences

@@ -94,8 +94,8 @@ If the recommendation is accepted:
 | **Bundling Tahoma** | Not permitted (NFR-LIC-06) |
 
 **Decision needed from:** the project owner (pilot user; PQ-07: keep the Tahoma look with a self-installed font, or
-switch to Noto Sans or osifont). It is due before spine lane 2 builds the text stack, frames and goldens in weeks
-3–5 ([vision](../design/00-vision-and-scope.md) OQ9).
+switch to Noto Sans or osifont). It is due before spine lane 2 builds the text stack, frames and goldens in effort weeks
+3–5 of the spine (04 §15.1; dates in plan/01) ([vision](../design/00-vision-and-scope.md) OQ9).
 
 ## Related
 

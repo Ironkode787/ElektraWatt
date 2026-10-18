@@ -6,7 +6,8 @@ Reads (repo-relative, stdlib only):
   docs/design/02a|02b|02c requirement catalogues
   docs/design/20-golden-project.md   (AC-01..AC-42, D-01..D-42)
   docs/design/15-checks-revisions-collaboration.md (rule catalogue EW-xxx-nnn -> FR)
-  docs/plan/03-gates.md              (AC / D by gate, section 8)
+  docs/plan/03-gates.md              (AC / D by gate, section 8: the plan gates of the lean scope of record)
+  docs/plan/02-work-packages.md      (AC by milestone, section 2.2: the full-scope allocation)
 Writes:
   docs/plan/05-traceability.md       (the report)
   docs/plan/traceability-matrix.csv  (requirement -> WPs, one row per FR/NFR)
@@ -22,7 +23,32 @@ PLAN, DESIGN = DOCS / "plan", DOCS / "design"
 OUT_MD, OUT_CSV = PLAN / "05-traceability.md", PLAN / "traceability-matrix.csv"
 
 ID_RE = re.compile(r"(N?FR)-([A-Z0-9]+)-(\d+)")
-MS_ORDER = {"M0": 0, "M1": 1, "M2": 2, "M3": 3, "M4": 4, "M5": 5, "M6": 6, "1.x": 7}
+MS_LIST = ["M0", "M1", "M-PP", "M2", "M3", "M4", "M5", "M6", "1.x"]
+MS_ORDER = {m: i for i, m in enumerate(MS_LIST)}
+GATE_MS = {"G-M0": "M0", "G-M1": "M1", "G-PP": "M-PP", "G-M2": "M2", "G-M3": "M3", "G-M4": "M4", "G-M5": "M5",
+           "G-M6": "M6"}
+ALL_GATES = ["G-M1", "G-M2", "G-M3", "G-M4", "G-M5", "G-M6"]
+# Defects whose golden §19 row names the prevented feature in words only: the FR rows that implement it.
+D_EXTRA_FRS = {
+    "D-09": ["FR-REP-009", "FR-REP-010", "FR-REP-012", "FR-REP-013", "FR-REP-014", "FR-REP-016", "FR-REP-019"],
+}
+
+
+def gate_id(g):
+    """'G1' / 'G-M1' / 'G-PP' -> canonical 'G-M1' / 'G-PP'."""
+    g = g.strip("*")
+    if g in GATE_MS:
+        return g
+    if re.fullmatch(r"G\d", g):
+        return "G-M" + g[1]
+    return g
+
+
+def say(n, sing, plur=None):
+    """'none' for zero counts, else 'n thing(s)'."""
+    if n == 0:
+        return "no " + (plur or sing + "s")
+    return f"{n} " + (sing if n == 1 else (plur or sing + "s"))
 
 
 def read(p):
@@ -174,30 +200,52 @@ def load_rules():
     return rules
 
 
+GATE_RE = r"G-?(?:M?\d|PP|SP)"
+
+
 def load_gate_tables():
+    """Plan gates of the lean scope of record (03 §8.1, §8.2). Accepts 'G1' and 'G-M1' spellings."""
     t = read(PLAN / "03-gates.md")
     sec = t.split("### 8.1", 1)[1].split("### 8.3", 1)[0]
     ac_gate, d_gate = collections.defaultdict(list), collections.defaultdict(list)
     s81, s82 = sec.split("### 8.2", 1)
-    for m in re.finditer(r"^\| \*\*(G\d)\*\* \| (.*?) \|", s81, re.M):
-        g = m.group(1)
+    for m in re.finditer(rf"^\| \*\*({GATE_RE})\*\* \| (.*?) \|", s81, re.M):
+        g = gate_id(m.group(1))
         body = m.group(2)
-        if g == "G6":
-            body = "AC-01 … AC-42"
+        if g == "G-M6":          # "AC-01 … AC-42 except AC-36 and AC-42; …": every AC except the named ones
+            head, _, rest = body.partition("except")
+            excl = set(expand_nums(rest.split(";", 1)[0], "AC")) if rest else set()
+            body = ";".join(a for a in expand_nums("AC-01 … AC-42", "AC") if a not in excl)
         for part in re.split(r";", body):
             for a in expand_nums(part, "AC"):
-                if a not in ac_gate or g not in ac_gate[a]:
+                if g not in ac_gate[a]:
                     ac_gate[a].append(g)
-    for m in re.finditer(r"^\| \*\*(G\d)\*\*(?: \(\d+\))? \| (.*?) \|$", s82, re.M):
-        g = m.group(1)
+    for a in expand_nums("AC-01 … AC-42", "AC"):      # AC-24 (regression rows) applies at every gate
+        if a == "AC-24":
+            ac_gate[a] = list(ALL_GATES)
+    for m in re.finditer(rf"^\| \*\*({GATE_RE})\*\*(?: \(\d+\))? \| (.*?) \|$", s82, re.M):
+        g = gate_id(m.group(1))
         body = m.group(2)
         if body.startswith("All rows"):
             continue
         for d in expand_nums(body, "D"):
             if g not in d_gate[d]:
                 d_gate[d].append(g)
-    # G6 AC list says "except AC-36 and AC-42"
     return ac_gate, d_gate
+
+
+def load_full_gates():
+    """Full-scope AC allocation by milestone: the 'Acceptance gates (full scope)' column of 02 §2.2."""
+    t = read(PLAN / "02-work-packages.md")
+    sec = t.split("### 2.2", 1)[1].split("### 2.3", 1)[0]
+    out = collections.defaultdict(list)
+    for m in re.finditer(r"^\| (M[0-6]|M-PP) \| [^|]* \| [^|]* \| [^|]* \| ([^|]*) \|", sec, re.M):
+        g = "G-PP" if m.group(1) == "M-PP" else "G-" + m.group(1)
+        for a in expand_nums(m.group(2), "AC"):
+            if g not in out[a]:
+                out[a].append(g)
+    out["AC-24"] = list(ALL_GATES)
+    return out
 
 
 def load_ref_map():
@@ -243,6 +291,10 @@ def ms(wp):
     return MS_ORDER.get(wp["milestone"], 9)
 
 
+def ms_lean(wp):
+    return MS_ORDER.get(wp.get("milestone_lean") or wp["milestone"], 9)
+
+
 # ---------------------------------------------------------------- main
 def build():
     reqs = load_catalogue()
@@ -252,6 +304,7 @@ def build():
     acs, ds = load_golden(reqs)
     rules = load_rules()
     ac_gate, d_gate = load_gate_tables()
+    ac_full = load_full_gates()
     refs = load_ref_map()
     other = check_wp_other(wps, reqs, acs, ds)
 
@@ -285,27 +338,34 @@ def build():
     gaps = {b: [r for r in rows if r["bucket"] == b and r["prio"] in ("Must", "Should") and not r["wps"]] for b in ("MVP", "1.0")}
     optional_gaps = [r for r in rows if not r["wps"] and r not in gaps["MVP"] and r not in gaps["1.0"]]
     # timing: MVP requirement whose covering WPs all land after MVP
-    late = []
-    for r in rows:
-        if r["bucket"] == "MVP" and r["prio"] in ("Must", "Should") and r["wps"]:
-            e = min(ms(wpd[w]) for w in r["wps"])
-            if e > 2:
-                late.append((r, min((wpd[w] for w in r["wps"]), key=ms)))
-    late10 = []
-    for r in rows:
-        if r["bucket"] == "1.0" and r["prio"] in ("Must", "Should") and r["wps"] and min(ms(wpd[w]) for w in r["wps"]) > 6:
-            late10.append((r, min((wpd[w] for w in r["wps"]), key=ms)))
+    M2, M6 = MS_ORDER["M2"], MS_ORDER["M6"]
+
+    def late_list(bucket, limit, key):
+        out = []
+        for r in rows:
+            if r["bucket"] == bucket and r["prio"] in ("Must", "Should") and r["wps"]:
+                if min(key(wpd[w]) for w in r["wps"]) > limit:
+                    out.append((r, min((wpd[w] for w in r["wps"]), key=key)))
+        return out
+    late, late10 = late_list("MVP", M2, ms), late_list("1.0", M6, ms)
+    late_l, late10_l = late_list("MVP", M2, ms_lean), late_list("1.0", M6, ms_lean)
     # WPs with unused requirements
     nreq_wp = {w["wp_id"]: sum(1 for r in rows if w["wp_id"] in r["wps"]) for w in wps}
 
     # ---- write matrix csv
-    with open(OUT_CSV, "w", newline="", encoding="utf-8") as f:
+    import io
+    f = io.StringIO()
+    if True:
         wr = csv.writer(f, lineterminator="\n")
-        wr.writerow(["req_id", "area", "prio", "release", "covered", "wps", "earliest_wp_milestone"])
+        wr.writerow(["req_id", "area", "prio", "release", "covered", "wps", "earliest_wp_milestone",
+                     "earliest_wp_milestone_lean"])
         for r in rows:
             e = min((wpd[w] for w in r["wps"]), key=ms)["milestone"] if r["wps"] else ""
-            wr.writerow([r["id"], r["area"], r["prio"], r["rel"], "yes" if r["wps"] else "NO", " ".join(r["wps"]), e])
+            el = min((wpd[w] for w in r["wps"]), key=ms_lean)["milestone_lean"] if r["wps"] else ""
+            wr.writerow([r["id"], r["area"], r["prio"], r["rel"], "yes" if r["wps"] else "NO", " ".join(r["wps"]), e,
+                         el])
 
+    csv_text = f.getvalue()
     L = []
     A = L.append
     ntot = len(rows)
@@ -331,10 +391,14 @@ def build():
     mg1, sg1 = [r for r in gaps["1.0"] if r["prio"] == "Must"], [r for r in gaps["1.0"] if r["prio"] == "Should"]
     A(f"**Result in one paragraph.** The catalogues hold {ntot} requirements ({sum(r['id'].startswith('FR') for r in rows)} FR, "
       f"{sum(r['id'].startswith('NFR') for r in rows)} NFR). The {nwp} WPs cover {ncov} of them ({100*ncov/ntot:.1f} %). "
-      f"{len(gaps['MVP'])} MVP requirements ({len(mg)} Must, {len(sg)} Should) and {len(gaps['1.0'])} 1.0 requirements "
-      f"({len(mg1)} Must, {len(sg1)} Should) that the plan promises are carried by no WP; they are listed in full in §3. "
-      f"{len(late)} MVP Must/Should requirements are covered only by WPs that finish after M2 (§4). "
-      f"{len({b[0] for b in bad})} WPs cite {len(bad)} tokens that are not requirement IDs or that name no requirement (§5).")
+      + (f"{say(len(gaps['MVP']), 'MVP requirement')} ({len(mg)} Must, {len(sg)} Should) and {say(len(gaps['1.0']), '1.0 requirement')} "
+         f"({len(mg1)} Must, {len(sg1)} Should) that the plan promises are carried by no WP; they are listed in full in §3. "
+         if gaps['MVP'] or gaps['1.0'] else "No MVP or 1.0 Must or Should requirement that the plan promises lacks a WP (§3). ")
+      + f"In the full scope, {say(len(late), 'MVP Must/Should requirement')} {'is' if len(late) == 1 else 'are'} covered only by WPs after M2; "
+      f"in the lean scope of record, {say(len(late_l), 'such requirement')}, because the scope levers move their WPs until "
+      "the catalogues are re-labelled (§4). "
+      + ("No WP cites a token that is not a requirement ID or that names no requirement (§5)." if not bad else
+         f"{say(len({b[0] for b in bad}), 'WP')} cite {say(len(bad), 'token')} that are not requirement IDs or that name no requirement (§5)."))
     A("")
     A("**What is asked of the plan owner.** (1) Treat the gap lists of §3 as input to the next WP revision: each listed ID "
       "either joins an existing WP, gets a new WP, or is re-labelled in the catalogue (release or priority) with a decision "
@@ -372,7 +436,8 @@ def build():
     A("| WP citations | `requirements` column | Space-separated tokens. A range `A..B` expands to all numbers between its ends (same area, ascending). A token that is no ID, a reversed or cross-area range, a single ID absent from the catalogue, or a range none of whose members exist is an **invalid citation**. A range with some missing members is a **range hole** (members dropped, listed in §5). |")
     A("| Coverage | all of the above | A requirement is **covered** if at least one WP cites it. Citing is not proof of completion; it is the minimum for the plan to be able to deliver the requirement. |")
     A("| Gaps | catalogue minus coverage | Uncovered rows with priority Must or Should in bucket MVP or 1.0. Could, 1.x and Later rows are summarised in §2 and listed in the CSV only. |")
-    A("| Late | WP milestone | An MVP Must/Should requirement whose earliest covering WP has a milestone after M2. |")
+    A("| Late | WP milestone | An MVP Must/Should requirement whose earliest covering WP has a milestone after M2 (a 1.0 one: after M6), "
+      "computed twice: with the `milestone` column (full scope) and with `milestone_lean` (lean scope, the plan of record). |")
     A("| AC / D | 20 §19 and §21; 03 §8 | AC rows give criterion, requirements and golden gate; the plan gate comes from [gates](03-gates.md) §8.1 and §8.2. Covering WPs are the union of the WPs citing the AC's requirements and the WPs naming the AC in their `acceptance` column. For D rows, the FR IDs in the \"rule or feature\" cell and in the 15 catalogue row of every named EW rule are used. |")
     A("| REF | 02a Appendix A | REF to FR list (02a column) and 02b list; WP coverage is the union over its FRs. |")
     A("")
@@ -400,6 +465,22 @@ def build():
     A("")
     A("`!` marks a cell with uncovered requirements. Only MVP and 1.0 Must/Should cells are gaps; Could and 1.x cells are "
       "reported for information.")
+    A("")
+    A("**Covered in time, full and lean scope.** A row is covered in time when its earliest covering WP is at or before the "
+      "row's release (M2 for MVP rows, M6 for 1.0 rows), judged with the full-scope `milestone` and with the lean "
+      "`milestone_lean` of [work-packages.csv](work-packages.csv). The difference is what the scope levers move until "
+      "the catalogues are re-labelled (PD-1; §4 lists the rows).")
+    A("")
+    A("| Release | Priority | Rows | Covered in time, full scope | Covered in time, lean scope | Moved by the levers |")
+    A("|---|---|---|---|---|---|")
+    for b, lim in (("MVP", MS_ORDER["M2"]), ("1.0", MS_ORDER["M6"])):
+        for pr in ("Must", "Should", "Could"):
+            rs = [r for r in rows if r["bucket"] == b and r["prio"] == pr]
+            if not rs:
+                continue
+            cf = sum(1 for r in rs if r["wps"] and min(ms(wpd[w]) for w in r["wps"]) <= lim)
+            cl = sum(1 for r in rs if r["wps"] and min(ms_lean(wpd[w]) for w in r["wps"]) <= lim)
+            A(f"| {b} | {pr} | {len(rs)} | {cf} | {cl} | {cf - cl if cf != cl else '–'} |")
     A("")
     A("**WPs by number of requirements cited** (a check on over-broad WPs):")
     A("")
@@ -460,25 +541,38 @@ def build():
     A("")
     A("## 4. Covered too late")
     A("")
-    A(f"MVP Must/Should requirements whose earliest covering WP finishes after M2 ({len(late)}). These are covered on paper but "
-      "cannot be delivered at the MVP gate unless the WP is pulled forward or the requirement is re-labelled.")
+    A("Requirements covered on paper whose earliest covering WP comes after the release that owes them. They cannot be "
+      "delivered at that gate unless the WP is pulled forward or the requirement is re-labelled. Each list is computed "
+      "for the full scope (`milestone`) and for the lean scope of record (`milestone_lean`).")
     A("")
-    if late:
-        A("| ID | Prio | Requirement (abridged) | Earliest WP | WP milestone | WP release |")
+
+    def late_table(lst, lean):
+        if not lst:
+            A("None.")
+            A("")
+            return
+        A("| ID | Prio | Requirement (abridged) | Earliest WP | WP milestone | Lever |")
         A("|---|---|---|---|---|---|")
-        for r, w in late:
-            A(f"| {r['id']} | {r['prio']} | {short(r['text'], 60)} | {w['wp_id']} | {w['milestone']} | {w['release']} |")
+        for r, w in lst:
+            mcol = w["milestone_lean"] if lean else w["milestone"]
+            A(f"| {r['id']} | {r['prio']} | {short(r['text'], 60)} | {w['wp_id']} | {mcol} | {w.get('lever') or '–'} |")
         A("")
-    A(f"1.0 Must/Should requirements whose earliest covering WP is scheduled after 1.0 (milestone 1.x) ({len(late10)}):")
+    A(f"### 4.1 MVP rows after M2, full scope ({len(late)})")
     A("")
-    if late10:
-        A("| ID | Prio | Requirement (abridged) | Earliest WP | WP release |")
-        A("|---|---|---|---|---|")
-        for r, w in late10:
-            A(f"| {r['id']} | {r['prio']} | {short(r['text'], 60)} | {w['wp_id']} | {w['release']} |")
-    else:
-        A("None.")
+    late_table(late, False)
+    A(f"### 4.2 MVP rows after M2, lean scope ({len(late_l)})")
     A("")
+    if late_l:
+        bylev = collections.Counter(w.get("lever") or "–" for _, w in late_l)
+        A("These rows are moved by the levers ("
+          + ", ".join(f"lever ({k}): {v}" for k, v in sorted(bylev.items())) +
+          "). They are owed by the MVP in the catalogues today; the catalogue edits that follow PD-1 re-label them to the "
+          "release of the lever, after which this list is empty.")
+        A("")
+    late_table(late_l, True)
+    A(f"### 4.3 1.0 rows after 1.0 (full scope {len(late10)}, lean scope {len(late10_l)})")
+    A("")
+    late_table(late10_l if late10_l else late10, bool(late10_l))
     A("---")
     A("")
     A("## 5. WP citations that do not resolve")
@@ -519,69 +613,81 @@ def build():
     A("")
     A("## 6. Acceptance criteria to gate and milestone")
     A("")
-    A("Golden gate: the \"Gate\" column of [golden project](../design/20-golden-project.md) §21. Plan gate: "
-      "[gates](03-gates.md) §8.1 (the gate at which the AC first has to pass; later gates repeat it; G6 repeats all). "
-      "Covering WPs: WPs citing one of the AC's requirements or naming the AC in `acceptance`. \"Latest first WP\" is the "
-      "milestone by which *every* requirement of the AC has at least one covering WP (the AC cannot pass earlier); the driver "
-      "is the requirement that sets it. Flag **LATE** if that milestone is after the milestone of the plan gate (for an AC split over "
-      "several gates, the last gate before G6, because the script cannot separate the parts); **NO WP** if an AC requirement has no WP. "
-      "The plan-gate column omits G6, which repeats every AC.")
+    A("Golden gate: the \"Gate\" column of [golden project](../design/20-golden-project.md) §21. Plan gate (lean): "
+      "[gates](03-gates.md) §8.1, the gates of the lean scope of record (the gate at which the AC first has to pass; later "
+      "gates repeat it; G-M6 repeats all except the ACs moved to 1.x). Full-scope gate: the allocation of the "
+      "[WBS](02-work-packages.md#22-milestones) §2.2, shown only where it differs. AC-24 (every regression row of golden "
+      "§19 at or after its gate) applies at every gate. Covering WPs: WPs citing one of the AC's requirements or naming the "
+      "AC in `acceptance`. \"Latest first-WP milestone\" is the milestone by which *every* requirement of the AC has at "
+      "least one covering WP (the AC cannot pass earlier), in the lean scope, with the full-scope value in brackets where "
+      "it differs. Flag **LATE** if that milestone is after the milestone of the plan gate (for an AC split over several "
+      "gates, the last gate before G-M6, because the script cannot separate the parts); **NO WP** if an AC requirement "
+      "has no WP. The plan-gate columns omit G-M6, which repeats every AC.")
     A("")
-    gate_ms = {"G1": 1, "G2": 2, "G3": 3, "G4": 4, "G5": 5, "G6": 6}
-    A("| AC | Criterion (abridged) | Golden gate | Plan gate | Requirements | Acceptance WPs | Latest first-WP milestone | Flag |")
-    A("|---|---|---|---|---|---|---|---|")
+    A("| AC | Criterion (abridged) | Golden gate | Plan gate (lean) | Full-scope gate | Requirements | Acceptance WPs | Latest first-WP milestone | Flag |")
+    A("|---|---|---|---|---|---|---|---|---|")
     ac_rows = []
+
+    def latest_of(ids, key):
+        latest, driver = -1, None
+        for x in ids:
+            if cov.get(x):
+                fw = min((wpd[w] for w in cov[x]), key=key)
+                if key(fw) > latest:
+                    latest, driver = key(fw), (x, fw)
+        return latest, driver
+
+    def gate_text(g):
+        if g == ALL_GATES:
+            return "every gate"
+        g2 = [x for x in g if x != "G-M6"] or g
+        return " + ".join(g2) if g2 else "–"
+    first_lean = collections.defaultdict(list)
     for a in sorted(acs):
         d = acs[a]
-        rq = [x for x in expand_text(d["reqs"], reqs)]
-        nreq_ids = [x for x in rq if x in reqs]
+        nreq_ids = [x for x in expand_text(d["reqs"], reqs) if x in reqs]
         acc_wps = sorted(w["wp_id"] for w in wps if a in w["acceptance"].split())
-        # requirement-level first milestone
-        flags, latest, driver = [], -1, None
-        unc = []
-        for x in nreq_ids:
-            if not cov.get(x):
-                unc.append(x)
-                continue
-            fw = min((wpd[w] for w in cov[x]), key=ms)
-            if ms(fw) > latest:
-                latest, driver = ms(fw), (x, fw)
+        unc = [x for x in nreq_ids if not cov.get(x)]
+        lat_l, drv_l = latest_of(nreq_ids, ms_lean)
+        lat_f, _ = latest_of(nreq_ids, ms)
         g = ac_gate.get(a, [])
-        if a in ("AC-36", "AC-42"):
-            g = g  # lever (c): 1.x, see gates
-        pg = g[0] if g else "–"
-        if a in ("AC-14", "AC-18", "AC-32", "AC-37", "AC-30", "AC-35", "AC-22", "AC-21"):
-            pass
-        g_nog6 = [x for x in g if x != "G6"] or g
-        first_gate_ms = max((gate_ms[x] for x in g_nog6), default=None)   # split ACs: judged at their last non-G6 gate
+        gf = ac_full.get(a, [])
+        lean_txt = gate_text(g) if g else ("1.x (lever c)" if gf else "–")
+        full_txt = gate_text(gf) if gf else "–"
+        if a == "AC-24" or full_txt == lean_txt:
+            full_txt = "same"
+        g_nog6 = [x for x in g if x != "G-M6"] or g
+        gate_rank = max((MS_ORDER[GATE_MS[x]] for x in g_nog6 if x in GATE_MS), default=None)
+        if not g and gf:
+            gate_rank = MS_ORDER["1.x"]
+        flags = []
         if unc:
             flags.append("NO WP: " + ", ".join(unc))
-        if first_gate_ms is not None and latest > first_gate_ms:
-            flags.append(f"LATE: {driver[0]} first covered by {driver[1]['wp_id']} ({driver[1]['milestone']})")
-        if acc_wps == [] :
+        if gate_rank is not None and lat_l > gate_rank and a != "AC-24":
+            flags.append(f"LATE: {drv_l[0]} first covered by {drv_l[1]['wp_id']} ({drv_l[1]['milestone_lean']})")
+        if not acc_wps:
             flags.append("no WP names it")
-        lm = f"M{latest}" if latest >= 0 else "–"
-        gtxt = " + ".join(g_nog6) if g else "–"
-        A(f"| {a} | {short(d['crit'], 70)} | {esc(d['gate'])} | {gtxt} | {ranges(nreq_ids) if nreq_ids else esc(d['reqs'])[:60]} | {', '.join(acc_wps) or '–'} | {lm} | {'; '.join(flags) or 'ok'} |")
+        lm = MS_LIST[lat_l] if lat_l >= 0 else "–"
+        if lat_f >= 0 and lat_f != lat_l:
+            lm += f" ({MS_LIST[lat_f]})"
+        A(f"| {a} | {short(d['crit'], 70)} | {esc(d['gate'])} | {lean_txt} | {full_txt} | {ranges(nreq_ids) if nreq_ids else esc(d['reqs'])[:60]} | {', '.join(acc_wps) or '–'} | {lm} | {'; '.join(flags) or 'ok'} |")
         ac_rows.append((a, flags))
+        first_lean[(g[0] if g and a != "AC-24" else ("every gate" if a == "AC-24" else lean_txt))].append(a)
     A("")
     nbad = [a for a, f in ac_rows if any(x.startswith(("NO WP", "LATE")) for x in f)]
     nonamed = [a for a, f in ac_rows if "no WP names it" in f]
     A(f"{len(acs)} AC rows parsed. ACs with a **NO WP** or **LATE** flag: {', '.join(nbad) if nbad else 'none'}. "
-      f"ACs that no WP names in its `acceptance` column: {', '.join(nonamed) if nonamed else 'none'} "
-      "(they are still traceable through requirements; the gate review needs an owner WP for each, see §9).")
+      f"ACs that no WP names in its `acceptance` column: {', '.join(nonamed) if nonamed else 'none'}"
+      + (" (they are still traceable through requirements; the gate review needs an owner WP for each, see §9)." if nonamed else "."))
     A("")
-    A("**AC by milestone, summary:**")
+    A("**AC by first plan gate (lean scope of record), summary:**")
     A("")
     A("| Plan gate | Milestone | ACs (first gate) |")
     A("|---|---|---|")
-    firstg = collections.defaultdict(list)
-    for a in sorted(acs):
-        g = ac_gate.get(a, [])
-        firstg[g[0] if g else "–"].append(a)
-    mmap = {"G1": "M1", "G2": "M2", "G3": "M3", "G4": "M4", "G5": "M5", "G6": "M6", "–": "–"}
-    for g in sorted(firstg):
-        A(f"| {g} | {mmap[g]} | {', '.join(firstg[g])} |")
+    order = {g: i for i, g in enumerate(ALL_GATES + ["every gate", "1.x (lever c)", "–"])}
+    for g in sorted(first_lean, key=lambda x: order.get(x, 99)):
+        mcol = GATE_MS.get(g) or ("all" if g == "every gate" else "1.x" if g.startswith("1.x") else g)
+        A(f"| {g} | {mcol} | {', '.join(first_lean[g])} |")
     A("")
     A("---")
     A("")
@@ -590,7 +696,7 @@ def build():
     A("Source: [golden project](../design/20-golden-project.md) §19 (rule that fires or feature that prevents) and the rule "
       "catalogue of [checks](../design/15-checks-revisions-collaboration.md) §14 (EW rule to FR). The FR set of a defect is every FR named in "
       "its §19 row plus the FR column of every EW rule named there; where that gives none, the requirements that cite the defect in their Source column. WPs are those covering at least one such FR (or naming "
-      "the D in `acceptance`). Plan gate: [gates](03-gates.md) §8.2. Defects whose FR set is only partly covered show the "
+      "the D in `acceptance`). Where the §19 row names the feature only in words, `D_EXTRA_FRS` in the script adds the FR rows that implement it (D-09: the wire, terminal, cable, potential and PLC reports). Plan gate: [gates](03-gates.md) §8.2. Defects whose FR set is only partly covered show the "
       "uncovered FR IDs.")
     A("")
     A("| D | Defect (short) | Prevented by (FRs, via rules) | WPs | Plan gate | Flag |")
@@ -598,7 +704,7 @@ def build():
     d_flags = []
     for dk in sorted(ds):
         d = ds[dk]
-        frs = expand_text(d["rule"], reqs)
+        frs = expand_text(d["rule"], reqs) + [f for f in D_EXTRA_FRS.get(dk, []) if f not in expand_text(d["rule"], reqs)]
         rl = re.findall(r"EW-[A-Z]+-\d+", d["rule"] + " " + d["expect"] + " " + d["test"])
         rl = [x for x in rl if x in rules]
         via = []
@@ -617,7 +723,7 @@ def build():
         unc = [f for f in frs_e if not cov.get(f)]
         miss = [f for f in frs if f not in reqs]
         g = d_gate.get(dk, [])
-        gtxt = " + ".join(g) if g else ("G6 (full run)" if dk != "D-40" else "1.x")
+        gtxt = " + ".join(g) if g else ("G-M6 (full run)" if dk != "D-40" else "1.x")
         fl = []
         if not frs_e:
             fl.append("no FR named (feature described in text only)")
@@ -700,10 +806,16 @@ def build():
     A("Computed counts are in the sections above; this section states what follows from them.")
     A("")
     top_gap_areas = collections.Counter(r["area"] for r in gaps["MVP"] + gaps["1.0"]).most_common(6)
-    A(f"1. **Gaps.** {len(gaps['MVP']) + len(gaps['1.0'])} owed requirements have no WP; areas with most gaps: "
-      + ", ".join(f"{a} ({n})" for a, n in top_gap_areas) + ". Each needs a decision: add to a WP, new WP, or re-label with a decision record.")
-    A(f"2. **Invalid citations.** {len(bad)} invalid tokens and {len(holes)} ranges with missing members (§5). These are corrections to the CSV, not scope changes.")
-    A(f"3. **Late coverage.** {len(late)} MVP requirements are only covered after M2 (§4).")
+    ngap = len(gaps['MVP']) + len(gaps['1.0'])
+    A("1. **Gaps.** " + (f"{say(ngap, 'owed requirement')} have no WP; areas with most gaps: "
+                         + ", ".join(f"{a} ({n})" for a, n in top_gap_areas)
+                         + ". Each needs a decision: add to a WP, new WP, or re-label with a decision record."
+                         if ngap else "No owed (Must or Should, MVP or 1.0) requirement lacks a WP; areas with gaps: none."))
+    A("2. **Invalid citations.** " + ("None: no invalid token and no range with missing members (§5)." if not bad and not holes else
+      f"{say(len(bad), 'invalid token')} and {say(len(holes), 'range')} with missing members (§5). These are corrections to the CSV, not scope changes."))
+    A(f"3. **Late coverage.** Full scope: {say(len(late), 'MVP requirement')} covered only after M2. Lean scope of record: "
+      f"{say(len(late_l), 'MVP requirement')} and {say(len(late10_l), '1.0 requirement')}, all moved by the scope levers; the "
+      "catalogue edits that follow PD-1 re-label them (§4).")
     A(f"4. **Acceptance ownership.** ACs without a WP that names them: {', '.join(nonamed) if nonamed else 'none'}. "
       "Each gate AC should have one owner WP so the gate review has a person to ask.")
     A("5. **Regeneration.** The script is the only source of the tables; change the CSV or the catalogues, re-run, review the diff. "
@@ -723,17 +835,19 @@ def build():
       "NFR coverage require a WP that names an acceptance test? The script counts any citation.")
     A("2. Should the CI job fail on any MVP/1.0 Must gap (hard) and warn on Should gaps? Proposed: yes, after the first clean run.")
     A("")
-    return "\n".join(L) + "\n"
+    return "\n".join(L) + "\n", csv_text
 
 
 if __name__ == "__main__":
-    text = build()
+    text, csv_text = build()
     if "--check" in sys.argv:
-        cur = OUT_MD.read_text(encoding="utf-8") if OUT_MD.exists() else ""
-        if cur != text:
-            print("05-traceability.md is stale; run tools/trace.py")
+        stale = [p.name for p, new in ((OUT_MD, text), (OUT_CSV, csv_text))
+                 if (p.read_text(encoding="utf-8") if p.exists() else "") != new]
+        if stale:
+            print("trace.py: stale:", ", ".join(stale), "- run python3 -I docs/plan/tools/trace.py")
             sys.exit(1)
-        print("up to date")
+        print("trace.py: up to date")
     else:
         OUT_MD.write_text(text, encoding="utf-8")
-        print("wrote", OUT_MD.name, "and", OUT_CSV.name)
+        OUT_CSV.write_text(csv_text, encoding="utf-8")
+        print("trace.py: wrote", OUT_MD.name, "and", OUT_CSV.name)

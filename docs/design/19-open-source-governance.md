@@ -50,9 +50,12 @@ here. Three decisions are still open: the plugin-exception wording (ADR-0025), t
 behind them are PQ-31 (commercial intent, steward, employer statement), PQ-32 (manufacturer partners) and PQ-34
 (QET coordination) of the [brainstorm](01-brainstorm.md).
 
-**Milestone shorthand.** M0 is the first commit and the start of the spine (week 0); M1 is the spine exit (month 3);
-M2 is the interactive 2D editor (month 6–7), after which the **MVP** release follows as the first binary release;
-1.0 follows in months 15–18 ([04](04-architecture.md) §15.2). M0 and M1 are pre-MVP points, not release targets.
+**Milestone shorthand.** M0 is the first commit and the foundations (repository, CI, licences); M1 is the spine exit;
+M-PP is the pilot preview (0.0.x, for the pilot only); M2 is the interactive 2D editor, whose release **0.1.0** (the
+MVP) is the first binary release; M6 is 1.0 ([04](04-architecture.md) §15.2). M0, M1 and M-PP are pre-MVP points, not
+release targets. The dates, and the gates G-M0 … G-M6, G-PP and G-SP that review them, are the plan's
+([global plan](../plan/01-global-plan.md) §5.1, [milestones.csv](../plan/milestones.csv),
+[gates](../plan/03-gates.md)).
 
 ---
 
@@ -250,16 +253,18 @@ prose files is NFR-DOC-08.
 
 These gates belong in the global plan as milestone conditions. The release pipeline checks LG-1, LG-4 and the
 steward checklist of §3.10 as checklist items (RC-10 of [18](18-quality-security-release.md); NFR-COMP-01).
-"First binary release" means the first signed installer, planned at MVP. Until LG-4 is met, only unsigned nightlies
+"First binary release" means the first signed installer, 0.1.0 at M2 (MVP). Until LG-4 is met, only unsigned nightlies
 carrying the banner "unsigned development build" are published (ADR-0023, ADR-0030): no version tags (`vX.Y.Z`)
-and no signed or tagged release.
+and no signed or tagged release. The pilot preview 0.0.x (M-PP) consists of such unsigned development builds handed to the
+pilot only, with no public download ([global plan](../plan/01-global-plan.md) §5.3, §6.1); the signed source tags `m1` and `pp`
+carry no binaries.
 
 | Gate | Condition | Deadline | Owner |
 |---|---|---|---|
 | **LG-1 Employer copyright statement** | The pilot panel builder signs a statement. It (a) states who holds the rights in its staff's EW work (the employer as maker under Auteurswet art. 7, or the employee where agreed otherwise), (b) licenses all contributions since the first commit under §2.1, including both exceptions, (c) optionally gives standing consent to future L1→L4 moves (§3.2), (d) covers the repository owner's own work if it falls within their job, (e) names the authorised signatories (held privately). Every other employer whose staff contribute on company time signs an equivalent statement before their first merge. | Target M0. Hard gate before the first binary release (NFR-LIC-11) | Pilot user, counsel |
 | **LG-2 Exceptions adopted** | ADR-0025 is accepted. The plugin-exception text and the design-exception text are in `LICENSES/` and in the SPDX headers. | Before the first PR from a non-maintainer is merged (ADR-0025; NFR-LIC-12); this may fall before MVP. Until then, such PRs carry the label `blocked:LG-2` | Owner, counsel |
 | **LG-3 Trademark clearance** | Searches in TMview, EUIPO eSearch and the BOIP register for "ElektraWatt" and phonetic neighbours in Nice classes 9 and 42; a domain check. "Electra"-named ECAD products are a known confusion risk ([oss-landscape](../research/oss-landscape.md) §7.5, unverified lineage). With a conflict, the product is renamed before any logo or domain spend. | Before the first public announcement or binary release; the word mark is filed by 1.0 (NFR-LIC-13) | Steward |
-| **LG-4 Steward and identity** | ADR-0030 is decided. The steward exists as a legal person and holds the signing identity (Artifact Signing for an EU organisation; Apple Developer Program enrolment as an organisation, which requires a D-U-N-S number for the legal entity, ADR-0030; the SignPath Foundation OSS programme is the documented Windows fallback, [18](18-quality-security-release.md) OQ4, eligibility **verify**). The repository, which today sits under a personal GitHub account, is transferred to a GitHub organisation controlled by the steward with at least two owners (NFR-COMP-08). `SECURITY.md` and the steward checklist of §3.10 (NFR-COMP-01) are complete. | Decision by M1 ([18](18-quality-security-release.md) OQ4); hard gate before the first signed release (NFR-SEC-12) | Owner |
+| **LG-4 Steward and identity** | ADR-0030 is decided. The steward exists as a legal person and holds the signing identity (Artifact Signing for an EU organisation; Apple Developer Program enrolment as an organisation, which requires a D-U-N-S number for the legal entity, ADR-0030; the SignPath Foundation OSS programme is the documented Windows fallback, [18](18-quality-security-release.md) OQ4, eligibility **verify**). The repository, which today sits under a personal GitHub account, is transferred to a GitHub organisation controlled by the steward with at least two owners (NFR-COMP-08). `SECURITY.md` and the steward checklist of §3.10 (NFR-COMP-01) are complete. | The phase-1 identity holder is named and enrolment submitted in the first 90 days (PD-7a of the [global plan](../plan/01-global-plan.md) §14; enrolment takes at least 12 months); ADR-0030 decided in full by gate G-M1 (PD-7; [18](18-quality-security-release.md) OQ4); hard gate before the first signed release (NFR-SEC-12) | Owner |
 | **LG-5 Fixture publication consent** | The pilot panel builder consents in writing that the anonymised technical content of the reference project may be published as CC0: tags, part numbers, wiring and order codes, as in [20](20-golden-project.md) and the design docs. If its customer contract requires it, the customer consents too. | **Now.** The public repository already contains this content in `docs/` (open question 4) | Pilot user |
 | **LG-6 Steward review** | Re-decide the steward form (§3.10) once there are more than 3 regular external contributors, more than €50k of income a year, or 1.0 is reached, whichever comes first. | Event-driven | Maintainers, steward |
 
@@ -418,11 +423,11 @@ map H1 behind the Q0.1 … Q6.7 addresses stays `test` until such a document exi
 | Channel | Purpose | Rules | From |
 |---|---|---|---|
 | GitHub Issues | Actionable bugs and accepted features only | Templates; `good first issue`, `help wanted`, `funded:*` labels | M0 |
-| GitHub Discussions | Q&A, ideas, show and tell, company basic projects; Dutch and German categories | Code of Conduct; maintainers answer within a week as a target | first binary release |
-| Matrix room | Contributor chat | Logged publicly; decisions move to issues or RFCs | first binary release |
+| GitHub Discussions | Q&A, ideas, show and tell, company basic projects; Dutch and German categories | Code of Conduct; maintainers answer within a week as a target | opened after gate G-M1 (the gate authorises community channels, [gates](../plan/03-gates.md) §2.1) |
+| Matrix room | Contributor chat | Logged publicly; decisions move to issues or RFCs | opened after gate G-M1 |
 | Weblate (hosted) | UI (`.ftl`) and docs (PO) translation | Workflow below | MVP (Dutch), 1.0 (German) |
 | Docs site (mdBook) | Diátaxis docs, rule pages, glossaries; bundled offline | NFR-DOC-01 … 07 | MVP |
-| Release announcements | GitHub releases with notes; Atom feed | No mailing list that needs personal data at MVP | first binary release |
+| Release announcements | Monthly progress notes on the project site from M0, notes on the source tags `m1` and `pp`; GitHub releases with notes and an Atom feed from the first binary release | No mailing list that needs personal data at MVP | M0 (progress notes), first binary release (releases) |
 | Discourse forum | Long-form community | Only when Discussions no longer scales | 1.x |
 
 Proprietary chat platforms are not used as primary channels: they are not publicly archived and they require
@@ -502,18 +507,21 @@ features.
 | Source | Fit | Pays for | Constraints | CRA effect | When |
 |---|---|---|---|---|---|
 | **WBSO** (Dutch R&D payroll-tax credit) | High, for the pilot panel builder's staff | Developer hours of the employer's staff | Company-side; applied for in advance by the employer (**verify** procedure and period rules with RVO); requires LG-1 to be clear about ownership | None: a tax credit to the employer is not monetisation of EW | M0 |
-| **NLnet / NGI Zero** (e.g. the NGI0 Commons Fund) | High | Milestone grants, typically €5k–€50k for a first proposal (unverified); free support services such as audits and REUSE help (unverified) | OSI/FSF licence (met); public results; check current calls, because EU NGI funding after 2025 is uncertain (**verify**) | None (grant) | Proposal at M1 |
-| GitHub Sponsors | Low to medium | Maintainer time, CI hardware | `FUNDING.yml`; individual or organisation accounts | Donations within actual costs are not monetisation (G11) | First binary release |
-| Open Collective with an EU fiscal host | Medium | Transparent budget; invoices to companies | Host fees (about 10 %, unverified) | Within actual costs; the public ledger supports NFR-COMP-07 | First binary release |
+| **NLnet / NGI Zero** (e.g. the NGI0 Commons Fund) | High | Milestone grants, typically €5k–€50k for a first proposal (unverified); free support services such as audits and REUSE help (unverified) | OSI/FSF licence (met); public results; check current calls, because EU NGI funding after 2025 is uncertain (**verify**) | None (grant) | Proposal 1 at the first call after LG-1 is signed (plan month 3, gate G-M0); proposal 2 at gate G-M1; proposal 3 at gate G-M2 ([global plan](../plan/01-global-plan.md) §13.2) |
+| GitHub Sponsors | Low to medium | Maintainer time, CI hardware | `FUNDING.yml`; individual or organisation accounts | Donations within actual costs are not monetisation (G11) | When the steward holds the GitHub organisation (WP-S0.05, LG-4), not only at the first binary release ([global plan](../plan/01-global-plan.md) §13.2) |
+| Open Collective with an EU fiscal host | Medium | Transparent budget; invoices to companies | Host fees (about 10 %, unverified) | Within actual costs; the public ledger supports NFR-COMP-07 | As GitHub Sponsors: once the steward holds the organisation (WP-S0.05, LG-4) |
 | Manufacturer data partnerships | Strategic | Mostly in kind: open data packs, 3D models, verified address maps; sometimes cash | Explicit redistribution licence per pack; the funder gets no say in rules or reports (GV-05) | None, as long as no paid EW service is offered | Outreach after MVP; the first manufacturer-reviewed pack is a non-gating 1.0 target, because its timing depends on a third party (IDEA-091, PQ-32) |
 | Sponsored features and bounties | Medium | A specific profile (Komax, Rittal WT), an importer | Public RFC or issue; normal review | None (cost recovery) | 1.0 |
 | Corporate sponsor tiers | Medium to high, later | Panel builders, wholesalers, manufacturers | Tiers on the KiCad model; a logo on the website, no influence | Within actual costs | after 1.0 |
 | Paid support, migration services, training, signed LTS builds (KiCad Services Corporation style) | Long-term base | Support SLAs, EPLAN/QET migration, custom forms and profiles | A separate entity licensed to use the name (NFR-COMP-02) | It is a **manufacturer** of what it sells, from 2027-12-11 | Only after budgeting (1.x or later) |
 | Open-core, proprietary editions, paid features | Rejected | — | Contradicts "no tiers"; a small team cannot afford a fork or community distrust | — | Never |
 
-The "When" column is the recommended sequence. The first NLnet proposal is scoped to the open format crates and
-JSON Schemas, the QET and DXF importers and the `ew check` CLI, as €30–50k of milestones (amounts unverified,
-open question 14).
+The "When" column is the recommended sequence, which follows the [global plan](../plan/01-global-plan.md) §13. The
+plan splits the NLnet milestones into three proposals (§13.3 there), because with the realistic calendar their
+deliverables are years apart: proposal 1 covers the derivation engine, the SQL projection, `ew-memo`, the golden PDF
+and the published format specification with a permissive-only sample reader; proposal 2 the rule engine, `ew check`
+and the QET project import; proposal 3 the PLC, EDZ, DXF and machine-profile exchange. Each is typically €5k–€50k
+(amounts unverified, open question 14).
 
 ### 3.10 Legal steward and CRA role
 
@@ -707,16 +715,16 @@ prevention from eroding and stops content defects at the library boundary:
 
 ## 9. Scope by release
 
-| Item | Pre-MVP (M0–M1, first commit to spine exit) | MVP (first binary release) | 1.0 | 1.x | Later |
+| Item | Pre-MVP (M0 to M-PP, first commit to the pilot preview) | MVP (first binary release) | 1.0 | 1.x | Later |
 |---|---|---|---|---|---|
 | Licences | `LICENSE.md`, `LICENSES/`, `REUSE.toml`, licence map, boundary check, DCO check; exceptions adopted (LG-2) before the first non-maintainer merge, which may come before MVP | Exceptions in place at the latest; notices in About and `ew about` | Legal review of all texts repeated | — | AGPL server components |
 | Legal gates | LG-1 signed (target M0); LG-5 now; ADR-0030 decided by M1 | LG-1 as hard gate; LG-3 clearance; LG-4 steward, signing identity, repository organisation | Word mark filed; LG-6 review | Services entity if budgeted | — |
 | Governance files | `CONTRIBUTING.md` with the AI policy, `CODE_OF_CONDUCT.md`, `SECURITY.md` with private reporting, ADRs 0001–0030, `CODEOWNERS` | `GOVERNANCE.md`, complete `SECURITY.md`, `PRIVACY.md`, `TRADEMARKS.md`, `ROADMAP.md`; RFC process starts | `publiccode.yml`, OpenSSF badge, Accessibility Conformance Report | — | — |
 | Roles | 2 maintainers, project lead; schema-steward rotation; two owners per critical crate by M1 | Release-manager rotation; security team; conduct contacts | Library maintainers per pack; translation coordinators | Registry reviewers | Steward board for an umbrella |
-| Community | Issues | Discussions, Matrix, Weblate (Dutch), mdBook | German; SC-13: ≥ 5 external contributors | Discourse; education kit (IDEA-109) | — |
+| Community | Issues; Discussions and Matrix open after gate G-M1 | Weblate (Dutch), mdBook | German; SC-13: ≥ 5 external contributors | Discourse; education kit (IDEA-109) | — |
 | Content | Starter symbols and parts (CC-BY-SA, CC0) | Golden sample (CC0) in every release; manufacturer outreach starts | Content repositories with the "verified" mark; first manufacturer-reviewed pack (non-gating 1.0 target, IDEA-091); permissive crates published (FR-EXT-023) | Community parts repository (FR-PRT-030); plugin registry (IDEA-095) | — |
 | QET | Attribution in `NOTICE` | Courtesy note sent | Coordination per PQ-34 | EW → QET exporter (FR-EXP-010) | Shared exchange subset |
-| Funding | WBSO | Sponsors, Open Collective; NLnet milestones | Manufacturer partnerships, sponsored profiles | Sponsor tiers | Services, LTS (after NFR-COMP-02) |
+| Funding | WBSO; NLnet proposal 1; Sponsors and Open Collective once the steward holds the GitHub organisation | NLnet proposals 2 and 3 (milestones) | Manufacturer partnerships, sponsored profiles | Sponsor tiers | Services, LTS (after NFR-COMP-02) |
 
 ---
 
@@ -826,11 +834,12 @@ as:
     `ew-checks` stay in L1 (GPL-3.0-or-later), so company packs derived from built-in data files need no copyleft
     review while the engine stays GPL.
 13. **QET contact timing.** The [vision](00-vision-and-scope.md) OQ3 recommends contact after MVP, but ported code
-    may be public from the spine (QET element reader, weeks 2–5). *Recommendation:* send a short courtesy note
+    may be public from the spine (QET element reader in spine lane 2). *Recommendation:* send a short courtesy note
     when the first ported file is merged, and start coordination proper after MVP, subject to PQ-34.
 14. **NLnet timing and scope.** Call schedules and NGI budgets after 2025 are unverified. *Recommendation:* check
-    the open calls at M0 and submit at M1 with the spine exit as evidence, scoped to the permissive format crates,
-    the QET and DXF importers and `ew check`.
+    the open calls at M0 and submit proposal 1 at the first call after LG-1 is signed (plan month 3), scoped to the
+    derivation engine, the SQL projection and the open format, with proposals 2 and 3 at gates G-M1 and G-M2 as in
+    the [global plan](../plan/01-global-plan.md) §13.3.
 15. **Conduct contacts outside the core team.** A 2–4 person team rarely has them. *Recommendation:* recruit one
     trusted external person, for example a user-community member or the future independent board member, before
     the first binary release. Until then, a report about a maintainer goes to the steward's representative.

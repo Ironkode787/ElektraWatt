@@ -2,31 +2,31 @@
 
 **Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt plan
 
-**Purpose.** This document breaks the full v1 scope of ElektraWatt (EW) into 120 work packages (WPs) in eight
+**Purpose.** This document breaks the full v1 scope of ElektraWatt (EW) into 123 work packages (WPs) in eight
 streams. For every WP it states the objective, scope, deliverables, dependencies, the requirements it delivers,
 a three-point effort estimate, its milestone, its acceptance criteria and an owner role. From these it derives
 effort totals per stream and milestone, the critical path and realistic dates for teams of 2, 3 and 4
 developers. It answers the question that the [architecture](../design/04-architecture.md) §15.2 and
 [vision and scope](../design/00-vision-and-scope.md) §9 leave to the plan: when can the MVP and 1.0 realistically
-ship? The machine-readable twin is [work-packages.csv](work-packages.csv). Every total, date and coverage figure
-in this document is computed from that file (Appendix A).
+ship? The machine-readable twin is [work-packages.csv](work-packages.csv), which carries the full-scope milestone,
+the lean-scope milestone and the scope lever of every WP. Every total and date in this document is generated from
+that file by the scripts in [tools/](tools/) (Appendix A); the tables between `generated` markers must not be edited
+by hand.
 
+<!-- generated:wbs-key-results -->
 > **Key results**
-> - **Effort.** The MVP and 1.0 scope is 115 WPs with a PERT mean of **523.4 person-weeks** (pw), σ ≈
->   7.1 pw, or **628.1 pw** with the 20 % integration and bug-fix reserve. The MVP alone is 303.6 pw
->   (364.3 pw with the reserve). The 1.x backlog adds 43.5 pw. 1.0 is about 14.5 productive
+> - **Effort.** The MVP and 1.0 scope is 118 WPs with a PERT mean of **524.6 person-weeks** (pw), σ ≈
+>   7.1 pw, or **629.5 pw** with the 20 % integration and bug-fix reserve. The MVP alone is 304.8 pw
+>   (365.7 pw with the reserve). The 1.x backlog adds 43.5 pw. 1.0 is about 14.6 productive
 >   developer-years.
 > - **The full v1 scope does not fit 15–18 months.** Three developers have about 162 pw in 18 months;
 >   1.0 needs 3.9 times that. No team size reaches 1.0 before month 29, because the longest
->   dependency chain alone takes that long.
-> - **Realistic dates, full scope, base capacity.** 3 developers: spine exit (M1) at month 15 (Jan 2028), MVP at month
->   43 (May 2030), 1.0 at month 71 (Sep 2032). 2 developers: MVP at month 62 (Dec 2031), 1.0 at month 105 (Jul 2035). 4 developers:
->   MVP at month 38 (Dec 2029), 1.0 at month 61 (Nov 2031).
+>   dependency chain alone takes that long (§6).
+> - **Realistic dates, full scope, base capacity.** 3 developers: spine exit (M1) at month 15 (Jan 2028), MVP at month 43 (May 2030), 1.0 at month 71 (Sep 2032). 2 developers: MVP at month 62 (Dec 2031), 1.0 at month 106 (Aug 2035). 4 developers: MVP at month 38 (Dec 2029), 1.0 at month 61 (Nov 2031).
 > - **Levers.** Deferring the MVP's Should items, moving the QET migration to the 0.x release after the MVP and
->   moving 13 1.0 WPs to 1.x brings 3 developers to the MVP at month 40 (Feb 2030) and 1.0 at month
->   63 (Jan 2032). Even with every WP at its optimistic estimate and 20 % more capacity, that lean scope lands at
->   month 22 (MVP) and month 35 (1.0). The owner has to trade scope, team size and dates
->   against each other; §7.4 recommends a combination.
+>   moving 13 1.0 WPs to 1.x (the `milestone_lean` column) brings 3 developers to the MVP at month 40 (Feb 2030) and 1.0 at month 63 (Jan 2032). Even with every WP at its optimistic estimate and 20 % more capacity, that lean scope lands at month 23 (MVP) and month 35 (1.0). §7.4 recommends a combination.
+> - **Pilot preview.** 14 WPs, two of them slices split off MVP WPs, form milestone M-PP (release 0.0.x, pilot only): interactive 2D drawing of new projects at month 25 (Nov 2028) with three developers, 15 months before the MVP.
+<!-- /generated:wbs-key-results -->
 
 **Contents**
 1. [Planning assumptions](#1-planning-assumptions)
@@ -49,14 +49,14 @@ in this document is computed from that file (Appendix A).
 | ID | Assumption | Value used | Consequence |
 |---|---|---|---|
 | PA-1 | **Start** | Month 0 = November 2026 (2026-11-01). "Month *n*" ends *n* months later; month 14 ends in December 2027 | All dates in this document are month numbers with their calendar month |
-| PA-2 | **Team** | Baseline **3 developers**; scenarios 2 and 4. In the 4-developer scenario the fourth developer joins at month 4 ([architecture](../design/04-architecture.md) §15.2) and the whole team works at 90 % efficiency because of coordination. The larger teams of §5.4 add developers at month 6 at 85 % | More developers help less than proportionally |
+| PA-2 | **Team** | Baseline **3 developers**; scenarios 2 and 4. In the 4-developer scenario the fourth developer joins at month 4 ([architecture](../design/04-architecture.md) §15.2) and the whole team works at 90 % efficiency **from the month the fourth developer joins** (coordination overhead); before that the three work at 100 %. The larger teams of §5.4 add developers at month 6 and work at 85 % from then. This one model is used in every plan document | More developers help less than proportionally |
 | PA-3 | **Capacity** | **36 productive pw per developer per year**, after holidays, meetings, routine support and community work: 0.69 pw per calendar week, 3 pw per month. Sensitivity **±20 %** (28.8 and 43.2 pw per year) | A WP of 1 pw takes one developer about 1.5 calendar weeks, 1.7 with the reserve |
 | PA-4 | **Unit** | 1 pw = one developer's productive week on the WP | Comparable across streams |
 | PA-5 | **Estimates** | Three points per WP: **O** (known approach, no rework), **L** (most likely), **P** (significant rework, for example a spike fallback or a format surprise; not a catastrophe). PERT mean = (O + 4L + P) / 6, σ = (P − O) / 6. Totals add means; σ of a total assumes independent WPs | σ of totals understates correlated risk, such as a slow team across all WPs; the ±20 % capacity sensitivity covers that |
 | PA-6 | **What an estimate contains** | Design note, implementation, unit, property and golden tests, code review, crate documentation, CI wiring and the WP's reference pages. It does not contain cross-WP integration and bug fixing (PA-8), release engineering (S6) or user documentation (S7), which have their own lines | No double counting between streams |
-| PA-7 | **AI assistance** | Assumed at today's level for boilerplate, parsers, test scaffolding and drafting, and judged to lower the likely values by about 10–20 % against unassisted work. **Not** a throughput multiplier: design, review, debugging, verification against the golden project and the interpretation of standards stay human-paced | If measured velocity at M1 is better, §5 scales directly (open question 2) |
+| PA-7 | **AI assistance** | The estimates assume today's level of assistance for boilerplate, parsers, test scaffolding and drafting, judged to lower the likely values by about 10–20 % against unassisted work. They do **not** assume a throughput multiplier: design, review, debugging, verification against the golden project and the interpretation of standards stay human-paced. The AI-assisted scenarios of the [global plan](01-global-plan.md#37-ai-assisted-scenarios) §3.7 are an internal target on top of these estimates, not part of them | If measured velocity at M1 is better, the dates scale directly (open question 2) |
 | PA-8 | **Reserve** | **20 %** integration, hardening and bug-fix reserve on every WP, applied in the schedule model and shown in the totals, plus two explicit stabilisation WPs before the MVP and 1.0 releases (WP-S6.08, WP-S6.12) | Total contingency is above 20 % |
-| PA-9 | **Schedule model** | Resource-constrained list scheduling: each WP has one owner at a time; developers are treated as generalists; a free developer takes the ready WP with the earliest milestone, then the one with the longest remaining dependency chain. A milestone is reached when every WP of it and of earlier milestones is done; the level-of-effort WPs WP-S0.09 and WP-S6.09 consume capacity but do not gate milestones. Duration = PERT mean × 1.2 ÷ 0.69 calendar weeks | Results are accurate to about ±1 month; role specialisation (§2.4) makes real schedules somewhat longer |
+| PA-9 | **Schedule model** | Resource-constrained list scheduling: each WP has one owner at a time; developers are treated as generalists; a free developer takes the ready WP with the earliest milestone, then the one with the longest remaining dependency chain. A milestone is reached when every WP of it and of earlier milestones is done; the level-of-effort WPs WP-S0.09 and WP-S6.09 consume capacity but do not gate milestones. Duration = PERT mean × 1.2 ÷ 0.69 calendar weeks. A **lagged dependency** (`lagged_deps`, for example `WP-S0.05a+12`) is an external lead time: the WP cannot start until that many months after the named WP finished, and the wait uses no capacity | Results are accurate to about ±1 month; role specialisation (§2.4) makes real schedules somewhat longer |
 | PA-10 | **External costs** | Counsel, notary, trademark fees, signing certificates, test participants and partner-shop time are money, not pw. Only maintainers' coordination time is in the WPs | Funding (WP-S0.07) pays for them |
 | PA-11 | **Background load** | Routine triage, user questions and chat are inside the PA-3 deduction. WP-S0.08 and WP-S0.09 contain only planned pilot and community deliverables | Pilot support is not counted twice |
 
@@ -79,21 +79,41 @@ in this document is computed from that file (Appendix A).
 
 ### 2.2 Milestones
 
-Milestones are cumulative: reaching M3 means that every WP of M0 … M3 is done. M2 is the first signed binary
-release ([governance](../design/19-open-source-governance.md) §3.3). M3 and M4 are internal milestones that ship as
-monthly 0.x releases. The gates are the acceptance criteria of the [golden project](../design/20-golden-project.md)
-§21.
+Milestones are cumulative: reaching M3 means that every WP of M0 … M3 is done. M-PP is a pilot-only preview
+(release 0.0.x, no public binaries) of the interactive editor; M2 is the first signed binary release
+([governance](../design/19-open-source-governance.md) §3.3). M3 and M4 are internal milestones that ship as monthly
+0.x releases. Each milestone has the gate of the same name in [gates](03-gates.md) (G-M0 … G-M6, G-PP). The
+acceptance column below is the **full-scope** allocation of the [golden project](../design/20-golden-project.md)
+§21 criteria; with the levers, AC-25 … AC-27 move to M3 and AC-36 and AC-42 to 1.x ([gates](03-gates.md) §8.1;
+[traceability](05-traceability.md) §6 shows both). The architecture's months are indicative only and superseded by
+the realistic months below.
 
-| ID | Name | Release | Exit criteria | Acceptance gates | Architecture §15.2 month | Realistic month, 3 developers, full scope |
-|---|---|---|---|---|---|---|
-| M0 | Kick-off and foundations | MVP | Workspace and per-PR CI green on three OSes; licence files, REUSE, DCO and boundary check active; pilot kick-off held; ADR-0027 and ADR-0028 decided; LG-1 and LG-5 requested (LG-1 target) | — | 0 | 3 (Jan 2027) |
-| M1 | Spine exit: headless golden PDF | MVP | `ew export pdf golden/J-E-2416.ew` writes the 18 folios plus report folios 903–911 headless; acceptance SQL/CSV pairs pass with the oracle; perf gate running; ADR-0030 decided; LG-1, LG-2 closed; NLnet proposal sent | AC-01 … AC-17, AC-18 (CLI), AC-20, AC-39 | 3 | 15 (Jan 2028) |
-| M2 | MVP: pilot release | MVP | First signed binary release on three OSes; interactive 2D editing of the reference set; QET corpus imports; pre-delivery check exact; R1 passed (validates ADR-0007); LG-3 and LG-4 closed; ADR-0029 decided; CRA steward processes live | AC-14 (all OSes), AC-18 (GUI), AC-19, AC-21, AC-23, AC-25 … AC-29, AC-31, AC-32 (MVP part), AC-33, AC-37 (SVG), AC-40, AC-41 | 6–7 | 43 (May 2030) |
-| M3 | Automation breadth: PLC, bus, fluid, exchange | 1.0 | PLC and bus 1.0 model; fluid 1.0; AML, TIA tag and PLCopen exchange against reference files; EDZ, DXF and DWG import; automation workspaces | AC-30, AC-32 (1.0 part), AC-37 (DXF), AC-38; EW-PLC and EW-BUS part of AC-22 | 9 | 48 (Oct 2030) |
-| M4 | Manufacturing and 2D/3D panel | 1.0 | STEP worker, 3D view, collision, routing and lengths; production wire records, ferrules, labels, Komax, Rittal and Weidmüller profiles, `.ewpp`; thermal | AC-34, AC-36; AC-35 content | 12 | 58 (Aug 2031) |
-| M5 | 1.0 feature complete (beta) | 1.0 | All 1.0 features merged; 1.0 rule packs exact; translations exchange; beta release to the pilot and early adopters | AC-22, AC-42 | — | 66 (Apr 2032) |
-| M6 | 1.0 release | 1.0 | Format freeze; R2 passed; SC-7 and SC-8 shown with real machines and installations; 1.0 signed release; word mark filed; LG-6 review | AC-35 with SC-7; SC-8; NFR-UX-01 and NFR-UX-02 at 1.0 | 15–18 | 71 (Sep 2032) |
-| 1.x | 1.x backlog | 1.x | Not a milestone: the backlog of 1.x rows, to be split into WPs after 1.0 | — | — | — |
+| ID | Name | Release | Exit criteria | Acceptance gates (full scope) | Architecture §15.2 month (indicative, superseded) |
+|---|---|---|---|---|---|
+| M0 | Kick-off and foundations | MVP | Workspace and per-PR CI green on three OSes; licence files, REUSE, DCO and boundary check active; pilot kick-off and the pre-G-M0 scope workshop held; ADR-0027 and ADR-0028 decided; LG-1 and LG-5 requested (LG-1 target); signing enrolment submitted and trademark clearance search commissioned (WP-S0.05a) | — | 0 |
+| M1 | Spine exit: headless golden PDF | MVP | `ew export pdf golden/J-E-2416.ew` writes the 18 folios plus report folios 903–911 headless; acceptance SQL/CSV pairs pass with the oracle; perf gate running; ADR-0030 decided; LG-1, LG-2 closed; NLnet proposal sent | AC-01 … AC-17, AC-18 (CLI), AC-20, AC-39 | 3 |
+| M-PP | Pilot preview | MVP (release 0.0.x, pilot only) | Interactive 2D schematic editing with the starter symbol set: place, wire, junctions, interruption points, terminals, cables; title block and frame; core reports (TOC, BOM, terminal diagram, wire list) and PDF with links and bookmarks from the M1 stack; core online checks; save and load. Unsigned development build handed to the pilot; no public binaries | Gate G-PP: the pilot draws golden folios 101–103 and 901 interactively in a new project; its parts list is correct | — |
+| M2 | MVP: pilot release | MVP | First signed binary release on three OSes; interactive 2D editing of the reference set; QET corpus imports; pre-delivery check exact; R1 passed (validates ADR-0007); LG-3 and LG-4 closed; ADR-0029 decided; CRA steward processes live | AC-14 (all OSes), AC-18 (GUI), AC-19, AC-21, AC-23, AC-25 … AC-29, AC-31, AC-32 (MVP part), AC-33, AC-37 (SVG), AC-40, AC-41 | 6–7 |
+| M3 | Automation breadth: PLC, bus, fluid, exchange | 1.0 | PLC and bus 1.0 model; fluid 1.0; AML, TIA tag and PLCopen exchange against reference files; EDZ, DXF and DWG import; automation workspaces | AC-30, AC-32 (1.0 part), AC-37 (DXF), AC-38; EW-PLC and EW-BUS part of AC-22 | 9 |
+| M4 | Manufacturing and 2D/3D panel | 1.0 | STEP worker, 3D view, collision, routing and lengths; production wire records, ferrules, labels, Komax, Rittal and Weidmüller profiles, `.ewpp`; thermal | AC-34, AC-36; AC-35 content; EW-LAYOUT part of AC-22 | 12 |
+| M5 | 1.0 feature complete (beta) | 1.0 | All 1.0 features merged; 1.0 rule packs exact; translations exchange; beta release to the pilot and early adopters | AC-22, AC-42 | — |
+| M6 | 1.0 release | 1.0 | Format freeze; R2 passed; SC-7 and SC-8 shown with real machines and installations; 1.0 signed release; word mark filed; LG-6 review | AC-35 with SC-7; SC-8; NFR-UX-01 and NFR-UX-02 at 1.0 | 15–18 |
+| 1.x | 1.x backlog | 1.x | Not a milestone: the backlog of 1.x rows, to be split into WPs after 1.0 | — | — |
+
+**Realistic months** (base capacity; every scenario is in [milestones.csv](milestones.csv)):
+
+<!-- generated:wbs-milestone-months -->
+| ID | Name | Gate | Realistic month, 3 developers, full scope | Realistic month, 3 developers, lean scope (plan of record) |
+|---|---|---|---|---|
+| M0 | Kick-off and foundations | G-M0 | 3 (Jan 2027) | 3 (Jan 2027) |
+| M1 | Spine exit: headless golden PDF | G-M1 | 15 (Jan 2028) | 15 (Jan 2028) |
+| M-PP | Pilot preview 0.0.x | G-PP | 25 (Nov 2028) | 25 (Nov 2028) |
+| M2 | MVP: pilot release 0.1.0 | G-M2 | 43 (May 2030) | 40 (Feb 2030) |
+| M3 | Automation breadth and migration | G-M3 | 47 (Sep 2030) | 46 (Aug 2030) |
+| M4 | Manufacturing and 2D/3D panel | G-M4 | 59 (Sep 2031) | 57 (Jul 2031) |
+| M5 | 1.0 feature complete (beta) | G-M5 | 65 (Mar 2032) | 58 (Aug 2031) |
+| M6 | 1.0 release | G-M6 | 71 (Sep 2032) | 63 (Jan 2032) |
+<!-- /generated:wbs-milestone-months -->
 
 ### 2.3 Decision deadlines inside the WPs
 
@@ -102,11 +122,14 @@ monthly 0.x releases. The gates are the acceptance criteria of the [golden proje
 | ADR-0027 native symbol grid and QET grid policy | Spine week 2 | WP-S0.08 | WP-S7.02 starter symbols, WP-S3.01 |
 | ADR-0028 default drawing fonts | Spine week 3 | WP-S0.08 | WP-S3.02 text stack, PNG and PDF goldens |
 | ADR-0025 plugin-exception wording (gate LG-2) | Before the first non-maintainer merge | WP-S0.04 | External contributions (label `blocked:LG-2`) |
-| ADR-0030 steward, CRA role and signing (gates LG-4, later LG-6) | M1 | WP-S0.05 | Signing identities, hence the first signed release |
+| ADR-0030 part 1: the phase-1 identity holder, so that signing enrolment can start | First 90 days (M0) | WP-S0.05a | The 12-month enrolment lead time, hence the first signed release |
+| Trademark clearance search (LG-3 search) | First 90 days (M0) | WP-S0.05a | Public announcement, logo, domain |
+| ADR-0030 in full: steward, CRA role, support period (gates LG-4, later LG-6) | M1 | WP-S0.05 | Steward processes (WP-S6.04), the first signed release |
 | ADR-0029 network, telemetry and crash reporting | Before M2 | WP-S6.05 | First-run prompt, `PRIVACY.md`, MVP release |
 | ADR-0007 autoconnect validation | R1, before M2 | WP-S2.12 | Wiring-tool design (WP-S2.04) |
-| M0 performance spike go/fallback (architecture §6.1) | Spine week 5 | WP-S1.05 | Which queries `ew-memo` memoises |
+| Performance spike go/fallback (architecture §6.1), gate G-SP | Month 6, right after WP-S1.03 (the spike needs `ew-model`) | WP-S1.05 | Which queries `ew-memo` memoises |
 | Scope versus team versus date (§7.4) | M0 | Project owner | The dates of every other plan document |
+| MVP Must-row triage and the M-PP scope, with the pilot (pre-G-M0 workshop) | M0 | WP-S0.08 | M-PP content; DS-7 narrowing of the MVP |
 
 ### 2.4 Owner roles
 
@@ -118,7 +141,7 @@ architecture §15.2 and is what a real schedule should respect.
 | Core developer | S1, `ew-memo` and the `Op` set (with a second owner by M1) | dev A | dev 1 | dev 1 |
 | UI developer | S2 | dev B | dev 2 | dev 2 |
 | Output and migration developer | S3, S5 | dev A | dev 3 | dev 3 |
-| Physical developer | S4 | dev B after the MVP | dev 2 after M2 | dev 4 from month 4 |
+| Physical developer | S4 | dev B after the MVP | dev 2 from WP-S4.01 (the first S4 WP, about month 26 in the baseline; [wp-schedule.csv](wp-schedule.csv)) | dev 4 from month 4 |
 | Release engineer | S6 and S0.01; rotates with the release-manager rotation | rotating | rotating | rotating |
 | Project lead | Pilot, funding, governance, roadmap | dev A | dev 1 | dev 1 |
 | Steward liaison | Legal gates with counsel and the steward | project lead | project lead | project lead |
@@ -130,22 +153,25 @@ architecture §15.2 and is what a real schedule should respect.
 
 ## 3. WBS overview
 
-The mind map groups the 120 WPs per stream. Section 9 lists every WP; the CSV holds the same data.
+The mind map groups the 123 WPs per stream. Section 9 lists every WP; the CSV holds the same data.
 
 ```mermaid
 mindmap
   root((EW v1 WBS))
     S0 Foundation and governance
       Repository and CI · S0.01
-      Licences and legal gates · S0.02 S0.04 S0.05
+      Licences and legal gates · S0.02 S0.04
+      Signing enrolment and steward · S0.05a S0.05
       Governance and docs infrastructure · S0.03 S0.06
       Funding · S0.07
       Pilot and community · S0.08 S0.09
     S1 Core model and derivation
       Spine crates · S1.01 to S1.05 S1.09 S1.10
       Derivation · S1.06 to S1.08
-      Model breadth MVP · S1.11 to S1.14 S1.19 to S1.21
-      Checks revisions collaboration · S1.15 to S1.18
+      Pilot preview breadth · S1.11 to S1.14 S1.19a
+      Model breadth MVP · S1.19 to S1.21
+      Checks · S1.15 S1.16a S1.16
+      Revisions collaboration · S1.17 S1.18
       CLI and MCP · S1.22 S1.23
       Automation breadth · S1.24 S1.25
       1.0 completion · S1.26 to S1.32
@@ -194,60 +220,79 @@ All figures are person-weeks computed from [work-packages.csv](work-packages.csv
 
 ### 4.1 Per stream
 
-| Stream | Name | WPs | O | L | P | PERT mean | Mean + 20 % reserve | Share of 1.0 |
-|---|---|---|---|---|---|---|---|---|
-| S0 | Project foundation and governance | 9 | 15.5 | 25.0 | 40.0 | 25.9 | 31.1 | 5 % |
-| S1 | Core model and derivation | 32 | 98.5 | 145.0 | 223.5 | 150.3 | 180.4 | 29 % |
-| S2 | Interaction and UI | 16 | 51.5 | 75.0 | 112.5 | 77.3 | 92.8 | 15 % |
-| S3 | Documents, reports and migration | 19 | 59.5 | 88.0 | 136.0 | 91.3 | 109.5 | 17 % |
-| S4 | Physical: 2D/3D layout, routing, thermal | 10 | 35.5 | 52.0 | 79.5 | 53.8 | 64.6 | 10 % |
-| S5 | Manufacturing outputs | 9 | 23.5 | 34.5 | 52.5 | 35.7 | 42.8 | 7 % |
-| S6 | Quality, security and release engineering | 12 | 35.5 | 53.0 | 80.5 | 54.7 | 65.6 | 10 % |
-| S7 | Content: symbols, parts, golden project, docs | 8 | 22.5 | 33.5 | 50.0 | 34.4 | 41.3 | 7 % |
-| **All** | **MVP and 1.0** | **115** | **342.0** | **506.0** | **774.5** | **523.4** | **628.1** | **100 %** |
-| 1.x | Backlog bucket (5 WPs, not in the totals above) | 5 | 28.0 | 42.5 | 63.0 | 43.5 | 52.2 | — |
+<!-- generated:wbs-totals-stream -->
+| Stream | Name | WPs | O | L | P | PERT mean | Mean + 20 % reserve | Share of 1.0 | PERT mean, lean scope |
+|---|---|---|---|---|---|---|---|---|---|
+| S0 | Project foundation and governance | 10 | 15.5 | 25.0 | 40.0 | 25.9 | 31.1 | 5 % | 25.9 |
+| S1 | Core model and derivation | 34 | 99.5 | 146.0 | 225.5 | 151.5 | 181.8 | 29 % | 137.4 |
+| S2 | Interaction and UI | 16 | 51.5 | 75.0 | 112.5 | 77.3 | 92.8 | 15 % | 69.7 |
+| S3 | Documents, reports and migration | 19 | 59.5 | 88.0 | 136.0 | 91.3 | 109.5 | 17 % | 81.3 |
+| S4 | Physical: 2D/3D layout, routing, thermal | 10 | 35.5 | 52.0 | 79.5 | 53.8 | 64.6 | 10 % | 43.0 |
+| S5 | Manufacturing outputs | 9 | 23.5 | 34.5 | 52.5 | 35.7 | 42.8 | 7 % | 29.4 |
+| S6 | Quality, security and release engineering | 12 | 35.5 | 53.0 | 80.5 | 54.7 | 65.6 | 10 % | 54.7 |
+| S7 | Content: symbols, parts, golden project, docs | 8 | 22.5 | 33.5 | 50.0 | 34.4 | 41.3 | 7 % | 28.3 |
+| **All** | **MVP and 1.0** | **118** | **343.0** | **507.0** | **776.5** | **524.6** | **629.5** | **100 %** | **469.7** |
+| 1.x | Backlog bucket (5 WPs, not in the totals above) | 5 | 28.0 | 42.5 | 63.0 | 43.5 | 52.2 | — | — |
+<!-- /generated:wbs-totals-stream -->
 
 ### 4.2 Per milestone
 
-P80 is the cumulative mean plus 0.84 σ (normal approximation over independent WPs), then plus the reserve.
+P80 is the cumulative mean plus 0.84 σ (normal approximation over independent WPs), then plus the reserve. Full
+scope (`milestone` column):
 
+<!-- generated:wbs-totals-milestone -->
 | Milestone | Name | Release | WPs | O | L | P | PERT mean | σ | Cumulative mean | Cumulative + 20 % reserve | Cumulative P80 + reserve |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| M0 | Kick-off and foundations | MVP | 3 | 4.0 | 6.5 | 10.5 | 6.8 | 0.7 | 6.8 | 8.1 | 8.8 |
-| M1 | Spine exit: headless golden PDF | MVP | 22 | 63.4 | 92.4 | 141.4 | 95.7 | 2.9 | 102.5 | 123.0 | 126.0 |
-| M2 | MVP: pilot release | MVP | 45 | 131.1 | 194.6 | 297.1 | 201.1 | 4.4 | 303.6 | 364.3 | 369.6 |
-| M3 | Automation breadth: PLC, bus, fluid, exchange | 1.0 | 7 | 28.0 | 41.0 | 63.5 | 42.6 | 2.3 | 346.2 | 415.4 | 421.2 |
-| M4 | Manufacturing and 2D/3D panel | 1.0 | 16 | 49.5 | 72.0 | 109.5 | 74.5 | 2.7 | 420.7 | 504.8 | 511.2 |
-| M5 | 1.0 feature complete (beta) | 1.0 | 15 | 43.0 | 64.5 | 99.0 | 66.7 | 2.5 | 487.3 | 584.8 | 591.7 |
-| M6 | 1.0 release | 1.0 | 7 | 23.0 | 35.0 | 53.5 | 36.1 | 2.0 | 523.4 | 628.1 | 635.3 |
-| 1.x | 1.x backlog | 1.x | 5 | 28.0 | 42.5 | 63.0 | 43.5 | 2.6 | — | — | — |
+| M0 | Kick-off and foundations | MVP | 4 | 4.5 | 7.5 | 12.0 | 7.8 | 0.7 | 7.8 | 9.3 | 10.0 |
+| M1 | Spine exit: headless golden PDF | MVP | 22 | 63.4 | 92.4 | 141.4 | 95.7 | 2.9 | 103.5 | 124.2 | 127.2 |
+| M-PP | Pilot preview 0.0.x | MVP | 14 | 45.4 | 66.4 | 100.4 | 68.6 | 2.7 | 172.1 | 206.5 | 210.5 |
+| M2 | MVP: pilot release | MVP | 33 | 86.2 | 128.2 | 197.2 | 132.7 | 3.4 | 304.8 | 365.7 | 371.0 |
+| M3 | Automation breadth: PLC, bus, fluid, exchange | 1.0 | 7 | 28.0 | 41.0 | 63.5 | 42.6 | 2.3 | 347.3 | 416.8 | 422.6 |
+| M4 | Manufacturing and 2D/3D panel | 1.0 | 16 | 49.5 | 72.0 | 109.5 | 74.5 | 2.7 | 421.8 | 506.2 | 512.6 |
+| M5 | 1.0 feature complete (beta) | 1.0 | 15 | 43.0 | 64.5 | 99.0 | 66.7 | 2.5 | 488.5 | 586.2 | 593.0 |
+| M6 | 1.0 release | 1.0 | 7 | 23.0 | 35.0 | 53.5 | 36.1 | 2.0 | 524.6 | 629.5 | 636.7 |
+| 1.x | backlog bucket (no milestone) | 1.x | 5 | 28.0 | 42.5 | 63.0 | 43.5 | 2.6 | — | — | — |
+<!-- /generated:wbs-totals-milestone -->
 
-### 4.3 Stream × milestone (PERT mean)
+Lean scope, the plan of record (`milestone_lean` column):
 
-| Stream | M0 | M1 | M2 | M3 | M4 | M5 | M6 | 1.x | Total to 1.0 |
-|---|---|---|---|---|---|---|---|---|---|
-| S0 | 6.8 | 3.7 | 6.3 | — | — | — | 9.3 | — | 25.9 |
-| S1 | — | 47.5 | 62.8 | 12.0 | 3.6 | 24.4 | — | 21.0 | 150.3 |
-| S2 | — | — | 59.8 | 6.8 | — | 7.7 | 3.1 | — | 77.3 |
-| S3 | — | 26.8 | 29.2 | 23.8 | — | 11.4 | — | 8.2 | 91.3 |
-| S4 | — | — | 8.8 | — | 38.4 | 6.7 | — | 8.2 | 53.8 |
-| S5 | — | — | — | — | 29.4 | 6.3 | — | 6.2 | 35.7 |
-| S6 | — | 10.1 | 24.5 | — | — | 4.1 | 16.0 | — | 54.7 |
-| S7 | — | 7.7 | 9.8 | — | 3.1 | 6.2 | 7.8 | — | 34.4 |
-| **All** | **6.8** | **95.7** | **201.1** | **42.6** | **74.5** | **66.7** | **36.1** | **43.5** | **523.4** |
+<!-- generated:wbs-totals-milestone-lean -->
+| Milestone | Name | Release | WPs | O | L | P | PERT mean | σ | Cumulative mean | Cumulative + 20 % reserve | Cumulative P80 + reserve |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| M0 | Kick-off and foundations | MVP | 4 | 4.5 | 7.5 | 12.0 | 7.8 | 0.7 | 7.8 | 9.3 | 10.0 |
+| M1 | Spine exit: headless golden PDF | MVP | 22 | 63.4 | 92.4 | 141.4 | 95.7 | 2.9 | 103.5 | 124.2 | 127.2 |
+| M-PP | Pilot preview 0.0.x | MVP | 14 | 45.4 | 66.4 | 100.4 | 68.6 | 2.7 | 172.1 | 206.5 | 210.5 |
+| M2 | MVP: pilot release | MVP | 27 | 72.7 | 107.2 | 164.2 | 111.0 | 3.1 | 283.0 | 339.6 | 344.7 |
+| M3 | Automation breadth: PLC, bus, fluid, exchange | 1.0 | 9 | 35.0 | 51.5 | 79.5 | 53.4 | 2.6 | 336.4 | 403.7 | 409.4 |
+| M4 | Manufacturing and 2D/3D panel | 1.0 | 15 | 46.5 | 68.0 | 103.5 | 70.3 | 2.6 | 406.8 | 488.1 | 494.4 |
+| M5 | 1.0 feature complete (beta) | 1.0 | 7 | 17.0 | 26.0 | 40.0 | 26.8 | 1.5 | 433.6 | 520.3 | 526.8 |
+| M6 | 1.0 release | 1.0 | 7 | 23.0 | 35.0 | 53.5 | 36.1 | 2.0 | 469.7 | 563.6 | 570.4 |
+| 1.x | backlog bucket (no milestone) | 1.x | 18 | 63.5 | 95.5 | 145.0 | 98.4 | 3.5 | — | — | — |
+<!-- /generated:wbs-totals-milestone-lean -->
+
+### 4.3 Stream × milestone (PERT mean, full scope)
+
+<!-- generated:wbs-totals-matrix -->
+| Stream | M0 | M1 | M-PP | M2 | M3 | M4 | M5 | M6 | 1.x | Total to 1.0 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| S0 | 7.8 | 3.7 | — | 5.3 | — | — | — | 9.3 | — | 25.9 |
+| S1 | — | 47.5 | 27.7 | 36.2 | 12.0 | 3.6 | 24.4 | — | 21.0 | 151.5 |
+| S2 | — | — | 40.8 | 19.0 | 6.8 | — | 7.7 | 3.1 | — | 77.3 |
+| S3 | — | 26.8 | — | 29.2 | 23.8 | — | 11.4 | — | 8.2 | 91.3 |
+| S4 | — | — | — | 8.8 | — | 38.4 | 6.7 | — | 8.2 | 53.8 |
+| S5 | — | — | — | — | — | 29.4 | 6.3 | — | 6.2 | 35.7 |
+| S6 | — | 10.1 | — | 24.5 | — | — | 4.1 | 16.0 | — | 54.7 |
+| S7 | — | 7.7 | — | 9.8 | — | 3.1 | 6.2 | 7.8 | — | 34.4 |
+| **All** | **7.8** | **95.7** | **68.6** | **132.7** | **42.6** | **74.5** | **66.7** | **36.1** | **43.5** | **524.6** |
+<!-- /generated:wbs-totals-matrix -->
 
 ### 4.4 Plausibility checks
 
-- **Per requirement.** The catalogues hold 999 rows released at MVP or 1.0. 523.4 pw over them is
-  0.52 pw, about 2.6 productive days per row, each with an acceptance criterion, tests and
-  documentation. For an ECAD application whose rows include an AML exchange with three-way merge, a STEP worker
-  and negotiated-congestion routing, this is not slack.
-- **The spine.** Architecture §15.1 plans the spine as two developers for 12 weeks: 24 calendar person-weeks, about
-  17 productive pw under PA-3. The M0 and M1 WPs here total 102.5 pw: lane 1 (WP-S1.01 … WP-S1.10) is
-  47.5 pw, lane 2 (WP-S3.01 … WP-S3.05) is 26.8 pw, and 28.2 pw are the CI, licensing,
-  legal, test kit, determinism tests, performance gate, golden data and starter symbols that the M1 exit
-  criteria need but the lane table does not list. The lane table assumes roughly one week per crate-level
-  component; the estimates here assume three to six.
+<!-- generated:wbs-plausibility -->
+- **Per requirement.** The catalogues hold 999 rows released at MVP or 1.0. 524.6 pw over them is
+  0.53 pw, about 2.6 productive days per row, each with an acceptance criterion, tests and documentation. For an ECAD application whose rows include an AML exchange with three-way merge, a STEP worker and negotiated-congestion routing, this is not slack.
+- **The spine.** Architecture §15.1 plans the spine as two developers for 12 weeks: 24 calendar person-weeks, about 17 productive pw under PA-3. The M0 and M1 WPs here total 103.5 pw: lane 1 (WP-S1.01 … WP-S1.10) is 47.5 pw, lane 2 (WP-S3.01 … WP-S3.05) is 26.8 pw, and 29.1 pw are the CI, licensing, legal, signing enrolment, test kit, determinism tests, performance gate, golden data and starter symbols that the M1 exit criteria need but the lane table does not list. The lane table assumes roughly one week per crate-level component; the estimates here assume three to six.
+<!-- /generated:wbs-plausibility -->
 
 ---
 
@@ -258,11 +303,13 @@ P80 is the cumulative mean plus 0.84 σ (normal approximation over independent W
 The full v1 scope does **not** fit the indicative 15–18 months of architecture §15.2 with 2–4 developers, and the
 MVP does not fit months 6–7. The gap is not a rounding issue:
 
-| Team | Capacity per month (pw) | 15 months | 18 months | Months for MVP effort + reserve | Months for 1.0 effort + reserve |
+<!-- generated:wbs-capacity -->
+| Team | Capacity per month (pw, steady state) | 15 months | 18 months | Months for MVP effort + reserve | Months for 1.0 effort + reserve |
 |---|---|---|---|---|---|
 | 2 | 6.0 | 90 pw | 108 pw | 61 | 105 |
 | 3 | 9.0 | 135 pw | 162 pw | 41 | 70 |
-| 4 | 10.8 | 151 pw | 184 pw | 35 | 60 |
+| 4 | 10.8 | 155 pw | 187 pw | 35 | 59 |
+<!-- /generated:wbs-capacity -->
 
 "Months for … effort" is the pure capacity bound with perfect parallelism; the simulated dates below are later
 because WPs depend on each other and have one owner at a time.
@@ -271,45 +318,51 @@ because WPs depend on each other and have one owner at a time.
 
 Month numbers per PA-1 (calendar month in brackets), base capacity.
 
-| Team | M0 | M1 | M2 MVP | M3 | M4 | M5 beta | M6 1.0 |
-|---|---|---|---|---|---|---|---|
-| 2 developers | 3 (Jan 2027) | 21 (Jul 2028) | 62 (Dec 2031) | 70 (Aug 2032) | 85 (Nov 2033) | 97 (Nov 2034) | 105 (Jul 2035) |
-| 3 developers (baseline) | 3 (Jan 2027) | 15 (Jan 2028) | 43 (May 2030) | 48 (Oct 2030) | 58 (Aug 2031) | 66 (Apr 2032) | 71 (Sep 2032) |
-| 4 developers | 3 (Jan 2027) | 15 (Jan 2028) | 38 (Dec 2029) | 44 (Jun 2030) | 51 (Jan 2031) | 56 (Jun 2031) | 61 (Nov 2031) |
+<!-- generated:wbs-dates-full -->
+| Team | M0 | G-SP spike | M1 | M-PP 0.0.x | M2 MVP | M3 | M4 | M5 beta | M6 1.0 |
+|---|---|---|---|---|---|---|---|---|---|
+| 2 developers | 3 (Jan 2027) | 7 (May 2027) | 22 (Aug 2028) | 36 (Oct 2029) | 62 (Dec 2031) | 70 (Aug 2032) | 85 (Nov 2033) | 98 (Dec 2034) | 106 (Aug 2035) |
+| 3 developers (baseline) | 3 (Jan 2027) | 6 (Apr 2027) | 15 (Jan 2028) | 25 (Nov 2028) | 43 (May 2030) | 47 (Sep 2030) | 59 (Sep 2031) | 65 (Mar 2032) | 71 (Sep 2032) |
+| 4 developers | 3 (Jan 2027) | 6 (Apr 2027) | 14 (Dec 2027) | 25 (Nov 2028) | 38 (Dec 2029) | 42 (Apr 2030) | 50 (Dec 2030) | 55 (May 2031) | 61 (Nov 2031) |
+<!-- /generated:wbs-dates-full -->
 
 ### 5.3 Sensitivity and best case
 
 M2 and M6 month numbers at 80 %, 100 % and 120 % of the PA-3 capacity. "Best case" sets every WP to its
 optimistic estimate **and** uses 120 % capacity. "Lean" applies all three levers of §7.
 
+<!-- generated:wbs-sensitivity -->
 | Team | Scope | M2 at −20 % | M2 base | M2 at +20 % | M6 at −20 % | M6 base | M6 at +20 % | Best case M2 / M6 |
 |---|---|---|---|---|---|---|---|---|
-| 2 | Full scope | 77 | 62 | 52 | 132 | 105 | 88 | 34 / 58 |
-| 3 | Full scope | 54 | 43 | 36 | 88 | 71 | 59 | 24 / 39 |
-| 4 | Full scope | 47 | 38 | 32 | 76 | 61 | 51 | 21 / 34 |
-| 2 | Lean (§7) | 72 | 58 | 48 | 118 | 95 | 79 | 32 / 52 |
-| 3 | Lean (§7) | 50 | 40 | 34 | 79 | 63 | 53 | 22 / 35 |
-| 4 | Lean (§7) | 44 | 35 | 30 | 71 | 57 | 48 | 20 / 32 |
+| 2 | Lean | 72 | 58 | 48 | 118 | 95 | 79 | 32 / 52 |
+| **3** | **Lean** | **50** | **40** | **33** | **79** | **63** | **53** | **23 / 35** |
+| 4 | Lean | 43 | 35 | 29 | 70 | 57 | 47 | 20 / 32 |
+| 2 | Full | 78 | 62 | 52 | 132 | 106 | 88 | 34 / 58 |
+| 3 | Full | 54 | 43 | 36 | 88 | 71 | 59 | 24 / 39 |
+| 4 | Full | 47 | 38 | 32 | 75 | 61 | 51 | 21 / 34 |
+<!-- /generated:wbs-sensitivity -->
 
 Even the best case with the lean scope and four developers misses an 18-month 1.0. The estimates would have to be
-wrong by a factor of about 3.9 in the team's favour for the indicative dates to hold.
+wrong by a factor of more than three in the team's favour for the indicative dates to hold.
 
 ### 5.4 What the indicative dates would take
 
 Teams larger than four are outside the user's 2–4 decision; they are shown only to make the trade-off visible.
 Funding (WP-S0.07) is the only way to get there: WBSO lowers the employer's cost of developer hours but adds none,
-and a first NLnet grant in the €30–50k range (unverified, [governance](../design/19-open-source-governance.md) §3.9)
-pays for a fraction of one developer-year.
+and a first NLnet grant, typically €5k–€50k (unverified, [governance](../design/19-open-source-governance.md) §3.9;
+[global plan](01-global-plan.md#132-sources-and-timing) §13.2), pays for a fraction of one developer-year.
 
+<!-- generated:wbs-larger-teams -->
 | Team | Profile | M1 | M2 MVP | M6 1.0 | M6 with the lean scope |
 |---|---|---|---|---|---|
 | 3 | 3 from month 0 | 15 (Jan 2028) | 43 (May 2030) | 71 (Sep 2032) | 63 (Jan 2032) |
-| 4 | 3 from month 0, 1 from month 4, 90 % efficiency | 15 (Jan 2028) | 38 (Dec 2029) | 61 (Nov 2031) | 57 (Jul 2031) |
-| 6 | 3 from month 0, 1 from month 4, 2 from month 6, 85 % efficiency | 15 (Jan 2028) | 30 (Apr 2029) | 48 (Oct 2030) | 47 (Sep 2030) |
-| 8 | 3 from month 0, 1 from month 4, 4 from month 6, 85 % efficiency | 15 (Jan 2028) | 25 (Nov 2028) | 42 (Apr 2030) | 40 (Feb 2030) |
-| 10 | 3 from month 0, 1 from month 4, 6 from month 6, 85 % efficiency | 15 (Jan 2028) | 25 (Nov 2028) | 36 (Oct 2029) | 36 (Oct 2029) |
+| 4 | 3 from month 0, 1 from month 4, 90 % efficiency from month 4 | 14 (Dec 2027) | 38 (Dec 2029) | 61 (Nov 2031) | 57 (Jul 2031) |
+| 6 | 3 from month 0, 1 from month 4, 2 from month 6, 85 % efficiency from month 6 | 14 (Dec 2027) | 29 (Mar 2029) | 47 (Sep 2030) | 46 (Aug 2030) |
+| 8 | 3 from month 0, 1 from month 4, 4 from month 6, 85 % efficiency from month 6 | 14 (Dec 2027) | 25 (Nov 2028) | 41 (Mar 2030) | 40 (Feb 2030) |
+| 10 | 3 from month 0, 1 from month 4, 6 from month 6, 85 % efficiency from month 6 | 14 (Dec 2027) | 24 (Oct 2028) | 36 (Oct 2029) | 35 (Sep 2029) |
+<!-- /generated:wbs-larger-teams -->
 
-With unlimited developers the dependency chain of §6 still takes about 29 months, so no team size reaches 1.0
+With unlimited developers the dependency chain of §6 still takes more than 28 months, so no team size reaches 1.0
 in 15–18 months with this WBS. Splitting the chain's WPs between two developers shortens it, at extra effort.
 
 ### 5.5 Consequences for the other plan documents
@@ -317,8 +370,9 @@ in 15–18 months with this WBS. Splitting the chain's WPs between two developer
 - **Calendar.** With the baseline team, every public binary release falls after 2027-12-11, so the MVP and 1.0
   ship under the full application of the CRA ([quality](../design/18-quality-security-release.md) §13.1).
   WP-S6.04 and WP-S0.05 must be complete before the first public release in any scenario.
-- **Pilot.** SC-3 (three projects without QET) cannot start before the MVP release. Between M1 and M2 the pilot
-  sees nightly builds only (WP-S0.09).
+- **Pilot.** SC-3 (three projects without QET) cannot start before the MVP release. Between M1 and M-PP the pilot
+  sees headless nightly builds (WP-S0.09); from M-PP it draws new projects in the pilot preview (release 0.0.x,
+  unsigned, pilot only), which is the main lever against the long wait for the MVP.
 - **Support periods.** The 0.x monthly cadence of WP-S6.09 runs for the whole time between MVP and 1.0, which is
   years, not months, in every scenario.
 
@@ -326,25 +380,29 @@ in 15–18 months with this WBS. Splitting the chain's WPs between two developer
 
 ## 6. Critical path
 
-The critical path is the longest dependency chain to M6 with unlimited developers, using the WP durations of PA-9
-(PERT mean × 1.2 ÷ 0.69 weeks, one owner per WP). It takes about **29 months**.
+The critical path is the longest dependency chain to M6 with unlimited developers in the lean scope (the plan of
+record), using the WP durations of PA-9 (PERT mean × 1.2 ÷ 0.69 weeks, one owner per WP) and the lagged
+dependencies. The same computation produces the [global plan](01-global-plan.md#91-path-bound-or-capacity-bound)
+§9.1 table.
 
+<!-- generated:wbs-critical-path -->
 ```mermaid
 flowchart LR
-  n0["WP-S1.01<br/>Permissive foundation crates<br/>6 wk · M1"]
+  n0["WP-S1.01<br/>Permissive foundation crates: …<br/>6 wk · M1"]
   n1["WP-S1.02<br/>ew-schema v0 and JSON Schemas<br/>6 wk · M1"]
-  n2["WP-S1.03<br/>ew-model<br/>8 wk · M1"]
+  n2["WP-S1.03<br/>ew-model: tables, operations, …<br/>8 wk · M1"]
   n3["WP-S1.04<br/>ew-commands and the Session facade<br/>10 wk · M1"]
-  n4["WP-S1.13<br/>Devices, functions and …<br/>7 wk · M2"]
-  n5["WP-S1.19<br/>Parts, libraries and macros<br/>13 wk · M2"]
-  n6["WP-S4.01<br/>Layout model and 2D panel pages …<br/>10 wk · M2"]
-  n7["WP-S4.05<br/>3D layout model<br/>9 wk · M4"]
-  n8["WP-S4.07<br/>Routing graph and RouteWires<br/>11 wk · M4"]
-  n9["WP-S4.08<br/>Wire lengths, duct fill and …<br/>8 wk · M4"]
-  n10["WP-S5.04<br/>Machine export profiles and …<br/>8 wk · M4"]
-  n11["WP-S5.07<br/>Production package .ewpp<br/>5 wk · M4"]
-  n12["WP-S6.10<br/>1.0 quality layers and release …<br/>11 wk · M6"]
-  n13["WP-S6.12<br/>1.0 beta-to-release stabilisation<br/>11 wk · M6"]
+  n4["WP-S1.13<br/>Devices, functions and …<br/>7 wk · M-PP"]
+  n5["WP-S1.19a<br/>Project parts and part import …<br/>4 wk · M-PP"]
+  n6["WP-S1.19<br/>Parts, libraries and macros<br/>10 wk · M2"]
+  n7["WP-S4.01<br/>Layout model and 2D panel pages …<br/>10 wk · M2"]
+  n8["WP-S4.05<br/>3D layout model: enclosures, …<br/>9 wk · M4"]
+  n9["WP-S4.07<br/>Routing graph and RouteWires<br/>11 wk · M4"]
+  n10["WP-S4.08<br/>Wire lengths, duct fill and …<br/>8 wk · M4"]
+  n11["WP-S5.04<br/>Machine export profiles and …<br/>8 wk · M4"]
+  n12["WP-S5.07<br/>Production package .ewpp<br/>5 wk · M4"]
+  n13["WP-S6.10<br/>1.0 quality layers and release …<br/>11 wk · M6"]
+  n14["WP-S6.12<br/>1.0 beta-to-release stabilisation<br/>11 wk · M6"]
   n0 --> n1
   n1 --> n2
   n2 --> n3
@@ -358,34 +416,37 @@ flowchart LR
   n10 --> n11
   n11 --> n12
   n12 --> n13
+  n13 --> n14
 ```
 
-| # | WP | Title | Milestone | PERT (pw) | Duration with reserve (weeks) | Finishes at month |
+| # | WP | Title | Milestone (lean) | PERT (pw) | Duration with reserve (weeks) | Finishes at month |
 |---|---|---|---|---|---|---|
 | 1 | WP-S1.01 | Permissive foundation crates: units, ids, text, reference designations | M1 | 3.7 | 6.4 | 1.5 |
-| 2 | WP-S1.02 | ew-schema v0 and JSON Schemas | M1 | 3.1 | 5.3 | 2.7 |
+| 2 | WP-S1.02 | ew-schema v0 and JSON Schemas | M1 | 3.2 | 5.5 | 2.7 |
 | 3 | WP-S1.03 | ew-model: tables, operations, indexes, invariants | M1 | 4.7 | 8.1 | 4.6 |
-| 4 | WP-S1.04 | ew-commands and the Session facade | M1 | 5.2 | 9.1 | 6.7 |
-| 5 | WP-S1.13 | Devices, functions and assemblies breadth | M2 | 4.2 | 7.2 | 8.3 |
-| 6 | WP-S1.19 | Parts, libraries and macros | M2 | 7.8 | 13.4 | 11.4 |
-| 7 | WP-S4.01 | Layout model and 2D panel pages (MVP slice) | M2 | 5.7 | 9.8 | 13.7 |
-| 8 | WP-S4.05 | 3D layout model: enclosures, doors, surfaces, panel macros, 3D CPs | M4 | 5.2 | 9.0 | 15.8 |
-| 9 | WP-S4.07 | Routing graph and RouteWires | M4 | 6.2 | 10.7 | 18.2 |
-| 10 | WP-S4.08 | Wire lengths, duct fill and wiring manager | M4 | 4.7 | 8.1 | 20.1 |
-| 11 | WP-S5.04 | Machine export profiles and pre-flight | M4 | 4.7 | 8.1 | 22.0 |
-| 12 | WP-S5.07 | Production package .ewpp | M4 | 3.1 | 5.3 | 23.2 |
-| 13 | WP-S6.10 | 1.0 quality layers and release hardening | M6 | 6.2 | 10.7 | 25.7 |
-| 14 | WP-S6.12 | 1.0 beta-to-release stabilisation | M6 | 6.2 | 10.7 | 28.1 |
+| 4 | WP-S1.04 | ew-commands and the Session facade | M1 | 5.6 | 9.6 | 6.8 |
+| 5 | WP-S1.13 | Devices, functions and assemblies breadth | M-PP | 4.2 | 7.2 | 8.5 |
+| 6 | WP-S1.19a | Project parts and part import for the pilot preview | M-PP | 2.6 | 4.5 | 9.5 |
+| 7 | WP-S1.19 | Parts, libraries and macros | M2 | 5.8 | 10.0 | 11.8 |
+| 8 | WP-S4.01 | Layout model and 2D panel pages (MVP slice) | M2 | 5.7 | 9.8 | 14.1 |
+| 9 | WP-S4.05 | 3D layout model: enclosures, doors, surfaces, panel macros, 3D CPs | M4 | 5.2 | 9.0 | 16.2 |
+| 10 | WP-S4.07 | Routing graph and RouteWires | M4 | 6.2 | 10.7 | 18.6 |
+| 11 | WP-S4.08 | Wire lengths, duct fill and wiring manager | M4 | 4.7 | 8.1 | 20.5 |
+| 12 | WP-S5.04 | Machine export profiles and pre-flight | M4 | 4.7 | 8.1 | 22.4 |
+| 13 | WP-S5.07 | Production package .ewpp | M4 | 3.1 | 5.3 | 23.6 |
+| 14 | WP-S6.10 | 1.0 quality layers and release hardening | M6 | 6.2 | 10.7 | 26.1 |
+| 15 | WP-S6.12 | 1.0 beta-to-release stabilisation | M6 | 6.2 | 10.7 | 28.5 |
+
+**Near-critical chains** (lean scope, unlimited developers). To M1: WP-S1.01 → WP-S1.02 → WP-S1.03 → WP-S1.07 → WP-S3.03 → WP-S3.04, 12.1 months. To M-PP: WP-S1.01 → WP-S1.02 → WP-S1.03 → WP-S1.04 → WP-S2.01 → WP-S2.03 → WP-S2.04, 16.0 months. To M2: WP-S1.01 → WP-S1.02 → WP-S1.03 → WP-S1.04 → WP-S2.01 → WP-S2.03 → WP-S2.04 → WP-S2.12 → WP-S6.08, 19.6 months.
+
+**Float** to the end of the chain: the STEP worker (WP-S4.03) about 38 weeks, the production wire records (WP-S5.01) about 11 weeks and the PLC exchange (WP-S3.16) about 35 weeks.
+<!-- /generated:wbs-critical-path -->
 
 **Reading it.**
 - The chain runs through the core spine (model and commands), device breadth and the parts library into the 2D
   layout model, then the 3D layout model, routing and lengths, the machine profiles, the `.ewpp`, 1.0 hardening and
-  the 1.0 stabilisation. It does not run through the GUI; the GUI chain sets the MVP date instead (next bullet).
-- **Near-critical chains.** To M1: WP-S1.01 → WP-S1.02 → WP-S1.03 → WP-S1.07 → WP-S3.03 → WP-S3.04, about 12 months. To M2: WP-S1.01 → WP-S1.02 → WP-S1.03 → WP-S1.04 → WP-S2.01 → WP-S2.03 → WP-S2.04 → WP-S2.10 → WP-S6.08, about 20
-  months.
-- **Float.** The STEP worker (WP-S4.03) has about 37 weeks of float, the production wire records
-  (WP-S5.01) about 10 weeks and the PLC exchange (WP-S3.16) about 34 weeks. Use the STEP
-  worker's float to retire its FFI and packaging risk early rather than late.
+  the 1.0 stabilisation. It does not run through the GUI; the GUI chain sets the M-PP and MVP dates instead.
+- Use the STEP worker's float to retire its FFI and packaging risk early rather than late.
 - **With 2–4 developers the schedule is capacity-bound, not path-bound.** The path sets the order of work (the core
   developer stays on WP-S1.01 … WP-S1.04 from day 1; the physical developer starts WP-S4.01 as soon as WP-S1.19
   lands), but the end date follows effort ÷ capacity (§5.1).
@@ -445,13 +506,17 @@ stay. The candidates are breadth inside or beside them. Together they move 28 Mu
 
 ### 7.3 Effect on dates (base capacity)
 
+Each row applies only the named levers (the `lever` column of the CSV); "Lean" is the `milestone_lean` column.
+
+<!-- generated:wbs-lever-dates -->
 | Scope | Effort to MVP (mean + reserve) | Effort to 1.0 (mean + reserve) | 2 devs M2 / M6 | 3 devs M2 / M6 | 4 devs M2 / M6 |
 |---|---|---|---|---|---|
-| Full scope | 364 pw | 628 pw | 62 / 105 | 43 / 71 | 38 / 61 |
-| Lever (a): MVP Should deferral | 355 pw | 628 pw | 61 / 106 | 42 / 71 | 37 / 60 |
-| Levers (a) and (b): plus MVP split | 338 pw | 628 pw | 58 / 106 | 40 / 71 | 35 / 61 |
-| Lever (c) only: 1.0-lean | 364 pw | 562 pw | 62 / 95 | 43 / 64 | 38 / 56 |
-| Lean: all three levers | 338 pw | 562 pw | 58 / 95 | 40 / 63 | 35 / 57 |
+| Full scope | 366 pw | 630 pw | 62 / 106 | 43 / 71 | 38 / 61 |
+| Lever (a): MVP Should deferral | 356 pw | 630 pw | 61 / 106 | 42 / 71 | 37 / 60 |
+| Levers (a) and (b): plus MVP split | 340 pw | 630 pw | 58 / 106 | 40 / 71 | 35 / 60 |
+| Lever (c) only: 1.0-lean | 366 pw | 564 pw | 62 / 95 | 43 / 64 | 37 / 56 |
+| Lean: all three levers | 340 pw | 564 pw | 58 / 95 | 40 / 63 | 35 / 57 |
+<!-- /generated:wbs-lever-dates -->
 
 Differences of one month between neighbouring rows are scheduling noise of the PA-9 model. The levers save
 months, not years: the MVP is dominated by the spine, the interactive editor and core breadth, which no lever
@@ -461,10 +526,11 @@ removes.
 
 1. **Decide the trade-off now, at M0.** Three developers, the full v1 scope and a 1.0 at month 15–18 cannot all
    hold. The other plan documents need one baseline.
-2. **Baseline for the other plan documents:** 3 developers with all three levers: MVP at month 40 (Feb 2030), 1.0 at
-   month 63 (Jan 2032), with the ±20 % band of §5.3. Treat these as the committed dates until the M1 re-estimate.
+2. **Baseline for the other plan documents:** 3 developers with all three levers (the `milestone_lean` column), with
+   the ±20 % band of §5.3; the months are in [milestones.csv](milestones.csv) (scenario `3d-lean`) and in the
+   key results above. Treat these as the committed external dates until the G-M1 re-baseline.
 3. **Make capacity the first funding goal.** Growing to six developers (a fourth at month 4, two more at month 6)
-   brings the lean scope's MVP to month 28 (Feb 2029) and 1.0 to month 47 (Sep 2030) (§5.4). Aim the NLnet proposal at self-contained WPs
+   brings the lean scope's MVP and 1.0 forward by about a year (§5.4). Aim the NLnet proposal at self-contained WPs
    (WP-S1.01, WP-S1.02, WP-S1.09, WP-S3.09 … WP-S3.11, WP-S1.15).
 4. **Re-estimate at M1 with measured velocity.** Log actual pw per WP from the first commit. If the spine runs
    faster than estimated (for example because AI assistance helps more than PA-7 assumes), scale §5 by the ratio
@@ -478,32 +544,25 @@ removes.
 ## 8. Requirement coverage
 
 Every requirement row of [02a](../design/02a-requirements-core.md), [02b](../design/02b-requirements-extended.md)
-and [02c](../design/02c-nonfunctional-requirements.md) with release MVP, "MVP / 1.0", 1.0 or 1.x is named by at
-least one WP, through an explicit ID or an ID range in the `requirements` column. "Matching milestone" means an MVP
+and [02c](../design/02c-nonfunctional-requirements.md) with release MVP, "MVP / 1.0" or 1.0 is named by at least
+one WP, through an explicit ID or an ID range in the `requirements` column; 1.x rows are named where a 1.x WP
+already exists, the rest is planned with the 1.x backlog. "Matching milestone" means an MVP
 row is covered by a WP of M0–M2, a 1.0 row by a WP of M0–M6 and a 1.x row by a 1.x WP. Staged "MVP / 1.0" rows are
 covered by an MVP WP and completed by the 1.0 WPs of their area.
 
-| Release | Priority | Rows | Covered by a WP | Covered by a WP of a matching milestone | Uncovered |
-|---|---|---|---|---|---|
-| MVP | Must | 538 | 538 | 538 | 0 |
-| MVP | Should | 134 | 134 | 134 | 0 |
-| MVP | Could | 6 | 6 | 6 | 0 |
-| MVP / 1.0 | Must | 21 | 21 | 21 | 0 |
-| MVP / 1.0 | Should | 5 | 5 | 5 | 0 |
-| 1.0 | Must | 135 | 135 | 135 | 0 |
-| 1.0 | Should | 140 | 140 | 140 | 0 |
-| 1.0 | Could | 20 | 20 | 20 | 0 |
-| 1.x | Must | 7 | 7 | 7 | 0 |
-| 1.x | Should | 21 | 21 | 21 | 0 |
-| 1.x | Could | 32 | 32 | 32 | 0 |
-| Later | Could | 15 | 0 | — | 15 |
-| **All** | | **1074** | **1059** | | **15** |
+The coverage figures are **generated**, not maintained here: see [traceability](05-traceability.md) §2 (coverage
+per area, release and priority, full and lean scope) and §3 (gaps), regenerated by
+`python3 -I docs/plan/tools/trace.py` and verified in CI with `--check`. At the time of writing:
 
-- **No Must row of MVP or 1.0 is uncovered**, and no MVP row depends only on a post-MVP WP.
-- **The 15 rows released "Later" are not planned:** FR-SYM-028, FR-OUT-016, FR-OUT-023, FR-OUT-024, FR-PLC-040, FR-BUS-022, FR-FLU-025, FR-LAY-036, FR-THM-011, FR-MFG-027, FR-MFG-035, FR-IMP-031, FR-EXP-011, FR-UI-037, FR-COL-021.
-- **How to re-check.** Expand each range of the `requirements` column (`FR-CON-009..FR-CON-015` is seven rows) and
-  compare with the ID column of the three catalogues. A requirement-catalogue change that adds a row must add it to
-  a WP in the same pull request.
+- **No Must or Should row of MVP or 1.0 is uncovered** (full scope), and no MVP row depends only on a post-MVP WP.
+- **22 Could / 1.x / Later rows have no WP** and are not promised by this plan ([traceability](05-traceability.md)
+  §3.3). Seven of them (FR-DEV-040, FR-PRT-036, FR-CBL-021, FR-CHK-062, FR-REP-052, FR-LAY-067, FR-EXP-012) record the
+  scope-boundary decision of [vision](../design/00-vision-and-scope.md) §9.2 (functional-safety data, topology and
+  interconnection diagrams, conductor sizing); they are planned with the 1.x backlog at the 1.0 re-plan.
+
+- **How to re-check.** Run the generator; it expands each range of the `requirements` column
+  (`FR-CON-009..FR-CON-015` is seven rows) and compares it with the ID column of the three catalogues. A
+  requirement-catalogue change that adds an MVP or 1.0 row must add it to a WP in the same pull request.
 
 ---
 
@@ -516,17 +575,20 @@ criteria (AC-nn) and NFR verifications. Effort is in pw (PA-4).
 
 S0 makes the project legally and organisationally able to accept contributions, sign releases and take money. Its legal gates are milestone conditions ([governance](../design/19-open-source-governance.md) §3.3). Counsel and notary time are external costs; the WPs count only the maintainers' time.
 
-| WP | Title | Milestone | PERT (pw) | Owner role |
-|---|---|---|---|---|
-| [WP-S0.01](#wp-s001-repository-workspace-and-ci-bootstrap) | Repository, workspace and CI bootstrap | M0 | 3.2 | Release engineer |
-| [WP-S0.02](#wp-s002-licensing-reuse-dco-and-licence-boundary-check) | Licensing, REUSE, DCO and licence-boundary check | M0 | 2.0 | Project lead |
-| [WP-S0.03](#wp-s003-governance-files-and-contribution-process) | Governance files and contribution process | M2 | 2.0 | Project lead |
-| [WP-S0.04](#wp-s004-legal-gates-for-contributions-lg-1-lg-2-lg-5) | Legal gates for contributions: LG-1, LG-2, LG-5 | M1 | 1.7 | Steward liaison |
-| [WP-S0.05](#wp-s005-steward-signing-identity-and-trademark-lg-3-lg-4) | Steward, signing identity and trademark: LG-3, LG-4 | M2 | 2.6 | Steward liaison |
-| [WP-S0.06](#wp-s006-documentation-and-website-infrastructure) | Documentation and website infrastructure | M1 | 2.0 | Docs maintainer |
-| [WP-S0.07](#wp-s007-funding-applications-and-reporting) | Funding applications and reporting | M2 | 1.7 | Project lead |
-| [WP-S0.08](#wp-s008-pilot-kick-off-and-early-decisions) | Pilot kick-off and early decisions | M0 | 1.6 | Project lead |
-| [WP-S0.09](#wp-s009-pilot-programme-community-and-governance-to-10) | Pilot programme, community and governance to 1.0 | M6 | 9.2 | Project lead |
+<!-- generated:wbs-stream-S0 -->
+| WP | Title | Milestone | Lean scope | PERT (pw) | Owner role |
+|---|---|---|---|---|---|
+| [WP-S0.01](#wp-s001-repository-workspace-and-ci-bootstrap) | Repository, workspace and CI bootstrap | M0 | same | 3.2 | Release engineer |
+| [WP-S0.02](#wp-s002-licensing-reuse-dco-and-licence-boundary-check) | Licensing, REUSE, DCO and licence-boundary check | M0 | same | 2.0 | Project lead |
+| [WP-S0.03](#wp-s003-governance-files-and-contribution-process) | Governance files and contribution process | M2 | same | 2.0 | Project lead |
+| [WP-S0.04](#wp-s004-legal-gates-for-contributions-lg-1-lg-2-lg-5) | Legal gates for contributions: LG-1, LG-2, LG-5 | M1 | same | 1.7 | Steward liaison |
+| [WP-S0.05a](#wp-s005a-signing-enrolment-and-trademark-search-lg-3-lg-4-start) | Signing enrolment and trademark search: LG-3, LG-4 start | M0 | same | 1.0 | Steward liaison |
+| [WP-S0.05](#wp-s005-steward-signing-identities-and-trademark-lg-3-lg-4-close) | Steward, signing identities and trademark: LG-3, LG-4 close | M2 | same | 1.6 | Steward liaison |
+| [WP-S0.06](#wp-s006-documentation-and-website-infrastructure) | Documentation and website infrastructure | M1 | same | 2.0 | Docs maintainer |
+| [WP-S0.07](#wp-s007-funding-applications-and-reporting) | Funding applications and reporting | M2 | same | 1.7 | Project lead |
+| [WP-S0.08](#wp-s008-pilot-kick-off-and-early-decisions) | Pilot kick-off and early decisions | M0 | same | 1.6 | Project lead |
+| [WP-S0.09](#wp-s009-pilot-programme-community-and-governance-to-10) | Pilot programme, community and governance to 1.0 | M6 | same | 9.3 | Project lead |
+<!-- /generated:wbs-stream-S0 -->
 
 #### WP-S0.01 Repository, workspace and CI bootstrap
 
@@ -588,17 +650,32 @@ S0 makes the project legally and organisationally able to accept contributions, 
 | Acceptance | NFR-LIC-12 |
 | Owner role | Steward liaison |
 
-#### WP-S0.05 Steward, signing identity and trademark: LG-3, LG-4
+#### WP-S0.05a Signing enrolment and trademark search: LG-3, LG-4 start
+
+| Field | Value |
+|---|---|
+| Objective | Start the external lead times of the first signed release in the first 90 days, because they take calendar time that no developer can shorten. |
+| Scope in | The phase-1 identity holder named (part 1 of ADR-0030: the interim steward of [governance](../design/19-open-source-governance.md) §3.10, or the stichting if it is founded first), with its transfer commitment; D-U-N-S number requested; Apple Developer Program enrolment as an organisation and Artifact Signing identity validation submitted (eligibility **verify**); SignPath fallback application prepared; trademark clearance search for "ElektraWatt" in Nice classes 9 and 42 and the domain check (LG-3 search) |
+| Scope out | Waiting for the enrolment (external lead time of at least 12 months, modelled as the lag of WP-S0.05); the rest of ADR-0030 (CRA role, support period) and the GitHub organisation (WP-S0.05); word-mark filing (WP-S0.09) |
+| Deliverables | Enrolment requests filed; clearance-search report; decision record for the identity holder |
+| Depends on | WP-S0.08 |
+| Requirements | NFR-LIC-13 (1 rows) |
+| Effort (pw) | O 0.5 · L 1 · P 1.5 · **PERT 1.0** (σ 0.2) |
+| Milestone · release | M0 Kick-off and foundations · MVP |
+| Acceptance | NFR-LIC-13 (clearance-search part) |
+| Owner role | Steward liaison |
+
+#### WP-S0.05 Steward, signing identities and trademark: LG-3, LG-4 close
 
 | Field | Value |
 |---|---|
 | Objective | Have a legal person that can sign releases and act as open-source steward before the first signed release. |
-| Scope in | ADR-0030 decision by M1; phase-1 steward set up with transfer commitment; GitHub organisation with two owners and repository transfer; Artifact Signing and Apple Developer enrolment (D-U-N-S); SignPath fallback; trademark clearance searches and domain check (LG-3) |
-| Scope out | Founding the stichting (LG-6, WP-S0.09); word-mark filing (WP-S0.09) |
+| Scope in | ADR-0030 decided in full by M1 (CRA role, support period, phase-2 trigger); phase-1 steward set up with its transfer commitment; GitHub organisation with two owners and repository transfer; enrolments of WP-S0.05a completed and the signing identities wired into the release environment; SignPath fallback active if an enrolment fails; LG-3 closed (search passed, `TRADEMARKS.md` drafted) |
+| Scope out | Founding the stichting (LG-6, WP-S0.09); word-mark filing (WP-S0.09); the release pipeline itself (WP-S6.07) |
 | Deliverables | ADR-0030 accepted; steward checklist complete; signing identities usable by CI |
-| Depends on | WP-S0.04 |
-| Requirements | NFR-COMP-01, NFR-COMP-02, NFR-COMP-08, NFR-LIC-13 (4 rows) |
-| Effort (pw) | O 1.5 · L 2.5 · P 4 · **PERT 2.6** (σ 0.4) |
+| Depends on | WP-S0.04, WP-S0.05a; external lead time: starts no earlier than WP-S0.05a + 12 months (enrolment and identity validation) |
+| Requirements | NFR-COMP-01, NFR-COMP-02, NFR-COMP-08 (3 rows) |
+| Effort (pw) | O 1 · L 1.5 · P 2.5 · **PERT 1.6** (σ 0.3) |
 | Milestone · release | M2 MVP: pilot release · MVP |
 | Acceptance | NFR-COMP-08 |
 | Owner role | Steward liaison |
@@ -623,7 +700,7 @@ S0 makes the project legally and organisationally able to accept contributions, 
 | Field | Value |
 |---|---|
 | Objective | Turn the funding options of governance §3.9 into applications that can add capacity. |
-| Scope in | WBSO application by the employer at M0 (needs LG-1); NLnet NGI0 proposal at M1 scoped to the format crates, importers and `ew check`; GitHub Sponsors and Open Collective at the first binary release; yearly funding statement |
+| Scope in | WBSO application by the employer at M0 (needs LG-1), renewed every year; three NLnet NGI0 proposals as in the [global plan](01-global-plan.md#133-nlnet-proposals-mapped-to-work-packages) §13.3 (the first at the first call after M0, about month 3); GitHub Sponsors and Open Collective once the steward exists (WP-S0.05, global plan §13.2); yearly funding statement |
 | Scope out | Paid services or support (excluded by NFR-COMP-02) |
 | Deliverables | Submitted applications; milestone plan for the grant; funding page |
 | Depends on | WP-S0.04 |
@@ -643,7 +720,7 @@ S0 makes the project legally and organisationally able to accept contributions, 
 | Deliverables | Decision records for ADR-0027 and ADR-0028; private corpus; SC-3 baseline |
 | Depends on | — (can start at month 0) |
 | Requirements | NFR-UX-05 (1 rows) |
-| Effort (pw) | O 1 · L 1.5 · P 2.5 · **PERT 1.6** (σ 0.2) |
+| Effort (pw) | O 1 · L 1.5 · P 2.5 · **PERT 1.6** (σ 0.3) |
 | Milestone · release | M0 Kick-off and foundations · MVP |
 | Acceptance | NFR-UX-05 |
 | Owner role | Project lead |
@@ -658,7 +735,7 @@ S0 makes the project legally and organisationally able to accept contributions, 
 | Deliverables | SC-3 evidence; SC-13 statistics; filed word mark; LG-6 decision |
 | Depends on | WP-S0.08, WP-S0.03 |
 | Requirements | NFR-UX-05, NFR-LIC-14, NFR-LIC-13 (3 rows) |
-| Effort (pw) | O 6 · L 9 · P 13.5 · **PERT 9.2** (σ 1.2) |
+| Effort (pw) | O 6 · L 9 · P 13.5 · **PERT 9.3** (σ 1.3) |
 | Milestone · release | M6 1.0 release · 1.0 |
 | Acceptance | NFR-UX-05 |
 | Owner role | Project lead |
@@ -667,42 +744,46 @@ S0 makes the project legally and organisationally able to accept contributions, 
 
 S1 owns `ew-schema` and the query catalogue, which are the contract for every other stream ([architecture](../design/04-architecture.md) §15.2). WP-S1.01 … WP-S1.10 are spine lane 1; the breadth WPs follow the requirement areas of [02a](../design/02a-requirements-core.md) and [02b](../design/02b-requirements-extended.md).
 
-| WP | Title | Milestone | PERT (pw) | Owner role |
-|---|---|---|---|---|
-| [WP-S1.01](#wp-s101-permissive-foundation-crates-units-ids-text-reference-designations) | Permissive foundation crates: units, ids, text, reference designations | M1 | 3.7 | Core developer |
-| [WP-S1.02](#wp-s102-ew-schema-v0-and-json-schemas) | ew-schema v0 and JSON Schemas | M1 | 3.2 | Core developer |
-| [WP-S1.03](#wp-s103-ew-model-tables-operations-indexes-invariants) | ew-model: tables, operations, indexes, invariants | M1 | 4.7 | Core developer |
-| [WP-S1.04](#wp-s104-ew-commands-and-the-session-facade) | ew-commands and the Session facade | M1 | 5.5 | Core developer |
-| [WP-S1.05](#wp-s105-performance-spike-and-ew-memo-engine-with-oracle) | Performance spike and ew-memo engine with oracle | M1 | 6.2 | Core developer |
-| [WP-S1.06](#wp-s106-derivation-i-structure-tags-pages-title-block-bom) | Derivation I: structure, tags, pages, title block, BOM | M1 | 4.9 | Core developer |
-| [WP-S1.07](#wp-s107-derivation-ii-connectivity-potentials-wire-properties) | Derivation II: connectivity, potentials, wire properties | M1 | 6.4 | Core developer |
-| [WP-S1.08](#wp-s108-derivation-iii-cross-references-and-interruption-points) | Derivation III: cross-references and interruption points | M1 | 3.7 | Core developer |
-| [WP-S1.09](#wp-s109-persistence-core-ew-format-and-ew-store) | Persistence core: ew-format and ew-store | M1 | 5.8 | Core developer |
-| [WP-S1.10](#wp-s110-sql-projection-v0-ew-sqlview-api_v1) | SQL projection v0 (ew-sqlview, api_v1) | M1 | 3.6 | Core developer |
-| [WP-S1.11](#wp-s111-numbering-engine-and-renumber-commands) | Numbering engine and renumber commands | M2 | 4.7 | Core developer |
-| [WP-S1.12](#wp-s112-project-structure-and-page-model-breadth) | Project, structure and page model breadth | M2 | 3.1 | Core developer |
-| [WP-S1.13](#wp-s113-devices-functions-and-assemblies-breadth) | Devices, functions and assemblies breadth | M2 | 4.2 | Core developer |
-| [WP-S1.14](#wp-s114-terminals-strips-cables-and-conductors) | Terminals, strips, cables and conductors | M2 | 4.0 | Core developer |
-| [WP-S1.15](#wp-s115-rule-engine-rhai-formulas-trust-model-and-the-check-cli) | Rule engine, rhai formulas, trust model and the check CLI | M2 | 7.2 | Core developer |
-| [WP-S1.16](#wp-s116-mvp-rule-packs-ew-core-ew-iec81346-ew-term-ew-pot) | MVP rule packs: EW-CORE, EW-IEC81346, EW-TERM, EW-POT | M2 | 6.2 | Core developer |
-| [WP-S1.17](#wp-s117-collaboration-external-change-migrations-integrity-merge-driver) | Collaboration: external change, migrations, integrity, merge driver | M2 | 6.8 | Core developer |
-| [WP-S1.18](#wp-s118-revisions-release-gate-and-as-built-archive) | Revisions, release gate and as-built archive | M2 | 4.6 | Core developer |
-| [WP-S1.19](#wp-s119-parts-libraries-and-macros) | Parts, libraries and macros | M2 | 7.8 | Core developer |
-| [WP-S1.20](#wp-s120-fluid-power-model-mvp) | Fluid power model (MVP) | M2 | 3.1 | Core developer |
-| [WP-S1.21](#wp-s121-plc-and-bus-model-with-addressing-mvp) | PLC and bus model with addressing (MVP) | M2 | 6.2 | Core developer |
-| [WP-S1.22](#wp-s122-cli-surface-and-api-stability-guard) | CLI surface and API stability guard | M2 | 3.1 | Core developer |
-| [WP-S1.23](#wp-s123-headless-read-only-mcp-server) | Headless read-only MCP server | M2 | 2.1 | Core developer |
-| [WP-S1.24](#wp-s124-plc-and-bus-10-tracking-symbols-safety-profinet-io-link-ethercat) | PLC and bus 1.0: tracking, symbols, safety, PROFINET, IO-Link, EtherCAT | M3 | 7.3 | Core developer |
-| [WP-S1.25](#wp-s125-fluid-10-valve-models-media-tubes-fluid-reports) | Fluid 1.0: valve models, media, tubes, fluid reports | M3 | 4.7 | Core developer |
-| [WP-S1.26](#wp-s126-model-10-completion-connections-terminals-cables-numbering-project) | Model 1.0 completion: connections, terminals, cables, numbering, project | M5 | 5.7 | Core developer |
-| [WP-S1.27](#wp-s127-project-languages-and-translation-exchange) | Project languages and translation exchange | M5 | 3.1 | Core developer |
-| [WP-S1.28](#wp-s128-parts-10-accessories-variants-classification-consumables) | Parts 1.0: accessories, variants, classification, consumables | M4 | 3.6 | Core developer |
-| [WP-S1.29](#wp-s129-macros-10-placeholders-variants-updates-table-instantiation) | Macros 1.0: placeholders, variants, updates, table instantiation | M5 | 3.2 | Core developer |
-| [WP-S1.30](#wp-s130-10-rule-packs-sql-rules-and-sarif) | 1.0 rule packs, SQL rules and SARIF | M5 | 4.7 | Core developer |
-| [WP-S1.31](#wp-s131-revision-compare-change-lists-and-review) | Revision compare, change lists and review | M5 | 4.7 | Core developer |
-| [WP-S1.32](#wp-s132-automation-10-scripts-jobsets-macro-recorder-mcp-writes) | Automation 1.0: scripts, jobsets, macro recorder, MCP writes | M5 | 3.2 | Core developer |
-| [WP-S1.33](#wp-s133-plugins-wasm-component-host-and-sdk-1x) | Plugins: WASM component host and SDK (1.x) | 1.x | 9.3 | Core developer |
-| [WP-S1.34](#wp-s134-core-collaboration-and-automation-backlog-1x) | Core, collaboration and automation backlog (1.x) | 1.x | 11.7 | Core developer |
+<!-- generated:wbs-stream-S1 -->
+| WP | Title | Milestone | Lean scope | PERT (pw) | Owner role |
+|---|---|---|---|---|---|
+| [WP-S1.01](#wp-s101-permissive-foundation-crates-units-ids-text-reference-designations) | Permissive foundation crates: units, ids, text, reference designations | M1 | same | 3.7 | Core developer |
+| [WP-S1.02](#wp-s102-ew-schema-v0-and-json-schemas) | ew-schema v0 and JSON Schemas | M1 | same | 3.2 | Core developer |
+| [WP-S1.03](#wp-s103-ew-model-tables-operations-indexes-invariants) | ew-model: tables, operations, indexes, invariants | M1 | same | 4.7 | Core developer |
+| [WP-S1.04](#wp-s104-ew-commands-and-the-session-facade) | ew-commands and the Session facade | M1 | same | 5.6 | Core developer |
+| [WP-S1.05](#wp-s105-performance-spike-and-ew-memo-engine-with-oracle) | Performance spike and ew-memo engine with oracle | M1 | same | 6.3 | Core developer |
+| [WP-S1.06](#wp-s106-derivation-i-structure-tags-pages-title-block-bom) | Derivation I: structure, tags, pages, title block, BOM | M1 | same | 4.9 | Core developer |
+| [WP-S1.07](#wp-s107-derivation-ii-connectivity-potentials-wire-properties) | Derivation II: connectivity, potentials, wire properties | M1 | same | 6.4 | Core developer |
+| [WP-S1.08](#wp-s108-derivation-iii-cross-references-and-interruption-points) | Derivation III: cross-references and interruption points | M1 | same | 3.7 | Core developer |
+| [WP-S1.09](#wp-s109-persistence-core-ew-format-and-ew-store) | Persistence core: ew-format and ew-store | M1 | same | 5.8 | Core developer |
+| [WP-S1.10](#wp-s110-sql-projection-v0-ew-sqlview-api_v1) | SQL projection v0 (ew-sqlview, api_v1) | M1 | same | 3.6 | Core developer |
+| [WP-S1.11](#wp-s111-numbering-engine-and-renumber-commands) | Numbering engine and renumber commands | M-PP | same | 4.7 | Core developer |
+| [WP-S1.12](#wp-s112-project-structure-and-page-model-breadth) | Project, structure and page model breadth | M-PP | same | 3.1 | Core developer |
+| [WP-S1.13](#wp-s113-devices-functions-and-assemblies-breadth) | Devices, functions and assemblies breadth | M-PP | same | 4.2 | Core developer |
+| [WP-S1.14](#wp-s114-terminals-strips-cables-and-conductors) | Terminals, strips, cables and conductors | M-PP | same | 4.0 | Core developer |
+| [WP-S1.15](#wp-s115-rule-engine-rhai-formulas-trust-model-and-the-check-cli) | Rule engine, rhai formulas, trust model and the check CLI | M-PP | same | 7.2 | Core developer |
+| [WP-S1.16a](#wp-s116a-core-online-checks-for-the-pilot-preview) | Core online checks for the pilot preview | M-PP | same | 2.1 | Core developer |
+| [WP-S1.16](#wp-s116-mvp-rule-packs-ew-core-ew-iec81346-ew-term-ew-pot) | MVP rule packs: EW-CORE, EW-IEC81346, EW-TERM, EW-POT | M2 | same | 4.7 | Core developer |
+| [WP-S1.17](#wp-s117-collaboration-external-change-migrations-integrity-merge-driver) | Collaboration: external change, migrations, integrity, merge driver | M2 | same | 6.8 | Core developer |
+| [WP-S1.18](#wp-s118-revisions-release-gate-and-as-built-archive) | Revisions, release gate and as-built archive | M2 | same | 4.6 | Core developer |
+| [WP-S1.19a](#wp-s119a-project-parts-and-part-import-for-the-pilot-preview) | Project parts and part import for the pilot preview | M-PP | same | 2.6 | Core developer |
+| [WP-S1.19](#wp-s119-parts-libraries-and-macros) | Parts, libraries and macros | M2 | same | 5.8 | Core developer |
+| [WP-S1.20](#wp-s120-fluid-power-model-mvp) | Fluid power model (MVP) | M2 | same | 3.1 | Core developer |
+| [WP-S1.21](#wp-s121-plc-and-bus-model-with-addressing-mvp) | PLC and bus model with addressing (MVP) | M2 | same | 6.3 | Core developer |
+| [WP-S1.22](#wp-s122-cli-surface-and-api-stability-guard) | CLI surface and API stability guard | M2 | same | 3.1 | Core developer |
+| [WP-S1.23](#wp-s123-headless-read-only-mcp-server) | Headless read-only MCP server | M2 | M5 (lever a) | 2.1 | Core developer |
+| [WP-S1.24](#wp-s124-plc-and-bus-10-tracking-symbols-safety-profinet-io-link-ethercat) | PLC and bus 1.0: tracking, symbols, safety, PROFINET, IO-Link, EtherCAT | M3 | same | 7.3 | Core developer |
+| [WP-S1.25](#wp-s125-fluid-10-valve-models-media-tubes-fluid-reports) | Fluid 1.0: valve models, media, tubes, fluid reports | M3 | same | 4.7 | Core developer |
+| [WP-S1.26](#wp-s126-model-10-completion-connections-terminals-cables-numbering-project) | Model 1.0 completion: connections, terminals, cables, numbering, project | M5 | same | 5.7 | Core developer |
+| [WP-S1.27](#wp-s127-project-languages-and-translation-exchange) | Project languages and translation exchange | M5 | 1.x (lever c) | 3.1 | Core developer |
+| [WP-S1.28](#wp-s128-parts-10-accessories-variants-classification-consumables) | Parts 1.0: accessories, variants, classification, consumables | M4 | same | 3.6 | Core developer |
+| [WP-S1.29](#wp-s129-macros-10-placeholders-variants-updates-table-instantiation) | Macros 1.0: placeholders, variants, updates, table instantiation | M5 | 1.x (lever c) | 3.2 | Core developer |
+| [WP-S1.30](#wp-s130-10-rule-packs-sql-rules-and-sarif) | 1.0 rule packs, SQL rules and SARIF | M5 | same | 4.7 | Core developer |
+| [WP-S1.31](#wp-s131-revision-compare-change-lists-and-review) | Revision compare, change lists and review | M5 | 1.x (lever c) | 4.7 | Core developer |
+| [WP-S1.32](#wp-s132-automation-10-scripts-jobsets-macro-recorder-mcp-writes) | Automation 1.0: scripts, jobsets, macro recorder, MCP writes | M5 | 1.x (lever c) | 3.2 | Core developer |
+| [WP-S1.33](#wp-s133-plugins-wasm-component-host-and-sdk-1x) | Plugins: WASM component host and SDK (1.x) | 1.x | same | 9.3 | Core developer |
+| [WP-S1.34](#wp-s134-core-collaboration-and-automation-backlog-1x) | Core, collaboration and automation backlog (1.x) | 1.x | same | 11.7 | Core developer |
+<!-- /generated:wbs-stream-S1 -->
 
 #### WP-S1.01 Permissive foundation crates: units, ids, text, reference designations
 
@@ -759,7 +840,7 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Deliverables | `ew-commands`, `ew-api` v0; command tests on the golden project |
 | Depends on | WP-S1.03 |
 | Requirements | FR-CON-004 … FR-CON-006, FR-CON-008, FR-EXT-015, FR-EXT-030, NFR-UX-07, FR-PAG-007 (8 rows) |
-| Effort (pw) | O 3.8 · L 5.3 · P 8.3 · **PERT 5.5** (σ 0.8) |
+| Effort (pw) | O 3.8 · L 5.3 · P 8.3 · **PERT 5.6** (σ 0.8) |
 | Milestone · release | M1 Spine exit: headless golden PDF · MVP |
 | Acceptance | AC-18, AC-20 |
 | Owner role | Core developer |
@@ -769,12 +850,12 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Field | Value |
 |---|---|
 | Objective | Decide by measurement which queries to memoise, then build the small memo engine with an oracle that proves memoised equals cold. |
-| Scope in | M0 spike at spine week 3–5 on synthetic L and XL projects (cold latency of move, wire, renumber, profile change; global connectivity; open time; memory) with the go/fallback decision; `ew-memo` revisions, dependency recording, early cut-off, durability, LRU, statistics, oracle hooks; two named owners |
+| Scope in | Performance spike right after WP-S1.03 (month 5, decision at gate G-SP in month 6, PD-8) on synthetic L and XL projects (cold latency of move, wire, renumber, profile change; global connectivity; open time; memory) with the go/fallback decision; `ew-memo` revisions, dependency recording, early cut-off, durability, LRU, statistics, oracle hooks; two named owners |
 | Scope out | Parallel memo evaluation (excluded in v1) |
 | Deliverables | Spike report and decision; `ew-memo` crate; oracle mode in CI |
 | Depends on | WP-S1.03 |
 | Requirements | NFR-REL-08, NFR-MAINT-07, NFR-PERF-07 (3 rows) |
-| Effort (pw) | O 4 · L 6 · P 9.5 · **PERT 6.2** (σ 0.9) |
+| Effort (pw) | O 4 · L 6 · P 9.5 · **PERT 6.3** (σ 0.9) |
 | Milestone · release | M1 Spine exit: headless golden PDF · MVP |
 | Acceptance | AC-16, NFR-PERF-05 |
 | Owner role | Core developer |
@@ -865,7 +946,7 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Depends on | WP-S1.04, WP-S1.06 |
 | Requirements | FR-NUM-004 … FR-NUM-014, FR-NUM-019, FR-NUM-021 … FR-NUM-023, FR-NUM-029 … FR-NUM-032 (19 rows) |
 | Effort (pw) | O 3 · L 4.5 · P 7 · **PERT 4.7** (σ 0.7) |
-| Milestone · release | M2 MVP: pilot release · MVP |
+| Milestone · release | M-PP Pilot preview 0.0.x · MVP |
 | Acceptance | AC-18, AC-19 |
 | Owner role | Core developer |
 
@@ -880,7 +961,7 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Depends on | WP-S1.04 |
 | Requirements | FR-PRJ-001 … FR-PRJ-008, FR-PRJ-012 … FR-PRJ-016, FR-PRJ-018 … FR-PRJ-021, FR-PRJ-023, FR-PRJ-024, FR-PRJ-028, FR-PRJ-029, FR-PAG-002, FR-PAG-025 (23 rows) |
 | Effort (pw) | O 2 · L 3 · P 4.5 · **PERT 3.1** (σ 0.4) |
-| Milestone · release | M2 MVP: pilot release · MVP |
+| Milestone · release | M-PP Pilot preview 0.0.x · MVP |
 | Acceptance | AC-04 |
 | Owner role | Core developer |
 
@@ -895,7 +976,7 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Depends on | WP-S1.04 |
 | Requirements | FR-DEV-001 … FR-DEV-032, FR-DEV-037 … FR-DEV-039 (35 rows) |
 | Effort (pw) | O 3 · L 4 · P 6 · **PERT 4.2** (σ 0.5) |
-| Milestone · release | M2 MVP: pilot release · MVP |
+| Milestone · release | M-PP Pilot preview 0.0.x · MVP |
 | Acceptance | AC-02, AC-32 |
 | Owner role | Core developer |
 
@@ -910,7 +991,7 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Depends on | WP-S1.04, WP-S1.07 |
 | Requirements | FR-TRM-001, FR-TRM-003 … FR-TRM-007, FR-TRM-009 … FR-TRM-020, FR-TRM-022, FR-TRM-026, FR-TRM-027, FR-CBL-002 … FR-CBL-009, FR-CBL-011 … FR-CBL-016 (35 rows) |
 | Effort (pw) | O 2.4 · L 3.9 · P 5.9 · **PERT 4.0** (σ 0.6) |
-| Milestone · release | M2 MVP: pilot release · MVP |
+| Milestone · release | M-PP Pilot preview 0.0.x · MVP |
 | Acceptance | AC-08, AC-11 |
 | Owner role | Core developer |
 
@@ -925,8 +1006,23 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Depends on | WP-S1.05, WP-S1.04 |
 | Requirements | FR-CHK-001 … FR-CHK-015, FR-CHK-043 … FR-CHK-048, FR-CHK-053, FR-EXT-002, FR-EXT-011, FR-EXT-014, FR-EXT-031, NFR-PERF-09, NFR-SEC-05, NFR-SEC-06 (29 rows) |
 | Effort (pw) | O 4.5 · L 7 · P 10.5 · **PERT 7.2** (σ 1.0) |
-| Milestone · release | M2 MVP: pilot release · MVP |
+| Milestone · release | M-PP Pilot preview 0.0.x · MVP |
 | Acceptance | AC-21, NFR-PERF-09, NFR-SEC-05 |
+| Owner role | Core developer |
+
+#### WP-S1.16a Core online checks for the pilot preview
+
+| Field | Value |
+|---|---|
+| Objective | Give the pilot preview the online checks a panel builder relies on while drawing, so that the first interactive projects are checked as they grow. |
+| Scope in | About 12 online rules of EW-CORE, EW-TERM and EW-POT: terminal designations and duplicates, unpaired interruption points, unconnected CPs, devices without parts, tags against the numbering scheme, potential conflicts, GNYE and BU misuse, cables without length, cross-references outside the frame, report-folio collisions; Fluent messages en-GB and nl-NL for them; rule fixtures |
+| Scope out | The rest of the four packs and the pre-delivery scheme (WP-S1.16) |
+| Deliverables | Core online rule set; messages; fixtures |
+| Depends on | WP-S1.15, WP-S1.08, WP-S1.14 |
+| Requirements | FR-CHK-016 … FR-CHK-018, FR-CHK-024, FR-CHK-025, FR-CHK-028, FR-CHK-031, FR-CHK-033, FR-CHK-035, FR-CHK-038 (10 rows) |
+| Effort (pw) | O 1.5 · L 2 · P 3 · **PERT 2.1** (σ 0.3) |
+| Milestone · release | M-PP Pilot preview 0.0.x · MVP |
+| Acceptance | — (the acceptance criterion of each listed requirement row applies; G-PP) |
 | Owner role | Core developer |
 
 #### WP-S1.16 MVP rule packs: EW-CORE, EW-IEC81346, EW-TERM, EW-POT
@@ -934,12 +1030,12 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Field | Value |
 |---|---|
 | Objective | Ship the rules that make the reference defects visible, ending with the exact pre-delivery finding set. |
-| Scope in | About 60 rules of the four packs including EW-POT-013; the pre-delivery scheme; Fluent messages en-GB and nl-NL; rule fixtures; `expected/findings_mvp.csv` (42 errors, 32 warnings, 28 infos, 1 waived) |
+| Scope in | The remaining rules of the four packs (about 48, including EW-POT-013) on top of WP-S1.16a; the pre-delivery scheme; Fluent messages en-GB and nl-NL; rule fixtures; `expected/findings_mvp.csv` (42 errors, 32 warnings, 28 infos, 1 waived) |
 | Scope out | PLC, bus, fluid and layout MVP subsets (in their WPs); 1.0 packs (WP-S1.30) |
 | Deliverables | Rule packs; AC-21; defect regression rows of golden §19 for MVP |
-| Depends on | WP-S1.15, WP-S1.08, WP-S1.14 |
-| Requirements | FR-CHK-016 … FR-CHK-020, FR-CHK-022 … FR-CHK-028, FR-CHK-030 … FR-CHK-039, FR-CHK-042, FR-CHK-051, FR-CHK-055 … FR-CHK-057, FR-CHK-060, NFR-COMP-05 (29 rows) |
-| Effort (pw) | O 4 · L 6 · P 9 · **PERT 6.2** (σ 0.8) |
+| Depends on | WP-S1.15, WP-S1.08, WP-S1.14, WP-S1.16a |
+| Requirements | FR-CHK-019, FR-CHK-020, FR-CHK-022, FR-CHK-023, FR-CHK-026, FR-CHK-027, FR-CHK-030, FR-CHK-032, FR-CHK-034, FR-CHK-036, FR-CHK-037, FR-CHK-039, FR-CHK-042, FR-CHK-051, FR-CHK-055 … FR-CHK-057, FR-CHK-060, NFR-COMP-05 (19 rows) |
+| Effort (pw) | O 3 · L 4.5 · P 7 · **PERT 4.7** (σ 0.7) |
 | Milestone · release | M2 MVP: pilot release · MVP |
 | Acceptance | AC-21, AC-24 |
 | Owner role | Core developer |
@@ -974,19 +1070,34 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Acceptance | AC-23 |
 | Owner role | Core developer |
 
+#### WP-S1.19a Project parts and part import for the pilot preview
+
+| Field | Value |
+|---|---|
+| Objective | Let the pilot assign parts in new projects, so that the parts list and the terminal and wire reports of the preview are complete. |
+| Scope in | Part records with manufacturer reference, part number, type, description and contact data; manufacturer master list; embedded part copies in the project; CSV import of the pilot's own part list with column mapping and provenance; quantities with units |
+| Scope out | Catalogues at system, company and user level, FTS5 search, XLSX import, previewed part update, macros, the basic-project wizard backend (WP-S1.19) |
+| Deliverables | Part model and project part store in `ew-library`; `ew import parts` (CSV) |
+| Depends on | WP-S1.04, WP-S1.13 |
+| Requirements | FR-PRT-001, FR-PRT-002, FR-PRT-009, FR-PRT-013, FR-PRT-016, FR-PRT-017, FR-PRT-026 (7 rows) |
+| Effort (pw) | O 1.5 · L 2.5 · P 4 · **PERT 2.6** (σ 0.4) |
+| Milestone · release | M-PP Pilot preview 0.0.x · MVP |
+| Acceptance | AC-07 (folio 901 from parts assigned in the editor) |
+| Owner role | Core developer |
+
 #### WP-S1.19 Parts, libraries and macros
 
 | Field | Value |
 |---|---|
-| Objective | Provide part data, catalogues with search, embedded copies and the window and page macros the pilot uses as typicals. |
-| Scope in | Part model L0–L3 with CP patterns, contact data and optional sections; manufacturer master list; SQLite catalogues with FTS5 at system, company and user level; embedded copies and previewed update; CSV/XLSX part import; carrier part kinds; window and page macros with value sets and include flags; basic project and company-standard wizard backend |
-| Scope out | Accessories, variants, ECLASS/ETIM, consumables (WP-S1.28); macro placeholders and variants (WP-S1.29) |
-| Deliverables | `ew-library`; part and macro commands; folios 203–206 as one typical |
-| Depends on | WP-S1.04, WP-S1.13 |
-| Requirements | FR-PRT-001, FR-PRT-002, FR-PRT-004, FR-PRT-006 … FR-PRT-014, FR-PRT-016, FR-PRT-017, FR-PRT-023, FR-PRT-024, FR-PRT-026 … FR-PRT-028, FR-PRT-031, FR-PRT-034, FR-SYM-016, FR-MAC-001 … FR-MAC-007, FR-MAC-011, FR-MAC-018, FR-PRJ-009, FR-PRJ-010, NFR-PERF-21 (34 rows) |
-| Effort (pw) | O 5 · L 7.5 · P 11.5 · **PERT 7.8** (σ 1.1) |
+| Objective | Provide catalogues with search, previewed updates and the window and page macros the pilot uses as typicals, on top of the project parts of WP-S1.19a. |
+| Scope in | Part model L0–L3 with CP patterns and optional sections; SQLite catalogues with FTS5 at system, company and user level; previewed update of embedded copies; XLSX part import; carrier part kinds; window and page macros with value sets and include flags; basic project and company-standard wizard backend |
+| Scope out | Project parts and CSV import (WP-S1.19a); accessories, variants, ECLASS/ETIM, consumables (WP-S1.28); macro placeholders and variants (WP-S1.29) |
+| Deliverables | `ew-library` catalogues; part and macro commands; folios 203–206 as one typical |
+| Depends on | WP-S1.04, WP-S1.13, WP-S1.19a |
+| Requirements | FR-PRT-004, FR-PRT-006 … FR-PRT-008, FR-PRT-010 … FR-PRT-012, FR-PRT-014, FR-PRT-023, FR-PRT-024, FR-PRT-027, FR-PRT-028, FR-PRT-031, FR-PRT-034, FR-SYM-016, FR-MAC-001 … FR-MAC-007, FR-MAC-011, FR-MAC-018, FR-PRJ-009, FR-PRJ-010, NFR-PERF-21 (27 rows) |
+| Effort (pw) | O 4 · L 5.5 · P 8.5 · **PERT 5.8** (σ 0.8) |
 | Milestone · release | M2 MVP: pilot release · MVP |
-| Acceptance | AC-07, AC-32, NFR-PERF-21 |
+| Acceptance | AC-32, NFR-PERF-21 |
 | Owner role | Core developer |
 
 #### WP-S1.20 Fluid power model (MVP)
@@ -994,7 +1105,7 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Field | Value |
 |---|---|
 | Objective | Draw and check the pneumatic part of the reference set in the same project as the electrics. |
-| Scope in | Fluid CPs with port roles, fluid lines and line kinds, solenoid valves with coil functions, valve-terminal children and occupancy, field devices and `Drives` links, EW-FL-01, -02, -04, -11, -13 |
+| Scope in | Fluid CPs with port roles, fluid lines and line kinds, solenoid valves with coil functions, valve-terminal children and occupancy, field devices and `Drives` links, EW-FL-001, -02, -04, -11, -13 |
 | Scope out | Valve models, media, tubes (WP-S1.25) |
 | Deliverables | Fluid model and rules; AC-32 MVP part |
 | Depends on | WP-S1.13, WP-S1.21 |
@@ -1009,12 +1120,12 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Field | Value |
 |---|---|
 | Objective | Model the station -201U1 with modules, channels and derived addresses, plus the Profibus topology of folio 3. |
-| Scope in | Configuration projects, stations, modules, channels and internal channels; canonical addresses and address profiles (TIA international, IEC); part address maps; Auto, Manual, Excluded, Tbd; card supply typing; bus ports, logical and physical networks, connectors with termination, external partners; EW-PLC MVP rules, EW-BUS-01 and -04 |
+| Scope in | Configuration projects, stations, modules, channels and internal channels; canonical addresses and address profiles (TIA international, IEC); part address maps; Auto, Manual, Excluded, Tbd; card supply typing; bus ports, logical and physical networks, connectors with termination, external partners; EW-PLC MVP rules, EW-BUS-001 and -04 |
 | Scope out | Target tracking, safety, exchange formats (WP-S1.24, WP-S3.16) |
 | Deliverables | `ew-plc` model part; AC-29 and AC-31 |
 | Depends on | WP-S1.13, WP-S1.14 |
 | Requirements | FR-PLC-001 … FR-PLC-008, FR-PLC-011 … FR-PLC-014, FR-PLC-016, FR-PLC-019, FR-PLC-022 … FR-PLC-024, FR-PLC-044, FR-PLC-045, FR-PLC-051 … FR-PLC-053, FR-PLC-055, FR-BUS-001 … FR-BUS-006, FR-BUS-009, FR-BUS-015, FR-BUS-016, FR-CHK-005 (33 rows) |
-| Effort (pw) | O 4 · L 6 · P 9.5 · **PERT 6.2** (σ 0.9) |
+| Effort (pw) | O 4 · L 6 · P 9.5 · **PERT 6.3** (σ 0.9) |
 | Milestone · release | M2 MVP: pilot release · MVP |
 | Acceptance | AC-29, AC-31 |
 | Owner role | Core developer |
@@ -1045,7 +1156,7 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Depends on | WP-S1.22, WP-S1.10 |
 | Requirements | FR-EXT-016, FR-EXT-026, FR-EXT-033, FR-EXT-034, NFR-SEC-08, NFR-PRIV-08 (6 rows) |
 | Effort (pw) | O 1 · L 2 · P 3.5 · **PERT 2.1** (σ 0.4) |
-| Milestone · release | M2 MVP: pilot release · MVP |
+| Milestone · release | M2 MVP: pilot release · MVP; lean scope: M5 (lever a) |
 | Acceptance | NFR-SEC-08 |
 | Owner role | Core developer |
 | Scope lever | Lever (a): can be deferred from MVP to 1.0 (§7.1) |
@@ -1070,7 +1181,7 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Field | Value |
 |---|---|
 | Objective | Add the fluid semantics needed for tube lists and fluid BOM lines. |
-| Scope in | Valve models with switching positions; media with propagation; galleries; tube specifications with inheritance; line tags; physical tubes across fluid interruption points; tube list, cut list, labels, valve-terminal configuration and medium overview row sources; fluid BOM; EW-FL-05 … -10, -12, -14 |
+| Scope in | Valve models with switching positions; media with propagation; galleries; tube specifications with inheritance; line tags; physical tubes across fluid interruption points; tube list, cut list, labels, valve-terminal configuration and medium overview row sources; fluid BOM; EW-FL-005 … -10, -12, -14 |
 | Scope out | Tube routing in 3D (1.x) |
 | Deliverables | Fluid 1.0 model, rules and row sources; AC-32 1.0 part |
 | Depends on | WP-S1.20 |
@@ -1106,7 +1217,7 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Depends on | WP-S1.06, WP-S3.04 |
 | Requirements | FR-I18N-004 … FR-I18N-008, FR-I18N-012, FR-I18N-013, NFR-I18N-05 (8 rows) |
 | Effort (pw) | O 2 · L 3 · P 4.5 · **PERT 3.1** (σ 0.4) |
-| Milestone · release | M5 1.0 feature complete (beta) · 1.0 |
+| Milestone · release | M5 1.0 feature complete (beta) · 1.0; lean scope: 1.x (lever c) |
 | Acceptance | AC-42 |
 | Owner role | Core developer |
 | Scope lever | Lever (c): can move to 1.x by a scope decision (§7.2) |
@@ -1137,7 +1248,7 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Depends on | WP-S1.19 |
 | Requirements | FR-MAC-008 … FR-MAC-010, FR-MAC-012 … FR-MAC-015, FR-MAC-017 (8 rows) |
 | Effort (pw) | O 2 · L 3 · P 5 · **PERT 3.2** (σ 0.5) |
-| Milestone · release | M5 1.0 feature complete (beta) · 1.0 |
+| Milestone · release | M5 1.0 feature complete (beta) · 1.0; lean scope: 1.x (lever c) |
 | Acceptance | — (no golden AC row; the acceptance criterion of each listed requirement row applies) |
 | Owner role | Core developer |
 | Scope lever | Lever (c): can move to 1.x by a scope decision (§7.2) |
@@ -1168,7 +1279,7 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Depends on | WP-S1.18, WP-S1.17 |
 | Requirements | FR-REV-013 … FR-REV-018, FR-REV-023 … FR-REV-025, FR-COL-016, FR-COL-018, FR-COL-022 (12 rows) |
 | Effort (pw) | O 3 · L 4.5 · P 7 · **PERT 4.7** (σ 0.7) |
-| Milestone · release | M5 1.0 feature complete (beta) · 1.0 |
+| Milestone · release | M5 1.0 feature complete (beta) · 1.0; lean scope: 1.x (lever c) |
 | Acceptance | — (no golden AC row; the acceptance criterion of each listed requirement row applies) |
 | Owner role | Core developer |
 | Scope lever | Lever (c): can move to 1.x by a scope decision (§7.2) |
@@ -1184,7 +1295,7 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Depends on | WP-S1.15, WP-S1.23 |
 | Requirements | FR-EXT-010, FR-EXT-012, FR-EXT-013, FR-EXT-017, FR-EXT-028 (5 rows) |
 | Effort (pw) | O 2 · L 3 · P 5 · **PERT 3.2** (σ 0.5) |
-| Milestone · release | M5 1.0 feature complete (beta) · 1.0 |
+| Milestone · release | M5 1.0 feature complete (beta) · 1.0; lean scope: 1.x (lever c) |
 | Acceptance | — (no golden AC row; the acceptance criterion of each listed requirement row applies) |
 | Owner role | Core developer |
 | Scope lever | Lever (c): can move to 1.x by a scope decision (§7.2) |
@@ -1209,7 +1320,7 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Field | Value |
 |---|---|
 | Objective | Hold the 1.x rows of the core areas until they are scheduled after 1.0. |
-| Scope in | Multi-project sessions; external-document pages; QET-grid conversion; parametric symbols; pair xrefs; configurator decoders; tags from PLC data; rule-based generation; voltage drop; PDF annotation import; local history; request edit; MCP GUI bridge; Python wheel; dictionaries; more address profiles; EtherCAT E-bus budget; EtherNet/IP and AS-i; EW-FL-03 |
+| Scope in | Multi-project sessions; external-document pages; QET-grid conversion; parametric symbols; pair xrefs; configurator decoders; tags from PLC data; rule-based generation; voltage drop; PDF annotation import; local history; request edit; MCP GUI bridge; Python wheel; dictionaries; more address profiles; EtherCAT E-bus budget; EtherNet/IP and AS-i; EW-FL-003 |
 | Scope out | Later items (parked) |
 | Deliverables | Backlog to be split into WPs after 1.0 |
 | Depends on | WP-S1.31 |
@@ -1223,24 +1334,26 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 
 S2 builds the egui shell and every interactive tool against `World`, the queries and golden data, not mocks ([UX](../design/16-ux-ui.md), ADR-0014). A read-only viewer comes first so that usability round R0 can start early.
 
-| WP | Title | Milestone | PERT (pw) | Owner role |
-|---|---|---|---|---|
-| [WP-S2.01](#wp-s201-application-shell-first-run-and-company-standard-wizard-ui) | Application shell, first run and company-standard wizard UI | M2 | 5.8 | UI developer |
-| [WP-S2.02](#wp-s202-2d-canvas-renderer-ew-render2d-and-gpu-less-fallback) | 2D canvas renderer (ew-render2d) and GPU-less fallback | M2 | 4.7 | UI developer |
-| [WP-S2.03](#wp-s203-viewer-view-models-and-canvas-tool-framework) | Viewer, view models and canvas tool framework | M2 | 6.8 | UI developer |
-| [WP-S2.04](#wp-s204-placement-wiring-and-drawing-tools) | Placement, wiring and drawing tools | M2 | 10.3 | UI developer |
-| [WP-S2.05](#wp-s205-property-grid-provenance-find-and-replace-clipboard) | Property grid, provenance, find and replace, clipboard | M2 | 4.6 | UI developer |
-| [WP-S2.06](#wp-s206-navigators-and-table-mode) | Navigators and table mode | M2 | 5.2 | UI developer |
-| [WP-S2.07](#wp-s207-domain-tables-strip-cable-and-plc-editors-part-selection) | Domain tables: strip, cable and PLC editors, part selection | M2 | 3.6 | UI developer |
-| [WP-S2.08](#wp-s208-command-palette-keymaps-accessibility-and-ui-localisation) | Command palette, keymaps, accessibility and UI localisation | M2 | 6.7 | UI developer |
-| [WP-S2.09](#wp-s209-messages-bulk-previews-history-jobs-and-recovery-ui) | Messages, bulk previews, history, jobs and recovery UI | M2 | 3.6 | UI developer |
-| [WP-S2.10](#wp-s210-symbol-editor) | Symbol editor | M2 | 3.1 | UI developer |
-| [WP-S2.11](#wp-s211-gui-test-suite-egui_kittest) | GUI test suite (egui_kittest) | M2 | 2.6 | UI developer |
-| [WP-S2.12](#wp-s212-usability-rounds-r0-and-r1) | Usability rounds R0 and R1 | M2 | 3.1 | UX researcher |
-| [WP-S2.13](#wp-s213-automation-workspaces-plc-bus-and-fluid) | Automation workspaces: PLC, bus and fluid | M3 | 6.8 | UI developer |
-| [WP-S2.14](#wp-s214-editor-10-completion) | Editor 1.0 completion | M5 | 4.6 | UI developer |
-| [WP-S2.15](#wp-s215-revision-review-and-merge-ui) | Revision, review and merge UI | M5 | 3.1 | UI developer |
-| [WP-S2.16](#wp-s216-usability-round-r2-and-fixes) | Usability round R2 and fixes | M6 | 3.1 | UX researcher |
+<!-- generated:wbs-stream-S2 -->
+| WP | Title | Milestone | Lean scope | PERT (pw) | Owner role |
+|---|---|---|---|---|---|
+| [WP-S2.01](#wp-s201-application-shell-first-run-and-company-standard-wizard-ui) | Application shell, first run and company-standard wizard UI | M-PP | same | 5.8 | UI developer |
+| [WP-S2.02](#wp-s202-2d-canvas-renderer-ew-render2d-and-gpu-less-fallback) | 2D canvas renderer (ew-render2d) and GPU-less fallback | M-PP | same | 4.7 | UI developer |
+| [WP-S2.03](#wp-s203-viewer-view-models-and-canvas-tool-framework) | Viewer, view models and canvas tool framework | M-PP | same | 6.8 | UI developer |
+| [WP-S2.04](#wp-s204-placement-wiring-and-drawing-tools) | Placement, wiring and drawing tools | M-PP | same | 10.3 | UI developer |
+| [WP-S2.05](#wp-s205-property-grid-provenance-find-and-replace-clipboard) | Property grid, provenance, find and replace, clipboard | M-PP | same | 4.6 | UI developer |
+| [WP-S2.06](#wp-s206-navigators-and-table-mode) | Navigators and table mode | M-PP | same | 5.2 | UI developer |
+| [WP-S2.07](#wp-s207-domain-tables-strip-cable-and-plc-editors-part-selection) | Domain tables: strip, cable and PLC editors, part selection | M2 | same | 3.6 | UI developer |
+| [WP-S2.08](#wp-s208-command-palette-keymaps-accessibility-and-ui-localisation) | Command palette, keymaps, accessibility and UI localisation | M2 | same | 6.7 | UI developer |
+| [WP-S2.09](#wp-s209-messages-bulk-previews-history-jobs-and-recovery-ui) | Messages, bulk previews, history, jobs and recovery UI | M-PP | same | 3.6 | UI developer |
+| [WP-S2.10](#wp-s210-symbol-editor) | Symbol editor | M2 | M5 (lever a) | 3.1 | UI developer |
+| [WP-S2.11](#wp-s211-gui-test-suite-egui_kittest) | GUI test suite (egui_kittest) | M2 | same | 2.6 | UI developer |
+| [WP-S2.12](#wp-s212-usability-rounds-r0-and-r1) | Usability rounds R0 and R1 | M2 | same | 3.1 | UX researcher |
+| [WP-S2.13](#wp-s213-automation-workspaces-plc-bus-and-fluid) | Automation workspaces: PLC, bus and fluid | M3 | same | 6.8 | UI developer |
+| [WP-S2.14](#wp-s214-editor-10-completion) | Editor 1.0 completion | M5 | 1.x (lever c) | 4.6 | UI developer |
+| [WP-S2.15](#wp-s215-revision-review-and-merge-ui) | Revision, review and merge UI | M5 | 1.x (lever c) | 3.1 | UI developer |
+| [WP-S2.16](#wp-s216-usability-round-r2-and-fixes) | Usability round R2 and fixes | M6 | same | 3.1 | UX researcher |
+<!-- /generated:wbs-stream-S2 -->
 
 #### WP-S2.01 Application shell, first run and company-standard wizard UI
 
@@ -1253,7 +1366,7 @@ S2 builds the egui shell and every interactive tool against `World`, the queries
 | Depends on | WP-S1.04 |
 | Requirements | FR-UI-001, FR-UI-002, FR-UI-030, FR-UI-031, FR-UI-033, FR-UI-034, FR-UI-038, FR-UI-049, NFR-PERF-02 (9 rows) |
 | Effort (pw) | O 4 · L 5.5 · P 8.5 · **PERT 5.8** (σ 0.8) |
-| Milestone · release | M2 MVP: pilot release · MVP |
+| Milestone · release | M-PP Pilot preview 0.0.x · MVP |
 | Acceptance | NFR-PERF-02, NFR-UX-04 |
 | Owner role | UI developer |
 
@@ -1268,7 +1381,7 @@ S2 builds the egui shell and every interactive tool against `World`, the queries
 | Depends on | WP-S3.01 |
 | Requirements | FR-UI-027, FR-UI-028, FR-UI-043, NFR-PERF-04, NFR-PERF-06, NFR-PLAT-02, NFR-PLAT-03 (7 rows) |
 | Effort (pw) | O 3 · L 4.5 · P 7 · **PERT 4.7** (σ 0.7) |
-| Milestone · release | M2 MVP: pilot release · MVP |
+| Milestone · release | M-PP Pilot preview 0.0.x · MVP |
 | Acceptance | NFR-PERF-06, NFR-PLAT-03 |
 | Owner role | UI developer |
 
@@ -1283,7 +1396,7 @@ S2 builds the egui shell and every interactive tool against `World`, the queries
 | Depends on | WP-S2.01, WP-S2.02, WP-S1.08 |
 | Requirements | FR-UI-015, FR-UI-016, FR-UI-018, FR-UI-019, FR-UI-035, FR-UI-039, FR-PAG-024, FR-XRF-019, NFR-A11Y-01 (9 rows) |
 | Effort (pw) | O 4.5 · L 6.5 · P 10 · **PERT 6.8** (σ 0.9) |
-| Milestone · release | M2 MVP: pilot release · MVP |
+| Milestone · release | M-PP Pilot preview 0.0.x · MVP |
 | Acceptance | AC-28 |
 | Owner role | UI developer |
 
@@ -1298,7 +1411,7 @@ S2 builds the egui shell and every interactive tool against `World`, the queries
 | Depends on | WP-S2.03, WP-S1.13, WP-S1.07 |
 | Requirements | FR-UI-017, FR-SYM-015, FR-SYM-022, FR-SYM-023 … FR-SYM-025, FR-CON-003, FR-CON-005 … FR-CON-008, FR-CON-024, FR-CON-031, FR-CON-039, FR-XRF-013, FR-XRF-014, FR-DEV-013, FR-DEV-039, FR-PRJ-020 (19 rows) |
 | Effort (pw) | O 7 · L 10 · P 15 · **PERT 10.3** (σ 1.3) |
-| Milestone · release | M2 MVP: pilot release · MVP |
+| Milestone · release | M-PP Pilot preview 0.0.x · MVP |
 | Acceptance | AC-28, NFR-UX-01 |
 | Owner role | UI developer |
 
@@ -1313,7 +1426,7 @@ S2 builds the egui shell and every interactive tool against `World`, the queries
 | Depends on | WP-S2.03 |
 | Requirements | FR-UI-009, FR-UI-010, FR-UI-020, FR-UI-036, FR-UI-040, FR-UI-044, FR-DEV-029, FR-DEV-031, FR-DEV-032 (9 rows) |
 | Effort (pw) | O 3 · L 4.5 · P 6.5 · **PERT 4.6** (σ 0.6) |
-| Milestone · release | M2 MVP: pilot release · MVP |
+| Milestone · release | M-PP Pilot preview 0.0.x · MVP |
 | Acceptance | AC-28 |
 | Owner role | UI developer |
 
@@ -1328,7 +1441,7 @@ S2 builds the egui shell and every interactive tool against `World`, the queries
 | Depends on | WP-S2.03 |
 | Requirements | FR-UI-005, FR-UI-007, FR-UI-008, NFR-PERF-15 (4 rows) |
 | Effort (pw) | O 3.5 · L 5 · P 7.5 · **PERT 5.2** (σ 0.7) |
-| Milestone · release | M2 MVP: pilot release · MVP |
+| Milestone · release | M-PP Pilot preview 0.0.x · MVP |
 | Acceptance | NFR-PERF-15 |
 | Owner role | UI developer |
 
@@ -1373,7 +1486,7 @@ S2 builds the egui shell and every interactive tool against `World`, the queries
 | Depends on | WP-S2.03, WP-S1.15 |
 | Requirements | FR-UI-021 … FR-UI-024, FR-UI-041, FR-UI-042, FR-UI-050, NFR-PERF-08, NFR-PERF-19 (9 rows) |
 | Effort (pw) | O 2.5 · L 3.5 · P 5 · **PERT 3.6** (σ 0.4) |
-| Milestone · release | M2 MVP: pilot release · MVP |
+| Milestone · release | M-PP Pilot preview 0.0.x · MVP |
 | Acceptance | AC-18 |
 | Owner role | UI developer |
 
@@ -1388,7 +1501,7 @@ S2 builds the egui shell and every interactive tool against `World`, the queries
 | Depends on | WP-S2.04 |
 | Requirements | FR-SYM-017 (1 rows) |
 | Effort (pw) | O 2 · L 3 · P 4.5 · **PERT 3.1** (σ 0.4) |
-| Milestone · release | M2 MVP: pilot release · MVP |
+| Milestone · release | M2 MVP: pilot release · MVP; lean scope: M5 (lever a) |
 | Acceptance | — (no golden AC row; the acceptance criterion of each listed requirement row applies) |
 | Owner role | UI developer |
 | Scope lever | Lever (a): can be deferred from MVP to 1.0 (§7.1) |
@@ -1413,7 +1526,7 @@ S2 builds the egui shell and every interactive tool against `World`, the queries
 | Field | Value |
 |---|---|
 | Objective | Validate the editor and ADR-0007's autoconnect with real EPLAN and QET users before the MVP release. |
-| Scope in | R0 formative in month 4–5 equivalent (viewer plus place and wire); R1 summative before M2 with ≥ 2 EPLAN and ≥ 1 QET users on T1–T8; consent forms; GP-UT fixture; analysis and fix list |
+| Scope in | R0 formative on the first interactive build (viewer plus place and wire, the M-PP tools), with the pilot user and a colleague; R1 summative before M2 with ≥ 2 EPLAN and ≥ 1 QET users on T1–T8; consent forms; GP-UT fixture; analysis and fix list |
 | Scope out | Implementing the fixes (in the owning WPs and WP-S6.08) |
 | Deliverables | Study reports; ADR-0007 validation record |
 | Depends on | WP-S2.04, WP-S0.08 |
@@ -1449,7 +1562,7 @@ S2 builds the egui shell and every interactive tool against `World`, the queries
 | Depends on | WP-S2.05, WP-S2.08 |
 | Requirements | FR-UI-004, FR-UI-011, FR-UI-014, FR-UI-046, FR-UI-051, FR-SYM-026 (6 rows) |
 | Effort (pw) | O 3 · L 4.5 · P 6.5 · **PERT 4.6** (σ 0.6) |
-| Milestone · release | M5 1.0 feature complete (beta) · 1.0 |
+| Milestone · release | M5 1.0 feature complete (beta) · 1.0; lean scope: 1.x (lever c) |
 | Acceptance | — (no golden AC row; the acceptance criterion of each listed requirement row applies) |
 | Owner role | UI developer |
 | Scope lever | Lever (c): can move to 1.x by a scope decision (§7.2) |
@@ -1465,7 +1578,7 @@ S2 builds the egui shell and every interactive tool against `World`, the queries
 | Depends on | WP-S1.31, WP-S2.09 |
 | Requirements | FR-COL-015, FR-COL-017, FR-REV-016 … FR-REV-018 (5 rows) |
 | Effort (pw) | O 2 · L 3 · P 4.5 · **PERT 3.1** (σ 0.4) |
-| Milestone · release | M5 1.0 feature complete (beta) · 1.0 |
+| Milestone · release | M5 1.0 feature complete (beta) · 1.0; lean scope: 1.x (lever c) |
 | Acceptance | — (no golden AC row; the acceptance criterion of each listed requirement row applies) |
 | Owner role | UI developer |
 | Scope lever | Lever (c): can move to 1.x by a scope decision (§7.2) |
@@ -1489,28 +1602,30 @@ S2 builds the egui shell and every interactive tool against `World`, the queries
 
 S3 owns everything that becomes a page, a table or a foreign file: forms, reports, PDF, SVG, DXF, the importers and the PLC exchange formats ([reports](../design/09-reports-forms-output.md), [interop](../design/14-interop.md), [PLC](../design/10-plc-and-bus.md)). WP-S3.01 … WP-S3.05 are spine lane 2.
 
-| WP | Title | Milestone | PERT (pw) | Owner role |
-|---|---|---|---|---|
-| [WP-S3.01](#wp-s301-display-list-scene-and-symbol-model) | Display list, scene and symbol model | M1 | 5.7 | Output and migration developer |
-| [WP-S3.02](#wp-s302-frames-forms-title-blocks-text-and-fonts) | Frames, forms, title blocks, text and fonts | M1 | 4.7 | Output and migration developer |
-| [WP-S3.03](#wp-s303-report-engine-and-spine-report-folios) | Report engine and spine report folios | M1 | 5.6 | Output and migration developer |
-| [WP-S3.04](#wp-s304-page-output-cpu-renderer-png-goldens-and-pdf) | Page output: CPU renderer, PNG goldens and PDF | M1 | 6.8 | Output and migration developer |
-| [WP-S3.05](#wp-s305-spine-importers-csv-golden-bootstrap-and-qet-element-reader) | Spine importers: CSV golden bootstrap and QET element reader | M1 | 4.2 | Output and migration developer |
-| [WP-S3.06](#wp-s306-mvp-report-pack) | MVP report pack | M2 | 3.7 | Output and migration developer |
-| [WP-S3.07](#wp-s307-svg-export-and-printing) | SVG export and printing | M2 | 3.2 | Output and migration developer |
-| [WP-S3.08](#wp-s308-table-exports-and-excel-round-trip) | Table exports and Excel round trip | M2 | 2.7 | Output and migration developer |
-| [WP-S3.09](#wp-s309-importer-contracts-lineage-and-migration-report) | Importer contracts, lineage and migration report | M2 | 3.1 | Output and migration developer |
-| [WP-S3.10](#wp-s310-qet-project-import-i-pages-devices-conductors-title-blocks) | QET project import I: pages, devices, conductors, title blocks | M2 | 6.2 | Output and migration developer |
-| [WP-S3.11](#wp-s311-qet-project-import-ii-links-formulas-strips-tables) | QET project import II: links, formulas, strips, tables | M2 | 4.7 | Output and migration developer |
-| [WP-S3.12](#wp-s312-qet-migration-assistants-cables-fluid-map-layout-binding-reconstruction) | QET migration assistants: cables, fluid map, layout binding, reconstruction | M2 | 2.6 | Output and migration developer |
-| [WP-S3.13](#wp-s313-qet-corpus-migration-verifier-and-pilot-migrations) | QET corpus, migration verifier and pilot migrations | M2 | 3.2 | Output and migration developer |
-| [WP-S3.14](#wp-s314-forms-editor-iso-5457-frames-and-pdf-10-options) | Forms editor, ISO 5457 frames and PDF 1.0 options | M5 | 6.8 | Output and migration developer |
-| [WP-S3.15](#wp-s315-10-report-kinds-and-user-sql-reports) | 1.0 report kinds and user SQL reports | M5 | 4.7 | Output and migration developer |
-| [WP-S3.16](#wp-s316-plc-exchange-automationml-tia-tag-tables-plcopen-xml) | PLC exchange: AutomationML, TIA tag tables, PLCopen XML | M3 | 9.2 | Output and migration developer |
-| [WP-S3.17](#wp-s317-device-descriptions-gsd-gsdml-and-iodd-import) | Device descriptions: GSD, GSDML and IODD import | M3 | 3.2 | Output and migration developer |
-| [WP-S3.18](#wp-s318-edz-eplan-parts-xml-and-qet-10-import) | EDZ, EPLAN parts XML and QET 1.0 import | M3 | 6.8 | Output and migration developer |
-| [WP-S3.19](#wp-s319-dxf-and-dwg-exchange) | DXF and DWG exchange | M3 | 4.7 | Output and migration developer |
-| [WP-S3.20](#wp-s320-interop-1x-backlog) | Interop 1.x backlog | 1.x | 8.2 | Output and migration developer |
+<!-- generated:wbs-stream-S3 -->
+| WP | Title | Milestone | Lean scope | PERT (pw) | Owner role |
+|---|---|---|---|---|---|
+| [WP-S3.01](#wp-s301-display-list-scene-and-symbol-model) | Display list, scene and symbol model | M1 | same | 5.7 | Output and migration developer |
+| [WP-S3.02](#wp-s302-frames-forms-title-blocks-text-and-fonts) | Frames, forms, title blocks, text and fonts | M1 | same | 4.7 | Output and migration developer |
+| [WP-S3.03](#wp-s303-report-engine-and-spine-report-folios) | Report engine and spine report folios | M1 | same | 5.6 | Output and migration developer |
+| [WP-S3.04](#wp-s304-page-output-cpu-renderer-png-goldens-and-pdf) | Page output: CPU renderer, PNG goldens and PDF | M1 | same | 6.8 | Output and migration developer |
+| [WP-S3.05](#wp-s305-spine-importers-csv-golden-bootstrap-and-qet-element-reader) | Spine importers: CSV golden bootstrap and QET element reader | M1 | same | 4.2 | Output and migration developer |
+| [WP-S3.06](#wp-s306-mvp-report-pack) | MVP report pack | M2 | same | 3.7 | Output and migration developer |
+| [WP-S3.07](#wp-s307-svg-export-and-printing) | SVG export and printing | M2 | same | 3.2 | Output and migration developer |
+| [WP-S3.08](#wp-s308-table-exports-and-excel-round-trip) | Table exports and Excel round trip | M2 | same | 2.7 | Output and migration developer |
+| [WP-S3.09](#wp-s309-importer-contracts-lineage-and-migration-report) | Importer contracts, lineage and migration report | M2 | same | 3.1 | Output and migration developer |
+| [WP-S3.10](#wp-s310-qet-project-import-i-pages-devices-conductors-title-blocks) | QET project import I: pages, devices, conductors, title blocks | M2 | M3 (lever b) | 6.2 | Output and migration developer |
+| [WP-S3.11](#wp-s311-qet-project-import-ii-links-formulas-strips-tables) | QET project import II: links, formulas, strips, tables | M2 | M3 (lever b) | 4.7 | Output and migration developer |
+| [WP-S3.12](#wp-s312-qet-migration-assistants-cables-fluid-map-layout-binding-reconstruction) | QET migration assistants: cables, fluid map, layout binding, reconstruction | M2 | M5 (lever a) | 2.6 | Output and migration developer |
+| [WP-S3.13](#wp-s313-qet-corpus-migration-verifier-and-pilot-migrations) | QET corpus, migration verifier and pilot migrations | M2 | M3 (lever b) | 3.2 | Output and migration developer |
+| [WP-S3.14](#wp-s314-forms-editor-iso-5457-frames-and-pdf-10-options) | Forms editor, ISO 5457 frames and PDF 1.0 options | M5 | 1.x (lever c) | 6.8 | Output and migration developer |
+| [WP-S3.15](#wp-s315-10-report-kinds-and-user-sql-reports) | 1.0 report kinds and user SQL reports | M5 | same | 4.7 | Output and migration developer |
+| [WP-S3.16](#wp-s316-plc-exchange-automationml-tia-tag-tables-plcopen-xml) | PLC exchange: AutomationML, TIA tag tables, PLCopen XML | M3 | same | 9.3 | Output and migration developer |
+| [WP-S3.17](#wp-s317-device-descriptions-gsd-gsdml-and-iodd-import) | Device descriptions: GSD, GSDML and IODD import | M3 | 1.x (lever c) | 3.2 | Output and migration developer |
+| [WP-S3.18](#wp-s318-edz-eplan-parts-xml-and-qet-10-import) | EDZ, EPLAN parts XML and QET 1.0 import | M3 | same | 6.8 | Output and migration developer |
+| [WP-S3.19](#wp-s319-dxf-and-dwg-exchange) | DXF and DWG exchange | M3 | same | 4.7 | Output and migration developer |
+| [WP-S3.20](#wp-s320-interop-1x-backlog) | Interop 1.x backlog | 1.x | same | 8.2 | Output and migration developer |
+<!-- /generated:wbs-stream-S3 -->
 
 #### WP-S3.01 Display list, scene and symbol model
 
@@ -1658,7 +1773,7 @@ S3 owns everything that becomes a page, a table or a foreign file: forms, report
 | Depends on | WP-S3.09, WP-S3.05, WP-S1.13 |
 | Requirements | FR-IMP-006, FR-IMP-007, FR-IMP-011, FR-IMP-012, FR-IMP-015, FR-IMP-017, FR-IMP-020, FR-IMP-043, FR-IMP-044, NFR-PERF-25 (10 rows) |
 | Effort (pw) | O 4 · L 6 · P 9 · **PERT 6.2** (σ 0.8) |
-| Milestone · release | M2 MVP: pilot release · MVP |
+| Milestone · release | M2 MVP: pilot release · MVP; lean scope: M3 (lever b) |
 | Acceptance | AC-25 |
 | Owner role | Output and migration developer |
 | Scope lever | Lever (b): can move to the 0.x release after MVP by a scope decision (§7.1) |
@@ -1674,7 +1789,7 @@ S3 owns everything that becomes a page, a table or a foreign file: forms, report
 | Depends on | WP-S3.10, WP-S1.14 |
 | Requirements | FR-IMP-009, FR-IMP-010, FR-IMP-013, FR-IMP-016, FR-IMP-042 (5 rows) |
 | Effort (pw) | O 3 · L 4.5 · P 7 · **PERT 4.7** (σ 0.7) |
-| Milestone · release | M2 MVP: pilot release · MVP |
+| Milestone · release | M2 MVP: pilot release · MVP; lean scope: M3 (lever b) |
 | Acceptance | AC-25, AC-26 |
 | Owner role | Output and migration developer |
 | Scope lever | Lever (b): can move to the 0.x release after MVP by a scope decision (§7.1) |
@@ -1690,7 +1805,7 @@ S3 owns everything that becomes a page, a table or a foreign file: forms, report
 | Depends on | WP-S3.11, WP-S1.20 |
 | Requirements | FR-IMP-014, FR-IMP-018, FR-IMP-019, FR-IMP-039 (4 rows) |
 | Effort (pw) | O 1.5 · L 2.5 · P 4 · **PERT 2.6** (σ 0.4) |
-| Milestone · release | M2 MVP: pilot release · MVP |
+| Milestone · release | M2 MVP: pilot release · MVP; lean scope: M5 (lever a) |
 | Acceptance | — (no golden AC row; the acceptance criterion of each listed requirement row applies) |
 | Owner role | Output and migration developer |
 | Scope lever | Lever (a): can be deferred from MVP to 1.0 (§7.1) |
@@ -1706,7 +1821,7 @@ S3 owns everything that becomes a page, a table or a foreign file: forms, report
 | Depends on | WP-S3.11 |
 | Requirements | FR-IMP-021, NFR-UX-06 (2 rows) |
 | Effort (pw) | O 2 · L 3 · P 5 · **PERT 3.2** (σ 0.5) |
-| Milestone · release | M2 MVP: pilot release · MVP |
+| Milestone · release | M2 MVP: pilot release · MVP; lean scope: M3 (lever b) |
 | Acceptance | AC-27, NFR-UX-06 |
 | Owner role | Output and migration developer |
 | Scope lever | Lever (b): can move to the 0.x release after MVP by a scope decision (§7.1) |
@@ -1722,7 +1837,7 @@ S3 owns everything that becomes a page, a table or a foreign file: forms, report
 | Depends on | WP-S3.02, WP-S2.03, WP-S3.04 |
 | Requirements | FR-REP-040, FR-REP-050, FR-PAG-016, FR-PAG-026 … FR-PAG-028, FR-OUT-003, FR-OUT-012, FR-OUT-021, NFR-A11Y-05 (10 rows) |
 | Effort (pw) | O 4.5 · L 6.5 · P 10 · **PERT 6.8** (σ 0.9) |
-| Milestone · release | M5 1.0 feature complete (beta) · 1.0 |
+| Milestone · release | M5 1.0 feature complete (beta) · 1.0; lean scope: 1.x (lever c) |
 | Acceptance | — (no golden AC row; the acceptance criterion of each listed requirement row applies) |
 | Owner role | Output and migration developer |
 | Scope lever | Lever (c): can move to 1.x by a scope decision (§7.2) |
@@ -1752,7 +1867,7 @@ S3 owns everything that becomes a page, a table or a foreign file: forms, report
 | Deliverables | `ew-plc` exchange; AC-30 against reference files |
 | Depends on | WP-S1.24, WP-S3.09 |
 | Requirements | FR-PLC-029 … FR-PLC-033, FR-PLC-035 … FR-PLC-037, FR-PLC-047, FR-PLC-050, FR-PLC-056, FR-EXP-009, NFR-PERF-22 (13 rows) |
-| Effort (pw) | O 6 · L 9 · P 13.5 · **PERT 9.2** (σ 1.2) |
+| Effort (pw) | O 6 · L 9 · P 13.5 · **PERT 9.3** (σ 1.3) |
 | Milestone · release | M3 Automation breadth: PLC, bus, fluid, exchange · 1.0 |
 | Acceptance | AC-30 |
 | Owner role | Output and migration developer |
@@ -1768,7 +1883,7 @@ S3 owns everything that becomes a page, a table or a foreign file: forms, report
 | Depends on | WP-S1.24 |
 | Requirements | FR-PLC-025, FR-PLC-026, FR-BUS-013 (3 rows) |
 | Effort (pw) | O 2 · L 3 · P 5 · **PERT 3.2** (σ 0.5) |
-| Milestone · release | M3 Automation breadth: PLC, bus, fluid, exchange · 1.0 |
+| Milestone · release | M3 Automation breadth: PLC, bus, fluid, exchange · 1.0; lean scope: 1.x (lever c) |
 | Acceptance | — (no golden AC row; the acceptance criterion of each listed requirement row applies) |
 | Owner role | Output and migration developer |
 | Scope lever | Lever (c): can move to 1.x by a scope decision (§7.2) |
@@ -1822,19 +1937,21 @@ S3 owns everything that becomes a page, a table or a foreign file: forms, report
 
 S4 starts with the thin MVP slice that [panel layout](../design/12-panel-layout.md) §17 asks to be staffed explicitly (folio 902 from placements), then builds 3D, the STEP worker, collision, routing, lengths and thermal.
 
-| WP | Title | Milestone | PERT (pw) | Owner role |
-|---|---|---|---|---|
-| [WP-S4.01](#wp-s401-layout-model-and-2d-panel-pages-mvp-slice) | Layout model and 2D panel pages (MVP slice) | M2 | 5.7 | Physical developer |
-| [WP-S4.02](#wp-s402-2d-panel-editing-tools) | 2D panel editing tools | M2 | 3.1 | Physical developer |
-| [WP-S4.03](#wp-s403-step-worker-ew-step-worker) | STEP worker (ew-step-worker) | M4 | 6.3 | Physical developer |
-| [WP-S4.04](#wp-s404-3d-renderer-and-the-panel-3d-workspace) | 3D renderer and the Panel 3D workspace | M4 | 8.2 | Physical developer |
-| [WP-S4.05](#wp-s405-3d-layout-model-enclosures-doors-surfaces-panel-macros-3d-cps) | 3D layout model: enclosures, doors, surfaces, panel macros, 3D CPs | M4 | 5.2 | Physical developer |
-| [WP-S4.06](#wp-s406-collision-and-clearance-checking) | Collision and clearance checking | M4 | 3.7 | Physical developer |
-| [WP-S4.07](#wp-s407-routing-graph-and-routewires) | Routing graph and RouteWires | M4 | 6.2 | Physical developer |
-| [WP-S4.08](#wp-s408-wire-lengths-duct-fill-and-wiring-manager) | Wire lengths, duct fill and wiring manager | M4 | 4.7 | Physical developer |
-| [WP-S4.09](#wp-s409-model-views-dimensions-busbars-bonding-and-3d-export) | Model views, dimensions, busbars, bonding and 3D export | M5 | 6.7 | Physical developer |
-| [WP-S4.10](#wp-s410-thermal-calculation-and-climate-sizing) | Thermal calculation and climate sizing | M4 | 4.2 | Physical developer |
-| [WP-S4.11](#wp-s411-physical-1x-backlog) | Physical 1.x backlog | 1.x | 8.2 | Physical developer |
+<!-- generated:wbs-stream-S4 -->
+| WP | Title | Milestone | Lean scope | PERT (pw) | Owner role |
+|---|---|---|---|---|---|
+| [WP-S4.01](#wp-s401-layout-model-and-2d-panel-pages-mvp-slice) | Layout model and 2D panel pages (MVP slice) | M2 | same | 5.7 | Physical developer |
+| [WP-S4.02](#wp-s402-2d-panel-editing-tools) | 2D panel editing tools | M2 | same | 3.1 | Physical developer |
+| [WP-S4.03](#wp-s403-step-worker-ew-step-worker) | STEP worker (ew-step-worker) | M4 | same | 6.3 | Physical developer |
+| [WP-S4.04](#wp-s404-3d-renderer-and-the-panel-3d-workspace) | 3D renderer and the Panel 3D workspace | M4 | same | 8.3 | Physical developer |
+| [WP-S4.05](#wp-s405-3d-layout-model-enclosures-doors-surfaces-panel-macros-3d-cps) | 3D layout model: enclosures, doors, surfaces, panel macros, 3D CPs | M4 | same | 5.2 | Physical developer |
+| [WP-S4.06](#wp-s406-collision-and-clearance-checking) | Collision and clearance checking | M4 | same | 3.7 | Physical developer |
+| [WP-S4.07](#wp-s407-routing-graph-and-routewires) | Routing graph and RouteWires | M4 | same | 6.2 | Physical developer |
+| [WP-S4.08](#wp-s408-wire-lengths-duct-fill-and-wiring-manager) | Wire lengths, duct fill and wiring manager | M4 | same | 4.7 | Physical developer |
+| [WP-S4.09](#wp-s409-model-views-dimensions-busbars-bonding-and-3d-export) | Model views, dimensions, busbars, bonding and 3D export | M5 | 1.x (lever c) | 6.7 | Physical developer |
+| [WP-S4.10](#wp-s410-thermal-calculation-and-climate-sizing) | Thermal calculation and climate sizing | M4 | 1.x (lever c) | 4.2 | Physical developer |
+| [WP-S4.11](#wp-s411-physical-1x-backlog) | Physical 1.x backlog | 1.x | same | 8.2 | Physical developer |
+<!-- /generated:wbs-stream-S4 -->
 
 #### WP-S4.01 Layout model and 2D panel pages (MVP slice)
 
@@ -1891,7 +2008,7 @@ S4 starts with the thin MVP slice that [panel layout](../design/12-panel-layout.
 | Deliverables | 3D view and workspace |
 | Depends on | WP-S2.02, WP-S4.01, WP-S2.06 |
 | Requirements | FR-LAY-019, FR-LAY-064, FR-UI-029, FR-UI-003, FR-UI-006 (5 rows) |
-| Effort (pw) | O 5.5 · L 8 · P 12 · **PERT 8.2** (σ 1.1) |
+| Effort (pw) | O 5.5 · L 8 · P 12 · **PERT 8.3** (σ 1.1) |
 | Milestone · release | M4 Manufacturing and 2D/3D panel · 1.0 |
 | Acceptance | AC-34 |
 | Owner role | Physical developer |
@@ -1967,7 +2084,7 @@ S4 starts with the thin MVP slice that [panel layout](../design/12-panel-layout.
 | Depends on | WP-S4.05, WP-S4.04 |
 | Requirements | FR-PAG-003, FR-LAY-035, FR-LAY-039, FR-LAY-041, FR-LAY-058, FR-CON-015, FR-EXP-007, FR-EXP-008 (8 rows) |
 | Effort (pw) | O 4 · L 6.5 · P 10 · **PERT 6.7** (σ 1.0) |
-| Milestone · release | M5 1.0 feature complete (beta) · 1.0 |
+| Milestone · release | M5 1.0 feature complete (beta) · 1.0; lean scope: 1.x (lever c) |
 | Acceptance | — (no golden AC row; the acceptance criterion of each listed requirement row applies) |
 | Owner role | Physical developer |
 | Scope lever | Lever (c): can move to 1.x by a scope decision (§7.2) |
@@ -1983,7 +2100,7 @@ S4 starts with the thin MVP slice that [panel layout](../design/12-panel-layout.
 | Depends on | WP-S4.05, WP-S1.28 |
 | Requirements | FR-THM-001 … FR-THM-009, FR-THM-012, NFR-PERF-23 (11 rows) |
 | Effort (pw) | O 3 · L 4 · P 6 · **PERT 4.2** (σ 0.5) |
-| Milestone · release | M4 Manufacturing and 2D/3D panel · 1.0 |
+| Milestone · release | M4 Manufacturing and 2D/3D panel · 1.0; lean scope: 1.x (lever c) |
 | Acceptance | AC-36 |
 | Owner role | Physical developer |
 | Scope lever | Lever (c): can move to 1.x by a scope decision (§7.2) |
@@ -2007,18 +2124,20 @@ S4 starts with the thin MVP slice that [panel layout](../design/12-panel-layout.
 
 S5 turns the model and the routed layout into shop-floor data ([manufacturing](../design/13-manufacturing-outputs.md)). Its machine profiles are data; only the engines are code.
 
-| WP | Title | Milestone | PERT (pw) | Owner role |
-|---|---|---|---|---|
-| [WP-S5.01](#wp-s501-production-wire-records-change-list-and-manufacturing-workspace) | Production wire records, change list and Manufacturing workspace | M4 | 6.8 | Output and migration developer |
-| [WP-S5.02](#wp-s502-ferrules-and-end-treatments) | Ferrules and end treatments | M4 | 3.6 | Output and migration developer |
-| [WP-S5.03](#wp-s503-marking-schemes-and-label-engine) | Marking schemes and label engine | M4 | 3.6 | Output and migration developer |
-| [WP-S5.04](#wp-s504-machine-export-profiles-and-pre-flight) | Machine export profiles and pre-flight | M4 | 4.7 | Output and migration developer |
-| [WP-S5.05](#wp-s505-terminal-assembly-lists-cut-lists-and-consumables) | Terminal assembly lists, cut lists and consumables | M4 | 2.5 | Output and migration developer |
-| [WP-S5.06](#wp-s506-machining-features-drilling-dxf-and-hole-tables) | Machining features, drilling DXF and hole tables | M4 | 5.2 | Output and migration developer |
-| [WP-S5.07](#wp-s507-production-package-ewpp) | Production package .ewpp | M4 | 3.1 | Output and migration developer |
-| [WP-S5.08](#wp-s508-verification-checklists-and-as-built-package) | Verification checklists and as-built package | M5 | 3.1 | Output and migration developer |
-| [WP-S5.09](#wp-s509-read-only-wiring-viewer) | Read-only wiring viewer | M5 | 3.2 | Output and migration developer |
-| [WP-S5.10](#wp-s510-manufacturing-1x-backlog) | Manufacturing 1.x backlog | 1.x | 6.2 | Output and migration developer |
+<!-- generated:wbs-stream-S5 -->
+| WP | Title | Milestone | Lean scope | PERT (pw) | Owner role |
+|---|---|---|---|---|---|
+| [WP-S5.01](#wp-s501-production-wire-records-change-list-and-manufacturing-workspace) | Production wire records, change list and Manufacturing workspace | M4 | same | 6.8 | Output and migration developer |
+| [WP-S5.02](#wp-s502-ferrules-and-end-treatments) | Ferrules and end treatments | M4 | same | 3.6 | Output and migration developer |
+| [WP-S5.03](#wp-s503-marking-schemes-and-label-engine) | Marking schemes and label engine | M4 | same | 3.6 | Output and migration developer |
+| [WP-S5.04](#wp-s504-machine-export-profiles-and-pre-flight) | Machine export profiles and pre-flight | M4 | same | 4.7 | Output and migration developer |
+| [WP-S5.05](#wp-s505-terminal-assembly-lists-cut-lists-and-consumables) | Terminal assembly lists, cut lists and consumables | M4 | same | 2.5 | Output and migration developer |
+| [WP-S5.06](#wp-s506-machining-features-drilling-dxf-and-hole-tables) | Machining features, drilling DXF and hole tables | M4 | same | 5.3 | Output and migration developer |
+| [WP-S5.07](#wp-s507-production-package-ewpp) | Production package .ewpp | M4 | same | 3.1 | Output and migration developer |
+| [WP-S5.08](#wp-s508-verification-checklists-and-as-built-package) | Verification checklists and as-built package | M5 | 1.x (lever c) | 3.1 | Output and migration developer |
+| [WP-S5.09](#wp-s509-read-only-wiring-viewer) | Read-only wiring viewer | M5 | 1.x (lever c) | 3.2 | Output and migration developer |
+| [WP-S5.10](#wp-s510-manufacturing-1x-backlog) | Manufacturing 1.x backlog | 1.x | same | 6.2 | Output and migration developer |
+<!-- /generated:wbs-stream-S5 -->
 
 #### WP-S5.01 Production wire records, change list and Manufacturing workspace
 
@@ -2070,7 +2189,7 @@ S5 turns the model and the routed layout into shop-floor data ([manufacturing](.
 | Field | Value |
 |---|---|
 | Objective | Feed Komax and Rittal machines from data-driven profiles that refuse stale inputs. |
-| Scope in | Versioned TOML profiles; generic CSV/XLSX; Komax TopConvert CSV; Rittal WT; Weidmüller WPC; pre-flight EW-MFG-01 … 06; release-mode refusal of stale Class II inputs; embedded profile copies; EW-MFG pack and `manufacturing` scheme |
+| Scope in | Versioned TOML profiles; generic CSV/XLSX; Komax TopConvert CSV; Rittal WT; Weidmüller WPC; pre-flight EW-MFG-001 … 06; release-mode refusal of stale Class II inputs; embedded profile copies; EW-MFG pack and `manufacturing` scheme |
 | Scope out | Schleuniger and further profiles (1.x) |
 | Deliverables | Profiles; pre-flight checks |
 | Depends on | WP-S5.02, WP-S5.03, WP-S4.08 |
@@ -2105,7 +2224,7 @@ S5 turns the model and the routed layout into shop-floor data ([manufacturing](.
 | Deliverables | Feature model; DXF and tables |
 | Depends on | WP-S4.05, WP-S3.19 |
 | Requirements | FR-LAY-056, FR-LAY-057, FR-MFG-028, FR-MFG-029 (4 rows) |
-| Effort (pw) | O 3.5 · L 5 · P 8 · **PERT 5.2** (σ 0.8) |
+| Effort (pw) | O 3.5 · L 5 · P 8 · **PERT 5.3** (σ 0.8) |
 | Milestone · release | M4 Manufacturing and 2D/3D panel · 1.0 |
 | Acceptance | — (no golden AC row; the acceptance criterion of each listed requirement row applies) |
 | Owner role | Output and migration developer |
@@ -2136,7 +2255,7 @@ S5 turns the model and the routed layout into shop-floor data ([manufacturing](.
 | Depends on | WP-S5.07, WP-S1.18 |
 | Requirements | FR-MFG-036 … FR-MFG-041 (6 rows) |
 | Effort (pw) | O 2 · L 3 · P 4.5 · **PERT 3.1** (σ 0.4) |
-| Milestone · release | M5 1.0 feature complete (beta) · 1.0 |
+| Milestone · release | M5 1.0 feature complete (beta) · 1.0; lean scope: 1.x (lever c) |
 | Acceptance | — (no golden AC row; the acceptance criterion of each listed requirement row applies) |
 | Owner role | Output and migration developer |
 | Scope lever | Lever (c): can move to 1.x by a scope decision (§7.2) |
@@ -2152,7 +2271,7 @@ S5 turns the model and the routed layout into shop-floor data ([manufacturing](.
 | Depends on | WP-S5.07, WP-S2.02 |
 | Requirements | FR-MFG-033 (1 rows) |
 | Effort (pw) | O 2 · L 3 · P 5 · **PERT 3.2** (σ 0.5) |
-| Milestone · release | M5 1.0 feature complete (beta) · 1.0 |
+| Milestone · release | M5 1.0 feature complete (beta) · 1.0; lean scope: 1.x (lever c) |
 | Acceptance | — (no golden AC row; the acceptance criterion of each listed requirement row applies) |
 | Owner role | Output and migration developer |
 | Scope lever | Lever (c): can move to 1.x by a scope decision (§7.2) |
@@ -2176,20 +2295,22 @@ S5 turns the model and the routed layout into shop-floor data ([manufacturing](.
 
 S6 implements the test layers, gates, packaging, signing and CRA processes of [quality, security and release](../design/18-quality-security-release.md), plus the two stabilisation WPs before the MVP and 1.0 releases.
 
-| WP | Title | Milestone | PERT (pw) | Owner role |
-|---|---|---|---|---|
-| [WP-S6.01](#wp-s601-ew-testkit-and-acceptance-runner) | ew-testkit and acceptance runner | M1 | 3.7 | Release engineer |
-| [WP-S6.02](#wp-s602-determinism-property-tests-and-command-fuzzer) | Determinism, property tests and command fuzzer | M1 | 3.1 | Release engineer |
-| [WP-S6.03](#wp-s603-performance-and-memory-gate) | Performance and memory gate | M1 | 3.3 | Release engineer |
-| [WP-S6.04](#wp-s604-security-engineering-and-cra-readiness) | Security engineering and CRA readiness | M2 | 4.7 | Release engineer |
-| [WP-S6.05](#wp-s605-privacy-controls-crash-reports-and-update-check) | Privacy controls, crash reports and update check | M2 | 3.0 | Release engineer |
-| [WP-S6.06](#wp-s606-packaging-installers-and-the-platform-ci-matrix) | Packaging, installers and the platform CI matrix | M2 | 7.2 | Release engineer |
-| [WP-S6.07](#wp-s607-release-pipeline-signing-provenance-sbom) | Release pipeline: signing, provenance, SBOM | M2 | 3.7 | Release engineer |
-| [WP-S6.08](#wp-s608-mvp-release-stabilisation-and-the-first-signed-release) | MVP release stabilisation and the first signed release | M2 | 6.0 | Release engineer |
-| [WP-S6.09](#wp-s609-monthly-0x-releases-and-support-from-mvp-to-10) | Monthly 0.x releases and support from MVP to 1.0 | M5 | 4.1 | Release engineer |
-| [WP-S6.10](#wp-s610-10-quality-layers-and-release-hardening) | 1.0 quality layers and release hardening | M6 | 6.2 | Release engineer |
-| [WP-S6.11](#wp-s611-external-acceptance-tia-portal-codesys-and-a-machine-shop-sc-7-sc-8) | External acceptance: TIA Portal, CODESYS and a machine shop (SC-7, SC-8) | M6 | 3.7 | Output and migration developer |
-| [WP-S6.12](#wp-s612-10-beta-to-release-stabilisation) | 1.0 beta-to-release stabilisation | M6 | 6.2 | Release engineer |
+<!-- generated:wbs-stream-S6 -->
+| WP | Title | Milestone | Lean scope | PERT (pw) | Owner role |
+|---|---|---|---|---|---|
+| [WP-S6.01](#wp-s601-ew-testkit-and-acceptance-runner) | ew-testkit and acceptance runner | M1 | same | 3.7 | Release engineer |
+| [WP-S6.02](#wp-s602-determinism-property-tests-and-command-fuzzer) | Determinism, property tests and command fuzzer | M1 | same | 3.1 | Release engineer |
+| [WP-S6.03](#wp-s603-performance-and-memory-gate) | Performance and memory gate | M1 | same | 3.3 | Release engineer |
+| [WP-S6.04](#wp-s604-security-engineering-and-cra-readiness) | Security engineering and CRA readiness | M2 | same | 4.7 | Release engineer |
+| [WP-S6.05](#wp-s605-privacy-controls-crash-reports-and-update-check) | Privacy controls, crash reports and update check | M2 | same | 3.0 | Release engineer |
+| [WP-S6.06](#wp-s606-packaging-installers-and-the-platform-ci-matrix) | Packaging, installers and the platform CI matrix | M2 | same | 7.3 | Release engineer |
+| [WP-S6.07](#wp-s607-release-pipeline-signing-provenance-sbom) | Release pipeline: signing, provenance, SBOM | M2 | same | 3.7 | Release engineer |
+| [WP-S6.08](#wp-s608-mvp-release-stabilisation-and-the-first-signed-release) | MVP release stabilisation and the first signed release | M2 | same | 6.0 | Release engineer |
+| [WP-S6.09](#wp-s609-monthly-0x-releases-and-support-from-mvp-to-10) | Monthly 0.x releases and support from MVP to 1.0 | M5 | same | 4.1 | Release engineer |
+| [WP-S6.10](#wp-s610-10-quality-layers-and-release-hardening) | 1.0 quality layers and release hardening | M6 | same | 6.2 | Release engineer |
+| [WP-S6.11](#wp-s611-external-acceptance-tia-portal-codesys-and-a-machine-shop-sc-7-sc-8) | External acceptance: TIA Portal, CODESYS and a machine shop (SC-7, SC-8) | M6 | same | 3.7 | Output and migration developer |
+| [WP-S6.12](#wp-s612-10-beta-to-release-stabilisation) | 1.0 beta-to-release stabilisation | M6 | same | 6.2 | Release engineer |
+<!-- /generated:wbs-stream-S6 -->
 
 #### WP-S6.01 ew-testkit and acceptance runner
 
@@ -2244,7 +2365,7 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 | Scope in | Threat model; cargo-fuzz targets for every parser, the merge driver and the SQL sandbox; hostile corpus; `unsafe` allowlist; `SECURITY.md` with private reporting and support period; vulnerability-handling runbook (24 h / 72 h / 14 days); single-reporting-platform account; disclaimers |
 | Scope out | Tabletop exercise (WP-S6.10) |
 | Deliverables | Threat model; fuzz jobs; runbook |
-| Depends on | WP-S3.09, WP-S1.09, WP-S0.05 |
+| Depends on | WP-S3.09, WP-S1.09, WP-S0.05a |
 | Requirements | NFR-SEC-01 … NFR-SEC-04, NFR-SEC-14, NFR-SEC-18, NFR-REL-12, NFR-COMP-01, NFR-COMP-03, NFR-COMP-04 (10 rows) |
 | Effort (pw) | O 3 · L 4.5 · P 7 · **PERT 4.7** (σ 0.7) |
 | Milestone · release | M2 MVP: pilot release · MVP |
@@ -2276,7 +2397,7 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 | Deliverables | Installers per OS |
 | Depends on | WP-S2.01, WP-S2.02, WP-S0.01 |
 | Requirements | NFR-PLAT-01 … NFR-PLAT-04, NFR-PLAT-06, NFR-PLAT-07, NFR-MAINT-04, NFR-MAINT-09 (8 rows) |
-| Effort (pw) | O 5 · L 7 · P 10.5 · **PERT 7.2** (σ 0.9) |
+| Effort (pw) | O 5 · L 7 · P 10.5 · **PERT 7.3** (σ 0.9) |
 | Milestone · release | M2 MVP: pilot release · MVP |
 | Acceptance | AC-14, AC-40 |
 | Owner role | Release engineer |
@@ -2375,16 +2496,18 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 
 S7 produces the content that makes EW correct by default and learnable: the golden project, symbols, parts, profiles and the user documentation ([golden project](../design/20-golden-project.md), [symbols and parts](../design/07-symbols-parts-macros.md)).
 
-| WP | Title | Milestone | PERT (pw) | Owner role |
-|---|---|---|---|---|
-| [WP-S7.01](#wp-s701-golden-project-data-a-b-c-and-expected-outputs) | Golden project data (A, B, C) and expected outputs | M1 | 4.6 | Content maintainer |
-| [WP-S7.02](#wp-s702-starter-symbol-set) | Starter symbol set | M1 | 3.1 | Content maintainer |
-| [WP-S7.03](#wp-s703-starter-parts-profiles-address-maps-and-basic-project) | Starter parts, profiles, address maps and basic project | M2 | 3.1 | Content maintainer |
-| [WP-S7.04](#wp-s704-full-iec-60617-and-iso-1219-libraries-with-symbol-lint) | Full IEC 60617 and ISO 1219 libraries with symbol lint | M5 | 6.2 | Content maintainer |
-| [WP-S7.05](#wp-s705-user-documentation-rule-pages-and-mvp-tutorials) | User documentation, rule pages and MVP tutorials | M2 | 6.7 | Docs maintainer |
-| [WP-S7.06](#wp-s706-golden-10-fixtures-a-r-3d-thermal-exchange-manufacturing) | Golden 1.0 fixtures: A-R, 3D, thermal, exchange, manufacturing | M4 | 3.1 | Content maintainer |
-| [WP-S7.07](#wp-s707-documentation-and-tutorials-10-german-translation) | Documentation and tutorials 1.0, German translation | M6 | 5.2 | Docs maintainer |
-| [WP-S7.08](#wp-s708-first-manufacturer-data-pack-and-content-repositories) | First manufacturer data pack and content repositories | M6 | 2.6 | Content maintainer |
+<!-- generated:wbs-stream-S7 -->
+| WP | Title | Milestone | Lean scope | PERT (pw) | Owner role |
+|---|---|---|---|---|---|
+| [WP-S7.01](#wp-s701-golden-project-data-a-b-c-and-expected-outputs) | Golden project data (A, B, C) and expected outputs | M1 | same | 4.6 | Content maintainer |
+| [WP-S7.02](#wp-s702-starter-symbol-set) | Starter symbol set | M1 | same | 3.1 | Content maintainer |
+| [WP-S7.03](#wp-s703-starter-parts-profiles-address-maps-and-basic-project) | Starter parts, profiles, address maps and basic project | M2 | same | 3.1 | Content maintainer |
+| [WP-S7.04](#wp-s704-full-iec-60617-and-iso-1219-libraries-with-symbol-lint) | Full IEC 60617 and ISO 1219 libraries with symbol lint | M5 | 1.x (lever c) | 6.2 | Content maintainer |
+| [WP-S7.05](#wp-s705-user-documentation-rule-pages-and-mvp-tutorials) | User documentation, rule pages and MVP tutorials | M2 | same | 6.7 | Docs maintainer |
+| [WP-S7.06](#wp-s706-golden-10-fixtures-a-r-3d-thermal-exchange-manufacturing) | Golden 1.0 fixtures: A-R, 3D, thermal, exchange, manufacturing | M4 | same | 3.1 | Content maintainer |
+| [WP-S7.07](#wp-s707-documentation-and-tutorials-10-german-translation) | Documentation and tutorials 1.0, German translation | M6 | same | 5.2 | Docs maintainer |
+| [WP-S7.08](#wp-s708-first-manufacturer-data-pack-and-content-repositories) | First manufacturer data pack and content repositories | M6 | same | 2.6 | Content maintainer |
+<!-- /generated:wbs-stream-S7 -->
 
 #### WP-S7.01 Golden project data (A, B, C) and expected outputs
 
@@ -2442,7 +2565,7 @@ S7 produces the content that makes EW correct by default and learnable: the gold
 | Depends on | WP-S7.02, WP-S2.10 |
 | Requirements | FR-SYM-008, FR-SYM-020 (2 rows) |
 | Effort (pw) | O 4 · L 6 · P 9 · **PERT 6.2** (σ 0.8) |
-| Milestone · release | M5 1.0 feature complete (beta) · 1.0 |
+| Milestone · release | M5 1.0 feature complete (beta) · 1.0; lean scope: 1.x (lever c) |
 | Acceptance | — (no golden AC row; the acceptance criterion of each listed requirement row applies) |
 | Owner role | Content maintainer |
 | Scope lever | Lever (c): can move to 1.x by a scope decision (§7.2) |
@@ -2516,60 +2639,42 @@ S7 produces the content that makes EW correct by default and learnable: the gold
 
 | Column | Content |
 |---|---|
-| `wp_id` | `WP-S<stream>.<nn>` |
+| `wp_id` | `WP-S<stream>.<nn>`, optionally with a one-letter suffix (see below) |
 | `stream` | `S0` … `S7` |
 | `title` | Short title |
-| `milestone` | `M0` … `M6` or `1.x` |
-| `release` | `MVP`, `1.0` or `1.x` (from the milestone) |
+| `milestone` | Full-scope milestone: `M0`, `M1`, `M-PP`, `M2` … `M6` or `1.x` |
+| `milestone_lean` | Lean-scope milestone, the plan of record: equal to `milestone` unless a lever moves the WP |
+| `lever` | `a`, `b` or `c` when a scope lever of §7 moves the WP (a → M5, b → M3, c → 1.x), else empty |
+| `release` | `MVP`, `1.0` or `1.x`, from the full-scope milestone (M-PP WPs are MVP work) |
 | `effort_opt_pw`, `effort_likely_pw`, `effort_pess_pw` | Three-point estimate in productive person-weeks |
 | `depends_on` | Space-separated WP IDs that must finish first. For the two stabilisation WPs, the CSV lists the transitively reduced set of every earlier WP |
+| `lagged_deps` | Space-separated `WP-ID+months`: an external lead time after that dependency (PA-9). Every lagged dependency is also in `depends_on` |
 | `requirements` | Space-separated requirement IDs and inclusive ranges `FR-XXX-nnn..FR-XXX-mmm` |
 | `acceptance` | Space-separated AC-nn and NFR IDs |
 | `owner_role` | One role of §2.4 |
 
-The per-stream and per-milestone totals of §4 come from this script (Python 3, standard library only). Save it as
-`totals.py` next to the CSV and run `python3 totals.py work-packages.csv`:
+**Split WPs.** When a WP is split, the original ID keeps the part that stays at its milestone, its title and its
+downstream dependencies; the part split off earlier gets the suffix `a` and becomes a dependency of the original.
+The splits so far: WP-S0.05a (signing enrolment and trademark search in the first 90 days), WP-S1.16a and WP-S1.19a
+(the pilot-preview slices of the MVP rule packs and of the parts library). Each split adds about 0.5 pw of
+integration effort, which the estimates include.
 
-```python
-import csv, collections, math, sys
+**Tools.** All scripts are Python 3, standard library only, and run from any directory:
 
-ORDER = ["M0", "M1", "M2", "M3", "M4", "M5", "M6", "1.x"]
-path = sys.argv[1] if len(sys.argv) > 1 else "work-packages.csv"
-rows = list(csv.DictReader(open(path, newline="", encoding="utf-8")))
+| Script | Reads | Writes or checks |
+|---|---|---|
+| [tools/totals.py](tools/totals.py) | the CSV, the catalogues (row count) | The effort tables of §4 and §9 and of the global plan §3.1 and §3.2; checks the CSV (milestones, levers, releases, dependencies) and that every WP section of §9 matches the CSV (effort, milestone and lean milestone, dependencies and lags, requirement count) |
+| [tools/schedule.py](tools/schedule.py) with [tools/engine.py](tools/engine.py) | the CSV | The dates of the key results, §2.2, §5, §6 and §7.3, every date table of the [global plan](01-global-plan.md), [milestones.csv](milestones.csv) (every scenario × milestone) and [wp-schedule.csv](wp-schedule.csv) (start and finish per WP and scenario, developer in the baseline) |
+| [tools/trace.py](tools/trace.py) | the CSV, the catalogues, golden project, checks catalogue, gates §8 | [Traceability](05-traceability.md) and [traceability-matrix.csv](traceability-matrix.csv), with full and lean milestones |
 
-def r1(x):
-    """Round half up to one decimal, as the tables of this document do."""
-    return math.floor(x * 10 + 0.5 + 1e-9) / 10
-
-def pert(r):
-    o, l, p = (float(r[k]) for k in ("effort_opt_pw", "effort_likely_pw", "effort_pess_pw"))
-    return (o + 4 * l + p) / 6, (p - o) / 6
-
-to_10, backlog = collections.defaultdict(float), collections.defaultdict(float)
-by_ms, var_ms = collections.defaultdict(float), collections.defaultdict(float)
-for r in rows:
-    mean, sd = pert(r)
-    (backlog if r["milestone"] == "1.x" else to_10)[r["stream"]] += mean
-    by_ms[r["milestone"]] += mean
-    var_ms[r["milestone"]] += sd * sd
-
-print("stream  PERT_to_1.0  PERT_1.x")
-for s in sorted(set(to_10) | set(backlog)):
-    print(f"{s:6} {r1(to_10[s]):11.1f} {r1(backlog[s]):9.1f}")
-print(f"{'all':6} {r1(sum(to_10.values())):11.1f} {r1(sum(backlog.values())):9.1f}")
-print("milestone  PERT  sigma  cumulative  cumulative_with_20pct_reserve")
-cum = 0.0
-for m in ORDER:
-    if m == "1.x":
-        print(f"{m:9} {r1(by_ms[m]):6.1f} {r1(math.sqrt(var_ms[m])):5.1f}")
-        continue
-    cum += by_ms[m]
-    print(f"{m:9} {r1(by_ms[m]):6.1f} {r1(math.sqrt(var_ms[m])):5.1f} {r1(cum):10.1f} {r1(cum * 1.2):10.1f}")
+```sh
+python3 -I docs/plan/tools/totals.py && python3 -I docs/plan/tools/schedule.py && python3 -I docs/plan/tools/trace.py
+python3 -I docs/plan/tools/totals.py --check && python3 -I docs/plan/tools/schedule.py --check \
+  && python3 -I docs/plan/tools/trace.py --check      # CI: exit 1 if any generated table is stale
 ```
 
-The dates of §5 and the critical path of §6 come from a list-scheduling simulation of PA-9 over the same CSV.
-Its rules are fully stated in PA-2, PA-3, PA-8 and PA-9; any implementation of them reproduces §5 to within about
-one month.
+The generated tables sit between `<!-- generated:NAME -->` and `<!-- /generated:NAME -->` markers. A change to the
+CSV is a pull request that also contains the regenerated documents; the `--check` modes keep them honest.
 
 ---
 

@@ -8,7 +8,7 @@
 
 ## Summary for decision makers
 
-**Result in one paragraph.** The catalogues hold 1074 requirements (927 FR, 147 NFR). The 120 WPs cover 1059 of them (98.6 %). 0 MVP requirements (0 Must, 0 Should) and 0 1.0 requirements (0 Must, 0 Should) that the plan promises are carried by no WP; they are listed in full in §3. 0 MVP Must/Should requirements are covered only by WPs that finish after M2 (§4). 0 WPs cite 0 tokens that are not requirement IDs or that name no requirement (§5).
+**Result in one paragraph.** The catalogues hold 1081 requirements (934 FR, 147 NFR). The 123 WPs cover 1059 of them (98.0 %). No MVP or 1.0 Must or Should requirement that the plan promises lacks a WP (§3). In the full scope, no MVP Must/Should requirements are covered only by WPs after M2; in the lean scope of record, 24 such requirements, because the scope levers move their WPs until the catalogues are re-labelled (§4). No WP cites a token that is not a requirement ID or that names no requirement (§5).
 
 **What is asked of the plan owner.** (1) Treat the gap lists of §3 as input to the next WP revision: each listed ID either joins an existing WP, gets a new WP, or is re-labelled in the catalogue (release or priority) with a decision record. (2) Fix the invalid citations of §5, which are typing errors, not scope decisions. (3) Re-run `python3 -I docs/plan/tools/trace.py` after every change of the CSV or the catalogues; the gate reviews of [gates](03-gates.md) use this document as their scope check.
 
@@ -41,7 +41,7 @@ python3 -I docs/plan/tools/trace.py --check  # exit code 1 if the committed outp
 | WP citations | `requirements` column | Space-separated tokens. A range `A..B` expands to all numbers between its ends (same area, ascending). A token that is no ID, a reversed or cross-area range, a single ID absent from the catalogue, or a range none of whose members exist is an **invalid citation**. A range with some missing members is a **range hole** (members dropped, listed in §5). |
 | Coverage | all of the above | A requirement is **covered** if at least one WP cites it. Citing is not proof of completion; it is the minimum for the plan to be able to deliver the requirement. |
 | Gaps | catalogue minus coverage | Uncovered rows with priority Must or Should in bucket MVP or 1.0. Could, 1.x and Later rows are summarised in §2 and listed in the CSV only. |
-| Late | WP milestone | An MVP Must/Should requirement whose earliest covering WP has a milestone after M2. |
+| Late | WP milestone | An MVP Must/Should requirement whose earliest covering WP has a milestone after M2 (a 1.0 one: after M6), computed twice: with the `milestone` column (full scope) and with `milestone_lean` (lean scope, the plan of record). |
 | AC / D | 20 §19 and §21; 03 §8 | AC rows give criterion, requirements and golden gate; the plan gate comes from [gates](03-gates.md) §8.1 and §8.2. Covering WPs are the union of the WPs citing the AC's requirements and the WPs naming the AC in their `acceptance` column. For D rows, the FR IDs in the "rule or feature" cell and in the 15 catalogue row of every named EW rule are used. |
 | REF | 02a Appendix A | REF to FR list (02a column) and 02b list; WP coverage is the union over its FRs. |
 
@@ -56,17 +56,17 @@ Cells show *covered / total*. Release bucket by §1. The last column pools 1.x a
 | Area | MVP Must | MVP Should | MVP Could | 1.0 Must | 1.0 Should | 1.0 Could | 1.x / Later | All |
 |---|---|---|---|---|---|---|---|---|
 | FR-BUS | 9/9 | – | – | 4/4 | 8/8 | – | 2/3 **!** | 23/24 |
-| FR-CBL | 13/13 | 2/2 | – | 1/1 | 3/3 | 1/1 | – | 20/20 |
-| FR-CHK | 38/38 | 10/10 | – | 6/6 | 6/6 | – | 1/1 | 61/61 |
+| FR-CBL | 13/13 | 2/2 | – | 1/1 | 3/3 | 1/1 | 0/1 **!** | 20/21 |
+| FR-CHK | 38/38 | 10/10 | – | 6/6 | 6/6 | – | 1/2 **!** | 61/62 |
 | FR-COL | 13/13 | 6/6 | – | 3/3 | 3/3 | – | 3/4 **!** | 28/29 |
 | FR-CON | 34/34 | 4/4 | 1/1 | 1/1 | 4/4 | 1/1 | – | 45/45 |
-| FR-DEV | 27/27 | 8/8 | – | 1/1 | 1/1 | – | 2/2 | 39/39 |
-| FR-EXP | 6/6 | – | – | – | 2/2 | 1/1 | 1/2 **!** | 10/11 |
+| FR-DEV | 27/27 | 8/8 | – | 1/1 | 1/1 | – | 2/3 **!** | 39/40 |
+| FR-EXP | 6/6 | – | – | – | 2/2 | 1/1 | 1/3 **!** | 10/12 |
 | FR-EXT | 16/16 | 4/4 | 2/2 | 2/2 | 5/5 | – | 8/8 | 37/37 |
 | FR-FLU | 7/7 | 4/4 | – | 8/8 | 8/8 | 4/4 | 2/3 **!** | 33/34 |
 | FR-I18N | 6/6 | – | – | 4/4 | 3/3 | – | 3/3 | 16/16 |
 | FR-IMP | 23/23 | 6/6 | – | 6/6 | 6/6 | 1/1 | 2/3 **!** | 44/45 |
-| FR-LAY | 14/14 | 7/7 | – | 20/20 | 13/13 | 3/3 | 8/9 **!** | 65/66 |
+| FR-LAY | 14/14 | 7/7 | – | 20/20 | 13/13 | 3/3 | 8/10 **!** | 65/67 |
 | FR-MAC | 7/7 | 2/2 | – | 1/1 | 6/6 | 1/1 | 1/1 | 18/18 |
 | FR-MFG | – | – | – | 31/31 | 9/9 | 2/2 | 7/9 **!** | 49/51 |
 | FR-NUM | 21/21 | 6/6 | – | 2/2 | 1/1 | 1/1 | 1/1 | 32/32 |
@@ -74,8 +74,8 @@ Cells show *covered / total*. Release bucket by §1. The last column pools 1.x a
 | FR-PAG | 23/23 | 1/1 | – | 3/3 | 1/1 | 1/1 | 2/2 | 31/31 |
 | FR-PLC | 22/22 | 4/4 | – | 15/15 | 10/10 | – | 4/5 **!** | 55/56 |
 | FR-PRJ | 17/17 | 7/7 | – | – | 4/4 | – | 1/1 | 29/29 |
-| FR-PRT | 16/16 | 7/7 | – | 3/3 | 5/5 | – | 4/4 | 35/35 |
-| FR-REP | 31/31 | 4/4 | – | 6/6 | 7/7 | 1/1 | 2/2 | 51/51 |
+| FR-PRT | 16/16 | 7/7 | – | 3/3 | 5/5 | – | 4/5 **!** | 35/36 |
+| FR-REP | 31/31 | 4/4 | – | 6/6 | 7/7 | 1/1 | 2/3 **!** | 51/52 |
 | FR-REV | 12/12 | 3/3 | – | 2/2 | 6/6 | 1/1 | 1/1 | 25/25 |
 | FR-SYM | 21/21 | 3/3 | – | 1/1 | 3/3 | – | 1/2 **!** | 29/30 |
 | FR-THM | – | – | – | 7/7 | 3/3 | – | 1/2 **!** | 11/12 |
@@ -94,22 +94,33 @@ Cells show *covered / total*. Release bucket by §1. The last column pools 1.x a
 | NFR-REL | 13/13 | 1/1 | – | 1/1 | 2/2 | – | – | 17/17 |
 | NFR-SEC | 15/15 | 3/3 | – | – | 1/1 | – | 2/2 | 21/21 |
 | NFR-UX | 5/5 | 4/4 | – | – | – | – | – | 9/9 |
-| **TOTAL** | 559/559 | 139/139 | 6/6 | 135/135 | 140/140 | 20/20 | 60/75 **!** | 1059/1074 |
+| **TOTAL** | 559/559 | 139/139 | 6/6 | 135/135 | 140/140 | 20/20 | 60/82 **!** | 1059/1081 |
 
 `!` marks a cell with uncovered requirements. Only MVP and 1.0 Must/Should cells are gaps; Could and 1.x cells are reported for information.
+
+**Covered in time, full and lean scope.** A row is covered in time when its earliest covering WP is at or before the row's release (M2 for MVP rows, M6 for 1.0 rows), judged with the full-scope `milestone` and with the lean `milestone_lean` of [work-packages.csv](work-packages.csv). The difference is what the scope levers move until the catalogues are re-labelled (PD-1; §4 lists the rows).
+
+| Release | Priority | Rows | Covered in time, full scope | Covered in time, lean scope | Moved by the levers |
+|---|---|---|---|---|---|
+| MVP | Must | 559 | 559 | 542 | 17 |
+| MVP | Should | 139 | 139 | 132 | 7 |
+| MVP | Could | 6 | 6 | 4 | 2 |
+| 1.0 | Must | 135 | 135 | 108 | 27 |
+| 1.0 | Should | 140 | 140 | 95 | 45 |
+| 1.0 | Could | 20 | 20 | 14 | 6 |
 
 **WPs by number of requirements cited** (a check on over-broad WPs):
 
 | WP | Title | Milestone | Requirements covered |
 |---|---|---|---|
-| WP-S1.13 | Devices, functions and assemblies breadth | M2 | 35 |
-| WP-S1.14 | Terminals, strips, cables and conductors | M2 | 35 |
+| WP-S1.13 | Devices, functions and assemblies breadth | M-PP | 35 |
+| WP-S1.14 | Terminals, strips, cables and conductors | M-PP | 35 |
 | WP-S1.07 | Derivation II: connectivity, potentials, wire properties | M1 | 34 |
-| WP-S1.19 | Parts, libraries and macros | M2 | 34 |
 | WP-S1.21 | PLC and bus model with addressing (MVP) | M2 | 33 |
-| WP-S1.15 | Rule engine, rhai formulas, trust model and the check CLI | M2 | 29 |
-| WP-S1.16 | MVP rule packs: EW-CORE, EW-IEC81346, EW-TERM, EW-POT | M2 | 29 |
+| WP-S1.15 | Rule engine, rhai formulas, trust model and the check CLI | M-PP | 29 |
+| WP-S1.19 | Parts, libraries and macros | M2 | 27 |
 | WP-S1.24 | PLC and bus 1.0: tracking, symbols, safety, PROFINET, IO-Link, EtherCAT | M3 | 24 |
+| WP-S1.12 | Project, structure and page model breadth | M-PP | 23 |
 
 WPs that cover no catalogue requirement: none.
 
@@ -127,21 +138,26 @@ None.
 
 None.
 
-### 3.3 Uncovered Could, 1.x and Later requirements (15)
+### 3.3 Uncovered Could, 1.x and Later requirements (22)
 
 Not gaps: the plan does not promise them. Listed compactly by area so that none is lost.
 
 | Area | Count | IDs |
 |---|---|---|
 | FR-BUS | 1 | FR-BUS-022 |
+| FR-CBL | 1 | FR-CBL-021 |
+| FR-CHK | 1 | FR-CHK-062 |
 | FR-COL | 1 | FR-COL-021 |
-| FR-EXP | 1 | FR-EXP-011 |
+| FR-DEV | 1 | FR-DEV-040 |
+| FR-EXP | 2 | FR-EXP-011..012 |
 | FR-FLU | 1 | FR-FLU-025 |
 | FR-IMP | 1 | FR-IMP-031 |
-| FR-LAY | 1 | FR-LAY-036 |
+| FR-LAY | 2 | FR-LAY-036, FR-LAY-067 |
 | FR-MFG | 2 | FR-MFG-027, FR-MFG-035 |
 | FR-OUT | 3 | FR-OUT-016, FR-OUT-023..024 |
 | FR-PLC | 1 | FR-PLC-040 |
+| FR-PRT | 1 | FR-PRT-036 |
+| FR-REP | 1 | FR-REP-052 |
 | FR-SYM | 1 | FR-SYM-028 |
 | FR-THM | 1 | FR-THM-011 |
 | FR-UI | 1 | FR-UI-037 |
@@ -150,11 +166,119 @@ Not gaps: the plan does not promise them. Listed compactly by area so that none 
 
 ## 4. Covered too late
 
-MVP Must/Should requirements whose earliest covering WP finishes after M2 (0). These are covered on paper but cannot be delivered at the MVP gate unless the WP is pulled forward or the requirement is re-labelled.
+Requirements covered on paper whose earliest covering WP comes after the release that owes them. They cannot be delivered at that gate unless the WP is pulled forward or the requirement is re-labelled. Each list is computed for the full scope (`milestone`) and for the lean scope of record (`milestone_lean`).
 
-1.0 Must/Should requirements whose earliest covering WP is scheduled after 1.0 (milestone 1.x) (0):
+### 4.1 MVP rows after M2, full scope (0)
 
 None.
+
+### 4.2 MVP rows after M2, lean scope (24)
+
+These rows are moved by the levers (lever (a): 8, lever (b): 16). They are owed by the MVP in the catalogues today; the catalogue edits that follow PD-1 re-label them to the release of the lever, after which this list is empty.
+
+| ID | Prio | Requirement (abridged) | Earliest WP | WP milestone | Lever |
+|---|---|---|---|---|---|
+| FR-EXT-026 | Must | `ew mcp` on loopback shall require a per-session random tok… | WP-S1.23 | M5 | a |
+| FR-EXT-033 | Must | MCP responses shall omit personal-data and confidential pro… | WP-S1.23 | M5 | a |
+| FR-IMP-006 | Must | import QET `.qet` projects of file versions 0.3 to 0.200: f… | WP-S3.10 | M3 | b |
+| FR-IMP-007 | Must | Conductor ends shall resolve both legacy per-folio integer… | WP-S3.10 | M3 | b |
+| FR-IMP-009 | Must | Link semantics shall map from QET's link data, never from r… | WP-S3.11 | M3 | b |
+| FR-IMP-010 | Must | The importer shall read each project's own formulas (report… | WP-S3.11 | M3 | b |
+| FR-IMP-011 | Must | Element information shall map: `label` parsed as IEC 81346… | WP-S3.10 | M3 | b |
+| FR-IMP-012 | Must | Conductors shall become connections, with nets and potentia… | WP-S3.10 | M3 | b |
+| FR-IMP-013 | Must | Terminal strips shall come from QET 0.100+ strip data (phys… | WP-S3.11 | M3 | b |
+| FR-IMP-014 | Should | Cables shall come from QET 0.200 cable data with cores or,… | WP-S3.12 | M5 | a |
+| FR-IMP-015 | Must | Title-block templates shall become frame forms (rows in px,… | WP-S3.10 | M3 | b |
+| FR-IMP-016 | Must | QET `graphics_table` items (TOC, nomenclature, summary) sha… | WP-S3.11 | M3 | b |
+| FR-IMP-017 | Must | Free texts recognised as data shall become typed properties… | WP-S3.10 | M3 | b |
+| FR-IMP-018 | Should | A user-extendable mapping table shall map QET pneumatic ele… | WP-S3.12 | M5 | a |
+| FR-IMP-019 | Should | QET layout pages (rectangles and texts, folio 902) shall be… | WP-S3.12 | M5 | a |
+| FR-IMP-020 | Must | Tahoma shall be substituted by the default drawing font, wi… | WP-S3.10 | M3 | b |
+| FR-IMP-021 | Should | A migration verifier shall compare each imported page with… | WP-S3.13 | M3 | b |
+| FR-IMP-039 | Should | A reconstruction assistant shall propose a valve-terminal a… | WP-S3.12 | M5 | a |
+| FR-IMP-042 | Must | The QET importer shall infer numbering rules per letter cla… | WP-S3.11 | M3 | b |
+| FR-IMP-043 | Must | Conductors without stored segments shall receive the path Q… | WP-S3.10 | M3 | b |
+| FR-IMP-044 | Must | Foreign colour notations (BR, SW, BL, RT, GE, WS, GR, GNGE)… | WP-S3.10 | M3 | b |
+| FR-SYM-017 | Should | provide a symbol editor to draw graphics, place CPs, assign… | WP-S2.10 | M5 | a |
+| NFR-PERF-25 | Should | On BM, importing a reference-size `.qet` shall reach the im… | WP-S3.10 | M3 | b |
+| NFR-SEC-08 | Must | `ew mcp` shall never start implicitly. It listens on stdio… | WP-S1.23 | M5 | a |
+
+### 4.3 1.0 rows after 1.0 (full scope 0, lean scope 72)
+
+| ID | Prio | Requirement (abridged) | Earliest WP | WP milestone | Lever |
+|---|---|---|---|---|---|
+| FR-BUS-013 | Should | import IODD 1.1 files (identity, process-data layout as a s… | WP-S3.17 | 1.x | c |
+| FR-COL-015 | Must | A conflict-resolution panel shall show each conflict record… | WP-S2.15 | 1.x | c |
+| FR-COL-016 | Must | After a merge, a record found in two files together with a… | WP-S1.31 | 1.x | c |
+| FR-COL-017 | Should | A visual comparison of two project states (commits, revisio… | WP-S2.15 | 1.x | c |
+| FR-COL-018 | Should | Review comments shall anchor to entities (device, connectio… | WP-S1.31 | 1.x | c |
+| FR-COL-022 | Should | A work copy shall record its base generation and merge back… | WP-S1.31 | 1.x | c |
+| FR-EXP-007 | Should | The cabinet shall be exportable as glTF 2.0 (`.glb`, node n… | WP-S4.09 | 1.x | c |
+| FR-EXT-010 | Must | Jobsets (`ew jobs run release.ewjobs`) shall declare checks… | WP-S1.32 | 1.x | c |
+| FR-EXT-012 | Must | rhai automation scripts (`ew script run` and a GUI script r… | WP-S1.32 | 1.x | c |
+| FR-EXT-013 | Should | The macro recorder shall export recorded commands as parame… | WP-S1.32 | 1.x | c |
+| FR-EXT-017 | Should | MCP writes shall be ask-first: `commit_preview` applies a p… | WP-S1.32 | 1.x | c |
+| FR-EXT-028 | Should | `ew import table <xlsx> --project <p>` shall import a table… | WP-S1.32 | 1.x | c |
+| FR-I18N-004 | Must | Projects shall declare translation languages and, per outpu… | WP-S1.27 | 1.x | c |
+| FR-I18N-005 | Must | The display language shall be a query key, so that a "PDF p… | WP-S1.27 | 1.x | c |
+| FR-I18N-006 | Must | Translatable texts shall be exported and imported as XLIFF… | WP-S1.27 | 1.x | c |
+| FR-I18N-007 | Should | Translations shall also be exchangeable as CSV (ID, field,… | WP-S1.27 | 1.x | c |
+| FR-I18N-008 | Must | Foreign language tags shall be mapped on import: EPLAN `de_… | WP-S1.27 | 1.x | c |
+| FR-I18N-012 | Should | Title-block cells and report columns shall check text overf… | WP-S1.27 | 1.x | c |
+| FR-I18N-013 | Should | Colour names shall be multilingual per colour code in the p… | WP-S1.27 | 1.x | c |
+| FR-LAY-035 | Should | Busbar systems (e.g. 60 mm systems) shall be carriers with… | WP-S4.09 | 1.x | c |
+| FR-LAY-039 | Must | 2D views derived from 3D shall cover orthographic front, to… | WP-S4.09 | 1.x | c |
+| FR-LAY-041 | Should | Associative dimensions shall reference model features (rail… | WP-S4.09 | 1.x | c |
+| FR-LAY-058 | Should | Carriers and surfaces shall declare PE bonding (rail to pla… | WP-S4.09 | 1.x | c |
+| FR-MAC-008 | Should | keep inserted macro instances as placeholder objects so ano… | WP-S1.29 | 1.x | c |
+| FR-MAC-009 | Must | store several representation variants of one macro (multi-l… | WP-S1.29 | 1.x | c |
+| FR-MAC-010 | Should | link instances to their source macro version and update the… | WP-S1.29 | 1.x | c |
+| FR-MAC-012 | Should | provide symbol macros selectable and placed like symbols. | WP-S1.29 | 1.x | c |
+| FR-MAC-014 | Should | import and export value sets as CSV. | WP-S1.29 | 1.x | c |
+| FR-MAC-015 | Should | compute value-set variables by sandboxed rhai expressions (… | WP-S1.29 | 1.x | c |
+| FR-MAC-017 | Should | instantiate a macro once per row of a CSV/XLSX table (such… | WP-S1.29 | 1.x | c |
+| FR-MFG-033 | Should | A read-only wiring viewer shall open a `.ewpp` without the… | WP-S5.09 | 1.x | c |
+| FR-MFG-036 | Must | generate EN 60204-1 clause 18 verification checklists from… | WP-S5.08 | 1.x | c |
+| FR-MFG-037 | Must | generate an IEC 61439-1/-2 clause 11 routine-verification c… | WP-S5.08 | 1.x | c |
+| FR-MFG-038 | Must | Checklists shall be output as printable PDF and as structur… | WP-S5.08 | 1.x | c |
+| FR-MFG-039 | Should | At a released revision, the as-built package shall add the… | WP-S5.08 | 1.x | c |
+| FR-MFG-040 | Should | Assembly marking data (IEC 61439-2 designation marking, EN… | WP-S5.08 | 1.x | c |
+| FR-OUT-012 | Should | optionally produce tagged PDF conforming to PDF/UA-1. | WP-S3.14 | 1.x | c |
+| FR-OUT-021 | Should | stamp exports of unreleased revisions with a configurable s… | WP-S3.14 | 1.x | c |
+| FR-PAG-003 | Must | provide a model-view page type showing 2D views derived fro… | WP-S4.09 | 1.x | c |
+| FR-PAG-026 | Should | assign every page item to a layer (frame, symbols, wires, t… | WP-S3.14 | 1.x | c |
+| FR-PAG-027 | Must | provide a frame editor for grids and title-block cells buil… | WP-S3.14 | 1.x | c |
+| FR-PLC-025 | Must | import PROFIBUS GSD files into a device type (ident number,… | WP-S3.17 | 1.x | c |
+| FR-PLC-026 | Must | import PROFINET GSDML into a device type: device access poi… | WP-S3.17 | 1.x | c |
+| FR-REP-040 | Must | provide a forms editor with a placeholder palette per form… | WP-S3.14 | 1.x | c |
+| FR-REP-050 | Should | give the ISO 5457 frames an ISO 7200 title-block form whose… | WP-S3.14 | 1.x | c |
+| FR-REV-013 | Should | provide a completed-project state that opens read-only unti… | WP-S1.31 | 1.x | c |
+| FR-REV-014 | Must | compare the current project with a released revision (or tw… | WP-S1.31 | 1.x | c |
+| FR-REV-015 | Must | derive BOM, wire-list, terminal and PLC-address deltas betw… | WP-S1.31 | 1.x | c |
+| FR-REV-016 | Should | mark changed representations with revision clouds or marker… | WP-S1.31 | 1.x | c |
+| FR-REV-018 | Should | keep review comments (author, status, anchor to page, posit… | WP-S1.31 | 1.x | c |
+| FR-REV-023 | Should | give revisions an issue purpose and log transmittal records… | WP-S1.31 | 1.x | c |
+| FR-REV-024 | Should | block the release of a revision while review comments of ki… | WP-S1.31 | 1.x | c |
+| FR-REV-025 | Should | provide `ew archive verify <file>`, which checks sums, sche… | WP-S1.31 | 1.x | c |
+| FR-SYM-008 | Must | ship a full original IEC 60617-style library for control ca… | WP-S7.04 | 1.x | c |
+| FR-SYM-020 | Should | lint symbols: CPs on grid, unique CP indices, anchor define… | WP-S7.04 | 1.x | c |
+| FR-SYM-026 | Should | provide dimension objects (linear, aligned, angular, radius… | WP-S2.14 | 1.x | c |
+| FR-THM-002 | Should | Conductor and busbar losses shall add routed length × loss… | WP-S4.10 | 1.x | c |
+| FR-THM-003 | Must | The effective cooling surface A_e shall be computed from en… | WP-S4.10 | 1.x | c |
+| FR-THM-004 | Must | calculate per IEC 61439-1 10.10.4.2 (single compartment: Q_… | WP-S4.10 | 1.x | c |
+| FR-THM-005 | Must | Thermal inputs per layout space shall include ambient maxim… | WP-S4.10 | 1.x | c |
+| FR-THM-006 | Must | Each placement shall receive the predicted air temperature… | WP-S4.10 | 1.x | c |
+| FR-THM-007 | Must | size climate devices (filter fan V = f · Q_V / ΔT with f 3.… | WP-S4.10 | 1.x | c |
+| FR-THM-008 | Should | Placing a proposed climate device shall create its placemen… | WP-S4.10 | 1.x | c |
+| FR-THM-009 | Must | A thermal report row source shall list per device P_n, I_b… | WP-S4.10 | 1.x | c |
+| FR-THM-012 | Should | The thermal check set shall report insufficient climate cap… | WP-S4.10 | 1.x | c |
+| FR-UI-004 | Should | Panels and canvases shall be movable to a second monitor. | WP-S2.14 | 1.x | c |
+| FR-UI-011 | Should | A "why this value?" view shall show the provenance and depe… | WP-S2.14 | 1.x | c |
+| FR-UI-014 | Should | An "EPLAN-like" keymap preset shall ship once its bindings… | WP-S2.14 | 1.x | c |
+| FR-UI-046 | Should | A "Describe page" command shall produce an accessible text… | WP-S2.14 | 1.x | c |
+| NFR-A11Y-05 | Should | Optional tagged PDF (PDF/UA-1, ISO 14289-1) shall carry a l… | WP-S3.14 | 1.x | c |
+| NFR-I18N-05 | Should | A project with four display languages shall open within NFR… | WP-S1.27 | 1.x | c |
+| NFR-PERF-23 | Should | A thermal recalculation of a layout space with 500 placemen… | WP-S4.10 | 1.x | c |
 
 ---
 
@@ -178,115 +302,116 @@ None (all `depends_on` names exist; all `acceptance` IDs resolve; every WP cites
 
 ## 6. Acceptance criteria to gate and milestone
 
-Golden gate: the "Gate" column of [golden project](../design/20-golden-project.md) §21. Plan gate: [gates](03-gates.md) §8.1 (the gate at which the AC first has to pass; later gates repeat it; G6 repeats all). Covering WPs: WPs citing one of the AC's requirements or naming the AC in `acceptance`. "Latest first WP" is the milestone by which *every* requirement of the AC has at least one covering WP (the AC cannot pass earlier); the driver is the requirement that sets it. Flag **LATE** if that milestone is after the milestone of the plan gate (for an AC split over several gates, the last gate before G6, because the script cannot separate the parts); **NO WP** if an AC requirement has no WP. The plan-gate column omits G6, which repeats every AC.
+Golden gate: the "Gate" column of [golden project](../design/20-golden-project.md) §21. Plan gate (lean): [gates](03-gates.md) §8.1, the gates of the lean scope of record (the gate at which the AC first has to pass; later gates repeat it; G-M6 repeats all except the ACs moved to 1.x). Full-scope gate: the allocation of the [WBS](02-work-packages.md#22-milestones) §2.2, shown only where it differs. AC-24 (every regression row of golden §19 at or after its gate) applies at every gate. Covering WPs: WPs citing one of the AC's requirements or naming the AC in `acceptance`. "Latest first-WP milestone" is the milestone by which *every* requirement of the AC has at least one covering WP (the AC cannot pass earlier), in the lean scope, with the full-scope value in brackets where it differs. Flag **LATE** if that milestone is after the milestone of the plan gate (for an AC split over several gates, the last gate before G-M6, because the script cannot separate the parts); **NO WP** if an AC requirement has no WP. The plan-gate columns omit G-M6, which repeats every AC.
 
-| AC | Criterion (abridged) | Golden gate | Plan gate | Requirements | Acceptance WPs | Latest first-WP milestone | Flag |
-|---|---|---|---|---|---|---|---|
-| AC-01 | `ew export pdf` reproduces the frame, grid and title-block geometry o… | M1 | G1 | FR-PAG-015, FR-PAG-019, FR-REP-035 | WP-S3.02, WP-S7.01 | M1 | ok |
-| AC-02 | Folios 1, 3, 100–106, 200–206 and 900: every representation's anchor… | M1 | G1 | FR-OUT-018, FR-SYM-007, FR-SYM-013 | WP-S1.13, WP-S3.01, WP-S3.04, WP-S7.02 | M1 | ok |
-| AC-03 | Page order, folio labels, page types, descriptions and sections equal… | M1 | G1 | FR-PAG-001, FR-PAG-009, FR-PAG-013, FR-REP-003 | WP-S1.06, WP-S3.03, WP-S7.01 | M1 | ok |
-| AC-04 | Every page prints the same bound title-block values (§17.2: V2.0, `=P… | M1 | G1 | FR-REP-033, FR-REP-036, FR-REV-003 | WP-S1.06, WP-S1.12, WP-S3.02 | M1 | ok |
-| AC-05 | The 64 cross-reference texts equal §15, including "3-B2"; the 4 exter… | M1 | G1 | FR-XRF-005, FR-XRF-012, FR-XRF-024 | WP-S1.08, WP-S7.01 | M1 | ok |
-| AC-06 | The tag set equals §6 and §9; every printed occurrence of a device's… | M1 | G1 | FR-LAY-009, FR-NUM-001..002 | WP-S1.01, WP-S1.06 | M1 | ok |
-| AC-07 | Folio 901 equals §14.1 (27 rows over 901, 901.1); `ew export bom --mo… | M1 | G1 | FR-EXP-005, FR-REP-004..006 | WP-S1.06, WP-S1.19, WP-S3.03, WP-S3.08, WP-S7.01 | M1 | ok |
-| AC-08 | Folios 903–905 equal §9; designations unique per strip | M1 | G1 | FR-REP-009, FR-TRM-002, FR-TRM-021 | WP-S1.14, WP-S3.03 | M1 | ok |
-| AC-09 | Folio 907 and `ew export wires` equal §8.2 and §8.3 (44 wires, 6 brid… | M1 | G1 | FR-CON-017, FR-CON-034, FR-REP-014 | WP-S1.07, WP-S3.03, WP-S7.01 | M1 | ok |
-| AC-10 | The potential partition equals §7.3 (19 potentials, bond B1); folio 9… | M1 | G1 | FR-CON-009, FR-CON-012, FR-CON-014, FR-REP-016 | WP-S1.07, WP-S3.03 | M1 | ok |
-| AC-11 | Folio 906 and `ew export cables` equal §10 | M1 | G1 | FR-CBL-001, FR-REP-012..013 | WP-S1.14, WP-S3.03 | M1 | ok |
-| AC-12 | Folio 1's colour and size tables are generated from the profiles; cha… | M1 | G1 | FR-CON-020..021, FR-REP-028, FR-REP-038 | WP-S1.07, WP-S3.03 | M1 | ok |
-| AC-13 | PDF structure: outline (front matter, sections, pages), exactly 64 xr… | M1 | G1 | FR-OUT-002, FR-OUT-004..008 | WP-S3.04 | M1 | ok |
-| AC-14 | Byte-identical PDF, SVG, CSV and JSONL across serial and parallel exp… | M1 / MVP | G1 + G2 | FR-OUT-019, NFR-REL-07 | WP-S1.09, WP-S3.04, WP-S6.02, WP-S6.06 | M1 | ok |
-| AC-15 | Build paths (a), (b), (c) of §3.2 agree as specified | M1 | G1 | FR-IMP-022, NFR-REL-04 | WP-S1.02, WP-S1.09, WP-S1.10, WP-S3.05, WP-S6.01 | M1 | ok |
-| AC-16 | Freshness: the scripted edits rename T55, move -102F2 by one cell, re… | M1 | G1 | FR-XRF-020, NFR-REL-08 | WP-S1.05, WP-S6.02 | M1 | ok |
-| AC-17 | Golden A opens in ≤ 0.5 s, a full check takes ≤ 2 s and `ew export pd… | M1 | G1 | NFR-PERF-03, NFR-PERF-09, NFR-PERF-11 | WP-S3.04, WP-S6.03 | M1 | ok |
-| AC-18 | Golden B: step B1 previews exactly the 10 tag changes of §2.2 and ste… | M1 (CLI), M2 (GUI) | G1 + G2 | FR-NUM-008, FR-PAG-007 | WP-S1.03, WP-S1.04, WP-S1.11, WP-S2.09 | M2 | ok |
-| AC-19 | Golden B′: the identifier-set switch previews the classes of §2.2 B′… | M2 | G2 | FR-NUM-014 | WP-S1.11 | M2 | ok |
-| AC-20 | D-01 replay: renumbering folio 3 → 4 updates -3W1/-3X1 to -4W1/-4X1 a… | M1 | G1 | FR-NUM-001, FR-PAG-007 | WP-S1.04, WP-S1.08 | M1 | ok |
-| AC-21 | `ew check --scheme pre-delivery` reports exactly `findings_mvp.csv` (… | M2 | G2 | FR-CHK-042, FR-EXT-002 | WP-S1.15, WP-S1.16, WP-S1.22, WP-S6.08 | M2 | ok |
-| AC-22 | With the 1.0 packs the findings equal §18.1 plus §18.2 (EF-22 superse… | 1.0 | G3 + G4 + G5 | FR-CHK-005 | WP-S1.24, WP-S1.26, WP-S1.30, WP-S3.15, WP-S6.12 | M2 | ok |
-| AC-23 | Release of V2.0 is refused on Golden A with exactly the blockers of §… | MVP | G2 | FR-REV-005..008 | WP-S1.18, WP-S6.08 | M2 | ok |
-| AC-24 | Every regression test of §19 passes at or after its gate | per row | G6 | SC-2 | WP-S1.16, WP-S6.01 | – | ok |
-| AC-25 | Golden C: `ew import qet` imports 18 folios without structural error,… | M2 | G3 | FR-IMP-003, FR-IMP-006, FR-IMP-009..010 | WP-S3.09, WP-S3.10, WP-S3.11 | M2 | ok |
-| AC-26 | Golden C plus `c-fix.ewcmd` is equivalent to Golden A (§20.3) | M2 | G3 | FR-CHK-010, FR-IMP-004 | WP-S3.11 | M2 | ok |
-| AC-27 | The migration verifier compares the Golden C import with the referenc… | MVP | G3 | FR-IMP-021 | WP-S3.13 | M2 | ok |
-| AC-28 | GUI flows (egui_kittest) on Golden A: follow "102-A1" from 101-H16 an… | M2 | G2 | FR-UI-010, FR-UI-019, NFR-PERF-04 | WP-S2.03, WP-S2.04, WP-S2.05, WP-S2.07, WP-S2.11 | M2 | ok |
-| AC-29 | Folio 908 equals §11.3 (56 channels); EW-PLC-012 gives 28 / 0 finding… | MVP | G2 | FR-PLC-011..012, FR-PLC-022, FR-PLC-045 | WP-S1.21, WP-S1.24, WP-S3.06 | M2 | ok |
-| AC-30 | `ew export plc-aml` of station -201U1 (Q0.0 … Q6.7) is valid AR APC 1… | M3 | G3 | FR-PLC-029, FR-PLC-036..037 | WP-S3.16, WP-S6.11 | M3 | ok |
-| AC-31 | Bus: EW-BUS-004 reports no error with -3X1 On and one info for the ex… | M2 | G2 | FR-BUS-004..005, FR-BUS-015..016 | WP-S1.21 | M2 | ok |
-| AC-32 | Fluid: 28 valve children, overviews 201/202 generated (4 valves on -2… | MVP / M3 | G2 + G3 | FR-FLU-004..006, FR-FLU-012 | WP-S1.13, WP-S1.19, WP-S1.20, WP-S1.25 | M3 | ok |
-| AC-33 | 2D layout: folio 902 is generated from placements in the order of §13… | MVP | G2 | FR-LAY-006, FR-LAY-009..010, FR-LAY-012, FR-LAY-017 | WP-S3.06, WP-S4.01, WP-S4.02 | M2 | ok |
-| AC-34 | 3D and routing on Golden A-R: no collisions (EW-LAY-006), `RouteWires… | M4 | G4 | FR-LAY-019, FR-LAY-028, FR-LAY-046, FR-LAY-051 | WP-S4.04, WP-S4.05, WP-S4.06, WP-S4.07, WP-S4.08, WP-S7.06 | M4 | ok |
-| AC-35 | Manufacturing on Golden A-R: the `.ewpp` holds the wire list with len… | 1.0 | G4 | FR-MFG-001, FR-MFG-016, FR-MFG-020..021, FR-MFG-031 | WP-S1.28, WP-S5.01, WP-S5.02, WP-S5.03, WP-S5.04, WP-S5.05, WP-S5.07, WP-S6.11, WP-S6.12, WP-S7.06 | M4 | ok |
-| AC-36 | Thermal: with the test power losses of `tables/thermal.csv` ▲ the the… | M4 | G6 | FR-THM-001, FR-THM-009 | WP-S4.10, WP-S7.06 | M4 | ok |
-| AC-37 | SVG of every page keeps text as text (MVP); DXF AC1015 of folios 101–… | MVP / M3 | G2 + G3 | FR-IMP-032, FR-OUT-013, FR-OUT-015 | WP-S3.07, WP-S3.19 | M3 | ok |
-| AC-38 | EDZ: importing a vendor EDZ for one golden part (▲, as available) upd… | M3 | G3 | FR-IMP-025, FR-PRT-014 | WP-S3.18 | M3 | ok |
-| AC-39 | The anonymisation guard (§3.5) passes on `golden/`, `docs/` and `expe… | M1 | G1 | NFR-DOC-04, NFR-PRIV-06, NFR-PRIV-09 | WP-S6.01, WP-S6.05, WP-S7.01 | M1 | ok |
-| AC-40 | Every release ships Golden A (CC0) as sample project; it opens offlin… | MVP | G2 | NFR-DOC-04, NFR-REL-11 | WP-S6.06, WP-S6.08, WP-S7.03 | M1 | ok |
-| AC-41 | Two branches editing disjoint fields (function text of -102F2; colour… | MVP | G2 | FR-COL-013..014 | WP-S1.17, WP-S6.08 | M2 | ok |
-| AC-42 | With nl-NL translations of page descriptions and function texts, the… | 1.0 | G6 | FR-I18N-005 | WP-S1.27, WP-S6.12 | M5 | ok |
+| AC | Criterion (abridged) | Golden gate | Plan gate (lean) | Full-scope gate | Requirements | Acceptance WPs | Latest first-WP milestone | Flag |
+|---|---|---|---|---|---|---|---|---|
+| AC-01 | `ew export pdf` reproduces the frame, grid and title-block geometry o… | M1 | G-M1 | same | FR-PAG-015, FR-PAG-019, FR-REP-035 | WP-S3.02, WP-S7.01 | M1 | ok |
+| AC-02 | Folios 1, 3, 100–106, 200–206 and 900: every representation's anchor… | M1 | G-M1 | same | FR-OUT-018, FR-SYM-007, FR-SYM-013 | WP-S1.13, WP-S3.01, WP-S3.04, WP-S7.02 | M1 | ok |
+| AC-03 | Page order, folio labels, page types, descriptions and sections equal… | M1 | G-M1 | same | FR-PAG-001, FR-PAG-009, FR-PAG-013, FR-REP-003 | WP-S1.06, WP-S3.03, WP-S7.01 | M1 | ok |
+| AC-04 | Every page prints the same bound title-block values (§17.2: V2.0, `=P… | M1 | G-M1 | same | FR-REP-033, FR-REP-036, FR-REV-003 | WP-S1.06, WP-S1.12, WP-S3.02 | M1 | ok |
+| AC-05 | The 64 cross-reference texts equal §15, including "3-B2"; the 4 exter… | M1 | G-M1 | same | FR-XRF-005, FR-XRF-012, FR-XRF-024 | WP-S1.08, WP-S7.01 | M1 | ok |
+| AC-06 | The tag set equals §6 and §9; every printed occurrence of a device's… | M1 | G-M1 | same | FR-LAY-009, FR-NUM-001..002 | WP-S1.01, WP-S1.06 | M1 | ok |
+| AC-07 | Folio 901 equals §14.1 (27 rows over 901, 901.1); `ew export bom --mo… | M1 | G-M1 + G-PP | G-M1 | FR-EXP-005, FR-REP-004..006 | WP-S1.06, WP-S1.19a, WP-S3.03, WP-S3.08, WP-S7.01 | M1 | ok |
+| AC-08 | Folios 903–905 equal §9; designations unique per strip | M1 | G-M1 | same | FR-REP-009, FR-TRM-002, FR-TRM-021 | WP-S1.14, WP-S3.03 | M1 | ok |
+| AC-09 | Folio 907 and `ew export wires` equal §8.2 and §8.3 (44 wires, 6 brid… | M1 | G-M1 | same | FR-CON-017, FR-CON-034, FR-REP-014 | WP-S1.07, WP-S3.03, WP-S7.01 | M1 | ok |
+| AC-10 | The potential partition equals §7.3 (19 potentials, bond B1); folio 9… | M1 | G-M1 | same | FR-CON-009, FR-CON-012, FR-CON-014, FR-REP-016 | WP-S1.07, WP-S3.03 | M1 | ok |
+| AC-11 | Folio 906 and `ew export cables` equal §10 | M1 | G-M1 | same | FR-CBL-001, FR-REP-012..013 | WP-S1.14, WP-S3.03 | M1 | ok |
+| AC-12 | Folio 1's colour and size tables are generated from the profiles; cha… | M1 | G-M1 | same | FR-CON-020..021, FR-REP-028, FR-REP-038 | WP-S1.07, WP-S3.03 | M1 | ok |
+| AC-13 | PDF structure: outline (front matter, sections, pages), exactly 64 xr… | M1 | G-M1 | same | FR-OUT-002, FR-OUT-004..008 | WP-S3.04 | M1 | ok |
+| AC-14 | Byte-identical PDF, SVG, CSV and JSONL across serial and parallel exp… | M1 / MVP | G-M1 + G-M2 | same | FR-OUT-019, NFR-REL-07 | WP-S1.09, WP-S3.04, WP-S6.02, WP-S6.06 | M1 | ok |
+| AC-15 | Build paths (a), (b), (c) of §3.2 agree as specified | M1 | G-M1 | same | FR-IMP-022, NFR-REL-04 | WP-S1.02, WP-S1.09, WP-S1.10, WP-S3.05, WP-S6.01 | M1 | ok |
+| AC-16 | Freshness: the scripted edits rename T55, move -102F2 by one cell, re… | M1 | G-M1 | same | FR-XRF-020, NFR-REL-08 | WP-S1.05, WP-S6.02 | M1 | ok |
+| AC-17 | Golden A opens in ≤ 0.5 s, a full check takes ≤ 2 s and `ew export pd… | M1 | G-M1 | same | NFR-PERF-03, NFR-PERF-09, NFR-PERF-11 | WP-S3.04, WP-S6.03 | M1 | ok |
+| AC-18 | Golden B: step B1 previews exactly the 10 tag changes of §2.2 and ste… | M1 (CLI), M2 (GUI) | G-M1 + G-M2 | same | FR-NUM-008, FR-PAG-007 | WP-S1.03, WP-S1.04, WP-S1.11, WP-S2.09 | M-PP | ok |
+| AC-19 | Golden B′: the identifier-set switch previews the classes of §2.2 B′… | M2 | G-M2 | same | FR-NUM-014 | WP-S1.11 | M-PP | ok |
+| AC-20 | D-01 replay: renumbering folio 3 → 4 updates -3W1/-3X1 to -4W1/-4X1 a… | M1 | G-M1 | same | FR-NUM-001, FR-PAG-007 | WP-S1.04, WP-S1.08 | M1 | ok |
+| AC-21 | `ew check --scheme pre-delivery` reports exactly `findings_mvp.csv` (… | M2 | G-M2 | same | FR-CHK-042, FR-EXT-002 | WP-S1.15, WP-S1.16, WP-S1.22, WP-S6.08 | M2 | ok |
+| AC-22 | With the 1.0 packs the findings equal §18.1 plus §18.2 (EF-22 superse… | 1.0 | G-M3 + G-M4 + G-M5 | same | FR-CHK-005 | WP-S1.24, WP-S1.26, WP-S1.30, WP-S3.15, WP-S6.12 | M-PP | ok |
+| AC-23 | Release of V2.0 is refused on Golden A with exactly the blockers of §… | MVP | G-M2 | same | FR-REV-005..008 | WP-S1.18, WP-S6.08 | M2 | ok |
+| AC-24 | Every regression test of §19 passes at or after its gate | per row | every gate | same | SC-2 | WP-S1.16, WP-S6.01 | – | ok |
+| AC-25 | Golden C: `ew import qet` imports 18 folios without structural error,… | M2 | G-M3 | G-M2 | FR-IMP-003, FR-IMP-006, FR-IMP-009..010 | WP-S3.09, WP-S3.10, WP-S3.11 | M3 (M2) | ok |
+| AC-26 | Golden C plus `c-fix.ewcmd` is equivalent to Golden A (§20.3) | M2 | G-M3 | G-M2 | FR-CHK-010, FR-IMP-004 | WP-S3.11 | M2 | ok |
+| AC-27 | The migration verifier compares the Golden C import with the referenc… | MVP | G-M3 | G-M2 | FR-IMP-021 | WP-S3.13 | M3 (M2) | ok |
+| AC-28 | GUI flows (egui_kittest) on Golden A: follow "102-A1" from 101-H16 an… | M2 | G-M2 | same | FR-UI-010, FR-UI-019, NFR-PERF-04 | WP-S2.03, WP-S2.04, WP-S2.05, WP-S2.07, WP-S2.11 | M-PP | ok |
+| AC-29 | Folio 908 equals §11.3 (56 channels); EW-PLC-012 gives 28 / 0 finding… | MVP | G-M2 | same | FR-PLC-011..012, FR-PLC-022, FR-PLC-045 | WP-S1.21, WP-S1.24, WP-S3.06 | M2 | ok |
+| AC-30 | `ew export plc-aml` of station -201U1 (Q0.0 … Q6.7) is valid AR APC 1… | M3 | G-M3 | same | FR-PLC-029, FR-PLC-036..037 | WP-S3.16, WP-S6.11 | M3 | ok |
+| AC-31 | Bus: EW-BUS-004 reports no error with -3X1 On and one info for the ex… | M2 | G-M2 | same | FR-BUS-004..005, FR-BUS-015..016 | WP-S1.21 | M2 | ok |
+| AC-32 | Fluid: 28 valve children, overviews 201/202 generated (4 valves on -2… | MVP / M3 | G-M2 + G-M3 | same | FR-FLU-004..006, FR-FLU-012 | WP-S1.13, WP-S1.19, WP-S1.20, WP-S1.25 | M3 | ok |
+| AC-33 | 2D layout: folio 902 is generated from placements in the order of §13… | MVP | G-M2 | same | FR-LAY-006, FR-LAY-009..010, FR-LAY-012, FR-LAY-017 | WP-S3.06, WP-S4.01, WP-S4.02 | M2 | ok |
+| AC-34 | 3D and routing on Golden A-R: no collisions (EW-LAY-006), `RouteWires… | M4 | G-M4 | same | FR-LAY-019, FR-LAY-028, FR-LAY-046, FR-LAY-051 | WP-S4.04, WP-S4.05, WP-S4.06, WP-S4.07, WP-S4.08, WP-S7.06 | M4 | ok |
+| AC-35 | Manufacturing on Golden A-R: the `.ewpp` holds the wire list with len… | 1.0 | G-M4 | same | FR-MFG-001, FR-MFG-016, FR-MFG-020..021, FR-MFG-031 | WP-S1.28, WP-S5.01, WP-S5.02, WP-S5.03, WP-S5.04, WP-S5.05, WP-S5.07, WP-S6.11, WP-S6.12, WP-S7.06 | M4 | ok |
+| AC-36 | Thermal: with the test power losses of `tables/thermal.csv` ▲ the the… | M4 | 1.x (lever c) | G-M4 | FR-THM-001, FR-THM-009 | WP-S4.10, WP-S7.06 | 1.x (M4) | ok |
+| AC-37 | SVG of every page keeps text as text (MVP); DXF AC1015 of folios 101–… | MVP / M3 | G-M2 + G-M3 | same | FR-IMP-032, FR-OUT-013, FR-OUT-015 | WP-S3.07, WP-S3.19 | M3 | ok |
+| AC-38 | EDZ: importing a vendor EDZ for one golden part (▲, as available) upd… | M3 | G-M3 | same | FR-IMP-025, FR-PRT-014 | WP-S3.18 | M3 | ok |
+| AC-39 | The anonymisation guard (§3.5) passes on `golden/`, `docs/` and `expe… | M1 | G-M1 | same | NFR-DOC-04, NFR-PRIV-06, NFR-PRIV-09 | WP-S6.01, WP-S6.05, WP-S7.01 | M1 | ok |
+| AC-40 | Every release ships Golden A (CC0) as sample project; it opens offlin… | MVP | G-M2 | same | NFR-DOC-04, NFR-REL-11 | WP-S6.06, WP-S6.08, WP-S7.03 | M1 | ok |
+| AC-41 | Two branches editing disjoint fields (function text of -102F2; colour… | MVP | G-M2 | same | FR-COL-013..014 | WP-S1.17, WP-S6.08 | M2 | ok |
+| AC-42 | With nl-NL translations of page descriptions and function texts, the… | 1.0 | 1.x (lever c) | G-M5 | FR-I18N-005 | WP-S1.27, WP-S6.12 | 1.x (M5) | ok |
 
-42 AC rows parsed. ACs with a **NO WP** or **LATE** flag: none. ACs that no WP names in its `acceptance` column: none (they are still traceable through requirements; the gate review needs an owner WP for each, see §9).
+42 AC rows parsed. ACs with a **NO WP** or **LATE** flag: none. ACs that no WP names in its `acceptance` column: none.
 
-**AC by milestone, summary:**
+**AC by first plan gate (lean scope of record), summary:**
 
 | Plan gate | Milestone | ACs (first gate) |
 |---|---|---|
-| G1 | M1 | AC-01, AC-02, AC-03, AC-04, AC-05, AC-06, AC-07, AC-08, AC-09, AC-10, AC-11, AC-12, AC-13, AC-14, AC-15, AC-16, AC-17, AC-18, AC-20, AC-39 |
-| G2 | M2 | AC-19, AC-21, AC-23, AC-28, AC-29, AC-31, AC-32, AC-33, AC-37, AC-40, AC-41 |
-| G3 | M3 | AC-22, AC-25, AC-26, AC-27, AC-30, AC-38 |
-| G4 | M4 | AC-34, AC-35 |
-| G6 | M6 | AC-24, AC-36, AC-42 |
+| G-M1 | M1 | AC-01, AC-02, AC-03, AC-04, AC-05, AC-06, AC-07, AC-08, AC-09, AC-10, AC-11, AC-12, AC-13, AC-14, AC-15, AC-16, AC-17, AC-18, AC-20, AC-39 |
+| G-M2 | M2 | AC-19, AC-21, AC-23, AC-28, AC-29, AC-31, AC-32, AC-33, AC-37, AC-40, AC-41 |
+| G-M3 | M3 | AC-22, AC-25, AC-26, AC-27, AC-30, AC-38 |
+| G-M4 | M4 | AC-34, AC-35 |
+| every gate | all | AC-24 |
+| 1.x (lever c) | 1.x | AC-36, AC-42 |
 
 ---
 
 ## 7. Defects to preventing rule or feature to WP
 
-Source: [golden project](../design/20-golden-project.md) §19 (rule that fires or feature that prevents) and the rule catalogue of [checks](../design/15-checks-revisions-collaboration.md) §14 (EW rule to FR). The FR set of a defect is every FR named in its §19 row plus the FR column of every EW rule named there; where that gives none, the requirements that cite the defect in their Source column. WPs are those covering at least one such FR (or naming the D in `acceptance`). Plan gate: [gates](03-gates.md) §8.2. Defects whose FR set is only partly covered show the uncovered FR IDs.
+Source: [golden project](../design/20-golden-project.md) §19 (rule that fires or feature that prevents) and the rule catalogue of [checks](../design/15-checks-revisions-collaboration.md) §14 (EW rule to FR). The FR set of a defect is every FR named in its §19 row plus the FR column of every EW rule named there; where that gives none, the requirements that cite the defect in their Source column. WPs are those covering at least one such FR (or naming the D in `acceptance`). Where the §19 row names the feature only in words, `D_EXTRA_FRS` in the script adds the FR rows that implement it (D-09: the wire, terminal, cable, potential and PLC reports). Plan gate: [gates](03-gates.md) §8.2. Defects whose FR set is only partly covered show the uncovered FR IDs.
 
 | D | Defect (short) | Prevented by (FRs, via rules) | WPs | Plan gate | Flag |
 |---|---|---|---|---|---|
-| D-01 | -4W1/-4X1 in BOM vs -3W1/-3X1 | FR-NUM-001, FR-PAG-007 | WP-S1.04, WP-S1.06 | G1 | ok |
-| D-02 | T51 vs T55; free layout rectangles | FR-LAY-006, FR-LAY-009 | WP-S3.03, WP-S4.01 | G2 | ok |
-| D-03 | Mixed schemes; "+JE2416" | FR-CHK-025 | WP-S1.16 | G1 | ok |
-| D-04 | BOM incomplete, X1031 twice, no quantities | FR-REP-004..006 | WP-S1.06, WP-S3.03 | G1 | ok |
-| D-05 | Four revision formats | FR-REV-002..003 | WP-S1.06, WP-S1.18 | G1 | ok |
-| D-06 | Description drift on 101 | FR-REP-036 | WP-S3.02 | G1 | ok |
-| D-07 | No bookmarks, links, page labels | FR-OUT-004..006 | WP-S3.04 | G1 | ok |
-| D-08 | Free-text wire rule | FR-CON-017, FR-REP-038 | WP-S1.07, WP-S3.03 | G1 | ok |
-| D-09 | No wire, terminal, cable, PLC, potential reports;… | FR-NUM-019 | WP-S1.11 | G1 | ok |
-| D-10 | Overview 5 vs 4 valves | FR-CHK-022, FR-DEV-023 | WP-S1.13, WP-S1.16 | G1 | ok |
-| D-11 | Terminal without designation | FR-TRM-002 | WP-S1.07 | G1 | ok |
-| D-12 | Duplicate designations | (requirements citing the defect) FR-CHK-016, FR-IMP-003, FR-MFG-002, FR-MFG-048, FR-TRM-002 | WP-S1.07, WP-S1.16, WP-S3.09, WP-S5.01, WP-S5.03 | G1 | ok |
-| D-13 | T55, S56 in the neutral | rules EW-POT-013; FR-CHK-019 | WP-S1.16 | G2 | ok |
-| D-14 | "3-B0" | FR-CHK-035, FR-SYM-010, FR-XRF-005 | WP-S1.08, WP-S1.16, WP-S3.01 | G1 | ok |
-| D-15 | Node "TBD"; termination as text | rules EW-BUS-001, EW-BUS-004, EW-BUS-004; FR-BUS-015..016, FR-CHK-034 | WP-S1.16, WP-S1.21 | G2 | ok |
-| D-16 | FE vs PE mixed | rules EW-POT-003, EW-PLC-013; FR-CHK-030, FR-PLC-048 | WP-S1.16, WP-S1.24 | G2 | ok |
-| D-17 | Core colour "BR" | rules EW-CORE-031; FR-CBL-005, FR-CHK-032, FR-CON-019 | WP-S1.07, WP-S1.14, WP-S1.16 | G1 | ok |
-| D-18 | Typos, manufacturer names, "50hz" | FR-CHK-040, FR-PRT-002 | WP-S1.19, WP-S1.30 | G1 + G5 | ok |
-| D-19 | No supply cable; no lengths | rules EW-CORE-034, EW-CORE-033; FR-CHK-033 | WP-S1.16 | G2 | ok |
-| D-20 | Junction notation mixed | FR-CON-005 | WP-S1.04, WP-S2.04 | G1 | ok |
-| D-21 | PE continuity not drawn | FR-CHK-029, FR-CON-015, FR-TRM-017 | WP-S1.07, WP-S1.14, WP-S1.30, WP-S4.09 | G2 + G5 | ok |
-| D-22 | 0V–PE by a plain wire | FR-CHK-028, FR-CON-014 | WP-S1.07, WP-S1.16 | G1 | ok |
-| D-23 | 13-14 unconnected | rules EW-POT-009; FR-CHK-018 | WP-S1.16 | G2 | ok |
-| D-24 | Five IP names on one net | FR-CON-012 | WP-S1.07 | G1 | ok |
-| D-25 | Crossed supply pairs, one channel | rules EW-PLC-014; FR-PLC-048, FR-REP-026 | WP-S1.24, WP-S3.15 | G5 | ok |
-| D-26 | Odd-bit addresses | rules EW-PLC-012; FR-PLC-045 | WP-S1.21 | G2 | ok |
-| D-27 | Untagged valves and process valves | FR-DEV-021, FR-DEV-027 | WP-S1.06, WP-S1.13 | G1 | ok |
-| D-28 | Fluid model incomplete | rules EW-FL-001, EW-FL-007, EW-FL-010; FR-FLU-018, FR-FLU-020 | WP-S1.20, WP-S1.25 | G2 + G3 | ok |
-| D-29 | Tag text sizes vary | FR-SYM-013 | WP-S3.01 | G1 | ok |
-| D-30 | Customer vs end user | FR-PRJ-003 | WP-S1.12 | G1 | ok |
-| D-31 | 3.70 pt texts | rules EW-CORE-061; FR-CHK-023, FR-CHK-051 | WP-S1.16 | G2 | ok |
-| D-32 | Layout incomplete, not to scale | rules EW-LAY-001; FR-CHK-039, FR-LAY-010, FR-LAY-017 | WP-S1.16, WP-S4.01 | G2 | ok |
-| D-33 | Physical page labels; lost spaces | FR-OUT-006, FR-OUT-008 | WP-S3.04 | G1 | ok |
-| D-34 | Author = checker | FR-REV-005 | WP-S1.18 | G2 | ok |
-| D-35 | BOM description misuse | FR-CHK-040, FR-DEV-010 | WP-S1.13, WP-S1.30 | G1 | ok |
-| D-36 | Order code vs components | FR-DEV-020, FR-REP-005 | WP-S1.06, WP-S1.13, WP-S3.03 | G1 | ok |
-| D-37 | Colour-profile basis | FR-CON-020 | WP-S1.07, WP-S7.03 | G1 | ok |
-| D-38 | PE smaller than line | rules EW-POT-006; FR-CHK-020 | WP-S1.16 | G2 | ok |
-| D-39 | IP order not systematic | FR-XRF-013 | WP-S2.04 | G2 | ok |
+| D-01 | -4W1/-4X1 in BOM vs -3W1/-3X1 | FR-NUM-001, FR-PAG-007 | WP-S1.04, WP-S1.06 | G-M1 | ok |
+| D-02 | T51 vs T55; free layout rectangles | FR-LAY-006, FR-LAY-009 | WP-S3.03, WP-S4.01 | G-M2 | ok |
+| D-03 | Mixed schemes; "+JE2416" | FR-CHK-025 | WP-S1.16a | G-M1 | ok |
+| D-04 | BOM incomplete, X1031 twice, no quantities | FR-REP-004..006 | WP-S1.06, WP-S3.03 | G-M1 | ok |
+| D-05 | Four revision formats | FR-REV-002..003 | WP-S1.06, WP-S1.18 | G-M1 | ok |
+| D-06 | Description drift on 101 | FR-REP-036 | WP-S3.02 | G-M1 | ok |
+| D-07 | No bookmarks, links, page labels | FR-OUT-004..006 | WP-S3.04 | G-M1 | ok |
+| D-08 | Free-text wire rule | FR-CON-017, FR-REP-038 | WP-S1.07, WP-S3.03 | G-M1 | ok |
+| D-09 | No wire, terminal, cable, PLC, potential reports;… | FR-NUM-019, FR-REP-009..010, FR-REP-012..014, FR-REP-016, FR-REP-019 | WP-S1.11, WP-S3.03, WP-S3.06 | G-M1 | ok |
+| D-10 | Overview 5 vs 4 valves | FR-CHK-022, FR-DEV-023 | WP-S1.13, WP-S1.16 | G-M1 | ok |
+| D-11 | Terminal without designation | FR-TRM-002 | WP-S1.07 | G-M1 | ok |
+| D-12 | Duplicate designations | (requirements citing the defect) FR-CHK-016, FR-IMP-003, FR-MFG-002, FR-MFG-048, FR-TRM-002 | WP-S1.07, WP-S1.16a, WP-S3.09, WP-S5.01, WP-S5.03 | G-M1 | ok |
+| D-13 | T55, S56 in the neutral | rules EW-POT-013; FR-CHK-019 | WP-S1.16 | G-M2 | ok |
+| D-14 | "3-B0" | FR-CHK-035, FR-SYM-010, FR-XRF-005 | WP-S1.08, WP-S1.16a, WP-S3.01 | G-M1 | ok |
+| D-15 | Node "TBD"; termination as text | rules EW-BUS-001, EW-BUS-004, EW-BUS-004; FR-BUS-015..016, FR-CHK-034 | WP-S1.16, WP-S1.21 | G-M2 | ok |
+| D-16 | FE vs PE mixed | rules EW-POT-003, EW-PLC-013; FR-CHK-030, FR-PLC-048 | WP-S1.16, WP-S1.24 | G-M2 | ok |
+| D-17 | Core colour "BR" | rules EW-CORE-031; FR-CBL-005, FR-CHK-032, FR-CON-019 | WP-S1.07, WP-S1.14, WP-S1.16 | G-M1 | ok |
+| D-18 | Typos, manufacturer names, "50hz" | FR-CHK-040, FR-PRT-002 | WP-S1.19a, WP-S1.30 | G-M1 + G-M5 | ok |
+| D-19 | No supply cable; no lengths | rules EW-CORE-034, EW-CORE-033; FR-CHK-033 | WP-S1.16a | G-M2 | ok |
+| D-20 | Junction notation mixed | FR-CON-005 | WP-S1.04, WP-S2.04 | G-M1 | ok |
+| D-21 | PE continuity not drawn | FR-CHK-029, FR-CON-015, FR-TRM-017 | WP-S1.07, WP-S1.14, WP-S1.30, WP-S4.09 | G-M2 + G-M5 | ok |
+| D-22 | 0V–PE by a plain wire | FR-CHK-028, FR-CON-014 | WP-S1.07, WP-S1.16a | G-M1 | ok |
+| D-23 | 13-14 unconnected | rules EW-POT-009; FR-CHK-018 | WP-S1.16a | G-M2 | ok |
+| D-24 | Five IP names on one net | FR-CON-012 | WP-S1.07 | G-M1 | ok |
+| D-25 | Crossed supply pairs, one channel | rules EW-PLC-014; FR-PLC-048, FR-REP-026 | WP-S1.24, WP-S3.15 | G-M5 | ok |
+| D-26 | Odd-bit addresses | rules EW-PLC-012; FR-PLC-045 | WP-S1.21 | G-M2 | ok |
+| D-27 | Untagged valves and process valves | FR-DEV-021, FR-DEV-027 | WP-S1.06, WP-S1.13 | G-M1 | ok |
+| D-28 | Fluid model incomplete | rules EW-FL-001, EW-FL-007, EW-FL-010; FR-FLU-018, FR-FLU-020 | WP-S1.20, WP-S1.25 | G-M2 + G-M3 | ok |
+| D-29 | Tag text sizes vary | FR-SYM-013 | WP-S3.01 | G-M1 | ok |
+| D-30 | Customer vs end user | FR-PRJ-003 | WP-S1.12 | G-M1 | ok |
+| D-31 | 3.70 pt texts | rules EW-CORE-061; FR-CHK-023, FR-CHK-051 | WP-S1.16 | G-M2 | ok |
+| D-32 | Layout incomplete, not to scale | rules EW-LAY-001; FR-CHK-039, FR-LAY-010, FR-LAY-017 | WP-S1.16, WP-S4.01 | G-M2 | ok |
+| D-33 | Physical page labels; lost spaces | FR-OUT-006, FR-OUT-008 | WP-S3.04 | G-M1 | ok |
+| D-34 | Author = checker | FR-REV-005 | WP-S1.18 | G-M2 | ok |
+| D-35 | BOM description misuse | FR-CHK-040, FR-DEV-010 | WP-S1.13, WP-S1.30 | G-M1 | ok |
+| D-36 | Order code vs components | FR-DEV-020, FR-REP-005 | WP-S1.06, WP-S1.13, WP-S3.03 | G-M1 | ok |
+| D-37 | Colour-profile basis | FR-CON-020 | WP-S1.07, WP-S7.03 | G-M1 | ok |
+| D-38 | PE smaller than line | rules EW-POT-006; FR-CHK-020 | WP-S1.16 | G-M2 | ok |
+| D-39 | IP order not systematic | FR-XRF-013 | WP-S2.04 | G-M2 | ok |
 | D-40 | CPX block inside MPA section | rules EW-FL-003; FR-FLU-022 | WP-S1.34 | 1.x | ok |
-| D-41 | Assembly tagged from two pages | FR-DEV-022 | WP-S1.13 | G1 | ok |
-| D-42 | Strip drawn twice | FR-IMP-013, FR-TRM-011 | WP-S1.14, WP-S3.11 | G1 | ok |
+| D-41 | Assembly tagged from two pages | FR-DEV-022 | WP-S1.13 | G-M1 | ok |
+| D-42 | Strip drawn twice | FR-IMP-013, FR-TRM-011 | WP-S1.14, WP-S3.11 | G-M1 | ok |
 
 42 defects parsed. Defects with a flag: none. D-40 is a 1.x plugin feature by design; its "NO WP" or uncovered flag is expected.
 
@@ -325,14 +450,14 @@ Full REF table (REF, requirement count, covered, WP count, first WPs):
 | REF-007 | 1 | 1 | 2 | WP-S1.07, WP-S7.03 | fully carried |
 | REF-008 | 2 | 2 | 2 | WP-S1.07, WP-S2.04 | fully carried |
 | REF-009 | 1 | 1 | 1 | WP-S1.06 | fully carried |
-| REF-010 | 3 | 3 | 2 | WP-S1.06, WP-S1.16 | fully carried |
+| REF-010 | 3 | 3 | 2 | WP-S1.06, WP-S1.16a | fully carried |
 | REF-011 | 1 | 1 | 1 | WP-S1.06 | fully carried |
 | REF-012 | 2 | 2 | 2 | WP-S1.06, WP-S3.03 | fully carried |
 | REF-013 | 2 | 2 | 1 | WP-S3.02 | fully carried |
 | REF-014 | 2 | 2 | 1 | WP-S1.08 | fully carried |
 | REF-015 | 2 | 2 | 1 | WP-S1.08 | fully carried |
 | REF-016 | 1 | 1 | 1 | WP-S1.08 | fully carried |
-| REF-017 | 2 | 2 | 2 | WP-S1.08, WP-S1.16 | fully carried |
+| REF-017 | 2 | 2 | 2 | WP-S1.08, WP-S1.16a | fully carried |
 | REF-018 | 2 | 2 | 2 | WP-S1.08, WP-S1.12 | fully carried |
 | REF-019 | 1 | 1 | 2 | WP-S1.12, WP-S2.04 | fully carried |
 | REF-020 | 4 | 4 | 3 | WP-S1.03, WP-S1.08, WP-S1.13 | fully carried |
@@ -353,10 +478,10 @@ Full REF table (REF, requirement count, covered, WP count, first WPs):
 | REF-035 | 3 | 3 | 2 | WP-S1.07, WP-S2.04 | fully carried |
 | REF-036 | 2 | 2 | 1 | WP-S1.07 | fully carried |
 | REF-037 | 1 | 1 | 1 | WP-S1.07 | fully carried |
-| REF-038 | 3 | 3 | 2 | WP-S1.07, WP-S1.16 | fully carried |
+| REF-038 | 3 | 3 | 2 | WP-S1.07, WP-S1.16a | fully carried |
 | REF-039 | 3 | 3 | 4 | WP-S1.07, WP-S1.14, WP-S1.30, WP-S4.09 | fully carried |
 | REF-040 | 2 | 2 | 1 | WP-S1.14 | fully carried |
-| REF-041 | 2 | 2 | 2 | WP-S1.07, WP-S1.16 | fully carried |
+| REF-041 | 2 | 2 | 2 | WP-S1.07, WP-S1.16a | fully carried |
 | REF-042 | 1 | 1 | 1 | WP-S1.14 | fully carried |
 | REF-043 | 2 | 2 | 2 | WP-S1.13, WP-S1.14 | fully carried |
 | REF-044 | 1 | 1 | 1 | WP-S1.14 | fully carried |
@@ -367,10 +492,10 @@ Full REF table (REF, requirement count, covered, WP count, first WPs):
 | REF-049 | 3 | 3 | 2 | WP-S1.14, WP-S3.03 | fully carried |
 | REF-050 | 1 | 1 | 1 | WP-S1.13 | fully carried |
 | REF-051 | 3 | 3 | 4 | WP-S1.06, WP-S1.13, WP-S1.19, WP-S3.03 | fully carried |
-| REF-052 | 1 | 1 | 1 | WP-S1.19 | fully carried |
+| REF-052 | 1 | 1 | 1 | WP-S1.19a | fully carried |
 | REF-053 | 2 | 2 | 3 | WP-S1.01, WP-S1.06, WP-S3.03 | fully carried |
 | REF-054 | 5 | 5 | 7 | WP-S1.06, WP-S1.14, WP-S1.26, WP-S1.28, WP-S3.03 | fully carried |
-| REF-055 | 1 | 1 | 1 | WP-S1.16 | fully carried |
+| REF-055 | 1 | 1 | 1 | WP-S1.16a | fully carried |
 | REF-056 | 1 | 1 | 1 | WP-S1.13 | fully carried |
 | REF-057 | 2 | 2 | 2 | WP-S1.13, WP-S1.16 | fully carried |
 | REF-058 | 3 | 3 | 2 | WP-S1.19, WP-S3.06 | fully carried |
@@ -398,14 +523,14 @@ Full REF table (REF, requirement count, covered, WP count, first WPs):
 | REF-080 | 5 | 5 | 2 | WP-S2.03, WP-S3.04 | fully carried |
 | REF-081 | 1 | 1 | 1 | WP-S3.03 | fully carried |
 | REF-082 | 2 | 2 | 2 | WP-S1.07, WP-S1.11 | fully carried |
-| REF-083 | 2 | 2 | 2 | WP-S1.13, WP-S1.16 | fully carried |
+| REF-083 | 2 | 2 | 2 | WP-S1.13, WP-S1.16a | fully carried |
 | REF-084 | 1 | 1 | 1 | WP-S1.16 | fully carried |
 | REF-085 | 1 | 1 | 1 | WP-S1.16 | fully carried |
 | REF-086 | 2 | 2 | 2 | WP-S1.26, WP-S1.30 | fully carried |
 | REF-087 | 2 | 2 | 2 | WP-S1.13, WP-S1.16 | fully carried |
 | REF-088 | 1 | 1 | 1 | WP-S1.16 | fully carried |
 | REF-089 | 1 | 1 | 1 | WP-S3.01 | fully carried |
-| REF-090 | 1 | 1 | 1 | WP-S1.19 | fully carried |
+| REF-090 | 1 | 1 | 1 | WP-S1.19a | fully carried |
 | REF-091 | 1 | 1 | 1 | WP-S1.19 | fully carried |
 | REF-092 | 2 | 2 | 2 | WP-S1.13, WP-S3.01 | fully carried |
 | REF-093 | 1 | 1 | 1 | WP-S1.13 | fully carried |
@@ -431,9 +556,9 @@ Full REF table (REF, requirement count, covered, WP count, first WPs):
 
 Computed counts are in the sections above; this section states what follows from them.
 
-1. **Gaps.** 0 owed requirements have no WP; areas with most gaps: . Each needs a decision: add to a WP, new WP, or re-label with a decision record.
-2. **Invalid citations.** 0 invalid tokens and 0 ranges with missing members (§5). These are corrections to the CSV, not scope changes.
-3. **Late coverage.** 0 MVP requirements are only covered after M2 (§4).
+1. **Gaps.** No owed (Must or Should, MVP or 1.0) requirement lacks a WP; areas with gaps: none.
+2. **Invalid citations.** None: no invalid token and no range with missing members (§5).
+3. **Late coverage.** Full scope: no MVP requirements covered only after M2. Lean scope of record: 24 MVP requirements and 72 1.0 requirements, all moved by the scope levers; the catalogue edits that follow PD-1 re-label them (§4).
 4. **Acceptance ownership.** ACs without a WP that names them: none. Each gate AC should have one owner WP so the gate review has a person to ask.
 5. **Regeneration.** The script is the only source of the tables; change the CSV or the catalogues, re-run, review the diff. The CI check (`--check`) keeps the document honest.
 

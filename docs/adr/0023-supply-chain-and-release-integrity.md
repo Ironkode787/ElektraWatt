@@ -6,7 +6,7 @@
 
 - **CRA timeline.** The EU Cyber Resilience Act (Regulation (EU) 2024/2847) has applied its reporting obligations
   for actively exploited vulnerabilities since 2026-09-11. All other obligations apply from 2027-12-11, before EW 1.0
-  is expected (months 15–18) (G11). Whether EW ends up with a steward or a manufacturer behind it (ADR-0030), the
+  is expected (plan of record: January 2032, [plan/01](../plan/01-global-plan.md) §5.1) (G11). Whether EW ends up with a steward or a manufacturer behind it (ADR-0030), the
   evidence is the same: an SBOM, vulnerability handling, signed and attested artefacts.
 - **Enterprise expectations.** Enterprise users and IT departments expect signed installers. Unsigned Windows
   binaries trigger SmartScreen, and unsigned macOS apps are blocked by Gatekeeper.

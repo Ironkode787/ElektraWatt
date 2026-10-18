@@ -788,7 +788,7 @@ ARCH §7.7) and passes the importer a neutral `TableImage` of those tables throu
   because the import reproduces it (§4.3); MF-13 reports it. FR-IMP-021's criterion expects exactly these deltas
   (Open question 4). `ew verify-migration <project> --reference <pdf>` prints the deviations. The verifier makes
   hayro a runtime dependency of the shipped `ew` binary (ARCH §3; Open question 10).
-- **Corpus acceptance** (SC-4, FR-IMP-006): at least 22 of the 24 QET example projects (C-14) and every pilot
+- **Corpus acceptance** (SC-4, FR-IMP-006; SC-4 closes at gate G-M3 in the plan of record, [vision](00-vision-and-scope.md) §3.2): at least 22 of the 24 QET example projects (C-14) and every pilot
   project import without a structural error; `photovoltaique.qet` (31 of 64 wires with modern ends) and
   `schema_indus.qet` (integer ends only) lose no connection; pass P4 reports no print-equivalence deviation on the
   corpus except declared ones; each project's batch is byte-identical across platforms.
@@ -1014,7 +1014,9 @@ exchange orchestration, merge and writers.
 - Targets are user or company libraries; a 100,000-row catalogue streams under the limits of §11 with the index
   built off the UI thread.
 - **VDMA 66413**, which EPLAN's parts management also imports ([eplan-features](../research/eplan-features.md)
-  §6), has no requirement and is not planned (Later); BMEcat covers most of the same supplier data.
+  §6), has no import requirement and is not planned; BMEcat covers most of the same supplier data. The *export* of
+  the functional-safety values of parts and safety functions as a SISTEMA / VDMA 66413 data file is FR-EXP-012
+  (Could, Later); EW stores and exports these values and calculates nothing ([vision](00-vision-and-scope.md) §9.2).
 
 ---
 
@@ -1324,7 +1326,12 @@ rule (§2.5).
 | glTF/STL export; STEP AP242 export (Could); personal-data stripping; XLIFF and CSV translation exchange | | ● | | |
 | AML, TIA XLSX, PLCopen, instrument list, GSD/GSDML/IODD (10) | | ● | | |
 | QETZ; native DWG (acadrust); BMEcat, ETIM xChange; QET export; ESI, EDS, TIA Selection Tool, L5X, TE1120 (10) | | | ● | |
-| EPLAN `.epj` (experimental); EPLAN XML export; VDMA 66413; TIA Openness bridge (10) | | | | ● |
+| EPLAN `.epj` (experimental); EPLAN XML export; SISTEMA / VDMA 66413 safety-data export (FR-EXP-012); TIA Openness bridge (10) | | | | ● |
+
+These labels describe the full scope. The plan's lean variant, if PD-1 is adopted, moves the QET project migration
+from the MVP to the 0.x release after it (M3) and the XLIFF and CSV translation exchange, the GSD/GSDML/IODD import and
+the glTF/STL/STEP export from 1.0 to 1.x; see [vision](00-vision-and-scope.md) §9.1 and
+[global plan](../plan/01-global-plan.md) §14.
 
 ---
 
@@ -1421,7 +1428,7 @@ The nine rows this document proposed are in the catalogues:
 11. **SHX table.** Width factors of the substitutes are unverified. *Recommendation:* ship the table as data with a
     `verified` flag, calibrated on the DXF corpus.
 12. **QET mirror semantics.** The order of mirror and rotation in QET 0.200 is unverified. *Recommendation:* fix the
-    mapping by rendering corpus pages with mirrored elements in QET and in EW at M2, before the pilot migrates.
+    mapping by rendering corpus pages with mirrored elements in QET and in EW before the milestone that ships the QET migration (M2, or M3 in the plan's lean variant), before the pilot migrates.
 13. **Re-import during the transition.** The value of FR-IMP-040 (lineage re-import) depends on whether the pilot keeps
     editing in QET after the first import (PQ-03). *Recommendation:* keep it Should at MVP; drop it to 1.0 if the
     pilot migrates project by project without returning to QET.

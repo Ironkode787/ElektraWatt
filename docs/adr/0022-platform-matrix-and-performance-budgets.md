@@ -8,7 +8,7 @@
   only data points were EPLAN P8 Basic's 40-page cap and the reference project: 18 drawn folios and about 44 wires.
   The pilot's larger projects and their customers' multi-cabinet lines are unknown.
 - **The engine decision needs numbers.** The derived-data engine starts cold and memoises only where profiling
-  demands it (ADR-0002). The M0 spike in weeks 3–5 makes that go/fallback decision, and it is meaningless without
+  demands it (ADR-0002). The performance spike (gate G-SP; effort weeks 3–5 of the spine, 04 §15.1) makes that go/fallback decision, and it is meaningless without
   agreed sizes and budgets.
 - **Rust platform tiers.** Tier 1 with host tools covers Windows 10+ (x64, ARM64), macOS 11+ on arm64 and Linux
   with glibc 2.17+. Intel macOS has been Tier 2 since its demotion.
@@ -92,13 +92,13 @@
 **Positive**
 - Performance and memory regressions are caught within a day. Memo-invalidation regressions are caught on the PR
   itself, through the exact statistics, before they show up as time.
-- The M0 spike, the M1 spine exit (XL opens in ≤ 20 s; commit p99 ≤ 5 ms at M and ≤ 20 ms at XL) and the nightly
+- The performance spike (gate G-SP), the M1 spine exit (XL opens in ≤ 20 s; commit p99 ≤ 5 ms at M and ≤ 20 ms at XL) and the nightly
   gate use the same fixtures and numbers.
 - RDP and VDI users are first-class from MVP rather than an afterthought.
 
 **Negative**
 - **Assumed sizes.** The XL numbers are assumptions. They must be recalibrated against the pilot user's three largest
-  projects before the M0 spike ([vision](../design/00-vision-and-scope.md) OQ5; G6 open question 1), and the
+  projects before the performance spike (gate G-SP) ([vision](../design/00-vision-and-scope.md) OQ5; G6 open question 1), and the
   budgets may move then.
 - **A dedicated runner.** Stable timings need a dedicated bare-metal runner. On a public repository that runner must
   be isolated from secrets and must never run fork PRs
@@ -110,7 +110,7 @@
 
 | Alternative | Why rejected |
 |---|---|
-| **Budgets defined after M2** | Too late. The engine and memoisation decisions of ADR-0002 are taken in weeks 3–5 and need targets |
+| **Budgets defined after M2** | Too late. The engine and memoisation decisions of ADR-0002 are taken at the performance spike (gate G-SP) and need targets |
 | **GPU-only rendering** | Fails on GPU-less RDP and VDI hosts, which pilot-type users run, and forces GPU runners into CI |
 | **Timing-only gates** (no engine statistics) | Noisy on shared runners, and blind to memo bugs that recompute too much but still fit the budget at S |
 | **Intel macOS as Supported** | It is Rust Tier 2, so EW could not promise more than the toolchain does |

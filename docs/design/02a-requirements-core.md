@@ -282,6 +282,7 @@ terminal of folios 201–206.
 | FR-DEV-037 | The system shall give devices a scope "supplied by others" that excludes them from the BOM, part checks and layout checks while keeping them in cross-references, fluid lines and PLC target tracking. | Should | MVP | REF-064, D-27, 20 §6.2 | The 8 golden field devices are absent from folio 901 and from EF-04/EF-05, and present in F1–F16 and folio 910. |
 | FR-DEV-038 | The system shall offer, when the tag of an existing device is entered on a newly placed function, to join that device as an auxiliary function or as another representation of an existing function with the same FnDef and CP designations, committed as one transaction. | Must | MVP | EPL §3.2, REF-020 | Placing an NO-contact symbol and typing "-102F2" makes it an auxiliary function of -102F2; one undo restores the separate device. |
 | FR-DEV-039 | The system shall store a black box's outline, the device-CP positions on the outline and its inner graphics with its representation and make them editable with grips; CPs stay on the outline and the connection grid while connections follow. | Must | MVP | REF-028, FR-DEV-013 | Widening -102G1's box by two grid steps keeps its 7 device CPs (L, N, PE, +#1, +#2, −#1, −#2) on the outline and all 7 connected. |
+| FR-DEV-040 | The system shall hold safety functions as project records {name, required PL or SIL, required category, devices of the sensing, logic and actuating subsystems}, linked to devices and PLC channels, for listing in a report block and export; the system stores these values and does not calculate or certify them. | Should | 1.x | critic P3-13 / EPLAN feature inventory | A test project with a light-curtain safety function lists its three subsystems and required PL d; no PL is computed and the report states that EW does not verify safety functions (NFR-COMP-04). |
 
 ---
 
@@ -489,6 +490,7 @@ and every cable has a length source so release can require one (D-19).
 | FR-CBL-018 | The system shall generate cables for connections marked "cable connection" and select their parts automatically. | Could | 1.0 | EPL §3.10 | Five marked field wires produce one 5-core cable. |
 | FR-CBL-019 | The system shall group cores into twisted pairs. | Should | 1.0 | EPL §3.10 | A 2×2×0.5 cable lists pairs 1 and 2 in its diagram. |
 | FR-CBL-020 | The system shall compute the length of a cable with one end outside its layout space as the committed internal route to its cable entry plus an authored external length, with a length source that shows both parts. | Should | 1.0 | D-19, FR-CBL-010, U-21 | With an external test length of 9.4 m, golden -3W1 shows 9.4 m plus its internal route with source "routed + manual"; moving -201U1 marks only the internal part stale. |
+| FR-CBL-021 | The system shall store an installation method (IEC 60364-5-52 reference method or a pack-defined code), a grouping count and an ambient temperature per cable and per wire class, as inputs of the cross-section check FR-CHK-062. | Should | 1.x | critic P3-13 / EPLAN feature inventory | A test cable carries method E, a grouping of 3 and 40 °C; the properties show their source and are empty when not authored. |
 
 ---
 
@@ -537,6 +539,7 @@ use, so they open without any library (G2). Assemblies and configured products (
 | FR-PRT-033 | The system shall take distributor data (prices, stock, datasheet links) only from connector plugins that use the user's own credentials and a granted network capability, run on explicit user action, and store it with source and as-of date in the user library only. | Could | 1.x | IOF §9, NFR-PRIV-01, NFR-SEC-07 | With no connector installed the network sandbox records no connection; a connector run writes L4 data with `as_of` into the user library only. |
 | FR-PRT-034 | The system shall give library items a status (draft, released, deprecated with an optional successor, withdrawn); selection dialogs hide deprecated and withdrawn items by default, and the library manager offers the successor for embedded copies of deprecated items. | Should | MVP | EPL §6, 07 §2.1 | Deprecating A9P52610 with a successor hides it from the part browser; GP still opens unchanged and the library manager offers the successor for -101F1. |
 | FR-PRT-035 | The system shall store consumables as part kinds with kind-specific fields (wire, ferrule, marker). | Must | 1.0 | PMF §4.3, §7.3 | A wire part H05V-K 0.75 DBU carries cross-section, colour and insulation; a ferrule part carries its cross-section range and twin flag. |
+| FR-PRT-036 | The system shall hold an optional functional-safety data section per part (B10d, MTTFd, PFHd, DCavg, category, PL and SIL capability, mission time) with confidence and source (FR-PRT-031), shown in the part editor and available to safety-function records (FR-DEV-040) and to exports. | Should | 1.x | critic P3-13 / EPLAN feature inventory | A test safety relay part stores PFHd, category 4 and PL e; the values appear in the part editor, in the release report's non-verified list while their confidence is `unverified`, and in the JSON of the part. |
 
 ---
 
@@ -630,6 +633,7 @@ PDF, XLSX, CSV and the production package.
 | FR-REP-049 | The system shall give report rows a fixed height by default, so that pagination does not depend on the display language; wrapping is opt-in per row template, and a multi-language export reports page-count differences. | Should | 1.0 | FR-I18N-005, AC-42 | The nl-NL and en-GB golden PDFs have the same page labels and link count. |
 | FR-REP-050 | The system shall give the ISO 5457 frames an ISO 7200 title-block form whose mandatory fields (legal owner, identification number, date of issue, sheet number, title, creator, approval person, document type) are bound to model properties. | Should | 1.0 | STD §12.2, FR-PAG-016, 09 §2.7 | An A3 ISO 5457 page of GP prints every mandatory ISO 7200 field from the model; no cell holds literal project data. |
 | FR-REP-051 | The system shall add the accessories declared in part data (FR-PRT-005) to the BOM with their own part numbers and quantities. | Must | 1.0 | REF-054, EPL §6, FR-PRT-005 | With accessory lists in the strip and rail part data, the GP BOM lists the same end brackets and covers as the MVP derivation of FR-REP-007. |
+| FR-REP-052 | The system shall generate an interconnection diagram between cabinets as a report block from the external-connection lists and cables that leave each cabinet, with source and target locations and cable data. | Could | 1.x | critic P3-13 / EPLAN feature inventory; EPL §18 | Two cabinets of a test project with three cables between them yield one interconnection page listing the three cables with both ends. |
 
 ---
 
@@ -742,6 +746,7 @@ set that a check can catch; PLC, bus, fluid and layout rule contents are in 02b,
 | FR-CHK-059 | The system shall compute the voltage drop of a cable from its length, core cross-section and the load current of its potential, and report drops above the profile's threshold (EW-POT-020), with the threshold table shipped as unverified data. | Could | 1.x | G15, FR-REP-026, FR-CHK-046 | A 50 m, 0.75 mm² test cable at 6 A on 24 V DC reports a drop above a 5 % test threshold. |
 | FR-CHK-060 | The system shall report designation and cross-reference hygiene: an overview representation without a detail link (EW-CORE-054), and letters I or O in a letter code or letters reserved in the IEC 81346-2:2019 set used as class codes (EW-RDS-007). | Should | MVP | STD XR-04, STD RD-07, D-10 | Golden A reports neither rule; a test overview representation without a multi-line counterpart reports EW-CORE-054, and a new device tagged -102I1 reports EW-RDS-007. |
 | FR-CHK-061 | The system shall report contacts of a main function's part that are neither placed nor marked unused (EW-CORE-055, off in pre-delivery) and external references to an open project without a matching target (EW-CORE-056). | Should | 1.0 | STD XR-03, G15, FR-PRJ-022 | With the J-E-206 project open, an external reference to a device that does not exist there reports EW-CORE-056; in scheme `full`, a test contactor with two of its four contacts drawn reports EW-CORE-055 for the other two. |
+| FR-CHK-062 | The system shall check each conductor's cross-section against the current-carrying capacity from the installation method, grouping and ambient data (FR-CBL-021) and the load current of its potential, report undersized conductors as a rule of the EW-POT pack, and offer the smallest adequate standard cross-section as a previewed quick fix. The capacity factors and tables (IEC 60364-5-52, EN 60204-1 Annex D) shall be supplied as rule data packs; no copyrighted table is shipped, and a pack's data carries the `verified` flag of FR-CHK-046. | Should | 1.x | critic P3-13 / EPLAN feature inventory | With a user pack providing capacities for method E, a 10 A load on a 0.5 mm² test conductor with grouping 3 is reported and the quick fix sets 0.75 mm²; with no pack loaded the rule reports "no data pack" at info level and finds nothing. |
 
 ---
 
@@ -950,26 +955,30 @@ Defects D-01 … D-42 ([reference analysis](../research/reference-drawing.md) §
 
 ## Appendix B: counts per area, priority and release
 
-Generated from the tables above. The staged row FR-CHK-005 ("MVP / 1.0") is counted under MVP.
+Generated from the tables above. The staged row FR-CHK-005 ("MVP / 1.0") is counted under MVP. The counts are for
+the **full-scope release labels**; the plan's lean variant moves rows between the release columns if PD-1 is adopted
+([vision and scope](00-vision-and-scope.md) §9.1, [global plan](../plan/01-global-plan.md) §14,
+[decision log](../plan/06-decision-log.md)). The five rows FR-DEV-040, FR-CBL-021, FR-PRT-036, FR-REP-052 and
+FR-CHK-062 were added for the scope boundaries of vision §9.2 (02b adds FR-LAY-067 and FR-EXP-012).
 
 | Area | Total | Must | Should | Could | MVP | 1.0 | 1.x | Later |
 |---|---|---|---|---|---|---|---|---|
 | PRJ | 29 | 17 | 11 | 1 | 24 | 4 | 1 | 0 |
 | PAG | 31 | 26 | 2 | 3 | 24 | 5 | 2 | 0 |
 | SYM | 30 | 22 | 6 | 2 | 24 | 4 | 1 | 1 |
-| DEV | 39 | 28 | 9 | 2 | 35 | 2 | 2 | 0 |
+| DEV | 40 | 28 | 10 | 2 | 35 | 2 | 3 | 0 |
 | NUM | 32 | 23 | 7 | 2 | 27 | 4 | 1 | 0 |
 | CON | 45 | 35 | 8 | 2 | 39 | 6 | 0 | 0 |
 | XRF | 25 | 18 | 6 | 1 | 24 | 1 | 0 | 0 |
 | TRM | 27 | 20 | 6 | 1 | 22 | 4 | 1 | 0 |
-| CBL | 20 | 14 | 5 | 1 | 15 | 5 | 0 | 0 |
-| PRT | 35 | 19 | 13 | 3 | 23 | 8 | 4 | 0 |
+| CBL | 21 | 14 | 6 | 1 | 15 | 5 | 1 | 0 |
+| PRT | 36 | 19 | 14 | 3 | 23 | 8 | 5 | 0 |
 | MAC | 18 | 8 | 8 | 2 | 9 | 8 | 1 | 0 |
-| REP | 51 | 37 | 11 | 3 | 35 | 14 | 2 | 0 |
+| REP | 52 | 37 | 11 | 4 | 35 | 14 | 3 | 0 |
 | OUT | 27 | 17 | 6 | 4 | 20 | 4 | 0 | 3 |
-| CHK | 61 | 44 | 16 | 1 | 48 | 12 | 1 | 0 |
+| CHK | 62 | 44 | 17 | 1 | 48 | 12 | 2 | 0 |
 | REV | 25 | 14 | 9 | 2 | 15 | 9 | 1 | 0 |
-| **All** | **495** | **342** | **123** | **30** | **384** | **90** | **17** | **4** |
+| **All** | **500** | **342** | **127** | **31** | **384** | **90** | **22** | **4** |
 
 Priority by release (all areas):
 
@@ -977,7 +986,7 @@ Priority by release (all areas):
 |---|---|---|---|---|
 | MVP | 313 | 69 | 2 | 384 |
 | 1.0 | 29 | 53 | 8 | 90 |
-| 1.x | 0 | 1 | 16 | 17 |
+| 1.x | 0 | 5 | 17 | 22 |
 | Later | 0 | 0 | 4 | 4 |
 
 ---
@@ -986,9 +995,9 @@ Priority by release (all areas):
 ## Requirements covered
 
 This file **defines** the core functional requirements:
-FR-PRJ-001 … 029, FR-PAG-001 … 031, FR-SYM-001 … 030, FR-DEV-001 … 039, FR-NUM-001 … 032, FR-CON-001 … 045,
-FR-XRF-001 … 025, FR-TRM-001 … 027, FR-CBL-001 … 020, FR-PRT-001 … 035, FR-MAC-001 … 018, FR-REP-001 … 051,
-FR-OUT-001 … 027, FR-CHK-001 … 061 and FR-REV-001 … 025 (495 requirements).
+FR-PRJ-001 … 029, FR-PAG-001 … 031, FR-SYM-001 … 030, FR-DEV-001 … 040, FR-NUM-001 … 032, FR-CON-001 … 045,
+FR-XRF-001 … 025, FR-TRM-001 … 027, FR-CBL-001 … 021, FR-PRT-001 … 036, FR-MAC-001 … 018, FR-REP-001 … 052,
+FR-OUT-001 … 027, FR-CHK-001 … 062 and FR-REV-001 … 025 (500 requirements).
 
 They are elaborated by these feature documents:
 
@@ -1030,6 +1039,7 @@ for shipped rules).
 | [15](15-checks-revisions-collaboration.md) | FR-CHK-043 … FR-CHK-054 and FR-REV-021 … FR-REV-024 → same numbers |
 | [20](20-golden-project.md) | FR-PAG-nnn page-to-sheet transform → FR-PAG-029; sub-page continuation → FR-PAG-030; FR-DEV-nnn → FR-DEV-037; FR-CON-nnn (PE class) → FR-CON-038; FR-REP-nnn (tag ranges) → FR-REP-046; FR-CHK-nnn supersession → FR-CHK-045; text height per style → FR-CHK-051 |
 | ADR-0027 (recommendation 4) | FR-PAG-nnn (grid for new pages) → FR-PAG-031 |
+| EPLAN feature inventory; scope-boundary decision (vision §9.2) | Safety functions → FR-DEV-040; installation data for sizing → FR-CBL-021; part safety data → FR-PRT-036; interconnection diagram → FR-REP-052; cross-section sizing → FR-CHK-062 (the LAY and EXP rows are in 02b) |
 
 This file's own proposals for other catalogues map as follows: FR-IMP-nnn (QET formulas and link data) →
 FR-IMP-009 with FR-IMP-010; FR-LAY-nnn (placements store no tag text) → FR-LAY-006; FR-PLC-nnn ("to be defined"
@@ -1085,8 +1095,8 @@ acceptance test per GP criterion) → the 02c acceptance-runner row shared with 
 12. **Letter-code conformance under the default set.** *Decided:* FR-CHK-026 (EW-RDS-003) reports at severity
     warning for frozen and new tags alike, as ADR-0026 decides; a scheme parameter `frozen_severity` lets a company
     lower it for frozen tags.
-13. **MVP size.** 384 of 495 requirements are MVP, 313 of them Must, because the golden reproduction touches every
+13. **MVP size.** 384 of 500 requirements are MVP, 313 of them Must, because the golden reproduction touches every
     core area. *Recommendation:* the plan splits MVP Must into "golden-critical" (needed for SC-1 and SC-4) and
     "MVP exit" (needed for SC-3), and treats MVP Should rows as the first candidates to slip to 1.0.
 14. **Native connection grid.** FR-SYM-009 and FR-PAG-021 depend on ADR-0027 (proposed: 4 mm). *Recommendation:*
-    decide before spine lane 2 starts the starter symbol set (weeks 2–5), as the vision recommends.
+    decide before spine lane 2 starts the starter symbol set (PD-4 and PD-5 of the global plan), as the vision recommends.

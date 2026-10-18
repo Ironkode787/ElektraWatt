@@ -264,7 +264,7 @@ veraPDF is a test tool run from a pinned container image with a checked digest. 
 
 ### 3.10 Acceptance runner
 
-`ew-testkit accept golden/J-E-2416 --gate <M1|M2|MVP|M3|M4|1.0>`:
+`ew-testkit accept golden/J-E-2416 --gate <M1|M-PP|M2|M3|M4|M5|M6>` (`MVP` and `1.0` are aliases of `M2` and `M6`; the rows per gate are those of [20](20-golden-project.md) §22 and [gates](../plan/03-gates.md) §8):
 1. builds GP through the three paths of 20 §3.2 and checks their equivalence (AC-15);
 2. builds the SQL projection and runs every `acceptance/*.sql`;
 3. diffs the results row by row against `expected/*.csv` (natural order, exact);
@@ -601,12 +601,21 @@ state which format a release writes and which it reads.
 
 | Phase | Release | Cadence | Format | Support |
 |---|---|---|---|---|
-| Pre-1.0 | 0.x.0 | Monthly: RC on the first working day, release the following week if no blocker | May change; upgrade-on-read; unstable-format banner | Latest 0.x only |
+| Pre-1.0, pilot preview (M-PP) | 0.0.x | Unsigned development builds from CI, handed to the pilot only; no public binary, no download page | May change; upgrade-on-read | None |
+| Pre-1.0 | 0.x.0 | Monthly from the MVP (0.1.0 at M2): RC on the first working day, release the following week if no blocker | May change; upgrade-on-read; unstable-format banner | Latest 0.x only |
 | Pre-1.0 | 0.x.y | As needed | Never changes | — |
 | From 1.0 | N.0.0 | Yearly, in the format window (§7.2) | Format major allowed | §7.5 |
 | From 1.0 | N.m.0 | Quarterly | Additive format minor only | All fixes while latest; security and data-loss fixes for 6 months after its successor (§7.5) |
 | From 1.0 | N.m.p | As needed: security, data loss, regressions | Never changes | — |
 | Always | Nightly | Daily from `main` | May write an unreleased format, with a warning (NFR-REL-05 d) | None |
+
+The release structure in time is: nightlies and signed source tags (`m1`, `pp`) before the pilot preview; the
+pilot preview 0.0.x at milestone M-PP (gate G-PP), which is not a public release; the first signed binary release
+0.1.0 at M2 (MVP); then monthly 0.x, the betas and release candidates of 1.0 (M5, M6) and quarterly minors. The
+dates are the plan's ([global plan](../plan/01-global-plan.md) §5.1 and §6, [milestones.csv](../plan/milestones.csv)).
+The pipeline and checklist of §7.4 apply from 0.1.0; a pilot preview needs the CI build and the release notes only.
+Whether a pilot-only preview counts as "made available on the market" under the CRA is to be verified with counsel
+(§13.1, ADR-0030).
 
 Published permissive crates follow their own SemVer. A format minor bumps `ew-schema` and `ew-format` by a minor
 version, and a format major by a major version.
@@ -626,7 +635,7 @@ version, and a format major by a major version.
 
 ```mermaid
 gantt
-  title Example: EW 1.1 after a 1.0 in March 2028
+  title Example: EW 1.1, illustrative dates (the plan sets the real ones)
   dateFormat YYYY-MM-DD
   section Upgrades
   UI and drawing-stack upgrade train :u, 2028-04-03, 5d
@@ -679,7 +688,7 @@ The release checklist holds the items that a pipeline cannot prove:
 - **Rule** (NFR-COMP-03, ADR-0030 as proposed). The latest minor gets all fixes; each minor gets security and
   data-loss fixes for 6 months after its successor ships. With quarterly minors, up to two older lines can be in
   that window at the same time, and security backports go to each of them (open question 14).
-  Example: 1.1 (released 2028-06-20) receives all fixes until 1.2 ships (planned 2028-09-19) and security and
+  Illustrative example (the real calendar is in the [global plan](../plan/01-global-plan.md) §6.4): 1.1 (released 2028-06-20) receives all fixes until 1.2 ships (planned 2028-09-19) and security and
   data-loss fixes until 6 months later (2029-03-19).
 - **Majors.** After N.0, the last minor of N−1 gets the same 6-month window.
 - **Pre-1.0.** Only the latest 0.x is supported.
@@ -997,10 +1006,12 @@ payload := allowlisted fields only; anything else is dropped
 - **Dates.** The CRA (Regulation (EU) 2024/2847) has applied its reporting obligations for actively exploited
   vulnerabilities and severe incidents (Art. 14) since **2026-09-11**, which is already the case today. All other
   obligations apply from **2027-12-11** (G11).
-- **What falls after 2027-12-11.** With MVP indicatively in month 6–7 and 1.0 in months 15–18
-  ([vision](00-vision-and-scope.md) §9), every release made available from 2027-12-11 ships under full
-  application: the monthly 0.x releases of roughly month 13 onwards (the global plan fixes the calendar), 1.0 and
-  everything after it. Only the first 0.x releases fall under the reporting duty alone.
+- **What falls after 2027-12-11.** The plan of record ([global plan](../plan/01-global-plan.md) §5.1 and §6;
+  [milestones.csv](../plan/milestones.csv)) has no public binary release before 0.1.0 at M2, in February 2030, and
+  1.0 in January 2032. Every public release therefore ships under full application, as does everything after it. The
+  pilot preview 0.0.x (M-PP, November 2028, handed to the pilot only) and the nightly CLI builds for the pilot also
+  fall after the date; whether such pilot-only builds are "made available on the market" is a question for counsel
+  (global plan §5.3, WP-S6.04). Source tags and nightlies on the repository are not binary releases.
 - **Where obligations attach.** They attach to products made available on the market, so the role decision of
   ADR-0030 must be taken before the first public release.
 
@@ -1152,7 +1163,7 @@ prevention mechanisms from regressing.
 | Supply chain | Full §10 set from the first commit | crates.io trusted publishing | — |
 | Security | `SECURITY.md`, threat model, fuzzing, `unsafe` allowlist, per-PR security tests (§11.5), CRA runbook | Tabletop exercise; OSS-Fuzz application | Worker OS sandbox (NFR-SEC-21) |
 | Privacy | Zero network, network sandbox, local crash reports, redacted logs | Opt-in scrubbed upload if ADR-0029 creates an endpoint | — |
-| CRA | Steward-grade processes before the first public release (NFR-COMP-01) | Full-application readiness (2027-12-11 falls before 1.0) | Manufacturer path only with a commercial decision |
+| CRA | Steward-grade processes before the first public release (NFR-COMP-01) | Full application is already in force (2027-12-11 falls before 0.1.0 in the plan of record, §13.1); the 1.0 documentation set and the support-period declaration are complete | Manufacturer path only with a commercial decision |
 
 ---
 
@@ -1227,7 +1238,7 @@ CI-PR-10) and NFR-REL-15 (release atomicity, the fault-injection test of §3.13)
 1. **Packaging tool.** cargo-dist lost its company backing in 2025 and its 2026 maintenance is unconfirmed;
    cargo-packager's last release (0.11.8) dates from 2025-11-27. Neither is a safe long-term bet.
    *Recommendation:* use cargo-packager driven by EW's own workflow, keep the packaging configuration thin enough
-   that WiX, NSIS and appimagetool can be driven directly, prove all formats at M1 with a CLI-only 0.1, and
+   that WiX, NSIS and appimagetool can be driven directly, prove all formats on the nightly CLI builds from M1 (no public release), and
    re-evaluate only if packaging maintenance exceeds one day per release.
 2. **Dedicated performance runner.** Stable timings need bare metal of the BM class, and a self-hosted runner on a
    public repository is a security risk. *Recommendation:* the steward owns one BM-class machine, isolated from
@@ -1237,8 +1248,9 @@ CI-PR-10) and NFR-REL-15 (release atomicity, the fault-injection test of §3.13)
    NSIS through cargo-packager at MVP. Consider MSIX only if enterprise users ask for it.
 4. **Signing identity and steward timing** (ADR-0030, [brainstorm](01-brainstorm.md) PQ-31). No Windows or macOS
    release can be signed with Artifact Signing without an organisation, and Apple organisation enrolment requires a
-   D-U-N-S number for the legal entity (ADR-0030, 19 LG-4). *Recommendation:* decide ADR-0030 by M1, so that the phase-1
-   steward (the pilot panel builder's company) can enrol in time for the MVP. Until then publish only nightlies
+   D-U-N-S number for the legal entity (ADR-0030, 19 LG-4). *Recommendation:* name the phase-1 identity holder in the first
+   90 days (PD-7a, WP-S0.05a of the [global plan](../plan/01-global-plan.md) §14), because enrolment takes at least 12 months, and decide
+   ADR-0030 in full by gate G-M1 (PD-7), so that the phase-1 steward (the pilot panel builder's company) can enrol in time for the MVP. Until then publish only nightlies
    labelled "unsigned development build" and no binary release (ADR-0023). Keep the SignPath Foundation OSS
    programme as the documented Windows fallback that ADR-0023 names (2026 eligibility **verify**).
 5. **Crash endpoint** (ADR-0029, [brainstorm](01-brainstorm.md) PQ-33). *Recommendation:* local-only at MVP. At 1.0 the steward runs a self-hosted
@@ -1258,8 +1270,8 @@ CI-PR-10) and NFR-REL-15 (release atomicity, the fault-injection test of §3.13)
 9. **Cross-platform PNG identity** (09 OQ 12). §3.5 and §3.8 accept the dify tolerance for PNG across platforms,
    which contradicted the PNG part of NFR-REL-07 and FR-OUT-014's earlier criterion ("the same image on all CI
    platforms"). **Resolved:** ADR-0015 as amended, NFR-REL-07 and FR-OUT-014 now require byte identity only for
-   PDF, SVG, CSV, XLSX, JSONL and `.ewpp`, and compare PNGs within the dify tolerance across platforms; if the M0
-   spike finds a deterministic scalar mode of vello_cpu, `ew render` and the CI goldens use it and PNG is
+   PDF, SVG, CSV, XLSX, JSONL and `.ewpp`, and compare PNGs within the dify tolerance across platforms; if the performance
+   spike (G-SP) finds a deterministic scalar mode of vello_cpu, `ew render` and the CI goldens use it and PNG is
    byte-identical again on the same platform.
 10. **Intel macOS and Windows ARM64 artefacts.** *Recommendation:* build, sign and notarise them as separate
     best-effort artefacts that do not gate a release. Drop Intel macOS when Apple ends security updates for the last

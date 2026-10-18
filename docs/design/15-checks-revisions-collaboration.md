@@ -311,7 +311,7 @@ on commit of transaction tx, producing revision r':
 ```
 
 - **Reverse index.** `rdeps` is a reverse dependency index kept for the `checks` query family only. It is estimated
-  at ≤ 40 MB on the XL fixture, inside the memo budget of NFR-PERF-13 (**verify** at the M0 spike).
+  at ≤ 40 MB on the XL fixture, inside the memo budget of NFR-PERF-13 (**verify** at the performance spike (gate G-SP)).
 - **Read tracking.** Because `rdeps` comes from the recorded reads, a rule that reads outside its nominal scope is
   still re-evaluated correctly.
 - **Correctness checks.** Debug builds compare the finding index with a cold full check after sampled commits, and
@@ -1598,7 +1598,7 @@ C = detected by a check, A = assisted by a tool, not checked.
 | `ew-plugin-host` (1.x) | Plugin rule implementations, registered the same way (edge `ew-plugin-host` → `ew-checks`) |
 | `ew-api` | Registers the SQL and plugin rule implementations into the registry at session start |
 | `ew-model`, `ew-commands` | Prevent validators, normalisers (`revision.ensure_open`, comment re-anchoring), `revision.*`, `merge.resolve`, the `HumanOnly` exposure check |
-| `ew-derive`, `ew-memo` | `checks(scope)`, page digests; `ew-memo`'s generic reverse-dependency API per query family supplies the recorded read sets behind `rdeps` (§3.3; measured at the M0 spike) |
+| `ew-derive`, `ew-memo` | `checks(scope)`, page digests; `ew-memo`'s generic reverse-dependency API per query family supplies the recorded read sets behind `rdeps` (§3.3; measured at the performance spike (gate G-SP)) |
 | `ew-library`, the importers | The library linter that runs EW-LIB (§4.11); the EW-IMP findings of an import run (§4.10) |
 | `ew-store`, `ew-format` | Integrity, the three-way merge core (driver and work copies), archive; `git:<rev>` reads through gix 0.89.0 (ARCH §7.5) |
 | `ew-scene`, `ew-render-cpu`, `ew-export` | Display-list diffs, clouds, review PNGs, report PDFs |
@@ -1706,7 +1706,7 @@ EW-THM-002 … 004 → FR-THM-012.
     *Recommendation:* read them from the `FreezeNumbers` committed computation ([04](04-architecture.md) §6.5)
     rather than loading the archive; confirm with [06](06-schematic-editor.md)'s numbering design.
 18. **`rdeps` memory at XL** (≤ 40 MB estimated). **Resolved:** the generic "reverse dependencies of a query family"
-    API is part of `ew-memo`, which stays ECAD-agnostic; the M0 spike measures it, and above budget the engine falls
+    API is part of `ew-memo`, which stays ECAD-agnostic; the performance spike (gate G-SP) measures it, and above budget the engine falls
     back to coarse page and shard keys with re-verification of the matching scopes.
 19. **SARIF placement on GitHub.** GitHub code scanning places results by file and line; findings have no natural
     file. *Recommendation:* emit the record's project file and line as `physicalLocation` plus page and entity as

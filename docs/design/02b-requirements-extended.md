@@ -351,6 +351,7 @@ flowchart LR
 | FR-LAY-064 | The 3D view shall show each unrouted wire as a straight line between its two CP3D positions (the connection diagram of EPLAN's 3D layout), highlight it end to end on selection and replace it by the routed polyline once a route is committed. | Should | 1.0 | EF §15; 12 OQ17 | Before `RouteWires`, golden W29 shows as one straight line from -102F2:Out1 to -X1031:1/a; after accepting the routing preview the line is replaced by its routed path. |
 | FR-LAY-065 | Users shall save named 3D views of a layout space (camera, visibility, transparency and section settings) and reopen them. | Could | 1.x | EF §15; 12 OQ17 | A saved view "door open, isometric" of the golden cabinet restores its camera and visibility after the project is reopened. |
 | FR-LAY-066 | Window macros (FR-MAC-001) shall optionally carry layout placements relative to a carrier or surface, inserted together with the macro's devices. | Could | 1.x | 12 OQ17; FR-MAC-001 | Inserting the PSU macro of folio 102 with placements onto rail 1 of an empty plate places -102G1, -102F1 and -102F2 in their stored order. |
+| FR-LAY-067 | The system shall model a topology: a routing-path network of nodes (cabinet entries, junction boxes, plant locations) and path segments with length, tray or conduit kind and fill, on which cables that leave a cabinet are routed, so that their external length is taken from the committed network route (FR-CBL-020) instead of being authored. | Could | 1.x | critic P3-13 / EPLAN feature inventory; EF §18 | A test project with two cabinets and three path segments routes one field cable between them and shows its external length as the sum of the segments; changing a segment marks the length stale. |
 
 ---
 
@@ -539,6 +540,7 @@ MFG. Exporters implement the permissive `Exporter` contract over a snapshot (ARC
 | FR-EXP-009 | Exports for third parties shall offer `--omit-personal-data` for AML and `.ewpp` outputs, stripping the fields marked as personal data (engineer, checker and party person fields, XMP authors); PDF, page text, XLSX and CSV report tables, file names and `.ewz` are covered at MVP by FR-OUT-025. | Should | 1.0 | GC G12; BS IDEA-050; FR-PRJ-024 | With the option set, no AML or `.ewpp` file exported from the golden project contains the engineer field's value (search over all members). |
 | FR-EXP-010 | The system shall export a project to QET `.qet` (version 0.100.0, UUID conductor ends, EW-only fields as folio properties) for customers still using QET. | Could | 1.x | IF §1.12; VIS §9 | QET 0.100 opens the exported golden project and shows all folios. |
 | FR-EXP-011 | The system may export EPLAN-importable XML. | Could | Later | VIS §9; IF §2.1 | An EPLAN installation imports the sample export without errors. |
+| FR-EXP-012 | The system shall export the safety-function subsystems of FR-DEV-040 and their part data (FR-PRT-036) as a SISTEMA / VDMA 66413 data file, without calculating any value. | Could | Later | critic P3-13 / EPLAN feature inventory | A test safety function with two subsystems exports a file that SISTEMA imports with the stored B10d, MTTFd and category values unchanged. |
 
 ---
 
@@ -754,7 +756,7 @@ XRF, CHK, OUT, REV, PRJ).
 
 ## 14. Counts
 
-The catalogue holds **432 requirements** (353 in v0.1 plus 79 adopted from the feature documents). Counts are
+The catalogue holds **434 requirements** (353 in v0.1, 79 adopted from the feature documents and 2 added for the scope boundaries of [vision and scope](00-vision-and-scope.md) §9.2). The counts are for the **full-scope release labels**; the plan's lean variant moves rows between the release columns if PD-1 is adopted (vision §9.1, [global plan](../plan/01-global-plan.md) §14, [decision log](../plan/06-decision-log.md)). Counts are
 generated from the tables above; IDs are unique and contiguous in every area.
 
 **By area and priority**
@@ -764,16 +766,16 @@ generated from the tables above; IDs are unique and contiguous in every area.
 | PLC | 37 | 16 | 3 | 56 |
 | BUS | 13 | 9 | 2 | 24 |
 | FLU | 15 | 13 | 6 | 34 |
-| LAY | 34 | 25 | 7 | 66 |
+| LAY | 34 | 25 | 8 | 67 |
 | THM | 7 | 4 | 1 | 12 |
 | MFG | 31 | 13 | 7 | 51 |
 | IMP | 29 | 14 | 2 | 45 |
-| EXP | 6 | 2 | 3 | 11 |
+| EXP | 6 | 2 | 4 | 12 |
 | UI | 30 | 17 | 4 | 51 |
 | EXT | 24 | 10 | 3 | 37 |
 | COL | 16 | 11 | 2 | 29 |
 | I18N | 10 | 4 | 2 | 16 |
-| **Total** | **252** | **138** | **42** | **432** |
+| **Total** | **252** | **138** | **44** | **434** |
 
 **By area and release**
 
@@ -782,16 +784,16 @@ generated from the tables above; IDs are unique and contiguous in every area.
 | PLC | 26 | 25 | 4 | 1 | 56 |
 | BUS | 9 | 12 | 2 | 1 | 24 |
 | FLU | 11 | 20 | 2 | 1 | 34 |
-| LAY | 21 | 36 | 8 | 1 | 66 |
+| LAY | 21 | 36 | 9 | 1 | 67 |
 | THM | 0 | 10 | 1 | 1 | 12 |
 | MFG | 0 | 42 | 7 | 2 | 51 |
 | IMP | 29 | 13 | 2 | 1 | 45 |
-| EXP | 6 | 3 | 1 | 1 | 11 |
+| EXP | 6 | 3 | 1 | 2 | 12 |
 | UI | 42 | 8 | 0 | 1 | 51 |
 | EXT | 22 | 7 | 8 | 0 | 37 |
 | COL | 19 | 6 | 3 | 1 | 29 |
 | I18N | 6 | 7 | 3 | 0 | 16 |
-| **Total** | **191** | **189** | **41** | **11** | **432** |
+| **Total** | **191** | **189** | **42** | **12** | **434** |
 
 **By release and priority**
 
@@ -799,9 +801,9 @@ generated from the tables above; IDs are unique and contiguous in every area.
 |---|---|---|---|---|
 | MVP | 143 | 44 | 4 | 191 |
 | 1.0 | 103 | 74 | 12 | 189 |
-| 1.x | 6 | 20 | 15 | 41 |
-| Later | 0 | 0 | 11 | 11 |
-| **Total** | **252** | **138** | **42** | **432** |
+| 1.x | 6 | 20 | 16 | 42 |
+| Later | 0 | 0 | 12 | 12 |
+| **Total** | **252** | **138** | **44** | **434** |
 
 **Observations for the plan.** Of the 143 MVP Musts in this catalogue, most fall in UI (27), QET import (23), the
 PLC data model (22), the CLI and extension surface (16), the device-bound 2D layout (14) and storage (13);
@@ -822,9 +824,9 @@ This catalogue **defines** the following ranges; the feature documents elaborate
 |---|---|
 | FR-PLC-001 … FR-PLC-056, FR-BUS-001 … FR-BUS-024 | [10-plc-and-bus](10-plc-and-bus.md); exchange formats also in [14-interop](14-interop.md) |
 | FR-FLU-001 … FR-FLU-034 | [11-fluid-power](11-fluid-power.md) |
-| FR-LAY-001 … FR-LAY-066, FR-THM-001 … FR-THM-012 | [12-panel-layout](12-panel-layout.md) |
+| FR-LAY-001 … FR-LAY-067, FR-THM-001 … FR-THM-012 | [12-panel-layout](12-panel-layout.md) |
 | FR-MFG-001 … FR-MFG-051 | [13-manufacturing-outputs](13-manufacturing-outputs.md) |
-| FR-IMP-001 … FR-IMP-045, FR-EXP-001 … FR-EXP-011 | [14-interop](14-interop.md) |
+| FR-IMP-001 … FR-IMP-045, FR-EXP-001 … FR-EXP-012 | [14-interop](14-interop.md) |
 | FR-UI-001 … FR-UI-051 | [16-ux-ui](16-ux-ui.md); FR-UI-038 and FR-UI-050 also in [18-quality-security-release](18-quality-security-release.md) |
 | FR-EXT-001 … FR-EXT-037 | [17-extensibility](17-extensibility.md) |
 | FR-COL-001 … FR-COL-029 | [05-project-format-and-persistence](05-project-format-and-persistence.md), [15-checks-revisions-collaboration](15-checks-revisions-collaboration.md) |
@@ -909,7 +911,7 @@ Rows this catalogue depends on that belong to [02a](02a-requirements-core.md) or
    criterion 8 expecting the EW-PLC-012 finding until then.
 3. **DWG in v1.** The user decision lists "DXF (DWG)" import in v1, while [vision and scope](00-vision-and-scope.md)
    §9 places DWG at 1.x. *Recommendation:* the ODA-converter route (FR-IMP-036) at 1.0 Should, because it reuses
-   the DXF importer at little cost, and native `acadrust` reading (FR-IMP-037) at 1.x; amend VIS §9 accordingly.
+   the DXF importer at little cost, and native `acadrust` reading (FR-IMP-037) at 1.x. **Adopted:** VIS §9 now reads this way; the project owner confirms it as DEC-075 of the [decision log](../plan/06-decision-log.md) before WP-S3.19.
 4. **QETZ timing.** FR-IMP-024 is 1.x because the pilot uses QET 0.100.0-dev. *Recommendation:* move it to MVP if
    the pilot or their customers switch to QET 0.200 before migration (BS PQ-03); the effort is low because QETZ
    re-joins into the `.qet` importer.
