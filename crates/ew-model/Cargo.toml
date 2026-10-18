@@ -16,3 +16,16 @@ workspace = true
 
 [dependencies]
 ew-schema = { path = "../ew-schema" }
+ew-ids = { path = "../ew-ids" }
+# Persistent ordered maps and sets: O(1) snapshots and deterministic order (ADR-0001 decision 1). MPL-2.0+, on
+# the GPL-layer allowlist; `Table<T>` and `RevIndex` encapsulate it.
+imbl = "7.0.2"
+# `extra` members of the project settings (the strictness read-through) and the order of unknown records.
+serde_json = "1.0.154"
+
+[dev-dependencies]
+# Value types of the test fixture's records (coordinates, decimals, identifiers, aspects).
+ew-units = { path = "../ew-units" }
+ew-mltext = { path = "../ew-mltext" }
+ew-rds = { path = "../ew-rds" }
+proptest = { version = "1.12.0", default-features = false, features = ["std"] }

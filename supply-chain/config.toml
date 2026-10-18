@@ -8,6 +8,10 @@ version = "0.10"
 version = "1.0.104"
 criteria = "safe-to-deploy"
 
+[[exemptions.archery]]
+version = "1.2.3"
+criteria = "safe-to-deploy"
+
 [[exemptions.arrayvec]]
 version = "0.7.8"
 criteria = "safe-to-deploy"
@@ -26,6 +30,10 @@ criteria = "safe-to-deploy"
 
 [[exemptions.bumpalo]]
 version = "3.20.3"
+criteria = "safe-to-deploy"
+
+[[exemptions.bytemuck]]
+version = "1.25.2"
 criteria = "safe-to-deploy"
 
 [[exemptions.camino]]
@@ -112,6 +120,14 @@ criteria = "safe-to-deploy"
 version = "0.17.1"
 criteria = "safe-to-deploy"
 
+[[exemptions.imbl]]
+version = "7.0.2"
+criteria = "safe-to-deploy"
+
+[[exemptions.imbl-sized-chunks]]
+version = "0.2.0"
+criteria = "safe-to-deploy"
+
 [[exemptions.indexmap]]
 version = "2.14.2"
 criteria = "safe-to-deploy"
@@ -185,12 +201,20 @@ version = "0.10.3"
 criteria = "safe-to-run"
 
 [[exemptions.rand_core]]
+version = "0.9.5"
+criteria = "safe-to-deploy"
+
+[[exemptions.rand_core]]
 version = "0.10.1"
 criteria = "safe-to-deploy"
 
 [[exemptions.rand_xorshift]]
 version = "0.5.0"
 criteria = "safe-to-run"
+
+[[exemptions.rand_xoshiro]]
+version = "0.7.0"
+criteria = "safe-to-deploy"
 
 [[exemptions.ref-cast]]
 version = "1.0.27"
@@ -214,6 +238,10 @@ criteria = "safe-to-run"
 
 [[exemptions.rustversion]]
 version = "1.0.23"
+criteria = "safe-to-deploy"
+
+[[exemptions.safe_arch]]
+version = "0.7.4"
 criteria = "safe-to-deploy"
 
 [[exemptions.schemars]]
@@ -362,6 +390,10 @@ criteria = "safe-to-deploy"
 
 [[exemptions.wasm-bindgen-shared]]
 version = "0.2.129"
+criteria = "safe-to-deploy"
+
+[[exemptions.wide]]
+version = "0.7.33"
 criteria = "safe-to-deploy"
 
 [[exemptions.windows-link]]
