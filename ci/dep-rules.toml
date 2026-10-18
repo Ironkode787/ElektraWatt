@@ -203,3 +203,7 @@ exempt_packages = ["xtask"]
 # path = "crates/ew-example/src/lib.rs"   # relative to the workspace root, forward slashes
 # item = "parts"                          # a gated item name, "raw_read!" or "raw-read"
 # reason = "a third-party Parts type, not ew-model's LibraryCopies"
+[[raw_read.allow]]
+path = "crates/ew-import-tables/src/emit/parts.rs"
+item = "rows"
+reason = "`Table::rows` is the CSV importer's own table type; ew-import-tables has no ew-model edge, so the gated reader is unreachable (follow-up: the guard should skip packages outside ew-model's dependency cone)"
