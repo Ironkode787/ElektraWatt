@@ -57,8 +57,8 @@ pub use bom::{BomMode, BomRow, BomRowKey, BomRows, DevicePartLines, LineSource, 
 pub use cell::{Cell, CellOf, RepAnchorCell};
 pub use cps::{Cp, FunctionCps};
 pub use pages::{
-    GeneratedPage, Origin, PageEntry, PageOrder, PageOrderV, PageRef, PageTitle, folio_label, map_ml,
-    report_pages,
+    GeneratedPage, Origin, PageEntry, PageOrder, PageOrderV, PageRef, PageRefStructure, PageTitle,
+    SectionStructure, folio_label, map_ml, report_pages,
 };
 pub use profile::{
     CounterScope, DerivationProfile, NumberingRule, NumberingScheme, NumberingSettings, ProfileStatus,
@@ -88,9 +88,11 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (MainFunction::FAMILY, MainFunction::POLICY),
     (MainRep::FAMILY, MainRep::POLICY),
     (PageOrder::FAMILY, PageOrder::POLICY),
+    (PageRefStructure::FAMILY, PageRefStructure::POLICY),
     (PageStructure::FAMILY, PageStructure::POLICY),
     (PageTitle::FAMILY, PageTitle::POLICY),
     (RepAnchorCell::FAMILY, RepAnchorCell::POLICY),
+    (SectionStructure::FAMILY, SectionStructure::POLICY),
     (StructureOf::FAMILY, StructureOf::POLICY),
     (StructurePath::FAMILY, StructurePath::POLICY),
     (TitleBlockValues::FAMILY, TitleBlockValues::POLICY),

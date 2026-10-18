@@ -13,6 +13,7 @@ use ew_schema::{Page, PageType, ReportBlock, ReportKind, ReportSource, Section};
 
 use crate::Q;
 use crate::query::{Policy, Query};
+use crate::structure::{PageStructure, ResolvedStructure};
 
 /// The printed folio label of a drawn page: its label, else its number (`101`, `101.1`, `101a`).
 pub fn folio_label(page: &Page) -> String {
@@ -79,18 +80,59 @@ impl Query for PageTitle {
 
 /// The rendered structure every drawn page of a section shares, if they all share one.
 fn section_structure(q: &Q, section: Id<Section>) -> Option<String> {
-    let mut common: Option<String> = None;
-    for page in q.idx().pages_of_section(section) {
-        let s = q
-            .get::<crate::structure::PageStructure>(page)
-            .render(&ew_rds::RdsSyntax::default());
-        match &common {
-            None => common = Some(s),
-            Some(c) if *c == s => {}
-            Some(_) => return None,
+    let s = q.get::<SectionStructure>(section);
+    let text = s.render(&ew_rds::RdsSyntax::default());
+    (!text.is_empty()).then_some(text)
+}
+
+/// `section_structure(section)`: the structure every drawn page of a section shares; empty when the
+/// pages disagree in any aspect or the section has no pages. Dividers and generated pages of the section
+/// print it (FR-PAG-009).
+#[derive(Debug)]
+pub struct SectionStructure;
+
+impl Query for SectionStructure {
+    type Key = Id<Section>;
+    type Value = ResolvedStructure;
+    const FAMILY: &'static str = "section_structure";
+    const POLICY: Policy = Policy::Cold;
+
+    fn run(q: &Q, key: &Id<Section>) -> Arc<ResolvedStructure> {
+        let mut common: Option<Arc<ResolvedStructure>> = None;
+        for page in q.idx().pages_of_section(*key) {
+            let s = q.get::<PageStructure>(page);
+            match &common {
+                None => common = Some(s),
+                Some(c) if **c == *s => {}
+                Some(_) => return Arc::new(ResolvedStructure::default()),
+            }
+        }
+        common.unwrap_or_default()
+    }
+}
+
+/// `page_ref_structure(page)`: the structure of any page of the page order: a drawn page's own, the
+/// section's shared structure for a divider and for a generated page of a block in a section, else
+/// none.
+#[derive(Debug)]
+pub struct PageRefStructure;
+
+impl Query for PageRefStructure {
+    type Key = PageRef;
+    type Value = ResolvedStructure;
+    const FAMILY: &'static str = "page_ref_structure";
+    const POLICY: Policy = Policy::Cold;
+
+    fn run(q: &Q, key: &PageRef) -> Arc<ResolvedStructure> {
+        match *key {
+            PageRef::Drawn(p) => q.get::<PageStructure>(p),
+            PageRef::Divider(s) => q.get::<SectionStructure>(s),
+            PageRef::Generated { block, .. } => match q.report_blocks().get(block).and_then(|b| b.section) {
+                Some(s) => q.get::<SectionStructure>(s),
+                None => Arc::new(ResolvedStructure::default()),
+            },
         }
     }
-    common.filter(|c| !c.is_empty())
 }
 
 /// One page of the page order.
