@@ -1,0 +1,515 @@
+{
+  "$defs": {
+    "AcDc": {
+      "anyOf": [
+        {
+          "const": "ac",
+          "description": "Alternating current.",
+          "type": "string"
+        },
+        {
+          "const": "dc",
+          "description": "Direct current.",
+          "type": "string"
+        }
+      ],
+      "description": "AC or DC."
+    },
+    "CircuitClass": {
+      "anyOf": [
+        {
+          "const": "mains",
+          "description": "Mains.",
+          "type": "string"
+        },
+        {
+          "const": "control",
+          "description": "Control.",
+          "type": "string"
+        },
+        {
+          "const": "analogue",
+          "description": "Analogue.",
+          "type": "string"
+        },
+        {
+          "const": "bus",
+          "description": "Bus.",
+          "type": "string"
+        },
+        {
+          "const": "pe",
+          "description": "Protective earth.",
+          "type": "string"
+        }
+      ],
+      "description": "Circuit classes (doc 03 §9.1, FR-CON-022)."
+    },
+    "ColourCode": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "foreign": {
+              "$ref": "#/$defs/Ident"
+            }
+          },
+          "required": [
+            "foreign"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "An IEC 60757 or profile-declared company colour code, or {\"foreign\": code} (doc 05 §3.2)."
+    },
+    "ColourSpec": {
+      "description": "One or two colour codes (doc 03 §3.4).",
+      "items": {
+        "$ref": "#/$defs/ColourCode"
+      },
+      "maxItems": 2,
+      "minItems": 1,
+      "type": "array"
+    },
+    "Csa": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Dec3"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "awg": {
+              "maximum": 127,
+              "minimum": -128,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "awg"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kcmil": {
+              "$ref": "#/$defs/Dec3"
+            }
+          },
+          "required": [
+            "kcmil"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "A cross-section: a Dec3 string in mm², {\"awg\": n} or {\"kcmil\": Dec3} (doc 08 §4.6)."
+    },
+    "Dec3": {
+      "description": "A decimal with at most three fraction digits, no trailing zeros, no unit (doc 05 §3.2).",
+      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]{0,2}[1-9])?$",
+      "type": "string"
+    },
+    "Endpoint": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "description": "Connection point `idx` of a function; its ID `v5(function, idx)` is derived, never stored.",
+          "properties": {
+            "cp": {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "$ref": "#/$defs/Uuid"
+                },
+                {
+                  "format": "uint16",
+                  "maximum": 65535,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            }
+          },
+          "required": [
+            "cp"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A junction.",
+          "properties": {
+            "junction": {
+              "$ref": "#/$defs/Uuid"
+            }
+          },
+          "required": [
+            "junction"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "One end of a connection, a definition or a bond (ADR-0007, doc 03 §9): a connection point of a function\nor a junction. Encoding (doc 05 §3.2): `{\"cp\": [function, idx]}` or `{\"junction\": id}`.\n\n```\nuse ew_schema::Endpoint;\n\nlet e: Endpoint = serde_json::from_str(r#\"{\"cp\":[\"d40b6e93-25f7-5c1a-9e8d-7a3f1c05b6e2\",0]}\"#).unwrap();\nassert!(matches!(e, Endpoint::Cp(_, 0)));\n```"
+    },
+    "Ident": {
+      "description": "An NFC identifier without surrounding white space (doc 05 §3.2).",
+      "minLength": 1,
+      "pattern": "^\\S(.*\\S)?$",
+      "type": "string"
+    },
+    "PartRef": {
+      "additionalProperties": true,
+      "description": "A part on a device (doc 03 §7): the embedded copy and an optional part variant (FR-PRT-003).",
+      "properties": {
+        "copy": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The copy ID of the embedded part, `v5(NS_LIBCOPY, library ‖ item)`."
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A variant key of the part."
+        }
+      },
+      "required": [
+        "copy"
+      ],
+      "type": "object"
+    },
+    "PotentialEarthing": {
+      "anyOf": [
+        {
+          "const": "pelv",
+          "description": "Protective extra-low voltage.",
+          "type": "string"
+        },
+        {
+          "const": "selv",
+          "description": "Safety extra-low voltage.",
+          "type": "string"
+        },
+        {
+          "const": "floating",
+          "description": "Floating.",
+          "type": "string"
+        }
+      ],
+      "description": "Earthing of an extra-low-voltage potential."
+    },
+    "PotentialEnv": {
+      "additionalProperties": true,
+      "description": "The electrical environment of a potential definition.",
+      "properties": {
+        "ac_dc": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AcDc"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "AC or DC."
+        },
+        "earthing": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PotentialEarthing"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "PELV, SELV or floating."
+        },
+        "frequency": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Dec3"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Frequency (Hz)."
+        }
+      },
+      "type": "object"
+    },
+    "PotentialType": {
+      "anyOf": [
+        {
+          "const": "l1",
+          "description": "Phase L1.",
+          "type": "string"
+        },
+        {
+          "const": "l2",
+          "description": "Phase L2.",
+          "type": "string"
+        },
+        {
+          "const": "l3",
+          "description": "Phase L3.",
+          "type": "string"
+        },
+        {
+          "const": "l",
+          "description": "Single-phase line.",
+          "type": "string"
+        },
+        {
+          "const": "n",
+          "description": "Neutral.",
+          "type": "string"
+        },
+        {
+          "const": "pe",
+          "description": "Protective earth.",
+          "type": "string"
+        },
+        {
+          "const": "pen",
+          "description": "Combined PE and N.",
+          "type": "string"
+        },
+        {
+          "const": "fe",
+          "description": "Functional earth.",
+          "type": "string"
+        },
+        {
+          "const": "l_plus",
+          "description": "DC positive.",
+          "type": "string"
+        },
+        {
+          "const": "l_minus",
+          "description": "DC negative.",
+          "type": "string"
+        },
+        {
+          "const": "m",
+          "description": "DC mid or 0 V.",
+          "type": "string"
+        },
+        {
+          "const": "signal",
+          "description": "Signal.",
+          "type": "string"
+        },
+        {
+          "const": "undefined",
+          "description": "Undefined.",
+          "type": "string"
+        }
+      ],
+      "description": "Potential types (doc 03 §9.1, FR-CON-010)."
+    },
+    "SourceRef": {
+      "additionalProperties": true,
+      "description": "The import provenance of a record (doc 14 §2.3, ADR-0004 amendment 1): the lineage and the source key\nfrom which the record's ID `v5(lineage namespace, key)` was derived.",
+      "properties": {
+        "key": {
+          "description": "The source key, byte for byte (NFC), such as `qet:el:<uuid>`.",
+          "type": "string"
+        },
+        "lineage": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The import lineage."
+        }
+      },
+      "required": [
+        "lineage",
+        "key"
+      ],
+      "type": "object"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "WireFlags": {
+      "additionalProperties": true,
+      "description": "Shielded and twisted flags of a wire.",
+      "properties": {
+        "shielded": {
+          "description": "Shielded.",
+          "type": "boolean"
+        },
+        "twisted": {
+          "description": "Twisted.",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "WireProps": {
+      "additionalProperties": true,
+      "description": "Wire properties (doc 08 §4.1): the values one level of the inheritance chain may set.",
+      "properties": {
+        "colour": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ColourSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Colour."
+        },
+        "csa": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Csa"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cross-section."
+        },
+        "flags": {
+          "$ref": "#/$defs/WireFlags",
+          "description": "Shielded and twisted flags."
+        },
+        "function": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Wire function."
+        },
+        "insulation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Insulation type."
+        },
+        "wire_part": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PartRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Wire part."
+        }
+      },
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "Names and types a potential (doc 03 §9, doc 08 §2.2, rank 38). The golden potentials L-S … N-55S are\nnaming-only definitions (`ptype` absent).",
+  "properties": {
+    "$k": {
+      "const": "potential_def",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "at": {
+      "$ref": "#/$defs/Endpoint",
+      "description": "The definition point."
+    },
+    "circuit_class": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CircuitClass"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Circuit class; derived when absent."
+    },
+    "env": {
+      "$ref": "#/$defs/PotentialEnv",
+      "description": "AC/DC, frequency and earthing."
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The record ID."
+    },
+    "name": {
+      "$ref": "#/$defs/Ident",
+      "description": "The potential name."
+    },
+    "props": {
+      "$ref": "#/$defs/WireProps",
+      "description": "Wire properties at the potential level (level 3)."
+    },
+    "ptype": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PotentialType"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The type; absent means naming only."
+    },
+    "source_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SourceRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Import provenance."
+    },
+    "voltage": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Dec3"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Voltage (V)."
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "at",
+    "name"
+  ],
+  "title": "potential_def",
+  "type": "object"
+}

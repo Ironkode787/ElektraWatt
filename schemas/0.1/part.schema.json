@@ -1,0 +1,927 @@
+{
+  "$defs": {
+    "CableCore": {
+      "additionalProperties": true,
+      "description": "One core of a cable part.",
+      "properties": {
+        "colour": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ColourSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Colour."
+        },
+        "core": {
+          "$ref": "#/$defs/Ident",
+          "description": "Core identification."
+        },
+        "csa": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Csa"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cross-section."
+        },
+        "pair": {
+          "description": "Pair number.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "shield": {
+          "description": "A shield.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "core"
+      ],
+      "type": "object"
+    },
+    "ClampKey": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "description": "A wire clamp a, b, c ….",
+          "properties": {
+            "clamp": {
+              "maxLength": 1,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "clamp"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A bridge shaft.",
+          "properties": {
+            "shaft": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "shaft"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "rail_foot",
+          "description": "The rail foot of a PE terminal.",
+          "type": "string"
+        }
+      ],
+      "description": "The clamp of a terminal CP (doc 08 §2.3): `{\"clamp\": \"a\"}`, `{\"shaft\": 1}` or `\"rail_foot\"`."
+    },
+    "ColourCode": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "foreign": {
+              "$ref": "#/$defs/Ident"
+            }
+          },
+          "required": [
+            "foreign"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "An IEC 60757 or profile-declared company colour code, or {\"foreign\": code} (doc 05 §3.2)."
+    },
+    "ColourSpec": {
+      "description": "One or two colour codes (doc 03 §3.4).",
+      "items": {
+        "$ref": "#/$defs/ColourCode"
+      },
+      "maxItems": 2,
+      "minItems": 1,
+      "type": "array"
+    },
+    "Confidence": {
+      "anyOf": [
+        {
+          "const": "verified",
+          "description": "Checked against a source.",
+          "type": "string"
+        },
+        {
+          "const": "unverified",
+          "description": "Not yet checked.",
+          "type": "string"
+        },
+        {
+          "const": "test",
+          "description": "Test data.",
+          "type": "string"
+        }
+      ],
+      "description": "Confidence of one section of library data."
+    },
+    "CpData": {
+      "additionalProperties": true,
+      "description": "One CP of a part's pattern (doc 07 §2.5, L1). Clamp ranges, maximum conductors, twin-ferrule permission\nand load current (1.0) are kept in `extra` until their work packages.",
+      "properties": {
+        "clamp": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ClampKey"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Terminal clamp."
+        },
+        "designation": {
+          "$ref": "#/$defs/Ident",
+          "description": "Designation."
+        },
+        "idx": {
+          "description": "Index.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "level": {
+          "description": "Terminal level.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "potential_role": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PotentialType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Potential role."
+        },
+        "side": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Side"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Terminal side."
+        }
+      },
+      "required": [
+        "idx",
+        "designation"
+      ],
+      "type": "object"
+    },
+    "Csa": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Dec3"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "awg": {
+              "maximum": 127,
+              "minimum": -128,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "awg"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kcmil": {
+              "$ref": "#/$defs/Dec3"
+            }
+          },
+          "required": [
+            "kcmil"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "A cross-section: a Dec3 string in mm², {\"awg\": n} or {\"kcmil\": Dec3} (doc 08 §4.6)."
+    },
+    "Date": {
+      "description": "An authored date YYYY-MM-DD (doc 05 §3.2).",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "type": "string"
+    },
+    "Dec3": {
+      "description": "A decimal with at most three fraction digits, no trailing zeros, no unit (doc 05 §3.2).",
+      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]{0,2}[1-9])?$",
+      "type": "string"
+    },
+    "FreeProp": {
+      "additionalProperties": true,
+      "description": "A free property (EPLAN free properties, user fields).",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Ident",
+          "description": "Key."
+        },
+        "value": {
+          "$ref": "#/$defs/MlText",
+          "description": "Value."
+        }
+      },
+      "required": [
+        "key",
+        "value"
+      ],
+      "type": "object"
+    },
+    "Ident": {
+      "description": "An NFC identifier without surrounding white space (doc 05 §3.2).",
+      "minLength": 1,
+      "pattern": "^\\S(.*\\S)?$",
+      "type": "string"
+    },
+    "ItemMeta": {
+      "additionalProperties": true,
+      "description": "Provenance of a library item (doc 07 §2.1, §2.5). The item's semantic version is the copy metadata\n`version` of the [`LibCopy`] and is stored once, there.",
+      "properties": {
+        "as_of": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Date"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Date of the data."
+        },
+        "confidence": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Confidence"
+          },
+          "description": "Confidence per section, keyed by section name.",
+          "type": "object"
+        },
+        "foreign_terms": {
+          "description": "Imported content under foreign terms.",
+          "type": "boolean"
+        },
+        "key": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Human key (`pxc.2904602`, `ew.iec.mcb-1pn`)."
+        },
+        "licence": {
+          "description": "SPDX licence expression of the item.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sources": {
+          "description": "Where the data came from: datasheet references, file hashes, manual entry.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "status": {
+          "$ref": "#/$defs/ItemStatus",
+          "description": "Item status; default released."
+        }
+      },
+      "type": "object"
+    },
+    "ItemStatus": {
+      "anyOf": [
+        {
+          "const": "draft",
+          "description": "Draft.",
+          "type": "string"
+        },
+        {
+          "const": "released",
+          "description": "Released (the default).",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Deprecated, with an optional successor.",
+          "properties": {
+            "deprecated": {
+              "properties": {
+                "successor": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/LibRef"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The successor."
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "deprecated"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "withdrawn",
+          "description": "Withdrawn.",
+          "type": "string"
+        }
+      ],
+      "description": "Status of a library item."
+    },
+    "LibRef": {
+      "additionalProperties": true,
+      "description": "A reference between library items (doc 07 §2.1): library, item and a semantic-version requirement.",
+      "properties": {
+        "item": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The item's UUID, stable across versions."
+        },
+        "library": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The library's UUID."
+        },
+        "version_req": {
+          "description": "A semantic-version requirement such as `\"^1\"`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "library",
+        "item",
+        "version_req"
+      ],
+      "type": "object"
+    },
+    "MlText": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minProperties": 1,
+          "type": "object"
+        }
+      ],
+      "description": "Multilingual text: a neutral string, or an object keyed by BCP 47 tags (doc 05 §3.2)."
+    },
+    "OrderUnit": {
+      "anyOf": [
+        {
+          "const": "piece",
+          "description": "Piece (the default).",
+          "type": "string"
+        },
+        {
+          "const": "metre",
+          "description": "Metre.",
+          "type": "string"
+        },
+        {
+          "const": "set",
+          "description": "Set.",
+          "type": "string"
+        }
+      ],
+      "description": "Order unit of a part (FR-PRT-026)."
+    },
+    "PartKind": {
+      "anyOf": [
+        {
+          "const": "device",
+          "description": "A device (the default).",
+          "type": "string"
+        },
+        {
+          "const": "terminal",
+          "description": "Terminal.",
+          "type": "string"
+        },
+        {
+          "const": "cable",
+          "description": "Cable.",
+          "type": "string"
+        },
+        {
+          "const": "wire",
+          "description": "Wire.",
+          "type": "string"
+        },
+        {
+          "const": "ferrule",
+          "description": "Ferrule.",
+          "type": "string"
+        },
+        {
+          "const": "marker",
+          "description": "Marker.",
+          "type": "string"
+        },
+        {
+          "const": "duct",
+          "description": "Duct.",
+          "type": "string"
+        },
+        {
+          "const": "rail",
+          "description": "Rail.",
+          "type": "string"
+        },
+        {
+          "const": "busbar",
+          "description": "Busbar.",
+          "type": "string"
+        },
+        {
+          "const": "end_bracket",
+          "description": "End bracket.",
+          "type": "string"
+        },
+        {
+          "const": "enclosure",
+          "description": "Enclosure.",
+          "type": "string"
+        },
+        {
+          "const": "mounting_plate",
+          "description": "Mounting plate.",
+          "type": "string"
+        },
+        {
+          "const": "tube",
+          "description": "Tube.",
+          "type": "string"
+        },
+        {
+          "const": "accessory",
+          "description": "Accessory.",
+          "type": "string"
+        },
+        {
+          "const": "configured",
+          "description": "Configured product.",
+          "type": "string"
+        }
+      ],
+      "description": "Part kinds (doc 07 §2.5)."
+    },
+    "PartSections": {
+      "additionalProperties": true,
+      "description": "Domain sections of a part (FR-PRT-010). v0 types the cable cores.",
+      "properties": {
+        "cable_cores": {
+          "description": "Cores of a cable part, from which conductors are generated (FR-CBL-004).",
+          "items": {
+            "$ref": "#/$defs/CableCore"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "PotentialType": {
+      "anyOf": [
+        {
+          "const": "l1",
+          "description": "Phase L1.",
+          "type": "string"
+        },
+        {
+          "const": "l2",
+          "description": "Phase L2.",
+          "type": "string"
+        },
+        {
+          "const": "l3",
+          "description": "Phase L3.",
+          "type": "string"
+        },
+        {
+          "const": "l",
+          "description": "Single-phase line.",
+          "type": "string"
+        },
+        {
+          "const": "n",
+          "description": "Neutral.",
+          "type": "string"
+        },
+        {
+          "const": "pe",
+          "description": "Protective earth.",
+          "type": "string"
+        },
+        {
+          "const": "pen",
+          "description": "Combined PE and N.",
+          "type": "string"
+        },
+        {
+          "const": "fe",
+          "description": "Functional earth.",
+          "type": "string"
+        },
+        {
+          "const": "l_plus",
+          "description": "DC positive.",
+          "type": "string"
+        },
+        {
+          "const": "l_minus",
+          "description": "DC negative.",
+          "type": "string"
+        },
+        {
+          "const": "m",
+          "description": "DC mid or 0 V.",
+          "type": "string"
+        },
+        {
+          "const": "signal",
+          "description": "Signal.",
+          "type": "string"
+        },
+        {
+          "const": "undefined",
+          "description": "Undefined.",
+          "type": "string"
+        }
+      ],
+      "description": "Potential types (doc 03 §9.1, FR-CON-010)."
+    },
+    "Quantity": {
+      "additionalProperties": true,
+      "description": "A decimal value with its unit (doc 03 §3.2): `{\"value\": Dec3, \"unit\": Unit}`. Rendering (\"0.75 mm²\",\ndecimal comma in nl and de) is a query, never stored text (D-18).\n\n```\nuse ew_schema::{Quantity, Unit};\n\nlet q: Quantity = serde_json::from_str(r#\"{\"value\":\"20\",\"unit\":\"A\"}\"#).unwrap();\nassert_eq!(q.unit, Unit::A);\nassert_eq!(serde_json::to_string(&q).unwrap(), r#\"{\"value\":\"20\",\"unit\":\"A\"}\"#);\n```",
+      "properties": {
+        "unit": {
+          "$ref": "#/$defs/Unit",
+          "description": "Its unit."
+        },
+        "value": {
+          "$ref": "#/$defs/Dec3",
+          "description": "The number."
+        }
+      },
+      "required": [
+        "value",
+        "unit"
+      ],
+      "type": "object"
+    },
+    "Sha256": {
+      "description": "A SHA-256 digest sha256:<64 lower-case hex> (doc 05 §3.2).",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "Side": {
+      "anyOf": [
+        {
+          "const": "side1",
+          "description": "Side 1.",
+          "type": "string"
+        },
+        {
+          "const": "side2",
+          "description": "Side 2.",
+          "type": "string"
+        }
+      ],
+      "description": "A terminal side (doc 08 §2.1: side 1 is internal and side 2 external unless `Strip.field_side` says\notherwise)."
+    },
+    "TechVal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Quantity",
+          "description": "A quantity such as 20 A."
+        },
+        {
+          "$ref": "#/$defs/Ident",
+          "description": "An identifier such as the tripping curve `C`."
+        }
+      ],
+      "description": "The value of a [`TechValue`]."
+    },
+    "TechValue": {
+      "additionalProperties": true,
+      "description": "One technical value (doc 05 §3.2 `TechValue`): `{\"key\", \"value\"}` whose value is a [`Quantity`] or an\n[`Ident`], told apart by JSON type.",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Ident",
+          "description": "The property key, such as `i_out` or `curve`."
+        },
+        "value": {
+          "$ref": "#/$defs/TechVal",
+          "description": "The value."
+        }
+      },
+      "required": [
+        "key",
+        "value"
+      ],
+      "type": "object"
+    },
+    "TemplateFn": {
+      "additionalProperties": true,
+      "description": "One function of a part's template (FR-PRT-007).",
+      "properties": {
+        "cps": {
+          "description": "Indices into `cp_pattern`.",
+          "items": {
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "fndef": {
+          "$ref": "#/$defs/LibRef",
+          "description": "The function definition."
+        },
+        "main": {
+          "description": "The main function of the part.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "fndef"
+      ],
+      "type": "object"
+    },
+    "Unit": {
+      "anyOf": [
+        {
+          "const": "mm2",
+          "description": "Square millimetre (cross-sections).",
+          "type": "string"
+        },
+        {
+          "const": "A",
+          "description": "Ampere.",
+          "type": "string"
+        },
+        {
+          "const": "V",
+          "description": "Volt.",
+          "type": "string"
+        },
+        {
+          "const": "Hz",
+          "description": "Hertz.",
+          "type": "string"
+        },
+        {
+          "const": "bar",
+          "description": "Bar (pressure).",
+          "type": "string"
+        },
+        {
+          "const": "degC",
+          "description": "Degree Celsius.",
+          "type": "string"
+        },
+        {
+          "const": "kg",
+          "description": "Kilogram.",
+          "type": "string"
+        },
+        {
+          "const": "W",
+          "description": "Watt.",
+          "type": "string"
+        },
+        {
+          "const": "m",
+          "description": "Metre (lengths and the order unit of cables).",
+          "type": "string"
+        },
+        {
+          "const": "piece",
+          "description": "Piece (the default order unit).",
+          "type": "string"
+        },
+        {
+          "const": "set",
+          "description": "Set (order unit).",
+          "type": "string"
+        }
+      ],
+      "description": "The units of doc 03 §3.2 and the order units of FR-PRT-026. Persisted as the unit symbol in ASCII\n(`\"mm2\"`, `\"degC\"`), so files stay greppable; rendering uses the typographic symbol."
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "An embedded library copy (doc 07 §2.1, doc 05 §13.2): `$k`, `id` (the copy ID\n`v5(NS_LIBCOPY, library ‖ item)`), `$v`, the copy metadata, then the item's own members.\n\n`sha256` is taken over the canonical compact JSON of the item's own members, without `id` and the copy\nmetadata, so the copy's hash equals the published item's (EW-CORE-014).",
+  "properties": {
+    "$k": {
+      "const": "part",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "category": {
+      "description": "Function category for compatibility filters.",
+      "maxItems": 3,
+      "minItems": 3,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "$ref": "#/$defs/Ident"
+        }
+      ],
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "cp_pattern": {
+      "description": "CP pattern, keyed by `idx` (FR-PRT-008).",
+      "items": {
+        "$ref": "#/$defs/CpData"
+      },
+      "type": "array"
+    },
+    "description": {
+      "$ref": "#/$defs/MlText",
+      "description": "A noun phrase, never ratings (D-35)."
+    },
+    "free_props": {
+      "description": "Free properties, keyed by `key`.",
+      "items": {
+        "$ref": "#/$defs/FreeProp"
+      },
+      "type": "array"
+    },
+    "function_template": {
+      "description": "Function template (FR-PRT-007).",
+      "items": {
+        "$ref": "#/$defs/TemplateFn"
+      },
+      "type": "array"
+    },
+    "gtin": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "GTIN."
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The copy ID."
+    },
+    "item_id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The item's UUID, stable across versions."
+    },
+    "kind": {
+      "$ref": "#/$defs/PartKind",
+      "description": "Part kind; default device."
+    },
+    "library_id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The library's UUID (the project ID for project-local items)."
+    },
+    "manufacturer": {
+      "$ref": "#/$defs/LibRef",
+      "description": "The manufacturer record."
+    },
+    "meta": {
+      "$ref": "#/$defs/ItemMeta",
+      "description": "Provenance."
+    },
+    "order_number": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Order number."
+    },
+    "part_number": {
+      "$ref": "#/$defs/Ident",
+      "description": "Part number, verbatim."
+    },
+    "sections": {
+      "$ref": "#/$defs/PartSections",
+      "description": "Domain sections."
+    },
+    "sha256": {
+      "$ref": "#/$defs/Sha256",
+      "description": "Hash of the item's own members."
+    },
+    "tech_data": {
+      "description": "Technical data, keyed by `key`.",
+      "items": {
+        "$ref": "#/$defs/TechValue"
+      },
+      "type": "array"
+    },
+    "type_designation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Type designation (\"PT 2.5-TWIN\")."
+    },
+    "unit": {
+      "$ref": "#/$defs/OrderUnit",
+      "description": "Order unit; default piece."
+    },
+    "version": {
+      "description": "The item's semantic version (`MAJOR.MINOR.PATCH`).",
+      "type": "string"
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "library_id",
+    "item_id",
+    "version",
+    "sha256",
+    "manufacturer",
+    "part_number"
+  ],
+  "title": "part",
+  "type": "object"
+}

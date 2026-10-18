@@ -1,0 +1,1407 @@
+{
+  "$defs": {
+    "Align": {
+      "anyOf": [
+        {
+          "const": "top_left",
+          "description": "Top left.",
+          "type": "string"
+        },
+        {
+          "const": "top_centre",
+          "description": "Top centre.",
+          "type": "string"
+        },
+        {
+          "const": "top_right",
+          "description": "Top right.",
+          "type": "string"
+        },
+        {
+          "const": "middle_left",
+          "description": "Middle left.",
+          "type": "string"
+        },
+        {
+          "const": "centre",
+          "description": "Centre.",
+          "type": "string"
+        },
+        {
+          "const": "middle_right",
+          "description": "Middle right.",
+          "type": "string"
+        },
+        {
+          "const": "bottom_left",
+          "description": "Bottom left.",
+          "type": "string"
+        },
+        {
+          "const": "bottom_centre",
+          "description": "Bottom centre.",
+          "type": "string"
+        },
+        {
+          "const": "bottom_right",
+          "description": "Bottom right.",
+          "type": "string"
+        }
+      ],
+      "description": "Text alignment at the anchor point: nine positions."
+    },
+    "Angle2": {
+      "description": "An angle in 10^-3 degree, counter-clockwise on the sheet (doc 05 §3.2).",
+      "type": "integer"
+    },
+    "ArcPrim": {
+      "additionalProperties": true,
+      "description": "An elliptic arc (QET's arc: bounding rectangle, start angle and sweep, counter-clockwise).",
+      "properties": {
+        "rect": {
+          "$ref": "#/$defs/Rect",
+          "description": "The bounding rectangle of the full ellipse."
+        },
+        "start": {
+          "$ref": "#/$defs/Angle2",
+          "description": "Start angle."
+        },
+        "stroke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Stroke"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Stroke."
+        },
+        "sweep": {
+          "$ref": "#/$defs/Angle2",
+          "description": "Sweep angle."
+        }
+      },
+      "required": [
+        "rect",
+        "sweep"
+      ],
+      "type": "object"
+    },
+    "CirclePrim": {
+      "additionalProperties": true,
+      "description": "A circle.",
+      "properties": {
+        "centre": {
+          "$ref": "#/$defs/Pt2",
+          "description": "Centre."
+        },
+        "fill": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Colour"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fill."
+        },
+        "r": {
+          "$ref": "#/$defs/Nm",
+          "description": "Radius."
+        },
+        "stroke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Stroke"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Stroke."
+        }
+      },
+      "required": [
+        "centre",
+        "r"
+      ],
+      "type": "object"
+    },
+    "Colour": {
+      "anyOf": [
+        {
+          "const": "by_layer",
+          "description": "The layer's colour (the default).",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An explicit colour.",
+          "properties": {
+            "rgb": {
+              "$ref": "#/$defs/Rgb"
+            }
+          },
+          "required": [
+            "rgb"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "A drawing colour: the layer's colour (the default) or an explicit sRGB value."
+    },
+    "Confidence": {
+      "anyOf": [
+        {
+          "const": "verified",
+          "description": "Checked against a source.",
+          "type": "string"
+        },
+        {
+          "const": "unverified",
+          "description": "Not yet checked.",
+          "type": "string"
+        },
+        {
+          "const": "test",
+          "description": "Test data.",
+          "type": "string"
+        }
+      ],
+      "description": "Confidence of one section of library data."
+    },
+    "Dash": {
+      "anyOf": [
+        {
+          "const": "solid",
+          "description": "Solid (the default).",
+          "type": "string"
+        },
+        {
+          "const": "dash42",
+          "description": "Dash 4, gap 2 (× pen width).",
+          "type": "string"
+        },
+        {
+          "const": "dot12",
+          "description": "Dot 1, gap 2.",
+          "type": "string"
+        },
+        {
+          "const": "dash_dot",
+          "description": "Dash-dot.",
+          "type": "string"
+        }
+      ],
+      "description": "A dash pattern scaled by the pen width (doc 07 §2.3)."
+    },
+    "DataArea": {
+      "additionalProperties": true,
+      "description": "The data area of a report form.",
+      "properties": {
+        "grid": {
+          "$ref": "#/$defs/TableStyle",
+          "description": "Table lines and fills."
+        },
+        "header": {
+          "$ref": "#/$defs/RowTemplate",
+          "description": "The header row."
+        },
+        "rect": {
+          "$ref": "#/$defs/Rect",
+          "description": "The area."
+        },
+        "rows": {
+          "$ref": "#/$defs/RowTemplates",
+          "description": "Row templates per row kind."
+        }
+      },
+      "required": [
+        "rect",
+        "header"
+      ],
+      "type": "object"
+    },
+    "Date": {
+      "description": "An authored date YYYY-MM-DD (doc 05 §3.2).",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "type": "string"
+    },
+    "EllipsePrim": {
+      "additionalProperties": true,
+      "description": "An ellipse.",
+      "properties": {
+        "fill": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Colour"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fill."
+        },
+        "rect": {
+          "$ref": "#/$defs/Rect",
+          "description": "The bounding rectangle."
+        },
+        "stroke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Stroke"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Stroke."
+        }
+      },
+      "required": [
+        "rect"
+      ],
+      "type": "object"
+    },
+    "FormCell": {
+      "additionalProperties": true,
+      "description": "One form cell: a label and a placeholder bound to project, page, party or derived values.",
+      "properties": {
+        "align": {
+          "$ref": "#/$defs/Align",
+          "description": "Alignment."
+        },
+        "label": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MlText"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Static label text."
+        },
+        "overflow": {
+          "$ref": "#/$defs/Overflow",
+          "description": "What happens when the text does not fit; never silent clipping (FR-REP-039)."
+        },
+        "rect": {
+          "$ref": "#/$defs/Rect",
+          "description": "The cell area."
+        },
+        "style": {
+          "$ref": "#/$defs/Ident",
+          "description": "Text style key."
+        },
+        "value": {
+          "description": "The placeholder, such as `\"{page.title}\"` (doc 09 §2.6).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "visible_if": {
+          "description": "Visibility condition, a pure expression.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "rect",
+        "style",
+        "align",
+        "overflow"
+      ],
+      "type": "object"
+    },
+    "FormKind": {
+      "anyOf": [
+        {
+          "const": "frame",
+          "description": "Page frame.",
+          "type": "string"
+        },
+        {
+          "const": "title_block",
+          "description": "Title block.",
+          "type": "string"
+        },
+        {
+          "const": "cover",
+          "description": "Cover.",
+          "type": "string"
+        },
+        {
+          "const": "divider",
+          "description": "Section divider.",
+          "type": "string"
+        },
+        {
+          "const": "report",
+          "description": "Report page.",
+          "type": "string"
+        },
+        {
+          "const": "label",
+          "description": "Label.",
+          "type": "string"
+        }
+      ],
+      "description": "Form kinds."
+    },
+    "FrameColumns": {
+      "additionalProperties": true,
+      "description": "The columns of a frame grid.",
+      "properties": {
+        "count": {
+          "description": "Number of columns.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "labels": {
+          "description": "Explicit labels; empty means numbers from `start_index`.",
+          "items": {
+            "$ref": "#/$defs/Ident"
+          },
+          "type": "array"
+        },
+        "start_index": {
+          "description": "Number of the first column (0 on the QET-compatible frame).",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "width": {
+          "$ref": "#/$defs/Grid",
+          "description": "Column width as a rational step."
+        }
+      },
+      "required": [
+        "count",
+        "width"
+      ],
+      "type": "object"
+    },
+    "FrameGrid": {
+      "additionalProperties": true,
+      "description": "The column and row grid of a frame (doc 03 §6).",
+      "properties": {
+        "columns": {
+          "$ref": "#/$defs/FrameColumns",
+          "description": "Columns."
+        },
+        "header_band": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Grid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Thickness of the header bands along the top and left edges, where the labels print."
+        },
+        "rows": {
+          "$ref": "#/$defs/FrameRows",
+          "description": "Rows."
+        }
+      },
+      "required": [
+        "columns",
+        "rows"
+      ],
+      "type": "object"
+    },
+    "FrameRows": {
+      "additionalProperties": true,
+      "description": "The rows of a frame grid.",
+      "properties": {
+        "count": {
+          "description": "Number of rows.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "height": {
+          "$ref": "#/$defs/Grid",
+          "description": "Row height as a rational step."
+        },
+        "labels": {
+          "description": "Explicit labels; empty means letters from A.",
+          "items": {
+            "$ref": "#/$defs/Ident"
+          },
+          "type": "array"
+        },
+        "skip_io": {
+          "description": "Skip the letters I and O.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "count",
+        "height"
+      ],
+      "type": "object"
+    },
+    "Grid": {
+      "additionalProperties": false,
+      "description": "A reduced rational grid step num/den in nanometres (doc 05 §3.2).",
+      "properties": {
+        "den": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "num": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "num",
+        "den"
+      ],
+      "type": "object"
+    },
+    "Ident": {
+      "description": "An NFC identifier without surrounding white space (doc 05 §3.2).",
+      "minLength": 1,
+      "pattern": "^\\S(.*\\S)?$",
+      "type": "string"
+    },
+    "ImagePrim": {
+      "additionalProperties": true,
+      "description": "An image asset placed in a rectangle.",
+      "properties": {
+        "asset": {
+          "$ref": "#/$defs/Sha256",
+          "description": "The asset `assets/<sha256>.<ext>`."
+        },
+        "rect": {
+          "$ref": "#/$defs/Rect",
+          "description": "The placement."
+        }
+      },
+      "required": [
+        "rect",
+        "asset"
+      ],
+      "type": "object"
+    },
+    "ItemMeta": {
+      "additionalProperties": true,
+      "description": "Provenance of a library item (doc 07 §2.1, §2.5). The item's semantic version is the copy metadata\n`version` of the [`LibCopy`] and is stored once, there.",
+      "properties": {
+        "as_of": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Date"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Date of the data."
+        },
+        "confidence": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Confidence"
+          },
+          "description": "Confidence per section, keyed by section name.",
+          "type": "object"
+        },
+        "foreign_terms": {
+          "description": "Imported content under foreign terms.",
+          "type": "boolean"
+        },
+        "key": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Human key (`pxc.2904602`, `ew.iec.mcb-1pn`)."
+        },
+        "licence": {
+          "description": "SPDX licence expression of the item.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sources": {
+          "description": "Where the data came from: datasheet references, file hashes, manual entry.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "status": {
+          "$ref": "#/$defs/ItemStatus",
+          "description": "Item status; default released."
+        }
+      },
+      "type": "object"
+    },
+    "ItemStatus": {
+      "anyOf": [
+        {
+          "const": "draft",
+          "description": "Draft.",
+          "type": "string"
+        },
+        {
+          "const": "released",
+          "description": "Released (the default).",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Deprecated, with an optional successor.",
+          "properties": {
+            "deprecated": {
+              "properties": {
+                "successor": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/LibRef"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The successor."
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "deprecated"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "withdrawn",
+          "description": "Withdrawn.",
+          "type": "string"
+        }
+      ],
+      "description": "Status of a library item."
+    },
+    "LibRef": {
+      "additionalProperties": true,
+      "description": "A reference between library items (doc 07 §2.1): library, item and a semantic-version requirement.",
+      "properties": {
+        "item": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The item's UUID, stable across versions."
+        },
+        "library": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The library's UUID."
+        },
+        "version_req": {
+          "description": "A semantic-version requirement such as `\"^1\"`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "library",
+        "item",
+        "version_req"
+      ],
+      "type": "object"
+    },
+    "LinePrim": {
+      "additionalProperties": true,
+      "description": "A straight line.",
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/Pt2",
+          "description": "Start."
+        },
+        "stroke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Stroke"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Stroke; absent means not stroked."
+        },
+        "to": {
+          "$ref": "#/$defs/Pt2",
+          "description": "End."
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "type": "object"
+    },
+    "MlText": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minProperties": 1,
+          "type": "object"
+        }
+      ],
+      "description": "Multilingual text: a neutral string, or an object keyed by BCP 47 tags (doc 05 §3.2)."
+    },
+    "Nm": {
+      "description": "A length in nanometres (doc 05 §3.2).",
+      "maximum": 9007199254740991,
+      "minimum": -9007199254740991,
+      "type": "integer"
+    },
+    "Overflow": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "description": "Shrink down to a minimum cap height.",
+          "properties": {
+            "shrink_to_fit": {
+              "properties": {
+                "min_cap_height": {
+                  "$ref": "#/$defs/Nm",
+                  "description": "The minimum printed cap height."
+                }
+              },
+              "required": [
+                "min_cap_height"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "shrink_to_fit"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "ellipsis",
+          "description": "Cut with an ellipsis.",
+          "type": "string"
+        },
+        {
+          "const": "error",
+          "description": "Report an error.",
+          "type": "string"
+        }
+      ],
+      "description": "Overflow policy of a form cell."
+    },
+    "Pen": {
+      "anyOf": [
+        {
+          "const": "p013",
+          "description": "0.13 mm.",
+          "type": "string"
+        },
+        {
+          "const": "p018",
+          "description": "0.18 mm.",
+          "type": "string"
+        },
+        {
+          "const": "p026",
+          "description": "0.26 mm.",
+          "type": "string"
+        },
+        {
+          "const": "p042",
+          "description": "0.42 mm.",
+          "type": "string"
+        },
+        {
+          "const": "p052",
+          "description": "0.52 mm.",
+          "type": "string"
+        },
+        {
+          "const": "p130",
+          "description": "1.30 mm.",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An explicit width.",
+          "properties": {
+            "width": {
+              "$ref": "#/$defs/Nm"
+            }
+          },
+          "required": [
+            "width"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "A house pen or an explicit width (doc 07 §2.3, FR-SYM-003): `\"p026\"` or `{\"width\": nm}`."
+    },
+    "PolygonPrim": {
+      "additionalProperties": true,
+      "description": "A polygon.",
+      "properties": {
+        "closed": {
+          "description": "Whether the last point joins the first.",
+          "type": "boolean"
+        },
+        "fill": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Colour"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fill."
+        },
+        "points": {
+          "description": "Points in order.",
+          "items": {
+            "$ref": "#/$defs/Pt2"
+          },
+          "type": "array"
+        },
+        "stroke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Stroke"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Stroke."
+        }
+      },
+      "required": [
+        "points"
+      ],
+      "type": "object"
+    },
+    "PolylinePrim": {
+      "additionalProperties": true,
+      "description": "An open polyline.",
+      "properties": {
+        "points": {
+          "description": "Points in order.",
+          "items": {
+            "$ref": "#/$defs/Pt2"
+          },
+          "type": "array"
+        },
+        "stroke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Stroke"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Stroke."
+        }
+      },
+      "required": [
+        "points"
+      ],
+      "type": "object"
+    },
+    "Primitive": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "description": "A straight line.",
+          "properties": {
+            "line": {
+              "$ref": "#/$defs/LinePrim"
+            }
+          },
+          "required": [
+            "line"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An open polyline.",
+          "properties": {
+            "polyline": {
+              "$ref": "#/$defs/PolylinePrim"
+            }
+          },
+          "required": [
+            "polyline"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A rectangle with optional rounded corners and drop shadow.",
+          "properties": {
+            "rect": {
+              "$ref": "#/$defs/RectPrim"
+            }
+          },
+          "required": [
+            "rect"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A circle.",
+          "properties": {
+            "circle": {
+              "$ref": "#/$defs/CirclePrim"
+            }
+          },
+          "required": [
+            "circle"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An ellipse in a bounding rectangle.",
+          "properties": {
+            "ellipse": {
+              "$ref": "#/$defs/EllipsePrim"
+            }
+          },
+          "required": [
+            "ellipse"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An elliptic arc in a bounding rectangle.",
+          "properties": {
+            "arc": {
+              "$ref": "#/$defs/ArcPrim"
+            }
+          },
+          "required": [
+            "arc"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A polygon.",
+          "properties": {
+            "polygon": {
+              "$ref": "#/$defs/PolygonPrim"
+            }
+          },
+          "required": [
+            "polygon"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A text.",
+          "properties": {
+            "text": {
+              "$ref": "#/$defs/TextPrim"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An image asset.",
+          "properties": {
+            "image": {
+              "$ref": "#/$defs/ImagePrim"
+            }
+          },
+          "required": [
+            "image"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "A graphic primitive in nanometres, relative to its owner's origin (doc 07 §2.3)."
+    },
+    "Pt2": {
+      "description": "A point [x, y] in nanometres, y downwards (doc 05 §3.2).",
+      "items": false,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "Rect": {
+      "description": "A rectangle [[x0, y0], [x1, y1]] in nanometres, minimum corner first (doc 05 §3.2).",
+      "items": false,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/Pt2"
+        },
+        {
+          "$ref": "#/$defs/Pt2"
+        }
+      ],
+      "type": "array"
+    },
+    "RectPrim": {
+      "additionalProperties": true,
+      "description": "A rectangle.",
+      "properties": {
+        "fill": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Colour"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fill; absent means not filled."
+        },
+        "rect": {
+          "$ref": "#/$defs/Rect",
+          "description": "The rectangle."
+        },
+        "rx": {
+          "$ref": "#/$defs/Nm",
+          "description": "Horizontal corner radius."
+        },
+        "ry": {
+          "$ref": "#/$defs/Nm",
+          "description": "Vertical corner radius."
+        },
+        "shadow": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Offset of the filled drop shadow (FR-SYM-003)."
+        },
+        "stroke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Stroke"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Stroke."
+        }
+      },
+      "required": [
+        "rect"
+      ],
+      "type": "object"
+    },
+    "Rgb": {
+      "pattern": "^#[0-9a-f]{6}$",
+      "type": "string"
+    },
+    "RowTemplate": {
+      "additionalProperties": true,
+      "description": "One row template.",
+      "properties": {
+        "cells": {
+          "description": "Cells.",
+          "items": {
+            "$ref": "#/$defs/FormCell"
+          },
+          "type": "array"
+        },
+        "height": {
+          "$ref": "#/$defs/Nm",
+          "description": "Row height."
+        },
+        "wrap": {
+          "$ref": "#/$defs/WrapPolicy",
+          "description": "Wrapping; default none."
+        }
+      },
+      "required": [
+        "height"
+      ],
+      "type": "object"
+    },
+    "RowTemplates": {
+      "additionalProperties": true,
+      "description": "The row templates of a data area, one per row kind.",
+      "properties": {
+        "data": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RowTemplate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Data rows."
+        },
+        "group_footer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RowTemplate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Group footer rows."
+        },
+        "group_header": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RowTemplate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Group header rows."
+        },
+        "heading": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RowTemplate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Heading rows."
+        }
+      },
+      "type": "object"
+    },
+    "Sha256": {
+      "description": "A SHA-256 digest sha256:<64 lower-case hex> (doc 05 §3.2).",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "SheetSpec": {
+      "additionalProperties": true,
+      "description": "Sheet size.",
+      "properties": {
+        "height": {
+          "$ref": "#/$defs/Nm",
+          "description": "Height."
+        },
+        "width": {
+          "$ref": "#/$defs/Nm",
+          "description": "Width."
+        }
+      },
+      "required": [
+        "width",
+        "height"
+      ],
+      "type": "object"
+    },
+    "SheetTransform": {
+      "additionalProperties": true,
+      "description": "Page-to-sheet transform: an integer scale in parts per 10⁹ and an offset (doc 09 §2.5).",
+      "properties": {
+        "offset": {
+          "$ref": "#/$defs/Pt2",
+          "description": "Offset."
+        },
+        "scale_ppb": {
+          "description": "Scale in parts per 10⁹ (QET frame: 986 282 578).",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "scale_ppb",
+        "offset"
+      ],
+      "type": "object"
+    },
+    "Stroke": {
+      "additionalProperties": true,
+      "description": "How a primitive is stroked.",
+      "properties": {
+        "colour": {
+          "$ref": "#/$defs/Colour",
+          "description": "Colour; default by layer."
+        },
+        "dash": {
+          "$ref": "#/$defs/Dash",
+          "description": "Dash pattern; default solid."
+        },
+        "pen": {
+          "$ref": "#/$defs/Pen",
+          "description": "Pen."
+        }
+      },
+      "required": [
+        "pen"
+      ],
+      "type": "object"
+    },
+    "TableStyle": {
+      "additionalProperties": true,
+      "description": "Lines and fills of a report table.",
+      "properties": {
+        "header_fill": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Colour"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Header fill."
+        },
+        "line": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Stroke"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Grid lines."
+        }
+      },
+      "type": "object"
+    },
+    "TextPrim": {
+      "additionalProperties": true,
+      "description": "A text primitive.",
+      "properties": {
+        "align": {
+          "$ref": "#/$defs/Align",
+          "description": "Alignment of the text at `pos`."
+        },
+        "angle": {
+          "$ref": "#/$defs/Angle2",
+          "description": "Rotation."
+        },
+        "pos": {
+          "$ref": "#/$defs/Pt2",
+          "description": "Anchor point."
+        },
+        "style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Text style key (`text.normal`)."
+        },
+        "text": {
+          "$ref": "#/$defs/MlText",
+          "description": "The text."
+        }
+      },
+      "required": [
+        "pos",
+        "text",
+        "align"
+      ],
+      "type": "object"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "WrapPolicy": {
+      "anyOf": [
+        {
+          "const": "none",
+          "description": "No wrapping (the default).",
+          "type": "string"
+        }
+      ],
+      "description": "Text wrapping in a row."
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "An embedded library copy (doc 07 §2.1, doc 05 §13.2): `$k`, `id` (the copy ID\n`v5(NS_LIBCOPY, library ‖ item)`), `$v`, the copy metadata, then the item's own members.\n\n`sha256` is taken over the canonical compact JSON of the item's own members, without `id` and the copy\nmetadata, so the copy's hash equals the published item's (EW-CORE-014).",
+  "properties": {
+    "$k": {
+      "const": "form",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "cells": {
+      "description": "Static cells: labels and placeholders.",
+      "items": {
+        "$ref": "#/$defs/FormCell"
+      },
+      "type": "array"
+    },
+    "continuation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The next form of report pages (FR-REP-032)."
+    },
+    "data": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DataArea"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The data area of report forms."
+    },
+    "graphics": {
+      "description": "Rules, boxes, drop shadows, logos.",
+      "items": {
+        "$ref": "#/$defs/Primitive"
+      },
+      "type": "array"
+    },
+    "grid": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FrameGrid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Columns, rows and header bands (FR-PAG-014)."
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The copy ID."
+    },
+    "item_id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The item's UUID, stable across versions."
+    },
+    "kind": {
+      "$ref": "#/$defs/FormKind",
+      "description": "Form kind."
+    },
+    "library_id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The library's UUID (the project ID for project-local items)."
+    },
+    "meta": {
+      "$ref": "#/$defs/ItemMeta",
+      "description": "Provenance."
+    },
+    "page_to_sheet": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SheetTransform"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Uniform integer scale and offset, QET-compatible frames only; absent means scale 1."
+    },
+    "sha256": {
+      "$ref": "#/$defs/Sha256",
+      "description": "Hash of the item's own members."
+    },
+    "sheet": {
+      "$ref": "#/$defs/SheetSpec",
+      "description": "The sheet."
+    },
+    "title_block": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The title-block form."
+    },
+    "version": {
+      "description": "The item's semantic version (`MAJOR.MINOR.PATCH`).",
+      "type": "string"
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "library_id",
+    "item_id",
+    "version",
+    "sha256",
+    "kind",
+    "sheet"
+  ],
+  "title": "form",
+  "type": "object"
+}

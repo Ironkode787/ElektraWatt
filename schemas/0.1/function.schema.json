@@ -1,0 +1,277 @@
+{
+  "$defs": {
+    "CpOverride": {
+      "additionalProperties": true,
+      "description": "An override of one instantiated connection point (FR-DEV-008).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Alias (\"1 / L1\")."
+        },
+        "description": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MlText"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Description."
+        },
+        "designation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Printed designation."
+        },
+        "idx": {
+          "description": "The CP index.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "unused": {
+          "description": "Unused by design.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "idx"
+      ],
+      "type": "object"
+    },
+    "FnRole": {
+      "anyOf": [
+        {
+          "const": "main",
+          "description": "The main function (the default).",
+          "type": "string"
+        },
+        {
+          "const": "aux",
+          "description": "An auxiliary function.",
+          "type": "string"
+        }
+      ],
+      "description": "Main or auxiliary function."
+    },
+    "FunctionKind": {
+      "anyOf": [
+        {
+          "const": "normal",
+          "description": "An ordinary function (the default).",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An interruption point.",
+          "properties": {
+            "ip": {
+              "$ref": "#/$defs/IpSpec"
+            }
+          },
+          "required": [
+            "ip"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "black_box",
+          "description": "A black box whose CPs come from the part's pattern.",
+          "type": "string"
+        }
+      ],
+      "description": "The kind of a function."
+    },
+    "Ident": {
+      "description": "An NFC identifier without surrounding white space (doc 05 §3.2).",
+      "minLength": 1,
+      "pattern": "^\\S(.*\\S)?$",
+      "type": "string"
+    },
+    "IpDirection": {
+      "anyOf": [
+        {
+          "const": "source",
+          "description": "Source.",
+          "type": "string"
+        },
+        {
+          "const": "target",
+          "description": "Target.",
+          "type": "string"
+        },
+        {
+          "const": "undirected",
+          "description": "Undirected.",
+          "type": "string"
+        }
+      ],
+      "description": "Signal direction of an interruption point."
+    },
+    "IpSpec": {
+      "additionalProperties": true,
+      "description": "An interruption point (doc 03 §10).",
+      "properties": {
+        "direction": {
+          "$ref": "#/$defs/IpDirection",
+          "description": "Signal direction, independent of the arrow glyph (FR-XRF-009)."
+        },
+        "external": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "An external connection point's target (FR-XRF-012)."
+        },
+        "name": {
+          "$ref": "#/$defs/Ident",
+          "description": "The pairing name (\"L-1\")."
+        },
+        "sort": {
+          "description": "Chain order.",
+          "format": "int32",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "star_source": {
+          "description": "The star source of its name in star mode.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "direction"
+      ],
+      "type": "object"
+    },
+    "MlText": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minProperties": 1,
+          "type": "object"
+        }
+      ],
+      "description": "Multilingual text: a neutral string, or an object keyed by BCP 47 tags (doc 05 §3.2)."
+    },
+    "SourceRef": {
+      "additionalProperties": true,
+      "description": "The import provenance of a record (doc 14 §2.3, ADR-0004 amendment 1): the lineage and the source key\nfrom which the record's ID `v5(lineage namespace, key)` was derived.",
+      "properties": {
+        "key": {
+          "description": "The source key, byte for byte (NFC), such as `qet:el:<uuid>`.",
+          "type": "string"
+        },
+        "lineage": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The import lineage."
+        }
+      },
+      "required": [
+        "lineage",
+        "key"
+      ],
+      "type": "object"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "One logical element (doc 03 §7, rank 32): a pole set, a contact, a coil, a PSU, an interruption point.\nIts connection points are instantiated from the definition or the part's pattern; only overrides are\nstored. `device` is `None` if and only if the kind is `Ip` (ADR-0006 amendment 1).\n\nNot in v0: `bus_port` (bus, doc 03 §14) and `CpOverride.closure` (fluid ports, doc 03 §15).",
+  "properties": {
+    "$k": {
+      "const": "function",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "cp_overrides": {
+      "description": "CP overrides, keyed by `idx` (FR-DEV-008).",
+      "items": {
+        "$ref": "#/$defs/CpOverride"
+      },
+      "type": "array"
+    },
+    "def": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The function definition copy."
+    },
+    "device": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The device; `None` only for interruption points."
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The record ID: UUIDv7, or `v5(device, template_index)` from a part's function template."
+    },
+    "kind": {
+      "$ref": "#/$defs/FunctionKind",
+      "description": "Normal, interruption point or black box; default normal."
+    },
+    "role": {
+      "$ref": "#/$defs/FnRole",
+      "description": "Main or auxiliary; default main (exactly one main per device)."
+    },
+    "source_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SourceRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Import provenance."
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "def"
+  ],
+  "title": "function",
+  "type": "object"
+}

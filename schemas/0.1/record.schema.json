@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "One record of an ElektraWatt JSON Lines file, chosen by its \"$k\" member (doc 05 §3.1).",
+  "oneOf": [
+    {
+      "$ref": "project.schema.json"
+    },
+    {
+      "$ref": "import_lineage.schema.json"
+    },
+    {
+      "$ref": "structure_node.schema.json"
+    },
+    {
+      "$ref": "section.schema.json"
+    },
+    {
+      "$ref": "external_ref.schema.json"
+    },
+    {
+      "$ref": "page.schema.json"
+    },
+    {
+      "$ref": "device.schema.json"
+    },
+    {
+      "$ref": "function.schema.json"
+    },
+    {
+      "$ref": "representation.schema.json"
+    },
+    {
+      "$ref": "connection.schema.json"
+    },
+    {
+      "$ref": "junction.schema.json"
+    },
+    {
+      "$ref": "conductor.schema.json"
+    },
+    {
+      "$ref": "potential_def.schema.json"
+    },
+    {
+      "$ref": "bond.schema.json"
+    },
+    {
+      "$ref": "report_block.schema.json"
+    }
+  ],
+  "required": [
+    "$k"
+  ],
+  "title": "record",
+  "type": "object"
+}

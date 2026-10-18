@@ -1,0 +1,641 @@
+{
+  "$defs": {
+    "ClampKey": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "description": "A wire clamp a, b, c ….",
+          "properties": {
+            "clamp": {
+              "maxLength": 1,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "clamp"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A bridge shaft.",
+          "properties": {
+            "shaft": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "shaft"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "rail_foot",
+          "description": "The rail foot of a PE terminal.",
+          "type": "string"
+        }
+      ],
+      "description": "The clamp of a terminal CP (doc 08 §2.3): `{\"clamp\": \"a\"}`, `{\"shaft\": 1}` or `\"rail_foot\"`."
+    },
+    "Confidence": {
+      "anyOf": [
+        {
+          "const": "verified",
+          "description": "Checked against a source.",
+          "type": "string"
+        },
+        {
+          "const": "unverified",
+          "description": "Not yet checked.",
+          "type": "string"
+        },
+        {
+          "const": "test",
+          "description": "Test data.",
+          "type": "string"
+        }
+      ],
+      "description": "Confidence of one section of library data."
+    },
+    "ContactKind": {
+      "anyOf": [
+        {
+          "const": "no",
+          "description": "Normally open.",
+          "type": "string"
+        },
+        {
+          "const": "nc",
+          "description": "Normally closed.",
+          "type": "string"
+        },
+        {
+          "const": "co",
+          "description": "Change-over.",
+          "type": "string"
+        },
+        {
+          "const": "coil",
+          "description": "Coil.",
+          "type": "string"
+        },
+        {
+          "const": "pole",
+          "description": "Pole.",
+          "type": "string"
+        },
+        {
+          "const": "terminal",
+          "description": "Terminal.",
+          "type": "string"
+        },
+        {
+          "const": "black_box",
+          "description": "Black box.",
+          "type": "string"
+        },
+        {
+          "const": "plc_io",
+          "description": "PLC input or output.",
+          "type": "string"
+        },
+        {
+          "const": "bus_port",
+          "description": "Bus port.",
+          "type": "string"
+        },
+        {
+          "const": "valve",
+          "description": "Valve.",
+          "type": "string"
+        }
+      ],
+      "description": "Contact kinds (doc 03 §7)."
+    },
+    "CpDef": {
+      "additionalProperties": true,
+      "description": "One connection point of a function definition (doc 03 §7).",
+      "properties": {
+        "alias": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Alias (\"L1\")."
+        },
+        "clamp": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ClampKey"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Terminal clamp."
+        },
+        "designation": {
+          "$ref": "#/$defs/Ident",
+          "description": "Printed designation; duplicates allowed (REF-029)."
+        },
+        "discipline": {
+          "$ref": "#/$defs/Discipline",
+          "description": "Discipline; default electrical."
+        },
+        "idx": {
+          "description": "Internal, unique index.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "level": {
+          "description": "Terminal level.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "optional": {
+          "description": "May stay free by design (EW-POT-009 skips it).",
+          "type": "boolean"
+        },
+        "physical": {
+          "description": "A drawn, wireable point; default true (false for an internal VMPA coil).",
+          "type": "boolean"
+        },
+        "potential_role": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PotentialType"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Potential role (PSU \"+\" is L+)."
+        },
+        "side": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Side"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Terminal side."
+        },
+        "source_output": {
+          "description": "Output of a source function; roots potential flow.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "idx",
+        "designation"
+      ],
+      "type": "object"
+    },
+    "Date": {
+      "description": "An authored date YYYY-MM-DD (doc 05 §3.2).",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "type": "string"
+    },
+    "Discipline": {
+      "anyOf": [
+        {
+          "const": "electrical",
+          "description": "Electrical (the default).",
+          "type": "string"
+        },
+        {
+          "const": "pneumatic",
+          "description": "Pneumatic.",
+          "type": "string"
+        },
+        {
+          "const": "vacuum",
+          "description": "Vacuum.",
+          "type": "string"
+        },
+        {
+          "const": "hydraulic",
+          "description": "Hydraulic.",
+          "type": "string"
+        },
+        {
+          "const": "bus",
+          "description": "Bus.",
+          "type": "string"
+        }
+      ],
+      "description": "Discipline of a connection point."
+    },
+    "FnFlags": {
+      "additionalProperties": true,
+      "description": "Flags of a function definition.",
+      "properties": {
+        "n_isolation": {
+          "description": "A neutral isolating terminal.",
+          "type": "boolean"
+        },
+        "switches_n_with_l": {
+          "description": "A 2-pole switch that disconnects N with L (EW-POT-013).",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "Ident": {
+      "description": "An NFC identifier without surrounding white space (doc 05 §3.2).",
+      "minLength": 1,
+      "pattern": "^\\S(.*\\S)?$",
+      "type": "string"
+    },
+    "InternalKind": {
+      "anyOf": [
+        {
+          "const": "short",
+          "description": "A short: the CPs are one signal.",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A pass-through pair: propagates the potential type; `opens` sets \"switched\".",
+          "properties": {
+            "pass_through": {
+              "properties": {
+                "opens": {
+                  "description": "The contact can open.",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "pass_through"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "Kind of an internal link."
+    },
+    "InternalLinkDef": {
+      "additionalProperties": true,
+      "description": "One internal link between two CPs of a definition.",
+      "properties": {
+        "a": {
+          "description": "First CP index.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "b": {
+          "description": "Second CP index.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "kind": {
+          "$ref": "#/$defs/InternalKind",
+          "description": "Link kind."
+        }
+      },
+      "required": [
+        "a",
+        "b",
+        "kind"
+      ],
+      "type": "object"
+    },
+    "ItemMeta": {
+      "additionalProperties": true,
+      "description": "Provenance of a library item (doc 07 §2.1, §2.5). The item's semantic version is the copy metadata\n`version` of the [`LibCopy`] and is stored once, there.",
+      "properties": {
+        "as_of": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Date"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Date of the data."
+        },
+        "confidence": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Confidence"
+          },
+          "description": "Confidence per section, keyed by section name.",
+          "type": "object"
+        },
+        "foreign_terms": {
+          "description": "Imported content under foreign terms.",
+          "type": "boolean"
+        },
+        "key": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Human key (`pxc.2904602`, `ew.iec.mcb-1pn`)."
+        },
+        "licence": {
+          "description": "SPDX licence expression of the item.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sources": {
+          "description": "Where the data came from: datasheet references, file hashes, manual entry.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "status": {
+          "$ref": "#/$defs/ItemStatus",
+          "description": "Item status; default released."
+        }
+      },
+      "type": "object"
+    },
+    "ItemStatus": {
+      "anyOf": [
+        {
+          "const": "draft",
+          "description": "Draft.",
+          "type": "string"
+        },
+        {
+          "const": "released",
+          "description": "Released (the default).",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Deprecated, with an optional successor.",
+          "properties": {
+            "deprecated": {
+              "properties": {
+                "successor": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/LibRef"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The successor."
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "deprecated"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "withdrawn",
+          "description": "Withdrawn.",
+          "type": "string"
+        }
+      ],
+      "description": "Status of a library item."
+    },
+    "LibRef": {
+      "additionalProperties": true,
+      "description": "A reference between library items (doc 07 §2.1): library, item and a semantic-version requirement.",
+      "properties": {
+        "item": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The item's UUID, stable across versions."
+        },
+        "library": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The library's UUID."
+        },
+        "version_req": {
+          "description": "A semantic-version requirement such as `\"^1\"`.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "library",
+        "item",
+        "version_req"
+      ],
+      "type": "object"
+    },
+    "PotentialType": {
+      "anyOf": [
+        {
+          "const": "l1",
+          "description": "Phase L1.",
+          "type": "string"
+        },
+        {
+          "const": "l2",
+          "description": "Phase L2.",
+          "type": "string"
+        },
+        {
+          "const": "l3",
+          "description": "Phase L3.",
+          "type": "string"
+        },
+        {
+          "const": "l",
+          "description": "Single-phase line.",
+          "type": "string"
+        },
+        {
+          "const": "n",
+          "description": "Neutral.",
+          "type": "string"
+        },
+        {
+          "const": "pe",
+          "description": "Protective earth.",
+          "type": "string"
+        },
+        {
+          "const": "pen",
+          "description": "Combined PE and N.",
+          "type": "string"
+        },
+        {
+          "const": "fe",
+          "description": "Functional earth.",
+          "type": "string"
+        },
+        {
+          "const": "l_plus",
+          "description": "DC positive.",
+          "type": "string"
+        },
+        {
+          "const": "l_minus",
+          "description": "DC negative.",
+          "type": "string"
+        },
+        {
+          "const": "m",
+          "description": "DC mid or 0 V.",
+          "type": "string"
+        },
+        {
+          "const": "signal",
+          "description": "Signal.",
+          "type": "string"
+        },
+        {
+          "const": "undefined",
+          "description": "Undefined.",
+          "type": "string"
+        }
+      ],
+      "description": "Potential types (doc 03 §9.1, FR-CON-010)."
+    },
+    "Sha256": {
+      "description": "A SHA-256 digest sha256:<64 lower-case hex> (doc 05 §3.2).",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "Side": {
+      "anyOf": [
+        {
+          "const": "side1",
+          "description": "Side 1.",
+          "type": "string"
+        },
+        {
+          "const": "side2",
+          "description": "Side 2.",
+          "type": "string"
+        }
+      ],
+      "description": "A terminal side (doc 08 §2.1: side 1 is internal and side 2 external unless `Strip.field_side` says\notherwise)."
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "An embedded library copy (doc 07 §2.1, doc 05 §13.2): `$k`, `id` (the copy ID\n`v5(NS_LIBCOPY, library ‖ item)`), `$v`, the copy metadata, then the item's own members.\n\n`sha256` is taken over the canonical compact JSON of the item's own members, without `id` and the copy\nmetadata, so the copy's hash equals the published item's (EW-CORE-014).",
+  "properties": {
+    "$k": {
+      "const": "fndef",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "category": {
+      "description": "Three-level category.",
+      "maxItems": 3,
+      "minItems": 3,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "$ref": "#/$defs/Ident"
+        }
+      ],
+      "type": "array"
+    },
+    "contact_kind": {
+      "$ref": "#/$defs/ContactKind",
+      "description": "Contact kind."
+    },
+    "cps": {
+      "description": "Connection points, keyed by `idx`.",
+      "items": {
+        "$ref": "#/$defs/CpDef"
+      },
+      "type": "array"
+    },
+    "flags": {
+      "$ref": "#/$defs/FnFlags",
+      "description": "Flags."
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The copy ID."
+    },
+    "internal": {
+      "description": "Internal connectivity.",
+      "items": {
+        "$ref": "#/$defs/InternalLinkDef"
+      },
+      "type": "array"
+    },
+    "item_id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The item's UUID, stable across versions."
+    },
+    "library_id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The library's UUID (the project ID for project-local items)."
+    },
+    "meta": {
+      "$ref": "#/$defs/ItemMeta",
+      "description": "Provenance."
+    },
+    "sha256": {
+      "$ref": "#/$defs/Sha256",
+      "description": "Hash of the item's own members."
+    },
+    "version": {
+      "description": "The item's semantic version (`MAJOR.MINOR.PATCH`).",
+      "type": "string"
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "library_id",
+    "item_id",
+    "version",
+    "sha256",
+    "category",
+    "contact_kind"
+  ],
+  "title": "fndef",
+  "type": "object"
+}

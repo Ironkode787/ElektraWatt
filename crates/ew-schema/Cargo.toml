@@ -19,3 +19,13 @@ ew-units = { path = "../ew-units" }
 ew-ids = { path = "../ew-ids" }
 ew-mltext = { path = "../ew-mltext" }
 ew-rds = { path = "../ew-rds" }
+# The strict serde encodings of doc 05 §3.1 and §3.2.
+serde.workspace = true
+# `serde_json::Value` holds the `extra` members and the `Unknown` variants of persisted enums (ADR-0011
+# amendment 1). Never with `preserve_order`: unknown objects re-emit in byte-wise key order.
+serde_json = "1.0.154"
+# JSON Schemas of every kind and library document (ADR-0011 decision 4, doc 05 §10.4); MSRV 1.74, MIT.
+schemars = "1.2.3"
+
+[dev-dependencies]
+proptest = { version = "1.12.0", default-features = false, features = ["std"] }

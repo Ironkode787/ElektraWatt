@@ -1,0 +1,175 @@
+{
+  "$defs": {
+    "JunctionStyle": {
+      "anyOf": [
+        {
+          "const": "dot",
+          "description": "A dot.",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A bevelled corner.",
+          "properties": {
+            "bevel": {
+              "properties": {
+                "orient": {
+                  "$ref": "#/$defs/Orient2",
+                  "description": "Orientation of the bevel."
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "bevel"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "How a junction is drawn."
+    },
+    "JunctionWiring": {
+      "anyOf": [
+        {
+          "const": "star",
+          "description": "The first CP is wired to every other CP.",
+          "type": "string"
+        },
+        {
+          "const": "chain",
+          "description": "Consecutive CPs are wired.",
+          "type": "string"
+        }
+      ],
+      "description": "The physical wires behind a junction (doc 03 §9.2)."
+    },
+    "Orient2": {
+      "description": "Orientation: rotation clockwise on the sheet, optionally mirrored (doc 05 §3.2).",
+      "enum": [
+        "r0",
+        "r90",
+        "r180",
+        "r270",
+        "m0",
+        "m90",
+        "m180",
+        "m270"
+      ],
+      "type": "string"
+    },
+    "Pt2": {
+      "description": "A point [x, y] in nanometres, y downwards (doc 05 §3.2).",
+      "items": false,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "SourceRef": {
+      "additionalProperties": true,
+      "description": "The import provenance of a record (doc 14 §2.3, ADR-0004 amendment 1): the lineage and the source key\nfrom which the record's ID `v5(lineage namespace, key)` was derived.",
+      "properties": {
+        "key": {
+          "description": "The source key, byte for byte (NFC), such as `qet:el:<uuid>`.",
+          "type": "string"
+        },
+        "lineage": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The import lineage."
+        }
+      },
+      "required": [
+        "lineage",
+        "key"
+      ],
+      "type": "object"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "An explicit T-node (ADR-0007 amendment 2, doc 03 §9, rank 35). The sequence is the wiring order; the\nstyle is a display choice.\n\nNot in v0: `fitting` (fluid tees, doc 11 §5.1).",
+  "properties": {
+    "$k": {
+      "const": "junction",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "at": {
+      "$ref": "#/$defs/Pt2",
+      "description": "Position."
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The record ID."
+    },
+    "page": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The page."
+    },
+    "sequence": {
+      "description": "The connections in wiring order; arm 1 is the feed arm.",
+      "items": {
+        "$ref": "#/$defs/Uuid"
+      },
+      "type": "array"
+    },
+    "source_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SourceRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Import provenance."
+    },
+    "style": {
+      "$ref": "#/$defs/JunctionStyle",
+      "description": "Dot or bevel."
+    },
+    "wiring": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/JunctionWiring"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Star or chain; absent means the style's default (Dot: star, Bevel: chain)."
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "page",
+    "at",
+    "style",
+    "sequence"
+  ],
+  "title": "junction",
+  "type": "object"
+}

@@ -1,0 +1,161 @@
+{
+  "$defs": {
+    "Ident": {
+      "description": "An NFC identifier without surrounding white space (doc 05 §3.2).",
+      "minLength": 1,
+      "pattern": "^\\S(.*\\S)?$",
+      "type": "string"
+    },
+    "LineageAnchor": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "description": "QET 0.200+ project UUID.",
+          "properties": {
+            "qet_project_uuid": {
+              "$ref": "#/$defs/Uuid"
+            }
+          },
+          "required": [
+            "qet_project_uuid"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "SHA-256 of the lineage's first imported file.",
+          "properties": {
+            "first_import_sha256": {
+              "$ref": "#/$defs/Sha256"
+            }
+          },
+          "required": [
+            "first_import_sha256"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "\"Import as copy\" number `n` of another lineage.",
+          "properties": {
+            "copy": {
+              "properties": {
+                "n": {
+                  "description": "The copy number.",
+                  "format": "uint32",
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "of": {
+                  "$ref": "#/$defs/Uuid",
+                  "description": "The original lineage."
+                }
+              },
+              "required": [
+                "of",
+                "n"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "copy"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A fixed label, such as `\"golden\"` for the golden CSV bootstrap.",
+          "properties": {
+            "fixed": {
+              "$ref": "#/$defs/Ident"
+            }
+          },
+          "required": [
+            "fixed"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "The anchor of an [`ImportLineage`] (doc 14 §2.3)."
+    },
+    "Sha256": {
+      "description": "A SHA-256 digest sha256:<64 lower-case hex> (doc 05 §3.2).",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "The identity anchor of one imported source (doc 03 §5, doc 14 §2.3, rank 15).",
+  "properties": {
+    "$k": {
+      "const": "import_lineage",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "anchor": {
+      "$ref": "#/$defs/LineageAnchor",
+      "description": "The identity anchor."
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The record ID."
+    },
+    "importer": {
+      "$ref": "#/$defs/Ident",
+      "description": "The importer, lower case (`\"qet\"`)."
+    },
+    "last_run": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The last import run."
+    },
+    "last_source_sha256": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Sha256"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "SHA-256 of the last imported source file."
+    },
+    "namespace": {
+      "$ref": "#/$defs/Uuid",
+      "description": "`v5(NS_IMPORT, importer ␟ anchor kind ␟ anchor value)`, computed once at creation (doc 05 §3.2a)."
+    },
+    "source_name": {
+      "description": "The source file name without a path.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "importer",
+    "source_name",
+    "anchor",
+    "namespace"
+  ],
+  "title": "import_lineage",
+  "type": "object"
+}

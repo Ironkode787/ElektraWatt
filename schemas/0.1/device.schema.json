@@ -1,0 +1,918 @@
+{
+  "$defs": {
+    "AccessoryKind": {
+      "anyOf": [
+        {
+          "const": "end_plate",
+          "description": "End plate.",
+          "type": "string"
+        },
+        {
+          "const": "end_clamp",
+          "description": "End clamp (end bracket).",
+          "type": "string"
+        },
+        {
+          "const": "partition",
+          "description": "Partition plate.",
+          "type": "string"
+        },
+        {
+          "const": "marker",
+          "description": "Marker carrier.",
+          "type": "string"
+        },
+        {
+          "const": "cover",
+          "description": "Cover.",
+          "type": "string"
+        }
+      ],
+      "description": "Kind of a strip accessory."
+    },
+    "Cable": {
+      "additionalProperties": true,
+      "description": "The `Cable` aspect (doc 03 §12).",
+      "properties": {
+        "core_id_mode": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CoreIdMode"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How cores are identified (FR-CBL-006)."
+        },
+        "length": {
+          "$ref": "#/$defs/LengthSource",
+          "description": "Where the length comes from; default missing (EW-CORE-033)."
+        },
+        "pre_assembled": {
+          "description": "Pre-assembled cable (FR-CBL-013).",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "CoreIdMode": {
+      "anyOf": [
+        {
+          "const": "number",
+          "description": "By number.",
+          "type": "string"
+        },
+        {
+          "const": "colour",
+          "description": "By colour.",
+          "type": "string"
+        },
+        {
+          "const": "both",
+          "description": "By number and colour.",
+          "type": "string"
+        }
+      ],
+      "description": "How the cores of a cable are identified."
+    },
+    "Dec3": {
+      "description": "A decimal with at most three fraction digits, no trailing zeros, no unit (doc 05 §3.2).",
+      "pattern": "^-?(0|[1-9][0-9]*)(\\.[0-9]{0,2}[1-9])?$",
+      "type": "string"
+    },
+    "DeviceKind": {
+      "anyOf": [
+        {
+          "const": "psu",
+          "description": "Power supply.",
+          "type": "string"
+        },
+        {
+          "const": "terminal",
+          "description": "Terminal.",
+          "type": "string"
+        },
+        {
+          "const": "blanking_plate",
+          "description": "Blank manifold or valve-terminal position (doc 11 §2.7).",
+          "type": "string"
+        }
+      ],
+      "description": "A device's UI and numbering hint. Doc 03 enumerates only these kinds so far; others are kept as\n[`DeviceKind::Unknown`] until the list is decided."
+    },
+    "DeviceState": {
+      "anyOf": [
+        {
+          "const": "used",
+          "description": "In use (the default).",
+          "type": "string"
+        },
+        {
+          "const": "spare",
+          "description": "Spare.",
+          "type": "string"
+        },
+        {
+          "const": "reserved",
+          "description": "Reserved.",
+          "type": "string"
+        },
+        {
+          "const": "not_fitted",
+          "description": "Not fitted.",
+          "type": "string"
+        }
+      ],
+      "description": "Device lifecycle state (FR-DEV-026)."
+    },
+    "FrozenTag": {
+      "additionalProperties": true,
+      "description": "A frozen product designation (doc 03 §8.5): \"S51\" printed without the product sign.",
+      "properties": {
+        "sign": {
+          "$ref": "#/$defs/TagSign",
+          "description": "Whether pages print the \"-\" sign; full designations always carry it."
+        },
+        "text": {
+          "$ref": "#/$defs/Ident",
+          "description": "The product designation text."
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "type": "object"
+    },
+    "Ident": {
+      "description": "An NFC identifier without surrounding white space (doc 05 §3.2).",
+      "minLength": 1,
+      "pattern": "^\\S(.*\\S)?$",
+      "type": "string"
+    },
+    "LabelMode": {
+      "anyOf": [
+        {
+          "const": "designation",
+          "description": "The terminal designation (the default).",
+          "type": "string"
+        },
+        {
+          "const": "function_text",
+          "description": "The terminal's function text (\"1+\", FR-TRM-021).",
+          "type": "string"
+        }
+      ],
+      "description": "What the terminals of a strip print."
+    },
+    "LengthSource": {
+      "anyOf": [
+        {
+          "const": "missing",
+          "description": "No length yet (the default); blocks release.",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Entered by hand.",
+          "properties": {
+            "manual": {
+              "$ref": "#/$defs/Nm"
+            }
+          },
+          "required": [
+            "manual"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "from_part",
+          "description": "From the cable part (pre-assembled length).",
+          "type": "string"
+        }
+      ],
+      "description": "The source of a cable length (FR-CBL-009). The committed sources `Estimated` and `Routed` (1.0) are\nadditive variants of a later format."
+    },
+    "LevelRole": {
+      "anyOf": [
+        {
+          "const": "main",
+          "description": "Main level (the default).",
+          "type": "string"
+        },
+        {
+          "const": "aux",
+          "description": "Auxiliary level.",
+          "type": "string"
+        }
+      ],
+      "description": "The role of a terminal level."
+    },
+    "LevelSpec": {
+      "additionalProperties": true,
+      "description": "One level of a multi-level terminal.",
+      "properties": {
+        "level": {
+          "description": "Level number.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "role": {
+          "$ref": "#/$defs/LevelRole",
+          "description": "Role; default main."
+        }
+      },
+      "required": [
+        "level"
+      ],
+      "type": "object"
+    },
+    "MlText": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minProperties": 1,
+          "type": "object"
+        }
+      ],
+      "description": "Multilingual text: a neutral string, or an object keyed by BCP 47 tags (doc 05 §3.2)."
+    },
+    "Nm": {
+      "description": "A length in nanometres (doc 05 §3.2).",
+      "maximum": 9007199254740991,
+      "minimum": -9007199254740991,
+      "type": "integer"
+    },
+    "PartRef": {
+      "additionalProperties": true,
+      "description": "A part on a device (doc 03 §7): the embedded copy and an optional part variant (FR-PRT-003).",
+      "properties": {
+        "copy": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The copy ID of the embedded part, `v5(NS_LIBCOPY, library ‖ item)`."
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A variant key of the part."
+        }
+      },
+      "required": [
+        "copy"
+      ],
+      "type": "object"
+    },
+    "PartUse": {
+      "additionalProperties": true,
+      "description": "A part use on a device (ADR-0006): the part and its quantity in the part's order unit.",
+      "properties": {
+        "part": {
+          "$ref": "#/$defs/PartRef",
+          "description": "The part."
+        },
+        "qty": {
+          "$ref": "#/$defs/Dec3",
+          "description": "The quantity in the part's order unit (pieces, metres, sets)."
+        }
+      },
+      "required": [
+        "part",
+        "qty"
+      ],
+      "type": "object"
+    },
+    "Quantity": {
+      "additionalProperties": true,
+      "description": "A decimal value with its unit (doc 03 §3.2): `{\"value\": Dec3, \"unit\": Unit}`. Rendering (\"0.75 mm²\",\ndecimal comma in nl and de) is a query, never stored text (D-18).\n\n```\nuse ew_schema::{Quantity, Unit};\n\nlet q: Quantity = serde_json::from_str(r#\"{\"value\":\"20\",\"unit\":\"A\"}\"#).unwrap();\nassert_eq!(q.unit, Unit::A);\nassert_eq!(serde_json::to_string(&q).unwrap(), r#\"{\"value\":\"20\",\"unit\":\"A\"}\"#);\n```",
+      "properties": {
+        "unit": {
+          "$ref": "#/$defs/Unit",
+          "description": "Its unit."
+        },
+        "value": {
+          "$ref": "#/$defs/Dec3",
+          "description": "The number."
+        }
+      },
+      "required": [
+        "value",
+        "unit"
+      ],
+      "type": "object"
+    },
+    "Side": {
+      "anyOf": [
+        {
+          "const": "side1",
+          "description": "Side 1.",
+          "type": "string"
+        },
+        {
+          "const": "side2",
+          "description": "Side 2.",
+          "type": "string"
+        }
+      ],
+      "description": "A terminal side (doc 08 §2.1: side 1 is internal and side 2 external unless `Strip.field_side` says\notherwise)."
+    },
+    "Slot": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "const": "none"
+        }
+      ],
+      "description": "A structure slot: a structure node ID or \"none\"; absent means inherit (doc 05 §3.2)."
+    },
+    "SourceRef": {
+      "additionalProperties": true,
+      "description": "The import provenance of a record (doc 14 §2.3, ADR-0004 amendment 1): the lineage and the source key\nfrom which the record's ID `v5(lineage namespace, key)` was derived.",
+      "properties": {
+        "key": {
+          "description": "The source key, byte for byte (NFC), such as `qet:el:<uuid>`.",
+          "type": "string"
+        },
+        "lineage": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The import lineage."
+        }
+      },
+      "required": [
+        "lineage",
+        "key"
+      ],
+      "type": "object"
+    },
+    "Strip": {
+      "additionalProperties": true,
+      "description": "The `Strip` aspect (doc 03 §11).",
+      "properties": {
+        "accessories": {
+          "description": "Accessories in mounting order (FR-TRM-016).",
+          "items": {
+            "$ref": "#/$defs/StripAccessory"
+          },
+          "type": "array"
+        },
+        "designation_scheme": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Terminal designation scheme (FR-NUM-024)."
+        },
+        "field_side": {
+          "$ref": "#/$defs/Side",
+          "description": "The terminal side facing the field; default side 2 (FR-TRM-012)."
+        },
+        "groups": {
+          "description": "Range captions (\"Pneumatics\", \"Spare\"; FR-TRM-010).",
+          "items": {
+            "$ref": "#/$defs/TerminalGroup"
+          },
+          "type": "array"
+        },
+        "label_mode": {
+          "$ref": "#/$defs/LabelMode",
+          "description": "What terminals print; default the designation."
+        },
+        "tag_print": {
+          "$ref": "#/$defs/TagPrint",
+          "description": "Where the strip tag prints; default once per segment."
+        }
+      },
+      "type": "object"
+    },
+    "StripAccessory": {
+      "additionalProperties": true,
+      "description": "One strip accessory placed after terminal `after_seq`.",
+      "properties": {
+        "after_seq": {
+          "description": "The terminal sequence number it follows.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "kind": {
+          "$ref": "#/$defs/AccessoryKind",
+          "description": "The accessory kind."
+        },
+        "part": {
+          "$ref": "#/$defs/PartRef",
+          "description": "The part."
+        }
+      },
+      "required": [
+        "after_seq",
+        "kind",
+        "part"
+      ],
+      "type": "object"
+    },
+    "StructureAssignment": {
+      "additionalProperties": true,
+      "description": "Which structure node a page, device or structure box belongs to, one slot per aspect (doc 03 §5).\nMembers follow the canonical aspect order of `ew_rds::Aspect`; the product aspect is the device tree and\nhas no slot.\n\n```\nuse ew_schema::StructureAssignment;\n\nlet s: StructureAssignment = serde_json::from_str(\n    r#\"{\"function\":\"7d2c95e0-1f4a-5b38-a6e7-0c93b5d1f284\",\"location\":\"none\"}\"#,\n).unwrap();\nassert!(s.installation_site.is_none()); // absent: inherit\n```",
+      "properties": {
+        "document_kind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`&` (pages only)."
+        },
+        "function": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`=`"
+        },
+        "functional_assignment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`==`"
+        },
+        "installation_site": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`++`"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`+`"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`%`"
+        },
+        "user_defined": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`#`"
+        }
+      },
+      "type": "object"
+    },
+    "TagPrint": {
+      "anyOf": [
+        {
+          "const": "per_segment",
+          "description": "Once per strip segment (the default).",
+          "type": "string"
+        },
+        {
+          "const": "per_page",
+          "description": "Once per page.",
+          "type": "string"
+        }
+      ],
+      "description": "Where a strip prints its tag (FR-TRM-011)."
+    },
+    "TagScheme": {
+      "anyOf": [
+        {
+          "const": "default",
+          "description": "The project's active scheme (the default).",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A named scheme.",
+          "properties": {
+            "named": {
+              "$ref": "#/$defs/Ident"
+            }
+          },
+          "required": [
+            "named"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "child",
+          "description": "Parent designation, separator, letter and counter (FR-NUM-013).",
+          "type": "string"
+        }
+      ],
+      "description": "The numbering scheme of a tag."
+    },
+    "TagSign": {
+      "anyOf": [
+        {
+          "const": "shown",
+          "description": "\"-S51\" (the default).",
+          "type": "string"
+        },
+        {
+          "const": "hidden",
+          "description": "\"S51\".",
+          "type": "string"
+        }
+      ],
+      "description": "Whether a frozen tag prints its product sign on pages."
+    },
+    "TagSpec": {
+      "additionalProperties": true,
+      "description": "The stored tag data (doc 03 §8.2).",
+      "properties": {
+        "counter": {
+          "description": "The counter, assigned once at commit by online numbering.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "frozen": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FrozenTag"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A deliberate override of the derived product designation."
+        },
+        "letter": {
+          "$ref": "#/$defs/Ident",
+          "description": "The letter code (\"F\", \"X\")."
+        },
+        "scheme": {
+          "$ref": "#/$defs/TagScheme",
+          "description": "The numbering scheme; default the project's."
+        }
+      },
+      "required": [
+        "letter"
+      ],
+      "type": "object"
+    },
+    "TechVal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Quantity",
+          "description": "A quantity such as 20 A."
+        },
+        {
+          "$ref": "#/$defs/Ident",
+          "description": "An identifier such as the tripping curve `C`."
+        }
+      ],
+      "description": "The value of a [`TechValue`]."
+    },
+    "TechValue": {
+      "additionalProperties": true,
+      "description": "One technical value (doc 05 §3.2 `TechValue`): `{\"key\", \"value\"}` whose value is a [`Quantity`] or an\n[`Ident`], told apart by JSON type.",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/Ident",
+          "description": "The property key, such as `i_out` or `curve`."
+        },
+        "value": {
+          "$ref": "#/$defs/TechVal",
+          "description": "The value."
+        }
+      },
+      "required": [
+        "key",
+        "value"
+      ],
+      "type": "object"
+    },
+    "Terminal": {
+      "additionalProperties": true,
+      "description": "The `Terminal` aspect (doc 03 §11): a terminal is a device.",
+      "properties": {
+        "designation": {
+          "$ref": "#/$defs/Ident",
+          "description": "The designation, unique within the strip (D-11, D-12)."
+        },
+        "levels": {
+          "description": "Levels.",
+          "items": {
+            "$ref": "#/$defs/LevelSpec"
+          },
+          "type": "array"
+        },
+        "rail_bonded": {
+          "description": "Bonded to the mounting rail (PE terminals, FR-TRM-017).",
+          "type": "boolean"
+        },
+        "seq": {
+          "description": "Drawn and mounting order, independent of the designation (FR-TRM-003).",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "strip": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The strip device."
+        }
+      },
+      "required": [
+        "strip",
+        "seq",
+        "designation"
+      ],
+      "type": "object"
+    },
+    "TerminalGroup": {
+      "additionalProperties": true,
+      "description": "A caption over a range of terminals.",
+      "properties": {
+        "from_seq": {
+          "description": "First terminal sequence number.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "label": {
+          "$ref": "#/$defs/MlText",
+          "description": "The caption."
+        },
+        "to_seq": {
+          "description": "Last terminal sequence number.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "from_seq",
+        "to_seq",
+        "label"
+      ],
+      "type": "object"
+    },
+    "Unit": {
+      "anyOf": [
+        {
+          "const": "mm2",
+          "description": "Square millimetre (cross-sections).",
+          "type": "string"
+        },
+        {
+          "const": "A",
+          "description": "Ampere.",
+          "type": "string"
+        },
+        {
+          "const": "V",
+          "description": "Volt.",
+          "type": "string"
+        },
+        {
+          "const": "Hz",
+          "description": "Hertz.",
+          "type": "string"
+        },
+        {
+          "const": "bar",
+          "description": "Bar (pressure).",
+          "type": "string"
+        },
+        {
+          "const": "degC",
+          "description": "Degree Celsius.",
+          "type": "string"
+        },
+        {
+          "const": "kg",
+          "description": "Kilogram.",
+          "type": "string"
+        },
+        {
+          "const": "W",
+          "description": "Watt.",
+          "type": "string"
+        },
+        {
+          "const": "m",
+          "description": "Metre (lengths and the order unit of cables).",
+          "type": "string"
+        },
+        {
+          "const": "piece",
+          "description": "Piece (the default order unit).",
+          "type": "string"
+        },
+        {
+          "const": "set",
+          "description": "Set (order unit).",
+          "type": "string"
+        }
+      ],
+      "description": "The units of doc 03 §3.2 and the order units of FR-PRT-026. Persisted as the unit symbol in ASCII\n(`\"mm2\"`, `\"degC\"`), so files stay greppable; rendering uses the typographic symbol."
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "Everything with one tag; the single owner of parts (ADR-0006, doc 03 §7, rank 31). The printed tag is\nderived from `tag`, the numbering scheme and the main representation; it is stored nowhere.\n\nAspects follow the known members, flattened in the order of doc 05 §3.1. v0 implements `strip`,\n`terminal` and `cable`; `assembly`, `plc_station`, `plc_module`, `bus_node` and `valve_terminal` arrive\nwith their work packages and are kept in `extra` until then, which already places them after `cable`.\n`user_props` has no field-level definition yet and is kept in `extra` too.",
+  "properties": {
+    "$k": {
+      "const": "device",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "cable": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Cable"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Cable."
+    },
+    "function_text": {
+      "$ref": "#/$defs/MlText",
+      "description": "Manual function text (the automatic text falls back to the path function text, FR-DEV-011)."
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The record ID."
+    },
+    "kind": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DeviceKind"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "UI and numbering hint."
+    },
+    "parent": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Parent device (assemblies, child tags)."
+    },
+    "parts": {
+      "description": "Part uses; parts attach only to devices.",
+      "items": {
+        "$ref": "#/$defs/PartUse"
+      },
+      "type": "array"
+    },
+    "position": {
+      "description": "Order inside the parent (manifold position).",
+      "format": "uint32",
+      "minimum": 0,
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "process_tag": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Process tag, never renumbered (FR-DEV-012)."
+    },
+    "source_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SourceRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Import provenance."
+    },
+    "state": {
+      "$ref": "#/$defs/DeviceState",
+      "description": "Lifecycle state; default used."
+    },
+    "strip": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Strip"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Terminal strip."
+    },
+    "structure": {
+      "$ref": "#/$defs/StructureAssignment",
+      "description": "Own structure assignment (FR-PRJ-019)."
+    },
+    "tag": {
+      "$ref": "#/$defs/TagSpec",
+      "description": "The only stored tag data (doc 03 §8.2)."
+    },
+    "tech_data": {
+      "description": "Technical data, keyed by `key` (FR-DEV-009).",
+      "items": {
+        "$ref": "#/$defs/TechValue"
+      },
+      "type": "array"
+    },
+    "terminal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Terminal"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Terminal."
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "tag"
+  ],
+  "title": "device",
+  "type": "object"
+}

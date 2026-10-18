@@ -1,0 +1,429 @@
+{
+  "format": "0.1",
+  "kinds": [
+    {
+      "file": "project.jsonl",
+      "kind": "project",
+      "rank": 10,
+      "schema": "project.schema.json",
+      "status": "implemented",
+      "v": 1
+    },
+    {
+      "file": "project.jsonl",
+      "kind": "plc_config_project",
+      "rank": 11,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "project.jsonl",
+      "kind": "logical_net",
+      "rank": 12,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "project.jsonl",
+      "kind": "physical_net",
+      "rank": 13,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "project.jsonl",
+      "kind": "medium",
+      "rank": 14,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "project.jsonl",
+      "kind": "import_lineage",
+      "rank": 15,
+      "schema": "import_lineage.schema.json",
+      "status": "implemented",
+      "v": 1
+    },
+    {
+      "file": "structure.jsonl",
+      "kind": "structure_node",
+      "rank": 20,
+      "schema": "structure_node.schema.json",
+      "status": "implemented",
+      "v": 1
+    },
+    {
+      "file": "structure.jsonl",
+      "kind": "section",
+      "rank": 21,
+      "schema": "section.schema.json",
+      "status": "implemented",
+      "v": 1
+    },
+    {
+      "file": "structure.jsonl",
+      "kind": "external_ref",
+      "rank": 22,
+      "schema": "external_ref.schema.json",
+      "status": "implemented",
+      "v": 1
+    },
+    {
+      "file": "pages/<page>.jsonl",
+      "kind": "page",
+      "rank": 30,
+      "schema": "page.schema.json",
+      "status": "implemented",
+      "v": 1
+    },
+    {
+      "file": "devices/<xx>.jsonl",
+      "kind": "device",
+      "rank": 31,
+      "schema": "device.schema.json",
+      "status": "implemented",
+      "v": 1
+    },
+    {
+      "file": "devices/<xx>.jsonl or pages/<page>.jsonl",
+      "kind": "function",
+      "rank": 32,
+      "schema": "function.schema.json",
+      "status": "implemented",
+      "v": 1
+    },
+    {
+      "file": "pages/<page>.jsonl",
+      "kind": "representation",
+      "rank": 33,
+      "schema": "representation.schema.json",
+      "status": "implemented",
+      "v": 1
+    },
+    {
+      "file": "pages/<page>.jsonl or devices/<xx>.jsonl",
+      "kind": "connection",
+      "rank": 34,
+      "schema": "connection.schema.json",
+      "status": "implemented",
+      "v": 1
+    },
+    {
+      "file": "pages/<page>.jsonl",
+      "kind": "junction",
+      "rank": 35,
+      "schema": "junction.schema.json",
+      "status": "implemented",
+      "v": 1
+    },
+    {
+      "file": "devices/<xx>.jsonl",
+      "kind": "conductor",
+      "rank": 36,
+      "schema": "conductor.schema.json",
+      "status": "implemented",
+      "v": 1
+    },
+    {
+      "file": "devices/<xx>.jsonl",
+      "kind": "channel",
+      "rank": 37,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "devices/<xx>.jsonl or pages/<page>.jsonl",
+      "kind": "potential_def",
+      "rank": 38,
+      "schema": "potential_def.schema.json",
+      "status": "implemented",
+      "v": 1
+    },
+    {
+      "file": "devices/<xx>.jsonl or pages/<page>.jsonl",
+      "kind": "net_def",
+      "rank": 39,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "devices/<xx>.jsonl or pages/<page>.jsonl",
+      "kind": "medium_def",
+      "rank": 40,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "devices/<xx>.jsonl or pages/<page>.jsonl",
+      "kind": "bond",
+      "rank": 41,
+      "schema": "bond.schema.json",
+      "status": "implemented",
+      "v": 1
+    },
+    {
+      "file": "devices/<xx>.jsonl",
+      "kind": "device_link",
+      "rank": 42,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "pages/<page>.jsonl",
+      "kind": "page_item",
+      "rank": 43,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "pages/<page>.jsonl",
+      "kind": "structure_box",
+      "rank": 44,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "report-blocks.jsonl or pages/<page>.jsonl",
+      "kind": "report_block",
+      "rank": 45,
+      "schema": "report_block.schema.json",
+      "status": "implemented",
+      "v": 1
+    },
+    {
+      "file": "pages/<page>.jsonl",
+      "kind": "macro_instance",
+      "rank": 46,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "pages/<page>.jsonl",
+      "kind": "placeholder_group",
+      "rank": 47,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "layout/<space>.jsonl",
+      "kind": "layout_space",
+      "rank": 50,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "layout/<space>.jsonl",
+      "kind": "enclosure",
+      "rank": 51,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "layout/<space>.jsonl",
+      "kind": "mounting_surface",
+      "rank": 52,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "layout/<space>.jsonl",
+      "kind": "carrier",
+      "rank": 53,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "layout/<space>.jsonl",
+      "kind": "placement",
+      "rank": 54,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "layout/<space>.jsonl",
+      "kind": "route_override",
+      "rank": 55,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "layout/<space>.jsonl",
+      "kind": "committed_route",
+      "rank": 56,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "layout/<space>.jsonl",
+      "kind": "routing_path",
+      "rank": 57,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "layout/<space>.jsonl",
+      "kind": "surface_feature",
+      "rank": 58,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "revisions.jsonl",
+      "kind": "revision",
+      "rank": 60,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "waivers.jsonl",
+      "kind": "waiver",
+      "rank": 61,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "comments.jsonl",
+      "kind": "comment",
+      "rank": 62,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "revisions.jsonl",
+      "kind": "transmittal",
+      "rank": 63,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "exchange/<config-project>.jsonl",
+      "kind": "exchange_record",
+      "rank": 70,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "exchange/<config-project>.jsonl",
+      "kind": "foreign_id",
+      "rank": 71,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "imports/<run>.jsonl",
+      "kind": "import_run",
+      "rank": 72,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "file of its target",
+      "kind": "conflict",
+      "rank": 255,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "lib/parts/<id>.json",
+      "kind": "part",
+      "rank": null,
+      "schema": "part.schema.json",
+      "status": "implemented",
+      "v": 1
+    },
+    {
+      "file": "lib/symbols/<id>.json",
+      "kind": "symbol",
+      "rank": null,
+      "schema": "symbol.schema.json",
+      "status": "implemented",
+      "v": 1
+    },
+    {
+      "file": "lib/fndefs/<id>.json",
+      "kind": "fndef",
+      "rank": null,
+      "schema": "fndef.schema.json",
+      "status": "implemented",
+      "v": 1
+    },
+    {
+      "file": "lib/forms/<id>.json",
+      "kind": "form",
+      "rank": null,
+      "schema": "form.schema.json",
+      "status": "implemented",
+      "v": 1
+    },
+    {
+      "file": "lib/macros/<id>.json",
+      "kind": "macro",
+      "rank": null,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "lib/manufacturers/<id>.json",
+      "kind": "manufacturer",
+      "rank": null,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "lib/plc-profiles/<id>.json",
+      "kind": "plc_profile",
+      "rank": null,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "lib/profiles/<id>.toml",
+      "kind": "machine_profile",
+      "rank": null,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    },
+    {
+      "file": "lib/profiles/<id>.toml",
+      "kind": "label_profile",
+      "rank": null,
+      "schema": null,
+      "status": "reserved",
+      "v": null
+    }
+  ]
+}

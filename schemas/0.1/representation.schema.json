@@ -1,0 +1,1050 @@
+{
+  "$defs": {
+    "Align": {
+      "anyOf": [
+        {
+          "const": "top_left",
+          "description": "Top left.",
+          "type": "string"
+        },
+        {
+          "const": "top_centre",
+          "description": "Top centre.",
+          "type": "string"
+        },
+        {
+          "const": "top_right",
+          "description": "Top right.",
+          "type": "string"
+        },
+        {
+          "const": "middle_left",
+          "description": "Middle left.",
+          "type": "string"
+        },
+        {
+          "const": "centre",
+          "description": "Centre.",
+          "type": "string"
+        },
+        {
+          "const": "middle_right",
+          "description": "Middle right.",
+          "type": "string"
+        },
+        {
+          "const": "bottom_left",
+          "description": "Bottom left.",
+          "type": "string"
+        },
+        {
+          "const": "bottom_centre",
+          "description": "Bottom centre.",
+          "type": "string"
+        },
+        {
+          "const": "bottom_right",
+          "description": "Bottom right.",
+          "type": "string"
+        }
+      ],
+      "description": "Text alignment at the anchor point: nine positions."
+    },
+    "Angle2": {
+      "description": "An angle in 10^-3 degree, counter-clockwise on the sheet (doc 05 §3.2).",
+      "type": "integer"
+    },
+    "ArcPrim": {
+      "additionalProperties": true,
+      "description": "An elliptic arc (QET's arc: bounding rectangle, start angle and sweep, counter-clockwise).",
+      "properties": {
+        "rect": {
+          "$ref": "#/$defs/Rect",
+          "description": "The bounding rectangle of the full ellipse."
+        },
+        "start": {
+          "$ref": "#/$defs/Angle2",
+          "description": "Start angle."
+        },
+        "stroke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Stroke"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Stroke."
+        },
+        "sweep": {
+          "$ref": "#/$defs/Angle2",
+          "description": "Sweep angle."
+        }
+      },
+      "required": [
+        "rect",
+        "sweep"
+      ],
+      "type": "object"
+    },
+    "BoxCp": {
+      "additionalProperties": true,
+      "description": "One CP of a black box: function CP index, position and direction.",
+      "properties": {
+        "dir": {
+          "$ref": "#/$defs/Dir4",
+          "description": "The direction a wire leaves the CP."
+        },
+        "idx": {
+          "description": "The function CP index.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "pos": {
+          "$ref": "#/$defs/Pt2",
+          "description": "Position relative to the representation."
+        }
+      },
+      "required": [
+        "idx",
+        "pos",
+        "dir"
+      ],
+      "type": "object"
+    },
+    "BoxSpec": {
+      "additionalProperties": true,
+      "description": "The outline, CPs and inner graphics of a black box (doc 03 §6).",
+      "properties": {
+        "cps": {
+          "description": "The box CPs.",
+          "items": {
+            "$ref": "#/$defs/BoxCp"
+          },
+          "type": "array"
+        },
+        "inner": {
+          "description": "Graphics inside the box.",
+          "items": {
+            "$ref": "#/$defs/Primitive"
+          },
+          "type": "array"
+        },
+        "outline": {
+          "description": "The outline polygon.",
+          "items": {
+            "$ref": "#/$defs/Pt2"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "outline"
+      ],
+      "type": "object"
+    },
+    "CirclePrim": {
+      "additionalProperties": true,
+      "description": "A circle.",
+      "properties": {
+        "centre": {
+          "$ref": "#/$defs/Pt2",
+          "description": "Centre."
+        },
+        "fill": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Colour"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fill."
+        },
+        "r": {
+          "$ref": "#/$defs/Nm",
+          "description": "Radius."
+        },
+        "stroke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Stroke"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Stroke."
+        }
+      },
+      "required": [
+        "centre",
+        "r"
+      ],
+      "type": "object"
+    },
+    "Colour": {
+      "anyOf": [
+        {
+          "const": "by_layer",
+          "description": "The layer's colour (the default).",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An explicit colour.",
+          "properties": {
+            "rgb": {
+              "$ref": "#/$defs/Rgb"
+            }
+          },
+          "required": [
+            "rgb"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "A drawing colour: the layer's colour (the default) or an explicit sRGB value."
+    },
+    "Dash": {
+      "anyOf": [
+        {
+          "const": "solid",
+          "description": "Solid (the default).",
+          "type": "string"
+        },
+        {
+          "const": "dash42",
+          "description": "Dash 4, gap 2 (× pen width).",
+          "type": "string"
+        },
+        {
+          "const": "dot12",
+          "description": "Dot 1, gap 2.",
+          "type": "string"
+        },
+        {
+          "const": "dash_dot",
+          "description": "Dash-dot.",
+          "type": "string"
+        }
+      ],
+      "description": "A dash pattern scaled by the pen width (doc 07 §2.3)."
+    },
+    "Dir4": {
+      "anyOf": [
+        {
+          "const": "up",
+          "description": "Up (−y).",
+          "type": "string"
+        },
+        {
+          "const": "right",
+          "description": "Right (+x).",
+          "type": "string"
+        },
+        {
+          "const": "down",
+          "description": "Down (+y).",
+          "type": "string"
+        },
+        {
+          "const": "left",
+          "description": "Left (−x).",
+          "type": "string"
+        }
+      ],
+      "description": "One of four directions on the sheet."
+    },
+    "EllipsePrim": {
+      "additionalProperties": true,
+      "description": "An ellipse.",
+      "properties": {
+        "fill": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Colour"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fill."
+        },
+        "rect": {
+          "$ref": "#/$defs/Rect",
+          "description": "The bounding rectangle."
+        },
+        "stroke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Stroke"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Stroke."
+        }
+      },
+      "required": [
+        "rect"
+      ],
+      "type": "object"
+    },
+    "Ident": {
+      "description": "An NFC identifier without surrounding white space (doc 05 §3.2).",
+      "minLength": 1,
+      "pattern": "^\\S(.*\\S)?$",
+      "type": "string"
+    },
+    "ImagePrim": {
+      "additionalProperties": true,
+      "description": "An image asset placed in a rectangle.",
+      "properties": {
+        "asset": {
+          "$ref": "#/$defs/Sha256",
+          "description": "The asset `assets/<sha256>.<ext>`."
+        },
+        "rect": {
+          "$ref": "#/$defs/Rect",
+          "description": "The placement."
+        }
+      },
+      "required": [
+        "rect",
+        "asset"
+      ],
+      "type": "object"
+    },
+    "LinePrim": {
+      "additionalProperties": true,
+      "description": "A straight line.",
+      "properties": {
+        "from": {
+          "$ref": "#/$defs/Pt2",
+          "description": "Start."
+        },
+        "stroke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Stroke"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Stroke; absent means not stroked."
+        },
+        "to": {
+          "$ref": "#/$defs/Pt2",
+          "description": "End."
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "type": "object"
+    },
+    "MlText": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minProperties": 1,
+          "type": "object"
+        }
+      ],
+      "description": "Multilingual text: a neutral string, or an object keyed by BCP 47 tags (doc 05 §3.2)."
+    },
+    "Nm": {
+      "description": "A length in nanometres (doc 05 §3.2).",
+      "maximum": 9007199254740991,
+      "minimum": -9007199254740991,
+      "type": "integer"
+    },
+    "Orient2": {
+      "description": "Orientation: rotation clockwise on the sheet, optionally mirrored (doc 05 §3.2).",
+      "enum": [
+        "r0",
+        "r90",
+        "r180",
+        "r270",
+        "m0",
+        "m90",
+        "m180",
+        "m270"
+      ],
+      "type": "string"
+    },
+    "Pen": {
+      "anyOf": [
+        {
+          "const": "p013",
+          "description": "0.13 mm.",
+          "type": "string"
+        },
+        {
+          "const": "p018",
+          "description": "0.18 mm.",
+          "type": "string"
+        },
+        {
+          "const": "p026",
+          "description": "0.26 mm.",
+          "type": "string"
+        },
+        {
+          "const": "p042",
+          "description": "0.42 mm.",
+          "type": "string"
+        },
+        {
+          "const": "p052",
+          "description": "0.52 mm.",
+          "type": "string"
+        },
+        {
+          "const": "p130",
+          "description": "1.30 mm.",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An explicit width.",
+          "properties": {
+            "width": {
+              "$ref": "#/$defs/Nm"
+            }
+          },
+          "required": [
+            "width"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "A house pen or an explicit width (doc 07 §2.3, FR-SYM-003): `\"p026\"` or `{\"width\": nm}`."
+    },
+    "PinMapEntry": {
+      "additionalProperties": true,
+      "description": "One pin-map entry: symbol CP `symbol_cp` draws CP `idx` of `function`.",
+      "properties": {
+        "function": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The function."
+        },
+        "idx": {
+          "description": "The function's CP index.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "symbol_cp": {
+          "description": "The symbol's CP index.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "symbol_cp",
+        "function",
+        "idx"
+      ],
+      "type": "object"
+    },
+    "PolygonPrim": {
+      "additionalProperties": true,
+      "description": "A polygon.",
+      "properties": {
+        "closed": {
+          "description": "Whether the last point joins the first.",
+          "type": "boolean"
+        },
+        "fill": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Colour"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fill."
+        },
+        "points": {
+          "description": "Points in order.",
+          "items": {
+            "$ref": "#/$defs/Pt2"
+          },
+          "type": "array"
+        },
+        "stroke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Stroke"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Stroke."
+        }
+      },
+      "required": [
+        "points"
+      ],
+      "type": "object"
+    },
+    "PolylinePrim": {
+      "additionalProperties": true,
+      "description": "An open polyline.",
+      "properties": {
+        "points": {
+          "description": "Points in order.",
+          "items": {
+            "$ref": "#/$defs/Pt2"
+          },
+          "type": "array"
+        },
+        "stroke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Stroke"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Stroke."
+        }
+      },
+      "required": [
+        "points"
+      ],
+      "type": "object"
+    },
+    "Primitive": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "description": "A straight line.",
+          "properties": {
+            "line": {
+              "$ref": "#/$defs/LinePrim"
+            }
+          },
+          "required": [
+            "line"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An open polyline.",
+          "properties": {
+            "polyline": {
+              "$ref": "#/$defs/PolylinePrim"
+            }
+          },
+          "required": [
+            "polyline"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A rectangle with optional rounded corners and drop shadow.",
+          "properties": {
+            "rect": {
+              "$ref": "#/$defs/RectPrim"
+            }
+          },
+          "required": [
+            "rect"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A circle.",
+          "properties": {
+            "circle": {
+              "$ref": "#/$defs/CirclePrim"
+            }
+          },
+          "required": [
+            "circle"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An ellipse in a bounding rectangle.",
+          "properties": {
+            "ellipse": {
+              "$ref": "#/$defs/EllipsePrim"
+            }
+          },
+          "required": [
+            "ellipse"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An elliptic arc in a bounding rectangle.",
+          "properties": {
+            "arc": {
+              "$ref": "#/$defs/ArcPrim"
+            }
+          },
+          "required": [
+            "arc"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A polygon.",
+          "properties": {
+            "polygon": {
+              "$ref": "#/$defs/PolygonPrim"
+            }
+          },
+          "required": [
+            "polygon"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A text.",
+          "properties": {
+            "text": {
+              "$ref": "#/$defs/TextPrim"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An image asset.",
+          "properties": {
+            "image": {
+              "$ref": "#/$defs/ImagePrim"
+            }
+          },
+          "required": [
+            "image"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "A graphic primitive in nanometres, relative to its owner's origin (doc 07 §2.3)."
+    },
+    "Pt2": {
+      "description": "A point [x, y] in nanometres, y downwards (doc 05 §3.2).",
+      "items": false,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "Rect": {
+      "description": "A rectangle [[x0, y0], [x1, y1]] in nanometres, minimum corner first (doc 05 §3.2).",
+      "items": false,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/Pt2"
+        },
+        {
+          "$ref": "#/$defs/Pt2"
+        }
+      ],
+      "type": "array"
+    },
+    "RectPrim": {
+      "additionalProperties": true,
+      "description": "A rectangle.",
+      "properties": {
+        "fill": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Colour"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Fill; absent means not filled."
+        },
+        "rect": {
+          "$ref": "#/$defs/Rect",
+          "description": "The rectangle."
+        },
+        "rx": {
+          "$ref": "#/$defs/Nm",
+          "description": "Horizontal corner radius."
+        },
+        "ry": {
+          "$ref": "#/$defs/Nm",
+          "description": "Vertical corner radius."
+        },
+        "shadow": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Offset of the filled drop shadow (FR-SYM-003)."
+        },
+        "stroke": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Stroke"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Stroke."
+        }
+      },
+      "required": [
+        "rect"
+      ],
+      "type": "object"
+    },
+    "RepType": {
+      "anyOf": [
+        {
+          "const": "multi_line",
+          "description": "Multi-line (the default).",
+          "type": "string"
+        },
+        {
+          "const": "single_line",
+          "description": "Single-line.",
+          "type": "string"
+        },
+        {
+          "const": "overview",
+          "description": "Overview.",
+          "type": "string"
+        },
+        {
+          "const": "fluid",
+          "description": "Fluid.",
+          "type": "string"
+        },
+        {
+          "const": "topology",
+          "description": "Bus topology.",
+          "type": "string"
+        },
+        {
+          "const": "contact_image",
+          "description": "Contact image.",
+          "type": "string"
+        },
+        {
+          "const": "panel_front",
+          "description": "Panel front (symbol graphics only).",
+          "type": "string"
+        },
+        {
+          "const": "strip_segment",
+          "description": "Strip segment.",
+          "type": "string"
+        },
+        {
+          "const": "graphic",
+          "description": "Graphic.",
+          "type": "string"
+        }
+      ],
+      "description": "Representation types (doc 03 §6, doc 07 §2.3). `panel_front` is a symbol type only: panel-front\nrepresentations are derived, never stored (ADR-0006 amendment 3)."
+    },
+    "Rgb": {
+      "pattern": "^#[0-9a-f]{6}$",
+      "type": "string"
+    },
+    "Sha256": {
+      "description": "A SHA-256 digest sha256:<64 lower-case hex> (doc 05 §3.2).",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "SlotOverride": {
+      "additionalProperties": true,
+      "description": "An override of one text slot of the symbol (by index into `SymbolDef.text_slots`).",
+      "properties": {
+        "angle": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Angle2"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Rotated text."
+        },
+        "pos": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Pt2"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Moved position, relative to the representation."
+        },
+        "slot": {
+          "description": "The slot index.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "visible": {
+          "description": "Shown or hidden against the symbol's default.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "slot"
+      ],
+      "type": "object"
+    },
+    "SourceRef": {
+      "additionalProperties": true,
+      "description": "The import provenance of a record (doc 14 §2.3, ADR-0004 amendment 1): the lineage and the source key\nfrom which the record's ID `v5(lineage namespace, key)` was derived.",
+      "properties": {
+        "key": {
+          "description": "The source key, byte for byte (NFC), such as `qet:el:<uuid>`.",
+          "type": "string"
+        },
+        "lineage": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The import lineage."
+        }
+      },
+      "required": [
+        "lineage",
+        "key"
+      ],
+      "type": "object"
+    },
+    "Stroke": {
+      "additionalProperties": true,
+      "description": "How a primitive is stroked.",
+      "properties": {
+        "colour": {
+          "$ref": "#/$defs/Colour",
+          "description": "Colour; default by layer."
+        },
+        "dash": {
+          "$ref": "#/$defs/Dash",
+          "description": "Dash pattern; default solid."
+        },
+        "pen": {
+          "$ref": "#/$defs/Pen",
+          "description": "Pen."
+        }
+      },
+      "required": [
+        "pen"
+      ],
+      "type": "object"
+    },
+    "TextPrim": {
+      "additionalProperties": true,
+      "description": "A text primitive.",
+      "properties": {
+        "align": {
+          "$ref": "#/$defs/Align",
+          "description": "Alignment of the text at `pos`."
+        },
+        "angle": {
+          "$ref": "#/$defs/Angle2",
+          "description": "Rotation."
+        },
+        "pos": {
+          "$ref": "#/$defs/Pt2",
+          "description": "Anchor point."
+        },
+        "style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Text style key (`text.normal`)."
+        },
+        "text": {
+          "$ref": "#/$defs/MlText",
+          "description": "The text."
+        }
+      },
+      "required": [
+        "pos",
+        "text",
+        "align"
+      ],
+      "type": "object"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "One drawing of one or more functions on a page (ADR-0006, doc 03 §6, rank 33). An unplaced function has\nno representation; panel fronts are derived, never stored.\n\nNot in v0: `assembly_view` (assembly overviews, WP-S1.13).",
+  "properties": {
+    "$k": {
+      "const": "representation",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "arrangement": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Named slot set of the symbol (FR-SYM-012)."
+    },
+    "box": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BoxSpec"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Black-box outline and CPs, drawn with the built-in symbol `ew.gen.blackbox`."
+    },
+    "functions": {
+      "description": "The functions drawn, in model order.",
+      "items": {
+        "$ref": "#/$defs/Uuid"
+      },
+      "type": "array"
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The record ID."
+    },
+    "orient": {
+      "$ref": "#/$defs/Orient2",
+      "description": "Orientation."
+    },
+    "page": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The page."
+    },
+    "pin_map": {
+      "description": "Symbol CP → function CP, keyed by symbol CP.",
+      "items": {
+        "$ref": "#/$defs/PinMapEntry"
+      },
+      "type": "array"
+    },
+    "pos": {
+      "$ref": "#/$defs/Pt2",
+      "description": "Insertion point."
+    },
+    "rep_type": {
+      "$ref": "#/$defs/RepType",
+      "description": "Representation type; default multi-line."
+    },
+    "source_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SourceRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Import provenance."
+    },
+    "symbol": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The symbol copy."
+    },
+    "text_slots": {
+      "description": "Text-slot overrides only, keyed by slot.",
+      "items": {
+        "$ref": "#/$defs/SlotOverride"
+      },
+      "type": "array"
+    },
+    "variant": {
+      "description": "The stored symbol variant (contact-image and CP variants); orientation variants A–H are derived.",
+      "format": "uint8",
+      "maximum": 255,
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "functions",
+    "page",
+    "symbol",
+    "pos"
+  ],
+  "title": "representation",
+  "type": "object"
+}
