@@ -9,7 +9,8 @@
 //! which is part of the file format and never changes**:
 //!
 //! - **Namespace:** the parent UUID the formula names (the function, device, report block, module,
-//!   connection or import lineage), or the fixed [`NS_LIBCOPY`] for embedded library copies.
+//!   connection or import lineage), or the fixed [`NS_LIBCOPY`] for embedded library copies. Import-lineage
+//!   namespaces are themselves derived under the fixed [`NS_IMPORT`] by [`lineage_namespace`].
 //! - **Name:** the UTF-8 bytes of the components' text forms joined by U+001F (UNIT SEPARATOR):
 //!   - UUIDs as canonical lower-case hyphenated strings;
 //!   - integers in decimal, without sign, padding or separators;
@@ -22,13 +23,16 @@
 //! | [`cp_id`] | `v5(function, idx)` | `"2"` |
 //! | [`report_page_id`] | `v5(report_block, page_index)` | `"7"` |
 //! | [`imported_id`] | `v5(lineage namespace, source_key)` | `"element:3f2a"` |
+//! | [`lineage_namespace`] | `v5(NS_IMPORT, importer ‖ anchor kind ‖ anchor value)` | `"dxf\u{1F}sha256\u{1F}e3b0…"` |
 //! | [`template_function_id`] | `v5(device, template_index)` | `"3"` |
 //! | [`plc_channel_id`] | `v5(module, "channel", number)` | `"channel\u{1F}3"` |
 //! | [`lib_copy_id`] | `v5(NS_LIBCOPY, library ‖ item)` | `"<library>\u{1F}<item>"` |
 //! | [`lib_copy_keep_both_id`] | `v5(NS_LIBCOPY, library ‖ item ‖ version)` | `"<library>\u{1F}<item>\u{1F}<version>"` |
 //! | [`route_id`] | `v5(connection, "route")` | `"route"` |
 //!
-//! U+001F cannot occur in a UUID or a decimal integer, so the joined name is unambiguous.
+//! U+001F cannot occur in a UUID or a decimal integer, so the joined name is unambiguous. The module's
+//! constants are [`NS_LIBCOPY`] and [`NS_IMPORT`]; [`LineageAnchor`] and [`LineageNameError`] belong to
+//! [`lineage_namespace`].
 //!
 //! ```
 //! use ew_ids::{Id, Uuid, v5};
@@ -50,6 +54,10 @@ use crate::Id;
 /// The namespace of embedded library copies (ADR-0004 amendment 2). A random v4 UUID generated once for
 /// this purpose; **fixed forever**, since every embedded copy's file name and references derive from it.
 pub const NS_LIBCOPY: Uuid = Uuid::from_u128(0x04c1640f_8857_4dfc_9bff_e9baad47fb47);
+
+/// The namespace of import-lineage namespaces (ADR-0004 amendment 4, doc 05 §3.2a). A random v4 UUID
+/// minted once for this purpose; **fixed forever**, since every imported record's ID derives from it.
+pub const NS_IMPORT: Uuid = Uuid::from_u128(0x7b75186c_f28e_49ce_b7f7_26b137095a65);
 
 /// The component separator, U+001F UNIT SEPARATOR.
 const SEP: char = '\u{1F}';
@@ -75,11 +83,97 @@ pub fn report_page_id<B, P>(block: Id<B>, page_index: u32) -> Id<P> {
 
 /// The ID of an imported record: `v5(namespace, source_key)` (ADR-0004 amendment 1).
 ///
-/// `namespace` is the import lineage's anchor (the QET project UUID, or the namespace derived from the
-/// lineage's first imported file); `source_key` is the importer's key for the source item, used byte for
-/// byte as given.
+/// `namespace` is the import lineage's namespace, **derived from** the lineage's anchor by
+/// [`lineage_namespace`] (ADR-0004 amendment 4) and stored in `ImportLineage.namespace`; it is not the
+/// anchor itself. `source_key` is the importer's key for the source item, used byte for byte as given;
+/// importers emit keys in NFC.
 pub fn imported_id<T>(namespace: Uuid, source_key: &str) -> Id<T> {
     v5(namespace, source_key)
+}
+
+/// What an import lineage is anchored on (doc 14 §2.3). Together with the importer's name it determines the
+/// lineage's namespace through [`lineage_namespace`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LineageAnchor<'a> {
+    /// The `<project uuid>` of a QET 0.200+ project file.
+    QetProjectUuid(Uuid),
+    /// The SHA-256 of the lineage's first imported file, for sources without a stable identity of their own.
+    FirstImportSha256([u8; 32]),
+    /// "Import as copy": names the original lineage by its **namespace** UUID (not a record ID) and a copy
+    /// number, so two branches importing the same file as a copy mint the same IDs.
+    Copy {
+        /// The namespace of the lineage this one is a copy of.
+        of: Uuid,
+        /// The copy number.
+        n: u32,
+    },
+    /// A fixed label, such as `golden` for the golden CSV bootstrap.
+    Fixed(&'a str),
+}
+
+/// Why [`lineage_namespace`] refused an importer name.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LineageNameError {
+    /// The importer name is empty or contains anything but ASCII lower-case letters, digits and `-`.
+    InvalidImporter,
+}
+
+impl std::fmt::Display for LineageNameError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidImporter => {
+                f.write_str("importer name must be non-empty ASCII lower-case letters, digits or '-'")
+            }
+        }
+    }
+}
+
+impl std::error::Error for LineageNameError {}
+
+/// The namespace of an import lineage: `v5(NS_IMPORT, importer ‖ anchor kind ‖ anchor value)` (ADR-0004
+/// amendment 4, doc 14 §2.3). The name is the U+001F-joined text
+/// `<importer>␟project␟<uuid>`, `<importer>␟sha256␟<64 hex digits>`, `<importer>␟copy␟<uuid>␟<n>` or
+/// `<importer>␟fixed␟<label>`, with UUIDs and hex digits in lower case.
+///
+/// The result is stored in `ImportLineage.namespace`; compute it once, when the lineage is created.
+///
+/// # Errors
+///
+/// [`LineageNameError::InvalidImporter`] unless `importer` is non-empty and made of ASCII lower-case
+/// letters, digits and `-`.
+///
+/// ```
+/// use ew_ids::v5::{LineageAnchor, lineage_namespace};
+///
+/// // The SHA-256 of the empty input.
+/// let digest: [u8; 32] = [
+///     0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14, 0x9a, 0xfb, 0xf4, 0xc8, 0x99, 0x6f, 0xb9, 0x24,
+///     0x27, 0xae, 0x41, 0xe4, 0x64, 0x9b, 0x93, 0x4c, 0xa4, 0x95, 0x99, 0x1b, 0x78, 0x52, 0xb8, 0x55,
+/// ];
+/// let ns = lineage_namespace("dxf", &LineageAnchor::FirstImportSha256(digest)).unwrap();
+/// assert_eq!(ns.to_string(), "a1ba512b-c515-50c5-af0b-26fa3b5599f5");
+/// assert!(lineage_namespace("DXF", &LineageAnchor::Fixed("golden")).is_err());
+/// ```
+pub fn lineage_namespace(importer: &str, anchor: &LineageAnchor<'_>) -> Result<Uuid, LineageNameError> {
+    let valid = !importer.is_empty()
+        && importer
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-');
+    if !valid {
+        return Err(LineageNameError::InvalidImporter);
+    }
+    let name = match anchor {
+        LineageAnchor::QetProjectUuid(u) => format!("{importer}{SEP}project{SEP}{}", u.hyphenated()),
+        LineageAnchor::FirstImportSha256(d) => {
+            let hex: String = d.iter().map(|b| format!("{b:02x}")).collect();
+            format!("{importer}{SEP}sha256{SEP}{hex}")
+        }
+        LineageAnchor::Copy { of, n } => {
+            format!("{importer}{SEP}copy{SEP}{}{SEP}{n}", of.hyphenated())
+        }
+        LineageAnchor::Fixed(label) => format!("{importer}{SEP}fixed{SEP}{label}"),
+    };
+    Ok(Uuid::new_v5(&NS_IMPORT, name.as_bytes()))
 }
 
 /// The ID of the function created from template `template_index` of a part's function template on
@@ -253,5 +347,71 @@ mod tests {
             imported_id::<K>(uuid(LINEAGE), "a"),
             imported_id::<K>(uuid(LINEAGE), "b")
         );
+    }
+
+    /// SHA-256 of the empty input.
+    const EMPTY_SHA256: [u8; 32] = [
+        0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14, 0x9a, 0xfb, 0xf4, 0xc8, 0x99, 0x6f, 0xb9, 0x24, 0x27,
+        0xae, 0x41, 0xe4, 0x64, 0x9b, 0x93, 0x4c, 0xa4, 0x95, 0x99, 0x1b, 0x78, 0x52, 0xb8, 0x55,
+    ];
+    const EMPTY_SHA256_HEX: &str = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+
+    /// Doc 05 §3.2a's worked vector, computed independently with Python's `uuid.uuid5`.
+    #[test]
+    fn lineage_namespace_fixed_vector() {
+        assert_eq!(NS_IMPORT.to_string(), "7b75186c-f28e-49ce-b7f7-26b137095a65");
+        let ns = lineage_namespace("dxf", &LineageAnchor::FirstImportSha256(EMPTY_SHA256)).unwrap();
+        assert_eq!(ns.to_string(), "a1ba512b-c515-50c5-af0b-26fa3b5599f5");
+    }
+
+    #[test]
+    fn lineage_names_follow_the_documented_layout() {
+        let u = uuid(LINEAGE);
+        assert_eq!(
+            lineage_namespace("qet", &LineageAnchor::QetProjectUuid(u)).unwrap(),
+            Uuid::new_v5(&NS_IMPORT, format!("qet\u{1F}project\u{1F}{LINEAGE}").as_bytes())
+        );
+        assert_eq!(
+            lineage_namespace("dxf", &LineageAnchor::FirstImportSha256(EMPTY_SHA256)).unwrap(),
+            Uuid::new_v5(
+                &NS_IMPORT,
+                format!("dxf\u{1F}sha256\u{1F}{EMPTY_SHA256_HEX}").as_bytes()
+            )
+        );
+        assert_eq!(
+            lineage_namespace("qet", &LineageAnchor::Copy { of: u, n: 2 }).unwrap(),
+            Uuid::new_v5(
+                &NS_IMPORT,
+                format!("qet\u{1F}copy\u{1F}{LINEAGE}\u{1F}2").as_bytes()
+            )
+        );
+        assert_eq!(
+            lineage_namespace("csv", &LineageAnchor::Fixed("golden")).unwrap(),
+            Uuid::new_v5(&NS_IMPORT, b"csv\x1ffixed\x1fgolden")
+        );
+    }
+
+    #[test]
+    fn lineage_importer_is_validated() {
+        let a = LineageAnchor::Fixed("golden");
+        for bad in ["", "QET", "dxf importer", "qet\u{1F}x", "d\u{e9}", "a_b"] {
+            assert_eq!(
+                lineage_namespace(bad, &a),
+                Err(LineageNameError::InvalidImporter),
+                "{bad:?}"
+            );
+        }
+        assert!(lineage_namespace("qet-2", &a).is_ok());
+        assert!(!LineageNameError::InvalidImporter.to_string().is_empty());
+    }
+
+    #[test]
+    fn lineage_copy_differs_from_original() {
+        let original = lineage_namespace("qet", &LineageAnchor::QetProjectUuid(uuid(LINEAGE))).unwrap();
+        let copy1 = lineage_namespace("qet", &LineageAnchor::Copy { of: original, n: 1 }).unwrap();
+        let copy2 = lineage_namespace("qet", &LineageAnchor::Copy { of: original, n: 2 }).unwrap();
+        assert_ne!(copy1, original);
+        assert_ne!(copy1, copy2);
+        assert_eq!(copy1.get_version_num(), 5);
     }
 }

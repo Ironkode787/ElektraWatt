@@ -110,8 +110,8 @@ impl<'de> Deserialize<'de> for Pt2 {
 /// An axis-aligned, closed rectangle `[min.x, max.x] × [min.y, max.y]`, always normalised
 /// (`min ≤ max` on both axes). A rectangle may be degenerate (zero width or height).
 ///
-/// **Not persisted by this crate:** doc 05 §3.2 defines no JSON encoding for `Rect`, so it has no serde
-/// implementation; its encoding, if any record needs one, is an `ew-schema` decision.
+/// **Not persisted by this crate:** `ew-units` keeps `Rect` without serde. The persisted form is doc 05
+/// §3.2's `[[x0,y0],[x1,y1]]` (two [`Pt2`], minimum corner first), implemented in `ew-schema`.
 ///
 /// ```
 /// use ew_units::{Nm, Pt2, Rect};
