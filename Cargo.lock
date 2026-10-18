@@ -288,10 +288,20 @@ dependencies = [
 name = "ew-derive"
 version = "0.0.0"
 dependencies = [
+ "ew-commands",
+ "ew-ids",
  "ew-memo",
+ "ew-mltext",
  "ew-model",
  "ew-plcaddr",
+ "ew-rds",
  "ew-rhai",
+ "ew-schema",
+ "ew-units",
+ "proptest",
+ "serde",
+ "serde_json",
+ "toml",
 ]
 
 [[package]]

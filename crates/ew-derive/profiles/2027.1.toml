@@ -1,0 +1,88 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Derivation profile 2027.1, the first shipped profile (FR-PRJ-011, ADR-0003, ARCH §6.6).
+#
+# A profile is versioned data: the rules that turn the stored model into printed text. A project pins one
+# (`Project.derivation_profile`); a new EW release may add profiles but never changes a shipped one. The
+# project's own settings (doc 03 §5.1: `numbering`, `xref_format`, `identifier_set`) take precedence over
+# the profile's defaults below; the profile supplies what a project does not set.
+#
+# Member names follow the JSON names of doc 03 §5.1, so a scheme reads the same here and in
+# `ProjectSettings`.
+
+version = "2027.1"
+
+# ADR-0026: the default identifier set of new projects (a key of `ew_rds::IdentifierSet::shipped`).
+identifier_set = "EN81346-2:2009"
+
+# The default device-numbering scheme (doc 03 §8.2, §5.1 `DeviceNumberingScheme`): page-based, counter
+# scope the page of the main representation, gaps filled.
+[numbering]
+key = "page-based"
+format = "{page}{letter}{counter}"
+rules = []
+counter_scope = "page"
+reuse_gaps = true
+online = true
+child_separator = "-"
+
+# The cross-reference format (doc 03 §5.1 `XrefFormat`, doc 06 §2.8): the QET-style preset. Consumed by
+# `xref_text` (WP-S1.08); carried here so that the profile pins it.
+[xref]
+key = "qet-style"
+ip = "{page}-{row}{column}"
+aux_to_main = "({page}-{row}{column})"
+main_to_aux = "∞ {list}"
+structure = "when_different"
+same_page = "full"
+matrix = { per_row = 3, max = 9, overflow = "…" }
+
+# The title-block binding set (doc 09 §2.6–2.7): the placeholder paths `title_block(page)` resolves.
+[title_block]
+paths = [
+  "project.description",
+  "project.long_description",
+  "project.reference",
+  "project.drawing_id",
+  "project.object",
+  "project.document_title",
+  "project.created",
+  "project.edited",
+  "project.supply",
+  "project.control_voltage",
+  "project.consumption",
+  "project.logo",
+  "project.notice",
+  "page.folio",
+  "page.prev",
+  "page.next",
+  "page.title",
+  "page.description",
+  "page.function",
+  "page.location",
+  "page.scale",
+  "page.document_kind",
+  "doc.page_index",
+  "doc.page_count",
+  "revision.current.label",
+  "revision.current.state",
+  "revision.current.date",
+  "revision.current.author.name",
+  "revision.current.checker.name",
+  "party.customer.name",
+  "party.end_user.name",
+  "party.end_user.address.street",
+  "party.end_user.address.postcode",
+  "party.end_user.address.city",
+  "party.end_user.address.country",
+  "party.panel_builder.name",
+  "party.author.name",
+  "party.checker.name",
+  "party.engineer.name",
+]
+
+# The table of contents (doc 09 §3.1, doc 20 §16): data rows per TOC page, which drives the page-count
+# fixpoint of `page_order`.
+[toc]
+rows_per_page = 23

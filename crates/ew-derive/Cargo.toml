@@ -15,7 +15,27 @@ publish = false
 workspace = true
 
 [dependencies]
-ew-model = { path = "../ew-model" }
+# The untracked read API of ew-model (ARCH §3 rule 1, ADR-0001 amendment 1): ew-derive is the tracked read
+# layer, so it reads tables and indexes raw and records each read through `Q`'s tracker. Allowed on this
+# normal edge by `cargo xtask check-features` (ci/dep-rules.toml).
+ew-model = { path = "../ew-model", features = ["raw-read"] }
 ew-memo = { path = "../ew-memo" }
 ew-rhai = { path = "../ew-rhai" }
 ew-plcaddr = { path = "../ew-plcaddr" }
+# The record types, IDs, units and text that queries read and return.
+ew-schema = { path = "../ew-schema" }
+ew-ids = { path = "../ew-ids" }
+ew-units = { path = "../ew-units" }
+ew-mltext = { path = "../ew-mltext" }
+# Reference designations and identifier sets (ADR-0026).
+ew-rds = { path = "../ew-rds" }
+serde.workspace = true
+# Settings members still kept in `ProjectSettings.extra` (doc 03 §5.1) and reserved records.
+serde_json = "1.0.154"
+# The shipped derivation profiles are TOML data (ADR-0003, ARCH §6.6).
+toml.workspace = true
+
+[dev-dependencies]
+# Agreement tests: the main representation and the counters of the command layer (tests/agreement.rs).
+ew-commands = { path = "../ew-commands" }
+proptest = { version = "1.12.0", default-features = false, features = ["std"] }

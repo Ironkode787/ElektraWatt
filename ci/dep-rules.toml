@@ -66,7 +66,7 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 "ew-ewpp" = []
 "ew-model" = ["ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds"]
 "ew-rhai" = []
-"ew-derive" = ["ew-model", "ew-memo", "ew-rhai", "ew-plcaddr"]
+"ew-derive" = ["ew-model", "ew-memo", "ew-rhai", "ew-plcaddr", "ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds"]
 "ew-commands" = ["ew-derive", "ew-model", "ew-schema", "ew-ids", "ew-units", "ew-mltext", "ew-rds"]
 "ew-checks" = ["ew-derive", "ew-rhai"]
 "ew-sqlview" = ["ew-derive", "ew-checks"]
@@ -109,6 +109,9 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 # ew-commands' own integration tests enable its `testkit` feature (row dumps, `Preview::ops`, history ops),
 # which is crate-private otherwise (ARCH §3 rule 1).
 "ew-commands" = ["ew-commands"]
+
+# ew-derive's agreement tests compare its main-representation and tag rules with the numbering of ew-commands.
+"ew-derive" = ["ew-commands"]
 
 # ARCH §3 Rule 2: only ew-sqlview and ew-library link rusqlite.
 [[external_owner]]
