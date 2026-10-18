@@ -62,7 +62,17 @@
 //! | Text angle | 0° | 90° | 0° | 90° | 0° | 90° | 0° | 90° |
 //!
 //! 90° is [`Angle2`] `90_000`, counter-clockwise on the sheet: text reading bottom to top, which doc 06 calls
-//! "R270". Slot texts come after static texts; slot style keys are the default bindings of
+//! "R270". Glyphs are **never mirrored**: a [`PlacedText`] carries a rotation only, so the glyph run built
+//! from it has an unmirrored transform. The alignment flips instead (doc 07 §4.1, ID-49): horizontally
+//! (left ↔ right, centre stays) exactly when the text was turned by 180° to stay readable, vertically
+//! (top ↔ bottom, middle stays) when exactly one of that turn and the variant's mirror applies. For a text
+//! without its own rotation:
+//!
+//! | Variant | A | B | C | D | E | F | G | H |
+//! |---|---|---|---|---|---|---|---|---|
+//! | Horizontal | kept | flipped | flipped | kept | flipped | kept | kept | flipped |
+//! | Vertical | kept | flipped | flipped | kept | kept | flipped | flipped | kept |
+//! Slot texts come after static texts; slot style keys are the default bindings of
 //! [`default_style_key`] until project text-style bindings (FR-SYM-013) reach the scene.
 //!
 //! # Anchor
@@ -145,7 +155,8 @@ pub struct PlacedText {
     pub pos: Pt2,
     /// The readable angle, counter-clockwise on the sheet, in `[0°, 90°] ∪ (270°, 360°)`.
     pub angle: Angle2,
-    /// Alignment at `pos`, unchanged by the variant.
+    /// Alignment at `pos` after the variant: flipped as the readability turn and the mirror require
+    /// (see the module documentation), so the text keeps its side of the anchor.
     pub align: Align,
     /// The text style key.
     pub style_key: String,
@@ -171,8 +182,8 @@ pub fn lower(def: &SymbolDef, variant: Orient2) -> SymbolGeometry {
             texts.push(PlacedText {
                 source: TextSource::Static(text.text.clone()),
                 pos: variant.apply(text.pos),
-                angle: readable_angle(text.angle, variant),
-                align: text.align.clone(),
+                angle: placement(text.angle, variant).0,
+                align: placed_align(&text.align, text.angle, variant),
                 style_key: text
                     .style
                     .as_ref()
@@ -186,8 +197,8 @@ pub fn lower(def: &SymbolDef, variant: Orient2) -> SymbolGeometry {
         texts.push(PlacedText {
             source: TextSource::Slot(slot.kind.clone()),
             pos: variant.apply(slot.pos),
-            angle: readable_angle(slot.rot, variant),
-            align: slot.align.clone(),
+            angle: placement(slot.rot, variant).0,
+            align: placed_align(&slot.align, slot.rot, variant),
             style_key: default_style_key(&slot.kind).to_owned(),
             max_width: slot.max_width,
             visible: slot.visible,
@@ -409,16 +420,55 @@ pub fn transform_dir(d: &Dir4, variant: Orient2) -> Dir4 {
 /// assert_eq!(readable_angle(Angle2(30_000), Orient2::M0), Angle2(330_000));
 /// ```
 pub fn readable_angle(angle: Angle2, variant: Orient2) -> Angle2 {
+    placement(angle, variant).0
+}
+
+/// The readable angle and whether the readability turn of 180° was applied to reach it.
+fn placement(angle: Angle2, variant: Orient2) -> (Angle2, bool) {
     let mut a = i64::from(angle.normalized().0);
     if variant.is_mirrored() {
         a = 180_000 - a;
     }
     a -= i64::from(variant.quarter_turns()) * 90_000;
     a = a.rem_euclid(360_000);
-    if a > 90_000 && a <= 270_000 {
+    let turned = a > 90_000 && a <= 270_000;
+    if turned {
         a -= 180_000;
     }
-    Angle2(a.rem_euclid(360_000) as i32)
+    (Angle2(a.rem_euclid(360_000) as i32), turned)
+}
+
+/// The alignment of a text at `angle` (symbol frame) on a symbol in `variant`: horizontal flips when the
+/// text was turned by 180°, vertical when exactly one of the turn and the mirror applies (doc 07 §4.1).
+/// An alignment of a newer format is kept.
+pub fn placed_align(align: &Align, angle: Angle2, variant: Orient2) -> Align {
+    let turned = placement(angle, variant).1;
+    let flip_h = turned;
+    let flip_v = turned != variant.is_mirrored();
+    let (h, v) = match align {
+        Align::TopLeft => (-1, -1),
+        Align::TopCentre => (0, -1),
+        Align::TopRight => (1, -1),
+        Align::MiddleLeft => (-1, 0),
+        Align::Centre => (0, 0),
+        Align::MiddleRight => (1, 0),
+        Align::BottomLeft => (-1, 1),
+        Align::BottomCentre => (0, 1),
+        Align::BottomRight => (1, 1),
+        Align::Unknown(_) => return align.clone(),
+    };
+    let (h, v) = (if flip_h { -h } else { h }, if flip_v { -v } else { v });
+    match (h, v) {
+        (-1, -1) => Align::TopLeft,
+        (0, -1) => Align::TopCentre,
+        (1, -1) => Align::TopRight,
+        (-1, 0) => Align::MiddleLeft,
+        (0, 0) => Align::Centre,
+        (1, 0) => Align::MiddleRight,
+        (-1, 1) => Align::BottomLeft,
+        (0, 1) => Align::BottomCentre,
+        _ => Align::BottomRight,
+    }
 }
 
 /// The default text-style key bound to a slot kind (doc 20 §17.5): `tag.main` for tags, `cp.small` for CP

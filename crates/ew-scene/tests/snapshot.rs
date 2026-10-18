@@ -107,8 +107,8 @@ fn synthetic_symbol_in_all_variants() {
         B
           cp 0 (7937500,0) Right
           cp 1 (-7937500,0) Left
-          text static "K" (0,-5291667) 90000 MiddleLeft
-          text slot Tag (2645833,5291667) 90000 MiddleLeft
+          text static "K" (0,-5291667) 90000 MiddleRight
+          text slot Tag (2645833,5291667) 90000 MiddleRight
           anchor (0,0)
           bounds (-7937500,-5291667) (7937500,5291667)
           path M(5291667,-2645833) L(-5291667,-2645833) L(-5291667,2645833) L(5291667,2645833) Z
@@ -116,8 +116,8 @@ fn synthetic_symbol_in_all_variants() {
         C
           cp 0 (0,7937500) Down
           cp 1 (0,-7937500) Up
-          text static "K" (5291667,0) 0 MiddleLeft
-          text slot Tag (-5291667,2645833) 0 MiddleLeft
+          text static "K" (5291667,0) 0 MiddleRight
+          text slot Tag (-5291667,2645833) 0 MiddleRight
           anchor (0,0)
           bounds (-5291667,-7937500) (5291667,7937500)
           path M(2645833,5291667) L(2645833,-5291667) L(-2645833,-5291667) L(-2645833,5291667) Z
@@ -134,8 +134,8 @@ fn synthetic_symbol_in_all_variants() {
         E
           cp 0 (0,-7937500) Up
           cp 1 (0,7937500) Down
-          text static "K" (5291667,0) 0 MiddleLeft
-          text slot Tag (-5291667,-2645833) 0 MiddleLeft
+          text static "K" (5291667,0) 0 MiddleRight
+          text slot Tag (-5291667,-2645833) 0 MiddleRight
           anchor (0,0)
           bounds (-5291667,-7937500) (5291667,7937500)
           path M(2645833,-5291667) L(2645833,5291667) L(-2645833,5291667) L(-2645833,-5291667) Z
@@ -161,8 +161,8 @@ fn synthetic_symbol_in_all_variants() {
         H
           cp 0 (-7937500,0) Left
           cp 1 (7937500,0) Right
-          text static "K" (0,-5291667) 90000 MiddleLeft
-          text slot Tag (-2645833,5291667) 90000 MiddleLeft
+          text static "K" (0,-5291667) 90000 MiddleRight
+          text slot Tag (-2645833,5291667) 90000 MiddleRight
           anchor (0,0)
           bounds (-7937500,-5291667) (7937500,5291667)
           path M(-5291667,-2645833) L(5291667,-2645833) L(5291667,2645833) L(-5291667,2645833) Z
