@@ -21,7 +21,7 @@ in this document is computed from that file (Appendix A).
 >   dependency chain alone takes that long.
 > - **Realistic dates, full scope, base capacity.** 3 developers: spine exit (M1) at month 15 (Jan 2028), MVP at month
 >   43 (May 2030), 1.0 at month 71 (Sep 2032). 2 developers: MVP at month 62 (Dec 2031), 1.0 at month 105 (Jul 2035). 4 developers:
->   MVP at month 37 (Nov 2029), 1.0 at month 61 (Nov 2031).
+>   MVP at month 38 (Dec 2029), 1.0 at month 61 (Nov 2031).
 > - **Levers.** Deferring the MVP's Should items, moving the QET migration to the 0.x release after the MVP and
 >   moving 13 1.0 WPs to 1.x brings 3 developers to the MVP at month 40 (Feb 2030) and 1.0 at month
 >   63 (Jan 2032). Even with every WP at its optimistic estimate and 20 % more capacity, that lean scope lands at
@@ -214,8 +214,8 @@ P80 is the cumulative mean plus 0.84 σ (normal approximation over independent W
 | Milestone | Name | Release | WPs | O | L | P | PERT mean | σ | Cumulative mean | Cumulative + 20 % reserve | Cumulative P80 + reserve |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | M0 | Kick-off and foundations | MVP | 3 | 4.0 | 6.5 | 10.5 | 6.8 | 0.7 | 6.8 | 8.1 | 8.8 |
-| M1 | Spine exit: headless golden PDF | MVP | 22 | 61.5 | 90.5 | 139.5 | 93.8 | 2.9 | 100.6 | 120.7 | 123.7 |
-| M2 | MVP: pilot release | MVP | 45 | 133.0 | 196.5 | 299.0 | 203.0 | 4.4 | 303.6 | 364.3 | 369.6 |
+| M1 | Spine exit: headless golden PDF | MVP | 22 | 63.4 | 92.4 | 141.4 | 95.7 | 2.9 | 102.5 | 123.0 | 126.0 |
+| M2 | MVP: pilot release | MVP | 45 | 131.1 | 194.6 | 297.1 | 201.1 | 4.4 | 303.6 | 364.3 | 369.6 |
 | M3 | Automation breadth: PLC, bus, fluid, exchange | 1.0 | 7 | 28.0 | 41.0 | 63.5 | 42.6 | 2.3 | 346.2 | 415.4 | 421.2 |
 | M4 | Manufacturing and 2D/3D panel | 1.0 | 16 | 49.5 | 72.0 | 109.5 | 74.5 | 2.7 | 420.7 | 504.8 | 511.2 |
 | M5 | 1.0 feature complete (beta) | 1.0 | 15 | 43.0 | 64.5 | 99.0 | 66.7 | 2.5 | 487.3 | 584.8 | 591.7 |
@@ -227,14 +227,14 @@ P80 is the cumulative mean plus 0.84 σ (normal approximation over independent W
 | Stream | M0 | M1 | M2 | M3 | M4 | M5 | M6 | 1.x | Total to 1.0 |
 |---|---|---|---|---|---|---|---|---|---|
 | S0 | 6.8 | 3.7 | 6.3 | — | — | — | 9.3 | — | 25.9 |
-| S1 | — | 46.3 | 64.0 | 12.0 | 3.6 | 24.4 | — | 21.0 | 150.3 |
+| S1 | — | 47.5 | 62.8 | 12.0 | 3.6 | 24.4 | — | 21.0 | 150.3 |
 | S2 | — | — | 59.8 | 6.8 | — | 7.7 | 3.1 | — | 77.3 |
-| S3 | — | 26.4 | 29.6 | 23.8 | — | 11.4 | — | 8.2 | 91.3 |
+| S3 | — | 26.8 | 29.2 | 23.8 | — | 11.4 | — | 8.2 | 91.3 |
 | S4 | — | — | 8.8 | — | 38.4 | 6.7 | — | 8.2 | 53.8 |
 | S5 | — | — | — | — | 29.4 | 6.3 | — | 6.2 | 35.7 |
-| S6 | — | 9.8 | 24.8 | — | — | 4.1 | 16.0 | — | 54.7 |
+| S6 | — | 10.1 | 24.5 | — | — | 4.1 | 16.0 | — | 54.7 |
 | S7 | — | 7.7 | 9.8 | — | 3.1 | 6.2 | 7.8 | — | 34.4 |
-| **All** | **6.8** | **93.8** | **203.0** | **42.6** | **74.5** | **66.7** | **36.1** | **43.5** | **523.4** |
+| **All** | **6.8** | **95.7** | **201.1** | **42.6** | **74.5** | **66.7** | **36.1** | **43.5** | **523.4** |
 
 ### 4.4 Plausibility checks
 
@@ -243,8 +243,8 @@ P80 is the cumulative mean plus 0.84 σ (normal approximation over independent W
   documentation. For an ECAD application whose rows include an AML exchange with three-way merge, a STEP worker
   and negotiated-congestion routing, this is not slack.
 - **The spine.** Architecture §15.1 plans the spine as two developers for 12 weeks: 24 calendar person-weeks, about
-  17 productive pw under PA-3. The M0 and M1 WPs here total 100.6 pw: lane 1 (WP-S1.01 … WP-S1.10) is
-  46.3 pw, lane 2 (WP-S3.01 … WP-S3.05) is 26.4 pw, and 27.8 pw are the CI, licensing,
+  17 productive pw under PA-3. The M0 and M1 WPs here total 102.5 pw: lane 1 (WP-S1.01 … WP-S1.10) is
+  47.5 pw, lane 2 (WP-S3.01 … WP-S3.05) is 26.8 pw, and 28.2 pw are the CI, licensing,
   legal, test kit, determinism tests, performance gate, golden data and starter symbols that the M1 exit
   criteria need but the lane table does not list. The lane table assumes roughly one week per crate-level
   component; the estimates here assume three to six.
@@ -275,7 +275,7 @@ Month numbers per PA-1 (calendar month in brackets), base capacity.
 |---|---|---|---|---|---|---|---|
 | 2 developers | 3 (Jan 2027) | 21 (Jul 2028) | 62 (Dec 2031) | 70 (Aug 2032) | 85 (Nov 2033) | 97 (Nov 2034) | 105 (Jul 2035) |
 | 3 developers (baseline) | 3 (Jan 2027) | 15 (Jan 2028) | 43 (May 2030) | 48 (Oct 2030) | 58 (Aug 2031) | 66 (Apr 2032) | 71 (Sep 2032) |
-| 4 developers | 3 (Jan 2027) | 14 (Dec 2027) | 37 (Nov 2029) | 44 (Jun 2030) | 51 (Jan 2031) | 56 (Jun 2031) | 61 (Nov 2031) |
+| 4 developers | 3 (Jan 2027) | 15 (Jan 2028) | 38 (Dec 2029) | 44 (Jun 2030) | 51 (Jan 2031) | 56 (Jun 2031) | 61 (Nov 2031) |
 
 ### 5.3 Sensitivity and best case
 
@@ -285,10 +285,10 @@ optimistic estimate **and** uses 120 % capacity. "Lean" applies all three levers
 | Team | Scope | M2 at −20 % | M2 base | M2 at +20 % | M6 at −20 % | M6 base | M6 at +20 % | Best case M2 / M6 |
 |---|---|---|---|---|---|---|---|---|
 | 2 | Full scope | 77 | 62 | 52 | 132 | 105 | 88 | 34 / 58 |
-| 3 | Full scope | 53 | 43 | 36 | 88 | 71 | 59 | 24 / 39 |
-| 4 | Full scope | 47 | 37 | 32 | 76 | 61 | 51 | 21 / 34 |
-| 2 | Lean (§7) | 72 | 58 | 48 | 118 | 94 | 79 | 32 / 52 |
-| 3 | Lean (§7) | 50 | 40 | 33 | 79 | 63 | 53 | 22 / 35 |
+| 3 | Full scope | 54 | 43 | 36 | 88 | 71 | 59 | 24 / 39 |
+| 4 | Full scope | 47 | 38 | 32 | 76 | 61 | 51 | 21 / 34 |
+| 2 | Lean (§7) | 72 | 58 | 48 | 118 | 95 | 79 | 32 / 52 |
+| 3 | Lean (§7) | 50 | 40 | 34 | 79 | 63 | 53 | 22 / 35 |
 | 4 | Lean (§7) | 44 | 35 | 30 | 71 | 57 | 48 | 20 / 32 |
 
 Even the best case with the lean scope and four developers misses an 18-month 1.0. The estimates would have to be
@@ -304,10 +304,10 @@ pays for a fraction of one developer-year.
 | Team | Profile | M1 | M2 MVP | M6 1.0 | M6 with the lean scope |
 |---|---|---|---|---|---|
 | 3 | 3 from month 0 | 15 (Jan 2028) | 43 (May 2030) | 71 (Sep 2032) | 63 (Jan 2032) |
-| 4 | 3 from month 0, 1 from month 4, 90 % efficiency | 14 (Dec 2027) | 37 (Nov 2029) | 61 (Nov 2031) | 57 (Jul 2031) |
-| 6 | 3 from month 0, 1 from month 4, 2 from month 6, 85 % efficiency | 14 (Dec 2027) | 30 (Apr 2029) | 48 (Oct 2030) | 47 (Sep 2030) |
-| 8 | 3 from month 0, 1 from month 4, 4 from month 6, 85 % efficiency | 14 (Dec 2027) | 25 (Nov 2028) | 39 (Jan 2030) | 38 (Dec 2029) |
-| 10 | 3 from month 0, 1 from month 4, 6 from month 6, 85 % efficiency | 14 (Dec 2027) | 25 (Nov 2028) | 36 (Oct 2029) | 36 (Oct 2029) |
+| 4 | 3 from month 0, 1 from month 4, 90 % efficiency | 15 (Jan 2028) | 38 (Dec 2029) | 61 (Nov 2031) | 57 (Jul 2031) |
+| 6 | 3 from month 0, 1 from month 4, 2 from month 6, 85 % efficiency | 15 (Jan 2028) | 30 (Apr 2029) | 48 (Oct 2030) | 47 (Sep 2030) |
+| 8 | 3 from month 0, 1 from month 4, 4 from month 6, 85 % efficiency | 15 (Jan 2028) | 25 (Nov 2028) | 42 (Apr 2030) | 40 (Feb 2030) |
+| 10 | 3 from month 0, 1 from month 4, 6 from month 6, 85 % efficiency | 15 (Jan 2028) | 25 (Nov 2028) | 36 (Oct 2029) | 36 (Oct 2029) |
 
 With unlimited developers the dependency chain of §6 still takes about 29 months, so no team size reaches 1.0
 in 15–18 months with this WBS. Splitting the chain's WPs between two developers shortens it, at extra effort.
@@ -332,9 +332,9 @@ The critical path is the longest dependency chain to M6 with unlimited developer
 ```mermaid
 flowchart LR
   n0["WP-S1.01<br/>Permissive foundation crates<br/>6 wk · M1"]
-  n1["WP-S1.02<br/>ew-schema v0 and JSON Schemas<br/>5 wk · M1"]
+  n1["WP-S1.02<br/>ew-schema v0 and JSON Schemas<br/>6 wk · M1"]
   n2["WP-S1.03<br/>ew-model<br/>8 wk · M1"]
-  n3["WP-S1.04<br/>ew-commands and the Session facade<br/>9 wk · M1"]
+  n3["WP-S1.04<br/>ew-commands and the Session facade<br/>10 wk · M1"]
   n4["WP-S1.13<br/>Devices, functions and …<br/>7 wk · M2"]
   n5["WP-S1.19<br/>Parts, libraries and macros<br/>13 wk · M2"]
   n6["WP-S4.01<br/>Layout model and 2D panel pages …<br/>10 wk · M2"]
@@ -447,11 +447,11 @@ stay. The candidates are breadth inside or beside them. Together they move 28 Mu
 
 | Scope | Effort to MVP (mean + reserve) | Effort to 1.0 (mean + reserve) | 2 devs M2 / M6 | 3 devs M2 / M6 | 4 devs M2 / M6 |
 |---|---|---|---|---|---|
-| Full scope | 364 pw | 628 pw | 62 / 105 | 43 / 71 | 37 / 61 |
+| Full scope | 364 pw | 628 pw | 62 / 105 | 43 / 71 | 38 / 61 |
 | Lever (a): MVP Should deferral | 355 pw | 628 pw | 61 / 106 | 42 / 71 | 37 / 60 |
 | Levers (a) and (b): plus MVP split | 338 pw | 628 pw | 58 / 106 | 40 / 71 | 35 / 61 |
-| Lever (c) only: 1.0-lean | 364 pw | 562 pw | 62 / 94 | 43 / 63 | 38 / 56 |
-| Lean: all three levers | 338 pw | 562 pw | 58 / 94 | 40 / 63 | 35 / 57 |
+| Lever (c) only: 1.0-lean | 364 pw | 562 pw | 62 / 95 | 43 / 64 | 38 / 56 |
+| Lean: all three levers | 338 pw | 562 pw | 58 / 95 | 40 / 63 | 35 / 57 |
 
 Differences of one month between neighbouring rows are scheduling noise of the PA-9 model. The levers save
 months, not years: the MVP is dominated by the spine, the interactive editor and core breadth, which no lever
@@ -670,23 +670,23 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | WP | Title | Milestone | PERT (pw) | Owner role |
 |---|---|---|---|---|
 | [WP-S1.01](#wp-s101-permissive-foundation-crates-units-ids-text-reference-designations) | Permissive foundation crates: units, ids, text, reference designations | M1 | 3.7 | Core developer |
-| [WP-S1.02](#wp-s102-ew-schema-v0-and-json-schemas) | ew-schema v0 and JSON Schemas | M1 | 3.1 | Core developer |
+| [WP-S1.02](#wp-s102-ew-schema-v0-and-json-schemas) | ew-schema v0 and JSON Schemas | M1 | 3.2 | Core developer |
 | [WP-S1.03](#wp-s103-ew-model-tables-operations-indexes-invariants) | ew-model: tables, operations, indexes, invariants | M1 | 4.7 | Core developer |
-| [WP-S1.04](#wp-s104-ew-commands-and-the-session-facade) | ew-commands and the Session facade | M1 | 5.2 | Core developer |
+| [WP-S1.04](#wp-s104-ew-commands-and-the-session-facade) | ew-commands and the Session facade | M1 | 5.5 | Core developer |
 | [WP-S1.05](#wp-s105-performance-spike-and-ew-memo-engine-with-oracle) | Performance spike and ew-memo engine with oracle | M1 | 6.2 | Core developer |
-| [WP-S1.06](#wp-s106-derivation-i-structure-tags-pages-title-block-bom) | Derivation I: structure, tags, pages, title block, BOM | M1 | 4.7 | Core developer |
-| [WP-S1.07](#wp-s107-derivation-ii-connectivity-potentials-wire-properties) | Derivation II: connectivity, potentials, wire properties | M1 | 5.8 | Core developer |
+| [WP-S1.06](#wp-s106-derivation-i-structure-tags-pages-title-block-bom) | Derivation I: structure, tags, pages, title block, BOM | M1 | 4.9 | Core developer |
+| [WP-S1.07](#wp-s107-derivation-ii-connectivity-potentials-wire-properties) | Derivation II: connectivity, potentials, wire properties | M1 | 6.4 | Core developer |
 | [WP-S1.08](#wp-s108-derivation-iii-cross-references-and-interruption-points) | Derivation III: cross-references and interruption points | M1 | 3.7 | Core developer |
 | [WP-S1.09](#wp-s109-persistence-core-ew-format-and-ew-store) | Persistence core: ew-format and ew-store | M1 | 5.8 | Core developer |
 | [WP-S1.10](#wp-s110-sql-projection-v0-ew-sqlview-api_v1) | SQL projection v0 (ew-sqlview, api_v1) | M1 | 3.6 | Core developer |
 | [WP-S1.11](#wp-s111-numbering-engine-and-renumber-commands) | Numbering engine and renumber commands | M2 | 4.7 | Core developer |
-| [WP-S1.12](#wp-s112-project-structure-and-page-model-breadth) | Project, structure and page model breadth | M2 | 3.6 | Core developer |
+| [WP-S1.12](#wp-s112-project-structure-and-page-model-breadth) | Project, structure and page model breadth | M2 | 3.1 | Core developer |
 | [WP-S1.13](#wp-s113-devices-functions-and-assemblies-breadth) | Devices, functions and assemblies breadth | M2 | 4.2 | Core developer |
-| [WP-S1.14](#wp-s114-terminals-strips-cables-and-conductors) | Terminals, strips, cables and conductors | M2 | 4.6 | Core developer |
+| [WP-S1.14](#wp-s114-terminals-strips-cables-and-conductors) | Terminals, strips, cables and conductors | M2 | 4.0 | Core developer |
 | [WP-S1.15](#wp-s115-rule-engine-rhai-formulas-trust-model-and-the-check-cli) | Rule engine, rhai formulas, trust model and the check CLI | M2 | 7.2 | Core developer |
 | [WP-S1.16](#wp-s116-mvp-rule-packs-ew-core-ew-iec81346-ew-term-ew-pot) | MVP rule packs: EW-CORE, EW-IEC81346, EW-TERM, EW-POT | M2 | 6.2 | Core developer |
 | [WP-S1.17](#wp-s117-collaboration-external-change-migrations-integrity-merge-driver) | Collaboration: external change, migrations, integrity, merge driver | M2 | 6.8 | Core developer |
-| [WP-S1.18](#wp-s118-revisions-release-gate-and-as-built-archive) | Revisions, release gate and as-built archive | M2 | 4.7 | Core developer |
+| [WP-S1.18](#wp-s118-revisions-release-gate-and-as-built-archive) | Revisions, release gate and as-built archive | M2 | 4.6 | Core developer |
 | [WP-S1.19](#wp-s119-parts-libraries-and-macros) | Parts, libraries and macros | M2 | 7.8 | Core developer |
 | [WP-S1.20](#wp-s120-fluid-power-model-mvp) | Fluid power model (MVP) | M2 | 3.1 | Core developer |
 | [WP-S1.21](#wp-s121-plc-and-bus-model-with-addressing-mvp) | PLC and bus model with addressing (MVP) | M2 | 6.2 | Core developer |
@@ -728,8 +728,8 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Scope out | Kinds outside the golden subset (added by the breadth WPs under the steward rule) |
 | Deliverables | `ew-schema` crate; generated schemas; steward-rule checklist |
 | Depends on | WP-S1.01 |
-| Requirements | FR-COL-010, FR-COL-012 (2 rows) |
-| Effort (pw) | O 2 · L 3 · P 4.5 · **PERT 3.1** (σ 0.4) |
+| Requirements | FR-COL-010, FR-COL-012, NFR-PRIV-06 (3 rows) |
+| Effort (pw) | O 2.1 · L 3.1 · P 4.6 · **PERT 3.2** (σ 0.4) |
 | Milestone · release | M1 Spine exit: headless golden PDF · MVP |
 | Acceptance | AC-15 |
 | Owner role | Core developer |
@@ -758,8 +758,8 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Scope out | The full numbering engine (WP-S1.11); domain-specific commands of the breadth WPs |
 | Deliverables | `ew-commands`, `ew-api` v0; command tests on the golden project |
 | Depends on | WP-S1.03 |
-| Requirements | FR-CON-004 … FR-CON-006, FR-CON-008, FR-EXT-015, FR-EXT-030, NFR-UX-07 (7 rows) |
-| Effort (pw) | O 3.5 · L 5 · P 8 · **PERT 5.2** (σ 0.8) |
+| Requirements | FR-CON-004 … FR-CON-006, FR-CON-008, FR-EXT-015, FR-EXT-030, NFR-UX-07, FR-PAG-007 (8 rows) |
+| Effort (pw) | O 3.8 · L 5.3 · P 8.3 · **PERT 5.5** (σ 0.8) |
 | Milestone · release | M1 Spine exit: headless golden PDF · MVP |
 | Acceptance | AC-18, AC-20 |
 | Owner role | Core developer |
@@ -788,8 +788,8 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Scope out | Report pagination and forms (WP-S3.03) |
 | Deliverables | Query set in `ew-derive`; golden assertions for AC-03, AC-04, AC-06, AC-07 |
 | Depends on | WP-S1.03 |
-| Requirements | FR-PRJ-011, FR-PAG-005, FR-PAG-006, FR-PAG-008 … FR-PAG-010, FR-PAG-012, FR-PAG-013, FR-PAG-020, FR-NUM-001, FR-NUM-002, FR-NUM-028, FR-REP-003 … FR-REP-006, FR-DEV-019, FR-DEV-021, NFR-REL-09 (19 rows) |
-| Effort (pw) | O 3 · L 4.5 · P 7 · **PERT 4.7** (σ 0.7) |
+| Requirements | FR-PRJ-011, FR-PAG-001, FR-PAG-005, FR-PAG-006, FR-PAG-008 … FR-PAG-010, FR-PAG-012, FR-PAG-013, FR-PAG-020, FR-NUM-001, FR-NUM-002, FR-NUM-028, FR-REP-003 … FR-REP-006, FR-DEV-019, FR-DEV-021, FR-REV-003, NFR-REL-09 (21 rows) |
+| Effort (pw) | O 3.2 · L 4.7 · P 7.2 · **PERT 4.9** (σ 0.7) |
 | Milestone · release | M1 Spine exit: headless golden PDF · MVP |
 | Acceptance | AC-03, AC-04, AC-06, AC-07 |
 | Owner role | Core developer |
@@ -803,8 +803,8 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Scope out | Net definitions, clamp data, AWG (WP-S1.26) |
 | Deliverables | Connectivity queries; golden assertions for AC-09, AC-10, AC-12; latency benchmarks |
 | Depends on | WP-S1.03 |
-| Requirements | FR-CON-009 … FR-CON-015, FR-CON-017 … FR-CON-027, FR-CON-034 … FR-CON-045, NFR-PERF-05 (31 rows) |
-| Effort (pw) | O 4 · L 5.5 · P 8.5 · **PERT 5.8** (σ 0.8) |
+| Requirements | FR-CON-009 … FR-CON-015, FR-CON-017 … FR-CON-027, FR-CON-034 … FR-CON-045, FR-TRM-002, FR-TRM-021, FR-CBL-001, NFR-PERF-05 (34 rows) |
+| Effort (pw) | O 4.6 · L 6.1 · P 9.1 · **PERT 6.4** (σ 0.8) |
 | Milestone · release | M1 Spine exit: headless golden PDF · MVP |
 | Acceptance | AC-09, AC-10, AC-12, NFR-PERF-05 |
 | Owner role | Core developer |
@@ -878,8 +878,8 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Scope out | 1.0 additions (WP-S1.26) |
 | Deliverables | Commands and tests; scheme export and import |
 | Depends on | WP-S1.04 |
-| Requirements | FR-PRJ-001 … FR-PRJ-008, FR-PRJ-012 … FR-PRJ-016, FR-PRJ-018 … FR-PRJ-021, FR-PRJ-023, FR-PRJ-024, FR-PRJ-028, FR-PRJ-029, FR-PAG-001, FR-PAG-002, FR-PAG-007, FR-PAG-025, NFR-PRIV-06 (26 rows) |
-| Effort (pw) | O 2.5 · L 3.5 · P 5 · **PERT 3.6** (σ 0.4) |
+| Requirements | FR-PRJ-001 … FR-PRJ-008, FR-PRJ-012 … FR-PRJ-016, FR-PRJ-018 … FR-PRJ-021, FR-PRJ-023, FR-PRJ-024, FR-PRJ-028, FR-PRJ-029, FR-PAG-002, FR-PAG-025 (23 rows) |
+| Effort (pw) | O 2 · L 3 · P 4.5 · **PERT 3.1** (σ 0.4) |
 | Milestone · release | M2 MVP: pilot release · MVP |
 | Acceptance | AC-04 |
 | Owner role | Core developer |
@@ -908,8 +908,8 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Scope out | Accessories, plugs, cable catalogue (WP-S1.26); routed lengths (WP-S4.08) |
 | Deliverables | Commands and queries; AC-08 and AC-11 through the GUI path |
 | Depends on | WP-S1.04, WP-S1.07 |
-| Requirements | FR-TRM-001 … FR-TRM-007, FR-TRM-009 … FR-TRM-022, FR-TRM-026, FR-TRM-027, FR-CBL-001 … FR-CBL-009, FR-CBL-011 … FR-CBL-016 (38 rows) |
-| Effort (pw) | O 3 · L 4.5 · P 6.5 · **PERT 4.6** (σ 0.6) |
+| Requirements | FR-TRM-001, FR-TRM-003 … FR-TRM-007, FR-TRM-009 … FR-TRM-020, FR-TRM-022, FR-TRM-026, FR-TRM-027, FR-CBL-002 … FR-CBL-009, FR-CBL-011 … FR-CBL-016 (35 rows) |
+| Effort (pw) | O 2.4 · L 3.9 · P 5.9 · **PERT 4.0** (σ 0.6) |
 | Milestone · release | M2 MVP: pilot release · MVP |
 | Acceptance | AC-08, AC-11 |
 | Owner role | Core developer |
@@ -968,8 +968,8 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Scope out | Revision compare, clouds and transmittals (WP-S1.31) |
 | Deliverables | Revision commands; AC-23 on Golden A and A-R |
 | Depends on | WP-S1.15, WP-S1.09 |
-| Requirements | FR-REV-001 … FR-REV-012, FR-REV-020 … FR-REV-022, NFR-REL-10, NFR-REL-15 (17 rows) |
-| Effort (pw) | O 3 · L 4.5 · P 7 · **PERT 4.7** (σ 0.7) |
+| Requirements | FR-REV-001, FR-REV-002, FR-REV-004 … FR-REV-012, FR-REV-020 … FR-REV-022, NFR-REL-10, NFR-REL-15 (16 rows) |
+| Effort (pw) | O 2.9 · L 4.4 · P 6.9 · **PERT 4.6** (σ 0.7) |
 | Milestone · release | M2 MVP: pilot release · MVP |
 | Acceptance | AC-23 |
 | Owner role | Core developer |
@@ -1493,12 +1493,12 @@ S3 owns everything that becomes a page, a table or a foreign file: forms, report
 |---|---|---|---|---|
 | [WP-S3.01](#wp-s301-display-list-scene-and-symbol-model) | Display list, scene and symbol model | M1 | 5.7 | Output and migration developer |
 | [WP-S3.02](#wp-s302-frames-forms-title-blocks-text-and-fonts) | Frames, forms, title blocks, text and fonts | M1 | 4.7 | Output and migration developer |
-| [WP-S3.03](#wp-s303-report-engine-and-spine-report-folios) | Report engine and spine report folios | M1 | 5.2 | Output and migration developer |
+| [WP-S3.03](#wp-s303-report-engine-and-spine-report-folios) | Report engine and spine report folios | M1 | 5.6 | Output and migration developer |
 | [WP-S3.04](#wp-s304-page-output-cpu-renderer-png-goldens-and-pdf) | Page output: CPU renderer, PNG goldens and PDF | M1 | 6.8 | Output and migration developer |
 | [WP-S3.05](#wp-s305-spine-importers-csv-golden-bootstrap-and-qet-element-reader) | Spine importers: CSV golden bootstrap and QET element reader | M1 | 4.2 | Output and migration developer |
 | [WP-S3.06](#wp-s306-mvp-report-pack) | MVP report pack | M2 | 3.7 | Output and migration developer |
 | [WP-S3.07](#wp-s307-svg-export-and-printing) | SVG export and printing | M2 | 3.2 | Output and migration developer |
-| [WP-S3.08](#wp-s308-table-exports-and-excel-round-trip) | Table exports and Excel round trip | M2 | 3.1 | Output and migration developer |
+| [WP-S3.08](#wp-s308-table-exports-and-excel-round-trip) | Table exports and Excel round trip | M2 | 2.7 | Output and migration developer |
 | [WP-S3.09](#wp-s309-importer-contracts-lineage-and-migration-report) | Importer contracts, lineage and migration report | M2 | 3.1 | Output and migration developer |
 | [WP-S3.10](#wp-s310-qet-project-import-i-pages-devices-conductors-title-blocks) | QET project import I: pages, devices, conductors, title blocks | M2 | 6.2 | Output and migration developer |
 | [WP-S3.11](#wp-s311-qet-project-import-ii-links-formulas-strips-tables) | QET project import II: links, formulas, strips, tables | M2 | 4.7 | Output and migration developer |
@@ -1551,8 +1551,8 @@ S3 owns everything that becomes a page, a table or a foreign file: forms, report
 | Scope out | The rest of the MVP report pack (WP-S3.06) |
 | Deliverables | `ew-reports`; report folio goldens |
 | Depends on | WP-S3.02, WP-S1.06, WP-S1.07 |
-| Requirements | FR-REP-001 … FR-REP-006, FR-REP-009, FR-REP-012 … FR-REP-014, FR-REP-016, FR-REP-027, FR-REP-028, FR-REP-038, FR-REP-039, FR-REP-041, FR-REP-048, FR-PAG-011, FR-PAG-030, FR-I18N-009, NFR-PERF-10 (21 rows) |
-| Effort (pw) | O 3.5 · L 5 · P 7.5 · **PERT 5.2** (σ 0.7) |
+| Requirements | FR-REP-001 … FR-REP-006, FR-REP-009, FR-REP-012 … FR-REP-014, FR-REP-016, FR-REP-027, FR-REP-028, FR-REP-038, FR-REP-039, FR-REP-041, FR-REP-048, FR-PAG-011, FR-PAG-030, FR-I18N-009, FR-EXP-005, FR-LAY-009, NFR-PERF-10 (23 rows) |
+| Effort (pw) | O 3.9 · L 5.4 · P 7.9 · **PERT 5.6** (σ 0.7) |
 | Milestone · release | M1 Spine exit: headless golden PDF · MVP |
 | Acceptance | AC-03, AC-07, AC-08, AC-09, AC-10, AC-11, AC-12 |
 | Owner role | Output and migration developer |
@@ -1626,8 +1626,8 @@ S3 owns everything that becomes a page, a table or a foreign file: forms, report
 | Scope out | TIA and PLCopen formats (WP-S3.16) |
 | Deliverables | Table exporters; round-trip tests |
 | Depends on | WP-S3.03, WP-S1.04 |
-| Requirements | FR-EXP-001 … FR-EXP-006, FR-REP-030, FR-PLC-038, NFR-SEC-17 (9 rows) |
-| Effort (pw) | O 2 · L 3 · P 4.5 · **PERT 3.1** (σ 0.4) |
+| Requirements | FR-EXP-001 … FR-EXP-004, FR-EXP-006, FR-REP-030, FR-PLC-038, NFR-SEC-17 (8 rows) |
+| Effort (pw) | O 1.6 · L 2.6 · P 4.1 · **PERT 2.7** (σ 0.4) |
 | Milestone · release | M2 MVP: pilot release · MVP |
 | Acceptance | AC-07 |
 | Owner role | Output and migration developer |
@@ -2178,14 +2178,14 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 
 | WP | Title | Milestone | PERT (pw) | Owner role |
 |---|---|---|---|---|
-| [WP-S6.01](#wp-s601-ew-testkit-and-acceptance-runner) | ew-testkit and acceptance runner | M1 | 3.6 | Release engineer |
+| [WP-S6.01](#wp-s601-ew-testkit-and-acceptance-runner) | ew-testkit and acceptance runner | M1 | 3.7 | Release engineer |
 | [WP-S6.02](#wp-s602-determinism-property-tests-and-command-fuzzer) | Determinism, property tests and command fuzzer | M1 | 3.1 | Release engineer |
-| [WP-S6.03](#wp-s603-performance-and-memory-gate) | Performance and memory gate | M1 | 3.1 | Release engineer |
+| [WP-S6.03](#wp-s603-performance-and-memory-gate) | Performance and memory gate | M1 | 3.3 | Release engineer |
 | [WP-S6.04](#wp-s604-security-engineering-and-cra-readiness) | Security engineering and CRA readiness | M2 | 4.7 | Release engineer |
-| [WP-S6.05](#wp-s605-privacy-controls-crash-reports-and-update-check) | Privacy controls, crash reports and update check | M2 | 3.1 | Release engineer |
+| [WP-S6.05](#wp-s605-privacy-controls-crash-reports-and-update-check) | Privacy controls, crash reports and update check | M2 | 3.0 | Release engineer |
 | [WP-S6.06](#wp-s606-packaging-installers-and-the-platform-ci-matrix) | Packaging, installers and the platform CI matrix | M2 | 7.2 | Release engineer |
 | [WP-S6.07](#wp-s607-release-pipeline-signing-provenance-sbom) | Release pipeline: signing, provenance, SBOM | M2 | 3.7 | Release engineer |
-| [WP-S6.08](#wp-s608-mvp-release-stabilisation-and-the-first-signed-release) | MVP release stabilisation and the first signed release | M2 | 6.2 | Release engineer |
+| [WP-S6.08](#wp-s608-mvp-release-stabilisation-and-the-first-signed-release) | MVP release stabilisation and the first signed release | M2 | 6.0 | Release engineer |
 | [WP-S6.09](#wp-s609-monthly-0x-releases-and-support-from-mvp-to-10) | Monthly 0.x releases and support from MVP to 1.0 | M5 | 4.1 | Release engineer |
 | [WP-S6.10](#wp-s610-10-quality-layers-and-release-hardening) | 1.0 quality layers and release hardening | M6 | 6.2 | Release engineer |
 | [WP-S6.11](#wp-s611-external-acceptance-tia-portal-codesys-and-a-machine-shop-sc-7-sc-8) | External acceptance: TIA Portal, CODESYS and a machine shop (SC-7, SC-8) | M6 | 3.7 | Output and migration developer |
@@ -2200,8 +2200,8 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 | Scope out | Performance gate (WP-S6.03) |
 | Deliverables | `ew-testkit`; acceptance job |
 | Depends on | WP-S1.02, WP-S0.01 |
-| Requirements | NFR-MAINT-11 (1 rows) |
-| Effort (pw) | O 2.5 · L 3.5 · P 5 · **PERT 3.6** (σ 0.4) |
+| Requirements | NFR-MAINT-11, NFR-PRIV-09 (2 rows) |
+| Effort (pw) | O 2.6 · L 3.6 · P 5.1 · **PERT 3.7** (σ 0.4) |
 | Milestone · release | M1 Spine exit: headless golden PDF · MVP |
 | Acceptance | AC-15, AC-24, AC-39 |
 | Owner role | Release engineer |
@@ -2230,8 +2230,8 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 | Scope out | Routing and 3D benchmarks (WP-S6.10) |
 | Deliverables | Nightly gate |
 | Depends on | WP-S1.05, WP-S6.01 |
-| Requirements | NFR-PERF-01, NFR-PERF-03, NFR-PERF-13, NFR-PERF-20 (4 rows) |
-| Effort (pw) | O 2 · L 3 · P 4.5 · **PERT 3.1** (σ 0.4) |
+| Requirements | NFR-PERF-01, NFR-PERF-03, NFR-PERF-13, NFR-PERF-09, NFR-PERF-20 (5 rows) |
+| Effort (pw) | O 2.2 · L 3.2 · P 4.7 · **PERT 3.3** (σ 0.4) |
 | Milestone · release | M1 Spine exit: headless golden PDF · MVP |
 | Acceptance | AC-17, NFR-PERF-20 |
 | Owner role | Release engineer |
@@ -2261,7 +2261,7 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 | Deliverables | Sandbox job; privacy docs; update check |
 | Depends on | WP-S2.01 |
 | Requirements | NFR-PRIV-01 … NFR-PRIV-05, NFR-PRIV-07 … NFR-PRIV-09, NFR-REL-13, NFR-SEC-09, NFR-SEC-15, NFR-PLAT-08 (12 rows) |
-| Effort (pw) | O 2 · L 3 · P 4.5 · **PERT 3.1** (σ 0.4) |
+| Effort (pw) | O 1.9 · L 2.9 · P 4.4 · **PERT 3.0** (σ 0.4) |
 | Milestone · release | M2 MVP: pilot release · MVP |
 | Acceptance | AC-39, NFR-PRIV-01 |
 | Owner role | Release engineer |
@@ -2305,8 +2305,8 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 | Scope out | Routine integration work during development (in the 20 % reserve) |
 | Deliverables | Signed MVP release; acceptance report |
 | Depends on | Every M0–M2 work package except WP-S0.07 and itself; the CSV lists the 27 that are not already implied: WP-S0.03, WP-S1.11, WP-S1.12, WP-S1.17, WP-S1.18, WP-S1.23, WP-S2.07, WP-S2.08, WP-S2.09, WP-S2.10, WP-S2.11, WP-S2.12, WP-S3.06, WP-S3.07, WP-S3.08, WP-S3.12, WP-S3.13, WP-S4.02, WP-S6.02, WP-S6.03, WP-S6.04, WP-S6.05, WP-S6.07, WP-S7.01, WP-S7.02, WP-S7.03, WP-S7.05 |
-| Requirements | — (activity WP; it verifies requirements delivered elsewhere) |
-| Effort (pw) | O 4 · L 6 · P 9 · **PERT 6.2** (σ 0.8) |
+| Requirements | NFR-REL-11, NFR-DOC-07 (2 rows; an activity WP, it also verifies requirements delivered elsewhere) |
+| Effort (pw) | O 3.8 · L 5.8 · P 8.8 · **PERT 6.0** (σ 0.8) |
 | Milestone · release | M2 MVP: pilot release · MVP |
 | Acceptance | AC-21, AC-23, AC-40, AC-41 |
 | Owner role | Release engineer |
@@ -2350,7 +2350,7 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 | Scope out | — |
 | Deliverables | Exchange and machine acceptance records |
 | Depends on | WP-S3.16, WP-S5.07 |
-| Requirements | — (activity WP; it verifies requirements delivered elsewhere) |
+| Requirements | FR-PLC-036, FR-PLC-037, FR-MFG-020, FR-MFG-021 (4 rows; an activity WP, it verifies requirements delivered elsewhere) |
 | Effort (pw) | O 2 · L 3.5 · P 6 · **PERT 3.7** (σ 0.7) |
 | Milestone · release | M6 1.0 release · 1.0 |
 | Acceptance | AC-30, AC-35 |
@@ -2365,7 +2365,7 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 | Scope out | Routine integration work during development (in the 20 % reserve) |
 | Deliverables | EW 1.0 |
 | Depends on | Every M0–M5 work package, plus WP-S2.16 and WP-S6.10, except WP-S0.07, WP-S6.09 and itself; the CSV lists the 23 that are not already implied: WP-S1.26, WP-S1.27, WP-S1.29, WP-S1.30, WP-S1.32, WP-S2.14, WP-S2.15, WP-S2.16, WP-S3.14, WP-S3.15, WP-S3.16, WP-S3.17, WP-S3.18, WP-S4.09, WP-S4.10, WP-S5.05, WP-S5.06, WP-S5.08, WP-S5.09, WP-S6.08, WP-S6.10, WP-S7.04, WP-S7.06 |
-| Requirements | — (activity WP; it verifies requirements delivered elsewhere) |
+| Requirements | NFR-COMP-06, NFR-REL-14 (2 rows; an activity WP, it also verifies requirements delivered elsewhere) |
 | Effort (pw) | O 4 · L 6 · P 9 · **PERT 6.2** (σ 0.8) |
 | Milestone · release | M6 1.0 release · 1.0 |
 | Acceptance | AC-22, AC-35, AC-42 |
@@ -2471,7 +2471,7 @@ S7 produces the content that makes EW correct by default and learnable: the gold
 | Scope out | — |
 | Deliverables | Fixtures and expected outputs |
 | Depends on | WP-S7.01, WP-S4.05 |
-| Requirements | — (activity WP; it verifies requirements delivered elsewhere) |
+| Requirements | FR-LAY-051, FR-MFG-031, FR-THM-001 (3 rows; an activity WP, it verifies requirements delivered elsewhere) |
 | Effort (pw) | O 2 · L 3 · P 4.5 · **PERT 3.1** (σ 0.4) |
 | Milestone · release | M4 Manufacturing and 2D/3D panel · 1.0 |
 | Acceptance | AC-34, AC-35, AC-36 |

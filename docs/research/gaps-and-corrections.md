@@ -539,7 +539,7 @@ supply-chain controls.
 ### G11. EU regulation: CRA, product liability, accessibility, machinery documentation, reverse engineering
 
 **Gap.** None of the notes mentions the CRA or the revised Product Liability Directive, and both bear directly on
-an open-source project run by a Dutch B.V.
+an open-source project run by a Dutch private company.
 
 **Cyber Resilience Act (Regulation (EU) 2024/2847), verified via the
 [ORC WG CRA FAQ](https://github.com/orcwg/cra-hub/tree/main/faq):**

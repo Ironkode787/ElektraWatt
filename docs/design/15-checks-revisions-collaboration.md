@@ -2,6 +2,8 @@
 
 **Status:** Draft v0.2 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
 
+> **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
+
 **Purpose.** This document specifies how ElektraWatt (EW) finds errors, releases a checked drawing set and lets
 several people work on one project without a server. It elaborates the CHK and REV areas of
 [02a](02a-requirements-core.md) and the workflow part of COL in [02b](02b-requirements-extended.md). It covers the
@@ -214,7 +216,7 @@ fingerprint = first 128 bits of SHA-256("ew-fp/1" ‖ rule_id ‖ sorted target 
 **Waiver record.** A waiver matches findings by fingerprint (FR-CHK-009):
 
 ```json
-{"$k":"waiver","id":"0192f7c1-…","rule":"EW-CORE-041","target":{"finding":"9c2e5a…41ab"},"reason":{"en-GB":"PE stud is part of NSYPMM107"},"author":"<party id>","date":"2024-07-12","expires":"never"}
+{"$k":"waiver","id":"0192f7c1-…","rule":"EW-CORE-041","target":{"finding":"9c2e5a…41ab"},"reason":{"en-GB":"PE stud is part of NSYPMM107"},"author":"<party id>","date":"2025-04-14","expires":"never"}
 ```
 
 **Waiver rules.**

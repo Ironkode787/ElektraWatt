@@ -2,6 +2,8 @@
 
 **Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
 
+> **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
+
 **Purpose.** This document turns the reference project (cabinet J-E-2416 from the pilot user's reference drawing
 set) into ElektraWatt's (EW) executable acceptance specification. It fixes the data EW must hold as a model
 (project, pages, devices, potentials, wires, terminals, cables, PLC, fluid, layout, parts), the outputs it must
@@ -308,12 +310,12 @@ anonymised content.
 | Long description (cover) | Expansion Control Cabinets `<end user>` | Fact |
 | Project reference | `<project ref>` | Fact (anonymised) |
 | Drawing identification | `<drawing id>` | Fact (anonymised), separate from project reference (FR-PRJ-002) |
-| Manufacturing year | 2024 | Fact |
+| Manufacturing year | 2025 | Fact |
 | Supply | phases 1, N, PE, 230 V AC, 50 Hz; earthing system TN-S ▲U-02; rendered "1 x 230 VAC + N + PE, 50 Hz" | Fact + fix (D-18) |
 | Control voltage | 24 V DC, PELV (one 0 V–PE bond, §7.4) | Fact |
 | Rated consumption | 6 A | Fact |
-| Created / edited | 2024-06-10 / 2024-07-12, displayed dd-mm-yyyy | Fact |
-| Revisions | V1.0 2024-06-10 "Initial issue", state Released (historic, no archive); V2.0 2024-07-12 "Changes on 101 and 106", state Open, author `<engineer>`, checker unset ▲U-03, U-04 | Fix (D-05) |
+| Created / edited | 2025-03-03 / 2025-04-14, displayed dd-mm-yyyy | Fact |
+| Revisions | V1.0 2025-03-03 "Initial issue", state Released (historic, no archive); V2.0 2025-04-14 "Changes on 101 and 106", state Open, author `<engineer>`, checker unset ▲U-03, U-04 | Fix (D-05) |
 | Page change status | 101 and 106 last changed in V2.0; all others V1.0 | Fix |
 
 ### 4.2 Parties and bindings

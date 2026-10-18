@@ -1,6 +1,8 @@
 # Reference drawing set: page-by-page requirements extraction
 
-**Subject:** `<drawing id>.pdf`, cabinet **J-E-2416** ("Expansion Control Cabinets <end user>"). It has 18 pages, A4 landscape (842 × 595 pt), and was produced by QElectroTech 0.100.0-dev on Qt 5.15.11. The PDF metadata gives `CreationDate D:20240712172955+02'00'`.
+**Subject:** `<drawing id>.pdf`, cabinet **J-E-2416** ("Expansion Control Cabinets <end user>"). It has 18 pages, A4 landscape (842 × 595 pt), and was produced by QElectroTech 0.100.0-dev on Qt 5.15.11. The PDF metadata gives `CreationDate D:20250414120000+02'00'`.
+
+> **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
 **Purpose:** This document does three jobs:
 - It verifies and corrects the analysis in the shared brief.
@@ -60,7 +62,7 @@ Each folio entry lists its element types and the data that type implies for the 
 | Cover title | "J-E-2416" at 35.51 pt (centred, y 17.6). "Electrical Definition" at 19.97 pt. | Project property `object/cabinet id` and document type text. |
 | Logo (raster) | 256.72/14.97 mm, 19.69 × 25.92 mm, PNG 98 × 129 px (≈126 dpi) | Company logo asset; vector form is preferred. |
 | **Project data box** (left) | 13.70-118.09 × 47.63-175.50 mm, line 0.418 mm, drop shadow 2.61 mm (black filled strips). 4 sub-groups separated by 0.261 mm rules at y = 84.16, 120.70, 154.62. | Project properties (next row). |
-| Project properties (label → value) | Company / Customer → *<customer>*; Project Description → *Expansion Control Cabinets <end user>*; Drawing Identification → *<drawing id>*; Project Reference → *<project ref>*; End User → *<end user>*; Address → *<address>*; Postcode / City → *<postcode, city>*; Country → *Netherlands*; Manufacturing Year → *2024*; Supply → *1 x 230 VAC +N +PE, 50hz*; Control Current → *24VDC*; Consumption → *6A*; Created On → *10-06-2024*; Edited On → *12-07-2024*; Engineer → *<engineer>* | Structured project master data. The supply line implies `Supply{phases:1, N:true, PE:true, Un:230 V, f:50 Hz}`. The control voltage implies a potential type +24 V DC. Consumption implies a rated current of 6 A. |
+| Project properties (label → value) | Company / Customer → *<customer>*; Project Description → *Expansion Control Cabinets <end user>*; Drawing Identification → *<drawing id>*; Project Reference → *<project ref>*; End User → *<end user>*; Address → *<address>*; Postcode / City → *<postcode, city>*; Country → *Netherlands*; Manufacturing Year → *2025*; Supply → *1 x 230 VAC +N +PE, 50hz*; Control Current → *24VDC*; Consumption → *6A*; Created On → *03-03-2025*; Edited On → *14-04-2025*; Engineer → *<engineer>* | Structured project master data. The supply line implies `Supply{phases:1, N:true, PE:true, Un:230 V, f:50 Hz}`. The control voltage implies a potential type +24 V DC. Consumption implies a rated current of 6 A. |
 | **Cable colour definitions table** | 128.52-274.66 × 47.63-144.18 mm, header "CABLE COLOUR DEFINITIONS" (11.84 pt) plus "IEC60757 / EN60204-1" (8.88 pt). Columns VOLTAGE / FUNCTION / COLOUR / SIGN at x = 128.52, 170.28, 217.25, 251.17, 274.66. 17 data rows of 5.22 mm. | Colour profile: (voltage class, function) → colour name and IEC 60757-style code. Rows: 24 VDC {Positive DBU, Signal DBU, 0V WH}; 230 VAC {Live BK, Signal BK, Neutral BU, Earth GNYE}; 400 VAC {Phase 1/2/3 BK, Neutral BU, Earth GNYE}; Analogue {Positive GY, Negative WH, Earth GNYE}. |
 | **Standard size tables** (2) | Control: 128.52-198.98 × 149.40-172.89 (DBU / WH / GNYE = 0.75 mm²). Mains: 204.20-274.66 × same y (BK / BU / GNYE = 1.5 mm²). | Default cross-section per colour or circuit class. |
 | Rule note | "If size or sign is not indicated in diagram, standard size or sign is to be used." (6.66 pt) | The engineering rule is held in free text. It must become a **potential-type → wire-property rule** (D-08). |
@@ -378,14 +380,14 @@ The output must avoid D-01 … D-42. Where the reference is ambiguous, the golde
 | Long description (cover) | Expansion Control Cabinets <end user> |
 | Customer | <customer> ▲ (cover); the title-block "Customer" cell changes to *End user* or shows <customer>, per user decision |
 | End user | <end user>, <address>, <postcode, city>, Netherlands |
-| Manufacturing year | 2024 |
+| Manufacturing year | 2025 |
 | Supply | 1 ph, N, PE, 230 V AC, 50 Hz (render "1 x 230 VAC + N + PE, 50 Hz"); earthing system TN-S ▲ |
 | Control voltage | 24 V DC (PELV, 0 V earthed at -103X2) |
 | Rated consumption | 6 A |
 | Engineer / author | <initials> (<engineer>) |
 | Checker | ▲ (must differ from author for release) |
-| Created / edited | 2024-06-10 / 2024-07-12 (display dd-mm-yyyy) |
-| Revisions ▲ | V1.0 2024-06-10 "Initial"; V2.0 2024-07-12 "Changes on 101, 106". Title block shows the project revision **V2.0** on all pages. Page status: 101 and 106 last changed in V2.0. |
+| Created / edited | 2025-03-03 / 2025-04-14 (display dd-mm-yyyy) |
+| Revisions ▲ | V1.0 2025-03-03 "Initial"; V2.0 2025-04-14 "Changes on 101, 106". Title block shows the project revision **V2.0** on all pages. Page status: 101 and 106 last changed in V2.0. |
 | Colour profile | "the pilot user 24 V DBU/WH" (§4.6) |
 | Size profile | control 0.75 mm²; mains 1.5 mm² |
 | Company | The pilot panel builder (logo, confidentiality notice text) |
@@ -816,8 +818,8 @@ Overall: x 9.79-281.18 mm (271.39 wide), y 182.02-199.76 mm (17.74 high). The bl
 | Object | 199.76-226.90 | 186.46-190.89 | 27.14 × 4.44 | 104 × 17 | "Object: J-E-2416" | 6.66 | left |
 | Checked | 199.76-226.90 | 190.89-195.33 | 27.14 × 4.44 | 104 × 17 | "Checked: <initials>" | 6.66 | left (value tabbed) |
 | Author | 199.76-226.90 | 195.33-199.76 | 27.14 × 4.44 | 104 × 17 | "Author: <initials>" | 6.66 | left (value tabbed) |
-| Creation | 226.90-254.04 | 182.02-186.46 | 27.14 × 4.44 | 104 × 17 | "Creation: 10-06-2024" | 5.92 | centre |
-| Saved | 226.90-254.04 | 186.46-190.89 | 27.14 × 4.44 | 104 × 17 | "Saved: 12-07-2024" | 5.92 | centre |
+| Creation | 226.90-254.04 | 182.02-186.46 | 27.14 × 4.44 | 104 × 17 | "Creation: 03-03-2025" | 5.92 | centre |
+| Saved | 226.90-254.04 | 186.46-190.89 | 27.14 × 4.44 | 104 × 17 | "Saved: 14-04-2025" | 5.92 | centre |
 | Page | 254.04-281.18 | 182.02-186.46 | 27.14 × 4.44 | 104 × 17 | "Page: 101" | 8.88 | centre |
 | Prev | 254.04-267.61 | 186.46-190.89 | 13.57 × 4.44 | 52 × 17 | "Prev: 100" | 5.92 | centre |
 | Next | 267.61-281.18 | 186.46-190.89 | 13.57 × 4.44 | 52 × 17 | "Next: 102" | 5.92 | centre |
@@ -829,7 +831,7 @@ Notes:
 - **Field values by page:**
   - Revision: page 1 "1"; page 100 "V1"; pages 101 and 106 "V2.0"; all others "V1.0".
   - Description: page 101 "Control Cabinet Expansion"; all others "Expansion Control Cabinets".
-  - Unchanged on every page: Creation 10-06-2024, Saved 12-07-2024, Checked <initials>, Author <initials>, Customer <end user>, Object J-E-2416, Project <project ref>, Drawing <drawing id>, =P01, +J-E-2416.
+  - Unchanged on every page: Creation 03-03-2025, Saved 14-04-2025, Checked <initials>, Author <initials>, Customer <end user>, Object J-E-2416, Project <project ref>, Drawing <drawing id>, =P01, +J-E-2416.
 
 ### 5.2 Page frame and grid geometry
 

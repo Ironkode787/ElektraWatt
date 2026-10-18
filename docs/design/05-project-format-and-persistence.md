@@ -2,6 +2,8 @@
 
 **Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
 
+> **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
+
 **Purpose.** This document specifies how an ElektraWatt (EW) project lives on disk and travels between machines:
 - the directory layout and the canonical JSON Lines encoding;
 - the manifest and its generations, and the save protocol;
@@ -236,7 +238,7 @@ numbers live in `Connection.number`. A released revision's report snapshots live
 | `MlText` | string (neutral) or object keyed by sorted BCP 47 tags | `"1+"`, `{"en-GB":"Power Supply 1 - Main Current"}` |
 | `Ident` | NFC string without surrounding white space | `"A9F78116"` |
 | `ColourSpec` | one or two IEC 60757 or profile-declared codes; a foreign code (lenient projects only, EW-CORE-031) is the enum's data variant | `["BK"]`, `["GN","YE"]`, `["DBU"]`, `[{"foreign":"BR"}]` |
-| Authored date | `"YYYY-MM-DD"` | `"2024-07-12"` (a revision date, entered by a person) |
+| Authored date | `"YYYY-MM-DD"` | `"2025-04-14"` (a revision date, entered by a person) |
 | Enum | unit variant as a snake_case string; data variant as a one-member object | `"tbd"`, `{"core":"<id>"}`, `{"manual":"Q0.1"}` |
 | `Endpoint` | `{"cp":[function, idx]}` or `{"junction": id}` | `{"cp":["d40b6e93-…",0]}` |
 | Structure slot | absent = inherit; a node ID; `"none"` | `"location":"a41f6c2d-…"` |

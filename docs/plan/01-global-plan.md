@@ -28,11 +28,11 @@ with the calendar month in which it ends.
 | Scenario | M1 spine exit | M2 MVP, release 0.1.0 | M6 release 1.0 |
 |---|---|---|---|
 | **3 developers, lean scope (plan of record)** | **15 (Jan 2028)** | **40 (Feb 2030)** | **63 (Jan 2032)** |
-| Same, capacity −20 % / +20 % | 18 (Apr 2028) / 12 (Oct 2027) | 50 (Dec 2030) / 34 (Aug 2029) | 79 (May 2033) / 53 (Mar 2031) |
+| Same, capacity −20 % / +20 % | 19 (May 2028) / 13 (Nov 2027) | 50 (Dec 2030) / 34 (Aug 2029) | 79 (May 2033) / 53 (Mar 2031) |
 | 3 developers, full scope | 15 (Jan 2028) | 43 (May 2030) | 71 (Sep 2032) |
-| 4 developers (fourth from month 4), lean | 14 (Dec 2027) | 35 (Sep 2029) | 57 (Jul 2031) |
+| 4 developers (fourth from month 4), lean | 15 (Jan 2028) | 35 (Sep 2029) | 57 (Jul 2031) |
 | 2 developers, lean | 21 (Jul 2028) | 58 (Aug 2031) | 95 (Sep 2034) |
-| 6 developers (funded growth, outside the 2–4 decision), lean | 14 (Dec 2027) | 28 (Feb 2029) | 47 (Sep 2030) |
+| 6 developers (funded growth, outside the 2–4 decision), lean | 15 (Jan 2028) | 28 (Feb 2029) | 47 (Sep 2030) |
 
 **"Lean"** applies the three scope levers of the [work breakdown](02-work-packages.md#7-scope-levers): (a) the
 MVP's Should and Could WPs move to 1.0; (b) QET project migration ships in the 0.x release after the MVP, so the
@@ -228,7 +228,7 @@ by about a month.
 |---|---|---|---|---|---|---|---|
 | 2 developers | 3 (Jan 2027) | 21 (Jul 2028) | 58 (Aug 2031) | 68 (Jun 2032) | 82 (Aug 2033) | 86 (Dec 2033) | 95 (Sep 2034) |
 | **3 developers** | **3 (Jan 2027)** | **15 (Jan 2028)** | **40 (Feb 2030)** | **46 (Aug 2030)** | **57 (Jul 2031)** | **58 (Aug 2031)** | **63 (Jan 2032)** |
-| 4 developers | 3 (Jan 2027) | 14 (Dec 2027) | 35 (Sep 2029) | 39 (Jan 2030) | 51 (Jan 2031) | 51 (Jan 2031) | 57 (Jul 2031) |
+| 4 developers | 3 (Jan 2027) | 15 (Jan 2028) | 35 (Sep 2029) | 39 (Jan 2030) | 52 (Feb 2031) | 52 (Feb 2031) | 57 (Jul 2031) |
 
 **Full scope (if PD-1 rejects the levers), base capacity.**
 
@@ -236,7 +236,7 @@ by about a month.
 |---|---|---|---|---|---|---|---|
 | 2 developers | 3 (Jan 2027) | 21 (Jul 2028) | 62 (Dec 2031) | 70 (Aug 2032) | 85 (Nov 2033) | 97 (Nov 2034) | 105 (Jul 2035) |
 | 3 developers | 3 (Jan 2027) | 15 (Jan 2028) | 43 (May 2030) | 48 (Oct 2030) | 58 (Aug 2031) | 66 (Apr 2032) | 71 (Sep 2032) |
-| 4 developers | 3 (Jan 2027) | 14 (Dec 2027) | 37 (Nov 2029) | 44 (Jun 2030) | 51 (Jan 2031) | 56 (Jun 2031) | 61 (Nov 2031) |
+| 4 developers | 3 (Jan 2027) | 15 (Jan 2028) | 38 (Dec 2029) | 44 (Jun 2030) | 51 (Jan 2031) | 56 (Jun 2031) | 61 (Nov 2031) |
 
 With the lean scope, M5 falls one month after M4 (3 developers) or in the same month (4 developers), because lever
 (c) empties most of M5. The two gate reviews can then be held together (open question 6).
@@ -251,9 +251,9 @@ estimate **and** uses 120 % capacity.
 | 2 | Lean | 72 (Oct 2032) | 58 (Aug 2031) | 48 (Oct 2030) | 118 (Aug 2036) | 95 (Sep 2034) | 79 (May 2033) | 32 / 52 |
 | **3** | **Lean** | **50 (Dec 2030)** | **40 (Feb 2030)** | **34 (Aug 2029)** | **79 (May 2033)** | **63 (Jan 2032)** | **53 (Mar 2031)** | **22 / 35** |
 | 4 | Lean | 44 (Jun 2030) | 35 (Sep 2029) | 30 (Apr 2029) | 71 (Sep 2032) | 57 (Jul 2031) | 48 (Oct 2030) | 20 / 32 |
-| 2 | Full | 78 (Apr 2033) | 62 (Dec 2031) | 52 (Feb 2031) | 132 (Oct 2037) | 105 (Jul 2035) | 88 (Feb 2034) | 34 / 58 |
-| 3 | Full | 53 (Mar 2031) | 43 (May 2030) | 36 (Oct 2029) | 88 (Feb 2034) | 71 (Sep 2032) | 59 (Sep 2031) | 24 / 39 |
-| 4 | Full | 47 (Sep 2030) | 37 (Nov 2029) | 32 (Jun 2029) | 76 (Feb 2033) | 61 (Nov 2031) | 51 (Jan 2031) | 21 / 34 |
+| 2 | Full | 77 (Mar 2033) | 62 (Dec 2031) | 52 (Feb 2031) | 132 (Oct 2037) | 105 (Jul 2035) | 88 (Feb 2034) | 34 / 58 |
+| 3 | Full | 54 (Apr 2031) | 43 (May 2030) | 36 (Oct 2029) | 88 (Feb 2034) | 71 (Sep 2032) | 59 (Sep 2031) | 24 / 39 |
+| 4 | Full | 47 (Sep 2030) | 38 (Dec 2029) | 32 (Jun 2029) | 76 (Feb 2033) | 61 (Nov 2031) | 51 (Jan 2031) | 21 / 34 |
 
 ### 3.6 Can v1 fit 15–18 months?
 
@@ -282,12 +282,12 @@ gantt
   M1 to MVP           :b2, 2028-02-01, 2030-03-01
   MVP to 1.0          :b3, 2030-03-01, 2032-02-01
   section 4 developers
-  Spine to M1         :c1, 2026-11-01, 2028-01-01
-  M1 to MVP           :c2, 2028-01-01, 2029-10-01
+  Spine to M1         :c1, 2026-11-01, 2028-02-01
+  M1 to MVP           :c2, 2028-02-01, 2029-10-01
   MVP to 1.0          :c3, 2029-10-01, 2031-08-01
   section 6 developers funded
-  Spine to M1         :d1, 2026-11-01, 2028-01-01
-  M1 to MVP           :d2, 2028-01-01, 2029-03-01
+  Spine to M1         :d1, 2026-11-01, 2028-02-01
+  M1 to MVP           :d2, 2028-02-01, 2029-03-01
   MVP to 1.0          :d3, 2029-03-01, 2030-10-01
 ```
 
@@ -327,11 +327,11 @@ Gate IDs are G-M0 … G-M6; the acceptance criteria are those of the
 | Milestone | 2 devs | 3 devs (baseline) | 4 devs | Content | Release | Exit gate | Key deliverables | Demo |
 |---|---|---|---|---|---|---|---|---|
 | **M0** Kick-off and foundations | 3 (Jan 2027) | 3 (Jan 2027) | 3 (Jan 2027) | Workspace and per-PR CI green on three OSes; licence files, REUSE, DCO and licence-boundary check active; pilot kick-off held; ADR-0027 and ADR-0028 decided; LG-1 and LG-5 requested; PD-1 taken | None (CI artefacts only) | **G-M0**: the M0 exit criteria of the [WBS](02-work-packages.md#22-milestones) §2.2 | WP-S0.01, WP-S0.02, WP-S0.08 | A pull request that adds a GPL dependency to a permissive crate fails the boundary check on all three OSes |
-| **M1** Spine exit: headless golden PDF | 21 (Jul 2028) | 15 (Jan 2028) | 14 (Dec 2027) | `ew export pdf golden/J-E-2416.ew` writes the 18 folios plus report folios 903–911 without a GUI; acceptance SQL/CSV pairs pass with the oracle on; perf gate running; two owners per critical crate; ADR-0030 decided; LG-1 and LG-2 closed | None: a signed source tag `m1`; nightly CLI builds for the pilot | **G-M1**: AC-01 … AC-13, AC-14 (Linux), AC-15 … AC-17, AC-18 (CLI), AC-20, AC-39; golden §19 rows gated M1 | 22 WPs: WP-S1.01 … WP-S1.10, WP-S3.01 … WP-S3.05, WP-S6.01 … WP-S6.03, WP-S7.01, WP-S7.02, WP-S0.04, WP-S0.06 | The generated PDF beside the reference set; rename T55 and renumber folio 3 → 4 (the D-01 replay): every affected output changes in one commit, and undo restores the bytes |
+| **M1** Spine exit: headless golden PDF | 21 (Jul 2028) | 15 (Jan 2028) | 15 (Jan 2028) | `ew export pdf golden/J-E-2416.ew` writes the 18 folios plus report folios 903–911 without a GUI; acceptance SQL/CSV pairs pass with the oracle on; perf gate running; two owners per critical crate; ADR-0030 decided; LG-1 and LG-2 closed | None: a signed source tag `m1`; nightly CLI builds for the pilot | **G-M1**: AC-01 … AC-13, AC-14 (Linux), AC-15 … AC-17, AC-18 (CLI), AC-20, AC-39; golden §19 rows gated M1 | 22 WPs: WP-S1.01 … WP-S1.10, WP-S3.01 … WP-S3.05, WP-S6.01 … WP-S6.03, WP-S7.01, WP-S7.02, WP-S0.04, WP-S0.06 | The generated PDF beside the reference set; rename T55 and renumber folio 3 → 4 (the D-01 replay): every affected output changes in one commit, and undo restores the bytes |
 | **M2** MVP: pilot release | 58 (Aug 2031) | 40 (Feb 2030) | 35 (Sep 2029) | Interactive 2D editing of the reference set; core reports, PDF and SVG; checks with the pre-delivery scheme; revisions and as-built archive; 2D panel (folio 902); PLC, bus and fluid MVP model; first signed release on three OSes; R1 passed (validates ADR-0007); LG-3 and LG-4 closed; ADR-0029 decided; CRA steward processes live | **0.1.0** | **G-M2**: AC-14 (all OSes), AC-18 (GUI), AC-19, AC-21, AC-23, AC-28, AC-29, AC-31, AC-32 (MVP part), AC-33, AC-37 (SVG), AC-40, AC-41; SC-1, SC-2 (2D), SC-5 (S, M), SC-6, SC-9 (R1), SC-10 … SC-12. AC-25 … AC-27 move to G-M3 with lever (b) | 39 WPs of M2 (lean), closed by WP-S6.08 | Usability tasks T1–T5 live on Golden A; `ew check --scheme pre-delivery` exits 1 with exactly the expected findings; offline installation of the signed build on a clean Windows VM |
 | **M3** Automation breadth and migration | 68 (Jun 2032) | 46 (Aug 2030) | 39 (Jan 2030) | PLC and bus 1.0; fluid 1.0; QET project migration (lever b); AML, TIA tag table and PLCopen exchange against reference files; EDZ and EPLAN parts XML; DXF and DWG; automation workspaces | 0.7.0 | **G-M3**: AC-25, AC-26, AC-27 (SC-4), AC-30 (reference files), AC-32 (1.0 part), AC-37 (DXF), AC-38; the EW-PLC and EW-BUS part of AC-22 | WP-S1.24, WP-S1.25, WP-S2.13, WP-S3.10, WP-S3.11, WP-S3.13, WP-S3.16, WP-S3.18, WP-S3.19 | A QET corpus project imported with its migration report; the AML of station -201U1 exported and validated; a golden part updated from an EDZ through a previewed command |
-| **M4** Manufacturing and 2D/3D panel | 82 (Aug 2033) | 57 (Jul 2031) | 51 (Jan 2031) | STEP worker, 3D view, collision, routing and lengths; production wire records, ferrules, labels; Komax, Rittal and Weidmüller profiles; drilling DXF; `.ewpp` | 0.18.0 | **G-M4**: AC-34; AC-35 content. AC-36 (thermal) moves to 1.x with lever (c) | WP-S1.28, WP-S4.03 … WP-S4.08, WP-S5.01 … WP-S5.07, WP-S7.06 | Golden A-R in 3D without collisions; `RouteWires` commits lengths that folio 907 shows; moving -102G1 marks lengths stale; the `.ewpp` rows equal folio 907 |
-| **M5** 1.0 feature complete (beta) | 86 (Dec 2033) | 58 (Aug 2031) | 51 (Jan 2031) | All 1.0 features merged; 1.0 rule packs exact; beta to the pilot and early adopters | 1.0.0-beta.1 | **G-M5**: AC-22 | WP-S1.26, WP-S1.30, WP-S3.15; lever (a) WPs WP-S1.23, WP-S2.10, WP-S3.12 | The pre-delivery check with the 1.0 packs on Golden A equals golden §18.1 plus §18.2; walkthrough of journeys J1–J6 |
+| **M4** Manufacturing and 2D/3D panel | 82 (Aug 2033) | 57 (Jul 2031) | 52 (Feb 2031) | STEP worker, 3D view, collision, routing and lengths; production wire records, ferrules, labels; Komax, Rittal and Weidmüller profiles; drilling DXF; `.ewpp` | 0.18.0 | **G-M4**: AC-34; AC-35 content. AC-36 (thermal) moves to 1.x with lever (c) | WP-S1.28, WP-S4.03 … WP-S4.08, WP-S5.01 … WP-S5.07, WP-S7.06 | Golden A-R in 3D without collisions; `RouteWires` commits lengths that folio 907 shows; moving -102G1 marks lengths stale; the `.ewpp` rows equal folio 907 |
+| **M5** 1.0 feature complete (beta) | 86 (Dec 2033) | 58 (Aug 2031) | 52 (Feb 2031) | All 1.0 features merged; 1.0 rule packs exact; beta to the pilot and early adopters | 1.0.0-beta.1 | **G-M5**: AC-22 | WP-S1.26, WP-S1.30, WP-S3.15; lever (a) WPs WP-S1.23, WP-S2.10, WP-S3.12 | The pre-delivery check with the 1.0 packs on Golden A equals golden §18.1 plus §18.2; walkthrough of journeys J1–J6 |
 | **M6** 1.0 release | 95 (Sep 2034) | 63 (Jan 2032) | 57 (Jul 2031) | Format frozen (since rc.1); R2 passed; SC-7 and SC-8 shown with real machines and installations; signed 1.0; word mark filed; LG-6 review | **1.0.0** | **G-M6**: AC-01 … AC-42 except AC-36 and AC-42 (1.x with lever c); every golden §19 row except D-40; NFR-UX-01 and NFR-UX-02 at 1.0; SC-7, SC-8; SC-13 reported | WP-S0.09, WP-S2.16, WP-S6.10, WP-S6.11, WP-S6.12, WP-S7.07, WP-S7.08 | TIA Portal imports the AML and the tag table round-trips; a partner shop loads the Komax and Rittal WT files; the R2 report |
 
 ### 5.2 Gate reviews
@@ -487,10 +487,10 @@ gantt
 ```
 
 **Reading it.**
-- **The spine takes the first 15 months** because both lanes are long: lane 1 (WP-S1.01 … WP-S1.10) is 46.3 pw and
-  lane 2 (WP-S3.01 … WP-S3.05) 26.4 pw, plus CI, legal, test kit, golden data and starter symbols.
+- **The spine takes the first 15 months** because both lanes are long: lane 1 (WP-S1.01 … WP-S1.10) is 47.5 pw and
+  lane 2 (WP-S3.01 … WP-S3.05) 26.8 pw, plus CI, legal, test kit, golden data and starter symbols.
 - **The UI starts at M1** (WP-S2.01 starts in January 2028). The interactive MVP takes 26 months after it,
-  because the M2 work of S1 (62 pw) and S2 (57 pw) must both be done before the stabilisation WP-S6.08.
+  because the M2 work of S1 (61 pw) and S2 (57 pw) must both be done before the stabilisation WP-S6.08.
 - **The physical and manufacturing chain runs at the end** (months 45–57) and is near-critical for 1.0 (§9.2).
 - **Release engineering is spread out:** packaging from month 25, security and CRA from month 30, the release
   pipeline from month 32; the first signed release needs all of them.
@@ -615,9 +615,11 @@ Cross-stream dependencies in the CSV (lean scope, without the two stabilisation 
 
 | Milestone (lean scope) | Longest dependency chain, unlimited developers | Capacity bound, 3 developers | Simulated, 3 developers |
 |---|---|---|---|
-| M1 | 11.6 months (chain ends in WP-S3.04) | 13.4 months | 14.3 → month 15 |
-| M2 | 19.5 months (WP-S1.01 … WP-S1.04 → WP-S2.01 → WP-S2.03 → WP-S2.04 → WP-S2.12 → WP-S6.08) | 37.6 months | 39.6 → month 40 |
+| M1 | 12.1 months (chain ends in WP-S3.04) | 13.7 months | 14.9 → month 15 |
+| M2 | 19.5 months (WP-S1.01 … WP-S1.04 → WP-S2.01 → WP-S2.03 → WP-S2.04 → WP-S2.12 → WP-S6.08) | 37.6 months | 39.8 → month 40 |
 | M6 | 28.1 months (WP-S1.01 … WP-S1.04 → WP-S1.13 → WP-S1.19 → WP-S4.01 → WP-S4.05 → WP-S4.07 → WP-S4.08 → WP-S5.04 → WP-S5.07 → WP-S6.10 → WP-S6.12) | 62.5 months | 62.8 → month 63 |
+
+**The M1 row includes 1.9 pw moved from M2 work packages** (WP-S1.12, WP-S1.14, WP-S1.18, WP-S3.08, WP-S6.05, WP-S6.08) into the spine WPs (WP-S1.02, WP-S1.04, WP-S1.06, WP-S1.07, WP-S3.03, WP-S6.01, WP-S6.03): the G1 acceptance criteria AC-03, AC-04, AC-06, AC-07, AC-08, AC-11, AC-17, AC-20 and AC-39 need a thin slice of those requirements at M1. Total effort is unchanged (523.4 pw); M1 moves from 14.3 to 14.9 months, still month 15 but with almost no margin.
 
 **With 2–4 developers the schedule is capacity-bound.** No single chain decides the date; every pw of extra work
 before a milestone moves it (about 1/9 of a month per pw with three developers). The chains still decide the
@@ -713,7 +715,7 @@ the join date. "Developer-years added" counts from the join to 1.0.
 | Developer 4 joins | M1 | M2 | M6 | Gain against 3 developers (M2 / M6, months) | Developer-years added |
 |---|---|---|---|---|---|
 | Not at all | 15 | 40 | 63 | — | — |
-| Month 4 (from 2027-03-01) | 13 | 35 | 57 | 5 / 6 | 4.4 |
+| Month 4 (from 2027-03-01) | 14 | 35 | 57 | 5 / 6 | 4.4 |
 | Month 9 (from 2027-08-01) | 14 | 36 | 57 | 4 / 6 | 4.0 |
 | Month 12 (from 2027-11-01) | 15 | 36 | 58 | 4 / 5 | 3.8 |
 | Month 15, M1 (from 2028-02-01) | 15 | 37 | 58 | 3 / 5 | 3.6 |

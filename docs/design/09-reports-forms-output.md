@@ -2,6 +2,8 @@
 
 **Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
 
+> **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
+
 **Purpose.** This document specifies how ElektraWatt (EW) turns the model into documents. It covers the built-in
 report kinds and user SQL reports, the declarative forms engine (report forms, frames, title blocks, cover pages),
 report blocks whose pages are derived and join the page order, and the single display-list pipeline that feeds
@@ -347,7 +349,7 @@ colour = "colour"                     # colour | monochrome (FR-OUT-011)
 languages = ["en-GB"]                 # one PDF per entry (FR-I18N-005, 1.0)
 omit_personal_data = false            # FR-OUT-025 (CLI --omit-personal-data), FR-PRJ-024; AML, .ewpp: FR-EXP-009
 status_mark = "auto"                  # auto: "DRAFT <label>" on unreleased revisions (FR-OUT-021)
-date = "model"                        # model | fixed "2024-07-12" | source-date-epoch (FR-OUT-026)
+date = "model"                        # model | fixed "2025-04-14" | source-date-epoch (FR-OUT-026)
 file_name = "{project.drawing_id}_{revision.current.label}_{lang}.pdf"
 ```
 
@@ -505,7 +507,7 @@ ORDER BY potential COLLATE ew_natural, load COLLATE ew_natural, pin COLLATE ew_n
 | `Missing(Length)` | "length missing" | -3W1 in folio 906 (FR-REP-013, D-19) |
 | `Stale(v, rev)` | value plus "≈" marker; allowed only in draft exports, refused in release exports (FR-EXP-001) | "≈ 810 mm" |
 | `Qty` | icu number format of the output language, SI spacing | "0.75 mm²", nl-NL "0,75 mm²" (FR-I18N-009) |
-| `Date` | project date format | "Creation: 10-06-2024"; ISO 8601 option (FR-PRJ-023) |
+| `Date` | project date format | "Creation: 03-03-2025"; ISO 8601 option (FR-PRJ-023) |
 | `Tag` | full designation (`=P01+J-E-2416-102G1`) or displayed form, per column setting | frozen S51 (`sign: Hidden`) prints "S51" in displayed form and `=P01+J-E-2416-S51` in full form ([03](03-domain-model.md) §8) |
 | `Range` | compressed tag list (below) | "-201U3-Q1 … -202U2-Q4" |
 

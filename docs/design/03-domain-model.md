@@ -2,6 +2,8 @@
 
 **Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
 
+> **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
+
 **Purpose.** This document defines the conceptual domain model shared by every ElektraWatt (EW) design document.
 For each entity of an electrical control-cabinet project it gives the purpose, the key attributes with types and
 units, the relationships, identity and lifecycle, the invariants, whether the concept is authored (stored, changed
@@ -2141,7 +2143,7 @@ Summary only; the authoritative tables are in [20-golden-project.md](20-golden-p
 | Bus | 1 logical net, 1 physical segment, -3X1 terminated, address `Tbd` | 1 |
 | Fluid | 28 valves with ports 1–5, 8 tube pairs F1–F16 ▲; medium, supply line and closures in A-R ▲ | 28 |
 | Layout | 1 space, -UC1, plate, 5 ducts, 3 rails ▲, placements in 3 rows | 1 |
-| `Revision` | V1.0 (2024-06-10, Released, historic, no archive), V2.0 (2024-07-12, Open, folios 101 and 106) | 2 |
+| `Revision` | V1.0 (2025-03-03, Released, historic, no archive), V2.0 (2025-04-14, Open, folios 101 and 106) | 2 |
 | `ReportBlock` | TOC, BOM 901, 903–911; embedded PART DATA boxes on 201, 202, 902 and the cover tables | 11 + 4 |
 | Frozen tags | S51, F55, T55, E55, S56, E56, 1X1 (Golden A); none in Golden B | 7 |
 

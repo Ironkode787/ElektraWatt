@@ -525,7 +525,7 @@ manufacturer.
 
 | Option | CRA role | Signing identity | Trademark holder | Neutrality | Effort | Verdict |
 |---|---|---|---|---|---|---|
-| **A. Pilot panel builder (B.V.) as interim steward** | Steward of the community edition; manufacturer only if it sells EW builds or support | Eligible (EU organisation) | Yes, with a written transfer commitment to B | Low: single employer, so the phase-1 check of GV-06 applies; its name appears on every signed binary (open question 7) | None | **Phase 1** (M0 to 1.0) |
+| **A. Pilot panel builder (the company) as interim steward** | Steward of the community edition; manufacturer only if it sells EW builds or support | Eligible (EU organisation) | Yes, with a written transfer commitment to B | Low: single employer, so the phase-1 check of GV-06 applies; its name appears on every signed binary (open question 7) | None | **Phase 1** (M0 to 1.0) |
 | **B. Stichting ElektraWatt** (Dutch foundation, notarial deed, board, no members) | Steward | Eligible (**verify** the D-U-N-S and Apple details) | Yes | High: the board includes a member not employed by the main employer | Weeks; notary and bookkeeping costs (**verify**); optional ANBI status for tax-deductible gifts (**verify**) | **Phase 2 target** (LG-6) |
 | C. Fiscal host only (Open Collective Europe) | Unclear whether a host acts as steward (**verify**) | Not offered | No | Medium | Days | For donations only, alongside A or B |
 | D. Umbrella foundation (Linux Foundation, Software Freedom Conservancy, Eclipse AISBL) | The foundation | Yes | Yes | High | Months; Eclipse requires its contributor agreement instead of the DCO (unverified), which conflicts with ADR-0024 | Re-evaluate at LG-6 |

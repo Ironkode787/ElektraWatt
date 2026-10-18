@@ -5,6 +5,8 @@ write, with enough technical detail to scope the importers and exporters. For ea
 availability, openness and legal limits, structure, existing parsers (Rust first, then permissively licensed C/C++),
 and difficulty.
 
+> **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
+
 **Method and evidence levels.**
 - **QElectroTech (QET)** facts come from a direct read of the QET source mirror (`master`, commit `894f9e3`,
   2026-10-17) and of its 24 example projects (file versions 0.80 to 0.200.1). They are verified.
@@ -13,7 +15,7 @@ and difficulty.
   hosts in this session, and the shared web-search budget ran out part-way through, so some sections rely on my own
   knowledge. Those claims are marked **(unverified)**.
 - Folio numbers (e.g. "folio 102") refer to the user's reference set `<drawing id>.pdf`. Its PDF
-  metadata says `Creator: QElectroTech 0.100.0-dev`, `Producer: Qt 5.15.11`, created 2024-07-12. The PDF has
+  metadata says `Creator: QElectroTech 0.100.0-dev`, `Producer: Qt 5.15.11`, created 2025-04-14. The PDF has
   **no outline (bookmarks) and no link annotations**.
 
 ---
@@ -875,7 +877,7 @@ Required features, each motivated by the reference set:
    CAx Download Manager output) carry different terms? This needs a reading of the primary text and possibly legal
    advice.
 2. **User's QET files.** Can the pilot user provide their real `.qet` projects (<customer> and others), and the QET build used
-   (0.100.0-dev, July 2024)? These would serve as golden fixtures. Do they use custom title-block templates,
+   (0.100.0-dev)? These would serve as golden fixtures. Do they use custom title-block templates,
    company collections (`company://`) or summary/BOM tables?
 3. **QET format freeze.** Will the user move to QET 0.200 / `.qetz` before migrating? If so, `.qetz` format 4 (and
    future formats) moves into v1 scope.

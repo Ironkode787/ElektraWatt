@@ -4,6 +4,8 @@ Research note for the ElektraWatt design (open-source, Rust, EPLAN-class ECAD fo
 Date of research: 2026-10-17. Scope: which standards ElektraWatt must implement or respect, and how
 each one becomes **data structures, validation rules, check-runs and report contents**.
 
+> **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
+
 **How to read this note**
 
 - Claims backed by a source carry an inline link. Claims marked **(unverified)** come from the
@@ -994,7 +996,7 @@ The title block must not be wider than 180 mm **(unverified)**.
 | The pilot user | Legal owner |
 | Drawing <drawing id> | Identification number |
 | Revision 1 / V1.0 / V1 / V2.0 | Revision index. Defect 5: the 2-character recommendation suggests a managed `rev: "02"` style |
-| Creation / Saved | Date of issue / edit date, ISO 8601 `YYYY-MM-DD` instead of `10-06-2024` |
+| Creation / Saved | Date of issue / edit date, ISO 8601 `YYYY-MM-DD` instead of `03-03-2025` |
 | Page / Prev / Next | Sheet number + navigation, computed |
 | Author / Checked | Creator / Approval person |
 | Description | Title |
