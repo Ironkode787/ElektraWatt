@@ -156,7 +156,12 @@ pub struct Limits {                    // §11; a violation refuses the file or 
     pub max_xml_attributes_per_element: u32,  // 8,192 (roxmltree checks duplicates quadratically per element)
     pub max_xml_attributes: u32,       // 1,048,576 per document
     pub max_xml_attribute_work: u64,   // 2^26: the sum over elements of (attribute count)^2
+    pub max_text_bytes: u32,           // 1 MiB per text node or CDATA section; the pre-scan counts the bytes between `>` and the next `<`
 }
+// Limits::element_definition(): the defaults with max_input_bytes = 16 MiB, for standalone element
+// definitions (kilobytes in practice); 512 MiB stays the default for project files, whose importer reads
+// them under its own budget. The element importer applies the stricter of the context's limit and the
+// preset, field by field (Limits::stricter).
 // crate constant, not a Limits member: MAX_ENTRIES_PER_DEFINITION = 1,000 report entries per element
 // definition; the rest are summarised in one EW-IMP-001 entry
 pub struct ImportBatch {
@@ -1198,7 +1203,7 @@ allocator of [18](18-quality-security-release.md) §3.12. The per-parser values:
 
 | Parser | Limits beyond NFR-SEC-02 |
 |---|---|
-| XML (QET, parts XML, AML, GSDML, IODD, BMEcat) | DTD refused (no internal or external entities, no XInclude); depth ≤ 256; attribute value ≤ 16 MiB; base64 payload ≤ 64 MiB decoded; decoded images ≤ 16,384 × 16,384 px; ≤ 8,192 attributes per element (`max_xml_attributes_per_element`) and ≤ 1,048,576 per document (`max_xml_attributes`); attribute work ≤ 2^26, the sum over elements of the squared attribute count (`max_xml_attribute_work`); ≤ 1,000,000 nodes per document (`max_xml_nodes`), counting nodes (root, elements and comments in the pre-scan; texts and processing instructions by the parser), not attributes; a project importer may raise the node limit explicitly under its own budget; at most 2 × `max_xml_nodes` + `max_xml_attributes` markup bytes (`<` and `=`, 3,048,576 by default), because roxmltree 0.21.1 reserves about 72 bytes per such byte before any node limit applies |
+| XML (QET, parts XML, AML, GSDML, IODD, BMEcat) | DTD refused (no internal or external entities, no XInclude); depth ≤ 256; attribute value ≤ 16 MiB; base64 payload ≤ 64 MiB decoded; decoded images ≤ 16,384 × 16,384 px; ≤ 8,192 attributes per element (`max_xml_attributes_per_element`) and ≤ 1,048,576 per document (`max_xml_attributes`); attribute work ≤ 2^26, the sum over elements of the squared attribute count (`max_xml_attribute_work`); ≤ 1,000,000 nodes per document (`max_xml_nodes`), counting nodes (root, elements and comments in the pre-scan; texts and processing instructions by the parser), not attributes; a project importer may raise the node limit explicitly under its own budget; at most 2 × `max_xml_nodes` + `max_xml_attributes` markup bytes (`<` and `=`, 3,048,576 by default), because roxmltree 0.21.1 reserves about 72 bytes per such byte before any node limit applies; each text node or CDATA section ≤ 1 MiB (`max_text_bytes`), because text is copied several times downstream and no other bound covers it; a standalone element definition is read under the preset `Limits::element_definition()`, an input of ≤ 16 MiB |
 | Archives (EDZ 7z/ZIP, QETZ, `.ewz`, XLSX) | ≤ 100,000 entries; ≤ 2 GiB expanded; ≤ 512 MiB per entry; ratio ≤ 200 : 1 per entry; names with `..`, absolute or drive paths, `\`, `:` or NUL rejected; symlink and encrypted entries refused; 7z solid block ≤ 512 MiB |
 | DXF | file ≤ 512 MiB; ≤ 5 million entities; block nesting ≤ 32; INSERT/MINSERT expansion ≤ 10 million primitives; spline control points ≤ 100,000; coordinates finite and within ±2^62 nm after scaling |
 | CSV, XLSX | ≤ 1,000,000 rows; ≤ 1,024 columns; cell ≤ 32 KiB; formulas never evaluated |
@@ -1210,7 +1215,7 @@ allocator of [18](18-quality-security-release.md) §3.12. The per-parser values:
 **Report volume.** One hostile element definition could produce a finding per primitive. Report entries are
 therefore capped at 1,000 per element definition (the crate constant `MAX_ENTRIES_PER_DEFINITION`); the rest are
 summarised in one EW-IMP-001 entry that gives their count. At most 64 style pairs are parsed per primitive, and at most 8 unsupported pairs per primitive and 1,000 per definition are kept in `extra`; the rest are reported by count. The attribute counts, the attribute work budget, the
-node limit and this cap (`Limits`, §2.1) serve the rule above: a hostile input is rejected within 1 s and 256 MB of
+node limit, the text-node limit, the 16 MiB element-definition input preset and this cap (`Limits`, §2.1) serve the rule above: a hostile input is rejected within 1 s and 256 MB of
 extra allocation. Report locations use a sparse line index (one checkpoint per 64 KiB of input), so memory stays
 O(size / 64 KiB) whatever the number of newlines. The attribute work budget and the node default are what make the
 1 s / 256 MB rule hold against inputs that stay under the per-element and per-document attribute counts.

@@ -73,13 +73,53 @@ pub struct Limits {
     /// (10 MB, within both counts) took 13.4 s. The default, 2^26 = 67,108,864, admits one element at the
     /// 8,192 cap, or about 1,000 elements of 256 attributes, in about 90 ms.
     pub max_xml_attribute_work: u64,
+    /// Longest accepted XML text node or CDATA section, in bytes. Enforced before the XML is parsed, by a
+    /// flat scan: the bytes between a `>` and the next `<` outside comments and CDATA, and the payload of a
+    /// CDATA section, each at most this long.
+    ///
+    /// The default, 1 MiB (1,048,576), closes a gap in the other bounds, which count markup and not text: a
+    /// 200 MiB plain-text run in one `<name>` imported in 2.55 s with 1.6 GB extra, because an importer
+    /// copies a name several times (white-space collapse, multilingual text, canonical XML, symbol name,
+    /// serialisation). Names, descriptions and kind information are a few hundred bytes in practice.
+    pub max_text_bytes: u32,
+}
+
+impl Limits {
+    /// The limits for a standalone element definition: the defaults with `max_input_bytes` of 16 MiB
+    /// (16,777,216).
+    ///
+    /// A standalone QET element definition is kilobytes. The 512 MiB default stays that of project files,
+    /// whose importer reads them under its own time and memory budget.
+    pub fn element_definition() -> Limits {
+        Limits {
+            max_input_bytes: 16 * 1024 * 1024,
+            ..Limits::default()
+        }
+    }
+
+    /// The field-wise minimum of `self` and `other`: the stricter of each limit.
+    pub fn stricter(self, other: Limits) -> Limits {
+        Limits {
+            max_input_bytes: self.max_input_bytes.min(other.max_input_bytes),
+            max_xml_depth: self.max_xml_depth.min(other.max_xml_depth),
+            max_xml_nodes: self.max_xml_nodes.min(other.max_xml_nodes),
+            max_attribute_bytes: self.max_attribute_bytes.min(other.max_attribute_bytes),
+            max_xml_attributes_per_element: self
+                .max_xml_attributes_per_element
+                .min(other.max_xml_attributes_per_element),
+            max_xml_attributes: self.max_xml_attributes.min(other.max_xml_attributes),
+            max_xml_attribute_work: self.max_xml_attribute_work.min(other.max_xml_attribute_work),
+            max_text_bytes: self.max_text_bytes.min(other.max_text_bytes),
+        }
+    }
 }
 
 impl Default for Limits {
     /// The values of doc 14 §11: XML depth ≤ 256, attribute value ≤ 16 MiB; inputs up to 512 MiB (the DXF
     /// file limit); 1,000,000 XML nodes (see [`Limits::max_xml_nodes`]); 8,192 attributes per element (see
     /// [`Limits::max_xml_attributes_per_element`]), 1,048,576 per document and an attribute work of 2^26
-    /// (see [`Limits::max_xml_attribute_work`]).
+    /// (see [`Limits::max_xml_attribute_work`]); text nodes and CDATA sections up to 1 MiB (see
+    /// [`Limits::max_text_bytes`]).
     fn default() -> Limits {
         Limits {
             max_input_bytes: 512 * 1024 * 1024,
@@ -89,6 +129,7 @@ impl Default for Limits {
             max_xml_attributes_per_element: 8_192,
             max_xml_attributes: 1_048_576,
             max_xml_attribute_work: 1 << 26,
+            max_text_bytes: 1024 * 1024,
         }
     }
 }

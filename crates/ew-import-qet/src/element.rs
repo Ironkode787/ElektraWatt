@@ -162,7 +162,7 @@ fn lib_copy<T: Serialize>(library: Id<Library>, item_id: Id<LibItem>, item: T) -
 /// # Errors
 ///
 /// [`ImportError::Malformed`] for malformed XML or a DOCTYPE; [`ImportError::LimitExceeded`] for an exceeded
-/// node, depth, attribute-count, attribute-work, markup-character or attribute-size limit, or for a
+/// node, depth, attribute-count, attribute-work, markup-character, text-node or attribute-size limit, or for a
 /// definition with more than 65,535 terminals (`what` is `"terminals per element definition"`; EW-IMP-001
 /// for the file);
 /// [`ImportError::Unsupported`] if the root is not `<definition type="element">`.
@@ -571,10 +571,13 @@ impl Importer for QetElementImporter {
 
     fn import(&self, input: &ImportInput, ctx: &mut ImportContext) -> Result<ImportBatch, ImportError> {
         let size = input.bytes().len() as u64;
-        if size > ctx.limits.max_input_bytes {
+        // The context's limits apply where stricter than the element-definition preset (16 MiB input), so a
+        // context carrying the general defaults reads a standalone definition under the preset.
+        let limits = ctx.limits.stricter(Limits::element_definition());
+        if size > limits.max_input_bytes {
             return Err(ImportError::LimitExceeded {
                 what: "input size".into(),
-                limit: ctx.limits.max_input_bytes,
+                limit: limits.max_input_bytes,
             });
         }
         let bytes = input
@@ -614,7 +617,7 @@ impl Importer for QetElementImporter {
         let src = ElementSource::new(input.name(), None).map_err(|e| ImportError::Unsupported {
             message: e.to_string(),
         })?;
-        let el = read_element(xml, &src, &lineage, ctx.project, &ctx.limits)?;
+        let el = read_element(xml, &src, &lineage, ctx.project, &limits)?;
 
         let mut report = ImportReport::new(
             crate::IMPORTER_ID,

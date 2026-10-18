@@ -167,6 +167,30 @@ fn limits_default() {
     assert_eq!(l.max_xml_attributes_per_element, 8_192);
     assert_eq!(l.max_xml_attributes, 1_048_576);
     assert_eq!(l.max_xml_attribute_work, 67_108_864);
+    assert_eq!(l.max_text_bytes, 1_048_576);
+}
+
+#[test]
+fn limits_element_definition_and_stricter() {
+    let e = Limits::element_definition();
+    assert_eq!(e.max_input_bytes, 16_777_216);
+    assert_eq!(
+        e,
+        Limits {
+            max_input_bytes: 16_777_216,
+            ..Limits::default()
+        }
+    );
+    // The stricter of each field, whichever side it comes from.
+    let ctx = Limits {
+        max_input_bytes: 1000,
+        max_xml_nodes: 5_000_000,
+        ..Limits::default()
+    };
+    let m = ctx.stricter(e);
+    assert_eq!(m.max_input_bytes, 1000);
+    assert_eq!(m.max_xml_nodes, 1_000_000);
+    assert_eq!(Limits::default().stricter(e), e);
 }
 
 #[test]

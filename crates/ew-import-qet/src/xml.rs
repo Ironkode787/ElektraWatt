@@ -17,7 +17,9 @@
 //!    It also bounds the memory `roxmltree` reserves before it parses: the parser sizes its node and
 //!    attribute vectors from the number of `<` and `=` bytes in the whole input (about 72 bytes each in
 //!    0.21.1, so 16 million `=` in one text reserve 1.1 GB), whatever its node limit, so an input with more
-//!    of them than [`markup_char_limit`] is refused;
+//!    of them than [`markup_char_limit`] is refused. It also bounds every text node and CDATA section by
+//!    [`Limits::max_text_bytes`], because a long plain-text run passes every other bound yet is copied
+//!    several times downstream (whitespace collapse, canonical XML, the content hash);
 //! 2. [`with_parser_stack`] runs the parse (and everything that walks the tree) on a scoped thread whose
 //!    stack is sized for the measured depth: 4 MiB plus 64 KiB per level.
 //!
@@ -143,6 +145,7 @@ pub fn max_depth(xml: &str, limit: u32) -> Option<u32> {
         max_xml_attributes_per_element: u32::MAX,
         max_xml_attributes: u32::MAX,
         max_xml_attribute_work: u64::MAX,
+        max_text_bytes: u32::MAX,
         ..Limits::default()
     };
     let s = scan(xml, &limits);
@@ -151,7 +154,8 @@ pub fn max_depth(xml: &str, limit: u32) -> Option<u32> {
 
 /// The flat pre-scan of `xml` against `limits`: the deepest element nesting, unless the scan exceeds
 /// [`Limits::max_xml_depth`], [`Limits::max_xml_attributes_per_element`], [`Limits::max_xml_attributes`],
-/// [`Limits::max_xml_attribute_work`] or [`Limits::max_xml_nodes`], or has more `<` and `=` bytes than
+/// [`Limits::max_xml_attribute_work`] or [`Limits::max_xml_nodes`], has a text node or CDATA section longer
+/// than [`Limits::max_text_bytes`], or has more `<` and `=` bytes than
 /// [`markup_char_limit`] (it stops at the first). Attributes are
 /// counted as the `=` signs outside quoted values in start tags, one per attribute in well-formed XML; the
 /// attribute work is the sum over elements of the square of that count. The node count is a lower bound of
@@ -172,8 +176,8 @@ pub fn max_depth(xml: &str, limit: u32) -> Option<u32> {
 /// # Errors
 ///
 /// [`ImportError::LimitExceeded`] naming the limit the scan exceeded: `"XML depth"`, `"XML attributes per
-/// element"`, `"XML attribute count"`, `"XML attribute work"`, `"XML node count"` or `"XML markup
-/// characters"`.
+/// element"`, `"XML attribute count"`, `"XML attribute work"`, `"XML node count"`, `"XML text node"` or
+/// `"XML markup characters"`.
 pub fn prescan(xml: &str, limits: &Limits) -> Result<u32, ImportError> {
     let s = scan(xml, limits);
     match s.exceeded {
@@ -226,10 +230,16 @@ fn scan(xml: &str, limits: &Limits) -> Scan {
             .position(|w| w == end)
             .map_or(b.len(), |p| from + p + end.len())
     };
+    let max_text = u64::from(limits.max_text_bytes);
+    // The end of the previous markup construct: the text node before the next `<` starts there.
+    let mut text_start = 0usize;
     while i < b.len() {
         if b[i] != b'<' {
             i += 1;
             continue;
+        }
+        if (i - text_start) as u64 > max_text {
+            return Scan::stop(max, "XML text node", limits.max_text_bytes);
         }
         let rest = &b[i..];
         if rest.starts_with(b"<!--") {
@@ -238,7 +248,17 @@ fn scan(xml: &str, limits: &Limits) -> Scan {
             }
             i = skip_to(i + 4, b"-->");
         } else if rest.starts_with(b"<![CDATA[") {
-            i = skip_to(i + 9, b"]]>");
+            let end = skip_to(i + 9, b"]]>");
+            // The payload excludes the opening `<![CDATA[` and, if the section is closed, the `]]>`.
+            let close = if end >= i + 12 && b[..end].ends_with(b"]]>") {
+                3
+            } else {
+                0
+            };
+            if ((end - close) - (i + 9)) as u64 > max_text {
+                return Scan::stop(max, "XML text node", limits.max_text_bytes);
+            }
+            i = end;
         } else if rest.starts_with(b"<?") {
             i = skip_to(i + 2, b"?>");
         } else if rest.starts_with(b"<!") {
@@ -287,6 +307,10 @@ fn scan(xml: &str, limits: &Limits) -> Scan {
             }
             i = j + 1;
         }
+        text_start = i;
+    }
+    if b.len().saturating_sub(text_start) as u64 > max_text {
+        return Scan::stop(max, "XML text node", limits.max_text_bytes);
     }
     Scan {
         depth: max,
@@ -550,5 +574,38 @@ mod tests {
         })
         .unwrap();
         assert_eq!(n, 257); // the document root plus 256 elements
+    }
+
+    #[test]
+    fn text_nodes_and_cdata_are_bounded() {
+        let limits = Limits::default();
+        let mib = 1024 * 1024;
+        let refused = |xml: &str| {
+            assert_eq!(
+                prescan(xml, &limits),
+                Err(ImportError::LimitExceeded {
+                    what: "XML text node".into(),
+                    limit: 1_048_576
+                })
+            );
+        };
+        // Exactly 1 MiB passes, one byte more is refused; in an element, before a tag, after a comment.
+        let ok = format!("<a>{}</a>", "x".repeat(mib));
+        assert_eq!(prescan(&ok, &limits), Ok(1));
+        refused(&format!("<a>{}</a>", "x".repeat(mib + 1)));
+        refused(&format!("<a>{}</a>", "x".repeat(2 * mib)));
+        refused(&format!("<a><!-- c -->{}<b/></a>", "x".repeat(2 * mib)));
+        // Text after the last tag counts too.
+        refused(&format!("<a/>{}", "x".repeat(2 * mib)));
+        // Many small texts are fine: the limit is per node.
+        assert!(prescan(&format!("<a>{}</a>", "<b>x</b>".repeat(400_000)), &limits).is_ok());
+        // CDATA: the payload is bounded, the markers are not counted.
+        let cdata_ok = format!("<a><![CDATA[{}]]></a>", "x".repeat(mib));
+        assert_eq!(prescan(&cdata_ok, &limits), Ok(1));
+        refused(&format!("<a><![CDATA[{}]]></a>", "x".repeat(2 * mib)));
+        // An unterminated CDATA section is bounded too.
+        refused(&format!("<a><![CDATA[{}", "x".repeat(2 * mib)));
+        // `max_depth` does not apply the text limit.
+        assert_eq!(max_depth(&format!("<a>{}</a>", "x".repeat(2 * mib)), 5), Some(1));
     }
 }

@@ -50,6 +50,10 @@ pub fn canonical_xml(element: Node<'_, '_>) -> String {
 }
 
 /// SHA-256 of [`canonical_xml`].
+///
+/// The canonical XML is built as one `String` and then hashed, a copy of the definition's size. That is
+/// within budget at the 16 MiB input of `Limits::element_definition()`; a streaming hasher fed by the
+/// serialiser would remove the copy if larger inputs are ever allowed.
 pub fn identity_sha256(element: Node<'_, '_>) -> [u8; 32] {
     Sha256::digest(canonical_xml(element).as_bytes()).into()
 }

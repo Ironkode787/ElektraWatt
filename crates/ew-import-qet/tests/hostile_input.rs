@@ -208,11 +208,11 @@ fn attribute_flood_across_elements_is_refused() {
     );
 }
 
-/// N1: a finding after a 64 MiB comment of newlines gets its line from a sparse index, not one entry
+/// N1: a finding after a 12 MiB comment of newlines gets its line from a sparse index, not one entry
 /// per newline.
 #[test]
 fn finding_after_many_newlines_uses_a_small_line_index() {
-    const NEWLINES: usize = 64 * 1024 * 1024;
+    const NEWLINES: usize = 12 * 1024 * 1024;
     let mut text = String::with_capacity(NEWLINES + 128);
     text.push_str("<definition type=\"element\">");
     text.push_str("<!--");
@@ -233,7 +233,7 @@ fn finding_after_many_newlines_uses_a_small_line_index() {
         entry.location.as_ref().unwrap().line,
         Some(u32::try_from(NEWLINES).unwrap() + 1)
     );
-    // The old index held one `usize` per newline (512 MiB here).
+    // The old index held one `usize` per newline (96 MiB here).
     let index = LineIndex::new(&text);
     assert!(index.heap_bytes() < 1 << 20, "{}", index.heap_bytes());
     assert!(index.checkpoint_count() <= text.len() / 65_536 + 1);
@@ -345,10 +345,11 @@ fn markup_character_flood_is_refused_before_parsing() {
 /// N4: just under the bound, the input imports within the budget.
 #[test]
 fn markup_characters_under_the_bound_import_within_budget() {
+    // The `=` come in texts of 500,000, under the text-node limit, between comments.
+    let texts = vec!["=".repeat(500_000); 4].join("<!---->");
     let text = format!(
-        "<definition type=\"element\"><!--{}-->{}</definition>",
-        "<".repeat(1_000_000),
-        "=".repeat(2_000_000)
+        "<definition type=\"element\"><!--{}-->{texts}</definition>",
+        "<".repeat(1_000_000)
     );
     let (result, elapsed) = timed_import(&text);
     eprintln!("markup_characters_under_the_bound_import_within_budget: {elapsed:?}");
@@ -429,5 +430,76 @@ fn many_small_style_attributes_are_capped_per_definition() {
             .starts_with("599000 unsupported style pairs dropped"),
         "{}",
         summary.message
+    );
+}
+
+/// A definition whose `section` element holds `n` bytes of plain text, built as one buffer.
+fn text_run(section_open: &str, section_close: &str, n: usize) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(n + 200);
+    bytes.extend_from_slice(b"<definition type=\"element\">");
+    bytes.extend_from_slice(section_open.as_bytes());
+    bytes.resize(bytes.len() + n, b'a');
+    bytes.extend_from_slice(section_close.as_bytes());
+    bytes.extend_from_slice(b"</definition>");
+    bytes
+}
+
+/// Imports `bytes` as `x.elmt` and returns the error with the time it took.
+fn timed_refusal(bytes: Vec<u8>, name: &str) -> ImportError {
+    let input = ImportInput::new("x.elmt", bytes).unwrap();
+    let mut ctx = ImportContext::new(Id::from_uuid(Uuid::from_u128(1)));
+    let start = Instant::now();
+    let result = QetElementImporter.import(&input, &mut ctx);
+    let elapsed = start.elapsed();
+    eprintln!("{name}: {elapsed:?}");
+    assert!(elapsed < budget(), "{name} took {elapsed:?}");
+    result.expect_err("the input is refused")
+}
+
+/// N6: 200 MiB of text in `<informations>` is refused by the 16 MiB element-definition input preset, not
+/// read (it used to import in 1.2 s with 656 MiB extra).
+#[test]
+fn huge_text_run_is_refused_by_the_input_preset() {
+    let bytes = text_run("<informations>", "</informations>", 200 * 1024 * 1024);
+    let err = timed_refusal(bytes, "huge_text_run_is_refused_by_the_input_preset");
+    assert_eq!(
+        err,
+        ImportError::LimitExceeded {
+            what: "input size".into(),
+            limit: 16 * 1024 * 1024
+        }
+    );
+}
+
+/// N6: 17 MiB of text is over the preset.
+#[test]
+fn seventeen_mib_is_refused_by_the_input_preset() {
+    let bytes = text_run("<informations>", "</informations>", 17 * 1024 * 1024);
+    let err = timed_refusal(bytes, "seventeen_mib_is_refused_by_the_input_preset");
+    assert_eq!(
+        err,
+        ImportError::LimitExceeded {
+            what: "input size".into(),
+            limit: 16 * 1024 * 1024
+        }
+    );
+}
+
+/// N6: a 2 MiB `<name>` in a 3 MiB document is within the input preset and refused by the text-node limit.
+#[test]
+fn big_name_is_refused_by_the_text_node_limit() {
+    let mut bytes = text_run("<names><name lang=\"en\">", "</name></names>", 2 * 1024 * 1024);
+    // Pad to 3 MiB with one comment, which is not a text node.
+    let pad = format!("<!--{}-->", "p".repeat(1024 * 1024));
+    let at = bytes.len() - b"</definition>".len();
+    bytes.splice(at..at, pad.bytes());
+    assert!(bytes.len() >= 3 * 1024 * 1024);
+    let err = timed_refusal(bytes, "big_name_is_refused_by_the_text_node_limit");
+    assert_eq!(
+        err,
+        ImportError::LimitExceeded {
+            what: "XML text node".into(),
+            limit: 1_048_576
+        }
     );
 }

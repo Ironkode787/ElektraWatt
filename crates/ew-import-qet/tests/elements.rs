@@ -310,7 +310,14 @@ fn arc_lamp_and_category_path() {
         Some("embed://import/10_electric/40_signaling/lamp.elmt"),
     )
     .unwrap();
-    let el = read_element(&xml, &src, &lineage, Id::from_uuid(PROJECT), &Limits::default()).unwrap();
+    let el = read_element(
+        &xml,
+        &src,
+        &lineage,
+        Id::from_uuid(PROJECT),
+        &Limits::element_definition(),
+    )
+    .unwrap();
     let f = &el.fndef.unwrap().item;
     assert_eq!(f.category.0.as_str(), "Lamp");
     assert!(el.entries.iter().all(|e| e.code != Code::BLACK_BOX));
@@ -555,7 +562,7 @@ fn fixed_lineage() -> LineageInfo {
 fn more_than_65535_terminals_are_refused() {
     let src = ElementSource::new("big.elmt", None).unwrap();
     let project = Id::from_uuid(PROJECT);
-    let limits = Limits::default();
+    let limits = Limits::element_definition();
     let err = read_element(
         &definition_with_terminals(65_536),
         &src,
@@ -595,7 +602,7 @@ fn names_are_whitespace_collapsed_like_the_identity() {
             &src,
             &fixed_lineage(),
             Id::from_uuid(PROJECT),
-            &Limits::default(),
+            &Limits::element_definition(),
         )
         .unwrap()
     };
