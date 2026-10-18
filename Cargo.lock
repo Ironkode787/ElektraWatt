@@ -617,6 +617,17 @@ dependencies = [
 [[package]]
 name = "ew-testkit"
 version = "0.0.0"
+dependencies = [
+ "ew-api",
+ "ew-commands",
+ "ew-ids",
+ "ew-mltext",
+ "ew-model",
+ "ew-rds",
+ "ew-schema",
+ "ew-units",
+ "serde_json",
+]
 
 [[package]]
 name = "ew-text"

@@ -13,3 +13,24 @@ publish = false
 
 [lints]
 workspace = true
+
+[dependencies]
+# The generator (`ew_testkit::synth`) builds format-level records and the model snapshot from them.
+ew-model = { path = "../ew-model" }
+ew-schema = { path = "../ew-schema" }
+# IDs come from `V7Generator` over a seeded source of this crate, so no test-only feature is needed here.
+ew-ids = { path = "../ew-ids" }
+ew-units = { path = "../ew-units" }
+ew-mltext = { path = "../ew-mltext" }
+ew-rds = { path = "../ew-rds" }
+
+[dev-dependencies]
+# Tests and benches load the generated projects through the Session facade and run commands on them.
+ew-api = { path = "../ew-api" }
+ew-commands = { path = "../ew-commands", features = ["testkit"] }
+ew-ids = { path = "../ew-ids", features = ["testkit"] }
+serde_json = "1.0.154"
+
+[[bench]]
+name = "cold_ops"
+harness = false
