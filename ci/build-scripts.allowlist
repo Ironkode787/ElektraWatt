@@ -32,3 +32,8 @@ num-traits # autocfg probe compile for one cfg flag (proptest, dev-only)
 rustversion # runs `rustc --version`, writes version.expr to OUT_DIR
 wasm-bindgen # wasm targets only in practice: version cfg via a vendored rustversion, link args for emscripten
 wasm-bindgen-shared # hashes two of its own source files into an env var; runs `git rev-parse HEAD` (local)
+#
+# Reviewed at WP-S3.01 (ew-dl and its dev-dependencies). Neither opens a network connection or downloads
+# anything.
+libm # 0.2.16: reads CARGO_* and TARGET env vars, emits cfg flags and rustc-env values only; writes no files
+rustix # 1.1.5 (tempfile via insta, dev-only): probe-compiles snippets with rustc into OUT_DIR, deletes the artifact, emits cfg flags

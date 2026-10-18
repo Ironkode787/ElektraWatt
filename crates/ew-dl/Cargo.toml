@@ -16,3 +16,16 @@ workspace = true
 
 [dependencies]
 ew-units = { path = "../ew-units" }
+# The f64 conversions for renderers and picking (`Path::to_kurbo`, `Transform::to_affine`). Never used for
+# export arithmetic (docs/design/09-reports-forms-output.md §4.3 rule 4).
+kurbo = { version = "0.13.1", default-features = false, features = ["std"] }
+# Pure-Rust trigonometry for the deterministic numerics of `num` (doc 09 §4.3 rule 4). Default features off:
+# the `arch` feature routes some functions through target-specific code paths.
+libm = { version = "0.2.16", default-features = false }
+# Only the `Uuid` type, for entity references, symbol geometry keys and link destinations. Same requirement
+# as ew-ids (ADR-0004 pins 1.28.0 in Cargo.lock; 1.26 keeps the MSRV job resolvable).
+uuid = { version = "1.26", default-features = false }
+
+[dev-dependencies]
+insta = { version = "1.49.0", default-features = false }
+proptest = { version = "1.12.0", default-features = false, features = ["std"] }
