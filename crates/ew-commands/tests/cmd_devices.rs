@@ -240,7 +240,7 @@ fn place_new_device_creates_device_function_and_representation() {
         fndef: None,
         kind: Some(DeviceKind::Psu),
     };
-    let mut cmd = place(PAGE_102, pt(3 * MM10, 4 * MM10), target);
+    let mut cmd = place(PAGE_102, pt(3 * G, 4 * G), target);
     cmd.orient = Orient2::R90;
     cmd.variant = 2;
     let r = e.execute(&cmd).expect("device.place");
@@ -257,7 +257,7 @@ fn place_new_device_creates_device_function_and_representation() {
     );
     let mut expected_rep = rep(rep_id, PAGE_102, vec![fns[0]]);
     expected_rep.symbol = SYM_TWO;
-    expected_rep.pos = pt(3 * MM10, 4 * MM10);
+    expected_rep.pos = pt(3 * G, 4 * G);
     expected_rep.orient = Orient2::R90;
     expected_rep.variant = 2;
     assert_eq!(*row(&e, rep_id), expected_rep);
@@ -325,7 +325,7 @@ fn place_existing_function_adds_a_representation_and_keeps_the_device() {
     let r = e
         .execute(&place(
             PAGE_101,
-            pt(MM10, 0),
+            pt(G, 0),
             PlaceTarget::ExistingFunction { function: FN_102F2 },
         ))
         .unwrap();
@@ -436,7 +436,7 @@ fn place_hints_create_wires_and_extend_junctions() {
 }
 
 #[test]
-fn place_hints_reject_unknown_cps_and_points_on_connections() {
+fn place_hints_reject_bad_cps_and_connections_and_drop_missing_targets() {
     let mut e = engine(golden_model());
     let mut cmd = place(PAGE_102, pt(0, 0), new_device("F"));
     cmd.connect = vec![ConnectHint {
@@ -447,20 +447,44 @@ fn place_hints_reject_unknown_cps_and_points_on_connections() {
         },
     }];
     rejected(e.execute(&cmd));
-    cmd.connect = vec![ConnectHint {
-        cp: 0,
-        to: EndpointParam::OnConnection {
-            connection: CON_W11B,
-            at: pt(0, 0),
-        },
-    }];
-    rejected(e.execute(&cmd));
+    // a page-less connection cannot take a junction; the split point must be on the grid
+    for (connection, at) in [(CON_BR1, pt(0, 0)), (CON_W11B, pt(1, 0))] {
+        cmd.connect = vec![ConnectHint {
+            cp: 0,
+            to: EndpointParam::OnConnection { connection, at },
+        }];
+        rejected(e.execute(&cmd));
+    }
     cmd.connect = vec![ConnectHint {
         cp: 0,
         to: EndpointParam::Junction { junction: id(0xccc) },
     }];
-    not_found(e.execute(&cmd));
-    assert_eq!(e.model().rev().0, 0);
+    // a hint whose target no longer exists is dropped with a notice; the symbol is still placed
+    let r = e.execute(&cmd).unwrap();
+    assert!(
+        r.outcome.notices.iter().any(|n| n.contains("no longer exists")),
+        "{:?}",
+        r.outcome.notices
+    );
+    assert!(created::<Connection>(&r, Kind::Connection).is_empty());
+}
+
+#[test]
+fn place_hint_on_a_connection_splits_it_at_a_junction() {
+    let mut e = engine(golden_model());
+    let mut cmd = place(PAGE_102, pt(0, 0), new_device("F"));
+    cmd.connect = vec![ConnectHint {
+        cp: 0,
+        to: EndpointParam::OnConnection {
+            connection: CON_W11B,
+            at: pt(G, 0),
+        },
+    }];
+    let r = e.execute(&cmd).unwrap();
+    let junctions: Vec<ew_ids::Id<ew_schema::Junction>> = created(&r, Kind::Junction);
+    assert_eq!(junctions.len(), 1);
+    assert_eq!(row(&e, junctions[0]).at, pt(G, 0));
+    assert_eq!(row(&e, junctions[0]).sequence.len(), 3);
 }
 
 #[test]
@@ -468,16 +492,27 @@ fn place_on_a_wire_splits_it() {
     let wire: ew_ids::Id<Connection> = id(0x4100);
     let mut original = connection(wire, Some(PAGE_102), cp(FN_102G1, 0), cp(FN_T1, 1));
     original.route = vec![pt(0, -MM10), pt(0, 2 * MM10)];
+    original.number = NumberSpec::Assigned(ew_schema::AssignedNumber::new(7));
+    original.overrides.csa = Some(ew_schema::Csa::Mm2(ew_units::Dec3(2_500)));
+    original.overrides.colour = Some(ew_schema::ColourSpec::one(ew_schema::ColourCode::Iec(
+        ew_schema::IecColour::Bu,
+    )));
     let model = golden_with(|r| r.push(Record::Connection(original.clone())));
     let mut e = engine(model);
     let r = e.execute(&place(PAGE_102, pt(0, 0), new_device("F"))).unwrap();
-    assert!(r.passes <= 3, "passes: {}", r.passes);
+    assert!(
+        r.passes <= ew_commands::normalise::MAX_PASSES + 1,
+        "passes: {}",
+        r.passes
+    );
     let f: ew_ids::Id<Function> = created(&r, Kind::Function)[0];
     let first = row(&e, wire);
     assert_eq!(first.a, cp(FN_102G1, 0));
     assert_eq!(first.b, cp(f, 0));
     assert_eq!(first.route, vec![pt(0, -MM10), pt(0, 0)]);
     assert_eq!(first.number, original.number);
+    assert_eq!(first.overrides, original.overrides);
+    assert_eq!(first.kind, original.kind);
     let wires: Vec<ew_ids::Id<Connection>> = created(&r, Kind::Connection);
     assert_eq!(wires.len(), 1);
     let second = row(&e, wires[0]);
@@ -486,6 +521,8 @@ fn place_on_a_wire_splits_it() {
     assert_eq!(second.route, vec![pt(0, MM10), pt(0, 2 * MM10)]);
     assert_eq!(second.number, NumberSpec::Unassigned);
     assert_eq!(second.overrides, original.overrides);
+    assert_ne!(second.overrides, Default::default());
+    assert_eq!(second.kind, original.kind);
     assert_eq!(second.page, Some(PAGE_102));
 }
 
@@ -520,7 +557,7 @@ fn routed_golden() -> Model {
         for rec in records {
             if let Record::Connection(c) = rec {
                 if c.id == CON_W29 {
-                    c.route = vec![pt(0, 0), pt(MM10, 0), pt(MM10, 3 * MM10), pt(2 * MM10, 3 * MM10)];
+                    c.route = vec![pt(0, 0), pt(G, 0), pt(G, 3 * G), pt(2 * G, 3 * G)];
                 }
             }
         }
@@ -530,7 +567,7 @@ fn routed_golden() -> Model {
 #[test]
 fn move_translates_the_whole_route_when_both_ends_move() {
     let mut e = engine(routed_golden());
-    let delta = pt(MM10, 2 * MM10);
+    let delta = pt(G, 2 * G);
     let r = e.execute(&mv(vec![REP_102F2, REP_T1], delta)).unwrap();
     assert_eq!(r.outcome.primary, None);
     assert_eq!(row(&e, REP_102F2).pos, delta);
@@ -538,34 +575,24 @@ fn move_translates_the_whole_route_when_both_ends_move() {
     assert_eq!(row(&e, REP_102G1).pos, pt0(), "other representations stay");
     assert_eq!(
         row(&e, CON_W29).route,
-        vec![
-            pt(MM10, 2 * MM10),
-            pt(2 * MM10, 2 * MM10),
-            pt(2 * MM10, 5 * MM10),
-            pt(3 * MM10, 5 * MM10)
-        ]
+        vec![pt(G, 2 * G), pt(2 * G, 2 * G), pt(2 * G, 5 * G), pt(3 * G, 5 * G)]
     );
 }
 
 #[test]
 fn move_follows_the_end_when_one_end_moves() {
     let mut e = engine(routed_golden());
-    e.execute(&mv(vec![REP_102F2], pt(0, MM10))).unwrap();
+    e.execute(&mv(vec![REP_102F2], pt(0, G))).unwrap();
     assert_eq!(
         row(&e, CON_W29).route,
-        vec![
-            pt(0, MM10),
-            pt(MM10, MM10),
-            pt(MM10, 3 * MM10),
-            pt(2 * MM10, 3 * MM10)
-        ]
+        vec![pt(0, G), pt(G, G), pt(G, 3 * G), pt(2 * G, 3 * G)]
     );
     // The end at B follows too, keeping its neighbour orthogonal.
     let mut e = engine(routed_golden());
-    e.execute(&mv(vec![REP_T1], pt(MM10, 0))).unwrap();
+    e.execute(&mv(vec![REP_T1], pt(G, 0))).unwrap();
     assert_eq!(
         row(&e, CON_W29).route,
-        vec![pt(0, 0), pt(MM10, 0), pt(MM10, 3 * MM10), pt(3 * MM10, 3 * MM10)]
+        vec![pt(0, 0), pt(G, 0), pt(G, 3 * G), pt(3 * G, 3 * G)]
     );
 }
 
@@ -618,8 +645,8 @@ fn move_across_pages_rejects_a_wire_with_one_end_left_behind() {
 #[test]
 fn move_rejects_empty_lists_and_unknown_references() {
     let mut e = engine(golden_model());
-    rejected(e.execute(&mv(vec![], pt(MM10, 0))));
-    not_found(e.execute(&mv(vec![id(0x999)], pt(MM10, 0))));
+    rejected(e.execute(&mv(vec![], pt(G, 0))));
+    not_found(e.execute(&mv(vec![id(0x999)], pt(G, 0))));
     not_found(e.execute(&MoveReps {
         reps: vec![REP_102F2],
         delta: pt0(),
@@ -631,9 +658,9 @@ fn move_rejects_empty_lists_and_unknown_references() {
 fn move_changes_only_the_position_without_wires() {
     let mut e = engine(golden_model());
     let before = row(&e, REP_102F2_AUX);
-    e.execute(&mv(vec![REP_102F2_AUX], pt(5 * MM10, -MM10))).unwrap();
+    e.execute(&mv(vec![REP_102F2_AUX], pt(5 * G, -G))).unwrap();
     let mut expected = (*before).clone();
-    expected.pos = pt(5 * MM10, -MM10);
+    expected.pos = pt(5 * G, -G);
     assert_eq!(*row(&e, REP_102F2_AUX), expected);
 }
 
@@ -641,7 +668,7 @@ fn move_changes_only_the_position_without_wires() {
 fn move_undo_restores_bytes() {
     let mut e = engine(routed_golden());
     let before = lines(e.model());
-    e.execute(&mv(vec![REP_102F2], pt(MM10, MM10))).unwrap();
+    e.execute(&mv(vec![REP_102F2], pt(G, G))).unwrap();
     assert_ne!(lines(e.model()), before);
     e.undo().unwrap();
     assert_eq!(lines(e.model()), before);

@@ -4,12 +4,19 @@
 //! Normaliser #8, junction clean-up (doc 06 §3.2, doc 08 §3.1 CI-04).
 //!
 //! The candidates are the junctions this transaction touched: a changed junction row, or a junction that a
-//! changed connection ends at (old or new row). For each existing candidate in ID order, by the number of
-//! connections ending at it:
+//! changed connection ends at (old or new row). They form a **worklist** inside one run (F2): each step
+//! takes the smallest junction ID left, and the junctions at the far ends of every connection it removes
+//! or merges are queued again, so a cascade (J1 → J3 → J4) is cleaned up completely in one run and a
+//! second run changes nothing (the `Normaliser` idempotency contract). For each existing junction taken,
+//! by the number of connections ending at it:
 //!
-//! - **two**: the junction dissolves. The member listed first in its sequence (the feed arm) keeps its ID,
-//!   its number and its overrides, and takes the other member's far endpoint and route; the other member
-//!   is removed (and replaced by the kept one in the sequence of a junction at its far end). If both far
+//! - **two**: the junction dissolves. The kept member keeps its ID, its number and its overrides, and takes
+//!   the other member's far endpoint and route; the other member is removed (and replaced by the kept one
+//!   in the sequence of a junction at its far end). The kept member is the one whose number is not
+//!   `Unassigned`, so an assigned or frozen number is never dropped silently; if both carry the same
+//!   number, or neither carries one, it is the member listed first in the junction's sequence (the feed
+//!   arm). Two different numbers cannot be merged: the junction is left untouched and the command is
+//!   rejected, naming both numbers (the user clears one or deletes the connections separately). If both far
 //!   ends are the same endpoint, the merged connection would loop: both members are removed instead;
 //! - **one**: the junction is removed together with that connection;
 //! - **none**: the junction is removed.
@@ -23,7 +30,7 @@ use std::collections::BTreeSet;
 
 use ew_ids::Id;
 use ew_model::{AnyRow, EndpointKey};
-use ew_schema::{Bond, Connection, Endpoint, Junction, Kind};
+use ew_schema::{Bond, Connection, Endpoint, Junction, Kind, NumberSpec};
 use ew_units::Pt2;
 
 use crate::error::CmdError;
@@ -93,6 +100,19 @@ fn remove_junction(tx: &mut TxBuilder<'_>, id: Id<Junction>) {
     tx.remove_row((Kind::Junction, id.cast()));
 }
 
+/// The junctions at the ends of a connection (as it is now), for the worklist.
+fn junctions_of(tx: &TxBuilder<'_>, id: Id<Connection>) -> Vec<Id<Junction>> {
+    tx.get::<Connection>(id).map_or_else(Vec::new, |c| {
+        [&c.a, &c.b]
+            .into_iter()
+            .filter_map(|e| match e {
+                Endpoint::Junction(j) => Some(*j),
+                _ => None,
+            })
+            .collect()
+    })
+}
+
 /// The far endpoint of a connection seen from a junction, and its route oriented from the junction.
 fn away_from(c: &Connection, j: Id<Junction>) -> (Endpoint, Vec<Pt2>) {
     if c.a == Endpoint::Junction(j) {
@@ -109,6 +129,38 @@ fn join(mut first: Vec<Pt2>, second: Vec<Pt2>) -> Vec<Pt2> {
     let skip = usize::from(!first.is_empty() && first.last() == second.first());
     first.extend(second.into_iter().skip(skip));
     first
+}
+
+/// Orders the two members of a dissolving junction as (keep, gone): the one with a number is kept; two
+/// different numbers are rejected.
+fn prefer_numbered(
+    tx: &TxBuilder<'_>,
+    j: Id<Junction>,
+    first: Id<Connection>,
+    second: Id<Connection>,
+) -> Result<(Id<Connection>, Id<Connection>), CmdError> {
+    let (c1, c2) = (
+        tx.require::<Connection>(first)?,
+        tx.require::<Connection>(second)?,
+    );
+    if same_endpoint(&away_from(&c1, j).0, &away_from(&c2, j).0) {
+        // The loop case removes both members: no number is carried over.
+        return Ok((first, second));
+    }
+    let (n1, n2) = (c1.number.clone(), c2.number.clone());
+    let unassigned = |n: &NumberSpec| matches!(n, NumberSpec::Unassigned);
+    if !unassigned(&n1) && !unassigned(&n2) && n1 != n2 {
+        return tx.reject(format!(
+            "junction {j} would merge connection {first} (number {n1:?}) and connection {second} \
+             (number {n2:?}), which carry different numbers; clear one of the numbers or delete the \
+             connections separately"
+        ));
+    }
+    if unassigned(&n1) && !unassigned(&n2) {
+        Ok((second, first))
+    } else {
+        Ok((first, second))
+    }
 }
 
 fn dissolve(
@@ -157,11 +209,19 @@ impl Normaliser for JunctionCleanup {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<bool, CmdError> {
         let mut changed = false;
-        for j in candidates(tx) {
+        let mut work = candidates(tx);
+        while let Some(j) = work.pop_first() {
             let Some(junction) = tx.get::<Junction>(j) else {
                 continue;
             };
             let members = tx.connections_at(EndpointKey::Junction(j));
+            // The far ends of the members are re-examined after this step: a member removed or merged
+            // here changes the connection count there.
+            let requeue: BTreeSet<Id<Junction>> = members
+                .iter()
+                .flat_map(|c| junctions_of(tx, *c))
+                .filter(|far| *far != j)
+                .collect();
             match members.as_slice() {
                 [] => {
                     remove_junction(tx, j);
@@ -170,6 +230,7 @@ impl Normaliser for JunctionCleanup {
                 [only] => {
                     remove_connection(tx, *only)?;
                     remove_junction(tx, j);
+                    work.extend(requeue);
                     changed = true;
                 }
                 [x, y] => {
@@ -180,7 +241,9 @@ impl Normaliser for JunctionCleanup {
                         .copied()
                         .unwrap_or(*x);
                     let second = if first == *x { *y } else { *x };
+                    let (first, second) = prefer_numbered(tx, j, first, second)?;
                     dissolve(tx, j, first, second)?;
+                    work.extend(requeue);
                     changed = true;
                 }
                 _ => {}

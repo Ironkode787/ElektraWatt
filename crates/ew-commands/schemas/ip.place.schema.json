@@ -1,8 +1,49 @@
 {
   "$defs": {
-    "Ident": {
+    "CmdIdent": {
       "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
       "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "CmdOrient2": {
+      "description": "Orientation: rotation clockwise on the sheet, optionally mirrored (doc 05 §3.2).",
+      "enum": [
+        "r0",
+        "r90",
+        "r180",
+        "r270",
+        "m0",
+        "m90",
+        "m180",
+        "m270"
+      ],
+      "type": "string"
+    },
+    "CmdPt2": {
+      "description": "A point or a displacement [x, y] in nanometres, y downwards (doc 05 §3.2).",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
       "type": "string"
     },
     "IpDirection": {
@@ -24,46 +65,6 @@
           "type": "string"
         }
       ]
-    },
-    "Orient2": {
-      "description": "Orientation: rotation clockwise on the sheet, optionally mirrored (doc 05 §3.2).",
-      "enum": [
-        "r0",
-        "r90",
-        "r180",
-        "r270",
-        "m0",
-        "m90",
-        "m180",
-        "m270"
-      ],
-      "type": "string"
-    },
-    "Pt2": {
-      "description": "A point or a displacement [x, y] in nanometres, y downwards (doc 05 §3.2).",
-      "items": false,
-      "maxItems": 2,
-      "minItems": 2,
-      "prefixItems": [
-        {
-          "maximum": 9007199254740991,
-          "minimum": -9007199254740991,
-          "type": "integer"
-        },
-        {
-          "maximum": 9007199254740991,
-          "minimum": -9007199254740991,
-          "type": "integer"
-        }
-      ],
-      "type": "array"
-    },
-    "Uuid": {
-      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
-      "maxLength": 36,
-      "minLength": 36,
-      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-      "type": "string"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -77,7 +78,7 @@
     "external": {
       "anyOf": [
         {
-          "$ref": "#/$defs/Uuid"
+          "$ref": "#/$defs/CmdUuid"
         },
         {
           "type": "null"
@@ -88,7 +89,7 @@
     "fndef": {
       "anyOf": [
         {
-          "$ref": "#/$defs/Uuid"
+          "$ref": "#/$defs/CmdUuid"
         },
         {
           "type": "null"
@@ -97,20 +98,20 @@
       "description": "The FnDef copy; default the symbol's."
     },
     "name": {
-      "$ref": "#/$defs/Ident",
+      "$ref": "#/$defs/CmdIdent",
       "description": "The pairing name (\"L-1\")."
     },
     "orient": {
-      "$ref": "#/$defs/Orient2",
+      "$ref": "#/$defs/CmdOrient2",
       "default": "r0",
       "description": "The orientation."
     },
     "page": {
-      "$ref": "#/$defs/Uuid",
+      "$ref": "#/$defs/CmdUuid",
       "description": "The page."
     },
     "pos": {
-      "$ref": "#/$defs/Pt2",
+      "$ref": "#/$defs/CmdPt2",
       "description": "The insertion point."
     },
     "sort": {
@@ -127,7 +128,7 @@
       "type": "boolean"
     },
     "symbol": {
-      "$ref": "#/$defs/Uuid",
+      "$ref": "#/$defs/CmdUuid",
       "description": "The IP symbol copy."
     }
   },

@@ -1,6 +1,6 @@
 {
   "$defs": {
-    "Pt2": {
+    "CmdPt2": {
       "description": "A point or a displacement [x, y] in nanometres, y downwards (doc 05 §3.2).",
       "items": false,
       "maxItems": 2,
@@ -19,7 +19,7 @@
       ],
       "type": "array"
     },
-    "Uuid": {
+    "CmdUuid": {
       "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
       "maxLength": 36,
       "minLength": 36,
@@ -32,17 +32,17 @@
   "description": "`ip.continue`: the partner of an interruption point on another page (FR-XRF-014).\n\nCreates an IP function with the same name, def, `sort` and no `external`, the direction reversed\n(source ↔ target; undirected stays), `star_source: false`, and its representation on `page` with the\noriginal representation's symbol, orientation and rep type, at `pos` (default: the original's position).\nRejected: `ip` is not an interruption point; `page` is the original's page; an external connection\npoint (it never pairs). Outcome: the new IP function.",
   "properties": {
     "ip": {
-      "$ref": "#/$defs/Uuid",
+      "$ref": "#/$defs/CmdUuid",
       "description": "The interruption point to continue."
     },
     "page": {
-      "$ref": "#/$defs/Uuid",
+      "$ref": "#/$defs/CmdUuid",
       "description": "The target page."
     },
     "pos": {
       "anyOf": [
         {
-          "$ref": "#/$defs/Pt2"
+          "$ref": "#/$defs/CmdPt2"
         },
         {
           "type": "null"

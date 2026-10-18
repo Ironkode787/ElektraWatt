@@ -5,8 +5,10 @@
 //! `ew_api::Session`.
 //!
 //! ```text
+//! resolve   an AnyCommand is validated once against the engine's registry into its typed command
 //! run       Command::run against a TxBuilder on the current snapshot (exposure checked first)
-//! normalise the normaliser registry, passes until quiet, at most three
+//! normalise the normaliser registry, passes until quiet: at most three productive passes and a
+//!           confirming one (D1)
 //! validate  Model::apply_with: structural invariants, then the PreventHook
 //! commit    swap in the candidate Model, Rev + 1, push to History (coalescing)
 //! notify    append a Change {rev, touched keys, touched pages} to the change feed
@@ -20,13 +22,14 @@
 //! of `ew-derive` from the candidate and evaluates the project's prevent rules in its strictness (ADR-0009).
 
 use std::collections::BTreeSet;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use ew_ids::{Id, IdSource, SystemSource};
 use ew_model::{AnyKey, AnyRow, ApplyOptions, Model, Op, PreventHook, PreventViolation, Rev, invert_batch};
 use ew_schema::{Page, Representation};
 
 use crate::command::{DynCommand, Outcome};
-use crate::diff::{ModelDiff, diff_model};
+use crate::diff::ModelDiff;
 use crate::error::CmdError;
 use crate::history::{History, HistoryLimits};
 use crate::meta::{CommandMeta, Cost, Origin};
@@ -92,9 +95,29 @@ pub struct Restored {
     pub label: String,
 }
 
+/// The source of engine identities: every [`Engine`] gets a fresh one at construction.
+static NEXT_ENGINE: AtomicU64 = AtomicU64::new(1);
+
+/// The snapshot a [`Preview`] was computed on: the engine that computed it, that engine's model
+/// generation and the base revision. A preview is committed as prepared only on the same engine and
+/// generation (F4); otherwise its command is re-run on the committing engine's current model.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct PreviewBase {
+    engine: u64,
+    generation: u64,
+    rev: Rev,
+}
+
 /// A prepared transaction on a fork (ADR-0008 "preview is a fork"): the candidate snapshot, its ops, the
 /// read set for the rebase check, the entity and field diff and the affected pages. Nothing is committed
 /// until [`Engine::commit`].
+///
+/// A preview remembers the engine and the model generation it was computed on. [`Engine::commit`] uses
+/// its candidate and ops only on that engine; a preview from another engine or session, or from before
+/// the model was replaced, is re-run on the current model.
+///
+/// The prepared ops are not public (F9): they carry whole rows, and the crates above `ew-commands` read
+/// records only through tracked queries (ARCH §3 rule 1). [`Preview::diff`] summarises them.
 #[derive(Clone, Debug)]
 pub struct Preview {
     candidate: Model,
@@ -102,7 +125,7 @@ pub struct Preview {
     read_set: ReadSet,
     diff: ModelDiff,
     affected_pages: Vec<Id<Page>>,
-    base_rev: Rev,
+    base: PreviewBase,
     command: AnyCommand,
     meta: CommandMeta,
     submit: Submit,
@@ -117,9 +140,15 @@ impl Preview {
         &self.candidate
     }
 
-    /// The prepared ops.
+    /// The prepared ops (feature `testkit` only: they carry whole rows).
+    #[cfg(feature = "testkit")]
     pub fn ops(&self) -> &[Op] {
         &self.ops
+    }
+
+    /// The number of prepared ops (one per changed key).
+    pub fn op_count(&self) -> usize {
+        self.ops.len()
     }
 
     /// The base reads of the command and the normalisers.
@@ -127,7 +156,7 @@ impl Preview {
         &self.read_set
     }
 
-    /// The entity and field changes, `diff_model(current, candidate)`.
+    /// The entity and field changes (summaries: change kind, key, changed member paths).
     pub fn diff(&self) -> &ModelDiff {
         &self.diff
     }
@@ -139,7 +168,7 @@ impl Preview {
 
     /// The revision of the snapshot the preview ran on.
     pub fn base_rev(&self) -> Rev {
-        self.base_rev
+        self.base.rev
     }
 
     /// The command in its JSON form.
@@ -201,12 +230,16 @@ struct Prepared {
     outcome: Outcome,
     created: Vec<AnyKey>,
     passes: usize,
-    base_rev: Rev,
 }
 
 /// The editing engine: the current model, the history, the registry, the ID source, the prevent hook,
 /// the normalisers and the change feed.
 pub struct Engine {
+    /// This engine's identity (from [`NEXT_ENGINE`]).
+    id: u64,
+    /// Bumped whenever the model is replaced other than by applying a batch, so that a preview of the
+    /// old model is never committed as prepared. v0 has no such replacement yet (reload is WP-S1.09).
+    generation: u64,
     model: Model,
     history: History,
     registry: CommandRegistry,
@@ -231,6 +264,8 @@ impl Engine {
     /// An engine over a loaded model.
     pub fn new(model: Model, options: EngineOptions) -> Engine {
         Engine {
+            id: NEXT_ENGINE.fetch_add(1, Ordering::Relaxed),
+            generation: 0,
             model,
             history: History::new(options.history),
             registry: options
@@ -297,6 +332,23 @@ impl Engine {
         self.registry.resolve(cmd)
     }
 
+    /// The typed command behind a submission: an [`AnyCommand`] is validated once against **this**
+    /// engine's registry and deserialised (F6, F17); a typed command is used as it is.
+    fn typed<'c>(&self, cmd: &'c dyn DynCommand) -> Result<Typed<'c>, CmdError> {
+        match cmd.as_any_command() {
+            Some(any) => self.registry.resolve(any).map(Typed::Owned),
+            None => Ok(Typed::Borrowed(cmd)),
+        }
+    }
+
+    fn base(&self) -> PreviewBase {
+        PreviewBase {
+            engine: self.id,
+            generation: self.generation,
+            rev: self.model.rev(),
+        }
+    }
+
     /// Runs, normalises and validates a command on the current snapshot.
     fn prepare(&mut self, cmd: &dyn DynCommand, submit: &Submit) -> Result<Prepared, CmdError> {
         let meta = cmd.meta();
@@ -331,7 +383,6 @@ impl Engine {
             outcome,
             created,
             passes,
-            base_rev: base.rev(),
         })
     }
 
@@ -398,13 +449,16 @@ impl Engine {
     /// `Cost::Bulk` command is refused with [`CmdError::NeedsPreview`]: bulk commands always preview
     /// (ADR-0008).
     pub fn execute_with(&mut self, cmd: &dyn DynCommand, submit: Submit) -> Result<Receipt, CmdError> {
-        if cmd.cost() == Cost::Bulk {
+        let typed = self.typed(cmd)?;
+        let cmd = typed.get();
+        if cmd.cost(&self.model) == Cost::Bulk {
             return Err(CmdError::NeedsPreview {
                 command: cmd.name().into(),
             });
         }
         let prepared = self.prepare(cmd, &submit)?;
-        Ok(self.finalize(prepared, AnyCommand::of(cmd), cmd.meta(), submit))
+        let command = AnyCommand::of(cmd)?;
+        Ok(self.finalize(prepared, command, cmd.meta(), submit))
     }
 
     /// Prepares a command on a fork of the current snapshot from the default origin (synchronously in v0).
@@ -415,8 +469,11 @@ impl Engine {
 
     /// Prepares a command on a fork of the current snapshot with an explicit submission.
     pub fn preview_with(&mut self, cmd: &dyn DynCommand, submit: Submit) -> Result<Preview, CmdError> {
+        let typed = self.typed(cmd)?;
+        let cmd = typed.get();
+        let base = self.base();
         let prepared = self.prepare(cmd, &submit)?;
-        let diff = diff_model(&self.model, &prepared.candidate);
+        let diff = ModelDiff::of_ops(&prepared.ops)?;
         let affected = affected_pages(&self.model, &prepared.candidate, &prepared.ops);
         Ok(Preview {
             candidate: prepared.candidate,
@@ -424,8 +481,8 @@ impl Engine {
             read_set: prepared.read_set,
             diff,
             affected_pages: affected,
-            base_rev: prepared.base_rev,
-            command: AnyCommand::of(cmd),
+            base,
+            command: AnyCommand::of(cmd)?,
             meta: cmd.meta(),
             submit,
             outcome: prepared.outcome,
@@ -438,12 +495,17 @@ impl Engine {
     /// swapped in; if the snapshot moved on but none of the preview's reads changed, the prepared ops are
     /// applied to the current snapshot; otherwise (or if that apply fails) the command is re-run
     /// deterministically on the current snapshot.
+    ///
+    /// The first two paths require the preview to come from this engine and model generation (F4). A
+    /// preview from another engine or session, or from before the model was replaced, always takes the
+    /// re-run path: its command is validated against this engine's registry and run on the current model,
+    /// so a foreign candidate never replaces the model.
     pub fn commit(&mut self, preview: Preview) -> Result<Receipt, CmdError> {
         let Preview {
             candidate,
             ops,
             read_set,
-            base_rev,
+            base,
             command,
             meta,
             submit,
@@ -452,7 +514,9 @@ impl Engine {
             passes,
             ..
         } = preview;
-        if base_rev == self.model.rev() {
+        let base_rev = base.rev;
+        let ours = base.engine == self.id && base.generation == self.generation;
+        if ours && base_rev == self.model.rev() {
             let prepared = Prepared {
                 candidate,
                 ops,
@@ -460,11 +524,10 @@ impl Engine {
                 outcome,
                 created,
                 passes,
-                base_rev,
             };
             return Ok(self.finalize(prepared, command, meta, submit));
         }
-        if read_set.unchanged_since(&self.model, base_rev) {
+        if ours && read_set.unchanged_since(&self.model, base_rev) {
             let applied = if ops.is_empty() {
                 Ok(self.model.clone())
             } else {
@@ -484,12 +547,18 @@ impl Engine {
                     outcome,
                     created,
                     passes,
-                    base_rev: self.model.rev(),
                 };
                 return Ok(self.finalize(prepared, command, meta, submit));
             }
         }
-        let cmd = self.registry.resolve(&command)?;
+        // Re-run. Our own preview's command came from a typed command of this registry: deserialise it
+        // without validating it again. A foreign one is validated like any untyped submission.
+        let cmd = if ours {
+            self.registry.parse_trusted(&command)?
+        } else {
+            self.registry.resolve(&command)?
+        };
+        let meta = if ours { meta } else { cmd.meta() };
         let prepared = self.prepare(cmd.as_ref(), &submit)?;
         Ok(self.finalize(prepared, command, meta, submit))
     }
@@ -499,7 +568,7 @@ impl Engine {
     pub fn undo(&mut self) -> Result<Restored, CmdError> {
         let index = self.history.undo_index()?;
         let entry = self.history.entry(index).expect("undo index is in range");
-        let tx = entry.transaction().clone();
+        let tx = entry.tx().clone();
         let inverse = invert_batch(&tx.ops);
         let rev = self.apply_history_ops(&inverse, &tx.label)?;
         self.history.undone(index);
@@ -514,7 +583,7 @@ impl Engine {
     pub fn redo(&mut self) -> Result<Restored, CmdError> {
         let index = self.history.redo_index()?;
         let entry = self.history.entry(index).expect("redo index is in range");
-        let tx = entry.transaction().clone();
+        let tx = entry.tx().clone();
         let rev = self.apply_history_ops(&tx.ops, &tx.label)?;
         self.history.redone(index);
         Ok(Restored {
@@ -545,6 +614,21 @@ impl Engine {
     }
 }
 
+/// A submitted command or the typed command an [`AnyCommand`] resolved to.
+enum Typed<'c> {
+    Borrowed(&'c dyn DynCommand),
+    Owned(Box<dyn DynCommand>),
+}
+
+impl Typed<'_> {
+    fn get(&self) -> &dyn DynCommand {
+        match self {
+            Typed::Borrowed(c) => *c,
+            Typed::Owned(c) => c.as_ref(),
+        }
+    }
+}
+
 /// The pages whose content a batch changes, in ID order (see [`Change::touched_pages`]).
 pub fn affected_pages(before: &Model, after: &Model, ops: &[Op]) -> Vec<Id<Page>> {
     let mut pages: BTreeSet<Id<Page>> = BTreeSet::new();
@@ -555,9 +639,56 @@ pub fn affected_pages(before: &Model, after: &Model, ops: &[Op]) -> Vec<Id<Page>
             }
         }
     };
+    let endpoint_pages = |e: &ew_schema::Endpoint, out: &mut BTreeSet<Id<Page>>| match e {
+        ew_schema::Endpoint::Cp(f, _) => {
+            reps_pages(before, *f, out);
+            reps_pages(after, *f, out);
+        }
+        ew_schema::Endpoint::Junction(j) => {
+            for m in [before, after] {
+                if let Some(j) = m.table::<ew_schema::Junction>().get(j) {
+                    out.insert(j.page);
+                }
+            }
+        }
+        _ => {}
+    };
+    let connection_page = |id: &Id<ew_schema::Connection>, out: &mut BTreeSet<Id<Page>>| {
+        for m in [before, after] {
+            if let Some(c) = m.table::<ew_schema::Connection>().get(id) {
+                out.extend(c.page);
+            }
+        }
+    };
+    let device_pages = |d: Id<ew_schema::Device>, out: &mut BTreeSet<Id<Page>>| {
+        for m in [before, after] {
+            for f in m.indexes().functions_by_device().get(&d) {
+                reps_pages(m, *f, out);
+            }
+        }
+    };
     for op in ops {
         for row in [op.before(), op.after()].into_iter().flatten() {
             match row {
+                AnyRow::PotentialDef(d) => endpoint_pages(&d.at, &mut pages),
+                AnyRow::Bond(b) => {
+                    endpoint_pages(&b.a, &mut pages);
+                    endpoint_pages(&b.b, &mut pages);
+                    if let Some(via) = &b.via {
+                        connection_page(via, &mut pages);
+                    }
+                }
+                AnyRow::Conductor(c) => {
+                    device_pages(c.cable, &mut pages);
+                    // The connection the conductor is assigned to: a core connection naming it.
+                    for m in [before, after] {
+                        for (id, conn) in m.table::<ew_schema::Connection>().iter() {
+                            if conn.kind == ew_schema::ConnectionKind::Core(c.id) {
+                                connection_page(id, &mut pages);
+                            }
+                        }
+                    }
+                }
                 AnyRow::Page(p) => {
                     pages.insert(p.id);
                 }
@@ -573,13 +704,7 @@ pub fn affected_pages(before: &Model, after: &Model, ops: &[Op]) -> Vec<Id<Page>
                     reps_pages(before, f.id, &mut pages);
                     reps_pages(after, f.id, &mut pages);
                 }
-                AnyRow::Device(d) => {
-                    for m in [before, after] {
-                        for f in m.indexes().functions_by_device().get(&d.id) {
-                            reps_pages(m, *f, &mut pages);
-                        }
-                    }
-                }
+                AnyRow::Device(d) => device_pages(d.id, &mut pages),
                 _ => {}
             }
         }

@@ -3,35 +3,43 @@
 
 //! Normaliser #4, online numbering (doc 06 §3.2, FR-NUM-007, FR-NUM-029), page-based scheme.
 //!
-//! The candidates are the devices this transaction touched: a changed device row, a changed function of
-//! the device (old or new `device`), or a changed representation drawing one of its main functions (old or
-//! new row). For each candidate in ID order that takes part in numbering ([`crate::numbering::numbered`])
-//! and is placed:
+//! **Candidates** (F3): the devices whose numbering this transaction changes: a new device, a device whose
+//! tag letter or counter changed, and a device whose main page (the page of its main representation)
+//! changed. A device that is merely touched (another field edited, a function or an auxiliary
+//! representation changed) is not a candidate. For each candidate in ID order that takes part in
+//! numbering ([`crate::numbering::numbered`]) and is placed:
 //!
 //! - without a counter, it gets the next free counter of its scope;
 //! - with a counter that another numbered device of the scope also holds, it gets the next free counter
-//!   when that other device is not a candidate (it was there first) or is a candidate with a smaller ID.
+//!   only when that collision is **new**, i.e. the two devices did not already hold the same tag in the
+//!   base snapshot, and the other device is not a candidate (it was there first) or is a candidate with a
+//!   smaller ID.
 //!
 //! So moving -101F1's main representation onto a folio that already has an -F1 renumbers the moved device,
-//! never the one that stayed, and no transaction leaves two equal page-based tags among touched devices.
+//! never the one that stayed, and editing an unrelated field of a device whose tag already collided in a
+//! lenient or legacy project changes nothing but that field (FR-NUM-029 renumbers only when an edit
+//! *makes* a tag collide). `fields.set` of a colliding counter or letter is rejected by the command itself
+//! (D2), so this normaliser renumbers only new devices, moves and page changes.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
+use ew_mltext::Ident;
 use ew_model::AnyRow;
 use ew_schema::{Device, FnRole, Function, Kind, Representation};
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
-use crate::numbering::{CounterScope, devices_in_scope, main_page, next_free_counter, numbered};
+use crate::numbering::{CounterScope, ScopeCounters, collided_in, main_page, main_page_in, numbered};
 use crate::tx::TxBuilder;
 
 /// Normaliser #4.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct OnlineNumbering;
 
-/// The devices touched by the transaction.
-fn candidates(tx: &TxBuilder<'_>) -> BTreeSet<Id<Device>> {
+/// The devices touched by the transaction: changed device rows, devices of changed functions (old or new
+/// `device`) and devices whose main function a changed representation draws (old or new row).
+fn touched(tx: &TxBuilder<'_>) -> BTreeSet<Id<Device>> {
     let mut out = BTreeSet::new();
     let device_of = |f: Id<Function>| -> Option<Id<Device>> {
         let f = tx.get::<Function>(f)?;
@@ -69,6 +77,26 @@ fn candidates(tx: &TxBuilder<'_>) -> BTreeSet<Id<Device>> {
     out
 }
 
+/// The candidates (see the module doc): touched devices that are new, whose tag letter or counter
+/// changed, or whose main page changed.
+fn candidates(tx: &TxBuilder<'_>) -> BTreeSet<Id<Device>> {
+    let base = tx.base_model();
+    touched(tx)
+        .into_iter()
+        .filter(|d| {
+            let Some(now) = tx.get::<Device>(*d) else {
+                return false;
+            };
+            let Some(before) = base.table::<Device>().get(d) else {
+                return true;
+            };
+            now.tag.letter != before.tag.letter
+                || now.tag.counter != before.tag.counter
+                || main_page(tx, *d) != main_page_in(base, *d)
+        })
+        .collect()
+}
+
 impl Normaliser for OnlineNumbering {
     fn id(&self) -> &'static str {
         "online_numbering"
@@ -77,6 +105,9 @@ impl Normaliser for OnlineNumbering {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<bool, CmdError> {
         let candidates = candidates(tx);
         let mut changed = false;
+        // The counters of each (scope, letter) group, loaded on first use and kept up to date as
+        // candidates are renumbered, so a run costs one scan per group (NFR-PERF-08).
+        let mut groups: BTreeMap<(CounterScope, Ident), ScopeCounters> = BTreeMap::new();
         for d in &candidates {
             let Some(dev) = tx.get::<Device>(*d) else {
                 continue;
@@ -88,19 +119,24 @@ impl Normaliser for OnlineNumbering {
                 continue;
             };
             let scope = CounterScope::Page(page);
+            let group = groups
+                .entry((scope, dev.tag.letter.clone()))
+                .or_insert_with(|| ScopeCounters::load(tx, &dev.tag.letter, scope));
             let renumber = match dev.tag.counter {
                 None => true,
                 Some(counter) => {
-                    devices_in_scope(tx, &dev.tag.letter, scope)
-                        .into_iter()
-                        .any(|(other, c)| {
-                            other != *d && c == Some(counter) && (!candidates.contains(&other) || other < *d)
-                        })
+                    let base = tx.base_model();
+                    group.holders(counter).any(|other| {
+                        other != *d
+                            && (!candidates.contains(&other) || other < *d)
+                            && !collided_in(base, *d, other)
+                    })
                 }
             };
             if renumber {
-                let next = next_free_counter(tx, &dev.tag.letter, scope, Some(*d));
+                let next = group.next_free(Some(*d));
                 tx.update::<Device>(*d, |dev| dev.tag.counter = Some(next))?;
+                group.set_counter(*d, next);
                 changed = true;
             }
         }

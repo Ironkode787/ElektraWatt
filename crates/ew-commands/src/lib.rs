@@ -63,6 +63,7 @@ mod diff;
 mod engine;
 mod error;
 pub mod geometry;
+mod heap;
 mod history;
 mod jsonschema;
 mod meta;
@@ -70,20 +71,27 @@ pub mod normalise;
 pub mod numbering;
 mod proxy;
 mod registry;
+#[cfg(feature = "testkit")]
 pub mod rows;
+#[cfg(not(feature = "testkit"))]
+#[allow(dead_code)] // the dumps serve the tests (feature `testkit`); the crate uses a part of them
+mod rows;
 #[cfg(feature = "testkit")]
 pub mod testkit;
 mod transaction;
 mod tx;
 
 pub use command::{Command, DynCommand, Outcome};
-pub use diff::{EntityChange, FieldChange, ModelDiff, diff_model};
+pub use diff::{ChangeKind, EntityChange, ModelDiff, diff_model};
 pub use engine::{
     Change, Engine, EngineOptions, NoPrevent, Preview, Receipt, Restored, World, affected_pages,
 };
 pub use error::CmdError;
 pub use history::{History, HistoryEntry, HistoryLimits};
-pub use jsonschema::{SchemaViolation, validate as validate_schema};
+pub use jsonschema::{
+    MAX_PARAM_BYTES, MAX_PARAM_DEPTH, MAX_PARAM_ITEMS, MAX_PARAM_STRING, SchemaViolation, check_limits,
+    validate as validate_schema,
+};
 pub use meta::{CommandMeta, Confirmation, Cost, Exposure, Origin, Stability};
 pub use registry::{AnyCommand, CommandRegistry, RegisteredCommand};
 pub use transaction::{Submit, Transaction, TxContext, Viewport};

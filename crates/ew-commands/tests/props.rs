@@ -76,7 +76,7 @@ enum Step {
 }
 
 const LETTERS: [&str; 3] = ["F", "K", "Q"];
-const UNIT: i64 = 2_500_000;
+const UNIT: i64 = G;
 
 fn edit_step() -> BoxedStrategy<Step> {
     prop_oneof![
@@ -115,7 +115,7 @@ fn steps(with_history: bool) -> BoxedStrategy<Vec<Step>> {
 
 fn config() -> ProptestConfig {
     ProptestConfig {
-        cases: 24,
+        cases: 128,
         failure_persistence: None,
         ..ProptestConfig::default()
     }
@@ -185,7 +185,7 @@ fn build(model: &Model, step: &Step) -> Option<Box<dyn DynCommand>> {
         Step::DrawOnConnection { conn, pick, f, cp } => {
             let c = nth::<Connection>(model, *conn)?;
             let at = if c.route.is_empty() {
-                pt(MM10, MM10)
+                pt(G, G)
             } else {
                 c.route[pick % c.route.len()]
             };
@@ -276,7 +276,7 @@ fn run_step(e: &mut Engine, step: &Step, previews: bool) -> Result<Ran, TestCase
             let Some(cmd) = build(e.model(), step) else {
                 return Ok(Ran::Skipped);
             };
-            let result = if previews || cmd.cost() == Cost::Bulk {
+            let result = if previews || cmd.cost(e.model()) == Cost::Bulk {
                 via_preview(e, &*cmd)
             } else {
                 e.execute(&*cmd)
@@ -344,13 +344,13 @@ proptest! {
         }
     }
 
-    /// The normalisers converge within three passes.
+    /// The normalisers converge within MAX_PASSES (plus the confirming pass).
     #[test]
     fn normalisers_converge(sequence in steps(true)) {
         let mut e = engine(golden_model());
         for step in &sequence {
             if let Ran::Cmd(Ok(receipt)) = run_step(&mut e, step, false)? {
-                prop_assert!(receipt.passes <= 3, "{} passes after {:?}", receipt.passes, step);
+                prop_assert!(receipt.passes <= ew_commands::normalise::MAX_PASSES + 1, "{} passes after {:?}", receipt.passes, step);
             }
         }
     }

@@ -167,18 +167,29 @@ impl Command for RenumberDevices {
 
 /// The counters of one group, `members` in position order with their current counters: see
 /// [`RenumberDevices`].
+///
+/// The counters handed out as "lowest free" only grow (each is the lowest counter not blocked, and the
+/// blocked set only grows), so a cursor past the last one handed out replaces the rescan from 1: the group
+/// costs O(members + reserved) set probes instead of O(members²).
 fn assign_counters(
     members: &[(Id<Device>, Option<u32>)],
     reserved: &BTreeSet<u32>,
     options: &RenumberOptions,
 ) -> Vec<(Id<Device>, u32)> {
-    let lowest_free = |avoid: &dyn Fn(u32) -> bool| (1..).find(|c| !avoid(*c)).unwrap_or(u32::MAX);
     let mut out = Vec::with_capacity(members.len());
+    // The lowest counter at or above `cursor` that `blocked` does not name; the cursor moves past it.
+    let lowest_free = |cursor: &mut u32, blocked: &dyn Fn(u32) -> bool| {
+        let mut c = *cursor;
+        while c < u32::MAX && blocked(c) {
+            c += 1;
+        }
+        *cursor = c.saturating_add(1);
+        c
+    };
+    let mut cursor: u32 = 1;
     if options.close_gaps && !options.only_nonconforming {
-        let mut given: BTreeSet<u32> = BTreeSet::new();
         for (id, _) in members {
-            let c = lowest_free(&|c| reserved.contains(&c) || given.contains(&c));
-            given.insert(c);
+            let c = lowest_free(&mut cursor, &|c| reserved.contains(&c));
             out.push((*id, c));
         }
         return out;
@@ -190,13 +201,11 @@ fn assign_counters(
         let keep = counter.is_some_and(|c| !reserved.contains(&c) && kept.insert(c));
         keeps.push(keep);
     }
-    let mut given: BTreeSet<u32> = BTreeSet::new();
     for ((id, counter), keep) in members.iter().zip(keeps) {
         let c = match counter {
             Some(c) if keep => *c,
-            _ => lowest_free(&|c| reserved.contains(&c) || kept.contains(&c) || given.contains(&c)),
+            _ => lowest_free(&mut cursor, &|c| reserved.contains(&c) || kept.contains(&c)),
         };
-        given.insert(c);
         out.push((*id, c));
     }
     out

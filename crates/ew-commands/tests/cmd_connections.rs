@@ -40,7 +40,7 @@ const W: Id<Connection> = id(0x4100);
 fn model_with_wire() -> Model {
     let (p, mut records, _) = mini_golden_parts();
     let mut w = connection(W, Some(PAGE_102), cp(FN_102F2, 4), cp(FN_102F2, 5));
-    w.route = vec![pt(0, 0), pt(4 * MM10, 0)];
+    w.route = vec![pt(0, 0), pt(4 * G, 0)];
     records.push(Record::Connection(w));
     Model::from_records(p, records, library()).expect("golden plus wire")
 }
@@ -58,7 +58,7 @@ fn draw(a: EndpointParam, b: EndpointParam, page: Option<Id<ew_schema::Page>>) -
 fn on_w(x: i64) -> EndpointParam {
     EndpointParam::OnConnection {
         connection: W,
-        at: pt(x * MM10, 0),
+        at: pt(x * G, 0),
     }
 }
 
@@ -73,7 +73,7 @@ fn is_rejected<T: std::fmt::Debug>(r: Result<T, CmdError>) -> bool {
 fn draw_between_two_cps_creates_one_unnumbered_connection() {
     let mut e = engine(golden_model());
     let mut cmd = draw(cp_param(FN_102G1, 1), cp_param(FN_T2, 2), Some(PAGE_102));
-    cmd.route = vec![pt(0, 0), pt(MM10, 0)];
+    cmd.route = vec![pt(0, 0), pt(G, 0)];
     let r = e.execute(&cmd).expect("connection.draw");
     let key = r.outcome.primary.expect("primary");
     assert_eq!(key.0, Kind::Connection);
@@ -82,7 +82,7 @@ fn draw_between_two_cps_creates_one_unnumbered_connection() {
     assert_eq!(c.a, cp(FN_102G1, 1));
     assert_eq!(c.b, cp(FN_T2, 2));
     assert_eq!(c.page, Some(PAGE_102));
-    assert_eq!(c.route, vec![pt(0, 0), pt(MM10, 0)]);
+    assert_eq!(c.route, vec![pt(0, 0), pt(G, 0)]);
     assert_eq!(c.kind, ConnectionKind::Wire);
     assert_eq!(c.number, ew_schema::NumberSpec::default());
 }
@@ -103,7 +103,7 @@ fn draw_on_a_connection_creates_a_junction_and_splits() {
     let cmd = draw(
         EndpointParam::OnConnection {
             connection: W,
-            at: pt(2 * MM10, 0),
+            at: pt(2 * G, 0),
         },
         cp_param(FN_T2, 1),
         Some(PAGE_102),
@@ -126,18 +126,18 @@ fn draw_on_a_connection_creates_a_junction_and_splits() {
         .find(|c| *c != new)
         .expect("W''");
     assert_eq!(j.page, PAGE_102);
-    assert_eq!(j.at, pt(2 * MM10, 0));
+    assert_eq!(j.at, pt(2 * G, 0));
     assert_eq!(j.style, JunctionStyle::Dot);
     assert_eq!(j.wiring, None);
     assert_eq!(j.sequence, vec![W, w2, new]);
     let w1 = row(&e, W);
     assert_eq!(w1.a, cp(FN_102F2, 4));
     assert_eq!(w1.b, Endpoint::Junction(j.id));
-    assert_eq!(w1.route, vec![pt(0, 0), pt(2 * MM10, 0)]);
+    assert_eq!(w1.route, vec![pt(0, 0), pt(2 * G, 0)]);
     let w2 = row(&e, w2);
     assert_eq!(w2.a, Endpoint::Junction(j.id));
     assert_eq!(w2.b, cp(FN_102F2, 5));
-    assert_eq!(w2.route, vec![pt(2 * MM10, 0), pt(4 * MM10, 0)]);
+    assert_eq!(w2.route, vec![pt(2 * G, 0), pt(4 * G, 0)]);
     let n = row(&e, new);
     assert_eq!(n.a, Endpoint::Junction(j.id));
     assert_eq!(n.b, cp(FN_T2, 1));
@@ -158,9 +158,9 @@ fn draw_between_two_connections_makes_two_junctions() {
     let w = id(0x4100);
     let v: Id<Connection> = id(0x4101);
     let mut wc = connection(w, Some(PAGE_102), cp(FN_102F2, 4), cp(FN_102F2, 5));
-    wc.route = vec![pt(0, 0), pt(4 * MM10, 0)];
+    wc.route = vec![pt(0, 0), pt(4 * G, 0)];
     let mut vc = connection(v, Some(PAGE_102), cp(FN_T1, 1), cp(FN_T1, 2));
-    vc.route = vec![pt(0, 5 * MM10), pt(4 * MM10, 5 * MM10)];
+    vc.route = vec![pt(0, 5 * G), pt(4 * G, 5 * G)];
     records.push(Record::Connection(wc));
     records.push(Record::Connection(vc));
     let model = Model::from_records(p, records, library()).unwrap();
@@ -169,11 +169,11 @@ fn draw_between_two_connections_makes_two_junctions() {
     let cmd = draw(
         EndpointParam::OnConnection {
             connection: w,
-            at: pt(MM10, 0),
+            at: pt(G, 0),
         },
         EndpointParam::OnConnection {
             connection: v,
-            at: pt(3 * MM10, 5 * MM10),
+            at: pt(3 * G, 5 * G),
         },
         None,
     );
@@ -183,8 +183,8 @@ fn draw_between_two_connections_makes_two_junctions() {
         panic!("both ends are junctions");
     };
     assert_ne!(ja, jb);
-    assert_eq!(row(&e, ja).at, pt(MM10, 0));
-    assert_eq!(row(&e, jb).at, pt(3 * MM10, 5 * MM10));
+    assert_eq!(row(&e, ja).at, pt(G, 0));
+    assert_eq!(row(&e, jb).at, pt(3 * G, 5 * G));
     assert_eq!(row(&e, ja).sequence.len(), 3);
     assert_eq!(row(&e, jb).sequence.len(), 3);
     e.undo().unwrap();
@@ -280,7 +280,7 @@ fn draw_undo_restores_bytes() {
 fn route_replaces_the_route_only() {
     let mut e = engine(golden_model());
     let before = row(&e, CON_W29);
-    let route = vec![pt(0, 0), pt(0, MM10), pt(MM10, MM10)];
+    let route = vec![pt(0, 0), pt(0, G), pt(G, G)];
     let r = e
         .execute(&RouteConnection {
             connection: CON_W29,
@@ -316,7 +316,7 @@ fn route_undo_restores_bytes() {
     let before = lines(e.model());
     e.execute(&RouteConnection {
         connection: CON_W29,
-        route: vec![pt(0, 0), pt(MM10, 0)],
+        route: vec![pt(0, 0), pt(G, 0)],
     })
     .unwrap();
     e.undo().unwrap();
@@ -471,7 +471,7 @@ fn place(page: Id<ew_schema::Page>, name: &str, direction: IpDirection) -> Place
         page,
         symbol: SYM,
         fndef: Some(FNDEF_IP),
-        pos: pt(3 * MM10, 2 * MM10),
+        pos: pt(3 * G, 2 * G),
         orient: Orient2::default(),
         name: ident(name),
         direction,
@@ -512,7 +512,7 @@ fn place_ip_creates_the_function_and_its_representation() {
     assert_eq!(reps.len(), 1);
     assert_eq!(reps[0].page, PAGE_101);
     assert_eq!(reps[0].symbol, SYM);
-    assert_eq!(reps[0].pos, pt(3 * MM10, 2 * MM10));
+    assert_eq!(reps[0].pos, pt(3 * G, 2 * G));
     assert_eq!(reps[0].rep_type, RepType::MultiLine);
     assert_eq!(r.created.len(), 2);
 }
@@ -618,7 +618,7 @@ fn continue_ip_reverses_the_direction_and_takes_a_position() {
         .execute(&ContinueIp {
             ip: FN_IP_102,
             page: PAGE_101,
-            pos: Some(pt(MM10, MM10)),
+            pos: Some(pt(G, G)),
         })
         .unwrap();
     let partner: Id<Function> = typed(r.outcome.primary.unwrap());
@@ -633,7 +633,7 @@ fn continue_ip_reverses_the_direction_and_takes_a_position() {
         .map(|(_, r)| (**r).clone())
         .find(|r| r.functions == vec![partner])
         .unwrap();
-    assert_eq!(rep.pos, pt(MM10, MM10));
+    assert_eq!(rep.pos, pt(G, G));
     // An undirected point stays undirected.
     let p = typed::<Function>(
         e.execute(&place(PAGE_101, "L-9", IpDirection::Undirected))

@@ -129,7 +129,7 @@ impl Dsl {
 
     /// Runs one command: bulk commands through preview and commit, the others through `execute`.
     fn run(&mut self, cmd: &dyn DynCommand) -> Receipt {
-        if cmd.cost() == Cost::Bulk {
+        if cmd.cost(self.e.model()) == Cost::Bulk {
             let p = self
                 .e
                 .preview(cmd)

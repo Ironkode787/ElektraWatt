@@ -142,14 +142,30 @@ impl CommandRegistry {
         self.entries.keys().copied()
     }
 
-    /// Validates an untyped command against its schema and deserialises it into the typed command.
+    /// Validates an untyped command against its schema and deserialises it into the typed command. The name
+    /// is looked up first (an unknown name is [`CmdError::UnknownCommand`] whatever the parameters are),
+    /// then the size limits of [`crate::check_limits`] are applied to the parameter document, then the
+    /// schema.
     pub fn resolve(&self, cmd: &AnyCommand) -> Result<Box<dyn DynCommand>, CmdError> {
         let entry = self.get(&cmd.name).ok_or_else(|| CmdError::UnknownCommand {
             name: cmd.name.clone(),
         })?;
         let name = entry.meta.name;
+        crate::jsonschema::check_limits(&cmd.params)
+            .map_err(|e| CmdError::invalid_params(name, e.path, e.message))?;
         crate::jsonschema::validate(&entry.schema, &cmd.params)
             .map_err(|e| CmdError::invalid_params(name, e.path, e.message))?;
+        (entry.parse)(cmd.params.clone()).map_err(|e| CmdError::invalid_params(name, "", e.to_string()))
+    }
+
+    /// Deserialises an untyped command that this registry's own typed command produced
+    /// ([`AnyCommand::of`] in a [`crate::Preview`] or a history step) without validating it against the
+    /// schema again: the re-run path of [`crate::Engine::commit`].
+    pub(crate) fn parse_trusted(&self, cmd: &AnyCommand) -> Result<Box<dyn DynCommand>, CmdError> {
+        let entry = self.get(&cmd.name).ok_or_else(|| CmdError::UnknownCommand {
+            name: cmd.name.clone(),
+        })?;
+        let name = entry.meta.name;
         (entry.parse)(cmd.params.clone()).map_err(|e| CmdError::invalid_params(name, "", e.to_string()))
     }
 
@@ -192,8 +208,13 @@ impl CommandRegistry {
 }
 
 /// An untyped command: a name (or alias) and its parameters as JSON, from scripts, plugins, MCP and
-/// command logs (doc 17 §2.1). It implements [`DynCommand`] through the built-in registry, which validates
-/// the parameters against the command's JSON Schema before dispatching.
+/// command logs (doc 17 §2.1).
+///
+/// An [`crate::Engine`] resolves an `AnyCommand` once against its own registry (it finds the value through
+/// [`DynCommand::as_any_command`]) and never validates it again. The [`DynCommand`] impl below is a
+/// convenience for code outside an engine: it resolves through the built-in registry, which applies the size
+/// limits and validates the parameters against the command's JSON Schema, once per [`DynCommand::cost`] and
+/// once per [`DynCommand::run`] call.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct AnyCommand {
     /// The command name or alias.
@@ -204,11 +225,11 @@ pub struct AnyCommand {
 
 impl AnyCommand {
     /// The JSON form of a typed command (the journal records the canonical name).
-    pub fn of(cmd: &dyn DynCommand) -> AnyCommand {
-        AnyCommand {
+    pub fn of(cmd: &dyn DynCommand) -> Result<AnyCommand, CmdError> {
+        Ok(AnyCommand {
             name: cmd.name().into(),
-            params: cmd.to_json(),
-        }
+            params: cmd.to_json()?,
+        })
     }
 
     fn resolved(&self) -> Result<Box<dyn DynCommand>, CmdError> {
@@ -232,15 +253,19 @@ impl DynCommand for AnyCommand {
             .map_or(CommandMeta::edit(UNKNOWN), |e| e.meta)
     }
 
-    fn cost(&self) -> Cost {
-        self.resolved().map_or(Cost::Interactive, |c| c.cost())
+    fn cost(&self, model: &ew_model::Model) -> Cost {
+        self.resolved().map_or(Cost::Interactive, |c| c.cost(model))
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         self.resolved()?.run(tx)
     }
 
-    fn to_json(&self) -> Value {
-        self.params.clone()
+    fn to_json(&self) -> Result<Value, CmdError> {
+        Ok(self.params.clone())
+    }
+
+    fn as_any_command(&self) -> Option<&AnyCommand> {
+        Some(self)
     }
 }

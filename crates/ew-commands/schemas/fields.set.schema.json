@@ -1,5 +1,12 @@
 {
   "$defs": {
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
     "KindName": {
       "description": "The record kinds a command may name generically (`edit.delete`, `fields.set`).",
       "oneOf": [
@@ -69,13 +76,6 @@
           "type": "string"
         }
       ]
-    },
-    "Uuid": {
-      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
-      "maxLength": 36,
-      "minLength": 36,
-      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-      "type": "string"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -93,7 +93,7 @@
     "targets": {
       "description": "The records.",
       "items": {
-        "$ref": "#/$defs/Uuid"
+        "$ref": "#/$defs/CmdUuid"
       },
       "type": "array"
     },

@@ -11,6 +11,13 @@
       },
       "type": "object"
     },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
     "JunctionStyle": {
       "description": "How a junction is drawn.",
       "oneOf": [
@@ -48,13 +55,6 @@
       ],
       "type": "string"
     },
-    "Uuid": {
-      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
-      "maxLength": 36,
-      "minLength": 36,
-      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-      "type": "string"
-    },
     "WiringChoice": {
       "description": "The wiring choice of `junction.edit`.",
       "oneOf": [
@@ -78,16 +78,16 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`junction.edit`: style, wiring and sequence of a junction (FR-CON-005, doc 06 §3.5).\n\nEach given member replaces the stored one; `sequence` must be a permutation of the connections ending\nat the junction (else rejected). Outcome: the junction. Coalesce consecutive reorders with a key.",
+  "description": "`junction.edit`: style, wiring and sequence of a junction (FR-CON-005, doc 06 §3.5).\n\nEach given member replaces the stored one; `sequence` must be a permutation of the connections ending\nat the junction (else rejected). It takes no coordinates, so the grid rule of D3 has nothing to check\nhere: a junction's position is set (on the grid) by `connection.draw`. Outcome: the junction. Coalesce\nconsecutive reorders with a key.",
   "properties": {
     "junction": {
-      "$ref": "#/$defs/Uuid",
+      "$ref": "#/$defs/CmdUuid",
       "description": "The junction."
     },
     "sequence": {
       "description": "A new wiring order.",
       "items": {
-        "$ref": "#/$defs/Uuid"
+        "$ref": "#/$defs/CmdUuid"
       },
       "type": [
         "array",

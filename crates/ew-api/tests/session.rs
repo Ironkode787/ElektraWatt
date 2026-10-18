@@ -5,7 +5,9 @@
 //! the dirty flag, the registry and determinism under a seeded ID source.
 
 use ew_api::{AnyCommand, CmdError, Origin, Session, SessionOptions, Submit};
-use ew_commands::rows::model_lines;
+fn model_lines(m: &ew_model::Model) -> Vec<(ew_model::AnyKey, String)> {
+    ew_commands::rows::model_lines(m).expect("every record has a JSON form")
+}
 use ew_commands::testkit::seeded_ids;
 
 const PROJECT: &str = r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
@@ -98,11 +100,13 @@ fn the_origin_and_context_are_recorded() {
     let mut s = session(5);
     let submit = Submit::from(Origin::Cli {
         subcommand: "apply".into(),
+        confirmed: false,
     });
     s.execute_with(&page(3), submit).unwrap();
     let entry = &s.history().entries()[0];
-    assert_eq!(entry.transaction().origin.label(), "cli:apply");
-    assert_eq!(entry.transaction().command.name, "page.create");
+    assert_eq!(entry.origin().label(), "cli:apply");
+    assert_eq!(entry.command().name, "page.create");
+    assert_eq!(entry.label(), "page.create");
 }
 
 #[test]

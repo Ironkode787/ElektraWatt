@@ -230,6 +230,11 @@ pub struct TxBuilder<'a> {
     ids: &'a mut dyn IdSource,
     reads: RefCell<ReadSet>,
     source: &'static str,
+    /// The planning snapshot of [`TxBuilder::delete_many`]: the base with the pending puts applied
+    /// without invariants (`Model::apply_unchecked`), kept up to date incrementally.
+    scratch: Option<Model>,
+    /// The keys written since `scratch` was last brought up to date.
+    stale: BTreeSet<AnyKey>,
 }
 
 impl std::fmt::Debug for TxBuilder<'_> {
@@ -252,6 +257,8 @@ impl<'a> TxBuilder<'a> {
             ids,
             reads: RefCell::new(ReadSet::default()),
             source: "",
+            scratch: None,
+            stale: BTreeSet::new(),
         }
     }
 
@@ -268,6 +275,13 @@ impl<'a> TxBuilder<'a> {
     /// The base snapshot's revision.
     pub fn base_rev(&self) -> Rev {
         self.base.rev()
+    }
+
+    /// The base snapshot itself, for comparisons with the state before the transaction (online numbering
+    /// compares base and candidate collisions). Reads through it are **not** recorded in the read set:
+    /// use it only for facts that the transaction's recorded reads also depend on.
+    pub(crate) fn base_model(&self) -> &'a Model {
+        self.base
     }
 
     // -----------------------------------------------------------------------------------------------------
@@ -454,6 +468,7 @@ impl<'a> TxBuilder<'a> {
             let present = self.base.row(&key).is_some();
             self.note_row(key, present);
         }
+        self.stale.insert(key);
         self.pending.insert(key, Some(row));
     }
 
@@ -495,38 +510,90 @@ impl<'a> TxBuilder<'a> {
             let present = self.base.row(&key).is_some();
             self.note_row(key, present);
         }
+        self.stale.insert(key);
         self.pending.insert(key, None);
     }
 
     /// Removes a record with everything the delete policies take along (doc 03 §4.2): the ops of
-    /// `Model::delete_plan`, computed on the current state of the transaction. On a transaction that
-    /// has written nothing yet the plan comes from the base; otherwise from a scratch snapshot of the base
-    /// with the pending ops applied, which must itself be valid.
+    /// `Model::delete_plan`, computed on the current state of the transaction. See
+    /// [`TxBuilder::delete_many`].
     pub fn delete(&mut self, key: AnyKey) -> Result<(), CmdError> {
-        if self.row(&key).is_none() {
-            return Err(CmdError::NotFound { key });
+        self.delete_many(&[key])
+    }
+
+    /// Removes several records in **one** delete plan (`Model::delete_plan_many`), so the result does not
+    /// depend on their order and a record that another one's cascade removes is planned once.
+    ///
+    /// The plan is computed on the current state of the transaction: the base with the pending puts
+    /// applied **without** the structural invariants (`Model::apply_unchecked`), because transient states
+    /// inside a transaction are legal (ADR-0009 decision 1). The candidate is validated once, at the end
+    /// of the transaction, by `Model::apply_with`. The planning snapshot is kept and brought up to date
+    /// with only the keys written since the previous plan. Every key must exist now
+    /// ([`CmdError::NotFound`]).
+    pub fn delete_many(&mut self, keys: &[AnyKey]) -> Result<(), CmdError> {
+        for key in keys {
+            if self.row(key).is_none() {
+                return Err(CmdError::NotFound { key: *key });
+            }
         }
-        let plan = if self.pending.is_empty() {
-            self.base.delete_plan(&key)?
-        } else {
-            let ops = self.ops();
-            let scratch = self.base.apply(&ops, self.base.rev().next()).map_err(|e| {
-                CmdError::internal(format!(
-                    "{}: cannot plan the removal of {}:{} on a transient state ({e})",
-                    self.source, key.0, key.1
-                ))
-            })?;
-            scratch.delete_plan(&key)?
-        };
+        if keys.is_empty() {
+            return Ok(());
+        }
+        let plan = self.planning_snapshot()?.delete_plan_many(keys)?;
         for op in plan {
             let k = op.key();
             if !self.pending.contains_key(&k) {
                 let present = self.base.row(&k).is_some();
                 self.note_row(k, present);
             }
+            self.stale.insert(k);
             self.pending.insert(k, op.after().cloned());
         }
         Ok(())
+    }
+
+    /// The base with every pending put applied, without invariants; brought up to date incrementally.
+    fn planning_snapshot(&mut self) -> Result<&Model, CmdError> {
+        let scratch = match self.scratch.take() {
+            None if self.pending.is_empty() => self.base.clone(),
+            None => {
+                let ops = self.ops();
+                self.base
+                    .apply_unchecked(&ops, self.base.rev().next())
+                    .map_err(|e| self.planning_error(&e))?
+            }
+            Some(scratch) => {
+                let ops: Vec<Op> = self
+                    .stale
+                    .iter()
+                    .filter_map(|key| {
+                        let before = scratch.row(key);
+                        let after = self.pending.get(key).cloned().flatten();
+                        (!same_opt(before.as_ref(), after.as_ref())).then_some(Op::Put {
+                            key: *key,
+                            before,
+                            after,
+                        })
+                    })
+                    .collect();
+                if ops.is_empty() {
+                    scratch
+                } else {
+                    scratch
+                        .apply_unchecked(&ops, scratch.rev().next())
+                        .map_err(|e| self.planning_error(&e))?
+                }
+            }
+        };
+        self.stale.clear();
+        Ok(self.scratch.insert(scratch))
+    }
+
+    fn planning_error(&self, e: &ew_model::ModelError) -> CmdError {
+        CmdError::internal(format!(
+            "{}: the planning snapshot of the transaction cannot be built ({e})",
+            self.source
+        ))
     }
 
     /// Removes a record if it still exists ([`TxBuilder::delete`]); a record already removed in this

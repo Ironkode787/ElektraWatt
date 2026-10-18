@@ -54,6 +54,17 @@ pub enum CmdError {
         /// The command's canonical name.
         command: String,
     },
+    /// A prevent rule of the plugged-in hook rejected the batch (ADR-0009 decision 3, strict mode): the rule
+    /// ID such as `EW-TERM-002` and the finding's message, with a proposed alternative where the rule gives
+    /// one.
+    Prevented {
+        /// The rule ID.
+        rule: String,
+        /// The finding's message.
+        finding: String,
+        /// The records involved.
+        keys: Vec<AnyKey>,
+    },
     /// The candidate snapshot was rejected by `Model::apply_with`: a structural invariant, a forbid link, a
     /// prevent rule or a stale op.
     Model(ModelError),
@@ -103,6 +114,11 @@ impl From<ModelError> for CmdError {
     fn from(e: ModelError) -> CmdError {
         match e {
             ModelError::NotFound { key } => CmdError::NotFound { key },
+            ModelError::Prevented { rule, message, keys } => CmdError::Prevented {
+                rule,
+                finding: message,
+                keys,
+            },
             other => CmdError::Model(other),
         }
     }
@@ -131,6 +147,7 @@ impl fmt::Display for CmdError {
             CmdError::NeedsPreview { command } => {
                 write!(f, "{command} is a bulk command: run it with preview and commit")
             }
+            CmdError::Prevented { rule, finding, .. } => write!(f, "{rule}: {finding}"),
             CmdError::Model(e) => write!(f, "{e}"),
             CmdError::History { reason } => write!(f, "history: {reason}"),
             CmdError::Internal { reason } => write!(f, "internal error: {reason}"),

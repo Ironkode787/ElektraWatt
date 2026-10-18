@@ -3,6 +3,8 @@
 
 //! Terminal and cable commands (doc 03 §11–§12): `terminal.add`, `cable.create`, `conductor.add`.
 
+use std::collections::BTreeSet;
+
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
@@ -76,15 +78,15 @@ impl Command for AddTerminals {
         if self.terminals.is_empty() {
             return tx.reject("give at least one terminal to add");
         }
-        let mut designations: Vec<Ident> = Vec::new();
-        let mut seqs: Vec<u32> = Vec::new();
+        let mut designations: BTreeSet<Ident> = BTreeSet::new();
+        let mut seqs: BTreeSet<u32> = BTreeSet::new();
         for id in tx.terminals_of_strip(self.strip) {
             if let Some(t) = tx.get::<Device>(id).and_then(|d| d.aspects.terminal.clone()) {
-                designations.push(t.designation);
-                seqs.push(t.seq);
+                designations.insert(t.designation);
+                seqs.insert(t.seq);
             }
         }
-        let mut next = seqs.iter().copied().max().unwrap_or(0).saturating_add(1);
+        let mut next = seqs.last().copied().unwrap_or(0).saturating_add(1);
         let mut first = None;
         for spec in &self.terminals {
             let seq = match spec.seq {
@@ -95,19 +97,17 @@ impl Command for AddTerminals {
                     seq
                 }
             };
-            if designations.contains(&spec.designation) {
+            if !designations.insert(spec.designation.clone()) {
                 return tx.reject(format!(
                     "designation {} is already used in the strip; choose another",
                     spec.designation.as_str()
                 ));
             }
-            if seqs.contains(&seq) {
+            if !seqs.insert(seq) {
                 return tx.reject(format!(
                     "sequence number {seq} is already used in the strip; choose another"
                 ));
             }
-            designations.push(spec.designation.clone());
-            seqs.push(seq);
             let device: Id<Device> = tx.mint();
             tx.insert(Device {
                 id: device,
@@ -153,6 +153,7 @@ impl Command for AddTerminals {
         Ok(Outcome {
             primary: first.map(|d| (Kind::Device, d.cast())),
             note: None,
+            notices: Vec::new(),
         })
     }
 }
@@ -290,6 +291,7 @@ impl Command for AddConductors {
         Ok(Outcome {
             primary: first.map(|c| (Kind::Conductor, c.cast())),
             note: None,
+            notices: Vec::new(),
         })
     }
 }
@@ -300,15 +302,14 @@ fn check_distinct_cores(
     specs: &[ConductorSpec],
     existing: &[Ident],
 ) -> Result<(), CmdError> {
-    let mut seen: Vec<&Ident> = existing.iter().collect();
+    let mut seen: BTreeSet<&Ident> = existing.iter().collect();
     for spec in specs {
-        if seen.contains(&&spec.core) {
+        if !seen.insert(&spec.core) {
             return tx.reject(format!(
                 "core {} is already used in the cable; choose another",
                 spec.core.as_str()
             ));
         }
-        seen.push(&spec.core);
     }
     Ok(())
 }

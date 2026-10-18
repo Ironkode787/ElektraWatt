@@ -104,8 +104,11 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 "ew-step-worker" = ["ew-step-proto"]
 "xtask" = []
 
-# Additional edges allowed for dev-dependencies only (for example a test helper crate). None yet.
+# Additional edges allowed for dev-dependencies only (for example a test helper crate).
 [allowed_dev_edges]
+# ew-commands' own integration tests enable its `testkit` feature (row dumps, `Preview::ops`, history ops),
+# which is crate-private otherwise (ARCH §3 rule 1).
+"ew-commands" = ["ew-commands"]
 
 # ARCH §3 Rule 2: only ew-sqlview and ew-library link rusqlite.
 [[external_owner]]

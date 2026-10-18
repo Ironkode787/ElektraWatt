@@ -10,8 +10,8 @@ use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
     Connection, ConnectionKind, Device, DeviceAspects, DeviceKind, Endpoint, Extra, FnDef, FnRole, Function,
-    FunctionKind, Junction, Kind, LibCopy, NumberSpec, Page, PartUse, RepType, Representation, Strip,
-    StructureAssignment, SymbolDef, TagSpec,
+    FunctionKind, Junction, JunctionStyle, Kind, LibCopy, NumberSpec, Page, PageType, PartUse, RepType,
+    Representation, Strip, StructureAssignment, SymbolDef, TagSpec,
 };
 use ew_units::{Orient2, Pt2};
 use schemars::JsonSchema;
@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 use crate::command::{Command, Outcome};
 use crate::commands::common::EndpointParam;
 use crate::error::CmdError;
-use crate::geometry::{add, follow_end, rep_cps, sub, translate};
+use crate::geometry::{OutOfRange, add, follow_end, rep_cps_checked, require_on_grid, sub, translate};
 use crate::meta::CommandMeta;
 use crate::proxy::{IdentS, MlTextS, Orient2S, Pt2S, UuidS};
 use crate::tx::TxBuilder;
@@ -170,11 +170,16 @@ pub struct ConnectHint {
 ///   by EW-INV-002).
 /// - Every hint creates a wire `{a: the hint's CP, b: to, page}` without a route; the hint's symbol CP is
 ///   mapped to a function CP as the derived pin map does (`(functions[0], fn_cp)`); an unknown symbol CP
-///   or a point on a connection as `to` is rejected. A hint ending at a junction appends the wire to the
-///   junction's sequence.
+///   is rejected. A hint ending at a junction appends the wire to the junction's sequence; a hint ending
+///   on a point of a connection (`HintTarget::Split`) puts a new junction there, splits the connection at
+///   it (as `connection.draw` does) and ends the wire at the junction (the point must be on the page's
+///   connection grid). A hint whose function, junction or connection no longer exists is dropped and
+///   reported as a notice instead of failing the command.
+/// - The effective `rep_type` must be one the page's type allows (doc 06 §2.2, [`allowed_rep_types`]);
+///   else the placement is rejected with the list of allowed types.
 ///
 /// Online numbering (normaliser #4) gives a new device its counter; a symbol dropped onto a wire splits it
-/// (normaliser #7). Outcome: the representation. Aliases `device.place_from_part`, `symbol.place`.
+/// (normaliser #7). Outcome: the representation. Alias `symbol.place`.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PlaceSymbol {
@@ -208,12 +213,18 @@ impl Command for PlaceSymbol {
     const NAME: &'static str = "device.place";
 
     fn meta() -> CommandMeta {
-        CommandMeta::edit(Self::NAME).with_aliases(&["device.place_from_part", "symbol.place"])
+        CommandMeta::edit(Self::NAME).with_aliases(&["symbol.place"])
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        tx.require::<Page>(self.page)?;
+        let page = tx.require::<Page>(self.page)?;
         let symbol = tx.require::<LibCopy<SymbolDef>>(self.symbol)?;
+        require_on_grid(tx, self.page, self.pos, "/pos")?;
+        let rep_type = self
+            .rep_type
+            .clone()
+            .unwrap_or_else(|| symbol.item.rep_type.clone());
+        check_rep_type(tx, &page, &rep_type)?;
         // Check the hints before anything is written.
         for hint in &self.connect {
             if !symbol.item.cps.as_slice().iter().any(|cp| cp.idx == hint.cp) {
@@ -222,13 +233,8 @@ impl Command for PlaceSymbol {
                     hint.cp
                 ));
             }
-            if matches!(hint.to, EndpointParam::OnConnection { .. }) {
-                return tx.reject(
-                    "a connect hint cannot end on a point of a connection; draw that wire with `connection.draw`",
-                );
-            }
-            hint.to.check(tx)?;
         }
+        let mut notices = Vec::new();
         let function = match &self.target {
             PlaceTarget::NewDevice { letter, fndef, kind } => {
                 let def = place_fndef(tx, &symbol, *fndef)?;
@@ -267,7 +273,7 @@ impl Command for PlaceSymbol {
             }
         };
         let rep: Id<Representation> = tx.mint();
-        tx.insert(Representation {
+        let record = Representation {
             id: rep,
             v: 1,
             functions: vec![function],
@@ -276,18 +282,29 @@ impl Command for PlaceSymbol {
             variant: self.variant,
             pos: self.pos,
             orient: self.orient,
-            rep_type: self
-                .rep_type
-                .clone()
-                .unwrap_or_else(|| symbol.item.rep_type.clone()),
+            rep_type,
             pin_map: Default::default(),
             text_slots: Default::default(),
             arrangement: None,
             box_: None,
             source_ref: None,
             extra: Extra::new(),
-        })?;
-        for hint in &self.connect {
+        };
+        if rep_cps_checked(tx, &record).is_err() {
+            return tx.reject(
+                "`/pos` puts a connection point of the symbol outside the drawable range; place it nearer \
+                 the page origin",
+            );
+        }
+        tx.insert(record)?;
+        for (i, hint) in self.connect.iter().enumerate() {
+            if let Some(gone) = missing_target(tx, &hint.to) {
+                notices.push(format!(
+                    "autoconnect hint {} dropped: {gone} no longer exists",
+                    i + 1
+                ));
+                continue;
+            }
             let Some(fn_cp) = symbol
                 .item
                 .cps
@@ -298,10 +315,25 @@ impl Command for PlaceSymbol {
             else {
                 return tx.reject("the symbol lost a connection point");
             };
-            let Some(to) = hint.to.endpoint() else {
-                return tx.reject("a connect hint cannot end on a point of a connection");
-            };
             let id: Id<Connection> = tx.mint();
+            let (to, joins_sequence) = match &hint.to {
+                EndpointParam::OnConnection { connection, at } => (
+                    split_for_hint(
+                        tx,
+                        *connection,
+                        *at,
+                        id,
+                        &format!("/connect/{i}/to/on_connection/at"),
+                    )?,
+                    false,
+                ),
+                other => (
+                    other
+                        .endpoint()
+                        .expect("a CP or junction parameter has an endpoint"),
+                    true,
+                ),
+            };
             tx.insert(Connection {
                 id,
                 v: 1,
@@ -315,12 +347,121 @@ impl Command for PlaceSymbol {
                 source_ref: None,
                 extra: Extra::new(),
             })?;
-            if let Endpoint::Junction(j) = to {
+            if let (Endpoint::Junction(j), true) = (to, joins_sequence) {
                 tx.update::<Junction>(j, |j| j.sequence.push(id))?;
             }
         }
-        Ok(Outcome::primary((Kind::Representation, rep.cast())))
+        Ok(Outcome {
+            notices,
+            ..Outcome::primary((Kind::Representation, rep.cast()))
+        })
     }
+}
+
+/// What a hint names that does not exist (any more), as a phrase for a notice.
+fn missing_target(tx: &TxBuilder<'_>, to: &EndpointParam) -> Option<String> {
+    match to {
+        EndpointParam::Cp { function, .. } => {
+            (!tx.exists::<Function>(*function)).then(|| format!("function {function}"))
+        }
+        EndpointParam::Junction { junction } => {
+            (!tx.exists::<Junction>(*junction)).then(|| format!("junction {junction}"))
+        }
+        EndpointParam::OnConnection { connection, .. } => {
+            (!tx.exists::<Connection>(*connection)).then(|| format!("connection {connection}"))
+        }
+    }
+}
+
+/// A hint ending on a point of a connection: a new junction at `at`, the connection split there, the
+/// junction's sequence `[W′, W″, new wire]` (as `connection.draw` does for an `on_connection` end).
+fn split_for_hint(
+    tx: &mut TxBuilder<'_>,
+    connection: Id<Connection>,
+    at: Pt2,
+    new_wire: Id<Connection>,
+    field: &str,
+) -> Result<Endpoint, CmdError> {
+    let w = tx.require::<Connection>(connection)?;
+    let Some(page) = w.page else {
+        return tx.reject(format!(
+            "connection {connection} has no page, so a junction cannot be placed on it; give it a page first"
+        ));
+    };
+    require_on_grid(tx, page, at, field)?;
+    let junction: Id<Junction> = tx.mint();
+    tx.insert(Junction {
+        id: junction,
+        v: 1,
+        page,
+        at,
+        style: JunctionStyle::Dot,
+        wiring: None,
+        sequence: Vec::new(),
+        source_ref: None,
+        extra: Extra::new(),
+    })?;
+    let second = crate::normalise::split_connection(
+        tx,
+        connection,
+        at,
+        Endpoint::Junction(junction),
+        at,
+        Endpoint::Junction(junction),
+    )?;
+    tx.update::<Junction>(junction, |j| j.sequence = vec![connection, second, new_wire])?;
+    Ok(Endpoint::Junction(junction))
+}
+
+/// The representation types a page type allows (doc 06 §2.2, page-type table); `None` when the page type
+/// is not judged (a type of a newer format). An empty list means the page takes no representations
+/// (generated or read-only pages, title pages, model views, external documents; panel layouts, whose
+/// surface view has no `RepType` yet).
+///
+/// MultiLine takes multi-line, contact-image and strip-segment representations; SingleLine takes
+/// single-line; Overview and AssemblyOverview take overview; BusTopology takes topology; Fluid takes
+/// fluid; Graphic takes graphic.
+pub fn allowed_rep_types(page: &PageType) -> Option<&'static [RepType]> {
+    Some(match page {
+        PageType::MultiLine => &[RepType::MultiLine, RepType::ContactImage, RepType::StripSegment],
+        PageType::SingleLine => &[RepType::SingleLine],
+        PageType::Overview | PageType::AssemblyOverview => &[RepType::Overview],
+        PageType::BusTopology => &[RepType::Topology],
+        PageType::Fluid => &[RepType::Fluid],
+        PageType::Graphic => &[RepType::Graphic],
+        PageType::PanelLayout
+        | PageType::TableOfContents
+        | PageType::SectionDivider
+        | PageType::Report
+        | PageType::TitlePage
+        | PageType::ModelView
+        | PageType::ExternalDocument => &[],
+        PageType::Unknown(_) => return None,
+    })
+}
+
+/// Rejects a representation type the page's type does not allow, with the list of allowed types. An
+/// unknown representation type is not refused.
+fn check_rep_type(tx: &TxBuilder<'_>, page: &Page, rep_type: &RepType) -> Result<(), CmdError> {
+    let Some(allowed) = allowed_rep_types(&page.kind) else {
+        return Ok(());
+    };
+    if matches!(rep_type, RepType::Unknown(_)) || allowed.contains(rep_type) {
+        return Ok(());
+    }
+    let list = if allowed.is_empty() {
+        "none (this page type takes no representations)".to_owned()
+    } else {
+        allowed
+            .iter()
+            .map(|t| format!("{t:?}"))
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+    tx.reject(format!(
+        "representation type {rep_type:?} is not allowed on a {:?} page ({}); allowed: {list}",
+        page.kind, page.id
+    ))
 }
 
 fn zero() -> Pt2 {
@@ -366,13 +507,37 @@ impl Command for MoveReps {
         if self.reps.is_empty() {
             return tx.reject("give at least one representation to move");
         }
-        if let Some(page) = self.page {
-            tx.require::<Page>(page)?;
-        }
+        let target_page = match self.page {
+            Some(page) => Some(tx.require::<Page>(page)?),
+            None => None,
+        };
         let ids: BTreeSet<Id<Representation>> = self.reps.iter().copied().collect();
         let mut reps: Vec<Arc<Representation>> = Vec::new();
+        let mut moved: Vec<Representation> = Vec::new();
         for id in &ids {
-            reps.push(tx.require::<Representation>(*id)?);
+            let rep = tx.require::<Representation>(*id)?;
+            let mut next = (*rep).clone();
+            next.pos = match add(rep.pos, self.delta) {
+                Ok(p) => p,
+                Err(OutOfRange) => {
+                    return tx.reject(format!(
+                        "`/delta` moves representation {id} outside the drawable range; move it less far"
+                    ));
+                }
+            };
+            if let (Some(p), Some(page)) = (self.page, &target_page) {
+                next.page = p;
+                check_rep_type(tx, page, &rep.rep_type)?;
+            }
+            require_on_grid(tx, next.page, next.pos, "/delta")?;
+            if rep_cps_checked(tx, &next).is_err() {
+                return tx.reject(format!(
+                    "`/delta` moves a connection point of representation {id} outside the drawable range; \
+                     move it less far"
+                ));
+            }
+            reps.push(rep);
+            moved.push(next);
         }
         // The connections with an end at a function of a moved representation, in ID order.
         let mut connections: BTreeSet<Id<Connection>> = BTreeSet::new();
@@ -407,24 +572,23 @@ impl Command for MoveReps {
                 }
                 next.page = Some(new_page);
             }
-            if a && b {
-                translate(&mut next.route, self.delta);
+            let followed = if a && b {
+                translate(&mut next.route, self.delta)
             } else {
-                follow_end(&mut next.route, a, self.delta);
+                follow_end(&mut next.route, a, self.delta)
+            };
+            if followed.is_err() {
+                return tx.reject(format!(
+                    "`/delta` moves the route of connection {cid} outside the drawable range; move it less far"
+                ));
             }
             changed.push(next);
         }
         for c in changed {
             tx.put(c);
         }
-        let (delta, page) = (self.delta, self.page);
-        for rep in reps {
-            tx.update::<Representation>(rep.id, |r| {
-                r.pos = add(r.pos, delta);
-                if let Some(p) = page {
-                    r.page = p;
-                }
-            })?;
+        for rep in moved {
+            tx.put(rep);
         }
         Ok(Outcome::default())
     }
@@ -484,12 +648,24 @@ impl Command for TransformReps {
             if let Some(v) = self.variant {
                 new.variant = v;
             }
-            let before = rep_cps(tx, &old);
-            for after in rep_cps(tx, &new) {
+            let out_of_range = |tx: &TxBuilder<'_>| {
+                tx.reject::<()>(format!(
+                    "the transform puts a connection point of representation {id} outside the drawable \
+                     range"
+                ))
+            };
+            let (Ok(before), Ok(after_cps)) = (rep_cps_checked(tx, &old), rep_cps_checked(tx, &new)) else {
+                out_of_range(tx)?;
+                continue;
+            };
+            for after in after_cps {
                 let Some(b) = before.iter().find(|c| c.symbol_cp == after.symbol_cp) else {
                     continue;
                 };
-                let d = sub(after.pos, b.pos);
+                let Ok(d) = sub(after.pos, b.pos) else {
+                    out_of_range(tx)?;
+                    continue;
+                };
                 if d != Pt2::ORIGIN {
                     moves.entry((old.page, after.function, after.idx)).or_insert(d);
                 }
@@ -514,16 +690,16 @@ impl Command for TransformReps {
             };
             let (da, db) = (end(&c.a), end(&c.b));
             let mut next = (*c).clone();
-            match (da, db) {
+            let followed = match (da, db) {
                 (Some(a), Some(b)) if a == b => translate(&mut next.route, a),
-                _ => {
-                    if let Some(a) = da {
-                        follow_end(&mut next.route, true, a);
-                    }
-                    if let Some(b) = db {
-                        follow_end(&mut next.route, false, b);
-                    }
-                }
+                _ => da
+                    .map_or(Ok(()), |a| follow_end(&mut next.route, true, a))
+                    .and_then(|()| db.map_or(Ok(()), |b| follow_end(&mut next.route, false, b))),
+            };
+            if followed.is_err() {
+                return tx.reject(format!(
+                    "the transform moves the route of connection {cid} outside the drawable range"
+                ));
             }
             tx.put(next);
         }

@@ -22,6 +22,7 @@ use serde::{Deserialize, Serialize};
 use crate::command::{Command, Outcome};
 use crate::commands::common::EndpointParam;
 use crate::error::CmdError;
+use crate::geometry::{require_on_grid, require_route};
 use crate::meta::CommandMeta;
 use crate::normalise::split_connection;
 use crate::proxy::{Dec3S, IdentS, Orient2S, Pt2S, UuidS};
@@ -32,6 +33,7 @@ use crate::tx::TxBuilder;
 fn resolve_end(
     tx: &mut TxBuilder<'_>,
     end: &EndpointParam,
+    field: &str,
     new_id: Id<Connection>,
     split_page: &mut Option<Id<Page>>,
 ) -> Result<Endpoint, CmdError> {
@@ -49,6 +51,7 @@ fn resolve_end(
                      give it a page first"
                 ));
             };
+            require_on_grid(tx, page, *at, &format!("{field}/on_connection/at"))?;
             let junction: Id<Junction> = tx.mint();
             tx.insert(Junction {
                 id: junction,
@@ -130,8 +133,11 @@ fn new_ip(
 /// - The new connection is `{a, b, page, route, kind}`; its number stays unassigned. An end at an
 ///   existing junction appends the new connection to that junction's sequence.
 /// - `page` defaults to the page of a split connection, else none (a page-less bridge).
+/// - On a page, the geometry must be on the page's connection grid (D3, doc 06 §5.7,
+///   `geometry::require_route`): a split point, every route vertex, and route ends that meet their CPs
+///   exactly.
 /// - Rejected: both ends the same endpoint (CI-01); both ends on the same connection; a named record
-///   that does not exist (`NotFound`). Outcome: the new connection.
+///   that does not exist (`NotFound`); off-grid geometry. Outcome: the new connection.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Connect {
@@ -181,8 +187,11 @@ impl Command for Connect {
         }
         let new_id: Id<Connection> = tx.mint();
         let mut split_page = None;
-        let a = resolve_end(tx, &self.a, new_id, &mut split_page)?;
-        let b = resolve_end(tx, &self.b, new_id, &mut split_page)?;
+        let a = resolve_end(tx, &self.a, "/a", new_id, &mut split_page)?;
+        let b = resolve_end(tx, &self.b, "/b", new_id, &mut split_page)?;
+        if let Some(page) = self.page.or(split_page) {
+            require_route(tx, page, &a, &b, &self.route, "/route")?;
+        }
         let key = (Kind::Connection, new_id.cast());
         tx.insert(Connection {
             id: new_id,
@@ -201,8 +210,9 @@ impl Command for Connect {
     }
 }
 
-/// `connection.route`: replaces a connection's route (FR-CON-007). Connectivity is unchanged. Outcome: the
-/// connection. Coalesce route drags with a key.
+/// `connection.route`: replaces a connection's route (FR-CON-007). Connectivity is unchanged. On a page
+/// the route must be on the page's connection grid and its ends must meet their CPs (D3,
+/// `geometry::require_route`). Outcome: the connection. Coalesce route drags with a key.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RouteConnection {
@@ -222,6 +232,10 @@ impl Command for RouteConnection {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let c = tx.require::<Connection>(self.connection)?;
+        if let Some(page) = c.page {
+            require_route(tx, page, &c.a, &c.b, &self.route, "/route")?;
+        }
         tx.update::<Connection>(self.connection, |c| c.route = self.route.clone())?;
         Ok(Outcome::primary((Kind::Connection, self.connection.cast())))
     }
@@ -252,9 +266,12 @@ impl Command for DeleteConnections {
         for c in &self.connections {
             tx.require::<Connection>(*c)?;
         }
-        for c in &self.connections {
-            tx.delete_if_exists((Kind::Connection, c.cast()))?;
-        }
+        let keys: Vec<ew_model::AnyKey> = self
+            .connections
+            .iter()
+            .map(|c| (Kind::Connection, c.cast()))
+            .collect();
+        tx.delete_many(&keys)?;
         Ok(Outcome::default())
     }
 }
@@ -274,7 +291,9 @@ pub enum WiringChoice {
 /// `junction.edit`: style, wiring and sequence of a junction (FR-CON-005, doc 06 §3.5).
 ///
 /// Each given member replaces the stored one; `sequence` must be a permutation of the connections ending
-/// at the junction (else rejected). Outcome: the junction. Coalesce consecutive reorders with a key.
+/// at the junction (else rejected). It takes no coordinates, so the grid rule of D3 has nothing to check
+/// here: a junction's position is set (on the grid) by `connection.draw`. Outcome: the junction. Coalesce
+/// consecutive reorders with a key.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct EditJunction {
@@ -386,6 +405,7 @@ impl Command for PlaceIp {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         tx.require::<Page>(self.page)?;
         let symbol = tx.require::<LibCopy<SymbolDef>>(self.symbol)?;
+        require_on_grid(tx, self.page, self.pos, "/pos")?;
         if let Some(external) = self.external {
             tx.require::<ExternalRef>(external)?;
         }
@@ -474,6 +494,8 @@ impl Command for ContinueIp {
             IpDirection::Target => IpDirection::Source,
             other => other.clone(),
         };
+        let pos = self.pos.unwrap_or(rep.pos);
+        require_on_grid(tx, self.page, pos, "/pos")?;
         let partner = IpSpec {
             name: spec.name.clone(),
             direction,
@@ -488,7 +510,7 @@ impl Command for ContinueIp {
             partner,
             self.page,
             rep.symbol,
-            self.pos.unwrap_or(rep.pos),
+            pos,
             rep.orient,
             rep.rep_type.clone(),
         )?;

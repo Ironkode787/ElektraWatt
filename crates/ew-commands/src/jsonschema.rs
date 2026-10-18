@@ -17,10 +17,29 @@
 //! only branch whose `required` members are all present (an externally tagged variant) or, failing that,
 //! the only branch whose `type` accepts the value (`Option<Struct>`). Otherwise the error is "no variant
 //! matches" at the value.
+//!
+//! The validator itself is limit-free; [`check_limits`] bounds the size of an untrusted parameter document
+//! (bytes, nesting, array length, string length) and runs before validation. Messages quote at most
+//! [`QUOTE_CHARS`] characters of an instance, and are only built for the violation that is returned.
 
+use std::cell::Cell;
 use std::collections::BTreeSet;
+use std::io;
 
 use serde_json::{Map, Value};
+
+/// The most bytes a parameter document may have, measured as compact JSON.
+pub const MAX_PARAM_BYTES: usize = 4 * 1024 * 1024;
+/// The deepest nesting of arrays and objects a parameter document may have: a scalar root is depth 0,
+/// `[]` is depth 1.
+pub const MAX_PARAM_DEPTH: usize = 64;
+/// The most items any one array of a parameter document may have.
+pub const MAX_PARAM_ITEMS: usize = 1_048_576;
+/// The most UTF-8 bytes any one string (object keys included) of a parameter document may have.
+pub const MAX_PARAM_STRING: usize = 1024 * 1024;
+
+/// The most characters of an instance rendering that an error message quotes.
+const QUOTE_CHARS: usize = 256;
 
 /// The first violation found: where and what.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -34,31 +53,225 @@ pub struct SchemaViolation {
 /// The nesting limit of schema evaluation (a guard against `$ref` cycles).
 const MAX_DEPTH: usize = 128;
 
-/// Validates `instance` against `schema` (a root schema with `$defs`).
+/// Validates `instance` against `schema` (a root schema with `$defs`). It does not apply the size limits of
+/// [`check_limits`].
 pub fn validate(schema: &Value, instance: &Value) -> Result<(), SchemaViolation> {
-    Validator { root: schema }.check(schema, instance, "", 0)
+    Validator {
+        root: schema,
+        quiet: Cell::new(0),
+    }
+    .check(schema, instance, &Path::Root, 0)
 }
 
-fn violation(path: &str, message: impl Into<String>) -> SchemaViolation {
-    SchemaViolation {
-        path: path.to_string(),
-        message: message.into(),
+/// Checks the size limits of a parameter document ([`MAX_PARAM_DEPTH`], [`MAX_PARAM_ITEMS`],
+/// [`MAX_PARAM_STRING`], then [`MAX_PARAM_BYTES`]), reporting the first violation with the JSON Pointer of
+/// the offending value (`""` for the byte length of the whole document). Exactly at a bound is accepted.
+///
+/// One walk bounded to depth `MAX_PARAM_DEPTH + 1` (it cannot overflow the stack), then a serialisation
+/// that stops as soon as the compact length exceeds the bound, so a huge document is never fully rendered.
+pub fn check_limits(instance: &Value) -> Result<(), SchemaViolation> {
+    walk_limits(instance, &Path::Root, 0)?;
+    let mut counter = Counting::default();
+    if serde_json::to_writer(&mut counter, instance).is_err() || counter.bytes > MAX_PARAM_BYTES {
+        return Err(violation(
+            &Path::Root,
+            format!("the document is longer than the limit of {MAX_PARAM_BYTES} bytes"),
+        ));
+    }
+    Ok(())
+}
+
+/// `level` is the number of arrays and objects around `v`, not counting `v`.
+fn walk_limits(v: &Value, path: &Path<'_>, level: usize) -> Result<(), SchemaViolation> {
+    let too_long = |what: &str, at: &Path<'_>, len: usize| {
+        violation(
+            at,
+            format!("the {what} is {len} bytes long; the limit is {MAX_PARAM_STRING} bytes"),
+        )
+    };
+    match v {
+        Value::String(s) if s.len() > MAX_PARAM_STRING => Err(too_long("string", path, s.len())),
+        Value::Array(items) => {
+            let level = level + 1;
+            if level > MAX_PARAM_DEPTH {
+                return Err(too_deep(path));
+            }
+            if items.len() > MAX_PARAM_ITEMS {
+                return Err(violation(
+                    path,
+                    format!(
+                        "the array has {} items; the limit is {MAX_PARAM_ITEMS} items",
+                        items.len()
+                    ),
+                ));
+            }
+            for (i, item) in items.iter().enumerate() {
+                walk_limits(item, &Path::Idx(path, i), level)?;
+            }
+            Ok(())
+        }
+        Value::Object(members) => {
+            let level = level + 1;
+            if level > MAX_PARAM_DEPTH {
+                return Err(too_deep(path));
+            }
+            for (key, value) in members {
+                let at = Path::Key(path, key);
+                if key.len() > MAX_PARAM_STRING {
+                    return Err(too_long("object key", &at, key.len()));
+                }
+                walk_limits(value, &at, level)?;
+            }
+            Ok(())
+        }
+        _ => Ok(()),
     }
 }
 
-/// The JSON Pointer of a member below `path` (`~` is `~0`, `/` is `~1`).
-fn child(path: &str, token: &str) -> String {
-    let mut out = String::with_capacity(path.len() + token.len() + 1);
-    out.push_str(path);
-    out.push('/');
-    for c in token.chars() {
-        match c {
-            '~' => out.push_str("~0"),
-            '/' => out.push_str("~1"),
-            c => out.push(c),
+fn too_deep(path: &Path<'_>) -> SchemaViolation {
+    violation(
+        path,
+        format!("the nesting is deeper than the limit of {MAX_PARAM_DEPTH} levels"),
+    )
+}
+
+/// An `io::Write` that counts bytes and fails once the count exceeds [`MAX_PARAM_BYTES`].
+#[derive(Default)]
+struct Counting {
+    bytes: usize,
+}
+
+impl io::Write for Counting {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.bytes = self.bytes.saturating_add(buf.len());
+        if self.bytes > MAX_PARAM_BYTES {
+            return Err(io::Error::other("document too long"));
         }
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+/// An `io::Write` that keeps at most `cap` bytes and fails beyond them.
+struct Bounded {
+    buf: Vec<u8>,
+    cap: usize,
+}
+
+impl io::Write for Bounded {
+    fn write(&mut self, data: &[u8]) -> io::Result<usize> {
+        let room = self.cap - self.buf.len();
+        if data.len() > room {
+            self.buf.extend_from_slice(&data[..room]);
+            return Err(io::Error::other("bound reached"));
+        }
+        self.buf.extend_from_slice(data);
+        Ok(data.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+/// Compact JSON of a value for an error message: at most [`QUOTE_CHARS`] characters, then `…`. The value
+/// is never fully serialised.
+fn render(v: &Value) -> String {
+    let mut out = Bounded {
+        buf: Vec::new(),
+        cap: QUOTE_CHARS * 4,
+    };
+    let cut = serde_json::to_writer(&mut out, v).is_err();
+    let text = String::from_utf8_lossy(&out.buf);
+    let mut chars = text.chars();
+    let mut s: String = chars.by_ref().take(QUOTE_CHARS).collect();
+    if cut || chars.next().is_some() {
+        s.push('…');
+    }
+    s
+}
+
+/// A string for an error message, clipped to [`QUOTE_CHARS`] characters.
+fn clip(s: &str) -> String {
+    let mut chars = s.chars();
+    let mut out: String = chars.by_ref().take(QUOTE_CHARS).collect();
+    if chars.next().is_some() {
+        out.push('…');
     }
     out
+}
+
+/// The options of an `enum`, rendered and comma-separated, in total at most about [`QUOTE_CHARS`] characters.
+fn render_options(options: &[Value]) -> String {
+    let mut out = String::new();
+    for (i, option) in options.iter().enumerate() {
+        if out.chars().count() >= QUOTE_CHARS {
+            out.push_str(", …");
+            break;
+        }
+        if i > 0 {
+            out.push_str(", ");
+        }
+        out.push_str(&render(option));
+    }
+    out
+}
+
+/// Where a value sits in the instance, as a chain of borrowed steps: building a child costs nothing, the
+/// JSON Pointer is only written for the violation that is returned.
+#[derive(Clone, Copy)]
+enum Path<'a> {
+    Root,
+    Key(&'a Path<'a>, &'a str),
+    Idx(&'a Path<'a>, usize),
+}
+
+impl Path<'_> {
+    /// The JSON Pointer (`~` is `~0`, `/` is `~1`).
+    fn pointer(&self) -> String {
+        let mut steps = Vec::new();
+        let mut at = self;
+        loop {
+            match at {
+                Path::Root => break,
+                Path::Key(parent, key) => {
+                    steps.push(Err(*key));
+                    at = parent;
+                }
+                Path::Idx(parent, i) => {
+                    steps.push(Ok(*i));
+                    at = parent;
+                }
+            }
+        }
+        let mut out = String::new();
+        for step in steps.into_iter().rev() {
+            out.push('/');
+            match step {
+                Ok(i) => out.push_str(&i.to_string()),
+                Err(key) => {
+                    for c in key.chars() {
+                        match c {
+                            '~' => out.push_str("~0"),
+                            '/' => out.push_str("~1"),
+                            c => out.push(c),
+                        }
+                    }
+                }
+            }
+        }
+        out
+    }
+}
+
+fn violation(path: &Path<'_>, message: impl Into<String>) -> SchemaViolation {
+    SchemaViolation {
+        path: path.pointer(),
+        message: message.into(),
+    }
 }
 
 /// The JSON type name of an instance (`integer` for an integral number).
@@ -99,9 +312,32 @@ fn int(v: &Value) -> Option<i128> {
 
 struct Validator<'a> {
     root: &'a Value,
+    /// Non-zero while only the verdict matters (the probing of `anyOf`/`oneOf`/`not` branches): violations
+    /// are returned empty, without building paths or messages.
+    quiet: Cell<u32>,
 }
 
 impl Validator<'_> {
+    /// A violation whose path and message are built only when someone will read them.
+    fn fail(&self, path: &Path<'_>, message: impl FnOnce() -> String) -> SchemaViolation {
+        if self.quiet.get() > 0 {
+            SchemaViolation {
+                path: String::new(),
+                message: String::new(),
+            }
+        } else {
+            violation(path, message())
+        }
+    }
+
+    /// Runs `f` with violations suppressed.
+    fn quietly<T>(&self, f: impl FnOnce() -> T) -> T {
+        self.quiet.set(self.quiet.get() + 1);
+        let out = f();
+        self.quiet.set(self.quiet.get() - 1);
+        out
+    }
+
     fn resolve(&self, reference: &str) -> Option<&Value> {
         let pointer = reference.strip_prefix('#')?;
         self.root.pointer(pointer)
@@ -122,41 +358,45 @@ impl Validator<'_> {
         schema
     }
 
-    fn check(&self, schema: &Value, inst: &Value, path: &str, depth: usize) -> Result<(), SchemaViolation> {
+    fn check(
+        &self,
+        schema: &Value,
+        inst: &Value,
+        path: &Path<'_>,
+        depth: usize,
+    ) -> Result<(), SchemaViolation> {
         if depth > MAX_DEPTH {
-            return Err(violation(path, "schema nesting too deep"));
+            return Err(self.fail(path, || "schema nesting too deep".into()));
         }
         let map = match schema {
             Value::Bool(true) => return Ok(()),
-            Value::Bool(false) => return Err(violation(path, "no value is allowed here")),
+            Value::Bool(false) => return Err(self.fail(path, || "no value is allowed here".into())),
             Value::Object(map) => map,
-            _ => return Err(violation(path, "malformed schema")),
+            _ => return Err(self.fail(path, || "malformed schema".into())),
         };
         if let Some(r) = map.get("$ref") {
             let target = r
                 .as_str()
                 .and_then(|r| self.resolve(r))
-                .ok_or_else(|| violation(path, format!("unresolved $ref {r}")))?;
+                .ok_or_else(|| self.fail(path, || format!("unresolved $ref {}", render(r))))?;
             self.check(target, inst, path, depth + 1)?;
         }
         if let Some(t) = map.get("type") {
-            check_type(t, inst, path)?;
+            self.check_type(t, inst, path)?;
         }
         if let Some(c) = map.get("const")
             && c != inst
         {
-            return Err(violation(
-                path,
-                format!("expected the constant {c}, found {inst}"),
-            ));
+            return Err(self.fail(path, || {
+                format!("expected the constant {}, found {}", render(c), render(inst))
+            }));
         }
         if let Some(Value::Array(options)) = map.get("enum")
             && !options.contains(inst)
         {
-            return Err(violation(
-                path,
-                format!("{inst} is not one of {}", join_values(options)),
-            ));
+            return Err(self.fail(path, || {
+                format!("{} is not one of {}", render(inst), render_options(options))
+            }));
         }
         if let Some(Value::Array(all)) = map.get("allOf") {
             for s in all {
@@ -170,38 +410,47 @@ impl Validator<'_> {
             self.check_any(one, inst, path, depth, true)?;
         }
         if let Some(not) = map.get("not")
-            && self.check(not, inst, path, depth + 1).is_ok()
+            && self.quietly(|| self.check(not, inst, path, depth + 1)).is_ok()
         {
-            return Err(violation(path, "the value matches a schema it must not match"));
+            return Err(self.fail(path, || "the value matches a schema it must not match".into()));
         }
         match inst {
             Value::Object(members) => self.check_object(map, members, path, depth)?,
             Value::Array(items) => self.check_array(map, items, path, depth)?,
-            Value::String(s) => check_string(map, s, path)?,
-            Value::Number(_) => check_number(map, inst, path)?,
+            Value::String(s) => self.check_string(map, s, path)?,
+            Value::Number(_) => self.check_number(map, inst, path)?,
             _ => {}
         }
         Ok(())
     }
 
+    /// `anyOf` (`exactly_one` false) and `oneOf`. The branches are probed quietly: `anyOf` stops at the
+    /// first match, `oneOf` at the second. Only when none matches is the one branch the value names
+    /// evaluated again, this time to report its violation.
     fn check_any(
         &self,
         branches: &[Value],
         inst: &Value,
-        path: &str,
+        path: &Path<'_>,
         depth: usize,
         exactly_one: bool,
     ) -> Result<(), SchemaViolation> {
-        let results: Vec<Result<(), SchemaViolation>> = branches
-            .iter()
-            .map(|b| self.check(b, inst, path, depth + 1))
-            .collect();
-        let matching = results.iter().filter(|r| r.is_ok()).count();
+        let mut matching = 0usize;
+        self.quietly(|| {
+            for branch in branches {
+                if self.check(branch, inst, path, depth + 1).is_ok() {
+                    matching += 1;
+                    if !exactly_one || matching > 1 {
+                        break;
+                    }
+                }
+            }
+        });
         if matching == 1 || (matching > 0 && !exactly_one) {
             return Ok(());
         }
         if matching > 1 {
-            return Err(violation(path, "the value matches more than one variant"));
+            return Err(self.fail(path, || "the value matches more than one variant".into()));
         }
         // No branch matches: report the branch the instance names, if exactly one.
         let named: Vec<usize> = (0..branches.len())
@@ -210,19 +459,14 @@ impl Validator<'_> {
         let by_type: Vec<usize> = (0..branches.len())
             .filter(|i| self.accepts_type(&branches[*i], inst))
             .collect();
-        let pick = match (named.as_slice(), by_type.as_slice()) {
-            ([i], _) | ([], [i]) => Some(*i),
-            _ => None,
-        };
-        if let Some(i) = pick
-            && let Some(Err(e)) = results.into_iter().nth(i)
+        if let ([i], _) | ([], [i]) = (named.as_slice(), by_type.as_slice())
+            && let Err(e) = self.check(&branches[*i], inst, path, depth + 1)
         {
             return Err(e);
         }
-        Err(violation(
-            path,
-            format!("no variant of the {} matches the value", type_name(inst)),
-        ))
+        Err(self.fail(path, || {
+            format!("no variant of the {} matches the value", type_name(inst))
+        }))
     }
 
     /// Whether a branch is the one the instance names: an object with all `required` members of the
@@ -254,42 +498,40 @@ impl Validator<'_> {
         &self,
         schema: &Map<String, Value>,
         members: &Map<String, Value>,
-        path: &str,
+        path: &Path<'_>,
         depth: usize,
     ) -> Result<(), SchemaViolation> {
         if let Some(Value::Array(required)) = schema.get("required") {
             for r in required.iter().filter_map(Value::as_str) {
                 if !members.contains_key(r) {
-                    return Err(violation(path, format!("missing required member `{r}`")));
+                    return Err(self.fail(path, || format!("missing required member `{}`", clip(r))));
                 }
             }
         }
         if let Some(min) = schema.get("minProperties").and_then(Value::as_u64)
             && (members.len() as u64) < min
         {
-            return Err(violation(
-                path,
-                format!("expected at least {min} members, found {}", members.len()),
-            ));
+            return Err(self.fail(path, || {
+                format!("expected at least {min} members, found {}", members.len())
+            }));
         }
         if let Some(max) = schema.get("maxProperties").and_then(Value::as_u64)
             && (members.len() as u64) > max
         {
-            return Err(violation(
-                path,
-                format!("expected at most {max} members, found {}", members.len()),
-            ));
+            return Err(self.fail(path, || {
+                format!("expected at most {max} members, found {}", members.len())
+            }));
         }
         let properties = schema.get("properties").and_then(Value::as_object);
         let additional = schema.get("additionalProperties");
         for (name, value) in members {
-            let at = child(path, name);
+            let at = Path::Key(path, name);
             if let Some(sub) = properties.and_then(|p| p.get(name)) {
                 self.check(sub, value, &at, depth + 1)?;
             } else {
                 match additional {
                     Some(Value::Bool(false)) => {
-                        return Err(violation(&at, format!("unknown member `{name}`")));
+                        return Err(self.fail(&at, || format!("unknown member `{}`", clip(name))));
                     }
                     Some(sub @ Value::Object(_)) => self.check(sub, value, &at, depth + 1)?,
                     _ => {}
@@ -303,46 +545,43 @@ impl Validator<'_> {
         &self,
         schema: &Map<String, Value>,
         items: &[Value],
-        path: &str,
+        path: &Path<'_>,
         depth: usize,
     ) -> Result<(), SchemaViolation> {
         if let Some(min) = schema.get("minItems").and_then(Value::as_u64)
             && (items.len() as u64) < min
         {
-            return Err(violation(
-                path,
-                format!("expected at least {min} items, found {}", items.len()),
-            ));
+            return Err(self.fail(path, || {
+                format!("expected at least {min} items, found {}", items.len())
+            }));
         }
         if let Some(max) = schema.get("maxItems").and_then(Value::as_u64)
             && (items.len() as u64) > max
         {
-            return Err(violation(
-                path,
-                format!("expected at most {max} items, found {}", items.len()),
-            ));
+            return Err(self.fail(path, || {
+                format!("expected at most {max} items, found {}", items.len())
+            }));
         }
         if schema.get("uniqueItems") == Some(&Value::Bool(true)) {
             let mut seen = BTreeSet::new();
             for (i, item) in items.iter().enumerate() {
                 if !seen.insert(item.to_string()) {
-                    return Err(violation(
-                        &child(path, &i.to_string()),
-                        format!("item {i} repeats an earlier item"),
-                    ));
+                    return Err(self.fail(&Path::Idx(path, i), || {
+                        format!("item {i} repeats an earlier item")
+                    }));
                 }
             }
         }
         let prefix = schema.get("prefixItems").and_then(Value::as_array);
         let prefix_len = prefix.map_or(0, Vec::len);
         for (i, item) in items.iter().enumerate() {
-            let at = child(path, &i.to_string());
+            let at = Path::Idx(path, i);
             if let Some(sub) = prefix.and_then(|p| p.get(i)) {
                 self.check(sub, item, &at, depth + 1)?;
             } else if i >= prefix_len {
                 match schema.get("items") {
                     Some(Value::Bool(false)) => {
-                        return Err(violation(&at, format!("unexpected item at index {i}")));
+                        return Err(self.fail(&at, || format!("unexpected item at index {i}")));
                     }
                     Some(sub) => self.check(sub, item, &at, depth + 1)?,
                     None => {}
@@ -351,71 +590,76 @@ impl Validator<'_> {
         }
         Ok(())
     }
-}
 
-fn join_values(values: &[Value]) -> String {
-    let parts: Vec<String> = values.iter().map(Value::to_string).collect();
-    parts.join(", ")
-}
+    fn check_type(&self, t: &Value, inst: &Value, path: &Path<'_>) -> Result<(), SchemaViolation> {
+        let names = type_names(t);
+        if names.is_empty() || names.iter().any(|n| type_matches(n, inst)) {
+            return Ok(());
+        }
+        Err(self.fail(path, || {
+            format!("expected {}, found {}", names.join(" or "), type_name(inst))
+        }))
+    }
 
-fn check_type(t: &Value, inst: &Value, path: &str) -> Result<(), SchemaViolation> {
-    let names = type_names(t);
-    if names.is_empty() || names.iter().any(|n| type_matches(n, inst)) {
-        return Ok(());
+    fn check_string(
+        &self,
+        schema: &Map<String, Value>,
+        s: &str,
+        path: &Path<'_>,
+    ) -> Result<(), SchemaViolation> {
+        let min = schema.get("minLength").and_then(Value::as_u64);
+        let max = schema.get("maxLength").and_then(Value::as_u64);
+        if min.is_none() && max.is_none() {
+            return Ok(());
+        }
+        let len = s.chars().count() as u64;
+        if let Some(min) = min
+            && len < min
+        {
+            return Err(self.fail(path, || {
+                format!("expected at least {min} characters, found {len}")
+            }));
+        }
+        if let Some(max) = max
+            && len > max
+        {
+            return Err(self.fail(path, || format!("expected at most {max} characters, found {len}")));
+        }
+        Ok(())
     }
-    Err(violation(
-        path,
-        format!("expected {}, found {}", names.join(" or "), type_name(inst)),
-    ))
-}
 
-fn check_string(schema: &Map<String, Value>, s: &str, path: &str) -> Result<(), SchemaViolation> {
-    let len = s.chars().count() as u64;
-    if let Some(min) = schema.get("minLength").and_then(Value::as_u64)
-        && len < min
-    {
-        return Err(violation(
-            path,
-            format!("expected at least {min} characters, found {len}"),
-        ));
+    fn check_number(
+        &self,
+        schema: &Map<String, Value>,
+        inst: &Value,
+        path: &Path<'_>,
+    ) -> Result<(), SchemaViolation> {
+        let Some(v) = int(inst) else {
+            return Ok(());
+        };
+        let bound = |key: &str| schema.get(key).and_then(int);
+        if let Some(b) = bound("minimum")
+            && v < b
+        {
+            return Err(self.fail(path, || format!("{v} is below the minimum {b}")));
+        }
+        if let Some(b) = bound("maximum")
+            && v > b
+        {
+            return Err(self.fail(path, || format!("{v} is above the maximum {b}")));
+        }
+        if let Some(b) = bound("exclusiveMinimum")
+            && v <= b
+        {
+            return Err(self.fail(path, || format!("{v} is not above {b}")));
+        }
+        if let Some(b) = bound("exclusiveMaximum")
+            && v >= b
+        {
+            return Err(self.fail(path, || format!("{v} is not below {b}")));
+        }
+        Ok(())
     }
-    if let Some(max) = schema.get("maxLength").and_then(Value::as_u64)
-        && len > max
-    {
-        return Err(violation(
-            path,
-            format!("expected at most {max} characters, found {len}"),
-        ));
-    }
-    Ok(())
-}
-
-fn check_number(schema: &Map<String, Value>, inst: &Value, path: &str) -> Result<(), SchemaViolation> {
-    let Some(v) = int(inst) else {
-        return Ok(());
-    };
-    let bound = |key: &str| schema.get(key).and_then(int);
-    if let Some(b) = bound("minimum")
-        && v < b
-    {
-        return Err(violation(path, format!("{v} is below the minimum {b}")));
-    }
-    if let Some(b) = bound("maximum")
-        && v > b
-    {
-        return Err(violation(path, format!("{v} is above the maximum {b}")));
-    }
-    if let Some(b) = bound("exclusiveMinimum")
-        && v <= b
-    {
-        return Err(violation(path, format!("{v} is not above {b}")));
-    }
-    if let Some(b) = bound("exclusiveMaximum")
-        && v >= b
-    {
-        return Err(violation(path, format!("{v} is not below {b}")));
-    }
-    Ok(())
 }
 
 #[cfg(test)]
@@ -652,5 +896,28 @@ mod tests {
         ]});
         ok(s.clone(), json!(null));
         assert_eq!(err(s, json!({"a": "x"})).0, "/a");
+    }
+
+    #[test]
+    fn render_is_bounded() {
+        assert_eq!(render(&json!({"a": [1, "x"]})), r#"{"a":[1,"x"]}"#);
+        let long = render(&json!("é".repeat(10_000)));
+        assert_eq!(long.chars().count(), QUOTE_CHARS + 1);
+        assert!(long.ends_with('…'));
+        let exact = render(&json!("x".repeat(QUOTE_CHARS - 2)));
+        assert_eq!(exact.chars().count(), QUOTE_CHARS);
+        assert!(!exact.ends_with('…'));
+    }
+
+    #[test]
+    fn probed_branches_are_quiet_and_the_chosen_branch_reports() {
+        let s = json!({"anyOf": [
+            {"type": "object", "properties": {"a": {"type": "integer"}}, "required": ["a"]},
+            {"type": "null"}
+        ]});
+        assert_eq!(
+            err(s, json!({"a": "x"})),
+            ("/a".into(), "expected integer, found string".into())
+        );
     }
 }

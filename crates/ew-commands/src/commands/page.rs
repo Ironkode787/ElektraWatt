@@ -298,7 +298,11 @@ impl Command for DeletePages {
                 ids.join(", ")
             )
         });
-        Ok(Outcome { primary: None, note })
+        Ok(Outcome {
+            primary: None,
+            note,
+            notices: Vec::new(),
+        })
     }
 }
 
@@ -408,15 +412,19 @@ impl Command for RenumberPages {
             };
             new_numbers.push((p.id, new));
         }
+        // The folios of the pages outside the renumbered ones, indexed once: a new number clashes when a
+        // page outside the scope holds the same (section, number, label).
         let in_scope: BTreeSet<Id<Page>> = scope.iter().map(|p| p.id).collect();
+        let taken: BTreeSet<(Option<Id<Section>>, u32, Option<Ident>)> = tx
+            .iter::<Page>()
+            .iter()
+            .filter(|p| !in_scope.contains(&p.id))
+            .map(|p| (p.folio.section, p.folio.number, p.folio.label.clone()))
+            .collect();
         for (p, &(_, new)) in scope.iter().zip(&new_numbers) {
-            let clash = section_pages(tx, p.folio.section)
-                .into_iter()
-                .any(|(id, f)| !in_scope.contains(&id) && f.number == new && f.label == p.folio.label);
-            if clash {
+            if taken.contains(&(p.folio.section, new, p.folio.label.clone())) {
                 return tx.reject(format!(
-                    "folio {new} is already used by a page outside the renumbered pages; \
-                     choose another `start` or include that page"
+                    "folio {new} is already used by a page outside the renumbered pages; choose another `start` or include that page"
                 ));
             }
         }

@@ -1,6 +1,6 @@
 {
   "$defs": {
-    "Uuid": {
+    "CmdUuid": {
       "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
       "maxLength": 36,
       "minLength": 36,
@@ -20,7 +20,7 @@
     "pages": {
       "description": "The pages, at least one.",
       "items": {
-        "$ref": "#/$defs/Uuid"
+        "$ref": "#/$defs/CmdUuid"
       },
       "type": "array"
     }

@@ -28,8 +28,14 @@ pub fn fndef_two() -> Id<FnDef> {
     ew_ids::v5::lib_copy_id(LIBRARY_X, ITEM_X)
 }
 
-/// 10 mm in nanometres.
+/// 10 mm in nanometres (symbol geometry; not a position of the fixture pages' connection grid).
 pub const MM10: i64 = 10_000_000;
+
+/// One position step of the tests on the connection grid of the fixture pages (QET 10 px =
+/// `7_937_500/3` nm): three grid steps, 30 px = 7.9375 mm, exactly representable, so every multiple of
+/// `G` is on the grid (D3). Representation positions, move deltas, split points and route vertices of the
+/// tests are multiples of `G`.
+pub const G: i64 = 7_937_500;
 
 /// A point in nanometres.
 pub fn pt(x: i64, y: i64) -> Pt2 {
@@ -115,7 +121,7 @@ pub fn engine_with_limits(model: Model, limits: HistoryLimits) -> Engine {
 
 /// Every record of a model as `(key, canonical JSON)`: equal lines mean byte-identical records.
 pub fn lines(model: &Model) -> Vec<(AnyKey, String)> {
-    ew_commands::rows::model_lines(model)
+    ew_commands::rows::model_lines(model).expect("every record has a JSON form")
 }
 
 /// The typed ID of an outcome key or created key.

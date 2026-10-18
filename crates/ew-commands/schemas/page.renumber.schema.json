@@ -1,5 +1,12 @@
 {
   "$defs": {
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
     "PageScope": {
       "description": "Which pages `page.renumber` renumbers.",
       "oneOf": [
@@ -9,7 +16,7 @@
           "properties": {
             "pages": {
               "items": {
-                "$ref": "#/$defs/Uuid"
+                "$ref": "#/$defs/CmdUuid"
               },
               "type": "array"
             }
@@ -24,7 +31,7 @@
           "description": "Every page of a section.",
           "properties": {
             "section": {
-              "$ref": "#/$defs/Uuid"
+              "$ref": "#/$defs/CmdUuid"
             }
           },
           "required": [
@@ -38,13 +45,6 @@
           "type": "string"
         }
       ]
-    },
-    "Uuid": {
-      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
-      "maxLength": 36,
-      "minLength": 36,
-      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-      "type": "string"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",

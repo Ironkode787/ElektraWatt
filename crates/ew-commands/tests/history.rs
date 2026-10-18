@@ -20,7 +20,7 @@ use ew_schema::Kind;
 fn mv(dx: i64) -> MoveReps {
     MoveReps {
         reps: vec![REP_102F2],
-        delta: pt(dx * MM10, 0),
+        delta: pt(dx * G, 0),
         page: None,
     }
 }

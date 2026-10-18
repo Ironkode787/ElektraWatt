@@ -51,14 +51,14 @@ fn examples() -> Vec<(&'static str, Value)> {
         ),
         (
             "device.place",
-            json!({"page": PAGE_102.to_string(), "symbol": SYM_TWO.to_string(), "pos": [0, 10_000_000],
+            json!({"page": PAGE_102.to_string(), "symbol": SYM_TWO.to_string(), "pos": [7_937_500, 0],
                 "orient": "r90", "variant": 0,
                 "target": {"new_device": {"letter": "K"}},
                 "connect": [{"cp": 0, "to": {"junction": {"junction": J5.to_string()}}}]}),
         ),
         (
             "rep.move",
-            json!({"reps": [REP_102F2.to_string()], "delta": [1_000_000, -2_000_000],
+            json!({"reps": [REP_102F2.to_string()], "delta": [7_937_500, -15_875_000],
                 "page": PAGE_101.to_string()}),
         ),
         (
@@ -67,11 +67,11 @@ fn examples() -> Vec<(&'static str, Value)> {
         ),
         (
             "connection.draw",
-            json!({"a": fn_a, "b": fn_b, "page": PAGE_102.to_string(), "route": [[0, 0], [10, 0]]}),
+            json!({"a": fn_a, "b": fn_b, "page": PAGE_102.to_string(), "route": [[0, 0], [7_937_500, 0]]}),
         ),
         (
             "connection.route",
-            json!({"connection": CON_W22.to_string(), "route": [[0, 0], [5, 5]]}),
+            json!({"connection": CON_W22.to_string(), "route": [[0, 0], [7_937_500, 7_937_500]]}),
         ),
         ("connection.delete", json!({"connections": [CON_W22.to_string()]})),
         (
@@ -86,7 +86,7 @@ fn examples() -> Vec<(&'static str, Value)> {
         ),
         (
             "ip.continue",
-            json!({"ip": FN_IP_101.to_string(), "page": PAGE_102.to_string(), "pos": [10, 20]}),
+            json!({"ip": FN_IP_101.to_string(), "page": PAGE_102.to_string(), "pos": [7_937_500, 15_875_000]}),
         ),
         (
             "potential.define",
@@ -169,12 +169,12 @@ fn examples_resolve_and_round_trip() {
             .resolve(&any(name, params))
             .unwrap_or_else(|e| panic!("{name}: {e}"));
         assert_eq!(resolved.name(), name);
-        let json = resolved.to_json();
+        let json = resolved.to_json().expect("serialisable");
         assert_eq!(validate_schema(schema, &json), Ok(()), "{name}: serialised form");
         let again = registry
             .resolve(&any(name, json.clone()))
             .unwrap_or_else(|e| panic!("{name}: round trip: {e}"));
-        assert_eq!(again.to_json(), json, "{name}");
+        assert_eq!(again.to_json().expect("serialisable"), json, "{name}");
     }
 }
 
@@ -275,7 +275,7 @@ fn an_alias_resolves_to_the_canonical_command() {
     assert_eq!(resolved.name(), "device.place");
     let (command, _, _) = invalid("symbol.place", json!({}));
     assert_eq!(command, "device.place", "errors name the canonical command");
-    let via_alias = AnyCommand::of(&*resolved);
+    let via_alias = AnyCommand::of(&*resolved).expect("serialisable");
     assert_eq!(via_alias.name, "device.place");
 }
 
@@ -302,8 +302,72 @@ fn any_command_runs_with_validated_parameters_only() {
     assert_eq!(e.model().rev().0, 0);
     let good = any(
         "connection.route",
-        json!({"connection": CON_W22.to_string(), "route": [[0, 0], [5, 5]]}),
+        json!({"connection": CON_W22.to_string(), "route": [[0, 0], [7_937_500, 7_937_500]]}),
     );
     e.execute(&good).unwrap();
     assert_eq!(e.model().rev().0, 1);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Integer limits of the JSON encoding (I-JSON, 2^53): floats and out-of-range integers are rejected.
+
+const MAX_SAFE: i64 = 9_007_199_254_740_991;
+
+fn move_params(delta: Value) -> Value {
+    json!({"reps": [REP_102F2.to_string()], "delta": delta})
+}
+
+#[test]
+fn a_point_rejects_floats_and_integers_beyond_two_to_the_53() {
+    let registry = CommandRegistry::builtin();
+    for bad in [
+        json!([1.5, 0]),
+        json!([0, 1.5]),
+        json!([9_007_199_254_740_992_i64, 0]),
+        json!([0, -9_007_199_254_740_992_i64]),
+    ] {
+        let (command, path, _) = invalid("rep.move", move_params(bad.clone()));
+        assert_eq!(command, "rep.move");
+        assert!(path.starts_with("/delta"), "{bad}: {path}");
+    }
+    for ok in [
+        json!([MAX_SAFE, 0]),
+        json!([0, -MAX_SAFE]),
+        json!([-MAX_SAFE, MAX_SAFE]),
+    ] {
+        assert!(
+            registry
+                .resolve(&any("rep.move", move_params(ok.clone())))
+                .is_ok(),
+            "{ok}"
+        );
+    }
+}
+
+#[test]
+fn an_integer_parameter_rejects_floats_and_integers_beyond_two_to_the_53() {
+    for (name, member, base) in [
+        ("page.create", "number", json!({"title": "Control"})),
+        (
+            "page.renumber",
+            "start",
+            json!({"scope": {"pages": [PAGE_101.to_string()]}}),
+        ),
+    ] {
+        for bad in [
+            json!(1.5),
+            json!(9_007_199_254_740_992_i64),
+            json!(-9_007_199_254_740_992_i64),
+        ] {
+            let mut params = base.clone();
+            params[member] = bad.clone();
+            let (command, path, message) = invalid(name, params);
+            assert_eq!(command, name);
+            // a float is reported at the member; a too large integer fails the `u32` conversion (the path
+            // of that serde error is not asserted)
+            if bad.is_f64() {
+                assert_eq!(path, format!("/{member}"), "{name} {bad}: {message}");
+            }
+        }
+    }
 }

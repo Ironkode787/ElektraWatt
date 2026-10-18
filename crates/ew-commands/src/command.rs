@@ -3,13 +3,14 @@
 
 //! The `Command` layer of ADR-0008 (ARCH §5.1): typed commands and their object-safe companion.
 
-use ew_model::AnyKey;
+use ew_model::{AnyKey, Model};
 use schemars::JsonSchema;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
+use crate::registry::AnyCommand;
 use crate::tx::TxBuilder;
 
 /// What a command reports besides its ops.
@@ -19,6 +20,9 @@ pub struct Outcome {
     pub primary: Option<AnyKey>,
     /// A short human-readable note for the toast, if any.
     pub note: Option<String>,
+    /// What the command dropped or adjusted instead of refusing, for the toast (an autoconnect hint whose
+    /// target vanished, doc 06 §3.2 row 6), in the order they arose.
+    pub notices: Vec<String>,
 }
 
 impl Outcome {
@@ -27,6 +31,7 @@ impl Outcome {
         Outcome {
             primary: Some(key),
             note: None,
+            notices: Vec::new(),
         }
     }
 }
@@ -43,8 +48,10 @@ pub trait Command: Serialize + DeserializeOwned + JsonSchema + Send + Sync + 'st
     /// The registered metadata (doc 17 §2.1).
     fn meta() -> CommandMeta;
 
-    /// The cost of this instance; the metadata's default unless overridden.
-    fn cost(&self) -> Cost {
+    /// The cost of this instance on the snapshot `model` it would run on; the metadata's default unless
+    /// overridden (`edit.delete` counts the records its delete plan removes, D4).
+    fn cost(&self, model: &Model) -> Cost {
+        let _ = model;
         Self::meta().cost
     }
 
@@ -61,14 +68,22 @@ pub trait DynCommand: Send + Sync {
     /// The registered metadata.
     fn meta(&self) -> CommandMeta;
 
-    /// The cost of this instance.
-    fn cost(&self) -> Cost;
+    /// The cost of this instance on the snapshot it would run on.
+    fn cost(&self, model: &Model) -> Cost;
 
     /// Runs the command.
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError>;
 
-    /// The parameters as JSON: the journal, the macro recorder and command logs.
-    fn to_json(&self) -> serde_json::Value;
+    /// The parameters as JSON: the journal, the macro recorder and command logs. A parameter value that
+    /// has no JSON form (a coordinate beyond ±(2⁵³ − 1), ADR-0005) is [`CmdError::Internal`], never a
+    /// silent `null`.
+    fn to_json(&self) -> Result<serde_json::Value, CmdError>;
+
+    /// The untyped command behind this object, if it is one: the engine resolves an [`AnyCommand`]
+    /// against its own registry once, before it reads the cost or runs it.
+    fn as_any_command(&self) -> Option<&AnyCommand> {
+        None
+    }
 }
 
 impl<C: Command> DynCommand for C {
@@ -80,16 +95,16 @@ impl<C: Command> DynCommand for C {
         C::meta()
     }
 
-    fn cost(&self) -> Cost {
-        Command::cost(self)
+    fn cost(&self, model: &Model) -> Cost {
+        Command::cost(self, model)
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         Command::run(self, tx)
     }
 
-    fn to_json(&self) -> serde_json::Value {
-        // A parameter struct of plain serde types always serialises; a failure is a bug in the struct.
-        serde_json::to_value(self).unwrap_or(serde_json::Value::Null)
+    fn to_json(&self) -> Result<serde_json::Value, CmdError> {
+        serde_json::to_value(self)
+            .map_err(|e| CmdError::internal(format!("{}: the parameters have no JSON form ({e})", C::NAME)))
     }
 }

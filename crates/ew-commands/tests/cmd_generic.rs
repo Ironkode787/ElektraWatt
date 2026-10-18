@@ -339,34 +339,71 @@ fn delete_is_undone_to_the_exact_bytes() {
     assert_eq!(lines(e.model()), before);
 }
 
+/// The golden model plus `n` extra representations of `FN_102F2` on page 102.
+fn model_with_extra_reps(n: usize) -> Model {
+    let (p, mut records, _) = mini_golden_parts();
+    for i in 0..n {
+        records.push(Record::Representation(rep(
+            id(0x20_000 + i as u128),
+            PAGE_102,
+            vec![FN_102F2],
+        )));
+    }
+    Model::from_records(p, records, library()).expect("golden plus representations")
+}
+
 #[test]
-fn delete_is_bulk_above_500_targets() {
-    let many = |n: usize| {
-        delete(
-            (0..n)
-                .map(|i| target(KindName::Device, id::<()>(0x10_000 + i as u128)))
-                .collect(),
-        )
-    };
-    assert_eq!(Command::cost(&many(BULK_ABOVE)), Cost::Interactive);
-    assert_eq!(Command::cost(&many(BULK_ABOVE + 1)), Cost::Bulk);
-    let mut e = engine(golden_model());
-    let err = e.execute(&many(BULK_ABOVE + 1)).unwrap_err();
+fn delete_is_bulk_above_500_records() {
+    // (a) one device whose removal cascades over more than 500 records
+    let model = model_with_extra_reps(BULK_ABOVE + 100);
+    let cmd = delete(vec![target(KindName::Device, DEV_102F2.cast())]);
+    assert_eq!(Command::cost(&cmd, &model), Cost::Bulk);
+    let mut e = engine(model);
+    let err = e.execute(&cmd).unwrap_err();
     assert!(matches!(err, CmdError::NeedsPreview { .. }), "{err:?}");
+    // the golden model's own cascade is small
+    assert_eq!(Command::cost(&cmd, &golden_model()), Cost::Interactive);
+}
+
+#[test]
+fn many_targets_with_a_small_plan_stay_interactive() {
+    // (b) 501 targets that are all the same representation: one record plus its cascade
+    let mut targets = vec![target(KindName::Representation, REP_102F2_AUX.cast())];
+    targets.resize(BULK_ABOVE + 1, targets[0]);
+    let cmd = delete(targets);
+    assert_eq!(Command::cost(&cmd, &golden_model()), Cost::Interactive);
+    let mut e = engine(golden_model());
+    e.execute(&cmd).unwrap();
+    assert!(!exists(&e, (Kind::Representation, REP_102F2_AUX.cast())));
+}
+
+#[test]
+fn missing_targets_cost_interactive_and_fail_not_found() {
+    // (c) a plan that cannot be made costs `Interactive`; running it fails
+    let cmd = delete(
+        (0..BULK_ABOVE + 1)
+            .map(|i| target(KindName::Device, id::<()>(0x10_000 + i as u128)))
+            .collect(),
+    );
+    assert_eq!(Command::cost(&cmd, &golden_model()), Cost::Interactive);
+    let mut e = engine(golden_model());
+    let err = e.execute(&cmd).unwrap_err();
+    assert!(matches!(err, CmdError::NotFound { .. }), "{err:?}");
 }
 
 #[test]
 fn bulk_delete_runs_through_preview_and_commit() {
-    // 501 targets: the devices of the golden model that can go, repeated by listing the same page's
-    // pieces; duplicates are skipped, so a small selection padded above the limit works.
-    let mut targets = vec![target(KindName::Representation, REP_102F2_AUX.cast())];
-    targets.resize(BULK_ABOVE + 1, targets[0]);
-    let cmd = delete(targets);
-    assert_eq!(Command::cost(&cmd), Cost::Bulk);
-    let mut e = engine(golden_model());
+    let model = model_with_extra_reps(BULK_ABOVE + 100);
+    let cmd = delete(vec![target(KindName::Device, DEV_102F2.cast())]);
+    assert_eq!(Command::cost(&cmd, &model), Cost::Bulk);
+    let before = lines(&model);
+    let mut e = engine(model);
     let p = e.preview(&cmd).unwrap();
     e.commit(p).unwrap();
-    assert!(!exists(&e, (Kind::Representation, REP_102F2_AUX.cast())));
+    assert!(!exists(&e, (Kind::Device, DEV_102F2.cast())));
+    assert!(!exists(&e, (Kind::Representation, id::<()>(0x20_000))));
+    e.undo().unwrap();
+    assert_eq!(lines(e.model()), before);
 }
 
 // ---------------------------------------------------------------------------------------------------------

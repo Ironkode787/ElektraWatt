@@ -237,7 +237,48 @@ fn set_one<T: Entity + Serialize + DeserializeOwned>(
     }
     let next: T = serde_json::from_value(json)
         .map_err(|e| CmdError::invalid_params(SetFields::NAME, "/value", e.to_string()))?;
-    tx.update::<T>(id, |r| *r = next)
+    tx.update::<T>(id, |r| *r = next)?;
+    if T::KIND == Kind::Device && matches!(path, "tag.counter" | "tag.letter") {
+        refuse_tag_collision(tx, target.cast())?;
+    }
+    Ok(())
+}
+
+/// D2: a counter or letter set through `fields.set` that makes the device's page-based tag collide on its
+/// page is refused with the next free counter as the remedy, never replaced silently (automatic
+/// renumbering, FR-NUM-029, applies only to new devices, moves and page changes). A tag that the edit
+/// leaves unchanged, an unplaced device and a device outside page-based numbering are not checked.
+fn refuse_tag_collision(tx: &TxBuilder<'_>, device: ew_ids::Id<Device>) -> Result<(), CmdError> {
+    use crate::numbering::{CounterScope, devices_in_scope, main_page, next_free_counter, numbered};
+    let Some(dev) = tx.get::<Device>(device) else {
+        return Ok(());
+    };
+    let unchanged = tx
+        .base_row(&(Kind::Device, device.cast()))
+        .and_then(|r| r.get::<Device>().map(|b| b.tag == dev.tag))
+        .unwrap_or(false);
+    let Some(counter) = dev.tag.counter else {
+        return Ok(());
+    };
+    if unchanged || !numbered(&dev) {
+        return Ok(());
+    }
+    let Some(page) = main_page(tx, device) else {
+        return Ok(());
+    };
+    let scope = CounterScope::Page(page);
+    let taken = devices_in_scope(tx, &dev.tag.letter, scope)
+        .into_iter()
+        .any(|(other, c)| other != device && c == Some(counter));
+    if !taken {
+        return Ok(());
+    }
+    let free = next_free_counter(tx, &dev.tag.letter, scope, Some(device));
+    tx.reject(format!(
+        "counter {counter} with letter {} is already used on page {page} by another device; use {free}, \
+         the next free counter",
+        dev.tag.letter
+    ))
 }
 
 /// Sets (or, for `null`, removes) the member at `segments` below `root`, creating intermediate objects

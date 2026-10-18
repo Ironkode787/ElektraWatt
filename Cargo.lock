@@ -270,6 +270,7 @@ dependencies = [
 name = "ew-commands"
 version = "0.0.0"
 dependencies = [
+ "ew-commands",
  "ew-derive",
  "ew-ids",
  "ew-mltext",

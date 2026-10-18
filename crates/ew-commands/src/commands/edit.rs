@@ -13,16 +13,19 @@ use crate::error::CmdError;
 use crate::meta::{CommandMeta, Cost};
 use crate::tx::TxBuilder;
 
-/// Selections above this many records run as bulk commands (doc 06 §3.1).
+/// Deletions that remove more than this many records (the targets and everything their delete plan
+/// takes along) run as bulk commands (doc 06 §3.1, D4).
 pub const BULK_ABOVE: usize = 500;
 
 /// `edit.delete`: removes the selected records with everything the delete policies take along
-/// (FR-DEV-030): each target in order through `TxBuilder::delete`; a target already removed by an earlier
-/// target's cascade is skipped. Deleting a representation leaves its function unplaced (an IP function goes
-/// with it); deleting a device removes its functions, their representations and connections. A target that
-/// does not exist at the start is `NotFound`; a forbid link (a strip with terminals, a referenced structure
-/// node) rejects the whole command (`ModelError::Referenced`). Cost: `Bulk` above 500 targets. Outcome:
-/// none.
+/// (FR-DEV-030), in **one** delete plan for all targets (`TxBuilder::delete_many`): the result does not
+/// depend on the order of the targets, a target that another target's cascade removes is planned once,
+/// and a target listed twice counts once. Deleting a representation leaves its function unplaced (an IP
+/// function goes with it); deleting a device removes its functions, their representations and
+/// connections. A target that does not exist at the start is `NotFound`; a forbid link (a strip with
+/// terminals, a referenced structure node) rejects the whole command (`ModelError::Referenced`). Cost:
+/// `Bulk` when the plan removes or changes more than 500 records (D4; the plan is computed once by
+/// `cost`). Outcome: none.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DeleteSelection {
@@ -37,11 +40,13 @@ impl Command for DeleteSelection {
         CommandMeta::edit(Self::NAME)
     }
 
-    fn cost(&self) -> Cost {
-        if self.targets.len() > BULK_ABOVE {
-            Cost::Bulk
-        } else {
-            Cost::Interactive
+    fn cost(&self, model: &ew_model::Model) -> Cost {
+        let keys: Vec<ew_model::AnyKey> = self.targets.iter().map(|t| t.key()).collect();
+        // A plan that cannot be made (a missing target, a forbid link) is refused by `run`; it costs
+        // nothing.
+        match model.delete_plan_many(&keys) {
+            Ok(plan) if plan.len() > BULK_ABOVE => Cost::Bulk,
+            _ => Cost::Interactive,
         }
     }
 
@@ -58,9 +63,8 @@ impl Command for DeleteSelection {
                 return Err(CmdError::NotFound { key: t.key() });
             }
         }
-        for t in &self.targets {
-            tx.delete_if_exists(t.key())?;
-        }
+        let keys: Vec<ew_model::AnyKey> = self.targets.iter().map(|t| t.key()).collect();
+        tx.delete_many(&keys)?;
         Ok(Outcome::default())
     }
 }

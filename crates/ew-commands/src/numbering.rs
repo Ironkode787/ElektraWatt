@@ -14,11 +14,12 @@
 //! unplaced device (no main representation) has no scope: it keeps its counter, and a device without a
 //! counter gets one when it is placed.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_mltext::Ident;
+use ew_model::Model;
 use ew_schema::{Device, FnRole, Function, Page, Representation, TagScheme};
 
 use crate::tx::TxBuilder;
@@ -54,6 +55,34 @@ pub fn main_rep(tx: &TxBuilder<'_>, device: Id<Device>) -> Option<Arc<Representa
 /// The page of a device's main representation.
 pub fn main_page(tx: &TxBuilder<'_>, device: Id<Device>) -> Option<Id<Page>> {
     main_rep(tx, device).map(|r| r.page)
+}
+
+/// The page of a device's main representation in a snapshot (the base of a transaction), by the same
+/// rule as [`main_page`].
+pub fn main_page_in(model: &Model, device: Id<Device>) -> Option<Id<Page>> {
+    let functions = model.table::<Function>();
+    let f = model
+        .indexes()
+        .functions_by_device()
+        .get(&device)
+        .find(|f| functions.get(f).is_some_and(|f| f.role == FnRole::Main))?;
+    let rep = model.indexes().reps_by_function().get(f).next()?;
+    model.table::<Representation>().get(rep).map(|r| r.page)
+}
+
+/// Whether two devices held the same page-based tag in a snapshot: both numbered, the same letter and
+/// counter, and the same page of the main representation.
+pub fn collided_in(model: &Model, a: Id<Device>, b: Id<Device>) -> bool {
+    let devices = model.table::<Device>();
+    let (Some(da), Some(db)) = (devices.get(&a), devices.get(&b)) else {
+        return false;
+    };
+    numbered(da)
+        && numbered(db)
+        && da.tag.letter == db.tag.letter
+        && da.tag.counter.is_some()
+        && da.tag.counter == db.tag.counter
+        && main_page_in(model, a).is_some_and(|p| main_page_in(model, b) == Some(p))
 }
 
 /// The numbered devices in a scope with a given letter, with their counters, in ID order.
@@ -98,16 +127,79 @@ pub fn devices_in_scope(
 
 /// The lowest positive counter not used by another numbered device with this letter in the scope (gaps
 /// are filled, FR-NUM-007). `exclude` leaves one device's own counter out.
+///
+/// Scans the scope once; code that asks repeatedly for one scope loads a [`ScopeCounters`] instead.
 pub fn next_free_counter(
     tx: &TxBuilder<'_>,
     letter: &Ident,
     scope: CounterScope,
     exclude: Option<Id<Device>>,
 ) -> u32 {
-    let used: BTreeSet<u32> = devices_in_scope(tx, letter, scope)
-        .into_iter()
-        .filter(|(d, _)| Some(*d) != exclude)
-        .filter_map(|(_, c)| c)
-        .collect();
-    (1..).find(|c| !used.contains(c)).unwrap_or(u32::MAX)
+    ScopeCounters::load(tx, letter, scope).next_free(exclude)
+}
+
+/// The counters of one (scope, letter) group, loaded once and kept up to date by [`Self::set_counter`], so
+/// that many collision checks and "next free counter" asks in one run cost one scan of the page instead of
+/// one each (NFR-PERF-08).
+#[derive(Clone, Debug)]
+pub struct ScopeCounters {
+    /// The counter of every numbered device of the group.
+    members: BTreeMap<Id<Device>, Option<u32>>,
+    /// The devices that hold each counter (no empty sets).
+    holders: BTreeMap<u32, BTreeSet<Id<Device>>>,
+    /// A lower bound of the lowest counter nobody holds.
+    hint: u32,
+}
+
+impl ScopeCounters {
+    /// The group (`letter`, `scope`) as the transaction sees it now (the devices of [`devices_in_scope`]).
+    pub fn load(tx: &TxBuilder<'_>, letter: &Ident, scope: CounterScope) -> ScopeCounters {
+        let mut out = ScopeCounters {
+            members: BTreeMap::new(),
+            holders: BTreeMap::new(),
+            hint: 1,
+        };
+        for (d, counter) in devices_in_scope(tx, letter, scope) {
+            out.members.insert(d, counter);
+            if let Some(c) = counter {
+                out.holders.entry(c).or_default().insert(d);
+            }
+        }
+        out
+    }
+
+    /// The devices of the group that hold `counter`, in ID order.
+    pub fn holders(&self, counter: u32) -> impl Iterator<Item = Id<Device>> + '_ {
+        self.holders.get(&counter).into_iter().flatten().copied()
+    }
+
+    /// The lowest positive counter that no device of the group holds, other than `exclude`.
+    pub fn next_free(&mut self, exclude: Option<Id<Device>>) -> u32 {
+        // `hint` becomes the lowest counter nobody holds.
+        while self.hint < u32::MAX && self.holders.contains_key(&self.hint) {
+            self.hint += 1;
+        }
+        // A device holds one counter, so the only counter below `hint` that can be free when `exclude` is
+        // left out is the excluded device's own, when nobody else holds it.
+        let own = exclude
+            .and_then(|d| self.members.get(&d).copied().flatten().map(|c| (d, c)))
+            .filter(|(d, c)| self.holders.get(c).is_some_and(|h| h.len() == 1 && h.contains(d)))
+            .map(|(_, c)| c);
+        own.map_or(self.hint, |c| c.min(self.hint))
+    }
+
+    /// Records that `device` (a member of the group) now holds `counter`.
+    pub fn set_counter(&mut self, device: Id<Device>, counter: u32) {
+        let old = self.members.insert(device, Some(counter)).flatten();
+        if let Some(old) = old {
+            if let Some(h) = self.holders.get_mut(&old) {
+                h.remove(&device);
+                if h.is_empty() {
+                    self.holders.remove(&old);
+                    self.hint = self.hint.min(old).max(1);
+                }
+            }
+        }
+        self.holders.entry(counter).or_default().insert(device);
+    }
 }

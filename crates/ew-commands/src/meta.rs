@@ -32,13 +32,14 @@ pub enum Exposure {
 }
 
 impl Exposure {
-    /// Whether an origin may submit a command of this class. `HumanOnly` is refused for command logs,
-    /// scripts, MCP, plugins and Python; `Import` is accepted from the GUI, the CLI and an import origin;
-    /// `Internal` from nobody.
+    /// Whether an origin may submit a command of this class. `HumanOnly` is accepted from the GUI and
+    /// from a CLI subcommand that a human confirmed on a terminal (`Origin::Cli { confirmed: true }`, D7),
+    /// and refused for an unconfirmed CLI submission, command logs, scripts, MCP, plugins and Python;
+    /// `Import` is accepted from the GUI, the CLI and an import origin; `Internal` from nobody.
     pub fn allows(self, origin: &Origin) -> bool {
         match self {
             Exposure::Edit => true,
-            Exposure::HumanOnly => matches!(origin, Origin::Gui | Origin::Cli { .. }),
+            Exposure::HumanOnly => matches!(origin, Origin::Gui | Origin::Cli { confirmed: true, .. }),
             Exposure::Import => matches!(origin, Origin::Gui | Origin::Cli { .. } | Origin::Import { .. }),
             Exposure::Internal => false,
         }
@@ -132,6 +133,10 @@ pub enum Origin {
     Cli {
         /// The subcommand.
         subcommand: String,
+        /// Whether a human confirmed the submission on a terminal (the dedicated subcommand of a
+        /// `HumanOnly` command, doc 17 §2.3). Scripted CLI use leaves it `false`.
+        #[serde(default)]
+        confirmed: bool,
     },
     /// A replayed command log (`ew apply`).
     CmdLog {
@@ -174,7 +179,7 @@ impl Origin {
     pub fn label(&self) -> String {
         match self {
             Origin::Gui => "gui".into(),
-            Origin::Cli { subcommand } => format!("cli:{subcommand}"),
+            Origin::Cli { subcommand, .. } => format!("cli:{subcommand}"),
             Origin::CmdLog { file } => format!("cmdlog:{file}"),
             Origin::Script { name } => format!("script:{name}"),
             Origin::Mcp { client } => format!("mcp:{client}"),

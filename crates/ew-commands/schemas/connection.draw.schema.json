@@ -73,6 +73,32 @@
       },
       "type": "object"
     },
+    "CmdPt2": {
+      "description": "A point or a displacement [x, y] in nanometres, y downwards (doc 05 §3.2).",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
     "ConnectionKind": {
       "description": "The kind of a connection (doc 08 §2.3). `Fluid(FluidLine)` (doc 11) and `SingleLine` (1.0) are additive\nvariants of their work packages; until then a file's value is kept as [`ConnectionKind::Unknown`], which\njoins no net (doc 05 §10.3 rule 3).",
       "oneOf": [
@@ -143,7 +169,7 @@
               "additionalProperties": false,
               "properties": {
                 "function": {
-                  "$ref": "#/$defs/Uuid",
+                  "$ref": "#/$defs/CmdUuid",
                   "description": "The function."
                 },
                 "idx": {
@@ -174,7 +200,7 @@
               "additionalProperties": false,
               "properties": {
                 "junction": {
-                  "$ref": "#/$defs/Uuid",
+                  "$ref": "#/$defs/CmdUuid",
                   "description": "The junction."
                 }
               },
@@ -197,11 +223,11 @@
               "additionalProperties": false,
               "properties": {
                 "at": {
-                  "$ref": "#/$defs/Pt2",
+                  "$ref": "#/$defs/CmdPt2",
                   "description": "The point (on the route, if the connection has one)."
                 },
                 "connection": {
-                  "$ref": "#/$defs/Uuid",
+                  "$ref": "#/$defs/CmdUuid",
                   "description": "The connection to split."
                 }
               },
@@ -219,27 +245,8 @@
         }
       ]
     },
-    "Pt2": {
-      "description": "A point or a displacement [x, y] in nanometres, y downwards (doc 05 §3.2).",
-      "items": false,
-      "maxItems": 2,
-      "minItems": 2,
-      "prefixItems": [
-        {
-          "maximum": 9007199254740991,
-          "minimum": -9007199254740991,
-          "type": "integer"
-        },
-        {
-          "maximum": 9007199254740991,
-          "minimum": -9007199254740991,
-          "type": "integer"
-        }
-      ],
-      "type": "array"
-    },
     "Uuid": {
-      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
       "maxLength": 36,
       "minLength": 36,
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
@@ -248,7 +255,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`connection.draw` (`Connect`, doc 06 §3.5, §4.4): one explicit connection.\n\n- Each end is a CP, a junction or a point on an existing connection. A point on connection W (on its\n  route, if W has one; W must have a page) creates a junction `{page: W.page, at, style: dot, wiring:\n  style default}` there and splits W at it (`normalise::split_connection`: W′ keeps W's ID and ends at\n  the junction, W″ starts there); the junction's sequence is `[W′, W″, new connection]`.\n- The new connection is `{a, b, page, route, kind}`; its number stays unassigned. An end at an\n  existing junction appends the new connection to that junction's sequence.\n- `page` defaults to the page of a split connection, else none (a page-less bridge).\n- Rejected: both ends the same endpoint (CI-01); both ends on the same connection; a named record\n  that does not exist (`NotFound`). Outcome: the new connection.",
+  "description": "`connection.draw` (`Connect`, doc 06 §3.5, §4.4): one explicit connection.\n\n- Each end is a CP, a junction or a point on an existing connection. A point on connection W (on its\n  route, if W has one; W must have a page) creates a junction `{page: W.page, at, style: dot, wiring:\n  style default}` there and splits W at it (`normalise::split_connection`: W′ keeps W's ID and ends at\n  the junction, W″ starts there); the junction's sequence is `[W′, W″, new connection]`.\n- The new connection is `{a, b, page, route, kind}`; its number stays unassigned. An end at an\n  existing junction appends the new connection to that junction's sequence.\n- `page` defaults to the page of a split connection, else none (a page-less bridge).\n- On a page, the geometry must be on the page's connection grid (D3, doc 06 §5.7,\n  `geometry::require_route`): a split point, every route vertex, and route ends that meet their CPs\n  exactly.\n- Rejected: both ends the same endpoint (CI-01); both ends on the same connection; a named record\n  that does not exist (`NotFound`); off-grid geometry. Outcome: the new connection.",
   "properties": {
     "a": {
       "$ref": "#/$defs/EndpointParam",
@@ -266,7 +273,7 @@
     "page": {
       "anyOf": [
         {
-          "$ref": "#/$defs/Uuid"
+          "$ref": "#/$defs/CmdUuid"
         },
         {
           "type": "null"
@@ -277,7 +284,7 @@
     "route": {
       "description": "Orthogonal route in nm.",
       "items": {
-        "$ref": "#/$defs/Pt2"
+        "$ref": "#/$defs/CmdPt2"
       },
       "type": "array"
     }

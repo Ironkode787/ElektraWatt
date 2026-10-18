@@ -1,5 +1,12 @@
 {
   "$defs": {
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
     "KindName": {
       "description": "The record kinds a command may name generically (`edit.delete`, `fields.set`).",
       "oneOf": [
@@ -75,7 +82,7 @@
       "description": "A record named by kind and ID.",
       "properties": {
         "id": {
-          "$ref": "#/$defs/Uuid",
+          "$ref": "#/$defs/CmdUuid",
           "description": "The ID."
         },
         "kind": {
@@ -88,18 +95,11 @@
         "id"
       ],
       "type": "object"
-    },
-    "Uuid": {
-      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
-      "maxLength": 36,
-      "minLength": 36,
-      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-      "type": "string"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`edit.delete`: removes the selected records with everything the delete policies take along\n(FR-DEV-030): each target in order through `TxBuilder::delete`; a target already removed by an earlier\ntarget's cascade is skipped. Deleting a representation leaves its function unplaced (an IP function goes\nwith it); deleting a device removes its functions, their representations and connections. A target that\ndoes not exist at the start is `NotFound`; a forbid link (a strip with terminals, a referenced structure\nnode) rejects the whole command (`ModelError::Referenced`). Cost: `Bulk` above 500 targets. Outcome:\nnone.",
+  "description": "`edit.delete`: removes the selected records with everything the delete policies take along\n(FR-DEV-030), in **one** delete plan for all targets (`TxBuilder::delete_many`): the result does not\ndepend on the order of the targets, a target that another target's cascade removes is planned once,\nand a target listed twice counts once. Deleting a representation leaves its function unplaced (an IP\nfunction goes with it); deleting a device removes its functions, their representations and\nconnections. A target that does not exist at the start is `NotFound`; a forbid link (a strip with\nterminals, a referenced structure node) rejects the whole command (`ModelError::Referenced`). Cost:\n`Bulk` when the plan removes or changes more than 500 records (D4; the plan is computed once by\n`cost`). Outcome: none.",
   "properties": {
     "targets": {
       "description": "The selected records, at least one.",

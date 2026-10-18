@@ -328,6 +328,52 @@ fn delete_plan_device_cascades_functions_reps_and_connections() {
     plan_applies(&m, &ops);
 }
 
+/// One plan for several roots does not depend on their order, plans an overlapping root once and equals
+/// the single-root plan when one root's cascade contains the other.
+#[test]
+fn delete_plan_many_is_order_independent() {
+    let m = mini_golden();
+    let fkey = <Function as Entity>::key(FN_102F2);
+    let rkey = <Representation as Entity>::key(REP_102F2_AUX);
+    let one = m.delete_plan(&dkey(DEV_102F2)).unwrap();
+    let a = m.delete_plan_many(&[fkey, dkey(DEV_102F2)]).unwrap();
+    let b = m.delete_plan_many(&[dkey(DEV_102F2), fkey, rkey, fkey]).unwrap();
+    assert_eq!(a, one);
+    assert_eq!(b, one);
+    assert!(matches!(
+        m.delete_plan_many(&[fkey, dkey(nid(0x9999))]),
+        Err(ModelError::NotFound { .. })
+    ));
+    assert!(m.delete_plan_many(&[]).unwrap().is_empty());
+}
+
+/// `apply_unchecked` applies a batch that breaks an invariant (a device left without its main function),
+/// which `apply` rejects; the transient snapshot still plans removals.
+#[test]
+fn apply_unchecked_skips_the_invariants() {
+    let m = mini_golden();
+    let fkey = <Function as Entity>::key(FN_102F2);
+    // The main function with its cascade: the device is left without a main function.
+    let only_fn: Vec<Op> = m.delete_plan(&fkey).unwrap();
+    assert!(
+        matches!(
+            m.apply(&only_fn, m.rev().next()),
+            Err(ModelError::Invariant { .. })
+        ),
+        "a device without its main function is rejected"
+    );
+    let transient = m.apply_unchecked(&only_fn, m.rev().next()).unwrap();
+    let rest = transient.delete_plan(&dkey(DEV_102F2)).unwrap();
+    let mut all = only_fn.clone();
+    all.extend(rest);
+    let done = m.apply(&all, m.rev().next()).unwrap();
+    assert!(done.row(&dkey(DEV_102F2)).is_none());
+    assert!(
+        m.apply_unchecked(&only_fn, m.rev()).is_err(),
+        "the revision must still increase"
+    );
+}
+
 /// Deleting a function drops the definitions and bonds at its connection points.
 #[test]
 fn delete_plan_function_drops_definitions_and_bonds() {

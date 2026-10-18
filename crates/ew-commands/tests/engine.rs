@@ -159,5 +159,22 @@ fn every_v0_command_is_an_edit_command() {
     assert_eq!(CreatePage::meta().cost, Cost::Interactive);
     assert!(Exposure::HumanOnly.allows(&Origin::Gui));
     assert!(!Exposure::HumanOnly.allows(&Origin::Mcp { client: "x".into() }));
+    // D7: a CLI submission of a human-only command needs the terminal confirmation.
+    let cli = |confirmed| Origin::Cli {
+        subcommand: "purge".into(),
+        confirmed,
+    };
+    assert!(Exposure::HumanOnly.allows(&cli(true)));
+    assert!(!Exposure::HumanOnly.allows(&cli(false)));
+    assert!(Exposure::Import.allows(&cli(false)));
+    assert!(Exposure::Edit.allows(&cli(false)));
+    let json = serde_json::to_value(cli(false)).expect("serialisable");
+    let back: Origin = serde_json::from_value(serde_json::json!({"cli": {"subcommand": "purge"}}))
+        .expect("`confirmed` defaults to false");
+    assert_eq!(back, cli(false));
+    assert_eq!(
+        json,
+        serde_json::json!({"cli": {"subcommand": "purge", "confirmed": false}})
+    );
     let _ = Submit::from(Origin::Gui);
 }

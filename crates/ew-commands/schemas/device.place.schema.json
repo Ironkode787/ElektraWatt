@@ -1,5 +1,51 @@
 {
   "$defs": {
+    "CmdIdent": {
+      "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "CmdOrient2": {
+      "description": "Orientation: rotation clockwise on the sheet, optionally mirrored (doc 05 §3.2).",
+      "enum": [
+        "r0",
+        "r90",
+        "r180",
+        "r270",
+        "m0",
+        "m90",
+        "m180",
+        "m270"
+      ],
+      "type": "string"
+    },
+    "CmdPt2": {
+      "description": "A point or a displacement [x, y] in nanometres, y downwards (doc 05 §3.2).",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
     "ConnectHint": {
       "additionalProperties": false,
       "description": "An accepted autoconnect hint, as an explicit connection (ADR-0007: autoconnect is an editing aid; the\ncommand carries the result).",
@@ -53,7 +99,7 @@
               "additionalProperties": false,
               "properties": {
                 "function": {
-                  "$ref": "#/$defs/Uuid",
+                  "$ref": "#/$defs/CmdUuid",
                   "description": "The function."
                 },
                 "idx": {
@@ -84,7 +130,7 @@
               "additionalProperties": false,
               "properties": {
                 "junction": {
-                  "$ref": "#/$defs/Uuid",
+                  "$ref": "#/$defs/CmdUuid",
                   "description": "The junction."
                 }
               },
@@ -107,11 +153,11 @@
               "additionalProperties": false,
               "properties": {
                 "at": {
-                  "$ref": "#/$defs/Pt2",
+                  "$ref": "#/$defs/CmdPt2",
                   "description": "The point (on the route, if the connection has one)."
                 },
                 "connection": {
-                  "$ref": "#/$defs/Uuid",
+                  "$ref": "#/$defs/CmdUuid",
                   "description": "The connection to split."
                 }
               },
@@ -144,25 +190,6 @@
         }
       ]
     },
-    "Ident": {
-      "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
-      "minLength": 1,
-      "type": "string"
-    },
-    "Orient2": {
-      "description": "Orientation: rotation clockwise on the sheet, optionally mirrored (doc 05 §3.2).",
-      "enum": [
-        "r0",
-        "r90",
-        "r180",
-        "r270",
-        "m0",
-        "m90",
-        "m180",
-        "m270"
-      ],
-      "type": "string"
-    },
     "PlaceTarget": {
       "description": "Which device a placed representation belongs to (doc 06 §3.3).",
       "oneOf": [
@@ -176,7 +203,7 @@
                 "fndef": {
                   "anyOf": [
                     {
-                      "$ref": "#/$defs/Uuid"
+                      "$ref": "#/$defs/CmdUuid"
                     },
                     {
                       "type": "null"
@@ -196,7 +223,7 @@
                   "description": "UI and numbering hint."
                 },
                 "letter": {
-                  "$ref": "#/$defs/Ident",
+                  "$ref": "#/$defs/CmdIdent",
                   "description": "The letter code (the identifier-set lookup from the FnDef category is WP-S1.11)."
                 }
               },
@@ -219,7 +246,7 @@
               "additionalProperties": false,
               "properties": {
                 "function": {
-                  "$ref": "#/$defs/Uuid",
+                  "$ref": "#/$defs/CmdUuid",
                   "description": "The function."
                 }
               },
@@ -242,13 +269,13 @@
               "additionalProperties": false,
               "properties": {
                 "device": {
-                  "$ref": "#/$defs/Uuid",
+                  "$ref": "#/$defs/CmdUuid",
                   "description": "The device."
                 },
                 "fndef": {
                   "anyOf": [
                     {
-                      "$ref": "#/$defs/Uuid"
+                      "$ref": "#/$defs/CmdUuid"
                     },
                     {
                       "type": "null"
@@ -274,25 +301,6 @@
           "type": "object"
         }
       ]
-    },
-    "Pt2": {
-      "description": "A point or a displacement [x, y] in nanometres, y downwards (doc 05 §3.2).",
-      "items": false,
-      "maxItems": 2,
-      "minItems": 2,
-      "prefixItems": [
-        {
-          "maximum": 9007199254740991,
-          "minimum": -9007199254740991,
-          "type": "integer"
-        },
-        {
-          "maximum": 9007199254740991,
-          "minimum": -9007199254740991,
-          "type": "integer"
-        }
-      ],
-      "type": "array"
     },
     "RepType": {
       "description": "Representation types (doc 03 §6, doc 07 §2.3). `panel_front` is a symbol type only: panel-front\nrepresentations are derived, never stored (ADR-0006 amendment 3).",
@@ -343,18 +351,11 @@
           "type": "string"
         }
       ]
-    },
-    "Uuid": {
-      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
-      "maxLength": 36,
-      "minLength": 36,
-      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-      "type": "string"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`device.place` (`PlaceSymbol`, doc 06 §3.3): places a symbol and creates the device and function as the\ntarget requires.\n\n- The page and the symbol copy must exist. The representation is `{functions: [f], page, symbol,\n  variant, pos, orient, rep_type}`; `rep_type` defaults to the symbol's.\n- `new_device`: a device `{tag: {letter, counter: none}, kind}` and a main function `{def}`; `def` is\n  `fndef` or the FnDef copy `v5(NS_LIBCOPY, library ‖ item)` of the symbol's `fndef` reference, which\n  must be embedded (else rejected with a hint to pass `fndef`).\n- `existing_function`: the function must exist and must not be an interruption point (`ip.place`).\n- `join_device`: a new function of the device with the given role (a second main function is rejected\n  by EW-INV-002).\n- Every hint creates a wire `{a: the hint's CP, b: to, page}` without a route; the hint's symbol CP is\n  mapped to a function CP as the derived pin map does (`(functions[0], fn_cp)`); an unknown symbol CP\n  or a point on a connection as `to` is rejected. A hint ending at a junction appends the wire to the\n  junction's sequence.\n\nOnline numbering (normaliser #4) gives a new device its counter; a symbol dropped onto a wire splits it\n(normaliser #7). Outcome: the representation. Aliases `device.place_from_part`, `symbol.place`.",
+  "description": "`device.place` (`PlaceSymbol`, doc 06 §3.3): places a symbol and creates the device and function as the\ntarget requires.\n\n- The page and the symbol copy must exist. The representation is `{functions: [f], page, symbol,\n  variant, pos, orient, rep_type}`; `rep_type` defaults to the symbol's.\n- `new_device`: a device `{tag: {letter, counter: none}, kind}` and a main function `{def}`; `def` is\n  `fndef` or the FnDef copy `v5(NS_LIBCOPY, library ‖ item)` of the symbol's `fndef` reference, which\n  must be embedded (else rejected with a hint to pass `fndef`).\n- `existing_function`: the function must exist and must not be an interruption point (`ip.place`).\n- `join_device`: a new function of the device with the given role (a second main function is rejected\n  by EW-INV-002).\n- Every hint creates a wire `{a: the hint's CP, b: to, page}` without a route; the hint's symbol CP is\n  mapped to a function CP as the derived pin map does (`(functions[0], fn_cp)`); an unknown symbol CP\n  is rejected. A hint ending at a junction appends the wire to the junction's sequence; a hint ending\n  on a point of a connection (`HintTarget::Split`) puts a new junction there, splits the connection at\n  it (as `connection.draw` does) and ends the wire at the junction (the point must be on the page's\n  connection grid). A hint whose function, junction or connection no longer exists is dropped and\n  reported as a notice instead of failing the command.\n- The effective `rep_type` must be one the page's type allows (doc 06 §2.2, [`allowed_rep_types`]);\n  else the placement is rejected with the list of allowed types.\n\nOnline numbering (normaliser #4) gives a new device its counter; a symbol dropped onto a wire splits it\n(normaliser #7). Outcome: the representation. Alias `symbol.place`.",
   "properties": {
     "connect": {
       "description": "Accepted autoconnect hints.",
@@ -364,16 +365,16 @@
       "type": "array"
     },
     "orient": {
-      "$ref": "#/$defs/Orient2",
+      "$ref": "#/$defs/CmdOrient2",
       "default": "r0",
       "description": "The orientation."
     },
     "page": {
-      "$ref": "#/$defs/Uuid",
+      "$ref": "#/$defs/CmdUuid",
       "description": "The page."
     },
     "pos": {
-      "$ref": "#/$defs/Pt2",
+      "$ref": "#/$defs/CmdPt2",
       "description": "The insertion point."
     },
     "rep_type": {
@@ -388,7 +389,7 @@
       "description": "The representation type; default the symbol's."
     },
     "symbol": {
-      "$ref": "#/$defs/Uuid",
+      "$ref": "#/$defs/CmdUuid",
       "description": "The symbol copy."
     },
     "target": {

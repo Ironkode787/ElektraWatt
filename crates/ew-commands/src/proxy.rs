@@ -8,11 +8,38 @@
 //! Each describes the strict encoding the type's serde implementation accepts (doc 05 §3.2). What a
 //! schema cannot express (NFC, reduced fractions) is enforced by deserialisation, which runs after the
 //! schema check and reports at the parameter object's root.
+//!
+//! The `$defs` names carry a `Cmd` prefix: `ew-schema` has private proxies of the same types under the plain
+//! names, and a parameter struct that embeds both an `ew-schema` type and one of these would otherwise put two
+//! different definitions under one name. `CmdIdent`, `CmdDec3`, `CmdUuid` and `CmdMlText` carry the same
+//! `pattern` / `propertyNames` as their `ew-schema` counterparts. The in-crate validator (`jsonschema.rs`)
+//! ignores `pattern`; the patterns serve external schema consumers, and deserialisation stays authoritative.
 
 use std::borrow::Cow;
 
 use ew_units::MAX_SAFE_INTEGER;
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
+
+// The pattern constants below are kept equal to ew-schema's; checked by tests/proxies.rs.
+
+const UUID_PATTERN: &str = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
+
+const LANG_TAG_PATTERN: &str = concat!(
+    "^(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4,8})",
+    "(?:-[A-Z][a-z]{3})?",
+    "(?:-(?:[A-Z]{2}|[0-9]{3}))?",
+    "(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*",
+    "(?:-[a-wy-z0-9](?:-[a-z0-9]{2,8})+)*",
+    "(?:-x(?:-[a-z0-9]{1,8})+)?$"
+);
+
+const IDENT_PATTERN: &str = concat!(
+    "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000]",
+    "(?:[^\\u0000-\\u001F\\u007F-\\u009F]*",
+    "[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$"
+);
+
+const DEC3_PATTERN: &str = "^(?:0|-?[1-9][0-9]{0,15}(?:\\.[0-9]{0,2}[1-9])?|-?0\\.[0-9]{0,2}[1-9])$";
 
 macro_rules! proxy {
     ($(#[$doc:meta])* $name:ident, $title:literal, $schema:tt) => {
@@ -34,12 +61,12 @@ macro_rules! proxy {
 proxy!(
     /// `Id<T>`: a lower-case hyphenated UUID.
     UuidS,
-    "Uuid",
+    "CmdUuid",
     {
         "type": "string",
         "minLength": 36,
         "maxLength": 36,
-        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+        "pattern": UUID_PATTERN,
         "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2)."
     }
 );
@@ -47,7 +74,7 @@ proxy!(
 proxy!(
     /// `Pt2`: `[x, y]` in nanometres.
     Pt2S,
-    "Pt2",
+    "CmdPt2",
     {
         "type": "array",
         "prefixItems": [
@@ -64,7 +91,7 @@ proxy!(
 proxy!(
     /// `Orient2`: one of the eight orientation variants.
     Orient2S,
-    "Orient2",
+    "CmdOrient2",
     {
         "type": "string",
         "enum": ["r0", "r90", "r180", "r270", "m0", "m90", "m180", "m270"],
@@ -75,7 +102,7 @@ proxy!(
 proxy!(
     /// `Grid`: a reduced rational step in nanometres.
     GridS,
-    "Grid",
+    "CmdGrid",
     {
         "type": "object",
         "properties": {
@@ -91,10 +118,11 @@ proxy!(
 proxy!(
     /// `Ident`: an NFC identifier without surrounding white space.
     IdentS,
-    "Ident",
+    "CmdIdent",
     {
         "type": "string",
         "minLength": 1,
+        "pattern": IDENT_PATTERN,
         "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2)."
     }
 );
@@ -102,7 +130,7 @@ proxy!(
 proxy!(
     /// `MlText`: a neutral string or an object keyed by BCP 47 tags.
     MlTextS,
-    "MlText",
+    "CmdMlText",
     {
         "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags in ascending order with non-empty string values (doc 05 §3.2).",
         "anyOf": [
@@ -110,6 +138,7 @@ proxy!(
             {
                 "type": "object",
                 "minProperties": 1,
+                "propertyNames": {"type": "string", "pattern": LANG_TAG_PATTERN},
                 "additionalProperties": {"type": "string", "minLength": 1}
             }
         ]
@@ -119,9 +148,10 @@ proxy!(
 proxy!(
     /// `Dec3`: a canonical decimal string with at most three fraction digits.
     Dec3S,
-    "Dec3",
+    "CmdDec3",
     {
         "type": "string",
+        "pattern": DEC3_PATTERN,
         "maxLength": 21,
         "description": "A canonical decimal string with at most three fraction digits, no trailing fraction zeros and no unit (doc 05 §3.2)."
     }
@@ -130,7 +160,7 @@ proxy!(
 proxy!(
     /// `ew_rds::Aspect` of a structure tree (the product aspect is the device tree, never a node).
     AspectS,
-    "Aspect",
+    "CmdAspect",
     {
         "type": "string",
         "enum": [

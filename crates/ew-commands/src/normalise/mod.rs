@@ -15,9 +15,11 @@
 //! | 12 | `wire_numbering` | Online wire numbering is off in v0 (no scheme before WP-S1.11): every new connection is `NumberSpec::Unassigned` |
 //!
 //! A pass runs every normaliser in order; a normaliser whose input another one creates later in the same
-//! pass sees it in the next pass. The pipeline runs passes until one changes nothing, at most three
-//! ([`MAX_PASSES`]); a third pass that still changes something is non-convergence, a bug
-//! ([`crate::CmdError::Internal`]). Every normaliser breaks ties by ID.
+//! pass sees it in the next pass. The pipeline runs passes until one changes nothing. [`MAX_PASSES`]
+//! counts **productive** passes (D1): up to three passes may change something, then a confirming pass
+//! must change nothing; a fourth productive pass is non-convergence, a bug
+//! ([`crate::CmdError::Internal`]). Every normaliser breaks ties by ID and is idempotent on its own
+//! output.
 
 mod connection_split;
 mod cp_instantiation;
@@ -53,7 +55,7 @@ pub const ORDER: [&str; 5] = [
     "wire_numbering",
 ];
 
-/// The maximum number of passes.
+/// The maximum number of productive passes (passes that change something); one confirming pass follows.
 pub const MAX_PASSES: usize = 3;
 
 /// The normalisers in registry order.
@@ -67,23 +69,89 @@ pub fn registry() -> Vec<Box<dyn Normaliser>> {
     ]
 }
 
-/// Runs passes of `normalisers` until one changes nothing; returns the number of passes run (1 when the
-/// command's output was already normal).
+/// Runs passes of `normalisers` until one changes nothing; returns the number of passes run, the
+/// confirming one included (1 when the command's output was already normal, at most
+/// `MAX_PASSES + 1`).
 pub fn normalise(tx: &mut TxBuilder<'_>, normalisers: &[Box<dyn Normaliser>]) -> Result<usize, CmdError> {
     let command = tx.source();
-    for pass in 1..=MAX_PASSES {
+    let mut productive = 0;
+    let result = loop {
         let mut changed = false;
         for n in normalisers {
             tx.set_source(n.id());
-            changed |= n.run(tx)?;
+            match n.run(tx) {
+                Ok(c) => changed |= c,
+                Err(e) => {
+                    tx.set_source(command);
+                    return Err(e);
+                }
+            }
         }
         if !changed {
-            tx.set_source(command);
-            return Ok(pass);
+            break Ok(productive + 1);
+        }
+        productive += 1;
+        if productive > MAX_PASSES {
+            break Err(CmdError::internal(format!(
+                "normalisers did not converge: {productive} passes after `{command}` changed something \
+                 (at most {MAX_PASSES} may)"
+            )));
+        }
+    };
+    tx.set_source(command);
+    result
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    use super::*;
+
+    /// A normaliser that reports a change on its first `productive` runs, then none.
+    struct Flaky {
+        productive: usize,
+        runs: AtomicUsize,
+    }
+
+    impl Normaliser for Flaky {
+        fn id(&self) -> &'static str {
+            "flaky"
+        }
+
+        fn run(&self, _tx: &mut TxBuilder<'_>) -> Result<bool, CmdError> {
+            Ok(self.runs.fetch_add(1, Ordering::Relaxed) < self.productive)
         }
     }
-    tx.set_source(command);
-    Err(CmdError::internal(format!(
-        "normalisers did not converge within {MAX_PASSES} passes after `{command}`"
-    )))
+
+    fn passes(productive: usize) -> Result<usize, CmdError> {
+        let project = serde_json::from_str(
+            r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#,
+        )
+        .expect("project");
+        let model = ew_model::Model::new(project);
+        let mut ids = ew_ids::SystemSource;
+        let mut tx = TxBuilder::new(&model, &mut ids);
+        tx.set_source("test.command");
+        let normalisers: Vec<Box<dyn Normaliser>> = vec![Box::new(Flaky {
+            productive,
+            runs: AtomicUsize::new(0),
+        })];
+        let result = normalise(&mut tx, &normalisers);
+        assert_eq!(tx.source(), "test.command", "the command's source is restored");
+        result
+    }
+
+    /// D1: `MAX_PASSES` counts productive passes; one confirming pass follows them.
+    #[test]
+    fn max_passes_counts_productive_passes_and_one_confirming_pass() {
+        assert_eq!(passes(0).expect("normal"), 1);
+        assert_eq!(passes(1).expect("one productive pass"), 2);
+        assert_eq!(
+            passes(MAX_PASSES).expect("three productive passes"),
+            MAX_PASSES + 1
+        );
+        let err = passes(MAX_PASSES + 1).expect_err("a fourth productive pass is non-convergence");
+        assert!(matches!(err, CmdError::Internal { .. }), "{err:?}");
+    }
 }

@@ -299,17 +299,29 @@ impl Model {
         /// removed and modified records in its ops (`before`), so it reads the model. A transaction builder
         /// that holds the feature (`TxBuilder` in `ew-commands`) calls it; [`Model::apply`] consumes the ops.
         fn delete_plan(&self, key: &AnyKey) -> Result<Vec<Op>, ModelError> {
-            if key.0 == Kind::Project {
-                return Err(ModelError::Malformed {
-                    key: *key,
-                    reason: "the project row cannot be removed",
-                });
+            self.delete_plan_many(std::slice::from_ref(key))
+        }
+    }
+
+    raw_read! {
+        /// The plan of [`Model::delete_plan`] for several roots at once: one plan that removes every key
+        /// in `keys` with everything the delete policies take along. The result does not depend on the
+        /// order of `keys`, and a root that another root's cascade removes is planned once. Every root
+        /// must exist ([`ModelError::NotFound`] for the first missing one, in the order given).
+        fn delete_plan_many(&self, keys: &[AnyKey]) -> Result<Vec<Op>, ModelError> {
+            for key in keys {
+                if key.0 == Kind::Project {
+                    return Err(ModelError::Malformed {
+                        key: *key,
+                        reason: "the project row cannot be removed",
+                    });
+                }
+                if get_row(self, key).is_none() {
+                    return Err(ModelError::NotFound { key: *key });
+                }
             }
-            if get_row(self, key).is_none() {
-                return Err(ModelError::NotFound { key: *key });
-            }
-            let mut deleted: BTreeSet<AnyKey> = BTreeSet::from([*key]);
-            let mut work = vec![*key];
+            let mut deleted: BTreeSet<AnyKey> = keys.iter().copied().collect();
+            let mut work: Vec<AnyKey> = deleted.iter().copied().collect();
             let mut blockers: BTreeSet<(AnyKey, LinkId, AnyKey)> = BTreeSet::new();
             let mut unlinks: BTreeMap<AnyKey, BTreeSet<LinkId>> = BTreeMap::new();
             loop {

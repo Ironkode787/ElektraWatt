@@ -68,7 +68,6 @@
     },
     {
       "aliases": [
-        "device.place_from_part",
         "symbol.place"
       ],
       "confirmation": "none",

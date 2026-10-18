@@ -152,6 +152,33 @@ impl Model {
     /// `apply(ops)` followed by `apply(invert_batch(ops))` restores every row value and index entry; only
     /// the `changed_at` stamps differ.
     pub fn apply_with(&self, ops: &[Op], rev: Rev, opts: &ApplyOptions<'_>) -> Result<Model, ModelError> {
+        let (m, scope) = self.apply_rows(ops, rev)?;
+        invariants::check(&m, &scope)?;
+        if let Some(hook) = opts.prevent {
+            let touched: Vec<AnyKey> = scope.keys.iter().copied().collect();
+            hook.check(&m, &touched).map_err(|v| ModelError::Prevented {
+                rule: v.rule,
+                message: v.message,
+                keys: v.keys,
+            })?;
+        }
+        Ok(m)
+    }
+
+    raw_read! {
+        /// Steps 1–3 of [`Model::apply_with`] only: the ops run with the stale-`before` check and the
+        /// index deltas, but **no** structural invariant and no prevent rule is evaluated. This is the
+        /// planning snapshot of a transaction in progress, whose transient states are legal (ADR-0009
+        /// decision 1): `TxBuilder` plans a removal on it. The result must never be committed; the
+        /// transaction's final batch goes through [`Model::apply_with`].
+        fn apply_unchecked(&self, ops: &[Op], rev: Rev) -> Result<Model, ModelError> {
+            self.apply_rows(ops, rev).map(|(m, _)| m)
+        }
+    }
+
+    /// Runs the ops of a batch (steps 1–3 of [`Model::apply_with`]) and returns the candidate with the
+    /// scope of the invariant check.
+    fn apply_rows(&self, ops: &[Op], rev: Rev) -> Result<(Model, Scope), ModelError> {
         if rev <= self.rev {
             return Err(ModelError::RevNotIncreasing {
                 current: self.rev,
@@ -185,15 +212,6 @@ impl Model {
                 "ew-model: incrementally maintained base indexes differ from rebuilt ones after revision {rev}"
             );
         }
-        invariants::check(&m, &scope)?;
-        if let Some(hook) = opts.prevent {
-            let touched: Vec<AnyKey> = scope.keys.iter().copied().collect();
-            hook.check(&m, &touched).map_err(|v| ModelError::Prevented {
-                rule: v.rule,
-                message: v.message,
-                keys: v.keys,
-            })?;
-        }
-        Ok(m)
+        Ok((m, scope))
     }
 }

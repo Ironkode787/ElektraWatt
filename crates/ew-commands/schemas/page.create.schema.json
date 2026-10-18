@@ -1,6 +1,6 @@
 {
   "$defs": {
-    "Grid": {
+    "CmdGrid": {
       "additionalProperties": false,
       "description": "A rational grid step num/den in nanometres (doc 05 §3.2); num/den must be reduced and at least 1 nm.",
       "properties": {
@@ -21,12 +21,13 @@
       ],
       "type": "object"
     },
-    "Ident": {
+    "CmdIdent": {
       "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
       "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
       "type": "string"
     },
-    "MlText": {
+    "CmdMlText": {
       "anyOf": [
         {
           "type": "string"
@@ -37,10 +38,21 @@
             "type": "string"
           },
           "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4,8})(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*(?:-[a-wy-z0-9](?:-[a-z0-9]{2,8})+)*(?:-x(?:-[a-z0-9]{1,8})+)?$",
+            "type": "string"
+          },
           "type": "object"
         }
       ],
       "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags in ascending order with non-empty string values (doc 05 §3.2)."
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
     },
     "PageType": {
       "description": "Page type (FR-PAG-001). `report` pages are always generated, never stored.",
@@ -213,7 +225,7 @@
       "type": "object"
     },
     "Uuid": {
-      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
       "maxLength": 36,
       "minLength": 36,
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
@@ -227,7 +239,7 @@
     "after": {
       "anyOf": [
         {
-          "$ref": "#/$defs/Uuid"
+          "$ref": "#/$defs/CmdUuid"
         },
         {
           "type": "null"
@@ -238,7 +250,7 @@
     "form": {
       "anyOf": [
         {
-          "$ref": "#/$defs/Uuid"
+          "$ref": "#/$defs/CmdUuid"
         },
         {
           "type": "null"
@@ -247,7 +259,7 @@
       "description": "The frame form copy."
     },
     "grid": {
-      "$ref": "#/$defs/Grid",
+      "$ref": "#/$defs/CmdGrid",
       "default": {
         "den": 3,
         "num": 7937500
@@ -262,7 +274,7 @@
     "label": {
       "anyOf": [
         {
-          "$ref": "#/$defs/Ident"
+          "$ref": "#/$defs/CmdIdent"
         },
         {
           "type": "null"
@@ -282,7 +294,7 @@
     "section": {
       "anyOf": [
         {
-          "$ref": "#/$defs/Uuid"
+          "$ref": "#/$defs/CmdUuid"
         },
         {
           "type": "null"
@@ -295,7 +307,7 @@
       "description": "The page's structure assignment."
     },
     "title": {
-      "$ref": "#/$defs/MlText",
+      "$ref": "#/$defs/CmdMlText",
       "description": "The page title."
     }
   },
