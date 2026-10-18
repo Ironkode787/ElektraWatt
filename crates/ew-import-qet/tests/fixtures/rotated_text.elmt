@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+SPDX-License-Identifier: GPL-3.0-or-later
+
+Synthetic test fixture written by hand for ElektraWatt from the documented .elmt grammar; not derived from any
+QElectroTech element.
+-->
+<definition type="element" version="0.80" hotspot_x="10" hotspot_y="15" width="30" height="30" link_type="terminal">
+  <uuid uuid="{18e4b7c3-9a06-4d2f-b1e8-6c5d3a7f0e94}"/>
+  <names>
+    <name lang="en">Synthetic PE terminal</name>
+  </names>
+  <kindInformations>
+    <kindInformation name="type" show="1">generic</kindInformation>
+    <kindInformation name="function" show="1">PE</kindInformation>
+  </kindInformations>
+  <informations>Synthetic test fixture.</informations>
+  <description>
+    <rect x="-5" y="-10" width="10" height="20" rx="0" ry="0" style="line-style:normal;line-weight:normal;filling:none;color:black" antialias="false"/>
+    <text x="-7" y="5" text="Synthetic" font="Sans Serif,9,-1,5,50,0,0,0,0,0" color="black" rotation="90"/>
+    <dynamic_text x="6" y="-8" z="3" rotation="270" uuid="{6f0d9b2a-5c17-4e83-9b4a-d8e2c1f7a360}" font="Liberation Sans,-1,13,5,700,1,0,0,0,0,Bold Italic" text_from="ElementInfo" Halignment="AlignHCenter" Valignment="AlignBottom" text_width="40" frame="false">
+      <text></text>
+      <info_name>function</info_name>
+    </dynamic_text>
+    <dynamic_text x="6" y="4" z="4" rotation="0" uuid="{b3e7f149-2d86-4a0c-8f5e-1a9c4d6b7e28}" font="Sans Serif,9,-1,5,50,0,0,0,0,0" text_from="CompositeText" Halignment="AlignLeft" Valignment="AlignTop" text_width="-1" frame="true">
+      <text></text>
+      <composite_text>%{label} %{function}</composite_text>
+    </dynamic_text>
+    <terminal x="0" y="-10" orientation="n" name="PE" type="Generic" uuid="{d82c6a01-f9e3-4b57-a0d4-5e7b2c9f16a3}"/>
+    <terminal x="0" y="10" orientation="s" name="" type="Inner" uuid="{47f1e9b8-3c5a-4d62-96e0-a8b4d2c7f15e}"/>
+  </description>
+</definition>

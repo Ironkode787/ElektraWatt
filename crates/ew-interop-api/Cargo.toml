@@ -16,3 +16,6 @@ workspace = true
 
 [dependencies]
 ew-schema = { path = "../ew-schema" }
+ew-ids = { path = "../ew-ids" }
+# SHA-256 of the input bytes (`ImportInput::new`); the same line as xtask, MSRV 1.72.
+sha2.workspace = true

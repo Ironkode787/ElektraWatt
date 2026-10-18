@@ -17,3 +17,16 @@ workspace = true
 [dependencies]
 ew-interop-api = { path = "../ew-interop-api" }
 ew-plcaddr = { path = "../ew-plcaddr" }
+ew-schema = { path = "../ew-schema" }
+ew-units = { path = "../ew-units" }
+ew-ids = { path = "../ew-ids" }
+ew-mltext = { path = "../ew-mltext" }
+# XML DOM of element definitions and projects (doc 14 §4.1): DTDs refused by default, no entity expansion
+# beyond the predefined ones. MIT OR Apache-2.0.
+roxmltree = { version = "0.21.1", default-features = false, features = ["std", "positions"] }
+# `Serialize` bound of the library item hash.
+serde.workspace = true
+# `extra` members and the item hash over the canonical compact JSON of library items (doc 05 §13.2).
+serde_json = "1.0.154"
+# The element identity: SHA-256 of the canonical definition XML (doc 14 §4.3), and the library item hash.
+sha2.workspace = true

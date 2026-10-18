@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+SPDX-License-Identifier: GPL-3.0-or-later
+
+Synthetic test fixture written by hand for ElektraWatt from the documented .elmt grammar; not derived from any
+QElectroTech element.
+-->
+<definition type="element" version="0.80" hotspot_x="15" hotspot_y="25" width="30" height="50" link_type="simple">
+  <uuid uuid="{0b8d6e3f-4a21-4c97-b5e8-d2f7a9c0163b}"/>
+  <names>
+    <name lang="en">Synthetic arc and circle</name>
+    <name lang="fr">Arc et cercle synthetiques</name>
+  </names>
+  <informations>Synthetic test fixture.</informations>
+  <description>
+    <arc x="-10" y="-10" width="20" height="20" start="0" angle="180" style="line-style:normal;line-weight:normal;filling:none;color:black" antialias="false"/>
+    <circle x="-10" y="-10" diameter="20" style="line-style:normal;line-weight:normal;filling:none;color:black" antialias="false"/>
+    <ellipse x="-5" y="-3" width="10" height="6" style="line-style:normal;line-weight:thin;filling:none;color:black" antialias="false"/>
+    <line x1="0" y1="-20" x2="0" y2="-10" end1="none" end2="none" length1="1.5" length2="1.5" style="line-style:normal;line-weight:normal;filling:none;color:black" antialias="false"/>
+    <line x1="0" y1="10" x2="0" y2="20" end1="none" end2="none" length1="1.5" length2="1.5" style="line-style:normal;line-weight:normal;filling:none;color:black" antialias="false"/>
+    <terminal x="0" y="-20" orientation="n" name="X1" type="Generic" uuid="{9e2a7c54-d3b8-4f10-a6e9-58c1f4d7b20a}"/>
+    <terminal x="0" y="20" orientation="s" name="X2" type="Generic" uuid="{3c6f1e98-b7a5-4d24-8e0f-e9a2d6c4f781}"/>
+  </description>
+</definition>

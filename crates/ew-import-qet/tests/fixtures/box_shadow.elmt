@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+SPDX-License-Identifier: GPL-3.0-or-later
+
+Synthetic test fixture written by hand for ElektraWatt from the documented .elmt grammar; not derived from any
+QElectroTech element.
+-->
+<definition type="element" version="0.90" hotspot_x="25" hotspot_y="45" width="50" height="80" link_type="simple">
+  <uuid uuid="{d19f4b72-8c35-4e1a-a6d0-3b9e7f2c5a81}"/>
+  <names>
+    <name lang="en">Synthetic box with shadow</name>
+  </names>
+  <informations>Synthetic test fixture.</informations>
+  <description>
+    <rect x="-17" y="-27" width="40" height="60" rx="0" ry="0" style="line-style:normal;line-weight:none;filling:black;color:black" antialias="false"/>
+    <rect x="-20" y="-30" width="40" height="60" rx="4" ry="4" style="line-style:normal;line-weight:normal;filling:white;color:black" antialias="false"/>
+    <input x="-18" y="-40" text="_" size="9" tagg="label" rotate="true"/>
+    <text x="-8" y="4" text="PSU" font="Arial,8,-1,5,75,0,0,0,0,0" color="black" rotation="0"/>
+    <terminal x="-20" y="0" orientation="w" name="" type="Generic" uuid="{7a3e5c20-1f8d-4b96-9e4a-c6d2b0f8e317}"/>
+    <terminal x="20" y="0" orientation="e" name="B" type="Outer" uuid="{f6b1d834-2c7a-4e59-8d03-94a7e1c6b2d5}"/>
+  </description>
+</definition>
