@@ -118,6 +118,9 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 
 # ew-derive's agreement tests compare its main-representation and tag rules with the numbering of ew-commands.
 "ew-derive" = ["ew-commands"]
+# ew-api's golden CSV test compares the derived anchor cells, CPs and tags of the loaded golden model with its
+# tables (the importer may not depend on the model, so the test lives in ew-api).
+"ew-api" = ["ew-derive"]
 
 # ARCH §3 Rule 2: only ew-sqlview and ew-library link rusqlite.
 [[external_owner]]

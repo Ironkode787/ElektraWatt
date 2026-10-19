@@ -3,7 +3,7 @@
 
 //! Connections, junctions, conductors, potential definitions and bonds (doc 20 §7, §8, §10; doc 03 §9.2).
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use ew_ids::Id;
 use ew_interop_api::{Code, Severity};
@@ -15,7 +15,7 @@ use ew_schema::{
 use ew_units::Pt2;
 
 use super::parts::ROLES;
-use super::{ConnInfo, Cx, cell_point, fresh, parse_cell, place_on_grid};
+use super::{ConnInfo, Cx, PlaceError, cell_point, fresh, parse_cell, place};
 use crate::ids::{record_id, source_ref};
 use crate::table::{Row, Table, parse_ident};
 
@@ -225,8 +225,6 @@ struct PendingJunction<'t> {
     page: Id<Page>,
     /// The position on the page grid.
     at: Pt2,
-    /// Whether the cell position was off the grid and was snapped.
-    off_grid: bool,
     /// The style.
     style: JunctionStyle,
     /// The wiring, absent for the style's default.
@@ -235,29 +233,69 @@ struct PendingJunction<'t> {
     sequence: Vec<&'t str>,
 }
 
+/// The connections ending at each junction, built once from `cx.connections` (a connection is listed under each
+/// junction it ends at), and the connections dropped with a junction so far. Lets the CI-04 check and the
+/// cascade run in time linear in the connections (doc 14 §11), with one pass over the records at the end.
+#[derive(Default)]
+struct JunctionIndex {
+    /// Junction → `connections` keys ending at it, in key order.
+    ends: BTreeMap<Id<Junction>, Vec<String>>,
+    /// The record IDs of the dropped connections.
+    doomed: BTreeSet<Id<Connection>>,
+}
+
+impl JunctionIndex {
+    fn new(cx: &Cx<'_>) -> JunctionIndex {
+        let mut ends: BTreeMap<Id<Junction>, Vec<String>> = BTreeMap::new();
+        for (key, c) in &cx.connections {
+            let (a, b) = (junction_of(&c.a), junction_of(&c.b));
+            for j in [a, b].into_iter().flatten() {
+                let list = ends.entry(j).or_default();
+                if list.last() != Some(key) {
+                    list.push(key.clone());
+                }
+            }
+        }
+        JunctionIndex {
+            ends,
+            doomed: BTreeSet::new(),
+        }
+    }
+}
+
+fn junction_of(e: &Endpoint) -> Option<Id<Junction>> {
+    match e {
+        Endpoint::Junction(j) => Some(*j),
+        _ => None,
+    }
+}
+
 /// Drops junction `key` (`id`) from the context and every connection that ends at it, each with a finding.
-fn drop_junction(cx: &mut Cx<'_>, key: &str, id: Id<Junction>) {
+/// Returns the other junctions those connections end at (they must be checked again).
+fn drop_junction(cx: &mut Cx<'_>, ix: &mut JunctionIndex, key: &str, id: Id<Junction>) -> Vec<Id<Junction>> {
     cx.junctions.remove(key);
-    let ends_here = |e: &Endpoint| matches!(e, Endpoint::Junction(j) if *j == id);
-    let doomed: Vec<(String, Id<Connection>)> = cx
-        .connections
-        .iter()
-        .filter(|(_, c)| ends_here(&c.a) || ends_here(&c.b))
-        .map(|(k, c)| (k.clone(), c.id))
-        .collect();
-    for (conn_key, conn_id) in doomed {
-        cx.connections.remove(&conn_key);
-        cx.records
-            .retain(|r| !matches!(r, Record::Connection(c) if c.id == conn_id));
+    let mut touched = Vec::new();
+    for conn_key in ix.ends.get(&id).map(Vec::as_slice).unwrap_or_default() {
+        let Some(conn) = cx.connections.remove(conn_key) else {
+            continue;
+        };
+        ix.doomed.insert(conn.id);
+        touched.extend(
+            [junction_of(&conn.a), junction_of(&conn.b)]
+                .into_iter()
+                .flatten()
+                .filter(|j| *j != id),
+        );
         cx.findings.at(
             Code::UNRESOLVED_REFERENCE,
             Severity::Error,
             CONNECTIONS_FILE,
-            Some(&conn_key),
+            Some(conn_key),
             None,
             format!("row dropped: its junction `{key}` was dropped"),
         );
     }
+    touched
 }
 
 /// Why a junction row is refused: a reference that does not resolve (EW-IMP-003) or another problem (EW-IMP-002).
@@ -272,6 +310,7 @@ enum Refusal {
 /// ending at the junction is in the sequence.
 fn check_sequence(
     cx: &Cx<'_>,
+    ix: &JunctionIndex,
     key: &str,
     id: Id<Junction>,
     sequence: &[&str],
@@ -297,8 +336,8 @@ fn check_sequence(
         }
         ids.push(conn.id);
     }
-    for (conn_key, conn) in &cx.connections {
-        if (ends_here(&conn.a) || ends_here(&conn.b)) && !listed.contains(conn_key.as_str()) {
+    for conn_key in ix.ends.get(&id).map(Vec::as_slice).unwrap_or_default() {
+        if cx.connections.contains_key(conn_key) && !listed.contains(conn_key.as_str()) {
             return Err(Refusal::Malformed(format!(
                 "connection `{conn_key}` ends at junction `{key}` but is missing from its sequence (CI-04)"
             )));
@@ -312,6 +351,7 @@ fn check_sequence(
 /// that lose a connection thereby.
 pub(crate) fn emit_junctions(cx: &mut Cx<'_>, table: Option<&Table>) {
     let Some(table) = table else { return };
+    let mut ix = JunctionIndex::new(cx);
     let mut seen = BTreeMap::<String, ()>::new();
     let mut pending: Vec<PendingJunction<'_>> = Vec::new();
     for row in table.rows() {
@@ -349,7 +389,7 @@ pub(crate) fn emit_junctions(cx: &mut Cx<'_>, table: Option<&Table>) {
         let id = record_id::<Junction>("junctions", row.key());
         if let Err(e) = r.finish() {
             cx.malformed(row, &e);
-            drop_junction(cx, row.key(), id);
+            drop_junction(cx, &mut ix, row.key(), id);
             continue;
         }
         let (Some(page), Some(cell), Some(style)) = (page, cell, style) else {
@@ -357,15 +397,19 @@ pub(crate) fn emit_junctions(cx: &mut Cx<'_>, table: Option<&Table>) {
         };
         let Some(page_info) = cx.pages.get(page).copied() else {
             cx.unresolved(row, &format!("unknown page `{page}`"));
-            drop_junction(cx, row.key(), id);
+            drop_junction(cx, &mut ix, row.key(), id);
             continue;
         };
-        let Some((at, off_grid)) =
-            cell_point(cell, dx, dy).and_then(|t| place_on_grid(page_info.grid, t, Pt2::ORIGIN))
-        else {
-            cx.malformed(row, "position out of range");
-            drop_junction(cx, row.key(), id);
-            continue;
+        let placed = cell_point(cell, dx, dy)
+            .ok_or(PlaceError::OutOfRange)
+            .and_then(|t| place(page_info.grid, t, Pt2::ORIGIN));
+        let at = match placed {
+            Ok(at) => at,
+            Err(e) => {
+                cx.malformed(row, e.message());
+                drop_junction(cx, &mut ix, row.key(), id);
+                continue;
+            }
         };
         cx.junctions.entry(row.key().to_owned()).or_insert(id);
         pending.push(PendingJunction {
@@ -373,48 +417,58 @@ pub(crate) fn emit_junctions(cx: &mut Cx<'_>, table: Option<&Table>) {
             id,
             page: page_info.id,
             at,
-            off_grid,
             style,
             wiring,
             sequence,
         });
     }
 
-    // CI-04, to a fixed point: dropping a junction removes connections, which may break another sequence.
-    let mut sequences: BTreeMap<String, Vec<Id<Connection>>> = BTreeMap::new();
-    loop {
-        let mut changed = false;
-        let mut kept = Vec::with_capacity(pending.len());
-        for p in pending {
-            match check_sequence(cx, p.row.key(), p.id, &p.sequence) {
-                Ok(ids) => {
-                    sequences.insert(p.row.key().to_owned(), ids);
-                    kept.push(p);
+    // CI-04 with a worklist: every junction is checked once, and again only when a connection ending at it was
+    // dropped with another junction (the check then fails, as that connection is in its sequence or index).
+    // Each check costs its sequence plus its index entry, so the cascade is linear in the connections.
+    let slot: BTreeMap<Id<Junction>, usize> = pending.iter().enumerate().map(|(i, p)| (p.id, i)).collect();
+    let mut alive = vec![true; pending.len()];
+    let mut queued = vec![true; pending.len()];
+    let mut queue: VecDeque<usize> = (0..pending.len()).collect();
+    let mut sequences: Vec<Vec<Id<Connection>>> = vec![Vec::new(); pending.len()];
+    while let Some(i) = queue.pop_front() {
+        queued[i] = false;
+        if !alive[i] {
+            continue;
+        }
+        let p = &pending[i];
+        match check_sequence(cx, &ix, p.row.key(), p.id, &p.sequence) {
+            Ok(ids) => sequences[i] = ids,
+            Err(refusal) => {
+                let (row, id) = (p.row, p.id);
+                match refusal {
+                    Refusal::Unresolved(m) => cx.unresolved(row, &m),
+                    Refusal::Malformed(m) => cx.malformed(row, &m),
                 }
-                Err(refusal) => {
-                    match refusal {
-                        Refusal::Unresolved(m) => cx.unresolved(p.row, &m),
-                        Refusal::Malformed(m) => cx.malformed(p.row, &m),
+                alive[i] = false;
+                for j in drop_junction(cx, &mut ix, row.key(), id) {
+                    if let Some(&k) = slot.get(&j)
+                        && alive[k]
+                        && !queued[k]
+                    {
+                        queued[k] = true;
+                        queue.push_back(k);
                     }
-                    drop_junction(cx, p.row.key(), p.id);
-                    changed = true;
                 }
             }
         }
-        pending = kept;
-        if !changed {
-            break;
-        }
+    }
+    if !ix.doomed.is_empty() {
+        let doomed = std::mem::take(&mut ix.doomed);
+        cx.records
+            .retain(|r| !matches!(r, Record::Connection(c) if doomed.contains(&c.id)));
     }
 
-    for p in pending {
-        if p.off_grid {
-            cx.corrected(
-                p.row,
-                "position off the page grid; snapped to the nearest grid point",
-            );
+    for (i, p) in pending.into_iter().enumerate() {
+        if !alive[i] {
+            continue;
         }
-        let sequence = sequences.remove(p.row.key()).unwrap_or_default();
+        let sequence = std::mem::take(&mut sequences[i]);
         cx.records.push(Record::Junction(Junction {
             id: p.id,
             v: 1,

@@ -301,21 +301,36 @@ fn an_unsupported_kind_and_an_unknown_page_are_refused() {
     );
 }
 
+/// Doc 06 §5.7 (ID-54), doc 14 §9 strict mode: an off-grid junction is refused, never snapped; its
+/// connections go with it. An on-grid one sits exactly on the page grid.
 #[test]
-fn an_off_grid_junction_is_snapped_and_warned() {
+fn an_off_grid_junction_is_refused_not_snapped() {
+    let conns = (
+        "connections.csv",
+        "key,page,a,b\nJ1.1,101,-1F1:2,@J1\nW2,101,@J1,-2F1:1\n",
+    );
     let batch = run(&[
-        (
-            "connections.csv",
-            "key,page,a,b\nJ1.1,101,-1F1:2,@J1\nW2,101,@J1,-2F1:1\n",
-        ),
+        conns,
         (
             "junctions.csv",
             "key,page,cell,dx,dy,style,sequence\nJ1,101,C11,5,,dot,J1.1;W2\n",
         ),
     ]);
-    assert_eq!(count(&batch, 2, Severity::Warning), 1);
-    assert!(!batch.report.has_errors(), "{:?}", batch.report.entries);
-    let j = junction(&batch, "J1").expect("still emitted");
+    assert_eq!(count(&batch, 2, Severity::Warning), 0);
+    assert_eq!(count(&batch, 2, Severity::Error), 1);
+    assert!(messages(&batch, 2)[0].contains("off the page grid"));
+    assert!(junction(&batch, "J1").is_none());
+    assert!(connection(&batch, "W2").is_none());
+
+    let batch = run(&[
+        conns,
+        (
+            "junctions.csv",
+            "key,page,cell,dx,dy,style,sequence\nJ1,101,C11,10,,dot,J1.1;W2\n",
+        ),
+    ]);
+    assert!(batch.report.entries.is_empty(), "{:?}", batch.report.entries);
+    let j = junction(&batch, "J1").expect("emitted");
     let grid = Grid::QET_10PX;
     for v in [j.at.x, j.at.y] {
         assert_eq!(grid.at(grid.snap(v)), Some(v), "on the page grid");

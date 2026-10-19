@@ -3,15 +3,18 @@
 
 //! Tables by name, typed cell readers and the capped finding list.
 
+use std::borrow::Cow;
 use std::collections::BTreeMap;
+use std::fmt;
+use std::sync::Arc;
 
 use ew_interop_api::{Code, ReportEntry, Severity, SourceLocation};
-use ew_mltext::{Ident, MlText, to_nfc};
+use ew_mltext::{Ident, MlText, is_nfc, to_nfc};
 use ew_schema::{ColourCode, ColourSpec, Csa, Date, IecColour};
 use ew_units::Dec3;
 
 use crate::MAX_REPORT_ENTRIES;
-use crate::csv::CsvTable;
+use crate::csv::{Cell, CsvTable, cell_text};
 
 // ---------------------------------------------------------------------------------------------------------
 // Findings
@@ -82,25 +85,52 @@ pub(crate) struct TableSpec {
     pub(crate) optional: &'static [&'static str],
 }
 
-/// One loaded table: header map and NFC rows.
-#[derive(Debug)]
+/// One loaded table: header map and rows of cell spans.
+///
+/// The table holds its input (shared, never copied) and the spans of [`CsvTable`]; a cell is normalised to NFC
+/// only when it is not NFC already, and then its normalised text goes to a side buffer. Cells that are NFC are
+/// never copied.
 pub(crate) struct Table {
     /// The file name (`devices.csv`).
     pub(crate) file: String,
     columns: BTreeMap<String, usize>,
-    rows: Vec<RowData>,
+    input: Arc<[u8]>,
+    ncols: usize,
+    /// The 1-based line of each row.
+    lines: Vec<u32>,
+    /// The cells of all rows, row-major, `ncols` per row.
+    cells: Vec<Cell>,
+    /// Unescaped and NFC-normalised text.
+    owned: String,
 }
 
-#[derive(Debug)]
-struct RowData {
-    line: u32,
-    cells: Vec<String>,
+impl fmt::Debug for Table {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Table")
+            .field("file", &self.file)
+            .field("columns", &self.columns)
+            .field("rows", &self.lines.len())
+            .finish_non_exhaustive()
+    }
 }
+
+/// The finding of a row dropped because its key is not NFC.
+const KEY_NOT_NFC: &str = "row dropped: the key is not in Unicode NFC (keys are hashed byte for byte)";
 
 impl Table {
-    /// The table `csv` of `file` under `spec`, or `None` when a required column is missing (reported as
-    /// EW-IMP-002). Unknown columns are reported (EW-IMP-004) and ignored. Every cell is NFC-normalised.
-    pub(crate) fn new(spec: TableSpec, file: &str, csv: CsvTable, findings: &mut Findings) -> Option<Table> {
+    /// The table `csv`, parsed from `input`, of `file` under `spec`, or `None` when a required column is
+    /// missing (reported as EW-IMP-002). Unknown columns are reported (EW-IMP-004) and ignored.
+    ///
+    /// Keys are hashed byte for byte (README of the golden tables, doc 14 §9 strict mode): a row whose `key`
+    /// cell is not in NFC is dropped with EW-IMP-002. Every other cell of a known column is NFC-normalised,
+    /// only when it is not NFC already; the table keeps the input and the spans, so nothing else is copied.
+    pub(crate) fn new(
+        spec: TableSpec,
+        file: &str,
+        input: Arc<[u8]>,
+        csv: CsvTable,
+        findings: &mut Findings,
+    ) -> Option<Table> {
         let mut columns = BTreeMap::new();
         for (i, name) in csv.header.iter().enumerate() {
             if spec.required.contains(&name.as_str()) || spec.optional.contains(&name.as_str()) {
@@ -136,29 +166,76 @@ impl Table {
             );
             return None;
         }
-        let rows = csv
-            .rows
-            .into_iter()
-            .map(|r| RowData {
-                line: r.line,
-                cells: r.cells.iter().map(|c| to_nfc(c).into_owned()).collect(),
-            })
+        let CsvTable {
+            ncols,
+            mut lines,
+            mut cells,
+            mut owned,
+            ..
+        } = csv;
+        let key_col = columns.get("key").copied();
+        let used: Vec<usize> = columns
+            .values()
+            .copied()
+            .filter(|&i| Some(i) != key_col)
             .collect();
+        let mut kept = 0usize;
+        for row in 0..lines.len() {
+            let base = row * ncols;
+            if let Some(k) = key_col {
+                let key = cell_text(&input, &owned, cells[base + k]);
+                if !is_nfc(key) {
+                    findings.at(
+                        Code::MALFORMED_ITEM,
+                        Severity::Error,
+                        file,
+                        Some(key),
+                        Some(lines[row]),
+                        KEY_NOT_NFC,
+                    );
+                    continue;
+                }
+            }
+            for &c in &used {
+                let nfc = match to_nfc(cell_text(&input, &owned, cells[base + c])) {
+                    Cow::Borrowed(_) => continue,
+                    Cow::Owned(s) => s,
+                };
+                cells[base + c] = Cell::owned(owned.len(), nfc.len());
+                owned.push_str(&nfc);
+            }
+            if kept != row {
+                cells.copy_within(base..base + ncols, kept * ncols);
+                lines[kept] = lines[row];
+            }
+            kept += 1;
+        }
+        lines.truncate(kept);
+        cells.truncate(kept * ncols);
         Some(Table {
             file: file.to_owned(),
             columns,
-            rows,
+            input,
+            ncols,
+            lines,
+            cells,
+            owned,
         })
+    }
+
+    /// The text of `cell`.
+    fn text(&self, cell: Cell) -> &str {
+        cell_text(&self.input, &self.owned, cell)
     }
 
     /// The rows in file order.
     pub(crate) fn rows(&self) -> impl Iterator<Item = Row<'_>> {
-        self.rows.iter().map(move |data| Row { table: self, data })
+        (0..self.lines.len()).map(move |index| Row { table: self, index })
     }
 
     /// The number of rows.
     pub(crate) fn len(&self) -> usize {
-        self.rows.len()
+        self.lines.len()
     }
 }
 
@@ -166,18 +243,15 @@ impl Table {
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Row<'t> {
     table: &'t Table,
-    data: &'t RowData,
+    index: usize,
 }
 
 impl<'t> Row<'t> {
     /// The cell of `column`, `None` when the column is absent or the cell empty.
     pub(crate) fn get(&self, column: &str) -> Option<&'t str> {
         let i = *self.table.columns.get(column)?;
-        self.data
-            .cells
-            .get(i)
-            .map(String::as_str)
-            .filter(|s| !s.is_empty())
+        let cell = *self.table.cells.get(self.index * self.table.ncols + i)?;
+        Some(self.table.text(cell)).filter(|s| !s.is_empty())
     }
 
     /// The `key` cell (empty when absent).
@@ -187,7 +261,7 @@ impl<'t> Row<'t> {
 
     /// The 1-based line of the row.
     pub(crate) fn line(&self) -> u32 {
-        self.data.line
+        self.table.lines[self.index]
     }
 
     /// The file name.
@@ -412,6 +486,74 @@ pub(crate) fn parse_colour(s: &str) -> Result<ColourSpec, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const SPEC: TableSpec = TableSpec {
+        name: "t",
+        required: &["key"],
+        optional: &["name"],
+    };
+
+    fn table_of(text: &str, findings: &mut Findings) -> Table {
+        let bytes: Arc<[u8]> = Arc::from(text.as_bytes());
+        let csv = crate::csv::parse(&bytes, &crate::csv::TableLimits::default()).unwrap();
+        Table::new(SPEC, "t.csv", bytes, csv, findings).expect("the required column is there")
+    }
+
+    #[test]
+    fn a_key_that_is_not_nfc_drops_its_row() {
+        let mut findings = Findings::default();
+        // Row 2 has a decomposed e-acute key ("e" + U+0301), rows 1 and 3 are fine.
+        let t = table_of("key,name\nA,x\ne\u{301},y\nB,z\n", &mut findings);
+        let keys: Vec<(&str, u32)> = t.rows().map(|r| (r.key(), r.line())).collect();
+        assert_eq!(keys, [("A", 2), ("B", 4)]);
+        assert_eq!(t.len(), 2);
+        let entries = findings.finish();
+        assert_eq!(entries.len(), 1);
+        let e = &entries[0];
+        assert_eq!(e.code, Code::MALFORMED_ITEM);
+        assert_eq!(e.severity, Severity::Error);
+        assert_eq!(
+            e.message,
+            "row dropped: the key is not in Unicode NFC (keys are hashed byte for byte)"
+        );
+        let loc = e.location.as_ref().unwrap();
+        assert_eq!(loc.file, "t.csv");
+        assert_eq!(loc.item.as_deref(), Some("e\u{301}"));
+        assert_eq!(loc.line, Some(3));
+    }
+
+    #[test]
+    fn an_nfc_key_is_kept_byte_for_byte() {
+        let mut findings = Findings::default();
+        let t = table_of("key,name\n\u{e9},x\n", &mut findings);
+        assert_eq!(t.rows().map(|r| r.key()).collect::<Vec<_>>(), ["\u{e9}"]);
+        assert!(findings.finish().is_empty());
+    }
+
+    #[test]
+    fn a_cell_that_is_not_nfc_is_normalised_and_an_nfc_cell_is_not_copied() {
+        let mut findings = Findings::default();
+        let t = table_of("key,name\nA,e\u{301}\nB,\u{e9}\nC,plain\n", &mut findings);
+        let names: Vec<&str> = t.rows().map(|r| r.get("name").unwrap()).collect();
+        assert_eq!(names, ["\u{e9}", "\u{e9}", "plain"]);
+        assert!(findings.finish().is_empty());
+        // Only the decomposed cell went to the side buffer.
+        assert_eq!(t.owned, "\u{e9}");
+    }
+
+    #[test]
+    fn dropped_rows_do_not_shift_the_cells_of_the_rows_after_them() {
+        let mut findings = Findings::default();
+        let t = table_of(
+            "key,name\ne\u{301},a\nB,b\ne\u{301}2,c\nC,\"d\"\"d\"\n",
+            &mut findings,
+        );
+        let rows: Vec<(&str, &str, u32)> = t
+            .rows()
+            .map(|r| (r.key(), r.get("name").unwrap(), r.line()))
+            .collect();
+        assert_eq!(rows, [("B", "b", 3), ("C", "d\"d", 5)]);
+    }
 
     #[test]
     fn colours() {

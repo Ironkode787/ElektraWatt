@@ -3,6 +3,8 @@
 
 //! Project, parties, structure, external references, sections, pages and report blocks (doc 20 §4, §5, §16).
 
+use std::collections::BTreeMap;
+
 use ew_ids::Id;
 use ew_rds::Aspect;
 use ew_schema::{
@@ -13,9 +15,9 @@ use ew_schema::{
 };
 use ew_units::{Nm, Pt2};
 
-use super::{Cx, PageInfo, fresh, grid_named};
+use super::{Cx, Fate, PageInfo, fresh, grid_named, parent_fates};
 use crate::ids::{record_id, source_ref};
-use crate::table::{Rd, Table};
+use crate::table::{Rd, Row, Table};
 
 /// `aspect` names of `structure.csv` (the product aspect is never a structure node, doc 03 §5).
 const ASPECTS: &[(&str, Aspect)] = &[
@@ -141,17 +143,36 @@ pub(crate) fn emit_structure(cx: &mut Cx<'_>, table: Option<&Table>) {
             },
         ));
     }
-    for (row, parent, mut node) in pending {
+    // Parents: resolve, then refuse cycles and drop the children of dropped nodes, in one linear walk
+    // (the model rejects a parent cycle, so the batch must not hold one).
+    let index: BTreeMap<&str, usize> = pending
+        .iter()
+        .enumerate()
+        .map(|(i, (row, _, _))| (row.key(), i))
+        .collect();
+    let mut parents: Vec<Option<usize>> = vec![None; pending.len()];
+    let mut pre = vec![false; pending.len()];
+    for (i, (row, parent, _)) in pending.iter().enumerate() {
         if let Some(p) = parent {
-            match cx.structure.get(&p) {
-                Some(id) if *id != node.id => node.parent = Some(*id),
-                _ => {
-                    cx.unresolved(row, &format!("unknown parent `{p}`"));
-                    cx.structure.remove(row.key());
-                    continue;
+            match index.get(p.as_str()) {
+                Some(j) => parents[i] = Some(*j),
+                None => {
+                    cx.unresolved(*row, &format!("unknown parent `{p}`"));
+                    pre[i] = true;
                 }
             }
         }
+    }
+    let fates = parent_fates(&parents, &pre);
+    let rows: Vec<Row<'_>> = pending.iter().map(|(row, _, _)| *row).collect();
+    cx.report_fates(&rows, &fates, "structure");
+    let ids: Vec<Id<StructureNode>> = pending.iter().map(|(_, _, n)| n.id).collect();
+    for (i, (row, _, mut node)) in pending.into_iter().enumerate() {
+        if fates[i] != Fate::Kept {
+            cx.structure.remove(row.key());
+            continue;
+        }
+        node.parent = parents[i].map(|j| ids[j]);
         cx.records.push(Record::StructureNode(node));
     }
 }
@@ -426,6 +447,79 @@ fn parse_rect(s: &str) -> Result<Bounds, String> {
     Bounds::new(Pt2::new(Nm(x0), Nm(y0)), Pt2::new(Nm(x1), Nm(y1))).map_err(|e| e.to_string())
 }
 
+/// The tokens of a device-numbering format (doc 03 §8.2 step 3).
+const FORMAT_TOKENS: &[&str] = &["letter", "counter", "subcounter", "page", "column", "row"];
+
+/// Checks a numbering format: literal text and the tokens of [`FORMAT_TOKENS`] in braces, no product sign
+/// (the formatter adds it, doc 03 §8.2).
+fn check_format(col: &str, format: &str) -> Result<(), String> {
+    if format.starts_with('-') {
+        return Err(format!(
+            "column `{col}`: a format never contains the product sign `-`"
+        ));
+    }
+    let mut rest = format;
+    while let Some(open) = rest.find('{') {
+        let after = &rest[open + 1..];
+        let close = after
+            .find('}')
+            .ok_or_else(|| format!("column `{col}`: unclosed `{{` in `{format}`"))?;
+        let token = &after[..close];
+        if !FORMAT_TOKENS.contains(&token) {
+            return Err(format!(
+                "column `{col}`: unknown token `{{{token}}}` in `{format}`"
+            ));
+        }
+        rest = &after[close + 1..];
+    }
+    if rest.contains('}') {
+        return Err(format!("column `{col}`: stray `}}` in `{format}`"));
+    }
+    Ok(())
+}
+
+/// The `numbering_*` columns → `ProjectSettings.extra["numbering"]` in the doc 03 §5.1 shape (`{default,
+/// schemes: [DeviceNumberingScheme]}`, doc 20 §4.4): one scheme `numbering_scheme` (default `page-based`) with
+/// format `numbering_format`, the strip rule `{select: {aspect: "strip"}, format: numbering_strip_format}` and
+/// `child_separator` when given. `None` when no numbering column is set (the profile's scheme applies).
+fn numbering(r: &mut Rd<'_>) -> Option<serde_json::Value> {
+    let key = r.ident("numbering_scheme");
+    let format = r.text("numbering_format");
+    let strip = r.text("numbering_strip_format");
+    let separator = r.text("numbering_child_separator");
+    if key.is_none() && format.is_none() && strip.is_none() && separator.is_none() {
+        return None;
+    }
+    let Some(format) = format else {
+        r.fail("column `numbering_format` is required with the other numbering columns");
+        return None;
+    };
+    for (col, f) in [
+        ("numbering_format", Some(format)),
+        ("numbering_strip_format", strip),
+    ] {
+        if let Some(f) = f
+            && let Err(e) = check_format(col, f)
+        {
+            r.fail(e);
+        }
+    }
+    let key = key.map_or_else(|| "page-based".to_owned(), |k| k.to_string());
+    let mut scheme = serde_json::Map::new();
+    scheme.insert("key".into(), key.clone().into());
+    scheme.insert("format".into(), format.into());
+    if let Some(strip) = strip {
+        scheme.insert(
+            "rules".into(),
+            serde_json::json!([{"select": {"aspect": "strip"}, "format": strip}]),
+        );
+    }
+    if let Some(sep) = separator {
+        scheme.insert("child_separator".into(), sep.into());
+    }
+    Some(serde_json::json!({"default": key, "schemes": [scheme]}))
+}
+
 /// `project.csv` (first row) and `parties.csv` → the `project` record, pushed into the records.
 pub(crate) fn emit_project(cx: &mut Cx<'_>, table: Option<&Table>, parties: Option<&Table>) -> Option<()> {
     let table = table?;
@@ -516,7 +610,9 @@ pub(crate) fn emit_project(cx: &mut Cx<'_>, table: Option<&Table>, parties: Opti
             tag_case: None,
             extra: Default::default(),
         },
-        extra: Default::default(),
+        extra: numbering(&mut r)
+            .map(|n| ew_schema::Extra::from([("numbering".to_owned(), n)]))
+            .unwrap_or_default(),
     };
     let derivation_profile = r.req_ident("derivation_profile");
     if let Err(e) = r.finish() {

@@ -5,6 +5,7 @@
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
+use std::sync::Arc;
 
 use ew_interop_api::{
     Code, ImportBatch, ImportContext, ImportError, ImportInput, ImportReport, Severity, SourceInfo,
@@ -57,14 +58,15 @@ impl TablesImporter {
 
     /// Imports the tables `inputs` into a new golden project.
     ///
-    /// `ctx.project` is not used: the bootstrap creates the project, whose ID is `v5(ns, "project|<key>")`
-    /// ([`ids::project_id`]). `ctx.lineage` must be absent or the golden lineage.
+    /// The bootstrap creates the project, whose ID is `v5(ns, "project|<key>")` ([`ids::project_id`]):
+    /// `ctx.project` must be nil or the derived ID. `ctx.lineage` must be absent or the golden lineage.
     ///
     /// # Errors
     ///
     /// [`ImportError::LimitExceeded`] for more than [`MAX_TABLE_FILES`] files, a file or a total above the
     /// limits, a table above the row, column or cell limits; [`ImportError::Malformed`] for a repeated file
-    /// name or a missing or unusable `project.csv`; [`ImportError::Unsupported`] for another lineage.
+    /// name, a missing or unusable `project.csv`, or a `ctx.project` that is neither nil nor the derived project ID;
+    /// [`ImportError::Unsupported`] for another lineage.
     /// Everything else is a report entry.
     pub fn import(&self, inputs: &[ImportInput], ctx: &ImportContext) -> Result<ImportBatch, ImportError> {
         let ns = ids::golden_namespace();
@@ -132,7 +134,7 @@ impl TablesImporter {
             };
             match csv::parse(input.bytes(), &limits) {
                 Ok(t) => {
-                    if let Some(t) = Table::new(*spec, name, t, &mut findings) {
+                    if let Some(t) = Table::new(*spec, name, Arc::clone(input.bytes()), t, &mut findings) {
                         tables.insert(spec.name, t);
                     }
                 }
@@ -165,7 +167,18 @@ impl TablesImporter {
                 message: "project.csv with a project row is required".into(),
                 line: None,
             })?;
-        let mut cx = Cx::new(&self.library, ids::project_id(&project_key));
+        let project_id = ids::project_id(&project_key);
+        let nil = ew_ids::Id::from_uuid(ew_ids::Uuid::nil());
+        if ctx.project != nil && ctx.project != project_id {
+            return Err(ImportError::Malformed {
+                message: format!(
+                    "EW-IMP-002: the import context targets project {} but project.csv key `{project_key}` gives project {project_id}; the bootstrap creates its own project",
+                    ctx.project
+                ),
+                line: Some(2),
+            });
+        }
+        let mut cx = Cx::new(&self.library, project_id);
         cx.findings = findings;
 
         let t = |name: &str| tables.get(name);
@@ -279,6 +292,7 @@ fn limit_error(e: &CsvError) -> Option<&'static str> {
     match e {
         CsvError::TooLarge { .. } => Some("file size"),
         CsvError::TooManyRows { .. } => Some("row count"),
+        CsvError::TooManyCells { .. } => Some("cell count"),
         CsvError::TooManyColumns { .. } => Some("column count"),
         CsvError::CellTooLong { .. } => Some("cell size"),
         _ => None,
@@ -289,6 +303,7 @@ fn limit_value(e: &CsvError) -> u64 {
     match e {
         CsvError::TooLarge { limit } => *limit,
         CsvError::TooManyRows { limit }
+        | CsvError::TooManyCells { limit }
         | CsvError::TooManyColumns { limit, .. }
         | CsvError::CellTooLong { limit, .. } => *limit as u64,
         _ => 0,

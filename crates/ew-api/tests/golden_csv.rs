@@ -9,9 +9,10 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use ew_api::{Session, SessionOptions};
+use ew_derive::FunctionCps;
 use ew_import_tables::ew_interop_api::{ImportBatch, ImportInput, Severity};
 use ew_import_tables::{BuiltinLibrary, TablesImporter, bootstrap_context};
-use ew_schema::{LibDocument, Record};
+use ew_schema::{ClampKey, Endpoint, LibDocument, Record};
 
 fn repo() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -133,6 +134,168 @@ fn the_golden_batch_loads_with_the_counts_of_doc_20() {
         .filter(|d| matches!(d, LibDocument::Part(_)))
         .count();
     assert_eq!(parts, 23);
+}
+
+/// The rows of one committed golden table by key: column name → cell. The golden tables quote no field
+/// (checked), so a plain split suffices here.
+fn table(name: &str) -> BTreeMap<String, BTreeMap<String, String>> {
+    let text = std::fs::read_to_string(repo().join("golden/J-E-2416/tables").join(name)).unwrap();
+    assert!(!text.contains('"'), "{name}: this reader does not unquote");
+    let mut lines = text.lines();
+    let header: Vec<&str> = lines.next().unwrap().split(',').collect();
+    lines
+        .map(|l| {
+            let row: BTreeMap<String, String> = header
+                .iter()
+                .zip(l.split(','))
+                .map(|(h, c)| ((*h).to_owned(), c.to_owned()))
+                .collect();
+            (row["key"].clone(), row)
+        })
+        .collect()
+}
+
+/// The `{table}|{key}` source key of a record.
+fn source_key(r: &Record) -> Option<&str> {
+    let s = match r {
+        Record::Representation(x) => x.source_ref.as_ref(),
+        Record::Connection(x) => x.source_ref.as_ref(),
+        Record::Device(x) => x.source_ref.as_ref(),
+        Record::Function(x) => x.source_ref.as_ref(),
+        _ => None,
+    }?;
+    Some(s.key.as_str())
+}
+
+/// F1 (review cycle 6 C): every representation's derived anchor cell (`rep_anchor_cell`, from the symbol's
+/// anchor policy, D-14) is the cell of its `representations.csv` row — for named, origin and graphic-centre
+/// anchors alike.
+#[test]
+fn every_representation_anchors_in_its_table_cell() {
+    let batch = golden_batch();
+    let s = session(&batch);
+    let q = ew_derive::Q::new(&s.world().model);
+    let rows = table("representations.csv");
+    let mut checked = 0;
+    let mut wrong = Vec::new();
+    for r in &batch.records {
+        let Record::Representation(rep) = r else {
+            continue;
+        };
+        let key = source_key(r)
+            .and_then(|k| k.strip_prefix("representations|"))
+            .unwrap();
+        let want = &rows[key]["cell"];
+        let got = q.get::<ew_derive::RepAnchorCell>(rep.id);
+        let got = got.as_ref().as_ref().map(ToString::to_string);
+        if got.as_deref() != Some(want.as_str()) {
+            wrong.push(format!("{key}: table {want}, derived {got:?}"));
+        }
+        checked += 1;
+    }
+    assert_eq!(checked, rows.len());
+    assert!(
+        wrong.is_empty(),
+        "{} of {checked} off:\n{}",
+        wrong.len(),
+        wrong.join("\n")
+    );
+}
+
+/// F3 (review cycle 6 C): with the numbering settings of doc 20 §4.4 and the ▲U-34 frozen tags, every device's
+/// derived tag (`device_tag`, structure omitted) is its table key as doc 20 prints it: `-101F1`, `-X1031`,
+/// `S51`, `-201U3-Q1`, `-X1031:1`, `-XPE`, `-UC1-plate`.
+#[test]
+fn every_device_tag_is_its_table_key() {
+    let batch = golden_batch();
+    let s = session(&batch);
+    let q = ew_derive::Q::new(&s.world().model);
+    let mut checked = 0;
+    let mut wrong = Vec::new();
+    for r in &batch.records {
+        let Record::Device(dev) = r else { continue };
+        let key = source_key(r).unwrap();
+        let key = key
+            .strip_prefix("devices|")
+            .or_else(|| key.strip_prefix("terminals|"))
+            .unwrap();
+        let tag = q.get::<ew_derive::DeviceTag>(dev.id);
+        let tag = tag.as_ref().as_ref().expect("a tag");
+        if tag.short() != key {
+            wrong.push(format!("{key}: derived {} (full {})", tag.short(), tag.full));
+        }
+        checked += 1;
+    }
+    assert_eq!(checked, 68 + 28);
+    assert!(
+        wrong.is_empty(),
+        "{} of {checked} differ:\n{}",
+        wrong.len(),
+        wrong.join("\n")
+    );
+}
+
+/// F2 (review cycle 6 C): every connection endpoint CP exists among the derived CPs of its function
+/// (`function_cps`), and every `/b` endpoint of `connections.csv` is clamp b. Terminal functions are
+/// template-origin (their device carries PT 2.5-TWIN(-PE), whose template declares their FnDef with role main),
+/// so the part's CP pattern (a, b, c, s1, RF) defines their CP index space.
+#[test]
+#[ignore = "passes once review-B F7 (template-origin CPs in ew-derive) is integrated"]
+fn every_connection_endpoint_is_a_derived_cp() {
+    let batch = golden_batch();
+    let s = session(&batch);
+    let q = ew_derive::Q::new(&s.world().model);
+    let rows = table("connections.csv");
+    let mut wrong = Vec::new();
+    for r in &batch.records {
+        let Record::Connection(c) = r else { continue };
+        let key = source_key(r)
+            .and_then(|k| k.strip_prefix("connections|"))
+            .unwrap();
+        for (end, text) in [(&c.a, &rows[key]["a"]), (&c.b, &rows[key]["b"])] {
+            let Endpoint::Cp(f, idx) = end else { continue };
+            let cps = q.get::<FunctionCps>(*f);
+            match cps.iter().find(|cp| cp.idx == *idx) {
+                None => wrong.push(format!("{key} {text}: no CP {idx} in {}", list(&cps))),
+                Some(cp) if text.ends_with("/b") && cp.clamp != Some(ClampKey::Clamp('b')) => {
+                    wrong.push(format!("{key} {text}: CP {idx} is {:?}, not clamp b", cp.clamp));
+                }
+                Some(_) => {}
+            }
+        }
+    }
+    assert!(
+        wrong.is_empty(),
+        "{} endpoints wrong:\n{}",
+        wrong.len(),
+        wrong.join("\n")
+    );
+}
+
+fn list(cps: &[ew_derive::Cp]) -> String {
+    let items: Vec<String> = cps
+        .iter()
+        .map(|c| {
+            format!(
+                "{}={}{}",
+                c.idx,
+                c.designation,
+                c.clamp.as_ref().map_or(String::new(), |k| format!("/{k:?}"))
+            )
+        })
+        .collect();
+    format!("[{}]", items.join(", "))
+}
+
+/// Derived counts of the golden batch: doc 20 does not state them, they follow from its tables (functions:
+/// one per device function and interruption point, §6, §9, §15; representations: one per drawn symbol, §6.1,
+/// §9, §15). A change is a change of the fixture, never noise.
+#[test]
+fn the_golden_batch_has_160_functions_and_135_representations() {
+    let batch = golden_batch();
+    let n = |f: fn(&Record) -> bool| batch.records.iter().filter(|r| f(r)).count();
+    assert_eq!(n(|r| matches!(r, Record::Function(_))), 160);
+    assert_eq!(n(|r| matches!(r, Record::Representation(_))), 135);
 }
 
 #[test]

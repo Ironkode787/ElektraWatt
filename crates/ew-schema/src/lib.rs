@@ -72,6 +72,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+mod anchor;
 mod connect;
 mod device;
 mod error;

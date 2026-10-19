@@ -44,5 +44,7 @@ ew-schema = { path = "../ew-schema" }
 
 [dev-dependencies]
 ew-commands = { path = "../ew-commands", features = ["testkit"] }
+# `tests/golden_csv.rs` compares the derived anchor cells, CPs and tags of the loaded golden model with its tables.
+ew-derive = { path = "../ew-derive" }
 ew-model = { path = "../ew-model", features = ["raw-read"] }
 serde_json = "1.0.154"

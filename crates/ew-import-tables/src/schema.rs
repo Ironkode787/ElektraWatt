@@ -42,6 +42,10 @@ pub(crate) const PROJECT: TableSpec = spec(
         "identifier_set",
         "date_format",
         "decimal_separator",
+        "numbering_scheme",
+        "numbering_format",
+        "numbering_strip_format",
+        "numbering_child_separator",
     ],
 );
 

@@ -103,6 +103,17 @@ impl Limits {
         }
     }
 
+    /// The limits of the golden CSV bootstrap: the defaults with `max_input_bytes` of 64 MiB (67,108,864).
+    ///
+    /// The total of all table files of one bootstrap is at most 64 MiB (doc 14 §11); each table file is bound
+    /// by its own, lower, per-table limits.
+    pub fn bootstrap_tables() -> Limits {
+        Limits {
+            max_input_bytes: 64 * 1024 * 1024,
+            ..Limits::default()
+        }
+    }
+
     /// The field-wise minimum of `self` and `other`: the stricter of each limit.
     pub fn stricter(self, other: Limits) -> Limits {
         Limits {

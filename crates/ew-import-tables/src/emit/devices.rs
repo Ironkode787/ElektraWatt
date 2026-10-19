@@ -7,14 +7,17 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
 use ew_schema::{
-    AnchorPolicy, Cable, CpOverride, Device, DeviceAspects, DeviceKind, DeviceState, FnRole, FrozenTag,
-    Function, FunctionKind, IpDirection, IpSpec, KeyedList, LabelMode, LengthSource, PartRef, PartUse,
-    Record, Representation, Side, Strip, TagPrint, TagScheme, TagSign, TagSpec, Terminal, TerminalGroup,
+    Cable, CpOverride, Device, DeviceAspects, DeviceKind, DeviceState, FnRole, FrozenTag, Function,
+    FunctionKind, IpDirection, IpSpec, KeyedList, LabelMode, LengthSource, PartRef, PartUse, Record,
+    Representation, Side, Strip, TagPrint, TagScheme, TagSign, TagSpec, Terminal, TerminalGroup,
 };
-use ew_units::{Dec3, Pt2};
+use ew_units::Dec3;
 
 use super::project::structure_assignment;
-use super::{CpInfo, Cx, DeviceInfo, FnInfo, cell_point, dec3_mm_to_nm, fresh, parse_cell, place_on_grid};
+use super::{
+    CpInfo, Cx, DeviceInfo, Fate, FnInfo, PlaceError, cell_point, dec3_mm_to_nm, fresh, parent_fates,
+    parse_cell, place,
+};
 use crate::ids::{record_id, source_ref};
 use crate::table::{Rd, Row, Table, parse_dec3, parse_ident};
 
@@ -32,9 +35,10 @@ const KINDS: &[(&str, DeviceKind)] = &[
 
 const SIDES: &[(&str, Side)] = &[("side1", Side::Side1), ("side2", Side::Side2)];
 
-/// `parts` cells: `<part>` or `<part>*<qty>`.
-fn part_uses(cx: &Cx<'_>, r: &mut Rd<'_>) -> Vec<PartUse> {
+/// `parts` cells: `<part>` or `<part>*<qty>`; the part uses and their `parts` keys, in cell order.
+fn part_uses(cx: &Cx<'_>, r: &mut Rd<'_>) -> (Vec<PartUse>, Vec<String>) {
     let mut out = Vec::new();
+    let mut keys = Vec::new();
     for item in r.list("parts") {
         let (key, qty) = match item.rsplit_once('*') {
             Some((k, q)) => match parse_dec3(q) {
@@ -47,15 +51,18 @@ fn part_uses(cx: &Cx<'_>, r: &mut Rd<'_>) -> Vec<PartUse> {
             None => (item, Dec3(1_000)),
         };
         match cx.parts.get(key) {
-            Some(p) => out.push(PartUse {
-                part: PartRef::new(p.id),
-                qty,
-                extra: Default::default(),
-            }),
+            Some(p) => {
+                out.push(PartUse {
+                    part: PartRef::new(p.id),
+                    qty,
+                    extra: Default::default(),
+                });
+                keys.push(key.to_owned());
+            }
             None => r.fail(format!("column `parts`: unknown part `{key}`")),
         }
     }
-    out
+    (out, keys)
 }
 
 fn tag_scheme(r: &mut Rd<'_>) -> TagScheme {
@@ -122,7 +129,7 @@ pub(crate) fn emit_devices(cx: &mut Cx<'_>, table: Option<&Table>) {
         let position = r.uint::<u32>("position");
         let structure = structure_assignment(cx, &mut r);
         let kind = r.choice("kind", KINDS);
-        let parts = part_uses(cx, &mut r);
+        let (parts, part_keys) = part_uses(cx, &mut r);
         let function_text = r.mltext("function_text");
         let process_tag = r.ident("process_tag");
         let state = r.choice("state", STATES).unwrap_or_default();
@@ -182,6 +189,7 @@ pub(crate) fn emit_devices(cx: &mut Cx<'_>, table: Option<&Table>) {
                 id,
                 strip_field_side: strip.as_ref().map(|s| s.field_side.clone()),
                 cable: cable.is_some(),
+                parts: part_keys,
             },
         );
         let device = Device {
@@ -218,52 +226,36 @@ pub(crate) fn emit_devices(cx: &mut Cx<'_>, table: Option<&Table>) {
         pending.push((row, parent, device));
     }
 
-    // Parents: resolve, then refuse cycles.
-    let mut parent_of: BTreeMap<String, String> = BTreeMap::new();
-    let mut dropped: BTreeSet<String> = BTreeSet::new();
-    for (row, parent, _) in &pending {
+    // Parents: resolve, then refuse cycles (EW-INV-009) and drop the children of dropped devices, in one
+    // linear walk (doc 14 §11: hostile chains must not cost O(N²)).
+    let index: BTreeMap<&str, usize> = pending
+        .iter()
+        .enumerate()
+        .map(|(i, (row, _, _))| (row.key(), i))
+        .collect();
+    let mut parents: Vec<Option<usize>> = vec![None; pending.len()];
+    let mut pre = vec![false; pending.len()];
+    for (i, (row, parent, _)) in pending.iter().enumerate() {
         if let Some(p) = parent {
-            if cx.devices.contains_key(p) && p != row.key() {
-                parent_of.insert(row.key().to_owned(), p.clone());
-            } else {
-                cx.unresolved(*row, &format!("unknown parent `{p}`"));
-                dropped.insert(row.key().to_owned());
+            match index.get(p.as_str()) {
+                Some(j) => parents[i] = Some(*j),
+                None => {
+                    cx.unresolved(*row, &format!("unknown parent `{p}`"));
+                    pre[i] = true;
+                }
             }
         }
     }
-    for (row, _, _) in &pending {
-        let mut cur = row.key().to_owned();
-        let mut steps = 0;
-        while let Some(p) = parent_of.get(&cur) {
-            steps += 1;
-            if p == row.key() || steps > parent_of.len() {
-                cx.malformed(*row, "parent chain is a cycle (EW-INV-009)");
-                dropped.insert(row.key().to_owned());
-                break;
-            }
-            cur = p.clone();
-        }
-    }
-    // A child of a dropped device is dropped too.
-    loop {
-        let more: Vec<String> = parent_of
-            .iter()
-            .filter(|(c, p)| dropped.contains(*p) && !dropped.contains(*c))
-            .map(|(c, _)| c.clone())
-            .collect();
-        if more.is_empty() {
-            break;
-        }
-        dropped.extend(more);
-    }
-    for (row, _, mut device) in pending {
-        if dropped.contains(row.key()) {
+    let fates = parent_fates(&parents, &pre);
+    let rows: Vec<Row<'_>> = pending.iter().map(|(row, _, _)| *row).collect();
+    cx.report_fates(&rows, &fates, "EW-INV-009");
+    let ids: Vec<Id<Device>> = pending.iter().map(|(_, _, d)| d.id).collect();
+    for (i, (row, _, mut device)) in pending.into_iter().enumerate() {
+        if fates[i] != Fate::Kept {
             cx.devices.remove(row.key());
             continue;
         }
-        if let Some(p) = parent_of.get(row.key()) {
-            device.parent = cx.devices.get(p).map(|d| d.id);
-        }
+        device.parent = parents[i].map(|j| ids[j]);
         cx.records.push(Record::Device(device));
     }
 }
@@ -280,7 +272,7 @@ pub(crate) fn emit_terminals(cx: &mut Cx<'_>, table: Option<&Table>) {
         let seq = r.req_uint::<u32>("seq");
         let designation = r.req_ident("designation");
         let function_text = r.mltext("function_text");
-        let parts = part_uses(cx, &mut r);
+        let (parts, part_keys) = part_uses(cx, &mut r);
         let state = r.choice("state", STATES).unwrap_or_default();
         let rail_bonded = r.flag("rail_bonded");
         let structure = structure_assignment(cx, &mut r);
@@ -312,6 +304,7 @@ pub(crate) fn emit_terminals(cx: &mut Cx<'_>, table: Option<&Table>) {
                 id,
                 strip_field_side: None,
                 cable: false,
+                parts: part_keys,
             },
         );
         cx.records.push(Record::Device(Device {
@@ -345,29 +338,80 @@ pub(crate) fn emit_terminals(cx: &mut Cx<'_>, table: Option<&Table>) {
     }
 }
 
-/// The CP list of a function row: the part template's pattern entries, else the FnDef's CPs.
-fn function_cps(cx: &Cx<'_>, r: &mut Rd<'_>, fndef: &str) -> Vec<CpInfo> {
-    if let Some(part) = r.text("part") {
-        let template = r.uint::<usize>("template").unwrap_or(0);
-        let Some(info) = cx.parts.get(part) else {
-            r.fail(format!("column `part`: unknown part `{part}`"));
-            return Vec::new();
-        };
-        let Some((_, idxs)) = info.templates.get(template) else {
-            r.fail(format!("part `{part}` has no function template {template}"));
-            return Vec::new();
-        };
-        return idxs
+/// The template-origin rule (doc 03 §7 "CP instantiation", README "CP and endpoint notation"): the first part
+/// use of `device` (in `Device.parts` order) whose part template declares a function with FnDef `fndef` and the
+/// role `role` (`TemplateFn.main` ⇔ `FnRole::Main`), first matching template entry in `n` order; its part key
+/// and template position. `ew-derive`'s `function_cps` applies the same rule.
+fn template_origin<'c>(
+    cx: &'c Cx<'_>,
+    device: Option<&str>,
+    fndef: &str,
+    role: &FnRole,
+) -> Option<(&'c str, usize, &'c super::PartInfo, &'c super::TemplateInfo)> {
+    let main = *role == FnRole::Main;
+    cx.devices.get(device?)?.parts.iter().find_map(|key| {
+        let part = cx.parts.get(key)?;
+        let (n, t) = part
+            .templates
             .iter()
             .enumerate()
-            .filter_map(|(i, p)| {
-                let cp = info.pattern.get(p)?;
-                Some(CpInfo {
-                    idx: u16::try_from(i).ok()?,
-                    ..cp.clone()
-                })
-            })
+            .find(|(_, t)| t.fndef == fndef && t.main == main)?;
+        Some((key.as_str(), n, part, t))
+    })
+}
+
+/// The CP list of a function row, in CP index order:
+///
+/// 1. **template origin** ([`template_origin`]): the template's pattern entries, each with its **pattern**
+///    index (the part's CP pattern defines the CP index space);
+/// 2. a **black box**: every entry of the first part use whose part has a CP pattern, with its pattern index;
+/// 3. otherwise the FnDef's CPs.
+///
+/// The optional `part` and `template` columns state the expected origin: the row is malformed (EW-IMP-002) when
+/// the rule does not select exactly that part and template position.
+fn function_cps(
+    cx: &Cx<'_>,
+    r: &mut Rd<'_>,
+    fndef: &str,
+    device: Option<&str>,
+    role: &FnRole,
+    black_box: bool,
+) -> Vec<CpInfo> {
+    let named = r.text("part");
+    let template = r.uint::<usize>("template");
+    let origin = template_origin(cx, device, fndef, role);
+    if let Some(part) = named {
+        let n = template.unwrap_or(0);
+        if !cx.parts.contains_key(part) {
+            r.fail(format!("column `part`: unknown part `{part}`"));
+        } else if origin.is_none_or(|(k, m, _, _)| k != part || m != n) {
+            let role = if *role == FnRole::Main { "main" } else { "aux" };
+            r.fail(format!(
+                "column `part`: the device carries no part `{part}` whose template {n} is the first to declare \
+                 FnDef `{fndef}` with role {role} (template-origin rule)"
+            ));
+        }
+    } else if template.is_some() {
+        r.fail("column `template` needs column `part`");
+    }
+    if let Some((_, _, part, t)) = origin {
+        let mut cps: Vec<CpInfo> = t
+            .cps
+            .iter()
+            .filter_map(|p| part.pattern.get(p).cloned())
             .collect();
+        cps.sort_by_key(|c| c.idx);
+        return cps;
+    }
+    if black_box
+        && let Some(part) = device
+            .and_then(|d| cx.devices.get(d))
+            .into_iter()
+            .flat_map(|d| d.parts.iter())
+            .filter_map(|k| cx.parts.get(k))
+            .find(|p| !p.pattern.is_empty())
+    {
+        return part.pattern.values().cloned().collect();
     }
     match cx.lib.fndef(fndef) {
         Some(c) => c
@@ -446,9 +490,10 @@ pub(crate) fn emit_functions(cx: &mut Cx<'_>, table: Option<&Table>) {
         } else if device.is_none() {
             r.fail("column `device` is empty (only interruption points have no device)");
         }
+        let black_box = kind_name == 1;
         let cps = fndef
             .as_deref()
-            .map(|f| function_cps(cx, &mut r, f))
+            .map(|f| function_cps(cx, &mut r, f, device.as_deref(), &role, black_box))
             .unwrap_or_default();
         let mut overrides = Vec::new();
         for item in r.list("cp_aliases") {
@@ -622,22 +667,22 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
             cx.unresolved(row, &format!("unknown symbol `{symbol}`"));
             continue;
         };
-        let anchor = match &sym.item.anchor {
-            AnchorPolicy::Named(p) => *p,
-            _ => Pt2::ORIGIN,
-        };
+        // The anchor of the symbol's policy, exactly as `rep_anchor_cell` derives it (FR-SYM-010, D-14): the
+        // cell column names where the anchor lands, not the symbol origin.
         let (sym_id, rep_type) = (sym.id, sym.item.rep_type.clone());
-        let placed = cell_point(cell, dx, dy).and_then(|t| place_on_grid(page_info.grid, t, anchor));
-        let Some((pos, off_grid)) = placed else {
-            cx.malformed(row, "position out of range");
-            continue;
+        let placed = sym
+            .item
+            .anchor_point()
+            .zip(cell_point(cell, dx, dy))
+            .ok_or(PlaceError::OutOfRange)
+            .and_then(|(anchor, target)| place(page_info.grid, target, anchor));
+        let pos = match placed {
+            Ok(pos) => pos,
+            Err(e) => {
+                cx.malformed(row, e.message());
+                continue;
+            }
         };
-        if off_grid {
-            cx.corrected(
-                row,
-                "position off the page grid; snapped to the nearest grid point",
-            );
-        }
         cx.used_lib.insert(symbol);
         if let Some(f) = ip_fn {
             ip_reps.insert(f);
@@ -661,14 +706,16 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
             extra: Default::default(),
         }));
     }
-    // Interruption points without a representation.
+    // Interruption points without a representation: reported in key order, then removed with one pass over
+    // the records (doc 14 §11: no O(N²) clean-up).
     let orphans: Vec<(String, Id<Function>)> = cx
         .functions
         .iter()
         .filter(|(k, f)| f.ip && !ip_reps.contains(*k))
         .map(|(k, f)| (k.clone(), f.id))
         .collect();
-    for (key, id) in orphans {
+    let doomed: BTreeSet<Id<Function>> = orphans.iter().map(|(_, id)| *id).collect();
+    for (key, _) in orphans {
         cx.findings.at(
             ew_interop_api::Code::UNRESOLVED_REFERENCE,
             ew_interop_api::Severity::Error,
@@ -678,7 +725,9 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
             "row dropped: interruption point without a representation (EW-INV-013)",
         );
         cx.functions.remove(&key);
+    }
+    if !doomed.is_empty() {
         cx.records
-            .retain(|r| !matches!(r, Record::Function(f) if f.id == id));
+            .retain(|r| !matches!(r, Record::Function(f) if doomed.contains(&f.id)));
     }
 }

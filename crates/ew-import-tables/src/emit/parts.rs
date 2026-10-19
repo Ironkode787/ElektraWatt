@@ -15,7 +15,7 @@ use ew_schema::{
 use serde::Serialize;
 use sha2::Digest;
 
-use super::{CpInfo, Cx, PartInfo, fresh};
+use super::{CpInfo, Cx, PartInfo, TemplateInfo, fresh};
 use crate::ids::{record_id, source_key};
 use crate::table::{Rd, Row, Table, parse_ident};
 
@@ -222,6 +222,9 @@ pub(crate) fn emit(
             let fndef = r.req("fndef").map(str::to_owned);
             let main = r.flag("main");
             let list: Vec<&str> = r.list("cps");
+            if list.is_empty() {
+                r.fail("column `cps` is empty (a template function lists its pattern indexes)");
+            }
             let mut idxs = Vec::new();
             for i in list {
                 match i.parse::<u16>() {
@@ -344,7 +347,7 @@ pub(crate) fn emit(
                 pattern,
                 templates: template_rows
                     .into_iter()
-                    .map(|(_, f, _, idxs, _)| (f, idxs))
+                    .map(|(_, fndef, main, cps, _)| TemplateInfo { fndef, main, cps })
                     .collect(),
             },
         );

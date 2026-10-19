@@ -139,3 +139,131 @@ fn arbitrary_bytes_never_panic() {
         }
     });
 }
+
+/// Values that cell mutations draw from: empty, junk, numeric edges, endpoint and enumeration lookalikes.
+const POOL: &[&str] = &[
+    "",
+    "x",
+    "-1",
+    "0",
+    "65536",
+    "99999999999999999999",
+    "1.2345",
+    "@J1",
+    "@nope",
+    "ip:nope",
+    "-X1031:1/b",
+    "-X1031:99/z",
+    "A0",
+    "I99",
+    "H16",
+    "a;b;;c",
+    "true",
+    "maybe",
+    "\u{2212}",
+    "e\u{301}",
+];
+
+/// One cell-wise mutation of `lines`: replace a field (from `POOL`, the key of another row or the value of
+/// another cell of the same column), delete a line, duplicate a line or swap two fields. Lines with a quote
+/// are left alone by the field mutations (a cell-wise split would break them).
+fn mutate_once(lines: &mut Vec<String>, rng: &mut Lcg) {
+    if lines.is_empty() {
+        return;
+    }
+    // Data lines are the target; the header is hit only when it is the sole line.
+    let target = if lines.len() > 1 {
+        1 + (rng.next() as usize) % (lines.len() - 1)
+    } else {
+        0
+    };
+    match rng.next() % 10 {
+        0..=5 => {
+            if lines[target].contains('"') {
+                return;
+            }
+            let mut fields: Vec<String> = lines[target].split(',').map(str::to_owned).collect();
+            let col = (rng.next() as usize) % fields.len();
+            let other = (rng.next() as usize) % lines.len();
+            let value = match rng.next() as usize % (POOL.len() + 2) {
+                n if n < POOL.len() => POOL[n].to_owned(),
+                n if n == POOL.len() => lines[other].split(',').next().unwrap_or("").to_owned(),
+                _ => lines[other].split(',').nth(col).unwrap_or("").to_owned(),
+            };
+            fields[col] = value;
+            lines[target] = fields.join(",");
+        }
+        6 => {
+            lines.remove(target);
+        }
+        7 => {
+            let copy = lines[target].clone();
+            lines.insert(target, copy);
+        }
+        _ => {
+            if lines[target].contains('"') {
+                return;
+            }
+            let mut fields: Vec<String> = lines[target].split(',').map(str::to_owned).collect();
+            let (a, b) = (
+                (rng.next() as usize) % fields.len(),
+                (rng.next() as usize) % fields.len(),
+            );
+            fields.swap(a, b);
+            lines[target] = fields.join(",");
+        }
+    }
+}
+
+/// Mutated golden tables never panic: 1 to 3 cell-wise mutations of one table at a time, for every golden
+/// table, and every successful batch has unique record IDs.
+///
+/// Per table: `MUTATIONS_PER_TABLE` = 60 mutated runs from the seed `0xC5F0_7A11_0B5E_ED01` mixed with the
+/// table index, one thread per table (debug build: see the measured time in the test run).
+#[test]
+fn mutated_golden_tables_never_panic() {
+    const MUTATIONS_PER_TABLE: usize = 60;
+    const SEED: u64 = 0xC5F0_7A11_0B5E_ED01;
+    let golden = common::golden_inputs();
+    assert_eq!(golden.len(), 23, "the golden project has 23 tables");
+    let importer = TablesImporter::new(common::library());
+    let ctx = common::context();
+    std::thread::scope(|scope| {
+        for (n, target) in golden.iter().enumerate() {
+            let (golden, importer, ctx) = (&golden, &importer, &ctx);
+            scope.spawn(move || {
+                let text = String::from_utf8(target.bytes().to_vec()).expect("golden tables are UTF-8");
+                let mut rng = Lcg(SEED ^ ((n as u64 + 1) << 32));
+                for _ in 0..MUTATIONS_PER_TABLE {
+                    let mut lines: Vec<String> = text.lines().map(str::to_owned).collect();
+                    for _ in 0..=(rng.next() % 3) {
+                        mutate_once(&mut lines, &mut rng);
+                    }
+                    let mut mutated = lines.join("\n");
+                    mutated.push('\n');
+                    let mut inputs: Vec<_> = golden
+                        .iter()
+                        .filter(|i| i.name() != target.name())
+                        .cloned()
+                        .collect();
+                    inputs.push(
+                        ew_interop_api::ImportInput::new(target.name(), mutated.clone().into_bytes())
+                            .unwrap(),
+                    );
+                    if let Ok(batch) = importer.import(&inputs, ctx) {
+                        let mut seen = std::collections::BTreeSet::new();
+                        for r in &batch.records {
+                            if let Some(id) = r.id() {
+                                assert!(
+                                    seen.insert(id),
+                                    "{}: duplicate record ID {id:?}\n{mutated}",
+                                    target.name()
+                                );
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+}

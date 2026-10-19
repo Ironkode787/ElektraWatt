@@ -58,6 +58,8 @@ pub(crate) struct DeviceInfo {
     pub(crate) strip_field_side: Option<Side>,
     /// Whether the device has the cable aspect.
     pub(crate) cable: bool,
+    /// The `parts` keys of its part uses, in `Device.parts` order.
+    pub(crate) parts: Vec<String>,
 }
 
 /// An emitted page.
@@ -69,6 +71,17 @@ pub(crate) struct PageInfo {
     pub(crate) grid: Grid,
 }
 
+/// One function of a part's template as the device emitters see it.
+#[derive(Clone, Debug)]
+pub(crate) struct TemplateInfo {
+    /// The FnDef key.
+    pub(crate) fndef: String,
+    /// `TemplateFn.main`: the role the template function has, and that a function must have to match it.
+    pub(crate) main: bool,
+    /// Its pattern indexes, in template order (never empty).
+    pub(crate) cps: Vec<u16>,
+}
+
 /// A part copy as the device emitters see it.
 #[derive(Clone, Debug)]
 pub(crate) struct PartInfo {
@@ -76,8 +89,8 @@ pub(crate) struct PartInfo {
     pub(crate) id: Id<Part>,
     /// The CP pattern, by pattern index.
     pub(crate) pattern: BTreeMap<u16, CpInfo>,
-    /// The function templates: FnDef key and pattern indexes.
-    pub(crate) templates: Vec<(String, Vec<u16>)>,
+    /// The function templates, in `n` order.
+    pub(crate) templates: Vec<TemplateInfo>,
 }
 
 /// An emitted connection: its ID and endpoints (the junction emitter checks sequences against them).
@@ -201,16 +214,19 @@ impl<'l> Cx<'l> {
         );
     }
 
-    /// EW-IMP-002 (warning): row `row` is kept with a corrected value.
-    pub(crate) fn corrected(&mut self, row: Row<'_>, message: &str) {
-        self.findings.at(
-            Code::MALFORMED_ITEM,
-            Severity::Warning,
-            row.file(),
-            Some(row.key()),
-            Some(row.line()),
-            message.to_owned(),
-        );
+    /// Reports the rows of a parent column dropped by [`parent_fates`]: EW-IMP-002 for a row on a cycle,
+    /// EW-IMP-003 for a row whose parent was dropped. `rows[i]` and `fates[i]` belong together.
+    pub(crate) fn report_fates(&mut self, rows: &[Row<'_>], fates: &[Fate], what: &str) {
+        for (row, fate) in rows.iter().zip(fates) {
+            match fate {
+                Fate::Kept | Fate::Dropped => {}
+                Fate::Cycle => self.malformed(*row, &format!("parent chain is a cycle ({what})")),
+                Fate::Orphaned(p) => {
+                    let parent = rows.get(*p).map_or("", |r| r.key());
+                    self.unresolved(*row, &format!("its parent `{parent}` was dropped"));
+                }
+            }
+        }
     }
 
     // -----------------------------------------------------------------------------------------------------
@@ -374,15 +390,146 @@ pub(crate) fn cell_point(cell: (i64, i64), dx: i64, dy: i64) -> Option<Pt2> {
     Some(Pt2::new(px.at(x)?, px.at(y)?))
 }
 
-/// `target` minus `anchor`, snapped to `grid`; the flag is set when `target` was not on the grid.
-pub(crate) fn place_on_grid(grid: Grid, target: Pt2, anchor: Pt2) -> Option<(Pt2, bool)> {
-    let kx = grid.snap(target.x);
-    let ky = grid.snap(target.y);
-    let off = grid.at(kx)? != target.x || grid.at(ky)? != target.y;
-    let ax = grid.snap(anchor.x);
-    let ay = grid.snap(anchor.y);
-    let p = Pt2::new(grid.at(kx.checked_sub(ax)?)?, grid.at(ky.checked_sub(ay)?)?);
-    Some((p, off))
+/// Why a table position cannot be placed. The bootstrap never snaps (doc 06 §5.7, decision log ID-54; doc 14
+/// §9 strict mode): the row is dropped with EW-IMP-002.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum PlaceError {
+    /// The target point is not a point of the page grid.
+    OffGrid,
+    /// No grid position puts the anchor on the target: the anchor lies within 1 nm of a half-grid tie that
+    /// the nm rounding of the position tips to the wrong side.
+    Unreachable,
+    /// An overflow.
+    OutOfRange,
+}
+
+impl PlaceError {
+    /// The finding text.
+    pub(crate) fn message(self) -> &'static str {
+        match self {
+            PlaceError::OffGrid => "position off the page grid (positions are never snapped, doc 06 §5.7)",
+            PlaceError::Unreachable => {
+                "no grid position puts the symbol's anchor exactly on this cell position (anchor at a half-grid tie)"
+            }
+            PlaceError::OutOfRange => "position out of range",
+        }
+    }
+}
+
+/// The grid index of `x` when `x` is a point of `grid` (the nm rounding of `k · grid`), else `None`.
+pub(crate) fn grid_index(grid: Grid, x: Nm) -> Option<i64> {
+    let k = grid.snap(x);
+    (grid.at(k)? == x).then_some(k)
+}
+
+/// The position on `grid` whose anchor point `pos + anchor` lies at `target` exactly as
+/// `ew_derive::rep_anchor_cell` reads it: the derived anchor point is snapped to the page grid before its cell is
+/// looked up (doc 06 §5.1), so `snap(pos + anchor) = index(target)` is checked per axis, not assumed.
+///
+/// `target` must be a grid point ([`PlaceError::OffGrid`] otherwise). `anchor` is the symbol's anchor in symbol
+/// coordinates ([`ew_schema::SymbolDef::anchor_point`]) under the identity orientation; it need not lie on the
+/// grid (a graphic centre may fall between grid points). `pos` is a grid point: `index(target) − snap(anchor)`,
+/// else its neighbour, whichever makes the derived anchor snap onto the target (both can differ only when the
+/// anchor sits at a half-grid tie, where the 0.5 nm rounding of `pos` decides);
+/// [`PlaceError::Unreachable`] if neither does.
+pub(crate) fn place(grid: Grid, target: Pt2, anchor: Pt2) -> Result<Pt2, PlaceError> {
+    let axis = |t: Nm, a: Nm| -> Result<Nm, PlaceError> {
+        let kt = grid_index(grid, t).ok_or(PlaceError::OffGrid)?;
+        let k0 = kt.checked_sub(grid.snap(a)).ok_or(PlaceError::OutOfRange)?;
+        for k in [Some(k0), k0.checked_sub(1), k0.checked_add(1)]
+            .into_iter()
+            .flatten()
+        {
+            let pos = grid.at(k).ok_or(PlaceError::OutOfRange)?;
+            let derived = pos.0.checked_add(a.0).ok_or(PlaceError::OutOfRange)?;
+            if grid.snap(Nm(derived)) == kt {
+                return Ok(pos);
+            }
+        }
+        Err(PlaceError::Unreachable)
+    };
+    Ok(Pt2::new(axis(target.x, anchor.x)?, axis(target.y, anchor.y)?))
+}
+
+/// What happens to one row of a table with a parent column ([`parent_fates`]).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum Fate {
+    /// Kept.
+    Kept,
+    /// Dropped before the walk (an unknown parent, already reported).
+    Dropped,
+    /// On a parent cycle, a row naming itself included: dropped with EW-IMP-002.
+    Cycle,
+    /// Its parent (the row index) is dropped, so it is dropped too, with EW-IMP-003.
+    Orphaned(usize),
+}
+
+/// The fate of every row of a parent forest: `parents[i]` is the row index of row `i`'s parent, `pre[i]`
+/// whether row `i` is dropped already. Every row on a parent cycle is a [`Fate::Cycle`]; every row whose parent
+/// is dropped (before or by the walk) is [`Fate::Orphaned`] by that parent.
+///
+/// One iterative depth-first walk with three states per row (unvisited, on the current path, decided): every
+/// row is pushed, popped and decided once, so the walk is O(N) in time and memory, without recursion (a deep
+/// chain needs no call stack).
+pub(crate) fn parent_fates(parents: &[Option<usize>], pre: &[bool]) -> Vec<Fate> {
+    const UNVISITED: u8 = 0;
+    const ON_PATH: u8 = 1;
+    const DECIDED: u8 = 2;
+    let n = parents.len();
+    let mut fate: Vec<Fate> = (0..n)
+        .map(|i| {
+            if pre.get(i).copied().unwrap_or(false) {
+                Fate::Dropped
+            } else {
+                Fate::Kept
+            }
+        })
+        .collect();
+    let mut state: Vec<u8> = fate
+        .iter()
+        .map(|f| if *f == Fate::Dropped { DECIDED } else { UNVISITED })
+        .collect();
+    let mut path: Vec<usize> = Vec::new();
+    for start in 0..n {
+        if state[start] != UNVISITED {
+            continue;
+        }
+        // Walk up until a root, a decided row or a row on the current path (a cycle).
+        let mut cur = start;
+        let end = loop {
+            state[cur] = ON_PATH;
+            path.push(cur);
+            match parents[cur].filter(|p| *p < n) {
+                None => break None,
+                Some(p) if state[p] == UNVISITED => cur = p,
+                Some(p) => break Some(p),
+            }
+        };
+        // `kept`: whether the row above the current top of the path is kept.
+        let mut kept = match end {
+            None => true,
+            Some(p) if state[p] == DECIDED => fate[p] == Fate::Kept,
+            Some(p) => {
+                // `p` is on the path: the rows from `p` to the top form the cycle.
+                let at = path.iter().rposition(|x| *x == p).unwrap_or(0);
+                for &c in &path[at..] {
+                    fate[c] = Fate::Cycle;
+                    state[c] = DECIDED;
+                }
+                path.truncate(at);
+                false
+            }
+        };
+        // Unwind: each row takes its parent's outcome.
+        while let Some(c) = path.pop() {
+            if !kept {
+                fate[c] = Fate::Orphaned(parents[c].unwrap_or(c));
+            }
+            kept = fate[c] == Fate::Kept;
+            state[c] = DECIDED;
+        }
+    }
+    fate
 }
 
 /// The page grid of `pages.csv`'s `grid` column.
@@ -415,15 +562,96 @@ mod tests {
     #[test]
     fn cell_centres_lie_on_the_qet_grid() {
         // Cell A0: centre at (50, 60) px = grid index (5, 6) of the 10 px grid.
+        let g = Grid::QET_10PX;
         let p = cell_point((0, 0), 0, 0).unwrap();
-        let (q, off) = place_on_grid(Grid::QET_10PX, p, Pt2::ORIGIN).unwrap();
-        assert!(!off);
         assert_eq!(
-            q,
-            Pt2::new(Grid::QET_10PX.at(5).unwrap(), Grid::QET_10PX.at(6).unwrap())
+            place(g, p, Pt2::ORIGIN),
+            Ok(Pt2::new(g.at(5).unwrap(), g.at(6).unwrap()))
         );
-        // 5 px off the grid is snapped and flagged.
+        // 5 px off the grid is refused, never snapped.
         let p = cell_point((0, 0), 5, 0).unwrap();
-        assert!(place_on_grid(Grid::QET_10PX, p, Pt2::ORIGIN).unwrap().1);
+        assert_eq!(place(g, p, Pt2::ORIGIN), Err(PlaceError::OffGrid));
+    }
+
+    #[test]
+    fn placement_puts_the_anchor_on_the_target() {
+        let g = Grid::QET_10PX;
+        let target = cell_point((8, 1), 0, 0).unwrap();
+        // A named anchor on the grid (20 px down), an off-grid graphic centre (25 px right, between two grid
+        // points: a tie) and a negative one off the ties: the derived anchor point snaps back onto the target.
+        for anchor in [
+            Pt2::new(Nm(0), g.at(2).unwrap()),
+            Pt2::new(Nm(6_614_583), Nm(0)),
+            Pt2::new(Nm(-6_000_000), Nm(-13_229_167)),
+        ] {
+            let pos = place(g, target, anchor).unwrap();
+            assert!(grid_index(g, pos.x).is_some() && grid_index(g, pos.y).is_some());
+            let derived = Pt2::new(Nm(pos.x.0 + anchor.x.0), Nm(pos.y.0 + anchor.y.0));
+            assert_eq!(g.snap(derived.x), g.snap(target.x), "{anchor:?}");
+            assert_eq!(g.snap(derived.y), g.snap(target.y), "{anchor:?}");
+        }
+        // −25 px (−6,614,583 nm) is a tie at −2.5 grid steps: from column index 53 the derived points are
+        // 52.5 → 52 (ties toward zero), 51.5 + 1 nm → 52 and 53.5 + 1 nm → 54, so 53 cannot be reached.
+        assert_eq!(
+            place(g, target, Pt2::new(Nm(-6_614_583), Nm(0))),
+            Err(PlaceError::Unreachable)
+        );
+        // Whatever the anchor, a placement either lands exactly or is refused.
+        for a in (-20_000_000..20_000_000).step_by(333_331) {
+            for col in 0..17 {
+                let t = cell_point((col, 3), 0, 0).unwrap();
+                if let Ok(pos) = place(g, t, Pt2::new(Nm(a), Nm(a))) {
+                    assert_eq!(g.snap(Nm(pos.x.0 + a)), g.snap(t.x), "{a} {col}");
+                    assert_eq!(g.snap(Nm(pos.y.0 + a)), g.snap(t.y), "{a} {col}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn parent_fates_find_cycles_and_orphans() {
+        // 0 ← 1 ← 2 (a chain), 3 ↔ 4 (a cycle) ← 5, 6 names itself, 7 under the pre-dropped 8.
+        let parents = [
+            None,
+            Some(0),
+            Some(1),
+            Some(4),
+            Some(3),
+            Some(4),
+            Some(6),
+            Some(8),
+            None,
+        ];
+        let pre = [false, false, false, false, false, false, false, false, true];
+        assert_eq!(
+            parent_fates(&parents, &pre),
+            [
+                Fate::Kept,
+                Fate::Kept,
+                Fate::Kept,
+                Fate::Cycle,
+                Fate::Cycle,
+                Fate::Orphaned(4),
+                Fate::Cycle,
+                Fate::Orphaned(8),
+                Fate::Dropped,
+            ]
+        );
+    }
+
+    #[test]
+    fn parent_fates_walk_a_deep_chain_without_recursion() {
+        // Row i's parent is row i + 1; the last two rows form a cycle. Every other row is orphaned.
+        let n = 200_000;
+        let mut parents: Vec<Option<usize>> = (0..n).map(|i| Some(i + 1)).collect();
+        parents[n - 1] = Some(n - 2);
+        let f = parent_fates(&parents, &vec![false; n]);
+        assert_eq!(f.iter().filter(|x| **x == Fate::Cycle).count(), 2);
+        assert!(
+            f[..n - 2]
+                .iter()
+                .enumerate()
+                .all(|(i, x)| *x == Fate::Orphaned(i + 1))
+        );
     }
 }
