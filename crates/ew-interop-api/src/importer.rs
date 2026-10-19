@@ -240,7 +240,7 @@ impl std::error::Error for ImportError {}
 /// network, and is deterministic (NFR-SEC-18). Everything that cannot be mapped becomes a report entry;
 /// only a file that cannot be read at all is an [`ImportError`].
 pub trait Importer: Send + Sync {
-    /// The importer's lower-case ID, also the `ImportLineage.importer`: `"qet"`, `"dxf"`, `"golden-csv"`.
+    /// The importer's lower-case ID, also the `ImportLineage.importer`: `"qet"`, `"dxf"`, `"csv"`.
     fn id(&self) -> &'static str;
 
     /// The importer's version, recorded in the report and the import run; bumped on every mapping change.

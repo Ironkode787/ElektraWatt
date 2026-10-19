@@ -338,6 +338,31 @@ fn shipped_qet_grid() -> FrameGrid {
 }
 
 #[test]
+fn default_frame_has_no_grid_on_title_toc_and_divider_pages() {
+    // Without any configured frame, title, TOC and divider pages use the no-grid variant (doc 03 §5.1);
+    // a schematic page keeps the built-in grid.
+    let mut fx = Fx::new();
+    fx.page(0x201, 1, None, "title_page", &[], "Title");
+    fx.page(0x202, 2, None, "table_of_contents", &[], "Contents");
+    fx.page(0x203, 3, None, "section_divider", &[], "Divider");
+    fx.page(0x204, 4, None, "multi_line", &[], "Power");
+    for n in [0x201, 0x202, 0x203, 0x204] {
+        fx.record(n)["grid"] = json!({"num": 7_937_500, "den": 3});
+    }
+    let m = fx.build();
+    for n in [0x201, 0x202, 0x203] {
+        let mut q = Q::new(&m);
+        assert_eq!(frame_grid(&q, id::<Page>(n)), None);
+        assert_eq!(cell_str(&m, n, qet_at(10, 10)), None);
+        assert!(q.diagnostics().notes().is_empty());
+    }
+    let mut q = Q::new(&m);
+    assert_eq!(frame_grid(&q, id::<Page>(0x204)), Some(default_frame_grid()));
+    assert_eq!(q.diagnostics().notes(), vec![DeriveNote::DefaultFrame]);
+    assert_eq!(cell_str(&m, 0x204, qet_at(10, 10)).as_deref(), Some("B1"));
+}
+
+#[test]
 fn default_frame_matches_the_shipped_qet_frame() {
     let shipped = shipped_qet_grid();
     let default = default_frame_grid();

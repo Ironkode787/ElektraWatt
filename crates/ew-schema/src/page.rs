@@ -221,7 +221,7 @@ pub struct PinMapEntry {
 pub struct SlotOverride {
     /// The slot index.
     pub slot: u16,
-    /// Moved position, relative to the representation.
+    /// Moved position, in symbol coordinates (before the representation's orientation is applied).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<Pt2S>")]
     pub pos: Option<Pt2>,

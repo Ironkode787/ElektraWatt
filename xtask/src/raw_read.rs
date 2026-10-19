@@ -51,11 +51,13 @@
 //! - invoke the `raw_read!` macro,
 //! - contain a string literal equal to the feature name (`cfg(feature = "raw-read")`, `cfg_attr`, `cfg!`),
 //! - suppress the guard: an attribute `#[...]` or `#![...]` (also inside `cfg_attr(...)`) whose `allow(...)` or
-//!   `expect(...)` list contains `disallowed_methods` (with or without `clippy::`), `clippy::style`,
+//!   `expect(...)` list contains `disallowed_methods` or its old name `disallowed_method` (with or without `clippy::`),
+//!   `renamed_and_removed_lints` (which would silence the rename warning), `clippy::style`,
 //!   `clippy::all` or `warnings`, or
 //! - enable the feature or suppress the lint in its manifest: a non-dev dependency edge with the feature, a
 //!   `[features]` entry that forwards it, or a `[lints.clippy]` table (the workspace's
-//!   `[workspace.lints.clippy]`, checked once) that sets `disallowed_methods`, `style` or `all` to `allow`.
+//!   `[workspace.lints.clippy]`, checked once) that sets `disallowed_methods`, `disallowed_method`, `renamed_and_removed_lints`, `style` or
+//!   `all` to `allow`.
 //!   The first two duplicate part of `check-features` on purpose, as the ADR words it.
 //!
 //! A false positive gets an `[[raw_read.allow]]` entry (path, item, reason); the item of a suppression finding
@@ -107,16 +109,26 @@ const GUARD_LINT: &str = "disallowed_methods";
 
 /// Lint names whose `allow` or `expect` switches the guard off in source (`clippy::` prefix included where
 /// the lint has no rustc namesake).
-const SUPPRESSING: [&str; 5] = [
+const SUPPRESSING: [&str; 8] = [
     "disallowed_methods",
     "clippy::disallowed_methods",
+    // The lint's old name (clippy still accepts it as a rename) and the rustc lint that reports the rename.
+    "disallowed_method",
+    "clippy::disallowed_method",
+    "renamed_and_removed_lints",
     "clippy::style",
     "clippy::all",
     "warnings",
 ];
 
 /// Keys of `[lints.clippy]` whose `allow` switches the guard off.
-const SUPPRESSING_KEYS: [&str; 3] = ["disallowed_methods", "style", "all"];
+const SUPPRESSING_KEYS: [&str; 5] = [
+    "disallowed_methods",
+    "disallowed_method",
+    "renamed_and_removed_lints",
+    "style",
+    "all",
+];
 
 fn default_clippy_config() -> String {
     "clippy.toml".to_owned()
@@ -2321,6 +2333,36 @@ disallowed-methods = [
                 suppresses(9, "allow(clippy::style)"),
             ]
         );
+    }
+
+    #[test]
+    fn old_lint_name_and_rename_warning_suppressions_fail() {
+        let src = "#![allow(clippy::disallowed_method)]\n\
+            #[expect(disallowed_method, reason = \"x\")]\n\
+            fn a() {}\n\
+            #[cfg_attr(feature = \"x\", allow(renamed_and_removed_lints))]\n\
+            fn b() {}\n";
+        assert_eq!(
+            scan(src),
+            [
+                suppresses(1, "allow(clippy::disallowed_method)"),
+                suppresses(2, "expect(disallowed_method)"),
+                suppresses(4, "allow(renamed_and_removed_lints)"),
+            ]
+        );
+    }
+
+    #[test]
+    fn old_lint_name_in_a_lint_table_fails() {
+        let v = run_app(
+            &[],
+            manifest("app", vec![dep("ew-model", Kind::Normal, &[])], &[]),
+            "[lints.clippy]\ndisallowed_method = \"allow\"\nrenamed_and_removed_lints = \"allow\"\n",
+        )
+        .violations;
+        assert_eq!(v.len(), 2, "{v:?}");
+        assert!(v[0].contains("`disallowed_method = \"allow\"`"));
+        assert!(v[1].contains("`renamed_and_removed_lints = \"allow\"`"));
     }
 
     #[test]

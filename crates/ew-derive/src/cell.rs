@@ -35,8 +35,8 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_schema::{
-    AnchorPolicy, Extra, FormDef, FrameColumns, FrameGrid, FrameRows, Page, Primitive, Representation,
-    SymbolDef,
+    AnchorPolicy, Extra, FormDef, FrameColumns, FrameGrid, FrameRows, Page, PageType, Primitive,
+    Representation, SymbolDef,
 };
 use ew_units::{Grid, Nm, Pt2};
 use serde_json::Value;
@@ -228,7 +228,8 @@ pub fn default_frame_grid() -> FrameGrid {
 /// else its `default` (doc 03 §5.1 `FrameDefaults`, FR-PAG-018). A malformed matching entry falls through
 /// to the `default`, a malformed `default` to the built-in default (see [`FrameSettings`]). When no form is
 /// configured at all the built-in default grid applies ([`default_frame_grid`]) and the query pushes
-/// [`DeriveNote::DefaultFrame`]. A configured form without a `grid` member, or whose copy is missing, has no
+/// [`DeriveNote::DefaultFrame`], except on title, table-of-contents and divider pages, whose default is the
+/// no-grid frame variant (`None`, no note; doc 03 §5.1). A configured form without a `grid` member, or whose copy is missing, has no
 /// cells (`None`), as has a page that does not exist.
 #[derive(Debug)]
 pub struct FrameGridOf;
@@ -256,6 +257,13 @@ impl Query for FrameGridOf {
             of_type.or(settings.default)
         });
         let Some(form) = form else {
+            // Title, table-of-contents and divider pages use the no-grid frame variant (doc 03 §5.1).
+            if matches!(
+                page.kind,
+                PageType::TitlePage | PageType::TableOfContents | PageType::SectionDivider
+            ) {
+                return Arc::new(None);
+            }
             q.note(DeriveNote::DefaultFrame);
             return Arc::new(Some(default_frame_grid()));
         };

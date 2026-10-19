@@ -38,7 +38,10 @@
 //! `rep.move` of a representation moves the route ends of its attached wires with it
 //! (`geometry::follow_end`: the end vertex moves by the delta and its neighbour keeps the segment
 //! orthogonal; both ends moved: the route translates) and never rejects because of a route unless a
-//! coordinate would leave the drawable range.
+//! coordinate would leave the drawable range. The share of routed signal wires differs per class (about 54 %
+//! for S, 87 % for M, 81 % for L and 32 % for XL, because the load-ending wires dominate in the smaller
+//! classes), so comparisons of move latency across classes must account for it, or use
+//! `Options { routes: false }`.
 //!
 //! # Determinism
 //!

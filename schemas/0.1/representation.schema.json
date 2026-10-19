@@ -835,7 +835,7 @@
               "type": "null"
             }
           ],
-          "description": "Moved position, relative to the representation."
+          "description": "Moved position, in symbol coordinates (before the representation's orientation is applied)."
         },
         "slot": {
           "description": "The slot index.",
