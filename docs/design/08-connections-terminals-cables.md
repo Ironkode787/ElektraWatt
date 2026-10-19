@@ -332,7 +332,8 @@ potential_flow(potential):                              // memo per potential; t
   "230 VAC" is AC from 50 to 250 V, "400 VAC" is AC above 250 V up to 1,000 V. These bounds are the company
   profile's choice (the ELV and LV limits), not quoted standard text.
 - **Conflicts.** Two types or voltages meeting in one potential produce EW-POT-001 (FR-CHK-028). So do a defined
-  type that contradicts a member CP role, definitions that disagree on voltage, environment or class, and a
+  type that contradicts a member CP role (compatible roles excepted: FE on PE or PEN, PE or N on PEN; decision log
+  ID-184), definitions that disagree on voltage, environment or class, and a
   pass-through pair whose two reached sides have different types without a converting function. They are errors; the
   first definition in natural order still gives the value (decision log ID-175). Nothing merges silently.
 - **Loads** (FR-REP-026; decision log ID-172). A load of a potential is a consuming function on it: the upstream
@@ -355,8 +356,8 @@ potential_flow(potential):                              // memo per potential; t
   rail-bonded terminal of that location join it as a POTENTIAL edge (FR-CON-015, FR-TRM-017). In the golden project
   1X1:PE (USLKG 5) and -X1032:1–5 are rail-bonded. -X1032 therefore joins 1X1:PE, and through W6 the PE bar -XPE, in
   one PE potential although no wire runs between folio 101 and the -X1032 strip on folio 103 (D-21). Only CPs with
-  clamp `RailFoot` or role PE or PEN join the location node; a rail-bonded terminal without a location is skipped
-  with a derivation note (decision log ID-173).
+  clamp `RailFoot` or role PE or PEN join the location node (decision log ID-173). A rail-bonded terminal without
+  any PE CP is EW-TERM-005; one without a location is skipped and reported as EW-POT-008 (ID-185).
 - **Rail bonding at 1.0.** When a layout space exists for the location, the partition replaces the location node.
   A rail-bonded terminal then joins PE only through a carrier and surface that both declare `pe_bond` (FR-LAY-058).
   A difference between the two models is reported on migration ([03](03-domain-model.md) OQ10).
@@ -421,6 +422,8 @@ Memo by policy and cold in phase 1. Decisions the code had to fix:
 - The carrier of a junction arm is the connection of the arm that touches the end CP, as the pseudo-code above
   says, also when the arm crosses an IP pair; the Target-IP rule applies only to hub-free paths. This fixes wire
   IDs before M1 (decision log ID-169).
+- A connection to a missing function still forms one physical wire, which ends at the missing CP; accepted for now
+  (decision log ID-186).
 - Only a bond's `via` connection is cut, and the IPs on the `via` path name the bond (§3.5); drawn bridges join at
   the potential level only (§3.3); there is no separate conductor edge, because `Core` connections and the IP pairing
   suffice.
@@ -749,11 +752,13 @@ bus with dots. That drawing is derived from the bridge connections.
   lists the terminals it shows (FR-TRM-011). -X1031 at 103-A3 (24 V group) and 103-A10 (0 V group) is one device with
   one BOM row (D-42).
 - **Tag printing.** `tag_print = PerSegment` prints "-X1031" at both segments. `PerPage` prints it once per page.
-- **Terminal CPs of a segment** (2026-10-19, decision log ID-143). A segment gives each terminal it draws one CP on
-  each side, the terminals one connection-grid step apart along the segment axis; wires end at those CPs, so a
-  terminal shown by a segment needs no representation of its own. The exact rule (which terminals a segment shows,
-  the position of the first, how a side's clamps map onto its CP) is recorded here once the cycle-7 fix round has
-  implemented it (FT-55).
+- **Terminal CPs of a segment** (2026-10-19, decision log ID-143, ID-180). A segment gives each terminal it draws one
+  CP on each side, so wires end there and a terminal shown by a segment needs no representation of its own. Segment j
+  of a strip's m segments, ordered by (page position, y, x, ID), draws the terminals ⌊jN/m⌋ … ⌊(j+1)N/m⌋ − 1 of its
+  N terminals in (`seq`, ID) order. Terminal k of the segment has its side-1 point at (g·(k+1), 0), leaving up, and
+  its side-2 point at (g·(k+1), h), leaving down, where g is the segment symbol's grid and h the bottom of its R0
+  bounds snapped to g; every function CP of a side draws at that side's point, and CPs without a side (shaft, rail
+  foot) are not drawn.
 - **Terminals drawn alone** (decision log ID-162). A terminal with its own representation (1X1) prints its
   designation or function text (`label_mode`), never the full tag; on a page without a segment of its strip, the
   strip tag is printed once, at the first terminal representation in (row, column, ID) order.
@@ -927,7 +932,7 @@ p = prevent and r = release.
 | EW-POT-005 | Exact code BU on a non-N conductor in a project with an N potential | FR-CHK-031 | o r | warning | EF-11: W36, W41 |
 | EW-POT-006 | PE cross-section below the sizing table for its associated line conductors | FR-CHK-020 | o r | error | EF-06: W6 |
 | EW-POT-007 | PE continuity to the main PE point through wires, bridges, rails, carriers (1.0) | FR-CHK-029 | f r | error | 0 (EF-23) |
-| EW-POT-008 | More than one PE potential in one location (PE island) | FR-CHK-055 | o r | warning | 0 |
+| EW-POT-008 | More than one PE potential in one location (PE island), or a rail-bonded terminal without a location (decision log ID-185) | FR-CHK-055 | o r | warning | 0 |
 | EW-POT-009 | Unconnected electrical CP of a placed function, not `unused` (fluid ports: EW-FL-001) | FR-CHK-018 | o r | warning; info if `unused` | EF-09: -102F2:13, :14 |
 | EW-POT-010 | Conductors or csa on a CP beyond its clamp data (1.0) | FR-CHK-021 | o r | error | 0 |
 | EW-POT-011 | Junction feed ambiguous (§3.2) | FR-CON-041 | o | warning | 0 |
@@ -943,7 +948,7 @@ p = prevent and r = release.
 | EW-TERM-002 | Duplicate designation within a strip | FR-TRM-002, FR-CHK-016 | p o r | error | 0 (C: MF-09) |
 | EW-TERM-003 | Spare terminal wired on its field side | FR-TRM-009 | o | warning | 0 |
 | EW-TERM-004 | Bridge group not consecutive, overlapping, or across strips | FR-TRM-007 | p o | error | 0 |
-| EW-TERM-005 | `rail_bonded` set on a non-PE terminal | FR-TRM-017 | o | error | 0 |
+| EW-TERM-005 | `rail_bonded` set on a terminal without any PE CP (decision log ID-185) | FR-TRM-017 | o | error | 0 |
 | EW-CORE-031 | Core colour not an IEC 60757 or profile code; a prevent rule, so only a lenient import stores a foreign code such as "BR", with the quick fix "use BN" | FR-CHK-032 | p o r | error | 0 (C: MF-11) |
 | EW-CORE-032 | Core differs from the cable part's core definition | FR-CHK-032 | o r | warning | 0 |
 | EW-CORE-033 | Cable without length (blocks release) | FR-CHK-033 | o r | error | EF-08: -3W1 |

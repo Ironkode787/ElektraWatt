@@ -250,6 +250,10 @@ diagram (`.f08`) are alternative forms of `cable_overview_diagrams` over the sam
 overview and the forms and plot-frame documentation are 1.x candidates (Could), rendered from the library catalogue
 rather than the model.
 
+*Kind contract* (cycle 7, decision log ID-179). A kind's row query reads through `Q::try_get` wherever a read may close
+a query cycle, so no model content makes it panic; a schema kind that no engine registers yet is a placeholder
+(decision log ID-160).
+
 ### 2.5 `FormDef`
 
 ```rust
@@ -504,7 +508,8 @@ report_pages(block):
   [ADR-0017](../adr/0017-read-only-sql-projection-api-v1.md) amendment 1. A form without a data area paginates with
   the house layout of 23 rows × 6.52 mm, which moves from `ew-reports` into the derivation profile (FT-47). An
   invalid layout (a row height ≤ 0, or a capacity below one data row) falls back to the house layout with a form
-  finding (FR-REP-039). A `NewFolio` group break restarts the form chain at the block's form; `NewPage` continues
+  finding (FR-REP-039), for now a `MalformedShim` derivation note (a dedicated `InvalidForm` note is FT-79). A
+  `NewFolio` group break restarts the form chain at the block's form; `NewPage` continues
   it. Wrapping rows wait for a wrap policy in the schema and measure with `shaped_text` when they come (FT-61).
 - **Group texts** (decision log ID-156). `{group}` and the group header texts print a device in its displayed tag
   form in the structure context of the generated page, falling back to the short tag; groups follow the sort

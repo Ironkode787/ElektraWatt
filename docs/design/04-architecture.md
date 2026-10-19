@@ -203,7 +203,8 @@ sessions (G6).
 - **MSRV by layer** (2026-10-19, decision log ID-141). The declared `rust-version` 1.85 binds the permissive crates,
   which the MSRV job builds ([18](18-quality-security-release.md) §6.2). GPL application crates need only the pinned
   toolchain: `ew-export`, `ew-render-cpu` and the crates that depend on them declare 1.92 (krilla 0.8.2 needs 1.92,
-  vello_cpu 0.3.0 1.89, parley 0.12.0 1.88).
+  vello_cpu 0.3.0 1.89, parley 0.12.0 1.88). As applied: `ew-export`, `ew-render-cpu`, `ew-api`, `ew-print`,
+  `ew-testkit`, `ew-ui`, `ew-viewmodel`, `elektrawatt` and `ew` (decision log ID-183).
 
 | Crate | Layer | Responsibility | Key dependencies |
 |---|---|---|---|

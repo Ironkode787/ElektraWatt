@@ -1167,6 +1167,11 @@ manufacturer is referenced by its name in a `LibRef`'s `extra.key` until a manuf
 Not covered yet: the MICO 4.10 13-14 signal-contact template, FR-DEV-037 "supplied by others", the -201U1:DP port,
 and doc 20 §11–§13 and §14.2. `ew import csv` is not wired yet, because `bin/ew` has no subcommands (task FT-27).
 
+*As built (cycle 7, decision log ID-181).* A black box without drawn geometry gets its `Representation.box` from the
+part's CP pattern: the first ⌊n/2⌋ pattern CPs sit on the top edge leaving up, the rest on the bottom edge leaving
+down, at x = 1 + 2i grid steps, and the outline is 2·max(n_top, n_bottom, 5) × 6 grid steps, all on exact page-grid
+points. The representation table carries an `arrangement` column for the hidden tags of doc 20 §6.2.
+
 ### 8.5 Translation exchange: XLIFF 2.1 and CSV (1.0)
 
 No other document specifies the file side of FR-I18N-006 and FR-I18N-007, so it is fixed here; the language model

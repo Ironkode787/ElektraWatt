@@ -654,7 +654,7 @@ EW-POT-013, -006, -007 and -009 are detailed in §8.2 there. EW-POT-018 and EW-P
 | EW-TERM-002 | Duplicate designation | A duplicate designation within a strip; prevent, lenient on import | conflict | p o r | error | strip | MVP | FR-TRM-002, FR-CHK-016 | D-12; MF-09 | 08 §8.1 |
 | EW-TERM-003 | Spare wired on the field side | A spare terminal wired on its field side | conflict | o | warning | strip | MVP | FR-TRM-009 | — | 08 §8.1 |
 | EW-TERM-004 | Bridge group invalid | A bridge group not consecutive, overlapping, or across strips (prevent class of invariant CI-06) | conflict | p o | error | strip | MVP | FR-TRM-007 | — | 08 §8.1 |
-| EW-TERM-005 | Rail bonding on a non-PE terminal | `rail_bonded` set on a non-PE terminal | conflict | o | error | strip | MVP | FR-TRM-017 | — | 08 §8.1 |
+| EW-TERM-005 | Rail bonding on a non-PE terminal | `rail_bonded` set on a terminal without any PE CP (decision log ID-185) | conflict | o | error | strip | MVP | FR-TRM-017 | — | 08 §8.1 |
 | EW-POT-001 | Type or voltage conflict | A type or voltage conflict in one potential without a bond | conflict | o r | error | potential | MVP | FR-CHK-028 | D-22; MF-16 | 08 §8.1 |
 | EW-POT-002 | PELV or SELV bonding | A PELV potential without exactly one 0 V–PE bond; a SELV potential with any | safety | o r | error | potential | MVP | FR-CHK-028 | D-22 | 08 §8.1 |
 | EW-POT-003 | FE pin on PE | An FE-role CP on a PE potential without an FePe bond; superseded by EW-PLC-013 for PLC supply CPs at 1.0 | conflict | o r | warning | potential | MVP | FR-CHK-030 | D-16; EF-10 | 08 §8.1 |
@@ -662,7 +662,7 @@ EW-POT-013, -006, -007 and -009 are detailed in §8.2 there. EW-POT-018 and EW-P
 | EW-POT-005 | BU on a non-N conductor | Exact code BU on a non-N conductor in a project with an N potential | conflict | o r | warning | potential | MVP | FR-CHK-031 (STD M-10) | EF-11 | 08 §8.1 |
 | EW-POT-006 | PE undersized | A PE cross-section below the sizing table for its associated line conductors | safety | o r | error | potential | MVP | FR-CHK-020 (STD M-04) | D-38; EF-06 | 08 §8.2 |
 | EW-POT-007 | PE continuity | Every PE-typed CP reaches the main PE point through wires, bridges, rails and carriers | safety | f r | error | project | 1.0 | FR-CHK-029 | D-21; EF-23 | 08 §8.2 |
-| EW-POT-008 | PE island | More than one PE potential in one location | conflict | o r | warning | project | MVP | FR-CHK-055 | D-21 | 08 §8.1 |
+| EW-POT-008 | PE island | More than one PE potential in one location, or a rail-bonded terminal without a location (decision log ID-185) | conflict | o r | warning | project | MVP | FR-CHK-055 | D-21 | 08 §8.1 |
 | EW-POT-009 | Unconnected CP | An unconnected electrical CP of a placed function; info when marked `unused`; fluid ports are EW-FL-001 | completeness | o r | warning (unused: info) | page | MVP | FR-CHK-018 | D-23; EF-09, MF-24 | 08 §8.2 |
 | EW-POT-010 | Clamp capacity exceeded | Conductors or cross-section on a CP beyond its clamp data | safety | o r | error | device | 1.0 | FR-CHK-021 (STD M-08) | — | 08 §8.1 |
 | EW-POT-011 | Junction feed ambiguous | Junctions that disagree on the feed arm (08 §3.2) | conflict | o | warning | net | MVP | FR-CON-041 | D-20 | 08 §8.1 |
