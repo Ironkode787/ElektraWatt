@@ -72,7 +72,10 @@ use ew_text::{DEFAULT_STYLE_KEY, FontSet, TextStyle, builtin};
 use ew_units::{Nm, Pt2, Rect};
 use serde_json::Value;
 
-use text::{BoxSpec, lay_out, place, split_align};
+use text::lay_out;
+// Shared with the page scene (`crate::page`), which places symbol texts at a point the same way form
+// graphics do.
+pub(crate) use text::{BoxSpec, place, split_align};
 
 /// `FormCell.extra` member: the maximum number of wrapped lines (default 1).
 pub const EXTRA_MAX_LINES: &str = "ew.cell.max_lines";

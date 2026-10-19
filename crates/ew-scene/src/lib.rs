@@ -16,4 +16,6 @@
 #![forbid(unsafe_code)]
 
 pub mod forms;
+pub mod page;
+pub mod route;
 pub mod symbol;
