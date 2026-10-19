@@ -387,11 +387,14 @@ page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106). Still open:
 - **Router.** Wires use the provisional orthogonal router (doc 06 §5.4 owns the real one), so routes overlap: on
   101 the S51 → -101F1 L and N routes run collinear along row B; on 102 the feeds of -102G1 run along the box's top
   edge and over -102F1, whose tag "-102F1" is covered by a wire and its "1.5" marker; on 103 the side-1 feeds of
-  -X1031 and -X1032 run collinear along the top of each segment and over the strip tags; on 106 the twelve feeds of
-  the CPX power boxes run along the box edges.
+  -X1031 and -X1032 run collinear along the top of each segment and over the strip tags, and the column-1
+  interruption points (0VDC, 24VDC-1 … 4, PE-AIR2, PE-0VDC, PE-AIR1) are joined by one collinear vertical route that
+  reads as 24 V shorted to 0 V and PE; on 106 the twelve feeds of the CPX power boxes run along the box edges.
 - **Report and divider pages.** The generated pages (2, 2.1, 901, 903 … 911) and the dividers 100, 200 and 900
   show frame and title block only; their content comes with the report forms in the scene. Doc 20 §5 counts 36
   pages; the page order has 31 until the report engine paginates every block (for example 901.1).
+- **TOC pages.** The title blocks of 2 and 2.1 print no `=P01` and `+J-E-2416` (14 rows against 16 on 903): the TOC
+  pages' structure binding in `ew-derive` is still open (doc 20 §5 gives every page both signs).
 - **Folio 1.** The cover content of doc 20 §17.3 is not drawn.
 - **Title block.** The Author cell is empty, `ew.titleblock.qet-a4` has no Notice cell yet, and the logo and the
   revision label are not bound.

@@ -342,8 +342,9 @@ impl Painter<'_> {
     }
 
     /// The font for `key`, built once per render call; `None` and recorded as missing if the resolver
-    /// does not have it or its bytes do not open as a font face (validated here, once per key, with
-    /// skrifa, the parser the glyph machinery uses).
+    /// does not have it or its bytes do not open as a font face (validated here, once per key, with the
+    /// crate's own skrifa; glifo parses with its own, older skrifa, so a face that opens here but not there is
+    /// still caught by the `catch_unwind` backstop below).
     fn font(&mut self, key: FontKey) -> Option<FontData> {
         if let Some(f) = self.font_cache.get(&key) {
             return f.clone();
