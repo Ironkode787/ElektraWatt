@@ -1224,6 +1224,8 @@ The eleven rows this document proposed are in the catalogues:
     "not set" value besides `Undefined`. **Resolved:** `ptype` is optional (`None` = name only); 03 §9.4 states that
     a definition's type, when set, wins over propagation, while `switched` is always derived from opening
     pass-through pairs.
+    *Status (cycle 6):* only N-55T and N-55S stay naming-only; L-S, N-S, L-1, N-1, L-55 and N-55 carry type,
+    voltage and class in the golden tables (decision log ID-69), which equals what propagation gives.
 13. **Single-line connection kind.** `ConnectionKind` ([03](03-domain-model.md) §9) had no single-line member, and
     a `Wire` drawn on a single-line page would join nets and duplicate physical wires. **Resolved** (FR-CON-044):
     at MVP single-line pages draw connections as kind `Overview` (no nets); 1.0 adds `SingleLine{conductors: u8}`,

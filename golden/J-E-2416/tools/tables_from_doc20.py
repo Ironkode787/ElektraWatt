@@ -339,7 +339,8 @@ def build_project():
         "supply_origin": "J-E-206-L",  # doc 20 sections 4.3 / 15: the external point J-E-206-L
         "control_voltage": "24",
         "rated_consumption": "6",
-        "identifier_set": "EN 81346-2:2009",
+        # ADR-0026 / `ew_rds::sets::EN_81346_2_2009`: stored by key, doc 20 §4.4 shows the display name (ID-92, FT-29)
+        "identifier_set": "EN81346-2:2009",
         "date_format": "dd_mm_yyyy",
         "decimal_separator": "point",
         "derivation_profile": "2027.1",

@@ -142,7 +142,11 @@ const MUTATIONS: &[(&str, &str, &str)] = &[
         "| -102G1:+#1, +#2, -102F1:1 |",
         "| -102G1:+#2, +#1, -102F1:1 |",
     ),
-    ("junction-sequence", "-102F1:2 → W24, W25", "-102F1:2 → W25, W24"),
+    (
+        "junction-sequence",
+        "W24, -102F1:2, W25 (far ends in order:",
+        "W25, -102F1:2, W24 (far ends in order:",
+    ),
     (
         "part-number",
         "Phoenix Contact 2904602 | L, N, PE",
