@@ -69,6 +69,8 @@ pub const NO_STORED_REPORT_PAGE: &str = "EW-INV-012";
 pub const IP_ONE_REPRESENTATION: &str = "EW-INV-013";
 /// EW-INV-014: a page-oriented report block has a first folio.
 pub const REPORT_BLOCK_FOLIO: &str = "EW-INV-014";
+/// EW-INV-015: the device inheritance graph (terminal → strip, device → parent) is acyclic.
+pub const INHERITANCE_ACYCLIC: &str = "EW-INV-015";
 
 /// The structural catalogue in evaluation order.
 pub static RULES: &[Rule] = &[
@@ -156,6 +158,12 @@ pub static RULES: &[Rule] = &[
         class: RuleClass::Structural,
         statement: "A page-oriented report block (one without embedded) has a first_folio",
     },
+    Rule {
+        id: INHERITANCE_ACYCLIC,
+        class: RuleClass::Structural,
+        statement: "The device inheritance graph is acyclic: its edges are terminal to strip (the terminal aspect's \
+                    strip) and device to parent, the edges along which designations and structure are inherited",
+    },
 ];
 
 /// The keys to evaluate and the rows they had before the batch.
@@ -223,7 +231,8 @@ pub(crate) fn check(m: &Model, scope: &Scope) -> Result<(), ModelError> {
     structure_same_aspect(m, scope)?;
     no_stored_report_page(m, scope)?;
     ip_one_representation(m, scope)?;
-    report_block_folio(m, scope)
+    report_block_folio(m, scope)?;
+    inheritance_acyclic(m, scope)
 }
 
 /// EW-INV-001 with the forbid policy.
@@ -697,6 +706,65 @@ fn report_block_folio(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                     vec![*key],
                 ));
             }
+        }
+    }
+    Ok(())
+}
+
+/// The devices a device inherits its designation or structure from (EW-INV-015): its terminal aspect's strip
+/// and its parent, in that order. Missing targets are EW-INV-001's.
+fn inheritance_successors(m: &Model, d: Id<Device>) -> [Option<Id<Device>>; 2] {
+    match m.devices.get(&d) {
+        Some(dev) => [dev.aspects.terminal.as_ref().map(|t| t.strip), dev.parent],
+        None => [None, None],
+    }
+}
+
+/// EW-INV-015: a depth-first walk from every touched device over the inheritance edges. A cycle that a
+/// batch closes contains an edge the batch changed, whose source is a touched device, so walking from the
+/// touched devices finds it. Devices already walked are not walked again, so the check is linear in the
+/// devices reached.
+fn inheritance_acyclic(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+    let mut done: BTreeSet<Id<Device>> = BTreeSet::new();
+    for key in scope.of_kind(Kind::Device) {
+        let start: Id<Device> = typed(key);
+        if done.contains(&start) || !m.devices.contains(&start) {
+            continue;
+        }
+        // The current path and, per entry, the next successor slot to visit.
+        let mut path: Vec<(Id<Device>, usize)> = vec![(start, 0)];
+        let mut on_path: BTreeSet<Id<Device>> = BTreeSet::from([start]);
+        while let Some((at, next)) = path.last_mut() {
+            let succ = inheritance_successors(m, *at);
+            let Some(slot) = succ.get(*next) else {
+                let (at, _) = path.pop().expect("non-empty path");
+                on_path.remove(&at);
+                done.insert(at);
+                continue;
+            };
+            *next += 1;
+            let Some(to) = *slot else { continue };
+            if on_path.contains(&to) {
+                let from = path.iter().position(|(d, _)| *d == to).unwrap_or(0);
+                let cycle: Vec<AnyKey> = path[from..]
+                    .iter()
+                    .map(|(d, _)| key_of(Kind::Device, *d))
+                    .collect();
+                return Err(violation(
+                    INHERITANCE_ACYCLIC,
+                    format!(
+                        "device {to} is on a cycle of {} devices of the inheritance graph (terminal to strip, \
+                         device to parent)",
+                        cycle.len()
+                    ),
+                    cycle,
+                ));
+            }
+            if done.contains(&to) || !m.devices.contains(&to) {
+                continue;
+            }
+            on_path.insert(to);
+            path.push((to, 0));
         }
     }
     Ok(())

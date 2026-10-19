@@ -439,6 +439,65 @@ fn inv009_self_parent_rejected() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
+// EW-INV-015
+
+/// A terminal whose parent is its own strip, and a child of a terminal's strip, are accepted: both edges
+/// of each point the same way.
+#[test]
+fn inv015_inheritance_acyclic_ok() {
+    let m = mini_golden();
+    let mut t = terminal(nid(0x10_000), DEV_X1031, 5, "5");
+    t.parent = Some(DEV_X1031);
+    let mut child = device(nid(0x10_001), "Q", 9);
+    child.parent = Some(DEV_X1031);
+    let m = apply(&m, &[ins(t), ins(child)]).expect("accepted");
+    assert!(m.integrity_check().is_ok());
+}
+
+/// Review probe 1: terminal B of strip S, and S's parent is B. No parent chain is cyclic (EW-INV-009
+/// holds), but S inherits from B and B from S.
+#[test]
+fn inv015_strip_whose_parent_is_its_terminal_rejected() {
+    let m = mini_golden();
+    let b = terminal(nid(0x10_000), DEV_X1031, 5, "5");
+    let m = apply(&m, &[ins(b)]).expect("the terminal alone is valid");
+    let op = upd(&m, DEV_X1031, |d: &mut Device| {
+        d.parent = Some(nid(0x10_000));
+        d.tag.scheme = ew_schema::TagScheme::Child;
+    });
+    rejected_by(m.apply(&[op], Rev(2)), crate::INHERITANCE_ACYCLIC);
+}
+
+/// Review probe 2: A's parent is terminal B, B's strip is S, S's parent is A.
+#[test]
+fn inv015_three_device_cycle_rejected() {
+    let m = mini_golden();
+    let a = nid::<Device>(0x10_001);
+    let mut dev_a = device(a, "K", 9);
+    dev_a.parent = Some(nid(0x10_000));
+    let b = terminal(nid(0x10_000), DEV_X1031, 5, "5");
+    let m = apply(&m, &[ins(b), ins(dev_a)]).expect("valid without the closing edge");
+    let op = upd(&m, DEV_X1031, |d: &mut Device| d.parent = Some(a));
+    rejected_by(m.apply(&[op], Rev(2)), crate::INHERITANCE_ACYCLIC);
+}
+
+/// The integrity check of a loaded project rejects an inheritance cycle (it runs every invariant on every
+/// record, `Model::from_records`).
+#[test]
+fn inv015_cycle_rejected_on_load() {
+    let (p, mut records, lib) = mini_golden_parts();
+    records.push(Record::Device(terminal(nid(0x10_000), DEV_X1031, 5, "5")));
+    for r in &mut records {
+        if let Record::Device(d) = r {
+            if d.id == DEV_X1031 {
+                d.parent = Some(nid(0x10_000));
+            }
+        }
+    }
+    rejected_by(Model::from_records(p, records, lib), crate::INHERITANCE_ACYCLIC);
+}
+
+// ---------------------------------------------------------------------------------------------------------
 // EW-INV-010
 
 /// A plain terminal device is accepted.
@@ -739,7 +798,7 @@ fn every_catalogue_rule_has_a_test() {
     let catalogue = include_str!("../../invariants.md");
     let invariant_tests = include_str!("invariants.rs");
     let ops_tests = include_str!("ops.rs");
-    assert_eq!(RULES.len(), 16);
+    assert_eq!(RULES.len(), 17);
     for rule in RULES {
         let names = catalogue_tests(catalogue, rule.id);
         assert!(!names.is_empty(), "{} names no tests in invariants.md", rule.id);

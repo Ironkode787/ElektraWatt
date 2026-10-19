@@ -321,8 +321,9 @@ fn action_ops(m: &Model, action: Action, counter: &mut u32) -> (Vec<Op>, &'stati
             after.parent = parent;
             (
                 vec![Op::update(Device::wrap(before), AnyRow::of(after))],
-                // The new parent can be a descendant of the device.
-                &[crate::DEVICE_ACYCLIC],
+                // The new parent can be a descendant of the device, or close a cycle through a terminal's
+                // strip (EW-INV-015).
+                &[crate::DEVICE_ACYCLIC, crate::INHERITANCE_ACYCLIC],
             )
         }
         Action::RepointTerminalStrip(sel_t, sel_s) => {
@@ -355,8 +356,9 @@ fn action_ops(m: &Model, action: Action, counter: &mut u32) -> (Vec<Op>, &'stati
             }
             (
                 vec![Op::update(Device::wrap(before), AnyRow::of(after))],
-                // The target can be any device, one without a strip aspect included.
-                &[crate::TERMINAL_STRIP],
+                // The target can be any device, one without a strip aspect included, or one that inherits
+                // from the terminal (EW-INV-015).
+                &[crate::TERMINAL_STRIP, crate::INHERITANCE_ACYCLIC],
             )
         }
         Action::RepointRepresentationPage(sel_r, sel_p) => {
