@@ -200,6 +200,10 @@ sessions (G6).
 - Everything else is **GPL-3.0-or-later** with the plugin exception (ADR-0025).
 - `ew-import-qet` may contain ported QElectroTech code (GPL-2.0-or-later). It is therefore excluded from the plugin
   exception, and plugins never link it (C-8).
+- **MSRV by layer** (2026-10-19, decision log ID-141). The declared `rust-version` 1.85 binds the permissive crates,
+  which the MSRV job builds ([18](18-quality-security-release.md) §6.2). GPL application crates need only the pinned
+  toolchain: `ew-export`, `ew-render-cpu` and the crates that depend on them declare 1.92 (krilla 0.8.2 needs 1.92,
+  vello_cpu 0.3.0 1.89, parley 0.12.0 1.88).
 
 | Crate | Layer | Responsibility | Key dependencies |
 |---|---|---|---|
@@ -210,7 +214,7 @@ sessions (G6).
 | `ew-schema` | P | **The persisted record type of every entity kind** (plain serde structs), kind registry, per-kind schema versions, JSON Schemas | serde, schemars 1.2.3 |
 | `ew-format` | P | JSONL canonical reader and writer, sharding rules, manifest, upgrade chain on `serde_json::Value`, 3-way record merge core, conflict records | serde_json 1.0.154, semver 1.0.28, sha2 **(verify)** |
 | `ew-interop-api` | P | `Importer`/`Exporter` traits over `ew-schema` records: `ImportBatch`, `ImportReport`, `SourceRef`, `TableImage`, `Proposal` (§10.6) | ew-schema, ew-ids; sha2 (input digest) |
-| `ew-dl` | P | Display-list IR: paths, glyph runs, images, groups, symbol instances, link sources and targets, entity tags; `ShapedRun` carries its `layout_box`; own hashable colour type (no peniko: renderer crates convert) | kurbo 0.13.1, libm 0.2 (deterministic trigonometry), uuid |
+| `ew-dl` | P | Display-list IR: paths, glyph runs, images, groups, symbol instances, link sources and targets, entity tags; `ShapedRun` carries its `layout_box`; own hashable colour type (no peniko: renderer crates convert) | kurbo 0.13.1, libm 0.2 (deterministic trigonometry), uuid; re-exports `ew_units` for renderers and writers (rule 7) |
 | `ew-step-proto` | P | STEP worker IPC contract and cache format | postcard 1.1.3, rkyv 0.8.18 |
 | `ew-memo` | P | Generic memo engine: revisions, dependency recording, early cut-off, durability levels, LRU, statistics, oracle hooks, and a generic reverse-dependency API per query family. Knows nothing about ECAD. Not published to crates.io until it has two owners; v1 implemented (WP-S1.05); the spike run that decides which families it memoises is pending (§6.1) | imbl 7.0.2 (MPL-2.0+), smallvec 1.16.3, tracing 0.1.44 (statistics events, ADR-0002 decision 4); dev: proptest |
 | `ew-plcaddr` | P | `PlcAddress`, PLC address profiles as data, the address-grammar engine, bit intervals | — |
@@ -227,11 +231,11 @@ sessions (G6).
 | `ew-library` | GPL | Parts, symbol, form and macro libraries as canonical `.ewlib` text directories at every tier (system, community, company, user); one derived SQLite FTS5 index per user in the cache; embedding used items into projects (§7.7) | ew-format, rusqlite 0.40.2 |
 | `ew-store` | GPL | Save protocol, `.~ew.lock`, journal, recovery, watcher, external-change diff, `.ewz` transport, as-built archive, git commits and tags | ew-format, notify 8.2.0, zip 9.0.4, gix 0.89.0, etcetera or directories **(verify)** |
 | `ew-text` | GPL | Fonts and the memoised `shaped_text` query: one text stack for screen, pagination and paper | ew-dl, ew-units; parley 0.12.0, fontique 0.12.0, skrifa 0.44.0, harfrust 0.12.0 (through parley), sha2 0.10.9 |
-| `ew-reports` | GPL | Built-in report row queries, user SQL reports through the sandboxed query API of `ew-sqlview` (never links rusqlite), pagination into virtual pages, XLSX and CSV tables | ew-derive, ew-sqlview, ew-text, rust_xlsxwriter 0.100.0, csv 1.4.0 |
-| `ew-scene` | GPL | Model to display lists per page and layer, forms engine (frames, title blocks, report forms), text through `ew-text`, spatial index, hit-testing; PDF underlays (1.0) | ew-reports, ew-dl, ew-text; ew-schema (symbol lowering reads `SymbolDef` records by reference), ew-units, ew-ids, ew-mltext; serde_json; rstar 0.13.0, hayro 0.8.0 (underlays, 1.0) |
+| `ew-reports` | GPL | Report-kind registry and row queries (`report_rows`), arrangement (manual selection, typed filters, natural sort, grouping), pagination into generated pages (`report_block_pages`), the report engine that `page_order` calls through `ReportPagesProvider` (decision log ID-126), value rendering; user SQL reports through the sandboxed query API of `ew-sqlview` (1.0, never links rusqlite); XLSX and CSV tables (FT-61) | ew-derive (and through its re-exports ew-schema, ew-ids, ew-mltext, ew-units; rule 7), ew-sqlview, ew-text; dev: ew-model (snapshots for the row-query tests, no `raw-read`), serde_json, proptest; later: rust_xlsxwriter 0.100.0, csv 1.4.0 |
+| `ew-scene` | GPL | Model to display lists per page and layer, forms engine (frames, title blocks, report forms), text through `ew-text`, spatial index, hit-testing; PDF underlays (1.0); page layers as pure functions of a caller-filled `PageView` (rule 7) and the provisional orthogonal router `route` (decision log ID-137) | ew-reports, ew-dl, ew-text; ew-schema (symbol lowering reads `SymbolDef` records by reference), ew-units, ew-ids, ew-mltext; serde_json; rstar 0.13.0, hayro 0.8.0 (underlays, 1.0); the `ew-reports` edge is declared for report forms and not used yet; dev: sha2, insta 1.49.0, proptest |
 | `ew-render2d` | GPL | wgpu 2D renderer: lyon tessellation once per symbol, instancing, screen-space lines, glyph atlas | wgpu 30.0.1, lyon_tessellation 1.0.22 |
-| `ew-render-cpu` | GPL | vello_cpu renderer: GPU-less fallback, thumbnails, golden PNGs, banded printing | vello_cpu 0.3.0 |
-| `ew-export` | GPL | PDF (outline, links, named destinations, page labels, PDF/A-2b), SVG, DXF, PNG (through `ew-render-cpu`) | krilla 0.8.2, krilla-svg 0.8.1, dxf 0.6.2, ew-render-cpu |
+| `ew-render-cpu` | GPL | vello_cpu renderer: GPU-less fallback, thumbnails, golden PNGs, banded printing | ew-dl; vello_cpu 0.3.0 (default features off: `std`, `text`, `u8_pipeline`; `Level::baseline()`), png 0.18.1; dev: ew-text, ew-units, sha2 |
+| `ew-export` | GPL | PDF (as built: PDF/A-2b with outline, `/PageLabels`, named destinations, link annotations and subset fonts; ADR-0015 amendments 5 to 7), SVG, DXF, PNG (through `ew-render-cpu`) | ew-dl, ew-render-cpu; krilla 0.8.2 (default features off); later: krilla-svg 0.8.1, dxf 0.6.2; dev: ew-text, ew-units, sha2, uuid |
 | `ew-print` | GPL | OS print adapters with per-OS features (§8.4) | ew-export, ew-render-cpu |
 | `ew-plc` | GPL | Exchange orchestration, merge and writers: AML AR APC (CAEX 2.15 write, 2.15 and 3.0 read, through `ew-caex`), the TIA "PLC Tags" XLSX exporter and importer, PLCopen XML; rack and slot logic | ew-plcaddr, ew-caex, ew-devdesc, quick-xml 0.42.0, calamine 0.36.1 |
 | `ew-panel` | GPL | Layout queries, collision reconciler, routing graph, negotiated-congestion routing, lengths, duct fill, 2D panel projection; glTF (glb) and STL writer for `layout_scene` | parry3d 0.31.1, pathfinding 4.16.0, petgraph 0.8.3, glam 0.34.1, gltf-json **(verify)** |
@@ -242,7 +246,7 @@ sessions (G6).
 | `ew-import-tables` | GPL | The golden CSV bootstrap behind `ew import csv`, the round-trip table reader and translation tables; reused by `ew-testkit`; the bootstrap importer TablesImporter reads a directory of tables (ADR-0021 amendment 6) | ew-interop-api, ew-schema, ew-units, ew-ids, ew-mltext, ew-rds (as ew-import-qet); serde, serde_json, sha2; an own bounded RFC-4180 reader (no csv crate yet); later: csv, calamine (round-trip reader) |
 | `ew-script`, `ew-plugin-host` | GPL | rhai automation bindings over queries and commands (profile from `ew-rhai`); WIT world and host on the wasmtime LTS line current at plugin launch (48.x in development), plugin export roles (§10.4), plugin rule implementations registered into `ew-checks`, the `secret-get` capability (v1.x) | ew-rhai; wasmtime LTS, wit-bindgen 0.63.0 |
 | `ew-jobs` | GPL | Scheduler, progress, cancellation, staleness tagging, adopt-if-unchanged | rayon |
-| `ew-api` | GPL | The `Session` facade shared by every front-end; registers the SQL and plugin rule implementations at session start; composes `.ewpp` export jobs from `ew-mfg` data, `ew-export` PDF/DXF and `ew-panel` glb | v0: ew-commands, ew-derive (normal edge: the Session surfaces derivation findings, tracked reads only), ew-model, ew-schema (no `raw-read`); dev: ew-commands/testkit, ew-derive, ew-model/raw-read; eventually everything above except UI |
+| `ew-api` | GPL | The `Session` facade shared by every front-end; registers the SQL and plugin rule implementations at session start; composes `.ewpp` export jobs from `ew-mfg` data, `ew-export` PDF/DXF and `ew-panel` glb | v0: ew-commands, ew-derive (normal edge: the Session surfaces derivation findings, tracked reads only), ew-reports (the Session installs the report engine on every `Q`, decision log ID-126), ew-model, ew-schema (no `raw-read`); dev: ew-commands/testkit, ew-derive, ew-model/raw-read, ew-text, ew-dl, ew-render-cpu, ew-ids, ew-units, ew-mltext, png, sha2, insta (the page-output goldens of WP-S3.04); eventually everything above except UI |
 | `ew-viewmodel` | GPL | Toolkit-agnostic panel models: navigator trees, table rows with edit→command mapping, property-grid rows with provenance, message lists, each with a revision stamp | ew-api |
 | `ew-ui` | GPL | egui widgets, canvas host, tools (state machines), command palette, keymaps, the action registry behind every menu, the 3D transform gizmo over `ew-render3d`'s camera and pick API | egui 0.37.0, egui_tiles 0.17.1, egui_table 0.10.0, egui_ltreeview 0.9.0, transform-gizmo-egui 0.11.0 |
 | `ew-viewer` (1.0) | GPL | The read-only `.ewpp` wiring viewer on `ew-ui` widgets, used by the `ew-wiring-viewer` binary and the "Preview package" view of the Manufacturing workspace | ew-ewpp, ew-ui, ew-render-cpu, hayro 0.8.0 (after the fidelity check) |
@@ -341,7 +345,7 @@ graph TD
   itab --> iapi & schema & units & ids & mltext & rds
   script --> cmd & rhai
   plug --> cmd & sqlv & checks
-  api --> store & cmd & derive & checks & sqlv & lib & scene & exp & plc & panel & mfg & imp & icat & itab & script & plug & jobs & model & schema
+  api --> store & cmd & derive & checks & sqlv & lib & scene & exp & plc & panel & mfg & imp & icat & itab & script & plug & jobs & model & schema & rep
   vm --> api
   ui --> vm & r2d & rcpu & r3d
   viewer --> ewpp & ui & rcpu
@@ -352,6 +356,10 @@ graph TD
   testkit --> itab & model & schema & ids & units & mltext & rds
   testkit -. dev .-> api & cmd
   derive -. dev .-> cmd
+  api -. dev .-> text & dl & rcpu & ids & units & mltext
+  rcpu -. dev .-> text & units
+  exp -. dev .-> text & units
+  rep -. dev .-> model
 ```
 
 **Rules.**
@@ -393,6 +401,7 @@ graph TD
    `cargo xtask check-deps` enforces that file. A change adds the edge to both in the same pull request. Such an edge
    never relaxes rule 1: `ew-scene` reads `SymbolDef` records by reference for symbol lowering, but reads the model
    only through `Q`.
+7. **Types through re-exports** (2026-10-19, decision log ID-124, ID-125). A crate may name a foundation crate's types through the `pub use` re-export of a crate it already depends on, when those types belong to that crate's public API: `ew-reports` reaches `ew-schema`, `ew-ids`, `ew-mltext` and `ew-units` through `ew-derive`, and `ew-render-cpu` and `ew-export` reach `ew-units` through `ew-dl`. Such a use adds no edge to the graph or to `ci/dep-rules.toml`; a direct dependency still needs its drawn edge (rule 6). `ew-scene` has no edge to `ew-derive`: its caller fills a `PageView` with the records and the derived texts of a page, and `ew-scene` builds the layers as pure functions of it.
 
 ---
 
@@ -683,7 +692,8 @@ pub fn device_tag(q: &Q, dev: Id<Device>) -> Arc<Tag> { /* reads TagSpec, struct
    verification while the user draws. Symbol geometry and form layout are examples.
 4. **LRU with a byte budget** for bulky memos (display lists, pagination).
 5. **Cycle detection.** A cycle panics in debug builds. The one legitimate fixpoint, a TOC whose page count depends
-   on itself, iterates inside one query, for at most three rounds.
+   on itself, is settled inside one query by a closed form and one confirming round (amended 2026-10-19, decision
+   log ID-155; ADR-0018 amendment 4; [09](09-reports-forms-output.md) §3.1).
 6. **Statistics** per query and per commit: hits, verifications, re-executions, cut-offs. They are emitted through
    `tracing` and asserted in the perf gate.
 7. **Reverse dependencies.** A generic API returns, per query family, the memos whose recorded reads include a given
@@ -720,24 +730,29 @@ families the spike has to measure.
 
 | Query (key) | Depends on | Initial policy | Notes |
 |---|---|---|---|
-| `page_order()` incl. generated pages | pages, sections, report blocks, `report_page_count` | Memo | Source of Prev/Next, TOC, PDF outline and `/PageLabels` (REF-073) |
+| `page_order()` incl. generated pages | pages, sections, report blocks, the generated pages of the installed `ReportPagesProvider` (`report_block_pages`) | Memo | Source of Prev/Next, TOC, PDF outline and `/PageLabels` (REF-073). The TOC page count comes from a closed form with one confirming round, else EW-CORE-025 (decision log ID-135, ID-155); a `Q` without the report engine has no generated pages (ID-126) |
+| `drawn_page_order()` | pages, sections | Memo | Drawn pages and dividers only, in the relative order of `page_order`. Every query that feeds pagination (`bom_rows`, the report row sources) reads this one, never `page_order` (decision log ID-127) |
 | `function_cps(f)` | function definition, overrides | Cold | CP instantiation |
 | `device_tag(dev)` → `{full, displayed(page)}` | `TagSpec`, identifier set, structure nodes, main representation's folio, assembly parent | Memo | EPLAN-style identifier suppression; child tags `-201U3-Q1` (D-27, D-41) |
 | `rep_anchor_cell(rep)` | position, the symbol's anchor policy, form grid | Cold | Derived from the symbol definition, never from rendered geometry; fixes "3-B0" (D-14). The anchor point comes from one exact function in `ew-schema` over `SymbolDef` geometry (integer nm, ties toward zero), shared with `ew-scene` and the importers (decision log ID-109) |
 | `cell_of(point, page)` | the page's frame form and connection grid | Cold | Exact frame-cell lookup: a point less than 1 nm from a grid point (the rounding window) is evaluated at that grid point on the rational grid, any other point at its exact nm value ([06](06-schematic-editor.md) §5.1, FR-PAG-020). Used by `rep_anchor_cell` and the cursor readout; `ew-units` has only the integer `Grid` primitives |
 | `xref_text(rep)` | partners' anchor cells, xref format | Memo | Star or chain interruption points; "(201-E1)", "∞ 203-B4" |
-| `page_local_nets(page)` | connections, junctions, reps on the page | Memo | Union-find over a few thousand edges |
-| `stitch_graph()` | local nets, IP pairing, bridges, conductors, terminal side links, bonds | Memo | Nodes are local nets, about 10–15 % of CPs |
-| `potential_partition()` | stitch graph, potential defs, net defs | Memo | `PotentialId` = the minimum `PotentialDef` ID when the potential has one or more definitions, else the minimum CP ID, so it is stable under unrelated edits. Canonical name plus IP aliases (D-24) |
-| `physical_wires_of(potential)` | potential members, connections, junction wiring, IP pairs | Memo | One entry per physical CP-to-CP wire, keyed by the UUID of its target-side connection. Source of the wire list, routing and `WireRecord` |
-| `potential_flow(potential)` | potential members, source-output CPs, function definitions | Memo | Flow rooted at the source-output CPs; the protective device per load; source of the potential overview |
-| `wire_props_of(potential)` | overrides, net defs, potential defs, profile | Memo | Precedence: connection override (CDP) > net definition > potential definition > profile rule (type × voltage × circuit class) > project default. Every value carries **provenance** (D-08) |
+| `page_local_nets(page)` | connections, junctions, reps on the page | Memo | Union-find over a few thousand edges. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). |
+| `stitch_graph()` | local nets, IP pairing, bridges, conductors, terminal side links, bonds | Memo | Nodes are local nets, about 10–15 % of CPs. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). |
+| `potential_partition()` | stitch graph, potential defs, net defs | Memo | `PotentialId` = the minimum `PotentialDef` ID when the potential has one or more definitions, else the minimum CP ID, so it is stable under unrelated edits. Canonical name plus IP aliases (D-24). Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). |
+| `physical_wires_of(potential)` | potential members, connections, junction wiring, IP pairs | Memo | One entry per physical CP-to-CP wire, keyed by the UUID of its target-side connection. Source of the wire list, routing and `WireRecord`. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). |
+| `potential_flow(potential)` | potential members, source-output CPs, function definitions | Memo | Flow rooted at the source-output CPs; the protective device per load; source of the potential overview. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). |
+| `potential_flow_bfs()` | potential partition, pass-through pairs, source outputs | Memo | The one BFS over the partition behind every `potential_flow(potential)` ([08](08-connections-terminals-cables.md) §3.6) |
+| `wire_props_of(potential)` | overrides, net defs, potential defs, profile | Memo | Precedence: connection override (CDP) > net definition > potential definition > profile rule (type × voltage × circuit class) > project default. Every value carries **provenance** (D-08). Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). |
+| `wire_props(connection)` | `wire_props_of` of the connection's potentials | Cold | The physical wires a connection belongs to with their effective properties, in wire ID order; empty for bridges, bus and overview connections |
 | `channel_addresses(module)` | module start, part address map, channel specs | Memo | One edit re-addresses a module (D-26) |
 | `terminal_rows(strip)`, `cable_rows(cable)`, `plc_rows(station)` | terminals, levels, bridges, conductors, channels | Memo | Sources of terminal, cable and PLC reports (REF-045/049/060) |
 | `device_part_lines(dev)` → `bom_rows(mode)` | parts on devices, assembly children, carriers, accessories | Memo | Assembly and component modes (D-04, D-36) |
+| `report_rows(block)` (`ew-reports`) | the kind's row query, manual selection, sort, grouping, the form's layout | Memo | The block's `RowSet` in final order ([09](09-reports-forms-output.md) §2.3); embedded blocks read it too. A TOC's rows read `page_order`, so it is never read from inside pagination |
+| `report_block_pages(block, toc_pages)` (`ew-reports`) | `report_rows`, form layouts, the block's numbering | Memo + LRU | Generated pages with IDs `v5(block, index)`; `toc_pages` matters only for a TOC, other blocks are keyed 0; feeds `page_order` through the provider ([09](09-reports-forms-output.md) §3.2) |
 | `toc_rows()`, `title_block(page)`, `layout_label(placement)` | page order, project data, overrides, revisions, tags | Memo | Bound fields only; overrides explicit and flagged (D-05, D-06, D-02) |
 | `checks(scope)` (page, potential, strip, station) | rule inputs | Memo | Online message panel (§12) |
-| `page_display_list(page, layer, lang)` | per-layer inputs | Memo + LRU | Schematic layers: frame, symbols, wires, labels, tables, revision, highlights. Panel-page layers: surface, carriers, placements, features, dims, plus frame, labels, tables and highlights. A wire edit never rebuilds the title block |
+| `page_display_list(page, layer, lang)` | per-layer inputs | Memo + LRU | Schematic layers: frame, symbols, wires, labels, tables, revision, highlights. Panel-page layers: surface, carriers, placements, features, dims, plus frame, labels, tables and highlights. A wire edit never rebuilds the title block As built (cycle 7) it is a pure function over a caller-filled `PageView` (rule 7, decision log ID-125, ID-136); the memoised family arrives with the export job (FT-59) |
 | `panel_front_reps(dev)` | placements of the device, surfaces | Cold | Derived panel-front representations for navigation and "show all representations" (§4.2) |
 | `layout_scene(space)` | placements, carriers, mesh refs, committed routes | Memo | Input to the 3D reconciler (§8.5) |
 | `sql_table(api_table)` | the table's sources | Class II | SQL projection (§10.2) |
@@ -1067,13 +1082,13 @@ flowchart LR
   - PDF/A-2b by default, with 3b/4f only when attachments are embedded (C-10);
   - an outline from `page_order` and sections;
   - a named destination per xref target and a link annotation per xref text;
-  - `/PageLabels` equal to the folios;
+  - `/PageLabels` equal to the folios (krilla's native page labels, ADR-0015 amendment 5);
   - subset embedded fonts and glyph runs with real spaces (D-33);
   - tagged PDF (PDF/UA-1) as an option (G8).
 
   krilla has no optional content (layers, C-11), and v1 does not offer layers.
 - **SVG, DXF and PNG.** An own SVG writer; DXF (AC1015, layer mapping) via dxf 0.6.2; PNG through `ew-export` →
-  `ew-render-cpu` (vello_cpu). PNGs compare within the dify tolerance across platforms; PDF, SVG, XLSX, CSV, JSONL
+  `ew-render-cpu` (vello_cpu). PNGs are byte-identical per build target (vello_cpu `Level::baseline()`) and compare within the dify tolerance across targets (ADR-0015 amendment 6); PDF, SVG, XLSX, CSV, JSONL
   and `.ewpp` stay byte-identical (ADR-0015).
 - **Printing.** PDF is the print master. Small adapters in `ew-print` hand it to the OS: the xdg Print portal or CUPS
   on Linux, PDFKit on macOS, and `PrintDlgEx` with banded vello_cpu rendering on Windows. Scale-to-fit stamps the

@@ -402,6 +402,17 @@ physical_wires_of(potential):                              // memo per potential
   (FR-TRM-006, FR-MFG-002). A device end prints `tag:designation`, with `#n` only where printed designations repeat
   (`-102G1:+ #1`).
 
+*As built (cycle 7, WP-S1.07; decision log ID-146 to ID-151).* The families of §3.3 to §3.8 exist in `ew-derive`,
+Memo by policy and cold in phase 1. Decisions the code had to fix:
+- An interruption-point group without `ip_pairing` is a star with project scope; its source is the point flagged
+  `star_source`, else the single Source point, else the point with the lowest ID.
+- A terminal FnDef without pass-through links joins all CPs of one level; duplicated pins of one function are one
+  signal unless a declared pass-through links them.
+- Only a bond's `via` connection is cut, and the IPs on the `via` path name the bond (§3.5); drawn bridges join at
+  the potential level only (§3.3); there is no separate conductor edge, because `Core` connections and the IP pairing
+  suffice.
+- `Partition.ptype` holds the definition's type and the role types; N-55S and N-55T take their type from the flow.
+
 ---
 
 ## 4. Wire properties
@@ -515,6 +526,12 @@ EW-POT-006 (§8.2).
 The EN 60204-1 column follows 13.2.4's recommendation of BU for DC control circuits of both polarities. IEC 60445
 assigns BU to the mid-point conductor M and WH to L−; EW types a 2-wire PSU's 0 V as M (the PSU's "−" role), so the
 IEC 60445 profile maps that M like L−. Both entries are therefore marked (verify).
+
+*Built-in defaults* (2026-10-19, decision log ID-150). Without a project profile, colours follow the EN 60204-1
+column (L BK, N BU, PE GNYE, FE PK, DC BU, AC signal RD) and sizes are Mains 1.5 mm² and Control, Analogue and Bus
+0.75 mm²; a potential of unknown voltage or AC/DC never matches a selector that constrains them. The levels as built
+are override > conductor > potential definition > colour and size rows > project default > built-in default; net
+definitions are WP-S1.26 (decision log ID-146).
 
 Size profiles for the standards ship as data with `verified = false` until they have been checked against licensed
 copies. The company size profile is the golden one: Control 0.75 mm², Mains 1.5 mm², PE by class. NFPA 79 is
@@ -717,6 +734,14 @@ bus with dots. That drawing is derived from the bridge connections.
   lists the terminals it shows (FR-TRM-011). -X1031 at 103-A3 (24 V group) and 103-A10 (0 V group) is one device with
   one BOM row (D-42).
 - **Tag printing.** `tag_print = PerSegment` prints "-X1031" at both segments. `PerPage` prints it once per page.
+- **Terminal CPs of a segment** (2026-10-19, decision log ID-143). A segment gives each terminal it draws one CP on
+  each side, the terminals one connection-grid step apart along the segment axis; wires end at those CPs, so a
+  terminal shown by a segment needs no representation of its own. The exact rule (which terminals a segment shows,
+  the position of the first, how a side's clamps map onto its CP) is recorded here once the cycle-7 fix round has
+  implemented it (FT-55).
+- **Terminals drawn alone** (decision log ID-162). A terminal with its own representation (1X1) prints its
+  designation or function text (`label_mode`), never the full tag; on a page without a segment of its strip, the
+  strip tag is printed once, at the first terminal representation in (row, column, ID) order.
 - **Page token.** The strip's `{page}` comes from its first segment in (page order, row, column, ID). A strip
   without a segment takes it from its first terminal representation (FR-NUM-032): 1X1, drawn only as three
   terminal symbols at 101-D2, derives the rule value -X1011, which the numbering report shows next to its frozen tag

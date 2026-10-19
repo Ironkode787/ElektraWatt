@@ -133,7 +133,10 @@ pub struct ReportBlock {
   `{"sql_query": {"api": "v1", "file": "<uuid>"}}`.
 - `params` (report-kind parameters) and `filter` (§3.3: a typed predicate or a pure rhai expression) are **deferred
   to WP-S3.03**. They will be appended as top-level members of the block, not inside `source`, so adding them is
-  additive; a file that carries them keeps them in `extra` until then.
+  additive; a file that carries them keeps them in `extra` until then. *As built (cycle 7, decision log ID-131):*
+  WP-S3.03 built typed filters (`Eq`, `Ne`, `Within`, `Present`, `Absent`) but persists none; the typed
+  `filter` and `params` encoding is a format decision of WP-S3.06 (FT-46), and `parts_summary` reads
+  `extra.params.mode` provisionally until then.
 - **Group header and footer rows** are not a `GroupSpec` member. A block emits them when its form's data area has a
   `group_header` or `group_footer` template (§2.5), so `GroupSpec` is `{key, break}`.
 - **`first_folio`** is required for a page-oriented block (a structural invariant) and ignored when `embedded` is
@@ -178,6 +181,19 @@ pub enum Cell {
   hidden `id` column of the Excel round trip (FR-EXP-004), and revision deltas (FR-REV-015). Tags are never row keys.
 - **Links.** `LinkRef` names the destination of a cell: the main representation of a device, a CP anchor, a page.
   The PDF turns them into link annotations; the canvas turns them into jumps.
+- **`RowId` as built and its text form** (decision log ID-128, ID-159, ID-161). A `RowId` is an ordered list of
+  `RowKey { Entity(uuid) | Index(u32) | Name(text) }`; its total order is the last tie-break of every sort. Its text
+  form, which is also the hidden `id` column of the XLSX round trip (FR-EXP-004), joins typed, escaped components
+  with "/": `e:<uuid>`, `i:<n>` and `n:<name>` with "%", "/" and ":" percent-escaped in the name, so it parses back
+  without ambiguity. A `parts_list` row is keyed (device, part copy, variant, ordinal among equal parts)
+  (FR-REP-048).
+- **Cells and sets as built** (cycle 7, decision log ID-129). `Cell::Folio` holds a `PageRef` (drawn page, divider or
+  generated page), so TOC rows can point at dividers and generated pages; `Cell::Number` (an integer such as a BOM
+  position) and `Cell::Folios` (several pages in page order) are added; `Cell::Address` holds text until
+  `ew-plcaddr` has an address type. `Row.sources` lists the entities a row covers (manual exclusion, back-links)
+  and `RowSet.groups` the group ranges. `as_of` is `None` for Class I sources, which are always current (a revision
+  inside a memoised value would defeat early cut-off), and `Some(rev)` for a Class II source such as the SQL
+  projection. A `RowSet` also carries its status, `Derived` or `NotDerived(reason)` (§3.2).
 
 ### 2.4 Built-in report kinds
 
@@ -415,20 +431,33 @@ outline and `/PageLabels`.
 page_order(q):
   drawn    = q.pages()                                   # authored pages
   dividers = sections where divider → folio = range.start   # 100, 200, 900
-  n_toc    = last count of TOC pages, initially 1
-  repeat at most 3 times:                                # the one legitimate fixpoint (ARCH §6.2)
-    gen   = for each page block b: report_pages(b) with n_toc for TOC blocks
-    order = sort(drawn ∪ dividers ∪ gen) by (section order, folio number, sub-page index,
-                                             origin: drawn < divider < generated, page id)
-    n'    = ceil(len(order) / toc_rows_per_page)
-    if n' == n_toc: return order
-    n_toc = n'
-  emit EW-CORE-025 (TOC fixpoint not reached, warning); return order with n_toc = max seen
+  gen      = for each page block b except TOC blocks: report_pages(b)
+  D        = len(drawn ∪ dividers ∪ gen)                 # does not depend on the TOC page count
+  per      = TOC capacity: the TOC form's data area, else the profile's toc.rows_per_page (≥ 2)
+  n_toc    = max(1, ceil(D / (per − 1)))                 # closed form: the TOC lists its own pages too
+  merge(n) = sort(drawn ∪ dividers ∪ gen ∪ n TOC pages) by (section order, folio number, sub-page index,
+                                                            origin: drawn < divider < generated, page id)
+  order    = merge(n_toc)                                # one confirming round (ARCH §6.2)
+  n'       = ceil(len(order) / per)
+  if n' > n_toc:                                         # only if a TOC row is not one page
+    emit EW-CORE-025 (TOC fixpoint not reached, warning); order = merge(n')   # never a missing page
+  return order
 ```
 
 - The sort key is numeric, never textual: 907 < 907.1 < 907.2 < 907.10 < 908 (FR-PAG-006, FR-NUM-018).
-- **Golden A:** the first round (one TOC page) counts 35 pages, which need ⌈35 / 23⌉ = 2 TOC pages; the second
-  round counts 36 pages, still 2 TOC pages, and stops. Prev/Next: folio 1 Prev empty, 911 Next empty (FR-PAG-013).
+- **Golden A:** 34 pages do not depend on the TOC, so n = ⌈34 / 22⌉ = 2 TOC pages; the confirming round counts 36
+  pages, ⌈36 / 23⌉ = 2, and stops. Prev/Next: folio 1 Prev empty, 911 Next empty (FR-PAG-013).
+- **Closed form instead of iteration** (decision log ID-155, ID-158; it replaces the earlier "initially 1, at most three
+  rounds"). With a capacity below 2 rows the TOC could never list itself, so such a TOC form is an invalid layout
+  (§3.2). When the confirming round still disagrees, the order is rebuilt with the larger count, so a page is never
+  missing; a blank TOC row is acceptable (§7 pitfall 1). The cycle-7 code still iterates from 1 (FT-66).
+- **The report engine is a provider** (decision log ID-126, ID-127, ID-135). `page_order` lives in `ew-derive`
+  and calls `report_pages` through the `ReportPagesProvider`, which is engine-level configuration: one per
+  `Session` (later one per memo store), never a per-`Q` untracked input; a `Q` without one is the test
+  configuration. `ew-derive` never depends on `ew-reports`. Pagination runs inside `page_order`, so no query that
+  feeds it reads `page_order`: row sources that order by page position read `drawn_page_order()` (drawn pages and
+  dividers, the same relative order), and folio cells are printed from `page_order` when the page is drawn.
+  EW-CORE-025 is a derivation note of `page_order`, surfaced as a finding (FT-49).
 - Pages without a section (1, 2, 3) precede section 1 (front matter).
 - **Folio collisions** between a generated page and a drawn page, or two blocks, are the error EW-CORE-022
   (FR-REP-041, FR-CHK-038). The `origin` key places the generated page after the drawn page with the same folio, so
@@ -468,6 +497,18 @@ report_pages(block):
   it. Only the TOC's row count depends on its own page count; that fixpoint is settled inside `page_order` (§3.1).
 - Generated pages are `GeneratedPage { id: v5(block, index), block, folio, title, rows: Range, group, form }`. They
   are read-only on the canvas (FR-PAG-002).
+- **Placeholders, layouts and form chains** (cycle 7, decision log ID-130, ID-132, ID-133, ID-157, ID-160). A
+  report kind that is not derivable yet (its row query or its record shape does not exist, or the schema names a
+  kind that no engine registers yet) paginates to one placeholder page whose note gives the reason, whatever its
+  `empty` policy, so its folios and TOC entries stay in place; this generalises
+  [ADR-0017](../adr/0017-read-only-sql-projection-api-v1.md) amendment 1. A form without a data area paginates with
+  the house layout of 23 rows × 6.52 mm, which moves from `ew-reports` into the derivation profile (FT-47). An
+  invalid layout (a row height ≤ 0, or a capacity below one data row) falls back to the house layout with a form
+  finding (FR-REP-039). A `NewFolio` group break restarts the form chain at the block's form; `NewPage` continues
+  it. Wrapping rows wait for a wrap policy in the schema and measure with `shaped_text` when they come (FT-61).
+- **Group texts** (decision log ID-156). `{group}` and the group header texts print a device in its displayed tag
+  form in the structure context of the generated page, falling back to the short tag; groups follow the sort
+  direction of the group column, and a heading row bounds a group.
 
 ### 3.3 Filtering, sorting, grouping
 
@@ -501,6 +542,10 @@ through the form's data area (FR-REP-028, FR-REP-029). It does not join the page
   `part_data` form reproduces this with a two-row template per entry.
 - Changing the 24 V DC colour in the profile updates the folio 1 table, every derived wire colour and folio 907 in
   one commit (AC-12).
+
+*As built (cycle 7, decision log ID-133).* An embedded PART DATA block lists the root ancestors of the devices drawn
+on its page: their configured lines become "Order Code n" rows, otherwise their own lines plus those of descendants
+without a representation. The manufacturer text is the `LibRef`'s `extra.key` (the stopgap of decision log ID-111).
 
 ### 3.5 User SQL reports
 
@@ -616,6 +661,15 @@ rebuilds its title block, and renumbering 103 → 104 rebuilds only the title bl
 `labels` layers that print "103-…" xrefs or the strip tags -X1031/-X1032, §8.2). The page-to-sheet transform of the
 frame form is applied once, identically, by every writer.
 
+*As built (cycle 7, decision log ID-125, ID-136, ID-144; ADR-0015 amendment 7).* `ew-scene` builds each layer as a
+pure function of a caller-filled `PageView` (records by reference, derived texts as slot values); each layer reads
+only its own inputs, records are taken in ID order, a CP's position comes from the representation with the smallest
+ID that draws it, and slot visibility is the override, else the arrangement, else the symbol default. The `tables`,
+`revision` and `highlights` layers are empty so far, so generated pages print their frame only (FT-53). Wires
+without a stored route take the provisional router (decision log ID-137). Until a `Session` export job exists
+(FT-59), the view of a divider or generated page uses the no-grid frame, the wire-marker text is "csa colour", and
+only the tag, CP designation, function text and process tag slots are filled.
+
 ### 4.2 PDF (krilla)
 
 Exports run as a job on an O(1) fork: global queries first, then per-page display lists in parallel (rayon), then
@@ -639,8 +693,13 @@ sequential assembly in page order (FR-OUT-001, ARCH §2).
 | Tagged PDF (1.0) | structure tree: page content as sections, symbols as figures with alternative text "tag, function text", report tables as tables with header cells, title block last | FR-OUT-012, NFR-A11Y-05 |
 
 - **Destination names** derive from stable IDs: `ew:p:<page uuid>`, `ew:r:<representation uuid>`,
-  `ew:cp:<v5(function, idx)>`, generated pages `v5(block, index)`. Only targets referenced by a link get a
-  destination, plus one per page, which bounds the file size at XL.
+  `ew:cp:<v5(function, idx)>`, generated pages `v5(block, index)`, a section divider its section's ID. Only targets
+  referenced by a link get a destination, plus one per page, which bounds the file size at XL.
+- **As built (cycle 7, decision log ID-139; ADR-0015 amendment 5).** `/PageLabels` are krilla's own page labels.
+  Glyphs map to text one char per glyph when the counts agree, else the run is one cluster (clusters in
+  `ShapedRun` follow, FT-51); `.notdef` glyphs are dropped; link annotations use a rectangle; images are skipped
+  until assets reach the scene; links out of a partial export are plain text. The golden PDF has no link
+  annotations until the cross-references of WP-S1.08, and its generated pages wait for FT-52 and FT-53.
 - **Golden A** gets exactly 64 xref link annotations plus report back-links (AC-13). "103-G6" at PE-1.1 on folio 101
   lands on cell G6 of folio 103.
 - **Partial exports** print links to non-exported pages as plain text, or as remote links into a companion file
@@ -667,7 +726,8 @@ profile, font files by hash). Rules:
    even) before f32 values reach krilla. Arcs and rotations use a pure-Rust `libm`-style implementation in `ew-dl`,
    never the platform's `sin`/`cos`, whose last bit can differ between platforms; kurbo's arc-to-Bézier conversion
    calls `f64::sin_cos` and is therefore not used on the export path.
-5. **Fonts.** Bundled or project-embedded font files only; subset tags must be content-derived (verify krilla).
+5. **Fonts.** Bundled or project-embedded font files only; subset tags are content hashes (krilla 0.8.2, verified in
+   cycle 7, ADR-0015 amendment 5).
 6. **Images** are passed through or re-encoded with fixed encoder settings.
 
 GUI and CLI call the same exporter. CI exports Golden A on Windows, macOS and Linux and in a display-less Linux
@@ -691,7 +751,8 @@ partial file (FR-UI-024).
 - **PNG (MVP, FR-OUT-014).** vello_cpu through `ew-render-cpu` at a chosen DPI (`ew render --page 103 --png --dpi
   150`). vello_cpu may choose different SIMD paths per CPU, so PNGs compare within the dify tolerance across
   platforms; if the performance spike (gate G-SP) finds a deterministic scalar mode, `ew render` and the CI goldens use it and PNG returns
-  to byte identity on the same platform (ADR-0015 amendment 3).
+  to byte identity on the same platform (ADR-0015 amendment 3). *As built (cycle 7, ADR-0015 amendment 6):*
+  `ew-render-cpu` runs on vello_cpu's portable `Level::baseline()`, so PNGs are byte-identical per build target.
 - **DXF (1.0, FR-OUT-015).** dxf 0.6.2, AC1015, `$INSUNITS` = mm, layer mapping per scheme (default `EW-FRAME`,
   `EW-SYMBOLS`, `EW-WIRES`, `EW-TEXTS`, `EW-GRAPHICS`, `EW-TABLES`); symbols as `BLOCK`/`INSERT` named by symbol and
   variant; Béziers flattened to polylines at 0.01 mm; dash patterns as `LTYPE`; texts as `TEXT` with a `STYLE` per
@@ -794,9 +855,9 @@ title block, cover, divider and report forms reproduce the golden house style.
 
 ## 7. Edge cases and pitfalls
 
-1. **TOC fixpoint.** A tiny TOC form could oscillate; after three rounds the largest count wins and the warning
-   EW-CORE-025 is raised ([15](15-checks-revisions-collaboration.md) §4.2). A blank row is preferable to a missing
-   one.
+1. **TOC fixpoint.** The closed form of §3.1 settles the count in one confirming round; if a TOC row ever stands
+   for more than one page, the larger count wins and the warning EW-CORE-025 is raised
+   ([15](15-checks-revisions-collaboration.md) §4.2). A blank row is preferable to a missing one.
 2. **Folio collisions.** `NextFolio` continuation or group breaks push pages into folios used by drawn pages or other
    blocks (a fourth strip under a grouped terminal block would take 906). Sub-page continuation is the default; the
    collision check EW-CORE-022 reports the rest (FR-REP-041).
@@ -1008,11 +1069,13 @@ The thirteen rows this document proposed are in the catalogues:
     PDF. krilla lists page labels among its features ([rust-ecosystem](../research/rust-ecosystem.md) §6), but
     whether its API accepts a prefix-only label on every page (sparse folios 1, 2, 2.1, 3, 100 …) is unverified.
     *Recommendation:* verify in spine lane 2 (weeks 6–9); fall back to a pdf-writer post-step.
+    **Resolved (2026-10-19):** krilla 0.8.2 writes them natively; no post-step (ADR-0015 amendment 5).
 12. **PNG byte identity.** vello_cpu may choose different SIMD paths per CPU. NFR-REL-07 lists PNG among the
     byte-identical outputs and FR-OUT-014's criterion says "the same image on all CI platforms". **Resolved:**
     ADR-0015 amendment 3: PNGs compare within the dify tolerance across platforms, byte identity stays for PDF, SVG,
     XLSX, CSV, JSONL and `.ewpp`, and a deterministic scalar vello_cpu mode, if the performance spike (gate G-SP) finds one, restores PNG
-    byte identity on the same platform (§4.4).
+    byte identity on the same platform (§4.4). *Update (2026-10-19):* on vello_cpu's `Level::baseline()` PNGs are
+    byte-identical per build target (ADR-0015 amendment 6).
 13. **PDF/A level and embedding for customers.** PQ-29 asks which level is required and whether the native project
     may be embedded. *Recommendation:* keep PDF/A-2b without attachments as the default; offer A-3b per scheme only
     after the confidentiality confirmation (FR-OUT-003).

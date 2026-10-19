@@ -252,7 +252,7 @@ Following [architecture](04-architecture.md) §13, Golden A is built three ways:
 | Output | Comparison | Tolerance |
 |---|---|---|
 | Frame, grid, title-block lines | Vector extraction from the EW PDF in printed mm against `geometry/frame.json` (§17) | ±0.2 mm |
-| Texts | String exact against `text/<folio>.csv`; anchor (alignment point) position; size | anchor ±0.2 mm; size ±0.05 pt; font family not compared |
+| Texts | String exact against `text/<folio>.csv`; anchor position (the run origin, the start of the baseline, as a PDF text extraction gives it; decision log ID-168); size | anchor ±0.2 mm; size ±0.05 pt; font family not compared |
 | Symbol placement | Anchor cell exact; raster at 150 dpi against the approved PNG (dify) | ≤ 0.5 % differing pixels ▲ |
 | Reports, lists, exports | CSV row-by-row, natural sort order (FR-NUM-018) | exact |
 | Check findings | Rule ID, sorted target IDs, severity | exact; message text not compared |
@@ -519,8 +519,8 @@ overrides".
 | N | N, 230 V AC, mains | J-E-206-N | ext., 1X1:2, S51:4 | 101 | BU 1.5 |
 | L-S | L, 230 V AC, mains | — | S51:1, -101F1:1, F55:1 | 101 | BK 1.5 |
 | N-S | N, 230 V AC, mains | — | S51:3, -101F1:N#1, F55:N#1 | 101 | BU 1.5 |
-| L-1 | L, 230 V AC, mains | L-1 | -101F1:2, -102G1:L | 101, 102 | BK 1.5 |
-| N-1 | N, 230 V AC, mains | N-1 | -101F1:N#2, -102G1:N | 101, 102 | BU 1.5 |
+| L-1 | L, 230 V AC, mains | — | -101F1:2, -102G1:L | 101, 102 | BK 1.5 |
+| N-1 | N, 230 V AC, mains | — | -101F1:N#2, -102G1:N | 101, 102 | BU 1.5 |
 | L-55 | L, 230 V AC, mains | — | F55:2, E55:L, E56:X2 | 101 | BK 1.5 |
 | N-55 | N, 230 V AC, mains | — | F55:N#2, T55:5, S56:13 | 101 | BU 1.5 |
 | N-55T | N switched, 230 V AC | — | T55:3, E55:N | 101 | BU 1.5 |
@@ -533,7 +533,7 @@ overrides".
 | 24VDC-3 | L+, spare | — | -102F2:Out3, -X1031:7, 8 | 102, 103 | DBU 0.75 |
 | 24VDC-4 | L+, spare | — | -102F2:Out4, -X1031:9, 10 | 102, 103 | DBU 0.75 |
 | 0V | M, 24 V DC, control | 0VDC, 0VDC-AIR1 … AIR4 | -102G1:−#1, −#2, -102F2:GND#1, #2, -X1031:11 … 20, -201U1:1, :2, -202U1:1, :2 | 102, 103, 106 | WH 0.75 |
-| DP | bus | DP | -201U1:DP, -3X1, -3W1 A/B, ext. JE-N1000-03 | 3 | (cable) |
+| DP | bus | — | -201U1:DP, -3X1, -3W1 A/B, ext. JE-N1000-03 | 3 | (cable) |
 
 ### 7.4 Bond
 

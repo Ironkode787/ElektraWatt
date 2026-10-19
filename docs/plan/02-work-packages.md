@@ -897,6 +897,11 @@ FT-32 to FT-35.
 | Acceptance | AC-09, AC-10, AC-12, NFR-PERF-05 |
 | Owner role | Core developer |
 
+*Status (2026-10-19, cycle 7).* The core is delivered: `page_local_nets`, `stitch_graph`, `potential_partition`,
+`physical_wires_of`, `potential_flow` and `wire_props_of` in `ew-derive` with the golden connectivity acceptance
+(decision log ID-146 to ID-154). The cross-page `rep.move` of FR-CON-043 (FT-16) and the auto-route (FT-18, FT-43)
+remain; the fixture and importer gaps are FT-63 to FT-65.
+
 #### WP-S1.08 Derivation III: cross-references and interruption points
 
 | Field | Value |
@@ -1679,6 +1684,15 @@ S3 owns everything that becomes a page, a table or a foreign file: forms, report
 | Acceptance | AC-03, AC-07, AC-08, AC-09, AC-10, AC-11, AC-12 |
 | Owner role | Output and migration developer |
 
+*Status (2026-10-19, cycle 7).* `ew-reports` is delivered: the `RowSet`, the kind registry, arrangement,
+pagination into generated pages and the provider hook of `page_order` (decision log ID-124 to ID-135, ID-155 to
+ID-161); `toc`, `parts_summary`, `parts_list`, `part_data` and `structure_overview` are derived, the other kinds are
+placeholder pages. The derived golden page order has 31 of doc 20 §16's 36 pages for now (ID-145): 907 and 908 are
+one placeholder page each until their row sources exist (WP-S1.07 delivered the potentials; the terminal, cable,
+wire and PLC row sources follow), and 901 has 23 rows because the TBD parts of BOM rows 24–27 are not in the tables,
+so there is no 901.1. Open: drawing the report content (FT-53), the review rulings FT-66 to FT-69, XLSX and CSV
+(FT-61).
+
 #### WP-S3.04 Page output: CPU renderer, PNG goldens and PDF
 
 | Field | Value |
@@ -1693,6 +1707,14 @@ S3 owns everything that becomes a page, a table or a foreign file: forms, report
 | Milestone · release | M1 Spine exit: headless golden PDF · MVP |
 | Acceptance | AC-02, AC-13, AC-14, AC-17 |
 | Owner role | Output and migration developer |
+
+*Status (2026-10-19, cycle 7).* Delivered: the page layers of `ew-scene` over a caller-filled view with the
+provisional router, `ew-render-cpu` (vello_cpu 0.3.0, PNG), the deterministic PDF/A-2b writer of `ew-export`
+(krilla 0.8.2) and the golden PNG, text and geometry candidates of the drawn folios (decision log ID-136 to ID-144,
+ID-163 to ID-168; ADR-0015 amendments 5 to 7). 47 of the 72 page wires are not drawn yet (FT-54, FT-55), so the PNG
+candidates are regenerated before the first approval (FT-58, FT-10). Open: generated pages from the `Session`'s `Q`
+(FT-52), link annotations with the cross-references of WP-S1.08 (AC-13), the export job (FT-59), veraPDF and
+`ew export pdf golden/`.
 
 #### WP-S3.05 Spine importers: CSV golden bootstrap and QET element reader
 
@@ -2739,6 +2761,35 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-43 | `follow_end` on a 2-vertex route moves the far end's perpendicular coordinate off its CP (`ew-commands` v0) | WP-S1.07 (or the routing WP) | With the WP | review cycle 6 |
 | FT-44 | Notes pushed by queries must become part of the memoised value before a family that pushes notes is memoised | WP-S1.05 (phase 2) | Before the first memoised family that pushes notes | ID-120; review cycle 6 |
 | FT-45 | `ew-scene::resolve_anchor` converges on `SymbolDef::anchor_point` | WP-S3.01 | With the host WP | ID-109; FT-41 |
+| FT-46 | The typed `ReportBlock` `filter` and `params` encoding (format decision), replacing the provisional `extra.params.mode` of `parts_summary` | WP-S3.06 | With the WP | ID-131; [09](../design/09-reports-forms-output.md) §2.2 |
+| FT-47 | Move the house report layout (23 rows × 6.52 mm) from `ew-reports` into the derivation profile | WP-S3.03 | Cycle 8 | ID-132 |
+| FT-48 | `bom_rows`: a terminal device without a representation takes its strip's placement (PT 2.5-TWIN at positions 13–14 on folio 103) | WP-S1.06 | Cycle 7 (fix round) | ID-134; [20](../design/20-golden-project.md) §14.1 |
+| FT-49 | A `DeriveNote` for EW-CORE-025 (TOC count not settled), surfaced by the `Session` as a warning | WP-S3.03 | Cycle 7 (fix round) | ID-135, ID-99 |
+| FT-50 | Honest `rust-version` per crate: the permissive crates keep 1.85 (MSRV job), `ew-export`, `ew-render-cpu` and their dependents declare 1.92, other GPL crates follow the pinned toolchain; `ci/README` states the rule | WP-S6.02 | Cycle 7 (fix round) | ID-141; [18](../design/18-quality-security-release.md) §6.2 |
+| FT-51 | Clusters in `ew-dl`'s `ShapedRun` (from `ew-text`), and the PDF writer's ToUnicode by cluster instead of 1:1 or one cluster per run | WP-S3.04 | Before the golden PDF is approved | ID-139 |
+| FT-52 | Golden page output from the `Session`'s `Q`: generated pages in Prev/Next, outline and `/PageLabels` with frame and title block; PDF destinations `v5(block, index)` for generated pages and the section ID for dividers, a duplicate destination an export error; `expected/pdf/structure.json` committed; `PdfOptions.date` required, the export passing FR-OUT-026's date; the PDF's SHA-256 committed once cross-references exist (WP-S1.08) | WP-S3.04 | Cycle 7 (fix round); the SHA-256 with WP-S1.08 | ID-139, ID-163, ID-164 |
+| FT-53 | Draw report content: the `tables` layer from the `RowSet` into the form's data area for generated pages and embedded blocks, so the golden PDF has every page of the order with its rows | WP-S3.03 | Cycle 8 | ID-136, ID-145, ID-163 |
+| FT-54 | Black boxes: the CSV bootstrap emits `Representation.box` from the part's black-box pattern (-102G1, -102F2, -201U1, -202U1), and `ew-scene` reads the box CPs | WP-S3.05 (importer); WP-S3.04 (`ew-scene`) | Cycle 7 (fix round) | ID-142 |
+| FT-55 | Strip segments: each drawn terminal gets one CP per side, one connection-grid step apart along the segment axis (the fix lead reports the exact rule for doc 08 §6.7 and doc 07 §9.1); terminal representations print the designation, the strip tag once (1X1 on folio 101) | WP-S3.04 (`ew-scene`, CP positions); WP-S7.01 (fixture) | Cycle 7 (fix round) | ID-143, ID-162; [08](../design/08-connections-terminals-cables.md) §6.7 |
+| FT-56 | `ew-scene`: draw stored symbol variants (the geometry key's `extra`) and apply a slot's `max_width` | WP-S3.01 | Cycle 8 | ID-142 |
+| FT-57 | Validate font bytes when fonts are loaded and remove the `catch_unwind` around glifo in `ew-render-cpu` | WP-S3.04 | Cycle 8 | ID-142 |
+| FT-58 | Regenerate the PNG and text candidates of folios 102, 103 and 106 once FT-54 and FT-55 draw their wires, before the first PNG approval | WP-S3.04 | Before FT-10 | ID-138, ID-142 |
+| FT-59 | The `Session` export job (`ew-api`, `ew-jobs`): it owns the glue rules of the view, builds one view and one memoised `page_display_list` query per layer that reads only that layer's inputs, so a wire edit never rebuilds the title block | WP-S3.04 | With the export job | ID-125, ID-144; [ADR-0015](../adr/0015-display-list-renderers-pdf.md) amendment 7 |
+| FT-60 | When `ew-memo` backs `Q`: bind the report-pages provider to the memo store at creation; `Q`s with different providers never share a store | WP-S1.05 (phase 2) | When `ew-memo` backs `Q` | ID-126 |
+| FT-61 | `ew-reports`: XLSX and CSV writers over the `RowSet` (rust_xlsxwriter, csv), and wrapped rows measured with `shaped_text` once the schema has a wrap policy | WP-S3.03 | With the WP | ID-130; [09](../design/09-reports-forms-output.md) §3.2, §4.6 |
+| FT-62 | Bind `revision.current.label` in the title block (the current revision of ID-105) | WP-S1.06 | Cycle 8 | ID-105 |
+| FT-63 | Golden tables: the black-box PSU part pattern declares its `source_output` CPs and the MICO its Out pass-throughs; needs the pilot's acknowledgement (PD-15) | WP-S7.01 | Cycle 7 (fix round) | ID-152 |
+| FT-64 | Doc 20 §7.3: 24VDC-2 … 4 typed "L+, 24 V DC, control", together with the §7.3 parser of the golden generator script, so W30–W32 become DBU | WP-S7.01 | Cycle 7 (fix round) | ID-152 |
+| FT-65 | The CSV bootstrap writes `colour_profile` and `size_profile` into `ProjectSettings.extra` in the shapes of doc 03 §5.1 instead of EW-IMP-004 | WP-S3.05 | Cycle 7 (fix round) | ID-153, ID-90 |
+| FT-66 | `page_order`: the TOC count by the closed form with one confirming round, and the TOC capacity from the TOC form's data area, else the profile | WP-S3.03 | Cycle 7 (fix round) | ID-155, ID-158; [09](../design/09-reports-forms-output.md) §3.1 |
+| FT-67 | The typed, escaped `RowId` text form (`e:`, `i:`, `n:`), and `parts_list` row IDs (device, part copy, variant, ordinal among equal parts) | WP-S3.03 | Cycle 7 (fix round) | ID-159, ID-161 |
+| FT-68 | Group texts in the displayed tag form of the page's structure context, groups in the group column's sort direction, headings bounding groups; invalid layouts falling back to the house layout with a form finding | WP-S3.03 | Cycle 7 (fix round) | ID-156, ID-157 |
+| FT-69 | Register the schema's report kinds that have no engine yet (`device_list`, `terminal_overview`, `io_list`, `open_items`, `numbering_report`, `enclosure_legend`, `check_report`); until then each paginates to one placeholder page | WP-S3.03 (placeholders); the WP that owns each kind | Placeholders in cycle 7 (fix round); kinds with their WPs | ID-160 |
+| FT-70 | The `@qet10` edition's pens in QET px (1.0, 0.5, 2.0 px) and the 1.0 px wire and junction pen on QET-grid pages; regenerate the edition | WP-S7.02; WP-S3.04 | Cycle 7 (fix round) | ID-165; [20](../design/20-golden-project.md) §17.4 |
+| FT-71 | Interruption points print their pairing name in the function-text slot | WP-S3.04 | Cycle 7 (fix round) | ID-166 |
+| FT-72 | Golden tables: an `arrangement` column in `representations.csv` for the hidden tags of doc 20 §6.2 on 203–206; a used valve prints the driven field device's process tag through the `DeviceLink { Drives }` fallback; needs PD-15 | WP-S7.01; WP-S3.04 | Cycle 7 (fix round) | ID-167 |
+| FT-73 | `ew-scene`: draw stored routes as stored and clean only provisional ones | WP-S3.04 | Cycle 7 (fix round) | ID-137 |
+| FT-74 | Track the duplicate font stacks (skrifa 0.42 and 0.44, read-fonts, font-types) and remove them at the next vello_cpu bump | WP-S3.04 (upgrade train) | Next vello_cpu bump | Review cycle 7 (page output) |
 
 ---
 

@@ -198,6 +198,11 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   explicitly because PDF defaults to 10 and SVG to 4. In the display list, `ew-dl`'s `Stroke` carries the stroke
   colour as a `brush` (default black); lowering resolves `ByLayer` to a concrete colour, so wire colours render
   (ADR-0015 amendment 4).
+- **Pens on QET-grid pages** (2026-10-19, decision log ID-165). The `@qet10` edition (§3.2 rule 2) expresses its pens
+  in QET px rather than scaling the house pens: 0.26 mm becomes 1.0 px (264,583 nm), 0.13 mm 0.5 px and 0.52 mm
+  2.0 px, and wires and junction graphics on QET-grid pages use the 1.0 px pen. After the QET frame's page-to-sheet
+  scale they print 0.261, 0.130 and 0.522 mm, as [20](20-golden-project.md) §17.4 requires. Native-grid pages keep the
+  house pens.
 - **Orientation variants A–H are never stored.** They are derived from the source variant (§4.1, FR-SYM-004), with
   the letter mapping of [06](06-schematic-editor.md) §2.5. Only the contact-image and CP variants are stored as
   extra variants.
@@ -514,7 +519,7 @@ preview shows:
    scaling is `v · 7_937_500 / 12_000_000` rounded with ties toward zero; 0.5 mm becomes 1.25 px, so the edition's
    graphics lie on no whole-pixel grid, and its lint requires instead that every graphic, slot and link-point
    coordinate equals the scaled value of its native twin, while every CP lies exactly on the QET 10 px grid
-   (decision log ID-34). The
+   (decision log ID-34). Its pens are QET px, not scaled house pens (§2.3, decision log ID-165). The
    edition has its own item IDs (key suffix `@qet10`), is linted like the native edition, is never drawn by hand,
    and is checked visually on the Golden A pages before the starter set is frozen (FR-SYM-030; ADR-0027
    recommendation 8). The full 1.0 library gets no such edition.
@@ -992,10 +997,10 @@ native-grid projects place the native edition.
 | `ew.iec.thermostat-nc` | NC pass-through 5–3 ▲U-12 | T55; splits N-55 into N-55T (EF-01) |
 | `ew.iec.position-switch-no` | NO 13–14 | S56 |
 | `ew.iec.lamp`, `ew.iec.heater` | loads (X1, X2), (L, N, PE) | E56, E55 |
-| `ew.iec.terminal`, `ew.iec.terminal-pe`, `ew.gen.strip-segment` | feed-through `Short` per level; PE with rail contact | 1X1, -X1031 (two segments at 103-A3 and 103-A10), -X1032 |
+| `ew.iec.terminal`, `ew.iec.terminal-pe`, `ew.gen.strip-segment` | feed-through `Short` per level; PE with rail contact; the segment gives each terminal it draws one CP per side, one connection-grid step apart along its axis ([08](08-connections-terminals-cables.md) §6.7, decision log ID-143) | 1X1 (three terminal symbols), -X1031 (two segments at 103-A3 and 103-A10), -X1032 |
 | `ew.iec.pe`, `ew.iec.fe`, `ew.iec.plug-pin` | earth roles PE and FE; plug pin. PE is the earth sign inside a circle (IEC 60417-5019), FE the plain earth sign (IEC 60417-5018), as the ruling of decision log ID-36 identifies them (not yet verified against the standard, like every `iec60617_ref`); their text slots sit at x = 6 mm (PE, clear of the circle) and 4 mm (FE), and a content lint guards the assignment | folio 101 earth ([reference drawing](../research/reference-drawing.md) §1.5); CPX FE screw; X1 pins on 106 |
 | `ew.gen.blackbox` | from the part pattern | -102G1, -102F2, CPX power blocks on 106 |
-| `ew.gen.ip`, `ew.gen.external-arrow`, junction dot and bevel, cable marker, wire marker | built in (the interruption point's FnDef is `ew.fn.ip`, §2.3); the wire marker is the graphic of a `PageItem::WireMarker` ([03](03-domain-model.md) §6) | L-1, N-1, 24VDC-1 …; J-E-206 points; -106W1 marker; "2.5 BK" on W7 |
+| `ew.gen.ip`, `ew.gen.external-arrow`, junction dot and bevel, cable marker, wire marker | built in (the interruption point's FnDef is `ew.fn.ip`, §2.3; it prints its pairing name in the function-text slot, decision log ID-166); the wire marker is the graphic of a `PageItem::WireMarker` ([03](03-domain-model.md) §6) | L-1, N-1, 24VDC-1 …; J-E-206 points; -106W1 marker; "2.5 BK" on W7 |
 | `ew.bus.dp-port`, `ew.bus.dp-connector` | BusPort | -201U1 on folio 3; anchor at graphics gives "3-B2" (D-14) |
 | `ew.ovw.module`, `ew.ovw.valve-top` | overview of the assembly view | generated overview on 201/202 |
 | `ew.iso.valve-5-2-sol-spring` | fluid 5/2, ports 1–5, solenoid 14 with manual override, spring | 28 valves, 203–206 |

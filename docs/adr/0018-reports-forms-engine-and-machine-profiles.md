@@ -1,6 +1,6 @@
 # ADR-0018: Reports and forms engine; report blocks as derived pages; machine-export profiles as data
 
-**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
 
 ## Context
 
@@ -116,7 +116,8 @@ columns = [
 
 ## Amendments
 
-Accepted on 2026-10-18. The decision text above is unchanged; these entries refine it.
+Amendments 1 to 3 were accepted on 2026-10-18, amendment 4 on 2026-10-19. The decision text above is unchanged;
+these entries refine it.
 
 1. **Machine profiles, label profiles and the TIA tag XLSX** (2026-10-18;
    [13](../design/13-manufacturing-outputs.md) §5.4, §7; [10](../design/10-plc-and-bus.md) §4.5). Two profile kinds
@@ -133,6 +134,12 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
 3. **Report terms** (2026-10-18; [09](../design/09-reports-forms-output.md) §2.4). The *PLC overview* is the row
    source `plc_overview`, one row per channel of a station (folio 908); the *PLC card list* is `plc_card_list`,
    one row per module (1.0); the *I/O assignment list* is `io_list` (FR-PLC-023).
+4. **The TOC page count in closed form** (2026-10-19, core team, after the independent review of the cycle-7 report
+   engine; decision log ID-155, ID-158; [09](../design/09-reports-forms-output.md) §3.1). The context's "iterates
+   for at most three rounds" is replaced: the pages that do not depend on the TOC count, D, give the count directly
+   as n = ⌈D / (per − 1)⌉, where per is the TOC capacity (the TOC form's data area, else the profile's
+   `toc.rows_per_page`, at least 2), and one confirming round checks it. If the confirming round needs more pages,
+   the order is rebuilt with that count and EW-CORE-025 is raised, so no page is ever missing.
 
 ## Consequences
 

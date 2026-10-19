@@ -1,6 +1,6 @@
 # ADR-0015: One display-list IR; wgpu canvas plus an always-built CPU renderer; krilla PDF/A-2b; PDF as print master
 
-**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -67,7 +67,7 @@ Later: optional content (FR-OUT-023), DWG pages (FR-OUT-016) and 3D PDF (FR-OUT-
 
 ## Amendments
 
-Accepted on 2026-10-18. The decision text above is unchanged; these entries refine it.
+Amendments 1 to 4 were accepted on 2026-10-18, amendments 5 to 7 on 2026-10-19. The decision text above is unchanged; these entries refine it.
 
 1. **Print adapters, PNG export and the PDF rasteriser** (2026-10-18;
    [reports, forms and output](../design/09-reports-forms-output.md), open questions 4 and 5;
@@ -97,6 +97,37 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    must render, so `ew-dl`'s `Stroke` carries a `brush` (default black) beside its width, caps, joins and dash
    pattern. The IR item stays `Path(BezPath, Stroke, Brush)`; its third member is the fill brush. Lowering resolves a
    primitive's `ByLayer` colour to a concrete brush, so renderers and writers never see `ByLayer`.
+5. **The PDF as built** (2026-10-19, core team; decision log ID-139, ID-140;
+   [reports, forms and output](../design/09-reports-forms-output.md) §4.2, §4.3). This settles the pending
+   amendment on page labels: krilla 0.8.2 writes `/PageLabels` natively, one range per page with the folio label as
+   literal prefix and no numbering style, so no pdf-writer post-step is needed. The writer follows these rules:
+   - **Determinism.** No wall clock and no randomness: the creation date is the caller's (FR-OUT-026's order), the
+     document ID is krilla's stable hash of the caller's digest of the export input and the instance ID a hash of
+     the document, and font subset tags are content hashes. Coordinates go nm → milli-pt in integers, half to
+     even, before they become `f32`; rotations come from `ew-dl`'s `libm` numerics. Pages, items, fonts and
+     destinations are processed in input order, every map is a `BTreeMap`, and krilla numbers objects in first-use
+     order and sorts the name tree.
+   - **Destinations.** Every page has its own named destination: a drawn page its page ID, a divider its section's
+     ID, a generated page its `v5(block, index)`; a duplicate destination is an export error (decision log ID-163).
+     A target item gets a destination only when a link of the export points at it; the first target in page order
+     wins.
+   - **Text.** Glyphs are subset-embedded (CID, Identity-H) with ToUnicode from the run's text: one char per glyph
+     when the counts agree, otherwise the run is one cluster, until `ShapedRun` carries clusters. `.notdef`
+     glyphs are dropped, as PDF/A requires.
+   - **Not yet.** Link annotations use a rectangle, not QuadPoints; images are skipped until assets reach the
+     scene; links out of a partial export are plain text (FR-OUT-020's remote links follow).
+6. **PNG determinism per build target** (2026-10-19, project owner, delegated; decision log ID-138; refines
+   amendment 3). `ew-render-cpu` runs vello_cpu on `Level::baseline()`, the portable SIMD level, so a PNG is
+   byte-identical across runs and machines of one build target; across targets PNGs still compare within the dify
+   tolerance. (`Level::fallback()`, the scalar path, needs a further fearless_simd feature and is not used.) The
+   golden PNGs are rendered at 150 dpi (doc 20 §3.3).
+7. **Page layers over a caller-filled view** (2026-10-19, core team; decision log ID-125, ID-136; refines
+   amendment 2). `ew-scene` has no edge to `ew-derive`. Its layer function `page_display_list(view, layer, fonts)`
+   is a pure function of a `PageView` that the caller fills with the page's records and derived texts; each layer
+   reads only its own inputs, so the frame layer never sees a wire edit. The memoised
+   `page_display_list(page, layer, lang)` family of amendment 2 is built by the export job in the crate that fills
+   the view, with one view and one query per layer that reads only that layer's inputs, so a wire edit never
+   rebuilds the title block in practice; until then the CPU renderer and the PDF writer take the layers directly.
 
 ## Consequences
 
@@ -119,10 +150,8 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
 
 ## Pending amendments
 
-This follow-up comes from [reports, forms and output](../design/09-reports-forms-output.md) (open question 11) and
-stays open:
-1. **`/PageLabels` with literal prefixes** (one label range per page) are valid PDF, but krilla's API support is
-   unverified. *Recommendation:* verify in the spine (weeks 6–9); fall back to a pdf-writer post-step.
+None. The page-label amendment that was pending here (from
+[reports, forms and output](../design/09-reports-forms-output.md), open question 11) is settled by amendment 5.
 
 ## Alternatives considered
 
