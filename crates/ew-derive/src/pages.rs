@@ -194,7 +194,8 @@ pub struct GeneratedPage {
     /// `{group}` filled.
     pub title: MlText,
     /// The rows of the block's row set this page shows (indices into its final, arranged row list). For a
-    /// table of contents, [`PageOrder`] clamps the range to the TOC's row count (one row per page).
+    /// table of contents, [`PageOrder`] fits the ranges to the TOC's row count (one row per page): clamped,
+    /// and the block's last page extended to the end.
     pub rows: Range<u32>,
     /// The group key text of the page's first group, if the block groups (`{group}`, `{group.key}`).
     pub group: Option<String>,
@@ -221,15 +222,25 @@ pub struct GeneratedPage {
 ///   else (ADR-0002 decision 1).
 /// - **No page order:** it runs inside [`PageOrder`], so neither it nor any query it calls may read
 ///   [`PageOrder`] (that would be a [`Cycle`](crate::Cycle)); page positions come from
-///   [`DrawnPageOrder`].
-/// - **TOC blocks:** a block of kind `toc` gets exactly `toc_pages` pages, with row ranges of
-///   `toc.rows_per_page` rows each; `page_order` settles the count (at most 3 rounds) and clamps the
-///   ranges to the final row count.
+///   [`DrawnPageOrder`]. A cycle met anyway is answered with a placeholder page, never a panic.
+/// - **Only TOC blocks depend on `toc_pages`:** the pages of every other block are the same for every
+///   `toc_pages` (`page_order` asks for them once, with 0).
+/// - **TOC blocks:** a block of kind `toc` gets exactly `toc_pages` pages, page `k` with the row range
+///   `k·r .. (k+1)·r` where `r` = [`toc_rows_per_page`](ReportPagesProvider::toc_rows_per_page);
+///   `page_order` settles the count and fits the ranges to the final row count.
 /// - **Embedded blocks** (`embedded` set) have no pages; they do not join the page order (doc 09 §3.4).
 /// - The pages come in block order (`index` 0, 1, …) with folio numbers and labels filled.
 pub trait ReportPagesProvider: Send + Sync {
     /// The generated pages of `block` when the table of contents has `toc_pages` pages.
     fn pages(&self, q: &Q, block: Id<ReportBlock>, toc_pages: u32) -> Vec<GeneratedPage>;
+
+    /// The rows one page of the TOC block `block` holds (doc 09 §3.1, decision D3: the data area of the
+    /// TOC form when it has a valid one, else the profile's `toc.rows_per_page`). At least 1. The default
+    /// is the profile's value.
+    fn toc_rows_per_page(&self, q: &Q, block: Id<ReportBlock>) -> u32 {
+        let _ = block;
+        q.profile().toc.rows_per_page.max(1)
+    }
 }
 
 /// The provider a [`Q`] carries, if any.
@@ -243,21 +254,6 @@ impl fmt::Debug for ProviderSlot {
         } else {
             "ProviderSlot(None)"
         })
-    }
-}
-
-impl Q {
-    /// This context with the report engine installed: [`PageOrder`] then includes the generated report
-    /// pages. Call it before the first query: values this `Q` has already cached are not recomputed.
-    #[must_use]
-    pub fn with_report_pages(mut self, provider: Arc<dyn ReportPagesProvider>) -> Q {
-        self.report_pages = ProviderSlot(Some(provider));
-        self
-    }
-
-    /// Whether a report engine is installed.
-    pub fn has_report_pages(&self) -> bool {
-        self.report_pages.0.is_some()
     }
 }
 
@@ -295,13 +291,31 @@ pub struct PageOrderV {
     pub entries: Vec<PageEntry>,
     /// The number of table-of-contents pages the fixpoint settled on.
     pub toc_pages: u32,
-    /// Whether the TOC page-count fixpoint was reached within three rounds (else EW-CORE-025).
+    /// Whether the TOC page count settled (else EW-CORE-025; see [`PageOrder`]).
     pub fixpoint_reached: bool,
     index: BTreeMap<PageRef, usize>,
     generated: BTreeMap<PageRef, GeneratedPage>,
 }
 
 impl PageOrderV {
+    /// The order of sorted `(key, entry)` pairs.
+    fn new(
+        sorted: Vec<(OrderKey, PageEntry)>,
+        toc_pages: u32,
+        fixpoint_reached: bool,
+        generated: BTreeMap<PageRef, GeneratedPage>,
+    ) -> PageOrderV {
+        let entries: Vec<PageEntry> = sorted.into_iter().map(|(_, e)| e).collect();
+        let index = entries.iter().enumerate().map(|(i, e)| (e.page, i)).collect();
+        PageOrderV {
+            entries,
+            toc_pages,
+            fixpoint_reached,
+            index,
+            generated,
+        }
+    }
+
     /// The position of a page (0-based).
     pub fn position(&self, page: PageRef) -> Option<usize> {
         self.index.get(&page).copied()
@@ -353,9 +367,20 @@ type OrderKey = (u32, u32, NaturalKey, Origin, PageRef);
 ///
 /// Merges the drawn pages, the dividers of sections with `divider` set (at the first folio of the
 /// section's range) and the generated pages of the report blocks, and sorts them numerically, never
-/// textually. The TOC's own page count feeds back into the generated pages: the merge repeats until the
-/// count is stable, at most three rounds (ARCH §6.2); the order of the last round is returned and
-/// `fixpoint_reached` tells whether it settled.
+/// textually.
+///
+/// # The TOC page count
+///
+/// The table of contents lists every page of the order, its own pages included, so its page count `n`
+/// feeds back into the order. Only TOC pages depend on `n` (provider contract), so the other pages are
+/// counted once: `D` pages. With `r` rows per TOC page (the least over the TOC blocks) and `k` TOC
+/// blocks, `n` pages suffice when `n·r ≥ D + k·n`; the least such `n` is the closed form
+/// `n = max(1, ⌈D / (r − k)⌉)` (for `r > k`). One round builds the order with that `n` and confirms it
+/// (`⌈len / r⌉ = n`, and every TOC block gave `n` pages); if a TOC block gave no pages (embedded), `k` is
+/// corrected and one more round confirms. Otherwise the fixpoint is not reached (EW-CORE-025): the order
+/// is rebuilt with the largest count seen, and the last page of each TOC block takes every remaining row,
+/// so no page is ever missing from the TOC (doc 09 §7 pitfall 1: a blank row is preferable to a missing
+/// one).
 #[derive(Debug)]
 pub struct PageOrder;
 
@@ -368,81 +393,162 @@ impl Query for PageOrder {
     fn run(q: &Q, _key: &()) -> Arc<PageOrderV> {
         let base = Base::new(q);
 
-        let blocks: Vec<(Id<ReportBlock>, bool)> = q
-            .report_blocks()
-            .iter()
-            .map(|(id, b)| (id, matches!(b.source, ReportSource::Kind(ReportKind::Toc))))
-            .collect();
-        let has_toc = blocks.iter().any(|(_, toc)| *toc);
-        let per_page = q.profile().toc.rows_per_page.max(1);
-
-        let mut toc_pages = 1u32;
-        let mut reached = false;
-        let mut order = Vec::new();
-        let mut generated = BTreeMap::new();
-        for _round in 0..3 {
-            let mut all = base.fixed.clone();
-            generated = BTreeMap::new();
-            for (block, _) in &blocks {
-                for g in report_pages(q, *block, toc_pages) {
-                    let section = g.section.filter(|s| base.rank.contains_key(s));
-                    let entry = PageEntry {
-                        page: PageRef::Generated {
-                            block: g.block,
-                            index: g.index,
-                        },
-                        origin: Origin::Generated,
-                        section,
-                        number: g.number,
-                        folio: g.label.clone(),
-                        kind: PageType::Report,
-                    };
-                    let key = (
-                        base.rank_of(section),
-                        g.number,
-                        natural_key(&g.label),
-                        Origin::Generated,
-                        entry.page,
-                    );
-                    generated.insert(entry.page, g);
-                    all.push((key, entry));
-                }
-            }
-            all.sort_by(|a, b| a.0.cmp(&b.0));
-            order = all;
-            let needed = if has_toc {
-                u32::try_from(order.len())
-                    .unwrap_or(u32::MAX)
-                    .div_ceil(per_page)
-                    .max(1)
+        let mut toc_blocks: Vec<Id<ReportBlock>> = Vec::new();
+        let mut other_blocks: Vec<Id<ReportBlock>> = Vec::new();
+        for (id, b) in q.report_blocks().iter() {
+            if matches!(b.source, ReportSource::Kind(ReportKind::Toc)) {
+                toc_blocks.push(id);
             } else {
-                toc_pages
-            };
-            if needed == toc_pages {
+                other_blocks.push(id);
+            }
+        }
+
+        // The pages that do not depend on the TOC page count, counted once.
+        let mut fixed = base.fixed.clone();
+        let mut generated = BTreeMap::new();
+        for block in &other_blocks {
+            for g in report_pages(q, *block, 0) {
+                fixed.push(base.generated_entry(&g));
+                generated.insert(generated_ref(&g), g);
+            }
+        }
+
+        if toc_blocks.is_empty() {
+            fixed.sort_by(|a, b| a.0.cmp(&b.0));
+            return Arc::new(PageOrderV::new(fixed, 1, true, generated));
+        }
+
+        let per = toc_blocks
+            .iter()
+            .map(|b| toc_rows_per_page(q, *b))
+            .min()
+            .unwrap_or(1)
+            .max(1);
+        let d = len_u32(fixed.len());
+        let estimate = |k: u32| -> u32 {
+            if per > k {
+                d.div_ceil(per - k).max(1)
+            } else {
+                // No count lets the TOC list its own pages: list the others, report non-convergence.
+                d.div_ceil(per).max(1)
+            }
+        };
+
+        let mut n = estimate(len_u32(toc_blocks.len()));
+        let mut max_seen = n;
+        let mut reached = false;
+        let mut built = TocRound::build(q, &base, &toc_blocks, n);
+        for round in 0..2 {
+            let needed = built.total(d).div_ceil(per).max(1);
+            if needed == n && built.consistent(n) {
                 reached = true;
                 break;
             }
-            toc_pages = toc_pages.max(needed);
+            max_seen = max_seen.max(needed).max(n);
+            let next = estimate(built.blocks_with_pages);
+            if round == 1 || next == n {
+                break;
+            }
+            n = next;
+            built = TocRound::build(q, &base, &toc_blocks, n);
+        }
+        if !reached && n != max_seen {
+            n = max_seen;
+            built = TocRound::build(q, &base, &toc_blocks, n);
         }
 
-        let entries: Vec<PageEntry> = order.into_iter().map(|(_, e)| e).collect();
-        // The TOC has one row per page of the order: clamp the TOC pages' row ranges to it.
-        let toc_rows = u32::try_from(entries.len()).unwrap_or(u32::MAX);
-        for (page, g) in &mut generated {
-            if let PageRef::Generated { block, .. } = page
-                && blocks.iter().any(|(b, toc)| b == block && *toc)
-            {
-                g.rows = g.rows.start.min(toc_rows)..g.rows.end.min(toc_rows);
+        let toc_rows = built.total(d);
+        built.fit_rows(&toc_blocks, toc_rows);
+        let mut all = fixed;
+        all.extend(built.entries);
+        all.sort_by(|a, b| a.0.cmp(&b.0));
+        generated.extend(built.generated);
+        Arc::new(PageOrderV::new(all, n, reached, generated))
+    }
+}
+
+/// The page reference of a generated page.
+fn generated_ref(g: &GeneratedPage) -> PageRef {
+    PageRef::Generated {
+        block: g.block,
+        index: g.index,
+    }
+}
+
+/// The rows per TOC page of a TOC block, from the provider (none installed: the profile's value).
+fn toc_rows_per_page(q: &Q, block: Id<ReportBlock>) -> u32 {
+    match &q.report_pages.0 {
+        Some(p) => p.toc_rows_per_page(q, block).max(1),
+        None => q.profile().toc.rows_per_page.max(1),
+    }
+}
+
+fn len_u32(n: usize) -> u32 {
+    u32::try_from(n).unwrap_or(u32::MAX)
+}
+
+/// The TOC pages of one round of the fixpoint.
+struct TocRound {
+    entries: Vec<(OrderKey, PageEntry)>,
+    generated: BTreeMap<PageRef, GeneratedPage>,
+    /// The page count of each TOC block that has pages.
+    counts: Vec<u32>,
+    /// How many TOC blocks have pages (an embedded TOC block has none).
+    blocks_with_pages: u32,
+}
+
+impl TocRound {
+    fn build(q: &Q, base: &Base, toc_blocks: &[Id<ReportBlock>], n: u32) -> TocRound {
+        let mut round = TocRound {
+            entries: Vec::new(),
+            generated: BTreeMap::new(),
+            counts: Vec::new(),
+            blocks_with_pages: 0,
+        };
+        for block in toc_blocks {
+            let pages = report_pages(q, *block, n);
+            if !pages.is_empty() {
+                round.blocks_with_pages += 1;
+                round.counts.push(len_u32(pages.len()));
+            }
+            for g in pages {
+                round.entries.push(base.generated_entry(&g));
+                round.generated.insert(generated_ref(&g), g);
             }
         }
-        let index = entries.iter().enumerate().map(|(i, e)| (e.page, i)).collect();
-        Arc::new(PageOrderV {
-            entries,
-            toc_pages,
-            fixpoint_reached: reached,
-            index,
-            generated,
-        })
+        round
+    }
+
+    /// The length of the order: `d` other pages and these TOC pages.
+    fn total(&self, d: u32) -> u32 {
+        d.saturating_add(len_u32(self.entries.len()))
+    }
+
+    /// Whether every TOC block with pages gave exactly `n` (the provider kept the contract).
+    fn consistent(&self, n: u32) -> bool {
+        self.counts.iter().all(|c| *c == n)
+    }
+
+    /// Fits each TOC block's row ranges to the TOC's `rows` (one row per page of the order): ranges are
+    /// clamped, and the block's last page ends at `rows`, so no page is missing even when the count did not
+    /// settle (its last page may then overflow; EW-CORE-025 reports it).
+    fn fit_rows(&mut self, toc_blocks: &[Id<ReportBlock>], rows: u32) {
+        for block in toc_blocks {
+            let last = self
+                .generated
+                .values()
+                .filter(|g| g.block == *block)
+                .map(|g| g.index)
+                .max();
+            for g in self.generated.values_mut().filter(|g| g.block == *block) {
+                let end = if Some(g.index) == last {
+                    rows
+                } else {
+                    g.rows.end.min(rows)
+                };
+                g.rows = g.rows.start.min(end)..end;
+            }
+        }
     }
 }
 
@@ -516,6 +622,27 @@ impl Base {
     fn rank_of(&self, s: Option<Id<Section>>) -> u32 {
         s.and_then(|s| self.rank.get(&s).copied()).unwrap_or(0)
     }
+
+    /// The entry and sort key of a generated page.
+    fn generated_entry(&self, g: &GeneratedPage) -> (OrderKey, PageEntry) {
+        let section = g.section.filter(|s| self.rank.contains_key(s));
+        let entry = PageEntry {
+            page: generated_ref(g),
+            origin: Origin::Generated,
+            section,
+            number: g.number,
+            folio: g.label.clone(),
+            kind: PageType::Report,
+        };
+        let key = (
+            self.rank_of(section),
+            g.number,
+            natural_key(&g.label),
+            Origin::Generated,
+            entry.page,
+        );
+        (key, entry)
+    }
 }
 
 /// `drawn_page_order()`: the page order of the drawn pages and dividers alone, without generated pages.
@@ -536,14 +663,6 @@ impl Query for DrawnPageOrder {
     fn run(q: &Q, _key: &()) -> Arc<PageOrderV> {
         let mut fixed = Base::new(q).fixed;
         fixed.sort_by(|a, b| a.0.cmp(&b.0));
-        let entries: Vec<PageEntry> = fixed.into_iter().map(|(_, e)| e).collect();
-        let index = entries.iter().enumerate().map(|(i, e)| (e.page, i)).collect();
-        Arc::new(PageOrderV {
-            entries,
-            toc_pages: 0,
-            fixpoint_reached: true,
-            index,
-            generated: BTreeMap::new(),
-        })
+        Arc::new(PageOrderV::new(fixed, 0, true, BTreeMap::new()))
     }
 }

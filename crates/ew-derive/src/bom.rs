@@ -9,14 +9,14 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText, NaturalKey, natural_key};
-use ew_schema::{Device, DeviceState, LibRef, OrderUnit, Part, PartKind, PartRef};
+use ew_schema::{Device, DeviceState, LibRef, OrderUnit, Part, PartKind, PartRef, RepType, Representation};
 use ew_units::Dec3;
 
 use crate::Q;
 use crate::cell::RepAnchorCell;
 use crate::pages::{DrawnPageOrder, PageOrderV, PageRef};
 use crate::query::{Policy, Query};
-use crate::tag::{DeviceTag, MainRep};
+use crate::tag::{DeviceTag, MainFunction, MainRep};
 
 /// The two BOM modes (FR-REP-005).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -147,7 +147,8 @@ pub struct BomRow {
 ///    limit); part data comes from the part copy; the devices are sorted by their short tag, full tag and
 ///    ID (natural order); the pages are those of the devices' main representations, in page order.
 /// 4. **Order:** rows with a placed device first, by the least (page-order position, column, row) of their
-///    devices' main representations (a missing cell counts as `u32::MAX`), then by the head rank, then by
+///    devices' main representations (a terminal without one takes its strip's first segment; a missing
+///    cell counts as `u32::MAX`), then by the head rank, then by
 ///    part number; rows without a placed device after them, by the legend rank of the part kind
 ///    (enclosure, mounting plate, rail, duct, other), part number and description. The key breaks every
 ///    remaining tie. The *head rank* is 0 for every row that is not a configured product. Configured
@@ -270,9 +271,34 @@ struct Placement {
     order: (usize, u32, u32),
 }
 
-/// The main representation of a device: its drawn page and position; `None` for an unplaced device.
+/// Where a device's row is placed: its main representation's drawn page and anchor cell; `None` for an
+/// unplaced device.
+///
+/// A terminal is drawn through its strip (the strip's segments are the representations, the terminal
+/// devices have none), so a device with a terminal aspect and no main representation of its own takes its
+/// strip's **first** segment: the least (page-order position, column, row) over the representations of the
+/// strip's main function, contact images excluded. Not the strip's `main_rep`, which is the smallest ID and
+/// for a strip drawn in several segments need not be the first one (-X1031 is drawn at 103 A3 and A10): the
+/// PT 2.5-TWIN rows sit on folio 103 with -X1031 before -X1032 (doc 20 §14.1, rows 13–14).
 fn placement(q: &Q, order: &PageOrderV, device: Id<Device>) -> Option<Placement> {
-    let rep_id = (*q.get::<MainRep>(device))?;
+    if let Some(rep) = *q.get::<MainRep>(device) {
+        return rep_placement(q, order, rep);
+    }
+    let strip = q.devices().get(device)?.aspects.terminal.as_ref()?.strip;
+    if strip == device {
+        return None;
+    }
+    let f = (*q.get::<MainFunction>(strip))?;
+    let reps = q.reps();
+    q.idx()
+        .reps_of_function(f)
+        .filter(|r| reps.get(*r).is_some_and(|r| r.rep_type != RepType::ContactImage))
+        .filter_map(|r| rep_placement(q, order, r))
+        .min_by_key(|p| (p.order, p.page))
+}
+
+/// The drawn page and anchor cell of one representation.
+fn rep_placement(q: &Q, order: &PageOrderV, rep_id: Id<Representation>) -> Option<Placement> {
     let rep = q.reps().get(rep_id)?;
     let page = PageRef::Drawn(rep.page);
     let (column, row) = match q.get::<RepAnchorCell>(rep_id).as_ref() {

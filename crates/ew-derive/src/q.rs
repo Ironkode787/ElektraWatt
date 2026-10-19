@@ -31,6 +31,17 @@ use crate::tracker::{ColdTracker, DepKey, IxKey, Tracker};
 /// `Q` is request-scoped: build one per top-level evaluation (a frame, a command preview, an export
 /// pass). It is not `Sync`; the cache lives in a `RefCell`.
 ///
+/// # Configuration: the report engine
+///
+/// Besides the snapshot, a `Q` carries engine-level configuration that is not a tracked input: the
+/// derivation profile (resolved from the project row, which is tracked) and the
+/// [`ReportPagesProvider`](crate::ReportPagesProvider) behind generated pages ([`Q::with_report_pages`]).
+/// The session installs the report engine on every `Q` it hands out; `Q::new` without a provider is the
+/// "no reports" configuration for tests. The provider is fixed before the first query (installing it
+/// clears the cache), and no query body can observe whether one is installed ([`Q::has_report_pages`]
+/// takes `&mut self`). Once ew-memo memoises across requests, the provider is part of the store's
+/// configuration: one provider per store, never switched between evaluations that share memo tables.
+///
 /// ```compile_fail
 /// // A query cannot reach the model behind `Q`: there is no accessor and the field is private.
 /// fn sneak(q: &ew_derive::Q) -> &ew_model::Model {
@@ -45,6 +56,7 @@ pub struct Q {
     profile: &'static DerivationProfile,
     profile_status: ProfileStatus,
     /// The report engine behind generated pages (`Q::with_report_pages`, WP-S3.03); none by default.
+    /// Configuration, not a tracked input: see the type documentation.
     pub(crate) report_pages: crate::pages::ProviderSlot,
 }
 
@@ -192,6 +204,33 @@ impl Q {
                 Ok(value)
             }
         }
+    }
+
+    /// This context with the report engine installed: [`PageOrder`](crate::PageOrder) then includes the
+    /// generated report pages (WP-S3.03). The provider is configuration, not a tracked input (see the type
+    /// documentation), so installing it discards every value this `Q` has already cached and every note
+    /// its queries pushed: nothing computed under the previous configuration survives.
+    #[must_use]
+    pub fn with_report_pages(mut self, provider: Arc<dyn crate::ReportPagesProvider>) -> Q {
+        self.report_pages = crate::pages::ProviderSlot(Some(provider));
+        *self.cache.get_mut() = Cache::default();
+        // Only the snapshot's own note (an unknown pinned profile) is independent of query evaluation.
+        self.notes
+            .get_mut()
+            .retain(|n| matches!(n, DeriveNote::UnknownProfile { .. }));
+        self
+    }
+
+    /// Whether a report engine is installed. It takes `&mut self`, so a query body (which holds `&Q`)
+    /// cannot branch on this untracked configuration:
+    ///
+    /// ```compile_fail
+    /// fn run(q: &ew_derive::Q) -> bool {
+    ///     q.has_report_pages()
+    /// }
+    /// ```
+    pub fn has_report_pages(&mut self) -> bool {
+        self.report_pages.0.is_some()
     }
 
     /// Records a derivation note (see [`DeriveNote`]). Notes form a set: pushing one twice keeps one.
