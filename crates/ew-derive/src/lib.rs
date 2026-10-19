@@ -87,6 +87,16 @@ pub use title_block::{TbValue, TitleBlock, TitleBlockValues};
 pub use toc::{TocRow, TocRows};
 pub use tracker::{ColdTracker, DepKey, IxKey, Recorded, RecordingTracker, Tracker};
 
+// WP-S3.03: the report-pages provider hook of `page_order` and the drawn-page order.
+pub use pages::{DrawnPageOrder, ReportPagesProvider};
+
+/// The revision stamp of a snapshot (in this crate's public API through [`Tracker`]).
+pub use ew_model::Rev;
+
+// The crates whose types this crate's public API carries, re-exported for the crates above it that reach
+// the model's types through `ew-derive` alone (`ew-reports`, ARCH §3).
+pub use {ew_ids, ew_mltext, ew_schema, ew_units};
+
 /// Every query family of this crate with its initial policy (ARCH §6.4), in name order.
 pub const FAMILIES: &[(&str, Policy)] = &[
     (BomRows::FAMILY, BomRows::POLICY),
@@ -95,6 +105,7 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (DeviceTag::FAMILY, DeviceTag::POLICY),
     (DevicesByStructure::FAMILY, DevicesByStructure::POLICY),
     (DisplayedTag::FAMILY, DisplayedTag::POLICY),
+    (DrawnPageOrder::FAMILY, DrawnPageOrder::POLICY),
     (FrameGridOf::FAMILY, FrameGridOf::POLICY),
     (FrameSettings::FAMILY, FrameSettings::POLICY),
     (FunctionCps::FAMILY, FunctionCps::POLICY),

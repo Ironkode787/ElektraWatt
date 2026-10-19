@@ -44,6 +44,8 @@ pub struct Q {
     notes: RefCell<BTreeSet<DeriveNote>>,
     profile: &'static DerivationProfile,
     profile_status: ProfileStatus,
+    /// The report engine behind generated pages (`Q::with_report_pages`, WP-S3.03); none by default.
+    pub(crate) report_pages: crate::pages::ProviderSlot,
 }
 
 /// Prints nothing a query could use to tell snapshots apart: no revision, no cache state.
@@ -139,6 +141,7 @@ impl Q {
             notes: RefCell::new(notes),
             profile,
             profile_status,
+            report_pages: crate::pages::ProviderSlot::default(),
         }
     }
 

@@ -14,7 +14,7 @@ use ew_units::Dec3;
 
 use crate::Q;
 use crate::cell::RepAnchorCell;
-use crate::pages::{PageOrder, PageOrderV, PageRef};
+use crate::pages::{DrawnPageOrder, PageOrderV, PageRef};
 use crate::query::{Policy, Query};
 use crate::tag::{DeviceTag, MainRep};
 
@@ -170,7 +170,9 @@ impl Query for BomRows {
 
     fn run(q: &Q, key: &BomMode) -> Arc<Vec<BomRow>> {
         let lines = filtered_lines(q, *key);
-        let order = q.get::<PageOrder>(());
+        // The drawn-page order, not `page_order`: BOM report pages feed `page_order`, and the two agree on
+        // the relative order of drawn pages (WP-S3.03).
+        let order = q.get::<DrawnPageOrder>(());
         let parts = q.parts();
 
         // Aggregate.
