@@ -1437,7 +1437,7 @@ mod tests {
             index_on_page[c.page] += 1;
             assert_eq!(
                 c.routed,
-                j % ROUTE_EVERY == 0 || is_load_main(fa) || is_load_main(fb),
+                j.is_multiple_of(ROUTE_EVERY) || is_load_main(fa) || is_load_main(fb),
                 "routed mark of {c:?} (page wire {j})"
             );
         }

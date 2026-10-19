@@ -7,7 +7,7 @@
 //! exists. The A* auto-route of doc 06 §5.4 (work items FT-18 and FT-43) owns routing; when it lands, it
 //! replaces [`provisional_route`] and the stored routes it writes take over through [`connection_polyline`].
 //!
-//! Everything is integer nanometres ([`Nm`](ew_units::Nm), [`Pt2`], [`Rect`]) on the page, origin top-left,
+//! Everything is integer nanometres ([`Nm`], [`Pt2`], [`Rect`]) on the page, origin top-left,
 //! y down, as in [`symbol`](crate::symbol). The functions are pure, deterministic and integer-only (no
 //! arithmetic on coordinates at all, so no overflow), and the result never leaves the page: every vertex is
 //! clamped into the page rectangle.

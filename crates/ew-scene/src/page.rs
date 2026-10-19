@@ -19,7 +19,7 @@
 //!
 //! | Layer | Reads | Items, in order |
 //! |---|---|---|
-//! | [`Layer::Frame`] | `frame` | [`forms::lower_form`]: frame, grid labels, form graphics and cells, title block |
+//! | [`Layer::Frame`] | `frame` | [`crate::forms::lower_form`]: frame, grid labels, form graphics and cells, title block |
 //! | [`Layer::Symbols`] | `reps` | per representation (by ID): one [`Item::instance`] of `symbol_geometry(symbol, orient)` at `pos`, tagged with the representation and its [`Link::Target`]; then its static symbol texts |
 //! | [`Layer::Wires`] | `reps` (CP positions), `connections`, `junctions` | per connection (by ID): its polyline; then per junction (by ID): its dot or bevel symbol |
 //! | [`Layer::Labels`] | `reps`, `connections`, `wire_marker` | per representation (by ID): its visible slot texts (a [`Link::Source`] where the slot value names a destination); then per connection with a marker (by ID): the marker box and text |
