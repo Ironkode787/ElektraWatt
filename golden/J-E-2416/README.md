@@ -354,3 +354,32 @@ part uses of `devices.csv` and `terminals.csv`; the BOM rows themselves are deri
 Also not covered yet: the 13-14 signal-contact function of the MICO 4.10 template (its CPs 13 and 14 belong to the
 black box), "supplied by others" for the process valves -203Q1 … -203Q8 (FR-DEV-037), and the `DP` port of -201U1
 (doc 20 §6.1 row 19).
+
+## Expected page output (candidates)
+
+`expected/` holds what the page output of the golden model must reproduce (doc 20 §3.1, §3.3). It is **generated**,
+never edited by hand, by `crates/ew-api/tests/page_output.rs`:
+
+```text
+EW_BLESS=1 cargo nextest run -p ew-api --test page_output     # rewrites expected/ from the model
+cargo nextest run -p ew-api --test page_output                # compares (no EW_BLESS)
+```
+
+- `text/<folio>.csv`: every glyph run of every exported layer on the sheet, in paint order, one file per folio of
+  `page_order` (dialect as above). Columns `seq,layer,entity,text,x_mm,y_mm,size_pt,angle_mdeg,box_x0_mm,box_y0_mm,
+  box_x1_mm,box_y1_mm`. The **anchor** of §3.3 recorded is the run origin (the baseline start, `x_mm,y_mm`, 3 decimals)
+  together with the run's layout box; `size_pt` has 2 decimals; `angle_mdeg` is the run's own angle in [0, 360000).
+- `geometry/frame.json`: the printed frame figures of the two frame forms with the QET title block, in mm on the
+  sheet (3 decimals): sheet, outer, drawing area, header band, column and row edges, labels, title block, line width.
+- `png/<folio>.png`: the sheet at 150 dpi. They are **candidates awaiting the first PNG approval (FT-10, an owner
+  action)** and are compared with the §3.3 tolerance (at most 0.5 % of the pixels differ by more than 16 per
+  channel), not byte for byte.
+- Everything under `golden/` is CC0-1.0 (`REUSE.toml`, annotation L8).
+
+Known limitations: wires use the provisional orthogonal router (doc 06 §5.4 owns the real one); the divider folios
+100, 200 and 900 show frame and title block only (their content comes from the report engine); the logo and the
+revision label are not bound yet; cross-reference texts are not drawn yet. Wires whose end is a CP of a black
+box (-102G1, -102F2, -201U1, -202U1: the bootstrap writes no `box` CPs) or of a strip terminal drawn by a strip
+segment (-X1031, -X1032: the segment symbol has no CPs) have no position on the page and are not drawn: 15 of 19
+on 102, 20 of 20 on 103 and 12 of 12 on 106 (reported as unresolved ends). These PNGs must be regenerated before
+the FT-10 approval once those positions exist.
