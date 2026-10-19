@@ -99,8 +99,8 @@ fn parts_summary_901_derives_the_golden_tables_bom() {
     let rows = q.get::<BlockRows>(b);
 
     // Doc 20 §14.1 lists 27 rows (901 holds 23, 901.1 holds 4). The golden tables carry no parts for the
-    // rails, ducts, end brackets and bridges (rows 24-27, all TBD), and the terminal rows 13 and 14 of the
-    // document are unplaced here, so the derived BOM has 23 rows: one page, 901.
+    // rails, ducts, end brackets and bridges (rows 24-27, all TBD), so the derived BOM has rows 1-23: one
+    // page, 901.
     assert!(rows.is_derived());
     assert_eq!(rows.rows.len(), 23);
     assert_eq!(
@@ -130,15 +130,53 @@ fn parts_summary_901_derives_the_golden_tables_bom() {
         .collect();
     assert_eq!(labels, ["3"]);
 
-    // Placed rows first; the enclosure and the plate follow them, unplaced.
+    // The doc 20 §14.1 order: placed rows by page order and position, the enclosure and the plate after
+    // them, unplaced. The terminals of -X1031 and -X1032 have no representation of their own; they take
+    // their strip's, so PT 2.5-TWIN and PT 2.5-TWIN-PE are rows 13 and 14 on folio 103, between -102F2 and
+    // -106W1.
     let numbers = part_numbers(&rows);
-    let placed = |i: usize| matches!(&rows.rows[i].cells[7], Cell::Folios(f) if !f.is_empty());
-    assert!((0..19).all(placed));
-    assert!((19..23).all(|i| !placed(i)));
     assert_eq!(
-        &numbers[19..],
-        ["NSYPLA1074G", "NSYPMM107", "PT 2.5-TWIN", "PT 2.5-TWIN-PE"]
+        numbers,
+        [
+            "532216",
+            "6XV1830-0EH10",
+            "533356",
+            "UK 5 N",
+            "USLKG 5",
+            "A9P52610",
+            "5SY4204-7",
+            "SK 3110.000",
+            "SK 3102.000",
+            "2904602",
+            "A9F78116",
+            "MICO 4.10",
+            "PT 2.5-TWIN",
+            "PT 2.5-TWIN-PE",
+            "NEBU-G78W5-K-2-N-LE5",
+            "195740",
+            "550208",
+            "552286",
+            "533361",
+            "533354",
+            "571334",
+            "NSYPLA1074G",
+            "NSYPMM107",
+        ]
     );
+    let placed = |i: usize| matches!(&rows.rows[i].cells[7], Cell::Folios(f) if !f.is_empty());
+    assert!((0..21).all(placed));
+    assert!((21..23).all(|i| !placed(i)));
+    for i in [12, 13] {
+        let Cell::Folios(folios) = &rows.rows[i].cells[7] else {
+            panic!("folios column")
+        };
+        let labels: Vec<&str> = folios
+            .iter()
+            .map(|p| order.entry(*p).expect("in the page order").folio.as_str())
+            .collect();
+        assert_eq!(labels, ["103"], "row {}", i + 1);
+        assert_eq!(ident(&rows.rows[i].cells[0]), (i + 1).to_string());
+    }
 }
 
 #[test]

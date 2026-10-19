@@ -569,3 +569,200 @@ fn paginating_twice_gives_equal_pages() {
     assert!(!a.is_empty());
     assert_eq!(a, b);
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// Keep-with-next and the "(cont.)" reservation (doc 09 §3.2)
+
+#[test]
+fn a_header_and_a_heading_move_together_to_the_page_of_their_first_data_row() {
+    // Capacity 4 rows: the data rows, a group header and a heading fit (2 + 2) but the first data row after
+    // them does not, so header and heading move with it.
+    let kinds = [
+        RowKind::Data,
+        RowKind::Data,
+        RowKind::GroupHeader,
+        RowKind::Heading,
+        RowKind::Data,
+        RowKind::Data,
+    ];
+    let set = RowSet {
+        rows: kinds.iter().zip(0..).map(|(k, i)| row(*k, i)).collect(),
+        ..RowSet::new(columns())
+    };
+    let layouts = Layouts::single(small(form(1), 4, true));
+    let pages = paginate(&set, &spec(901), &layouts, &FixedLines);
+    assert_eq!(ranges(&pages), [(0, 2), (2, 6)]);
+    for p in &pages {
+        let last = &set.rows[usize::try_from(p.rows.end).unwrap() - 1];
+        assert_eq!(
+            last.kind,
+            RowKind::Data,
+            "page {} ends with a header or heading",
+            p.label
+        );
+    }
+}
+
+#[test]
+fn a_group_without_header_rows_reserves_no_continuation_header() {
+    // The form has a group-header template, but the rows carry no header row: nothing is reserved.
+    let layouts = Layouts::single(PageLayout {
+        group_header: Some(Nm(H)),
+        ..PageLayout::house(form(1))
+    });
+    let pages = paginate(&grouped_set(&[23], false), &spec(901), &layouts, &FixedLines);
+    assert_eq!(ranges(&pages), [(0, 23)]);
+
+    let layouts = Layouts::single(small(form(1), 10, true));
+    let pages = paginate(&grouped_set(&[25], false), &spec(901), &layouts, &FixedLines);
+    assert_eq!(ranges(&pages), [(0, 10), (10, 20), (20, 25)]);
+    assert!(pages.iter().all(|p| !p.continued_group));
+}
+
+#[test]
+fn a_group_with_a_header_row_continues_with_a_reserved_header() {
+    let layouts = Layouts::single(small(form(1), 10, true));
+    let pages = paginate(&grouped_set(&[25], true), &spec(901), &layouts, &FixedLines);
+    assert!(pages.len() >= 3);
+    assert!(!pages[0].continued_group);
+    assert!(pages[1..].iter().all(|p| p.continued_group));
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Title placeholders (doc 09 §2.6)
+
+#[test]
+fn title_braces_are_literal_when_doubled() {
+    use ew_reports::paginate::fill_title;
+    assert_eq!(fill_title("{x {{n}} }", "1", "2", "g"), "{x {n} }");
+    assert_eq!(fill_title("Partlist {n}", "1", "2", "g"), "Partlist 1");
+    assert_eq!(fill_title("{{{n}}}", "1", "2", "g"), "{1}");
+    assert_eq!(fill_title("{group} {n}", "1", "2", "{n}"), "{n} 1");
+    assert_eq!(fill_title("{foo} {count} }{", "1", "2", "g"), "{foo} 2 }{");
+}
+
+#[test]
+fn a_group_text_with_a_placeholder_is_printed_literally_in_the_title() {
+    let mut set = grouped_set(&[3], false);
+    set.groups[0].text = "{n}".into();
+    let mut s = spec(901);
+    s.title = MlText::neutral("{group} {n}");
+    let pages = paginate(&set, &s, &house(), &FixedLines);
+    assert_eq!(title(&pages[0]), "{n} 1");
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Properties
+
+mod properties {
+    use super::*;
+    use ew_derive::ew_mltext::natural_key;
+    use proptest::prelude::*;
+
+    /// Heights are in units of 1 mm.
+    const U: i64 = 1_000_000;
+
+    fn arb_layout(form_id: Id<FormDef>) -> impl Strategy<Value = PageLayout> {
+        (1i64..10, 1i64..10, 1i64..10, 1i64..=30, any::<bool>()).prop_map(
+            move |(data, heading, header, rows, with_header)| PageLayout {
+                form: form_id,
+                capacity: Nm(data * U * rows),
+                data: Nm(data * U),
+                group_header: with_header.then_some(Nm(header * U)),
+                group_footer: None,
+                heading: Nm(heading * U),
+                wraps: [false; 4],
+            },
+        )
+    }
+
+    /// Groups of items; an item is `true` for a heading row, `false` for a data row.
+    fn arb_groups() -> impl Strategy<Value = Vec<Vec<bool>>> {
+        prop::collection::vec(prop::collection::vec(prop::bool::weighted(0.15), 0..40), 0..6)
+    }
+
+    fn build(groups: &[Vec<bool>], grouped: bool, headers: bool) -> RowSet {
+        let mut set = RowSet::new(columns());
+        for (g, items) in groups.iter().enumerate() {
+            let start = u32::try_from(set.rows.len()).unwrap();
+            if grouped && headers {
+                set.rows.push(row(RowKind::GroupHeader, start));
+            }
+            for is_heading in items {
+                let id = u32::try_from(set.rows.len()).unwrap();
+                let kind = if *is_heading {
+                    RowKind::Heading
+                } else {
+                    RowKind::Data
+                };
+                set.rows.push(row(kind, id));
+            }
+            let end = u32::try_from(set.rows.len()).unwrap();
+            if grouped {
+                set.groups.push(group(&format!("G{g}"), start..end));
+            }
+        }
+        set
+    }
+
+    proptest! {
+        #[test]
+        fn pagination_partitions_rows_within_capacity_and_numbers_in_order(
+            groups in arb_groups(),
+            grouped in any::<bool>(),
+            headers in any::<bool>(),
+            first in arb_layout(form(1)),
+            second in arb_layout(form(2)),
+            brk in 0usize..3,
+            next_folio in any::<bool>(),
+        ) {
+            let set = build(&groups, grouped, headers);
+            let layouts = Layouts { chain: vec![first, second] };
+            let mut s = spec(901);
+            s.group_break = [Break::None, Break::NewPage, Break::NewFolio][brk];
+            if next_folio {
+                s.continuation = Continuation::NextFolio;
+            }
+            let pages = paginate(&set, &s, &layouts, &FixedLines);
+            let len = u32::try_from(set.rows.len()).unwrap();
+
+            if set.data_rows() == 0 {
+                prop_assert!(pages.is_empty());
+                return Ok(());
+            }
+            // (a) the ranges partition 0..len in order.
+            let mut next = 0u32;
+            for p in &pages {
+                prop_assert!(!p.rows.is_empty());
+                prop_assert_eq!(p.rows.start, next);
+                next = p.rows.end;
+            }
+            prop_assert_eq!(next, len);
+
+            // (b) the used height is within the capacity unless the page holds a single row.
+            for p in &pages {
+                let layout = layouts.chain.iter().find(|l| l.form == p.form).unwrap();
+                let mut used: i64 = set.rows[p.rows.start as usize..p.rows.end as usize]
+                    .iter()
+                    .map(|r| layout.height(r.kind).0)
+                    .sum();
+                if p.continued_group {
+                    used += layout.height(RowKind::GroupHeader).0;
+                }
+                prop_assert!(
+                    used <= layout.capacity.0 || p.rows.len() == 1,
+                    "page {} uses {used} of {}", p.label, layout.capacity.0
+                );
+            }
+
+            // (c) labels strictly increase in natural order, folio numbers never decrease.
+            for w in pages.windows(2) {
+                prop_assert!(
+                    natural_key(&w[0].label) < natural_key(&w[1].label),
+                    "{} then {}", w[0].label, w[1].label
+                );
+                prop_assert!(w[0].number <= w[1].number);
+            }
+        }
+    }
+}

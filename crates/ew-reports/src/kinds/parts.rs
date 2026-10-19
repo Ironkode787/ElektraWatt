@@ -8,7 +8,7 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{NaturalKey, natural_key};
 use ew_derive::ew_schema::{Device, LibRef, OrderUnit, Part, ReportBlock};
 use ew_derive::ew_units::Dec3;
-use ew_derive::{BomMode, BomRows, DevicePartLines, DeviceTag, Q};
+use ew_derive::{BomMode, BomRows, DevicePartLines, DeviceTag, PartLine, Q};
 
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, QtyUnit, Row, RowId, RowKey, RowSet};
@@ -117,13 +117,14 @@ impl ReportKindDef for PartsList {
         let mut keyed: Vec<(LineKey, Row)> = Vec::new();
         for device in q.devices().ids() {
             let key = tag_key(q, device);
-            for (i, line) in q.get::<DevicePartLines>(device).iter().enumerate() {
+            let lines = q.get::<DevicePartLines>(device);
+            for (i, line) in lines.iter().enumerate() {
                 let Some(copy) = q.parts().get(line.part) else {
                     continue;
                 };
                 let part = &copy.item;
                 let mut r = Row::data(
-                    RowId::entity(device).with(RowKey::Index(i as u32)),
+                    line_id(RowId::entity(device), &lines, i),
                     vec![
                         Cell::Tag(device),
                         qty_cell(line.qty, &part.unit),
@@ -142,6 +143,22 @@ impl ReportKindDef for PartsList {
         set.rows = keyed.into_iter().map(|(_, r)| r).collect();
         set
     }
+}
+
+/// The ID of the row of part line `i` of `lines`, appended to `prefix`: the part, the variant when the line
+/// has one, and the ordinal among the earlier lines with an equal `(part, variant, source)`. It does not
+/// depend on the position of the line, so inserting a part use leaves the other rows' IDs unchanged.
+pub(super) fn line_id(prefix: RowId, lines: &[PartLine], i: usize) -> RowId {
+    let line = &lines[i];
+    let ordinal = lines[..i]
+        .iter()
+        .filter(|l| l.part == line.part && l.variant == line.variant && l.source == line.source)
+        .count();
+    let mut id = prefix.with(RowKey::Entity(line.part.as_uuid()));
+    if let Some(v) = &line.variant {
+        id = id.with(RowKey::Name(v.as_str().to_owned()));
+    }
+    id.with(RowKey::Index(u32::try_from(ordinal).unwrap_or(u32::MAX)))
 }
 
 /// The sort key of a parts-list row: natural key of the full tag, device, line index.

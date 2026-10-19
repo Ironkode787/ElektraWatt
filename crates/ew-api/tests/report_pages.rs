@@ -3,11 +3,13 @@
 
 //! The report-pages provider hook (WP-S3.03): the session installs the report engine, so `page_order`
 //! includes the generated report pages of the golden project and settles the TOC page count (doc 09 §3.1,
-//! doc 20 §5, §16); a `Q` without a provider has none; a provider that keeps changing the page count stops
-//! after three rounds.
+//! doc 20 §5, §16); a `Q` without a provider has none; the TOC page count starts from its closed form, so
+//! large projects settle and every page is listed once; a provider that breaks the contract is reported and
+//! still loses no page; the provider is configuration, and a cycle through the page order is a note.
 
 mod common;
 
+use std::rc::Rc;
 use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
@@ -15,8 +17,8 @@ use ew_derive::ew_ids::v5;
 use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_schema::{ReportBlock, ReportKind, ReportSource};
 use ew_derive::{
-    BomMode, BomRows, DrawnPageOrder, GeneratedPage, Origin, PageOrder, PageRef, PageTitle, Q,
-    ReportPagesProvider,
+    BomMode, BomRows, DeriveNote, DrawnPageOrder, GeneratedPage, Origin, PageOrder, PageOrderV, PageRef,
+    PageTitle, Q, RecordingTracker, ReportPagesProvider,
 };
 use ew_schema::Record;
 
@@ -62,8 +64,21 @@ fn the_golden_page_order_includes_the_generated_pages_with_two_toc_pages() {
     }
     assert_eq!(labels.last(), Some(&"911"));
 
-    // The TOC fixpoint (doc 09 §3.1): more than 23 pages need two TOC pages; the count is stable.
-    assert!(order.len() > 23 && order.len() <= 46);
+    // The whole order: 31 pages. Doc 20 §5 and §16 list 36; the five continuation pages 901.1, 907.1, 907.2,
+    // 908.1 and 908.2 are not derived yet: BOM rows 24-27 have no golden parts, and the connectivity kinds
+    // (wire list 907, cable overview 908) are one placeholder page each until Derivation II. With them the
+    // count is 36.
+    assert_eq!(
+        labels,
+        [
+            "1", "2", "2.1", "3", "100", "101", "102", "103", "106", "200", "201", "202", "203", "204",
+            "205", "206", "900", "901", "902", "903", "904", "905", "906", "907", "908", "909", "910",
+            "910.1", "910.2", "910.3", "911",
+        ]
+    );
+
+    // The TOC fixpoint (doc 09 §3.1): 31 pages need two TOC pages of 23 rows; the count is stable.
+    assert_eq!(order.len(), 31);
     assert_eq!(order.toc_pages, 2);
     assert!(order.fixpoint_reached);
 
@@ -96,7 +111,7 @@ fn the_golden_page_order_includes_the_generated_pages_with_two_toc_pages() {
 #[test]
 fn a_q_without_the_report_engine_has_no_generated_pages() {
     let s = common::golden_session();
-    let q = Q::new(&s.world().model);
+    let mut q = Q::new(&s.world().model);
     assert!(!q.has_report_pages());
     let order = q.get::<PageOrder>(());
     assert!(order.entries.iter().all(|e| e.origin != Origin::Generated));
@@ -134,10 +149,12 @@ fn bom_rows_do_not_depend_on_the_report_engine() {
     assert!(with.get::<PageOrder>(()).len() > 16);
 }
 
-/// A provider with a scripted page count per block: the TOC block gets `toc_pages` pages; every other
-/// block gets `extra(toc_pages)` pages at folio 902 (colliding with the drawn 902).
+/// A provider with a scripted page count per block: the TOC block gets `toc(toc_pages)` pages with row
+/// ranges of `toc.rows_per_page` rows each (the contract asks for exactly `toc_pages`); the block of folio
+/// 901 gets `extra` pages at folio 902 (colliding with the drawn 902); every other block none.
 struct Scripted {
-    extra: fn(u32) -> u32,
+    extra: u32,
+    toc: fn(u32) -> u32,
 }
 
 impl ReportPagesProvider for Scripted {
@@ -153,10 +170,11 @@ impl ReportPagesProvider for Scripted {
         if !toc && b.first_folio != Some(901) {
             return Vec::new();
         }
+        let per = self.toc_rows_per_page(q, id);
         let (count, folio) = if toc {
-            (toc_pages, 2)
+            ((self.toc)(toc_pages), 2)
         } else {
-            ((self.extra)(toc_pages), 902)
+            (self.extra, 902)
         };
         (0..count)
             .map(|k| GeneratedPage {
@@ -171,7 +189,7 @@ impl ReportPagesProvider for Scripted {
                     format!("{folio}.{k}")
                 },
                 title: MlText::neutral(&format!("page {k}")),
-                rows: 0..0,
+                rows: if toc { k * per..(k + 1) * per } else { 0..0 },
                 group: None,
                 continued_group: false,
                 form: b.form,
@@ -182,35 +200,158 @@ impl ReportPagesProvider for Scripted {
     }
 }
 
-#[test]
-fn the_toc_fixpoint_stops_after_three_rounds_when_the_count_does_not_settle() {
-    let s = common::golden_session();
-    // 16 fixed pages. Round 1 (1 TOC page): 16 + 1 + 12 = 29 pages need 2; round 2: 16 + 2 + 0 = 18 need 1;
-    // the count never decreases, so round 3 sees 2 again, needs 1, and gives up (EW-CORE-025).
-    let q = Q::new(&s.world().model).with_report_pages(Arc::new(Scripted {
-        extra: |t| if t == 1 { 12 } else { 0 },
-    }));
-    let order = q.get::<PageOrder>(());
-    assert!(!order.fixpoint_reached);
-    assert_eq!(order.toc_pages, 2);
-    assert_eq!(order.len(), 18);
+/// A provider that keeps the contract: `toc_pages` TOC pages.
+fn scripted(extra: u32) -> Arc<Scripted> {
+    Arc::new(Scripted { extra, toc: |t| t })
+}
+
+/// Every page of the order is listed by exactly one TOC row: the TOC pages' row ranges, in page order, run
+/// contiguously from 0 to the page count (a range may be empty: a blank TOC page, never a missing row).
+fn assert_toc_lists_every_page_once(order: &PageOrderV) {
+    let toc = block("2");
+    let mut pages: Vec<&GeneratedPage> = order
+        .entries
+        .iter()
+        .filter(|e| matches!(e.page, PageRef::Generated { block, .. } if block == toc))
+        .filter_map(|e| order.generated(e.page))
+        .collect();
+    pages.sort_by_key(|g| g.index);
+    assert!(!pages.is_empty(), "the TOC has no pages");
+    let mut next = 0u32;
+    for g in &pages {
+        assert_eq!(g.rows.start, next, "TOC page {} starts at {:?}", g.index, g.rows);
+        assert!(g.rows.end >= g.rows.start);
+        next = g.rows.end;
+    }
+    assert_eq!(next as usize, order.len(), "the TOC rows end at the page count");
+    // And each page of the order appears once.
+    let mut refs: Vec<PageRef> = order.entries.iter().map(|e| e.page).collect();
+    refs.sort();
+    refs.dedup();
+    assert_eq!(refs.len(), order.len());
 }
 
 #[test]
-fn the_toc_fixpoint_converges_in_the_second_round() {
+fn the_toc_fixpoint_converges_from_the_closed_form() {
     let s = common::golden_session();
-    // Round 1: 16 + 1 + 8 = 25 → 2 TOC pages; round 2: 16 + 2 + 8 = 26 → 2: settled.
-    let q = Q::new(&s.world().model).with_report_pages(Arc::new(Scripted { extra: |_| 8 }));
+    // 16 fixed pages + 8 = 24 others; n = ceil(24 / (23 - 1)) = 2; 24 + 2 = 26 rows on 2 pages: settled.
+    let q = Q::new(&s.world().model).with_report_pages(scripted(8));
     let order = q.get::<PageOrder>(());
     assert!(order.fixpoint_reached);
     assert_eq!(order.toc_pages, 2);
     assert_eq!(order.len(), 26);
+    assert_toc_lists_every_page_once(&order);
+}
+
+#[test]
+fn large_projects_settle_the_toc_with_every_page_listed_once() {
+    let s = common::golden_session();
+    // D = 16 + extra other pages, 23 rows per TOC page, one TOC block: n = ceil(D / 22). The old three-round
+    // iteration first dropped a page at 551 other pages; 10,000 gave 455 TOC rows' worth for 456 pages.
+    for (extra, toc_pages) in [(535, 26), (600, 28), (2_000, 92), (10_000, 456)] {
+        let q = Q::new(&s.world().model).with_report_pages(scripted(extra));
+        let order = q.get::<PageOrder>(());
+        assert!(order.fixpoint_reached, "{extra} extra pages: not settled");
+        assert_eq!(order.toc_pages, toc_pages, "{extra} extra pages");
+        assert_eq!(order.len() as u32, 16 + extra + toc_pages);
+        assert!(order.toc_pages * 23 >= order.len() as u32);
+        assert_toc_lists_every_page_once(&order);
+    }
+}
+
+#[test]
+fn a_provider_that_breaks_the_toc_count_is_reported_and_still_lists_every_page() {
+    let s = common::golden_session();
+    // The TOC block answers one page more than asked: the count never settles (EW-CORE-025).
+    let q = Q::new(&s.world().model).with_report_pages(Arc::new(Scripted {
+        extra: 0,
+        toc: |t| t + 1,
+    }));
+    let order = q.get::<PageOrder>(());
+    assert!(!order.fixpoint_reached);
+    assert_eq!(order.len(), 18);
+    assert_toc_lists_every_page_once(&order);
+
+    // One TOC page whatever is asked, for 616 other pages that need 28: the one page lists them all
+    // (overflowing; the finding reports it) rather than dropping any.
+    let q = Q::new(&s.world().model).with_report_pages(Arc::new(Scripted {
+        extra: 600,
+        toc: |_| 1,
+    }));
+    let order = q.get::<PageOrder>(());
+    assert!(!order.fixpoint_reached);
+    assert_eq!(order.toc_pages, 28);
+    assert_eq!(order.len(), 617);
+    assert_toc_lists_every_page_once(&order);
+}
+
+#[test]
+fn installing_the_report_engine_discards_values_cached_without_it() {
+    let s = common::golden_session();
+    let q = Q::new(&s.world().model);
+    assert_eq!(q.get::<PageOrder>(()).len(), 16);
+    // The provider is configuration: installing it late must not leave the provider-less order cached.
+    let mut q = q.with_report_pages(ew_reports::engine());
+    assert!(q.has_report_pages());
+    assert_eq!(q.diagnostics().cached("page_order"), 0);
+    assert_eq!(*q.get::<PageOrder>(()), *s.query().get::<PageOrder>(()));
+}
+
+#[test]
+fn the_page_order_reads_only_through_tracked_queries() {
+    let s = common::golden_session();
+    let rec = Rc::new(RecordingTracker::new());
+    let q =
+        Q::with_tracker(&s.world().model, Box::new(Rc::clone(&rec))).with_report_pages(ew_reports::engine());
+    let order = q.get::<PageOrder>(());
+    assert!(order.len() > 16);
+    let reads = rec.reads();
+    assert!(!reads.is_empty());
+    // Every model read of the evaluation, the provider's included, is attributed to a query, so a memo
+    // engine can verify it (ADR-0002 decision 1); whether a provider is installed is configuration that no
+    // query body can observe (`Q::has_report_pages` takes `&mut Q`, see its compile_fail doctest).
+    assert!(reads.iter().all(|r| r.query.is_some()), "an untracked read");
+    let evaluated = rec.evaluated();
+    assert_eq!(evaluated.iter().filter(|(f, _)| *f == "page_order").count(), 1);
+    assert!(evaluated.iter().any(|(f, _)| *f == "report_block_pages"));
+}
+
+/// A provider that reads a TOC's rows (which read the page order) from inside the pagination of block
+/// 901, then answers like the report engine: a query cycle.
+struct ReadsTheToc;
+
+impl ReportPagesProvider for ReadsTheToc {
+    fn pages(&self, q: &Q, id: Id<ReportBlock>, toc_pages: u32) -> Vec<GeneratedPage> {
+        if q.report_blocks()
+            .get(id)
+            .is_some_and(|b| b.first_folio == Some(901))
+        {
+            let rows = ew_reports::rows_of(q, block("2"));
+            assert!(!rows.is_derived());
+        }
+        ew_reports::engine().pages(q, id, toc_pages)
+    }
+}
+
+#[test]
+fn a_row_source_that_reads_the_page_order_gets_a_cycle_note_not_a_panic() {
+    let s = common::golden_session();
+    let mut q = Q::new(&s.world().model).with_report_pages(Arc::new(ReadsTheToc));
+    let order = q.get::<PageOrder>(());
+    assert!(order.labels().contains(&"901"));
+    let notes = q.diagnostics().notes();
+    assert!(
+        notes
+            .iter()
+            .any(|n| matches!(n, DeriveNote::QueryCycle { family, .. } if *family == "page_order")),
+        "{notes:?}"
+    );
 }
 
 #[test]
 fn a_generated_page_on_a_drawn_folio_follows_the_drawn_page() {
     let s = common::golden_session();
-    let q = Q::new(&s.world().model).with_report_pages(Arc::new(Scripted { extra: |_| 2 }));
+    let q = Q::new(&s.world().model).with_report_pages(scripted(2));
     let order = q.get::<PageOrder>(());
     let labels = order.labels();
     let i = labels.iter().position(|l| *l == "902").unwrap();

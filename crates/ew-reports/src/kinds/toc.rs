@@ -5,10 +5,10 @@
 
 use ew_derive::ew_ids::v5::report_page_id;
 use ew_derive::ew_schema::{AnyId, ReportBlock};
-use ew_derive::{PageRef, Q, TocRows};
+use ew_derive::{PageOrder, PageRef, Q, TocRows};
 
 use crate::kind::ReportKindDef;
-use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, RowKey, RowSet};
+use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, NotDerived, Row, RowId, RowKey, RowSet};
 
 /// The table of contents.
 ///
@@ -32,6 +32,13 @@ impl ReportKindDef for Toc {
     }
 
     fn rows(&self, q: &Q, _block: &ReportBlock) -> RowSet {
+        // Read inside the pagination (a row source or provider that reaches a TOC's rows from there), the
+        // page order is still being computed: a cycle gives a not-derived set, never a panic.
+        if let Err(cycle) = q.try_get::<PageOrder>(()) {
+            let family = cycle.family.to_owned();
+            q.note_cycle(cycle);
+            return RowSet::not_derived(self.columns(), NotDerived::Cycle(family));
+        }
         let mut set = RowSet::new(self.columns());
         for row in q.get::<TocRows>(()).iter() {
             let (id, source): (RowId, AnyId) = match row.page {

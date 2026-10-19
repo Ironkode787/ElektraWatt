@@ -42,9 +42,10 @@ pub use kind::{Registry, ReportKindDef, kind_name};
 pub use layout::{Layouts, PageLayout};
 pub use paginate::{BlockSpec, Break, Continuation, FixedLines, RowLines, Slice, paginate};
 pub use queries::{BlockPages, BlockRows, ReportEngine, engine, rows_of};
+pub use render::TagClassMembers;
 pub use rowset::{
     Cell, CellType, ColumnDef, GridCell, GroupRange, LinkRef, LinkTarget, MissingReason, NotDerived, QtyUnit,
-    Row, RowId, RowKey, RowKind, RowSet, RowSetStatus,
+    Row, RowId, RowIdParseError, RowKey, RowKind, RowSet, RowSetStatus,
 };
 
 use ew_derive::{Policy, Query};
@@ -53,6 +54,7 @@ use ew_derive::{Policy, Query};
 pub const FAMILIES: &[(&str, Policy)] = &[
     (BlockPages::FAMILY, BlockPages::POLICY),
     (BlockRows::FAMILY, BlockRows::POLICY),
+    (TagClassMembers::FAMILY, TagClassMembers::POLICY),
 ];
 
 #[cfg(test)]

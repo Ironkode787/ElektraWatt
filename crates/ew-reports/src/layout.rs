@@ -4,10 +4,10 @@
 //! The pagination geometry of report forms: data-area capacity and row heights per row kind (doc 09 §2.5,
 //! §3.2).
 
-use ew_derive::Q;
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{DataArea, FormDef, RowTemplate, WrapPolicy};
 use ew_derive::ew_units::Nm;
+use ew_derive::{DeriveNote, Q};
 
 use crate::rowset::RowKind;
 
@@ -77,6 +77,38 @@ impl PageLayout {
         }
     }
 
+    /// Whether the geometry can be paginated: every row height is positive and the capacity holds at
+    /// least one data row. An invalid layout would put unbounded rows on a page (a height of 0 or less) or
+    /// one page per row (a capacity below one row), so pagination replaces it with the house geometry
+    /// ([`Layouts::validated`], FR-REP-039).
+    pub fn is_valid(&self) -> bool {
+        self.problem().is_none()
+    }
+
+    /// What makes the layout invalid, in English; `None` when it is valid.
+    fn problem(&self) -> Option<String> {
+        let heights = [
+            ("data row height", Some(self.data)),
+            ("heading row height", Some(self.heading)),
+            ("group-header row height", self.group_header),
+            ("group-footer row height", self.group_footer),
+        ];
+        for (what, h) in heights {
+            if let Some(h) = h
+                && h.0 <= 0
+            {
+                return Some(format!("{what} {} nm is not positive", h.0));
+            }
+        }
+        if self.capacity.0 < self.data.0 {
+            return Some(format!(
+                "the data area ({} nm) is lower than one data row ({} nm)",
+                self.capacity.0, self.data.0
+            ));
+        }
+        None
+    }
+
     /// The height of one line of a row of `kind` (a group row without a template has height 0; it is never
     /// emitted).
     pub fn height(&self, kind: RowKind) -> Nm {
@@ -128,8 +160,30 @@ impl Layouts {
         &self.chain[0]
     }
 
+    /// This chain with every invalid layout ([`PageLayout::is_valid`]) replaced by the house geometry of
+    /// its form. The pure pagination functions read the chain through this, so they terminate with a
+    /// bounded page count whatever geometry they are handed.
+    #[must_use]
+    pub fn validated(&self) -> Layouts {
+        Layouts {
+            chain: self
+                .chain
+                .iter()
+                .map(|l| {
+                    if l.is_valid() {
+                        l.clone()
+                    } else {
+                        PageLayout::house(l.form)
+                    }
+                })
+                .collect(),
+        }
+    }
+
     /// The chain of `form` in `q`'s snapshot. A form copy that is missing, or has no data area, uses the
-    /// house geometry ([`PageLayout::house`]); the chain stops at a repeat (cycle-safe) or after 16 forms.
+    /// house geometry ([`PageLayout::house`]; so does one whose data area gives an invalid layout, with a
+    /// [`DeriveNote::MalformedShim`] warning, FR-REP-039); the chain stops at a repeat (cycle-safe) or
+    /// after 16 forms.
     pub fn of_form(q: &Q, form: Id<FormDef>) -> Layouts {
         let mut chain: Vec<PageLayout> = Vec::new();
         let mut next = Some(form);
@@ -139,7 +193,22 @@ impl Layouts {
             }
             let copy = q.forms().get(id);
             let layout = match copy.and_then(|c| c.item.data.as_ref()) {
-                Some(area) => PageLayout::of_area(id, area),
+                Some(area) => {
+                    let layout = PageLayout::of_area(id, area);
+                    match layout.problem() {
+                        None => layout,
+                        Some(problem) => {
+                            // Stand-in for a dedicated form finding until the findings list has one.
+                            q.note(DeriveNote::MalformedShim {
+                                member: format!("form {} data area", id.as_uuid()),
+                                detail: format!(
+                                    "{problem}; the house report geometry ({HOUSE_ROWS_PER_PAGE} rows of 6.52 mm) applies"
+                                ),
+                            });
+                            PageLayout::house(id)
+                        }
+                    }
+                }
                 None => PageLayout::house(id),
             };
             chain.push(layout);

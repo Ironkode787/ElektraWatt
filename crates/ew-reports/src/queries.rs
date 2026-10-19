@@ -7,11 +7,11 @@ use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{ReportBlock, ReportSource};
-use ew_derive::{GeneratedPage, Policy, Q, Query, ReportPagesProvider};
+use ew_derive::{Cycle, GeneratedPage, Policy, Q, Query, ReportPagesProvider};
 
 use crate::arrange::{Arrangement, arrange};
 use crate::kind::{Registry, kind_name};
-use crate::layout::Layouts;
+use crate::layout::{Layouts, PageLayout};
 use crate::paginate::{BlockSpec, FixedLines, is_toc, number, paginate, toc_slices};
 use crate::rowset::{NotDerived, RowSet};
 
@@ -64,7 +64,8 @@ impl Query for BlockRows {
             return Arc::new(rows);
         }
         let layouts = Layouts::of_form(q, block.form);
-        Arc::new(arrange(q, rows, &Arrangement::of_block(block, layouts.first())))
+        let how = Arrangement::of_block(block, layouts.first()).with_group_context(q, block);
+        Arc::new(arrange(q, rows, &how))
     }
 }
 
@@ -92,13 +93,38 @@ impl Query for BlockPages {
         };
         let layouts = Layouts::of_form(q, block.form);
         if is_toc(block) {
-            let per_page = q.profile().toc.rows_per_page.max(1);
-            let slices = toc_slices(toc_pages, per_page);
+            let slices = toc_slices(toc_pages, toc_rows_per_page(q, block));
             return Arc::new(number(&slices, &RowSet::new(Vec::new()), &spec, &layouts));
         }
-        let rows = q.get::<BlockRows>(id);
+        // A row source that reads the page order (or these pages) from inside the pagination is a cycle:
+        // the block gets one placeholder page instead of a panic of the whole page order.
+        let rows = match q.try_get::<BlockRows>(id) {
+            Ok(rows) => rows,
+            Err(cycle) => Arc::new(cycle_rows(q, cycle)),
+        };
         Arc::new(paginate(&rows, &spec, &layouts, &FixedLines))
     }
+}
+
+/// The rows one page of a TOC block holds (doc 09 §3.1, decision D3): the TOC form's data area when the
+/// form has a valid one (its capacity over its data-row height), else the profile's `toc.rows_per_page`.
+/// At least 1. `page_order` uses the same value for the TOC page-count fixpoint.
+pub fn toc_rows_per_page(q: &Q, block: &ReportBlock) -> u32 {
+    let from_form = q
+        .forms()
+        .get(block.form)
+        .and_then(|c| c.item.data.as_ref())
+        .map(|area| PageLayout::of_area(block.form, area))
+        .filter(|l| l.data.0 > 0 && l.capacity.0 >= l.data.0)
+        .map(|l| u32::try_from(l.capacity.0 / l.data.0).unwrap_or(u32::MAX));
+    from_form.unwrap_or(q.profile().toc.rows_per_page).max(1)
+}
+
+/// An empty, not-derived row set for a query cycle, which is recorded as a note.
+fn cycle_rows(q: &Q, cycle: Cycle) -> RowSet {
+    let family = cycle.family.to_owned();
+    q.note_cycle(cycle);
+    RowSet::not_derived(Vec::new(), NotDerived::Cycle(family))
 }
 
 /// The report engine: the [`ReportPagesProvider`] the session installs on every `Q`, so that
@@ -108,8 +134,32 @@ pub struct ReportEngine;
 
 impl ReportPagesProvider for ReportEngine {
     fn pages(&self, q: &Q, block: Id<ReportBlock>, toc_pages: u32) -> Vec<GeneratedPage> {
-        let toc = q.report_blocks().get(block).is_some_and(|b| is_toc(b));
-        (*q.get::<BlockPages>((block, if toc { toc_pages } else { 0 }))).clone()
+        let Some(b) = q.report_blocks().get(block) else {
+            return Vec::new();
+        };
+        let key = (block, if is_toc(b) { toc_pages } else { 0 });
+        match q.try_get::<BlockPages>(key) {
+            Ok(pages) => (*pages).clone(),
+            // The block's pages are already being computed: a row source reached the page order from
+            // inside the pagination. One placeholder page keeps the folio, never a panic.
+            Err(cycle) => match BlockSpec::of_block(block, b) {
+                Some(spec) => {
+                    let rows = cycle_rows(q, cycle);
+                    paginate(&rows, &spec, &Layouts::of_form(q, b.form), &FixedLines)
+                }
+                None => {
+                    q.note_cycle(cycle);
+                    Vec::new()
+                }
+            },
+        }
+    }
+
+    fn toc_rows_per_page(&self, q: &Q, block: Id<ReportBlock>) -> u32 {
+        match q.report_blocks().get(block) {
+            Some(b) => toc_rows_per_page(q, b),
+            None => q.profile().toc.rows_per_page.max(1),
+        }
     }
 }
 

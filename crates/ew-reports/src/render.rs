@@ -13,12 +13,13 @@
 //!   grouping; thousands separators are not printed.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{LangTag, MlText, NaturalKey, natural_key};
 use ew_derive::ew_schema::{ColourCode, Device, OrderUnit, Unit};
 use ew_derive::ew_units::Dec3;
-use ew_derive::{DeviceTag, DisplayedTag, PageOrder, PageRef, Q, folio_label};
+use ew_derive::{DeviceTag, DisplayedTag, PageOrder, PageRef, Policy, Q, Query, folio_label};
 
 use crate::rowset::{Cell, MissingReason, QtyUnit};
 
@@ -213,7 +214,10 @@ pub fn decimal(v: Dec3, comma: bool) -> String {
 
 /// The tag class of a device: its letter code and its assembly root (the top of the `parent` chain), or
 /// its strip for a terminal.
-type Class = (String, Id<Device>);
+pub type Class = (String, Id<Device>);
+
+/// One tagged device of a class: the natural key of its short tag, the device and the short tag.
+pub type ClassMember = (NaturalKey, Id<Device>, String);
 
 fn class_of(q: &Q, id: Id<Device>) -> Option<Class> {
     let devices = q.devices();
@@ -238,6 +242,36 @@ fn short_tag(q: &Q, id: Id<Device>) -> Option<String> {
     q.get::<DeviceTag>(id).as_ref().as_ref().map(|t| t.short())
 }
 
+/// `tag_class_members()`: every tagged device of the project grouped by its tag [`Class`], each class
+/// ordered by the natural order of the short tag (ties by device ID).
+///
+/// [`compress_range`] reads it, so a report that prints many [`Cell::Range`] cells walks the devices once
+/// per [`Q`] instead of once per cell.
+#[derive(Debug)]
+pub struct TagClassMembers;
+
+impl Query for TagClassMembers {
+    type Key = ();
+    type Value = BTreeMap<Class, Vec<ClassMember>>;
+    const FAMILY: &'static str = "tag_class_members";
+    const POLICY: Policy = Policy::Memo;
+
+    fn run(q: &Q, _key: &()) -> Arc<Self::Value> {
+        let mut members: BTreeMap<Class, Vec<ClassMember>> = BTreeMap::new();
+        let all: Vec<Id<Device>> = q.devices().iter().map(|(id, _)| id).collect();
+        for id in all {
+            let Some(c) = class_of(q, id) else { continue };
+            if let Some(s) = short_tag(q, id) {
+                members.entry(c).or_default().push((natural_key(&s), id, s));
+            }
+        }
+        for list in members.values_mut() {
+            list.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
+        }
+        Arc::new(members)
+    }
+}
+
 /// The compressed tag list of a [`Cell::Range`] (FR-REP-046, doc 09 §3.6).
 ///
 /// Tags print in displayed form without structure. The class of a tag is its device's letter code plus
@@ -260,22 +294,11 @@ pub fn compress_range(q: &Q, devices: &[Id<Device>]) -> String {
     if classes.is_empty() {
         return String::new();
     }
-    // Every tagged device of those classes, ordered per class.
-    type Entry = (NaturalKey, Id<Device>, String);
-    let mut members: BTreeMap<Class, Vec<Entry>> = BTreeMap::new();
-    let all: Vec<Id<Device>> = q.devices().iter().map(|(id, _)| id).collect();
-    for id in all {
-        let Some(c) = class_of(q, id) else { continue };
-        if !classes.contains(&c) {
-            continue;
-        }
-        if let Some(s) = short_tag(q, id) {
-            members.entry(c).or_default().push((natural_key(&s), id, s));
-        }
-    }
+    // Every tagged device of those classes, ordered per class (memoised for the whole project).
+    let all = q.get::<TagClassMembers>(());
     let mut runs: Vec<(NaturalKey, Id<Device>, String)> = Vec::new();
-    for list in members.values_mut() {
-        list.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
+    for class in &classes {
+        let Some(list) = all.get(class) else { continue };
         let mut i = 0;
         while i < list.len() {
             if !given.contains(&list[i].1) {
@@ -306,4 +329,96 @@ pub fn compress_range(q: &Q, devices: &[Id<Device>]) -> String {
     }
     runs.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
     runs.into_iter().map(|r| r.2).collect::<Vec<_>>().join(", ")
+}
+
+#[cfg(test)]
+mod tests {
+    use std::rc::Rc;
+
+    use ew_derive::RecordingTracker;
+    use ew_derive::ew_ids::Uuid;
+    use ew_derive::ew_schema::{Project, Record};
+    use serde_json::json;
+
+    use super::*;
+
+    fn uid(n: u128) -> String {
+        Uuid::from_u128(n).hyphenated().to_string()
+    }
+
+    fn dev(n: u128) -> Id<Device> {
+        Id::from_uuid(Uuid::from_u128(n))
+    }
+
+    /// Strip `-X1` with terminals 1 to 6 (devices 0x11 to 0x16) and a second strip `-X2` with one terminal
+    /// (0x21).
+    fn model() -> ew_model::Model {
+        let project: Project =
+            serde_json::from_value(json!({"id": uid(1), "derivation_profile": "2027.1"})).unwrap();
+        let mut records = Vec::new();
+        for (strip, text) in [(0x10u128, "X1"), (0x20, "X2")] {
+            records.push(json!({
+                "$k": "device", "id": uid(strip),
+                "tag": {"letter": "X", "frozen": {"text": text}},
+                "strip": {},
+            }));
+        }
+        let terminals = [
+            (0x11u128, 0x10u128, 1u32),
+            (0x12, 0x10, 2),
+            (0x13, 0x10, 3),
+            (0x14, 0x10, 4),
+            (0x15, 0x10, 5),
+            (0x16, 0x10, 6),
+            (0x21, 0x20, 1),
+        ];
+        for (n, strip, seq) in terminals {
+            records.push(json!({
+                "$k": "device", "id": uid(n), "tag": {"letter": "X"},
+                "terminal": {"strip": uid(strip), "seq": seq, "designation": seq.to_string()},
+            }));
+        }
+        let records: Vec<Record> = records
+            .into_iter()
+            .map(|r| serde_json::from_value(r).unwrap())
+            .collect();
+        ew_model::Model::from_records(project, records, []).unwrap()
+    }
+
+    #[test]
+    fn a_run_of_three_terminals_compresses_and_a_gap_breaks_it() {
+        let m = model();
+        let q = Q::new(&m);
+        let t = |ns: &[u128]| compress_range(&q, &ns.iter().map(|n| dev(*n)).collect::<Vec<_>>());
+        assert_eq!(t(&[0x11, 0x12, 0x13]), "-X1:1 … 3");
+        assert_eq!(t(&[0x13, 0x11, 0x12, 0x14]), "-X1:1 … 4");
+        assert_eq!(t(&[0x11, 0x12]), "-X1:1, -X1:2");
+        // 0x14 is missing: the run is cut, and the single device after the gap stands alone.
+        assert_eq!(t(&[0x11, 0x12, 0x13, 0x15, 0x16]), "-X1:1 … 3, -X1:5, -X1:6");
+        // Another strip is another class.
+        assert_eq!(t(&[0x11, 0x21]), "-X1:1, -X2:1");
+        assert_eq!(t(&[]), "");
+        assert_eq!(t(&[0x999]), "");
+    }
+
+    #[test]
+    fn tag_class_members_is_evaluated_once_for_many_ranges() {
+        let m = model();
+        let rec = Rc::new(RecordingTracker::new());
+        let mut q = Q::with_tracker(&m, Box::new(Rc::clone(&rec)));
+        for _ in 0..5 {
+            assert_eq!(
+                compress_range(&q, &[dev(0x11), dev(0x12), dev(0x13)]),
+                "-X1:1 … 3"
+            );
+            assert_eq!(compress_range(&q, &[dev(0x21)]), "-X2:1");
+        }
+        assert_eq!(q.diagnostics().cached("tag_class_members"), 1);
+        let evaluated = rec.evaluated();
+        let runs = evaluated
+            .iter()
+            .filter(|(f, _)| *f == "tag_class_members")
+            .count();
+        assert_eq!(runs, 1, "{evaluated:?}");
+    }
 }

@@ -117,6 +117,7 @@ impl Args {
             exclude: &self.exclude,
             group_header: self.header,
             group_footer: self.footer,
+            group_context: None,
         };
         arrange(&q, set, &how)
     }
@@ -591,7 +592,13 @@ fn group_headers_and_footers_with_ranges() {
     );
 
     let header = &out.rows[0];
-    assert_eq!(header.id.to_string(), "group-header/L1");
+    assert_eq!(
+        header.id,
+        RowId(vec![
+            RowKey::Name("group-header".into()),
+            RowKey::Name("L1".into())
+        ])
+    );
     assert_eq!(
         header.cells,
         vec![Cell::Empty, Cell::Ident("L1".into()), Cell::Empty],
@@ -600,7 +607,13 @@ fn group_headers_and_footers_with_ranges() {
     assert!(header.links.is_empty() && header.sources.is_empty());
 
     let footer = &out.rows[2];
-    assert_eq!(footer.id.to_string(), "group-footer/L1");
+    assert_eq!(
+        footer.id,
+        RowId(vec![
+            RowKey::Name("group-footer".into()),
+            RowKey::Name("L1".into())
+        ])
+    );
     assert_eq!(footer.cells[LOC], Cell::Ident("L1".into()));
     assert_eq!(footer.cells[NAME], Cell::Empty);
     assert_eq!(footer.cells[QTY], qty(2000));
@@ -693,10 +706,13 @@ fn headings_join_the_group_of_their_first_data_row() {
     let mut a = Args::new();
     a.group = Some(group("loc"));
     let out = a.run(set(rows));
-    // L1: H1's segment starts with `a` (L2), so H1 goes to L2; H2 -> L1.
-    assert_eq!(names(&out), ["b", "H2", "c", "H1", "a"]);
-    assert_eq!(out.groups[0].rows, 0..3);
-    assert_eq!(out.groups[1].rows, 3..5);
+    // Headings bound groups. Segment 1: H1 starts with `a` (L2), so H1 goes to L2 and L1 holds `b`; segment 2
+    // is one group L1 with H2.
+    assert_eq!(names(&out), ["b", "H1", "a", "H2", "c"]);
+    assert_eq!(out.groups.len(), 3);
+    assert_eq!(out.groups[0].rows, 0..1);
+    assert_eq!(out.groups[1].rows, 1..3);
+    assert_eq!(out.groups[2].rows, 3..5);
 }
 
 #[test]
@@ -714,8 +730,10 @@ fn grouping_sorts_inside_segments_first() {
     a.group = Some(group("loc"));
     let out = a.run(set(rows));
     assert_eq!(names(&out), ["H1", "b", "d", "H2", "a", "c"]);
-    assert_eq!(out.groups.len(), 1);
-    assert_eq!(out.groups[0].rows, 0..6);
+    // The same key in two heading segments gives two groups, each in its own segment.
+    assert_eq!(out.groups.len(), 2);
+    assert_eq!(out.groups[0].rows, 0..3);
+    assert_eq!(out.groups[1].rows, 3..6);
 }
 
 #[test]
@@ -745,7 +763,13 @@ fn group_text_and_header_ids_of_other_key_types() {
     let out = a.run(s.clone());
     assert_eq!(out.groups[0].text, "9");
     assert_eq!(out.groups[1].text, "10");
-    assert_eq!(out.rows[0].id.to_string(), "group-header/9");
+    assert_eq!(
+        out.rows[0].id,
+        RowId(vec![
+            RowKey::Name("group-header".into()),
+            RowKey::Name("9".into())
+        ])
+    );
 
     a.group = Some(group("d"));
     let out = a.run(s);
@@ -909,4 +933,338 @@ proptest! {
         a.footer = true;
         prop_assert_eq!(a.run(set(rows)), a.run(set(shuffled)));
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Group order follows the sort direction; headings bound groups
+
+#[test]
+fn a_descending_group_column_gives_descending_groups() {
+    let rows = vec![
+        row(0, "a", "K2", 1),
+        row(1, "b", "K10", 1),
+        row(2, "c", "K1", 1),
+        row(3, "d", "K2", 1),
+    ];
+    let mut a = Args::new();
+    a.group = Some(group("loc"));
+    a.sort = sort(&[("loc", true)]);
+    let out = a.run(set(rows.clone()));
+    let texts: Vec<&str> = out.groups.iter().map(|g| g.text.as_str()).collect();
+    assert_eq!(texts, ["K10", "K2", "K1"]);
+    assert_eq!(names(&out), ["b", "a", "d", "c"]);
+
+    // A descending sort on another column leaves the groups ascending.
+    a.sort = sort(&[("name", true)]);
+    let out = a.run(set(rows));
+    let texts: Vec<&str> = out.groups.iter().map(|g| g.text.as_str()).collect();
+    assert_eq!(texts, ["K1", "K2", "K10"]);
+}
+
+#[test]
+fn two_heading_segments_with_one_key_give_two_groups_in_segment_order() {
+    let rows = vec![
+        heading(1, "H1"),
+        row(0, "a", "L", 1),
+        row(1, "b", "L", 1),
+        heading(2, "H2"),
+        row(2, "c", "L", 1),
+    ];
+    let mut a = Args::new();
+    a.group = Some(group("loc"));
+    a.header = true;
+    let out = a.run(set(rows));
+    assert_eq!(out.groups.len(), 2);
+    assert_eq!(out.groups[0].text, "L");
+    assert_eq!(out.groups[1].text, "L");
+    // Header, H1, a, b | header, H2, c.
+    assert_eq!(out.groups[0].rows, 0..4);
+    assert_eq!(out.groups[1].rows, 4..7);
+    assert_eq!(out.rows[0].kind, RowKind::GroupHeader);
+    assert_eq!(out.rows[4].kind, RowKind::GroupHeader);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Group texts of tags, folio texts of generated pages, parts_list row IDs (over small JSON models)
+
+use ew_derive::PageRef;
+use ew_derive::ew_schema::{LibDocument, Record, ReportBlock};
+use ew_reports::rows_of;
+use serde_json::{Value, json};
+
+fn uid(n: u128) -> String {
+    Uuid::from_u128(n).hyphenated().to_string()
+}
+
+fn build(records: &[Value], lib: &[Value]) -> ew_model::Model {
+    let project: Project =
+        serde_json::from_value(json!({"id": uid(1), "derivation_profile": "2027.1"})).unwrap();
+    let records: Vec<Record> = records
+        .iter()
+        .map(|r| serde_json::from_value(r.clone()).unwrap_or_else(|e| panic!("record {r}: {e}")))
+        .collect();
+    let form = json!({
+        "$k": "form", "id": uid(0xF0), "library_id": uid(0x7000), "item_id": uid(0x10F0),
+        "version": "1.0.0", "sha256": format!("sha256:{}", "ab".repeat(32)), "kind": "report",
+        "sheet": {"width": 297_000_000, "height": 210_000_000},
+    });
+    let lib: Vec<LibDocument> = std::iter::once(&form)
+        .chain(lib.iter())
+        .map(|d| serde_json::from_value(d.clone()).unwrap_or_else(|e| panic!("lib {d}: {e}")))
+        .collect();
+    ew_model::Model::from_records(project, records, lib).unwrap_or_else(|e| panic!("model: {e:?}"))
+}
+
+fn lib_part(n: u128, number: &str) -> Value {
+    json!({
+        "$k": "part", "id": uid(n), "library_id": uid(0x7000), "item_id": uid(n + 0x1_0000),
+        "version": "1.0.0", "sha256": format!("sha256:{}", "ab".repeat(32)),
+        "meta": {}, "kind": "device",
+        "manufacturer": {"library": uid(0x7000), "item": uid(0x9000), "version_req": "^1"},
+        "part_number": number, "description": "Part", "unit": "piece",
+    })
+}
+
+fn block_record(n: u128, kind: &str, first_folio: u32, extra: Value) -> Value {
+    let mut r = json!({
+        "$k": "report_block", "id": uid(n), "source": {"kind": kind}, "form": uid(0xF0),
+        "first_folio": first_folio, "title": {"en": "Report {n}"},
+    });
+    for (k, v) in extra.as_object().unwrap() {
+        r[k] = v.clone();
+    }
+    r
+}
+
+fn block_id(n: u128) -> Id<ReportBlock> {
+    Id::from_uuid(uuid(n))
+}
+
+#[test]
+fn group_texts_print_the_displayed_tag_for_the_section_structure() {
+    let structure = json!({"function": uid(0x10), "location": uid(0x11)});
+    let mut records = vec![
+        json!({"$k": "structure_node", "id": uid(0x10), "aspect": "function", "code": "P01"}),
+        json!({"$k": "structure_node", "id": uid(0x11), "aspect": "location", "code": "J-E-2416"}),
+        json!({"$k": "section", "id": uid(0x20), "number": 1, "folio_range": [100, 199],
+               "title": {"en": "S"}, "divider": false}),
+        // The section's one page has the function only: the devices' location stays visible.
+        json!({"$k": "page", "id": uid(0x21), "folio": {"number": 101, "section": uid(0x20)},
+               "kind": "multi_line", "structure": {"function": uid(0x10)}, "title": {"en": "P"},
+               "grid": {"num": 4_000_000, "den": 1}}),
+    ];
+    for (n, tag) in [(0x1000u128, "S52"), (0x1001, "S51")] {
+        records.push(json!({
+            "$k": "device", "id": uid(n), "tag": {"letter": "S", "frozen": {"text": tag}},
+            "structure": structure,
+            "parts": [{"part": {"copy": uid(0x601)}, "qty": "1"}],
+        }));
+    }
+    let grouped = json!({"group": {"key": "device"}});
+    let mut in_section = grouped.clone();
+    in_section["section"] = json!(uid(0x20));
+    records.push(block_record(0xB1, "parts_list", 901, in_section));
+    records.push(block_record(0xB2, "parts_list", 905, grouped));
+    let m = build(&records, &[lib_part(0x601, "P1")]);
+    let q = Q::new(&m);
+
+    let in_section = rows_of(&q, block_id(0xB1));
+    let texts: Vec<&str> = in_section.groups.iter().map(|g| g.text.as_str()).collect();
+    assert_eq!(
+        texts,
+        ["+J-E-2416-S51", "+J-E-2416-S52"],
+        "displayed without the shared function"
+    );
+
+    let without = rows_of(&q, block_id(0xB2));
+    let texts: Vec<&str> = without.groups.iter().map(|g| g.text.as_str()).collect();
+    assert_eq!(texts, ["-S51", "-S52"], "the short tag without a section");
+
+    // The group cell and the grouping key keep the device (full tag order).
+    assert_eq!(in_section.groups[0].key, without.groups[0].key);
+    assert!(matches!(in_section.groups[0].key, Cell::Tag(_)));
+}
+
+#[test]
+fn group_texts_in_a_section_with_the_devices_structure_omit_all_of_it() {
+    let structure = json!({"function": uid(0x10), "location": uid(0x11)});
+    let records = vec![
+        json!({"$k": "structure_node", "id": uid(0x10), "aspect": "function", "code": "P01"}),
+        json!({"$k": "structure_node", "id": uid(0x11), "aspect": "location", "code": "J-E-2416"}),
+        json!({"$k": "section", "id": uid(0x20), "number": 1, "folio_range": [100, 199],
+               "title": {"en": "S"}, "divider": false}),
+        json!({"$k": "page", "id": uid(0x21), "folio": {"number": 101, "section": uid(0x20)},
+               "kind": "multi_line", "structure": structure, "title": {"en": "P"},
+               "grid": {"num": 4_000_000, "den": 1}}),
+        json!({"$k": "device", "id": uid(0x1000), "tag": {"letter": "S", "frozen": {"text": "S51"}},
+               "structure": structure, "parts": [{"part": {"copy": uid(0x601)}, "qty": "1"}]}),
+        block_record(
+            0xB1,
+            "parts_list",
+            901,
+            json!({"group": {"key": "device"}, "section": uid(0x20)}),
+        ),
+    ];
+    let m = build(&records, &[lib_part(0x601, "P1")]);
+    let q = Q::new(&m);
+    assert_eq!(rows_of(&q, block_id(0xB1)).groups[0].text, "-S51");
+}
+
+#[test]
+fn a_next_folio_block_names_its_generated_pages_by_their_folio() {
+    // 30 structure nodes need two pages of the house layout.
+    let mut records: Vec<Value> = (0..30u128)
+        .map(|i| json!({"$k": "structure_node", "id": uid(0x100 + i), "aspect": "location", "code": format!("N{i:02}")}))
+        .collect();
+    records.push(block_record(
+        0xB1,
+        "structure_overview",
+        901,
+        json!({"continuation": "next_folio"}),
+    ));
+    records.push(block_record(0xB2, "structure_overview", 950, json!({})));
+    records.push(block_record(
+        0xB3,
+        "toc",
+        1,
+        json!({"continuation": "next_folio"}),
+    ));
+    records.push(block_record(0xB4, "toc", 1, json!({})));
+    let m = build(&records, &[]);
+    let q = Q::new(&m);
+    let at = |b: u128, index: u32| {
+        cell_text(
+            &q,
+            &Cell::Folio(PageRef::Generated {
+                block: block_id(b),
+                index,
+            }),
+        )
+    };
+
+    let pages = q.get::<ew_reports::BlockPages>((block_id(0xB1), 0));
+    assert!(pages.len() >= 2);
+    for g in pages.iter() {
+        assert_eq!(at(0xB1, g.index), g.label);
+    }
+    assert_eq!(at(0xB1, 1), "902", "not `901.1`");
+    assert!(
+        cell_key(
+            &q,
+            &Cell::Folio(PageRef::Generated {
+                block: block_id(0xB1),
+                index: 0
+            })
+        ) < cell_key(
+            &q,
+            &Cell::Folio(PageRef::Generated {
+                block: block_id(0xB1),
+                index: 1
+            })
+        )
+    );
+
+    // Sub-page continuation: unchanged.
+    assert_eq!(at(0xB2, 0), "950");
+    assert_eq!(at(0xB2, 1), "950.1");
+
+    // A table of contents never reads its pages: its policy decides.
+    assert_eq!(at(0xB3, 2), "3");
+    assert_eq!(at(0xB4, 2), "1.2");
+}
+
+#[test]
+fn a_new_folio_group_break_is_reflected_in_the_folio_text() {
+    // One device and two structure nodes: group "Device" (1 row), then "Structure" (2 rows).
+    let records = vec![
+        json!({"$k": "structure_node", "id": uid(0x100), "aspect": "location", "code": "A"}),
+        json!({"$k": "structure_node", "id": uid(0x101), "aspect": "location", "code": "B"}),
+        json!({"$k": "device", "id": uid(0x1000), "tag": {"letter": "S", "frozen": {"text": "S51"}}}),
+        block_record(
+            0xB1,
+            "structure_overview",
+            901,
+            json!({"group": {"key": "kind", "break": "new_folio"}}),
+        ),
+    ];
+    let m = build(&records, &[]);
+    let q = Q::new(&m);
+    let pages = q.get::<ew_reports::BlockPages>((block_id(0xB1), 0));
+    let labels: Vec<&str> = pages.iter().map(|g| g.label.as_str()).collect();
+    assert_eq!(labels, ["901", "902"]);
+    let at = |index: u32| {
+        cell_text(
+            &q,
+            &Cell::Folio(PageRef::Generated {
+                block: block_id(0xB1),
+                index,
+            }),
+        )
+    };
+    assert_eq!(at(0), "901");
+    assert_eq!(at(1), "902", "not `901.1`");
+}
+
+fn parts_list_ids(parts: &[Value]) -> Vec<(String, RowId)> {
+    let records = vec![
+        json!({"$k": "device", "id": uid(0x1000), "tag": {"letter": "F", "frozen": {"text": "F1"}},
+               "parts": parts}),
+        block_record(0xB1, "parts_list", 901, json!({})),
+    ];
+    let lib = [lib_part(0x601, "A"), lib_part(0x602, "B"), lib_part(0x603, "C")];
+    let m = build(&records, &lib);
+    let q = Q::new(&m);
+    let rows = rows_of(&q, block_id(0xB1));
+    rows.rows
+        .iter()
+        .map(|r| {
+            let Cell::Ident(number) = &r.cells[4] else {
+                panic!("part number cell")
+            };
+            (number.clone(), r.id.clone())
+        })
+        .collect()
+}
+
+fn use_of(n: u128, variant: Option<&str>) -> Value {
+    let mut part = json!({"copy": uid(n)});
+    if let Some(v) = variant {
+        part["variant"] = json!(v);
+    }
+    json!({"part": part, "qty": "1"})
+}
+
+#[test]
+fn parts_list_row_ids_survive_inserting_a_part_use() {
+    let before = parts_list_ids(&[use_of(0x601, None), use_of(0x602, None)]);
+    let after = parts_list_ids(&[use_of(0x603, None), use_of(0x601, None), use_of(0x602, None)]);
+    assert_eq!(before.len(), 2);
+    assert_eq!(after.len(), 3);
+    for (number, id) in &before {
+        let found = after.iter().find(|(n, _)| n == number).expect("row survives");
+        assert_eq!(&found.1, id, "row of part {number}");
+    }
+}
+
+#[test]
+fn equal_part_uses_get_ordinals_and_variants_separate_rows() {
+    let rows = parts_list_ids(&[use_of(0x601, None), use_of(0x601, None), use_of(0x601, Some("v"))]);
+    assert_eq!(rows.len(), 3);
+    let mut ids: Vec<RowId> = rows.iter().map(|r| r.1.clone()).collect();
+    ids.sort();
+    ids.dedup();
+    assert_eq!(ids.len(), 3, "all distinct");
+    let ordinals: Vec<Option<&RowKey>> = rows.iter().map(|(_, id)| id.0.last()).collect();
+    let mut plain: Vec<&RowKey> = rows
+        .iter()
+        .filter(|(_, id)| !id.0.iter().any(|k| matches!(k, RowKey::Name(_))))
+        .filter_map(|(_, id)| id.0.last())
+        .collect();
+    plain.sort();
+    assert_eq!(
+        plain,
+        [&RowKey::Index(0), &RowKey::Index(1)],
+        "ordinals of equal uses"
+    );
+    assert!(ordinals.iter().all(Option::is_some));
 }

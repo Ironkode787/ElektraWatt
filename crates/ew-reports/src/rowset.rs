@@ -13,7 +13,7 @@
 //! the ID keys back-links (FR-REP-042), the hidden `id` column of the Excel round trip (FR-EXP-004) and
 //! revision deltas (FR-REV-015).
 
-use std::fmt;
+use std::fmt::{self, Write as _};
 use std::ops::Range;
 
 use ew_derive::ew_ids::{Id, Uuid};
@@ -111,6 +111,9 @@ pub enum NotDerived {
     /// The source is not supported in this build: a report kind without a row query, a user SQL report
     /// before 1.0, or a kind of a newer format.
     Unsupported(String),
+    /// A query cycle: the row source read the page order (or the block's own pages) from inside the
+    /// pagination (ADR-0002 decision 4); the text is the family that was already evaluating.
+    Cycle(String),
 }
 
 impl fmt::Display for NotDerived {
@@ -119,6 +122,7 @@ impl fmt::Display for NotDerived {
             NotDerived::AwaitsQuery(q) => write!(f, "not derived yet: awaits the `{q}` query"),
             NotDerived::NoRecordShape(r) => write!(f, "not derived yet: no `{r}` records in this format"),
             NotDerived::Unsupported(s) => write!(f, "not derived: `{s}` is not supported in this build"),
+            NotDerived::Cycle(s) => write!(f, "not derived: query cycle in `{s}`"),
         }
     }
 }
@@ -219,8 +223,19 @@ pub enum RowKind {
 
 /// The stable identity of a row: the row's source entity IDs and discriminators (FR-REP-048).
 ///
-/// Ordered component by component, which gives the deterministic tie-break of sorting. Printed as the
-/// components joined by `/` (the hidden `id` column of the Excel round trip).
+/// Ordered component by component, which gives the deterministic tie-break of sorting.
+///
+/// # Text form
+///
+/// [`Display`](fmt::Display) prints the components joined by `/`, each typed and escaped: `e:<uuid>` for an
+/// entity (lowercase, hyphenated), `i:<decimal>` for an index and `n:<name>` for a name, where every byte of
+/// the name's UTF-8 that is not an ASCII letter, digit or one of `-_.~` is written `%XX` (uppercase hex).
+/// So `/`, `:`, `%`, spaces and non-ASCII text never occur raw, and the form is **injective**: two different
+/// IDs never print alike (`Name("a/b")` is `n:a%2Fb`, `[Name("a"), Name("b")]` is `n:a/n:b`). The empty ID
+/// prints as the empty string. [`FromStr`](std::str::FromStr) reads exactly this form back.
+///
+/// This is the hidden `id` column of the Excel round trip (FR-EXP-004) and the key of revision deltas, so
+/// the form is stable (FR-REP-048): a change to it breaks files written earlier.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct RowId(pub Vec<RowKey>);
 
@@ -246,6 +261,26 @@ impl RowId {
     }
 }
 
+impl RowId {
+    /// Parses the text form written by [`Display`](fmt::Display); see [`RowId`].
+    ///
+    /// # Errors
+    ///
+    /// [`RowIdParseError`] for an unknown component tag, an entity that is not a canonical (lowercase,
+    /// hyphenated) UUID, an index that is not a canonical `u32`, a raw character that must be escaped, an
+    /// invalid `%` escape or a name that is not UTF-8 after unescaping.
+    pub fn parse(s: &str) -> Result<RowId, RowIdParseError> {
+        if s.is_empty() {
+            return Ok(RowId(Vec::new()));
+        }
+        s.split('/')
+            .map(parse_component)
+            .collect::<Result<Vec<_>, _>>()
+            .map(RowId)
+    }
+}
+
+/// The text form of a [`RowId`] (see there): typed, `/`-joined and percent-escaped, hence injective.
 impl fmt::Display for RowId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (i, k) in self.0.iter().enumerate() {
@@ -253,13 +288,119 @@ impl fmt::Display for RowId {
                 f.write_str("/")?;
             }
             match k {
-                RowKey::Entity(u) => write!(f, "{u}")?,
-                RowKey::Index(n) => write!(f, "{n}")?,
-                RowKey::Name(s) => f.write_str(s)?,
+                RowKey::Entity(u) => write!(f, "e:{}", u.hyphenated())?,
+                RowKey::Index(n) => write!(f, "i:{n}")?,
+                RowKey::Name(s) => {
+                    f.write_str("n:")?;
+                    for &b in s.as_bytes() {
+                        if is_unreserved(b) {
+                            f.write_char(char::from(b))?;
+                        } else {
+                            write!(f, "%{b:02X}")?;
+                        }
+                    }
+                }
             }
         }
         Ok(())
     }
+}
+
+impl std::str::FromStr for RowId {
+    type Err = RowIdParseError;
+
+    fn from_str(s: &str) -> Result<RowId, RowIdParseError> {
+        RowId::parse(s)
+    }
+}
+
+/// Why a text is not a [`RowId`] (see [`RowId::parse`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct RowIdParseError {
+    message: String,
+}
+
+impl RowIdParseError {
+    fn new(message: impl Into<String>) -> RowIdParseError {
+        RowIdParseError {
+            message: message.into(),
+        }
+    }
+
+    /// What is wrong, in English.
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+}
+
+impl fmt::Display for RowIdParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "invalid row ID: {}", self.message)
+    }
+}
+
+impl std::error::Error for RowIdParseError {}
+
+/// The bytes a name prints raw: ASCII letters and digits and `-_.~`.
+fn is_unreserved(b: u8) -> bool {
+    b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.' | b'~')
+}
+
+fn parse_component(c: &str) -> Result<RowKey, RowIdParseError> {
+    let Some((tag, body)) = c.split_once(':') else {
+        return Err(RowIdParseError::new(format!("component `{c}` has no type tag")));
+    };
+    match tag {
+        "e" => {
+            let u: Uuid = body
+                .parse()
+                .map_err(|_| RowIdParseError::new(format!("`{body}` is not a UUID")))?;
+            if u.hyphenated().to_string() != body {
+                return Err(RowIdParseError::new(format!(
+                    "`{body}` is not a lowercase hyphenated UUID"
+                )));
+            }
+            Ok(RowKey::Entity(u))
+        }
+        "i" => {
+            let n: u32 = body
+                .parse()
+                .map_err(|_| RowIdParseError::new(format!("`{body}` is not a u32")))?;
+            if n.to_string() != body {
+                return Err(RowIdParseError::new(format!(
+                    "`{body}` is not a canonical decimal"
+                )));
+            }
+            Ok(RowKey::Index(n))
+        }
+        "n" => unescape(body).map(RowKey::Name),
+        other => Err(RowIdParseError::new(format!("unknown component tag `{other}`"))),
+    }
+}
+
+fn unescape(s: &str) -> Result<String, RowIdParseError> {
+    let bytes = s.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        let b = bytes[i];
+        if b == b'%' {
+            let hex = |k: usize| bytes.get(k).and_then(|d| char::from(*d).to_digit(16));
+            let (Some(hi), Some(lo)) = (hex(i + 1), hex(i + 2)) else {
+                return Err(RowIdParseError::new("a `%` is not followed by two hex digits"));
+            };
+            out.push(u8::try_from(hi * 16 + lo).unwrap_or(0));
+            i += 3;
+        } else if is_unreserved(b) {
+            out.push(b);
+            i += 1;
+        } else {
+            return Err(RowIdParseError::new(format!(
+                "byte 0x{b:02X} in a name must be written as %{b:02X}"
+            )));
+        }
+    }
+    String::from_utf8(out).map_err(|_| RowIdParseError::new("a name is not valid UTF-8 after unescaping"))
 }
 
 /// One component of a [`RowId`].

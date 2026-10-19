@@ -10,7 +10,7 @@ use ew_derive::ew_mltext::{MlText, NaturalKey};
 use ew_derive::ew_schema::{Device, ReportBlock};
 use ew_derive::{DevicePartLines, MainRep, PartLine, Q};
 
-use super::parts::{part_cells, tag_key};
+use super::parts::{line_id, part_cells, tag_key};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 
@@ -44,21 +44,22 @@ impl ReportKindDef for PartData {
             let configured: Vec<(usize, &PartLine)> =
                 lines.iter().enumerate().filter(|(_, l)| l.configured).collect();
             if !configured.is_empty() {
-                for (n, (i, line)) in configured.into_iter().enumerate() {
+                for (n, (i, _)) in configured.into_iter().enumerate() {
                     let label = Cell::Text(MlText::neutral(&format!("Order Code {}", n + 1)));
-                    push_row(q, &mut set, d, line, i, label);
+                    push_row(q, &mut set, d, &lines, i, label);
                 }
                 continue;
             }
-            for (i, line) in lines.iter().enumerate() {
-                push_row(q, &mut set, d, line, i, Cell::Empty);
+            for i in 0..lines.len() {
+                push_row(q, &mut set, d, &lines, i, Cell::Empty);
             }
             for child in descendants(q, d)
                 .into_iter()
                 .filter(|c| q.get::<MainRep>(*c).is_none())
             {
-                for (i, line) in q.get::<DevicePartLines>(child).iter().enumerate() {
-                    push_row(q, &mut set, d, line, i, Cell::Empty);
+                let child_lines = q.get::<DevicePartLines>(child);
+                for i in 0..child_lines.len() {
+                    push_row(q, &mut set, d, &child_lines, i, Cell::Empty);
                 }
             }
         }
@@ -66,17 +67,17 @@ impl ReportKindDef for PartData {
     }
 }
 
-fn push_row(q: &Q, set: &mut RowSet, source: Id<Device>, line: &PartLine, index: usize, label: Cell) {
+fn push_row(q: &Q, set: &mut RowSet, source: Id<Device>, lines: &[PartLine], index: usize, label: Cell) {
+    let line = &lines[index];
     let Some(copy) = q.parts().get(line.part) else {
         return;
     };
     let [manufacturer, part_number, description] = part_cells(&copy.item);
-    let id = RowId(vec![
+    let prefix = RowId(vec![
         RowKey::Entity(source.as_uuid()),
         RowKey::Entity(line.device.as_uuid()),
-        RowKey::Entity(line.part.as_uuid()),
-        RowKey::Index(index as u32),
     ]);
+    let id = line_id(prefix, lines, index);
     let mut r = Row::data(id, vec![label, manufacturer, part_number, description]);
     r.sources = vec![line.device.cast()];
     set.rows.push(r);

@@ -11,11 +11,11 @@
 //!     NewFolio break: close the page; the next folio (previous + 1) restarts the form chain
 //!     for row in group:
 //!       h = height(row.kind) × lines(row)          # lines = 1 unless the kind's template wraps
-//!       keep-with-next: a group header or heading needs room for itself and the next row
+//!       keep-with-next: a group header or heading needs room for itself and up to the next data row
 //!       if used + need > capacity and the page has rows:
 //!         close the page; open the next (continuation form)
-//!         if the form has a group-header template and the group began earlier: reserve the
-//!           "(cont.)" header and mark the page `continued_group`
+//!         if the form has a group-header template and the group began with an emitted header row:
+//!           reserve the "(cont.)" header and mark the page `continued_group`
 //!       place(row)
 //!   no data rows: OmitPages → no pages, OnePage(text) → one page with that note
 //!   source not derived yet → one placeholder page with the reason as its note
@@ -25,6 +25,14 @@
 //!
 //! The functions here are pure over their inputs (no `Q`), so the algorithm is tested without a model; the
 //! `report_block_pages` query ([`crate::BlockPages`]) feeds them the block's rows and form chain.
+//!
+//! # Table of contents
+//!
+//! A TOC block is not sliced by rows: [`toc_slices`] gives it the page count the `page_order` fixpoint
+//! settled on, with `r` rows per page, where `r` is the TOC page capacity of decision D3: the TOC form's data
+//! area (its capacity over its data-row height) when the form has a valid one, else the profile's
+//! `toc.rows_per_page` (`crate::queries::toc_rows_per_page`, which `ReportEngine` also reports to
+//! `page_order`).
 
 use std::ops::Range;
 
@@ -161,7 +169,11 @@ pub fn paginate(
 }
 
 /// The pages of a row set, before numbering (see the module documentation).
+///
+/// An invalid layout of the chain ([`PageLayout::is_valid`]) is replaced by the house geometry
+/// ([`Layouts::validated`]), so the page count is bounded by the row count at any geometry.
 pub fn slice(set: &RowSet, spec: &BlockSpec, layouts: &Layouts, lines: &dyn RowLines) -> Vec<Slice> {
+    let layouts = &layouts.validated();
     if let RowSetStatus::NotDerived(reason) = &set.status {
         return vec![note_slice(MlText::neutral(&capitalise(&reason.to_string())))];
     }
@@ -204,17 +216,28 @@ pub fn slice(set: &RowSet, spec: &BlockSpec, layouts: &Layouts, lines: &dyn RowL
             let layout = layouts.page(idx(page.sub));
             let h = row_height(row, layout, lines);
             let mut need = h;
-            if matches!(row.kind, RowKind::GroupHeader | RowKind::Heading)
-                && let Some(next) = (i + 1 < range.end).then(|| &set.rows[idx(i + 1)])
-                && !matches!(next.kind, RowKind::GroupHeader | RowKind::Heading)
-            {
-                need = Nm(need.0.saturating_add(row_height(next, layout, lines).0));
+            if matches!(row.kind, RowKind::GroupHeader | RowKind::Heading) {
+                // Keep-with-next (doc 09 §3.2): the header or heading stays with at least one data row.
+                for j in i + 1..range.end {
+                    let next = &set.rows[idx(j)];
+                    match next.kind {
+                        RowKind::Data => {
+                            need = Nm(need.0.saturating_add(row_height(next, layout, lines).0));
+                            break;
+                        }
+                        RowKind::GroupHeader | RowKind::Heading => {
+                            need = Nm(need.0.saturating_add(row_height(next, layout, lines).0));
+                        }
+                        RowKind::GroupFooter => break,
+                    }
+                }
             }
             if page.used.0.saturating_add(need.0) > layout.capacity.0 && page.has_rows() {
                 page = page.close_into(&mut out, Next::Page, i);
                 let next_layout = layouts.page(idx(page.sub));
                 if group.is_some()
                     && next_layout.repeats_group_header()
+                    && set.rows[idx(range.start)].kind == RowKind::GroupHeader
                     && i > range.start
                     && row.kind != RowKind::GroupHeader
                 {
@@ -252,6 +275,7 @@ pub fn toc_slices(toc_pages: u32, rows_per_page: u32) -> Vec<Slice> {
 
 /// Numbers the slices into generated pages: folio numbers and labels, titles, forms, IDs, page count.
 pub fn number(slices: &[Slice], set: &RowSet, spec: &BlockSpec, layouts: &Layouts) -> Vec<GeneratedPage> {
+    let layouts = &layouts.validated();
     let count = len_u32(slices.len());
     slices
         .iter()
@@ -276,11 +300,7 @@ pub fn number(slices: &[Slice], set: &RowSet, spec: &BlockSpec, layouts: &Layout
             let group_text = group.clone().unwrap_or_default();
             let n = (k + 1).to_string();
             let total = count.to_string();
-            let title = map_ml(&spec.title, |t| {
-                t.replace("{n}", &n)
-                    .replace("{count}", &total)
-                    .replace("{group}", &group_text)
-            });
+            let title = map_ml(&spec.title, |t| fill_title(t, &n, &total, &group_text));
             GeneratedPage {
                 id: v5::report_page_id(spec.block, k),
                 block: spec.block,
@@ -385,6 +405,39 @@ fn row_height(row: &Row, layout: &PageLayout, lines: &dyn RowLines) -> Nm {
         1
     };
     Nm(layout.height(row.kind).0.saturating_mul(n))
+}
+
+/// Fills a page-title format in one pass (doc 09 §2.6): `{{` is a literal `{`, `}}` a literal `}`, `{n}`,
+/// `{count}` and `{group}` are replaced by the given values (inserted verbatim, never scanned again), and
+/// any other `{...}` or lone brace is copied unchanged.
+pub fn fill_title(format: &str, n: &str, count: &str, group: &str) -> String {
+    let mut out = String::with_capacity(format.len() + 8);
+    let mut rest = format;
+    while let Some(pos) = rest.find(['{', '}']) {
+        out.push_str(&rest[..pos]);
+        let tail = &rest[pos..];
+        if let Some(r) = tail.strip_prefix("{{") {
+            out.push('{');
+            rest = r;
+        } else if let Some(r) = tail.strip_prefix("}}") {
+            out.push('}');
+            rest = r;
+        } else if let Some(r) = tail.strip_prefix("{n}") {
+            out.push_str(n);
+            rest = r;
+        } else if let Some(r) = tail.strip_prefix("{count}") {
+            out.push_str(count);
+            rest = r;
+        } else if let Some(r) = tail.strip_prefix("{group}") {
+            out.push_str(group);
+            rest = r;
+        } else {
+            out.push_str(&tail[..1]);
+            rest = &tail[1..];
+        }
+    }
+    out.push_str(rest);
+    out
 }
 
 fn capitalise(s: &str) -> String {

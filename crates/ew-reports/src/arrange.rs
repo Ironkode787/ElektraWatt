@@ -12,14 +12,19 @@
 
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
-use ew_derive::ew_schema::{AnyId, ColourCode, Date, Device, GroupSpec, ReportBlock, Set, SortKey};
+use ew_derive::ew_schema::{
+    AnyId, ColourCode, ContinuationPolicy, Date, Device, GroupSpec, ReportBlock, Set, SortKey,
+};
 use ew_derive::ew_units::Dec3;
-use ew_derive::{DeviceTag, PageRef, Q, folio_label};
+use ew_derive::{DeviceTag, PageRef, Q, ResolvedStructure, SectionStructure, folio_label};
 
+use crate::BlockPages;
 use crate::layout::PageLayout;
+use crate::paginate::is_toc;
 use crate::rowset::{
     Cell, CellType, ColumnDef, GroupRange, MissingReason, QtyUnit, Row, RowId, RowKey, RowKind, RowSet,
 };
@@ -77,6 +82,10 @@ pub struct Arrangement<'a> {
     pub group_header: bool,
     /// Whether to emit group-footer rows (the form has a `group_footer` template).
     pub group_footer: bool,
+    /// The structure the generated pages print: the block's section structure, absent without a section or
+    /// when it is empty. Group texts print a tag in its displayed form for this context (else its short
+    /// form); the grouping order keeps using the full tag.
+    pub group_context: Option<Arc<ResolvedStructure>>,
 }
 
 impl<'a> Arrangement<'a> {
@@ -90,7 +99,18 @@ impl<'a> Arrangement<'a> {
             exclude: &block.manual.exclude,
             group_header: layout.group_header.is_some(),
             group_footer: layout.group_footer.is_some(),
+            group_context: None,
         }
+    }
+
+    /// Sets the group-text context from the block's section structure (see [`Arrangement::group_context`]).
+    #[must_use]
+    pub fn with_group_context(mut self, q: &Q, block: &ReportBlock) -> Arrangement<'a> {
+        self.group_context = block
+            .section
+            .map(|s| q.get::<SectionStructure>(s))
+            .filter(|st| **st != ResolvedStructure::default());
+        self
     }
 }
 
@@ -293,18 +313,24 @@ fn group_rows(
     col: usize,
     how: &Arrangement<'_>,
 ) -> (Vec<Row>, Vec<GroupRange>) {
-    let mut collected: BTreeMap<CellKey, Collected> = BTreeMap::new();
-    let mut put = |row: Row, key: &Cell| {
-        collected
-            .entry(cell_key(q, key))
-            .or_insert_with(|| Collected {
-                key: key.clone(),
-                rows: Vec::new(),
-            })
-            .rows
-            .push(row);
-    };
+    // Groups follow the sort direction of the group column; a heading bounds its groups.
+    let descending = how
+        .group
+        .is_some_and(|g| how.sort.iter().any(|k| k.key == g.key && k.descending));
+    let mut rows: Vec<Row> = Vec::new();
+    let mut groups: Vec<GroupRange> = Vec::new();
     for seg in segments {
+        let mut collected: BTreeMap<CellKey, Collected> = BTreeMap::new();
+        let mut put = |row: Row, key: &Cell| {
+            collected
+                .entry(cell_key(q, key))
+                .or_insert_with(|| Collected {
+                    key: key.clone(),
+                    rows: Vec::new(),
+                })
+                .rows
+                .push(row);
+        };
         let key_of = |r: &Row| r.cells.get(col).unwrap_or(&Cell::Empty).clone();
         // The heading takes the first data row's group; a non-data row inside the segment takes the
         // next data row's, else the last one's.
@@ -330,31 +356,54 @@ fn group_rows(
         for p in pending {
             put(p, &key);
         }
-    }
 
-    let mut rows: Vec<Row> = Vec::new();
-    let mut groups: Vec<GroupRange> = Vec::new();
-    for g in collected.into_values() {
-        let start = len_u32(rows.len());
-        let text = cell_text(q, &g.key);
-        if how.group_header {
-            let header = group_row(columns.len(), col, RowKind::GroupHeader, &g.key, &text);
-            rows.push(header);
+        let ordered: Vec<Collected> = if descending {
+            collected.into_values().rev().collect()
+        } else {
+            collected.into_values().collect()
+        };
+        for g in ordered {
+            let start = len_u32(rows.len());
+            let text = group_text(q, how, &g.key);
+            if how.group_header {
+                let header = group_row(columns.len(), col, RowKind::GroupHeader, &g.key, &text);
+                rows.push(header);
+            }
+            let footer = how.group_footer.then(|| {
+                let mut row = group_row(columns.len(), col, RowKind::GroupFooter, &g.key, &text);
+                row.cells = footer_cells(columns, col, &g);
+                row
+            });
+            rows.extend(g.rows);
+            rows.extend(footer);
+            groups.push(GroupRange {
+                text,
+                key: g.key,
+                rows: start..len_u32(rows.len()),
+            });
         }
-        let footer = how.group_footer.then(|| {
-            let mut row = group_row(columns.len(), col, RowKind::GroupFooter, &g.key, &text);
-            row.cells = footer_cells(columns, col, &g);
-            row
-        });
-        rows.extend(g.rows);
-        rows.extend(footer);
-        groups.push(GroupRange {
-            text,
-            key: g.key,
-            rows: start..len_u32(rows.len()),
-        });
     }
     (rows, groups)
+}
+
+/// The text of a group key: a tag prints in its displayed form for the generated pages' structure
+/// (`how.group_context`), else its short form; other cells print as [`cell_text`].
+fn group_text(q: &Q, how: &Arrangement<'_>, key: &Cell) -> String {
+    let tag = |id: Id<Device>| {
+        let tag = q.get::<DeviceTag>(id);
+        match (*tag).as_ref() {
+            Some(t) => match &how.group_context {
+                Some(ctx) => t.displayed(ctx),
+                None => t.short(),
+            },
+            None => String::new(),
+        }
+    };
+    match peel(key) {
+        Cell::Tag(id) => tag(*id),
+        Cell::Range(ids) => ids.iter().map(|id| tag(*id)).collect::<Vec<_>>().join(", "),
+        other => cell_text(q, other),
+    }
 }
 
 /// A group header or footer row: empty cells except the key column.
@@ -570,10 +619,7 @@ fn folio_key(q: &Q, p: PageRef) -> FolioKey {
             Some(s) => FolioKey(s.folio_range.0, natural_key(&s.folio_range.0.to_string()), 0),
             None => FolioKey(u32::MAX, natural_key(""), 0),
         },
-        PageRef::Generated { block, index } => match q.report_blocks().get(block) {
-            Some(b) => FolioKey(b.first_folio.unwrap_or(0), natural_key(""), index),
-            None => FolioKey(u32::MAX, natural_key(""), index),
-        },
+        PageRef::Generated { block, index } => generated_folio(q, block, index).0,
     }
 }
 
@@ -590,17 +636,48 @@ fn folio_text(q: &Q, p: PageRef) -> String {
             .get(id)
             .map(|s| s.folio_range.0.to_string())
             .unwrap_or_default(),
-        PageRef::Generated { block, index } => {
-            let first = q
-                .report_blocks()
-                .get(block)
-                .and_then(|b| b.first_folio)
-                .unwrap_or(0);
-            if index == 0 {
-                first.to_string()
-            } else {
-                format!("{first}.{index}")
+        PageRef::Generated { block, index } => generated_folio(q, block, index).1,
+    }
+}
+
+/// The folio key and label of page `index` of a block's generated pages.
+///
+/// A block other than a table of contents answers from its own pages (`BlockPages`: the actual number and
+/// label, which differ from `first.index` under `NextFolio` and after a `NewFolio` group break); when that
+/// query is running (the block arranging its own rows, or a cycle) or has no such page, the label is
+/// computed from the first folio and the sub-page index. A table of contents never reads its pages (their
+/// count is the page-order fixpoint's): its label follows the block's continuation policy.
+fn generated_folio(q: &Q, block: Id<ReportBlock>, index: u32) -> (FolioKey, String) {
+    let Some(b) = q.report_blocks().get(block) else {
+        return (FolioKey(u32::MAX, natural_key(""), index), String::new());
+    };
+    let first = b.first_folio.unwrap_or(0);
+    let sub_page = || {
+        let label = if index == 0 {
+            first.to_string()
+        } else {
+            format!("{first}.{index}")
+        };
+        (FolioKey(first, natural_key(""), index), label)
+    };
+    let numbered = |number: u32, label: String| (FolioKey(number, natural_key(&label), 0), label);
+    if is_toc(b) {
+        return match b.continuation {
+            ContinuationPolicy::NextFolio => {
+                let number = first.saturating_add(index);
+                numbered(number, number.to_string())
             }
+            _ => sub_page(),
+        };
+    }
+    match q.try_get::<BlockPages>((block, 0)) {
+        Ok(pages) => match pages.iter().find(|g| g.index == index) {
+            Some(g) => numbered(g.number, g.label.clone()),
+            None => sub_page(),
+        },
+        Err(cycle) => {
+            q.note_cycle(cycle);
+            sub_page()
         }
     }
 }
