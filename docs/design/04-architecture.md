@@ -242,7 +242,7 @@ sessions (G6).
 | `ew-import-tables` | GPL | The golden CSV bootstrap behind `ew import csv`, the round-trip table reader and translation tables; reused by `ew-testkit`; the bootstrap importer TablesImporter reads a directory of tables (ADR-0021 amendment 6) | ew-interop-api, ew-schema, ew-units, ew-ids, ew-mltext, ew-rds (as ew-import-qet); serde, serde_json, sha2; an own bounded RFC-4180 reader (no csv crate yet); later: csv, calamine (round-trip reader) |
 | `ew-script`, `ew-plugin-host` | GPL | rhai automation bindings over queries and commands (profile from `ew-rhai`); WIT world and host on the wasmtime LTS line current at plugin launch (48.x in development), plugin export roles (§10.4), plugin rule implementations registered into `ew-checks`, the `secret-get` capability (v1.x) | ew-rhai; wasmtime LTS, wit-bindgen 0.63.0 |
 | `ew-jobs` | GPL | Scheduler, progress, cancellation, staleness tagging, adopt-if-unchanged | rayon |
-| `ew-api` | GPL | The `Session` facade shared by every front-end; registers the SQL and plugin rule implementations at session start; composes `.ewpp` export jobs from `ew-mfg` data, `ew-export` PDF/DXF and `ew-panel` glb | v0: ew-commands, ew-model, ew-schema (no `raw-read`); dev: ew-commands/testkit, ew-model/raw-read; eventually everything above except UI |
+| `ew-api` | GPL | The `Session` facade shared by every front-end; registers the SQL and plugin rule implementations at session start; composes `.ewpp` export jobs from `ew-mfg` data, `ew-export` PDF/DXF and `ew-panel` glb | v0: ew-commands, ew-derive (normal edge: the Session surfaces derivation findings, tracked reads only), ew-model, ew-schema (no `raw-read`); dev: ew-commands/testkit, ew-derive, ew-model/raw-read; eventually everything above except UI |
 | `ew-viewmodel` | GPL | Toolkit-agnostic panel models: navigator trees, table rows with edit→command mapping, property-grid rows with provenance, message lists, each with a revision stamp | ew-api |
 | `ew-ui` | GPL | egui widgets, canvas host, tools (state machines), command palette, keymaps, the action registry behind every menu, the 3D transform gizmo over `ew-render3d`'s camera and pick API | egui 0.37.0, egui_tiles 0.17.1, egui_table 0.10.0, egui_ltreeview 0.9.0, transform-gizmo-egui 0.11.0 |
 | `ew-viewer` (1.0) | GPL | The read-only `.ewpp` wiring viewer on `ew-ui` widgets, used by the `ew-wiring-viewer` binary and the "Preview package" view of the Manufacturing workspace | ew-ewpp, ew-ui, ew-render-cpu, hayro 0.8.0 (after the fidelity check) |
@@ -341,7 +341,7 @@ graph TD
   itab --> iapi & schema & units & ids & mltext & rds
   script --> cmd & rhai
   plug --> cmd & sqlv & checks
-  api --> store & cmd & checks & sqlv & lib & scene & exp & plc & panel & mfg & imp & icat & itab & script & plug & jobs & model & schema
+  api --> store & cmd & derive & checks & sqlv & lib & scene & exp & plc & panel & mfg & imp & icat & itab & script & plug & jobs & model & schema
   vm --> api
   ui --> vm & r2d & rcpu & r3d
   viewer --> ewpp & ui & rcpu

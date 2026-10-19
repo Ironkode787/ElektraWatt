@@ -108,7 +108,9 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    file, new crates are covered by default, and only the readers opt out: the guard also fails on an
    `allow(clippy::disallowed_methods)` in non-test source of any other package (core team, 2026-10-19). The lexical
    check keeps what needs no types: `raw_read!`, the feature name, the manifest rules, the reachability scope and
-   the allowlist.
+   the allowlist. Integration-test targets of non-reader crates that drive `ew-model` directly carry the same opt-out
+   line at their root (core team, 2026-10-19, decision log ID-121); it is stricter than exempting all test code and
+   consistent with it, and applies to the clippy guard only.
 
 ## Consequences
 

@@ -1,6 +1,6 @@
 # Decision log
 
-**Status:** Draft v0.8 · **Date:** 2026-10-19 (v0.8: the cycle-6 decisions ID-64 to ID-116 and the review rulings; v0.7: the cycle-5 decisions ID-33 to ID-63 and the review rulings; v0.6: ID-26 final limits; v0.5: the cycle-4 decisions ID-22 to ID-32, §2.4 and §5.1) ·
+**Status:** Draft v0.8 · **Date:** 2026-10-19 (v0.8: the cycle-6 decisions ID-64 to ID-123 and the review rulings; v0.7: the cycle-5 decisions ID-33 to ID-63 and the review rulings; v0.6: ID-26 final limits; v0.5: the cycle-4 decisions ID-22 to ID-32, §2.4 and §5.1) ·
 **Part of:** ElektraWatt plan
 
 **Purpose.** This is the decision log of ElektraWatt (EW). **Part A** records what has been decided: the user
@@ -356,6 +356,13 @@ edges of the foundation crates. The fourth implementation cycle (`ew-model`, WP-
 | ID-114 | **What the fixture does not cover yet.** Besides doc 20 §11–§13 and §14.2, the golden tables leave out the MICO 4.10 13-14 signal-contact template, FR-DEV-037 "supplied by others" and the -201U1:DP port; the tables' README and doc 14 §8.4 list them. | Project owner (delegated, 2026-10-19) | [14](../design/14-interop.md) §8.4; FR-DEV-037 |
 | ID-115 | **Importer work is linear or O(n log n).** Every structural walk of an importer (parent and inheritance walks, junction cascades, clean-ups, reference resolution) is linear or O(n log n) in the rows or nodes, so a hostile input under every limit still meets the 1 s / 256 MB rule (FT-42). | Project owner (delegated, 2026-10-19) | [14](../design/14-interop.md) §11; NFR-SEC-02 |
 | ID-116 | **The golden tables are accepted only after the pilot's acknowledgement.** Until PD-15 is done, the cycle-6 tables are test inputs, not accepted acceptance truth, and no gate counts them as evidence (ID-80). | Project owner (delegated, 2026-10-19) | [19](../design/19-open-source-governance.md) §3.4; [01](01-global-plan.md) §14 PD-15 |
+| ID-117 | **`page.last_changed_in` is bound for drawn pages from the reserved `revision` records.** The open current revision that lists the page in `page_notes`, else the latest released revision whose `release.changed_pages` or `page_notes` lists it, else the first revision (the no-digest branch of doc 15 §5.6). | Core team | [15](../design/15-checks-revisions-collaboration.md) §5.6 |
+| ID-118 | **The generator (version 2) embeds symbols with CPs and routes a class-dependent share of signal wires.** It embeds symbols with their connection points and gives the terminal definition a `Short` link, which CP-exact routes need; it routes S 54 %, M 87 %, L 81 % and XL 32 % of the signal wires and has a no-routes option (FT-35). | Project owner (delegated, 2026-10-19) | WP-S1.05; FT-35 |
+| ID-119 | **A store that adopted a fork has no base and cannot itself be adopted.** The rule is conservative and is kept. | Core team | [ADR-0002](../adr/0002-derived-data-engine-ew-memo.md) amendment 3 |
+| ID-120 | **`Session::load_findings()` is project-level at open; `derivation_findings()` is a full on-demand pass.** The on-demand pass stays a full derivation until the memo engine exists. | Core team | [ADR-0003](../adr/0003-freshness-contract.md) amendment 1; FT-22 |
+| ID-121 | **Raw reads in a non-reader crate's integration tests need an opt-out line at the test root.** This is stricter than "test code is exempt" and consistent with it; it applies to the clippy guard only. | Core team | [ADR-0001](../adr/0001-core-model-persistent-maps.md) amendment 4 |
+| ID-122 | **The `clippy.toml` at the workspace root is generated and CC0-1.0.** It is covered by the licence-map rule. | Core team | ID-94; FT-32 |
+| ID-123 | **The design pass's wording of doc 20 §4.4 (frozen clause) and §8.3 (chain notation) is parsed and asserted by the golden generator script.** A change to that wording in the document changes or fails the generated tables. | Core team | [20](../design/20-golden-project.md) §4.4, §8.3 |
 
 ---
 
