@@ -3,6 +3,8 @@
 
 //! `page.create`, `page.delete`, `page.renumber`, `structure.create_node`, `section.create` and
 //! `report_block.create`.
+// A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
+#![allow(clippy::disallowed_methods)]
 
 mod common;
 

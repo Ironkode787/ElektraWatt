@@ -3,6 +3,8 @@
 
 //! Regressions of the independent re-review of `ew-commands`: a split point on a wire at a CP-exact
 //! coordinate that is 1 nm off a rational grid (N1), and the origin of a re-run foreign preview (N3).
+// A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
+#![allow(clippy::disallowed_methods)]
 
 mod common;
 

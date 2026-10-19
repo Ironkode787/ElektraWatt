@@ -39,6 +39,8 @@
 //! equal models give equal values (NFR-REL-07, FR-NUM-028).
 
 #![forbid(unsafe_code)]
+// A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
+#![allow(clippy::disallowed_methods)]
 
 mod bom;
 mod cell;

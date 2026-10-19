@@ -4,6 +4,8 @@
 //! The acceptance tests of the review cycle 5 findings F1-F5 and the decisions D2-D4: checked coordinates,
 //! one-pass junction clean-up, collision-only renumbering, preview identity, transient delete planning,
 //! `fields.set` collisions, the connection grid and the cost of `edit.delete`.
+// A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
+#![allow(clippy::disallowed_methods)]
 
 mod common;
 

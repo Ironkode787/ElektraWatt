@@ -186,20 +186,37 @@ only_direct_dependents = ["ew-api"]
 never_reached_from = ["ew-plugin-host", "@permissive"]
 reason = "ADR-0024 decision 4 (QET-derived code)"
 
-# `cargo xtask check-raw-read` (ADR-0001 amendment 2, decision log ID-50, FT-01): the non-test Rust source of a
-# workspace package outside `readers` must not invoke the `raw_read!` macro, name the `raw-read` feature, or call
-# an item that ew-model declares only under that feature. The gated items are read from ew-model's own source,
-# so a newly gated reader is covered without a list to maintain. Test code is exempt: the `tests/`, `benches/`
-# and `examples/` directories and `#[cfg(test)]` items and modules. A false positive gets an `[[raw_read.allow]]`
-# entry (file, item, reason); inline suppressions are not honoured, and an entry that matches nothing fails.
+# `cargo xtask check-raw-read` (ADR-0001 amendment 2, decision log ID-50, FT-01) guards the raw readers that
+# ew-model declares under its `raw-read` feature, in two halves (details: the module doc of xtask/src/raw_read.rs).
+#
+# Calls: the workspace-root `clippy.toml` (`clippy_config`) is GENERATED from ew-model's own source by
+# `cargo xtask check-raw-read --bless` and lists every reader as a clippy `disallowed-methods` path
+# (`ew_model::Model::row`, ...), which clippy resolves through the type. The reader crates opt out with
+# `#![allow(clippy::disallowed_methods)]` at each target root; no other crate may. The check fails when the
+# committed file is missing, stale or hand-edited, when another `clippy.toml`/`.clippy.toml` shadows it, when
+# `.cargo/config.toml` or a workflow mentions `CLIPPY_CONF_DIR` or `disallowed_methods`, and when a reader is
+# not re-exported at ew-model's crate root (clippy would only warn about the unresolvable path).
+#
+# Lexical rules: the non-test Rust source of a workspace package outside `readers` (that reaches ew-model through
+# normal dependencies) must not invoke the `raw_read!` macro, name the `raw-read` feature, or suppress the guard
+# (`allow`/`expect` of `disallowed_methods`, `clippy::style`, `clippy::all` or `warnings`, also in `cfg_attr`); its
+# manifest must not enable the feature or set `disallowed_methods`, `style` or `all` to `allow` under
+# `[lints.clippy]` (nor may `[workspace.lints.clippy]`). Test code is exempt: the `tests/`, `benches/` and
+# `examples/` directories, and items under `#[cfg(test)]` or `#[cfg(all(test, ..))]`; a `cfg(any(test, ..))` is
+# production code.
+#
+# A false positive gets an `[[raw_read.allow]]` entry (file, item, reason); the item of a suppression finding is
+# `disallowed_methods`. Inline suppressions of this check are not honoured, and an entry that matches nothing fails.
 [raw_read]
 crate = "ew-model"
 feature = "raw-read"
 macro = "raw_read"
 readers = ["ew-model", "ew-derive", "ew-commands", "ew-store"]
+# The generated clippy configuration, relative to the workspace root.
+clippy_config = "clippy.toml"
 # The guard's own source names the feature and the macro.
 exempt_packages = ["xtask"]
 # [[raw_read.allow]]
 # path = "crates/ew-example/src/lib.rs"   # relative to the workspace root, forward slashes
-# item = "parts"                          # a gated item name, "raw_read!" or "raw-read"
-# reason = "a third-party Parts type, not ew-model's LibraryCopies"
+# item = "raw_read!"                      # "raw_read!", "raw-read" or "disallowed_methods"
+# reason = "a third-party macro that is not ew-model's"

@@ -1,61 +1,79 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `check-raw-read`: the source-level guard of ADR-0001 amendment 2 (decision log ID-50, task FT-01), driven by
-//! the `[raw_read]` section of `ci/dep-rules.toml`.
+//! `check-raw-read`: the guard of ADR-0001 amendment 2 (decision log ID-50, task FT-01) for the raw readers of
+//! `ew-model`, driven by the `[raw_read]` section of `ci/dep-rules.toml`.
 //!
 //! `check-features` stops a crate from *requesting* the `raw-read` feature of `ew-model`, but cargo features
 //! are additive: a crate that depends on `ew-derive` is compiled with the raw readers present. This check
-//! closes the remainder at the source. The non-test Rust source of every workspace package outside the
-//! policy's `readers` (and `exempt_packages`) must not
+//! closes the remainder. It has two halves: a type-aware list that clippy enforces, which this check
+//! generates and keeps current, and a few lexical rules that clippy cannot express.
+//!
+//! # The clippy list
+//!
+//! Method calls cannot be matched by name without type information (`Vec::len` is not `Table::len`), so the
+//! calls are left to clippy's `disallowed-methods`. The workspace-root `clippy.toml` is **generated** by
+//! `cargo xtask check-raw-read --bless` (alias `--write`) from the readers `ew-model` declares under its
+//! feature: every `fn <ident>` inside an invocation `raw_read! { ... }`, and every `fn <ident>` of an item
+//! carrying `#[cfg(feature = "raw-read")]`, each with the owner type of its enclosing `impl` block (the last
+//! path segment before the generics, for `impl Trait for Type` the `Type`). A `macro_rules!` definition is
+//! skipped: the token after `fn` in its body is `$`, not an identifier. Test code of `ew-model` is skipped.
+//!
+//! The path of an entry is `ew_model::<Owner>::<method>` (`ew_model::Model::row`, `ew_model::Table::get`,
+//! `ew_model::BaseIndexes::rebuild`) or `ew_model::<function>` for a free function. Clippy resolves such a
+//! path through the type, so it flags the method call, the UFCS call, a `use ... as` rename, a type alias,
+//! `<ew_model::Model>::row`, calls built by a macro, a turbofish and a function path (`iter.map(Table::len)`),
+//! and it leaves same-named std methods alone. The generic `Table<T>` is listed as `ew_model::Table`.
+//!
+//! Clippy reports a path that does not resolve only as a plain warning, which `-D warnings` does not turn into
+//! an error, and a path through a private module is not the supported form. The generator therefore refuses
+//! to write an entry whose owner (or free function) is not re-exported at the crate root of the gated crate
+//! (an identifier inside a `pub use` of its `src/lib.rs`, see [`root_exports`]) and fails with a message that
+//! names the item. Re-export the type, or the guard cannot cover it.
+//!
+//! The reader crates (`policy.readers`) opt out with `#![allow(clippy::disallowed_methods)]` at each target
+//! root; no other crate may. Clippy finds its configuration by walking up from each package's manifest
+//! directory to the first `clippy.toml`, so the one root file covers every package, unless something shadows
+//! it. The check fails when
+//!
+//! - the committed file (policy key `clippy_config`, default `clippy.toml`) is missing or differs from the
+//!   generated text (line endings are normalised first): run `cargo xtask check-raw-read --bless`;
+//! - a `clippy.toml` or `.clippy.toml` exists in a workspace package directory or a directory between it and
+//!   the root, or a `.clippy.toml` exists at the root (clippy would read it instead of the generated file);
+//! - `.cargo/config.toml`, `.cargo/config` or a `.github/workflows/*.yml` file mentions `CLIPPY_CONF_DIR` or
+//!   `disallowed_methods` (an override of the configuration directory, or of the lint).
+//!
+//! # Lexical rules
+//!
+//! The non-test Rust source of every workspace package outside the policy's `readers` (and
+//! `exempt_packages`) whose normal dependencies reach the gated crate must not
 //!
 //! - invoke the `raw_read!` macro,
 //! - contain a string literal equal to the feature name (`cfg(feature = "raw-read")`, `cfg_attr`, `cfg!`),
-//! - call an item that the policy crate declares only under that feature, or
-//! - enable the feature in its manifest (a non-dev dependency edge with the feature, or a `[features]`
-//!   entry that forwards it; this duplicates part of `check-features` on purpose, as the ADR words it).
+//! - suppress the guard: an attribute `#[...]` or `#![...]` (also inside `cfg_attr(...)`) whose `allow(...)` or
+//!   `expect(...)` list contains `disallowed_methods` (with or without `clippy::`), `clippy::style`,
+//!   `clippy::all` or `warnings`, or
+//! - enable the feature or suppress the lint in its manifest: a non-dev dependency edge with the feature, a
+//!   `[features]` entry that forwards it, or a `[lints.clippy]` table (the workspace's
+//!   `[workspace.lints.clippy]`, checked once) that sets `disallowed_methods`, `style` or `all` to `allow`.
+//!   The first two duplicate part of `check-features` on purpose, as the ADR words it.
 //!
-//! # Gated items
-//!
-//! The gated items are read from the policy crate's own non-test source, so a newly gated reader is covered
-//! without a list to maintain: every `fn <ident>` declared inside an invocation `raw_read! { ... }`, and every
-//! `fn <ident>` of an item carrying the attribute `#[cfg(feature = "raw-read")]`. A `macro_rules!` definition
-//! is skipped there: the token after `fn` in its body is `$`, not an identifier. Each gated item records its
-//! name, the owner type of the enclosing `impl` block (the last path segment before the generics, for
-//! `impl Trait for Type` the `Type`) and whether its declaration has generic parameters.
-//!
-//! # Distinctive and generic names
-//!
-//! The scanner is lexical: it has no type information, so it cannot tell `Vec::len` from `Table::len`. It
-//! therefore classifies each gated name. A name is **generic** when it is declared as a method or associated
-//! function (a `fn` inside an `impl` or `trait` block) in the non-test source of any workspace package,
-//! outside the gated set itself (the policy crate's non-gated methods included), or when it is one of
-//! [`STD_METHOD_NAMES`]. Free functions and test code never make a name generic: a test helper or a local
-//! function that shares a reader's name cannot be the receiver of a method call in production code. Every
-//! other gated name is **distinctive**.
-//!
-//! - A distinctive name is flagged in method form (`.name(`, `.name::<`) and in path form (`Owner::name`,
-//!   `path::Owner::name`, `use path::name`; the owner is not compared, as no other item has the name).
-//! - A generic name is flagged only where the receiver is known: in path form when the segment before it is
-//!   the recorded owner type of a gated item of that name (`Table::len(&t)`, `Model::table::<T>(&m)`), and in
-//!   method form with a turbofish (`.table::<T>()`) when a gated declaration of that name is generic.
-//!
-//! Misses (a generic name called as a plain method through a variable) are accepted: the type system and
-//! `check-features` still stand behind this guard, which exists to catch the careless use of a distinctive
-//! reader. A false positive gets an `[[raw_read.allow]]` entry (path, item, reason); inline suppressions are
-//! not honoured and an entry that suppresses nothing fails.
+//! A false positive gets an `[[raw_read.allow]]` entry (path, item, reason); the item of a suppression finding
+//! is `disallowed_methods`. Inline suppressions of this check are not honoured and an entry that suppresses
+//! nothing fails. Packages whose normal dependencies cannot reach the gated crate are not scanned (they cannot
+//! name its readers).
 //!
 //! # Test code
 //!
-//! Test code is exempt, as the feature rule's dev exemption is. That means files under a package's top-level
-//! `tests/`, `benches/`, `examples/` and `target/` directories; any item (fn, mod, impl, use, statement block)
-//! preceded by an attribute `#[cfg(...)]` whose tokens contain the identifier `test` and no `not`
-//! (`#[cfg(test)]` and `#[cfg(any(test, feature = "x"))]` are exempt, `#[cfg(not(test))]` is scanned), skipped
-//! through its matching `}` or its `;`; a leading inner `#![cfg(test)]`; and out-of-line test modules:
-//! `#[cfg(test)] mod foo;` in `dir/lib.rs`, `dir/main.rs` or `dir/mod.rs` exempts `dir/foo.rs` and
-//! `dir/foo/**`, in `dir/bar.rs` it exempts `dir/bar/foo.rs` and `dir/bar/foo/**`. An attribute on a struct
-//! field or match arm ends its item at the next top-level `,`. `#[path]` and the nesting of the declaring
-//! module are not followed.
+//! Test code is exempt from the lexical rules, as the feature rule's dev exemption is. That means files under
+//! a package's top-level `tests/`, `benches/`, `examples/` and `target/` directories; any item (fn, mod, impl,
+//! use, statement block) preceded by an attribute `#[cfg(test)]` or `#[cfg(all(test, ...))]` (a `test`
+//! argument at the top level of an `all`), skipped through its matching `}` or its `;`; a leading inner
+//! `#![cfg(test)]`; and out-of-line test modules: `#[cfg(test)] mod foo;` in `dir/lib.rs`, `dir/main.rs` or
+//! `dir/mod.rs` exempts `dir/foo.rs` and `dir/foo/**`, in `dir/bar.rs` it exempts `dir/bar/foo.rs` and
+//! `dir/bar/foo/**`. A `cfg` that merely mentions `test` is production code: `#[cfg(any(test, feature = "x"))]`
+//! and `#[cfg(not(test))]` are scanned. An attribute on a struct field or match arm ends its item at the next
+//! top-level `,`. `#[path]` and the nesting of the declaring module are not followed.
 //!
 //! # Lexing
 //!
@@ -63,8 +81,8 @@
 //! block with nesting, doc), char literals, lifetimes, raw strings (`r"..."`, `r#"..."#`), byte and C strings
 //! never produce identifiers; the contents of a string count only for the feature-name rule.
 //!
-//! Scanning is pure and works on `(path, text)` pairs, so the unit tests feed synthetic sources; only [`run`]
-//! and [`check`] touch the file system and `cargo metadata`.
+//! Scanning and generation are pure and work on `(path, text)` pairs, so the unit tests feed synthetic
+//! sources; only [`run`], [`check`] and the loading code touch the file system and `cargo metadata`.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -81,14 +99,28 @@ const POLICY_FILE: &str = "ci/dep-rules.toml";
 /// The authority each message cites.
 const REFERENCE: &str = "ADR-0001 amendment 2";
 
-/// Method names of the standard library that are common on collections. A gated reader that shares one of
-/// them (`Table::len`, `Table::get`, `BaseIndexes::iter`) is always treated as a generic name: `.len()` and
-/// `.get(` on a `Vec` or a map are everywhere in the workspace, and a lexical scan cannot tell them from the
-/// gated reader even when no other `fn` of that name is declared in the workspace itself.
-const STD_METHOD_NAMES: [&str; 5] = ["len", "is_empty", "get", "iter", "contains"];
-
 /// Top-level directories of a package whose files are test code (or build output).
 const TEST_DIRS: [&str; 4] = ["tests", "benches", "examples", "target"];
+
+/// The lint the guard rests on (the item of every suppression finding).
+const GUARD_LINT: &str = "disallowed_methods";
+
+/// Lint names whose `allow` or `expect` switches the guard off in source (`clippy::` prefix included where
+/// the lint has no rustc namesake).
+const SUPPRESSING: [&str; 5] = [
+    "disallowed_methods",
+    "clippy::disallowed_methods",
+    "clippy::style",
+    "clippy::all",
+    "warnings",
+];
+
+/// Keys of `[lints.clippy]` whose `allow` switches the guard off.
+const SUPPRESSING_KEYS: [&str; 3] = ["disallowed_methods", "style", "all"];
+
+fn default_clippy_config() -> String {
+    "clippy.toml".to_owned()
+}
 
 /// The `[raw_read]` section of `ci/dep-rules.toml`.
 #[derive(Debug, Clone, Deserialize)]
@@ -104,6 +136,9 @@ pub struct RawReadPolicy {
     pub macro_name: String,
     /// The packages that may use the readers.
     pub readers: Vec<String>,
+    /// The generated clippy configuration, relative to the workspace root.
+    #[serde(default = "default_clippy_config")]
+    pub clippy_config: String,
     /// Packages whose source is not scanned (the guard's own source names the feature and the macro).
     #[serde(default)]
     pub exempt_packages: Vec<String>,
@@ -118,7 +153,7 @@ pub struct RawReadPolicy {
 pub struct Allow {
     /// The file, relative to the workspace root, with forward slashes.
     pub path: String,
-    /// A gated item name, `raw_read!` (the macro) or the feature name.
+    /// `raw_read!` (the macro), the feature name or `disallowed_methods`.
     pub item: String,
     /// Why the match is not a use of the raw reader.
     pub reason: String,
@@ -131,55 +166,6 @@ pub struct GatedItem {
     pub name: String,
     /// The type of the enclosing `impl` block, if any.
     pub owner: Option<String>,
-    /// Whether the declaration has generic parameters (`fn table<T: Entity>`).
-    pub generic: bool,
-}
-
-/// The gated readers with the classification of their names.
-#[derive(Debug, Clone)]
-pub struct Gated {
-    /// Every gated declaration.
-    pub items: Vec<GatedItem>,
-    generic_names: BTreeSet<String>,
-}
-
-impl Gated {
-    /// Classifies the names of `items`; `declared` counts every `fn` declaration of the workspace by name
-    /// (gated ones included, see [`declared_methods`]).
-    pub fn new(items: Vec<GatedItem>, declared: &BTreeMap<String, usize>) -> Self {
-        let mut gated_count: BTreeMap<&str, usize> = BTreeMap::new();
-        for item in &items {
-            *gated_count.entry(&item.name).or_default() += 1;
-        }
-        let generic_names = gated_count
-            .iter()
-            .filter(|(name, n)| {
-                STD_METHOD_NAMES.contains(name) || declared.get(**name).copied().unwrap_or(0) > **n
-            })
-            .map(|(name, _)| (*name).to_owned())
-            .collect();
-        Self { items, generic_names }
-    }
-
-    /// Whether `name` is the name of a gated item.
-    pub fn is_gated(&self, name: &str) -> bool {
-        self.items.iter().any(|i| i.name == name)
-    }
-
-    /// Whether `name` is gated and not generic (declared nowhere else, not a std method name).
-    pub fn is_distinctive(&self, name: &str) -> bool {
-        self.is_gated(name) && !self.generic_names.contains(name)
-    }
-
-    fn has_owner(&self, name: &str, owner: &str) -> bool {
-        self.items
-            .iter()
-            .any(|i| i.name == name && i.owner.as_deref() == Some(owner))
-    }
-
-    fn has_generic_decl(&self, name: &str) -> bool {
-        self.items.iter().any(|i| i.name == name && i.generic)
-    }
 }
 
 /// One finding: a place in a file (or manifest) and what is wrong with it.
@@ -189,7 +175,8 @@ pub struct Violation {
     pub path: String,
     /// The 1-based line.
     pub line: usize,
-    /// What the match is about: a gated item name, `raw_read!` or the feature name (what an allow entry names).
+    /// What the match is about: `raw_read!`, the feature name or `disallowed_methods` (what an allow entry
+    /// names).
     pub item: String,
     /// The description.
     pub message: String,
@@ -225,9 +212,21 @@ pub struct SourcePackage {
     /// Declared dependencies and `[features]`, as `check-features` reads them.
     pub manifest: features::Package,
     /// Whether the package's normal-dependency closure inside the workspace contains the gated crate. A
-    /// package that cannot reach it cannot name its readers either, so it is not scanned (its own types may
-    /// share method names with the readers, such as a CSV `Table::rows`).
+    /// package that cannot reach it cannot name its readers either, so it is not scanned.
     pub reaches_gated_crate: bool,
+}
+
+/// The files outside the packages that the clippy half of the check reads.
+#[derive(Debug, Clone, Default)]
+pub struct WorkspaceFiles {
+    /// The workspace-root `Cargo.toml` text (for `[workspace.lints.clippy]`).
+    pub root_manifest: String,
+    /// The committed clippy configuration, if the file exists.
+    pub clippy_config: Option<String>,
+    /// The paths among [`shadow_candidates`] that exist.
+    pub shadowing: BTreeSet<String>,
+    /// `.cargo/config.toml`, `.cargo/config` and `.github/workflows/*.yml` (path, text).
+    pub config_files: Vec<(String, String)>,
 }
 
 /// The result of one run of the check.
@@ -570,12 +569,42 @@ impl Parsed {
         })
     }
 
-    /// `cfg(...)` whose tokens contain `test` and no `not`.
+    /// `cfg(test)` or `cfg(all(..))` with `test` among its top-level arguments (recursively): see the module
+    /// documentation. `any(..)`, `not(..)` and a `cfg` that merely mentions `test` are production code.
     fn is_cfg_test(&self, a: &Attr) -> bool {
-        let body = a.open + 1..a.close;
         self.is_ident(a.open + 1, "cfg")
-            && body.clone().any(|k| self.is_ident(k, "test"))
-            && !body.into_iter().any(|k| self.is_ident(k, "not"))
+            && self.is_p(a.open + 2, '(')
+            && self.pair[a.open + 2] == Some(a.close - 1)
+            && self.pred_is_test(a.open + 3)
+    }
+
+    /// Whether the cfg predicate that starts at token `i` holds in a test build and only there: `test`, or
+    /// `all(..)` with such an argument.
+    fn pred_is_test(&self, i: usize) -> bool {
+        if self.is_ident(i, "test") && !self.is_p(i + 1, '(') {
+            return true;
+        }
+        if !(self.is_ident(i, "all") && self.is_p(i + 1, '(')) {
+            return false;
+        }
+        let Some(close) = self.pair[i + 1] else {
+            return false;
+        };
+        let mut j = i + 2;
+        while j < close {
+            if self.pred_is_test(j) {
+                return true;
+            }
+            // To the next top-level `,`.
+            while j < close && !self.is_p(j, ',') {
+                j = match self.toks[j].kind {
+                    Tk::Punct('(' | '[' | '{') => self.pair[j].map_or(close, |m| m + 1),
+                    _ => j + 1,
+                };
+            }
+            j += 1;
+        }
+        false
     }
 
     /// The index after the attributes that start at `i`.
@@ -830,7 +859,6 @@ pub fn gated_items(files: &[(String, String)], policy: &RawReadPolicy) -> Vec<Ga
                     items.push(GatedItem {
                         name: p.ident(k + 1).unwrap_or_default().to_owned(),
                         owner: owner_at(&impls, k),
-                        generic: p.is_p(k + 2, '<'),
                     });
                 }
             }
@@ -903,57 +931,6 @@ fn is_feature_cfg(p: &Parsed, a: &Attr, feature: &str) -> bool {
         && p.is_p(o + 6, ')')
         && o + 7 == a.close
 }
-
-/// The bodies of the `trait` blocks of a file: body open, body close.
-fn trait_ranges(p: &Parsed) -> Vec<(usize, usize)> {
-    let mut ranges = Vec::new();
-    for i in 0..p.toks.len() {
-        if !p.is_ident(i, "trait") {
-            continue;
-        }
-        let mut j = i + 1;
-        while j < p.toks.len() {
-            match p.toks[j].kind {
-                Tk::Punct('{') => {
-                    if let Some(close) = p.pair[j] {
-                        ranges.push((j, close));
-                    }
-                    break;
-                }
-                Tk::Punct(';') => break,
-                Tk::Punct('(' | '[') => j = p.pair[j].map_or(p.toks.len(), |m| m + 1),
-                _ => j += 1,
-            }
-        }
-    }
-    ranges
-}
-
-/// How many times each name is declared as a method or associated function (a `fn` inside an `impl` or
-/// `trait` block) in the non-test code of `files`. The caller leaves out the files that are test code by
-/// path; `#[cfg(test)]` items are skipped here.
-pub fn declared_methods(files: &[(String, String)]) -> BTreeMap<String, usize> {
-    let mut counts = BTreeMap::new();
-    for (_, text) in files {
-        let p = Parsed::new(text);
-        let exempt = exempt_mask(&p);
-        let mut containers: Vec<(usize, usize)> = impl_ranges(&p)
-            .into_iter()
-            .map(|(open, close, _)| (open, close))
-            .collect();
-        containers.extend(trait_ranges(&p));
-        for k in fn_decls(&p, 0, p.toks.len()) {
-            if exempt[k] || !containers.iter().any(|&(open, close)| open < k && k < close) {
-                continue;
-            }
-            if let Some(name) = p.ident(k + 1) {
-                *counts.entry(name.to_owned()).or_default() += 1;
-            }
-        }
-    }
-    counts
-}
-
 // ---------------------------------------------------------------------------------------------------------
 // Test code by path
 
@@ -1017,55 +994,15 @@ fn is_test_path(package_dir: &str, path: &str) -> bool {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Scanning
+// Lexical rules
 
-/// The owner named by the path segment before the `::` that precedes token `i`: `Owner::name`,
-/// `Owner::<G>::name` and `<Owner as Trait>::name`.
-fn path_owner(p: &Parsed, i: usize) -> Option<String> {
-    let k = i.checked_sub(3)?;
-    if let Some(name) = p.ident(k) {
-        return Some(name.to_owned());
-    }
-    if !p.is_p(k, '>') {
-        return None;
-    }
-    // Walk back to the matching `<`.
-    let mut depth = 0usize;
-    let mut m = k;
-    loop {
-        if p.is_p(m, '>') && !(m > 0 && p.is_p(m - 1, '-')) {
-            depth += 1;
-        } else if p.is_p(m, '<') {
-            depth -= 1;
-            if depth == 0 {
-                break;
-            }
-        }
-        m = m.checked_sub(1)?;
-    }
-    if m >= 3 && p.is_p(m - 1, ':') && p.is_p(m - 2, ':') {
-        p.ident(m - 3).map(str::to_owned)
-    } else {
-        p.ident(m + 1).map(str::to_owned)
-    }
-}
-
-/// The violations in one source file of a package that may not use the raw readers.
-pub fn scan_source(path: &str, text: &str, gated: &Gated, policy: &RawReadPolicy) -> Vec<Violation> {
+/// The violations of the lexical rules in one source file of a package that may not use the raw readers: the
+/// `raw_read!` macro, the feature name, and suppressions of the guard. Calls of the readers are clippy's job
+/// (see the module documentation).
+pub fn scan_source(path: &str, text: &str, policy: &RawReadPolicy) -> Vec<Violation> {
     let p = Parsed::new(text);
     let exempt = exempt_mask(&p);
     let mut v = Vec::new();
-    let call = |v: &mut Vec<Violation>, i: usize, name: &str| {
-        v.push(Violation::new(
-            path,
-            p.line(i),
-            name,
-            format!(
-                "calls `{name}`, an item {} declares only under feature `{}`",
-                policy.krate, policy.feature
-            ),
-        ));
-    };
     for (i, &skip) in exempt.iter().enumerate() {
         if skip {
             continue;
@@ -1083,17 +1020,6 @@ pub fn scan_source(path: &str, text: &str, gated: &Gated, policy: &RawReadPolicy
                         ),
                     ));
                 }
-                if gated.is_gated(name) && p.is_p(i.wrapping_sub(1), ':') && p.is_p(i.wrapping_sub(2), ':') {
-                    let flagged = if gated.is_distinctive(name) {
-                        // `a::name::<T>` is a call; `a::name::b` is a module segment.
-                        !(p.is_p(i + 1, ':') && p.is_p(i + 2, ':') && !p.is_p(i + 3, '<'))
-                    } else {
-                        path_owner(&p, i).is_some_and(|owner| gated.has_owner(name, &owner))
-                    };
-                    if flagged {
-                        call(&mut v, i, name);
-                    }
-                }
             }
             Tk::Str(s) if *s == policy.feature => v.push(Violation::new(
                 path,
@@ -1101,24 +1027,111 @@ pub fn scan_source(path: &str, text: &str, gated: &Gated, policy: &RawReadPolicy
                 &policy.feature,
                 format!("names the feature `{}` of {}", policy.feature, policy.krate),
             )),
-            // Method form; `..name(` is a range, not a call.
-            Tk::Punct('.') if !(i > 0 && p.is_p(i - 1, '.')) => {
-                if let Some(name) = p.ident(i + 1)
-                    && gated.is_gated(name)
-                {
-                    let paren = p.is_p(i + 2, '(');
-                    let turbofish = p.is_p(i + 2, ':') && p.is_p(i + 3, ':') && p.is_p(i + 4, '<');
-                    let flagged = if gated.is_distinctive(name) {
-                        paren || turbofish
-                    } else {
-                        turbofish && gated.has_generic_decl(name)
-                    };
-                    if flagged {
-                        call(&mut v, i + 1, name);
-                    }
+            Tk::Punct('#') => {
+                if let Some(a) = p.attr_at(i) {
+                    suppressions(&p, &a, path, &mut v);
                 }
             }
             _ => {}
+        }
+    }
+    v
+}
+
+/// The `allow(...)` and `expect(...)` lists inside the attribute `a` (the attribute itself, or a `cfg_attr`
+/// that wraps one) that name a lint of [`SUPPRESSING`].
+fn suppressions(p: &Parsed, a: &Attr, path: &str, v: &mut Vec<Violation>) {
+    for k in a.open + 1..a.close {
+        let Some(kind) = p.ident(k).filter(|n| matches!(*n, "allow" | "expect")) else {
+            continue;
+        };
+        if !p.is_p(k + 1, '(') {
+            continue;
+        }
+        let Some(close) = p.pair[k + 1] else { continue };
+        let mut j = k + 2;
+        while j < close {
+            let Some(first) = p.ident(j) else {
+                j += 1;
+                continue;
+            };
+            // A lint path `a::b::c`.
+            let mut lint = first.to_owned();
+            let line = p.line(j);
+            j += 1;
+            while p.is_p(j, ':')
+                && p.is_p(j + 1, ':')
+                && let Some(segment) = p.ident(j + 2)
+            {
+                lint.push_str("::");
+                lint.push_str(segment);
+                j += 3;
+            }
+            if SUPPRESSING.contains(&lint.as_str()) {
+                v.push(Violation::new(
+                    path,
+                    line,
+                    GUARD_LINT,
+                    format!(
+                        "`{kind}({lint})` suppresses the raw-read guard; that is reserved to the reader crates' roots"
+                    ),
+                ));
+            }
+        }
+    }
+}
+
+/// The 1-based line of the first `key = ...` assignment in `text`, or 1.
+fn key_line(text: &str, key: &str) -> usize {
+    text.lines()
+        .position(|l| {
+            l.trim_start()
+                .strip_prefix(key)
+                .is_some_and(|rest| rest.trim_start().starts_with('='))
+        })
+        .map_or(1, |l| l + 1)
+}
+
+/// The findings of a `[lints.clippy]` table (`[workspace.lints.clippy]` when `workspace`) that sets a lint of
+/// [`SUPPRESSING_KEYS`] to `allow`.
+pub fn lint_violations(path: &str, manifest_text: &str, workspace: bool) -> Vec<Violation> {
+    let Ok(doc) = toml::from_str::<toml::Table>(manifest_text) else {
+        return Vec::new();
+    };
+    let root = if workspace {
+        doc.get("workspace").and_then(toml::Value::as_table)
+    } else {
+        Some(&doc)
+    };
+    let Some(clippy) = root
+        .and_then(|r| r.get("lints"))
+        .and_then(toml::Value::as_table)
+        .and_then(|l| l.get("clippy"))
+        .and_then(toml::Value::as_table)
+    else {
+        return Vec::new();
+    };
+    let table = if workspace {
+        "workspace.lints.clippy"
+    } else {
+        "lints.clippy"
+    };
+    let mut v = Vec::new();
+    for key in SUPPRESSING_KEYS {
+        let level = match clippy.get(key) {
+            Some(toml::Value::String(s)) => Some(s.as_str()),
+            Some(toml::Value::Table(t)) => t.get("level").and_then(toml::Value::as_str),
+            _ => None,
+        };
+        if level == Some("allow") {
+            v.push(Violation::new(
+                path,
+                key_line(manifest_text, key),
+                GUARD_LINT,
+                format!(
+                    "`{key} = \"allow\"` in [{table}] suppresses the raw-read guard; that is reserved to the reader crates' roots"
+                ),
+            ));
         }
     }
     v
@@ -1226,9 +1239,252 @@ fn apply_allow(violations: Vec<Violation>, allow: &[Allow]) -> Vec<Violation> {
     out
 }
 
-/// The gated declarations of the policy crate within `packages`, with their names classified against every
-/// declaration of the workspace.
-fn gated_of(policy: &RawReadPolicy, packages: &[SourcePackage], modules: &TestModules) -> Option<Gated> {
+// ---------------------------------------------------------------------------------------------------------
+// The generated clippy configuration
+
+/// The identifiers a `pub use` statement of `lib_rs` brings to the crate root: `pub use a::b::{C, D as E};`
+/// gives `C` and `E` (the name after `as` when there is one; path segments, `self`, `crate`, `super`, `_`
+/// and glob imports count for nothing). Lexical: a `cfg` on the statement is not looked at.
+pub fn root_exports(lib_rs: &str) -> BTreeSet<String> {
+    let p = Parsed::new(lib_rs);
+    let mut out = BTreeSet::new();
+    let mut i = 0;
+    while i < p.toks.len() {
+        if !(p.is_ident(i, "pub") && p.is_ident(i + 1, "use")) {
+            i += 1;
+            continue;
+        }
+        let mut j = i + 2;
+        while j < p.toks.len() && !p.is_p(j, ';') {
+            if let Some(name) = p.ident(j) {
+                if name == "as" {
+                    if let Some(alias) = p.ident(j + 1).filter(|a| *a != "_") {
+                        out.insert(alias.to_owned());
+                    }
+                    j += 1;
+                } else {
+                    let path_segment = p.is_p(j + 1, ':') && p.is_p(j + 2, ':');
+                    let renamed = p.is_ident(j + 1, "as");
+                    if !path_segment && !renamed && !matches!(name, "self" | "crate" | "super") {
+                        out.insert(name.to_owned());
+                    }
+                }
+            }
+            j += 1;
+        }
+        i = j;
+    }
+    out
+}
+
+/// The text of the generated clippy configuration for `gated` (see the module documentation), or the
+/// messages for the gated items whose owner (or free function) is not in `exports`, the root re-exports of
+/// the gated crate: such a path would not resolve, and clippy reports that only as a warning.
+pub fn clippy_config(
+    policy: &RawReadPolicy,
+    gated: &[GatedItem],
+    exports: &BTreeSet<String>,
+) -> Result<String, Vec<String>> {
+    let krate = policy.krate.replace('-', "_");
+    let mut paths = BTreeSet::new();
+    let mut errors = BTreeSet::new();
+    for item in gated {
+        let (head, shown, path) = match &item.owner {
+            Some(owner) => (
+                owner.as_str(),
+                format!("{owner}::{}", item.name),
+                format!("{krate}::{owner}::{}", item.name),
+            ),
+            None => (
+                item.name.as_str(),
+                item.name.clone(),
+                format!("{krate}::{}", item.name),
+            ),
+        };
+        if exports.contains(head) {
+            paths.insert(path);
+        } else {
+            errors.insert(format!(
+                "gated item `{shown}` of {} cannot be listed: `{head}` is not re-exported at the crate root of {} (a `pub use` in its src/lib.rs), so clippy could not resolve its path; re-export it",
+                policy.krate, policy.krate
+            ));
+        }
+    }
+    if !errors.is_empty() {
+        return Err(errors.into_iter().collect());
+    }
+    let readers = policy
+        .readers
+        .iter()
+        .map(|r| format!("`{r}`"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let reason = format!(
+        "raw reader of {} ({} feature, {REFERENCE}): read through Q in queries or TxBuilder in commands",
+        policy.krate, policy.feature
+    );
+    let mut out = format!(
+        "# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors\n\
+         # SPDX-License-Identifier: CC0-1.0\n\
+         \n\
+         # Generated by `cargo xtask check-raw-read --bless` from the readers that `{krate_name}` declares under its\n\
+         # `{feature}` feature ({REFERENCE}). A stale or hand-edited file fails `cargo xtask check-raw-read`.\n\
+         #\n\
+         # The reader crates ({readers}) opt out with\n\
+         # `#![allow(clippy::disallowed_methods)]` at each target root; no other crate may.\n\
+         #\n\
+         # The whole file is generated: any other clippy setting would need a change of the generator\n\
+         # (xtask/src/raw_read.rs).\n\
+         disallowed-methods = [\n",
+        krate_name = policy.krate,
+        feature = policy.feature,
+    );
+    for path in &paths {
+        out.push_str(&format!("    {{ path = \"{path}\", reason = \"{reason}\" }},\n"));
+    }
+    out.push_str("]\n");
+    Ok(out)
+}
+
+/// The non-test files of the gated crate's package and its `src/lib.rs`.
+fn model_lib<'a>(policy: &RawReadPolicy, packages: &'a [SourcePackage]) -> Option<&'a (String, String)> {
+    let model = packages.iter().find(|p| p.name == policy.krate)?;
+    let lib = join(&model.dir, "src/lib.rs");
+    model.files.iter().find(|(path, _)| *path == lib)
+}
+
+/// The generated configuration for `gated`, with the exports read from the gated crate's `src/lib.rs`.
+fn generate_with(
+    policy: &RawReadPolicy,
+    packages: &[SourcePackage],
+    gated: &[GatedItem],
+) -> Result<String, Vec<String>> {
+    let Some((_, lib)) = model_lib(policy, packages) else {
+        return Err(vec![format!(
+            "{}'s src/lib.rs is not among the workspace sources",
+            policy.krate
+        )]);
+    };
+    clippy_config(policy, gated, &root_exports(lib))
+}
+
+/// The generated configuration of the workspace (what `--bless` writes).
+fn generate(policy: &RawReadPolicy, packages: &[SourcePackage]) -> Result<String, Vec<String>> {
+    let all: Vec<(String, String)> = packages.iter().flat_map(|p| p.files.iter().cloned()).collect();
+    let modules = test_modules(&all);
+    match gated_of(policy, packages, &modules) {
+        Some(gated) => generate_with(policy, packages, &gated),
+        None => Err(vec![format!(
+            "crate `{}` is not a workspace package",
+            policy.krate
+        )]),
+    }
+}
+
+/// The paths (relative to the workspace root) at which a clippy configuration would shadow the generated one:
+/// a `clippy.toml` or `.clippy.toml` in a package directory or a directory between it and the root, and a
+/// `.clippy.toml` at the root.
+pub fn shadow_candidates(policy: &RawReadPolicy, packages: &[SourcePackage]) -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+    out.insert(".clippy.toml".to_owned());
+    for pkg in packages {
+        let mut dir = pkg.dir.as_str();
+        while !dir.is_empty() {
+            out.insert(format!("{dir}/clippy.toml"));
+            out.insert(format!("{dir}/.clippy.toml"));
+            dir = dir.rsplit_once('/').map_or("", |(parent, _)| parent);
+        }
+    }
+    out.remove(&policy.clippy_config);
+    out
+}
+
+/// The first 1-based line at which `a` and `b` differ.
+fn first_difference(a: &str, b: &str) -> usize {
+    let mut x = a.lines();
+    let mut y = b.lines();
+    let mut line = 1;
+    loop {
+        match (x.next(), y.next()) {
+            (Some(l), Some(r)) if l == r => line += 1,
+            _ => return line,
+        }
+    }
+}
+
+/// The findings of the clippy half: the committed configuration against the generated one, shadowing
+/// configurations, and overrides in the cargo configuration and the workflows.
+fn config_violations(
+    policy: &RawReadPolicy,
+    packages: &[SourcePackage],
+    gated: &[GatedItem],
+    ws: &WorkspaceFiles,
+) -> Vec<Violation> {
+    let config = policy.clippy_config.as_str();
+    let mut v = Vec::new();
+    match generate_with(policy, packages, gated) {
+        Err(errors) => {
+            let at = model_lib(policy, packages).map_or(config, |(path, _)| path.as_str());
+            v.extend(
+                errors
+                    .into_iter()
+                    .map(|e| Violation::new(at, 1, "clippy_config", e)),
+            );
+        }
+        Ok(expected) => match &ws.clippy_config {
+            None => v.push(Violation::new(
+                config,
+                1,
+                "clippy_config",
+                format!("the generated clippy configuration `{config}` is missing; run `cargo xtask check-raw-read --bless`"),
+            )),
+            Some(text) => {
+                let committed = text.replace("\r\n", "\n");
+                if committed != expected {
+                    v.push(Violation::new(
+                        config,
+                        first_difference(&committed, &expected),
+                        "clippy_config",
+                        format!(
+                            "`{config}` is stale or was edited by hand (it differs from the generated text from this line on); run `cargo xtask check-raw-read --bless`"
+                        ),
+                    ));
+                }
+            }
+        },
+    }
+    for path in &ws.shadowing {
+        v.push(Violation::new(
+            path,
+            1,
+            "clippy_config",
+            format!("clippy would read this file instead of the generated `{config}`; remove it"),
+        ));
+    }
+    for (path, text) in &ws.config_files {
+        for needle in ["CLIPPY_CONF_DIR", GUARD_LINT] {
+            if let Some(line) = text.lines().position(|l| l.contains(needle)) {
+                v.push(Violation::new(
+                    path,
+                    line + 1,
+                    needle,
+                    format!("mentions `{needle}`, which can redirect or switch off the raw-read guard's clippy configuration"),
+                ));
+            }
+        }
+    }
+    v
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Running the check
+
+/// The gated declarations of the policy crate within `packages`.
+fn gated_of(
+    policy: &RawReadPolicy,
+    packages: &[SourcePackage],
+    modules: &TestModules,
+) -> Option<Vec<GatedItem>> {
     let model = packages.iter().find(|p| p.name == policy.krate)?;
     let model_files: Vec<(String, String)> = model
         .files
@@ -1236,23 +1492,10 @@ fn gated_of(policy: &RawReadPolicy, packages: &[SourcePackage], modules: &TestMo
         .filter(|(path, _)| !is_test_path(&model.dir, path) && !modules.contains(path))
         .cloned()
         .collect();
-    let non_test: Vec<(String, String)> = packages
-        .iter()
-        .flat_map(|p| {
-            p.files
-                .iter()
-                .filter(|(path, _)| !is_test_path(&p.dir, path) && !modules.contains(path))
-                .cloned()
-        })
-        .collect();
-    Some(Gated::new(
-        gated_items(&model_files, policy),
-        &declared_methods(&non_test),
-    ))
+    Some(gated_items(&model_files, policy))
 }
 
-/// Runs the check over `packages`: pure, so the unit tests can seed violations.
-pub fn check_packages(policy: &RawReadPolicy, packages: &[SourcePackage]) -> Outcome {
+fn collect(policy: &RawReadPolicy, packages: &[SourcePackage], ws: Option<&WorkspaceFiles>) -> Outcome {
     let all: Vec<(String, String)> = packages.iter().flat_map(|p| p.files.iter().cloned()).collect();
     let modules = test_modules(&all);
     let Some(gated) = gated_of(policy, packages, &modules) else {
@@ -1279,23 +1522,43 @@ pub fn check_packages(policy: &RawReadPolicy, packages: &[SourcePackage]) -> Out
             if is_test_path(&pkg.dir, path) || modules.contains(path) {
                 continue;
             }
-            found.extend(scan_source(path, text, &gated, policy));
+            found.extend(scan_source(path, text, policy));
         }
+        let manifest_path = join(&pkg.dir, "Cargo.toml");
         found.extend(manifest_violations(
-            &join(&pkg.dir, "Cargo.toml"),
+            &manifest_path,
             &pkg.manifest_text,
             &pkg.manifest,
             policy,
         ));
+        found.extend(lint_violations(&manifest_path, &pkg.manifest_text, false));
+    }
+    if let Some(ws) = ws {
+        found.extend(lint_violations("Cargo.toml", &ws.root_manifest, true));
     }
     let mut violations = apply_allow(found, &policy.allow);
+    if let Some(ws) = ws {
+        violations.extend(config_violations(policy, packages, &gated, ws));
+    }
     violations.sort();
     violations.dedup();
     Outcome {
         violations: violations.iter().map(Violation::render).collect(),
-        gated_items: gated.items.len(),
+        gated_items: gated.len(),
         packages_scanned: scanned,
     }
+}
+
+/// Runs the source and manifest rules over `packages` without the clippy half: pure, so the unit tests can
+/// seed violations.
+#[cfg(test)]
+fn check_packages(policy: &RawReadPolicy, packages: &[SourcePackage]) -> Outcome {
+    collect(policy, packages, None)
+}
+
+/// Runs the whole check over `packages` and the files around them: pure, like [`check_packages`].
+pub fn check_workspace(policy: &RawReadPolicy, packages: &[SourcePackage], ws: &WorkspaceFiles) -> Outcome {
+    collect(policy, packages, Some(ws))
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -1369,8 +1632,60 @@ fn reaches(metadata: &cargo_metadata::Metadata, krate: &str) -> BTreeSet<String>
     out
 }
 
+/// The text of `path` below `root`, if the file exists.
+fn read_optional(root: &Path, path: &str) -> Result<Option<String>> {
+    let full = root.join(path);
+    if full.is_file() {
+        let bytes = std::fs::read(&full).with_context(|| format!("reading {}", full.display()))?;
+        Ok(Some(String::from_utf8_lossy(&bytes).into_owned()))
+    } else {
+        Ok(None)
+    }
+}
+
+/// The files around the packages that the clippy half reads.
+fn load_workspace_files(
+    root: &Path,
+    policy: &RawReadPolicy,
+    packages: &[SourcePackage],
+) -> Result<WorkspaceFiles> {
+    let root_manifest = read_optional(root, "Cargo.toml")?.context("the workspace has a root Cargo.toml")?;
+    let shadowing = shadow_candidates(policy, packages)
+        .into_iter()
+        .filter(|path| root.join(path).is_file())
+        .collect();
+    let mut config_files = Vec::new();
+    for path in [".cargo/config.toml", ".cargo/config"] {
+        if let Some(text) = read_optional(root, path)? {
+            config_files.push((path.to_owned(), text));
+        }
+    }
+    let workflows = root.join(".github/workflows");
+    if workflows.is_dir() {
+        let mut names: Vec<String> = std::fs::read_dir(&workflows)
+            .with_context(|| format!("reading {}", workflows.display()))?
+            .filter_map(|e| e.ok())
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .filter(|n| n.ends_with(".yml") || n.ends_with(".yaml"))
+            .collect();
+        names.sort();
+        for name in names {
+            let path = format!(".github/workflows/{name}");
+            if let Some(text) = read_optional(root, &path)? {
+                config_files.push((path, text));
+            }
+        }
+    }
+    Ok(WorkspaceFiles {
+        root_manifest,
+        clippy_config: read_optional(root, &policy.clippy_config)?,
+        shadowing,
+        config_files,
+    })
+}
+
 /// Reads the policy and the packages of the workspace at `root`.
-fn load(root: &Path) -> Result<(RawReadPolicy, Vec<SourcePackage>)> {
+fn load(root: &Path) -> Result<(RawReadPolicy, Vec<SourcePackage>, WorkspaceFiles)> {
     let policy = crate::deps::Policy::load(&root.join(POLICY_FILE))?
         .raw_read
         .with_context(|| format!("{POLICY_FILE} has no [raw_read] section (ADR-0001 amendment 2)"))?;
@@ -1405,18 +1720,42 @@ fn load(root: &Path) -> Result<(RawReadPolicy, Vec<SourcePackage>)> {
             reaches_gated_crate: reach.contains(meta.name.as_str()),
         });
     }
-    Ok((policy, packages))
+    let ws = load_workspace_files(root, &policy, &packages)?;
+    Ok((policy, packages, ws))
 }
 
 /// Runs the check on the workspace at `root`.
 pub fn check(root: &Path) -> Result<Outcome> {
-    let (policy, packages) = load(root)?;
-    Ok(check_packages(&policy, &packages))
+    let (policy, packages, ws) = load(root)?;
+    Ok(check_workspace(&policy, &packages, &ws))
 }
 
-/// `cargo xtask check-raw-read`: prints the outcome and returns whether the check passed.
-pub fn run(root: &Path) -> Result<bool> {
-    let outcome = check(root)?;
+/// `cargo xtask check-raw-read [--bless]`: prints the outcome and returns whether the check passed. With
+/// `bless` the generated clippy configuration is written first.
+pub fn run(root: &Path, bless: bool) -> Result<bool> {
+    let (policy, packages, mut ws) = load(root)?;
+    if bless {
+        match generate(&policy, &packages) {
+            Ok(text) => {
+                let entries = text.lines().filter(|l| l.contains("{ path = ")).count();
+                std::fs::write(root.join(&policy.clippy_config), &text)
+                    .with_context(|| format!("writing {}", policy.clippy_config))?;
+                println!(
+                    "check-raw-read: wrote {} ({entries} entries)",
+                    policy.clippy_config
+                );
+                ws.clippy_config = Some(text);
+            }
+            Err(errors) => {
+                eprintln!("check-raw-read: cannot generate {}", policy.clippy_config);
+                for e in errors {
+                    eprintln!("  - {e}");
+                }
+                return Ok(false);
+            }
+        }
+    }
+    let outcome = check_workspace(&policy, &packages, &ws);
     if outcome.violations.is_empty() {
         println!(
             "check-raw-read: ok ({} gated items, {} packages scanned)",
@@ -1432,7 +1771,7 @@ pub fn run(root: &Path) -> Result<bool> {
     }
 }
 
-/// The violations of the check, for the in-process `ci` summary.
+/// The violations of the check, for the in-process `ci` summary (read-only).
 pub fn violations(root: &Path) -> Result<Vec<String>> {
     Ok(check(root)?.violations)
 }
@@ -1455,6 +1794,11 @@ mod tests {
     }
 
     const MODEL: &str = r#"
+        pub use index::BaseIndexes;
+        pub use model::Model;
+        pub use rev::{Row as Line, Table};
+        pub use util::snapshot_rows;
+
         /// Declares an untracked read accessor.
         macro_rules! raw_read {
             ($(#[$meta:meta])* fn $($item:tt)*) => {
@@ -1508,7 +1852,30 @@ mod tests {
         }
     "#;
 
+    /// The generated text for the fixture: methods on two owners, one generic owner, one free function.
+    const MODEL_CLIPPY: &str = r##"# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: CC0-1.0
+
+# Generated by `cargo xtask check-raw-read --bless` from the readers that `ew-model` declares under its
+# `raw-read` feature (ADR-0001 amendment 2). A stale or hand-edited file fails `cargo xtask check-raw-read`.
+#
+# The reader crates (`ew-model`, `ew-derive`, `ew-commands`, `ew-store`) opt out with
+# `#![allow(clippy::disallowed_methods)]` at each target root; no other crate may.
+#
+# The whole file is generated: any other clippy setting would need a change of the generator
+# (xtask/src/raw_read.rs).
+disallowed-methods = [
+    { path = "ew_model::BaseIndexes::by_page", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
+    { path = "ew_model::Model::delete_plan", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
+    { path = "ew_model::Model::table", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
+    { path = "ew_model::Table::get", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
+    { path = "ew_model::Table::len", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
+    { path = "ew_model::snapshot_rows", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
+]
+"##;
+
     const MODEL_PATH: &str = "crates/ew-model/src/lib.rs";
+    const APP_LIB: &str = "crates/app/src/lib.rs";
 
     fn files(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
         pairs
@@ -1562,9 +1929,45 @@ mod tests {
         )
     }
 
+    /// The outcome for a synthetic workspace: the fixture ew-model plus one package `app`.
+    fn run_app(sources: &[(&str, &str)], app_manifest: features::Package, manifest_text: &str) -> Outcome {
+        let app = package("app", sources, app_manifest, manifest_text);
+        check_packages(&policy(), &[model_package(), app])
+    }
+
+    fn scan(src: &str) -> Vec<String> {
+        run_app(
+            &[(APP_LIB, src)],
+            manifest("app", vec![dep("ew-model", Kind::Normal, &[])], &[]),
+            "",
+        )
+        .violations
+    }
+
+    fn at(line: usize, what: &str) -> String {
+        format!("{APP_LIB}:{line}: {what} (ADR-0001 amendment 2)")
+    }
+
+    fn invokes(line: usize) -> String {
+        at(
+            line,
+            "invokes `raw_read!`, the macro that declares ew-model's readers behind feature `raw-read`",
+        )
+    }
+
+    fn suppresses(line: usize, attr: &str) -> String {
+        at(
+            line,
+            &format!("`{attr}` suppresses the raw-read guard; that is reserved to the reader crates' roots"),
+        )
+    }
+
+    // -----------------------------------------------------------------------------------------------------
+    // Gated items
+
     #[test]
     fn a_package_that_cannot_reach_the_gated_crate_is_not_scanned() {
-        let src = "pub struct Table; impl Table { pub fn rows(&self) {} } pub fn f(t: &Table) { let _ = Table::rows(t); }";
+        let src = "raw_read! { fn rows() {} }\n#![allow(clippy::disallowed_methods)]";
         let mut app = package(
             "csv-tool",
             &[("crates/csv-tool/src/lib.rs", src)],
@@ -1577,53 +1980,24 @@ mod tests {
         assert_eq!(out.packages_scanned, 0);
     }
 
-    /// The outcome for a synthetic workspace: the fixture ew-model plus one package `app`.
-    fn run_app(sources: &[(&str, &str)], app_manifest: features::Package, manifest_text: &str) -> Outcome {
-        let app = package("app", sources, app_manifest, manifest_text);
-        check_packages(&policy(), &[model_package(), app])
-    }
-
-    fn scan(src: &str) -> Vec<String> {
-        run_app(
-            &[("crates/app/src/lib.rs", src)],
-            manifest("app", vec![dep("ew-model", Kind::Normal, &[])], &[]),
-            "",
-        )
-        .violations
-    }
-
-    fn gated_fixture() -> Gated {
-        let model = files(&[(MODEL_PATH, MODEL)]);
-        Gated::new(gated_items(&model, &policy()), &declared_methods(&model))
-    }
-
     #[test]
     fn gated_extraction_reads_macro_invocations_and_cfg_items() {
         let items = gated_items(&files(&[(MODEL_PATH, MODEL)]), &policy());
-        let find = |name: &str| items.iter().find(|i| i.name == name);
-        let item = |name: &str, owner: Option<&str>, generic: bool| GatedItem {
+        let item = |name: &str, owner: Option<&str>| GatedItem {
             name: name.into(),
             owner: owner.map(str::to_owned),
-            generic,
         };
-        assert_eq!(find("len"), Some(&item("len", Some("Table"), false)));
-        assert_eq!(find("get"), Some(&item("get", Some("Table"), false)));
-        assert_eq!(find("table"), Some(&item("table", Some("Model"), true)));
-        assert_eq!(
-            find("delete_plan"),
-            Some(&item("delete_plan", Some("Model"), false))
-        );
-        assert_eq!(
-            find("by_page"),
-            Some(&item("by_page", Some("BaseIndexes"), false))
-        );
-        assert_eq!(find("snapshot_rows"), Some(&item("snapshot_rows", None, false)));
         // Not gated: the macro definition, plain items, the trait impl's `table`, test code.
-        let names: Vec<&str> = items.iter().map(|i| i.name.as_str()).collect();
         assert_eq!(
-            names,
-            ["len", "get", "table", "delete_plan", "by_page", "snapshot_rows"],
-            "{items:#?}"
+            items,
+            [
+                item("len", Some("Table")),
+                item("get", Some("Table")),
+                item("table", Some("Model")),
+                item("delete_plan", Some("Model")),
+                item("by_page", Some("BaseIndexes")),
+                item("snapshot_rows", None),
+            ]
         );
     }
 
@@ -1641,18 +2015,11 @@ mod tests {
             pub fn not_gated() {}
         "#;
         let items = gated_items(&files(&[("x.rs", src)]), &policy());
-        let got: Vec<(&str, Option<&str>, bool)> = items
+        let got: Vec<(&str, Option<&str>)> = items
             .iter()
-            .map(|i| (i.name.as_str(), i.owner.as_deref(), i.generic))
+            .map(|i| (i.name.as_str(), i.owner.as_deref()))
             .collect();
-        assert_eq!(
-            got,
-            [
-                ("a", Some("Model"), false),
-                ("b", Some("Model"), true),
-                ("outer", None, false)
-            ]
-        );
+        assert_eq!(got, [("a", Some("Model")), ("b", Some("Model")), ("outer", None)]);
     }
 
     #[test]
@@ -1679,143 +2046,226 @@ mod tests {
         );
     }
 
+    // -----------------------------------------------------------------------------------------------------
+    // The generated clippy configuration
+
     #[test]
-    fn name_classification() {
-        let g = gated_fixture();
-        // Declared nowhere else.
-        assert!(g.is_distinctive("delete_plan"));
-        assert!(g.is_distinctive("snapshot_rows"));
-        assert!(g.is_distinctive("by_page"));
-        // Another `fn table` (the trait impl) and the std method names.
-        assert!(g.is_gated("table") && !g.is_distinctive("table"));
-        assert!(g.is_gated("len") && !g.is_distinctive("len"));
-        assert!(g.is_gated("get") && !g.is_distinctive("get"));
-        assert!(!g.is_gated("apply") && !g.is_gated("only_in_tests"));
+    fn root_exports_reads_brace_lists_and_renames() {
+        let src = r#"
+            pub use entity::{AnyKey, AnyRow, Entity, LibraryCopies};
+            pub use model::Model;
+            pub use rev::{Row as Line, Table, nested::{Deep, Other as _}};
+            pub use glob::*;
+            pub(crate) use hidden::Hidden;
+            use private::Private;
+            // pub use commented::Out;
+            pub use self::inner::Inner as Renamed;
+        "#;
+        let got: Vec<String> = root_exports(src).into_iter().collect();
+        assert_eq!(
+            got,
+            [
+                "AnyKey",
+                "AnyRow",
+                "Deep",
+                "Entity",
+                "LibraryCopies",
+                "Line",
+                "Model",
+                "Renamed",
+                "Table"
+            ]
+        );
     }
 
-    /// Only a method or associated function in non-test source makes a gated name generic.
     #[test]
-    fn generic_names_come_from_non_test_methods() {
-        let classify = |extra: &str| {
-            let mut all = files(&[(MODEL_PATH, MODEL)]);
-            all.push(("crates/app/src/lib.rs".into(), extra.into()));
-            Gated::new(
-                gated_items(&files(&[(MODEL_PATH, MODEL)]), &policy()),
-                &declared_methods(&all),
-            )
+    fn generator_output_is_exact_and_sorted() {
+        let model = files(&[(MODEL_PATH, MODEL)]);
+        let items = gated_items(&model, &policy());
+        let exports = root_exports(MODEL);
+        let text = clippy_config(&policy(), &items, &exports).expect("every owner is re-exported");
+        assert_eq!(text, MODEL_CLIPPY);
+        assert!(text.ends_with("]\n") && !text.contains('\r'));
+        // The order of the declarations does not matter, and duplicates collapse.
+        let mut shuffled = items.clone();
+        shuffled.reverse();
+        shuffled.extend(items.iter().take(2).cloned());
+        assert_eq!(
+            clippy_config(&policy(), &shuffled, &exports).expect("generates"),
+            MODEL_CLIPPY
+        );
+    }
+
+    #[test]
+    fn a_missing_export_is_an_error_naming_the_item() {
+        let model = files(&[(MODEL_PATH, MODEL)]);
+        let items = gated_items(&model, &policy());
+        let exports: BTreeSet<String> = ["Model", "Table"].map(String::from).into();
+        let errors = clippy_config(&policy(), &items, &exports).expect_err("owner and function missing");
+        assert_eq!(errors.len(), 2, "{errors:#?}");
+        assert!(
+            errors[0].contains("`BaseIndexes::by_page`")
+                && errors[0].contains("`BaseIndexes` is not re-exported")
+                && errors[0].contains("re-export it"),
+            "{errors:#?}"
+        );
+        assert!(
+            errors[1].contains("`snapshot_rows`") && errors[1].contains("crate root of ew-model"),
+            "{errors:#?}"
+        );
+    }
+
+    /// The fixture workspace with the generated file committed.
+    fn good_workspace() -> (Vec<SourcePackage>, WorkspaceFiles) {
+        let app = package(
+            "app",
+            &[(APP_LIB, "pub fn f() {}")],
+            manifest("app", vec![dep("ew-model", Kind::Normal, &[])], &[]),
+            "",
+        );
+        let ws = WorkspaceFiles {
+            root_manifest: "[workspace]\nmembers = [\"crates/*\"]\n".into(),
+            clippy_config: Some(MODEL_CLIPPY.into()),
+            ..WorkspaceFiles::default()
         };
-        // Free functions, test helpers and test-only methods keep the name distinctive.
-        assert!(classify("fn by_page() {}").is_distinctive("by_page"));
-        assert!(classify("pub fn helper() { fn by_page() {} }").is_distinctive("by_page"));
+        (vec![model_package(), app], ws)
+    }
+
+    fn workspace_violations(packages: &[SourcePackage], ws: &WorkspaceFiles) -> Vec<String> {
+        check_workspace(&policy(), packages, ws).violations
+    }
+
+    #[test]
+    fn a_committed_file_equal_to_the_generated_one_passes_even_with_crlf() {
+        let (packages, mut ws) = good_workspace();
+        assert_eq!(workspace_violations(&packages, &ws), Vec::<String>::new());
+        ws.clippy_config = Some(MODEL_CLIPPY.replace('\n', "\r\n"));
+        assert_eq!(workspace_violations(&packages, &ws), Vec::<String>::new());
+        assert_eq!(generate(&policy(), &packages), Ok(MODEL_CLIPPY.to_owned()));
+    }
+
+    #[test]
+    fn a_missing_stale_or_edited_clippy_toml_fails() {
+        let (packages, mut ws) = good_workspace();
+        ws.clippy_config = None;
+        let v = workspace_violations(&packages, &ws);
+        assert_eq!(v.len(), 1, "{v:#?}");
         assert!(
-            classify(
-                "#[cfg(test)]
-mod t { impl Foo { fn by_page(&self) {} } }"
-            )
-            .is_distinctive("by_page")
-        );
-        assert!(
-            classify(
-                "#[cfg(test)]
-impl Foo { fn by_page(&self) {} }"
-            )
-            .is_distinctive("by_page")
-        );
-        // A non-test method or trait function makes it generic.
-        assert!(!classify("impl Foo { fn by_page(&self) {} }").is_distinctive("by_page"));
-        assert!(!classify("impl Tr for Foo { fn by_page(&self) {} }").is_distinctive("by_page"));
-        assert!(!classify("trait Tr { fn by_page(&self); }").is_distinctive("by_page"));
-        assert!(
-            !classify(
-                "#[cfg(not(test))]
-impl Foo { fn by_page(&self) {} }"
-            )
-            .is_distinctive("by_page")
-        );
-        // An impl generated in a macro definition counts.
-        assert!(
-            !classify(
-                "macro_rules! m { ($($t:ty),*) => { $( impl Foo for $t { fn by_page(&self) {} } )* }; }"
-            )
-            .is_distinctive("by_page")
+            v[0].starts_with("clippy.toml:1: the generated clippy configuration `clippy.toml` is missing;")
+                && v[0].contains("cargo xtask check-raw-read --bless"),
+            "{v:#?}"
         );
 
-        // End to end: a test-directory method does not stop `.by_page()` from being flagged; a non-test
-        // one does.
-        let call = "fn f(m: M) { m.by_page(); }";
-        let out = run_app(
-            &[
-                ("crates/app/src/lib.rs", call),
-                ("crates/app/tests/t.rs", "impl X { fn by_page(&self) {} }"),
-            ],
-            manifest("app", vec![], &[]),
-            "",
+        // A reader that the committed file does not list (stale), at the first differing line.
+        let stale = MODEL_CLIPPY.replace(
+            "    { path = \"ew_model::Table::len\"",
+            "    # removed\n    { path = \"x\"",
         );
-        assert_eq!(out.violations.len(), 1, "{:#?}", out.violations);
-        let both = format!(
-            "{call}
-impl Foo {{ fn by_page(&self) {{}} }}"
+        ws.clippy_config = Some(stale);
+        let v = workspace_violations(&packages, &ws);
+        assert_eq!(v.len(), 1, "{v:#?}");
+        assert!(
+            v[0].starts_with("clippy.toml:17: `clippy.toml` is stale or was edited by hand")
+                && v[0].contains("--bless"),
+            "{v:#?}"
         );
-        let out = run_app(
-            &[("crates/app/src/lib.rs", both.as_str())],
-            manifest("app", vec![], &[]),
-            "",
-        );
-        assert_eq!(out.violations, Vec::<String>::new());
+
+        // A hand-added setting.
+        ws.clippy_config = Some(format!("{MODEL_CLIPPY}msrv = \"1.80\"\n"));
+        let v = workspace_violations(&packages, &ws);
+        assert_eq!(v.len(), 1, "{v:#?}");
+        assert!(v[0].contains("stale or was edited by hand"), "{v:#?}");
     }
+
+    #[test]
+    fn a_reader_without_a_root_export_fails_the_check() {
+        let (mut packages, ws) = good_workspace();
+        packages[0].files = files(&[(MODEL_PATH, &MODEL.replace("pub use index::BaseIndexes;", ""))]);
+        let v = workspace_violations(&packages, &ws);
+        assert_eq!(v.len(), 1, "{v:#?}");
+        assert!(
+            v[0].starts_with(
+                "crates/ew-model/src/lib.rs:1: gated item `BaseIndexes::by_page` of ew-model cannot be listed"
+            ),
+            "{v:#?}"
+        );
+    }
+
+    #[test]
+    fn shadowing_configurations_are_detected() {
+        let (packages, mut ws) = good_workspace();
+        let candidates = shadow_candidates(&policy(), &packages);
+        for expected in [
+            ".clippy.toml",
+            "crates/clippy.toml",
+            "crates/.clippy.toml",
+            "crates/app/clippy.toml",
+            "crates/app/.clippy.toml",
+            "crates/ew-model/clippy.toml",
+        ] {
+            assert!(candidates.contains(expected), "{expected}: {candidates:#?}");
+        }
+        // The root clippy.toml is the generated file itself.
+        assert!(!candidates.contains("clippy.toml"));
+        for shadow in ["crates/app/clippy.toml", "crates/.clippy.toml", ".clippy.toml"] {
+            ws.shadowing = [shadow.to_owned()].into();
+            let v = workspace_violations(&packages, &ws);
+            assert_eq!(v.len(), 1, "{shadow}: {v:#?}");
+            assert!(
+                v[0].starts_with(&format!(
+                    "{shadow}:1: clippy would read this file instead of the generated `clippy.toml`"
+                )),
+                "{v:#?}"
+            );
+        }
+    }
+
+    #[test]
+    fn overrides_in_cargo_config_and_workflows_are_detected() {
+        let (packages, mut ws) = good_workspace();
+        ws.config_files = vec![
+            (
+                ".cargo/config.toml".into(),
+                "[env]\nCLIPPY_CONF_DIR = \"elsewhere\"\n".into(),
+            ),
+            (
+                ".github/workflows/ci.yml".into(),
+                "jobs:\n  lint:\n    steps:\n      - run: cargo clippy -- -A clippy::disallowed_methods\n      - run: cargo test\n"
+                    .into(),
+            ),
+            (".github/workflows/docs.yml".into(), "on: push\n".into()),
+        ];
+        let v = workspace_violations(&packages, &ws);
+        assert_eq!(v.len(), 2, "{v:#?}");
+        assert!(
+            v[0].starts_with(".cargo/config.toml:2: mentions `CLIPPY_CONF_DIR`"),
+            "{v:#?}"
+        );
+        assert!(
+            v[1].starts_with(".github/workflows/ci.yml:4: mentions `disallowed_methods`"),
+            "{v:#?}"
+        );
+    }
+
+    // -----------------------------------------------------------------------------------------------------
+    // Lexical rules
 
     #[test]
     fn passing_crate_is_clean() {
         let src = r#"
             use ew_model::{Model, Rev};
-            use std::collections::HashMap;
-            fn f(m: Model, v: Vec<u8>, map: HashMap<u8, u8>, ops: Vec<Op>) {
-                let m0 = Model::from_records(project, [], []).unwrap();
+            #![allow(clippy::too_many_arguments)]
+            #[allow(dead_code)]
+            #[expect(clippy::needless_return)]
+            #[derive(Debug)]
+            fn f(m: Model, v: Vec<u8>, ops: Vec<Op>) {
                 let m1 = m.apply(&ops, Rev(1)).unwrap();
-                let n = v.len() + Vec::len(&v);
-                let g = map.get(&1);
-                for i in 0..v.len() {}
-                let r = 0..delete_plan_len;
+                let n = v.len();
+                let r = 0..raw_read_len;
+                let raw_read = 1; let _ = raw_read != 2;
             }
         "#;
         assert_eq!(scan(src), Vec::<String>::new());
-    }
-
-    #[test]
-    fn calls_of_gated_items_fail() {
-        let src = "fn f(m: Model, t: Table<Device>) {\n\
-            let a = m.delete_plan(&k);\n\
-            let b = Model::table::<Device>(&m);\n\
-            let c = m.table::<Device>();\n\
-            let d = Table::len(&t);\n\
-            let e = ew_model::Model::delete_plan(&m, &k);\n\
-            let f = t.len();\n\
-            let g = m.table();\n\
-            let h = Table::<Device>::len(&t);\n\
-            let i = <Table<Device>>::len(&t);\n\
-            let j = ew_model::snapshot_rows();\n\
-            let k = m.indexes().by_page();\n\
-        }\n";
-        let v = scan(src);
-        let at = |line: usize, name: &str| {
-            format!(
-                "crates/app/src/lib.rs:{line}: calls `{name}`, an item ew-model declares only under feature `raw-read` (ADR-0001 amendment 2)"
-            )
-        };
-        assert_eq!(
-            v,
-            [
-                at(2, "delete_plan"),
-                at(3, "table"),
-                at(4, "table"),
-                at(5, "len"),
-                at(6, "delete_plan"),
-                at(9, "len"),
-                at(10, "len"),
-                at(11, "snapshot_rows"),
-                at(12, "by_page"),
-            ]
-        );
     }
 
     #[test]
@@ -1830,16 +2280,136 @@ impl Foo {{ fn by_page(&self) {{}} }}"
             fn w(raw_read: u8) -> bool { raw_read != 1 }\n";
         let v = scan(src);
         assert_eq!(v.len(), 4, "{v:#?}");
-        assert!(
-            v[0].starts_with("crates/app/src/lib.rs:1: invokes `raw_read!`"),
-            "{v:#?}"
-        );
+        assert_eq!(v[0], invokes(1));
         assert!(
             v[1].starts_with("crates/app/src/lib.rs:2: names the feature `raw-read` of ew-model"),
             "{v:#?}"
         );
         assert!(v[2].contains(":4: names the feature"), "{v:#?}");
         assert!(v[3].contains(":6: names the feature"), "{v:#?}");
+    }
+
+    #[test]
+    fn method_calls_are_left_to_clippy() {
+        // Without type information these are indistinguishable from std calls; clippy flags them.
+        let src = "fn f(m: Model, t: Table<Device>) { let _ = (m.delete_plan(&k), Table::len(&t), t.len(), ew_model::snapshot_rows()); }";
+        assert_eq!(scan(src), Vec::<String>::new());
+    }
+
+    #[test]
+    fn suppressions_of_the_guard_fail() {
+        let src = "#![allow(clippy::disallowed_methods)]\n\
+            #[allow(clippy::all)]\n\
+            fn a() {}\n\
+            #[cfg_attr(feature = \"x\", allow(clippy::disallowed_methods))]\n\
+            fn b() {}\n\
+            #![allow(warnings)]\n\
+            #[expect(disallowed_methods, reason = \"x\")]\n\
+            fn c() {}\n\
+            #[allow(dead_code, clippy::style)]\n\
+            fn d() {}\n";
+        assert_eq!(
+            scan(src),
+            [
+                suppresses(1, "allow(clippy::disallowed_methods)"),
+                suppresses(2, "allow(clippy::all)"),
+                suppresses(4, "allow(clippy::disallowed_methods)"),
+                suppresses(6, "allow(warnings)"),
+                suppresses(7, "expect(disallowed_methods)"),
+                suppresses(9, "allow(clippy::style)"),
+            ]
+        );
+    }
+
+    #[test]
+    fn harmless_attributes_and_exempt_suppressions_do_not_fail() {
+        // Other lints, a `cfg(all(..))` mentioning `all`, and the lint name outside an allow/expect list.
+        let src = "#[allow(clippy::too_many_arguments)]\n\
+            #[cfg(all(unix, not(windows)))]\n\
+            #[warn(clippy::disallowed_methods)]\n\
+            #[deny(warnings)]\n\
+            fn f() {}\n";
+        assert_eq!(scan(src), Vec::<String>::new());
+
+        let allow = "#[allow(clippy::disallowed_methods)]";
+        // Test code (items and files) may carry the allow.
+        let src = format!("#[cfg(test)]\n{allow}\nmod tests {{ {allow} fn t() {{}} }}\n");
+        assert_eq!(scan(&src), Vec::<String>::new());
+        let out = run_app(
+            &[
+                (APP_LIB, "pub fn f() {}"),
+                ("crates/app/tests/it.rs", "#![allow(clippy::disallowed_methods)]"),
+                ("crates/app/benches/b.rs", "#![allow(warnings)]"),
+                ("crates/app/examples/e.rs", "#![allow(clippy::all)]"),
+            ],
+            manifest("app", vec![], &[]),
+            "",
+        );
+        assert_eq!(out.violations, Vec::<String>::new());
+    }
+
+    #[test]
+    fn readers_and_exempt_packages_may_suppress_and_call() {
+        let src = "#![allow(clippy::disallowed_methods)]\nraw_read! { fn g() {} }\n#[cfg(feature = \"raw-read\")] fn h() {}\n";
+        let readers = ["ew-derive", "ew-commands", "ew-store", "xtask"].map(|n| {
+            package(
+                n,
+                &[(&format!("crates/{n}/src/lib.rs"), src)],
+                manifest(n, vec![dep("ew-model", Kind::Normal, &["raw-read"])], &[]),
+                "[lints.clippy]\ndisallowed_methods = \"allow\"\n",
+            )
+        });
+        let mut packages = vec![model_package()];
+        packages.extend(readers);
+        let out = check_packages(&policy(), &packages);
+        assert_eq!(out.violations, Vec::<String>::new());
+        assert_eq!(out.packages_scanned, 0);
+        assert_eq!(out.gated_items, 6);
+    }
+
+    #[test]
+    fn lint_tables_that_allow_the_guard_fail() {
+        let case = |text: &str| {
+            run_app(
+                &[],
+                manifest("app", vec![dep("ew-model", Kind::Normal, &[])], &[]),
+                text,
+            )
+            .violations
+        };
+        let table = |key: &str, line: usize| {
+            format!(
+                "crates/app/Cargo.toml:{line}: `{key} = \"allow\"` in [lints.clippy] suppresses the raw-read guard; that is reserved to the reader crates' roots (ADR-0001 amendment 2)"
+            )
+        };
+        assert_eq!(
+            case("[lints.clippy]\ndisallowed_methods = \"allow\"\n"),
+            [table("disallowed_methods", 2)]
+        );
+        assert_eq!(
+            case("[lints.clippy]\ntodo = \"warn\"\nstyle = { level = \"allow\", priority = -1 }\n"),
+            [table("style", 3)]
+        );
+        assert_eq!(case("[lints.clippy]\nall = \"allow\"\n"), [table("all", 2)]);
+        // Other lints, other levels and an inherited workspace table pass.
+        assert_eq!(
+            case("[lints.clippy]\ntodo = \"allow\"\nall = \"warn\"\nstyle = \"deny\"\n"),
+            Vec::<String>::new()
+        );
+        assert_eq!(case("[lints]\nworkspace = true\n"), Vec::<String>::new());
+    }
+
+    #[test]
+    fn the_workspace_lint_table_is_checked_once() {
+        let (packages, mut ws) = good_workspace();
+        ws.root_manifest = "[workspace]\nmembers = []\n\n[workspace.lints.clippy]\ntodo = \"warn\"\ndisallowed_methods = \"allow\"\n".into();
+        let v = workspace_violations(&packages, &ws);
+        assert_eq!(
+            v,
+            [
+                "Cargo.toml:6: `disallowed_methods = \"allow\"` in [workspace.lints.clippy] suppresses the raw-read guard; that is reserved to the reader crates' roots (ADR-0001 amendment 2)"
+            ]
+        );
     }
 
     #[test]
@@ -1909,32 +2479,17 @@ impl Foo {{ fn by_page(&self) {{}} }}"
         assert_eq!(out.violations, Vec::<String>::new());
     }
 
-    #[test]
-    fn readers_and_exempt_packages_are_not_scanned() {
-        let src = "fn f(m: Model) { let _ = m.delete_plan(&k); }\n#[cfg(feature = \"raw-read\")] fn g() {}";
-        let readers = ["ew-derive", "ew-commands", "ew-store", "xtask"].map(|n| {
-            package(
-                n,
-                &[(&format!("crates/{n}/src/lib.rs"), src)],
-                manifest(n, vec![dep("ew-model", Kind::Normal, &["raw-read"])], &[]),
-                "",
-            )
-        });
-        let mut packages = vec![model_package()];
-        packages.extend(readers);
-        let out = check_packages(&policy(), &packages);
-        assert_eq!(out.violations, Vec::<String>::new());
-        assert_eq!(out.packages_scanned, 0);
-        assert_eq!(out.gated_items, 6);
-    }
+    // -----------------------------------------------------------------------------------------------------
+    // Test code
 
     #[test]
     fn test_code_is_exempt() {
-        let bad = "m.delete_plan(&k); let _ = \"raw-read\"; raw_read! { fn x() {} }";
+        let bad = "raw_read! { fn x() {} } let _ = \"raw-read\"; #![allow(warnings)]";
         let src = format!(
             "#[cfg(test)]\nmod tests {{ fn t() {{ {bad} }} }}\n\
              #[cfg(test)]\nfn helper() {{ {bad} }}\n\
-             #[cfg(any(test, feature = \"x\"))]\nfn either() {{ {bad} }}\n\
+             #[cfg(all(test, feature = \"x\"))]\nfn both() {{ {bad} }}\n\
+             #[cfg(all(feature = \"x\", test))]\nfn both_reversed() {{ {bad} }}\n\
              #[cfg(test)]\nuse ew_model::snapshot_rows;\n\
              fn run() {{\n    #[cfg(test)]\n    {{ {bad} }}\n}}\n\
              struct S {{\n    #[cfg(test)]\n    a: Vec<A, B>,\n}}\n"
@@ -1951,11 +2506,59 @@ impl Foo {{ fn by_page(&self) {{}} }}"
             scan(&format!("#![cfg(test)]\nfn h() {{ {bad} }}")),
             Vec::<String>::new()
         );
+        assert_eq!(
+            scan(&format!("#![cfg(all(test, unix))]\nfn h() {{ {bad} }}")),
+            Vec::<String>::new()
+        );
+    }
+
+    /// F6: only `cfg(test)` and `cfg(all(.., test, ..))` are test code.
+    #[test]
+    fn a_cfg_that_merely_mentions_test_is_production_code() {
+        let bad = "raw_read! { fn x() {} }";
+        for cfg in [
+            "any(test, feature = \"x\")",
+            "any(feature = \"x\", test)",
+            "not(test)",
+            "all(any(test, x), y)",
+            "all(not(test), y)",
+            "feature = \"test\"",
+            "all(unix, windows)",
+        ] {
+            let v = scan(&format!("#[cfg({cfg})]\nfn f() {{ {bad} }}\n"));
+            assert_eq!(v, [invokes(2)], "cfg({cfg})");
+            // The inner attribute does not exempt the file either.
+            let v = scan(&format!("#![cfg({cfg})]\nfn f() {{ {bad} }}\n"));
+            assert_eq!(v, [invokes(2)], "#![cfg({cfg})]");
+        }
+        for cfg in ["test", "all(test, feature = \"x\")", "all(x, all(test, y))"] {
+            let v = scan(&format!("#[cfg({cfg})]\nfn f() {{ {bad} }}\n"));
+            assert_eq!(v, Vec::<String>::new(), "cfg({cfg})");
+        }
+        // Out-of-line modules follow the same rule.
+        let out = run_app(
+            &[
+                (
+                    APP_LIB,
+                    "#[cfg(any(test, feature = \"x\"))]\nmod either;\n#[cfg(all(test, feature = \"x\"))]\nmod both;\n",
+                ),
+                ("crates/app/src/either.rs", bad),
+                ("crates/app/src/both.rs", bad),
+            ],
+            manifest("app", vec![], &[]),
+            "",
+        );
+        assert_eq!(
+            out.violations,
+            [
+                "crates/app/src/either.rs:1: invokes `raw_read!`, the macro that declares ew-model's readers behind feature `raw-read` (ADR-0001 amendment 2)"
+            ]
+        );
     }
 
     #[test]
     fn test_directories_and_out_of_line_test_modules_are_exempt() {
-        let bad = "fn t(m: Model) { m.delete_plan(&k); }";
+        let bad = "fn t() { raw_read! { fn x() {} } }";
         let sources = [
             (
                 "crates/app/src/lib.rs",
@@ -1978,8 +2581,8 @@ impl Foo {{ fn by_page(&self) {{}} }}"
         assert_eq!(
             out.violations,
             [
-                "crates/app/src/bin/tests/x.rs:1: calls `delete_plan`, an item ew-model declares only under feature `raw-read` (ADR-0001 amendment 2)",
-                "crates/app/src/live/other.rs:1: calls `delete_plan`, an item ew-model declares only under feature `raw-read` (ADR-0001 amendment 2)",
+                "crates/app/src/bin/tests/x.rs:1: invokes `raw_read!`, the macro that declares ew-model's readers behind feature `raw-read` (ADR-0001 amendment 2)",
+                "crates/app/src/live/other.rs:1: invokes `raw_read!`, the macro that declares ew-model's readers behind feature `raw-read` (ADR-0001 amendment 2)",
             ]
         );
         assert!(is_test_path("crates/app", "crates/app/tests/it.rs"));
@@ -1991,43 +2594,46 @@ impl Foo {{ fn by_page(&self) {{}} }}"
     #[test]
     fn comments_strings_and_literals_do_not_count() {
         let src = r###"
-            // m.delete_plan(&k) raw_read! { fn x() {} } "raw-read"
-            /* m.delete_plan(&k) /* nested raw_read! {} */ still comment: delete_plan( */
-            /// Docs: Model::delete_plan(&m, &k), raw_read!
-            //! m.delete_plan(
+            // raw_read! { fn x() {} } "raw-read" #[allow(warnings)]
+            /* /* nested raw_read! {} */ still comment: #![allow(clippy::all)] */
+            /// Docs: raw_read!, #[allow(clippy::disallowed_methods)]
+            //! raw_read!
             fn f() {
-                let a = "delete_plan(";
-                let b = "m.delete_plan(&k)";
+                let a = "raw_read!";
+                let b = "#[allow(warnings)]";
                 let c = '"';
                 let d = '\'';
                 let e = '\\';
                 let lt: &'static str = "x";
                 fn g<'a>(x: &'a u8) -> &'a u8 { x }
-                let r1 = r"m.delete_plan(&k)";
-                let r2 = r#"he said "m.delete_plan(&k)" and "raw-read""#;
-                let r3 = r##"a "# b .delete_plan( "##;
-                let b1 = b"delete_plan(";
-                let b2 = br#"raw_read!"#;
+                let r1 = r"raw_read! {}";
+                let r2 = r#"he said "raw_read!" and "raw-read""#;
+                let r3 = r##"a "# b raw_read! "##;
+                let b1 = b"raw_read!";
+                let b2 = br#"#[allow(warnings)]"#;
                 let b3 = b'x';
                 let multi = "line one
-                    m.delete_plan(&k)";
-                let q = '"'; let s = "x"; // m.delete_plan(&k)
+                    raw_read!";
+                let q = '"'; let s = "x"; // raw_read! {}
             }
         "###;
         assert_eq!(scan(src), Vec::<String>::new());
         // The raw string with the feature name is the only string match, and the line count survives the
         // multi-line literals and comments before it.
-        let src = "/* a\nb */\nlet _ = \"multi\nline\";\nlet r = r#\"x\"y\"#;\nm.delete_plan(&k);\nlet _ = r#\"raw-read\"#;\n";
+        let src = "/* a\nb */\nlet _ = \"multi\nline\";\nlet r = r#\"x\"y\"#;\nraw_read! {}\nlet _ = r#\"raw-read\"#;\n";
         let v = scan(src);
         assert_eq!(v.len(), 2, "{v:#?}");
-        assert!(v[0].contains(":6: calls `delete_plan`"), "{v:#?}");
+        assert_eq!(v[0], invokes(6));
         assert!(v[1].contains(":7: names the feature"), "{v:#?}");
     }
 
+    // -----------------------------------------------------------------------------------------------------
+    // The allowlist
+
     #[test]
     fn allowlist_suppresses_and_stale_entries_fail() {
-        let src = "fn f(m: Model) { m.delete_plan(&k); }";
-        let sources = [("crates/app/src/lib.rs", src)];
+        let src = "raw_read! { fn x() {} }";
+        let sources = [(APP_LIB, src)];
         let allow = |path: &str, item: &str, reason: &str| Allow {
             path: path.into(),
             item: item.into(),
@@ -2041,26 +2647,22 @@ impl Foo {{ fn by_page(&self) {{}} }}"
         };
         assert_eq!(run(vec![]).len(), 1);
         assert_eq!(
-            run(vec![allow(
-                "crates/app/src/lib.rs",
-                "delete_plan",
-                "not ew-model's"
-            )]),
+            run(vec![allow(APP_LIB, "raw_read!", "not ew-model's")]),
             Vec::<String>::new()
         );
         // Wrong item or wrong path: the violation stays and the entry is stale.
-        let v = run(vec![allow("crates/app/src/lib.rs", "table", "x")]);
+        let v = run(vec![allow(APP_LIB, "raw-read", "x")]);
         assert_eq!(v.len(), 2, "{v:#?}");
         assert!(
             v.iter()
-                .any(|m| m.contains("stale allow entry: `table` in `crates/app/src/lib.rs`")),
+                .any(|m| m.contains("stale allow entry: `raw-read` in `crates/app/src/lib.rs`")),
             "{v:#?}"
         );
-        let v = run(vec![allow("crates/other/src/lib.rs", "delete_plan", "x")]);
+        let v = run(vec![allow("crates/other/src/lib.rs", "raw_read!", "x")]);
         assert_eq!(v.len(), 2, "{v:#?}");
         // An entry that matches nothing at all fails on its own.
         let v = run(vec![
-            allow("crates/app/src/lib.rs", "delete_plan", "ok"),
+            allow(APP_LIB, "raw_read!", "ok"),
             allow("crates/app/src/gone.rs", "raw_read!", "old"),
         ]);
         assert_eq!(v.len(), 1, "{v:#?}");
@@ -2069,15 +2671,56 @@ impl Foo {{ fn by_page(&self) {{}} }}"
             "{v:#?}"
         );
         // An empty reason fails even when the entry is used.
-        let v = run(vec![allow("crates/app/src/lib.rs", "delete_plan", "  ")]);
+        let v = run(vec![allow(APP_LIB, "raw_read!", "  ")]);
         assert_eq!(v.len(), 1, "{v:#?}");
         assert!(v[0].contains("has no reason"), "{v:#?}");
     }
 
     #[test]
+    fn allowlist_suppresses_a_suppression_finding_and_goes_stale() {
+        let src = "#![allow(clippy::disallowed_methods)]\n";
+        let app = package(
+            "app",
+            &[(APP_LIB, src)],
+            manifest("app", vec![], &[]),
+            "[lints.clippy]\ndisallowed_methods = \"allow\"\n",
+        );
+        let allow = |path: &str| Allow {
+            path: path.into(),
+            item: "disallowed_methods".into(),
+            reason: "reviewed".into(),
+        };
+        let run = |entries: Vec<Allow>| {
+            let mut p = policy();
+            p.allow = entries;
+            check_packages(&p, &[model_package(), app.clone()]).violations
+        };
+        assert_eq!(run(vec![]).len(), 2);
+        assert_eq!(
+            run(vec![allow(APP_LIB), allow("crates/app/Cargo.toml")]),
+            Vec::<String>::new()
+        );
+        // One entry covers its own file only; the other finding stays.
+        let v = run(vec![allow(APP_LIB)]);
+        assert_eq!(v.len(), 1, "{v:#?}");
+        assert!(v[0].starts_with("crates/app/Cargo.toml:2:"), "{v:#?}");
+        // An entry for a clean file is stale.
+        let v = run(vec![
+            allow(APP_LIB),
+            allow("crates/app/Cargo.toml"),
+            allow("crates/app/src/other.rs"),
+        ]);
+        assert_eq!(v.len(), 1, "{v:#?}");
+        assert!(
+            v[0].contains("stale allow entry: `disallowed_methods` in `crates/app/src/other.rs`"),
+            "{v:#?}"
+        );
+    }
+
+    #[test]
     fn violations_are_sorted_by_path_then_line() {
-        let a = "\n\nfn f(m: Model) { m.delete_plan(&k); }\nfn g(m: Model) { m.delete_plan(&k); }";
-        let b = "fn f(m: Model) { m.delete_plan(&k); }";
+        let a = "\n\nfn f() { raw_read! {} }\nfn g() { raw_read! {} }";
+        let b = "fn f() { raw_read! {} }";
         let out = run_app(
             &[("crates/app/src/z.rs", b), ("crates/app/src/a.rs", a)],
             manifest("app", vec![], &[]),
@@ -2098,6 +2741,9 @@ impl Foo {{ fn by_page(&self) {{}} }}"
         );
     }
 
+    // -----------------------------------------------------------------------------------------------------
+    // Policy and the real workspace
+
     #[test]
     fn missing_policy_crate_is_reported() {
         let out = check_packages(
@@ -2109,58 +2755,75 @@ impl Foo {{ fn by_page(&self) {{}} }}"
     }
 
     #[test]
-    fn policy_rejects_unknown_keys() {
+    fn policy_rejects_unknown_keys_and_defaults_the_clippy_path() {
         let err = toml::from_str::<RawReadPolicy>(
             "crate = \"a\"\nfeature = \"f\"\nmacro = \"m\"\nreaders = []\nextra = 1\n",
         );
         assert!(err.is_err());
+        assert_eq!(policy().clippy_config, "clippy.toml");
+        let p = toml::from_str::<RawReadPolicy>(
+            "crate = \"a\"\nfeature = \"f\"\nmacro = \"m\"\nreaders = []\nclippy_config = \"cfg/clippy.toml\"\n",
+        )
+        .expect("parses");
+        assert_eq!(p.clippy_config, "cfg/clippy.toml");
     }
 
-    /// The real workspace passes, the real ew-model yields the documented gated readers, and a seeded call in
-    /// an otherwise clean package fails.
+    /// The real workspace passes (with the committed, generated `clippy.toml`), the generated list holds the
+    /// documented readers, and seeded violations in otherwise clean packages fail.
     #[test]
-    fn real_workspace_passes_and_seeded_violation_fails() {
+    fn real_workspace_passes_and_seeded_violations_fail() {
         let root = crate::workspace_root();
-        let (policy, mut packages) = load(&root).expect("workspace loads");
-        let out = check_packages(&policy, &packages);
+        let (policy, mut packages, ws) = load(&root).expect("workspace loads");
+        let out = check_workspace(&policy, &packages, &ws);
         assert_eq!(out.violations, Vec::<String>::new());
         assert!(out.packages_scanned > 0 && out.gated_items > 0);
 
-        let all: Vec<(String, String)> = packages.iter().flat_map(|p| p.files.iter().cloned()).collect();
-        let modules = test_modules(&all);
-        let gated = gated_of(&policy, &packages, &modules).expect("ew-model is a workspace package");
-        for name in [
-            "table",
-            "row",
-            "delete_plan",
-            "delete_plan_many",
-            "apply_unchecked",
-            "reps_by_page",
+        let generated = generate(&policy, &packages).expect("every gated owner is re-exported");
+        for path in [
+            "ew_model::Model::table",
+            "ew_model::Model::row",
+            "ew_model::Model::delete_plan",
+            "ew_model::Model::apply_unchecked",
+            "ew_model::Table::get",
+            "ew_model::Table::len",
+            "ew_model::BaseIndexes::rebuild",
+            "ew_model::LibraryCopies::parts",
         ] {
-            assert!(gated.is_gated(name), "`{name}` is gated: {:#?}", gated.items);
+            assert!(generated.contains(&format!("\"{path}\"")), "`{path}` is listed");
         }
-        let table = gated
-            .items
-            .iter()
-            .find(|i| i.name == "table")
-            .expect("table is gated");
-        assert_eq!(table.owner.as_deref(), Some("Model"));
-        assert!(table.generic);
-        assert!(gated.is_distinctive("delete_plan"));
-        assert!(gated.is_distinctive("unknown_records"));
-        assert!(!gated.is_gated("apply") && !gated.is_gated("from_records"));
+        assert!(!generated.contains("Model::apply\"") && !generated.contains("from_records"));
+        assert_eq!(
+            generated.lines().filter(|l| l.contains("{ path = ")).count(),
+            out.gated_items
+        );
 
+        packages.push(package(
+            "seeded",
+            &[("crates/seeded/src/lib.rs", "raw_read! { fn x() {} }")],
+            manifest("seeded", vec![], &[]),
+            "",
+        ));
+        let out = check_workspace(&policy, &packages, &ws);
+        assert_eq!(out.violations.len(), 1, "{:#?}", out.violations);
+        assert!(out.violations[0].starts_with("crates/seeded/src/lib.rs:1: invokes `raw_read!`"));
+
+        packages.pop();
         packages.push(package(
             "seeded",
             &[(
                 "crates/seeded/src/lib.rs",
-                "fn f(m: ew_model::Model) { m.delete_plan(&k); }",
+                "#![allow(clippy::disallowed_methods)]\nfn f() {}",
             )],
             manifest("seeded", vec![], &[]),
             "",
         ));
-        let out = check_packages(&policy, &packages);
+        let out = check_workspace(&policy, &packages, &ws);
         assert_eq!(out.violations.len(), 1, "{:#?}", out.violations);
-        assert!(out.violations[0].starts_with("crates/seeded/src/lib.rs:1: calls `delete_plan`"));
+        assert!(
+            out.violations[0]
+                .starts_with("crates/seeded/src/lib.rs:1: `allow(clippy::disallowed_methods)` suppresses the raw-read guard"),
+            "{:#?}",
+            out.violations
+        );
     }
 }

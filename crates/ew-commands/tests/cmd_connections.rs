@@ -3,6 +3,8 @@
 
 //! The connectivity commands: `connection.draw`, `connection.route`, `connection.delete`, `junction.edit`,
 //! `ip.place`, `ip.continue`, `potential.define`, with the junction creation and clean-up normalisers.
+// A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
+#![allow(clippy::disallowed_methods)]
 
 mod common;
 

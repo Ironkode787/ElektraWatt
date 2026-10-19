@@ -4,6 +4,8 @@
 //! Medium-severity review findings: junction clean-up keeps assigned numbers (F10), `device.place` and
 //! `rep.move` checks and hints (F11), `affected_pages` for potentials, bonds and conductors (F14), and the
 //! rule ID of a prevent-rule rejection (F17).
+// A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
+#![allow(clippy::disallowed_methods)]
 
 mod common;
 

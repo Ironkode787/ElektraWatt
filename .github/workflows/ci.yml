@@ -51,10 +51,18 @@ jobs:
         run: test -z "${ICU4X_DATA_DIR:-}"
       - name: cargo fmt
         run: cargo fmt --all --check
+      # An unresolvable `disallowed-methods` path in the generated clippy.toml is only a warning, which
+      # `-D warnings` does not turn into an error: fail on it here (ADR-0001 amendment 2).
       - name: cargo clippy
-        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+        shell: bash
+        run: |
+          cargo clippy --workspace --all-targets --locked -- -D warnings 2>&1 | tee clippy.log
+          test ${PIPESTATUS[0]} -eq 0 && ! grep -q "does not refer to a reachable" clippy.log
       - name: cargo clippy (all features)
-        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+        shell: bash
+        run: |
+          cargo clippy --workspace --all-targets --all-features --locked -- -D warnings 2>&1 | tee clippy.log
+          test ${PIPESTATUS[0]} -eq 0 && ! grep -q "does not refer to a reachable" clippy.log
 
   # CI-PR-02, CI-PR-03, CI-PR-04
   test-linux:

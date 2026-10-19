@@ -6,6 +6,8 @@
 //! determinism. Steps name their targets by index into the live records, so a sequence stays meaningful
 //! whatever the earlier steps did; a step that cannot be resolved is skipped, and a command error is fine
 //! (the command refused the edit), but `CmdError::Internal` and panics are failures.
+// A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
+#![allow(clippy::disallowed_methods)]
 
 mod common;
 

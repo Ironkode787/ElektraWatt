@@ -360,6 +360,10 @@ glob = "rustfmt.toml"
 allowed = ["CC0-1.0"]
 
 [[path]]
+glob = "clippy.toml"
+allowed = ["CC0-1.0"]
+
+[[path]]
 glob = "deny.toml"
 allowed = ["CC0-1.0"]
 

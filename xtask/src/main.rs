@@ -20,8 +20,9 @@ mod repo;
 mod symbols;
 mod workflows;
 
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitCode};
+use std::process::{Command, ExitCode, Stdio};
 
 use anyhow::{Context, Result, bail};
 
@@ -32,7 +33,9 @@ commands:
   check-deps           crate-dependency rules of ARCH §3 (policy: ci/dep-rules.toml)
   check-build-scripts  every package with a build script is allowlisted (ci/build-scripts.allowlist)
   check-features       banned features and crates only on dev edges (ci/dep-rules.toml: banned_features)
-  check-raw-read       no raw read of ew-model outside its readers (ci/dep-rules.toml: raw_read)
+  check-raw-read [--bless]
+                       no raw read of ew-model outside its readers (ci/dep-rules.toml: raw_read): the generated
+                       clippy.toml and the lexical rules; --bless (or --write) regenerates clippy.toml first
   check-workflows      actions pinned by commit SHA, read-only default token, no pull_request_target,
                        credential-free checkouts, secrets only in `release` (.github/workflows/)
   check-licence-map    path licences, collective notice, crate licences, permissive-layer licence boundary
@@ -60,7 +63,18 @@ fn main() -> ExitCode {
         "check-deps" => run_check("check-deps", check_deps),
         "check-build-scripts" => run_check("check-build-scripts", check_build_scripts),
         "check-features" => run_check("check-features", check_features),
-        "check-raw-read" => raw_read::run(&workspace_root()),
+        "check-raw-read" => match args.get(1).map(String::as_str) {
+            None => raw_read::run(&workspace_root(), false),
+            Some("--bless" | "--write") => raw_read::run(&workspace_root(), true),
+            Some(other) => {
+                eprint!(
+                    "check-raw-read: unknown argument `{other}`
+
+{USAGE}"
+                );
+                Ok(false)
+            }
+        },
         "check-workflows" => run_check("check-workflows", check_workflows),
         "check-licence-map" => run_check("check-licence-map", check_licence_map),
         "check-anonymisation" => match args.get(1).map(String::as_str) {
@@ -322,6 +336,35 @@ fn denylist_hash(phrase: &str) {
     }
 }
 
+/// What clippy prints for a `disallowed-methods` path that names no function: only a warning, which
+/// `-D warnings` does not turn into an error.
+const UNRESOLVED_CLIPPY_PATH: &str = "does not refer to a reachable";
+
+/// The lines of clippy's stderr that report an unresolvable `disallowed-methods` path (the generated
+/// `clippy.toml` of `check-raw-read` must never contain one).
+fn unresolved_clippy_paths(stderr: &str) -> Vec<String> {
+    stderr
+        .lines()
+        .filter(|line| line.contains(UNRESOLVED_CLIPPY_PATH))
+        .map(str::to_owned)
+        .collect()
+}
+
+/// Runs `command` with its stderr captured line by line and echoed to this process's stderr as it arrives.
+fn run_echoing_stderr(command: &mut Command) -> Result<(std::process::ExitStatus, String)> {
+    let mut child = command.stderr(Stdio::piped()).spawn()?;
+    let mut captured = String::new();
+    if let Some(stderr) = child.stderr.take() {
+        for line in BufReader::new(stderr).lines() {
+            let line = line?;
+            eprintln!("{line}");
+            captured.push_str(&line);
+            captured.push('\n');
+        }
+    }
+    Ok((child.wait()?, captured))
+}
+
 /// Runs the local mirror of the per-PR CI set and prints a summary. Every step runs, even after a failure,
 /// so one invocation shows everything that needs fixing.
 fn ci() -> Result<bool> {
@@ -378,12 +421,23 @@ fn ci() -> Result<bool> {
     let mut summary: Vec<(&str, bool)> = Vec::new();
     for (name, args) in cargo_steps {
         println!("==> cargo {}", args.join(" "));
-        let status = Command::new(cargo())
-            .args(args)
-            .current_dir(workspace_root())
-            .status()
-            .with_context(|| format!("starting `cargo {}`", args.join(" ")))?;
-        summary.push((name, status.success()));
+        let mut command = Command::new(cargo());
+        command.args(args).current_dir(workspace_root());
+        let passed = if args[0] == "clippy" {
+            let (status, stderr) = run_echoing_stderr(&mut command)
+                .with_context(|| format!("running `cargo {}`", args.join(" ")))?;
+            let unresolved = unresolved_clippy_paths(&stderr);
+            for line in &unresolved {
+                eprintln!("{name}: unresolvable disallowed path (ADR-0001 amendment 2): {line}");
+            }
+            status.success() && unresolved.is_empty()
+        } else {
+            command
+                .status()
+                .with_context(|| format!("starting `cargo {}`", args.join(" ")))?
+                .success()
+        };
+        summary.push((name, passed));
     }
     for (name, check) in checks {
         println!("==> {name}");
@@ -406,4 +460,27 @@ fn ci() -> Result<bool> {
         bail!("{failed} of {} steps failed", summary.len());
     }
     Ok(true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::unresolved_clippy_paths;
+
+    #[test]
+    fn an_unresolvable_disallowed_path_is_caught() {
+        let warning = "warning: `ew_model::Model::gone` does not refer to a reachable function";
+        let stderr = format!(
+            "    Checking app v0.0.0\n{warning}\n  |\n  = help: add `allow-invalid = true` to the entry\n    Finished `dev` profile\n"
+        );
+        assert_eq!(unresolved_clippy_paths(&stderr), [warning]);
+    }
+
+    #[test]
+    fn clean_output_and_a_real_disallowed_use_are_not_caught() {
+        assert!(unresolved_clippy_paths("").is_empty());
+        let clean = "    Checking app v0.0.0\n    Finished `dev` profile [unoptimized] target(s) in 1.2s\n";
+        assert!(unresolved_clippy_paths(clean).is_empty());
+        let error = "error: use of a disallowed method `ew_model::Model::row`\n  --> src/lib.rs:3:7\n   = note: raw reader of ew-model\n";
+        assert!(unresolved_clippy_paths(error).is_empty());
+    }
 }

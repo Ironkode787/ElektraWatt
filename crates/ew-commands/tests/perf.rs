@@ -7,6 +7,8 @@
 //! version (a tenth of the size) that runs with the normal tests and asserts a generous bound.
 //!
 //! The models are built from fixture records, so the setup is fast; only the command is timed.
+// A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
+#![allow(clippy::disallowed_methods)]
 
 mod common;
 

@@ -3,6 +3,8 @@
 
 //! The commit pipeline end to end with `page.create`: execute, preview and commit, the rebase check, the
 //! change feed, the exposure check and the normaliser order.
+// A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
+#![allow(clippy::disallowed_methods)]
 
 mod common;
 

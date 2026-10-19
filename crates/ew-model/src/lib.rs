@@ -98,6 +98,8 @@
 //! ```
 
 #![forbid(unsafe_code)]
+// A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
+#![allow(clippy::disallowed_methods)]
 
 /// Declares an untracked read accessor (ARCH §3 rule 1, ADR-0002 decision 1): `pub` with the cargo feature
 /// `raw-read`, crate-private without it. Takes one `fn` item with its attributes.
