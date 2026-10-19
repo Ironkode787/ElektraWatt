@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "c545e0a9-b225-5e92-885a-f5931b0f90f5",
   "version": "0.1.0",
-  "sha256": "sha256:03d34669f0b4810e4f3690aeccbe244b8b3e8ef0c85b99cdae1c4438ee5c3422",
+  "sha256": "sha256:21c2c025289101631b412a2a1c559835a253b39714666fdac373821cdf0a5297",
   "meta": {
     "key": "ew.iec.contact-nc@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -49,7 +49,9 @@
           ]
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -64,7 +66,9 @@
           5291667
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -79,7 +83,9 @@
           2645833
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     }

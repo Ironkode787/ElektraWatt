@@ -7,7 +7,10 @@
 //! authored. **Sealing** fills the envelope (copy id, library id, item id, version, content hash) and the
 //! symbol's function-definition reference. The **QET edition** is a generated copy of every native symbol
 //! on the QET 10 px grid: all lengths are scaled by `7_937_500 / 12_000_000` (the 4 mm grid step becomes
-//! the QET step `7_937_500 / 3` nm) and the key gets the suffix `@qet10`.
+//! the QET step `7_937_500 / 3` nm) and the key gets the suffix `@qet10`. House pens are expressed in QET px
+//! ([`qet_pen`]: 0.26 mm becomes 1.0 px = `264_583` nm, 0.13 mm 0.5 px, 0.52 mm 2.0 px …, doc 20 §17.4), so
+//! that after the QET frame's page-to-sheet map they print at the widths of doc 20 §17.4 (0.261, 0.130,
+//! 0.522 mm) like the frame and the wires of a QET-grid page.
 //!
 //! xtask must not depend on any workspace crate, so the documents are handled as JSON text with an
 //! order-preserving value type ([`V`]); member order is never changed. The envelope, id derivations and
@@ -342,7 +345,46 @@ fn member(obj: &mut V, name: &str, f: fn(&mut V) -> Result<()>) -> Result<()> {
     }
 }
 
-/// Scales one graphics primitive (`{"line": {...}}`). Strokes, fills, angles and text are not scaled.
+/// The house pens in QET px tenths (doc 20 §17.4: native px of each printed width).
+const QET_PENS: [(&str, i64); 6] = [
+    ("p013", 5),
+    ("p018", 7),
+    ("p026", 10),
+    ("p042", 16),
+    ("p052", 20),
+    ("p130", 50),
+];
+
+/// The width in nm of a house pen in the QET edition: its QET px (tenths `t`) × `7_937_500 / 30` nm,
+/// rounded to the nearest nm (no ties occur): p013 → 132 292, p018 → 185 208, p026 → 264 583,
+/// p042 → 423 333, p052 → 529 167, p130 → 1 322 917. `None` for anything that is not a house pen.
+pub(crate) fn qet_pen(pen: &str) -> Option<i64> {
+    let (_, tenths) = QET_PENS.iter().find(|(p, _)| *p == pen)?;
+    let n = i128::from(*tenths) * 7_937_500;
+    let (q, r) = (n / 300, n % 300);
+    let q = if 2 * r > 300 { q + 1 } else { q };
+    i64::try_from(q).ok()
+}
+
+/// Rewrites a stroke's house pen as the explicit QET-px width `{"width": nm}` ([`qet_pen`]). An explicit
+/// width is kept as it is (the native starter set uses house pens only; its lint enforces that).
+fn qet_stroke(stroke: &mut V) -> Result<()> {
+    let Some(pen) = stroke.get_mut("pen") else {
+        bail!("a stroke has no `pen`");
+    };
+    match pen {
+        V::Str(name) => {
+            let w = qet_pen(name).ok_or_else(|| anyhow!("unknown house pen `{name}`"))?;
+            *pen = V::Obj(vec![("width".to_owned(), V::Int(w))]);
+            Ok(())
+        }
+        V::Obj(_) => Ok(()),
+        other => bail!("expected a pen, found {}", compact(other)?),
+    }
+}
+
+/// Scales one graphics primitive (`{"line": {...}}`) and maps its stroke's house pen to QET px
+/// ([`qet_stroke`]). Fills, angles and text are not scaled.
 fn scale_primitive(p: &mut V) -> Result<()> {
     let V::Obj(members) = p else {
         bail!("a primitive is not an object");
@@ -363,7 +405,7 @@ fn scale_primitive(p: &mut V) -> Result<()> {
     for (field, f) in fields {
         member(body, field, *f).with_context(|| format!("primitive `{name}`"))?;
     }
-    Ok(())
+    member(body, "stroke", qet_stroke).with_context(|| format!("primitive `{name}`"))
 }
 
 /// Scales a connection point's `pos`, which must lie on the 4 mm grid.
@@ -844,6 +886,23 @@ mod tests {
     }
 
     #[test]
+    fn qet_pens_are_qet_px() {
+        assert_eq!(qet_pen("p013"), Some(132_292));
+        assert_eq!(qet_pen("p018"), Some(185_208));
+        assert_eq!(qet_pen("p026"), Some(264_583));
+        assert_eq!(qet_pen("p042"), Some(423_333));
+        assert_eq!(qet_pen("p052"), Some(529_167));
+        assert_eq!(qet_pen("p130"), Some(1_322_917));
+        assert_eq!(qet_pen("p999"), None);
+        // An explicit width is kept; an unknown house pen is an error.
+        let mut s = parse(r#"{"pen": {"width": 1000}}"#);
+        qet_stroke(&mut s).unwrap();
+        assert_eq!(compact(&s).unwrap(), r#"{"pen":{"width":1000}}"#);
+        let mut s = parse(r#"{"pen": "p999"}"#);
+        assert!(qet_stroke(&mut s).is_err());
+    }
+
+    #[test]
     fn qet10_scales_lengths_only() {
         let q = qet10(&seal(&parse(SYMBOL)).unwrap()).unwrap();
         assert_eq!(key_of(&q).unwrap(), "ew.test.sym@qet10");
@@ -865,15 +924,15 @@ mod tests {
         let g: Vec<String> = graphics.iter().map(|p| compact(p).unwrap()).collect();
         assert_eq!(
             g[0],
-            r#"{"line":{"from":[0,0],"to":[0,3307292],"stroke":{"pen":"p026"}}}"#
+            r#"{"line":{"from":[0,0],"to":[0,3307292],"stroke":{"pen":{"width":264583}}}}"#
         );
         assert_eq!(
             g[1],
-            r#"{"polyline":{"points":[[2645833,5622396],[-2976562,4960937]],"stroke":{"pen":"p013"}}}"#
+            r#"{"polyline":{"points":[[2645833,5622396],[-2976562,4960937]],"stroke":{"pen":{"width":132292}}}}"#
         );
         assert_eq!(
             g[2],
-            r#"{"rect":{"rect":[[1322917,4630208],[2645833,6614583]],"rx":330729,"stroke":{"pen":"p026"}}}"#
+            r#"{"rect":{"rect":[[1322917,4630208],[2645833,6614583]],"rx":330729,"stroke":{"pen":{"width":264583}}}}"#
         );
         assert_eq!(g[3], r#"{"circle":{"centre":[661458,661458],"r":1322917}}"#);
         assert_eq!(g[4], r#"{"text":{"pos":[-2645833,0],"text":"Q","angle":90}}"#);

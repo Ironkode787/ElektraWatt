@@ -295,6 +295,7 @@ dependencies = [
  "ew-store",
  "ew-text",
  "ew-units",
+ "flate2",
  "insta",
  "png",
  "serde_json",
@@ -579,6 +580,7 @@ dependencies = [
  "ew-units",
  "png",
  "sha2",
+ "skrifa 0.44.0",
  "vello_cpu",
 ]
 

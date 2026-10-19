@@ -303,6 +303,21 @@ fn require_sealed() -> bool {
 // Geometry helpers
 
 /// The QET 10 px edition value of a native nm value: `round(n × 7 937 500 / 12 000 000)`, ties toward zero.
+/// The pen of the qet10 edition for a native house pen: the house pen in QET px (doc 20 §17.4; 1 px =
+/// 7 937 500 / 30 nm, rounded): p013 0.5 px, p018 0.7, p026 1.0, p042 1.6, p052 2.0, p130 5.0.
+fn qet_pen(p: &Pen) -> Option<Pen> {
+    let w = match p {
+        Pen::P013 => 132_292,
+        Pen::P018 => 185_208,
+        Pen::P026 => 264_583,
+        Pen::P042 => 423_333,
+        Pen::P052 => 529_167,
+        Pen::P130 => 1_322_917,
+        _ => return None,
+    };
+    Some(Pen::Width(Nm(w)))
+}
+
 fn qet_scale(n: i64) -> i64 {
     let num = i128::from(n) * 7_937_500;
     let den = 12_000_000_i128;
@@ -870,6 +885,18 @@ fn compare_graphics(who: &str, what: &str, n: &[Primitive], q: &[Primitive], out
                 ));
             }
         }
+        let pens_ok = match (stroke_of(a), stroke_of(b)) {
+            (None, None) => true,
+            (Some(x), Some(y)) => {
+                qet_pen(&x.pen).as_ref() == Some(&y.pen) && x.dash == y.dash && x.colour == y.colour
+            }
+            _ => false,
+        };
+        if !pens_ok {
+            out.push(format!(
+                "{who}: {what}[{i}] stroke is not the QET-px pen of the native twin's stroke"
+            ));
+        }
         if let (Primitive::Text(x), Primitive::Text(y)) = (a, b)
             && (x.text != y.text || x.align != y.align || x.angle != y.angle || x.style != y.style)
         {
@@ -1025,17 +1052,22 @@ fn geometry_rules() {
                 problems.push(format!("{who}: graphic {i} is of an unknown kind"));
             }
             if let Some(s) = stroke_of(prim) {
-                let house = matches!(
-                    s.pen,
-                    Pen::P013 | Pen::P018 | Pen::P026 | Pen::P042 | Pen::P052 | Pen::P130
-                );
+                let houses = [Pen::P013, Pen::P018, Pen::P026, Pen::P042, Pen::P052, Pen::P130];
+                // The qet10 edition expresses the house pens in QET px (doc 20 §17.4).
+                let house = match ed {
+                    Edition::Native => houses.contains(&s.pen),
+                    Edition::Qet10 => houses.iter().any(|h| qet_pen(h).as_ref() == Some(&s.pen)),
+                };
                 if !house {
                     problems.push(format!(
                         "{who}: graphic {i} uses the pen {:?}, not a house pen",
                         s.pen
                     ));
                 }
-                if s.dash == Dash::Dash42 && !matches!(s.pen, Pen::P013 | Pen::P026) {
+                let dashable = [Pen::P013, Pen::P026];
+                let dash_ok =
+                    dashable.contains(&s.pen) || dashable.iter().any(|h| qet_pen(h).as_ref() == Some(&s.pen));
+                if s.dash == Dash::Dash42 && !dash_ok {
                     problems.push(format!(
                         "{who}: graphic {i} dashes the pen {:?}; dash42 is for p013 and p026",
                         s.pen

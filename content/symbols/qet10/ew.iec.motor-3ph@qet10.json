@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "e3e8e09c-84e4-5733-b360-e5f2edb060ca",
   "version": "0.1.0",
-  "sha256": "sha256:bc0f742a247987e9a9b732750d77ed72c67108a873297394fdb0454180cbab42",
+  "sha256": "sha256:56bc4d9a469ac23d1ece4fb7a30b3ac226418b55318cdecc1b5453779b69e271",
   "meta": {
     "key": "ew.iec.motor-3ph@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -39,7 +39,9 @@
         ],
         "r": 3968750,
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -54,7 +56,9 @@
           2315104
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -69,7 +73,9 @@
           1322917
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -84,7 +90,9 @@
           2315104
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -99,7 +107,9 @@
           5291667
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },

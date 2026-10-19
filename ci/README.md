@@ -43,6 +43,8 @@ cargo +1.85.0 check --locked -p ew-units -p ew-ids -p ew-mltext -p ew-rds -p ew-
 git checkout Cargo.lock   # locally: restore the committed lockfile afterwards
 ```
 
+The MSRV 1.85 applies to the permissive crates only, which are the ones the MSRV step checks. The GPL application crates follow the pinned toolchain of `rust-toolchain.toml`: `ew-export` and `ew-render-cpu` (krilla 0.8 and vello_cpu 0.3 need Rust 1.92) and every workspace crate that depends on them (`ew-api`, `ew-print`, `ew-testkit`, `ew-ui`, `ew-viewmodel` and the binaries `ew` and `elektrawatt`) declare `rust-version = "1.92"` instead of the workspace value.
+
 ## Feature bans (`cargo xtask check-features`)
 
 CI-PR-09 requires that test-only and unsafe features never reach a non-test target. `[[banned_features]]` in

@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "978b78d1-a563-594b-b98a-2cfe4b9f4512",
   "version": "0.1.0",
-  "sha256": "sha256:da554bde6c889ed45f18fcdd342434abebb2514482f1de8b1ac2db7f0ffacfa8",
+  "sha256": "sha256:dfaf457d15452106821802c430b24fde14c758e29c3b2aaf491d2809e576e198",
   "meta": {
     "key": "ew.iec.switch-2p-manual@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -45,7 +45,9 @@
           2645833
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -60,7 +62,9 @@
           5291667
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -75,7 +79,9 @@
           2645833
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -90,7 +96,9 @@
           2645833
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -105,7 +113,9 @@
           5291667
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -120,7 +130,9 @@
           2645833
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -137,7 +149,9 @@
           ]
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     }

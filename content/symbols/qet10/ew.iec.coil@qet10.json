@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "d9214097-d48e-5903-be87-e4d93cbb0b69",
   "version": "0.1.0",
-  "sha256": "sha256:5121f34cbbd740dc3b2cf47ea4b8ccfa5ada736bcd1deca89541a5eceee3808e",
+  "sha256": "sha256:02654b5c70dd7b75490b68d3557b29fa2dbf1439ebe15063de5a1d84db20fba1",
   "meta": {
     "key": "ew.iec.coil@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -43,7 +43,9 @@
           2645833
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -60,7 +62,9 @@
           ]
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -75,7 +79,9 @@
           10583333
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     }

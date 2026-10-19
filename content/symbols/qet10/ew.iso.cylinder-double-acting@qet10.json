@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "a96d61c0-7bf2-5cb2-9f5a-c315638c17c2",
   "version": "0.1.0",
-  "sha256": "sha256:e60b3998dbecb8e27d4f86975c7517e6a8fe2d6886eda1fe7493c39929e96d92",
+  "sha256": "sha256:a3b10ee2d85500f0fc52e20b8809a3f56bf18389624a73d49ac34792d08c2129",
   "meta": {
     "key": "ew.iso.cylinder-double-acting@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -47,7 +47,9 @@
           ]
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -62,7 +64,9 @@
           7937500
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -77,7 +81,9 @@
           21166667
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -92,7 +98,9 @@
           2645833
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -107,7 +115,9 @@
           13229167
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     }

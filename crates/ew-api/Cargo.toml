@@ -5,7 +5,7 @@
 name = "ew-api"
 version.workspace = true
 edition.workspace = true
-rust-version.workspace = true
+rust-version = "1.92"
 license = "GPL-3.0-or-later"
 description = "The Session facade shared by every front-end."
 repository.workspace = true
@@ -58,5 +58,7 @@ ew-ids = { path = "../ew-ids" }
 ew-units = { path = "../ew-units" }
 ew-mltext = { path = "../ew-mltext" }
 png = "0.18.1"
+# tests/page_output.rs: inflates the PDF content streams to read the line widths (doc 20 §17.4).
+flate2 = "1.1.10"
 sha2 = { workspace = true }
 insta = { version = "1.49.0", default-features = false }

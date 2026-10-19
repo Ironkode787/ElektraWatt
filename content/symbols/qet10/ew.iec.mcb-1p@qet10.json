@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "c9092d21-7e35-5443-9f3a-d16df4d5d383",
   "version": "0.1.0",
-  "sha256": "sha256:49450f6c94be81d40a9bdabb1e1e00c4dcf27cc6c95d1aaa772788abad1913c3",
+  "sha256": "sha256:ede4a33d6cb6ab712562943ef120450f86b7e630068caf4a4d07e844eb3ceaf7",
   "meta": {
     "key": "ew.iec.mcb-1p@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -43,7 +43,9 @@
           3307292
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -58,7 +60,9 @@
           7937500
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -73,7 +77,9 @@
           3307292
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -88,7 +94,9 @@
           3968750
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -103,7 +111,9 @@
           2645833
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -118,7 +128,9 @@
           5622396
         ],
         "stroke": {
-          "pen": "p013",
+          "pen": {
+            "width": 132292
+          },
           "dash": "dash42"
         }
       }
@@ -136,7 +148,9 @@
           ]
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -161,7 +175,9 @@
           ]
         ],
         "stroke": {
-          "pen": "p013"
+          "pen": {
+            "width": 132292
+          }
         }
       }
     }

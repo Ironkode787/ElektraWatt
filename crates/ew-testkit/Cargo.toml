@@ -5,7 +5,7 @@
 name = "ew-testkit"
 version.workspace = true
 edition.workspace = true
-rust-version.workspace = true
+rust-version = "1.92"
 license = "GPL-3.0-or-later"
 description = "Golden builders, project generators, oracle comparator and acceptance runner."
 repository.workspace = true

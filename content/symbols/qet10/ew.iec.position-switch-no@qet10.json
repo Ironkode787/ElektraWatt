@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "d3ebbd5e-9b39-556c-a2f4-948b2ccb959a",
   "version": "0.1.0",
-  "sha256": "sha256:f6bff09c3065b65dc6d5f8ff811aaa7a42b3c88a278d89e6240d5635e11650db",
+  "sha256": "sha256:f9bc6581347a7d9f8a1516604c5447cef1935fa3c57865597dfac2fde38c5d6f",
   "meta": {
     "key": "ew.iec.position-switch-no@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -45,7 +45,9 @@
           2645833
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -60,7 +62,9 @@
           5291667
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -75,7 +79,9 @@
           2645833
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -90,7 +96,9 @@
           3968750
         ],
         "stroke": {
-          "pen": "p013",
+          "pen": {
+            "width": 132292
+          },
           "dash": "dash42"
         }
       }
@@ -103,7 +111,9 @@
         ],
         "r": 992187,
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     }

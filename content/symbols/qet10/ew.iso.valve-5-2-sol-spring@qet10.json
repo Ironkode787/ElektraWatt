@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "ae948a66-e07b-55fa-b47d-4fb2e8f02873",
   "version": "0.1.0",
-  "sha256": "sha256:80bce419be29487a3deca8769c564b794ffe8fc25f98f79dc11ac1fca160e642",
+  "sha256": "sha256:3195e0603f56bbfdfb265ecb3055317d187fa0ef819c4737f81238d88a846cd3",
   "meta": {
     "key": "ew.iso.valve-5-2-sol-spring@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -47,7 +47,9 @@
           ]
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -64,7 +66,9 @@
           ]
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -79,7 +83,9 @@
           -2645833
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -94,7 +100,9 @@
           -2645833
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -109,7 +117,9 @@
           13229167
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -124,7 +134,9 @@
           13229167
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -139,7 +151,9 @@
           13229167
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -154,7 +168,9 @@
           10583333
         ],
         "stroke": {
-          "pen": "p013"
+          "pen": {
+            "width": 132292
+          }
         }
       }
     },
@@ -176,7 +192,9 @@
         ],
         "closed": true,
         "stroke": {
-          "pen": "p013"
+          "pen": {
+            "width": 132292
+          }
         },
         "fill": "by_layer"
       }
@@ -192,7 +210,9 @@
           0
         ],
         "stroke": {
-          "pen": "p013"
+          "pen": {
+            "width": 132292
+          }
         }
       }
     },
@@ -214,7 +234,9 @@
         ],
         "closed": true,
         "stroke": {
-          "pen": "p013"
+          "pen": {
+            "width": 132292
+          }
         },
         "fill": "by_layer"
       }
@@ -230,7 +252,9 @@
           0
         ],
         "stroke": {
-          "pen": "p013"
+          "pen": {
+            "width": 132292
+          }
         }
       }
     },
@@ -252,7 +276,9 @@
         ],
         "closed": true,
         "stroke": {
-          "pen": "p013"
+          "pen": {
+            "width": 132292
+          }
         },
         "fill": "by_layer"
       }
@@ -268,7 +294,9 @@
           10583333
         ],
         "stroke": {
-          "pen": "p013"
+          "pen": {
+            "width": 132292
+          }
         }
       }
     },
@@ -290,7 +318,9 @@
         ],
         "closed": true,
         "stroke": {
-          "pen": "p013"
+          "pen": {
+            "width": 132292
+          }
         },
         "fill": "by_layer"
       }
@@ -308,7 +338,9 @@
           ]
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -323,7 +355,9 @@
           2645833
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -340,7 +374,9 @@
           ]
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -373,7 +409,9 @@
           ]
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     }

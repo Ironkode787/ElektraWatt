@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "c2ec65cb-4074-5a11-b7b0-322418f090d5",
   "version": "0.1.0",
-  "sha256": "sha256:92b87582274f9794b8b6f32055680abdd4a4c6114bfee631c9136f5399aceef2",
+  "sha256": "sha256:6cd49bc613d1edbf36b3334df795a01ca7a2801d87b8dc01384df356081dd1cc",
   "meta": {
     "key": "ew.iec.transformer-1ph@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -39,7 +39,9 @@
         ],
         "r": 2645833,
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -51,7 +53,9 @@
         ],
         "r": 2645833,
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -66,7 +70,9 @@
           2645833
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -81,7 +87,9 @@
           10583333
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -96,7 +104,9 @@
           2976562
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     },
@@ -111,7 +121,9 @@
           10583333
         ],
         "stroke": {
-          "pen": "p026"
+          "pen": {
+            "width": 264583
+          }
         }
       }
     }
