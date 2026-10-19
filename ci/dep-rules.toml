@@ -120,8 +120,12 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 # ew-derive's agreement tests compare its main-representation and tag rules with the numbering of ew-commands.
 "ew-derive" = ["ew-commands"]
 # ew-api's golden CSV test compares the derived anchor cells, CPs and tags of the loaded golden model with its
-# tables (the importer may not depend on the model, so the test lives in ew-api).
-"ew-api" = ["ew-derive"]
+# tables (the importer may not depend on the model, so the test lives in ew-api). Its page-output test (WP-S3.04)
+# builds page display lists, PNGs and PDFs of the golden folios with the bundled fonts.
+"ew-api" = ["ew-derive", "ew-text", "ew-dl", "ew-render-cpu", "ew-ids", "ew-units", "ew-mltext"]
+# The renderer's and the PDF writer's tests shape their text with the bundled fonts (WP-S3.04).
+"ew-render-cpu" = ["ew-text", "ew-units"]
+"ew-export" = ["ew-text", "ew-units"]
 
 # ew-reports' unit tests build small model snapshots to run report row queries over a `Q` (no `raw-read`).
 "ew-reports" = ["ew-model"]

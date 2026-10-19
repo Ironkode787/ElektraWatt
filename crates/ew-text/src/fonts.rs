@@ -340,6 +340,16 @@ impl FontSet {
         self.faces.iter().map(|f| &f.info)
     }
 
+    /// The bytes of the whole font file behind `key` (the face is `key.face_index` inside it), for the
+    /// renderers and writers that draw or embed the glyphs this set shaped (WP-S3.04); `None` if the set
+    /// has no such face.
+    pub fn face_data(&self, key: FontKey) -> Option<&[u8]> {
+        self.faces
+            .iter()
+            .find(|f| f.info.key == key)
+            .map(|f| f.data.data())
+    }
+
     /// The face a style selects: the exact (role, weight, slope) match; else the role's upright face of
     /// that weight; else the role's upright regular face; else the first face of the set.
     pub(crate) fn select(&self, family: Family, weight: Weight, italic: bool) -> &Face {

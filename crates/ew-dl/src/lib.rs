@@ -111,3 +111,7 @@ pub use paint::{Brush, Cap, Color, Dash, DashPattern, Join, MITER_LIMIT, Pen, St
 pub use path::{KAPPA_DEN, KAPPA_NUM, Path, PathBuilder, PathEl, kappa_handle};
 pub use text::{FontKey, Glyph, ShapedRun};
 pub use transform::Transform;
+
+/// The value types of the IR (`Nm`, `Pt2`, `Rect`, `Orient2`, `Angle2` …), re-exported so that consumers
+/// whose only foundation edge is `ew-dl` (the renderers and writers of ARCH §3) can name them.
+pub use ew_units;

@@ -17,3 +17,13 @@ workspace = true
 [dependencies]
 ew-dl = { path = "../ew-dl" }
 ew-render-cpu = { path = "../ew-render-cpu" }
+# PDF/A-2b writer (ARCH §3, §8.4; ADR-0015 decision 5). Default features off: no raster-image decoders and no
+# built-in shaper; glyphs come shaped from ew-text.
+krilla = { version = "0.8.2", default-features = false }
+
+[dev-dependencies]
+ew-text = { path = "../ew-text" }
+ew-units = { path = "../ew-units" }
+sha2 = { workspace = true }
+# Destination IDs of the test pages.
+uuid = { version = "1.26", default-features = false }

@@ -50,3 +50,13 @@ ew-commands = { path = "../ew-commands", features = ["testkit"] }
 # `tests/golden_csv.rs` compares the derived anchor cells, CPs and tags of the loaded golden model with its tables.
 ew-model = { path = "../ew-model", features = ["raw-read"] }
 serde_json = "1.0.154"
+# tests/page_output.rs: page display lists, PNG and PDF of the golden folios (WP-S3.04).
+ew-text = { path = "../ew-text" }
+ew-dl = { path = "../ew-dl" }
+ew-render-cpu = { path = "../ew-render-cpu" }
+ew-ids = { path = "../ew-ids" }
+ew-units = { path = "../ew-units" }
+ew-mltext = { path = "../ew-mltext" }
+png = "0.18.1"
+sha2 = { workspace = true }
+insta = { version = "1.49.0", default-features = false }

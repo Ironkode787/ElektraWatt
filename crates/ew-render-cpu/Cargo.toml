@@ -16,3 +16,14 @@ workspace = true
 
 [dependencies]
 ew-dl = { path = "../ew-dl" }
+# The CPU rasteriser (ARCH §3, ADR-0015 decision 3). Default features off: `std` and the glyph renderer
+# (`text`, glyph outlines from the bundled font bytes) on the u8 pipeline; PNG encoding uses `png` directly.
+vello_cpu = { version = "0.3.0", default-features = false, features = ["std", "text", "u8_pipeline"] }
+# PNG encoding with fixed settings (FR-OUT-014; already in the graph through vello_cpu's tree).
+png = "0.18.1"
+
+[dev-dependencies]
+# Test pages shape their text with the bundled fonts.
+ew-text = { path = "../ew-text" }
+ew-units = { path = "../ew-units" }
+sha2 = { workspace = true }
