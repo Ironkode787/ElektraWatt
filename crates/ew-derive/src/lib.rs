@@ -49,16 +49,23 @@
 mod bom;
 mod cell;
 mod cps;
+mod flow;
+mod nets;
 mod note;
 mod pages;
+mod potentials;
 mod profile;
 mod q;
 mod query;
+mod stitch;
 mod structure;
 mod tag;
 mod title_block;
 mod toc;
 mod tracker;
+mod wire_profile;
+mod wire_props;
+mod wires;
 
 pub use bom::{BomMode, BomRow, BomRowKey, BomRows, DevicePartLines, LineSource, PartLine};
 pub use cell::{
@@ -66,10 +73,16 @@ pub use cell::{
     anchor_point, default_frame_grid, frame_grid,
 };
 pub use cps::{Cp, FunctionCps};
+pub use flow::{Flow, FlowBfs, FlowEntry, Load, PotentialFlow, Upstream};
+pub use nets::{CpRef, LocalNet, LocalNets, NetId, NetMember, PageLocalNets, joins_net};
 pub use note::{DeriveNote, EW_CORE_018, NoteSeverity, SchemeIssue};
 pub use pages::{
     GeneratedPage, Origin, PageEntry, PageOrder, PageOrderV, PageRef, PageRefStructure, PageTitle,
     SectionStructure, folio_label, map_ml, report_pages,
+};
+pub use potentials::{
+    Attr, AttrSource, BondLink, NameSource, Partition, Potential, PotentialId, PotentialName,
+    PotentialPartition, Signal,
 };
 pub use profile::{
     CounterScope, DerivationProfile, NumberingRule, NumberingScheme, NumberingSettings, NumberingSettingsOf,
@@ -78,6 +91,10 @@ pub use profile::{
 };
 pub use q::{Cycle, Diagnostics, IdxView, Q, TableView};
 pub use query::{Policy, Query};
+pub use stitch::{
+    EdgeKind, IpGroup, IpInfo, Level, PairMode, ShortSource, StitchEdge, StitchGraph, StitchGraphQ,
+    StitchNode,
+};
 pub use structure::{
     DEVICE_ASPECTS, DevicesByStructure, NodePath, PAGE_ASPECTS, PageStructure, ResolvedSlot,
     ResolvedStructure, SlotSource, StructureOf, StructurePath,
@@ -86,6 +103,10 @@ pub use tag::{DeviceTag, DisplayedTag, MainFunction, MainRep, Tag, TagSource};
 pub use title_block::{TbValue, TitleBlock, TitleBlockValues};
 pub use toc::{TocRow, TocRows};
 pub use tracker::{ColdTracker, DepKey, IxKey, Recorded, RecordingTracker, Tracker};
+pub use wire_props::{
+    ConnWireProps, EffectiveProps, PropSource, Prov, SizeRule, WirePropsMap, WirePropsOf, pick,
+};
+pub use wires::{EndKind, PhysicalWire, PhysicalWires, PhysicalWiresOf, WireEnd};
 
 // WP-S3.03: the report-pages provider hook of `page_order` and the drawn-page order.
 pub use pages::{DrawnPageOrder, ReportPagesProvider};
@@ -112,16 +133,24 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (MainFunction::FAMILY, MainFunction::POLICY),
     (MainRep::FAMILY, MainRep::POLICY),
     (NumberingSettingsOf::FAMILY, NumberingSettingsOf::POLICY),
+    (PageLocalNets::FAMILY, PageLocalNets::POLICY),
     (PageOrder::FAMILY, PageOrder::POLICY),
     (PageRefStructure::FAMILY, PageRefStructure::POLICY),
     (PageStructure::FAMILY, PageStructure::POLICY),
     (PageTitle::FAMILY, PageTitle::POLICY),
+    (PhysicalWiresOf::FAMILY, PhysicalWiresOf::POLICY),
+    (PotentialFlow::FAMILY, PotentialFlow::POLICY),
+    (FlowBfs::FAMILY, FlowBfs::POLICY),
+    (PotentialPartition::FAMILY, PotentialPartition::POLICY),
     (RepAnchorCell::FAMILY, RepAnchorCell::POLICY),
     (SectionStructure::FAMILY, SectionStructure::POLICY),
+    (StitchGraphQ::FAMILY, StitchGraphQ::POLICY),
     (StructureOf::FAMILY, StructureOf::POLICY),
     (StructurePath::FAMILY, StructurePath::POLICY),
     (TitleBlockValues::FAMILY, TitleBlockValues::POLICY),
     (TocRows::FAMILY, TocRows::POLICY),
+    (ConnWireProps::FAMILY, ConnWireProps::POLICY),
+    (WirePropsOf::FAMILY, WirePropsOf::POLICY),
 ];
 
 #[cfg(test)]
@@ -151,5 +180,18 @@ mod tests {
         assert_eq!(policy("numbering_settings"), Some(Policy::Cold));
         assert_eq!(policy("toc_rows"), Some(Policy::Memo));
         assert_eq!(policy("title_block"), Some(Policy::Memo));
+        // WP-S1.07: the connectivity rows of ARCH §6.4; `wire_props(conn)` is a cold lookup (§6.3).
+        for memo in [
+            "page_local_nets",
+            "stitch_graph",
+            "potential_partition",
+            "physical_wires_of",
+            "potential_flow",
+            "potential_flow_bfs",
+            "wire_props_of",
+        ] {
+            assert_eq!(policy(memo), Some(Policy::Memo), "{memo}");
+        }
+        assert_eq!(policy("wire_props"), Some(Policy::Cold));
     }
 }

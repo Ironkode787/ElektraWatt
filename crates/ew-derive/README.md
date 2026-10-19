@@ -37,6 +37,29 @@ package types the data in `ew-schema`:
 | Company logo and notice | `Project.extra["ew.company"]` = `{"logo": "sha256:…", "notice": <MlText>}` for `project.logo` and `project.notice` | typed company data of the basic project (doc 07 §2.8) |
 | Revisions | reserved `revision` records, read leniently (`label`, `date`, `state`, `author`, `checker` as party roles); also `page_notes` and `release.changed_pages` for `page.last_changed_in` (the no-digest branch of doc 15 §5.6) | the typed `Revision` record (doc 03 §18) |
 
+## Connectivity (WP-S1.07)
+
+`page_local_nets(page)` → `stitch_graph()` → `potential_partition()` (doc 08 §3.3) give nets, signals and
+potentials; `physical_wires_of(potential)`, `potential_flow(potential)` and `wire_props_of(potential)` build on
+them, and `wire_props(conn)` is a cold lookup into the per-potential map (ARCH §6.3). Readings this crate applies
+where the documents leave the data open:
+
+- **Pairing default.** An absent `ip_pairing` setting means star mode with project scope.
+- **Terminal level rule.** A terminal function whose FnDef declares no pass-through pair joins all its CPs of one
+  level: a template-origin terminal takes its CP indices from the part pattern, which the FnDef links do not name.
+- **Duplicated pins.** Two CPs of one function with the same printed designation are one signal unless a declared
+  pass-through pair links them (the black-box PSU's +#1/+#2 and −#1/−#2).
+- **Rail bonds.** The rail-bonded terminals of one location are joined through their rail-foot CPs (else their
+  smallest CP in the graph).
+- **Bond cut.** Only the `via` connection is cut; the interruption points on the via path stay members of the
+  potential they are wired to but name the bond, not the potential.
+
+## Provisional shims (connectivity)
+
+| Shim | Reads | Replaced by |
+|---|---|---|
+| Colour and size profiles, wire default | `ProjectSettings.extra["colour_profile"]`, `["size_profile"]`, `["wire_default"]` in the doc 03 §5.1 shapes; absent members fall back to the built-in defaults of the derivation profile (provenance `BuiltIn`) and are noted | the typed `ProjectSettings` members (doc 03 §5.1, decision log ID-17) |
+
 ## Agreement with the command layer
 
 `device_tag` takes the main representation by the rule of `ew_commands::numbering` (the smallest-ID

@@ -84,6 +84,24 @@ pub enum DeriveNote {
         /// The key, as `Debug` text.
         key: String,
     },
+    /// The project has no colour or size profile (`ProjectSettings.extra["colour_profile"]` or
+    /// `["size_profile"]`, doc 03 §5.1): the profile rule of the wire-property chain (level 2) uses the
+    /// built-in defaults of the derivation profile, with provenance `BuiltIn` (one note per member).
+    DefaultWireProfile {
+        /// `"colour_profile"` or `"size_profile"`.
+        member: &'static str,
+    },
+    /// A connectivity problem met while deriving nets, potentials, physical wires or wire properties
+    /// (doc 08 §3, §8.1): an unpaired interruption point, conflicting potential definitions, an ambiguous
+    /// junction feed, a ring, a missing colour or size profile. The derivation chose a documented fallback.
+    Connectivity {
+        /// The finding code of the catalogue (doc 08 §8.1, doc 06 §6), such as `"EW-POT-017"`.
+        code: &'static str,
+        /// The subject: the record IDs or names concerned.
+        subject: String,
+        /// What happened and which fallback applied, in English.
+        detail: String,
+    },
 }
 
 /// The integrity code of an unknown pinned derivation profile (doc 05 §6.3, doc 15 §4; decision log ID-72).
@@ -95,6 +113,7 @@ impl DeriveNote {
     pub fn code(&self) -> Option<&'static str> {
         match self {
             DeriveNote::UnknownProfile { .. } => Some(EW_CORE_018),
+            DeriveNote::Connectivity { code, .. } => Some(code),
             _ => None,
         }
     }
@@ -103,8 +122,10 @@ impl DeriveNote {
     pub fn severity(&self) -> NoteSeverity {
         match self {
             DeriveNote::UnknownProfile { .. } | DeriveNote::QueryCycle { .. } => NoteSeverity::Error,
-            DeriveNote::SchemeNotApplied { .. } | DeriveNote::MalformedShim { .. } => NoteSeverity::Warning,
-            DeriveNote::DefaultFrame => NoteSeverity::Info,
+            DeriveNote::SchemeNotApplied { .. }
+            | DeriveNote::MalformedShim { .. }
+            | DeriveNote::Connectivity { .. } => NoteSeverity::Warning,
+            DeriveNote::DefaultFrame | DeriveNote::DefaultWireProfile { .. } => NoteSeverity::Info,
         }
     }
 }
@@ -139,6 +160,15 @@ impl fmt::Display for DeriveNote {
                 f,
                 "{family} needs its own value for {key}: the device inheritance graph has a cycle"
             ),
+            DeriveNote::DefaultWireProfile { member } => write!(
+                f,
+                "the project has no {member}; wire properties use the built-in defaults of the derivation profile"
+            ),
+            DeriveNote::Connectivity {
+                code,
+                subject,
+                detail,
+            } => write!(f, "{code} {subject}: {detail}"),
         }
     }
 }
