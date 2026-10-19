@@ -113,6 +113,18 @@ pub enum DeriveNote {
         /// What happened and which fallback applied, in English.
         detail: String,
     },
+    /// A cross-reference could not be derived as the model asks (WP-S1.08): a target without an anchor
+    /// cell (`EW-CORE-053`), an auxiliary whose main function is unplaced (`EW-CORE-053`), a device with two
+    /// main functions (`EW-INV-002`). The text uses the documented fallback. Severity: `Error` for
+    /// `EW-INV-002`, `Warning` otherwise.
+    Xref {
+        /// The finding or integrity code.
+        code: &'static str,
+        /// The subject: the record IDs concerned.
+        subject: String,
+        /// What happened and which fallback applied, in English.
+        detail: String,
+    },
 }
 
 /// The integrity code of an unknown pinned derivation profile (doc 05 §6.3, doc 15 §4; decision log ID-72).
@@ -124,7 +136,7 @@ impl DeriveNote {
     pub fn code(&self) -> Option<&'static str> {
         match self {
             DeriveNote::UnknownProfile { .. } => Some(EW_CORE_018),
-            DeriveNote::Connectivity { code, .. } => Some(code),
+            DeriveNote::Connectivity { code, .. } | DeriveNote::Xref { code, .. } => Some(code),
             _ => None,
         }
     }
@@ -137,6 +149,13 @@ impl DeriveNote {
             DeriveNote::UnknownProfile { .. } | DeriveNote::QueryCycle { .. } => NoteSeverity::Error,
             DeriveNote::Connectivity { code, .. } => {
                 if matches!(*code, "EW-POT-001" | "EW-POT-014" | "EW-CORE-051") {
+                    NoteSeverity::Error
+                } else {
+                    NoteSeverity::Warning
+                }
+            }
+            DeriveNote::Xref { code, .. } => {
+                if *code == "EW-INV-002" {
                     NoteSeverity::Error
                 } else {
                     NoteSeverity::Warning
@@ -190,6 +209,11 @@ impl fmt::Display for DeriveNote {
                 "the project has no {member}; wire properties use the built-in defaults of the derivation profile"
             ),
             DeriveNote::Connectivity {
+                code,
+                subject,
+                detail,
+            }
+            | DeriveNote::Xref {
                 code,
                 subject,
                 detail,

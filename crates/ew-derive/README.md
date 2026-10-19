@@ -86,6 +86,38 @@ where the documents leave the data open:
 |---|---|---|
 | Colour and size profiles, wire default | `ProjectSettings.extra["colour_profile"]`, `["size_profile"]`, `["wire_default"]` in the doc 03 §5.1 shapes; absent members fall back to the built-in defaults of the derivation profile (provenance `BuiltIn`) and are noted | the typed `ProjectSettings` members (doc 03 §5.1, decision log ID-17) |
 
+## Cross-references (WP-S1.08)
+
+`xref_text(rep)` (Memo by policy, cold in phase 1) prints the cross-reference of a representation from
+`xref_relation(rep)` (cold) and `xref_format()` (cold); nothing is stored (FR-XRF-001, ADR-0003 class I).
+
+| Representation (first function) | Relation | Printed (golden) |
+|---|---|---|
+| interruption point | its `stitch_graph` pair partners (star: the source lists every other point, each other point the source; chain: the one partner) | "102-A1", "101-H16" |
+| external connection point | the `ExternalRef` | "+J-E-206 / JE-N1000-03" (no link) |
+| main function on the main representation | the device's other functions' representations, then the other representations of the main function | "∞ 3-B2, 106-G3" |
+| auxiliary, or another representation of the main function | the main representation | "(201-E1)" |
+| contact image of the main function | one row per auxiliary: designations and cell | "13-14 /105.3, 21-22 /106.5" |
+
+- Cells come from `rep_anchor_cell` (the symbol's anchor policy, never rendered geometry), so "3-B0" (D-14) cannot
+  arise; a target without a cell prints "?" and is noted (EW-CORE-053).
+- Targets are ordered by (page-order position, anchor row, anchor column, representation ID); lists use the
+  profile's matrix (3 per row, 9 at most, then ", …").
+- The format engine (`xref_format` module) reads `{page}` `{page_index}` `{row}` `{column}` `{function}`
+  `{location}` `{list}` and the QET variables `%F` `%f` `%l` `%c` `%M` `%LM` (FR-XRF-003); structure prefixes
+  follow `structure` (`when_different`, `always`; FR-XRF-004) and `same_page = "zone_only"` prints only the cell
+  (FR-XRF-025).
+- Not cross-referenced: strip segments, contact images of auxiliaries, an auxiliary drawn inside its own device's
+  black box (doc 06 §2.7). A second main function (EW-INV-002) is treated as an auxiliary and noted.
+- Each shown item is an `XrefLink` (byte range, target representation); the page output links a slot text to
+  its first item, since a scene slot carries one link.
+
+## Provisional shims (cross-references)
+
+| Shim | Reads | Replaced by |
+|---|---|---|
+| Cross-reference format | `ProjectSettings.extra["xref_format"]` in the doc 03 §5.1 shape (a `name` member is ignored); absent: the pinned profile's `[xref]`; malformed: noted, the profile's | the typed `ProjectSettings.xref_format` (decision log ID-17) |
+
 ## Agreement with the command layer
 
 `device_tag` takes the main representation by the rule of `ew_commands::numbering` (the smallest-ID

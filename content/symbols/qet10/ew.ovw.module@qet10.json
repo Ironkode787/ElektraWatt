@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "0767f9ee-21ba-5168-8b23-cf353bc85205",
   "version": "0.1.0",
-  "sha256": "sha256:af45fd98025c91b764c0b4694425ddd2583e25882cd41c74b0477dccd96b69f7",
+  "sha256": "sha256:d42d552d65ab1d2343e080528fa0fba547246b7f1bb622ce96c6fd58034bb4de",
   "meta": {
     "key": "ew.ovw.module@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -88,6 +88,15 @@
       ],
       "align": "centre",
       "visible": true
+    },
+    {
+      "kind": "xref",
+      "pos": [
+        0,
+        11244792
+      ],
+      "align": "top_left",
+      "visible": true
     }
   ],
   "arrangements": [
@@ -97,7 +106,8 @@
         0,
         1,
         2,
-        3
+        3,
+        4
       ]
     },
     {

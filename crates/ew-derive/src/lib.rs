@@ -66,6 +66,8 @@ mod tracker;
 mod wire_profile;
 mod wire_props;
 mod wires;
+mod xref;
+mod xref_format;
 
 pub use bom::{BomMode, BomRow, BomRowKey, BomRows, DevicePartLines, LineSource, PartLine};
 pub use cell::{
@@ -114,6 +116,16 @@ pub use pages::{DrawnPageOrder, ReportPagesProvider};
 // Cycle-7 review: the constituent behind each level-7 wire value.
 pub use wires::OverrideSources;
 
+// WP-S1.08: cross-references (relations, formats, texts) and the format token engine.
+pub use xref::{
+    SamePage, StructureRule, TargetRole, XrefKind, XrefLink, XrefRelation, XrefRelationOf, XrefSettings,
+    XrefSettingsOf, XrefTarget, XrefText, XrefTextOf,
+};
+pub use xref_format::{
+    ItemOptions, ItemValues, Rendered, XrefToken, names_structure, parse_format, render_item, render_list,
+    render_wrapper,
+};
+
 /// The revision stamp of a snapshot (in this crate's public API through [`Tracker`]).
 pub use ew_model::Rev;
 
@@ -125,6 +137,7 @@ pub use {ew_ids, ew_mltext, ew_schema, ew_units};
 pub const FAMILIES: &[(&str, Policy)] = &[
     (BomRows::FAMILY, BomRows::POLICY),
     (CellOf::FAMILY, CellOf::POLICY),
+    (xref::DeviceBoxes::FAMILY, xref::DeviceBoxes::POLICY),
     (DevicePartLines::FAMILY, DevicePartLines::POLICY),
     (DeviceTag::FAMILY, DeviceTag::POLICY),
     (DevicesByStructure::FAMILY, DevicesByStructure::POLICY),
@@ -154,6 +167,9 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (TocRows::FAMILY, TocRows::POLICY),
     (ConnWireProps::FAMILY, ConnWireProps::POLICY),
     (WirePropsOf::FAMILY, WirePropsOf::POLICY),
+    (XrefSettingsOf::FAMILY, XrefSettingsOf::POLICY),
+    (XrefRelationOf::FAMILY, XrefRelationOf::POLICY),
+    (XrefTextOf::FAMILY, XrefTextOf::POLICY),
 ];
 
 #[cfg(test)]
@@ -196,5 +212,9 @@ mod tests {
             assert_eq!(policy(memo), Some(Policy::Memo), "{memo}");
         }
         assert_eq!(policy("wire_props"), Some(Policy::Cold));
+        // WP-S1.08: `xref_text(rep)` is Memo (ARCH §6.4); the format and the relation are cold lookups.
+        assert_eq!(policy("xref_text"), Some(Policy::Memo));
+        assert_eq!(policy("xref_relation"), Some(Policy::Cold));
+        assert_eq!(policy("xref_format"), Some(Policy::Cold));
     }
 }
