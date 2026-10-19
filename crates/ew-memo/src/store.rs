@@ -25,6 +25,9 @@ type Deps<I> = SmallVec<[(DepKey<I>, Rev); 4]>;
 /// The longest `Debug` text a [`Mismatch`] or [`Cycle`] keeps of a key or value.
 const DEBUG_LIMIT: usize = 1024;
 
+/// The most dependencies a [`Mismatch`] lists.
+const MISMATCH_DEPS: usize = 64;
+
 // ---------------------------------------------------------------------------------------------------------
 // Public reports
 
@@ -69,6 +72,16 @@ pub struct Mismatch {
     pub memoised: String,
     /// The cold value, as `Debug` text (at most 1,024 bytes), or the cycle the cold run hit.
     pub cold: String,
+    /// The revision at which the memo was last confirmed valid (the read's revision, as the memo was just
+    /// brought up to date).
+    pub verified_at: Rev,
+    /// The revision at which the memo's value last changed.
+    pub changed_at: Rev,
+    /// The memo's durability.
+    pub durability: Durability,
+    /// The memo's recorded reads in read order, as `input(<key>)@r<rev>` or `family(<key>)@r<rev>` with the
+    /// revision observed (at most 64 entries, then a `…` entry).
+    pub deps: Vec<String>,
 }
 
 /// The state of one memo, for tests and `--explain` output.
@@ -221,8 +234,9 @@ struct Frame<I> {
 ///    The walk stops at the first changed dependency.
 /// 4. **Re-execution**: otherwise (or for a new key, or for an evicted value) the query runs, recording its
 ///    reads. If the new value is equivalent to the previous one ([`Equivalence`]), `changed_at` keeps its old
-///    revision (**early cut-off**: dependents stay green) and the previous `Arc` is kept, so pointer
-///    identity survives for consumers such as GPU buffers.
+///    revision (**early cut-off**: dependents stay green) and the previous `Arc` is kept (for both
+///    equivalences, as long as the previous memo still holds its value), so pointer identity survives
+///    for consumers such as GPU buffers. After an LRU eviction the re-computed value is a new `Arc`.
 ///
 /// Reads inside a query ([`Cx::get`]) follow the same steps and record the memo as a dependency of the
 /// caller.
@@ -255,12 +269,22 @@ pub struct Store<D: Db> {
     oracle_reads: u64,
     mismatches: Vec<Mismatch>,
     panic_on_cycle: bool,
-    /// Identity of the store lineage and a counter of its memo mutations (adopt-if-unchanged).
-    origin: Arc<()>,
-    epoch: u64,
-    base_epoch: u64,
+    /// The identity of the store's current state (adopt-if-unchanged, ADR-0002 decision 5): replaced by
+    /// every mutation that a fork taken before it would not see (an advance, a memo write, a new key, a
+    /// budget change) whenever a fork may hold it. A fork records it as its `base_token`.
+    token: Arc<()>,
+    /// For a fork: the token of the store it was taken from, at the time it was taken.
+    base_token: Option<Arc<()>>,
+    /// For a fork: the revision of the store it was taken from, at the time it was taken.
+    base_rev: Rev,
+    /// For a fork: the LRU's next tick when it was taken from its parent (adopt re-touches what the parent
+    /// touched since).
+    lru_base_tick: u64,
 }
 
+/// A clone is an O(1) snapshot that evolves independently (see [`Store::fork`]). It starts with empty
+/// statistics (`commit` and `total`: a job's statistics are its own work) and no oracle mismatches; the
+/// oracle mode, the oracle read counter, the LRU (entries and budget) and the memos are copied.
 impl<D: Db> Clone for Store<D> {
     fn clone(&self) -> Self {
         Store {
@@ -271,15 +295,17 @@ impl<D: Db> Clone for Store<D> {
             active: Vec::new(),
             frames: Vec::new(),
             lru: self.lru.clone(),
-            commit: self.commit.clone(),
-            total: self.total.clone(),
+            commit: Stats::default(),
+            total: Stats::default(),
             oracle: self.oracle,
             oracle_reads: self.oracle_reads,
-            mismatches: self.mismatches.clone(),
+            mismatches: Vec::new(),
             panic_on_cycle: self.panic_on_cycle,
-            origin: Arc::clone(&self.origin),
-            epoch: self.epoch,
-            base_epoch: self.epoch,
+            // A fork is a different store: its own identity, and its parent's as the base.
+            token: Arc::new(()),
+            base_token: Some(Arc::clone(&self.token)),
+            base_rev: self.current,
+            lru_base_tick: self.lru.next_tick(),
         }
     }
 }
@@ -322,9 +348,10 @@ impl<D: Db> Store<D> {
             oracle_reads: 0,
             mismatches: Vec::new(),
             panic_on_cycle: cfg!(debug_assertions),
-            origin: Arc::new(()),
-            epoch: 0,
-            base_epoch: 0,
+            token: Arc::new(()),
+            base_token: None,
+            base_rev: Rev::ZERO,
+            lru_base_tick: 0,
         }
     }
 
@@ -350,21 +377,24 @@ impl<D: Db> Store<D> {
     ///
     /// # Panics
     ///
-    /// If `rev` is not newer than the current revision, or a query is executing.
+    /// If `rev` is not newer than the current revision.
     pub fn advance(&mut self, rev: Rev, changed: Durability) {
         assert!(
             rev > self.current,
             "ew-memo: advance to {rev} from {}",
             self.current
         );
-        assert!(self.active.is_empty(), "ew-memo: advance during a query");
+        // `&mut self` is held, so no query is executing: leftover state is an evaluation that a panic
+        // abandoned (and the host caught).
+        self.active.clear();
+        self.frames.clear();
         stats::emit(self.current, "commit", &self.commit);
         self.commit.clear();
         for level in &mut self.last_changed[..=changed.index()] {
             *level = rev;
         }
         self.current = rev;
-        self.epoch += 1;
+        self.mutated();
     }
 
     /// Reads `Q(key)` at the current revision (see the type documentation).
@@ -410,6 +440,7 @@ impl<D: Db> Store<D> {
     /// Values over budget are evicted at the next memo write.
     pub fn set_lru_budget(&mut self, bytes: Option<usize>) {
         self.lru.set_budget(bytes);
+        self.mutated();
     }
 
     /// The LRU budget in bytes (`None`: unbounded).
@@ -499,30 +530,56 @@ impl<D: Db> Store<D> {
         out
     }
 
-    /// An O(1) snapshot that evolves independently (a job's memo store).
+    /// An O(1) snapshot that evolves independently (a job's memo store). The fork starts with empty
+    /// statistics and no oracle mismatches (its statistics and findings are its own work; adopting it
+    /// merges them into this store's); the oracle mode, the LRU and the memos are copied.
     pub fn fork(&self) -> Store<D> {
         self.clone()
     }
 
-    /// Takes `fork`'s memos and statistics when this store has not changed since `fork` was taken from it
-    /// (same lineage, no memo written and no revision advanced in between): adopt-if-unchanged, ADR-0002
-    /// decision 5. Returns whether it did.
+    /// Takes `fork`'s memos when `fork` was taken from this very store and neither side moved on in a way
+    /// the other cannot see: this store is still pointer-equal to the fork's base (no memo written, no key
+    /// added, no budget changed and no revision advanced since [`Store::fork`]; reads that only hit are
+    /// fine), and the fork is still at that base revision (adopt-if-unchanged, ADR-0002 decision 5). A fork
+    /// of a fork, a sibling fork taken after this store changed, or a fork that advanced is refused. Returns
+    /// whether it adopted.
+    ///
+    /// Adopting takes the fork's memos (families and their LRU entries) and keeps this store's
+    /// configuration: oracle mode, cycle behaviour, LRU budget and oracle read counter. The fork's
+    /// statistics are merged into this store's, its oracle mismatches follow this store's, and the LRU
+    /// recency of what this store hit since the fork is kept (those entries stay the most recent). Values
+    /// over this store's budget are evicted.
     pub fn adopt_if_unchanged(&mut self, fork: Store<D>) -> bool {
-        if !Arc::ptr_eq(&self.origin, &fork.origin)
-            || self.epoch != fork.base_epoch
+        let same_base = fork
+            .base_token
+            .as_ref()
+            .is_some_and(|base| Arc::ptr_eq(base, &self.token));
+        if !same_base
+            || self.current != fork.base_rev
+            || fork.current != fork.base_rev
             || !self.active.is_empty()
         {
             return false;
         }
-        let oracle = self.oracle;
-        let mut mismatches = std::mem::take(&mut self.mismatches);
-        *self = fork;
-        // A fork's epoch continues from its base, so the adopted store moves on from there.
-        self.epoch += 1;
-        self.base_epoch = self.epoch;
-        self.oracle = oracle;
-        mismatches.append(&mut self.mismatches);
-        self.mismatches = mismatches;
+        let mut fork = fork;
+        let parent_touched = self.lru.touched_since(fork.lru_base_tick);
+        let budget = self.lru.budget();
+        self.families = fork.families;
+        self.by_type = fork.by_type;
+        self.lru = fork.lru;
+        for (memo, bytes) in parent_touched {
+            if self.lru.contains(memo) {
+                self.lru.touch(memo, bytes);
+            }
+        }
+        self.lru.set_budget(budget);
+        self.commit.merge(&fork.commit);
+        self.total.merge(&fork.total);
+        self.mismatches.append(&mut fork.mismatches);
+        self.evict_over_budget();
+        // The adopted state is a new state of this store: no earlier fork of either side has it as its base.
+        self.token = Arc::new(());
+        self.base_token = None;
         true
     }
 
@@ -577,8 +634,27 @@ impl<D: Db> Store<D> {
             memo: None,
         });
         s.index.insert(key.clone(), slot);
-        self.epoch += 1;
+        self.mutated();
         slot
+    }
+
+    /// Marks a mutation that a fork taken before it does not see. A fork may hold the current token as its
+    /// base, so the token is replaced; only then, since a token that nobody else holds can name the new state
+    /// as well (no fork can be compared with it).
+    fn mutated(&mut self) {
+        if Arc::strong_count(&self.token) > 1 {
+            self.token = Arc::new(());
+        }
+    }
+
+    /// Drops the values the LRU evicts while over budget, recording the evictions.
+    fn evict_over_budget(&mut self) {
+        for victim in self.lru.evict_over_budget() {
+            let family = &mut self.families[victim.0.0 as usize];
+            (family.evict)(&mut family.storage, victim.1);
+            let name = family.name;
+            self.record(name, Event::Evicted);
+        }
     }
 
     fn record(&mut self, family: &'static str, event: Event) {
@@ -602,7 +678,7 @@ impl<D: Db> Store<D> {
         if let Some(frame) = self.frames.last_mut() {
             push_dep(frame, DepKey::Memo(fid, slot), changed_at, durability);
         }
-        self.oracle_check::<Q>(db, key, &value);
+        self.oracle_check::<Q>(db, key, &value, fid, slot);
         Ok((value, changed_at, durability))
     }
 
@@ -635,57 +711,70 @@ impl<D: Db> Store<D> {
             return self.execute::<Q>(db, fid, slot, Some(memo), true);
         }
         let green = if self.last_changed[memo.durability.index()] <= memo.verified_at {
+            // Nothing of the memo's durability or a more durable one changed since it was verified, so no
+            // dependency changed and none changed its durability (a move between levels is a change of the
+            // more durable one): the memo's durability stands.
             self.record(Q::NAME, Event::DurabilitySkip);
-            true
+            Some(memo.durability)
         } else {
             self.active.push(me);
             let walk = self.deps_unchanged(db, &memo.deps);
             self.active.pop();
             let green = walk?;
-            if green {
+            if green.is_some() {
                 self.record(Q::NAME, Event::Verified);
             }
             green
         };
-        if green {
-            self.stamp::<Q>(fid, slot);
+        if let Some(durability) = green {
+            self.stamp::<Q>(fid, slot, durability);
             if memo.value.is_some() || !need_value {
                 self.touch_lru::<Q>(fid, slot, &memo);
-                return Ok((memo.value, memo.changed_at, memo.durability));
+                return Ok((memo.value, memo.changed_at, durability));
             }
             return self.execute::<Q>(db, fid, slot, Some(memo), true);
         }
         self.execute::<Q>(db, fid, slot, Some(memo), false)
     }
 
-    /// Whether no recorded dependency changed since it was observed. Memo dependencies are brought up to
-    /// date first; the walk stops at the first change.
-    fn deps_unchanged(&mut self, db: &D, deps: &Deps<D::Input>) -> Result<bool, Cycle> {
+    /// Whether no recorded dependency changed since it was observed: `Some` with the minimum of the
+    /// dependencies' *current* durabilities (an input's as the host reports it now, a memo's as its own
+    /// verification left it; [`Durability::Library`] without dependencies), `None` at the first change.
+    /// Memo dependencies are brought up to date first; the walk stops at the first change.
+    ///
+    /// The durability is recomputed because a dependency can keep its revision while its durability drops:
+    /// a memo dependency that re-executed with a different read set and cut off, or an input that moved to a
+    /// less durable level while the memo it feeds cut off. Keeping the old durability would let a later,
+    /// less durable change skip the memo's verification and return a stale value.
+    fn deps_unchanged(&mut self, db: &D, deps: &Deps<D::Input>) -> Result<Option<Durability>, Cycle> {
+        let mut durability = Durability::Library;
         for (dep, observed) in deps {
-            let now = match dep {
-                DepKey::Input(input) => db.changed_at(input),
+            let (now, level) = match dep {
+                DepKey::Input(input) => (db.changed_at(input), db.durability(input)),
                 DepKey::Memo(fid, slot) => {
                     let verify = self.families[fid.0 as usize].verify;
-                    verify(self, db, *slot)?.0
+                    verify(self, db, *slot)?
                 }
             };
             if now != *observed {
-                return Ok(false);
+                return Ok(None);
             }
+            durability = durability.min(level);
         }
-        Ok(true)
+        Ok(Some(durability))
     }
 
-    /// Re-stamps a verified memo at the current revision.
-    fn stamp<Q: Query<D>>(&mut self, fid: FamilyId, slot: SlotId) {
+    /// Re-stamps a verified memo at the current revision with the durability its verification found.
+    fn stamp<Q: Query<D>>(&mut self, fid: FamilyId, slot: SlotId, durability: Durability) {
         let current = self.current;
         let s = self.storage_mut::<Q>(fid);
         if let Some(slot) = s.slots.get_mut(slot.index()) {
             if let Some(m) = slot.memo.as_mut() {
                 m.verified_at = current;
+                m.durability = durability;
             }
         }
-        self.epoch += 1;
+        self.mutated();
     }
 
     fn touch_lru<Q: Query<D>>(&mut self, fid: FamilyId, slot: SlotId, memo: &Memo<Q::Value, D::Input>) {
@@ -728,7 +817,7 @@ impl<D: Db> Store<D> {
             Equivalence::Hash128(hash) => Some(hash(&value)),
             Equivalence::Eq(_) => None,
         };
-        // Early cut-off: an equivalent value keeps its `changed_at` (and its `Arc`, when it is held).
+        // Early cut-off: an equivalent value keeps its `changed_at` (and the previous `Arc`, when it is held).
         let (value, changed_at) = match previous.as_ref() {
             Some(prev) => {
                 let same = match (Q::equivalence(), prev.value.as_ref()) {
@@ -738,9 +827,11 @@ impl<D: Db> Store<D> {
                 };
                 if same {
                     self.record(Q::NAME, Event::CutOff);
-                    let arc = match (&prev.value, Q::equivalence()) {
-                        (Some(old), Equivalence::Eq(_)) => Arc::clone(old),
-                        _ => Arc::new(value),
+                    // The old value is equivalent by definition of the cut-off: keep its identity (both
+                    // equivalences). Without it (evicted), the re-computed value is the only one.
+                    let arc = match &prev.value {
+                        Some(old) => Arc::clone(old),
+                        None => Arc::new(value),
                     };
                     (arc, prev.changed_at)
                 } else {
@@ -770,15 +861,10 @@ impl<D: Db> Store<D> {
             }
             s.slots.get_mut(slot.index()).expect("interned slot").memo = Some(memo);
         }
-        self.epoch += 1;
+        self.mutated();
         if Q::LRU {
             self.lru.touch((fid, slot), bytes);
-            for victim in self.lru.evict_over_budget() {
-                let family = &mut self.families[victim.0.0 as usize];
-                (family.evict)(&mut family.storage, victim.1);
-                let name = family.name;
-                self.record(name, Event::Evicted);
-            }
+            self.evict_over_budget();
         }
         Ok((Some(value), changed_at, durability))
     }
@@ -807,7 +893,14 @@ impl<D: Db> Store<D> {
     // -----------------------------------------------------------------------------------------------------
     // Oracle
 
-    fn oracle_check<Q: Query<D>>(&mut self, db: &D, key: &Q::Key, memoised: &Arc<Q::Value>) {
+    fn oracle_check<Q: Query<D>>(
+        &mut self,
+        db: &D,
+        key: &Q::Key,
+        memoised: &Arc<Q::Value>,
+        fid: FamilyId,
+        slot: SlotId,
+    ) {
         let selected = match self.oracle {
             Oracle::Off => false,
             Oracle::Every => true,
@@ -830,6 +923,7 @@ impl<D: Db> Store<D> {
         };
         if !equal {
             self.record(Q::NAME, Event::OracleMismatch);
+            let (verified_at, changed_at, durability, deps) = self.memo_trail::<Q>(fid, slot);
             self.mismatches.push(Mismatch {
                 family: Q::NAME,
                 key: bounded(format!("{key:?}")),
@@ -839,8 +933,32 @@ impl<D: Db> Store<D> {
                     Ok(v) => bounded(format!("{v:?}")),
                     Err(c) => bounded(c.to_string()),
                 },
+                verified_at,
+                changed_at,
+                durability,
+                deps,
             });
         }
+    }
+
+    /// The state and the rendered dependency trail of a memo, for a [`Mismatch`].
+    fn memo_trail<Q: Query<D>>(&self, fid: FamilyId, slot: SlotId) -> (Rev, Rev, Durability, Vec<String>) {
+        let Some(m) = self.storage::<Q>(fid).slots[slot.index()].memo.as_ref() else {
+            return (Rev::ZERO, Rev::ZERO, Durability::Library, Vec::new());
+        };
+        let mut deps: Vec<String> = m
+            .deps
+            .iter()
+            .take(MISMATCH_DEPS)
+            .map(|(dep, rev)| match dep {
+                DepKey::Input(input) => bounded(format!("input({input:?})@{rev}")),
+                DepKey::Memo(f, s) => format!("{}@{rev}", self.describe(*f, *s)),
+            })
+            .collect();
+        if m.deps.len() > MISMATCH_DEPS {
+            deps.push("…".to_owned());
+        }
+        (m.verified_at, m.changed_at, m.durability, deps)
     }
 
     #[cfg(test)]

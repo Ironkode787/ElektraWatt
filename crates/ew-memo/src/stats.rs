@@ -133,7 +133,6 @@ impl Stats {
     }
 
     /// Adds every family of `other` to this one.
-    #[cfg(test)]
     pub(crate) fn merge(&mut self, other: &Stats) {
         for (name, counters) in &other.families {
             self.families.entry(name).or_default().merge(counters);

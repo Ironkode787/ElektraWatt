@@ -45,8 +45,20 @@ impl Lru {
         self.entries.len()
     }
 
+    /// The tick the next `touch` takes: a mark for [`Lru::touched_since`].
+    pub(crate) fn next_tick(&self) -> u64 {
+        self.next_tick
+    }
+
+    /// The entries touched at a tick of `tick` or later with their sizes, least recently touched first.
+    pub(crate) fn touched_since(&self, tick: u64) -> Vec<(MemoRef, usize)> {
+        self.by_tick
+            .range(tick..)
+            .filter_map(|(_, memo)| self.entries.get(memo).map(|&(_, bytes)| (*memo, bytes)))
+            .collect()
+    }
+
     /// Whether `memo` is tracked.
-    #[cfg(test)]
     pub(crate) fn contains(&self, memo: MemoRef) -> bool {
         self.entries.contains_key(&memo)
     }
@@ -170,6 +182,21 @@ mod tests {
         lru.set_budget(Some(10));
         assert_eq!(lru.evict_over_budget(), vec![m(2)]);
         assert!(!lru.contains(m(1)));
+    }
+
+    #[test]
+    fn touched_since_lists_later_touches_oldest_first() {
+        let mut lru = Lru::default();
+        lru.touch(m(1), 10);
+        lru.touch(m(2), 20);
+        let mark = lru.next_tick();
+        assert!(lru.touched_since(mark).is_empty());
+        lru.touch(m(3), 30);
+        lru.touch(m(1), 11);
+        assert_eq!(lru.touched_since(mark), vec![(m(3), 30), (m(1), 11)]);
+        lru.remove(m(3));
+        assert_eq!(lru.touched_since(mark), vec![(m(1), 11)]);
+        assert_eq!(lru.touched_since(0).len(), 2);
     }
 
     #[test]

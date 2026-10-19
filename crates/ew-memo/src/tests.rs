@@ -5,11 +5,12 @@
 
 use std::collections::BTreeMap;
 use std::num::NonZeroU32;
+use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
 
 use proptest::prelude::*;
 
-use crate::{Counters, Cx, Cycle, Db, DepKey, Durability, Equivalence, Oracle, Query, Rev, Store};
+use crate::{Counters, Cx, Cycle, Db, DepKey, Durability, Equivalence, Mismatch, Oracle, Query, Rev, Store};
 
 /// Cells `k -> (value, changed_at, durability)`; `cycle` makes `Cyc` read itself.
 #[derive(Clone, Default)]
@@ -119,11 +120,14 @@ impl Query<Cells> for Bulk {
     const LRU: bool = true;
     fn equivalence() -> Equivalence<Vec<i64>> {
         Equivalence::Hash128(|v| {
-            // A deterministic toy fingerprint: FNV-1a over the elements, widened.
+            // A deterministic toy fingerprint: 128-bit FNV-1a over the bytes of the elements. (Xor-ing a whole
+            // sign-extended element per round collides, e.g. `[0; 4]` and `[-2; 4]`.)
             let mut h: u128 = 0x6c62_272e_07bb_0142_62b8_2175_6295_c58d;
             for x in v {
-                h ^= *x as u128;
-                h = h.wrapping_mul(0x0000_0000_0100_0000_0000_0000_0000_013b);
+                for byte in x.to_le_bytes() {
+                    h ^= u128::from(byte);
+                    h = h.wrapping_mul(0x0000_0000_0100_0000_0000_0000_0000_013b);
+                }
             }
             h
         })
@@ -165,6 +169,38 @@ impl Query<Cells> for Untracked {
     }
     fn execute(cx: &mut Cx<'_, Cells>, _: &()) -> Result<i64, Cycle> {
         Ok(cx.db().value(7))
+    }
+}
+
+/// A partly tracked query: reads `Cell(0)` and input 3 (tracked) and cell 7 (untracked).
+struct Partial;
+impl Query<Cells> for Partial {
+    type Key = ();
+    type Value = i64;
+    const NAME: &'static str = "partial";
+    fn equivalence() -> Equivalence<i64> {
+        Equivalence::by_eq()
+    }
+    fn execute(cx: &mut Cx<'_, Cells>, _: &()) -> Result<i64, Cycle> {
+        let v = *cx.get::<Cell>(&0)?;
+        cx.read(&3);
+        Ok(v + cx.db().value(7))
+    }
+}
+
+/// Panics on demand: when cell 2000 is non-zero (the host catches the panic).
+struct Boom;
+impl Query<Cells> for Boom {
+    type Key = ();
+    type Value = i64;
+    const NAME: &'static str = "boom";
+    fn equivalence() -> Equivalence<i64> {
+        Equivalence::by_eq()
+    }
+    fn execute(cx: &mut Cx<'_, Cells>, _: &()) -> Result<i64, Cycle> {
+        cx.read(&2000);
+        assert!(cx.db().value(2000) == 0, "boom");
+        Ok(7)
     }
 }
 
@@ -381,6 +417,34 @@ fn oracle_reports_an_untracked_read() {
         ("untracked", "8", "70")
     );
     assert_eq!(counters(&store, "untracked").oracle_mismatches, 1);
+    // The memo's state at the check: re-stamped at the read's revision, value unchanged since the first run.
+    assert_eq!(m[0].verified_at, db.rev);
+    assert_eq!(m[0].changed_at, Rev(1));
+    assert_eq!(m[0].durability, Durability::Library);
+    assert!(m[0].deps.is_empty());
+}
+
+#[test]
+fn oracle_reports_the_dependency_trail() {
+    let (mut db, mut store) = setup(8);
+    store.set_oracle(Oracle::Every);
+    assert_eq!(*store.get::<Partial>(&db, &()).unwrap(), 1 + 8);
+    assert!(store.take_mismatches().is_empty());
+    db.commit(&mut store, &[(7, 70, Durability::Drawing)]);
+    assert_eq!(
+        *store.get::<Partial>(&db, &()).unwrap(),
+        9,
+        "the untracked read is stale"
+    );
+    let m = store.take_mismatches();
+    assert_eq!(m.len(), 1);
+    let m = &m[0];
+    assert_eq!((m.family, m.key.as_str()), ("partial", "()"));
+    assert_eq!((m.memoised.as_str(), m.cold.as_str()), ("9", "71"));
+    assert_eq!(m.rev, db.rev);
+    assert_eq!((m.verified_at, m.changed_at), (db.rev, Rev(1)));
+    assert_eq!(m.durability, Durability::Drawing);
+    assert_eq!(m.deps, vec!["cell(0)@r1".to_owned(), "input(3)@r1".to_owned()]);
 }
 
 #[test]
@@ -411,6 +475,203 @@ fn a_fork_evolves_independently_and_is_adopted_if_unchanged() {
     assert!(store.memo_info::<Sum>(&3).is_none());
 }
 
+/// Probe A of the cycle 6 review: a fork of a fork is not adopted, even when its epoch-like position matches,
+/// and a store that wrote a memo after the fork keeps it.
+#[test]
+fn a_fork_of_a_fork_and_a_stale_sibling_are_refused() {
+    let (db, mut s) = setup(8);
+    let mut f = s.fork();
+    f.get::<Sum>(&db, &5).unwrap();
+    let g = f.fork();
+    s.get::<Sum>(&db, &6).unwrap();
+    assert!(
+        !s.adopt_if_unchanged(g),
+        "a grandchild is not a fork of this store"
+    );
+    assert!(s.memo_info::<Sum>(&6).is_some(), "the store's own memo survives");
+
+    // A grandchild is refused even when the store did not change at all.
+    let (db, mut s) = setup(8);
+    let mut f = s.fork();
+    f.get::<Sum>(&db, &5).unwrap();
+    let g = f.fork();
+    assert!(!s.adopt_if_unchanged(g));
+    assert!(s.memo_info::<Sum>(&5).is_none());
+
+    // Two siblings: the first adopted changes the store, so the second is refused.
+    let (db, mut s) = setup(8);
+    let mut a = s.fork();
+    let mut b = s.fork();
+    a.get::<Sum>(&db, &3).unwrap();
+    b.get::<Sum>(&db, &4).unwrap();
+    assert!(s.adopt_if_unchanged(a));
+    assert!(!s.adopt_if_unchanged(b));
+    assert!(s.memo_info::<Sum>(&3).is_some());
+    assert!(s.memo_info::<Sum>(&4).is_none());
+}
+
+/// Probe B of the cycle 6 review: a fork that advanced past its base revision is not adopted, and the
+/// store's revision does not move.
+#[test]
+fn a_fork_that_advanced_is_refused() {
+    let (db, mut s) = setup(4);
+    let base = s.current();
+    let mut f = s.fork();
+    f.advance(Rev(50), Durability::Drawing);
+    f.get::<Sum>(&db, &4).unwrap();
+    assert!(!s.adopt_if_unchanged(f));
+    assert_eq!(s.current(), base);
+    assert!(s.memo_info::<Sum>(&4).is_none());
+}
+
+/// The legitimate case: a direct fork at the same revision, while the store only had hits, is adopted;
+/// changing the budget, writing a memo or advancing the store after the fork refuses it.
+#[test]
+fn a_direct_fork_is_adopted_after_hits_only() {
+    let (db, mut s) = setup(6);
+    s.get::<Sum>(&db, &2).unwrap();
+    let mut f = s.fork();
+    f.get::<Sum>(&db, &5).unwrap();
+    s.get::<Sum>(&db, &2).unwrap(); // a hit writes nothing
+    assert!(s.adopt_if_unchanged(f));
+    assert_eq!(*s.get::<Sum>(&db, &5).unwrap(), 1 + 2 + 3 + 4 + 5);
+    assert_eq!(counters(&s, "sum").re_executions, 2, "Sum(5) came from the fork");
+
+    let mut f = s.fork();
+    f.get::<Sum>(&db, &6).unwrap();
+    s.set_lru_budget(Some(1_000));
+    assert!(!s.adopt_if_unchanged(f), "a budget change after the fork");
+
+    let mut f = s.fork();
+    f.get::<Sum>(&db, &6).unwrap();
+    s.advance(Rev(s.current().0 + 1), Durability::Drawing);
+    assert!(!s.adopt_if_unchanged(f), "an advance after the fork");
+}
+
+/// Reads library cell 100 (a flag); when it is set, also drawing cell 0. True when the flag is clear or
+/// cell 0 is positive: its read set depends on a library input.
+struct Dyn;
+impl Query<Cells> for Dyn {
+    type Key = ();
+    type Value = bool;
+    const NAME: &'static str = "dyn";
+    fn equivalence() -> Equivalence<bool> {
+        Equivalence::by_eq()
+    }
+    fn execute(cx: &mut Cx<'_, Cells>, _: &()) -> Result<bool, Cycle> {
+        cx.read(&100);
+        if cx.db().value(100) == 0 {
+            return Ok(true);
+        }
+        cx.read(&0);
+        Ok(cx.db().value(0) > 0)
+    }
+}
+
+/// `Dyn` passed through: a memo whose only dependency is a memo.
+struct Top;
+impl Query<Cells> for Top {
+    type Key = ();
+    type Value = bool;
+    const NAME: &'static str = "top";
+    fn equivalence() -> Equivalence<bool> {
+        Equivalence::by_eq()
+    }
+    fn execute(cx: &mut Cx<'_, Cells>, _: &()) -> Result<bool, Cycle> {
+        Ok(*cx.get::<Dyn>(&())?)
+    }
+}
+
+/// Probe 1 of the cycle 6 review: a dependency re-executes with a wider read set at a lower durability and
+/// cuts off; the verified-green parent must take the lower durability, or the next drawing change skips it.
+#[test]
+fn a_green_memo_takes_the_durability_of_a_dependency_that_cut_off_lower() {
+    let mut db = Cells::default();
+    let mut store = Store::new();
+    db.commit(
+        &mut store,
+        &[(100, 0, Durability::Library), (0, 5, Durability::Drawing)],
+    );
+    assert!(*store.get::<Top>(&db, &()).unwrap());
+    assert_eq!(
+        store.memo_info::<Top>(&()).unwrap().durability,
+        Durability::Library
+    );
+    // The flag is set: Dyn also reads cell 0, gives the same answer and cuts off at drawing durability.
+    db.commit(&mut store, &[(100, 1, Durability::Library)]);
+    assert!(*store.get::<Top>(&db, &()).unwrap());
+    assert_eq!(counters(&store, "dyn").cut_offs, 1);
+    assert_eq!(counters(&store, "top").verifications, 1);
+    assert_eq!(
+        store.memo_info::<Dyn>(&()).unwrap().durability,
+        Durability::Drawing
+    );
+    assert_eq!(
+        store.memo_info::<Top>(&()).unwrap().durability,
+        Durability::Drawing,
+        "the green parent takes the dependency's durability"
+    );
+    // A drawing change of cell 0 now reaches Top.
+    db.commit(&mut store, &[(0, -5, Durability::Drawing)]);
+    let memo = *store.get::<Top>(&db, &()).unwrap();
+    assert_eq!(memo, *store.cold::<Top>(&db, &()).unwrap());
+    assert!(!memo);
+}
+
+/// Probe 2 of the cycle 6 review: an input moves from library to drawing durability with an unchanged
+/// value; the memo above the cut-off must become drawing-durable.
+#[test]
+fn a_green_memo_takes_the_durability_of_an_input_that_moved_lower() {
+    let mut db = Cells::default();
+    let mut store = Store::new();
+    db.commit(
+        &mut store,
+        &[(0, 1, Durability::Library), (1, 1, Durability::Library)],
+    );
+    assert_eq!(*store.get::<Sum>(&db, &2).unwrap(), 2);
+    // Same value, now drawing data (a library-level commit: it covers the level before the change).
+    db.commit(&mut store, &[(0, 1, Durability::Drawing)]);
+    assert_eq!(*store.get::<Sum>(&db, &2).unwrap(), 2);
+    assert_eq!(
+        store.memo_info::<Sum>(&2).unwrap().durability,
+        Durability::Drawing
+    );
+    db.commit(&mut store, &[(0, 41, Durability::Drawing)]);
+    assert_eq!(*store.get::<Sum>(&db, &2).unwrap(), 42);
+    assert_eq!(*store.cold::<Sum>(&db, &2).unwrap(), 42);
+}
+
+/// The durability `memo_info` reports is the minimum of the dependencies' current durabilities after every
+/// kind of read (execution, verification, durability skip).
+#[test]
+fn memo_durability_is_the_minimum_of_its_dependencies_on_every_path() {
+    let mut db = Cells::default();
+    let mut store = Store::new();
+    db.commit(
+        &mut store,
+        &[(0, 1, Durability::Library), (1, 1, Durability::Settings)],
+    );
+    store.get::<Sum>(&db, &2).unwrap(); // execution
+    assert_eq!(
+        store.memo_info::<Sum>(&2).unwrap().durability,
+        Durability::Settings
+    );
+    db.commit(&mut store, &[(5, 1, Durability::Drawing)]);
+    store.get::<Sum>(&db, &2).unwrap(); // durability skip
+    assert_eq!(counters(&store, "sum").durability_skips, 1);
+    assert_eq!(
+        store.memo_info::<Sum>(&2).unwrap().durability,
+        Durability::Settings
+    );
+    db.commit(&mut store, &[(1, 1, Durability::Library)]);
+    store.get::<Sum>(&db, &2).unwrap(); // verification after a cut-off below, at a higher level
+    assert_eq!(counters(&store, "sum").verifications, 1);
+    assert_eq!(
+        store.memo_info::<Sum>(&2).unwrap().durability,
+        Durability::Library
+    );
+}
+
 #[test]
 fn commit_statistics_reset_on_advance() {
     let (mut db, mut store) = setup(3);
@@ -422,22 +683,213 @@ fn commit_statistics_reset_on_advance() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
+// Adopting a fork: configuration, statistics, recency (cycle 6 review F4)
+
+/// A store with one oracle mismatch (`Untracked` after cell 7 changed) that has not been taken.
+fn store_with_a_mismatch() -> (Cells, Store<Cells>) {
+    let (mut db, mut store) = setup(8);
+    store.set_oracle(Oracle::Every);
+    store.get::<Untracked>(&db, &()).unwrap();
+    db.commit(&mut store, &[(7, 70, Durability::Drawing)]);
+    store.get::<Untracked>(&db, &()).unwrap();
+    (db, store)
+}
+
+#[test]
+fn oracle_mismatches_are_not_duplicated_by_a_fork_and_adopt() {
+    let (_, mut store) = store_with_a_mismatch();
+    let job = store.fork();
+    assert!(store.adopt_if_unchanged(job));
+    assert_eq!(
+        store.take_mismatches().len(),
+        1,
+        "the parent's mismatch is reported once"
+    );
+
+    // A mismatch found in the fork is reported once, after the parent's.
+    let (db, mut store) = store_with_a_mismatch();
+    let mut job = store.fork();
+    job.get::<Untracked>(&db, &()).unwrap();
+    assert!(store.adopt_if_unchanged(job));
+    assert_eq!(
+        store.take_mismatches().len(),
+        2,
+        "one of the parent's, one of the fork's"
+    );
+
+    let (db, mut store) = store_with_a_mismatch();
+    assert_eq!(store.take_mismatches().len(), 1);
+    let mut job = store.fork();
+    job.get::<Untracked>(&db, &()).unwrap();
+    assert!(store.adopt_if_unchanged(job));
+    assert_eq!(store.take_mismatches().len(), 1, "the fork's finding, once");
+    assert!(store.take_mismatches().is_empty());
+}
+
+#[test]
+fn a_fork_starts_with_empty_statistics_and_mismatches() {
+    let (_, mut store) = store_with_a_mismatch();
+    let mut job = store.fork();
+    assert!(job.commit_stats().is_empty());
+    assert!(job.total_stats().is_empty());
+    assert!(job.take_mismatches().is_empty());
+    assert!(!store.total_stats().is_empty());
+    assert_eq!(store.take_mismatches().len(), 1, "the parent keeps its own");
+}
+
+#[test]
+fn the_parents_configuration_survives_adopt_and_its_budget_applies() {
+    let (db, mut store) = setup(8);
+    store.set_oracle(Oracle::Every);
+    store.set_lru_budget(Some(40));
+    let mut job = store.fork();
+    job.set_lru_budget(None);
+    job.set_oracle(Oracle::Off);
+    for k in [4, 5, 6] {
+        job.get::<Bulk>(&db, &k).unwrap(); // 32, 40 and 48 bytes, none evicted in the fork
+    }
+    assert_eq!(job.lru_bytes(), 120);
+    assert!(store.adopt_if_unchanged(job));
+    assert_eq!(
+        store.lru_budget(),
+        Some(40),
+        "the fork's budget change is not adopted"
+    );
+    // Over the parent's budget: evicted oldest first, the newest value survives alone.
+    assert_eq!(store.lru_bytes(), 48);
+    assert!(!store.memo_info::<Bulk>(&4).unwrap().has_value);
+    assert!(!store.memo_info::<Bulk>(&5).unwrap().has_value);
+    assert!(store.memo_info::<Bulk>(&6).unwrap().has_value);
+    assert_eq!(counters(&store, "bulk").evictions, 2);
+    // The oracle mode is the parent's: a read checks against cold.
+    store.get::<Cell>(&db, &1).unwrap();
+    assert_eq!(counters(&store, "cell").oracle_checks, 1);
+}
+
+#[test]
+fn the_parents_hits_and_the_forks_work_both_count_after_adopt() {
+    let (db, mut store) = setup(4);
+    store.get::<Sum>(&db, &2).unwrap();
+    let mut job = store.fork();
+    store.get::<Sum>(&db, &2).unwrap(); // a hit after the fork
+    store.get::<Sum>(&db, &2).unwrap();
+    job.get::<Sum>(&db, &4).unwrap(); // Sum(4): executes; Cell(0), Cell(1) hit; Cell(2), Cell(3) execute
+    assert_eq!(counters(&job, "sum").re_executions, 1);
+    assert_eq!(counters(&job, "sum").hits, 0, "the fork's statistics are its own");
+    assert!(store.adopt_if_unchanged(job));
+    for stats in [store.commit_stats(), store.total_stats()] {
+        let sum = stats.family("sum");
+        assert_eq!((sum.hits, sum.re_executions), (2, 2));
+        let cell = stats.family("cell");
+        assert_eq!((cell.hits, cell.re_executions), (2, 4));
+    }
+}
+
+#[test]
+fn the_parents_hits_since_the_fork_keep_their_lru_recency_after_adopt() {
+    let (db, mut store) = setup(8);
+    store.set_lru_budget(Some(100));
+    store.get::<Bulk>(&db, &2).unwrap(); // 16 bytes
+    store.get::<Bulk>(&db, &3).unwrap(); // 24 bytes
+    let mut job = store.fork();
+    store.get::<Bulk>(&db, &2).unwrap(); // the parent hits Bulk(2): now the most recent
+    job.get::<Bulk>(&db, &4).unwrap(); // 32 bytes: 72 in the fork, nothing evicted
+    assert!(store.adopt_if_unchanged(job));
+    assert_eq!(store.lru_bytes(), 72);
+    // One more write over the budget (112 > 100): the least recent goes, which is Bulk(3), not Bulk(2).
+    store.get::<Bulk>(&db, &5).unwrap(); // 40 bytes
+    assert!(
+        store.memo_info::<Bulk>(&2).unwrap().has_value,
+        "the parent's hit survives"
+    );
+    assert!(!store.memo_info::<Bulk>(&3).unwrap().has_value);
+    assert!(store.memo_info::<Bulk>(&4).unwrap().has_value);
+    assert!(store.memo_info::<Bulk>(&5).unwrap().has_value);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Pointer identity, panics (cycle 6 review F5, F13)
+
+#[test]
+fn a_hash_family_keeps_its_arc_on_cut_off_but_not_across_an_eviction() {
+    let (mut db, mut store) = setup(8);
+    // Bulk(0) is always empty, whatever cell 0 holds: it re-executes and cuts off by fingerprint.
+    let first = store.get::<Bulk>(&db, &0).unwrap();
+    db.commit(&mut store, &[(0, 99, Durability::Drawing)]);
+    let again = store.get::<Bulk>(&db, &0).unwrap();
+    assert_eq!(counters(&store, "bulk").cut_offs, 1);
+    assert!(Arc::ptr_eq(&first, &again), "a cut-off keeps the previous Arc");
+
+    // Once the value was evicted there is no previous Arc: the re-computed value is a new one.
+    store.set_lru_budget(Some(1));
+    store.get::<Bulk>(&db, &2).unwrap(); // evicts Bulk(0)
+    assert!(!store.memo_info::<Bulk>(&0).unwrap().has_value);
+    db.commit(&mut store, &[(0, 5, Durability::Drawing)]);
+    let after = store.get::<Bulk>(&db, &0).unwrap();
+    assert_eq!(*after, *first);
+    assert!(
+        !Arc::ptr_eq(&first, &after),
+        "expected: the old value was dropped"
+    );
+}
+
+#[test]
+fn advance_and_reads_work_after_a_caught_panic_in_a_query() {
+    let (mut db, mut store) = setup(4);
+    assert_eq!(*store.get::<Boom>(&db, &()).unwrap(), 7);
+    db.commit(&mut store, &[(2000, 1, Durability::Drawing)]);
+    let caught = std::panic::catch_unwind(AssertUnwindSafe(|| store.get::<Boom>(&db, &())));
+    assert!(caught.is_err(), "the query panicked");
+    // The abandoned evaluation does not block the next commit nor the next read.
+    db.commit(&mut store, &[(2000, 0, Durability::Drawing)]);
+    assert_eq!(*store.get::<Boom>(&db, &()).unwrap(), 7);
+    assert_eq!(*store.get::<Sum>(&db, &4).unwrap(), 10);
+
+    // A panic followed by an advance and no read in between.
+    db.commit(&mut store, &[(2000, 1, Durability::Drawing)]);
+    let caught = std::panic::catch_unwind(AssertUnwindSafe(|| store.get::<Boom>(&db, &())));
+    assert!(caught.is_err());
+    db.commit(&mut store, &[(1, 5, Durability::Drawing)]);
+    assert_eq!(*store.get::<Cell>(&db, &1).unwrap(), 5);
+}
+
+// ---------------------------------------------------------------------------------------------------------
 // Memoised equals cold
 
 #[derive(Clone, Debug)]
 enum Step {
     Set(u32, i64, u8),
+    /// Re-sets a cell to its current value at another durability.
+    Move(u32, u8),
     Read(u8, u32),
     Budget(Option<usize>),
+    /// Takes a fork of the store, with a snapshot of the database (what a job reads).
+    Fork,
+    /// Reads through the held fork against its snapshot.
+    ReadFork(u8, u32),
+    /// Offers the held fork back.
+    Adopt,
+}
+
+/// Cells `0..8` plus the library flag cell 100 that `Dyn` reads.
+fn cell_key() -> impl Strategy<Value = u32> {
+    prop_oneof![8 => 0u32..8, 1 => Just(100u32)]
 }
 
 fn step() -> impl Strategy<Value = Step> {
     prop_oneof![
-        3 => (0u32..8, -3i64..4, 0u8..3).prop_map(|(k, v, d)| Step::Set(k, v, d)),
-        6 => (0u8..5, 0u32..9).prop_map(|(q, k)| Step::Read(q, k)),
+        3 => (cell_key(), -3i64..4, 0u8..3).prop_map(|(k, v, d)| Step::Set(k, v, d)),
+        1 => (cell_key(), 0u8..3).prop_map(|(k, d)| Step::Move(k, d)),
+        6 => (0u8..7, 0u32..9).prop_map(|(q, k)| Step::Read(q, k)),
         1 => prop_oneof![Just(None), (1usize..200).prop_map(Some)].prop_map(Step::Budget),
+        1 => Just(Step::Fork),
+        3 => (0u8..7, 0u32..9).prop_map(|(q, k)| Step::ReadFork(q, k)),
+        1 => Just(Step::Adopt),
     ]
 }
+
+/// The number of query families `read` and `cold` know.
+const QUERIES: u8 = 7;
 
 fn read(store: &mut Store<Cells>, db: &Cells, q: u8, k: u32) -> String {
     match q {
@@ -445,7 +897,9 @@ fn read(store: &mut Store<Cells>, db: &Cells, q: u8, k: u32) -> String {
         1 => format!("{:?}", store.get::<Sum>(db, &k).unwrap()),
         2 => format!("{:?}", store.get::<Positive>(db, &k).unwrap()),
         3 => format!("{:?}", store.get::<Label>(db, &k).unwrap()),
-        _ => format!("{:?}", store.get::<Bulk>(db, &k).unwrap()),
+        4 => format!("{:?}", store.get::<Bulk>(db, &k).unwrap()),
+        5 => format!("{:?}", store.get::<Dyn>(db, &()).unwrap()),
+        _ => format!("{:?}", store.get::<Top>(db, &()).unwrap()),
     }
 }
 
@@ -455,34 +909,79 @@ fn cold(store: &Store<Cells>, db: &Cells, q: u8, k: u32) -> String {
         1 => format!("{:?}", store.cold::<Sum>(db, &k).unwrap()),
         2 => format!("{:?}", store.cold::<Positive>(db, &k).unwrap()),
         3 => format!("{:?}", store.cold::<Label>(db, &k).unwrap()),
-        _ => format!("{:?}", store.cold::<Bulk>(db, &k).unwrap()),
+        4 => format!("{:?}", store.cold::<Bulk>(db, &k).unwrap()),
+        5 => format!("{:?}", store.cold::<Dyn>(db, &()).unwrap()),
+        _ => format!("{:?}", store.cold::<Top>(db, &()).unwrap()),
     }
 }
 
 proptest! {
     #![proptest_config(ProptestConfig { cases: 256, ..ProptestConfig::default() })]
 
-    /// Under random input mutation sequences (any durability, commits of one or more changes, LRU budgets),
-    /// every memoised read equals the cold computation, and oracle mode finds no mismatch.
+    /// Under random input mutation sequences (any durability, durability moves, commits of one or more
+    /// changes, LRU budgets, forks read against a snapshot and offered back), every memoised read equals the
+    /// cold computation, the revision never decreases, a fork that missed a commit is refused, and oracle
+    /// mode finds no mismatch.
     #[test]
     fn memoised_equals_cold(steps in proptest::collection::vec(step(), 1..60)) {
         let mut db = Cells::default();
         let mut store = Store::new();
         store.set_oracle(Oracle::Every);
         let mut pending: Vec<(u32, i64, Durability)> = Vec::new();
+        // A fork with the database snapshot it reads, and whether the store committed since.
+        let mut held: Option<(Store<Cells>, Cells)> = None;
+        let mut committed_since_fork = false;
+        let mut last_current = store.current();
         for s in steps {
             match s {
                 Step::Set(k, v, d) => pending.push((k, v, Durability::ALL[usize::from(d)])),
+                Step::Move(k, d) => {
+                    let value = pending
+                        .iter()
+                        .rev()
+                        .find(|(pk, _, _)| *pk == k)
+                        .map_or_else(|| db.value(k), |(_, v, _)| *v);
+                    pending.push((k, value, Durability::ALL[usize::from(d)]));
+                }
                 Step::Read(q, k) => {
                     if !pending.is_empty() {
                         db.commit(&mut store, &std::mem::take(&mut pending));
+                        committed_since_fork = true;
                     }
                     let memo = read(&mut store, &db, q, k);
                     prop_assert_eq!(memo, cold(&store, &db, q, k));
                 }
                 Step::Budget(b) => store.set_lru_budget(b),
+                Step::Fork => {
+                    held = Some((store.fork(), db.clone()));
+                    committed_since_fork = false;
+                }
+                Step::ReadFork(q, k) => {
+                    if let Some((fork, snapshot)) = held.as_mut() {
+                        let memo = read(fork, snapshot, q, k);
+                        prop_assert_eq!(memo, cold(fork, snapshot, q, k));
+                    }
+                }
+                Step::Adopt => {
+                    if let Some((fork, _)) = held.take() {
+                        let before = store.current();
+                        let adopted = store.adopt_if_unchanged(fork);
+                        prop_assert_eq!(store.current(), before, "adopt does not move the revision");
+                        if committed_since_fork {
+                            prop_assert!(!adopted, "a fork that missed a commit is refused");
+                        }
+                        for q in 0..QUERIES {
+                            for k in [0, 3, 8] {
+                                let memo = read(&mut store, &db, q, k);
+                                prop_assert_eq!(memo, cold(&store, &db, q, k));
+                            }
+                        }
+                    }
+                }
             }
+            prop_assert!(store.current() >= last_current, "the revision never decreases");
+            last_current = store.current();
         }
-        prop_assert_eq!(store.take_mismatches(), Vec::new());
+        prop_assert_eq!(store.take_mismatches(), Vec::<Mismatch>::new());
     }
 }
