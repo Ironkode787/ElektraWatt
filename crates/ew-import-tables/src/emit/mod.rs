@@ -47,6 +47,8 @@ pub(crate) struct FnInfo {
     pub(crate) cps: Vec<CpInfo>,
     /// Whether it is an interruption point.
     pub(crate) ip: bool,
+    /// Whether it was emitted with `kind = black_box`.
+    pub(crate) black_box: bool,
 }
 
 /// An emitted device (terminals included).

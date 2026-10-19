@@ -1293,7 +1293,7 @@ FUNC_COLS = [
     "key", "device", "fndef", "role", "kind", "part", "template", "cp_aliases", "ip_name", "ip_direction",
     "ip_external",
 ]  # fmt: skip
-REP_COLS = ["key", "functions", "page", "symbol", "cell", "dx", "dy"]
+REP_COLS = ["key", "functions", "page", "symbol", "cell", "dx", "dy", "arrangement"]
 
 # doc 07 section 9.1: symbol of a function by its FnDef, always the "@qet10" edition
 SYMBOL = {
@@ -1394,10 +1394,10 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
         d.update(kw)
         funcs.append(d)
 
-    def rep(key, page, cell, symbol, dx="", dy="", functions=None):
+    def rep(key, page, cell, symbol, dx="", dy="", functions=None, arrangement=""):
         reps.append(
             {"key": key, "functions": functions or key, "page": page, "symbol": symbol, "cell": cell, "dx": dx,
-             "dy": dy}
+             "dy": dy, "arrangement": arrangement}
         )  # fmt: skip
 
     rows61 = {}
@@ -1584,6 +1584,29 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
         " asserts",
     )  # fmt: skip
     IP_GROUPS.update(coincident)
+    # doc 20 §6.2: valve and field tags are not printed on 203-206 (property arrangement, FR-SYM-012). The fixture
+    # selects the symbol's arrangement without the Tag slot, named "ports", for the representations of the three
+    # valve-terminal and field-device symbols on those folios.
+    check(
+        "Valve and field tags are not printed on 203–206 (property arrangement, FR-SYM-012)" in DOC_TEXT,
+        "section 6.2: 'Valve and field tags are not printed on 203–206 (property arrangement, FR-SYM-012)'",
+    )
+    tagless = {
+        SYMBOL["ew.fn.valve-5-2-sol-spring"], SYMBOL["ew.fn.process-valve-2way"],
+        SYMBOL["ew.fn.cylinder-double-acting"],
+    }  # fmt: skip
+    arranged = []
+    for rp in reps:
+        if rp["symbol"] in tagless and rp["page"] in ("203", "204", "205", "206"):
+            rp["arrangement"] = "ports"
+            arranged.append(rp["key"])
+    check(len(arranged) == 28 + 8 + 8, f"section 6.2: {len(arranged)} valve/field representations, 44 expected")
+    fixture(
+        "representations", "arrangement",
+        "-201U3-Q1 … -202U2-Q4; -203Q1 … -203Q8; -203Q1#actuator … -203Q8#actuator", "ports", "§6.2",
+        "test input (fixture choice): the symbol's arrangement without the Tag slot (FR-SYM-012)",
+        marks=[],
+    )  # fmt: skip
     for rp in reps:
         check(rp["functions"] in fkeys, f"representation {rp['key']!r} shows the unknown function {rp['functions']!r}")
         check(rp["page"] in STORED_FOLIOS, f"representation {rp['key']!r} is on the unknown page {rp['page']!r}")

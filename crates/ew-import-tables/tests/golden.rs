@@ -13,7 +13,7 @@ use ew_schema::{
     Bond, Connection, ConnectionKind, Device, Endpoint, Function, ImportLineage, LibDocument, LineageAnchor,
     Project, Record, Representation,
 };
-use ew_units::Grid;
+use ew_units::{Grid, Nm, Pt2};
 
 fn golden() -> ImportBatch {
     common::import(&common::golden_inputs()).expect("the golden tables import")
@@ -237,6 +237,97 @@ fn a_representation_sits_at_its_cell_position() {
     // Cell B2 of the grid: column 2, row B (index 1); the symbol has no named anchor, so no anchor offset.
     assert_eq!(rep.pos.x, Grid::QET_10PX.at(5 + 6 * 2).unwrap());
     assert_eq!(rep.pos.y, Grid::QET_10PX.at(6 + 8).unwrap());
+}
+
+/// The 28 valve-terminal valves, 8 process valves and 8 actuators on the folios 203-206 select the arrangement
+/// `ports` (doc 20 §6.2: valve and field tags are not printed there); every other representation has none.
+#[test]
+fn valve_and_field_representations_select_the_ports_arrangement() {
+    let b = golden();
+    let mut keys = Vec::new();
+    for m in [
+        "-201U3", "-201U4", "-201U5", "-201U6", "-201U7", "-201U8", "-202U2",
+    ] {
+        for q in 1..=4 {
+            keys.push(format!("{m}-Q{q}"));
+        }
+    }
+    for n in 1..=8 {
+        keys.push(format!("-203Q{n}"));
+        keys.push(format!("-203Q{n}#actuator"));
+    }
+    let want: std::collections::BTreeSet<Id<Representation>> =
+        keys.iter().map(|k| record_id("representations", k)).collect();
+    assert_eq!(want.len(), 28 + 8 + 8, "{keys:?}");
+    let mut with = 0;
+    for r in &b.records {
+        if let Record::Representation(rep) = r {
+            let expected = want.contains(&rep.id).then_some("ports");
+            assert_eq!(
+                rep.arrangement.as_ref().map(|a| a.to_string()).as_deref(),
+                expected,
+                "{:?}",
+                rep.source_ref
+            );
+            with += usize::from(rep.arrangement.is_some());
+        }
+    }
+    assert_eq!(with, 44);
+}
+
+/// Exactly the four black boxes with a CP pattern carry box geometry: top row first, in pattern order, on the
+/// page grid (doc 07 §4.2); the `#aux` boxes without a pattern and every other representation have none.
+#[test]
+fn black_boxes_carry_their_cp_pattern_geometry() {
+    let b = golden();
+    let grid = Grid::QET_10PX;
+    let mut boxed = std::collections::BTreeMap::new();
+    let mut total = 0;
+    for r in &b.records {
+        if let Record::Representation(rep) = r {
+            total += 1;
+            if let Some(spec) = &rep.box_ {
+                boxed.insert(rep.id, (rep.pos, spec.clone()));
+            }
+        }
+    }
+    // (key, top count, bottom count)
+    let expect = [
+        ("-102G1", 3, 4),
+        ("-102F2", 5, 5),
+        ("-201U1#power", 3, 3),
+        ("-202U1#power", 3, 3),
+    ];
+    assert_eq!(
+        boxed.len(),
+        expect.len(),
+        "{:?}",
+        boxed.keys().collect::<Vec<_>>()
+    );
+    assert!(total > expect.len());
+    for (key, top, bottom) in expect {
+        let id: Id<Representation> = record_id("representations", key);
+        let (pos, spec) = boxed.get(&id).unwrap_or_else(|| panic!("{key} has a box"));
+        let step = |p: Pt2| {
+            (
+                grid.snap(Nm(pos.x.0 + p.x.0)) - grid.snap(pos.x),
+                grid.snap(Nm(pos.y.0 + p.y.0)) - grid.snap(pos.y),
+            )
+        };
+        let cps: Vec<_> = spec.cps.iter().map(|c| (c.idx, step(c.pos))).collect();
+        assert_eq!(cps.len(), top + bottom, "{key}");
+        for (i, (idx, (x, y))) in cps.iter().enumerate() {
+            assert_eq!(usize::from(*idx), i, "{key}: CP index order");
+            if i < top {
+                assert_eq!((*x, *y), (1 + 2 * i as i64, 0), "{key} top {i}");
+            } else {
+                assert_eq!((*x, *y), (1 + 2 * (i - top) as i64, 6), "{key} bottom {i}");
+            }
+        }
+        let outline: Vec<_> = spec.outline.iter().map(|p| step(*p)).collect();
+        assert_eq!(outline, [(0, 0), (10, 0), (10, 6), (0, 6)], "{key}");
+        assert!(spec.inner.is_empty());
+    }
 }
 
 /// Two imports give byte-equal records, library documents and equal report entries.

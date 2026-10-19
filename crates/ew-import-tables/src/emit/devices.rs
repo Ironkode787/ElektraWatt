@@ -7,16 +7,17 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
 use ew_schema::{
-    Cable, CpOverride, Device, DeviceAspects, DeviceKind, DeviceState, FnRole, FrozenTag, Function,
-    FunctionKind, IpDirection, IpSpec, KeyedList, LabelMode, LengthSource, PartRef, PartUse, Record,
-    Representation, Side, Strip, TagPrint, TagScheme, TagSign, TagSpec, Terminal, TerminalGroup,
+    BoxCp, BoxSpec, Cable, CpOverride, Device, DeviceAspects, DeviceKind, DeviceState, Dir4, FnRole,
+    FrozenTag, Function, FunctionKind, IpDirection, IpSpec, KeyedList, LabelMode, LengthSource, PartRef,
+    PartUse, Record, Representation, Side, Strip, TagPrint, TagScheme, TagSign, TagSpec, Terminal,
+    TerminalGroup,
 };
-use ew_units::Dec3;
+use ew_units::{Dec3, Grid, Nm, Pt2};
 
 use super::project::structure_assignment;
 use super::{
-    CpInfo, Cx, DeviceInfo, Fate, FnInfo, PlaceError, cell_point, dec3_mm_to_nm, fresh, parent_fates,
-    parse_cell, place,
+    CpInfo, Cx, DeviceInfo, Fate, FnInfo, PlaceError, cell_point, dec3_mm_to_nm, fresh, grid_index,
+    parent_fates, parse_cell, place,
 };
 use crate::ids::{record_id, source_ref};
 use crate::table::{Rd, Row, Table, parse_dec3, parse_ident};
@@ -568,7 +569,13 @@ pub(crate) fn emit_functions(cx: &mut Cx<'_>, table: Option<&Table>) {
                 source_ref: Some(source_ref("functions", row.key())),
                 extra: Default::default(),
             },
-            FnInfo { id, device, cps, ip },
+            FnInfo {
+                id,
+                device,
+                cps,
+                ip,
+                black_box,
+            },
         ));
     }
     for (row, function, info) in pending {
@@ -587,6 +594,53 @@ pub(crate) fn emit_functions(cx: &mut Cx<'_>, table: Option<&Table>) {
         cx.functions.insert(row.key().to_owned(), info);
         cx.records.push(Record::Function(function));
     }
+}
+
+/// The black box of a representation drawing one black-box function, from the function's CP pattern (doc 07
+/// §4.2: black boxes take all CPs from the part pattern and lay them out on the outline in pattern order).
+///
+/// Rule. A box is emitted when the representation draws exactly one function, that function was emitted with
+/// `kind = black_box` and its CP list is non-empty (the caller checks this; otherwise `box_` is `None`).
+/// With `cps` in CP-index order, `n = cps.len()` and `n_top = n / 2` (floor), the first `n_top` CPs are the top
+/// row and the rest the bottom row; `k = max(n_top, n − n_top, 5)`. The box is `2k` grid steps wide and 6 high,
+/// the grid being the page grid. All coordinates are step points `(i, j)` relative to the representation,
+/// converted to nm so that `pos + offset` is exactly the page-grid point `(kx + i, ky + j)`, `kx`/`ky` being
+/// the grid indices of `pos` (a QET grid rounds every absolute point, so offsets must not be `grid.at(i)`).
+/// Top CP number `t` sits at `(1 + 2t, 0)` leaving upwards, bottom CP number `b` at `(1 + 2b, 6)` leaving
+/// downwards; `BoxCp.idx` is the CP index. The outline is `(0,0), (2k,0), (2k,6), (0,6)`; `inner` is empty.
+///
+/// `None` when `pos` is not a grid point or a coordinate overflows (the caller reports the row).
+fn black_box_geometry(grid: Grid, pos: Pt2, cps: &[CpInfo]) -> Option<BoxSpec> {
+    let (kx, ky) = (grid_index(grid, pos.x)?, grid_index(grid, pos.y)?);
+    let step = |i: i64, j: i64| -> Option<Pt2> {
+        Some(Pt2::new(
+            Nm(grid.at(kx.checked_add(i)?)?.0.checked_sub(pos.x.0)?),
+            Nm(grid.at(ky.checked_add(j)?)?.0.checked_sub(pos.y.0)?),
+        ))
+    };
+    let n = cps.len();
+    let n_top = n / 2;
+    let k = i64::try_from(n_top.max(n - n_top).max(5)).ok()?;
+    let mut box_cps = Vec::with_capacity(n);
+    for (i, cp) in cps.iter().enumerate() {
+        let (row, j, dir) = if i < n_top {
+            (i, 0, Dir4::Up)
+        } else {
+            (i - n_top, 6, Dir4::Down)
+        };
+        box_cps.push(BoxCp {
+            idx: cp.idx,
+            pos: step(1 + 2 * i64::try_from(row).ok()?, j)?,
+            dir,
+            extra: Default::default(),
+        });
+    }
+    Some(BoxSpec {
+        outline: vec![step(0, 0)?, step(2 * k, 0)?, step(2 * k, 6)?, step(0, 6)?],
+        cps: box_cps,
+        inner: Vec::new(),
+        extra: Default::default(),
+    })
 }
 
 /// `representations.csv` → `representation`. Each interruption point keeps exactly one representation
@@ -611,6 +665,7 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
         });
         let dx = r.int("dx").unwrap_or(0);
         let dy = r.int("dy").unwrap_or(0);
+        let arrangement = r.ident("arrangement");
         if functions.is_empty() {
             r.fail("column `functions` is empty");
         }
@@ -659,6 +714,16 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
             );
             continue;
         }
+        // The CPs of a drawn black box (rule of `black_box_geometry`): exactly one function, of kind
+        // `black_box`, with a CP pattern.
+        let box_cps: Option<Vec<CpInfo>> = match functions.as_slice() {
+            [f] => cx
+                .functions
+                .get(f)
+                .filter(|i| i.black_box && !i.cps.is_empty())
+                .map(|i| i.cps.clone()),
+            _ => None,
+        };
         let Some(page_info) = cx.pages.get(&page).copied() else {
             cx.unresolved(row, &format!("unknown page `{page}`"));
             continue;
@@ -670,6 +735,12 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
         // The anchor of the symbol's policy, exactly as `rep_anchor_cell` derives it (FR-SYM-010, D-14): the
         // cell column names where the anchor lands, not the symbol origin.
         let (sym_id, rep_type) = (sym.id, sym.item.rep_type.clone());
+        if let Some(name) = &arrangement
+            && !sym.item.arrangements.iter().any(|a| a.name == *name)
+        {
+            cx.malformed(row, &format!("symbol `{symbol}` has no arrangement `{name}`"));
+            continue;
+        }
         let placed = sym
             .item
             .anchor_point()
@@ -682,6 +753,16 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
                 cx.malformed(row, e.message());
                 continue;
             }
+        };
+        let box_ = match &box_cps {
+            None => None,
+            Some(cps) => match black_box_geometry(page_info.grid, pos, cps) {
+                Some(b) => Some(b),
+                None => {
+                    cx.malformed(row, "black-box geometry is off the page grid");
+                    continue;
+                }
+            },
         };
         cx.used_lib.insert(symbol);
         if let Some(f) = ip_fn {
@@ -700,8 +781,8 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
             rep_type,
             pin_map: KeyedList::default(),
             text_slots: KeyedList::default(),
-            arrangement: None,
-            box_: None,
+            arrangement,
+            box_,
             source_ref: Some(source_ref("representations", row.key())),
             extra: Default::default(),
         }));
@@ -729,5 +810,133 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
     if !doomed.is_empty() {
         cx.records
             .retain(|r| !matches!(r, Record::Function(f) if doomed.contains(&f.id)));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn cps(n: u16) -> Vec<CpInfo> {
+        (0..n)
+            .map(|idx| CpInfo {
+                idx,
+                designation: parse_ident(&format!("P{idx}")).unwrap(),
+                side: None,
+                clamp: None,
+            })
+            .collect()
+    }
+
+    fn pos_at(g: Grid, kx: i64, ky: i64) -> Pt2 {
+        Pt2::new(g.at(kx).unwrap(), g.at(ky).unwrap())
+    }
+
+    /// `(idx, i, j, dir)` of every CP of the box, as grid steps relative to `pos`.
+    fn steps(g: Grid, pos: Pt2, b: &BoxSpec) -> Vec<(u16, i64, i64, Dir4)> {
+        let kx = grid_index(g, pos.x).unwrap();
+        let ky = grid_index(g, pos.y).unwrap();
+        b.cps
+            .iter()
+            .map(|c| {
+                (
+                    c.idx,
+                    grid_index(g, Nm(pos.x.0 + c.pos.x.0)).unwrap() - kx,
+                    grid_index(g, Nm(pos.y.0 + c.pos.y.0)).unwrap() - ky,
+                    c.dir.clone(),
+                )
+            })
+            .collect()
+    }
+
+    fn width(g: Grid, pos: Pt2, b: &BoxSpec) -> i64 {
+        grid_index(g, Nm(pos.x.0 + b.outline[1].x.0)).unwrap() - grid_index(g, pos.x).unwrap()
+    }
+
+    #[test]
+    fn seven_cps_split_three_and_four() {
+        let g = Grid::QET_10PX;
+        let pos = pos_at(g, 11, 23);
+        let b = black_box_geometry(g, pos, &cps(7)).unwrap();
+        let expect = vec![
+            (0, 1, 0, Dir4::Up),
+            (1, 3, 0, Dir4::Up),
+            (2, 5, 0, Dir4::Up),
+            (3, 1, 6, Dir4::Down),
+            (4, 3, 6, Dir4::Down),
+            (5, 5, 6, Dir4::Down),
+            (6, 7, 6, Dir4::Down),
+        ];
+        assert_eq!(steps(g, pos, &b), expect);
+        assert_eq!(width(g, pos, &b), 10);
+        assert_eq!(b.outline.len(), 4);
+        assert!(b.inner.is_empty());
+    }
+
+    #[test]
+    fn ten_cps_split_five_and_five() {
+        let g = Grid::QET_10PX;
+        let pos = pos_at(g, 4, 4);
+        let b = black_box_geometry(g, pos, &cps(10)).unwrap();
+        let s = steps(g, pos, &b);
+        assert_eq!(s.iter().filter(|c| c.2 == 0).count(), 5);
+        assert_eq!(s.iter().filter(|c| c.2 == 6).count(), 5);
+        assert_eq!(s[4], (4, 9, 0, Dir4::Up));
+        assert_eq!(s[5], (5, 1, 6, Dir4::Down));
+        assert_eq!(s[9], (9, 9, 6, Dir4::Down));
+        assert_eq!(width(g, pos, &b), 10);
+    }
+
+    #[test]
+    fn two_cps_keep_the_minimum_width() {
+        let g = Grid::QET_10PX;
+        let pos = pos_at(g, 4, 4);
+        let b = black_box_geometry(g, pos, &cps(2)).unwrap();
+        assert_eq!(steps(g, pos, &b), [(0, 1, 0, Dir4::Up), (1, 1, 6, Dir4::Down)]);
+        assert_eq!(width(g, pos, &b), 10);
+    }
+
+    #[test]
+    fn twelve_cps_widen_the_box() {
+        let g = Grid::QET_10PX;
+        let pos = pos_at(g, 4, 4);
+        let b = black_box_geometry(g, pos, &cps(12)).unwrap();
+        assert_eq!(width(g, pos, &b), 12);
+        assert_eq!(steps(g, pos, &b)[5], (5, 11, 0, Dir4::Up));
+        assert_eq!(steps(g, pos, &b)[11], (11, 11, 6, Dir4::Down));
+    }
+
+    #[test]
+    fn every_point_is_a_grid_point() {
+        for (g, kx, ky) in [
+            (Grid::QET_10PX, 1001, 1001),
+            (Grid::QET_10PX, 37, 37),
+            (Grid::QET_10PX, 5, 6),
+            (Grid::QET_10PX, 999_983, 7919),
+            (Grid::MM4, 1001, 37),
+        ] {
+            let pos = pos_at(g, kx, ky);
+            for n in [1, 2, 7, 10, 12, 13] {
+                let b = black_box_geometry(g, pos, &cps(n)).unwrap();
+                let points = b
+                    .outline
+                    .iter()
+                    .chain(b.cps.iter().map(|c| &c.pos))
+                    .map(|p| Pt2::new(Nm(pos.x.0 + p.x.0), Nm(pos.y.0 + p.y.0)));
+                for p in points {
+                    assert_eq!(g.at(g.snap(p.x)), Some(p.x), "{kx} {ky} {n}");
+                    assert_eq!(g.at(g.snap(p.y)), Some(p.y), "{kx} {ky} {n}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn off_grid_or_overflowing_positions_give_none() {
+        let g = Grid::MM4;
+        assert!(black_box_geometry(g, Pt2::new(Nm(1), Nm(0)), &cps(2)).is_none());
+        let kmax = i64::MAX / 4_000_000;
+        let pos = Pt2::new(g.at(kmax - 2).unwrap(), Nm(0));
+        assert!(black_box_geometry(g, pos, &cps(2)).is_none());
     }
 }

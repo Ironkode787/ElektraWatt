@@ -149,6 +149,36 @@ fn an_off_grid_junction_is_dropped_with_its_connections() {
     );
 }
 
+/// An arrangement the symbol does not define drops the representation with one error naming symbol and name.
+#[test]
+fn an_unknown_arrangement_drops_the_row() {
+    let reps = "key,functions,page,symbol,cell,arrangement
+-1F1,-1F1,101,ew.iec.mcb-1pn@qet10,B2,nonexistent
+";
+    let b = run(&[("representations.csv", reps)]);
+    assert_eq!(count(&b, 2, Severity::Error), 1, "{:#?}", b.report.entries);
+    expect_error(
+        &b,
+        2,
+        "representations.csv",
+        "-1F1",
+        "symbol `ew.iec.mcb-1pn@qet10` has no arrangement `nonexistent`",
+    );
+    assert!(representations(&b).is_empty());
+}
+
+/// An arrangement cell that is not an identifier drops the representation with one error.
+#[test]
+fn an_invalid_arrangement_identifier_drops_the_row() {
+    let reps = "key,functions,page,symbol,cell,arrangement
+-1F1,-1F1,101,ew.iec.mcb-1pn@qet10,B2,not an ident!
+";
+    let b = run(&[("representations.csv", reps)]);
+    assert_eq!(count(&b, 2, Severity::Error), 1, "{:#?}", b.report.entries);
+    expect_error(&b, 2, "representations.csv", "-1F1", "arrangement");
+    assert!(representations(&b).is_empty());
+}
+
 /// A bad cell reference drops the representation.
 #[test]
 fn a_bad_cell_drops_the_row() {
