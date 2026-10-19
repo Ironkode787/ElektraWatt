@@ -149,7 +149,10 @@ pub fn profiles_json() -> (serde_json::Value, serde_json::Value) {
             "L1" => (vec!["l1"], false),
             "L2" => (vec!["l2"], false),
             "L3" => (vec!["l3"], false),
-            "signal +" | "signal −" => (vec!["signal"], true),
+            // The analogue pair keeps its polarity in the type (positive L+, negative L−) so that the two
+            // rows do not share a selector (doc 08 §4.2: overlapping rows must agree).
+            "signal +" => (vec!["l_plus"], true),
+            "signal −" => (vec!["l_minus"], true),
             _ => (vec!["signal"], false),
         };
         let mut select = serde_json::Map::new();

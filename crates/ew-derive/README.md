@@ -19,7 +19,7 @@ never changed; an output-changing fix ships as a new profile (ADR-0003).
 ## Derivation notes
 
 A `DeriveNote` reports a fallback or a problem met while deriving: an unknown profile (an error, integrity code
-EW-CORE-018), a numbering scheme not applied, the default frame, a malformed shim, a query cycle. Notes are
+EW-CORE-018), a numbering scheme not applied, the default frame, a malformed shim, an overlapping colour-profile row pair, a query cycle. Notes are
 request-scoped: a set in canonical order, read by the owner of the `Q` through `Q::diagnostics()` (not reachable
 from a query body). `ew-api`'s `Session` surfaces them as findings. An unknown pinned profile is never silent
 (ADR-0003): display uses the newest shipped profile, the note is an error, and profile-dependent commands are

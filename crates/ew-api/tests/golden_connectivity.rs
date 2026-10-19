@@ -19,7 +19,8 @@
 //! - `changing_the_24v_colour_updates_every_affected_wire` (AC-12): one profile edit, all affected wires.
 //! - `flow_matches_doc_08_section_3_6`: distances, switched and protected potentials, loads (decision D4).
 //! - `connectivity_does_not_depend_on_record_order` (NFR-REL-07): reversed and shuffled records.
-//! - `no_connectivity_notes_on_the_golden_model`: no `DeriveNote::Connectivity`.
+//! - `no_connectivity_notes_on_the_golden_model`: no `Connectivity`, `MalformedShim`, `ProfileOverlap` or
+//!   `DefaultWireProfile` note.
 
 mod golden_common;
 
@@ -1091,9 +1092,19 @@ fn no_connectivity_notes_on_the_golden_model() {
         let _ = q.get::<PotentialFlow>(p.id);
     }
     let notes = q.diagnostics().notes();
-    let connectivity: Vec<&DeriveNote> = notes
+    // With the golden profiles injected, no profile or connectivity note at all: neither a malformed shim,
+    // nor an overlapping colour row pair, nor a connectivity finding, nor a missing-profile default.
+    let unwanted: Vec<&DeriveNote> = notes
         .iter()
-        .filter(|n| matches!(n, DeriveNote::Connectivity { .. }))
+        .filter(|n| {
+            matches!(
+                n,
+                DeriveNote::Connectivity { .. }
+                    | DeriveNote::MalformedShim { .. }
+                    | DeriveNote::ProfileOverlap { .. }
+                    | DeriveNote::DefaultWireProfile { .. }
+            )
+        })
         .collect();
-    assert!(connectivity.is_empty(), "{connectivity:#?}");
+    assert!(unwanted.is_empty(), "{unwanted:#?}");
 }

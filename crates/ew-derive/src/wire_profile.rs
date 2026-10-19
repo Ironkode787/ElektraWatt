@@ -21,7 +21,7 @@
 //! - Two colour rows of equal specificity whose selectors can match a common potential (`overlaps`: the
 //!   `ptype` lists intersect or either is empty, `ac_dc` equal or either absent, the voltage intervals
 //!   intersect, `discipline` and `analogue` equal or either absent) and that give different colours are
-//!   ambiguous: `load` notes a [`DeriveNote::MalformedShim`] for `settings.colour_profile` naming the two
+//!   ambiguous: `load` notes a [`DeriveNote::ProfileOverlap`] for `settings.colour_profile` naming the two
 //!   row indexes. The profile stays loaded and `select` keeps the first-row tie rule, so the output is
 //!   deterministic but no longer silent.
 //! - The built-in colour depends on the circuit class: an L-family potential of an AC control circuit is RD
@@ -261,11 +261,10 @@ pub(crate) fn load(project: &Project) -> WireProfiles {
                     && ri.colour != rj.colour
                     && ri.select.overlaps(&rj.select)
                 {
-                    notes.push(DeriveNote::MalformedShim {
-                        member: "settings.colour_profile".into(),
-                        detail: format!(
-                            "rows {i} and {j} have the same specificity, overlap and give different colours"
-                        ),
+                    notes.push(DeriveNote::ProfileOverlap {
+                        shim: "settings.colour_profile".into(),
+                        rows: (i, j),
+                        detail: "have the same specificity, overlap and give different colours".into(),
                     });
                 }
             }
@@ -554,8 +553,45 @@ mod tests {
         load(&project)
             .notes
             .into_iter()
-            .filter(|n| matches!(n, DeriveNote::MalformedShim { .. }))
+            .filter(|n| {
+                matches!(
+                    n,
+                    DeriveNote::MalformedShim { .. } | DeriveNote::ProfileOverlap { .. }
+                )
+            })
             .collect()
+    }
+
+    fn winning_row(rows: Value, ptype: PotentialType) -> Option<usize> {
+        let mut project: Project = serde_json::from_value(
+            json!({"id": "00000000-0000-4000-8000-000000000001", "derivation_profile": "2027.1"}),
+        )
+        .unwrap();
+        project
+            .settings
+            .extra
+            .insert("colour_profile".into(), json!({"key": "p", "rows": rows}));
+        let profiles = load(&project);
+        let attrs = Attrs {
+            ptype: Some(ptype),
+            ..Attrs::default()
+        };
+        profiles.colour.and_then(|c| c.select(&attrs).map(|(i, _)| i))
+    }
+
+    #[test]
+    fn overlap_gives_one_note_and_the_first_row_wins() {
+        let attrs_rows = json!([
+            {"select": {"ptype": ["l"]}, "colour": ["RD"]},
+            {"select": {"ptype": ["l", "n"]}, "colour": ["BK"]},
+        ]);
+        let notes = load_notes(attrs_rows.clone());
+        assert_eq!(notes.len(), 1);
+        assert!(matches!(
+            &notes[0],
+            DeriveNote::ProfileOverlap { rows: (0, 1), .. }
+        ));
+        assert_eq!(winning_row(attrs_rows, PotentialType::L), Some(0));
     }
 
     #[test]
@@ -566,10 +602,16 @@ mod tests {
         ]));
         assert_eq!(
             notes,
-            vec![DeriveNote::MalformedShim {
-                member: "settings.colour_profile".into(),
-                detail: "rows 0 and 1 have the same specificity, overlap and give different colours".into(),
+            vec![DeriveNote::ProfileOverlap {
+                shim: "settings.colour_profile".into(),
+                rows: (0, 1),
+                detail: "have the same specificity, overlap and give different colours".into(),
             }]
+        );
+        assert_eq!(
+            notes[0].to_string(),
+            "settings.colour_profile: rows 0 and 1 have the same specificity, overlap and give different \
+             colours; the first row wins"
         );
         // Same colours: no note.
         assert!(

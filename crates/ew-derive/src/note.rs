@@ -76,6 +76,16 @@ pub enum DeriveNote {
         /// What is wrong, in English.
         detail: String,
     },
+    /// Two colour rows of the project's colour profile have the same specificity, can match a common
+    /// potential and give different colours (doc 08 §4.2). The profile is used; the first row wins.
+    ProfileOverlap {
+        /// The shim member, `"settings.colour_profile"`.
+        shim: String,
+        /// The indexes of the two rows, in profile order.
+        rows: (usize, usize),
+        /// What is wrong, in English.
+        detail: String,
+    },
     /// A query needed its own value: the model violates EW-INV-015 (device inheritance graph). The
     /// query fell back to an empty structure or a "?" designation.
     QueryCycle {
@@ -132,7 +142,9 @@ impl DeriveNote {
                     NoteSeverity::Warning
                 }
             }
-            DeriveNote::SchemeNotApplied { .. } | DeriveNote::MalformedShim { .. } => NoteSeverity::Warning,
+            DeriveNote::SchemeNotApplied { .. }
+            | DeriveNote::MalformedShim { .. }
+            | DeriveNote::ProfileOverlap { .. } => NoteSeverity::Warning,
             DeriveNote::DefaultFrame | DeriveNote::DefaultWireProfile { .. } => NoteSeverity::Info,
         }
     }
@@ -164,6 +176,11 @@ impl fmt::Display for DeriveNote {
             DeriveNote::MalformedShim { member, detail } => {
                 write!(f, "{member} is malformed ({detail}); the default applies")
             }
+            DeriveNote::ProfileOverlap { shim, rows, detail } => write!(
+                f,
+                "{shim}: rows {} and {} {detail}; the first row wins",
+                rows.0, rows.1
+            ),
             DeriveNote::QueryCycle { family, key } => write!(
                 f,
                 "{family} needs its own value for {key}: the device inheritance graph has a cycle"
