@@ -385,9 +385,18 @@ fn unescape(s: &str) -> Result<String, RowIdParseError> {
     while i < bytes.len() {
         let b = bytes[i];
         if b == b'%' {
-            let hex = |k: usize| bytes.get(k).and_then(|d| char::from(*d).to_digit(16));
+            // Only the canonical form `%XX` with uppercase hex parses, so `parse(display(id)) == id` and no two
+            // texts name one id.
+            let hex = |k: usize| {
+                bytes
+                    .get(k)
+                    .filter(|d| d.is_ascii_digit() || (b'A'..=b'F').contains(d))
+                    .and_then(|d| char::from(*d).to_digit(16))
+            };
             let (Some(hi), Some(lo)) = (hex(i + 1), hex(i + 2)) else {
-                return Err(RowIdParseError::new("a `%` is not followed by two hex digits"));
+                return Err(RowIdParseError::new(
+                    "a `%` is not followed by two uppercase hex digits",
+                ));
             };
             out.push(u8::try_from(hi * 16 + lo).unwrap_or(0));
             i += 3;

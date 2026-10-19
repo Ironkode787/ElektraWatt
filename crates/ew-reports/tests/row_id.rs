@@ -72,9 +72,11 @@ fn names_are_percent_escaped_per_utf8_byte_in_uppercase() {
 }
 
 #[test]
-fn escapes_are_read_in_either_case() {
-    assert_eq!(RowId::parse("n:%c3%a9"), Ok(RowId(vec![name("é")])));
-    assert_eq!(RowId::parse("n:%C3%a9"), Ok(RowId(vec![name("é")])));
+fn only_the_canonical_uppercase_escape_parses() {
+    assert_eq!(RowId::parse("n:%C3%A9"), Ok(RowId(vec![name("é")])));
+    // Lowercase hex is not the canonical form, so two texts can never name one id.
+    assert!(RowId::parse("n:%c3%a9").is_err());
+    assert!(RowId::parse("n:%C3%a9").is_err());
 }
 
 #[test]

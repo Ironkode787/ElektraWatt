@@ -152,7 +152,9 @@ pub(super) fn line_id(prefix: RowId, lines: &[PartLine], i: usize) -> RowId {
     let line = &lines[i];
     let ordinal = lines[..i]
         .iter()
-        .filter(|l| l.part == line.part && l.variant == line.variant && l.source == line.source)
+        // The ordinal counts every earlier line of the same part and variant, whatever its source, so a part
+        // that is both a part use and an accessory of one device gets two distinct ids (FR-REP-048).
+        .filter(|l| l.part == line.part && l.variant == line.variant)
         .count();
     let mut id = prefix.with(RowKey::Entity(line.part.as_uuid()));
     if let Some(v) = &line.variant {
@@ -210,4 +212,37 @@ pub(super) fn part_cells(part: &Part) -> [Cell; 3] {
         part_number_cell(part.part_number.as_str()),
         Cell::Text(part.description.clone()),
     ]
+}
+
+#[cfg(test)]
+mod tests {
+    use ew_derive::LineSource;
+    use ew_derive::ew_ids::Uuid;
+
+    use super::*;
+
+    fn line(part: u128, source: LineSource) -> PartLine {
+        PartLine {
+            device: Id::from_uuid(Uuid::from_u128(0x10)),
+            part: Id::from_uuid(Uuid::from_u128(part)),
+            variant: None,
+            qty: Dec3::from_int(1).expect("1 is a Dec3"),
+            source,
+            configured: false,
+        }
+    }
+
+    /// FR-REP-048: a part that is both a part use and a strip accessory of one device gives two distinct ids.
+    #[test]
+    fn a_part_use_and_an_accessory_of_the_same_part_have_distinct_ids() {
+        let lines = [
+            line(0x601, LineSource::Device),
+            line(0x601, LineSource::StripAccessory),
+        ];
+        let prefix = RowId::entity(lines[0].device);
+        let a = line_id(prefix.clone(), &lines, 0);
+        let b = line_id(prefix, &lines, 1);
+        assert_ne!(a, b);
+        assert_ne!(a.to_string(), b.to_string());
+    }
 }
