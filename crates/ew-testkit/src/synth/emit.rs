@@ -6,29 +6,37 @@
 //! The record builders are ports of the helpers of `ew-commands`' test fixture (`tests/common/fixture.rs`),
 //! which in turn mirror the golden files; the emitter only decides IDs, positions and library contents.
 
+use std::collections::BTreeMap;
+
 use ew_ids::{Id, Uuid, V7Generator};
 use ew_mltext::{Ident, MlText};
 use ew_rds::Aspect;
 use ew_schema::{
     Cable, Conductor, Connection, ConnectionKind, ContactKind, CpDef, Device, DeviceAspects, DeviceKind,
-    DeviceState, Endpoint, Extra, FnDef, FnRole, Folio, FormDef, FormKind, Function, FunctionKind,
-    IpDirection, IpSpec, Junction, JunctionStyle, JunctionWiring, LabelMode, LibCopy, LibDocument, LibRef,
-    MasterData, NumberSpec, Open, Page, PageType, PotentialDef, PotentialEnv, PotentialType, Project,
-    ProjectKind, ProjectSettings, Record, RepType, Representation, Scale, Section, Sha256, SheetSpec, Side,
-    Slot, Strip, StructureAssignment, StructureNode, SymbolDef, TagPrint, TagSpec, Terminal, WireOverrides,
-    WireProps,
+    DeviceState, Dir4, Endpoint, Extra, FnDef, FnRole, Folio, FormDef, FormKind, Function, FunctionKind,
+    InternalKind, InternalLinkDef, IpDirection, IpSpec, Junction, JunctionStyle, JunctionWiring, LabelMode,
+    LibCopy, LibDocument, LibRef, MasterData, NumberSpec, Open, Page, PageType, PotentialDef, PotentialEnv,
+    PotentialType, Project, ProjectKind, ProjectSettings, Record, RepType, Representation, Scale, Section,
+    Sha256, SheetSpec, Side, Slot, Strip, StructureAssignment, StructureNode, SymbolCp, SymbolDef, TagPrint,
+    TagSpec, Terminal, WireOverrides, WireProps,
 };
 use ew_units::{Dec3, Grid, Nm, Pt2};
 
 use super::ids::SynthSource;
 use super::topology::{ConnKind, DefKind, DeviceRole, End, FnRolePlan, IpDir, Plan, PotKind, RepKind};
-use super::{Generated, Handles};
+use super::{Generated, Handles, Options};
 
 /// The library all embedded copies claim to come from.
 const LIBRARY_ID: Uuid = Uuid::from_u128(0x5e17_0000_0000_0000_0000_0000_0000_0001);
 
 /// Slots per row on a page.
 const SLOTS_PER_ROW: usize = 24;
+
+/// Grid steps between neighbouring slots (a slot cell is `SLOT_STEPS` x `SLOT_STEPS` steps of the page grid).
+const SLOT_STEPS: i64 = 6;
+
+/// CPs per row of a symbol (the symbol's CPs sit in a block of `CP_COLUMNS` columns of grid steps).
+const CP_COLUMNS: usize = 6;
 
 fn ident(s: &str) -> Ident {
     s.parse()
@@ -43,14 +51,44 @@ fn page_grid() -> Grid {
     Grid::new(7_937_500, 3).expect("valid grid")
 }
 
-/// The grid position of a page-local slot (exact multiples of the grid).
+/// The grid position of a page-local slot (exact multiples of three grid steps, hence an integral number of
+/// nanometres).
 fn slot_pos(grid: Grid, slot: usize) -> Pt2 {
     let col = (slot % SLOTS_PER_ROW) as i64;
     let row = (slot / SLOTS_PER_ROW) as i64;
     Pt2::new(
-        grid.at(3 * (2 + 2 * col)).expect("slot x within range"),
-        grid.at(3 * (2 + 2 * row)).expect("slot y within range"),
+        grid.at(SLOT_STEPS / 2 * (2 + 2 * col))
+            .expect("slot x within range"),
+        grid.at(SLOT_STEPS / 2 * (2 + 2 * row))
+            .expect("slot y within range"),
     )
+}
+
+/// The offset of CP `idx` of every symbol: the CPs fill a block of `CP_COLUMNS` columns of grid steps row by
+/// row, so they stay inside the `SLOT_STEPS` x `SLOT_STEPS` cell of the representation (up to 36 CPs).
+/// Because a representation sits on a multiple of three grid steps, `pos + offset` is again a position of the
+/// grid.
+fn cp_offset(grid: Grid, idx: usize) -> Pt2 {
+    Pt2::new(
+        grid.at((idx % CP_COLUMNS) as i64).expect("CP x within range"),
+        grid.at((idx / CP_COLUMNS) as i64).expect("CP y within range"),
+    )
+}
+
+/// The page position of CP `idx` of the function drawn at `slot`.
+fn cp_pos(grid: Grid, slot: usize, idx: u16) -> Pt2 {
+    let (origin, off) = (slot_pos(grid, slot), cp_offset(grid, usize::from(idx)));
+    Pt2::new(Nm(origin.x.0 + off.x.0), Nm(origin.y.0 + off.y.0))
+}
+
+/// An orthogonal route from `a` to `b`: two vertices when they share a coordinate, else an L with the
+/// horizontal leg first.
+fn route(a: Pt2, b: Pt2) -> Vec<Pt2> {
+    if a.x == b.x || a.y == b.y {
+        vec![a, b]
+    } else {
+        vec![a, Pt2::new(b.x, a.y), b]
+    }
 }
 
 fn lib_copy<T>(copy_id: Id<T>, item_id: Id<T>, item: T) -> LibCopy<T> {
@@ -65,10 +103,11 @@ fn lib_copy<T>(copy_id: Id<T>, item_id: Id<T>, item: T) -> LibCopy<T> {
     }
 }
 
-fn lib_ref() -> LibRef {
+/// A reference to the library item `item` (here: a function definition).
+fn lib_ref<T>(item: Id<T>) -> LibRef {
     LibRef {
         library: Id::from_uuid(LIBRARY_ID),
-        item: Id::from_uuid(Uuid::from_u128(0x5e17_0000_0000_0000_0000_0000_0000_0002)),
+        item: Id::from_uuid(item.as_uuid()),
         version_req: "*".into(),
         extra: Extra::new(),
     }
@@ -95,16 +134,37 @@ fn form_copy(copy_id: Id<FormDef>, item_id: Id<FormDef>) -> LibCopy<FormDef> {
     lib_copy(copy_id, item_id, item)
 }
 
-fn symbol_copy(copy_id: Id<SymbolDef>, item_id: Id<SymbolDef>) -> LibCopy<SymbolDef> {
+/// The symbol of function definition `kind`: one connection point per CP of the definition, at
+/// [`cp_offset`].
+fn symbol_copy(
+    copy_id: Id<SymbolDef>,
+    item_id: Id<SymbolDef>,
+    fndef_item: Id<FnDef>,
+    kind: &DefKind,
+) -> LibCopy<SymbolDef> {
+    let grid = page_grid();
+    let cps = (0..kind.cp_count())
+        .map(|i| SymbolCp {
+            idx: i as u16,
+            fn_cp: i as u16,
+            pos: cp_offset(grid, i),
+            dir: Dir4::Right,
+            discipline: Default::default(),
+            extra: Extra::new(),
+        })
+        .collect();
     let item = SymbolDef {
         meta: Default::default(),
         name: MlText::default(),
         keywords: Default::default(),
-        rep_type: RepType::MultiLine,
-        fndef: lib_ref(),
-        grid: page_grid(),
+        rep_type: match kind {
+            DefKind::Strip => RepType::StripSegment,
+            _ => RepType::MultiLine,
+        },
+        fndef: lib_ref(fndef_item),
+        grid,
         graphics: vec![],
-        cps: Default::default(),
+        cps: ew_schema::KeyedList::from_vec(cps).expect("distinct CP indexes"),
         text_slots: Default::default(),
         arrangements: vec![],
         anchor: Default::default(),
@@ -159,7 +219,16 @@ fn fndef_copy(copy_id: Id<FnDef>, item_id: Id<FnDef>, kind: &DefKind) -> LibCopy
                 .collect(),
         )
         .expect("distinct CP indexes"),
-        internal: vec![],
+        // A terminal passes its two sides through: one potential from `a` to `b`.
+        internal: match kind {
+            DefKind::Terminal => vec![InternalLinkDef {
+                a: 0,
+                b: 1,
+                kind: InternalKind::Short,
+                extra: Extra::new(),
+            }],
+            _ => vec![],
+        },
         flags: Default::default(),
         extra: Extra::new(),
     };
@@ -339,7 +408,7 @@ fn mint<T>(ids: &mut V7Generator<SynthSource>, n: usize) -> Vec<Id<T>> {
 }
 
 /// Emits the records of `plan`; see [`super::emit`].
-pub(super) fn emit(plan: &Plan, seed: u64) -> Generated {
+pub(super) fn emit(plan: &Plan, seed: u64, options: &Options) -> Generated {
     let mut ids = V7Generator::new(SynthSource::new(seed));
     let class = plan.class;
     let grid = page_grid();
@@ -353,12 +422,17 @@ pub(super) fn emit(plan: &Plan, seed: u64) -> Generated {
     let page_ids: Vec<Id<Page>> = mint(&mut ids, plan.pages.len());
     let form_id: Id<FormDef> = ids.next();
     let form_item: Id<FormDef> = ids.next();
-    let symbol_id: Id<SymbolDef> = ids.next();
-    let symbol_item: Id<SymbolDef> = ids.next();
     let fndef_ids: Vec<(Id<FnDef>, Id<FnDef>)> = (0..plan.fndefs.len())
         .map(|_| {
             let copy: Id<FnDef> = ids.next();
             let item: Id<FnDef> = ids.next();
+            (copy, item)
+        })
+        .collect();
+    let symbol_ids: Vec<(Id<SymbolDef>, Id<SymbolDef>)> = (0..plan.fndefs.len())
+        .map(|_| {
+            let copy: Id<SymbolDef> = ids.next();
+            let item: Id<SymbolDef> = ids.next();
             (copy, item)
         })
         .collect();
@@ -500,7 +574,7 @@ pub(super) fn emit(plan: &Plan, seed: u64) -> Generated {
             v: 1,
             functions: vec![function_ids[rp.function]],
             page: page_ids[rp.page],
-            symbol: symbol_id,
+            symbol: symbol_ids[plan.functions[rp.function].def].0,
             variant: 0,
             pos: slot_pos(grid, rp.slot),
             orient: Default::default(),
@@ -532,9 +606,12 @@ pub(super) fn emit(plan: &Plan, seed: u64) -> Generated {
         }));
     }
 
-    // Connections.
+    // Connections. A routed wire between two CPs gets an orthogonal route that starts and ends exactly at the
+    // CP positions the model computes (representation position plus symbol CP offset).
+    let rep_slot: BTreeMap<usize, usize> = plan.reps.iter().map(|r| (r.function, r.slot)).collect();
+    let cp_at = |f: usize, idx: u16| cp_pos(grid, rep_slot[&f], idx);
     for (c, cp) in plan.connections.iter().enumerate() {
-        records.push(Record::Connection(connection(
+        let mut rec = connection(
             connection_ids[c],
             page_ids[cp.page],
             ep(cp.a),
@@ -543,7 +620,11 @@ pub(super) fn emit(plan: &Plan, seed: u64) -> Generated {
                 ConnKind::Wire => ConnectionKind::Wire,
                 ConnKind::Core(k) => ConnectionKind::Core(conductor_ids[k]),
             },
-        )));
+        );
+        if let (true, true, End::Cp(fa, ia), End::Cp(fb, ib)) = (options.routes, cp.routed, cp.a, cp.b) {
+            rec.route = route(cp_at(fa, ia), cp_at(fb, ib));
+        }
+        records.push(Record::Connection(rec));
     }
 
     // Conductors.
@@ -580,9 +661,13 @@ pub(super) fn emit(plan: &Plan, seed: u64) -> Generated {
     }
 
     // Library.
-    let mut lib = Vec::with_capacity(2 + plan.fndefs.len());
+    let mut lib = Vec::with_capacity(1 + 2 * plan.fndefs.len());
     lib.push(LibDocument::Form(form_copy(form_id, form_item)));
-    lib.push(LibDocument::Symbol(symbol_copy(symbol_id, symbol_item)));
+    for (kind, (symbol, fndef)) in plan.fndefs.iter().zip(symbol_ids.iter().zip(&fndef_ids)) {
+        lib.push(LibDocument::Symbol(symbol_copy(
+            symbol.0, symbol.1, fndef.1, kind,
+        )));
+    }
     for (kind, (copy, item)) in plan.fndefs.iter().zip(fndef_ids.iter().copied()) {
         lib.push(LibDocument::Fndef(fndef_copy(copy, item, kind)));
     }

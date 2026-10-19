@@ -33,9 +33,32 @@
 //! and FE points of station `u` with those of station `u + 1`.
 //!
 //! **Signals.** The remaining connection budget is spent on page-local signal wires between free CPs (PLC
-//! channels, aux contacts, the field and internal sides of X2 terminals, spare CPs of loads), in pairs taken
-//! from a round-robin merge of those categories, spread evenly over the pages. A signal wire never touches a
-//! rail, so the power potentials stay apart.
+//! channels, aux contacts, the field and internal sides of X2 terminals, spare CPs of loads), spread evenly
+//! over the pages. A signal wire never touches a rail, so the power potentials stay apart. Per page the CPs
+//! are paired like this:
+//!
+//! 1. **Chains.** A PLC channel is wired to side `a` of a terminal of the page, and side `b` of that terminal
+//!    to a load spare CP or an aux contact CP (round-robin over those): the terminal function shorts its two
+//!    sides (an internal `Short` link in the definition), so channel, `a`, `b` and the load CP are one net of
+//!    four CPs. As many chains as the page has channels and terminals.
+//! 2. **The rest.** The remaining CPs are grouped by device (the device of a function: aux contacts belong to
+//!    their load, a terminal is its own device) and paired so that the two ends of a wire never belong to the
+//!    same device, hence never to the same function: the grouped list is cut in half and item `i` is paired
+//!    with item `i + n/2`, which is valid as long as no device owns more than half of the list. When one does
+//!    (a load with many spares on a sparse page) its surplus CPs stay unpaired.
+//!
+//! The pairs of a page form one list in this order (chains first, two wires per chain). The first `k` pairs
+//! become wires. The remaining pairs, flattened, and the unpaired CPs are the page's free CPs
+//! ([`Plan::free_cps`]), reordered so that no two consecutive entries belong to one device (greedy: the
+//! device with most entries left that differs from the previous entry goes next); only when a device owns
+//! more than half of the list does its surplus end the list. A benchmark that draws a wire between two
+//! consecutive free CPs therefore does not join a function with itself.
+//!
+//! **Routes.** Signal wires carry a route when generated with [`Options::routes`](super::Options::routes):
+//! [`ConnPlan::routed`] marks every [`ROUTE_EVERY`]th signal wire of a page in plan order (25 %) and every
+//! signal wire that ends at the main function of a load, so that moving a load representation updates routes.
+//! The emitter draws a marked wire as an orthogonal route between the two CP positions (see `synth`'s module
+//! docs).
 //!
 //! **Tags.** Every non-terminal device gets the next free counter of its letter on the page of its main
 //! representation, so page-based tags (`{page}{letter}{counter}`) are unique. Terminals carry their strip's
@@ -143,6 +166,9 @@ pub const REPLICA_FOLIOS: [u32; 18] = [
 
 /// Pages per full replica.
 pub const PAGES_PER_REPLICA: usize = REPLICA_FOLIOS.len();
+
+/// Every `ROUTE_EVERY`th signal wire of a page (in plan order, starting with the first) is routed.
+pub const ROUTE_EVERY: usize = 4;
 
 /// CPs of an aux contact block (`13`, `14`, `21`, `22`).
 pub const CONTACT_CPS: usize = 4;
@@ -422,6 +448,8 @@ pub struct ConnPlan {
     pub kind: ConnKind,
     /// What it is for.
     pub role: ConnRole,
+    /// Whether the emitter draws it with a route (signal wires only; see the module docs).
+    pub routed: bool,
 }
 
 /// One conductor of a cable.
@@ -486,7 +514,9 @@ pub struct Plan {
     pub potentials: Vec<PotentialPlan>,
     /// The CP count of the load main function (`DefKind::Load(m)`).
     pub load_cps: usize,
-    /// Per page, the signal CPs no connection uses, in pool order: targets for wires drawn by benchmarks.
+    /// Per page, the signal CPs no connection uses: targets for wires drawn by benchmarks. Consecutive entries
+    /// belong to different devices (hence different functions) unless one device owns more than half of the
+    /// page's free CPs; then its surplus ends the list.
     pub free_cps: Vec<Vec<(FnIx, u16)>>,
     /// The main representation of every load, in device order (rep indices): targets for moves.
     pub load_reps: Vec<usize>,
@@ -547,38 +577,156 @@ const RAIL_24: usize = 3;
 const RAIL_0: usize = 4;
 const RAIL_NAMES: [&str; 5] = ["L", "N", "PE", "P24", "P0"];
 
-/// The signal-CP categories of a page, merged round-robin into the page's pool.
+/// A signal CP: a function and the index of its CP.
+type SigCp = (FnIx, u16);
+
+/// The signal-CP categories of a page.
 #[derive(Default)]
 struct SignalPool {
-    channels: Vec<(FnIx, u16)>,
-    contact_a: Vec<(FnIx, u16)>,
-    terminal_a: Vec<(FnIx, u16)>,
-    contact_b: Vec<(FnIx, u16)>,
-    terminal_b: Vec<(FnIx, u16)>,
-    spares: Vec<(FnIx, u16)>,
+    /// PLC channels.
+    channels: Vec<SigCp>,
+    /// CPs `13`, `14` of aux contact blocks.
+    contact_a: Vec<SigCp>,
+    /// Side `a` of the X2 terminals, parallel to `terminal_b`.
+    terminal_a: Vec<SigCp>,
+    /// CPs `21`, `22` of aux contact blocks.
+    contact_b: Vec<SigCp>,
+    /// Side `b` of the X2 terminals.
+    terminal_b: Vec<SigCp>,
+    /// Spare CPs of the loads' main functions.
+    spares: Vec<SigCp>,
 }
 
-impl SignalPool {
-    fn merged(self) -> Vec<(FnIx, u16)> {
-        let lists = [
-            self.channels,
-            self.contact_a,
-            self.terminal_a,
-            self.contact_b,
-            self.terminal_b,
-            self.spares,
-        ];
-        let longest = lists.iter().map(Vec::len).max().unwrap_or(0);
-        let mut out = Vec::with_capacity(lists.iter().map(Vec::len).sum());
-        for i in 0..longest {
-            for list in &lists {
-                if let Some(cp) = list.get(i) {
-                    out.push(*cp);
-                }
+/// The pairing of one page: wire candidates in plan order and the CPs that found no partner.
+struct PagePairs {
+    pairs: Vec<(SigCp, SigCp)>,
+    unpaired: Vec<SigCp>,
+}
+
+/// Round-robin merge of lists: first of each, second of each, ...
+fn round_robin(lists: &[&[SigCp]]) -> Vec<SigCp> {
+    let longest = lists.iter().map(|l| l.len()).max().unwrap_or(0);
+    let mut out = Vec::with_capacity(lists.iter().map(|l| l.len()).sum());
+    for i in 0..longest {
+        for list in lists {
+            if let Some(cp) = list.get(i) {
+                out.push(*cp);
             }
         }
-        out
     }
+    out
+}
+
+/// Orders `items` so that no two consecutive entries belong to one device, as far as the numbers allow: at
+/// each step the device with the most entries left that differs from the previous one goes next (ties: the
+/// device that appeared first). Only when one device owns more than half of the entries do its surplus entries
+/// end the list. Deterministic.
+fn spread_by_device(functions: &[FunctionPlan], items: Vec<SigCp>) -> Vec<SigCp> {
+    let mut rank: BTreeMap<Option<DevIx>, usize> = BTreeMap::new();
+    let mut groups: Vec<std::collections::VecDeque<SigCp>> = Vec::new();
+    for cp in items.iter().copied() {
+        let next = rank.len();
+        let r = *rank.entry(functions[cp.0].device).or_insert(next);
+        if r == groups.len() {
+            groups.push(Default::default());
+        }
+        groups[r].push_back(cp);
+    }
+    let mut out = Vec::with_capacity(items.len());
+    let mut last: Option<usize> = None;
+    while out.len() < items.len() {
+        let mut pick: Option<usize> = None;
+        for (r, g) in groups.iter().enumerate() {
+            if g.is_empty() || Some(r) == last {
+                continue;
+            }
+            if pick.is_none_or(|p| g.len() > groups[p].len()) {
+                pick = Some(r);
+            }
+        }
+        // Only the previous device is left: its remaining entries end the list.
+        let r = pick.or(last).expect("an entry is left");
+        out.push(groups[r].pop_front().expect("a non-empty group"));
+        last = Some(r);
+    }
+    out
+}
+
+/// Pairs the CPs of a page (see the module docs, "Signals"): chains of channel, terminal and load CP first,
+/// then the rest across devices. No pair joins two CPs of one device.
+fn pair_page(functions: &[FunctionPlan], pool: SignalPool) -> PagePairs {
+    let device = |cp: &SigCp| functions[cp.0].device;
+    let mut pairs: Vec<(SigCp, SigCp)> = Vec::new();
+
+    // Chains: channel - terminal side a, terminal side b - load or contact CP.
+    let loads = round_robin(&[&pool.spares, &pool.contact_a, &pool.contact_b]);
+    let chains = pool.channels.len().min(pool.terminal_a.len()).min(loads.len());
+    let links = pool
+        .channels
+        .iter()
+        .zip(&pool.terminal_a)
+        .zip(&pool.terminal_b)
+        .zip(&loads);
+    for (((&channel, &side_a), &side_b), &load) in links.take(chains) {
+        pairs.push((channel, side_a));
+        pairs.push((side_b, load));
+    }
+
+    // The rest, grouped by device (groups in order of first appearance).
+    let chained: std::collections::BTreeSet<SigCp> = loads[..chains].iter().copied().collect();
+    let mut rest: Vec<SigCp> = Vec::new();
+    rest.extend(&pool.channels[chains..]);
+    for (&side_a, &side_b) in pool.terminal_a[chains..].iter().zip(&pool.terminal_b[chains..]) {
+        rest.extend([side_a, side_b]);
+    }
+    rest.extend(
+        round_robin(&[&pool.contact_a, &pool.contact_b])
+            .into_iter()
+            .filter(|cp| !chained.contains(cp)),
+    );
+    rest.extend(pool.spares.iter().filter(|cp| !chained.contains(*cp)));
+    let mut rank: BTreeMap<Option<DevIx>, usize> = BTreeMap::new();
+    for cp in &rest {
+        let next = rank.len();
+        rank.entry(device(cp)).or_insert(next);
+    }
+    // Stable sort: the items of one device become contiguous, the devices stay in order of first appearance.
+    rest.sort_by_key(|cp| rank[&device(cp)]);
+
+    // Cut the list in half and pair across the cut; a device that owns more than half of it leaves its
+    // surplus unpaired (taken from the end of its group).
+    let mut unpaired: Vec<SigCp> = Vec::new();
+    let mut sizes = vec![0usize; rank.len()];
+    for cp in &rest {
+        sizes[rank[&device(cp)]] += 1;
+    }
+    let mut big = 0;
+    for (r, &n) in sizes.iter().enumerate() {
+        if n > sizes[big] {
+            big = r;
+        }
+    }
+    let n = rest.len();
+    let g = sizes.get(big).copied().unwrap_or(0);
+    if 2 * g > n {
+        let mut surplus = 2 * g - n;
+        let mut i = rest.len();
+        while surplus > 0 {
+            i -= 1;
+            if rank[&device(&rest[i])] == big {
+                unpaired.push(rest.remove(i));
+                surplus -= 1;
+            }
+        }
+    }
+    if rest.len() % 2 == 1 {
+        unpaired.push(rest.pop().expect("odd length"));
+    }
+    let half = rest.len() / 2;
+    for i in 0..half {
+        pairs.push((rest[i], rest[i + half]));
+    }
+    PagePairs { pairs, unpaired }
 }
 
 struct Builder {
@@ -814,6 +962,7 @@ impl Builder {
                     b: End::Cp(spines[u + 1].station, cp),
                     kind: ConnKind::Core(cond),
                     role: ConnRole::Bus,
+                    routed: false,
                 });
             }
         }
@@ -1094,19 +1243,29 @@ impl Builder {
             b,
             kind: ConnKind::Wire,
             role,
+            routed: false,
         });
         self.plan.connections.len() - 1
+    }
+
+    /// Whether `f` is the main function of a load.
+    fn is_load_main(&self, f: FnIx) -> bool {
+        let fp = &self.plan.functions[f];
+        fp.role == FnRolePlan::Main
+            && fp
+                .device
+                .is_some_and(|d| self.plan.devices[d].role == DeviceRole::Load)
     }
 
     /// Spends `budget` signal wires over the pages: an even share per page first (capped by what the page
     /// offers), then the shortfall from the pages with room left, in page order.
     fn signals(&mut self, budget: usize) {
         let pages = self.plan.pages.len();
-        let pools: Vec<Vec<(FnIx, u16)>> = std::mem::take(&mut self.pools)
+        let pairings: Vec<PagePairs> = std::mem::take(&mut self.pools)
             .into_iter()
-            .map(SignalPool::merged)
+            .map(|pool| pair_page(&self.plan.functions, pool))
             .collect();
-        let caps: Vec<usize> = pools.iter().map(|p| p.len() / 2).collect();
+        let caps: Vec<usize> = pairings.iter().map(|p| p.pairs.len()).collect();
         let mut used: Vec<usize> = (0..pages)
             .map(|q| (budget / pages + usize::from(q < budget % pages)).min(caps[q]))
             .collect();
@@ -1125,13 +1284,19 @@ impl Builder {
             "class {}: not enough free CPs for the signal wires",
             self.class.name()
         );
-        for (q, pool) in pools.into_iter().enumerate() {
-            for i in 0..used[q] {
-                let (fa, ca) = pool[2 * i];
-                let (fb, cb) = pool[2 * i + 1];
-                self.wire(q, End::Cp(fa, ca), End::Cp(fb, cb), ConnRole::Signal);
+        for (q, pairing) in pairings.into_iter().enumerate() {
+            for (j, &((fa, ca), (fb, cb))) in pairing.pairs[..used[q]].iter().enumerate() {
+                let c = self.wire(q, End::Cp(fa, ca), End::Cp(fb, cb), ConnRole::Signal);
+                self.plan.connections[c].routed =
+                    j % ROUTE_EVERY == 0 || self.is_load_main(fa) || self.is_load_main(fb);
             }
-            self.plan.free_cps.push(pool[2 * used[q]..].to_vec());
+            let mut free: Vec<SigCp> = pairing.pairs[used[q]..]
+                .iter()
+                .flat_map(|&(a, b)| [a, b])
+                .collect();
+            free.extend(pairing.unpaired);
+            let free = spread_by_device(&self.plan.functions, free);
+            self.plan.free_cps.push(free);
         }
     }
 }
@@ -1203,6 +1368,147 @@ mod tests {
             }
         }
         assert!(ips.values().all(|&n| n == (1, 1)));
+        check_signals(plan);
+    }
+
+    /// A union-find over dense indexes (path halving).
+    struct Dsu(Vec<usize>);
+
+    impl Dsu {
+        fn find(&mut self, mut x: usize) -> usize {
+            while self.0[x] != x {
+                self.0[x] = self.0[self.0[x]];
+                x = self.0[x];
+            }
+            x
+        }
+
+        fn union(&mut self, a: usize, b: usize) {
+            let (a, b) = (self.find(a), self.find(b));
+            self.0[a] = b;
+        }
+    }
+
+    /// The signal wires: no wire joins two CPs of one function or device; every replica has a channel-terminal
+    /// wire and a net of at least three CPs; routes are marked as documented; the free CPs of a page are spread
+    /// over its devices. Index arithmetic only, cheap enough for L and XL.
+    fn check_signals(plan: &Plan) {
+        let mut base = Vec::with_capacity(plan.functions.len());
+        let mut total = 0;
+        for f in &plan.functions {
+            base.push(total);
+            total += plan.fndefs[f.def].cp_count();
+        }
+        let node = |f: FnIx, idx: u16| base[f] + usize::from(idx);
+        let is_def = |f: FnIx, pred: fn(&DefKind) -> bool| pred(&plan.fndefs[plan.functions[f].def]);
+        let is_load_main = |f: FnIx| {
+            let fp = &plan.functions[f];
+            fp.role == FnRolePlan::Main
+                && fp
+                    .device
+                    .is_some_and(|d| plan.devices[d].role == DeviceRole::Load)
+        };
+
+        let mut dsu = Dsu((0..total).collect());
+        let mut touched = vec![false; total];
+        let mut replica_of_node: BTreeMap<usize, usize> = BTreeMap::new();
+        let mut chain_wires = vec![0usize; plan.replicas.len()];
+        let mut index_on_page = vec![0usize; plan.pages.len()];
+        for c in plan.connections.iter().filter(|c| c.role == ConnRole::Signal) {
+            let (End::Cp(fa, ia), End::Cp(fb, ib)) = (c.a, c.b) else {
+                panic!("signal wires join CPs: {c:?}");
+            };
+            assert_ne!(fa, fb, "a wire joins a function with itself: {c:?}");
+            let (da, db) = (plan.functions[fa].device, plan.functions[fb].device);
+            assert!(da.is_some() && db.is_some(), "signal CPs belong to devices");
+            assert_ne!(da, db, "a wire joins a device with itself: {c:?}");
+            for n in [node(fa, ia), node(fb, ib)] {
+                touched[n] = true;
+                replica_of_node.insert(n, plan.pages[c.page].replica);
+            }
+            dsu.union(node(fa, ia), node(fb, ib));
+            let is_module = |f| is_def(f, |d| matches!(d, DefKind::Module(_)));
+            let is_terminal = |f| is_def(f, |d| matches!(d, DefKind::Terminal));
+            if (is_module(fa) && is_terminal(fb)) || (is_module(fb) && is_terminal(fa)) {
+                chain_wires[plan.pages[c.page].replica] += 1;
+            }
+            // Routes: every ROUTE_EVERY-th signal wire of the page, and those at a load main function.
+            let j = index_on_page[c.page];
+            index_on_page[c.page] += 1;
+            assert_eq!(
+                c.routed,
+                j % ROUTE_EVERY == 0 || is_load_main(fa) || is_load_main(fb),
+                "routed mark of {c:?} (page wire {j})"
+            );
+        }
+        // Terminals short their two sides.
+        for (f, fp) in plan.functions.iter().enumerate() {
+            if matches!(plan.fndefs[fp.def], DefKind::Terminal) {
+                let (a, b) = (node(f, 0), node(f, 1));
+                if touched[a] || touched[b] {
+                    touched[a] = true;
+                    touched[b] = true;
+                    dsu.union(a, b);
+                    if let Some(&r) = replica_of_node.get(&a).or_else(|| replica_of_node.get(&b)) {
+                        replica_of_node.insert(a, r);
+                        replica_of_node.insert(b, r);
+                    }
+                }
+            }
+        }
+        let mut sizes: BTreeMap<usize, usize> = BTreeMap::new();
+        for n in (0..total).filter(|n| touched[*n]) {
+            let root = dsu.find(n);
+            *sizes.entry(root).or_default() += 1;
+        }
+        let mut big_nets = vec![0usize; plan.replicas.len()];
+        let mut seen = std::collections::BTreeSet::new();
+        for n in (0..total).filter(|n| touched[*n]) {
+            let root = dsu.find(n);
+            if sizes[&root] >= 3 && seen.insert(root) {
+                big_nets[replica_of_node[&n]] += 1;
+            }
+        }
+        for (u, (&chains, &nets)) in chain_wires.iter().zip(&big_nets).enumerate() {
+            assert!(chains > 0, "replica {u} has no channel-terminal wire");
+            assert!(nets > 0, "replica {u} has no signal net of three or more CPs");
+        }
+
+        // The routed fraction is at least a quarter of the signal wires.
+        let signals = plan
+            .connections
+            .iter()
+            .filter(|c| c.role == ConnRole::Signal)
+            .count();
+        let routed = plan
+            .connections
+            .iter()
+            .filter(|c| c.role == ConnRole::Signal && c.routed)
+            .count();
+        assert!(routed * ROUTE_EVERY >= signals, "{routed} routed of {signals}");
+        assert!(
+            plan.connections
+                .iter()
+                .all(|c| !c.routed || c.role == ConnRole::Signal)
+        );
+
+        // Free CPs: consecutive entries belong to different devices unless one device owns more than half.
+        for (q, free) in plan.free_cps.iter().enumerate() {
+            let mut per_device: BTreeMap<Option<DevIx>, usize> = BTreeMap::new();
+            for &(f, _) in free {
+                *per_device.entry(plan.functions[f].device).or_default() += 1;
+            }
+            let biggest = per_device.values().copied().max().unwrap_or(0);
+            let same = free
+                .windows(2)
+                .filter(|w| plan.functions[w[0].0].device == plan.functions[w[1].0].device)
+                .count();
+            let allowed = (2 * biggest).saturating_sub(free.len() + 1);
+            assert!(
+                same <= allowed,
+                "page {q}: {same} consecutive free CPs of one device (allowed {allowed})"
+            );
+        }
     }
 
     #[test]
@@ -1219,9 +1525,46 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "L/XL generation runs with the performance spike (milestone rule)"]
     fn l_and_xl_plans_meet_the_class_bounds() {
+        // Plan-only: index arithmetic, no records (the L/XL records are generated with the performance
+        // spike, see `tests/synth.rs`).
         check_shape(&Plan::build(SizeClass::L));
         check_shape(&Plan::build(SizeClass::XL));
+    }
+
+    #[test]
+    fn plans_are_deterministic() {
+        for class in [SizeClass::S, SizeClass::M] {
+            assert_eq!(Plan::build(class), Plan::build(class));
+        }
+    }
+
+    #[test]
+    fn spread_orders_by_device() {
+        let functions: Vec<FunctionPlan> = [0usize, 0, 1, 2]
+            .iter()
+            .map(|&d| FunctionPlan {
+                device: Some(d),
+                def: 0,
+                role: FnRolePlan::Main,
+                ip: None,
+            })
+            .collect();
+        // Devices: f0 and f1 of device 0, f2 of device 1, f3 of device 2.
+        let items = vec![(0, 0), (0, 1), (1, 0), (2, 0), (2, 1), (3, 0), (3, 1)];
+        let out = spread_by_device(&functions, items.clone());
+        assert_eq!(out.len(), items.len());
+        for w in out.windows(2) {
+            assert_ne!(functions[w[0].0].device, functions[w[1].0].device, "{out:?}");
+        }
+        // A dominant device: its surplus ends the list.
+        let out = spread_by_device(&functions, vec![(0, 0), (0, 1), (1, 0), (1, 1), (2, 0)]);
+        assert_eq!(out.len(), 5);
+        let same = out
+            .windows(2)
+            .filter(|w| functions[w[0].0].device == functions[w[1].0].device)
+            .count();
+        assert_eq!(same, 2, "{out:?}");
+        assert_ne!(functions[out[0].0].device, functions[out[1].0].device);
     }
 }

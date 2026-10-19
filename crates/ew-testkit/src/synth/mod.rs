@@ -16,7 +16,29 @@
 //!
 //! Every page is a multi-line page (`PageType::MultiLine`), including the folios that doc 20 draws as cover,
 //! topology or layout pages, so that every representation type the plan uses is valid on every page. Library
-//! copies (one form, one symbol and one function definition per plan entry) are embedded in the project.
+//! copies (one form, and one function definition with its symbol per plan entry) are embedded in the project.
+//!
+//! # Signal wires, routes and symbols
+//!
+//! Signal wires never join two CPs of one device, and PLC channels reach load and contact CPs through terminals
+//! (chains of four CPs; the terminal function carries an internal `Short` link between its sides `a` and `b`):
+//! the pairing is described in [`topology`]. A symbol has one CP per CP of its function definition, laid out in
+//! rows of six grid steps from the representation's origin, so a CP is drawn at the representation's position
+//! plus `(idx % 6, idx / 6)` grid steps and stays inside the six-by-six-step cell of its slot; slots sit on
+//! multiples of three steps, so every CP position is a grid position.
+//!
+//! **Routes.** With the default [`Options`] (`routes: true`) a documented fraction of the signal wires is
+//! drawn with a route: every 4th signal wire of a page in plan order (25 %, see
+//! [`topology::ROUTE_EVERY`]) and every signal wire that ends at the main function of a load (so that
+//! `rep.move` of a load updates routes). A route is orthogonal with two vertices (both CPs share a
+//! coordinate) or three (an L, horizontal leg first), starts and ends exactly at the two CP positions, and has
+//! every vertex on the connection grid. Rails, bus cores and the remaining signal wires have empty routes.
+//! `Options { routes: false }` ([`project_with`], [`emit_with`]) leaves every route empty and changes nothing
+//! else: the records are equal to the default ones except for the `route` fields, and the IDs are the same.
+//! `rep.move` of a representation moves the route ends of its attached wires with it
+//! (`geometry::follow_end`: the end vertex moves by the delta and its neighbour keeps the segment
+//! orthogonal; both ends moved: the route translates) and never rejects because of a route unless a
+//! coordinate would leave the drawable range.
 //!
 //! # Determinism
 //!
@@ -51,7 +73,19 @@
 //! | XL | 5 000 | 50 000 | 150 000 | 250 000 | 603 482 | 20 000 | 10 000 | 150 000 | 59 438 | 666 389 |
 //!
 //! The S and M rows are asserted by `tests/synth.rs`; the L and XL rows come from the plan (their fixtures are
-//! generated with the performance spike, see the ignored test there).
+//! generated with the performance spike, see the ignored test there; the plan-only checks of L and XL run
+//! always). The counts are the same in generator versions 1 and 2.
+//!
+//! Signal wires and routes (version 2; the rest of the connections are rails and bus cores). The routed share
+//! is the quarter of every page plus the wires at load main functions, so it depends on how many spare load
+//! CPs a class has:
+//!
+//! | Class | Signal wires | Routed | Routed share |
+//! |---|---|---|---|
+//! | S | 686 | 369 | 54 % |
+//! | M | 8 364 | 7 277 | 87 % |
+//! | L | 37 963 | 30 736 | 81 % |
+//! | XL | 119 181 | 38 198 | 32 % |
 
 pub mod topology;
 
@@ -62,7 +96,24 @@ pub use ids::SynthSource;
 pub use topology::{Bounds, Counts, Plan, SizeClass};
 
 /// Bumped whenever the output for a (class, seed) changes; part of the perf-gate baseline key (18 §4.4).
-pub const GENERATOR_VERSION: u32 = 1;
+///
+/// Version 2: signal wires never join one device with itself, channel-terminal-load chains, routes on a
+/// quarter of the signal wires and on those at load main functions, one symbol with CPs per function
+/// definition, terminals short their two sides.
+pub const GENERATOR_VERSION: u32 = 2;
+
+/// Generation options. [`Options::default`] is what [`project`] and [`emit`] use.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Options {
+    /// Draw the routed signal wires with a route (default); `false` leaves every route empty.
+    pub routes: bool,
+}
+
+impl Default for Options {
+    fn default() -> Options {
+        Options { routes: true }
+    }
+}
 
 /// A generated project: format-level records, ready for `Session::from_records` or `Model::from_records`.
 #[derive(Clone, Debug)]
@@ -113,12 +164,22 @@ impl Generated {
 
 /// Builds the plan of `class` and emits it with IDs minted from `seed`.
 pub fn project(class: SizeClass, seed: u64) -> Generated {
-    emit(&Plan::build(class), seed)
+    project_with(class, seed, &Options::default())
 }
 
-/// Emits an already built plan (for callers that hold one).
+/// [`project`] with explicit [`Options`].
+pub fn project_with(class: SizeClass, seed: u64, options: &Options) -> Generated {
+    emit_with(&Plan::build(class), seed, options)
+}
+
+/// Emits an already built plan (for callers that hold one) with the default [`Options`].
 pub fn emit(plan: &Plan, seed: u64) -> Generated {
-    emit::emit(plan, seed)
+    emit_with(plan, seed, &Options::default())
+}
+
+/// [`emit`] with explicit [`Options`].
+pub fn emit_with(plan: &Plan, seed: u64, options: &Options) -> Generated {
+    emit::emit(plan, seed, options)
 }
 
 /// The validated model snapshot of [`project`].

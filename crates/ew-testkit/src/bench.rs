@@ -18,6 +18,11 @@
 //! ([`Mode::from_args`]). A latency benchmark (an interactive command) takes [`Mode::latency_samples`] timed
 //! samples and reports min, median, p99 and max; a single-operation benchmark (a bulk command, a model
 //! build) takes the median of [`Mode::single_runs`] runs (18 §4.3, `docs/plan/03-gates.md` §5.1).
+//!
+//! Every benchmark runs untimed warm-up rounds first ([`WARMUP_SAMPLES`] for latencies, [`WARMUP_RUNS`] for
+//! single operations; [`measure`]), so lazily initialised state, cold caches and the allocator's first pages are
+//! not part of the first timed samples. [`measure`] also builds the state of every sample outside the timer and
+//! drops the previous sample's state before the next one is built, so no sample pays for its predecessor.
 
 use std::fmt;
 use std::time::{Duration, Instant};
@@ -26,6 +31,13 @@ use ew_mltext::{Ident, MlText, MlTextView};
 use ew_schema::{Extra, Record};
 
 use crate::synth::SizeClass;
+
+/// Untimed warm-up samples before the timed samples of a latency benchmark, in every mode (the quick mode
+/// included).
+pub const WARMUP_SAMPLES: usize = 20;
+
+/// Untimed warm-up runs before the timed runs of a single-operation benchmark, in every mode.
+pub const WARMUP_RUNS: usize = 1;
 
 /// The environment variable that selects the size class of the benchmarks.
 pub const CLASS_ENV: &str = "EW_BENCH_CLASS";
@@ -179,6 +191,41 @@ pub fn time<T>(f: impl FnOnce() -> T) -> (T, Duration) {
     let start = Instant::now();
     let out = f();
     (out, start.elapsed())
+}
+
+/// Runs `warmup` untimed and then `samples` timed rounds of an operation and returns the timings with the
+/// state of the last round.
+///
+/// Each round `i` builds its own state with `setup(i)` (outside the timer), lets `op(&mut state, i)` time the
+/// operation and return the elapsed time, and keeps the state alive until the next round asks for a new one:
+/// the previous state is dropped before `setup` of the next round runs, never inside a timed section. The
+/// warm-up rounds use the same `setup` and `op` with `i` counting from 0 and their timings are discarded; the
+/// timed rounds count `i` from 0 again, so a benchmark that cycles over targets visits the same ones.
+///
+/// # Panics
+///
+/// If `samples` is 0.
+pub fn measure<S>(
+    warmup: usize,
+    samples: usize,
+    mut setup: impl FnMut(usize) -> S,
+    mut op: impl FnMut(&mut S, usize) -> Duration,
+) -> (Vec<Duration>, S) {
+    assert!(samples > 0, "a benchmark needs at least one sample");
+    for i in 0..warmup {
+        let mut state = setup(i);
+        op(&mut state, i);
+        drop(state);
+    }
+    let mut timings = Vec::with_capacity(samples);
+    let mut previous: Option<S> = None;
+    for i in 0..samples {
+        drop(previous.take());
+        let mut state = setup(i);
+        timings.push(op(&mut state, i));
+        previous = Some(state);
+    }
+    (timings, previous.expect("at least one sample"))
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -400,6 +447,48 @@ mod tests {
         let (v, d) = time(|| 41 + 1);
         assert_eq!(v, 42);
         assert!(d < Duration::from_secs(1));
+    }
+
+    #[test]
+    fn warmup_rounds_are_discarded_and_state_is_dropped_before_the_next_setup() {
+        use std::cell::{Cell, RefCell};
+        struct Probe<'a>(usize, &'a RefCell<Vec<String>>);
+        impl Drop for Probe<'_> {
+            fn drop(&mut self) {
+                self.1.borrow_mut().push(format!("drop{}", self.0));
+            }
+        }
+        let log = RefCell::new(Vec::<String>::new());
+        let calls = Cell::new(0u64);
+        let (timings, last) = measure(
+            2,
+            3,
+            |i| {
+                log.borrow_mut().push(format!("setup{i}"));
+                Probe(i, &log)
+            },
+            |p, i| {
+                assert_eq!(p.0, i);
+                log.borrow_mut().push(format!("op{i}"));
+                calls.set(calls.get() + 1);
+                // The two warm-up rounds return a huge time that must not show up in the samples.
+                Duration::from_nanos(if calls.get() <= 2 { 1_000_000 } else { calls.get() })
+            },
+        );
+        assert_eq!(timings, ns([3, 4, 5]));
+        assert_eq!(last.0, 2);
+        assert_eq!(
+            log.borrow().join(" "),
+            "setup0 op0 drop0 setup1 op1 drop1 setup0 op0 drop0 setup1 op1 drop1 setup2 op2"
+        );
+        drop(last);
+        assert_eq!(log.borrow().last().map(String::as_str), Some("drop2"));
+    }
+
+    #[test]
+    #[should_panic(expected = "at least one sample")]
+    fn measure_needs_a_sample() {
+        measure(0, 0, |_| (), |(), _| Duration::ZERO);
     }
 
     #[test]
