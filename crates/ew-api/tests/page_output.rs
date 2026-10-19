@@ -86,6 +86,10 @@ fn the_golden_pdf_has_every_folio_and_is_byte_identical_across_runs_and_record_s
     assert!(a.bytes == c.bytes, "a record shuffle changes the PDF");
 }
 
+/// The glyphs the PDF writer drops because the bundled font lacks them: the "∞" of the nine main-function
+/// cross-reference texts. 0 once the fallback font is bundled.
+const EXPECTED_DROPPED_NOTDEF_GLYPHS: usize = 9;
+
 /// The writer's own PDF structure of the golden project, as the committed candidate
 /// `expected/pdf/structure.json` (doc 20 §3.3 "PDF structure").
 /// Fonts are named `<family name> <weight>[ Italic]` after the bundled face info, sorted and unique.
@@ -95,6 +99,15 @@ fn the_pdf_structure_matches_the_committed_file() {
     let q = s.query();
     let pages = pdf_pages(&q);
     let out = pdf(&pages, &pdf_options(&q), &fonts(), None).expect("the golden PDF is written");
+    // The bundled Noto Sans has no glyph for "∞", so the nine main-function texts ("∞ 3-B2, 106-G3") print a
+    // `.notdef` box in the PNGs and the PDF writer drops it (FR-OUT-027). The count stays visible here and
+    // flips to 0 when the fallback font lands (ADR-0028 recommendation 3): then change the constant, re-bless
+    // `structure.json` and the PDF hash, and delete the gap-list line of golden/J-E-2416/README.md.
+    assert_eq!(
+        out.report.dropped_notdef_glyphs, EXPECTED_DROPPED_NOTDEF_GLYPHS,
+        "{:?}",
+        out.report
+    );
     let faces: Vec<_> = ew_text::bundled().faces().collect();
     let mut names: Vec<String> = out
         .report
@@ -123,6 +136,10 @@ fn the_pdf_structure_matches_the_committed_file() {
     );
     text += &format!("  \"links\": {},\n", out.report.links);
     text += &format!("  \"plain_text_links\": {},\n", out.report.plain_text_links);
+    text += &format!(
+        "  \"dropped_notdef_glyphs\": {},\n",
+        out.report.dropped_notdef_glyphs
+    );
     text += &format!("  \"destinations\": {},\n", out.report.destinations);
     text += &format!("  \"fonts\": {}\n}}\n", string_list(&names, 1));
     check_or_bless(&expected_dir("pdf").join("structure.json"), text.as_bytes());

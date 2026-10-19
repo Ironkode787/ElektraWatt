@@ -210,6 +210,7 @@
   ],
   "links": 63,
   "plain_text_links": 0,
+  "dropped_notdef_glyphs": 9,
   "destinations": 93,
   "fonts": [
     "Noto Sans Regular"

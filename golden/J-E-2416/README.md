@@ -376,8 +376,8 @@ cargo nextest run -p ew-api --test page_output                # compares (no EW_
   action)** and are compared with the §3.3 tolerance (at most 0.5 % of the pixels differ by more than 16 per
   channel), not byte for byte.
 - `pdf/structure.json`: the writer's PDF structure of the whole page order (page count, `/PageLabels`, outline
-  tree, link, plain-text-link and destination counts, embedded fonts), compared exactly (§3.3 "PDF structure"). The
-  PDF hash is not compared until cross-references exist.
+  tree, link, plain-text-link, dropped-`.notdef`-glyph and destination counts, embedded fonts), compared exactly
+  (§3.3 "PDF structure"); `pdf/sha256.txt` holds the SHA-256 of the whole PDF.
 - Everything under `golden/` is CC0-1.0 (`REUSE.toml`, annotation L8).
 
 **Known gaps for the FT-10 approval.** The candidates cover the 31 pages of `page_order` with the report engine
@@ -404,9 +404,21 @@ page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106). Still open:
 - **Folio 101.** The terminals of 1X1 print only their designations (ID-162), but "PE" of 1X1:PE still crosses the
   conductor of terminal 2 (the terminals are 20 px apart); the external-arrow text "J-E-206-PE" starts 0.27 mm left
   of the drawing area.
-- **Interruption points.** The texts of two points that share a cell overlap: PE-1.1 and PE-1.4 at 103-G7,
+- **Interruption points.** The texts of two points that share a cell overlap: PE-1.1 and PE-1.4 at 103-G6,
   0VDC-AIR3 and PE-AIR2 at 106-B1, 0VDC-AIR1 and PE-AIR1 at 106-E1.
 - **Folios 203–206.** Used valves print no text in the function-text slot: the process-tag fallback through
   `DeviceLink{Drives}` (§6.2) needs the `DeviceLink` record, which schema v0 does not implement.
-- **Cross-references.** Cross-reference texts are not drawn, so the PDF has 0 link annotations (§3.4 row 18
-  expects 64).
+- **Cross-references, glyph.** The bundled Noto Sans has no "∞" (U+221E): the nine main-function texts
+  ("∞ 3-B2, 106-G3") print a `.notdef` box in the PNGs and the PDF writer drops the glyph
+  (`dropped_notdef_glyphs` is 9 in `pdf/structure.json`, asserted by `page_output`). The fallback font is pending
+  (ADR-0028 recommendation 3); the PNG, text and PDF candidates change with it.
+- **Cross-references, folio 101.** The three external texts ("+J-E-206 / JE-N1000-03") start left of the frame
+  and overlap the next point's name; the N-1 wire crosses "102-A1".
+- **Cross-references, folio 103.** The texts overlap neighbouring arrows: 0VDC and 24VDC-1, 24VDC-AIR4 and
+  24VDC-AIR2, 24VDC-AIR2 and 24VDC-AIR3, PE-AIR2 and PE-0VDC, PE-0VDC and PE-AIR1, PE-1.3 and PE-1.1; "101-G15"
+  and "106-A1" collide at y 153.87 mm.
+- **Cross-references, folio 106.** "103-B14" and "103-G1" collide at B1, "103-A14" and "103-G1" at E1 (two points
+  share each cell).
+- **Link annotations.** The PDF has 63 link annotations against the 64 of §3.4 row 18: one per xref text slot,
+  and a slot that lists several items ("∞ 3-B2, 106-G3") links to its first item only (the scene carries one
+  link per text).
