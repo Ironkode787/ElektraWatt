@@ -240,7 +240,6 @@ fn every_device_tag_is_its_table_key() {
 /// template-origin (their device carries PT 2.5-TWIN(-PE), whose template declares their FnDef with role main),
 /// so the part's CP pattern (a, b, c, s1, RF) defines their CP index space.
 #[test]
-#[ignore = "passes once review-B F7 (template-origin CPs in ew-derive) is integrated"]
 fn every_connection_endpoint_is_a_derived_cp() {
     let batch = golden_batch();
     let s = session(&batch);
