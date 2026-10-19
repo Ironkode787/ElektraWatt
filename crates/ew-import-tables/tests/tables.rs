@@ -6,7 +6,10 @@
 mod common;
 
 use std::collections::BTreeSet;
-use std::process::Command;
+use std::ffi::OsStr;
+use std::path::PathBuf;
+use std::process::{Command, Output};
+use std::sync::OnceLock;
 
 use ew_import_tables::csv::{self, CsvTable, TableLimits};
 use ew_import_tables::table_names;
@@ -27,40 +30,151 @@ fn committed() -> Vec<(String, Vec<u8>)> {
     out
 }
 
-fn parsed(name: &str) -> CsvTable {
+fn parsed(name: &str) -> (Vec<u8>, CsvTable) {
     let bytes = std::fs::read(common::tables_dir().join(name)).unwrap();
-    csv::parse(&bytes, &TableLimits::default()).unwrap_or_else(|e| panic!("{name}: {e}"))
+    let table = csv::parse(&bytes, &TableLimits::default()).unwrap_or_else(|e| panic!("{name}: {e}"));
+    (bytes, table)
 }
 
 /// The distinct non-empty values of column `column` of table file `name`.
 fn column_values(name: &str, column: &str) -> BTreeSet<String> {
-    let t = parsed(name);
+    let (bytes, t) = parsed(name);
     let i = t
         .header
         .iter()
         .position(|h| h == column)
         .unwrap_or_else(|| panic!("{name} has no column {column}"));
-    t.rows
-        .iter()
-        .map(|r| r.cells[i].clone())
+    (0..t.row_count())
+        .map(|r| t.cell(&bytes, r, i).to_owned())
         .filter(|c| !c.is_empty())
         .collect()
+}
+
+/// The generator script, relative to the repository root.
+const GENERATOR: &str = "golden/J-E-2416/tools/tables_from_doc20.py";
+
+/// The Python 3 command of this machine: the first of `python3`, `python` that answers `--version`. CI runners may
+/// have only one of the two.
+fn python() -> &'static str {
+    static PYTHON: OnceLock<&'static str> = OnceLock::new();
+    PYTHON.get_or_init(|| {
+        ["python3", "python"]
+            .into_iter()
+            .find(|cmd| {
+                Command::new(cmd)
+                    .arg("--version")
+                    .output()
+                    .is_ok_and(|o| o.status.success())
+            })
+            .expect(
+                "the golden generator needs Python 3, but neither `python3` nor `python` runs `--version`",
+            )
+    })
+}
+
+/// Runs the generator (isolated mode) from the repository root with `args`.
+fn generator(args: &[&OsStr]) -> Output {
+    Command::new(python())
+        .args(["-I", GENERATOR])
+        .args(args)
+        .current_dir(common::repo())
+        .output()
+        .unwrap_or_else(|e| panic!("running `{} {GENERATOR}`: {e}", python()))
+}
+
+fn report(out: &Output) -> String {
+    format!(
+        "stdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    )
 }
 
 /// The committed tables equal what the doc-20 generator writes (`--check`).
 #[test]
 fn the_committed_tables_equal_the_generator_output() {
-    let out = Command::new("python")
-        .args(["-I", "golden/J-E-2416/tools/tables_from_doc20.py", "--check"])
-        .current_dir(common::repo())
-        .output()
-        .expect("python is required to run the generator check");
+    let out = generator(&[OsStr::new("--check")]);
+    assert!(out.status.success(), "generator check failed\n{}", report(&out));
+}
+
+/// Doc 20, the only data source of the generator.
+fn doc_20() -> (PathBuf, String) {
+    let path = common::repo().join("docs/design/20-golden-project.md");
+    let text = std::fs::read_to_string(&path).unwrap();
+    (path, text)
+}
+
+/// Writes `text` as a copy of doc 20 into a fresh directory of `CARGO_TARGET_TMPDIR`.
+fn write_doc_copy(name: &str, text: &str) -> PathBuf {
+    let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!("golden-doc20-{name}"));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("20-golden-project.md");
+    std::fs::write(&path, text).unwrap();
+    path
+}
+
+/// A copy of doc 20 that is not mutated passes the check: the `--doc` option reads the same data.
+#[test]
+fn an_unmutated_copy_of_doc_20_passes_the_check() {
+    let (_, text) = doc_20();
+    let copy = write_doc_copy("control", &text);
+    let out = generator(&[OsStr::new("--doc"), copy.as_os_str(), OsStr::new("--check")]);
     assert!(
         out.status.success(),
-        "generator check failed\nstdout:\n{}\nstderr:\n{}",
-        String::from_utf8_lossy(&out.stdout),
-        String::from_utf8_lossy(&out.stderr)
+        "the unmutated copy fails the check\n{}",
+        report(&out)
     );
+}
+
+/// `(name, substring of doc 20, replacement)`: every hard-coded value of the generator is tied to a doc cell, so
+/// changing that cell must fail the check (by a doc check or by a committed table that differs).
+const MUTATIONS: &[(&str, &str, &str)] = &[
+    ("cp-list-2904602", "+#1, +#2, −#1", "+#1, −#1, +#2"),
+    ("cp-list-mico-4-10", "Out1 … Out4", "Out1 … Out3"),
+    ("pin-550208", "4 24V El", "4 0V El"),
+    (
+        "potential-type",
+        "| +24V | L+, 24 V DC, control |",
+        "| +24V | M, 24 V DC, control |",
+    ),
+    (
+        "potential-first-member",
+        "| -102G1:+#1, +#2, -102F1:1 |",
+        "| -102G1:+#2, +#1, -102F1:1 |",
+    ),
+    ("junction-sequence", "-102F1:2 → W24, W25", "-102F1:2 → W25, W24"),
+    (
+        "part-number",
+        "Phoenix Contact 2904602 | L, N, PE",
+        "Phoenix Contact 2904603 | L, N, PE",
+    ),
+    (
+        "strip-numbering-format",
+        "strips `{letter}{page}{counter}`",
+        "strips `{page}{letter}{counter}`",
+    ),
+];
+
+/// Each mutation of a doc-20 cell the generator consumes makes `--check` exit non-zero.
+#[test]
+fn doc_20_mutations_fail_the_check() {
+    let (_, text) = doc_20();
+    for (name, from, to) in MUTATIONS {
+        assert_eq!(
+            text.matches(from).count(),
+            1,
+            "mutation {name}: the substring {from:?} must occur exactly once in doc 20"
+        );
+        let mutated = text.replacen(from, to, 1);
+        assert_ne!(mutated, text, "mutation {name} changes nothing");
+        let copy = write_doc_copy(name, &mutated);
+        let out = generator(&[OsStr::new("--doc"), copy.as_os_str(), OsStr::new("--check")]);
+        assert!(
+            !out.status.success(),
+            "mutation {name} ({from:?} -> {to:?}) passes the check\n{}",
+            report(&out)
+        );
+    }
 }
 
 /// Every committed CSV file is a table the importer knows, and every known table is committed.
@@ -87,21 +201,21 @@ fn every_table_is_of_the_dialect() {
 #[test]
 fn keys_are_unique_and_in_natural_order() {
     for (name, _) in committed() {
-        let t = parsed(&name);
+        let (bytes, t) = parsed(&name);
         let i = t
             .header
             .iter()
             .position(|h| h == "key")
             .unwrap_or_else(|| panic!("{name}: no key column"));
         let mut prev: Option<&str> = None;
-        for row in &t.rows {
-            let key = row.cells[i].as_str();
-            assert!(!key.is_empty(), "{name} line {}: empty key", row.line);
+        for row in 0..t.row_count() {
+            let key = t.cell(&bytes, row, i);
+            assert!(!key.is_empty(), "{name} line {}: empty key", t.line(row));
             if let Some(p) = prev {
                 assert!(
                     ew_mltext::natural_cmp(p, key) == std::cmp::Ordering::Less,
                     "{name} line {}: key {key:?} does not follow {p:?} in natural order",
-                    row.line
+                    t.line(row)
                 );
             }
             prev = Some(key);

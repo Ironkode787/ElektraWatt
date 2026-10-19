@@ -65,6 +65,9 @@ id = v5(ns, "{table}|{key}")      ns = lineage_namespace("csv", Fixed("golden"))
 record itself is `v5(ns, "import_lineage|golden")` with importer `csv`, source name `tables` and anchor
 `Fixed("golden")`.
 
+Keys are hashed byte for byte, so a `key` cell must already be in Unicode NFC: a row whose key is not is dropped
+with EW-IMP-002 (doc 14 §9 strict mode). Other cells are NFC-normalised when needed.
+
 Library items:
 
 - Starter symbols, function definitions and forms are referenced **by key** (`ew.iec.mcb-1pn@qet10`, `ew.fn.ip`,
@@ -85,8 +88,14 @@ Cells that name a connection point, junction or interruption point use the notat
 | `ip:<function key>` | the single CP of an interruption point | `ip:L-1@101` |
 | `@<junction key>` | a junction | `@J5` |
 
-A function's CP list is its part pattern when the function row names a part template (`part`, `template`), else the
-CPs of its FnDef; CP indexes are positions in that list.
+A function's CP list follows the **template-origin rule** (doc 03 §7 "CP instantiation"; `ew-derive` applies the same
+rule): a function is template-origin when its device carries a part (`parts` of `devices.csv` / `terminals.csv`, first
+match in that order) whose `part_templates.csv` declares a function with the same FnDef and the same role (`main` =
+`true` for role main, `false` for aux; first matching template in `n` order). Its CPs are then the template's `cps`
+entries of the part's CP pattern, and **the pattern index is the CP index** (terminals of PT 2.5-TWIN: `a` 0, `b` 1,
+`c` 2, `s1` 3; PT 2.5-TWIN-PE adds `RF` 4). Otherwise a black box takes every CP of the first part use whose part has
+a pattern (pattern indexes), and any other function the CPs of its FnDef. The optional `part` and `template` columns of
+`functions.csv` state the expected origin; a row whose rule result differs is dropped with EW-IMP-002.
 
 ## Tables
 
@@ -113,6 +122,14 @@ CPs of its FnDef; CP indexes are positions in that list.
 | `identifier_set` | O | identifier |
 | `date_format`, `decimal_separator` | O | `dd_mm_yyyy`, `point` |
 | `derivation_profile` | R | `2027.1` |
+| `numbering_scheme` | O | key of the device-numbering scheme (default `page-based`) |
+| `numbering_format` | O | the scheme's format, `{page}{letter}{counter}` (doc 20 §4.4); required with any other `numbering_*` column |
+| `numbering_strip_format` | O | format of the rule `{select: {aspect: "strip"}}`, `{letter}{page}{counter}` |
+| `numbering_child_separator` | O | `child_separator`, `-` |
+
+The `numbering_*` columns become `ProjectSettings.extra["numbering"]` in the doc 03 §5.1 shape
+`{default, schemes: [{key, format, rules, child_separator}]}`. Formats use the tokens `{letter}`, `{counter}`,
+`{subcounter}`, `{page}`, `{column}`, `{row}` and never the product sign `-`.
 
 ### `parties.csv` → `project.parties` (doc 20 §4.2)
 
@@ -168,8 +185,8 @@ key), `section` O, `first_folio` O (required unless embedded), `title` O, `conti
 
 ### `part_templates.csv` → `part.function_template` (doc 07 §4.2, §9.2)
 
-`key` R (`<part>:<n>`), `part` R, `n` R (template index, the list order), `fndef` R (FnDef key), `main` O
-(boolean), `cps` R (list of `part_cps` indexes).
+`key` R (`<part>:<n>`), `part` R, `n` R (template index, the list order), `fndef` R (FnDef key), `main` O (boolean: the template function's role, main or aux; it must equal the role of the functions that take their
+CPs from it), `cps` R (non-empty list of `part_cps` indexes).
 
 ### `cable_cores.csv` → `part.sections.cable_cores` (doc 20 §10)
 
@@ -211,7 +228,7 @@ counter.
 | `fndef` | R | FnDef key |
 | `role` | O | `main` (empty), `aux` |
 | `kind` | O | `normal` (empty), `black_box`, `ip` |
-| `part`, `template` | O | the part template that supplies the CPs (template default 0) |
+| `part`, `template` | O | the expected template origin of the CPs (template default 0); checked against the template-origin rule above |
 | `cp_aliases` | O | list of `<designation>=<alias>` (CP overrides, FR-DEV-007) |
 | `ip_name`, `ip_direction`, `ip_external` | O | interruption points: name, `source`, `target` or `undirected`, `external_refs` key |
 
@@ -219,10 +236,12 @@ counter.
 
 `key` R (the function key, `.2` … for further segments), `functions` R (list of `functions` keys), `page` R
 (`pages` key), `symbol` R (symbol key), `cell` R (`<row><column>`, rows `A`–`H`, columns `0`–`16`), `dx`, `dy` O
-(offsets in QET px from the cell centre). The symbol's anchor point is placed at the cell centre plus the offset
-(doc 20 §4.4 "xref anchor policy"; an `origin` or `graphic_centre` anchor counts as the insertion point), on the
-page grid. A position off the grid is snapped and reported in the cycle-6 code; by decision log ID-71 it becomes an
-EW-IMP-002 error that drops the row (task FT-19).
+(offsets in QET px from the cell centre). The symbol's anchor point — `SymbolDef::anchor_point` of `ew-schema`, the
+exact integer anchor of its anchor policy (origin, named point, first slot of a kind, graphic centre with ties toward
+zero; FR-SYM-010, D-14) — lands at the cell centre plus the offset, so `rep_anchor_cell` derives the table's cell; the
+position itself is a point of the page grid. The target point must lie on the page grid (offsets in multiples of 10 px
+on the QET grid): a position off the grid is never snapped, the row is dropped with EW-IMP-002 (doc 06 §5.7, decision
+log ID-54).
 
 - ▲U-38: valves sit in row D at columns c−3, c−1, c+1, c+3 around the module's auxiliary column c.
 - ▲U-39: field devices sit in row G (valve) and row F (actuator), in the column of the driving valve.
@@ -250,7 +269,8 @@ each non-first arm carries the ID of the wire it closes (Star: first CP to every
 ### `junctions.csv` → `junction` (doc 20 §8.3)
 
 `key` R (`J1`), `page` R, `cell` R, `dx`, `dy` O, `style` R (`dot`, `bevel`), `wiring` O (`star`, `chain`; empty is
-the style's default), `sequence` R (list of `connections` keys, feed arm first).
+the style's default), `sequence` R (list of `connections` keys, feed arm first). The position (cell centre plus offset) must lie on the page grid; otherwise the junction and every
+connection ending at it are dropped (EW-IMP-002, never snapped).
 
 - ▲U-40: the junction cells are J1 C11, J2 C13 (folio 101) and J3 C6, J4 D7, J5 D5, J6 D6 (folio 102).
 
@@ -278,10 +298,59 @@ reports each once (EW-IMP-004, info) and emits nothing:
 - `revisions.csv` (doc 20 §4.1): `key` (label), `date`, `description`, `state`, `author`, `checker`, `changed_pages`
   (list).
 
+## Stopgaps
+
+- **Manufacturer.** A part's manufacturer is a `LibRef` to `v5(ns, "manufacturers|<name>")` whose name lives only in its
+  `extra.key` member; no manufacturer copy is emitted yet. It stays this way until a manufacturer library copy exists
+  (follow-up with the parts work package; recorded by the design lead).
+
+## Test inputs (▲)
+
+The table is generated by `tools/tables_from_doc20.py` from the fixture choices the script makes and is checked by its
+`--check` mode.
+
+<!-- test-inputs:begin -->
+
+| Table | Column(s) | Key(s) | Value | Doc 20 | U-nn | Reason |
+|---|---|---|---|---|---|---|
+| `project.csv` | `supply_earthing` | all | `tn_s` | §4.1 | U-02 | the Supply cell names TN-S; the earthing system is a ▲ |
+| `project.csv` | `supply_origin` | all | `J-E-206-L` | §4.3, §15 | U-06 | the supply origin is the external point of the L supply, named only in prose |
+| `project.csv` | `derivation_profile` | all | `2027.1` | §4.4 | — | doc 20 names "the first shipped profile"; the fixture pins its version label |
+| `structure.csv` | `description` | all | (empty) | §4.3 | U-05 | the Description column is commentary, not a stored value (the =P01 description is unknown) |
+| `pages.csv` | `scale` | `902` | `10` | §13 | — | folio 902 is a view of the plate at 1:10, the scale is a ▲ |
+| `report_blocks.csv` | `title; include` | all | `(text of the §16 cell)` | §16 | — | the whole 'Page description' column is a ▲: titles and the include filters are read from it unchanged |
+| `parts.csv` | `kind` | `UK 5 N; USLKG 5; PT 2.5-TWIN; PT 2.5-TWIN-PE` | `terminal` | §14.1 | — | the component BOM gives no part kind; the kind follows the part's role in the project |
+| `parts.csv` | `kind` | `NEBU-G78W5-K-2-N-LE5; 6XV1830-0EH10` | `cable` | §14.1 | — | the component BOM gives no part kind; the kind follows the part's role in the project |
+| `parts.csv` | `kind` | `NSYPLA1074G` | `enclosure` | §14.1 | — | the component BOM gives no part kind; the kind follows the part's role in the project |
+| `parts.csv` | `kind` | `NSYPMM107` | `mounting_plate` | §14.1 | — | the component BOM gives no part kind; the kind follows the part's role in the project |
+| `part_cps.csv` | `potential_role` | `550208:2` | `fe` | §6.1 row 19 | U-18 | pin 3 is the functional earth, printed 'PE': its role is a ▲ |
+| `part_templates.csv` | `main` | `550208:0` | `false` | §6.1 rows 19, 28 | — | 550208 is the power block of -201U1 and -202U1, whose main function is the overview module |
+| `cable_cores.csv` | `core` | `6XV1830-0EH10:SH` | `SH` | §6.1 row 18, §10 | U-21 | the shield core is named SH; the cores A, B and the shield carry no colour or cross-section |
+| `conductors.csv` | `core` | `-3W1:SH` | `SH` | §6.1 row 18, §10 | U-21 | the shield conductor takes the shield core of the cable part |
+| `devices.csv` | `frozen; frozen_sign` | `-XPE; -UC1; -UC1-plate` | `frozen = the tag without its sign (XPE, UC1, UC1-plate); frozen_sign = shown` | §2.1 rule 1, §6.1 rows 9, 31, 32 | U-34 | per-class numbering rules are not modelled yet: the tags are frozen overrides with the sign shown, so Golden B's include_frozen renumbers -XPE as §2.2 expects |
+| `devices.csv` | `key` | `-UC1-plate` | `-UC1-plate` | §6.1 row 32 | — | doc 20 gives the mounting plate no tag ('mounting plate, child of -UC1'): the key is the fixture's name |
+| `devices.csv` | `cable_length` | `-106W1; -106W2` | `from_part` | §10 | U-18 | the 2 m length is read from the part's type code; the source of the length is a ▲ |
+| `potentials.csv` | `frequency` | `L; N; L-S; N-S; L-1; N-1; L-55; N-55` | `50` | §4.1, §7.3 | — | the Type cell of §7.3 gives no frequency; every AC potential takes the 50 Hz of the §4.1 Supply |
+| `potentials.csv` | `ptype; voltage; ac_dc; frequency; circuit_class` | `N-55T; N-55S` | (empty) | §7.3 | — | N switched: naming only; doc 03 §9.4 derives the type, including 'switched', across the PassThrough{opens: true} pair |
+| `potentials.csv` | `voltage; ac_dc; frequency; circuit_class` | `24VDC-2; 24VDC-3; 24VDC-4` | (empty) | §7.3 | — | L+, spare: the cell states the type only, no voltage or class |
+| `revisions.csv` | `checker` | `V2.0` | (empty) | §4.1 | U-03, U-04 | the checker of V2.0 is unset in Golden A (unknown) |
+| `representations.csv` | `dx` | `1X1:1; 1X1:2; 1X1:PE` | `-20; 0; 20` | §6.1 row 8 | — | test input (fixture choice): the three terminal symbols of 1X1 sit side by side in the strip's cell |
+| `representations.csv` | `cell` | `-201U3-Q1 … -202U2-Q4` | `row D, columns c-3, c-1, c+1, c+3 around the module's aux column c` | §6.1 rows 33-60, §15 | — | test input (fixture choice): doc 20 names only the pages 203-206 of the valves, not their cells |
+| `representations.csv` | `cell` | `-203Q1 … -203Q8` | `row G (§6.1 Main rep.), column of the driving valve` | §6.1 rows 61-68, §6.2 | U-07 | test input (fixture choice): the column of a process valve is that of the valve that drives it |
+| `representations.csv` | `cell` | `-203Q1#actuator … -203Q8#actuator` | `row F, column of the driving valve` | §6.2 | U-07 | test input (fixture choice): the actuator is drawn above its process valve |
+| `representations.csv` | `dy` | `J-E-206-L@101; J-E-206-N@101; J-E-206-PE@101` | `-20; 0; 20` | §15 | — | test input (fixture choice): the three mains points share the cell 101-G0 and are stacked |
+| `representations.csv` | `dx; dy` | `interruption points that share a cell` | `k-th member of a coincident group (natural key order): +(0,0), +(0,20), +(0,-20), +(20,0) px` | §15 | — | ▲ test input (fixture choice): separates coincident interruption points; the cell is what doc 20 §15 asserts |
+| `junctions.csv` | `cell` | `J1; J2; J3; J4; J5; J6` | `C11; C13; C6; D7; D5; D6` | §8.3 | — | test input (fixture choice): doc 20 gives the folio of a junction, not its cell |
+
+<!-- test-inputs:end -->
+
 ## Not covered yet
 
 Doc 20 §11 (PLC and bus: channels, the bus segment, the DP potential), §12 (fluid lines F1–F16), §13 (layout space,
 carriers, placements) and §14.2 (configured products) need record kinds that `ew-schema` v0 reserves but does not
-implement; their tables follow with those work packages. Also not covered yet: the MICO 4.10 13-14 signal-contact
-template, FR-DEV-037 "supplied by others" and the -201U1:DP port. §14.1 (component BOM) is covered through `parts.csv` and the
+implement; their tables follow with those work packages. §14.1 (component BOM) is covered through `parts.csv` and the
 part uses of `devices.csv` and `terminals.csv`; the BOM rows themselves are derived.
+
+Also not covered yet: the 13-14 signal-contact function of the MICO 4.10 template (its CPs 13 and 14 belong to the
+black box), "supplied by others" for the process valves -203Q1 … -203Q8 (FR-DEV-037), and the `DP` port of -201U1
+(doc 20 §6.1 row 19).

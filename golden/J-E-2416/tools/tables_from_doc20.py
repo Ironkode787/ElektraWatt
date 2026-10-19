@@ -8,13 +8,18 @@ field quoted exactly when it contains ``,``, ``"``, LF, CR or begins/ends with a
 the ``key`` column (``ew_mltext::natural_key``, version 1).
 
 Wherever doc 20 has a markdown table for the data, the script parses that table (so a change to doc 20 changes the
-output or fails an assertion). Values that exist only in prose, test inputs (triangle marks) and fixture choices are
-explicit constants with a ``# doc 20 section ...`` comment.
+output or fails a check). Values that exist only in prose, test inputs (triangle marks) and fixture choices are
+explicit constants with a ``# doc 20 section ...`` comment; every constant that doc 20 states is checked against the
+doc cell it comes from, and every fixture choice is recorded in ``FIXTURE_CHOICES``, which the script renders as the
+"Test inputs" table of ``golden/J-E-2416/README.md``.
+
+Every check is an explicit ``check(...)`` call (never ``assert``), so it survives ``python -O``.
 
 Usage (from the repository root)::
 
-    python -I golden/J-E-2416/tools/tables_from_doc20.py           # write tables/*.csv
-    python -I golden/J-E-2416/tools/tables_from_doc20.py --check   # exit 1 if a committed table differs
+    python -I golden/J-E-2416/tools/tables_from_doc20.py           # write tables/*.csv and the README test-input table
+    python -I golden/J-E-2416/tools/tables_from_doc20.py --check   # exit 1 if a table or the README block differs
+    python -I golden/J-E-2416/tools/tables_from_doc20.py --doc PATH [--check]   # read another copy of doc 20
 
 Standard library only; deterministic; no network.
 """
@@ -26,8 +31,22 @@ from decimal import ROUND_HALF_UP, Decimal, getcontext
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-DOC_PATH = SCRIPT_DIR / ".." / ".." / ".." / "docs" / "design" / "20-golden-project.md"
+DEFAULT_DOC_PATH = SCRIPT_DIR / ".." / ".." / ".." / "docs" / "design" / "20-golden-project.md"
 TABLES_DIR = SCRIPT_DIR / ".." / "tables"
+README_PATH = SCRIPT_DIR / ".." / "README.md"
+README_BEGIN = "<!-- test-inputs:begin -->"
+README_END = "<!-- test-inputs:end -->"
+
+
+def fail(message):
+    """Stop with a doc-20 mismatch; an exit status of 1 (survives ``python -O``)."""
+    raise SystemExit(f"doc 20 check failed: {message}")
+
+
+def check(condition, message):
+    if not condition:
+        fail(message)
+
 
 MINUS = "−"  # U+2212 MINUS SIGN, kept exactly as doc 20 writes it
 
@@ -96,8 +115,15 @@ def csv_bytes(columns, rows):
 # doc 20 markdown parsing
 # ---------------------------------------------------------------------------------------------------------------
 
-DOC_LINES = DOC_PATH.read_text(encoding="utf-8").splitlines()
-DOC_TEXT = "\n".join(DOC_LINES)
+DOC_LINES = []
+DOC_TEXT = ""
+
+
+def load_doc(path):
+    """Read doc 20 (or a mutated copy of it, for the tests) into the globals the parsers use."""
+    global DOC_LINES, DOC_TEXT
+    DOC_LINES = Path(path).read_text(encoding="utf-8").splitlines()
+    DOC_TEXT = "\n".join(DOC_LINES)
 
 
 def clean(cell):
@@ -110,11 +136,58 @@ def strip_tri(cell):
     return re.sub(r"\s+", " ", s).strip()
 
 
+def tri_marks(cell):
+    """The ``U-nn`` numbers of the unknown marks (``▲U-nn``, ``▲U-nn, U-mm``) in a doc cell, in order, once each."""
+    out = []
+    for m in re.finditer(r"▲((?:\s*U-\d+,?)+)", cell):
+        for u in re.findall(r"U-\d+", m.group(1)):
+            if u not in out:
+                out.append(u)
+    return out
+
+
+# Every fixture choice the script makes: a value doc 20 gives only as a triangle (▲), only in prose, or that the
+# fixture chooses (positions and offsets of test-input representations, junction cells, the frozen tags, ...).
+# ``strip_tri`` removes the marks for the values; this registry keeps the provenance. Each entry is recorded once as
+# (table, column(s), key(s) or "all", value, doc-20 section, U-nn or "—", reason) and rendered into the README.
+FIXTURE_CHOICES = []
+
+
+def as_text(value):
+    return "; ".join(value) if isinstance(value, (list, tuple)) else value
+
+
+def fixture(table, columns, keys, value, section, reason, cell=None, marks=None):
+    """Record one fixture choice. The U-nn marks come from the consumed doc cell (``cell``) or from ``marks``."""
+    found = list(marks) if marks is not None else tri_marks(cell or "")
+    entry = (table, as_text(columns), as_text(keys), value, section, ", ".join(found) if found else "—", reason)
+    check(entry not in FIXTURE_CHOICES, f"fixture choice recorded twice: {entry!r}")
+    FIXTURE_CHOICES.append(entry)
+
+
+def render_fixture_choices():
+    """The markdown table between the README's test-input markers."""
+
+    def md(text):
+        return text.replace("|", "\\|")
+
+    lines = [
+        "| Table | Column(s) | Key(s) | Value | Doc 20 | U-nn | Reason |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for table, columns, keys, value, section, marks, reason in FIXTURE_CHOICES:
+        shown = f"`{value}`" if value != "" else "(empty)"
+        shown_keys = keys if keys == "all" else f"`{keys}`"
+        cells = (f"`{table}.csv`", f"`{columns}`", shown_keys, shown, section, marks, reason)
+        lines.append("| " + " | ".join(md(c) for c in cells) + " |")
+    return "\n".join(lines) + "\n"
+
+
 def find_line(marker):
     for i, line in enumerate(DOC_LINES):
         if line.startswith(marker):
             return i
-    raise AssertionError(f"doc 20: marker not found: {marker!r}")
+    fail(f"marker not found: {marker!r}")
 
 
 def split_row(line):
@@ -142,12 +215,12 @@ def table_after(marker, n=0):
                     cells = split_row(b)
                     if all(re.fullmatch(r":?-+:?", c) for c in cells):
                         continue
-                    assert len(cells) == len(header), f"doc 20: ragged row {b!r}"
+                    check(len(cells) == len(header), f"ragged row {b!r}")
                     rows.append(cells)
                 return header, rows
             continue
         i += 1
-    raise AssertionError(f"doc 20: no table {n} after {marker!r}")
+    fail(f"no table {n} after {marker!r}")
 
 
 def table_dicts(marker, n=0):
@@ -165,7 +238,7 @@ def expand_range(cell):
     m = re.match(r"^(\S*?)(\d+) … (\S*?)(\d+)\b", cell)
     if not m:
         return [cell.split()[0]]
-    assert m.group(1) == m.group(3), cell
+    check(m.group(1) == m.group(3), f"tag range {cell!r} mixes two prefixes")
     return [f"{m.group(1)}{k}" for k in range(int(m.group(2)), int(m.group(4)) + 1)]
 
 
@@ -177,14 +250,14 @@ TABLES = {}  # name -> (columns, rows sorted in natural key order)
 
 
 def register(name, columns, rows, expected=None):
-    assert columns[0] == "key"
+    check(columns[0] == "key", f"{name}: the first column is not 'key'")
     keys = [r["key"] for r in rows]
-    assert len(set(keys)) == len(keys), f"{name}: duplicate keys"
+    check(len(set(keys)) == len(keys), f"{name}: duplicate keys")
     if expected is not None:
-        assert len(rows) == expected, f"{name}: expected {expected} rows, got {len(rows)}"
+        check(len(rows) == expected, f"{name}: expected {expected} rows, got {len(rows)}")
     for r in rows:
         extra = set(r) - set(columns)
-        assert not extra, f"{name}: unknown columns {extra}"
+        check(not extra, f"{name}: unknown columns {extra}")
     TABLES[name] = (columns, sorted(rows, key=lambda r: natural_key(r["key"])))
 
 
@@ -204,19 +277,49 @@ def build_project():
     props = {r["Property"]: r["Golden A value"] for r in table_dicts("### 4.1 Project properties")}
     settings = {r["Setting"]: r["Golden A value"] for r in table_dicts("### 4.4 Project settings and profiles")}
     created, edited = [s.strip() for s in props["Created / edited"].split(",")[0].split("/")]
-    assert re.fullmatch(r"\d{4}-\d\d-\d\d", created) and re.fullmatch(r"\d{4}-\d\d-\d\d", edited)
+    date = r"\d{4}-\d\d-\d\d"
+    check(re.fullmatch(date, created) and re.fullmatch(date, edited), f"section 4.1 dates: {created!r} / {edited!r}")
     # doc 20 section 4.1 "Supply": phases 1, N, PE, 230 V AC, 50 Hz; TN-S (U-02)
     for needle in ("phases 1, N, PE", "230 V AC", "50 Hz", "TN-S"):
-        assert needle in props["Supply"], props["Supply"]
+        check(needle in props["Supply"], f"section 4.1 Supply lacks {needle!r}: {props['Supply']!r}")
     # doc 20 section 4.1 "Control voltage" 24 V DC, "Rated consumption" 6 A
-    assert props["Control voltage"].startswith("24 V DC")
-    assert props["Rated consumption"] == "6 A"
+    check(props["Control voltage"].startswith("24 V DC"), f"section 4.1 Control voltage: {props['Control voltage']!r}")
+    check(props["Rated consumption"] == "6 A", f"section 4.1 Rated consumption: {props['Rated consumption']!r}")
     # doc 20 section 4.4: identifier set, date format and decimal point
-    assert settings["Identifier set"].startswith("EN 81346-2:2009")
-    assert "dd-mm-yyyy" in props["Created / edited"] and "dd-mm-yyyy" in settings["Date / units"]
-    assert "decimal point" in settings["Date / units"]
+    check(settings["Identifier set"].startswith("EN 81346-2:2009"), "section 4.4 Identifier set")
+    check("dd-mm-yyyy" in props["Created / edited"], "section 4.1 Created / edited date format")
+    check("dd-mm-yyyy" in settings["Date / units"], "section 4.4 Date / units date format")
+    check("decimal point" in settings["Date / units"], "section 4.4 Date / units decimal point")
     # doc 03 section 20 / FR-PRJ-011 "first shipped profile"; doc 20 section 4.4 "Derivation profile"
-    assert settings["Derivation profile"].startswith("the first shipped profile")
+    check(settings["Derivation profile"].startswith("the first shipped profile"), "section 4.4 Derivation profile")
+    # doc 20 section 4.4 "Numbering" (doc 03 section 5.1 DeviceNumberingScheme): the page-based default format,
+    # the strip rule and the child separator, parsed from the cell
+    nm = re.fullmatch(
+        r"page-based (\{[^ ;]*); strips (\{[^ ;]*)(?: \([^)]*\))?(?:; ([^;]*) frozen [^;]*)?; children "
+        r"\{parent\}([^{ ;]*)\{letter\}\{counter\}; .*",
+        settings["Numbering"],
+    )
+    check(nm, f"section 4.4: unexpected Numbering cell {settings['Numbering']!r}")
+    # the cell's frozen clause (decision log ID-93, U-34) must name exactly the fixture's frozen test-input tags
+    if nm.group(3) is not None:
+        named = set(re.findall(r"-[A-Z0-9]+(?:-[a-z]+)?", nm.group(3)))
+        check(named == {"-XPE", "-UC1", "-UC1-plate"}, f"section 4.4: frozen clause names {sorted(named)}")
+    fixture(
+        "project", "supply_earthing", "all", "tn_s", "§4.1",
+        "the Supply cell names TN-S; the earthing system is a ▲", cell=props["Supply"],
+    )  # fmt: skip
+    fixture(
+        "project", "supply_origin", "all", "J-E-206-L", "§4.3, §15",
+        "the supply origin is the external point of the L supply, named only in prose",
+        cell=next(
+            r["Code"] for r in table_dicts("### 4.3 Structure identifiers and sections")
+            if r["Aspect"].startswith("External device")
+        ),
+    )  # fmt: skip
+    fixture(
+        "project", "derivation_profile", "all", "2027.1", "§4.4",
+        'doc 20 names "the first shipped profile"; the fixture pins its version label',
+    )  # fmt: skip
     row = {
         "key": props["Object / cabinet id"],
         "document_title": props["Document title (cover subtitle)"],
@@ -240,12 +343,17 @@ def build_project():
         "date_format": "dd_mm_yyyy",
         "decimal_separator": "point",
         "derivation_profile": "2027.1",
+        "numbering_scheme": "page-based",
+        "numbering_format": nm.group(1),
+        "numbering_strip_format": nm.group(2),
+        "numbering_child_separator": nm.group(4),
     }
     cols = [
         "key", "document_title", "description", "long_description", "project_ref", "drawing_id",
         "manufacturing_year", "created", "edited", "supply_phases", "supply_neutral", "supply_pe",
         "supply_earthing", "supply_u_nom", "supply_frequency", "supply_origin", "control_voltage",
         "rated_consumption", "identifier_set", "date_format", "decimal_separator", "derivation_profile",
+        "numbering_scheme", "numbering_format", "numbering_strip_format", "numbering_child_separator",
     ]  # fmt: skip
     register("project", cols, [row], 1)
 
@@ -253,9 +361,11 @@ def build_project():
 def build_parties():
     rows = {r["Role"]: r["Name"] for r in table_dicts("### 4.2 Parties and bindings")}
     end_user = [p.strip() for p in rows["End user"].split(",")]
-    assert len(end_user) == 3, end_user
-    assert "pilot panel builder" in rows["Panel builder"]  # no name: logo and notice only
-    assert "marked personal data" in DOC_TEXT  # doc 20 section 4.2: person and party fields are personal data
+    check(len(end_user) == 3, f"section 4.2 End user is not name, street, country: {end_user!r}")
+    # no name: logo and notice only
+    check("pilot panel builder" in rows["Panel builder"], "section 4.2 Panel builder")
+    # doc 20 section 4.2: person and party fields are personal data
+    check("marked personal data" in DOC_TEXT, "section 4.2 'marked personal data'")
     cols = ["key", "role", "name", "street", "postcode", "city", "country", "personal_data"]
     data = [
         {"key": "customer", "role": "customer", "name": rows["Customer"], "personal_data": "true"},
@@ -280,7 +390,7 @@ def build_structure_and_external():
             continue
         alias_m = re.search(r'alias "([^"]+)"', code_cell)
         key = code_cell.split(" ")[0]
-        assert key[0] == aspect[0]
+        check(key[0] == aspect[0], f"section 4.3: code {key!r} does not start with the aspect {aspect!r}")
         structure.append(
             {
                 "key": key,
@@ -291,6 +401,11 @@ def build_structure_and_external():
             }
         )
     register("structure", ["key", "aspect", "code", "aliases", "parent", "description", "order"], structure, 4)
+    fixture(
+        "structure", "description", "all", "", "§4.3",
+        "the Description column is commentary, not a stored value (the =P01 description is unknown)",
+        cell=" ".join(r["Description"] for r in table_dicts("### 4.3 Structure identifiers and sections")),
+    )  # fmt: skip
     device, location = external
     # doc 20 section 15 "External connection points": names, cells and the connection letter
     m = re.search(
@@ -298,7 +413,7 @@ def build_structure_and_external():
         r"\s+(\d+)-(G\d+) and (DP) at\s+(\d+)-(G\d+)",
         DOC_TEXT,
     )
-    assert m
+    check(m, "section 15: the External connection points paragraph is missing or changed")
     names = [m.group(1), m.group(2), m.group(3), m.group(6)]
     ext = []
     for name in names:
@@ -348,11 +463,11 @@ def build_pages():
         desc = r["Page description (title block)"]
         if len(folios) > 1:
             m = re.match(r"^(.*\S) (\d+)(?:, | … )(\d+)$", desc)
-            assert m, desc
+            check(m, f"section 5: cannot read the folio titles of {desc!r}")
             titles = [f"{m.group(1)} {k}" for k in range(int(m.group(2)), int(m.group(3)) + 1)]
         else:
             titles = [desc]
-        assert len(titles) == len(folios), (folios, titles)
+        check(len(titles) == len(folios), f"section 5: folios {folios} do not match titles {titles}")
         kind = next(v for k, v in PAGE_KIND if r["Page type (FR-PAG-001)"].startswith(k))
         section = "" if r["Section"] == "—" else r["Section"]
         form = FRAME_GRID if r["Frame"] == "grid" else FRAME_NOGRID
@@ -367,14 +482,19 @@ def build_pages():
                     "form": form,
                     "function": FUNCTION_KEY,  # doc 20 section 5 last sentence: every page carries =P01, +J-E-2416
                     "location": LOCATION_KEY,
-                    # doc 20 section 13: folio 902 is a view of the plate at 1:10 (test input)
+                    # doc 20 section 13: folio 902 is a view of the plate at 1:10 ▲ (test input)
                     "scale": "10" if f == "902" else "",
                     "grid": "qet10",  # doc 20 section 2.1 rule 4
                 }
             )
     cols = ["key", "number", "label", "section", "kind", "title", "form", "function", "location", "scale", "grid"]
     register("pages", cols, out, 13)
-    assert sorted(p["key"] for p in out) == sorted(STORED_FOLIOS)
+    stored = sorted(p["key"] for p in out)
+    check(stored == sorted(STORED_FOLIOS), f"section 5: stored folios {stored}, STORED_FOLIOS is {STORED_FOLIOS}")
+    fixture(
+        "pages", "scale", "902", "10", "§13", "folio 902 is a view of the plate at 1:10, the scale is a ▲",
+        cell=next(ln for ln in DOC_LINES if ln.startswith("mounting plate NSYPMM107")),
+    )  # fmt: skip
 
 
 REPORT_KIND = {
@@ -422,12 +542,12 @@ def build_report_blocks():
                 "include": include,
             }
         )
-    assert sorted(b["key"] for b in out) == sorted(REPORT_KIND), [b["key"] for b in out]
+    check(sorted(b["key"] for b in out) == sorted(REPORT_KIND), f"section 16: report folios {[b['key'] for b in out]}")
 
     # doc 20 section 17.1: page-to-sheet scale and offset
     m = re.search(r"scale (0\.\d+), offset (\d+\.\d+) mm", DOC_TEXT)
     scale, offset = Decimal(m.group(1)), Decimal(m.group(2))
-    assert (scale, offset) == (Decimal("0.986282578"), Decimal("9.79"))
+    check((scale, offset) == (Decimal("0.986282578"), Decimal("9.79")), f"section 17.1: scale {scale}, offset {offset}")
 
     def rect(x0, y0, x1, y1):
         return ";".join(printed_to_nm(v, scale, offset) for v in (x0, y0, x1, y1))
@@ -440,12 +560,13 @@ def build_report_blocks():
         rf"^{num}–{num} × {num}–{num} \(201, 202\), {num}–{num} × same \(902\)",
         geo["PART DATA box"],
     )
-    assert cm and sm and pm
+    check(cm and sm and pm, "section 17.3: cannot read the colour table, size tables or PART DATA box geometry")
     # doc 20 section 17.3: the cover-tables block spans the colour table plus the size tables
     cover_mm = (cm.group(1), cm.group(3), sm.group(4), sm.group(6))
-    assert cover_mm == ("128.52", "47.63", "274.66", "172.89"), cover_mm
-    assert (pm.group(1), pm.group(3), pm.group(2), pm.group(4)) == ("16.31", "16.31", "89.38", "52.85")
-    assert (pm.group(5), pm.group(6)) == ("16.31", "71.11")
+    check(cover_mm == ("128.52", "47.63", "274.66", "172.89"), f"section 17.3: cover tables {cover_mm}")
+    pd_mm = (pm.group(1), pm.group(3), pm.group(2), pm.group(4))
+    check(pd_mm == ("16.31", "16.31", "89.38", "52.85"), f"section 17.3: PART DATA box {pd_mm}")
+    check((pm.group(5), pm.group(6)) == ("16.31", "71.11"), "section 17.3: PART DATA box on folio 902")
     cover = rect(*cover_mm)
     pd_201 = rect(pm.group(1), pm.group(3), pm.group(2), pm.group(4))
     pd_902 = rect(pm.group(5), pm.group(3), pm.group(6), pm.group(4))
@@ -463,6 +584,10 @@ def build_report_blocks():
         "embedded_rect",
     ]  # fmt: skip
     register("report_blocks", cols, out, 15)
+    fixture(
+        "report_blocks", ["title", "include"], "all", "(text of the §16 cell)", "§16",
+        "the whole 'Page description' column is a ▲: titles and the include filters are read from it unchanged",
+    )  # fmt: skip
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -484,6 +609,52 @@ NEBU = "NEBU-G78W5-K-2-N-LE5"
 PROFIBUS_CABLE = "6XV1830-0EH10"
 
 
+def row61(tag):
+    """The doc 20 section 6.1 row (a dict of cells) of a device tag."""
+    for t, num, r, k in device_rows():
+        if t == tag:
+            return r
+    return fail(f"section 6.1 has no row for {tag!r}")
+
+
+def parse_cp_list(cell):
+    """Expand a section 6.1 'Connection points' list into designations: 'X#n' is the n-th X, a bare '#n' repeats
+    the previous designation, 'Out1 … Out4' is Out1 to Out4. The ordinals must run 1, 2, ... in order."""
+    out, count, base = [], {}, None
+    for tok in [t.strip() for t in cell.split(",")]:
+        m = re.fullmatch(r"(.*)#(\d+)", tok)
+        if m:
+            base = m.group(1) or base
+            check(base, f"connection points {cell!r}: {tok!r} has no designation to repeat")
+            count[base] = count.get(base, 0) + 1
+            check(int(m.group(2)) == count[base], f"connection points {cell!r}: {tok!r} is not #{count[base]}")
+            out.append(base)
+            continue
+        base = None
+        m = re.fullmatch(r"(\D+)(\d+) … \1(\d+)", tok)
+        if m:
+            out.extend(f"{m.group(1)}{k}" for k in range(int(m.group(2)), int(m.group(3)) + 1))
+        else:
+            out.append(tok)
+    return out
+
+
+X1_ROLE = {"0V": "m", "FE": "fe", "24V": "l_plus"}
+
+
+def parse_x1_pins(cell):
+    """'X1: 1 0V Val, 2 0V El, 3 FE (printed "PE") ▲U-18, ...; FE screw; ...' -> [(designation, potential role)]."""
+    m = re.match(r"X1: (.*?); FE screw(?:;|$)", strip_tri(cell))
+    check(m, f"connection points of the X1 power block: unexpected cell {cell!r}")
+    out = []
+    for tok in m.group(1).split(", "):
+        pm = re.match(r"(\d) (0V|FE|24V)\b", tok)
+        check(pm, f"X1 pin {tok!r} of {cell!r} is not '<pin> <0V|FE|24V> ...'")
+        out.append((pm.group(1), X1_ROLE[pm.group(2)]))
+    out.append(("FE", "fe"))  # the FE screw
+    return out
+
+
 def build_parts():
     out = []
     for r in table_dicts("### 14.1 Component mode (folio 901)"):
@@ -502,6 +673,11 @@ def build_parts():
         )
     cols = ["key", "manufacturer", "part_number", "kind", "type_designation", "description", "unit", "test_data"]
     register("parts", cols, out, 23)
+    for kind in dict.fromkeys(PART_KIND.values()):
+        fixture(
+            "parts", "kind", [pn for pn, k in PART_KIND.items() if k == kind], kind, "§14.1",
+            "the component BOM gives no part kind; the kind follows the part's role in the project",
+        )  # fmt: skip
     return {p["key"] for p in out}
 
 
@@ -509,7 +685,7 @@ def build_part_cps_templates(part_keys):
     cps = []
 
     def add(part, idx, designation, role="", level="", side="", clamp=""):
-        assert part in part_keys
+        check(part in part_keys, f"part {part!r} of the pattern CPs is not in section 14.1")
         cps.append(
             {
                 "key": f"{part}:{idx}",
@@ -525,16 +701,30 @@ def build_part_cps_templates(part_keys):
 
     # doc 20 section 6.1 row 10 (CP column), doc 07 section 9.2, doc 03 section 11: PSU 2904602
     psu = [("L", "l"), ("N", "n"), ("PE", "pe"), ("+", "l_plus"), ("+", "l_plus"), (MINUS, "m"), (MINUS, "m")]
+    cell = row61("-102G1")["Connection points"]
+    check([d for d, _ in psu] == parse_cp_list(cell), f"section 6.1 row 10: 2904602 CPs are not {cell!r}")
     for i, (d, role) in enumerate(psu):
         add("2904602", i, d, role)
     # doc 20 section 6.1 row 12: MICO 4.10 (no roles)
-    for i, d in enumerate(["24VDC", "24VDC", "GND", "GND", "13", "14", "Out1", "Out2", "Out3", "Out4"]):
+    mico = ["24VDC", "24VDC", "GND", "GND", "13", "14", "Out1", "Out2", "Out3", "Out4"]
+    cell = row61("-102F2")["Connection points"]
+    check(mico == parse_cp_list(cell), f"section 6.1 row 12: MICO 4.10 CPs are not {cell!r}")
+    for i, d in enumerate(mico):
         add("MICO 4.10", i, d)
-    # doc 20 section 6.1 row 19 (X1 pins), doc 07 section 9.2: pin 3 is FE (U-18)
+    # doc 20 section 6.1 row 19 (X1 pins), doc 07 section 9.2: pin 3 is FE (U-18); row 28: pins 1-5, FE screw
     pins = [("1", "m"), ("2", "m"), ("3", "fe"), ("4", "l_plus"), ("5", "l_plus"), ("FE", "fe")]
+    cell = row61("-201U1")["Connection points"]
+    check(pins == parse_x1_pins(cell), f"section 6.1 row 19: the 550208 pins and roles are not {cell!r}")
+    check(row61("-202U1")["Connection points"] == "X1: pins 1–5; FE screw", "section 6.1 row 28: -202U1 pins")
     for i, (d, role) in enumerate(pins):
         add("550208", i, d, role)
+    fixture(
+        "part_cps", "potential_role", "550208:2", "fe", "§6.1 row 19",
+        "pin 3 is the functional earth, printed 'PE': its role is a ▲", cell=cell,
+    )  # fmt: skip
     # doc 20 section 6.1 rows 13/14, doc 03 section 11: clamp a (side 1), b and c (side 2), shaft s1
+    check("clamps a, b, c" in row61("-X1031")["Connection points"], "section 6.1 row 13: clamps a, b, c")
+    check("clamps a, b, c, rail contact" in row61("-X1032")["Connection points"], "section 6.1 row 14: clamps")
     for part, role in (("PT 2.5-TWIN", ""), ("PT 2.5-TWIN-PE", "pe")):
         add(part, 0, "a", role, "1", "side1", "a")
         add(part, 1, "b", role, "1", "side2", "b")
@@ -545,27 +735,35 @@ def build_part_cps_templates(part_keys):
     cols = ["key", "part", "idx", "designation", "potential_role", "level", "side", "clamp"]
     register("part_cps", cols, cps, 32)
 
+    # The template-origin rule (README "CP and endpoint notation"): a function whose device carries a part whose
+    # template declares a function with the same FnDef and role takes its CPs from the part's pattern. `main` is
+    # the role: 550208 is the power block of -201U1 and -202U1, whose main function is the overview module
+    # (doc 20 section 6.1 rows 19 and 28), so its black box is an auxiliary function.
     templates = [
-        ("2904602", "ew.fn.blackbox", 7),
-        ("MICO 4.10", "ew.fn.blackbox", 10),
-        ("550208", "ew.fn.blackbox", 6),
-        ("PT 2.5-TWIN", "ew.fn.terminal", 4),
-        ("PT 2.5-TWIN-PE", "ew.fn.terminal-pe", 5),
+        ("2904602", "ew.fn.blackbox", 7, "true"),
+        ("MICO 4.10", "ew.fn.blackbox", 10, "true"),
+        ("550208", "ew.fn.blackbox", 6, "false"),
+        ("PT 2.5-TWIN", "ew.fn.terminal", 4, "true"),
+        ("PT 2.5-TWIN-PE", "ew.fn.terminal-pe", 5, "true"),
     ]
     rows = []
-    for part, fndef, n in templates:
-        assert sum(1 for c in cps if c["part"] == part) == n
+    for part, fndef, n, main in templates:
+        check(sum(1 for c in cps if c["part"] == part) == n, f"part template of {part}: {n} CPs expected")
         rows.append(
             {
                 "key": f"{part}:0",
                 "part": part,
                 "n": "0",
                 "fndef": fndef,
-                "main": "true",
+                "main": main,
                 "cps": ";".join(str(i) for i in range(n)),
             }
         )
     register("part_templates", ["key", "part", "n", "fndef", "main", "cps"], rows, 5)
+    fixture(
+        "part_templates", "main", "550208:0", "false", "§6.1 rows 19, 28",
+        "550208 is the power block of -201U1 and -202U1, whose main function is the overview module",
+    )  # fmt: skip
 
 
 def build_cables_conductors(part_keys):
@@ -577,9 +775,10 @@ def build_cables_conductors(part_keys):
     cores = {}
     for cable in ("-106W1", "-106W2"):
         cores[cable] = re.findall(r"([A-Z]+) W\d+", by_cable[cable]["Cores → wire"])
-    assert cores["-106W1"] == cores["-106W2"] == ["BK", "BU", "GNYE", "WH", "BN"], cores
-    assert NEBU in by_cable["-106W1"]["Part"] and PROFIBUS_CABLE in by_cable["-3W1"]["Part"]
-    assert {NEBU, PROFIBUS_CABLE} <= part_keys
+    check(cores["-106W1"] == cores["-106W2"] == ["BK", "BU", "GNYE", "WH", "BN"], f"section 10: cores {cores}")
+    check(NEBU in by_cable["-106W1"]["Part"], "section 10: the -106W1 part is not the NEBU cable")
+    check(PROFIBUS_CABLE in by_cable["-3W1"]["Part"], "section 10: the -3W1 part is not the PROFIBUS cable")
+    check({NEBU, PROFIBUS_CABLE} <= part_keys, "section 14.1 lacks a cable part")
 
     cc = []
     for n, core in enumerate(cores["-106W1"]):
@@ -591,6 +790,11 @@ def build_cables_conductors(part_keys):
             {"key": f"{PROFIBUS_CABLE}:{core}", "part": PROFIBUS_CABLE, "n": str(n), "core": core, "shield": shield}
         )
     register("cable_cores", ["key", "part", "n", "core", "colour", "csa", "shield", "pair"], cc, 8)
+    sh_cell = row61("-3W1")["Connection points"]
+    fixture(
+        "cable_cores", "core", f"{PROFIBUS_CABLE}:SH", "SH", "§6.1 row 18, §10",
+        "the shield core is named SH; the cores A, B and the shield carry no colour or cross-section", cell=sh_cell,
+    )  # fmt: skip
 
     cond = []
     for cable in ("-106W1", "-106W2"):
@@ -598,8 +802,12 @@ def build_cables_conductors(part_keys):
             cond.append({"key": f"{cable}:{core}", "cable": cable, "core": core, "colour": core})
     for core, shield in profibus:
         cond.append({"key": f"-3W1:{core}", "cable": "-3W1", "core": core, "shield": shield})
-    assert "Golden A holds 13 conductors" in DOC_TEXT
+    check("Golden A holds 13 conductors" in DOC_TEXT, "section 10: 'Golden A holds 13 conductors'")
     register("conductors", ["key", "cable", "core", "colour", "csa", "shield", "pair"], cond, 13)
+    fixture(
+        "conductors", "core", "-3W1:SH", "SH", "§6.1 row 18, §10",
+        "the shield conductor takes the shield core of the cable part", cell=sh_cell,
+    )  # fmt: skip
     return {c["key"] for c in cond}
 
 
@@ -613,7 +821,10 @@ DEVICE_COLS = [
     "strip_field_side", "cable", "cable_length",
 ]  # fmt: skip
 
-# doc 20 section 6.1 "Part" column mapped to parts.csv keys (every key is checked against the doc cell below)
+# doc 20 section 6.1 "Part" column mapped to parts.csv keys. ``build_devices_terminals`` checks the map against the
+# doc: for every row of section 6.1 the part numbers named in the Part cell (the cells of the strips, "terminals ...",
+# name their terminal parts, which section 9 gives) must be exactly the keys listed here, and every tag must be a
+# row of section 6.1. Tags without an entry carry no part ("none", "supplied by others").
 PARTS_BY_TAG = {
     "S51": "533356",
     "-101F1": "A9P52610",
@@ -638,7 +849,7 @@ PARTS_BY_TAG = {
 MODULES = ["-201U3", "-201U4", "-201U5", "-201U6", "-201U7", "-201U8", "-202U2"]
 for _m in MODULES:
     PARTS_BY_TAG[_m] = "533361"
-# doc 20 section 2.1 rule 1: the frozen tags
+# doc 20 section 2.1 rule 1: the frozen tags (every "(frozen)" tag of section 6.1, checked)
 FROZEN = ["S51", "F55", "T55", "E55", "S56", "E56", "1X1"]
 RANGE_ROWS = ("21–26", "61–68")
 
@@ -655,7 +866,7 @@ def device_rows():
         elif num == "33–60":
             out.append(("VALVES", num, r, 0))
         elif num == "32":
-            assert "child of -UC1" in tag_cell
+            check("child of -UC1" in tag_cell, f"section 6.1 row 32: not a child of -UC1: {tag_cell!r}")
             out.append(("-UC1-plate", num, r, 0))  # doc 20 section 6.1 row 32: mounting plate, child of -UC1
         else:
             out.append((tag_cell.split(" (")[0].split(" ")[0], num, r, 0))
@@ -678,15 +889,15 @@ def strip_data():
                 "rail_bonded": "true" if "rail-bonded" in raw else "",
             }
         )
-    assert [t["designation"] for t in ts] == ["1", "2", "PE"]
+    check([t["designation"] for t in ts] == ["1", "2", "PE"], "section 9: the 1X1 terminals are not 1, 2, PE")
     out["1X1"] = {"terminals": ts, "groups": ""}
 
     def heading_part(marker, rail):
         line = DOC_LINES[find_line(marker)]
         m = re.search(r"; (PT \S+?) ×(\d+)", line)
-        assert m, line
+        check(m, f"section 9: no '; PT ... ×n' in the strip heading {line!r}")
         if rail:
-            assert "rail-bonded" in line
+            check("rail-bonded" in line, f"section 9: the strip heading {line!r} is not rail-bonded")
         return m.group(1), int(m.group(2))
 
     # -X1031
@@ -705,7 +916,7 @@ def strip_data():
                 }
             )
             labels.append((n, r["Group label"]))
-    assert [t["seq"] for t in ts] == list(range(1, count + 1))
+    check([t["seq"] for t in ts] == list(range(1, count + 1)), f"section 9: -X1031 terminals are not 1..{count}")
     runs = []
     for n, label in labels:
         if runs and runs[-1][2] == label:
@@ -729,9 +940,14 @@ def strip_data():
                 "rail_bonded": "true",  # heading: rail-bonded (FR-TRM-017)
             }
         )
-    assert [t["seq"] for t in ts] == list(range(1, count + 1))
+    check([t["seq"] for t in ts] == list(range(1, count + 1)), f"section 9: -X1032 terminals are not 1..{count}")
     out["-X1032"] = {"terminals": ts, "groups": ""}
     return out
+
+
+def parts_in_cell(cell, part_keys):
+    """The part numbers of ``part_keys`` that a section 6.1 Part cell names (whole tokens)."""
+    return {pk for pk in part_keys if re.search(rf"(?<![\w.-]){re.escape(pk)}(?![\w.-])", cell)}
 
 
 def build_devices_terminals(part_keys):
@@ -744,22 +960,28 @@ def build_devices_terminals(part_keys):
         for m in expand_range(r["Parent"]):
             valve_state[m] = "spare" if st == "spare" else ""
             valve_text[m] = txt
-    assert set(valve_state) == set(MODULES), valve_state
+    check(set(valve_state) == set(MODULES), f"section 6.2: valve modules {sorted(valve_state)}")
     # section 6.2, field devices: process tags and location
     field = {}
     for r in table_dicts("### 6.2 Valve terminal and field devices", 1):
         tags = expand_range(strip_tri(r["Field device (DT ▲U-07)"]))
         ptags = [p.strip() for p in r["Process tag"].split(",")]
-        assert len(tags) == len(ptags) == 4
-        assert strip_tri(r["Location"]) == FIELD_KEY
+        check(len(tags) == len(ptags) == 4, f"section 6.2: field devices {tags} and process tags {ptags}")
+        check(strip_tri(r["Location"]) == FIELD_KEY, f"section 6.2: field device location {r['Location']!r}")
         field.update(zip(tags, ptags))
-    assert len(field) == 8
+    check(len(field) == 8, f"section 6.2: {len(field)} field devices, 8 expected")
 
     # children of -201U1 in manifold order (section 6.2): doc rows 20 .. 30
     children = [t for t, num, r, k in rows61 if num in {"20", "21–26", "27", "28", "29", "30"}]
-    assert children == [
+    check(children == [
         "-201U2", "-201U3", "-201U4", "-201U5", "-201U6", "-201U7", "-201U8", "-201U9", "-202U1", "-202U2", "-202U3"
-    ], children  # fmt: skip
+    ], f"section 6.1: children of -201U1 {children}")  # fmt: skip
+
+    # the frozen tags and the PARTS_BY_TAG map against section 6.1 (F6)
+    frozen = {t for t, num, r, k in rows61 if "(frozen)" in r["Tag (Golden A)"]}
+    check(frozen == set(FROZEN), f"section 6.1: frozen tags {sorted(frozen)}, FROZEN is {sorted(FROZEN)}")
+    tags61 = {t for t, num, r, k in rows61}
+    check(set(PARTS_BY_TAG) <= tags61, f"PARTS_BY_TAG names tags missing in section 6.1: {set(PARTS_BY_TAG) - tags61}")
 
     strips = strip_data()
     devices = []
@@ -772,8 +994,9 @@ def build_devices_terminals(part_keys):
     for tag, num, r, k in rows61:
         if tag == "VALVES":
             expected = [f"{m}-Q{q}" for m in MODULES for q in range(1, 5)]
-            assert r["Tag (Golden A)"].startswith(f"{expected[0]} … {expected[-1]}"), r["Tag (Golden A)"]
-            assert "571334" in r["Part (manufacturer, part number)"]
+            tag_cell = r["Tag (Golden A)"]
+            check(tag_cell.startswith(f"{expected[0]} … {expected[-1]}"), f"section 6.1: valve tags {tag_cell!r}")
+            check("571334" in r["Part (manufacturer, part number)"], "section 6.1: the valve part is not 571334")
             for m in MODULES:
                 for q in range(1, 5):
                     add(
@@ -783,8 +1006,12 @@ def build_devices_terminals(part_keys):
                     )  # fmt: skip
             continue
         want = PARTS_BY_TAG.get(tag, "")
-        for pk in filter(None, want.split(";")):
-            assert pk in part_keys and pk in r["Part (manufacturer, part number)"], (tag, pk)
+        part_cell = strip_tri(r["Part (manufacturer, part number)"])
+        named = set() if part_cell.startswith("terminals ") else parts_in_cell(part_cell, part_keys)
+        check(
+            set(filter(None, want.split(";"))) == named,
+            f"section 6.1 Part cell of {tag}: {part_cell!r} names {sorted(named)}, PARTS_BY_TAG has {want!r}",
+        )
         d = dict(key=tag, function=FUNCTION_KEY, location=LOCATION_KEY, parts=want)
         if tag in FROZEN:
             d.update(letter=re.search(r"[A-Z]", tag).group(0), frozen=tag, frozen_sign="hidden")
@@ -796,14 +1023,18 @@ def build_devices_terminals(part_keys):
         elif re.fullmatch(r"-X\d{3}\d", tag):
             # strip rule {letter}{page}{counter} (doc 03 section 8): default scheme, counter = last digit
             d.update(letter="X", counter=tag[-1])
+        # doc 20 section 2.1 rule 1: -UC1 and -XPE follow per-class rules (U-34), which the numbering settings do
+        # not model yet; they are frozen tags with the sign shown (ADR-0003: a frozen tag is a typed override),
+        # so Golden B's `include_frozen: true` renumbers -XPE as section 2.2 expects (test inputs, U-34)
         elif tag == "-XPE":
-            d.update(letter="X")  # per-class rule, U-34: no counter
+            d.update(letter="X", frozen="XPE", frozen_sign="shown")
         elif tag == "-UC1":
-            d.update(letter="U", counter="1")  # U-34
+            d.update(letter="U", counter="1", frozen="UC1", frozen_sign="shown")
         elif tag == "-UC1-plate":
-            d.update(letter="U", scheme="child", parent="-UC1")  # doc 20 section 6.1 row 32 (test input)
+            # doc 20 section 6.1 row 32: the mounting plate, child of -UC1 (test input)
+            d.update(letter="U", scheme="child", parent="-UC1", frozen="UC1-plate", frozen_sign="shown")
         else:
-            raise AssertionError(tag)
+            fail(f"unexpected device tag {tag!r}")
         if tag in children:
             d.update(parent="-201U1", position=str(children.index(tag) + 1))
         if tag == "-102G1":
@@ -820,6 +1051,24 @@ def build_devices_terminals(part_keys):
             d["strip_groups"] = strips[tag]["groups"]
         add(**d)
     register("devices", DEVICE_COLS, devices, 68)
+    fixture(
+        "devices", ["frozen", "frozen_sign"], ["-XPE", "-UC1", "-UC1-plate"],
+        "frozen = the tag without its sign (XPE, UC1, UC1-plate); frozen_sign = shown",
+        "§2.1 rule 1, §6.1 rows 9, 31, 32",
+        "per-class numbering rules are not modelled yet: the tags are frozen overrides with the sign shown, so"
+        " Golden B's include_frozen renumbers -XPE as §2.2 expects",
+        cell=row61("-XPE")["Tag (Golden A)"] + " " + row61("-UC1")["Tag (Golden A)"],
+    )  # fmt: skip
+    fixture(
+        "devices", "key", "-UC1-plate", "-UC1-plate", "§6.1 row 32",
+        "doc 20 gives the mounting plate no tag ('mounting plate, child of -UC1'): the key is the fixture's name",
+        cell=row61("-UC1-plate")["Tag (Golden A)"],
+    )  # fmt: skip
+    fixture(
+        "devices", "cable_length", ["-106W1", "-106W2"], "from_part", "§10",
+        "the 2 m length is read from the part's type code; the source of the length is a ▲",
+        cell=next(r["Length (source)"] for r in table_dicts("## 10. Cables and conductors") if r["Cable"] == "-106W1"),
+    )  # fmt: skip
 
     term_cols = [
         "key", "strip", "seq", "designation", "function_text", "parts", "state", "rail_bonded", "function", "location",
@@ -849,6 +1098,8 @@ def build_devices_terminals(part_keys):
 # potentials, profiles, revisions
 # ---------------------------------------------------------------------------------------------------------------
 
+# doc 20 section 7.3 "Members": the `at` endpoint of a potential is the first member of its Members cell (``ext.``
+# entries skipped); ``build_potentials`` checks every entry against the doc.
 POTENTIAL_AT = {
     "L": "1X1:1/field",
     "N": "1X1:2/field",
@@ -871,22 +1122,99 @@ POTENTIAL_AT = {
 }
 
 
+# doc 20 section 7.3 "Type, voltage, class" -> ew-schema potential type
+POTENTIAL_TYPE = {"L": "l", "N": "n", "PE": "pe", "L+": "l_plus", "M": "m"}
+
+
+def parse_potential_type(cell):
+    """Parse a section 7.3 'Type, voltage, class' cell: ``<type>[ switched][, <n> V <AC|DC>][, <class>]``,
+    ``<type>, spare`` or ``bus``. Returns None for ``bus``, else a dict (absent parts are ""/False)."""
+    if cell == "bus":
+        return None
+    types = "|".join(re.escape(t) for t in sorted(POTENTIAL_TYPE, key=len, reverse=True))
+    m = re.fullmatch(rf"({types}), spare", cell)
+    if m:
+        return {"ptype": POTENTIAL_TYPE[m.group(1)], "switched": False, "spare": True, "voltage": "", "ac_dc": "",
+                "circuit_class": ""}  # fmt: skip
+    m = re.fullmatch(rf"({types})( switched)?(?:, (\d+) V (AC|DC))?(?:, (mains|control))?", cell)
+    check(m, f"section 7.3: unexpected 'Type, voltage, class' cell {cell!r}")
+    return {
+        "ptype": POTENTIAL_TYPE[m.group(1)],
+        "switched": bool(m.group(2)),
+        "spare": False,
+        "voltage": dec(m.group(3)) if m.group(3) else "",
+        "ac_dc": m.group(4).lower() if m.group(4) else "",
+        "circuit_class": m.group(5) or "",
+    }
+
+
+def first_member(row):
+    """The first in-project entry of a section 7.3 Members cell. An entry of the incoming strip 1X1 that belongs to
+    an external connection (the potential has a J-E-206-* alias, wire table W1 to W3) sits on the field side."""
+    for entry in [e.strip() for e in row["Members"].split(",")]:
+        if entry.startswith("ext."):
+            continue
+        if entry.split(":")[0] == "1X1" and "J-E-206-" in row["IP aliases"]:
+            return entry + "/field"
+        return entry
+    return fail(f"section 7.3: potential {row['Potential']!r} has no in-project member")
+
+
 def build_potentials():
-    names = [r["Potential"] for r in table_dicts("### 7.3 Potentials")]
-    assert names[-1] == "DP"
-    names = names[:-1]  # DP is the bus potential (doc 20 section 11, not covered yet)
-    assert names == list(POTENTIAL_AT), names
+    props = {r["Property"]: r["Golden A value"] for r in table_dicts("### 4.1 Project properties")}
+    # doc 20 section 4.1 "Supply": 230 V AC, 50 Hz; "Control voltage": 24 V DC, PELV
+    hz = re.search(r"(\d+) Hz", props["Supply"])
+    check(hz, f"section 4.1: no frequency in the Supply cell {props['Supply']!r}")
+    frequency = hz.group(1)
+    names, ac_rows, naming_only, spare = [], [], [], []
     rows = []
-    for n in names:
+    for r in table_dicts("### 7.3 Potentials"):
+        n = r["Potential"]
+        t = parse_potential_type(r["Type, voltage, class"])
+        if t is None:
+            # the bus potential: not a row (doc 20 section 11, not covered yet)
+            check(n == "DP", f"section 7.3: the bus potential is {n!r}, expected DP")
+            continue
+        names.append(n)
+        check(n in POTENTIAL_AT, f"section 7.3: potential {n!r} is not in POTENTIAL_AT")
+        first = first_member(r)
+        check(
+            POTENTIAL_AT[n] == first,
+            f"section 7.3: first member of {n!r} is {first!r}, POTENTIAL_AT has {POTENTIAL_AT[n]!r}",
+        )
         row = {"key": n, "at": POTENTIAL_AT[n]}
-        # ew-schema: the golden potentials L-S ... N-55S are naming-only; types from section 7.3 / 4.1
-        if n in ("L", "N"):
-            row.update(ptype=n.lower(), voltage="230", ac_dc="ac", frequency="50", circuit_class="mains")
-        elif n == "PE":
-            row["ptype"] = "pe"
-        elif n == "0V":
-            row["earthing"] = "pelv"  # section 4.1: 24 V DC, PELV
+        if t["switched"]:
+            # doc 03 section 9.4 derives the type, including "switched", across the PassThrough{opens: true} pair of
+            # T55 and S56: storing it would persist a derived value, so the switched neutrals are naming only
+            naming_only.append(n)
+        else:
+            row["ptype"] = t["ptype"]
+            if t["spare"]:
+                spare.append(n)  # the cell states no voltage or class
+            else:
+                row.update(voltage=t["voltage"], ac_dc=t["ac_dc"], circuit_class=t["circuit_class"])
+                if t["ac_dc"] == "ac":
+                    row["frequency"] = frequency  # doc 20 section 4.1 Supply: 50 Hz; the 7.3 cell gives none
+                    ac_rows.append(n)
+        if n == "0V":
+            # doc 20 section 4.1 "Control voltage": 24 V DC, PELV (one 0 V-PE bond, section 7.4)
+            check(t["ptype"] == "m" and "PELV" in props["Control voltage"], f"section 4.1/7.3: 0V is not a PELV M: {t}")
+            row["earthing"] = "pelv"
         rows.append(row)
+    check(names == list(POTENTIAL_AT), f"section 7.3: potentials {names}, POTENTIAL_AT has {list(POTENTIAL_AT)}")
+    fixture(
+        "potentials", "frequency", ac_rows, frequency, "§4.1, §7.3",
+        "the Type cell of §7.3 gives no frequency; every AC potential takes the 50 Hz of the §4.1 Supply", marks=[],
+    )  # fmt: skip
+    fixture(
+        "potentials", ["ptype", "voltage", "ac_dc", "frequency", "circuit_class"], naming_only, "", "§7.3",
+        "N switched: naming only; doc 03 §9.4 derives the type, including 'switched', across the"
+        " PassThrough{opens: true} pair",
+    )  # fmt: skip
+    fixture(
+        "potentials", ["voltage", "ac_dc", "frequency", "circuit_class"], spare, "", "§7.3",
+        "L+, spare: the cell states the type only, no voltage or class",
+    )  # fmt: skip
     cols = ["key", "at", "ptype", "voltage", "ac_dc", "frequency", "earthing", "circuit_class"]
     register("potentials", cols, rows, 18)
 
@@ -898,7 +1226,7 @@ def build_profiles():
         if "(3 rows)" in r["Code"]:
             funcs = [x.strip() for x in r["Function"].split(",")]
             pts = [x.strip() for x in r["Potential type"].split(",")]
-            assert len(funcs) == len(pts) == 3
+            check(len(funcs) == len(pts) == 3, f"section 7.1: the 3-row cell {r['Code']!r}: {funcs} / {pts}")
         else:
             funcs, pts = [r["Function"]], [r["Potential type"]]
         code = re.sub(r"\s*\(\d+ rows\)", "", r["Code"])
@@ -931,11 +1259,11 @@ def build_revisions():
     parts = [p.strip() for p in props["Revisions"].split("; V")]
     parts = [p if p.startswith("V") else "V" + p for p in parts]
     status = re.match(r"^(\d+) and (\d+) last changed in V(\d+\.\d+)", props["Page change status"])
-    assert status
+    check(status, f"section 4.1: unexpected Page change status {props['Page change status']!r}")
     rows = []
     for p in parts:
         m = re.match(r'^(V\d+\.\d+) (\d{4}-\d\d-\d\d) "([^"]+)", state (\w+)', p)
-        assert m, p
+        check(m, f"section 4.1: unexpected revision {p!r}")
         author = re.search(r"author (<[^>]+>)", p)
         label = m.group(1)
         rows.append(
@@ -950,6 +1278,10 @@ def build_revisions():
             }
         )
     register("revisions", ["key", "date", "description", "state", "author", "checker", "changed_pages"], rows, 2)
+    fixture(
+        "revisions", "checker", "V2.0", "", "§4.1", "the checker of V2.0 is unset in Golden A (unknown)",
+        cell=props["Revisions"],
+    )  # fmt: skip
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -986,6 +1318,10 @@ SYMBOL = {
     "ew.fn.ip": "ew.gen.ip@qet10",
 }
 EXTERNAL_ARROW = "ew.gen.external-arrow@qet10"
+
+# F13: the offsets (QET px) of the k-th interruption point of a coincident group
+IP_OFFSETS = [(0, 0), (0, 20), (0, -20), (20, 0)]
+IP_GROUPS = {}  # (page, cell, dx, dy) -> representation keys, for the coincident groups (information only)
 
 # doc 20 section 6 / doc 07 section 9.1: main function of each device
 MAIN_FNDEF = {
@@ -1032,7 +1368,7 @@ def parse_main_reps(cell):
             continue
         if m.group(1):
             folio = m.group(1)
-        assert folio
+        check(folio, f"section 6.1: the Main rep. cell {cell!r} starts without a folio")
         out.append((folio, m.group(2)))
     return out
 
@@ -1045,7 +1381,7 @@ def parse_ips():
         tf, tc = re.search(r"(\d+)-([A-H]\d+)", r["Target cell"]).groups()
         ips[r["Name"]] = (sf, sc, tf, tc)
         order.append(r["Name"])
-    assert len(ips) == 22
+    check(len(ips) == 22, f"section 15: {len(ips)} interruption-point pairs, 22 expected")
     return ips, order
 
 
@@ -1078,7 +1414,7 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
         if key == "-102F1":
             aliases = re.findall(r"(\w+) \(alias (\w+)\)", rows61[key]["Connection points"])
             kw["cp_aliases"] = ";".join(f"{a}={b}" for a, b in aliases)
-            assert kw["cp_aliases"] == "1=L1;2=T1"
+            check(kw["cp_aliases"] == "1=L1;2=T1", f"section 6.1 row 11: CP aliases {kw['cp_aliases']!r}")
         fn(**kw)
 
     # -- aux functions (doc 20 section 6.1 "Other reps.", 6.2) ----------------------------------------------------
@@ -1092,13 +1428,14 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
     for n in range(1, 9):
         aux_defs.append((f"-203Q{n}", "actuator", "ew.fn.cylinder-double-acting", "", ""))
     for dev, name, fd, kind, part in aux_defs:
-        assert dev in devices
+        check(dev in devices, f"auxiliary function of the unknown device {dev!r}")
         fn(key=f"{dev}#{name}", device=dev, fndef=fd, role="aux", kind=kind, part=part)
 
     # -- terminals ----------------------------------------------------------------------------------------------
     for t in terms:
         if t["strip"] == "1X1":
-            fn(key=t["key"], device=t["key"], fndef="ew.fn.terminal-pe" if t["designation"] == "PE" else "ew.fn.terminal")
+            is_pe = t["designation"] == "PE"
+            fn(key=t["key"], device=t["key"], fndef="ew.fn.terminal-pe" if is_pe else "ew.fn.terminal")
         elif t["strip"] == "-X1031":
             fn(key=t["key"], device=t["key"], fndef="ew.fn.terminal", part="PT 2.5-TWIN")
         else:
@@ -1121,9 +1458,10 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
     for name, folio, cell, direction in ext_defs:
         # External points (doc 20 section 15): unpaired, named like the external reference they target.
         fn(key=f"{name}@{folio}", fndef="ew.fn.ip", kind="ip", ip_name=name, ip_direction=direction, ip_external=name)
-    assert sum(1 for f in funcs if f["fndef"] == "ew.fn.ip") == 48
+    n_ip = sum(1 for f in funcs if f["fndef"] == "ew.fn.ip")
+    check(n_ip == 48, f"section 15: {n_ip} interruption-point functions, 48 expected")
     # 66 main + 18 aux + 28 terminal + 48 interruption-point functions
-    assert len(funcs) == 66 + 18 + 28 + 48, len(funcs)
+    check(len(funcs) == 66 + 18 + 28 + 48, f"{len(funcs)} functions, 160 expected")
     register("functions", FUNC_COLS, funcs)
     fkeys = {f["key"] for f in funcs}
     fndef_of = {f["key"]: f["fndef"] for f in funcs}
@@ -1136,12 +1474,13 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
         cells = parse_main_reps(r["Main rep."])
         if num == "21–26":
             cells = [cells[k]]
-        assert len(cells) == 1, tag
+        check(len(cells) == 1, f"section 6.1: the Main rep. cell of {tag} names {len(cells)} cells")
         rep(tag, cells[0][0], cells[0][1], SYMBOL[fndef_of[tag]])
     # -X1031 (two segments) and -X1032 (section 6.1 rows 13, 14)
     for tag in ("-X1031", "-X1032"):
         segs = parse_main_reps(rows61[tag]["Main rep."])
-        assert len(segs) == (2 if tag == "-X1031" else 1)
+        want = 2 if tag == "-X1031" else 1
+        check(len(segs) == want, f"section 6.1: the Main rep. cell of {tag} names {len(segs)} cells, {want} expected")
         for i, (folio, cell) in enumerate(segs):
             rep(tag if i == 0 else f"{tag}.2", folio, cell, SYMBOL["ew.fn.strip-segment"], functions=tag)
     # 1X1 is drawn as three terminal symbols (doc 08 section 6.7); cell from section 6.1 row 8 main rep
@@ -1149,6 +1488,11 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
     for des, dx in (("1", "-20"), ("2", "0"), ("PE", "20")):  # fixture choice (triangle): dx offsets
         sym = SYMBOL["ew.fn.terminal-pe"] if des == "PE" else SYMBOL["ew.fn.terminal"]
         rep(f"1X1:{des}", f1, c1, sym, dx=dx)
+    fixture(
+        "representations", "dx", ["1X1:1", "1X1:2", "1X1:PE"], "-20; 0; 20", "§6.1 row 8",
+        "test input (fixture choice): the three terminal symbols of 1X1 sit side by side in the strip's cell",
+        cell=rows61["1X1"]["Main rep."],
+    )  # fmt: skip
 
     # aux reps parsed from section 6.1 "Other reps."
     aux_rep = {}
@@ -1158,13 +1502,19 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
             if num == "21–26":
                 cells = [cells[k]]
             names = {"-201U1": ["bus", "power"], "-202U1": ["power"]}.get(tag, ["aux"])
-            assert len(cells) == len(names), (tag, cells)
+            check(len(cells) == len(names), f"section 6.1: the Other reps. cell of {tag} names {len(cells)} cells")
             for nm, (folio, cell) in zip(names, cells):
                 key = f"{tag}#{nm}"
                 aux_rep[key] = (folio, cell)
                 rep(key, folio, cell, SYMBOL[fndef_of[key]])
 
     # valves (triangle test inputs): row D, columns c-3, c-1, c+1, c+3 around the module's aux column c
+    fixture(
+        "representations", "cell", "-201U3-Q1 … -202U2-Q4",
+        "row D, columns c-3, c-1, c+1, c+3 around the module's aux column c", "§6.1 rows 33-60, §15",
+        "test input (fixture choice): doc 20 names only the pages 203-206 of the valves, not their cells",
+        cell=rows61["VALVES"]["Main rep."],
+    )  # fmt: skip
     valve_col = {}
     for m in MODULES:
         folio, cell = aux_rep[f"{m}#aux"]
@@ -1174,13 +1524,25 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
             rep(f"{m}-Q{q}", folio, f"D{c + off}", SYMBOL["ew.fn.valve-5-2-sol-spring"])
 
     # field devices (triangle): row G (valve) and row F (actuator) in the column of the driving valve (section 6.2)
+    fixture(
+        "representations", "cell", "-203Q1 … -203Q8", "row G (§6.1 Main rep.), column of the driving valve",
+        "§6.1 rows 61-68, §6.2",
+        "test input (fixture choice): the column of a process valve is that of the valve that drives it",
+        marks=tri_marks(table_after("### 6.2 Valve terminal and field devices", 1)[0][0]),
+    )  # fmt: skip
+    fixture(
+        "representations", "cell", "-203Q1#actuator … -203Q8#actuator", "row F, column of the driving valve",
+        "§6.2", "test input (fixture choice): the actuator is drawn above its process valve",
+        marks=tri_marks(table_after("### 6.2 Valve terminal and field devices", 1)[0][0]),
+    )  # fmt: skip
     for r in table_dicts("### 6.2 Valve terminal and field devices", 1):
         tags = expand_range(strip_tri(r["Field device (DT ▲U-07)"]))
         drv = re.match(r"^(-\d+U\d+)-Q1", r["Driven by (DeviceLink)"]).group(1)
         for q, t in enumerate(tags, start=1):
             folio, col = valve_col[f"{drv}-Q{q}"]
             fm = re.fullmatch(r"(\d+)-([A-H])", rows61[t]["Main rep."])
-            assert fm and fm.group(1) == folio, (t, rows61[t]["Main rep."], folio)
+            main_rep = rows61[t]["Main rep."]
+            check(fm and fm.group(1) == folio, f"section 6.1: Main rep. {main_rep!r} of {t}, expected folio {folio}")
             rep(t, folio, f"{fm.group(2)}{col}", SYMBOL["ew.fn.process-valve-2way"])
             rep(f"{t}#actuator", folio, f"F{col}", SYMBOL["ew.fn.cylinder-double-acting"])
 
@@ -1193,9 +1555,37 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
     dys = {ext.group(1): "-20", ext.group(2): "0", ext.group(3): "20"}
     for name, folio, cell, direction in ext_defs:
         rep(f"{name}@{folio}", folio, cell, EXTERNAL_ARROW, dy=dys.get(name, ""))
+    fixture(
+        "representations", "dy", [f"{n}@{ext.group(4)}" for n in dys], "-20; 0; 20", "§15",
+        "test input (fixture choice): the three mains points share the cell 101-G0 and are stacked",
+    )  # fmt: skip
+
+    # F13: up to four interruption points sit on the identical point (examples: 103-G6, 103-B6, 103-B14, 103-G1,
+    # 106-E1, 101-H16, 102-A1, 103-A1). Each coincident group is spread by multiples of 10 px, inside the 60 x 80 px
+    # cell and on the 10 px grid; the k-th member (natural key order) gets the k-th offset.
+    ip_reps = [rp for rp in reps if fndef_of[rp["functions"]] == "ew.fn.ip"]
+    groups = {}
+    for rp in sorted(ip_reps, key=lambda rp: natural_key(rp["key"])):
+        groups.setdefault((rp["page"], rp["cell"], rp["dx"] or "0", rp["dy"] or "0"), []).append(rp)
+    for (page, cell, dx0, dy0), members in groups.items():
+        check(len(members) <= len(IP_OFFSETS), f"{len(members)} interruption points coincide at {page}-{cell}")
+        for k, rp in enumerate(members):
+            if k:  # the first member keeps the point
+                rp["dx"], rp["dy"] = str(int(dx0) + IP_OFFSETS[k][0]), str(int(dy0) + IP_OFFSETS[k][1])
+    coincident = {g: [rp["key"] for rp in members] for g, members in groups.items() if len(members) > 1}
+    places = [(rp["page"], rp["cell"], rp["dx"] or "0", rp["dy"] or "0") for rp in ip_reps]
+    check(len(set(places)) == len(places), "two interruption-point representations share (page, cell, dx, dy)")
+    # ▲ test input (fixture choice): separates coincident interruption points; the cell is what doc 20 §15 asserts
+    fixture(
+        "representations", ["dx", "dy"], "interruption points that share a cell",
+        "k-th member of a coincident group (natural key order): +(0,0), +(0,20), +(0,-20), +(20,0) px", "§15",
+        "▲ test input (fixture choice): separates coincident interruption points; the cell is what doc 20 §15"
+        " asserts",
+    )  # fmt: skip
+    IP_GROUPS.update(coincident)
     for rp in reps:
-        assert rp["functions"] in fkeys, rp
-        assert rp["page"] in STORED_FOLIOS, rp
+        check(rp["functions"] in fkeys, f"representation {rp['key']!r} shows the unknown function {rp['functions']!r}")
+        check(rp["page"] in STORED_FOLIOS, f"representation {rp['key']!r} is on the unknown page {rp['page']!r}")
     register("representations", REP_COLS, reps)
     return fkeys
 
@@ -1222,15 +1612,86 @@ def normalise_endpoint(cell, folio):
     return s
 
 
+def parse_junction_sequence(cell):
+    """A section 8.3 Sequence cell: 'F55:2 → W13, W14' gives ('from', 'F55:2', [W13, W14]); 'W20, W21 into
+    -102F1:1' gives ('into', '-102F1:1', [W20, W21])."""
+    m = re.fullmatch(r"(W\d+(?:, W\d+)*) into (\S+)", cell)
+    if m:
+        return "into", m.group(2), re.findall(r"W\d+", m.group(1))
+    # decision log ID-113: 'W20, -102F1:1, W21 (far ends in order: A, -102F1:1, B)' lists the chain in sequence order
+    # with the shared CP in the middle; whether the wires end or start at it comes from the wire table
+    m = re.fullmatch(r"(W\d+), (\S+), (W\d+) \(far ends in order: ([^)]*)\)", cell)
+    if m:
+        far = [s.strip() for s in m.group(4).split(",")]
+        check(len(far) == 3 and far[1] == m.group(2), f"section 8.3: far ends {far!r} do not centre on {m.group(2)!r}")
+        return "chain", m.group(2), [m.group(1), m.group(3)]
+    m = re.fullmatch(r"(\S+) → (W\d+(?:, W\d+)*)", cell)
+    check(m, f"section 8.3: unexpected junction Sequence cell {cell!r}")
+    return "from", m.group(1), re.findall(r"W\d+", m.group(2))
+
+
+def junction_plan(junction, wires):
+    """The chain arms and the junction sequences that section 8.3 and the wire table (section 8.2) state, as
+    ({junction: [(key, wire, a, b)]}, {junction: 'key;key;...'}). ``junction`` carries the parsed Sequence cell."""
+    ends, split = {}, set()
+    for r in wires:
+        folio = re.match(r"^(\d+)(?:→(\d+))?$", r["Folio"])
+        f, t = folio.group(1), folio.group(2)
+        ends[f"W{r['W']}"] = (normalise_endpoint(r["From"], f), normalise_endpoint(r["To"], t or f))
+        if t:
+            split.add(f"W{r['W']}")
+    chain, seqs = {}, {}
+    for jn, v in junction.items():
+        how, endpoint, ws = v["sequence"]
+        # a wire that crosses to another folio is drawn in two parts: the part on the junction's page is W<n>.<folio>
+        shown = [f"{w}.{v['page']}" if w in split else w for w in ws]
+        if v["mode"] == "chain":
+            check(len(ws) == 2, f"section 8.3: chain junction {jn} has {len(ws)} wires, 2 expected")
+            first, second = ws
+            if how == "chain":
+                # ID-113 notation: the direction follows the wire table
+                if ends[first][1] == endpoint and ends[second][1] == endpoint:
+                    how = "into"
+                else:
+                    how = "from"
+                far = re.search(r"far ends in order: ([^)]*)\)", v["sequence_cell"]).group(1)
+                far = [s.strip() for s in far.split(",")]
+                other = (lambda w: ends[w][0] if how == "into" else ends[w][1])
+                check(far == [other(first), endpoint, other(second)],
+                      f"section 8.3: {jn} far ends {far} do not match the wire table {[other(first), endpoint, other(second)]}")
+            if how == "into":
+                # W20, W21 into E: both wires end at E; the junction sits on the first wire's way into E
+                check(ends[first][1] == ends[second][1] == endpoint, f"wire table: {ws} do not end at {endpoint}")
+                chain[jn] = [
+                    (f"{jn}.1", "", ends[first][0], f"@{jn}"),
+                    (first, first, f"@{jn}", endpoint),
+                    (second, second, ends[second][0], f"@{jn}"),
+                ]
+            else:
+                # F -> W24, W25: both wires start at F; the junction sits on the first wire's way out of F
+                check(ends[first][0] == ends[second][0] == endpoint, f"wire table: {ws} do not start at {endpoint}")
+                chain[jn] = [
+                    (f"{jn}.1", "", f"@{jn}", ends[first][1]),
+                    (first, first, endpoint, f"@{jn}"),
+                    (second, second, f"@{jn}", ends[second][1]),
+                ]
+            seqs[jn] = ";".join([f"{jn}.1"] + shown)
+        else:
+            check(v["mode"] == "star" and how == "from", f"section 8.3: star junction {jn} needs a 'from' Sequence")
+            check(endpoint == v["feed"], f"section 8.3: {jn} Sequence feed {endpoint!r}, Wiring feed {v['feed']!r}")
+            seqs[jn] = ";".join([f"{jn}.feed"] + shown)
+    return chain, seqs
+
+
 def build_connections(ips, device_keys, conductor_keys, fkeys):
     wires = table_dicts("### 8.2 Wire table")
-    assert len(wires) == 44, len(wires)
+    check(len(wires) == 44, f"section 8.2: {len(wires)} wires, 44 expected")
     junction = {}
     for r in table_dicts("### 8.3 Junctions and bridges", 0):
         wiring_cell = r["Wiring"]
         explicit = "(set)" in wiring_cell
         if not explicit:
-            assert "(default)" in wiring_cell
+            check("(default)" in wiring_cell, f"section 8.3: Wiring cell {wiring_cell!r}: neither (set) nor (default)")
         mode = wiring_cell.split(" ")[0].lower()
         fm = re.search(r"from (?:the PSU CP )?(\S+)$", wiring_cell)
         junction[r["Junction"]] = {
@@ -1239,8 +1700,11 @@ def build_connections(ips, device_keys, conductor_keys, fkeys):
             "mode": mode,
             "wiring": mode if explicit else "",
             "feed": fm.group(1) if fm else None,
+            "sequence": parse_junction_sequence(r["Sequence"]),
+            "sequence_cell": r["Sequence"],
         }
-    assert list(junction) == ["J1", "J2", "J3", "J4", "J5", "J6"]
+    check(list(junction) == ["J1", "J2", "J3", "J4", "J5", "J6"], f"section 8.3: junctions {list(junction)}")
+    plan_chain, plan_seqs = junction_plan(junction, wires)
 
     rows = []
 
@@ -1257,6 +1721,7 @@ def build_connections(ips, device_keys, conductor_keys, fkeys):
         "J4": [("J4.1", "", "@J4", "-102F2:24VDC#1"), ("W24", "W24", "-102F1:2", "@J4"),
                ("W25", "W25", "@J4", "-102F2:24VDC#2")],
     }  # fmt: skip
+    check(chain == plan_chain, f"section 8.3: the chain arms are {plan_chain}, the script has {chain}")
     chain_arm = {key: (jn, a, b) for jn, arms in chain.items() for key, wire, a, b in arms}
     feed_done = set()
     prev_via = ""
@@ -1279,32 +1744,34 @@ def build_connections(ips, device_keys, conductor_keys, fkeys):
         km = re.match(r"^(-\d+W\d+) ([A-Z]+) \(core", size)
         if km:
             kind, core = "core", f"{km.group(1)}:{km.group(2)}"
-            assert core in conductor_keys, core
+            check(core in conductor_keys, f"section 8.2: wire {wid} names the unknown core {core!r}")
 
         def put(key, page, a, b):
             primary = key == wid  # CDP csa / marker only on the connection keyed W<n>
             conn(key, wid, page, a, b, kind, core, csa if primary else "", marker if primary else "")
 
         if jn in chain:
-            assert ipname is None and t is None and wid in chain_arm
+            plain = ipname is None and t is None and wid in chain_arm
+            check(plain, f"section 8.2: chain wire {wid} is not a plain chain arm")
             _, a, b = chain_arm[wid]
             put(wid, f, a, b)
             continue
         a = frm
         if jn:
-            assert junction[jn]["mode"] == "star", jn
-            assert frm == junction[jn]["feed"], (wid, frm, junction[jn]["feed"])
+            check(junction[jn]["mode"] == "star", f"section 8.2: wire {wid} runs through {jn}, which is not a star")
+            feed = junction[jn]["feed"]
+            check(frm == feed, f"section 8.2: wire {wid} starts at {frm!r}, {jn} is fed from {feed!r}")
             a = f"@{jn}"
             if jn not in feed_done:
                 feed_done.add(jn)
                 conn(f"{jn}.feed", "", junction[jn]["page"], junction[jn]["feed"], f"@{jn}")
         if ipname:
             sf, _, tf, _ = ips[ipname]
-            assert t and {f, t} == {sf, tf}, (wid, f, t, sf, tf)
+            check(t and {f, t} == {sf, tf}, f"section 8.2/15: wire {wid} folios {f}->{t}, IP {ipname} folios {sf}/{tf}")
             put(wid if tf == f else f"{wid}.{f}", f, a, f"ip:{ipname}@{f}")
             put(wid if tf == t else f"{wid}.{t}", t, f"ip:{ipname}@{t}", to)
         else:
-            assert t is None, wid
+            check(t is None, f"section 8.2: wire {wid} crosses folios without an interruption point")
             put(wid, f, a, to)
     # the chain junction arms that carry no wire ID
     for jn, arms in chain.items():
@@ -1330,20 +1797,25 @@ def build_connections(ips, device_keys, conductor_keys, fkeys):
                 }
             )  # fmt: skip
             bridges += 1
-    assert bridges == 19, bridges
-    assert sum(1 for x in rows if x["wire"].startswith("W") and x["key"] == x["wire"]) == 44
+    check(bridges == 19, f"section 8.3: {bridges} bridge connections, 19 expected")
+    n_wires = sum(1 for x in rows if x["wire"].startswith("W") and x["key"] == x["wire"])
+    check(n_wires == 44, f"{n_wires} wire connections, 44 expected")
     register("connections", CONN_COLS, rows, 72 + 19)
 
     # endpoint sanity: device or terminal exists, IP function exists
     for x in rows:
         for end in (x["a"], x["b"]):
             if end.startswith("ip:"):
-                assert end[3:] in fkeys, end
+                check(end[3:] in fkeys, f"connection endpoint {end!r}: no such interruption point")
             elif not end.startswith("@"):
-                assert end.split(":")[0] in device_keys, end
+                check(end.split(":")[0] in device_keys, f"connection endpoint {end!r}: no such device or strip")
 
     # junctions.csv: cells are fixture choices (test positions, triangle); doc 20 section 8.3 gives the folio
     cells = {"J1": "C11", "J2": "C13", "J3": "C6", "J4": "D7", "J5": "D5", "J6": "D6"}
+    fixture(
+        "junctions", "cell", list(cells), "; ".join(cells.values()), "§8.3",
+        "test input (fixture choice): doc 20 gives the folio of a junction, not its cell",
+    )  # fmt: skip
     seqs = {
         "J1": "J1.feed;W13;W14",
         "J2": "J2.feed;W15;W16",
@@ -1352,10 +1824,12 @@ def build_connections(ips, device_keys, conductor_keys, fkeys):
         "J5": "J5.feed;W22;W27.102",
         "J6": "J6.feed;W23;W26.102",
     }
+    check(seqs == plan_seqs, f"section 8.3: the junction sequences are {plan_seqs}, the script has {seqs}")
     keys = {x["key"] for x in rows}
     jr = []
     for j, v in junction.items():
-        assert all(k in keys for k in seqs[j].split(";")), j
+        missing = [k for k in seqs[j].split(";") if k not in keys]
+        check(not missing, f"junction {j}: the sequence {seqs[j]!r} names the missing connections {missing}")
         jr.append(
             {"key": j, "page": v["page"], "cell": cells[j], "style": v["style"], "wiring": v["wiring"],
              "sequence": seqs[j]}
@@ -1365,9 +1839,9 @@ def build_connections(ips, device_keys, conductor_keys, fkeys):
     # bonds.csv (doc 20 section 7.4); b carries the clamp of W27's To end
     line = next(ln for ln in DOC_LINES if ln.startswith("**B1:**")).replace("`", "")
     bm = re.search(r"Bond\{a: (\S+), b: (\S+), kind: (\w+), via: (W\d+)\}", line)
-    assert bm and bm.group(3) == "Pelv0vPe"
+    check(bm and bm.group(3) == "Pelv0vPe", "section 7.4: the bond B1 is not a Pelv0vPe")
     w = next(x for x in rows if x["key"] == bm.group(4))
-    assert w["b"].startswith(bm.group(2) + "/")
+    check(w["b"].startswith(bm.group(2) + "/"), f"section 7.4: {bm.group(2)!r} is not an end of {bm.group(4)}")
     register(
         "bonds",
         ["key", "a", "b", "kind", "via"],
@@ -1398,18 +1872,44 @@ def build_all():
     ips, ip_order = parse_ips()
     fkeys = build_functions_representations(devices, terms, ips, ip_order, ext)
     build_connections(ips, set(devices) | {t["key"] for t in terms}, conductor_keys, fkeys)
-    assert len(TABLES) == 23, sorted(TABLES)
+    check(len(TABLES) == 23, f"{len(TABLES)} tables built, 23 expected: {sorted(TABLES)}")
+
+
+def readme_with_block(text, block):
+    """``text`` (the README) with the test-input table between the markers replaced by ``block``; None when a marker
+    is missing."""
+    b, e = text.find(README_BEGIN), text.find(README_END)
+    if b < 0 or e < b:
+        return None
+    return text[: b + len(README_BEGIN)] + "\n\n" + block + "\n" + text[e:]
+
+
+def usage(message):
+    print(f"{message}\nusage: tables_from_doc20.py [--check] [--doc PATH]", file=sys.stderr)
+    return 2
 
 
 def main(argv):
-    if any(a != "--check" for a in argv):
-        print(f"unknown arguments: {argv}", file=sys.stderr)
-        return 2
+    args, check_only, doc = list(argv), False, DEFAULT_DOC_PATH
+    while args:
+        arg = args.pop(0)
+        if arg == "--check":
+            check_only = True
+        elif arg == "--doc" and args:
+            doc = Path(args.pop(0))
+        else:
+            return usage(f"unknown arguments: {argv}")
+    if doc != DEFAULT_DOC_PATH and not check_only:
+        return usage("--doc only together with --check (the committed tables are written from doc 20 itself)")
+    load_doc(doc)
     build_all()
     outputs = {name: csv_bytes(cols, rows) for name, (cols, rows) in sorted(TABLES.items())}
     for name, (cols, rows) in sorted(TABLES.items()):
         print(f"{name}.csv: {len(rows)} rows")
-    if "--check" in argv:
+    print(f"README test inputs: {len(FIXTURE_CHOICES)} rows")
+    readme = README_PATH.read_text(encoding="utf-8")
+    new_readme = readme_with_block(readme, render_fixture_choices())
+    if check_only:
         bad = []
         for name, data in outputs.items():
             path = TABLES_DIR / f"{name}.csv"
@@ -1421,12 +1921,20 @@ def main(argv):
             for path in sorted(TABLES_DIR.glob("*.csv")):
                 if path.stem not in outputs:
                     bad.append(f"extra: {path.name}")
+        if new_readme is None:
+            bad.append(f"README.md: the markers {README_BEGIN} and {README_END} are missing")
+        elif new_readme != readme:
+            bad.append("differs: the test-input table of README.md")
         for line in bad:
             print(line)
         return 1 if bad else 0
+    check(new_readme is not None, f"README.md lacks the markers {README_BEGIN} and {README_END}")
     TABLES_DIR.mkdir(parents=True, exist_ok=True)
     for name, data in outputs.items():
         (TABLES_DIR / f"{name}.csv").write_bytes(data)
+    if new_readme != readme:
+        with open(README_PATH, "w", encoding="utf-8", newline="") as f:
+            f.write(new_readme)
     return 0
 
 
