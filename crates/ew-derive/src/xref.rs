@@ -18,11 +18,13 @@
 //! | interruption point with `external` | [`XrefKind::External`] | none; the text is the external target |
 //! | interruption point | [`XrefKind::Ip`] | the pair partners of `stitch_graph` (star: the source lists every other point, each other point the source; chain: the one partner); none when unpaired |
 //! | the device's main function, on its main representation ([`MainRep`]) | [`XrefKind::MainToAux`] | every representation of the device's other functions, then the other representations of the main function ("same function", FR-XRF-016); contact images and auxiliaries drawn inside their own device's black box are left out |
-//! | the main function, on a contact image | [`XrefKind::ContactImage`] | as `MainToAux`, one row per target |
+//! | the main function, on a contact image | [`XrefKind::ContactImage`] | one row per auxiliary representation (not the main function's own other representations) |
 //! | the main function, on another representation | [`XrefKind::AuxToMain`] | the main representation ("same function") |
 //! | an auxiliary function | [`XrefKind::AuxToMain`] | the main representation; [`XrefKind::InOwnBox`] (no text) when its anchor lies inside a black box of its own device on the same page (doc 06 §2.7) |
 //!
-//! Strip segments (doc 08 §6.7) neither refer nor are referred to.
+//! Strip segments (doc 08 §6.7) neither refer nor are referred to, and never act as the main
+//! representation here (`MainRep` itself, which feeds tags, numbering and the BOM, only skips contact images;
+//! the cross-reference main representation is `xref_main_rep`).
 //! A second function with role `Main` (the model violates EW-INV-002) is treated as an auxiliary and noted.
 //! A target without an anchor cell prints "?" for its row and column and is noted (EW-CORE-053); the
 //! reference's "3-B0" cannot arise because the cell comes from the symbol's anchor policy.
@@ -42,8 +44,13 @@
 //!   `always`, by the target page's whole structure; never when the format names `{function}` or
 //!   `{location}` itself.
 //! - **Same page** (FR-XRF-025): with `zone_only`, an item on the source page prints only its cell.
-//! - **Contact image** (FR-XRF-017): one row per target, "{CP designations joined by -} {item}", rows sorted
-//!   by designation then target order and joined by ", " ("13-14 /105.3, 21-22 /106.5").
+//! - **Contact image** (FR-XRF-017): one row per auxiliary representation, "{CP designations joined by -}
+//!   {item}", rows sorted by contact sequence (the first designation without its function digit: 13 → 1,
+//!   21 → 2, 113 → 11), then designation, then target order, joined by ", " ("13-14 /105.3, 21-22 /106.5").
+//! - **Matrix** (FR-XRF-008): only the first `matrix.max` items are formatted; the overflow mark stands for
+//!   the rest, so a star of 10 000 points costs nine items.
+//! - **Page index** (`{page_index}`, QET `%f`): the 1-based position among the drawn pages only (generated
+//!   pages and dividers do not count), as QET numbers its folios.
 //! - **External** (FR-XRF-012): "{location} / {device}" of the `ExternalRef` ("+J-E-206 / JE-N1000-03"),
 //!   preceded by the other project's name and a space when it names one; no link.
 //!
@@ -61,24 +68,21 @@ use ew_units::Pt2;
 use serde_json::Value;
 
 use crate::cell::{Cell, RepAnchorCell, anchor_point};
-use crate::note::DeriveNote;
-use crate::pages::{PageOrder, PageOrderV, PageRef, folio_label};
+use crate::note::{DeriveNote, EW_INV_002};
+use crate::pages::{DrawnPageOrder, PageOrder, PageOrderV, PageRef, folio_label};
 use crate::profile::XrefFormat;
 use crate::query::{Policy, Query};
 use crate::stitch::{PairMode, StitchGraphQ};
 use crate::structure::{PageStructure, ResolvedStructure, StructurePath};
-use crate::tag::{MainFunction, MainRep};
+use crate::tag::MainFunction;
 use crate::xref_format::{
-    ItemOptions, ItemValues, Rendered, XrefToken, names_structure, parse_format, render_item, render_list,
-    render_wrapper,
+    ItemOptions, ItemValues, Rendered, XrefToken, names_structure, parse_format, render_item,
+    render_list_more, render_wrapper,
 };
 use crate::{FunctionCps, Q};
 
 /// The member name notes use for the cross-reference settings shim.
 const XREF_MEMBER: &str = "settings.xref_format";
-
-/// The integrity code of a device with two main functions (EW-INV-002).
-const EW_INV_002: &str = "EW-INV-002";
 
 /// The finding code of an invalid cross-reference cell (EW-CORE-053, FR-CHK-035).
 const EW_CORE_053: &str = "EW-CORE-053";
@@ -144,10 +148,12 @@ impl Query for XrefSettingsOf {
         let format = match project.settings.extra.get("xref_format") {
             None => q.profile().xref.clone(),
             Some(v) => {
-                // Doc 03 §5.1 gives the scheme a display `name`, which the profile's type does not carry.
+                // Doc 03 §5.1 gives the scheme a display `name`, which the profile's type does not carry;
+                // the `key` is optional there and `structure` and `same_page` have defaults.
                 let mut v = v.clone();
                 if let Value::Object(m) = &mut v {
                     m.remove("name");
+                    m.entry("key").or_insert_with(|| Value::from("custom"));
                 }
                 match serde_json::from_value::<XrefFormat>(v) {
                     Ok(f) => f,
@@ -308,6 +314,10 @@ fn target_key(order: &PageOrderV, t: &XrefTarget) -> (usize, u32, u32, Id<Repres
 /// The target `rep`, or `None` when the record is missing.
 fn target(q: &Q, rep: Id<Representation>, role: TargetRole) -> Option<XrefTarget> {
     let r = q.reps().get(rep)?;
+    if r.rep_type == RepType::StripSegment {
+        // A strip segment is never a cross-reference target (doc 08 §6.7).
+        return None;
+    }
     let function = *r.functions.first()?;
     let cell = q.get::<RepAnchorCell>(rep).as_ref().clone();
     if cell.is_none() {
@@ -378,7 +388,7 @@ fn device_relation(
     device: Id<Device>,
 ) -> XrefRelation {
     let main = *q.get::<MainFunction>(device);
-    let main_rep = *q.get::<MainRep>(device);
+    let main_rep = xref_main_rep(q, device);
     if f.role == FnRole::Main && main.is_some_and(|m| m != fid) {
         q.note(DeriveNote::Xref {
             code: EW_INV_002,
@@ -400,7 +410,9 @@ fn device_relation(
     }
     if main == Some(fid) {
         if rep.rep_type == RepType::ContactImage {
-            let targets = aux_targets(q, device, fid, main_rep);
+            // The rows are the auxiliaries' contacts; another drawing of the main function itself adds none.
+            let mut targets = aux_targets(q, device, fid, main_rep);
+            targets.retain(|t| t.role == TargetRole::Aux);
             return XrefRelation {
                 kind: XrefKind::ContactImage,
                 targets,
@@ -456,9 +468,10 @@ fn device_relation(
     }
 }
 
-/// The targets of a main representation: the representations of the device's other functions (ID order),
-/// then the other representations of the main function; contact images, auxiliaries drawn in their own
-/// device's box and the main representation itself are left out.
+/// The targets of a main representation: the representations of the device's other functions and the other
+/// representations of the main function ([`TargetRole::SameFunction`]); the caller sorts them (page-order
+/// position, row, column, representation ID). Contact images, strip segments, auxiliaries drawn in their
+/// own device's box and the main representation itself are left out.
 fn aux_targets(
     q: &Q,
     device: Id<Device>,
@@ -495,6 +508,21 @@ fn aux_targets(
         }
     }
     out
+}
+
+/// The main representation for cross-references: the smallest-ID representation of the device's main
+/// function that is neither a contact image nor a strip segment.
+///
+/// `MainRep` (tags, numbering, BOM) only skips contact images, in step with the command layer's
+/// `numbering::main_rep`; a strip segment of a terminal is how it is drawn in the strip, not the symbol
+/// other representations refer to.
+fn xref_main_rep(q: &Q, device: Id<Device>) -> Option<Id<Representation>> {
+    let f = (*q.get::<MainFunction>(device))?;
+    let reps = q.reps();
+    q.idx().reps_of_function(f).find(|r| {
+        reps.get(*r)
+            .is_some_and(|r| !matches!(r.rep_type, RepType::ContactImage | RepType::StripSegment))
+    })
 }
 
 /// One black box of a device on a page: its representation and its page-space bounding rectangle.
@@ -617,50 +645,45 @@ impl Query for XrefTextOf {
         let cx = TextCx {
             q,
             settings: &settings,
-            order: q.get::<PageOrder>(()),
+            drawn: q.get::<DrawnPageOrder>(()),
             source,
             source_structure: q.get::<PageStructure>(source),
         };
         let targets = &relation.targets;
-        let rendered = match &relation.kind {
-            XrefKind::None | XrefKind::InOwnBox => Rendered::default(),
-            XrefKind::External(e) => Rendered {
-                text: external_text(q, *e),
-                items: Vec::new(),
-            },
-            XrefKind::Ip { .. } => {
-                let items: Vec<String> = targets.iter().map(|t| cx.item(&settings.ip, t)).collect();
-                render_list(&items, &settings.format.matrix)
-            }
-            XrefKind::AuxToMain => {
-                let items: Vec<String> = targets
-                    .iter()
-                    .map(|t| cx.item(&settings.aux_to_main, t))
-                    .collect();
-                render_list(&items, &settings.format.matrix)
-            }
+        let (rendered, shown) = match &relation.kind {
+            XrefKind::None | XrefKind::InOwnBox => (Rendered::default(), Vec::new()),
+            XrefKind::External(e) => (
+                Rendered {
+                    text: external_text(q, *e),
+                    items: Vec::new(),
+                },
+                Vec::new(),
+            ),
+            XrefKind::Ip { .. } => cx.list(&settings.ip, targets),
+            XrefKind::AuxToMain => cx.list(&settings.aux_to_main, targets),
             XrefKind::MainToAux => {
-                let items: Vec<String> = targets.iter().map(|t| cx.item(&settings.ip, t)).collect();
-                render_wrapper(
-                    &settings.main_to_aux,
-                    &render_list(&items, &settings.format.matrix),
-                )
+                let (list, shown) = cx.list(&settings.ip, targets);
+                if shown.is_empty() {
+                    (Rendered::default(), Vec::new())
+                } else {
+                    (render_wrapper(&settings.main_to_aux, &list), shown)
+                }
             }
             XrefKind::ContactImage => return Arc::new(contact_rows(&cx, targets)),
         };
         Arc::new(XrefText {
-            links: links(&rendered, targets),
+            links: links(&rendered, &shown),
             text: rendered.text,
         })
     }
 }
 
-/// The links of a rendered list: the `i`-th shown item links to the `i`-th target.
-fn links(rendered: &Rendered, targets: &[XrefTarget]) -> Vec<XrefLink> {
+/// The links of a rendered list: the `i`-th shown item links to the `i`-th shown target.
+fn links(rendered: &Rendered, shown: &[&XrefTarget]) -> Vec<XrefLink> {
     rendered
         .items
         .iter()
-        .zip(targets)
+        .zip(shown)
         .map(|(range, t)| XrefLink {
             range: range.clone(),
             rep: t.rep,
@@ -672,12 +695,55 @@ fn links(rendered: &Rendered, targets: &[XrefTarget]) -> Vec<XrefLink> {
 struct TextCx<'a> {
     q: &'a Q,
     settings: &'a XrefSettings,
-    order: Arc<PageOrderV>,
+    /// The drawn pages in order, for `{page_index}`.
+    drawn: Arc<PageOrderV>,
     source: Id<Page>,
     source_structure: Arc<ResolvedStructure>,
 }
 
+/// The 1-based position of `page` among the drawn pages of `order` (dividers and generated pages do not
+/// count, as in QET), `None` for a page outside the order.
+fn drawn_index(order: &PageOrderV, page: Id<Page>) -> Option<usize> {
+    let pos = order.position(PageRef::Drawn(page))?;
+    let before = order.entries[..pos]
+        .iter()
+        .filter(|e| matches!(e.page, PageRef::Drawn(_)))
+        .count();
+    Some(before + 1)
+}
+
 impl TextCx<'_> {
+    /// The matrix of the items of `tokens` for `targets`, and the targets whose items it shows.
+    ///
+    /// Only the first `matrix.max` items are formatted (all with `max == 0`); the overflow mark stands for
+    /// the targets left over. An item that prints nothing (a format of page parts under zone-only) is
+    /// skipped, and an empty format shows nothing at all.
+    fn list<'t>(&self, tokens: &[XrefToken], targets: &'t [XrefTarget]) -> (Rendered, Vec<&'t XrefTarget>) {
+        let matrix = &self.settings.format.matrix;
+        if tokens.is_empty() {
+            return (Rendered::default(), Vec::new());
+        }
+        let limit = match usize::from(matrix.max) {
+            0 => usize::MAX,
+            n => n,
+        };
+        let mut items = Vec::new();
+        let mut shown = Vec::new();
+        let mut more = false;
+        for t in targets {
+            if items.len() == limit {
+                more = true;
+                break;
+            }
+            let item = self.item(tokens, t);
+            if !item.is_empty() {
+                items.push(item);
+                shown.push(t);
+            }
+        }
+        (render_list_more(&items, more, matrix), shown)
+    }
+
     /// One item of `tokens` for target `t`.
     fn item(&self, tokens: &[XrefToken], t: &XrefTarget) -> String {
         let q = self.q;
@@ -689,7 +755,11 @@ impl TextCx<'_> {
         let structure = q.get::<PageStructure>(t.page);
         let values = ItemValues {
             page,
-            page_index: self.order.position(PageRef::Drawn(t.page)).map(|i| i + 1),
+            page_index: if tokens.contains(&XrefToken::PageIndex) {
+                drawn_index(&self.drawn, t.page)
+            } else {
+                None
+            },
             row: t.cell.as_ref().map(|c| c.row_label.clone()),
             column: t.cell.as_ref().map(|c| c.column_label.clone()),
             function: structure.render_aspect(Aspect::Function, &syntax),
@@ -712,22 +782,45 @@ impl TextCx<'_> {
     }
 }
 
-/// The rows of a contact image: "{designations} {item}" per target, sorted by designation then target
-/// order, joined by ", "; each row's item part is its link.
+/// The contact sequence of a designation: its digits without the last one, the function digit ("13" → 1,
+/// "21" → 2, "113" → 11; a single digit → 0). `None` for a designation that is not a number.
+fn contact_sequence(designation: &str) -> Option<u64> {
+    if designation.is_empty() || !designation.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    let sequence = &designation[..designation.len() - 1];
+    if sequence.is_empty() {
+        return Some(0);
+    }
+    sequence.parse().ok()
+}
+
+/// The rows of a contact image: "{designations} {item}" per auxiliary representation, sorted by contact
+/// sequence (that of the first designation), then designations, then target order, joined by ", "; each
+/// row's item part is its link. An empty `ip` format prints no rows.
 fn contact_rows(cx: &TextCx<'_>, targets: &[XrefTarget]) -> XrefText {
-    let mut rows: Vec<(String, usize)> = targets
+    let mut out = XrefText::default();
+    if cx.settings.ip.is_empty() {
+        return out;
+    }
+    let mut rows: Vec<(Option<u64>, String, usize)> = targets
         .iter()
         .enumerate()
         .map(|(i, t)| {
             let cps = cx.q.get::<FunctionCps>(t.function);
             let designations: Vec<&str> = cps.iter().map(|c| c.designation.as_str()).collect();
-            (designations.join("-"), i)
+            let sequence = designations.first().and_then(|d| contact_sequence(d));
+            (sequence, designations.join("-"), i)
         })
         .collect();
-    rows.sort();
-    let mut out = XrefText::default();
-    for (designations, i) in rows {
+    // A designation that is no number sorts after the numbered ones.
+    rows.sort_by(|a, b| (a.0.is_none(), a.0, &a.1, a.2).cmp(&(b.0.is_none(), b.0, &b.1, b.2)));
+    for (_, designations, i) in rows {
         let t = &targets[i];
+        let item = cx.item(&cx.settings.ip, t);
+        if item.is_empty() {
+            continue;
+        }
         if !out.text.is_empty() {
             out.text.push_str(", ");
         }
@@ -735,7 +828,6 @@ fn contact_rows(cx: &TextCx<'_>, targets: &[XrefTarget]) -> XrefText {
             out.text.push_str(&designations);
             out.text.push(' ');
         }
-        let item = cx.item(&cx.settings.ip, t);
         let start = out.text.len();
         out.text.push_str(&item);
         out.links.push(XrefLink {

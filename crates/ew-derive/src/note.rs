@@ -130,6 +130,9 @@ pub enum DeriveNote {
 /// The integrity code of an unknown pinned derivation profile (doc 05 §6.3, doc 15 §4; decision log ID-72).
 pub const EW_CORE_018: &str = "EW-CORE-018";
 
+/// The integrity code of a device with two main functions (EW-INV-002).
+pub(crate) const EW_INV_002: &str = "EW-INV-002";
+
 impl DeriveNote {
     /// The finding code a front-end reports the note under, where the catalogue assigns one: `EW-CORE-018`
     /// for an unknown profile. The other notes have no catalogue code yet.
@@ -155,7 +158,7 @@ impl DeriveNote {
                 }
             }
             DeriveNote::Xref { code, .. } => {
-                if *code == "EW-INV-002" {
+                if *code == EW_INV_002 {
                     NoteSeverity::Error
                 } else {
                     NoteSeverity::Warning

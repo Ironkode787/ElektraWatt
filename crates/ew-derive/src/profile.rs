@@ -122,12 +122,22 @@ pub struct XrefFormat {
     pub aux_to_main: String,
     /// Main → auxiliaries, with `{list}`.
     pub main_to_aux: String,
-    /// `"when_different"` or `"always"`.
+    /// `"when_different"` (the default) or `"always"`.
+    #[serde(default = "default_structure")]
     pub structure: String,
-    /// `"full"` or `"zone_only"`.
+    /// `"full"` (the default) or `"zone_only"`.
+    #[serde(default = "default_same_page")]
     pub same_page: String,
     /// The contact matrix.
     pub matrix: XrefMatrix,
+}
+
+fn default_structure() -> String {
+    "when_different".to_owned()
+}
+
+fn default_same_page() -> String {
+    "full".to_owned()
 }
 
 /// The matrix of main → auxiliary references.

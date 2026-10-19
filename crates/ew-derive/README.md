@@ -95,20 +95,26 @@ where the documents leave the data open:
 |---|---|---|
 | interruption point | its `stitch_graph` pair partners (star: the source lists every other point, each other point the source; chain: the one partner) | "102-A1", "101-H16" |
 | external connection point | the `ExternalRef` | "+J-E-206 / JE-N1000-03" (no link) |
-| main function on the main representation | the device's other functions' representations, then the other representations of the main function | "∞ 3-B2, 106-G3" |
+| main function on the main representation | the device's other functions' representations and the other representations of the main function | "∞ 3-B2, 106-G3" |
 | auxiliary, or another representation of the main function | the main representation | "(201-E1)" |
-| contact image of the main function | one row per auxiliary: designations and cell | "13-14 /105.3, 21-22 /106.5" |
+| contact image of the main function | one row per auxiliary representation (not the main function's own other drawings): designations and cell, rows by contact sequence (13 → 1, 21 → 2, 113 → 11), then designation | "13-14 /105.3, 21-22 /106.5" |
 
 - Cells come from `rep_anchor_cell` (the symbol's anchor policy, never rendered geometry), so "3-B0" (D-14) cannot
   arise; a target without a cell prints "?" and is noted (EW-CORE-053).
-- Targets are ordered by (page-order position, anchor row, anchor column, representation ID); lists use the
-  profile's matrix (3 per row, 9 at most, then ", …").
+- Targets sort by page-order position, row, column, id (anchor row and column, representation ID); lists use the
+  profile's matrix (3 per row, 9 at most, then ", …"); only the shown items are formatted, so a star of 10 000
+  points costs nine items.
 - The format engine (`xref_format` module) reads `{page}` `{page_index}` `{row}` `{column}` `{function}`
-  `{location}` `{list}` and the QET variables `%F` `%f` `%l` `%c` `%M` `%LM` (FR-XRF-003); structure prefixes
-  follow `structure` (`when_different`, `always`; FR-XRF-004) and `same_page = "zone_only"` prints only the cell
-  (FR-XRF-025).
-- Not cross-referenced: strip segments, contact images of auxiliaries, an auxiliary drawn inside its own device's
-  black box (doc 06 §2.7). A second main function (EW-INV-002) is treated as an auxiliary and noted.
+  `{location}` `{list}` and the QET variables `%F` `%f` `%l` `%c` `%M` `%LM` (FR-XRF-003); `{page_index}` counts
+  the drawn pages only, as QET does; structure prefixes follow `structure` (`when_different`, `always`;
+  FR-XRF-004) and `same_page = "zone_only"` prints only the cell, dropping the page and structure parts with their
+  separator literal (FR-XRF-025). An empty `ip` format prints no text and no links.
+- Not cross-referenced: strip segments (never a target and never the main representation here, although
+  `MainRep` keeps them for tags and the BOM), contact images of auxiliaries, an auxiliary drawn inside its own
+  device's black box (doc 06 §2.7). A second main function (EW-INV-002) is treated as an auxiliary and noted.
+- Not implemented: contact-image `show_unused` (the free contacts of the part, FR-PRT-009), the contact-image
+  glyph and placement ("in-path", "on-component") and the `contact_image` settings member (FR-XRF-017,
+  FR-XRF-018); only the text rows exist.
 - Each shown item is an `XrefLink` (byte range, target representation); the page output links a slot text to
   its first item, since a scene slot carries one link.
 
@@ -116,7 +122,7 @@ where the documents leave the data open:
 
 | Shim | Reads | Replaced by |
 |---|---|---|
-| Cross-reference format | `ProjectSettings.extra["xref_format"]` in the doc 03 §5.1 shape (a `name` member is ignored); absent: the pinned profile's `[xref]`; malformed: noted, the profile's | the typed `ProjectSettings.xref_format` (decision log ID-17) |
+| Cross-reference format | `ProjectSettings.extra["xref_format"]` in the doc 03 §5.1 shape (a `name` member is ignored, `key` defaults to `"custom"`, `structure` to `when_different`, `same_page` to `full`); absent: the pinned profile's `[xref]`; malformed: noted, the profile's | the typed `ProjectSettings.xref_format` (decision log ID-17) |
 
 ## Agreement with the command layer
 

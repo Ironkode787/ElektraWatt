@@ -10,7 +10,8 @@
 //! - `external_points_print_the_external_target` (FR-XRF-012): the 4 external points.
 //! - `main_and_auxiliary_texts_match_section_15` (FR-XRF-015, FR-XRF-016, FR-XRF-005): 9 main and 10
 //!   auxiliary texts with their links.
-//! - `no_text_prints_3_b0` (AC-20, D-14): the bus port prints cell 3-B2, never 3-B0.
+//! - `the_cell_follows_the_anchor_inside_and_across_cells` (AC-20, D-14): an anchor off the cell centre keeps
+//!   its cell, an anchor in the next cell prints the next cell; the bus port never prints 3-B0.
 //! - `renumbering_folio_3_to_4_updates_the_bus_port_reference` (AC-20, D-01): the cross-reference part.
 //! - `xref_texts_do_not_depend_on_record_order` (NFR-REL-07): reversed records.
 //! - `no_xref_notes_on_the_golden_model`: no `Xref` and no `MalformedShim` note.
@@ -25,6 +26,7 @@ use ew_derive::{DeriveNote, XrefRelationOf, XrefText, XrefTextOf};
 use ew_ids::Id;
 use ew_import_tables::ew_interop_api::ImportBatch;
 use ew_schema::{Page, Record, Representation};
+use ew_units::{Nm, Pt2};
 use golden_common::{batch, ids_by_key, session, session_with};
 
 type Ids = BTreeMap<String, String>;
@@ -201,17 +203,53 @@ fn all_texts(ids: &Ids, s: &Session) -> BTreeMap<String, XrefText> {
         .collect()
 }
 
+/// A session in which the representation `key` is moved by `(dx, dy)` nm.
+fn shifted(b: &ImportBatch, key: &str, dx: i64, dy: i64) -> Session {
+    session_with(b, |_, records| {
+        let mut found = 0;
+        for r in records.iter_mut() {
+            if let Record::Representation(rep) = r
+                && rep
+                    .source_ref
+                    .as_ref()
+                    .is_some_and(|s| s.key == format!("representations|{key}"))
+            {
+                rep.pos = Pt2::new(Nm(rep.pos.x.0 + dx), Nm(rep.pos.y.0 + dy));
+                found += 1;
+            }
+        }
+        assert_eq!(found, 1, "{key}");
+    })
+}
+
+/// D-14 ("3-B0") is guarded by `rep_anchor_cell`: the cell comes from the anchor point of the symbol, never
+/// from rendered geometry and never from a cell centre. The golden bus port sits on a grid point; moving it
+/// by a fraction of a cell keeps its cell however far off any cell centre the anchor lands, and moving it by
+/// one column width prints the next column.
 #[test]
-fn no_text_prints_3_b0() {
+fn the_cell_follows_the_anchor_inside_and_across_cells() {
+    const MM: i64 = 1_000_000;
+    // One column of the default frame: 15.875 mm.
+    const COLUMN: i64 = 15_875_000;
     let b = batch();
     let ids = ids_by_key(&b);
-    let s = session(&b);
-    let all = all_texts(&ids, &s);
+    let all = all_texts(&ids, &session(&b));
     assert!(all.len() > 100, "every representation is evaluated");
     for (key, t) in &all {
         assert!(!t.text.contains("3-B0"), "{key} prints {:?}", t.text);
     }
-    assert!(all["-201U1"].text.contains("3-B2"));
+    assert_eq!(all["-201U1"].text, "∞ 3-B2, 106-G3");
+    let main = rep(&ids, "-201U1");
+    for (dx, dy) in [(MM / 2, MM / 2), (MM, MM), (-MM / 4, MM / 2)] {
+        let moved = shifted(&b, "-201U1#bus", dx, dy);
+        assert_eq!(
+            text(&moved, main).text,
+            "∞ 3-B2, 106-G3",
+            "moved by ({dx}, {dy}) nm"
+        );
+    }
+    let next = shifted(&b, "-201U1#bus", COLUMN, 0);
+    assert_eq!(text(&next, main).text, "∞ 3-B3, 106-G3");
 }
 
 #[test]

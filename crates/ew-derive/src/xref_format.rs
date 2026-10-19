@@ -179,29 +179,15 @@ fn push_value(out: &mut String, token: &XrefToken, values: &ItemValues) {
 
 /// Renders one item (an `ip` or `aux_to_main` format) for one target.
 ///
-/// `zone_only` drops the page parts (page, page index, function, location) with the literal right after
-/// each; `prefix` names the target's structure in front of the first value (ignored for a zone-only item
-/// and for a format that names the structure itself, see [`names_structure`]).
+/// `zone_only` drops the page parts (page, page index, function, location) with their separator, see
+/// [`zone_only_item`]; `prefix` names the target's structure in front of the first value (ignored for a
+/// zone-only item and for a format that names the structure itself, see [`names_structure`]).
 #[must_use]
 pub fn render_item(tokens: &[XrefToken], values: &ItemValues, options: &ItemOptions) -> String {
-    let mut out = String::new();
     if options.zone_only {
-        let mut skip_lit = false;
-        for token in tokens {
-            if skip_lit {
-                skip_lit = false;
-                if matches!(token, XrefToken::Lit(_)) {
-                    continue;
-                }
-            }
-            if is_page_part(token) {
-                skip_lit = true;
-                continue;
-            }
-            push_value(&mut out, token, values);
-        }
-        return out;
+        return zone_only_item(tokens, values);
     }
+    let mut out = String::new();
     let first_value = match &options.prefix {
         Some(_) if !names_structure(tokens) => tokens.iter().position(is_value_token),
         _ => None,
@@ -223,6 +209,45 @@ pub fn render_item(tokens: &[XrefToken], values: &ItemValues, options: &ItemOpti
                 out.push('/');
             }
             _ => push_value(&mut out, token, values),
+        }
+    }
+    out
+}
+
+/// The zone-only form (FR-XRF-025): every run of consecutive page parts is dropped together with its
+/// separator. The separator is the literal right after the run when a row or column follows it
+/// (`"{page}-{row}{column}"` → `"E1"`, `"({page}-{row}{column})"` → `"(E1)"`); a run behind the cell, with
+/// nothing to separate it from, takes the literal right before it (`"{row}{column}/{page}"` → `"E1"`,
+/// `"[{row}{column}/{page}]"` → `"[E1]"`).
+fn zone_only_item(tokens: &[XrefToken], values: &ItemValues) -> String {
+    let mut keep = vec![true; tokens.len()];
+    let mut i = 0;
+    while i < tokens.len() {
+        if !is_page_part(&tokens[i]) {
+            i += 1;
+            continue;
+        }
+        let mut end = i;
+        while end < tokens.len() && is_page_part(&tokens[end]) {
+            keep[end] = false;
+            end += 1;
+        }
+        let cell_follows = tokens[end..]
+            .iter()
+            .any(|t| matches!(t, XrefToken::Row | XrefToken::Column));
+        if cell_follows {
+            if matches!(tokens.get(end), Some(XrefToken::Lit(_))) {
+                keep[end] = false;
+            }
+        } else if i > 0 && matches!(tokens[i - 1], XrefToken::Lit(_)) {
+            keep[i - 1] = false;
+        }
+        i = end;
+    }
+    let mut out = String::new();
+    for (token, keep) in tokens.iter().zip(keep) {
+        if keep {
+            push_value(&mut out, token, values);
         }
     }
     out
@@ -252,6 +277,14 @@ pub struct Rendered {
 /// shown item (the mark is not an item range).
 #[must_use]
 pub fn render_list(items: &[String], matrix: &XrefMatrix) -> Rendered {
+    render_list_more(items, false, matrix)
+}
+
+/// [`render_list`] for items cut by the caller: `more` says that further items exist beyond `items`, which
+/// the overflow mark then stands for. A caller that formats only the first `matrix.max` items of a long
+/// list passes `more = true` and never formats the rest.
+#[must_use]
+pub(crate) fn render_list_more(items: &[String], more: bool, matrix: &XrefMatrix) -> Rendered {
     let max = usize::from(matrix.max);
     let per_row = usize::from(matrix.per_row);
     let shown = if max == 0 {
@@ -273,7 +306,7 @@ pub fn render_list(items: &[String], matrix: &XrefMatrix) -> Rendered {
         text.push_str(item);
         ranges.push(start..text.len());
     }
-    if shown < items.len() {
+    if shown < items.len() || more {
         text.push_str(", ");
         text.push_str(&matrix.overflow);
     }
@@ -496,6 +529,18 @@ mod tests {
     }
 
     #[test]
+    fn zone_only_drops_the_separator_of_a_trailing_page_part() {
+        // The page part behind the cell takes the literal in front of it, not the closing one.
+        assert_eq!(zone("{row}{column}/{page}"), "H16");
+        assert_eq!(zone("{row}{column}-{page_index}"), "H16");
+        assert_eq!(zone("[{row}{column}/{page}]"), "[H16]");
+        assert_eq!(zone("({page}-{row}{column})"), "(H16)");
+        // Nothing but page parts: nothing is left.
+        assert_eq!(zone("{page}"), "");
+        assert_eq!(zone("{function}{location}/{page}"), "");
+    }
+
+    #[test]
     fn prefix_examples() {
         assert_eq!(
             prefixed("/{page}.{row}{column}", "102", "A", "1"),
@@ -541,6 +586,25 @@ mod tests {
         assert_eq!(r.items.len(), 9);
         let empty = render_list(&[], &m);
         assert_eq!(empty, Rendered::default());
+    }
+
+    #[test]
+    fn cut_lists_carry_the_overflow_mark() {
+        // A caller that formatted only the first `max` items says that more exist.
+        let m = matrix(3, 4);
+        let r = render_list_more(&strings(4), true, &m);
+        assert_eq!(
+            r.text,
+            "a, b, c
+d, …"
+        );
+        assert_eq!(r.items.len(), 4);
+        assert_eq!(
+            render_list_more(&strings(4), false, &m).text,
+            "a, b, c
+d"
+        );
+        assert_eq!(render_list_more(&[], false, &m), Rendered::default());
     }
 
     #[test]

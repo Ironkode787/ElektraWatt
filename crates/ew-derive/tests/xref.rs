@@ -16,13 +16,26 @@
 //! - `scope_location_separates_names`
 //! - `external_point_prints_location_and_device`
 //! - `target_without_anchor_cell_prints_question_marks`
-//! - `device_with_two_main_functions_is_noted`
+//! - `device_with_two_main_functions_is_refused_at_load`
+//! - `device_with_two_main_functions_is_noted_on_a_raw_model`
 //! - `aux_without_placed_main_prints_nothing`
 //! - `aux_inside_its_own_black_box_prints_nothing`
 //! - `same_page_zone_only`
 //! - `structure_prefix_when_different`
 //! - `malformed_xref_settings_fall_back_to_the_profile`
 //! - `contact_image_rows`
+//! - `coil_drawn_twice_adds_no_contact_rows`
+//! - `contact_rows_sort_by_sequence_then_designation`
+//! - `partial_xref_settings_apply_with_defaults`
+//! - `strip_segments_are_never_main_representations_or_targets`
+//! - `zone_only_drops_page_parts_with_their_separators`
+//! - `empty_formats_print_nothing`
+//! - `star_formats_only_the_shown_items`
+//! - `page_index_counts_drawn_pages_only`
+//! - `dangling_external_ref_is_refused_at_load`
+//! - `dangling_external_ref_prints_nothing_and_is_noted_on_a_raw_model`
+//! - `hostile_shapes_are_refused_at_load`
+//! - `hostile_shapes_on_raw_models_print_nothing`
 //! - `same_function_reps_refer_to_the_main_rep`
 //! - `ten_thousand_targets_are_formatted_without_quadratic_work`
 //! - `xref_texts_do_not_depend_on_record_order`
@@ -30,13 +43,11 @@
 
 mod common;
 
-use std::panic::{AssertUnwindSafe, catch_unwind};
-
 use common::{Fx, id, uid};
 use ew_derive::{DeriveNote, PairMode, Q, XrefKind, XrefRelationOf, XrefSettingsOf, XrefText, XrefTextOf};
 use ew_ids::Id;
-use ew_model::Model;
-use ew_schema::Representation;
+use ew_model::{AnyRow, Entity, Model, ModelError, Op, Rev};
+use ew_schema::{Device, ExternalRef, FnRole, Function, LibDocument, Project, Record, Representation};
 use serde_json::{Value, json};
 
 const FNDEF: u128 = 0x500;
@@ -44,11 +55,13 @@ const FNDEF_IP: u128 = 0x501;
 const FNDEF_NO_CP: u128 = 0x504;
 const FNDEF_A: u128 = 0x505;
 const FNDEF_B: u128 = 0x506;
+const FNDEF_C: u128 = 0x507;
 const SYM: u128 = 0x510;
 const SYM_IP: u128 = 0x511;
 const SYM_NO_CP: u128 = 0x514;
 const SYM_A: u128 = 0x515;
 const SYM_B: u128 = 0x516;
+const SYM_C: u128 = 0x517;
 const EN81346: &str = "EN81346-2:2009";
 
 /// The page `k` (ID `0x100 + k`).
@@ -86,6 +99,13 @@ fn lib() -> Fx {
     fx.symbol(
         SYM_B,
         FNDEF_B,
+        json!("origin"),
+        &[(0, 0, 0, 0), (1, 1, 0, 1_000_000)],
+    );
+    fx.fndef(FNDEF_C, ["Misc", "Misc", "Contact"], &[(0, "113"), (1, "114")]);
+    fx.symbol(
+        SYM_C,
+        FNDEF_C,
         json!("origin"),
         &[(0, 0, 0, 0), (1, 1, 0, 1_000_000)],
     );
@@ -216,9 +236,46 @@ fn malformed(q: &mut Q) -> Vec<String> {
         .collect()
 }
 
-/// The model of `fx`, or `None` when its integrity check refuses the records.
-fn try_build(fx: &Fx) -> Option<Model> {
-    catch_unwind(AssertUnwindSafe(|| fx.build())).ok()
+/// The model of `fx`, or the error that refuses the records (`Fx::build` without the panic).
+fn load(fx: &Fx) -> Result<Model, ModelError> {
+    let project: Project = serde_json::from_value(fx.project.clone()).expect("project parses");
+    let records: Vec<Record> = fx
+        .records
+        .iter()
+        .map(|r| serde_json::from_value(r.clone()).unwrap_or_else(|e| panic!("record {r}: {e}")))
+        .collect();
+    let lib: Vec<LibDocument> = fx
+        .lib
+        .iter()
+        .map(|d| serde_json::from_value(d.clone()).unwrap_or_else(|e| panic!("lib document {d}: {e}")))
+        .collect();
+    Model::from_records(project, records, lib)
+}
+
+/// The integrity code under which the model refuses to load `fx`.
+fn refused_with(fx: &Fx) -> &'static str {
+    match load(fx) {
+        Err(ModelError::Invariant { id, .. }) => id,
+        Err(other) => panic!("refused, but not by an invariant: {other:?}"),
+        Ok(_) => panic!("the model accepted the records"),
+    }
+}
+
+/// A raw model: `m` with `ops` applied through `Model::apply_unchecked`, which skips the invariants. The
+/// model refuses such records at load (and every command refuses to produce them), so the derivation's
+/// fallback branches for them are reached only this way.
+fn raw(m: &Model, ops: &[Op]) -> Model {
+    let m2 = m.apply_unchecked(ops, Rev(1)).expect("ops apply");
+    assert!(
+        m2.integrity_check().is_err(),
+        "the probe violates an invariant, else the model would have refused it at load"
+    );
+    m2
+}
+
+/// The row of record `key`.
+fn row_of<E: Entity>(m: &Model, key: Id<E::Marker>) -> AnyRow {
+    m.row(&E::key(key)).expect("the record exists")
 }
 
 #[test]
@@ -414,24 +471,49 @@ fn external_point_prints_location_and_device() {
     assert_eq!(text(&q, rep_of(0x1102)), "OTHER +J-E-206 / JE-N1000-04");
     // A nested path prints with the default RDS syntax, which repeats the aspect sign per level.
     assert_eq!(text(&q, rep_of(0x1103)), "+J+E+206 / JE-N1000-05");
+}
 
-    // A missing external reference: the model must still load for this half to run.
+/// An interruption point 0x1101 at A0 of page 1 naming the external reference 0x7101 (a location and a
+/// device); the record exists.
+fn external_fixture() -> Fx {
     let mut fx = base();
+    fx.node(0x6003, "location", "J-E-206", None);
+    fx.push(json!({
+        "$k": "external_ref", "id": uid(0x7101), "location": uid(0x6003), "device": "JE-N1000-03",
+    }));
     fx.push(json!({
         "$k": "function", "id": uid(0x1101), "def": uid(FNDEF_IP),
-        "kind": {"ip": {"name": "EXT", "direction": "target", "external": uid(0x7fff)}},
+        "kind": {"ip": {"name": "EXT", "direction": "target", "external": uid(0x7101)}},
     }));
     let (x, y) = at(0, 0);
     fx.rep(rep_of(0x1101), pg(1), SYM_IP, &[0x1101], x, y);
-    match try_build(&fx) {
-        Some(m) => {
-            let mut q = Q::new(&m);
-            assert_eq!(text(&q, rep_of(0x1101)), "");
-            assert_eq!(xref_notes(&mut q, "EW-CORE-053").len(), 1);
-        }
-        // The integrity check refuses a dangling external reference: nothing more to assert.
-        None => eprintln!("dangling ExternalRef refused by the model; second half skipped"),
-    }
+    fx
+}
+
+#[test]
+fn dangling_external_ref_is_refused_at_load() {
+    // The model refuses a connection point that names a missing external reference (EW-INV-001): the
+    // derivation's fallback is reached on a raw model only, see the next test.
+    let mut fx = external_fixture();
+    fx.records.retain(|r| r["$k"] != "external_ref");
+    assert_eq!(refused_with(&fx), "EW-INV-001");
+}
+
+#[test]
+fn dangling_external_ref_prints_nothing_and_is_noted_on_a_raw_model() {
+    let m = external_fixture().build();
+    assert_eq!(text(&Q::new(&m), rep_of(0x1101)), "+J-E-206 / JE-N1000-03");
+    let m = raw(&m, &[Op::delete(row_of::<ExternalRef>(&m, id(0x7101)))]);
+    let mut q = Q::new(&m);
+    assert_eq!(text(&q, rep_of(0x1101)), "");
+    assert!(q.get::<XrefTextOf>(rid(0x1101)).links.is_empty());
+    assert!(matches!(
+        q.get::<XrefRelationOf>(rid(0x1101)).kind,
+        XrefKind::External(_)
+    ));
+    let notes = xref_notes(&mut q, "EW-CORE-053");
+    assert_eq!(notes.len(), 1, "{:?}", q.diagnostics().notes());
+    assert!(notes[0].0.contains(&uid(0x7101)), "{notes:?}");
 }
 
 #[test]
@@ -474,17 +556,31 @@ fn device_fixture() -> Fx {
     fx
 }
 
+/// The device fixture plus a second function 0x1003 of the device drawn on page 3 at B0 (an auxiliary).
+fn two_mains_fixture() -> Fx {
+    let mut fx = device_fixture();
+    func(&mut fx, 0x1003, 0x2000, (FNDEF, SYM), false, pg(3), (0, 1));
+    fx
+}
+
 #[test]
-fn device_with_two_main_functions_is_noted() {
-    // EW-INV-002: the second main function (larger ID) is treated as an auxiliary.
+fn device_with_two_main_functions_is_refused_at_load() {
+    // EW-INV-002: the model refuses a second main function; the derivation's note is reached on a raw model
+    // only, see the next test.
     let mut fx = device_fixture();
     func(&mut fx, 0x1003, 0x2000, (FNDEF, SYM), true, pg(3), (0, 1));
-    let Some(m) = try_build(&fx) else {
-        // The model refuses the structural invariant at load: assert that refusal instead.
-        eprintln!("two main functions refused by the model");
-        assert!(try_build(&fx).is_none());
-        return;
-    };
+    assert_eq!(refused_with(&fx), "EW-INV-002");
+}
+
+#[test]
+fn device_with_two_main_functions_is_noted_on_a_raw_model() {
+    // EW-INV-002: the second main function (larger ID) is treated as an auxiliary.
+    let m = two_mains_fixture().build();
+    let f: Id<Function> = id(0x1003);
+    let before = row_of::<Function>(&m, f);
+    let mut after = (**before.get::<Function>().expect("a function")).clone();
+    after.role = FnRole::Main;
+    let m = raw(&m, &[Op::update(before, AnyRow::of(after))]);
     let mut q = Q::new(&m);
     assert_eq!(text(&q, rep_of(0x1003)), format!("(1-{})", cell(1, 0)));
     assert_eq!(q.get::<XrefRelationOf>(rid(0x1003)).kind, XrefKind::AuxToMain);
@@ -676,6 +772,55 @@ fn contact_image_rows() {
     );
 }
 
+#[test]
+fn coil_drawn_twice_adds_no_contact_rows() {
+    // The reviewer's fixture: the main function (the coil) is drawn a second time on page 4. That drawing is
+    // listed by the main representation ("same function") but is no contact row.
+    let reference = {
+        let m = contact_fixture().build();
+        text(&Q::new(&m), 0x9001)
+    };
+    let mut fx = contact_fixture();
+    let (x, y) = at(2, 2);
+    fx.rep(0x2_0002, pg(4), SYM, &[0x1001], x, y);
+    let m = fx.build();
+    let q = Q::new(&m);
+    assert_eq!(text(&q, 0x9001), reference);
+    assert_eq!(
+        reference,
+        format!("13-14 1-{}, 21-22 2-{}", cell(4, 2), cell(1, 1))
+    );
+    let rel = q.get::<XrefRelationOf>(id(0x9001));
+    assert_eq!(rel.kind, XrefKind::ContactImage);
+    assert_eq!(rel.targets.len(), 2);
+    assert!(rel.targets.iter().all(|t| t.role == ew_derive::TargetRole::Aux));
+    // The second drawing of the coil refers to the main representation, which lists it.
+    assert_eq!(
+        text(&q, rep_of(0x1001)),
+        format!("∞ 1-{}, 2-{}, 4-{}", cell(4, 2), cell(1, 1), cell(2, 2))
+    );
+    assert_eq!(text(&q, 0x2_0002), format!("(1-{})", cell(0, 0)));
+}
+
+#[test]
+fn contact_rows_sort_by_sequence_then_designation() {
+    // Doc 06 §2.8: by contact sequence digit, then designation: "113-114" (sequence 11) follows "21-22"
+    // (sequence 2), which a plain string sort would put first.
+    let mut fx = contact_fixture();
+    func(&mut fx, 0x1004, 0x2000, (FNDEF_C, SYM_C), false, pg(1), (7, 7));
+    let m = fx.build();
+    let q = Q::new(&m);
+    assert_eq!(
+        text(&q, 0x9001),
+        format!(
+            "13-14 1-{}, 21-22 2-{}, 113-114 1-{}",
+            cell(4, 2),
+            cell(1, 1),
+            cell(7, 7)
+        )
+    );
+}
+
 /// A function 0x1001 of a device drawn as an overview (page 1 at A0, the smaller ID) and as a multi-line
 /// representation (page 2 at B1).
 fn same_function_fixture() -> Fx {
@@ -785,57 +930,282 @@ fn xref_texts_do_not_depend_on_record_order() {
     assert_eq!(forward, all_texts(&reversed.build()));
 }
 
+/// Asserts that every representation of `reps` has no cross-reference: kind `None`, no targets, no text.
+fn assert_no_xref(m: &Model, reps: &[u128]) {
+    let q = Q::new(m);
+    for r in reps {
+        let rel = q.get::<XrefRelationOf>(id(*r));
+        assert_eq!(rel.kind, XrefKind::None, "{r:#x}");
+        assert!(rel.targets.is_empty());
+        let t = q.get::<XrefTextOf>(id(*r));
+        assert_eq!(t.text, "", "{r:#x}");
+        assert!(t.links.is_empty());
+    }
+}
+
 #[test]
 fn hostile_shapes_do_not_panic() {
-    let none = |m: &Model, reps: &[u128]| {
-        let q = Q::new(m);
-        for r in reps {
-            let rel = q.get::<XrefRelationOf>(id(*r));
-            assert_eq!(rel.kind, XrefKind::None, "{r:#x}");
-            assert!(rel.targets.is_empty());
-            let t = q.get::<XrefTextOf>(id(*r));
-            assert_eq!(t.text, "", "{r:#x}");
-            assert!(t.links.is_empty());
-        }
-    };
     // A representation that does not exist.
     let m = base().build();
-    none(&m, &[0xdead]);
+    assert_no_xref(&m, &[0xdead]);
 
-    // A representation without functions.
+    // A representation without functions: the model accepts it.
     let (x, y) = at(1, 1);
     let mut fx = base();
     fx.rep(0x8001, pg(1), SYM, &[], x, y);
-    match try_build(&fx) {
-        Some(m) => none(&m, &[0x8001]),
-        None => eprintln!("a representation without functions is refused by the model"),
-    }
+    assert_no_xref(&fx.build(), &[0x8001]);
 
-    // A representation naming a missing function.
-    let mut fx = base();
-    fx.rep(0x8002, pg(1), SYM, &[0x7777], x, y);
-    match try_build(&fx) {
-        Some(m) => none(&m, &[0x8002]),
-        None => eprintln!("a representation of a missing function is refused by the model"),
-    }
-
-    // A function whose device is missing.
-    let mut fx = base();
-    func(&mut fx, 0x1001, 0x2999, (FNDEF, SYM), false, pg(1), (1, 1));
-    match try_build(&fx) {
-        Some(m) => none(&m, &[rep_of(0x1001)]),
-        None => eprintln!("a function of a missing device is refused by the model"),
-    }
-
-    // An interruption point without a connection point.
+    // An interruption point without a connection point: the model accepts it.
     let mut fx = base();
     fx.push(json!({
         "$k": "function", "id": uid(0x1101), "def": uid(FNDEF_NO_CP),
         "kind": {"ip": {"name": "X", "direction": "source"}},
     }));
     fx.rep(rep_of(0x1101), pg(1), SYM_NO_CP, &[0x1101], x, y);
-    match try_build(&fx) {
-        Some(m) => none(&m, &[rep_of(0x1101)]),
-        None => eprintln!("an IP without a CP is refused by the model"),
+    assert_no_xref(&fx.build(), &[rep_of(0x1101)]);
+}
+
+#[test]
+fn hostile_shapes_are_refused_at_load() {
+    let (x, y) = at(1, 1);
+    // A representation naming a missing function (EW-INV-001).
+    let mut fx = base();
+    fx.rep(0x8002, pg(1), SYM, &[0x7777], x, y);
+    assert_eq!(refused_with(&fx), "EW-INV-001");
+
+    // A function whose device is missing (EW-INV-001).
+    let mut fx = base();
+    func(&mut fx, 0x1001, 0x2999, (FNDEF, SYM), false, pg(1), (1, 1));
+    assert_eq!(refused_with(&fx), "EW-INV-001");
+}
+
+#[test]
+fn hostile_shapes_on_raw_models_print_nothing() {
+    // The shapes of the previous test, reached through `Model::apply_unchecked` so that the derivation's
+    // own guards for a missing function and a missing device run.
+    let mut fx = base();
+    fx.device(0x2000, "K", Some(1));
+    fx.function(0x1000, Some(0x2000), FNDEF, true);
+    func(&mut fx, 0x1001, 0x2000, (FNDEF, SYM), false, pg(1), (1, 1));
+    let m = fx.build();
+
+    // The function of the representation is gone.
+    let missing_function = raw(&m, &[Op::delete(row_of::<Function>(&m, id(0x1001)))]);
+    assert_no_xref(&missing_function, &[rep_of(0x1001)]);
+
+    // The device of the function is gone: an auxiliary without a main function prints nothing.
+    let missing_device = raw(&m, &[Op::delete(row_of::<Device>(&m, id(0x2000)))]);
+    assert_no_xref(&missing_device, &[rep_of(0x1001)]);
+}
+
+#[test]
+fn partial_xref_settings_apply_with_defaults() {
+    // Doc 03 §5.1 gives `structure` and `same_page` defaults and `key` is optional: a format that names
+    // only what it changes applies and is not malformed.
+    let mut fx = star_fixture();
+    settings(
+        &mut fx,
+        None,
+        &[(
+            "xref_format",
+            json!({
+                "ip": "X{page}", "aux_to_main": "({page}-{row}{column})", "main_to_aux": "∞ {list}",
+                "matrix": {"per_row": 3, "max": 9, "overflow": "…"},
+            }),
+        )],
+    );
+    let m = fx.build();
+    let mut q = Q::new(&m);
+    assert_eq!(text(&q, rep_of(0x1100)), "X20, X20, X20\nX30, X40");
+    assert_eq!(text(&q, rep_of(0x1101)), "X1");
+    assert!(malformed(&mut q).is_empty(), "{:?}", q.diagnostics().notes());
+    let effective = q.get::<XrefSettingsOf>(());
+    assert_eq!(effective.format.ip, "X{page}");
+    assert_eq!(effective.format.structure, "when_different");
+    assert_eq!(effective.format.same_page, "full");
+    assert_eq!(effective.format.key, "custom");
+}
+
+/// A device 0x2000 whose main function 0x1001 is drawn as a strip segment (page 1, the smaller ID) and as
+/// a schematic symbol (page 2 at B1), with an auxiliary 0x1002 on page 3 at C3.
+fn strip_segment_fixture() -> Fx {
+    let mut fx = base();
+    fx.device(0x2000, "K", Some(1));
+    fx.function(0x1001, Some(0x2000), FNDEF, true);
+    let (x, y) = at(0, 0);
+    fx.rep(0x8001, pg(1), SYM, &[0x1001], x, y);
+    fx.with("rep_type", json!("strip_segment"));
+    let (x, y) = at(1, 1);
+    fx.rep(rep_of(0x1001), pg(2), SYM, &[0x1001], x, y);
+    func(&mut fx, 0x1002, 0x2000, (FNDEF, SYM), false, pg(3), (3, 2));
+    fx
+}
+
+#[test]
+fn strip_segments_are_never_main_representations_or_targets() {
+    // Doc 08 §6.7. The segment has the smaller ID, yet the schematic symbol is the main representation of
+    // the cross-references: the auxiliary refers to it, it lists the auxiliary, and the segment neither
+    // refers nor is referred to.
+    let m = strip_segment_fixture().build();
+    let q = Q::new(&m);
+    let segment = q.get::<XrefRelationOf>(id(0x8001));
+    assert_eq!(segment.kind, XrefKind::None);
+    assert!(segment.targets.is_empty());
+    assert_eq!(text(&q, 0x8001), "");
+    assert_eq!(text(&q, rep_of(0x1002)), format!("(2-{})", cell(1, 1)));
+    let aux = q.get::<XrefRelationOf>(rid(0x1002));
+    assert_eq!(aux.targets.len(), 1);
+    assert_eq!(aux.targets[0].rep, rid(0x1001));
+    let main = q.get::<XrefRelationOf>(rid(0x1001));
+    assert_eq!(main.kind, XrefKind::MainToAux);
+    assert_eq!(main.targets.len(), 1, "the segment is not a same-function target");
+    assert_eq!(text(&q, rep_of(0x1001)), format!("∞ 3-{}", cell(3, 2)));
+
+    // An interruption point drawn as a strip segment is no partner either.
+    let mut fx = base();
+    ip(&mut fx, 0x1100, pg(1), "S", "source", (1, 1));
+    ip(&mut fx, 0x1101, pg(2), "S", "target", (2, 2));
+    fx.with("rep_type", json!("strip_segment"));
+    let m = fx.build();
+    let q = Q::new(&m);
+    assert!(q.get::<XrefRelationOf>(rid(0x1100)).targets.is_empty());
+    assert_eq!(text(&q, rep_of(0x1100)), "");
+}
+
+#[test]
+fn zone_only_drops_page_parts_with_their_separators() {
+    // FR-XRF-025: two "24VDC-9" points on one page; the page parts go with the literal that separates them
+    // from the cell, in front of it or behind it.
+    let build = |ip_format: &str| {
+        let mut fx = base();
+        settings(
+            &mut fx,
+            None,
+            &[(
+                "xref_format",
+                format_with(&[("ip", json!(ip_format)), ("same_page", json!("zone_only"))]),
+            )],
+        );
+        ip(&mut fx, 0x1101, pg(1), "24VDC-9", "source", (3, 5));
+        ip(&mut fx, 0x1102, pg(1), "24VDC-9", "target", (8, 1));
+        ip(&mut fx, 0x1103, pg(2), "24VDC-9", "target", (4, 4));
+        fx.build()
+    };
+    // (format, the same-page form of a cell, the form of a cell on another page)
+    type Forms = (&'static str, fn(&str) -> String, fn(&str, &str) -> String);
+    let cases: [Forms; 4] = [
+        ("{row}{column}/{page}", |c| c.into(), |p, c| format!("{c}/{p}")),
+        (
+            "[{row}{column}/{page}]",
+            |c| format!("[{c}]"),
+            |p, c| format!("[{c}/{p}]"),
+        ),
+        ("{page}/{row}{column}", |c| c.into(), |p, c| format!("{p}/{c}")),
+        (
+            "({page}-{row}{column})",
+            |c| format!("({c})"),
+            |p, c| format!("({p}-{c})"),
+        ),
+    ];
+    for (format, zone, full) in cases {
+        let m = build(format);
+        let q = Q::new(&m);
+        let text = |n: u128| q.get::<XrefTextOf>(rid(n)).text.clone();
+        // The source lists the same-page target (page part dropped) and the one on page 2 (kept).
+        assert_eq!(
+            text(0x1101),
+            format!("{}, {}", zone(&cell(8, 1)), full("2", &cell(4, 4))),
+            "{format}"
+        );
+        assert_eq!(text(0x1102), zone(&cell(3, 5)), "{format}");
+        assert_eq!(text(0x1103), full("1", &cell(3, 5)), "{format}");
     }
+}
+
+#[test]
+fn empty_formats_print_nothing() {
+    // An empty `ip` format yields no text and no links, for the interruption points, the main list and the
+    // contact image rows alike (the main list's wrapper would otherwise print a bare "∞ ").
+    let build = |changes: &[(&str, Value)]| {
+        let mut fx = contact_fixture();
+        ip(&mut fx, 0x1100, pg(1), "S", "source", (6, 6));
+        ip(&mut fx, 0x1101, pg(2), "S", "target", (6, 6));
+        settings(&mut fx, None, &[("xref_format", format_with(changes))]);
+        fx.build()
+    };
+    let m = build(&[("ip", json!(""))]);
+    let q = Q::new(&m);
+    for r in [0x1100, 0x1101, rep_of(0x1001), 0x9001] {
+        let t = q.get::<XrefTextOf>(id(r));
+        assert_eq!(t.text, "", "{r:#x}");
+        assert!(t.links.is_empty(), "{r:#x}");
+    }
+    // The auxiliaries print with their own format.
+    assert_eq!(text(&q, rep_of(0x1002)), format!("(1-{})", cell(0, 0)));
+    // An empty `aux_to_main` format silences the auxiliaries only.
+    let m = build(&[("aux_to_main", json!(""))]);
+    let q = Q::new(&m);
+    assert_eq!(text(&q, rep_of(0x1002)), "");
+    assert!(q.get::<XrefTextOf>(rid(0x1002)).links.is_empty());
+    assert_ne!(text(&q, rep_of(0x1001)), "");
+}
+
+#[test]
+fn star_formats_only_the_shown_items() {
+    // FR-XRF-008: ten targets, the matrix shows at most `max`; the links are the shown items.
+    let build = |max: u8| {
+        let mut fx = base();
+        let matrix = json!({"per_row": 0, "max": max, "overflow": "…"});
+        settings(
+            &mut fx,
+            None,
+            &[("xref_format", format_with(&[("matrix", matrix)]))],
+        );
+        ip(&mut fx, 0x1100, pg(1), "S", "source", (0, 0));
+        for i in 0..10 {
+            ip(&mut fx, 0x1101 + i as u128, pg(2), "S", "target", (i, 0));
+        }
+        fx.build()
+    };
+    let m = build(9);
+    let q = Q::new(&m);
+    let t = q.get::<XrefTextOf>(rid(0x1100));
+    assert_eq!(t.links.len(), 9);
+    assert_eq!(t.text, "2-A0, 2-A1, 2-A2, 2-A3, 2-A4, 2-A5, 2-A6, 2-A7, 2-A8, …");
+    assert_eq!(q.get::<XrefRelationOf>(rid(0x1100)).targets.len(), 10);
+    let m = build(10);
+    let t = Q::new(&m).get::<XrefTextOf>(rid(0x1100));
+    assert_eq!(t.links.len(), 10);
+    assert!(!t.text.ends_with('…'));
+    let m = build(3);
+    let t = Q::new(&m).get::<XrefTextOf>(rid(0x1100));
+    assert_eq!(t.text, "2-A0, 2-A1, 2-A2, …");
+    // 0 is unlimited.
+    let m = build(0);
+    assert_eq!(Q::new(&m).get::<XrefTextOf>(rid(0x1100)).links.len(), 10);
+}
+
+#[test]
+fn page_index_counts_drawn_pages_only() {
+    // FR-XRF-003: `%f` is the position among the drawn pages, as in QET: the divider page of a section is
+    // not counted, so "L-1" on folio 102 of a section with a divider prints 3 (front page, 101, 102), not 4.
+    let mut fx = lib();
+    fx.section(0x5001, 1, (100, 199), "Section", true);
+    fx.page(pg(1), 1, None, "multi_line", &[], "front");
+    fx.page(pg(2), 101, Some(0x5001), "multi_line", &[], "a");
+    fx.page(pg(3), 102, Some(0x5001), "multi_line", &[], "b");
+    settings(
+        &mut fx,
+        None,
+        &[("xref_format", format_with(&[("ip", json!("%f-%l%c"))]))],
+    );
+    ip(&mut fx, 0x1100, pg(1), "L-1", "source", (0, 0));
+    ip(&mut fx, 0x1101, pg(3), "L-1", "target", (0, 0));
+    let m = fx.build();
+    let q = Q::new(&m);
+    assert_eq!(text(&q, rep_of(0x1100)), "3-A0");
+    assert_eq!(text(&q, rep_of(0x1101)), "1-A0");
+    // The divider is in the page order of the drawn pages; the index skips it.
+    let order = q.get::<ew_derive::DrawnPageOrder>(());
+    assert_eq!(order.entries.len(), 4, "{:?}", order.entries);
 }
