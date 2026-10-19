@@ -11,24 +11,42 @@
 //! - `bond_via_is_cut`: the connection named as `Bond.via` is cut from the nets and listed in `cut`.
 //! - `ip_pair_joins_across_pages`: an interruption-point pair joins two pages; aliases follow the definition.
 //! - `unpaired_ip_is_noted_not_panicking`: a lonely interruption point is noted (EW-CORE-051).
-//! - `self_loop_connection_is_harmless`: a connection from a CP to itself.
-//! - `junction_cycle_is_finite`: a junction cycle terminates, with and without a CP.
-//! - `dangling_endpoint_is_harmless`: a connection to a function that does not exist.
+//! - `self_loop_connection_is_harmless`: a connection from a CP to itself; every query terminates, no wire.
+//! - `junction_cycle_is_finite`: a junction cycle terminates through every query, with and without a CP.
+//! - `dangling_endpoint_is_harmless`: a connection to a function that does not exist; every query, no wire.
 //! - `potential_id_prefers_definitions`: definition ID, EW-POT-017, else the minimum CP ID.
 //! - `derived_values_do_not_depend_on_record_order`: partition and stitch graph under record permutations.
 //! - `no_hash_containers_in_connectivity_sources`: no `HashMap`/`HashSet` in the connectivity sources.
-//! - `queries_survive_a_device_parent_cycle`: the partition with rail-bonded terminals in a parent cycle.
+//! - `queries_survive_a_device_parent_cycle`: every query with rail-bonded terminals in a parent cycle.
+//! - `double_deck_terminal_keeps_its_levels_apart`: equal designations on two levels are not one pin (D2).
+//! - `duplicate_pins_join_only_on_pattern_functions`: duplicated pins are one pin on black boxes only (D2).
+//! - `pass_through_terminal_shorts_each_side`: a pass-through terminal shorts each side apart (D3).
+//! - `override_provenance_names_the_constituent_that_carries_it`: level 7 names the constituent (F2).
+//! - `hub_arm_is_carried_by_the_connection_touching_its_end`: hub arm carrier, doc 08 §3.8 (D1).
+//! - `external_source_ip_names_an_undefined_potential`: an external source IP names, after non-external (D6).
+//! - `ambiguous_junction_feed_is_noted`: EW-POT-011, a link that feeds both junctions or neither.
+//! - `ring_is_broken_at_its_highest_connection`: EW-POT-012, the highest connection of a ring forms no wire.
+//! - `conflicting_conductors_are_noted`: EW-POT-014, two constituents name different conductors.
+//! - `conflicting_overrides_are_noted`: EW-POT-014, different `csa` overrides; the carrier's value applies.
+//! - `star_ip_group_with_three_targets_is_a_hub`: one source and three targets are three wires (doc 08 §3.8).
+//! - `chain_mode_pairs_in_order`: chain pairing (1,2), (3,4) in sort-key order.
+//! - `potential_def_props_are_level_3`: `PotentialDef.props` is level 3 with its provenance.
+//! - `project_default_is_level_1`: `wire_default` is level 1, the built-ins level 0.
+//! - `malformed_colour_profile_is_noted`: a malformed `colour_profile` is noted and the built-in colour applies.
+//! - `nested_junction_chain_fr_con_041`: a chain junction entering a chain junction: src -> d1 -> d2 -> d3.
 
 mod common;
 
 use common::{Fx, id, uid};
 use ew_derive::{
-    CpRef, DeriveNote, EdgeKind, Level, NetId, PageLocalNets, PotentialId, PotentialPartition, Q,
-    StitchGraphQ,
+    CpRef, DeriveNote, EdgeKind, EffectiveProps, Level, NameSource, NetId, PageLocalNets, PairMode,
+    PhysicalWiresOf, PotentialFlow, PotentialId, PotentialPartition, PropSource, Q, ShortSource,
+    StitchGraphQ, WirePropsOf,
 };
 use ew_ids::Id;
 use ew_model::{AnyRow, EndpointKey, Entity, Model, Op, Rev};
-use ew_schema::{Connection, Device, Endpoint, Junction, Page, PotentialDef, TagScheme};
+use ew_schema::{Connection, Csa, Device, Endpoint, Function, Junction, Page, PotentialDef, TagScheme};
+use ew_units::Dec3;
 use serde_json::{Value, json};
 
 const FNDEF: u128 = 0x500;
@@ -309,6 +327,23 @@ fn two_functions() -> Fx {
     fx
 }
 
+/// Every connectivity query for every potential of the partition (hostile-shape probes): they all terminate.
+/// Returns the number of physical wires over all potentials, each counted once per potential that holds it,
+/// after checking that `WirePropsOf` has one entry per wire and `PotentialFlow` answers for the potential.
+fn all_queries(q: &Q) -> usize {
+    let _ = q.get::<StitchGraphQ>(());
+    let part = q.get::<PotentialPartition>(());
+    let mut wires = 0;
+    for p in &part.potentials {
+        let physical = q.get::<PhysicalWiresOf>(p.id);
+        let props = q.get::<WirePropsOf>(p.id);
+        assert_eq!(props.wires.len(), physical.wires.len(), "{:?}", p.id);
+        let _ = q.get::<PotentialFlow>(p.id);
+        wires += physical.wires.len();
+    }
+    wires
+}
+
 #[test]
 fn self_loop_connection_is_harmless() {
     let m = with_end_b(&two_functions().build(), 0x2001, cp(0x1001));
@@ -316,8 +351,8 @@ fn self_loop_connection_is_harmless() {
     let local = q.get::<PageLocalNets>(id::<Page>(P1));
     assert_eq!(local.nets.len(), 1);
     assert_eq!(local.nets[0].cps().collect::<Vec<_>>(), vec![cpref(0x1001)]);
-    let _ = q.get::<StitchGraphQ>(());
-    let _ = q.get::<PotentialPartition>(());
+    // The loop closes a ring at once: it forms no wire (EW-POT-012).
+    assert_eq!(all_queries(&q), 0);
 }
 
 #[test]
@@ -390,8 +425,8 @@ fn junction_cycle_is_finite() {
     assert_eq!(l2.nets.len(), 1);
     assert_eq!(l2.nets[0].junctions().count(), 3);
     assert_eq!(l2.nets[0].id, NetId(Id::cast(id::<Junction>(0x3011))));
-    let _ = q.get::<StitchGraphQ>(());
-    let _ = q.get::<PotentialPartition>(());
+    // One CP on page 1 and none on page 2: no wire ends at two CPs.
+    assert_eq!(all_queries(&q), 0);
 }
 
 #[test]
@@ -399,8 +434,12 @@ fn dangling_endpoint_is_harmless() {
     let m = with_end_b(&two_functions().build(), 0x2001, cp(0x9999));
     let q = Q::new(&m);
     let _ = q.get::<PageLocalNets>(id::<Page>(P1));
-    let _ = q.get::<StitchGraphQ>(());
-    let _ = q.get::<PotentialPartition>(());
+    // The stale endpoint is still a node: the connection forms its one wire, ending at the missing CP.
+    assert_eq!(all_queries(&q), 1);
+    let part = q.get::<PotentialPartition>(());
+    let wires = q.get::<PhysicalWiresOf>(part.potentials[0].id);
+    assert_eq!(wires.wires[0].id, id::<Connection>(0x2001));
+    assert_eq!(wires.wires[0].ends.map(|e| e.cp), [cpref(0x1001), cpref(0x9999)]);
 }
 
 #[test]
@@ -503,6 +542,9 @@ fn no_hash_containers_in_connectivity_sources() {
         ("flow.rs", include_str!("../src/flow.rs")),
         ("wire_props.rs", include_str!("../src/wire_props.rs")),
         ("wire_profile.rs", include_str!("../src/wire_profile.rs")),
+        ("cps.rs", include_str!("../src/cps.rs")),
+        ("pages.rs", include_str!("../src/pages.rs")),
+        ("structure.rs", include_str!("../src/structure.rs")),
     ];
     for (name, text) in sources {
         assert!(!text.contains("HashMap"), "{name} uses HashMap");
@@ -547,4 +589,725 @@ fn queries_survive_a_device_parent_cycle() {
     let q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
     assert!(!part.potentials.is_empty());
+    // The two wires 0x2001 and 0x2002 end at the plain function and at one terminal each.
+    assert_eq!(all_queries(&q), 2);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Review cycle 7 A: duplicate pins (D2), pass-through terminals (D3), override provenance (F2), hub-arm
+// carrier (D1).
+
+const FNDEF_T: u128 = 0x520;
+const SYM_T: u128 = 0x530;
+
+/// A four-CP FnDef `FNDEF_T` of `contact_kind` with `cps` and `internal` links, and its symbol `SYM_T`.
+fn four_cp_def(fx: &mut Fx, contact_kind: &str, cps: Value, internal: Value) {
+    fx.lib_item(
+        "fndef",
+        FNDEF_T,
+        json!({
+            "meta": {}, "category": ["Misc", "Misc", "Four"], "contact_kind": contact_kind,
+            "cps": cps, "internal": internal,
+        }),
+    );
+    fx.symbol(
+        SYM_T,
+        FNDEF_T,
+        json!("origin"),
+        &[
+            (0, 0, 0, 0),
+            (1, 1, 0, 1_000_000),
+            (2, 2, 1_000_000, 0),
+            (3, 3, 1_000_000, 1_000_000),
+        ],
+    );
+}
+
+/// Function `0x1500` of `FNDEF_T` (kind `kind`, `None` for normal) on P1; plain functions 0x1001..0x1004
+/// wired to its CPs 0..3 by connections 0x2001..0x2004.
+fn four_cp_circuit(fx: &mut Fx, kind: Option<&str>) -> Model {
+    fx.device(0x21_500, "X", Some(500));
+    fx.function(0x1500, Some(0x21_500), FNDEF_T, true);
+    if let Some(k) = kind {
+        fx.with("kind", json!(k));
+    }
+    fx.rep(0x11_500, P1, SYM_T, &[0x1500], 0, 0);
+    for i in 0..4u16 {
+        let f = 0x1001 + u128::from(i);
+        func(fx, f, P1);
+        conn(
+            fx,
+            0x2001 + u128::from(i),
+            Some(P1),
+            cp(f),
+            Ep::Cp(0x1500, i),
+            Value::Null,
+        );
+    }
+    fx.build()
+}
+
+/// The potentials of a model as the plain functions 0x1001..0x1004 each holds.
+fn groups(m: &Model) -> Vec<Vec<u128>> {
+    let q = Q::new(m);
+    let part = q.get::<PotentialPartition>(());
+    let mut out: Vec<Vec<u128>> = part
+        .potentials
+        .iter()
+        .map(|p| {
+            (0x1001..=0x1004u128)
+                .filter(|f| p.cps.contains(&cpref(*f)))
+                .collect::<Vec<_>>()
+        })
+        .collect();
+    out.sort();
+    out
+}
+
+#[test]
+fn double_deck_terminal_keeps_its_levels_apart() {
+    // The reviewer's probe: a/L1, b/L1, a/L2, b/L2 (equal designations across the levels).
+    let mut fx = base();
+    four_cp_def(
+        &mut fx,
+        "terminal",
+        json!([
+            {"idx": 0, "designation": "a", "level": 1, "clamp": {"clamp": "a"}},
+            {"idx": 1, "designation": "b", "level": 1, "clamp": {"clamp": "b"}},
+            {"idx": 2, "designation": "a", "level": 2, "clamp": {"clamp": "a"}},
+            {"idx": 3, "designation": "b", "level": 2, "clamp": {"clamp": "b"}},
+        ]),
+        json!([]),
+    );
+    let m = four_cp_circuit(&mut fx, None);
+    assert_eq!(groups(&m), vec![vec![0x1001, 0x1002], vec![0x1003, 0x1004]]);
+    let q = Q::new(&m);
+    let g = q.get::<StitchGraphQ>(());
+    assert!(!g.edges.iter().any(|e| matches!(
+        e.kind,
+        EdgeKind::Short {
+            source: ShortSource::DuplicatePin,
+            ..
+        }
+    )));
+}
+
+#[test]
+fn duplicate_pins_join_only_on_pattern_functions() {
+    let cps = json!([
+        {"idx": 0, "designation": "+"},
+        {"idx": 1, "designation": "+"},
+        {"idx": 2, "designation": "-"},
+        {"idx": 3, "designation": "-"},
+    ]);
+    // A black box (no part pattern: it falls back to its FnDef, still one pin per designation).
+    let mut fx = base();
+    four_cp_def(&mut fx, "black_box", cps.clone(), json!([]));
+    let m = four_cp_circuit(&mut fx, Some("black_box"));
+    assert_eq!(groups(&m), vec![vec![0x1001, 0x1002], vec![0x1003, 0x1004]]);
+    // An FnDef-origin function: equal designations are separate points.
+    let mut fx = base();
+    four_cp_def(&mut fx, "pole", cps, json!([]));
+    let m = four_cp_circuit(&mut fx, None);
+    assert_eq!(
+        groups(&m),
+        vec![vec![0x1001], vec![0x1002], vec![0x1003], vec![0x1004]]
+    );
+}
+
+#[test]
+fn pass_through_terminal_shorts_each_side() {
+    // A disconnect terminal: clamps a and b on each side, one opening pass-through between the sides.
+    let mut fx = base();
+    four_cp_def(
+        &mut fx,
+        "terminal",
+        json!([
+            {"idx": 0, "designation": "1", "level": 1, "side": "side1", "clamp": {"clamp": "a"}},
+            {"idx": 1, "designation": "1", "level": 1, "side": "side1", "clamp": {"clamp": "b"}},
+            {"idx": 2, "designation": "2", "level": 1, "side": "side2", "clamp": {"clamp": "a"}},
+            {"idx": 3, "designation": "2", "level": 1, "side": "side2", "clamp": {"clamp": "b"}},
+        ]),
+        json!([{"a": 0, "b": 2, "kind": {"pass_through": {"opens": true}}}]),
+    );
+    let m = four_cp_circuit(&mut fx, None);
+    assert_eq!(groups(&m), vec![vec![0x1001, 0x1002], vec![0x1003, 0x1004]]);
+    let q = Q::new(&m);
+    let g = q.get::<StitchGraphQ>(());
+    let shorts: Vec<(u16, u16)> = g
+        .edges
+        .iter()
+        .filter_map(|e| match e.kind {
+            EdgeKind::Short {
+                a,
+                b,
+                source: ShortSource::TerminalLevel(1),
+                ..
+            } => Some((a, b)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(shorts, vec![(0, 1), (2, 3)]);
+    assert!(
+        g.edges
+            .iter()
+            .any(|e| matches!(e.kind, EdgeKind::PassThrough { a: 0, b: 2, .. }))
+    );
+}
+
+#[test]
+fn override_provenance_names_the_constituent_that_carries_it() {
+    // A -- 0x2001 -- X source .. X target -- 0x2002 -- B: the carrier is 0x2002 (next to the Target).
+    let mut fx = base();
+    func(&mut fx, 0x1001, P1);
+    func(&mut fx, 0x1002, P2);
+    ip(&mut fx, 0x1101, P1, "X", "source");
+    ip(&mut fx, 0x1102, P2, "X", "target");
+    conn(&mut fx, 0x2001, Some(P1), cp(0x1001), cp(0x1101), Value::Null);
+    fx.with("overrides", json!({"csa": "2.5"}));
+    conn(&mut fx, 0x2002, Some(P2), cp(0x1102), cp(0x1002), Value::Null);
+    fx.with("overrides", json!({"insulation": "H07V-K"}));
+    let m = fx.build();
+    let q = Q::new(&m);
+    let part = q.get::<PotentialPartition>(());
+    assert_eq!(part.potentials.len(), 1);
+    let pid = part.potentials[0].id;
+    let wires = q.get::<PhysicalWiresOf>(pid);
+    assert_eq!(wires.wires.len(), 1);
+    let w = &wires.wires[0];
+    assert_eq!(w.id, id::<Connection>(0x2002));
+    assert_eq!(w.override_sources.csa, Some(id(0x2001)));
+    assert_eq!(w.override_sources.insulation, Some(id(0x2002)));
+    let props = q.get::<WirePropsOf>(pid);
+    let e = &props.wires[&w.id];
+    let csa = e.csa.as_ref().expect("a cross-section");
+    assert_eq!(csa.source, PropSource::Override(id(0x2001)));
+    let ins = e.insulation.as_ref().expect("an insulation");
+    assert_eq!(ins.source, PropSource::Override(id(0x2002)));
+}
+
+#[test]
+fn hub_arm_is_carried_by_the_connection_touching_its_end() {
+    // The reviewer's probe: J (star) -- 0x2003 -- IP X target .. X source -- 0x2004 -- C. Doc 08 §3.8:
+    // "carrier = connection of a that touches c", so 0x2004 carries the wire, not the leg at the Target.
+    let mut fx = base();
+    func(&mut fx, 0x1001, P1);
+    func(&mut fx, 0x1002, P1);
+    func(&mut fx, 0x1003, P2);
+    ip(&mut fx, 0x1101, P1, "X", "target");
+    ip(&mut fx, 0x1102, P2, "X", "source");
+    conn(&mut fx, 0x2001, Some(P1), cp(0x1001), Ep::J(0x3001), Value::Null);
+    conn(&mut fx, 0x2002, Some(P1), Ep::J(0x3001), cp(0x1002), Value::Null);
+    conn(&mut fx, 0x2003, Some(P1), Ep::J(0x3001), cp(0x1101), Value::Null);
+    conn(&mut fx, 0x2004, Some(P2), cp(0x1102), cp(0x1003), Value::Null);
+    junction(&mut fx, 0x3001, P1, &[0x2001, 0x2002, 0x2003]);
+    let m = fx.build();
+    let q = Q::new(&m);
+    let part = q.get::<PotentialPartition>(());
+    assert_eq!(part.potentials.len(), 1);
+    let wires = q.get::<PhysicalWiresOf>(part.potentials[0].id);
+    let got: Vec<(Id<Connection>, Vec<Id<Connection>>)> = wires
+        .wires
+        .iter()
+        .map(|w| (w.id, w.constituents.clone()))
+        .collect();
+    assert_eq!(
+        got,
+        vec![
+            (id(0x2002), vec![id(0x2001), id(0x2002)]),
+            (id(0x2004), vec![id(0x2001), id(0x2003), id(0x2004)]),
+        ]
+    );
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Review cycle 7 A, F9/F12: naming, feed ambiguity, rings, conflicts, hubs, pairing, property levels.
+
+/// An interruption point `n` on `page` with the full spec `ip` (name, direction, sort, external ...).
+fn ip_spec(fx: &mut Fx, n: u128, page: u128, spec: Value) {
+    fx.push(json!({
+        "$k": "function", "id": uid(n), "def": uid(FNDEF_IP), "kind": {"ip": spec},
+    }));
+    fx.rep(n + 0x10_000, page, SYM_IP, &[n], 0, n as i64 * 1_000_000);
+}
+
+/// Two plain functions 0x1001 and 0x1002 on P1 joined by wire 0x2001.
+fn pair_fixture() -> Fx {
+    let mut fx = base();
+    func(&mut fx, 0x1001, P1);
+    func(&mut fx, 0x1002, P1);
+    conn(&mut fx, 0x2001, Some(P1), cp(0x1001), cp(0x1002), Value::Null);
+    fx
+}
+
+/// The ID of the only potential of the partition.
+fn only_potential(q: &Q) -> PotentialId {
+    let part = q.get::<PotentialPartition>(());
+    assert_eq!(part.potentials.len(), 1, "{part:?}");
+    part.potentials[0].id
+}
+
+/// Whether a note `code` about `subject` is present.
+fn has_note_on(q: &mut Q, code: &str, subject: &str) -> bool {
+    q.diagnostics().notes().iter().any(
+        |n| matches!(n, DeriveNote::Connectivity { code: c, subject: s, .. } if *c == code && s == subject),
+    )
+}
+
+#[test]
+fn external_source_ip_names_an_undefined_potential() {
+    let mut fx = pair_fixture();
+    fx.node(0x900, "location", "J", None);
+    fx.push(json!({
+        "$k": "external_ref", "id": uid(0x910), "location": uid(0x900), "device": "JE-N1", "connection": "L",
+    }));
+    ip_spec(
+        &mut fx,
+        0x1101,
+        P1,
+        json!({"name": "SUPPLY", "direction": "source", "external": uid(0x910)}),
+    );
+    conn(&mut fx, 0x2002, Some(P1), cp(0x1101), cp(0x1001), Value::Null);
+    // No definition and no other source point: the external one names the potential (D6).
+    let m = fx.build();
+    let q = Q::new(&m);
+    let part = q.get::<PotentialPartition>(());
+    assert_eq!(part.potentials.len(), 1, "{part:?}");
+    let p = &part.potentials[0];
+    assert_eq!(p.name.text, "SUPPLY");
+    assert_eq!(p.name.source, NameSource::SourceIp(id(0x1101)));
+    // A non-external source point on the same potential names it first; the external name is an alias.
+    ip(&mut fx, 0x1102, P1, "INNER", "source");
+    conn(&mut fx, 0x2003, Some(P1), cp(0x1102), cp(0x1002), Value::Null);
+    let m = fx.build();
+    let q = Q::new(&m);
+    let part = q.get::<PotentialPartition>(());
+    assert_eq!(part.potentials.len(), 1, "{part:?}");
+    let p = &part.potentials[0];
+    assert_eq!(p.name.text, "INNER");
+    assert_eq!(p.name.source, NameSource::SourceIp(id(0x1102)));
+    assert_eq!(p.aliases, vec!["SUPPLY".to_owned()]);
+}
+
+/// Two junctions J1 (0x3001) and J2 (0x3002) with A=0x1001 and B=0x1002. `seq1` and `seq2` list the
+/// connection numbers of the sequences. Connection 0x2001 joins the junctions, 0x2002 is J1 -- A and 0x2003
+/// is J2 -- B.
+fn two_junctions(seq1: &[u128], seq2: &[u128]) -> Model {
+    let mut fx = base();
+    func(&mut fx, 0x1001, P1);
+    func(&mut fx, 0x1002, P1);
+    conn(
+        &mut fx,
+        0x2001,
+        Some(P1),
+        Ep::J(0x3001),
+        Ep::J(0x3002),
+        Value::Null,
+    );
+    conn(&mut fx, 0x2002, Some(P1), Ep::J(0x3001), cp(0x1001), Value::Null);
+    conn(&mut fx, 0x2003, Some(P1), Ep::J(0x3002), cp(0x1002), Value::Null);
+    junction(&mut fx, 0x3001, P1, seq1);
+    junction(&mut fx, 0x3002, P1, seq2);
+    fx.build()
+}
+
+#[test]
+fn ambiguous_junction_feed_is_noted() {
+    // EW-POT-011, doc 08 §3.2: the arm between two junctions is the feed arm of both ...
+    let m = two_junctions(&[0x2001, 0x2002], &[0x2001, 0x2003]);
+    let mut q = Q::new(&m);
+    let pid = only_potential(&q);
+    let wires = q.get::<PhysicalWiresOf>(pid);
+    assert!(has_note(&mut q, "EW-POT-011"), "{:?}", q.diagnostics().notes());
+    // ... the tree is rooted at the lowest junction with an arm at a CP: one wire.
+    assert_eq!(wires.wires.len(), 1);
+    let w = &wires.wires[0];
+    assert_eq!(w.id, id::<Connection>(0x2003));
+    assert_eq!(
+        w.constituents,
+        vec![id::<Connection>(0x2002), id(0x2001), id(0x2003)]
+    );
+    assert_eq!(w.ends[0].cp, cpref(0x1001));
+    assert_eq!(w.ends[1].cp, cpref(0x1002));
+
+    // ... or of neither (both junctions list it last).
+    let m = two_junctions(&[0x2002, 0x2001], &[0x2003, 0x2001]);
+    let mut q = Q::new(&m);
+    let pid = only_potential(&q);
+    let wires = q.get::<PhysicalWiresOf>(pid);
+    assert!(has_note(&mut q, "EW-POT-011"), "{:?}", q.diagnostics().notes());
+    assert_eq!(wires.wires.len(), 1);
+    assert_eq!(wires.wires[0].id, id::<Connection>(0x2003));
+
+    // A consistent tree is silent: J1 is fed by 0x2002, J2 by 0x2001.
+    let m = two_junctions(&[0x2002, 0x2001], &[0x2001, 0x2003]);
+    let mut q = Q::new(&m);
+    let pid = only_potential(&q);
+    let wires = q.get::<PhysicalWiresOf>(pid);
+    assert!(!has_note(&mut q, "EW-POT-011"), "{:?}", q.diagnostics().notes());
+    assert_eq!(wires.wires.len(), 1);
+}
+
+#[test]
+fn ring_is_broken_at_its_highest_connection() {
+    // A ring of three CPs; the highest connection ID (0x2003) is neither authored first nor last.
+    let mut fx = base();
+    for f in [0x1001, 0x1002, 0x1003] {
+        func(&mut fx, f, P1);
+    }
+    conn(&mut fx, 0x2002, Some(P1), cp(0x1001), cp(0x1002), Value::Null);
+    conn(&mut fx, 0x2003, Some(P1), cp(0x1002), cp(0x1003), Value::Null);
+    conn(&mut fx, 0x2001, Some(P1), cp(0x1003), cp(0x1001), Value::Null);
+    let m = fx.build();
+    let mut q = Q::new(&m);
+    let pid = only_potential(&q);
+    let wires = q.get::<PhysicalWiresOf>(pid);
+    let ids: Vec<Id<Connection>> = wires.wires.iter().map(|w| w.id).collect();
+    assert_eq!(ids, vec![id::<Connection>(0x2001), id(0x2002)]);
+    assert!(has_note_on(
+        &mut q,
+        "EW-POT-012",
+        &id::<Connection>(0x2003).to_string()
+    ));
+    // The other two connections of the ring still form their wires.
+    assert_eq!(wires.wires[0].ends.map(|e| e.cp), [cpref(0x1001), cpref(0x1003)]);
+    assert_eq!(wires.wires[1].ends.map(|e| e.cp), [cpref(0x1001), cpref(0x1002)]);
+}
+
+/// A cable `W1` with conductors 0x6101 and 0x6102 and an interruption-point pair joining A=0x1001 and
+/// B=0x1002 through connections 0x2001 (A side, at the Source) and 0x2002 (B side, at the Target: the
+/// carrier). `kindN` and `overN` are the kind and the overrides of connection 0x200N (`Null`: none).
+fn conflict_fixture(kind1: Value, over1: Value, kind2: Value, over2: Value) -> Model {
+    let mut fx = base();
+    fx.push(json!({"$k": "device", "id": uid(0x6000), "tag": {"letter": "W", "counter": 1}, "cable": {}}));
+    for (n, core, csa) in [(0x6101, "1", "1"), (0x6102, "2", "4")] {
+        fx.push(json!({"$k": "conductor", "id": uid(n), "cable": uid(0x6000), "core": core, "csa": csa}));
+    }
+    func(&mut fx, 0x1001, P1);
+    func(&mut fx, 0x1002, P2);
+    ip(&mut fx, 0x1101, P1, "X", "source");
+    ip(&mut fx, 0x1102, P2, "X", "target");
+    for (n, page, a, b, kind, over) in [
+        (0x2001, P1, cp(0x1001), cp(0x1101), kind1, over1),
+        (0x2002, P2, cp(0x1102), cp(0x1002), kind2, over2),
+    ] {
+        conn(&mut fx, n, Some(page), a, b, kind);
+        if !over.is_null() {
+            fx.with("overrides", over);
+        }
+    }
+    fx.build()
+}
+
+#[test]
+fn conflicting_conductors_are_noted() {
+    let m = conflict_fixture(
+        json!({"core": uid(0x6101)}),
+        Value::Null,
+        json!({"core": uid(0x6102)}),
+        Value::Null,
+    );
+    let mut q = Q::new(&m);
+    let pid = only_potential(&q);
+    let wires = q.get::<PhysicalWiresOf>(pid);
+    assert_eq!(wires.wires.len(), 1);
+    let w = &wires.wires[0];
+    // The carrier's conductor applies (doc 08 §3.8): the leg at the Target point.
+    assert_eq!(w.id, id::<Connection>(0x2002));
+    assert_eq!(w.core, Some(id(0x6102)));
+    assert!(has_note_on(&mut q, "EW-POT-014", &w.id.to_string()));
+    let props = q.get::<WirePropsOf>(pid);
+    let csa = props.wires[&w.id].csa.as_ref().expect("a cross-section");
+    assert_eq!(csa.source, PropSource::Conductor(id(0x6102)));
+    assert_eq!(csa.value, Csa::Mm2(Dec3(4_000)));
+    // Agreeing conductors are silent.
+    let m = conflict_fixture(
+        json!({"core": uid(0x6102)}),
+        Value::Null,
+        json!({"core": uid(0x6102)}),
+        Value::Null,
+    );
+    let mut q = Q::new(&m);
+    let pid = only_potential(&q);
+    assert_eq!(q.get::<PhysicalWiresOf>(pid).wires[0].core, Some(id(0x6102)));
+    assert!(!has_note(&mut q, "EW-POT-014"));
+}
+
+#[test]
+fn conflicting_overrides_are_noted() {
+    let m = conflict_fixture(
+        Value::Null,
+        json!({"csa": "1.5"}),
+        Value::Null,
+        json!({"csa": "2.5"}),
+    );
+    let mut q = Q::new(&m);
+    let pid = only_potential(&q);
+    let wires = q.get::<PhysicalWiresOf>(pid);
+    let w = &wires.wires[0];
+    assert_eq!(w.id, id::<Connection>(0x2002));
+    assert!(has_note_on(&mut q, "EW-POT-014", &w.id.to_string()));
+    // The carrier's value applies and names the carrier.
+    let props = q.get::<WirePropsOf>(pid);
+    let csa = props.wires[&w.id].csa.as_ref().expect("a cross-section");
+    assert_eq!(csa.value, Csa::Mm2(Dec3(2_500)));
+    assert_eq!(csa.source, PropSource::Override(id(0x2002)));
+    // Equal values on both constituents are no conflict.
+    let m = conflict_fixture(
+        Value::Null,
+        json!({"csa": "2.5"}),
+        Value::Null,
+        json!({"csa": "2.5"}),
+    );
+    let mut q = Q::new(&m);
+    let pid = only_potential(&q);
+    let _ = q.get::<PhysicalWiresOf>(pid);
+    assert!(!has_note(&mut q, "EW-POT-014"));
+}
+
+#[test]
+fn star_ip_group_with_three_targets_is_a_hub() {
+    // A -- 0x2001 -- IP X (source) | IP X (target) -- 0x2002 -- B, and likewise 0x2003 -- C, 0x2004 -- D.
+    let mut fx = base();
+    func(&mut fx, 0x1001, P1);
+    for f in [0x1002, 0x1003, 0x1004] {
+        func(&mut fx, f, P2);
+    }
+    ip(&mut fx, 0x1101, P1, "X", "source");
+    conn(&mut fx, 0x2001, Some(P1), cp(0x1001), cp(0x1101), Value::Null);
+    for (k, t) in [0x1102, 0x1103, 0x1104].into_iter().enumerate() {
+        ip(&mut fx, t, P2, "X", "target");
+        let b = 0x1002 + k as u128;
+        conn(&mut fx, 0x2002 + k as u128, Some(P2), cp(t), cp(b), Value::Null);
+    }
+    let m = fx.build();
+    let q = Q::new(&m);
+    let pid = only_potential(&q);
+    let wires = q.get::<PhysicalWiresOf>(pid);
+    type Row = (Id<Connection>, Vec<Id<Connection>>, [CpRef; 2]);
+    let got: Vec<Row> = wires
+        .wires
+        .iter()
+        .map(|w| (w.id, w.constituents.clone(), w.ends.map(|e| e.cp)))
+        .collect();
+    // Doc 08 §3.8: "carrier = connection of a that touches c", the target leg; the feed arm comes first.
+    assert_eq!(
+        got,
+        vec![
+            (
+                id(0x2002),
+                vec![id(0x2001), id(0x2002)],
+                [cpref(0x1001), cpref(0x1002)]
+            ),
+            (
+                id(0x2003),
+                vec![id(0x2001), id(0x2003)],
+                [cpref(0x1001), cpref(0x1003)]
+            ),
+            (
+                id(0x2004),
+                vec![id(0x2001), id(0x2004)],
+                [cpref(0x1001), cpref(0x1004)]
+            ),
+        ]
+    );
+    // The shared feed connection belongs to all three wires.
+    let props = q.get::<WirePropsOf>(pid);
+    assert_eq!(
+        props.by_connection[&id::<Connection>(0x2001)],
+        vec![id::<Connection>(0x2002), id(0x2003), id(0x2004)]
+    );
+}
+
+#[test]
+fn chain_mode_pairs_in_order() {
+    // Four points named C with sort keys, authored out of order; each is wired to a function.
+    let mut fx = base();
+    fx.project_set(
+        "settings",
+        json!({"ip_pairing": {"mode": "chain", "scope": "project"}}),
+    );
+    for f in 0x1001..=0x1004 {
+        func(&mut fx, f, P1);
+    }
+    // (point, sort key, function): the sort order is 0x1102, 0x1104, 0x1101, 0x1103.
+    for (ipn, sort, f) in [
+        (0x1101, 30, 0x1003),
+        (0x1102, 10, 0x1001),
+        (0x1103, 40, 0x1004),
+        (0x1104, 20, 0x1002),
+    ] {
+        ip_spec(
+            &mut fx,
+            ipn,
+            P1,
+            json!({"name": "C", "direction": "source", "sort": sort}),
+        );
+        conn(
+            &mut fx,
+            ipn - 0x1101 + 0x2001,
+            Some(P1),
+            cp(f),
+            cp(ipn),
+            Value::Null,
+        );
+    }
+    let m = fx.build();
+    let q = Q::new(&m);
+    let g = q.get::<StitchGraphQ>(());
+    assert_eq!(g.ip_groups.len(), 1);
+    let group = &g.ip_groups[0];
+    assert_eq!(group.name, "C");
+    assert_eq!(group.mode, PairMode::Chain);
+    assert_eq!(
+        group.members,
+        vec![id::<Function>(0x1102), id(0x1104), id(0x1101), id(0x1103)]
+    );
+    assert_eq!(
+        group.pairs,
+        vec![(id::<Function>(0x1102), id(0x1104)), (id(0x1101), id(0x1103))]
+    );
+    assert!(group.unpaired.is_empty());
+    // (1,2) and (3,4) in sort-key order: functions 0x1001 + 0x1002, and 0x1003 + 0x1004.
+    assert_eq!(groups(&m), vec![vec![0x1001, 0x1002], vec![0x1003, 0x1004]]);
+}
+
+/// The effective properties of the only wire of the only potential of `m`.
+fn single_wire_props(m: &Model) -> EffectiveProps {
+    let q = Q::new(m);
+    let pid = only_potential(&q);
+    let props = q.get::<WirePropsOf>(pid);
+    assert_eq!(props.wires.len(), 1);
+    props.wires.values().next().expect("one wire").clone()
+}
+
+#[test]
+fn potential_def_props_are_level_3() {
+    let mut fx = pair_fixture();
+    def(&mut fx, 0x5001, cp(0x1001), "N1");
+    fx.with("props", json!({"csa": "2.5"}));
+    let e = single_wire_props(&fx.build());
+    let csa = e.csa.expect("a cross-section");
+    assert_eq!(csa.value, Csa::Mm2(Dec3(2_500)));
+    assert_eq!(csa.source, PropSource::PotentialDef(id(0x5001)));
+    assert_eq!(csa.level(), 3);
+    // A member the definition leaves unset falls through to the built-in default.
+    assert_eq!(e.colour.expect("a colour").level(), 0);
+}
+
+#[test]
+fn project_default_is_level_1() {
+    let mut fx = pair_fixture();
+    fx.project_set("settings", json!({"wire_default": {"csa": "1"}}));
+    let e = single_wire_props(&fx.build());
+    let csa = e.csa.expect("a cross-section");
+    assert_eq!(csa.value, Csa::Mm2(Dec3(1_000)));
+    assert_eq!(csa.source, PropSource::ProjectDefault);
+    assert_eq!(csa.level(), 1);
+    // The default sets no colour: the built-in one applies.
+    assert_eq!(e.colour.expect("a colour").level(), 0);
+    // Without the default and without profiles: the built-in size (Control, 0.75).
+    let e = single_wire_props(&pair_fixture().build());
+    let csa = e.csa.expect("a cross-section");
+    assert_eq!(csa.value, Csa::Mm2(Dec3(750)));
+    assert!(matches!(csa.source, PropSource::BuiltIn { .. }));
+    assert_eq!(csa.level(), 0);
+}
+
+#[test]
+fn malformed_colour_profile_is_noted() {
+    let mut fx = pair_fixture();
+    fx.project_set("settings", json!({"colour_profile": 42}));
+    let m = fx.build();
+    let mut q = Q::new(&m);
+    let pid = only_potential(&q);
+    let props = q.get::<WirePropsOf>(pid);
+    let notes = q.diagnostics().notes();
+    assert!(
+        notes.iter().any(|n| matches!(
+            n,
+            DeriveNote::MalformedShim { member, .. } if member == "settings.colour_profile"
+        )),
+        "{notes:?}"
+    );
+    // A malformed member is treated as absent, but it is present: no default-profile note for it.
+    assert!(!notes.iter().any(|n| matches!(
+        n,
+        DeriveNote::DefaultWireProfile {
+            member: "colour_profile"
+        }
+    )));
+    let e = props.wires.values().next().expect("one wire");
+    let colour = e.colour.as_ref().expect("a colour");
+    assert!(matches!(colour.source, PropSource::BuiltIn { .. }), "{colour:?}");
+}
+
+#[test]
+fn nested_junction_chain_fr_con_041() {
+    // Doc 08 §3.2: a chain junction Jr (feed 0x2001 at S) whose third arm 0x2003 enters a second chain
+    // junction Jn (its feed arm); src -> d1 -> d2 -> d3, every non-feed arm one wire.
+    let mut fx = base();
+    for f in 0x1001..=0x1004 {
+        func(&mut fx, f, P1);
+    }
+    conn(&mut fx, 0x2001, Some(P1), cp(0x1001), Ep::J(0x3001), Value::Null);
+    conn(&mut fx, 0x2002, Some(P1), Ep::J(0x3001), cp(0x1002), Value::Null);
+    conn(
+        &mut fx,
+        0x2003,
+        Some(P1),
+        Ep::J(0x3001),
+        Ep::J(0x3002),
+        Value::Null,
+    );
+    conn(&mut fx, 0x2004, Some(P1), Ep::J(0x3002), cp(0x1003), Value::Null);
+    conn(&mut fx, 0x2005, Some(P1), Ep::J(0x3002), cp(0x1004), Value::Null);
+    junction(&mut fx, 0x3001, P1, &[0x2001, 0x2002, 0x2003]);
+    fx.with("wiring", json!("chain"));
+    junction(&mut fx, 0x3002, P1, &[0x2003, 0x2004, 0x2005]);
+    fx.with("wiring", json!("chain"));
+    let m = fx.build();
+    let mut q = Q::new(&m);
+    let pid = only_potential(&q);
+    let wires = q.get::<PhysicalWiresOf>(pid);
+    assert!(!has_note(&mut q, "EW-POT-011"), "{:?}", q.diagnostics().notes());
+    type Row = (Id<Connection>, [CpRef; 2], Vec<Id<Connection>>, Vec<Id<Junction>>);
+    let got: Vec<Row> = wires
+        .wires
+        .iter()
+        .map(|w| {
+            (
+                w.id,
+                w.ends.map(|e| e.cp),
+                w.constituents.clone(),
+                w.junctions.clone(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        got,
+        vec![
+            // src -> d1: carried by the arm that touches d1.
+            (
+                id(0x2002),
+                [cpref(0x1001), cpref(0x1002)],
+                vec![id(0x2001), id(0x2002)],
+                vec![id(0x3001)]
+            ),
+            // d1 -> d2: from d1 through Jr into Jn.
+            (
+                id(0x2004),
+                [cpref(0x1002), cpref(0x1003)],
+                vec![id(0x2002), id(0x2003), id(0x2004)],
+                vec![id(0x3001), id(0x3002)]
+            ),
+            // d2 -> d3: inside Jn.
+            (
+                id(0x2005),
+                [cpref(0x1003), cpref(0x1004)],
+                vec![id(0x2004), id(0x2005)],
+                vec![id(0x3002)]
+            ),
+        ]
+    );
 }

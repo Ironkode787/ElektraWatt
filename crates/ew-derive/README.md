@@ -44,13 +44,39 @@ potentials; `physical_wires_of(potential)`, `potential_flow(potential)` and `wir
 them, and `wire_props(conn)` is a cold lookup into the per-potential map (ARCH §6.3). Readings this crate applies
 where the documents leave the data open:
 
-- **Pairing default.** An absent `ip_pairing` setting means star mode with project scope.
-- **Terminal level rule.** A terminal function whose FnDef declares no pass-through pair joins all its CPs of one
-  level: a template-origin terminal takes its CP indices from the part pattern, which the FnDef links do not name.
-- **Duplicated pins.** Two CPs of one function with the same printed designation are one signal unless a declared
-  pass-through pair links them (the black-box PSU's +#1/+#2 and −#1/−#2).
-- **Rail bonds.** The rail-bonded terminals of one location are joined through their rail-foot CPs (else their
-  smallest CP in the graph).
+- **Pairing default.** An absent `ip_pairing` setting means star mode with project scope. The star source is the
+  point flagged `star_source`, else the single Source, else, with two or more Sources, the lowest-ID Source (noted),
+  else the lowest-ID point. A scoped pairing (function or location) on a page without the aspect node pairs
+  project-wide and is noted (EW-CORE-051).
+- **No conductor edge.** `Core` connections and the IP pairing suffice; the drawing graph has no separate
+  conductor edge.
+- **Built-in defaults.** Without profiles the defaults of doc 08 §4.3 apply (decision log ID-150, the EN 60204-1
+  column): an L-family potential of an AC control circuit is RD, and the cross-section is 1.5 mm² for Mains and
+  0.75 mm² for every other class.
+- **Aliases.** Doc 08 §3.5 governs over doc 20 §7.3: the aliases are every other distinct IP name of the potential in
+  natural order (bond-path points excluded). §7.3 lists the golden aliases in that same order, so the golden
+  partition matches both; the code follows §3.5.
+- **PE rule.** A PE wire takes the highest circuit class at its two ends, ranked `Mains > Control > Analogue > Bus`;
+  when no end has a ranked class the class is Control.
+- **Cores.** The colour profile never recolours a core: its colour is the conductor's, else the project default or
+  the built-in colour; its size is the conductor's, else the rules.
+- **Loads (D4).** The loads of a potential are its consuming functions (coils, lamps, inputs); never a function with
+  a pass-through pair touching the potential, a source feeding it, an interruption point or a terminal.
+- **Hub arms (D1).** The carrier of a wire resolved at a hub is the connection of its arm that touches the end CP
+  (doc 08 §3.8); the Target-IP rule applies to hub-free paths only.
+- **Duplicated pins (D2).** Two CPs of one function with the same designation are one pin only on black boxes and on
+  functions of part-pattern origin (the PSU's +#1/+#2 and −#1/−#2); never on terminals, never across levels.
+- **Terminal levels (D3).** A terminal with a declared pass-through pair shorts the same-level CPs of each side and
+  the pass-through links the sides; without one, all CPs of a level are one signal.
+- **Rail bonds (D5).** Rail bonding joins only CPs with clamp rail foot or role PE or PEN, chained per location. A
+  rail-bonded terminal without such a CP joins nothing (EW-TERM-005); one without a location is skipped (EW-POT-008).
+- **External names (D6).** An external source IP may name an undefined potential: the name is the first definition,
+  else the first non-external source IP, else the first external source IP, else the `<tag>:<designation>` fallback.
+- **Conflicts.** Nothing merges silently: differing type, voltage, environment or class between definitions, and a
+  defined type that contradicts a member role (FE on PE or PEN, PE or N on PEN are compatible), are EW-POT-001;
+  the first definition in ID order wins.
+- **Override provenance.** `PropSource::Override` names the constituent connection that carries the value
+  (`PhysicalWire.override_sources`): the carrier for what it sets, else the first other constituent that sets it.
 - **Bond cut.** Only the `via` connection is cut; the interruption points on the via path stay members of the
   potential they are wired to but name the bond, not the potential.
 

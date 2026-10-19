@@ -108,6 +108,13 @@ impl Query for FunctionCps {
     }
 }
 
+/// Whether the function's CPs are the same pins of one device pattern (doc 03 §9.3): a black box, or a
+/// template-origin function (its CPs come from a part's CP pattern). Duplicated printed designations of such
+/// a function are one pin; elsewhere (terminals, FnDef CPs) they are separate points.
+pub(crate) fn pattern_origin(q: &Q, function: &Function) -> bool {
+    matches!(function.kind, FunctionKind::BlackBox) || template_cps(q, function).is_some()
+}
+
 /// The CPs of the function's definition copy.
 fn fndef_cps(q: &Q, function: &Function) -> Vec<Cp> {
     q.fndefs()

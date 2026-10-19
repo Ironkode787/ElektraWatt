@@ -6,15 +6,18 @@
 //! The model is the golden tables loaded through the CSV bootstrap (`tests/golden_common`), with the
 //! colour and size profiles of doc 20 §7.1, §7.2 where a test says so. Tests:
 //!
-//! - `potential_partition_matches_section_7_3` (AC-10): the 18 potentials with names, aliases, members and
-//!   types.
+//! - `potential_partition_matches_section_7_3` (AC-10): the 18 potentials with names, aliases (natural order as
+//!   returned), members and types.
+//! - `potential_member_sets_match_section_7_3_exactly`: the exact member CPs of every potential.
+//! - `potential_voltage_and_class_columns_match_section_7_3`: voltage, AC/DC and circuit class columns.
 //! - `bond_b1_links_0v_and_pe` (§7.4): the one bond link.
 //! - `bridges_join_their_potentials` (§8.3): the 19 bridge connections.
 //! - `every_golden_wire_is_one_physical_wire` (AC-09): W1 to W44 with ends, constituents, potentials, core.
 //! - `wire_sizes_and_colours_follow_section_8_2` (AC-09): effective cross-section and colour with source.
-//! - `every_connection_has_an_effective_size_and_colour` (AC-09): with and without profiles.
+//! - `every_connection_has_an_effective_size_and_colour` (AC-09): with and without profiles, and the provenance
+//!   level of every value (7 override, 6 core, 2 profile, 1 project default, 0 built in).
 //! - `changing_the_24v_colour_updates_every_affected_wire` (AC-12): one profile edit, all affected wires.
-//! - `flow_matches_doc_08_section_3_6`: distances, switched and protected potentials.
+//! - `flow_matches_doc_08_section_3_6`: distances, switched and protected potentials, loads (decision D4).
 //! - `connectivity_does_not_depend_on_record_order` (NFR-REL-07): reversed and shuffled records.
 //! - `no_connectivity_notes_on_the_golden_model`: no `DeriveNote::Connectivity`.
 
@@ -313,11 +316,10 @@ fn potential_partition_matches_section_7_3() {
     assert_eq!(potential_rows().len(), 18);
     for (name, aliases, members, ptype) in potential_rows() {
         let p = part.by_name(name).unwrap_or_else(|| panic!("potential {name}"));
-        let mut got = p.aliases.clone();
-        got.sort();
-        let mut want: Vec<String> = aliases.iter().map(|a| (*a).to_owned()).collect();
-        want.sort();
-        assert_eq!(got, want, "aliases of {name}");
+        // Doc 08 §3.5: the aliases come in natural order, which is the order of the §7.3 cells; compared
+        // as returned, without sorting.
+        let want: Vec<String> = aliases.iter().map(|a| (*a).to_owned()).collect();
+        assert_eq!(p.aliases, want, "aliases of {name}");
         for m in members {
             let fns = functions_of(&ids, m);
             assert!(
@@ -334,6 +336,203 @@ fn potential_partition_matches_section_7_3() {
                 .and_then(|e| e.ptype.as_ref().map(|t| t.value.clone()))
         });
         assert_eq!(got, Some(ptype), "type of {name}");
+    }
+}
+
+/// The member CPs of a potential as `device:CP designation` text, from the golden tables: the device of
+/// the function row of `functions.csv`, the designation of the instantiated CP. Interruption points are
+/// left out (their names are the aliases, checked apart); a terminal stands for all its clamp and shaft
+/// CPs (`-X1031:3`), as the §7.3 cells list them.
+fn member_text(q: &Q, ids: &BTreeMap<String, String>, p: &ew_derive::Potential) -> BTreeSet<String> {
+    let inv: BTreeMap<&String, &String> = ids.iter().map(|(k, v)| (v, k)).collect();
+    let functions = table("functions.csv");
+    let terminals = table("terminals.csv");
+    let mut out = BTreeSet::new();
+    for c in &p.cps {
+        let key = inv[&c.function.to_string()]
+            .strip_prefix("functions|")
+            .expect("a function key");
+        let row = &functions[key];
+        if row["kind"] == "ip" {
+            continue;
+        }
+        let device = &row["device"];
+        if terminals.contains_key(device) {
+            out.insert(device.clone());
+            continue;
+        }
+        let cps = q.get::<ew_derive::FunctionCps>(c.function);
+        let cp = cps.iter().find(|x| x.idx == c.idx).expect("an instantiated CP");
+        out.insert(format!("{device}:{}", cp.designation));
+    }
+    out
+}
+
+/// `strip:from` to `strip:to` terminals.
+fn terminals(strip: &str, from: u32, to: u32) -> Vec<String> {
+    (from..=to).map(|n| format!("{strip}:{n}")).collect()
+}
+
+/// The member sets of doc 20 §7.3 as `device:designation` text (`#n` repeat markers dropped: a repeated
+/// designation is one text).
+fn member_sets() -> Vec<(&'static str, Vec<String>)> {
+    let own = |v: &[&str]| v.iter().map(|s| (*s).to_owned()).collect::<Vec<String>>();
+    let cat = |a: Vec<String>, b: Vec<String>| [a, b].concat();
+    vec![
+        ("L", own(&["1X1:1", "S51:2"])),
+        ("N", own(&["1X1:2", "S51:4"])),
+        ("L-S", own(&["S51:1", "-101F1:1", "F55:1"])),
+        ("N-S", own(&["S51:3", "-101F1:N", "F55:N"])),
+        ("L-1", own(&["-101F1:2", "-102G1:L"])),
+        ("N-1", own(&["-101F1:N", "-102G1:N"])),
+        ("L-55", own(&["F55:2", "E55:L", "E56:X2"])),
+        ("N-55", own(&["F55:N", "T55:5", "S56:13"])),
+        ("N-55T", own(&["T55:3", "E55:N"])),
+        ("N-55S", own(&["S56:14", "E56:X1"])),
+        (
+            "PE",
+            cat(
+                own(&[
+                    "1X1:PE",
+                    "-XPE:PE",
+                    "E55:PE",
+                    "-102G1:PE",
+                    "-201U1:3",
+                    "-201U1:FE",
+                    "-202U1:3",
+                    "-202U1:FE",
+                ]),
+                terminals("-X1032", 1, 5),
+            ),
+        ),
+        ("+24V", own(&["-102G1:+", "-102F1:1"])),
+        ("+24V-F", own(&["-102F1:2", "-102F2:24VDC"])),
+        (
+            "24VDC-1",
+            cat(
+                own(&["-102F2:Out1", "-201U1:4", "-201U1:5", "-202U1:4", "-202U1:5"]),
+                terminals("-X1031", 1, 4),
+            ),
+        ),
+        ("24VDC-2", cat(own(&["-102F2:Out2"]), terminals("-X1031", 5, 6))),
+        ("24VDC-3", cat(own(&["-102F2:Out3"]), terminals("-X1031", 7, 8))),
+        ("24VDC-4", cat(own(&["-102F2:Out4"]), terminals("-X1031", 9, 10))),
+        (
+            "0V",
+            cat(
+                own(&[
+                    "-102G1:\u{2212}",
+                    "-102F2:GND",
+                    "-201U1:1",
+                    "-201U1:2",
+                    "-202U1:1",
+                    "-202U1:2",
+                ]),
+                terminals("-X1031", 11, 20),
+            ),
+        ),
+    ]
+}
+
+#[test]
+fn potential_member_sets_match_section_7_3_exactly() {
+    let batch = batch();
+    let s = session(&batch);
+    let ids = ids_by_key(&batch);
+    let q = Q::new(&s.world().model);
+    let part = q.get::<PotentialPartition>(());
+    let sets = member_sets();
+    assert_eq!(sets.len(), 18);
+    for (name, want) in sets {
+        let p = part.by_name(name).unwrap_or_else(|| panic!("potential {name}"));
+        let want: BTreeSet<String> = want.into_iter().collect();
+        assert_eq!(member_text(&q, &ids, p), want, "members of {name}");
+    }
+}
+
+/// The voltage and circuit-class columns of §7.3: (name, voltage text, AC/DC, circuit class). `None` is a
+/// cell that states nothing: PE has no voltage, the spare 24VDC-2 to -4 have none (no source-output data in
+/// the golden PSU), and the switched N-55T and N-55S state the voltage but no class.
+type ClassRow = (
+    &'static str,
+    Option<&'static str>,
+    Option<ew_schema::AcDc>,
+    Option<CircuitClass>,
+);
+
+fn class_rows() -> Vec<ClassRow> {
+    use ew_schema::AcDc::{Ac, Dc};
+    let mains = |n| (n, Some("230"), Some(Ac), Some(CircuitClass::Mains));
+    let control = |n| (n, Some("24"), Some(Dc), Some(CircuitClass::Control));
+    vec![
+        mains("L"),
+        mains("N"),
+        mains("L-S"),
+        mains("N-S"),
+        mains("L-1"),
+        mains("N-1"),
+        mains("L-55"),
+        mains("N-55"),
+        ("N-55T", Some("230"), Some(Ac), None),
+        ("N-55S", Some("230"), Some(Ac), None),
+        ("PE", None, None, None),
+        control("+24V"),
+        control("+24V-F"),
+        control("24VDC-1"),
+        ("24VDC-2", None, None, None),
+        ("24VDC-3", None, None, None),
+        ("24VDC-4", None, None, None),
+        control("0V"),
+    ]
+}
+
+/// Doc 20 §7.3, column "Type, voltage, class" and "Colour, default size". Voltage and AC/DC are the
+/// potential's own (definition) value, else the `PotentialFlow` entry's (the switched N-55T and N-55S take
+/// them from N-55 over the pass-through pair). The class is the potential's own (`circuit_class` of a
+/// definition) where the cell states one. A cell without a class (switched, spare, PE) means "whatever the
+/// default size column says": the class that `WirePropsOf` resolves for the potential's wires, which must
+/// be mains for N-55T and N-55S (1.5 mm²), control for the spare 24 V potentials (0.75 mm²) and, for PE,
+/// mains and control by the highest class at the wire ends ("GNYE, by class").
+#[test]
+fn potential_voltage_and_class_columns_match_section_7_3() {
+    let batch = batch();
+    let s = session_with_profiles(&batch);
+    let q = Q::new(&s.world().model);
+    let part = q.get::<PotentialPartition>(());
+    assert_eq!(class_rows().len(), 18);
+    for (name, voltage, ac_dc, class) in class_rows() {
+        let p = part.by_name(name).unwrap_or_else(|| panic!("potential {name}"));
+        let flow = q.get::<PotentialFlow>(p.id);
+        let entry = flow.as_ref().as_ref().expect("a flow entry");
+        let got_voltage = p
+            .voltage
+            .as_ref()
+            .or(entry.voltage.as_ref())
+            .map(|a| a.value.to_string());
+        assert_eq!(got_voltage.as_deref(), voltage, "voltage of {name}");
+        let got_env = p
+            .env
+            .as_ref()
+            .or(entry.env.as_ref())
+            .and_then(|a| a.value.ac_dc.clone());
+        assert_eq!(got_env, ac_dc, "AC/DC of {name}");
+        let own_class = p.circuit_class.as_ref().map(|a| a.value.clone());
+        assert_eq!(own_class, class, "own circuit class of {name}");
+        // The class the wires of the potential resolve (level-2 size rule).
+        let resolved: BTreeSet<String> = q
+            .get::<WirePropsOf>(p.id)
+            .wires
+            .values()
+            .filter_map(|e| e.class.as_ref().map(|c| format!("{c:?}")))
+            .collect();
+        let text = |c: CircuitClass| format!("{c:?}");
+        let want: BTreeSet<String> = match (name, class) {
+            (_, Some(c)) => BTreeSet::from([text(c)]),
+            ("PE", None) => BTreeSet::from([text(CircuitClass::Mains), text(CircuitClass::Control)]),
+            ("N-55T" | "N-55S", None) => BTreeSet::from([text(CircuitClass::Mains)]),
+            (_, None) => BTreeSet::from([text(CircuitClass::Control)]),
+        };
+        assert_eq!(resolved, want, "resolved classes of {name}");
     }
 }
 
@@ -576,6 +775,85 @@ fn check_all_connections(s: &Session, batch: &ImportBatch) -> Q {
     q
 }
 
+/// Which sources a session has, for the expected provenance levels.
+#[derive(Clone, Copy)]
+struct Sources {
+    /// The colour and size profiles of doc 20 §7.1, §7.2 (level 2).
+    profiles: bool,
+    /// A project default `wire_default` (level 1).
+    default: bool,
+}
+
+/// Checks the provenance level of the size and the colour of every physical wire (doc 08 §4.1): 7 where a
+/// constituent connection overrides the value, 6 where the core's conductor sets it, else 2 with profiles
+/// (3 would be a definition's props, which the golden potentials do not have), else 1 with a project
+/// default, else 0. The colour of the spare 24 V wires (no voltage: the documented data gap) matches no row
+/// and falls through to level 1 or 0. Returns the (csa, colour) level of every wire by carrier ID.
+fn check_levels(q: &Q, batch: &ImportBatch, sources: Sources) -> BTreeMap<String, (u8, u8)> {
+    let conns: BTreeMap<String, Connection> = batch
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            Record::Connection(c) => Some((c.id.to_string(), c.clone())),
+            _ => None,
+        })
+        .collect();
+    let conductors: BTreeMap<String, ew_schema::Conductor> = batch
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            Record::Conductor(c) => Some((c.id.to_string(), c.clone())),
+            _ => None,
+        })
+        .collect();
+    let part = q.get::<PotentialPartition>(());
+    let props = all_props(q);
+    let mut out = BTreeMap::new();
+    for (id, w) in all_wires(q) {
+        let (_, colour_src, _, csa_src, _) = &props[&id];
+        let overrides = |get: fn(&ew_schema::WireOverrides) -> bool| {
+            w.constituents
+                .iter()
+                .any(|c| get(&conns[&c.to_string()].overrides))
+        };
+        let conductor = w.core.map(|c| &conductors[&c.to_string()]);
+        let spare = w.potentials.iter().all(|p| {
+            matches!(
+                part.get(*p).map(|p| p.name.text.as_str()),
+                Some("24VDC-2" | "24VDC-3" | "24VDC-4")
+            )
+        });
+        let fallback = |profile_row: bool| match (profile_row, sources) {
+            (true, Sources { profiles: true, .. }) => 2,
+            (_, Sources { default: true, .. }) => 1,
+            _ => 0,
+        };
+        let want_csa = if overrides(|o| o.csa.is_some()) {
+            7
+        } else if conductor.is_some_and(|c| c.csa.is_some()) {
+            6
+        } else {
+            fallback(true)
+        };
+        let want_colour = if overrides(|o| o.colour.is_some()) {
+            7
+        } else if conductor.is_some_and(|c| c.colour.is_some()) {
+            6
+        } else {
+            fallback(!spare)
+        };
+        assert_eq!(csa_src.level(), want_csa, "csa level of wire {id}: {csa_src:?}");
+        assert_eq!(
+            colour_src.level(),
+            want_colour,
+            "colour level of wire {id}: {colour_src:?}"
+        );
+        out.insert(id, (want_csa, want_colour));
+    }
+    assert_eq!(out.len(), 44);
+    out
+}
+
 #[test]
 fn every_connection_has_an_effective_size_and_colour() {
     let batch = batch();
@@ -587,7 +865,24 @@ fn every_connection_has_an_effective_size_and_colour() {
             .iter()
             .any(|n| matches!(n, DeriveNote::DefaultWireProfile { .. }))
     );
+    // With profiles: the 10 wires of W4, W5, W7, W9 and W20 to W25 override the size (level 7), the 10 cores
+    // set the colour (level 6), everything else comes from the profile rows (level 2; the 3 spare 24 V wires
+    // match no colour row and take the built-in colour, level 0).
+    let levels = check_levels(
+        &q,
+        &batch,
+        Sources {
+            profiles: true,
+            default: false,
+        },
+    );
+    assert_eq!(count_where(&levels, |l| l.0 == 7), 10);
+    assert_eq!(count_where(&levels, |l| l.0 == 2), 34);
+    assert_eq!(count_where(&levels, |l| l.1 == 6), 10);
+    assert_eq!(count_where(&levels, |l| l.1 == 2), 31);
+    assert_eq!(count_where(&levels, |l| l.1 == 0), 3);
 
+    // Without profiles and without a default: overrides and cores as before, the rest is built in (level 0).
     let without = session(&batch);
     let mut q = check_all_connections(&without, &batch);
     let notes = q.diagnostics().notes();
@@ -599,6 +894,39 @@ fn every_connection_has_an_effective_size_and_colour() {
             "no DefaultWireProfile note for {member}: {notes:?}"
         );
     }
+    let levels = check_levels(
+        &q,
+        &batch,
+        Sources {
+            profiles: false,
+            default: false,
+        },
+    );
+    assert_eq!(count_where(&levels, |l| l.0 == 0), 34);
+    assert_eq!(count_where(&levels, |l| l.1 == 0), 34);
+
+    // With a project default and no profiles the same wires take level 1.
+    let defaulted = session_with(&batch, |p, _| {
+        p.settings.extra.insert(
+            "wire_default".into(),
+            serde_json::json!({"csa": "1", "colour": ["GY"]}),
+        );
+    });
+    let q = check_all_connections(&defaulted, &batch);
+    let levels = check_levels(
+        &q,
+        &batch,
+        Sources {
+            profiles: false,
+            default: true,
+        },
+    );
+    assert_eq!(count_where(&levels, |l| l.0 == 1), 34);
+    assert_eq!(count_where(&levels, |l| l.1 == 1), 34);
+}
+
+fn count_where(levels: &BTreeMap<String, (u8, u8)>, f: impl Fn(&(u8, u8)) -> bool) -> usize {
+    levels.values().filter(|l| f(l)).count()
 }
 
 #[test]
@@ -684,6 +1012,27 @@ fn flow_matches_doc_08_section_3_6() {
             Some(ids[&format!("functions|{by}")].clone()),
             "{name} protected_by"
         );
+    }
+    // Loads (review decision D4): the consuming functions, never the feeding or a passing function.
+    let device_of: BTreeMap<String, String> = table("functions.csv")
+        .into_iter()
+        .map(|(k, r)| (ids[&format!("functions|{k}")].clone(), r["device"].clone()))
+        .collect();
+    for (name, want) in [
+        ("L-55", &["E55", "E56"][..]),
+        ("N-1", &["-102G1"][..]),
+        ("L-S", &[][..]),
+        ("N-S", &[][..]),
+        ("N-55T", &["E55"][..]),
+        ("N-55S", &["E56"][..]),
+    ] {
+        let got: BTreeSet<String> = entry(name)
+            .loads
+            .iter()
+            .map(|l| device_of[&l.function.to_string()].clone())
+            .collect();
+        let want: BTreeSet<String> = want.iter().map(|d| (*d).to_owned()).collect();
+        assert_eq!(got, want, "loads of {name}");
     }
     // Documented gap: the golden PSU has no source-output data, so flow does not reach the 24 V potentials.
     for name in ["+24V", "+24V-F", "24VDC-1", "24VDC-2", "24VDC-3", "24VDC-4"] {

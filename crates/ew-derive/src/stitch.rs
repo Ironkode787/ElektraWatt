@@ -22,21 +22,30 @@
 //! - **IP pairing** (doc 03 §10, FR-XRF-007, FR-XRF-010). Points pair by (name, scope key); the scope
 //!   key is the node of the IP page's resolved structure in the aspect of `ip_pairing.scope` (none for
 //!   `project`). An absent `ip_pairing` setting means star mode, project scope (reading R-1 of the
-//!   WP-S1.07 report). Star mode: the star source (the point with `star_source`; else the only `Source`
-//!   point; else the smallest ID) pairs with every other point. Chain mode: points ordered by
-//!   (sort key, page order, anchor row, anchor column, ID) pair as (1, 2), (3, 4), …. External points
-//!   never pair. A point without a partner is noted (EW-CORE-051).
+//!   WP-S1.07 report). Star mode: the star source (the point with `star_source`; else the lowest-ID
+//!   `Source` point, noted when there are two or more; else the smallest ID) pairs with every other
+//!   point. Chain mode: points ordered by (sort key, page order, anchor row, anchor column, ID) pair as
+//!   (1, 2), (3, 4), …. External points never pair. A point without a partner, a point without a CP, and
+//!   a point whose page lacks the node of a `function`/`location` scope (it joins the project-wide group)
+//!   are noted (EW-CORE-051).
 //! - **Shorts.** A FnDef link joins two instantiated CPs of the function when both indices exist. A
 //!   terminal function (contact kind `terminal`) whose FnDef declares no `PassThrough` link also joins all
 //!   its CPs of one level (doc 08 §6.2, "`Short` over all CPs of a level, shaft included"): a
 //!   template-origin terminal takes its CP indices from the part pattern (decision log ID-67, ID-108),
-//!   which the FnDef's link indices do not name.
-//! - **Duplicated pins** (doc 03 §9.3): two CPs of one function with the same printed designation are
-//!   one signal unless a declared pass-through pair links them; a black-box part pattern (the golden PSU
-//!   -102G1 with +#1/+#2 and −#1/−#2, the MICO with 24VDC#1/#2 and GND#1/#2) declares no links of its own.
-//! - **Rail bonding at MVP** (doc 08 §3.7): the rail-bonded terminals of one location join one virtual
-//!   location PE node, expressed as a chain of [`EdgeKind::RailBond`] edges over each terminal's
-//!   rail-foot CP (else its smallest CP in the graph), in CP order.
+//!   which the FnDef's link indices do not name. Levels stay separate. A terminal that declares a
+//!   pass-through (disconnect, fuse) joins the CPs of one level *and one side*; the pass-through pair links
+//!   the sides (review decision D3). CPs without a level, or without a side on such a terminal, join nothing.
+//! - **Duplicated pins** (doc 03 §9.3, review decision D2): on a black box or a part-pattern-origin function
+//!   (not a terminal), two CPs with the same printed designation and level are one pin, hence one signal,
+//!   unless a declared pass-through pair links them; a black-box part pattern (the golden PSU -102G1 with
+//!   +#1/+#2 and −#1/−#2, the MICO with 24VDC#1/#2 and GND#1/#2) declares no links of its own. Equal
+//!   designations of an FnDef-origin function or of a terminal (a double-deck terminal's a/b per level) are
+//!   separate points.
+//! - **Rail bonding at MVP** (doc 08 §3.7, review decision D5): the PE CPs of every rail-bonded terminal
+//!   of one location join one virtual location PE node, expressed as a chain of [`EdgeKind::RailBond`]
+//!   edges in CP order. A PE CP is a CP in the graph whose clamp is the rail foot or whose potential role
+//!   is `Pe` or `Pen`; there is no fallback to another CP. A rail-bonded terminal without a PE CP joins
+//!   nothing (EW-TERM-005); one without a location is skipped (EW-POT-008).
 //! - **Cores** join as connections (net level); there is no separate conductor edge. CI-05 makes two
 //!   connections on one conductor parts of one physical wire, which their IP pair joins already.
 //!
@@ -51,9 +60,10 @@ use ew_model::EndpointKey;
 use ew_rds::Aspect;
 use ew_schema::{
     Bond, ClampKey, Connection, ConnectionKind, ContactKind, Function, FunctionKind, InternalKind,
-    IpDirection, IpPairingMode, IpPairingScope, Page, Representation, StructureNode,
+    IpDirection, IpPairingMode, IpPairingScope, Page, PotentialType, Representation, Side, StructureNode,
 };
 
+use crate::cps::pattern_origin;
 use crate::nets::{CpRef, NetId, PageLocalNets, bond_vias, ends, ip_cp, joins_net};
 use crate::note::DeriveNote;
 use crate::query::{Policy, Query};
@@ -111,10 +121,10 @@ pub enum EdgeKind {
     },
     /// A `Bridge` connection.
     Bridge(Id<Connection>),
-    /// A rail bond through the location PE node of `location` (`None`: the terminal has no location).
+    /// A rail bond through the location PE node of `location` (terminals without a location never bond).
     RailBond {
         /// The location node.
-        location: Option<Id<StructureNode>>,
+        location: Id<StructureNode>,
     },
     /// A bond (non-joining, doc 08 §3.7).
     Bond(Id<Bond>),
@@ -238,6 +248,8 @@ pub struct StitchGraph {
     /// The notes of this derivation (also pushed to the `Q`).
     pub notes: Vec<DeriveNote>,
     node_of: BTreeMap<EndpointKey, usize>,
+    /// Every interruption point's pair partners, sorted and deduplicated, built once from `ip_groups`.
+    partners: BTreeMap<Id<Function>, Vec<Id<Function>>>,
 }
 
 impl StitchGraph {
@@ -246,27 +258,9 @@ impl StitchGraph {
         self.node_of.get(&at).copied()
     }
 
-    /// The pair partners of an interruption point, in ID order.
-    pub fn ip_partners(&self, ip: Id<Function>) -> Vec<Id<Function>> {
-        let Some(g) = self.ips.get(&ip).and_then(|i| i.group) else {
-            return Vec::new();
-        };
-        let mut out: Vec<Id<Function>> = self.ip_groups[g]
-            .pairs
-            .iter()
-            .filter_map(|&(a, b)| {
-                if a == ip {
-                    Some(b)
-                } else if b == ip {
-                    Some(a)
-                } else {
-                    None
-                }
-            })
-            .collect();
-        out.sort();
-        out.dedup();
-        out
+    /// The pair partners of an interruption point, in ID order (empty when it has none).
+    pub fn ip_partners(&self, ip: Id<Function>) -> &[Id<Function>] {
+        self.partners.get(&ip).map_or(&[], Vec::as_slice)
     }
 }
 
@@ -347,6 +341,17 @@ impl Query for StitchGraphQ {
         for n in &b.notes {
             q.note(n.clone());
         }
+        let mut partners: BTreeMap<Id<Function>, Vec<Id<Function>>> = BTreeMap::new();
+        for g in &b.groups {
+            for &(x, y) in &g.pairs {
+                partners.entry(x).or_default().push(y);
+                partners.entry(y).or_default().push(x);
+            }
+        }
+        for list in partners.values_mut() {
+            list.sort();
+            list.dedup();
+        }
         Arc::new(StitchGraph {
             nodes: b.nodes,
             edges: b.edges,
@@ -355,6 +360,7 @@ impl Query for StitchGraphQ {
             cut: b.cut,
             notes: b.notes,
             node_of: b.node_of,
+            partners,
         })
     }
 }
@@ -398,6 +404,36 @@ impl Builder {
             a,
             b,
         });
+    }
+
+    /// Shorts the CPs `idxs` of `function` (all in the graph) in index order, skipping a pair that a
+    /// pass-through pair of the FnDef links.
+    fn chain(
+        &mut self,
+        function: Id<Function>,
+        idxs: &[u16],
+        passes: &BTreeSet<(u16, u16)>,
+        source: ShortSource,
+    ) {
+        for w in idxs.windows(2) {
+            if passes.contains(&(w[0].min(w[1]), w[0].max(w[1]))) {
+                continue;
+            }
+            let (na, nb) = (
+                self.node_of[&EndpointKey::Cp(function, w[0])],
+                self.node_of[&EndpointKey::Cp(function, w[1])],
+            );
+            self.edge(
+                EdgeKind::Short {
+                    function,
+                    a: w[0],
+                    b: w[1],
+                    source,
+                },
+                na,
+                nb,
+            );
+        }
     }
 
     fn note(&mut self, code: &'static str, subject: String, detail: impl Into<String>) {
@@ -456,8 +492,25 @@ fn pair_ips(q: &Q, b: &mut Builder) {
             page,
             group: None,
         };
+        if !info.external && cp.is_none() {
+            b.note(
+                "EW-CORE-051",
+                format!("interruption point {} ({fid})", info.name),
+                "the interruption point has no connection point; it pairs with nothing",
+            );
+        }
         if !info.external && cp.is_some() {
             let scope = scope_aspect.and_then(|a| page.and_then(|p| q.get::<PageStructure>(p).node(a)));
+            if let (Some(aspect), None) = (scope_aspect, scope) {
+                b.note(
+                    "EW-CORE-051",
+                    format!("interruption point {} ({fid})", info.name),
+                    format!(
+                        "ip_pairing scope is {aspect:?} but the page has no such structure node; \
+                         paired in the project-wide group"
+                    ),
+                );
+            }
             groups.entry((info.name.clone(), scope)).or_default().push(fid);
             let pos = page
                 .and_then(|p| order.position(PageRef::Drawn(p)))
@@ -497,10 +550,20 @@ fn pair_ips(q: &Q, b: &mut Builder) {
                         format!("{} star sources; the smallest ID is the source", flagged.len()),
                     );
                 }
+                if flagged.is_empty() && sources.len() >= 2 {
+                    b.note(
+                        "EW-CORE-051",
+                        format!("interruption point {name}"),
+                        format!(
+                            "{} source points and no star_source; the lowest ID source is the star source",
+                            sources.len()
+                        ),
+                    );
+                }
                 let source = flagged
                     .first()
                     .copied()
-                    .or_else(|| (sources.len() == 1).then(|| sources[0]))
+                    .or_else(|| sources.first().copied())
                     .unwrap_or(members[0]);
                 g.source = Some(source);
                 for &m in &members {
@@ -600,99 +663,94 @@ fn functions_links(q: &Q, b: &mut Builder) {
             );
             b.edge(kind, na, nb);
         }
-        // Duplicated device pins: equal designations, chained in index order, unless a pass-through pair
-        // of the FnDef links the two (-101F1:N#1/N#2 is a pole, not a duplicate).
-        let mut by_designation: BTreeMap<&str, Vec<u16>> = BTreeMap::new();
-        for c in cps.iter().filter(|c| present.contains(&c.idx)) {
-            by_designation
-                .entry(c.designation.as_str())
-                .or_default()
-                .push(c.idx);
-        }
-        for idxs in by_designation.values() {
-            for w in idxs.windows(2) {
-                if passes.contains(&(w[0].min(w[1]), w[0].max(w[1]))) {
-                    continue;
-                }
-                let (na, nb) = (
-                    b.node_of[&EndpointKey::Cp(fid, w[0])],
-                    b.node_of[&EndpointKey::Cp(fid, w[1])],
-                );
-                b.edge(
-                    EdgeKind::Short {
-                        function: fid,
-                        a: w[0],
-                        b: w[1],
-                        source: ShortSource::DuplicatePin,
-                    },
-                    na,
-                    nb,
-                );
+        let terminal = def.item.contact_kind == ContactKind::Terminal
+            || f.device
+                .and_then(|d| q.devices().get(d))
+                .is_some_and(|d| d.aspects.terminal.is_some());
+        // Duplicated device pins (review decision D2): only a black box or a part-pattern-origin function,
+        // whose equal designations are the same pin, and never a terminal. Equal designations of one level
+        // chain in index order, unless a pass-through pair of the FnDef links the two.
+        if !terminal && pattern_origin(q, f) {
+            let mut by_designation: BTreeMap<(&str, Option<u8>), Vec<u16>> = BTreeMap::new();
+            for c in cps.iter().filter(|c| present.contains(&c.idx)) {
+                by_designation
+                    .entry((c.designation.as_str(), c.level))
+                    .or_default()
+                    .push(c.idx);
+            }
+            for idxs in by_designation.values() {
+                b.chain(fid, idxs, &passes, ShortSource::DuplicatePin);
             }
         }
-        if def.item.contact_kind == ContactKind::Terminal && !has_pass_through {
-            let mut by_level: BTreeMap<u8, Vec<u16>> = BTreeMap::new();
-            for c in cps.iter() {
-                if let Some(level) = c.level
-                    && present.contains(&c.idx)
-                {
-                    by_level.entry(level).or_default().push(c.idx);
-                }
+        // The terminal level rule (doc 08 §6.2): without a declared pass-through, the CPs of one level are one
+        // signal. With one (disconnect and fuse terminals, review decision D3), the CPs of one level and one
+        // side are; the pass-through pair links the sides. Levels stay separate.
+        if def.item.contact_kind == ContactKind::Terminal {
+            let mut groups: BTreeMap<(u8, u8), Vec<u16>> = BTreeMap::new();
+            for c in cps.iter().filter(|c| present.contains(&c.idx)) {
+                let Some(level) = c.level else { continue };
+                let side = match (&c.side, has_pass_through) {
+                    (_, false) => 0,
+                    (Some(Side::Side1), true) => 1,
+                    (Some(Side::Side2), true) => 2,
+                    // No side, or one of a newer format: no same-side short.
+                    _ => continue,
+                };
+                groups.entry((level, side)).or_default().push(c.idx);
             }
-            for (level, idxs) in by_level {
-                for w in idxs.windows(2) {
-                    let (na, nb) = (
-                        b.node_of[&EndpointKey::Cp(fid, w[0])],
-                        b.node_of[&EndpointKey::Cp(fid, w[1])],
-                    );
-                    b.edge(
-                        EdgeKind::Short {
-                            function: fid,
-                            a: w[0],
-                            b: w[1],
-                            source: ShortSource::TerminalLevel(level),
-                        },
-                        na,
-                        nb,
-                    );
-                }
+            for ((level, _), idxs) in &groups {
+                b.chain(fid, idxs, &passes, ShortSource::TerminalLevel(*level));
             }
         }
     }
 }
 
 fn rail_bonds(q: &Q, b: &mut Builder) {
-    let mut by_location: BTreeMap<Option<Id<StructureNode>>, Vec<CpRef>> = BTreeMap::new();
+    let mut by_location: BTreeMap<Id<StructureNode>, Vec<CpRef>> = BTreeMap::new();
     for (dev, d) in q.devices().iter() {
         let Some(t) = &d.aspects.terminal else { continue };
         if !t.rail_bonded {
             continue;
         }
-        let mut rail = None;
-        let mut first = None;
+        // Review decision D5: only the PE CPs of the terminal join the location PE node.
+        // A terminal with a PE CP that is not connected joins nothing, without a note.
+        let mut pe: Vec<CpRef> = Vec::new();
+        let mut has_pe = false;
         for f in q.idx().functions_of_device(dev) {
             for c in q.get::<FunctionCps>(f).iter() {
                 let cp = CpRef::new(f, c.idx);
-                if !b.node_of.contains_key(&cp.key()) {
-                    continue;
-                }
-                if c.clamp == Some(ClampKey::RailFoot) && rail.is_none() {
-                    rail = Some(cp);
-                }
-                if first.is_none() {
-                    first = Some(cp);
+                let is_pe = c.clamp == Some(ClampKey::RailFoot)
+                    || matches!(c.potential_role, Some(PotentialType::Pe | PotentialType::Pen));
+                has_pe |= is_pe;
+                if is_pe && b.node_of.contains_key(&cp.key()) {
+                    pe.push(cp);
                 }
             }
         }
-        let Some(cp) = rail.or(first) else { continue };
         let location = match q.try_get::<StructureOf>(dev) {
             Ok(s) => s.node(Aspect::Location),
             Err(cycle) => {
+                // The cycle is noted; the terminal has no resolvable location.
                 q.note_cycle(cycle);
-                None
+                continue;
             }
         };
-        by_location.entry(location).or_default().push(cp);
+        if !has_pe {
+            b.note(
+                "EW-TERM-005",
+                dev.to_string(),
+                "rail_bonded is set but the terminal has no PE CP; it joins no location PE node",
+            );
+        }
+        let Some(location) = location else {
+            b.note(
+                "EW-POT-008",
+                dev.to_string(),
+                "the rail-bonded terminal has no location; it joins no location PE node",
+            );
+            continue;
+        };
+        by_location.entry(location).or_default().extend(pe);
     }
     for (location, mut cps) in by_location {
         cps.sort();

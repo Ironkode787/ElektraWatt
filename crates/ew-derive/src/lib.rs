@@ -111,6 +111,9 @@ pub use wires::{EndKind, PhysicalWire, PhysicalWires, PhysicalWiresOf, WireEnd};
 // WP-S3.03: the report-pages provider hook of `page_order` and the drawn-page order.
 pub use pages::{DrawnPageOrder, ReportPagesProvider};
 
+// Cycle-7 review: the constituent behind each level-7 wire value.
+pub use wires::OverrideSources;
+
 /// The revision stamp of a snapshot (in this crate's public API through [`Tracker`]).
 pub use ew_model::Rev;
 

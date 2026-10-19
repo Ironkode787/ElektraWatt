@@ -13,14 +13,18 @@
 //! - **Identity** (doc 08 §3.4): [`PotentialId::Def`] with the minimum definition ID when the potential has
 //!   definitions, else [`PotentialId::Cp`] with the minimum member CP ID.
 //! - **Name** (doc 08 §3.5): the first definition's name in ID order (another name is noted as
-//!   EW-POT-017); else the first source interruption point in page order (page position, anchor row,
-//!   anchor column, ID); else `<tag>:<designation>` of the first member CP in that order.
+//!   EW-POT-017); else the first non-external source interruption point in page order (page position,
+//!   anchor row, anchor column, ID); else the first external source interruption point in that order
+//!   (review decision D6); else `<tag>:<designation>` of the first member CP in that order.
 //! - **Aliases**: every other distinct IP name on the potential, external points included, in natural
 //!   order. Points on a bond's `via` path (doc 03 §9.6) are named on the bond, not on the potential.
 //! - **Own attributes** (doc 03 §9.4): type, voltage, environment and class from the first definition in
 //!   ID order that sets each; the type else from the member CPs' `potential_role` (the first in CP order;
-//!   a second distinct role is noted as EW-POT-001). Propagation over pass-through pairs and `switched`
-//!   belong to [`potential_flow`](crate::PotentialFlow).
+//!   a second distinct role is noted as EW-POT-001). Nothing merges silently (doc 08 §3.6): every later
+//!   definition whose voltage, circuit class or (non-empty, compared as a whole) environment differs from
+//!   the winning one, and every member CP role that contradicts a defined type (FE on PE or PEN, PE or N on
+//!   PEN are compatible, doc 08 §3.7), is noted as EW-POT-001; the first definition's value applies.
+//!   Propagation over pass-through pairs and `switched` belong to [`potential_flow`](crate::PotentialFlow).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -380,14 +384,17 @@ impl Query for PotentialPartition {
                     text: first.name.as_str().to_owned(),
                     source: NameSource::Def(*d0),
                 }
-            } else if let Some(ip) = ips
-                .iter()
-                .filter(|f| {
-                    let i = &g.ips[*f];
-                    i.direction == IpDirection::Source && !i.external && !on_bond_path.contains(f)
-                })
-                .min_by_key(|f| ip_order.key(**f))
-            {
+            } else if let Some(ip) = [false, true].into_iter().find_map(|external| {
+                // Non-external source points name first; external ones (D6) only when none does.
+                ips.iter()
+                    .filter(|f| {
+                        let i = &g.ips[*f];
+                        i.direction == IpDirection::Source
+                            && i.external == external
+                            && !on_bond_path.contains(f)
+                    })
+                    .min_by_key(|f| ip_order.key(**f))
+            }) {
                 PotentialName {
                     text: g.ips[ip].name.clone(),
                     source: NameSource::SourceIp(*ip),
@@ -417,6 +424,9 @@ impl Query for PotentialPartition {
                     }
                 }
             }
+            if let Some(t) = &ptype {
+                role_conflicts(q, &cps, &is_ip, &name.text, &t.value, &mut notes);
+            }
             let ptype = ptype.or_else(|| role_type(q, &cps, &is_ip, &name.text, &mut notes));
             let voltage = def_rows.iter().find_map(|(d, r)| {
                 r.voltage.map(|v| Attr {
@@ -424,18 +434,64 @@ impl Query for PotentialPartition {
                     source: AttrSource::Def(*d),
                 })
             });
+            if let Some(w) = &voltage {
+                for (d, r) in &def_rows {
+                    if let Some(other) = r.voltage
+                        && other != w.value
+                    {
+                        notes.push(DeriveNote::Connectivity {
+                            code: "EW-POT-001",
+                            subject: format!("potential {}", name.text),
+                            detail: format!(
+                                "definition {d} sets voltage {other}; {} applies (first definition in ID order)",
+                                w.value
+                            ),
+                        });
+                    }
+                }
+            }
             let env = def_rows.iter().find_map(|(d, r)| {
                 (!r.env.is_empty()).then(|| Attr {
                     value: r.env.clone(),
                     source: AttrSource::Def(*d),
                 })
             });
+            if let Some(w) = &env {
+                for (d, r) in &def_rows {
+                    if !r.env.is_empty() && r.env != w.value {
+                        notes.push(DeriveNote::Connectivity {
+                            code: "EW-POT-001",
+                            subject: format!("potential {}", name.text),
+                            detail: format!(
+                                "definition {d} sets environment {:?}; {:?} applies (first definition in ID order)",
+                                r.env, w.value
+                            ),
+                        });
+                    }
+                }
+            }
             let circuit_class = def_rows.iter().find_map(|(d, r)| {
                 r.circuit_class.clone().map(|v| Attr {
                     value: v,
                     source: AttrSource::Def(*d),
                 })
             });
+            if let Some(w) = &circuit_class {
+                for (d, r) in &def_rows {
+                    if let Some(other) = &r.circuit_class
+                        && *other != w.value
+                    {
+                        notes.push(DeriveNote::Connectivity {
+                            code: "EW-POT-001",
+                            subject: format!("potential {}", name.text),
+                            detail: format!(
+                                "definition {d} sets circuit class {other:?}; {:?} applies (first definition in ID order)",
+                                w.value
+                            ),
+                        });
+                    }
+                }
+            }
             let mut sigs: Vec<NetId> = nodes.iter().filter_map(|&i| signal_of_node[i]).collect();
             sigs.sort();
             sigs.dedup();
@@ -577,6 +633,54 @@ fn fallback_name(q: &Q, _ip: &IpOrder, cps: &[CpRef], is_ip: &dyn Fn(Id<Function
     }
 }
 
+/// The roles of the member CPs that are not interruption points and declare one, in CP order.
+fn member_roles<'a>(
+    q: &'a Q,
+    cps: &'a [CpRef],
+    is_ip: &'a dyn Fn(Id<Function>) -> bool,
+) -> impl Iterator<Item = (CpRef, PotentialType)> + 'a {
+    cps.iter()
+        .filter(move |cp| !is_ip(cp.function))
+        .filter_map(move |cp| {
+            let fcps = q.get::<FunctionCps>(cp.function);
+            fcps.iter()
+                .find(|c| c.idx == cp.idx)
+                .and_then(|c| c.potential_role.clone())
+                .map(|role| (*cp, role))
+        })
+}
+
+/// Whether a member CP `role` is compatible with the type `defined` by a definition (doc 08 §3.7): equal
+/// values, an FE role on a PE or PEN potential (a separate check, EW-POT-003), and a PE or N role on a PEN
+/// potential.
+fn role_compatible(defined: &PotentialType, role: &PotentialType) -> bool {
+    use PotentialType::{Fe, N, Pe, Pen};
+    defined == role || matches!((defined, role), (Pe | Pen, Fe) | (Pen, Pe | N))
+}
+
+/// Notes every member CP whose role contradicts the type `defined` by a definition (doc 08 §3.6).
+fn role_conflicts(
+    q: &Q,
+    cps: &[CpRef],
+    is_ip: &dyn Fn(Id<Function>) -> bool,
+    name: &str,
+    defined: &PotentialType,
+    notes: &mut Vec<DeriveNote>,
+) {
+    for (cp, role) in member_roles(q, cps, is_ip) {
+        if !role_compatible(defined, &role) {
+            notes.push(DeriveNote::Connectivity {
+                code: "EW-POT-001",
+                subject: format!("potential {name}"),
+                detail: format!(
+                    "member CP {}:{} has role {role:?}; the defined type {defined:?} applies",
+                    cp.function, cp.idx
+                ),
+            });
+        }
+    }
+}
+
 /// The type from member CP roles: the first role in CP order; another distinct role is noted.
 fn role_type(
     q: &Q,
@@ -587,20 +691,12 @@ fn role_type(
 ) -> Option<Attr<PotentialType>> {
     let mut found: Option<Attr<PotentialType>> = None;
     let mut others: BTreeSet<String> = BTreeSet::new();
-    for cp in cps.iter().filter(|cp| !is_ip(cp.function)) {
-        let fcps = q.get::<FunctionCps>(cp.function);
-        let Some(role) = fcps
-            .iter()
-            .find(|c| c.idx == cp.idx)
-            .and_then(|c| c.potential_role.clone())
-        else {
-            continue;
-        };
+    for (cp, role) in member_roles(q, cps, is_ip) {
         match &found {
             None => {
                 found = Some(Attr {
                     value: role,
-                    source: AttrSource::Role(*cp),
+                    source: AttrSource::Role(cp),
                 });
             }
             Some(f) if f.value != role => {
@@ -644,7 +740,7 @@ fn via_path_ips(q: &Q, g: &StitchGraph, via: Id<Connection>) -> Vec<Id<Function>
         if !g.ips.contains_key(&cp.function) || !seen.insert(cp.function) {
             continue;
         }
-        for partner in g.ip_partners(cp.function) {
+        for &partner in g.ip_partners(cp.function) {
             if !seen.insert(partner) {
                 continue;
             }

@@ -94,6 +94,7 @@ pub enum DeriveNote {
     /// A connectivity problem met while deriving nets, potentials, physical wires or wire properties
     /// (doc 08 §3, §8.1): an unpaired interruption point, conflicting potential definitions, an ambiguous
     /// junction feed, a ring, a missing colour or size profile. The derivation chose a documented fallback.
+    /// Severity: `Error` for `EW-POT-001`, `EW-POT-014` and `EW-CORE-051`, `Warning` otherwise.
     Connectivity {
         /// The finding code of the catalogue (doc 08 §8.1, doc 06 §6), such as `"EW-POT-017"`.
         code: &'static str,
@@ -118,13 +119,20 @@ impl DeriveNote {
         }
     }
 
-    /// The severity.
+    /// The severity. A [`Connectivity`](DeriveNote::Connectivity) note is an `Error` for the codes whose
+    /// fallback may change the printed output or the electrical meaning (`EW-POT-001`, `EW-POT-014`,
+    /// `EW-CORE-051`) and a `Warning` for every other code.
     pub fn severity(&self) -> NoteSeverity {
         match self {
             DeriveNote::UnknownProfile { .. } | DeriveNote::QueryCycle { .. } => NoteSeverity::Error,
-            DeriveNote::SchemeNotApplied { .. }
-            | DeriveNote::MalformedShim { .. }
-            | DeriveNote::Connectivity { .. } => NoteSeverity::Warning,
+            DeriveNote::Connectivity { code, .. } => {
+                if matches!(*code, "EW-POT-001" | "EW-POT-014" | "EW-CORE-051") {
+                    NoteSeverity::Error
+                } else {
+                    NoteSeverity::Warning
+                }
+            }
+            DeriveNote::SchemeNotApplied { .. } | DeriveNote::MalformedShim { .. } => NoteSeverity::Warning,
             DeriveNote::DefaultFrame | DeriveNote::DefaultWireProfile { .. } => NoteSeverity::Info,
         }
     }
@@ -170,5 +178,26 @@ impl fmt::Display for DeriveNote {
                 detail,
             } => write!(f, "{code} {subject}: {detail}"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn connectivity(code: &'static str) -> DeriveNote {
+        DeriveNote::Connectivity {
+            code,
+            subject: "x".into(),
+            detail: "y".into(),
+        }
+    }
+
+    #[test]
+    fn connectivity_error_codes_are_errors() {
+        for code in ["EW-POT-001", "EW-POT-014", "EW-CORE-051"] {
+            assert_eq!(connectivity(code).severity(), NoteSeverity::Error, "{code}");
+        }
+        assert_eq!(connectivity("EW-POT-017").severity(), NoteSeverity::Warning);
     }
 }

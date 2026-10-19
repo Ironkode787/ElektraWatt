@@ -36,7 +36,7 @@ use crate::potentials::{Partition, PotentialId, PotentialPartition};
 use crate::query::{Policy, Query};
 use crate::stitch::{StitchGraph, StitchGraphQ};
 use crate::wire_profile::{
-    Attrs, WireProfiles, builtin_class, builtin_colour, builtin_csa, load as load_profiles,
+    Attrs, WireProfiles, builtin_class, builtin_colour_for, builtin_csa, load as load_profiles,
 };
 use crate::wires::{EndKind, PhysicalWire, PhysicalWiresOf, WireEnd};
 use crate::{FunctionCps, PotentialFlow, Q};
@@ -55,7 +55,8 @@ pub enum SizeRule {
 /// Where an effective value comes from (D-08).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum PropSource {
-    /// Level 7: the override on this constituent connection.
+    /// Level 7: the override on this constituent connection (the one that carries the value, which need not
+    /// be the wire's carrier: a shared star feed arm, the other leg of an interruption-point pair).
     Override(Id<Connection>),
     /// Level 6: the conductor of a core.
     Conductor(Id<Conductor>),
@@ -432,17 +433,18 @@ impl Ctx<'_> {
         // The potentials levels 3 and 2 read: the key potential, or both of a bond wire.
         let pots: Vec<PotentialId> = if bond { wire.potentials.clone() } else { vec![key] };
 
-        // Level 7: the merged overrides.
+        // Level 7: the merged overrides, each naming the constituent that carries it.
         let o = &wire.overrides;
-        let src7 = || PropSource::Override(wire.id);
+        let s = &wire.override_sources;
+        let src7 = |from: Option<Id<Connection>>| move || PropSource::Override(from.unwrap_or(wire.id));
         let l7 = Level {
-            csa: set(&o.csa, src7),
-            colour: set(&o.colour, src7),
-            wire_part: set(&o.wire_part, src7),
-            insulation: set(&o.insulation, src7),
-            function: set(&o.function, src7),
-            shielded: flag(o.flags.shielded, src7),
-            twisted: flag(o.flags.twisted, src7),
+            csa: set(&o.csa, src7(s.csa)),
+            colour: set(&o.colour, src7(s.colour)),
+            wire_part: set(&o.wire_part, src7(s.wire_part)),
+            insulation: set(&o.insulation, src7(s.insulation)),
+            function: set(&o.function, src7(s.function)),
+            shielded: flag(o.flags.shielded, src7(s.shielded)),
+            twisted: flag(o.flags.twisted, src7(s.twisted)),
         };
 
         // Level 6: the conductor of a core.
@@ -525,7 +527,7 @@ impl Ctx<'_> {
             profile: self.version.clone(),
         };
         let csa0 = Some(Prov::new(builtin_csa(&class), built_in()));
-        let colour0 = Some(Prov::new(builtin_colour(&colour_attrs), built_in()));
+        let colour0 = Some(Prov::new(builtin_colour_for(&colour_attrs, &class), built_in()));
 
         EffectiveProps {
             csa: pick([l7.csa, l6_csa, l3.csa, csa2, l1.csa, csa0]),

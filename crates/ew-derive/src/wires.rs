@@ -81,8 +81,34 @@ pub struct PhysicalWire {
     /// The level-7 values (CDP): the carrier's overrides, members the carrier leaves unset taken from
     /// the other constituents in constituent order.
     pub overrides: WireOverrides,
+    /// For each level-7 value of `overrides`, the constituent connection it comes from.
+    pub override_sources: OverrideSources,
     /// Whether a constituent asks for a wire marker (`overrides.show_marker`).
     pub marker: bool,
+}
+
+/// The constituent connection that supplies each level-7 value of a [`PhysicalWire`] (`None`: unset): the
+/// carrier for the values it sets, else the first other constituent, in constituent order, that sets it
+/// (a shared star feed arm, the other leg of an interruption-point pair). The provenance
+/// `PropSource::Override` names this connection.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
+pub struct OverrideSources {
+    /// Cross-section.
+    pub csa: Option<Id<Connection>>,
+    /// Colour.
+    pub colour: Option<Id<Connection>>,
+    /// Wire part.
+    pub wire_part: Option<Id<Connection>>,
+    /// Insulation type.
+    pub insulation: Option<Id<Connection>>,
+    /// Wire function.
+    pub function: Option<Id<Connection>>,
+    /// Length.
+    pub length: Option<Id<Connection>>,
+    /// The shielded flag (the first constituent that sets it).
+    pub shielded: Option<Id<Connection>>,
+    /// The twisted flag (the first constituent that sets it).
+    pub twisted: Option<Id<Connection>>,
 }
 
 /// The value of [`PhysicalWiresOf`].
@@ -147,7 +173,7 @@ impl Query for PhysicalWiresOf {
                 edges.insert(id, (a, b));
             }
         }
-        let mut pairs: BTreeMap<CpRef, Vec<CpRef>> = BTreeMap::new();
+        let mut pair_set: BTreeMap<CpRef, BTreeSet<CpRef>> = BTreeMap::new();
         for n in &scope {
             let Some(cp) = CpRef::of(*n) else { continue };
             let Some(info) = graph.ips.get(&cp.function) else {
@@ -157,17 +183,18 @@ impl Query for PhysicalWiresOf {
                 continue;
             }
             for partner in graph.ip_partners(cp.function) {
-                let Some(pcp) = graph.ips.get(&partner).and_then(|i| i.cp) else {
+                let Some(pcp) = graph.ips.get(partner).and_then(|i| i.cp) else {
                     continue;
                 };
                 if pcp != cp && scope.contains(&pcp.key()) {
-                    let v = pairs.entry(cp).or_default();
-                    if !v.contains(&pcp) {
-                        v.push(pcp);
-                    }
+                    pair_set.entry(cp).or_default().insert(pcp);
                 }
             }
         }
+        let pairs: BTreeMap<CpRef, Vec<CpRef>> = pair_set
+            .into_iter()
+            .map(|(cp, set)| (cp, set.into_iter().collect()))
+            .collect();
 
         // 9. Rings. The connections are applied in ascending ID order, so a connection that closes a cycle
         // (pair links count as edges) is the highest ID of that cycle. It forms no wire.
@@ -215,7 +242,7 @@ impl Query for PhysicalWiresOf {
             hub_of_junction: BTreeMap::new(),
             hubs: Vec::new(),
         };
-        let specs = drawing.hub_specs(q, &scope);
+        let specs = drawing.hub_specs(q, &scope, &mut notes);
         drawing.build_hubs(specs);
 
         // 6.-7. Resolve the hub trees.
@@ -473,8 +500,9 @@ impl Drawing<'_> {
         })
     }
 
-    /// The carrier of a path (doc 08 §3.8): the end constituent next to a Target IP; if both or neither are,
-    /// the end constituent with the smaller ID; a one-connection path is its own carrier.
+    /// The carrier of a hub-free path (doc 08 §3.8): the end constituent next to a Target IP; if both or
+    /// neither are, the end constituent with the smaller ID; a one-connection path is its own carrier. (A
+    /// wire resolved at a hub is carried by its arm's connection that touches the end CP instead.)
     fn carrier(&self, conns: &[Id<Connection>]) -> Option<Id<Connection>> {
         let (first, last) = (*conns.first()?, *conns.last()?);
         if first == last {
@@ -488,8 +516,14 @@ impl Drawing<'_> {
     }
 
     /// The junction hubs of the scope (arms: the sequence, then connections missing from it in ID order)
-    /// and the star IP hubs.
-    fn hub_specs(&mut self, q: &Q, scope: &BTreeSet<EndpointKey>) -> Vec<HubSpec> {
+    /// and the star IP hubs. A star group of more than two members in scope whose source has no single
+    /// drawn connection is no hub (its wires end open) and is noted (EW-POT-011).
+    fn hub_specs(
+        &mut self,
+        q: &Q,
+        scope: &BTreeSet<EndpointKey>,
+        notes: &mut BTreeSet<DeriveNote>,
+    ) -> Vec<HubSpec> {
         let mut specs: Vec<HubSpec> = Vec::new();
         let junctions = q.junctions();
         for n in scope {
@@ -541,7 +575,7 @@ impl Drawing<'_> {
             }
             let mut members = vec![scp];
             for p in self.graph.ip_partners(source) {
-                if let Some(pcp) = self.graph.ips.get(&p).and_then(|i| i.cp)
+                if let Some(pcp) = self.graph.ips.get(p).and_then(|i| i.cp)
                     && pcp != scp
                     && scope.contains(&pcp.key())
                 {
@@ -553,6 +587,16 @@ impl Drawing<'_> {
             }
             // The feed arm is the one drawn connection of the source; otherwise the group is no hub.
             let [feed] = self.drawn_at(scp.key()) else {
+                notes.insert(DeriveNote::Connectivity {
+                    code: "EW-POT-011",
+                    subject: source.to_string(),
+                    detail: format!(
+                        "the star source of interruption point group {} has {} drawn connections (one \
+                         expected); the group is no hub and its wires end open",
+                        group.name,
+                        self.drawn_at(scp.key()).len()
+                    ),
+                });
                 continue;
             };
             let mut starts = vec![(scp.key(), *feed)];
@@ -795,7 +839,10 @@ impl Drawing<'_> {
             let mut push: Option<Frame> = None;
             match arm.reached {
                 Reached::End(c, kind) => {
-                    if let Some(carrier) = self.carrier(&arm.path.conns) {
+                    // Doc 08 §3.8: "carrier = connection of a that touches c". The arm is walked from the
+                    // hub, so its last connection is the one that touches the end CP `c`; the IP directions
+                    // play no part on a hub arm (review decision D1).
+                    if let Some(&carrier) = arm.path.conns.last() {
                         let mut full = base.path.clone();
                         full.append(&arm.path);
                         out.push(RawWire {
@@ -924,21 +971,41 @@ impl FinishCtx<'_> {
 
         // Level-7 values: the carrier's, members it leaves unset from the other constituents in order.
         let mut overrides: WireOverrides = carrier_row.overrides.clone();
+        let carrier_sets = |on: bool| on.then_some(carrier);
+        let mut sources = OverrideSources {
+            csa: carrier_sets(overrides.csa.is_some()),
+            colour: carrier_sets(overrides.colour.is_some()),
+            wire_part: carrier_sets(overrides.wire_part.is_some()),
+            insulation: carrier_sets(overrides.insulation.is_some()),
+            function: carrier_sets(overrides.function.is_some()),
+            length: carrier_sets(overrides.length.is_some()),
+            shielded: carrier_sets(overrides.flags.shielded),
+            twisted: carrier_sets(overrides.flags.twisted),
+        };
         let mut conflict: Option<Id<Connection>> = None;
         for (id, c) in rows.iter().filter(|(id, _)| *id != carrier) {
             let o = &c.overrides;
             macro_rules! merge {
                 ($($f:ident),*) => {$(
                     match (&overrides.$f, &o.$f) {
-                        (None, Some(v)) => overrides.$f = Some(v.clone()),
+                        (None, Some(v)) => {
+                            overrides.$f = Some(v.clone());
+                            sources.$f = Some(*id);
+                        }
                         (Some(cur), Some(v)) if cur != v => conflict = conflict.or(Some(*id)),
                         _ => {}
                     }
                 )*};
             }
             merge!(csa, colour, wire_part, insulation, function, length);
-            overrides.flags.shielded |= o.flags.shielded;
-            overrides.flags.twisted |= o.flags.twisted;
+            if o.flags.shielded && !overrides.flags.shielded {
+                overrides.flags.shielded = true;
+                sources.shielded = Some(*id);
+            }
+            if o.flags.twisted && !overrides.flags.twisted {
+                overrides.flags.twisted = true;
+                sources.twisted = Some(*id);
+            }
         }
         if let Some(id) = conflict {
             note14(
@@ -978,6 +1045,7 @@ impl FinishCtx<'_> {
             potentials,
             pages,
             overrides,
+            override_sources: sources,
             marker,
         })
     }

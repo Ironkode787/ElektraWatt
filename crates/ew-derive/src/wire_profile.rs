@@ -18,6 +18,14 @@
 //!   this phase, so a selector that constrains one never matches.
 //! - Colour rows: the row with the most constrained fields wins, ties go to the first row. Class rules: the
 //!   first match wins.
+//! - Two colour rows of equal specificity whose selectors can match a common potential (`overlaps`: the
+//!   `ptype` lists intersect or either is empty, `ac_dc` equal or either absent, the voltage intervals
+//!   intersect, `discipline` and `analogue` equal or either absent) and that give different colours are
+//!   ambiguous: `load` notes a [`DeriveNote::MalformedShim`] for `settings.colour_profile` naming the two
+//!   row indexes. The profile stays loaded and `select` keeps the first-row tie rule, so the output is
+//!   deterministic but no longer silent.
+//! - The built-in colour depends on the circuit class: an L-family potential of an AC control circuit is RD
+//!   (doc 08 §4.3, EN 60204-1 column), see `builtin_colour_for`.
 
 use ew_schema::{
     AcDc, CircuitClass, ColourCode, ColourSpec, Csa, IecColour, PotentialType, Project, WireProps,
@@ -67,6 +75,31 @@ impl Select {
             + usize::from(self.u_max.is_some())
             + usize::from(self.discipline.is_some())
             + usize::from(self.analogue.is_some())
+    }
+
+    /// Whether some potential can match both selectors (conservative: true when unsure).
+    fn overlaps(&self, other: &Select) -> bool {
+        let ptype = self.ptype.is_empty()
+            || other.ptype.is_empty()
+            || self.ptype.iter().any(|t| other.ptype.contains(t));
+        let ac_dc = self.ac_dc.is_none() || other.ac_dc.is_none() || self.ac_dc == other.ac_dc;
+        // Inclusive intervals, `None` unbounded: they intersect when max(lo) <= min(hi).
+        let lo = match (self.u_min, other.u_min) {
+            (Some(a), Some(b)) => Some(a.max(b)),
+            (a, b) => a.or(b),
+        };
+        let hi = match (self.u_max, other.u_max) {
+            (Some(a), Some(b)) => Some(a.min(b)),
+            (a, b) => a.or(b),
+        };
+        let voltage = match (lo, hi) {
+            (Some(lo), Some(hi)) => lo <= hi,
+            _ => true,
+        };
+        let discipline =
+            self.discipline.is_none() || other.discipline.is_none() || self.discipline == other.discipline;
+        let analogue = self.analogue.is_none() || other.analogue.is_none() || self.analogue == other.analogue;
+        ptype && ac_dc && voltage && discipline && analogue
     }
 
     fn matches(&self, a: &Attrs) -> bool {
@@ -220,6 +253,24 @@ fn read<T: DeserializeOwned>(project: &Project, name: &str, notes: &mut Vec<Deri
 pub(crate) fn load(project: &Project) -> WireProfiles {
     let mut notes = Vec::new();
     let colour = read::<ColourProfileRaw>(project, "colour_profile", &mut notes).map(ColourProfile);
+    if let Some(profile) = &colour {
+        let rows = &profile.0.rows;
+        for (i, ri) in rows.iter().enumerate() {
+            for (j, rj) in rows.iter().enumerate().skip(i + 1) {
+                if ri.select.specificity() == rj.select.specificity()
+                    && ri.colour != rj.colour
+                    && ri.select.overlaps(&rj.select)
+                {
+                    notes.push(DeriveNote::MalformedShim {
+                        member: "settings.colour_profile".into(),
+                        detail: format!(
+                            "rows {i} and {j} have the same specificity, overlap and give different colours"
+                        ),
+                    });
+                }
+            }
+        }
+    }
     let size = read::<SizeProfileRaw>(project, "size_profile", &mut notes).map(SizeProfile);
     let default = read::<WireProps>(project, "wire_default", &mut notes).unwrap_or_default();
     if colour.is_none() && !project.settings.extra.contains_key("colour_profile") {
@@ -259,8 +310,18 @@ pub(crate) fn builtin_class(a: &Attrs) -> CircuitClass {
     }
 }
 
-/// The built-in colour by potential type (the EN 60204-1 13.2 column of doc 08 §4.3).
+/// The built-in colour by potential type with the class of the built-in rules (`builtin_class`); see
+/// [`builtin_colour_for`], which this wraps.
+#[cfg(test)]
 pub(crate) fn builtin_colour(a: &Attrs) -> ColourSpec {
+    builtin_colour_for(a, &builtin_class(a))
+}
+
+/// The built-in colour by potential type and circuit class (the EN 60204-1 13.2 column of doc 08 §4.3):
+/// N, L+, L- and M are BU, PE and PEN are GN/YE, FE is PK, a signal is BU on DC and RD otherwise, an
+/// L-family potential (`L`, `L1`..`L3`) of class `Control` on AC is RD ("AC control, L -> RD") and any
+/// other L is BK.
+pub(crate) fn builtin_colour_for(a: &Attrs, class: &CircuitClass) -> ColourSpec {
     let iec = |c: IecColour| ColourSpec::one(ColourCode::Iec(c));
     match &a.ptype {
         Some(PotentialType::N | PotentialType::LPlus | PotentialType::LMinus | PotentialType::M) => {
@@ -277,7 +338,12 @@ pub(crate) fn builtin_colour(a: &Attrs) -> ColourSpec {
                 iec(IecColour::Rd)
             }
         }
-        // L, L1, L2, L3, Undefined, unknown and no type.
+        Some(PotentialType::L | PotentialType::L1 | PotentialType::L2 | PotentialType::L3)
+            if *class == CircuitClass::Control && a.ac_dc == Some(AcDc::Ac) =>
+        {
+            iec(IecColour::Rd)
+        }
+        // Other L, L1, L2, L3, Undefined, unknown and no type.
         _ => iec(IecColour::Bk),
     }
 }
@@ -450,5 +516,84 @@ mod tests {
                 .is_err()
         );
         assert!(serde_json::from_value::<SizeProfileRaw>(json!({"rows": [{"class": "control"}]})).is_err());
+    }
+
+    #[test]
+    fn builtin_colour_honours_the_class() {
+        let a = |t, ac_dc| Attrs {
+            ptype: Some(t),
+            voltage: Some(Dec3(230_000)),
+            ac_dc,
+        };
+        let l = a(PotentialType::L, Some(AcDc::Ac));
+        assert_eq!(code(&builtin_colour_for(&l, &CircuitClass::Control)), r#"["RD"]"#);
+        assert_eq!(code(&builtin_colour_for(&l, &CircuitClass::Mains)), r#"["BK"]"#);
+        let lp = a(PotentialType::LPlus, Some(AcDc::Dc));
+        assert_eq!(
+            code(&builtin_colour_for(&lp, &CircuitClass::Control)),
+            r#"["BU"]"#
+        );
+        let n = a(PotentialType::N, Some(AcDc::Ac));
+        assert_eq!(code(&builtin_colour_for(&n, &CircuitClass::Control)), r#"["BU"]"#);
+        let pe = a(PotentialType::Pe, None);
+        assert_eq!(
+            code(&builtin_colour_for(&pe, &CircuitClass::Pe)),
+            r#"["GN","YE"]"#
+        );
+    }
+
+    fn load_notes(rows: Value) -> Vec<DeriveNote> {
+        let mut project: Project = serde_json::from_value(
+            json!({"id": "00000000-0000-4000-8000-000000000001", "derivation_profile": "2027.1"}),
+        )
+        .unwrap();
+        project
+            .settings
+            .extra
+            .insert("colour_profile".into(), json!({"key": "p", "rows": rows}));
+        load(&project)
+            .notes
+            .into_iter()
+            .filter(|n| matches!(n, DeriveNote::MalformedShim { .. }))
+            .collect()
+    }
+
+    #[test]
+    fn overlapping_equal_specificity_rows_with_different_colours_are_noted() {
+        let notes = load_notes(json!([
+            {"select": {"ptype": ["l"], "u_min": "50"}, "colour": ["RD"]},
+            {"select": {"ptype": ["l"], "u_max": "250"}, "colour": ["BK"]},
+        ]));
+        assert_eq!(
+            notes,
+            vec![DeriveNote::MalformedShim {
+                member: "settings.colour_profile".into(),
+                detail: "rows 0 and 1 have the same specificity, overlap and give different colours".into(),
+            }]
+        );
+        // Same colours: no note.
+        assert!(
+            load_notes(json!([
+                {"select": {"ptype": ["l"], "u_min": "50"}, "colour": ["RD"]},
+                {"select": {"ptype": ["l"], "u_max": "250"}, "colour": ["RD"]},
+            ]))
+            .is_empty()
+        );
+        // Disjoint voltage ranges: no note.
+        assert!(
+            load_notes(json!([
+                {"select": {"u_max": "49"}, "colour": ["RD"]},
+                {"select": {"u_min": "50"}, "colour": ["BK"]},
+            ]))
+            .is_empty()
+        );
+        // Different specificity: no note.
+        assert!(
+            load_notes(json!([
+                {"select": {"ptype": ["l"]}, "colour": ["RD"]},
+                {"select": {"ptype": ["l"], "ac_dc": "ac"}, "colour": ["BK"]},
+            ]))
+            .is_empty()
+        );
     }
 }

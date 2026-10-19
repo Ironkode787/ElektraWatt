@@ -3,7 +3,7 @@
 
 //! Potential flow: `potential_flow(potential)` (ARCH §6.4, doc 08 §3.6).
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_ids::Id;
@@ -59,7 +59,9 @@ pub struct FlowEntry {
     pub switched_by: Option<Id<Function>>,
     /// The nearest upstream protective device.
     pub protected_by: Option<Id<Function>>,
-    /// The loads on the potential, in function ID order.
+    /// The loads on the potential, in function ID order: its consuming functions (coils, lamps, PLC inputs,
+    /// a PSU input), never a function with a pass-through pair touching it, a source feeding it, an
+    /// interruption point or a terminal (review decision D4).
     pub loads: Vec<Load>,
 }
 
@@ -273,25 +275,40 @@ fn run_flow(q: &Q) -> Flow {
         level = level.saturating_add(1);
     }
 
-    // Loads: the functions on a potential that are not its onward pass-through.
-    let mut onward: Vec<Vec<Id<Function>>> = vec![Vec::new(); n];
-    for p in &pairs {
-        if let (Some(da), Some(db)) = (st[p.pa].distance, st[p.pb].distance) {
-            if db > da {
-                onward[p.pa].push(p.function);
-            } else if da > db {
-                onward[p.pb].push(p.function);
+    // Loads (review decision D4): the consuming functions on a potential. Not a load: a function with a
+    // pass-through pair touching the potential (the upstream feeder, an onward switch or protective
+    // device, a bypassed contact), a function feeding the potential through a source-output CP, an
+    // interruption point, a terminal.
+    let mut passing: Vec<BTreeSet<Id<Function>>> = vec![BTreeSet::new(); n];
+    for e in graph.edges.iter().filter(|e| e.level == Level::Link) {
+        let EdgeKind::PassThrough { function, .. } = e.kind else {
+            continue;
+        };
+        for node in [e.a, e.b] {
+            if let Some(pi) = part.of_node(node) {
+                passing[pi].insert(function);
             }
         }
     }
     let mut entries = BTreeMap::new();
     for (i, p) in part.potentials.iter().enumerate() {
         let s = &st[i];
+        let feeds: BTreeSet<Id<Function>> = p
+            .cps
+            .iter()
+            .filter(|cp| {
+                !is_ip(cp.function)
+                    && q.get::<FunctionCps>(cp.function)
+                        .iter()
+                        .any(|c| c.idx == cp.idx && c.source_output)
+            })
+            .map(|cp| cp.function)
+            .collect();
         let mut loads: Vec<Load> = p
             .cps
             .iter()
             .map(|cp| cp.function)
-            .filter(|&f| !is_ip(f) && !onward[i].contains(&f))
+            .filter(|f| !is_ip(*f) && !passing[i].contains(f) && !feeds.contains(f))
             .filter(|&f| !fndef_of(q, f).is_some_and(|d| d.item.contact_kind == ContactKind::Terminal))
             .map(|function| Load {
                 function,
