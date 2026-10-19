@@ -1570,7 +1570,7 @@ fn check_packages(policy: &RawReadPolicy, packages: &[SourcePackage]) -> Outcome
     collect(policy, packages, None)
 }
 
-/// Runs the whole check over `packages` and the files around them: pure, like [`check_packages`].
+/// Runs the whole check over `packages` and the files around them: pure, like the private `check_packages`.
 pub fn check_workspace(policy: &RawReadPolicy, packages: &[SourcePackage], ws: &WorkspaceFiles) -> Outcome {
     collect(policy, packages, Some(ws))
 }
