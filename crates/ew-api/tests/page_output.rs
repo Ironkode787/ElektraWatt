@@ -87,7 +87,7 @@ fn the_golden_pdf_has_every_folio_and_is_byte_identical_across_runs_and_record_s
 }
 
 /// The writer's own PDF structure of the golden project, as the committed candidate
-/// `expected/pdf/structure.json` (doc 20 §3.3 "PDF structure"; the PDF hash waits for cross-references).
+/// `expected/pdf/structure.json` (doc 20 §3.3 "PDF structure").
 /// Fonts are named `<family name> <weight>[ Italic]` after the bundled face info, sorted and unique.
 #[test]
 fn the_pdf_structure_matches_the_committed_file() {
@@ -126,6 +126,64 @@ fn the_pdf_structure_matches_the_committed_file() {
     text += &format!("  \"destinations\": {},\n", out.report.destinations);
     text += &format!("  \"fonts\": {}\n}}\n", string_list(&names, 1));
     check_or_bless(&expected_dir("pdf").join("structure.json"), text.as_bytes());
+}
+
+/// The SHA-256 of the golden PDF (doc 20 §3.3), the same from every run and every record order.
+#[test]
+fn the_pdf_sha256_matches_the_committed_file() {
+    let f = fonts();
+    let build = |seed: Option<u64>| {
+        let s = golden_session(seed);
+        let q = s.query();
+        let out = pdf(&pdf_pages(&q), &pdf_options(&q), &f, None).expect("the golden PDF is written");
+        format!("{:x}", Sha256::digest(&out.bytes))
+    };
+    let a = build(None);
+    let b = build(Some(0x5eed_1234));
+    let c = build(None);
+    assert_eq!(a, b, "a record shuffle changes the PDF");
+    assert_eq!(a, c, "two runs differ");
+    check_or_bless(
+        &expected_dir("pdf").join("sha256.txt"),
+        format!("{a}\n").as_bytes(),
+    );
+}
+
+/// Linked cross-reference texts of the golden model (doc 20 §15): 44 interruption-point texts and 19
+/// main/auxiliary texts (9 main lists, 10 auxiliaries).
+const LINKED_XREF_TEXTS: usize = 44 + 19;
+/// The external interruption points print "+J-E-206 / JE-N1000-03" without a link (no in-project target).
+const EXTERNAL_XREF_TEXTS: usize = 4;
+
+#[test]
+fn the_golden_pdf_has_one_link_per_cross_reference_text() {
+    let s = golden_session(None);
+    let q = s.query();
+    let mut linked = 0;
+    let mut external = 0;
+    for g in golden_pages(&q) {
+        for r in &g.view.reps {
+            let Some(def) = &r.symbol else {
+                continue;
+            };
+            for v in &r.slots {
+                let is_xref = def
+                    .text_slots
+                    .get(usize::from(v.slot))
+                    .is_some_and(|t| t.kind == ew_schema::SlotKind::Xref);
+                if v.link.is_some() {
+                    linked += 1;
+                } else if is_xref && !v.text.is_empty() {
+                    external += 1;
+                }
+            }
+        }
+    }
+    assert_eq!(linked, LINKED_XREF_TEXTS);
+    assert_eq!(external, EXTERNAL_XREF_TEXTS);
+    let out = pdf(&pdf_pages(&q), &pdf_options(&q), &fonts(), None).expect("the golden PDF is written");
+    assert_eq!(out.report.links, linked, "{:?}", out.report);
+    assert_eq!(out.report.plain_text_links, 0, "{:?}", out.report);
 }
 
 /// A JSON array of strings, one per line, indented for nesting level `depth`.
@@ -329,12 +387,14 @@ fn the_display_list_of_folio_101_is_stable() {
         labels glyphs 20d847a1 "14" origin=(233304292,87123323) size=1322917 angle=0
         labels glyphs 23a4ce3c "PE" origin=(44293102,80602931) size=3439583 angle=0
         labels glyphs 313e2bc4 "N-1" origin=(269213542,168860522) size=2381250 angle=0
+        labels glyphs 313e2bc4 "102-A1" origin=(260153944,172540347) size=2381250 angle=0
         labels glyphs 57543b91 "S51" origin=(36510120,42238348) size=3439583 angle=0
         labels glyphs 57543b91 "1" origin=(45640625,38836865) size=1322917 angle=0
         labels glyphs 57543b91 "2" origin=(45640625,44128531) size=1322917 angle=0
         labels glyphs 57543b91 "3" origin=(50932292,38836865) size=1322917 angle=0
         labels glyphs 57543b91 "4" origin=(50932292,44128531) size=1322917 angle=0
         labels glyphs 5e0e0f25 "J-E-206-N" origin=(5498174,140854377) size=2381250 angle=0
+        labels glyphs 5e0e0f25 "+J-E-206 / JE-N1000-03" origin=(-1701535,146743473) size=2381250 angle=0
         labels glyphs 6112da7c "E56" origin=(226324584,105738348) size=3439583 angle=0
         labels glyphs 6112da7c "X1" origin=(236140625,101675406) size=1322917 angle=0
         labels glyphs 6112da7c "X2" origin=(236140625,108289990) size=1322917 angle=0
@@ -353,14 +413,18 @@ fn the_display_list_of_folio_101_is_stable() {
         labels glyphs 8c4dbb72 "N" origin=(209682291,33545198) size=1322917 angle=0
         labels glyphs 8c4dbb72 "N" origin=(209682291,41482698) size=1322917 angle=0
         labels glyphs 92878d9b "J-E-206-PE" origin=(5020733,146146044) size=2381250 angle=0
+        labels glyphs 92878d9b "+J-E-206 / JE-N1000-03" origin=(-1701535,152035140) size=2381250 angle=0
         labels glyphs 9945b5aa "2" origin=(41027351,80602931) size=3439583 angle=0
         labels glyphs 9b2316f2 "PE-1.1" origin=(253338542,142402189) size=2381250 angle=0
+        labels glyphs 9b2316f2 "103-G6" origin=(244067013,146082014) size=2381250 angle=0
         labels glyphs dc21e14c "L-1" origin=(269213542,163568856) size=2381250 angle=0
+        labels glyphs dc21e14c "102-A1" origin=(260153944,167248681) size=2381250 angle=0
         labels glyphs de795e26 "E55" origin=(195236043,101769598) size=3439583 angle=0
         labels glyphs de795e26 "L" origin=(204390625,97045198) size=1322917 angle=0
         labels glyphs de795e26 "N" origin=(204390625,104982698) size=1322917 angle=0
         labels glyphs de795e26 "PE" origin=(207036459,99492593) size=1322917 angle=0
         labels glyphs f4fdc202 "J-E-206-L" origin=(5779161,135562710) size=2381250 angle=0
+        labels glyphs f4fdc202 "+J-E-206 / JE-N1000-03" origin=(-1701535,141451806) size=2381250 angle=0
         labels instance 09ed5beb sym=04b0176e variant=D translate=(44979167,63500000)
         labels glyphs 09ed5beb "2.5" origin=(45451448,64433979) size=1322917 angle=90000
         labels instance 17b31bbc sym=04b0176e variant=A translate=(97895833,31750000)

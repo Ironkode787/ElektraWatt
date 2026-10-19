@@ -21,8 +21,9 @@
 //!   only the terminal's designation (ID-162, doc 08 §6.7; the strip tag appears once per strip
 //!   representation) and an interruption point has no `tag` slot; `cp_designation(i)` → the designation of
 //!   the function CP that symbol CP `i` draws, `function_text` → the device's function text, or an
-//!   interruption point's pairing name, `process_tag` → the device's process tag; every other kind has no
-//!   value yet (cross-references arrive with their query);
+//!   interruption point's pairing name, `process_tag` → the device's process tag; `xref` →
+//!   `xref_text(rep)` with the link to the target representation of the text's first item (one link per
+//!   slot); an external point prints the external target without a link; every other kind has no value;
 //! - wire markers: connections with `overrides.show_marker`, printing the explicit cross-section in mm²
 //!   and the colour codes, joined by a space (provisional format);
 //! - junction and wire-marker symbols: the built-in `@qet10` symbols of `content/symbols`;
@@ -40,7 +41,7 @@ use std::sync::Arc;
 use ew_api::{Session, SessionOptions};
 use ew_derive::{
     DisplayedTag, FunctionCps, PageEntry, PageOrder, PageOrderV, PageRef, PageTitle, Q, TbValue,
-    TitleBlockValues,
+    TitleBlockValues, XrefTextOf,
 };
 use ew_dl::{Destination, FontKey};
 use ew_ids::Id;
@@ -227,6 +228,7 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &ew_schema::Representation, def: &Sym
     let dev = device.and_then(|d| q.devices().get(d).cloned());
     let mut out = Vec::new();
     for (i, slot) in def.text_slots.iter().enumerate() {
+        let mut link = None;
         let text = match &slot.kind {
             SlotKind::Tag => match (&f, device) {
                 (Some(f), _) if matches!(f.kind, FunctionKind::Ip(_)) => None,
@@ -260,13 +262,23 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &ew_schema::Representation, def: &Sym
             SlotKind::ProcessTag => dev
                 .as_ref()
                 .and_then(|d| d.process_tag.as_ref().map(|t| t.as_str().to_owned())),
+            SlotKind::Xref => {
+                let x = q.get::<XrefTextOf>(rep.id);
+                // The scene has one link per slot text, so a main list with two items ("∞ 3-B2, 106-G3")
+                // links to its first item.
+                link = x
+                    .links
+                    .first()
+                    .map(|l| Destination::Representation(l.rep.as_uuid()));
+                Some(x.text.clone())
+            }
             _ => None,
         };
         if let Some(text) = text.filter(|t| !t.is_empty()) {
             out.push(SlotValue {
                 slot: u16::try_from(i).unwrap_or(u16::MAX),
                 text,
-                link: None,
+                link,
             });
         }
     }
