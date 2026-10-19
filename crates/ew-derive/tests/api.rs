@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+// A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
+#![allow(clippy::disallowed_methods)]
+
 //! The tracked-read context itself (ADR-0002 decisions 1, 2, 4; ARCH §3 rule 1): tracking, the
 //! request-scoped cache, cycle detection, family ownership, the profile pin, and the API guarantee that a
 //! query cannot obtain the model.

@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+// A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
+#![allow(clippy::disallowed_methods)]
+
 //! No model content makes a query panic (review cycle 6 B, F2). The device inheritance graph (terminal →
 //! strip, device → parent) is acyclic in every model `Model::from_records` accepts (EW-INV-015); these
 //! tests build the two review probes through `Model::apply_unchecked`, which skips the invariants, and

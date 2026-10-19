@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+// A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
+#![allow(clippy::disallowed_methods)]
+
 //! Request-scoped settings and linear structure paths: `structure_path` is built from the parent's path,
 //! `numbering_settings` is parsed once per `Q` and a malformed member is noted.
 
