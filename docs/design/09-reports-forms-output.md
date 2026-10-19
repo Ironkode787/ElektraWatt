@@ -302,13 +302,18 @@ literal braces. The rule covers every unresolvable placeholder (unbound, unresol
 |---|---|---|
 | `project` | `{project.description}`, `{project.reference}`, `{project.drawing_id}`, `{project.object}`, `{project.document_title}` (the cover subtitle "Electrical Definition"), `{project.created \| date}`, `{project.edited \| date}`, `{project.supply \| supply}`, `{project.control_voltage}`, `{project.consumption}`; `{project.logo}`, the logo asset reference of the basic project's company data, which a cell draws as the image and prints no text for, and `{project.notice}`, the notice text of the same company data ([07](07-symbols-parts-macros.md) §2.8; decision log ID-40) | all |
 | `party.<role>` | `{party.customer.name}`, `{party.end_user.address.city}` (personal data, §7 pitfall 14) | all |
-| `revision` | `{revision.current.label}`, `{revision.current.state}`, `{revision.current.author.name}`, `{revision.current.checker.name}`, `{revision.current.date \| date}` | frame, title block, cover |
+| `revision` | `{revision.current.label}`, `{revision.current.state}`, `{revision.current.author.name}`, `{revision.current.checker.name}`, `{revision.current.date \| date}` (the current revision: below the table) | frame, title block, cover |
 | `page` | `{page.folio}`, `{page.prev}`, `{page.next}`, `{page.title}` ("Power Supply 1 - Main Current"), `{page.description}` (override or project description, §2.7), `{page.function}` (`=P01`), `{page.location}` (`+J-E-2416`), `{page.scale}` ("1:10" on 902, FR-PAG-023), `{page.document_kind}` (`&EFS`, FR-PAG-028, 1.0), `{page.last_changed_in}` ([15](15-checks-revisions-collaboration.md) §5.6) | frame, title block |
 | `doc` | `{doc.page_index}`, `{doc.page_count}` (position in and length of `page_order`: folio 101 is page 6 of 36) | frame, title block |
 | `block`, `group` | `{block.title}`, `{block.page_index}`, `{block.page_count}`, `{block.as_of}`, `{group.key}`, `{group.strip.tag}`, `{group.cable.part}` | report |
 | `row` | `{row.<column key>}` | report data area |
 | `profile` | colour rows (voltage, function, colour name, code), size rows | cover, embedded |
 | `export` | `{export.date \| date}`, `{export.status_mark}`, `{ew.version}` (the root `ew` holds only `ew.version`) | all |
+
+**The current revision** is the project's open revision; without one, its newest released revision. Withdrawn
+revisions and the `Withdrawn` records that point to them are ignored, and among several candidates of the same state
+the newest date wins, a revision without a date counting as the newest (decision log ID-105). Golden A's current
+revision is the open V2.0.
 
 Filters: `date` (project format, FR-PRJ-023), `supply` (structured supply → "1 x 230 VAC + N + PE, 50 Hz", D-18),
 `qty(unit, decimals)`, `tag(full | displayed)`, `ml(lang)` or `ml(stacked: [nl-NL, en-GB], sep: " / ")`
@@ -571,6 +576,13 @@ Golden results: 571334 → "-201U3-Q1 … -202U2-Q4" (all 28 valve children are 
 - Report layouts, built-in row definitions, title-block bindings and bundled font versions are part of the pinned
   derivation profile, so a project prints the same pages in later EW releases until its profile is upgraded by a
   previewed command (FR-PRJ-011, NFR-REL-09).
+- *As built (cycle 6).* The first shipped profile, `2027.1` (TOML data in `ew-derive`,
+  [ADR-0003](../adr/0003-freshness-contract.md) amendment 2), carries the numbering scheme, the cross-reference
+  format, the title-block binding set (the placeholder paths that `title_block(page)` resolves), the identifier-set
+  key and the TOC layout (23 data rows per page, which drives the page-count fixpoint of `page_order`). Report layouts
+  and font versions join the profile with WP-S3.03 and WP-S3.02. `project.control_voltage` and `project.consumption`
+  are in the binding set but stay unbound, and so render empty (§2.6), until `Quantity` has a text formatter (task
+  FT-28 of the [work breakdown](../plan/02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles)).
 - Report outputs of a released revision are frozen into the as-built archive as `reports/<block id>.csv` plus the
   PDF ([05](05-project-format-and-persistence.md) §14.2, FR-REV-011). Re-rendering the archived project with its
   release context and derivation profile reproduces the page content (FR-REV-010).

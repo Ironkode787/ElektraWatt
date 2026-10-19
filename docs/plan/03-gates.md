@@ -357,7 +357,7 @@ never reviews their own evidence alone: the evidence owner and the reviewer of t
 
 | Role | Who holds it | Part in a gate |
 |---|---|---|
-| **Project owner** | The person who decides scope, licence, funding and release for EW (PD-1 … PD-14) | Decides descope, stop and the *go* of the release gates G-M2, G-M5 and G-M6; takes the owner decisions that a gate lists; may delegate in writing for one gate |
+| **Project owner** | The person who decides scope, licence, funding and release for EW (PD-1 … PD-15) | Decides descope, stop and the *go* of the release gates G-M2, G-M5 and G-M6; takes the owner decisions that a gate lists; may delegate in writing for one gate |
 | **Project lead** | Holds the plan, funding and governance hat (dev 1 in the baseline); may be the project owner | **Chairs** every gate; decides go, go with conditions and recycle at G-SP, G-M0, G-M1, G-PP, G-M3 and G-M4; owns the gate pack and the gate record |
 | **Core team** | The developers and maintainers (2, 3 or 4) | Produces and presents evidence; recommends the outcome; each presents the area they own |
 | **Stream owners** | S1 owner (core), S2 owner (UI and UX researcher), S3 and S5 owner, S4 owner, S6 release engineer, S7 content maintainer | Present the exit criteria of their stream |
@@ -1384,7 +1384,7 @@ PU pilot user, CO counsel, SL steward liaison, UX UX researcher. A role may be h
 - [Global plan](01-global-plan.md): GA-1 … GA-13, §3.4 milestone dates per scenario, §3.5 sensitivity, §3.7 the AI
   scenarios and the G-M1 re-baseline, §5 milestones and gate reviews (G-M0 … G-M6, G-PP), §5.3 the pilot preview, §9
   critical path and schedule risks SR-1 … SR-15, §10 staffing, §11.2 tracking, §12 pilot engagement, §13 funding, §14
-  decisions PD-1 … PD-14, §15 the first 90 days, §16 descoping ladder, open questions.
+  decisions PD-1 … PD-15, §15 the first 90 days, §16 descoping ladder, open questions.
 - Generated dates: [milestones.csv](milestones.csv) and [wp-schedule.csv](wp-schedule.csv), written by
   [tools/schedule.py](tools/schedule.py), which also fills the generated blocks of §2.2 and §4.2.
 - [Work breakdown structure](02-work-packages.md) and [work-packages.csv](work-packages.csv): milestones M0 … M6 and

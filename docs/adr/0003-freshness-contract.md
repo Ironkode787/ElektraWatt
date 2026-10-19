@@ -1,6 +1,6 @@
 # ADR-0003: Freshness contract: classes I–III, frozen-on-purpose identifiers, committed computations, versioned derivation profiles
 
-**Status:** Accepted · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-19 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -67,6 +67,28 @@ report layouts and the identifier set (ADR-0026).
 - Upgrading is an opt-in, previewed command that shows the tag, xref and wire-number diff (FR-PRJ-011).
 - Golden outputs are tested per shipped profile.
 - Released revisions record their profile and archive their PDF (ADR-0013).
+
+## Amendments
+
+Accepted on 2026-10-19. The decision text above is unchanged; these entries refine it.
+
+1. **An unknown pinned profile is never silently replaced** (2026-10-19, project owner (delegated); decision log
+   ID-72; [05](../design/05-project-format-and-persistence.md) §6.3, §10.1). A project can pin a profile that the
+   running build does not ship: a file written by a newer EW, or a hand edit. The pin is kept unchanged and is
+   reported as the integrity finding EW-CORE-018 (error, blocks release, never waivable). The
+   newest shipped profile is used **for display only**, so that the project can be read. Every profile-dependent
+   command (device and wire numbering, renumbering, and every upgrade except the profile upgrade) is refused while
+   the profile is unknown; the pin is resolved only by the opt-in, previewed profile upgrade, which shows its diff
+   against the display profile as usual. `ew-derive` exposes the state as `ProfileStatus::Unknown { requested }`
+   and reports it through its request-scoped note channel (`DeriveNote`), which `ew-api`'s `Session` surfaces as
+   findings; the same channel carries the other derivation notes (a numbering scheme not applied, the default frame
+   used, a malformed `extra` shim; decision log ID-99).
+2. **Profiles are data in `ew-derive`** (2026-10-19, core team; decision log ID-84;
+   [architecture](../design/04-architecture.md) §6.6). The shipped profiles are TOML files in
+   `crates/ew-derive/profiles/` (the first is `2027.1.toml`), compiled into the crate and parsed once. They are not
+   library items and have no copy identity: they are part of the build, and this ADR keeps every shipped profile's
+   code paths in the same crate. A project's own settings (numbering, xref format, identifier set) take precedence
+   over the profile's defaults. This follows open point 1: profiles differ in data, not code.
 
 ## Consequences
 

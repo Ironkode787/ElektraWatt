@@ -643,6 +643,11 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
 - **Terminal CPs** come from the part's CP pattern: level, side, clamp, shaft and rail foot. PT 2.5-TWIN is level 1
   with clamp a on side 1, clamps b and c on side 2, and bridge shafts as its part data declares them (unverified).
   It has no rail foot. PT 2.5-TWIN-PE adds a rail foot.
+- **CP index space of a terminal** (decision log ID-67, ID-108). A terminal function is template-origin when its
+  device carries a part whose function template declares a function with the same FnDef (and role, if given); the
+  template's CP pattern then defines the function's CP indexes and count, not the FnDef: the golden PT 2.5-TWIN
+  terminal has the CPs a, b, c and the shaft. The starter FnDef `ew.fn.terminal` keeps its two CPs, which apply to a
+  terminal without such a part; no twin FnDef is needed.
 - **Printed label.** `Strip.label_mode = Designation | FunctionText` decides what the terminal symbol prints
   (FR-TRM-021). Golden -X1031 is designated 1–20 and prints "1+", "2+", … "4-".
 - **Groups.** `Strip.groups` prints "Pneumatics" and "Spare" once per range (FR-TRM-010).

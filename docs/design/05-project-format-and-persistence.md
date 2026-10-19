@@ -605,7 +605,7 @@ flowchart TD
   H --> M{"All match?"}
   M -- yes --> P["Parse, migrate, build tables and indexes"]
   M -- no --> C["Classify (§6.2)"] --> P
-  P --> I["Integrity EW-CORE-001 … 017 on the pool"]
+  P --> I["Integrity EW-CORE-001 … 018 on the pool"]
   I --> J{"Leftover journal?"}
   J -- yes --> R["Recovery dialog (§8.3)"]
   J -- no --> O["First page interactive, warm-up continues"]
@@ -634,9 +634,9 @@ snapshots, git history and `.ewz` backups.
 ### 6.3 Integrity findings
 
 `ew check --integrity` (FR-CHK-012, MVP) runs on every open, after merges and from the CLI; cross-file
-reconciliation after merges (§11.5) is FR-COL-016 (1.0). The findings are the integrity rules EW-CORE-001 … 017 of
+reconciliation after merges (§11.5) is FR-COL-016 (1.0). The findings are the integrity rules EW-CORE-001 … 018 of
 [checks, revisions and collaboration](15-checks-revisions-collaboration.md) §4.2 (kind `integrity`, never
-waivable). A finding marked **R** blocks release: EW-CORE-002, -003, -005 … -009, -011, -012, -013, -015 and -017,
+waivable). A finding marked **R** blocks release: EW-CORE-002, -003, -005 … -009, -011, -012, -013, -015, -017 and -018,
 and EW-CORE-016 only where outputs are affected.
 
 | ID | Finding | Severity | Quick fix |
@@ -658,6 +658,7 @@ and EW-CORE-016 only where outputs are affected.
 | EW-CORE-015 | An asset missing or not matching its hash name | error; R | Re-import; drop the reference |
 | EW-CORE-016 | Unknown kinds, members or variants from a newer format (a malformed value of a known variant is EW-CORE-017) | info; R where outputs are affected | Upgrade EW |
 | EW-CORE-017 | Malformed value of a known variant: an enum value whose tag names a variant this reader knows but whose payload does not parse, such as `{"core": 5}` or `{"cp": ["<id>"]}`. The value is kept verbatim as `Unknown` (ADR-0011 amendment 2) and derivations treat it as unknown (§10.3) | error; R | Re-enter the value in the property grid, which shows the raw value |
+| EW-CORE-018 | The project pins a derivation profile this build does not ship (a newer file or a hand edit). The pin is kept; the newest shipped profile is used for display only, and profile-dependent commands are refused (§10.1, ADR-0003 amendment 1) | error; R | The opt-in, previewed profile upgrade; or open the project in a build that ships the profile |
 
 ### 6.4 Concurrent readers
 
@@ -831,6 +832,12 @@ In the table, R is the reader's format, F the file's format and M its `min_reade
 | F.major > R.major, M ≤ R | Read-only |
 | F.major < R.major | Migrate in memory. The first save asks first and writes `<name>.ew.pre-<F>.ewz` beside the project (NFR-REL-06) |
 | `unstable: true` in a release build | Read-only with a warning |
+
+**Unknown derivation profile** (ADR-0003 amendment 1; decision log ID-72). A project whose `derivation_profile`
+this build does not ship (a newer file or a hand edit) opens under the rules above, but the pin is never silently
+replaced: it stays as stored, EW-CORE-018 reports it as an error and blocks release, and the newest shipped profile is used for
+display only. Every profile-dependent command (device and wire numbering, renumbering, every upgrade except the profile
+upgrade) is refused until the opt-in, previewed profile upgrade resolves the pin.
 
 ### 10.2 Per-kind versions and migrations
 
@@ -1367,7 +1374,7 @@ QET stores evaluated labels and per-folio title-block strings, and these produce
 | Lock with heartbeat; read-only mode; takeover; lock loss | Must | — | — | — |
 | Journal, snapshots, recovery dialog | Must; undo rebuild Should | — | — | — |
 | External-change apply; merge panel for collisions | Must | — | — | — |
-| Integrity EW-CORE-001 … 017 on open and after merges, with the EW-CORE-013 "renumber the newer" quick fix (FR-CHK-012) | Must | Cross-file reconciliation (§11.5), FR-COL-016 | — | — |
+| Integrity EW-CORE-001 … 018 on open and after merges, with the EW-CORE-013 "renumber the newer" quick fix (FR-CHK-012) | Must | Cross-file reconciliation (§11.5), FR-COL-016 | — | — |
 | Fault-injection harness (§5.6) | Must | — | — | — |
 | Cloud warning, conflict copies, placeholders | Should | — | — | — |
 | `.ewz` pack and open; `.ewz` as CLI input; `--omit-personal-data` (FR-OUT-025) | Must | — | — | — |
@@ -1397,7 +1404,7 @@ QET stores evaluated labels and per-folio title-block strings, and these produce
   - [09](09-reports-forms-output.md): the "Saved" binding and the release context;
   - [12](12-panel-layout.md): layout records;
   - [13](13-manufacturing-outputs.md): `.ewpp` reuses the ZIP rules of §12;
-  - [15](15-checks-revisions-collaboration.md): the integrity rules EW-CORE-001 … 017, the release gate, merge and
+  - [15](15-checks-revisions-collaboration.md): the integrity rules EW-CORE-001 … 018, the release gate, merge and
     conflict panels;
   - [16](16-ux-ui.md): dialogs;
   - [17](17-extensibility.md): CLI catalogue;
@@ -1462,7 +1469,7 @@ The eleven rows this document proposed are in the catalogues:
    the release context. The manifest stays time-free.
 2. **Release of the integrity check.** FR-CHK-012 (MVP) and FR-COL-016 (1.0) described the same check, and
    FR-CHK-012's acceptance already demands the renumber offer for a merged duplicate (-102F3 twice) at MVP.
-   **Resolved:** EW-CORE-001 … 017 and the EW-CORE-013 "renumber the newer" quick fix belong to MVP under
+   **Resolved:** EW-CORE-001 … 018 and the EW-CORE-013 "renumber the newer" quick fix belong to MVP under
    FR-CHK-012; FR-COL-016 (1.0) is narrowed to cross-file reconciliation (§11.5) and the full conflict-panel flow,
    and references FR-CHK-012.
 3. **Schema order versus byte-identical preservation.** "Fields in schema order" (ARCH §7.3) and FR-COL-010 can

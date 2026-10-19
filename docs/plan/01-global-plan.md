@@ -1283,6 +1283,7 @@ is small but has deadlines: counsel and the enrolment fees fall in the first 90 
 | PD-12 | Further descoping if behind (§16, DS-4 onwards) | Project owner | Any gate review | 1.0 dates | Follow the ladder in order |
 | PD-13 | LG-6 steward review | Maintainers, steward | Event-driven; at 1.0 at the latest | Phase-2 steward | As governance §3.3 |
 | PD-14 | M-PP scope and the triage of the MVP Must rows, with the pilot | Project owner with the pilot | Pre-G-M0 workshop | M-PP content; DS-7 | Confirm §5.3; record which Must rows the pilot's first three projects need |
+| PD-15 | The pilot user's acknowledgement of every change under `golden/J-E-2416/tables/` ([governance](../design/19-open-source-governance.md) §3.4); first for the 23 tables of cycle 6 and the identifier-set correction (decision log ID-80, ID-92) | Project owner with the pilot | Before the tables are used as M1 acceptance evidence; then per change | The golden evidence of G-M1 (AC-01 … AC-13) | Ask at the kick-off for the initial tables; batch later changes per cycle |
 
 ---
 

@@ -35,7 +35,8 @@ value only in prose, as a ▲ test input, or where a value is a choice of this f
 junction position), the mapping writes it explicitly with a comment citing the section. Symbol and function keys
 follow doc 07 §9.1 (the starter set mapped to the golden folios); CP patterns of black-box and terminal parts follow
 doc 07 §9.2 and doc 03 §11. A test of `ew-import-tables` fails when a committed table differs from the script's
-output, so a change to doc 20 and to the tables lands in one commit.
+output, so a change to doc 20 and to the tables lands in one commit. The fixture choices that doc 20 gives no cell for
+are registered as ▲U-38 … ▲U-48 in doc 20 §23.1.
 
 ## CSV dialect
 
@@ -119,6 +120,9 @@ CPs of its FnDef; CP indexes are positions in that list.
 `street` O, `postcode` O, `city` O, `country` O, `personal_data` O (boolean). Rows in key order become the
 `parties` list in that order.
 
+- ▲U-47: the panel-builder party has no name, and there is no Author party (the author is the revision author).
+- ▲U-48: the end-user address is stored as street `<address>`, country `<country>`.
+
 ### `structure.csv` → `structure_node` (doc 20 §4.3)
 
 `key` R (`=P01`, `+J-E-2416`), `aspect` R (`function`, `location`, …), `code` R (without the sign), `aliases` O
@@ -143,7 +147,7 @@ reports from `report_blocks`.
 
 ### `report_blocks.csv` → `report_block` (doc 20 §16, §17.3)
 
-`key` R, `kind` R (`toc`, `parts_summary`, `terminal_diagram`, …, `profile_tables`, `part_data`), `form` R (form
+`key` R, `kind` R (`toc`, `parts_summary` ▲U-44, `terminal_diagram`, …, `profile_tables`, `part_data`), `form` R (form
 key), `section` O, `first_folio` O (required unless embedded), `title` O, `continuation` O (`sub_page`,
 `next_folio`), `include` O (list of `devices` keys: the manual selection), `embedded_page` O (`pages` key),
 `embedded_rect` O (`x0;y0;x1;y1` in native nm, required with `embedded_page`).
@@ -153,6 +157,9 @@ key), `section` O, `first_folio` O (required unless embedded), `title` O, `conti
 `key` R (the part number as printed, `PT 2.5-TWIN`), `manufacturer` R (name), `part_number` R, `kind` O
 (`device`, `terminal`, `cable`, `enclosure`, `mounting_plate`, …), `type_designation` O, `description` O, `unit` O
 (`piece`, `m`, `set`), `test_data` O (boolean: confidence `test` on every section).
+
+- ▲U-45: the manufacturer is referenced as `LibRef v5(ns, "manufacturers|<name>")`.
+- ▲U-46: the part use of `-3W1` is quantity 1, unit m.
 
 ### `part_cps.csv` → `part.cp_pattern` (doc 07 §9.2, doc 03 §11)
 
@@ -214,7 +221,14 @@ counter.
 (`pages` key), `symbol` R (symbol key), `cell` R (`<row><column>`, rows `A`–`H`, columns `0`–`16`), `dx`, `dy` O
 (offsets in QET px from the cell centre). The symbol's anchor point is placed at the cell centre plus the offset
 (doc 20 §4.4 "xref anchor policy"; an `origin` or `graphic_centre` anchor counts as the insertion point), on the
-page grid. A position off the grid is snapped and reported.
+page grid. A position off the grid is snapped and reported in the cycle-6 code; by decision log ID-71 it becomes an
+EW-IMP-002 error that drops the row (task FT-19).
+
+- ▲U-38: valves sit in row D at columns c−3, c−1, c+1, c+3 around the module's auxiliary column c.
+- ▲U-39: field devices sit in row G (valve) and row F (actuator), in the column of the driving valve.
+- ▲U-41: the 1X1 terminals 1, 2, PE use dx −20, 0, +20 from the cell centre.
+- ▲U-42: the external arrows J-E-206-L, -N, -PE use dy −20, 0, +20.
+- ▲U-43: 1X1 has no strip segment (fixture choice, doc 20 §23.1).
 
 ### `connections.csv` → `connection` (doc 20 §8, §8.3; doc 03 §9.2)
 
@@ -237,6 +251,8 @@ each non-first arm carries the ID of the wire it closes (Star: first CP to every
 
 `key` R (`J1`), `page` R, `cell` R, `dx`, `dy` O, `style` R (`dot`, `bevel`), `wiring` O (`star`, `chain`; empty is
 the style's default), `sequence` R (list of `connections` keys, feed arm first).
+
+- ▲U-40: the junction cells are J1 C11, J2 C13 (folio 101) and J3 C6, J4 D7, J5 D5, J6 D6 (folio 102).
 
 ### `conductors.csv` → `conductor` (doc 20 §10)
 
@@ -266,5 +282,6 @@ reports each once (EW-IMP-004, info) and emits nothing:
 
 Doc 20 §11 (PLC and bus: channels, the bus segment, the DP potential), §12 (fluid lines F1–F16), §13 (layout space,
 carriers, placements) and §14.2 (configured products) need record kinds that `ew-schema` v0 reserves but does not
-implement; their tables follow with those work packages. §14.1 (component BOM) is covered through `parts.csv` and the
+implement; their tables follow with those work packages. Also not covered yet: the MICO 4.10 13-14 signal-contact
+template, FR-DEV-037 "supplied by others" and the -201U1:DP port. §14.1 (component BOM) is covered through `parts.csv` and the
 part uses of `devices.csv` and `terminals.csv`; the BOM rows themselves are derived.

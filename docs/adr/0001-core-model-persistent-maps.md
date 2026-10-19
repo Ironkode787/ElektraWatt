@@ -1,6 +1,6 @@
 # ADR-0001: Core model: typed Rust records in persistent maps; everything printed is derived
 
-**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -84,13 +84,31 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    the `tests/` and `benches/` directories and `#[cfg(test)]` items. The check takes the gated item names from
    `ew-model`'s own source, so a newly gated reader is covered without a list to maintain; a false positive gets an
    allowlist entry with a reason in `ci/dep-rules.toml`, never an inline suppression. It runs in `cargo xtask ci`
-   beside `check-features` (CI-PR-09).
+   beside `check-features` (CI-PR-09). *As implemented in cycle 6 (2026-10-19, decision log ID-77):* the check
+   scans only packages whose normal-dependency closure reaches `ew-model`, because a package that cannot reach it
+   cannot name the raw readers; its configuration and allowlist are the `[raw_read]` section and its
+   `[[raw_read.allow]]` entries (path, item, reason) in `ci/dep-rules.toml`, where `exempt_packages = ["xtask"]`
+   exempts the guard's own source, which names the feature and the macro. A stale allowlist entry, or one without
+   a reason, fails the check. Its detection of raw-read *calls* by name is replaced by amendment 4.
 3. **No row-carrying types above the transaction layer** (2026-10-18, core team, after the review of WP-S1.04;
    [architecture](../design/04-architecture.md) §3 rule 1; decision log ID-59). A full `Op` carries the before and
    after rows, so handing ops, diffs or history entries to a front-end would be an untracked read by another route.
    The normal public surface of `ew-commands` therefore carries no row: diffs, preview ops and history entries are
    summaries (op kind, record kind, key and the changed field paths). Full ops are reachable only under its
    dev-only `testkit` feature, which `ci/dep-rules.toml` bans outside dev edges.
+4. **A type-aware raw-read guard** (2026-10-19, project owner (delegated), after the independent review of cycle 6;
+   [architecture](../design/04-architecture.md) §3 rule 1; decision log ID-94; task FT-32). The lexical check of
+   amendment 2 recognises a raw-read call by its method name, and the review showed that this misses gated names in
+   method form (22 of 40), because a name such as `get` or `len` cannot be told apart from an unrelated method
+   without types. Calls are therefore checked by clippy, which resolves types: `cargo xtask check-raw-read`
+   generates the workspace `clippy.toml` `disallowed-methods` list from `ew-model`'s gated items and fails when the
+   committed file is not current, and the four reader crates (`ew-model`, `ew-derive`, `ew-commands`, `ew-store`)
+   opt out with a crate-root `#![allow(clippy::disallowed_methods)]`. Amendment 2's objection to clippy
+   configuration, that every new crate would have to remember it, does not apply: there is one generated workspace
+   file, new crates are covered by default, and only the readers opt out: the guard also fails on an
+   `allow(clippy::disallowed_methods)` in non-test source of any other package (core team, 2026-10-19). The lexical
+   check keeps what needs no types: `raw_read!`, the feature name, the manifest rules, the reachability scope and
+   the allowlist.
 
 ## Consequences
 

@@ -259,6 +259,13 @@ sets it (lowest number wins):
 - **Aliases** print as "1 / L1" (FR-DEV-007).
 - **Terminal CPs** carry level, side and clamp. PT 2.5-TWIN has level 1, clamp a on side 1 and clamps b and c on
   side 2 ([03](03-domain-model.md) §11).
+- **Template-origin functions** (decision log ID-67, ID-108). A function is template-origin when its device carries
+  a part whose function template declares a function with the same FnDef (and role, if given). Its CP index space is
+  then the part's CP pattern, not the FnDef's CPs: PT 2.5-TWIN gives a, b, c and the shaft, and the starter FnDef
+  `ew.fn.terminal` with its two CPs applies only to a terminal without such a part
+  ([08](08-connections-terminals-cables.md) §6.1). `function_cps` and the importers apply the rule now; a typed
+  template marker on `Function`, tied to the `v5(device, template_index)` ID rule of ADR-0004 amendment 2, is a later
+  format decision (WP-S1.11).
 - **Contacts.** FnDefs default to IEC 60947-style function digits (13-14 NO, 21-22 NC, A1-A2 coil). A part's contact
   data (FR-PRT-009) overrides them and feeds contact images (FR-XRF-017).
 - **Fluid ports** use the ISO 5599-3 port numbers 1/2/3/4/5/12/14/82/84 as designation and `port_role`

@@ -1,6 +1,6 @@
 # ADR-0021: Importers emit format-level records; QET first; EDZ as 7-Zip; DWG via acadrust plus ODA
 
-**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
 
 ## Context
 
@@ -122,6 +122,18 @@ is unchanged; these entries refine it.
 5. **Plugin importers** (1.x) obtain record IDs only through the host's ID minting for a source key; the host
    re-mints and compares every ID and validates every record against its JSON Schema before `ApplyImport`
    (FR-EXT-037).
+6. **Input sets and bootstrap importers** (2026-10-19, project owner (delegated); decision log ID-64, ID-65;
+   [14](../design/14-interop.md) §2.1, §8.4). Decision 1's `Source` is one file, but a table source such as the
+   golden project is a directory. An importer may therefore consume a **set of inputs**: `&[ImportInput]`, each a
+   file name (never a path) with its bytes and SHA-256, handed over by the host. The rules of decision 1 apply to
+   the set as a whole: the importer opens nothing itself, the limits bound the file count, each file and the total,
+   a repeated name is refused, and the batch does not depend on the order of the inputs. A **bootstrap importer**
+   creates the project record itself and derives its ID; `ImportContext.project` must be nil or equal to that ID,
+   otherwise the import is refused (review of cycle 6, decision log ID-112), and the batch is applied only into an
+   empty project, as the checkpoint of decision 3. The golden CSV bootstrap (`TablesImporter` in `ew-import-tables`) is
+   the first such importer. Its importer ID is `csv`, the `<importer>` of its lineage `csv␟fixed␟golden`
+   (ADR-0004 amendment 4); `golden-csv` in decision 1's comment is the name of its report format, not an importer
+   ID.
 
 ## Consequences
 

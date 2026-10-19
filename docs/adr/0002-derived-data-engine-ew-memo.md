@@ -1,6 +1,6 @@
 # ADR-0002: Derived-data engine: cold-first queries plus a cut-down memo layer (`ew-memo`); no salsa
 
-**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -93,6 +93,33 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    dependency cone of those three cannot name the raw API at all. Because cargo features are additive, crates that
    depend on `ew-derive` compile with the raw API present; for them the guarantee rests on `Q` being the only handle
    a query gets, on review, and on oracle mode.
+   Since cycle 6 the source guard `cargo xtask check-raw-read` also covers them (ADR-0001 amendment 2).
+3. **`ew-memo` v1 as built** (2026-10-19, core team; decision log ID-81 to ID-83, ID-95, ID-96;
+   [architecture](../design/04-architecture.md) §6.2). Decision 4 is implemented with these precisions:
+   - **Durability contract.** `advance(rev, d)` records `rev` as the last change of level `d` and of every less
+     durable level. `d` must cover the durability of every changed input **both before and after** the change: an
+     input moved from library to drawing durability changes a library-level dependency, and the naive rule (the
+     level after the change) let a library-durable memo skip its verification wrongly, which the property test
+     found. Conversely, every verification that finds a memo green recomputes its durability as the minimum of its
+     dependencies' **current** durabilities, so a memo whose input became less durable cannot keep skipping on the
+     old level (a stale-memo path found in the review; task FT-33).
+   - **Cut-off and eviction.** A cut-off of a held `Eq` value keeps the old `Arc`. An LRU-evicted memo keeps its dependencies and its
+     fingerprint, so its dependents can still be verified without recomputing it; when an evicted `Eq` value is
+     recomputed because it is read again and its dependencies are unchanged, the new value is treated as unchanged
+     (the query is pure), so `changed_at` stays.
+   - **Cycles.** A cycle panics in debug builds and is an error (`Cycle`) otherwise; the error leaves the previous
+     memo in place.
+   - **Oracle.** Oracle mode re-runs memoised reads cold at every depth, not only at the top-level read, and is
+     sampled deterministically (`Oracle::OneIn(n)`); mismatches are collected for the caller (`take_mismatches`).
+   - **Statistics** are `tracing` events (target `ew_memo::stats`) emitted on `advance`, which also resets the
+     commit window.
+   - **Forks.** `fork()` is O(1) (`imbl`), and `adopt_if_unchanged` is the decision-5 exception and nothing more.
+     "Unchanged" is exact: a fork is adopted only when the store's mutation token still equals the fork's base
+     token, and the store's revision and the fork's revision both equal the base revision, so a fork that advanced
+     on its own is never adopted (task FT-33).
+   - **Determinism.** No hash-map iteration, floating point or clock.
+   `ew-derive`'s `Q` does not use `ew-memo` yet: phase 1 runs every family cold behind a no-op `Tracker`, so that
+   promoting a family after the spike (decision 3) changes its `POLICY` and the tracker, never the query body.
 
 ## Consequences
 

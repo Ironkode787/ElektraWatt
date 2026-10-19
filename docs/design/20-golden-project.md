@@ -112,8 +112,10 @@ flowchart LR
 ### 2.1 Golden A rules
 
 1. **Tags.** Printed tags are kept. S51, F55, T55, E55, S56, E56 and 1X1 are frozen tags (`FrozenTag{sign:
-   Hidden}`, FR-NUM-010, ADR-0003). -X1031 and -X1032 are derived by the strip rule `{letter}{page}{counter}`; -UC1
-   and -XPE by per-class rules ▲U-34; every other tag by the page-based rule `{page}{letter}{counter}`; valves by
+   Hidden}`, FR-NUM-010, ADR-0003). -XPE, -UC1 and the mounting plate -UC1-plate are frozen tags too, as ▲U-34 test
+   inputs (Golden B's `include_frozen: true` renumbers -XPE as §2.2 shows). -X1031 and -X1032 are derived by the
+   strip rule `{letter}{page}{counter}`, which `settings.numbering` carries as a rule for devices with a strip
+   aspect; every other tag by the page-based rule `{page}{letter}{counter}`; valves by
    the child rule `{parent}-{letter}{counter}` (-201U3-Q1, FR-DEV-021). The formatter adds the leading "-" of the
    product aspect; formats never contain it ([domain model](03-domain-model.md) §8.2). Letters follow the shipped
    EN 81346-2:2009 single-letter set (ADR-0026), which maps directional valves to Q.
@@ -357,7 +359,7 @@ these equal the page's structure (FR-NUM-002).
 | Setting | Golden A value |
 |---|---|
 | Identifier set | EN 81346-2:2009 single letters (ADR-0026) |
-| Numbering | page-based `{page}{letter}{counter}`; strips `{letter}{page}{counter}`; children `{parent}-{letter}{counter}`; order column then row; next free counter = the lowest unused counter in the scope (gaps are filled, [domain model](03-domain-model.md) §8.6) |
+| Numbering | page-based `{page}{letter}{counter}`; strips `{letter}{page}{counter}` (a rule of `settings.numbering`); -XPE, -UC1 and -UC1-plate frozen ▲U-34; children `{parent}-{letter}{counter}`; order column then row; next free counter = the lowest unused counter in the scope (gaps are filled, [domain model](03-domain-model.md) §8.6) |
 | Cross-reference format | `{page}-{row}{column}`, the QET `%F-%l%c` equivalent (C-15); aux → main in parentheses "(201-E1)"; main → aux after "∞" |
 | Xref anchor policy | per symbol (FR-SYM-010): named anchor points placed so that the cells of §15 result, e.g. module aux symbol at its centre (203-B4), CPX power box at its left edge (106-G3), bus port at its graphics (3-B2); interruption points at the arrow tip |
 | Frame | QET-compatible A4 landscape, 17 columns 0–16, 8 rows A–H, grid and no-grid variants (§17) |
@@ -617,10 +619,12 @@ In marker mode "only explicit overrides" exactly the four reference marker group
 |---|---|---|---|---|
 | J1 | 101 | Dot | Star (default), from F55:2 | F55:2 → W13, W14 |
 | J2 | 101 | Dot | Star (default), from F55:N#2 | F55:N#2 → W15, W16 |
-| J3 | 102 | Bevel | Chain (default) | W20, W21 into -102F1:1 |
-| J4 | 102 | Bevel | Chain (default) | -102F1:2 → W24, W25 |
+| J3 | 102 | Bevel | Chain (default) | W20, -102F1:1, W21 (far ends in order: -102G1:+#1, -102F1:1, -102G1:+#2) |
+| J4 | 102 | Bevel | Chain (default) | W24, -102F1:2, W25 (far ends in order: -102F2:24VDC#1, -102F1:2, -102F2:24VDC#2) |
 | J5 | 102 | Bevel | Star (set), from the PSU CP -102G1:−#1 | -102G1:−#1 → W22, W27 |
 | J6 | 102 | Bevel | Star (set), from the PSU CP -102G1:−#2 | -102G1:−#2 → W23, W26 |
+
+For a Chain junction the shared CP stands in the middle of the sequence, so that joining consecutive CPs gives the drawn wires ([03](03-domain-model.md) §9.2; [decision log](../plan/06-decision-log.md) ID-68); the drawn stubs J3.1 and J4.1 are the first members.
 
 A new branch's default place in the sequence follows [08](08-connections-terminals-cables.md): the parts of a split
 connection are ordered by flow distance from the source, with reading order (row, then column of the far
@@ -1389,10 +1393,22 @@ The acceptance runner reports pass/fail per AC and per D-nn (NFR-MAINT-11).
 | U-31 | Minimum text height | 1.2 mm cap height | EF-12 | PQ-36 |
 | U-32 | Technical-data format | "C10", "C4", "B16", "20 A", "40 A", "6 A", "15 °C" | §3.4 | PQ-36 |
 | U-33 | Wire-number format | `{page}.{counter}`, not printed | §8.1 | PQ-22 |
-| U-34 | -XPE, -UC1 identity and numbering | per-class rules; -XPE without own part (waiver) | §6 | PQ-36 |
+| U-34 | -XPE, -UC1 identity and numbering | frozen tags -XPE (letter X), -UC1 (letter U) and -UC1-plate (the mounting plate, child of -UC1); -XPE without own part (waiver) | §2.1, §4.4, §6 | PQ-36 |
 | U-35 | Cover basis text | "IEC60757 / EN60204-1" kept, profile basis shown in metadata | D-37 | PQ-05 |
 | U-36 | Spare valves fitted or blanked | valves fitted (28 × 571334) | §14 | PQ-14 |
 | U-37 | Letter mapping of the shipped 2009 set (`verified = false`) | T55 reported; accepted: S for S51 and S56, U for the valve-terminal assembly and modules -201U1 … -201U9 and -202U1 … -202U3, Q for the valves (QM as an accepted alternative) | EF-18 | PQ-08 |
+| U-38 | Valve cells on the valve-terminal folio | row D, columns c−3, c−1, c+1, c+3 around the module's auxiliary column c (valves Q1 … Q4) | §6.2, §12 | — (fixture choice) |
+| U-39 | Field-device cells | valve in row G and actuator in row F, in the column of the driving valve | §6.1, §6.2, §12 | — (fixture choice) |
+| U-40 | Junction cells | J1 C11, J2 C13 (folio 101); J3 C6, J4 D7, J5 D5, J6 D6 (folio 102) | §8.3 | — (fixture choice) |
+| U-41 | 1X1 terminal offsets | dx −20, 0, +20 px from the cell centre of 101-D2 (terminals 1, 2, PE) | §6.1, §9 | — (fixture choice) |
+| U-42 | External-arrow (external reference) offsets | dy −20, 0, +20 px for J-E-206-L, -N, -PE at 101-G0; no offset for DP | §15 | — (fixture choice) |
+| U-43 | 1X1 without a strip segment | 1X1 is drawn as its three terminal symbols; no strip-segment representation | §9 | — (fixture choice) |
+| U-44 | Folio 901 report block kind | `parts_summary` | §14.1, §16 | — (fixture choice) |
+| U-45 | Manufacturer reference | `LibRef v5(ns, "manufacturers\|<name>")` with the name in its `extra.key`, a stopgap until a manufacturer library copy exists (FT-39); for example the name Siemens | §6.1, §14.1 | — (fixture choice) |
+| U-46 | -3W1 part use | quantity 1, unit m | §10, §14.1 | — (fixture choice) |
+| U-47 | Panel-builder party and author | panel-builder party without a name; no Author party, the author is the revision author | §4.2 | — (fixture choice) |
+| U-48 | End-user address storage | street `<address>`, country `<country>` | §1.2, §4.2 | — (fixture choice) |
+| U-49 | Interruption points sharing one cell | PE-1.1 … PE-1.4 at 103-G6 and PE-AIR1, PE-AIR2 at 103-G1 get distinct offsets inside their cell, set by the fix round (FT-40) | §15 | — (fixture choice) |
 
 ### 23.2 Questions for the pilot user
 

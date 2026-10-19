@@ -1,6 +1,6 @@
 # ADR-0009: Invariant catalogue: structural vs configurable prevent rules; lenient import
 
-**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -74,6 +74,12 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    `Ip` has exactly one representation**, evaluated at transaction end like every structural invariant. An IP
    function therefore never lacks an owning file and never sits on two pages; the catalogue is
    `crates/ew-model/invariants.md` (decision 5).
+4. **Acyclic structure inheritance** (2026-10-19, core team, after the independent review of cycle 6; decision log
+   ID-101; [domain model](../design/03-domain-model.md) §8.2 step 5). Tags and structure are inherited along three
+   kinds of edge: a terminal from its strip, a `Child`-scheme device from its parent, and an unplaced device from its
+   parent. The combined graph of these edges is acyclic: a new structural invariant of `ew-model`'s catalogue
+   (decision 5), so a derivation never meets an inheritance cycle. The fix round adds it with the next free number
+   (EW-INV-015 at the cycle-6 integration) and names that number in its commit (task FT-36).
 
 ## Consequences
 

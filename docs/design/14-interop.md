@@ -54,7 +54,7 @@ C-15 `%f` versus `%F`).
 | QET `.qet` 0.3–0.200, embedded `.elmt`, title blocks | read | `ew-import-qet` (roxmltree 0.21.1) | MVP | FR-IMP-006 … FR-IMP-021 |
 | QET `.qetz` formats 2–4 | read | `ew-import-qet` (zip 9.0.4); `project.sqlite` read by the host through `ew-library` (§4.14) | 1.x | FR-IMP-024 |
 | QET `.elmt` directory (the user's QET collection) | read | `ew-import-qet` (§4.3 mapper) into a user library | 1.0 ([07](07-symbols-parts-macros.md) §3.6) | FR-SYM-029 (07) |
-| Golden tables (CSV) | read | `golden-csv` importer in `ew-import-tables` (ARCH §3), the CSV bootstrap of ARCH §13, exposed as `ew import csv` and reused by `ew-testkit` | MVP | FR-IMP-022 |
+| Golden tables (CSV) | read | `csv` importer (report format `golden-csv`) in `ew-import-tables` (ARCH §3), the CSV bootstrap of ARCH §13, exposed as `ew import csv` and reused by `ew-testkit` | MVP | FR-IMP-022 |
 | Parts CSV/XLSX | read | `ew-import-catalog` column mapper into a user or company library ([07](07-symbols-parts-macros.md) §3.6) | MVP | FR-PRT-016 (07) |
 | EDZ (7-Zip, ZIP) | read | `ew-import-eplan` (sevenz-rust2 0.24.0, zip, quick-xml 0.42.0) | 1.0 | FR-IMP-025 … FR-IMP-027 |
 | EPLAN parts XML | read | `ew-import-eplan` | 1.0 | FR-IMP-028 |
@@ -125,7 +125,7 @@ digest); value types reach it through `ew-schema`'s records.
 
 ```rust
 pub trait Importer: Send + Sync {
-    fn id(&self) -> &'static str;                         // "qet", "qetz", "edz", "eplan-parts-xml", "dxf", "golden-csv"
+    fn id(&self) -> &'static str;                         // "qet", "qetz", "edz", "eplan-parts-xml", "dxf", "csv"
     fn version(&self) -> &'static str;                    // recorded in the import run; bumps on mapping changes
     fn sniff(&self, head: &[u8], path: &Path) -> Confidence;               // content first, extension last
     fn import(&self, src: &mut dyn Source, cx: &ImportCx) -> Result<ImportBatch, ImportError>;
@@ -181,6 +181,16 @@ importer may raise it explicitly under its own budget.
 
 `ew-interop-api` implements `ImportCx` as `ImportContext`, in a minimal form (`project`, `lineage`, `as_of`,
 `limits`); the other members arrive with the importers that need them.
+
+**Importer IDs, input sets and bootstrap importers** ([ADR-0021](../adr/0021-importers-emit-format-level-records.md)
+amendment 6; decision log ID-64, ID-65). The importer ID is the `<importer>` of the lineage names of §2.3, so the
+golden CSV bootstrap's ID is `csv` (`csv␟fixed␟golden`); `golden-csv` is only the name of its report format. An
+importer may read a **set of inputs** instead of one `Source`: an `ImportInput` carries a file name (never a path),
+the bytes and their SHA-256, and `TablesImporter::import(&[ImportInput], &ImportContext)` reads a directory of tables
+as one batch. The rules below apply to the set as a whole: the file count, each file and the total are limited, a
+repeated name is refused, and the order of the inputs does not change the batch. A **bootstrap importer** creates the
+project record itself and derives its ID; `ImportContext.project` must be nil or equal to that ID, otherwise the
+import is refused, and the batch is applied only into an empty project.
 
 **Rules.**
 - **Purity.** `import` reads only `src`. It never opens another file, follows an external reference or touches the
@@ -1142,6 +1152,21 @@ devices, parts, potentials, connections, terminals, cables, PLC, fluid, placemen
 `v5(NS_IMPORT, "csv␟fixed␟golden")` (§2.3). It runs in **strict** mode: Golden A must contain no prevent-rule violation, so the
 bootstrap is itself a test. `ew import csv` followed by `ew export pdf` produces the 18 folios plus 903–911 (SC-1).
 
+*As built (cycle 6).* `TablesImporter` (§2.1) reads the 23 tables of `golden/J-E-2416/tables/`, whose schemas its
+README gives: project, parties and structure, sections, pages and report blocks, parts, devices, terminals, functions,
+representations and the connectivity tables. PLC and bus, fluid, layout and the configured products of
+[20](20-golden-project.md) §11–§14.2 are not covered yet, because their record kinds are reserved in schema v0, and
+`colour_profile`, `size_profile` and `revisions` are read but not emitted (one EW-IMP-004 each). The importer never
+repairs a table: a malformed or duplicate row is dropped with EW-IMP-002, a row with an unresolved reference with
+EW-IMP-003, and a position or symbol anchor off the page's connection grid is an EW-IMP-002 error that drops the
+row, never a snap, because the grid rule binds every origin ([06](06-schematic-editor.md) §5.7; decision log ID-71,
+ID-110); a key that is not in NFC is refused with EW-IMP-002 as well. The cycle-6 code still snaps and accepts both
+until task FT-19. A function is template-origin when its device carries a part whose template declares a function
+with the same FnDef (and role, if given); the part's CP pattern then defines its CP index space (ID-108). A
+manufacturer is referenced by its name in a `LibRef`'s `extra.key` until a manufacturer library copy exists (FT-39).
+Not covered yet: the MICO 4.10 13-14 signal-contact template, FR-DEV-037 "supplied by others", the -201U1:DP port,
+and doc 20 §11–§13 and §14.2. `ew import csv` is not wired yet, because `bin/ew` has no subcommands (task FT-27).
+
 ### 8.5 Translation exchange: XLIFF 2.1 and CSV (1.0)
 
 No other document specifies the file side of FR-I18N-006 and FR-I18N-007, so it is fixed here; the language model
@@ -1226,6 +1251,11 @@ node limit, the text-node limit, the 16 MiB element-definition input preset and 
 extra allocation. Report locations use a sparse line index (one checkpoint per 64 KiB of input), so memory stays
 O(size / 64 KiB) whatever the number of newlines. The attribute work budget and the node default are what make the
 1 s / 256 MB rule hold against inputs that stay under the per-element and per-document attribute counts.
+
+**Algorithmic complexity.** Bounding the input is not enough: the work an importer does per item must not grow with
+the input either. Every structural walk of an importer (parent and inheritance walks, junction cascades, clean-ups,
+reference resolution) is linear or O(n log n) in the number of rows or nodes, never quadratic, so a hostile input
+under every limit still meets the 1 s / 256 MB rule (decision log ID-115).
 
 **Fuzz targets:** `qet_project`, `qet_element`, `qet_titleblock`, `qetz`, `edz_7z`, `edz_zip`, `parts_xml`,
 `eplan_table`, `dxf`, `dwg` (1.x), `table_xlsx`, `table_csv`, `xliff`, `svg_logo`, `pdf_underlay`, `bmecat` (1.x), plus the
@@ -1529,6 +1559,6 @@ The nine rows this document proposed are in the catalogues:
     tables (§8.2) and translation files (§8.5), a glb writer for FR-EXP-007, and `ew import csv` in the shipped `ew`
     binary (FR-EXT-008, MVP),
     which must not depend on a test crate. **Resolved:** ARCH §3 adds the GPL `ew-import-tables` crate (the
-    `golden-csv` importer behind `ew import csv`, the round-trip table reader and the translation tables; csv and
+    `csv` importer behind `ew import csv`, decision log ID-64, the round-trip table reader and the translation tables; csv and
     calamine), which `ew-testkit` reuses, adds calamine and csv to `ew-import-eplan`, and gives `ew-panel` the glTF
     (glb) and STL writer for `layout_scene` ([12](12-panel-layout.md) §1.2).
