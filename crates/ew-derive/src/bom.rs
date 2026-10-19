@@ -147,9 +147,17 @@ pub struct BomRow {
 ///    limit); part data comes from the part copy; the devices are sorted by their short tag, full tag and
 ///    ID (natural order); the pages are those of the devices' main representations, in page order.
 /// 4. **Order:** rows with a placed device first, by the least (page-order position, column, row) of their
-///    devices' main representations (a missing cell counts as `u32::MAX`), then by part number; rows
-///    without a placed device after them, by the legend rank of the part kind (enclosure, mounting plate,
-///    rail, duct, other), part number and description. The key breaks every remaining tie.
+///    devices' main representations (a missing cell counts as `u32::MAX`), then by the head rank, then by
+///    part number; rows without a placed device after them, by the legend rank of the part kind
+///    (enclosure, mounting plate, rail, duct, other), part number and description. The key breaks every
+///    remaining tie. The *head rank* is 0 for every row that is not a configured product. Configured
+///    products of one head device tie on the cell, and the head's own order of its configured parts breaks
+///    that tie before the part number does (doc 20 §14.2: order code 1 is A1, order code 2 is A2): the head
+///    of a configured row is the device of the row whose main representation gives the row's least
+///    placement (the smallest device ID if several tie), and the rank is the index of the config of the
+///    head's `assembly` aspect (`Device.extra["assembly"].configs`, doc 03 §7) whose `part` names the part
+///    copy, else, after every named part, the index of the part in the head's `Device.parts`. A malformed
+///    `assembly` member is ignored, so `Device.parts` order alone applies.
 /// 5. **Positions:** 1, 2, … over the component rows and, separately, over the configured rows.
 #[derive(Debug)]
 pub struct BomRows;
@@ -183,17 +191,21 @@ impl Query for BomRows {
                 continue;
             };
             let part = &copy.item;
-            let placements: Vec<Placement> =
-                devices.iter().filter_map(|d| placement(q, &order, *d)).collect();
-            let mut pages: Vec<PageRef> = placements.iter().map(|p| p.page).collect();
+            let placements: Vec<(Id<Device>, Placement)> = devices
+                .iter()
+                .filter_map(|d| placement(q, &order, *d).map(|p| (*d, p)))
+                .collect();
+            let mut pages: Vec<PageRef> = placements.iter().map(|(_, p)| p.page).collect();
             pages.sort_by_key(|p| (order.position(*p).unwrap_or(usize::MAX), *p));
             pages.dedup();
             let mut devices: Vec<Id<Device>> = devices.into_iter().collect();
             devices.sort_by_cached_key(|d| tag_order(q, *d));
             let part_number = part.part_number.as_str().to_owned();
-            let sort = match placements.iter().map(|p| p.order).min() {
-                Some((pos, column, row)) => {
-                    RowOrder::Placed(pos, column, row, natural_key(&part_number), k.clone())
+            let configured = part.kind == PartKind::Configured;
+            let sort = match placements.iter().map(|(d, p)| (p.order, *d)).min() {
+                Some(((pos, column, row), head)) => {
+                    let rank = if configured { head_rank(q, head, k.part) } else { 0 };
+                    RowOrder::Placed(pos, column, row, rank, natural_key(&part_number), k.clone())
                 }
                 None => RowOrder::Unplaced(
                     legend_rank(&part.kind),
@@ -206,7 +218,7 @@ impl Query for BomRows {
                 sort,
                 BomRow {
                     pos: 0,
-                    configured: part.kind == PartKind::Configured,
+                    configured,
                     qty,
                     unit: part.unit.clone(),
                     manufacturer: part.manufacturer.clone(),
@@ -242,8 +254,9 @@ impl Query for BomRows {
 /// The sort key of a row (step 4): placed rows first, then unplaced ones.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 enum RowOrder {
-    /// Least (page-order position, column, row) of the devices, part number, key.
-    Placed(usize, u32, u32, NaturalKey, BomRowKey),
+    /// Least (page-order position, column, row) of the devices, head rank (0 unless configured), part
+    /// number, key.
+    Placed(usize, u32, u32, usize, NaturalKey, BomRowKey),
     /// Legend rank, part number, description, key.
     Unplaced(u8, NaturalKey, NaturalKey, BomRowKey),
 }
@@ -268,6 +281,45 @@ fn placement(q: &Q, order: &PageOrderV, device: Id<Device>) -> Option<Placement>
         page,
         order: (order.position(page).unwrap_or(usize::MAX), column, row),
     })
+}
+
+/// The rank of the configured part `part` among the configured parts of `head` (step 4): the index of the
+/// config of the head's `assembly` member whose `part` names the copy; a part no config names ranks after
+/// every config, by its index in `Device.parts`; a part the head does not use ranks last.
+fn head_rank(q: &Q, head: Id<Device>, part: Id<Part>) -> usize {
+    let Some(dev) = q.devices().get(head) else {
+        return usize::MAX;
+    };
+    let configs = assembly_config_parts(dev);
+    if let Some(i) = configs.iter().position(|c| *c == Some(part)) {
+        return i;
+    }
+    let by_use = dev
+        .parts
+        .iter()
+        .position(|u| u.part.copy == part)
+        .unwrap_or(usize::MAX - configs.len());
+    configs.len() + by_use
+}
+
+/// The `part` copy of each entry of `Device.extra["assembly"].configs`, in order; empty when the member is
+/// absent or not of the expected shape. An entry without a readable `part` gives `None`.
+fn assembly_config_parts(dev: &Device) -> Vec<Option<Id<Part>>> {
+    let Some(configs) = dev
+        .extra
+        .get("assembly")
+        .and_then(|a| a.get("configs"))
+        .and_then(|c| c.as_array())
+    else {
+        return Vec::new();
+    };
+    configs
+        .iter()
+        .map(|c| {
+            let part = c.get("part")?.clone();
+            serde_json::from_value::<PartRef>(part).ok().map(|p| p.copy)
+        })
+        .collect()
 }
 
 /// The sort key of a device inside a row: short tag, full tag (natural order), then the ID.

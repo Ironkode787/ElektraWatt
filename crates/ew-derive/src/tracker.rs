@@ -8,6 +8,13 @@
 //! [`ColdTracker`] drops the reports. The memo engine of `ew-memo` (after the performance spike, G-SP)
 //! implements [`Tracker`] to collect `deps: SmallVec<(DepKey, observed)>` per memo; query code does not
 //! change, because queries only ever call `Q`'s accessors.
+//!
+//! **Verifier contract.** A memo engine re-validates a value by re-reading every recorded [`DepKey`] and
+//! comparing its current stamp with the recorded `observed`; a dependency is unchanged iff the current stamp
+//! equals `observed`. The stamp of a `Row` is the row's `changed_at` (the table's for an absent row); of an
+//! `IndexKey` the key's `changed_at` (the index's for an absent key); of a `Table` or `Index` the table's or
+//! index's; of `Project` the project row's; of `Reserved` the model's revision. Stamps only grow, and a query
+//! result depends only on the recorded reads.
 
 use std::cell::RefCell;
 use std::fmt;

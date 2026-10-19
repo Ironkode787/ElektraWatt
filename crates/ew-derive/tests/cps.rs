@@ -2,19 +2,25 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Connection-point instantiation (`function_cps`, doc 03 §7, FR-DEV-008): FnDef CPs, overrides, black
-//! boxes from a part pattern.
+//! boxes from a part pattern, functions from a part's function template.
 
 mod common;
 
 use common::{Fx, LIBRARY, id, uid};
 use ew_derive::{Cp, FunctionCps, Q};
-use ew_schema::PotentialType;
+use ew_ids::{Id, Uuid, v5::lib_copy_id};
+use ew_schema::{Discipline, FnDef, PotentialType, Side};
 use serde_json::{Value, json};
 
 const FNDEF_MCB: u128 = 0x500;
 const FNDEF_BOX: u128 = 0x501;
 const PART_PLAIN: u128 = 0x600;
 const PART_PATTERN: u128 = 0x601;
+const FNDEF_TERM: u128 = 0x502;
+const FNDEF_OTHER: u128 = 0x503;
+const PART_TERM: u128 = 0x602;
+const PART_TERM_SUBSET: u128 = 0x603;
+const PART_TERM_OTHER: u128 = 0x604;
 
 fn part_json(number: &str, extra: Value) -> Value {
     let mut p = json!({
@@ -161,4 +167,154 @@ fn missing_function_and_missing_def_have_no_cps() {
     // missing function is testable here; the missing-def branch is defensive.
     let fx = base();
     assert!(cps(&fx, 0x4242).is_empty());
+}
+
+/// The `LibRef` JSON naming the library item `n` (an FnDef whose copy `fndef_copy(n)` is embedded).
+fn fndef_ref(n: u128) -> Value {
+    json!({"library": uid(LIBRARY), "item": uid(n), "version_req": "^1"})
+}
+
+/// The copy ID of library item `n`: `v5(NS_LIBCOPY, library, item)`, the ID that a template reference
+/// resolves to (doc 05 §13.2). The function's `def` must be this ID for the template to name it.
+fn fndef_copy(n: u128) -> String {
+    let copy: Id<FnDef> = lib_copy_id(Uuid::from_u128(LIBRARY), Uuid::from_u128(n));
+    copy.as_uuid().hyphenated().to_string()
+}
+
+/// An embedded FnDef with item ID `n` and its real copy ID.
+fn lib_fndef(fx: &mut Fx, n: u128, category: [&str; 3], cps: Value) {
+    fx.lib(json!({
+        "$k": "fndef",
+        "id": fndef_copy(n),
+        "library_id": uid(LIBRARY),
+        "item_id": uid(n),
+        "version": "1.0.0",
+        "sha256": common::sha(0x42),
+        "meta": {}, "category": category, "contact_kind": "pole", "cps": cps,
+    }));
+}
+
+/// A terminal FnDef whose CPs carry a discipline, an alias and flags, and a family of terminal parts whose
+/// CP patterns differ from it.
+fn with_terminals() -> Fx {
+    let mut fx = base();
+    lib_fndef(
+        &mut fx,
+        FNDEF_TERM,
+        ["Terminal", "Terminal", "Feed"],
+        json!([
+            {"idx": 0, "designation": "a", "alias": "A", "discipline": "bus", "potential_role": "l_minus",
+             "source_output": true, "optional": true, "level": 9, "side": "side2"},
+            {"idx": 1, "designation": "b", "discipline": "pneumatic", "physical": false},
+            {"idx": 2, "designation": "c"},
+            {"idx": 3, "designation": "d", "alias": "D"},
+        ]),
+    );
+    lib_fndef(
+        &mut fx,
+        FNDEF_OTHER,
+        ["Terminal", "Terminal", "Other"],
+        json!([{"idx": 0, "designation": "o"}]),
+    );
+    // The pattern differs from the FnDef in designation, level, side and (for idx 1) potential role.
+    let pattern = json!([
+        {"idx": 0, "designation": "1", "level": 1, "side": "side1"},
+        {"idx": 1, "designation": "2", "level": 2, "side": "side2", "potential_role": "l_plus"},
+        {"idx": 2, "designation": "3", "level": 3},
+        {"idx": 3, "designation": "4"},
+    ]);
+    fx.lib_item(
+        "part",
+        PART_TERM,
+        part_json(
+            "TERM",
+            json!({"cp_pattern": pattern, "function_template": [
+                {"fndef": fndef_ref(FNDEF_TERM), "main": true},
+            ]}),
+        ),
+    );
+    // A template naming only idx 3 and 1 (given in that order): indices, not positions.
+    fx.lib_item(
+        "part",
+        PART_TERM_SUBSET,
+        part_json(
+            "TERM-SUBSET",
+            json!({"cp_pattern": pattern, "function_template": [
+                {"fndef": fndef_ref(FNDEF_TERM), "main": true, "cps": [3, 1]},
+            ]}),
+        ),
+    );
+    // A pattern, but a template that names another FnDef.
+    fx.lib_item(
+        "part",
+        PART_TERM_OTHER,
+        part_json(
+            "TERM-OTHER",
+            json!({"cp_pattern": pattern, "function_template": [
+                {"fndef": fndef_ref(FNDEF_OTHER), "main": true},
+            ]}),
+        ),
+    );
+    fx
+}
+
+fn terminal_function(fx: &mut Fx, parts: &[u128]) {
+    let uses: Vec<Value> = parts
+        .iter()
+        .map(|p| json!({"part": {"copy": uid(*p)}, "qty": "1"}))
+        .collect();
+    fx.device(0x1000, "X", Some(1))
+        .with("parts", Value::Array(uses))
+        .push(json!({"$k": "function", "id": uid(0x1001), "device": uid(0x1000), "def": fndef_copy(FNDEF_TERM)}));
+}
+
+#[test]
+fn terminal_function_from_part_template_uses_the_pattern() {
+    let mut fx = with_terminals();
+    // The plain part comes first and has no template: the first template match wins.
+    terminal_function(&mut fx, &[PART_PLAIN, PART_TERM]);
+    fx.record(0x1001)["cp_overrides"] = json!([{"idx": 2, "alias": "three"}]);
+    let out = cps(&fx, 0x1001);
+    assert_eq!(designations(&out), [(0, "1"), (1, "2"), (2, "3"), (3, "4")]);
+    // From the pattern: level, side, clamp; the role from the pattern, else from the FnDef.
+    assert_eq!((out[0].level, out[0].side.clone()), (Some(1), Some(Side::Side1)));
+    assert_eq!((out[1].level, out[1].side.clone()), (Some(2), Some(Side::Side2)));
+    assert_eq!((out[2].level, out[2].side.clone()), (Some(3), None));
+    assert_eq!((out[3].level, out[3].side.clone()), (None, None));
+    assert_eq!(out[0].potential_role, Some(PotentialType::LMinus));
+    assert_eq!(out[1].potential_role, Some(PotentialType::LPlus));
+    assert_eq!(out[2].potential_role, None);
+    // From the FnDef: discipline, alias, source output, optional, physical.
+    assert_eq!(out[0].discipline, Discipline::Bus);
+    assert_eq!(out[0].alias.as_deref(), Some("A"));
+    assert!(out[0].source_output && out[0].optional && out[0].physical);
+    assert_eq!(out[1].discipline, Discipline::Pneumatic);
+    assert!(!out[1].physical);
+    assert_eq!(out[2].discipline, Discipline::Electrical);
+    assert_eq!(out[3].alias.as_deref(), Some("D"));
+    // Overrides apply afterwards.
+    assert_eq!(out[2].alias.as_deref(), Some("three"));
+    assert!(out[2].overridden);
+}
+
+#[test]
+fn template_cps_subset_follows_template_indices() {
+    let mut fx = with_terminals();
+    terminal_function(&mut fx, &[PART_TERM_SUBSET]);
+    let out = cps(&fx, 0x1001);
+    // `cps` names CP indices (`CpData.idx`), not positions of the pattern, and the result is in idx order.
+    assert_eq!(designations(&out), [(1, "2"), (3, "4")]);
+    assert_eq!(out[0].discipline, Discipline::Pneumatic);
+    assert_eq!(out[1].alias.as_deref(), Some("D"));
+}
+
+#[test]
+fn function_not_named_by_a_template_keeps_fndef_cps() {
+    let mut fx = with_terminals();
+    // The part has a pattern, but its template names another FnDef; the pattern part has no template at all.
+    terminal_function(&mut fx, &[PART_TERM_OTHER, PART_PATTERN]);
+    let out = cps(&fx, 0x1001);
+    assert_eq!(designations(&out), [(0, "a"), (1, "b"), (2, "c"), (3, "d")]);
+    assert_eq!(out[0].level, Some(9));
+    assert_eq!(out[0].discipline, Discipline::Bus);
 }

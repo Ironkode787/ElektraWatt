@@ -109,6 +109,11 @@ impl Cache {
         self.family::<Qy>().insert(key, Slot::Done(value));
     }
 
+    /// Removes the slot of `key` (a running evaluation that unwound).
+    pub(crate) fn abort<Qy: Query>(&mut self, key: &Qy::Key) {
+        self.family::<Qy>().remove(key);
+    }
+
     /// The number of cached keys (running or done) of `family`.
     pub(crate) fn len_of(&self, family: &str) -> usize {
         self.families.get(family).map_or(0, |f| (f.len)(f.map.as_ref()))

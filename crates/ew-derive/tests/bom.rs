@@ -521,8 +521,9 @@ fn component_mode_drops_configured_parts() {
 #[test]
 fn assembly_mode_replaces_the_covered_rows_by_configured_rows() {
     let out = rows(&assembly(), BomMode::Assembly);
-    // Both configured products sit on the head: same position, part number decides.
-    assert_eq!(numbers(&out), ["32P-VGL-R", "51E-F13GCQP-D+H2GG", "550208"]);
+    // Both configured products sit on the head: same position, the head's part order decides (CPX first),
+    // not the part number.
+    assert_eq!(numbers(&out), ["51E-F13GCQP-D+H2GG", "32P-VGL-R", "550208"]);
     let configured: Vec<&BomRow> = out.iter().filter(|r| r.configured).collect();
     assert_eq!(configured.len(), 2);
     assert_eq!(configured.iter().map(|r| r.pos).collect::<Vec<_>>(), [1, 2]);
@@ -541,4 +542,53 @@ fn assembly_mode_replaces_the_covered_rows_by_configured_rows() {
     assert_eq!(rest.qty, Dec3::ONE);
     assert_eq!(rest.devices, [id(0x2100)]);
     assert_eq!(rest.pages, [PageRef::Drawn(id(PAGE202))]);
+}
+
+/// The configured rows of a head with `parts` (and optionally an `assembly` member), in assembly mode.
+fn configured_numbers(parts: &[(u128, &str)], assembly: Option<Value>) -> Vec<String> {
+    let mut fx = base();
+    dev(&mut fx, 0x2000, "201U1", false, parts, Some(PAGE201));
+    if let Some(a) = assembly {
+        fx.record(0x2000)["assembly"] = a;
+    }
+    rows(&fx, BomMode::Assembly)
+        .into_iter()
+        .filter(|r| r.configured)
+        .map(|r| r.part_number)
+        .collect()
+}
+
+#[test]
+fn configured_rows_follow_the_heads_part_order() {
+    // The part numbers sort 32P-... < 51E-..., the head lists the CPX product first: A1 is the CPX product.
+    let parts = [(P_CONF_CPX, "1"), (P_CONF_MPA, "1")];
+    assert_eq!(
+        configured_numbers(&parts, None),
+        ["51E-F13GCQP-D+H2GG", "32P-VGL-R"]
+    );
+    // An assembly member without configs, or a malformed one, leaves the part order in force.
+    for assembly in [json!({}), json!("junk"), json!({"configs": 3})] {
+        assert_eq!(
+            configured_numbers(&parts, Some(assembly)),
+            ["51E-F13GCQP-D+H2GG", "32P-VGL-R"]
+        );
+    }
+}
+
+#[test]
+fn configured_rows_follow_the_assembly_config_order() {
+    // The head lists the MPA product first, but its configs name the CPX product first.
+    let parts = [(P_CONF_MPA, "1"), (P_CONF_CPX, "1")];
+    assert_eq!(
+        configured_numbers(&parts, None),
+        ["32P-VGL-R", "51E-F13GCQP-D+H2GG"]
+    );
+    let assembly = json!({"configs": [
+        {"label": {"en": "CPX"}, "order_code": "1", "part": {"copy": uid(P_CONF_CPX)}, "covers": []},
+        {"label": {"en": "MPA"}, "order_code": "2", "part": {"copy": uid(P_CONF_MPA)}, "covers": []},
+    ]});
+    assert_eq!(
+        configured_numbers(&parts, Some(assembly)),
+        ["51E-F13GCQP-D+H2GG", "32P-VGL-R"]
+    );
 }

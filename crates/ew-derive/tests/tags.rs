@@ -158,3 +158,23 @@ fn unplaced_and_unnumbered_devices_print_placeholders() {
     assert!(q.get::<DeviceTag>(id(0x9999)).is_none());
     assert!(q.get::<PageStructure>(id(0x9999)).slots.is_empty());
 }
+
+#[test]
+fn frozen_terminal_tag_wins() {
+    // Doc 03 §8.2: a frozen tag beats every other rule, the terminal rule included.
+    let mut fx = base();
+    placed(&mut fx, 0x1000, "X", Some(1), PAGE103);
+    fx.record(0x1000)["strip"] = json!({});
+    fx.device(0x1100, "X", None).with(
+        "terminal",
+        json!({"strip": uid(0x1000), "seq": 1, "designation": "1"}),
+    );
+    fx.record(0x1100)["tag"]["frozen"] = json!({"text": "T77"});
+    let m = fx.build();
+    let q = Q::new(&m);
+    let tag = q.get::<DeviceTag>(id(0x1100));
+    let tag = tag.as_ref().as_ref().unwrap();
+    assert_eq!(tag.product, "T77");
+    assert_eq!(tag.source, TagSource::Frozen);
+    assert_eq!(tag.cp, None);
+}

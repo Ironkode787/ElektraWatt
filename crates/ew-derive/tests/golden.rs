@@ -29,7 +29,8 @@
 //!   `bom_assembly_rows_replace_the_covered_rows`.
 //! - **Determinism** (NFR-REL-07): the same project built in another record and library order gives equal
 //!   page order, TOC, tags, anchor cells, title blocks and BOM rows in both modes:
-//!   `derived_values_do_not_depend_on_record_order`.
+//!   `derived_values_do_not_depend_on_record_order`, and in 16 seeded shuffles of the records and library
+//!   documents: `derived_values_do_not_depend_on_record_order_shuffled`.
 //!
 //! The fixture is a subset of Golden A (see `tests/common/golden.rs`): the quantities of the strips and of
 //! the 533361 and 571334 rows count the fixture's devices, not the 20, 5, 7 and 28 of doc 20.
@@ -362,6 +363,7 @@ fn title_block_value_sets_match_the_specification() {
         ("page.title", ml_value("Power Supply 1 - Main Current")),
         ("page.description", ml_value("Expansion Control Cabinets")),
         ("page.function", text("=P01")),
+        ("page.last_changed_in", text("V1.0")),
         ("page.location", text("+J-E-2416")),
         ("doc.page_index", text("4")),
         ("doc.page_count", text("16")),
@@ -380,6 +382,7 @@ fn title_block_value_sets_match_the_specification() {
         ("page.title", ml_value("Valve Manifold Overview 1")),
         ("page.description", ml_value("Expansion Control Cabinets")),
         ("page.function", text("=P01")),
+        ("page.last_changed_in", text("V1.0")),
         ("page.location", text("+J-E-2416")),
         ("doc.page_index", text("9")),
         ("doc.page_count", text("16")),
@@ -700,11 +703,10 @@ fn bom_assembly_rows_replace_the_covered_rows() {
         assert_eq!(r.devices, [id(dev_201u(1))]);
         assert_eq!(r.pages, [PageRef::Drawn(id(PAGE_201))]);
     }
-    // Doc 20 §14.2 lists the CPX order code as A1 and the MPA order code as A2. Both rows sit at the
-    // head's cell, so the row key orders them by order code: 32P-... before 51E-... .
-    let mut codes: Vec<&str> = configured.iter().map(|r| r.part_number.as_str()).collect();
-    codes.sort_unstable();
-    assert_eq!(codes, [CODE_MPA, CODE_CPX]);
+    // Doc 20 §14.2: the CPX order code is A1 and the MPA order code is A2. Both rows sit at the head's cell,
+    // so the head's part order (CPX before MPA) decides, not the part numbers (32P-... sorts first).
+    let codes: Vec<&str> = configured.iter().map(|r| r.part_number.as_str()).collect();
+    assert_eq!(codes, [CODE_CPX, CODE_MPA]);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -754,5 +756,36 @@ fn derived_values_do_not_depend_on_record_order() {
     for (x, y) in a.iter().zip(&b) {
         assert_eq!(x.0, y.0);
         assert_eq!(x.1, y.1, "{}", x.0);
+    }
+}
+
+/// A deterministic Fisher-Yates shuffle driven by a 64-bit LCG (Knuth's MMIX constants) seeded with `seed`.
+fn shuffle<T>(items: &mut [T], seed: u64) {
+    let mut state = seed;
+    let mut next = move || {
+        state = state
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        state >> 33
+    };
+    for i in (1..items.len()).rev() {
+        let j = (next() % (i as u64 + 1)) as usize;
+        items.swap(i, j);
+    }
+}
+
+#[test]
+fn derived_values_do_not_depend_on_record_order_shuffled() {
+    let forward = derived_text(&golden());
+    for seed in 0..16u64 {
+        let mut fx = golden();
+        shuffle(&mut fx.records, seed);
+        shuffle(&mut fx.lib, seed.wrapping_add(1_000));
+        let shuffled = derived_text(&fx);
+        assert_eq!(forward.len(), shuffled.len(), "seed {seed}");
+        for (x, y) in forward.iter().zip(&shuffled) {
+            assert_eq!(x.0, y.0, "seed {seed}");
+            assert_eq!(x.1, y.1, "seed {seed}: {}", x.0);
+        }
     }
 }

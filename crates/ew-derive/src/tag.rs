@@ -7,20 +7,30 @@
 //! normaliser of `ew-commands` (ID-48) in the scope (page of the main representation, letter). For the
 //! printed tags to be unique wherever the counters are, `device_tag` uses the same two rules as
 //! `ew_commands::numbering`: the main function is the device's function with role `Main` and the smallest
-//! ID, and the main representation is the smallest-ID representation that draws it. The richer rule of
+//! ID, and the main representation is the smallest-ID representation that draws it, contact images
+//! excluded (doc 03 §5.1: a contact image never counts as the main representation). The richer rule of
 //! doc 03 §8.2 step 4 (lowest page order, row, column among the counted representation types) replaces
 //! both at once with WP-S1.11; `tests/agreement.rs` holds the two layers together until then.
+//!
+//! **Schemes the command layer does not number.** The command layer numbers per (page of the main
+//! representation, letter) and nothing else (ID-48). A scheme is therefore applied only when that makes
+//! its tags unique wherever the counters are: its counter scope is `"page"` and its format and every
+//! rule's format contain `{page}`, `{letter}` and `{counter}`. Any other scheme (from the project's
+//! settings or named by `TagScheme::Named`) is skipped with a [`DeriveNote::SchemeNotApplied`] and the
+//! pinned profile's default scheme formats the tag (decision log ID-99; until WP-S1.11 numbers every
+//! scheme).
 
 use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_rds::{Aspect, Designation, RdsSyntax};
-use ew_schema::{Device, DeviceKind, FnRole, Function, Representation, TagScheme, TagSign};
+use ew_schema::{Device, DeviceKind, FnRole, Function, RepType, Representation, TagScheme, TagSign};
 
 use crate::Q;
 use crate::cell::RepAnchorCell;
+use crate::note::{DeriveNote, SchemeIssue};
 use crate::pages::folio_label;
-use crate::profile::{self, NumberingScheme};
+use crate::profile::{self, CounterScope, NumberingScheme, NumberingSettings};
 use crate::query::{Policy, Query};
 use crate::structure::{PageStructure, ResolvedStructure, StructureOf};
 
@@ -44,8 +54,8 @@ impl Query for MainFunction {
     }
 }
 
-/// `main_rep(device)`: the smallest-ID representation that draws the main function; `None` for an
-/// unplaced device.
+/// `main_rep(device)`: the smallest-ID representation that draws the main function and is not a contact
+/// image (doc 03 §5.1); `None` for an unplaced device.
 #[derive(Debug)]
 pub struct MainRep;
 
@@ -59,7 +69,12 @@ impl Query for MainRep {
         let Some(f) = *q.get::<MainFunction>(*key) else {
             return Arc::new(None);
         };
-        Arc::new(q.idx().reps_of_function(f).next())
+        let reps = q.reps();
+        Arc::new(
+            q.idx()
+                .reps_of_function(f)
+                .find(|r| reps.get(*r).is_some_and(|r| r.rep_type != RepType::ContactImage)),
+        )
     }
 }
 
@@ -139,9 +154,10 @@ fn push_product(d: &mut Designation, product: &str, cp: Option<&str>) {
 /// `device_tag(device)`: the derived tag (doc 03 §8.2); `None` for a missing device.
 ///
 /// Product designation, first match wins:
-/// 1. a **terminal** (`Terminal` aspect): its strip's product designation, the terminal designation as
+/// 1. a **frozen** tag (wins over every other rule, doc 03 §8.2): its text; the sign is hidden on pages for
+///    `TagSign::Hidden`;
+/// 2. a **terminal** (`Terminal` aspect): its strip's product designation, the terminal designation as
 ///    connection point (`X1031` + `:1`), the strip's structure;
-/// 2. a **frozen** tag: its text; the sign is hidden on pages for `TagSign::Hidden`;
 /// 3. scheme **`Child`**: the parent's product designation, the scheme's `child_separator`, the letter and
 ///    the counter (`201U3-Q1`, FR-DEV-021); the parent's structure;
 /// 4. otherwise the device's numbering scheme (the project's `settings.numbering`, else the pinned
@@ -186,12 +202,81 @@ fn counter_text(counter: Option<u32>) -> String {
     counter.map_or_else(|| "?".to_owned(), |c| c.to_string())
 }
 
+/// The tag of the device another tag is built from (a terminal's strip, a child's parent), through
+/// [`Q::try_get`]; `Err` on a cycle, which is noted.
+fn tag_of(q: &Q, device: Id<Device>) -> Result<Option<Tag>, ()> {
+    match q.try_get::<DeviceTag>(device) {
+        Ok(t) => Ok((*t).clone()),
+        Err(cycle) => {
+            q.note_cycle(cycle);
+            Err(())
+        }
+    }
+}
+
+/// Why the command layer's counters would not make `scheme`'s tags unique, if they would not.
+fn scheme_issue(scheme: &NumberingScheme) -> Option<SchemeIssue> {
+    if scheme.counter_scope != CounterScope::Named("page".to_owned()) {
+        return Some(SchemeIssue::CounterScope);
+    }
+    let formats =
+        std::iter::once(scheme.format.as_str()).chain(scheme.rules.iter().map(|r| r.format.as_str()));
+    for f in formats {
+        if !f.contains("{page}") {
+            return Some(SchemeIssue::FormatWithoutPage);
+        }
+        if !(f.contains("{letter}") && f.contains("{counter}")) {
+            return Some(SchemeIssue::FormatWithoutCounter);
+        }
+    }
+    None
+}
+
+/// The scheme that formats a numbered tag: the requested one ([`profile::scheme_for`]: the named scheme,
+/// else the project's default, else the profile's), or the pinned profile's default scheme when the command
+/// layer's counters would not keep the requested one's tags unique (noted, decision log ID-99). A named key
+/// the settings do not define is noted too.
+fn applied_scheme<'a>(
+    q: &'a Q,
+    settings: Option<&'a NumberingSettings>,
+    named: Option<&str>,
+) -> &'a NumberingScheme {
+    let profile = q.profile();
+    if let (Some(key), Some(settings)) = (named, settings) {
+        if !settings.schemes.iter().any(|s| s.key == key) {
+            q.note(DeriveNote::SchemeNotApplied {
+                scheme: key.to_owned(),
+                issue: SchemeIssue::UnknownKey,
+            });
+        }
+    }
+    let requested = profile::scheme_for(settings, profile, named);
+    if std::ptr::eq(requested, &profile.numbering) {
+        return requested;
+    }
+    match scheme_issue(requested) {
+        None => requested,
+        Some(issue) => {
+            q.note(DeriveNote::SchemeNotApplied {
+                scheme: requested.key.clone(),
+                issue,
+            });
+            &profile.numbering
+        }
+    }
+}
+
 fn product_designation(q: &Q, id: Id<Device>, dev: &Device) -> (String, Option<String>, bool, TagSource) {
+    if let Some(frozen) = &dev.tag.frozen {
+        let sign = !matches!(frozen.sign, TagSign::Hidden);
+        return (frozen.text.as_str().to_owned(), None, sign, TagSource::Frozen);
+    }
     if let Some(t) = &dev.aspects.terminal {
-        let strip = q.get::<DeviceTag>(t.strip);
-        let (product, sign) = match strip.as_ref() {
-            Some(s) => (s.product.clone(), s.sign_on_pages),
-            None => (String::new(), true),
+        // The strip edge of the inheritance graph (EW-INV-015): a cycle prints "?" instead of panicking.
+        let (product, sign) = match tag_of(q, t.strip) {
+            Ok(Some(s)) => (s.product, s.sign_on_pages),
+            Ok(None) => (String::new(), true),
+            Err(()) => ("?".to_owned(), true),
         };
         return (
             product,
@@ -200,28 +285,27 @@ fn product_designation(q: &Q, id: Id<Device>, dev: &Device) -> (String, Option<S
             TagSource::Terminal,
         );
     }
-    if let Some(frozen) = &dev.tag.frozen {
-        let sign = !matches!(frozen.sign, TagSign::Hidden);
-        return (frozen.text.as_str().to_owned(), None, sign, TagSource::Frozen);
-    }
-    let settings = profile::numbering_settings(q.project());
-    let named = match &dev.tag.scheme {
-        TagScheme::Named(k) => Some(k.as_str()),
-        _ => None,
-    };
-    let scheme = profile::scheme_for(settings.as_ref(), q.profile(), named);
+    let settings = q.get::<profile::NumberingSettingsOf>(());
     let letter = dev.tag.letter.as_str();
     if dev.tag.scheme == TagScheme::Child {
-        let parent = dev
-            .parent
-            .and_then(|p| q.get::<DeviceTag>(p).as_ref().as_ref().map(|t| t.product.clone()));
+        let scheme = profile::scheme_for(settings.as_ref().as_ref(), q.profile(), None);
+        // The parent edge of the inheritance graph (EW-INV-015): a cycle prints "?" for the parent.
+        let parent = dev.parent.map(|p| match tag_of(q, p) {
+            Ok(t) => t.map(|t| t.product),
+            Err(()) => Some("?".to_owned()),
+        });
         let own = format!("{letter}{}", counter_text(dev.tag.counter));
-        let product = match parent {
+        let product = match parent.flatten() {
             Some(p) if !p.is_empty() => format!("{p}{}{own}", scheme.child_separator),
             _ => own,
         };
         return (product, None, true, TagSource::Child);
     }
+    let named = match &dev.tag.scheme {
+        TagScheme::Named(k) => Some(k.as_str()),
+        _ => None,
+    };
+    let scheme = applied_scheme(q, settings.as_ref().as_ref(), named);
     let format = rule_format(scheme, dev);
     let product = render_format(q, id, dev, format);
     (

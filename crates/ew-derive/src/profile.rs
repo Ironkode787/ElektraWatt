@@ -14,10 +14,14 @@
 //! types `ProjectSettings.numbering` (WP-S1.11), it is read from `ProjectSettings.extra["numbering"]`
 //! with the JSON shape of doc 03 §5.1.
 
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 
 use ew_schema::{Project, RepType};
 use serde::Deserialize;
+
+use crate::Q;
+use crate::note::DeriveNote;
+use crate::query::{Policy, Query};
 
 /// The shipped profiles, oldest first: `(version, TOML source)`.
 const SHIPPED: &[(&str, &str)] = &[("2027.1", include_str!("../profiles/2027.1.toml"))];
@@ -232,6 +236,36 @@ pub struct NumberingSettings {
 pub fn numbering_settings(project: &Project) -> Option<NumberingSettings> {
     let value = project.settings.extra.get("numbering")?;
     serde_json::from_value(value.clone()).ok()
+}
+
+/// `numbering_settings()`: [`numbering_settings`] parsed once per [`Q`]. A member that is present but does
+/// not parse yields `None` (the profile's default applies) and a [`DeriveNote::MalformedShim`] for
+/// `settings.numbering` with the parser's message.
+#[derive(Debug)]
+pub struct NumberingSettingsOf;
+
+impl Query for NumberingSettingsOf {
+    type Key = ();
+    type Value = Option<NumberingSettings>;
+    const FAMILY: &'static str = "numbering_settings";
+    const POLICY: Policy = Policy::Cold;
+
+    fn run(q: &Q, _key: &()) -> Arc<Option<NumberingSettings>> {
+        let project = q.project();
+        let Some(value) = project.settings.extra.get("numbering") else {
+            return Arc::new(None);
+        };
+        match serde_json::from_value(value.clone()) {
+            Ok(settings) => Arc::new(Some(settings)),
+            Err(e) => {
+                q.note(DeriveNote::MalformedShim {
+                    member: "settings.numbering".into(),
+                    detail: e.to_string(),
+                });
+                Arc::new(None)
+            }
+        }
+    }
 }
 
 /// The scheme a tag with `named` (`None` for the default scheme) uses: the project's scheme of that key,

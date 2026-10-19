@@ -64,8 +64,10 @@ pub struct NodePath {
 
 /// `structure_path(node)`: the node's path from the root of its tree.
 ///
-/// A parent cycle cannot exist (invariant STRUCTURE_ACYCLIC); the walk still stops at the first repeated
-/// node, so a corrupt snapshot yields a finite path.
+/// The path is the parent's path plus the node, so a chain of `n` nodes costs `n` evaluations whichever
+/// node is asked first. A parent cycle cannot exist (EW-INV-008); on a corrupt snapshot with one, the node
+/// whose parent is still being evaluated is taken as a root, the cycle is recorded as a
+/// [`DeriveNote::QueryCycle`](crate::DeriveNote::QueryCycle) and the paths stay finite.
 #[derive(Debug)]
 pub struct StructurePath;
 
@@ -76,30 +78,33 @@ impl Query for StructurePath {
     const POLICY: Policy = Policy::Cold;
 
     fn run(q: &Q, key: &Self::Key) -> Arc<NodePath> {
-        let nodes = q.structure_nodes();
-        let mut chain: Vec<(Id<StructureNode>, String)> = Vec::new();
-        let mut aspect = None;
-        let mut cur = Some(*key);
-        while let Some(id) = cur {
-            if chain.iter().any(|(seen, _)| *seen == id) {
-                break;
+        let Some(node) = q.structure_nodes().get(*key) else {
+            return Arc::new(NodePath {
+                aspect: None,
+                nodes: Vec::new(),
+                codes: Vec::new(),
+            });
+        };
+        let mut path = NodePath {
+            aspect: match &node.aspect {
+                Open::Known(a) => Some(*a),
+                Open::Unknown(_) => None,
+            },
+            nodes: Vec::new(),
+            codes: Vec::new(),
+        };
+        if let Some(parent) = node.parent {
+            match q.try_get::<StructurePath>(parent) {
+                Ok(above) => {
+                    path.nodes.clone_from(&above.nodes);
+                    path.codes.clone_from(&above.codes);
+                }
+                Err(cycle) => q.note_cycle(cycle),
             }
-            let Some(node) = nodes.get(id) else { break };
-            if chain.is_empty() {
-                aspect = match &node.aspect {
-                    Open::Known(a) => Some(*a),
-                    Open::Unknown(_) => None,
-                };
-            }
-            chain.push((id, node.code.as_str().to_owned()));
-            cur = node.parent;
         }
-        chain.reverse();
-        Arc::new(NodePath {
-            aspect,
-            nodes: chain.iter().map(|(id, _)| *id).collect(),
-            codes: chain.into_iter().map(|(_, c)| c).collect(),
-        })
+        path.nodes.push(*key);
+        path.codes.push(node.code.as_str().to_owned());
+        Arc::new(path)
     }
 }
 
@@ -226,6 +231,11 @@ pub(crate) fn structure_parent(dev: &Device) -> Option<Id<Device>> {
 ///
 /// Structure boxes around the main representation (FR-PRJ-020) are not in this format version; they
 /// slot in between steps 1 and 3 when the record kind exists.
+///
+/// **Cycles.** Steps 2 and 4 follow the device inheritance graph (terminal → strip, device → parent),
+/// which EW-INV-015 keeps acyclic. On a snapshot that breaks it, the edge that closes the cycle reads
+/// through [`Q::try_get`], inherits nothing and notes a [`DeriveNote::QueryCycle`](crate::DeriveNote):
+/// no model content makes this query panic.
 #[derive(Debug)]
 pub struct StructureOf;
 
@@ -249,7 +259,13 @@ impl Query for StructureOf {
         };
         let parent = inherit_parent.or(if page.is_none() { dev.parent } else { None });
         let page_structure = page.map(|p| q.get::<PageStructure>(p));
-        let parent_structure = parent.map(|p| q.get::<StructureOf>(p));
+        let parent_structure = parent.and_then(|p| match q.try_get::<StructureOf>(p) {
+            Ok(s) => Some(s),
+            Err(cycle) => {
+                q.note_cycle(cycle);
+                None
+            }
+        });
         for aspect in DEVICE_ASPECTS {
             let resolved = match slot(&dev.structure, aspect) {
                 Some(Slot::Node(n)) => resolved_slot(q, *n, SlotSource::Explicit),

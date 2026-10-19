@@ -15,9 +15,18 @@
 //!   `end_user`, `panel_builder`, `author`, `checker` and `engineer`.
 //! - `page.*` and `doc.*`: [`PageOrder`] (folio, neighbours, position), [`PageTitle`],
 //!   [`PageRefStructure`] and the page row. A page that is not in the page order has none of them.
+//!   `page.last_changed_in` (drawn pages only) is the label of the revision that last changed the page
+//!   (doc 09 §2.6, doc 15 §5.6; the no-digest branch, page digests do not exist yet): the current open
+//!   revision if it names the page in its `page_notes`; else the latest released revision whose changed
+//!   pages contain it (`release.changed_pages` if present, else the pages of its `page_notes`); else the
+//!   first (lowest ranked) revision. `page_notes` entries are `{"page": <uuid>, ..}` objects or bare
+//!   UUID strings, `release.changed_pages` is an array of UUID strings; malformed entries are skipped.
 //! - `revision.current.*`: the reserved `revision` records (doc 03 §18). Their members are read leniently:
-//!   `id`, `label`, `date` (`"YYYY-MM-DD"`), `state` (printed as stored), `author` and `checker`. The
-//!   current revision is the one with the greatest (`date`, natural order of `label`, `id`). A party
+//!   `id`, `label`, `date` (`"YYYY-MM-DD"`), `state` (printed as stored), `author` and `checker`. Withdrawn
+//!   records (`state` equal to `"withdrawn"`, case-insensitive) are ignored. The current revision is the
+//!   greatest by (open before any other state, undated before dated, `date`, natural order of `label`,
+//!   `id`): an open revision wins over released ones, and a missing date counts as newest within its
+//!   state. A party
 //!   reference is not yet specified by doc 03 §18; this version accepts the role string of a party
 //!   (`"engineer"`) and takes the first party with that role.
 //!
@@ -42,6 +51,7 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
+use ew_ids::Id;
 use ew_mltext::{MlText, NaturalKey, natural_key};
 use ew_rds::{Aspect, RdsSyntax};
 use ew_schema::{Date, Kind, Page, Party, PartyRole, Project, Scale, Sha256, SupplySpec};
@@ -260,6 +270,8 @@ fn page_scope(out: &mut Out, q: &Q, project: &Project, page: PageRef) {
         out.text("page.scale", &format!("1:{n}"));
     }
 
+    last_changed_scope(out, q, page);
+
     let structure = q.get::<PageRefStructure>(page);
     let syntax = RdsSyntax::default();
     out.text(
@@ -284,6 +296,10 @@ struct RevisionView {
     state: Option<String>,
     author: Option<PartyRole>,
     checker: Option<PartyRole>,
+    /// The pages named in `page_notes`.
+    noted_pages: Vec<Id<Page>>,
+    /// `release.changed_pages`, if that member is present.
+    changed_pages: Option<Vec<Id<Page>>>,
 }
 
 impl RevisionView {
@@ -299,19 +315,64 @@ impl RevisionView {
             state: string("state"),
             author: party("author"),
             checker: party("checker"),
+            noted_pages: v
+                .get("page_notes")
+                .and_then(serde_json::Value::as_array)
+                .map(|notes| {
+                    notes
+                        .iter()
+                        .filter_map(|n| page_id(n.get("page").unwrap_or(n)))
+                        .collect()
+                })
+                .unwrap_or_default(),
+            changed_pages: v
+                .get("release")
+                .and_then(|r| r.get("changed_pages"))
+                .and_then(serde_json::Value::as_array)
+                .map(|pages| pages.iter().filter_map(page_id).collect()),
         })
     }
 
-    fn order_key(&self) -> (Option<Date>, NaturalKey, &str) {
-        (self.date, natural_key(&self.label), &self.id)
+    fn is_withdrawn(&self) -> bool {
+        self.state
+            .as_deref()
+            .is_some_and(|s| s.eq_ignore_ascii_case("withdrawn"))
+    }
+
+    fn is_open(&self) -> bool {
+        self.state
+            .as_deref()
+            .is_some_and(|s| s.eq_ignore_ascii_case("open"))
+    }
+
+    /// Ranking: open above everything else; within a rank a missing date is newest, then the date, the
+    /// natural order of the label and the id.
+    fn order_key(&self) -> (bool, bool, Option<Date>, NaturalKey, &str) {
+        (
+            self.is_open(),
+            self.date.is_none(),
+            self.date,
+            natural_key(&self.label),
+            &self.id,
+        )
     }
 }
 
-fn revision_scope(out: &mut Out, q: &Q, project: &Project) {
-    let revisions: Vec<RevisionView> = q
-        .reserved(Kind::Revision)
+/// A page ID from a UUID string.
+fn page_id(v: &serde_json::Value) -> Option<Id<Page>> {
+    serde_json::from_value(v.clone()).ok()
+}
+
+/// The non-withdrawn revisions.
+fn live_revisions(q: &Q) -> Vec<RevisionView> {
+    q.reserved(Kind::Revision)
         .filter_map(RevisionView::read)
-        .collect();
+        .filter(|r| !r.is_withdrawn())
+        .collect()
+}
+
+fn revision_scope(out: &mut Out, q: &Q, project: &Project) {
+    let revisions = live_revisions(q);
     let Some(current) = revisions.iter().max_by_key(|r| r.order_key()) else {
         return;
     };
@@ -329,5 +390,26 @@ fn revision_scope(out: &mut Out, q: &Q, project: &Project) {
         if let Some(party) = role.as_ref().and_then(|r| party_of(project, r)) {
             out.ml(path, &party.name);
         }
+    }
+}
+
+/// `page.last_changed_in` of a drawn page (the no-digest branch).
+fn last_changed_scope(out: &mut Out, q: &Q, page: PageRef) {
+    let PageRef::Drawn(id) = page else {
+        return;
+    };
+    let revisions = live_revisions(q);
+    let current = revisions.iter().max_by_key(|r| r.order_key());
+    let released = revisions
+        .iter()
+        .filter(|r| !r.is_open())
+        .filter(|r| r.changed_pages.as_ref().unwrap_or(&r.noted_pages).contains(&id))
+        .max_by_key(|r| r.order_key());
+    let label = match current {
+        Some(c) if c.is_open() && c.noted_pages.contains(&id) => Some(c),
+        _ => released.or_else(|| revisions.iter().min_by_key(|r| r.order_key())),
+    };
+    if let Some(r) = label {
+        out.text("page.last_changed_in", &r.label);
     }
 }

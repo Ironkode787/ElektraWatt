@@ -10,6 +10,7 @@
 //! ```text
 //! trait Query { type Key; type Value; const FAMILY; const POLICY; fn run(q: &Q, key: &Key) -> Arc<Value>; }
 //! q.get::<DeviceTag>(dev)            // cached per Q, cycle-checked, reported to the tracker
+//! q.try_get::<StructureOf>(parent)   // the same, but a cycle is an Err(Cycle), never a panic
 //! q.devices().get(id)                // a tracked row read
 //! q.idx().reps_by_page(page)         // a tracked index-bucket read
 //! ```
@@ -27,6 +28,9 @@
 //!   [`TableView`] or [`IdxView`] hands out the `Model`, a raw `Table`, a raw index or an `Op`, so code
 //!   holding only `&Q` cannot read untracked (the `compile_fail` example on [`Q`] and
 //!   `tests/api.rs` guard it).
+//! - Untracked state stays out of reach as well: `Q`'s `Debug` prints no revision, and the evaluated keys
+//!   and [`DeriveNote`]s are read through [`Q::diagnostics`], which takes `&mut Q` (a second
+//!   `compile_fail` example guards it).
 //! - The public surface of this crate carries no `Model` except as the input of [`Q::new`].
 //!
 //! # Families
@@ -45,6 +49,7 @@
 mod bom;
 mod cell;
 mod cps;
+mod note;
 mod pages;
 mod profile;
 mod q;
@@ -56,18 +61,22 @@ mod toc;
 mod tracker;
 
 pub use bom::{BomMode, BomRow, BomRowKey, BomRows, DevicePartLines, LineSource, PartLine};
-pub use cell::{Cell, CellOf, RepAnchorCell, anchor_point, frame_grid};
+pub use cell::{
+    Cell, CellOf, FrameGridOf, FrameSettings, FrameSettingsValue, FrameTypeEntry, RepAnchorCell,
+    anchor_point, default_frame_grid, frame_grid,
+};
 pub use cps::{Cp, FunctionCps};
+pub use note::{DeriveNote, EW_CORE_018, NoteSeverity, SchemeIssue};
 pub use pages::{
     GeneratedPage, Origin, PageEntry, PageOrder, PageOrderV, PageRef, PageRefStructure, PageTitle,
     SectionStructure, folio_label, map_ml, report_pages,
 };
 pub use profile::{
-    CounterScope, DerivationProfile, NumberingRule, NumberingScheme, NumberingSettings, ProfileStatus,
-    RuleSelect, TitleBlockBindings, TocLayout, XrefFormat, XrefMatrix, by_version as profile_by_version,
-    numbering_settings, scheme_for, shipped as shipped_profiles,
+    CounterScope, DerivationProfile, NumberingRule, NumberingScheme, NumberingSettings, NumberingSettingsOf,
+    ProfileStatus, RuleSelect, TitleBlockBindings, TocLayout, XrefFormat, XrefMatrix,
+    by_version as profile_by_version, numbering_settings, scheme_for, shipped as shipped_profiles,
 };
-pub use q::{IdxView, Q, TableView};
+pub use q::{Cycle, Diagnostics, IdxView, Q, TableView};
 pub use query::{Policy, Query};
 pub use structure::{
     DEVICE_ASPECTS, DevicesByStructure, NodePath, PAGE_ASPECTS, PageStructure, ResolvedSlot,
@@ -86,9 +95,12 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (DeviceTag::FAMILY, DeviceTag::POLICY),
     (DevicesByStructure::FAMILY, DevicesByStructure::POLICY),
     (DisplayedTag::FAMILY, DisplayedTag::POLICY),
+    (FrameGridOf::FAMILY, FrameGridOf::POLICY),
+    (FrameSettings::FAMILY, FrameSettings::POLICY),
     (FunctionCps::FAMILY, FunctionCps::POLICY),
     (MainFunction::FAMILY, MainFunction::POLICY),
     (MainRep::FAMILY, MainRep::POLICY),
+    (NumberingSettingsOf::FAMILY, NumberingSettingsOf::POLICY),
     (PageOrder::FAMILY, PageOrder::POLICY),
     (PageRefStructure::FAMILY, PageRefStructure::POLICY),
     (PageStructure::FAMILY, PageStructure::POLICY),
@@ -123,6 +135,9 @@ mod tests {
         assert_eq!(policy("function_cps"), Some(Policy::Cold));
         assert_eq!(policy("rep_anchor_cell"), Some(Policy::Cold));
         assert_eq!(policy("cell_of"), Some(Policy::Cold));
+        assert_eq!(policy("frame_grid"), Some(Policy::Cold));
+        assert_eq!(policy("frame_settings"), Some(Policy::Cold));
+        assert_eq!(policy("numbering_settings"), Some(Policy::Cold));
         assert_eq!(policy("toc_rows"), Some(Policy::Memo));
         assert_eq!(policy("title_block"), Some(Policy::Memo));
     }

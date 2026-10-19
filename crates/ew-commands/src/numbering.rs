@@ -7,7 +7,9 @@
 //! **Scope.** The printed tag of the page-based scheme is `{page}{letter}{counter}`; the page is the page
 //! of the device's main representation. A counter is therefore unique per (page of the main
 //! representation, letter). The main representation is the representation with the smallest ID that
-//! draws the device's main function (the main function: role `Main`, smallest ID if the data holds more).
+//! draws the device's main function and is not a contact image (doc 03 §5.1: a contact image never counts
+//! as the main representation; the main function: role `Main`, smallest ID if the data holds more).
+//! `ew_derive::MainRep` applies the same rule; its `tests/agreement.rs` holds the two together.
 //!
 //! **Which devices take part.** A device takes part in page-based numbering when it has no terminal
 //! aspect (a terminal is named by its strip and designation), no frozen tag and the default scheme. An
@@ -20,7 +22,7 @@ use std::sync::Arc;
 use ew_ids::Id;
 use ew_mltext::Ident;
 use ew_model::Model;
-use ew_schema::{Device, FnRole, Function, Page, Representation, TagScheme};
+use ew_schema::{Device, FnRole, Function, Page, RepType, Representation, TagScheme};
 
 use crate::tx::TxBuilder;
 
@@ -45,11 +47,14 @@ pub fn main_function(tx: &TxBuilder<'_>, device: Id<Device>) -> Option<Id<Functi
         .find(|f| tx.get::<Function>(*f).is_some_and(|f| f.role == FnRole::Main))
 }
 
-/// The main representation of a device: the smallest-ID representation of its main function.
+/// The main representation of a device: the smallest-ID representation of its main function that is not
+/// a contact image.
 pub fn main_rep(tx: &TxBuilder<'_>, device: Id<Device>) -> Option<Arc<Representation>> {
     let f = main_function(tx, device)?;
-    let rid = tx.reps_of_function(f).into_iter().next()?;
-    tx.get::<Representation>(rid)
+    tx.reps_of_function(f)
+        .into_iter()
+        .filter_map(|rid| tx.get::<Representation>(rid))
+        .find(|r| r.rep_type != RepType::ContactImage)
 }
 
 /// The page of a device's main representation.
@@ -66,8 +71,14 @@ pub fn main_page_in(model: &Model, device: Id<Device>) -> Option<Id<Page>> {
         .functions_by_device()
         .get(&device)
         .find(|f| functions.get(f).is_some_and(|f| f.role == FnRole::Main))?;
-    let rep = model.indexes().reps_by_function().get(f).next()?;
-    model.table::<Representation>().get(rep).map(|r| r.page)
+    let reps = model.table::<Representation>();
+    model
+        .indexes()
+        .reps_by_function()
+        .get(f)
+        .filter_map(|rid| reps.get(rid))
+        .find(|r| r.rep_type != RepType::ContactImage)
+        .map(|r| r.page)
 }
 
 /// Whether two devices held the same page-based tag in a snapshot: both numbered, the same letter and

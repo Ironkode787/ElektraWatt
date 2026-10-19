@@ -1,15 +1,16 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Frame cells (doc 06 §5.1, doc 20 §6.1 and §15, FR-PAG-020): `cell_of` snaps first and uses exact
-//! rationals, `rep_anchor_cell` reads the symbol's anchor policy.
+//! Frame cells (doc 06 §5.1, doc 20 §6.1 and §15, FR-PAG-020): `cell_of` reads a coordinate within the
+//! 1 nm rounding window of a grid position as that exact grid position and any other coordinate as
+//! stored, on exact rationals; `rep_anchor_cell` reads the symbol's anchor policy.
 
 mod common;
 
 use common::{Fx, id, uid};
-use ew_derive::{CellOf, Q, RepAnchorCell};
+use ew_derive::{CellOf, DeriveNote, Q, RepAnchorCell, default_frame_grid, frame_grid};
 use ew_model::Model;
-use ew_schema::{Page, Representation};
+use ew_schema::{FrameGrid, Page, Representation};
 use ew_units::{Grid, Nm, Pt2};
 use proptest::prelude::*;
 use serde_json::{Value, json};
@@ -105,6 +106,44 @@ fn boundary_belongs_to_the_right_or_lower_cell() {
     );
 }
 
+/// The QET pixel `px` (1 px = 793,750/3 nm), rounded to the nm like a stored coordinate.
+fn qet_px(px: i64) -> i64 {
+    let t = i128::from(px) * 793_750;
+    i64::try_from((t + t.signum()) / 3).unwrap() // nearest; no tie exists for a multiple of 1/3
+}
+
+#[test]
+fn off_grid_points_near_a_boundary_stay_in_their_cell() {
+    // Folio 101 on the QET frame: column 1 starts at 80 px (20 px band + 60 px). The points at 76 to
+    // 79 px are off the 10 px grid; snapping them to 80 px would answer A1, the true cell is A0.
+    let mut fx = golden();
+    qet_page(&mut fx);
+    let m = fx.build();
+    let y = qet_at(0, 5).y.0;
+    for px in 76..=79 {
+        assert_eq!(
+            cell_str(&m, PAGE, pt(qet_px(px), y)).as_deref(),
+            Some("A0"),
+            "{px} px"
+        );
+    }
+    // The grid position itself and the stored values within 1 nm of it are on-grid: A1.
+    let boundary = qet_at(8, 5).x.0;
+    for dx in [-1, 0, 1] {
+        assert_eq!(
+            cell_str(&m, PAGE, pt(boundary + dx, y)).as_deref(),
+            Some("A1"),
+            "{dx} nm"
+        );
+    }
+    // 2 nm left of the stored boundary is off-grid and left of the exact boundary: A0.
+    assert_eq!(cell_str(&m, PAGE, pt(boundary - 2, y)).as_deref(), Some("A0"));
+    // Rows likewise: row B starts at 100 px (20 px band + 80 px).
+    let x = qet_at(10, 0).x.0;
+    assert_eq!(cell_str(&m, PAGE, pt(x, qet_px(98))).as_deref(), Some("A1"));
+    assert_eq!(cell_str(&m, PAGE, pt(x, qet_px(100))).as_deref(), Some("B1"));
+}
+
 #[test]
 fn rounding_left_of_the_boundary_stays_in_the_right_cell() {
     // Step 5/2 nm on both the page grid and the frame: boundary 1 is at 2.5 nm, whose stored nm value
@@ -148,6 +187,7 @@ fn outside_the_drawing_area_and_without_a_frame() {
     let mut fx = golden();
     qet_page(&mut fx);
     fx.page(0x102, 102, None, "multi_line", &[], "No frame");
+    fx.record(0x102)["grid"] = json!({"num": 7_937_500, "den": 3});
     let m = fx.build();
     // Left of column 0 (k_x = 1 is inside the 20 px header band), above row A.
     assert_eq!(cell_str(&m, PAGE, qet_at(1, 10)), None);
@@ -161,9 +201,19 @@ fn outside_the_drawing_area_and_without_a_frame() {
     // Extreme coordinates neither panic nor answer.
     assert_eq!(cell_str(&m, PAGE, pt(i64::MIN, i64::MAX)), None);
     assert_eq!(cell_str(&m, PAGE, pt(i64::MAX, i64::MIN)), None);
-    // A page without a frame, and a page that does not exist.
-    assert_eq!(cell_str(&m, 0x102, qet_at(10, 10)), None);
-    assert_eq!(cell_str(&m, 0x999, qet_at(10, 10)), None);
+    // A page without any frame uses the built-in default frame (the QET A4 grid) and says so; a page that
+    // does not exist has no cells and no note.
+    let mut q = Q::new(&m);
+    assert!(q.diagnostics().notes().is_empty());
+    let cell = q.get::<CellOf>((id::<Page>(0x999), qet_at(10, 10)));
+    assert_eq!(*cell, None);
+    assert!(q.diagnostics().notes().is_empty());
+    let cell = q.get::<CellOf>((id::<Page>(0x102), qet_at(10, 10)));
+    assert_eq!(
+        cell.as_ref().as_ref().map(ToString::to_string).as_deref(),
+        Some("B1")
+    );
+    assert_eq!(q.diagnostics().notes(), vec![DeriveNote::DefaultFrame]);
 }
 
 #[test]
@@ -205,8 +255,25 @@ fn frame_defaults_from_the_project_settings() {
     );
 }
 
+/// The notes of a `Q` over `m` after asking for the cell of the page at `p`, and that cell.
+fn cell_and_notes(m: &Model, page: u128, p: Pt2) -> (Option<String>, Vec<DeriveNote>) {
+    let mut q = Q::new(m);
+    let cell = q.get::<CellOf>((id::<Page>(page), p));
+    let cell = (*cell).as_ref().map(ToString::to_string);
+    (cell, q.diagnostics().notes())
+}
+
+fn shim_notes(notes: &[DeriveNote]) -> Vec<&DeriveNote> {
+    notes
+        .iter()
+        .filter(|n| matches!(n, DeriveNote::MalformedShim { member, .. } if member == "settings.frames"))
+        .collect()
+}
+
 #[test]
-fn malformed_frame_settings_give_no_frame() {
+fn malformed_frame_settings_fall_back_to_the_default() {
+    // Every malformed `frames` member leaves the QET grid (the built-in default or the valid `default`),
+    // so the cell of a point in the last column and row is H16, and the malformed member is noted.
     for frames in [
         json!("x"),
         json!([1]),
@@ -214,15 +281,19 @@ fn malformed_frame_settings_give_no_frame() {
         json!({"default": "not-a-uuid"}),
         json!({"per_page_type": 3, "default": FRAME_COPY}),
         json!({"per_page_type": [{"page_type": "multi_line", "form": 7}], "default": FRAME_COPY}),
+        json!({"per_page_type": [{"page_type": "multi_line"}], "default": FRAME_COPY}),
+        json!({"per_page_type": [{"form": FRAME_COPY}], "default": FRAME_COPY}),
     ] {
         let mut fx = golden();
         fx.project_set("settings", json!({"frames": frames}));
         fx.page(PAGE, 101, None, "multi_line", &[], "P");
         fx.record(PAGE)["grid"] = json!({"num": 7_937_500, "den": 3});
         let m = fx.build();
-        assert_eq!(cell_str(&m, PAGE, qet_at(101, 62)), None, "{frames}");
+        let (cell, notes) = cell_and_notes(&m, PAGE, qet_at(101, 62));
+        assert_eq!(cell.as_deref(), Some("H16"), "{frames}");
+        assert_eq!(shim_notes(&notes).len(), 1, "{frames}: {notes:?}");
     }
-    // An entry of another page type or a malformed entry of no interest does not hide the default.
+    // An entry of another page type that is malformed does not hide the default, but is noted.
     let mut fx = golden();
     fx.project_set(
         "settings",
@@ -231,7 +302,120 @@ fn malformed_frame_settings_give_no_frame() {
     fx.page(PAGE, 101, None, "multi_line", &[], "P");
     fx.record(PAGE)["grid"] = json!({"num": 7_937_500, "den": 3});
     let m = fx.build();
+    let (cell, notes) = cell_and_notes(&m, PAGE, qet_at(101, 62));
+    assert_eq!(cell.as_deref(), Some("H16"));
+    assert_eq!(shim_notes(&notes).len(), 2, "{notes:?}");
+    assert!(!notes.contains(&DeriveNote::DefaultFrame));
+    // A malformed matching entry falls through to the `default`, not to the built-in frame: here a default
+    // form with a different grid (3 columns by 2 rows of 10 mm, no bands) decides.
+    let mut fx = golden();
+    fx.lib_item(
+        "form",
+        0x600,
+        json!({"kind": "frame", "sheet": {"width": 297_000_000, "height": 210_000_000},
+            "grid": {"columns": {"count": 3, "width": {"num": 10_000_000, "den": 1}},
+                     "rows": {"count": 2, "height": {"num": 10_000_000, "den": 1}}}}),
+    );
+    fx.project_set(
+        "settings",
+        json!({"frames": {"default": uid(0x600), "per_page_type": [{"page_type": "multi_line", "form": 1}]}}),
+    );
+    fx.page(PAGE, 101, None, "multi_line", &[], "P");
+    let m = fx.build();
+    let (cell, notes) = cell_and_notes(&m, PAGE, pt(25_000_000, 15_000_000));
+    assert_eq!(cell.as_deref(), Some("B2"));
+    assert_eq!(shim_notes(&notes).len(), 1, "{notes:?}");
+    assert!(!notes.contains(&DeriveNote::DefaultFrame));
+}
+
+/// The grid of the golden QET frame file.
+fn shipped_qet_grid() -> FrameGrid {
+    let doc: Value = serde_json::from_str(include_str!(
+        "../../../content/forms/ew.frame.qet-a4-landscape-grid.json"
+    ))
+    .unwrap();
+    serde_json::from_value(doc["grid"].clone()).unwrap()
+}
+
+#[test]
+fn default_frame_matches_the_shipped_qet_frame() {
+    let shipped = shipped_qet_grid();
+    let default = default_frame_grid();
+    assert_eq!(default.header_band, shipped.header_band);
+    assert_eq!(default.columns, shipped.columns);
+    assert_eq!(default.rows, shipped.rows);
+    // Only the line width layout hint differs: it is not geometry.
+    assert!(default.extra.is_empty());
+    assert_eq!(shipped.extra.keys().collect::<Vec<_>>(), ["ew.frame.line_width"]);
+    // A project without frame settings and without a copy of the frame form uses it.
+    let mut fx = Fx::new();
+    fx.page(PAGE, 101, None, "multi_line", &[], "P");
+    fx.record(PAGE)["grid"] = json!({"num": 7_937_500, "den": 3});
+    let m = fx.build();
+    let mut q = Q::new(&m);
+    assert_eq!(frame_grid(&q, id::<Page>(PAGE)), Some(default));
+    assert_eq!(q.diagnostics().notes(), vec![DeriveNote::DefaultFrame]);
     assert_eq!(cell_str(&m, PAGE, qet_at(101, 62)).as_deref(), Some("H16"));
+}
+
+#[test]
+fn form_without_grid_has_no_cells_and_no_default() {
+    let mut fx = golden();
+    fx.lib_item(
+        "form",
+        0x600,
+        json!({"kind": "frame", "sheet": {"width": 297_000_000, "height": 210_000_000}}),
+    );
+    fx.page(0x101, 101, None, "multi_line", &[], "form without grid");
+    fx.record(0x101)["form"] = json!(uid(0x600));
+    fx.record(0x101)["grid"] = json!({"num": 7_937_500, "den": 3});
+    let m = fx.build();
+    let (cell, notes) = cell_and_notes(&m, 0x101, qet_at(101, 62));
+    assert_eq!(cell, None);
+    assert!(
+        notes.is_empty(),
+        "something is configured: no default ({notes:?})"
+    );
+    // A `frames` shim that names a form whose copy is missing from the project (Page.form cannot: EW-INV-001).
+    let mut fx = golden();
+    fx.project_set("settings", json!({"frames": {"default": uid(0x777)}}));
+    fx.page(PAGE, 101, None, "multi_line", &[], "P");
+    let m = fx.build();
+    let (cell, notes) = cell_and_notes(&m, PAGE, qet_at(101, 62));
+    assert_eq!(cell, None);
+    assert!(notes.is_empty(), "{notes:?}");
+    // The same through the `frames` shim with a form without a grid.
+    let mut fx = golden();
+    fx.lib_item(
+        "form",
+        0x600,
+        json!({"kind": "frame", "sheet": {"width": 297_000_000, "height": 210_000_000}}),
+    );
+    fx.project_set("settings", json!({"frames": {"default": uid(0x600)}}));
+    fx.page(PAGE, 101, None, "multi_line", &[], "P");
+    let m = fx.build();
+    let (cell, notes) = cell_and_notes(&m, PAGE, qet_at(101, 62));
+    assert_eq!(cell, None);
+    assert!(notes.is_empty(), "{notes:?}");
+}
+
+#[test]
+fn frame_grid_is_evaluated_once_per_page() {
+    let mut fx = golden();
+    qet_page(&mut fx);
+    fx.page(0x102, 102, None, "multi_line", &[], "No frame");
+    fx.record(0x102)["grid"] = json!({"num": 7_937_500, "den": 3});
+    let m = fx.build();
+    let mut q = Q::new(&m);
+    for k in 0..20 {
+        for page in [PAGE, 0x102] {
+            let _ = q.get::<CellOf>((id::<Page>(page), qet_at(10 + k, 10)));
+        }
+    }
+    assert_eq!(q.diagnostics().cached("cell_of"), 40);
+    assert_eq!(q.diagnostics().cached("frame_grid"), 2);
+    // The shim is parsed once however many pages need it (only the page without a form does).
+    assert_eq!(q.diagnostics().cached("frame_settings"), 1);
 }
 
 #[test]
@@ -383,7 +567,11 @@ fn model_of(p: &Params) -> Model {
 
 /// `round(x · den / num)` with ties toward zero, by remainder inspection.
 fn ref_snap(x: i64, num: i128, den: i128) -> i128 {
-    let t = i128::from(x) * den;
+    ref_div_round(i128::from(x) * den, num)
+}
+
+/// `round(t / d)` (`d > 0`) with ties toward zero, by remainder inspection.
+fn ref_div_round(t: i128, num: i128) -> i128 {
     let (q, r) = (t.div_euclid(num), t.rem_euclid(num));
     match (2 * r).cmp(&num) {
         std::cmp::Ordering::Less => q,
@@ -398,17 +586,27 @@ fn ref_snap(x: i64, num: i128, den: i128) -> i128 {
     }
 }
 
-/// The cell index of the exact position `k·gn/gd` along one axis, found by scanning the cells
+/// The exact position the lookup evaluates for a stored coordinate (doc 06 §5.1): the exact grid position
+/// `k·gn/gd` of the nearest grid index `k` when `x` is within 1 nm of that position's stored value
+/// `round(k·gn/gd)` (which must fit an `i64`), else `x` itself; as a fraction `(numerator, denominator)`.
+fn ref_position(x: i64, (gn, gd): (i128, i128)) -> (i128, i128) {
+    let k = ref_snap(x, gn, gd);
+    // The snapped index is the nearest one.
+    assert!(2 * (i128::from(x) * gd - k * gn).abs() <= gn);
+    let stored = ref_div_round(k * gn, gd);
+    let fits = i64::try_from(stored).is_ok();
+    if fits && (i128::from(x) - stored).abs() <= 1 {
+        (k * gn, gd)
+    } else {
+        (i128::from(x), 1)
+    }
+}
+
+/// The cell index of the exact position `xn/xd` along one axis, found by scanning the cells
 /// `[a/b + c·sn/sd, a/b + (c+1)·sn/sd)` with cross-multiplied comparisons.
-fn ref_axis(
-    k: i128,
-    (gn, gd): (i128, i128),
-    (a, b): (i128, i128),
-    (sn, sd): (i128, i128),
-    count: u16,
-) -> Option<u32> {
-    // x < y  <=>  k·gn / gd < (a·sd + c·sn·b) / (b·sd)
-    let below = |c: i128| k * gn * (b * sd) < (a * sd + c * sn * b) * gd;
+fn ref_axis((xn, xd): (i128, i128), (a, b): (i128, i128), (sn, sd): (i128, i128), count: u16) -> Option<u32> {
+    // x < y  <=>  xn / xd < (a·sd + c·sn·b) / (b·sd)
+    let below = |c: i128| xn * (b * sd) < (a * sd + c * sn * b) * xd;
     (0..i128::from(count))
         .find(|&c| !below(c) && below(c + 1))
         .map(|c| c as u32)
@@ -423,12 +621,9 @@ fn ref_cell(p: &Params, x: i64, y: i64) -> Option<String> {
         let g = Grid::new(n, d).unwrap();
         (i128::from(g.num()), i128::from(g.den()))
     };
-    let (kx, ky) = (ref_snap(x, g.0, g.1), ref_snap(y, g.0, g.1));
-    // The snapped index is the nearest one.
-    assert!(2 * (i128::from(x) * g.1 - kx * g.0).abs() <= g.0);
     let origin = p.header.map_or((0, 1), rat);
-    let c = ref_axis(kx, g, origin, rat(p.columns.2), p.columns.0)?;
-    let r = ref_axis(ky, g, origin, rat(p.rows.2), p.rows.0)?;
+    let c = ref_axis(ref_position(x, g), origin, rat(p.columns.2), p.columns.0)?;
+    let r = ref_axis(ref_position(y, g), origin, rat(p.rows.2), p.rows.0)?;
     let letters: Vec<char> = ('A'..='Z')
         .filter(|c| !(p.rows.1 && matches!(c, 'I' | 'O')))
         .collect();
@@ -436,7 +631,53 @@ fn ref_cell(p: &Params, x: i64, y: i64) -> Option<String> {
     Some(format!("{row}{}", u32::from(p.columns.1) + c))
 }
 
+/// The two page grids of the format at realistic frame sizes: the native 4 mm grid with a 10 mm band and
+/// 20 columns of 14 mm by 8 rows of 24 mm, and the QET 10 px grid with the golden QET frame's constants
+/// (band 20 px, 17 columns of 60 px, 8 rows of 80 px).
+fn realistic() -> impl Strategy<Value = Params> {
+    prop_oneof![
+        Just(Params {
+            page_grid: (4_000_000, 1),
+            header: Some((10_000_000, 1)),
+            columns: (20, 0, (14_000_000, 1)),
+            rows: (8, false, (24_000_000, 1)),
+        }),
+        Just(Params {
+            page_grid: (7_937_500, 3),
+            header: Some((15_875_000, 3)),
+            columns: (17, 0, (15_875_000, 1)),
+            rows: (8, false, (63_500_000, 3)),
+        }),
+    ]
+}
+
+/// A coordinate on a realistic sheet: on a grid position (stored as `Grid::at`) plus a small offset that
+/// straddles the 1 nm window, or anywhere from 50 mm left of / above the sheet to 50 mm beyond it.
+fn sheet_coordinate(grid: (u64, u64)) -> impl Strategy<Value = i64> + Clone {
+    let g = Grid::new(grid.0, grid.1).unwrap();
+    prop_oneof![
+        (-200i64..1500, -3i64..=3).prop_map(move |(k, d)| g.at(k).unwrap().0 + d),
+        -50_000_000i64..350_000_000,
+    ]
+}
+
 proptest! {
+    #[test]
+    fn cell_of_matches_the_reference_on_realistic_frames(
+        (p, pts) in realistic().prop_flat_map(|p| {
+            let c = sheet_coordinate(p.page_grid);
+            (Just(p), proptest::collection::vec((c.clone(), c), 1..24))
+        }),
+    ) {
+        let m = model_of(&p);
+        let q = Q::new(&m);
+        for (x, y) in pts {
+            let got = q.get::<CellOf>((id(PAGE), pt(x, y)));
+            let got = (*got).as_ref().map(ToString::to_string);
+            prop_assert_eq!(got, ref_cell(&p, x, y), "point ({}, {})", x, y);
+        }
+    }
+
     #[test]
     fn cell_of_matches_the_exact_reference(
         p in params(),

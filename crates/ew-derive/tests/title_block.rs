@@ -159,6 +159,7 @@ fn folio_101_full_value_set() {
         ("page.description", TbValue::Ml(ml("Expansion Control Cabinets"))),
         ("page.function", text("=P01")),
         ("page.location", text("+J-E-2416")),
+        ("page.last_changed_in", text("V1.0")),
         ("doc.page_index", text("4")),
         ("doc.page_count", text("8")),
     ]);
@@ -180,6 +181,7 @@ fn folio_201_full_value_set() {
         ("page.description", TbValue::Ml(ml("Expansion Control Cabinets"))),
         ("page.function", text("=P01")),
         ("page.location", text("+J-E-2416")),
+        ("page.last_changed_in", text("V1.0")),
         ("doc.page_index", text("8")),
         ("doc.page_count", text("8")),
     ]);
@@ -399,4 +401,91 @@ fn only_profile_paths_appear() {
 fn an_empty_project_binds_nothing() {
     let tb = block(&Fx::new(), PageRef::Drawn(id(1)));
     assert!(tb.values.is_empty());
+}
+
+fn label_of(fx: &Fx) -> Option<TbValue> {
+    block(fx, PageRef::Drawn(id(1)))
+        .get("revision.current.label")
+        .cloned()
+}
+
+#[test]
+fn open_undated_revision_beats_released_dated() {
+    let mut fx = Fx::new();
+    fx.push(
+        json!({"$k": "revision", "id": uid(1), "label": "V2.0", "date": "2025-04-14", "state": "released"}),
+    )
+    .push(json!({"$k": "revision", "id": uid(2), "label": "V3.0", "state": "open"}));
+    assert_eq!(label_of(&fx), Some(text("V3.0")));
+}
+
+#[test]
+fn withdrawn_revision_is_never_current() {
+    let mut fx = Fx::new();
+    fx.push(
+        json!({"$k": "revision", "id": uid(1), "label": "V1.0", "date": "2025-03-03", "state": "released"}),
+    )
+    .push(
+        json!({"$k": "revision", "id": uid(2), "label": "V2.0", "date": "2025-05-01", "state": "Withdrawn"}),
+    );
+    assert_eq!(label_of(&fx), Some(text("V1.0")));
+}
+
+#[test]
+fn undated_revision_counts_as_newest_within_its_state() {
+    let mut fx = Fx::new();
+    fx.push(
+        json!({"$k": "revision", "id": uid(1), "label": "V1.0", "date": "2025-03-03", "state": "released"}),
+    )
+    .push(json!({"$k": "revision", "id": uid(2), "label": "V0.9", "state": "released"}));
+    assert_eq!(label_of(&fx), Some(text("V0.9")));
+}
+
+#[test]
+fn last_changed_in_follows_page_notes() {
+    let mut fx = golden();
+    fx.record(0x602)["page_notes"] = json!([
+        {"page": uid(PAGE101), "note": "reworked"},
+        uid(PAGE102),
+        {"page": "not a uuid"},
+        42,
+    ]);
+    let last = |fx: &Fx, page| {
+        block(fx, PageRef::Drawn(id(page)))
+            .get("page.last_changed_in")
+            .cloned()
+    };
+    assert_eq!(last(&fx, PAGE101), Some(text("V2.0")));
+    assert_eq!(last(&fx, PAGE102), Some(text("V2.0")));
+    assert_eq!(last(&fx, PAGE103), Some(text("V1.0")));
+
+    // A released revision's `changed_pages` wins over its page notes.
+    fx.record(0x601)["page_notes"] = json!([uid(PAGE103)]);
+    fx.record(0x601)["release"] = json!({"changed_pages": [uid(PAGE201)]});
+    assert_eq!(last(&fx, PAGE201), Some(text("V1.0")));
+    assert_eq!(last(&fx, PAGE103), Some(text("V1.0")));
+
+    // Only drawn pages get the value; no revisions, no value.
+    let tb = block(&fx, PageRef::Divider(id(SEC1)));
+    assert_eq!(tb.get("page.last_changed_in"), None);
+    fx.records.retain(|r| r["$k"] != "revision");
+    assert_eq!(last(&fx, PAGE101), None);
+}
+
+#[test]
+fn every_role_binds_its_address() {
+    let mut fx = golden();
+    let parties = fx.project.as_object_mut().expect("object")["parties"]
+        .as_array_mut()
+        .expect("parties");
+    parties[0]["address"] = json!({"city": "<customer city>"});
+    parties.push(json!({"role": "author", "name": {"en": "<author>"},
+        "address": {"street": "<s>", "postcode": "<p>", "city": "<author city>", "country": "<c>"}}));
+    let tb = block(&fx, PageRef::Drawn(id(PAGE101)));
+    assert_eq!(
+        tb.get("party.customer.address.city"),
+        Some(&text("<customer city>"))
+    );
+    assert_eq!(tb.get("party.customer.address.street"), None);
+    assert_eq!(tb.get("party.author.address.city"), Some(&text("<author city>")));
 }

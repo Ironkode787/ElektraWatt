@@ -4,6 +4,7 @@
 //! The tracked-read context [`Q`] (ADR-0002 decision 1, ARCH §3 rule 1, §6.1).
 
 use std::cell::RefCell;
+use std::collections::BTreeSet;
 use std::fmt;
 use std::sync::Arc;
 
@@ -15,6 +16,7 @@ use ew_schema::{
     SymbolDef,
 };
 
+use crate::note::DeriveNote;
 use crate::profile::{self, DerivationProfile, ProfileStatus};
 use crate::query::{Cache, Lookup, Query};
 use crate::tracker::{ColdTracker, DepKey, IxKey, Tracker};
@@ -39,16 +41,75 @@ pub struct Q {
     model: Model,
     tracker: Box<dyn Tracker>,
     cache: RefCell<Cache>,
+    notes: RefCell<BTreeSet<DeriveNote>>,
     profile: &'static DerivationProfile,
     profile_status: ProfileStatus,
 }
 
+/// Prints nothing a query could use to tell snapshots apart: no revision, no cache state.
 impl fmt::Debug for Q {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Q")
-            .field("rev", &self.model.rev())
-            .field("profile", &self.profile.version)
-            .finish_non_exhaustive()
+        f.debug_struct("Q").finish_non_exhaustive()
+    }
+}
+
+/// Undoes `start` and `enter` when a query panics: the slot is removed (so a later `get` evaluates again
+/// instead of reporting a false cycle) and the tracker stack is balanced. Disarmed on the normal path.
+struct UnwindGuard<'q, Qy: Query> {
+    q: &'q Q,
+    key: Option<Qy::Key>,
+}
+
+impl<Qy: Query> Drop for UnwindGuard<'_, Qy> {
+    fn drop(&mut self) {
+        if let Some(key) = self.key.take() {
+            // `try_borrow_mut`: a panic raised while the cache was borrowed must not double-panic.
+            if let Ok(mut cache) = self.q.cache.try_borrow_mut() {
+                cache.abort::<Qy>(&key);
+            }
+            self.q.tracker.exit(Qy::FAMILY);
+        }
+    }
+}
+
+/// A query needed its own value (ADR-0002 decision 4), as returned by [`Q::try_get`].
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Cycle {
+    /// The family whose evaluation is already running for the key.
+    pub family: &'static str,
+    /// The key, as `Debug` text.
+    pub key: String,
+}
+
+impl fmt::Display for Cycle {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "query cycle: `{}` needs its own value for {}",
+            self.family, self.key
+        )
+    }
+}
+
+impl std::error::Error for Cycle {}
+
+/// The diagnostics of a [`Q`]: what it evaluated and the [`DeriveNote`]s its queries pushed. Obtained
+/// through [`Q::diagnostics`], which takes `&mut Q`, so a query body (which holds `&Q` only) cannot read
+/// this untracked state.
+#[derive(Debug)]
+pub struct Diagnostics<'q> {
+    q: &'q Q,
+}
+
+impl Diagnostics<'_> {
+    /// The number of keys of `family` evaluated (or evaluating) so far.
+    pub fn cached(&self, family: &str) -> usize {
+        self.q.cache.borrow().len_of(family)
+    }
+
+    /// The notes so far, in the canonical order of [`DeriveNote`] (independent of evaluation order).
+    pub fn notes(&self) -> Vec<DeriveNote> {
+        self.q.notes.borrow().iter().cloned().collect()
     }
 }
 
@@ -62,18 +123,23 @@ impl Q {
     pub fn with_tracker(model: &Model, tracker: Box<dyn Tracker>) -> Q {
         let model = model.clone();
         let (profile, profile_status) = profile::resolve(model.project().derivation_profile.as_str());
+        let mut notes = BTreeSet::new();
+        // ADR-0003: an unknown pinned profile is never silent. It is a property of the snapshot, so every
+        // `Q` over it carries the note from the start.
+        if let ProfileStatus::Unknown { requested } = &profile_status {
+            notes.insert(DeriveNote::UnknownProfile {
+                requested: requested.clone(),
+                used: profile.version.clone(),
+            });
+        }
         Q {
             model,
             tracker,
             cache: RefCell::new(Cache::default()),
+            notes: RefCell::new(notes),
             profile,
             profile_status,
         }
-    }
-
-    /// The revision of the snapshot.
-    pub fn rev(&self) -> Rev {
-        self.model.rev()
     }
 
     /// The derived value of `Qy` for `key`, computed at most once per `Q`.
@@ -81,27 +147,74 @@ impl Q {
     /// # Panics
     ///
     /// On a dependency cycle (a query that needs its own value; ADR-0002 decision 4), and when two query
-    /// types share one family name.
+    /// types share one family name. A query edge that follows model content (a device's parent, a
+    /// terminal's strip) uses [`Q::try_get`] instead, so that no model content can make a query panic.
     pub fn get<Qy: Query>(&self, key: Qy::Key) -> Arc<Qy::Value> {
+        match self.try_get::<Qy>(key) {
+            Ok(v) => v,
+            Err(cycle) => panic!("{cycle}"),
+        }
+    }
+
+    /// [`Q::get`], returning a [`Cycle`] instead of panicking when `Qy` is already evaluating `key`.
+    ///
+    /// The caller falls back to a neutral value and records the cycle with [`Q::note_cycle`]. On a model
+    /// that breaks the invariant ruling the cycle out (EW-INV-015, which the integrity check enforces on
+    /// load), the fallback values depend on which key was asked first; that is acceptable for a rejected
+    /// model, a panic is not.
+    ///
+    /// # Panics
+    ///
+    /// When two query types share one family name.
+    pub fn try_get<Qy: Query>(&self, key: Qy::Key) -> Result<Arc<Qy::Value>, Cycle> {
         self.tracker.query_read(Qy::FAMILY, &key);
         let lookup = self.cache.borrow_mut().lookup::<Qy>(&key);
         match lookup {
-            Lookup::Hit(v) => v,
-            Lookup::Running => panic!("query cycle: `{}` needs its own value for {key:?}", Qy::FAMILY),
+            Lookup::Hit(v) => Ok(v),
+            Lookup::Running => Err(Cycle {
+                family: Qy::FAMILY,
+                key: format!("{key:?}"),
+            }),
             Lookup::Miss => {
                 self.cache.borrow_mut().start::<Qy>(key.clone());
                 self.tracker.enter(Qy::FAMILY, &key);
+                let mut guard = UnwindGuard::<Qy> {
+                    q: self,
+                    key: Some(key.clone()),
+                };
                 let value = Qy::run(self, &key);
+                guard.key = None;
                 self.tracker.exit(Qy::FAMILY);
                 self.cache.borrow_mut().finish::<Qy>(key, Arc::clone(&value));
-                value
+                Ok(value)
             }
         }
     }
 
-    /// The number of keys of `family` evaluated by this `Q` so far (diagnostics and tests).
-    pub fn cached(&self, family: &str) -> usize {
-        self.cache.borrow().len_of(family)
+    /// Records a derivation note (see [`DeriveNote`]). Notes form a set: pushing one twice keeps one.
+    pub fn note(&self, note: DeriveNote) {
+        self.notes.borrow_mut().insert(note);
+    }
+
+    /// Records a cycle returned by [`Q::try_get`] as a [`DeriveNote::QueryCycle`].
+    pub fn note_cycle(&self, cycle: Cycle) {
+        self.note(DeriveNote::QueryCycle {
+            family: cycle.family,
+            key: cycle.key,
+        });
+    }
+
+    /// The diagnostics handle: evaluated keys and notes. It takes `&mut self`, so only the owner of the
+    /// `Q` reaches it, never a query body:
+    ///
+    /// ```compile_fail
+    /// // A query receives `&Q`; the untracked diagnostics need `&mut Q`.
+    /// fn run(q: &ew_derive::Q) -> usize {
+    ///     q.diagnostics().cached("device_tag")
+    /// }
+    /// ```
+    pub fn diagnostics(&mut self) -> Diagnostics<'_> {
+        Diagnostics { q: self }
     }
 
     // -----------------------------------------------------------------------------------------------------
@@ -224,7 +337,9 @@ impl Q {
 
     /// The records of a reserved kind (one without a typed table in this format version, such as
     /// `revision`), in the writer's line order. They carry no revision stamps, so the read is recorded as
-    /// [`DepKey::Reserved`] at the model's revision.
+    /// the coarse [`DepKey::Reserved`] at `model.rev()`: any change to the model invalidates every reader.
+    /// `title_block`, which reads revisions through it, is therefore memo-hostile until revisions are typed
+    /// records (doc 03 §18) with their own table and stamps.
     pub fn reserved(&self, kind: Kind) -> impl Iterator<Item = &serde_json::Value> + '_ {
         self.read(DepKey::Reserved, self.model.rev());
         let name = kind.name();
@@ -268,7 +383,8 @@ impl<T: Entity> fmt::Debug for TableView<'_, T> {
 }
 
 impl<'q, T: Entity> TableView<'q, T> {
-    /// The record with this ID; records the row (or, if absent, the table) read.
+    /// The record with this ID; records `DepKey::Row` at the row's `changed_at`, or, for an absent row, at
+    /// the table's.
     pub fn get(&self, id: RowId<T>) -> Option<&'q Arc<T>> {
         match self.table.row(&id) {
             Some(row) => {
@@ -311,8 +427,9 @@ impl<'q, T: Entity> TableView<'q, T> {
     }
 }
 
-/// The tracked views of the base reverse indexes (ARCH §4.1). Each lookup records the bucket it read
-/// (or, for an absent key, the whole index) and returns the values in order.
+/// The tracked views of the base reverse indexes (ARCH §4.1). Each lookup records
+/// `DepKey::IndexKey(name, key)`, observed at the key's `changed_at`; for an absent key the observed
+/// stamp is the whole index's `changed_at`. It returns the values in order.
 #[derive(Clone, Copy, Debug)]
 pub struct IdxView<'q> {
     q: &'q Q,

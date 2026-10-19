@@ -6,14 +6,19 @@
 //!
 //! # `cell_of`
 //!
-//! The page supplies its frame form ([`frame_grid`]) and its connection grid `g` (`Page.grid`). The point
-//! is **snapped first**: its grid index `k = g.snap(x)` is evaluated on the exact rational position
-//! `k·g.num/g.den`, so the 0.5 nm rounding of a stored coordinate cannot move an on-grid anchor across a
-//! cell boundary (doc 06 §5.1 pitfall). With the drawing area starting at `x0 = a/b` and columns `w = c/d`
-//! wide, the column is
+//! The page supplies its frame grid ([`FrameGridOf`]) and its connection grid `g` (`Page.grid`). Each
+//! coordinate `x` is evaluated as an exact rational `p/s` nm (doc 06 §5.1):
+//!
+//! - **on-grid**: when `x` lies within the 1 nm rounding window of its nearest grid position
+//!   (`k = g.snap(x)`, `|x − g.at(k)| ≤ 1 nm`), the exact grid position `k·g.num/g.den`, so the 0.5 nm
+//!   rounding of a stored coordinate cannot move an on-grid anchor across a cell boundary (the pitfall);
+//! - **off-grid** (free texts, the cursor): the stored nm value itself (`x/1`). Snapping such a point would
+//!   move it up to half a grid step and, near a boundary, into the neighbouring cell.
+//!
+//! With the drawing area starting at `x0 = a/b` and columns `w = c/d` wide, the column is
 //!
 //! ```text
-//! floor( (k·g.num·b·d − a·g.den·d) / (c·g.den·b) )        i128::div_euclid, exact
+//! floor( (p·b·d − a·s·d) / (c·s·b) )        i128::div_euclid, exact
 //! ```
 //!
 //! and likewise the row; a point on a boundary belongs to the right or lower cell. Every product is
@@ -29,11 +34,15 @@ use std::fmt;
 use std::sync::Arc;
 
 use ew_ids::Id;
-use ew_schema::{AnchorPolicy, FormDef, FrameGrid, Page, Primitive, Representation, SymbolDef};
+use ew_schema::{
+    AnchorPolicy, Extra, FormDef, FrameColumns, FrameGrid, FrameRows, Page, Primitive, Representation,
+    SymbolDef,
+};
 use ew_units::{Grid, Nm, Pt2};
 use serde_json::Value;
 
 use crate::Q;
+use crate::note::DeriveNote;
 use crate::query::{Policy, Query};
 
 /// One cell of a page's frame grid.
@@ -98,61 +107,194 @@ impl Query for RepAnchorCell {
 // ---------------------------------------------------------------------------------------------------------
 // The page's frame
 
-/// The frame form of a page (doc 03 §5.1 `FrameDefaults`, FR-PAG-018): `Page.form`, else the entry of
-/// `ProjectSettings.extra["frames"].per_page_type` whose `page_type` is the page's type, else its
-/// `default`. The member is read leniently: anything malformed yields no form.
-fn frame_form(q: &Q, page: Id<Page>) -> Option<Id<FormDef>> {
-    let page = q.pages().get(page)?;
-    if let Some(form) = page.form {
-        return Some(form);
-    }
-    let project = q.project();
-    let frames = project.settings.extra.get("frames")?.as_object()?;
-    let kind = serde_json::to_value(&page.kind).ok();
-    if let Some(entries) = frames.get("per_page_type") {
-        for entry in entries.as_array()? {
-            let Some(entry) = entry.as_object() else {
-                continue;
-            };
-            if let (Some(Value::String(t)), Some(k)) = (entry.get("page_type"), kind.as_ref())
-                && k.as_str() == Some(t.as_str())
-            {
-                return serde_json::from_value(entry.get("form")?.clone()).ok();
-            }
-        }
-    }
-    serde_json::from_value(frames.get("default")?.clone()).ok()
+/// One `per_page_type` entry of the `frames` shim.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct FrameTypeEntry {
+    /// The page type's snake_case spelling.
+    pub page_type: String,
+    /// The frame form; `None` when the entry's `form` is missing or not a form ID (noted).
+    pub form: Option<Id<FormDef>>,
 }
 
-/// The frame grid (columns, rows, header band) of a page's frame form, cloned; `None` for a page without
-/// a frame form or whose form has no grid.
+/// The parsed `ProjectSettings.extra["frames"]` member (doc 03 §5.1 `FrameDefaults`), read once per
+/// [`Q`]. Malformed parts are dropped here and reported as [`DeriveNote::MalformedShim`].
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct FrameSettingsValue {
+    /// The default frame form; `None` when absent or malformed (noted).
+    pub default: Option<Id<FormDef>>,
+    /// The per-page-type entries in order; the first with the page's type applies.
+    pub per_page_type: Vec<FrameTypeEntry>,
+}
+
+/// `frame_settings()`: the `frames` shim, parsed once per [`Q`] (and its malformed members noted once).
+#[derive(Debug)]
+pub struct FrameSettings;
+
+/// The member name notes use for the `frames` shim.
+const FRAMES_MEMBER: &str = "settings.frames";
+
+impl Query for FrameSettings {
+    type Key = ();
+    type Value = FrameSettingsValue;
+    const FAMILY: &'static str = "frame_settings";
+    const POLICY: Policy = Policy::Cold;
+
+    fn run(q: &Q, _key: &()) -> Arc<FrameSettingsValue> {
+        let malformed = |detail: &str| {
+            q.note(DeriveNote::MalformedShim {
+                member: FRAMES_MEMBER.into(),
+                detail: detail.into(),
+            });
+        };
+        let mut out = FrameSettingsValue::default();
+        let project = q.project();
+        let Some(frames) = project.settings.extra.get("frames") else {
+            return Arc::new(out);
+        };
+        let Some(frames) = frames.as_object() else {
+            malformed("frames is not an object");
+            return Arc::new(out);
+        };
+        if let Some(default) = frames.get("default") {
+            out.default = form_id(default);
+            if out.default.is_none() {
+                malformed("default is not a form ID");
+            }
+        }
+        match frames.get("per_page_type") {
+            None => {}
+            Some(Value::Array(entries)) => {
+                for entry in entries {
+                    let Some(entry) = entry.as_object() else {
+                        malformed("a per_page_type entry is not an object");
+                        continue;
+                    };
+                    let Some(Value::String(page_type)) = entry.get("page_type") else {
+                        malformed("a per_page_type entry has no page_type string");
+                        continue;
+                    };
+                    let form = entry.get("form").and_then(form_id);
+                    if form.is_none() {
+                        malformed("a per_page_type entry's form is not a form ID");
+                    }
+                    out.per_page_type.push(FrameTypeEntry {
+                        page_type: page_type.clone(),
+                        form,
+                    });
+                }
+            }
+            Some(_) => malformed("per_page_type is not an array"),
+        }
+        Arc::new(out)
+    }
+}
+
+fn form_id(value: &Value) -> Option<Id<FormDef>> {
+    serde_json::from_value(value.clone()).ok()
+}
+
+/// The built-in default frame grid: the QET-compatible A4 frame, 17 columns by 8 rows below a header band
+/// (doc 03 §5.1, doc 20 §17.1).
+///
+/// The constants mirror the `grid` member of `content/forms/ew.frame.qet-a4-landscape-grid.json`
+/// (`header_band` 15 875 000/3 nm, 17 columns of 15 875 000 nm, 8 rows of 63 500 000/3 nm) and the edges
+/// `ew-scene`'s `FrameGeometry` computes from it (`header + k × step`); a test compares it with the file.
+/// The file's `ew.frame.line_width` layout hint is not geometry and is left out.
+pub fn default_frame_grid() -> FrameGrid {
+    let grid = |num, den| Grid::new(num, den).expect("a valid built-in step");
+    FrameGrid {
+        header_band: Some(grid(15_875_000, 3)),
+        columns: FrameColumns {
+            count: 17,
+            start_index: 0,
+            width: grid(15_875_000, 1),
+            labels: Vec::new(),
+            extra: Extra::new(),
+        },
+        rows: FrameRows {
+            count: 8,
+            labels: Vec::new(),
+            skip_io: false,
+            height: grid(63_500_000, 3),
+            extra: Extra::new(),
+        },
+        extra: Extra::new(),
+    }
+}
+
+/// `frame_grid(page)`: the frame grid of a page, evaluated once per page per [`Q`].
+///
+/// The frame form is `Page.form`, else the entry of the `frames` shim whose `page_type` is the page's type,
+/// else its `default` (doc 03 §5.1 `FrameDefaults`, FR-PAG-018). A malformed matching entry falls through
+/// to the `default`, a malformed `default` to the built-in default (see [`FrameSettings`]). When no form is
+/// configured at all the built-in default grid applies ([`default_frame_grid`]) and the query pushes
+/// [`DeriveNote::DefaultFrame`]. A configured form without a `grid` member, or whose copy is missing, has no
+/// cells (`None`), as has a page that does not exist.
+#[derive(Debug)]
+pub struct FrameGridOf;
+
+impl Query for FrameGridOf {
+    type Key = Id<Page>;
+    type Value = Option<FrameGrid>;
+    const FAMILY: &'static str = "frame_grid";
+    const POLICY: Policy = Policy::Cold;
+
+    fn run(q: &Q, key: &Id<Page>) -> Arc<Option<FrameGrid>> {
+        let Some(page) = q.pages().get(*key) else {
+            return Arc::new(None);
+        };
+        let form = page.form.or_else(|| {
+            let settings = q.get::<FrameSettings>(());
+            let kind = serde_json::to_value(&page.kind).ok();
+            let of_type = kind.as_ref().and_then(Value::as_str).and_then(|kind| {
+                settings
+                    .per_page_type
+                    .iter()
+                    .find(|e| e.page_type == kind)
+                    .and_then(|e| e.form)
+            });
+            of_type.or(settings.default)
+        });
+        let Some(form) = form else {
+            q.note(DeriveNote::DefaultFrame);
+            return Arc::new(Some(default_frame_grid()));
+        };
+        Arc::new(q.forms().get(form).and_then(|f| f.item.grid.clone()))
+    }
+}
+
+/// The frame grid (columns, rows, header band) of a page, cloned; see [`FrameGridOf`].
 pub fn frame_grid(q: &Q, page: Id<Page>) -> Option<FrameGrid> {
-    let form = frame_form(q, page)?;
-    q.forms().get(form)?.item.grid.clone()
+    (*q.get::<FrameGridOf>(page)).clone()
 }
 
 // ---------------------------------------------------------------------------------------------------------
 // cell_of
 
 fn cell_of_page(q: &Q, page: Id<Page>, point: Pt2) -> Option<Cell> {
-    let grid = frame_grid(q, page)?;
+    let grid = q.get::<FrameGridOf>(page);
     let g = q.pages().get(page)?.grid;
-    cell_in_grid(&grid, g, point)
+    cell_in_grid(grid.as_ref().as_ref()?, g, point)
 }
 
-/// The cell of `point` in `frame`, with the point snapped to the connection grid `g` first.
+/// The cell of `point` in `frame`; each coordinate is read on the connection grid `g` when it lies within
+/// the rounding window of a grid position, else as stored ([`exact_coordinate`]).
 fn cell_in_grid(frame: &FrameGrid, g: Grid, point: Pt2) -> Option<Cell> {
     let (a, b) = frame
         .header_band
         .map_or((0, 1), |h| (i128::from(h.num()), i128::from(h.den())));
     let c = axis_cell(
-        g.snap(point.x),
-        g,
+        exact_coordinate(point.x, g)?,
         (a, b),
         frame.columns.width,
         frame.columns.count,
     )?;
-    let r = axis_cell(g.snap(point.y), g, (a, b), frame.rows.height, frame.rows.count)?;
+    let r = axis_cell(
+        exact_coordinate(point.y, g)?,
+        (a, b),
+        frame.rows.height,
+        frame.rows.count,
+    )?;
     let column_label = if frame.columns.labels.is_empty() {
         (u32::from(frame.columns.start_index) + c).to_string()
     } else {
@@ -171,13 +313,30 @@ fn cell_in_grid(frame: &FrameGrid, g: Grid, point: Pt2) -> Option<Cell> {
     })
 }
 
-/// The 0-based cell along one axis: `floor((k·g − origin) / step)` on exact rationals, if it lies in
-/// `0..count`. `k` is the grid index of the point, `origin = a/b` nm, `step` the cell size.
-fn axis_cell(k: i64, g: Grid, origin: (i128, i128), step: Grid, count: u16) -> Option<u32> {
+/// The half-width of the rounding window, in nm: a stored coordinate within it of a grid position is that
+/// grid position (doc 06 §5.1).
+const SNAP_WINDOW_NM: i128 = 1;
+
+/// A coordinate as the exact rational `p/s` nm (`s > 0`) that the lookup evaluates: the exact grid position
+/// `k·g.num/g.den` when `x` is within [`SNAP_WINDOW_NM`] of `g.at(k)` for `k = g.snap(x)`, else `x/1`.
+/// `None` only on overflow.
+fn exact_coordinate(x: Nm, g: Grid) -> Option<(i128, i128)> {
+    let k = g.snap(x);
+    match g.at(k) {
+        Some(at) if (i128::from(x.0) - i128::from(at.0)).abs() <= SNAP_WINDOW_NM => Some((
+            i128::from(k).checked_mul(i128::from(g.num()))?,
+            i128::from(g.den()),
+        )),
+        _ => Some((i128::from(x.0), 1)),
+    }
+}
+
+/// The 0-based cell along one axis: `floor((x − origin) / step)` on exact rationals, if it lies in
+/// `0..count`. `x = p/s` nm (from [`exact_coordinate`]), `origin = a/b` nm, `step` the cell size.
+fn axis_cell(x: (i128, i128), origin: (i128, i128), step: Grid, count: u16) -> Option<u32> {
     let (a, b) = origin;
-    let (gn, gd) = (i128::from(g.num()), i128::from(g.den()));
+    let (x, gd) = x;
     let (c, d) = (i128::from(step.num()), i128::from(step.den()));
-    let x = i128::from(k).checked_mul(gn)?;
     let lhs = x.checked_mul(b)?.checked_mul(d)?;
     let rhs = a.checked_mul(gd)?.checked_mul(d)?;
     let den = c.checked_mul(gd)?.checked_mul(b)?;
