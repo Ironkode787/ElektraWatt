@@ -11,7 +11,9 @@ use std::sync::Arc;
 
 use ew_dl::{Brush, Color, Destination, DisplayList, FontKey, Item, Link, Path, Pen, Stroke};
 use ew_export::ew_render_cpu::FontBytes;
-use ew_export::{Conformance, PdfDate, PdfError, PdfOptions, PdfPage, pdf, pdf_bytes};
+use ew_export::{
+    Conformance, OutlineEntry, PdfDate, PdfError, PdfOptions, PdfPage, outline_entries, pdf, pdf_bytes,
+};
 use ew_text::{builtin, bundled};
 use ew_units::{Nm, Pt2, Rect};
 use sha2::{Digest, Sha256};
@@ -123,9 +125,8 @@ fn options() -> PdfOptions {
         keywords: vec!["ElektraWatt".into()],
         language: Some("en".into()),
         creator: Some("ElektraWatt 0.0.0".into()),
-        date: PdfDate::ymd(2026, 3, 14),
         document_id: "test-export-input".into(),
-        ..PdfOptions::default()
+        ..PdfOptions::new(PdfDate::ymd(2026, 3, 14))
     }
 }
 
@@ -219,6 +220,13 @@ fn errors_and_missing_fonts() {
         pdf_bytes(&bad, &options(), &fonts()),
         Err(PdfError::PageSize { index: 1 })
     );
+    // Two pages with one destination (2 and 2.1 sharing a report block's ID) are refused.
+    let mut dup = pages();
+    dup[2].destination = dup[1].destination;
+    assert_eq!(
+        pdf_bytes(&dup, &options(), &fonts()),
+        Err(PdfError::DuplicateDestination { index: 2 })
+    );
     let mut d = options();
     d.date.month = 13;
     assert_eq!(pdf_bytes(&pages(), &d, &fonts()), Err(PdfError::Date));
@@ -246,4 +254,107 @@ fn hostile_page_with_ten_thousand_paths() {
     let p = vec![page(5, "5", None, items)];
     let bytes = pdf_bytes(&p, &options(), &fonts()).unwrap();
     assert!(bytes.starts_with(b"%PDF-"));
+}
+
+fn date_result(y: u16, m: u8, d: u8) -> Result<Vec<u8>, PdfError> {
+    let options = PdfOptions::new(PdfDate::ymd(y, m, d));
+    pdf_bytes(&pages(), &options, &fonts())
+}
+
+#[test]
+fn calendar_dates_are_validated() {
+    for (y, m, d) in [
+        (2024, 2, 29),
+        (2000, 2, 29),
+        (2024, 12, 31),
+        (2023, 2, 28),
+        (1, 1, 1),
+    ] {
+        assert!(date_result(y, m, d).is_ok(), "{y}-{m}-{d} is valid");
+    }
+    for (y, m, d) in [
+        (2023, 2, 29),
+        (1900, 2, 29),
+        (2024, 4, 31),
+        (0, 1, 1),
+        (2024, 13, 1),
+        (2024, 0, 1),
+        (2024, 1, 0),
+        (2024, 1, 32),
+    ] {
+        assert_eq!(
+            date_result(y, m, d),
+            Err(PdfError::Date),
+            "{y}-{m}-{d} is invalid"
+        );
+    }
+    let mut late = PdfDate::ymd(2024, 1, 1);
+    late.hour = 24;
+    assert_eq!(
+        pdf_bytes(&pages(), &PdfOptions::new(late), &fonts()),
+        Err(PdfError::Date)
+    );
+}
+
+#[test]
+fn outline_entries_group_sections_and_keep_front_matter_top_level() {
+    let p = |n: u128, section: Option<&str>| page(n, &n.to_string(), section, Vec::new());
+    let pages = [
+        p(1, None),
+        p(101, Some("A")),
+        p(102, Some("A")),
+        p(2, None),
+        p(201, Some("B")),
+        p(103, Some("A")),
+    ];
+    let leaf = |title: &str, page: usize| OutlineEntry {
+        title: title.to_owned(),
+        page,
+        children: Vec::new(),
+    };
+    let node = |title: &str, page: usize, children: Vec<OutlineEntry>| OutlineEntry {
+        title: title.to_owned(),
+        page,
+        children,
+    };
+    assert_eq!(
+        outline_entries(&pages),
+        vec![
+            leaf("1 Page 1", 0),
+            node("A", 1, vec![leaf("101 Page 101", 1), leaf("102 Page 102", 2)]),
+            leaf("2 Page 2", 3),
+            node("B", 4, vec![leaf("201 Page 201", 4)]),
+            node("A", 5, vec![leaf("103 Page 103", 5)]),
+        ]
+    );
+    assert!(outline_entries(&[]).is_empty());
+}
+
+#[test]
+fn the_report_lists_the_embedded_fonts_sorted_and_unique() {
+    let out = pdf(&pages(), &options(), &fonts(), None).unwrap();
+    let fonts = fonts();
+    assert_eq!(out.report.fonts.len(), 1, "only the regular face is drawn");
+    assert!(fonts.contains_key(&out.report.fonts[0]));
+    // Two runs of the same font and a missing one: unique, and the missing font is not listed.
+    let ghost = FontKey {
+        sha256: [3; 32],
+        face_index: 0,
+    };
+    let mut run = (*bundled()
+        .shape("X", &builtin().resolve("text.normal").unwrap(), None)
+        .run)
+        .clone();
+    run.origin = mm(10, 10);
+    let mut bad = run.clone();
+    bad.font = ghost;
+    let items = vec![
+        Item::glyphs(Arc::new(run.clone())),
+        Item::glyphs(Arc::new(run)),
+        Item::glyphs(Arc::new(bad)),
+    ];
+    let out = pdf(&[page(1, "1", None, items)], &options(), &fonts, None).unwrap();
+    assert_eq!(out.report.fonts.len(), 1);
+    assert_eq!(out.report.missing_fonts, vec![ghost]);
+    assert!(out.report.fonts.windows(2).all(|w| w[0] < w[1]));
 }

@@ -23,8 +23,9 @@
 //!    `Up`/`Down` gives `(b.x, a.y)`, `Left`/`Right` gives `(a.x, b.y)`. With neither direction the corner is
 //!    `(b.x, a.y)`.
 //!
-//! Afterwards the polyline is cleaned: consecutive duplicate points and interior vertices collinear with
-//! their neighbours on an axis are removed; the first and last vertex always stay.
+//! Afterwards the provisional polyline is cleaned: consecutive duplicate points and interior vertices
+//! collinear with their neighbours on an axis are removed; the first and last vertex always stay. A stored
+//! route is drawn as stored (see [`connection_polyline`]): it is clamped into the page but never cleaned.
 //!
 //! # Junctions
 //!
@@ -46,9 +47,9 @@ pub struct RouteEnd {
 /// The polyline of a connection from `a` to `b` (both ends included).
 ///
 /// - `stored` non-empty: `[a.pos] ++ stored ++ [b.pos]` (the stored route holds the interior vertices, in
-///   model order), each point clamped into `page`, then cleaned (consecutive duplicates and axis-collinear
-///   interior vertices removed).
-/// - `stored` empty: [`provisional_route`]`(a, b, page)`.
+///   model order), each point clamped into `page`. The route is drawn as stored: duplicate and collinear
+///   vertices are kept, because the model's route is authoritative and the user placed those vertices.
+/// - `stored` empty: [`provisional_route`]`(a, b, page)`, which is cleaned.
 pub fn connection_polyline(a: &RouteEnd, b: &RouteEnd, stored: &[Pt2], page: Rect) -> Vec<Pt2> {
     if stored.is_empty() {
         return provisional_route(a, b, page);
@@ -57,7 +58,7 @@ pub fn connection_polyline(a: &RouteEnd, b: &RouteEnd, stored: &[Pt2], page: Rec
     pts.push(clamp(a.pos, page));
     pts.extend(stored.iter().map(|&p| clamp(p, page)));
     pts.push(clamp(b.pos, page));
-    clean(pts)
+    pts
 }
 
 /// The provisional orthogonal route between two ends: 1, 2 or 3 vertices.

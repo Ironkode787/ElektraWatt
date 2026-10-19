@@ -9,15 +9,29 @@
 //! code until the export job of the session facade exists; the mapping rules are the ones a production
 //! implementation must follow:
 //!
-//! - frame form: `Page.form`, else the no-grid frame (dividers); its title block by `FormDef.title_block`;
+//! - page order: `page_order` of a `Q` with the report engine installed (`Session::query()`), so the
+//!   generated report pages take part in Prev/Next, the outline and `/PageLabels` (ARCH §6.4);
+//! - page IDs: a drawn page's ID, a divider's section ID, a generated page's v5 ID `v5(block, index)`
+//!   (`GeneratedPage::id`); every PDF destination is unique;
+//! - frame form: `Page.form`, else the no-grid frame (dividers); a generated page's `GeneratedPage::form`
+//!   (frame and title block only until the report content reaches the scene); the title block by
+//!   `FormDef.title_block`;
 //! - bindings: every `title_block(page)` value, the project's date format, no display language (neutral);
-//! - slot values: `tag` → `displayed_tag(device, page)` (an interruption point prints its pairing name),
-//!   `cp_designation(i)` → the designation of the function CP that symbol CP `i` draws, `function_text` →
-//!   the device's function text, `process_tag` → the device's process tag; every other kind has no value
-//!   yet (cross-references arrive with their query);
+//! - slot values: `tag` → `displayed_tag(device, page)`, except that a terminal's own representation prints
+//!   only the terminal's designation (ID-162, doc 08 §6.7; the strip tag appears once per strip
+//!   representation) and an interruption point has no `tag` slot; `cp_designation(i)` → the designation of
+//!   the function CP that symbol CP `i` draws, `function_text` → the device's function text, or an
+//!   interruption point's pairing name, `process_tag` → the device's process tag; every other kind has no
+//!   value yet (cross-references arrive with their query);
 //! - wire markers: connections with `overrides.show_marker`, printing the explicit cross-section in mm²
 //!   and the colour codes, joined by a space (provisional format);
-//! - junction and wire-marker symbols: the built-in `@qet10` symbols of `content/symbols`.
+//! - junction and wire-marker symbols: the built-in `@qet10` symbols of `content/symbols`;
+//! - strip segments (doc 08 §6.7, FR-TRM-011): the terminals of the strip device (`terminals_of_strip`,
+//!   in `(Terminal.seq, ID)` order) are split over the strip's segment representations, taken in
+//!   `(page-order position, pos.y, pos.x, ID)` order, as contiguous runs: segment `j` of `m` draws the
+//!   terminals `⌊j·N/m⌋ … ⌊(j+1)·N/m⌋ − 1` of `N`. Each drawn terminal is its device's main function
+//!   (else its first function) with the CPs of `function_cps` on side 1 and side 2; CPs without a side
+//!   (shaft, rail foot) are not drawn. `ew-scene` places them (`page` module documentation).
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -25,7 +39,8 @@ use std::sync::Arc;
 
 use ew_api::{Session, SessionOptions};
 use ew_derive::{
-    DisplayedTag, FunctionCps, PageEntry, PageOrder, PageRef, PageTitle, Q, TbValue, TitleBlockValues,
+    DisplayedTag, FunctionCps, PageEntry, PageOrder, PageOrderV, PageRef, PageTitle, Q, TbValue,
+    TitleBlockValues,
 };
 use ew_dl::{Destination, FontKey};
 use ew_ids::Id;
@@ -34,11 +49,12 @@ use ew_import_tables::{BuiltinLibrary, TablesImporter, bootstrap_context};
 use ew_render_cpu::FontBytes;
 use ew_scene::forms::{AssetRef, BoundValue, PageBindings};
 use ew_scene::page::{
-    ConnectionView, FrameView, JunctionView, PageKind, PageView, RepView, SlotValue, SymbolRef,
+    ConnectionView, FrameView, JunctionView, PageKind, PageView, RepView, SegmentTerminal, SlotValue,
+    SymbolRef,
 };
 use ew_schema::{
-    Csa, FormDef, FunctionKind, JunctionStyle, LibCopy, LibDocument, Page, PageType, Record, SlotKind,
-    SymbolDef,
+    Csa, FnRole, FormDef, Function, FunctionKind, JunctionStyle, LibCopy, LibDocument, Page, PageType,
+    Record, RepType, Representation, Side, SlotKind, SymbolDef,
 };
 
 pub fn repo() -> PathBuf {
@@ -213,10 +229,12 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &ew_schema::Representation, def: &Sym
     for (i, slot) in def.text_slots.iter().enumerate() {
         let text = match &slot.kind {
             SlotKind::Tag => match (&f, device) {
-                (Some(f), _) if matches!(f.kind, FunctionKind::Ip(_)) => match &f.kind {
-                    FunctionKind::Ip(ip) => Some(ip.name.as_str().to_owned()),
-                    _ => None,
-                },
+                (Some(f), _) if matches!(f.kind, FunctionKind::Ip(_)) => None,
+                // ID-162 (doc 08 §6.7): a terminal's own representation prints only its designation.
+                (_, Some(_)) if dev.as_ref().is_some_and(|d| d.aspects.terminal.is_some()) => dev
+                    .as_ref()
+                    .and_then(|d| d.aspects.terminal.as_ref())
+                    .map(|t| t.designation.as_str().to_owned()),
                 (_, Some(d)) => Some((*q.get::<DisplayedTag>((d, page))).clone()),
                 _ => None,
             },
@@ -233,7 +251,12 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &ew_schema::Representation, def: &Sym
                     .find(|c| c.idx == fidx)
                     .map(|c| c.designation.clone())
             }
-            SlotKind::FunctionText => dev.as_ref().map(|d| neutral(&d.function_text)),
+            // F2: interruption points have `function_text` and `xref` slots, no `tag`; the former prints the
+            // pairing name.
+            SlotKind::FunctionText => match f.as_ref().map(|f| &f.kind) {
+                Some(FunctionKind::Ip(ip)) => Some(ip.name.as_str().to_owned()),
+                _ => dev.as_ref().map(|d| neutral(&d.function_text)),
+            },
             SlotKind::ProcessTag => dev
                 .as_ref()
                 .and_then(|d| d.process_tag.as_ref().map(|t| t.as_str().to_owned())),
@@ -272,6 +295,10 @@ pub fn golden_pages(q: &Q) -> Vec<GoldenPage> {
             } else {
                 PageKind::Schematic
             },
+            grid: match entry.page {
+                PageRef::Drawn(p) => q.pages().get(p).map_or(ew_units::Grid::MM4, |pg| pg.grid),
+                _ => ew_units::Grid::MM4,
+            },
             language: None,
             frame: None,
             reps: Vec::new(),
@@ -294,7 +321,13 @@ pub fn golden_pages(q: &Q) -> Vec<GoldenPage> {
                         .as_ref()
                         .map(|d| slot_values(q, p, &rep, d))
                         .unwrap_or_default();
-                    view.reps.push(RepView { rep, symbol, slots });
+                    let terminals = segment_terminals(q, &order, &rep);
+                    view.reps.push(RepView {
+                        rep,
+                        symbol,
+                        slots,
+                        terminals,
+                    });
                 }
                 for cid in q.idx().connections_by_page(p) {
                     let Some(c) = q.connections().get(cid).cloned() else {
@@ -333,7 +366,11 @@ pub fn golden_pages(q: &Q) -> Vec<GoldenPage> {
                     view.junctions.push(JunctionView { junction: j, symbol });
                 }
             }
-            PageRef::Divider(_) | PageRef::Generated { .. } => {
+            PageRef::Generated { .. } => {
+                let f = order.generated(entry.page).and_then(|g| form(q, g.form));
+                view.frame = frame_view(q, f.or_else(|| nogrid.clone()), entry.page);
+            }
+            PageRef::Divider(_) => {
                 view.frame = frame_view(q, nogrid.clone(), entry.page);
             }
         }
@@ -347,14 +384,84 @@ pub fn golden_pages(q: &Q) -> Vec<GoldenPage> {
     out
 }
 
-/// The stable UUID of a page of the page order: the page's, the section's for its divider, the block's
-/// for a generated page (a placeholder until generated pages carry their v5 IDs).
+/// The stable UUID of a page of the page order: the page's, the section's for its divider, and for a
+/// generated page its v5 ID `v5(block, index)` (ADR-0004, `GeneratedPage::id`), so 2 and 2.1 or 901 and
+/// 901.1 have distinct destinations.
 pub fn uuid_of(page: PageRef) -> ew_ids::Uuid {
     match page {
         PageRef::Drawn(p) => p.as_uuid(),
         PageRef::Divider(s) => s.as_uuid(),
-        PageRef::Generated { block, .. } => block.as_uuid(),
+        PageRef::Generated { block, index } => ew_ids::v5::report_page_id::<_, ()>(block, index).as_uuid(),
     }
+}
+
+/// The terminals a strip-segment representation draws (see the module documentation); empty for any
+/// other representation.
+fn segment_terminals(q: &Q, order: &PageOrderV, rep: &Representation) -> Vec<SegmentTerminal> {
+    if rep.rep_type != RepType::StripSegment {
+        return Vec::new();
+    }
+    let Some(strip) = rep
+        .functions
+        .first()
+        .and_then(|f| q.functions().get(*f))
+        .and_then(|f| f.device)
+    else {
+        return Vec::new();
+    };
+    // The strip's segments in (page-order position, y, x, ID) order.
+    let mut segments: Vec<(usize, i64, i64, Id<Representation>)> = q
+        .idx()
+        .functions_of_device(strip)
+        .collect::<Vec<_>>()
+        .into_iter()
+        .flat_map(|f| q.idx().reps_of_function(f).collect::<Vec<_>>())
+        .filter_map(|r| q.reps().get(r).cloned())
+        .filter(|r| r.rep_type == RepType::StripSegment)
+        .map(|r| {
+            let at = order.position(PageRef::Drawn(r.page)).unwrap_or(usize::MAX);
+            (at, r.pos.y.0, r.pos.x.0, r.id)
+        })
+        .collect();
+    segments.sort_unstable();
+    segments.dedup();
+    let Some(j) = segments.iter().position(|s| s.3 == rep.id) else {
+        return Vec::new();
+    };
+    // The strip's terminals in (seq, ID) order.
+    let mut terminals: Vec<(u32, Id<ew_schema::Device>)> = q
+        .idx()
+        .terminals_of_strip(strip)
+        .filter_map(|t| {
+            let seq = q.devices().get(t)?.aspects.terminal.as_ref()?.seq;
+            Some((seq, t))
+        })
+        .collect();
+    terminals.sort_unstable();
+    let (n, m) = (terminals.len(), segments.len());
+    terminals[j * n / m..(j + 1) * n / m]
+        .iter()
+        .filter_map(|&(_, t)| {
+            let fns: Vec<Id<Function>> = q.idx().functions_of_device(t).collect();
+            let main = fns
+                .iter()
+                .copied()
+                .find(|f| q.functions().get(*f).is_some_and(|f| f.role == FnRole::Main))
+                .or_else(|| fns.first().copied())?;
+            let cps = q.get::<FunctionCps>(main);
+            let side = |want: Side| {
+                cps.iter()
+                    .filter(|c| c.side == Some(want.clone()))
+                    .map(|c| c.idx)
+                    .collect()
+            };
+            Some(SegmentTerminal {
+                function: main,
+                side1: side(Side::Side1),
+                side2: side(Side::Side2),
+            })
+        })
+        .collect()
 }
 
 /// The page's own destination.

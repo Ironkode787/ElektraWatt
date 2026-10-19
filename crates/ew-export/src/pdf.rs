@@ -11,7 +11,7 @@
 //! | [`PdfPage`] in slice order | one page each, `MediaBox` = the page's sheet (A4 and A3 mix; no rotation) |
 //! | `PdfPage::label` | `/PageLabels`: one range per page with the label as literal prefix and no numbering style (FR-OUT-006) |
 //! | `PdfPage::section`, `PdfPage::title` | the outline: consecutive pages with the same section are grouped under one node pointing at the section's first page; pages without a section are top-level entries (front matter); each page entry is its `title` (FR-OUT-004) |
-//! | `PdfPage::destination` | a named destination at the page's top-left corner (`ew:p:<uuid>`), always |
+//! | `PdfPage::destination` | a named destination at the page's top-left corner (`ew:p:<uuid>`), always; unique per export ([`PdfError::DuplicateDestination`]; a generated page uses its v5 page ID) |
 //! | [`Link::Target`] item | a named destination ([`Destination::pdf_name`]) at the item's anchor, written only if some link of the export points at it (doc 09 §4.2); the first target in page order wins |
 //! | [`Link::Source`] item | a link annotation over the item's box (a glyph run's `layout_quad`, else its control-point bounds) to the named destination; to a destination not in this export: plain text ([`PartialLinks::PlainText`], FR-OUT-020) |
 //! | `Path` | fill (non-zero) then stroke, caps, joins, miter limit [`ew_dl::MITER_LIMIT`], dashes |
@@ -158,8 +158,10 @@ pub struct PdfOptions {
     pub document_id: String,
 }
 
-impl Default for PdfOptions {
-    fn default() -> PdfOptions {
+impl PdfOptions {
+    /// The options of a PDF/A-2b export with plain-text partial links and no metadata. The date has no
+    /// default: it follows FR-OUT-026's order (the model's edited date first), so the caller supplies it.
+    pub fn new(date: PdfDate) -> PdfOptions {
         PdfOptions {
             conformance: Conformance::PdfA2b,
             monochrome: false,
@@ -171,7 +173,7 @@ impl Default for PdfOptions {
             creator: None,
             producer: None,
             authors: Vec::new(),
-            date: PdfDate::ymd(2000, 1, 1),
+            date,
             document_id: String::new(),
         }
     }
@@ -194,6 +196,8 @@ pub struct PdfReport {
     pub plain_text_links: usize,
     /// Named destinations written (one per page plus every linked target).
     pub destinations: usize,
+    /// The fonts whose glyphs were drawn (so embedded), sorted and unique.
+    pub fonts: Vec<FontKey>,
 }
 
 /// A PDF and its report.
@@ -217,6 +221,11 @@ pub enum PdfError {
     },
     /// The date is not a valid date and time.
     Date,
+    /// Two pages share one destination (a generated page must use its own v5 page ID, ARCH §6.4).
+    DuplicateDestination {
+        /// The index of the second page with that destination.
+        index: usize,
+    },
     /// krilla refused the document (for example a PDF/A validation error).
     Writer(String),
 }
@@ -227,6 +236,9 @@ impl fmt::Display for PdfError {
             PdfError::NoPages => write!(f, "the export has no pages"),
             PdfError::PageSize { index } => write!(f, "page {index} has no valid size"),
             PdfError::Date => write!(f, "the output date is not a valid date"),
+            PdfError::DuplicateDestination { index } => {
+                write!(f, "page {index} repeats the destination of an earlier page")
+            }
             PdfError::Writer(e) => write!(f, "the PDF writer failed: {e}"),
         }
     }
@@ -238,8 +250,8 @@ impl std::error::Error for PdfError {}
 ///
 /// # Errors
 ///
-/// [`PdfError`] when there are no pages, a page has no size, the date is invalid or krilla refuses the
-/// document.
+/// [`PdfError`] when there are no pages, two pages share a destination, a page has no size, the date is
+/// invalid or krilla refuses the document.
 pub fn pdf_bytes(
     pages: &[PdfPage],
     options: &PdfOptions,
@@ -273,12 +285,12 @@ pub fn pdf(
     };
 
     let mut report = PdfReport::default();
-    let page_index: BTreeMap<Destination, usize> = pages
-        .iter()
-        .enumerate()
-        .map(|(i, p)| (p.destination, i))
-        .rev()
-        .collect();
+    let mut page_index: BTreeMap<Destination, usize> = BTreeMap::new();
+    for (i, p) in pages.iter().enumerate() {
+        if page_index.insert(p.destination, i).is_some() {
+            return Err(PdfError::DuplicateDestination { index: i });
+        }
+    }
     // Pass 1: where every link target is, and which destinations links ask for.
     let mut targets: BTreeMap<Destination, (usize, Point)> = BTreeMap::new();
     let mut wanted: BTreeSet<Destination> = BTreeSet::new();
@@ -301,6 +313,7 @@ pub fn pdf(
     let mut document = Document::new_with(settings(options.conformance)?);
     let mut font_cache: BTreeMap<FontKey, Option<Font>> = BTreeMap::new();
     let mut missing: BTreeSet<FontKey> = BTreeSet::new();
+    let mut used: BTreeSet<FontKey> = BTreeSet::new();
     for (index, (page, list)) in pages.iter().zip(&contents).enumerate() {
         let (w, h) = (pt(page.width), pt(page.height));
         let settings = PageSettings::from_wh(w, h)
@@ -316,6 +329,7 @@ pub fn pdf(
                 geometry,
                 font_cache: &mut font_cache,
                 missing: &mut missing,
+                used: &mut used,
                 report: &mut report,
                 links: &mut links,
             };
@@ -362,6 +376,7 @@ pub fn pdf(
     document.set_outline(outline(pages));
     document.set_metadata(metadata(options, date));
     report.missing_fonts = missing.into_iter().collect();
+    report.fonts = used.into_iter().collect();
     let bytes = document
         .finish()
         .map_err(|e| PdfError::Writer(format!("{e:?}")))?;
@@ -383,13 +398,23 @@ fn settings(conformance: Conformance) -> Result<SerializeSettings, PdfError> {
     })
 }
 
+/// Days in a Gregorian month (`month` in 1–12).
+fn days_in_month(year: u16, month: u8) -> u8 {
+    match month {
+        2 if year.is_multiple_of(4) && (!year.is_multiple_of(100) || year.is_multiple_of(400)) => 29,
+        2 => 28,
+        4 | 6 | 9 | 11 => 30,
+        _ => 31,
+    }
+}
+
 fn date_time(d: PdfDate) -> Option<DateTime> {
-    let valid = (1..=12).contains(&d.month)
-        && (1..=31).contains(&d.day)
+    let valid = (1..=9999).contains(&d.year)
+        && (1..=12).contains(&d.month)
+        && (1..=days_in_month(d.year, d.month)).contains(&d.day)
         && d.hour < 24
         && d.minute < 60
-        && d.second < 60
-        && d.year <= 9999;
+        && d.second < 60;
     valid.then(|| {
         DateTime::new(d.year)
             .month(d.month)
@@ -431,25 +456,70 @@ fn metadata(o: &PdfOptions, date: DateTime) -> Metadata {
     m
 }
 
-fn outline(pages: &[PdfPage]) -> Outline {
-    let top = |i: usize| XyzDestination::new(i, Point::from_xy(0.0, 0.0));
-    let mut outline = Outline::new();
+/// One entry of the document outline.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct OutlineEntry {
+    /// The bookmark title.
+    pub title: String,
+    /// The 0-based index of the page it points to.
+    pub page: usize,
+    /// Child entries (the pages of a section).
+    pub children: Vec<OutlineEntry>,
+}
+
+/// The outline of `pages`: a page without a section is a top-level entry; consecutive pages of the
+/// same section are grouped under one entry titled with the section and pointing at its first page.
+pub fn outline_entries(pages: &[PdfPage]) -> Vec<OutlineEntry> {
+    let mut entries = Vec::new();
     let mut i = 0;
     while i < pages.len() {
         match &pages[i].section {
             None => {
-                outline.push_child(OutlineNode::new(pages[i].title.clone(), top(i)));
+                entries.push(OutlineEntry {
+                    title: pages[i].title.clone(),
+                    page: i,
+                    children: Vec::new(),
+                });
                 i += 1;
             }
             Some(section) => {
-                let mut node = OutlineNode::new(section.clone(), top(i)).with_open(true);
+                let mut node = OutlineEntry {
+                    title: section.clone(),
+                    page: i,
+                    children: Vec::new(),
+                };
                 while i < pages.len() && pages[i].section.as_ref() == Some(section) {
-                    node.push_child(OutlineNode::new(pages[i].title.clone(), top(i)));
+                    node.children.push(OutlineEntry {
+                        title: pages[i].title.clone(),
+                        page: i,
+                        children: Vec::new(),
+                    });
                     i += 1;
                 }
-                outline.push_child(node);
+                entries.push(node);
             }
         }
+    }
+    entries
+}
+
+fn outline(pages: &[PdfPage]) -> Outline {
+    fn node(e: &OutlineEntry) -> OutlineNode {
+        let mut n = OutlineNode::new(
+            e.title.clone(),
+            XyzDestination::new(e.page, Point::from_xy(0.0, 0.0)),
+        );
+        if !e.children.is_empty() {
+            n = n.with_open(true);
+        }
+        for c in &e.children {
+            n.push_child(node(c));
+        }
+        n
+    }
+    let mut outline = Outline::new();
+    for e in outline_entries(pages) {
+        outline.push_child(node(&e));
     }
     outline
 }
@@ -473,11 +543,12 @@ fn rect_of(quad: &[Pt2]) -> Option<kg::Rect> {
     kg::Rect::from_ltrb(pt(r.min().x), pt(r.min().y), pt(r.max().x), pt(r.max().y))
 }
 
-/// The anchor of a link target: an instance's insertion point, a run's origin, else the first point.
+/// The anchor of a link target: an instance's insertion point, a run's origin in its parent
+/// ([`ShapedRun::to_parent`] of the run-space origin), else the first point.
 fn anchor(item: &Item) -> Option<Pt2> {
     match &item.kind {
         ItemKind::Instance(i) => Some(i.transform.translate),
-        ItemKind::Glyphs(run) => Some(run.origin),
+        ItemKind::Glyphs(run) => Some(run.to_parent(Pt2::ORIGIN)),
         ItemKind::Path(p) => p.path.points().next(),
         ItemKind::Image(img) => Some(img.rect.min()),
         ItemKind::Group(g) => Some(g.transform.unwrap_or(Transform::IDENTITY).translate),
@@ -547,6 +618,7 @@ struct Writer<'a> {
     geometry: Option<&'a dyn GeometryResolver>,
     font_cache: &'a mut BTreeMap<FontKey, Option<Font>>,
     missing: &'a mut BTreeSet<FontKey>,
+    used: &'a mut BTreeSet<FontKey>,
     report: &'a mut PdfReport,
     /// Link sources of this page: destination and box corners on the sheet.
     links: &'a mut Vec<(Destination, Vec<Pt2>)>,
@@ -693,6 +765,7 @@ impl Writer<'_> {
                 )
             })
             .collect();
+        self.used.insert(run.font);
         let start = run.glyphs[first].x;
         let place = Transform {
             translate: run.origin + run.transform.translate,
@@ -771,5 +844,40 @@ fn stroke_of(s: &Stroke) -> krilla::paint::Stroke {
                 array: d.segments.iter().map(|x| pt(*x)).collect(),
                 offset: pt(d.offset),
             }),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ew_dl::ew_units::{Angle2, Orient2};
+    use std::sync::Arc;
+
+    fn run_item(origin: Pt2, transform: Transform) -> Item {
+        let style = ew_text::builtin().resolve("text.normal").unwrap();
+        let mut run = (*ew_text::bundled().shape("X", &style, None).run).clone();
+        run.origin = origin;
+        run.transform = transform;
+        Item::glyphs(Arc::new(run))
+    }
+
+    #[test]
+    fn a_glyph_run_anchors_at_the_parent_position_of_its_origin() {
+        let at = |x: i64, y: i64| Pt2::new(Nm::from_mm(x), Nm::from_mm(y));
+        // A turned run with an origin and a translation: `to_parent` of the run-space origin.
+        let turned = Transform::new(at(5, 7), Orient2::R90, Angle2::ZERO);
+        let item = run_item(at(10, 20), turned);
+        let ItemKind::Glyphs(run) = &item.kind else {
+            unreachable!()
+        };
+        assert_eq!(anchor(&item), Some(run.to_parent(Pt2::ORIGIN)));
+        assert_eq!(anchor(&item), Some(at(15, 27)));
+        // Identity transform: the same rule gives the origin.
+        let item = run_item(at(10, 20), Transform::IDENTITY);
+        let ItemKind::Glyphs(run) = &item.kind else {
+            unreachable!()
+        };
+        assert_eq!(anchor(&item), Some(run.to_parent(Pt2::ORIGIN)));
+        assert_eq!(anchor(&item), Some(at(10, 20)));
     }
 }

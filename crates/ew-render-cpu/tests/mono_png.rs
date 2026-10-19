@@ -205,7 +205,7 @@ fn render_monochrome_text_is_black() {
     };
     let (img, _) = render_monochrome(&list, a4(), &options, &bundled_fonts(), None).unwrap();
     let mut ink = 0;
-    for p in img.pixels.chunks_exact(4) {
+    for p in img.pixels.as_chunks::<4>().0.iter() {
         assert!(p[0] == p[1] && p[1] == p[2], "colour leaked: {p:?}");
         if is_dark([p[0], p[1], p[2], p[3]]) {
             ink += 1;
@@ -253,7 +253,7 @@ fn png_grayscale_for_grey_images() {
     assert_eq!((info.width, info.height), (17, 9));
     assert_eq!(info.color_type, png::ColorType::Grayscale);
     assert_eq!(info.bit_depth, png::BitDepth::Eight);
-    let want: Vec<u8> = img.pixels.chunks_exact(4).map(|p| p[0]).collect();
+    let want: Vec<u8> = img.pixels.as_chunks::<4>().0.iter().map(|p| p[0]).collect();
     assert_eq!(data, want);
     // 150 dpi = 5906 pixels per metre.
     let dims = dims.expect("pHYs");
@@ -301,7 +301,7 @@ fn png_of_a_rendered_page_round_trips() {
     let (info, data, _) = decode(&encode_png(&img, Some(100)));
     // Black text on white with grey anti-aliasing: grayscale.
     assert_eq!(info.color_type, png::ColorType::Grayscale);
-    let want: Vec<u8> = img.pixels.chunks_exact(4).map(|p| p[0]).collect();
+    let want: Vec<u8> = img.pixels.as_chunks::<4>().0.iter().map(|p| p[0]).collect();
     assert_eq!(data, want);
 }
 

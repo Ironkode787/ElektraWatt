@@ -27,12 +27,14 @@ fn encode(image: &RgbaImage, dpi: Option<u32>) -> Option<Vec<u8>> {
     rgba.resize(len, 0);
 
     let gray = rgba
-        .chunks_exact(4)
+        .as_chunks::<4>()
+        .0
+        .iter()
         .all(|p| p[3] == 255 && p[0] == p[1] && p[1] == p[2]);
     let (color, data) = if gray {
         (
             png::ColorType::Grayscale,
-            rgba.chunks_exact(4).map(|p| p[0]).collect::<Vec<u8>>(),
+            rgba.as_chunks::<4>().0.iter().map(|p| p[0]).collect::<Vec<u8>>(),
         )
     } else {
         (png::ColorType::Rgba, rgba)

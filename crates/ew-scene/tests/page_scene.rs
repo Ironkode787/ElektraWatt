@@ -86,6 +86,7 @@ fn view() -> PageView {
     PageView {
         page: Id::from_uuid(Uuid::from_u128(PAGE)),
         kind: PageKind::Schematic,
+        grid: ew_units::Grid::QET_10PX,
         language: None,
         frame: Some(FrameView {
             form: form(FRAME),
@@ -101,6 +102,7 @@ fn view() -> PageView {
                     text: "-X2".into(),
                     link: Some(Destination::Representation(Uuid::from_u128(0x11))),
                 }],
+                terminals: Vec::new(),
             },
             RepView {
                 rep: rep(0x11, 0xF1, t.id, 10, 20, "r0"),
@@ -117,11 +119,13 @@ fn view() -> PageView {
                         link: None,
                     },
                 ],
+                terminals: Vec::new(),
             },
             RepView {
                 rep: rep(0x13, 0xF3, Id::from_uuid(Uuid::from_u128(0xDEAD)), 60, 60, "r0"),
                 symbol: None,
                 slots: Vec::new(),
+                terminals: Vec::new(),
             },
         ],
         connections: vec![
@@ -369,4 +373,155 @@ fn a_page_without_frame_uses_a4_and_the_identity_map() {
     let s = page_scene(&panel, bundled());
     assert_eq!(s.layers.len(), Layer::PANEL.len());
     assert!(s.layer(Layer::Wires).is_none());
+}
+
+const BLACKBOX: &str = include_str!("../../../content/symbols/qet10/ew.gen.blackbox@qet10.json");
+const SEGMENT: &str = include_str!("../../../content/symbols/qet10/ew.gen.strip-segment@qet10.json");
+
+/// A view with only `reps` and `connections` (no frame) on the QET grid.
+fn bare(reps: Vec<RepView>, connections: Vec<ConnectionView>) -> PageView {
+    PageView {
+        page: Id::from_uuid(Uuid::from_u128(PAGE)),
+        kind: PageKind::Schematic,
+        grid: ew_units::Grid::QET_10PX,
+        language: None,
+        frame: None,
+        reps,
+        connections,
+        junctions: Vec::new(),
+        wire_marker: None,
+    }
+}
+
+fn wire(n: u128, a: serde_json::Value, b: serde_json::Value) -> ConnectionView {
+    ConnectionView {
+        connection: connection(n, a, b),
+        marker: None,
+    }
+}
+
+fn stroke_widths(list: &ew_dl::DisplayList) -> Vec<i64> {
+    list.items
+        .iter()
+        .filter_map(|i| match &i.kind {
+            ItemKind::Path(p) => p.stroke.as_ref().map(|s| s.width.0),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn wires_use_the_1_px_pen_on_the_qet_grid_and_the_house_pen_elsewhere() {
+    let mut v = view();
+    let wires = page_display_list(&v, Layer::Wires, bundled());
+    let w = stroke_widths(&wires.list);
+    assert_eq!(w.len(), 3);
+    assert!(w.iter().all(|&w| w == ew_scene::page::QET_PEN_1PX.0), "{w:?}");
+    v.grid = ew_units::Grid::MM4;
+    let wires = page_display_list(&v, Layer::Wires, bundled());
+    assert!(stroke_widths(&wires.list).iter().all(|&w| w == 260_000));
+}
+
+#[test]
+fn a_black_box_draws_its_box_cps() {
+    let bb = symbol(BLACKBOX);
+    let t = symbol(TERMINAL);
+    let mut boxed: Representation = serde_json::from_value(json!({
+        "id": uuid(0x41), "functions": [uuid(0xB1)], "page": uuid(PAGE),
+        "symbol": bb.id.as_uuid().hyphenated().to_string(), "pos": [g(10), g(10)],
+        "box": {
+            "outline": [[0, 0], [g(10), 0], [g(10), g(6)], [0, g(6)]],
+            "cps": [{"idx": 3, "pos": [g(1), 0], "dir": "up"}, {"idx": 7, "pos": [g(3), g(6)], "dir": "down"}],
+        },
+    }))
+    .unwrap();
+    let reps = |boxed: Representation| {
+        vec![
+            RepView {
+                rep: Arc::new(boxed),
+                symbol: Some(bb.def.clone()),
+                slots: Vec::new(),
+                terminals: Vec::new(),
+            },
+            RepView {
+                rep: rep(0x42, 0xF1, t.id, 40, 40, "r0"),
+                symbol: Some(t.def.clone()),
+                slots: Vec::new(),
+                terminals: Vec::new(),
+            },
+        ]
+    };
+    let conns = vec![
+        wire(0x51, cp(0xB1, 3), cp(0xF1, 0)),
+        wire(0x52, cp(0xB1, 7), cp(0xF1, 1)),
+    ];
+    let v = bare(reps(boxed.clone()), conns.clone());
+    let lines = polylines(&page_display_list(&v, Layer::Wires, bundled()).list);
+    assert_eq!(lines.len(), 2);
+    assert_eq!(lines[0].1.first(), Some(&p(11, 10)));
+    assert_eq!(lines[1].1.first(), Some(&p(13, 16)));
+    // The box CPs turn with the representation: R90 maps (x, y) to (-y, x).
+    boxed.orient = ew_units::Orient2::R90;
+    let v = bare(reps(boxed.clone()), conns.clone());
+    let lines = polylines(&page_display_list(&v, Layer::Wires, bundled()).list);
+    assert_eq!(lines[0].1.first(), Some(&p(10, 11)));
+    // Without a box nothing is drawn: both connections have an unresolved end.
+    boxed.box_ = None;
+    let v = bare(reps(boxed), conns);
+    let wires = page_display_list(&v, Layer::Wires, bundled());
+    assert!(polylines(&wires.list).is_empty());
+    assert_eq!(wires.findings.len(), 2);
+}
+
+#[test]
+fn a_strip_segment_draws_one_point_per_terminal_and_side() {
+    use ew_scene::page::SegmentTerminal;
+    let seg = symbol(SEGMENT);
+    let t = symbol(TERMINAL);
+    let terminal = |f: u128| SegmentTerminal {
+        function: Id::from_uuid(Uuid::from_u128(f)),
+        side1: vec![0],
+        side2: vec![1, 2],
+    };
+    let v = bare(
+        vec![
+            RepView {
+                rep: rep(0x61, 0xC0, seg.id, 21, 9, "r0"),
+                symbol: Some(seg.def.clone()),
+                slots: Vec::new(),
+                terminals: vec![terminal(0xC1), terminal(0xC2), terminal(0xC3)],
+            },
+            RepView {
+                rep: rep(0x62, 0xF1, t.id, 60, 60, "r0"),
+                symbol: Some(t.def.clone()),
+                slots: Vec::new(),
+                terminals: Vec::new(),
+            },
+        ],
+        vec![
+            wire(0x71, cp(0xC1, 0), cp(0xF1, 0)),
+            wire(0x72, cp(0xC3, 2), cp(0xF1, 1)),
+            wire(0x73, cp(0xC2, 1), cp(0xF1, 1)),
+            wire(0x74, cp(0xC2, 3), cp(0xF1, 1)),
+        ],
+    );
+    let wires = page_display_list(&v, Layer::Wires, bundled());
+    let lines = polylines(&wires.list);
+    assert_eq!(lines.len(), 3);
+    // Terminal k at x = (k + 1) grid steps right of the origin; side 1 on y = 0, side 2 on the segment's
+    // bottom edge (3 grid steps, the height of the dashed rectangle).
+    let q = |x: i64, y: i64| {
+        let at = |k| ew_units::Grid::QET_10PX.at(k).unwrap();
+        Pt2::new(at(x), at(y))
+    };
+    assert_eq!(lines[0].1.first(), Some(&q(22, 9)));
+    assert_eq!(lines[1].1.first(), Some(&q(24, 12)));
+    assert_eq!(lines[2].1.first(), Some(&q(23, 12)));
+    // A CP the caller lists on no side (here idx 3) is not drawn.
+    assert_eq!(
+        wires.findings,
+        [PageFinding::UnresolvedEnd {
+            connection: Id::from_uuid(Uuid::from_u128(0x74))
+        }]
+    );
 }

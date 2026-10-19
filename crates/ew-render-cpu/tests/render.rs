@@ -157,7 +157,9 @@ fn deterministic_pixels_and_png() {
     // The page is not blank: it has ink.
     assert!(
         a.pixels
-            .chunks_exact(4)
+            .as_chunks::<4>()
+            .0
+            .iter()
             .any(|p| is_dark([p[0], p[1], p[2], p[3]]))
     );
 }
@@ -306,6 +308,36 @@ fn garbage_font_bytes_do_not_panic() {
     assert_eq!(pixel(&img, 10, 10), [255, 255, 255, 255]);
     // A file the glyph machinery cannot open counts as a missing font.
     assert_eq!(report.missing_fonts, vec![key]);
+}
+
+#[test]
+fn invalid_font_bytes_are_validated_once_per_key_and_reported_missing() {
+    let key = FontKey {
+        sha256: [0xAB; 32],
+        face_index: 0,
+    };
+    let mut fonts: BTreeMap<FontKey, FontBytes> = BTreeMap::new();
+    fonts.insert(
+        key,
+        FontBytes {
+            data: Arc::from(vec![0xABu8; 64]),
+            index: 0,
+        },
+    );
+    let mut a = text_run("HHHH", mm(40, 60));
+    a.font = key;
+    let mut b = text_run("HH", mm(40, 100));
+    b.font = key;
+    let list = DisplayList {
+        items: vec![Item::glyphs(Arc::new(a)), Item::glyphs(Arc::new(b))],
+    };
+    let (img, report) = render(&list, a4(), &RenderOptions::default(), &fonts, None).expect("renders");
+    assert_eq!(
+        report.missing_fonts,
+        vec![key],
+        "one entry for two runs of the same bad key"
+    );
+    assert!(!(0..img.height).any(|y| (0..img.width).any(|x| is_dark(pixel(&img, x, y)))));
 }
 
 #[test]

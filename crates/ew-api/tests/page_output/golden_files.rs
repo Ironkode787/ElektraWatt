@@ -315,7 +315,9 @@ pub fn decode_rgba(bytes: &[u8]) -> (u32, u32, Vec<u8>) {
         png::ColorType::Grayscale => buf.iter().flat_map(|&g| [g, g, g, 255]).collect(),
         png::ColorType::Rgba => buf,
         png::ColorType::Rgb => buf
-            .chunks_exact(3)
+            .as_chunks::<3>()
+            .0
+            .iter()
             .flat_map(|c| [c[0], c[1], c[2], 255])
             .collect(),
         other => panic!("unexpected PNG colour type {other:?}"),
@@ -328,8 +330,10 @@ pub fn differing_percent(a: &[u8], b: &[u8], threshold: u8) -> f64 {
     assert_eq!(a.len(), b.len());
     let n = a.len() / 4;
     let bad = a
-        .chunks_exact(4)
-        .zip(b.chunks_exact(4))
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .zip(b.as_chunks::<4>().0.iter())
         .filter(|(p, q)| p.iter().zip(q.iter()).any(|(x, y)| x.abs_diff(*y) > threshold))
         .count();
     bad as f64 * 100.0 / n as f64

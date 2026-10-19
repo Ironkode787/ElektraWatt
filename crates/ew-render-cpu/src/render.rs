@@ -208,7 +208,7 @@ pub fn render(
 /// Premultiplied RGBA8 to straight alpha with exact integer rounding.
 fn unpremultiply(premul: &[u8]) -> Vec<u8> {
     let mut out = Vec::with_capacity(premul.len());
-    for px in premul.chunks_exact(4) {
+    for px in premul.as_chunks::<4>().0 {
         let a = u32::from(px[3]);
         // Fully transparent pixels become (0, 0, 0, 0): the division yields nothing for a == 0.
         for &c in &px[..3] {
@@ -342,7 +342,8 @@ impl Painter<'_> {
     }
 
     /// The font for `key`, built once per render call; `None` and recorded as missing if the resolver
-    /// does not have it.
+    /// does not have it or its bytes do not open as a font face (validated here, once per key, with
+    /// skrifa, the parser the glyph machinery uses).
     fn font(&mut self, key: FontKey) -> Option<FontData> {
         if let Some(f) = self.font_cache.get(&key) {
             return f.clone();
@@ -350,6 +351,7 @@ impl Painter<'_> {
         let font = self
             .fonts
             .font(key)
+            .filter(|b| skrifa::FontRef::from_index(&b.data, b.index).is_ok())
             .map(|b| FontData::new(Blob::new(std::sync::Arc::new(b.data)), b.index));
         if font.is_none() {
             self.missing.insert(key);
@@ -380,9 +382,10 @@ impl Painter<'_> {
             x: (g.x.0 as f64 * k) as f32,
             y: (g.y.0 as f64 * k) as f32,
         });
-        // Glyphs the font cannot draw come back as an error and stay blank; nothing else to do. A font
-        // file the glyph machinery cannot even open panics inside it; that is treated as a missing
-        // font so a corrupt embedded file cannot take the export down.
+        // Glyphs the font cannot draw come back as an error and stay blank; nothing else to do. The font
+        // file itself was validated in `font()`; the `catch_unwind` below is a backstop for failures
+        // inside the glyph machinery at glyph level, which then count the font as missing. It only
+        // works with `panic = "unwind"` (the workspace profiles do not set `panic = "abort"`).
         let ctx = &mut self.ctx;
         let resources = &mut self.resources;
         let drawn = catch_unwind(AssertUnwindSafe(|| {

@@ -142,21 +142,33 @@ fn stored_route_keeps_interior_vertices_in_order() {
 }
 
 #[test]
-fn stored_route_drops_duplicates_and_collinear_points() {
+fn stored_route_is_drawn_as_stored() {
     let a = end(0, 0, None);
     let b = end(300, 100, None);
-    // (0,0) duplicates the start, (50,0) and (100,0) are collinear, (300,100) duplicates the end.
+    // (0,0) duplicates the start, (50,0) and (100,0) are collinear, (300,100) duplicates the end: all kept.
     let stored = [p(0, 0), p(50, 0), p(100, 0), p(300, 0), p(300, 100)];
     let r = connection_polyline(&a, &b, &stored, page());
-    assert_eq!(r, vec![p(0, 0), p(300, 0), p(300, 100)]);
+    assert_eq!(
+        r,
+        vec![
+            p(0, 0),
+            p(0, 0),
+            p(50, 0),
+            p(100, 0),
+            p(300, 0),
+            p(300, 100),
+            p(300, 100)
+        ]
+    );
+    assert_eq!(r.len(), stored.len() + 2);
 }
 
 #[test]
-fn stored_route_collapses_a_spike() {
+fn stored_route_keeps_a_spike() {
     let a = end(0, 0, None);
     let b = end(0, 0, None);
     let r = connection_polyline(&a, &b, &[p(0, 500)], page());
-    assert_eq!(r, vec![p(0, 0)]);
+    assert_eq!(r, vec![p(0, 0), p(0, 500), p(0, 0)]);
 }
 
 #[test]
@@ -183,7 +195,10 @@ fn clamping_pulls_ends_onto_the_page_edge() {
         &[p(-50, 500), p(-50, 600)],
         page(),
     );
-    assert_eq!(r, vec![p(0, 0), p(0, 1000)]);
+    assert_eq!(r, vec![p(0, 0), p(0, 500), p(0, 600), p(0, 1000)]);
+    // An off-page stored point lands on the page edge.
+    let r = connection_polyline(&end(0, 0, None), &end(300, 300, None), &[p(-50, 300)], page());
+    assert_eq!(r, vec![p(0, 0), p(0, 300), p(300, 300)]);
 }
 
 fn coord() -> impl Strategy<Value = i64> {

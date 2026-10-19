@@ -52,24 +52,28 @@ fn pdf_pages(q: &Q) -> Vec<PdfPage> {
 /// The export options of the golden PDF: dates from the model's edited date (FR-OUT-026).
 fn pdf_options(q: &Q) -> PdfOptions {
     let m = &q.project().master;
-    let date = m.edited.map_or(PdfDate::ymd(2000, 1, 1), |d| {
-        PdfDate::ymd(d.year(), d.month(), d.day())
-    });
+    let d = m
+        .edited
+        .expect("the golden model has an edited date (FR-OUT-026)");
+    let date = PdfDate::ymd(d.year(), d.month(), d.day());
     PdfOptions {
         title: Some(ew_scene::forms::ml_text(&m.description, None).to_owned()),
         creator: Some(format!("ElektraWatt {}", env!("CARGO_PKG_VERSION"))),
-        date,
         document_id: format!("golden J-E-2416 {}", q.profile().version),
-        ..PdfOptions::default()
+        ..PdfOptions::new(date)
     }
 }
 
 #[test]
 fn the_golden_pdf_has_every_folio_and_is_byte_identical_across_runs_and_record_shuffles() {
     let s = golden_session(None);
-    let q = Q::new(&s.world().model);
+    let q = s.query();
     let pages = pdf_pages(&q);
-    assert_eq!(pages.len(), 16, "page_order of the golden model");
+    assert_eq!(
+        pages.len(),
+        31,
+        "page_order of the golden model with its report pages"
+    );
     let f = fonts();
     let a = pdf(&pages, &pdf_options(&q), &f, None).expect("the golden PDF is written");
     assert!(a.bytes.starts_with(b"%PDF-"));
@@ -77,21 +81,96 @@ fn the_golden_pdf_has_every_folio_and_is_byte_identical_across_runs_and_record_s
     let b = pdf(&pages, &pdf_options(&q), &f, None).unwrap();
     assert!(a.bytes == b.bytes, "two runs differ");
     let shuffled = golden_session(Some(0x5eed_1234));
-    let q2 = Q::new(&shuffled.world().model);
+    let q2 = shuffled.query();
     let c = pdf(&pdf_pages(&q2), &pdf_options(&q2), &f, None).unwrap();
     assert!(a.bytes == c.bytes, "a record shuffle changes the PDF");
 }
 
+/// The writer's own PDF structure of the golden project, as the committed candidate
+/// `expected/pdf/structure.json` (doc 20 §3.3 "PDF structure"; the PDF hash waits for cross-references).
+/// Fonts are named `<family name> <weight>[ Italic]` after the bundled face info, sorted and unique.
+#[test]
+fn the_pdf_structure_matches_the_committed_file() {
+    let s = golden_session(None);
+    let q = s.query();
+    let pages = pdf_pages(&q);
+    let out = pdf(&pages, &pdf_options(&q), &fonts(), None).expect("the golden PDF is written");
+    let faces: Vec<_> = ew_text::bundled().faces().collect();
+    let mut names: Vec<String> = out
+        .report
+        .fonts
+        .iter()
+        .map(|key| {
+            let f = faces
+                .iter()
+                .find(|f| f.key == *key)
+                .expect("an embedded font is a bundled face");
+            let italic = if f.italic { " Italic" } else { "" };
+            format!("{} {:?}{italic}", f.family_name, f.weight)
+        })
+        .collect();
+    names.sort();
+    names.dedup();
+    let labels: Vec<String> = pages.iter().map(|p| p.label.clone()).collect();
+    // The JSON map of the workspace's serde_json sorts its keys, so the file is written by hand in the
+    // documented key order.
+    let mut text = String::from("{\n");
+    text += &format!("  \"pages\": {},\n", pages.len());
+    text += &format!("  \"page_labels\": {},\n", string_list(&labels, 1));
+    text += &format!(
+        "  \"outline\": {},\n",
+        outline_json(&ew_export::outline_entries(&pages), 1)
+    );
+    text += &format!("  \"links\": {},\n", out.report.links);
+    text += &format!("  \"plain_text_links\": {},\n", out.report.plain_text_links);
+    text += &format!("  \"destinations\": {},\n", out.report.destinations);
+    text += &format!("  \"fonts\": {}\n}}\n", string_list(&names, 1));
+    check_or_bless(&expected_dir("pdf").join("structure.json"), text.as_bytes());
+}
+
+/// A JSON array of strings, one per line, indented for nesting level `depth`.
+fn string_list(items: &[String], depth: usize) -> String {
+    if items.is_empty() {
+        return "[]".to_owned();
+    }
+    let pad = "  ".repeat(depth + 1);
+    let lines: Vec<String> = items
+        .iter()
+        .map(|i| format!("{pad}{}", serde_json::to_string(i).unwrap()))
+        .collect();
+    format!("[\n{}\n{}]", lines.join(",\n"), "  ".repeat(depth))
+}
+
+/// The outline as JSON objects `{title, page, children}` in that key order.
+fn outline_json(entries: &[ew_export::OutlineEntry], depth: usize) -> String {
+    if entries.is_empty() {
+        return "[]".to_owned();
+    }
+    let pad = "  ".repeat(depth + 1);
+    let items: Vec<String> = entries
+        .iter()
+        .map(|e| {
+            let title = serde_json::to_string(&e.title).unwrap();
+            let children = outline_json(&e.children, depth + 2);
+            format!(
+                "{pad}{{\n{pad}  \"title\": {title},\n{pad}  \"page\": {},\n{pad}  \"children\": {children}\n{pad}}}",
+                e.page
+            )
+        })
+        .collect();
+    format!("[\n{}\n{}]", items.join(",\n"), "  ".repeat(depth))
+}
+
 fn with_golden_pages(f: impl FnOnce(&[GoldenPage])) {
     let s = golden_session(None);
-    let q = Q::new(&s.world().model);
+    let q = s.query();
     f(&golden_pages(&q));
 }
 
 #[test]
 fn the_text_csv_of_every_folio_matches_the_committed_file() {
     with_golden_pages(|pages| {
-        assert_eq!(pages.len(), 16);
+        assert_eq!(pages.len(), 31);
         for g in pages {
             let scene = page_scene(&g.view, ew_text::bundled());
             let csv = text_csv(&scene);
@@ -189,7 +268,7 @@ fn every_committed_png_is_at_most_300_kb() {
         assert!(len <= 300 * 1024, "{}: {len} bytes", p.display());
         n += 1;
     }
-    assert_eq!(n, 16);
+    assert_eq!(n, 31);
 }
 
 fn folio<'a>(pages: &'a [GoldenPage], folio: &str) -> &'a GoldenPage {
@@ -222,42 +301,44 @@ fn the_display_list_of_folio_101_is_stable() {
         symbols instance de795e26 sym=9a687b31 variant=A translate=(203729167,95250000)
         symbols instance ec75639e sym=f8b44164 variant=A translate=(92604167,79375000)
         symbols instance f4fdc202 sym=4f6bee27 variant=A translate=(7937500,137583333)
-        wires path 09ed5beb els=3 first=(44979167,82020833) last=(50270834,44979167) stroke=260000 fill=-
-        wires path 13c75a2c els=3 first=(7937500,142875000) last=(44979167,76729167) stroke=260000 fill=-
-        wires path 17b31bbc els=3 first=(50270834,37041667) last=(145520833,31750000) stroke=260000 fill=-
-        wires path 2b9b8f17 els=2 first=(137583333,31750000) last=(201083333,31750000) stroke=260000 fill=-
-        wires path 2be33590 els=2 first=(203729167,66145833) last=(203729167,105833333) stroke=260000 fill=-
-        wires path 301459db els=2 first=(145520833,31750000) last=(209020833,31750000) stroke=260000 fill=-
-        wires path 35faab6c els=3 first=(206375000,100541667) last=(251354167,140229167) stroke=260000 fill=-
-        wires path 48f5a362 els=2 first=(235479167,87312500) last=(235479167,100541667) stroke=260000 fill=-
-        wires path 522a3985 els=3 first=(145520833,42333333) last=(267229167,166687500) stroke=260000 fill=-
-        wires path 5945bf6c els=3 first=(7937500,148166667) last=(50270833,76729167) stroke=260000 fill=-
-        wires path 5e9d92b4 els=3 first=(219604167,58208333) last=(235479167,79375000) stroke=260000 fill=-
-        wires path 628881aa els=3 first=(39687500,82020833) last=(44979167,44979167) stroke=260000 fill=-
-        wires path 6d50c972 els=3 first=(7937500,137583333) last=(39687500,76729167) stroke=260000 fill=-
-        wires path 8d27ba7c els=3 first=(137583333,42333333) last=(267229167,161395834) stroke=260000 fill=-
-        wires path a697efb2 els=3 first=(209020833,42333333) last=(219604167,58208333) stroke=260000 fill=-
-        wires path aba94b57 els=3 first=(50270833,82020833) last=(92604167,79375000) stroke=260000 fill=-
-        wires path b5382424 els=3 first=(187854167,58208333) last=(203729167,95250000) stroke=260000 fill=-
-        wires path c851008e els=3 first=(187854167,58208333) last=(235479167,108479167) stroke=260000 fill=-
-        wires path ce52ac00 els=3 first=(44979167,37041667) last=(137583333,31750000) stroke=260000 fill=-
-        wires path d48db15f els=3 first=(201083333,42333333) last=(187854167,58208333) stroke=260000 fill=-
-        wires path f40a98e3 els=2 first=(219604167,58208333) last=(203729167,58208333) stroke=260000 fill=-
+        wires path 09ed5beb els=3 first=(44979167,82020833) last=(50270834,44979167) stroke=264583 fill=-
+        wires path 13c75a2c els=3 first=(7937500,142875000) last=(44979167,76729167) stroke=264583 fill=-
+        wires path 17b31bbc els=3 first=(50270834,37041667) last=(145520833,31750000) stroke=264583 fill=-
+        wires path 2b9b8f17 els=2 first=(137583333,31750000) last=(201083333,31750000) stroke=264583 fill=-
+        wires path 2be33590 els=2 first=(203729167,66145833) last=(203729167,105833333) stroke=264583 fill=-
+        wires path 301459db els=2 first=(145520833,31750000) last=(209020833,31750000) stroke=264583 fill=-
+        wires path 35faab6c els=3 first=(206375000,100541667) last=(251354167,140229167) stroke=264583 fill=-
+        wires path 48f5a362 els=2 first=(235479167,87312500) last=(235479167,100541667) stroke=264583 fill=-
+        wires path 522a3985 els=3 first=(145520833,42333333) last=(267229167,166687500) stroke=264583 fill=-
+        wires path 5945bf6c els=3 first=(7937500,148166667) last=(50270833,76729167) stroke=264583 fill=-
+        wires path 5e9d92b4 els=3 first=(219604167,58208333) last=(235479167,79375000) stroke=264583 fill=-
+        wires path 628881aa els=3 first=(39687500,82020833) last=(44979167,44979167) stroke=264583 fill=-
+        wires path 6d50c972 els=3 first=(7937500,137583333) last=(39687500,76729167) stroke=264583 fill=-
+        wires path 8d27ba7c els=3 first=(137583333,42333333) last=(267229167,161395834) stroke=264583 fill=-
+        wires path a697efb2 els=3 first=(209020833,42333333) last=(219604167,58208333) stroke=264583 fill=-
+        wires path aba94b57 els=3 first=(50270833,82020833) last=(92604167,79375000) stroke=264583 fill=-
+        wires path b5382424 els=3 first=(187854167,58208333) last=(203729167,95250000) stroke=264583 fill=-
+        wires path c851008e els=3 first=(187854167,58208333) last=(235479167,108479167) stroke=264583 fill=-
+        wires path ce52ac00 els=3 first=(44979167,37041667) last=(137583333,31750000) stroke=264583 fill=-
+        wires path d48db15f els=3 first=(201083333,42333333) last=(187854167,58208333) stroke=264583 fill=-
+        wires path f40a98e3 els=2 first=(219604167,58208333) last=(203729167,58208333) stroke=264583 fill=-
         wires instance 0c0b22d7 sym=a3e1ca3e variant=A translate=(187854167,58208333)
         wires instance 1f9afba6 sym=a3e1ca3e variant=A translate=(219604167,58208333)
         labels glyphs 20d847a1 "S56" origin=(237463542,83910223) size=3439583 angle=0
         labels glyphs 20d847a1 "13" origin=(233304292,80508739) size=1322917 angle=0
         labels glyphs 20d847a1 "14" origin=(233304292,87123323) size=1322917 angle=0
-        labels glyphs 23a4ce3c "1X1:PE" origin=(37420815,80602931) size=3439583 angle=0
+        labels glyphs 23a4ce3c "PE" origin=(44293102,80602931) size=3439583 angle=0
+        labels glyphs 313e2bc4 "N-1" origin=(269213542,168860522) size=2381250 angle=0
         labels glyphs 57543b91 "S51" origin=(36510120,42238348) size=3439583 angle=0
         labels glyphs 57543b91 "1" origin=(45640625,38836865) size=1322917 angle=0
         labels glyphs 57543b91 "2" origin=(45640625,44128531) size=1322917 angle=0
         labels glyphs 57543b91 "3" origin=(50932292,38836865) size=1322917 angle=0
         labels glyphs 57543b91 "4" origin=(50932292,44128531) size=1322917 angle=0
+        labels glyphs 5e0e0f25 "J-E-206-N" origin=(5498174,140854377) size=2381250 angle=0
         labels glyphs 6112da7c "E56" origin=(226324584,105738348) size=3439583 angle=0
         labels glyphs 6112da7c "X1" origin=(236140625,101675406) size=1322917 angle=0
         labels glyphs 6112da7c "X2" origin=(236140625,108289990) size=1322917 angle=0
-        labels glyphs 66c620c1 "1X1:1" origin=(28863397,80602931) size=3439583 angle=0
+        labels glyphs 66c620c1 "1" origin=(35735684,80602931) size=3439583 angle=0
         labels glyphs 682aa707 "T55" origin=(205713542,62082097) size=3439583 angle=0
         labels glyphs 682aa707 "5" origin=(202311000,59342072) size=1322917 angle=0
         labels glyphs 682aa707 "3" origin=(202311000,65956656) size=1322917 angle=0
@@ -271,11 +352,15 @@ fn the_display_list_of_folio_101_is_stable() {
         labels glyphs 8c4dbb72 "2" origin=(201744791,41482698) size=1322917 angle=0
         labels glyphs 8c4dbb72 "N" origin=(209682291,33545198) size=1322917 angle=0
         labels glyphs 8c4dbb72 "N" origin=(209682291,41482698) size=1322917 angle=0
-        labels glyphs 9945b5aa "1X1:2" origin=(34155064,80602931) size=3439583 angle=0
+        labels glyphs 92878d9b "J-E-206-PE" origin=(5020733,146146044) size=2381250 angle=0
+        labels glyphs 9945b5aa "2" origin=(41027351,80602931) size=3439583 angle=0
+        labels glyphs 9b2316f2 "PE-1.1" origin=(253338542,142402189) size=2381250 angle=0
+        labels glyphs dc21e14c "L-1" origin=(269213542,163568856) size=2381250 angle=0
         labels glyphs de795e26 "E55" origin=(195236043,101769598) size=3439583 angle=0
         labels glyphs de795e26 "L" origin=(204390625,97045198) size=1322917 angle=0
         labels glyphs de795e26 "N" origin=(204390625,104982698) size=1322917 angle=0
         labels glyphs de795e26 "PE" origin=(207036459,99492593) size=1322917 angle=0
+        labels glyphs f4fdc202 "J-E-206-L" origin=(5779161,135562710) size=2381250 angle=0
         labels instance 09ed5beb sym=04b0176e variant=D translate=(44979167,63500000)
         labels glyphs 09ed5beb "2.5" origin=(45451448,64433979) size=1322917 angle=90000
         labels instance 17b31bbc sym=04b0176e variant=A translate=(97895833,31750000)
@@ -381,6 +466,7 @@ fn hostile_view() -> PageView {
             rep: Arc::new(rep),
             symbol: Some(symbol.def.clone()),
             slots: Vec::new(),
+            terminals: Vec::new(),
         });
     }
     let mut state = 0x9E37_79B9_7F4A_7C15u64;
@@ -416,6 +502,7 @@ fn hostile_view() -> PageView {
     PageView {
         page,
         kind: PageKind::Schematic,
+        grid: ew_units::Grid::MM4,
         language: None,
         frame: None,
         reps,
@@ -436,7 +523,12 @@ fn a_hostile_page_renders_and_exports_without_panic() {
         .count();
     assert_eq!(unresolved, 50);
     let wires = count(scene.layer(Layer::Wires).unwrap()).0;
-    assert!(wires <= 10_000, "{wires} wire paths");
+    assert_eq!(
+        unresolved + wires,
+        10_050,
+        "every connection is drawn or reported"
+    );
+    assert_eq!(wires, 10_000, "{wires} wire paths");
     let list = scene.sheet_list();
     let f = fonts();
     let sheet = ew_render_cpu::SheetSize {
@@ -457,10 +549,135 @@ fn a_hostile_page_renders_and_exports_without_panic() {
         height: scene.sheet_height,
         content: list,
     };
-    let options = PdfOptions {
-        date: PdfDate::ymd(2000, 1, 1),
-        ..PdfOptions::default()
-    };
+    let options = PdfOptions::new(PdfDate::ymd(2000, 1, 1));
     let out = pdf(&[page], &options, &f, None).expect("the hostile PDF is written");
     assert!(out.bytes.starts_with(b"%PDF-"));
+}
+
+/// The operands of every `w` (line width) operator in the content streams of a PDF: each stream is
+/// inflated (krilla compresses content and font streams with Flate); streams that do not inflate to ASCII
+/// (fonts) are skipped.
+fn pdf_line_widths(bytes: &[u8]) -> Vec<f64> {
+    use std::io::Read;
+    let mut out = Vec::new();
+    let mut rest = bytes;
+    while let Some(start) = find(rest, b"stream") {
+        let body = &rest[start + b"stream".len()..];
+        let body = body
+            .strip_prefix(b"\r\n")
+            .or_else(|| body.strip_prefix(b"\n"))
+            .unwrap_or(body);
+        let Some(end) = find(body, b"endstream") else {
+            break;
+        };
+        let mut inflated = Vec::new();
+        if flate2::read::ZlibDecoder::new(&body[..end])
+            .read_to_end(&mut inflated)
+            .is_ok()
+            && inflated.is_ascii()
+        {
+            let text = String::from_utf8(inflated).expect("ASCII");
+            let tokens: Vec<&str> = text.split_ascii_whitespace().collect();
+            for pair in tokens.windows(2) {
+                if pair[1] == "w"
+                    && let Ok(v) = pair[0].parse::<f64>()
+                {
+                    out.push(v);
+                }
+            }
+        }
+        rest = &body[end + b"endstream".len()..];
+    }
+    out
+}
+
+fn find(hay: &[u8], needle: &[u8]) -> Option<usize> {
+    hay.windows(needle.len()).position(|w| w == needle)
+}
+
+/// doc 20 §17.4: on folio 101 (a QET-grid page) the frame, the symbols and the wires print in one width
+/// class, 0.261 mm = 0.74 pt, and thin symbol lines at 0.130 mm = 0.37 pt: the `@qet10` edition's pens
+/// and the wire pen are QET px, mapped by the frame's sheet map like the frame lines.
+#[test]
+fn the_pdf_of_folio_101_has_one_width_class_for_frame_symbols_and_wires() {
+    let s = golden_session(None);
+    let q = s.query();
+    let pages: Vec<PdfPage> = pdf_pages(&q).into_iter().filter(|p| p.label == "101").collect();
+    assert_eq!(pages.len(), 1);
+    let out = pdf(&pages, &pdf_options(&q), &fonts(), None).expect("the PDF of folio 101");
+    let widths = pdf_line_widths(&out.bytes);
+    assert!(!widths.is_empty(), "no line widths found in the content stream");
+    let classes: std::collections::BTreeSet<String> = widths.iter().map(|w| format!("{w:.2}")).collect();
+    let want: std::collections::BTreeSet<String> = ["0.37", "0.74"].into_iter().map(str::to_owned).collect();
+    assert_eq!(classes, want, "line widths in pt: {widths:?}");
+}
+
+/// Prev/Next of every title block follow `page_order` with the generated report pages (doc 20 §5,
+/// FR-PAG-013), and every page has its own PDF destination (generated pages use their v5 IDs).
+#[test]
+fn prev_and_next_follow_the_page_order_with_the_report_pages() {
+    let s = golden_session(None);
+    let q = s.query();
+    let pages = golden_pages(&q);
+    let text = |page: ew_derive::PageRef, path: &str| -> Option<String> {
+        q.get::<ew_derive::TitleBlockValues>(page)
+            .values
+            .iter()
+            .find(|(p, _)| p.as_str() == path)
+            .and_then(|(_, v)| match v {
+                ew_derive::TbValue::Text(t) => Some(t.clone()),
+                _ => None,
+            })
+    };
+    let folios: Vec<&str> = pages.iter().map(|g| g.entry.folio.as_str()).collect();
+    for (i, g) in pages.iter().enumerate() {
+        let prev = i.checked_sub(1).map(|j| folios[j].to_owned());
+        let next = folios.get(i + 1).map(|f| (*f).to_owned());
+        assert_eq!(text(g.entry.page, "page.prev"), prev, "Prev of {}", folios[i]);
+        assert_eq!(text(g.entry.page, "page.next"), next, "Next of {}", folios[i]);
+    }
+    // The pages the review named: the cover's Next is the table of contents, folio 3 follows its
+    // continuation, the divider 900 follows the last report page before it, 902 is followed by 903.
+    let at = |f: &str| folios.iter().position(|x| *x == f).expect("the folio exists");
+    assert_eq!(folios[at("1") + 1], "2");
+    assert_eq!(folios[at("3") - 1], "2.1");
+    assert_eq!(folios[at("902") + 1], "903");
+    let mut ids: Vec<ew_dl::Destination> = pages.iter().map(|g| destination(g.entry.page)).collect();
+    ids.sort();
+    ids.dedup();
+    assert_eq!(ids.len(), pages.len(), "every page has its own destination");
+}
+
+/// Every page connection of the golden model is drawn: black-box CPs come from `Representation.box`, strip
+/// terminals from their segments (review G1). `EW_WIRE_COUNTS=1` prints the count per folio.
+#[test]
+fn every_page_wire_of_the_golden_model_is_drawn() {
+    with_golden_pages(|pages| {
+        let mut total = 0;
+        for g in pages {
+            let wires = page_display_list(&g.view, Layer::Wires, ew_text::bundled());
+            let unresolved: Vec<_> = wires
+                .findings
+                .iter()
+                .filter(|f| matches!(f, PageFinding::UnresolvedEnd { .. }))
+                .collect();
+            assert!(unresolved.is_empty(), "folio {}: {unresolved:?}", g.entry.folio);
+            let drawn = wires
+                .list
+                .items
+                .iter()
+                .filter(|i| matches!(i.kind, ItemKind::Path(_)))
+                .count();
+            if std::env::var_os("EW_WIRE_COUNTS").is_some() {
+                eprintln!(
+                    "folio {}: {drawn} of {} connections drawn",
+                    g.entry.folio,
+                    g.view.connections.len()
+                );
+            }
+            total += drawn;
+            assert_eq!(drawn, g.view.connections.len(), "folio {}", g.entry.folio);
+        }
+        assert_eq!(total, 72, "page wires of the golden model");
+    });
 }

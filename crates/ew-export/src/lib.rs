@@ -12,5 +12,6 @@ mod pdf;
 
 pub use ew_render_cpu;
 pub use pdf::{
-    Conformance, PartialLinks, PdfDate, PdfError, PdfOptions, PdfOutput, PdfPage, PdfReport, pdf, pdf_bytes,
+    Conformance, OutlineEntry, PartialLinks, PdfDate, PdfError, PdfOptions, PdfOutput, PdfPage, PdfReport,
+    outline_entries, pdf, pdf_bytes,
 };

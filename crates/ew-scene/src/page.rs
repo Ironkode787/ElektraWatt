@@ -39,10 +39,21 @@
 //!   `pos + orient(c.pos)` and draws the function CP of its `pin_map` entry, else `(functions[0], c.fn_cp)`;
 //!   when several representations on the page draw the same function CP, the smallest representation ID
 //!   wins.
+//! - **Black boxes.** A representation whose symbol has no CPs and that carries `Representation.box` draws
+//!   box CP `c` of its first function at `pos + orient(c.pos)`, leaving in `orient(c.dir)`.
+//! - **Strip segments** (doc 08 §6.7, FR-TRM-011). The caller lists the terminals a segment draws
+//!   ([`RepView::terminals`], in drawing order). With `g` the segment symbol's grid and `h` the bottom of
+//!   its bounds in `R0` (snapped to `g`), terminal `k` (0-based) has its side-1 point at `(g·(k+1), 0)`,
+//!   leaving `Up`, and its side-2 point at `(g·(k+1), h)`, leaving `Down`, in the symbol frame: one
+//!   connection-grid step per terminal along the segment's x axis, starting one step in. The step vector
+//!   turns with the orientation and lands on the exact grid point (no 1 nm rounding drift). Every function CP the caller lists for a side is drawn at that side's
+//!   point; CPs without a side (shaft, rail foot) are not drawn.
 //! - **Routes.** A connection with a stored route draws `[a, route…, b]`; without one it draws the
 //!   provisional orthogonal route of [`crate::route`] (a placeholder for doc 06 §5.4). Ends are clamped to
 //!   the page. A connection whose end cannot be resolved on this page is reported and not drawn.
-//! - **Strokes.** Wires use the 0.26 mm house pen (doc 20 §17.4), solid black.
+//! - **Strokes.** Wires are solid black in [`wire_stroke`] of the page's grid: on the QET 10 px grid the 1.0
+//!   QET px pen [`QET_PEN_1PX`] (printed 0.261 mm through the QET frame's sheet map, like the frame and the
+//!   `@qet10` symbols), else the 0.26 mm house pen (doc 20 §17.4).
 //! - **Junctions** draw the caller's junction symbol at `at` in the bevel's orientation; without a symbol a
 //!   dot is a filled black disc of radius [`JUNCTION_DOT_RADIUS`].
 //! - **Slot texts.** A slot is shown when its override says so, else when it belongs to the
@@ -66,10 +77,11 @@ use ew_dl::{
 use ew_ids::{Id, Uuid};
 use ew_mltext::LangTag;
 use ew_schema::{
-    Align, Connection, Dir4, Endpoint, FormDef, Junction, JunctionStyle, Page, Representation, SymbolDef,
+    Align, Connection, Dir4, Endpoint, FormDef, Function, Junction, JunctionStyle, Page, Representation,
+    SymbolDef,
 };
 use ew_text::{DEFAULT_STYLE_KEY, FontSet, TextStyle, builtin};
-use ew_units::{Angle2, Nm, Orient2, Pt2, Rect};
+use ew_units::{Angle2, Grid, Nm, Orient2, Pt2, Rect};
 
 use crate::forms::{
     BoxSpec, FormFinding, FrameGeometry, PageBindings, SheetMap, lower_form, ml_text, place, split_align,
@@ -80,6 +92,21 @@ use crate::symbol::{self, TextSource};
 /// The radius of a junction dot drawn without a junction symbol: 1.25 QET px (0.33 mm), the radius of
 /// `ew.gen.junction-dot@qet10`.
 pub const JUNCTION_DOT_RADIUS: Nm = Nm(330_729);
+
+/// The 1.0 QET px pen (`7_937_500 / 30` nm, rounded): wires on QET-grid pages and the `@qet10` edition's
+/// replacement of the 0.26 mm house pen, so that after the QET frame's sheet map it prints at 0.261 mm
+/// (doc 20 §17.4).
+pub const QET_PEN_1PX: Nm = Nm(264_583);
+
+/// The wire pen of a page with connection grid `grid`: [`QET_PEN_1PX`] on the QET 10 px grid, else the
+/// 0.26 mm house pen (doc 20 §17.4; `@qet10` symbols carry the same QET-px pens).
+pub fn wire_stroke(grid: Grid) -> Stroke {
+    if grid == Grid::QET_10PX {
+        Stroke::solid(QET_PEN_1PX)
+    } else {
+        Stroke::pen(Pen::P026)
+    }
+}
 
 /// The sheet used when a page has no frame form: A4 landscape (297 mm × 210 mm).
 pub const DEFAULT_SHEET: (Nm, Nm) = (Nm(297_000_000), Nm(210_000_000));
@@ -128,6 +155,20 @@ pub struct RepView {
     pub symbol: Option<Arc<SymbolDef>>,
     /// The derived slot texts; a slot without a value prints nothing.
     pub slots: Vec<SlotValue>,
+    /// For a strip-segment representation ([`ew_schema::RepType::StripSegment`]): the terminals it draws, in drawing
+    /// order (doc 08 §6.7, FR-TRM-011); empty otherwise. See the module documentation for their CPs.
+    pub terminals: Vec<SegmentTerminal>,
+}
+
+/// One terminal drawn by a strip segment: its function and the function CPs of each side.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct SegmentTerminal {
+    /// The terminal's function.
+    pub function: Id<Function>,
+    /// The function CPs on side 1 (all drawn at the terminal's side-1 point).
+    pub side1: Vec<u16>,
+    /// The function CPs on side 2 (all drawn at the terminal's side-2 point).
+    pub side2: Vec<u16>,
 }
 
 /// One connection drawn on the page.
@@ -175,6 +216,9 @@ pub struct PageView {
     pub page: Id<Page>,
     /// Its layer set.
     pub kind: PageKind,
+    /// The page's connection grid (`Page.grid`; [`Grid::MM4`] for generated pages and dividers). It
+    /// chooses the wire pen: [`QET_PEN_1PX`] on the QET 10 px grid, the 0.26 mm house pen otherwise.
+    pub grid: Grid,
     /// The display language of static multi-language symbol texts.
     pub language: Option<LangTag>,
     /// The frame; `None` draws no frame on a [`DEFAULT_SHEET`].
@@ -360,6 +404,11 @@ fn cp_map(view: &PageView) -> CpMap {
     for rv in sorted_reps(view) {
         let Some(def) = &rv.symbol else { continue };
         let rep = &rv.rep;
+        let mut put = |function: Id<Function>, idx: u16, offset: Pt2, dir: &Dir4| {
+            let pos = rep.pos + rep.orient.apply(offset);
+            let dir = symbol::transform_dir(dir, rep.orient);
+            map.entry((function.as_uuid(), idx)).or_insert((pos, dir));
+        };
         for cp in def.cps.iter() {
             let (function, idx) = match rep.pin_map.iter().find(|p| p.symbol_cp == cp.idx) {
                 Some(p) => (p.function, p.idx),
@@ -368,12 +417,57 @@ fn cp_map(view: &PageView) -> CpMap {
                     None => continue,
                 },
             };
-            let pos = rep.pos + rep.orient.apply(cp.pos);
-            let dir = symbol::transform_dir(&cp.dir, rep.orient);
-            map.entry((function.as_uuid(), idx)).or_insert((pos, dir));
+            put(function, idx, cp.pos, &cp.dir);
+        }
+        // A black box: the CPs of `Representation.box`, when the symbol has none.
+        if def.cps.is_empty()
+            && let (Some(b), Some(&function)) = (&rep.box_, rep.functions.first())
+        {
+            for cp in &b.cps {
+                put(function, cp.idx, cp.pos, &cp.dir);
+            }
+        }
+        // A strip segment: one point per drawn terminal and side.
+        if !rv.terminals.is_empty() {
+            let grid = def.grid;
+            let bottom = grid.snap(symbol::lower(def, Orient2::R0).bounds.max().y);
+            for (k, t) in rv.terminals.iter().enumerate() {
+                let Ok(step) = i64::try_from(k + 1) else { break };
+                let points = (
+                    segment_point(grid, rep, step, 0),
+                    segment_point(grid, rep, step, bottom),
+                );
+                let (Some(side1), Some(side2)) = points else { break };
+                for (idx, at, dir) in t
+                    .side1
+                    .iter()
+                    .map(|&i| (i, side1, Dir4::Up))
+                    .chain(t.side2.iter().map(|&i| (i, side2, Dir4::Down)))
+                {
+                    let dir = symbol::transform_dir(&dir, rep.orient);
+                    map.entry((t.function.as_uuid(), idx)).or_insert((at, dir));
+                }
+            }
         }
     }
     map
+}
+
+/// The page point `(i, j)` grid steps from a strip segment's origin in its symbol frame. The step vector
+/// turns with the orientation; on a grid-point origin the result is the exact grid point (the rounding
+/// of each absolute coordinate, so no 1 nm drift), else the origin plus the rounded offset. `None` on
+/// overflow.
+fn segment_point(grid: Grid, rep: &Representation, i: i64, j: i64) -> Option<Pt2> {
+    let v = rep.orient.apply(Pt2::new(Nm(i), Nm(j)));
+    let axis = |origin: Nm, steps: i64| {
+        let k = grid.snap(origin);
+        if grid.at(k) == Some(origin) {
+            grid.at(k.checked_add(steps)?)
+        } else {
+            Some(Nm(origin.0.checked_add(grid.at(steps)?.0)?))
+        }
+    };
+    Some(Pt2::new(axis(rep.pos.x, v.x.0)?, axis(rep.pos.y, v.y.0)?))
 }
 
 fn polyline_of(view: &PageView, cps: &CpMap, c: &Connection, page: Rect) -> Option<Vec<Pt2>> {
@@ -456,7 +550,7 @@ impl Builder<'_> {
     fn wires(&mut self, view: &PageView) {
         let cps = cp_map(view);
         let page = page_rect(view);
-        let stroke = Stroke::pen(Pen::P026);
+        let stroke = wire_stroke(view.grid);
         for cv in sorted_connections(view) {
             let c = &cv.connection;
             let Some(pts) = polyline_of(view, &cps, c, page) else {
