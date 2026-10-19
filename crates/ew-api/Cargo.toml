@@ -36,6 +36,9 @@ ew-jobs = { path = "../ew-jobs" }
 # The snapshot type and its revision. Without `raw-read`: the Session hands snapshots out and never reads rows
 # itself (ARCH §3 rule 1: the untracked read API stays with ew-derive, ew-commands and ew-store).
 ew-model = { path = "../ew-model" }
+# The derivation notes of a snapshot (unknown profile, schemes not applied, default frame, malformed
+# settings), surfaced as findings on load and on demand. Tracked reads only: no `raw-read`.
+ew-derive = { path = "../ew-derive" }
 # The record types of `Session::from_records`.
 ew-schema = { path = "../ew-schema" }
 

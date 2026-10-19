@@ -94,7 +94,7 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 "ew-api" = [
   "ew-store", "ew-commands", "ew-checks", "ew-sqlview", "ew-library", "ew-scene", "ew-export", "ew-plc",
   "ew-panel", "ew-mfg", "ew-import-qet", "ew-import-eplan", "ew-import-dxf", "ew-import-catalog",
-  "ew-import-tables", "ew-script", "ew-plugin-host", "ew-jobs", "ew-model", "ew-schema",
+  "ew-import-tables", "ew-script", "ew-plugin-host", "ew-jobs", "ew-model", "ew-schema", "ew-derive",
 ]
 "ew-viewmodel" = ["ew-api"]
 "ew-ui" = ["ew-viewmodel", "ew-render2d", "ew-render-cpu", "ew-render3d"]

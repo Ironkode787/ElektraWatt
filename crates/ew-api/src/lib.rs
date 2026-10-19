@@ -13,6 +13,13 @@
 //! Not in v0: persistence and the journal (WP-S1.09), the memo snapshot in [`World`] and the job pool for
 //! previews (WP-S1.05), rule registration (WP-S1.15) and export jobs.
 //!
+//! **Derivation findings.** What the derivation layer could not do as the project asks (an unknown pinned
+//! derivation profile, a numbering scheme the command layer does not number, the built-in default frame, a
+//! malformed provisional settings member) reaches the front-end as a [`DerivationFinding`]:
+//! [`Session::load_findings`] holds the project-level ones found when the session opened (ADR-0003: an
+//! unknown profile is never silent; it carries `EW-CORE-018` at error severity), and
+//! [`Session::derivation_findings`] runs a full pass over the current snapshot on demand.
+//!
 //! # Example
 //!
 //! ```
@@ -38,8 +45,11 @@
 
 #![forbid(unsafe_code)]
 
+use ew_derive::{DeviceTag, FrameGridOf, FrameSettings, NumberingSettingsOf, Q};
 use ew_model::{Model, ModelError, PreventHook};
 use ew_schema::{LibDocument, Project, Record};
+
+pub use ew_derive::{DeriveNote, NoteSeverity};
 
 pub use ew_commands::{
     AnyCommand, Change, CmdError, CommandRegistry, DynCommand, History, HistoryLimits, IdSource, Origin,
@@ -80,16 +90,56 @@ impl std::fmt::Debug for SessionOptions {
     }
 }
 
+/// One finding of the derivation layer, from a [`DeriveNote`].
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct DerivationFinding {
+    /// The catalogue code where one is assigned (`EW-CORE-018` for an unknown derivation profile).
+    pub code: Option<&'static str>,
+    /// The severity.
+    pub severity: NoteSeverity,
+    /// What happened, in English (Fluent keys arrive with the message-list UI).
+    pub message: String,
+    /// The note itself.
+    pub note: DeriveNote,
+}
+
+impl From<DeriveNote> for DerivationFinding {
+    fn from(note: DeriveNote) -> DerivationFinding {
+        DerivationFinding {
+            code: note.code(),
+            severity: note.severity(),
+            message: note.to_string(),
+            note,
+        }
+    }
+}
+
+/// The project-level derivation notes of a snapshot: the pinned profile and the provisional settings
+/// members, each parsed once (cheap: no device or page is derived).
+fn project_notes(model: &Model) -> Vec<DerivationFinding> {
+    let mut q = Q::new(model);
+    let _ = q.get::<NumberingSettingsOf>(());
+    let _ = q.get::<FrameSettings>(());
+    q.diagnostics()
+        .notes()
+        .into_iter()
+        .map(DerivationFinding::from)
+        .collect()
+}
+
 /// One open project: the facade every front-end (GUI, `ew` CLI, scripts, MCP) talks to.
 #[derive(Debug)]
 pub struct Session {
     engine: Engine,
+    load_findings: Vec<DerivationFinding>,
 }
 
 impl Session {
     /// A session over a loaded model.
     pub fn new(model: Model, options: SessionOptions) -> Session {
+        let load_findings = project_notes(&model);
         Session {
+            load_findings,
             engine: Engine::new(
                 model,
                 EngineOptions {
@@ -178,5 +228,34 @@ impl Session {
     /// Whether the model differs from the last saved state.
     pub fn is_dirty(&self) -> bool {
         self.engine.is_dirty()
+    }
+
+    /// The project-level derivation findings of the model the session opened with, in canonical order:
+    /// an unknown pinned profile (`EW-CORE-018`, error), malformed provisional settings members.
+    pub fn load_findings(&self) -> &[DerivationFinding] {
+        &self.load_findings
+    }
+
+    /// Every derivation finding of the current snapshot, in canonical order: the project-level ones plus
+    /// those of deriving every device tag and every page's frame (schemes not applied, the default frame,
+    /// query cycles). A cold full pass, O(devices + pages); call it on demand (a check run, an export).
+    pub fn derivation_findings(&self) -> Vec<DerivationFinding> {
+        let model = self.engine.world().model;
+        let mut q = Q::new(&model);
+        let _ = q.get::<NumberingSettingsOf>(());
+        let _ = q.get::<FrameSettings>(());
+        let devices: Vec<_> = q.devices().ids().collect();
+        for d in devices {
+            let _ = q.get::<DeviceTag>(d);
+        }
+        let pages: Vec<_> = q.pages().ids().collect();
+        for p in pages {
+            let _ = q.get::<FrameGridOf>(p);
+        }
+        q.diagnostics()
+            .notes()
+            .into_iter()
+            .map(DerivationFinding::from)
+            .collect()
     }
 }
