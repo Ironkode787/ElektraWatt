@@ -279,6 +279,8 @@ an undefined one.
   2. the name of the first source IP in page order;
   3. a fallback `<displayed tag>:<CP designation>` of the member CP that comes first in (page order, row, column,
      CP ID).
+
+  An external source interruption point counts as a source IP for step 2 (decision log ID-174).
 - **Aliases.** Every other distinct IP name on the potential is an alias, in natural order (FR-CON-012, D-24).
 - **Signals** take the first IP name inside them.
 - **Bond paths.** IPs that lie on a bond's `via` path are named on the bond, not on either potential. "PE-0VDC"
@@ -330,8 +332,12 @@ potential_flow(potential):                              // memo per potential; t
   "230 VAC" is AC from 50 to 250 V, "400 VAC" is AC above 250 V up to 1,000 V. These bounds are the company
   profile's choice (the ELV and LV limits), not quoted standard text.
 - **Conflicts.** Two types or voltages meeting in one potential produce EW-POT-001 (FR-CHK-028). So do a defined
-  type that contradicts a member CP role, and a pass-through pair whose two reached sides have different types
-  without a converting function. Nothing merges silently.
+  type that contradicts a member CP role, definitions that disagree on voltage, environment or class, and a
+  pass-through pair whose two reached sides have different types without a converting function. They are errors; the
+  first definition in natural order still gives the value (decision log ID-175). Nothing merges silently.
+- **Loads** (FR-REP-026; decision log ID-172). A load of a potential is a consuming function on it: the upstream
+  feeding function and every function with a pass-through pair touching the potential are excluded, and end
+  consumers such as coils, lamps and PLC inputs are loads.
 
 ### 3.7 Bonds and rail bonding
 
@@ -348,7 +354,9 @@ potential_flow(potential):                              // memo per potential; t
 - **Rail bonding at MVP.** Each location node (`+J-E-2416`) has a virtual "location PE node". The PE CPs of every
   rail-bonded terminal of that location join it as a POTENTIAL edge (FR-CON-015, FR-TRM-017). In the golden project
   1X1:PE (USLKG 5) and -X1032:1–5 are rail-bonded. -X1032 therefore joins 1X1:PE, and through W6 the PE bar -XPE, in
-  one PE potential although no wire runs between folio 101 and the -X1032 strip on folio 103 (D-21).
+  one PE potential although no wire runs between folio 101 and the -X1032 strip on folio 103 (D-21). Only CPs with
+  clamp `RailFoot` or role PE or PEN join the location node; a rail-bonded terminal without a location is skipped
+  with a derivation note (decision log ID-173).
 - **Rail bonding at 1.0.** When a layout space exists for the location, the partition replaces the location node.
   A rail-bonded terminal then joins PE only through a carrier and surface that both declare `pe_bond` (FR-LAY-058).
   A difference between the two models is reported on migration ([03](03-domain-model.md) OQ10).
@@ -406,8 +414,13 @@ physical_wires_of(potential):                              // memo per potential
 Memo by policy and cold in phase 1. Decisions the code had to fix:
 - An interruption-point group without `ip_pairing` is a star with project scope; its source is the point flagged
   `star_source`, else the single Source point, else the point with the lowest ID.
-- A terminal FnDef without pass-through links joins all CPs of one level; duplicated pins of one function are one
-  signal unless a declared pass-through links them.
+- A terminal FnDef without pass-through links joins all CPs of one level; a terminal with a declared pass-through
+  (disconnect or fuse terminal) still shorts its clamps of the same level and side, and the pass-through links the
+  sides (decision log ID-171). Equal pin designations of one function are one signal only for black-box and
+  part-pattern-origin functions, never for terminals and never across levels (ID-170).
+- The carrier of a junction arm is the connection of the arm that touches the end CP, as the pseudo-code above
+  says, also when the arm crosses an IP pair; the Target-IP rule applies only to hub-free paths. This fixes wire
+  IDs before M1 (decision log ID-169).
 - Only a bond's `via` connection is cut, and the IPs on the `via` path name the bond (§3.5); drawn bridges join at
   the potential level only (§3.3); there is no separate conductor edge, because `Core` connections and the IP pairing
   suffice.
@@ -438,7 +451,8 @@ the level and the defining entity (FR-CON-017, FR-CON-025, D-08). This is the ch
 - **Granularity.** `wire_props_of(potential)` returns one map per physical wire, computed per potential. The
   property grid's accessor for a single wire is a cold lookup into that map (ARCH §6.3).
 - **Overrides along one wire.** A physical wire made of several connections takes level 7 from all of them. If two
-  constituents set different values, the carrier's value wins and EW-POT-014 reports the conflict.
+  constituents set different values, the carrier's value wins and EW-POT-014 reports the conflict. The provenance
+  of an override names the constituent connection that carries the value, not the carrier (decision log ID-176).
 - **Shared drawn connections.** A connection that belongs to two wires, such as the feed arm of a star junction,
   shows `‹varies›` when the two wires differ. An override on it applies to both wires.
 
@@ -528,8 +542,9 @@ assigns BU to the mid-point conductor M and WH to L−; EW types a 2-wire PSU's 
 IEC 60445 profile maps that M like L−. Both entries are therefore marked (verify).
 
 *Built-in defaults* (2026-10-19, decision log ID-150). Without a project profile, colours follow the EN 60204-1
-column (L BK, N BU, PE GNYE, FE PK, DC BU, AC signal RD) and sizes are Mains 1.5 mm² and Control, Analogue and Bus
-0.75 mm²; a potential of unknown voltage or AC/DC never matches a selector that constrains them. The levels as built
+column and honour the circuit class (L BK, N BU, PE GNYE, FE PK, DC BU, AC control L RD), and sizes are Mains
+1.5 mm² and Control, Analogue and Bus 0.75 mm²; a potential of unknown voltage or AC/DC never matches a selector that
+constrains them. Two colour rows of equal specificity that disagree are a profile load error (decision log ID-177). The levels as built
 are override > conductor > potential definition > colour and size rows > project default > built-in default; net
 definitions are WP-S1.26 (decision log ID-146).
 

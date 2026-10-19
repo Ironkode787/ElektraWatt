@@ -900,7 +900,8 @@ FT-32 to FT-35.
 *Status (2026-10-19, cycle 7).* The core is delivered: `page_local_nets`, `stitch_graph`, `potential_partition`,
 `physical_wires_of`, `potential_flow` and `wire_props_of` in `ew-derive` with the golden connectivity acceptance
 (decision log ID-146 to ID-154). The cross-page `rep.move` of FR-CON-043 (FT-16) and the auto-route (FT-18, FT-43)
-remain; the fixture and importer gaps are FT-63 to FT-65.
+remain; the fixture and importer gaps are FT-63 to FT-65, and the rulings of the part-A review are FT-75 to
+FT-78.
 
 #### WP-S1.08 Derivation III: cross-references and interruption points
 
@@ -2790,6 +2791,10 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-72 | Golden tables: an `arrangement` column in `representations.csv` for the hidden tags of doc 20 §6.2 on 203–206; a used valve prints the driven field device's process tag through the `DeviceLink { Drives }` fallback; needs PD-15 | WP-S7.01; WP-S3.04 | Cycle 7 (fix round) | ID-167 |
 | FT-73 | `ew-scene`: draw stored routes as stored and clean only provisional ones | WP-S3.04 | Cycle 7 (fix round) | ID-137 |
 | FT-74 | Track the duplicate font stacks (skrifa 0.42 and 0.44, read-fonts, font-types) and remove them at the next vello_cpu bump | WP-S3.04 (upgrade train) | Next vello_cpu bump | Review cycle 7 (page output) |
+| FT-75 | `physical_wires_of`: the carrier of a junction arm is the connection of the arm that touches the end CP, also across an IP pair (identity rule) | WP-S1.07 | Cycle 7 (fix round); before M1 | ID-169; [08](../design/08-connections-terminals-cables.md) §3.8 |
+| FT-76 | `stitch_graph`: equal pin designations join only for black-box and part-pattern-origin functions, never terminals or across levels; disconnect and fuse terminals short same-level, same-side clamps; rail bonding only for `RailFoot` and PE/PEN CPs, a terminal without a location skipped with a note | WP-S1.07 | Cycle 7 (fix round) | ID-170, ID-171, ID-173 |
+| FT-77 | `potential_partition` and `potential_flow`: loads as consuming functions; external source points name a potential before the fallback; definition conflicts and contradicted roles as EW-POT-001 errors | WP-S1.07 | Cycle 7 (fix round) | ID-172, ID-174, ID-175 |
+| FT-78 | `wire_props_of`: override provenance names the carrying constituent; built-in colours by circuit class (AC control L RD); disagreeing equal-specificity colour rows a profile load error | WP-S1.07 | Cycle 7 (fix round) | ID-176, ID-177 |
 
 ---
 
