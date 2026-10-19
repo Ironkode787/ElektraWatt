@@ -39,6 +39,9 @@ ew-model = { path = "../ew-model" }
 # The derivation notes of a snapshot (unknown profile, schemes not applied, default frame, malformed
 # settings), surfaced as findings on load and on demand. Tracked reads only: no `raw-read`.
 ew-derive = { path = "../ew-derive" }
+# The report engine: the Session installs it on every `Q` so that `page_order` includes generated report pages
+# (WP-S3.03).
+ew-reports = { path = "../ew-reports" }
 # The record types of `Session::from_records`.
 ew-schema = { path = "../ew-schema" }
 

@@ -95,6 +95,7 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
   "ew-store", "ew-commands", "ew-checks", "ew-sqlview", "ew-library", "ew-scene", "ew-export", "ew-plc",
   "ew-panel", "ew-mfg", "ew-import-qet", "ew-import-eplan", "ew-import-dxf", "ew-import-catalog",
   "ew-import-tables", "ew-script", "ew-plugin-host", "ew-jobs", "ew-model", "ew-schema", "ew-derive",
+  "ew-reports",
 ]
 "ew-viewmodel" = ["ew-api"]
 "ew-ui" = ["ew-viewmodel", "ew-render2d", "ew-render-cpu", "ew-render3d"]
@@ -121,6 +122,9 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 # ew-api's golden CSV test compares the derived anchor cells, CPs and tags of the loaded golden model with its
 # tables (the importer may not depend on the model, so the test lives in ew-api).
 "ew-api" = ["ew-derive"]
+
+# ew-reports' unit tests build small model snapshots to run report row queries over a `Q` (no `raw-read`).
+"ew-reports" = ["ew-model"]
 
 # ARCH §3 Rule 2: only ew-sqlview and ew-library link rusqlite.
 [[external_owner]]

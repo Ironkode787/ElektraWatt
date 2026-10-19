@@ -45,7 +45,9 @@
 
 #![forbid(unsafe_code)]
 
-use ew_derive::{DeviceTag, FrameGridOf, FrameSettings, NumberingSettingsOf, Q};
+use std::sync::Arc;
+
+use ew_derive::{DeviceTag, FrameGridOf, FrameSettings, NumberingSettingsOf, Q, ReportPagesProvider};
 use ew_model::{Model, ModelError, PreventHook};
 use ew_schema::{LibDocument, Project, Record};
 
@@ -128,10 +130,20 @@ fn project_notes(model: &Model) -> Vec<DerivationFinding> {
 }
 
 /// One open project: the facade every front-end (GUI, `ew` CLI, scripts, MCP) talks to.
-#[derive(Debug)]
 pub struct Session {
     engine: Engine,
     load_findings: Vec<DerivationFinding>,
+    /// The report engine installed on every `Q` the session builds (WP-S3.03).
+    reports: Arc<dyn ReportPagesProvider>,
+}
+
+impl std::fmt::Debug for Session {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Session")
+            .field("engine", &self.engine)
+            .field("load_findings", &self.load_findings)
+            .finish_non_exhaustive()
+    }
 }
 
 impl Session {
@@ -140,6 +152,7 @@ impl Session {
         let load_findings = project_notes(&model);
         Session {
             load_findings,
+            reports: ew_reports::engine(),
             engine: Engine::new(
                 model,
                 EngineOptions {
@@ -166,6 +179,18 @@ impl Session {
     /// The current snapshot, O(1).
     pub fn world(&self) -> World {
         self.engine.world()
+    }
+
+    /// A tracked-read context over the current snapshot with the report engine installed, so that
+    /// `page_order`, the TOC, Prev/Next and title blocks include the generated report pages (doc 09 §3.1,
+    /// FR-REP-001). Request-scoped: build one per evaluation (a frame, an export pass).
+    pub fn query(&self) -> Q {
+        self.query_over(&self.engine.world().model)
+    }
+
+    /// [`Session::query`] over another snapshot (a preview's candidate model, an export fork).
+    pub fn query_over(&self, model: &Model) -> Q {
+        Q::new(model).with_report_pages(Arc::clone(&self.reports))
     }
 
     /// Runs an interactive command through the commit pipeline (ARCH §5.2) from the session's origin.
@@ -240,8 +265,7 @@ impl Session {
     /// those of deriving every device tag and every page's frame (schemes not applied, the default frame,
     /// query cycles). A cold full pass, O(devices + pages); call it on demand (a check run, an export).
     pub fn derivation_findings(&self) -> Vec<DerivationFinding> {
-        let model = self.engine.world().model;
-        let mut q = Q::new(&model);
+        let mut q = self.query();
         let _ = q.get::<NumberingSettingsOf>(());
         let _ = q.get::<FrameSettings>(());
         let devices: Vec<_> = q.devices().ids().collect();

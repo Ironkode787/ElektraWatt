@@ -18,3 +18,9 @@ workspace = true
 ew-derive = { path = "../ew-derive" }
 ew-sqlview = { path = "../ew-sqlview" }
 ew-text = { path = "../ew-text" }
+
+[dev-dependencies]
+# Unit tests build small snapshots (`Model::from_records`) to run row queries over a `Q`; no `raw-read`.
+ew-model = { path = "../ew-model" }
+serde_json = "1.0.154"
+proptest = { version = "1.12.0", default-features = false, features = ["std"] }

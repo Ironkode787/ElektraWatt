@@ -247,6 +247,7 @@ dependencies = [
  "ew-panel",
  "ew-plc",
  "ew-plugin-host",
+ "ew-reports",
  "ew-scene",
  "ew-schema",
  "ew-script",
@@ -545,8 +546,11 @@ name = "ew-reports"
 version = "0.0.0"
 dependencies = [
  "ew-derive",
+ "ew-model",
  "ew-sqlview",
  "ew-text",
+ "proptest",
+ "serde_json",
 ]
 
 [[package]]
