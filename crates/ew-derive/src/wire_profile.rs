@@ -21,31 +21,64 @@
 //! - Two colour rows of equal specificity whose selectors can match a common potential (`overlaps`: the
 //!   `ptype` lists intersect or either is empty, `ac_dc` equal or either absent, the voltage intervals
 //!   intersect, `discipline` and `analogue` equal or either absent) and that give different colours are
-//!   ambiguous: `load` notes a [`DeriveNote::ProfileOverlap`] for `settings.colour_profile` naming the two
+//!   ambiguous: `load_members` notes a [`DeriveNote::ProfileOverlap`] for `settings.colour_profile` naming the two
 //!   row indexes. The profile stays loaded and `select` keeps the first-row tie rule, so the output is
 //!   deterministic but no longer silent.
 //! - The built-in colour depends on the circuit class: an L-family potential of an AC control circuit is RD
 //!   (doc 08 §4.3, EN 60204-1 column), see `builtin_colour_for`.
 
-use ew_schema::{
-    AcDc, CircuitClass, ColourCode, ColourSpec, Csa, IecColour, PotentialType, Project, WireProps,
-};
+use std::hash::{Hash, Hasher};
+use std::sync::Arc;
+
+use ew_schema::{AcDc, CircuitClass, ColourCode, ColourSpec, Csa, IecColour, PotentialType, WireProps};
 use ew_units::Dec3;
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
+use crate::heap::HeapBytes;
 use crate::note::DeriveNote;
+use crate::potentials::{Partition, PotentialId, PotentialPartition};
+use crate::query::{Policy, Query};
+use crate::settings::{self, Member};
+use crate::{PotentialFlow, Q};
 
 /// What a selector is matched against: the final attributes of a potential (flow values).
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
-pub(crate) struct Attrs {
+pub struct Attrs {
     /// The type, if known.
     pub ptype: Option<PotentialType>,
     /// The voltage (V), if known.
     pub voltage: Option<Dec3>,
     /// AC or DC, if known.
     pub ac_dc: Option<AcDc>,
+}
+
+/// The final attributes of a potential: the flow values, else the partition's own (none for an unknown ID).
+pub(crate) fn attrs_of(q: &Q, partition: &Partition, id: PotentialId) -> Attrs {
+    if let Some(e) = q.get::<PotentialFlow>(id).as_ref() {
+        return Attrs {
+            ptype: e.ptype.as_ref().map(|a| a.value.clone()),
+            voltage: e.voltage.as_ref().map(|a| a.value),
+            ac_dc: e.env.as_ref().and_then(|a| a.value.ac_dc.clone()),
+        };
+    }
+    match partition.get(id) {
+        Some(p) => Attrs {
+            ptype: p.ptype.as_ref().map(|a| a.value.clone()),
+            voltage: p.voltage.as_ref().map(|a| a.value),
+            ac_dc: p.env.as_ref().and_then(|a| a.value.ac_dc.clone()),
+        },
+        None => Attrs::default(),
+    }
+}
+
+/// The circuit class a potential's own definition gives it, if any.
+pub(crate) fn own_class(partition: &Partition, id: PotentialId) -> Option<CircuitClass> {
+    partition
+        .get(id)
+        .and_then(|p| p.circuit_class.as_ref())
+        .map(|c| c.value.clone())
 }
 
 /// `ProfileSelect` (doc 03 §5.1).
@@ -166,7 +199,7 @@ struct SizeProfileRaw {
 
 /// The project's colour profile (`ProjectSettings.colour_profile`): its key and rows in cover-table order.
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub(crate) struct ColourProfile(ColourProfileRaw);
+pub struct ColourProfile(ColourProfileRaw);
 
 impl ColourProfile {
     /// The profile key.
@@ -194,7 +227,7 @@ impl ColourProfile {
 /// The project's size profile (`ProjectSettings.size_profile`): class rules and the size row per class.
 /// `pe_class` and `bond_rule` have a single value each in this format version and are not read.
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub(crate) struct SizeProfile(SizeProfileRaw);
+pub struct SizeProfile(SizeProfileRaw);
 
 impl SizeProfile {
     /// The profile key.
@@ -218,22 +251,22 @@ impl SizeProfile {
     }
 }
 
-/// The three provisional settings members, parsed.
+/// The three provisional settings members, parsed: the value of [`WireProfilesQ`].
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
-pub(crate) struct WireProfiles {
+pub struct WireProfiles {
     /// The colour profile, if present and well-formed.
-    pub colour: Option<ColourProfile>,
+    pub(crate) colour: Option<ColourProfile>,
     /// The size profile, if present and well-formed.
-    pub size: Option<SizeProfile>,
+    pub(crate) size: Option<SizeProfile>,
     /// The project default (level 1); empty when absent or malformed.
-    pub default: WireProps,
+    pub(crate) default: WireProps,
     /// `MalformedShim` and `DefaultWireProfile` notes.
-    pub notes: Vec<DeriveNote>,
+    pub(crate) notes: Vec<DeriveNote>,
 }
 
 /// Reads one member: `None` when absent or malformed (the latter noted).
-fn read<T: DeserializeOwned>(project: &Project, name: &str, notes: &mut Vec<DeriveNote>) -> Option<T> {
-    let value = project.settings.extra.get(name)?;
+fn read<T: DeserializeOwned>(value: Option<&Value>, name: &str, notes: &mut Vec<DeriveNote>) -> Option<T> {
+    let value = value?;
     match serde_json::from_value::<T>(value.clone()) {
         Ok(v) => Some(v),
         Err(e) => {
@@ -246,14 +279,19 @@ fn read<T: DeserializeOwned>(project: &Project, name: &str, notes: &mut Vec<Deri
     }
 }
 
-/// Reads `colour_profile`, `size_profile` and `wire_default` from `ProjectSettings.extra`.
+/// Parses `colour_profile`, `size_profile` and `wire_default` (the members of `ProjectSettings.extra`; `None`
+/// when absent).
 ///
 /// An absent member gives `DefaultWireProfile` (colour and size only); a malformed one gives
 /// `MalformedShim` and is then treated as absent, without the `DefaultWireProfile` note.
-pub(crate) fn load(project: &Project) -> WireProfiles {
+pub(crate) fn load_members(
+    colour: Option<&Value>,
+    size: Option<&Value>,
+    default: Option<&Value>,
+) -> WireProfiles {
     let mut notes = Vec::new();
-    let colour = read::<ColourProfileRaw>(project, "colour_profile", &mut notes).map(ColourProfile);
-    if let Some(profile) = &colour {
+    let parsed_colour = read::<ColourProfileRaw>(colour, "colour_profile", &mut notes).map(ColourProfile);
+    if let Some(profile) = &parsed_colour {
         let rows = &profile.0.rows;
         for (i, ri) in rows.iter().enumerate() {
             for (j, rj) in rows.iter().enumerate().skip(i + 1) {
@@ -270,23 +308,315 @@ pub(crate) fn load(project: &Project) -> WireProfiles {
             }
         }
     }
-    let size = read::<SizeProfileRaw>(project, "size_profile", &mut notes).map(SizeProfile);
-    let default = read::<WireProps>(project, "wire_default", &mut notes).unwrap_or_default();
-    if colour.is_none() && !project.settings.extra.contains_key("colour_profile") {
+    let parsed_size = read::<SizeProfileRaw>(size, "size_profile", &mut notes).map(SizeProfile);
+    let default = read::<WireProps>(default, "wire_default", &mut notes).unwrap_or_default();
+    if parsed_colour.is_none() && colour.is_none() {
         notes.push(DeriveNote::DefaultWireProfile {
             member: "colour_profile",
         });
     }
-    if size.is_none() && !project.settings.extra.contains_key("size_profile") {
+    if parsed_size.is_none() && size.is_none() {
         notes.push(DeriveNote::DefaultWireProfile {
             member: "size_profile",
         });
     }
     WireProfiles {
-        colour,
-        size,
+        colour: parsed_colour,
+        size: parsed_size,
         default,
         notes,
+    }
+}
+
+// -------------------------------------------------------------------------------------------------------------
+// The queries over the profiles (ARCH §6.4, ADR-0002 amendment 4 "Query shapes")
+
+/// `wire_profiles()`: the three provisional settings members, parsed, with their notes. Reads the members
+/// through `settings::member` only (never the project row). Policy Memo.
+///
+/// Readers that need one potential's rows read [`ProfileRowFor`], the project default [`WireDefaultProps`]
+/// and the notes [`WireProfileNotes`], so that an edit of one colour row reaches the potentials that select
+/// it and no others.
+#[derive(Debug)]
+pub struct WireProfilesQ;
+
+impl Query for WireProfilesQ {
+    type Key = ();
+    type Value = WireProfiles;
+    const FAMILY: &'static str = "wire_profiles";
+    const POLICY: Policy = Policy::Memo;
+
+    fn bytes(value: &Self::Value) -> usize {
+        crate::heap::value_bytes(value)
+    }
+
+    fn run(q: &Q, _: &()) -> Arc<WireProfiles> {
+        let colour = settings::member(q, Member::ColourProfile);
+        let size = settings::member(q, Member::SizeProfile);
+        let default = settings::member(q, Member::WireDefault);
+        Arc::new(load_members(
+            (*colour).as_ref(),
+            (*size).as_ref(),
+            (*default).as_ref(),
+        ))
+    }
+}
+
+/// `wire_profile_notes()`: the notes of [`WireProfilesQ`], sorted and deduplicated. Policy Memo.
+#[derive(Debug)]
+pub struct WireProfileNotes;
+
+impl Query for WireProfileNotes {
+    type Key = ();
+    type Value = Vec<DeriveNote>;
+    const FAMILY: &'static str = "wire_profile_notes";
+    const POLICY: Policy = Policy::Memo;
+
+    fn bytes(value: &Self::Value) -> usize {
+        crate::heap::value_bytes(value)
+    }
+
+    fn run(q: &Q, _: &()) -> Arc<Vec<DeriveNote>> {
+        let mut notes = q.get::<WireProfilesQ>(()).notes.clone();
+        notes.sort();
+        notes.dedup();
+        Arc::new(notes)
+    }
+}
+
+/// `wire_default_props()`: the project default of the wire-property chain (level 1,
+/// `ProjectSettings.extra["wire_default"]`). Policy Memo.
+#[derive(Debug)]
+pub struct WireDefaultProps;
+
+impl Query for WireDefaultProps {
+    type Key = ();
+    type Value = WireProps;
+    const FAMILY: &'static str = "wire_default_props";
+    const POLICY: Policy = Policy::Memo;
+
+    fn bytes(value: &Self::Value) -> usize {
+        crate::heap::value_bytes(value)
+    }
+
+    fn run(q: &Q, _: &()) -> Arc<WireProps> {
+        Arc::new(q.get::<WireProfilesQ>(()).default.clone())
+    }
+}
+
+/// The ordered form of an enum that has an `Unknown(Value)` variant: the variant index for a known variant,
+/// `(u8::MAX, the value's text)` for an unknown one.
+type Tag = (u8, String);
+
+fn known(index: u8) -> Tag {
+    (index, String::new())
+}
+
+fn ptype_tag(t: &PotentialType) -> Tag {
+    known(match t {
+        PotentialType::L1 => 0,
+        PotentialType::L2 => 1,
+        PotentialType::L3 => 2,
+        PotentialType::L => 3,
+        PotentialType::N => 4,
+        PotentialType::Pe => 5,
+        PotentialType::Pen => 6,
+        PotentialType::Fe => 7,
+        PotentialType::LPlus => 8,
+        PotentialType::LMinus => 9,
+        PotentialType::M => 10,
+        PotentialType::Signal => 11,
+        PotentialType::Undefined => 12,
+        PotentialType::Unknown(v) => return (u8::MAX, v.to_string()),
+    })
+}
+
+fn ac_dc_tag(a: &AcDc) -> Tag {
+    known(match a {
+        AcDc::Ac => 0,
+        AcDc::Dc => 1,
+        AcDc::Unknown(v) => return (u8::MAX, v.to_string()),
+    })
+}
+
+fn class_tag(c: &CircuitClass) -> Tag {
+    known(match c {
+        CircuitClass::Mains => 0,
+        CircuitClass::Control => 1,
+        CircuitClass::Analogue => 2,
+        CircuitClass::Bus => 3,
+        CircuitClass::Pe => 4,
+        CircuitClass::Unknown(v) => return (u8::MAX, v.to_string()),
+    })
+}
+
+/// The ordered form of a [`ProfileKey`]: type, voltage, AC/DC, class.
+type Canon = (Option<Tag>, Option<Dec3>, Option<Tag>, Option<Tag>);
+
+/// The key of [`ProfileRowFor`]: the attributes of a potential and its own circuit class, if it has one.
+///
+/// `PotentialType`, `AcDc` and `CircuitClass` carry an `Unknown(Value)` variant and so are neither `Ord` nor
+/// `Hash`. The key keeps the originals and orders and hashes by a canonical tuple only (a known variant by its
+/// index, an unknown one by the text of its value); equality, order and hash all go through that tuple, so
+/// they agree.
+#[derive(Clone, Debug)]
+pub struct ProfileKey {
+    attrs: Attrs,
+    class: Option<CircuitClass>,
+    canon: Canon,
+}
+
+impl ProfileKey {
+    /// The key of attributes `attrs` and the potential's own circuit class `class`.
+    pub fn new(attrs: &Attrs, class: Option<CircuitClass>) -> ProfileKey {
+        let canon = (
+            attrs.ptype.as_ref().map(ptype_tag),
+            attrs.voltage,
+            attrs.ac_dc.as_ref().map(ac_dc_tag),
+            class.as_ref().map(class_tag),
+        );
+        ProfileKey {
+            attrs: attrs.clone(),
+            class,
+            canon,
+        }
+    }
+
+    /// The key the wire properties of potential `p` use: its final attributes (the flow values, else the
+    /// partition's own) and its defined circuit class.
+    pub fn of_potential(q: &Q, p: PotentialId) -> ProfileKey {
+        let partition = q.get::<PotentialPartition>(());
+        ProfileKey::in_partition(q, &partition, p)
+    }
+
+    /// [`ProfileKey::of_potential`] with the partition already read.
+    pub(crate) fn in_partition(q: &Q, partition: &Partition, p: PotentialId) -> ProfileKey {
+        ProfileKey::new(&attrs_of(q, partition, p), own_class(partition, p))
+    }
+
+    /// The attributes.
+    pub fn attrs(&self) -> Attrs {
+        self.attrs.clone()
+    }
+
+    /// The potential's own circuit class, if it has one.
+    pub fn class(&self) -> Option<&CircuitClass> {
+        self.class.as_ref()
+    }
+}
+
+impl PartialEq for ProfileKey {
+    fn eq(&self, other: &ProfileKey) -> bool {
+        self.canon == other.canon
+    }
+}
+
+impl Eq for ProfileKey {}
+
+impl PartialOrd for ProfileKey {
+    fn partial_cmp(&self, other: &ProfileKey) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for ProfileKey {
+    fn cmp(&self, other: &ProfileKey) -> std::cmp::Ordering {
+        self.canon.cmp(&other.canon)
+    }
+}
+
+impl Hash for ProfileKey {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.canon.hash(state);
+    }
+}
+
+/// The value of [`ProfileRowFor`]: what the profiles say about one attribute set.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ProfileRow {
+    /// The circuit class: the key's own, else the size profile's class rules on the attributes, else (no size
+    /// profile) the built-in rules.
+    pub class: CircuitClass,
+    /// The colour row the attributes select: the colour profile's key, the row index (cover-table order) and
+    /// the colour; `None` without a colour profile or a matching row.
+    pub colour: Option<(String, usize, ColourSpec)>,
+    /// The size row of `class`: the size profile's key and the cross-section; `None` without a size profile
+    /// or a row of that class.
+    pub csa: Option<(String, Csa)>,
+}
+
+/// `profile_row_for(key)`: the class, the colour row and the size row of one attribute set. Reads
+/// [`WireProfilesQ`] whole and nothing else; readers take it as a cut-off point (`Q::get_value_part`), so a
+/// profile edit reaches only the potentials whose row changed. Policy Memo.
+#[derive(Debug)]
+pub struct ProfileRowFor;
+
+impl Query for ProfileRowFor {
+    type Key = ProfileKey;
+    type Value = ProfileRow;
+    const FAMILY: &'static str = "profile_row_for";
+    const POLICY: Policy = Policy::Memo;
+
+    fn bytes(value: &Self::Value) -> usize {
+        crate::heap::value_bytes(value)
+    }
+
+    fn run(q: &Q, key: &ProfileKey) -> Arc<ProfileRow> {
+        let profiles = q.get::<WireProfilesQ>(());
+        let attrs = key.attrs();
+        let class = match (key.class(), &profiles.size) {
+            (Some(c), _) => c.clone(),
+            (None, Some(size)) => size.class_of(&attrs),
+            (None, None) => builtin_class(&attrs),
+        };
+        let colour = profiles.colour.as_ref().and_then(|p| {
+            p.select(&attrs)
+                .map(|(row, c)| (p.key().to_owned(), row, c.clone()))
+        });
+        let csa = profiles
+            .size
+            .as_ref()
+            .and_then(|s| s.csa_of(&class).map(|csa| (s.key().to_owned(), csa.clone())));
+        Arc::new(ProfileRow { class, colour, csa })
+    }
+}
+
+// --- value sizes: the profile values are private types, so their impls live here (ProfileRow's is in heap.rs)
+
+impl HeapBytes for Select {
+    fn heap_bytes(&self) -> usize {
+        self.ptype.heap_bytes() + self.ac_dc.heap_bytes() + self.discipline.heap_bytes()
+    }
+}
+
+impl HeapBytes for ColourRowRaw {
+    fn heap_bytes(&self) -> usize {
+        self.select.heap_bytes() + self.colour.heap_bytes()
+    }
+}
+
+impl HeapBytes for ClassRuleRaw {
+    fn heap_bytes(&self) -> usize {
+        self.select.heap_bytes() + self.class.heap_bytes()
+    }
+}
+
+impl HeapBytes for SizeRowRaw {
+    fn heap_bytes(&self) -> usize {
+        self.class.heap_bytes() + self.csa.heap_bytes()
+    }
+}
+
+impl HeapBytes for WireProfiles {
+    fn heap_bytes(&self) -> usize {
+        let colour = self
+            .colour
+            .as_ref()
+            .map_or(0, |c| c.0.key.heap_bytes() + c.0.rows.heap_bytes());
+        let size = self.size.as_ref().map_or(0, |s| {
+            s.0.key.heap_bytes() + s.0.class_rules.heap_bytes() + s.0.rows.heap_bytes()
+        });
+        colour + size + self.default.heap_bytes() + self.notes.heap_bytes()
     }
 }
 
@@ -541,16 +871,53 @@ mod tests {
         );
     }
 
+    fn hash_of(k: &ProfileKey) -> u64 {
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        k.hash(&mut h);
+        h.finish()
+    }
+
+    #[test]
+    fn profile_keys_order_hash_and_compare_by_the_canonical_tuple() {
+        let key = |ptype: Option<PotentialType>, class: Option<CircuitClass>| {
+            ProfileKey::new(
+                &Attrs {
+                    ptype,
+                    voltage: Some(Dec3(24_000)),
+                    ac_dc: Some(AcDc::Dc),
+                },
+                class,
+            )
+        };
+        let a = key(Some(PotentialType::L), None);
+        let b = key(Some(PotentialType::L), None);
+        assert_eq!(a, b);
+        assert_eq!(a.cmp(&b), std::cmp::Ordering::Equal);
+        assert_eq!(hash_of(&a), hash_of(&b));
+        // Known variants order by their index; an unknown value sorts after every known variant and is
+        // told apart by its value.
+        let n = key(Some(PotentialType::N), None);
+        let u1 = key(Some(PotentialType::Unknown(json!("x"))), None);
+        let u2 = key(Some(PotentialType::Unknown(json!("y"))), None);
+        assert!(a < n && n < u1 && u1 < u2);
+        assert_ne!(u1, u2);
+        assert_eq!(u1, key(Some(PotentialType::Unknown(json!("x"))), None));
+        // The class takes part; no class is not a class.
+        let c = key(Some(PotentialType::L), Some(CircuitClass::Control));
+        assert_ne!(a, c);
+        assert!(a < c);
+        assert!(c < key(Some(PotentialType::L), Some(CircuitClass::Unknown(json!(1)))));
+        // The originals stay readable.
+        assert_eq!(c.class(), Some(&CircuitClass::Control));
+        assert_eq!(c.attrs().ac_dc, Some(AcDc::Dc));
+    }
+
+    fn load_colour(rows: Value) -> WireProfiles {
+        load_members(Some(&json!({"key": "p", "rows": rows})), None, None)
+    }
+
     fn load_notes(rows: Value) -> Vec<DeriveNote> {
-        let mut project: Project = serde_json::from_value(
-            json!({"id": "00000000-0000-4000-8000-000000000001", "derivation_profile": "2027.1"}),
-        )
-        .unwrap();
-        project
-            .settings
-            .extra
-            .insert("colour_profile".into(), json!({"key": "p", "rows": rows}));
-        load(&project)
+        load_colour(rows)
             .notes
             .into_iter()
             .filter(|n| {
@@ -563,15 +930,7 @@ mod tests {
     }
 
     fn winning_row(rows: Value, ptype: PotentialType) -> Option<usize> {
-        let mut project: Project = serde_json::from_value(
-            json!({"id": "00000000-0000-4000-8000-000000000001", "derivation_profile": "2027.1"}),
-        )
-        .unwrap();
-        project
-            .settings
-            .extra
-            .insert("colour_profile".into(), json!({"key": "p", "rows": rows}));
-        let profiles = load(&project);
+        let profiles = load_colour(rows);
         let attrs = Attrs {
             ptype: Some(ptype),
             ..Attrs::default()

@@ -16,7 +16,7 @@ use ew_mltext::Ident;
 use ew_model::EndpointKey;
 use ew_schema::{
     AcDc, BondKind, CircuitClass, ColourCode, ColourSpec, Csa, IecColour, IpDirection, PartRef,
-    PotentialEarthing, PotentialEnv, PotentialType, WireFlags, WireOverrides,
+    PotentialEarthing, PotentialEnv, PotentialType, WireFlags, WireOverrides, WireProps,
 };
 use ew_units::{Dec3, Nm};
 use serde_json::Value;
@@ -27,6 +27,7 @@ use crate::potentials::{
     Attr, AttrSource, BondLink, NameSource, Potential, PotentialId, PotentialName, Signal,
 };
 use crate::stitch::{EdgeKind, IpGroup, IpInfo, Level, PairMode, ShortSource, StitchEdge, StitchNode};
+use crate::wire_profile::ProfileRow;
 use crate::wire_props::{EffectiveProps, PropSource, Prov, SizeRule, WirePropsMap};
 use crate::wires::{EndKind, OverrideSources, PhysicalWire, PhysicalWires, WireEnd};
 
@@ -250,6 +251,24 @@ impl HeapBytes for WireOverrides {
             + self.flags.heap_bytes()
             + self.length.heap_bytes()
             + self.extra.heap_bytes()
+    }
+}
+
+impl HeapBytes for WireProps {
+    fn heap_bytes(&self) -> usize {
+        self.csa.heap_bytes()
+            + self.colour.heap_bytes()
+            + self.wire_part.heap_bytes()
+            + self.insulation.heap_bytes()
+            + self.function.heap_bytes()
+            + self.flags.heap_bytes()
+            + self.extra.heap_bytes()
+    }
+}
+
+impl HeapBytes for ProfileRow {
+    fn heap_bytes(&self) -> usize {
+        self.class.heap_bytes() + self.colour.heap_bytes() + self.csa.heap_bytes()
     }
 }
 

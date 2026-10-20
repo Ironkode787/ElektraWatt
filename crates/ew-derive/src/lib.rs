@@ -114,8 +114,13 @@ pub use tag::{DeviceTag, DisplayedTag, MainFunction, MainRep, Tag, TagSource};
 pub use title_block::{TbValue, TitleBlock, TitleBlockValues};
 pub use toc::{TocRow, TocRows};
 pub use tracker::{ColdTracker, DepKey, IxKey, Recorded, RecordingTracker, Tracker};
+pub use wire_profile::{
+    Attrs, ColourProfile, ProfileKey, ProfileRow, ProfileRowFor, SizeProfile, WireDefaultProps,
+    WireProfileNotes, WireProfiles, WireProfilesQ,
+};
 pub use wire_props::{
-    ConnWireProps, EffectiveProps, PropSource, Prov, SizeRule, WirePropsMap, WirePropsOf, pick,
+    ConnWireProps, EffectiveProps, EndClass, EndScope, PropSource, Prov, SizeRule, WirePropsMap, WirePropsOf,
+    pick,
 };
 pub use wires::{EndKind, PhysicalWire, PhysicalWires, PhysicalWiresOf, WireEnd};
 
@@ -152,6 +157,7 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (DevicesByStructure::FAMILY, DevicesByStructure::POLICY),
     (DisplayedTag::FAMILY, DisplayedTag::POLICY),
     (DrawnPageOrder::FAMILY, DrawnPageOrder::POLICY),
+    (EndClass::FAMILY, EndClass::POLICY),
     (FrameGridOf::FAMILY, FrameGridOf::POLICY),
     (FrameSettings::FAMILY, FrameSettings::POLICY),
     (FunctionCps::FAMILY, FunctionCps::POLICY),
@@ -167,6 +173,7 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (PotentialFlow::FAMILY, PotentialFlow::POLICY),
     (FlowBfs::FAMILY, FlowBfs::POLICY),
     (PotentialPartition::FAMILY, PotentialPartition::POLICY),
+    (ProfileRowFor::FAMILY, ProfileRowFor::POLICY),
     (RepAnchorCell::FAMILY, RepAnchorCell::POLICY),
     (SectionStructure::FAMILY, SectionStructure::POLICY),
     (SettingsMember::FAMILY, SettingsMember::POLICY),
@@ -175,6 +182,9 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (StructurePath::FAMILY, StructurePath::POLICY),
     (TitleBlockValues::FAMILY, TitleBlockValues::POLICY),
     (TocRows::FAMILY, TocRows::POLICY),
+    (WireDefaultProps::FAMILY, WireDefaultProps::POLICY),
+    (WireProfileNotes::FAMILY, WireProfileNotes::POLICY),
+    (WireProfilesQ::FAMILY, WireProfilesQ::POLICY),
     (ConnWireProps::FAMILY, ConnWireProps::POLICY),
     (WirePropsOf::FAMILY, WirePropsOf::POLICY),
     (XrefSettingsOf::FAMILY, XrefSettingsOf::POLICY),
@@ -217,6 +227,12 @@ mod tests {
             "physical_wires_of",
             "potential_flow_bfs",
             "wire_props_of",
+            // ID-226 (ADR-0002 amendment 4 "Query shapes"): the profile reads of the wire chain.
+            "wire_profiles",
+            "wire_profile_notes",
+            "wire_default_props",
+            "profile_row_for",
+            "end_class",
         ] {
             assert_eq!(policy(memo), Some(Policy::Memo), "{memo}");
         }
