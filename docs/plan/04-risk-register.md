@@ -33,7 +33,7 @@ gives MVP month 51 and 1.0 month 80).
 | ID | Risk | Score | Why it is critical |
 |---|---|---|---|
 | R-001 | Indicative 15–18 months stay in circulation | 16 | Credibility and pilot trust fall when month 18 passes without a product |
-| R-018 | Interactive latency at L and XL | 16 | Partly materialised at G-SP (2026-10-20, outcome Recycle): the cold global connectivity misses NFR-PERF-05 by 2.6–97×; the recycle (incremental connectivity) is planned for cycle 9 |
+| R-018 | Interactive latency at L and XL | 16 | Partly materialised at G-SP (2026-10-20, outcome Recycle): the cold global connectivity misses NFR-PERF-05 by 2.6–97×; the recycle (incremental connectivity) is under way: the engine and the memoised `Q` were delivered in cycle 9 (WP-S1.07 part 1), the incremental partition follows in cycle 10 (part 2) |
 | R-002 | Estimates optimistic | 16 | Every +10 % of effort costs 4 months at the MVP and 7 at 1.0 |
 | R-032 | Machine-file formats unavailable or rejected | 16 | SC-7 depends on closed Komax, Rittal WT and Weidmüller formats that are not yet in hand |
 | R-003 | Capacity below 36 pw per developer-year | 15 | A −20 % year costs 10 months at the MVP |
@@ -221,7 +221,7 @@ in the project cannot be repaired by later effort, (2) the earliest review gate,
 | Rank | ID | Risk | Category | Score (P × I) | Owner | Key action and date | Gate |
 |---|---|---|---|---|---|---|---|
 | 1 | R-001 | Indicative 15–18 months stay in circulation | Schedule | 16 (4 × 4), Critical | Project lead | Take PD-1 in November 2026 and edit vision §9 and architecture §15.2 to cite the plan | G-M0 |
-| 2 | R-018 | Interactive latency at L and XL | Technical | 16 (4 × 4), Critical | Core developer (S1) | Recycle plan of cycle 9: incremental connectivity, push invalidation and the `ew-memo` integration (WP-S1.07, WP-S1.05); re-test on a BM-class runner (ADR-0002 amendment 4) | G-SP; G-M1 |
+| 2 | R-018 | Interactive latency at L and XL | Technical | 16 (4 × 4), Critical | Core developer (S1) | Recycle plan of cycles 9 and 10: incremental connectivity, push invalidation and the `ew-memo` integration (WP-S1.07, WP-S1.05; part 1 delivered in cycle 9, part 2 in cycle 10); re-test on a BM-class runner (ADR-0002 amendment 4) | G-SP; G-M1 |
 | 3 | R-002 | Estimates optimistic | Schedule | 16 (4 × 4), Critical | Project lead | Log actual pw per WP from day one; first velocity report in January 2027; G-M1 re-plan | G-M1; monthly |
 | 4 | R-032 | Machine-file formats unavailable or rejected | Technical | 16 (4 × 4), Critical | Output and migration developer (S3, S5) | Ask the pilot for Komax, Rittal WT and Weidmüller specs and samples at the kick-off; name the partner shop at M3 | G-M2; G-M3 |
 | 5 | R-003 | Capacity below 36 pw per developer-year | Schedule | 15 (3 × 5), Critical | All developers (project lead) | Support rota from iteration 1; support time logged per WP; check logged capacity against 0.6 pw per week in January 2027 | Monthly; G-M1 |

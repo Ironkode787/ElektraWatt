@@ -404,7 +404,8 @@ page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106). Still open:
   (FR-REP-042) and the cover tables are not drawn yet. The dividers 100, 200 and 900 show frame and title block only.
 - **Page count.** Doc 20 §5 counts 36 pages; the page order has 33 (907 paginates into 907, 907.1 and 907.2).
   Three pages are missing for reasons outside the table drawing: 901.1 (the TBD parts of BOM rows 24 to 27 are not
-  in the tables, so 901 holds its 23 rows) and 908.1 and 908.2 (the PLC overview has no channel records).
+  in the tables, so 901 holds its 23 rows; FT-110) and 908.1 and 908.2 (the PLC overview has no channel records;
+  FT-111).
 - **TOC pages.** The title blocks of 2 and 2.1 print no `=P01` and `+J-E-2416` (14 rows against 16 on 903): the TOC
   pages' structure binding in `ew-derive` is still open (doc 20 §5 gives every page both signs).
 - **Folio 1.** The cover content of doc 20 §17.3 is not drawn.
@@ -434,53 +435,54 @@ page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106). Still open:
 ## Connectivity report rows
 
 `expected/rows/<block>.csv` (see above) holds what the four connectivity kinds print for the golden model. They were
-compared with doc 20 by hand, table by table; the counts agree except where noted (907: 44 wires, a heading and 6
-bridges = 51 rows, where doc 20 §16 counts 44 + 6 = 50: the counts differ by the heading row, and the pages are
-the same three of 23, 23 and 5 rows; 906: 3 cables, 13 cores and 4 headings = 20 rows; 903, 904 and 905: 3, 20 and 5
-terminals), and the bridges BR1 … BR6 with their terminals and potentials, the terminals' groups, parts, states, bridges and targets of
+compared with doc 20 by hand, table by table; the counts agree (907: 44 wires, a heading and 6 bridges = 51 rows
+on three pages of 23, 23 and 5 rows, as doc 20 §16 counts them since decision log ID-234; 906: 3 cables, 13 cores and
+4 headings = 20 rows; 903, 904 and 905: 3, 20 and 5 terminals), and the bridges BR1 … BR6 with their terminals and potentials, the terminals' groups, parts, states, bridges and targets of
 doc 20 §9, the cable cores with colours and cross-sections, and the wire ends of doc 20 §8.2 except the points below.
 The expectations were not adjusted to the output; each difference is a gap of the derivation or the model, listed
-here:
+here, with the follow-up task of the [work breakdown](../../docs/plan/02-work-packages.md) Appendix B that closes it:
 
 - **Wire list (907).**
   - Rows are in reading order (page, then the frame-grid cell of an end where a representation draws it, then the
     tags and CPs, then the wire ID), not in the W1 … W44 order of doc 20 (W is a fixture label). The numbering order
-    of FR-NUM-028 needs the cells of terminals in strip segments, which no query gives.
-  - The "No." column is empty: the wire numbering of doc 08 §5 has no query yet.
+    of FR-NUM-028 needs the cells of terminals in strip segments, which no query gives (FT-100).
+  - The "No." column is empty: the wire numbering of doc 08 §5 has no query yet (FT-100).
   - From and To follow doc 08 §3.8 (FR-CON-040) without its flow-distance step (`ew-derive` has no per-CP distance):
     on one page the end with the smaller anchor cell is From. W1 to W3 (the supply to 1X1) and W4, W5 (1X1 to S51)
-    print the other way round.
+    print the other way round (FT-101).
   - Repeated CP designations print plainly (`-101F1:N`, `-102G1:+`, `-102G1:−`, `-102F2:GND`), without the `#1`,
-    `#2` of doc 20; a terminal end prints the clamp in the CP column (`-X1031:1` and `b`), not as `1/b`.
-  - The Source column prints `cdp`, `rule`, `core`, `bond` (size first, then colour, joined when they differ);
-    doc 20 tells a profile row used as a rule (`rule`) from one used as a colour next to a CDP size (`profile`).
+    `#2` of doc 20; a terminal end prints the clamp in the CP column (`-X1031:1` and `b`), not as `1/b` (FT-102).
+  - The Source column prints `cdp`, `rule`, `core`, `bond` or `built-in` (size first, then colour, joined when they
+    differ), as doc 20 §8.1 now states; its "(rule)" and "(profile)" are both the source `rule`.
   - The Via column names the cable and core and the interruption points; doc 20 also names the junction (J1 … J6),
     "chain" and the EF case, which are not derived values.
   - W33 to W44 (the cores of -106W1 and -106W2 and the PE legs) print the source `rule/core` or `rule`: the size
     comes from the size profile, while doc 20 §10 says core cross-sections come from the cable part (the
-    conductors of the fixture carry none).
+    conductors of the fixture carry none; FT-107).
   - W30 to W32 (`24VDC-2` to `24VDC-4`) print colour BU from the built-in default, not DBU 0.75 (rule): the
-    fixture's potentials carry no voltage or class ("L+, spare"), so no colour row matches them.
-  - The bond wire W27 prints the potential `0V ⇄ PE` without "B1" ("⇄" has no glyph in the bundled font).
+    fixture's potentials carry no voltage or class ("L+, spare"), so no colour row matches them. The owner decided
+    to give them the 24 V DC control voltage and class in doc 20 §7.3 (FT-109).
   - The page goldens are made without the colour and size profiles (the importer does not emit them yet, decision
     log ID-90): their colours and sizes are the built-in defaults. `rows/907.csv` has the profiles.
 - **Potential overview (909).** 18 potentials and B1 (19 rows): the PROFIBUS `DP` potential of doc 20 §7.3 needs the
-  `Bus` connections of the PLC work package. The rows are in natural order of the name, not in the order of doc 20.
+  `Bus` connections of the PLC work package (FT-105). The rows are in natural order of the name, not in the order of doc 20.
   Members are counted as doc 20 counts them (device CPs, a terminal once, external points); the rails and the plate
   "by declared bonding" are not in the model (PE: 14, doc 20 lists 13 and the bonded carriers). The default colour and
   size are the profile's values for the potential's first wire that has one: empty for the size of `+24V` and
   `+24V-F` (every wire of them carries a CDP size) and for the colour of `24VDC-2` to `24VDC-4` (see W30), and for PE
   the size 0.75 of its first wire although doc 20 says "by class". N-55T and N-55S print the type of the partition,
   not the "N switched" of the flow (N-55S has an empty type), and both have an empty voltage and class where doc 20
-  §7.3 says 230 V AC (the fixture's definitions are naming only; the flow would propagate them). The columns "switched", "protected by" and "bonds" of doc 08 §10 are not
+  §7.3 says 230 V AC (the fixture's definitions are naming only; the overview is to print the values derived
+across the pass-through pair, FT-108). The columns "switched", "protected by" and "bonds" of doc 08 §10 are not
   printed. Pages compress consecutive pages to a range (`102–106` for 102, 103 and 106, FR-REP-046), where doc 20
   lists them. The bond row has a name and pages only.
 - **Terminal diagrams (903 … 905).** The two sides are printed in side order (side 1, side 2); doc 20 §9 puts the
-  field side of 1X1 first (`Strip.field_side` is not applied). Targets carry no wire number (W29 …) and no `#n`.
+  field side of 1X1 first (`Strip.field_side` is not applied). Targets carry no wire number (W29 …) and no `#n`
+  (FT-103, FT-102).
   Multi-level terminals would need one row per level.
 - **Cable overview (906).** Cores are in natural order of the core name (BK, BN, BU, GNYE, WH), not in pin order
-  (BK, BU, GNYE, WH, BN): pins are not modelled. The length of -106W1 and -106W2 prints "from part" (the part has no
-  length value, ▲U-18), -3W1 "length missing". The bus cable -3W1 has no ends (its line is a `Bus` connection, not a
+  (BK, BU, GNYE, WH, BN): pins are not modelled (FT-104). The length of -106W1 and -106W2 prints "from part" (the part
+  has no length value, ▲U-18; FT-106), -3W1 "length missing". The bus cable -3W1 has no ends (its line is a `Bus` connection, not a
   physical wire; doc 20 gives -3X1 In to the external end), and the connector designation of -201U1 X1 is not
   derived.
 

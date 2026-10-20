@@ -535,10 +535,16 @@ overrides".
 | 0V | M, 24 V DC, control | 0VDC, 0VDC-AIR1 … AIR4 | -102G1:−#1, −#2, -102F2:GND#1, #2, -X1031:11 … 20, -201U1:1, :2, -202U1:1, :2 | 102, 103, 106 | WH 0.75 |
 | DP | bus | — | -201U1:DP, -3X1, -3W1 A/B, ext. JE-N1000-03 | 3 | (cable) |
 
+N-55T and N-55S are switched neutrals. The fixture defines them for naming only: their type (N switched), voltage
+(230 V AC) and circuit class (mains, from N-55) are derived across the pass-through pairs of T55 and S56
+([domain model](03-domain-model.md) §9.4), never stored, and the potential overview (folio 909) prints the derived
+values (decision log ID-235).
+
 ### 7.4 Bond
 
 **B1:** `Bond{a: -102G1:−#1, b: -X1032:2, kind: Pelv0vPe, via: W27}`; 0V and PE stay two potentials joined by one
-bond (FR-CON-014, D-22). W27 is listed in the wire list with potential "0V ⇄ PE".
+bond (FR-CON-014, D-22). W27 is listed in the wire list with potential "0V ⇄ PE"; the potential overview
+(folio 909) lists the bond in its own row "B1 (0V ⇄ PE)" (decision log ID-234).
 
 ---
 
@@ -549,10 +555,13 @@ bond (FR-CON-014, D-22). W27 is listed in the wire list with potential "0V ⇄ P
 - A row is a **physical wire** between two device or terminal CPs. Interruption points are transparent; junctions
   resolve by their wiring mode, per [domain model](03-domain-model.md) §9.2. Dot defaults to Star from the first
   sequence member, Bevel to Chain; J5 and J6 are set to Star (§8.3).
-- **Size and colour sources:** CDP = explicit override, printed as a wire marker; rule or profile = the colour and
-  size profile (§7); core = the cable conductor; bond = the bond rule. The golden CDPs set the cross-section only;
-  their colours come from the profile (level 2), so the markers print the effective colour and EW-POT-016 stays
-  silent.
+- **Size and colour sources:** CDP = explicit override, printed as a wire marker; rule = the colour and size
+  profile (§7); core = the cable conductor; bond = the bond rule. The table below writes "(rule)" where the profile
+  gives both values and "(profile)" for the profile's colour next to a CDP size; both are the source `rule`. The
+  wire list prints one source per property, `cdp`, `rule`, `core`, `bond` or `built-in` (the project default), size
+  first, then colour, joined by "/" when they differ (W4: `cdp/rule`; decision log ID-234). The golden CDPs set the
+  cross-section only; their colours come from the profile (level 2), so the markers print the effective colour and
+  EW-POT-016 stays silent.
 - **Wire numbers** (▲U-33) are connection-oriented `{page}.{counter}` with counter scope page, for W1–W34; cable
   cores are identified by cable and core, not numbered (FR-NUM-019); numbers are not printed on pages. The column
   "No." is derived by the numbering order of [08](08-connections-terminals-cables.md) §5.2: the page of the From
@@ -591,7 +600,7 @@ bond (FR-CON-014, D-22). W27 is listed in the wire list with potential "0V ⇄ P
 | 24 | 102.3–.4 (tie) | 102 | -102F1:2 | -102F2:24VDC#1 | +24V-F | 1.5 (CDP) DBU (profile) | J4 |
 | 25 | 102.3–.4 (tie) | 102 | -102F1:2 | -102F2:24VDC#2 | +24V-F | 1.5 (CDP) DBU (profile) | J4 |
 | 26 | 102.11 | 102→103 | -102G1:−#2 | -X1031:11/a | 0V | 0.75 WH (rule) | J6; IP 0VDC |
-| 27 | 102.8–.10 (tie) | 102→103 | -102G1:−#1 | -X1032:2/a | B1 (0V ⇄ PE) | 0.75 GNYE (bond rule) ▲U-19 | J5; IP PE-0VDC |
+| 27 | 102.8–.10 (tie) | 102→103 | -102G1:−#1 | -X1032:2/a | 0V ⇄ PE | 0.75 GNYE (bond rule) ▲U-19 | J5; IP PE-0VDC |
 | 28 | 102.7 | 102→103 | -102G1:PE | -X1032:2/b | PE | 1.5 GNYE (rule, mains device) | IP PE-1.2 |
 | 29 | 102.5 | 102→103 | -102F2:Out1 | -X1031:1/a | 24VDC-1 | 0.75 DBU (rule) | IP 24VDC-1 |
 | 30 | 102.6 | 102→103 | -102F2:Out2 | -X1031:5/a | 24VDC-2 | 0.75 DBU (rule) | IP 24VDC-2 |
@@ -959,7 +968,7 @@ pages are derived (ADR-0018).
 | 904 | Terminal Diagram -X1031 | Terminal diagram | `terminal_rows(-X1031)` | 20 | 1 |
 | 905 | Terminal Diagram -X1032 | Terminal diagram | `terminal_rows(-X1032)` | 5 | 1 |
 | 906 | Cable Overview and Diagrams | Cable overview + diagrams (012, 013) | `cable_rows` | 3 + 13 cores + 4 headings = 20 | 1 |
-| 907 | Wire List 1–3 | Wire list (014) | physical wires, then a separate bridge block (bridges are never wire rows) | 44 + 6 = 50 | 3 (907, 907.1, 907.2) |
+| 907 | Wire List 1–3 | Wire list (014) | physical wires, then a separate bridge block (bridges are never wire rows) | 44 + 1 heading + 6 = 51 | 3 (907, 907.1, 907.2) |
 | 908 | PLC Overview -201U1 1–3 | PLC overview (019), one row per channel | `plc_overview` over `plc_rows(-201U1)` | 56 | 3 |
 | 909 | Potential Overview | Potential overview (016) | `potential_partition()` | 19 + bond = 20 | 1 |
 | 910 | Device Tag Overview 1–4 | Structure-identifier and device-tag overview (017) | structure nodes, `device_tag` | 4 + 68 = 72 | 4 |

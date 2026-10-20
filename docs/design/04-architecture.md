@@ -1,6 +1,6 @@
 # ElektraWatt architecture specification
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-20 (G-SP outcome, §6.1 to §6.4; save order, §7.4) · **Date:** 2026-10-17 · **Decided by:** chief architect, after a judge
+**Status:** Accepted · amended 2026-10-18, 2026-10-20 (G-SP outcome, §6.1 to §6.4; save order, §7.4; the memo engine as built, §2, §6.2, §6.4) · **Date:** 2026-10-17 · **Decided by:** chief architect, after a judge
 panel over four competing proposals (A incremental, B ECS, C relational, D retained/object model)
 **Scope:** ElektraWatt (EW) v1:
 - Electric P8-class schematics;
@@ -149,7 +149,7 @@ flowchart LR
 
 | Actor | Responsibility and rules |
 |---|---|
-| **UI thread** | Owns the `Session`: the current `Model`, the memo store, `History`, selection and tools. Applies commands synchronously and runs the queries the visible panels need. **Frame budget 16 ms:** apply plus validation ≤ 2 ms, derived updates of visible views ≤ 5 ms, render ≤ 5 ms. Commands declared `Cost::Bulk` always run as preview jobs |
+| **UI thread** | Owns the `Session`: the current `Model`, the memo store, `History`, selection and tools. Applies commands synchronously and runs the queries the visible panels need. **Frame budget 16 ms:** apply plus validation ≤ 2 ms, derived updates of visible views ≤ 5 ms, render ≤ 5 ms. Commands declared `Cost::Bulk` always run as preview jobs. The `Session` is not `Send`: its memo store is re-entrant through shared interior state (ADR-0002 amendment 5), so it never leaves this thread; jobs receive forks |
 | **Job pool** (rayon 1.12.0 **(verify)**) | Each job runs on a `World` fork, a (model, memo snapshot) pair cloned in O(1). Jobs never block edits and are never invalidated by them. Results carry their `Rev`, and the UI shows a staleness badge when `Rev < current`. Cancellation is cooperative |
 | **Writer thread** | Serialises immutable snapshots with the save protocol (§7.4). Appends the journal and fsyncs at least once per second. Writes recovery snapshots to the OS state directory. Saving never blocks the UI |
 | **Watcher** (notify 8.2.0) | Detects git pulls and foreign writes, ignoring its own by manifest generation. A foreign generation is loaded on the pool, diffed entity by entity, and offered as one undoable "External change" transaction (§7.4) |
@@ -708,7 +708,8 @@ pub fn device_tag(q: &Q, dev: Id<Device>) -> Arc<Tag> { /* reads TagSpec, struct
 3. **Three durability levels:** library, settings, drawing. A memo whose dependencies are all library-durable skips
    verification while the user draws. Symbol geometry and form layout are examples.
 4. **LRU with a byte budget** for bulky memos (display lists, pagination).
-5. **Cycle detection.** A cycle panics in debug builds. The one legitimate fixpoint, a TOC whose page count depends
+5. **Cycle detection.** A cycle panics in debug builds. A value computed under a caught cycle is volatile: it is
+   returned but never kept, and its readers are volatile too (ADR-0002 amendment 5). The one legitimate fixpoint, a TOC whose page count depends
    on itself, is settled inside one query by a closed form and one confirming round (amended 2026-10-19, decision
    log ID-155; ADR-0018 amendment 4; [09](09-reports-forms-output.md) §3.1).
 6. **Statistics** per query and per commit: hits, verifications, re-executions, cut-offs. They are emitted through
@@ -748,6 +749,13 @@ contains:
    memory gate, and a family may receive its previous value and the touched inputs when it re-executes; its result
    is checked against the cold `run` by the oracle (§6.1, incremental connectivity).
 
+**Status (cycle 9, WP-S1.07 part 1; ADR-0002 amendment 5).** All four additions are built, with part dependencies
+(a reader of one part of a producer's value is invalidated only by that part) as the mechanism of the per-component
+maintenance of §6.1. `ew-derive`'s `MemoStore` backs `Q`: in a `Session` memoisation is on by default, every family
+of policy Memo or Memo + LRU is memoised (§6.4), a commit advances the store with the page-level keys of its change
+feed, and a committed oracle test over the golden project compares the memoised session with cold evaluation. The
+partition as a producer, the incremental index families and the benchmark on `MemoStore` are part 2 (cycle 10).
+
 ### 6.3 Granularity and memory rules
 
 1. **No per-CP memos.** The finest memo key is a page, device, potential, strip, module, station, report block or
@@ -762,6 +770,12 @@ contains:
    invalidates the query on every edit, which the spike found in `stitch_graph` and `potential_partition`.
 
 ### 6.4 Query catalogue
+
+*Status (cycle 9; ADR-0002 amendment 5).* In a `Session` every built family below whose policy is Memo or
+Memo + LRU is memoised through `ew-memo`, those of `ew-reports` included; `query_over` and the tests' `Q::new` stay
+cold. Still whole-project, as one memo each that reads whole tables: `stitch_graph` and `potential_partition` (their
+per-component maintenance is WP-S1.07 part 2, cycle 10). Not built yet: `potential_names`, `profile_row_for` and
+`settings_member` (part 2).
 
 | Query (key) | Depends on | Initial policy | Notes |
 |---|---|---|---|
@@ -786,10 +800,10 @@ contains:
 | `frame_grid(page)` | the page, `frame_settings`, the frame form | Cold | The page's frame grid, evaluated once per page per `Q`: the page's own form, else the entry for its page type, else the default form, else the built-in default grid (noted); title, TOC and divider pages default to the no-grid variant (FR-PAG-018) |
 | `xref_text(rep)` | partners' anchor cells, xref format | Memo | Star or chain interruption points; "(201-E1)", "∞ 203-B4" |
 | `page_local_nets(page)` | connections, junctions, reps on the page | Memo | Union-find over a few thousand edges. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). |
-| `stitch_graph()` | local nets, the `ip_pairing` settings member, bridges, conductors, terminal side links, bonds | Memo, maintained per component (§6.1) | Nodes are local nets, about 10–15 % of CPs. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). After G-SP (ADR-0002 amendment 4): page-less connections, bridges, IP functions, link-bearing functions and rail-bonded terminals are read through indexes, never by iterating whole tables (§6.3 rule 5) |
-| `potential_partition()` | stitch graph, potential defs, net defs | Memo, maintained per component (§6.1) | **Topology only** after G-SP: the components and their `PotentialId`s. `PotentialId` = the minimum `PotentialDef` ID when the potential has one or more definitions, else the minimum CP ID, so it is stable under unrelated edits. An added connection unions components; a removed one recomputes the affected components from the per-page nets. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1) |
+| `stitch_graph()` | local nets, the `ip_pairing` settings member, bridges, conductors, terminal side links, bonds | Memo, maintained per component (§6.1); cycle 9: one whole-project memo | Nodes are local nets, about 10–15 % of CPs. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). After G-SP (ADR-0002 amendment 4): page-less connections, bridges, IP functions, link-bearing functions and rail-bonded terminals are read through indexes, never by iterating whole tables (§6.3 rule 5) |
+| `potential_partition()` | stitch graph, potential defs, net defs | Memo, maintained per component (§6.1); cycle 9: one whole-project memo | **Topology only** after G-SP: the components and their `PotentialId`s. `PotentialId` = the minimum `PotentialDef` ID when the potential has one or more definitions, else the minimum CP ID, so it is stable under unrelated edits. An added connection unions components; a removed one recomputes the affected components from the per-page nets. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1) |
 | `potential_names()` | potential partition, device tags, anchor cells, page order, IP names | Memo | New after G-SP: canonical name plus IP aliases (D-24) and the fallback names (`<tag>:<designation>` of the first CP in page and cell order), split out of the partition, so a folio renumber or a move re-derives names and not the topology (with tags, cells and page order already evaluated the partition still took 60 ms at M, mostly names and per-CP role checks) |
-| `physical_wires_of(potential)` | potential members, connections, junction wiring, IP pairs | Memo after a fix | One entry per physical CP-to-CP wire, keyed by the UUID of its target-side connection. Source of the wire list, routing and `WireRecord`. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). Its chain is super-linear (20 µs per potential at S, 241 µs at L); the cause is isolated and fixed before the family is memoised, and it goes under the LRU if its values stay bulky |
+| `physical_wires_of(potential)` | potential members, connections, junction wiring, IP pairs | Memo after a fix; cycle 9: memoised, the chain fix is part 2 | One entry per physical CP-to-CP wire, keyed by the UUID of its target-side connection. Source of the wire list, routing and `WireRecord`. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). Its chain is super-linear (20 µs per potential at S, 241 µs at L); the cause is isolated and fixed before the family is memoised, and it goes under the LRU if its values stay bulky |
 | `potential_flow(potential)` | `potential_flow_bfs` | Cold | Flow rooted at the source-output CPs; the protective device per load (a load is a consuming function on the potential, decision log ID-172); source of the potential overview. Built in cycle 7 (WP-S1.07). Demoted to Cold after G-SP: a map lookup into `potential_flow_bfs` (< 20 µs) |
 | `potential_flow_bfs()` | potential partition, pass-through pairs, source outputs | Memo | The one BFS over the partition behind every `potential_flow(potential)` ([08](08-connections-terminals-cables.md) §3.6) |
 | `profile_row_for(attributes)` | the `colour_profile` and `size_profile` settings members | Memo | New after G-SP: the profile rule for one combination of type, voltage, AC/DC and circuit class; a profile edit re-executes the few keys and cuts off every unaffected one |

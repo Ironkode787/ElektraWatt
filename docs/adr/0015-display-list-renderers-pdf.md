@@ -1,6 +1,6 @@
 # ADR-0015: One display-list IR; wgpu canvas plus an always-built CPU renderer; krilla PDF/A-2b; PDF as print master
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-19 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-20 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -128,6 +128,15 @@ Amendments 1 to 4 were accepted on 2026-10-18, amendments 5 to 7 on 2026-10-19. 
    `page_display_list(page, layer, lang)` family of amendment 2 is built by the export job in the crate that fills
    the view, with one view and one query per layer that reads only that layer's inputs, so a wire edit never
    rebuilds the title block in practice; until then the CPU renderer and the PDF writer take the layers directly.
+8. **A text line may be a group of runs, one per font** (2026-10-20, project owner, delegated; decision log ID-239;
+   [ADR-0028](0028-default-drawing-fonts.md) amendment 1). `ShapedRun` keeps one font per run and is unchanged.
+   A line whose characters come from more than one face (the style's face and the symbol fallback) is lowered by
+   `ew-scene` into one `Group` that carries the text's origin, angle, `EntityRef` and its one link source, holding
+   one `Glyphs` run per face in text order; a line drawn by one face stays one run. Backends need no change, and
+   the PDF embeds one subset per face. A text consumer that wants the logical text of such a line reads the
+   group's runs in order; an optional "logical text" marker on `Group` is follow-up task FT-112. Per-glyph faces in
+   `ShapedRun` are revisited only if the display list becomes a persisted or plugin-facing format, because only
+   then would the grouping leak into a contract others depend on.
 
 ## Consequences
 

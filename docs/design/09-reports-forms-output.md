@@ -389,6 +389,10 @@ tracked reads only (FR-EXT-011).
   symbol fallback (§7, pitfall 8). Tahoma is never bundled or embedded (FR-IMP-020). Noto Sans is the interim
   default while ADR-0028 is Proposed: the spine builds the forms and the golden PDFs and PNGs with it, and if the
   project owner decides on another family, the goldens are regenerated once.
+- **The symbol fallback as built** (cycle 9, FT-85; ADR-0028 amendment 1): Noto Sans Math Regular 3.000 (OFL-1.1)
+  draws the characters the style's face lacks, for Latin, Greek and Cyrillic text only; a text line drawn with two
+  faces is a group of glyph runs, one per face (§4.3 rule 5). Export reports only the characters no bundled face
+  drew (FR-OUT-027, EW-CORE-066).
 - A system font chosen by the user is allowed; the export then states "output depends on system font X" and the
   byte-identity guarantee no longer holds (NFR-REL-11 requires a project to export without system fonts).
 - **Font versions are pinned** by the derivation profile (ADR-0028 recommendation 6): an EW release that updates a
@@ -705,11 +709,12 @@ sequential assembly in page order (FR-OUT-001, ARCH §2).
 - **As built (cycle 7, decision log ID-139; ADR-0015 amendment 5).** `/PageLabels` are krilla's own page labels.
   Glyphs map to text one char per glyph when the counts agree, else the run is one cluster (clusters in
   `ShapedRun` follow, FT-51); `.notdef` glyphs are dropped; link annotations use a rectangle; images are skipped
-  until assets reach the scene; links out of a partial export are plain text. The golden PDF has no link
-  annotations until the cross-references of WP-S1.08, and its generated pages wait for FT-52 and FT-53.
+  until assets reach the scene; links out of a partial export are plain text. Since cycle 9 the golden PDF has the
+  33 pages of the page order with their report tables (FT-53) and 63 link annotations (64 once FT-86 lands).
   Glyph coverage as built (FT-85): the font set holds Noto Sans Math Regular as its one symbol fallback face, only
-  for characters the style's own face lacks; a text with such glyphs is one group of one glyph run per face, so
-  the PDF embeds both fonts and `.notdef` glyphs remain only for characters neither face has.
+  for characters the style's own face lacks in Latin, Greek and Cyrillic text; a text with such glyphs is one group
+  of one glyph run per face, so the golden PDF embeds both fonts and drops no `.notdef` glyph. A `.notdef` glyph
+  remains only for a character no bundled face drew, and only such a character is reported (FR-OUT-027).
 - **Golden A** gets exactly 63 xref link annotations (one per linked text; 64 link targets) plus report back-links (AC-13). "103-G6" at PE-1.1 on folio 101
   lands on cell G6 of folio 103.
 - **Partial exports** print links to non-exported pages as plain text, or as remote links into a companion file
@@ -737,7 +742,10 @@ profile, font files by hash). Rules:
    never the platform's `sin`/`cos`, whose last bit can differ between platforms; kurbo's arc-to-Bézier conversion
    calls `f64::sin_cos` and is therefore not used on the export path.
 5. **Fonts.** Bundled or project-embedded font files only; subset tags are content hashes (krilla 0.8.2, verified in
-   cycle 7, ADR-0015 amendment 5).
+   cycle 7, ADR-0015 amendment 5). A glyph run holds one font, so **a text line may be a group of runs, one per
+   font**: a line whose characters come from the style's face and the symbol fallback is one `Group` with the
+   origin, the angle, the entity and the one link of the text, holding one run per face in text order; a line drawn
+   by one face stays one run (ADR-0015 amendment 8, decision log ID-239).
 6. **Images** are passed through or re-encoded with fixed encoder settings.
 
 GUI and CLI call the same exporter. CI exports Golden A on Windows, macOS and Linux and in a display-less Linux
@@ -885,8 +893,10 @@ title block, cover, divider and report forms reproduce the golden house style.
 7. **Floating point.** Platform `libm` differences and SIMD paths change last bits, so trig needs the controls of
    §4.3, and PNGs compare within the dify tolerance (§4.4).
 8. **Glyph coverage.** Report and xref texts use "²", "∞" ("∞ 203-B4") and "⇄" ("0V ⇄ PE" for W27). The default
-   family may lack some of them; the font set therefore includes a bundled symbol fallback, and any character
-   without a glyph is the finding EW-CORE-066 instead of a blank box (FR-OUT-027).
+   family may lack some of them; the font set therefore includes a bundled symbol fallback, and a character that
+   no bundled face drew is the finding EW-CORE-066 instead of a silent blank (FR-OUT-027). The fallback serves
+   Latin, Greek and Cyrillic text, so a symbol inside CJK or Arabic text is reported until those fallbacks exist
+   (FR-I18N-016, 1.x).
 9. **Text extraction.** Spaces must be real glyphs ("SK 3110.000", D-33). Identifier styles disable ligatures and
    discretionary features so search finds every tag as typed.
 10. **Link volume at XL.** BOM folio columns of 50,000 devices produce hundreds of thousands of links. The scheme's

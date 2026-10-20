@@ -1,6 +1,6 @@
 # ADR-0028: Default drawing fonts
 
-**Status:** Proposed · **Date:** 2026-10-17 · **Deciders:** project owner (pilot user)
+**Status:** Proposed · amended 2026-10-20 (recommendation 3 implemented) · **Date:** 2026-10-17 · **Deciders:** project owner (pilot user)
 
 ## Context
 
@@ -64,6 +64,34 @@ goldens once.
 6. **Pin font versions.** A later EW release that updates a bundled font ships it as a new font version. Projects
    keep the version their derivation profile names (ADR-0003), so line breaks do not shift in reopened projects
    (NFR-REL-17). Moving to the new version is the opt-in, previewed profile upgrade of FR-PRJ-011.
+
+## Amendments
+
+The ADR stays Proposed: the default font (recommendation 1, DEC-044) still waits for the pilot user at G-M0. This
+entry records what is already built and in force.
+
+1. **Recommendation 3 implemented: the symbol fallback face and its scope rule** (2026-10-20, project owner
+   (delegated); decision log ID-237 to ID-240; follow-up task FT-85 closed).
+   - **The face.** Noto Sans Math Regular, version 3.000 (OFL-1.1), is bundled as the one symbol fallback face. It
+     is taken from the notofonts release asset `NotoSansMath-v3.000.zip` (file
+     `NotoSansMath/unhinted/ttf/NotoSansMath-Regular.ttf`); `NOTICE` records the source URL, the release commit,
+     the SHA-256 of the zip and of the file, the size and the copyright line, and `REUSE.toml` (annotation L14) carries its own copyright line
+     "Copyright 2022 Google LLC. All Rights Reserved." before the collective notice. It covers "∞" and "⇄"; the
+     candidate check of recommendation 3 is closed. Recommendation 6 (pinned versions) applies to it as to the
+     default family.
+   - **Scope.** The face is registered as the fallback of the Latin, Greek and Cyrillic scripts only, the scripts
+     the default family covers; text in other scripts has no fallback until the CJK and right-to-left fallbacks of
+     FR-I18N-016 (1.x). Its role in `ew-text` is `Family::Symbols`.
+   - **The scope rule for reporting** (owner ruling; FR-OUT-027 amended). Export reports only the characters that
+     **no bundled face drew**, that is the characters printed as `.notdef`. A character the fallback face drew is
+     not a finding. The rule is derived from what was drawn, never from a coverage lookup: a symbol inside CJK or
+     Arabic text draws `.notdef` (the fallback does not serve that script) and is reported (EW-CORE-066).
+   - **Lines over two faces.** A text line whose characters come from the style's face and the fallback is a group
+     of glyph runs, one per face, with one entity and one link for the whole text; `ew-dl`'s `ShapedRun` keeps one
+     font per run ([ADR-0015](0015-display-list-renderers-pdf.md) amendment 8).
+   - **Result.** The golden PDF embeds two subset fonts (Noto Sans Regular and Noto Sans Math Regular), drops no
+     `.notdef` glyph and keeps its 63 link annotations; the nine "∞" cross-reference texts and "0V ⇄ PE" print with
+     real glyphs, so the first PNG approval (FT-10) can proceed.
 
 ## Consequences
 

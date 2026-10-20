@@ -616,7 +616,7 @@ cross-file reconciliation after merges is FR-COL-016 (1.0).
 | EW-CORE-063 | Unstyled text size | A text with an explicit size not bound to a text style | hygiene | o | info | page | MVP | FR-SYM-013 | D-29; MF-26 | 15 |
 | EW-CORE-064 | *Retired* | Font substitution at import is the import finding EW-IMP-006 | — | — | — | — | — | — | — | — |
 | EW-CORE-065 | Description lint | A rating in a description, unit formatting ("50hz", "0.75 mm ²"), manufacturer spelling | hygiene | f r | warning | project | 1.0 | FR-CHK-040 | D-18, D-35; EF-25 | 15 |
-| EW-CORE-066 | Glyph missing | A character without a glyph in the project font set; it renders with the bundled fallback font | hygiene | o x r | warning/error | page | MVP | FR-OUT-027 | — | 09 §7 |
+| EW-CORE-066 | Glyph missing | A character that no bundled face drew (it prints as `.notdef`); a character drawn by the bundled symbol fallback face is not a finding | hygiene | o x r | warning/error | page | MVP | FR-OUT-027 | — | 09 §7 |
 | EW-CORE-071 | Graphic line on a CP | A graphic line ending on a CP, which has no electrical meaning (a QET habit); quick fix "convert to connection" | hygiene | o | info | page | MVP | FR-CON-001 | — | 06 §8 |
 | EW-CORE-081 | Waiver matches nothing | A waiver whose fingerprint or part target matches no finding | hygiene | o r | info | project | MVP | FR-CHK-009, FR-CHK-049 | — | 15 |
 | EW-CORE-082 | Waiver expired | A waiver past its expiry date or release | hygiene | o r | warning | project | 1.0 | FR-CHK-049 | — | 15 |

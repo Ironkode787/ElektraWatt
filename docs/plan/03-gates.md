@@ -642,7 +642,8 @@ session) on the [spike report](../research/spike-g-sp-2026-10.md) and its indepe
   the true worst case is higher; model rows 313 MiB at XL; the prototyped dependency lists hold 0.87 million entries,
   28 MB, and a reverse-dependency index over them about 56 MB, over its 40 MB, so the index needs page-level keys;
   value bytes per family are measured in the re-spike), G-SP-07 (formal exit at G-M1) and G-SP-08 (below).
-- **What the recycle builds** (cycle 9, WP-S1.07 as the lead item with the `ew-memo` integration of WP-S1.05):
+- **What the recycle builds** (cycles 9 and 10, WP-S1.07 parts 1 and 2 as the lead items with the `ew-memo`
+  integration of WP-S1.05; part 1, the engine and the memoised `Q`, was delivered in cycle 9, decision log ID-250):
   incremental connectivity instead of the coarse fallback (whose global recompute costs 87 ms at M), push
   invalidation from the touched keys, O(1) hits, nested memos through `Q`, value bytes, and the query shapes of
   [architecture §6.4](../design/04-architecture.md#64-query-catalogue) (potential names split out,

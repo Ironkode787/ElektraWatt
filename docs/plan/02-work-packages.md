@@ -1,6 +1,6 @@
 # Work breakdown structure
 
-**Status:** Draft v0.2 · **Date:** 2026-10-20 (v0.2: the estimates of WP-S1.05, WP-S1.07 and WP-S1.08 after G-SP, the cycle-8 statuses and FT-86 to FT-99) · **Part of:** ElektraWatt plan
+**Status:** Draft v0.3 · **Date:** 2026-10-20 (v0.3: the cycle-9 statuses, WP-S1.07 in two parts, FT-100 to FT-116; v0.2: the estimates of WP-S1.05, WP-S1.07 and WP-S1.08 after G-SP, the cycle-8 statuses and FT-86 to FT-99) · **Part of:** ElektraWatt plan
 
 **Purpose.** This document breaks the full v1 scope of ElektraWatt (EW) into 123 work packages (WPs) in eight
 streams. For every WP it states the objective, scope, deliverables, dependencies, the requirements it delivers,
@@ -877,6 +877,14 @@ keys), and the re-spike itself on a BM-class runner. The XL results are in the r
 (G-SP-04: the XL peak working set is 5.78 GB against 4 GB), the pilot's size data (G-SP-08, an owner action before
 the re-test), FT-26, FT-44 and FT-60.
 
+*Status (2026-10-20, cycle 9).* The engine work of the recycle is built with WP-S1.07 part 1 (ADR-0002 amendment 5;
+decision log ID-241 to ID-248): the memo backend of `Q`, push invalidation over page-level keys, O(1) hits, part
+dependencies, the incremental hook and `Query::bytes` for the connectivity values; memoisation is on by default
+under a committed oracle test; the review's twelve findings are fixed. FT-44 and FT-60 are closed. Open: the
+oracle at `Oracle::Every` in a nightly or release run (FT-113), the re-spike measurements of the new structures
+(FT-114), `#[non_exhaustive]` statistics (FT-115), a wired fixture for the value-bytes test (FT-116), the benchmark
+on `MemoStore` and the re-spike after WP-S1.07 part 2 (cycle 10), G-SP-04, G-SP-08 and FT-26.
+
 #### WP-S1.06 Derivation I: structure, tags, pages, title block, BOM
 
 | Field | Value |
@@ -919,6 +927,19 @@ FT-78.
 per-member settings keys, `potential_flow` Cold, and the super-linear wire chain of `physical_wires_of` isolated and
 fixed, all under the oracle and integrated with `ew-memo` (WP-S1.05). The estimate grows by 4 pw (likely).
 
+*Status (2026-10-20, cycle 9).* **Part 1 delivered in cycle 9** (decision log ID-241 to ID-250; ADR-0002 amendment
+5): the `ew-memo` engine with push invalidation over page-level keys, O(1) hits, part dependencies, the incremental
+re-execution hook and volatile executions; the memo backend of `Q` (`MemoStore`), with memoisation on by default in
+every `Session` under the committed oracle test over the golden project; and `drawn_page_order` read by the
+connectivity queries, so the connectivity report kinds paginate. **Part 2 is the lead item of cycle 10:** the
+profile queries (`settings_member`, `profile_row_for`) and the three causes of the super-linear wire chain; the
+derived-index families with incremental hooks, a `bond_vias` family and the interruption-point pairing split out of
+the stitch graph (the cross-references read it); the partition as a producer (a topology-only value keyed by
+`PotentialId`, incidence per component with a fingerprint, cold = the global algorithm, the incremental
+re-execution a union-find over the affected components, parts per potential and endpoint, per-potential
+`potential_names` and attributes); and the benchmark on `MemoStore` with one smoke run, before the G-SP re-test.
+The estimate is unchanged (ID-250).
+
 #### WP-S1.08 Derivation III: cross-references and interruption points
 
 | Field | Value |
@@ -934,7 +955,7 @@ fixed, all under the oracle and integrated with `ew-memo` (WP-S1.05). The estima
 | Acceptance | AC-05, AC-20 |
 | Owner role | Core developer |
 
-*Status (2026-10-20, cycle 8).* Delivered with follow-up tasks: `ew-derive` has the format, relation and text queries and the interruption-point pairing (star and chain); the golden page output prints the cross-reference texts with 63 link annotations and the 4 external texts without a link, and the golden acceptance of doc 20 §15 passes (`golden_xref`: the 44 interruption-point and 19 main/aux texts, no "3-B0", the folio renumber replay). The design pass fixed the counts (63 texts, 64 targets) and the open rules (decision log ID-188 to ID-199). Open: the settings of FR-XRF-017 and FR-XRF-018 (FT-82), xref slots on the -203Q group (FT-81), the external texts on folio 101 (FT-83), the per-slot text style (FT-84) and the glyph "∞" (FT-85, awaiting the owner's approval of the download). After
+*Status (2026-10-20, cycle 8).* Delivered with follow-up tasks: `ew-derive` has the format, relation and text queries and the interruption-point pairing (star and chain); the golden page output prints the cross-reference texts with 63 link annotations and the 4 external texts without a link, and the golden acceptance of doc 20 §15 passes (`golden_xref`: the 44 interruption-point and 19 main/aux texts, no "3-B0", the folio renumber replay). The design pass fixed the counts (63 texts, 64 targets) and the open rules (decision log ID-188 to ID-199). Open: the settings of FR-XRF-017 and FR-XRF-018 (FT-82), xref slots on the -203Q group (FT-81), the external texts on folio 101 (FT-83), the per-slot text style (FT-84) and the glyph "∞" (FT-85, closed in cycle 9: the symbol fallback face draws it, ID-237). After
 G-SP (ADR-0002 amendment 4) the estimate grows by 0.5 pw (likely): the cross-references read interruption-point names
 and anchor cells through the new `potential_names` family. One link per listed item is FT-86.
 
@@ -1728,6 +1749,14 @@ wire and PLC row sources follow), and 901 has 23 rows because the TBD parts of B
 so there is no 901.1. Open: drawing the report content (FT-53), the review rulings FT-66 to FT-69, XLSX and CSV
 (FT-61).
 
+*Status (2026-10-20, cycle 9).* The `tables` layer of `ew-scene` draws the house report table of every generated
+page, and the four connectivity kinds (`wire_list`, `potential_overview`, `terminal_diagram`,
+`cable_overview_diagrams`) derive and paginate (decision log ID-229 to ID-236; FT-53 closed): the golden page order
+has 33 of doc 20 §16's 36 pages (907 paginates into 907, 907.1 and 907.2), and row-level goldens check the
+connectivity rows. `plc_overview`, `profile_tables` and `revision_overview` stay placeholders (no PLC or revision
+records in schema v0). Open: 901.1 (FT-110), 908.1 and 908.2 (FT-111), the derivation gaps of the connectivity rows
+(FT-100 to FT-108) and the 24 V spare-potential fixture change (FT-109).
+
 #### WP-S3.04 Page output: CPU renderer, PNG goldens and PDF
 
 | Field | Value |
@@ -1749,7 +1778,7 @@ provisional router, `ew-render-cpu` (vello_cpu 0.3.0, PNG), the deterministic PD
 ID-163 to ID-168; ADR-0015 amendments 5 to 7). 47 of the 72 page wires are not drawn yet (FT-54, FT-55), so the PNG
 candidates are regenerated before the first approval (FT-58, FT-10). *Update after the fix rounds:* the
 goldens and the PDF come from the `Session`'s `Q`, black boxes and strip segments carry their CPs, and the candidates
-are regenerated (FT-52, FT-54, FT-55, FT-58 closed); the golden PDF has 31 of doc 20 §16's 36 pages (ID-187). *Update, cycle 8:* the cross-reference texts and their 63 link annotations are in the page output, and the structure and SHA-256 goldens of the PDF are committed (WP-S1.08, ID-188); FT-52 is closed in full. Open: the export job (FT-59), veraPDF, `ew export pdf golden/`, and the first PNG approval (FT-10) after FT-83 to FT-85.
+are regenerated (FT-52, FT-54, FT-55, FT-58 closed); the golden PDF has 31 of doc 20 §16's 36 pages (ID-187). *Update, cycle 8:* the cross-reference texts and their 63 link annotations are in the page output, and the structure and SHA-256 goldens of the PDF are committed (WP-S1.08, ID-188); FT-52 is closed in full. *Update, cycle 9:* the golden PDF has 33 pages with their report tables and embeds two fonts, the symbol fallback included, with no dropped `.notdef` glyph (FT-53 and FT-85 closed, ID-233, ID-240). Open: the export job (FT-59), veraPDF, `ew export pdf golden/`, and the first PNG approval (FT-10) after FT-83 and FT-84.
 
 #### WP-S3.05 Spine importers: CSV golden bootstrap and QET element reader
 
@@ -2760,7 +2789,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-07 | `ew-import-qet`: the one built-in FnDef is `ew.fn.ip` with `version_req` `^0.1` (`BUILTIN_FNDEF_KEYS`, `BUILTIN_VERSION_REQ`) | WP-S3.05 | Cycle 6 (fix round) | ID-33; [14](../design/14-interop.md) §4.3 |
 | FT-08 | Starter content: the `handle` link point of `ew.iec.switch-2p-manual` and no drawn linkage except the MCB's; PE and FE graphics, text slots and the content lint; regenerate the `@qet10` edition | WP-S7.02 | Cycle 6 (fix round) | ID-35, ID-36 |
 | FT-09 | `ew-scene` symbol lowering: flip text alignment under the orientation variants as [07](../design/07-symbols-parts-macros.md) §4.1 states | WP-S3.01 | Cycle 6 | ID-49 |
-| FT-10 | First PNG approval: check VR-01 (coil against resistor) and VR-02 (hook of the changeover contact) | WP-S3.04 | M1 PNG approval; stays open: the nine "∞" texts print `.notdef` until FT-85, and FT-83 and FT-84 change the candidates | ID-34; [20](../design/20-golden-project.md) §3.3 |
+| FT-10 | First PNG approval: check VR-01 (coil against resistor) and VR-02 (hook of the changeover contact) | WP-S3.04 | M1 PNG approval; can proceed since cycle 9: the nine "∞" texts and "0V ⇄ PE" print with the symbol fallback face (FT-85 closed). The approver should know that the page goldens are built without the colour and size profiles (FT-65), so their wire-list and potential-overview pages print the built-in defaults (Source `cdp/built-in` where `rows/907.csv` has `cdp/rule`); FT-83 and FT-84 still change the candidates | ID-34, ID-232, ID-240; [20](../design/20-golden-project.md) §3.3 |
 | FT-11 | `ew-commands`: three productive passes plus one confirming pass; junction clean-up by worklist; history budget by the in-memory size of the rows only the history keeps alive | WP-S1.04 | Cycle 5 review fix round | ID-43, ID-44; [ADR-0008](../adr/0008-transactions-undo-preview.md) amendment 2 |
 | FT-12 | `ew-commands` command rules: colliding explicit counter edits rejected with a proposal; off-grid positions and routes rejected; `edit.delete` Bulk by delete-plan size; `device.place_from_part` unregistered; disallowed representation types refused; vanished hint targets reported; junction dissolve keeps the assigned wire number | WP-S1.04 | Cycle 5 review fix round | ID-53, ID-54, ID-55, ID-60 |
 | FT-13 | `ew-commands` interface: parameter schemas reject unknown open-enum tags; parameter document limits; `Origin::Cli { confirmed }`; a public surface of summaries only, full ops under `testkit` | WP-S1.04 | Cycle 5 review fix round | ID-56, ID-57, ID-59; [ADR-0001](../adr/0001-core-model-persistent-maps.md) amendment 3 |
@@ -2776,7 +2805,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-23 | Refuse device and wire numbering, renumbering and every upgrade except the profile upgrade while the pinned profile is unknown; the profile upgrade resolves the pin | WP-S1.11 | With the WP | ID-72; [05](../design/05-project-format-and-persistence.md) §10.1 |
 | FT-24 | Move `BUILTIN_LIBRARY` from `ew-import-qet` and `ew-import-tables` to `ew-interop-api` when the system library is named | WP-S1.19a | With the WP | ID-66, ID-24 |
 | FT-25 | Type the `ew-derive` shims in `ew-schema` and remove them: `settings.numbering`, `settings.frames` (with WP-S3.02 if that comes first), the company logo and notice, the `revision` record | WP-S1.11 | With the WP | ID-78 |
-| FT-26 | Generator option for a non-conformantly numbered project, so the renumber benchmark needs no counter scrambling | WP-S1.05 | With the G-SP re-test (cycle 9); the first spike measured the folio renumber, not the device renumbering | ID-79, ID-218 |
+| FT-26 | Generator option for a non-conformantly numbered project, so the renumber benchmark needs no counter scrambling | WP-S1.05 | With the G-SP re-test (cycle 10, after WP-S1.07 part 2); the first spike measured the folio renumber, not the device renumbering | ID-79, ID-218, ID-250 |
 | FT-27 | Wire `TablesImporter` to `ew import csv <dir>` once `bin/ew` has subcommands | WP-S3.05 | With the first `ew` subcommands | ID-65; [14](../design/14-interop.md) §8.4 |
 | FT-28 | Bind `project.control_voltage` and `project.consumption` once `Quantity` has a text formatter | WP-S1.06 | With the `Quantity` formatter | ID-88; [09](../design/09-reports-forms-output.md) §3.7 |
 | FT-29 | Golden tables: `project.csv` and the generator store the identifier-set key `EN81346-2:2009`; needs the pilot's acknowledgement (PD-15) | WP-S7.01 | Cycle 6 (fix round) | ID-92, ID-80 |
@@ -2794,7 +2823,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-41 | One exact anchor function in `ew-schema` (`SymbolDef` geometry, integer nm, ties toward zero), used by `ew-derive`, the importers and `ew-scene` (the `ew-scene` convergence may follow later) | WP-S1.06 | **Closed:** implemented in cycle 6 (importer side; the `ew-derive` and `ew-scene` convergence on the shared anchor stays open as FT-45) | ID-109 |
 | FT-42 | Importers: parent and inheritance walks, junction cascades and clean-ups are linear or O(n log n), with a hostile-input test per walk | WP-S3.05 | Cycle 6 (fix round) | ID-115; [14](../design/14-interop.md) §11 |
 | FT-43 | `follow_end` on a 2-vertex route moves the far end's perpendicular coordinate off its CP (`ew-commands` v0) | WP-S1.07 (or the routing WP) | With the WP | review cycle 6 |
-| FT-44 | Notes pushed by queries must become part of the memoised value before a family that pushes notes is memoised | WP-S1.05 (phase 2) | Before the first memoised family that pushes notes; with the `Q` memo backend in cycle 9 | ID-120; review cycle 6; ID-220 |
+| FT-44 | Notes pushed by queries must become part of the memoised value before a family that pushes notes is memoised | WP-S1.05 (phase 2) | **Closed:** implemented in cycle 9 with the `Q` memo backend; notes are stored with the value and shared by reference | ID-120; review cycle 6; ID-220, ID-245 |
 | FT-45 | `ew-scene::resolve_anchor` converges on `SymbolDef::anchor_point` | WP-S3.01 | With the host WP | ID-109; FT-41 |
 | FT-46 | The typed `ReportBlock` `filter` and `params` encoding (format decision), replacing the provisional `extra.params.mode` of `parts_summary` | WP-S3.06 | With the WP | ID-131; [09](../design/09-reports-forms-output.md) §2.2 |
 | FT-47 | Move the house report layout (23 rows × 6.52 mm) from `ew-reports` into the derivation profile | WP-S3.03 | Cycle 8 | ID-132 |
@@ -2803,14 +2832,14 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-50 | Honest `rust-version` per crate: the permissive crates keep 1.85 (MSRV job), `ew-export`, `ew-render-cpu` and their dependents declare 1.92, other GPL crates follow the pinned toolchain; `ci/README` states the rule | WP-S6.02 | **Closed:** implemented in the cycle-7 fix round (ID-183) | ID-141; [18](../design/18-quality-security-release.md) §6.2 |
 | FT-51 | Clusters in `ew-dl`'s `ShapedRun` (from `ew-text`), and the PDF writer's ToUnicode by cluster instead of 1:1 or one cluster per run | WP-S3.04 | Before the golden PDF is approved | ID-139 |
 | FT-52 | Golden page output from the `Session`'s `Q`: generated pages in Prev/Next, outline and `/PageLabels` with frame and title block; PDF destinations `v5(block, index)` for generated pages and the section ID for dividers, a duplicate destination an export error; `expected/pdf/structure.json` committed; `PdfOptions.date` required, the export passing FR-OUT-026's date; the PDF's SHA-256 committed once cross-references exist (WP-S1.08) | WP-S3.04 | **Closed:** implemented in the cycle-7 fix round; the PDF's SHA-256 was committed in cycle 8 with the cross-references of WP-S1.08 | ID-139, ID-163, ID-164 |
-| FT-53 | Draw report content: the `tables` layer from the `RowSet` into the form's data area for generated pages and embedded blocks, so the golden PDF has every page of the order with its rows | WP-S3.03 | **Closed:** the `tables` layer draws the house table (doc 20 §16) of every generated page, cycle 9; the connectivity kinds derive but paginate only once `ew-derive`'s connectivity queries read `drawn_page_order` (see the README of the golden project) | ID-136, ID-145, ID-163 |
+| FT-53 | Draw report content: the `tables` layer from the `RowSet` into the form's data area for generated pages and embedded blocks, so the golden PDF has every page of the order with its rows | WP-S3.03 | **Closed** in cycle 9: the `tables` layer draws the house table (doc 20 §16) of every generated page, and since the connectivity queries read `drawn_page_order` the four connectivity kinds paginate (907 → 907, 907.1, 907.2; 33 of 36 pages). The remaining pages are FT-110 (901.1) and FT-111 (908.1, 908.2) | ID-136, ID-145, ID-163, ID-233 |
 | FT-54 | Black boxes: the CSV bootstrap emits `Representation.box` from the part's black-box pattern (-102G1, -102F2, -201U1, -202U1), and `ew-scene` reads the box CPs | WP-S3.05 (importer); WP-S3.04 (`ew-scene`) | **Closed:** implemented in the cycle-7 fix round (ID-181) | ID-142 |
 | FT-55 | Strip segments: each drawn terminal gets one CP per side, one connection-grid step apart along the segment axis (the fix lead reports the exact rule for doc 08 §6.7 and doc 07 §9.1); terminal representations print the designation, the strip tag once (1X1 on folio 101) | WP-S3.04 (`ew-scene`, CP positions); WP-S7.01 (fixture) | **Closed:** implemented in the cycle-7 fix round (ID-180) | ID-143, ID-162; [08](../design/08-connections-terminals-cables.md) §6.7 |
 | FT-56 | `ew-scene`: draw stored symbol variants (the geometry key's `extra`) and apply a slot's `max_width` | WP-S3.01 | Cycle 8 | ID-142 |
 | FT-57 | Validate font bytes when fonts are loaded and remove the `catch_unwind` around glifo in `ew-render-cpu` | WP-S3.04 | **Closed:** implemented in the cycle-7 fix round (fonts validated on load; the `catch_unwind` stays as a backstop) | ID-142 |
 | FT-58 | Regenerate the PNG and text candidates of folios 102, 103 and 106 once FT-54 and FT-55 draw their wires, before the first PNG approval | WP-S3.04 | **Closed:** implemented in the cycle-7 fix round (candidates regenerated, still awaiting FT-10) | ID-138, ID-142 |
 | FT-59 | The `Session` export job (`ew-api`, `ew-jobs`): it owns the glue rules of the view, builds one view and one memoised `page_display_list` query per layer that reads only that layer's inputs, so a wire edit never rebuilds the title block | WP-S3.04 | With the export job | ID-125, ID-144; [ADR-0015](../adr/0015-display-list-renderers-pdf.md) amendment 7 |
-| FT-60 | When `ew-memo` backs `Q`: bind the report-pages provider to the memo store at creation; `Q`s with different providers never share a store | WP-S1.05 (phase 2) | When `ew-memo` backs `Q` (cycle 9, after G-SP) | ID-126, ID-220 |
+| FT-60 | When `ew-memo` backs `Q`: bind the report-pages provider to the memo store at creation; `Q`s with different providers never share a store | WP-S1.05 (phase 2) | **Closed:** implemented in cycle 9 (`MemoStore::with_report_pages`; the `Session` binds its report engine at creation) | ID-126, ID-220, ID-246 |
 | FT-61 | `ew-reports`: XLSX and CSV writers over the `RowSet` (rust_xlsxwriter, csv), and wrapped rows measured with `shaped_text` once the schema has a wrap policy | WP-S3.03 | With the WP | ID-130; [09](../design/09-reports-forms-output.md) §3.2, §4.6 |
 | FT-62 | Bind `revision.current.label` in the title block (the current revision of ID-105) | WP-S1.06 | Cycle 8 | ID-105 |
 | FT-63 | Golden tables: the black-box PSU part pattern declares its `source_output` CPs and the MICO its Out pass-throughs; needs the pilot's acknowledgement (PD-15) | WP-S7.01 | Cycle 7 (fix round) | ID-152 |
@@ -2835,7 +2864,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-82 | Act on the contact-image settings `show_unused`, glyph, placement and `contact_image` (parsed with defaults today): unused part contacts, the glyph from the contact-image variant, "in path" or "on component" placement; then drop the "partial" marks of FR-XRF-017 and FR-XRF-018 | WP-S1.08 (derivation); WP-S3.04 (`ew-scene`, placement) | Cycle 9 or later | ID-195; [06](../design/06-schematic-editor.md) §2.8 |
 | FT-83 | Folio 101: move the text slot of the external-connection symbol, so that "+J-E-206 / JE-N1000-03" is no longer clipped by the symbol's slot box (the three external texts start left of the frame and overlap the next point's name; "J-E-206-PE" starts 0.27 mm left of the drawing area; golden README, gaps for FT-10); regenerate the candidates | WP-S7.02 (symbol); WP-S3.04 (goldens) | Cycle 9 | ID-196 |
 | FT-84 | `TextSlot.style`: the optional member in `ew-schema` (absent = the style of the slot's kind), honoured by `ew-scene`, the schema bless and the doc 07 §2.3 wording; an unknown style name falls back to the slot kind's style with a note (ID-227); then the xref slots name `xref.device` where doc 06 §2.8 and doc 20 §17.5 bind it, and the `@qet10` edition and the golden candidates are regenerated | WP-S1.02 (schema); WP-S3.01 (`ew-scene`); WP-S7.02 (content) | Cycle 9 | ID-197, ID-227; [20](../design/20-golden-project.md) §17.5 |
-| FT-85 | The symbol fallback font for "∞" (U+221E): after the owner approves the download of Noto Sans Math Regular (OFL-1.1, about 0.5 MB, notofonts GitHub release): pin its SHA-256, add its `NOTICE` entry, add the fontique fallback chain in `ew-text`, regenerate the PNG, text and PDF goldens, assert `dropped_notdef_glyphs` = 0 in the structure golden, then approve at FT-10 | WP-S3.02 (`ew-text`); WP-S3.04 (goldens) | **Awaiting owner approval of the download** | ID-198; [ADR-0028](../adr/0028-default-drawing-fonts.md) recommendation 3 |
+| FT-85 | The symbol fallback font for "∞" (U+221E): after the owner approves the download of Noto Sans Math Regular (OFL-1.1, about 0.5 MB, notofonts GitHub release): pin its SHA-256, add its `NOTICE` entry, add the fontique fallback chain in `ew-text`, regenerate the PNG, text and PDF goldens, assert `dropped_notdef_glyphs` = 0 in the structure golden, then approve at FT-10 | WP-S3.02 (`ew-text`); WP-S3.04 (goldens) | **Closed** in cycle 9: Noto Sans Math Regular 3.000 bundled with its `NOTICE` entry and SHA-256 as the fallback of the Latin, Greek and Cyrillic scripts; goldens regenerated, `dropped_notdef_glyphs` = 0, two embedded fonts, 63 links; missing glyphs reported from what was drawn | ID-198, ID-237 to ID-240; [ADR-0028](../adr/0028-default-drawing-fonts.md) amendment 1 |
 | FT-86 | One link per listed item: a cross-reference text that lists several items ("∞ 3-B2, 106-G3", the -201U1 main text) carries one link per item in `ew-scene`'s page layer and one link annotation per item in `ew-export`, so the 106-G3 target gets its annotation; the PDF then has 64 xref link annotations (one per target), and the structure golden and the golden-PDF lines of docs 09 and 18 move from 63 to 64 annotations in the same change; doc 20 §3.4 row 18 and AC-13 already read "63 until FT-86 lands, 64 afterwards" (owner-approved, ID-228) | WP-S3.04 (`ew-scene`, `ew-export`, goldens) | Cycle 9 | ID-188, ID-228 |
 | FT-87 | Lenient model build for damaged projects: `Model::from_records` (or a lenient variant) builds a model from a record set that breaks a structural invariant or holds dangling references, reporting EW-CORE-008/-012 instead of refusing, so FR-COL-004's "load anyway" holds and the project opens read-only with its findings | WP-S1.09 (`ew-model`, `ew-store`) | Before M1 | ID-217; [05](../design/05-project-format-and-persistence.md) §6.2 |
 | FT-88 | Journal completeness: the three snapshot slots of doc 05 §8.1 (overlay of changed files every 2 minutes while dirty), group commit with a sync within 1 s (NFR-REL-02) and on focus loss, and the undo rebuild of recovered transactions (FR-COL-028) | WP-S1.09 (`ew-store`, `ew-commands`) | Before M1 | ID-217; [05](../design/05-project-format-and-persistence.md) §8 |
@@ -2850,6 +2879,23 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-97 | After a conflicted or merged manifest, the next save writes generation max(ours, theirs) + 1 (doc 05 §11.3) instead of restarting at 1 | WP-S1.17 | With the merge driver | ID-202, ID-217 |
 | FT-98 | Windows: a move-aside rename that a sync client delays can leave several `.unlisted` copies of one file after retries; a copy whose bytes equal an existing stray copy of the same generation is not moved again (clutter only, no data at risk) | WP-S1.17 (cloud and share handling) | With the WP | ID-203, ID-217 |
 | FT-99 | Append the XL results of the G-SP spike to its report: the XL rows of the budget table, the memory projection (G-SP-04) and the tight L profile case; mark the XL peak as not comparable with L (the two super-linear families are left out) | WP-S1.05 | **Closed:** the XL results were committed with the report on 2026-10-20 (appendix A.4) | ID-218, ID-224 |
+| FT-100 | Wire numbering query: the "No." column of the wire list (doc 08 §5, FR-NUM-019) and rows in the numbering order of doc 20 §8.1 (it needs the cells of terminals drawn in strip segments); the rows are in reading order today | WP-S1.07 (wire-number display); WP-S3.03 (wire list) | Before the 907 approval | ID-236; [20](../design/20-golden-project.md) §8.1 |
+| FT-101 | From and To of a wire by the flow-distance step of doc 08 §3.8 (FR-CON-040): a per-CP distance from the source in `ew-derive`; W1 to W5 print reversed today | WP-S1.07 | With part 2 (cycle 10), before the 907 approval | ID-236 |
+| FT-102 | Wire list and terminal targets: the `#n` suffix on a repeated CP designation (`-101F1:N#2`, `-102G1:+#1`) and a terminal end printed `1/b` instead of the clamp in the CP column | WP-S3.03 | Before the 907 approval | ID-236; [20](../design/20-golden-project.md) §8.2 |
+| FT-103 | Terminal diagrams: apply `Strip.field_side` (the field side of 1X1 first, doc 20 §9), and print the wire number in the targets once FT-100 exists | WP-S3.03 | Before the 903–905 approval | ID-236 |
+| FT-104 | Cable overview: cores in pin order (doc 20 §10: BK, BU, GNYE, WH, BN), which needs core pins in the cable part's core definition | WP-S1.14 (model); WP-S3.03 (kind) | With the cable model | ID-236 |
+| FT-105 | Potential overview: the PROFIBUS potential DP through `Bus` connections (doc 20 §7.3, folio 909) | WP-S1.21 | With the bus model | ID-236 |
+| FT-106 | Cable lengths "from part": a length value on the cable part (▲U-18, 2 m for -106W1 and -106W2) read by the cable overview | WP-S1.14 | With the cable model | ID-236 |
+| FT-107 | Core cross-sections from the cable part (doc 20 §10): the bootstrap gives the conductors the part's cross-section, and `wire_props_of` takes the core's value before the size profile; W33 to W44 print `rule` or `rule/core` today | WP-S1.07 (precedence); WP-S3.05 (bootstrap) | Before the 907 approval | ID-236; [20](../design/20-golden-project.md) §10 |
+| FT-108 | Potential overview: print the type, voltage and class of a switched potential as derived across its pass-through pair (N-55T and N-55S: N switched, 230 V AC, mains), not the partition's naming-only values | WP-S3.03 (kind); WP-S1.07 (flow attributes) | Before the 909 approval | ID-235 |
+| FT-109 | The 24 V spare potentials (owner's fixture decision): doc 20 §7.3 gives 24VDC-2, 24VDC-3 and 24VDC-4 "L+, 24 V DC, control" with a note that they are the spare outputs of -102F2. In the same change `tables_from_doc20.py` stops emitting a test-input row whose target list is empty, the tables and the README block are regenerated, the data-gap expectations of `crates/ew-api/tests/golden_connectivity.rs` (W30 to W32, the class rows) move to DBU and control, and the fixture `golden/J-E-2416.ew`, `rows/907.csv`, `rows/909.csv`, the page text of 909 and the PDF SHA-256 are re-blessed | WP-S7.01 | Cycle 10 (one commit: data and expectations together) | ID-235 |
+| FT-110 | Folio 901.1: the parts of BOM rows 24 to 27 (TBD in doc 20 §14.1) as fixture parts or explicit test inputs, so 901 paginates into two pages | WP-S7.01 (fixture); WP-S3.05 (bootstrap) | Before the 901 approval | ID-233 |
+| FT-111 | Folios 908.1 and 908.2: PLC channel records (doc 20 §11.3) so that `plc_overview` derives its 56 rows | WP-S1.21 | With the PLC record kinds | ID-230, ID-233 |
+| FT-112 | `ew-dl`: an optional "logical text" marker on `Group` for a text drawn as several per-face runs (search, extraction, a future SVG text writer), and a sentence in the `ew-dl` module documentation that a text line may be a group of runs, one per font | WP-S3.04 | When a consumer needs the logical text of a line | ID-239; [ADR-0015](../adr/0015-display-list-renderers-pdf.md) amendment 8 |
+| FT-113 | Run `crates/ew-api/tests/memo_oracle.rs` at `Oracle::Every` in a nightly or release CI job (the per-PR run samples `OneIn(8)`) | WP-S6.02 (CI); WP-S1.05 | With the nightly job | ID-246 |
+| FT-114 | Re-spike measurements of the cycle-9 engine: the memory at XL of the stored registrations (`Memo::reg`) and of the note DAG (`NoteSet`); the marking cost per commit with pending marks and the frequency of mark-epoch bumps once incremental connectivity lands; `value_bytes` per family (G-SP-04) | WP-S1.05 | With the G-SP re-test, after WP-S1.07 part 2 | ID-242, ID-245, ID-248 |
+| FT-115 | Mark `ew_memo::Counters` `#[non_exhaustive]`, so a counter added later (part 2's incremental counters) is not a breaking change of the permissive API; constructors inside the crate only | WP-S1.05 (`ew-memo`) | With WP-S1.07 part 2 | ID-244 |
+| FT-116 | Test coverage: `ew-derive`'s golden test fixture has no connections, so the value-bytes test runs on a small wired fixture; give `ew-derive` a wired golden fixture (or run the value-bytes check over the `ew-api` golden project) so the bytes of the connectivity families are checked on real data | WP-S1.07 | With part 2 (cycle 10) | ID-248 |
 
 ---
 

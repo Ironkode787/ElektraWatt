@@ -1,6 +1,6 @@
 # ADR-0002: Derived-data engine: cold-first queries plus a cut-down memo layer (`ew-memo`); no salsa
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-20 (G-SP outcome: Recycle) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-20 (G-SP outcome: Recycle; the memo engine as built) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -201,6 +201,80 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
      WP-S1.08 +0.5 pw (likely); M1 of the plan of record moves from month 15 to month 16 (+3 to +5 weeks on the
      critical chain); the likelihood of SR-7 (R-018) rises. Cycle 9 takes WP-S1.07's incremental connectivity with
      the `ew-memo` integration as its lead item.
+5. **The memo engine and the memo backend of `Q` as built** (2026-10-20, project owner (delegated); decision log
+   ID-241 to ID-250; WP-S1.07 part 1, reviewed in cycle 9 and all twelve findings fixed in its fix round;
+   [architecture](../design/04-architecture.md) §2, §6.2, §6.4). Amendment 4's items (a) to (d) and its incremental
+   hook are implemented in `ew-memo`, and `Q` is memoised through it in every `Session`, with these readings:
+   - **Re-entrant store.** Every read takes `&self`, and no internal borrow is held while host code runs (a query
+     body, `changed_at`, `durability`, `coarse`); a body that calls back into the store through a shared handle
+     nests safely, and its reads are attributed to the innermost execution. `ew-derive`'s `MemoStore` keeps this
+     state behind shared interior mutability, so **`MemoStore` and `Session` are not `Send`** (a `compile_fail`
+     doctest pins it). That is the thread model of
+     architecture §2: the `Session` lives on the UI thread, and a job receives an O(1) fork, never the session;
+     the job-model work makes the fork it hands out sendable.
+   - **Coarse registration keys.** A read is registered in the reverse-dependency index under `Db::coarse` of the
+     input, computed in the snapshot the read observed (the page a row is drawn on, a 4,096-way ID or index-key
+     shard, or the read itself for whole tables, whole indexes, the project row and the reserved records; decision
+     log ID-226). The touch contract: a commit reports, for every put row, its coarse keys before and after the
+     change. As first built the registrations were not kept with the memo, so a row that moved to another page left
+     a stale registration (over-marking only); the fix round **stores each memo's registrations with it**
+     (`Memo::reg`) and replaces them when the memo re-executes, so nothing leaks. Their memory at XL is measured in
+     the re-spike.
+   - **Marking cost.** `Changes::via` is collected only for incremental families. A **mark epoch** bounds the walk:
+     a commit does not re-walk a memo whose mark already walked its readers in the current epoch, and the epoch is
+     bumped whenever a mark is cleared without verifying what marked it (a durability skip, or an incremental run
+     that left a `via` memo unread). The reserved records count as touched only when they differ.
+   - **Part dependencies are the "per connected component" mechanism** of amendment 4. A reader takes one part of a
+     producer's value (`get_part`: a potential's topology, an endpoint's potential, a potential's flow entry) and
+     is invalidated only when the producer's re-execution declares that part changed (`changed_parts`), or changes
+     without declaring parts. Every verification of a reader **recomputes the producers** it depends on, so the
+     latent stale path the review found (a green memo keeping old producers after a cut-off) is closed. No family
+     reads parts yet; the partition becomes a producer in WP-S1.07 part 2.
+   - **Volatile executions; amendment 3 "Cycles" is amended.** Amendment 3 said that a cycle error "leaves the
+     previous memo in place". As built, an execution that caught a cycle below it, or read a volatile value, is
+     **volatile**: its value depends on the evaluation context, so it is returned but **never kept**, and its
+     readers become volatile too. A memoised `Q` therefore re-runs such a value on every read, while a cold `Q`
+     caches it for its own lifetime; both return the same value for the same snapshot and order. The store counts
+     volatile executions in its statistics (`Counters::volatile`). Debug builds still panic on a cycle unless the
+     host turns that off.
+   - **Notes are part of the memoised value.** The value of a memoised `ew-derive` family is its value with the
+     derivation notes its execution pushed; a hit replays the notes, and cut-off and the oracle compare both (a
+     changed note is a changed value). The notes form a shared DAG (`NoteSet`): a reader refers to the note sets of
+     the values it read instead of copying them, replays them by reference, and memory counts a note set once, with
+     the value that owns it. This closes FT-44.
+   - **Memoisation is on by default, under a committed oracle test.** `SessionOptions::memo` is `Off`, `On` (the
+     default) or `Oracle` (every memoised read also runs cold); `Session::query` hands out a memoised `Q`, a commit
+     advances the store with the touched keys of its change feed, and `query_over(model)` stays cold. Every
+     `Memo` and `Memo + LRU` family is memoised, those of `ew-reports` included. The default rests on
+     `crates/ew-api/tests/memo_oracle.rs`: over 16 edit states of the golden project (moves on and across pages,
+     wires, a delete, an override, a rename, renumbers, undo and redo, a colour-profile edit) it reads every key of
+     every memoised family twice through memoising `Q`s and once cold, comparing values and notes, and runs the
+     same states in `Oracle` mode sampled at `OneIn(8)`; a nightly or release run at `Oracle::Every` is FT-113.
+     The cold reference of the oracle is a fresh cold `Q` over the same snapshot.
+   - **Stamp content rule.** The `Db` stamp contract is one-sided: every change of what a read observes must change
+     its stamp, but a changed stamp with equal content need not be avoided or reported specially. A row put twice
+     in one batch bumps an index bucket's stamp without changing its content; that costs a verification, never a
+     wrong value. The rule is part of the `Db` contract.
+   - **No silent defaults; no history jumps.** `Query::fingerprint` has no default: a family compared by
+     fingerprint must implement it (a default of 0 would have cut off every change). `MemoStore::replace` is
+     removed: a new history (another lineage of snapshots) needs a new store, and a store never moves to an
+     arbitrary snapshot.
+   - **Value bytes and the query shapes.** The five connectivity families implement `Query::bytes` (amendment 4
+     item (d)), tested on a small wired fixture because `ew-derive`'s golden fixture has no connections (FT-116),
+     and `potential_flow` is Cold, a lookup into `potential_flow_bfs` (decision log ID-221).
+   - **Page order inside pagination.** The connectivity queries (`physical_wires_of`, the potential queries and
+     the stitch graph) read `drawn_page_order`, never `page_order`, so they can run inside the report engine's
+     pagination without a cycle; the cross-reference token `{page_index}` still reads `page_order` (decision log
+     ID-189).
+   - **Still whole-project** (WP-S1.07 part 2, cycle 10): `stitch_graph` and `potential_partition` are memoised as
+     one value each and read whole tables; the hub specification scans every interruption-point group per
+     potential, `wire_props_of` parses the profile per potential, the PE rule scans the whole strip per wire end,
+     and the bond vias, the interruption-point pairing and the flow BFS are global. Part 2 makes the partition a
+     producer (a topology-only value keyed by `PotentialId`, cold = the global algorithm, the incremental
+     re-execution a union-find over the affected components), adds `settings_member`, `profile_row_for` and
+     `potential_names`, fixes the wire chain and benchmarks on `MemoStore`. The G-SP re-test waits for it.
+   - **Licence.** `ew-memo` stays permissive (MIT OR Apache-2.0); `ew-derive` and `ew-api` are GPL-3.0-or-later;
+     no dependency was added.
 
 ## Consequences
 

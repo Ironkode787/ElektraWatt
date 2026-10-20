@@ -875,8 +875,8 @@ chain) and in the last 18 months before 1.0.
    derivation II and III fix their query shapes. The G-SP month in every table is the finish of WP-S1.03 plus one
    month. G-SP was held on 2026-10-20 (cycle 8) with the outcome Recycle (ADR-0002 amendment 4): the architecture's
    fallback of page-scoped dirty flags with coarse recomputation does not meet the budget and is replaced by
-   incremental connectivity. The re-spike measures the reshaped queries in cycle 9 and overlaps WP-S1.05 and
-   WP-S1.07.
+   incremental connectivity. Its engine work landed in cycle 9 (WP-S1.07 part 1); the re-spike measures the
+   reshaped queries after WP-S1.07 part 2 in cycle 10 and overlaps WP-S1.05 and WP-S1.07 (decision log ID-250).
 3. **The UI chain starts as soon as M1 work allows.** WP-S2.01 → WP-S2.03 → WP-S2.04 is the longest chain to M-PP
    and to the MVP; R0 follows WP-S2.04 directly. Pulling the UI chain in front of M1 work does not bring M-PP
    forward: the spine then exits later by about as much (tested with the model).
