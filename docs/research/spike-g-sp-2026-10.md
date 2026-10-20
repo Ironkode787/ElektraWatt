@@ -12,8 +12,9 @@ of the kind the Recycle outcome names: whole-table reads in `stitch_graph` and `
 names (device tags, anchor cells, page order) computed inside the topology query, a super-linear wire-property
 chain, and a memo engine that verifies by walking every dependency instead of starting from the touched keys.
 The folio renumber (NFR-PERF-07) and the open-time proxy (NFR-PERF-03) are within budget cold at every measured
-class; the affected-potentials part of the profile change is within budget at S, M and L, which shows that the
-memo design can meet NFR-PERF-07 once a profile edit stops invalidating the topology.
+class. The affected-potentials part of the profile change is within budget at S, M and L; it is a **lower bound**
+of the memo design's cost (it leaves out verifying the unaffected `wire_props_of` memos, which pull verification
+would add, section 5), so NFR-PERF-07 is reachable only with push invalidation and the reshaped profile lookup.
 
 - **KT-3 check.** Not triggered: KT-3 applies after the fallback prototype and one recycle. For the record, the
   M-class commit p99 is 134.7 ms cold (13× the KT-3 line of 10 ms); the memo prototype's page-local part alone is
@@ -23,6 +24,9 @@ memo design can meet NFR-PERF-07 once a profile edit stops invalidating the topo
   linearly from M to L, so XL can only widen the gaps. XL can still decide two open points: whether the memory
   projection of section 7 holds (G-SP-04) and how the affected-potentials profile change scales (it is at 0.9×
   budget at L). XL: run in progress at the time of writing (started 03:04 local, class XL); results appended in a follow-up commit.
+- **G-SP-01 (H) stays open** until the XL results are appended (raw numbers per class S-XL). The XL run omits
+  `connectivity.wire_props_all` and `profile.change.all` (appendix A.5), so its peak working set is not comparable
+  with the L figure, whose peak comes from exactly those two families.
 - **Correctness.** The memo prototype agreed with cold evaluation on every compared sample (6,000 comparisons at
   S, 4,200 at M, 420 at L, plus `ew-memo`'s own oracle at every depth on all warm-up rounds): no mismatch.
 
@@ -58,7 +62,7 @@ operation would take hours. This is a deviation from 18 §4.3, recorded here; no
 |---|---|---|
 | `move.commit_potentials` | `rep.move` of a load representation (6 × 3 grid steps) + `page_local_nets(page)` + `potential_partition()` | NFR-PERF-05 |
 | `wire.commit_potentials` | `connection.draw` between two free CPs of a page + the same two queries | NFR-PERF-05 |
-| `folio.renumber.derive` | `page.renumber` of one folio to a free number (preview + commit) + `page_order()` + `device_tag` of every device drawn on the page | NFR-PERF-07 (5 ms plus the preview diff) |
+| `folio.renumber.derive` | `page.renumber` of one folio to a free number (the maximum folio plus one; preview + commit) + `page_order()` + `device_tag` of every device drawn on the page | NFR-PERF-07 (5 ms plus the preview diff) |
 | `profile.change.all` | the 24 V DC row of the colour profile changes colour, applied at the model layer + `wire_props_of` of every potential | NFR-PERF-07 |
 | `profile.change.affected` | the same change + `wire_props_of` of the affected potentials only, with the topology already derived in that `Q` | NFR-PERF-07 (memo-ideal work) |
 | `connectivity.*` | `stitch_graph()` + `potential_partition()` from scratch, and its breakdown | single operation, no budget |
@@ -66,7 +70,8 @@ operation would take hours. This is a deviation from 18 §4.3, recorded here; no
 | `memo.*` | the same edits, then the memoised families of the prototype (section 6) | NFR-PERF-05 |
 
 `*.commit` and `*.potentials` / `*.derive` / `*.tags` rows split the total into the command pipeline and the
-derivation.
+derivation. The sessions have no store attached, so `.commit` excludes the journal write that the session performs
+after a commit when a project store is attached (WP-S1.09); G-M1 measures it.
 
 **Profile change at the model layer.** No command edits `ProjectSettings` yet, so the profile change is one
 `Op::Put` of the project row applied with `Model::apply`; it excludes the command pipeline, which costs what the
@@ -158,16 +163,21 @@ Readings:
    CP in page and cell order) and the per-CP role checks walk every member CP through tracked index reads,
    allocating a bucket vector per read. This is work for a separate `potential_names` family, not for the
    topology.
-4. `wire_props_of` is super-linear: the mean per potential is 20 µs at S, 44 µs at M and 241 µs at L, while the
-   24 V rail potentials of the profile change cost a constant 0.21 ms each at M and L. The growth is in the
-   project-wide potentials (L, N and PE run through interruption-point pairs across all replicas), whose wire
-   chain grows faster than their size. The cause is not isolated; it is a defect of the cold implementation to fix
-   before any memo decision on `physical_wires_of` and `wire_props_of`.
+4. The wire chain is super-linear. `connectivity.wire_props_all` (partition precomputed; `physical_wires_of`, the
+   flow and `wire_props_of` computed) has a mean per potential of 20 µs at S, 44 µs at M and 241 µs at L: 5.5× in
+   per-potential cost from M to L for 4.5× as many potentials. The figure of `profile.change.affected` is not
+   comparable with that mean (it times `wire_props_of` alone, with `physical_wires_of` and the flow precomputed,
+   for the 24 V potentials only); it is about 0.21 ms per affected potential at both M and L, so the growth is not
+   in `wire_props_of` of potentials of a fixed shape. The likely place is the project-wide potentials (L, N and PE
+   run through interruption-point pairs across all replicas) in `physical_wires_of` or the flow, but the cause is
+   not isolated. It is a defect of the cold implementation to fix before any memo decision on `physical_wires_of`
+   and `wire_props_of`.
 5. The `connectivity.cold` median at L (1.11 s) is twice the sum of its parts (0.53 s), and its p99 is 2.4 s. The
    machine was not dedicated (section 4): treat L medians of single operations as ±30 %. The decision does not
    depend on it.
 
-**Folio renumber 103 → 104 (NFR-PERF-07: 5 ms plus the preview diff).**
+**Folio renumber (NFR-PERF-07: "103 → 104" commits in 5 ms plus the preview diff).** One folio is renumbered to a
+free number, the maximum folio plus one, which is the NFR's case of a folio moving to an unused number.
 
 | Row | S | M | L |
 |---|---:|---:|---:|
@@ -186,8 +196,13 @@ Within budget cold in every measured class, with a factor 3 of margin at L.
 
 `profile.change.all` is what the current shape costs: the project row is one dependency, so a profile edit
 invalidates the stitch graph (it reads `settings.ip_pairing`), the partition and every `wire_props_of`.
-`profile.change.affected` is the work an ideal memo does; its L median is 18.2 ms and its p99 56.4 ms (0.94× the
-60 ms budget), so it passes at L with little margin.
+`profile.change.affected` is the work an ideal memo does and a **lower bound**: it re-derives the affected
+potentials only and leaves out the verification of the other `wire_props_of` memos (33,505 at L). Its L median is
+18.2 ms and its p99 56.4 ms (0.94× the 60 ms budget). With pull verification each unaffected memo is walked: with
+about ten dependencies per memo once nested memos are dependencies (section 11) and the 0.1-0.2 µs per dependency
+entry of section 6, that adds roughly 35-70 ms at L, which puts the family over budget. With push invalidation from
+the touched settings member through `profile_row_for` the unaffected memos are not visited, and the lower bound is
+the expected cost.
 
 **Open-time proxy (NFR-PERF-03).** `open.session_from_records` (tables, indexes, integrity check, project notes),
 p99: S 8.6 ms, M 95.8 ms, L 1,017 ms (median 706 ms). Budgets 0.5 / 2 / 5 s: within, by a factor 5 or more.
@@ -229,9 +244,12 @@ Findings:
 2. **Verification is O(dependencies), not O(change).** An unrelated edit verifies the partition's 15k (M) and 71k
    (L) dependencies: 4 ms at M, 21 ms at L median. Reading every page's local nets after a move verifies
    N-1 page memos of about 100 dependencies each: 12 µs per page, 3.6 ms at M and 18.8 ms at L (2.1× the L
-   budget; at 5,000 XL pages about 63 ms by projection). Pull verification alone cannot meet NFR-PERF-05 at L and
-   XL; the engine needs to start from the touched keys (push invalidation over the reverse-dependency index) or
-   much coarser keys (one stamp per page).
+   budget; at 5,000 XL pages about 63 ms by projection). Pull verification alone cannot meet NFR-PERF-05 at XL
+   (about 3× the budget) and is marginal at L. The per-dependency cost is pessimistic: every `changed_at` of the
+   prototype goes through a tracked read on a probe `Q` (accessor dispatch, a bucket vector per index read), which
+   a `DeriveDb` with raw read access inside `ew-derive` avoids; a factor 2-3 faster verification would bring L
+   within budget but not XL, whose cost grows with the page count. The engine needs to start from the touched keys
+   (push invalidation over the reverse-dependency index) or much coarser keys (one stamp per page).
 3. **A hit is O(dependencies) too** (0.2 ms at M, 0.7 ms at L for one memo with 15k and 71k dependencies):
    `Store::up_to_date` clones the memo, dependency list included, before it checks `verified_at`
    (`crates/ew-memo/src/store.rs`, the `slots[..].memo.clone()` at the top of `up_to_date`). A hit should be O(1).
@@ -242,7 +260,7 @@ Findings:
 | Measure | S | M | L |
 |---|---:|---:|---:|
 | Model rows (`model_bytes`, the `ew-commands` row estimator) | 1.9 MiB | 17.3 MiB | 81.7 MiB |
-| Undo history after one move / wire / folio renumber | 4.4 KB / 56 B / 0.7 KB | 7.8 KB / 56 B / 0.7 KB | 7.1 KB / 56 B / 0.7 KB |
+| Undo history after one move / wire / folio renumber | 464 B / 56 B / 0.7 KB | 7.8 KB / 56 B / 0.7 KB | 7.1 KB / 56 B / 0.7 KB |
 | `page_local_nets` memos: dependency entries (bytes at 32 B each) | 3,550 (0.11 MB) | 31,500 (1.0 MB) | 149,500 (4.8 MB) |
 | `potential_partition` memo: dependency entries (bytes) | 1,881 (0.06 MB) | 14,983 (0.48 MB) | 71,246 (2.3 MB) |
 | Peak working set of the benchmark process (polled) | 46 MiB | 380 MiB | 1,826 MiB |
@@ -259,11 +277,14 @@ XL: run in progress at the time of writing (started 03:04 local, class XL); resu
   families alone project to about 50 MB at XL, over budget before any other family is added. With fine-grained
   keys the rdeps index does not fit; with one stamp per page (and per shard for the global families) the entry
   count drops by roughly two orders of magnitude. **Plan: coarse page and shard keys**, as amendment 1 foresees.
-- **Peak RSS (NFR-PERF-13, ≤ 4 GB at XL).** The benchmark's peak working set grows faster than the model: 1.8 GiB at
+- **Peak RSS (NFR-PERF-13, ≤ 4 GB at XL).** The benchmark's peak working set grows faster than the model: 1,826 MiB at
   L against 82 MiB of model rows. The peak comes from the families that hold every potential's wire properties in
   one `Q` (`connectivity.wire_props_all`, `profile.change.all`), which also carry the super-linear wire chain. A
   memo store holding `wire_props_of` for every potential would hold the same values. The projection to XL is not
-  reliable until the wire chain is linear; at the measured L ratio it would exceed 4 GB. **Plan:** measure the
+  reliable until the wire chain is linear; at the measured L ratio it would exceed 4 GB. **At L the measured peak
+  (1,826 MiB = 1.91 GB) already exceeds the NFR-PERF-13 L budget of 1.5 GB**; it is an upper bound for the
+  application (the benchmark process also holds the generator's records, a second baseline for the profile change
+  and every potential's wire properties in one cold `Q`), but nothing measured shows it below budget. **Plan:** measure the
   value bytes per family in the re-spike, after the wire-chain fix, and keep `physical_wires_of` and
   `wire_props_of` under the LRU (`MemoLru`) if they stay bulky.
 - **Open time (NFR-PERF-03).** Within budget at S, M and L with a factor 5 or more (model build only; the real open
@@ -284,13 +305,13 @@ re-spike's design (section 11) and are not measured. XL: run in progress at the 
 | | M | 5 ms | 123.9 ms (24.8×) | Fallback (incremental) | ≤ 3 ms; a wire joining two project-wide rails recomputes one component |
 | | L | 10 ms | 656.3 ms (65.6×) | Fallback (incremental) | ≤ 6 ms typical; rail components to be measured |
 | | XL | 20 ms | XL: run in progress at the time of writing (started 03:04 local, class XL); results appended in a follow-up commit | Fallback (incremental) | ≤ 15 ms typical, to be confirmed |
-| Folio renumber 103 → 104 incl. page order and tags | S | 5 ms + preview | 0.16 ms | Cold (within budget) | — |
+| Folio renumber to a free number (max + 1) incl. page order and tags | S | 5 ms + preview | 0.16 ms | Cold (within budget) | — |
 | | M | 5 ms + preview | 0.45 ms | Cold | — |
 | | L | 5 ms + preview | 1.71 ms | Cold | — |
 | | XL | 5 ms + preview | XL: run in progress at the time of writing (started 03:04 local, class XL); results appended in a follow-up commit | Cold | by linear projection about 6 ms; Memo of `page_order` and `device_tag` covers it |
-| Profile change reaching all views | S | 30 ms | 34.3 ms all (1.1×); 0.57 ms affected | Memo with per-member settings keys and `profile_row_for` | ≈ affected: 0.6 ms |
-| | M | 30 ms | 545.2 ms all (18.2×); 8.8 ms affected | Memo | ≈ 9 ms |
-| | L | 60 ms | 10,883 ms all (181×); 56.4 ms affected (0.94×) | Memo | ≈ 56 ms (tight; after the wire-chain fix lower) |
+| Profile change reaching all views | S | 30 ms | 34.3 ms all (1.1×); 0.57 ms affected (lower bound) | Memo with per-member settings keys, `profile_row_for` and push invalidation | ≥ 0.6 ms |
+| | M | 30 ms | 545.2 ms all (18.2×); 8.8 ms affected (lower bound) | Memo | ≥ 9 ms; + about 7-15 ms with pull verification |
+| | L | 60 ms | 10,883 ms all (181×); 56.4 ms affected (0.94×, lower bound) | Memo | ≥ 56 ms with push invalidation (tight); about 90-125 ms with pull verification of the 33.5k unaffected memos (over) |
 | | XL | 100 ms | XL: run in progress at the time of writing (started 03:04 local, class XL); results appended in a follow-up commit | Memo | to be measured |
 | Open-time proxy (model build) | S | 0.5 s | 8.6 ms | — (within) | — |
 | | M | 2 s | 95.8 ms | — | — |
@@ -298,8 +319,10 @@ re-spike's design (section 11) and are not measured. XL: run in progress at the 
 | | XL | 20 s | XL: run in progress at the time of writing (started 03:04 local, class XL); results appended in a follow-up commit | — | about 4 s by linear projection |
 
 The failing rows at M and L: move commit (M 26.9×, L 97.4×), wire commit (M 24.8×, L 65.6×) and the cold profile
-change (M 18.2×, L 181×). Of the memo prototype's rows, `memo.partition.unrelated` (M 3.0×, L 2.6×) and the
-page-local rows at L (2.1×) fail as well, for the verification reason of section 6.
+change (M 18.2×, L 181×). Of the memo prototype's rows, `memo.partition.move` and `.wire` (M 46.7-67.7×,
+L 68.8-71.9×), `memo.partition.unrelated` (M 3.0×, L 2.6×), `memo.local_nets.wire` at M (1.7×) and both
+page-local rows at L (2.1×) fail as well, the last three for the verification reason of section 6. The L peak
+working set (1,826 MiB = 1.91 GB) is over the NFR-PERF-13 L budget of 1.5 GB (an upper bound, section 7).
 
 ## 9. Query-policy table (G-SP-05)
 
@@ -377,7 +400,8 @@ this lane):
    with the outcome (G-SP-02).
 2. **Topology edits**: incremental connectivity (union-find delta for added edges, component recompute for
    removed ones, under the oracle) or the ARCH §6.1 fallback of page-scoped dirty flags with coarse recomputation.
-   The measurements say a coarse recompute of the global part costs 87 ms at M, so the fallback as worded does not
+   The measurements say a coarse recompute of the global part (`stitch_given_nets` + `partition_given_stitch`,
+   medians) costs 83.2 ms at M, so the fallback as worded does not
    meet NFR-PERF-05; an amendment of ARCH §6.1 and ADR-0002 decision 7 is needed either way.
 3. **Engine scope of `ew-memo` v1** (ADR-0002 decision 4): add push invalidation from touched keys, or page-scoped
    stamps in `ew-model` (ADR-0001), or both; and the `Q` memo hook of section 11.
@@ -389,6 +413,10 @@ this lane):
    for the spike bench; ARCH §3 (the `ew-testkit` row and the dotted dev edges of the graph) needs the matching
    text.
 7. **G-SP-08**: the pilot recalibration of the class bounds is still pending; set a date.
+8. **G-SP-04 memory**: the L peak working set of the benchmark (1,826 MiB = 1.91 GB, upper bound) exceeds the NFR-PERF-13 L
+   budget of 1.5 GB; decide whether the re-spike must show the per-family value bytes and an application-like peak
+   (open, warm-up, memo store) below budget before Go, or whether a plan (LRU for the bulky wire families) suffices
+   for Go with conditions.
 
 ## Appendix A. Raw benchmark output
 
@@ -706,6 +734,11 @@ peak RSS: measured externally by the spike run
 XL: run in progress at the time of writing (started 03:04 local, class XL); results appended in a follow-up commit.
 
 ### A.5 Run log (commands, wall times, peak working set)
+
+The evidence binary was built from commit `1a5c38f` of the lane branch (on top of `ed7d948`); the same change is
+`3a94f56` on `claude/m0-foundations`. Between the two bases, `claude/m0-foundations` adds an O(1) model clone in
+`Session::execute` and the cross-reference additions of WP-S1.08; the measured code paths (the commands, the
+connectivity queries, the folio renumber and the tags) do not depend on either.
 
 Build: `cargo bench -p ew-testkit --bench spike --no-run --locked` at commit `1a5c38f` (executable
 `target/release/deps/spike-4ecf98b7aaa71494`). One class per process, sequential, in full mode; peak working set

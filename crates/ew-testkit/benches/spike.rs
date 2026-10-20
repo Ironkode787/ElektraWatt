@@ -30,8 +30,10 @@
 //! the median of `single_runs` runs.
 //!
 //! Every cold derived-query evaluation starts from a fresh [`Q`] (`session.query()`, which installs the report
-//! engine, or `Q::new` over a model without a session), so nothing of a previous sample is reused. A cold `Q` is
-//! dropped inside the timed section (the deallocation of its caches is part of the cold cost), except in
+//! engine, or `Q::new` over a model without a session), so nothing of a previous sample is reused. In the
+//! latency families (`move`, `wire`, `folio`, `profile.change.all`) the cold `Q` is dropped inside the timed
+//! section (the deallocation of its caches is part of the cold cost); the single operations `connectivity.*`
+//! drop it untimed (`measure` drops a round's state before the next setup), and so does
 //! `profile.change.affected`, where the topology caches are the work an ideal memo keeps. A memo sample works
 //! on an O(1) fork of a store warmed on the baseline; its timed step is the `ModelDb` of the new snapshot, the
 //! store advance and the memoised reads. Everything that proves the memoised values equal the cold ones (the

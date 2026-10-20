@@ -617,9 +617,9 @@ mod tests {
 
     #[test]
     fn time_returns_the_value() {
-        let (v, d) = time(|| 41 + 1);
+        // The value only: no wall-clock assertion in the non-timing tests (testing policy).
+        let (v, _elapsed) = time(|| 41 + 1);
         assert_eq!(v, 42);
-        assert!(d < Duration::from_secs(1));
     }
 
     #[test]
