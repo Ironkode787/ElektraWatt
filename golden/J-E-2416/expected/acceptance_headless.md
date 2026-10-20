@@ -1,6 +1,6 @@
 # Acceptance report: golden project J-E-2416, gate M1 (headless)
 
-83 entries: 38 pass, 11 fail, 28 not_built, 6 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
+83 entries: 39 pass, 10 fail, 28 not_built, 6 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
 
 | Criterion | Check | Status | Reason |
 |---|---|---|---|
@@ -38,7 +38,7 @@
 | AC-09 | acceptance SQL over the api_v1 views equals expected/csv: wires | not_built | SQL projection pending (WP-S1.10); the CSV half above compares the derived report rows |
 | AC-10 | acceptance SQL over the api_v1 views equals expected/csv: potentials | not_built | SQL projection pending (WP-S1.10); the CSV half above compares the derived report rows |
 | AC-11 | acceptance SQL over the api_v1 views equals expected/csv: cables | not_built | SQL projection pending (WP-S1.10); the CSV half above compares the derived report rows |
-| AC-18 | step B1: the ten tags of the tag map | fail | variants/b-renumber.ewcmd does not exist: numbering.renumber of v0 renumbers no frozen tag and cannot drop the strip rule (8 of the 10 tags are frozen, 2 are strips); see golden/J-E-2416/README.md |
+| AC-18 | step B1: the ten tags of the tag map | pass | the ten tags of the tag map change and nothing else; no cross-reference text changes |
 | AC-18 | step B2: 2 tags and 14 cross-reference texts, same topology, undo restores the records | pass | folio 106 becomes 104: 2 tags and 14 texts change, same potentials and connections, one undo restores the records |
 | AC-18 | step B2: the preview lists the folio change as one page record | pass | the preview changes one page record (Changed Page ["folio.number"]) and commits nothing |
 | AC-18 | step B2: the preview lists the 2 tag and 14 cross-reference changes | not_built | a preview carries the model diff only; the derived diff of tags and cross-reference texts (diff_query, `ew apply --preview`) does not exist yet |
