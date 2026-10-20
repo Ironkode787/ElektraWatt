@@ -69,8 +69,6 @@ struct Lookup<'a> {
 
 /// A resolved conductor end.
 struct Resolved<'a> {
-    /// The element key.
-    key: String,
     /// The definition terminal index.
     index: usize,
     placed: &'a Placed,
@@ -82,6 +80,9 @@ struct Unresolved<'a> {
     reason: &'static str,
     placed: Option<&'a Placed>,
 }
+
+/// One candidate binding of a conductor end.
+type EndResult<'a> = Result<Resolved<'a>, Unresolved<'a>>;
 
 fn unresolved<'a>(reason: &'static str, placed: Option<&'a Placed>) -> Unresolved<'a> {
     Unresolved { reason, placed }
@@ -111,55 +112,8 @@ fn index_of_id(lk: &Lookup<'_>, placed: &Placed, key: &str, inst: usize) -> Opti
     (inst < placed.terminals.len()).then_some(inst)
 }
 
-fn resolve_end<'a>(end: &End, lk: &Lookup<'_>, reg: &'a Registry) -> Result<Resolved<'a>, Unresolved<'a>> {
-    let (key, placed, index) = match (&end.element, &end.terminal) {
-        (Some(u), terminal) => {
-            let placed = reg
-                .get(&(lk.diagram.index, u.clone()))
-                .ok_or_else(|| unresolved("element not found", None))?;
-            let index = match terminal {
-                TerminalRef::Uuid(t) => placed
-                    .terminals
-                    .iter()
-                    .position(|p| p.uuid.as_deref() == Some(t.as_str()))
-                    .ok_or_else(|| unresolved("terminal not found", Some(placed)))?,
-                TerminalRef::Id(id) => {
-                    let inst = match lk.tids.get(id.trim()) {
-                        Some((k, inst)) if k == u => *inst,
-                        _ => {
-                            return Err(unresolved(
-                                "terminal id does not belong to the element",
-                                Some(placed),
-                            ));
-                        }
-                    };
-                    index_of_id(lk, placed, u, inst)
-                        .ok_or_else(|| unresolved("terminal not found", Some(placed)))?
-                }
-                TerminalRef::Missing | TerminalRef::Other(_) => {
-                    if placed.terminals.len() == 1 {
-                        0
-                    } else {
-                        return Err(unresolved("terminal not specified", Some(placed)));
-                    }
-                }
-            };
-            (u.clone(), placed, index)
-        }
-        (None, TerminalRef::Id(id)) => {
-            let (key, inst) = lk
-                .tids
-                .get(id.trim())
-                .ok_or_else(|| unresolved("terminal id not found", None))?;
-            let placed = reg
-                .get(&(lk.diagram.index, key.clone()))
-                .ok_or_else(|| unresolved("element not found", None))?;
-            let index = index_of_id(lk, placed, key, *inst)
-                .ok_or_else(|| unresolved("terminal not found", Some(placed)))?;
-            (key.clone(), placed, index)
-        }
-        (None, _) => return Err(unresolved("no element and no terminal id", None)),
-    };
+/// The endpoint of the terminal `index` of `placed`.
+fn bind(placed: &Placed, index: usize) -> EndResult<'_> {
     let endpoint = match &placed.target {
         Target::Function { function, cps } => match cps.get(index) {
             Some(Some(idx)) => Endpoint::Cp(*function, *idx),
@@ -171,26 +125,76 @@ fn resolve_end<'a>(end: &End, lk: &Lookup<'_>, reg: &'a Registry) -> Result<Reso
         Target::Dropped => return Err(unresolved("element was not imported", Some(placed))),
     };
     Ok(Resolved {
-        key,
         index,
         placed,
         endpoint,
     })
 }
 
-/// The source key of one conductor end: `<element key>/<terminal index>`, `/j` for a junction; the keys of
-/// elements without a UUID are folio-local and get the diagram index.
-fn end_key(diagram: usize, r: &Resolved<'_>) -> String {
-    let ek = if !r.placed.ek.is_empty() {
-        r.placed.ek.clone()
-    } else if r.key.starts_with('#') {
-        format!("d{diagram}{}", r.key)
-    } else {
-        r.key.clone()
+/// Resolves the terminal of an end that names the element `key` (the placed element `placed`).
+fn resolve_at<'a>(terminal: &TerminalRef, lk: &Lookup<'_>, key: &str, placed: &'a Placed) -> EndResult<'a> {
+    let index = match terminal {
+        TerminalRef::Uuid(t) => placed
+            .terminals
+            .iter()
+            .position(|p| p.uuid.as_deref() == Some(t.as_str()))
+            .ok_or_else(|| unresolved("terminal not found", Some(placed)))?,
+        TerminalRef::Id(id) => {
+            let inst = match lk.tids.get(id.trim()) {
+                Some((k, inst)) if k == key => *inst,
+                _ => {
+                    return Err(unresolved(
+                        "terminal id does not belong to the element",
+                        Some(placed),
+                    ));
+                }
+            };
+            index_of_id(lk, placed, key, inst)
+                .ok_or_else(|| unresolved("terminal not found", Some(placed)))?
+        }
+        TerminalRef::Missing | TerminalRef::Other(_) => {
+            if placed.terminals.len() == 1 {
+                0
+            } else {
+                return Err(unresolved("terminal not specified", Some(placed)));
+            }
+        }
     };
-    match r.placed.target {
-        Target::Junction { .. } => format!("{ek}/j"),
-        _ => format!("{ek}/{}", r.index),
+    bind(placed, index)
+}
+
+/// The candidate bindings of a conductor end, never empty. An end naming its element by UUID `u` has one
+/// candidate per placed copy of `u` on the folio (element keys `u`, `u#2`, `u#3`, ...) in document order; every
+/// other end has exactly one.
+fn resolve_end<'a>(end: &End, lk: &Lookup<'_>, reg: &'a Registry) -> Vec<EndResult<'a>> {
+    match (&end.element, &end.terminal) {
+        (Some(u), terminal) => {
+            let mut out = Vec::new();
+            for n in 1u32.. {
+                let key = if n == 1 { u.clone() } else { format!("{u}#{n}") };
+                let Some(placed) = reg.get(&(lk.diagram.index, key.clone())) else {
+                    break;
+                };
+                out.push(resolve_at(terminal, lk, &key, placed));
+            }
+            if out.is_empty() {
+                out.push(Err(unresolved("element not found", None)));
+            }
+            out
+        }
+        (None, TerminalRef::Id(id)) => {
+            let Some((key, inst)) = lk.tids.get(id.trim()) else {
+                return vec![Err(unresolved("terminal id not found", None))];
+            };
+            let Some(placed) = reg.get(&(lk.diagram.index, key.clone())) else {
+                return vec![Err(unresolved("element not found", None))];
+            };
+            let Some(index) = index_of_id(lk, placed, key, *inst) else {
+                return vec![Err(unresolved("terminal not found", Some(placed)))];
+            };
+            vec![bind(placed, index)]
+        }
+        (None, _) => vec![Err(unresolved("no element and no terminal id", None))],
     }
 }
 
@@ -202,31 +206,93 @@ fn end_pos(r: &Resolved<'_>) -> Option<Pt2> {
     }
 }
 
+/// The points of a conductor drawn from `start` through `segments`: the point after each segment. `None` when
+/// a length does not convert or the arithmetic overflows.
+fn points_of(start: Pt2, segments: &[Segment]) -> Option<Vec<Pt2>> {
+    let mut p = start;
+    let mut points = Vec::with_capacity(segments.len());
+    for s in segments {
+        let len = s.length.px_to_nm().ok()?;
+        p = if s.horizontal {
+            Pt2::new(p.x.checked_add(len)?, p.y)
+        } else {
+            Pt2::new(p.x, p.y.checked_add(len)?)
+        };
+        points.push(p);
+    }
+    Some(points)
+}
+
 /// The interior route points of a conductor drawn from `start` through `segments`: the point after each
 /// segment except the last (which is the other end). Empty when `start` is unknown, a length does not
 /// convert or the arithmetic overflows.
 fn route_of(start: Option<Pt2>, segments: &[Segment]) -> Vec<Pt2> {
-    let Some(mut p) = start else {
-        return Vec::new();
-    };
-    let mut points = Vec::with_capacity(segments.len());
-    for s in segments {
-        let Ok(len) = s.length.px_to_nm() else {
-            return Vec::new();
-        };
-        let next = if s.horizontal {
-            p.x.checked_add(len).map(|x| Pt2::new(x, p.y))
-        } else {
-            p.y.checked_add(len).map(|y| Pt2::new(p.x, y))
-        };
-        let Some(next) = next else {
-            return Vec::new();
-        };
-        points.push(next);
-        p = next;
-    }
+    let mut points = start.and_then(|p| points_of(p, segments)).unwrap_or_default();
     points.pop();
     points
+}
+
+/// Whether the conductor drawn from the end `a` through `segments` finishes at the end `b`.
+fn lands_on(segments: &[Segment], a: &Resolved<'_>, b: &Resolved<'_>) -> bool {
+    let (Some(from), Some(to)) = (end_pos(a), end_pos(b)) else {
+        return false;
+    };
+    points_of(from, segments).and_then(|p| p.last().copied()) == Some(to)
+}
+
+/// The indices of the candidates that resolved.
+fn resolved_indices(candidates: &[EndResult<'_>]) -> Vec<usize> {
+    candidates
+        .iter()
+        .enumerate()
+        .filter_map(|(i, c)| c.is_ok().then_some(i))
+        .collect()
+}
+
+/// Picks one candidate per end. An end with a single resolving candidate takes it; otherwise the candidate
+/// pair whose geometry fits the conductor's segments wins when exactly one does. When the geometry does not
+/// decide, the first resolving candidate of each ambiguous end is bound and that end is flagged (the second
+/// value; EW-IMP-120). An end without a resolving candidate keeps its first candidate's failure.
+fn choose_ends<'a>(
+    segments: &[Segment],
+    candidates: [Vec<EndResult<'a>>; 2],
+) -> ([EndResult<'a>; 2], [bool; 2]) {
+    let oks = [resolved_indices(&candidates[0]), resolved_indices(&candidates[1])];
+    let mut pick = [
+        oks[0].first().copied().unwrap_or(0),
+        oks[1].first().copied().unwrap_or(0),
+    ];
+    let mut repeated = [oks[0].len() > 1, oks[1].len() > 1];
+    if repeated[0] || repeated[1] {
+        let mut matching = oks[0]
+            .iter()
+            .flat_map(|&i| oks[1].iter().map(move |&j| (i, j)))
+            .filter(|&(i, j)| match (&candidates[0][i], &candidates[1][j]) {
+                (Ok(a), Ok(b)) => lands_on(segments, a, b),
+                _ => false,
+            });
+        if let (Some((i, j)), None) = (matching.next(), matching.next()) {
+            pick = [i, j];
+            repeated = [false, false];
+        }
+    }
+    let [c1, c2] = candidates;
+    let take = |c: Vec<EndResult<'a>>, i: usize| {
+        c.into_iter()
+            .nth(i)
+            .unwrap_or_else(|| Err(unresolved("element not found", None)))
+    };
+    ([take(c1, pick[0]), take(c2, pick[1])], repeated)
+}
+
+/// The source key of one conductor end: `<element key>/<terminal index>`, `/j` for a junction; the element
+/// key is the project-wide one ([`Placed::ek`]).
+fn end_key(r: &Resolved<'_>) -> String {
+    let ek = &r.placed.ek;
+    match r.placed.target {
+        Target::Junction { .. } => format!("{ek}/j"),
+        _ => format!("{ek}/{}", r.index),
+    }
 }
 
 /// The conductor value of one text field kept as `extra` (see [`TEXT_FIELDS`]).
@@ -265,7 +331,10 @@ pub fn map_conductors(project: &QetProject, reg: &Registry, ids: &Ids, findings:
 
         for (n, c) in d.conductors.iter().enumerate() {
             let item = || Some(format!("conductor {n}"));
-            let ends = [resolve_end(&c.end1, &lk, reg), resolve_end(&c.end2, &lk, reg)];
+            let (ends, repeated) = choose_ends(
+                &c.segments,
+                [resolve_end(&c.end1, &lk, reg), resolve_end(&c.end2, &lk, reg)],
+            );
             let failure = ends
                 .iter()
                 .enumerate()
@@ -298,7 +367,22 @@ pub fn map_conductors(project: &QetProject, reg: &Registry, ids: &Ids, findings:
                 continue;
             }
 
-            let (mut k1, mut k2) = (end_key(d.index, &e1), end_key(d.index, &e2));
+            for (i, (rep, e)) in repeated.iter().zip([&e1, &e2]).enumerate() {
+                if *rep {
+                    let loc = findings.loc(Some(e.placed.folio.as_str()), item(), Some(c.line));
+                    findings.push(
+                        Code::imp(120),
+                        Severity::Warning,
+                        loc,
+                        format!(
+                            "conductor end {}: element UUID repeated on this folio; bound to the first copy (geometry does not decide)",
+                            i + 1
+                        ),
+                    );
+                }
+            }
+
+            let (mut k1, mut k2) = (end_key(&e1), end_key(&e2));
             if k2 < k1 {
                 std::mem::swap(&mut k1, &mut k2);
             }
@@ -468,12 +552,13 @@ mod tests {
         }
     }
 
-    fn placed(target: Target, terminals: Vec<PlacedTerminal>) -> Placed {
+    /// A placed element of folio F1 with the project-wide element key `ek`.
+    fn placed(ek: &str, target: Target, terminals: Vec<PlacedTerminal>) -> Placed {
         Placed {
             diagram: 0,
             page: Id::<Page>::from_uuid(Uuid::from_u128(9)),
             folio: "F1".to_owned(),
-            ek: String::new(),
+            ek: ek.to_owned(),
             target,
             terminals,
         }
@@ -554,15 +639,16 @@ mod tests {
         );
         let mut reg = Registry::new();
         reg.insert(
-            (0, a),
+            (0, a.clone()),
             placed(
+                &a,
                 func(100, vec![Some(0), Some(1)]),
                 vec![pterm(Some(uid(20)), 0, 0), pterm(Some(uid(21)), 10, 0)],
             ),
         );
         reg.insert(
-            (0, b),
-            placed(func(101, vec![Some(0)]), vec![pterm(Some(uid(22)), 0, 0)]),
+            (0, b.clone()),
+            placed(&b, func(101, vec![Some(0)]), vec![pterm(Some(uid(22)), 0, 0)]),
         );
         (d, reg)
     }
@@ -608,13 +694,14 @@ mod tests {
         reg.insert(
             (0, "#0".to_owned()),
             placed(
+                "d0#0",
                 func(100, vec![Some(10), Some(11), Some(12)]),
                 vec![pterm(None, 0, 0), pterm(None, 10, 0), pterm(None, 20, 0)],
             ),
         );
         reg.insert(
-            (0, b),
-            placed(func(101, vec![Some(0)]), vec![pterm(Some(uid(22)), 0, 0)]),
+            (0, b.clone()),
+            placed(&b, func(101, vec![Some(0)]), vec![pterm(Some(uid(22)), 0, 0)]),
         );
         let (out, f) = run(&project(vec![d]), &reg);
         assert_eq!(out.lost, 0, "{:?}", f.entries());
@@ -778,8 +865,9 @@ mod tests {
         let at = Pt2::new(Nm(5), Nm(6));
         let mut reg = Registry::new();
         reg.insert(
-            (0, a),
+            (0, a.clone()),
             placed(
+                &a,
                 func(100, vec![Some(0), Some(1)]),
                 vec![pterm(Some(uid(20)), 0, 0), pterm(Some(uid(21)), 10, 0)],
             ),
@@ -787,6 +875,7 @@ mod tests {
         reg.insert(
             (0, j.clone()),
             placed(
+                &j,
                 Target::Junction {
                     id: jid,
                     key: format!("qet:junction:{j}"),
@@ -905,6 +994,121 @@ mod tests {
         assert_eq!(counts.len(), 2);
         assert_eq!(counts[&(0, uid(10))], 3);
         assert_eq!(counts[&(0, uid(11))], 2);
+    }
+
+    /// A placed terminal at definition position (0, 0) whose page position is `(x, y)` px.
+    fn pterm_on_page(uuid: Option<String>, x: i64, y: i64) -> PlacedTerminal {
+        PlacedTerminal {
+            uuid,
+            local: Pt2::ORIGIN,
+            page_pos: Some(Pt2::new(px(x), px(y))),
+        }
+    }
+
+    /// Element A (UUID 10) pasted twice on one folio, at page (0, 0) px and (100, 0) px, and element B at
+    /// (100, 50) px. The copies share their terminal UUID; the second copy's element key is `a#2`.
+    fn pasted_twice() -> (QetDiagram, Registry) {
+        let (a, b) = (uid(10), uid(11));
+        let d = diagram(
+            vec![
+                element(Some(a.clone()), vec![inst("1", Some((0, 0)))]),
+                element(Some(a.clone()), vec![inst("2", Some((0, 0)))]),
+                element(Some(b.clone()), vec![inst("3", Some((0, 0)))]),
+            ],
+            Vec::new(),
+        );
+        let mut reg = Registry::new();
+        reg.insert(
+            (0, a.clone()),
+            placed(
+                &a,
+                func(100, vec![Some(0)]),
+                vec![pterm_on_page(Some(uid(20)), 0, 0)],
+            ),
+        );
+        reg.insert(
+            (0, format!("{a}#2")),
+            placed(
+                "ek-a2",
+                func(102, vec![Some(0)]),
+                vec![pterm_on_page(Some(uid(20)), 100, 0)],
+            ),
+        );
+        reg.insert(
+            (0, b.clone()),
+            placed(
+                &b,
+                func(101, vec![Some(0)]),
+                vec![pterm_on_page(Some(uid(22)), 100, 50)],
+            ),
+        );
+        (d, reg)
+    }
+
+    fn vertical(n: i64) -> Segment {
+        Segment {
+            horizontal: false,
+            length: Decimal::from_int(n),
+        }
+    }
+
+    #[test]
+    fn repeated_uuid_is_bound_by_the_conductor_geometry() {
+        let (mut d, reg) = pasted_twice();
+        // A -> B, drawn 50 px down: only the copy at (100, 0) ends at B (100, 50).
+        let mut c = cond(end_u(&uid(10), &uid(20)), end_u(&uid(11), &uid(22)));
+        c.segments = vec![vertical(50)];
+        // B -> A, drawn 50 px up: the same copy, from the other side.
+        let mut back = cond(end_u(&uid(11), &uid(22)), end_u(&uid(10), &uid(20)));
+        back.segments = vec![vertical(-50)];
+        d.conductors.extend([c, back]);
+        let (out, f) = run(&project(vec![d]), &reg);
+        assert_eq!(out.lost, 0, "{:?}", f.entries());
+        assert!(f.entries().is_empty(), "{:?}", f.entries());
+        assert_eq!(out.connections[0].a, Endpoint::Cp(function(102), 0));
+        assert_eq!(out.connections[0].b, Endpoint::Cp(function(101), 0));
+        assert_eq!(out.connections[1].a, Endpoint::Cp(function(101), 0));
+        assert_eq!(out.connections[1].b, Endpoint::Cp(function(102), 0));
+        // The wire's source key names the second copy by its project-wide element key.
+        let key = out.connections[0].source_ref.as_ref().unwrap().key.clone();
+        assert!(key.contains("ek-a2/0"), "{key}");
+    }
+
+    #[test]
+    fn repeated_uuid_without_deciding_geometry_binds_the_first_copy_and_warns() {
+        let (mut d, reg) = pasted_twice();
+        // No segments; and segments that fit neither copy.
+        let plain = cond(end_u(&uid(10), &uid(20)), end_u(&uid(11), &uid(22)));
+        let mut off = cond(end_u(&uid(10), &uid(20)), end_u(&uid(11), &uid(22)));
+        off.segments = vec![vertical(7)];
+        d.conductors.extend([plain, off]);
+        let (out, f) = run(&project(vec![d]), &reg);
+        assert_eq!(out.lost, 0);
+        assert_eq!(out.connections.len(), 2);
+        for c in &out.connections {
+            assert_eq!(c.a, Endpoint::Cp(function(100), 0));
+            assert_eq!(c.b, Endpoint::Cp(function(101), 0));
+        }
+        assert_eq!(
+            codes(&f),
+            vec![
+                (Code::imp(120), Severity::Warning),
+                (Code::imp(120), Severity::Warning)
+            ]
+        );
+        let e = &f.entries()[0];
+        assert_eq!(
+            e.message,
+            "conductor end 1: element UUID repeated on this folio; bound to the first copy (geometry does not decide)"
+        );
+        let loc = e.location.as_ref().unwrap();
+        assert_eq!(loc.folio.as_deref(), Some("F1"));
+        assert_eq!(loc.item.as_deref(), Some("conductor 0"));
+        assert_eq!(loc.line, Some(7));
+        assert_eq!(
+            f.entries()[1].location.as_ref().unwrap().item.as_deref(),
+            Some("conductor 1")
+        );
     }
 
     #[test]
