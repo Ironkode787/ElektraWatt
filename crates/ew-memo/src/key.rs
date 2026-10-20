@@ -19,16 +19,21 @@ impl SlotId {
     }
 }
 
-/// What a query read: an input of the host (`I`, e.g. a row, an index key or a table) or another memo.
+/// What a query read: an input of the host (`I`, e.g. a row, an index key or a table), another memo, or
+/// one part of another memo's value.
 ///
-/// The derived order (inputs before memos, then by key) is only used for lookups and for the deterministic
-/// order of the reverse-dependency index.
+/// The derived order (inputs before memos before parts, then by key) is only used for lookups and for the
+/// deterministic order of the reverse-dependency indexes.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum DepKey<I> {
     /// An input of the host.
     Input(I),
-    /// A memo of a query family.
+    /// A memo of a query family (its whole value).
     Memo(FamilyId, SlotId),
+    /// One part of a memo's value, named by a host key (see [`Store::get_part`](crate::Store::get_part)):
+    /// the reader is invalidated when the producer reports that part changed, not on every change of the
+    /// producer.
+    Part(FamilyId, SlotId, I),
 }
 
 /// A memo across families.

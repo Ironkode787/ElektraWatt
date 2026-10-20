@@ -20,8 +20,16 @@ pub struct Counters {
     pub durability_skips: u64,
     /// A memo re-stamped after a dependency walk found nothing changed.
     pub verifications: u64,
+    /// A memo re-stamped by push invalidation: not marked since it was verified, so no dependency changed
+    /// (no dependency walk).
+    pub push_skips: u64,
+    /// A memo marked possibly changed by push invalidation (a touched input, a changed part, or a marked
+    /// dependency memo).
+    pub marked: u64,
     /// The query ran (new memo, a changed dependency, or an evicted value).
     pub re_executions: u64,
+    /// Re-executions through the incremental hook with the previous value (a subset of `re_executions`).
+    pub incremental: u64,
     /// A re-execution produced an equivalent value; `changed_at` was backdated.
     pub cut_offs: u64,
     /// Values dropped by the LRU.
@@ -43,8 +51,14 @@ pub(crate) enum Event {
     DurabilitySkip,
     /// A memo re-stamped after a dependency walk.
     Verified,
+    /// A memo re-stamped by push invalidation.
+    PushSkip,
+    /// A memo marked possibly changed.
+    Marked,
     /// The query ran.
     ReExecuted,
+    /// The query ran through the incremental hook with its previous value.
+    Incremental,
     /// A re-execution produced an equivalent value.
     CutOff,
     /// A value was dropped by the LRU.
@@ -64,7 +78,10 @@ impl Counters {
             Event::Hit => &mut self.hits,
             Event::DurabilitySkip => &mut self.durability_skips,
             Event::Verified => &mut self.verifications,
+            Event::PushSkip => &mut self.push_skips,
+            Event::Marked => &mut self.marked,
             Event::ReExecuted => &mut self.re_executions,
+            Event::Incremental => &mut self.incremental,
             Event::CutOff => &mut self.cut_offs,
             Event::Evicted => &mut self.evictions,
             Event::OracleCheck => &mut self.oracle_checks,
@@ -79,7 +96,10 @@ impl Counters {
         self.hits = self.hits.saturating_add(other.hits);
         self.durability_skips = self.durability_skips.saturating_add(other.durability_skips);
         self.verifications = self.verifications.saturating_add(other.verifications);
+        self.push_skips = self.push_skips.saturating_add(other.push_skips);
+        self.marked = self.marked.saturating_add(other.marked);
         self.re_executions = self.re_executions.saturating_add(other.re_executions);
+        self.incremental = self.incremental.saturating_add(other.incremental);
         self.cut_offs = self.cut_offs.saturating_add(other.cut_offs);
         self.evictions = self.evictions.saturating_add(other.evictions);
         self.oracle_checks = self.oracle_checks.saturating_add(other.oracle_checks);
@@ -162,7 +182,10 @@ pub(crate) fn emit(rev: Rev, window: &'static str, stats: &Stats) {
             hits = c.hits,
             durability_skips = c.durability_skips,
             verifications = c.verifications,
+            push_skips = c.push_skips,
+            marked = c.marked,
             re_executions = c.re_executions,
+            incremental = c.incremental,
             cut_offs = c.cut_offs,
             evictions = c.evictions,
             oracle_checks = c.oracle_checks,
@@ -183,11 +206,14 @@ mod tests {
 
     use super::*;
 
-    const ALL_EVENTS: [Event; 9] = [
+    const ALL_EVENTS: [Event; 12] = [
         Event::Hit,
         Event::DurabilitySkip,
         Event::Verified,
+        Event::PushSkip,
+        Event::Marked,
         Event::ReExecuted,
+        Event::Incremental,
         Event::CutOff,
         Event::Evicted,
         Event::OracleCheck,
@@ -208,7 +234,10 @@ mod tests {
                 hits: 1,
                 durability_skips: 1,
                 verifications: 1,
+                push_skips: 1,
+                marked: 1,
                 re_executions: 1,
+                incremental: 1,
                 cut_offs: 1,
                 evictions: 1,
                 oracle_checks: 1,
@@ -385,6 +414,9 @@ mod tests {
         for field in [
             "durability_skips",
             "verifications",
+            "push_skips",
+            "marked",
+            "incremental",
             "cut_offs",
             "evictions",
             "oracle_checks",

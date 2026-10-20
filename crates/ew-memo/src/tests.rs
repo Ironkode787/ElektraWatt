@@ -220,7 +220,7 @@ fn setup(n: u32) -> (Cells, Store<Cells>) {
 
 #[test]
 fn first_read_executes_second_read_hits() {
-    let (db, mut store) = setup(4);
+    let (db, store) = setup(4);
     assert_eq!(*store.get::<Sum>(&db, &4).unwrap(), 1 + 2 + 3 + 4);
     let c = counters(&store, "sum");
     assert_eq!((c.re_executions, c.hits), (1, 0));
@@ -371,7 +371,7 @@ fn a_cycle_panics_in_debug_builds() {
 #[test]
 fn a_cycle_is_an_error_when_not_panicking() {
     let (mut db, mut store) = setup(2);
-    store.set_panic_on_cycle(false);
+    store.set_cycle_panics(false);
     assert_eq!(*store.get::<Cyc>(&db, &1).unwrap(), 1);
     db.commit(&mut store, &[(1000, 1, Durability::Drawing)]);
     let err = store.get::<Cyc>(&db, &1).unwrap_err();
@@ -385,7 +385,7 @@ fn a_cycle_is_an_error_when_not_panicking() {
 
 #[test]
 fn reverse_dependencies_indexed_and_scanned_agree() {
-    let (db, mut store) = setup(6);
+    let (db, store) = setup(6);
     for n in 0..6 {
         store.get::<Label>(&db, &n).unwrap();
     }
@@ -449,7 +449,7 @@ fn oracle_reports_the_dependency_trail() {
 
 #[test]
 fn oracle_sampling_is_deterministic() {
-    let (db, mut store) = setup(4);
+    let (db, store) = setup(4);
     store.set_oracle(Oracle::OneIn(NonZeroU32::new(3).unwrap()));
     for _ in 0..9 {
         store.get::<Cell>(&db, &1).unwrap();
@@ -461,14 +461,14 @@ fn oracle_sampling_is_deterministic() {
 fn a_fork_evolves_independently_and_is_adopted_if_unchanged() {
     let (db, mut store) = setup(4);
     store.get::<Sum>(&db, &2).unwrap();
-    let mut job = store.fork();
+    let job = store.fork();
     job.get::<Sum>(&db, &4).unwrap();
     assert!(store.memo_info::<Sum>(&4).is_none());
     assert!(store.adopt_if_unchanged(job));
     assert!(store.memo_info::<Sum>(&4).is_some());
 
     // A store that changed since the fork does not adopt it.
-    let mut job = store.fork();
+    let job = store.fork();
     job.get::<Sum>(&db, &3).unwrap();
     store.get::<Sum>(&db, &1).unwrap();
     assert!(!store.adopt_if_unchanged(job));
@@ -480,7 +480,7 @@ fn a_fork_evolves_independently_and_is_adopted_if_unchanged() {
 #[test]
 fn a_fork_of_a_fork_and_a_stale_sibling_are_refused() {
     let (db, mut s) = setup(8);
-    let mut f = s.fork();
+    let f = s.fork();
     f.get::<Sum>(&db, &5).unwrap();
     let g = f.fork();
     s.get::<Sum>(&db, &6).unwrap();
@@ -492,7 +492,7 @@ fn a_fork_of_a_fork_and_a_stale_sibling_are_refused() {
 
     // A grandchild is refused even when the store did not change at all.
     let (db, mut s) = setup(8);
-    let mut f = s.fork();
+    let f = s.fork();
     f.get::<Sum>(&db, &5).unwrap();
     let g = f.fork();
     assert!(!s.adopt_if_unchanged(g));
@@ -500,8 +500,8 @@ fn a_fork_of_a_fork_and_a_stale_sibling_are_refused() {
 
     // Two siblings: the first adopted changes the store, so the second is refused.
     let (db, mut s) = setup(8);
-    let mut a = s.fork();
-    let mut b = s.fork();
+    let a = s.fork();
+    let b = s.fork();
     a.get::<Sum>(&db, &3).unwrap();
     b.get::<Sum>(&db, &4).unwrap();
     assert!(s.adopt_if_unchanged(a));
@@ -516,7 +516,7 @@ fn a_fork_of_a_fork_and_a_stale_sibling_are_refused() {
 fn a_fork_that_advanced_is_refused() {
     let (db, mut s) = setup(4);
     let base = s.current();
-    let mut f = s.fork();
+    let f = s.fork();
     f.advance(Rev(50), Durability::Drawing);
     f.get::<Sum>(&db, &4).unwrap();
     assert!(!s.adopt_if_unchanged(f));
@@ -530,19 +530,19 @@ fn a_fork_that_advanced_is_refused() {
 fn a_direct_fork_is_adopted_after_hits_only() {
     let (db, mut s) = setup(6);
     s.get::<Sum>(&db, &2).unwrap();
-    let mut f = s.fork();
+    let f = s.fork();
     f.get::<Sum>(&db, &5).unwrap();
     s.get::<Sum>(&db, &2).unwrap(); // a hit writes nothing
     assert!(s.adopt_if_unchanged(f));
     assert_eq!(*s.get::<Sum>(&db, &5).unwrap(), 1 + 2 + 3 + 4 + 5);
     assert_eq!(counters(&s, "sum").re_executions, 2, "Sum(5) came from the fork");
 
-    let mut f = s.fork();
+    let f = s.fork();
     f.get::<Sum>(&db, &6).unwrap();
     s.set_lru_budget(Some(1_000));
     assert!(!s.adopt_if_unchanged(f), "a budget change after the fork");
 
-    let mut f = s.fork();
+    let f = s.fork();
     f.get::<Sum>(&db, &6).unwrap();
     s.advance(Rev(s.current().0 + 1), Durability::Drawing);
     assert!(!s.adopt_if_unchanged(f), "an advance after the fork");
@@ -708,7 +708,7 @@ fn oracle_mismatches_are_not_duplicated_by_a_fork_and_adopt() {
 
     // A mismatch found in the fork is reported once, after the parent's.
     let (db, mut store) = store_with_a_mismatch();
-    let mut job = store.fork();
+    let job = store.fork();
     job.get::<Untracked>(&db, &()).unwrap();
     assert!(store.adopt_if_unchanged(job));
     assert_eq!(
@@ -719,7 +719,7 @@ fn oracle_mismatches_are_not_duplicated_by_a_fork_and_adopt() {
 
     let (db, mut store) = store_with_a_mismatch();
     assert_eq!(store.take_mismatches().len(), 1);
-    let mut job = store.fork();
+    let job = store.fork();
     job.get::<Untracked>(&db, &()).unwrap();
     assert!(store.adopt_if_unchanged(job));
     assert_eq!(store.take_mismatches().len(), 1, "the fork's finding, once");
@@ -728,8 +728,8 @@ fn oracle_mismatches_are_not_duplicated_by_a_fork_and_adopt() {
 
 #[test]
 fn a_fork_starts_with_empty_statistics_and_mismatches() {
-    let (_, mut store) = store_with_a_mismatch();
-    let mut job = store.fork();
+    let (_, store) = store_with_a_mismatch();
+    let job = store.fork();
     assert!(job.commit_stats().is_empty());
     assert!(job.total_stats().is_empty());
     assert!(job.take_mismatches().is_empty());
@@ -742,7 +742,7 @@ fn the_parents_configuration_survives_adopt_and_its_budget_applies() {
     let (db, mut store) = setup(8);
     store.set_oracle(Oracle::Every);
     store.set_lru_budget(Some(40));
-    let mut job = store.fork();
+    let job = store.fork();
     job.set_lru_budget(None);
     job.set_oracle(Oracle::Off);
     for k in [4, 5, 6] {
@@ -770,7 +770,7 @@ fn the_parents_configuration_survives_adopt_and_its_budget_applies() {
 fn the_parents_hits_and_the_forks_work_both_count_after_adopt() {
     let (db, mut store) = setup(4);
     store.get::<Sum>(&db, &2).unwrap();
-    let mut job = store.fork();
+    let job = store.fork();
     store.get::<Sum>(&db, &2).unwrap(); // a hit after the fork
     store.get::<Sum>(&db, &2).unwrap();
     job.get::<Sum>(&db, &4).unwrap(); // Sum(4): executes; Cell(0), Cell(1) hit; Cell(2), Cell(3) execute
@@ -791,7 +791,7 @@ fn the_parents_hits_since_the_fork_keep_their_lru_recency_after_adopt() {
     store.set_lru_budget(Some(100));
     store.get::<Bulk>(&db, &2).unwrap(); // 16 bytes
     store.get::<Bulk>(&db, &3).unwrap(); // 24 bytes
-    let mut job = store.fork();
+    let job = store.fork();
     store.get::<Bulk>(&db, &2).unwrap(); // the parent hits Bulk(2): now the most recent
     job.get::<Bulk>(&db, &4).unwrap(); // 32 bytes: 72 in the fork, nothing evicted
     assert!(store.adopt_if_unchanged(job));

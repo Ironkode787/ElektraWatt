@@ -80,9 +80,11 @@ mod store;
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tests_push;
 
 pub use key::{DepKey, FamilyId, SlotId};
-pub use query::{Db, Equivalence, Query};
+pub use query::{Changes, Db, Equivalence, Query};
 pub use rev::{Durability, Rev};
 pub use stats::{Counters, Stats};
 pub use store::{Cx, Cycle, FamilyMemory, MemoInfo, Mismatch, Oracle, Store};
