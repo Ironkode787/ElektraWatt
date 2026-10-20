@@ -2,11 +2,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! What the connectivity kinds (`wire_list`, `potential_overview`, `terminal_diagram`,
-//! `cable_overview_diagrams`) share: the readiness gate, the project's physical wires with their effective
-//! properties, wire ends as cells, terminal bridges and the cell formatting of wire properties.
+//! `cable_overview_diagrams`) share: the project's physical wires with their effective properties, wire ends
+//! as cells, terminal bridges and the cell formatting of wire properties.
 //!
 //! All reads go through `Q` (the Derivation II queries `potential_partition`, `physical_wires_of`,
-//! `wire_props_of` and the tracked tables); nothing here reads the model directly.
+//! `wire_props_of` and the tracked tables); nothing here reads the model directly. Those queries read the
+//! drawn page order (`DrawnPageOrder`, which has no report pages), not the full page order that the report
+//! engine's pagination is part of, so the kinds derive their rows inside the pagination like any other kind.
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -22,30 +24,7 @@ use ew_derive::{
     PhysicalWiresOf, PotentialId, PotentialPartition, PropSource, Q, RepAnchorCell, WireEnd, WirePropsOf,
 };
 
-use crate::rowset::{Cell, ColumnDef, NotDerived, QtyUnit, RowSet};
-
-/// The readiness gate of the connectivity kinds.
-///
-/// The connectivity queries these kinds read (`potential_partition`, `physical_wires_of`, `wire_props_of`)
-/// read the full page order, and a `Q` with the report engine runs the pagination inside the page order: a
-/// read from there would be a query cycle, which `Q::get` turns into a panic. So a kind is **not derived in
-/// a `Q` that carries the engine**, whatever has been evaluated before (one placeholder page naming what it
-/// awaits, no notes), and derives in a `Q` without it. The gate depends on that configuration alone, never on
-/// the order in which the page order and the rows are read.
-///
-/// Remove this gate and [`NotDerived::AwaitsPageOrder`] once those queries read `DrawnPageOrder`, as the doc of
-/// that query prescribes: the kinds then derive inside pagination too.
-///
-/// # Errors
-///
-/// The not-derived row set to return.
-pub(super) fn ready(q: &Q, columns: &[ColumnDef]) -> Result<(), RowSet> {
-    if crate::queries::engine_installed(q) {
-        Err(RowSet::not_derived(columns.to_vec(), NotDerived::AwaitsPageOrder))
-    } else {
-        Ok(())
-    }
-}
+use crate::rowset::{Cell, ColumnDef, QtyUnit};
 
 /// Sets the cell of column `key`. A key the kind's columns do not have is a programming error and stops the
 /// build of the rows loudly, so a column change cannot shift the other cells silently.

@@ -43,7 +43,8 @@ ADR-0018. Work package WP-S3.03.
 | `parts_list` | derived | `device_part_lines` per device |
 | `part_data` | derived (embedded) | part lines of the root devices drawn on the embedded page |
 | `structure_overview` | derived | structure nodes and device tags |
-| `terminal_diagram`, `cable_overview_diagrams`, `wire_list`, `potential_overview`, `plc_overview` | not derived yet | the Derivation II connectivity queries (`terminal_rows`, `cable_rows`, `wire_rows`, `potential_partition`, `plc_rows`) |
+| `terminal_diagram`, `cable_overview_diagrams`, `wire_list`, `potential_overview` | derived | the Derivation II connectivity queries (`potential_partition`, `physical_wires_of`, `wire_props_of`), which read the drawn page order, so these kinds derive inside the pagination too |
+| `plc_overview` | not derived yet | the `plc_rows` query (no channel records) |
 | `profile_tables`, `revision_overview` | not derived yet | colour and size profiles and revisions have no record shape in this format |
 | `device_list`, `terminal_overview`, `io_list`, `open_items`, `numbering_report`, `enclosure_legend`, `check_report` | placeholder (`NotDerived::Unsupported`) until their WP | not registered yet |
 

@@ -71,7 +71,7 @@ fn the_golden_pdf_has_every_folio_and_is_byte_identical_across_runs_and_record_s
     let pages = pdf_pages(&q);
     assert_eq!(
         pages.len(),
-        31,
+        33,
         "page_order of the golden model with its report pages"
     );
     let f = fonts();
@@ -86,9 +86,10 @@ fn the_golden_pdf_has_every_folio_and_is_byte_identical_across_runs_and_record_s
     assert!(a.bytes == c.bytes, "a record shuffle changes the PDF");
 }
 
-/// The glyphs the PDF writer drops because the bundled font lacks them: the "∞" of the nine main-function
-/// cross-reference texts. 0 once the fallback font is bundled.
-const EXPECTED_DROPPED_NOTDEF_GLYPHS: usize = 9;
+/// The glyphs the PDF writer drops because neither bundled font has them. The "∞" of the nine main-function
+/// cross-reference texts and the "−" and "⇄" of the report pages come from the symbol fallback face (FT-85,
+/// ADR-0028 recommendation 3), so none is dropped.
+const EXPECTED_DROPPED_NOTDEF_GLYPHS: usize = 0;
 
 /// The writer's own PDF structure of the golden project, as the committed candidate
 /// `expected/pdf/structure.json` (doc 20 §3.3 "PDF structure").
@@ -99,10 +100,8 @@ fn the_pdf_structure_matches_the_committed_file() {
     let q = s.query();
     let pages = pdf_pages(&q);
     let out = pdf(&pages, &pdf_options(&q), &fonts(), None).expect("the golden PDF is written");
-    // The bundled Noto Sans has no glyph for "∞", so the nine main-function texts ("∞ 3-B2, 106-G3") print a
-    // `.notdef` box in the PNGs and the PDF writer drops it (FR-OUT-027). The count stays visible here and
-    // flips to 0 when the fallback font lands (ADR-0028 recommendation 3): then change the constant, re-bless
-    // `structure.json` and the PDF hash, and delete the gap-list line of golden/J-E-2416/README.md.
+    // Noto Sans has no glyph for "∞", "−" or "⇄"; they print with Noto Sans Math, the symbol fallback, so the
+    // PDF embeds two fonts and drops no `.notdef` glyph (FR-OUT-027).
     assert_eq!(
         out.report.dropped_notdef_glyphs, EXPECTED_DROPPED_NOTDEF_GLYPHS,
         "{:?}",
@@ -245,7 +244,7 @@ fn with_golden_pages(f: impl FnOnce(&[GoldenPage])) {
 #[test]
 fn the_text_csv_of_every_folio_matches_the_committed_file() {
     with_golden_pages(|pages| {
-        assert_eq!(pages.len(), 31);
+        assert_eq!(pages.len(), 33);
         for g in pages {
             let scene = page_scene(&g.view, ew_text::bundled());
             let csv = text_csv(&scene);
@@ -355,7 +354,7 @@ fn every_committed_png_is_at_most_300_kb() {
         assert!(len <= 300 * 1024, "{}: {len} bytes", p.display());
         n += 1;
     }
-    assert_eq!(n, 31);
+    assert_eq!(n, 33);
 }
 
 fn folio<'a>(pages: &'a [GoldenPage], folio: &str) -> &'a GoldenPage {

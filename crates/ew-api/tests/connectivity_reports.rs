@@ -5,11 +5,10 @@
 //! `wire_list` (907), `potential_overview` (909), `terminal_diagram` (903 to 905) and
 //! `cable_overview_diagrams` (906).
 //!
-//! The rows come from a `Q` **without** the report engine (`Q::new`): the connectivity queries they read
-//! (`potential_partition`, `physical_wires_of`, `wire_props_of`) read the full page order, which a `Q` with
-//! the engine is still computing while it paginates (see `ew_reports::kinds`). Such a `Q` cannot paginate
-//! them yet; the last test pins that behaviour (one placeholder page naming what the kind awaits). With the
-//! queries on the drawn page order the gate goes and these blocks paginate in every `Q`.
+//! The rows come from a `Q` without the report engine (`Q::new`) for the row tests, which keeps them apart from
+//! the pagination; the connectivity queries they read (`potential_partition`, `physical_wires_of`,
+//! `wire_props_of`) read the drawn page order, so a `Q` with the engine derives the same rows while it
+//! paginates (the last two tests).
 //!
 //! Tests:
 //! - `wire_list_has_44_wires_then_six_bridges` (doc 20 §8.2, §8.3) and its pages (§16: 23, 23, 5 rows).
@@ -22,7 +21,9 @@
 //!   the colour and size profiles of doc 20 §7.1, §7.2, which the page goldens do not have yet. Candidates
 //!   for the FT-10 approval, compared with doc 20 by hand (README, "Connectivity report rows").
 //! - `rows_do_not_depend_on_record_order` (NFR-REL-07).
-//! - `a_query_with_the_report_engine_gets_placeholder_pages_until_the_queries_read_the_drawn_order`.
+//! - `a_query_with_the_report_engine_paginates_the_connectivity_kinds`: the four kinds get their derived rows and
+//!   pages (907 in three) inside the pagination, equal to the rows of a `Q` without the engine.
+//! - `rows_and_pages_do_not_depend_on_the_order_they_are_read_in`.
 
 mod golden_common;
 
@@ -493,16 +494,16 @@ fn rows_do_not_depend_on_record_order() {
 }
 
 #[test]
-fn a_query_with_the_report_engine_gets_placeholder_pages_until_the_queries_read_the_drawn_order() {
+fn a_query_with_the_report_engine_paginates_the_connectivity_kinds() {
     let batch = golden_common::batch();
-    let s = golden_common::session(&batch);
+    let s = golden_common::session_with_profiles(&batch);
     let q = s.query();
     let order = q.get::<PageOrder>(());
-    for (key, title) in [
-        ("903", "Terminal Diagram 1X1"),
-        ("906", "Cable Overview and Diagrams"),
-        ("907", "Wire List 1"),
-        ("909", "Potential Overview"),
+    for (key, title, folios) in [
+        ("903", "Terminal Diagram 1X1", &["903"][..]),
+        ("906", "Cable Overview and Diagrams", &["906"][..]),
+        ("907", "Wire List 1", &["907", "907.1", "907.2"][..]),
+        ("909", "Potential Overview", &["909"][..]),
     ] {
         let id = block(&batch, key);
         let pages: Vec<&GeneratedPage> = order
@@ -511,35 +512,23 @@ fn a_query_with_the_report_engine_gets_placeholder_pages_until_the_queries_read_
             .filter(|e| matches!(e.page, ew_derive::PageRef::Generated { block, .. } if block == id))
             .filter_map(|e| order.generated(e.page))
             .collect();
-        assert_eq!(pages.len(), 1, "{key}: one placeholder page");
+        let labels: Vec<&str> = pages.iter().map(|g| g.label.as_str()).collect();
+        assert_eq!(labels, folios, "{key}");
         assert_eq!(pages[0].title.as_neutral(), Some(title));
-        let note = pages[0]
-            .note
-            .as_ref()
-            .and_then(|n| n.as_neutral())
-            .unwrap_or_default();
         assert!(
-            note == "Not derived yet: awaits the drawn page order",
-            "{key}: {note}"
+            pages.iter().all(|g| g.note.is_none()),
+            "{key}: no placeholder note"
         );
-        // The rows are memoised per `Q`: the one read during the pagination is the placeholder, so the page
-        // and its rows agree; a `Q` without the engine derives them.
-        assert!(
-            matches!(q.get::<BlockRows>(id).status, RowSetStatus::NotDerived(_)),
-            "{key}"
-        );
-        assert_eq!(
-            plain(&s).get::<BlockRows>(id).status,
-            RowSetStatus::Derived,
-            "{key}"
-        );
+        // The rows read inside the pagination are the derived ones, the same as in a `Q` without the engine.
+        assert_eq!(q.get::<BlockRows>(id).status, RowSetStatus::Derived, "{key}");
+        assert_eq!(*q.get::<BlockRows>(id), *plain(&s).get::<BlockRows>(id), "{key}");
     }
 }
 
 /// What a fresh `Q` with the engine shows of block `key` after its rows and its pages were read in the given
 /// order: the rows, the notes of the block's pages and the derivation notes.
 fn observe(batch: &ew_import_tables::ew_interop_api::ImportBatch, key: &str, rows_first: bool) -> String {
-    let s = golden_common::session(batch);
+    let s = golden_common::session_with_profiles(batch);
     let mut q = s.query();
     let id = block(batch, key);
     let (rows, order) = if rows_first {
@@ -566,18 +555,15 @@ fn observe(batch: &ew_import_tables::ew_interop_api::ImportBatch, key: &str, row
 }
 
 #[test]
-fn the_gate_does_not_depend_on_the_order_the_rows_and_the_pages_are_read_in() {
+fn rows_and_pages_do_not_depend_on_the_order_they_are_read_in() {
     let batch = golden_common::batch();
     for key in ["903", "904", "905", "906", "907", "909"] {
         let rows_first = observe(&batch, key, true);
         let pages_first = observe(&batch, key, false);
         assert_eq!(rows_first, pages_first, "block {key}");
-        // The same single placeholder page, naming what it awaits, and no derivation note.
-        assert!(rows_first.contains("AwaitsPageOrder"), "{key}");
-        assert!(
-            rows_first.contains("Not derived yet: awaits the drawn page order"),
-            "{key}"
-        );
+        // Derived rows, no placeholder note on a page, and no derivation note.
+        assert!(!rows_first.contains("NotDerived"), "{key}");
+        assert!(!rows_first.contains("Not derived"), "{key}");
         assert!(rows_first.ends_with("[]"), "{key}: no notes, {rows_first}");
     }
 }

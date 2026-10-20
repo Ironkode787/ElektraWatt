@@ -6,9 +6,8 @@
 //! Derived now (Derivation I): `toc`, `parts_summary`, `parts_list`, `part_data`, `structure_overview`.
 //! Derived now from the Derivation II queries (potential partition, physical wires, effective wire
 //! properties): `wire_list`, `potential_overview`, `terminal_diagram`, `cable_overview_diagrams`. Those
-//! queries read the page order, so a `Q` with the report engine, which computes the pagination inside the
-//! page order, cannot derive these kinds: their blocks get one placeholder page there until the queries read
-//! the drawn page order (see `conn::AWAITS`). A `Q` without the engine derives them.
+//! queries read the drawn page order, which has no report pages, so these kinds derive their rows inside the
+//! pagination like the others.
 //! Registered with their columns but **not derived yet** (an empty row set marked
 //! [`NotDerived`]): `plc_overview` (no channel records), and the kinds whose source records have no shape in
 //! this format (`profile_tables`: colour and size profiles; `revision_overview`: revisions). Other schema

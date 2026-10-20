@@ -132,43 +132,8 @@ fn cycle_rows(q: &Q, cycle: Cycle) -> RowSet {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ReportEngine;
 
-/// The block ID that asks the engine whether it is installed: `ew_derive::report_pages(q, ENGINE_PROBE, 0)` is
-/// non-empty exactly when the `Q` carries this engine. It is a fixed UUID no record has (records are v7 or
-/// v5), and it is the only read of `Q` configuration a row source may make (`Q::has_report_pages` needs
-/// `&mut Q`). See `kinds::conn::ready`.
-pub(crate) const ENGINE_PROBE: Id<ReportBlock> = Id::from_uuid(ew_derive::ew_ids::Uuid::from_u128(
-    0xE1EC_72A7_7A11_4E55_9E00_0000_0000_0001,
-));
-
-/// What the engine answers to [`ENGINE_PROBE`]: one page that belongs to no block.
-fn probe_answer() -> Vec<GeneratedPage> {
-    vec![GeneratedPage {
-        id: Id::from_uuid(ew_derive::ew_ids::Uuid::from_u128(0)),
-        block: ENGINE_PROBE,
-        index: 0,
-        section: None,
-        number: 0,
-        label: String::new(),
-        title: ew_derive::ew_mltext::MlText::default(),
-        rows: 0..0,
-        group: None,
-        continued_group: false,
-        form: Id::from_uuid(ew_derive::ew_ids::Uuid::from_u128(0)),
-        page_count: 1,
-        note: None,
-    }]
-}
-
-/// Whether the report engine is installed in `q`, through the one public read the hook offers.
-pub(crate) fn engine_installed(q: &Q) -> bool {
-    !ew_derive::report_pages(q, ENGINE_PROBE, 0).is_empty()
-}
-
 impl ReportPagesProvider for ReportEngine {
     fn pages(&self, q: &Q, block: Id<ReportBlock>, toc_pages: u32) -> Vec<GeneratedPage> {
-        if block == ENGINE_PROBE {
-            return probe_answer();
-        }
         let Some(b) = q.report_blocks().get(block) else {
             return Vec::new();
         };

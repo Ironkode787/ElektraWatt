@@ -245,16 +245,12 @@ fn not_derived_kinds_paginate_to_one_placeholder_page() {
     let s = common::golden_session();
     let q = s.query();
     let order = q.get::<PageOrder>(());
-    for (key, title) in [
-        ("903", "Terminal Diagram 1X1"),
-        ("904", "Terminal Diagram -X1031"),
-        ("905", "Terminal Diagram -X1032"),
-        ("906", "Cable Overview and Diagrams"),
-        ("907", "Wire List 1"),
-        ("908", "PLC Overview -201U1 1"),
-        ("909", "Potential Overview"),
-        ("911", "Revision Overview"),
-    ] {
+    // The connectivity kinds derive inside the pagination (their queries read the drawn page order); only
+    // the kinds without a row source keep the placeholder page.
+    for key in ["903", "904", "905", "906", "907", "909"] {
+        assert!(q.get::<BlockRows>(block(key)).is_derived(), "{key} is derived");
+    }
+    for (key, title) in [("908", "PLC Overview -201U1 1"), ("911", "Revision Overview")] {
         let b = block(key);
         assert!(
             matches!(q.get::<BlockRows>(b).status, RowSetStatus::NotDerived(_)),

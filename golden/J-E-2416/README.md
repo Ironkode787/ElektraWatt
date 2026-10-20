@@ -374,8 +374,9 @@ cargo nextest run -p ew-api --test page_output                # compares (no EW_
   `crates/ew-api/tests/connectivity_reports.rs` (`EW_BLESS=1 cargo nextest run -p ew-api --test
   connectivity_reports`). First column `row` is `data` or `heading`, then the columns of the kind as printed (neutral
   language). They are read from a `Q` without the report engine and over the golden tables **with** the colour and
-  size profiles of doc 20 §7.1, §7.2 (the page goldens have none yet). Same dialect as above. Once the kinds
-  paginate, their page text files carry the same rows.
+  size profiles of doc 20 §7.1, §7.2 (the page goldens have none yet). Same dialect as above. The kinds also
+  derive and paginate inside the report engine's `Q`, so their page text files carry the rows of the golden
+  tables without those profiles.
 - `geometry/frame.json`: the printed frame figures of the two frame forms with the QET title block, in mm on the
   sheet (3 decimals): sheet, outer, drawing area, header band, column and row edges, labels, title block, line width.
 - `png/<folio>.png`: the sheet at 150 dpi. They are **candidates awaiting the first PNG approval (FT-10, an owner
@@ -386,7 +387,7 @@ cargo nextest run -p ew-api --test page_output                # compares (no EW_
   (§3.3 "PDF structure"); `pdf/sha256.txt` holds the SHA-256 of the whole PDF.
 - Everything under `golden/` is CC0-1.0 (`REUSE.toml`, annotation L8).
 
-**Known gaps for the FT-10 approval.** The candidates cover the 31 pages of `page_order` with the report engine
+**Known gaps for the FT-10 approval.** The candidates cover the 33 pages of `page_order` with the report engine
 installed (`Session::query()`), so Prev/Next, the outline and the page labels include the generated pages. All 72
 page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106). Still open:
 
@@ -401,22 +402,9 @@ page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106). Still open:
   the columns' weights (no data area in the golden report forms, so the widths are the kinds' choice: only the TOC's
   follow the reference). A page of a block that is not derived prints its reason in one row. Row links
   (FR-REP-042) and the cover tables are not drawn yet. The dividers 100, 200 and 900 show frame and title block only.
-- **Page count.** Doc 20 §5 counts 36 pages; the page order has 31. Five pages are missing for reasons outside the
-  table drawing: 901.1 (the TBD parts of BOM rows 24 to 27 are not in the tables, so 901 holds its 23 rows), 907.1
-  and 907.2 (the connectivity kinds derive their rows but cannot paginate, next item) and 908.1 and 908.2 (the PLC
-  overview has no channel records).
-- **Connectivity kinds in the page order.** `wire_list`, `potential_overview`, `terminal_diagram` and
-  `cable_overview_diagrams` derive their rows from `potential_partition`, `physical_wires_of` and `wire_props_of`
-  (see "Connectivity report rows"), but those queries read the full `page_order`, which a `Q` with the report engine
-  is still computing while it paginates. The gate depends on whether the report engine is installed in the `Q`, not on what was evaluated before, so
-  the kinds answer "not derived" (note "Not derived yet: awaits the drawn page order", no derivation note) in every
-  `Q` of a session, whatever is read first, and so 903 … 907 and 909 are one
-  placeholder page each (907 holds 51 rows, three pages, once they derive). With the three
-  `q.get::<PageOrder>(())` of `ew-derive`'s `wires.rs`, `potentials.rs` and `stitch.rs` replaced by
-  `DrawnPageOrder` (as the doc of that query prescribes), delete the gate in `ew-reports`'s `kinds/conn.rs::ready` (and `NotDerived::AwaitsPageOrder`),
-  re-bless (`EW_BLESS=1 cargo nextest run -p ew-api --test page_output`) and set the page count of `page_output.rs`
-  to 33 and `EXPECTED_DROPPED_NOTDEF_GLYPHS` to 17 (the "−" of -102G1's CPs and the "⇄" of the bond wire have no glyph
-  in the bundled Noto Sans, like the "∞" below; checked in a scratch copy with exactly that change).
+- **Page count.** Doc 20 §5 counts 36 pages; the page order has 33 (907 paginates into 907, 907.1 and 907.2).
+  Three pages are missing for reasons outside the table drawing: 901.1 (the TBD parts of BOM rows 24 to 27 are not
+  in the tables, so 901 holds its 23 rows) and 908.1 and 908.2 (the PLC overview has no channel records).
 - **TOC pages.** The title blocks of 2 and 2.1 print no `=P01` and `+J-E-2416` (14 rows against 16 on 903): the TOC
   pages' structure binding in `ew-derive` is still open (doc 20 §5 gives every page both signs).
 - **Folio 1.** The cover content of doc 20 §17.3 is not drawn.
@@ -432,10 +420,6 @@ page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106). Still open:
   0VDC-AIR3 and PE-AIR2 at 106-B1, 0VDC-AIR1 and PE-AIR1 at 106-E1.
 - **Folios 203–206.** Used valves print no text in the function-text slot: the process-tag fallback through
   `DeviceLink{Drives}` (§6.2) needs the `DeviceLink` record, which schema v0 does not implement.
-- **Cross-references, glyph.** The bundled Noto Sans has no "∞" (U+221E): the nine main-function texts
-  ("∞ 3-B2, 106-G3") print a `.notdef` box in the PNGs and the PDF writer drops the glyph
-  (`dropped_notdef_glyphs` is 9 in `pdf/structure.json`, asserted by `page_output`). The fallback font is pending
-  (ADR-0028 recommendation 3); the PNG, text and PDF candidates change with it.
 - **Cross-references, folio 101.** The three external texts ("+J-E-206 / JE-N1000-03") start left of the frame
   and overlap the next point's name; the N-1 wire crosses "102-A1".
 - **Cross-references, folio 103.** The texts overlap neighbouring arrows: 0VDC and 24VDC-1, 24VDC-AIR4 and

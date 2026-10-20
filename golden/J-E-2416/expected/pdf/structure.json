@@ -1,5 +1,5 @@
 {
-  "pages": 31,
+  "pages": 33,
   "page_labels": [
     "1",
     "2",
@@ -25,6 +25,8 @@
     "905",
     "906",
     "907",
+    "907.1",
+    "907.2",
     "908",
     "909",
     "910",
@@ -171,38 +173,48 @@
           "children": []
         },
         {
-          "title": "908 PLC Overview -201U1 1",
+          "title": "907.1 Wire List 2",
           "page": 24,
           "children": []
         },
         {
-          "title": "909 Potential Overview",
+          "title": "907.2 Wire List 3",
           "page": 25,
           "children": []
         },
         {
-          "title": "910 Device Tag Overview 1",
+          "title": "908 PLC Overview -201U1 1",
           "page": 26,
           "children": []
         },
         {
-          "title": "910.1 Device Tag Overview 2",
+          "title": "909 Potential Overview",
           "page": 27,
           "children": []
         },
         {
-          "title": "910.2 Device Tag Overview 3",
+          "title": "910 Device Tag Overview 1",
           "page": 28,
           "children": []
         },
         {
-          "title": "910.3 Device Tag Overview 4",
+          "title": "910.1 Device Tag Overview 2",
           "page": 29,
           "children": []
         },
         {
-          "title": "911 Revision Overview",
+          "title": "910.2 Device Tag Overview 3",
           "page": 30,
+          "children": []
+        },
+        {
+          "title": "910.3 Device Tag Overview 4",
+          "page": 31,
+          "children": []
+        },
+        {
+          "title": "911 Revision Overview",
+          "page": 32,
           "children": []
         }
       ]
@@ -210,9 +222,10 @@
   ],
   "links": 63,
   "plain_text_links": 0,
-  "dropped_notdef_glyphs": 9,
-  "destinations": 93,
+  "dropped_notdef_glyphs": 0,
+  "destinations": 95,
   "fonts": [
+    "Noto Sans Math Regular",
     "Noto Sans Regular"
   ]
 }

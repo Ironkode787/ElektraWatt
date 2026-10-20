@@ -10,7 +10,7 @@ use ew_derive::{Cell as FrameCell, CpRef, Q, RepAnchorCell, WireEnd};
 
 use super::conn::{
     Bridge, WireRec, Wires, bridge_span, bridges, colour_cell, csa_cell, device_of, end_cells, ip_name,
-    page_position, pages_cell, put, ready, source_text, tag_key, tag_short, text_cell,
+    page_position, pages_cell, put, source_text, tag_key, tag_short, text_cell,
 };
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowKind, RowSet};
@@ -61,9 +61,6 @@ impl ReportKindDef for WireList {
 
     fn rows(&self, q: &Q, _block: &ReportBlock) -> RowSet {
         let columns = self.columns();
-        if let Err(not_derived) = ready(q, &columns) {
-            return not_derived;
-        }
         let wires = Wires::of(q);
         let mut keyed: Vec<(WireKey, Row)> = wires
             .wires

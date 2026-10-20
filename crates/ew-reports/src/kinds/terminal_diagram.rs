@@ -10,7 +10,7 @@ use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
 use ew_derive::ew_schema::{Device, DeviceState, ReportBlock, Side};
 use ew_derive::{CpRef, DevicePartLines, FunctionCps, PotentialPartition, Q, StitchGraphQ};
 
-use super::conn::{WireRec, Wires, bridges, end_text, ready, tag_short, text_cell};
+use super::conn::{WireRec, Wires, bridges, end_text, tag_short, text_cell};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 
@@ -53,9 +53,6 @@ impl ReportKindDef for TerminalDiagram {
 
     fn rows(&self, q: &Q, block: &ReportBlock) -> RowSet {
         let columns = self.columns();
-        if let Err(not_derived) = ready(q, &columns) {
-            return not_derived;
-        }
         let strips = strips_of(q, block);
         let wires = Wires::of(q);
         let by_cp = wires_by_cp(&wires);

@@ -10,7 +10,7 @@ use ew_derive::ew_mltext::{NaturalKey, natural_key};
 use ew_derive::ew_schema::{CircuitClass, Page, PotentialType, ReportBlock};
 use ew_derive::{DrawnPageOrder, PageRef, Potential, PotentialId, PropSource, Q};
 
-use super::conn::{Wires, colour_cell, csa_cell, put, ready};
+use super::conn::{Wires, colour_cell, csa_cell, put};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 
@@ -50,9 +50,6 @@ impl ReportKindDef for PotentialOverview {
 
     fn rows(&self, q: &Q, _block: &ReportBlock) -> RowSet {
         let columns = self.columns();
-        if let Err(not_derived) = ready(q, &columns) {
-            return not_derived;
-        }
         let wires = Wires::of(q);
         let order = q.get::<DrawnPageOrder>(());
         let mut keyed: Vec<((NaturalKey, PotentialId), Row)> = wires

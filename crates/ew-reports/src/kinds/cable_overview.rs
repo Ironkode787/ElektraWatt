@@ -12,7 +12,7 @@ use ew_derive::ew_schema::{Conductor, Device, LengthSource, ReportBlock, Unit};
 use ew_derive::ew_units::Dec3;
 use ew_derive::{DevicePartLines, Q};
 
-use super::conn::{WireRec, Wires, colour_cell, csa_cell, end_text, ready, tag_short, text_cell};
+use super::conn::{WireRec, Wires, colour_cell, csa_cell, end_text, tag_short, text_cell};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, QtyUnit, Row, RowId, RowKey, RowKind, RowSet};
 
@@ -52,9 +52,6 @@ impl ReportKindDef for CableOverview {
 
     fn rows(&self, q: &Q, _block: &ReportBlock) -> RowSet {
         let columns = self.columns();
-        if let Err(not_derived) = ready(q, &columns) {
-            return not_derived;
-        }
         let wires = Wires::of(q);
         let by_core: BTreeMap<Id<Conductor>, &WireRec> = wires
             .wires
