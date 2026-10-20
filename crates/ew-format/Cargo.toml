@@ -16,3 +16,12 @@ workspace = true
 
 [dependencies]
 ew-schema = { path = "../ew-schema" }
+# The `$k`-first envelope of a row serialised without cloning it into a `Record` (same bytes as `Record`'s).
+serde.workspace = true
+# Compact canonical lines and the manifest (doc 05 §3.1, §4). Never with `preserve_order`.
+serde_json = "1.0.154"
+# The per-file hashes of the manifest (doc 05 §4) and the library-copy check (EW-CORE-014).
+sha2.workspace = true
+
+[dev-dependencies]
+proptest = { version = "1.12.0", default-features = false, features = ["std"] }

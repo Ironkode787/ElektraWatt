@@ -390,6 +390,10 @@ name = "ew-format"
 version = "0.0.0"
 dependencies = [
  "ew-schema",
+ "proptest",
+ "serde",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]
