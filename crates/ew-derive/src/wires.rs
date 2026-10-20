@@ -35,7 +35,7 @@ use crate::pages::PageOrderV;
 use crate::potentials::{Partition, PotentialId, PotentialPartition};
 use crate::query::{Policy, Query};
 use crate::stitch::{PairMode, StitchGraph, StitchGraphQ};
-use crate::{PageOrder, PageRef, Q};
+use crate::{DrawnPageOrder, PageRef, Q};
 
 /// What a wire end is.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -253,7 +253,7 @@ impl Query for PhysicalWiresOf {
         drawing.hub_free_wires(&mut raw);
 
         // 10.-11. Fields; only wires that touch the potential itself.
-        let page_order = q.get::<PageOrder>(());
+        let page_order = q.get::<DrawnPageOrder>(());
         let mut bond_of_via: BTreeMap<Id<Connection>, Id<Bond>> = BTreeMap::new();
         for b in &partition.bonds {
             if let Some(v) = b.via {

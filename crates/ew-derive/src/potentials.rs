@@ -42,7 +42,7 @@ use crate::nets::{CpRef, Dsu, NetId, ends};
 use crate::note::DeriveNote;
 use crate::query::{Policy, Query};
 use crate::stitch::{EdgeKind, Level, StitchGraph, StitchGraphQ};
-use crate::{Cp, DeviceTag, FunctionCps, PageOrder, PageRef, Q, RepAnchorCell};
+use crate::{Cp, DeviceTag, DrawnPageOrder, FunctionCps, PageRef, Q, RepAnchorCell};
 
 /// The stable identity of a potential (doc 08 §3.4).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -565,7 +565,7 @@ pub(crate) struct IpOrder {
 
 impl IpOrder {
     fn new(q: &Q, g: &StitchGraph) -> IpOrder {
-        let order = q.get::<PageOrder>(());
+        let order = q.get::<DrawnPageOrder>(());
         let mut keys = BTreeMap::new();
         for (f, info) in &g.ips {
             let pos = info
@@ -592,7 +592,7 @@ impl IpOrder {
 /// The fallback name `<tag>:<designation>` of the first member CP (not an IP) in (page position, row,
 /// column, CP ID) order of its function's first representation.
 fn fallback_name(q: &Q, _ip: &IpOrder, cps: &[CpRef], is_ip: &dyn Fn(Id<Function>) -> bool) -> PotentialName {
-    let order = q.get::<PageOrder>(());
+    let order = q.get::<DrawnPageOrder>(());
     let reps = q.reps();
     let key = |cp: &CpRef| {
         let rep = q.idx().reps_of_function(cp.function).next();

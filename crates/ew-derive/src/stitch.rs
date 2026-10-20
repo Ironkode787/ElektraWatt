@@ -67,7 +67,7 @@ use crate::cps::pattern_origin;
 use crate::nets::{CpRef, NetId, PageLocalNets, bond_vias, ends, ip_cp, joins_net};
 use crate::note::DeriveNote;
 use crate::query::{Policy, Query};
-use crate::{FunctionCps, PageOrder, PageRef, PageStructure, Q, RepAnchorCell, StructureOf};
+use crate::{DrawnPageOrder, FunctionCps, PageRef, PageStructure, Q, RepAnchorCell, StructureOf};
 
 /// The level of a stitch edge (doc 08 §3.3), in the order the partition applies them.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -469,7 +469,7 @@ fn pair_ips(q: &Q, b: &mut Builder) {
         }
     };
     let reps = q.reps();
-    let order = q.get::<PageOrder>(());
+    let order = q.get::<DrawnPageOrder>(());
     let mut groups: BTreeMap<GroupKey, Vec<Id<Function>>> = BTreeMap::new();
     let mut chain_keys: BTreeMap<Id<Function>, ChainKey> = BTreeMap::new();
     for (fid, f) in q.functions().iter() {
