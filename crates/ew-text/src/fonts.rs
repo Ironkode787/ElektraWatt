@@ -401,8 +401,10 @@ impl FontSet {
             .is_some()
     }
 
-    /// Whether [`shape`](FontSet::shape) draws `ch` with a real glyph in `style`: the selected face has
-    /// one, or a [`Family::Symbols`] face does.
+    /// Whether [`shape`](FontSet::shape) can draw `ch` with a real glyph in `style`: the selected face has
+    /// one, or a [`Family::Symbols`] face does. It ignores the script of the surrounding text: the
+    /// fallback serves Latin, Greek and Cyrillic text only, so [`Shaped::missing`](crate::Shaped::missing)
+    /// is the authority on what was actually drawn.
     pub fn has_glyph(&self, style: &crate::TextStyle, ch: char) -> bool {
         self.covers(style, ch)
             || self

@@ -330,6 +330,74 @@ mod tests {
     }
 
     #[test]
+    fn a_mixed_line_is_one_group_with_one_run_per_font() {
+        let fonts = bundled();
+        let style = TextStyle::regular(Nm(3_175_000));
+        let text = "\u{221E} 3-B2, 106-G3";
+        let shaped = fonts.shape(text, &style, None);
+        assert_eq!(shaped.faces.len(), 2);
+        let at = Pt2::new(Nm(10_000_000), Nm(20_000_000));
+        let spec = BoxSpec {
+            rect: Rect::from_point(at),
+            halign: -1,
+            valign: -1,
+            padding: Nm::ZERO,
+            overflow: None,
+            max_lines: 1,
+            sheet: SheetMap::IDENTITY,
+        };
+        let items = place(fonts, &shaped, &style, text, &spec, at, Angle2::ZERO);
+        // One item per line; callers put the link and the entity on it.
+        assert_eq!(items.len(), 1);
+        let link = ew_dl::Link::Source(ew_dl::Destination::Page(Default::default()));
+        let item = items.into_iter().next().unwrap().with_link(link);
+        assert_eq!(item.link, Some(link));
+        let ew_dl::ItemKind::Group(group) = &item.kind else {
+            panic!("a mixed line is a group")
+        };
+        let m = fonts.vertical_metrics(&style);
+        assert_eq!(
+            group.transform,
+            Some(Transform::from_translation(Pt2::new(at.x, at.y + m.ascent)))
+        );
+        assert!(group.items.iter().all(|i| i.link.is_none() && i.entity.is_none()));
+        let runs: Vec<&ShapedRun> = group
+            .items
+            .iter()
+            .map(|i| match &i.kind {
+                ew_dl::ItemKind::Glyphs(r) => &**r,
+                other => panic!("a group member is a run, not {other:?}"),
+            })
+            .collect();
+        // One run per font, in text order: the math face for the "∞", the style's face for the rest.
+        let keys: Vec<_> = runs.iter().map(|r| r.font).collect();
+        let want: Vec<_> = shaped.faces.iter().map(|f| f.font).collect();
+        assert_eq!(keys, want);
+        assert_ne!(keys[0], keys[1]);
+        assert_eq!(runs[0].text, "\u{221E}");
+        assert_eq!(runs[1].text, " 3-B2, 106-G3");
+        assert_eq!(
+            runs[0].glyphs.len() + runs[1].glyphs.len(),
+            shaped.run.glyphs.len()
+        );
+        // The union of the boxes is the box a single run of the line would have had.
+        let line = &shaped.lines[0];
+        let single = Rect::from_points(
+            Pt2::new(Nm::ZERO, Nm(-m.ascent.0)),
+            Pt2::new(line.advance, m.descent),
+        );
+        assert_eq!(runs[0].layout_box.union(runs[1].layout_box), single);
+        // The first run ends where the next one starts, which is where its first glyph is.
+        assert_eq!(runs[0].layout_box.max().x, runs[1].layout_box.min().x);
+        assert_eq!(runs[1].layout_box.min().x, runs[1].glyphs[0].x);
+        // The members sit in the group's own frame: no origin, no turn.
+        assert!(
+            runs.iter()
+                .all(|r| r.origin == Pt2::ORIGIN && r.transform == Transform::IDENTITY)
+        );
+    }
+
+    #[test]
     fn ellipsis_cut_equals_the_one_char_at_a_time_reference() {
         let fonts = bundled();
         let texts = [

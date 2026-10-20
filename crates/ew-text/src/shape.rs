@@ -14,7 +14,7 @@ use parley::{
 };
 use skrifa::MetadataProvider;
 
-use crate::fonts::{Face, Family, FontSet, Weight, engine_family};
+use crate::fonts::{Family, FontSet, Weight, engine_family};
 
 /// What a text is shaped with: a family role, the em height and the face.
 ///
@@ -215,11 +215,12 @@ impl FontSet {
             brush: Brush::BLACK,
             layout_box,
         };
+        let missing = self.missing_chars(text, &spans);
         Shaped {
             run: Arc::new(run),
             lines,
             faces: spans,
-            missing: self.missing_chars(face, text),
+            missing,
         }
     }
 
@@ -288,21 +289,29 @@ fn is_line_break(ch: char) -> bool {
 
 impl FontSet {
     /// The characters of `text` that were drawn as the `.notdef` glyph (id 0, a visible box), first
-    /// occurrence order, each once. A character is missing when neither the selected face's character map
-    /// nor that of a symbol fallback face has a glyph for it; this includes control characters such as
-    /// tabs, which are shaped to `.notdef` like any other unmapped character. Not reported: line breaks
-    /// (they end a line and produce no glyph) and default-ignorable code points ([`DEFAULT_IGNORABLE`]),
-    /// which render invisibly.
-    fn missing_chars(&self, face: &Face, text: &str) -> Vec<char> {
-        let font = face.font_ref();
-        let charmap = font.charmap();
-        let fallbacks: Vec<_> = self.fallback_faces().map(Face::font_ref).collect();
+    /// occurrence order, each once, derived from what was shaped: a character is missing when the face that
+    /// drew its stretch of text ([`FaceSpan`]) has no glyph for it. A character the symbol fallback drew is
+    /// not missing; a character in a script without a fallback (the fallback serves Latin, Greek and
+    /// Cyrillic text only) is drawn by the style's face and is missing there even if the fallback face
+    /// maps it. This includes control characters such as tabs, which are shaped to `.notdef` like any other
+    /// unmapped character. Not reported: line breaks (they end a line and produce no glyph) and
+    /// default-ignorable code points ([`DEFAULT_IGNORABLE`]), which render invisibly.
+    fn missing_chars(&self, text: &str, spans: &[FaceSpan]) -> Vec<char> {
         let mut out: Vec<char> = Vec::new();
-        for ch in text.chars() {
-            let unmapped =
-                charmap.map(ch).is_none() && fallbacks.iter().all(|f| f.charmap().map(ch).is_none());
-            if unmapped && !is_line_break(ch) && !is_default_ignorable(ch) && !out.contains(&ch) {
-                out.push(ch);
+        for span in spans {
+            let Some(face) = self.faces.iter().find(|f| f.info.key == span.font) else {
+                continue;
+            };
+            let font = face.font_ref();
+            let charmap = font.charmap();
+            for ch in text.get(span.text.clone()).unwrap_or_default().chars() {
+                if charmap.map(ch).is_none()
+                    && !is_line_break(ch)
+                    && !is_default_ignorable(ch)
+                    && !out.contains(&ch)
+                {
+                    out.push(ch);
+                }
             }
         }
         out

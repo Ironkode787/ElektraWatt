@@ -125,6 +125,14 @@ fn missing_glyphs_are_reported_once_in_order() {
     for span in s.faces.iter().filter(|f| f.font != s.run.font) {
         assert!(s.run.glyphs[span.glyphs.clone()].iter().all(|g| g.id != 0));
     }
+    // The fallback serves Latin, Greek and Cyrillic text only: next to other scripts the symbol is drawn as
+    // .notdef and reported, even where the math face maps the neighbour (U+0628 is in it).
+    for text in ["\u{65E5}\u{221E}", "\u{628}\u{221E}"] {
+        let s = bundled().shape(text, &st, None);
+        let zeros = s.run.glyphs.iter().filter(|g| g.id == 0).count();
+        assert_eq!(zeros, 2, "{text:?}");
+        assert_eq!(s.missing, text.chars().collect::<Vec<_>>(), "{text:?}");
+    }
     assert!(!bundled().has_glyph(&st, '\u{E000}'));
     assert!(bundled().covers(&st, '²'));
     // Line breaks are not glyphs and not reported.
