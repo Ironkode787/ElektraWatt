@@ -17,6 +17,9 @@
 //! and [`Session::save`] writes only the files of that set (doc 05 §5). [`Session::close`] is the clean
 //! close; dropping a session releases the lock and keeps the journal for recovery.
 //!
+//! **Command logs** (doc 17 §3.5). [`Session::run_script`] replays a parsed [`CmdLog`] (`.ewcmd`, JSON Lines):
+//! one transaction per line with origin [`Origin::CmdLog`], so one [`Session::undo`] takes back one line.
+//!
 //! Not in v0: the memo snapshot in [`World`] and the job pool for previews (WP-S1.05), rule registration
 //! (WP-S1.15), export jobs, the save on a writer thread, and the undo history of a recovered session
 //! (FR-COL-028: a recovered session opens dirty with an empty history).
@@ -53,6 +56,8 @@
 
 #![forbid(unsafe_code)]
 
+mod cmdlog;
+
 use std::collections::BTreeSet;
 use std::path::Path;
 use std::sync::Arc;
@@ -64,6 +69,7 @@ use ew_store::{
     Changes, LockState, OpenError, OpenReport, RecoverError, SaveError, SaveReport, Store, StoreOptions,
 };
 
+pub use cmdlog::{CmdLog, CmdLogError, SCHEMA as CMDLOG_SCHEMA};
 pub use ew_derive::{DeriveNote, MemoStore, Mismatch, NoteSeverity};
 
 pub use ew_commands::{

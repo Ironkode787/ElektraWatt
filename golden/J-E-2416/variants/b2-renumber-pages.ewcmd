@@ -1,0 +1,2 @@
+{"$schema":"ew.cmdlog/1","label":"Golden B, step B2: renumber the folios of section 1 (doc 20 section 2.2)"}
+{"cmd":"page.renumber","params":{"scope":{"section":{"ref":"section:1"}},"start":101,"step":1,"keep_gaps":false}}

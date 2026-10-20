@@ -153,6 +153,14 @@ Assertions: -106W1/-106W2 become -104W1/-104W2; exactly 14 cross-reference texts
 apart from the folio label, these xrefs and the two tags (wherever they print), no text changes; undo restores step
 B1's state.
 
+**As built (cycle 11).** `variants/*.ewcmd` are command logs in the JSON Lines format of
+[17](17-extensibility.md) §3.5, replayed by `Session::run_script` (`crates/ew-api/src/cmdlog.rs`; format notes in
+`golden/J-E-2416/README.md`): `{"cmd": "<name>", "params": {…}}` per line with the parameters of the command's schema
+(for step B2, `{"cmd":"page.renumber","params":{"scope":{"section":{"ref":"section:1"}},"start":101,"step":1,
+"keep_gaps":false}}`). `variants/b2-renumber-pages.ewcmd` exists and is tested (`crates/ew-api/tests/golden_b.rs`);
+`variants/b-renumber.ewcmd` waits for step B1, which `numbering.renumber` of v0 cannot do (frozen tags, the strip
+rule; the README, "Variants and command logs").
+
 **B′ (identifier-set switch, FR-NUM-014, Should):** switching Golden A to the IEC 81346-2:2019 set is a previewed
 renumber whose expected classes are the "IEC 81346-2:2019 class" column of
 [reference analysis](../research/reference-drawing.md) §4.4 (S51 → -101QB1, T55 → -101BT1, -X1032 → -103XE1 …),

@@ -76,6 +76,30 @@ pub fn session_with(
         .expect("the golden batch passes the model's integrity check")
 }
 
+/// A session over the batch with the oracle on: every memoised read is also computed cold and compared
+/// ([`ew_api::MemoMode::Oracle`]; read the mismatches with `take_oracle_mismatches`).
+pub fn session_oracle(batch: &ImportBatch) -> Session {
+    let mut project = None;
+    let mut records = Vec::new();
+    for r in &batch.records {
+        match r {
+            Record::Project(p) => project = Some(p.clone()),
+            other => records.push(other.clone()),
+        }
+    }
+    let options = SessionOptions {
+        memo: ew_api::MemoMode::Oracle,
+        ..SessionOptions::default()
+    };
+    Session::from_records(
+        project.expect("the batch holds the project"),
+        records,
+        batch.lib.clone(),
+        options,
+    )
+    .expect("the golden batch passes the model's integrity check")
+}
+
 /// A session over the plain batch (no profiles).
 pub fn session(batch: &ImportBatch) -> Session {
     session_with(batch, |_, _| {})

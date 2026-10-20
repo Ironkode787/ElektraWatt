@@ -44,12 +44,13 @@ ew-derive = { path = "../ew-derive" }
 ew-reports = { path = "../ew-reports" }
 # The record types of `Session::from_records`.
 ew-schema = { path = "../ew-schema" }
+# The command log parser (`Session::run_script`, doc 17 §3.5).
+serde_json = "1.0.154"
 
 [dev-dependencies]
 ew-commands = { path = "../ew-commands", features = ["testkit"] }
 # `tests/golden_csv.rs` compares the derived anchor cells, CPs and tags of the loaded golden model with its tables.
 ew-model = { path = "../ew-model", features = ["raw-read"] }
-serde_json = "1.0.154"
 # tests/page_output.rs: page display lists, PNG and PDF of the golden folios (WP-S3.04).
 ew-text = { path = "../ew-text" }
 ew-dl = { path = "../ew-dl" }

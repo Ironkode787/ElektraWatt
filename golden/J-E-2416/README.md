@@ -502,3 +502,39 @@ The test `the_fixture_is_byte_identical_to_the_bootstrap` (`crates/ew-api/tests/
 the files and compares them with the directory byte for byte. It ignores only the manifest's `generator` member
 (doc 05 §17.1). The other tests of that file open the fixture with `ew-store` (edit, and read-only without a
 lock) and check the findings, the counts and the portable file names.
+
+## Variants and command logs
+
+`variants/*.ewcmd` are command logs (doc 17 §3.5): JSON Lines, a header and then one command per line. Format as
+built (`crates/ew-api/src/cmdlog.rs`):
+
+```text
+{"$schema":"ew.cmdlog/1","label":"Golden B, step B2: …"}
+{"cmd":"page.renumber","params":{"scope":{"section":{"ref":"section:1"}},"start":101,"step":1,"keep_gaps":false}}
+```
+
+- Line 1 is the header (`$schema` is `ew.cmdlog/1`; `label` is free text; other members are ignored). Every other
+  line is `{"cmd": <command name or alias>, "params": {…}}`, the serialised form of `AnyCommand`, with the
+  parameters of the command's JSON Schema (`crates/ew-commands/schemas/`). No other member is allowed.
+- A `{"ref": "<kind>:<value>"}` object inside `params` is replaced just before its line runs: `section:<number>`
+  by the section's ID (the section IDs are UUIDv5 of the tables, so a script cannot spell them portably) and
+  `id:<uuid>` by the text. The `tag:` and `folio:` references of doc 17 §3.5 are not resolved yet and stop the
+  replay.
+- `Session::run_script(&CmdLog, file)` replays a log: each line commits as its own transaction with origin
+  `cmdlog:<file>` (bulk commands as preview then commit), so one `undo` takes back one line. Every command is
+  looked up and checked against its exposure class before the first line runs.
+
+| File | Doc 20 | State |
+|---|---|---|
+| `b2-renumber-pages.ewcmd` | §2.2 step B2: `page.renumber` of section 1 from 101 (folio 106 becomes 104) | tested by `crates/ew-api/tests/golden_b.rs`: exactly the 2 tags (-106W1, -106W2) and 14 cross-reference texts of §2.2 change, the page order follows, the topology (potential partition, 91 connection records) is identical, one undo restores the records byte for byte |
+| `b-renumber.ewcmd` | §2.2 step B1 + B2 | not yet: step B1 needs a decision, see below |
+
+**Step B1 is blocked.** Doc 20 §2.2 specifies `RenumberDevices{scope: project, scheme: "{page}{letter}{counter}",
+include_frozen: true, order: [column, row]}` and ten changed tags. `numbering.renumber` of `ew-commands` v0
+(`crates/ew-commands/src/commands/renumber.rs`) renumbers counters only and never a frozen tag (`skip_frozen` is
+always true; doc 03 §8.6 says "Frozen tags never change"), has no `include_frozen`, `order` or scheme-format
+parameter, and cannot change a format. Eight of the ten tags of the tag map are frozen in Golden A (S51, F55, T55,
+E55, S56, E56, 1X1, -XPE), and -X1031 and -X1032 print through the strip rule of `settings.numbering`
+(`{letter}{page}{counter}`), so B1 also has to drop that rule, which no command can do. The decision is the
+design lead's: whether `include_frozen` clears `TagSpec.frozen`, how a renumber changes the numbering rules, and
+how doc 03 §8.6 and doc 20 §2.2 are reconciled.
