@@ -517,9 +517,11 @@ built (`crates/ew-api/src/cmdlog.rs`):
   line is `{"cmd": <command name or alias>, "params": {…}}`, the serialised form of `AnyCommand`, with the
   parameters of the command's JSON Schema (`crates/ew-commands/schemas/`). No other member is allowed.
 - A `{"ref": "<kind>:<value>"}` object inside `params` is replaced just before its line runs: `section:<number>`
-  by the section's ID (the section IDs are UUIDv5 of the tables, so a script cannot spell them portably) and
-  `id:<uuid>` by the text. The `tag:` and `folio:` references of doc 17 §3.5 are not resolved yet and stop the
-  replay.
+  by the section's ID (the section IDs are UUIDv5 of the tables, so a script cannot spell them portably; this
+  reference kind is an implementation addition that doc 17 §3.5 does not list yet) and `id:<uuid>` by the text
+  once a record with that ID exists. The `tag:` and `folio:` references of doc 17 §3.5 are not resolved yet. A
+  reference that cannot be resolved stops the replay with exit code 2 (`CmdLogError::Reference`, with the number
+  of lines committed before it).
 - `Session::run_script(&CmdLog, file)` replays a log: each line commits as its own transaction with origin
   `cmdlog:<file>` (bulk commands as preview then commit), so one `undo` takes back one line. Every command is
   looked up and checked against its exposure class before the first line runs.
@@ -527,17 +529,17 @@ built (`crates/ew-api/src/cmdlog.rs`):
 | File | Doc 20 | State |
 |---|---|---|
 | `b2-renumber-pages.ewcmd` | §2.2 step B2: `page.renumber` of section 1 from 101 (folio 106 becomes 104) | tested by `crates/ew-api/tests/golden_b.rs`: exactly the 2 tags (-106W1, -106W2) and 14 cross-reference texts of §2.2 change, the page order follows, the topology (potential partition, 91 connection records) is identical, one undo restores the records byte for byte |
-| `b-renumber.ewcmd` | §2.2 step B1 + B2 | not yet: step B1 needs a decision, see below |
+| `b1-page-based-tags.ewcmd` | §2.2 step B1: `project.settings.set` drops the strip rule of `settings.numbering`, then `numbering.renumber` of the project with `include_frozen: true` (and `only_nonconforming`, see below) | tested by `crates/ew-api/tests/golden_b.rs`, alone and followed by B2: 8 of the 10 rows of the tag map hold, no cross-reference text changes, the topology is identical, one undo per line returns to Golden A byte for byte |
 
-**Step B1 is blocked.** Doc 20 §2.2 specifies `RenumberDevices{scope: project, scheme: "{page}{letter}{counter}",
-include_frozen: true, order: [column, row]}` and ten changed tags. `numbering.renumber` of `ew-commands` v0
-(`crates/ew-commands/src/commands/renumber.rs`) renumbers counters only and never a frozen tag (`skip_frozen` is
-always true; doc 03 §8.6 says "Frozen tags never change"), has no `include_frozen`, `order` or scheme-format
-parameter, and cannot change a format. Eight of the ten tags of the tag map are frozen in Golden A (S51, F55, T55,
-E55, S56, E56, 1X1, -XPE), and -X1031 and -X1032 print through the strip rule of `settings.numbering`
-(`{letter}{page}{counter}`), so B1 also has to drop that rule, which no command can do. The decision is the
-design lead's: whether `include_frozen` clears `TagSpec.frozen`, how a renumber changes the numbering rules, and
-how doc 03 §8.6 and doc 20 §2.2 are reconciled.
+**Step B1 as built.** `include_frozen: true` unfreezes the frozen devices that the scheme numbers (`TagSpec.frozen`
+is cleared), and dropping the strip rule makes -X1031 and -X1032 print -103X1 and -103X2. Two rows of the tag map do
+not hold: 1X1 has no strip segment (▲U-43), so it has no main representation and no page, cannot be numbered page-based
+and stays frozen as "1X1" (doc 20: -101X1), and -XPE, then alone with letter X on folio 101, becomes -101X1 (doc 20:
+-101X2); closing that needs a decision (a segment for 1X1, or a main-representation rule for a strip without a
+segment). The log keeps conforming counters (`only_nonconforming`), because under the interim smallest-ID
+main-representation rule the main representation of -X1031 is its second segment (103-A10), which would order it
+after -X1032; doc 20's `order: [column, row]` and scheme-format parameters do not exist (the format change is the
+settings line).
 
 ## Acceptance runner
 
@@ -578,4 +580,4 @@ The headless report of this revision: 81 entries, 37 pass, 12 fail, 26 not_built
 the raster comparison as a pass). The 12 failures are the open gaps listed above (page count 33 against 36, the
 revision label and structure cells of the title blocks, the 23-row parts list, the DP potential, the cover tables, the
 ratings and part numbers on 101 and 102, the missing uniqueness invariant for terminal designations, an empty
-designation rejected as a parameter error instead of by the invariant) and Golden B step B1.
+designation rejected as a parameter error instead of by the invariant) and Golden B step B1 (the 1X1 and -XPE rows, see "Step B1 as built").

@@ -76,8 +76,8 @@ pub use cmdlog::{CmdLog, CmdLogError, SCHEMA as CMDLOG_SCHEMA};
 pub use ew_derive::{DeriveNote, MemoStore, Mismatch, NoteSeverity};
 
 pub use ew_commands::{
-    AnyCommand, Change, CmdError, CommandRegistry, DynCommand, History, HistoryLimits, IdSource, Origin,
-    Preview, Receipt, Restored, Submit, TxContext, World,
+    AnyCommand, Change, CmdError, CommandRegistry, DerivedChange, DerivedDiff, DynCommand, History,
+    HistoryLimits, IdSource, Origin, Preview, Receipt, Restored, Submit, TxContext, World,
 };
 
 use ew_commands::{Engine, EngineOptions};
@@ -351,6 +351,14 @@ impl Session {
     /// [`Session::preview`] with an explicit submission.
     pub fn preview_with(&mut self, cmd: &dyn DynCommand, submit: Submit) -> Result<Preview, CmdError> {
         self.engine.preview_with(cmd, submit)
+    }
+
+    /// The derived values a preview changes (doc 03 §8.6 "diff_query", v0 subset): the printed device tags
+    /// and cross-reference texts that differ between the current snapshot (read through the session's memo
+    /// store) and the preview's candidate (a cold read). A preview made on an older snapshot is compared
+    /// with the current one; preview the command again after other commits.
+    pub fn derived_diff(&self, preview: &Preview) -> DerivedDiff {
+        ew_commands::derived_diff(&self.query(), &self.query_over(preview.candidate()))
     }
 
     /// Commits a preview after the rebase check; re-runs the command if its reads changed.

@@ -224,12 +224,7 @@ pub fn all(r: &mut Runner) {
     }
 
     // AC-18, AC-20: Golden B and the D-01 replay.
-    r.entry("AC-18", "step B1: the ten tags of the tag map", |_| {
-        fail(
-            "variants/b-renumber.ewcmd does not exist: numbering.renumber of v0 renumbers no frozen tag and cannot \
-             drop the strip rule (8 of the 10 tags are frozen, 2 are strips); see golden/J-E-2416/README.md",
-        )
-    });
+    r.entry("AC-18", "step B1: the ten tags of the tag map", ac18_b1);
     r.entry(
         "AC-18",
         "step B2: 2 tags and 14 cross-reference texts, same topology, undo restores the records",
@@ -970,6 +965,75 @@ fn ac18_b2(c: &Ctx) -> Outcome {
         pass(
             "folio 106 becomes 104: 2 tags and 14 texts change, same potentials and connections, one undo restores the records",
         )
+    } else {
+        fail(wrong.join("; "))
+    }
+}
+
+/// The tag map of doc 20 §2.2 step B1: (Golden A, Golden B) for the ten devices that change.
+const B1_TAG_MAP: [(&str, &str); 10] = [
+    ("S51", "-101S1"),
+    ("F55", "-101F2"),
+    ("T55", "-101T1"),
+    ("E55", "-101E1"),
+    ("S56", "-101S2"),
+    ("1X1", "-101X1"),
+    ("-XPE", "-101X2"),
+    ("-X1031", "-103X1"),
+    ("-X1032", "-103X2"),
+    ("E56", "-101E2"),
+];
+
+/// Replays step B1 (`variants/b1-page-based-tags.ewcmd`) and compares the tags of the non-terminal devices
+/// with the ten rows of doc 20 §2.2: exactly those change, to those values; no cross-reference text changes.
+fn ac18_b1(c: &Ctx) -> Outcome {
+    let mut s = golden_common::session(&c.batch);
+    let terminals: BTreeSet<Id<Device>> = {
+        let q = s.query();
+        q.devices()
+            .iter()
+            .filter(|(_, d)| d.aspects.terminal.is_some())
+            .map(|(id, _)| id)
+            .collect()
+    };
+    let (tags_before, xrefs_before) = (tags(&s), xrefs(&s));
+    let text = match std::fs::read_to_string(golden_common::variant("b1-page-based-tags.ewcmd")) {
+        Ok(t) => t,
+        Err(e) => return fail(format!("variants/b1-page-based-tags.ewcmd: {e}")),
+    };
+    if let Err(e) = run_log(&mut s, &text, "b1-page-based-tags.ewcmd") {
+        return fail(e);
+    }
+    let tags_after = tags(&s);
+    let changed: BTreeMap<&str, &str> = tags_before
+        .iter()
+        .filter(|(id, old)| !terminals.contains(*id) && tags_after[*id] != **old)
+        .map(|(id, old)| (old.as_str(), tags_after[id].as_str()))
+        .collect();
+    let mut wrong = Vec::new();
+    for (a, b) in B1_TAG_MAP {
+        match changed.get(a) {
+            Some(got) if *got == b => {}
+            Some(got) => wrong.push(format!("{a} becomes {got}, expected {b}")),
+            None => wrong.push(format!("{a} does not change, expected {b}")),
+        }
+    }
+    for (a, got) in &changed {
+        if !B1_TAG_MAP.iter().any(|(x, _)| x == a) {
+            wrong.push(format!("{a} becomes {got}, not in the tag map"));
+        }
+    }
+    if xrefs(&s) != xrefs_before {
+        wrong.push("cross-reference texts changed".into());
+    }
+    if !changed.contains_key("1X1") {
+        wrong.push(
+            "1X1 has no strip segment (U-43), so page-based numbering has no page for it (golden/J-E-2416/README.md)"
+                .into(),
+        );
+    }
+    if wrong.is_empty() {
+        pass("the ten tags of the tag map change and nothing else; no cross-reference text changes")
     } else {
         fail(wrong.join("; "))
     }

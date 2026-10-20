@@ -1,0 +1,3 @@
+{"$schema":"ew.cmdlog/1","label":"Golden B, step B1: drop the strip rule, then renumber every device page-based including the frozen tags (doc 20 section 2.2)"}
+{"cmd":"project.settings.set","params":{"member":"numbering","value":{"default":"page-based","schemes":[{"key":"page-based","format":"{page}{letter}{counter}","rules":[],"child_separator":"-"}]}}}
+{"cmd":"numbering.renumber","params":{"scope":"project","scheme":"page_based","include_frozen":true,"options":{"only_nonconforming":true}}}

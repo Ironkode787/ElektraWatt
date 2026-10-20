@@ -157,9 +157,12 @@ B1's state.
 [17](17-extensibility.md) §3.5, replayed by `Session::run_script` (`crates/ew-api/src/cmdlog.rs`; format notes in
 `golden/J-E-2416/README.md`): `{"cmd": "<name>", "params": {…}}` per line with the parameters of the command's schema
 (for step B2, `{"cmd":"page.renumber","params":{"scope":{"section":{"ref":"section:1"}},"start":101,"step":1,
-"keep_gaps":false}}`). `variants/b2-renumber-pages.ewcmd` exists and is tested (`crates/ew-api/tests/golden_b.rs`);
-`variants/b-renumber.ewcmd` waits for step B1, which `numbering.renumber` of v0 cannot do (frozen tags, the strip
-rule; the README, "Variants and command logs").
+"keep_gaps":false}}`; `section:<n>` is a reference kind of the implementation that [17](17-extensibility.md) §3.5 does
+not list yet, and an unresolvable reference stops the replay with exit 2). `variants/b2-renumber-pages.ewcmd` exists
+and is tested (`crates/ew-api/tests/golden_b.rs`). Step B1 is `variants/b1-page-based-tags.ewcmd`
+(`project.settings.set` drops the strip rule, then `numbering.renumber` with `include_frozen: true`); 8 of the 10 rows
+of the tag map hold, while 1X1 (no strip segment, ▲U-43, so no page) stays "1X1" and -XPE becomes -101X1 (the README,
+"Step B1 as built").
 
 **B′ (identifier-set switch, FR-NUM-014, Should):** switching Golden A to the IEC 81346-2:2019 set is a previewed
 renumber whose expected classes are the "IEC 81346-2:2019 class" column of
