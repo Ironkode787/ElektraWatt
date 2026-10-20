@@ -25,19 +25,20 @@
 
 mod golden_common;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::num::NonZeroU32;
 
 use ew_api::{AnyCommand, CmdError, MemoMode, Session, SessionOptions};
 use ew_commands::testkit::seeded_ids;
 use ew_derive::ew_ids::Id;
 use ew_derive::{
-    BomMode, BomRows, DevicePartLines, DeviceTag, DevicesByStructure, DrawnPageOrder, FlowBfs, FunctionCps,
-    Member, Oracle, PageLocalNets, PageOrder, PageRef, PhysicalWiresOf, PotentialId, PotentialPartition, Q,
-    Query, SettingsMember, StitchGraphQ, TitleBlockValues, TocRows, WirePropsOf, XrefTextOf,
+    BomMode, BomRows, DevicePartLines, DeviceTag, DevicesByStructure, DrawnPageOrder, EndClass, EndScope,
+    FlowBfs, FunctionCps, Member, Oracle, PageLocalNets, PageOrder, PageRef, PhysicalWiresOf, PotentialId,
+    PotentialPartition, ProfileKey, ProfileRowFor, Q, Query, SettingsMember, StitchGraphQ, TitleBlockValues,
+    TocRows, WireDefaultProps, WireProfileNotes, WireProfilesQ, WirePropsOf, XrefTextOf,
 };
 use ew_model::{AnyRow, Model, Op};
-use ew_schema::{Device, Kind, Page, Record};
+use ew_schema::{CircuitClass, Device, Kind, Page, Record};
 use serde_json::{Value, json};
 
 /// The families this test reads: the `Memo`/`MemoLru` families of `ew_derive::FAMILIES`, sorted.
@@ -47,15 +48,20 @@ const SWEPT: &[&str] = &[
     "device_tag",
     "devices_by_structure",
     "drawn_page_order",
+    "end_class",
     "page_local_nets",
     "page_order",
     "physical_wires_of",
     "potential_flow_bfs",
     "potential_partition",
+    "profile_row_for",
     "settings_member",
     "stitch_graph",
     "title_block",
     "toc_rows",
+    "wire_default_props",
+    "wire_profile_notes",
+    "wire_profiles",
     "wire_props_of",
     "xref_text",
 ];
@@ -107,21 +113,39 @@ struct Keys {
     reps: Vec<Id<ew_schema::Representation>>,
     page_refs: Vec<PageRef>,
     potentials: Vec<PotentialId>,
+    /// The profile keys of the potentials, and the same attributes with each known circuit class.
+    profile_keys: BTreeSet<ProfileKey>,
 }
 
 impl Keys {
     fn of(q: &Q) -> Keys {
+        let potentials: Vec<PotentialId> = q
+            .get::<PotentialPartition>(())
+            .potentials
+            .iter()
+            .map(|p| p.id)
+            .collect();
+        let mut profile_keys = BTreeSet::new();
+        for p in &potentials {
+            let key = ProfileKey::of_potential(q, *p);
+            for class in [
+                CircuitClass::Mains,
+                CircuitClass::Control,
+                CircuitClass::Analogue,
+                CircuitClass::Bus,
+                CircuitClass::Pe,
+            ] {
+                profile_keys.insert(ProfileKey::new(&key.attrs(), Some(class)));
+            }
+            profile_keys.insert(key);
+        }
         Keys {
             devices: q.devices().ids().collect(),
             pages: q.pages().ids().collect(),
             reps: q.reps().ids().collect(),
             page_refs: q.get::<PageOrder>(()).entries.iter().map(|e| e.page).collect(),
-            potentials: q
-                .get::<PotentialPartition>(())
-                .potentials
-                .iter()
-                .map(|p| p.id)
-                .collect(),
+            potentials,
+            profile_keys,
         }
     }
 }
@@ -170,6 +194,17 @@ fn sweep(memo: &Q, cold: Option<&Q>, state: &str) -> BTreeMap<&'static str, usiz
         check::<DrawnPageOrder>(memo, cold, [()], state),
     );
     put(
+        EndClass::FAMILY,
+        check::<EndClass>(
+            memo,
+            cold,
+            keys.devices
+                .iter()
+                .flat_map(|d| [EndScope::Device(*d), EndScope::Strip(*d)]),
+            state,
+        ),
+    );
+    put(
         PageLocalNets::FAMILY,
         check::<PageLocalNets>(memo, cold, keys.pages.iter().copied(), state),
     );
@@ -184,6 +219,10 @@ fn sweep(memo: &Q, cold: Option<&Q>, state: &str) -> BTreeMap<&'static str, usiz
         check::<PotentialPartition>(memo, cold, [()], state),
     );
     put(
+        ProfileRowFor::FAMILY,
+        check::<ProfileRowFor>(memo, cold, keys.profile_keys.iter().cloned(), state),
+    );
+    put(
         SettingsMember::FAMILY,
         check::<SettingsMember>(memo, cold, ALL_MEMBERS, state),
     );
@@ -196,6 +235,18 @@ fn sweep(memo: &Q, cold: Option<&Q>, state: &str) -> BTreeMap<&'static str, usiz
         check::<TitleBlockValues>(memo, cold, keys.page_refs.iter().copied(), state),
     );
     put(TocRows::FAMILY, check::<TocRows>(memo, cold, [()], state));
+    put(
+        WireDefaultProps::FAMILY,
+        check::<WireDefaultProps>(memo, cold, [()], state),
+    );
+    put(
+        WireProfileNotes::FAMILY,
+        check::<WireProfileNotes>(memo, cold, [()], state),
+    );
+    put(
+        WireProfilesQ::FAMILY,
+        check::<WireProfilesQ>(memo, cold, [()], state),
+    );
     put(
         WirePropsOf::FAMILY,
         check::<WirePropsOf>(memo, cold, keys.potentials.iter().copied(), state),
