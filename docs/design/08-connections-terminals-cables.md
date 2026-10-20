@@ -1,6 +1,6 @@
 # Connections, terminals and cables
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: page token of segment-less strips as built, decision log ID-293) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) turns drawn connections into electrical meaning. It covers
 connection points, connections and junctions, the three connectivity levels (net, signal, potential) with stable
@@ -766,9 +766,11 @@ bus with dots. That drawing is derived from the bridge connections.
   designation or function text (`label_mode`), never the full tag; on a page without a segment of its strip, the
   strip tag is printed once, at the first terminal representation in (row, column, ID) order.
 - **Page token.** The strip's `{page}` comes from its first segment in (page order, row, column, ID). A strip
-  without a segment takes it from its first terminal representation (FR-NUM-032): 1X1, drawn only as three
-  terminal symbols at 101-D2, derives the rule value -X1011, which the numbering report shows next to its frozen tag
-  "1X1" (EF-15). Moving the first segment of -X1031 to folio 104 makes the strip -X1041 everywhere, unless its tag is
+  without a segment takes the page of its first placed terminal (FR-NUM-032): the lowest page by folio order, folio
+  label and page ID, then the lowest designation in natural order, then the smallest ID (decision log ID-293; the
+  interim rule shared with [03](03-domain-model.md) §8.2 step 4 until WP-S1.11). 1X1, drawn only as three terminal
+  symbols at 101-D2, derives the rule value -X1011, which the numbering report shows next to its frozen tag "1X1"
+  (EF-15); after Golden B's step B1 drops the strip rule it prints -101X1 ([20](20-golden-project.md) §2.2). Moving the first segment of -X1031 to folio 104 makes the strip -X1041 everywhere, unless its tag is
   frozen ([03](03-domain-model.md) §8.4).
 
 ### 6.8 Designation uniqueness (D-11, D-12)

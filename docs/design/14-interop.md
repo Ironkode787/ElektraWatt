@@ -1,6 +1,6 @@
 # Interoperability: import, export and migration
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.2 · **Date:** 2026-10-21 (v0.2: the QET project importer as built in cycle 11, decision log ID-273 to ID-284) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) reads and writes foreign formats: the permissive
 importer and exporter contracts, the QElectroTech (QET) migration path in detail, EPLAN part and report data, DXF
@@ -276,16 +276,29 @@ Re-importing an edited file into the same lineage keeps the IDs of every item wh
 
 | Source | Key | Stability |
 |---|---|---|
-| QET element instance | `qet:el:{uuid}`; for a UUID shared by copy-paste (QET #1408): `qet:el:{uuid}#{folio key}#{n}` | stable |
+| QET element instance | `qet:el:{uuid}`; for a UUID shared by copy-paste (QET #1408), the n-th further copy on a folio: `qet:el:{uuid}#{folio key}#{n}` (EW-IMP-120); an element without UUID: `{folio key}#el#{n}` at source position n. The device takes the key, its main function `…#fn`, its representation `…#rep` | stable |
+| QET junction element | `qet:junction:{element key}` | stable |
+| QET project record | `qet:project` (when the import creates the project) | stable |
 | QET folio | `qet:folio:{uuid}` (0.200); else `qet:folio:{label}`, falling back to `qet:folio-order:{order}` | label-stable before 0.200 |
-| QET conductor | `qet:wire:{uuid}` (0.200); else `qet:wire:{end key 1}\|{end key 2}` with the end keys sorted | endpoint-stable |
+| QET conductor | `qet:wire:{uuid}` (0.200); else `qet:wire:{end key 1}\|{end key 2}` with the end keys sorted; an end key is `{element key}/{terminal index}`, and parallel conductors between the same ends add `#{n}` | endpoint-stable |
 | QET element definition | content hash of the canonical definition XML (05 §13.2: element-hash UUIDv5) | content-addressed |
-| QET strip, cable, shape, text | 0.100/0.200 UUIDs; else `{folio key}#{kind}#{n}` in document order | order-stable |
+| QET strip (inferred, §4.11) | `qet:strip:{structure}-{product}` (its own designation with the structure prefix, sign dropped); the fallback strip of a folio `qet:strip:folio:{folio key}`; never a line number | stable under re-import |
+| QET cable, shape, text | 0.100/0.200 UUIDs; else `{folio key}#{kind}#{n}` in document order | order-stable |
 | EDZ / parts XML part | `edz:part:{manufacturer}\|{P_ARTICLE_PARTNR}` (+ `\|{variant}`) | stable |
 | DXF entity | `dxf:{layout}\|{handle}`; R12 files without handles: `dxf:{layout}\|#{n}` | handle-stable |
 | EPLAN report row (§5.4) | `eplan:{target}\|{row key}`, the row key being the mapped DT plus designation (`=P01+J-E-2416-X1031:1`) | stable while the DT is |
 | Spreadsheet row | the hidden `id` column (§8) | stable |
 | Golden CSV | `{table}\|{row key}` in the lineage anchored `Fixed("golden")`, i.e. `v5(v5(NS_IMPORT, "csv␟fixed␟golden"), "{table}\|{row key}")` ([20](20-golden-project.md) §3.2) | stable |
+
+**As built (cycle 11; decision log ID-274).** The folio key of these keys is the printed folio label
+(`qet:folio-order:{position}` for a repeated label). The lineage is anchored on the QET 0.200 project UUID where the
+file has one, else on `FirstImportSha256`. A conductor end that names a UUID repeated on its folio is resolved to the
+copy whose terminal position matches the conductor's route (its first or last point), through one terminal-position
+index per folio and repeated UUID, so the matching is linear in the number of copies and conductors; a conductor
+gets at most 16 pair probes, and an ambiguous pair beyond them binds the first copy in document order with an
+EW-IMP-120 finding. The keys depend on
+neither line numbers nor document order where the source has identifiers, so an edited file re-imports into the same
+IDs (FR-IMP-040).
 
 **Persisted provenance.** Every imported record carries `source_ref: {lineage, key}`. Locations (file, member,
 folio, cell, line) live only in the import run, which keeps entity files small. Golden C's equivalence test ignores
@@ -308,7 +321,10 @@ pub enum Proposal { MergeStructure{from, into}, SetFields{target, fields}, BindT
 ```
 
 - `ImportStats` counts records per kind, dropped and inferred items, and **lost connections**. FR-IMP-007's
-  acceptance is `lost_connections == 0`.
+  acceptance is `lost_connections == 0`. It also carries `suppressed`: per code, the number of entries that a report
+  cap (`MAX_ENTRIES_PER_DEFINITION`, the project importer's entry cap) folded into a summary entry, so a capped
+  report still counts every condition. The member is an additive change of the permissive `ew-interop-api`, checked
+  against its MSRV (cycle 11; decision log ID-275).
 - A `Proposal` is format-level intent. `ApplyImport` translates an accepted proposal into a command inside the import
   transaction; a pending one becomes a quick fix on the finding.
 - **`ImportRun`** (record kind `import_run`, rank 72, one file `imports/<run-uuid>.jsonl` per run,
@@ -326,6 +342,12 @@ The migration report of FR-IMP-003 is one check-run view over two sources:
 |---|---|---|
 | **Import findings** `EW-IMP-nnn` from the `ImportRun` | Facts visible only at import: dropped, substituted, inferred, recognised, conflicting per-folio values | Persisted; acknowledged items turn into info |
 | **Lenient check findings** of the `migration` scheme on the candidate ([15](15-checks-revisions-collaboration.md) §10.2) | EW-TERM-001/002 (D-11, D-12), EW-RDS-010 (D-03), EW-CORE-023 (D-06), EW-CORE-031 (D-17), EW-POT-013 (D-13), EW-CORE-053 (D-14, FR-CHK-035) … | Live: they disappear when the model is fixed |
+
+**Interim (cycle 11; decision log ID-276).** Until imports run through `ApplyImport` with the `migration` scheme
+(follow-up task FT-143), the lenient half has two checks only: EW-RDS-004 (duplicate designation) and EW-TERM-002
+(duplicate terminal designation) run on the imported model in the `ew_api::import` front door and join the import
+findings in the report, grouped by condition. Every other live rule of the table above is not yet evaluated on an
+import.
 
 The panel filters both by lineage, sorts by folio and cell, and offers each quick fix as a previewed command
 (FR-CHK-010). `ew import … --report json|csv|md` writes the same list.
@@ -371,6 +393,8 @@ no live counterpart until the assembly exists; EW-CORE-046 (FR-CHK-022) takes ov
 | EW-IMP-119 | Element without function semantics; generic black box | warning | — | map symbol |
 | EW-IMP-120 | Shared element UUID disambiguated | info | — | — |
 | EW-IMP-121 | Several interruption-point names on one potential | info | D-24 | — |
+| EW-IMP-122 | Unlabelled element, tag synthesised: the device keeps its `prefix` letter (else "A") without counter and prints "?" | info | — | label (hiding the synthesised tag: FT-144) |
+| EW-IMP-123 | Cross-section mark differs from the derived wire property: the mark is dropped, the wire keeps the derived value, the mark's value is in the finding | warning | D-08 | set the override to the mark's value |
 | EW-IMP-2nn | EDZ and EPLAN: 201 terms notice shown, 202 function definition unmapped, 203 ZIP-format EDZ, 204 extras ignored, 205 unit converted, 206 report column unmapped, 207 multi-level terminals folded | info–warning | — | map |
 | EW-IMP-25n | DXF and DWG: 251 units missing (prompted), 252 SHX substituted, 253 entity unsupported, 254 external reference not followed, 255 hatch pattern reduced to its boundary, 256 CP snapped, 257 DWG converted through ODA | info–warning | — | — |
 | EW-IMP-30n | Tables: 301 derived column edited, 302 row changed in EW since export, 303 unknown ID, 304 cell conflict, 305 lossy Excel conversion | info–warning | — | resolve |
@@ -580,7 +604,8 @@ map one to one:
   and S56's elements.
 - **Link type.** `simple` and `master` form devices; `slave` forms auxiliary functions; `next_report` and
   `previous_report` become interruption points (the built-in FnDef `ew.fn.ip`, §4.3, not generated); `terminal`
-  forms terminals; `thumbnail` becomes a graphic.
+  forms terminals; `thumbnail` becomes a graphic (as built in cycle 11 a thumbnail is not imported yet and is
+  reported with EW-IMP-004 until free graphics are, follow-up task FT-134; decision log ID-279).
 - **Coverage of the pilot corpus.** [23](23-symbol-coverage-pilot-corpus.md) maps the 81 element types of the pilot's
   three real projects to the starter set (§4.3 step 1) and lists the mapping entries for the project importer (M-01 to
   M-09): 37 types resolve to starter symbols, 29 stay black boxes (EW-IMP-119), 2 are replaced by report blocks or
@@ -616,7 +641,17 @@ map one to one:
 4. **Conforming** labels become derived `TagSpec{letter, counter, scheme}` with the counter taken from the label.
    **Non-conforming** labels become `FrozenTag{text, sign}`, with `sign: Hidden` when the label has no product sign
    (S51), and EW-IMP-103 lists them (FR-NUM-010).
-5. **Identifier set.** EN 81346-2:2009 single letters unless the letter analysis is explained only by IEC 60750, in
+5. **As built (cycle 11; decision log ID-277).** The project importer applies one rule, R1 on the element's own
+   folio: a label of the form `-{page}{letter}{counter}` whose page is the folio of the element, whose letters are
+   upper case and whose counter has no leading zero becomes a derived `TagSpec{letter, counter}`. Every other label
+   stays a `FrozenTag` that prints the source text unchanged, so a label EW would print differently (`-101K01`,
+   `-101f1`) is frozen rather than re-derived, and EW-IMP-009 never fires for a tag. EW-IMP-103 lists the frozen
+   labels, strips excepted. A structure prefix (`+…-X1`) is kept in `Device.extra` until structure nodes are created
+   (FT-130). Steps 1 and 3, R2, R3 and the `AdoptRule` proposal are follow-up tasks FT-128 and FT-129. An element
+   without any label gets `TagSpec{letter: prefix attribute, else "A", counter: none}`, prints "?" (the derivation's
+   placeholder for an underivable token), and is reported once per folio as EW-IMP-122; whether such a synthesised
+   tag should rather be hidden is FT-144.
+6. **Identifier set.** EN 81346-2:2009 single letters unless the letter analysis is explained only by IEC 60750, in
    which case that set is proposed (ADR-0026). The importer never switches to IEC 81346-2:2019; that is the
    previewed renumber of FR-NUM-014.
 
@@ -645,6 +680,16 @@ importer reconstructs QET's pairs exactly:
    reproduces QET's pairs. If the target project requires star mode, the group is reported (EW-IMP-115) with the
    quick fix "rename the extra pairs".
 5. **Verify** (pass P3): the derived pairs must equal the QET pairs; every difference is an error finding.
+
+   *As built (cycle 11; decision log ID-278).* Step 2 takes one name per linked pair from the first non-empty of: the
+   source's `label`, the target's `label`, the source's first `UserText` dynamic text, the target's first `UserText`
+   (the reference set stores interruption-point names in `UserText`); both ends get that name and the other end's
+   differing text is kept as an alias and reported in one EW-IMP-115 entry that quotes both texts. A pair without any
+   name gets one synthesised name `IP-{folio}-{n}` for both ends (EW-IMP-115). Several pairs that share a name get
+   `IpSpec.sort` 2i and 2i+1 and an EW-IMP-115 saying the project needs chain mode; switching the project to chain
+   mode, pass P3 and the external ends of step 6 are follow-up task FT-138. The conductor `function` of the
+   specified step 2 is not read yet (FT-136). On the third pilot project this pairing moved two pairs that only
+   shared a name into separate potentials (214 → 212 potentials), which is the correct result.
 6. **External ends.** A report whose partner is missing but which sits inside or next to a dashed external box with
    a target text gets the proposal `IpSpec.external = Some(ExternalRef)`, the reference parsed from the box text
    (REF-018, FR-PRJ-021). Golden A has four external points: J-E-206-L, J-E-206-N and J-E-206-PE at 101-G0 (box
@@ -661,7 +706,9 @@ texts) and 10 main/aux pairs on 9 devices (19 texts with 20 targets): 63 texts w
 **End resolution**, per end independently (FR-IMP-007):
 
 1. If `element{i}` is present, look the element up by UUID. Unique → done; shared by copy-paste → candidates on
-   this folio only (EW-IMP-120).
+   this folio only (EW-IMP-120), decided by the route position of the conductor's end (§2.3, as built in cycle 11:
+   linear in the number of copies and conductors; ambiguous pairs beyond 16 probes bind the first copy with a
+   finding).
 2. If `terminal{i}` is a UUID, find it among the candidate's terminals. If the definition has no terminal UUIDs or
    none matches, fall through.
 3. If `terminal{i}` is an integer, use the folio's map `terminal id → (element, definition index)` built from
@@ -745,6 +792,11 @@ variable has an EW xref-format token (FR-XRF-003):
 | `%version` | generator version (derived; QET's version is kept in the import run) | — |
 | `%{var}` (custom) | project property if equal on all folios, else page user property | EW-IMP-104/105 |
 
+- **As built (cycle 11; decision log ID-279).** The project importer lifts a title-block value or folio property to
+  the project only when it is equal on **all** folios, in one linear pass; every other value stays on its page and
+  differing `author`, `date` and `indexrev` values and properties are EW-IMP-104. The majority rule and the revision
+  records below are follow-up work with FT-139. The project property `savedfilepath` (a local path of the author's
+  machine) is dropped and reported with EW-IMP-004; the import runs under the default `Limits` of §2.1.
 - **Lifting.** EW has no per-page revision, author or description text (ARCH §11). For each value the majority goes
   to the project or revision record; the per-folio values stay listed in the finding with "lift to project
   property" and "create revision history" quick fixes. A deviating description becomes `Page.description_override`
@@ -777,6 +829,19 @@ variable has an EW xref-format token (FR-XRF-003):
   (EW-TERM-001/002, MF-08/09).
 - **Older projects:** terminal elements are grouped by label prefix (`X1031:1+` → strip X1031, designation "1+"),
   else by the strip header element on the same folio; each inferred strip is EW-IMP-005.
+- **As built (cycle 11; decision log ID-280).** A terminal element joins a strip by, in this order: (1) its label
+  prefix, with an optional structure prefix (`+JE2416-X1031:1+`); (2) the strip header that heads its line, a header
+  being an element labelled with a strip designation (optional structure prefix and sign, then digits, letters and
+  digits: `X1031`, `-X1031`, `1X1`); lines are per folio, a column per x for elements turned a quarter, else a row
+  per y, and the header is itself a terminal of its strip; (3) the fallback strip `X?{page}` of its folio (§14 item 5,
+  EW-IMP-005). A strip is identified by its own designation including the structure prefix (`+A-X1` and `+B-X1` are
+  two strips), the fallback by its folio, never by a line number, so its key (§2.3) is stable under re-import
+  (FR-IMP-040). One designation drawn in several lines or folios is one strip (EW-IMP-109). A terminal's designation
+  is its label suffix, else its first `UserText` dynamic text (where the reference set writes "1+" and "PE"), else a
+  label that is not a strip designation, else its sequence number with EW-IMP-008, because an empty designation
+  cannot be stored (`Ident` is never empty; MF-08 needs a schema decision, FT-141). The 0.100+ `<terminal_strips>`
+  data and its bridges are not read yet (EW-IMP-004; FT-140). On the pilot's three projects the importer forms 22,
+  6 and 48 strips.
 - **Segments.** Several drawn segments or header elements with one strip identity become one strip with several
   segment representations (D-42), reported as EW-IMP-109 with a "split" quick fix.
 - **Cables, 0.200:** `<cable>` → cable device (`designation` → tag, `length` → `LengthSource::Manual`, `type` →
@@ -804,6 +869,12 @@ the recognisers of FR-IMP-017:
   within one cell. Low: several candidates or a count mismatch. High-confidence matches are pre-ticked in the review
   queue; medium ones are listed; low ones are not proposed but appear in the review list (EW-IMP-108), so "every
   unconverted address-like text" is visible.
+- **Cross-section marks** (decision log ID-284). QET cross-section mark elements (`section1conducteur`,
+  `section2conducteurs`, 456 uses in the pilot corpus, [23](23-symbol-coverage-pilot-corpus.md) M-03) are not
+  symbols. A mark whose value equals the crossed wire's derived cross-section is dropped. A mark whose value differs
+  is dropped as well, the wire keeps its derived property, and EW-IMP-123 carries the mark's value with the quick fix
+  "set the override to the mark's value", so nothing the mark said is lost and no override is created silently.
+  Implementation: FT-132.
 - Converted texts are removed from the page in the same transaction and listed (EW-IMP-107), with a revert action.
   The conversion of the reference's four marker groups into ten CDPs is MF-07.
 - **Colour aliases.** The shipped table maps foreign colour notations to IEC 60757: BR → BN, SW → BK, BL → BU,
@@ -869,6 +940,37 @@ ARCH §7.7) and passes the importer a neutral `TableImage` of those tables throu
   corpus except declared ones; each project's batch is byte-identical across platforms.
 - **Pilot acceptance:** Golden C (AC-25 … AC-27) and NFR-UX-06 (one hour from import to zero migration errors on a
   reference-size project).
+
+### 4.16 The project importer as built (cycle 11)
+
+*Decision log ID-273 to ID-284.* The lenient import of whole projects (`QetProjectImporter`, `ew import qet`) was
+pulled forward from lever (b) as a spike on the pilot's three projects. The sections above carry its rules as
+"As built" paragraphs: keys (§2.3), report statistics and the interim lenient checks (§2.4, §2.5), tags (§4.4.1),
+interruption points (§4.6), conductor ends (§4.7), title blocks (§4.9), strips (§4.11) and cross-section marks
+(§4.12). What it does beyond them:
+
+- **Route into a session (interim, ID-281).** The batch is opened through `Session::from_records`: no
+  `ApplyImport`, no lenient validators, no import passes P1 to P7, no proposals and no `ImportRun` record yet. The
+  front door `ew_api::import` adds the two duplicate checks of §2.5. Moving to the pipeline of §3 is follow-up task
+  FT-143. Definition findings are reported only for definitions that placed elements use, and a font substitution
+  once per family.
+- **Not imported yet** (each reported, mostly as EW-IMP-004 or EW-IMP-008 with counts): formulas and EW-IMP-101
+  (FT-128), rules R2/R3 (FT-129), structure nodes and EW-IMP-102 (FT-130), parts from element information (FT-131),
+  text-to-data recognisers (FT-132), `graphics_table` report blocks (FT-133), free texts, shapes, images and
+  thumbnails (FT-134), cables (FT-135), conductor properties as potential definitions and overrides (FT-136), QET's
+  auto-route (FT-137; conductors without segments get EW's provisional route), chain mode and external points
+  (FT-138), title-block template forms (FT-139), `<terminal_strips>` and their bridges (FT-140), empty terminal
+  designations (FT-141), and the exchange of QET-import symbols for starter symbols through `symbol-map.csv`
+  (FT-127, [23](23-symbol-coverage-pilot-corpus.md) M-01 to M-09). A junction element is counted against the first
+  of several pasted copies (FT-142, minor; no corpus file has one).
+- **Evidence.** All three pilot projects import, derive and export to PDF with no lost connection: 34 folios, 1,004
+  devices, 645 connections and 22 strips; 18, 110, 106 and 6 (the reference set, Golden C's source); 36, 734, 718
+  and 48. The import of each is byte-identical across runs. On the reference set the duplicate-designation check
+  reports exactly the 8 EW-TERM-002 groups that MF-09 expects ([20](20-golden-project.md) §20.1); Golden C's
+  migration report against §20.1 and its fix script are cycle-12 work (ID-283). The synthetic fixture of golden
+  folios 101 to 103 imports its 50 wires as 50 connections; its differences (strips without a strip
+  representation, no drawn bridges, terminals with two CPs where Golden A's part has four) are limits of the QET
+  source, except the bridges that QET 0.100+ stores in `<terminal_strips>` (FT-140).
 
 ---
 
@@ -1281,7 +1383,7 @@ repository; every crash becomes a committed regression input ([18](18-quality-se
 | Format | Corpus | Storage | Assertions |
 |---|---|---|---|
 | QET | 24 examples of the QET mirror (0.80–0.200.1, C-14) | fetched at a pinned commit in CI, never committed | §4.15; zero lost connections; deterministic batches |
-| QET | pilot projects including the reference project (PQ-02) | private store, private CI job (20 §3.5) | AC-25 … AC-27 |
+| QET | pilot projects including the reference project (PQ-02); three received 2026-10-20 | private store outside the repository, private CI job (20 §3.5); agents read sanitised derived lists only, documents carry counts only (decision log ID-299) | AC-25 … AC-27; 0 lost connections (§4.16) |
 | QET | hostile set: NaN coordinates, shared UUIDs, unknown link types, billion-laughs DTD | committed in `tests/hostile/` (own files, CC0; [18](18-quality-security-release.md) §3.12) | EW-IMP-001/002, no crash |
 | QETZ | `.qetz` saved by QET 0.200.1-dev and its `.qet` export; a SQLite file with a view | fetched / generated | equal import; view rejected |
 | EDZ | own synthetic 7z and ZIP EDZ built from CC0 `part.xml` files; vendor EDZ for golden parts as available | committed / private | FR-IMP-025, AC-38 |
@@ -1308,7 +1410,7 @@ are specified in [16](16-ux-ui.md).
 | **DXF import** | Units with an extents preview, layer list with visibility and mapping, model or paper space, target choice |
 | **DXF→symbol wizard** | Block list with thumbnails, attribute mapping, CP pick tool, grid-snap result with the scale proposal |
 | **Table round trip** | "Export table…" and "Import changes…" with a per-cell diff grid and conflict resolution |
-| **CLI** (FR-EXT-008) | `ew import qet <file> [--into <project>] [--basic <project>] [--lineage auto\|new\|<id>] [--proposals pending\|safe\|all] [--report json\|csv\|md]` (MVP); `ew import qet --batch <dir> --out <dir>` (FR-IMP-023, 1.0); `ew import csv <dir>` (MVP); `ew import edz <file> --library <lib>` (1.0); `ew import dxf <file> --as page\|underlay\|symbol [--units mm]` (1.0); `ew import table <xlsx> --project <p>` (1.0, FR-EXT-028 of [17](17-extensibility.md) §3.3); `ew verify-migration <project> --reference <pdf>` (MVP). Exit codes follow FR-EXT-002: 0 committed without errors, 1 committed with error findings, 2 refused or usage error |
+| **CLI** (FR-EXT-008) | `ew import qet <file> [--into <project>] [--basic <project>] [--lineage auto\|new\|<id>] [--proposals pending\|safe\|all] [--report json\|csv\|md] [--report-out <file>] [--strict]` (MVP; as built in cycle 11: `ew import qet <file.qet> [--content <dir>] [--report md\|csv\|json] [--report-out <file>] [--strict]`); `ew import qet --batch <dir> --out <dir>` (FR-IMP-023, 1.0); `ew import csv <dir>` (MVP); `ew import edz <file> --library <lib>` (1.0); `ew import dxf <file> --as page\|underlay\|symbol [--units mm]` (1.0); `ew import table <xlsx> --project <p>` (1.0, FR-EXT-028 of [17](17-extensibility.md) §3.3); `ew verify-migration <project> --reference <pdf>` (MVP). Exit codes follow FR-EXT-002 as [17](17-extensibility.md) §3.2 applies them to imports (decision log ID-282): a lenient import that completes exits 0 and prints its summary, whatever its findings, because the findings are the migration report's content; `--strict` exits 1 when a connection was lost or an error finding exists; 2 for an unreadable file or a usage error. With `--report` on stdout (no `--report-out`), stdout is exactly the report and the summary goes to stderr |
 | **Concept glossary** | The wizard and the migration report link the QET ↔ EW glossary (element → symbol and FnDef, master/slave → main/auxiliary function, folio report → interruption point, conductor → connection; NFR-DOC-05) |
 
 The CLI default `--proposals pending` applies no proposal, so headless imports are reproducible and Golden C lists
@@ -1330,7 +1432,8 @@ The body already covers default formulas (§4.8), shared UUIDs (§4.7), NaN and 
 3. **Non-UTF-8 XML prologs** in old files: ISO-8859-1 and Windows-1252 are transcoded; other encodings are refused.
 4. **A folio report linked to a report on the same folio** is kept and reported as a degenerate pair.
 5. **Terminals without a strip header** and without a label prefix form a strip per folio named `X?{page}`,
-   reported for review.
+   reported for review (EW-IMP-005); its key is the folio's (`qet:strip:folio:{folio key}`), never a line number,
+   so it survives re-import (§4.11, decision log ID-280).
 6. **Duplicate designations used as function texts** ("1+" ×4): the quick fix renumbers 1–n and moves the old
    designation into the terminal's function text, which is how Golden A prints "1+" ([08](08-connections-terminals-cables.md) §6.8).
 7. **Excel damage:** dates made from "1-2", lost leading zeros, merged cells (refused per row), a deleted `id` column
@@ -1442,6 +1545,9 @@ rule (§2.5).
 | AML, TIA XLSX, PLCopen, instrument list, GSD/GSDML/IODD (10) | | ● | | |
 | QETZ; native DWG (acadrust); BMEcat, ETIM xChange; QET export; ESI, EDS, TIA Selection Tool, L5X, TE1120 (10) | | | ● | |
 | EPLAN `.epj` (experimental); EPLAN XML export; SISTEMA / VDMA 66413 safety-data export (FR-EXP-012); TIA Openness bridge (10) | | | | ● |
+
+As built: the QET project import exists since cycle 11 as a lenient spike (§4.16), ahead of the milestone that
+ships it; the scope labels and gates below are unchanged by it.
 
 These labels describe the full scope. The plan's lean variant, if PD-1 is adopted, moves the QET project migration
 from the MVP to the 0.x release after it (M3) and the XLIFF and CSV translation exchange, the GSD/GSDML/IODD import and

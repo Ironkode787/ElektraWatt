@@ -1,6 +1,6 @@
 # Quality engineering, security and release
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) proves its correctness, performance and security, and
 how it is built, signed, shipped and supported. It turns the architecture's "prove it in CI" principle
@@ -116,7 +116,7 @@ flowchart BT
 | 6 | Snapshots | insta 1.49.0 | Typed query outputs, import batches, exports, engine statistics | PR | NFR-REL-09, NFR-PERF-20 |
 | 7 | Visual | vello_cpu 0.3.0, dify 0.8.0 | Every golden page and every shipped symbol | PR | FR-EXT-004, FR-OUT-014, FR-OUT-018 |
 | 8 | PDF structure | hayro 0.8.0; veraPDF (external CLI) | Outline, links, labels, fonts, dates, PDF/A-2b; PDF/UA-1 at 1.0 | PR (path-filtered), N | FR-OUT-002, FR-OUT-004 … FR-OUT-009 |
-| 9 | Acceptance | `ew-testkit accept` | AC-01 … AC-42 and the D-nn rows of 20 §19 (§3.10) | PR (gate subset); R (all reached) | 20 §21 |
+| 9 | Acceptance | `cargo xtask acceptance` (as built; `ew-testkit accept` is the target form) | AC-01 … AC-42 and the D-nn rows of 20 §19 (§3.10) | PR (gate subset); R (all reached) | 20 §21 |
 | 10 | UI | egui_kittest 0.37.0 | Flows of 16; accessible-name walker; CVD, contrast, pseudo-locale, 300 % | PR | NFR-A11Y-01 … 04, NFR-I18N-02 |
 | 11 | Parser fuzzing | cargo-fuzz 0.13.2 | Every parser of external bytes (§3.12) | PR ≥ 60 s per changed target; N ≥ 30 min per target | NFR-SEC-02, NFR-SEC-03 |
 | 12 | Reliability | Fault injector, kill loop, soak | Save, journal, recovery, worker crashes | PR (failures), N, N-weekly (soak) | NFR-REL-01 … 03, NFR-REL-12 … 14 |
@@ -261,7 +261,7 @@ for throughput. Nightly runs use AddressSanitizer, because the dependency closur
 | Metadata | XMP and Info dates from the model or `SOURCE_DATE_EPOCH`; document ID a hash of the export input | No wall-clock value (NFR-REL-07) |
 | Conformance | veraPDF, PDF/A-2b profile; PDF/UA-1 profile at 1.0 (**verify**, 02c OQ 9) | Pass |
 
-veraPDF is a test tool run from a pinned container image with a checked digest. It is never distributed.
+veraPDF is a test tool run from a pinned container image with a checked digest. It is never distributed. The headless acceptance run (§3.10) does not require it: krilla's PDF/A-2b validator covers AC-13 there, and the veraPDF cross-check runs in the CI job that has it.
 
 ### 3.10 Acceptance runner
 
@@ -277,6 +277,33 @@ veraPDF is a test tool run from a pinned container image with a checked digest. 
 
 The PR job runs the subset of the current milestone gate. Rows of later gates run as reported, non-blocking tests,
 so progress is visible. Golden C and the migration verifier (AC-25 … AC-27) run in the private job CI-N-10.
+
+**As built (cycle 11; decision log ID-285).** `cargo xtask acceptance <report.md> [--milestone]` replaces the
+`ew-testkit accept` entry until WP-S6.01's CLI form exists. It runs the headless M1 subset as the `#[ignore]`d `gate`
+test of `ew-api` through nextest with `--profile ci` (JUnit XML), with the oracle on, writes the Markdown report and
+exits non-zero when a blocking entry exists. `--milestone` runs it in the release profile with `EW_PERF_ASSERT=1` and
+measures AC-17; without it AC-17 is `not_applicable`. Steps 1 (path (b), the builder DSL, pending WP-S6.01) and 2
+(the SQL projection, pending WP-S1.10) are not built: the SQL halves of AC-08 … AC-11 are `not_built`.
+
+| Status | Meaning | Blocks the gate |
+|---|---|---|
+| `pass` | The check ran and matched | No |
+| `fail` | The check ran and did not match | Yes |
+| `not_built` | The feature or the comparison does not exist yet | Yes, like `fail` |
+| `not_applicable` | This run cannot evaluate the entry; a reason is required, one of: headless (needs the GUI or raster approval), pilot (needs the pilot's answer or private data), external tool, BM runner (timing on the baseline machine) | No |
+
+A criterion that passes in part is split into its own entries (one per check), so partial passes are visible. The
+committed headless report `golden/J-E-2416/expected/acceptance_headless.md` is compared by the ordinary
+(non-ignored) test, which runs the runner once; the ordinary tests never run it more than once (testing policy).
+Current counts: **83 entries: 41 pass, 10 fail, 26 not_built, 6 not_applicable; 0 oracle mismatches.** The 10 fails
+are the M1 gap list of [20](20-golden-project.md) §22: AC-03 page order (901.1 BOM rows, FT-110; 908.1 and 908.2 PLC
+channel records, FT-111); AC-04 and D-05 the revision label (FT-62) and the TOC structure cells (FT-160); AC-07 and
+D-04 the parts list (FT-110); AC-10 18 of 19 potentials (FT-105); AC-12 folio 1 cover tables (FT-159); D-12 a
+duplicate terminal designation accepted (FT-161); D-18 and D-33 part data on folios 101 and 102 (FT-162).
+
+**PDF/A-2b** (decision log ID-287): AC-13's conformance passes through krilla's PDF/A-2b validator
+(`Conformance::PdfA2b`) in every run; the veraPDF cross-check of §3.9 is `not_applicable` in the headless run
+(external tool) and runs in the CI job that has veraPDF.
 
 ### 3.11 UI tests
 
@@ -355,7 +382,7 @@ must still run these subcommands in CI. The hook makes that possible without wea
 ### 3.16 Cross-platform source rules
 
 Added 2026-10-20 (decision log ID-270) after the CI of cycle 9 went red on Linux and macOS while every local check on
-Windows passed. Three rules, because the hosted runners only report what a local run on one OS cannot see:
+Windows passed. Four rules, because the hosted runners only report what a local run on one OS cannot see:
 - **No `#[path]` attribute inside an inline module.** Inside `mod tests { … }` of `src/foo.rs` a `#[path]` is
   resolved against the directory `src/foo/tests/`, which need not exist. Windows normalises `..` lexically and
   accepts the path; Linux and macOS resolve each component on disk and fail, which broke `cargo fmt` and the test
@@ -368,6 +395,12 @@ Windows passed. Three rules, because the hosted runners only report what a local
   CI-PR-01 and CI-PR-02 (fmt, clippy, the workspace tests) in a local Linux environment, for example WSL with the
   pinned toolchain, in addition to the Windows run, before `main` is fast-forwarded; the hosted CI stays the gate
   of record. A `cargo xtask` lint for the first two rules is follow-up task FT-124.
+- **Wall-clock bounds only under `EW_PERF_ASSERT=1`** (2026-10-21, decision log ID-298). An ordinary test never
+  asserts a wall-clock bound; it may measure and print. Bounds are asserted only when `EW_PERF_ASSERT=1` is set,
+  which the milestone runs set. Origin: `crates/ew-import-qet/tests/hostile_input.rs` asserted budgets in ordinary
+  tests and flaked on Linux under load; it now prints unless the variable is set. A `cargo xtask` lint that finds
+  `elapsed` or `Instant` comparisons in assertions outside `#[ignore]` tests or an `EW_PERF_ASSERT` guard is
+  follow-up task FT-158.
 
 ---
 
@@ -393,6 +426,13 @@ Windows passed. Three rules, because the hosted runners only report what a local
 
 The generator version is part of the cache key and of every performance-history row. Changing the generator resets
 the baselines (§4.4).
+
+**Private pilot corpus (decision log ID-299).** The pilot's three QElectroTech projects, all class S (the largest has
+34 folios, about 1,000 devices and 645 connections), are private test input. They are kept outside the repository and
+in the private CI store, never in fixtures, logs or AI data sets beyond the agents that need them. Agents read only
+sanitised derived lists; documents carry counts only. The corpus tokens are SHA-256 digests in `ci/denylist.sha256`,
+checked by `cargo xtask check-anonymisation`; the private smoke test prints counts only. The corpus shows the class-S
+budgets on real projects and exercises the importer ([14](14-interop.md) §12, [20](20-golden-project.md) §3.5).
 
 ### 4.2 Benchmarks
 
@@ -430,6 +470,8 @@ the baselines (§4.4).
   because their noise exceeds 15 %.
 - **Statistics.** Medians and p99 follow 02c §1.4. Gesture sequences are scripted, replayed through the `Session`
   API and timed with `tracing` spans.
+- **Milestone runs.** Milestone runs set `EW_PERF_ASSERT=1` (the `#[ignore]`d release-profile tests and `cargo xtask
+  acceptance --milestone`); performance tests run only at milestone deliveries (testing policy, §3.16).
 - **Deviation accepted once (G-SP, 2026-10-20).** The first G-SP evidence ran on a non-dedicated Windows desktop
   and took 100 instead of 1,000 timed samples for a latency family whose warm-up median exceeded ten times its
   budget (decided by its median, rows flagged "clamped"). Both were accepted for the Recycle outcome only, because

@@ -1,6 +1,6 @@
 # Symbols, parts and macros
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle-11 design pass: symbol rulings for the pilot corpus, decision log ID-294 to ID-296; generated pole-count families, §3.2 rule 10) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies ElektraWatt's (EW) master data: symbols and function definitions (FnDefs), the
 parts database, macros with value sets, basic projects (company templates), and the libraries and governance that
@@ -239,7 +239,12 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   stop, electronic switch and level sensor. The note ranks the families, records the pilot's drawing style (wiring marks,
   terminal and interruption-point density, nomenclature blocks as bill of materials, slice-wise valve terminals,
   one-terminal-per-channel PLC modules) and proposes fifteen symbol tickets and nine importer mapping entries. It adds no
-  requirement and changes no key; whether the additions join the starter set or WP-S7.04 is the lead's decision.
+  requirement and changes no key. The seven types that a pilot project uses at least twice join the starter set
+  (`ew.iec.plug-socket`, `ew.gen.screen`, `ew.iec.sensor-temp`, `ew.iec.mcb-2p`, `ew.iec.disconnector-1p`,
+  `ew.iec.switch-disconnector-4p`, `ew.iec.socket`; follow-up task FT-148); the end-terminal and the other variants
+  follow the same rule after inspection (FT-150), and the rest go to WP-S7.04. The starter set grows from 36 to 43
+  native symbols (decision log ID-294). A QET cross-section mark that disagrees with the derived wire property is
+  reported as EW-IMP-123 with the mark's value ([14](14-interop.md) §4.12; ID-284).
 
 ### 2.4 Function definitions and connection-point designations
 
@@ -566,6 +571,24 @@ preview shows:
    and machine files, otherwise a project-specific exception (`AdditionRef-…`, SPDX 3.0 syntax, verify)
    (ADR-0024; [19](19-open-source-governance.md) LR-07). They carry no IEC description text (FR-SYM-019,
    NFR-LIC-07).
+10. **Pole-count families (generated)** (decision log ID-295, follow-up task FT-149). One family source generates the
+    concrete pole-count variants at content-build time; there is no run-time parameter and no new record kind.
+    - *Source.* `content/families/<family>.json` declares the pole template (one pole's graphics, CPs and slots, and
+      the pole pitch in connection-grid steps), the actuator and internal-linkage geometry, the pole counts to
+      generate, the key pattern (`<base>-<n>p`, e.g. `ew.iec.switch-disconnector-4p`) and the FnDef template
+      (`PassThrough{opens: true}` per pole, `ew:poles` = n, link points `pole1` … `pole<n>` and `handle`).
+    - *Expansion.* `cargo xtask symbols-qet10` expands each family into ordinary SymbolDef and FnDef documents before
+      sealing, then generates their `@qet10` twins as for every symbol (rule 2). The generated documents are committed;
+      the lint regenerates them and fails on any difference, as for the `@qet10` edition.
+    - *Items.* Each generated variant is an ordinary library item with its own key and item ID, linted like a
+      hand-drawn item. Members of a family carry the keyword `family.<base>`, so pickers can group them.
+    - *Existing keys.* The hand-drawn keys `ew.iec.mcb-1p`, `ew.iec.mcb-1pn` and `ew.iec.switch-2p-manual` stay
+      hand-authored; a key moves into a family only when the generator reproduces its sealed document byte for byte
+      (content hash).
+    - *Unchanged.* ADR-0021 is unchanged: importers and `symbol-map.csv` rows reference concrete keys. FR-SYM-027
+      (user-authored parametric families in the symbol editor, 1.x) is unchanged and may later reuse the source format.
+    - *Trade-off.* The library holds one item per pole count (more items, more twins) in exchange for no schema change,
+      no run-time geometry generation and unchanged import and placement paths.
 
 ### 3.3 Part assignment and selection rules
 
@@ -949,9 +972,9 @@ the plugin-signing infrastructure in 1.x.
 
 | Release | Symbols | Parts | Macros |
 |---|---|---|---|
-| MVP | starter set of about 40 symbols for the golden project (FR-SYM-007, §9.1) on the native grid, plus its generated QET 10 px edition (§3.2 rule 2) | manufacturer master; starter catalogue with every golden part as CC0 facts, sections flagged by confidence; `TEST-*` parts marked test | PSU block (folio 102), heater/thermostat/lamp group (folio 101), valve module and valve-manifold page (folios 203–206) |
+| MVP | starter set of about 40 symbols for the golden project (FR-SYM-007, §9.1) on the native grid, plus its generated QET 10 px edition (§3.2 rule 2); pole-count variants generated from family sources (§3.2 rule 10) | manufacturer master; starter catalogue with every golden part as CC0 facts, sections flagged by confidence; `TEST-*` parts marked test | PSU block (folio 102), heater/thermostat/lamp group (folio 101), valve module and valve-manifold page (folios 203–206) |
 | 1.0 | full IEC 60617-style control-cabinet set and ISO 1219 set (FR-SYM-008), linted in CI (FR-SYM-020) | ETIM data pack; first manufacturer pack under an explicit licence (B10, IDEA-091) | motor starter, contactor/relay, PLC I/O typicals with representation variants |
-| 1.x | parametric families (FR-SYM-027) | community packs (FR-PRT-030), BMEcat imports (FR-PRT-020) | rule-based project generation (FR-MAC-016) |
+| 1.x | user-authored parametric families in the symbol editor (FR-SYM-027) | community packs (FR-PRT-030), BMEcat imports (FR-PRT-020) | rule-based project generation (FR-MAC-016) |
 
 ---
 
@@ -1020,6 +1043,8 @@ native-grid projects place the native edition.
 | `ew.ovw.module`, `ew.ovw.valve-top` | overview of the assembly view | generated overview on 201/202 |
 | `ew.iso.valve-5-2-sol-spring` | fluid 5/2, ports 1–5, solenoid 14 with manual override, spring | 28 valves, 203–206 |
 | `ew.iso.cylinder-double-acting`, `ew.iso.process-valve-2way` | fluid; linkage points | TA05-V-15 … TA05-V-37 on 203 |
+
+Seven further symbols join the starter set for the pilot corpus (§2.3, decision log ID-294); they are not on the golden folios and have no row here.
 
 ### 9.2 Parts and data
 

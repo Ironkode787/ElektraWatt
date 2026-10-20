@@ -1,6 +1,6 @@
 # Checks, revisions and collaboration
 
-**Status:** Draft v0.2 · **Date:** 2026-10-20 (EW-CORE-019 added; EW-CORE-004 and -016 clarified) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.3 · **Date:** 2026-10-21 (v0.3: EW-IMP-122 and EW-IMP-123 added, the interim lenient checks of imports; v0.2: EW-CORE-019 added; EW-CORE-004 and -016 clarified) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -536,7 +536,7 @@ modes, default severities and scopes are fixed here, and a change to them change
 | EW-MFG | EW-MFG | 140 | — | complete | EW-MFG-011 |
 | EW-EN60204 | EW-EN60204 | 150 | — | complete, opt-in | — |
 | EW-REL | EW-REL | 190 | EW-REL-001, -002, -004 | complete | — |
-| importers | EW-IMP | 160 | 001 … 009, 101 … 121, 301 … 305 | 201 … 207, 251 … 257 | — |
+| importers | EW-IMP | 160 | 001 … 009, 101 … 123, 301 … 305 | 201 … 207, 251 … 257 | — |
 | EW-LIB | EW-LIB | 170 | — | complete | — |
 
 FR-CHK-004 (MVP packs) and FR-CHK-005 (domain packs: their MVP subsets at MVP, complete at 1.0) are satisfied by
@@ -919,6 +919,8 @@ run, defined in 14 §2.5.
 | EW-IMP-119 | Generic black box | An element without function semantics, imported as a generic black box | warning | MVP | FR-IMP-008 | — |
 | EW-IMP-120 | Shared element UUID | A shared element UUID disambiguated | info | MVP | FR-IMP-007 | — |
 | EW-IMP-121 | Several IP names on one potential | Several interruption-point names on one potential | info | MVP | FR-IMP-012 | D-24; MF-17 |
+| EW-IMP-122 | Unlabelled element, tag synthesised | An element without label keeps its prefix letter without counter and prints "?" (decision log ID-275) | info | MVP | FR-IMP-042 | — |
+| EW-IMP-123 | Cross-section mark differs | A QET cross-section mark differs from the derived wire property; the derived value is kept and the mark's value reported (decision log ID-284) | warning | MVP | FR-IMP-017 | D-08 |
 | EW-IMP-201 | EDZ terms notice | The Data Portal terms notice was shown | info | 1.0 | FR-IMP-026 | — |
 | EW-IMP-202 | Function definition unmapped | No FnDef mapping for an EPLAN function template; generic pin used | warning | 1.0 | FR-IMP-028 | — |
 | EW-IMP-203 | ZIP-format EDZ | An EDZ in a ZIP rather than a 7-Zip container | info | 1.0 | FR-IMP-025 | — |
@@ -1482,6 +1484,11 @@ MF row of [20](20-golden-project.md) §20.1 appears exactly once (AC-25). The ro
 import code names the same condition (MF-02, MF-05, MF-11, MF-14, MF-26), it is the row's origin. MF-21 and MF-22
 exist only in the import run, so they are import findings; the remaining MF rows are import findings too, mapped
 in [14](14-interop.md) §15.2.
+
+*Interim (cycle 11; decision log ID-276).* The project importer does not run this scheme yet: until imports pass
+through `ApplyImport` (follow-up task FT-143), only EW-RDS-004 and EW-TERM-002 run on the imported model, in the
+`ew_api::import` front door ([14](14-interop.md) §2.5). On the reference set EW-TERM-002 reports the 8 groups of
+MF-09.
 
 | MF | Row | MF | Row | MF | Row |
 |---|---|---|---|---|---|

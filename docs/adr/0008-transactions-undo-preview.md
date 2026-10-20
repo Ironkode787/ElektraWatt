@@ -1,6 +1,6 @@
 # ADR-0008: Transactions, undo/redo and preview-as-fork
 
-**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-21 (the first command that edits project settings) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -65,7 +65,8 @@
 
 ## Amendments
 
-Accepted on 2026-10-18. The decision text above is unchanged; these entries refine it.
+Amendments 1 and 2 were accepted on 2026-10-18, amendment 3 on 2026-10-21. The decision text above is unchanged;
+these entries refine it.
 
 1. **Confirmation of non-undoable operations** (2026-10-18; [UX/UI](../design/16-ux-ui.md) §7–§8). Confirming every
    export would train users to click through. Every non-undoable operation is therefore **flagged** as a marker line
@@ -101,6 +102,38 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
      preview, then commit. `commit` adopts the candidate when the snapshot is unchanged, applies the prepared ops
      when only unrelated keys changed (the read set is unchanged), and otherwise re-runs the command, which is the
      optimistic rebase of the decision.
+3. **Project settings are edited by one previewed command** (2026-10-21, project owner (delegated); decision log
+   ID-290, ID-291, ID-292; [extensibility](../design/17-extensibility.md) §2.1, §2.3,
+   [domain model](../design/03-domain-model.md) §5.1, §8.6,
+   [project format](../design/05-project-format-and-persistence.md) §8.1). Until cycle 11 no command edited
+   `ProjectSettings`, so a numbering or profile change could only be made by rewriting the project file outside the
+   command path, without undo, journal or preview. `project.settings.set` closes that gap:
+   - **One whitelisted member per command.** Parameters `{member, value}`; the members are `numbering`,
+     `colour_profile`, `size_profile` and `xref_format`. `value` is the member's whole new value; `null` removes the
+     member so that the pinned derivation profile's default applies; a value equal to the stored one commits nothing
+     (an empty transaction, amendment 2).
+   - **Validated twice.** The parameter schema first, then semantically by the parser the derivation reads the member
+     with (`ew_derive::check_settings_member`): a value the derivation would only note as malformed or not apply is
+     refused with `CmdError::InvalidParams` at `/value` (a `numbering` scheme the derivation would not apply, decision
+     log ID-99 and ID-103; a `default` naming no scheme; unknown or unclosed format tokens; colour codes that are
+     neither IEC 60757 nor company codes on an IEC 60757 base; cross-sections that are not positive mm², AWG or
+     kcmil). Any other member is refused at `/member`. Ambiguous token sequences are refused once follow-up task
+     FT-163 lands.
+   - **Bulk, previewed, one undo step.** One stored value changes derived values on every page, so the command is
+     `Cost::Bulk`; the preview shows the derived diff (`Session::derived_diff`: tags and cross-reference texts; wire
+     properties, BOM and TOC rows are FT-152). Only the project record changes, so topology and every reference stay
+     identical. The journal records the whole top-level `settings` member in `set` and `was`.
+   - **Exposure `Edit`.** `HumanOnly` (ADR-0020) guards controls that decide whether a gate passes without changing
+     the drawing: approvals, waivers, severities, packs, strictness and trust. Numbering, profiles and the
+     cross-reference format change the drawing's content like `numbering.renumber`, which is `Edit`: every effect is
+     in the preview, undoable and attributed to its origin, and reaches a released document only through
+     `revision.release`, which stays `HumanOnly`. A settings member that decides a check outcome is therefore never
+     added to this whitelist and keeps a `HumanOnly` command of its own; extending the whitelist needs an amendment
+     of this ADR.
+   - **Frozen tags change only by an explicit action.** No derivation changes a frozen tag. Two commands may:
+     `fields.set` on `tag.frozen` (explicit freeze and unfreeze) and `numbering.renumber` with `include_frozen: true`,
+     which unfreezes only the frozen devices its scheme can number; both are undoable, the renumber previewed. The
+     renumber option `skip_frozen` is removed.
 
 ## Consequences
 
@@ -139,6 +172,6 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
   [ADR-0010](0010-project-storage-jsonl-directory.md), [ADR-0012](0012-git-integration.md),
   [ADR-0013](0013-revisions-and-as-built-archive.md), [ADR-0014](0014-gui-toolkit-egui.md), [ADR-0020](0020-extensibility-tiers-and-security-model.md), [ADR-0021](0021-importers-emit-format-level-records.md).
 - **Design:** [architecture](../design/04-architecture.md) §2, §5; [UX/UI](../design/16-ux-ui.md) §7–§8;
-  [extensibility](../design/17-extensibility.md).
+  [extensibility](../design/17-extensibility.md) §2.1, §2.3; [domain model](../design/03-domain-model.md) §5.1, §8.6.
 - **Requirements:** FR-UI-022, FR-UI-023, FR-EXT-012, FR-EXT-015, FR-EXT-017, FR-NUM-008, FR-MAC-005, FR-IMP-004,
   FR-COL-005, FR-COL-007, NFR-UX-07, NFR-PERF-08, NFR-PERF-19, NFR-REL-02, NFR-REL-08.

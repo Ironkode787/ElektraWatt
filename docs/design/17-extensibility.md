@@ -1,6 +1,6 @@
 # Extensibility: CLI, scripting, SQL, plugins and agents
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.2 · **Date:** 2026-10-21 (v0.2: cycle-11 design pass: `project.settings.set` and its exposure, §2.1, §2.3; the command log as built, §3.5; `ew import qet` as built, §3.2, §3.3) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies every way to drive, extend or query ElektraWatt (EW) other than the GUI: the
 `ew` command-line tool, the headless `Session` API behind it, rhai formulas, rules and automation scripts, the
@@ -160,6 +160,32 @@ placement command `device.place` (`PlaceSymbol` with a `PlaceTarget`) registers 
 `symbol.place` as `CommandMeta.aliases`, and the journal always records `device.place`. Entity references in parameters are UUIDs; front-ends that
 accept tags (`.ewcmd`, CLI, MCP) resolve them first through `find` (§3.5).
 
+**`project.settings.set`** (ADR-0008 amendment 3; decision log ID-290). Edits one whitelisted member of
+`ProjectSettings` per command: `numbering`, `colour_profile`, `size_profile` or `xref_format` (provisional members
+live in `ProjectSettings.extra` until their work packages type them). Parameters `{member, value}`; `value` is the
+member's whole new JSON value, `null` removes the member so that the pinned derivation profile's default applies, and
+a value equal to the stored one changes nothing. The command is validated by its schema and then semantically by
+`ew_derive::check_settings_member`, the parser the derivation itself reads the member with, so a setting the
+derivation would not apply never reaches the model. It refuses:
+- `numbering` with no applicable scheme (ID-99, ID-103: counter scope `"page"`, formats with `{page}`, `{letter}`,
+  `{counter}`), and a `default` that names no scheme;
+- unknown or unclosed format tokens;
+- a numbering format whose tokens are ambiguous without separators, such as `{page}{counter}{letter}`, where page 20
+  counter 16 and page 201 counter 6 both print "-2016U" (follow-up task FT-163, which also lists the harmless cases
+  still accepted: duplicate scheme keys, an unknown rule aspect, an empty child separator, matrix 0, empty colour or
+  size rows);
+- colour codes that are neither IEC 60757 nor company codes declared on an IEC 60757 base;
+- cross-sections that are not positive mm², AWG or kcmil;
+- any other member name, with `InvalidParams` at `/member` listing the settable members. The identifier set has its
+  own previewed renumber (FR-NUM-014); `ip_pairing`, `formatting`, `frames`, `wire_default`, `derivation_profile` and
+  newer members are refused.
+
+The command is `Cost::Bulk`: the preview shows `Session::derived_diff` (changed tags and cross-reference texts;
+follow-up task FT-152 adds wire properties, BOM and TOC rows and a covered-kinds flag). It is undoable as one step.
+Only the project record changes; topology stays identical. The journal records it as the top-level `settings` member
+of the project record ([05](05-project-format-and-persistence.md) §8.1), so `set` and `was` carry the whole `settings`
+value (settings are small). `params_version` 1, stability `Preview`.
+
 **Parameter schemas are the client contract** (FR-EXT-015; decision log ID-56). They reject unknown tags of open
 enums, which records keep for forward compatibility (ARCH §7.6): a client learns of a new value from the catalogue,
 never by sending it. Before validation, a parameter document is limited to 4 MiB, a nesting depth of 64, 1,048,576
@@ -197,7 +223,7 @@ pub enum Origin { Gui, Cli { subcommand: String }, CmdLog { file: String, sha256
 
 | Exposure | Front-ends allowed | Commands (examples) |
 |---|---|---|
-| `Edit` | GUI, CLI (`apply`), scripts, MCP, plugins, Python | `device.place` (aliases `device.place_from_part`, `symbol.place`), `connection.draw`, `fields.set`, `numbering.renumber`, `page.renumber`, `plc.readdress`, `macro.insert`, `plugin.data.set` |
+| `Edit` | GUI, CLI (`apply`), scripts, MCP, plugins, Python | `device.place` (aliases `device.place_from_part`, `symbol.place`), `connection.draw`, `fields.set`, `numbering.renumber`, `page.renumber`, `plc.readdress`, `macro.insert`, `project.settings.set`, `plugin.data.set` |
 | `HumanOnly` | GUI; a dedicated CLI subcommand confirmed on a terminal (below) | `revision.approve`, `revision.release`, `revision.withdraw`, `waiver.create` / `waiver.remove`, `scheme.set_severity` and the other `scheme.*` edits including company locks, `pack.enable` / `pack.disable`, `project.set_strictness`, completing and reopening a project (FR-REV-013, 1.0), `trust.*`, `plugin.install` / `plugin.remove`, `library.write` |
 | `Import` | GUI import wizard, `ew import` | `ApplyImport` (plugins reach it only through the importer contract, §10) |
 | `Internal` | normalisers | CP instantiation, online numbering |
@@ -224,13 +250,21 @@ command, with origin `Cli{subcommand}`:
 Like four-eyes sign-off, this is a process control, not an authentication: a person who scripts a pseudo-terminal
 can defeat it, but no agent, plugin, replay or pipeline step can reach the gate by accident.
 
+**`project.settings.set` is `Edit`** (decision log ID-291). `HumanOnly` is reserved for controls that decide whether a
+gate passes without changing the drawing: approvals, waivers, severities, packs, strictness, trust. Numbering, colour
+and size profiles and the cross-reference format change the drawing's content, as `numbering.renumber` (already
+`Edit`) does: every effect appears in the bulk preview, is one undo step, is journalled with its origin, and reaches a
+released document only through `revision.release`, which stays `HumanOnly`. The rule recorded with the decision: a
+settings member that decides a check outcome (check schemes and severities, packs, strictness) never joins the
+whitelist but keeps its own `HumanOnly` command, and extending the whitelist needs an ADR-0008 amendment.
+
 The exposure class is declared in `CommandMeta` and checked in the `ew-commands` commit pipeline (validate step,
 ARCH §5.2), so no front-end can bypass it; `ew-api` only sets the origin.
 
 *v0* (WP-S1.04; decision log ID-42, ID-45). The engine checks the exposure first, before `run`. Its `Origin` carries
 the variants above with their identifying name only (file, script, client, plugin ID); the `sha256`, `session` and
-`version` members join when the front-ends that know them land (WP-S1.22, WP-S1.23). All 23 v0 commands are `Edit`
-and `Preview`. `Origin::Cli` carries a `confirmed` flag, and a `HumanOnly` command is admitted only from `Origin::Gui`
+`version` members join when the front-ends that know them land (WP-S1.22, WP-S1.23). All 24 v0 commands (with `project.settings.set`, cycle 11) are
+`Edit` and `Preview`. `Origin::Cli` carries a `confirmed` flag, and a `HumanOnly` command is admitted only from `Origin::Gui`
 or from a CLI origin with `confirmed` set (FR-EXT-030; decision log ID-57); the dedicated subcommands that set it
 after the typed confirmation above arrive with the CLI work package (WP-S1.22). Before the first `HumanOnly` command
 ships, `undo` must refuse a `HumanOnly` step from a script, MCP, plugin or Python origin (§4).
@@ -321,10 +355,13 @@ FR-EXT-002 fixes three codes for every subcommand:
 | Code | Meaning | Examples |
 |---|---|---|
 | 0 | Completed; nothing at error level | `ew check` with zero unwaived errors; an export; `ew fmt --check` on canonical files |
-| 1 | Completed with a domain failure | unwaived errors (`check`); a failing gate step (`jobs run`); a prevented command (`apply`); conflict records written (`merge-driver`); differences found (`fmt --check`, `verify-derived`, `diff --exit-code`, `archive verify`); an import committed with error findings ([14](14-interop.md) §13) |
+| 1 | Completed with a domain failure | unwaived errors (`check`); a failing gate step (`jobs run`); a prevented command (`apply`); conflict records written (`merge-driver`); differences found (`fmt --check`, `verify-derived`, `diff --exit-code`, `archive verify`); `ew import qet --strict` with lost connections or error findings (a lenient import exits 0 with its summary, [14](14-interop.md) §13; decision log ID-282) |
 | 2 | Could not complete | usage error; unreadable, locked or newer-major project; I/O error; content refused (untrusted, sandbox denial such as `ATTACH`); limit or deadline hit by the requested SQL or script; caught internal error (message plus local crash-report path) |
 
 CI scripts should treat 2 as an infrastructure failure, not as "the drawing has errors".
+
+For `ew apply`, a command log exits 1 only for a line refused by a prevent rule or by the command's own domain rule,
+and 2 for everything else that stops it (§3.5).
 
 **The one exception: `ew merge-driver`.** Git treats every exit code up to 128 as "conflicts remain", so the merge
 driver exits 0 (clean), 1 (conflict records written) or 129 for a caught internal error (any failure exits with
@@ -348,9 +385,9 @@ driver exits 0 (clean), 1 (conflict records written) or 129 for a caught interna
 | | `ew render --page <folio> --png [--dpi n]` | One page via the CPU renderer | MVP | FR-EXT-004 |
 | | `ew print --pages <range>` | OS print adapter | MVP (Should) | FR-EXT-009 |
 | | `ew review <base> <head> [--out dir]` | Visual comparison ([15](15-checks-revisions-collaboration.md) §6.6) | 1.0 | FR-COL-017 |
-| Import | `ew import qet\|csv` (MVP); `ew import io-list` (MVP, Should); `ew import qet --batch <dir> --out <dir>`, `edz\|dxf\|plc-aml\|table` (1.0) | Options per [14](14-interop.md) §13 and [10](10-plc-and-bus.md) §7 | MVP / 1.0 | FR-EXT-008, FR-PLC-038, FR-IMP-023, FR-EXT-028 |
+| Import | `ew import qet <file.qet> [--content <dir>] [--report md\|csv\|json] [--report-out <file>] [--strict]` (MVP; spike delivered in cycle 11, decision log ID-273, ID-282); `ew import csv` (MVP); `ew import io-list` (MVP, Should); `ew import qet --batch <dir> --out <dir>`, `edz\|dxf\|plc-aml\|table` (1.0) | Options per [14](14-interop.md) §13 and [10](10-plc-and-bus.md) §7 | MVP / 1.0 | FR-EXT-008, FR-PLC-038, FR-IMP-023, FR-EXT-028 |
 | | `ew verify-migration <project> --reference <pdf>` | Migration verifier | MVP | FR-IMP-021 |
-| Edit | `ew apply <project> <file.ewcmd> [--preview] [--one-step]` | Replay a command log (§3.5) | MVP | FR-EXT-029 |
+| Edit | `ew apply <project> <file.ewcmd> [--preview] [--one-step]` (not built yet; library entry `Session::run_script`, follow-up task FT-156) | Replay a command log (§3.5) | MVP | FR-EXT-029 |
 | | `ew script run <file.rhai> [--param k=v] [--preview]` | Automation script (§5.5) | 1.0 | FR-EXT-012 |
 | | `ew jobs run <file.ewjobs> [--keep-going]` | Jobset (§3.6) | 1.0 | FR-EXT-010 |
 | Format, VCS | `ew fmt [--check] [--repair]`, `ew upgrade`, `ew recover`, `ew git setup [--global] [--hooks]` | [05](05-project-format-and-persistence.md) | MVP | FR-EXT-008 |
@@ -392,7 +429,7 @@ error: statement denied by the projection sandbox (ATTACH)
 2
 $ ew render --page 103 --png --dpi 150 --out 103.png              # equals the approved golden PNG (FR-EXT-004)
 
-$ ew import qet <reference>.qet --basic company.ew --report json > migration.json   # Golden C: MF-01 … MF-27
+$ ew import qet <reference>.qet --report json > migration.json   # Golden C: summary on stderr; MF-01 … MF-27 (cycle 12)
 $ ew upgrade old-project.ew                                       # writes an .ewz of the original first (NFR-REL-06)
 $ git config merge.elektrawatt.driver "ew merge-driver %O %A %B %L %P"   # normally via ew git setup
 $ git log -p --textconv -- devices/                               # "-102F1: part A9F78116 → …", not UUIDs
@@ -422,30 +459,47 @@ The ID is a UUIDv5, because golden records are generated from the golden tables
 ### 3.5 Command logs (`.ewcmd`)
 
 A command log is JSON Lines: one header, then one command per line. It is the serialised form of `AnyCommand`
-used by the macro recorder, the journal and the golden variants (`b-renumber.ewcmd`, `c-fix.ewcmd`,
+used by the macro recorder, the journal and the golden variants (`b1-page-based-tags.ewcmd` and
+`b2-renumber-pages.ewcmd`, one `b-renumber.ewcmd` with follow-up task FT-155; `c-fix.ewcmd`,
 [20](20-golden-project.md) §2.2, §20.2).
 
 ```json
-{"$schema":"ew.cmdlog/1","base":{"project":"0192f0a1-…","generation":214},"label":"Golden B plus one example line"}
-{"cmd":"numbering.renumber","params":{"scope":"project","scheme":"{page}{letter}{counter}","include_frozen":true,"order":["column","row"]}}
-{"cmd":"page.renumber","params":{"scope":{"section":1},"start":101,"step":1,"keep_gaps":false}}
-{"cmd":"fields.set","params":{"targets":[{"ref":"tag:-103X1"}],"path":"function_text","value":{"en-GB":"Pneumatics"}}}
+{"$schema":"ew.cmdlog/1","label":"Golden B, steps B1 and B2"}
+{"cmd":"project.settings.set","params":{"member":"numbering","value":{"default":"page-based","schemes":[{"key":"page-based","format":"{page}{letter}{counter}","rules":[],"child_separator":"-"}]}}}
+{"cmd":"numbering.renumber","params":{"scope":"project","scheme":"page_based","include_frozen":true,"options":{"only_nonconforming":true}}}
+{"cmd":"page.renumber","params":{"scope":{"section":{"ref":"section:1"}},"start":101,"step":1,"keep_gaps":false}}
 ```
 
-Lines 2 and 3 are `b-renumber.ewcmd` (steps B1 and B2). Line 4 shows a tag reference: it names the strip by its
-new tag -103X1, because references resolve when their line runs, after B1 renamed -X1031.
+Lines 2 and 3 are `variants/b1-page-based-tags.ewcmd` (step B1) and line 4 is `variants/b2-renumber-pages.ewcmd`
+(step B2); in the repository they are two files, which FT-155 merges. Every line validates against the command schemas
+as built. A `fields.set` line takes `{"kind":"device","targets":[…],"path":"function_text","value":{…}}`; a `tag:`
+reference in `targets` is the specified form and resolves once FT-156 lands.
 
-- **References.** `{"ref":"tag:<tag>"}`, `{"ref":"id:<uuid>"}` and `{"ref":"folio:<label>"}` resolve through
-  `find` immediately before their line runs. An ambiguous or missing reference stops the replay with exit 2.
-- **Exposure.** Every line is checked against the command registry before the first line runs. A `HumanOnly`
-  command anywhere in the log refuses the whole replay with exit 2, so a log can never approve, release, waive or
-  trust (§2.3, FR-EXT-030). Golden A-R's sign-off is therefore a terminal step after the overlay, not a log line
-  ([15](15-checks-revisions-collaboration.md) §10.3).
-- **Semantics.** Without `--preview`, each line commits as its own transaction with origin `CmdLog`; `--one-step`
-  wraps the log into one composite command (one undo step). `--preview` runs the whole log on a fork and prints
-  `diff_model` and `diff_query` (tags, xrefs, BOM, wires) without committing. A prevented line stops the replay
-  with exit 1 and leaves earlier lines committed, unless `--one-step` was given.
-- **`base`** is advisory: a different generation prints a warning, because tag references make logs portable.
+**As built (cycle 11; decision log ID-288).** The replay engine is the library entry `Session::run_script(&CmdLog,
+file)`; the `ew apply` subcommand is follow-up task FT-156.
+
+- **Header and lines** (as built). The first line is an object with `"$schema":"ew.cmdlog/1"` and an optional free
+  `label`; other header members are advisory and ignored. Every further line is an object with exactly `cmd` (a command
+  name or alias) and `params` (an object; empty when absent).
+- **References** (as built: `section:<n>` and `id:<uuid>`). Any object `{"ref":"<kind>:<value>"}` inside `params` is
+  replaced immediately before its line runs. v0 resolves `section:<n>` (the ID of the section with that number) and
+  `id:<uuid>` (once a record with that ID exists). `tag:<tag>` and `folio:<label>` are specified and resolve through
+  `find` once FT-156 lands. An unresolvable reference stops the replay with exit 2 and reports `committed`.
+- **Exposure.** Every line is looked up and checked against the command registry before the first line runs. A
+  `HumanOnly` command anywhere in the log refuses the whole replay with exit 2, so a log can never approve, release,
+  waive or trust (§2.3, FR-EXT-030). Golden A-R's sign-off is therefore a terminal step after the overlay, not a log
+  line ([15](15-checks-revisions-collaboration.md) §10.3).
+- **Semantics** (as built). Each line commits as its own transaction with origin `CmdLog`, named `cmdlog:<file>`:
+  interactive commands through `execute`, bulk lines as preview then commit, so one undo step takes back one line. A
+  failing line stops the replay and leaves earlier lines committed. Specified but not built (FT-156): `--preview` runs
+  the whole log on a fork and prints `diff_model` and `diff_query` (tags, xrefs, BOM, wires) without committing, and
+  `--one-step` wraps the log into one composite command (one undo step).
+- **Exit codes** (library: `CmdLogError::exit_code()`; for `ew apply`, FT-156). 2 for a malformed log, an
+  unresolvable reference, a refused command (unknown, exposure) and a failing line whose error is invalid parameters,
+  a missing record, a bulk command without preview, or internal. 1 only for a line refused by a prevent rule or by the
+  command's own domain rule (`Prevented`, `Rejected`). The error carries `committed`, the number of lines committed.
+- **`base`** is advisory and ignored by v0: a different generation would print a warning, because tag references make
+  logs portable.
 
 ### 3.6 Jobsets (`.ewjobs`, 1.0)
 
@@ -1288,7 +1342,7 @@ contributor) and P6 (library maintainer) and journey J6 (automated quality gate)
 | Explain an address | `ew query channel_addresses -201U3 --explain` | Q0.0 … Q0.7: -201U3 is the first output module of station -201U1, so its `Auto` start is byte 0; part 533361's map gives 8 channels. The trail shows coil 14 of -201U3-Q1 bound to channel 1 (Q0.1) while map H1 assigns channel 0, which is why EW-PLC-012 fires (D-26, [10](10-plc-and-bus.md) §9.2) |
 | D-25 visible in SQL | report below | Four loads on 24VDC-1, all protected by -102F2 Out1 |
 | Terminal count | `ew sql "SELECT count(*) FROM api_v1_terminal"` | 28 |
-| Golden B | `ew apply golden/J-E-2416.ew variants/b-renumber.ewcmd --preview` | Step 1: exactly the 10 tag changes of [20](20-golden-project.md) §2.2; step 2: 2 tags (-106W1/-106W2 → -104W1/-104W2) and 14 xref texts; undo restores bytes (AC-18) |
+| Golden B | `ew apply golden/J-E-2416.ew variants/b1-page-based-tags.ewcmd --preview`, then `b2-renumber-pages.ewcmd` (as built through `Session::run_script`; one `b-renumber.ewcmd` and `ew apply` with FT-155, FT-156) | Step 1: exactly the 10 tag changes of [20](20-golden-project.md) §2.2; step 2: 2 tags (-106W1/-106W2 → -104W1/-104W2) and 14 xref texts; undo restores bytes (AC-18) |
 | Golden C | `ew import qet <reference>.qet --report json`, then `ew apply … variants/c-fix.ewcmd` | MF-01 … MF-27 listed; C fixed ≡ Golden A (AC-25, AC-26) |
 | Spare texts | `ew script run mark-spares.rhai --param text=Reserve` (§5.5) | The 20 spare valves on Q2 … Q6 change function text "Spare" → "Reserve" in one undo step labelled "Mark spare valve positions"; folio 908 follows (FR-EXT-012) |
 | Company lint | `desc-rating.rhai` (§5.4) | None on Golden A (EF-25); on a migrated project with folio 901's descriptions, warnings on "10A C", "4A C", "16 B" and "20A" (D-35) |

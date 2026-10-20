@@ -1,6 +1,6 @@
 # Symbol coverage of the pilot corpus
 
-**Status:** Draft v0.1 · **Date:** 2026-10-20 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.2 · **Date:** 2026-10-21 (v0.2: owner rulings of the cycle-11 design pass, decision log ID-294 to ID-296) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** the element-type inventory behind this note is a private, sanitised list of the QElectroTech
 > (QET) element types that the pilot's three real projects use, with use counts. It is not in the repository.
@@ -14,7 +14,8 @@ distinct element types to one of four outcomes (covered by a named `ew.<id>` sym
 symbol, black box with the embedded QET graphics, or missing), ranks the missing symbol families by use, records what the
 corpus shows about the pilot's drawing style where it matters for the editor and the templates, and lists follow-up
 tickets for the cycle-11 design pass: new starter symbols and mapping entries for the project importer
-([14](14-interop.md) §4). It decides nothing: every ticket is a proposal for the lead designer.
+([14](14-interop.md) §4). It decides nothing: every ticket is a proposal for the lead designer. The cycle-11 design pass decided its open
+points (§7) and turned the tickets into follow-up tasks (§5).
 
 **Contents**
 1. [Method and reading rules](#1-method-and-reading-rules)
@@ -297,23 +298,23 @@ empty until verified.
 
 ### 5.1 New symbols for the starter set
 
-| ID | Group | Symbol | Family | Uses behind it | Class | Note |
-|---|---|---|---|---|---|---|
-| S-01 | A connectors and cabling | `ew.iec.plug-socket` | F-01 | 224 | D2 | Female contact beside `ew.iec.plug-pin`, two CPs, same text slots; first in order |
-| S-02 | A | `ew.gen.screen` | F-02 | 8 | D2 | Graphic bound to the cable's shield `Conductor`, `rep_type` graphic like `ew.gen.cable-marker` |
-| S-03 | B protection and switching | `ew.iec.mcb-2p` | F-04 | 3 | D2 | Internal linkage drawn as in `ew.iec.mcb-1pn` (0.13 mm dashed) |
-| S-04 | B | `ew.iec.disconnector-1p` | F-05 | 2 | D2 | |
-| S-05 | B | `ew.iec.switch-disconnector-4p` | F-06 | 2 | D3 | Needs the decision between fixed symbols and a parametric family (§7); link points per pole as `ew.iec.switch-2p-manual` |
-| S-06 | B | `ew.iec.rcd` | F-08 | 1 | D2 | |
-| S-07 | B | `ew.iec.estop-nc` | F-10 | 1 | D2 | Mushroom actuator, positive opening |
-| S-08 | C sensing, supply and electronics | `ew.iec.sensor-temp` | F-03 | 5 | D2 | Two CPs; FnDef with a sensor category |
-| S-09 | C | `ew.iec.sensor-level` | F-12 | 1 | D2 | |
-| S-10 | C | `ew.iec.switch-electronic` | F-11 | 1 | D2 | |
-| S-11 | C | `ew.iec.psu-acdc` | F-09 | 1 (+2 black boxes) | D2 | Generic box with input and output CP groups; vendor supplies stay black boxes with parts |
-| S-12 | C | `ew.iec.socket` | F-07 | 2 | D2 | |
-| S-13 | D variants | end-terminal variant of `ew.iec.terminal` | G-3 | 26 | D2 | CP on one side only; confirm the reading of `borne_finale` first (T-01) |
-| S-14 | D | latching coil, fan heater, normally closed push-button | G-3 | 5 | D2 | New keys with the existing FnDefs; the schema has no graphic variants other than contact image and CP variants ([07](07-symbols-parts-macros.md) §2.3) |
-| S-15 | E buses (optional) | `ew.bus.eth-port` | G-1 | 2 | D3 | Needs an Ethernet bus FnDef; only with the bus catalogue ([10](10-plc-and-bus.md)) |
+| ID | Group | Symbol | Family | Uses behind it | Class | Note | Disposition |
+|---|---|---|---|---|---|---|---|
+| S-01 | A connectors and cabling | `ew.iec.plug-socket` | F-01 | 224 | D2 | Female contact beside `ew.iec.plug-pin`, two CPs, same text slots; first in order | Starter set, FT-148 |
+| S-02 | A | `ew.gen.screen` | F-02 | 8 | D2 | Graphic bound to the cable's shield `Conductor`, `rep_type` graphic like `ew.gen.cable-marker` | Starter set, FT-148 |
+| S-03 | B protection and switching | `ew.iec.mcb-2p` | F-04 | 3 | D2 | Internal linkage drawn as in `ew.iec.mcb-1pn` (0.13 mm dashed) | Starter set, FT-148 (via the family generator FT-149) |
+| S-04 | B | `ew.iec.disconnector-1p` | F-05 | 2 | D2 | | Starter set, FT-148 |
+| S-05 | B | `ew.iec.switch-disconnector-4p` | F-06 | 2 | D3 | Needs the decision between fixed symbols and a parametric family (§7); link points per pole as `ew.iec.switch-2p-manual` | Starter set, FT-148 (via the family generator FT-149) |
+| S-06 | B | `ew.iec.rcd` | F-08 | 1 | D2 | | WP-S7.04 |
+| S-07 | B | `ew.iec.estop-nc` | F-10 | 1 | D2 | Mushroom actuator, positive opening | WP-S7.04 |
+| S-08 | C sensing, supply and electronics | `ew.iec.sensor-temp` | F-03 | 5 | D2 | Two CPs; FnDef with a sensor category | Starter set, FT-148 |
+| S-09 | C | `ew.iec.sensor-level` | F-12 | 1 | D2 | | WP-S7.04 |
+| S-10 | C | `ew.iec.switch-electronic` | F-11 | 1 | D2 | | WP-S7.04 |
+| S-11 | C | `ew.iec.psu-acdc` | F-09 | 1 (+2 black boxes) | D2 | Generic box with input and output CP groups; vendor supplies stay black boxes with parts | WP-S7.04 |
+| S-12 | C | `ew.iec.socket` | F-07 | 2 | D2 | | Starter set, FT-148 |
+| S-13 | D variants | end-terminal variant of `ew.iec.terminal` | G-3 | 26 | D2 | CP on one side only; confirm the reading of `borne_finale` first (T-01) | FT-150 (after T-01) |
+| S-14 | D | latching coil, fan heater, normally closed push-button | G-3 | 5 | D2 | New keys with the existing FnDefs; the schema has no graphic variants other than contact image and CP variants ([07](07-symbols-parts-macros.md) §2.3) | FT-150 (after T-01) |
+| S-15 | E buses (optional) | `ew.bus.eth-port` | G-1 | 2 | D3 | Needs an Ethernet bus FnDef; only with the bus catalogue ([10](10-plc-and-bus.md)) | WP-S7.04 |
 
 Order of work for the design pass: S-01 and S-02 (group A) first, because F-01 alone is 89 % of the missing uses; then
 group B, which shares one drawing style, then C and D. The symbols of group B and C add up to 19 uses; they are cheap but
@@ -321,25 +322,25 @@ move the migration little, which is the reason to keep them behind T-01.
 
 ### 5.2 Importer mapping entries (lane A, project importer)
 
-| ID | Entry | Element types | Class | Note |
-|---|---|---|---|---|
-| M-01 | Seed `symbol-map.csv` with one row per covered type: stock element name (and UUID) to starter key, with the CP map | the 37 type rows of status C | D2 | One file, no code; the CP maps need care for coil, contacts, MCB (two or four terminals), earth (PE or FE), `ew.bus.dp-port` and the contact kinds of `con_simple` |
-| M-02 | Terminal elements to strip, terminal and levels: `borne_*` become terminal devices on strip segments; `borne_21` and `borne_31` set the level count | `borne_continuite`, `borne_21`, `borne_31`, `borne_finale` | D2 | Depends on T-01 for the level reading; uses §4.11 grouping |
-| M-03 | Cross-section marks become wire overrides, not symbols: the recogniser reads the mark's text, sets the wire's cross-section and drops the element when text and property agree, keeps a free text otherwise (EW-IMP-107, EW-IMP-108) | `section1conducteur`, `section2conducteurs` | D3 | 456 elements: the largest single mapping; the rule for a mark that disagrees with the conductor property needs a decision |
-| M-04 | Report arrows: check that all 327 elements have the report link types, then count the unpaired ends for the migration report | `01coming_arrow`, `02going_arrow` | D1 | Pair reconstruction already specified in §4.6 |
-| M-05 | Cable elements to cable devices: four-core cable with its cores, cable wire to a core, screen to the shield core | `kabel4g`, `fil_de_cable`, `ecran_3p` | D3 | §4.11, older-cable path; F-02 must exist before the screen row |
-| M-06 | Fluid: `valve` through the FR-IMP-018 port map; `doubleactingvalve` to two functions; the Festo slice elements are dropped with EW-IMP-112 and left to the reconstruction assistant | `valve`, `doubleactingvalve`, nine valve-terminal types | D2 | Policy is decided in [11](11-fluid-power.md) §9.2; the entry only records the type names |
-| M-07 | PLC and vendor modules to black boxes with a CP pattern taken from the element's terminal names; the vendor name in the element name is proposed as the part manufacturer | the 22 vendor-named types, the generic module boxes | D2 | Uses the black box of EW-IMP-119; no catalogue part is assumed |
-| M-08 | Nomenclature and plate: `nomenclature_section` is dropped for the BOM report block (EW-IMP-113 diff); the back plate goes to layout pass P6 | `nomenclature_section`, the withheld plate element | D1 | |
-| M-09 | Long tail: every unmapped type becomes a black box with the QET element name in its provenance, and one EW-IMP-119 summary row lists the types with their use counts | the 29 black-box types | D1 | Keeps counts for the corpus statistic of T-03 |
+| ID | Entry | Element types | Class | Note | Disposition |
+|---|---|---|---|---|---|
+| M-01 | Seed `symbol-map.csv` with one row per covered type: stock element name (and UUID) to starter key, with the CP map | the 37 type rows of status C | D2 | One file, no code; the CP maps need care for coil, contacts, MCB (two or four terminals), earth (PE or FE), `ew.bus.dp-port` and the contact kinds of `con_simple` | FT-127 |
+| M-02 | Terminal elements to strip, terminal and levels: `borne_*` become terminal devices on strip segments; `borne_21` and `borne_31` set the level count | `borne_continuite`, `borne_21`, `borne_31`, `borne_finale` | D2 | Depends on T-01 for the level reading; uses §4.11 grouping | FT-140 |
+| M-03 | Cross-section marks become wire overrides, not symbols: the recogniser reads the mark's text, sets the wire's cross-section and drops the element when text and property agree, keeps a free text otherwise (EW-IMP-107, EW-IMP-108) | `section1conducteur`, `section2conducteurs` | D3 | 456 elements: the largest single mapping; the rule for a mark that disagrees with the conductor property needs a decision | FT-132 (with EW-IMP-123) |
+| M-04 | Report arrows: check that all 327 elements have the report link types, then count the unpaired ends for the migration report | `01coming_arrow`, `02going_arrow` | D1 | Pair reconstruction already specified in §4.6 | FT-138 |
+| M-05 | Cable elements to cable devices: four-core cable with its cores, cable wire to a core, screen to the shield core | `kabel4g`, `fil_de_cable`, `ecran_3p` | D3 | §4.11, older-cable path; F-02 must exist before the screen row | FT-135 |
+| M-06 | Fluid: `valve` through the FR-IMP-018 port map; `doubleactingvalve` to two functions; the Festo slice elements are dropped with EW-IMP-112 and left to the reconstruction assistant | `valve`, `doubleactingvalve`, nine valve-terminal types | D2 | Policy is decided in [11](11-fluid-power.md) §9.2; the entry only records the type names | WP-S3.12 scope |
+| M-07 | PLC and vendor modules to black boxes with a CP pattern taken from the element's terminal names; the vendor name in the element name is proposed as the part manufacturer | the 22 vendor-named types, the generic module boxes | D2 | Uses the black box of EW-IMP-119; no catalogue part is assumed | FT-145 |
+| M-08 | Nomenclature and plate: `nomenclature_section` is dropped for the BOM report block (EW-IMP-113 diff); the back plate goes to layout pass P6 | `nomenclature_section`, the withheld plate element | D1 | | FT-133 |
+| M-09 | Long tail: every unmapped type becomes a black box with the QET element name in its provenance, and one EW-IMP-119 summary row lists the types with their use counts | the 29 black-box types | D1 | Keeps counts for the corpus statistic of T-03 | FT-145 |
 
 ### 5.3 Inspection and documentation
 
-| ID | Task | Class | Note |
-|---|---|---|---|
-| T-01 | Dump, for the 11 L types first and then the 26 mapped types of confidence M, the definition's `link_type`, `kindInformations`, terminal count, category path and stock UUID, with the QET element reader of `ew-import-qet`; write the result to the private corpus folder only, never to the repository | D1 | Resolves `thruright` (153 uses), `com_puiss4` and the `borne_*` levels; confirms the 58 `valve` uses are 5/2 solenoid-spring |
-| T-02 | After each S-ticket, fill `iec60617_ref` once verified against the standard and add the key to the expected list and to [07](07-symbols-parts-macros.md) §9.1 | D1 | Part of the symbol ticket's own check |
-| T-03 | A private script that recomputes the table of §1 (covered, black box, missing, by types and by uses) from the inventory and the symbol-map seed, so that each added symbol or map row is seen in the number | D1 | Not committed with corpus data; the script and the aggregate numbers only (WP-S3.13) |
+| ID | Task | Class | Note | Disposition |
+|---|---|---|---|---|
+| T-01 | Dump, for the 11 L types first and then the 26 mapped types of confidence M, the definition's `link_type`, `kindInformations`, terminal count, category path and stock UUID, with the QET element reader of `ew-import-qet`; write the result to the private corpus folder only, never to the repository | D1 | Resolves `thruright` (153 uses), `com_puiss4` and the `borne_*` levels; confirms the 58 `valve` uses are 5/2 solenoid-spring | FT-146 |
+| T-02 | After each S-ticket, fill `iec60617_ref` once verified against the standard and add the key to the expected list and to [07](07-symbols-parts-macros.md) §9.1 | D1 | Part of the symbol ticket's own check | Part of FT-148 |
+| T-03 | A private script that recomputes the table of §1 (covered, black box, missing, by types and by uses) from the inventory and the symbol-map seed, so that each added symbol or map row is seen in the number | D1 | Not committed with corpus data; the script and the aggregate numbers only (WP-S3.13) | FT-147 |
 
 ---
 
@@ -356,7 +357,12 @@ The paragraph below is the text that [07](07-symbols-parts-macros.md) §2.3 carr
 > stop, electronic switch and level sensor. The note ranks the families, records the pilot's drawing style (wiring marks,
 > terminal and interruption-point density, nomenclature blocks as bill of materials, slice-wise valve terminals,
 > one-terminal-per-channel PLC modules) and proposes fifteen symbol tickets and nine importer mapping entries. It adds no
-> requirement and changes no key; whether the additions join the starter set or WP-S7.04 is the lead's decision.
+> requirement and changes no key. The seven types that a pilot project uses at least twice join the starter set
+> (`ew.iec.plug-socket`, `ew.gen.screen`, `ew.iec.sensor-temp`, `ew.iec.mcb-2p`, `ew.iec.disconnector-1p`,
+> `ew.iec.switch-disconnector-4p`, `ew.iec.socket`; follow-up task FT-148); the end-terminal and the other variants
+> follow the same rule after inspection (FT-150), and the rest go to WP-S7.04. The starter set grows from 36 to 43
+> native symbols (decision log ID-294). A QET cross-section mark that disagrees with the derived wire property is
+> reported as EW-IMP-123 with the mark's value ([14](14-interop.md) §4.12; ID-284).
 
 ---
 
@@ -364,15 +370,18 @@ The paragraph below is the text that [07](07-symbols-parts-macros.md) §2.3 carr
 
 1. **Starter set or full library.** FR-SYM-007 fixes the starter set to the golden project's list and FR-SYM-008 puts the
    full library at 1.0. The corpus argues for pulling S-01 and S-02 forward (the female connector half is 89 % of the
-   missing uses), but that changes the scope of WP-S7.02 and is not decided here.
+   missing uses), but that changes the scope of WP-S7.02 and is not decided here. **Resolved** (decision log ID-294): the seven types used at least twice in a pilot project join WP-S7.02, the rest go to WP-S7.04.
 2. **Fixed or parametric.** S-03 to S-06 are pole-count variants. Draw four fixed symbols now, or wait for the parametric
-   families of FR-SYM-027 (1.x)?
+   families of FR-SYM-027 (1.x)? **Resolved** (ID-295): neither; pole counts are generated from a family source at
+   content-build time (07 §3.2 rule 10, FT-149).
 3. **Marks that disagree.** M-03 drops a cross-section mark when its text equals the wire's property. What the importer
    does when it differs (keep as free text and report, or override the property) is open; the first option is the safe
-   default.
+   default. **Resolved** (ID-284): the derived property is kept, the mark is dropped, and EW-IMP-123 reports the mark's
+   value (FT-132).
 4. **Inspection before drawing.** The ranking of §3.3 puts 153 uses behind one name reading. The symbol tickets
    of groups B to D can start at once, since their rows have confidence M or H, but nothing should be drawn for a
-   candidate family before T-01.
+   candidate family before T-01. **Resolved:** T-01 is FT-146 and gates S-13 and S-14 (FT-150) and the candidate
+   families.
 
 ---
 
@@ -380,7 +389,7 @@ The paragraph below is the text that [07](07-symbols-parts-macros.md) §2.3 carr
 
 **Requirements read:** FR-SYM-007, FR-SYM-008, FR-SYM-018, FR-SYM-019, FR-SYM-022, FR-SYM-027, FR-SYM-029, FR-SYM-030,
 FR-IMP-016, FR-IMP-017, FR-IMP-018, FR-IMP-039, FR-TRM-023, FR-DEV-036, FR-CHK-017; checks EW-IMP-107, EW-IMP-108,
-EW-IMP-110, EW-IMP-112, EW-IMP-113, EW-IMP-119. No requirement is added or reworded.
+EW-IMP-110, EW-IMP-112, EW-IMP-113, EW-IMP-119. No requirement is added or reworded. Decision log ID-284, ID-294 to ID-296.
 
 **Documents that cite this note:** [07](07-symbols-parts-macros.md) §2.3 (coverage paragraph) and
 [14](14-interop.md) §4.3 (QET element mapping).

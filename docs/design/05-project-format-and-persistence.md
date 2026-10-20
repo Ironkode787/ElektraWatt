@@ -1,7 +1,7 @@
 # Project format and persistence
 
-**Status:** Draft v0.2 · **Date:** 2026-10-20 (v0.2: the persistence core as built and reviewed in cycle 8,
-ADR-0010 amendment 3, decision log ID-200 to ID-217) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.2 · **Date:** 2026-10-21 (v0.2: the persistence core as built and reviewed in cycle 8,
+ADR-0010 amendment 3, decision log ID-200 to ID-217; cycle 11: journal granularity of `project.settings.set`, Golden B1 files, ID-290) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -857,6 +857,7 @@ base generation). The example records W20's colour change from DBU to BU
 - **Entries.**
   - `tx` holds field-level diffs: `set` for the after-values, `was` for the before-values, and `put` or `del` with
     whole records.
+  - Field diffs are per top-level member of a record. `project.settings.set` (decision log ID-290) therefore journals the whole `settings` value of the project record in `set` and `was`, not only the edited member; settings are a few kilobytes, so per-member paths are not planned.
   - Undo and redo are journalled as the transactions they are.
   - `t` (epoch ms) and the absolute `path` serve only the recovery dialog. The journal is not project data and
     never leaves the user-only state directory (NFR-PRIV-05).
@@ -1476,7 +1477,7 @@ writes files, so a file that is no longer produced is removed by hand.
 |---|---|
 | Renumber folio 3 → 4 (AC-20, the D-01 replay) | Folio 3's page file only: one op on the page row. -3W1 becomes -4W1 everywhere because no tag is stored ([domain model](03-domain-model.md) §8.6) |
 | Golden B2: folio 106 → 104 | Folio 106's page file only. Two tags and 14 xref texts change in the outputs; none of them is in a file |
-| Golden B1: page-based renumbering of 10 tags | The shards of the 10 devices (their `TagSpec`: frozen text cleared, scheme and counter set); `project.jsonl` only if the command changes the project's strip rule instead of per-device schemes. After undo and save, every data file is byte-identical to Golden A again; only `generation` differs (AC-18) |
+| Golden B1: page-based renumbering of 10 tags | `project.jsonl` (the `numbering` settings line drops the strip rule, which renames -X1031/-X1032 without touching their records) and the shards of the devices whose `TagSpec` changes (frozen text cleared, counter set). After undo and save, every data file is byte-identical to Golden A again; only `generation` differs (AC-18) |
 | 24 V DC colour changed in the profile (AC-12) | `project.jsonl` only. No wire record stores a derived colour |
 | W29 colour override set, then undone | Nothing, not even the manifest: step 3 of §5.2 drops the unchanged file, so the dirty set is empty |
 | Valve-manifold macro inserted on a new page | The new page file, the new devices' shards, and `lib/macros/…` if not yet embedded |

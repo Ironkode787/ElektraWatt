@@ -1,6 +1,6 @@
 # Work breakdown structure
 
-**Status:** Draft v0.4 · **Date:** 2026-10-20 (v0.4: the cycle-10 statuses, WP-S1.07 part 2 delivered, FT-84, FT-86 and FT-109 closed, FT-117 to FT-126; v0.3: the cycle-9 statuses, WP-S1.07 in two parts, FT-100 to FT-116; v0.2: the estimates of WP-S1.05, WP-S1.07 and WP-S1.08 after G-SP, the cycle-8 statuses and FT-86 to FT-99) · **Part of:** ElektraWatt plan
+**Status:** Draft v0.5 · **Date:** 2026-10-21 (v0.5: the cycle-11 statuses, the QET project import spike, the acceptance runner, Golden B, the symbol rulings, FT-127 to FT-163; v0.4: the cycle-10 statuses, WP-S1.07 part 2 delivered, FT-84, FT-86 and FT-109 closed, FT-117 to FT-126; v0.3: the cycle-9 statuses, WP-S1.07 in two parts, FT-100 to FT-116; v0.2: the estimates of WP-S1.05, WP-S1.07 and WP-S1.08 after G-SP, the cycle-8 statuses and FT-86 to FT-99) · **Part of:** ElektraWatt plan
 
 **Purpose.** This document breaks the full v1 scope of ElektraWatt (EW) into 123 work packages (WPs) in eight
 streams. For every WP it states the objective, scope, deliverables, dependencies, the requirements it delivers,
@@ -1040,6 +1040,8 @@ save budgets (milestone performance run).
 | Acceptance | AC-18, AC-19 |
 | Owner role | Core developer |
 
+*Status (2026-10-21, cycle 11).* Delivered ahead of the WP: `numbering.renumber` with `include_frozen` (only the frozen devices the scheme can number are unfrozen; `options.skip_frozen` removed), `project.settings.set` (ADR-0008 amendment 3) and the interim segment-less strip rule shared by `ew-derive` and `ew-commands` (decision log ID-290 to ID-293). Open in this WP: the main-representation rule of doc 03 §8.2 step 4, FT-151, FT-152, FT-154, FT-155 and FT-163.
+
 #### WP-S1.12 Project, structure and page model breadth
 
 | Field | Value |
@@ -1817,6 +1819,8 @@ are regenerated (FT-52, FT-54, FT-55, FT-58 closed); the golden PDF has 31 of do
 | Acceptance | AC-15 |
 | Owner role | Output and migration developer |
 
+*Status (2026-10-21, cycle 11).* Beyond this WP's scope, the lenient import of whole QET projects was delivered as a spike, pulled forward from lever (b) (decision log ID-273 to ID-284; [interop](../design/14-interop.md) §4.16): the pilot's three projects import, derive and export to PDF with no lost connection, and the reference set (Golden C's source) reports the 8 EW-TERM-002 groups of MF-09. The spike is a head start on WP-S3.10 and WP-S3.11, whose estimates and milestones are unchanged; their remaining scope is FT-127 to FT-145.
+
 #### WP-S3.06 MVP report pack
 
 | Field | Value |
@@ -1893,6 +1897,8 @@ are regenerated (FT-52, FT-54, FT-55, FT-58 closed); the golden PDF has 31 of do
 | Owner role | Output and migration developer |
 | Scope lever | Lever (b): can move to the 0.x release after MVP by a scope decision (§7.1) |
 
+*Status (2026-10-21, cycle 11).* Started early as the spike recorded under WP-S3.05 (decision log ID-273): pages, devices, main and auxiliary functions, interruption points, conductors with exact ends, inferred strips and the CLI exist. Remaining: FT-130, FT-131, FT-132, FT-134, FT-136, FT-137, FT-139, FT-142 to FT-145. Milestone unchanged (M3 in the plan of record).
+
 #### WP-S3.11 QET project import II: links, formulas, strips, tables
 
 | Field | Value |
@@ -1924,6 +1930,8 @@ are regenerated (FT-52, FT-54, FT-55, FT-58 closed); the golden PDF has 31 of do
 | Acceptance | — (no golden AC row; the acceptance criterion of each listed requirement row applies) |
 | Owner role | Output and migration developer |
 | Scope lever | Lever (a): can be deferred from MVP to 1.0 (§7.1) |
+
+*Scope note (2026-10-21, cycle 11).* The fluid element map takes doc 23's M-06 (`valve` through the FR-IMP-018 port map, `doubleactingvalve` to two functions, the valve-terminal slice elements left to the reconstruction assistant with EW-IMP-112); cables take FT-135 (decision log ID-296).
 
 #### WP-S3.13 QET corpus, migration verifier and pilot migrations
 
@@ -2442,6 +2450,8 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 | Acceptance | AC-15, AC-24, AC-39 |
 | Owner role | Release engineer |
 
+*Status (2026-10-21, cycle 11).* The acceptance runner is delivered as `cargo xtask acceptance <report.md> [--milestone]` with four statuses (pass, fail, not_built, not_applicable) and a committed headless report: 83 entries, 41 pass, 10 fail, 26 not_built, 6 not_applicable (decision log ID-285, ID-286). Open in this WP: the builder DSL (path (b), AC-15), the `ew-testkit accept --gate` CLI form, and the SQL halves once WP-S1.10 lands.
+
 #### WP-S6.02 Determinism, property tests and command fuzzer
 
 | Field | Value |
@@ -2639,6 +2649,8 @@ S7 produces the content that makes EW correct by default and learnable: the gold
 | Acceptance | AC-01, AC-03, AC-05, AC-07, AC-09, AC-39 |
 | Owner role | Content maintainer |
 
+*Status (2026-10-21, cycle 11).* Golden B is delivered as two command logs, `variants/b1-page-based-tags.ewcmd` and `variants/b2-renumber-pages.ewcmd`; all ten tag-map rows hold and one undo per line returns to Golden A byte for byte (decision log ID-289; one log is FT-155). Golden C is runnable on the received reference file; its migration report and fix script are cycle-12 work (ID-283). Open: FT-110 and FT-111 (the last three golden pages).
+
 #### WP-S7.02 Starter symbol set
 
 | Field | Value |
@@ -2653,6 +2665,8 @@ S7 produces the content that makes EW correct by default and learnable: the gold
 | Milestone · release | M1 Spine exit: headless golden PDF · MVP |
 | Acceptance | AC-02 |
 | Owner role | Content maintainer |
+
+*Scope note (2026-10-21, cycle 11).* Seven symbols that a pilot project uses at least twice join the starter set (FT-148: female connector half, cable screen, temperature sensor, two-pole MCB, single-pole disconnector, four-pole switch-disconnector, socket outlet), pole-count variants are generated from family sources (FT-149, [symbols](../design/07-symbols-parts-macros.md) §3.2 rule 10), and two variants follow after inspection (FT-150) (decision log ID-294 to ID-296). The additions are absorbed by the WP's estimate and the integration reserve.
 
 #### WP-S7.03 Starter parts, profiles, address maps and basic project
 
@@ -2684,6 +2698,8 @@ S7 produces the content that makes EW correct by default and learnable: the gold
 | Acceptance | — (no golden AC row; the acceptance criterion of each listed requirement row applies) |
 | Owner role | Content maintainer |
 | Scope lever | Lever (c): can move to 1.x by a scope decision (§7.2) |
+
+*Scope note (2026-10-21, cycle 11).* Takes doc 23's S-06 (RCD), S-07 (emergency stop), S-09 (level sensor), S-10 (electronic switch), S-11 (AC/DC power supply) and S-15 (Ethernet port) (decision log ID-294, ID-296).
 
 #### WP-S7.05 User documentation, rule pages and MVP tutorials
 
@@ -2863,7 +2879,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-59 | The `Session` export job (`ew-api`, `ew-jobs`): it owns the glue rules of the view, builds one view and one memoised `page_display_list` query per layer that reads only that layer's inputs, so a wire edit never rebuilds the title block | WP-S3.04 | With the export job | ID-125, ID-144; [ADR-0015](../adr/0015-display-list-renderers-pdf.md) amendment 7 |
 | FT-60 | When `ew-memo` backs `Q`: bind the report-pages provider to the memo store at creation; `Q`s with different providers never share a store | WP-S1.05 (phase 2) | **Closed:** implemented in cycle 9 (`MemoStore::with_report_pages`; the `Session` binds its report engine at creation) | ID-126, ID-220, ID-246 |
 | FT-61 | `ew-reports`: XLSX and CSV writers over the `RowSet` (rust_xlsxwriter, csv), and wrapped rows measured with `shaped_text` once the schema has a wrap policy | WP-S3.03 | With the WP | ID-130; [09](../design/09-reports-forms-output.md) §3.2, §4.6 |
-| FT-62 | Bind `revision.current.label` in the title block (the current revision of ID-105) | WP-S1.06 | Cycle 8 | ID-105 |
+| FT-62 | Bind `revision.current.label` in the title block (the current revision of ID-105) | WP-S1.06 | Cycle 12 (re-dated in cycle 11: an M1 gap, AC-04 and D-05, ID-286) | ID-105, ID-286 |
 | FT-63 | Golden tables: the black-box PSU part pattern declares its `source_output` CPs and the MICO its Out pass-throughs; needs the pilot's acknowledgement (PD-15) | WP-S7.01 | Cycle 7 (fix round) | ID-152 |
 | FT-64 | Doc 20 §7.3: 24VDC-2 … 4 typed "L+, 24 V DC, control", together with the §7.3 parser of the golden generator script, so W30–W32 become DBU | WP-S7.01 | Cycle 7 (fix round) | ID-152 |
 | FT-65 | The CSV bootstrap writes `colour_profile` and `size_profile` into `ProjectSettings.extra` in the shapes of doc 03 §5.1 instead of EW-IMP-004 | WP-S3.05 | Cycle 7 (fix round) | ID-153, ID-90 |
@@ -2928,6 +2944,43 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-124 | `cargo xtask` source lint: fail on a `#[path]` attribute inside an inline module, and on an edition-2024 let chain in a crate whose `rust-version` is 1.85 (the permissive crates), so the two cycle-9 CI failures are caught on every OS | WP-S6.02 (`xtask`) | Cycle 11 | ID-270; [18](../design/18-quality-security-release.md) §3.16 |
 | FT-125 | Per-key note families: `xref_relation` reads `ip_notes` whole and `potential_flow` reads `flow_notes` whole (value parts), so a changed note of one interruption point or pass-through conflict reaches every reader of the whole note family (the fan-out is bounded by the value-part cut-off: readers re-execute only when the family's value changes); split them into `ip_notes(f)` and `flow_notes(p)` after deciding which notes a single reader shows (review cycle 10, finding 6) | WP-S1.07; WP-S1.08 | When the composite bench shows note fan-out on the commit path | ID-252, ID-264 |
 | FT-126 | Slot reuse in `ew-memo`: orphan collection drops a memo, but its slot and key stay interned, so the store is bounded by the distinct keys ever read rather than by the live ones; reuse or compact collected slots and measure it with the long-session growth test | WP-S1.05 (`ew-memo`) | With FT-114 | ID-260 |
+| FT-127 | Starter-symbol exchange in the project importer: seed `symbol-map.csv` with one row per covered QET element type and its CP map (doc 23 M-01: the 37 covered types; care for coil, contacts, MCB with two or four terminals, earth, `ew.bus.dp-port`) and apply it in the importer (doc 14 §4.3 step 1), as Golden C's fix step 3 needs | WP-S3.11 | Cycle 12 (Golden C) | ID-283, ID-296; [23](../design/23-symbol-coverage-pilot-corpus.md) §5.2 |
+| FT-128 | Formula evaluation in the project importer: translate and evaluate each project's element formulas (doc 14 §4.4.1 step 1, §4.8; ported `assignvariables`) and report stale stored labels as EW-IMP-101 (MF-01) | WP-S3.11 | Cycle 12 (Golden C) | ID-277 |
+| FT-129 | Tag rules beyond the page rule: R2 `{letter}{page}{counter}`, R3 `{letter}{counter}`, the choice per letter class with the `AdoptRule` proposal (FR-IMP-042, doc 14 §4.4.1 steps 2 to 4) | WP-S3.11 | With Golden C's migration report | ID-277 |
+| FT-130 | Structure nodes from `plant`, `location` and label prefixes through `ew-rds` lenient parsing, with the spelling-variant merge proposal EW-IMP-102 (MF-02); today the prefix stays in `Device.extra` | WP-S3.10 | Cycle 12 (Golden C) | ID-277 |
+| FT-131 | Parts from element information: `PartUse`, project `PartCopy` and the auxiliary parts of doc 14 §4.4, manufacturers through the master's aliases (MF-12) | WP-S3.10 | With Golden C's fix script | ID-273 |
+| FT-132 | Text-to-data recognisers of doc 14 §4.12 (EW-IMP-107, EW-IMP-108; MF-07, MF-18, MF-19) and the cross-section marks of doc 23 M-03: drop an agreeing mark, report a disagreeing one as EW-IMP-123 with the mark's value and the override quick fix | WP-S3.10 | With Golden C's migration report | ID-284 |
+| FT-133 | `graphics_table` → report blocks (FR-IMP-016, EW-IMP-113, MF-21); the nomenclature-section element is dropped for the BOM block (doc 23 M-08) | WP-S3.11 | With Golden C's migration report | ID-273, ID-296 |
+| FT-134 | Free texts, shapes, images and thumbnails → `PageItem::FreeText`, `Graphic` and `Image` (doc 14 §4.13, §4.3); today they are reported as EW-IMP-004 | WP-S3.10 | With Golden C's fix script | ID-279 |
+| FT-135 | Cables in the project importer: QET 0.200 `<cables>` and the older cable-marker path, with cable wires to cores and the screen to the shield core (doc 14 §4.11; doc 23 M-05, after S-02) | WP-S3.12 | With the WP | ID-296 |
+| FT-136 | Conductor properties: `function` and `tension_protocol` → `PotentialDef` candidates (pass P1), `conductor_color` and `conductor_section` → overrides pruned by pass P2 (FR-IMP-012); today kept in `Connection.extra` | WP-S3.10 | With FT-143 | ID-273 |
+| FT-137 | QET's auto-route for conductors without segments (FR-IMP-043, ported profile algorithm); today they get EW's provisional route | WP-S3.10 | With the WP | ID-273 |
+| FT-138 | Interruption points: switch a project whose names repeat to chain mode (or report the star-mode quick fix), pass P3, the external-end proposals of doc 14 §4.6 step 6, and the unpaired-end count for the report arrows (doc 23 M-04) | WP-S3.11 | With Golden C's migration report | ID-278, ID-296 |
+| FT-139 | Title-block templates → title-block forms (FR-IMP-015, doc 14 §4.9), with the majority lifting and the revision records of EW-IMP-104 | WP-S3.10 | With the WP | ID-279 |
+| FT-140 | Read QET 0.100+ `<terminal_strips>` (`terminal_strip_data`, `physical_terminal`, `real_terminal`, `terminal_strip_bridge`) into strips, terminal levels and bridge connections (FR-IMP-013, doc 14 §4.11; the `borne_*` levels of doc 23 M-02); today the member is EW-IMP-004 and its bridges are dropped | WP-S3.11 | With Golden C's migration report | ID-280, ID-296 |
+| FT-141 | Empty terminal designations (MF-08, D-11): `Ident` cannot be empty, so an empty designation cannot be imported and EW-TERM-001 cannot report it; decide the schema form (an optional designation or an explicit marker) with its doc 03 and doc 05 impact, then import empty designations as found | WP-S1.14 (schema); WP-S3.11 | Before AC-25 (G-M3) | ID-280 |
+| FT-142 | Junction counting: `conductor_counts` counts the ends of pasted copies of a junction element against the first copy; count per copy (minor; no corpus file has a junction element) | WP-S3.10 | With the WP | ID-273 |
+| FT-143 | Imports through the pipeline of doc 14 §3: `ApplyImport`, lenient validators, import passes P1 to P7, proposals and the `ImportRun` record instead of `Session::from_records`; the `migration` check scheme (doc 15 §10.2) replaces the front-door EW-RDS-004 and EW-TERM-002 checks | WP-S3.10; WP-S1.15 | Before Golden C's migration report is compared (AC-25) | ID-276, ID-281 |
+| FT-144 | Synthesised tags of unlabelled elements (EW-IMP-122): decide whether they print "?" (the owner's interim ruling) or are hidden, and how a hidden tag stays visible to checks | WP-S3.10 | With FT-143 | ID-275 |
+| FT-145 | The black-box long tail: vendor and PLC modules as black boxes with a CP pattern from the element's terminal names and the vendor name proposed as manufacturer (doc 23 M-07); one EW-IMP-119 summary row listing the unmapped types with their use counts (M-09) | WP-S3.10 | With Golden C's migration report | ID-296 |
+| FT-146 | Inspection dump T-01: for the uncertain element types, the definition's link type, `kindInformations`, terminal count, category path and stock UUID, written to the private corpus folder only, never to the repository | WP-S3.13 | Before FT-150 and before any candidate family is drawn | ID-296 |
+| FT-147 | Private corpus statistic T-03: a script that recomputes doc 23 §1's coverage figures from the private inventory and the `symbol-map.csv` seed; only the script and the aggregate numbers may be committed | WP-S3.13 | With FT-127 | ID-296 |
+| FT-148 | Seven starter symbols for the pilot corpus: S-01 `ew.iec.plug-socket`, S-02 `ew.gen.screen`, S-03 `ew.iec.mcb-2p`, S-04 `ew.iec.disconnector-1p`, S-05 `ew.iec.switch-disconnector-4p`, S-08 `ew.iec.sensor-temp`, S-12 `ew.iec.socket`, each by the procedure of `content/symbols/README.md` with its `@qet10` twin and its `iec60617_ref` once verified (T-02); S-03 and S-05 through FT-149 | WP-S7.02 | Cycle 12 onwards (symbol tickets) | ID-294, ID-296 |
+| FT-149 | Pole-count family generator: `content/families/<family>.json` expanded by `cargo xtask symbols-qet10` into sealed SymbolDef and FnDef documents with `@qet10` twins and the keyword `family.<base>`, committed and checked by regeneration (doc 07 §3.2 rule 10) | WP-S7.02 (`xtask`) | Before S-03 and S-05 | ID-295 |
+| FT-150 | S-13 (end-terminal variant of `ew.iec.terminal`) and S-14 (latching coil, fan heater, NC push-button): join the starter set when T-01 confirms the reading and a pilot project uses the symbol at least twice, else WP-S7.04 | WP-S7.02 | After FT-146 | ID-294 |
+| FT-151 | Frozen literals reserve their counters: a frozen tag whose text reads like a scheme tag ("-101F3") does not yet keep online numbering or a renumber from giving a new device the same tag | WP-S1.11 | With the WP | ID-292 |
+| FT-152 | Derived-diff coverage: `Session::derived_diff` compares tags and cross-reference texts only; add wire properties (for colour and size profile edits), BOM and TOC rows, and a flag naming the kinds the diff covers | WP-S1.11; WP-S2.04 (preview UI) | Before the GUI preview of settings edits | ID-290 |
+| FT-153 | `affected_pages` of a preview ignores changes of the project row, so a settings edit reports no affected page; list the pages whose derived output changes | WP-S1.04 | With FT-152 | ID-290 |
+| FT-154 | The renumber preview lists the frozen devices that `include_frozen` leaves frozen (unplaced, terminals, `Child` or named-scheme devices) | WP-S1.11 | With the WP | ID-292 |
+| FT-155 | Golden B in one `variants/b-renumber.ewcmd` (B1 and B2 in one log, doc 20 §2) once WP-S1.11's main-representation rule allows a full renumber without swapping -X1031 and -X1032 | WP-S7.01; WP-S1.11 | With WP-S1.11 | ID-289 |
+| FT-156 | `ew apply <project> <file.ewcmd> [--preview] [--one-step]` (FR-EXT-029) over `Session::run_script` with the exit codes of `CmdLogError::exit_code`, and the `tag:` and `folio:` references through `find` | WP-S1.22 | With the WP | ID-288 |
+| FT-157 | Orphan-collection retention (ADR-0002 amendment 7): collect only memos of dead keys or under LRU eviction; the host passes each commit's deleted record IDs, `ew-derive` maps record kinds to families, producers retire derived keys through `Store::forget`; no cascade by readership; the 300-cycle growth test stays flat and a test shows that a representation move keeps the unread `device_tag` and `device_part_lines` memos | WP-S1.05 (`ew-memo`); WP-S1.07 (`ew-derive`) | Cycle 12 | ID-297 |
+| FT-158 | `cargo xtask` lint: fail on an assertion that compares `Instant`/`elapsed` durations outside an `#[ignore]`d test or an `EW_PERF_ASSERT` guard | WP-S6.03 (`xtask`) | Cycle 12 | ID-298 |
+| FT-159 | Folio 1 cover tables generated from the colour and size profiles (AC-12, D-30, D-37), with the bootstrap emitting the profiles (ID-90) | WP-S3.03; WP-S3.05 (bootstrap) | Cycle 12 (M1 gap) | ID-286 |
+| FT-160 | The structure cells (=P01, +J-E-2416) of the title block on the two TOC pages (AC-04, D-05; the revision label is FT-62) | WP-S3.04 | Cycle 12 (M1 gap) | ID-286 |
+| FT-161 | Terminal-designation uniqueness: the prevent rule of FR-TRM-002 on the candidate snapshot (strict rejects, lenient reports EW-TERM-001/002) as the first rule pack of `ew-checks`, so D-12 is rejected and a swap in one transaction passes | WP-S1.14; WP-S1.16a | Cycle 12 (M1 gap) | ID-286 |
+| FT-162 | Part data in the symbol slots of folios 101 and 102: typed ratings ("C10", "B16", "15 °C"), manufacturer names from the master and the enclosure part text "SK 3110.000" (D-18, D-33) | WP-S1.19a; WP-S3.04 | Cycle 12 (M1 gap) | ID-286 |
+| FT-163 | Numbering formats whose tokens are ambiguous without separators (`{page}{counter}{letter}`: page 20 with counter 16 and page 201 with counter 6 both print "-2016U") must be refused or made unambiguous by `check_settings_member`; the still-accepted, harmless cases to settle with it: duplicate scheme keys, an unknown rule aspect, an empty child separator, matrix 0, empty colour or size rows | WP-S1.11 | With the WP | ID-290 |
 
 ---
 

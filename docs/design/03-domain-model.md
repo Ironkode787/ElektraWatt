@@ -1,6 +1,6 @@
 # Domain model
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: frozen tags change only by explicit user action, segment-less strips, the `project.settings.set` command; decision log ID-290, ID-292, ID-293) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -543,7 +543,7 @@ that implement them do not re-open it. Each is an optional member appended to `P
 Until the owning work package adds the typed struct to `ew-schema`, a file that carries the member keeps it in
 `ProjectSettings.extra`, unchanged ([05](05-project-format-and-persistence.md) §10.3). Member names are JSON names,
 and enums use the snake_case encoding of 05 §3.2. Schemes are copied into the project, so the project level wins
-(FR-PRJ-008); `key` and `name` record which scheme the copy came from.
+(FR-PRJ-008); `key` and `name` record which scheme the copy came from. Settings members are edited by the previewed command `project.settings.set` (one whitelisted member per command: `numbering`, `colour_profile`, `size_profile`, `xref_format`; [17](17-extensibility.md) §2.1; ADR-0008 amendment 3; decision log ID-290).
 
 | Member | Shape | Golden A | Implemented by |
 |---|---|---|---|
@@ -1066,10 +1066,10 @@ lenient mode, so "J-E-2416" is never re-parsed into "+J", "-E", "-2416" (FR-PRJ-
 
 `TagSpec { letter: Ident, counter: u32?, scheme: Default | Named(SchemeId) | Child, frozen: FrozenTag? }` is the only
 stored tag data. The counter is assigned once, at commit, by the online-numbering normaliser (next free value in the
-counter scope, FR-NUM-007, with the gap rule of §8.6), and changes only through `RenumberDevices`. Everything else is
+counter scope, FR-NUM-007, with the gap rule of §8.6), and changes only through `RenumberDevices` (and, for a frozen tag, through the explicit actions of §8.6). Everything else is
 derived:
 
-1. **Frozen?** If `frozen = Some(FrozenTag{text, sign})`, the product designation is `text`; `sign: Hidden` prints
+1. **Frozen?** If `frozen = Some(FrozenTag{text, sign})`, the product designation is `text` (changed only as §8.6 says); `sign: Hidden` prints
    it without "-" on pages (Golden A: "S51"); full designations always carry the sign.
    **Terminal?** Otherwise a device with a `Terminal` aspect is named by its strip's product designation with the
    terminal designation as connection point (`-X1031:1`, §8.4), in its strip's structure (FR-TRM-027), and steps 2
@@ -1088,7 +1088,7 @@ derived:
    the representation types the scheme counts (default: all except contact images and panel fronts). *Until WP-S1.11*
    the command layer's numbering and `ew-derive` both use a simpler rule, the smallest-ID representation of the
    smallest-ID main function, where a `ContactImage` representation never counts (decision log ID-102), so that tags stay unique wherever the counters are; this step is the WP-S1.11 target,
-   and both crates change to it together (decision log ID-73; `ew-derive`'s agreement tests pin the two rules equal).
+   and both crates change to it together (decision log ID-73; `ew-derive`'s agreement tests pin the two rules equal). A strip without a strip segment takes the main representation of its first placed terminal: the terminal on the lowest page (folio order, then folio label, then page ID), then the lowest designation in natural order, then the smallest ID; `ew-derive`'s `MainRep` and the command layer's numbering use the same rule, and online numbering treats a touched terminal as touching its strip (decision log ID-293). Golden A's 1X1 therefore takes page 101.
 5. **Structure:** each aspect slot of `Device.structure` resolves to an explicit node, else the structure box around
    the main representation, else the main representation's page. A slot left `Inherit` on a `Child`-scheme device
    takes its parent's resolved slot (`=P01+J-E-2416-201U3-Q1`), and an unplaced device with a parent takes the
@@ -1188,7 +1188,8 @@ The preview lists the derived consequences, all computed from the same snapshot:
 
 Page renumbering cannot collide on page-scoped counters, because folios are unique. Moving a main representation to
 another page can collide (e.g. -101F1 moved to folio 102, where -102F1 exists); the normaliser then assigns the next
-free counter (-102F3) and the preview shows it (FR-NUM-029). Frozen tags never change.
+free counter (-102F3) and the preview shows it (FR-NUM-029). 
+**Frozen tags** never change by derivation (decision log ID-292). They change only by an explicit user action: `fields.set` on `tag.frozen` (explicit freeze and unfreeze; the property grid shows the resulting tag before it commits) or `numbering.renumber` with `include_frozen: true` (bulk, previewed). Both are undoable. `include_frozen` unfreezes only the frozen devices the scheme can number (placed, no terminal aspect, default scheme); unplaced devices, terminals and `Child` or named-scheme devices keep their frozen tag (FT-154 lists them in the preview). The renumber option `skip_frozen` no longer exists. Frozen literals do not yet reserve their counters against new devices (FT-151).
 
 **Next free counter.** "Next free" is the lowest positive counter not used in the numbering scope, so gaps are
 filled; it is deterministic over the current snapshot. A scheme option `reuse_gaps = false` switches to maximum + 1.

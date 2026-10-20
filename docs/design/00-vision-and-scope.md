@@ -1,6 +1,6 @@
 # ElektraWatt vision and scope
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: the QET project import spike, §9.1) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document states why ElektraWatt (EW) exists, who it is for, what it must achieve and what it
 deliberately leaves out. It fixes the release targets (MVP, 1.0, 1.x, Later) per capability area, so that the
@@ -363,6 +363,12 @@ re-baselines them from measured velocity at G-M1.
 | (a) | MVP Should and Could work to 1.0 | Headless read-only `ew mcp` (EXT), symbol editor (SYM), QET migration assistants for cables, fluid map, layout binding and reconstruction (IMP) |
 | (b) | QET project migration from the MVP to the 0.x release after it (M3) | QET project import, formulas, strips, tables, corpus and migration verifier (IMP; SC-4 closes at G-M3); QET element import stays in the MVP |
 | (c) | Breadth beyond the four binding v1 additions (PLC/I-O, manufacturing outputs, 3D panel with routing and lengths, EPLAN/QET/DXF import) from 1.0 to 1.x | Thermal calculation (THM), project translations and XLIFF (I18N), revision compare, change lists, clouds and the review and merge UI (REV), forms editor and ISO 5457 frames (PAG), macro placeholders and variants (MAC), automation scripts, jobsets and MCP writes (EXT), editor completion (UI), GSD/GSDML/IODD import (PLC), model views, busbars, bonding and glTF/STL/STEP export (LAY, EXP), verification checklists and the read-only wiring viewer (MFG), the full IEC 60617 and ISO 1219 libraries (SYM) |
+
+**Status of lever (b) after cycle 11** (decision log ID-273). The lenient QET project import was pulled forward
+as a spike and runs on the pilot's three projects with no lost connection ([14](14-interop.md) §4.16). This moves
+work earlier, not the milestone: the QET migration (formulas, strips from 0.100+ data, tables, the migration report
+with its passes, Golden C's fix script, the corpus and the verifier) still ships with M3 in the plan of record, and
+SC-4 still closes at G-M3.
 
 PLC/I-O, manufacturing outputs, 3D panel layout with routing and wire lengths, and QET, EDZ and DXF import stay
 in 1.0 under every variant. SC-3 and SC-4 timing follows the gates in either variant (§3.2).

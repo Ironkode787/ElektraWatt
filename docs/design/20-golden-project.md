@@ -1,6 +1,6 @@
 # Golden project: acceptance-test specification
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (cycle-11 design pass 2026-10-21: Golden B as built, Golden C runnable, acceptance runner statuses) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -83,8 +83,8 @@ committed; its technical content appears here anonymised (§3.5).
 | Variant | Purpose | Input | Built by | Expected state | First gate |
 |---|---|---|---|---|---|
 | **Golden A** | The acceptance target: the reference project with the user's visible tags, every determinable defect fixed, unknowns as test inputs | `golden/J-E-2416/tables/` (this document) | `ew import csv` (FR-IMP-022); builder DSL; checked-in fixture | Outputs of §5–§17, findings EF-01 … EF-19 | M1 |
-| **Golden B** | Renumbering test: all tags page-based, then a page renumber | Golden A + `variants/b-renumber.ewcmd` | `RenumberDevices`, `RenumberPages` as previewed commands | Tag map §2.2, identical topology, one undo per step back to A | M1 headless, M2 GUI |
-| **Golden C** | Migration test: the pilot's original `.qet` imported; defects visible as findings; fixable to A | The original `.qet` (private, PQ-02) | `ew import qet` + `variants/c-fix.ewcmd` | Migration report MF-01 … MF-27; C + fixes ≡ A (§20.3) | M2 |
+| **Golden B** | Renumbering test: all tags page-based, then a page renumber | Golden A + `variants/b1-page-based-tags.ewcmd`, `variants/b2-renumber-pages.ewcmd` (one `b-renumber.ewcmd` with FT-155) | `RenumberDevices`, `RenumberPages` as previewed commands | Tag map §2.2, identical topology, one undo per step back to A | M1 headless, M2 GUI |
+| **Golden C** | Migration test: the pilot's original `.qet` imported; defects visible as findings; fixable to A | The original `.qet` (private, PQ-02; received 2026-10-20, runnable since cycle 11) | `ew import qet` + `variants/c-fix.ewcmd` | Migration report MF-01 … MF-27; C + fixes ≡ A (§20.3) | M2 |
 
 A fourth fixture, **Golden A-R** (A plus the resolution overlay `resolutions/*.csv`, §2.4), is not a variant of
 the drawings: it supplies test values for the ▲ gaps so that release, layout, routing and manufacturing outputs can
@@ -101,7 +101,7 @@ flowchart LR
   T["tables/*.csv<br/>(this document)"] -->|"ew import csv"| A["Golden A<br/>golden/J-E-2416.ew"]
   DSL["builder DSL<br/>(ew-testkit)"] --> A2["Golden A (path b)"]
   A2 -.->|"equal projection CSVs"| A
-  A -->|"b-renumber.ewcmd"| B["Golden B"]
+  A -->|"b1 + b2 .ewcmd"| B["Golden B"]
   B -->|"undo"| A
   Q["original .qet<br/>(private store)"] -->|"ew import qet"| C["Golden C<br/>+ migration report"]
   C -->|"c-fix.ewcmd"| CF["C fixed"]
@@ -130,8 +130,7 @@ flowchart LR
 
 ### 2.2 Golden B
 
-**Step B1:** `RenumberDevices{scope: project, scheme: "{page}{letter}{counter}", include_frozen: true, order:
-[column, row]}`. Letters stay (`TagSpec.letter`); only formats and counters change. Exactly ten tags change:
+**Step B1:** a settings line sets the numbering to the single page-based scheme `{page}{letter}{counter}` (dropping the strip rule), then `RenumberDevices{scope: project, include_frozen: true, options: {only_nonconforming: true}}`. Letters stay (`TagSpec.letter`); only formats and counters change. Earlier drafts of this document named a `scheme` parameter (a format string) and an `order: [column, row]` parameter of the renumber; neither exists. The format change is the settings line, and the renumber's ordering is the command's fixed position order (decision log ID-289). Exactly ten tags change:
 
 | Golden A | Golden B | Golden A | Golden B |
 |---|---|---|---|
@@ -153,16 +152,9 @@ Assertions: -106W1/-106W2 become -104W1/-104W2; exactly 14 cross-reference texts
 apart from the folio label, these xrefs and the two tags (wherever they print), no text changes; undo restores step
 B1's state.
 
-**As built (cycle 11).** `variants/*.ewcmd` are command logs in the JSON Lines format of
-[17](17-extensibility.md) §3.5, replayed by `Session::run_script` (`crates/ew-api/src/cmdlog.rs`; format notes in
-`golden/J-E-2416/README.md`): `{"cmd": "<name>", "params": {…}}` per line with the parameters of the command's schema
-(for step B2, `{"cmd":"page.renumber","params":{"scope":{"section":{"ref":"section:1"}},"start":101,"step":1,
-"keep_gaps":false}}`; `section:<n>` is a reference kind of the implementation that [17](17-extensibility.md) §3.5 does
-not list yet, and an unresolvable reference stops the replay with exit 2). `variants/b2-renumber-pages.ewcmd` exists
-and is tested (`crates/ew-api/tests/golden_b.rs`). Step B1 is `variants/b1-page-based-tags.ewcmd`
-(`project.settings.set` drops the strip rule, then `numbering.renumber` with `include_frozen: true`); all 10 rows of
-the tag map hold, 1X1 (no strip segment, ▲U-43) taking its page from its first placed terminal (the README, "Step B1
-as built").
+**As built (cycle 11).** `variants/*.ewcmd` are command logs in the JSON Lines format of [17](17-extensibility.md) §3.5, replayed by `Session::run_script` (`crates/ew-api/src/cmdlog.rs`; format notes in `golden/J-E-2416/README.md`): `{"cmd": "<name>", "params": {…}}` per line with the parameters of the command's schema. Two logs exist and are tested (`crates/ew-api/tests/golden_b.rs`; decision log ID-289): `variants/b1-page-based-tags.ewcmd` (step B1: `project.settings.set` replaces `numbering` by the single page-based scheme, then `numbering.renumber` with `scope: project`, `include_frozen: true` and `options.only_nonconforming: true`) and `variants/b2-renumber-pages.ewcmd` (step B2: `{"cmd":"page.renumber","params":{"scope":{"section":{"ref":"section:1"}},"start":101,"step":1,"keep_gaps":false}}`). The reference kind `section:<n>` is now listed by [17](17-extensibility.md) §3.5 (decision log ID-288); an unresolvable reference stops the replay with exit 2. FT-155 merges the two logs into one `b-renumber.ewcmd`.
+
+All ten rows of the tag map (the ▲ rows) hold. 1X1 has no strip segment (▲U-43); it takes the page of the main representation of its first placed terminal (decision log ID-293), so it becomes -101X1, and -XPE becomes -101X2. `only_nonconforming` limits B1 to the tags that do not already follow the scheme: under the interim smallest-ID main-representation rule ([03](03-domain-model.md) §8.2 step 4) a full renumber would swap -X1031 and -X1032, so the swap is avoided until WP-S1.11's rule lets a full renumber run (FT-155). B2 changes 2 tags and 14 cross-reference texts; the topology is identical. One undo per line returns the project to Golden A byte for byte. B1, B2 and the undos are verified with the oracle on.
 
 **B′ (identifier-set switch, FR-NUM-014, Should):** switching Golden A to the IEC 81346-2:2019 set is a previewed
 renumber whose expected classes are the "IEC 81346-2:2019 class" column of
@@ -175,8 +167,7 @@ performance fixtures ([02c](02c-nonfunctional-requirements.md) §2.1).
 Golden C imports the pilot's original QElectroTech 0.100.0-dev file of the reference set in lenient mode
 (ADR-0009, ADR-0021). The import must reproduce the 18 folios and their 63 cross-reference texts as printed
 (including the faulty "3-B0"), list the defects as migration findings (§20.1), and become equivalent to Golden A
-after the scripted fixes of §20.2. Until the pilot supplies the file (PQ-02), Golden C is specified but not
-executable.
+after the scripted fixes of §20.2. The pilot supplied the file on 2026-10-20 (PQ-02, decision log ID-272); it lives in the private store (§3.5). As built in cycle 11 (decision log ID-273, ID-283), the lenient project importer imports it with 0 lost connections and reports the 8 EW-TERM-002 groups that MF-09 expects. The migration report against §20.1 and the fix script `variants/c-fix.ewcmd` are cycle-12 work, and Golden C stays gated at G-M3 (lever b). The importer still opens the batch without `ApplyImport` and without import passes (FT-143), so the MF rows that need passes, formulas or recognisers are not produced yet (FT-128 … FT-140).
 
 ### 2.4 Golden A-R: the resolution overlay
 
@@ -235,10 +226,12 @@ golden/
     expected/                  # pages, toc, title_blocks, xrefs, tags, bom_component, bom_assembly, terminals,
                                #   wires, potentials, cables, plc, fluid, placements, findings_mvp, findings_1_0,
                                #   findings_manufacturing, findings_en60204, release_blockers (CSV);
+                               #   acceptance_headless.md (the committed headless runner report, §22);
                                #   mfg/*.csv (Komax and Rittal WT rows, manual.csv with finishing tasks, consumables);
                                #   geometry/frame.json; text/<folio>.csv; png/<folio>.png
     acceptance/*.sql           # queries over the api_v1 views producing expected/*.csv (ADR-0017)
-    variants/                  # b-renumber.ewcmd, b2019-identifier-set.ewcmd, c-fix.ewcmd, gp-ut.ewcmd
+    variants/                  # b1-page-based-tags.ewcmd, b2-renumber-pages.ewcmd, b2019-identifier-set.ewcmd,
+                               #   c-fix.ewcmd, gp-ut.ewcmd
     basic-project/             # basic project built from the shipped defaults (GP-UT sessions, §2)
     assets/logo-placeholder.svg
 ```
@@ -316,6 +309,7 @@ The first approval also settles these starter-symbol items, raised by the review
 - Golden C and the migration verifier (AC-25 … AC-27) run in a private CI job against the private store; the
   public log carries pass/fail and anonymised diffs only. The anonymised `.qet` is published only with the pilot's
   written consent.
+- The pilot corpus is private test input (decision log ID-299). The pilot's three projects (P2 is the reference set and the source of Golden C) live outside the repository and in the private CI store. Agents read only sanitised derived lists (element types and finding codes, with counts); documents and the decision log carry counts only. The corpus's tokens are SHA-256 digests in `ci/denylist.sha256`, and the private smoke test prints counts only.
 
 ---
 
@@ -1201,7 +1195,7 @@ gates.
 | D-08 | Free-text wire rule | Prevent: `wire_props_of` with provenance; generated cover tables (FR-CON-017, FR-REP-038) | `ew query wire_props W29 --explain`; change 24 V colour in the profile | W29 0.75 DBU "profile"; W20 1.5 mm² from CDP, DBU from profile; one commit updates folio 1, 907 and colour-dependent texts | M1 |
 | D-09 | No wire, terminal, cable, PLC, potential reports; no wire numbers | Feature: report blocks 903–911; FR-NUM-019 | Export | 16 generated pages per §16; W1–W34 numbered, unique, stable under moves | M1 |
 | D-10 | Overview 5 vs 4 valves | Prevent: generated overview (FR-DEV-023); FR-CHK-022 | Render 202; C import | 4 valves on -202U2; C: MF-14 | M1 |
-| D-11 | Terminal without designation | Invariant (FR-TRM-002), strict | Command sets designation "" on -X1031:8 | Rejected; C: MF-08 (lenient) | M1 |
+| D-11 | Terminal without designation | Invariant (FR-TRM-002), strict | Command sets designation "" on -X1031:8 | Rejected before commit (parameter validation or invariant; decision log ID-287); C: MF-08 (lenient) | M1 |
 | D-12 | Duplicate designations | Invariant, unique per strip | Set -X1031:3 to "4"; swap 3 ↔ 4 in one transaction | First rejected, swap accepted; C: MF-09 | M1 |
 | D-13 | T55, S56 in the neutral | EW-POT-013 | Check run; A-R rewiring | EF-01 (2); clears in A-R; a 2-pole switch in L and N is not reported | M2 |
 | D-14 | "3-B0" | Prevent: anchor policy (FR-SYM-010, FR-XRF-005); FR-CHK-035 | Render 201; force origin anchor on the bus port | "3-B2"; forcing the origin reports "3-B0: empty cell"; C: MF-13 | M1 |
@@ -1237,6 +1231,8 @@ gates.
 ---
 
 ## 20. Golden C: migration report and fix script
+
+**State (cycle 11).** The import runs on the reference file with 0 lost connections and MF-09's 8 groups. The full report and the fix script are cycle-12 work (decision log ID-283); private-corpus figures are in decision log ID-273.
 
 ### 20.1 Expected migration report
 
@@ -1375,7 +1371,21 @@ plan of record is the lean variant, which moves AC-25 … AC-27 to G-M3 (lever b
 (lever c), as in the table ([vision](00-vision-and-scope.md) §9.1). The **Gate** column of §21 names the full-scope
 milestone; the table above is the gate assignment of the plan of record.
 
-The acceptance runner reports pass/fail per AC and per D-nn (NFR-MAINT-11). As built (cycle 11): `cargo xtask acceptance [--milestone] <report.md>` runs the headless M1 subset (AC-01 … AC-13, AC-18, AC-20 and the §19 rows gated M1; AC-14 … AC-17 and AC-39 are listed with their status) and writes the report and a JUnit file. A row is `pass`, `fail`, `not_built` (the feature does not exist yet; blocks like a failure) or `not_applicable` (cannot be evaluated headless or at this delivery; does not block); the golden README ("Acceptance runner") has the details.
+The acceptance runner reports pass/fail per AC and per D-nn (NFR-MAINT-11). **As built (cycle 11; decision log ID-285).** `cargo xtask acceptance <report.md> [--milestone]` runs the headless M1 subset through nextest with `--profile ci` (JUnit XML) and writes the Markdown report. `--milestone` runs the release profile with `EW_PERF_ASSERT=1` and measures AC-17; without it AC-17 is `not_applicable`. Each entry has one of four statuses: `pass`, `fail`, `not_built` (the feature or the comparison does not exist yet; blocks like a failure) and `not_applicable` (cannot be evaluated by this run; does not block). `not_applicable` needs one of four reasons: headless, pilot, external tool or BM runner. A criterion that passes in part is split into its own entries, one per check. The committed report `golden/J-E-2416/expected/acceptance_headless.md` is compared by the ordinary test, which runs the runner once. Current counts: **83 entries: 41 pass, 10 fail, 26 not_built, 6 not_applicable**, with 0 oracle mismatches. The golden README ("Acceptance runner") has the details.
+
+**M1 gap list (the 10 fails; decision log ID-286).**
+
+| Gap | Failing entries | Follow-up |
+|---|---|---|
+| Page order: 33 of 36 folios present (901.1 BOM rows 24–27; 908.1 and 908.2 PLC channel records) | AC-03 | FT-110, FT-111 |
+| Revision label not bound; structure cells missing on the TOC pages | AC-04, D-05 | FT-62, FT-160 |
+| Parts list has 23 rows on one page against 27 on two | AC-07, D-04 | FT-110 |
+| 18 of 19 potentials; DP via Bus connections | AC-10 | FT-105 |
+| Folio 1 cover tables missing | AC-12 | FT-159 |
+| A duplicate terminal designation is accepted (no invariant or prevent rule; `ew-checks` is a stub) | D-12 | FT-161 |
+| Ratings, manufacturer names and the enclosure part text not printed on 101 and 102 | D-18, D-33 | FT-162 |
+
+The 26 `not_built` entries are AC-01 (vector comparison of the written PDF), AC-06 (PDF text layer), AC-07 (assembly BOM and `ew export bom`), AC-08 SQL, AC-09 (wire numbers, FT-100), AC-09 SQL, AC-10 SQL, AC-11 (`ew export cables`), AC-11 SQL, AC-13 (text extraction keeps spaces), AC-14 (SVG and parallel export), AC-15 (builder DSL path (b)), AC-16 (freshness edits), D-03 (numbering report EF-15), D-06, D-09, D-12 (swap in one transaction), D-14, D-17, D-20, D-22, D-30, D-35, D-36, D-37 and D-41; the SQL halves of AC-08 … AC-11 wait for WP-S1.10. The 6 `not_applicable` entries are AC-02 raster (headless approval), AC-13 veraPDF (external tool), AC-14 Linux byte identity (evaluated by the platform CI job), AC-15 path (a) = (c) (evaluated by the fixture test), AC-17 (BM runner; `--milestone`) and AC-39 (`cargo xtask check-anonymisation`). AC-13's PDF/A-2b requirement passes through krilla's PDF/A-2b validator; the veraPDF cross-check is `not_applicable` headless and runs in the CI job that has veraPDF (decision log ID-287).
 
 ---
 

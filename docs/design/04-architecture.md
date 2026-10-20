@@ -1,6 +1,6 @@
 # ElektraWatt architecture specification
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-20 (G-SP outcome, §6.1 to §6.4; save order, §7.4; the memo engine as built, §2, §6.2, §6.4; incremental connectivity as built, §3, §6.3, §6.4) · **Date:** 2026-10-17 · **Decided by:** chief architect, after a judge
+**Status:** Accepted · amended 2026-10-18, 2026-10-20 (G-SP outcome, §6.1 to §6.4; save order, §7.4; the memo engine as built, §2, §6.2, §6.4; incremental connectivity as built, §3, §6.3, §6.4), 2026-10-21 (orphan-collection retention, §6.2) · **Date:** 2026-10-17 · **Decided by:** chief architect, after a judge
 panel over four competing proposals (A incremental, B ECS, C relational, D retained/object model)
 **Scope:** ElektraWatt (EW) v1:
 - Electric P8-class schematics;
@@ -762,7 +762,8 @@ make high fan-out values cut-off firewalls; the topology families are note-free;
 of its frame, so a cold `Q` evaluates every (family, key) once; `Query::bytes` is asked for only at the writes of
 LRU families and on demand by `Store::memory`, and the incremental producers keep running estimates; producers
 forget dead keys and drop carried dependencies (`Store::forget`, `Store::drop_carried`), unread parts keep no stamp
-and every advance collects orphan memos; debug guards enforce `Query::PRODUCER` and `Query::NOTE_FREE`;
+and every advance collects orphan memos, since 2026-10-21 only those of dead keys or under LRU eviction, so an
+unread memo of a live key is kept (ADR-0002 amendment 7, decision log ID-297, FT-157); debug guards enforce `Query::PRODUCER` and `Query::NOTE_FREE`;
 `MemoStore::fork` is public. The benchmark runs on `MemoStore` with the composite family of a move or wire commit (names and
 cross-references included); the G-SP re-test on a BM-class runner is open.
 

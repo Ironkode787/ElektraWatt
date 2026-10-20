@@ -1,6 +1,6 @@
 # ADR-0002: Derived-data engine: cold-first queries plus a cut-down memo layer (`ew-memo`); no salsa
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-20 (G-SP outcome: Recycle; the memo engine as built; incremental connectivity as built) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-20 (G-SP outcome: Recycle; the memo engine as built; incremental connectivity as built), 2026-10-21 (orphan-collection retention) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -379,6 +379,24 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
      family (`memo.composite.move`, `.wire`: the partition, the names and the cross-reference texts after the edit),
      notes compared by its oracle, and timed samples on the second commit of a fork; the G-SP re-test runs it on a
      BM-class runner (decision log ID-265).
+7. **Orphan collection keeps the memos of live keys** (2026-10-21, project owner (delegated); decision log ID-297;
+   follow-up task FT-157). Amendment 6's collection was too aggressive: a memo read only by the host was dropped after
+   one unread revision following a mark, cascading to its unshared dependencies. On the golden project one
+   representation move discarded 96 `device_part_lines` and 73 `device_tag` memos that would have verified cheaply at
+   the next export. The policy becomes:
+   - **A memo is collected only when its key is dead or its family's LRU budget evicts it.** An unread memo of a
+     live key is kept: it costs memory, which the LRU budgets and the memory gate govern (amendment 4 item (d)), and it
+     verifies cheaply on its next read. Collection no longer cascades by readership; a dependency of a collected memo
+     is collected only when its own key is dead.
+   - **Dead keys.** A key is dead when it names a record that the closing revision deleted: the host passes the
+     deleted record IDs of each commit, and `ew-derive` maps a record kind to the families keyed by it. For families
+     keyed by derived identities (potentials, profile rows), the producer that mints them retires a key through
+     `Store::forget`, as the partition already does for the nets of deleted pages. `ew-memo` stays generic: liveness
+     reaches it as key lists, never as ECAD knowledge.
+   - **Rejected: a grace period** (collect an orphan after k unread revisions). Its right value depends on the
+     front-end's read pattern, and it would still discard the export-only memos that motivated the change.
+   - **Unchanged.** The 300-cycle growth test of amendment 6 must stay flat (its page memos are keyed by deleted
+     pages); collected slots stay interned until FT-126.
 
 ## Consequences
 
