@@ -56,8 +56,24 @@ impl Query for MainFunction {
 
 /// `main_rep(device)`: the smallest-ID representation that draws the main function and is not a contact
 /// image (doc 03 §5.1); `None` for an unplaced device.
+///
+/// **A strip without a segment** (a device with a strip aspect whose main function has no such
+/// representation, Golden A's 1X1, ▲U-43) takes the main representation of its first placed terminal: the
+/// terminal whose own main representation is on the lowest page (folio number, then folio label in natural
+/// order, then page ID), then with the lowest designation (natural order), then the smallest ID. So the
+/// strip has a page for `{page}` and for numbering (owner ruling, Golden B step B1).
+/// `ew_commands::numbering::main_rep` applies the same rule (`tests/agreement.rs`).
 #[derive(Debug)]
 pub struct MainRep;
+
+/// The own main representation of a device (see [`MainRep`]), without the strip fallback.
+fn own_main_rep(q: &Q, device: Id<Device>) -> Option<Id<Representation>> {
+    let f = (*q.get::<MainFunction>(device))?;
+    let reps = q.reps();
+    q.idx()
+        .reps_of_function(f)
+        .find(|r| reps.get(*r).is_some_and(|r| r.rep_type != RepType::ContactImage))
+}
 
 impl Query for MainRep {
     type Key = Id<Device>;
@@ -66,15 +82,37 @@ impl Query for MainRep {
     const POLICY: Policy = Policy::Cold;
 
     fn run(q: &Q, key: &Self::Key) -> Arc<Option<Id<Representation>>> {
-        let Some(f) = *q.get::<MainFunction>(*key) else {
+        if let Some(rep) = own_main_rep(q, *key) {
+            return Arc::new(Some(rep));
+        }
+        let Some(dev) = q.devices().get(*key) else {
             return Arc::new(None);
         };
-        let reps = q.reps();
-        Arc::new(
-            q.idx()
-                .reps_of_function(f)
-                .find(|r| reps.get(*r).is_some_and(|r| r.rep_type != RepType::ContactImage)),
-        )
+        if dev.aspects.strip.is_none() {
+            return Arc::new(None);
+        }
+        let devices = q.devices();
+        let (reps, pages) = (q.reps(), q.pages());
+        let first = q
+            .idx()
+            .terminals_of_strip(*key)
+            .filter_map(|t| {
+                let designation = devices
+                    .get(t)?
+                    .aspects
+                    .terminal
+                    .as_ref()?
+                    .designation
+                    .natural_key();
+                let rep = own_main_rep(q, t)?;
+                let page_id = reps.get(rep)?.page;
+                let folio = &pages.get(page_id)?.folio;
+                let label = folio.label.as_ref().map(ew_mltext::Ident::natural_key);
+                Some(((folio.number, label, page_id, designation, t), rep))
+            })
+            .min_by(|a, b| a.0.cmp(&b.0))
+            .map(|(_, rep)| rep);
+        Arc::new(first)
     }
 }
 

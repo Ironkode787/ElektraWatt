@@ -243,7 +243,8 @@ fn golden() -> Fx {
     terminal(&mut fx, 0x1120, 0x1100, 2, "2", P_UK5N, PAGE101);
     terminal(&mut fx, 0x1130, 0x1100, 3, "PE", P_USLKG5, PAGE101);
     // Strip -X1031 on page 103: terminals 10 and 2 (the lower ID is the higher designation), two end
-    // brackets as strip accessories; the strip itself is unplaced.
+    // brackets as strip accessories; the strip has no segment, so it is placed through its first terminal
+    // (terminal 2 on page 103: `MainRep` of a strip without a segment).
     strip(&mut fx, 0x1200, "X1031", false, &[P_END_BRACKET, P_END_BRACKET]);
     terminal(&mut fx, 0x1210, 0x1200, 10, "10", P_PT25, PAGE103);
     terminal(&mut fx, 0x1220, 0x1200, 2, "2", P_PT25, PAGE103);
@@ -293,13 +294,13 @@ fn component_rows_are_ordered_and_numbered() {
             "A9P52610",    //
             "UK 5 N",      //
             "USLKG 5",     //
-            "PT 2.5-TWIN", // page 103
+            "C-EB",        // page 103: the strip without a segment, placed through terminal 2
+            "PT 2.5-TWIN", //
             "550208",      // pages 201, 202
             "NSYPLA1074G", // unplaced: enclosure, plate, rail, duct, other
             "NSYPMM107",   //
             "A-RAIL",      //
             "B-DUCT",      //
-            "C-EB",        //
         ]
     );
     let pos: Vec<u32> = out.iter().map(|r| r.pos).collect();
@@ -341,7 +342,8 @@ fn strip_accessories_are_rows_of_the_strip() {
     let eb = row(&out, "C-EB");
     assert_eq!(eb.qty, Dec3(2_000));
     assert_eq!(eb.devices, [id(0x1200)]);
-    assert!(eb.pages.is_empty());
+    // The strip has no segment: it is placed through its first terminal (terminal 2 on page 103).
+    assert_eq!(eb.pages, [PageRef::Drawn(id(PAGE103))]);
 }
 
 #[test]
@@ -382,9 +384,9 @@ fn devices_without_parts_and_not_fitted_devices_have_no_rows() {
 #[test]
 fn unplaced_rows_follow_placed_ones_by_legend_rank() {
     let out = rows(&golden(), BomMode::Component);
-    let tail: Vec<&str> = numbers(&out)[7..].to_vec();
-    assert_eq!(tail, ["NSYPLA1074G", "NSYPMM107", "A-RAIL", "B-DUCT", "C-EB"]);
-    assert!(out[7..].iter().all(|r| r.pages.is_empty()));
+    let tail: Vec<&str> = numbers(&out)[8..].to_vec();
+    assert_eq!(tail, ["NSYPLA1074G", "NSYPMM107", "A-RAIL", "B-DUCT"]);
+    assert!(out[8..].iter().all(|r| r.pages.is_empty()));
 }
 
 #[test]

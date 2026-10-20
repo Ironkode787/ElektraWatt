@@ -1038,12 +1038,6 @@ fn ac18_b1(c: &Ctx) -> Outcome {
     if xrefs(&s) != xrefs_before {
         wrong.push("cross-reference texts changed".into());
     }
-    if !changed.contains_key("1X1") {
-        wrong.push(
-            "1X1 has no strip segment (U-43), so page-based numbering has no page for it (golden/J-E-2416/README.md)"
-                .into(),
-        );
-    }
     if wrong.is_empty() {
         pass("the ten tags of the tag map change and nothing else; no cross-reference text changes")
     } else {

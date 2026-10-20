@@ -74,6 +74,23 @@ fn touched(tx: &TxBuilder<'_>) -> BTreeSet<Id<Device>> {
             _ => {}
         }
     }
+    // A strip without a segment is placed through its terminals (`numbering::main_rep`): a touched
+    // terminal touches its strip (old and new).
+    let strips: Vec<Id<Device>> = out
+        .iter()
+        .flat_map(|d| {
+            let now = tx
+                .get::<Device>(*d)
+                .and_then(|dev| dev.aspects.terminal.as_ref().map(|t| t.strip));
+            let before = tx.base_row(&(Kind::Device, d.cast())).and_then(|r| {
+                r.get::<Device>()
+                    .and_then(|dev| dev.aspects.terminal.as_ref().map(|t| t.strip))
+            });
+            [now, before]
+        })
+        .flatten()
+        .collect();
+    out.extend(strips);
     out
 }
 

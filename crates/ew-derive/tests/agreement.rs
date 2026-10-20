@@ -112,6 +112,41 @@ fn assert_unique_where_counters_are(fx: &Fx, devices: &[u128]) {
     }
 }
 
+/// A strip without a segment takes the main representation of its first placed terminal, in both layers
+/// (owner ruling for Golden B step B1): lowest page, then lowest designation in natural order ("2" before
+/// "10"), then smallest ID; an unplaced terminal does not count. Its tag gets that page.
+#[test]
+fn a_strip_without_a_segment_is_placed_through_its_first_terminal() {
+    let mut fx = base();
+    fx.push(json!({"$k": "device", "id": uid(0x3000), "tag": {"letter": "X", "counter": 1}, "strip": {}}));
+    // (terminal, designation, page): the first placed terminal is "2" on page 102.
+    for (n, designation, page) in [
+        (0x3010, "10", Some(PAGES[1])),
+        (0x3020, "2", Some(PAGES[1])),
+        (0x3030, "1", Some(PAGES[2])),
+        (0x3040, "0", None),
+    ] {
+        fx.push(json!({"$k": "device", "id": uid(n), "tag": {"letter": "X"},
+            "terminal": {"strip": uid(0x3000), "seq": 1, "designation": designation}}));
+        fx.function(n + 1, Some(n), 0x500, true);
+        if let Some(page) = page {
+            fx.rep(n + 2, page, 0x510, &[n + 1], 0, 0);
+        }
+    }
+    let m = fx.build();
+    let q = Q::new(&m);
+    assert_eq!(*q.get::<MainRep>(id(0x3000)), Some(id(0x3022)));
+    assert_eq!(
+        ew_commands::numbering::main_page_in(&m, id(0x3000)),
+        Some(id(PAGES[1]))
+    );
+    assert_eq!(
+        q.get::<DeviceTag>(id(0x3000)).as_ref().as_ref().unwrap().product,
+        "102X1"
+    );
+    assert_agree(&fx, &[0x3000]);
+}
+
 /// A contact image is never the main representation, in both layers (doc 03 §5.1): the device's main
 /// function is drawn first as a contact image on 101, then as a multi-line symbol on 102.
 #[test]

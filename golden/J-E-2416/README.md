@@ -529,14 +529,14 @@ built (`crates/ew-api/src/cmdlog.rs`):
 | File | Doc 20 | State |
 |---|---|---|
 | `b2-renumber-pages.ewcmd` | §2.2 step B2: `page.renumber` of section 1 from 101 (folio 106 becomes 104) | tested by `crates/ew-api/tests/golden_b.rs`: exactly the 2 tags (-106W1, -106W2) and 14 cross-reference texts of §2.2 change, the page order follows, the topology (potential partition, 91 connection records) is identical, one undo restores the records byte for byte |
-| `b1-page-based-tags.ewcmd` | §2.2 step B1: `project.settings.set` drops the strip rule of `settings.numbering`, then `numbering.renumber` of the project with `include_frozen: true` (and `only_nonconforming`, see below) | tested by `crates/ew-api/tests/golden_b.rs`, alone and followed by B2: 8 of the 10 rows of the tag map hold, no cross-reference text changes, the topology is identical, one undo per line returns to Golden A byte for byte |
+| `b1-page-based-tags.ewcmd` | §2.2 step B1: `project.settings.set` drops the strip rule of `settings.numbering`, then `numbering.renumber` of the project with `include_frozen: true` (and `only_nonconforming`, see below) | tested by `crates/ew-api/tests/golden_b.rs`, alone and followed by B2: the 10 rows of the tag map hold, no cross-reference text changes, the topology is identical, one undo per line returns to Golden A byte for byte |
 
 **Step B1 as built.** `include_frozen: true` unfreezes the frozen devices that the scheme numbers (`TagSpec.frozen`
-is cleared), and dropping the strip rule makes -X1031 and -X1032 print -103X1 and -103X2. Two rows of the tag map do
-not hold: 1X1 has no strip segment (▲U-43), so it has no main representation and no page, cannot be numbered page-based
-and stays frozen as "1X1" (doc 20: -101X1), and -XPE, then alone with letter X on folio 101, becomes -101X1 (doc 20:
--101X2); closing that needs a decision (a segment for 1X1, or a main-representation rule for a strip without a
-segment). The log keeps conforming counters (`only_nonconforming`), because under the interim smallest-ID
+is cleared), and dropping the strip rule makes -X1031 and -X1032 print -103X1 and -103X2. 1X1 has no strip segment
+(▲U-43): a strip without a segment takes its main representation, and so its page, from its first placed terminal
+(lowest page, then lowest designation, then smallest ID; `ew_derive::MainRep` and `ew_commands::numbering`), so 1X1
+becomes -101X1 and -XPE, the second X device on folio 101, -101X2. In Golden A 1X1 is frozen, so its printed tag and
+every page output stay as they are. The log keeps conforming counters (`only_nonconforming`), because under the interim smallest-ID
 main-representation rule the main representation of -X1031 is its second segment (103-A10), which would order it
 after -X1032; doc 20's `order: [column, row]` and scheme-format parameters do not exist (the format change is the
 settings line).
@@ -577,7 +577,6 @@ The SQL half of each pair (`acceptance/*.sql` over the `api_v1` views) is `not_b
 (WP-S1.10).
 
 The headless report of this revision: 83 entries, 38 pass, 11 fail, 28 not_built, 6 not_applicable (the full run adds
-the raster comparison as a pass). The 11 failures are the open gaps listed above (page count 33 against 36, the
+the raster comparison as a pass). The failures are the open gaps listed above (page count 33 against 36, the
 revision label and structure cells of the title blocks, the 23-row parts list, the DP potential, the cover tables, the
-ratings and part numbers on 101 and 102, the missing uniqueness invariant for terminal designations) and Golden B
-step B1. An empty terminal designation refused at the parameter layer counts as refused for D-11 (ADR-0008).
+ratings and part numbers on 101 and 102, the missing uniqueness invariant for terminal designations). An empty terminal designation refused at the parameter layer counts as refused for D-11 (ADR-0008).

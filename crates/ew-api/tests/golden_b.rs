@@ -11,10 +11,8 @@
 //! page-based, frozen tags included. Step B2 (`variants/b2-renumber-pages.ewcmd`): the folios of section 1
 //! renumber from 101, which moves folio 106 to 104. Doc 20 orders B1, then B2.
 //!
-//! **As built, two rows of the B1 tag map differ from doc 20 §2.2.** 1X1 has no strip segment (▲U-43), so
-//! the strip has no main representation and no page: page-based numbering cannot number it, it stays frozen
-//! as "1X1" (doc 20: -101X1), and -XPE, alone with letter X on folio 101, becomes -101X1 (doc 20: -101X2).
-//! [`B1_TAG_MAP`] pins the built result; the README's "Variants and command logs" names the decision.
+//! 1X1 has no strip segment (▲U-43): it takes its page from its first placed terminal (the main-representation
+//! rule for strips without a segment), so it is numbered on folio 101 before -XPE.
 
 mod golden_common;
 
@@ -26,12 +24,13 @@ use ew_derive::ew_ids::Id;
 use ew_schema::{Connection, Device, Kind};
 use golden_common::{batch, folio_of, folios, run, session_oracle, tags, variant, xrefs};
 
-/// The printed tags of non-terminal devices that step B1 changes, (Golden A, after B1) in text order. Doc 20
-/// §2.2 also maps 1X1 → -101X1 and -XPE → -101X2; see the module documentation.
+/// The printed tags of non-terminal devices that step B1 changes, (Golden A, after B1) in text order: the
+/// ten rows of doc 20 §2.2.
 const B1_TAG_MAP: &[(&str, &str)] = &[
     ("-X1031", "-103X1"),
     ("-X1032", "-103X2"),
-    ("-XPE", "-101X1"),
+    ("-XPE", "-101X2"),
+    ("1X1", "-101X1"),
     ("E55", "-101E1"),
     ("E56", "-101E2"),
     ("F55", "-101F2"),
@@ -116,13 +115,11 @@ fn step_b1_changes_the_tag_map_and_no_cross_reference() {
 
     let tags_after = tags(&s);
     assert_eq!(device_changes(&tags_before, &tags_after, &terminals), B1_TAG_MAP);
-    // The 20 terminals of -X1031 and the 5 of -X1032 follow their strips; those of 1X1 do not change.
+    // The 20 terminals of -X1031, the 5 of -X1032 and the 3 of 1X1 follow their strips.
     assert_eq!(
         terminal_changes_follow_their_strips(&tags_before, &tags_after, &terminals, B1_TAG_MAP),
-        25
+        28
     );
-    // Gap (module documentation): 1X1 has no main representation and stays frozen.
-    assert!(tags_after.values().any(|t| t == "1X1"));
     // Cross-references print cells, not tags: none changes (doc 20 §2.2).
     assert_eq!(xrefs(&s), xrefs_before);
 }
@@ -160,7 +157,8 @@ fn step_b1_previews_list_the_derived_changes() {
     assert!(derived.xrefs.is_empty());
     s.commit(settings).unwrap();
 
-    // Line 2, the renumber: the seven frozen tags on folio 101 and -XPE, no cross-reference.
+    // Line 2, the renumber: the eight frozen tags on folio 101 with the 3 terminals of 1X1, no
+    // cross-reference.
     let renumber = s.preview(&command("b1-page-based-tags.ewcmd", 1)).unwrap();
     let derived = s.derived_diff(&renumber);
     let expected: Vec<(String, String)> = B1_TAG_MAP
@@ -169,7 +167,7 @@ fn step_b1_previews_list_the_derived_changes() {
         .map(|(a, b)| ((*a).to_owned(), (*b).to_owned()))
         .collect();
     assert_eq!(names(&s, &derived.tags), expected);
-    assert_eq!(derived.tags.len(), expected.len(), "no terminal changes");
+    assert_eq!(derived.tags.len(), expected.len() + 3, "and the terminals of 1X1");
     assert!(derived.xrefs.is_empty());
 }
 
