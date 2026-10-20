@@ -614,6 +614,71 @@ fn renumber_leaves_frozen_tags_alone() {
     assert_eq!(counter(&e, DEV_102F2), Some(1));
 }
 
+fn frozen(text: &str) -> Option<FrozenTag> {
+    Some(FrozenTag {
+        text: ident(text),
+        sign: TagSign::default(),
+        extra: Default::default(),
+    })
+}
+
+fn include_frozen(options: RenumberOptions) -> RenumberDevices {
+    RenumberDevices {
+        include_frozen: true,
+        ..renumber(DeviceScope::Project, options)
+    }
+}
+
+#[test]
+fn renumber_include_frozen_unfreezes_and_numbers() {
+    let mut e = engine(two_f_model(|f2, g1| {
+        f2.tag.counter = Some(7);
+        g1.tag.frozen = frozen("S51");
+        g1.tag.counter = Some(5);
+    }));
+    let before = lines(e.model());
+    let p = e.preview(&include_frozen(RenumberOptions::default())).unwrap();
+    e.commit(p).unwrap();
+    assert_eq!(counter(&e, DEV_102F2), Some(1));
+    assert_eq!(counter(&e, DEV_102G1), Some(2));
+    assert!(device(&e, DEV_102G1).tag.frozen.is_none());
+    e.undo().unwrap();
+    assert_eq!(lines(e.model()), before);
+}
+
+#[test]
+fn renumber_include_frozen_with_only_nonconforming_keeps_conforming_counters() {
+    let mut e = engine(two_f_model(|f2, g1| {
+        f2.tag.counter = Some(1);
+        g1.tag.frozen = frozen("S51");
+        g1.tag.counter = None;
+    }));
+    let only = RenumberOptions {
+        only_nonconforming: true,
+        ..RenumberOptions::default()
+    };
+    let p = e.preview(&include_frozen(only)).unwrap();
+    e.commit(p).unwrap();
+    assert_eq!(counter(&e, DEV_102F2), Some(1));
+    assert_eq!(counter(&e, DEV_102G1), Some(2));
+    assert!(device(&e, DEV_102G1).tag.frozen.is_none());
+    let p = e.preview(&include_frozen(only)).unwrap();
+    assert!(p.ops().is_empty(), "{:?}", p.ops());
+}
+
+#[test]
+fn renumber_include_frozen_keeps_an_unplaced_frozen_tag() {
+    let mut e = engine(golden_model());
+    e.execute(&set_device(DEV_3W1, "tag.frozen", json!({"text": "W99"})))
+        .unwrap();
+    let counter_before = counter(&e, DEV_3W1);
+    let p = e.preview(&include_frozen(RenumberOptions::default())).unwrap();
+    e.commit(p).unwrap();
+    let w = device(&e, DEV_3W1);
+    assert_eq!(w.tag.frozen, frozen("W99"));
+    assert_eq!(w.tag.counter, counter_before);
+}
+
 #[test]
 fn renumber_scopes_selection_and_pages() {
     let mut e = engine(two_f_model(|f2, g1| {
