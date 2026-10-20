@@ -19,11 +19,11 @@ use common::{
     try_reopen,
 };
 use ew_model::{AnyKey, Model};
-use ew_store::ew_format::{FindingKind, Manifest, Severity};
+use ew_store::ew_format::{FindingKind, Limits, Manifest, Severity, hash_text, sha256};
 use ew_store::mem::{DirSync, Fault, MemVfs};
 use ew_store::{
-    Access, Changes, OpenMode, OpenReport, Opened, ReadOnlyReason, SaveError, SaveReport, Store,
-    StoreOptions, Vfs,
+    Access, BASE_MEMBER, Changes, OpenMode, OpenReport, Opened, ReadOnlyReason, SaveError, SaveReport,
+    SaveStep, Store, StoreOptions, Vfs,
 };
 
 const MODES: [DirSync; 2] = [DirSync::Explicit, DirSync::Implicit];
@@ -784,57 +784,202 @@ fn a_read_only_open_ignores_an_intent_not_above_the_manifest() {
     assert!(project_files(&vfs, &root).contains_key("manifest.json.tmp-1"));
 }
 
+/// The fixture's `manifest.json` with a git conflict on its `generation` line (doc 05 §11.4).
+fn conflicted_manifest() -> Vec<u8> {
+    let text = String::from_utf8(fixture()["manifest.json"].clone()).expect("a manifest is text");
+    let conflicted = text.replace(
+        "  \"generation\": 1,\n",
+        "<<<<<<< ours\n  \"generation\": 1,\n=======\n  \"generation\": 2,\n>>>>>>> theirs\n",
+    );
+    assert_ne!(conflicted, text, "the generation line is found");
+    conflicted.into_bytes()
+}
+
+/// `"base": "sha256:<hex>"` of `manifest` as the intent writes it.
+fn base_member(manifest: &[u8]) -> String {
+    format!("\"{BASE_MEMBER}\": \"{}\"", hash_text(&sha256(manifest)))
+}
+
 #[test]
-fn an_intent_whose_base_moved_is_not_rolled_forward() {
-    // Review cycle 8, 5(j): an intent of generation 3 (base 2) beside manifest generation 1. Rolling it
-    // forward would overwrite whatever generation 1 is now; it is refused with EW-CORE-002, read-only, and
-    // nothing is touched (the intent and its temps stay for the journal recovery).
+fn a_crash_over_a_conflicted_manifest_rolls_forward() {
+    // Review cycle 8, 5(j) rework: a manifest with git conflict markers is a supported state (EW-CORE-001,
+    // edit mode). A save over it records the raw hash of those bytes as its base; after a crash past the
+    // data renames, the reopen compares raw bytes and rolls forward (it used to refuse: "based on
+    // generation 0, but manifest.json is unreadable", leaving the project mixed and read-only for ever).
+    // In session, the retry completes the same way.
     for mode in MODES {
-        let s = crashed_incomplete_save(mode);
-        let vfs = &s.vfs;
-        // Re-number the decided generation 2 as 3: the intent and every temp.
-        for (name, bytes) in project_files(vfs, &root()) {
-            let Some(target) = name.strip_suffix(".tmp-2") else {
-                continue;
+        for crash in [true, false] {
+            let (vfs, root) = mem_project(mode);
+            let conflicted = conflicted_manifest();
+            vfs.put(&ew_store::join(&root, "manifest.json"), &conflicted);
+            let Opened {
+                mut store,
+                model,
+                report,
+            } = Store::open(&root, options(&vfs, 1)).expect("opens");
+            assert_eq!(report.access, Access::Edit, "{}", describe(&report));
+            assert!(
+                report
+                    .findings
+                    .iter()
+                    .any(|f| f.kind == FindingKind::ManifestUnreadable),
+                "{}",
+                describe(&report)
+            );
+            let (edited, keys) = edit_device(&model, 0, "edited");
+            // The data renames succeed; the manifest rename is held (antivirus): the save is decided.
+            let held = ew_store::join(&root, "manifest.json");
+            vfs.hold(&held, 1000);
+            let generation = match store.save(&edited, Changes::Keys(&keys)) {
+                Err(SaveError::Incomplete {
+                    generation,
+                    step: SaveStep::Manifest,
+                    ..
+                }) => generation,
+                other => panic!("{mode:?}: expected Incomplete at the manifest, got {other:?}"),
             };
-            let bytes = if name == "manifest.json.tmp-2" {
-                let text = String::from_utf8(bytes).expect("a manifest is text");
-                assert!(text.contains("\"generation\": 2,"), "{text}");
-                text.replace("\"generation\": 2,", "\"generation\": 3,")
-                    .into_bytes()
+            let intent = format!("manifest.json.tmp-{generation}");
+            let on_disk = project_files(&vfs, &root);
+            let intent_text = String::from_utf8(on_disk[&intent].clone()).expect("text");
+            assert!(
+                intent_text.contains(&base_member(&conflicted)),
+                "the intent records the raw hash of its base: {intent_text}"
+            );
+            assert_eq!(
+                temps(&on_disk),
+                [intent.as_str()],
+                "{mode:?}: every data file is renamed"
+            );
+            assert_eq!(on_disk["manifest.json"], conflicted);
+            vfs.hold(&held, 0);
+
+            if crash {
+                store.crash();
+                let o = reopen(&vfs, 2);
+                assert_eq!(
+                    o.report.rolled_forward,
+                    Some(generation),
+                    "{}",
+                    describe(&o.report)
+                );
+                assert_eq!(o.report.access, Access::Edit);
+                assert!(o.model.content_eq(&edited), "{mode:?}: the save is complete");
+                assert!(
+                    worst(&o.report) <= Some(Severity::Info),
+                    "{}",
+                    describe(&o.report)
+                );
             } else {
-                bytes
-            };
-            vfs.remove_file(&ew_store::join(&root(), &name)).expect("removes");
-            vfs.put(&ew_store::join(&root(), &format!("{target}.tmp-3")), &bytes);
+                assert_eq!(
+                    store.retry_pending().expect("the retry completes"),
+                    Some(generation)
+                );
+                store.close();
+                let o = reopen(&vfs, 2);
+                assert!(o.model.content_eq(&edited));
+                assert!(
+                    worst(&o.report) <= Some(Severity::Info),
+                    "{}",
+                    describe(&o.report)
+                );
+            }
+            let files = project_files(&vfs, &root);
+            assert!(temps(&files).is_empty(), "{:?}", temps(&files));
+            let manifest = Manifest::parse(&files["manifest.json"], &Limits::default())
+                .expect("the completed manifest parses");
+            assert_eq!(manifest.generation, generation);
         }
-        let before = project_files(vfs, &root());
-        let opened = reopen(vfs, 2);
-        let report = &opened.report;
-        assert_eq!(report.rolled_forward, None, "{}", describe(report));
-        assert_eq!(report.generation, 1);
-        assert!(opened.model.content_eq(&s.g), "{mode:?}: generation 1 is loaded");
-        assert!(
-            report
-                .findings
-                .iter()
-                .any(|f| f.kind == FindingKind::MixedGeneration
-                    && f.file
-                        .as_ref()
-                        .is_some_and(|p| p.as_str() == "manifest.json.tmp-3")),
-            "{}",
-            describe(report)
-        );
-        assert!(
-            matches!(report.access, Access::ReadOnly(ReadOnlyReason::Integrity)),
-            "{:?}",
-            report.access
-        );
-        assert_eq!(
-            project_files(vfs, &root()),
-            before,
-            "{mode:?}: nothing is rolled forward or deleted"
-        );
+    }
+}
+
+#[test]
+fn an_intent_whose_base_bytes_changed_is_not_rolled_forward() {
+    // Review cycle 8, 5(j) rework: the roll-forward compares the raw bytes of `manifest.json` with the
+    // intent's recorded base. Different bytes (an external change after the save was decided), or no
+    // recorded base while a manifest exists, are refused: EW-CORE-002, read-only, nothing touched (the
+    // intent and its temps stay). In session the retry is refused the same way until the bytes are back.
+    let changed = |original: &[u8]| {
+        let text = String::from_utf8(original.to_vec()).expect("text");
+        let other = text.replacen("\"generator\": \"", "\"generator\": \"another ", 1);
+        assert_ne!(other, text);
+        other.into_bytes()
+    };
+    for mode in MODES {
+        for case in ["other manifest bytes", "no recorded base"] {
+            let s = crashed_incomplete_save(mode);
+            let vfs = &s.vfs;
+            let manifest = ew_store::join(&root(), "manifest.json");
+            let intent = ew_store::join(&root(), "manifest.json.tmp-2");
+            let original = project_files(vfs, &root())["manifest.json"].clone();
+            let intent_text =
+                String::from_utf8(project_files(vfs, &root())["manifest.json.tmp-2"].clone()).expect("text");
+            assert!(intent_text.contains(&base_member(&original)), "{intent_text}");
+            if case == "other manifest bytes" {
+                vfs.put(&manifest, &changed(&original));
+            } else {
+                let line = format!("  {},\n", base_member(&original));
+                let mut without = intent_text.replace(&line, "");
+                if without == intent_text {
+                    // The last member: drop the comma of the one before it instead.
+                    without = intent_text.replace(&format!(",\n  {}\n", base_member(&original)), "\n");
+                }
+                assert_ne!(without, intent_text, "the base member is removed");
+                vfs.put(&intent, without.as_bytes());
+            }
+            let before = project_files(vfs, &root());
+            let opened = reopen(vfs, 2);
+            let report = &opened.report;
+            assert_eq!(report.rolled_forward, None, "{case}: {}", describe(report));
+            assert!(
+                report
+                    .findings
+                    .iter()
+                    .any(|f| f.kind == FindingKind::MixedGeneration
+                        && f.file
+                            .as_ref()
+                            .is_some_and(|p| p.as_str() == "manifest.json.tmp-2")),
+                "{case}: {}",
+                describe(report)
+            );
+            assert!(
+                matches!(report.access, Access::ReadOnly(ReadOnlyReason::Integrity)),
+                "{case}: {:?}",
+                report.access
+            );
+            assert!(
+                opened.model.content_eq(&s.g),
+                "{mode:?} {case}: generation 1 is loaded"
+            );
+            drop(opened);
+            assert_eq!(
+                project_files(vfs, &root()),
+                before,
+                "{mode:?} {case}: nothing is rolled forward or deleted"
+            );
+        }
+
+        // In session: the manifest changes under an incomplete save.
+        let (_, _, report) = dry_run(mode);
+        let first = report.written.first().expect("files").as_str().to_owned();
+        let mut s = setup(mode);
+        let held = ew_store::join(&root(), &first);
+        s.vfs.hold(&held, 1000);
+        assert!(matches!(
+            s.store.save(&s.g1, Changes::Keys(&s.keys)),
+            Err(SaveError::Incomplete { generation: 2, .. })
+        ));
+        s.vfs.hold(&held, 0);
+        let manifest = ew_store::join(&root(), "manifest.json");
+        let original = project_files(&s.vfs, &root())["manifest.json"].clone();
+        s.vfs.put(&manifest, &changed(&original));
+        match s.store.retry_pending() {
+            Err(SaveError::Incomplete { generation: 2, .. }) => {}
+            other => panic!("{mode:?}: the retry over changed manifest bytes: {other:?}"),
+        }
+        assert!(s.store.is_incomplete());
+        assert!(project_files(&s.vfs, &root()).contains_key("manifest.json.tmp-2"));
+        s.vfs.put(&manifest, &original);
+        assert_eq!(s.store.retry_pending().expect("the bytes are back"), Some(2));
     }
 }
 

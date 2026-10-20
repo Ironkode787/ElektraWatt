@@ -14,7 +14,7 @@ use std::time::Duration;
 use ew_format::ew_schema::{AnyId, FORMAT};
 use ew_format::{
     Access as FormatAccess, FileHash, FilePath, Finding, FindingKind, Kept, Limits, LineKey, MANIFEST,
-    Manifest, PathClass, classify, jsonl_file, sha256, unknown_record_file,
+    Manifest, PathClass, classify, hash_text, jsonl_file, sha256, unknown_record_file,
 };
 use ew_model::{AnyKey, AnyRow, Model, ModelError};
 
@@ -403,15 +403,36 @@ enum Roll {
     Torn,
     /// For some file neither the target nor its temp matches the intent: EW-CORE-002.
     NotRepairable(Vec<FilePath>),
-    /// The intent's base generation (its generation − 1) is not the generation of `manifest.json` (`None`:
-    /// the manifest is unreadable): the project moved on after the save was decided, and completing it
-    /// would overwrite that change. Nothing is touched (EW-CORE-002, review cycle 8, 5(j)).
-    BaseMoved {
-        /// The intent's base generation.
-        base: u64,
-        /// The generation of `manifest.json` (0 when absent).
-        current: Option<u64>,
-    },
+    /// The bytes of `manifest.json` are not those the save was based on (the intent's [`BASE_MEMBER`]): the
+    /// project changed after the save was decided, and completing it would overwrite that change. Nothing
+    /// is touched (EW-CORE-002, review cycle 8, 5(j)).
+    BaseMoved(BaseMismatch),
+}
+
+/// The intent member that records the SHA-256 of the raw bytes of the `manifest.json` a save was based on
+/// (`"base": "sha256:<hex>"`; absent when there was no manifest). The intent becomes `manifest.json`, so
+/// every manifest written by a save carries the hash of the one it replaced. The roll-forward compares raw
+/// bytes, never parsed generations: a conflicted or unparsable manifest whose bytes are unchanged rolls
+/// forward (review cycle 8, 5(j) rework, owner ruling).
+pub const BASE_MEMBER: &str = "base";
+
+/// Why an intent is not completed: its recorded base and the `manifest.json` on disk, as `sha256:<hex>`
+/// texts (`None`: no base recorded / no manifest on disk).
+#[derive(Clone, PartialEq, Eq, Debug)]
+struct BaseMismatch {
+    recorded: Option<String>,
+    on_disk: Option<String>,
+}
+
+/// The recorded base of `intent` against the raw hash of the manifest on disk: `None` when they agree
+/// (both absent included), the mismatch otherwise. A recorded base that is not a string counts as absent.
+fn base_check(intent: &Manifest, on_disk: Option<String>) -> Option<BaseMismatch> {
+    let recorded = intent
+        .extra
+        .get(BASE_MEMBER)
+        .and_then(serde_json::Value::as_str)
+        .map(str::to_owned);
+    (recorded != on_disk).then_some(BaseMismatch { recorded, on_disk })
 }
 
 /// Whether `path` is a temp the save protocol creates (doc 05 §5.2 steps 4 and 5): the intent
@@ -431,18 +452,19 @@ fn is_save_temp(path: &str) -> bool {
 
 /// EW-CORE-002 for an interrupted save of generation `g` that is not applied because the manifest on disk
 /// is not its base (review cycle 8, 5(j)).
-fn base_moved(g: u64, base: u64, current: Option<u64>) -> Finding {
-    let now = current.map_or_else(
-        || "manifest.json is unreadable".to_owned(),
-        |c| format!("manifest.json is at generation {c}"),
-    );
+fn base_moved(g: u64, m: &BaseMismatch) -> Finding {
+    let what = match (&m.recorded, &m.on_disk) {
+        (None, _) => "its intent records no base manifest, but manifest.json exists".to_owned(),
+        (Some(r), None) => format!("it was based on manifest.json {r}, which is now gone"),
+        (Some(r), Some(d)) => format!("it was based on manifest.json {r}, which is now {d}"),
+    };
     Finding::new(
         FindingKind::MixedGeneration,
         FilePath::new(format!("{MANIFEST}.tmp-{g}")).ok(),
         None,
         format!(
-            "an interrupted save of generation {g} was based on generation {base}, but {now}: it is not \
-             completed, so that it cannot overwrite the newer state; recover its changes from the journal"
+            "an interrupted save of generation {g} is not completed, so that it cannot overwrite a newer \
+             state: {what}; its changes stay in the interrupted session's journal"
         ),
     )
 }
@@ -496,9 +518,6 @@ pub struct Store {
     pending: Option<u64>,
     /// The removals of that save (doc 05 §5.2 step 8), done when it completes.
     pending_removes: Vec<FilePath>,
-    /// The SHA-256 of `manifest.json` that save started from (`None`: absent): its roll-forward is refused
-    /// when the manifest on disk is neither this nor the decided generation (an external change).
-    pending_base: Option<[u8; 32]>,
     /// Findings of roll-forwards completed outside a save, handed out with the next save's report.
     notes: Vec<Finding>,
     journal: Option<Journal>,
@@ -602,7 +621,6 @@ impl Store {
             rewrite: BTreeSet::new(),
             pending: None,
             pending_removes: Vec::new(),
-            pending_base: None,
             notes: Vec::new(),
             journal: None,
             leftovers: Vec::new(),
@@ -654,9 +672,9 @@ impl Store {
                             ));
                         }
                     }
-                    Roll::BaseMoved { base, current } => {
+                    Roll::BaseMoved(mismatch) => {
                         repairable = false;
-                        findings.push(base_moved(newest, base, current));
+                        findings.push(base_moved(newest, &mismatch));
                     }
                 }
             }
@@ -733,14 +751,11 @@ impl Store {
                 .filter(|m| m.generation == g && !m.merged)
         });
         if let Some(i) = &intent {
-            // As for a roll-forward: an intent whose base is not the manifest on disk is not applied.
-            let base = i.generation.saturating_sub(1);
-            let current = match self.read_manifest() {
-                Ok(m) => Some(m.map_or(0, |(m, _)| m.generation)),
-                Err(_) => None,
-            };
-            if current != Some(base) {
-                findings.push(base_moved(i.generation, base, current));
+            // As for a roll-forward: an intent whose recorded base is not the manifest on disk, byte for
+            // byte, is not applied.
+            let on_disk = self.manifest_base().map_err(io_err(&self.root))?;
+            if let Some(mismatch) = base_check(i, on_disk) {
+                findings.push(base_moved(i.generation, &mismatch));
                 intent = None;
             }
         }
@@ -1019,6 +1034,16 @@ impl Store {
         }
     }
 
+    /// The SHA-256 of the raw bytes of `manifest.json` as `sha256:<hex>`, `None` when absent: what an intent
+    /// records as its [`BASE_MEMBER`].
+    fn manifest_base(&self) -> io::Result<Option<String>> {
+        match self.opts.vfs.read(&join(&self.root, MANIFEST)) {
+            Ok(bytes) => Ok(Some(hash_text(&sha256(&bytes)))),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
+            Err(e) => Err(e),
+        }
+    }
+
     /// Reads and parses `manifest.json`: `Ok(None)` when absent, `Err(message)` when unusable.
     fn read_manifest(&self) -> Result<Option<(Manifest, [u8; 32])>, String> {
         let path = join(&self.root, MANIFEST);
@@ -1068,9 +1093,10 @@ impl Store {
         Ok(out)
     }
 
-    /// Completes the save of generation `g` from its intent (doc 05 §5.3), when its base (generation
-    /// `g - 1`) is the manifest on disk. A file at a target path that the base does not list and that does
-    /// not already hold the intent's bytes is moved aside first ([`Store::move_aside`]).
+    /// Completes the save of generation `g` from its intent (doc 05 §5.3), when the raw bytes of
+    /// `manifest.json` are still those the intent records as its base ([`BASE_MEMBER`]). A file at a target
+    /// path that the base does not list and that does not already hold the intent's bytes is moved aside
+    /// first ([`Store::move_aside`]).
     fn roll_forward(&mut self, g: u64) -> io::Result<Roll> {
         let vfs = Arc::clone(&self.opts.vfs);
         let intent_rel = format!("{MANIFEST}.tmp-{g}");
@@ -1094,22 +1120,14 @@ impl Store {
                 return Ok(Roll::Torn);
             }
         };
-        // The base: an intent of generation g was written over generation g - 1 (doc 05 §5.2 step 2).
-        let base = g.saturating_sub(1);
-        let old = match self.read_manifest() {
-            Ok(m) => m.map(|(m, _)| m),
-            Err(_) => {
-                return Ok(Roll::BaseMoved { base, current: None });
-            }
-        };
-        let current = old.as_ref().map_or(0, |m| m.generation);
-        if current != base {
-            return Ok(Roll::BaseMoved {
-                base,
-                current: Some(current),
-            });
+        // The base: the manifest the save started from, byte for byte (its pre-check, doc 05 §5.2 step 2).
+        if let Some(mismatch) = base_check(&intent, self.manifest_base()?) {
+            return Ok(Roll::BaseMoved(mismatch));
         }
-        let listed = |p: &FilePath| old.as_ref().is_some_and(|m| m.files.contains_key(p));
+        // The base's file list, when it parses. A conflicted or otherwise unusable manifest (EW-CORE-001)
+        // made the save read every writer-owned file present, so all of them were its baseline.
+        let old = self.read_manifest().ok().flatten().map(|(m, _)| m);
+        let listed = |p: &FilePath| old.as_ref().is_none_or(|m| m.files.contains_key(p));
         let mut renames = Vec::new();
         let mut missing = Vec::new();
         for (path, hash) in &intent.files {
@@ -1317,7 +1335,6 @@ impl Store {
             rewrite: BTreeSet::new(),
             pending: None,
             pending_removes: Vec::new(),
-            pending_base: None,
             notes: Vec::new(),
             journal: None,
             leftovers: Vec::new(),
@@ -1420,6 +1437,8 @@ impl Store {
         }
         if let Some(old) = &self.manifest {
             manifest.extra.clone_from(&old.extra);
+            // The base of the previous save; this save records its own below.
+            manifest.extra.remove(BASE_MEMBER);
         }
         manifest.files = plan
             .disk
@@ -1431,8 +1450,16 @@ impl Store {
             let mut a = old.clone();
             a.generation = g1;
             a.generator.clone_from(&manifest.generator);
+            a.extra.remove(BASE_MEMBER);
             a == manifest
         });
+        // The raw bytes this save is based on, for the base check of a roll-forward (review cycle 8,
+        // 5(j) rework): absent when there is no manifest.
+        if let Some(h) = &on_disk {
+            manifest
+                .extra
+                .insert(BASE_MEMBER.to_owned(), serde_json::Value::from(hash_text(h)));
+        }
         if plan.writes.is_empty() && plan.removes.is_empty() && manifest_same {
             self.adopt(model, plan.contents, plan.disk);
             return Ok(SaveReport {
@@ -1538,7 +1565,6 @@ impl Store {
         self.generation = g1;
         self.pending = Some(g1);
         self.pending_removes.clone_from(&removes);
-        self.pending_base = on_disk;
 
         // Step 6: renames.
         for path in plan.writes.keys() {
@@ -1624,27 +1650,18 @@ impl Store {
             }
             Ok(Some(g))
         };
-        // The manifest rename happened; only a directory sync failed.
-        let on_disk = self.read_manifest();
-        if on_disk
-            .as_ref()
-            .ok()
-            .and_then(Option::as_ref)
-            .is_some_and(|(m, _)| m.generation == g)
-        {
+        // The manifest rename happened (`manifest.json` holds the bytes of our intent); only a directory
+        // sync failed.
+        let decided = self.manifest_hash.as_ref().map(hash_text);
+        if decided.is_some() && self.manifest_base().ok().flatten() == decided {
             if let Err(e) = self.opts.vfs.sync_dir(&self.root) {
                 return Err(incomplete(e));
             }
             return done(self);
         }
-        // Like the pre-check of a save: the manifest must still be the one the save started from (review
-        // cycle 8, 5(j)); otherwise an external change happened and completing the save would overwrite it.
-        let base_hash = on_disk.ok().flatten().map(|(_, h)| h);
-        if base_hash != self.pending_base {
-            return Err(incomplete(io::Error::other(
-                "manifest.json changed since the save began (an external change); not rolled forward",
-            )));
-        }
+        // Like the pre-check of a save, the roll-forward requires the raw manifest the save started from
+        // (its intent's recorded base, review cycle 8, 5(j)); otherwise an external change happened and
+        // completing the save would overwrite it.
         match self.roll_forward(g) {
             Ok(Roll::Completed(_, moved)) => {
                 self.notes.extend(moved);
@@ -1655,8 +1672,8 @@ impl Store {
                 "{} files match neither the intent nor a temp (EW-CORE-002)",
                 files.len()
             )))),
-            Ok(Roll::BaseMoved { base, current }) => {
-                Err(incomplete(io::Error::other(base_moved(g, base, current).message)))
+            Ok(Roll::BaseMoved(mismatch)) => {
+                Err(incomplete(io::Error::other(base_moved(g, &mismatch).message)))
             }
             Err(e) => Err(incomplete(e)),
         }
