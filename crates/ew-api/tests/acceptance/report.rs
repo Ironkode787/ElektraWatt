@@ -12,20 +12,30 @@ use std::fmt::Write as _;
 pub enum Status {
     /// The criterion holds.
     Pass,
-    /// The criterion does not hold; the reason says what differs.
+    /// The criterion does not hold; the reason says what differs. Blocks the gate.
     Fail,
-    /// The criterion cannot be evaluated here (needs the GUI, the pilot, a BM runner, a feature that does not
-    /// exist yet); the reason says what is missing. Never a silent skip.
+    /// The feature the criterion needs does not exist yet; the reason names it. Blocks the gate exactly like
+    /// a failure and is listed separately, so progress stays visible.
+    NotBuilt,
+    /// The criterion cannot be evaluated headless or at this delivery (the GUI, the pilot, an external tool
+    /// that is not installed, a milestone-only measurement). Does not block; the reason is required.
     NotApplicable,
 }
 
 impl Status {
-    fn label(self) -> &'static str {
+    /// The name in the report.
+    pub fn label(self) -> &'static str {
         match self {
             Status::Pass => "pass",
-            Status::Fail => "FAIL",
-            Status::NotApplicable => "n/a",
+            Status::Fail => "fail",
+            Status::NotBuilt => "not_built",
+            Status::NotApplicable => "not_applicable",
         }
+    }
+
+    /// Whether the status blocks the gate.
+    pub fn blocks(self) -> bool {
+        matches!(self, Status::Fail | Status::NotBuilt)
     }
 }
 
@@ -42,6 +52,13 @@ pub struct Check {
     pub reason: String,
 }
 
+impl Check {
+    /// The status as the report prints it.
+    pub fn status_name(&self) -> &'static str {
+        self.status.label()
+    }
+}
+
 /// The result of one check function: a status and its reason.
 pub type Outcome = (Status, String);
 
@@ -55,7 +72,12 @@ pub fn fail(reason: impl Into<String>) -> Outcome {
     (Status::Fail, reason.into())
 }
 
-/// A check that cannot be evaluated: `not applicable at M1 headless: <reason>`.
+/// A check whose feature does not exist yet; blocks the gate like a failure.
+pub fn not_built(reason: impl Into<String>) -> Outcome {
+    (Status::NotBuilt, reason.into())
+}
+
+/// A check that cannot be evaluated here (GUI, pilot, external tool, milestone-only measurement).
 pub fn na(reason: impl Into<String>) -> Outcome {
     (Status::NotApplicable, reason.into())
 }
@@ -75,14 +97,14 @@ impl Report {
         self.checks.iter().filter(|c| c.status == status).count()
     }
 
-    /// The failed entries.
-    pub fn failures(&self) -> impl Iterator<Item = &Check> + '_ {
-        self.checks.iter().filter(|c| c.status == Status::Fail)
+    /// The entries that block the gate: failed and not built.
+    pub fn blocking(&self) -> impl Iterator<Item = &Check> + '_ {
+        self.checks.iter().filter(|c| c.status.blocks())
     }
 
-    /// Whether the run passes the gate: no failed entry and no oracle mismatch.
+    /// Whether the run passes the gate: no failed and no not-built entry, no oracle mismatch.
     pub fn green(&self) -> bool {
-        self.count(Status::Fail) == 0 && self.oracle_mismatches == 0
+        self.blocking().next().is_none() && self.oracle_mismatches == 0
     }
 
     /// The report as Markdown: a summary line and a table with one row per entry.
@@ -91,10 +113,11 @@ impl Report {
         out.push_str("# Acceptance report: golden project J-E-2416, gate M1 (headless)\n\n");
         let _ = writeln!(
             out,
-            "{} entries: {} pass, {} fail, {} not applicable. Oracle mismatches: {}.\n",
+            "{} entries: {} pass, {} fail, {} not_built, {} not_applicable. Oracle mismatches: {}. `fail` and `not_built` block the gate; `not_applicable` does not.\n",
             self.checks.len(),
             self.count(Status::Pass),
             self.count(Status::Fail),
+            self.count(Status::NotBuilt),
             self.count(Status::NotApplicable),
             self.oracle_mismatches
         );

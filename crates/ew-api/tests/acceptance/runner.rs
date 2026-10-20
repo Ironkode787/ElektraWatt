@@ -40,11 +40,15 @@ pub struct Options {
     /// Compare the 150 dpi PNGs of the AC-02 folios (about a minute in a debug build). Off, the PNG entry is
     /// reported as not applicable.
     pub raster: bool,
+    /// Measure and assert the AC-17 times (a milestone run: `cargo xtask acceptance --milestone`, which sets
+    /// `EW_PERF_ASSERT=1`). Off, AC-17 is reported as not applicable and no clock is read.
+    pub perf: bool,
 }
 
 /// Everything a check reads, built once per run.
 pub struct Ctx {
     pub raster: bool,
+    pub perf: bool,
     pub batch: ImportBatch,
     /// Source key (`devices|-201U1`, `pages|3`, …) to record ID text.
     pub ids: BTreeMap<String, String>,
@@ -85,6 +89,7 @@ impl Ctx {
         let pdf = pdf(&pdf_pages, &pdf_options(&q), &fonts, None).expect("the golden PDF is written");
         Ctx {
             raster: options.raster,
+            perf: options.perf,
             batch,
             ids,
             oracle,
@@ -111,6 +116,11 @@ pub struct Runner {
 }
 
 impl Runner {
+    /// Whether this run measures the AC-17 times.
+    pub fn perf(&self) -> bool {
+        self.ctx.perf
+    }
+
     /// Adds one entry: `check` runs now, and a panic inside it becomes a failure.
     pub fn entry(&mut self, id: &'static str, name: &str, check: impl FnOnce(&Ctx) -> Outcome) {
         let (status, reason) = match catch_unwind(AssertUnwindSafe(|| check(&self.ctx))) {

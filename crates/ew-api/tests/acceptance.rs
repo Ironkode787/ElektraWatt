@@ -14,9 +14,10 @@
 //! (`tests/page_output/view.rs`). It moves to `ew-testkit` (`ew-testkit accept --gate`) with that view.
 //!
 //! - `cargo xtask acceptance <report.md>` runs the gate: the `#[ignore]`d test `gate` writes the report and
-//!   fails when any entry fails (exit status non-zero).
-//! - The ordinary tests pin the report (counts, determinism) so that a change of the model or of a golden
-//!   moves them, and keep `expected/csv/` equal to the derived rows.
+//!   fails when any entry fails or is not built (exit status non-zero).
+//! - The ordinary tests run the runner once, without the raster comparison and the measurements, and compare
+//!   its report with the committed `expected/acceptance_headless.md`; they keep `expected/csv/` equal to the
+//!   derived rows.
 //!   `EW_BLESS=1 cargo nextest run -p ew-api --test acceptance -E 'test(expected_csv)'` rewrites `expected/csv/`.
 
 // The page-output helpers are shared with `tests/page_output.rs`; not every function is used here.
@@ -40,52 +41,72 @@ mod runner;
 use report::Status;
 use runner::{Options, run};
 
-/// The pass, fail and not-applicable counts that the golden fixture gives today. A model or golden change
-/// that moves a count updates this line together with the README of the golden project.
-const EXPECTED: (usize, usize, usize) = (31, 12, 18);
+/// The (pass, fail, not_built, not_applicable) counts of the headless report; updated with the committed report.
+const EXPECTED: (usize, usize, usize, usize) = (37, 12, 26, 6);
 
+/// The committed report of the headless run without the raster comparison (`expected/acceptance_headless.md`):
+/// the ordinary test runs the runner once and compares its report with this file, which pins the statuses and
+/// reasons and, by being a file, shows that two runs print the same text. A change of the model or of a golden
+/// that moves an entry rewrites it: `EW_BLESS=1 cargo nextest run -p ew-api --test acceptance -E
+/// 'test(headless_report)'`.
+fn committed_report() -> std::path::PathBuf {
+    golden_common::repo().join("golden/J-E-2416/expected/acceptance_headless.md")
+}
+
+/// The ordinary test: one run without the raster comparison (the 150 dpi PNGs are compared by
+/// `tests/page_output.rs`, and by the full run of `cargo xtask acceptance`) and without the performance
+/// measurements (milestone runs only).
 #[test]
-fn the_golden_report_has_the_counts_of_the_fixture() {
-    let report = run(Options { raster: true });
-    if let Some(path) = std::env::var_os("EW_ACCEPTANCE_REPORT") {
-        std::fs::write(path, report.markdown()).expect("the report path is writable");
-    }
+fn the_headless_report_equals_the_committed_report() {
+    let report = run(Options {
+        raster: false,
+        perf: false,
+    });
     assert_eq!(report.oracle_mismatches, 0, "the oracle found memo mismatches");
+    let text = report.markdown();
+    let path = committed_report();
+    if std::env::var_os("EW_BLESS").is_some_and(|v| v == "1") {
+        std::fs::write(&path, text.as_bytes()).unwrap();
+        return;
+    }
+    let committed = std::fs::read_to_string(&path)
+        .unwrap_or_else(|e| panic!("{}: {e} (EW_BLESS=1 generates it)", path.display()));
+    assert!(
+        committed == text,
+        "the report differs from {} (EW_BLESS=1 rewrites it):\n{text}",
+        path.display()
+    );
     let counts = (
         report.count(Status::Pass),
         report.count(Status::Fail),
+        report.count(Status::NotBuilt),
         report.count(Status::NotApplicable),
     );
-    assert_eq!(counts, EXPECTED, "\n{}", report.markdown());
+    assert_eq!(counts, EXPECTED, "pass, fail, not_built, not_applicable");
 }
 
-#[test]
-fn the_report_is_deterministic() {
-    // Without the raster comparison (about a minute): the rest of the report is what can differ.
-    let a = run(Options { raster: false });
-    let b = run(Options { raster: false });
-    assert_eq!(a.markdown(), b.markdown());
-    assert_eq!(a, b);
-}
-
-/// The gate itself, run by `cargo xtask acceptance <report.md>`: writes the report to `EW_ACCEPTANCE_REPORT`
-/// and fails when an entry fails or the oracle finds a mismatch.
+/// The gate itself, run by `cargo xtask acceptance`: the full run with the raster comparison, writing the
+/// report to `EW_ACCEPTANCE_REPORT`; it fails when an entry fails or is not built, or the oracle finds a
+/// mismatch. `EW_PERF_ASSERT=1` adds the AC-17 measurements.
 #[test]
 #[ignore = "run by `cargo xtask acceptance`"]
 fn gate() {
-    let report = run(Options { raster: true });
+    let report = run(Options {
+        raster: true,
+        perf: std::env::var_os("EW_PERF_ASSERT").is_some(),
+    });
     let path = std::env::var_os("EW_ACCEPTANCE_REPORT").expect("EW_ACCEPTANCE_REPORT names the report file");
     std::fs::write(path, report.markdown()).expect("the report path is writable");
-    let failed: Vec<String> = report
-        .failures()
-        .map(|c| format!("{} {}", c.id, c.name))
+    let blocking: Vec<String> = report
+        .blocking()
+        .map(|c| format!("{} {} {}", c.id, c.status_name(), c.name))
         .collect();
     assert!(
         report.green(),
-        "{} failed entries, {} oracle mismatches:\n{}",
-        failed.len(),
+        "{} blocking entries (fail or not_built), {} oracle mismatches:\n{}",
+        blocking.len(),
         report.oracle_mismatches,
-        failed.join("\n")
+        blocking.join("\n")
     );
 }
 
@@ -134,12 +155,24 @@ fn the_markdown_has_one_line_per_entry_and_escapes_pipes() {
                 status: Status::NotApplicable,
                 reason: "later".into(),
             },
+            Check {
+                id: "AC-97",
+                name: "d".into(),
+                status: Status::NotBuilt,
+                reason: "missing".into(),
+            },
         ],
         oracle_mismatches: 0,
     };
     let text = report.markdown();
-    assert!(text.contains("2 entries: 0 pass, 1 fail, 1 not applicable."));
-    assert!(text.contains("| AC-99 | a \\| b | FAIL | two lines |"));
-    assert!(text.contains("| AC-98 | c | n/a | later |"));
+    assert!(text.contains("3 entries: 0 pass, 1 fail, 1 not_built, 1 not_applicable."));
+    assert!(text.contains("| AC-99 | a \\| b | fail | two lines |"));
+    assert!(text.contains("| AC-98 | c | not_applicable | later |"));
+    assert!(text.contains("| AC-97 | d | not_built | missing |"));
     assert!(!report.green());
+    assert_eq!(
+        report.blocking().count(),
+        2,
+        "fail and not_built block, not_applicable does not"
+    );
 }

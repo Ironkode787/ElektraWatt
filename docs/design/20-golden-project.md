@@ -1372,7 +1372,7 @@ plan of record is the lean variant, which moves AC-25 … AC-27 to G-M3 (lever b
 (lever c), as in the table ([vision](00-vision-and-scope.md) §9.1). The **Gate** column of §21 names the full-scope
 milestone; the table above is the gate assignment of the plan of record.
 
-The acceptance runner reports pass/fail per AC and per D-nn (NFR-MAINT-11). As built (cycle 11): `cargo xtask acceptance <report.md>` runs the headless M1 subset (AC-01 … AC-13, AC-18, AC-20 and the §19 rows gated M1; the other criteria are listed as not applicable with their reason) and writes the report; the golden README ("Acceptance runner") has the details.
+The acceptance runner reports pass/fail per AC and per D-nn (NFR-MAINT-11). As built (cycle 11): `cargo xtask acceptance [--milestone] <report.md>` runs the headless M1 subset (AC-01 … AC-13, AC-18, AC-20 and the §19 rows gated M1; AC-14 … AC-17 and AC-39 are listed with their status) and writes the report and a JUnit file. A row is `pass`, `fail`, `not_built` (the feature does not exist yet; blocks like a failure) or `not_applicable` (cannot be evaluated headless or at this delivery; does not block); the golden README ("Acceptance runner") has the details.
 
 ---
 

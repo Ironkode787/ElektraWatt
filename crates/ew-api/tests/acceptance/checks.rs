@@ -3,23 +3,32 @@
 
 //! The checks of the acceptance runner (doc 20 §21 AC-01 … AC-13, AC-18, AC-20; §19 rows gated M1).
 //!
-//! Every entry says what it compared and what is left out. A criterion that cannot be evaluated here is
-//! reported "not applicable at M1 headless" with the missing piece, never skipped.
+//! Every entry says what it compared and what is left out. A criterion whose feature does not exist yet is
+//! `not_built` (it blocks the gate like a failure); one that cannot be evaluated headless or at this delivery
+//! is `not_applicable` with the reason; none is skipped silently. A part of a criterion that holds while
+//! another part is missing is its own entry.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
 
-use ew_derive::{DeviceTag, PageOrder, PotentialNameOf, PotentialPartition, RepAnchorCell, XrefTextOf};
+use ew_api::{Recovery, Session, SessionOptions};
+use ew_derive::{
+    DeviceTag, PageOrder, PageRef, PotentialNameOf, PotentialPartition, RepAnchorCell, TitleBlockValues,
+    XrefTextOf,
+};
 use ew_ids::Id;
 use ew_scene::page::page_scene;
 use ew_schema::{Device, Representation};
 use sha2::{Digest, Sha256};
 
-use super::report::{Outcome, Status, fail, na, pass};
+use ew_store::StoreOptions;
+
+use super::report::{Outcome, Status, fail, na, not_built, pass};
 use super::runner::{Ctx, Runner};
 use crate::golden_common::{self, all_props, repo, rows_csv, rows_of, run_log, tags, texts, xrefs};
 use crate::golden_files::{decode_rgba, differing_percent, frame_figure_errors, frame_json, page_png};
-use crate::pdf_support::{structure_text, xref_counts};
+use crate::pdf_support::{pdf_options, pdf_pages, structure_text, xref_counts};
+use crate::view::golden_session;
 
 /// The folios of doc 20 §5 in page order (36 pages): the stored pages, the dividers and the generated report
 /// pages with their continuation folios.
@@ -55,7 +64,7 @@ pub const ROW_PAIRS: [(&str, &str); 6] = [
 ];
 
 pub fn all(r: &mut Runner) {
-    // AC-01 … AC-13
+    // AC-01 ... AC-13
     r.entry(
         "AC-01",
         "frame, grid and title-block geometry equals expected/geometry/frame.json",
@@ -69,6 +78,15 @@ pub fn all(r: &mut Runner) {
             fail(errors.join("; "))
         }
     });
+    r.entry(
+        "AC-01",
+        "the written PDF's vector content of every page equals the frame geometry within 0.2 mm",
+        |_| {
+            not_built(
+                "no per-page comparison of the written PDF exists: the checks above read the frame forms and AC-04 the title-block texts, not the lines of the PDF (vector extraction with the 0.2 mm tolerance of §3.3)",
+            )
+        },
+    );
     r.entry(
         "AC-02",
         "every representation anchors in the cell of representations.csv",
@@ -97,6 +115,11 @@ pub fn all(r: &mut Runner) {
     );
     r.entry(
         "AC-05",
+        "the 9 main and 10 auxiliary texts equal §15 by value",
+        ac05_main_aux,
+    );
+    r.entry(
+        "AC-05",
         "63 linked texts with 64 targets, 4 external texts, \"3-B2\"",
         ac05_counts,
     );
@@ -106,12 +129,21 @@ pub fn all(r: &mut Runner) {
         ac06_tags,
     );
     r.entry(
+        "AC-06",
+        "every printed occurrence of a tag is identical, the PDF text layer included",
+        |_| {
+            not_built(
+                "the harness has no PDF text extraction (FR-OUT-008): the check above reads the generated page texts, not the text layer of the written PDF",
+            )
+        },
+    );
+    r.entry(
         "AC-07",
         "folio 901 holds the 27 rows of §14.1 over 901 and 901.1",
         ac07_bom,
     );
     r.entry("AC-07", "bom export --mode assembly equals §14.2", |_| {
-        na("the assembly BOM and `ew export` do not exist yet (FR-EXP-005)")
+        not_built("the assembly BOM mode and `ew export bom` do not exist yet (FR-EXP-005, FR-REP-005)")
     });
     r.entry(
         "AC-08",
@@ -125,9 +157,10 @@ pub fn all(r: &mut Runner) {
     );
     r.entry(
         "AC-09",
-        "every wire has an effective size, colour and wire number",
+        "every wire has an effective size and colour",
         ac09_properties,
     );
+    r.entry("AC-09", "every wire has a wire number", ac09_numbers);
     r.entry(
         "AC-10",
         "the potential partition holds the 19 potentials of §7.3 and bond B1",
@@ -142,7 +175,7 @@ pub fn all(r: &mut Runner) {
         ac11_cables,
     );
     r.entry("AC-11", "export cables equals §10", |_| {
-        na("`ew export cables` does not exist yet (FR-EXP-005)")
+        not_built("`ew export cables` does not exist yet (FR-EXP-005)")
     });
     r.entry(
         "AC-12",
@@ -154,13 +187,22 @@ pub fn all(r: &mut Runner) {
         "changing the 24 V colour updates every affected wire and folio 907",
         ac12_colour,
     );
+    r.entry("AC-12", "the colour change is one commit", |_| {
+        not_built(
+            "no command edits the colour profile (it is a member of the project settings): the check above edits the project record before loading, so it cannot show one commit",
+        )
+    });
     r.entry(
         "AC-13",
         "PDF structure equals expected/pdf (outline, 64 links, page labels, fonts, SHA-256)",
         ac13_structure,
     );
-    r.entry("AC-13", "PDF/A-2b passes veraPDF", |_| {
-        na("veraPDF is not part of the headless harness; PDF/A output is not written yet (FR-OUT-007)")
+    r.entry("AC-13", "text extraction of the PDF keeps spaces", |_| {
+        not_built("the harness has no PDF text extraction (FR-OUT-008); the ToUnicode maps are written, but nothing reads them back")
+    });
+    r.entry("AC-13", "PDF/A-2b validated in process by krilla", ac13_pdfa);
+    r.entry("AC-13", "veraPDF cross-check of PDF/A-2b", |_| {
+        na("veraPDF is an external tool that is not installed in the headless harness; the CI job that has it runs the cross-check")
     });
 
     // The SQL half of the acceptance pairs (doc 20 §3.1 `acceptance/*.sql`, doc 18 §3.10 step 2).
@@ -170,9 +212,15 @@ pub fn all(r: &mut Runner) {
         ("AC-10", "potentials"),
         ("AC-11", "cables"),
     ] {
-        r.entry(id, &format!("acceptance SQL over the api_v1 views equals expected/csv: {name}"), |_| {
-            na("not applicable: SQL projection pending (WP-S1.10); the CSV half above compares the derived report rows")
-        });
+        r.entry(
+            id,
+            &format!("acceptance SQL over the api_v1 views equals expected/csv: {name}"),
+            |_| {
+                not_built(
+                    "SQL projection pending (WP-S1.10); the CSV half above compares the derived report rows",
+                )
+            },
+        );
     }
 
     // AC-18, AC-20: Golden B and the D-01 replay.
@@ -188,28 +236,66 @@ pub fn all(r: &mut Runner) {
         ac18_b2,
     );
     r.entry(
+        "AC-18",
+        "step B2: the preview lists the folio change as one page record",
+        ac18_preview,
+    );
+    r.entry(
+        "AC-18",
+        "step B2: the preview lists the 2 tag and 14 cross-reference changes",
+        |_| {
+            not_built(
+                "a preview carries the model diff only; the derived diff of tags and cross-reference texts (diff_query, `ew apply --preview`) does not exist yet",
+            )
+        },
+    );
+    r.entry(
+        "AC-18",
+        "step B2: no orphan reference and the same interruption-point pairing after the commit",
+        ac18_orphans_pairing,
+    );
+    r.entry(
         "AC-20",
         "renumbering folio 3 to 4 updates -3W1, -3X1 and \"3-B2\" everywhere; undo restores",
         ac20_folio_3_to_4,
     );
+    r.entry(
+        "AC-20",
+        "renumbering folio 3 to 4 writes only that page's file",
+        ac20_write_set,
+    );
 
-    // The other criteria of gate G-M1 (doc 20 §22): reported, not run here.
+    // The other criteria of gate G-M1 (doc 20 §22).
     r.entry("AC-14", "byte-identical PDF, SVG, CSV and JSONL across serial, parallel and shuffled runs", |_| {
-        na("not run by this runner: tests/page_output.rs holds the PDF across runs and record shuffles and tests/golden_fixture.rs the JSONL; SVG export and the parallel export do not exist yet")
+        na("a Linux-only gate criterion evaluated by the CI Linux job (the PDF across runs and record shuffles is tests/page_output.rs, the JSONL tests/golden_fixture.rs; the SVG and parallel exports are not built)")
     });
     r.entry("AC-15", "build paths (a), (b) and (c) agree", |_| {
-        na("not run by this runner: (a) against (c) is tests/golden_fixture.rs; path (b), the builder DSL, does not exist yet")
+        na("evaluated outside this runner: (a) against (c) is tests/golden_fixture.rs; path (b), the builder DSL, belongs to the ew-testkit builders (WP-S6.01)")
     });
     r.entry("AC-16", "freshness: scripted edits update every output; verify-derived is clean with the oracle on", |_| {
-        na("not run by this runner: the scripted edits (rename T55, move -102F2, folio 103 to 104, 24 V colour) need the tag and move commands and `ew verify-derived`; the oracle is on for every query of this run (see the oracle count)")
+        not_built("the scripted edits (rename T55, move -102F2, folio 103 to 104, 24 V colour) need the tag, move and profile commands and `ew verify-derived`; for the record, the oracle is on for the sessions `oracle` and `profiled` of this run, and off for the sessions that apply edits or scripts (AC-12, AC-18, AC-20, D-06, D-11, D-12) and for the cross-reference scans")
     });
-    r.entry("AC-17", "open <= 0.5 s, check <= 2 s, PDF export <= 3 s", |_| {
-        na("not measured (milestone rule): performance claims are made at milestone deliveries only")
-    });
+    if r.perf() {
+        r.entry(
+            "AC-17",
+            "opening the golden project takes at most 0.5 s",
+            ac17_open,
+        );
+        r.entry("AC-17", "a full check takes at most 2 s", |_| {
+            not_built("the check engine (`ew check`) does not exist yet: ew-checks holds no rule")
+        });
+        r.entry("AC-17", "exporting the PDF takes at most 3 s", ac17_pdf);
+    } else {
+        r.entry("AC-17", "open <= 0.5 s, check <= 2 s, PDF export <= 3 s", |_| {
+            na("measured at milestone deliveries (cargo xtask acceptance --milestone, release profile)")
+        });
+    }
     r.entry(
         "AC-39",
         "the anonymisation guard passes on golden/, docs/ and expected/",
-        |_| na("not run by this runner: `cargo xtask check-anonymisation` is the guard"),
+        |_| {
+            na("the guard is `cargo xtask check-anonymisation` (the xtask crate, outside this test crate); the repository checks run it")
+        },
     );
 
     // §19 rows gated M1.
@@ -524,7 +610,7 @@ fn ac05_counts(c: &Ctx) -> Outcome {
     }
     if wrong.is_empty() {
         pass(
-            "63 linked texts with 64 link targets and 4 external texts on the drawn pages; -201U1 prints 3-B2 (the 19 main/auxiliary texts are checked by count and by the -201U1 text)",
+            "63 linked texts with 64 link targets and 4 external texts on the drawn pages; -201U1 prints 3-B2",
         )
     } else {
         fail(wrong.join("; "))
@@ -562,7 +648,7 @@ fn ac06_tags(c: &Ctx) -> Outcome {
     }
     if wrong.is_empty() && found.is_empty() {
         pass(format!(
-            "{checked} devices print their table key; no \"-4W1\", \"-4X1\", \"T51\", \"JE2416\" or core colour \"BR\" in any page text (PDF text layer and per-occurrence identity not checked)"
+            "{checked} devices print their table key; no \"-4W1\", \"-4X1\", \"T51\", \"JE2416\" or core colour \"BR\" in any page text"
         ))
     } else {
         fail(format!(
@@ -668,26 +754,13 @@ fn ac09_wire_rows(c: &Ctx) -> Outcome {
 
 fn ac09_properties(c: &Ctx) -> Outcome {
     let q = golden_common::plain(&c.profiled);
-    let props = all_props(&q);
-    let rows = rows_of(&q, &c.batch, "907");
-    let no = rows.column("no").expect("the No. column");
-    let numbered = (0..44).filter(|i| !texts(&q, &rows, *i)[no].is_empty()).count();
-    let mut wrong = Vec::new();
-    if props.len() != 44 {
-        wrong.push(format!(
-            "{} wires have an effective size and colour, expected 44",
-            props.len()
-        ));
-    }
-    if numbered != 44 {
-        wrong.push(format!(
-            "{numbered} of 44 wires have a wire number (the wire numbering query does not exist yet, FT-100)"
-        ));
-    }
-    if wrong.is_empty() {
-        pass("44 wires with size, colour and wire number")
+    let n = all_props(&q).len();
+    if n == 44 {
+        pass("44 wires have an effective size and colour")
     } else {
-        fail(wrong.join("; "))
+        fail(format!(
+            "{n} wires have an effective size and colour, expected 44"
+        ))
     }
 }
 
@@ -781,7 +854,7 @@ fn ac12_colour(c: &Ctx) -> Outcome {
     }
     if wrong.is_empty() {
         pass(format!(
-            "{changed} wires take the new colour and nothing else changes; folio 907's rows follow (recomputed from the edited profile; the one-commit property needs a profile command, folio 1's tables are not drawn)"
+            "{changed} wires take the new colour and nothing else changes; folio 907's rows follow (recomputed from the edited profile)"
         ))
     } else {
         fail(list(wrong, 3))
@@ -822,7 +895,7 @@ fn ac13_structure(c: &Ctx) -> Outcome {
     }
     if wrong.is_empty() {
         pass(format!(
-            "{} pages: outline, 64 links, page labels = folio labels, embedded fonts and SHA-256 equal the committed files; no Tahoma (the folio count is 33 against 36, AC-03; text extraction not checked)",
+            "{} pages: outline, 64 links, page labels = folio labels, embedded fonts and SHA-256 equal the committed files; no Tahoma (the folio count is 33 against 36, AC-03)",
             c.pdf_pages.len()
         ))
     } else {
@@ -970,7 +1043,7 @@ fn ac20_folio_3_to_4(c: &Ctx) -> Outcome {
             }
             if wrong.is_empty() {
                 pass(format!(
-                    "-3W1 and -3X1 become -4W1 and -4X1, {xref_changes} cross-reference text(s) follow (\"3-B2\" becomes \"4-B2\"), undo restores the records (the page-file write set is not checked: no save in this check)"
+                    "-3W1 and -3X1 become -4W1 and -4X1, {xref_changes} cross-reference text(s) follow (\"3-B2\" becomes \"4-B2\"), undo restores the records"
                 ))
             } else {
                 fail(wrong.join("; "))
@@ -992,6 +1065,12 @@ fn defects(r: &mut Runner) {
         ),
         "",
     );
+    r.entry_from(
+        "D-01",
+        "renumbering writes only that page's file",
+        ("AC-20", "renumbering folio 3 to 4 writes only that page's file"),
+        "",
+    );
     r.entry("D-03", "no output prints the structure alias JE2416", |c| {
         let hits: Vec<String> = c
             .text
@@ -1000,11 +1079,16 @@ fn defects(r: &mut Runner) {
             .map(|(f, _)| f.clone())
             .collect();
         if hits.is_empty() {
-            pass("no page text contains \"JE2416\" (the EF-15 listing of the frozen tags needs the check engine: not applicable)")
+            pass("no page text contains \"JE2416\"")
         } else {
             fail(format!("\"JE2416\" printed on {}", list(hits, 5)))
         }
     });
+    r.entry(
+        "D-03",
+        "the numbering report lists the frozen tags (EF-15)",
+        |_| not_built("the numbering report and the check engine's finding EF-15 do not exist yet"),
+    );
     r.entry_from(
         "D-04",
         "the parts list holds the 27 rows of §14.1",
@@ -1030,14 +1114,21 @@ fn defects(r: &mut Runner) {
             .map(|(f, _)| f.clone())
             .collect();
         if off.is_empty() {
-            pass(format!(
-                "all {} pages print \"{want}\" (setting an override on 101 needs the page description command: not applicable)",
-                c.text.len()
-            ))
+            pass(format!("all {} pages print \"{want}\"", c.text.len()))
         } else {
             fail(format!("not printed on {}", list(off, 5)))
         }
     });
+    r.entry(
+        "D-06",
+        "an override set on 101 changes the description of 101 only",
+        d06_override,
+    );
+    r.entry(
+        "D-06",
+        "an override is reported as info and shown in the property grid",
+        |_| not_built("the check engine (info finding) and the property grid do not exist yet"),
+    );
     r.entry_from(
         "D-07",
         "outline, 64 cross-reference links and page labels",
@@ -1052,9 +1143,12 @@ fn defects(r: &mut Runner) {
         "W29 takes 0.75 DBU from the profile, W20 1.5 mm2 from its CDP and DBU from the profile",
         d08,
     );
-    r.entry("D-09", "W1-W44 are numbered, unique and stable", |_| {
-        na("the wire numbering query does not exist yet (FT-100); the generated pages are counted by AC-03")
-    });
+    r.entry_from(
+        "D-09",
+        "W1-W44 are numbered, unique and stable",
+        ("AC-09", "every wire has a wire number"),
+        "",
+    );
     r.entry("D-10", "-202U2 carries 4 valves", |c| {
         let q = c.oracle.query();
         let parent: Id<Device> = id_of(c, "devices|-202U2");
@@ -1065,11 +1159,13 @@ fn defects(r: &mut Runner) {
             fail(format!("-202U2 has {n} children, expected 4"))
         }
     });
-    r.entry("D-11", "a terminal designation cannot be set empty", |c| {
-        set_designation(c, "terminals|-X1031:8", &[""], false)
-    });
-    r.entry("D-12", "a duplicate designation is rejected", |c| {
-        let (status, reason) = set_designation(c, "terminals|-X1031:3", &["4"], false);
+    r.entry(
+        "D-11",
+        "an empty terminal designation is rejected by the invariant",
+        |c| set_designation(c, "terminals|-X1031:8", ""),
+    );
+    r.entry("D-12", "a duplicate designation is rejected by the invariant", |c| {
+        let (status, reason) = set_designation(c, "terminals|-X1031:3", "4");
         if status == Status::Fail {
             fail(format!(
                 "{reason} (designations are unique per strip by invariant, but v0 has no such invariant and ew-checks holds no prevent rule yet)"
@@ -1078,14 +1174,23 @@ fn defects(r: &mut Runner) {
             (status, reason)
         }
     });
+    r.entry("D-12", "swapping two designations in one transaction is accepted", |_| {
+        not_built("no composite command exists to put two edits into one transaction (a swap over two `fields.set` commands passes through a duplicate)")
+    });
     r.entry("D-14", "the bus port prints \"3-B2\", never \"3-B0\"", |c| {
         let q = c.memoised.query();
-        let text = q.get::<XrefTextOf>(id_of(c, "representations|-201U1")).text.clone();
+        let text = q
+            .get::<XrefTextOf>(id_of(c, "representations|-201U1"))
+            .text
+            .clone();
         if text.contains("3-B2") && !text.contains("3-B0") {
-            pass(format!("-201U1 prints \"{text}\" (forcing the origin anchor needs a command that does not exist yet: not applicable)"))
+            pass(format!("-201U1 prints \"{text}\""))
         } else {
             fail(format!("-201U1 prints \"{text}\""))
         }
+    });
+    r.entry("D-14", "forcing the origin anchor reports \"3-B0: empty cell\"", |_| {
+        not_built("no command sets a representation's anchor policy, and the check engine (FR-CHK-035) does not exist yet")
     });
     r.entry("D-17", "core colour BN is printed, never BR", |c| {
         let q = c.rows_q();
@@ -1095,11 +1200,16 @@ fn defects(r: &mut Runner) {
             .map(|i| texts(&q, &set, i)[colour].clone())
             .collect();
         if colours.contains("BN") && !colours.contains("BR") {
-            pass("folio 906 prints core colour BN and no BR (the strict-import rejection of \"BR\" needs the CSV import command: not applicable)")
+            pass("folio 906 prints core colour BN and no BR")
         } else {
             fail(format!("colours on 906: {colours:?}"))
         }
     });
+    r.entry(
+        "D-17",
+        "strict import rejects \"BR\"; lenient import keeps it as a foreign code with the quick fix \"use BN\"",
+        |_| not_built("the CSV importer has no strict or lenient mode (ImportContext carries none) and quick fixes do not exist yet"),
+    );
     r.entry("D-18", "the typed ratings and manufacturer names print on folios 101 and 102", |c| {
         let want = ["C10", "C4", "B16", "15 \u{00b0}C", "Murrelektronik", "Eaton"];
         let printed: BTreeSet<String> = ["101", "102"]
@@ -1114,16 +1224,19 @@ fn defects(r: &mut Runner) {
         }
     });
     r.entry("D-20", "W13/W14 are a star at F55:2, W7/W8 a chain on -101F1:1", |_| {
-        na("the wire list prints neither the junction nor its wiring style (README, \"Wire list (907)\"); the junction records are checked by the connectivity tests")
+        not_built("the wire list prints neither the junction nor its wiring style (README, \"Wire list (907)\"), so the wire list cannot show the notation")
     });
-    r.entry("D-22", "the 0 V to PE connection is the bond B1, not a wire", |c| {
+    r.entry("D-22", "the 0 V to PE connection is the bond B1", |c| {
         let q = c.oracle.query();
         let bonds = q.bonds().len();
         if bonds == 1 {
-            pass("the model holds exactly one bond, B1 (the connectivity test bond_b1_links_0v_and_pe checks its ends; replacing it by a wire needs the check engine: not applicable)")
+            pass("the model holds exactly one bond, B1 (the connectivity test bond_b1_links_0v_and_pe checks its ends)")
         } else {
             fail(format!("{bonds} bonds, expected B1 only"))
         }
+    });
+    r.entry("D-22", "replacing B1 by a plain wire is reported", |_| {
+        not_built("the check engine (FR-CHK-028) does not exist yet")
     });
     r.entry("D-24", "24VDC-1, 0V and PE carry their IP names as aliases", d24);
     r.entry(
@@ -1145,13 +1258,13 @@ fn defects(r: &mut Runner) {
             .map(|(f, _)| f.clone())
             .collect();
         if off.is_empty() {
-            pass(format!(
-                "all {} title blocks print \"{want}\" (the cover is not drawn: not applicable)",
-                c.text.len()
-            ))
+            pass(format!("all {} title blocks print \"{want}\"", c.text.len()))
         } else {
             fail(format!("not printed on {}", list(off, 5)))
         }
+    });
+    r.entry("D-30", "the cover binds the customer", |_| {
+        not_built("the cover (folio 1) is not drawn (README, \"Folio 1\")")
     });
     r.entry(
         "D-33",
@@ -1178,22 +1291,346 @@ fn defects(r: &mut Runner) {
     r.entry(
         "D-35",
         "BOM descriptions per §14, ratings only at symbols",
-        |_| na("needs the 27-row parts list (D-04) and the typed-data lint EF-25 of the check engine"),
+        |_| not_built("the typed-data lint EF-25 of the check engine does not exist yet (the 27-row parts list is D-04)"),
     );
     r.entry("D-36", "assembly rows A1 and A2, order code on folio 3", |_| {
-        na("the assembly BOM mode and `ew export bom` do not exist yet (FR-REP-005)")
+        not_built("the assembly BOM mode and `ew export bom` do not exist yet (FR-REP-005)")
     });
     r.entry("D-37", "profiles name their basis; the cover prints it", |_| {
-        na("the bootstrap does not emit the colour and size profiles (decision log ID-90) and the cover is not drawn")
+        not_built("the bootstrap does not emit the colour and size profiles (decision log ID-90) and the cover is not drawn")
     });
     r.entry("D-41", "one assembly -201U1 with children on both pages, break marks", |_| {
-        na("the assembly aspect and the generated overview break marks are not implemented (schema v0 keeps the assembly in `extra`)")
+        not_built("the assembly aspect and the generated overview break marks are not implemented (schema v0 keeps the assembly in `extra`)")
     });
     r.entry(
         "D-42",
         "one strip -X1031 with segments at 103-A3 and 103-A10",
         d42,
     );
+}
+
+/// The main and auxiliary texts of doc 20 §15 ("Main ↔ auxiliary references"): what each main prints after
+/// "∞" and what each auxiliary prints in brackets.
+fn section_15_main_aux() -> Vec<String> {
+    let doc = std::fs::read_to_string(repo().join("docs/design/20-golden-project.md")).expect("doc 20");
+    let start = doc
+        .find("**Main \u{2194} auxiliary references")
+        .expect("the §15 table");
+    let mut out = Vec::new();
+    for line in doc[start..].lines().skip(1) {
+        if line.starts_with("---") {
+            break;
+        }
+        if !line.starts_with("| -") {
+            continue;
+        }
+        let cells: Vec<&str> = line.trim_matches('|').split('|').map(str::trim).collect();
+        let main = cells[1];
+        let mut aux = cells[2].replace("**", "");
+        while let (Some(open), Some(close)) = (aux.find('('), aux.find(')')) {
+            aux.replace_range(open..=close, "");
+        }
+        let aux: Vec<&str> = aux.split(',').map(str::trim).filter(|a| !a.is_empty()).collect();
+        out.push(format!("\u{221e} {}", aux.join(", ")));
+        out.extend(aux.iter().map(|_| format!("({main})")));
+    }
+    out.sort();
+    out
+}
+
+fn ac05_main_aux(c: &Ctx) -> Outcome {
+    let want = section_15_main_aux();
+    if want.len() != 19 {
+        return fail(format!("{} texts parsed from §15, 19 expected", want.len()));
+    }
+    let mut got: Vec<String> = Vec::new();
+    for g in &c.pages {
+        for r in &g.view.reps {
+            for v in &r.slots {
+                if !v.item_links.is_empty() && (v.text.starts_with('\u{221e}') || v.text.starts_with('(')) {
+                    got.push(v.text.clone());
+                }
+            }
+        }
+    }
+    got.sort();
+    if got == want {
+        pass("the 9 main texts (\"\u{221e} ...\") and 10 auxiliary texts (\"(...)\") equal §15 as a multiset")
+    } else {
+        let missing: Vec<String> = want.iter().filter(|w| !got.contains(w)).cloned().collect();
+        let extra: Vec<String> = got.iter().filter(|g| !want.contains(g)).cloned().collect();
+        fail(format!(
+            "{} printed, 19 in §15; missing {}; unexpected {}",
+            got.len(),
+            list(missing, 4),
+            list(extra, 4)
+        ))
+    }
+}
+
+fn ac09_numbers(c: &Ctx) -> Outcome {
+    let q = golden_common::plain(&c.profiled);
+    let rows = rows_of(&q, &c.batch, "907");
+    let no = rows.column("no").expect("the No. column");
+    let numbered = (0..44).filter(|i| !texts(&q, &rows, *i)[no].is_empty()).count();
+    if numbered == 44 {
+        pass("44 wires have a wire number")
+    } else {
+        not_built(format!(
+            "{numbered} of 44 wires have a wire number: the wire numbering query does not exist yet (FT-100)"
+        ))
+    }
+}
+
+fn ac13_pdfa(c: &Ctx) -> Outcome {
+    let options = pdf_options(&c.memoised.query());
+    if options.conformance == ew_export::Conformance::PdfA2b && c.pdf.bytes.starts_with(b"%PDF-") {
+        pass(format!(
+            "the {}-page PDF was written under Conformance::PdfA2b, which makes krilla's A2_B archival validator check the document (it refuses an invalid one)",
+            c.pdf_pages.len()
+        ))
+    } else {
+        fail(format!(
+            "the golden PDF is written with conformance {:?}",
+            options.conformance
+        ))
+    }
+}
+
+/// A unique scratch directory under the system temp directory.
+fn scratch_dir(tag: &str) -> std::path::PathBuf {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_nanos());
+    let dir = std::env::temp_dir().join(format!("ew-acceptance-{tag}-{}-{nanos}", std::process::id()));
+    std::fs::create_dir_all(&dir).expect("a scratch directory");
+    dir
+}
+
+fn copy_dir(from: &std::path::Path, to: &std::path::Path) {
+    std::fs::create_dir_all(to).expect("a directory");
+    for e in std::fs::read_dir(from).expect("a readable directory") {
+        let e = e.expect("an entry");
+        let target = to.join(e.file_name());
+        if e.path().is_dir() {
+            copy_dir(&e.path(), &target);
+        } else {
+            std::fs::copy(e.path(), &target).expect("a copied file");
+        }
+    }
+}
+
+fn ac17_open(_: &Ctx) -> Outcome {
+    let copy = scratch_dir("open");
+    let state = scratch_dir("open-state");
+    copy_dir(&repo().join("golden/J-E-2416.ew"), &copy);
+    let mut options = StoreOptions::new("acceptance");
+    options.state_dir = Some(state.clone());
+    let started = std::time::Instant::now();
+    let opened = Session::open(&copy, options, SessionOptions::default(), Recovery::Keep);
+    let elapsed = started.elapsed();
+    let outcome = match opened {
+        Ok((session, _)) => {
+            session.close();
+            if elapsed.as_secs_f64() <= 0.5 {
+                pass(format!(
+                    "opened in {:.3} s on this machine (the baseline machine is the reference)",
+                    elapsed.as_secs_f64()
+                ))
+            } else {
+                fail(format!(
+                    "opened in {:.3} s, the limit is 0.5 s",
+                    elapsed.as_secs_f64()
+                ))
+            }
+        }
+        Err(e) => fail(format!("the fixture does not open: {e:?}")),
+    };
+    let _ = std::fs::remove_dir_all(&copy);
+    let _ = std::fs::remove_dir_all(&state);
+    outcome
+}
+
+fn ac17_pdf(c: &Ctx) -> Outcome {
+    let view = golden_session(None);
+    let q = view.query();
+    let started = std::time::Instant::now();
+    let pages = pdf_pages(&q);
+    let out = ew_export::pdf(&pages, &pdf_options(&q), &c.fonts, None);
+    let elapsed = started.elapsed().as_secs_f64();
+    match out {
+        Ok(_) if elapsed <= 3.0 => pass(format!("{} pages exported in {elapsed:.3} s", pages.len())),
+        Ok(_) => fail(format!(
+            "{} pages exported in {elapsed:.3} s, the limit is 3 s",
+            pages.len()
+        )),
+        Err(e) => fail(format!("the export failed: {e:?}")),
+    }
+}
+
+/// The `page.renumber` command of Golden B step B2 with the section resolved against the session.
+fn b2_command(s: &Session) -> ew_api::AnyCommand {
+    let q = s.query();
+    let section = q
+        .sections()
+        .iter()
+        .find(|(_, sec)| sec.number == 1)
+        .map(|(id, _)| id)
+        .expect("section 1");
+    ew_api::AnyCommand {
+        name: "page.renumber".into(),
+        params: serde_json::json!({
+            "scope": {"section": section},
+            "start": 101,
+            "step": 1,
+            "keep_gaps": false
+        }),
+    }
+}
+
+fn ac18_preview(c: &Ctx) -> Outcome {
+    let mut s = golden_common::session(&c.batch);
+    let cmd = b2_command(&s);
+    let preview = match s.preview(&cmd) {
+        Ok(p) => p,
+        Err(e) => return fail(format!("the preview failed: {e:?}")),
+    };
+    let diff = preview.diff();
+    let kinds: Vec<String> = diff
+        .changes
+        .iter()
+        .map(|ch| format!("{:?} {:?} {:?}", ch.change, ch.key.0, ch.fields))
+        .collect();
+    let committed = s.world().rev.0;
+    if diff.len() == 1 && diff.changes[0].key.0 == ew_schema::Kind::Page && committed == 0 {
+        pass(format!(
+            "the preview changes one page record ({}) and commits nothing",
+            kinds[0]
+        ))
+    } else {
+        fail(format!(
+            "the preview lists {} changes: {}",
+            diff.len(),
+            list(kinds, 4)
+        ))
+    }
+}
+
+/// The link targets (representation, page) of every cross-reference text, by representation.
+/// The link targets of one cross-reference text: (representation, page).
+type LinkTargets = Vec<(Id<Representation>, Id<ew_schema::Page>)>;
+
+fn xref_links(s: &Session) -> BTreeMap<Id<Representation>, LinkTargets> {
+    let q = s.query();
+    q.reps()
+        .ids()
+        .map(|id| {
+            let t = q.get::<XrefTextOf>(id);
+            (id, t.links.iter().map(|l| (l.rep, l.page)).collect())
+        })
+        .collect()
+}
+
+fn ac18_orphans_pairing(c: &Ctx) -> Outcome {
+    let mut s = golden_common::session(&c.batch);
+    let before = xref_links(&s);
+    let cmd = b2_command(&s);
+    let result = s.preview(&cmd).and_then(|p| s.commit(p));
+    if let Err(e) = result {
+        return fail(format!("step B2 failed: {e:?}"));
+    }
+    let mut wrong = Vec::new();
+    if let Err(e) = s.world().model.integrity_check() {
+        wrong.push(format!("integrity check: {e:?}"));
+    }
+    if xref_links(&s) != before {
+        wrong.push("the link targets of the cross-reference texts changed".to_owned());
+    }
+    if wrong.is_empty() {
+        pass(
+            "the model's integrity check (every reference resolves) holds, and all interruption-point and main/auxiliary link targets are the same records",
+        )
+    } else {
+        fail(wrong.join("; "))
+    }
+}
+
+fn ac20_write_set(c: &Ctx) -> Outcome {
+    let mut s = golden_common::session(&c.batch);
+    let dir = scratch_dir("write-set");
+    let state = scratch_dir("write-set-state");
+    let mut options = StoreOptions::new("acceptance");
+    options.state_dir = Some(state.clone());
+    let outcome = (|| -> Outcome {
+        if let Err(e) = s.create(&dir, options) {
+            return fail(format!("the session cannot be saved as a project: {e:?}"));
+        }
+        let page = &c.ids["pages|3"];
+        let log = format!(
+            "{{\"$schema\":\"ew.cmdlog/1\"}}\n{{\"cmd\":\"page.renumber\",\"params\":{{\"scope\":{{\"pages\":[\"{page}\"]}},\"start\":4,\"step\":1}}}}\n"
+        );
+        if let Err(e) = run_log(&mut s, &log, "d-01.ewcmd") {
+            return fail(e);
+        }
+        match s.save() {
+            Ok(report) => {
+                let written: Vec<&str> = report.written.iter().map(|p| p.as_str()).collect();
+                let want = format!("pages/{page}.jsonl");
+                if written == [want.as_str()] && report.removed.is_empty() {
+                    pass(format!(
+                        "the save writes {want} only (and {} the manifest)",
+                        if report.manifest_written {
+                            "rewrites"
+                        } else {
+                            "leaves"
+                        }
+                    ))
+                } else {
+                    fail(format!(
+                        "the save writes {written:?} and removes {:?}",
+                        report.removed
+                    ))
+                }
+            }
+            Err(e) => fail(format!("the save failed: {e:?}")),
+        }
+    })();
+    s.close();
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::remove_dir_all(&state);
+    outcome
+}
+
+fn d06_override(c: &Ctx) -> Outcome {
+    let title = |s: &Session, folio: &str| {
+        let q = s.query();
+        let page: Id<ew_schema::Page> = id_of(c, &format!("pages|{folio}"));
+        q.get::<TitleBlockValues>(PageRef::Drawn(page))
+            .get("page.description")
+            .cloned()
+    };
+    let mut s = golden_common::session(&c.batch);
+    let (b101, b102) = (title(&s, "101"), title(&s, "102"));
+    let cmd = ew_api::AnyCommand {
+        name: "fields.set".into(),
+        params: serde_json::json!({
+            "kind": "page",
+            "targets": [c.ids["pages|101"]],
+            "path": "description_override",
+            "value": {"en": "Override text"},
+        }),
+    };
+    if let Err(e) = s.execute(&cmd) {
+        return fail(format!("the override was rejected: {e:?}"));
+    }
+    let (a101, a102) = (title(&s, "101"), title(&s, "102"));
+    if a101 != b101 && a101.is_some() && a102 == b102 {
+        pass("the description of 101 becomes the override; 102 keeps the project description")
+    } else {
+        fail(format!(
+            "description of 101: {b101:?} then {a101:?}; of 102: {b102:?} then {a102:?}"
+        ))
+    }
 }
 
 fn d08(c: &Ctx) -> Outcome {
@@ -1217,31 +1654,55 @@ fn d08(c: &Ctx) -> Outcome {
     }
 }
 
-/// Sets the designation of a terminal through `fields.set`; the entries of `values` are tried in order.
-fn set_designation(c: &Ctx, key: &str, values: &[&str], expect_accepted: bool) -> Outcome {
+/// The name of a command error's kind.
+fn error_kind(e: &ew_api::CmdError) -> &'static str {
+    use ew_api::CmdError;
+    match e {
+        CmdError::UnknownCommand { .. } => "UnknownCommand",
+        CmdError::InvalidParams { .. } => "InvalidParams",
+        CmdError::NotFound { .. } => "NotFound",
+        CmdError::Rejected { .. } => "Rejected",
+        CmdError::Exposure { .. } => "Exposure",
+        CmdError::NeedsPreview { .. } => "NeedsPreview",
+        CmdError::Prevented { .. } => "Prevented",
+        CmdError::Model(ew_model::ModelError::Invariant { .. }) => "Model(Invariant)",
+        CmdError::Model(ew_model::ModelError::Prevented { .. }) => "Model(Prevented)",
+        CmdError::Model(_) => "Model(other)",
+        _ => "other",
+    }
+}
+
+/// Sets the designation of a terminal through `fields.set` and expects the rejection of an invariant or a
+/// prevent rule (a domain rejection), not a parameter error and not an acceptance.
+fn set_designation(c: &Ctx, key: &str, value: &str) -> Outcome {
     let mut s = golden_common::session(&c.batch);
-    let id = &c.ids[key];
-    for value in values {
-        let cmd = ew_api::AnyCommand {
-            name: "fields.set".into(),
-            params: serde_json::json!({
-                "kind": "device",
-                "targets": [id],
-                "path": "terminal.designation",
-                "value": value,
-            }),
-        };
-        let result = s.execute(&cmd);
-        match (result, expect_accepted) {
-            (Err(_), false) => {}
-            (Ok(_), true) => {}
-            (Ok(_), false) => return fail(format!("`{value}` was accepted for {key}, expected a rejection")),
-            (Err(e), true) => return fail(format!("`{value}` was rejected for {key}: {e:?}")),
+    let cmd = ew_api::AnyCommand {
+        name: "fields.set".into(),
+        params: serde_json::json!({
+            "kind": "device",
+            "targets": [c.ids[key]],
+            "path": "terminal.designation",
+            "value": value,
+        }),
+    };
+    match s.execute(&cmd) {
+        Ok(_) => fail(format!(
+            "`{value}` was accepted for {key}, expected a rejection by an invariant"
+        )),
+        Err(e) => {
+            let kind = error_kind(&e);
+            if matches!(
+                kind,
+                "Model(Invariant)" | "Model(Prevented)" | "Prevented" | "Rejected"
+            ) {
+                pass(format!("{key}: designation `{value}` is rejected with {kind}"))
+            } else {
+                fail(format!(
+                    "{key}: designation `{value}` is rejected with {kind}, not by an invariant or a prevent rule ({e:?})"
+                ))
+            }
         }
     }
-    pass(format!(
-        "{key}: designation {values:?} is rejected (the swap in one transaction needs a composite command: not applicable)"
-    ))
 }
 
 fn d24(c: &Ctx) -> Outcome {

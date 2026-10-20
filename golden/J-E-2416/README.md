@@ -541,28 +541,41 @@ how doc 03 §8.6 and doc 20 §2.2 are reconciled.
 
 ## Acceptance runner
 
-`cargo xtask acceptance <report.md>` runs the gate-M1 runner (doc 20 §21, §22; doc 18 §3.10) over the golden project
-with the oracle on, writes a Markdown table with one row per named check (`pass`, `FAIL` or `n/a` and a one-line
-reason) and exits non-zero when any check fails or the oracle finds a memo mismatch. It runs the `#[ignore]`d test
-`gate` of `crates/ew-api/tests/acceptance.rs` (about 40 s in a debug build).
+`cargo xtask acceptance [--milestone] <report.md>` runs the gate-M1 runner (doc 20 §21, §22; doc 18 §3.10) over the
+golden project with the oracle on and writes a Markdown table with one row per named check, a JUnit file
+(`target/nextest/ci/junit.xml`, nextest profile `ci`) and the exit status. It runs the `#[ignore]`d test `gate` of
+`crates/ew-api/tests/acceptance.rs` (about 40 s in a debug build); a stale report is deleted first.
 
-It evaluates AC-01 … AC-13, AC-18 and AC-20, reports AC-14 … AC-17 and AC-39 as `n/a` with the reason, and covers
-the §19 rows gated M1 (D-01 … D-42). It compares with the committed files through the functions that write them
-(`tests/page_output/`, `tests/golden_common/`), so a check cannot drift from the golden test: the text CSVs, the frame
-geometry, the PNGs (15 folios at 0.5 %), the PDF structure and SHA-256, and `expected/csv/`. A criterion that cannot be
-evaluated yet is `n/a` with what is missing (the GUI, `ew export`, the check engine, the SQL projection), never skipped.
-The ordinary tests of the file pin the counts of the report and its determinism (two runs, same text, raster
-comparison off) and keep `expected/csv/` current:
+A row has one of four statuses:
 
-    EW_BLESS=1 cargo nextest run -p ew-api --test acceptance --locked -E 'test(expected_csv)'
+| Status | Meaning | Blocks the gate |
+|---|---|---|
+| `pass` | the criterion holds | no |
+| `fail` | it does not hold; the reason says what differs | yes |
+| `not_built` | the feature the criterion needs does not exist yet (the reason names it) | yes, exactly like `fail`, listed separately |
+| `not_applicable` | it cannot be evaluated headless or at this delivery (GUI, pilot, an external tool that is not installed, a milestone-only measurement); the reason is required | no |
+
+A criterion with a part that holds and a part that is missing has one row per part. The runner evaluates AC-01 …
+AC-13, AC-18 and AC-20, lists AC-14 … AC-17 and AC-39 with their status and reason, and covers the §19 rows gated M1.
+It compares with the committed files through the functions that write them (`tests/page_output/`,
+`tests/golden_common/`): the text CSVs, the frame geometry, the PNGs (15 folios at 0.5 %), the PDF structure and
+SHA-256, and `expected/csv/`. AC-17 (open, check and PDF export times) is `not_applicable` outside a milestone run;
+`--milestone` builds in the release profile with `EW_PERF_ASSERT=1` and measures it.
+
+The ordinary tests of the file run the runner once, without the raster comparison and the measurements, and compare
+its report with the committed `expected/acceptance_headless.md` (so two runs must print the same text); they also keep
+`expected/csv/` current:
+
+    EW_BLESS=1 cargo nextest run -p ew-api --test acceptance --locked -E 'test(headless_report) | test(expected_csv)'
 
 `expected/csv/` holds the report rows of the acceptance pairs (doc 20 §3.1): `terminals_1X1.csv`,
 `terminals_X1031.csv`, `terminals_X1032.csv` (903 … 905), `cables.csv` (906), `wires.csv` (907) and
 `potentials.csv` (909), byte-equal to `expected/rows/<folio>.csv`. The runner compares the derived rows with them.
-The SQL half of each pair (`acceptance/*.sql` over the `api_v1` views) is reported as `not applicable: SQL
-projection pending (WP-S1.10)`.
+The SQL half of each pair (`acceptance/*.sql` over the `api_v1` views) is `not_built`: SQL projection pending
+(WP-S1.10).
 
-The report of this revision: 61 entries, 31 pass, 12 fail, 18 not applicable. The failures are the open gaps already
-listed above (page count 33 against 36, the revision label and structure cells of the title blocks, the 23-row parts
-list, wire numbers, the DP potential, the cover tables, the ratings and part numbers on 101 and 102, the missing
-uniqueness invariant for terminal designations) and Golden B step B1.
+The headless report of this revision: 81 entries, 37 pass, 12 fail, 26 not_built, 6 not_applicable (the full run adds
+the raster comparison as a pass). The 12 failures are the open gaps listed above (page count 33 against 36, the
+revision label and structure cells of the title blocks, the 23-row parts list, the DP potential, the cover tables, the
+ratings and part numbers on 101 and 102, the missing uniqueness invariant for terminal designations, an empty
+designation rejected as a parameter error instead of by the invariant) and Golden B step B1.
