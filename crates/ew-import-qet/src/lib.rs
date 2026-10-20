@@ -63,10 +63,15 @@ pub mod decimal;
 mod element;
 pub mod fndef;
 pub mod prims;
+pub mod project;
 pub mod style;
 pub mod xml;
 
 pub use element::{ElementImport, ElementSource, QetElementImporter, read_element};
+/// The importer contract this crate implements, re-exported for hosts that reach the importer through
+/// `ew-api` only.
+pub use ew_interop_api;
+pub use project::QetProjectImporter;
 
 use ew_ids::Uuid;
 

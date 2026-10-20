@@ -85,7 +85,7 @@ pub struct ElementImport {
 
 /// Parses `xml` with the limits: DTDs refused, at most `max_xml_nodes` nodes, element depth at most
 /// `max_xml_depth`, attribute values at most `max_attribute_bytes`.
-fn parse_xml<'i>(xml: &'i str, limits: &Limits) -> Result<Document<'i>, ImportError> {
+pub(crate) fn parse_xml<'i>(xml: &'i str, limits: &Limits) -> Result<Document<'i>, ImportError> {
     let opts = ParsingOptions {
         allow_dtd: false,
         nodes_limit: limits.max_xml_nodes,
@@ -129,7 +129,7 @@ fn parse_xml<'i>(xml: &'i str, limits: &Limits) -> Result<Document<'i>, ImportEr
 }
 
 /// The child element of `node` named `name`.
-fn child<'a, 'i>(node: Node<'a, 'i>, name: &str) -> Option<Node<'a, 'i>> {
+pub(crate) fn child<'a, 'i>(node: Node<'a, 'i>, name: &str) -> Option<Node<'a, 'i>> {
     node.children()
         .find(|c| c.is_element() && c.tag_name().name() == name)
 }
@@ -178,8 +178,9 @@ pub fn read_element(
     crate::xml::with_parser_stack(depth, || read_on_stack(xml, src, lineage, library, limits))
 }
 
-/// [`read_element`] after the pre-scan, on the parser thread.
-fn read_on_stack(
+/// [`read_element`] after the pre-scan, on the parser thread (the project importer calls it for every
+/// embedded definition from inside its own parser thread).
+pub(crate) fn read_on_stack(
     xml: &str,
     src: &ElementSource<'_>,
     lineage: &LineageInfo,
