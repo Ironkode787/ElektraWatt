@@ -61,6 +61,7 @@ set. The project has no code yet; the documents are the product of the design ph
 | [18 Quality, security, release](design/18-quality-security-release.md) | Test strategy, performance, security, build, signing, support |
 | [19 Open-source governance](design/19-open-source-governance.md) | Licences per layer, DCO, legal gates, roles, decision process |
 | [20 Golden project](design/20-golden-project.md) | Reference project as acceptance specification (AC, D, EF, MF) |
+| [23 Symbol coverage of the pilot corpus](design/23-symbol-coverage-pilot-corpus.md) | The pilot's 81 QET element types mapped to the starter symbol set; missing families and importer mappings |
 | [Glossary](design/glossary.md) | Terms, identifier schemes, EPLAN/QET/EW translation table |
 
 ### 2.2 plan/
