@@ -1073,6 +1073,36 @@ fn strip_segments_are_never_main_representations_or_targets() {
 }
 
 #[test]
+fn aux_without_main_representation_is_noted_by_how_the_main_is_drawn() {
+    // The main function is drawn only as a strip segment: the note says so.
+    let mut fx = base();
+    fx.device(0x2000, "K", Some(1));
+    fx.function(0x1001, Some(0x2000), FNDEF, true);
+    let (x, y) = at(0, 0);
+    fx.rep(0x8001, pg(1), SYM, &[0x1001], x, y);
+    fx.with("rep_type", json!("strip_segment"));
+    func(&mut fx, 0x1002, 0x2000, (FNDEF, SYM), false, pg(3), (3, 2));
+    let m = fx.build();
+    let mut q = Q::new(&m);
+    assert_eq!(text(&q, rep_of(0x1002)), "");
+    let notes = xref_notes(&mut q, "EW-CORE-053");
+    assert_eq!(notes.len(), 1, "{notes:?}");
+    assert!(notes[0].1.contains("drawn only as a strip segment"), "{notes:?}");
+
+    // The main function is unplaced: it has no representation at all.
+    let mut fx = base();
+    fx.device(0x2000, "K", Some(1));
+    fx.function(0x1001, Some(0x2000), FNDEF, true);
+    func(&mut fx, 0x1002, 0x2000, (FNDEF, SYM), false, pg(2), (3, 2));
+    let m = fx.build();
+    let mut q = Q::new(&m);
+    assert_eq!(text(&q, rep_of(0x1002)), "");
+    let notes = xref_notes(&mut q, "EW-CORE-053");
+    assert_eq!(notes.len(), 1, "{notes:?}");
+    assert!(notes[0].1.contains("has no representation"), "{notes:?}");
+}
+
+#[test]
 fn zone_only_drops_page_parts_with_their_separators() {
     // FR-XRF-025: two "24VDC-9" points on one page; the page parts go with the literal that separates them
     // from the cell, in front of it or behind it.

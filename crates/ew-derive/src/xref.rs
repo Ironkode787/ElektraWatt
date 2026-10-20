@@ -456,12 +456,28 @@ fn device_relation(
             None => none,
         },
         None => {
+            // The main function is unplaced, or drawn only as representations that cannot carry a target.
+            let reps = q.reps();
+            let drawn_as: Vec<RepType> = main
+                .map(|m| {
+                    q.idx()
+                        .reps_of_function(m)
+                        .filter_map(|r| reps.get(r).map(|r| r.rep_type.clone()))
+                        .collect()
+                })
+                .unwrap_or_default();
+            let how = if drawn_as.contains(&RepType::StripSegment) {
+                "is drawn only as a strip segment, which cannot carry a cross-reference target"
+            } else if !drawn_as.is_empty() {
+                "is drawn only as contact images, which cannot carry a cross-reference target"
+            } else {
+                "has no representation"
+            };
             q.note(DeriveNote::Xref {
                 code: EW_CORE_053,
                 subject: format!("representation {rid}"),
                 detail: format!(
-                    "the main function of device {device} is drawn only as a strip segment, which cannot \
-                     carry a cross-reference target; the auxiliary prints no cross-reference"
+                    "the main function of device {device} {how}; the auxiliary prints no cross-reference"
                 ),
             });
             none
