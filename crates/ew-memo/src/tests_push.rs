@@ -605,6 +605,104 @@ fn a_durability_skip_keeps_marking_sound() {
     assert_eq!(*store.get::<Twice>(&db, &30).unwrap(), 14);
 }
 
+/// The cell `Noisy` returns.
+const SIGNAL: u32 = 0;
+/// The cell `Noisy` reads but ignores.
+const NOISE: u32 = 1;
+
+/// Reads [`NOISE`] (ignoring its value) and returns [`SIGNAL`].
+struct Noisy;
+impl Query<Grid> for Noisy {
+    type Key = ();
+    type Value = i64;
+    const NAME: &'static str = "noisy";
+    fn equivalence() -> Equivalence<i64> {
+        Equivalence::by_eq()
+    }
+    fn execute(cx: &mut Cx<'_, Grid>, _: &()) -> Result<i64, Cycle> {
+        cx.read(&NOISE);
+        cx.read(&SIGNAL);
+        Ok(cx.db().value(SIGNAL))
+    }
+}
+
+/// An incremental family over `Noisy` whose hook knows that a change of [`NOISE`] alone cannot change its
+/// value, and so leaves `Noisy` (named in its `via`) unread.
+struct Follow;
+impl Query<Grid> for Follow {
+    type Key = ();
+    type Value = i64;
+    const NAME: &'static str = "follow";
+    const INCREMENTAL: bool = true;
+    fn equivalence() -> Equivalence<i64> {
+        Equivalence::by_eq()
+    }
+    fn execute(cx: &mut Cx<'_, Grid>, _: &()) -> Result<i64, Cycle> {
+        Ok(*cx.get::<Noisy>(&())?)
+    }
+    fn execute_incremental(
+        cx: &mut Cx<'_, Grid>,
+        key: &(),
+        previous: Option<(&i64, &Changes<u32>)>,
+    ) -> Result<i64, Cycle> {
+        if let Some((value, changes)) = previous
+            && let Some(touched) = &changes.touched
+            && touched.iter().any(|k| *k < 1000)
+            && touched.iter().filter(|k| **k < 1000).all(|k| *k == NOISE)
+        {
+            return Ok(*value);
+        }
+        Self::execute(cx, key)
+    }
+}
+
+/// A whole reader of the incremental `Follow`.
+struct Reader;
+impl Query<Grid> for Reader {
+    type Key = ();
+    type Value = i64;
+    const NAME: &'static str = "follow_reader";
+    fn equivalence() -> Equivalence<i64> {
+        Equivalence::by_eq()
+    }
+    fn execute(cx: &mut Cx<'_, Grid>, _: &()) -> Result<i64, Cycle> {
+        Ok(*cx.get::<Follow>(&())?)
+    }
+}
+
+/// Runs the unread-`via` scenario; returns the memoised and the cold value of `Reader` at the end.
+fn run_unread_via_scenario(bump: bool) -> (i64, i64) {
+    let (mut db, store) = setup();
+    if !bump {
+        store.skip_incremental_epoch_bump();
+    }
+    db.commit_push(&store, &[set(SIGNAL, 3)]);
+    assert_eq!(*store.get::<Reader>(&db, &()).unwrap(), 3);
+
+    // Noise only: `Follow`'s hook keeps its value and leaves `Noisy` unread.
+    db.commit_push(&store, &[set(NOISE, 100)]);
+    assert_eq!(*store.get::<Reader>(&db, &()).unwrap(), 3);
+    assert_eq!(counters(&store, "follow").incremental, 1);
+    assert_eq!(counters(&store, "noisy").re_executions, 0);
+
+    // A real change of the signal.
+    db.commit_push(&store, &[set(SIGNAL, 9)]);
+    (
+        *store.get::<Reader>(&db, &()).unwrap(),
+        *store.cold::<Reader>(&db, &()).unwrap(),
+    )
+}
+
+/// Review cycle 9: an incremental hook that leaves its `via` memo unread; a later real change must still
+/// reach a reader of the family. With the epoch bump disabled the reader is stale.
+#[test]
+fn an_unread_via_memo_still_reaches_its_readers() {
+    assert_eq!(run_unread_via_scenario(true), (9, 9));
+    // Proof that the scenario exercises the bump: without it the memoised reader keeps the old value.
+    let (memo, cold) = run_unread_via_scenario(false);
+    assert_eq!((memo, cold), (3, 9));
+}
+
 /// Rows `k -> (value, page, changed_at)` whose coarse key is their page (`100 + page`); a row can move page.
 #[derive(Default)]
 struct Rows {
