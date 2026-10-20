@@ -39,11 +39,13 @@ fn the_private_corpus_imports_derives_and_exports() {
         .collect();
     files.sort();
     assert!(!files.is_empty(), "no .qet file in EW_PRIVATE_CORPUS");
-    for path in files {
-        let name = path.file_name().unwrap().to_string_lossy().into_owned();
+    for (n, path) in files.into_iter().enumerate() {
+        // Reports name the file by its position only: corpus file names are private too.
+        let name = format!("file {}", n + 1);
+        let file_name = path.file_name().unwrap().to_string_lossy().into_owned();
         let bytes = std::fs::read(&path).unwrap();
         let imported =
-            import_qet(&name, bytes, &library).unwrap_or_else(|e| panic!("{name}: import refused: {e}"));
+            import_qet(&file_name, bytes, &library).unwrap_or_else(|e| panic!("{name}: import refused: {e}"));
         let c = imported.counts();
         let mut by_code: BTreeMap<String, u32> = BTreeMap::new();
         for g in &imported.migration_report().groups {
@@ -69,6 +71,17 @@ fn the_private_corpus_imports_derives_and_exports() {
             imported.batch.report.stats.lost_connections
         );
         println!("{name}: findings by code {by_code:?}");
+        let live: BTreeMap<String, u32> = imported.live.iter().map(|g| (g.rule.clone(), g.count)).collect();
+        let mut per_strip: BTreeMap<String, u32> = BTreeMap::new();
+        for r in &imported.batch.records {
+            if let Record::Device(d) = r
+                && let Some(t) = &d.aspects.terminal
+            {
+                *per_strip.entry(t.strip.to_string()).or_default() += 1;
+            }
+        }
+        let single = per_strip.values().filter(|n| **n == 1).count();
+        println!("{name}: lenient checks {live:?}; strips with one terminal {single}");
         let session = match &imported.session {
             Ok(s) => s,
             Err(e) => panic!("{name}: the model refused the batch: {e}"),
@@ -109,13 +122,32 @@ fn the_private_corpus_imports_derives_and_exports() {
             None,
         )
         .unwrap_or_else(|e| panic!("{name}: PDF export failed: {e:?}"));
-        let pdf_pages = out.bytes.windows(b"/Type /Page\n".len()).count();
-        let _ = pdf_pages;
-        println!("{name}: PDF {} pages, {} bytes", pages.len(), out.bytes.len());
+        let pdf_pages = page_objects(&out.bytes);
+        println!("{name}: PDF {pdf_pages} pages, {} bytes", out.bytes.len());
+        assert_eq!(
+            pdf_pages,
+            pages.len(),
+            "{name}: one page object per exported page"
+        );
         assert_eq!(
             pages.len(),
             order.entries.len(),
             "{name}: one PDF page per page-order entry"
         );
     }
+}
+
+/// The page count a PDF declares in its page-tree root (`/Type/Pages/Count n`, as the writer emits it;
+/// see `crates/ew-export/tests/pdf.rs`); 0 when absent.
+fn page_objects(pdf: &[u8]) -> usize {
+    const KEY: &[u8] = b"/Type/Pages/Count ";
+    pdf.windows(KEY.len())
+        .position(|w| w == KEY)
+        .map(|at| {
+            pdf[at + KEY.len()..]
+                .iter()
+                .take_while(|b| b.is_ascii_digit())
+                .fold(0usize, |n, b| n * 10 + usize::from(b - b'0'))
+        })
+        .unwrap_or(0)
 }

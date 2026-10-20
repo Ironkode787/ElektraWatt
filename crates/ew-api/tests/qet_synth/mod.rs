@@ -1021,7 +1021,8 @@ impl Builder {
         (pairs, unpaired)
     }
 
-    /// The bridges of the strips drawn on the folios are not drawn (QET has none).
+    /// The bridges of the strips drawn on the folios are not drawn: QET 0.100+ stores bridges in
+    /// `<terminal_strips>`, which the importer does not read yet (doc 14 §4.11).
     fn skip_bridges(&mut self) {
         for c in &self.g.connections {
             if col(c, "kind") != "bridge" {

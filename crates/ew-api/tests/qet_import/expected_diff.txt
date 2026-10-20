@@ -32,7 +32,7 @@ folios drawn by the fixture: 101 102 103
   101: 19 elements (8 devices, 3 terminals, 6 reports, 2 junctions), 21 conductors (7 with integer ends)
   102: 16 elements (3 devices, 0 terminals, 9 reports, 4 junctions), 19 conductors (6 with integer ends)
   103: 45 elements (0 devices, 25 terminals, 20 reports, 0 junctions), 10 conductors (3 with integer ends)
-bridges not drawn (QET has none): 19: BR1.1 BR1.2 BR1.3 BR2.1 BR3.1 BR4.1 BR5.1 BR5.2 BR5.3 BR5.4 BR5.5 BR5.6 BR5.7 BR5.8 BR5.9 BR6.1 BR6.2 BR6.3 BR6.4
+bridges not drawn (QET 0.100+ stores them in <terminal_strips>, which the importer does not read yet): 19: BR1.1 BR1.2 BR1.3 BR2.1 BR3.1 BR4.1 BR5.1 BR5.2 BR5.3 BR5.4 BR5.5 BR5.6 BR5.7 BR5.8 BR5.9 BR6.1 BR6.2 BR6.3 BR6.4
 cable cores not drawn (kind core): 10: W35.103 W36.103 W37 W38.103 W39.103 W40.103 W41.103 W42 W43.103 W44.103
 interruption points: 10 pairs linked on the folios, 15 without a partner on them
 terminal strips drawn terminal by terminal (one element per terminal): -X1031 -X1032 1X1

@@ -469,7 +469,7 @@ fn listing(fx: &Fixture, golden: &Side, import: &Side) -> String {
     let cores = kind("core");
     writeln!(
         w,
-        "bridges not drawn (QET has none): {}: {}",
+        "bridges not drawn (QET 0.100+ stores them in <terminal_strips>, which the importer does not read yet): {}: {}",
         bridges.len(),
         list(&bridges)
     )

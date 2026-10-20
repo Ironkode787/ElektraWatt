@@ -103,6 +103,9 @@ pub struct Imported {
     pub batch: ImportBatch,
     /// The session over the batch, or why the model's structural check refused it.
     pub session: Result<Session, String>,
+    /// Lenient check findings on the imported model (doc 14 §2.5 "lenient check findings"): duplicate
+    /// designations (EW-RDS-004) and duplicate terminal designations (EW-TERM-002).
+    pub live: Vec<migration::LiveGroup>,
 }
 
 impl Imported {
@@ -132,7 +135,7 @@ impl Imported {
 
     /// The migration report of the import (findings grouped by code, doc 14 §2.5).
     pub fn migration_report(&self) -> migration::MigrationReport {
-        migration::MigrationReport::from_report(&self.batch.report)
+        migration::MigrationReport::from_report(&self.batch.report).with_live(self.live.clone())
     }
 }
 
@@ -170,5 +173,48 @@ pub fn import_qet(name: &str, bytes: Vec<u8>, library: &StarterLibrary) -> Resul
     let mut ctx = ew_import_qet::project::new_project_context();
     let batch = importer.import(&input, &mut ctx)?;
     let session = session_from_batch(&batch, SessionOptions::default());
-    Ok(Imported { batch, session })
+    let live = session.as_ref().map(duplicate_designations).unwrap_or_default();
+    Ok(Imported { batch, session, live })
+}
+
+/// The lenient duplicate-designation checks over the derived tags of `session`: every full designation
+/// printed by more than one device (EW-RDS-004), terminals (designations with a connection point) under
+/// EW-TERM-002. Unnumbered tags (containing `?`) are not compared. A stand-in until the rule packs run on
+/// imports (the `migration` scheme of doc 15 §10.2).
+pub fn duplicate_designations(session: &Session) -> Vec<migration::LiveGroup> {
+    use std::collections::BTreeMap;
+    let q = session.query();
+    let mut by_full: BTreeMap<String, u32> = BTreeMap::new();
+    for (_, d) in q.devices().iter() {
+        if let Some(tag) = q.get::<ew_derive::DeviceTag>(d.id).as_ref()
+            && !tag.full.contains('?')
+        {
+            *by_full.entry(tag.full.clone()).or_default() += 1;
+        }
+    }
+    let mut rds = Vec::new();
+    let mut term = Vec::new();
+    for (full, n) in by_full.into_iter().filter(|(_, n)| *n > 1) {
+        let message = format!("`{full}` is printed by {n} devices");
+        if full.contains(':') {
+            term.push(message);
+        } else {
+            rds.push(message);
+        }
+    }
+    let mut out = Vec::new();
+    for (rule, title, messages) in [
+        ("EW-RDS-004", "Duplicate designation", rds),
+        ("EW-TERM-002", "Duplicate terminal designation", term),
+    ] {
+        if !messages.is_empty() {
+            out.push(migration::LiveGroup {
+                rule: rule.to_owned(),
+                title: title.to_owned(),
+                count: u32::try_from(messages.len()).unwrap_or(u32::MAX),
+                messages,
+            });
+        }
+    }
+    out
 }
