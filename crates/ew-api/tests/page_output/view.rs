@@ -25,8 +25,8 @@
 //!   representation) and an interruption point has no `tag` slot; `cp_designation(i)` → the designation of
 //!   the function CP that symbol CP `i` draws, `function_text` → the device's function text, or an
 //!   interruption point's pairing name, `process_tag` → the device's process tag; `xref` →
-//!   `xref_text(rep)` with the link to the target representation of the text's first item (one link per
-//!   slot); an external point prints the external target without a link; every other kind has no value;
+//!   `xref_text(rep)` with one link per listed item to that item's target representation (FT-86, ID-228);
+//!   an external point prints the external target without a link; every other kind has no value;
 //! - wire markers: connections with `overrides.show_marker`, printing the explicit cross-section in mm²
 //!   and the colour codes, joined by a space (provisional format);
 //! - junction and wire-marker symbols: the built-in `@qet10` symbols of `content/symbols`;
@@ -55,8 +55,8 @@ use ew_reports::render::{RenderOptions, render};
 use ew_reports::{BlockRows, RowKind};
 use ew_scene::forms::{AssetRef, BoundValue, PageBindings};
 use ew_scene::page::{
-    ConnectionView, FrameView, JunctionView, PageKind, PageView, RepView, SegmentTerminal, SlotValue,
-    SymbolRef,
+    ConnectionView, FrameView, ItemLink, JunctionView, PageKind, PageView, RepView, SegmentTerminal,
+    SlotValue, SymbolRef,
 };
 use ew_scene::table::{TableColumn, TableRow, TableRowKind, TableView};
 use ew_schema::{
@@ -234,7 +234,7 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &ew_schema::Representation, def: &Sym
     let dev = device.and_then(|d| q.devices().get(d).cloned());
     let mut out = Vec::new();
     for (i, slot) in def.text_slots.iter().enumerate() {
-        let mut link = None;
+        let mut item_links = Vec::new();
         let text = match &slot.kind {
             SlotKind::Tag => match (&f, device) {
                 (Some(f), _) if matches!(f.kind, FunctionKind::Ip(_)) => None,
@@ -270,12 +270,15 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &ew_schema::Representation, def: &Sym
                 .and_then(|d| d.process_tag.as_ref().map(|t| t.as_str().to_owned())),
             SlotKind::Xref => {
                 let x = q.get::<XrefTextOf>(rep.id);
-                // The scene has one link per slot text, so a main list with two items ("∞ 3-B2, 106-G3")
-                // links to its first item.
-                link = x
+                // One link per listed item, so the main list "∞ 3-B2, 106-G3" links both targets.
+                item_links = x
                     .links
-                    .first()
-                    .map(|l| Destination::Representation(l.rep.as_uuid()));
+                    .iter()
+                    .map(|l| ItemLink {
+                        range: l.range.clone(),
+                        dest: Destination::Representation(l.rep.as_uuid()),
+                    })
+                    .collect();
                 Some(x.text.clone())
             }
             _ => None,
@@ -284,7 +287,8 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &ew_schema::Representation, def: &Sym
             out.push(SlotValue {
                 slot: u16::try_from(i).unwrap_or(u16::MAX),
                 text,
-                link,
+                link: None,
+                item_links,
             });
         }
     }

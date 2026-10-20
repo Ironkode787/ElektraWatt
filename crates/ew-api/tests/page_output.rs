@@ -168,14 +168,18 @@ fn the_pdf_sha256_matches_the_committed_file() {
 /// Linked cross-reference texts of the golden model (doc 20 §15): 44 interruption-point texts and 19
 /// main/auxiliary texts (9 main lists, 10 auxiliaries).
 const LINKED_XREF_TEXTS: usize = 44 + 19;
+/// The link targets of those texts: the main list of -201U1 ("∞ 3-B2, 106-G3") lists two, so every item
+/// has its own link (FT-86, ID-228).
+const XREF_LINK_TARGETS: usize = LINKED_XREF_TEXTS + 1;
 /// The external interruption points print "+J-E-206 / JE-N1000-03" without a link (no in-project target).
 const EXTERNAL_XREF_TEXTS: usize = 4;
 
 #[test]
-fn the_golden_pdf_has_one_link_per_cross_reference_text() {
+fn the_golden_pdf_has_one_link_per_cross_reference_item() {
     let s = golden_session(None);
     let q = s.query();
     let mut linked = 0;
+    let mut targets = 0;
     let mut external = 0;
     for g in golden_pages(&q) {
         for r in &g.view.reps {
@@ -187,8 +191,9 @@ fn the_golden_pdf_has_one_link_per_cross_reference_text() {
                     .text_slots
                     .get(usize::from(v.slot))
                     .is_some_and(|t| t.kind == ew_schema::SlotKind::Xref);
-                if v.link.is_some() {
+                if !v.item_links.is_empty() {
                     linked += 1;
+                    targets += v.item_links.len();
                 } else if is_xref && !v.text.is_empty() {
                     external += 1;
                 }
@@ -196,10 +201,65 @@ fn the_golden_pdf_has_one_link_per_cross_reference_text() {
         }
     }
     assert_eq!(linked, LINKED_XREF_TEXTS);
+    assert_eq!(targets, XREF_LINK_TARGETS);
     assert_eq!(external, EXTERNAL_XREF_TEXTS);
     let out = pdf(&pdf_pages(&q), &pdf_options(&q), &fonts(), None).expect("the golden PDF is written");
-    assert_eq!(out.report.links, linked, "{:?}", out.report);
+    assert_eq!(out.report.links, 64, "{:?}", out.report);
+    assert_eq!(out.report.links, targets, "{:?}", out.report);
     assert_eq!(out.report.plain_text_links, 0, "{:?}", out.report);
+}
+
+/// The two link boxes of the -201U1 main text ("∞ 3-B2, 106-G3") cover their own item's glyph span: each
+/// lies inside the text's own box, they are disjoint and ordered in reading order, and the first starts
+/// after the "∞ " prefix.
+#[test]
+fn the_items_of_a_cross_reference_list_have_disjoint_ordered_link_boxes() {
+    with_golden_pages(|pages| {
+        let mut lists = 0;
+        for g in pages {
+            let scene = page_scene(&g.view, ew_text::bundled());
+            let Some((_, labels)) = scene.layers.iter().find(|(l, _)| *l == Layer::Labels) else {
+                continue;
+            };
+            let sheet: DisplayList = scene.map.apply_display_list(labels, Some(&scene.geometry));
+            // Consecutive link carriers of one entity are the items of one text.
+            let mut groups: Vec<Vec<ew_units::Rect>> = Vec::new();
+            let mut last = None;
+            for item in &sheet.items {
+                let ItemKind::Path(_) = &item.kind else {
+                    last = None;
+                    continue;
+                };
+                if !matches!(item.link, Some(ew_dl::Link::Source(_))) {
+                    last = None;
+                    continue;
+                }
+                let bounds = DisplayList {
+                    items: vec![item.clone()],
+                }
+                .bounds()
+                .expect("a link box has points");
+                if last == Some(item.entity) {
+                    groups.last_mut().unwrap().push(bounds);
+                } else {
+                    groups.push(vec![bounds]);
+                    last = Some(item.entity);
+                }
+            }
+            for group in groups.iter().filter(|g| g.len() > 1) {
+                lists += 1;
+                for w in group.windows(2) {
+                    assert!(
+                        w[0].max().x < w[1].min().x,
+                        "folio {}: boxes overlap or are out of order: {w:?}",
+                        g.entry.folio
+                    );
+                }
+            }
+        }
+        // The main lists with two items: only -201U1 lists two ("∞ 3-B2, 106-G3").
+        assert_eq!(lists, 1);
+    });
 }
 
 /// A JSON array of strings, one per line, indented for nesting level `depth`.

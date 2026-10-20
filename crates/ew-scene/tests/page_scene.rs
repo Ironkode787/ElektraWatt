@@ -11,8 +11,8 @@ use ew_ids::{Id, Uuid};
 use ew_mltext::Ident;
 use ew_scene::forms::{FrameGeometry, PageBindings, SheetMap};
 use ew_scene::page::{
-    ConnectionView, FrameView, JunctionView, PageFinding, PageKind, PageView, RepView, SlotValue, SymbolRef,
-    page_display_list, page_scene,
+    ConnectionView, FrameView, ItemLink, JunctionView, PageFinding, PageKind, PageView, RepView, SlotValue,
+    SymbolRef, page_display_list, page_scene,
 };
 use ew_schema::{Connection, FormDef, Junction, LibCopy, LibDocument, Representation, SymbolDef};
 use ew_text::bundled;
@@ -102,6 +102,7 @@ fn view() -> PageView {
                     slot: 0,
                     text: "-X2".into(),
                     link: Some(Destination::Representation(Uuid::from_u128(0x11))),
+                    item_links: Vec::new(),
                 }],
                 terminals: Vec::new(),
             },
@@ -113,11 +114,13 @@ fn view() -> PageView {
                         slot: 0,
                         text: "-X1".into(),
                         link: None,
+                        item_links: Vec::new(),
                     },
                     SlotValue {
                         slot: 1,
                         text: String::new(),
                         link: None,
+                        item_links: Vec::new(),
                     },
                 ],
                 terminals: Vec::new(),
@@ -344,6 +347,62 @@ fn an_unknown_slot_style_falls_back_to_the_kind_style_with_a_note() {
     assert_eq!(*symbol, v.reps[1].rep.symbol.as_uuid());
     assert_eq!(*slot, 0);
     assert_eq!(name, "no.such.style");
+}
+
+#[test]
+fn a_text_with_several_items_carries_one_link_per_item_over_its_own_span() {
+    let mut v = view();
+    let text = "∞ 3-B2, 106-G3";
+    let first = text.find("3-B2").unwrap();
+    let second = text.find("106-G3").unwrap();
+    let link = |range: std::ops::Range<usize>, n: u128| ItemLink {
+        range,
+        dest: Destination::Representation(Uuid::from_u128(n)),
+    };
+    v.reps[1].slots = vec![SlotValue {
+        slot: 0,
+        text: text.into(),
+        link: None,
+        item_links: vec![
+            link(first..first + "3-B2".len(), 0x71),
+            link(second..second + "106-G3".len(), 0x72),
+        ],
+    }];
+    let labels = page_display_list(&v, Layer::Labels, bundled());
+    // The text itself carries no link; each item has an invisible box with its own.
+    let mut boxes = Vec::new();
+    let mut text_items = Vec::new();
+    for item in labels
+        .list
+        .items
+        .iter()
+        .filter(|i| i.entity == Some(EntityRef(Uuid::from_u128(0x11))))
+    {
+        match &item.kind {
+            ItemKind::Path(p) => {
+                let Some(Link::Source(d)) = item.link else {
+                    panic!("a path of the text without a link");
+                };
+                assert!(p.stroke.is_none() && p.fill.is_none(), "an invisible box");
+                let list = ew_dl::DisplayList {
+                    items: vec![item.clone()],
+                };
+                boxes.push((d, list.bounds().unwrap()));
+            }
+            _ => {
+                assert_eq!(item.link, None, "the text itself carries no link");
+                text_items.push(item.clone());
+            }
+        }
+    }
+    assert_eq!(boxes.len(), 2, "{boxes:?}");
+    assert_eq!(boxes[0].0, Destination::Representation(Uuid::from_u128(0x71)));
+    assert_eq!(boxes[1].0, Destination::Representation(Uuid::from_u128(0x72)));
+    // Disjoint and in reading order, both inside the text's own box, the first right of the "∞ " prefix.
+    let whole = ew_dl::DisplayList { items: text_items }.bounds().unwrap();
+    assert!(boxes[0].1.max().x < boxes[1].1.min().x, "{boxes:?}");
+    assert!(boxes[0].1.min().x > whole.min().x, "after the prefix");
+    assert!(boxes[1].1.max().x <= whole.max().x, "inside the text");
 }
 
 #[test]

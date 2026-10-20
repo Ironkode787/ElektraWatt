@@ -293,7 +293,7 @@ The first approval also settles these starter-symbol items, raised by the review
 | 15 | 202 | 5 valves drawn on -202U2 | 4 valves (overview generated from the assembly) | D-10 |
 | 16 | 2, 901 | QET tables | EW report forms with Pos/Qty/Unit columns, sub-page continuation | D-04, §16 |
 | 17 | 902 | Free rectangles, "T51", "X1031", not to scale | Placements of devices, "T55", "-X1031", scale 1:10 ▲, legend block | D-02, D-32 |
-| 18 | PDF | No outline, no links, physical page labels | Outline, 63 link annotations until FT-86 lands, 64 afterwards (one per item; 63 linked xref texts with 64 link targets, §15), folio page labels | D-07, D-33 |
+| 18 | PDF | No outline, no links, physical page labels | Outline, 64 link annotations (one per item; 63 linked xref texts with 64 link targets, §15), folio page labels | D-07, D-33 |
 
 ### 3.5 Anonymisation and private fixtures
 
@@ -1305,7 +1305,7 @@ Commands run on `golden/J-E-2416.ew` unless stated. "Exact" means the comparison
 | AC-10 | The potential partition equals §7.3 (19 potentials, bond B1); folio 909 equals it | FR-CON-009, FR-CON-012, FR-CON-014, FR-REP-016 | M1 |
 | AC-11 | Folio 906 and `ew export cables` equal §10 | FR-REP-012, FR-REP-013, FR-CBL-001 | M1 |
 | AC-12 | Folio 1's colour and size tables are generated from the profiles; changing the 24 V DC colour updates folio 1, every affected wire and folio 907 in one commit | FR-REP-028, FR-REP-038, FR-CON-020, FR-CON-021 | M1 |
-| AC-13 | PDF structure: outline (front matter, sections, pages), exactly 63 xref link annotations until FT-86 lands, 64 afterwards (one per item), plus report back-links, `/PageLabels` = folio labels, PDF/A-2b passes veraPDF, subset-embedded fonts and no Tahoma, text extraction keeps spaces | FR-OUT-002, FR-OUT-004 … FR-OUT-008 | M1 |
+| AC-13 | PDF structure: outline (front matter, sections, pages), exactly 64 xref link annotations (one per item), plus report back-links, `/PageLabels` = folio labels, PDF/A-2b passes veraPDF, subset-embedded fonts and no Tahoma, text extraction keeps spaces | FR-OUT-002, FR-OUT-004 … FR-OUT-008 | M1 |
 | AC-14 | Byte-identical PDF, SVG, CSV and JSONL across serial and parallel export and shuffled record order (M1, Linux); across Windows, macOS and Linux (MVP) | FR-OUT-019, NFR-REL-07 | M1 / MVP |
 | AC-15 | Build paths (a), (b), (c) of §3.2 agree as specified | NFR-REL-04, FR-IMP-022 | M1 |
 | AC-16 | Freshness: the scripted edits rename T55, move -102F2 by one cell, renumber folio 103 → 104 and change the 24 V colour each update every affected output in the same commit; `ew verify-derived` reports no difference with the oracle on | FR-XRF-020, NFR-REL-08 | M1 |

@@ -188,6 +188,60 @@ fn structure_pages_labels_outline_links_destinations_fonts() {
     assert!(out.report.missing_fonts.is_empty());
 }
 
+/// The `/Rect[...]` of every link annotation, in file order.
+fn link_rects(b: &[u8]) -> Vec<[f64; 4]> {
+    let text = String::from_utf8_lossy(b);
+    text.match_indices("/Rect[")
+        .map(|(i, m)| {
+            let rest = &text[i + m.len()..];
+            let end = rest.find(']').unwrap();
+            let v: Vec<f64> = rest[..end]
+                .split_whitespace()
+                .map(|n| n.parse().unwrap())
+                .collect();
+            [v[0], v[1], v[2], v[3]]
+        })
+        .collect()
+}
+
+#[test]
+fn every_linked_item_gets_its_own_annotation_over_its_own_box() {
+    // The two items of one cross-reference text (FT-86): invisible boxes side by side, each with its own
+    // target on page 103, drawn after the text they cover.
+    let box_of = |x0: i64, x1: i64, to: u128| {
+        Item::path(
+            Path::polygon(&[mm(x0, 48), mm(x0, 52), mm(x1, 52), mm(x1, 48)]),
+            None,
+            None,
+        )
+        .with_link(Link::Source(rep(to)))
+    };
+    let target = |n: u128, x: i64| {
+        Item::path(Path::circle(mm(x, 80), Nm::from_mm(2)), None, Some(Brush::BLACK))
+            .with_link(Link::Target(rep(n)))
+    };
+    let pages = vec![
+        page(
+            101,
+            "101",
+            None,
+            vec![
+                text("3-B2, 106-G3", mm(50, 50)),
+                box_of(50, 58, 7),
+                box_of(62, 75, 8),
+            ],
+        ),
+        page(103, "103", None, vec![target(7, 100), target(8, 120)]),
+    ];
+    let out = pdf(&pages, &options(), &fonts(), None).unwrap();
+    assert_eq!(out.report.links, 2);
+    assert_eq!(out.report.plain_text_links, 0);
+    assert_eq!(count(&out.bytes, "/Subtype/Link"), 2);
+    let rects = link_rects(&out.bytes);
+    assert_eq!(rects.len(), 2, "{rects:?}");
+    assert!(rects[0][2] < rects[1][0], "disjoint and ordered: {rects:?}");
+}
+
 #[test]
 fn byte_identical_across_runs_and_independent_of_font_map_order() {
     let a = pdf_bytes(&pages(), &options(), &fonts()).unwrap();

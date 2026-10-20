@@ -64,6 +64,9 @@
 //!   flips (doc 07 §4.1); the style is the slot's own `style` when it names a known text style, else [`symbol::default_style_key`] of
 //!   the slot kind (an unknown name is reported as [`PageFinding::UnknownSlotStyle`], ID-227). `max_width` is not
 //!   applied yet.
+//!   A text that lists several items carries one link per item ([`SlotValue::item_links`], FT-86): an invisible
+//!   path item over the item's glyph span (the pen travel of the text up to the item's ends), after the text's
+//!   own items, with the text's entity and a [`Link::Source`].
 //! - **Wire markers** (FR-OUT-011 keeps them in monochrome): the caller's marker text, centred in style
 //!   `marker` on the midpoint of the polyline's longest segment (the first of equal ones), turned 90° on a
 //!   vertical segment, over the marker symbol in the same orientation. Provisional, like the routes.
@@ -71,10 +74,12 @@
 //!   main graphics are used, and the geometry key's `extra` is `None`.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::ops::Range;
 use std::sync::Arc;
 
 use ew_dl::{
-    Brush, Destination, DisplayList, EntityRef, Item, Layer, Link, Path, Pen, Stroke, SymbolGeomId, Transform,
+    Brush, Destination, DisplayList, EntityRef, Item, ItemKind, Layer, Link, Path, Pen, Stroke, SymbolGeomId,
+    Transform,
 };
 use ew_ids::{Id, Uuid};
 use ew_mltext::LangTag;
@@ -82,7 +87,7 @@ use ew_schema::{
     Align, Connection, Dir4, Endpoint, FormDef, Function, Junction, JunctionStyle, Page, Representation,
     SymbolDef,
 };
-use ew_text::{DEFAULT_STYLE_KEY, FontSet, TextStyle, builtin};
+use ew_text::{DEFAULT_STYLE_KEY, FontSet, Shaped, TextStyle, builtin};
 use ew_units::{Angle2, Grid, Nm, Orient2, Pt2, Rect};
 
 use crate::forms::{
@@ -145,8 +150,20 @@ pub struct SlotValue {
     pub slot: u16,
     /// The printed text.
     pub text: String,
-    /// Where the text links to (a cross-reference), if anywhere.
+    /// Where the whole text links to, if anywhere (the text items carry the link).
     pub link: Option<Destination>,
+    /// One link per listed item of the text (a cross-reference list, FT-86): each covers the glyph span of
+    /// its item, as an invisible path item over the item's box next to the text items.
+    pub item_links: Vec<ItemLink>,
+}
+
+/// The link of one item of a slot text.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ItemLink {
+    /// The item's byte range in [`SlotValue::text`].
+    pub range: Range<usize>,
+    /// Where the item links to.
+    pub dest: Destination,
 }
 
 /// One representation on the page with what it needs.
@@ -576,6 +593,7 @@ impl Builder<'_> {
                     style_key: &t.style_key,
                     entity,
                     link: None,
+                    items: &[],
                 });
             }
         }
@@ -672,6 +690,7 @@ impl Builder<'_> {
                     style_key,
                     entity,
                     link: value.link.map(Link::Source),
+                    items: &value.item_links,
                 });
             }
         }
@@ -711,6 +730,7 @@ impl Builder<'_> {
                 style_key: MARKER_STYLE,
                 entity,
                 link: None,
+                items: &[],
             });
         }
     }
@@ -764,15 +784,68 @@ impl Builder<'_> {
             max_lines: 1,
             sheet: SheetMap::IDENTITY,
         };
-        for item in place(
+        let lines = place(
             self.fonts, &shaped, &style, spec.text, &boxed, spec.at, spec.angle,
-        ) {
+        );
+        let carriers = self.item_carriers(spec, &style, &shaped, &lines);
+        for item in lines {
             let item = item.with_entity(spec.entity);
             self.push(match spec.link {
                 Some(l) => item.with_link(l),
                 None => item,
             });
         }
+        for item in carriers {
+            self.push(item);
+        }
+    }
+
+    /// One invisible path item per entry of `spec.items`, over the box of that item's glyph span and
+    /// carrying its link (the box turns with the text). `lines` are the placed line items of the text.
+    fn item_carriers(
+        &self,
+        spec: &TextSpec<'_>,
+        style: &TextStyle,
+        shaped: &Shaped,
+        lines: &[Item],
+    ) -> Vec<Item> {
+        if spec.items.is_empty() {
+            return Vec::new();
+        }
+        let m = self.fonts.vertical_metrics(style);
+        spec.items
+            .iter()
+            .filter_map(|link| {
+                let (k, line) = shaped
+                    .lines
+                    .iter()
+                    .enumerate()
+                    .find(|(_, l)| l.text.start <= link.range.start && link.range.end <= l.text.end)?;
+                // The span ends are the pen travel of the text up to them, trailing spaces included.
+                let travel = |end: usize| {
+                    let prefix = spec.text.get(line.text.start..end)?;
+                    Some(self.fonts.shape(prefix, style, None).advance())
+                };
+                let (x0, x1) = (travel(link.range.start)?, travel(link.range.end)?);
+                let to_parent = |q: Pt2| match &lines.get(k)?.kind {
+                    ItemKind::Glyphs(run) => Some(run.to_parent(q)),
+                    ItemKind::Group(g) => Some(g.transform.unwrap_or(Transform::IDENTITY).apply(q)),
+                    _ => None,
+                };
+                let corner = |x: Nm, y: Nm| to_parent(Pt2::new(x, y));
+                let quad = [
+                    corner(x0, Nm(-m.ascent.0))?,
+                    corner(x0, m.descent)?,
+                    corner(x1, m.descent)?,
+                    corner(x1, Nm(-m.ascent.0))?,
+                ];
+                Some(
+                    Item::path(Path::polygon(&quad), None, None)
+                        .with_entity(spec.entity)
+                        .with_link(Link::Source(link.dest)),
+                )
+            })
+            .collect()
     }
 }
 
@@ -784,6 +857,8 @@ struct TextSpec<'a> {
     style_key: &'a str,
     entity: EntityRef,
     link: Option<Link>,
+    /// One link per listed item of `text` (FT-86).
+    items: &'a [ItemLink],
 }
 
 /// The midpoint of the longest segment of `pts` (the first of equal ones) and whether that segment is

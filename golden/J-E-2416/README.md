@@ -384,7 +384,8 @@ cargo nextest run -p ew-api --test page_output                # compares (no EW_
   channel), not byte for byte.
 - `pdf/structure.json`: the writer's PDF structure of the whole page order (page count, `/PageLabels`, outline
   tree, link, plain-text-link, dropped-`.notdef`-glyph and destination counts, embedded fonts), compared exactly
-  (§3.3 "PDF structure"); `pdf/sha256.txt` holds the SHA-256 of the whole PDF.
+  (§3.3 "PDF structure"; 64 links, one per listed cross-reference item); `pdf/sha256.txt` holds the SHA-256 of
+  the whole PDF.
 - Everything under `golden/` is CC0-1.0 (`REUSE.toml`, annotation L8).
 
 **Known gaps for the FT-10 approval.** The candidates cover the 33 pages of `page_order` with the report engine
@@ -428,9 +429,6 @@ page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106). Still open:
   and "106-A1" collide at y 153.87 mm.
 - **Cross-references, folio 106.** "103-B14" and "103-G1" collide at B1, "103-A14" and "103-G1" at E1 (two points
   share each cell).
-- **Link annotations.** The PDF has 63 link annotations against the 64 of §3.4 row 18: one per xref text slot,
-  and a slot that lists several items ("∞ 3-B2, 106-G3") links to its first item only (the scene carries one
-  link per text).
 
 ## Connectivity report rows
 
