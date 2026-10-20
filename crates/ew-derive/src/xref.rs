@@ -69,11 +69,13 @@ use ew_units::Pt2;
 use serde_json::Value;
 
 use crate::cell::{Cell, RepAnchorCell, anchor_point};
+use crate::ip::{IpNotes, IpPairingQ};
+use crate::memo_keys::PartKey;
 use crate::note::{DeriveNote, EW_INV_002};
 use crate::pages::{PageOrder, PageOrderV, PageRef, folio_label};
 use crate::profile::XrefFormat;
 use crate::query::{Policy, Query};
-use crate::stitch::{PairMode, StitchGraphQ};
+use crate::stitch::PairMode;
 use crate::structure::{PageStructure, ResolvedStructure, StructurePath};
 use crate::tag::MainFunction;
 use crate::xref_format::{
@@ -346,8 +348,11 @@ fn ip_relation(q: &Q, fid: Id<Function>, spec: &IpSpec) -> XrefRelation {
             targets: Vec::new(),
         };
     }
-    let stitch = q.get::<StitchGraphQ>(());
-    let partners = stitch.ip_partners(fid);
+    // The pairing of this point and of its partners only (parts of `ip_pairing`, WP-S1.07 part 2).
+    let stitch = q.get_part::<IpPairingQ>((), PartKey::Ip(fid));
+    // The pairing's notes (an unpaired point is noted, EW-CORE-051), as when this read the stitch graph.
+    let _ = q.get_value_part::<IpNotes>(());
+    let partners = stitch.partners(fid);
     if partners.is_empty() {
         // Unpaired: `stitch_graph` notes it (EW-CORE-051).
         return XrefRelation {
@@ -355,15 +360,12 @@ fn ip_relation(q: &Q, fid: Id<Function>, spec: &IpSpec) -> XrefRelation {
             targets: Vec::new(),
         };
     }
-    let group = stitch
-        .ips
-        .get(&fid)
-        .and_then(|i| i.group)
-        .and_then(|g| stitch.ip_groups.get(g));
+    let group = stitch.group_of(fid);
     let mode = group.map_or(PairMode::Star, |g| g.mode);
     let star_source = group.is_some_and(|g| g.mode == PairMode::Star && g.source == Some(fid));
     let mut targets = Vec::with_capacity(partners.len());
     for p in partners {
+        let _ = q.get_part::<IpPairingQ>((), PartKey::Ip(*p));
         match stitch.ips.get(p).and_then(|i| i.rep) {
             Some(r) => targets.extend(target(q, r, TargetRole::IpPartner)),
             None => q.note(DeriveNote::Xref {

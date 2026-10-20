@@ -78,6 +78,9 @@ pub struct Q {
     pub(crate) report_pages: crate::pages::ProviderSlot,
     /// The memo store of a memoising `Q`, which holds this `Q`'s snapshot at its current revision.
     memo: Option<Rc<DeriveStore>>,
+    /// Per memo execution in progress (innermost last): whether its body declared changed parts
+    /// ([`Q::changed_parts`]); `memo_store` then also declares the notes part when the notes changed.
+    parts_declared: RefCell<Vec<bool>>,
 }
 
 /// Prints nothing a query could use to tell snapshots apart: no revision, no cache state.
@@ -106,6 +109,18 @@ impl<Qy: Query> Drop for UnwindGuard<'_, Qy> {
             self.q.tracker.exit(Qy::FAMILY);
         }
     }
+}
+
+/// What one memo execution of a family produced ([`Q::memo_frame`]).
+pub(crate) struct MemoFrameOut<V> {
+    /// The value.
+    pub(crate) value: Arc<V>,
+    /// The execution's note set (`None`: no note).
+    pub(crate) notes: Option<Arc<NoteSet>>,
+    /// Whether the note set is a new allocation (the value owns its bytes).
+    pub(crate) owned: bool,
+    /// Whether the body declared the parts it changed.
+    pub(crate) declared: bool,
 }
 
 /// A query needed its own value (ADR-0002 decision 4), as returned by [`Q::try_get`].
@@ -184,6 +199,7 @@ impl Q {
             profile_status,
             report_pages: crate::pages::ProviderSlot::default(),
             memo: None,
+            parts_declared: RefCell::new(Vec::new()),
         }
     }
 
@@ -216,13 +232,14 @@ impl Q {
 
     /// Runs one memo execution of `Qy` (the body of [`MemoOf`]): its own request cache and note frame, the
     /// tracker bracket; returns the value and the execution's note set (its own notes and, by reference,
-    /// those of the memoised values it read; `None` without notes) with whether that set is a new allocation.
-    /// A panic in `body` unwinds the frames.
+    /// those of the memoised values it read; `None` without notes) with whether that set is a new allocation,
+    /// and whether the body declared changed parts ([`Q::changed_parts`]). A panic in `body` unwinds the
+    /// frames.
     pub(crate) fn memo_frame<Qy: Query>(
         &self,
         key: &Qy::Key,
         body: impl FnOnce() -> Arc<Qy::Value>,
-    ) -> (Arc<Qy::Value>, Option<Arc<NoteSet>>, bool) {
+    ) -> MemoFrameOut<Qy::Value> {
         struct Frames<'q> {
             q: &'q Q,
             family: &'static str,
@@ -237,12 +254,16 @@ impl Q {
                     if let Ok(mut n) = self.q.notes.try_borrow_mut() {
                         n.pop();
                     }
+                    if let Ok(mut d) = self.q.parts_declared.try_borrow_mut() {
+                        d.pop();
+                    }
                     self.q.tracker.exit(self.family);
                 }
             }
         }
         self.cache.borrow_mut().push(Cache::default());
         self.notes.borrow_mut().push(NoteFrame::default());
+        self.parts_declared.borrow_mut().push(false);
         self.tracker.enter(Qy::FAMILY, key);
         let mut frames = Frames {
             q: self,
@@ -253,9 +274,15 @@ impl Q {
         frames.armed = false;
         self.tracker.exit(Qy::FAMILY);
         self.cache.borrow_mut().pop();
+        let declared = self.parts_declared.borrow_mut().pop().unwrap_or(false);
         let frame = self.notes.borrow_mut().pop().unwrap_or_default();
         let (notes, owned) = frame.into_set();
-        (value, notes, owned)
+        MemoFrameOut {
+            value,
+            notes,
+            owned,
+            declared,
+        }
     }
 
     /// Adds the notes of a memoised value to the innermost note frame (a read of the value): one shared
@@ -282,10 +309,9 @@ impl Q {
     }
 
     /// The value of `Qy` for `key`, depending on its part `part` only (ADR-0002 amendment 4): in a memoising
-    /// `Q` the reading execution is invalidated when `Qy`'s execution declares `part` changed, not on every
-    /// change of `Qy`. The caller must read only what `part` names. Cold, it is [`Q::get`].
-    // Read by the per-potential families once the partition is a producer of parts (WP-S1.07 next step).
-    #[allow(dead_code)]
+    /// `Q` the reading execution is invalidated when `Qy`'s execution declares `part` changed (or its notes,
+    /// [`PartKey::Notes`]), not on every change of `Qy`. The caller must read only what `part` names. Cold, it
+    /// is [`Q::get`].
     pub(crate) fn get_part<Qy: Query>(&self, key: Qy::Key, part: PartKey) -> Arc<Qy::Value> {
         if Qy::POLICY != Policy::Cold
             && let Some(store) = self.memo_store()
@@ -299,12 +325,23 @@ impl Q {
         self.get::<Qy>(key)
     }
 
+    /// The value of `Qy` for `key`, read as a cut-off point ([`PartKey::Value`]): a commit that marks
+    /// `Qy(key)` does not mark the reading execution (no transitive marking through it); the reader is
+    /// invalidated only when a re-execution of `Qy(key)` changes its value. For high fan-out values with
+    /// early cut-off: settings members, profile rows. `Qy` must not declare parts. Cold, it is [`Q::get`].
+    pub(crate) fn get_value_part<Qy: Query>(&self, key: Qy::Key) -> Arc<Qy::Value> {
+        self.get_part::<Qy>(key, PartKey::Value)
+    }
+
     /// Declares, in an incremental execution of a producer, that these parts of its value changed (the
-    /// readers of other parts stay valid). Cold, it does nothing.
-    // Called by the incremental partition (WP-S1.07 next step).
-    #[allow(dead_code)]
+    /// readers of other parts stay valid). A producer that declares parts must declare every changed part
+    /// whenever it has a previous value; `memo_store` adds [`PartKey::Notes`] when its notes changed. Cold, it
+    /// does nothing.
     pub(crate) fn changed_parts(&self, parts: impl IntoIterator<Item = PartKey>) {
         if let Some(store) = self.memo_store() {
+            if let Some(top) = self.parts_declared.borrow_mut().last_mut() {
+                *top = true;
+            }
             store.changed_parts(parts.into_iter().map(MemoInput::Part));
         }
     }
@@ -368,6 +405,35 @@ impl Q {
                 Ok(value)
             }
         }
+    }
+
+    /// Runs `f` in a detached scope: its own request cache and a note frame that is dropped afterwards. The
+    /// reads inside are tracked as usual (they are dependencies of the running query); the values the scope's
+    /// cold families compute are not cached for the rest of the request, and their notes are not pushed.
+    ///
+    /// For the note-free connectivity families (ARCH §6.4): an incremental family whose hook re-reads only what
+    /// changed cannot reproduce the notes of what it did not re-read, so it carries no notes; helper queries
+    /// whose notes belong to their own readers (the default frame of an anchor cell, a structure cycle) run
+    /// detached, and the family records what it must report in its value. The scope behaves the same in a
+    /// cold and in a memoising `Q`.
+    pub(crate) fn detached<R>(&self, f: impl FnOnce() -> R) -> R {
+        struct Scope<'q> {
+            q: &'q Q,
+        }
+        impl Drop for Scope<'_> {
+            fn drop(&mut self) {
+                if let Ok(mut c) = self.q.cache.try_borrow_mut() {
+                    c.pop();
+                }
+                if let Ok(mut n) = self.q.notes.try_borrow_mut() {
+                    n.pop();
+                }
+            }
+        }
+        self.cache.borrow_mut().push(Cache::default());
+        self.notes.borrow_mut().push(NoteFrame::default());
+        let _scope = Scope { q: self };
+        f()
     }
 
     /// Runs `f` on the innermost request cache.

@@ -440,6 +440,10 @@ struct State<D: Db> {
     /// of its `via`). While a mark's `walked` equals it, every transitive whole reader of the marked memo
     /// still holds a pending mark, so a commit's marking need not walk them again.
     mark_epoch: u64,
+    /// Test only: an incremental execution that leaves a `via` memo unread does not bump the mark epoch (proves
+    /// the bump is needed).
+    #[cfg(test)]
+    skip_incremental_epoch_bump: bool,
     lru: Lru,
     commit: Stats,
     total: Stats,
@@ -585,6 +589,18 @@ impl<D: Db> State<D> {
     }
 }
 
+/// Whether the test-only switch suppresses the epoch bump of an incremental execution.
+#[cfg(test)]
+fn skip_bump<D: Db>(st: &State<D>) -> bool {
+    st.skip_incremental_epoch_bump
+}
+
+/// Whether the test-only switch suppresses the epoch bump of an incremental execution.
+#[cfg(not(test))]
+fn skip_bump<D: Db>(_: &State<D>) -> bool {
+    false
+}
+
 /// The memo store of one host database type `D` (ADR-0002 decision 4, amendment 4, ARCH §6.2).
 ///
 /// # Reading
@@ -666,6 +682,8 @@ impl<D: Db> Clone for Store<D> {
                 parts: s.parts.clone(),
                 marks: s.marks.clone(),
                 mark_epoch: s.mark_epoch,
+                #[cfg(test)]
+                skip_incremental_epoch_bump: s.skip_incremental_epoch_bump,
                 lru: s.lru.clone(),
                 commit: Stats::default(),
                 total: Stats::default(),
@@ -726,6 +744,12 @@ impl<D: Db> Drop for ExecGuard<'_, D> {
 }
 
 impl<D: Db> Store<D> {
+    /// Test only: stops incremental executions from bumping the mark epoch.
+    #[cfg(test)]
+    pub(crate) fn skip_incremental_epoch_bump(&self) {
+        self.st.borrow_mut().skip_incremental_epoch_bump = true;
+    }
+
     /// An empty store at [`Rev::ZERO`], without LRU budget and with oracle mode off.
     pub fn new() -> Store<D> {
         Store {
@@ -744,6 +768,8 @@ impl<D: Db> Store<D> {
                 parts: OrdMap::new(),
                 marks: OrdMap::new(),
                 mark_epoch: 0,
+                #[cfg(test)]
+                skip_incremental_epoch_bump: false,
                 lru: Lru::default(),
                 commit: Stats::default(),
                 total: Stats::default(),
@@ -1622,7 +1648,7 @@ impl<D: Db> Store<D> {
                 }
                 s.slots.get_mut(slot.index()).expect("interned slot").memo = Some(memo);
             }
-            if st.marks.remove(&me).is_some() && unverified_via {
+            if st.marks.remove(&me).is_some() && unverified_via && !skip_bump(&st) {
                 st.mark_epoch += 1;
             }
             if cut_off {

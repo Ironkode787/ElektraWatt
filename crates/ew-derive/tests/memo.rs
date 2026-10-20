@@ -183,3 +183,41 @@ fn a_fingerprint_family_cuts_off_by_its_fingerprint() {
     assert_eq!(*store.query().get::<Hashed>(()), 3);
     assert_eq!(store.commit_stats().family("test.hashed").hits, 1);
 }
+
+/// The model with the project member `notes` set to `n`, at the next revision of `model` (a raw edit of the
+/// snapshot, as a commit would make it).
+#[allow(clippy::disallowed_methods)]
+fn with_notes(model: &Model, n: usize) -> (Model, Vec<ew_model::AnyKey>) {
+    let before = model.project().clone();
+    let mut project = (*before).clone();
+    project.extra.insert("notes".into(), serde_json::json!(n));
+    let key = (ew_schema::Kind::Project, before.id.cast());
+    let after = model
+        .apply_unchecked(
+            &[ew_model::Op::update(
+                ew_model::AnyRow::Project(before),
+                ew_model::AnyRow::Project(project.into()),
+            )],
+            model.rev().next(),
+        )
+        .expect("the project row applies");
+    (after, vec![key])
+}
+
+#[test]
+fn a_fork_evolves_independently() {
+    let model = model(2);
+    let store = MemoStore::new(&model);
+    assert_eq!(*store.query().get::<Global>(()), 2);
+    let fork = store.fork();
+    assert_eq!(fork.rev(), store.rev());
+    // The fork shares the warm memo: a hit.
+    assert_eq!(*fork.query().get::<Global>(()), 2);
+    assert_eq!(fork.commit_stats().family("test.global").hits, 1);
+    let (after, keys) = with_notes(&model, 5);
+    fork.advance(&after, &keys);
+    assert_eq!(*fork.query().get::<Global>(()), 5);
+    // The store it was taken from is untouched.
+    assert_eq!(store.rev(), model.rev());
+    assert_eq!(*store.query().get::<Global>(()), 2);
+}

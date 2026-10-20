@@ -269,6 +269,8 @@ pub fn budget(family: &str, class: SizeClass) -> Option<Duration> {
             by_class(5, 5, 10, 20)
         }
         "profile.change.all" | "profile.change.affected" => by_class(30, 30, 60, 100),
+        // The profile change through the memo store (NFR-PERF-07, as `profile.change.*`).
+        f if f.starts_with("memo.") && f.ends_with(".profile") => by_class(30, 30, 60, 100),
         "folio.renumber.derive" | "page.renumber.folio" => Some(ms(5)),
         "open.session_from_records" => by_class(500, 2_000, 5_000, 20_000),
         _ => None,
@@ -682,7 +684,11 @@ mod tests {
                 "{family}"
             );
         }
-        for family in ["profile.change.all", "profile.change.affected"] {
+        for family in [
+            "profile.change.all",
+            "profile.change.affected",
+            "memo.wire_props.profile",
+        ] {
             assert_eq!(
                 table(family),
                 [Some(ms(30)), Some(ms(30)), Some(ms(60)), Some(ms(100))],

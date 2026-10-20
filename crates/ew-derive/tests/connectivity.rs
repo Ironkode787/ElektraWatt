@@ -40,8 +40,8 @@ mod common;
 use common::{Fx, id, uid};
 use ew_derive::{
     CpRef, DeriveNote, EdgeKind, EffectiveProps, Level, NameSource, NetId, PageLocalNets, PairMode,
-    PhysicalWiresOf, PotentialFlow, PotentialId, PotentialPartition, PropSource, Q, ShortSource,
-    StitchGraphQ, WirePropsOf,
+    PhysicalWiresOf, PotentialFlow, PotentialId, PotentialNameOf, PotentialPartition, PropSource, Q,
+    ShortSource, StitchGraphQ, WirePropsOf,
 };
 use ew_ids::Id;
 use ew_model::{AnyRow, EndpointKey, Entity, Model, Op, Rev};
@@ -222,12 +222,12 @@ fn overview_and_bridge_connections_do_not_join_nets() {
     assert_eq!(bridges[0].level, Level::Potential);
     assert_eq!(bridges[0].kind, EdgeKind::Bridge(id(0x2002)));
     let part = q.get::<PotentialPartition>(());
-    let p3 = part.of(&g, cp(0x1003).key()).expect("potential");
-    let p4 = part.of(&g, cp(0x1004).key()).expect("potential");
+    let p3 = part.potential_at(cp(0x1003).key()).expect("potential");
+    let p4 = part.potential_at(cp(0x1004).key()).expect("potential");
     assert_eq!(p3.id, p4.id);
     assert!(p3.cps.contains(&cpref(0x1003)) && p3.cps.contains(&cpref(0x1004)));
     // The overview connection joins nothing at any level.
-    assert!(part.of(&g, cp(0x1001).key()).is_none_or(|p| p.id != p3.id));
+    assert!(part.potential_at(cp(0x1001).key()).is_none_or(|p| p.id != p3.id));
 }
 
 #[test]
@@ -254,10 +254,10 @@ fn bond_via_is_cut() {
     assert_ne!(na.id, nb.id);
     assert!(!na.connections.contains(&id(0x2001)) && !nb.connections.contains(&id(0x2001)));
     let part = q.get::<PotentialPartition>(());
-    assert_eq!(part.potentials.len(), 2);
-    assert_eq!(part.bonds.len(), 1);
-    assert!(part.bonds[0].a.is_some() && part.bonds[0].b.is_some());
-    assert_ne!(part.bonds[0].a, part.bonds[0].b);
+    assert_eq!(part.potential_count(), 2);
+    assert_eq!(part.bonds().len(), 1);
+    assert!(part.bonds()[0].a.is_some() && part.bonds()[0].b.is_some());
+    assert_ne!(part.bonds()[0].a, part.bonds()[0].b);
 }
 
 /// A on page 1 -- IP X (source) .. IP X (target) -- B on page 2, with a definition named `def_name` at A.
@@ -281,11 +281,12 @@ fn ip_pair_joins_across_pages() {
         let g = q.get::<StitchGraphQ>(());
         assert!(g.edges.iter().any(|e| matches!(e.kind, EdgeKind::IpPair { .. })));
         let part = q.get::<PotentialPartition>(());
-        assert_eq!(part.potentials.len(), 1, "{part:?}");
-        let p = &part.potentials[0];
+        assert_eq!(part.potential_count(), 1, "{part:?}");
+        let p = part.potentials().next().unwrap();
         assert!(p.cps.contains(&cpref(0x1001)) && p.cps.contains(&cpref(0x1002)));
-        assert_eq!(p.name.text, def_name);
-        assert_eq!(p.aliases, aliases);
+        let names = q.get::<PotentialNameOf>(p.id);
+        assert_eq!(names.name.text, def_name);
+        assert_eq!(names.aliases, aliases);
         assert_eq!(p.id, PotentialId::Def(id::<PotentialDef>(0x5001)));
     }
 }
@@ -299,6 +300,8 @@ fn unpaired_ip_is_noted_not_panicking() {
     let m = fx.build();
     let mut q = Q::new(&m);
     let _ = q.get::<PotentialPartition>(());
+    // The interruption-point notes are pushed by the stitch graph.
+    let _ = q.get::<StitchGraphQ>(());
     assert!(has_note(&mut q, "EW-CORE-051"), "{:?}", q.diagnostics().notes());
 }
 
@@ -334,7 +337,7 @@ fn all_queries(q: &Q) -> usize {
     let _ = q.get::<StitchGraphQ>(());
     let part = q.get::<PotentialPartition>(());
     let mut wires = 0;
-    for p in &part.potentials {
+    for p in part.potentials() {
         let physical = q.get::<PhysicalWiresOf>(p.id);
         let props = q.get::<WirePropsOf>(p.id);
         assert_eq!(props.wires.len(), physical.wires.len(), "{:?}", p.id);
@@ -437,7 +440,7 @@ fn dangling_endpoint_is_harmless() {
     // The stale endpoint is still a node: the connection forms its one wire, ending at the missing CP.
     assert_eq!(all_queries(&q), 1);
     let part = q.get::<PotentialPartition>(());
-    let wires = q.get::<PhysicalWiresOf>(part.potentials[0].id);
+    let wires = q.get::<PhysicalWiresOf>(part.potentials().next().unwrap().id);
     assert_eq!(wires.wires[0].id, id::<Connection>(0x2001));
     assert_eq!(wires.wires[0].ends.map(|e| e.cp), [cpref(0x1001), cpref(0x9999)]);
 }
@@ -458,10 +461,12 @@ fn potential_id_prefers_definitions() {
     let m = build(&[(0x5002, cp(0x1002), "N"), (0x5001, cp(0x1001), "N")]);
     let mut q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
-    assert_eq!(part.potentials.len(), 1);
-    assert_eq!(part.potentials[0].id, PotentialId::Def(id(0x5001)));
+    assert_eq!(part.potential_count(), 1);
+    assert_eq!(part.potentials().next().unwrap().id, PotentialId::Def(id(0x5001)));
+    // The EW-POT-017 note is pushed by the name family.
+    let _ = q.get::<PotentialNameOf>(part.potentials().next().unwrap().id);
     assert_eq!(
-        part.potentials[0].defs,
+        part.potentials().next().unwrap().defs,
         vec![id::<PotentialDef>(0x5001), id(0x5002)]
     );
     assert!(!has_note(&mut q, "EW-POT-017"));
@@ -469,16 +474,17 @@ fn potential_id_prefers_definitions() {
     let m = build(&[(0x5002, cp(0x1002), "Other"), (0x5001, cp(0x1001), "First")]);
     let mut q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
-    assert_eq!(part.potentials[0].id, PotentialId::Def(id(0x5001)));
-    assert_eq!(part.potentials[0].name.text, "First");
+    assert_eq!(part.potentials().next().unwrap().id, PotentialId::Def(id(0x5001)));
+    let first = part.potentials().next().unwrap().id;
+    assert_eq!(q.get::<PotentialNameOf>(first).name.text, "First");
     assert!(has_note(&mut q, "EW-POT-017"));
     // No definition: the minimum CP ID.
     let m = build(&[]);
     let q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
     let min = cpref(0x1001).id().min(cpref(0x1002).id());
-    assert_eq!(part.potentials.len(), 1);
-    assert_eq!(part.potentials[0].id, PotentialId::Cp(min));
+    assert_eq!(part.potential_count(), 1);
+    assert_eq!(part.potentials().next().unwrap().id, PotentialId::Cp(min));
 }
 
 /// A model with seven connections, a junction, an IP pair, a bridge and a definition.
@@ -504,8 +510,14 @@ fn scenario() -> Fx {
 fn render(fx: &Fx) -> (String, String) {
     let m = fx.build();
     let q = Q::new(&m);
+    let part = q.get::<PotentialPartition>(());
+    // Names and attributes are per-potential families: render them with the topology.
+    let names: Vec<String> = part
+        .potentials()
+        .map(|p| format!("{:?}", *q.get::<PotentialNameOf>(p.id)))
+        .collect();
     (
-        format!("{:?}", *q.get::<PotentialPartition>(())),
+        format!("{:?}{names:?}", *part),
         format!("{:?}", *q.get::<StitchGraphQ>(())),
     )
 }
@@ -588,7 +600,7 @@ fn queries_survive_a_device_parent_cycle() {
     assert!(m.integrity_check().is_err(), "the probe violates an invariant");
     let q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
-    assert!(!part.potentials.is_empty());
+    assert!(part.potential_count() > 0);
     // The two wires 0x2001 and 0x2002 end at the plain function and at one terminal each.
     assert_eq!(all_queries(&q), 2);
 }
@@ -652,8 +664,7 @@ fn groups(m: &Model) -> Vec<Vec<u128>> {
     let q = Q::new(m);
     let part = q.get::<PotentialPartition>(());
     let mut out: Vec<Vec<u128>> = part
-        .potentials
-        .iter()
+        .potentials()
         .map(|p| {
             (0x1001..=0x1004u128)
                 .filter(|f| p.cps.contains(&cpref(*f)))
@@ -770,8 +781,8 @@ fn override_provenance_names_the_constituent_that_carries_it() {
     let m = fx.build();
     let q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
-    assert_eq!(part.potentials.len(), 1);
-    let pid = part.potentials[0].id;
+    assert_eq!(part.potential_count(), 1);
+    let pid = part.potentials().next().unwrap().id;
     let wires = q.get::<PhysicalWiresOf>(pid);
     assert_eq!(wires.wires.len(), 1);
     let w = &wires.wires[0];
@@ -804,8 +815,8 @@ fn hub_arm_is_carried_by_the_connection_touching_its_end() {
     let m = fx.build();
     let q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
-    assert_eq!(part.potentials.len(), 1);
-    let wires = q.get::<PhysicalWiresOf>(part.potentials[0].id);
+    assert_eq!(part.potential_count(), 1);
+    let wires = q.get::<PhysicalWiresOf>(part.potentials().next().unwrap().id);
     let got: Vec<(Id<Connection>, Vec<Id<Connection>>)> = wires
         .wires
         .iter()
@@ -843,8 +854,8 @@ fn pair_fixture() -> Fx {
 /// The ID of the only potential of the partition.
 fn only_potential(q: &Q) -> PotentialId {
     let part = q.get::<PotentialPartition>(());
-    assert_eq!(part.potentials.len(), 1, "{part:?}");
-    part.potentials[0].id
+    assert_eq!(part.potential_count(), 1, "{part:?}");
+    part.potentials().next().unwrap().id
 }
 
 /// Whether a note `code` about `subject` is present.
@@ -872,21 +883,23 @@ fn external_source_ip_names_an_undefined_potential() {
     let m = fx.build();
     let q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
-    assert_eq!(part.potentials.len(), 1, "{part:?}");
-    let p = &part.potentials[0];
-    assert_eq!(p.name.text, "SUPPLY");
-    assert_eq!(p.name.source, NameSource::SourceIp(id(0x1101)));
+    assert_eq!(part.potential_count(), 1, "{part:?}");
+    let p = part.potentials().next().unwrap();
+    let names = q.get::<PotentialNameOf>(p.id);
+    assert_eq!(names.name.text, "SUPPLY");
+    assert_eq!(names.name.source, NameSource::SourceIp(id(0x1101)));
     // A non-external source point on the same potential names it first; the external name is an alias.
     ip(&mut fx, 0x1102, P1, "INNER", "source");
     conn(&mut fx, 0x2003, Some(P1), cp(0x1102), cp(0x1002), Value::Null);
     let m = fx.build();
     let q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
-    assert_eq!(part.potentials.len(), 1, "{part:?}");
-    let p = &part.potentials[0];
-    assert_eq!(p.name.text, "INNER");
-    assert_eq!(p.name.source, NameSource::SourceIp(id(0x1102)));
-    assert_eq!(p.aliases, vec!["SUPPLY".to_owned()]);
+    assert_eq!(part.potential_count(), 1, "{part:?}");
+    let p = part.potentials().next().unwrap();
+    let names = q.get::<PotentialNameOf>(p.id);
+    assert_eq!(names.name.text, "INNER");
+    assert_eq!(names.name.source, NameSource::SourceIp(id(0x1102)));
+    assert_eq!(names.aliases, vec!["SUPPLY".to_owned()]);
 }
 
 /// Two junctions J1 (0x3001) and J2 (0x3002) with A=0x1001 and B=0x1002. `seq1` and `seq2` list the

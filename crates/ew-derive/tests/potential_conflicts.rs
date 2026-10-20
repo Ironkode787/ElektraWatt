@@ -16,7 +16,7 @@
 mod common;
 
 use common::{Fx, id, uid};
-use ew_derive::{DeriveNote, PotentialId, PotentialPartition, Q};
+use ew_derive::{DeriveNote, PotentialAttrsOf, PotentialId, PotentialNameOf, PotentialPartition, Q};
 use ew_model::Model;
 use ew_schema::{AcDc, CircuitClass, PotentialEnv, PotentialType};
 use ew_units::Dec3;
@@ -114,8 +114,17 @@ fn two_defs(first: Value, second: Value, role_on_first: bool) -> Model {
     fx.build()
 }
 
+/// The own attributes of the first potential.
+fn attrs_of0(q: &Q, part: &ew_derive::Partition) -> std::sync::Arc<ew_derive::PotentialAttrsV> {
+    q.get::<PotentialAttrsOf>(part.potentials().next().unwrap().id)
+}
+
 fn pot_notes(q: &mut Q) -> Vec<String> {
-    q.get::<PotentialPartition>(());
+    let part = q.get::<PotentialPartition>(());
+    // The attribute notes are pushed by the per-potential name family.
+    for p in part.potentials() {
+        q.get::<PotentialNameOf>(p.id);
+    }
     q.diagnostics()
         .notes()
         .iter()
@@ -138,11 +147,12 @@ fn voltage_conflict_between_definitions_is_noted() {
     let m = two_defs(json!({"voltage": "24"}), json!({"voltage": "230"}), false);
     let q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
-    assert_eq!(part.potentials.len(), 1);
-    let p = &part.potentials[0];
+    assert_eq!(part.potential_count(), 1);
+    let p = part.potentials().next().unwrap();
     assert_eq!(p.id, PotentialId::Def(id(0x5001)));
+    let attrs = q.get::<PotentialAttrsOf>(p.id);
     assert_eq!(
-        p.voltage.as_ref().map(|v| v.value),
+        attrs.voltage.as_ref().map(|v| v.value),
         Some("24".parse::<Dec3>().unwrap())
     );
     let notes = notes_of(&m);
@@ -164,7 +174,7 @@ fn env_conflict_between_definitions_is_noted() {
         ..PotentialEnv::default()
     };
     assert_eq!(
-        part.potentials[0].env.as_ref().map(|e| e.value.clone()),
+        attrs_of0(&q, &part).env.as_ref().map(|e| e.value.clone()),
         Some(want)
     );
     let notes = notes_of(&m);
@@ -182,7 +192,10 @@ fn class_conflict_between_definitions_is_noted() {
     let q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
     assert_eq!(
-        part.potentials[0].circuit_class.as_ref().map(|c| c.value.clone()),
+        attrs_of0(&q, &part)
+            .circuit_class
+            .as_ref()
+            .map(|c| c.value.clone()),
         Some(CircuitClass::Control)
     );
     let notes = notes_of(&m);
@@ -196,7 +209,7 @@ fn defined_type_contradicting_a_member_role_is_noted() {
     let q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
     assert_eq!(
-        part.potentials[0].ptype.as_ref().map(|t| t.value.clone()),
+        attrs_of0(&q, &part).ptype.as_ref().map(|t| t.value.clone()),
         Some(PotentialType::N)
     );
     let notes = notes_of(&m);
@@ -213,7 +226,7 @@ fn agreeing_definitions_are_silent() {
     let q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
     assert_eq!(
-        part.potentials[0].ptype.as_ref().map(|t| t.value.clone()),
+        attrs_of0(&q, &part).ptype.as_ref().map(|t| t.value.clone()),
         Some(PotentialType::LPlus)
     );
     let notes = notes_of(&m);
@@ -231,10 +244,11 @@ fn compatible_roles_on_a_defined_type_are_silent() {
     wire(&mut fx, 0x2001, P1, 0x1001, 0x1002);
     def(&mut fx, 0x5001, 0x1002, json!({"ptype": "pe"}));
     let m = fx.build();
-    let part = Q::new(&m).get::<PotentialPartition>(());
-    assert_eq!(part.potentials.len(), 1);
+    let q = Q::new(&m);
+    let part = q.get::<PotentialPartition>(());
+    assert_eq!(part.potential_count(), 1);
     assert_eq!(
-        part.potentials[0].ptype.as_ref().map(|t| t.value.clone()),
+        attrs_of0(&q, &part).ptype.as_ref().map(|t| t.value.clone()),
         Some(PotentialType::Pe)
     );
     let notes = notes_of(&m);

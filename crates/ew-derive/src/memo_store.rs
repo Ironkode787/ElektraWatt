@@ -114,14 +114,23 @@ fn run<F: Query>(
         );
         return Memoised::new(value, notes, true);
     }
-    let (value, notes, owned) = q.memo_frame::<F>(key, || {
+    let out = q.memo_frame::<F>(key, || {
         if F::INCREMENTAL {
             F::run_incremental(q, key, previous.map(|(p, inner)| (&p.value, Changes { inner })))
         } else {
             F::run(q, key)
         }
     });
-    Memoised::new(value, notes, owned)
+    // A producer that declared the parts it changed: its notes travel with every part (part readers replay
+    // them), so a change of the notes is a change of the notes part. A producer that declared nothing
+    // changed every part with its value, the notes included.
+    if out.declared
+        && let Some((p, _)) = previous
+        && !same_notes(p.notes.as_ref(), out.notes.as_ref())
+    {
+        cx.changed_parts([MemoInput::Part(PartKey::Notes)]);
+    }
+    Memoised::new(out.value, out.notes, out.owned)
 }
 
 impl<F: Query> ew_memo::Query<Q> for MemoOf<F> {
@@ -170,25 +179,29 @@ pub(crate) fn get<F: Query>(q: &Q, store: &DeriveStore, key: &F::Key) -> Result<
     }
 }
 
-/// Reads `F(key)` depending on its part `part` only, and replays its notes.
-// Used through `Q::get_part` by the per-potential families (WP-S1.07 next step).
-#[allow(dead_code)]
+/// Reads `F(key)` depending on its part `part` only, and replays its notes. The reader also depends on the
+/// notes part ([`PartKey::Notes`]): the notes it replays are the producer's.
 pub(crate) fn get_part<F: Query>(
     q: &Q,
     store: &DeriveStore,
     key: &F::Key,
     part: PartKey,
 ) -> Result<Arc<F::Value>, Cycle> {
-    match store.get_part::<MemoOf<F>>(q, key, &MemoInput::Part(part)) {
-        Ok(m) => {
-            q.replay(m.notes.as_ref());
-            Ok(Arc::clone(&m.value))
-        }
-        Err(_) => Err(Cycle {
-            family: F::FAMILY,
-            key: format!("{key:?}"),
-        }),
+    let cycle = || Cycle {
+        family: F::FAMILY,
+        key: format!("{key:?}"),
+    };
+    let m = store
+        .get_part::<MemoOf<F>>(q, key, &MemoInput::Part(part))
+        .map_err(|_| cycle())?;
+    if part != PartKey::Value && part != PartKey::Notes {
+        // A hit now: the memo was just brought up to date. It records the notes part.
+        store
+            .get_part::<MemoOf<F>>(q, key, &MemoInput::Part(PartKey::Notes))
+            .map_err(|_| cycle())?;
     }
+    q.replay(m.notes.as_ref());
+    Ok(Arc::clone(&m.value))
 }
 
 /// The memo store of one session: an `ew-memo` store over the session's current snapshot (ADR-0002
@@ -255,6 +268,20 @@ impl MemoStore {
 
     fn store(&self) -> Rc<DeriveStore> {
         Rc::clone(&self.store.borrow())
+    }
+
+    /// An O(1) snapshot of this store that evolves independently (`ew_memo::Store::fork`): the same snapshot,
+    /// report engine and oracle mode, the memos shared until either side writes. Advancing the fork does not
+    /// touch this store. For a benchmark sample or a job on this thread; a fork is no more `Send` than its
+    /// store.
+    #[must_use]
+    pub fn fork(&self) -> MemoStore {
+        MemoStore {
+            store: RefCell::new(Rc::new(self.store().fork())),
+            model: RefCell::new(self.model.borrow().clone()),
+            provider: self.provider.clone(),
+            oracle: Cell::new(self.oracle.get()),
+        }
     }
 
     /// A memoising `Q` over the store's snapshot (request-scoped: build one per evaluation).

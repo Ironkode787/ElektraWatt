@@ -48,11 +48,16 @@
 
 mod bom;
 mod cell;
+mod component;
 mod cps;
 mod flow;
 mod heap;
+mod index;
+mod ip;
+mod links;
 mod memo_keys;
 mod memo_store;
+mod names;
 mod nets;
 mod note;
 mod pages;
@@ -60,6 +65,7 @@ mod potentials;
 mod profile;
 mod q;
 mod query;
+mod settings;
 mod stitch;
 mod structure;
 mod tag;
@@ -78,11 +84,23 @@ pub use cell::{
     anchor_point, default_frame_grid, frame_grid,
 };
 pub use cps::{Cp, FunctionCps};
+// WP-S1.07 part 2: the derived-index families of the connectivity (ARCH §6.3 rule 5) and the interruption-point
+// pairing split out of the stitch graph.
+pub use index::{
+    BondIndex, BondRec, BondVias, DefPoints, DefPointsV, Index, IpFunctions, Link, PageIds, PagelessLinks,
+    PagelessLinksV, RailTerminals,
+};
+pub use ip::{IpFnInfo, IpInfoOf, IpNotes, IpPairing, IpPairingQ};
+pub use links::{
+    BondPath, BondPaths, BondPathsQ, DeclaredLink, FunctionLinks, FunctionLinksOf, RailBonds, RailBondsQ,
+    RailTerminal, RailTerminalOf,
+};
 pub use memo_keys::{MemoInput, PartKey};
 pub use memo_store::MemoStore;
 // The memo engine types a session configures and reads (oracle mode, statistics, memory).
 pub use ew_memo::{Counters, FamilyMemory, Mismatch, Oracle, Stats};
-pub use flow::{Flow, FlowBfs, FlowEntry, Load, PotentialFlow, Upstream};
+pub use flow::{Flow, FlowBfs, FlowConflict, FlowEntry, FlowNotes, Load, PotentialFlow, Upstream};
+pub use names::{PotentialAttrsOf, PotentialAttrsV, PotentialNameOf, PotentialNames, potential_named};
 pub use nets::{CpRef, LocalNet, LocalNets, NetId, NetMember, PageLocalNets, joins_net};
 pub use note::{DeriveNote, EW_CORE_018, NoteSeverity, SchemeIssue};
 pub use pages::{
@@ -90,8 +108,8 @@ pub use pages::{
     SectionStructure, folio_label, map_ml, report_pages,
 };
 pub use potentials::{
-    Attr, AttrSource, BondLink, NameSource, Partition, Potential, PotentialId, PotentialName,
-    PotentialPartition, Signal,
+    Attr, AttrSource, BondLink, Component, NameSource, Partition, Potential, PotentialAttrs, PotentialId,
+    PotentialName, PotentialPartition, Signal,
 };
 pub use profile::{
     CounterScope, DerivationProfile, NumberingRule, NumberingScheme, NumberingSettings, NumberingSettingsOf,
@@ -100,6 +118,7 @@ pub use profile::{
 };
 pub use q::{Cycle, Diagnostics, IdxView, Q, TableView};
 pub use query::{Changes, Policy, Query};
+pub use settings::{Member, SettingsMember};
 pub use stitch::{
     EdgeKind, IpGroup, IpInfo, Level, PairMode, ShortSource, StitchEdge, StitchGraph, StitchGraphQ,
     StitchNode,
@@ -112,8 +131,13 @@ pub use tag::{DeviceTag, DisplayedTag, MainFunction, MainRep, Tag, TagSource};
 pub use title_block::{TbValue, TitleBlock, TitleBlockValues};
 pub use toc::{TocRow, TocRows};
 pub use tracker::{ColdTracker, DepKey, IxKey, Recorded, RecordingTracker, Tracker};
+pub use wire_profile::{
+    Attrs, ColourProfile, ProfileKey, ProfileRow, ProfileRowFor, SizeProfile, WireDefaultProps,
+    WireProfileNotes, WireProfiles, WireProfilesQ,
+};
 pub use wire_props::{
-    ConnWireProps, EffectiveProps, PropSource, Prov, SizeRule, WirePropsMap, WirePropsOf, pick,
+    ConnWireProps, EffectiveProps, EndClass, EndScope, PropSource, Prov, SizeRule, WirePropsMap, WirePropsOf,
+    pick,
 };
 pub use wires::{EndKind, PhysicalWire, PhysicalWires, PhysicalWiresOf, WireEnd};
 
@@ -143,35 +167,58 @@ pub use {ew_ids, ew_mltext, ew_schema, ew_units};
 /// Every query family of this crate with its initial policy (ARCH §6.4), in name order.
 pub const FAMILIES: &[(&str, Policy)] = &[
     (BomRows::FAMILY, BomRows::POLICY),
+    (BondIndex::FAMILY, BondIndex::POLICY),
+    (BondPathsQ::FAMILY, BondPathsQ::POLICY),
+    (BondVias::FAMILY, BondVias::POLICY),
     (CellOf::FAMILY, CellOf::POLICY),
+    (DefPoints::FAMILY, DefPoints::POLICY),
     (xref::DeviceBoxes::FAMILY, xref::DeviceBoxes::POLICY),
     (DevicePartLines::FAMILY, DevicePartLines::POLICY),
     (DeviceTag::FAMILY, DeviceTag::POLICY),
     (DevicesByStructure::FAMILY, DevicesByStructure::POLICY),
     (DisplayedTag::FAMILY, DisplayedTag::POLICY),
     (DrawnPageOrder::FAMILY, DrawnPageOrder::POLICY),
+    (EndClass::FAMILY, EndClass::POLICY),
+    (FlowNotes::FAMILY, FlowNotes::POLICY),
     (FrameGridOf::FAMILY, FrameGridOf::POLICY),
     (FrameSettings::FAMILY, FrameSettings::POLICY),
     (FunctionCps::FAMILY, FunctionCps::POLICY),
+    (FunctionLinksOf::FAMILY, FunctionLinksOf::POLICY),
+    (IpFunctions::FAMILY, IpFunctions::POLICY),
+    (IpInfoOf::FAMILY, IpInfoOf::POLICY),
+    (IpNotes::FAMILY, IpNotes::POLICY),
+    (IpPairingQ::FAMILY, IpPairingQ::POLICY),
     (MainFunction::FAMILY, MainFunction::POLICY),
     (MainRep::FAMILY, MainRep::POLICY),
     (NumberingSettingsOf::FAMILY, NumberingSettingsOf::POLICY),
+    (PageIds::FAMILY, PageIds::POLICY),
     (PageLocalNets::FAMILY, PageLocalNets::POLICY),
     (PageOrder::FAMILY, PageOrder::POLICY),
     (PageRefStructure::FAMILY, PageRefStructure::POLICY),
     (PageStructure::FAMILY, PageStructure::POLICY),
     (PageTitle::FAMILY, PageTitle::POLICY),
+    (PagelessLinks::FAMILY, PagelessLinks::POLICY),
     (PhysicalWiresOf::FAMILY, PhysicalWiresOf::POLICY),
+    (PotentialAttrsOf::FAMILY, PotentialAttrsOf::POLICY),
     (PotentialFlow::FAMILY, PotentialFlow::POLICY),
     (FlowBfs::FAMILY, FlowBfs::POLICY),
+    (PotentialNameOf::FAMILY, PotentialNameOf::POLICY),
     (PotentialPartition::FAMILY, PotentialPartition::POLICY),
+    (ProfileRowFor::FAMILY, ProfileRowFor::POLICY),
+    (RailBondsQ::FAMILY, RailBondsQ::POLICY),
+    (RailTerminalOf::FAMILY, RailTerminalOf::POLICY),
+    (RailTerminals::FAMILY, RailTerminals::POLICY),
     (RepAnchorCell::FAMILY, RepAnchorCell::POLICY),
     (SectionStructure::FAMILY, SectionStructure::POLICY),
+    (SettingsMember::FAMILY, SettingsMember::POLICY),
     (StitchGraphQ::FAMILY, StitchGraphQ::POLICY),
     (StructureOf::FAMILY, StructureOf::POLICY),
     (StructurePath::FAMILY, StructurePath::POLICY),
     (TitleBlockValues::FAMILY, TitleBlockValues::POLICY),
     (TocRows::FAMILY, TocRows::POLICY),
+    (WireDefaultProps::FAMILY, WireDefaultProps::POLICY),
+    (WireProfileNotes::FAMILY, WireProfileNotes::POLICY),
+    (WireProfilesQ::FAMILY, WireProfilesQ::POLICY),
     (ConnWireProps::FAMILY, ConnWireProps::POLICY),
     (WirePropsOf::FAMILY, WirePropsOf::POLICY),
     (XrefSettingsOf::FAMILY, XrefSettingsOf::POLICY),
@@ -214,6 +261,12 @@ mod tests {
             "physical_wires_of",
             "potential_flow_bfs",
             "wire_props_of",
+            // ID-226 (ADR-0002 amendment 4 "Query shapes"): the profile reads of the wire chain.
+            "wire_profiles",
+            "wire_profile_notes",
+            "wire_default_props",
+            "profile_row_for",
+            "end_class",
         ] {
             assert_eq!(policy(memo), Some(Policy::Memo), "{memo}");
         }

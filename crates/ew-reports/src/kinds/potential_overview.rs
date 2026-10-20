@@ -54,12 +54,11 @@ impl ReportKindDef for PotentialOverview {
         let order = q.get::<DrawnPageOrder>(());
         let mut keyed: Vec<((NaturalKey, PotentialId), Row)> = wires
             .partition
-            .potentials
-            .iter()
+            .potentials()
             .map(|p| {
                 let pages = potential_pages(&wires, p, &order);
                 (
-                    (natural_key(&p.name.text), p.id),
+                    (natural_key(wires.potential_name(p.id)), p.id),
                     potential_row(q, &wires, p, pages),
                 )
             })
@@ -68,7 +67,7 @@ impl ReportKindDef for PotentialOverview {
         let mut set = RowSet::new(columns);
         set.rows = keyed.into_iter().map(|(_, r)| r).collect();
 
-        for (i, bond) in wires.partition.bonds.iter().enumerate() {
+        for (i, bond) in wires.partition.bonds().iter().enumerate() {
             let name = |p: Option<PotentialId>| p.map_or("?", |p| wires.potential_name(p)).to_owned();
             let label = format!("B{} ({} \u{21C4} {})", i + 1, name(bond.a), name(bond.b));
             let pages: Vec<PageRef> = bond
@@ -160,18 +159,20 @@ fn potential_row(q: &Q, wires: &Wires, p: &Potential, pages: Vec<PageRef>) -> Ro
         .and_then(|e| e.colour.as_ref());
     let csa =
         default(&|w| w.props.csa.as_ref().is_some_and(|c| profile(&c.source))).and_then(|e| e.csa.as_ref());
-    let kind = p.ptype.as_ref().map_or(Cell::Empty, |t| {
+    let attrs = q.get::<ew_derive::PotentialAttrsOf>(p.id);
+    let names = q.get::<ew_derive::PotentialNameOf>(p.id);
+    let kind = attrs.ptype.as_ref().map_or(Cell::Empty, |t| {
         Cell::Text(ew_derive::ew_mltext::MlText::neutral(type_name(&t.value)))
     });
-    let voltage = p.voltage.as_ref().map_or(Cell::Empty, |v| {
-        let ac_dc = match p.env.as_ref().and_then(|e| e.value.ac_dc.as_ref()) {
+    let voltage = attrs.voltage.as_ref().map_or(Cell::Empty, |v| {
+        let ac_dc = match attrs.env.as_ref().and_then(|e| e.value.ac_dc.as_ref()) {
             Some(ew_derive::ew_schema::AcDc::Ac) => " V AC",
             Some(ew_derive::ew_schema::AcDc::Dc) => " V DC",
             _ => " V",
         };
         Cell::Ident(format!("{}{ac_dc}", v.value))
     });
-    let class = p.circuit_class.as_ref().map_or(Cell::Empty, |c| {
+    let class = attrs.circuit_class.as_ref().map_or(Cell::Empty, |c| {
         Cell::Text(ew_derive::ew_mltext::MlText::neutral(class_name(&c.value)))
     });
     let mut r = Row::data(
@@ -181,13 +182,13 @@ fn potential_row(q: &Q, wires: &Wires, p: &Potential, pages: Vec<PageRef>) -> Ro
         }
         .with(RowKey::Name("potential".to_owned())),
         vec![
-            Cell::Ident(p.name.text.clone()),
+            Cell::Ident(names.name.text.clone()),
             kind,
             voltage,
             class,
             colour_cell(colour.map(|c| &c.value)),
             csa_cell(csa.map(|c| &c.value)),
-            Cell::Number(i64::try_from(p.aliases.len()).unwrap_or(i64::MAX)),
+            Cell::Number(i64::try_from(names.aliases.len()).unwrap_or(i64::MAX)),
             Cell::Number(i64::try_from(member_count(q, p)).unwrap_or(i64::MAX)),
             if pages.is_empty() {
                 Cell::Empty

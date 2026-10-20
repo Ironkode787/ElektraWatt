@@ -27,19 +27,21 @@ use ew_ids::Id;
 use ew_mltext::Ident;
 use ew_model::EndpointKey;
 use ew_schema::{
-    CircuitClass, ColourSpec, Conductor, Connection, Csa, Function, PartRef, PotentialDef, PotentialType,
-    WireProps,
+    CircuitClass, ColourSpec, Conductor, Connection, Csa, Device, Function, PartRef, PotentialDef,
+    PotentialType, WireProps,
 };
 
 use crate::note::DeriveNote;
-use crate::potentials::{Partition, PotentialId, PotentialPartition};
+use crate::potentials::{PotentialId, potential_id_at, potential_part};
+use crate::profile;
 use crate::query::{Policy, Query};
-use crate::stitch::{StitchGraph, StitchGraphQ};
+use crate::settings;
 use crate::wire_profile::{
-    Attrs, WireProfiles, builtin_class, builtin_colour_for, builtin_csa, load as load_profiles,
+    Attrs, ProfileKey, ProfileRow, ProfileRowFor, WireDefaultProps, WireProfileNotes, attrs_of,
+    builtin_colour_for, builtin_csa, own_class,
 };
 use crate::wires::{EndKind, PhysicalWire, PhysicalWiresOf, WireEnd};
-use crate::{FunctionCps, PotentialFlow, Q};
+use crate::{FunctionCps, Q};
 
 /// Which size rule gave a level-2 cross-section (doc 08 §4.2).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -178,7 +180,13 @@ pub struct WirePropsMap {
 /// - **PE rule.** A wire whose potential has class `Pe` takes the highest class at its two ends
 ///   (`Mains > Control > Analogue > Bus`, `Pe` and unknown classes ignored; no class found: `Control`):
 ///   at a device end the potentials of every CP of every function of the device, at a terminal end the
-///   potentials of every CP of every terminal of its strip, an external or open end nothing.
+///   potentials of every CP of every terminal of its strip, an external or open end nothing. The class of
+///   a device or a strip is the memo [`EndClass`], so a strip is read once whatever the number of wires
+///   that end on it.
+/// - **Profiles.** The profile is read only through queries: [`ProfileRowFor`] (class, colour row and size
+///   row of an attribute set), [`WireDefaultProps`] (level 1), [`WireProfileNotes`] and, for the level-0
+///   version string, the pinned-profile settings member. A colour-profile edit re-executes the potentials
+///   whose row changed and no others; the project row itself is read by no wire-property query.
 /// - **Class.** [`EffectiveProps::class`] is the class the size rule resolved for the wire, set whenever
 ///   the wire has a potential, whichever level then supplied the cross-section.
 /// - **Cores.** The profile never recolours a core; a core without a conductor colour takes the level-1
@@ -200,13 +208,10 @@ impl Query for WirePropsOf {
 
     fn run(q: &Q, key: &PotentialId) -> Arc<WirePropsMap> {
         let physical = q.get::<PhysicalWiresOf>(*key);
-        let profiles = load_profiles(q.project());
         let ctx = Ctx {
             q,
-            profiles: &profiles,
-            partition: q.get::<PotentialPartition>(()),
-            graph: q.get::<StitchGraphQ>(()),
-            version: q.profile().version.clone(),
+            default: q.get_value_part::<WireDefaultProps>(()),
+            version: profile::resolve(&settings::profile_key(q)).0.version.clone(),
         };
         let mut map = WirePropsMap::default();
         for wire in &physical.wires {
@@ -220,13 +225,11 @@ impl Query for WirePropsOf {
             wires.sort();
             wires.dedup();
         }
-        let mut notes = profiles.notes.clone();
-        notes.sort();
-        notes.dedup();
-        for note in &notes {
+        let notes = q.get_value_part::<WireProfileNotes>(());
+        for note in notes.iter() {
             q.note(note.clone());
         }
-        map.notes = notes;
+        map.notes = notes.as_ref().clone();
         Arc::new(map)
     }
 }
@@ -247,13 +250,10 @@ impl Query for ConnWireProps {
         let Some(conn) = q.connections().get(*key) else {
             return Arc::new(Vec::new());
         };
-        let graph = q.get::<StitchGraphQ>(());
-        let partition = q.get::<PotentialPartition>(());
         let mut potentials: Vec<PotentialId> = [&conn.a, &conn.b]
             .into_iter()
             .filter_map(EndpointKey::of)
-            .filter_map(|at| partition.of(&graph, at))
-            .map(|p| p.id)
+            .filter_map(|at| potential_id_at(q, at))
             .collect();
         potentials.sort();
         potentials.dedup();
@@ -270,12 +270,69 @@ impl Query for ConnWireProps {
     }
 }
 
+/// The scope of an [`EndClass`]: the functions of one device, or of every terminal of one strip.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum EndScope {
+    /// The functions of this device.
+    Device(Id<Device>),
+    /// The functions of every terminal of this strip.
+    Strip(Id<Device>),
+}
+
+/// `end_class(scope)`: the highest circuit class (by rank: `Mains > Control > Analogue > Bus`; `Pe` and
+/// unknown classes never rank) among the potentials that hold a CP of the scope's functions; `None` when none
+/// ranks. It is the PE rule's read of a device or a strip (FR-CON-038), once per scope instead of once per wire
+/// end. The class of a potential is its [`ProfileRowFor`] class. Policy Memo.
+#[derive(Debug)]
+pub struct EndClass;
+
+impl Query for EndClass {
+    type Key = EndScope;
+    type Value = Option<CircuitClass>;
+    const FAMILY: &'static str = "end_class";
+    const POLICY: Policy = Policy::Memo;
+
+    fn bytes(value: &Self::Value) -> usize {
+        crate::heap::value_bytes(value)
+    }
+
+    fn run(q: &Q, scope: &EndScope) -> Arc<Option<CircuitClass>> {
+        let idx = q.idx();
+        let functions: Vec<Id<Function>> = match scope {
+            EndScope::Device(d) => idx.functions_of_device(*d).collect(),
+            EndScope::Strip(s) => idx
+                .terminals_of_strip(*s)
+                .flat_map(|t| idx.functions_of_device(t))
+                .collect(),
+        };
+        let classes = potentials_of_functions(q, functions).into_iter().map(|p| {
+            q.get_value_part::<ProfileRowFor>(ProfileKey::of_potential(q, p))
+                .class
+                .clone()
+        });
+        Arc::new(highest_ranked(classes))
+    }
+}
+
+/// The potentials holding a CP of `functions`, sorted and without duplicates.
+fn potentials_of_functions(q: &Q, functions: impl IntoIterator<Item = Id<Function>>) -> Vec<PotentialId> {
+    let mut potentials: Vec<PotentialId> = Vec::new();
+    for f in functions {
+        for cp in q.get::<FunctionCps>(f).iter() {
+            if let Some(p) = potential_id_at(q, EndpointKey::Cp(f, cp.idx)) {
+                potentials.push(p);
+            }
+        }
+    }
+    potentials.sort();
+    potentials.dedup();
+    potentials
+}
+
 /// The reads shared by the wires of one query.
 struct Ctx<'a> {
     q: &'a Q,
-    profiles: &'a WireProfiles,
-    partition: Arc<Partition>,
-    graph: Arc<StitchGraph>,
+    default: Arc<WireProps>,
     version: String,
 }
 
@@ -291,13 +348,18 @@ fn rank(class: &CircuitClass) -> Option<u8> {
     }
 }
 
-/// The highest class of `classes` by [`rank`]; `Control` when none ranks (FR-CON-038).
-fn highest(classes: impl IntoIterator<Item = CircuitClass>) -> CircuitClass {
+/// The highest class of `classes` by [`rank`]; `None` when none ranks.
+fn highest_ranked(classes: impl IntoIterator<Item = CircuitClass>) -> Option<CircuitClass> {
     classes
         .into_iter()
         .filter_map(|c| rank(&c).map(|r| (r, c)))
         .max_by_key(|(r, _)| *r)
-        .map_or(CircuitClass::Control, |(_, c)| c)
+        .map(|(_, c)| c)
+}
+
+/// The highest class of `classes` by [`rank`]; `Control` when none ranks (FR-CON-038).
+fn highest(classes: impl IntoIterator<Item = CircuitClass>) -> CircuitClass {
+    highest_ranked(classes).unwrap_or(CircuitClass::Control)
 }
 
 /// `Some(Prov)` of a set value.
@@ -349,54 +411,30 @@ impl Level {
 impl Ctx<'_> {
     /// The final attributes of a potential: the flow values, else the partition's own.
     fn attrs(&self, id: PotentialId) -> Attrs {
-        if let Some(e) = self.q.get::<PotentialFlow>(id).as_ref() {
-            return Attrs {
-                ptype: e.ptype.as_ref().map(|a| a.value.clone()),
-                voltage: e.voltage.as_ref().map(|a| a.value),
-                ac_dc: e.env.as_ref().and_then(|a| a.value.ac_dc.clone()),
-            };
-        }
-        match self.partition.get(id) {
-            Some(p) => Attrs {
-                ptype: p.ptype.as_ref().map(|a| a.value.clone()),
-                voltage: p.voltage.as_ref().map(|a| a.value),
-                ac_dc: p.env.as_ref().and_then(|a| a.value.ac_dc.clone()),
-            },
-            None => Attrs::default(),
-        }
+        attrs_of(self.q, id)
     }
 
-    /// The circuit class of a potential: its definition's, else the size profile's class rules (the
-    /// built-in rules without a profile).
+    /// The profile row of an attribute set and an own class, read as a cut-off point.
+    fn row(&self, attrs: &Attrs, class: Option<CircuitClass>) -> Arc<ProfileRow> {
+        self.q
+            .get_value_part::<ProfileRowFor>(ProfileKey::new(attrs, class))
+    }
+
+    /// The circuit class of a potential: its definition's, else the size profile's class rules (the built-in
+    /// rules without a profile).
     fn class_of(&self, id: PotentialId, attrs: &Attrs) -> CircuitClass {
-        if let Some(c) = self.partition.get(id).and_then(|p| p.circuit_class.as_ref()) {
-            return c.value.clone();
-        }
-        match &self.profiles.size {
-            Some(size) => size.class_of(attrs),
-            None => builtin_class(attrs),
-        }
+        self.row(attrs, own_class(self.q, id)).class.clone()
     }
 
-    /// The classes of the potentials holding a CP of `functions`.
-    fn classes_of_functions(&self, functions: Vec<Id<Function>>) -> Vec<CircuitClass> {
-        let mut potentials: Vec<PotentialId> = Vec::new();
-        for f in functions {
-            for cp in self.q.get::<FunctionCps>(f).iter() {
-                if let Some(p) = self.partition.of(&self.graph, EndpointKey::Cp(f, cp.idx)) {
-                    potentials.push(p.id);
-                }
-            }
-        }
-        potentials.sort();
-        potentials.dedup();
-        potentials
-            .into_iter()
-            .map(|p| self.class_of(p, &self.attrs(p)))
-            .collect()
-    }
-
-    /// The classes at one wire end (the PE rule).
+    /// The classes at one wire end (the PE rule): the potentials of the end's own function, and the
+    /// [`EndClass`] of its device or strip.
+    ///
+    /// Today's rule takes the classes of the potentials of the union of the end's function, the functions of
+    /// its device (or of every terminal of its strip), and picks the highest by [`rank`]. [`EndClass`] of the
+    /// scope is the highest ranked class of the scope's part of that union, so the highest of
+    /// `own function's classes ∪ {EndClass}` is the highest of the union: the maximum of a union is the
+    /// maximum of the maxima of its parts, and [`rank`] is injective on the ranked classes, so the class with
+    /// the maximum rank is unique and does not depend on how the union is split.
     fn end_classes(&self, end: &WireEnd) -> Vec<CircuitClass> {
         if end.kind != EndKind::Device {
             return Vec::new();
@@ -405,24 +443,21 @@ impl Ctx<'_> {
         let Some(function) = self.q.functions().get(f) else {
             return Vec::new();
         };
+        let mut classes: Vec<CircuitClass> = potentials_of_functions(self.q, [f])
+            .into_iter()
+            .map(|p| self.class_of(p, &self.attrs(p)))
+            .collect();
         let device = function
             .device
             .and_then(|d| self.q.devices().get(d).map(|dev| (d, dev)));
-        let mut functions: Vec<Id<Function>> = vec![f];
-        match device {
-            None => {}
-            Some((_, dev)) if dev.aspects.terminal.is_some() => {
-                if let Some(t) = &dev.aspects.terminal {
-                    for terminal in self.q.idx().terminals_of_strip(t.strip) {
-                        functions.extend(self.q.idx().functions_of_device(terminal));
-                    }
-                }
-            }
-            Some((d, _)) => functions.extend(self.q.idx().functions_of_device(d)),
+        let scope = device.map(|(d, dev)| match &dev.aspects.terminal {
+            Some(t) => EndScope::Strip(t.strip),
+            None => EndScope::Device(d),
+        });
+        if let Some(scope) = scope {
+            classes.extend(self.q.get_value_part::<EndClass>(scope).as_ref().clone());
         }
-        functions.sort();
-        functions.dedup();
-        self.classes_of_functions(functions)
+        classes
     }
 
     /// The class of a PE wire: the highest class at its two ends.
@@ -459,9 +494,13 @@ impl Ctx<'_> {
         // Level 3: per member, the first definition in ID order that sets it.
         let defs: Vec<(Id<PotentialDef>, Arc<PotentialDef>)> = pots
             .iter()
-            .filter_map(|p| self.partition.get(*p))
-            .flat_map(|p| p.defs.iter())
-            .filter_map(|d| q.potential_defs().get(*d).map(|r| (*d, r.clone())))
+            .flat_map(|p| {
+                potential_part(q, *p)
+                    .get(*p)
+                    .map(|p| p.defs.clone())
+                    .unwrap_or_default()
+            })
+            .filter_map(|d| q.potential_defs().get(d).map(|r| (d, r.clone())))
             .collect();
         let l3 = Level {
             csa: from_defs(&defs, |p| p.csa.clone()),
@@ -474,57 +513,54 @@ impl Ctx<'_> {
         };
 
         // Level 2: the colour row and the size row, and level 0 from the same attributes.
-        let colour_attrs = if bond {
-            Attrs {
+        let (colour_attrs, colour_row, class, rule) = if bond {
+            let pe = Attrs {
                 ptype: Some(PotentialType::Pe),
                 ..Attrs::default()
-            }
-        } else {
-            self.attrs(key)
-        };
-        let (class, rule) = if bond {
+            };
+            let colour_row = self.row(&pe, None);
             let non_pe = wire
                 .potentials
                 .iter()
                 .map(|p| (*p, self.attrs(*p)))
                 .find(|(_, a)| a.ptype != Some(PotentialType::Pe));
             let class = non_pe.map_or(CircuitClass::Control, |(p, a)| self.class_of(p, &a));
-            (class, SizeRule::Bond)
+            (pe, colour_row, class, SizeRule::Bond)
         } else {
-            let class = self.class_of(key, &colour_attrs);
-            if class == CircuitClass::Pe {
+            let attrs = self.attrs(key);
+            let row = self.row(&attrs, own_class(q, key));
+            let (class, rule) = if row.class == CircuitClass::Pe {
                 (self.highest_at_ends(wire), SizeRule::PeHighestAtEnds)
             } else {
-                (class, SizeRule::Class)
-            }
+                (row.class.clone(), SizeRule::Class)
+            };
+            (attrs, row, class, rule)
         };
-        let colour2 = match (&self.profiles.colour, wire.core) {
-            (Some(profile), None) => profile.select(&colour_attrs).map(|(row, c)| {
-                Prov::new(
-                    c.clone(),
-                    PropSource::ColourRow {
-                        profile: profile.key().to_owned(),
-                        row,
-                    },
-                )
-            }),
+        let colour2 = match (&colour_row.colour, wire.core) {
+            (Some((profile, row, c)), None) => Some(Prov::new(
+                c.clone(),
+                PropSource::ColourRow {
+                    profile: profile.clone(),
+                    row: *row,
+                },
+            )),
             _ => None,
         };
-        let csa2 = self.profiles.size.as_ref().and_then(|size| {
-            size.csa_of(&class).map(|csa| {
-                Prov::new(
-                    csa.clone(),
-                    PropSource::SizeRow {
-                        profile: size.key().to_owned(),
-                        class: class.clone(),
-                        rule,
-                    },
-                )
-            })
+        // The size row of the final class (the key of the potential's own row when the class is its own).
+        let size_row = self.row(&colour_attrs, Some(class.clone()));
+        let csa2 = size_row.csa.as_ref().map(|(profile, csa)| {
+            Prov::new(
+                csa.clone(),
+                PropSource::SizeRow {
+                    profile: profile.clone(),
+                    class: class.clone(),
+                    rule,
+                },
+            )
         });
 
         // Level 1: the project default.
-        let l1 = Level::of_props(&self.profiles.default, &PropSource::ProjectDefault);
+        let l1 = Level::of_props(&self.default, &PropSource::ProjectDefault);
 
         // Level 0: the built-ins of the derivation profile.
         let built_in = || PropSource::BuiltIn {

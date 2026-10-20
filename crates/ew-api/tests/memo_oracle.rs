@@ -6,8 +6,10 @@
 //!
 //! The states: open, a rep move on its page, a cross-page rep move, a page-less wire, a drawn wire, a
 //! delete, a colour override, a potential rename, `page.renumber`, a tag counter change,
-//! `numbering.renumber`, three undos, a redo, and a colour-profile edit applied to the memo store directly
-//! (no command edits the project settings yet).
+//! `numbering.renumber`, three undos, a redo, the topology cases of the incremental potential partition (two
+//! potentials joined by a drawn wire, the potential split again by deleting that wire, a bridge added and
+//! removed), and a colour- and size-profile edit applied to the memo store directly (no command edits the
+//! project settings yet).
 //!
 //! Tests:
 //! - `memo_equals_cold_over_every_state` (`MemoMode::On`): at every state every `Memo`/`MemoLru` family of
@@ -25,38 +27,79 @@
 
 mod golden_common;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::num::NonZeroU32;
 
 use ew_api::{AnyCommand, CmdError, MemoMode, Session, SessionOptions};
 use ew_commands::testkit::seeded_ids;
 use ew_derive::ew_ids::Id;
 use ew_derive::{
-    BomMode, BomRows, DevicePartLines, DeviceTag, DevicesByStructure, DrawnPageOrder, FlowBfs, FunctionCps,
-    Oracle, PageLocalNets, PageOrder, PageRef, PhysicalWiresOf, PotentialId, PotentialPartition, Q, Query,
-    StitchGraphQ, TitleBlockValues, TocRows, WirePropsOf, XrefTextOf,
+    BomMode, BomRows, DevicePartLines, DeviceTag, DevicesByStructure, DrawnPageOrder, EndClass, EndScope,
+    FlowBfs, FunctionCps, Member, Oracle, PageLocalNets, PageOrder, PageRef, PhysicalWiresOf, PotentialId,
+    PotentialPartition, ProfileKey, ProfileRowFor, Q, Query, SettingsMember, StitchGraphQ, TitleBlockValues,
+    TocRows, WireDefaultProps, WireProfileNotes, WireProfilesQ, WirePropsOf, XrefTextOf,
 };
-use ew_model::{AnyRow, Model, Op};
-use ew_schema::{Device, Kind, Page, Record};
+use ew_derive::{
+    BondIndex, BondPathsQ, BondVias, DefPoints, FlowNotes, FunctionLinksOf, IpFunctions, IpInfoOf, IpNotes,
+    IpPairingQ, PageIds, PagelessLinks, PotentialAttrsOf, PotentialNameOf, RailBondsQ, RailTerminalOf,
+    RailTerminals,
+};
+use ew_model::{AnyRow, EndpointKey, Model, Op};
+use ew_schema::{CircuitClass, Device, Kind, Page, Record};
 use serde_json::{Value, json};
 
 /// The families this test reads: the `Memo`/`MemoLru` families of `ew_derive::FAMILIES`, sorted.
 const SWEPT: &[&str] = &[
     "bom_rows",
+    "bond_index",
+    "bond_paths",
+    "bond_vias",
+    "def_points",
     "device_part_lines",
     "device_tag",
     "devices_by_structure",
     "drawn_page_order",
+    "end_class",
+    "flow_notes",
+    "function_links",
+    "ip_functions",
+    "ip_info",
+    "ip_notes",
+    "ip_pairing",
+    "page_ids",
     "page_local_nets",
     "page_order",
+    "pageless_links",
     "physical_wires_of",
+    "potential_attrs",
     "potential_flow_bfs",
+    "potential_name",
     "potential_partition",
+    "profile_row_for",
+    "rail_bonds",
+    "rail_terminal",
+    "rail_terminals",
+    "settings_member",
     "stitch_graph",
     "title_block",
     "toc_rows",
+    "wire_default_props",
+    "wire_profile_notes",
+    "wire_profiles",
     "wire_props_of",
     "xref_text",
+];
+
+/// Every settings member (the keys of `settings_member`).
+const ALL_MEMBERS: [Member; 8] = [
+    Member::IpPairing,
+    Member::ColourProfile,
+    Member::SizeProfile,
+    Member::WireDefault,
+    Member::Numbering,
+    Member::Frames,
+    Member::XrefFormat,
+    Member::DerivationProfile,
 ];
 
 /// The oracle samples one memoised read in this many (see `oracle_finds_no_mismatch_over_every_state`).
@@ -90,25 +133,44 @@ fn session(batch: &ew_import_tables::ew_interop_api::ImportBatch, memo: MemoMode
 /// The keys of the snapshot a `Q` sees, for the families with a non-trivial key.
 struct Keys {
     devices: Vec<Id<Device>>,
+    functions: Vec<Id<ew_schema::Function>>,
     pages: Vec<Id<Page>>,
     reps: Vec<Id<ew_schema::Representation>>,
     page_refs: Vec<PageRef>,
     potentials: Vec<PotentialId>,
+    /// The profile keys of the potentials, and the same attributes with each known circuit class.
+    profile_keys: BTreeSet<ProfileKey>,
 }
 
 impl Keys {
     fn of(q: &Q) -> Keys {
+        let potentials: Vec<PotentialId> = q
+            .get::<PotentialPartition>(())
+            .potentials()
+            .map(|p| p.id)
+            .collect();
+        let mut profile_keys = BTreeSet::new();
+        for p in &potentials {
+            let key = ProfileKey::of_potential(q, *p);
+            for class in [
+                CircuitClass::Mains,
+                CircuitClass::Control,
+                CircuitClass::Analogue,
+                CircuitClass::Bus,
+                CircuitClass::Pe,
+            ] {
+                profile_keys.insert(ProfileKey::new(&key.attrs(), Some(class)));
+            }
+            profile_keys.insert(key);
+        }
         Keys {
             devices: q.devices().ids().collect(),
+            functions: q.functions().ids().collect(),
             pages: q.pages().ids().collect(),
             reps: q.reps().ids().collect(),
             page_refs: q.get::<PageOrder>(()).entries.iter().map(|e| e.page).collect(),
-            potentials: q
-                .get::<PotentialPartition>(())
-                .potentials
-                .iter()
-                .map(|p| p.id)
-                .collect(),
+            potentials,
+            profile_keys,
         }
     }
 }
@@ -140,6 +202,48 @@ fn sweep(memo: &Q, cold: Option<&Q>, state: &str) -> BTreeMap<&'static str, usiz
         BomRows::FAMILY,
         check::<BomRows>(memo, cold, [BomMode::Component, BomMode::Assembly], state),
     );
+    for (family, count) in [
+        (BondIndex::FAMILY, check::<BondIndex>(memo, cold, [()], state)),
+        (BondPathsQ::FAMILY, check::<BondPathsQ>(memo, cold, [()], state)),
+        (BondVias::FAMILY, check::<BondVias>(memo, cold, [()], state)),
+        (DefPoints::FAMILY, check::<DefPoints>(memo, cold, [()], state)),
+        (
+            FunctionLinksOf::FAMILY,
+            check::<FunctionLinksOf>(memo, cold, keys.functions.iter().copied(), state),
+        ),
+        (IpFunctions::FAMILY, check::<IpFunctions>(memo, cold, [()], state)),
+        (
+            IpInfoOf::FAMILY,
+            check::<IpInfoOf>(memo, cold, keys.functions.iter().copied(), state),
+        ),
+        (IpPairingQ::FAMILY, check::<IpPairingQ>(memo, cold, [()], state)),
+        (PageIds::FAMILY, check::<PageIds>(memo, cold, [()], state)),
+        (
+            PagelessLinks::FAMILY,
+            check::<PagelessLinks>(memo, cold, [()], state),
+        ),
+        (RailBondsQ::FAMILY, check::<RailBondsQ>(memo, cold, [()], state)),
+        (
+            RailTerminalOf::FAMILY,
+            check::<RailTerminalOf>(memo, cold, keys.devices.iter().copied(), state),
+        ),
+        (
+            RailTerminals::FAMILY,
+            check::<RailTerminals>(memo, cold, [()], state),
+        ),
+        (FlowNotes::FAMILY, check::<FlowNotes>(memo, cold, [()], state)),
+        (IpNotes::FAMILY, check::<IpNotes>(memo, cold, [()], state)),
+        (
+            PotentialAttrsOf::FAMILY,
+            check::<PotentialAttrsOf>(memo, cold, keys.potentials.iter().copied(), state),
+        ),
+        (
+            PotentialNameOf::FAMILY,
+            check::<PotentialNameOf>(memo, cold, keys.potentials.iter().copied(), state),
+        ),
+    ] {
+        put(family, count);
+    }
     put(
         DevicePartLines::FAMILY,
         check::<DevicePartLines>(memo, cold, keys.devices.iter().copied(), state),
@@ -157,6 +261,17 @@ fn sweep(memo: &Q, cold: Option<&Q>, state: &str) -> BTreeMap<&'static str, usiz
         check::<DrawnPageOrder>(memo, cold, [()], state),
     );
     put(
+        EndClass::FAMILY,
+        check::<EndClass>(
+            memo,
+            cold,
+            keys.devices
+                .iter()
+                .flat_map(|d| [EndScope::Device(*d), EndScope::Strip(*d)]),
+            state,
+        ),
+    );
+    put(
         PageLocalNets::FAMILY,
         check::<PageLocalNets>(memo, cold, keys.pages.iter().copied(), state),
     );
@@ -171,6 +286,14 @@ fn sweep(memo: &Q, cold: Option<&Q>, state: &str) -> BTreeMap<&'static str, usiz
         check::<PotentialPartition>(memo, cold, [()], state),
     );
     put(
+        ProfileRowFor::FAMILY,
+        check::<ProfileRowFor>(memo, cold, keys.profile_keys.iter().cloned(), state),
+    );
+    put(
+        SettingsMember::FAMILY,
+        check::<SettingsMember>(memo, cold, ALL_MEMBERS, state),
+    );
+    put(
         StitchGraphQ::FAMILY,
         check::<StitchGraphQ>(memo, cold, [()], state),
     );
@@ -179,6 +302,18 @@ fn sweep(memo: &Q, cold: Option<&Q>, state: &str) -> BTreeMap<&'static str, usiz
         check::<TitleBlockValues>(memo, cold, keys.page_refs.iter().copied(), state),
     );
     put(TocRows::FAMILY, check::<TocRows>(memo, cold, [()], state));
+    put(
+        WireDefaultProps::FAMILY,
+        check::<WireDefaultProps>(memo, cold, [()], state),
+    );
+    put(
+        WireProfileNotes::FAMILY,
+        check::<WireProfileNotes>(memo, cold, [()], state),
+    );
+    put(
+        WireProfilesQ::FAMILY,
+        check::<WireProfilesQ>(memo, cold, [()], state),
+    );
     put(
         WirePropsOf::FAMILY,
         check::<WirePropsOf>(memo, cold, keys.potentials.iter().copied(), state),
@@ -417,8 +552,112 @@ impl Targets {
     }
 }
 
-/// The colour-profile edit of the last state: the first colour row of `ProjectSettings.extra` gets another
-/// colour. The model after it, at the next revision (the Session's own snapshot is not changed).
+/// A connection point as (function, index).
+type CpId = (Id<ew_schema::Function>, u16);
+
+fn potential_of(q: &Q, (f, idx): CpId) -> Option<PotentialId> {
+    q.get::<PotentialPartition>(())
+        .potential_at(EndpointKey::Cp(f, idx))
+        .map(|p| p.id)
+}
+
+/// Pairs of physical CPs on one page (page, a, b) whose potentials differ in `q`, in ID order.
+fn cp_pairs_in_different_potentials(q: &Q) -> Vec<(Id<Page>, CpId, CpId)> {
+    let mut out = Vec::new();
+    for page in q.pages().ids() {
+        let mut cps: Vec<CpId> = Vec::new();
+        for rep in q.idx().reps_by_page(page) {
+            let Some(rep) = q.reps().get(rep) else { continue };
+            for f in &rep.functions {
+                for cp in q.get::<FunctionCps>(*f).iter().filter(|c| c.physical) {
+                    cps.push((*f, cp.idx));
+                }
+            }
+        }
+        cps.truncate(12);
+        for (i, a) in cps.iter().enumerate() {
+            for b in &cps[i + 1..] {
+                let (pa, pb) = (potential_of(q, *a), potential_of(q, *b));
+                if a.0 != b.0 && pa.is_some() && pb.is_some() && pa != pb {
+                    out.push((page, *a, *b));
+                }
+            }
+        }
+    }
+    out.truncate(60);
+    out
+}
+
+/// The connections that have both CPs as ends.
+fn connections_between(q: &Q, a: CpId, b: CpId) -> Vec<Id<ew_schema::Connection>> {
+    let at_b: BTreeSet<_> = q.idx().connections_at_cp(b.0, b.1).collect();
+    q.idx()
+        .connections_at_cp(a.0, a.1)
+        .filter(|c| at_b.contains(c))
+        .collect()
+}
+
+fn same_potential(q: &Q, a: CpId, b: CpId) -> bool {
+    let pa = potential_of(q, a);
+    pa.is_some() && pa == potential_of(q, b)
+}
+
+/// Draws a connection (of `kind`, default a wire) between one of the CP pairs that lie in two different
+/// potentials on a page; checks, through the cold `Q` after it, that the CPs share a potential. Returns the
+/// pair.
+fn draw_between_potentials(session: &mut Session, label: &str, kind: Option<Value>) -> (CpId, CpId) {
+    let pairs = cp_pairs_in_different_potentials(&session.query_over(&session.world().model));
+    assert!(
+        !pairs.is_empty(),
+        "{label}: no CP pair in two different potentials"
+    );
+    let candidates: Vec<AnyCommand> = pairs
+        .iter()
+        .map(|(page, a, b)| {
+            let mut params = json!({
+                "a": cp_end(&id_json(a.0), a.1),
+                "b": cp_end(&id_json(b.0), b.1),
+                "page": id_json(*page),
+            });
+            if let Some(kind) = &kind {
+                params["kind"] = kind.clone();
+            }
+            cmd("connection.draw", params)
+        })
+        .collect();
+    let what = apply(session, label, candidates.clone());
+    let i = candidates
+        .iter()
+        .position(|c| format!("{} {}", c.name, c.params) == what)
+        .expect("the executed candidate is one of the candidates");
+    let (_, a, b) = pairs[i];
+    let q = session.query_over(&session.world().model);
+    assert!(
+        same_potential(&q, a, b),
+        "{label}: the CPs share a potential after the draw"
+    );
+    (a, b)
+}
+
+/// Deletes the one connection between the CPs; checks that the CPs are in different potentials afterwards.
+fn delete_between(session: &mut Session, label: &str, (a, b): (CpId, CpId)) {
+    let q = session.query_over(&session.world().model);
+    let found = connections_between(&q, a, b);
+    assert_eq!(found.len(), 1, "{label}: one connection joins the CPs");
+    let c = cmd(
+        "edit.delete",
+        json!({"targets": [{"kind": "connection", "id": id_json(found[0])}]}),
+    );
+    apply(session, label, vec![c]);
+    let q = session.query_over(&session.world().model);
+    assert!(
+        !same_potential(&q, a, b),
+        "{label}: the CPs are in different potentials again"
+    );
+}
+
+/// The profile edit of the last state: the first colour row of `ProjectSettings.extra` gets another
+/// colour and the first size row another cross-section (`2.5`). The model after it, at the next revision (the Session's own snapshot is not changed).
 fn with_edited_profile(model: &Model) -> (Model, Vec<ew_model::AnyKey>) {
     let before = model.project().clone();
     let mut project = (*before).clone();
@@ -428,6 +667,12 @@ fn with_edited_profile(model: &Model) -> (Model, Vec<ew_model::AnyKey>) {
         .get_mut("colour_profile")
         .expect("the session has a colour profile");
     profile["rows"][0]["colour"] = json!(["RD"]);
+    let size = project
+        .settings
+        .extra
+        .get_mut("size_profile")
+        .expect("the session has a size profile");
+    size["rows"][0]["csa"] = json!("2.5");
     let key = (Kind::Project, before.id.cast());
     let after = model
         .apply_unchecked(
@@ -502,11 +747,37 @@ fn run_states(session: &mut Session, mut visit: impl FnMut(&Session, &str, &Mode
         "redo".into()
     });
 
-    // The profile edit goes to the memo store directly: no command edits the project settings.
+    // The topology cases of the incremental potential partition.
+    let joined = std::cell::Cell::new(None);
+    step(session, "16 join two potentials", &|s| {
+        let ends = draw_between_potentials(s, "16 join two potentials", None);
+        joined.set(Some(ends));
+        format!("connection.draw {ends:?}")
+    });
+    let ends = joined.get().expect("the join state ran");
+    step(session, "17 split a potential", &|s| {
+        delete_between(s, "17 split a potential", ends);
+        format!("edit.delete {ends:?}")
+    });
+    let bridged = std::cell::Cell::new(None);
+    let bridge = json!({"bridge": {"kind": "plug_in", "group": 1, "shaft": 0}});
+    step(session, "18 bridge added", &|s| {
+        let ends = draw_between_potentials(s, "18 bridge added", Some(bridge.clone()));
+        bridged.set(Some(ends));
+        format!("connection.draw bridge {ends:?}")
+    });
+    let ends = bridged.get().expect("the bridge state ran");
+    step(session, "19 bridge removed", &|s| {
+        delete_between(s, "19 bridge removed", ends);
+        format!("edit.delete {ends:?}")
+    });
+
+    // The profile edits go to the memo store directly: no command edits the project settings. The colour
+    // and the size edit are one advance; no session command may follow.
     model = session.world().model.clone();
     let (after, keys) = with_edited_profile(&model);
     session.memo().expect("memoising session").advance(&after, &keys);
-    visit(session, "16 colour profile edit", &after);
+    visit(session, "20 colour and size profile edit", &after);
 }
 
 fn memo_q_notes_equal(session: &Session, model: &Model, state: &str) -> BTreeMap<&'static str, usize> {
@@ -577,7 +848,7 @@ fn oracle_finds_no_mismatch_over_every_state() {
     let batch = golden_common::batch();
     let mut session = session(&batch, MemoMode::Oracle);
     // `Oracle::Every` (the Session's own setting) re-runs every memoised read cold at every depth: about
-    // five minutes over the 16 states in a debug build. One read in `ORACLE_ONE_IN`, counted over all reads
+    // five minutes over the 20 states in a debug build. One read in `ORACLE_ONE_IN`, counted over all reads
     // of the store (deterministic), keeps the test under a minute.
     session
         .memo()

@@ -21,7 +21,8 @@ use ew_derive::ew_schema::{
 };
 use ew_derive::{
     CpRef, DeviceTag, DrawnPageOrder, EffectiveProps, EndKind, FunctionCps, PageRef, Partition, PhysicalWire,
-    PhysicalWiresOf, PotentialId, PotentialPartition, PropSource, Q, RepAnchorCell, WireEnd, WirePropsOf,
+    PhysicalWiresOf, PotentialId, PotentialNameOf, PotentialNames, PotentialPartition, PropSource, Q,
+    RepAnchorCell, WireEnd, WirePropsOf,
 };
 
 use crate::rowset::{Cell, ColumnDef, QtyUnit};
@@ -53,6 +54,8 @@ pub(super) struct WireRec {
 pub(super) struct Wires {
     /// The partition.
     pub partition: Arc<Partition>,
+    /// The names of every potential (`potential_name`).
+    pub names: BTreeMap<PotentialId, Arc<PotentialNames>>,
     /// The wires.
     pub wires: Vec<WireRec>,
 }
@@ -62,7 +65,9 @@ impl Wires {
     pub fn of(q: &Q) -> Wires {
         let partition = q.get::<PotentialPartition>(());
         let mut by_id: BTreeMap<Id<Connection>, WireRec> = BTreeMap::new();
-        for p in &partition.potentials {
+        let mut names = BTreeMap::new();
+        for p in partition.potentials() {
+            names.insert(p.id, q.get::<PotentialNameOf>(p.id));
             let physical = q.get::<PhysicalWiresOf>(p.id);
             let props = q.get::<WirePropsOf>(p.id);
             for w in &physical.wires {
@@ -78,20 +83,21 @@ impl Wires {
         }
         Wires {
             partition,
+            names,
             wires: by_id.into_values().collect(),
         }
     }
 
     /// The name of a potential, `""` when unknown.
     pub fn potential_name(&self, id: PotentialId) -> &str {
-        self.partition.get(id).map_or("", |p| p.name.text.as_str())
+        self.names.get(&id).map_or("", |n| n.name.text.as_str())
     }
 
     /// The potential text of a wire: the name, or `A ⇄ B` for a bond wire (the bond's side order).
     pub fn potential_text(&self, w: &PhysicalWire) -> String {
         if let Some(bond) = w
             .bond
-            .and_then(|b| self.partition.bonds.iter().find(|l| l.bond == b))
+            .and_then(|b| self.partition.bonds().iter().find(|l| l.bond == b))
             && let (Some(a), Some(b)) = (bond.a, bond.b)
         {
             return format!("{} \u{21C4} {}", self.potential_name(a), self.potential_name(b));

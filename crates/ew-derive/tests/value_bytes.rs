@@ -18,11 +18,19 @@ use std::mem::size_of;
 
 use common::{Fx, id, uid};
 use ew_derive::{
-    EffectiveProps, LocalNet, PageLocalNets, PhysicalWire, PhysicalWiresOf, Potential, PotentialPartition, Q,
-    Query, StitchGraphQ, StitchNode, WirePropsOf,
+    CpRef, EffectiveProps, LocalNet, PageLocalNets, PhysicalWire, PhysicalWiresOf, PotentialNameOf,
+    PotentialPartition, Q, Query, StitchGraphQ, StitchNode, WirePropsOf,
 };
 use golden::golden;
 use serde_json::json;
+
+/// The lower bound of a partition: the potentials' CP lists and their own inline size.
+fn cps_floor(partition: &ew_derive::Partition) -> usize {
+    partition
+        .potentials()
+        .map(|p| size_of::<ew_derive::Potential>() + p.cps.len() * size_of::<CpRef>())
+        .sum()
+}
 
 /// Asserts `bytes` is at least `floor`, and above the inline size when `non_empty`.
 fn check(family: &str, bytes: usize, inline: usize, floor: usize, non_empty: bool) {
@@ -44,13 +52,13 @@ fn connectivity_values_count_their_heap() {
 
     let partition = q.get::<PotentialPartition>(());
     let b = PotentialPartition::bytes(&partition);
-    let floor = partition.potentials.len() * size_of::<Potential>();
+    let floor = cps_floor(&partition);
     check(
         "potential_partition",
         b,
         size_of::<<PotentialPartition as Query>::Value>(),
         floor,
-        !partition.potentials.is_empty(),
+        partition.potential_count() > 0,
     );
 
     let graph = q.get::<StitchGraphQ>(());
@@ -84,7 +92,7 @@ fn connectivity_values_count_their_heap() {
     let wires_inline = size_of::<<PhysicalWiresOf as Query>::Value>();
     let props_inline = size_of::<<WirePropsOf as Query>::Value>();
     let (mut wires_heap, mut wires_floor, mut props_heap, mut props_floor) = (0, 0, 0, 0);
-    for p in &partition.potentials {
+    for p in partition.potentials() {
         let w = q.get::<PhysicalWiresOf>(p.id);
         let b = PhysicalWiresOf::bytes(&w);
         assert!(b >= wires_inline);
@@ -146,13 +154,17 @@ fn wired_values_count_their_elements() {
     let q = Q::new(&m);
 
     let partition = q.get::<PotentialPartition>(());
-    assert!(!partition.potentials.is_empty());
+    assert!(partition.potential_count() > 0);
     let b = PotentialPartition::bytes(&partition);
     let inline = size_of::<<PotentialPartition as Query>::Value>();
     assert!(b > inline);
-    assert!(b >= partition.potentials.len() * size_of::<Potential>());
-    let name_heap: usize = partition.potentials.iter().map(|p| p.name.text.len()).sum();
-    assert!(b >= inline + name_heap);
+    assert!(b >= inline + cps_floor(&partition));
+    // The names live in the per-potential family, which counts their heap.
+    for p in partition.potentials() {
+        let names = q.get::<PotentialNameOf>(p.id);
+        let b = PotentialNameOf::bytes(&names);
+        assert!(b >= size_of::<<PotentialNameOf as Query>::Value>() + names.name.text.len());
+    }
 
     let graph = q.get::<StitchGraphQ>(());
     assert!(!graph.nodes.is_empty());
@@ -165,7 +177,7 @@ fn wired_values_count_their_elements() {
     assert!(b >= size_of::<<PageLocalNets as Query>::Value>() + nets.nets.len() * size_of::<LocalNet>());
 
     let mut wires_seen = 0;
-    for p in &partition.potentials {
+    for p in partition.potentials() {
         let w = q.get::<PhysicalWiresOf>(p.id);
         if !w.wires.is_empty() {
             wires_seen += w.wires.len();
