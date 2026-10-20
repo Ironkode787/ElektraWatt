@@ -48,6 +48,13 @@ use cx::{Findings, Ids, MAX_PROJECT_ENTRIES};
 /// The source key of the project record a project import creates when the context names no project.
 pub const PROJECT_KEY: &str = "qet:project";
 
+/// A context for importing a `.qet` into a new project: a nil project ID (the importer then mints the
+/// project ID `v5(namespace, "qet:project")`, [`PROJECT_KEY`]), a new lineage, no `as_of` date and the
+/// default [`Limits`] (doc 14 §11: the project limits).
+pub fn new_project_context() -> ImportContext {
+    ImportContext::new(Id::from_uuid(Uuid::nil()))
+}
+
 /// The importer of `.qet` project files.
 ///
 /// It carries the built-in starter documents the batch may reference ([`QetProjectImporter::with_library`]):

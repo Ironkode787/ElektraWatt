@@ -62,6 +62,7 @@ pub mod canon;
 pub mod decimal;
 mod element;
 pub mod fndef;
+pub mod migration;
 pub mod prims;
 pub mod project;
 pub mod style;

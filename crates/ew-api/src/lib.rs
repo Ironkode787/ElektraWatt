@@ -57,12 +57,15 @@
 #![forbid(unsafe_code)]
 
 mod cmdlog;
+pub mod import;
 
 use std::collections::BTreeSet;
 use std::path::Path;
 use std::sync::Arc;
 
-use ew_derive::{DeviceTag, FrameGridOf, FrameSettings, NumberingSettingsOf, Oracle, Q, ReportPagesProvider};
+use ew_derive::{
+    DeviceTag, FrameGridOf, FrameSettings, NumberingSettingsOf, Oracle, PageOrder, Q, ReportPagesProvider,
+};
 use ew_model::{AnyKey, Model, ModelError, PreventHook};
 use ew_schema::{LibDocument, Project, Record};
 use ew_store::{
@@ -290,6 +293,17 @@ impl Session {
             Some(memo) => memo.query(),
             None => self.query_over(&self.engine.world().model),
         }
+    }
+
+    /// The printed folio labels of the derived page order (`page_order`: drawn pages, section dividers and
+    /// generated report pages), in order.
+    pub fn page_labels(&self) -> Vec<String> {
+        self.query()
+            .get::<PageOrder>(())
+            .entries
+            .iter()
+            .map(|e| e.folio.clone())
+            .collect()
     }
 
     /// The session's memo store (statistics, memory, oracle mode); `None` with [`MemoMode::Off`].
