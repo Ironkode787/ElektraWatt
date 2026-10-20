@@ -32,17 +32,19 @@ fn budget() -> Duration {
     }
 }
 
-/// The timing policy of the project (CLAUDE.md "Testing policy"): wall-clock budgets are not asserted in the
-/// ordinary test run, which is shared with builds and other suites and would flake under load. The timings are
-/// printed; a milestone perf run sets `EW_PERF_ASSERT=1` to turn them into assertions.
+/// The timing policy of the project (CLAUDE.md "Testing policy"): wall-clock bounds are not asserted in the
+/// ordinary test run, which is shared with builds and other suites and would flake under load. The timing is
+/// printed; a milestone perf run sets `EW_PERF_ASSERT=1` to turn it into an assertion.
 fn assert_within_budget(what: &str, elapsed: Duration) {
+    assert_within(what, elapsed, budget());
+}
+
+/// As [`assert_within_budget`], against an explicit bound.
+fn assert_within(what: &str, elapsed: Duration, bound: Duration) {
     if std::env::var_os("EW_PERF_ASSERT").is_some() {
-        assert!(elapsed < budget(), "{what} took {elapsed:?}");
+        assert!(elapsed < bound, "{what} took {elapsed:?}, bound {bound:?}");
     } else {
-        eprintln!(
-            "{what}: {elapsed:?} (budget {:?}, not asserted outside a milestone run)",
-            budget()
-        );
+        eprintln!("{what}: {elapsed:?} (bound {bound:?}, not asserted outside a milestone run)");
     }
 }
 
@@ -149,7 +151,7 @@ fn long_polygon_is_linear() {
     } else {
         Duration::from_millis(500)
     };
-    assert!(elapsed < bound, "polygon() took {elapsed:?}");
+    assert_within("polygon()", elapsed, bound);
     let [Primitive::Polygon(p)] = out.graphics.as_slice() else {
         panic!("expected one polygon, got {:?}", out.graphics.len());
     };
@@ -303,7 +305,11 @@ fn attribute_work_flood_is_refused_before_parsing() {
     );
     assert_within_budget("took {elapsed:?}", elapsed);
     if !cfg!(debug_assertions) {
-        assert!(elapsed < Duration::from_millis(200), "took {elapsed:?}");
+        assert_within(
+            "attribute_work_flood_is_refused_before_parsing",
+            elapsed,
+            Duration::from_millis(200),
+        );
     }
 }
 

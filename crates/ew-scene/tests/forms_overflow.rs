@@ -114,7 +114,12 @@ fn ellipsis_of_20000_chars_is_fast() {
     let out = lower_form(&form, None, &bindings(&text), bundled());
     let elapsed = t.elapsed();
     eprintln!("ellipsis 20000 chars: {elapsed:?}");
-    assert!(elapsed.as_secs_f64() < 2.0, "took {elapsed:?}");
+    // Timing policy (CLAUDE.md): wall-clock bounds are asserted only in a milestone run (EW_PERF_ASSERT=1).
+    if std::env::var_os("EW_PERF_ASSERT").is_some() {
+        assert!(elapsed.as_secs_f64() < 2.0, "took {elapsed:?}");
+    } else {
+        eprintln!("ellipsis_of_20000_chars: {elapsed:?} (bound 2 s, not asserted outside a milestone run)");
+    }
     assert_eq!(overflow_kinds(&out.findings), vec![OverflowKind::Truncated]);
     let r = runs(&out.display_list);
     assert_eq!(r.len(), 1);

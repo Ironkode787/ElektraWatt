@@ -93,7 +93,12 @@ fn timed<C: Command + DynCommand>(e: &mut Engine, cmd: &C) -> Duration {
 fn check(what: &str, elapsed: Duration, target: Duration) {
     eprintln!("{what}: {elapsed:.3?} (target {target:.3?})");
     if !cfg!(debug_assertions) {
-        assert!(elapsed < target, "{what}: {elapsed:?} is not below {target:?}");
+        // Timing policy (CLAUDE.md): asserted only in a milestone run (EW_PERF_ASSERT=1); printed otherwise.
+        if std::env::var_os("EW_PERF_ASSERT").is_some() {
+            assert!(elapsed < target, "{what}: {elapsed:?} is not below {target:?}");
+        } else {
+            eprintln!("{what}: {elapsed:?} (target {target:?}, not asserted outside a milestone run)");
+        }
     }
 }
 
