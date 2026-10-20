@@ -696,7 +696,9 @@ version = "0.0.0"
 dependencies = [
  "ew-api",
  "ew-commands",
+ "ew-derive",
  "ew-ids",
+ "ew-memo",
  "ew-mltext",
  "ew-model",
  "ew-rds",

@@ -114,8 +114,9 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 # which is crate-private otherwise (ARCH §3 rule 1).
 "ew-commands" = ["ew-commands"]
 # ew-testkit's tests and benches load generated projects through the Session facade and run commands
-# (WP-S1.05 benchmark harness).
-"ew-testkit" = ["ew-api", "ew-commands"]
+# (WP-S1.05 benchmark harness); the G-SP spike bench measures the ew-derive queries cold and prototypes their
+# memoisation over ew-memo (WP-S1.05, `benches/spike.rs`).
+"ew-testkit" = ["ew-api", "ew-commands", "ew-derive", "ew-memo"]
 
 # ew-derive's agreement tests compare its main-representation and tag rules with the numbering of ew-commands.
 "ew-derive" = ["ew-commands"]
