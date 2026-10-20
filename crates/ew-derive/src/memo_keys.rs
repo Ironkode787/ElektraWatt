@@ -400,6 +400,13 @@ fn index_keys(row: &AnyRow) -> Vec<(IndexName, IxKey)> {
     out
 }
 
+/// The integration tests' fixture builder, shared with the unit tests below. The `path` is relative to this
+/// file's directory (`src/`): a path attribute inside the inline `tests` module would be resolved against the
+/// non-existent `src/memo_keys/tests/`, which Windows tolerates (lexical `..`) and Linux and macOS do not.
+#[cfg(test)]
+#[path = "../tests/common/mod.rs"]
+mod test_common;
+
 #[cfg(test)]
 mod tests {
     use std::cell::Cell;
@@ -418,9 +425,7 @@ mod tests {
     use crate::q::Q;
     use crate::tracker::RecordingTracker;
 
-    #[path = "../../../tests/common/mod.rs"]
-    mod common;
-    use common::{Fx, id, uid};
+    use super::test_common::{Fx, id, uid};
 
     const FNDEF: u128 = 0x500;
     const SYM: u128 = 0x510;
