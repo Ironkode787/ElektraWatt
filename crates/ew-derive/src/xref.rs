@@ -543,7 +543,7 @@ fn xref_main_rep(q: &Q, device: Id<Device>) -> Option<Id<Representation>> {
 }
 
 /// One black box of a device on a page: its representation and its page-space bounding rectangle.
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub(crate) struct DeviceBox {
     rep: Id<Representation>,
     page: Id<Page>,

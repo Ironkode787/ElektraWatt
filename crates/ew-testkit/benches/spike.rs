@@ -1106,7 +1106,7 @@ fn bench_memo(
     }
     // Setup (untimed): the store warmed on the baseline.
     let db0 = ModelDb::new(baseline);
-    let mut warm = store_at(&db0);
+    let warm = store_at(&db0);
     let (_, t_partition) = time(|| {
         warm.get::<Memo<PotentialPartition>>(&db0, &())
             .expect("memo setup: no query cycle")

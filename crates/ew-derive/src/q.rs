@@ -6,6 +6,7 @@
 use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::fmt;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use ew_ids::Id;
@@ -16,10 +17,15 @@ use ew_schema::{
     SymbolDef,
 };
 
+use crate::memo_keys::{self, MemoInput, PartKey};
+use crate::memo_store::{self, MemoOf};
 use crate::note::DeriveNote;
 use crate::profile::{self, DerivationProfile, ProfileStatus};
-use crate::query::{Cache, Lookup, Query};
+use crate::query::{Cache, Lookup, Policy, Query};
 use crate::tracker::{ColdTracker, DepKey, IxKey, Tracker};
+
+/// The memo store a `Q` from a [`MemoStore`](crate::MemoStore) reads through (ADR-0002 amendment 4).
+pub(crate) type DeriveStore = ew_memo::Store<Q>;
 
 /// The tracked-read context: one model snapshot, a tracker and the request-scoped cache.
 ///
@@ -39,8 +45,17 @@ use crate::tracker::{ColdTracker, DepKey, IxKey, Tracker};
 /// The session installs the report engine on every `Q` it hands out; `Q::new` without a provider is the
 /// "no reports" configuration for tests. The provider is fixed before the first query (installing it
 /// clears the cache), and no query body can observe whether one is installed ([`Q::has_report_pages`]
-/// takes `&mut self`). Once ew-memo memoises across requests, the provider is part of the store's
-/// configuration: one provider per store, never switched between evaluations that share memo tables.
+/// takes `&mut self`). A memoising `Q` takes its provider from its [`MemoStore`](crate::MemoStore): one
+/// provider per store, never switched between evaluations that share memo tables.
+///
+/// # Memoisation
+///
+/// A `Q` from [`MemoStore::query`](crate::MemoStore::query) reads the `Memo` and `MemoLru` families through
+/// the store's `ew-memo` engine (ADR-0002 amendment 4): a read of such a family inside another records one
+/// memo dependency, not the nested family's reads; cold families run inside the execution that reads them
+/// (each memo execution has its own request cache, so their reads are recorded where they are used); the
+/// notes a memoised family pushed are kept with its value and replayed into every `Q` that reads it. A
+/// query that caught a cycle ([`Q::try_get`]) makes its execution volatile: its value is not kept.
 ///
 /// ```compile_fail
 /// // A query cannot reach the model behind `Q`: there is no accessor and the field is private.
@@ -51,13 +66,17 @@ use crate::tracker::{ColdTracker, DepKey, IxKey, Tracker};
 pub struct Q {
     model: Model,
     tracker: Box<dyn Tracker>,
-    cache: RefCell<Cache>,
-    notes: RefCell<BTreeSet<DeriveNote>>,
+    /// The request-scoped caches: the request's, then one per memo execution in progress.
+    cache: RefCell<Vec<Cache>>,
+    /// The notes: the request's, then the notes of each memo execution in progress.
+    notes: RefCell<Vec<BTreeSet<DeriveNote>>>,
     profile: &'static DerivationProfile,
     profile_status: ProfileStatus,
     /// The report engine behind generated pages (`Q::with_report_pages`, WP-S3.03); none by default.
     /// Configuration, not a tracked input: see the type documentation.
     pub(crate) report_pages: crate::pages::ProviderSlot,
+    /// The memo store of a memoising `Q`, which holds this `Q`'s snapshot at its current revision.
+    memo: Option<Rc<DeriveStore>>,
 }
 
 /// Prints nothing a query could use to tell snapshots apart: no revision, no cache state.
@@ -78,8 +97,10 @@ impl<Qy: Query> Drop for UnwindGuard<'_, Qy> {
     fn drop(&mut self) {
         if let Some(key) = self.key.take() {
             // `try_borrow_mut`: a panic raised while the cache was borrowed must not double-panic.
-            if let Ok(mut cache) = self.q.cache.try_borrow_mut() {
-                cache.abort::<Qy>(&key);
+            if let Ok(mut cache) = self.q.cache.try_borrow_mut()
+                && let Some(top) = cache.last_mut()
+            {
+                top.abort::<Qy>(&key);
             }
             self.q.tracker.exit(Qy::FAMILY);
         }
@@ -116,14 +137,21 @@ pub struct Diagnostics<'q> {
 }
 
 impl Diagnostics<'_> {
-    /// The number of keys of `family` evaluated (or evaluating) so far.
+    /// The number of keys of `family` evaluated (or evaluating) so far in this `Q`'s request cache. A
+    /// memoising `Q` keeps its memoised families in the store, not here.
     pub fn cached(&self, family: &str) -> usize {
-        self.q.cache.borrow().len_of(family)
+        self.q.cache.borrow().first().map_or(0, |c| c.len_of(family))
     }
 
-    /// The notes so far, in the canonical order of [`DeriveNote`] (independent of evaluation order).
+    /// The notes so far, in the canonical order of [`DeriveNote`] (independent of evaluation order); for a
+    /// memoising `Q` also the notes of the memoised values it read.
     pub fn notes(&self) -> Vec<DeriveNote> {
-        self.q.notes.borrow().iter().cloned().collect()
+        self.q
+            .notes
+            .borrow()
+            .first()
+            .map(|n| n.iter().cloned().collect())
+            .unwrap_or_default()
     }
 }
 
@@ -149,11 +177,133 @@ impl Q {
         Q {
             model,
             tracker,
-            cache: RefCell::new(Cache::default()),
-            notes: RefCell::new(notes),
+            cache: RefCell::new(vec![Cache::default()]),
+            notes: RefCell::new(vec![notes]),
             profile,
             profile_status,
             report_pages: crate::pages::ProviderSlot::default(),
+            memo: None,
+        }
+    }
+
+    /// A memoising context over `model`, the snapshot `store` was last advanced to, with the store's report
+    /// engine (see [`MemoStore::query`](crate::MemoStore::query)).
+    pub(crate) fn with_memo(
+        model: &Model,
+        store: Rc<DeriveStore>,
+        provider: Option<Arc<dyn crate::ReportPagesProvider>>,
+    ) -> Q {
+        let mut q = Q::new(model);
+        q.report_pages = crate::pages::ProviderSlot(provider);
+        q.memo = Some(store);
+        q
+    }
+
+    /// A cold context over the same snapshot with the same report engine: the reference of oracle mode.
+    pub(crate) fn cold_twin(&self) -> Q {
+        let mut q = Q::new(&self.model);
+        q.report_pages = crate::pages::ProviderSlot(self.report_pages.0.clone());
+        q
+    }
+
+    /// The memo store, when this `Q` memoises and its snapshot is the store's current one.
+    fn memo_store(&self) -> Option<&DeriveStore> {
+        self.memo
+            .as_deref()
+            .filter(|s| s.current().0 == self.model.rev().0)
+    }
+
+    /// Runs one memo execution of `Qy` (the body of [`MemoOf`]): its own request cache and note set, the
+    /// tracker bracket; returns the value and the notes the execution pushed (nested memoised values'
+    /// replayed notes included). A panic in `body` unwinds the frames.
+    pub(crate) fn memo_frame<Qy: Query>(
+        &self,
+        key: &Qy::Key,
+        body: impl FnOnce() -> Arc<Qy::Value>,
+    ) -> (Arc<Qy::Value>, Vec<DeriveNote>) {
+        struct Frames<'q> {
+            q: &'q Q,
+            family: &'static str,
+            armed: bool,
+        }
+        impl Drop for Frames<'_> {
+            fn drop(&mut self) {
+                if self.armed {
+                    if let Ok(mut c) = self.q.cache.try_borrow_mut() {
+                        c.pop();
+                    }
+                    if let Ok(mut n) = self.q.notes.try_borrow_mut() {
+                        n.pop();
+                    }
+                    self.q.tracker.exit(self.family);
+                }
+            }
+        }
+        self.cache.borrow_mut().push(Cache::default());
+        self.notes.borrow_mut().push(BTreeSet::new());
+        self.tracker.enter(Qy::FAMILY, key);
+        let mut frames = Frames {
+            q: self,
+            family: Qy::FAMILY,
+            armed: true,
+        };
+        let value = body();
+        frames.armed = false;
+        self.tracker.exit(Qy::FAMILY);
+        self.cache.borrow_mut().pop();
+        let notes = self.notes.borrow_mut().pop().unwrap_or_default();
+        (value, notes.into_iter().collect())
+    }
+
+    /// Adds the notes of a memoised value to the innermost note set (a read of the value).
+    pub(crate) fn replay(&self, notes: &[DeriveNote]) {
+        if notes.is_empty() {
+            return;
+        }
+        if let Some(top) = self.notes.borrow_mut().last_mut() {
+            top.extend(notes.iter().cloned());
+        }
+    }
+
+    /// A query caught a cycle: the memo execution it runs in depends on the evaluation context.
+    fn caught_cycle(&self) {
+        if let Some(store) = self.memo_store() {
+            store.set_volatile();
+        }
+    }
+
+    /// The key of family `F` that a memo or part entry of [`Changes::via`](crate::Changes::via) names (an
+    /// incremental hook maps the dependencies it was marked through); `None` for an input, another family,
+    /// or a `Q` that does not memoise.
+    pub fn via_key<F: Query>(&self, dep: &ew_memo::DepKey<MemoInput>) -> Option<F::Key> {
+        self.memo_store()?.key_of::<MemoOf<F>>(dep)
+    }
+
+    /// The value of `Qy` for `key`, depending on its part `part` only (ADR-0002 amendment 4): in a memoising
+    /// `Q` the reading execution is invalidated when `Qy`'s execution declares `part` changed, not on every
+    /// change of `Qy`. The caller must read only what `part` names. Cold, it is [`Q::get`].
+    // Read by the per-potential families once the partition is a producer of parts (WP-S1.07 next step).
+    #[allow(dead_code)]
+    pub(crate) fn get_part<Qy: Query>(&self, key: Qy::Key, part: PartKey) -> Arc<Qy::Value> {
+        if Qy::POLICY != Policy::Cold
+            && let Some(store) = self.memo_store()
+        {
+            self.tracker.query_read(Qy::FAMILY, &key);
+            return match memo_store::get_part::<Qy>(self, store, &key, part) {
+                Ok(v) => v,
+                Err(cycle) => panic!("{cycle}"),
+            };
+        }
+        self.get::<Qy>(key)
+    }
+
+    /// Declares, in an incremental execution of a producer, that these parts of its value changed (the
+    /// readers of other parts stay valid). Cold, it does nothing.
+    // Called by the incremental partition (WP-S1.07 next step).
+    #[allow(dead_code)]
+    pub(crate) fn changed_parts(&self, parts: impl IntoIterator<Item = PartKey>) {
+        if let Some(store) = self.memo_store() {
+            store.changed_parts(parts.into_iter().map(MemoInput::Part));
         }
     }
 
@@ -183,15 +333,27 @@ impl Q {
     /// When two query types share one family name.
     pub fn try_get<Qy: Query>(&self, key: Qy::Key) -> Result<Arc<Qy::Value>, Cycle> {
         self.tracker.query_read(Qy::FAMILY, &key);
-        let lookup = self.cache.borrow_mut().lookup::<Qy>(&key);
+        if Qy::POLICY != Policy::Cold
+            && let Some(store) = self.memo_store()
+        {
+            let got = memo_store::get::<Qy>(self, store, &key);
+            if got.is_err() {
+                self.caught_cycle();
+            }
+            return got;
+        }
+        let lookup = self.top_cache(|c| c.lookup::<Qy>(&key));
         match lookup {
             Lookup::Hit(v) => Ok(v),
-            Lookup::Running => Err(Cycle {
-                family: Qy::FAMILY,
-                key: format!("{key:?}"),
-            }),
+            Lookup::Running => {
+                self.caught_cycle();
+                Err(Cycle {
+                    family: Qy::FAMILY,
+                    key: format!("{key:?}"),
+                })
+            }
             Lookup::Miss => {
-                self.cache.borrow_mut().start::<Qy>(key.clone());
+                self.top_cache(|c| c.start::<Qy>(key.clone()));
                 self.tracker.enter(Qy::FAMILY, &key);
                 let mut guard = UnwindGuard::<Qy> {
                     q: self,
@@ -200,10 +362,15 @@ impl Q {
                 let value = Qy::run(self, &key);
                 guard.key = None;
                 self.tracker.exit(Qy::FAMILY);
-                self.cache.borrow_mut().finish::<Qy>(key, Arc::clone(&value));
+                self.top_cache(|c| c.finish::<Qy>(key, Arc::clone(&value)));
                 Ok(value)
             }
         }
+    }
+
+    /// Runs `f` on the innermost request cache.
+    fn top_cache<R>(&self, f: impl FnOnce(&mut Cache) -> R) -> R {
+        f(self.cache.borrow_mut().last_mut().expect("the request cache"))
     }
 
     /// This context with the report engine installed: [`PageOrder`](crate::PageOrder) then includes the
@@ -213,11 +380,15 @@ impl Q {
     #[must_use]
     pub fn with_report_pages(mut self, provider: Arc<dyn crate::ReportPagesProvider>) -> Q {
         self.report_pages = crate::pages::ProviderSlot(Some(provider));
-        *self.cache.get_mut() = Cache::default();
+        *self.cache.get_mut() = vec![Cache::default()];
         // Only the snapshot's own note (an unknown pinned profile) is independent of query evaluation.
-        self.notes
-            .get_mut()
-            .retain(|n| matches!(n, DeriveNote::UnknownProfile { .. }));
+        let notes = self.notes.get_mut();
+        notes.truncate(1);
+        if let Some(n) = notes.first_mut() {
+            n.retain(|n| matches!(n, DeriveNote::UnknownProfile { .. }));
+        }
+        // A provider switched on a memoising `Q` would mix configurations in one store: memoise no more.
+        self.memo = None;
         self
     }
 
@@ -235,7 +406,9 @@ impl Q {
 
     /// Records a derivation note (see [`DeriveNote`]). Notes form a set: pushing one twice keeps one.
     pub fn note(&self, note: DeriveNote) {
-        self.notes.borrow_mut().insert(note);
+        if let Some(top) = self.notes.borrow_mut().last_mut() {
+            top.insert(note);
+        }
     }
 
     /// Records a cycle returned by [`Q::try_get`] as a [`DeriveNote::QueryCycle`].
@@ -401,6 +574,33 @@ impl Q {
 
     fn read(&self, dep: DepKey, observed: Rev) {
         self.tracker.read(dep, observed);
+        if let Some(store) = self.memo_store() {
+            let input = MemoInput::Read(dep);
+            let durability = memo_keys::durability(&input);
+            store.read_at(input, ew_memo::Rev(observed.0), durability);
+        }
+    }
+}
+
+/// The memo engine's view of a `Q`'s snapshot (ADR-0002 amendment 4): the stamps of the tracked reads, their
+/// durability and their page-level registration keys (`memo_keys`).
+impl ew_memo::Db for Q {
+    type Input = MemoInput;
+
+    fn changed_at(&self, input: &MemoInput) -> ew_memo::Rev {
+        match input {
+            MemoInput::Read(dep) => ew_memo::Rev(memo_keys::stamp(&self.model, dep).0),
+            // Registration keys and parts are never recorded as input dependencies; conservative.
+            _ => ew_memo::Rev(self.model.rev().0),
+        }
+    }
+
+    fn durability(&self, input: &MemoInput) -> ew_memo::Durability {
+        memo_keys::durability(input)
+    }
+
+    fn coarse(&self, input: &MemoInput) -> MemoInput {
+        memo_keys::coarse(&self.model, input)
     }
 }
 

@@ -251,7 +251,8 @@ fn reads_report_non_zero_stamps_after_a_commit() {
 
 /// The public surface hands out no `Model`, `Table`, `RevIndex` or `Op` (ARCH §3 rule 1, ADR-0002
 /// amendment 2): every `pub fn` signature and `pub` field of the crate's sources is scanned; the only
-/// `Model` is the input of `Q::new` and `Q::with_tracker`. The `compile_fail` doctests on `Q` and
+/// `Model` is the input of `Q::new`, `Q::with_tracker` and the `MemoStore` constructor and advances. The
+/// `compile_fail` doctests on `Q` and
 /// `Q::diagnostics` prove that the private field and the untracked handle cannot be reached from `&Q`.
 #[test]
 fn the_public_api_exposes_no_raw_model_access() {
@@ -278,9 +279,14 @@ fn the_public_api_exposes_no_raw_model_access() {
                 let hit = sig
                     .split(|c: char| !(c.is_alphanumeric() || c == '_'))
                     .any(|w| w == word);
+                // Inputs only: `Q::new`, `Q::with_tracker` and `MemoStore::new` take the snapshot to read,
+                // `MemoStore::advance` and `MemoStore::replace` the snapshot the store moves to; none of them
+                // returns a row, a table or the model (ADR-0002 amendment 4).
                 let allowed = word == "Model"
                     && (sig.starts_with("pub fn new(model: &Model)")
-                        || sig.starts_with("pub fn with_tracker(model: &Model,"));
+                        || sig.starts_with("pub fn with_tracker(model: &Model,")
+                        || sig.starts_with("pub fn advance(&self, after: &Model, keys: &[AnyKey])")
+                        || sig.starts_with("pub fn replace(&self, model: &Model)"));
                 assert!(!hit || allowed, "{}: `{sig}` exposes {word}", file.display());
             }
             rest = &rest[sig_end..];

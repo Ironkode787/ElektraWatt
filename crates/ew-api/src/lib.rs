@@ -57,14 +57,14 @@ use std::collections::BTreeSet;
 use std::path::Path;
 use std::sync::Arc;
 
-use ew_derive::{DeviceTag, FrameGridOf, FrameSettings, NumberingSettingsOf, Q, ReportPagesProvider};
+use ew_derive::{DeviceTag, FrameGridOf, FrameSettings, NumberingSettingsOf, Oracle, Q, ReportPagesProvider};
 use ew_model::{AnyKey, Model, ModelError, PreventHook};
 use ew_schema::{LibDocument, Project, Record};
 use ew_store::{
     Changes, LockState, OpenError, OpenReport, RecoverError, SaveError, SaveReport, Store, StoreOptions,
 };
 
-pub use ew_derive::{DeriveNote, NoteSeverity};
+pub use ew_derive::{DeriveNote, MemoStore, Mismatch, NoteSeverity};
 
 pub use ew_commands::{
     AnyCommand, Change, CmdError, CommandRegistry, DynCommand, History, HistoryLimits, IdSource, Origin,
@@ -83,6 +83,22 @@ pub struct SessionOptions {
     pub ids: Option<Box<dyn IdSource + Send>>,
     /// The prevent-rule hook (`ew-checks` from WP-S1.15); none when `None`.
     pub prevent: Option<Box<dyn PreventHook>>,
+    /// Whether [`Session::query`] memoises across requests (ADR-0002 amendment 4), and with oracle mode.
+    pub memo: MemoMode,
+}
+
+/// How a session's derived values are evaluated (ADR-0002 decisions 2–3, amendment 4).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum MemoMode {
+    /// Every [`Session::query`] is cold (request-scoped cache only).
+    Off,
+    /// The `Memo` and `MemoLru` families are memoised in the session's [`MemoStore`], advanced with push
+    /// invalidation after every commit.
+    #[default]
+    On,
+    /// As `On`, and every memoised read is also computed cold and compared (CI, debug sessions); read the
+    /// mismatches with [`Session::take_oracle_mismatches`].
+    Oracle,
 }
 
 impl Default for SessionOptions {
@@ -92,6 +108,7 @@ impl Default for SessionOptions {
             history: HistoryLimits::default(),
             ids: None,
             prevent: None,
+            memo: MemoMode::default(),
         }
     }
 }
@@ -101,6 +118,7 @@ impl std::fmt::Debug for SessionOptions {
         f.debug_struct("SessionOptions")
             .field("origin", &self.origin)
             .field("history", &self.history)
+            .field("memo", &self.memo)
             .finish_non_exhaustive()
     }
 }
@@ -170,6 +188,8 @@ pub struct Session {
     load_findings: Vec<DerivationFinding>,
     /// The report engine installed on every `Q` the session builds (WP-S3.03).
     reports: Arc<dyn ReportPagesProvider>,
+    /// The memo store of [`Session::query`] (`None`: [`MemoMode::Off`]).
+    memo: Option<MemoStore>,
     persistence: Option<Persistence>,
     /// Change-feed entries taken from the engine for the journal, not yet drained by the front-end.
     changes: Vec<Change>,
@@ -196,9 +216,21 @@ impl Session {
             .take_while(char::is_ascii_alphanumeric)
             .collect::<String>()
             .to_ascii_lowercase();
+        let reports = ew_reports::engine();
+        let memo = match options.memo {
+            MemoMode::Off => None,
+            mode => {
+                let store = MemoStore::new(&model).with_report_pages(Arc::clone(&reports));
+                if mode == MemoMode::Oracle {
+                    store.set_oracle(Oracle::Every);
+                }
+                Some(store)
+            }
+        };
         Session {
             load_findings,
-            reports: ew_reports::engine(),
+            reports,
+            memo,
             persistence: None,
             changes: Vec::new(),
             origin,
@@ -233,11 +265,30 @@ impl Session {
     /// A tracked-read context over the current snapshot with the report engine installed, so that
     /// `page_order`, the TOC, Prev/Next and title blocks include the generated report pages (doc 09 §3.1,
     /// FR-REP-001). Request-scoped: build one per evaluation (a frame, an export pass).
+    ///
+    /// With [`MemoMode::On`] (the default) the `Q` memoises across requests in the session's memo store.
     pub fn query(&self) -> Q {
-        self.query_over(&self.engine.world().model)
+        match &self.memo {
+            Some(memo) => memo.query(),
+            None => self.query_over(&self.engine.world().model),
+        }
     }
 
-    /// [`Session::query`] over another snapshot (a preview's candidate model, an export fork).
+    /// The session's memo store (statistics, memory, oracle mode); `None` with [`MemoMode::Off`].
+    pub fn memo(&self) -> Option<&MemoStore> {
+        self.memo.as_ref()
+    }
+
+    /// The oracle's mismatches since the last call ([`MemoMode::Oracle`]): memoised values that differ from
+    /// a cold run, which is a memo-engine bug.
+    pub fn take_oracle_mismatches(&self) -> Vec<Mismatch> {
+        self.memo
+            .as_ref()
+            .map(MemoStore::take_mismatches)
+            .unwrap_or_default()
+    }
+
+    /// [`Session::query`] over another snapshot (a preview's candidate model, an export fork): cold.
     pub fn query_over(&self, model: &Model) -> Q {
         Q::new(model).with_report_pages(Arc::clone(&self.reports))
     }
@@ -353,12 +404,10 @@ impl Session {
     // ---------------------------------------------------------------------------------------------------------
     // Persistence (WP-S1.09)
 
-    /// After a mutating call: takes the change feed's new entries, adds their keys to the dirty set and
-    /// journals the transaction (doc 05 §8.1). Without a store the feed is left to the front-end.
+    /// After a mutating call: takes the change feed's new entries (kept for [`Session::drain_changes`]),
+    /// advances the memo store with their keys (push invalidation), adds them to the dirty set and journals
+    /// the transaction (doc 05 §8.1).
     fn committed(&mut self, before: &Model, cmd: &str) {
-        let Some(p) = &mut self.persistence else {
-            return;
-        };
         let changes = self.engine.drain_changes();
         if changes.is_empty() {
             return;
@@ -369,6 +418,13 @@ impl Session {
             .collect::<BTreeSet<_>>()
             .into_iter()
             .collect();
+        if let Some(memo) = &self.memo {
+            memo.advance(self.engine.model(), &keys);
+        }
+        let Some(p) = &mut self.persistence else {
+            self.changes.extend(changes);
+            return;
+        };
         p.unsaved.extend(keys.iter().copied());
         // A journal failure leaves the edit standing; the store reports the journal as unavailable.
         let _ = p

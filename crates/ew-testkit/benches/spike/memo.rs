@@ -318,7 +318,7 @@ where
 
 /// A store over [`ModelDb`] at the revision of `db`'s snapshot (advanced once when it is past zero).
 pub fn store_at(db: &ModelDb) -> Store<ModelDb> {
-    let mut store = Store::new();
+    let store = Store::new();
     if db.rev() > Rev::ZERO {
         store.advance(db.rev(), Durability::Library);
     }

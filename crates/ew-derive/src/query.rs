@@ -10,37 +10,93 @@ use std::sync::Arc;
 
 /// How a query family is evaluated (ADR-0002 decisions 2–3, ARCH §6.4 "Initial policy").
 ///
-/// Phase 1 evaluates every family cold with the request-scoped cache, whatever its policy; the policy is
-/// the declaration the memo engine reads once it exists (the performance spike, G-SP). Promoting or
-/// demoting a family is a one-line change of its `POLICY`.
+/// A `Q` without a memo store evaluates every family cold with its request-scoped cache. A `Q` from a
+/// [`MemoStore`](crate::MemoStore) memoises the `Memo` and `MemoLru` families in the store across requests
+/// (ADR-0002 amendment 4); promoting or demoting a family is a one-line change of its `POLICY`.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum Policy {
-    /// Recomputed on demand; cached only within one `Q`.
+    /// Recomputed on demand; cached only within one `Q` (and within one memo execution).
     Cold,
-    /// Memoised with red-green verification and early cut-off.
+    /// Memoised with red-green verification, push invalidation and early cut-off.
     Memo,
     /// Memoised and evicted by the byte-budget LRU (bulky values).
     MemoLru,
+}
+
+/// What changed for an incremental family since its memo was last verified ([`Query::run_incremental`]):
+/// the touched inputs of the commits in between and the dependencies through which the memo was marked.
+#[derive(Clone, Copy, Debug)]
+pub struct Changes<'a> {
+    pub(crate) inner: &'a ew_memo::Changes<crate::MemoInput>,
+}
+
+impl<'a> Changes<'a> {
+    /// The inputs the commits since the last verification touched (fine reads and their coarse keys,
+    /// [`MemoInput`](crate::MemoInput)), in revision order; `None` when the store no longer holds them.
+    pub fn touched(&self) -> Option<&'a [crate::MemoInput]> {
+        self.inner.touched.as_deref()
+    }
+
+    /// The dependencies through which the memo was marked possibly changed; `None` when unknown. Map a
+    /// memo or part entry to its family's key with [`Q::via_key`](crate::Q::via_key).
+    pub fn via(&self) -> Option<&'a [ew_memo::DepKey<crate::MemoInput>]> {
+        self.inner.via.as_deref()
+    }
 }
 
 /// A family of derived values: a pure function `fn(q: &Q, key) -> Arc<V>` (ADR-0002 decision 1).
 ///
 /// `run` receives only `&Q`, whose accessors are all tracked; it must not read anything else (no clock,
 /// no environment, no global state), iterate no hash map into its result, use no floating point, and
-/// round ties toward zero. Callers go through [`Q::get`](crate::Q::get), never `run`, so that the cache
-/// and the tracker see every evaluation.
+/// round ties toward zero. Callers go through [`Q::get`](crate::Q::get), never `run`, so that the cache,
+/// the memo store and the tracker see every evaluation.
+///
+/// Values are compared (`Eq`) for early cut-off and by the oracle, which checks that a memoised value equals
+/// a cold `run` (ADR-0002 decision 4).
 pub trait Query: 'static {
     /// The key; its order is the order of the family's memo table.
-    type Key: Ord + Clone + fmt::Debug + 'static;
+    type Key: Ord + Clone + fmt::Debug + Send + Sync + 'static;
     /// The value, shared behind an `Arc`.
-    type Value: fmt::Debug + Send + Sync + 'static;
+    type Value: fmt::Debug + Eq + Send + Sync + 'static;
     /// The family name, unique in the crate (see [`FAMILIES`](crate::FAMILIES)).
     const FAMILY: &'static str;
     /// The initial policy.
     const POLICY: Policy;
 
-    /// Computes the value for `key`.
+    /// Whether memoised evaluations go through [`Query::run_incremental`] (ADR-0002 amendment 4).
+    const INCREMENTAL: bool = false;
+
+    /// Whether early cut-off and the oracle compare [`Query::fingerprint`]s (128 bits) instead of the values:
+    /// for bulky values whose comparison would cost as much as the change.
+    const FINGERPRINT: bool = false;
+
+    /// Computes the value for `key`: the cold reference.
     fn run(q: &crate::Q, key: &Self::Key) -> Arc<Self::Value>;
+
+    /// Computes the value in a memoised evaluation of an [`INCREMENTAL`](Query::INCREMENTAL) family, from the
+    /// previous value and what changed since (`None`: from scratch). It starts with the previous memo's
+    /// dependencies recorded; it must re-read every dependency its new value relies on that `changes` names,
+    /// account for every entry of [`Changes::via`], and declare the parts it changed when it is a producer.
+    /// The result must equal [`Query::run`]; the oracle checks it.
+    fn run_incremental(
+        q: &crate::Q,
+        key: &Self::Key,
+        previous: Option<(&Arc<Self::Value>, Changes<'_>)>,
+    ) -> Arc<Self::Value> {
+        let _ = previous;
+        Self::run(q, key)
+    }
+
+    /// The bytes a value occupies (the memory gate, NFR-PERF-13; ADR-0002 amendment 4 item (d)).
+    fn bytes(_value: &Self::Value) -> usize {
+        std::mem::size_of::<Self::Value>()
+    }
+
+    /// The 128-bit fingerprint of a value, for [`FINGERPRINT`](Query::FINGERPRINT) families: equal values have
+    /// equal fingerprints, and different ones differ with overwhelming probability.
+    fn fingerprint(_value: &Self::Value) -> u128 {
+        0
+    }
 }
 
 /// One cache slot: running (for cycle detection) or done.

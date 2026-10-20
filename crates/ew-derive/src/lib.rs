@@ -50,6 +50,8 @@ mod bom;
 mod cell;
 mod cps;
 mod flow;
+mod memo_keys;
+mod memo_store;
 mod nets;
 mod note;
 mod pages;
@@ -75,6 +77,10 @@ pub use cell::{
     anchor_point, default_frame_grid, frame_grid,
 };
 pub use cps::{Cp, FunctionCps};
+pub use memo_keys::{MemoInput, PartKey};
+pub use memo_store::MemoStore;
+// The memo engine types a session configures and reads (oracle mode, statistics, memory).
+pub use ew_memo::{Counters, FamilyMemory, Mismatch, Oracle, Stats};
 pub use flow::{Flow, FlowBfs, FlowEntry, Load, PotentialFlow, Upstream};
 pub use nets::{CpRef, LocalNet, LocalNets, NetId, NetMember, PageLocalNets, joins_net};
 pub use note::{DeriveNote, EW_CORE_018, NoteSeverity, SchemeIssue};
@@ -92,7 +98,7 @@ pub use profile::{
     by_version as profile_by_version, numbering_settings, scheme_for, shipped as shipped_profiles,
 };
 pub use q::{Cycle, Diagnostics, IdxView, Q, TableView};
-pub use query::{Policy, Query};
+pub use query::{Changes, Policy, Query};
 pub use stitch::{
     EdgeKind, IpGroup, IpInfo, Level, PairMode, ShortSource, StitchEdge, StitchGraph, StitchGraphQ,
     StitchNode,
