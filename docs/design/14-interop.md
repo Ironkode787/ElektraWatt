@@ -581,6 +581,10 @@ map one to one:
 - **Link type.** `simple` and `master` form devices; `slave` forms auxiliary functions; `next_report` and
   `previous_report` become interruption points (the built-in FnDef `ew.fn.ip`, §4.3, not generated); `terminal`
   forms terminals; `thumbnail` becomes a graphic.
+- **Coverage of the pilot corpus.** [23](23-symbol-coverage-pilot-corpus.md) maps the 81 element types of the pilot's
+  three real projects to the starter set (§4.3 step 1) and lists the mapping entries for the project importer (M-01 to
+  M-09): 37 types resolve to starter symbols, 29 stay black boxes (EW-IMP-119), 2 are replaced by report blocks or
+  layout, 13 wait for new symbols.
 
 ### 4.4 Element instances → devices, functions, representations
 

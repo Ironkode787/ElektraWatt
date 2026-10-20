@@ -230,6 +230,16 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   reference a built-in FnDef by key with `version_req` `^0.1`: `ew-import-qet` has exactly one, `ew.fn.ip`
   ([14](14-interop.md) §4.3). Until WP-S1.19a names the system library, the starter content and the importer use
   the provisional `library_id` 7202fd8b-1024-4bf1-9e99-670772eaa589 (open question 17).
+- **Coverage of the pilot corpus** ([23](23-symbol-coverage-pilot-corpus.md)). Against the 81 QET element types that the
+  pilot's three real projects use (2,170 placed elements), the 36-symbol starter set covers 37 types and 74 % of the uses,
+  two more types (the nomenclature block and a mounting plate) are covered by report blocks and panel layout, 29 types
+  (vendor PLC, valve-terminal and safety modules, plus 11 unproven elements) stay black boxes with the embedded QET
+  graphics, and 13 types lack a symbol. One family dominates the gap: the female connector half (224 of 251 missing
+  uses), followed by cable screen, temperature sensor, two-pole MCB, disconnectors, socket, RCD, power supply, emergency
+  stop, electronic switch and level sensor. The note ranks the families, records the pilot's drawing style (wiring marks,
+  terminal and interruption-point density, nomenclature blocks as bill of materials, slice-wise valve terminals,
+  one-terminal-per-channel PLC modules) and proposes fifteen symbol tickets and nine importer mapping entries. It adds no
+  requirement and changes no key; whether the additions join the starter set or WP-S7.04 is the lead's decision.
 
 ### 2.4 Function definitions and connection-point designations
 
