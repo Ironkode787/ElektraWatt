@@ -165,16 +165,19 @@ impl QetProjectImporter {
         let mut findings = Findings::new(input.name(), MAX_PROJECT_ENTRIES);
         let project = read::read_project(xml, &mut findings, limits)?;
 
-        // Lineage: the context's, else a new one anchored on the file hash (QET 0.100 has no project UUID).
+        // Lineage: the context's, else a new one anchored on the QET 0.200+ project UUID, else on the file
+        // hash (doc 14 §2.3; QET 0.100 has no project UUID).
         let mut records: Vec<Record> = Vec::new();
+        let project_uuid = project.uuid.as_deref().and_then(|u| Uuid::parse_str(u).ok());
         let lineage = match ctx.lineage {
             Some(l) => l,
             None => {
-                let namespace = v5::lineage_namespace(
-                    crate::IMPORTER_ID,
-                    &v5::LineageAnchor::FirstImportSha256(input.sha256()),
-                )
-                .unwrap_or_else(|_| unreachable!("\"qet\" is a valid importer name"));
+                let anchor = match project_uuid {
+                    Some(u) => v5::LineageAnchor::QetProjectUuid(u),
+                    None => v5::LineageAnchor::FirstImportSha256(input.sha256()),
+                };
+                let namespace = v5::lineage_namespace(crate::IMPORTER_ID, &anchor)
+                    .unwrap_or_else(|_| unreachable!("\"qet\" is a valid importer name"));
                 let id: Id<ImportLineage> = v5::imported_id(namespace, LINEAGE_KEY);
                 records.push(Record::ImportLineage(ImportLineage {
                     id,
@@ -182,7 +185,10 @@ impl QetProjectImporter {
                     importer: Ident::from_input(crate::IMPORTER_ID)
                         .unwrap_or_else(|_| unreachable!("\"qet\" is an identifier")),
                     source_name: input.name().to_owned(),
-                    anchor: LineageAnchor::FirstImportSha256(Sha256(input.sha256())),
+                    anchor: match project_uuid {
+                        Some(u) => LineageAnchor::QetProjectUuid(Id::from_uuid(u)),
+                        None => LineageAnchor::FirstImportSha256(Sha256(input.sha256())),
+                    },
                     namespace: Id::from_uuid(namespace),
                     last_source_sha256: Some(Sha256(input.sha256())),
                     last_run: None,

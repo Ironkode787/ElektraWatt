@@ -45,6 +45,9 @@ pub struct PageInfo {
     pub id: Id<Page>,
     /// The folio label as EW prints it (for report locations and tag inference).
     pub folio: String,
+    /// The folio key of source keys (doc 14 §2.3): the printed folio, or `order-<position>` for a folio
+    /// printed by an earlier diagram too.
+    pub key: String,
 }
 
 /// What the page mapper emits.
@@ -104,10 +107,12 @@ fn evaluate_folio(
         };
     }
     if let Ok(n) = text.parse::<u32>() {
+        // "01" keeps its text as the label, so EW prints what QET printed.
+        let plain = n.to_string() == text;
         return Evaluated {
             number: n,
-            label: None,
-            printed: n.to_string(),
+            label: if plain { None } else { Ident::from_input(text).ok() },
+            printed: text.to_owned(),
         };
     }
     let digits: String = text.chars().take_while(char::is_ascii_digit).collect();
@@ -121,16 +126,6 @@ fn evaluate_folio(
     }
 }
 
-/// The most frequent value (ties: the smallest value) of `values`.
-fn majority<'a>(values: impl Iterator<Item = &'a str>) -> Option<&'a str> {
-    let mut count: BTreeMap<&str, usize> = BTreeMap::new();
-    for v in values {
-        *count.entry(v).or_default() += 1;
-    }
-    let best = count.values().copied().max()?;
-    count.into_iter().find(|(_, n)| *n == best).map(|(v, _)| v)
-}
-
 /// An ISO `YYYY-MM-DD` date.
 fn iso_date(s: &str) -> Option<Date> {
     let mut it = s.trim().splitn(3, '-');
@@ -140,57 +135,102 @@ fn iso_date(s: &str) -> Option<Date> {
     Date::new(y, m, d).ok()
 }
 
+/// The most folio labels one EW-IMP-104 message lists per value.
+const MAX_FOLIOS_LISTED: usize = 10;
+
+/// What one name holds over the folios while lifting.
+struct NameState<'a> {
+    /// The first value seen.
+    first: &'a str,
+    /// Whether every value seen equals `first`.
+    all_equal: bool,
+    /// The number of folios that have the name.
+    present: usize,
+    /// The folios (diagram indexes) per value.
+    folios_per_value: BTreeMap<&'a str, Vec<usize>>,
+}
+
+/// The result of [`lift`]: the project member, the member per page, and the number of (folio, name)
+/// visits it made (at most twice the number of entries: one pass to collect, one to distribute).
+pub(crate) struct Lifted {
+    pub(crate) project: serde_json::Map<String, Value>,
+    pub(crate) pages: Vec<serde_json::Map<String, Value>>,
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) visits: usize,
+}
+
 /// Lifts the per-folio values `per_page` (diagram index → name → value) of one member (`qet.titleblock` or
-/// `qet.properties`): the majority of each name to `project`, deviations to the pages; EW-IMP-104 for the
-/// names `conflict` accepts.
-fn lift(
+/// `qet.properties`, doc 14 §4.9): a name whose value is equal on **all** folios goes to the project; every
+/// other name stays on the pages that have it. Differing values of a name that `conflict` accepts are one
+/// EW-IMP-104 finding naming the folios per value. One pass over the entries collects, one distributes.
+pub(crate) fn lift(
     member: &str,
     per_page: &[BTreeMap<String, String>],
     folios: &[String],
     conflict: impl Fn(&str) -> bool,
     findings: &mut Findings,
-) -> (
-    serde_json::Map<String, Value>,
-    Vec<serde_json::Map<String, Value>>,
-) {
-    let names: BTreeSet<&String> = per_page.iter().flat_map(|m| m.keys()).collect();
+) -> Lifted {
+    let mut visits = 0usize;
+    let mut states: BTreeMap<&str, NameState<'_>> = BTreeMap::new();
+    for (i, m) in per_page.iter().enumerate() {
+        for (name, value) in m {
+            visits += 1;
+            let st = states.entry(name.as_str()).or_insert_with(|| NameState {
+                first: value.as_str(),
+                all_equal: true,
+                present: 0,
+                folios_per_value: BTreeMap::new(),
+            });
+            st.present += 1;
+            st.all_equal &= value.as_str() == st.first;
+            st.folios_per_value.entry(value.as_str()).or_default().push(i);
+        }
+    }
     let mut project = serde_json::Map::new();
     let mut pages = vec![serde_json::Map::new(); per_page.len()];
-    for name in names {
-        let values: Vec<Option<&str>> = per_page.iter().map(|m| m.get(name).map(String::as_str)).collect();
-        let Some(major) = majority(values.iter().flatten().copied()) else {
+    for (name, st) in states {
+        if st.all_equal && st.present == per_page.len() {
+            project.insert(name.to_owned(), Value::String(st.first.to_owned()));
             continue;
-        };
-        project.insert(name.clone(), Value::String(major.to_owned()));
-        let mut deviating: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
-        for (i, v) in values.iter().enumerate() {
-            if let Some(v) = v
-                && *v != major
-            {
-                pages[i].insert(name.clone(), Value::String((*v).to_owned()));
-                deviating
-                    .entry(v)
-                    .or_default()
-                    .push(folios.get(i).map_or("?", String::as_str));
+        }
+        for (value, idxs) in &st.folios_per_value {
+            for &i in idxs {
+                visits += 1;
+                pages[i].insert(name.to_owned(), Value::String((*value).to_owned()));
             }
         }
-        if !deviating.is_empty() && conflict(name) {
-            let list = deviating
+        if st.folios_per_value.len() > 1 && conflict(name) {
+            let list = st
+                .folios_per_value
                 .iter()
-                .map(|(v, fs)| format!("{v:?} on {}", fs.join(", ")))
+                .map(|(v, idxs)| {
+                    let mut fs: Vec<&str> = idxs
+                        .iter()
+                        .take(MAX_FOLIOS_LISTED)
+                        .map(|&i| folios.get(i).map_or("?", String::as_str))
+                        .collect();
+                    if idxs.len() > MAX_FOLIOS_LISTED {
+                        fs.push("…");
+                    }
+                    format!("{v:?} on {} folios ({})", idxs.len(), fs.join(", "))
+                })
                 .collect::<Vec<_>>()
                 .join("; ");
             findings.file_level(
                 Code::imp(104),
                 Severity::Warning,
                 format!(
-                    "per-folio {member} value `{name}` differs: {} distinct values; {major:?} lifted to the project, kept per page: {list}",
-                    deviating.len() + 1
+                    "per-folio {member} value `{name}` differs ({} distinct values), kept per page: {list}",
+                    st.folios_per_value.len()
                 ),
             );
         }
     }
-    (project, pages)
+    Lifted {
+        project,
+        pages,
+        visits,
+    }
 }
 
 /// Maps the diagrams of `project` to pages and builds the project record `project_id`.
@@ -219,8 +259,8 @@ pub fn map(
     let mut infos = Vec::with_capacity(total);
     for (i, d) in project.diagrams.iter().enumerate() {
         let e = evaluate_folio(d, position[i], total, &mut default_formula);
-        let key = if printed_seen.insert(e.printed.clone()) {
-            format!("qet:folio:{}", e.printed)
+        let (folio_key, key) = if printed_seen.insert(e.printed.clone()) {
+            (e.printed.clone(), format!("qet:folio:{}", e.printed))
         } else {
             let loc = findings.loc(Some(&e.printed), None, Some(d.line));
             findings.push(
@@ -232,11 +272,15 @@ pub fn map(
                     e.printed
                 ),
             );
-            format!("qet:folio-order:{}", position[i])
+            (
+                format!("order-{}", position[i]),
+                format!("qet:folio-order:{}", position[i]),
+            )
         };
         infos.push(PageInfo {
             id: ids.id(&key),
             folio: e.printed.clone(),
+            key: folio_key,
         });
         evaluated.push((e, key));
     }
@@ -264,14 +308,22 @@ pub fn map(
         .iter()
         .map(|d| d.properties.iter().cloned().collect())
         .collect();
-    let (tb_project, tb_pages) = lift(
+    let Lifted {
+        project: tb_project,
+        pages: tb_pages,
+        ..
+    } = lift(
         "title-block",
         &tb,
         &folios,
         |n| CONFLICT_NAMES.contains(&n),
         findings,
     );
-    let (pr_project, pr_pages) = lift("folio property", &props, &folios, |_| true, findings);
+    let Lifted {
+        project: pr_project,
+        pages: pr_pages,
+        ..
+    } = lift("folio property", &props, &folios, |_| true, findings);
 
     let mut records = Vec::with_capacity(total);
     for (i, d) in project.diagrams.iter().enumerate() {
@@ -482,15 +534,73 @@ mod tests {
             (e.number, e.label.as_ref().map(|l| l.as_str()), e.printed.as_str()),
             (12, Some("12a"), "12a")
         );
+        let e = evaluate_folio(&diagram("01", 3), 3, 3, &mut def);
+        assert_eq!(
+            (e.number, e.label.as_ref().map(|l| l.as_str()), e.printed.as_str()),
+            (1, Some("01"), "01")
+        );
         let e = evaluate_folio(&diagram("", 3), 3, 3, &mut def);
         assert_eq!(e.printed, "3");
     }
 
+    fn maps(rows: &[&[(&str, &str)]]) -> Vec<BTreeMap<String, String>> {
+        rows.iter()
+            .map(|r| {
+                r.iter()
+                    .map(|(k, v)| ((*k).to_owned(), (*v).to_owned()))
+                    .collect()
+            })
+            .collect()
+    }
+
     #[test]
-    fn majority_prefers_the_most_frequent_then_the_smallest() {
-        assert_eq!(majority(["b", "a", "b"].into_iter()), Some("b"));
-        assert_eq!(majority(["b", "a"].into_iter()), Some("a"));
-        assert_eq!(majority([].into_iter()), None);
+    fn only_values_equal_on_all_folios_are_lifted() {
+        let per_page = maps(&[
+            &[("author", "a"), ("plant", "p"), ("only1", "x")],
+            &[("author", "b"), ("plant", "p")],
+            &[("author", "a"), ("plant", "p")],
+        ]);
+        let folios: Vec<String> = ["1", "2", "3"].iter().map(|s| (*s).to_owned()).collect();
+        let mut f = Findings::new("t.qet", 100);
+        let l = lift("title-block", &per_page, &folios, |n| n == "author", &mut f);
+        assert_eq!(l.project.keys().collect::<Vec<_>>(), ["plant"]);
+        assert_eq!(l.pages[0].get("author"), Some(&Value::String("a".into())));
+        assert_eq!(l.pages[0].get("only1"), Some(&Value::String("x".into())));
+        assert_eq!(l.pages[1].get("author"), Some(&Value::String("b".into())));
+        assert!(l.pages[1].get("plant").is_none());
+        let (entries, _) = f.finish();
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].code, Code::imp(104));
+    }
+
+    #[test]
+    fn lifting_visits_each_entry_at_most_twice() {
+        // 2,000 folios with 50 names each, half of them differing per folio: the visit count is linear in
+        // the entries (a quadratic walk would visit names × folios × folios).
+        let per_page: Vec<BTreeMap<String, String>> = (0..2_000)
+            .map(|i| {
+                (0..50)
+                    .map(|k| {
+                        let v = if k % 2 == 0 {
+                            "same".to_owned()
+                        } else {
+                            format!("v{i}")
+                        };
+                        (format!("n{k}"), v)
+                    })
+                    .collect()
+            })
+            .collect();
+        let folios: Vec<String> = (0..2_000).map(|i| i.to_string()).collect();
+        let mut f = Findings::new("t.qet", 100);
+        let l = lift("folio property", &per_page, &folios, |_| true, &mut f);
+        let entries = 2_000 * 50;
+        assert!(
+            l.visits <= 2 * entries,
+            "{} visits for {entries} entries",
+            l.visits
+        );
+        assert_eq!(l.project.len(), 25);
     }
 
     #[test]

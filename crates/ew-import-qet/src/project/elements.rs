@@ -7,7 +7,8 @@
 //!
 //! | Element | Records |
 //! |---|---|
-//! | `simple`, `master`, `thumbnail`, none | device + main function + representation |
+//! | `simple`, `master`, none | device + main function + representation |
+//! | `thumbnail` | nothing: a graphic (doc 14 §4.3), EW-IMP-004 |
 //! | `slave` linked to a master | auxiliary function of the master's device + representation (§4.5) |
 //! | `slave` without master | own device, function promoted to main (EW-IMP-116) |
 //! | `next_report` / `previous_report` | interruption point (`ew.fn.ip`, direction source / target) + representation (§4.6) |
@@ -16,8 +17,9 @@
 //! | definition missing or refused | nothing; wires to it are lost (EW-IMP-003) |
 //!
 //! Source keys (doc 14 §2.3, suffixed per record kind): device `qet:el:<key>`, function `qet:el:<key>#fn`,
-//! representation `qet:el:<key>#rep`, junction `qet:junction:<key>`, where `<key>` is the element key of
-//! [`super::cx::element_keys`] (`d<diagram>#<n>` for elements without a UUID).
+//! representation `qet:el:<key>#rep`, junction `qet:junction:<key>`, where `<key>` is the element's UUID,
+//! `<uuid>#<folio key>#<n>` for the n-th further copy of a UUID on a folio (copy-paste, EW-IMP-120), or
+//! `<folio key>#el#<n>` for an element without UUID at source position n.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -74,6 +76,25 @@ pub struct ElementsOut {
 /// main class identified). Recorded as an import mapping decision (crate README).
 pub const FALLBACK_LETTER: &str = "A";
 
+/// EW-IMP-122 (proposed, the next free code of the doc 14 §2.5 catalogue): element without label; its tag
+/// keeps the prefix letter without counter and prints "?" (owner ruling, cycle 11 review m7).
+pub const UNLABELED: Code = Code::imp(122);
+
+/// The element a link UUID names, seen from `from`: the copy on `from`'s folio when the UUID is repeated
+/// (copy-paste), else the first copy in document order.
+fn linked<'e, 'a>(
+    elems: &'e [Elem<'a>],
+    by_uuid: &BTreeMap<&str, Vec<usize>>,
+    from: &Elem<'_>,
+    uuid: &str,
+) -> Option<&'e Elem<'a>> {
+    let idxs = by_uuid.get(uuid)?;
+    idxs.iter()
+        .map(|&i| &elems[i])
+        .find(|m| m.diagram == from.diagram)
+        .or_else(|| idxs.first().map(|&i| &elems[i]))
+}
+
 /// One placed element that survived classification: where it is and what it is.
 pub(crate) struct Elem<'a> {
     pub(crate) diagram: usize,
@@ -125,15 +146,6 @@ impl Elem<'_> {
     /// The number of definition terminals.
     pub(crate) fn terminal_count(&self) -> usize {
         self.symbol().item.cps.as_slice().len()
-    }
-}
-
-/// The global element key: element keys of elements without a UUID are folio-local.
-pub(crate) fn global_key(diagram: usize, key: &str) -> String {
-    if key.starts_with('#') {
-        format!("d{diagram}{key}")
-    } else {
-        key.to_owned()
     }
 }
 
@@ -224,11 +236,15 @@ pub(crate) fn infer_tag<'l>(
     {
         let letter: String = rest.chars().take_while(char::is_ascii_alphabetic).collect();
         let digits = &rest[letter.len()..];
+        // Only labels that EW prints back unchanged are derived: upper-case letters, a counter without
+        // leading zeros (`-101K01` and `-101f1` stay frozen, so the printed text does not change).
         if (1..=3).contains(&letter.len())
+            && letter.bytes().all(|b| b.is_ascii_uppercase())
             && !digits.is_empty()
             && digits.bytes().all(|b| b.is_ascii_digit())
             && let (Ok(l), Ok(n)) = (Ident::from_input(&letter), digits.parse::<u32>())
             && n > 0
+            && n.to_string() == digits
         {
             return (TagSpec::new(l, Some(n)), structure, TagOutcome::Derived);
         }
@@ -317,6 +333,7 @@ enum Class {
     Report { source: bool },
     Terminal,
     Junction,
+    Graphic,
 }
 
 /// The shared state of the element mapper.
@@ -391,7 +408,7 @@ impl Mx<'_, '_> {
         self.out.registry.insert(
             (e.diagram, e.key.clone()),
             Placed {
-                ek: String::new(),
+                ek: e.ek.clone(),
                 diagram: e.diagram,
                 page,
                 folio,
@@ -512,7 +529,7 @@ impl Mx<'_, '_> {
         self.out.registry.insert(
             (e.diagram, e.key.clone()),
             Placed {
-                ek: String::new(),
+                ek: e.ek.clone(),
                 diagram: e.diagram,
                 page,
                 folio,
@@ -532,26 +549,38 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
         infos_seen: BTreeMap::new(),
     };
 
-    // Pass 1: placed elements with a usable definition and position; the first element of each UUID.
+    // Pass 1: placed elements with a usable definition and position, and their project-wide keys (doc 14
+    // §2.3): the UUID; `<uuid>#<folio key>#<n>` for the n-th further copy of a UUID on a folio (EW-IMP-120);
+    // `<folio key>#el#<n>` for an element without UUID at source position n.
     let mut elems: Vec<Elem<'_>> = Vec::new();
-    let mut by_uuid: BTreeMap<&str, usize> = BTreeMap::new();
+    let mut by_uuid: BTreeMap<&str, Vec<usize>> = BTreeMap::new();
+    let mut uuid_seen: BTreeSet<&str> = BTreeSet::new();
+    let mut repeats: BTreeMap<(&str, usize), u32> = BTreeMap::new();
     for d in &inp.project.diagrams {
         if d.index >= inp.pages.pages.len() {
             continue;
         }
+        let folio_key = inp.pages.pages[d.index].key.clone();
         let keys = element_keys(d);
         for (el, key) in d.elements.iter().zip(keys) {
-            let ek = global_key(d.index, &key);
-            if key.contains('#') && !key.starts_with('#') {
-                let folio = mx.folio(d.index).to_owned();
-                let loc = mx.findings.loc(Some(&folio), Some(ek.clone()), Some(el.line));
-                mx.findings.push(
-                    Code::imp(120),
-                    Severity::Info,
-                    loc,
-                    "element UUID repeated on this folio; disambiguated by occurrence",
-                );
-            }
+            let ek = match el.uuid.as_deref() {
+                None => format!("{folio_key}#el#{}", el.n),
+                Some(u) if uuid_seen.insert(u) => u.to_owned(),
+                Some(u) => {
+                    let n = repeats.entry((u, d.index)).or_insert(0);
+                    *n += 1;
+                    let ek = format!("{u}#{folio_key}#{n}");
+                    let folio = mx.folio(d.index).to_owned();
+                    let loc = mx.findings.loc(Some(&folio), Some(ek.clone()), Some(el.line));
+                    mx.findings.push(
+                        Code::imp(120),
+                        Severity::Info,
+                        loc,
+                        "element UUID shared with an earlier element (copy-paste); disambiguated by folio and occurrence",
+                    );
+                    ek
+                }
+            };
             let import = inp
                 .defs
                 .get(el.type_path.as_str())
@@ -579,7 +608,7 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
                 mx.out.registry.insert(
                     (d.index, key.clone()),
                     Placed {
-                        ek: String::new(),
+                        ek,
                         diagram: d.index,
                         page: inp.pages.pages[d.index].id,
                         folio,
@@ -590,7 +619,7 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
                 continue;
             };
             if let Some(u) = &el.uuid {
-                by_uuid.entry(u.as_str()).or_insert(elems.len());
+                by_uuid.entry(u.as_str()).or_default().push(elems.len());
             }
             elems.push(Elem {
                 diagram: d.index,
@@ -612,7 +641,7 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
             "slave" => {
                 e.el.links
                     .iter()
-                    .filter_map(|u| by_uuid.get(u.as_str()).map(|&i| &elems[i]))
+                    .filter_map(|u| linked(&elems, &by_uuid, e, u))
                     .find(|m| matches!(m.import.link_type.as_str(), "master" | "simple"))
                     .map_or(Class::OrphanSlave, |m| Class::Slave {
                         master: (m.diagram, m.key.clone()),
@@ -621,6 +650,7 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
             "next_report" => Class::Report { source: true },
             "previous_report" => Class::Report { source: false },
             "terminal" => Class::Terminal,
+            "thumbnail" => Class::Graphic,
             _ if e.terminal_count() == 1
                 && e.el.info_nonempty("label").is_none()
                 && e.import
@@ -659,7 +689,7 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
                 mx.out.registry.insert(
                     (e.diagram, e.key.clone()),
                     Placed {
-                        ek: String::new(),
+                        ek: e.ek.clone(),
                         diagram: e.diagram,
                         page: inp.pages.pages[e.diagram].id,
                         folio: mx.folio(e.diagram).to_owned(),
@@ -669,6 +699,26 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
                             at,
                         },
                         terminals,
+                    },
+                );
+            }
+            Class::Graphic => {
+                mx.at(
+                    e,
+                    Code::DROPPED_BY_DESIGN,
+                    Severity::Info,
+                    "thumbnail element is a graphic (doc 14 §4.3); not imported (no page-item records yet)",
+                );
+                let folio = mx.folio(e.diagram).to_owned();
+                mx.out.registry.insert(
+                    (e.diagram, e.key.clone()),
+                    Placed {
+                        ek: e.ek.clone(),
+                        diagram: e.diagram,
+                        page: inp.pages.pages[e.diagram].id,
+                        folio,
+                        target: Target::Dropped,
+                        terminals: e.terminals(),
                     },
                 );
             }
@@ -708,10 +758,10 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
         let folio = mx.folio(d).to_owned();
         let loc = mx.findings.loc(Some(&folio), None, None);
         mx.findings.push(
-            Code::imp(112),
-            Severity::Warning,
+            UNLABELED,
+            Severity::Info,
             loc,
-            format!("{n} elements without label: device tags carry the element prefix letter (else `{FALLBACK_LETTER}`) and no counter"),
+            format!("{n} elements without label: device tags carry the element prefix letter (else `{FALLBACK_LETTER}`) and no counter, and print `?`"),
         );
     }
     for (name, n) in std::mem::take(&mut mx.infos_seen) {
@@ -724,72 +774,152 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
     mx.out
 }
 
-/// Folio reports → interruption points (doc 14 §4.6): the name is the first non-empty of the element's
-/// label, its first `UserText` dynamic text (where the reference set writes the pairing name), the linked
-/// partner's label and `UserText`; else `IP-<folio>-<n>` (EW-IMP-115). Direction: `next_report` → source,
-/// `previous_report` → target. Each name with more than one source is reported (EW-IMP-115: pairing needs
-/// chain mode, not set by this import).
+/// Folio reports → interruption points (doc 14 §4.6).
+///
+/// 1. **Pairs** from the links between `next_report` (source) and `previous_report` (target) elements; a
+///    report without a linked partner of the other direction is an unpaired interruption point.
+/// 2. **Name** of a pair: the first non-empty of the source's label, the target's label, the source's first
+///    `UserText` dynamic text, the target's (the reference set writes pairing names there); both ends get
+///    it. When both ends carry a name and the names differ, EW-IMP-115 lists both texts. A pair without any
+///    name gets one synthesised name `IP-<folio of the source>-<n>`, an unpaired report its own; each is
+///    reported (EW-IMP-115).
+/// 3. **Groups**: a name shared by several pairs keeps QET's explicit pairs in chain order: pair `i` of the
+///    name (document order of the sources) gets `IpSpec.sort` 2i on the source and 2i + 1 on the target,
+///    and EW-IMP-115 reports that the pairing needs chain mode.
 fn map_reports(
     mx: &mut Mx<'_, '_>,
     elems: &[Elem<'_>],
     classes: &[Class],
-    by_uuid: &BTreeMap<&str, usize>,
+    by_uuid: &BTreeMap<&str, Vec<usize>>,
     used: &mut BTreeSet<String>,
 ) {
+    let reports: Vec<(usize, bool)> = classes
+        .iter()
+        .enumerate()
+        .filter_map(|(i, c)| match c {
+            Class::Report { source } => Some((i, *source)),
+            _ => None,
+        })
+        .collect();
+    if reports.is_empty() {
+        return;
+    }
     let Some(ip) = mx.inp.builtins.fndef(crate::IP_FNDEF_KEY).map(|c| c.id) else {
-        for (e, c) in elems.iter().zip(classes) {
-            if matches!(c, Class::Report { .. }) {
-                mx.drop_element(
-                    e,
-                    "folio report needs the built-in interruption point `ew.fn.ip`, which is not available",
-                );
-            }
+        for (i, _) in reports {
+            mx.drop_element(
+                &elems[i],
+                "folio report needs the built-in interruption point `ew.fn.ip`, which is not available",
+            );
         }
         return;
     };
-    let own_name = |e: &Elem<'_>| -> Option<String> {
-        e.el.info_nonempty("label")
-            .or_else(|| user_text(e.el))
-            .map(str::to_owned)
-    };
-    let mut sources_per_name: BTreeMap<String, u32> = BTreeMap::new();
+    used.insert(crate::IP_FNDEF_KEY.to_owned());
+    let is_source: BTreeMap<usize, bool> = reports.iter().copied().collect();
+    // 1. Pairs, each report in at most one.
+    let mut partner: BTreeMap<usize, usize> = BTreeMap::new();
+    for &(s, source) in &reports {
+        if !source || partner.contains_key(&s) {
+            continue;
+        }
+        let t = elems[s]
+            .el
+            .links
+            .iter()
+            .filter_map(|u| by_uuid.get(u.as_str()))
+            .flat_map(|idxs| {
+                let same: Vec<usize> = idxs
+                    .iter()
+                    .copied()
+                    .filter(|&i| elems[i].diagram == elems[s].diagram)
+                    .collect();
+                if same.is_empty() { idxs.clone() } else { same }
+            })
+            .find(|i| is_source.get(i) == Some(&false) && !partner.contains_key(i));
+        if let Some(t) = t {
+            partner.insert(s, t);
+            partner.insert(t, s);
+        }
+    }
+    let label = |i: usize| elems[i].el.info_nonempty("label").map(str::to_owned);
+    let utext = |i: usize| user_text(elems[i].el).map(str::to_owned);
+    let own = |i: usize| label(i).or_else(|| utext(i));
+    let valid = |n: Option<String>| n.and_then(|n| Ident::from_input(&n).ok());
+
+    // 2. Names.
+    let mut name_of: BTreeMap<usize, Ident> = BTreeMap::new();
     let mut synthesized: BTreeMap<usize, u32> = BTreeMap::new();
-    let mut any = false;
-    for (e, c) in elems.iter().zip(classes) {
-        let Class::Report { source } = c else { continue };
-        any = true;
-        let partner =
-            e.el.links
-                .iter()
-                .filter_map(|u| by_uuid.get(u.as_str()).map(|&i| &elems[i]))
-                .find(|p| matches!(p.import.link_type.as_str(), "next_report" | "previous_report"));
-        let mine = own_name(e);
-        let theirs = partner.and_then(own_name);
-        if let (Some(a), Some(b)) = (&mine, &theirs)
+    let mut synth = |mx: &Mx<'_, '_>, d: usize| -> Ident {
+        let n = synthesized.entry(d).or_default();
+        *n += 1;
+        Ident::from_input(&format!("IP-{}-{n}", mx.folio(d)))
+            .unwrap_or_else(|_| Ident::from_input("IP").unwrap_or_else(|_| unreachable!("an identifier")))
+    };
+    let mut pair_order: Vec<(usize, usize)> = Vec::new();
+    for &(s, source) in &reports {
+        if !source {
+            continue;
+        }
+        let Some(&t) = partner.get(&s) else { continue };
+        pair_order.push((s, t));
+        if let (Some(a), Some(b)) = (own(s), own(t))
             && a != b
-            && *source
         {
             mx.at(
-                e,
+                &elems[s],
                 Code::imp(115),
                 Severity::Warning,
-                format!("folio-report pair names differ: `{a}` and `{b}`; each end keeps its own"),
+                format!(
+                    "folio-report pair names differ: source `{a}`, target `{b}`; the pair is named `{a}`"
+                ),
             );
         }
-        let name = mine
-            .or(theirs)
-            .and_then(|n| Ident::from_input(&n).ok())
-            .unwrap_or_else(|| {
-                let n = synthesized.entry(e.diagram).or_default();
-                *n += 1;
-                let text = format!("IP-{}-{n}", mx.folio(e.diagram));
-                Ident::from_input(&text).unwrap_or_else(|_| {
-                    Ident::from_input("IP").unwrap_or_else(|_| unreachable!("an identifier"))
-                })
-            });
-        if *source {
-            *sources_per_name.entry(name.as_str().to_owned()).or_default() += 1;
+        let name = valid(
+            label(s)
+                .or_else(|| label(t))
+                .or_else(|| utext(s))
+                .or_else(|| utext(t)),
+        )
+        .unwrap_or_else(|| synth(mx, elems[s].diagram));
+        name_of.insert(s, name.clone());
+        name_of.insert(t, name);
+    }
+    for &(i, _) in &reports {
+        if let std::collections::btree_map::Entry::Vacant(v) = name_of.entry(i) {
+            v.insert(valid(own(i)).unwrap_or_else(|| synth(mx, elems[i].diagram)));
         }
+    }
+
+    // 3. Chain order for names shared by several pairs.
+    let mut sort_of: BTreeMap<usize, i32> = BTreeMap::new();
+    let mut pairs_per_name: BTreeMap<String, Vec<(usize, usize)>> = BTreeMap::new();
+    for &(s, t) in &pair_order {
+        pairs_per_name
+            .entry(name_of[&s].as_str().to_owned())
+            .or_default()
+            .push((s, t));
+    }
+    for (name, pairs) in &pairs_per_name {
+        if pairs.len() < 2 {
+            continue;
+        }
+        for (k, &(s, t)) in pairs.iter().enumerate() {
+            let k = i32::try_from(k).unwrap_or(i32::MAX / 2 - 1);
+            sort_of.insert(s, 2 * k);
+            sort_of.insert(t, 2 * k + 1);
+        }
+        mx.findings.file_level(
+            Code::imp(115),
+            Severity::Warning,
+            format!(
+                "interruption-point name `{name}` has {} explicit QET pairs: chain order set (sort 2i, 2i + 1); the project needs chain mode",
+                pairs.len()
+            ),
+        );
+    }
+
+    // Emit.
+    for &(i, source) in &reports {
+        let e = &elems[i];
         if e.terminal_count() != 1 {
             mx.at(
                 e,
@@ -812,14 +942,14 @@ fn map_reports(
                 device: None,
                 role: FnRole::Main,
                 kind: FunctionKind::Ip(IpSpec {
-                    name,
-                    direction: if *source {
+                    name: name_of[&i].clone(),
+                    direction: if source {
                         IpDirection::Source
                     } else {
                         IpDirection::Target
                     },
                     star_source: false,
-                    sort: None,
+                    sort: sort_of.get(&i).copied(),
                     external: None,
                     extra: BTreeMap::new(),
                 }),
@@ -828,9 +958,6 @@ fn map_reports(
             },
         );
     }
-    if any {
-        used.insert(crate::IP_FNDEF_KEY.to_owned());
-    }
     for (d, n) in synthesized {
         let folio = mx.folio(d).to_owned();
         let loc = mx.findings.loc(Some(&folio), None, None);
@@ -838,14 +965,7 @@ fn map_reports(
             Code::imp(115),
             Severity::Warning,
             loc,
-            format!("{n} folio reports without any name; named IP-{folio}-<n>"),
-        );
-    }
-    for (name, n) in sources_per_name.into_iter().filter(|(_, n)| *n > 1) {
-        mx.findings.file_level(
-            Code::imp(115),
-            Severity::Warning,
-            format!("interruption-point name `{name}` has {n} sources: QET's explicit pairs need chain mode with a sort order (not set by this import)"),
+            format!("{n} folio-report names synthesised as IP-{folio}-<n> (no label or text on either end)"),
         );
     }
 }
@@ -892,6 +1012,10 @@ mod tests {
         assert_eq!(t.frozen.unwrap().text.as_str(), "X1031");
         assert_eq!(tag("1X1", "101").3, TagOutcome::Frozen);
         assert_eq!(tag("1X1", "101").2, "X");
+        // Labels EW would print differently stay frozen: leading zeros, lower-case letters.
+        assert_eq!(tag("-101K01", "101").3, TagOutcome::Frozen);
+        assert_eq!(tag("-101f1", "101").3, TagOutcome::Frozen);
+        assert_eq!(tag("-01K1", "01").3, TagOutcome::Derived);
     }
 
     #[test]
