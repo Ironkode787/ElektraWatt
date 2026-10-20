@@ -9,14 +9,14 @@
 //!
 //! 1. **Limits** ([`crate::xml::prescan`]) over the whole project under [`ImportContext::limits`], then the
 //!    whole import runs on one parser thread sized for the measured depth ([`crate::xml::with_parser_stack`]).
-//! 2. **Read** ([`read`]): the DOM into the owned [`model::QetProject`].
+//! 2. **Read** (`read`): the DOM into the owned `model::QetProject`.
 //! 3. **Definitions**: every embedded `<definition>` through the element reader (symbol + FnDef in the
 //!    per-project "QET import" library, black box with EW-IMP-119 where no semantics resolve).
-//! 4. **Pages** ([`pages`]): diagrams → pages, the project record, title-block lifting.
-//! 5. **Elements** ([`elements`]): placed elements → devices, functions, representations; slaves → auxiliary
+//! 4. **Pages** (`pages`): diagrams → pages, the project record, title-block lifting.
+//! 5. **Elements** (`elements`): placed elements → devices, functions, representations; slaves → auxiliary
 //!    functions; folio reports → interruption points; terminal elements → strips and terminals
-//!    ([`strips`]); junction elements → junctions.
-//! 6. **Conductors** ([`wires`]): connections between function CPs and junctions.
+//!    (`strips`); junction elements → junctions.
+//! 6. **Conductors** (`wires`): connections between function CPs and junctions.
 //! 7. **Batch**: records sorted by kind rank, then ID; library documents deduplicated by copy ID and sorted.
 //!
 //! The mapping table is in the crate README.
