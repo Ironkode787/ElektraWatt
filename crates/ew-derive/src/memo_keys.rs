@@ -58,6 +58,16 @@ pub enum PartKey {
     Endpoint(EndpointKey),
     /// The flow entry of one potential in `potential_flow_bfs()`.
     Flow(PotentialId),
+    /// The bonds between potentials in `potential_partition()` (`Partition::bonds`).
+    Bonds,
+    /// The whole value of a family read as a cut-off point ([`Q::get_value_part`](crate::Q)): a commit that
+    /// marks the family does not mark the reader; only a re-execution that changes the value does. The
+    /// family never declares parts, so every change of its value is a change of this part.
+    Value,
+    /// The derivation notes of a producer's value. A part reader replays the producer's notes, so every part
+    /// read also depends on this part, and a producer that declares the parts it changed declares `Notes`
+    /// when its notes changed (`memo_store`).
+    Notes,
 }
 
 /// An input of the memo engine: the `ew_memo::Db::Input` of [`Q`](crate::Q).
