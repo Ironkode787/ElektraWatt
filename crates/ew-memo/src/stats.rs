@@ -40,6 +40,10 @@ pub struct Counters {
     pub oracle_mismatches: u64,
     /// Cycles detected.
     pub cycles: u64,
+    /// Executions that caught a cycle below them (volatile): their value was returned but not kept (a subset
+    /// of `re_executions`). The store re-runs a volatile family on every read, where a cold evaluation keeps
+    /// its value for the request; the oracle does not compare volatile values.
+    pub volatile: u64,
 }
 
 /// What happened, for [`Counters::record`].
@@ -69,6 +73,8 @@ pub(crate) enum Event {
     OracleMismatch,
     /// A cycle was detected.
     Cycle,
+    /// An execution was volatile and not kept.
+    Volatile,
 }
 
 impl Counters {
@@ -87,6 +93,7 @@ impl Counters {
             Event::OracleCheck => &mut self.oracle_checks,
             Event::OracleMismatch => &mut self.oracle_mismatches,
             Event::Cycle => &mut self.cycles,
+            Event::Volatile => &mut self.volatile,
         };
         *field = field.saturating_add(1);
     }
@@ -105,6 +112,7 @@ impl Counters {
         self.oracle_checks = self.oracle_checks.saturating_add(other.oracle_checks);
         self.oracle_mismatches = self.oracle_mismatches.saturating_add(other.oracle_mismatches);
         self.cycles = self.cycles.saturating_add(other.cycles);
+        self.volatile = self.volatile.saturating_add(other.volatile);
     }
 
     /// Whether every counter is zero.
@@ -191,6 +199,7 @@ pub(crate) fn emit(rev: Rev, window: &'static str, stats: &Stats) {
             oracle_checks = c.oracle_checks,
             oracle_mismatches = c.oracle_mismatches,
             cycles = c.cycles,
+            volatile = c.volatile,
         );
     }
 }
@@ -206,7 +215,7 @@ mod tests {
 
     use super::*;
 
-    const ALL_EVENTS: [Event; 12] = [
+    const ALL_EVENTS: [Event; 13] = [
         Event::Hit,
         Event::DurabilitySkip,
         Event::Verified,
@@ -219,6 +228,7 @@ mod tests {
         Event::OracleCheck,
         Event::OracleMismatch,
         Event::Cycle,
+        Event::Volatile,
     ];
 
     #[test]
@@ -243,6 +253,7 @@ mod tests {
                 oracle_checks: 1,
                 oracle_mismatches: 1,
                 cycles: 1,
+                volatile: 1,
             }
         );
         assert!(!c.is_zero());
@@ -422,6 +433,7 @@ mod tests {
             "oracle_checks",
             "oracle_mismatches",
             "cycles",
+            "volatile",
         ] {
             assert!(second.contains_key(field), "missing field {field}");
         }

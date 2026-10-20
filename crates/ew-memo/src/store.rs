@@ -182,8 +182,14 @@ struct Memo<V, I: Ord + Clone> {
     fingerprint: Option<u128>,
     deps: Deps<I>,
     /// The producers (memos whose parts this memo reads, directly or through its memo dependencies) that
-    /// must be up to date before push invalidation may call this memo clean.
+    /// must be up to date before push invalidation may call this memo clean. Kept current by every
+    /// verification that walks the dependencies.
     producers: Arc<[MemoRef]>,
+    /// The keys this memo is registered under in the push index, sorted: the coarse key of every input read
+    /// in the snapshot it was read from, the memos and the parts. Kept with the memo because a coarse key
+    /// computed again in a later snapshot can differ (a row moved to another page), which would leave the
+    /// old registration behind (review cycle 9, finding 5).
+    reg: Arc<[DepKey<I>]>,
     verified_at: Rev,
     changed_at: Rev,
     durability: Durability,
@@ -197,6 +203,7 @@ impl<V, I: Ord + Clone> Clone for Memo<V, I> {
             fingerprint: self.fingerprint,
             deps: self.deps.clone(),
             producers: Arc::clone(&self.producers),
+            reg: Arc::clone(&self.reg),
             verified_at: self.verified_at,
             changed_at: self.changed_at,
             durability: self.durability,
@@ -242,7 +249,18 @@ type AnyStorage = Box<dyn Any + Send + Sync>;
 struct Verified {
     changed_at: Rev,
     durability: Durability,
+    /// The memo's producers as its verification left them (a whole reader inherits them).
+    producers: Arc<[MemoRef]>,
     volatile: bool,
+}
+
+/// What a dependency walk found when nothing changed.
+struct Unchanged {
+    /// The minimum of the dependencies' current durabilities.
+    durability: Durability,
+    /// The producers the memo must settle before push invalidation may call it clean, from the dependencies'
+    /// current state: the producer of every part dependency and the producers of every memo dependency.
+    producers: Arc<[MemoRef]>,
 }
 
 /// Brings a memo of some family up to date and returns its state.
@@ -252,6 +270,8 @@ type VerifyFn<D> = fn(&Store<D>, &D, SlotId) -> Result<Verified, Cycle>;
 /// the family's types.
 struct Family<D: Db> {
     name: &'static str,
+    /// [`Query::INCREMENTAL`]: only these families collect `via` keys.
+    incremental: bool,
     storage: AnyStorage,
     verify: VerifyFn<D>,
     /// Drops a value (LRU eviction).
@@ -266,6 +286,7 @@ impl<D: Db> Clone for Family<D> {
     fn clone(&self) -> Self {
         Family {
             name: self.name,
+            incremental: self.incremental,
             storage: (self.clone_storage)(&self.storage),
             verify: self.verify,
             evict: self.evict,
@@ -350,7 +371,12 @@ impl<I: Ord + Clone> Frame<I> {
 #[derive(Clone)]
 struct Mark<I: Ord + Clone> {
     at: Rev,
+    /// The keys, for an [`INCREMENTAL`](Query::INCREMENTAL) family only (no other family reads them).
     via: Option<imbl::Vector<DepKey<I>>>,
+    /// The mark epoch ([`State::mark_epoch`]) at which a commit's marking walked this memo's whole readers;
+    /// `None` for a mark set inside a revision (a producer's changed parts), which may land on a memo
+    /// already verified at that revision.
+    walked: Option<u64>,
 }
 
 /// The part stamps of a producer: a part changed at `stamps[part]`, else at `base`.
@@ -409,6 +435,11 @@ struct State<D: Db> {
     parts: OrdMap<MemoRef, Arc<Parts<D::Input>>>,
     /// Pending push marks.
     marks: OrdMap<MemoRef, Mark<D::Input>>,
+    /// Bumped whenever a memo's pending mark is cleared without bringing every memo it was marked through up
+    /// to date (a durability skip of a marked memo; an incremental execution that did not re-read every memo
+    /// of its `via`). While a mark's `walked` equals it, every transitive whole reader of the marked memo
+    /// still holds a pending mark, so a commit's marking need not walk them again.
+    mark_epoch: u64,
     lru: Lru,
     commit: Stats,
     total: Stats,
@@ -485,9 +516,16 @@ impl<D: Db> State<D> {
     /// in `direct` (with its reason), possibly changed at `rev`, then transitively every memo that reads a
     /// marked memo whole. Readers of a marked memo's parts are not marked: they settle their producers before
     /// they trust their own mark.
+    ///
+    /// `commit` says the marks come from a commit ([`Store::advance_with`]: no memo is verified at `rev` yet)
+    /// rather than from a producer inside a revision. A memo whose pending commit mark already walked its
+    /// readers in the current mark epoch is re-marked but not walked again (review cycle 9, finding 4): its
+    /// transitive whole readers all still hold pending marks, so an unread page memo does not cost its whole
+    /// reader closure on every commit. The `via` keys are kept for incremental families only.
     fn mark(
         &mut self,
         rev: Rev,
+        commit: bool,
         keys: impl IntoIterator<Item = DepKey<D::Input>>,
         direct: impl IntoIterator<Item = (MemoRef, DepKey<D::Input>)>,
     ) {
@@ -498,11 +536,14 @@ impl<D: Db> State<D> {
             }
         }
         queue.extend(direct);
+        let epoch = self.mark_epoch;
         let mut visited: BTreeSet<MemoRef> = BTreeSet::new();
         while let Some((memo, via)) = queue.pop() {
+            let incremental = self.families[memo.0.0 as usize].incremental;
             let mark = self.marks.entry(memo).or_insert_with(|| Mark {
                 at: Rev::ZERO,
-                via: Some(imbl::Vector::new()),
+                via: incremental.then(imbl::Vector::new),
+                walked: None,
             });
             mark.at = rev;
             if let Some(v) = mark.via.as_mut() {
@@ -512,7 +553,11 @@ impl<D: Db> State<D> {
                     v.push_back(via);
                 }
             }
-            if !visited.insert(memo) {
+            let walked = mark.walked == Some(epoch);
+            if commit {
+                mark.walked = Some(epoch);
+            }
+            if walked || !visited.insert(memo) {
                 continue;
             }
             let name = self.families[memo.0.0 as usize].name;
@@ -579,7 +624,10 @@ impl<D: Db> State<D> {
 ///
 /// An execution that caught a cycle below it ([`Cx::set_volatile`], or a volatile value it read) depends on
 /// the context it ran in. Its value is returned but not kept, and every execution that reads it becomes
-/// volatile too.
+/// volatile too. So the store re-runs a volatile query on **every** read (counted as
+/// [`Counters::volatile`](crate::Counters::volatile)), where a cold evaluation computes it once per call; the
+/// oracle does not compare volatile values (they legitimately depend on the evaluation order). Volatility
+/// only arises on inputs that break the host's acyclicity invariant.
 ///
 /// # Snapshots
 ///
@@ -617,6 +665,7 @@ impl<D: Db> Clone for Store<D> {
                 part_readers: s.part_readers.clone(),
                 parts: s.parts.clone(),
                 marks: s.marks.clone(),
+                mark_epoch: s.mark_epoch,
                 lru: s.lru.clone(),
                 commit: Stats::default(),
                 total: Stats::default(),
@@ -692,6 +741,7 @@ impl<D: Db> Store<D> {
                 part_readers: OrdMap::new(),
                 parts: OrdMap::new(),
                 marks: OrdMap::new(),
+                mark_epoch: 0,
                 lru: Lru::default(),
                 commit: Stats::default(),
                 total: Stats::default(),
@@ -745,9 +795,9 @@ impl<D: Db> Store<D> {
     /// memo that reads a marked memo whole; every other memo verified since the last plain `advance` is
     /// re-stamped in O(1) at its next read, without a dependency walk.
     ///
-    /// `touched` must hold, for every input whose stamp the commit changed, its coarse key in the snapshot a
-    /// memo may have read it from (see [`Db`]). It may hold more (fine keys for incremental hooks, which see
-    /// it as [`Changes::touched`]).
+    /// `touched` must hold, for every input whose content the commit changed, its coarse key in the snapshot
+    /// a memo may have read it from (see [`Db`]: a stamp that changed with equal content need not be
+    /// reported). It may hold more (fine keys for incremental hooks, which see it as [`Changes::touched`]).
     ///
     /// # Panics
     ///
@@ -762,7 +812,7 @@ impl<D: Db> Store<D> {
                 st.log_trimmed = r;
             }
         }
-        st.mark(rev, touched.iter().cloned().map(DepKey::Input), []);
+        st.mark(rev, true, touched.iter().cloned().map(DepKey::Input), []);
     }
 
     fn advance_state(st: &mut State<D>, rev: Rev, changed: Durability) {
@@ -1053,6 +1103,7 @@ impl<D: Db> Store<D> {
         st.part_readers = fork.part_readers;
         st.parts = fork.parts;
         st.marks = fork.marks;
+        st.mark_epoch = fork.mark_epoch;
         for (memo, bytes) in parent_touched {
             if st.lru.contains(memo) {
                 st.lru.touch(memo, bytes);
@@ -1067,6 +1118,16 @@ impl<D: Db> Store<D> {
         st.token = Arc::new(());
         st.base_token = None;
         true
+    }
+
+    /// The pending marks as `(family, holds via keys)`, in memo order (tests).
+    #[cfg(test)]
+    pub(crate) fn pending_marks(&self) -> Vec<(&'static str, bool)> {
+        let st = self.st.borrow();
+        st.marks
+            .iter()
+            .map(|((fid, _), m)| (st.families[fid.0 as usize].name, m.via.is_some()))
+            .collect()
     }
 
     // -----------------------------------------------------------------------------------------------------
@@ -1085,6 +1146,7 @@ impl<D: Db> Store<D> {
         };
         st.families.push(Family {
             name: Q::NAME,
+            incremental: Q::INCREMENTAL,
             storage: Box::new(storage),
             verify: verify_erased::<D, Q>,
             evict: evict_erased::<Q::Key, Q::Value, D::Input>,
@@ -1198,8 +1260,17 @@ impl<D: Db> Store<D> {
             // dependency changed and none changed its durability (a move between levels is a change of the
             // more durable one): the memo's durability stands.
             self.record(Q::NAME, Event::DurabilitySkip);
+            {
+                // A pending mark is cleared without verifying what the memo was marked through: commit
+                // marks walked before now no longer guarantee marked readers (`State::mark_epoch`).
+                let mut st = self.st.borrow_mut();
+                if st.marks.contains_key(&me) {
+                    st.mark_epoch += 1;
+                }
+            }
             let durability = prev.durability;
-            return self.green::<Q>(db, fid, slot, prev, durability, need_value);
+            let producers = Arc::clone(&prev.producers);
+            return self.green::<Q>(db, fid, slot, prev, durability, producers, need_value);
         }
         if prev.verified_at >= push_from {
             // Push mode: settle the producers first (their re-execution marks the readers of changed parts),
@@ -1216,9 +1287,12 @@ impl<D: Db> Store<D> {
                 .cloned();
             match mark {
                 None => {
+                    // No mark: no dependency re-executed since the verification (a re-execution of a memo
+                    // dependency follows its mark, which reaches this memo), so the producers stand.
                     self.record(Q::NAME, Event::PushSkip);
                     let durability = prev.durability;
-                    return self.green::<Q>(db, fid, slot, prev, durability, need_value);
+                    let producers = Arc::clone(&prev.producers);
+                    return self.green::<Q>(db, fid, slot, prev, durability, producers, need_value);
                 }
                 Some(mark) if Q::INCREMENTAL && prev.value.is_some() => {
                     let touched = self.st.borrow().touched_since(prev.verified_at);
@@ -1237,26 +1311,32 @@ impl<D: Db> Store<D> {
             frame: false,
             armed: true,
         };
-        let walk = self.deps_unchanged(db, &prev.deps);
+        let walk = self.deps_unchanged(db, &prev.deps, &prev.producers);
         guard.armed = false;
         self.st.borrow_mut().active.pop();
         match walk? {
-            Some(durability) => {
+            Some(Unchanged {
+                durability,
+                producers,
+            }) => {
                 self.record(Q::NAME, Event::Verified);
-                self.green::<Q>(db, fid, slot, prev, durability, need_value)
+                self.green::<Q>(db, fid, slot, prev, durability, producers, need_value)
             }
             None => self.execute::<Q>(db, fid, slot, Some(prev), Mode::Full),
         }
     }
 
-    /// Re-stamps a memo found unchanged and returns it (re-computing an evicted value when one is needed).
+    /// Re-stamps a memo found unchanged with its current durability and producers, and returns it
+    /// (re-computing an evicted value when one is needed).
+    #[allow(clippy::too_many_arguments)]
     fn green<Q: Query<D>>(
         &self,
         db: &D,
         fid: FamilyId,
         slot: SlotId,
-        prev: Memo<Q::Value, D::Input>,
+        mut prev: Memo<Q::Value, D::Input>,
         durability: Durability,
+        producers: Arc<[MemoRef]>,
         need_value: bool,
     ) -> Result<Got<Q::Value>, Cycle> {
         {
@@ -1266,6 +1346,9 @@ impl<D: Db> Store<D> {
             if let Some(m) = s.slots.get_mut(slot.index()).and_then(|x| x.memo.as_mut()) {
                 m.verified_at = current;
                 m.durability = durability;
+                if !Arc::ptr_eq(&m.producers, &producers) {
+                    m.producers = Arc::clone(&producers);
+                }
             }
             st.marks.remove(&(fid, slot));
             if Q::LRU && prev.value.is_some() {
@@ -1273,6 +1356,7 @@ impl<D: Db> Store<D> {
             }
             st.mutated();
         }
+        prev.producers = producers;
         if prev.value.is_some() || !need_value {
             return Ok(Got {
                 value: prev.value,
@@ -1287,15 +1371,26 @@ impl<D: Db> Store<D> {
 
     /// Whether no recorded dependency changed since it was observed: `Some` with the minimum of the
     /// dependencies' *current* durabilities (an input's as the host reports it now, a memo's as its own
-    /// verification left it; [`Durability::Library`] without dependencies), `None` at the first change.
-    /// Memo dependencies are brought up to date first; the walk stops at the first change.
+    /// verification left it; [`Durability::Library`] without dependencies) and the dependencies' current
+    /// producers, `None` at the first change. Memo dependencies are brought up to date first; the walk stops
+    /// at the first change.
     ///
     /// The durability is recomputed because a dependency can keep its revision while its durability drops:
     /// a memo dependency that re-executed with a different read set and cut off, or an input that moved to a
     /// less durable level while the memo it feeds cut off. Keeping the old durability would let a later,
     /// less durable change skip the memo's verification and return a stale value.
-    fn deps_unchanged(&self, db: &D, deps: &Deps<D::Input>) -> Result<Option<Durability>, Cycle> {
+    ///
+    /// The producers are recomputed for the same reason (review cycle 9, finding 1): a memo dependency that
+    /// re-executed with another producer and cut off leaves this memo green, and push invalidation must then
+    /// settle the new producer, whose part changes are what reach this memo. `old` is reused when equal.
+    fn deps_unchanged(
+        &self,
+        db: &D,
+        deps: &Deps<D::Input>,
+        old: &Arc<[MemoRef]>,
+    ) -> Result<Option<Unchanged>, Cycle> {
         let mut durability = Durability::Library;
+        let mut producers: BTreeSet<MemoRef> = BTreeSet::new();
         for (dep, observed) in deps.iter() {
             let (now, level) = match dep {
                 DepKey::Input(input) => (db.changed_at(input), db.durability(input)),
@@ -1304,6 +1399,7 @@ impl<D: Db> Store<D> {
                     if v.volatile {
                         return Ok(None);
                     }
+                    producers.extend(v.producers.iter().copied());
                     (v.changed_at, v.durability)
                 }
                 DepKey::Part(fid, slot, part) => {
@@ -1311,6 +1407,7 @@ impl<D: Db> Store<D> {
                     if v.volatile {
                         return Ok(None);
                     }
+                    producers.insert((*fid, *slot));
                     let stamp = self.st.borrow().part_stamp((*fid, *slot), part, v.changed_at);
                     (stamp, v.durability)
                 }
@@ -1320,7 +1417,15 @@ impl<D: Db> Store<D> {
             }
             durability = durability.min(level);
         }
-        Ok(Some(durability))
+        let producers = if producers.iter().eq(old.iter()) {
+            Arc::clone(old)
+        } else {
+            producers.into_iter().collect()
+        };
+        Ok(Some(Unchanged {
+            durability,
+            producers,
+        }))
     }
 
     /// Runs the query and stores the new memo (unless it is volatile).
@@ -1386,6 +1491,7 @@ impl<D: Db> Store<D> {
         };
         if frame.volatile {
             // Context-dependent: returned, never kept; the reader becomes volatile too.
+            self.record(Q::NAME, Event::Volatile);
             return Ok(Got {
                 value: Some(Arc::new(value)),
                 changed_at: current,
@@ -1427,6 +1533,26 @@ impl<D: Db> Store<D> {
             FrameDeps::List(l) => Deps::List(Arc::from(l)),
             FrameDeps::Map(m) => Deps::Map(m),
         };
+        // An incremental execution clears the memo's mark; when it did not re-read every memo it was marked
+        // through, those may stay marked while this one is clean, so walked commit marks lose their guarantee.
+        let unverified_via = match &mode {
+            Mode::Incremental(changes) => match &changes.via {
+                None => true,
+                Some(via) => {
+                    let read: BTreeSet<MemoRef> = frame
+                        .fresh
+                        .iter()
+                        .filter_map(|k| match k {
+                            DepKey::Memo(f, s) | DepKey::Part(f, s, _) => Some((*f, *s)),
+                            DepKey::Input(_) => None,
+                        })
+                        .collect();
+                    via.iter()
+                        .any(|k| matches!(k, DepKey::Memo(f, s) if !read.contains(&(*f, *s))))
+                }
+            },
+            _ => false,
+        };
         // Registration keys (host code: computed before the state is borrowed).
         let carried = incremental;
         let new_keys: Vec<DepKey<D::Input>> = if carried {
@@ -1434,16 +1560,27 @@ impl<D: Db> Store<D> {
         } else {
             deps.iter().map(|(k, _)| k.clone()).collect()
         };
-        let new_reg = registration(db, new_keys.iter());
-        let old_reg = match (&prev, carried) {
-            (Some(p), false) => registration(db, p.deps.iter().map(|(k, _)| k)),
-            _ => BTreeSet::new(),
+        // The previous registrations as recorded (not recomputed in this snapshot, where a moved row has
+        // another coarse key). A full execution replaces them; an incremental one keeps them and adds the keys
+        // of its fresh reads (a carried read stays a dependency).
+        let old_reg: BTreeSet<DepKey<D::Input>> = prev
+            .as_ref()
+            .map(|p| p.reg.iter().cloned().collect())
+            .unwrap_or_default();
+        let mut new_reg = registration(db, new_keys.iter());
+        if carried {
+            new_reg.extend(old_reg.iter().cloned());
+        }
+        let reg: Arc<[DepKey<D::Input>]> = match prev.as_ref() {
+            Some(p) if new_reg.iter().eq(p.reg.iter()) => Arc::clone(&p.reg),
+            _ => new_reg.iter().cloned().collect(),
         };
         let memo = Memo {
             value: Some(Arc::clone(&value)),
             fingerprint,
             deps,
             producers: Arc::clone(&producers),
+            reg,
             verified_at: current,
             changed_at,
             durability,
@@ -1454,7 +1591,7 @@ impl<D: Db> Store<D> {
             for key in old_reg.difference(&new_reg) {
                 unregister(&mut st, key, me);
             }
-            for key in &new_reg {
+            for key in new_reg.difference(&old_reg) {
                 register(&mut st, key, me);
             }
             let (old_producers, new_producers) = (part_producers(&old_reg), part_producers(&new_reg));
@@ -1483,7 +1620,9 @@ impl<D: Db> Store<D> {
                 }
                 s.slots.get_mut(slot.index()).expect("interned slot").memo = Some(memo);
             }
-            st.marks.remove(&me);
+            if st.marks.remove(&me).is_some() && unverified_via {
+                st.mark_epoch += 1;
+            }
             if cut_off {
                 st.record(Q::NAME, Event::CutOff);
             } else if prev.is_some() {
@@ -1504,6 +1643,7 @@ impl<D: Db> Store<D> {
                         st.parts.insert(me, Arc::new(parts));
                         st.mark(
                             current,
+                            false,
                             declared.into_iter().map(|p| DepKey::Part(fid, slot, p)),
                             [],
                         );
@@ -1516,7 +1656,7 @@ impl<D: Db> Store<D> {
                             .map(|r| r.iter().copied().collect())
                             .unwrap_or_default();
                         let via = DepKey::Memo(fid, slot);
-                        st.mark(current, [], readers.into_iter().map(|r| (r, via.clone())));
+                        st.mark(current, false, [], readers.into_iter().map(|r| (r, via.clone())));
                     }
                 }
             }
@@ -1702,6 +1842,7 @@ fn verify_erased<D: Db, Q: Query<D>>(store: &Store<D>, db: &D, slot: SlotId) -> 
     store.up_to_date::<Q>(db, fid, slot, false).map(|got| Verified {
         changed_at: got.changed_at,
         durability: got.durability,
+        producers: got.producers,
         volatile: got.volatile,
     })
 }

@@ -363,6 +363,117 @@ impl Query<Grid> for VB {
     }
 }
 
+/// The part key of half `h` (0 or 1) of a `Prod` value.
+fn half_key(h: u32) -> u32 {
+    3000 + h
+}
+
+/// `Prod(k)`: the sums of the two halves of group `k` (cells `10k..10k + 5` and `10k + 5..10k + 10`), parts
+/// [`half_key`] 0 and 1. Not incremental: a changed value declares no parts, so every part reader is marked.
+struct Prod;
+impl Query<Grid> for Prod {
+    type Key = u32;
+    type Value = [i64; 2];
+    const NAME: &'static str = "prod";
+    fn equivalence() -> Equivalence<[i64; 2]> {
+        Equivalence::by_eq()
+    }
+    fn execute(cx: &mut Cx<'_, Grid>, k: &u32) -> Result<[i64; 2], Cycle> {
+        let mut halves = [0, 0];
+        for c in k * 10..k * 10 + 10 {
+            cx.read(&c);
+            halves[usize::from(c % 10 >= 5)] += cx.db().value(c);
+        }
+        Ok(halves)
+    }
+}
+
+/// The cell that chooses `Mid`'s producer.
+const CHOOSER: u32 = 44;
+
+/// The parity of half 0 of `Prod(2)` when cell [`CHOOSER`] is odd, of `Prod(1)` otherwise: a reader whose
+/// producer depends on data, read through a part; the parity makes producer switches and cut-offs frequent.
+struct Mid;
+impl Query<Grid> for Mid {
+    type Key = ();
+    type Value = i64;
+    const NAME: &'static str = "mid";
+    fn equivalence() -> Equivalence<i64> {
+        Equivalence::by_eq()
+    }
+    fn execute(cx: &mut Cx<'_, Grid>, _: &()) -> Result<i64, Cycle> {
+        cx.read(&CHOOSER);
+        let producer = if cx.db().value(CHOOSER).rem_euclid(2) == 1 {
+            2
+        } else {
+            1
+        };
+        let halves = cx.get_part::<Prod>(&producer, &half_key(0))?;
+        Ok(halves[0].rem_euclid(2))
+    }
+}
+
+/// Ten times `Mid`, reading it whole: its producers are `Mid`'s.
+struct Top;
+impl Query<Grid> for Top {
+    type Key = ();
+    type Value = i64;
+    const NAME: &'static str = "top";
+    fn equivalence() -> Equivalence<i64> {
+        Equivalence::by_eq()
+    }
+    fn execute(cx: &mut Cx<'_, Grid>, _: &()) -> Result<i64, Cycle> {
+        Ok(*cx.get::<Mid>(&())? * 10)
+    }
+}
+
+/// Twice cell `k`, over its `Cell` memo (so at the cell's durability).
+struct Twice;
+impl Query<Grid> for Twice {
+    type Key = u32;
+    type Value = i64;
+    const NAME: &'static str = "twice";
+    fn equivalence() -> Equivalence<i64> {
+        Equivalence::by_eq()
+    }
+    fn execute(cx: &mut Cx<'_, Grid>, k: &u32) -> Result<i64, Cycle> {
+        Ok(2 * *cx.get::<Cell>(k)?)
+    }
+}
+
+/// Cell 0 when cell [`CHOOSER`] is odd, else 0, over `Cell` memos.
+fn pick(cx: &mut Cx<'_, Grid>) -> Result<i64, Cycle> {
+    if cx.get::<Cell>(&CHOOSER)?.rem_euclid(2) == 1 {
+        Ok(*cx.get::<Cell>(&0)?)
+    } else {
+        Ok(0)
+    }
+}
+
+/// [`pick`] as an incremental family: the hook re-reads only what its new value needs, so a `via` entry
+/// naming `Cell(0)` is accounted for without a read while the chooser is even (a marked memo dependency left
+/// marked by an incremental execution).
+struct Pick;
+impl Query<Grid> for Pick {
+    type Key = ();
+    type Value = i64;
+    const NAME: &'static str = "pick";
+    const INCREMENTAL: bool = true;
+    fn equivalence() -> Equivalence<i64> {
+        Equivalence::by_eq()
+    }
+    fn execute(cx: &mut Cx<'_, Grid>, _: &()) -> Result<i64, Cycle> {
+        pick(cx)
+    }
+    fn execute_incremental(
+        cx: &mut Cx<'_, Grid>,
+        _: &(),
+        _previous: Option<(&i64, &Changes<u32>)>,
+    ) -> Result<i64, Cycle> {
+        pick(cx)
+    }
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // Helpers over the families
 
@@ -413,6 +524,158 @@ fn push_skip_without_walk() {
         (1, 9, 29)
     );
     assert_eq!(counters(&store, "sum").re_executions, 1);
+}
+
+/// Review cycle 9, finding 1: a reader whose memo dependency switched producer and cut off must settle the new
+/// producer, or a change of the new producer's part is never pushed to it.
+#[test]
+fn a_switched_producer_is_settled_after_a_cut_off() {
+    let (mut db, store) = setup();
+    // Cell 44 holds 2: `Mid` reads half 0 of `Prod(1)` (3 + 4 + 5 + 6 + 0, even).
+    assert_eq!(*store.get::<Top>(&db, &()).unwrap(), 0);
+
+    // Switch to `Prod(2)` (6 + 0 + 1 + 2 + 3, even): `Mid` re-executes and cuts off, `Top` is verified green.
+    db.commit_push(&store, &[set(CHOOSER, 1)]);
+    assert_eq!(*store.get::<Top>(&db, &()).unwrap(), 0);
+    assert_eq!(counters(&store, "mid").cut_offs, 1);
+    assert_eq!(counters(&store, "top").verifications, 1);
+
+    // Half 0 of the new producer turns odd: `Top` must see it.
+    db.commit_push(&store, &[set(20, 7)]);
+    assert_cold::<Top>(&store, &db, &());
+    assert_eq!(*store.get::<Top>(&db, &()).unwrap(), 10);
+    assert_eq!(counters(&store, "top").re_executions, 1);
+
+    // The old producer no longer reaches `Top`.
+    db.commit_push(&store, &[set(10, 4)]);
+    assert_cold::<Top>(&store, &db, &());
+    let top = counters(&store, "top");
+    assert_eq!((top.push_skips, top.re_executions), (1, 0));
+}
+
+/// Review cycle 9, finding 4: only incremental families collect `via` keys.
+#[test]
+fn via_is_kept_for_incremental_families_only() {
+    let (mut db, store) = setup();
+    read_all(&store, &db);
+    assert_cold::<Groups>(&store, &db, &());
+    db.commit_push(&store, &[set(25, 100)]);
+    let marks = store.pending_marks();
+    assert!(marks.iter().any(|(f, _)| *f == "cell"), "{marks:?}");
+    for (family, via) in &marks {
+        assert_eq!(*via, *family == "groups", "{family}: {marks:?}");
+    }
+}
+
+/// Review cycle 9, finding 4: a commit does not walk again the readers of a memo whose pending mark already
+/// walked them; the values stay right.
+#[test]
+fn a_marked_memo_is_not_walked_again() {
+    let (mut db, store) = setup();
+    read_all(&store, &db);
+    db.commit_push(&store, &[set(25, 100)]);
+    let first = store.commit_stats().total().marked;
+    assert!(first > 0);
+    // Same group, nothing read in between: every memo it reaches is already marked and walked.
+    db.commit_push(&store, &[set(26, 100)]);
+    assert_eq!(store.commit_stats().total().marked, 0);
+    read_all(&store, &db);
+    assert_cold::<Cell>(&store, &db, &26);
+    // Another group marks afresh.
+    db.commit_push(&store, &[set(5, 100)]);
+    assert!(store.commit_stats().total().marked > 0);
+    read_all(&store, &db);
+}
+
+/// Review cycle 9, finding 4: a durability skip clears a reader's mark while its dependency stays marked;
+/// the next commit that reaches the dependency must walk its readers again.
+#[test]
+fn a_durability_skip_keeps_marking_sound() {
+    let (mut db, store) = setup();
+    db.commit_push(&store, &[(30, 5, Durability::Library)]);
+    assert_cold::<Twice>(&store, &db, &30);
+    // A drawing change in the same group marks `Cell(30)` and `Twice(30)` through the group key; nothing of
+    // their library durability changed, so `Twice(30)` is re-stamped and `Cell(30)` stays marked.
+    db.commit_push(&store, &[set(31, 1)]);
+    assert_cold::<Twice>(&store, &db, &30);
+    assert_eq!(counters(&store, "twice").durability_skips, 1);
+    // A library change of the still-marked cell.
+    db.commit_push(&store, &[(30, 7, Durability::Library)]);
+    assert_cold::<Twice>(&store, &db, &30);
+    assert_eq!(*store.get::<Twice>(&db, &30).unwrap(), 14);
+}
+
+/// Rows `k -> (value, page, changed_at)` whose coarse key is their page (`100 + page`); a row can move page.
+#[derive(Default)]
+struct Rows {
+    rows: BTreeMap<u32, (i64, u32, Rev)>,
+    rev: Rev,
+}
+
+impl Db for Rows {
+    type Input = u32;
+    fn changed_at(&self, k: &u32) -> Rev {
+        self.rows.get(k).map_or(Rev::ZERO, |r| r.2)
+    }
+    fn durability(&self, _: &u32) -> Durability {
+        Durability::Drawing
+    }
+    fn coarse(&self, k: &u32) -> u32 {
+        if *k >= 100 {
+            *k
+        } else {
+            self.rows.get(k).map_or(100, |r| 100 + r.1)
+        }
+    }
+}
+
+impl Rows {
+    /// Puts row `k` on `page` and reports it with its page keys before and after.
+    fn put(&mut self, store: &Store<Rows>, k: u32, value: i64, page: u32) {
+        let before = self.coarse(&k);
+        self.rev = Rev(self.rev.0 + 1);
+        self.rows.insert(k, (value, page, self.rev));
+        let after = self.coarse(&k);
+        store.advance_with(self.rev, Durability::Drawing, [k, before, after]);
+    }
+}
+
+/// The value of a row.
+struct RowValue;
+impl Query<Rows> for RowValue {
+    type Key = u32;
+    type Value = i64;
+    const NAME: &'static str = "row_value";
+    fn equivalence() -> Equivalence<i64> {
+        Equivalence::by_eq()
+    }
+    fn execute(cx: &mut Cx<'_, Rows>, k: &u32) -> Result<i64, Cycle> {
+        cx.read(k);
+        Ok(cx.db().rows.get(k).map_or(0, |r| r.0))
+    }
+}
+
+/// Review cycle 9, finding 5: a re-execution after a row moved page drops the old page's registration (the
+/// registrations are kept with the memo, not recomputed in the new snapshot).
+#[test]
+fn a_moved_row_leaves_no_registration_behind() {
+    let mut db = Rows::default();
+    let store = Store::new();
+    db.put(&store, 1, 5, 1);
+    assert_eq!(*store.get::<RowValue>(&db, &1).unwrap(), 5);
+    assert_eq!(store.push_index_entries(), 1);
+    db.put(&store, 1, 6, 2);
+    assert_eq!(*store.get::<RowValue>(&db, &1).unwrap(), 6);
+    assert_eq!(
+        store.push_index_entries(),
+        1,
+        "the old page's registration is dropped"
+    );
+    // A change on the old page no longer marks the memo.
+    db.put(&store, 2, 0, 1);
+    assert_eq!(*store.get::<RowValue>(&db, &1).unwrap(), 6);
+    let c = store.commit_stats().family("row_value");
+    assert_eq!((c.marked, c.push_skips), (0, 1));
 }
 
 #[test]
@@ -605,6 +868,9 @@ fn volatile_values_are_not_kept() {
     assert!(store.memo_info::<VA>(&1).is_none());
     assert!(store.memo_info::<VB>(&1).is_none());
     let (va, vb) = (store.total_stats().family("va"), store.total_stats().family("vb"));
+    // Review cycle 9, finding 11: the executions that caught the cycle are counted as volatile.
+    assert!(va.volatile >= 1 && vb.volatile >= 1, "{va:?} {vb:?}");
+    assert!(va.volatile <= va.re_executions && vb.volatile <= vb.re_executions);
 
     assert_cold::<VA>(&store, &db, &1);
     assert_cold::<VB>(&store, &db, &1);
@@ -613,6 +879,7 @@ fn volatile_values_are_not_kept() {
     let (va2, vb2) = (store.total_stats().family("va"), store.total_stats().family("vb"));
     assert!(va2.re_executions > va.re_executions, "{va:?} -> {va2:?}");
     assert!(vb2.re_executions > vb.re_executions, "{vb:?} -> {vb2:?}");
+    assert!(va2.volatile > va.volatile && vb2.volatile > vb.volatile);
     assert_eq!((va2.hits, vb2.hits), (0, 0));
 }
 
@@ -705,16 +972,19 @@ fn style() -> impl Strategy<Value = Style> {
 fn step() -> impl Strategy<Value = Step> {
     prop_oneof![
         4 => (0u32..45, -3i64..4, 0u8..3).prop_map(|(k, v, d)| Step::Set(k, v, d)),
+        // The chooser of `Mid`, and the halves 0 of its two producers, more often than other cells.
+        1 => (-3i64..4, 0u8..3).prop_map(|(v, d)| Step::Set(CHOOSER, v, d)),
+        1 => (prop_oneof![10u32..15, 20u32..25], -3i64..4).prop_map(|(k, v)| Step::Set(k, v, 0)),
         1 => (0u32..45, 0u8..3).prop_map(|(k, d)| Step::Move(k, d)),
-        6 => (0u8..6, 0u32..45).prop_map(|(q, k)| Step::Read(q, k)),
+        6 => (0u8..FAMILIES, 0u32..45).prop_map(|(q, k)| Step::Read(q, k)),
         2 => style().prop_map(Step::Commit),
         1 => Just(Step::Fork),
-        3 => (0u8..6, 0u32..45).prop_map(|(q, k)| Step::ReadFork(q, k)),
+        3 => (0u8..FAMILIES, 0u32..45).prop_map(|(q, k)| Step::ReadFork(q, k)),
         1 => Just(Step::Adopt),
     ]
 }
 
-const FAMILIES: u8 = 6;
+const FAMILIES: u8 = 11;
 
 fn debug<T: Debug>(value: &T) -> String {
     format!("{value:?}")
@@ -727,7 +997,12 @@ fn read_family(store: &Store<Grid>, db: &Grid, q: u8, k: u32) -> String {
         2 => debug(&store.get::<GroupOf>(db, &(k % 4)).unwrap()),
         3 => debug(&store.get::<Total>(db, &()).unwrap()),
         4 => debug(&store.get::<Groups>(db, &()).unwrap()),
-        _ => debug(&store.get::<Reenter>(db, &k.min(44)).unwrap()),
+        5 => debug(&store.get::<Reenter>(db, &k.min(44)).unwrap()),
+        6 => debug(&store.get::<Prod>(db, &(1 + k % 2)).unwrap()),
+        7 => debug(&store.get::<Mid>(db, &()).unwrap()),
+        8 => debug(&store.get::<Top>(db, &()).unwrap()),
+        9 => debug(&store.get::<Twice>(db, &k).unwrap()),
+        _ => debug(&store.get::<Pick>(db, &()).unwrap()),
     }
 }
 
@@ -738,7 +1013,12 @@ fn cold_family(store: &Store<Grid>, db: &Grid, q: u8, k: u32) -> String {
         2 => debug(&store.cold::<GroupOf>(db, &(k % 4)).unwrap()),
         3 => debug(&store.cold::<Total>(db, &()).unwrap()),
         4 => debug(&store.cold::<Groups>(db, &()).unwrap()),
-        _ => debug(&store.cold::<Reenter>(db, &k.min(44)).unwrap()),
+        5 => debug(&store.cold::<Reenter>(db, &k.min(44)).unwrap()),
+        6 => debug(&store.cold::<Prod>(db, &(1 + k % 2)).unwrap()),
+        7 => debug(&store.cold::<Mid>(db, &()).unwrap()),
+        8 => debug(&store.cold::<Top>(db, &()).unwrap()),
+        9 => debug(&store.cold::<Twice>(db, &k).unwrap()),
+        _ => debug(&store.cold::<Pick>(db, &()).unwrap()),
     }
 }
 
@@ -755,7 +1035,9 @@ proptest! {
 
     /// Under random sequences of changes (any durability, durability moves) committed by push, by group keys
     /// only, or by a plain advance, with forks read against a snapshot and offered back, every memoised read
-    /// equals the cold one, oracle mode finds no mismatch and the revision never decreases.
+    /// equals the cold one, oracle mode finds no mismatch and the revision never decreases. The families
+    /// include a reader whose producer depends on data (`Mid`, chosen by cell 44, read through a part) and a
+    /// whole reader of it (`Top`), so a producer switch with a cut-off is exercised (review cycle 9).
     #[test]
     fn push_equals_cold(steps in proptest::collection::vec(step(), 1..60)) {
         let mut db = Grid::default();

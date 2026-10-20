@@ -22,9 +22,18 @@ use crate::{Cx, DepKey, Durability, Rev};
 /// **Push invalidation** ([`Store::advance_with`](crate::Store::advance_with)) adds a third rule. Every read
 /// is registered in the store's reverse-dependency index under its *coarse* key, [`Db::coarse`], computed
 /// in the snapshot the read observed. The touched inputs a host reports for a commit must include, for every
-/// input whose stamp the commit changed, its coarse key in that snapshot. A host whose coarse key is the
-/// input itself (the default) reports the changed inputs; a host with coarser keys (a page for every row drawn
-/// on it) reports the coarse keys of the changed inputs before and after the change.
+/// input whose **content** the commit changed (what a read of it observes, its absence included), its coarse
+/// key in that snapshot. A host whose coarse key is the input itself (the default) reports the changed
+/// inputs; a host with coarser keys (a page for every row drawn on it) reports the coarse keys of the changed
+/// inputs before and after the change.
+///
+/// The rule is about content, not stamps: an input whose stamp changed while what a read observes stayed
+/// equal need not be reported. Examples: a row put again with an equal value, an absent row or index bucket
+/// whose stamp follows its table's, a key set and cleared again within one commit, a coarse stamp such as
+/// the snapshot's revision for data without stamps of its own. A memo that read such an input is re-stamped by
+/// push invalidation and keeps its value, which is right because the content is the same; a later pull
+/// verification ([`Store::advance`](crate::Store::advance)) still sees the newer stamp and re-executes, which
+/// is conservative. Leaving out an input whose content changed makes memos stale, and oracle mode reports it.
 ///
 /// Oracle mode ([`Oracle`](crate::Oracle)) checks the outcome: a memo that disagrees with a cold run is
 /// reported as a [`Mismatch`](crate::Mismatch).
