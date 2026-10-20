@@ -8,8 +8,11 @@
 //! anchor, and its function semantics a generated [`FnDef`](ew_schema::FnDef), both as library copies of the per-project
 //! "QET import" library, whose `library_id` is the project ID (doc 05 §13.2,
 //! [`ImportContext::project`](ew_interop_api::ImportContext::project)) and whose human key is
-//! [`QET_IMPORT_LIBRARY_KEY`]. The `.qet` project importer and the golden CSV bootstrap are later work packages; they reuse [`read_element`] for
-//! every embedded definition.
+//! [`QET_IMPORT_LIBRARY_KEY`].
+//!
+//! The **project importer** [`QetProjectImporter`] (cycle 11 spike, [`project`]) reads a whole `.qet` in
+//! lenient mode and reuses the element reader for every embedded definition; its mapping table is in the
+//! crate README, and [`migration`] groups its findings by code (the migration report of doc 14 §2.5).
 //!
 //! # Pipeline
 //!
