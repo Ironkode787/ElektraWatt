@@ -419,6 +419,9 @@ fn bench_open(cx: &mut Ctx, project: &Project, records: &[Record], lib: &[LibDoc
 
 /// A single operation on a fresh `Q` over the baseline each run.
 fn single_q(cx: &mut Ctx, name: &str, baseline: &Model, mut op: impl FnMut(&Q) -> Duration) {
+    if !cx.wants(&[name]) {
+        return;
+    }
     let (samples, _last) = measure(
         WARMUP_RUNS,
         cx.mode.single_runs,
@@ -811,21 +814,28 @@ fn bench_profile(cx: &mut Ctx, project: &Project, records: &[Record], lib: &[Lib
     );
     drop((q0, before, after));
 
-    let (all, clamped, _) = cx.latency(
-        names[0],
-        |_| m0.clone(),
-        |m, _| {
-            let ((), t) = time(|| {
-                let new = put_project(m, &old, &changed);
-                let q = Q::new(&new);
-                for p in &ids {
-                    q.get::<WirePropsOf>(*p);
-                }
-            });
-            t
-        },
-    );
-    cx.push(names[0], &all, clamped, "");
+    // Each row passes the `EW_SPIKE_ONLY` filter on its own: `profile.change.affected` can run without the
+    // cold worst case, which takes seconds per sample at L and XL.
+    if cx.wants(&[names[0]]) {
+        let (all, clamped, _) = cx.latency(
+            names[0],
+            |_| m0.clone(),
+            |m, _| {
+                let ((), t) = time(|| {
+                    let new = put_project(m, &old, &changed);
+                    let q = Q::new(&new);
+                    for p in &ids {
+                        q.get::<WirePropsOf>(*p);
+                    }
+                });
+                t
+            },
+        );
+        cx.push(names[0], &all, clamped, "");
+    }
+    if !cx.wants(&[names[1]]) {
+        return;
+    }
 
     let (aff, clamped, _) = cx.latency(
         names[1],

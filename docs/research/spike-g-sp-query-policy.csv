@@ -1,0 +1,13 @@
+query,arch_6_4_policy,proposed_policy,change,cold_cost_evidence,reason
+page_local_nets(page),Memo,Memo,none,77 us per page cold at M and L (connectivity.local_nets_all / pages),"above 20 us; one page re-executes per edit, the rest must not be walked (needs push invalidation or page-level stamps)"
+stitch_graph(),Memo,"Memo, reshaped, incremental for topology edits",reshape,19.7 ms at M and 98 ms at L given the local nets,"whole-table reads of connections, functions and devices and the whole project row make every edit re-execute it; read through indexes and the ip_pairing member only; a wire edit needs an incremental update"
+potential_partition(),Memo,"Memo (topology only), incremental for topology edits",split,63.5 ms at M and 318 ms at L given the stitch graph,"the fallback names read device tags, anchor cells and page order, so names leave the partition"
+potential_names(),(new),Memo,new family,most of the partition's own cost at M and L (fallback names),"names depend on tags, anchor cells and page order; a folio renumber or a move re-derives names, not topology"
+physical_wires_of(potential),Memo,Memo,fix before promotion,super-linear: per-potential mean of the wire chain 44 us at M and 241 us at L,the project-wide rail potentials dominate; the cold implementation must become linear in the potential size first
+potential_flow_bfs(),Memo,Memo,none,not measured separately,one global BFS; re-executes only when the partition or pass-through pairs change
+potential_flow(potential),Memo,Cold,demote,a map lookup into potential_flow_bfs,"below 20 us, like wire_props(connection)"
+wire_props_of(potential),Memo,Memo,reshape,0.21 ms per affected 24 V potential at M and L,the profile row lookup moves to a memo keyed by the potential attributes so that a profile edit cuts off at the unaffected potentials
+profile_row_for(attributes),(new),Memo,new family,not measured (a few distinct attribute sets),"one memo per distinct (type, voltage, AC/DC, class) set; a colour-profile edit re-executes these few keys and cuts off"
+wire_props(connection),Cold,Cold,none,lookup,unchanged
+device_tag(dev),Memo,Memo,none,"3.9 us per device at M, 4.2 us at L","below 20 us but read every frame and by potential names; keep Memo"
+page_order(),Memo,Memo,none,folio.renumber.derive p99 0.45 ms at M and 1.7 ms at L including 12 device tags,read every frame (Prev/Next; title blocks)
