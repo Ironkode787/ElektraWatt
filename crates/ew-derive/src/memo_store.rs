@@ -272,6 +272,20 @@ impl MemoStore {
         Rc::clone(&self.store.borrow())
     }
 
+    /// An O(1) snapshot of this store that evolves independently (`ew_memo::Store::fork`): the same snapshot,
+    /// report engine and oracle mode, the memos shared until either side writes. Advancing the fork does not
+    /// touch this store. For a benchmark sample or a job on this thread; a fork is no more `Send` than its
+    /// store.
+    #[must_use]
+    pub fn fork(&self) -> MemoStore {
+        MemoStore {
+            store: RefCell::new(Rc::new(self.store().fork())),
+            model: RefCell::new(self.model.borrow().clone()),
+            provider: self.provider.clone(),
+            oracle: Cell::new(self.oracle.get()),
+        }
+    }
+
     /// A memoising `Q` over the store's snapshot (request-scoped: build one per evaluation).
     pub fn query(&self) -> Q {
         Q::with_memo(&self.model.borrow(), self.store(), self.provider.clone())
