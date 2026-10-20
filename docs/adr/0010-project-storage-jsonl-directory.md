@@ -1,6 +1,6 @@
 # ADR-0010: Project storage: UUID-named JSONL directory, manifest-last save, external journal, lock file
 
-**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-20 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -110,6 +110,56 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    archive); `lib/manufacturers/`, `lib/plc-profiles/` and `lib/profiles/` (machine and label profiles kept in
    their TOML source form, so their SHA-256 equals the published item); `trust.sig` at the root (1.0); and opt-in
    embeddable meshes `assets/<sha256>.glb` (1.0). Asset extensions are svg, png, jpg and glb.
+3. **Save protocol as built: sync order, base check, unlisted files, read-only opens** (2026-10-20, project owner
+   (delegated), after the fault-injection harness and the independent review of WP-S1.09; decision log ID-200 to
+   ID-204, ID-210, ID-213, ID-214; [project format](../design/05-project-format-and-persistence.md) §2, §4, §5.2,
+   §5.3, §6.1, §6.2, §6.4, §7.4, §11.4). It refines amendment 1.
+   - **Sync order.** When it writes the intent, the writer syncs the directories of the temps first and the root
+     (which holds the intent) last, so a durable intent name implies durable temp names. After the renames it
+     syncs the target directories, then renames the intent over `manifest.json`, then syncs the root. The earlier
+     wording "rename the manifest, then sync the directories" let a durable manifest rename precede a durable
+     data-file rename on file systems with per-directory sync (ext4, APFS): after a power loss a silent mixed
+     generation, or a false EW-CORE-002. The power-loss mode of the harness found it.
+   - **Removals.** A normal save deletes the files that left the manifest after the manifest rename and relies on
+     the journal's `save-begin{removes}` after a crash. A roll-forward deletes them *before* it renames the intent,
+     while the old manifest still names them.
+   - **Base check.** The intent records the SHA-256 of the raw bytes of the `manifest.json` the save started
+     from, as the member `base` (`"sha256:<hex>"`; absent for a first generation). Because the intent becomes the
+     manifest, every manifest a save writes carries the hash of the manifest it replaced; the comparison that
+     skips writing an unchanged project ignores `base`, and no save copies an earlier `base` forward. Wherever an
+     intent is applied (the roll-forward at open, a read-only opener's in-memory read, the retry of an incomplete
+     save) its `base` is compared with the raw bytes of the manifest on disk, never with parsed generations. A
+     conflicted or unparseable manifest whose bytes are unchanged therefore rolls forward, and without a parsed
+     manifest every record file on disk counts as the save's baseline. Differing bytes, or no recorded `base`
+     while a manifest exists, refuse the intent: EW-CORE-002, read-only, intent and temps kept. An intent counts
+     only when its generation is above the manifest's. Like `generation`, `base` changes with every save and
+     conflicts in text merges: the merge driver writes no `base`, a hand resolution may drop it, and the next save
+     records the hash of the resolved manifest's bytes ([project format](../design/05-project-format-and-persistence.md)
+     §11.3, §11.4). Verified on the golden fixture: generation 1 has no `base`, so the fixture's bytes are
+     unaffected; generation 2's `base` is the hash of the fixture's manifest and generation 3's that of generation
+     2's; an unchanged full save writes nothing.
+   - **Unlisted files.** With a manifest present, only the files it lists are read; an unlisted file is
+     EW-CORE-004. A save or a roll-forward never renames over an unlisted file at a target path (another user's
+     file, a sync client's copy): it moves the file aside by a rename without replacement to
+     `<stem>.unlisted-<g>[-<n>].<ext>`, a stray name the application never reads or deletes, records EW-CORE-004
+     in the save report and continues.
+   - **Read-only opens.** A read-only opener never rolls forward. Behind a stale or live-looking lock it waits up to
+     5 s for the save to finish; an intent still present after the wait is read in memory (each file from its
+     target or its temp, by the intent's hashes, under the base check), so a crashed writer neither blocks nor
+     fails a reader. "Save in progress" is no longer an open result.
+   - **Takeover.** The takeover restamps the renamed stale lock's modification time, so its age counts from the
+     takeover (otherwise the winner's own open would prune it and reopen the race); a stale copy whose bytes equal
+     the lock, left by a crashed takeover, is pruned and the rename retried once.
+   - **Our temps.** The open deletes only the save protocol's own temps: intents, and the `.tmp-<g>` files of record
+     files and library documents. Nothing else in the directory is deleted.
+   - **Incomplete saves.** A save that fails after its commit point is "incomplete" and is retried; a retry that
+     fails reports `PendingIncomplete` and writes nothing new. A session clears its unsaved state only on success,
+     or on an incomplete save whose generation is above the one before the call, so a failed retry never marks
+     newer edits as saved.
+
+   The fault-injection harness runs on the in-memory `Vfs` in kill and power-loss modes; its run on real ext4, NTFS
+   and APFS volumes is a milestone task (FT-92). On Windows the directory sync is a no-op and the NTFS metadata log
+   is relied on, as the negative consequence below says.
 
 ## Consequences
 

@@ -1,6 +1,6 @@
 # ADR-0002: Derived-data engine: cold-first queries plus a cut-down memo layer (`ew-memo`); no salsa
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-19 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-20 (G-SP outcome: Recycle) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -120,6 +120,87 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    - **Determinism.** No hash-map iteration, floating point or clock.
    `ew-derive`'s `Q` does not use `ew-memo` yet: phase 1 runs every family cold behind a no-op `Tracker`, so that
    promoting a family after the spike (decision 3) changes its `POLICY` and the tracker, never the query body.
+4. **G-SP outcome: Recycle; incremental connectivity replaces the coarse fallback** (2026-10-20, project owner
+   (delegated); decision log ID-218 to ID-226; spike report
+   [`spike-g-sp-2026-10.md`](../research/spike-g-sp-2026-10.md); [gates](../plan/03-gates.md) §5.1;
+   [architecture](../design/04-architecture.md) §6.1 to §6.4). This closes PD-8 and is the amendment G-SP-02 asks
+   for.
+   - **Outcome.** Recycle: one re-spike of at most four weeks after the reshaped queries below exist. On S, M and L
+     evidence the cold global connectivity misses the commit budget of NFR-PERF-05 by 2.6–3× at S, 25–27× at M and
+     66–97× at L, and memoising `potential_partition` as one opaque unit is worse than cold (339 ms against 135 ms
+     at M), because every drawing edit re-executes it. The folio renumber (NFR-PERF-07) and the open-time proxy
+     (NFR-PERF-03) are within budget cold at S, M and L, and so is the affected-only part of the profile change. The causes are of the kind a recycle addresses, and all four are confirmed in the code by the review:
+     whole-table reads in `stitch_graph` and `potential_partition`; potential names computed inside the topology
+     query; a super-linear wire-property chain whose cause is not yet isolated; and pull verification that is
+     O(dependencies), hits included. The XL run (report appendix A.4; medians decide, because concurrent builds
+     inflated its tails) confirms the direction: the move commit p99 is 9.24 s (462×, median 2.85 s), the wire
+     commit 6.17 s (308×); the folio renumber with page order and tags takes 6.09 ms (1.2×), so at XL it needs the
+     planned memos of `page_order` and `device_tag`; the affected-only profile change takes 209 ms (2.1×), a lower
+     bound already over the budget, so the wire chain must get cheaper as well; the memo prototype stays over budget
+     (partition 7.6× after an unrelated edit, 139–142× after a move or wire; per-page local nets 4.4× with 4,999
+     verifications); the open-time proxy passes (2.49 s of 20 s). The oracle found no mismatch (420 comparisons at
+     XL). **KT-3 is not triggered**: it applies after the fallback prototype and one recycle, and the XL open time
+     is far below its 40 s line. Exit criteria at this outcome: G-SP-01, -02, -03 (S to XL, with predicted values),
+     -05 and -06 are met; G-SP-04 (memory) and G-SP-08 (the pilot's size data) are open. The NFR-PERF budgets are
+     unchanged; a recycle never relaxes them.
+   - **The memo list stays.** Decisions 2 and 3 and the initial policy stand: cold first, memoise where measured,
+     under the oracle. The query shapes change as listed below.
+   - **Decision 7 is replaced: incremental connectivity.** The fallback "page-scoped dirty flags with coarse
+     recomputation" does not meet NFR-PERF-05 as worded, because the coarse recompute of the global part alone
+     costs 87 ms at M. Global connectivity becomes component-scoped: the local nets stay one memo per page (one
+     page re-executes per edit, within budget at M); the stitch graph and the potential partition are kept per
+     connected component; an edit that only adds stitch edges unions components in near-constant time, and an edit
+     that removes an edge or changes a page's nets recomputes only the components that held the touched page nets,
+     from the per-page nets. The incremental result must equal the cold family, which stays the oracle's reference
+     in CI. `ew-memo` makes this possible without knowing ECAD: a family's re-execution may receive its previous
+     value and the touched inputs (an incremental re-execution hook), and its result is still checked against
+     `run` cold. The detailed algorithm is cycle 9's WP-S1.07 work for the lead programmer.
+   - **Decision 4 gains four items, still v1.** (a) **Push invalidation**: `advance` receives the commit's touched
+     inputs from the change feed; the memos reachable from them through the reverse-dependency index (amendment 1)
+     are marked possibly changed and verified at their next read, and every other memo is re-stamped in O(1) at its
+     next read without walking its dependencies. Pull verification alone costs 12 µs per page memo (18.8 ms for the
+     1,499 untouched page memos at L, over the budget on its own) and 0.1–0.2 µs per dependency entry. The index is
+     keyed by **page-level keys** (page, device shard, table, settings member), as amendment 1 foresees: with
+     row-level keys it would hold about 56 MB at XL (0.87 million dependency entries of the two prototyped families
+     alone), over its 40 MB budget. (b) **O(1) hits**: a read checks `verified_at` before it clones
+     anything; dependency lists sit behind an `Arc`. (c) **Nested memos**: `Q` gets a memo backend, and a read of a
+     memoised family inside another records one memo dependency instead of the nested family's flattened reads.
+     (d) **Value bytes**: the connectivity families implement `Query::bytes`, so the memory gate counts values and
+     not only dependencies.
+   - **Query shapes** (architecture §6.4). `potential_names` is split out of `potential_partition`, which keeps the
+     topology only; `profile_row_for(attributes)` is a new memo, and `wire_props_of(potential)` reads the profile
+     only through it, so a profile edit re-derives the affected potentials only; the project row is read per
+     settings member (one projection memo per member with early cut-off, so a colour-profile edit no longer
+     invalidates the pairing); `potential_flow(potential)` becomes Cold (a lookup into `potential_flow_bfs`);
+     `stitch_graph` reads page-less connections, bridges, interruption-point functions and rail-bonded terminals
+     through indexes; the super-linear chain of `physical_wires_of` is fixed before that family is memoised, and
+     `physical_wires_of` and `wire_props_of` go under the LRU if their value bytes stay bulky. Granularity rule
+     (decision 6) added: **no whole-table read on an interactive path**.
+   - **Expectations for the re-test.** The commit of a move or a wire (NFR-PERF-05) is predicted at a few
+     milliseconds at L (commit, one page's local nets, the touched components and their names). The profile change
+     (NFR-PERF-07) is feasible **only with push invalidation**: the affected-only measurement (56 ms p99 at L
+     against 60 ms) is a lower bound, because it leaves out the verification of the about 33,000 unaffected
+     `wire_props_of` memos, and pull verification of those alone would exceed the budget at L; at XL even the lower
+     bound (209 ms) is over, so the wire-chain fix is needed too. Memory (G-SP-04) is open: the benchmark's peak
+     working set, an upper bound that includes the generator's records, is 1.83 GiB at L, over the 1.5 GB of
+     NFR-PERF-13, and 5.78 GB at XL, over the 4 GB budget, although the XL run left out the two heaviest
+     (super-linear) families, so the true worst case is higher and the XL peak is not comparable with L. The model
+     rows are 313 MiB at XL and the prototyped dependency lists 28 MB; the re-spike measures the value bytes per
+     family after the wire-chain fix.
+   - **Evidence rules, accepted once.** The spike ran on a non-dedicated Windows desktop and clamped a latency
+     family to 100 timed samples when its warm-up median exceeded ten times the budget (the row decided by its
+     median). Both deviations from [quality](../design/18-quality-security-release.md) §4.3 are accepted as evidence
+     for this outcome only, because every gap is an order of magnitude beyond the machine factor (about 1.5–2 to
+     BM). The re-test after the recycle runs on a BM-class runner by §4.3.
+   - **ADR-0001 is unchanged.** Push invalidation works over the existing row, index-key and table stamps; the
+     page-level keys are **required in the reverse-dependency index** (56 MB at XL with row-level keys) and live only
+     there, and per-member settings keys are projection memos over the one project-row stamp. Page-scoped stamps in
+     `ew-model` remain the fallback, to be proposed as an ADR-0001 amendment only if page-level keys in the index do
+     not bring it within 40 MB at XL.
+   - **Plan impact** (G-SP-06; [work breakdown](../plan/02-work-packages.md)): WP-S1.05 +3 pw, WP-S1.07 +4 pw and
+     WP-S1.08 +0.5 pw (likely); M1 of the plan of record moves from month 15 to month 16 (+3 to +5 weeks on the
+     critical chain); the likelihood of SR-7 (R-018) rises. Cycle 9 takes WP-S1.07's incremental connectivity with
+     the `ew-memo` integration as its lead item.
 
 ## Consequences
 

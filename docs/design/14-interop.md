@@ -650,7 +650,7 @@ importer reconstructs QET's pairs exactly:
    file, PQ-02).
 
 Cross-reference texts are recomputed, never imported (FR-IMP-009). The golden import yields the 22 IP pairs (44
-texts) and 10 main/aux pairs on 9 devices (20 texts): 64 texts, equal to the reference as printed.
+texts) and 10 main/aux pairs on 9 devices (19 texts with 20 targets): 63 texts with 64 targets, equal to the reference as printed.
 
 ### 4.7 Conductors → connections
 
@@ -1362,7 +1362,7 @@ The body already covers default formulas (§4.8), shared UUIDs (§4.7), NaN and 
 | 901 | `graphics_table` on `element_nomenclature_view` | BOM report block; table diff MF-21 (-4W1, -4X1 vanish) |
 | 902 | rectangles and texts "T51", "X1031", "-102G1" … | layout page; review queue T51 → T55, X1031 → -X1031, X1032 → -X1032 (MF-15) |
 
-All 18 folios import without a structural error, and the 64 cross-reference texts equal the reference as printed:
+All 18 folios import without a structural error, and the 63 cross-reference texts (64 targets) equal the reference as printed:
 the formula `%F-%l%c` yields "102-A1" where `%f` would yield "6-A1", and "3-B0" is reproduced through the
 element-origin anchor and reported (MF-13).
 

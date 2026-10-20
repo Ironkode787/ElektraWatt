@@ -50,8 +50,8 @@ Month 0 is November 2026. Dates come from [milestones.csv](docs/plan/milestones.
 
 | | M1 spine exit | M-PP pilot preview | M2 MVP | M6 release 1.0 |
 |---|---|---|---|---|
-| Plan of record (external) | Jan 2028 | Nov 2028 | Feb 2030 | Jan 2032 |
-| AI-assisted internal target | Oct 2027 | Jun 2028 | Jun 2029 | Jan 2031 |
+| Plan of record (external) | Feb 2028 | Dec 2028 | Mar 2030 | Feb 2032 |
+| AI-assisted internal target | Nov 2027 | Jul 2028 | Jul 2029 | Feb 2031 |
 
 The AI-assisted dates rest on weak evidence and are an internal target only. Details: [plan guide](docs/plan/README.md),
 [global plan](docs/plan/01-global-plan.md).

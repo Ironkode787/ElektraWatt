@@ -1,6 +1,6 @@
 # Checks, revisions and collaboration
 
-**Status:** Draft v0.2 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.2 · **Date:** 2026-10-20 (EW-CORE-019 added; EW-CORE-004 and -016 clarified) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -35,7 +35,7 @@ protocol, lock record, merge-driver internals, archive layout) stay in [05](05-p
 |---|---|---|
 | Rule engine, modes, schemes, waivers, quick fixes, messages, F1 help | All behaviour | Record shapes: [03](03-domain-model.md) §19 (amended in §2 below) |
 | Rule IDs and codes | The ID scheme (§2.2) and the registry: ID, code, kind, modes, default severity, scope, release and requirement of every rule (§4) | Rule content: EW-POT, EW-TERM, EW-CORE-031 … 037 in [08](08-connections-terminals-cables.md) §8; EW-PLC, EW-SAF, EW-PRC, EW-BUS, EW-IOL in [10](10-plc-and-bus.md) §3.10; EW-FL in [11](11-fluid-power.md) §6; EW-LAY and EW-THM in [12](12-panel-layout.md) §4, §11.8; EW-MFG in [13](13-manufacturing-outputs.md) §4.6; EW-IMP in [14](14-interop.md) §2.5; EW-LIB in [07](07-symbols-parts-macros.md) §6.2 |
-| Integrity check | Rule IDs EW-CORE-001 … 018 | Detection and quick fixes: [05](05-project-format-and-persistence.md) §6.3 |
+| Integrity check | Rule IDs EW-CORE-001 … 019 | Detection and quick fixes: [05](05-project-format-and-persistence.md) §6.3 |
 | Revisions | Lifecycle, sign-off, gate, page change status, change lists, clouds, transmittals | Release file sequence and archive layout: [05](05-project-format-and-persistence.md) §14; revision overview form and status mark: [09](09-reports-forms-output.md) |
 | Collaboration | Workflows, branch-safe counters, merge UI, visual review, comments, work copies | Lock record, journal, external-change diff, merge-driver algorithm: [05](05-project-format-and-persistence.md) §7, §9, §11 |
 | Screens | Behaviour and content | Widgets and layout: [16](16-ux-ui.md) |
@@ -154,7 +154,7 @@ keeps no aliases:
 |---|---|
 | Two-digit numbers in EW-PLC, EW-SAF, EW-PRC, EW-BUS, EW-IOL, EW-FL, EW-THM, EW-MFG and EW-EN60204 | The same number with three digits: EW-PLC-012 → EW-PLC-012, EW-BUS-001 → EW-BUS-001 |
 | The fused layout form EW-Lnnn | EW-LAY-nnn with the same number: EW-L001 → EW-LAY-001, EW-L011 → EW-LAY-011 |
-| INT-01 … INT-16 ([05](05-project-format-and-persistence.md) §6.3) | EW-CORE-001 … EW-CORE-016; EW-CORE-017 and EW-CORE-018 (unknown pinned derivation profile, ADR-0003 amendment 1) were added later and have no earlier form |
+| INT-01 … INT-16 ([05](05-project-format-and-persistence.md) §6.3) | EW-CORE-001 … EW-CORE-016; EW-CORE-017, EW-CORE-018 (unknown pinned derivation profile, ADR-0003 amendment 1) and EW-CORE-019 (a reader limit exceeded, 2026-10-20) were added later and have no earlier form |
 | LL-01 … LL-12 ([07](07-symbols-parts-macros.md) §6.2) | EW-LIB-001 … EW-LIB-012 |
 | EW-CORE-064 (font substituted on import) | Retired; the import finding EW-IMP-006 reports the fact |
 
@@ -185,7 +185,7 @@ CI-06 → EW-TERM-004, FI-02 and FI-07 → EW-FL-013, FI-03 → EW-FL-002.
 | `open_item` | The finding also appears in the open-items list (REF-094) |
 | `fixes` | Declarative quick fixes `{command, params}` or a Rust fix provider |
 | `docs` | Relative documentation path, resolved in the bundled docs (§3.8) |
-| `waivable` | `true` by default; `false` for every rule of kind `integrity` (EW-CORE-001 … 018, EW-CORE-083/084, the EW-REL rules) |
+| `waivable` | `true` by default; `false` for every rule of kind `integrity` (EW-CORE-001 … 019, EW-CORE-083/084, the EW-REL rules) |
 | `since`, `retired` | Pack versions |
 
 ### 2.4 Schemes and settings
@@ -545,21 +545,24 @@ this table. EW-LIB is not a project pack: the library linter runs it (§4.11), a
 ### 4.2 EW-CORE
 
 **Integrity (class 100).** The findings of the integrity check of [05](05-project-format-and-persistence.md) §6.3
-are EW-CORE-001 … 018, with the detection and quick fixes given there. They run on open, after merges and in
+are EW-CORE-001 … 019, with the detection and quick fixes given there. They run on open, after merges and in
 `ew check --integrity` (FR-CHK-012, MVP), including the "renumber the newer" fix of EW-CORE-013 (§6.4);
 cross-file reconciliation after merges is FR-COL-016 (1.0).
-- **Blocking release:** EW-CORE-002, -003, -005 … -009, -011, -012, -013, -015, -017 and -018; EW-CORE-016 (unknown
+- **Blocking release:** EW-CORE-002, -003, -005 … -009, -011, -012, -013, -015, -017, -018 and -019; EW-CORE-016 (unknown
   data from a newer format) only where outputs are affected.
 - **Not blocking:** EW-CORE-001, -004, -010, -014, and EW-CORE-016 where no output is affected.
 - **Not waivable:** every `integrity` row (§2.3). A dangling reference or a conflict record is repaired, never
   accepted.
+- **Read-only:** EW-CORE-002, -003, -005, -006 and -019 open the project read-only (05 §6.3; decision log ID-207).
+- **Not rules:** the reader's notices for line endings, foreign edits, non-canonical files and a truncated finding
+  list carry no rule ID; the integrity block 001–019 is full (05 §6.3; decision log ID-208).
 
 | ID | Name | Checks | Kind | Modes | Severity | Scope | Rel | Req. | D (golden) | Def. |
 |---|---|---|---|---|---|---|---|---|---|---|
 | EW-CORE-001 | Manifest damaged | Manifest missing, unparseable or with conflict markers; quick fix "rebuild manifest" | integrity | n | warning | project | MVP | FR-CHK-012 | — | 05 §6.3 |
 | EW-CORE-002 | Mixed generation | Mixed generation that cannot roll forward; journal recovery or a best-effort read-only load | integrity | n r | error | project | MVP | FR-CHK-012 | — | 05 §6.3 |
 | EW-CORE-003 | Listed file missing | A file named in the manifest is missing; restore it from git or the sync client, or drop the entry | integrity | n r | error | project | MVP | FR-CHK-012 | — | 05 §6.3 |
-| EW-CORE-004 | Orphan file | Orphan or sync-conflict copy; merge it as an external change, or delete it | integrity | n | warning | project | MVP | FR-CHK-012 | — | 05 §6.3 |
+| EW-CORE-004 | Orphan file | Orphan or sync-conflict copy, any file the manifest does not list (never read while a manifest exists), or a file a save moved aside to a stray `.unlisted-<g>` name instead of overwriting it (05 §5.2); merge it as an external change, or delete it by hand | integrity | n | warning | project | MVP | FR-CHK-012 | — | 05 §6.3 |
 | EW-CORE-005 | JSON syntax error | Syntax error at file and line; the project opens read-only until `ew fmt --repair` | integrity | n r | error | project | MVP | FR-CHK-012 | — | 05 §6.3 |
 | EW-CORE-006 | Git conflict markers | Conflict markers in a JSONL file, converted into conflict records | integrity | n r | error | project | MVP | FR-CHK-012, FR-COL-025 | — | 05 §6.3 |
 | EW-CORE-007 | Schema violation | Wrong type, missing member, a float or an unparseable value; the line is quarantined verbatim and references to it are reported | integrity | n r | error | project | MVP | FR-CHK-012 | — | 05 §6.3 |
@@ -571,9 +574,10 @@ cross-file reconciliation after merges is FR-COL-016 (1.0).
 | EW-CORE-013 | Collision after a merge | Tag or counter, terminal designation, wire number, IP star source, PLC address or symbol taken twice (§6.4); supersedes the violated prevent rule; quick fix "renumber the newer" | integrity | n r | error | project | MVP | FR-CHK-012 | — | 05 §6.3; 15 §6.4 |
 | EW-CORE-014 | Library copy modified | A library copy whose content does not match its `sha256`; mark it locally modified, or re-embed it | integrity | n | warning | project | MVP | FR-CHK-012 | — | 05 §6.3 |
 | EW-CORE-015 | Asset missing | An asset missing or not matching its hash name | integrity | n r | error | project | MVP | FR-CHK-012 | — | 05 §6.3 |
-| EW-CORE-016 | Data from a newer format | Unknown kinds, members or variants; blocks release only where outputs are affected | integrity | n r | info (release: error where outputs are affected) | project | MVP | FR-CHK-012 | — | 05 §6.3 |
+| EW-CORE-016 | Data from a newer format | Unknown kinds, members or variants; blocks release only where outputs are affected. Records of a reserved kind (a rank but no table yet) are kept verbatim and are not reported (decision log ID-206) | integrity | n r | info (release: error where outputs are affected) | project | MVP | FR-CHK-012 | — | 05 §6.3 |
 | EW-CORE-017 | Malformed known variant | An enum value whose tag names a variant this reader knows but whose payload does not parse; kept verbatim as `Unknown` (ADR-0011 amendment 2) and treated as unknown by derivations | integrity | n r | error | project | MVP | FR-CHK-012 | — | 05 §6.3 |
 | EW-CORE-018 | Unknown derivation profile | The project pins a derivation profile this build does not ship; the pin is kept, the newest shipped profile is used for display only and profile-dependent commands are refused until the profile upgrade (ADR-0003 amendment 1) | integrity | n r | error | project | MVP | FR-CHK-012, FR-PRJ-011 | — | 05 §6.3, §10.1 |
+| EW-CORE-019 | Reader limit exceeded | A hostile-input limit of the loader (line, file size, file count or JSON nesting, 05 §3.6) is exceeded; the file or line is not read and the project opens read-only (2026-10-20, decision log ID-207) | integrity | n r | error | project | MVP | FR-CHK-012, NFR-SEC-02 | — | 05 §3.6, §6.3 |
 
 **Pages, cables, devices, references, texts and the rule system.**
 
@@ -1586,7 +1590,7 @@ C = detected by a check, A = assisted by a tool, not checked.
 - [03](03-domain-model.md) §18–§19: the record kinds, amended in §2.1.
 - [04](04-architecture.md) §5.2, §6, §7.5, §7.8, §10.2, §12 and ADR-0003, 0008, 0009, 0012, 0013, 0017, 0019, 0020:
   commit pipeline, memo engine, merge, archive, projection, rule engine.
-- [05](05-project-format-and-persistence.md) §6, §7, §9, §11, §14: integrity findings (EW-CORE-001 … 018), lock,
+- [05](05-project-format-and-persistence.md) §6, §7, §9, §11, §14: integrity findings (EW-CORE-001 … 019), lock,
   external change, driver, release sequence, archive.
 - [06](06-schematic-editor.md) §3.10: online display and pending style. [09](09-reports-forms-output.md): report
   forms, status mark, export dates.

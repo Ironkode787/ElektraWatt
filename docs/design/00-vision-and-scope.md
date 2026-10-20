@@ -315,7 +315,7 @@ checks; it adds no release column, because it is a slice of MVP rows ([global pl
 
 **Dates are not set here.** The calendar is the plan of record: see [global plan](../plan/01-global-plan.md)
 §3.4 and §5.1 and [milestones.csv](../plan/milestones.csv). For the plan of record (three developers, lean scope,
-month 1 = November 2026) these are M-PP at month 25, M2 (MVP) at month 40 and M6 (1.0) at month 63; the plan
+month 1 = November 2026) these are M-PP at month 26, M2 (MVP) at month 41 and M6 (1.0) at month 64; the plan
 re-baselines them from measured velocity at G-M1.
 
 | Area | MVP | 1.0 | 1.x | Later |
@@ -463,7 +463,9 @@ its substance:
 4. **What is the pilot's QET baseline for SC-3?** *Recommendation:* time two reference-size projects in QET during
    M0–M1.
 5. **Are the G6 size classes right?** *Recommendation:* recalibrate L/XL from the pilot's three largest projects
-   before the performance spike (gate G-SP, [global plan](../plan/01-global-plan.md) §14, PD-8).
+   before the re-test of the performance spike (gate G-SP, [global plan](../plan/01-global-plan.md) §14, PD-8).
+   G-SP was held on 2026-10-20 on the assumed bounds with the outcome Recycle (ADR-0002 amendment 4); the
+   recalibration (G-SP-08, CP-03) is an owner action due before the re-test (decision log ID-224).
 6. **Where do thermal calculation (THM) and the read-only wiring viewer live?** **Resolved:** THM runs as queries
    in `ew-panel` ([12](12-panel-layout.md) §1.2); the viewer is the `ew-viewer` crate, used by a small
    `ew-wiring-viewer` binary for shop PCs and by the "Preview package" view of the Manufacturing workspace

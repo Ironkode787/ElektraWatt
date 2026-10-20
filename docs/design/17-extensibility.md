@@ -371,7 +371,7 @@ This table is the authoritative CLI catalogue; ARCH §10.1 summarises its groups
 ### 3.4 Examples on the golden project
 
 ```console
-$ ew export pdf golden/J-E-2416.ew --out out/J-E-2416.pdf      # 36 pages, outline, 64 xref links, /PageLabels
+$ ew export pdf golden/J-E-2416.ew --out out/J-E-2416.pdf      # 36 pages, outline, 63 xref links, /PageLabels
 $ ew export bom --mode assembly --format csv > bom-assembly.csv   # AC-07
 $ ew export wires --format xlsx --out wires.xlsx                  # 44 wires + 6 bridges, same rows as folio 907
 $ ew export terminals --format pdf --out terminals.pdf            # 1X1, -X1031, -X1032

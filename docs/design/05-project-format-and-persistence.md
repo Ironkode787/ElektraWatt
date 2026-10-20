@@ -1,6 +1,7 @@
 # Project format and persistence
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.2 · **Date:** 2026-10-20 (v0.2: the persistence core as built and reviewed in cycle 8,
+ADR-0010 amendment 3, decision log ID-200 to ID-217) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -12,7 +13,8 @@
 - library embedding and the as-built archive.
 
 It elaborates [architecture](04-architecture.md) §7 and ADR-0010 … ADR-0013 without changing their decisions.
-Its refinements of those ADRs are recorded as their amendments of 2026-10-18 and are marked where they apply; the
+Its refinements of those ADRs are recorded as their amendments of 2026-10-18 and 2026-10-20 and are marked where
+they apply; the
 open questions keep the record of how each was decided. The crates concerned are `ew-format` (MIT OR
 Apache-2.0), `ew-store` and `ew-library` (GPL-3.0-or-later).
 
@@ -139,6 +141,13 @@ Optional directories and files are absent in the golden project:
 
 None of the rule, report, script or job content runs until the user trusts the project (NFR-SEC-05, §13.4).
 
+**Temps, orphans and strays** (2026-10-20, ADR-0010 amendment 3; decision log ID-203, ID-214). The save protocol's
+own temps ("our temps") are the intents `manifest.json.tmp-<g>` and the `.tmp-<g>` files of record files and
+library documents; an editing open deletes or rolls forward only those (§5.3, §6.1). Every other file that the
+manifest does not list is left alone: with a manifest present it is never read, never deleted and reported as
+EW-CORE-004 (§6.2). A save that needs the path of such a file first moves it aside to
+`<stem>.unlisted-<g>[-<n>].<ext>` (§5.2), a **stray** name that the application never reads, writes or deletes.
+
 ### 2.2 Kind registry and ownership
 
 `ew-schema` holds a **kind registry**: the `$k` name, a fixed **rank** (sort order, §3.3) and an **ownership
@@ -174,6 +183,18 @@ rule**. Ranks are never reused or renumbered.
 
 Channel IDs are `v5(module, "channel", number)` ([10](10-plc-and-bus.md) §2.4, ADR-0004 amendment 2), so a channel
 keeps its file and line position however often its module is re-addressed.
+
+**Anchor fallbacks** (2026-10-20, format level; decision log ID-205). Every record of a known kind has exactly one
+deterministic file, also when its anchor cannot be resolved the normal way:
+- a page-less record anchored at a connection point of an interruption-point function (which has no device), such
+  as a page-less connection or a potential definition at that point, follows the function into its page file;
+- an interruption-point function without a representation (a broken EW-INV-013) goes to the shard of its own ID;
+- a dangling anchor (the referenced function or junction does not exist, EW-CORE-008) goes to the shard of the
+  referenced ID, so the record keeps its file when the reference is repaired; an endpoint of a newer format goes to
+  the shard of the record's own ID;
+- a record of a reserved or unknown kind gets a file only where its rule needs nothing but the record itself (a
+  root file, `imports/<own id>.jsonl`, the page named by its `page` member); otherwise it stays in the file it was
+  read from (§10.3).
 
 A shard is `devices/<xx>.jsonl`, where `xx` is the anchor ID's last byte as two lower-case hex digits. The
 [domain model](03-domain-model.md) §14 allows a `LogicalNet` in its master's shard or in `project.jsonl`; this
@@ -211,7 +232,10 @@ numbers live in `Connection.number`. A released revision's report snapshots live
   - non-ASCII characters stay raw;
   - `/` is never escaped.
 
-  The form is close to RFC 8785 (JCS), but members follow the schema order and numbers are integers only.
+  The form is close to RFC 8785 (JCS), but members follow the schema order and numbers are integers only. The
+  byte-wise key order of `extra` relies on serde_json's sorted `Map`; its feature `preserve_order`, which would
+  switch every `Map` in the build to insertion order, is banned by `ci/dep-rules.toml` and guarded by a unit test
+  (decision log ID-215).
 - **Strings are NFC** (ARCH §7.3). A non-NFC string read from disk is normalised in memory, and its file counts as
   non-canonical, so it is rewritten at the next save; `ew fmt --check` reports it.
 - **Member order:**
@@ -346,7 +370,9 @@ the same bytes on save (NFR-REL-07).
 **Unknown and reserved kinds.** Records of a kind this reader does not know, and of a reserved kind that has a
 rank but no table yet (such as `import_run`, or the layout kinds before WP-S4.01), are kept and written in the same
 order: by rank where the registry knows the kind, else after every known kind, ordered by the `$k` text byte-wise,
-and then by the ID order above. A duplicate `($k, id)` among them is EW-CORE-009 like any other (§6.3).
+and then by the ID order above. A duplicate `($k, id)` among them is EW-CORE-009 like any other (§6.3). Records of
+a **reserved** kind are kept verbatim without a finding, because this format version defines them; only kinds,
+members and variants the reader does not know at all are EW-CORE-016 (decision log ID-206).
 
 ### 3.4 Library documents
 
@@ -434,7 +460,10 @@ copy of that item under `lib/manufacturers/` ([07](07-symbols-parts-macros.md) �
 
 The JSONL loader is a hardened parser under NFR-SEC-02 and is fuzzed together with the migration chain
 (NFR-SEC-03). Its limits:
-- lines ≤ 16 MiB, files ≤ 512 MiB, ≤ 100,000 files, JSON nesting ≤ 64;
+- lines ≤ 16 MiB, files ≤ 512 MiB, ≤ 100,000 files, JSON nesting ≤ 64; a file or line beyond a limit is not
+  read and is EW-CORE-019 (error, read-only; decision log ID-207), checked by a linear pre-scan before any parse;
+  reading the manifest, the lock and an intent with the same bound before their size is checked follows with
+  FT-90;
 - duplicate member names rejected;
 - only regular files are read. Symbolic links and junctions inside the project are not followed (NFR-SEC-16),
   because a received project could otherwise make EW read, export or overwrite a file outside its directory.
@@ -470,6 +499,7 @@ The JSONL loader is a hardened parser under NFR-SEC-02 and is fuzzed together wi
 | `generator` | Program and version that wrote this generation |
 | `project` | The project row's ID: key for the journal, the trust store and "two copies open" warnings |
 | `generation` | +1 per save; after a git merge, max(ours, theirs) + 1 (§11.3) |
+| `base` | `"sha256:<hex>"` of the raw bytes of the `manifest.json` that this generation's save replaced (ADR-0010 amendment 3; decision log ID-202). Written into the intent (§5.2 step 5) and therefore present in every manifest a save writes; absent in a first generation (the golden fixture has none). The comparison that skips writing an unchanged project ignores it, and no save copies an earlier `base` forward. It conflicts in text merges like `generation` (§11.3, §11.4) |
 | `files` | Every EW file except the manifest, the git files, `.ew/`, the lock files, `.~ew.requests/` and temps |
 | `merged` | `true` only when written by the merge driver: the hashes are not authoritative |
 | `unstable` | `true` when written by a development build with an unreleased schema (§10.4) |
@@ -497,13 +527,15 @@ sequenceDiagram
   UI->>W: save(snapshot at rev r, dirty set D, base generation g)
   W->>FS: re-read lock and manifest (our session? still g?)
   W->>W: serialise files of D, hash, drop unchanged
+  W->>FS: move unlisted files at target paths aside (stray names)
   W->>FS: write name.tmp-(g+1) with create_new, sync_all
-  W->>FS: write manifest.json.tmp-(g+1), sync_all, sync directories
+  W->>FS: write manifest.json.tmp-(g+1) with base, sync_all
+  W->>FS: sync temp directories, then the root
   W->>W: journal save-begin and sync it
   Note over W,FS: commit point: generation g+1 is decided
-  W->>FS: rename each temp over its target
-  W->>FS: rename manifest temp over manifest.json, sync directories
-  W->>FS: delete dropped files and stale temps
+  W->>FS: rename each temp over its target, sync target directories
+  W->>FS: rename manifest temp over manifest.json, sync the root
+  W->>FS: delete dropped files and our stale temps
   W->>UI: saved(g+1, rev r): the History gets the saved marker
 ```
 
@@ -514,21 +546,40 @@ sequenceDiagram
 3. **Serialise** each dirty file from the snapshot (§3), hash it, drop files equal to their manifest hash, and mark
    empty files for removal.
 4. **Temps:** `<name>.tmp-<g+1>` beside its target, `create_new`, `sync_all` (`F_FULLFSYNC` on Apple platforms,
-   G1).
-5. **Intent:** the complete new manifest as `manifest.json.tmp-<g+1>`, `sync_all`, then sync the touched
-   directories on Linux and macOS. On Windows, directory sync is unavailable and the NTFS metadata log is relied on
-   **(verify)**. The writer then journals `save-begin{gen, writes, removes}` (§8.1) and syncs the journal.
-6. **Renames:** each temp over its target. On Windows, `ERROR_SHARING_VIOLATION` and `ERROR_ACCESS_DENIED`
-   (antivirus, indexer, sync client) are retried with backoff 10 … 1,000 ms. After that, EW reports "save
-   incomplete" and retries the roll-forward (§5.3) every 5 s.
-7. **Manifest:** rename the intent over `manifest.json`, then sync the directories.
-8. **Clean-up:** delete the files that left the manifest (deleted pages, emptied shards) and stale temps.
+   G1). Before it writes the temp of a path that the baseline manifest does not list, the writer checks the target:
+   an existing file there (another user's file, a sync client's copy) is **moved aside**, never renamed over, by a
+   rename without replacement to `<stem>.unlisted-<g+1>[-<n>].<ext>` (§2.1, a stray), with the next free `n` when
+   the name is taken. The save reports EW-CORE-004 naming the new path in its save report and continues (owner
+   ruling, decision log ID-203). The move is made durable together with the temps.
+5. **Intent:** the complete new manifest as `manifest.json.tmp-<g+1>`, with `base` = the SHA-256 of the raw bytes
+   of the `manifest.json` the save started from (§4; absent when there was none), `sync_all`. Then the directories
+   are synced in this order: the temps' directories first, the root (which holds the intent) last, so that a
+   durable intent name implies durable temp names (ADR-0010 amendment 3, decision log ID-200). On Windows,
+   directory sync is unavailable and the NTFS metadata log is relied on **(verify)**. The writer then journals
+   `save-begin{gen, writes, removes}` (§8.1) and syncs the journal.
+6. **Renames:** each temp over its target, then a sync of the target directories other than the root. On Windows,
+   `ERROR_SHARING_VIOLATION` and `ERROR_ACCESS_DENIED` (antivirus, indexer, sync client) are retried with backoff
+   10 … 1,000 ms. After that, EW reports "save incomplete" and retries the roll-forward (§5.3) every 5 s.
+7. **Manifest:** rename the intent over `manifest.json`, then sync the root. The renamed data files are durable
+   before the manifest names the new generation: the earlier order "rename the manifest, then sync the
+   directories" let, on file systems with per-directory sync (ext4, APFS), a durable manifest rename precede a
+   durable data-file rename, which after a power loss gave a silent mixed generation or a false EW-CORE-002 (found
+   by the power-loss mode of §5.6).
+8. **Clean-up:** delete the files that left the manifest (deleted pages, emptied shards) and our stale temps (§2.1).
+   A normal save deletes them after the manifest rename and relies on the journal's `save-begin{removes}` after a
+   crash; a roll-forward deletes them before it renames the intent (§5.3, decision log ID-201).
 9. **Bookkeeping:** journal `save-done`, start a new segment (§8), and move the saved marker to rev r. Later commits
    stay dirty.
 
+**Incomplete saves** (decision log ID-213). A save that fails after the commit point is *incomplete*: generation
+g+1 is decided, and the writer retries the roll-forward before the next save. A retry that fails again is
+reported as "pending incomplete" (`SaveError::PendingIncomplete`) and writes nothing new. The `Session` clears its
+unsaved state only when a save succeeds, or when it ends incomplete with a generation above the one before the
+call; a failed retry therefore never marks newer edits as saved.
+
 The save never blocks the UI. Budgets: S/M ≤ 200 ms, L ≤ 500 ms, XL ≤ 2 s (NFR-PERF-12).
 
-### 5.3 Commit point and roll-forward (ADR-0010 amendment 1)
+### 5.3 Commit point and roll-forward (ADR-0010 amendments 1 and 3)
 
 **The gap.** ARCH §7.4 orders temp → rename → manifest. Renames are atomic only per file, so a crash between two
 renames leaves generation g partly overwritten.
@@ -538,10 +589,22 @@ durable. A crash at any point therefore leaves a state that resolves to g or g+1
 
 | Crash between | On disk | Next open (lock held) |
 |---|---|---|
-| Steps 1 and 5 | g intact plus stray temps | Delete temps; open g |
-| Steps 5 and 7 | Complete intent; each data file at g or g+1, the rest as temps | **Roll forward:** rename every temp whose hash matches the intent, then the intent; open g+1 |
+| Steps 1 and 5 | g intact plus our temps | Delete our temps (§2.1); open g |
+| Steps 5 and 7 | Complete intent; each data file at g or g+1, the rest as temps | **Roll forward** after the base check below: move unlisted files at target paths aside (§5.2 step 4), rename every temp whose hash matches the intent, delete the old generation's files that the intent no longer lists, sync the target directories, rename the intent, sync the root; open g+1 |
 | Steps 7 and 8 | g+1 complete, removed files still present | Delete those named in the journal's `save-begin{removes}`; report the rest (EW-CORE-004) |
 | Intent present, but for some file neither the target nor a temp matches the intent hash | Mixed, not repairable from disk | EW-CORE-002: journal recovery (§8) or a best-effort read-only load |
+| Intent present, but its `base` does not match the manifest's bytes, or it records no `base` while a manifest exists | The manifest changed after the save began (a pull, a colleague's save, a hand edit) | EW-CORE-002, read-only, intent and temps kept: rolling forward would overwrite the newer state |
+
+**Which intents count.** Only an intent whose generation is above the manifest's (when the manifest parses) is
+an interrupted save; an older one is a leftover that the next editing open deletes with our other temps. A torn
+intent (unreadable) never committed and is deleted with its temps.
+
+**Base check** (ADR-0010 amendment 3; decision log ID-202). Wherever an intent is applied (the roll-forward at an
+editing open, a read-only opener's in-memory read of §6.1, the retry of an incomplete save), its `base` is compared
+with the SHA-256 of the raw bytes of `manifest.json` on disk, never with parsed generations. A conflicted or
+unparseable manifest whose bytes are unchanged therefore still rolls forward; without a parsed manifest every
+record file on disk counts as the save's baseline (for the unlisted-file rule). Only differing bytes, or a missing
+`base` while a manifest exists, refuse the intent (last row of the table).
 
 The fault-injection harness of NFR-REL-01 (§5.6) kills the writer at random points of steps 4–8 on ext4, NTFS
 and APFS. Every reopen must yield g or g+1.
@@ -584,6 +647,10 @@ and APFS. Every reopen must yield g or g+1.
   never as a silent mixed generation (NFR-REL-01).
 - **Error mode.** ENOSPC, EACCES, EROFS and, on Windows, `ERROR_SHARING_VIOLATION` are injected at each call: g
   stays intact, the project stays dirty, and the message names cause and remedy (NFR-REL-03).
+- **As built (WP-S1.09, cycle 8).** The kill, power-loss and error modes run in-process on the in-memory `MemVfs`,
+  which numbers, fails and "powers off" calls; the power-loss mode found the sync order that §5.2 steps 5 to 7 now
+  prescribe, and an extra probe of 2,944 double-crash roll-forward cases found no failure (the roll-forward is
+  idempotent). The child-process run on real ext4, NTFS and APFS volumes is a milestone task (FT-92).
 
 ---
 
@@ -598,20 +665,31 @@ flowchart TD
   L -- "held by a live session" --> RO["Read-only (§7)"]
   L -- "EACCES or EROFS" --> RO
   RW --> T{"manifest.json.tmp-n?"}
-  T -- complete --> F["Roll forward (§5.3)"] --> H
-  T -- torn --> D[Delete temps] --> H
+  T -- "complete, base matches" --> F["Roll forward (§5.3)"] --> H
+  T -- "complete, base differs" --> X["EW-CORE-002, read-only, intent kept"] --> H
+  T -- torn --> D[Delete our temps] --> H
   T -- none --> H["Hash listed files in parallel"]
-  RO --> H
+  RO --> W{"Intent above the manifest after 5 s?"}
+  W -- no --> H
+  W -- yes --> V["Read the intent's generation in memory"] --> H
   H --> M{"All match?"}
   M -- yes --> P["Parse, migrate, build tables and indexes"]
   M -- no --> C["Classify (§6.2)"] --> P
-  P --> I["Integrity EW-CORE-001 … 018 on the pool"]
+  P --> I["Integrity EW-CORE-001 … 019 on the pool"]
   I --> J{"Leftover journal?"}
   J -- yes --> R["Recovery dialog (§8.3)"]
   J -- no --> O["First page interactive, warm-up continues"]
 ```
 
-- **Read-only openers never roll forward.** If one meets temps, it retries every 200 ms for up to 5 s.
+- **Only listed files are read.** With a manifest present the loader reads exactly the files it lists; any other
+  file in the layout is EW-CORE-004 and is not read (§6.2, decision log ID-203).
+- **Read-only openers never roll forward** (ADR-0010 amendment 3; decision log ID-204). Behind a stale or
+  live-looking lock, one that meets an intent above the manifest's generation retries every 200 ms for up to 5 s
+  for the save to finish. If the intent is still there after the wait (a writer that crashed or stalls), the
+  opener reads the intent's generation **in memory**: each listed file from its target or from its temp, whichever
+  matches the intent's hash, after the base check of §5.3. The disk is not changed, the result is exactly one
+  generation, and a file that matches neither is EW-CORE-002. A read-only open therefore never waits longer than
+  5 s and never fails because a save is in progress; `OpenError::SaveInProgress` is no longer produced.
 - **Parallel parse.** Files are parsed in parallel into ordered tables, so the result does not depend on order.
 - **Budget.** Opening stays within NFR-PERF-03 (S ≤ 0.5 s … XL ≤ 20 s). Hashing the roughly 250 MB of an XL
   project takes well under a second in parallel (estimate, to be measured in the performance spike (gate G-SP)).
@@ -626,7 +704,12 @@ A mismatch is classified, loaded anyway and explained (FR-COL-004):
 | `merged: true`, or `MERGE_HEAD` or rebase state in an ancestor `.git` | Git merge or rebase | Integrity check; manifest rewritten at the next save |
 | Files differ, valid, no temps | Foreign edit (hand edit, checkout, a tool) | "Changed outside ElektraWatt: 2 files" notice; integrity check |
 | A listed file is missing | Partial copy, sparse checkout, sync unfinished | EW-CORE-003, read-only. On cloud paths, re-check after 5 s first |
-| An unlisted file matching an EW or sync-conflict name pattern (§15) | Orphan or conflict copy | EW-CORE-004 |
+| An unlisted file matching an EW or sync-conflict name pattern (§15), or a stray `.unlisted-<g>` name | Orphan, conflict copy or a file moved aside by a save | EW-CORE-004. Not read while a manifest exists, never deleted. A save or roll-forward that needs its path moves it aside first (§5.2 step 4) and reports EW-CORE-004 in its save report; the save continues (decision log ID-203) |
+
+**As built (WP-S1.09).** The format layer loads anyway as above, but `Model::from_records` still refuses a record
+set it cannot build (for example one that breaks a structural invariant, EW-CORE-012), so such a project fails to
+open with its findings instead of opening read-only; the lenient model build that FR-COL-004's "load anyway"
+needs follows with FT-87.
 
 The "last good generation" of FR-COL-004 is not a second copy on disk. Earlier states come from the recovery
 snapshots, git history and `.ewz` backups.
@@ -634,17 +717,21 @@ snapshots, git history and `.ewz` backups.
 ### 6.3 Integrity findings
 
 `ew check --integrity` (FR-CHK-012, MVP) runs on every open, after merges and from the CLI; cross-file
-reconciliation after merges (§11.5) is FR-COL-016 (1.0). The findings are the integrity rules EW-CORE-001 … 018 of
+reconciliation after merges (§11.5) is FR-COL-016 (1.0). The findings are the integrity rules EW-CORE-001 … 019 of
 [checks, revisions and collaboration](15-checks-revisions-collaboration.md) §4.2 (kind `integrity`, never
-waivable). A finding marked **R** blocks release: EW-CORE-002, -003, -005 … -009, -011, -012, -013, -015, -017 and -018,
-and EW-CORE-016 only where outputs are affected.
+waivable). A finding marked **R** blocks release: EW-CORE-002, -003, -005 … -009, -011, -012, -013, -015, -017,
+-018 and -019, and EW-CORE-016 only where outputs are affected.
+
+**Read-only findings** (decision log ID-207). EW-CORE-002, -003, -005, -006 and -019 force a read-only session,
+because a save could otherwise drop or overwrite data the reader did not see (EW-CORE-006 until its conflict
+records are loaded, FR-COL-025). The flag counts every such finding, also those beyond the findings cap.
 
 | ID | Finding | Severity | Quick fix |
 |---|---|---|---|
 | EW-CORE-001 | Manifest missing, unparseable or with conflict markers | warning | Rebuild it (`ew check --integrity --fix-manifest`) |
 | EW-CORE-002 | Mixed generation that cannot roll forward | error; R | Journal recovery; best-effort read-only load |
 | EW-CORE-003 | A listed file is missing | error; R | Restore it from git or the sync client; drop the entry |
-| EW-CORE-004 | Orphan or sync-conflict copy | warning | Compare; merge the copy as an external change (§9); delete |
+| EW-CORE-004 | Orphan or sync-conflict copy, an unlisted file, or a file a save moved aside to a stray `.unlisted-<g>` name (§5.2 step 4) | warning | Compare; merge the copy as an external change (§9); delete by hand (EW never deletes it) |
 | EW-CORE-005 | JSON syntax error at file:line | error; R; read-only | `ew fmt --repair`: discard the line, with an `.ewz` backup |
 | EW-CORE-006 | Git conflict markers in a JSONL file | error; R | Converted into conflict records (§11.4) |
 | EW-CORE-007 | Schema violation: wrong type, missing member, a float, an unparseable value such as a `Dec3` with four fraction digits. An undeclared company colour code such as "BR" parses as a company code and is reported by EW-CORE-031; a lenient import writes `{"foreign":"BR"}` (§3.2) | error; R | The line is quarantined verbatim and references to it are reported |
@@ -656,15 +743,27 @@ and EW-CORE-016 only where outputs are affected.
 | EW-CORE-013 | Uniqueness collision after a merge: tag or counter, terminal designation, wire number, PLC address or symbol taken twice, or an interruption-point name that breaks "at most one star source per name and scope; in chain mode an even count, ordered by sort key" (EW-CORE-052, ADR-0009 amendment 1; [15](15-checks-revisions-collaboration.md) §6.4) | error; R | "Renumber the newer": renumber all but the keeper (frozen or released value first, then the record present in the merge base, then the older UUIDv7); one previewed command per merge |
 | EW-CORE-014 | A library copy whose content does not match its `sha256` | warning | Mark it locally modified, or re-embed it |
 | EW-CORE-015 | An asset missing or not matching its hash name | error; R | Re-import; drop the reference |
-| EW-CORE-016 | Unknown kinds, members or variants from a newer format (a malformed value of a known variant is EW-CORE-017) | info; R where outputs are affected | Upgrade EW |
+| EW-CORE-016 | Unknown kinds, members or variants from a newer format (a malformed value of a known variant is EW-CORE-017). Records of a reserved kind (a rank but no table yet, §3.3) are kept verbatim and are not reported | info; R where outputs are affected | Upgrade EW |
 | EW-CORE-017 | Malformed value of a known variant: an enum value whose tag names a variant this reader knows but whose payload does not parse, such as `{"core": 5}` or `{"cp": ["<id>"]}`. The value is kept verbatim as `Unknown` (ADR-0011 amendment 2) and derivations treat it as unknown (§10.3) | error; R | Re-enter the value in the property grid, which shows the raw value |
 | EW-CORE-018 | The project pins a derivation profile this build does not ship (a newer file or a hand edit). The pin is kept; the newest shipped profile is used for display only, and profile-dependent commands are refused (§10.1, ADR-0003 amendment 1) | error; R | The opt-in, previewed profile upgrade; or open the project in a build that ships the profile |
+| EW-CORE-019 | A hostile-input limit of §3.6 exceeded (line, file, file count or nesting); the file or line is not read (2026-10-20, decision log ID-207) | error; R; read-only | Split or repair the file outside EW; check the source of the project |
+
+**Notices without a rule ID** (decision log ID-208). Four results of the reader are not catalogue rules and carry
+no EW-CORE ID: a hash that matches after CRLF → LF (line endings, §6.2), a listed file changed outside EW (foreign
+edit, §6.2), a valid but non-canonical file (§3.1), and the note that more findings than the cap (1,000) were
+counted (truncated). The first three classify the open and resolve themselves at the next save; the fourth is
+about the report, not the project. None blocks release or forces read-only. They are reported as notices with
+their kind name ("Changed outside ElektraWatt: 2 files"), and the integrity block 001 … 019 (doc 15 §2.2) has no
+number left for them.
 
 ### 6.4 Concurrent readers
 
-**Reading commands take no lock** (`ew export`, `ew check`, `ew sql`, `ew render`, `ew fmt --check`). They read
-the manifest and then the files, and verify the hashes. While a save is in progress they retry for up to 5 s, then
-exit with code 2. Their output therefore reflects exactly one generation (FR-COL-027).
+**Reading commands take no lock** (`ew export`, `ew check`, `ew sql`, `ew render`, `ew fmt --check`). They open
+read-only (§6.1): they read the manifest and then the listed files, and verify the hashes. While a save is in
+progress they retry for up to 5 s; if the save's intent is still there after the wait, they read the intent's
+generation in memory, after its base check (§5.3), instead of failing. They never exit with code 2 because of a
+save in progress (amended 2026-10-20, decision log ID-204). Their output therefore reflects exactly one generation
+(FR-COL-027): the manifest's, or the one a crashed or stalled save had decided.
 
 **Writing commands take the lock or refuse:** `ew apply`, `ew import` into an existing project, `ew fmt` (when it
 writes), `ew upgrade`, `ew revision approve|release|withdraw`, `ew waiver add|remove`, `ew merge resolve`,
@@ -714,13 +813,24 @@ editing".
 1. EW renames `.~ew.lock` **without replacement** (`renameat2(RENAME_NOREPLACE)` on Linux, `renamex_np(RENAME_EXCL)`
    on macOS, `MoveFileExW` without `MOVEFILE_REPLACE_EXISTING` on Windows) to `.~ew.lock.stale-<stale session>`.
    Two instances taking over the same stale lock aim at the same target name, so only one rename succeeds. A plain
-   replacing rename would let the slower one move the winner's fresh lock away.
-2. The winner creates its own lock with `create_new` and re-reads it after 2 s.
+   replacing rename would let the slower one move the winner's fresh lock away. When the target already exists with
+   the same bytes as the lock (a takeover that crashed between the link and the unlink of a rename without
+   replacement left both), the copy is redundant: it is pruned and the rename is tried once more.
+2. The winner **restamps** the renamed file's modification time to the takeover time, so the age rule below counts
+   from the takeover; otherwise it keeps the holder's last heartbeat, and the winner's own open would prune it at
+   once and reopen the race (decision log ID-210). It then creates its own lock with `create_new` and re-reads it
+   after 2 s.
 3. Where a file system cannot rename without replacement (some CIFS and NFS mounts **(verify)**), EW falls back to
    the plain rename, and the re-read of step 2 plus the heartbeat's session check (§7.2) detect the loser.
 
 A laptop that wakes after a takeover detects the loss at its next heartbeat (§7.2). `.~ew.lock.stale-*` files
-older than `lock.stale_after` are deleted at the next open.
+older than `lock.stale_after` (counted from the takeover, step 2) are deleted at the next editing open.
+
+**PID liveness as built** (decision log ID-216). Only Linux probes the PID (through `/proc/<pid>`, without its
+start time). On Windows and macOS a crashed holder's lock is stale only by age, so after a crash on the same host the
+project opens read-only for up to 60 minutes (`lock.stale_after`) before a takeover is offered. The probe of PID
+and start time on Windows and macOS (and the start time on Linux) comes with the small `ew-sysprobe` crate
+(FT-89).
 
 ---
 
@@ -728,8 +838,12 @@ older than `lock.stale_after` are deleted at the next open.
 
 ### 8.1 Journal
 
-The journal lives in `<state>/journal/<project id>-<8 hex of SHA-256(canonical path)>/`. It holds one JSONL
-segment per base generation and three snapshot slots. The example records W20's colour change from DBU to BU
+The journal lives in `<state>/journal/<project id>-<8 hex of SHA-256(canonical path)>/`. The canonical path is the
+absolute path with links, `.` and `..` resolved and, on Windows, the verbatim prefix `\\?\` stripped, so one project
+reached through two paths has one journal (decision log ID-211); journals of pre-release builds kept under a
+non-canonical path are not found. It holds one JSONL segment per base generation and three snapshot slots (the
+slots, group commit and the undo rebuild of §8.2 step 5 follow with FT-88; v0 replays the whole segment onto its
+base generation). The example records W20's colour change from DBU to BU
 (folio 102):
 
 ```json
@@ -759,6 +873,9 @@ segment per base generation and three snapshot slots. The example records W20's 
 - **Lifecycle.**
   - A successful save starts a new segment; the old one goes after the next snapshot.
   - A clean close deletes the directory (NFR-PRIV-05).
+  - At the next editing open, leftover segments of other sessions that hold no unsaved transaction (a session that
+    crashed or was dropped right after a save) are deleted; only segments with unsaved transactions reach the
+    recovery dialog (decision log ID-211).
   - At start-up, leftovers older than 30 days are pruned and logged.
   - If the state directory is unavailable, EW shows "unsaved changes are not crash-protected" and editing continues.
 
@@ -881,6 +998,12 @@ Unknown data is preserved as follows:
 
 Original lines are held only for records with unknown content. A project in the current format costs no extra
 memory.
+
+**As built (v0, WP-S1.09; decision log ID-217).** Unknown kinds and the lines of EW-CORE-007 and EW-CORE-017 are
+kept byte for byte, but an untouched record with unknown *members* is re-emitted canonically (its members kept in
+`extra`, in byte-wise order) instead of by its original line; the original-line rule above follows with FT-96.
+`min_reader` is written equal to `format` and `unstable` is never written (§4, §10.4); the computed values follow
+with FT-95.
 
 ### 10.4 Schemas, fixtures and development builds
 
@@ -1011,15 +1134,23 @@ The driver writes:
 - `generation = max(a, b) + 1`;
 - `format` and `min_reader` as the maximum of both sides, and `generator` from ours;
 - `files` merged three-way per path, with `"sha256:pending"` where both sides changed;
-- `merged: true`.
+- `merged: true`;
+- no `base`: a merged manifest is not the result of a save, and the next save records the hash of the merged
+  manifest's bytes as its `base` (§4, decision log ID-202).
 
-The open path treats the result as in §6.2, and the next save writes a clean manifest.
+The open path treats the result as in §6.2, and the next save writes a clean manifest. As built (v0), that save
+restarts at generation 1 after a conflicted manifest instead of continuing at max(ours, theirs) + 1 (FT-97).
 
 ### 11.4 Without the driver
 
 GitHub web merges and clones without `ew git setup` fall back to git's text merge:
 - **Merges mostly succeed:** one record per line, ordered by random bits, keeps conflicts rare (ADR-0012).
-- **The manifest conflicts** on the `generation` line, and any resolution is acceptable (§6.2).
+- **The manifest conflicts** on the `generation` and `base` lines (amended 2026-10-20, decision log ID-203). Any
+  resolution of these two lines is acceptable: either side, or `base` dropped; the next save records the hash of
+  the resolved manifest's bytes, and an interrupted save whose `base` still matches those bytes rolls forward
+  (§5.3). The resolution does not make other files acceptable: only the files the resolved manifest lists are
+  read, an unlisted file is EW-CORE-004, and a later save moves an unlisted file at a path it writes aside instead
+  of overwriting it (§5.2 step 4). A manifest left with conflict markers is EW-CORE-001 (rebuild it).
 - **Leftover markers become conflict records.** The loader reads each hunk's ours and theirs lines as complete
   records, plus the base when the diff3 style is used, and turns them into conflict records (EW-CORE-006,
   FR-COL-025). The project then opens in the merge panel instead of failing.
@@ -1332,6 +1463,13 @@ The golden project has about 200 files and is well under 1 MB:
 The fixture comparison of [golden project](20-golden-project.md) §3.2 ignores only the manifest's `generator`
 member, so an EW version bump does not invalidate the checked-in fixture.
 
+**As generated** (cycle 8, WP-S1.09; decision log ID-212). `golden/J-E-2416.ew/` is written by the bootstrap and
+checked in: 164 files, about 0.8 MB, generation 1 (so its manifest has no `base`). It opens with no finding, and a
+full save of it writes nothing. It has no revisions, waivers, layout or manufacturer copies yet, because those
+kinds are reserved in `ew-schema` v0, which is why it holds fewer files than the estimate above. One test compares
+it byte for byte with the bootstrap; its bless mode (`EW_BLESS_GOLDEN_FIXTURE=1`, run on that single test) only
+writes files, so a file that is no longer produced is removed by hand.
+
 ### 17.2 Edits and the files they write
 
 | Edit (golden) | Files written besides the manifest |
@@ -1374,7 +1512,7 @@ QET stores evaluated labels and per-folio title-block strings, and these produce
 | Lock with heartbeat; read-only mode; takeover; lock loss | Must | — | — | — |
 | Journal, snapshots, recovery dialog | Must; undo rebuild Should | — | — | — |
 | External-change apply; merge panel for collisions | Must | — | — | — |
-| Integrity EW-CORE-001 … 018 on open and after merges, with the EW-CORE-013 "renumber the newer" quick fix (FR-CHK-012) | Must | Cross-file reconciliation (§11.5), FR-COL-016 | — | — |
+| Integrity EW-CORE-001 … 019 on open and after merges, with the EW-CORE-013 "renumber the newer" quick fix (FR-CHK-012) | Must | Cross-file reconciliation (§11.5), FR-COL-016 | — | — |
 | Fault-injection harness (§5.6) | Must | — | — | — |
 | Cloud warning, conflict copies, placeholders | Should | — | — | — |
 | `.ewz` pack and open; `.ewz` as CLI input; `--omit-personal-data` (FR-OUT-025) | Must | — | — | — |
@@ -1404,7 +1542,7 @@ QET stores evaluated labels and per-folio title-block strings, and these produce
   - [09](09-reports-forms-output.md): the "Saved" binding and the release context;
   - [12](12-panel-layout.md): layout records;
   - [13](13-manufacturing-outputs.md): `.ewpp` reuses the ZIP rules of §12;
-  - [15](15-checks-revisions-collaboration.md): the integrity rules EW-CORE-001 … 018, the release gate, merge and
+  - [15](15-checks-revisions-collaboration.md): the integrity rules EW-CORE-001 … 019, the release gate, merge and
     conflict panels;
   - [16](16-ux-ui.md): dialogs;
   - [17](17-extensibility.md): CLI catalogue;
@@ -1417,7 +1555,7 @@ QET stores evaluated labels and per-folio title-block strings, and these produce
 | `ew-ids` | P | UUIDv7 (method 3), UUIDv5 | uuid 1.28.0 |
 | `ew-schema` | P | Records, kind registry, ranks, `since`, merge strategies, JSON Schemas | serde 1.0.229, schemars 1.2.3 |
 | `ew-format` | P | Canonical reader and writer, manifest, migrations, three-way record merge, conflict records | serde_json 1.0.154, semver 1.0.28, sha2 **(verify)** |
-| `ew-store` | GPL | Save, lock, journal, recovery, watcher, external-change diff, `.ewz`, archive, git glue, `Vfs` seam (§5.6) | ew-format, ew-model, notify 8.2.0, zip 9.0.4, etcetera or directories **(verify)**; added to ARCH §3: gix 0.89.0 for `git:<rev>` reads, release commits, tags and local history (with the `git` CLI as fallback for commits and tags, **(verify)**) |
+| `ew-store` | GPL | Save, lock, journal, recovery, watcher, external-change diff, `.ewz`, archive, git glue, `Vfs` seam (§5.6) | ew-format (re-exported, with `ew-schema` through it), ew-model (`raw-read`), serde_json; later ew-sysprobe for the PID probe (FT-89), notify 8.2.0, zip 9.0.4, etcetera or directories **(verify)**; added to ARCH §3: gix 0.89.0 for `git:<rev>` reads, release commits, tags and local history (with the `git` CLI as fallback for commits and tags, **(verify)**) |
 | `ew-library` | GPL | Registry of installed `.ewlib` libraries, the derived per-user search index, embedding closure | ew-format, rusqlite 0.40.2 |
 | `ew` (bin) | GPL | `merge-driver`, `diff`, `fmt`, `upgrade`, `git setup`, `recover`, `archive` | clap **(verify)** |
 
@@ -1537,3 +1675,13 @@ The eleven rows this document proposed are in the catalogues:
     `{x, y, w, h}` would have added a second number shape.
 19. **UUIDv5 name bytes.** ADR-0004 named the formulas but not the bytes hashed. **Resolved** (ADR-0004 amendment 4):
     components joined by U+001F, and lineage namespaces derived from `NS_IMPORT` (§3.2a).
+20. **Unlisted files at a path the save writes.** The review of WP-S1.09 found that a save renamed its temp over a
+    file the manifest did not list (a colleague's file after a text merge, a sync client's copy), and §11.4 called
+    "any resolution" of a conflicted manifest acceptable. **Resolved** (2026-10-20, project owner (delegated);
+    ADR-0010 amendment 3, decision log ID-203): only listed files are read; a save or roll-forward moves an
+    unlisted file at a target path aside to a stray `.unlisted-<g>` name by a rename without replacement, reports
+    EW-CORE-004 and continues; EW never reads or deletes the moved file. §11.4 is amended accordingly.
+21. **Intents and changed manifests.** An intent was checked against the manifest's parsed generation, so a
+    conflicted but otherwise unchanged manifest could not roll forward, and a manifest replaced by a pull with the
+    same generation number could be overwritten. **Resolved** (2026-10-20; ADR-0010 amendment 3, decision log
+    ID-202): the intent records the raw-byte hash of its base manifest as `base`, and only a byte comparison decides.

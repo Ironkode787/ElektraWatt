@@ -706,7 +706,7 @@ trademark line of the font's name table (name ID 7), which `NOTICE` gains for No
 - **Consent.** Publishing that content needs LG-5.
 - **Private material.** The original `.qet` and the PDF live only in the private store used by the Golden C job,
   which reports pass/fail publicly (LR-11, LR-12).
-- **Expectation changes.** A PR that changes `expected/xrefs.csv` (64 texts, including the corrected "3-B2") or
+- **Expectation changes.** A PR that changes `expected/xrefs.csv` (63 texts with 64 targets, including the corrected "3-B2") or
   `expected/bom_component.csv` needs two maintainers and the pilot user's acknowledgement (§3.4). Nobody can
   "fix" a failing test by re-accepting -4W1 or T51.
 

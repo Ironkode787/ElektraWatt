@@ -1,6 +1,6 @@
 # Gates
 
-**Status:** Draft v0.2 · **Date:** 2026-10-18 · **Part of:** ElektraWatt plan
+**Status:** Draft v0.3 · **Date:** 2026-10-20 (v0.3: the G-SP gate record of 2026-10-20 and the re-forecast) · **Part of:** ElektraWatt plan
 
 **Purpose.** This document defines the gate system of ElektraWatt (EW): the decision points G-M0 … G-M6 and the
 light gate G-PP of the pilot preview, aligned with the milestones M0 … M6 and M-PP of the
@@ -39,24 +39,24 @@ replaces the committed dates with a re-forecast from measured velocity.
 
 | Gate | Milestone | Plan-of-record month (3 developers, lean) | What the gate decides | Hardest evidence |
 |---|---|---|---|---|
-| **G-SP** (optional) | Performance spike | 6 (Apr 2027) | Cold-first with selective `ew-memo`, or the named fallback per query family (PD-8) | Spike report against NFR-PERF-03, -05, -07, -13 on synthetic S/M/L/XL |
+| **G-SP** (optional) | Performance spike | 6 (Apr 2027) | Cold-first with selective `ew-memo`, or the named fallback per query family (PD-8). **Held 2026-10-20: Recycle** (ADR-0002 amendment 4, §5.1 gate record) | Spike report against NFR-PERF-03, -05, -07, -13 on synthetic S/M/L/XL |
 | **G-M0** | M0 Foundations | 3 (Jan 2027) | The team, scope and plan of record (PD-1, PD-3, PD-14); legal basis started; the spine may be built | CI on three OSes, licence-boundary check, LG-5 signed, ADR-0027 and ADR-0028 accepted, signing enrolment submitted |
-| **G-M1** | M1 Spine exit | 15 (Jan 2028) | The open format and derivation engine are proven headless; the plan is re-based on measured velocity (PD-11); the legal basis is closed enough to accept contributions | AC-01 … AC-13, AC-15 … AC-17, AC-20, AC-39; LG-1, LG-2; ADR-0030 |
-| **G-PP** (light) | M-PP Pilot preview, release 0.0.x | 25 (Nov 2028) | The pilot may use the unsigned preview for new projects; R0 starts | The pilot draws golden folios 101–103 and the parts list 901 in a new project and exports the PDF (AC-07) |
-| **G-M2** | M2 MVP, release 0.1.0 | 40 (Feb 2030) | The first signed public release; the pilot may switch for new projects | AC-14 (all OSes), AC-18 (GUI), AC-21, AC-23, AC-28 …; R1; LG-3, LG-4; CI-R-01 … CI-R-11 |
-| **G-M3** | M3 Automation and migration | 46 (Aug 2030) | Existing QET projects migrate; PLC exchange and EDZ/DXF work against reference files; SC-3 and SC-4 closed | AC-25 … AC-27, AC-30, AC-38; SC-3, SC-4 |
-| **G-M4** | M4 Manufacturing and 3D | 57 (Jul 2031) | The physical and manufacturing chain works on Golden A-R | AC-34, AC-35 content; NFR-PERF-16, -17, -18, -24 |
-| **G-M5** | M5 Feature complete (beta) | 58 (Aug 2031) | No new scope; 1.0 beta may be published | AC-22; L/XL performance gate green |
-| **G-M6** | M6 Release 1.0 | 63 (Jan 2032) | 1.0 may be published | AC-01 … AC-42 (except AC-36, AC-42); SC-7, SC-8; R2; format freeze |
+| **G-M1** | M1 Spine exit | 16 (Feb 2028) | The open format and derivation engine are proven headless; the plan is re-based on measured velocity (PD-11); the legal basis is closed enough to accept contributions | AC-01 … AC-13, AC-15 … AC-17, AC-20, AC-39; LG-1, LG-2; ADR-0030 |
+| **G-PP** (light) | M-PP Pilot preview, release 0.0.x | 26 (Dec 2028) | The pilot may use the unsigned preview for new projects; R0 starts | The pilot draws golden folios 101–103 and the parts list 901 in a new project and exports the PDF (AC-07) |
+| **G-M2** | M2 MVP, release 0.1.0 | 41 (Mar 2030) | The first signed public release; the pilot may switch for new projects | AC-14 (all OSes), AC-18 (GUI), AC-21, AC-23, AC-28 …; R1; LG-3, LG-4; CI-R-01 … CI-R-11 |
+| **G-M3** | M3 Automation and migration | 47 (Sep 2030) | Existing QET projects migrate; PLC exchange and EDZ/DXF work against reference files; SC-3 and SC-4 closed | AC-25 … AC-27, AC-30, AC-38; SC-3, SC-4 |
+| **G-M4** | M4 Manufacturing and 3D | 58 (Aug 2031) | The physical and manufacturing chain works on Golden A-R | AC-34, AC-35 content; NFR-PERF-16, -17, -18, -24 |
+| **G-M5** | M5 Feature complete (beta) | 59 (Sep 2031) | No new scope; 1.0 beta may be published | AC-22; L/XL performance gate green |
+| **G-M6** | M6 Release 1.0 | 64 (Feb 2032) | 1.0 may be published | AC-01 … AC-42 (except AC-36, AC-42); SC-7, SC-8; R2; format freeze |
 
 **The honest timing.** The architecture's indicative gate months (M1 at 3, M2 at 6–7, M3 at 9, M4 at 12, 1.0 at
 15–18) cannot be met by two to four developers, as the global plan shows. The gates below sit at the realistic
-months of [milestones.csv](milestones.csv) (§2.2): with three developers G-M1 is at month 15 (Jan 2028), G-PP at
-month 25 (Nov 2028), G-M2 at month 40 (Feb 2030) and G-M6 at month 63 (Jan 2032). The ±20 % capacity band moves
-G-M2 to month 33–50 and G-M6 to month 53–79 (§2.2). A fourth developer from month 4 brings G-M2 to month 35 and
-G-M6 to month 57; two developers push G-M2 to month 58 and G-M6 to month 95, which §6 treats as a trigger for a
+months of [milestones.csv](milestones.csv) (§2.2): with three developers G-M1 is at month 16 (Feb 2028), G-PP at
+month 26 (Dec 2028), G-M2 at month 41 (Mar 2030) and G-M6 at month 64 (Feb 2032). The ±20 % capacity band moves
+G-M2 to month 34–51 and G-M6 to month 54–80 (§2.2). A fourth developer from month 4 brings G-M2 to month 36 and
+G-M6 to month 57; two developers push G-M2 to month 60 and G-M6 to month 96, which §6 treats as a trigger for a
 viability review, not as a plan. The internal AI-moderate target of the global plan (§3.7) would bring G-M2 to month
-32 and G-M6 to month 51; it plans the team's iterations, while gates, external dates and `ROADMAP.md` stay on the
+33 and G-M6 to month 52; it plans the team's iterations, while gates, external dates and `ROADMAP.md` stay on the
 conservative baseline until the G-M1 re-baseline.
 
 **What is asked of the project owner now (G-M0, November 2026).**
@@ -110,7 +110,7 @@ GA-13). They are repeated here because every date in this document depends on th
 | GB-3 | **Capacity** | **36 productive person-weeks (pw) per developer per year** after holidays, illness, team rituals, routine support and upkeep (3 pw per month). Sensitivity **±20 %** (28.8 and 43.2 pw per developer-year) |
 | GB-4 | **AI assistance** | Helps with boilerplate, parsers, test scaffolding and drafting and is already inside the likely estimates (10–20 % below unassisted work). It is **not** assumed to multiply throughput |
 | GB-5 | **Reserve** | 20 % integration, hardening and bug-fix reserve on every WP, plus the stabilisation WPs WP-S6.08 and WP-S6.12. Never spent on new scope |
-| GB-6 | **Scope of record** | Lean scope (levers a, b and c of [WBS §7](02-work-packages.md#7-scope-levers)) pending PD-1: pilot preview at month 25, MVP at month 40, 1.0 at month 63 (milestone months of [milestones.csv](milestones.csv)). PLC/I-O, manufacturing outputs, 3D panel layout with routing and wire lengths, and QET/EDZ/DXF import stay in 1.0. Full-scope dates are shown alongside. The conservative baseline is the external plan of record; the AI-moderate scenario of the global plan (§3.7) is an internal target and never moves a gate date until the G-M1 re-baseline (GB-9) |
+| GB-6 | **Scope of record** | Lean scope (levers a, b and c of [WBS §7](02-work-packages.md#7-scope-levers)) pending PD-1: pilot preview at month 26, MVP at month 41, 1.0 at month 64 (milestone months of [milestones.csv](milestones.csv)). PLC/I-O, manufacturing outputs, 3D panel layout with routing and wire lengths, and QET/EDZ/DXF import stay in 1.0. Full-scope dates are shown alongside. The conservative baseline is the external plan of record; the AI-moderate scenario of the global plan (§3.7) is an internal target and never moves a gate date until the G-M1 re-baseline (GB-9) |
 | GB-7 | **Gate date** | The milestone month of the scenario, base capacity. The review is held within two weeks of the *forecast* milestone date ([global plan §11.3](01-global-plan.md#113-milestone-and-gate-reviews)); each review replaces the committed dates with a re-forecast |
 | GB-8 | **Effort of gates** | The review meeting is at most 3 hours (G-SP and G-PP: 1 hour) and sits inside the 3.5 pw per developer-year of team rituals. Evidence is produced by CI and the acceptance runner, not by hand; the release gates are carried by WP-S6.08 (G-M2), WP-S6.09 (G-M5) and WP-S6.10 and WP-S6.12 (G-M6). The gate system adds no pw to the WBS |
 | GB-9 | **Re-baseline** | At G-M1 the AI scenarios retire: the velocity ratio measured on the spine WPs replaces both the baseline and the AI-moderate target, and the result becomes the single plan of record ([global plan §3.7](01-global-plan.md#37-ai-assisted-scenarios), PD-11) |
@@ -192,13 +192,13 @@ otherwise reached. The two AI columns are the internal target and the upside of 
 |---|---|---|---|---|---|
 | **G-SP** | 7 (May 2027) | **6 (Apr 2027)** | 6 (Apr 2027) | 5 (Mar 2027) | 5 (Mar 2027) |
 | **G-M0** | 3 (Jan 2027) | **3 (Jan 2027)** | 3 (Jan 2027) | 3 (Jan 2027) | 3 (Jan 2027) |
-| **G-M1** | 22 (Aug 2028) | **15 (Jan 2028)** | 14 (Dec 2027) | 12 (Oct 2027) | 11 (Sep 2027) |
-| **G-PP** | 36 (Oct 2029) | **25 (Nov 2028)** | 25 (Nov 2028) | 20 (Jun 2028) | 17 (Mar 2028) |
-| **G-M2** | 58 (Aug 2031) | **40 (Feb 2030)** | 35 (Sep 2029) | 32 (Jun 2029) | 28 (Feb 2029) |
-| **G-M3** | 68 (Jun 2032) | **46 (Aug 2030)** | 40 (Feb 2030) | 36 (Oct 2029) | 31 (May 2029) |
-| **G-M4** | 82 (Aug 2033) | **57 (Jul 2031)** | 51 (Jan 2031) | 46 (Aug 2030) | 39 (Jan 2030) |
-| **G-M5** | 86 (Dec 2033) | **58 (Aug 2031)** | 51 (Jan 2031) | 46 (Aug 2030) | 40 (Feb 2030) |
-| **G-M6** | 95 (Sep 2034) | **63 (Jan 2032)** | 57 (Jul 2031) | 51 (Jan 2031) | 44 (Jun 2030) |
+| **G-M1** | 23 (Sep 2028) | **16 (Feb 2028)** | 16 (Feb 2028) | 13 (Nov 2027) | 11 (Sep 2027) |
+| **G-PP** | 37 (Nov 2029) | **26 (Dec 2028)** | 24 (Oct 2028) | 21 (Jul 2028) | 17 (Mar 2028) |
+| **G-M2** | 60 (Oct 2031) | **41 (Mar 2030)** | 36 (Oct 2029) | 33 (Jul 2029) | 28 (Feb 2029) |
+| **G-M3** | 70 (Aug 2032) | **47 (Sep 2030)** | 40 (Feb 2030) | 37 (Nov 2029) | 32 (Jun 2029) |
+| **G-M4** | 84 (Oct 2033) | **58 (Aug 2031)** | 52 (Feb 2031) | 47 (Sep 2030) | 40 (Feb 2030) |
+| **G-M5** | 88 (Feb 2034) | **59 (Sep 2031)** | 52 (Feb 2031) | 47 (Sep 2030) | 41 (Mar 2030) |
+| **G-M6** | 96 (Oct 2034) | **64 (Feb 2032)** | 57 (Jul 2031) | 52 (Feb 2031) | 45 (Jul 2030) |
 <!-- /generated:gate-timing -->
 
 **Sensitivity, three developers.** Capacity −20 % / +20 % (28.8 / 43.2 pw per developer-year), and the full scope
@@ -209,13 +209,13 @@ otherwise reached. The two AI columns are the internal target and the upside of 
 |---|---|---|---|---|
 | **G-SP** | 7 (May 2027) | 6 (Apr 2027) | 5 (Mar 2027) | 6 (Apr 2027) |
 | **G-M0** | 3 (Jan 2027) | 3 (Jan 2027) | 2 (Dec 2026) | 3 (Jan 2027) |
-| **G-M1** | 19 (May 2028) | 15 (Jan 2028) | 13 (Nov 2027) | 15 (Jan 2028) |
-| **G-PP** | 31 (May 2029) | 25 (Nov 2028) | 21 (Jul 2028) | 25 (Nov 2028) |
-| **G-M2** | 50 (Dec 2030) | 40 (Feb 2030) | 33 (Jul 2029) | 43 (May 2030) |
-| **G-M3** | 57 (Jul 2031) | 46 (Aug 2030) | 38 (Dec 2029) | 47 (Sep 2030) |
-| **G-M4** | 71 (Sep 2032) | 57 (Jul 2031) | 48 (Oct 2030) | 59 (Sep 2031) |
-| **G-M5** | 72 (Oct 2032) | 58 (Aug 2031) | 48 (Oct 2030) | 65 (Mar 2032) |
-| **G-M6** | 79 (May 2033) | 63 (Jan 2032) | 53 (Mar 2031) | 71 (Sep 2032) |
+| **G-M1** | 20 (Jun 2028) | 16 (Feb 2028) | 14 (Dec 2027) | 16 (Feb 2028) |
+| **G-PP** | 32 (Jun 2029) | 26 (Dec 2028) | 22 (Aug 2028) | 26 (Dec 2028) |
+| **G-M2** | 51 (Jan 2031) | 41 (Mar 2030) | 34 (Aug 2029) | 44 (Jun 2030) |
+| **G-M3** | 58 (Aug 2031) | 47 (Sep 2030) | 39 (Jan 2030) | 48 (Oct 2030) |
+| **G-M4** | 72 (Oct 2032) | 58 (Aug 2031) | 48 (Oct 2030) | 60 (Oct 2031) |
+| **G-M5** | 74 (Dec 2032) | 59 (Sep 2031) | 49 (Nov 2030) | 66 (Apr 2032) |
+| **G-M6** | 80 (Jun 2033) | 64 (Feb 2032) | 54 (Apr 2031) | 72 (Oct 2032) |
 <!-- /generated:gate-sensitivity-3d -->
 
 **Sensitivity, two and four developers** (lean scope; −20 % / base / +20 %).
@@ -225,13 +225,13 @@ otherwise reached. The two AI columns are the internal target and the upside of 
 |---|---|---|---|---|---|---|
 | **G-SP** | 9 (Jul 2027) | 7 (May 2027) | 6 (Apr 2027) | 7 (May 2027) | 6 (Apr 2027) | 5 (Mar 2027) |
 | **G-M0** | 3 (Jan 2027) | 3 (Jan 2027) | 2 (Dec 2026) | 3 (Jan 2027) | 3 (Jan 2027) | 2 (Dec 2026) |
-| **G-M1** | 27 (Jan 2029) | 22 (Aug 2028) | 18 (Apr 2028) | 17 (Mar 2028) | 14 (Dec 2027) | 12 (Oct 2027) |
-| **G-PP** | 45 (Jul 2030) | 36 (Oct 2029) | 30 (Apr 2029) | 31 (May 2029) | 25 (Nov 2028) | 21 (Jul 2028) |
-| **G-M2** | 72 (Oct 2032) | 58 (Aug 2031) | 48 (Oct 2030) | 43 (May 2030) | 35 (Sep 2029) | 29 (Mar 2029) |
-| **G-M3** | 85 (Nov 2033) | 68 (Jun 2032) | 57 (Jul 2031) | 50 (Dec 2030) | 40 (Feb 2030) | 34 (Aug 2029) |
-| **G-M4** | 103 (May 2035) | 82 (Aug 2033) | 69 (Jul 2032) | 64 (Feb 2032) | 51 (Jan 2031) | 43 (May 2030) |
-| **G-M5** | 108 (Oct 2035) | 86 (Dec 2033) | 72 (Oct 2032) | 64 (Feb 2032) | 51 (Jan 2031) | 43 (May 2030) |
-| **G-M6** | 118 (Aug 2036) | 95 (Sep 2034) | 79 (May 2033) | 70 (Aug 2032) | 57 (Jul 2031) | 47 (Sep 2030) |
+| **G-M1** | 29 (Mar 2029) | 23 (Sep 2028) | 19 (May 2028) | 19 (May 2028) | 16 (Feb 2028) | 13 (Nov 2027) |
+| **G-PP** | 47 (Sep 2030) | 37 (Nov 2029) | 31 (May 2029) | 29 (Mar 2029) | 24 (Oct 2028) | 20 (Jun 2028) |
+| **G-M2** | 74 (Dec 2032) | 60 (Oct 2031) | 50 (Dec 2030) | 45 (Jul 2030) | 36 (Oct 2029) | 30 (Apr 2029) |
+| **G-M3** | 87 (Jan 2034) | 70 (Aug 2032) | 58 (Aug 2031) | 50 (Dec 2030) | 40 (Feb 2030) | 34 (Aug 2029) |
+| **G-M4** | 105 (Jul 2035) | 84 (Oct 2033) | 70 (Aug 2032) | 65 (Mar 2032) | 52 (Feb 2031) | 44 (Jun 2030) |
+| **G-M5** | 110 (Dec 2035) | 88 (Feb 2034) | 73 (Nov 2032) | 65 (Mar 2032) | 52 (Feb 2031) | 44 (Jun 2030) |
+| **G-M6** | 120 (Oct 2036) | 96 (Oct 2034) | 80 (Jun 2033) | 72 (Oct 2032) | 57 (Jul 2031) | 48 (Oct 2030) |
 <!-- /generated:gate-sensitivity-2d4d -->
 
 **Full scope, base capacity, two and four developers.**
@@ -241,23 +241,24 @@ otherwise reached. The two AI columns are the internal target and the upside of 
 |---|---|---|
 | **G-SP** | 7 (May 2027) | 6 (Apr 2027) |
 | **G-M0** | 3 (Jan 2027) | 3 (Jan 2027) |
-| **G-M1** | 22 (Aug 2028) | 14 (Dec 2027) |
-| **G-PP** | 36 (Oct 2029) | 25 (Nov 2028) |
-| **G-M2** | 62 (Dec 2031) | 38 (Dec 2029) |
-| **G-M3** | 70 (Aug 2032) | 42 (Apr 2030) |
-| **G-M4** | 85 (Nov 2033) | 50 (Dec 2030) |
-| **G-M5** | 98 (Dec 2034) | 55 (May 2031) |
-| **G-M6** | 106 (Aug 2035) | 61 (Nov 2031) |
+| **G-M1** | 23 (Sep 2028) | 16 (Feb 2028) |
+| **G-PP** | 37 (Nov 2029) | 23 (Sep 2028) |
+| **G-M2** | 64 (Feb 2032) | 38 (Dec 2029) |
+| **G-M3** | 72 (Oct 2032) | 42 (Apr 2030) |
+| **G-M4** | 87 (Jan 2034) | 51 (Jan 2031) |
+| **G-M5** | 99 (Jan 2035) | 56 (Jun 2031) |
+| **G-M6** | 107 (Sep 2035) | 61 (Nov 2031) |
 <!-- /generated:gate-full-2d4d -->
 
 **Reading it.**
 - The first three gates are nearly scenario-independent in *content* but not in time. G-M0 is month 3 in every base
   case because the foundation WPs are short and parallel.
 - G-PP is bound by the UI chain after M1 (WP-S2.01 → WP-S2.03 → WP-S2.04): a fourth developer does not bring it
-  forward (month 25 with three and with four developers), and two developers push it to month 36 (Oct 2029).
+  forward by more than two months (month 26 with three developers, 24 with four), and two developers push it to
+  month 37 (Nov 2029).
 - With three developers G-M4 and G-M5 are one month apart; with four they fall in the same month. In both cases the
   gates may be held in one meeting with two records (§3.3).
-- Everything from G-M2 onwards is at least 33 months out in every three-developer case with the lean scope. Those
+- Everything from G-M2 onwards is at least 34 months out in every three-developer case with the lean scope. Those
   dates are forecasts; the *evidence* for them is the velocity ratio measured at G-M1 (§4.2), and each gate
   re-forecasts the rest.
 - A gate month is "when the criteria are expected to be met", so it already contains the 20 % reserve. A gate that
@@ -273,29 +274,29 @@ gantt
   section Gates
   G-M0 foundations :milestone, g0, 2027-01-03, 0d
   G-SP performance spike decision :milestone, gsp, 2027-04-20, 0d
-  G-M1 spine exit :milestone, g1, 2028-01-24, 0d
-  G-PP pilot preview 0.0.x :milestone, gpp, 2028-11-03, 0d
-  G-M2 MVP release 0.1.0 :milestone, g2, 2030-02-09, 0d
-  G-M3 automation and migration :milestone, g3, 2030-08-07, 0d
-  G-M4 manufacturing and 3D :milestone, g4, 2031-07-12, 0d
-  G-M5 feature complete beta :milestone, g5, 2031-08-14, 0d
-  G-M6 release 1.0 :milestone, g6, 2032-01-21, 0d
+  G-M1 spine exit :milestone, g1, 2028-02-27, 0d
+  G-PP pilot preview 0.0.x :milestone, gpp, 2028-12-08, 0d
+  G-M2 MVP release 0.1.0 :milestone, g2, 2030-03-14, 0d
+  G-M3 automation and migration :milestone, g3, 2030-09-07, 0d
+  G-M4 manufacturing and 3D :milestone, g4, 2031-08-12, 0d
+  G-M5 feature complete beta :milestone, g5, 2031-09-15, 0d
+  G-M6 release 1.0 :milestone, g6, 2032-02-21, 0d
   section Checkpoints
   Signing enrolment submitted CP-06 :milestone, c6, 2026-12-02, 0d
-  R0 formative usability CP-05 :milestone, r0, 2028-11-03, 0d
-  Steward signing identities usable CP-06 :milestone, c6b, 2029-06-12, 0d
-  ADR-0029 decided CP-07 :milestone, c7, 2029-10-26, 0d
-  R1 summative usability CP-08 :milestone, r1, 2030-01-15, 0d
-  Format freeze rc.1 CP-12 :milestone, rc1, 2031-11-26, 0d
+  R0 formative usability CP-05 :milestone, r0, 2028-12-08, 0d
+  Steward signing identities usable CP-06 :milestone, c6b, 2029-07-16, 0d
+  ADR-0029 decided CP-07 :milestone, c7, 2029-11-22, 0d
+  R1 summative usability CP-08 :milestone, r1, 2030-02-15, 0d
+  Format freeze rc.1 CP-12 :milestone, rc1, 2031-12-27, 0d
   section Between gates
   Foundations to G-M0 :a0, 2026-11-01, 2027-01-03
-  Spine to G-M1 :a1, 2027-01-03, 2028-01-24
-  Interactive preview to G-PP :a7, 2028-01-24, 2028-11-03
-  Preview to MVP, G-M2 :a2, 2028-11-03, 2030-02-09
-  Breadth and migration to G-M3 :a3, 2030-02-09, 2030-08-07
-  Physical and manufacturing to G-M4 :a4, 2030-08-07, 2031-07-12
-  Completion to G-M5 :a5, 2031-07-12, 2031-08-14
-  Hardening to G-M6 :a6, 2031-08-14, 2032-01-21
+  Spine to G-M1 :a1, 2027-01-03, 2028-02-27
+  Interactive preview to G-PP :a7, 2028-02-27, 2028-12-08
+  Preview to MVP, G-M2 :a2, 2028-12-08, 2030-03-14
+  Breadth and migration to G-M3 :a3, 2030-03-14, 2030-09-07
+  Physical and manufacturing to G-M4 :a4, 2030-09-07, 2031-08-12
+  Completion to G-M5 :a5, 2031-08-12, 2031-09-15
+  Hardening to G-M6 :a6, 2031-09-15, 2032-02-21
 ```
 
 The gate dates are those of the baseline gantt of the [global plan §7](01-global-plan.md#7-baseline-schedule-three-developers)
@@ -309,7 +310,7 @@ The gate dates are those of the baseline gantt of the [global plan §7](01-globa
 | **3 developers (baseline)** | As in §2.2. G-M4 and G-M5 may be held as one meeting if both are forecast within six weeks of each other ([global plan open question 6](01-global-plan.md#open-questions)) |
 | **3 developers, AI-moderate (internal target)** | Plans the iterations and the monthly forecast only. No gate is brought forward, no external date is quoted from it, and a gap between target and baseline is not a slip. G-M1 re-baselines both from the measured ratio ([global plan §3.7](01-global-plan.md#37-ai-assisted-scenarios), GB-9) |
 | **4 developers** | G-M0 checks that PD-3 was taken by month 2 and that developer 4 has a start date. G-SP includes the new developer as the second `ew-memo` owner if they joined (month 4 is before the spike). G-M4 and G-M5 coincide in the lean scope: one meeting. The STEP worker (WP-S4.03) may be built before G-M2 ([global plan §9.2](01-global-plan.md#92-ordering-rules) rule 4); G-M2 then also checks that the extra work did not move G-M2 by more than one month |
-| **2 developers** | Both developers are the two owners of each critical crate (NFR-MAINT-07), so the bus factor equals the team. **G-M1 must take the re-scope decision** of [global plan open question 8](01-global-plan.md#open-questions) (MVP plus one binding v1 addition at a time, chosen with the pilot; **G-PP becomes the first release target**); an MVP at month 58 is a trigger of §6.1, not a plan |
+| **2 developers** | Both developers are the two owners of each critical crate (NFR-MAINT-07), so the bus factor equals the team. **G-M1 must take the re-scope decision** of [global plan open question 8](01-global-plan.md#open-questions) (MVP plus one binding v1 addition at a time, chosen with the pilot; **G-PP becomes the first release target**); an MVP at month 60 is a trigger of §6.1, not a plan |
 | **Any scenario, team change** | A change of two or more developers (loss or addition) triggers an out-of-cycle re-forecast and a gate-type review of the plan of record (PD-1 re-confirmed) within four weeks |
 
 ### 2.4 Combined and out-of-cycle reviews
@@ -330,17 +331,17 @@ milestone they precede.
 | ID | Checkpoint | Plan-of-record date | Owner | Feeds | If missed |
 |---|---|---|---|---|---|
 | CP-01 | **ADR-0027 grid and ADR-0028 fonts** decided with the pilot user and two EPLAN users (PD-4 by spine week 2, PD-5 by spine week 3) | Mid-November 2026 (week 2) and late November 2026 (week 3) | Project owner, pilot user | G-M0 | WP-S3.01, WP-S3.02 and the starter symbols wait: the output lane stalls |
-| CP-02 | **Developer 4 decision** (PD-3) | Month 2 (Dec 2026) | Project owner, employer | G-M0 | In the first year each month of delay costs about a fifth of a month at G-M2 (start at month 4: G-M2 at 35; month 9: 36; month 15: 37; [global plan §10.3](01-global-plan.md#103-when-to-add-developer-4)) |
+| CP-02 | **Developer 4 decision** (PD-3) | Month 2 (Dec 2026) | Project owner, employer | G-M0 | In the first year each month of delay costs about a tenth of a month at G-M2 (start at month 4: G-M2 at 36; month 9: 36; month 15: 37; [global plan §10.3](01-global-plan.md#103-when-to-add-developer-4)) |
 | CP-03 | **Pilot size data** (three largest projects) and the QET baseline timing | By month 3 (Jan 2027) | Pilot liaison | G-M0, G-SP, G-M1, G-M3 | Size classes S/M/L/XL stay assumptions (AS-2); SC-3 has no baseline |
 | CP-04 | **Quarterly upgrade train** with the schema-steward rotation | Jan, Apr, Jul, Oct | Quarter's steward | All gates | More than 3 developer-days or abort rule: SR-9 |
-| CP-05 | **R0 formative usability round** (think-aloud tasks T1, T2, T8 with the pilot user and a colleague) on the preview build (WP-S2.12, [global plan §12.1](01-global-plan.md#121-what-the-pilot-gets-and-gives-per-milestone)) | Month 25 (Nov 2028), with M-PP | UX researcher | G-PP, G-M2 | R1 starts without formative findings (NFR-UX-09) |
-| CP-06 | **Steward and signing enrolment submitted** (PD-7a: identity holder named; D-U-N-S, Apple organisation, Artifact Signing identity validation; SignPath fallback decision) in the first 90 days by WP-S0.05a; the enrolment lead time of at least 12 months is modelled as a lag of WP-S0.05, whose finish makes the identities usable by CI | Submitted: finish of WP-S0.05a, month 1 (Nov 2026), at the latest at G-M0 (month 3, Jan 2027). Identities usable: finish of WP-S0.05, month 32 (Jun 2029) | Steward liaison | G-M0, G-M1 (plan), G-M2 | SR-6: G-M2 cannot be passed however ready the code is. The latest submission that still holds the MVP date is about month 24 in the baseline ([global plan §9.3](01-global-plan.md#93-schedule-risk-register) SR-6) |
-| CP-07 | **ADR-0029 decided** (before WP-S6.05 starts) | Month 36 (Oct 2029) | Project owner | G-M2 | First-run prompt, `PRIVACY.md` and 0.1.0 blocked |
-| CP-08 | **R1 summative round** on the release candidate (PD-10 follows) | Month 39 (Jan 2030) | UX researcher | G-M2 | G-M2 cannot be held (NFR-UX-01) |
-| CP-09 | **Partners named** for SC-7 and SC-8: TIA Portal V21 and CODESYS installations, a partner shop with Komax and Rittal WT machines | By G-M3 (month 46, Aug 2030) | Pilot liaison | G-M3, G-M6 | SR-10: G-M6 blocked or a recorded deviation |
-| CP-10 | **OCCT packaging spike** for `ew-step-worker` on Windows, macOS and Linux | Before WP-S4.03 starts (month 45, Jul 2030) | Physical developer | G-M3, G-M4 | The float of WP-S4.03 (37 weeks) is spent without a result |
-| CP-11 | **R2 summative round** on the 1.0 release candidate | Months 59–60 (Sep–Oct 2031) | UX researcher | G-M6 | G-M6 cannot be held (NFR-UX-01, NFR-UX-02) |
-| CP-12 | **Format freeze** at 1.0.0-rc.1, 8 weeks before 1.0.0 | Month 61 (Nov 2031) | Schema steward | G-M6 | The 1.0 format window is missed ([quality §7.2](../design/18-quality-security-release.md#72-format-change-window)) |
+| CP-05 | **R0 formative usability round** (think-aloud tasks T1, T2, T8 with the pilot user and a colleague) on the preview build (WP-S2.12, [global plan §12.1](01-global-plan.md#121-what-the-pilot-gets-and-gives-per-milestone)) | Month 26 (Dec 2028), with M-PP | UX researcher | G-PP, G-M2 | R1 starts without formative findings (NFR-UX-09) |
+| CP-06 | **Steward and signing enrolment submitted** (PD-7a: identity holder named; D-U-N-S, Apple organisation, Artifact Signing identity validation; SignPath fallback decision) in the first 90 days by WP-S0.05a; the enrolment lead time of at least 12 months is modelled as a lag of WP-S0.05, whose finish makes the identities usable by CI | Submitted: finish of WP-S0.05a, month 1 (Nov 2026), at the latest at G-M0 (month 3, Jan 2027). Identities usable: finish of WP-S0.05, month 33 (Jul 2029) | Steward liaison | G-M0, G-M1 (plan), G-M2 | SR-6: G-M2 cannot be passed however ready the code is. The latest submission that still holds the MVP date is about month 20 in the baseline ([global plan §9.3](01-global-plan.md#93-schedule-risk-register) SR-6) |
+| CP-07 | **ADR-0029 decided** (before WP-S6.05 starts) | Month 37 (Nov 2029) | Project owner | G-M2 | First-run prompt, `PRIVACY.md` and 0.1.0 blocked |
+| CP-08 | **R1 summative round** on the release candidate (PD-10 follows) | Month 40 (Feb 2030) | UX researcher | G-M2 | G-M2 cannot be held (NFR-UX-01) |
+| CP-09 | **Partners named** for SC-7 and SC-8: TIA Portal V21 and CODESYS installations, a partner shop with Komax and Rittal WT machines | By G-M3 (month 47, Sep 2030) | Pilot liaison | G-M3, G-M6 | SR-10: G-M6 blocked or a recorded deviation |
+| CP-10 | **OCCT packaging spike** for `ew-step-worker` on Windows, macOS and Linux | Before WP-S4.03 starts (month 46, Aug 2030) | Physical developer | G-M3, G-M4 | The float of WP-S4.03 (38 weeks) is spent without a result |
+| CP-11 | **R2 summative round** on the 1.0 release candidate | Months 60–61 (Oct–Nov 2031) | UX researcher | G-M6 | G-M6 cannot be held (NFR-UX-01, NFR-UX-02) |
+| CP-12 | **Format freeze** at 1.0.0-rc.1, 8 weeks before 1.0.0 | Month 62 (Dec 2031) | Schema steward | G-M6 | The 1.0 format window is missed ([quality §7.2](../design/18-quality-security-release.md#72-format-change-window)) |
 | CP-13 | **Funding calls**: WBSO application (Q4 each year); NLnet proposal 1 at the first call after LG-1 is signed (target month 3), proposal 2 at G-M1, proposal 3 at G-M2 | See [global plan §13](01-global-plan.md#13-funding-plan) | Project lead | G-M0, G-M1, G-M2 | No date impact on the plan of record, which assumes no grants (SR-13) |
 | CP-14 | **Pre-G-M0 scope workshop with the pilot** (half a day, WP-S0.08): triage of the MVP Must rows, PD-2, PD-14, the M-PP scope and the G-PP folios; the record feeds DS-7 | Weeks 4–8 (December 2026) | Project lead with the pilot | G-M0, G-PP | The M-PP scope stays unconfirmed and DS-7 has no triage to work from (R-067, R-068) |
 | CP-15 | **Counsel's answer on the CRA status of a pilot-only preview** ([global plan open question 9](01-global-plan.md#open-questions)) | Within the first 90 days; before the first 0.0.x build is handed over | Steward liaison | G-M0, G-PP | If the preview counts as made available, it ships only after the WP-S6.04 minimum (security contact, vulnerability handling) is in place |
@@ -494,25 +495,25 @@ ranges of the zone table are read from the generated table under it.
 
 | Zone | Velocity ratio | Effort overrun | Forecast G-PP (3 developers) | Forecast G-M2 | Forecast G-M6 | Reaction |
 |---|---|---|---|---|---|---|
-| **Green** | ≥ 0.90 | up to +11 % | 25 – 27 (Nov 2028 – Jan 2029) | 40 – 44 (Feb – Jun 2030) | 63 – 71 (Jan – Sep 2032) | Continue |
-| **Amber** | 0.80 – 0.90 | +11 % to +25 % | 27 – 31 (Jan – May 2029) | 44 – 50 (Jun – Dec 2030) | 71 – 79 (Sep 2032 – May 2033) | Chair informs the project owner; descoping ladder DS-4 and DS-7 prepared; hiring (PD-3) reconsidered |
-| **Red** | 0.67 – 0.80 | +25 % to +50 % | 31 – 37 (May – Nov 2029) | 50 – 60 (Dec 2030 – Oct 2031) | 79 – 95 (May 2033 – Sep 2034) | Out-of-cycle review within 4 weeks; the project owner chooses: add a developer, descope along the ladder, or accept the later date. Communicate the new band |
-| **Viability review** | < 0.67, or forecast G-M2 beyond month 60, or forecast G-M6 beyond month 95 (sizes for 3 developers) | more than +50 % | not a trigger | beyond 60 (beyond Oct 2031) | beyond 95 (beyond Sep 2034) | §6.1 KT-4: a viability review with the options of §6.2 |
+| **Green** | ≥ 0.90 | up to +11 % | 26 – 29 (Dec 2028 – Mar 2029) | 41 – 46 (Mar – Aug 2030) | 64 – 72 (Feb – Oct 2032) | Continue |
+| **Amber** | 0.80 – 0.90 | +11 % to +25 % | 29 – 32 (Mar – Jun 2029) | 46 – 51 (Aug 2030 – Jan 2031) | 72 – 80 (Oct 2032 – Jun 2033) | Chair informs the project owner; descoping ladder DS-4 and DS-7 prepared; hiring (PD-3) reconsidered |
+| **Red** | 0.67 – 0.80 | +25 % to +50 % | 32 – 38 (Jun – Dec 2029) | 51 – 61 (Jan – Nov 2031) | 80 – 97 (Jun 2033 – Nov 2034) | Out-of-cycle review within 4 weeks; the project owner chooses: add a developer, descope along the ladder, or accept the later date. Communicate the new band |
+| **Viability review** | < 0.67, or forecast G-M2 beyond month 61, or forecast G-M6 beyond month 97 (sizes for 3 developers) | more than +50 % | not a trigger | beyond 61 (beyond Nov 2031) | beyond 97 (beyond Nov 2034) | §6.1 KT-4: a viability review with the options of §6.2 |
 
 <!-- generated:velocity-zones -->
 | Velocity ratio (every WP) | Effort change | G-M1 | G-PP | G-M2 | G-M6 |
 |---|---|---|---|---|---|
-| 1.50 | −33 % | 10 (Aug 2027) | 17 (Mar 2028) | 27 (Jan 2029) | 43 (May 2030) |
-| 1.25 | −20 % | 12 (Oct 2027) | 20 (Jun 2028) | 32 (Jun 2029) | 51 (Jan 2031) |
-| 1.10 | −9 % | 14 (Dec 2027) | 22 (Aug 2028) | 36 (Oct 2029) | 58 (Aug 2031) |
-| 1.00 | +0 % | 15 (Jan 2028) | 25 (Nov 2028) | 40 (Feb 2030) | 63 (Jan 2032) |
-| 0.90 | +11 % | 17 (Mar 2028) | 27 (Jan 2029) | 44 (Jun 2030) | 71 (Sep 2032) |
-| 0.80 | +25 % | 19 (May 2028) | 31 (May 2029) | 50 (Dec 2030) | 79 (May 2033) |
-| 0.67 | +50 % | 23 (Sep 2028) | 37 (Nov 2029) | 60 (Oct 2031) | 95 (Sep 2034) |
+| 1.50 | −33 % | 11 (Sep 2027) | 17 (Mar 2028) | 28 (Feb 2029) | 43 (May 2030) |
+| 1.25 | −20 % | 13 (Nov 2027) | 21 (Jul 2028) | 33 (Jul 2029) | 52 (Feb 2031) |
+| 1.10 | −9 % | 15 (Jan 2028) | 24 (Oct 2028) | 37 (Nov 2029) | 59 (Sep 2031) |
+| 1.00 | +0 % | 16 (Feb 2028) | 26 (Dec 2028) | 41 (Mar 2030) | 64 (Feb 2032) |
+| 0.90 | +11 % | 18 (Apr 2028) | 29 (Mar 2029) | 46 (Aug 2030) | 72 (Oct 2032) |
+| 0.80 | +25 % | 20 (Jun 2028) | 32 (Jun 2029) | 51 (Jan 2031) | 80 (Jun 2033) |
+| 0.67 | +50 % | 24 (Oct 2028) | 38 (Dec 2029) | 61 (Nov 2031) | 97 (Nov 2034) |
 <!-- /generated:velocity-zones -->
 
-At +50 % effort, three developers reach G-M2 at month 60 and G-M6 at month 95, about the two-developer dates
-(2 developers, lean scope: G-M2 58, G-M6 95; §2.2). A velocity ratio of 0.67 therefore means that the third
+At +50 % effort, three developers reach G-M2 at month 61 and G-M6 at month 97, about the two-developer dates
+(2 developers, lean scope: G-M2 60, G-M6 96; §2.2). A velocity ratio of 0.67 therefore means that the third
 developer is already consumed by estimation error.
 
 **What G-M1 does with the ratio** ([global plan §3.7](01-global-plan.md#37-ai-assisted-scenarios), GB-9). A ratio of
@@ -541,12 +542,12 @@ Everything below must be *closed* by the gate in the column "Due". "Status" is t
 | **LG-5** fixture publication consent | Overdue ("now") | G-M0 | The anonymised content is already public in `docs/` |
 | **LG-1** employer copyright statement | Open | G-M0 target; **G-M1 hard**; re-verified at G-M2 | Also needed for WBSO ownership clarity; every other employer before their first merge |
 | **PD-7a** ADR-0030 part 1: the phase-1 identity holder, so that signing enrolment can start | Open | G-M0 (first 90 days) | Enrolment submitted by WP-S0.05a (CP-06) |
-| **PD-8** performance spike go/fallback | Open | G-SP | Closed by an ADR-0002 amendment |
+| **PD-8** performance spike go/fallback | **Closed 2026-10-20: Recycle** | G-SP | Closed by ADR-0002 amendment 4 (decision log ID-218); the re-test follows the recycle |
 | **ADR-0025** plugin exception wording (PD-6, LG-2) | Proposed | G-M1 (before the first non-maintainer merge) | Counsel drafts; engage in the first 90 days |
 | **ADR-0030** steward, CRA role, support, signing (PD-7, LG-4 decision) | Proposed | G-M1 | Part 1 (identity holder, PD-7a) in the first 90 days; enrolment submitted by WP-S0.05a (CP-06) |
 | **LG-3** trademark clearance | Open | Search commissioned at G-M0 (WP-S0.05a); report at G-M1; closed at G-M2; word mark filed by G-M6 | Before any public announcement or logo spend |
 | **PD-11** G-M1 re-plan | – | G-M1 | Measured velocity replaces baseline and AI-moderate target; confirmation of lever (c) |
-| **ADR-0029** network, telemetry, crash reporting (PD-9) | Proposed | Month 36 (CP-07); at the latest G-M2 | Zero by default |
+| **ADR-0029** network, telemetry, crash reporting (PD-9) | Proposed | Month 37 (CP-07); at the latest G-M2 | Zero by default |
 | **ADR-0007** autoconnect validation (PD-10) | Accepted, to be validated | G-M2 | By R1; R0 on the preview build (G-PP) gives early evidence |
 | **LG-4** steward, identity, repository organisation | Open | G-M2 (hard) | Hard gate before the first signed release (NFR-SEC-12) |
 | **PD-12** further descoping | – | Any gate | Ladder DS-4 onwards |
@@ -571,7 +572,7 @@ true the review is postponed (§3.2).
 
 | Aspect | Content |
 |---|---|
-| **Purpose** | Decide by measurement whether cold-first derivation with a selective `ew-memo` meets the interactive budgets, or which query families take the named fallback (page-scoped dirty flags with coarse recomputation, still under the oracle; [architecture §6.1](../design/04-architecture.md#61-cold-first-memoise-where-measured)). The decision fixes the query shapes before Derivation II and III (WP-S1.07, WP-S1.08) are built |
+| **Purpose** | Decide by measurement whether cold-first derivation with a selective `ew-memo` meets the interactive budgets, or which query families take the named fallback (since 2026-10-20 incremental maintenance, still under the oracle, which replaced page-scoped dirty flags with coarse recomputation; [architecture §6.1](../design/04-architecture.md#61-cold-first-memoise-where-measured)). The decision fixes the query shapes before Derivation II and III (WP-S1.07, WP-S1.08) are built |
 | **Why a gate** | Architecture risk 2 (interactive latency at L/XL) and risk 1 (stale memos) are the two risks that shape the most code; SR-7 prices a failed spike at one to two months at G-M1; the fallback changes every later derivation WP; PD-8 needs an owner decision. A gate costs one hour |
 | **Kind and length** | Decision gate, 1 hour, no release. Recommended; if the owner prefers fewer gates, PD-8 is decided at a monthly plan review and the evidence rules of this section still apply |
 | **Timing** | WP-S1.03 (`ew-model`) done, plus one month: **month 6 (Apr 2027)** with three or four developers, month 7 (May 2027) with two (±1 month with capacity ±20 %; the generated tables of §2.2) |
@@ -614,6 +615,52 @@ part of `ew-testkit` (it becomes the generator of the G-M1 performance gate).
 | **Recycle** | One re-spike of at most 4 weeks after the cold implementations are fixed (typical cause: a wrong index or an accidental global scan). At most one recycle |
 | **Descope** | Lower the L/XL class bounds ("lower the bounds rather than relax the budgets", [NFR open question](../design/02c-nonfunctional-requirements.md)); L and XL budgets gate only from 1.0, so the MVP is not blocked ([quality §4.4](../design/18-quality-security-release.md#44-gate-decision)). A budget itself changes only by a reviewed edit of the NFR file that cites the measurement |
 | **Stop** | Not decided at G-SP alone. **Kill trigger KT-3** (§6.1): with the fallback prototype the M-class commit p99 stays above 10 ms (twice the budget) or the XL open time above 40 s (twice the budget) after one recycle. Then no further S1 derivation WP starts before an architecture review of ADR-0001 and ADR-0002 has run (project owner decides, 4 weeks) |
+
+**Gate record, first review (2026-10-20, cycle 8).** Decided by the project owner (delegated to the orchestrating
+session) on the [spike report](../research/spike-g-sp-2026-10.md) and its independent review; recorded as
+[ADR-0002](../adr/0002-derived-data-engine-ew-memo.md) amendment 4 and decision log ID-218 to ID-226.
+
+- **Outcome: Recycle** (the first of at most one). The cold global connectivity misses NFR-PERF-05 by 2.6–3× at S,
+  25–27× at M and 66–97× at L, and an opaque whole-project memo of `potential_partition` is worse than cold; the
+  folio renumber, the open-time proxy and the affected-only profile change are within budget at S, M and L. The
+  review confirmed the four causes in the code (whole-table reads in `stitch_graph` and `potential_partition`, names
+  computed inside the topology query, a super-linear wire chain whose cause is not isolated, and pull verification
+  that is O(dependencies), hits included). **XL** (report appendix A.4; concurrent builds inflated the tails, so
+  medians decide): move commit p99 9.24 s (462×, median 2.85 s), wire commit 6.17 s (308×); folio renumber with
+  page order and tags 6.09 ms (1.2×), so XL needs the planned memos of `page_order` and `device_tag`; affected-only
+  profile change 209 ms (2.1×), a lower bound already over, so the wire chain must get cheaper too; memo prototype
+  7.6× (partition after an unrelated edit), 139–142× (after a move or wire), 4.4× (per-page local nets, 4,999
+  verifications); open-time proxy 2.49 s of 20 s; the oracle found no mismatch in 420 comparisons. **KT-3 is not
+  triggered**: it applies after the fallback prototype and one recycle; for the record, the M-class commit p99 is
+  134.7 ms cold and the XL open time is far below the 40 s line.
+- **Criteria.** G-SP-01 met (S to XL, raw output in the report). G-SP-02 met (this record and the amendment). G-SP-03
+  met for every class with predicted values per family. G-SP-05 met (the query-policy table of the report, carried
+  into [architecture §6.4](../design/04-architecture.md#64-query-catalogue)). G-SP-06 met (WP-S1.05 +3 pw, WP-S1.07
+  +4 pw, WP-S1.08 +0.5 pw likely; the re-forecast and R-018 below). **Open:** G-SP-04 (memory: the benchmark's peak
+  working set, an upper bound that includes the generator's records, is 1.83 GiB at L, over the 1.5 GB of
+  NFR-PERF-13, and 5.78 GB at XL, over the 4 GB budget, although the XL run left out the two heaviest families, so
+  the true worst case is higher; model rows 313 MiB at XL; the prototyped dependency lists hold 0.87 million entries,
+  28 MB, and a reverse-dependency index over them about 56 MB, over its 40 MB, so the index needs page-level keys;
+  value bytes per family are measured in the re-spike), G-SP-07 (formal exit at G-M1) and G-SP-08 (below).
+- **What the recycle builds** (cycle 9, WP-S1.07 as the lead item with the `ew-memo` integration of WP-S1.05):
+  incremental connectivity instead of the coarse fallback (whose global recompute costs 87 ms at M), push
+  invalidation from the touched keys, O(1) hits, nested memos through `Q`, value bytes, and the query shapes of
+  [architecture §6.4](../design/04-architecture.md#64-query-catalogue) (potential names split out,
+  `profile_row_for`, per-member settings keys, `potential_flow` Cold, index reads in `stitch_graph`). The profile
+  change (NFR-PERF-07) is feasible only with push invalidation: the affected-only measurement (56 ms p99 at L
+  against 60 ms) is a lower bound that leaves out the verification of the about 33,000 unaffected wire-property
+  memos, which pull verification would push over the budget at L; at XL the lower bound itself is over (209 ms),
+  so the wire-chain fix is needed as well.
+- **Evidence rules, accepted once.** The non-dedicated Windows desktop and the clamp rule (100 timed samples when the
+  warm-up median exceeds ten times the budget, rows flagged) are accepted as evidence for this outcome, because the
+  gaps are an order of magnitude beyond the machine factor. The re-test runs on a BM-class runner by
+  [quality §4.3](../design/18-quality-security-release.md#43-runner-and-measurement), with 1,000 samples.
+- **G-SP-08.** The recalibration of the class bounds against the pilot's three largest projects (CP-03) stays open
+  as an owner action, due before the re-test.
+- **Re-forecast** (GP-05, GP-06). M1 of the plan of record moves from month 15 to month 16 (+3 to +5 weeks on the
+  critical chain); the likelihood of SR-7 (R-018) rises to 4 (score 16). The re-review covers the open criteria
+  (G-SP-04, -08) and the re-measured families in every class; it is held at the end of the re-spike of at most four
+  weeks (Recycle row above), once the reshaped queries exist.
 
 ### 5.2 G-M0 Foundations (M0)
 
@@ -678,7 +725,7 @@ which at month 3 costs little.
 |---|---|
 | **Purpose** | Prove that the open format and the derivation engine reproduce the reference drawing set headless, deterministically and within budget, and re-base the plan on measured velocity. G-M1 is the first real test of the estimates and the hardest legal checkpoint before contributions arrive |
 | **Kind and length** | Milestone gate, 3 hours. Output: a signed source tag `m1` and nightly CLI builds labelled "unsigned development build"; no binary release |
-| **Timing** | **Month 15 (Jan 2028)**; month 19 at −20 % capacity, 13 at +20 %; 2 developers: month 22; 4 developers: month 14 (§2.2) |
+| **Timing** | **Month 16 (Feb 2028)**; month 20 at −20 % capacity, 14 at +20 %; 2 developers: month 23; 4 developers: month 16 (§2.2) |
 | **Decision makers** | Chair: project lead. Decides: project owner (PD-7, PD-11, channel opening). Concurrence: pilot user (golden acknowledgement, side-by-side review), counsel (LG-1, LG-2, ADR-0025, ADR-0030, CRA scope). Present: steward liaison, all developers |
 | **WBS link** | M1 exit criteria; 22 WPs: WP-S1.01 … WP-S1.10, WP-S3.01 … WP-S3.05, WP-S6.01 … WP-S6.03, WP-S7.01, WP-S7.02, WP-S0.04, WP-S0.06 |
 
@@ -694,7 +741,7 @@ which at month 3 costs little.
 | ID | Type | Criterion | Evidence |
 |---|---|---|---|
 | G-M1-01 | H | `ew export pdf golden/J-E-2416.ew` writes the 18 folios plus report folios 903 … 911 in a container with no display, no GPU, no system fonts and empty library directories | CI-PR-05 log; PDF digest recorded |
-| G-M1-02 | H | **AC-01 … AC-13** pass on Golden A: frame, grid and title block within ±0.2 mm; 36 pages in the order of §5; 64 cross-references including "3-B2"; tags consistent in every output; folio 901 with 27 rows; 903 … 905, 906, 907 (44 wires, 6 bridges), 909 (19 potentials) equal their tables; PDF/A-2b passes veraPDF with outline, 64 link annotations and `/PageLabels` | Runner report (GP-01); CI-PR-06; CI-N-09 |
+| G-M1-02 | H | **AC-01 … AC-13** pass on Golden A: frame, grid and title block within ±0.2 mm; 36 pages in the order of §5; 63 cross-reference texts (64 targets) including "3-B2"; tags consistent in every output; folio 901 with 27 rows; 903 … 905, 906, 907 (44 wires, 6 bridges), 909 (19 potentials) equal their tables; PDF/A-2b passes veraPDF with outline, 63 xref link annotations and `/PageLabels` | Runner report (GP-01); CI-PR-06; CI-N-09 |
 | G-M1-03 | H | **AC-14 (Linux)**: PDF, SVG, CSV and JSONL byte-identical across serial and parallel export and shuffled record order. Digests from Windows and macOS are reported but gate at G-M2 | CI-N-04 (Linux part) |
 | G-M1-04 | H | **AC-15** build paths (a) bootstrapped as data, (b) through commands, (c) checked-in fixture agree; **AC-16** the scripted edits (rename T55, move -102F2, renumber folio 103 → 104, change the 24 V colour) each update every affected output in the same commit and `ew verify-derived` reports no difference with the oracle on | Runner report; CI-PR-02 oracle |
 | G-M1-05 | H | **AC-17** on BM: Golden A opens in ≤ 0.5 s, `ew export pdf` ≤ 3 s, a full check ≤ 2 s (with the rules that exist at M1; the MVP packs follow at G-M2 and NFR-PERF-09 is re-measured there) | CI-N-01 report |
@@ -767,7 +814,7 @@ proposal 2 and the evidence for NL-1 … NL-4.
 | **Purpose** | Confirm that the pilot can draw *new* projects interactively like the reference set on the unsigned preview, early enough that their feedback shapes the MVP and their engagement holds (R-067, R-068, SR-8). The gate is deliberately light: one hard criterion, no conditions, and it never blocks other work ([global plan §5.3](01-global-plan.md#53-pilot-preview-m-pp-and-gate-g-pp)) |
 | **Kind and length** | Light gate, 1 hour, no public release. The artefact is an unsigned development build **0.0.x** from CI and the source tag `pp`, handed to the pilot only; no download page, no public binaries (GA-10). Every 0.0.x build may change the format and upgrades on read |
 | **Authorises** | The pilot's use of the preview on its own machines for small real projects, with QET remaining the production tool until G-M2 ([global plan §12](01-global-plan.md#12-pilot-user-engagement)); the first preview issue list; R0 on this build (CP-05) |
-| **Timing** | **Month 25 (Nov 2028)** with three or four developers; month 36 (Oct 2029) with two; month 31 at −20 % capacity, 21 at +20 % (the generated tables of §2.2). The UI chain WP-S2.01 → WP-S2.03 → WP-S2.04 decides it, so a fourth developer does not bring it forward |
+| **Timing** | **Month 26 (Dec 2028)** with three developers; month 24 (Oct 2028) with four; month 37 (Nov 2029) with two; month 32 at −20 % capacity, 22 at +20 % (the generated tables of §2.2). The UI chain WP-S2.01 → WP-S2.03 → WP-S2.04 decides it, so a fourth developer brings it forward by only two months |
 | **Decision makers** | Chair: project lead, who decides *Go* or *Not yet*. Concurrence: the pilot user (the criterion is theirs). Present: S2 owner. No project-owner decision, no counsel |
 | **WBS link** | The 14 WPs of M-PP: WP-S1.11 … WP-S1.15, WP-S1.16a, WP-S1.19a, WP-S2.01 … WP-S2.06, WP-S2.09 ([global plan §5.3](01-global-plan.md#53-pilot-preview-m-pp-and-gate-g-pp), `milestone_lean` = `M-PP` in [work-packages.csv](work-packages.csv)) |
 
@@ -811,7 +858,7 @@ plan; the re-forecast of G-M2 … G-M6; the one-row gate record.
 |---|---|
 | **Purpose** | Authorise the first signed public release and the pilot's switch to EW for new projects. G-M2 is the gate where the product, the supply chain, the CRA posture and the legal basis must all be real at once |
 | **Kind and length** | Release gate, 3 hours on the release candidate (RC on the first working day of the month, release the following week if no blocker), plus 30 minutes go/no-go at the final candidate |
-| **Timing** | **Month 40 (Feb 2030)**; month 50 at −20 % capacity, 33 at +20 %; 2 developers: month 58; 4 developers: month 35 (§2.2) |
+| **Timing** | **Month 41 (Mar 2030)**; month 51 at −20 % capacity, 34 at +20 %; 2 developers: month 60; 4 developers: month 36 (§2.2) |
 | **Decision makers** | Chair: project lead. **Go decided by the project owner.** Concurrence: pilot user (R1 result, SC-3 start, pilot switch); counsel (LG-3, LG-4, steward checklist). Present: release manager, UX researcher, steward liaison, all developers |
 | **WBS link** | The 27 WPs of M2 in the lean scope (`milestone_lean` = `M2`; the 14 WPs of M-PP are already behind G-PP), closed by WP-S6.08; with lever (b) the QET project import WPs WP-S3.10, WP-S3.11 and WP-S3.13 move to G-M3 and AC-25 … AC-27 with them |
 
@@ -898,7 +945,7 @@ findings; offline installation of the signed build on a clean Windows VM); fundi
 |---|---|
 | **Purpose** | Show that existing QET projects migrate with a report the pilot can resolve in an hour, that PLC, bus and fluid 1.0 and the exchange formats (AutomationML, TIA tag tables, PLCopen, EDZ, DXF and DWG) work against reference files, that the pilot has switched (SC-3), and that the partners for external acceptance (SC-7, SC-8) exist before the physical chain starts |
 | **Kind and length** | Milestone gate, 2 hours. Release 0.7.0 (the 0.2 … 0.7 releases passed the pipeline individually) |
-| **Timing** | **Month 46 (Aug 2030)**; month 57 at −20 %, 38 at +20 %; 2 developers: month 68; 4 developers: month 40 (§2.2). With the full scope (levers refused) G-M3 is month 47 |
+| **Timing** | **Month 47 (Sep 2030)**; month 58 at −20 %, 39 at +20 %; 2 developers: month 70; 4 developers: month 40 (§2.2). With the full scope (levers refused) G-M3 is month 48 |
 | **Decision makers** | Chair: project lead. Decides: project owner. Concurrence: pilot user (SC-3, SC-4, migration of their own projects). Present: steward liaison, release manager, S3 and S5 owner |
 | **WBS link** | WP-S1.24, WP-S1.25, WP-S2.13, WP-S3.10, WP-S3.11, WP-S3.13, WP-S3.16, WP-S3.18, WP-S3.19 (WP-S3.17 GSD/GSDML/IODD moves to 1.x with lever (c)) |
 
@@ -912,7 +959,7 @@ findings; offline installation of the signed build on a clean Windows VM); fundi
 
 | ID | Type | Criterion | Evidence |
 |---|---|---|---|
-| G-M3-01 | H | **AC-25** Golden C imports 18 folios without structural error, reproduces the 64 texts as printed and lists exactly MF-01 … MF-27; **AC-26** Golden C plus `c-fix.ewcmd` is equivalent to Golden A (§20.3); **AC-27** the migration verifier reports only the deltas of §3.4 that apply to an import (font, 3-B0 flagged) | Runner report; CI-N-10 |
+| G-M3-01 | H | **AC-25** Golden C imports 18 folios without structural error, reproduces the 63 texts (64 targets) as printed and lists exactly MF-01 … MF-27; **AC-26** Golden C plus `c-fix.ewcmd` is equivalent to Golden A (§20.3); **AC-27** the migration verifier reports only the deltas of §3.4 that apply to an import (font, 3-B0 flagged) | Runner report; CI-N-10 |
 | G-M3-02 | H | **SC-4**: at least 22 of the 24 QET corpus projects and every pilot project import without structural errors, cross-reference texts are identical, and every lenient-mode violation (D-11, D-12 …) is in the migration report | CI-N-10, CI-N-11 |
 | G-M3-03 | M | **NFR-UX-06**: the pilot imports a reference-size project and resolves its migration report to zero errors in at most one hour; import timings meet NFR-PERF-25 (preview ≤ 2 s at reference size, 3.5 MB corpus file ≤ 5 s, 24-file batch ≤ 2 min) | Pilot log; CI-N-01 |
 | G-M3-04 | M | Tutorial (6), importing a QET project and fixing the migration report, is published (NFR-DOC-03) | Docs build |
@@ -951,7 +998,7 @@ exported and validated; a golden part updated from an EDZ through a previewed co
 |---|---|
 | **Purpose** | Show that the physical and manufacturing chain works on Golden A-R: 3D layout, collision, routing, wire lengths that appear on folio 907, and a deterministic production package whose machine rows equal the printed wire list. G-M4 is the last chance to change course on the binding v1 additions before hardening |
 | **Kind and length** | Milestone gate, 2 hours. Release 0.18.0. With three developers G-M4 and G-M5 are one month apart (combined review allowed); with four they coincide |
-| **Timing** | **Month 57 (Jul 2031)**; month 71 at −20 %, 48 at +20 %; 2 developers: month 82; 4 developers: month 51 (§2.2) |
+| **Timing** | **Month 58 (Aug 2031)**; month 72 at −20 %, 48 at +20 %; 2 developers: month 84; 4 developers: month 52 (§2.2) |
 | **Decision makers** | Chair: project lead. Decides: project owner. Concurrence: pilot user (partner-shop trial, T11 dry run). Present: S4 owner, S5 owner, release manager |
 | **WBS link** | WP-S1.28, WP-S4.03 … WP-S4.08, WP-S5.01 … WP-S5.07, WP-S7.06. AC-36 and the thermal WP-S4.10 move to 1.x with lever (c) |
 
@@ -999,7 +1046,7 @@ that folio 907 shows; moving -102G1 marks lengths stale; the `.ewpp` rows equal 
 |---|---|
 | **Purpose** | Declare the feature stop: all 1.0 features of the lean scope are merged, the 1.0 rule packs are exact, and the beta goes to the pilot and early adopters. After G-M5 only fixes enter; everything else waits for 1.x |
 | **Kind and length** | Release gate for **1.0.0-beta.1**, 2 hours. May be combined with G-M4 (§2.4) |
-| **Timing** | **Month 58 (Aug 2031)**; month 72 at −20 %, 48 at +20 %; 2 developers: month 86; 4 developers: month 51 (§2.2). With the full scope G-M5 is month 65 |
+| **Timing** | **Month 59 (Sep 2031)**; month 74 at −20 %, 49 at +20 %; 2 developers: month 88; 4 developers: month 52 (§2.2). With the full scope G-M5 is month 66 |
 | **Decision makers** | Chair: project lead. **Go decided by the project owner.** Concurrence: pilot user (journeys J1 … J6). Present: release manager, UX researcher, steward liaison |
 | **WBS link** | WP-S1.26, WP-S1.30, WP-S3.15; lever (a) WPs WP-S1.23, WP-S2.10, WP-S3.12 |
 
@@ -1018,7 +1065,7 @@ that folio 907 shows; moving -102G1 marks lengths stale; the `.ewpp` rows equal 
 | G-M5-05 | H | The beta release candidate passes the pipeline and checklist (G-M2-13 … G-M2-17 repeated: signing, SBOM, provenance, network sandbox, no unpatched high or critical advisory) | Release dossier (GP-11) |
 | G-M5-06 | M | Lever (a) items are done: read-only MCP server (NFR-SEC-08: off by default, stdio or loopback with a token), symbol editor, QET migration assistants | Runner report; docs |
 | G-M5-07 | M | Journeys J1 … J6 are walked through with the pilot on the beta and acknowledged | Walkthrough record |
-| G-M5-08 | M | **R2 preparation**: protocol, fixture GP-UT (`variants/gp-ut.ewcmd`), recruitment of at least 5 participants (≥ 2 EPLAN, ≥ 2 QET, ≥ 1 PLC programmer, a wireman for T11), at least one QWERTZ or AZERTY keyboard participant, one GPU-less RDP session, and a moderator, for months 59 … 60 | Recruitment list (roles only) |
+| G-M5-08 | M | **R2 preparation**: protocol, fixture GP-UT (`variants/gp-ut.ewcmd`), recruitment of at least 5 participants (≥ 2 EPLAN, ≥ 2 QET, ≥ 1 PLC programmer, a wireman for T11), at least one QWERTZ or AZERTY keyboard participant, one GPU-less RDP session, and a moderator, for months 60 … 61 | Recruitment list (roles only) |
 | G-M5-09 | M | Format freeze readiness: no open format change that is not scheduled before 1.0.0-rc.1 (CP-12); the `next-format` feature plan for post-1.0 is written | Format change list |
 | G-M5-10 | M | Documentation 1.0 drafts: tutorials (3) PLC card and addressing and (5) 2D/3D layout and wire list; German translation in progress toward ≥ 95 % (NFR-I18N-01) | Docs build; Weblate |
 | G-M5-11 | S | **SC-13 progress** and LG-6 trigger check: external contributors with merged changes, income per year, regular external contributors (trigger: more than 3 regular contributors, more than 50k euro a year, or 1.0) | Repository statistics |
@@ -1036,7 +1083,7 @@ the demo (the pre-delivery check with the 1.0 packs on Golden A equals §18.1 pl
 | **Go** | beta.1 is published; the feature stop is in force |
 | **Go with conditions** | Documentation and Weblate items, R2 recruitment (G-M5-08, G-M5-10) |
 | **Recycle** | AC-22 or L/XL performance red, scope still moving |
-| **Descope** | DS-4 for the remaining Should rows; DS-8: accept the later date inside the ±20 % band (up to month 79 with three developers) |
+| **Descope** | DS-4 for the remaining Should rows; DS-8: accept the later date inside the ±20 % band (up to month 80 with three developers) |
 | **Stop or pivot** | **KT-4** viability line. A stop this late would be exceptional: Pivot B is already reached (the MVP line plus the 1.0 features that exist) and the owner decides whether to ship the beta as 0.x |
 
 ### 5.9 G-M6 Release 1.0 (M6)
@@ -1045,7 +1092,7 @@ the demo (the pre-delivery check with the 1.0 packs on Golden A equals §18.1 pl
 |---|---|
 | **Purpose** | Authorise the publication of 1.0: the full v1 scope of the lean plan is accepted against the golden project, the usability thresholds and the external machines and installations; the format is frozen; the steward position is reviewed and the 1.x plan set |
 | **Kind and length** | Release gate for **1.0.0**, 3 hours on the final release candidate, plus a 30-minute go/no-go |
-| **Timing** | **Month 63 (Jan 2032)**; month 79 at −20 %, 53 at +20 %; 2 developers: month 95; 4 developers: month 57 (§2.2). With the full scope G-M6 is month 71 |
+| **Timing** | **Month 64 (Feb 2032)**; month 80 at −20 %, 54 at +20 %; 2 developers: month 96; 4 developers: month 57 (§2.2). With the full scope G-M6 is month 72 |
 | **Decision makers** | Chair: project lead. **Go decided by the project owner.** Concurrence: pilot user (R2, SC-3, SC-7, SC-8 sign-off); counsel (LG-6 form, word mark). Present: release manager, steward liaison, UX researcher, all developers |
 | **WBS link** | WP-S0.09, WP-S2.16, WP-S6.10, WP-S6.11, WP-S6.12, WP-S7.07, WP-S7.08 |
 
@@ -1122,10 +1169,10 @@ The IDs are KT-1 … KT-8; the K-1 … K-7 of [vision §10](../design/00-vision-
 |---|---|---|---|---|---|
 | **KT-1** | **Acceptance truth lost.** The pilot withdraws and no replacement panel builder with real projects is found within three months; or the pilot is not using EW for production twelve months after 0.1.0 and the cause is not a closable blocker list | Pilot log; kick-off minutes; pilot review attendance (SR-8) | G-M0, G-PP, every pilot review, G-M3 | Out-of-cycle review; search for a replacement pilot; blocker list to the top of the board | Continue with the golden project as the only truth (SC-3, SC-9 cannot close), or Pivot A or B |
 | **KT-2** | **Legal basis lost.** LG-1 or LG-5 is refused or cannot be obtained within four weeks of G-M1; or the exception texts cannot be agreed | Statements on file; counsel's confirmation | G-M0, G-M1 | No merge of that employer's staff contributions; replace public content if LG-5 is refused | Rewrite or drop the affected contributions, re-license path with counsel, or Pivot E |
-| **KT-3** | **Technical viability.** After the G-SP fallback and one recycle, the M-class commit p99 stays above 10 ms or the XL open time above 40 s; or STEP/OCCT cannot be shipped on a target OS | Spike and nightly gate; CI-PR-12 | G-SP, G-M1, G-M3 | Architecture review of ADR-0001 and ADR-0002 (or ADR-0016 for OCCT) before further dependent WPs | Redesign the derived-data layer, lower the class bounds, or reduce platforms |
-| **KT-4** | **Schedule viability.** Velocity ratio below 0.67 over three monthly reviews; or forecast G-M2 beyond month 60 or G-M6 beyond month 95 (3 developers; scale by the scenario) | §4.2 | Every monthly review; every gate | Viability review with the options below | Add capacity (PD-3), descope along the ladder, accept the later band, or a pivot |
+| **KT-3** | **Technical viability.** After the G-SP fallback and one recycle, the M-class commit p99 stays above 10 ms or the XL open time above 40 s; or STEP/OCCT cannot be shipped on a target OS. Not triggered at the first G-SP review (2026-10-20, outcome Recycle); re-evaluated after the re-test | Spike and nightly gate; CI-PR-12 | G-SP, G-M1, G-M3 | Architecture review of ADR-0001 and ADR-0002 (or ADR-0016 for OCCT) before further dependent WPs | Redesign the derived-data layer, lower the class bounds, or reduce platforms |
+| **KT-4** | **Schedule viability.** Velocity ratio below 0.67 over three monthly reviews; or forecast G-M2 beyond month 61 or G-M6 beyond month 97 (3 developers; scale by the scenario) | §4.2 | Every monthly review; every gate | Viability review with the options below | Add capacity (PD-3), descope along the ladder, accept the later band, or a pivot |
 | **KT-5** | **Capacity.** Fewer than two committed developers, or the loss of a developer without a replacement within six months | Team roster; SR-4 indicators | G-M0, any time | Re-run the plan with the actual team; the 2-developer re-scope | [Global plan open question 8](01-global-plan.md#open-questions) re-scope, or Pivot A |
-| **KT-6** | **Steward and signing.** The enrolments of WP-S0.05a are not submitted by G-M1; or no steward legal person, no signing identity or no steward-controlled repository organisation exists 12 months before the planned G-M2 (month 28 in the baseline) | CP-06; G-M0-17; LG-4 evidence | G-M0, G-M1, month 28 | Stichting from day one; SignPath for Windows; Apple organisation enrolment; counsel | No binary release without LG-4 (never waived): source-only releases and unsigned nightlies until resolved |
+| **KT-6** | **Steward and signing.** The enrolments of WP-S0.05a are not submitted by G-M1; or no steward legal person, no signing identity or no steward-controlled repository organisation exists 12 months before the planned G-M2 (month 29 in the baseline) | CP-06; G-M0-17; LG-4 evidence | G-M0, G-M1, month 29 | Stichting from day one; SignPath for Windows; Apple organisation enrolment; counsel | No binary release without LG-4 (never waived): source-only releases and unsigned nightlies until resolved |
 | **KT-7** | **Employer or funding.** The employer withdraws the staff hours, or the funding that pays developers ends | Employer decision; WBSO and grant status | G-M0, annually | Re-plan with the remaining team (KT-5) | Descope, or Pivot A, B or E |
 | **KT-8** | **Landscape.** Another open project delivers the MVP differentiators (derived data, previewed renumbering, check packs, open format) before G-M2 | Landscape re-check (G-M1-27) | G-M1, G-M3 | Compare scope, licence compatibility and willingness to merge | Contribute upstream or continue with a narrower differentiator (Pivot D) |
 
@@ -1155,7 +1202,7 @@ The IDs are KT-1 … KT-8; the K-1 … K-7 of [vision §10](../design/00-vision-
 
 ## 7. Gate-review template
 
-Copy this template to the gate record of the review (proposed location: `docs/plan/gate-records/<gate>-<yyyy-mm>.md`, for example `G-M2-2030-02.md`;
+Copy this template to the gate record of the review (proposed location: `docs/plan/gate-records/<gate>-<yyyy-mm>.md`, for example `G-M2-2030-03.md`;
 **open question 3**). Use roles, never names (§1.2 principle 8). A record is final when the outcome is signed off in
 the review and the forecast is attached.
 
@@ -1436,7 +1483,7 @@ PU pilot user, CO counsel, SL steward liaison, UX UX researcher. A role may be h
    WP-S1.16) arrive at M-PP and M2. G-M1-05 measures with the rules that exist and re-measures at G-M2. *Recommendation:* amend
    golden §21 AC-17 to say so.
 8. **NFR-UX-09 timing.** NFR-UX-09 puts the formative round in "month 4 – 5". With the realistic calendar the viewer
-   and the place and wire tools exist with the pilot preview at month 25 (R0, Nov 2028; CP-05). *Recommendation:* the 02c editor rewords NFR-UX-09 to "as soon
+   and the place and wire tools exist with the pilot preview at month 26 (R0, Dec 2028; CP-05). *Recommendation:* the 02c editor rewords NFR-UX-09 to "as soon
    as the viewer and the place and wire tools exist".
 9. **L and XL gating from G-M4.** [Quality §4.4](../design/18-quality-security-release.md#44-gate-decision) gates L and XL
    from 1.0. This document switches them on at G-M4 to give G-M5 and G-M6 a runway of green nights. *Recommendation:*

@@ -254,7 +254,7 @@ for throughput. Nightly runs use AddressSanitizer, because the dependency closur
 | Frame geometry | hayro's parser extracts path segments in printed mm, compared with `geometry/frame.json` | ±0.2 mm (AC-01) |
 | Raster parity | hayro rasterises each page, dify compares it with the vello_cpu PNG | Within tolerance (FR-OUT-018) |
 | Outline | Entry count and titles | Front matter, sections 1, 2, 9, every folio (FR-OUT-004) |
-| Links | Link annotations and named destinations | 64 xref links plus report back-links; every destination resolves (AC-13) |
+| Links | Link annotations and named destinations | 63 xref links (one per linked text, 64 targets) plus report back-links; every destination resolves (AC-13) |
 | Page labels | `/PageLabels` | Physical page 6 is labelled "101" (D-33) |
 | Fonts | Embedded, subset (`ABCDEF+` prefix), no Tahoma | AC-13 |
 | Text | Extracted text keeps spaces | "SK 3110.000" (FR-OUT-008) |
@@ -413,6 +413,11 @@ the baselines (§4.4).
   because their noise exceeds 15 %.
 - **Statistics.** Medians and p99 follow 02c §1.4. Gesture sequences are scripted, replayed through the `Session`
   API and timed with `tracing` spans.
+- **Deviation accepted once (G-SP, 2026-10-20).** The first G-SP evidence ran on a non-dedicated Windows desktop
+  and took 100 instead of 1,000 timed samples for a latency family whose warm-up median exceeded ten times its
+  budget (decided by its median, rows flagged "clamped"). Both were accepted for the Recycle outcome only, because
+  every gap was an order of magnitude beyond the machine factor; the re-test after the recycle and every later gate
+  follow this section (ADR-0002 amendment 4, decision log ID-222).
 
 ### 4.4 Gate decision
 
@@ -484,7 +489,7 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 | CI-PR-06 output | Golden PNGs; PDF structure; veraPDF when `ew-scene`, `ew-export`, fonts or forms change; GPU smoke per backend where available (NFR-PLAT-02) | Linux, Windows | Merge |
 | CI-PR-07 ui-a11y | kittest flows and image snapshots; name walker; CVD renders; contrast lint; pseudo-locale; keymap reachability; 300 % | Linux (lavapipe) | Merge |
 | CI-PR-08 fuzz-smoke | 60 s per changed parser target; 60 s command fuzzer | Linux | Merge |
-| CI-PR-09 supply-chain | cargo-deny; cargo-audit; cargo-vet; build-script allowlist; licence-boundary check over every permissive crate of ARCH §3 (§10); dependency-rule check; `unsafe` allowlist; feature bans over the resolved graph (rhai `unchecked` anywhere, 17 §5.2; egui `inspection`, `egui_mcp`, `ew-ids/testkit` and `ew/test-confirm` in any non-test target); MSRV build of permissive crates (NFR-SEC-10, NFR-MAINT-03) | Linux | Merge |
+| CI-PR-09 supply-chain | cargo-deny; cargo-audit; cargo-vet; build-script allowlist; licence-boundary check over every permissive crate of ARCH §3 (§10); dependency-rule check; `unsafe` allowlist; feature bans over the resolved graph (rhai `unchecked` anywhere, 17 §5.2; serde_json `preserve_order` anywhere, because the canonical writer needs sorted maps, 05 §3.1; egui `inspection`, `egui_mcp`, `ew-ids/testkit` and `ew/test-confirm` in any non-test target); MSRV build of permissive crates (NFR-SEC-10, NFR-MAINT-03) | Linux | Merge |
 | CI-PR-10 legal-docs | `reuse lint` (NFR-LIC-01, NFR-LIC-02; 19 LR-01); licence-map check against `ci/licence-map.toml` (19 LR-02), including the collective copyright notice (NFR-LIC-10); no committed third-party fixture (19 LR-11); DCO (NFR-LIC-03); merge block for non-maintainer PRs while the exception texts are missing (NFR-LIC-12, 19 LG-2); governance-file presence (NFR-DOC-08); RFC reference on PRs labelled `format-major`, `api-break` or `licence` (NFR-DOC-09); anonymisation guard (NFR-PRIV-09; 20 §3.5, 19 LR-12); mdBook and rustdoc build with link check (NFR-MAINT-08); F1 anchors (NFR-DOC-01); rule pages (NFR-DOC-02); generated references unchanged (NFR-DOC-06) | Linux | Merge |
 | CI-PR-11 storage | Samba share save/reopen and a case-sensitive APFS image (NFR-PLAT-05); ENOSPC/EACCES injection; read-only installation directory (NFR-PLAT-07); longest internal path ≤ 120; project path `Projecten Ü ñ 测试` (NFR-I18N-04) | Linux, Windows | Merge |
 | CI-PR-12 step-worker | Path-filtered: worker build with cached OCCT; IPC fuzz smoke; worker-kill test | Linux | Merge |
@@ -874,7 +879,9 @@ flowchart LR
 
 - **Default.** Every crate carries `#![forbid(unsafe_code)]`.
 - **Allowlist** (`unsafe-allowlist.toml`): `ew-render2d`, `ew-render3d`, `ew-render-cpu` (if needed), the app
-  shell's platform glue (print adapters over `windows`/`objc2`, crash-handler installation) and `ew-step-worker`.
+  shell's platform glue (print adapters over `windows`/`objc2`, crash-handler installation), `ew-step-worker` and
+  the planned `ew-sysprobe` (process liveness and start time for the stale-lock rule and peak resident memory for
+  the performance gate, over `windows-sys` and `libc`; FT-89, decision log ID-216).
   The test-only crates that never ship in release artefacts, `ew-testkit` and `fuzz/`, are allowlisted for the
   counting `GlobalAlloc` (§3.12) only (NFR-SEC-04); CI-R-09 asserts their absence from release graphs.
 - **Lint.** An xtask lint compares crate roots and `unsafe` occurrences against the allowlist. Every `unsafe` block
@@ -1014,9 +1021,9 @@ payload := allowlisted fields only; anything else is dropped
   vulnerabilities and severe incidents (Art. 14) since **2026-09-11**, which is already the case today. All other
   obligations apply from **2027-12-11** (G11).
 - **What falls after 2027-12-11.** The plan of record ([global plan](../plan/01-global-plan.md) §5.1 and §6;
-  [milestones.csv](../plan/milestones.csv)) has no public binary release before 0.1.0 at M2, in February 2030, and
-  1.0 in January 2032. Every public release therefore ships under full application, as does everything after it. The
-  pilot preview 0.0.x (M-PP, November 2028, handed to the pilot only) and the nightly CLI builds for the pilot also
+  [milestones.csv](../plan/milestones.csv)) has no public binary release before 0.1.0 at M2, in March 2030, and
+  1.0 in February 2032. Every public release therefore ships under full application, as does everything after it. The
+  pilot preview 0.0.x (M-PP, December 2028, handed to the pilot only) and the nightly CLI builds for the pilot also
   fall after the date; whether such pilot-only builds are "made available on the market" is a question for counsel
   (global plan §5.3, WP-S6.04). Source tags and nightlies on the repository are not binary releases.
 - **Where obligations attach.** They attach to products made available on the market, so the role decision of
@@ -1125,10 +1132,10 @@ and any commercial edition needs a liability review first.
 
 | Pipeline element | How GP is used |
 |---|---|
-| Oracle and property tests | AC-16 edits: rename T55, move -102F2 one cell, renumber 103 → 104, change the 24 V DC colour. After each edit the 64 xref texts, `device_tag` of every device, `wire_props_of(24VDC-1)`, `bom_rows` and `title_block` must equal a cold recomputation |
+| Oracle and property tests | AC-16 edits: rename T55, move -102F2 one cell, renumber 103 → 104, change the 24 V DC colour. After each edit the 63 xref texts (64 targets), `device_tag` of every device, `wire_props_of(24VDC-1)`, `bom_rows` and `title_block` must equal a cold recomputation |
 | Engine statistics | A wire on folio 102 re-executes nothing keyed to folio 203; the 24 V colour change touches only the 24 V potentials and folio 1's table |
 | Determinism | SHA-256 of the GP PDF equal on Windows, macOS and Linux and across 1, 2 and 8 threads (AC-14) |
-| PDF structure | 64 link annotations; folio labels ("101" on physical page 6); "SK 3110.000" with its space; no Tahoma; no "-4W1", "T51", "JE2416" or "BR" in the text layer (AC-06, AC-13) |
+| PDF structure | 63 xref link annotations (64 targets); folio labels ("101" on physical page 6); "SK 3110.000" with its space; no Tahoma; no "-4W1", "T51", "JE2416" or "BR" in the text layer (AC-06, AC-13) |
 | Performance | AC-17 on BM: open ≤ 0.5 s, full check ≤ 2 s, `ew export pdf` ≤ 3 s. Golden B is the seed of every synthetic fixture (§4.1) |
 | Network sandbox | Open GP, edit, check, export the PDF and print to file with zero non-local socket calls |
 | Crash scrubber | A forced crash with GP open yields a payload without "J-E-2416", "-102G1", "TA05-V-15", `<engineer>`, the path or the user name (NFR-PRIV-04) |

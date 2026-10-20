@@ -50,10 +50,10 @@ which it ends. Scenario names are `<developers>d-<scope>[-ai-<level>]`.
 
 | Scenario (lean scope) | M1 spine exit | M-PP pilot preview | M2 MVP | M6 release 1.0 |
 |---|---|---|---|---|
-| `3d-lean`: 3 developers, **plan of record** (external commitments) | Jan 2028 | Nov 2028 | Feb 2030 | Jan 2032 |
-| `3d-lean-ai-moderate`: 3 developers with AI assistance, **internal target** | Oct 2027 | Jun 2028 | Jun 2029 | Jan 2031 |
-| `4d-lean`: 4 developers | Dec 2027 | Nov 2028 | Sep 2029 | Jul 2031 |
-| `2d-lean`: 2 developers | Aug 2028 | Oct 2029 | Aug 2031 | Sep 2034 |
+| `3d-lean`: 3 developers, **plan of record** (external commitments) | Feb 2028 | Dec 2028 | Mar 2030 | Feb 2032 |
+| `3d-lean-ai-moderate`: 3 developers with AI assistance, **internal target** | Nov 2027 | Jul 2028 | Jul 2029 | Feb 2031 |
+| `4d-lean`: 4 developers | Feb 2028 | Oct 2028 | Oct 2029 | Jul 2031 |
+| `2d-lean`: 2 developers | Sep 2028 | Nov 2029 | Oct 2031 | Oct 2034 |
 
 The AI-assisted scenarios are hypotheses with weak evidence; each gate review replaces both dates with a re-forecast
 from actuals ([global plan](01-global-plan.md) §3.7). The full-scope and capacity-sensitivity variants (`-full`,

@@ -1,6 +1,6 @@
 # ElektraWatt architecture specification
 
-**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Decided by:** chief architect, after a judge
+**Status:** Accepted · amended 2026-10-18, 2026-10-20 (G-SP outcome, §6.1 to §6.4; save order, §7.4) · **Date:** 2026-10-17 · **Decided by:** chief architect, after a judge
 panel over four competing proposals (A incremental, B ECS, C relational, D retained/object model)
 **Scope:** ElektraWatt (EW) v1:
 - Electric P8-class schematics;
@@ -217,7 +217,7 @@ sessions (G6).
 | `ew-interop-api` | P | `Importer`/`Exporter` traits over `ew-schema` records: `ImportBatch`, `ImportReport`, `SourceRef`, `TableImage`, `Proposal` (§10.6) | ew-schema, ew-ids; sha2 (input digest) |
 | `ew-dl` | P | Display-list IR: paths, glyph runs, images, groups, symbol instances, link sources and targets, entity tags; `ShapedRun` carries its `layout_box`; own hashable colour type (no peniko: renderer crates convert) | kurbo 0.13.1, libm 0.2 (deterministic trigonometry), uuid; re-exports `ew_units` for renderers and writers (rule 7) |
 | `ew-step-proto` | P | STEP worker IPC contract and cache format | postcard 1.1.3, rkyv 0.8.18 |
-| `ew-memo` | P | Generic memo engine: revisions, dependency recording, early cut-off, durability levels, LRU, statistics, oracle hooks, and a generic reverse-dependency API per query family. Knows nothing about ECAD. Not published to crates.io until it has two owners; v1 implemented (WP-S1.05); the spike run that decides which families it memoises is pending (§6.1) | imbl 7.0.2 (MPL-2.0+), smallvec 1.16.3, tracing 0.1.44 (statistics events, ADR-0002 decision 4); dev: proptest |
+| `ew-memo` | P | Generic memo engine: revisions, dependency recording, early cut-off, durability levels, LRU, statistics, oracle hooks, and a generic reverse-dependency API per query family. Knows nothing about ECAD. Not published to crates.io until it has two owners; v1 implemented (WP-S1.05); G-SP outcome Recycle (2026-10-20): push invalidation from touched inputs, O(1) hits, nested memos through a `Q` backend, value bytes and an incremental re-execution hook join v1 (ADR-0002 amendment 4, §6.1, §6.2) | imbl 7.0.2 (MPL-2.0+), smallvec 1.16.3, tracing 0.1.44 (statistics events, ADR-0002 decision 4); dev: proptest |
 | `ew-plcaddr` | P | `PlcAddress`, PLC address profiles as data, the address-grammar engine, bit intervals | — |
 | `ew-caex` | P | CAEX 2.15/3.0 model and `ExchangeImage` | quick-xml 0.42.0 |
 | `ew-devdesc` | P | Device descriptions: GSD, GSDML and IODD (ESI and EDS at 1.x) | quick-xml |
@@ -230,7 +230,8 @@ sessions (G6).
 | `ew-checks` | GPL | Rule engine, rule packs, the `RuleImpl` trait and registry (Rust and rhai rules implemented here), online checks as queries, offline check jobs, waivers, quick fixes | ew-derive, ew-rhai, toml 1.1.8, fluent-bundle 0.16.0, sha2 **(verify)** |
 | `ew-sqlview` | GPL | Read-only SQL projection: materialisation, `api_v1_*` views, sandbox, `ew_natural` collation; the SQL rule implementations registered into `ew-checks` | rusqlite 0.40.2 (`bundled`, `functions`, `hooks`, `limits`), ew-checks |
 | `ew-library` | GPL | Parts, symbol, form and macro libraries as canonical `.ewlib` text directories at every tier (system, community, company, user); one derived SQLite FTS5 index per user in the cache; embedding used items into projects (§7.7) | ew-format, rusqlite 0.40.2 |
-| `ew-store` | GPL | Save protocol, `.~ew.lock`, journal, recovery, watcher, external-change diff, `.ewz` transport, as-built archive, git commits and tags | ew-format, notify 8.2.0, zip 9.0.4, gix 0.89.0, etcetera or directories **(verify)** |
+| `ew-store` | GPL | Save protocol, `.~ew.lock`, journal, recovery, watcher, external-change diff, `.ewz` transport, as-built archive, git commits and tags; v0 (WP-S1.09) has the save protocol with roll-forward, the lock, the journal and the `Vfs` seam ([05](05-project-format-and-persistence.md) §5 to §8, ADR-0010 amendment 3) | ew-format (and, through its re-export, ew-schema; rule 7), ew-model (enables `raw-read`), serde_json; later: notify 8.2.0, zip 9.0.4, gix 0.89.0, etcetera or directories **(verify)**, ew-sysprobe on Windows and macOS (FT-89) |
+| `ew-sysprobe` (planned, FT-89) | GPL | The only `unsafe` FFI of the core path, on the `unsafe` allowlist ([18](18-quality-security-release.md) §11.2): process liveness and start time for the stale-lock rule ([05](05-project-format-and-persistence.md) §7.4) and the peak resident memory of the performance gate (NFR-PERF-13); `ew-store` and `ew-testkit` keep `forbid(unsafe_code)` and call it through `ProcessProbe` | windows-sys (Windows), libc (macOS, Linux); both MIT OR Apache-2.0 and already in the lockfile (decision log ID-216). Node and edges join the graph and `ci/dep-rules.toml` with FT-89 |
 | `ew-text` | GPL | Fonts and the memoised `shaped_text` query: one text stack for screen, pagination and paper | ew-dl, ew-units; parley 0.12.0, fontique 0.12.0, skrifa 0.44.0, harfrust 0.12.0 (through parley), sha2 0.10.9 |
 | `ew-reports` | GPL | Report-kind registry and row queries (`report_rows`), arrangement (manual selection, typed filters, natural sort, grouping), pagination into generated pages (`report_block_pages`), the report engine that `page_order` calls through `ReportPagesProvider` (decision log ID-126), value rendering; user SQL reports through the sandboxed query API of `ew-sqlview` (1.0, never links rusqlite); XLSX and CSV tables (FT-61) | ew-derive (and through its re-exports ew-schema, ew-ids, ew-mltext, ew-units; rule 7), ew-sqlview, ew-text; dev: ew-model (snapshots for the row-query tests, no `raw-read`), serde_json, proptest; later: rust_xlsxwriter 0.100.0, csv 1.4.0 |
 | `ew-scene` | GPL | Model to display lists per page and layer, forms engine (frames, title blocks, report forms), text through `ew-text`, spatial index, hit-testing; PDF underlays (1.0); page layers as pure functions of a caller-filled `PageView` (rule 7) and the provisional orthogonal router `route` (decision log ID-137) | ew-reports, ew-dl, ew-text; ew-schema (symbol lowering reads `SymbolDef` records by reference), ew-units, ew-ids, ew-mltext; serde_json; rstar 0.13.0, hayro 0.8.0 (underlays, 1.0); the `ew-reports` edge is declared for report forms and not used yet; dev: sha2, insta 1.49.0, proptest |
@@ -255,7 +256,7 @@ sessions (G6).
 | `ew` (bin) | GPL | CLI, `ew mcp`, merge driver, textconv, migration verifier | clap **(verify)**, rmcp 3.5.1 **(verify)**, ew-print, hayro 0.8.0 (`ew verify-migration`) |
 | `ew-wiring-viewer` (bin, 1.0) | GPL | Small read-only viewer for shop PCs | ew-viewer |
 | `ew-step-worker` (bin) | GPL (links LGPL OCCT) | STEP reading, tessellation, feature edges, hulls, mounting frames | occt-sys 7.8.1, opencascade 0.3.0, gltf 1.4.1 |
-| `ew-testkit` | GPL | Golden builders (CSV bootstrap through `ew-import-tables`, command DSL), S–XL and XL-A generators, oracle comparator, acceptance runner; the seeded S–XL generator ew_testkit::synth and the cold-operation benchmark harness ew_testkit::bench (WP-S1.05) | ew-model, ew-schema, ew-ids, ew-units, ew-mltext, ew-rds (the generator); ew-import-tables (golden builders, allowed edge); dev: ew-api, ew-commands with testkit, ew-ids with testkit, serde_json; later: insta 1.49.0, proptest 1.12.0, dify 0.8.0, hayro 0.8.0 (test use); criterion 0.8.2 only as a front end of the nightly performance gate (NFR-PERF-20). Dev-only everywhere: no crate may take it as a normal dependency. |
+| `ew-testkit` | GPL | Golden builders (CSV bootstrap through `ew-import-tables`, command DSL), S–XL and XL-A generators, oracle comparator, acceptance runner; the seeded S–XL generator ew_testkit::synth and the cold-operation benchmark harness ew_testkit::bench (WP-S1.05); the G-SP spike benches and the memo prototype (`benches/spike.rs`, `benches/spike/memo.rs`) | ew-model, ew-schema, ew-ids, ew-units, ew-mltext, ew-rds (the generator); ew-import-tables (golden builders, allowed edge); dev: ew-api, ew-commands with testkit, ew-ids with testkit, ew-derive and ew-memo (the spike measures the connectivity families cold and through a prototype `ew_memo::Db` over `ew-derive`'s dependency keys; decision log ID-223), serde_json; later: insta 1.49.0, proptest 1.12.0, dify 0.8.0, hayro 0.8.0 (test use); criterion 0.8.2 only as a front end of the nightly performance gate (NFR-PERF-20). Dev-only everywhere: no crate may take it as a normal dependency. |
 | `ew-py` (v1.x) | GPL | Python wheel of the headless core | pyo3 0.30.1 |
 
 `xtask` and `fuzz/` are development-only and outside the product crate table; they never ship in release artefacts.
@@ -355,7 +356,7 @@ graph TD
   wv --> viewer
   stepw --> stepp
   testkit --> itab & model & schema & ids & units & mltext & rds
-  testkit -. dev .-> api & cmd
+  testkit -. dev .-> api & cmd & derive & memo
   derive -. dev .-> cmd
   api -. dev .-> text & dl & rcpu & ids & units & mltext
   rcpu -. dev .-> text & units
@@ -402,7 +403,7 @@ graph TD
    `cargo xtask check-deps` enforces that file. A change adds the edge to both in the same pull request. Such an edge
    never relaxes rule 1: `ew-scene` reads `SymbolDef` records by reference for symbol lowering, but reads the model
    only through `Q`.
-7. **Types through re-exports** (2026-10-19, decision log ID-124, ID-125). A crate may name a foundation crate's types through the `pub use` re-export of a crate it already depends on, when those types belong to that crate's public API: `ew-reports` reaches `ew-schema`, `ew-ids`, `ew-mltext` and `ew-units` through `ew-derive`, and `ew-render-cpu` and `ew-export` reach `ew-units` through `ew-dl`. Such a use adds no edge to the graph or to `ci/dep-rules.toml`; a direct dependency still needs its drawn edge (rule 6). `ew-scene` has no edge to `ew-derive`: its caller fills a `PageView` with the records and the derived texts of a page, and `ew-scene` builds the layers as pure functions of it.
+7. **Types through re-exports** (2026-10-19, decision log ID-124, ID-125). A crate may name a foundation crate's types through the `pub use` re-export of a crate it already depends on, when those types belong to that crate's public API: `ew-reports` reaches `ew-schema`, `ew-ids`, `ew-mltext` and `ew-units` through `ew-derive`, and `ew-render-cpu` and `ew-export` reach `ew-units` through `ew-dl`; `ew-store` reaches `ew-schema` through `ew-format`, and the open and save reports that `ew-api` passes on carry `ew-format` types (findings, file paths), which `ew-api` and the front-ends name through `ew_store::ew_format` (2026-10-20, decision log ID-209). Such a use adds no edge to the graph or to `ci/dep-rules.toml`; a direct dependency still needs its drawn edge (rule 6). `ew-scene` has no edge to `ew-derive`: its caller fills a `PageView` with the records and the derived texts of a page, and `ew-scene` builds the layers as pure functions of it.
 
 ---
 
@@ -675,8 +676,23 @@ pub fn device_tag(q: &Q, dev: Id<Device>) -> Arc<Tag> { /* reads TagSpec, struct
 - **Phase 2 (from the performance spike, G-SP): memoise where profiled.** A query is promoted to `Memo` when profiling on the
   synthetic L/XL projects shows it on an interactive path. Every promotion is a one-line policy change, and the
   oracle verifies it.
-- **Fallback.** If a query family cannot meet its budget with `ew-memo` within memory limits, it falls back to
-  page-scoped dirty flags with coarse recomputation (D's service pattern), still under the oracle.
+- **G-SP outcome: Recycle** (2026-10-20, ADR-0002 amendment 4, decision log ID-218). The spike
+  ([report](../research/spike-g-sp-2026-10.md)) measured the cold global connectivity at 2.6–3× (S), 25–27× (M)
+  and 66–97× (L) over NFR-PERF-05 (XL: 308× for a wire, 462× for a move), and an opaque memo of
+  `potential_partition` worse than cold; the folio renumber, the open-time proxy and the affected-only profile
+  change are within budget at S, M and L, while at XL the renumber (1.2×) needs the memos of `page_order` and
+  `device_tag` and the affected-only profile change (2.1×) the cheaper wire chain as well. The memo list stays; the
+  connectivity families are reshaped (§6.4) and become incremental (below), and the engine gains push
+  invalidation (§6.2). The re-test after the recycle runs on a BM-class runner.
+- **Fallback: incremental connectivity** (amended 2026-10-20; ADR-0002 amendment 4 replaces decision 7). The former
+  fallback, page-scoped dirty flags with a coarse global recompute, fails as worded: the coarse recompute alone costs
+  87 ms at M. A family that cannot meet its budget by memoisation is instead maintained incrementally, still under
+  the oracle. For global connectivity: the local nets stay one memo per page; the stitch graph and the potential
+  partition are kept per connected component; an edit that only adds connections unions components in
+  near-constant time, and an edit that removes one or changes a page's nets recomputes only the components that
+  held the touched page nets, from the per-page nets; potential names are derived afterwards by their own family.
+  The cold family stays the reference that the oracle compares with in CI. The algorithm is WP-S1.07's cycle-9
+  work.
 
 ### 6.2 `ew-memo`: the cut-down engine
 
@@ -717,6 +733,21 @@ cold-operation benchmark harness (`ew_testkit::bench`, p99 over 1,000 samples, w
 spike run itself, and with it G-SP, is cycle-7 work: it needs the connectivity queries of WP-S1.07, which are the
 families the spike has to measure.
 
+**Additions after G-SP** (2026-10-20, ADR-0002 amendment 4; cycle 9, WP-S1.05 with WP-S1.07). The spike showed that
+verification by walking every dependency cannot meet NFR-PERF-05 at L: 12 µs per page memo, so 18.8 ms for the
+1,499 untouched page memos at L, and a hit that clones its memo with the dependency list first. v1 therefore also
+contains:
+1. **Push invalidation.** `advance` receives the commit's touched inputs from the change feed. The memos reachable
+   from them through the reverse-dependency index (item 7) are marked possibly changed and verified at their next
+   read; every other memo is re-stamped in O(1) at its next read. The index uses page-level keys (page, device
+   shard, table, settings member): with row-level keys it would hold about 56 MB at XL, over its 40 MB budget.
+2. **O(1) hits.** `verified_at` is checked before anything is cloned; dependency lists sit behind an `Arc`.
+3. **Nested memos through `Q`.** `Q` gets a memo backend; a memoised family read inside another records one memo
+   dependency instead of its flattened reads. The report-pages provider is bound to the store at creation (FT-60).
+4. **Value bytes and an incremental re-execution hook.** Families report their value bytes (`Query::bytes`) to the
+   memory gate, and a family may receive its previous value and the touched inputs when it re-executes; its result
+   is checked against the cold `run` by the oracle (§6.1, incremental connectivity).
+
 ### 6.3 Granularity and memory rules
 
 1. **No per-CP memos.** The finest memo key is a page, device, potential, strip, module, station, report block or
@@ -726,6 +757,9 @@ families the spike has to measure.
 3. **Promote only what pays.** A query is memoised only if its cold cost exceeds about 20 µs, or if it is read on
    every frame.
 4. **Memory gate.** CI checks memo count and bytes per query family on the XL fixture (§13).
+5. **No whole-table reads on interactive paths** (2026-10-20, ADR-0002 amendment 4). A query on the commit path
+   reads through indexes and the settings members it needs; a read of a whole table or of the whole project row
+   invalidates the query on every edit, which the spike found in `stitch_graph` and `potential_partition`.
 
 ### 6.4 Query catalogue
 
@@ -752,12 +786,15 @@ families the spike has to measure.
 | `frame_grid(page)` | the page, `frame_settings`, the frame form | Cold | The page's frame grid, evaluated once per page per `Q`: the page's own form, else the entry for its page type, else the default form, else the built-in default grid (noted); title, TOC and divider pages default to the no-grid variant (FR-PAG-018) |
 | `xref_text(rep)` | partners' anchor cells, xref format | Memo | Star or chain interruption points; "(201-E1)", "∞ 203-B4" |
 | `page_local_nets(page)` | connections, junctions, reps on the page | Memo | Union-find over a few thousand edges. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). |
-| `stitch_graph()` | local nets, IP pairing, bridges, conductors, terminal side links, bonds | Memo | Nodes are local nets, about 10–15 % of CPs. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). |
-| `potential_partition()` | stitch graph, potential defs, net defs | Memo | `PotentialId` = the minimum `PotentialDef` ID when the potential has one or more definitions, else the minimum CP ID, so it is stable under unrelated edits. Canonical name plus IP aliases (D-24). Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). |
-| `physical_wires_of(potential)` | potential members, connections, junction wiring, IP pairs | Memo | One entry per physical CP-to-CP wire, keyed by the UUID of its target-side connection. Source of the wire list, routing and `WireRecord`. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). |
-| `potential_flow(potential)` | potential members, source-output CPs, function definitions | Memo | Flow rooted at the source-output CPs; the protective device per load (a load is a consuming function on the potential, decision log ID-172); source of the potential overview. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). |
+| `stitch_graph()` | local nets, the `ip_pairing` settings member, bridges, conductors, terminal side links, bonds | Memo, maintained per component (§6.1) | Nodes are local nets, about 10–15 % of CPs. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). After G-SP (ADR-0002 amendment 4): page-less connections, bridges, IP functions, link-bearing functions and rail-bonded terminals are read through indexes, never by iterating whole tables (§6.3 rule 5) |
+| `potential_partition()` | stitch graph, potential defs, net defs | Memo, maintained per component (§6.1) | **Topology only** after G-SP: the components and their `PotentialId`s. `PotentialId` = the minimum `PotentialDef` ID when the potential has one or more definitions, else the minimum CP ID, so it is stable under unrelated edits. An added connection unions components; a removed one recomputes the affected components from the per-page nets. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1) |
+| `potential_names()` | potential partition, device tags, anchor cells, page order, IP names | Memo | New after G-SP: canonical name plus IP aliases (D-24) and the fallback names (`<tag>:<designation>` of the first CP in page and cell order), split out of the partition, so a folio renumber or a move re-derives names and not the topology (with tags, cells and page order already evaluated the partition still took 60 ms at M, mostly names and per-CP role checks) |
+| `physical_wires_of(potential)` | potential members, connections, junction wiring, IP pairs | Memo after a fix | One entry per physical CP-to-CP wire, keyed by the UUID of its target-side connection. Source of the wire list, routing and `WireRecord`. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). Its chain is super-linear (20 µs per potential at S, 241 µs at L); the cause is isolated and fixed before the family is memoised, and it goes under the LRU if its values stay bulky |
+| `potential_flow(potential)` | `potential_flow_bfs` | Cold | Flow rooted at the source-output CPs; the protective device per load (a load is a consuming function on the potential, decision log ID-172); source of the potential overview. Built in cycle 7 (WP-S1.07). Demoted to Cold after G-SP: a map lookup into `potential_flow_bfs` (< 20 µs) |
 | `potential_flow_bfs()` | potential partition, pass-through pairs, source outputs | Memo | The one BFS over the partition behind every `potential_flow(potential)` ([08](08-connections-terminals-cables.md) §3.6) |
-| `wire_props_of(potential)` | overrides, net defs, potential defs, profile | Memo | Precedence: connection override (CDP) > net definition > potential definition > profile rule (type × voltage × circuit class) > project default. Every value carries **provenance** (D-08). Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). |
+| `profile_row_for(attributes)` | the `colour_profile` and `size_profile` settings members | Memo | New after G-SP: the profile rule for one combination of type, voltage, AC/DC and circuit class; a profile edit re-executes the few keys and cuts off every unaffected one |
+| `settings_member(name)` | the project row | Memo (a cut-off point, not a cost saving) | New after G-SP: one key per settings member read by a derivation (`ip_pairing`, `colour_profile`, `size_profile`, `wire_default`, `numbering`, `frames`, the pinned profile), so a colour-profile edit no longer invalidates the pairing; no new stamp in `ew-model` (ADR-0002 amendment 4) |
+| `wire_props_of(potential)` | overrides, net defs, potential defs, `profile_row_for` | Memo | Precedence: connection override (CDP) > net definition > potential definition > profile rule (type × voltage × circuit class) > project default. Every value carries **provenance** (D-08). Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). After G-SP it reads the profile only through `profile_row_for`, so a profile edit re-derives the affected potentials only; NFR-PERF-07 at L is feasible only with push invalidation (§6.2) |
 | `wire_props(connection)` | `wire_props_of` of the connection's potentials | Cold | The physical wires a connection belongs to with their effective properties, in wire ID order; empty for bridges, bus and overview connections |
 | `channel_addresses(module)` | module start, part address map, channel specs | Memo | One edit re-addresses a module (D-26) |
 | `terminal_rows(strip)`, `cable_rows(cable)`, `plc_rows(station)` | terminals, levels, bridges, conductors, channels | Memo | Sources of terminal, cable and PLC reports (REF-045/049/060) |
@@ -832,6 +869,14 @@ CPs, 20k terminals and 10k channels, on the G6 baseline machine. XL itself alway
 
 The one honest hotspot is **global connectivity**. It costs 5–10 ms per committed wire edit, which is acceptable
 per commit but not per drag frame. The design accounts for this.
+
+**Measured at G-SP** (2026-10-20, [spike report](../research/spike-g-sp-2026-10.md)). Cold, the global part is far
+above this estimate: a wire commit with the global potential update takes 124 ms (M), 656 ms (L) and 6.17 s (XL) at
+p99, and the 24 V profile change over every potential 545 ms (M) and 10.9 s (L). The peak working set of the
+benchmark process at XL, 5.78 GB, is over the 4 GB of the memory row although the two heaviest families were left
+out (an upper bound with the generator's records included). The estimates above are therefore the targets of
+the incremental connectivity and push invalidation of §6.1 and §6.2 (predicted: a few milliseconds per commit at L),
+not cold figures; the re-test after the recycle replaces them with measurements.
 
 ### 6.8 Debuggability
 
@@ -931,11 +976,14 @@ Library copies are one pretty-printed JSON document per item, because they are l
   set falls out of the transaction log. The writer thread runs the G1 protocol from the immutable snapshot
   ([project format](05-project-format-and-persistence.md) §5):
   1. write every dirty file to `name.tmp-<gen>` and `sync_all` it;
-  2. write the complete new manifest as a durable **intent** (`manifest.json.tmp-<gen>`) before the first rename;
-     this is the commit point, and an interrupted save rolls forward on the next open;
-  3. rename each temp over its target;
+  2. write the complete new manifest as a durable **intent** (`manifest.json.tmp-<gen>`, with the hash of the
+     manifest it replaces as `base`) and sync the temps' directories, then the root, before the first rename;
+     this is the commit point, and an interrupted save rolls forward on the next open when `base` still matches
+     the manifest's bytes;
+  3. rename each temp over its target, after moving an unlisted file at that path aside, and sync the target
+     directories;
   4. rename the intent over `manifest.json` last;
-  5. sync the directory where supported.
+  5. sync the root directory where supported (ADR-0010 amendment 3).
 
   An M-class save takes well under 200 ms (estimate) and never blocks the UI.
 - **Open.** Verify the hashes against the manifest. A mismatch means an interrupted save, a hand edit or a merge:
@@ -1557,7 +1605,7 @@ The critical path to the golden PDF is not only the model. It is also **symbols,
 **Effort, not calendar.** The first column below counts *effort weeks* of two full-time lanes. It fixes the order
 and the dependencies of the spine's work, not dates. The calendar is the plan of record: the spine ends at milestone
 M1, which the [global plan](../plan/01-global-plan.md) dates in §5.1 and §7 and
-[milestones.csv](../plan/milestones.csv) (month 15 for three developers and the lean scope, because the same work
+[milestones.csv](../plan/milestones.csv) (month 16 for three developers and the lean scope, because the same work
 shares the team with the rest of S0, S1, S3, S6 and S7).
 
 | Effort weeks | Lane 1: core (dev 1) | Lane 2: output (dev 2) |
@@ -1597,13 +1645,13 @@ and the re-baseline at G-M1 are in the plan.
 
 | Milestone | Plan of record | Content |
 |---|---|---|
-| M1 | month 15 | Spine exit: the headless golden PDF (§15.1) |
-| M-PP (pilot preview, release 0.0.x) | month 25 | A slice of S1 and S2 for the pilot only: interactive 2D editing of new projects with the starter symbols, core reports, PDF and core online checks; unsigned build; gate G-PP |
-| M2 (MVP) | month 40 | Interactive 2D editor MVP, QET import of the corpus (the plan's lean variant ships the project migration in the next 0.x, see [vision](00-vision-and-scope.md) §9.1), check packs and report pack, 2D panel front, usability test with two EPLAN users and one QET user, first signed release |
-| M3 | month 46 | PLC, bus and fluid 1.0; QET migration; EDZ, AML, TIA tag and PLCopen exchange; DXF and DWG |
-| M4 | month 57 | 3D panel, collision, routing and lengths; manufacturing outputs and machine profiles |
-| M5 | month 58 | 1.0 feature complete (beta) |
-| M6 (v1.0) | month 63 | Hardening, docs, format freeze, signed 1.0 |
+| M1 | month 16 | Spine exit: the headless golden PDF (§15.1) |
+| M-PP (pilot preview, release 0.0.x) | month 26 | A slice of S1 and S2 for the pilot only: interactive 2D editing of new projects with the starter symbols, core reports, PDF and core online checks; unsigned build; gate G-PP |
+| M2 (MVP) | month 41 | Interactive 2D editor MVP, QET import of the corpus (the plan's lean variant ships the project migration in the next 0.x, see [vision](00-vision-and-scope.md) §9.1), check packs and report pack, 2D panel front, usability test with two EPLAN users and one QET user, first signed release |
+| M3 | month 47 | PLC, bus and fluid 1.0; QET migration; EDZ, AML, TIA tag and PLCopen exchange; DXF and DWG |
+| M4 | month 58 | 3D panel, collision, routing and lengths; manufacturing outputs and machine profiles |
+| M5 | month 59 | 1.0 feature complete (beta) |
+| M6 (v1.0) | month 64 | Hardening, docs, format freeze, signed 1.0 |
 
 **Rotating schema-steward role.** Every format change passes the steward rule (§7.6).
 
@@ -1614,7 +1662,7 @@ and the re-baseline at G-M1 are in the plan.
 | # | Risk | Mitigation |
 |---|---|---|
 | 1 | **Stale memos** recreate the D-01 class invisibly | Untracked reads do not compile; cold mode by default; oracle in CI, debug and nightly; command fuzzer; `ew verify-derived`; `ew query --explain`; any query can be dropped back to cold with a one-line change |
-| 2 | **Interactive latency at L/XL** (global connectivity, bulk edits) | Two-level nets with stable `PotentialId`s; backdating; bulk commands as preview jobs; performance spike (G-SP) early in the spine with a named fallback (§6.1); engine statistics asserted in the perf gate |
+| 2 | **Interactive latency at L/XL** (global connectivity, bulk edits) | Two-level nets with stable `PotentialId`s; backdating; bulk commands as preview jobs; performance spike (G-SP) early in the spine with a named fallback (§6.1); engine statistics asserted in the perf gate. Partly materialised at G-SP (2026-10-20, outcome Recycle): incremental connectivity, push invalidation and the reshaped connectivity queries (§6.1 to §6.4, ADR-0002 amendment 4) |
 | 3 | **Memory at XL** (memos, projection, undo) | Granularity rules (§6.3); LRU; memory gate; file-backed projection at XL; 256 MB undo cap |
 | 4 | **`ew-memo` bus factor** | Small v1 engine (1.5–2.5 kLOC); generic crate with design notes; two owners by M1; most contributors write plain functions |
 | 5 | **Derivation drift** across EW versions changes archived drawings | Pinned derivation profiles; golden tests per profile; as-built archive with PDF |

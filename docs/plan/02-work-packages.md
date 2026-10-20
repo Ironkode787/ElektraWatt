@@ -1,6 +1,6 @@
 # Work breakdown structure
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt plan
+**Status:** Draft v0.2 · **Date:** 2026-10-20 (v0.2: the estimates of WP-S1.05, WP-S1.07 and WP-S1.08 after G-SP, the cycle-8 statuses and FT-86 to FT-99) · **Part of:** ElektraWatt plan
 
 **Purpose.** This document breaks the full v1 scope of ElektraWatt (EW) into 123 work packages (WPs) in eight
 streams. For every WP it states the objective, scope, deliverables, dependencies, the requirements it delivers,
@@ -15,17 +15,17 @@ by hand.
 
 <!-- generated:wbs-key-results -->
 > **Key results**
-> - **Effort.** The MVP and 1.0 scope is 118 WPs with a PERT mean of **524.6 person-weeks** (pw), σ ≈
->   7.1 pw, or **629.5 pw** with the 20 % integration and bug-fix reserve. The MVP alone is 304.8 pw
->   (365.7 pw with the reserve). The 1.x backlog adds 43.5 pw. 1.0 is about 14.6 productive
+> - **Effort.** The MVP and 1.0 scope is 118 WPs with a PERT mean of **532.4 person-weeks** (pw), σ ≈
+>   7.2 pw, or **638.8 pw** with the 20 % integration and bug-fix reserve. The MVP alone is 312.5 pw
+>   (375.0 pw with the reserve). The 1.x backlog adds 43.5 pw. 1.0 is about 14.8 productive
 >   developer-years.
 > - **The full v1 scope does not fit 15–18 months.** Three developers have about 162 pw in 18 months;
 >   1.0 needs 3.9 times that. No team size reaches 1.0 before month 29, because the longest
 >   dependency chain alone takes that long (§6).
-> - **Realistic dates, full scope, base capacity.** 3 developers: spine exit (M1) at month 15 (Jan 2028), MVP at month 43 (May 2030), 1.0 at month 71 (Sep 2032). 2 developers: MVP at month 62 (Dec 2031), 1.0 at month 106 (Aug 2035). 4 developers: MVP at month 38 (Dec 2029), 1.0 at month 61 (Nov 2031).
+> - **Realistic dates, full scope, base capacity.** 3 developers: spine exit (M1) at month 16 (Feb 2028), MVP at month 44 (Jun 2030), 1.0 at month 72 (Oct 2032). 2 developers: MVP at month 64 (Feb 2032), 1.0 at month 107 (Sep 2035). 4 developers: MVP at month 38 (Dec 2029), 1.0 at month 61 (Nov 2031).
 > - **Levers.** Deferring the MVP's Should items, moving the QET migration to the 0.x release after the MVP and
->   moving 13 1.0 WPs to 1.x (the `milestone_lean` column) brings 3 developers to the MVP at month 40 (Feb 2030) and 1.0 at month 63 (Jan 2032). Even with every WP at its optimistic estimate and 20 % more capacity, that lean scope lands at month 23 (MVP) and month 35 (1.0). §7.4 recommends a combination.
-> - **Pilot preview.** 14 WPs, two of them slices split off MVP WPs, form milestone M-PP (release 0.0.x, pilot only): interactive 2D drawing of new projects at month 25 (Nov 2028) with three developers, 15 months before the MVP.
+>   moving 13 1.0 WPs to 1.x (the `milestone_lean` column) brings 3 developers to the MVP at month 41 (Mar 2030) and 1.0 at month 64 (Feb 2032). Even with every WP at its optimistic estimate and 20 % more capacity, that lean scope lands at month 23 (MVP) and month 36 (1.0). §7.4 recommends a combination.
+> - **Pilot preview.** 14 WPs, two of them slices split off MVP WPs, form milestone M-PP (release 0.0.x, pilot only): interactive 2D drawing of new projects at month 26 (Dec 2028) with three developers, 15 months before the MVP.
 <!-- /generated:wbs-key-results -->
 
 **Contents**
@@ -107,13 +107,13 @@ the realistic months below.
 | ID | Name | Gate | Realistic month, 3 developers, full scope | Realistic month, 3 developers, lean scope (plan of record) |
 |---|---|---|---|---|
 | M0 | Kick-off and foundations | G-M0 | 3 (Jan 2027) | 3 (Jan 2027) |
-| M1 | Spine exit: headless golden PDF | G-M1 | 15 (Jan 2028) | 15 (Jan 2028) |
-| M-PP | Pilot preview 0.0.x | G-PP | 25 (Nov 2028) | 25 (Nov 2028) |
-| M2 | MVP: pilot release 0.1.0 | G-M2 | 43 (May 2030) | 40 (Feb 2030) |
-| M3 | Automation breadth and migration | G-M3 | 47 (Sep 2030) | 46 (Aug 2030) |
-| M4 | Manufacturing and 2D/3D panel | G-M4 | 59 (Sep 2031) | 57 (Jul 2031) |
-| M5 | 1.0 feature complete (beta) | G-M5 | 65 (Mar 2032) | 58 (Aug 2031) |
-| M6 | 1.0 release | G-M6 | 71 (Sep 2032) | 63 (Jan 2032) |
+| M1 | Spine exit: headless golden PDF | G-M1 | 16 (Feb 2028) | 16 (Feb 2028) |
+| M-PP | Pilot preview 0.0.x | G-PP | 26 (Dec 2028) | 26 (Dec 2028) |
+| M2 | MVP: pilot release 0.1.0 | G-M2 | 44 (Jun 2030) | 41 (Mar 2030) |
+| M3 | Automation breadth and migration | G-M3 | 48 (Oct 2030) | 47 (Sep 2030) |
+| M4 | Manufacturing and 2D/3D panel | G-M4 | 60 (Oct 2031) | 58 (Aug 2031) |
+| M5 | 1.0 feature complete (beta) | G-M5 | 66 (Apr 2032) | 59 (Sep 2031) |
+| M6 | 1.0 release | G-M6 | 72 (Oct 2032) | 64 (Feb 2032) |
 <!-- /generated:wbs-milestone-months -->
 
 ### 2.3 Decision deadlines inside the WPs
@@ -142,7 +142,7 @@ architecture §15.2 and is what a real schedule should respect.
 | Core developer | S1, `ew-memo` and the `Op` set (with a second owner by M1) | dev A | dev 1 | dev 1 |
 | UI developer | S2 | dev B | dev 2 | dev 2 |
 | Output and migration developer | S3, S5 | dev A | dev 3 | dev 3 |
-| Physical developer | S4 | dev B after the MVP | dev 2 from WP-S4.01 (the first S4 WP, about month 26 in the baseline; [wp-schedule.csv](wp-schedule.csv)) | dev 4 from month 4 |
+| Physical developer | S4 | dev B after the MVP | dev 2 from WP-S4.01 (the first S4 WP, about month 27 in the baseline; [wp-schedule.csv](wp-schedule.csv)) | dev 4 from month 4 |
 | Release engineer | S6 and S0.01; rotates with the release-manager rotation | rotating | rotating | rotating |
 | Project lead | Pilot, funding, governance, roadmap | dev A | dev 1 | dev 1 |
 | Steward liaison | Legal gates with counsel and the steward | project lead | project lead | project lead |
@@ -225,14 +225,14 @@ All figures are person-weeks computed from [work-packages.csv](work-packages.csv
 | Stream | Name | WPs | O | L | P | PERT mean | Mean + 20 % reserve | Share of 1.0 | PERT mean, lean scope |
 |---|---|---|---|---|---|---|---|---|---|
 | S0 | Project foundation and governance | 10 | 15.5 | 25.0 | 40.0 | 25.9 | 31.1 | 5 % | 25.9 |
-| S1 | Core model and derivation | 34 | 99.5 | 146.0 | 225.5 | 151.5 | 181.8 | 29 % | 137.4 |
+| S1 | Core model and derivation | 34 | 104.9 | 153.5 | 236.8 | 159.3 | 191.1 | 30 % | 145.2 |
 | S2 | Interaction and UI | 16 | 51.5 | 75.0 | 112.5 | 77.3 | 92.8 | 15 % | 69.7 |
 | S3 | Documents, reports and migration | 19 | 59.5 | 88.0 | 136.0 | 91.3 | 109.5 | 17 % | 81.3 |
 | S4 | Physical: 2D/3D layout, routing, thermal | 10 | 35.5 | 52.0 | 79.5 | 53.8 | 64.6 | 10 % | 43.0 |
 | S5 | Manufacturing outputs | 9 | 23.5 | 34.5 | 52.5 | 35.7 | 42.8 | 7 % | 29.4 |
 | S6 | Quality, security and release engineering | 12 | 35.5 | 53.0 | 80.5 | 54.7 | 65.6 | 10 % | 54.7 |
-| S7 | Content: symbols, parts, golden project, docs | 8 | 22.5 | 33.5 | 50.0 | 34.4 | 41.3 | 7 % | 28.3 |
-| **All** | **MVP and 1.0** | **118** | **343.0** | **507.0** | **776.5** | **524.6** | **629.5** | **100 %** | **469.7** |
+| S7 | Content: symbols, parts, golden project, docs | 8 | 22.5 | 33.5 | 50.0 | 34.4 | 41.3 | 6 % | 28.3 |
+| **All** | **MVP and 1.0** | **118** | **348.4** | **514.5** | **787.8** | **532.4** | **638.8** | **100 %** | **477.5** |
 | 1.x | Backlog bucket (5 WPs, not in the totals above) | 5 | 28.0 | 42.5 | 63.0 | 43.5 | 52.2 | — | — |
 <!-- /generated:wbs-totals-stream -->
 
@@ -245,13 +245,13 @@ scope (`milestone` column):
 | Milestone | Name | Release | WPs | O | L | P | PERT mean | σ | Cumulative mean | Cumulative + 20 % reserve | Cumulative P80 + reserve |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | M0 | Kick-off and foundations | MVP | 4 | 4.5 | 7.5 | 12.0 | 7.8 | 0.7 | 7.8 | 9.3 | 10.0 |
-| M1 | Spine exit: headless golden PDF | MVP | 22 | 63.4 | 92.4 | 141.4 | 95.7 | 2.9 | 103.5 | 124.2 | 127.2 |
-| M-PP | Pilot preview 0.0.x | MVP | 14 | 45.4 | 66.4 | 100.4 | 68.6 | 2.7 | 172.1 | 206.5 | 210.5 |
-| M2 | MVP: pilot release | MVP | 33 | 86.2 | 128.2 | 197.2 | 132.7 | 3.4 | 304.8 | 365.7 | 371.0 |
-| M3 | Automation breadth: PLC, bus, fluid, exchange | 1.0 | 7 | 28.0 | 41.0 | 63.5 | 42.6 | 2.3 | 347.3 | 416.8 | 422.6 |
-| M4 | Manufacturing and 2D/3D panel | 1.0 | 16 | 49.5 | 72.0 | 109.5 | 74.5 | 2.7 | 421.8 | 506.2 | 512.6 |
-| M5 | 1.0 feature complete (beta) | 1.0 | 15 | 43.0 | 64.5 | 99.0 | 66.7 | 2.5 | 488.5 | 586.2 | 593.0 |
-| M6 | 1.0 release | 1.0 | 7 | 23.0 | 35.0 | 53.5 | 36.1 | 2.0 | 524.6 | 629.5 | 636.7 |
+| M1 | Spine exit: headless golden PDF | MVP | 22 | 68.8 | 99.9 | 152.7 | 103.5 | 3.2 | 111.3 | 133.5 | 136.8 |
+| M-PP | Pilot preview 0.0.x | MVP | 14 | 45.4 | 66.4 | 100.4 | 68.6 | 2.7 | 179.8 | 215.8 | 220.1 |
+| M2 | MVP: pilot release | MVP | 33 | 86.2 | 128.2 | 197.2 | 132.7 | 3.4 | 312.5 | 375.0 | 380.5 |
+| M3 | Automation breadth: PLC, bus, fluid, exchange | 1.0 | 7 | 28.0 | 41.0 | 63.5 | 42.6 | 2.3 | 355.1 | 426.1 | 432.1 |
+| M4 | Manufacturing and 2D/3D panel | 1.0 | 16 | 49.5 | 72.0 | 109.5 | 74.5 | 2.7 | 429.6 | 515.5 | 522.1 |
+| M5 | 1.0 feature complete (beta) | 1.0 | 15 | 43.0 | 64.5 | 99.0 | 66.7 | 2.5 | 496.3 | 595.5 | 602.5 |
+| M6 | 1.0 release | 1.0 | 7 | 23.0 | 35.0 | 53.5 | 36.1 | 2.0 | 532.4 | 638.8 | 646.1 |
 | 1.x | backlog bucket (no milestone) | 1.x | 5 | 28.0 | 42.5 | 63.0 | 43.5 | 2.6 | — | — | — |
 <!-- /generated:wbs-totals-milestone -->
 
@@ -261,13 +261,13 @@ Lean scope, the plan of record (`milestone_lean` column):
 | Milestone | Name | Release | WPs | O | L | P | PERT mean | σ | Cumulative mean | Cumulative + 20 % reserve | Cumulative P80 + reserve |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | M0 | Kick-off and foundations | MVP | 4 | 4.5 | 7.5 | 12.0 | 7.8 | 0.7 | 7.8 | 9.3 | 10.0 |
-| M1 | Spine exit: headless golden PDF | MVP | 22 | 63.4 | 92.4 | 141.4 | 95.7 | 2.9 | 103.5 | 124.2 | 127.2 |
-| M-PP | Pilot preview 0.0.x | MVP | 14 | 45.4 | 66.4 | 100.4 | 68.6 | 2.7 | 172.1 | 206.5 | 210.5 |
-| M2 | MVP: pilot release | MVP | 27 | 72.7 | 107.2 | 164.2 | 111.0 | 3.1 | 283.0 | 339.6 | 344.7 |
-| M3 | Automation breadth: PLC, bus, fluid, exchange | 1.0 | 9 | 35.0 | 51.5 | 79.5 | 53.4 | 2.6 | 336.4 | 403.7 | 409.4 |
-| M4 | Manufacturing and 2D/3D panel | 1.0 | 15 | 46.5 | 68.0 | 103.5 | 70.3 | 2.6 | 406.8 | 488.1 | 494.4 |
-| M5 | 1.0 feature complete (beta) | 1.0 | 7 | 17.0 | 26.0 | 40.0 | 26.8 | 1.5 | 433.6 | 520.3 | 526.8 |
-| M6 | 1.0 release | 1.0 | 7 | 23.0 | 35.0 | 53.5 | 36.1 | 2.0 | 469.7 | 563.6 | 570.4 |
+| M1 | Spine exit: headless golden PDF | MVP | 22 | 68.8 | 99.9 | 152.7 | 103.5 | 3.2 | 111.3 | 133.5 | 136.8 |
+| M-PP | Pilot preview 0.0.x | MVP | 14 | 45.4 | 66.4 | 100.4 | 68.6 | 2.7 | 179.8 | 215.8 | 220.1 |
+| M2 | MVP: pilot release | MVP | 27 | 72.7 | 107.2 | 164.2 | 111.0 | 3.1 | 290.8 | 348.9 | 354.2 |
+| M3 | Automation breadth: PLC, bus, fluid, exchange | 1.0 | 9 | 35.0 | 51.5 | 79.5 | 53.4 | 2.6 | 344.2 | 413.0 | 418.9 |
+| M4 | Manufacturing and 2D/3D panel | 1.0 | 15 | 46.5 | 68.0 | 103.5 | 70.3 | 2.6 | 414.5 | 497.4 | 503.9 |
+| M5 | 1.0 feature complete (beta) | 1.0 | 7 | 17.0 | 26.0 | 40.0 | 26.8 | 1.5 | 441.4 | 529.6 | 536.3 |
+| M6 | 1.0 release | 1.0 | 7 | 23.0 | 35.0 | 53.5 | 36.1 | 2.0 | 477.5 | 572.9 | 579.9 |
 | 1.x | backlog bucket (no milestone) | 1.x | 18 | 63.5 | 95.5 | 145.0 | 98.4 | 3.5 | — | — | — |
 <!-- /generated:wbs-totals-milestone-lean -->
 
@@ -277,22 +277,22 @@ Lean scope, the plan of record (`milestone_lean` column):
 | Stream | M0 | M1 | M-PP | M2 | M3 | M4 | M5 | M6 | 1.x | Total to 1.0 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | S0 | 7.8 | 3.7 | — | 5.3 | — | — | — | 9.3 | — | 25.9 |
-| S1 | — | 47.5 | 27.7 | 36.2 | 12.0 | 3.6 | 24.4 | — | 21.0 | 151.5 |
+| S1 | — | 55.3 | 27.7 | 36.2 | 12.0 | 3.6 | 24.4 | — | 21.0 | 159.3 |
 | S2 | — | — | 40.8 | 19.0 | 6.8 | — | 7.7 | 3.1 | — | 77.3 |
 | S3 | — | 26.8 | — | 29.2 | 23.8 | — | 11.4 | — | 8.2 | 91.3 |
 | S4 | — | — | — | 8.8 | — | 38.4 | 6.7 | — | 8.2 | 53.8 |
 | S5 | — | — | — | — | — | 29.4 | 6.3 | — | 6.2 | 35.7 |
 | S6 | — | 10.1 | — | 24.5 | — | — | 4.1 | 16.0 | — | 54.7 |
 | S7 | — | 7.7 | — | 9.8 | — | 3.1 | 6.2 | 7.8 | — | 34.4 |
-| **All** | **7.8** | **95.7** | **68.6** | **132.7** | **42.6** | **74.5** | **66.7** | **36.1** | **43.5** | **524.6** |
+| **All** | **7.8** | **103.5** | **68.6** | **132.7** | **42.6** | **74.5** | **66.7** | **36.1** | **43.5** | **532.4** |
 <!-- /generated:wbs-totals-matrix -->
 
 ### 4.4 Plausibility checks
 
 <!-- generated:wbs-plausibility -->
-- **Per requirement.** The catalogues hold 999 rows released at MVP or 1.0. 524.6 pw over them is
-  0.53 pw, about 2.6 productive days per row, each with an acceptance criterion, tests and documentation. For an ECAD application whose rows include an AML exchange with three-way merge, a STEP worker and negotiated-congestion routing, this is not slack.
-- **The spine.** Architecture §15.1 plans the spine as two developers for 12 weeks: 24 calendar person-weeks, about 17 productive pw under PA-3. The M0 and M1 WPs here total 103.5 pw: lane 1 (WP-S1.01 … WP-S1.10) is 47.5 pw, lane 2 (WP-S3.01 … WP-S3.05) is 26.8 pw, and 29.1 pw are the CI, licensing, legal, signing enrolment, test kit, determinism tests, performance gate, golden data and starter symbols that the M1 exit criteria need but the lane table does not list. The lane table assumes roughly one week per crate-level component; the estimates here assume three to six.
+- **Per requirement.** The catalogues hold 999 rows released at MVP or 1.0. 532.4 pw over them is
+  0.53 pw, about 2.7 productive days per row, each with an acceptance criterion, tests and documentation. For an ECAD application whose rows include an AML exchange with three-way merge, a STEP worker and negotiated-congestion routing, this is not slack.
+- **The spine.** Architecture §15.1 plans the spine as two developers for 12 weeks: 24 calendar person-weeks, about 17 productive pw under PA-3. The M0 and M1 WPs here total 111.3 pw: lane 1 (WP-S1.01 … WP-S1.10) is 55.3 pw, lane 2 (WP-S3.01 … WP-S3.05) is 26.8 pw, and 29.1 pw are the CI, licensing, legal, signing enrolment, test kit, determinism tests, performance gate, golden data and starter symbols that the M1 exit criteria need but the lane table does not list. The lane table assumes roughly one week per crate-level component; the estimates here assume three to six.
 <!-- /generated:wbs-plausibility -->
 
 ---
@@ -307,9 +307,9 @@ MVP does not fit months 6–7. The gap is not a rounding issue:
 <!-- generated:wbs-capacity -->
 | Team | Capacity per month (pw, steady state) | 15 months | 18 months | Months for MVP effort + reserve | Months for 1.0 effort + reserve |
 |---|---|---|---|---|---|
-| 2 | 6.0 | 90 pw | 108 pw | 61 | 105 |
-| 3 | 9.0 | 135 pw | 162 pw | 41 | 70 |
-| 4 | 10.8 | 155 pw | 187 pw | 35 | 59 |
+| 2 | 6.0 | 90 pw | 108 pw | 63 | 107 |
+| 3 | 9.0 | 135 pw | 162 pw | 42 | 71 |
+| 4 | 10.8 | 155 pw | 187 pw | 36 | 60 |
 <!-- /generated:wbs-capacity -->
 
 "Months for … effort" is the pure capacity bound with perfect parallelism; the simulated dates below are later
@@ -322,9 +322,9 @@ Month numbers per PA-1 (calendar month in brackets), base capacity.
 <!-- generated:wbs-dates-full -->
 | Team | M0 | G-SP spike | M1 | M-PP 0.0.x | M2 MVP | M3 | M4 | M5 beta | M6 1.0 |
 |---|---|---|---|---|---|---|---|---|---|
-| 2 developers | 3 (Jan 2027) | 7 (May 2027) | 22 (Aug 2028) | 36 (Oct 2029) | 62 (Dec 2031) | 70 (Aug 2032) | 85 (Nov 2033) | 98 (Dec 2034) | 106 (Aug 2035) |
-| 3 developers (baseline) | 3 (Jan 2027) | 6 (Apr 2027) | 15 (Jan 2028) | 25 (Nov 2028) | 43 (May 2030) | 47 (Sep 2030) | 59 (Sep 2031) | 65 (Mar 2032) | 71 (Sep 2032) |
-| 4 developers | 3 (Jan 2027) | 6 (Apr 2027) | 14 (Dec 2027) | 25 (Nov 2028) | 38 (Dec 2029) | 42 (Apr 2030) | 50 (Dec 2030) | 55 (May 2031) | 61 (Nov 2031) |
+| 2 developers | 3 (Jan 2027) | 7 (May 2027) | 23 (Sep 2028) | 37 (Nov 2029) | 64 (Feb 2032) | 72 (Oct 2032) | 87 (Jan 2034) | 99 (Jan 2035) | 107 (Sep 2035) |
+| 3 developers (baseline) | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 26 (Dec 2028) | 44 (Jun 2030) | 48 (Oct 2030) | 60 (Oct 2031) | 66 (Apr 2032) | 72 (Oct 2032) |
+| 4 developers | 3 (Jan 2027) | 6 (Apr 2027) | 16 (Feb 2028) | 23 (Sep 2028) | 38 (Dec 2029) | 42 (Apr 2030) | 51 (Jan 2031) | 56 (Jun 2031) | 61 (Nov 2031) |
 <!-- /generated:wbs-dates-full -->
 
 ### 5.3 Sensitivity and best case
@@ -335,12 +335,12 @@ optimistic estimate **and** uses 120 % capacity. "Lean" applies all three levers
 <!-- generated:wbs-sensitivity -->
 | Team | Scope | M2 at −20 % | M2 base | M2 at +20 % | M6 at −20 % | M6 base | M6 at +20 % | Best case M2 / M6 |
 |---|---|---|---|---|---|---|---|---|
-| 2 | Lean | 72 | 58 | 48 | 118 | 95 | 79 | 32 / 52 |
-| **3** | **Lean** | **50** | **40** | **33** | **79** | **63** | **53** | **23 / 35** |
-| 4 | Lean | 43 | 35 | 29 | 70 | 57 | 47 | 20 / 32 |
-| 2 | Full | 78 | 62 | 52 | 132 | 106 | 88 | 34 / 58 |
-| 3 | Full | 54 | 43 | 36 | 88 | 71 | 59 | 24 / 39 |
-| 4 | Full | 47 | 38 | 32 | 75 | 61 | 51 | 21 / 34 |
+| 2 | Lean | 74 | 60 | 50 | 120 | 96 | 80 | 33 / 53 |
+| **3** | **Lean** | **51** | **41** | **34** | **80** | **64** | **54** | **23 / 36** |
+| 4 | Lean | 45 | 36 | 30 | 72 | 57 | 48 | 21 / 32 |
+| 2 | Full | 80 | 64 | 53 | 134 | 107 | 89 | 35 / 59 |
+| 3 | Full | 55 | 44 | 37 | 89 | 72 | 60 | 25 / 40 |
+| 4 | Full | 47 | 38 | 32 | 76 | 61 | 51 | 22 / 35 |
 <!-- /generated:wbs-sensitivity -->
 
 Even the best case with the lean scope and four developers misses an 18-month 1.0. The estimates would have to be
@@ -356,11 +356,11 @@ and a first NLnet grant, typically €5k–€50k (unverified, [governance](../d
 <!-- generated:wbs-larger-teams -->
 | Team | Profile | M1 | M2 MVP | M6 1.0 | M6 with the lean scope |
 |---|---|---|---|---|---|
-| 3 | 3 from month 0 | 15 (Jan 2028) | 43 (May 2030) | 71 (Sep 2032) | 63 (Jan 2032) |
-| 4 | 3 from month 0, 1 from month 4, 90 % efficiency from month 4 | 14 (Dec 2027) | 38 (Dec 2029) | 61 (Nov 2031) | 57 (Jul 2031) |
-| 6 | 3 from month 0, 1 from month 4, 2 from month 6, 85 % efficiency from month 6 | 14 (Dec 2027) | 29 (Mar 2029) | 47 (Sep 2030) | 46 (Aug 2030) |
-| 8 | 3 from month 0, 1 from month 4, 4 from month 6, 85 % efficiency from month 6 | 14 (Dec 2027) | 25 (Nov 2028) | 41 (Mar 2030) | 40 (Feb 2030) |
-| 10 | 3 from month 0, 1 from month 4, 6 from month 6, 85 % efficiency from month 6 | 14 (Dec 2027) | 24 (Oct 2028) | 36 (Oct 2029) | 35 (Sep 2029) |
+| 3 | 3 from month 0 | 16 (Feb 2028) | 44 (Jun 2030) | 72 (Oct 2032) | 64 (Feb 2032) |
+| 4 | 3 from month 0, 1 from month 4, 90 % efficiency from month 4 | 16 (Feb 2028) | 38 (Dec 2029) | 61 (Nov 2031) | 57 (Jul 2031) |
+| 6 | 3 from month 0, 1 from month 4, 2 from month 6, 85 % efficiency from month 6 | 16 (Feb 2028) | 30 (Apr 2029) | 47 (Sep 2030) | 47 (Sep 2030) |
+| 8 | 3 from month 0, 1 from month 4, 4 from month 6, 85 % efficiency from month 6 | 16 (Feb 2028) | 27 (Jan 2029) | 39 (Jan 2030) | 38 (Dec 2029) |
+| 10 | 3 from month 0, 1 from month 4, 6 from month 6, 85 % efficiency from month 6 | 16 (Feb 2028) | 25 (Nov 2028) | 36 (Oct 2029) | 36 (Oct 2029) |
 <!-- /generated:wbs-larger-teams -->
 
 With unlimited developers the dependency chain of §6 still takes more than 28 months, so no team size reaches 1.0
@@ -438,9 +438,9 @@ flowchart LR
 | 14 | WP-S6.10 | 1.0 quality layers and release hardening | M6 | 6.2 | 10.7 | 26.1 |
 | 15 | WP-S6.12 | 1.0 beta-to-release stabilisation | M6 | 6.2 | 10.7 | 28.5 |
 
-**Near-critical chains** (lean scope, unlimited developers). To M1: WP-S1.01 → WP-S1.02 → WP-S1.03 → WP-S1.07 → WP-S3.03 → WP-S3.04, 12.1 months. To M-PP: WP-S1.01 → WP-S1.02 → WP-S1.03 → WP-S1.04 → WP-S2.01 → WP-S2.03 → WP-S2.04, 16.0 months. To M2: WP-S1.01 → WP-S1.02 → WP-S1.03 → WP-S1.04 → WP-S2.01 → WP-S2.03 → WP-S2.04 → WP-S2.12 → WP-S6.08, 19.6 months.
+**Near-critical chains** (lean scope, unlimited developers). To M1: WP-S1.01 → WP-S1.02 → WP-S1.03 → WP-S1.07 → WP-S3.03 → WP-S3.04, 13.7 months. To M-PP: WP-S1.01 → WP-S1.02 → WP-S1.03 → WP-S1.07 → WP-S1.08 → WP-S2.03 → WP-S2.04, 17.3 months. To M2: WP-S1.01 → WP-S1.02 → WP-S1.03 → WP-S1.07 → WP-S1.08 → WP-S2.03 → WP-S2.04 → WP-S2.12 → WP-S6.08, 20.9 months.
 
-**Float** to the end of the chain: the STEP worker (WP-S4.03) about 38 weeks, the production wire records (WP-S5.01) about 11 weeks and the PLC exchange (WP-S3.16) about 35 weeks.
+**Float** to the end of the chain: the STEP worker (WP-S4.03) about 38 weeks, the production wire records (WP-S5.01) about 5 weeks and the PLC exchange (WP-S3.16) about 28 weeks.
 <!-- /generated:wbs-critical-path -->
 
 **Reading it.**
@@ -512,11 +512,11 @@ Each row applies only the named levers (the `lever` column of the CSV); "Lean" i
 <!-- generated:wbs-lever-dates -->
 | Scope | Effort to MVP (mean + reserve) | Effort to 1.0 (mean + reserve) | 2 devs M2 / M6 | 3 devs M2 / M6 | 4 devs M2 / M6 |
 |---|---|---|---|---|---|
-| Full scope | 366 pw | 630 pw | 62 / 106 | 43 / 71 | 38 / 61 |
-| Lever (a): MVP Should deferral | 356 pw | 630 pw | 61 / 106 | 42 / 71 | 37 / 60 |
-| Levers (a) and (b): plus MVP split | 340 pw | 630 pw | 58 / 106 | 40 / 71 | 35 / 60 |
-| Lever (c) only: 1.0-lean | 366 pw | 564 pw | 62 / 95 | 43 / 64 | 37 / 56 |
-| Lean: all three levers | 340 pw | 564 pw | 58 / 95 | 40 / 63 | 35 / 57 |
+| Full scope | 375 pw | 639 pw | 64 / 107 | 44 / 72 | 38 / 61 |
+| Lever (a): MVP Should deferral | 366 pw | 639 pw | 62 / 107 | 43 / 72 | 37 / 61 |
+| Levers (a) and (b): plus MVP split | 349 pw | 639 pw | 60 / 107 | 41 / 72 | 36 / 61 |
+| Lever (c) only: 1.0-lean | 375 pw | 573 pw | 64 / 96 | 44 / 65 | 38 / 56 |
+| Lean: all three levers | 349 pw | 573 pw | 60 / 96 | 41 / 64 | 36 / 57 |
 <!-- /generated:wbs-lever-dates -->
 
 Differences of one month between neighbouring rows are scheduling noise of the PA-9 model. The levers save
@@ -752,10 +752,10 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | [WP-S1.02](#wp-s102-ew-schema-v0-and-json-schemas) | ew-schema v0 and JSON Schemas | M1 | same | 3.2 | Core developer |
 | [WP-S1.03](#wp-s103-ew-model-tables-operations-indexes-invariants) | ew-model: tables, operations, indexes, invariants | M1 | same | 4.7 | Core developer |
 | [WP-S1.04](#wp-s104-ew-commands-and-the-session-facade) | ew-commands and the Session facade | M1 | same | 5.6 | Core developer |
-| [WP-S1.05](#wp-s105-performance-spike-and-ew-memo-engine-with-oracle) | Performance spike and ew-memo engine with oracle | M1 | same | 6.3 | Core developer |
+| [WP-S1.05](#wp-s105-performance-spike-and-ew-memo-engine-with-oracle) | Performance spike and ew-memo engine with oracle | M1 | same | 9.3 | Core developer |
 | [WP-S1.06](#wp-s106-derivation-i-structure-tags-pages-title-block-bom) | Derivation I: structure, tags, pages, title block, BOM | M1 | same | 4.9 | Core developer |
-| [WP-S1.07](#wp-s107-derivation-ii-connectivity-potentials-wire-properties) | Derivation II: connectivity, potentials, wire properties | M1 | same | 6.4 | Core developer |
-| [WP-S1.08](#wp-s108-derivation-iii-cross-references-and-interruption-points) | Derivation III: cross-references and interruption points | M1 | same | 3.7 | Core developer |
+| [WP-S1.07](#wp-s107-derivation-ii-connectivity-potentials-wire-properties) | Derivation II: connectivity, potentials, wire properties | M1 | same | 10.5 | Core developer |
+| [WP-S1.08](#wp-s108-derivation-iii-cross-references-and-interruption-points) | Derivation III: cross-references and interruption points | M1 | same | 4.2 | Core developer |
 | [WP-S1.09](#wp-s109-persistence-core-ew-format-and-ew-store) | Persistence core: ew-format and ew-store | M1 | same | 5.8 | Core developer |
 | [WP-S1.10](#wp-s110-sql-projection-v0-ew-sqlview-api_v1) | SQL projection v0 (ew-sqlview, api_v1) | M1 | same | 3.6 | Core developer |
 | [WP-S1.11](#wp-s111-numbering-engine-and-renumber-commands) | Numbering engine and renumber commands | M-PP | same | 4.7 | Core developer |
@@ -856,7 +856,7 @@ S1 owns `ew-schema` and the query catalogue, which are the contract for every ot
 | Deliverables | Spike report and decision; `ew-memo` crate; oracle mode in CI |
 | Depends on | WP-S1.03 |
 | Requirements | NFR-REL-08, NFR-MAINT-07, NFR-PERF-07 (3 rows) |
-| Effort (pw) | O 4 · L 6 · P 9.5 · **PERT 6.3** (σ 0.9) |
+| Effort (pw) | O 6 · L 9 · P 14 · **PERT 9.3** (σ 1.3) |
 | Milestone · release | M1 Spine exit: headless golden PDF · MVP |
 | Acceptance | AC-16, NFR-PERF-05 |
 | Owner role | Core developer |
@@ -866,6 +866,16 @@ S–XL generator `ew_testkit::synth` and the cold-operation benchmark harness `e
 guard of FT-01. The spike run, its report and gate G-SP are pending: they need the connectivity queries of WP-S1.07
 (the global potential update is the family G-SP-03 measures), and run in cycle 7 after the fix-round tasks FT-26 and
 FT-32 to FT-35.
+
+*Status (2026-10-20, cycle 8).* The spike ran on S, M and L (report `docs/research/spike-g-sp-2026-10.md`, benches
+and memo prototype in `ew-testkit`) and G-SP was held: **outcome Recycle**, PD-8 closed by ADR-0002 amendment 4
+(decision log ID-218 to ID-226; gate record in [03 §5.1](03-gates.md#51-g-sp-performance-spike-decision)). The
+estimate grows by 3 pw (likely) for the engine work the recycle needs: the memo backend of `Q` with nested memo
+dependencies, push invalidation from the touched keys, O(1) hits, `Query::bytes` for the connectivity values, the
+incremental re-execution hook, page-level keys in the reverse-dependency index (about 56 MB at XL with row-level
+keys), and the re-spike itself on a BM-class runner. The XL results are in the report (FT-99 closed). Open: memory
+(G-SP-04: the XL peak working set is 5.78 GB against 4 GB), the pilot's size data (G-SP-08, an owner action before
+the re-test), FT-26, FT-44 and FT-60.
 
 #### WP-S1.06 Derivation I: structure, tags, pages, title block, BOM
 
@@ -892,7 +902,7 @@ FT-32 to FT-35.
 | Deliverables | Connectivity queries; golden assertions for AC-09, AC-10, AC-12; latency benchmarks |
 | Depends on | WP-S1.03 |
 | Requirements | FR-CON-009 … FR-CON-015, FR-CON-017 … FR-CON-027, FR-CON-034 … FR-CON-045, FR-TRM-002, FR-TRM-021, FR-CBL-001, NFR-PERF-05 (34 rows) |
-| Effort (pw) | O 4.6 · L 6.1 · P 9.1 · **PERT 6.4** (σ 0.8) |
+| Effort (pw) | O 7.6 · L 10.1 · P 15.1 · **PERT 10.5** (σ 1.3) |
 | Milestone · release | M1 Spine exit: headless golden PDF · MVP |
 | Acceptance | AC-09, AC-10, AC-12, NFR-PERF-05 |
 | Owner role | Core developer |
@@ -902,6 +912,12 @@ FT-32 to FT-35.
 (decision log ID-146 to ID-154). The cross-page `rep.move` of FR-CON-043 (FT-16) and the auto-route (FT-18, FT-43)
 remain; the fixture and importer gaps are FT-63 to FT-65, and the rulings of the part-A review are FT-75 to
 FT-78.
+
+*Status (2026-10-20, cycle 8).* G-SP's outcome Recycle (ADR-0002 amendment 4) makes this WP the lead item of cycle
+9: incremental connectivity (component-scoped stitch graph and partition over the per-page local nets, architecture
+§6.1), `potential_names` split out of `potential_partition`, index reads in `stitch_graph`, `profile_row_for` and
+per-member settings keys, `potential_flow` Cold, and the super-linear wire chain of `physical_wires_of` isolated and
+fixed, all under the oracle and integrated with `ew-memo` (WP-S1.05). The estimate grows by 4 pw (likely).
 
 #### WP-S1.08 Derivation III: cross-references and interruption points
 
@@ -913,12 +929,14 @@ FT-78.
 | Deliverables | Xref queries; AC-05 passing; D-01 replay (AC-20) |
 | Depends on | WP-S1.06, WP-S1.07 |
 | Requirements | FR-XRF-001 … FR-XRF-012, FR-XRF-015 … FR-XRF-018, FR-XRF-020 … FR-XRF-022, FR-XRF-024, FR-XRF-025 (21 rows) |
-| Effort (pw) | O 2.5 · L 3.5 · P 5.5 · **PERT 3.7** (σ 0.5) |
+| Effort (pw) | O 2.9 · L 4 · P 6.3 · **PERT 4.2** (σ 0.6) |
 | Milestone · release | M1 Spine exit: headless golden PDF · MVP |
 | Acceptance | AC-05, AC-20 |
 | Owner role | Core developer |
 
-*Status (2026-10-20, cycle 8).* Delivered with follow-up tasks: `ew-derive` has the format, relation and text queries and the interruption-point pairing (star and chain); the golden page output prints the cross-reference texts with 63 link annotations and the 4 external texts without a link, and the golden acceptance of doc 20 §15 passes (`golden_xref`: the 44 interruption-point and 19 main/aux texts, no "3-B0", the folio renumber replay). The design pass fixed the counts (63 texts, 64 targets) and the open rules (decision log ID-188 to ID-199). Open: the settings of FR-XRF-017 and FR-XRF-018 (FT-82), xref slots on the -203Q group (FT-81), the external texts on folio 101 (FT-83), the per-slot text style (FT-84) and the glyph "∞" (FT-85, awaiting the owner's approval of the download).
+*Status (2026-10-20, cycle 8).* Delivered with follow-up tasks: `ew-derive` has the format, relation and text queries and the interruption-point pairing (star and chain); the golden page output prints the cross-reference texts with 63 link annotations and the 4 external texts without a link, and the golden acceptance of doc 20 §15 passes (`golden_xref`: the 44 interruption-point and 19 main/aux texts, no "3-B0", the folio renumber replay). The design pass fixed the counts (63 texts, 64 targets) and the open rules (decision log ID-188 to ID-199). Open: the settings of FR-XRF-017 and FR-XRF-018 (FT-82), xref slots on the -203Q group (FT-81), the external texts on folio 101 (FT-83), the per-slot text style (FT-84) and the glyph "∞" (FT-85, awaiting the owner's approval of the download). After
+G-SP (ADR-0002 amendment 4) the estimate grows by 0.5 pw (likely): the cross-references read interruption-point names
+and anchor cells through the new `potential_names` family. One link per listed item is FT-86.
 
 #### WP-S1.09 Persistence core: ew-format and ew-store
 
@@ -934,6 +952,20 @@ FT-78.
 | Milestone · release | M1 Spine exit: headless golden PDF · MVP |
 | Acceptance | AC-14, AC-15, NFR-REL-01 |
 | Owner role | Core developer |
+
+*Status (2026-10-20, cycle 8).* Delivered with follow-up tasks and accepted by its independent review after one fix
+round: `ew-format` (canonical JSONL reader and writer, line order, shards, the manifest, integrity findings with
+EW-CORE-019 for the reader limits) and `ew-store` (the save protocol with roll-forward and the `base` check, the lock
+with heartbeat, takeover and read-only sessions, the journal with recovery, incremental saves byte-identical to a
+full save, and the `Vfs` seam with the in-memory fault harness), plus the checked-in fixture `golden/J-E-2416.ew`
+(164 files, generation 1). The design pass recorded the protocol as built in ADR-0010 amendment 3 and doc 05 v0.2
+(decision log ID-200 to ID-217). Open: the lenient model build of FR-COL-004 (FT-87); journal snapshot slots,
+group commit and the undo rebuild of FR-COL-028 (FT-88); the PID probe on Windows and macOS (FT-89); bounded reads of
+the manifest, lock and intent (FT-90); `save-begin{seq}` (FT-91); the real-file-system crash harness of NFR-REL-01
+(FT-92, milestone); the findings cap (FT-93); `min_reader`, `unstable` and original-line preservation (FT-95, FT-96,
+with WP-S1.17); the generation after a conflicted manifest (FT-97); duplicate stray copies (FT-98). Not in scope of
+v0 by plan: the writer thread, the watcher and external-change merge, `.ewz`, git files, migrations (WP-S1.17) and the
+save budgets (milestone performance run).
 
 #### WP-S1.10 SQL projection v0 (ew-sqlview, api_v1)
 
@@ -2744,7 +2776,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-23 | Refuse device and wire numbering, renumbering and every upgrade except the profile upgrade while the pinned profile is unknown; the profile upgrade resolves the pin | WP-S1.11 | With the WP | ID-72; [05](../design/05-project-format-and-persistence.md) §10.1 |
 | FT-24 | Move `BUILTIN_LIBRARY` from `ew-import-qet` and `ew-import-tables` to `ew-interop-api` when the system library is named | WP-S1.19a | With the WP | ID-66, ID-24 |
 | FT-25 | Type the `ew-derive` shims in `ew-schema` and remove them: `settings.numbering`, `settings.frames` (with WP-S3.02 if that comes first), the company logo and notice, the `revision` record | WP-S1.11 | With the WP | ID-78 |
-| FT-26 | Generator option for a non-conformantly numbered project, so the renumber benchmark needs no counter scrambling | WP-S1.05 | Before the spike run (cycle 7) | ID-79 |
+| FT-26 | Generator option for a non-conformantly numbered project, so the renumber benchmark needs no counter scrambling | WP-S1.05 | With the G-SP re-test (cycle 9); the first spike measured the folio renumber, not the device renumbering | ID-79, ID-218 |
 | FT-27 | Wire `TablesImporter` to `ew import csv <dir>` once `bin/ew` has subcommands | WP-S3.05 | With the first `ew` subcommands | ID-65; [14](../design/14-interop.md) §8.4 |
 | FT-28 | Bind `project.control_voltage` and `project.consumption` once `Quantity` has a text formatter | WP-S1.06 | With the `Quantity` formatter | ID-88; [09](../design/09-reports-forms-output.md) §3.7 |
 | FT-29 | Golden tables: `project.csv` and the generator store the identifier-set key `EN81346-2:2009`; needs the pilot's acknowledgement (PD-15) | WP-S7.01 | Cycle 6 (fix round) | ID-92, ID-80 |
@@ -2762,7 +2794,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-41 | One exact anchor function in `ew-schema` (`SymbolDef` geometry, integer nm, ties toward zero), used by `ew-derive`, the importers and `ew-scene` (the `ew-scene` convergence may follow later) | WP-S1.06 | **Closed:** implemented in cycle 6 (importer side; the `ew-derive` and `ew-scene` convergence on the shared anchor stays open as FT-45) | ID-109 |
 | FT-42 | Importers: parent and inheritance walks, junction cascades and clean-ups are linear or O(n log n), with a hostile-input test per walk | WP-S3.05 | Cycle 6 (fix round) | ID-115; [14](../design/14-interop.md) §11 |
 | FT-43 | `follow_end` on a 2-vertex route moves the far end's perpendicular coordinate off its CP (`ew-commands` v0) | WP-S1.07 (or the routing WP) | With the WP | review cycle 6 |
-| FT-44 | Notes pushed by queries must become part of the memoised value before a family that pushes notes is memoised | WP-S1.05 (phase 2) | Before the first memoised family that pushes notes | ID-120; review cycle 6 |
+| FT-44 | Notes pushed by queries must become part of the memoised value before a family that pushes notes is memoised | WP-S1.05 (phase 2) | Before the first memoised family that pushes notes; with the `Q` memo backend in cycle 9 | ID-120; review cycle 6; ID-220 |
 | FT-45 | `ew-scene::resolve_anchor` converges on `SymbolDef::anchor_point` | WP-S3.01 | With the host WP | ID-109; FT-41 |
 | FT-46 | The typed `ReportBlock` `filter` and `params` encoding (format decision), replacing the provisional `extra.params.mode` of `parts_summary` | WP-S3.06 | With the WP | ID-131; [09](../design/09-reports-forms-output.md) §2.2 |
 | FT-47 | Move the house report layout (23 rows × 6.52 mm) from `ew-reports` into the derivation profile | WP-S3.03 | Cycle 8 | ID-132 |
@@ -2778,7 +2810,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-57 | Validate font bytes when fonts are loaded and remove the `catch_unwind` around glifo in `ew-render-cpu` | WP-S3.04 | **Closed:** implemented in the cycle-7 fix round (fonts validated on load; the `catch_unwind` stays as a backstop) | ID-142 |
 | FT-58 | Regenerate the PNG and text candidates of folios 102, 103 and 106 once FT-54 and FT-55 draw their wires, before the first PNG approval | WP-S3.04 | **Closed:** implemented in the cycle-7 fix round (candidates regenerated, still awaiting FT-10) | ID-138, ID-142 |
 | FT-59 | The `Session` export job (`ew-api`, `ew-jobs`): it owns the glue rules of the view, builds one view and one memoised `page_display_list` query per layer that reads only that layer's inputs, so a wire edit never rebuilds the title block | WP-S3.04 | With the export job | ID-125, ID-144; [ADR-0015](../adr/0015-display-list-renderers-pdf.md) amendment 7 |
-| FT-60 | When `ew-memo` backs `Q`: bind the report-pages provider to the memo store at creation; `Q`s with different providers never share a store | WP-S1.05 (phase 2) | When `ew-memo` backs `Q` | ID-126 |
+| FT-60 | When `ew-memo` backs `Q`: bind the report-pages provider to the memo store at creation; `Q`s with different providers never share a store | WP-S1.05 (phase 2) | When `ew-memo` backs `Q` (cycle 9, after G-SP) | ID-126, ID-220 |
 | FT-61 | `ew-reports`: XLSX and CSV writers over the `RowSet` (rust_xlsxwriter, csv), and wrapped rows measured with `shaped_text` once the schema has a wrap policy | WP-S3.03 | With the WP | ID-130; [09](../design/09-reports-forms-output.md) §3.2, §4.6 |
 | FT-62 | Bind `revision.current.label` in the title block (the current revision of ID-105) | WP-S1.06 | Cycle 8 | ID-105 |
 | FT-63 | Golden tables: the black-box PSU part pattern declares its `source_output` CPs and the MICO its Out pass-throughs; needs the pilot's acknowledgement (PD-15) | WP-S7.01 | Cycle 7 (fix round) | ID-152 |
@@ -2802,8 +2834,22 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-81 | Xref slots on the symbols of the -203Q mains and the actuators, so that their derived cross-reference texts are drawn (the texts derive today, but the symbols have no `xref` slot and nothing prints) | WP-S7.02 | With the symbol-set rework | ID-193 |
 | FT-82 | Act on the contact-image settings `show_unused`, glyph, placement and `contact_image` (parsed with defaults today): unused part contacts, the glyph from the contact-image variant, "in path" or "on component" placement; then drop the "partial" marks of FR-XRF-017 and FR-XRF-018 | WP-S1.08 (derivation); WP-S3.04 (`ew-scene`, placement) | Cycle 9 or later | ID-195; [06](../design/06-schematic-editor.md) §2.8 |
 | FT-83 | Folio 101: move the text slot of the external-connection symbol, so that "+J-E-206 / JE-N1000-03" is no longer clipped by the symbol's slot box (the three external texts start left of the frame and overlap the next point's name; "J-E-206-PE" starts 0.27 mm left of the drawing area; golden README, gaps for FT-10); regenerate the candidates | WP-S7.02 (symbol); WP-S3.04 (goldens) | Cycle 9 | ID-196 |
-| FT-84 | `TextSlot.style`: the optional member in `ew-schema` (absent = the style of the slot's kind), honoured by `ew-scene`, the schema bless and the doc 07 §2.3 wording; how an unknown style name resolves; then the xref slots name `xref.device` where doc 06 §2.8 and doc 20 §17.5 bind it, and the `@qet10` edition and the golden candidates are regenerated | WP-S1.02 (schema); WP-S3.01 (`ew-scene`); WP-S7.02 (content) | Cycle 9 | ID-197; [20](../design/20-golden-project.md) §17.5 |
+| FT-84 | `TextSlot.style`: the optional member in `ew-schema` (absent = the style of the slot's kind), honoured by `ew-scene`, the schema bless and the doc 07 §2.3 wording; an unknown style name falls back to the slot kind's style with a note (ID-227); then the xref slots name `xref.device` where doc 06 §2.8 and doc 20 §17.5 bind it, and the `@qet10` edition and the golden candidates are regenerated | WP-S1.02 (schema); WP-S3.01 (`ew-scene`); WP-S7.02 (content) | Cycle 9 | ID-197, ID-227; [20](../design/20-golden-project.md) §17.5 |
 | FT-85 | The symbol fallback font for "∞" (U+221E): after the owner approves the download of Noto Sans Math Regular (OFL-1.1, about 0.5 MB, notofonts GitHub release): pin its SHA-256, add its `NOTICE` entry, add the fontique fallback chain in `ew-text`, regenerate the PNG, text and PDF goldens, assert `dropped_notdef_glyphs` = 0 in the structure golden, then approve at FT-10 | WP-S3.02 (`ew-text`); WP-S3.04 (goldens) | **Awaiting owner approval of the download** | ID-198; [ADR-0028](../adr/0028-default-drawing-fonts.md) recommendation 3 |
+| FT-86 | One link per listed item: a cross-reference text that lists several items ("∞ 3-B2, 106-G3", the -201U1 main text) carries one link per item in `ew-scene`'s page layer and one link annotation per item in `ew-export`, so the 106-G3 target gets its annotation; the PDF then has 64 xref link annotations (one per target), and the structure golden and the golden-PDF lines of docs 09 and 18 move from 63 to 64 annotations in the same change; doc 20 §3.4 row 18 and AC-13 already read "63 until FT-86 lands, 64 afterwards" (owner-approved, ID-228) | WP-S3.04 (`ew-scene`, `ew-export`, goldens) | Cycle 9 | ID-188, ID-228 |
+| FT-87 | Lenient model build for damaged projects: `Model::from_records` (or a lenient variant) builds a model from a record set that breaks a structural invariant or holds dangling references, reporting EW-CORE-008/-012 instead of refusing, so FR-COL-004's "load anyway" holds and the project opens read-only with its findings | WP-S1.09 (`ew-model`, `ew-store`) | Before M1 | ID-217; [05](../design/05-project-format-and-persistence.md) §6.2 |
+| FT-88 | Journal completeness: the three snapshot slots of doc 05 §8.1 (overlay of changed files every 2 minutes while dirty), group commit with a sync within 1 s (NFR-REL-02) and on focus loss, and the undo rebuild of recovered transactions (FR-COL-028) | WP-S1.09 (`ew-store`, `ew-commands`) | Before M1 | ID-217; [05](../design/05-project-format-and-persistence.md) §8 |
+| FT-89 | The `ew-sysprobe` crate (GPL-3.0-or-later, on the `unsafe` allowlist, `SAFETY:` comment per block, second-maintainer review): process liveness and start time on Windows (`windows-sys`: `OpenProcess` with `PROCESS_QUERY_LIMITED_INFORMATION`, `GetExitCodeProcess`, `GetProcessTimes`) and macOS (`libc::proc_pidinfo`), the start time on Linux (`/proc/<pid>/stat` with the clock tick from `libc::sysconf`), and the peak resident memory for the performance gate; `ew-store`'s `OsProbe` and the spike benches call it; the ARCH §3 node and edges and `ci/dep-rules.toml` in the same commit; `cargo deny` licence check (both MIT OR Apache-2.0) | WP-S1.09; WP-S6.03 (peak memory) | Before M1 | ID-216; [05](../design/05-project-format-and-persistence.md) §7.4; [18](../design/18-quality-security-release.md) §11.2 |
+| FT-90 | Bounded reads: `Vfs::read_limited` reads the manifest, the lock record and an intent with a size bound before they are parsed, like the record files (doc 05 §3.6); a file beyond the bound is EW-CORE-019 or, for the lock, an unreadable lock | WP-S1.09 (`ew-store`) | Cycle 9 | ID-207, ID-217 |
+| FT-91 | `save-begin{seq}` in the journal, and open-time deletion of the files a crashed save removed only when the journal entry and the file still match (sequence and hash), so a file that reappeared since (a colleague's restored file, a pull) is never deleted | WP-S1.09 (`ew-store`) | Before M1 | ID-201, ID-217 |
+| FT-92 | The real-file-system crash harness of doc 05 §5.6: child-process kill mode on ext4, NTFS and APFS (1,000 random cut points each) and the power-loss mode on Linux nightly, reopening with the real file system (NFR-REL-01) | WP-S1.09; WP-S6.02 (CI) | Milestone (G-M1 evidence) | ID-200, ID-217 |
+| FT-93 | The findings cap keeps the most severe findings (errors first, then by file and line) instead of the first 1,000; the read-only flag already counts every finding | WP-S1.09 (`ew-format`) | Cycle 9 | ID-207, ID-217 |
+| FT-94 | `cargo xtask check-features` checks feature bans over the resolved graph, so a banned feature (serde_json `preserve_order`, rhai `unchecked`) enabled by a third-party crate is caught too, not only on workspace edges | WP-S6.02 (`xtask`) | Cycle 9 | ID-215, ID-217; [18](../design/18-quality-security-release.md) CI-PR-09 |
+| FT-95 | Manifest stamps: `min_reader` computed from the `since` metadata of the kinds, members and variants present (doc 05 §4), and `unstable: true` written by development builds with an unreleased schema (§10.4) | WP-S1.17 | With the WP | ID-217; [ADR-0011](../adr/0011-format-versioning-and-migration.md) |
+| FT-96 | Original-line preservation: an untouched record with unknown members is written by its original line (ADR-0011 amendment 1, doc 05 §10.3), not re-emitted canonically | WP-S1.17 | With the WP | ID-217; [ADR-0011](../adr/0011-format-versioning-and-migration.md) amendment 1 |
+| FT-97 | After a conflicted or merged manifest, the next save writes generation max(ours, theirs) + 1 (doc 05 §11.3) instead of restarting at 1 | WP-S1.17 | With the merge driver | ID-202, ID-217 |
+| FT-98 | Windows: a move-aside rename that a sync client delays can leave several `.unlisted` copies of one file after retries; a copy whose bytes equal an existing stray copy of the same generation is not moved again (clutter only, no data at risk) | WP-S1.17 (cloud and share handling) | With the WP | ID-203, ID-217 |
+| FT-99 | Append the XL results of the G-SP spike to its report: the XL rows of the budget table, the memory projection (G-SP-04) and the tight L profile case; mark the XL peak as not comparable with L (the two super-linear families are left out) | WP-S1.05 | **Closed:** the XL results were committed with the report on 2026-10-20 (appendix A.4) | ID-218, ID-224 |
 
 ---
 
@@ -2833,7 +2879,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 
 1. **Scope, team and dates** (decision needed from the project owner, at M0). The user decisions "2–4 developers"
    and "v1 includes PLC/I-O, manufacturing outputs, 3D panel layout and EPLAN/QET/DXF import" together put 1.0
-   at about month 71 (Sep 2032) with three developers. *Recommendation:* adopt §7.4: three developers as the committed
+   at about month 72 (Oct 2032) with three developers. *Recommendation:* adopt §7.4: three developers as the committed
    baseline with all three levers, capacity growth as the first funding goal, and a re-plan at M1.
 2. **Velocity calibration.** The estimates are judgement, not measurement. *Recommendation:* record actual pw per
    WP in the tracker from the first commit; at M1 compare actuals with the M0 and M1 estimates and scale the

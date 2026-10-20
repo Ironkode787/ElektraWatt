@@ -705,7 +705,7 @@ sequential assembly in page order (FR-OUT-001, ARCH §2).
   `ShapedRun` follow, FT-51); `.notdef` glyphs are dropped; link annotations use a rectangle; images are skipped
   until assets reach the scene; links out of a partial export are plain text. The golden PDF has no link
   annotations until the cross-references of WP-S1.08, and its generated pages wait for FT-52 and FT-53.
-- **Golden A** gets exactly 64 xref link annotations plus report back-links (AC-13). "103-G6" at PE-1.1 on folio 101
+- **Golden A** gets exactly 63 xref link annotations (one per linked text; 64 link targets) plus report back-links (AC-13). "103-G6" at PE-1.1 on folio 101
   lands on cell G6 of folio 103.
 - **Partial exports** print links to non-exported pages as plain text, or as remote links into a companion file
   named by the scheme (FR-OUT-020). A remote link is a GoTo-remote action to the companion's named destination,
@@ -932,7 +932,7 @@ The golden page plan has 36 pages ([20](20-golden-project.md) §5, §16).
 | 909 | `potential_overview`: 19 potentials plus bond B1, aliases (24VDC-1 = 24VDC-AIR1 … 4) as member counts | D-09, D-24 |
 | 910 | `structure_overview`: =P01, +J-E-2416, +J-E-206, +FIELD and 68 tags over 4 pages | D-03 (one spelling) |
 | 911 | `revision_overview`: V1.0, V2.0 with changed pages 101 and 106 | D-05 |
-| PDF | outline, 64 xref links, `/PageLabels` = folios, subset fonts, real spaces, vector logo | D-07, D-33 |
+| PDF | outline, 63 xref links (64 targets), `/PageLabels` = folios, subset fonts, real spaces, vector logo | D-07, D-33 |
 
 ### 8.2 Scripted changes
 
