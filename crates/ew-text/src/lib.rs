@@ -6,12 +6,13 @@
 //! - [`FontSet`]: bundled or project-embedded font files only, never system fonts (NFR-REL-11). Each face
 //!   is identified by [`FontKey`](ew_dl::FontKey) `{ sha256, face_index }`, so exports name fonts by hash
 //!   (doc 09 §4.3 rule 5). With the default feature `bundled-fonts`, [`bundled()`] holds Noto Sans Regular
-//!   and Bold (ADR-0028, OFL-1.1; provenance in `NOTICE`), compiled in with `include_bytes!` and checked
-//!   against [`NOTO_SANS_REGULAR_SHA256`] and [`NOTO_SANS_BOLD_SHA256`] when the set is first built:
-//!   font versions are pinned (ADR-0028 recommendation 6, NFR-REL-17), so a different file is an error.
+//!   and Bold and, as the symbol fallback, Noto Sans Math Regular (ADR-0028, OFL-1.1; provenance in
+//!   `NOTICE`), compiled in with `include_bytes!` and checked against [`NOTO_SANS_REGULAR_SHA256`],
+//!   [`NOTO_SANS_BOLD_SHA256`] and [`NOTO_SANS_MATH_REGULAR_SHA256`] when the set is first built: font
+//!   versions are pinned (ADR-0028 recommendation 6, NFR-REL-17), so a different file is an error.
 //! - [`FontSet::shape`]: a string and a [`TextStyle`] (family role, em height in nm, weight, slope) to a
 //!   [`ShapedRun`](ew_dl::ShapedRun) in integer nm, its lines and the characters without a glyph
-//!   ([`Shaped::missing`], FR-OUT-027). Lines break only when a maximum width is given (one paragraph,
+//!   ([`Shaped::missing`], FR-OUT-027) and which face drew which glyphs ([`Shaped::faces`]). Lines break only when a maximum width is given (one paragraph,
 //!   parley's greedy breaking); `\n` always breaks.
 //! - [`TextStyleTable`]: the built-in style table of doc 20 §17.5 ([`builtin()`]); project-level styles
 //!   arrive with WP-S1.12.
@@ -23,8 +24,12 @@
 //!
 //! Every renderer and writer that re-derives positions must follow these steps exactly:
 //!
-//! 1. The face is selected by role, weight and slope ([`FontSet::face_for`]); there is no fallback font
-//!    in v0, so one text gives one face. Characters the face lacks become its `.notdef` glyph (id 0).
+//! 1. The face is selected by role, weight and slope ([`FontSet::face_for`]); it stays the face of every
+//!    glyph it has. The one fallback family is the symbol face of the set ([`Family::Symbols`], Noto Sans
+//!    Math, ADR-0028 recommendation 3): characters the selected face lacks shape with it, so one text can
+//!    give glyphs of two faces, listed per line in [`Shaped::faces`] (the run's own font is the selected
+//!    face). Characters neither face has become the selected face's `.notdef` glyph (id 0). System fonts
+//!    are never consulted.
 //! 2. parley (with fontique, harfrust for shaping and skrifa for metrics) lays the text out at a font size
 //!    equal to the face's **units per em**, with display scale 1, no quantisation and no hinting, and a
 //!    line height of exactly ascent + descent + line gap. harfrust works in integer font units and
@@ -72,8 +77,8 @@ mod shape;
 mod style;
 
 pub use fonts::{FaceInfo, FaceMetrics, Family, FontError, FontSet, FontSource, Weight, hex};
-pub use fonts::{NOTO_SANS_BOLD_SHA256, NOTO_SANS_REGULAR_SHA256};
+pub use fonts::{NOTO_SANS_BOLD_SHA256, NOTO_SANS_MATH_REGULAR_SHA256, NOTO_SANS_REGULAR_SHA256};
 #[cfg(feature = "bundled-fonts")]
 pub use fonts::{bundled, bundled_sources};
-pub use shape::{LineSpan, Shaped, TextStyle, VerticalMetrics, units_to_nm};
+pub use shape::{FaceSpan, LineSpan, Shaped, TextStyle, VerticalMetrics, units_to_nm};
 pub use style::{DEFAULT_STYLE_KEY, StyleDef, TextStyleTable, builtin};

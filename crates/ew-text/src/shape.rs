@@ -6,7 +6,7 @@
 use std::ops::Range;
 use std::sync::Arc;
 
-use ew_dl::{Brush, Glyph, ShapedRun, Transform};
+use ew_dl::{Brush, FontKey, Glyph, ShapedRun, Transform};
 use ew_units::{Nm, Pt2, Rect};
 use parley::{
     Alignment, AlignmentOptions, FontFamily, FontStyle, FontWeight, Layout, LineHeight, PositionedLayoutItem,
@@ -62,6 +62,20 @@ pub struct LineSpan {
     pub baseline: Nm,
 }
 
+/// A stretch of glyphs of one line that one face drew: the style's own face or the symbol fallback.
+///
+/// The spans of a [`Shaped`] partition [`ShapedRun::glyphs`] in order, and no span crosses a line. A text
+/// without fallback glyphs has one span per line, all with the style's face.
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub struct FaceSpan {
+    /// The face that drew these glyphs.
+    pub font: FontKey,
+    /// The glyphs, as an index range of [`ShapedRun::glyphs`].
+    pub glyphs: Range<usize>,
+    /// The source text they stand for, as a byte range of [`ShapedRun::text`].
+    pub text: Range<usize>,
+}
+
 /// The result of [`FontSet::shape`].
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Shaped {
@@ -70,8 +84,13 @@ pub struct Shaped {
     pub run: Arc<ShapedRun>,
     /// The lines (one unless `max_width` broke the text or it contains line breaks).
     pub lines: Vec<LineSpan>,
-    /// The characters the selected face has no glyph for, in first-occurrence order, each once
-    /// (FR-OUT-027). They are drawn as the face's `.notdef` glyph.
+    /// Which face drew which glyphs. [`ShapedRun::font`] is the style's face; glyphs the face lacks come
+    /// from the symbol fallback and show up here with that face's key. A writer or renderer that draws
+    /// `run` must draw each span with its own font.
+    pub faces: Vec<FaceSpan>,
+    /// The characters neither the selected face nor the symbol fallback has a glyph for, in
+    /// first-occurrence order, each once (FR-OUT-027). They are drawn as the selected face's `.notdef`
+    /// glyph.
     pub missing: Vec<char>,
 }
 
@@ -125,21 +144,21 @@ impl FontSet {
         layout.align(Alignment::Start, AlignmentOptions::default());
 
         let mut glyphs = Vec::new();
+        let mut spans: Vec<FaceSpan> = Vec::new();
         let mut lines = Vec::new();
         let mut first_baseline: Option<f32> = None;
         for line in layout.lines() {
             let baseline = line.metrics().baseline;
             let base0 = *first_baseline.get_or_insert(baseline);
             let start = glyphs.len();
+            let first_span = spans.len();
             let mut end_units = 0f32;
             for item in line.items() {
                 let PositionedLayoutItem::GlyphRun(run) = item else {
                     continue;
                 };
-                debug_assert!(
-                    same_face(face, run.run().font()),
-                    "fallback face in a v0 font set"
-                );
+                let drawn_by = self.face_of(run.run().font()).unwrap_or(face).info.key;
+                let run_start = glyphs.len();
                 for g in run.positioned_glyphs() {
                     glyphs.push(Glyph {
                         id: g.id,
@@ -149,6 +168,21 @@ impl FontSet {
                     end_units = end_units.max(g.x + g.advance);
                 }
                 end_units = end_units.max(run.offset() + run.advance());
+                if glyphs.len() > run_start {
+                    // Runs of one face that follow each other (a line split into several runs) merge.
+                    let text = run.run().text_range();
+                    match spans[first_span..].last_mut() {
+                        Some(last) if last.font == drawn_by => {
+                            last.glyphs.end = glyphs.len();
+                            last.text.end = text.end.max(last.text.end);
+                        }
+                        _ => spans.push(FaceSpan {
+                            font: drawn_by,
+                            glyphs: run_start..glyphs.len(),
+                            text,
+                        }),
+                    }
+                }
             }
             lines.push(LineSpan {
                 glyphs: start..glyphs.len(),
@@ -184,7 +218,8 @@ impl FontSet {
         Shaped {
             run: Arc::new(run),
             lines,
-            missing: missing_chars(face, text),
+            faces: spans,
+            missing: self.missing_chars(face, text),
         }
     }
 
@@ -214,10 +249,6 @@ pub struct VerticalMetrics {
     pub cap_height: Nm,
     /// Baseline-to-baseline distance of wrapped lines.
     pub line_pitch: Nm,
-}
-
-fn same_face(face: &Face, font: &parley::FontData) -> bool {
-    font.data.id() == face.data.id() && font.index == u32::from(face.info.key.face_index)
 }
 
 /// Code points with the Unicode `Default_Ignorable_Code_Point` property (UAX #44,
@@ -255,22 +286,27 @@ fn is_line_break(ch: char) -> bool {
     )
 }
 
-/// The characters of `text` that were drawn as the face's `.notdef` glyph (id 0, a visible box), first
-/// occurrence order, each once. A character is missing when the face's character map has no glyph for it;
-/// this includes control characters such as tabs, which are shaped to `.notdef` like any other unmapped
-/// character. Not reported: line breaks (they end a line and produce no glyph) and default-ignorable code
-/// points ([`DEFAULT_IGNORABLE`]), which render invisibly.
-fn missing_chars(face: &Face, text: &str) -> Vec<char> {
-    let font = face.font_ref();
-    let charmap = font.charmap();
-    let mut out: Vec<char> = Vec::new();
-    for ch in text.chars() {
-        let unmapped = charmap.map(ch).is_none();
-        if unmapped && !is_line_break(ch) && !is_default_ignorable(ch) && !out.contains(&ch) {
-            out.push(ch);
+impl FontSet {
+    /// The characters of `text` that were drawn as the `.notdef` glyph (id 0, a visible box), first
+    /// occurrence order, each once. A character is missing when neither the selected face's character map
+    /// nor that of a symbol fallback face has a glyph for it; this includes control characters such as
+    /// tabs, which are shaped to `.notdef` like any other unmapped character. Not reported: line breaks
+    /// (they end a line and produce no glyph) and default-ignorable code points ([`DEFAULT_IGNORABLE`]),
+    /// which render invisibly.
+    fn missing_chars(&self, face: &Face, text: &str) -> Vec<char> {
+        let font = face.font_ref();
+        let charmap = font.charmap();
+        let fallbacks: Vec<_> = self.fallback_faces().map(Face::font_ref).collect();
+        let mut out: Vec<char> = Vec::new();
+        for ch in text.chars() {
+            let unmapped =
+                charmap.map(ch).is_none() && fallbacks.iter().all(|f| f.charmap().map(ch).is_none());
+            if unmapped && !is_line_break(ch) && !is_default_ignorable(ch) && !out.contains(&ch) {
+                out.push(ch);
+            }
         }
+        out
     }
-    out
 }
 
 /// `v` font units at em height `size_nm` in nm, for a face with `upem` units per em:

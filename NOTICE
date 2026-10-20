@@ -10,10 +10,13 @@ generated per release with cargo-about (about.toml, ci/third-party-notices.hbs).
 Bundled fonts (assets/fonts/, ADR-0028)
 ---------------------------------------
 
-Noto Sans is licensed under the SIL Open Font License, Version 1.1 (OFL-1.1); the licence text is
-LICENSES/OFL-1.1.txt. The files are unmodified copies of the static unhinted TrueType instances of the
-upstream repository at the commit named in each Source URL (the repository publishes no release tags), and
-are pinned by SHA-256 in crates/ew-text (ADR-0028 recommendation 6).
+Noto Sans and Noto Sans Math are licensed under the SIL Open Font License, Version 1.1 (OFL-1.1); the
+licence text is LICENSES/OFL-1.1.txt. The files are unmodified copies of static unhinted TrueType files and
+are pinned by SHA-256 in crates/ew-text (ADR-0028 recommendation 6). The two Noto Sans files are the
+instances of the upstream repository at the commit named in each Source URL (the repository publishes no
+release tags). Noto Sans Math is not a raw commit file: it is the file at the path named under "Source"
+inside the notofonts release asset NotoSansMath-v3.000.zip. Noto Sans Math is the symbol fallback face
+(ADR-0028 recommendation 3).
 Noto is a trademark of Google Inc. (font name table entry 7); the trademark line is reproduced here as the
 OFL-1.1 requires for redistributed copies (decision ID-51).
 
@@ -34,3 +37,12 @@ assets/fonts/NotoSans-Bold.ttf
   Retrieved: 2026-10-18
   SHA-256:   8caac57b9ed492ab8a0501f1f1573d83a08822be36dd3f255e05964e12105f8d
   Size:      349072 bytes
+
+assets/fonts/NotoSansMath-Regular.ttf
+  Family:    Noto Sans Math Regular
+  Version:   Version 3.000
+  Copyright: Copyright 2022 Google LLC. All Rights Reserved.
+  Source:    https://github.com/notofonts/math/releases/download/NotoSansMath-v3.000/NotoSansMath-v3.000.zip (release asset published 2024-06-05, repository commit 00e9941d95b2a355399a66f3990ffde6e4985676, zip SHA-256 ac351837b41f8a897f020b97fb0f075ad574c1e9669fb5839ada1f92fd748356), file NotoSansMath/unhinted/ttf/NotoSansMath-Regular.ttf inside the zip
+  Retrieved: 2026-10-20
+  SHA-256:   b127e84699212b6b2ef50aff58e0ebebeec04ffe6db1b9eb9e209c8c3d97b4aa
+  Size:      657440 bytes

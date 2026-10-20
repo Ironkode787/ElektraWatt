@@ -707,6 +707,9 @@ sequential assembly in page order (FR-OUT-001, ARCH §2).
   `ShapedRun` follow, FT-51); `.notdef` glyphs are dropped; link annotations use a rectangle; images are skipped
   until assets reach the scene; links out of a partial export are plain text. The golden PDF has no link
   annotations until the cross-references of WP-S1.08, and its generated pages wait for FT-52 and FT-53.
+  Glyph coverage as built (FT-85): the font set holds Noto Sans Math Regular as its one symbol fallback face, only
+  for characters the style's own face lacks; a text with such glyphs is one group of one glyph run per face, so
+  the PDF embeds both fonts and `.notdef` glyphs remain only for characters neither face has.
 - **Golden A** gets exactly 63 xref link annotations (one per linked text; 64 link targets) plus report back-links (AC-13). "103-G6" at PE-1.1 on folio 101
   lands on cell G6 of folio 103.
 - **Partial exports** print links to non-exported pages as plain text, or as remote links into a companion file

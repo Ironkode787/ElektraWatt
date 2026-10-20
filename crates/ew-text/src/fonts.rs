@@ -9,7 +9,7 @@ use std::sync::OnceLock;
 use std::sync::{Arc, Mutex};
 
 use ew_dl::FontKey;
-use fontique::{Blob, Collection, CollectionOptions, FontInfoOverride, SourceCache};
+use fontique::{Blob, Collection, CollectionOptions, FontInfoOverride, Script, SourceCache};
 use parley::{FontContext, LayoutContext};
 use sha2::{Digest, Sha256};
 use skrifa::MetadataProvider;
@@ -25,6 +25,9 @@ pub enum Family {
     Default,
     /// A monospaced family (not bundled in v0; reserved for code-like texts).
     Mono,
+    /// The symbol fallback family (Noto Sans Math, ADR-0028 recommendation 3). A text style does not name
+    /// it: [`FontSet::shape`] uses it only for the characters the style's own face lacks.
+    Symbols,
 }
 
 /// Font weight. Only the two weights the shipped text styles use exist (ADR-0028 recommendation 1).
@@ -232,9 +235,12 @@ pub(crate) struct Engine {
 /// ADR-0028).
 ///
 /// Faces are kept sorted by (role, weight, slope, key), so the order in which files are offered never
-/// changes the result. Parley's `fontique` collection is built with system fonts disabled and without
-/// fallback families: a character the selected face lacks shapes to its `.notdef` glyph and is reported
-/// in [`Shaped::missing`](crate::Shaped::missing) (FR-OUT-027).
+/// changes the result. Parley's `fontique` collection is built with system fonts disabled. A face of the
+/// [`Family::Symbols`] role is the one fallback family (ADR-0028 recommendation 3): the collection names
+/// it as the fallback of the Latin, Greek and Cyrillic scripts, so a character the style's own face lacks
+/// shapes with it, and [`Shaped::faces`](crate::Shaped::faces) records which face drew which glyphs. A
+/// character neither face has shapes to the style face's `.notdef` glyph and is reported in
+/// [`Shaped::missing`](crate::Shaped::missing) (FR-OUT-027).
 pub struct FontSet {
     pub(crate) faces: Vec<Face>,
     pub(crate) engine: Mutex<Engine>,
@@ -304,12 +310,13 @@ impl FontSet {
             shared: false,
             system_fonts: false,
         });
+        let mut symbols = Vec::new();
         for face in &faces {
             // Each face is registered under a private family name per role, so two roles that share a
             // family name in their name tables stay apart, and the weight and slope parley matches on are
             // the ones this set declares.
             let name = engine_family(face.info.family);
-            collection.register_fonts(
+            let registered = collection.register_fonts(
                 face.data.clone(),
                 Some(FontInfoOverride {
                     family_name: Some(name),
@@ -322,6 +329,17 @@ impl FontSet {
                     ..FontInfoOverride::default()
                 }),
             );
+            if face.info.family == Family::Symbols {
+                symbols.extend(registered.into_iter().map(|(id, _)| id));
+            }
+        }
+        symbols.dedup();
+        if !symbols.is_empty() {
+            // Parley gives characters without a script of their own (symbols, digits, punctuation) the
+            // script of the text around them, Latin if there is none; the fallback is looked up per script.
+            for script in FALLBACK_SCRIPTS {
+                collection.set_fallbacks(Script::from_bytes(script), symbols.iter().copied());
+            }
         }
         Ok(FontSet {
             faces,
@@ -351,7 +369,8 @@ impl FontSet {
     }
 
     /// The face a style selects: the exact (role, weight, slope) match; else the role's upright face of
-    /// that weight; else the role's upright regular face; else the first face of the set.
+    /// that weight; else the role's upright regular face; else the first face of the set that is not a
+    /// symbol fallback.
     pub(crate) fn select(&self, family: Family, weight: Weight, italic: bool) -> &Face {
         let find = |w: Weight, i: bool| {
             self.faces
@@ -361,22 +380,46 @@ impl FontSet {
         find(weight, italic)
             .or_else(|| find(weight, false))
             .or_else(|| find(Weight::Regular, false))
+            .or_else(|| self.faces.iter().find(|f| f.info.family != Family::Symbols))
             .unwrap_or(&self.faces[0])
     }
 
     /// The face `style` selects: the exact (role, weight, slope) match; else the role's upright face of
-    /// that weight; else the role's upright regular face; else the first face of the set.
+    /// that weight; else the role's upright regular face; else the first face of the set that is not a
+    /// symbol fallback.
     pub fn face_for(&self, style: &crate::TextStyle) -> &FaceInfo {
         &self.select(style.family, style.weight, style.italic).info
     }
 
-    /// Whether the face selected by `style` has a glyph for `ch`.
+    /// Whether the face selected by `style` has a glyph for `ch` (the symbol fallback is not consulted;
+    /// see [`has_glyph`](FontSet::has_glyph)).
     pub fn covers(&self, style: &crate::TextStyle, ch: char) -> bool {
         self.select(style.family, style.weight, style.italic)
             .font_ref()
             .charmap()
             .map(ch)
             .is_some()
+    }
+
+    /// Whether [`shape`](FontSet::shape) draws `ch` with a real glyph in `style`: the selected face has
+    /// one, or a [`Family::Symbols`] face does.
+    pub fn has_glyph(&self, style: &crate::TextStyle, ch: char) -> bool {
+        self.covers(style, ch)
+            || self
+                .fallback_faces()
+                .any(|f| f.font_ref().charmap().map(ch).is_some())
+    }
+
+    /// The symbol fallback faces, in canonical order.
+    pub(crate) fn fallback_faces(&self) -> impl Iterator<Item = &Face> + '_ {
+        self.faces.iter().filter(|f| f.info.family == Family::Symbols)
+    }
+
+    /// The face behind `font` (a face of the parley collection), if this set has it.
+    pub(crate) fn face_of(&self, font: &parley::FontData) -> Option<&Face> {
+        self.faces
+            .iter()
+            .find(|f| f.data.id() == font.data.id() && u32::from(f.info.key.face_index) == font.index)
     }
 }
 
@@ -385,8 +428,14 @@ pub(crate) const fn engine_family(family: Family) -> &'static str {
     match family {
         Family::Default => "ew-default",
         Family::Mono => "ew-mono",
+        Family::Symbols => "ew-symbols",
     }
 }
+
+/// The ISO 15924 scripts for which the [`Family::Symbols`] faces are the fallback: Latin, Greek and
+/// Cyrillic, the scripts Noto Sans covers. Text in other scripts has no fallback until CJK and
+/// right-to-left fonts are bundled (FR-I18N-016).
+const FALLBACK_SCRIPTS: [[u8; 4]; 3] = [*b"Latn", *b"Grek", *b"Cyrl"];
 
 fn name_string(font: &skrifa::FontRef<'_>, id: skrifa::raw::types::NameId) -> Option<String> {
     font.localized_strings(id)
@@ -435,12 +484,22 @@ pub const NOTO_SANS_BOLD_SHA256: [u8; 32] = [
     0x88, 0x22, 0xbe, 0x36, 0xdd, 0x3f, 0x25, 0x5e, 0x05, 0x96, 0x4e, 0x12, 0x10, 0x5f, 0x8d,
 ];
 
+/// The SHA-256 of the bundled Noto Sans Math Regular file (`assets/fonts/NotoSansMath-Regular.ttf`), the
+/// symbol fallback face (ADR-0028 recommendation 3).
+pub const NOTO_SANS_MATH_REGULAR_SHA256: [u8; 32] = [
+    0xb1, 0x27, 0xe8, 0x46, 0x99, 0x21, 0x2b, 0x6b, 0x2e, 0xf5, 0x0a, 0xff, 0x58, 0xe0, 0xeb, 0xeb, 0xee,
+    0xc0, 0x4f, 0xfe, 0x6d, 0xb1, 0xb9, 0xeb, 0x9e, 0x20, 0x9c, 0x8c, 0x3d, 0x97, 0xb4, 0xaa,
+];
+
 #[cfg(feature = "bundled-fonts")]
 const NOTO_SANS_REGULAR: &[u8] = include_bytes!("../../../assets/fonts/NotoSans-Regular.ttf");
 #[cfg(feature = "bundled-fonts")]
 const NOTO_SANS_BOLD: &[u8] = include_bytes!("../../../assets/fonts/NotoSans-Bold.ttf");
+#[cfg(feature = "bundled-fonts")]
+const NOTO_SANS_MATH_REGULAR: &[u8] = include_bytes!("../../../assets/fonts/NotoSansMath-Regular.ttf");
 
-/// The bundled sources: Noto Sans Regular and Bold as [`Family::Default`], pinned by hash.
+/// The bundled sources: Noto Sans Regular and Bold as [`Family::Default`], and Noto Sans Math Regular as
+/// the [`Family::Symbols`] fallback, each pinned by hash.
 #[cfg(feature = "bundled-fonts")]
 pub fn bundled_sources() -> Vec<FontSource> {
     vec![
@@ -448,6 +507,8 @@ pub fn bundled_sources() -> Vec<FontSource> {
             .pinned(NOTO_SANS_REGULAR_SHA256),
         FontSource::from_static(NOTO_SANS_BOLD, Family::Default, Weight::Bold, false)
             .pinned(NOTO_SANS_BOLD_SHA256),
+        FontSource::from_static(NOTO_SANS_MATH_REGULAR, Family::Symbols, Weight::Regular, false)
+            .pinned(NOTO_SANS_MATH_REGULAR_SHA256),
     ]
 }
 

@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use ew_dl::{Item, ShapedRun, Transform};
 use ew_schema::{Align, Overflow};
-use ew_text::{FontSet, Shaped, TextStyle};
+use ew_text::{FaceSpan, FontSet, Shaped, TextStyle};
 use ew_units::{Angle2, Nm, Pt2, Rect};
 
 use super::sheet::{PPB_ONE, SheetMap};
@@ -226,7 +226,7 @@ pub(crate) fn place(
                 _ => Nm(mid(r.min().x, r.max().x).0 - line.advance.0.div_euclid(2)),
             };
             let y0 = run.glyphs.get(line.glyphs.start).map_or(line.baseline, |g| g.y);
-            let glyphs = run.glyphs[line.glyphs.clone()]
+            let glyphs: Vec<ew_dl::Glyph> = run.glyphs[line.glyphs.clone()]
                 .iter()
                 .map(|g| ew_dl::Glyph { y: g.y - y0, ..*g })
                 .collect();
@@ -241,16 +241,71 @@ pub(crate) fn place(
                 Pt2::new(Nm::ZERO, Nm(-m.ascent.0)),
                 Pt2::new(line.advance, m.descent),
             );
-            Item::glyphs(Arc::new(ShapedRun {
-                font: run.font,
-                size: run.size,
-                origin,
-                transform: Transform::from_angle(angle),
-                glyphs,
-                text: line_text.trim_end_matches(['\n', '\r']).to_owned(),
-                brush: run.brush,
-                layout_box,
-            }))
+            let spans: Vec<&FaceSpan> = shaped
+                .faces
+                .iter()
+                .filter(|f| f.glyphs.start >= line.glyphs.start && f.glyphs.end <= line.glyphs.end)
+                .collect();
+            let make = |font, glyphs: Vec<ew_dl::Glyph>, text: &str, layout_box, origin, transform| {
+                Arc::new(ShapedRun {
+                    font,
+                    size: run.size,
+                    origin,
+                    transform,
+                    glyphs,
+                    text: text.trim_end_matches(['\n', '\r']).to_owned(),
+                    brush: run.brush,
+                    layout_box,
+                })
+            };
+            if spans.len() <= 1 {
+                // One face: a single run, drawn with the face that shaped it (the symbol fallback if the
+                // style's face had none of the characters).
+                let font = spans.first().map_or(run.font, |f| f.font);
+                return Item::glyphs(make(
+                    font,
+                    glyphs,
+                    line_text,
+                    layout_box,
+                    origin,
+                    Transform::from_angle(angle),
+                ));
+            }
+            // Several faces: one run per face in a group that carries the placement, so the line is one
+            // item for its link and entity. Each run's box covers its own stretch of the pen travel; their
+            // union is the line's box.
+            let first = spans[0].glyphs.start;
+            let runs = spans
+                .iter()
+                .enumerate()
+                .map(|(i, span)| {
+                    let x0 = if i == 0 {
+                        Nm::ZERO
+                    } else {
+                        run.glyphs[span.glyphs.start].x
+                    };
+                    let x1 = spans
+                        .get(i + 1)
+                        .map_or(line.advance, |n| run.glyphs[n.glyphs.start].x);
+                    let glyphs = glyphs[span.glyphs.start - first..span.glyphs.end - first].to_vec();
+                    let span_text = text.get(span.text.clone()).unwrap_or(line_text);
+                    let layout_box =
+                        Rect::from_points(Pt2::new(x0, Nm(-m.ascent.0)), Pt2::new(x1, m.descent));
+                    Item::glyphs(make(
+                        span.font,
+                        glyphs,
+                        span_text,
+                        layout_box,
+                        Pt2::ORIGIN,
+                        Transform::IDENTITY,
+                    ))
+                })
+                .collect();
+            let placement = Transform {
+                translate: origin,
+                ..Transform::from_angle(angle)
+            };
+            Item::group(Some(placement), None, runs)
         })
         .collect()
 }

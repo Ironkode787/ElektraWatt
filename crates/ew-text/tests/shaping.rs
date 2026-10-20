@@ -9,10 +9,12 @@
 use std::time::Instant;
 
 use ew_text::{
-    Family, FontError, FontSet, FontSource, NOTO_SANS_BOLD_SHA256, NOTO_SANS_REGULAR_SHA256, Shaped,
-    TextStyle, Weight, builtin, bundled, bundled_sources,
+    Family, FontError, FontSet, FontSource, NOTO_SANS_BOLD_SHA256, NOTO_SANS_MATH_REGULAR_SHA256,
+    NOTO_SANS_REGULAR_SHA256, Shaped, TextStyle, Weight, builtin, bundled, bundled_sources,
 };
 use ew_units::Nm;
+use skrifa::MetadataProvider;
+use skrifa::raw::types::NameId;
 
 fn style(key: &str) -> TextStyle {
     builtin().resolve(key).unwrap()
@@ -55,15 +57,76 @@ fn fixed_vectors() {
 }
 
 #[test]
+fn symbols_shape_with_the_math_fallback_face() {
+    let st = style("data.small");
+    let regular = bundled().face_for(&st).key;
+    let math = bundled()
+        .faces()
+        .find(|f| f.family == Family::Symbols)
+        .expect("the bundled set has the symbol fallback")
+        .key;
+    assert_eq!(math.sha256, NOTO_SANS_MATH_REGULAR_SHA256);
+    // "∞", "⇄" and "−" are not in Noto Sans; the math face has them.
+    for ch in ['\u{221E}', '\u{21C4}', '\u{2212}'] {
+        assert!(!bundled().covers(&st, ch), "U+{:04X}", ch as u32);
+        assert!(bundled().has_glyph(&st, ch), "U+{:04X}", ch as u32);
+    }
+    let s = bundled().shape("\u{221E} 3-B2, 106-G3", &st, None);
+    assert!(s.missing.is_empty(), "{:?}", s.missing);
+    // The run keeps the style's face; the "∞" is a real glyph of the math face, the rest stays Noto Sans.
+    assert_eq!(s.run.font, regular);
+    assert!(s.run.glyphs.iter().all(|g| g.id != 0));
+    assert_eq!(s.faces.len(), 2, "{:?}", s.faces);
+    assert_eq!((s.faces[0].font, s.faces[0].glyphs.clone()), (math, 0..1));
+    assert_eq!(&s.run.text[s.faces[0].text.clone()], "\u{221E}");
+    assert_eq!(s.faces[1].font, regular);
+    assert_eq!(s.faces[1].glyphs, 1..s.run.glyphs.len());
+    assert_eq!(&s.run.text[s.faces[1].text.clone()], " 3-B2, 106-G3");
+    // The fallback glyph advances the pen like any other: the next glyph starts after the "∞".
+    assert!(s.run.glyphs[1].x > s.run.glyphs[0].x);
+    // Text the style's face covers entirely is one span of that face, unchanged by the fallback.
+    let plain = bundled().shape("J-E-2416", &st, None);
+    assert_eq!(plain.faces.len(), 1);
+    assert_eq!(plain.faces[0].font, regular);
+    assert_eq!(plain.faces[0].glyphs, 0..plain.run.glyphs.len());
+    // A bold style keeps the bold face for what it has and falls back for the rest.
+    let bold = bundled().shape("A\u{21C4}B", &style("section.id"), None);
+    assert_eq!(bold.run.font.sha256, NOTO_SANS_BOLD_SHA256);
+    assert_eq!(bold.faces.len(), 3);
+    assert_eq!(bold.faces[1].font, math);
+    assert!(bold.missing.is_empty());
+    // Spans never cross a line.
+    let wrapped = bundled().shape("\u{221E} \u{221E}\n\u{221E}", &st, None);
+    assert_eq!(wrapped.lines.len(), 2);
+    for line in &wrapped.lines {
+        let covered: usize = wrapped
+            .faces
+            .iter()
+            .filter(|f| f.glyphs.start >= line.glyphs.start && f.glyphs.end <= line.glyphs.end)
+            .map(|f| f.glyphs.len())
+            .sum();
+        assert_eq!(covered, line.glyphs.len());
+    }
+}
+
+#[test]
 fn missing_glyphs_are_reported_once_in_order() {
-    // "⇄" (and "∞") need the symbol fallback font of FR-OUT-027, which is not bundled yet.
-    let s = bundled().shape("103-G6 ⇄ ∞ ⇄", &style("data.small"), None);
-    assert_eq!(s.missing, vec!['⇄', '∞']);
-    // They are drawn as .notdef (glyph 0); the other glyphs are real.
+    // "⇄" and "∞" have glyphs in the symbol fallback; characters neither face has are still reported.
+    let st = style("data.small");
+    let s = bundled().shape("103-G6 ⇄ ∞ ⇄", &st, None);
+    assert!(s.missing.is_empty());
+    assert!(s.run.glyphs.iter().all(|g| g.id != 0));
+    // U+E000 (private use) and U+0378 (unassigned) are in neither face.
+    let s = bundled().shape("103-G6 \u{E000} ∞ \u{378} \u{E000}", &st, None);
+    assert_eq!(s.missing, vec!['\u{E000}', '\u{378}']);
+    // They are drawn as .notdef (glyph 0) of the style's face; the other glyphs are real.
     let zeros = s.run.glyphs.iter().filter(|g| g.id == 0).count();
     assert_eq!(zeros, 3);
-    assert!(!bundled().covers(&style("data.small"), '⇄'));
-    assert!(bundled().covers(&style("data.small"), '²'));
+    for span in s.faces.iter().filter(|f| f.font != s.run.font) {
+        assert!(s.run.glyphs[span.glyphs.clone()].iter().all(|g| g.id != 0));
+    }
+    assert!(!bundled().has_glyph(&st, '\u{E000}'));
+    assert!(bundled().covers(&st, '²'));
     // Line breaks are not glyphs and not reported.
     assert!(bundled().shape("a\nb", &style("pin"), None).missing.is_empty());
 }
@@ -98,8 +161,8 @@ fn default_ignorable_code_points_are_not_reported() {
         assert!(s.missing.is_empty(), "U+{:04X}", ch as u32);
     }
     // Real missing characters next to them are still reported.
-    let s = bundled().shape("a\u{FE0F}\u{21C4}b", &st, None);
-    assert_eq!(s.missing, vec!['\u{21C4}']);
+    let s = bundled().shape("a\u{FE0F}\u{E000}b", &st, None);
+    assert_eq!(s.missing, vec!['\u{E000}']);
 }
 
 #[test]
@@ -229,4 +292,42 @@ fn long_text_sanity() {
     assert_eq!(s.run.glyphs.len(), 1_000);
     // No budget is asserted (debug builds vary); the time is printed for inspection.
     println!("1000 characters shaped in {took:?}");
+}
+
+#[test]
+fn math_face_identity() {
+    let f = bundled()
+        .faces()
+        .find(|f| f.family == Family::Symbols)
+        .expect("the bundled set has the symbol fallback");
+    assert_eq!(f.family_name, "Noto Sans Math");
+    assert_eq!(f.version, "Version 3.000");
+    assert_eq!(f.weight, Weight::Regular);
+    // The name table entries NOTICE and REUSE.toml reproduce, and the characters FR-OUT-027 needs.
+    let data = bundled().face_data(f.key).unwrap();
+    assert_eq!(data.len(), 657_440);
+    let font = skrifa::FontRef::new(data).unwrap();
+    let name = |id| {
+        font.localized_strings(id)
+            .english_or_first()
+            .map(|s| s.chars().collect::<String>())
+    };
+    assert_eq!(
+        name(NameId::COPYRIGHT_NOTICE).as_deref(),
+        Some("Copyright 2022 Google LLC. All Rights Reserved.")
+    );
+    assert_eq!(
+        name(NameId::TRADEMARK).as_deref(),
+        Some("Noto is a trademark of Google Inc.")
+    );
+    assert_eq!(name(NameId::SUBFAMILY_NAME).as_deref(), Some("Regular"));
+    let charmap = font.charmap();
+    for ch in ['\u{221E}', '\u{2212}', '\u{21C4}'] {
+        assert!(charmap.map(ch).is_some(), "U+{:04X}", ch as u32);
+    }
+    // Same units per em as Noto Sans: fallback glyph positions stay whole font units (crate docs, step 2).
+    assert_eq!(
+        f.metrics.units_per_em,
+        bundled().face_for(&style("text.normal")).metrics.units_per_em
+    );
 }
