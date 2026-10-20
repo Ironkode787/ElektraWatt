@@ -861,6 +861,13 @@ fn map_reports(
         }
         let Some(&t) = partner.get(&s) else { continue };
         pair_order.push((s, t));
+        // The first usable text in the order source label, target label, source text, target text; a text
+        // that is not an identifier is skipped, not the rest of the order.
+        let name = [label(s), label(t), utext(s), utext(t)]
+            .into_iter()
+            .flatten()
+            .find_map(|n| Ident::from_input(&n).ok())
+            .unwrap_or_else(|| synth(mx, elems[s].diagram));
         if let (Some(a), Some(b)) = (own(s), own(t))
             && a != b
         {
@@ -869,17 +876,11 @@ fn map_reports(
                 Code::imp(115),
                 Severity::Warning,
                 format!(
-                    "folio-report pair names differ: source `{a}`, target `{b}`; the pair is named `{a}`"
+                    "folio-report pair names differ: source `{a}`, target `{b}`; the pair is named `{}`",
+                    name.as_str()
                 ),
             );
         }
-        let name = valid(
-            label(s)
-                .or_else(|| label(t))
-                .or_else(|| utext(s))
-                .or_else(|| utext(t)),
-        )
-        .unwrap_or_else(|| synth(mx, elems[s].diagram));
         name_of.insert(s, name.clone());
         name_of.insert(t, name);
     }

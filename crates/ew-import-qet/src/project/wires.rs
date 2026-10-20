@@ -17,7 +17,7 @@ use ew_mltext::Ident;
 use ew_schema::{
     Connection, ConnectionKind, Endpoint, Junction, JunctionStyle, JunctionWiring, NumberSpec, WireOverrides,
 };
-use ew_units::Pt2;
+use ew_units::{Nm, Pt2};
 use serde_json::Value;
 
 use super::cx::{ElementKey, Findings, Ids, Placed, Registry, Target, element_keys, terminal_ids};
@@ -232,12 +232,22 @@ fn route_of(start: Option<Pt2>, segments: &[Segment]) -> Vec<Pt2> {
     points
 }
 
-/// Whether the conductor drawn from the end `a` through `segments` finishes at the end `b`.
-fn lands_on(segments: &[Segment], a: &Resolved<'_>, b: &Resolved<'_>) -> bool {
-    let (Some(from), Some(to)) = (end_pos(a), end_pos(b)) else {
-        return false;
-    };
-    points_of(from, segments).and_then(|p| p.last().copied()) == Some(to)
+/// The displacement from the first to the last point of a conductor drawn through `segments`, nm; `None`
+/// without segments, when a length does not convert or the sum overflows.
+fn displacement(segments: &[Segment]) -> Option<(i64, i64)> {
+    if segments.is_empty() {
+        return None;
+    }
+    let (mut dx, mut dy) = (0i64, 0i64);
+    for seg in segments {
+        let len = seg.length.px_to_nm().ok()?.0;
+        if seg.horizontal {
+            dx = dx.checked_add(len)?;
+        } else {
+            dy = dy.checked_add(len)?;
+        }
+    }
+    Some((dx, dy))
 }
 
 /// The indices of the candidates that resolved.
@@ -249,13 +259,19 @@ fn resolved_indices(candidates: &[EndResult<'_>]) -> Vec<usize> {
         .collect()
 }
 
-/// Picks one candidate per end. An end with a single resolving candidate takes it; otherwise the candidate
-/// pair whose geometry fits the conductor's segments wins when exactly one does. When the geometry does not
-/// decide, the first resolving candidate of each ambiguous end is bound and that end is flagged (the second
-/// value; EW-IMP-120). An end without a resolving candidate keeps its first candidate's failure.
+/// Picks one candidate per end. An end with a single resolving candidate takes it. When an end has several
+/// (a UUID repeated on the folio), the end-2 candidates are indexed by the page position of their terminal,
+/// and each end-1 candidate looks up the position where the conductor's segments end from it: exactly one
+/// match decides both ends. Otherwise the first resolving candidate of each ambiguous end is bound and that end
+/// is flagged (the second value; EW-IMP-120). An end without a resolving candidate keeps its first candidate's
+/// failure.
+///
+/// Cost: one index insertion per end-2 candidate and one lookup per end-1 candidate, each counted in
+/// `comparisons`, so a conductor between k copies costs O(k log k), never the k² pairs (doc 14 §11, ID-115).
 fn choose_ends<'a>(
     segments: &[Segment],
     candidates: [Vec<EndResult<'a>>; 2],
+    comparisons: &mut u64,
 ) -> ([EndResult<'a>; 2], [bool; 2]) {
     let oks = [resolved_indices(&candidates[0]), resolved_indices(&candidates[1])];
     let mut pick = [
@@ -263,15 +279,36 @@ fn choose_ends<'a>(
         oks[1].first().copied().unwrap_or(0),
     ];
     let mut repeated = [oks[0].len() > 1, oks[1].len() > 1];
-    if repeated[0] || repeated[1] {
-        let mut matching = oks[0]
-            .iter()
-            .flat_map(|&i| oks[1].iter().map(move |&j| (i, j)))
-            .filter(|&(i, j)| match (&candidates[0][i], &candidates[1][j]) {
-                (Ok(a), Ok(b)) => lands_on(segments, a, b),
-                _ => false,
-            });
-        if let (Some((i, j)), None) = (matching.next(), matching.next()) {
+    if (repeated[0] || repeated[1])
+        && let Some((dx, dy)) = displacement(segments)
+    {
+        let mut at: BTreeMap<Pt2, Vec<usize>> = BTreeMap::new();
+        for &j in &oks[1] {
+            *comparisons += 1;
+            if let Ok(b) = &candidates[1][j]
+                && let Some(pos) = end_pos(b)
+            {
+                at.entry(pos).or_default().push(j);
+            }
+        }
+        let mut found: Option<(usize, usize)> = None;
+        let mut matches = 0usize;
+        for &i in &oks[0] {
+            *comparisons += 1;
+            let Ok(a) = &candidates[0][i] else { continue };
+            let Some(from) = end_pos(a) else { continue };
+            let (Some(x), Some(y)) = (from.x.0.checked_add(dx), from.y.0.checked_add(dy)) else {
+                continue;
+            };
+            if let Some(js) = at.get(&Pt2::new(Nm(x), Nm(y))) {
+                matches += js.len();
+                found = Some((i, js[0]));
+                if matches > 1 {
+                    break;
+                }
+            }
+        }
+        if let (1, Some((i, j))) = (matches, found) {
             pick = [i, j];
             repeated = [false, false];
         }
@@ -310,6 +347,18 @@ const TEXT_FIELDS: [(&str, &str, FieldValue); 4] = [
 
 /// Maps every conductor of `project` against the placed elements of `reg`.
 pub fn map_conductors(project: &QetProject, reg: &Registry, ids: &Ids, findings: &mut Findings) -> WireOut {
+    map_conductors_counted(project, reg, ids, findings).0
+}
+
+/// [`map_conductors`], also returning the number of candidate comparisons made to bind the ends of repeated
+/// UUIDs (for the structural complexity test).
+fn map_conductors_counted(
+    project: &QetProject,
+    reg: &Registry,
+    ids: &Ids,
+    findings: &mut Findings,
+) -> (WireOut, u64) {
+    let mut comparisons = 0u64;
     let mut out = WireOut::default();
     let mut repeats: BTreeMap<String, u32> = BTreeMap::new();
     // Per text field: conductors with a value and the distinct values.
@@ -334,6 +383,7 @@ pub fn map_conductors(project: &QetProject, reg: &Registry, ids: &Ids, findings:
             let (ends, repeated) = choose_ends(
                 &c.segments,
                 [resolve_end(&c.end1, &lk, reg), resolve_end(&c.end2, &lk, reg)],
+                &mut comparisons,
             );
             let failure = ends
                 .iter()
@@ -482,7 +532,7 @@ pub fn map_conductors(project: &QetProject, reg: &Registry, ids: &Ids, findings:
             "junction wiring assumed (star) at a QET junction element",
         );
     }
-    out
+    (out, comparisons)
 }
 
 #[cfg(test)]
@@ -1049,6 +1099,50 @@ mod tests {
         Segment {
             horizontal: false,
             length: Decimal::from_int(n),
+        }
+    }
+
+    #[test]
+    fn repeated_uuid_ends_are_matched_by_position_in_linear_comparisons() {
+        // k copies of A (terminal UUID 20) at (100 i, 0) px and k copies of B (terminal UUID 22) at
+        // (100 i, 50 + 10 i) px; conductor j is drawn 50 + 10 j px down, so only A_j -> B_j fits it. Both ends
+        // have k candidates: trying every candidate pair would make k³ comparisons over the k conductors; the
+        // position index makes 2k per conductor.
+        let k: usize = 50;
+        let (a, b) = (uid(10), uid(11));
+        let mut reg = Registry::new();
+        let mut conductors = Vec::new();
+        for i in 0..k {
+            let n = i + 1;
+            let ka = if n == 1 { a.clone() } else { format!("{a}#{n}") };
+            let kb = if n == 1 { b.clone() } else { format!("{b}#{n}") };
+            let x = i64::try_from(100 * i).unwrap();
+            let down = 50 + 10 * i64::try_from(i).unwrap();
+            let fa = 1_000 + u128::try_from(i).unwrap();
+            let fb = 2_000 + u128::try_from(i).unwrap();
+            let pa = vec![pterm_on_page(Some(uid(20)), x, 0)];
+            let pb = vec![pterm_on_page(Some(uid(22)), x, down)];
+            reg.insert((0, ka), placed(&format!("a{n}"), func(fa, vec![Some(0)]), pa));
+            reg.insert((0, kb), placed(&format!("b{n}"), func(fb, vec![Some(0)]), pb));
+            let mut c = cond(end_u(&a, &uid(20)), end_u(&b, &uid(22)));
+            c.segments = vec![vertical(down)];
+            conductors.push(c);
+        }
+        let d = diagram(Vec::new(), conductors);
+        let mut f = Findings::new("t.qet", 1_000);
+        let (out, comparisons) = map_conductors_counted(&project(vec![d]), &reg, &ids(), &mut f);
+        let k64 = u64::try_from(k).unwrap();
+        assert_eq!(
+            comparisons,
+            2 * k64 * k64,
+            "one insertion and one lookup per candidate"
+        );
+        assert_eq!(out.lost, 0);
+        assert!(f.entries().is_empty(), "{:?}", f.entries());
+        for (i, c) in out.connections.iter().enumerate() {
+            let i = u128::try_from(i).unwrap();
+            assert_eq!(c.a, Endpoint::Cp(function(1_000 + i), 0));
+            assert_eq!(c.b, Endpoint::Cp(function(2_000 + i), 0));
         }
     }
 

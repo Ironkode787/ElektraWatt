@@ -470,6 +470,45 @@ fn a_folio_report_pair_gets_one_name() {
     assert_eq!(found.len(), 2, "{}", all_entries(&imported));
     assert_eq!(found[0].0, found[1].0, "{found:?}");
     assert!(found[0].0.starts_with("IP-"), "{found:?}");
+
+    // Case 3: only the target has a label, the source a text: the label wins and the finding names it.
+    let text = qet(
+        r#"version="0.100""#,
+        &[
+            folio("1", "A", vec![el(NEXT, s.clone(), 100, 100).text("L-9").link(&t)]),
+            folio(
+                "2",
+                "B",
+                vec![el(PREVIOUS, t.clone(), 100, 100).label("L-3").link(&s)],
+            ),
+        ],
+    );
+    let imported = import(&text);
+    let found = ips(&imported);
+    assert!(found.iter().all(|(n, _, _)| n == "L-3"), "{found:?}");
+    let e115 = entries(&imported, "EW-IMP-115");
+    assert_eq!(e115.len(), 1, "{}", all_entries(&imported));
+    assert!(e115[0].contains("named `L-3`"), "{}", e115[0]);
+
+    // Case 4: a source label that is not an identifier (a tab inside) falls through to the target label.
+    let text = qet(
+        r#"version="0.100""#,
+        &[
+            folio(
+                "1",
+                "A",
+                vec![el(NEXT, s.clone(), 100, 100).label("L	1").link(&t)],
+            ),
+            folio(
+                "2",
+                "B",
+                vec![el(PREVIOUS, t.clone(), 100, 100).label("L-4").link(&s)],
+            ),
+        ],
+    );
+    let imported = import(&text);
+    let found = ips(&imported);
+    assert!(found.iter().all(|(n, _, _)| n == "L-4"), "{found:?}");
 }
 
 #[test]
