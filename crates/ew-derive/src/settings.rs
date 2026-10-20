@@ -90,8 +90,6 @@ impl Query for SettingsMember {
 }
 
 /// The value of member `m`, read as a cut-off point (see the module documentation).
-// Readers arrive with WP-S1.07 part 2.
-#[allow(dead_code)]
 pub(crate) fn member(q: &Q, m: Member) -> Arc<Option<Value>> {
     q.get_value_part::<SettingsMember>(m)
 }
@@ -107,8 +105,6 @@ pub(crate) fn ip_pairing(q: &Q) -> Option<IpPairing> {
 }
 
 /// The pinned derivation profile key (`Project.derivation_profile`).
-// Readers arrive with WP-S1.07 part 2.
-#[allow(dead_code)]
 pub(crate) fn profile_key(q: &Q) -> String {
     match member(q, Member::DerivationProfile).as_ref() {
         Some(Value::String(s)) => s.clone(),
