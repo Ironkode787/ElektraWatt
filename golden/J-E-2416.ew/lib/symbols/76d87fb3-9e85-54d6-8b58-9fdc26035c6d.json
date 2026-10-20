@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "24cb4438-5087-55ce-9fa9-7d1c107b98aa",
   "version": "0.1.0",
-  "sha256": "sha256:2b5416edd9c4183145df840ade29e2714948ac81e9766cedbdb595dc08514284",
+  "sha256": "sha256:fadb52450090003ce59853a43bc0c6ed2a25c4d507e259a75bf964de176ff13d",
   "meta": {"key": "ew.bus.dp-port@qet10", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
   "name": {"en": "Bus port, PROFIBUS DP"},
   "keywords": ["bus", "dp", "port", "profibus"],
@@ -29,8 +29,9 @@
     {"kind": "tag", "pos": [3968750, -661458], "align": "bottom_centre", "visible": true},
     {"kind": {"cp_designation": 0}, "pos": [661458, 2645833], "align": "middle_left", "visible": true},
     {"kind": {"cp_designation": 1}, "pos": [661458, 5291667], "align": "middle_left", "visible": true},
-    {"kind": {"cp_designation": 2}, "pos": [661458, 7937500], "align": "middle_left", "visible": true}
+    {"kind": {"cp_designation": 2}, "pos": [661458, 7937500], "align": "middle_left", "visible": true},
+    {"kind": "xref", "pos": [3968750, 11244792], "align": "top_centre", "visible": true}
   ],
-  "arrangements": [{"name": "full", "slots": [0, 1, 2, 3]}, {"name": "tag", "slots": [0]}],
+  "arrangements": [{"name": "full", "slots": [0, 1, 2, 3, 4]}, {"name": "tag", "slots": [0]}],
   "anchor": "graphic_centre"
 }

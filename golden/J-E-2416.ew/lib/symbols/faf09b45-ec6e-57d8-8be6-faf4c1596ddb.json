@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "e1890f47-7cbf-5cfa-bf2e-e4cf690b1ab6",
   "version": "0.1.0",
-  "sha256": "sha256:c330e23c2818bcb7e97ca4eb308c96adde7692d56b5d76d93b33b15bb68b90c5",
+  "sha256": "sha256:1facf8fa6d771d59d43539a43f17fe6b66b375ec5833265e4ef975324d5947d9",
   "meta": {"key": "ew.gen.blackbox@qet10", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
   "name": {"en": "Black-box frame"},
   "keywords": ["black-box", "box", "frame"],
@@ -19,9 +19,10 @@
   "text_slots": [
     {"kind": "tag", "pos": [0, -661458], "align": "bottom_left", "visible": true},
     {"kind": "function_text", "pos": [13229167, 7937500], "align": "centre", "visible": true},
-    {"kind": "part_number", "pos": [26458333, -661458], "align": "bottom_right", "visible": true}
+    {"kind": "part_number", "pos": [26458333, -661458], "align": "bottom_right", "visible": true},
+    {"kind": "xref", "pos": [661458, 661458], "align": "top_left", "visible": true}
   ],
-  "arrangements": [{"name": "full", "slots": [0, 1, 2]}, {"name": "tag", "slots": [0]}],
+  "arrangements": [{"name": "full", "slots": [0, 1, 2, 3]}, {"name": "tag", "slots": [0]}],
   "anchor": {"named": [0, 7937500]},
   "ew.note": "Outline only. The connection points and the final outline come from Representation.box (BoxSpec) and the part's connection-point pattern."
 }
