@@ -712,9 +712,11 @@ struct ExecGuard<'a, D: Db> {
 
 impl<D: Db> Drop for ExecGuard<'_, D> {
     fn drop(&mut self) {
-        if self.armed
-            && let Ok(mut st) = self.store.st.try_borrow_mut()
-        {
+        // Not a let chain: the permissive crates build on Rust 1.85, where let chains are unstable.
+        if !self.armed {
+            return;
+        }
+        if let Ok(mut st) = self.store.st.try_borrow_mut() {
             if self.frame {
                 st.frames.pop();
             }
