@@ -2,16 +2,42 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Placed elements → devices, functions and representations (doc 14 §4.4–§4.6).
+//!
+//! Every placed element is classified by its definition's `link_type`:
+//!
+//! | Element | Records |
+//! |---|---|
+//! | `simple`, `master`, `thumbnail`, none | device + main function + representation |
+//! | `slave` linked to a master | auxiliary function of the master's device + representation (§4.5) |
+//! | `slave` without master | own device, function promoted to main (EW-IMP-116) |
+//! | `next_report` / `previous_report` | interruption point (`ew.fn.ip`, direction source / target) + representation (§4.6) |
+//! | `terminal` | terminal device in a strip ([`super::strips`]) |
+//! | one terminal, no label, ≥ 3 conductors | junction (§4.7, EW-IMP-118, emitted by [`super::wires`]) |
+//! | definition missing or refused | nothing; wires to it are lost (EW-IMP-003) |
+//!
+//! Source keys (doc 14 §2.3, suffixed per record kind): device `qet:el:<key>`, function `qet:el:<key>#fn`,
+//! representation `qet:el:<key>#rep`, junction `qet:junction:<key>`, where `<key>` is the element key of
+//! [`super::cx::element_keys`] (`d<diagram>#<n>` for elements without a UUID).
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ew_schema::Record;
+use ew_ids::Id;
+use ew_interop_api::{Code, Severity};
+use ew_mltext::{Ident, MlText};
+use ew_schema::{
+    Device, DeviceAspects, FnRole, FrozenTag, Function, FunctionKind, IpDirection, IpSpec, LibCopy, Record,
+    Representation, SymbolDef, TagScheme, TagSign, TagSpec,
+};
+use ew_units::{Nm, Orient2, Pt2};
+use serde_json::Value;
 
 use super::Def;
 use super::builtins::Builtins;
-use super::cx::{ElementKey, Findings, Ids, Registry};
-use super::model::QetProject;
+use super::cx::{ElementKey, Findings, Ids, Placed, PlacedTerminal, Registry, Target, element_keys};
+use super::model::{QetElement, QetProject, norm_uuid};
 use super::pages::PagesOut;
+use super::strips;
+use crate::element::ElementImport;
 
 /// The inputs of the element mapper.
 pub struct Inputs<'a> {
@@ -44,8 +70,841 @@ pub struct ElementsOut {
     pub inferred: u32,
 }
 
+/// The fallback letter of an element without a usable label or `prefix` (EN 81346-2:2009 class A: no
+/// main class identified). Recorded as an import mapping decision (crate README).
+pub const FALLBACK_LETTER: &str = "A";
+
+/// One placed element that survived classification: where it is and what it is.
+pub(crate) struct Elem<'a> {
+    pub(crate) diagram: usize,
+    pub(crate) key: String,
+    /// The element key made globally unique (`d<diagram>#<n>` for elements without a UUID).
+    pub(crate) ek: String,
+    pub(crate) el: &'a QetElement,
+    pub(crate) path: &'a str,
+    pub(crate) import: &'a ElementImport,
+    pub(crate) pos: Pt2,
+    pub(crate) orient: Orient2,
+}
+
+impl Elem<'_> {
+    /// The symbol copy.
+    pub(crate) fn symbol(&self) -> &LibCopy<SymbolDef> {
+        &self.import.symbol
+    }
+
+    /// The definition terminals placed on the page, in definition order.
+    pub(crate) fn terminals(&self) -> Vec<PlacedTerminal> {
+        self.symbol()
+            .item
+            .cps
+            .as_slice()
+            .iter()
+            .map(|cp| {
+                let rotated = self.orient.apply(cp.pos);
+                let page_pos = self
+                    .pos
+                    .x
+                    .0
+                    .checked_add(rotated.x.0)
+                    .zip(self.pos.y.0.checked_add(rotated.y.0))
+                    .map(|(x, y)| Pt2::new(Nm(x), Nm(y)));
+                PlacedTerminal {
+                    uuid: cp
+                        .extra
+                        .get("qet.uuid")
+                        .and_then(Value::as_str)
+                        .and_then(norm_uuid),
+                    local: cp.pos,
+                    page_pos,
+                }
+            })
+            .collect()
+    }
+
+    /// The number of definition terminals.
+    pub(crate) fn terminal_count(&self) -> usize {
+        self.symbol().item.cps.as_slice().len()
+    }
+}
+
+/// The global element key: element keys of elements without a UUID are folio-local.
+pub(crate) fn global_key(diagram: usize, key: &str) -> String {
+    if key.starts_with('#') {
+        format!("d{diagram}{key}")
+    } else {
+        key.to_owned()
+    }
+}
+
+/// The orientation of QET's `orientation` 0–3 (quarter turns clockwise on the sheet, doc 14 §4.2).
+pub(crate) fn orientation(k: u8) -> Orient2 {
+    match k % 4 {
+        1 => Orient2::R90,
+        2 => Orient2::R180,
+        3 => Orient2::R270,
+        _ => Orient2::R0,
+    }
+}
+
+/// What the tag inference made of a label.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum TagOutcome {
+    /// The label fits `{page}{letter}{counter}` on its own folio: a derived tag.
+    Derived,
+    /// The label is kept as a frozen tag (EW-IMP-103).
+    Frozen,
+    /// No label: letter only, no counter (the tag prints `?` until numbered).
+    Unlabeled,
+    /// The label is not an identifier: letter only, label kept as text (EW-IMP-008).
+    Invalid,
+}
+
+/// The first run of ASCII letters of `s`, when it is an identifier.
+fn letters_of(s: &str) -> Option<Ident> {
+    let run: String = s
+        .chars()
+        .skip_while(|c| !c.is_ascii_alphabetic())
+        .take_while(char::is_ascii_alphabetic)
+        .collect();
+    (!run.is_empty()).then(|| Ident::from_input(&run).ok()).flatten()
+}
+
+/// The letter of an element without a usable label: its QET `prefix` when that is letters only, else
+/// [`FALLBACK_LETTER`].
+fn fallback_letter(prefix: &str) -> Ident {
+    let p = prefix.trim();
+    if !p.is_empty() && p.chars().all(|c| c.is_ascii_alphabetic()) {
+        if let Ok(i) = Ident::from_input(p) {
+            return i;
+        }
+    }
+    Ident::from_input(FALLBACK_LETTER).unwrap_or_else(|_| unreachable!("a letter is an identifier"))
+}
+
+/// Splits a label into its structure prefix (`+JE2416`, `=P01+J-E-2416`) and its product part (`-X1031`):
+/// a label starting with `+` or `=` has its product part after the last `-`.
+pub(crate) fn split_structure(label: &str) -> (Option<&str>, &str) {
+    if label.starts_with('+') || label.starts_with('=') {
+        match label.rfind('-') {
+            Some(i) => (Some(&label[..i]), &label[i..]),
+            None => (Some(label), ""),
+        }
+    } else {
+        (None, label)
+    }
+}
+
+/// The tag of an element labelled `label` on folio `folio` (doc 14 §4.4.1, spike form): rule R1
+/// `{page}{letter}{counter}` with the product sign gives a derived tag; any other label a frozen tag with
+/// the sign as written (`S51` → hidden sign); no label the `prefix` letter (else [`FALLBACK_LETTER`]) and
+/// no counter. Returns the tag, the structure prefix of the label and the outcome.
+pub(crate) fn infer_tag<'l>(
+    label: &'l str,
+    folio: &str,
+    prefix: &str,
+) -> (TagSpec, Option<&'l str>, TagOutcome) {
+    let l = label.trim();
+    let (structure, product) = split_structure(l);
+    let (sign, text) = match product.strip_prefix('-') {
+        Some(rest) => (TagSign::Shown, rest),
+        None => (TagSign::Hidden, product),
+    };
+    if text.is_empty() {
+        return (
+            TagSpec::new(fallback_letter(prefix), None),
+            structure,
+            TagOutcome::Unlabeled,
+        );
+    }
+    // R1: {page}{letter}{counter} on the element's own folio, with the product sign.
+    if sign == TagSign::Shown
+        && !folio.is_empty()
+        && let Some(rest) = text.strip_prefix(folio)
+    {
+        let letter: String = rest.chars().take_while(char::is_ascii_alphabetic).collect();
+        let digits = &rest[letter.len()..];
+        if (1..=3).contains(&letter.len())
+            && !digits.is_empty()
+            && digits.bytes().all(|b| b.is_ascii_digit())
+            && let (Ok(l), Ok(n)) = (Ident::from_input(&letter), digits.parse::<u32>())
+            && n > 0
+        {
+            return (TagSpec::new(l, Some(n)), structure, TagOutcome::Derived);
+        }
+    }
+    match Ident::from_input(text) {
+        Ok(t) => {
+            let letter = letters_of(text).unwrap_or_else(|| fallback_letter(prefix));
+            let tag = TagSpec {
+                letter,
+                counter: None,
+                scheme: TagScheme::Default,
+                frozen: Some(FrozenTag {
+                    text: t,
+                    sign,
+                    extra: BTreeMap::new(),
+                }),
+                extra: BTreeMap::new(),
+            };
+            (tag, structure, TagOutcome::Frozen)
+        }
+        Err(_) => (
+            TagSpec::new(fallback_letter(prefix), None),
+            structure,
+            TagOutcome::Invalid,
+        ),
+    }
+}
+
+/// The element-information members kept on the device or function: every non-empty entry except `label`.
+fn info_extra(el: &QetElement, seen: &mut BTreeMap<String, u32>) -> Option<Value> {
+    let mut obj = serde_json::Map::new();
+    for (name, value) in &el.infos {
+        if name == "label" || value.trim().is_empty() || obj.contains_key(name) {
+            continue;
+        }
+        obj.insert(name.clone(), Value::String(value.clone()));
+        *seen.entry(name.clone()).or_default() += 1;
+    }
+    (!obj.is_empty()).then_some(Value::Object(obj))
+}
+
+/// The first non-empty `UserText` dynamic text of `el`.
+pub(crate) fn user_text(el: &QetElement) -> Option<&str> {
+    el.dyn_texts
+        .iter()
+        .filter(|t| t.text_from == "UserText")
+        .map(|t| t.text.trim())
+        .find(|t| !t.is_empty())
+}
+
+/// The function an element gets: definition, device, role, kind, the function CP per definition terminal
+/// and extra members.
+pub(crate) struct FnSpec {
+    pub(crate) def: Id<ew_schema::FnDef>,
+    pub(crate) device: Option<Id<Device>>,
+    pub(crate) role: FnRole,
+    pub(crate) kind: FunctionKind,
+    pub(crate) cps: Vec<Option<u16>>,
+    pub(crate) extra: BTreeMap<String, Value>,
+}
+
+impl FnSpec {
+    /// A normal function of `device` with `role`, one CP per definition terminal of `e`.
+    pub(crate) fn normal(
+        e: &Elem<'_>,
+        def: Id<ew_schema::FnDef>,
+        device: Id<Device>,
+        role: FnRole,
+    ) -> FnSpec {
+        FnSpec {
+            def,
+            device: Some(device),
+            role,
+            kind: FunctionKind::Normal,
+            cps: (0..e.terminal_count()).map(|i| u16::try_from(i).ok()).collect(),
+            extra: BTreeMap::new(),
+        }
+    }
+}
+
+/// What one placed element is.
+enum Class {
+    Device,
+    Slave { master: ElementKey },
+    OrphanSlave,
+    Report { source: bool },
+    Terminal,
+    Junction,
+}
+
+/// The shared state of the element mapper.
+pub(crate) struct Mx<'a, 'f> {
+    pub(crate) inp: &'a Inputs<'a>,
+    pub(crate) findings: &'f mut Findings,
+    pub(crate) out: ElementsOut,
+    /// Element-information names kept as text, with counts.
+    pub(crate) infos_seen: BTreeMap<String, u32>,
+}
+
+impl Mx<'_, '_> {
+    /// The folio label of diagram `d`.
+    pub(crate) fn folio(&self, d: usize) -> &str {
+        self.inp.pages.pages.get(d).map_or("", |p| p.folio.as_str())
+    }
+
+    /// A finding at element `e`.
+    pub(crate) fn at(&mut self, e: &Elem<'_>, code: Code, severity: Severity, message: impl Into<String>) {
+        let folio = self.folio(e.diagram).to_owned();
+        let loc = self
+            .findings
+            .loc(Some(&folio), Some(e.ek.clone()), Some(e.el.line));
+        self.findings.push(code, severity, loc, message);
+    }
+
+    /// The function record of element `e` as `spec` says, its representation, and its registry entry.
+    pub(crate) fn function_and_rep(&mut self, e: &Elem<'_>, spec: FnSpec) -> Id<ew_schema::Function> {
+        let FnSpec {
+            def,
+            device,
+            role,
+            kind,
+            cps,
+            extra,
+        } = spec;
+        let ids = self.inp.ids;
+        let fkey = format!("qet:el:{}#fn", e.ek);
+        let rkey = format!("qet:el:{}#rep", e.ek);
+        let fid = ids.id(&fkey);
+        self.out.records.push(Record::Function(Function {
+            id: fid,
+            v: 1,
+            device,
+            def,
+            role,
+            kind,
+            cp_overrides: Default::default(),
+            source_ref: Some(ids.source_ref(&fkey)),
+            extra,
+        }));
+        let page = self.inp.pages.pages[e.diagram].id;
+        self.out.records.push(Record::Representation(Representation {
+            id: ids.id(&rkey),
+            v: 1,
+            functions: vec![fid],
+            page,
+            symbol: e.symbol().id,
+            variant: 0,
+            pos: e.pos,
+            orient: e.orient,
+            rep_type: e.symbol().item.rep_type.clone(),
+            pin_map: Default::default(),
+            text_slots: Default::default(),
+            arrangement: None,
+            box_: None,
+            source_ref: Some(ids.source_ref(&rkey)),
+            extra: BTreeMap::new(),
+        }));
+        self.out.used_defs.insert(e.path.to_owned());
+        let folio = self.folio(e.diagram).to_owned();
+        self.out.registry.insert(
+            (e.diagram, e.key.clone()),
+            Placed {
+                diagram: e.diagram,
+                page,
+                folio,
+                target: Target::Function { function: fid, cps },
+                terminals: e.terminals(),
+            },
+        );
+        fid
+    }
+
+    /// The device record of `e` with `tag`, `kind` and `aspects`; returns its ID.
+    pub(crate) fn device(
+        &mut self,
+        key: &str,
+        tag: TagSpec,
+        function_text: MlText,
+        kind: Option<ew_schema::DeviceKind>,
+        aspects: DeviceAspects,
+        extra: BTreeMap<String, Value>,
+    ) -> Id<Device> {
+        let ids = self.inp.ids;
+        let id = ids.id(key);
+        self.out.records.push(Record::Device(Device {
+            id,
+            v: 1,
+            tag,
+            kind,
+            parent: None,
+            position: None,
+            structure: Default::default(),
+            parts: Vec::new(),
+            function_text,
+            process_tag: None,
+            tech_data: Default::default(),
+            state: Default::default(),
+            source_ref: Some(ids.source_ref(key)),
+            aspects,
+            extra,
+        }));
+        id
+    }
+
+    /// The generated FnDef copy of `e` (`None` for a definition that references a built-in FnDef).
+    fn generated_def(e: &Elem<'_>) -> Option<Id<ew_schema::FnDef>> {
+        e.import.fndef.as_ref().map(|f| f.id)
+    }
+
+    /// A device with its main function and representation.
+    fn plain_device(&mut self, e: &Elem<'_>, unlabeled: &mut BTreeMap<usize, u32>, orphan: bool) {
+        let Some(def) = Self::generated_def(e) else {
+            self.drop_element(e, "the definition references a built-in function definition");
+            return;
+        };
+        let folio = self.folio(e.diagram).to_owned();
+        let label = e.el.info("label").unwrap_or("");
+        let (tag, structure, outcome) = infer_tag(label, &folio, &e.el.prefix);
+        let mut extra = BTreeMap::new();
+        match outcome {
+            TagOutcome::Derived => {}
+            TagOutcome::Frozen => self.at(
+                e,
+                Code::imp(103),
+                Severity::Info,
+                format!(
+                    "label `{}` does not fit the page rule {{page}}{{letter}}{{counter}}; kept as frozen tag",
+                    label.trim()
+                ),
+            ),
+            TagOutcome::Unlabeled => *unlabeled.entry(e.diagram).or_default() += 1,
+            TagOutcome::Invalid => {
+                extra.insert("qet.label".to_owned(), Value::String(label.to_owned()));
+                self.at(
+                    e,
+                    Code::FOREIGN_VALUE,
+                    Severity::Warning,
+                    format!(
+                        "label `{}` is not an identifier; kept as text, tag not numbered",
+                        label.trim()
+                    ),
+                );
+            }
+        }
+        if let Some(s) = structure {
+            extra.insert("qet.structure".to_owned(), Value::String(s.to_owned()));
+        }
+        if let Some(v) = info_extra(e.el, &mut self.infos_seen) {
+            extra.insert("qet.info".to_owned(), v);
+        }
+        let function_text =
+            e.el.info_nonempty("function")
+                .or_else(|| e.el.info_nonempty("description"))
+                .map(MlText::neutral)
+                .unwrap_or_default();
+        let dkey = format!("qet:el:{}", e.ek);
+        let device = self.device(&dkey, tag, function_text, None, DeviceAspects::default(), extra);
+        self.function_and_rep(e, FnSpec::normal(e, def, device, FnRole::Main));
+        if orphan {
+            self.at(
+                e,
+                Code::imp(116),
+                Severity::Warning,
+                "slave element without a linked master: own device, function promoted to main",
+            );
+        }
+    }
+
+    /// Reports `e` as dropped and registers it so that its wires are reported as lost.
+    pub(crate) fn drop_element(&mut self, e: &Elem<'_>, why: &str) {
+        self.at(
+            e,
+            Code::UNRESOLVED_REFERENCE,
+            Severity::Error,
+            format!("element dropped: {why}"),
+        );
+        self.out.dropped += 1;
+        let page = self.inp.pages.pages[e.diagram].id;
+        let folio = self.folio(e.diagram).to_owned();
+        self.out.registry.insert(
+            (e.diagram, e.key.clone()),
+            Placed {
+                diagram: e.diagram,
+                page,
+                folio,
+                target: Target::Dropped,
+                terminals: e.terminals(),
+            },
+        );
+    }
+}
+
 /// Maps the placed elements.
 pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Findings) -> ElementsOut {
-    let _ = (inp, used, findings);
-    ElementsOut::default()
+    let mut mx = Mx {
+        inp,
+        findings,
+        out: ElementsOut::default(),
+        infos_seen: BTreeMap::new(),
+    };
+
+    // Pass 1: placed elements with a usable definition and position; the first element of each UUID.
+    let mut elems: Vec<Elem<'_>> = Vec::new();
+    let mut by_uuid: BTreeMap<&str, usize> = BTreeMap::new();
+    for d in &inp.project.diagrams {
+        if d.index >= inp.pages.pages.len() {
+            continue;
+        }
+        let keys = element_keys(d);
+        for (el, key) in d.elements.iter().zip(keys) {
+            let ek = global_key(d.index, &key);
+            if key.contains('#') && !key.starts_with('#') {
+                let folio = mx.folio(d.index).to_owned();
+                let loc = mx.findings.loc(Some(&folio), Some(ek.clone()), Some(el.line));
+                mx.findings.push(
+                    Code::imp(120),
+                    Severity::Info,
+                    loc,
+                    "element UUID repeated on this folio; disambiguated by occurrence",
+                );
+            }
+            let import = inp
+                .defs
+                .get(el.type_path.as_str())
+                .and_then(|def| def.import.as_ref());
+            let pos =
+                el.x.px_to_nm()
+                    .ok()
+                    .zip(el.y.px_to_nm().ok())
+                    .map(|(x, y)| Pt2::new(x, y));
+            let (Some(import), Some(pos)) = (import, pos) else {
+                let folio = mx.folio(d.index).to_owned();
+                let loc = mx.findings.loc(Some(&folio), Some(ek.clone()), Some(el.line));
+                let why = if pos.is_none() {
+                    "position out of range".to_owned()
+                } else {
+                    format!("element definition `{}` not found or refused", el.type_path)
+                };
+                mx.findings.push(
+                    Code::UNRESOLVED_REFERENCE,
+                    Severity::Error,
+                    loc,
+                    format!("element dropped: {why}"),
+                );
+                mx.out.dropped += 1;
+                mx.out.registry.insert(
+                    (d.index, key.clone()),
+                    Placed {
+                        diagram: d.index,
+                        page: inp.pages.pages[d.index].id,
+                        folio,
+                        target: Target::Dropped,
+                        terminals: Vec::new(),
+                    },
+                );
+                continue;
+            };
+            if let Some(u) = &el.uuid {
+                by_uuid.entry(u.as_str()).or_insert(elems.len());
+            }
+            elems.push(Elem {
+                diagram: d.index,
+                key,
+                ek,
+                el,
+                path: el.type_path.as_str(),
+                import,
+                pos,
+                orient: orientation(el.orientation),
+            });
+        }
+    }
+
+    // Classification.
+    let classes: Vec<Class> = elems
+        .iter()
+        .map(|e| match e.import.link_type.as_str() {
+            "slave" => {
+                e.el.links
+                    .iter()
+                    .filter_map(|u| by_uuid.get(u.as_str()).map(|&i| &elems[i]))
+                    .find(|m| matches!(m.import.link_type.as_str(), "master" | "simple"))
+                    .map_or(Class::OrphanSlave, |m| Class::Slave {
+                        master: (m.diagram, m.key.clone()),
+                    })
+            }
+            "next_report" => Class::Report { source: true },
+            "previous_report" => Class::Report { source: false },
+            "terminal" => Class::Terminal,
+            _ if e.terminal_count() == 1
+                && e.el.info_nonempty("label").is_none()
+                && e.import
+                    .fndef
+                    .as_ref()
+                    .is_some_and(|_| e.import.link_type == "simple")
+                && inp
+                    .counts
+                    .get(&(e.diagram, e.key.clone()))
+                    .is_some_and(|n| *n >= 3) =>
+            {
+                Class::Junction
+            }
+            _ => Class::Device,
+        })
+        .collect();
+
+    // Pass 2: devices (masters first, so slaves find their device).
+    let mut unlabeled: BTreeMap<usize, u32> = BTreeMap::new();
+    let mut device_of: BTreeMap<ElementKey, Id<Device>> = BTreeMap::new();
+    for (e, c) in elems.iter().zip(&classes) {
+        match c {
+            Class::Device | Class::OrphanSlave => {
+                mx.plain_device(e, &mut unlabeled, matches!(c, Class::OrphanSlave));
+                if matches!(c, Class::Device) {
+                    device_of.insert(
+                        (e.diagram, e.key.clone()),
+                        inp.ids.id(&format!("qet:el:{}", e.ek)),
+                    );
+                }
+            }
+            Class::Junction => {
+                let jkey = format!("qet:junction:{}", e.ek);
+                let terminals = e.terminals();
+                let at = terminals.first().and_then(|t| t.page_pos).unwrap_or(e.pos);
+                mx.out.registry.insert(
+                    (e.diagram, e.key.clone()),
+                    Placed {
+                        diagram: e.diagram,
+                        page: inp.pages.pages[e.diagram].id,
+                        folio: mx.folio(e.diagram).to_owned(),
+                        target: Target::Junction {
+                            id: inp.ids.id(&jkey),
+                            key: jkey,
+                            at,
+                        },
+                        terminals,
+                    },
+                );
+            }
+            _ => {}
+        }
+    }
+
+    // Pass 3: slaves.
+    for (e, c) in elems.iter().zip(&classes) {
+        let Class::Slave { master } = c else { continue };
+        let (Some(device), Some(def)) = (device_of.get(master).copied(), Mx::generated_def(e)) else {
+            mx.drop_element(e, "its master or its function definition was not imported");
+            continue;
+        };
+        let mut extra = BTreeMap::new();
+        if let Some(v) = info_extra(e.el, &mut mx.infos_seen) {
+            extra.insert("qet.info".to_owned(), v);
+        }
+        let mut spec = FnSpec::normal(e, def, device, FnRole::Aux);
+        spec.extra = extra;
+        mx.function_and_rep(e, spec);
+    }
+
+    // Pass 4: folio reports → interruption points.
+    map_reports(&mut mx, &elems, &classes, &by_uuid, used);
+
+    // Pass 5: terminal elements → strips and terminals.
+    let terminals: Vec<&Elem<'_>> = elems
+        .iter()
+        .zip(&classes)
+        .filter(|(_, c)| matches!(c, Class::Terminal))
+        .map(|(e, _)| e)
+        .collect();
+    strips::map(&mut mx, &terminals);
+
+    for (d, n) in unlabeled {
+        let folio = mx.folio(d).to_owned();
+        let loc = mx.findings.loc(Some(&folio), None, None);
+        mx.findings.push(
+            Code::imp(112),
+            Severity::Warning,
+            loc,
+            format!("{n} elements without label: device tags carry the element prefix letter (else `{FALLBACK_LETTER}`) and no counter"),
+        );
+    }
+    for (name, n) in std::mem::take(&mut mx.infos_seen) {
+        mx.findings.file_level(
+            Code::FOREIGN_VALUE,
+            Severity::Warning,
+            format!("element information `{name}` kept as text on {n} elements (not mapped to part, data or structure fields)"),
+        );
+    }
+    mx.out
+}
+
+/// Folio reports → interruption points (doc 14 §4.6): the name is the first non-empty of the element's
+/// label, its first `UserText` dynamic text (where the reference set writes the pairing name), the linked
+/// partner's label and `UserText`; else `IP-<folio>-<n>` (EW-IMP-115). Direction: `next_report` → source,
+/// `previous_report` → target. Each name with more than one source is reported (EW-IMP-115: pairing needs
+/// chain mode, not set by this import).
+fn map_reports(
+    mx: &mut Mx<'_, '_>,
+    elems: &[Elem<'_>],
+    classes: &[Class],
+    by_uuid: &BTreeMap<&str, usize>,
+    used: &mut BTreeSet<String>,
+) {
+    let Some(ip) = mx.inp.builtins.fndef(crate::IP_FNDEF_KEY).map(|c| c.id) else {
+        for (e, c) in elems.iter().zip(classes) {
+            if matches!(c, Class::Report { .. }) {
+                mx.drop_element(
+                    e,
+                    "folio report needs the built-in interruption point `ew.fn.ip`, which is not available",
+                );
+            }
+        }
+        return;
+    };
+    let own_name = |e: &Elem<'_>| -> Option<String> {
+        e.el.info_nonempty("label")
+            .or_else(|| user_text(e.el))
+            .map(str::to_owned)
+    };
+    let mut sources_per_name: BTreeMap<String, u32> = BTreeMap::new();
+    let mut synthesized: BTreeMap<usize, u32> = BTreeMap::new();
+    let mut any = false;
+    for (e, c) in elems.iter().zip(classes) {
+        let Class::Report { source } = c else { continue };
+        any = true;
+        let partner =
+            e.el.links
+                .iter()
+                .filter_map(|u| by_uuid.get(u.as_str()).map(|&i| &elems[i]))
+                .find(|p| matches!(p.import.link_type.as_str(), "next_report" | "previous_report"));
+        let mine = own_name(e);
+        let theirs = partner.and_then(own_name);
+        if let (Some(a), Some(b)) = (&mine, &theirs)
+            && a != b
+            && *source
+        {
+            mx.at(
+                e,
+                Code::imp(115),
+                Severity::Warning,
+                format!("folio-report pair names differ: `{a}` and `{b}`; each end keeps its own"),
+            );
+        }
+        let name = mine
+            .or(theirs)
+            .and_then(|n| Ident::from_input(&n).ok())
+            .unwrap_or_else(|| {
+                let n = synthesized.entry(e.diagram).or_default();
+                *n += 1;
+                let text = format!("IP-{}-{n}", mx.folio(e.diagram));
+                Ident::from_input(&text).unwrap_or_else(|_| {
+                    Ident::from_input("IP").unwrap_or_else(|_| unreachable!("an identifier"))
+                })
+            });
+        if *source {
+            *sources_per_name.entry(name.as_str().to_owned()).or_default() += 1;
+        }
+        if e.terminal_count() != 1 {
+            mx.at(
+                e,
+                Code::MALFORMED_ITEM,
+                Severity::Warning,
+                format!(
+                    "folio report with {} terminals; only the first is the interruption point's connection point",
+                    e.terminal_count()
+                ),
+            );
+        }
+        let mut cps: Vec<Option<u16>> = vec![None; e.terminal_count()];
+        if let Some(first) = cps.first_mut() {
+            *first = Some(0);
+        }
+        mx.function_and_rep(
+            e,
+            FnSpec {
+                def: ip,
+                device: None,
+                role: FnRole::Main,
+                kind: FunctionKind::Ip(IpSpec {
+                    name,
+                    direction: if *source {
+                        IpDirection::Source
+                    } else {
+                        IpDirection::Target
+                    },
+                    star_source: false,
+                    sort: None,
+                    external: None,
+                    extra: BTreeMap::new(),
+                }),
+                cps,
+                extra: BTreeMap::new(),
+            },
+        );
+    }
+    if any {
+        used.insert(crate::IP_FNDEF_KEY.to_owned());
+    }
+    for (d, n) in synthesized {
+        let folio = mx.folio(d).to_owned();
+        let loc = mx.findings.loc(Some(&folio), None, None);
+        mx.findings.push(
+            Code::imp(115),
+            Severity::Warning,
+            loc,
+            format!("{n} folio reports without any name; named IP-{folio}-<n>"),
+        );
+    }
+    for (name, n) in sources_per_name.into_iter().filter(|(_, n)| *n > 1) {
+        mx.findings.file_level(
+            Code::imp(115),
+            Severity::Warning,
+            format!("interruption-point name `{name}` has {n} sources: QET's explicit pairs need chain mode with a sort order (not set by this import)"),
+        );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn tag(label: &str, folio: &str) -> (Option<u32>, Option<String>, String, TagOutcome) {
+        let (t, _, o) = infer_tag(label, folio, "");
+        (
+            t.counter,
+            t.frozen.as_ref().map(|f| f.text.as_str().to_owned()),
+            t.letter.as_str().to_owned(),
+            o,
+        )
+    }
+
+    #[test]
+    fn page_rule_labels_are_derived() {
+        assert_eq!(
+            tag("-101F1", "101"),
+            (Some(1), None, "F".into(), TagOutcome::Derived)
+        );
+        assert_eq!(
+            tag("-102KF12", "102"),
+            (Some(12), None, "KF".into(), TagOutcome::Derived)
+        );
+    }
+
+    #[test]
+    fn other_labels_are_frozen_with_their_sign() {
+        let (t, _, o) = infer_tag("S51", "101", "");
+        assert_eq!(o, TagOutcome::Frozen);
+        let f = t.frozen.unwrap();
+        assert_eq!((f.text.as_str(), f.sign), ("S51", TagSign::Hidden));
+        assert_eq!(t.letter.as_str(), "S");
+        // A page rule label on another folio, and the strip rule, stay frozen with the sign shown.
+        let (t, _, o) = infer_tag("-101F1", "102", "");
+        assert_eq!((o, t.frozen.unwrap().sign), (TagOutcome::Frozen, TagSign::Shown));
+        let (t, s, o) = infer_tag("+JE2416-X1031", "103", "");
+        assert_eq!(o, TagOutcome::Frozen);
+        assert_eq!(s, Some("+JE2416"));
+        assert_eq!(t.frozen.unwrap().text.as_str(), "X1031");
+        assert_eq!(tag("1X1", "101").3, TagOutcome::Frozen);
+        assert_eq!(tag("1X1", "101").2, "X");
+    }
+
+    #[test]
+    fn unlabeled_elements_take_the_prefix_letter() {
+        let (t, _, o) = infer_tag("", "101", "K");
+        assert_eq!(
+            (t.letter.as_str(), t.counter, o),
+            ("K", None, TagOutcome::Unlabeled)
+        );
+        let (t, _, _) = infer_tag("  ", "101", "%x");
+        assert_eq!(t.letter.as_str(), FALLBACK_LETTER);
+    }
+
+    #[test]
+    fn orientations_turn_clockwise() {
+        assert_eq!(orientation(0), Orient2::R0);
+        assert_eq!(orientation(1), Orient2::R90);
+        assert_eq!(orientation(3), Orient2::R270);
+    }
 }

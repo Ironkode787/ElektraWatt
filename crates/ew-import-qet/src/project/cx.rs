@@ -64,11 +64,6 @@ impl Findings {
         }
     }
 
-    /// The source file name.
-    pub fn file(&self) -> &str {
-        &self.file
-    }
-
     /// A location in the source file: folio label, item and line, each when known.
     pub fn loc(&self, folio: Option<&str>, item: Option<String>, line: Option<u32>) -> SourceLocation {
         SourceLocation {
@@ -102,6 +97,7 @@ impl Findings {
     }
 
     /// The entries listed so far.
+    #[cfg(test)]
     pub fn entries(&self) -> &[ReportEntry] {
         &self.entries
     }

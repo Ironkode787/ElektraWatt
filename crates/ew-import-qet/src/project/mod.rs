@@ -237,11 +237,6 @@ impl QetProjectImporter {
                 }
                 None => None,
             };
-            if let Some(el) = &import {
-                for e in &el.entries {
-                    findings.entry(e.clone());
-                }
-            }
             defs.insert(d.path.clone(), Def { import });
         }
 
@@ -267,6 +262,20 @@ impl QetProjectImporter {
             &mut used_builtins,
             &mut findings,
         );
+        // The findings of the definitions that placed elements use (an unused definition in the collection
+        // is not part of the drawing).
+        // A font substitution is reported once per message (family), not once per definition (doc 14 §4.10).
+        let mut fonts_seen: BTreeSet<&str> = BTreeSet::new();
+        for path in &mapped.used_defs {
+            if let Some(el) = defs.get(path).and_then(|d| d.import.as_ref()) {
+                for e in &el.entries {
+                    if e.code == Code::FONT_SUBSTITUTED && !fonts_seen.insert(e.message.as_str()) {
+                        continue;
+                    }
+                    findings.entry(e.clone());
+                }
+            }
+        }
         let wired = wires::map_conductors(&project, &mapped.registry, &ids, &mut findings);
 
         records.push(Record::Project(pages.project.clone()));

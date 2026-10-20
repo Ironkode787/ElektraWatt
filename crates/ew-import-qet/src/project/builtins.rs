@@ -50,11 +50,6 @@ impl Builtins {
         lib
     }
 
-    /// Whether the library holds no document.
-    pub fn is_empty(&self) -> bool {
-        self.by_key.is_empty()
-    }
-
     /// The FnDef copy with `key`.
     pub fn fndef(&self, key: &str) -> Option<&LibCopy<FnDef>> {
         match self.by_key.get(key)? {
