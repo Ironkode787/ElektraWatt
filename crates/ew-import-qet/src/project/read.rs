@@ -63,6 +63,7 @@ pub fn read_project(xml: &str, findings: &mut Findings, limits: &Limits) -> Resu
 
     let mut project = QetProject {
         version: root.attribute("version").map(str::to_owned),
+        uuid: root.attribute("uuid").and_then(norm_uuid),
         title: root.attribute("title").map(str::to_owned),
         properties: child(root, "properties").map(properties).unwrap_or_default(),
         report_label: child(root, "newdiagrams")
@@ -256,6 +257,7 @@ impl Reader<'_> {
             })
             .unwrap_or_default();
         Some(QetElement {
+            n,
             type_path: node.attribute("type").unwrap_or("").to_owned(),
             uuid: uuid_attr.and_then(norm_uuid),
             x,
@@ -474,7 +476,7 @@ mod tests {
     fn read(xml: &str) -> (Result<QetProject, ImportError>, Vec<ReportEntry>) {
         let mut f = Findings::new("t.qet", 100);
         let r = read_project(xml, &mut f, &Limits::default());
-        (r, f.finish())
+        (r, f.finish().0)
     }
 
     /// The 1-based line of the first occurrence of `needle` in `xml`.

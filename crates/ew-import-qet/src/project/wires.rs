@@ -181,7 +181,9 @@ fn resolve_end<'a>(end: &End, lk: &Lookup<'_>, reg: &'a Registry) -> Result<Reso
 /// The source key of one conductor end: `<element key>/<terminal index>`, `/j` for a junction; the keys of
 /// elements without a UUID are folio-local and get the diagram index.
 fn end_key(diagram: usize, r: &Resolved<'_>) -> String {
-    let ek = if r.key.starts_with('#') {
+    let ek = if !r.placed.ek.is_empty() {
+        r.placed.ek.clone()
+    } else if r.key.starts_with('#') {
         format!("d{diagram}{}", r.key)
     } else {
         r.key.clone()
@@ -441,6 +443,7 @@ mod tests {
 
     fn element(uuid: Option<String>, terminals: Vec<InstTerminal>) -> QetElement {
         QetElement {
+            n: 0,
             type_path: "embed://t.elmt".to_owned(),
             uuid,
             x: Decimal::ZERO,
@@ -470,6 +473,7 @@ mod tests {
             diagram: 0,
             page: Id::<Page>::from_uuid(Uuid::from_u128(9)),
             folio: "F1".to_owned(),
+            ek: String::new(),
             target,
             terminals,
         }

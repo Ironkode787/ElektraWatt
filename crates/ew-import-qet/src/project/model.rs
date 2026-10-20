@@ -16,6 +16,8 @@ pub struct QetProject {
     pub version: Option<String>,
     /// `<project title>`.
     pub title: Option<String>,
+    /// `<project uuid>` (QET 0.200+) normalised by [`norm_uuid`].
+    pub uuid: Option<String>,
     /// `/project/properties/property`: `name` attribute → text, document order.
     pub properties: Vec<(String, String)>,
     /// `/project/newdiagrams/report/@label`, the folio-report cross-reference format (`%f-%l%c`).
@@ -97,6 +99,9 @@ pub struct Border {
 /// One placed `<element>` of a diagram.
 #[derive(Clone, PartialEq, Debug)]
 pub struct QetElement {
+    /// 0-based position among the diagram's `<element>`s in document order, elements the reader skipped
+    /// included (the `element <n>` of report items and the `#<n>` of keys of elements without UUID).
+    pub n: usize,
     /// The `type` attribute: the definition's collection path (`embed://import/…`).
     pub type_path: String,
     /// The `uuid` attribute normalised by [`norm_uuid`]; `None` when absent or not a UUID.

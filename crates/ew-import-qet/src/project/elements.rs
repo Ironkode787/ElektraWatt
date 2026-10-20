@@ -391,6 +391,7 @@ impl Mx<'_, '_> {
         self.out.registry.insert(
             (e.diagram, e.key.clone()),
             Placed {
+                ek: String::new(),
                 diagram: e.diagram,
                 page,
                 folio,
@@ -511,6 +512,7 @@ impl Mx<'_, '_> {
         self.out.registry.insert(
             (e.diagram, e.key.clone()),
             Placed {
+                ek: String::new(),
                 diagram: e.diagram,
                 page,
                 folio,
@@ -577,6 +579,7 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
                 mx.out.registry.insert(
                     (d.index, key.clone()),
                     Placed {
+                        ek: String::new(),
                         diagram: d.index,
                         page: inp.pages.pages[d.index].id,
                         folio,
@@ -656,6 +659,7 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
                 mx.out.registry.insert(
                     (e.diagram, e.key.clone()),
                     Placed {
+                        ek: String::new(),
                         diagram: e.diagram,
                         page: inp.pages.pages[e.diagram].id,
                         folio: mx.folio(e.diagram).to_owned(),

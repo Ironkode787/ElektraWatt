@@ -102,9 +102,9 @@ impl Findings {
         &self.entries
     }
 
-    /// The listed entries, followed by one EW-IMP-001 summary entry naming the suppressed count per code
-    /// when the cap was reached.
-    pub fn finish(mut self) -> Vec<ReportEntry> {
+    /// The listed entries, followed by one EW-IMP-001 summary entry (error, as the catalogue defines the
+    /// code) when the cap was reached, and the suppressed count per code (for `ImportStats::suppressed`).
+    pub fn finish(mut self) -> (Vec<ReportEntry>, BTreeMap<Code, u32>) {
         if !self.suppressed.is_empty() {
             let total: u32 = self.suppressed.values().sum();
             let per_code = self
@@ -117,7 +117,7 @@ impl Findings {
             self.entries.push(
                 ReportEntry::new(
                     Code::LIMIT,
-                    Severity::Warning,
+                    Severity::Error,
                     format!(
                         "{total} further findings not listed (at most {} per project): {per_code}",
                         self.cap
@@ -126,7 +126,7 @@ impl Findings {
                 .at(loc),
             );
         }
-        self.entries
+        (self.entries, self.suppressed)
     }
 }
 
@@ -147,6 +147,10 @@ pub struct Placed {
     pub page: Id<Page>,
     /// The folio label, for report locations.
     pub folio: String,
+    /// The project-wide element key that record and wire source keys use (doc 14 §2.3): the UUID, or
+    /// `<uuid>#<folio key>#<n>` for a UUID repeated by copy-paste (EW-IMP-120), or `<folio key>#<n>` for an
+    /// element without UUID.
+    pub ek: String,
     /// Where wires attached to the element end.
     pub target: Target,
     /// The definition's terminals in definition order.
@@ -190,21 +194,21 @@ pub enum Target {
 }
 
 /// The element keys of the elements of `diagram`, by element index: the normalised UUID; `<uuid>#<n>` for
-/// the n-th occurrence (n ≥ 2) of a UUID on this folio (copy-paste, QET #1408); `#<i>` for element `i`
-/// without a UUID. The conductor mapper and the element mapper both key elements this way.
+/// the n-th occurrence (n ≥ 2) of a UUID on this folio (copy-paste, QET #1408); `#<n>` for an element
+/// without a UUID at source position `n` ([`QetElement::n`](super::model::QetElement::n)). These keys are
+/// folio-local; record source keys use [`Placed::ek`]. The conductor mapper and the element mapper both key elements this way.
 pub fn element_keys(diagram: &QetDiagram) -> Vec<String> {
     let mut seen: BTreeMap<&str, u32> = BTreeMap::new();
     diagram
         .elements
         .iter()
-        .enumerate()
-        .map(|(i, e)| match e.uuid.as_deref() {
+        .map(|e| match e.uuid.as_deref() {
             Some(u) => {
                 let n = seen.entry(u).or_insert(0);
                 *n += 1;
                 if *n == 1 { u.to_owned() } else { format!("{u}#{n}") }
             }
-            None => format!("#{i}"),
+            None => format!("#{}", e.n),
         })
         .collect()
 }

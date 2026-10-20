@@ -340,7 +340,9 @@ impl QetProjectImporter {
         report.stats.lost_connections = wired.lost;
         report.stats.dropped = mapped.dropped + wired.lost;
         report.stats.inferred = mapped.inferred;
-        report.entries = findings.finish();
+        let (entries, suppressed) = findings.finish();
+        report.entries = entries;
+        report.stats.suppressed = suppressed;
         Ok(ImportBatch { records, lib, report })
     }
 }

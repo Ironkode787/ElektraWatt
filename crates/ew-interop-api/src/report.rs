@@ -208,6 +208,9 @@ pub struct ImportStats {
     pub inferred: u32,
     /// Connections lost; FR-IMP-007 requires 0.
     pub lost_connections: u32,
+    /// Findings not listed in `entries` because the importer's report cap was reached, per code (doc 14
+    /// §11 "Report volume"); the report lists one EW-IMP-001 summary entry for them.
+    pub suppressed: BTreeMap<Code, u32>,
 }
 
 /// The report of one import (doc 14 §2.4).
