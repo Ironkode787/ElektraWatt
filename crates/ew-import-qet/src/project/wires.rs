@@ -163,38 +163,113 @@ fn resolve_at<'a>(terminal: &TerminalRef, lk: &Lookup<'_>, key: &str, placed: &'
     bind(placed, index)
 }
 
-/// The candidate bindings of a conductor end, never empty. An end naming its element by UUID `u` has one
-/// candidate per placed copy of `u` on the folio (element keys `u`, `u#2`, `u#3`, ...) in document order; every
-/// other end has exactly one.
-fn resolve_end<'a>(end: &End, lk: &Lookup<'_>, reg: &'a Registry) -> Vec<EndResult<'a>> {
+/// The most position probes a conductor whose two ends both name repeated UUIDs may make; beyond it the
+/// first copies are bound with EW-IMP-120, so no conductor costs more than a constant (doc 14 §11, ID-115).
+pub const MAX_PAIR_PROBES: usize = 16;
+
+/// The copies of every UUID repeated on one folio and their terminal-position indexes, built once per folio
+/// and UUID (and terminal reference), never per conductor.
+struct CopyIndex {
+    /// UUID → the element keys of its copies in document order (`u`, `u#2`, …), for UUIDs with ≥ 2 copies.
+    copies: BTreeMap<String, Vec<String>>,
+    /// (UUID, terminal reference) → the index of that terminal over the copies.
+    positions: BTreeMap<(String, String), Positions>,
+}
+
+/// The copies of one UUID whose terminal resolves, and where that terminal sits on the page.
+struct Positions {
+    /// Copy numbers (positions in `CopyIndex::copies`) that resolve, in document order.
+    resolving: Vec<usize>,
+    /// Page position → copy numbers there.
+    by_pos: BTreeMap<Pt2, Vec<usize>>,
+}
+
+impl CopyIndex {
+    /// The repeated UUIDs of the folio `keys` (its [`element_keys`]).
+    fn new(keys: &[String]) -> CopyIndex {
+        let mut copies: BTreeMap<String, Vec<String>> = BTreeMap::new();
+        for k in keys {
+            if k.starts_with('#') {
+                continue;
+            }
+            let u = k.split('#').next().unwrap_or(k);
+            copies.entry(u.to_owned()).or_default().push(k.clone());
+        }
+        copies.retain(|_, v| v.len() > 1);
+        CopyIndex {
+            copies,
+            positions: BTreeMap::new(),
+        }
+    }
+
+    /// The position index of terminal `terminal` over the copies of `u`, built on first use: one resolution
+    /// and one insertion per copy, counted in `comparisons`.
+    fn positions(
+        &mut self,
+        u: &str,
+        terminal: &TerminalRef,
+        lk: &Lookup<'_>,
+        reg: &Registry,
+        comparisons: &mut u64,
+    ) -> &Positions {
+        let tkey = format!("{terminal:?}");
+        let copies = self.copies.get(u).map(Vec::as_slice).unwrap_or_default();
+        self.positions.entry((u.to_owned(), tkey)).or_insert_with(|| {
+            let mut resolving = Vec::new();
+            let mut by_pos: BTreeMap<Pt2, Vec<usize>> = BTreeMap::new();
+            for (n, key) in copies.iter().enumerate() {
+                *comparisons += 1;
+                let Some(placed) = reg.get(&(lk.diagram.index, key.clone())) else {
+                    continue;
+                };
+                if let Ok(r) = resolve_at(terminal, lk, key, placed) {
+                    resolving.push(n);
+                    if let Some(pos) = end_pos(&r) {
+                        by_pos.entry(pos).or_default().push(n);
+                    }
+                }
+            }
+            Positions { resolving, by_pos }
+        })
+    }
+}
+
+/// One conductor end before a copy is chosen.
+enum Cand<'a> {
+    /// Decided (or failed).
+    One(EndResult<'a>),
+    /// The end names the UUID `u`, repeated on the folio, with terminal reference `terminal`.
+    Copies { u: String, terminal: TerminalRef },
+}
+
+/// The candidate of a conductor end: decided, unless it names a UUID repeated on the folio.
+fn resolve_end<'a>(end: &End, lk: &Lookup<'_>, reg: &'a Registry, ix: &CopyIndex) -> Cand<'a> {
     match (&end.element, &end.terminal) {
         (Some(u), terminal) => {
-            let mut out = Vec::new();
-            for n in 1u32.. {
-                let key = if n == 1 { u.clone() } else { format!("{u}#{n}") };
-                let Some(placed) = reg.get(&(lk.diagram.index, key.clone())) else {
-                    break;
+            if ix.copies.contains_key(u) && !matches!(terminal, TerminalRef::Id(_)) {
+                return Cand::Copies {
+                    u: u.clone(),
+                    terminal: terminal.clone(),
                 };
-                out.push(resolve_at(terminal, lk, &key, placed));
             }
-            if out.is_empty() {
-                out.push(Err(unresolved("element not found", None)));
+            match reg.get(&(lk.diagram.index, u.clone())) {
+                Some(placed) => Cand::One(resolve_at(terminal, lk, u, placed)),
+                None => Cand::One(Err(unresolved("element not found", None))),
             }
-            out
         }
         (None, TerminalRef::Id(id)) => {
             let Some((key, inst)) = lk.tids.get(id.trim()) else {
-                return vec![Err(unresolved("terminal id not found", None))];
+                return Cand::One(Err(unresolved("terminal id not found", None)));
             };
             let Some(placed) = reg.get(&(lk.diagram.index, key.clone())) else {
-                return vec![Err(unresolved("element not found", None))];
+                return Cand::One(Err(unresolved("element not found", None)));
             };
             let Some(index) = index_of_id(lk, placed, key, *inst) else {
-                return vec![Err(unresolved("terminal not found", Some(placed)))];
+                return Cand::One(Err(unresolved("terminal not found", Some(placed))));
             };
-            vec![bind(placed, index)]
+            Cand::One(bind(placed, index))
         }
-        (None, _) => vec![Err(unresolved("no element and no terminal id", None))],
+        (None, _) => Cand::One(Err(unresolved("no element and no terminal id", None))),
     }
 }
 
@@ -250,76 +325,139 @@ fn displacement(segments: &[Segment]) -> Option<(i64, i64)> {
     Some((dx, dy))
 }
 
-/// The indices of the candidates that resolved.
-fn resolved_indices(candidates: &[EndResult<'_>]) -> Vec<usize> {
-    candidates
-        .iter()
-        .enumerate()
-        .filter_map(|(i, c)| c.is_ok().then_some(i))
-        .collect()
+/// Resolves copy `n` of the repeated UUID `u` at `terminal`.
+fn copy_at<'a>(
+    u: &str,
+    n: usize,
+    terminal: &TerminalRef,
+    lk: &Lookup<'_>,
+    reg: &'a Registry,
+    ix: &CopyIndex,
+) -> EndResult<'a> {
+    let Some(key) = ix.copies.get(u).and_then(|c| c.get(n)) else {
+        return Err(unresolved("element not found", None));
+    };
+    match reg.get(&(lk.diagram.index, key.clone())) {
+        Some(placed) => resolve_at(terminal, lk, key, placed),
+        None => Err(unresolved("element not found", None)),
+    }
 }
 
-/// Picks one candidate per end. An end with a single resolving candidate takes it. When an end has several
-/// (a UUID repeated on the folio), the end-2 candidates are indexed by the page position of their terminal,
-/// and each end-1 candidate looks up the position where the conductor's segments end from it: exactly one
-/// match decides both ends. Otherwise the first resolving candidate of each ambiguous end is bound and that end
-/// is flagged (the second value; EW-IMP-120). An end without a resolving candidate keeps its first candidate's
-/// failure.
-///
-/// Cost: one index insertion per end-2 candidate and one lookup per end-1 candidate, each counted in
-/// `comparisons`, so a conductor between k copies costs O(k log k), never the k² pairs (doc 14 §11, ID-115).
+/// `p` moved by `(dx, dy)` × `sign`, `None` on overflow.
+fn shifted(p: Pt2, (dx, dy): (i64, i64), sign: i64) -> Option<Pt2> {
+    Some(Pt2::new(
+        Nm(p.x.0.checked_add(dx.checked_mul(sign)?)?),
+        Nm(p.y.0.checked_add(dy.checked_mul(sign)?)?),
+    ))
+}
+
+/// Picks the copy of each end that names a repeated UUID (review R1: linear overall). The copies' terminal
+/// positions are indexed once per folio and UUID ([`CopyIndex`]); an end facing a decided end looks up the
+/// position where the conductor's segments put it (one lookup); two ends that both name repeated UUIDs probe
+/// the positions of the smaller copy set, at most [`MAX_PAIR_PROBES`]. Exactly one match decides; otherwise the
+/// first resolving copy is bound and the end is flagged (the second value; EW-IMP-120). Every index insertion,
+/// lookup and probe is counted in `comparisons`.
 fn choose_ends<'a>(
     segments: &[Segment],
-    candidates: [Vec<EndResult<'a>>; 2],
+    cands: [Cand<'a>; 2],
+    lk: &Lookup<'_>,
+    reg: &'a Registry,
+    ix: &mut CopyIndex,
     comparisons: &mut u64,
 ) -> ([EndResult<'a>; 2], [bool; 2]) {
-    let oks = [resolved_indices(&candidates[0]), resolved_indices(&candidates[1])];
-    let mut pick = [
-        oks[0].first().copied().unwrap_or(0),
-        oks[1].first().copied().unwrap_or(0),
-    ];
-    let mut repeated = [oks[0].len() > 1, oks[1].len() > 1];
-    if (repeated[0] || repeated[1])
-        && let Some((dx, dy)) = displacement(segments)
-    {
-        let mut at: BTreeMap<Pt2, Vec<usize>> = BTreeMap::new();
-        for &j in &oks[1] {
+    let d = displacement(segments);
+    let first = |ix: &mut CopyIndex, u: &str, t: &TerminalRef, comparisons: &mut u64| -> EndResult<'a> {
+        let n = ix
+            .positions(u, t, lk, reg, comparisons)
+            .resolving
+            .first()
+            .copied()
+            .unwrap_or(0);
+        copy_at(u, n, t, lk, reg, ix)
+    };
+    let [c1, c2] = cands;
+    match (c1, c2) {
+        (Cand::One(a), Cand::One(b)) => ([a, b], [false, false]),
+        (Cand::Copies { u, terminal }, Cand::One(b)) => {
+            let target = match (&b, d) {
+                (Ok(rb), Some(dv)) => end_pos(rb).and_then(|p| shifted(p, dv, -1)),
+                _ => None,
+            };
+            let pos = ix.positions(&u, &terminal, lk, reg, comparisons);
             *comparisons += 1;
-            if let Ok(b) = &candidates[1][j]
-                && let Some(pos) = end_pos(b)
-            {
-                at.entry(pos).or_default().push(j);
+            let hit = target
+                .and_then(|t| pos.by_pos.get(&t))
+                .filter(|v| v.len() == 1)
+                .map(|v| v[0]);
+            match hit {
+                Some(n) => ([copy_at(&u, n, &terminal, lk, reg, ix), b], [false, false]),
+                None => ([first(ix, &u, &terminal, comparisons), b], [true, false]),
             }
         }
-        let mut found: Option<(usize, usize)> = None;
-        let mut matches = 0usize;
-        for &i in &oks[0] {
-            *comparisons += 1;
-            let Ok(a) = &candidates[0][i] else { continue };
-            let Some(from) = end_pos(a) else { continue };
-            let (Some(x), Some(y)) = (from.x.0.checked_add(dx), from.y.0.checked_add(dy)) else {
-                continue;
+        (Cand::One(a), Cand::Copies { u, terminal }) => {
+            let target = match (&a, d) {
+                (Ok(ra), Some(dv)) => end_pos(ra).and_then(|p| shifted(p, dv, 1)),
+                _ => None,
             };
-            if let Some(js) = at.get(&Pt2::new(Nm(x), Nm(y))) {
-                matches += js.len();
-                found = Some((i, js[0]));
-                if matches > 1 {
-                    break;
+            let pos = ix.positions(&u, &terminal, lk, reg, comparisons);
+            *comparisons += 1;
+            let hit = target
+                .and_then(|t| pos.by_pos.get(&t))
+                .filter(|v| v.len() == 1)
+                .map(|v| v[0]);
+            match hit {
+                Some(n) => ([a, copy_at(&u, n, &terminal, lk, reg, ix)], [false, false]),
+                None => ([a, first(ix, &u, &terminal, comparisons)], [false, true]),
+            }
+        }
+        (Cand::Copies { u: u1, terminal: t1 }, Cand::Copies { u: u2, terminal: t2 }) => {
+            let mut found: Option<(usize, usize)> = None;
+            let mut matches = 0usize;
+            if let Some(dv) = d {
+                let n1 = ix.positions(&u1, &t1, lk, reg, comparisons).resolving.len();
+                let n2 = ix.positions(&u2, &t2, lk, reg, comparisons).resolving.len();
+                // Probe the positions of the smaller copy set in the other's index.
+                let (small, other, sign) = if n1 <= n2 {
+                    ((&u1, &t1), (&u2, &t2), 1)
+                } else {
+                    ((&u2, &t2), (&u1, &t1), -1)
+                };
+                if n1.min(n2) <= MAX_PAIR_PROBES {
+                    let probes: Vec<(Pt2, Vec<usize>)> = ix
+                        .positions(small.0, small.1, lk, reg, comparisons)
+                        .by_pos
+                        .iter()
+                        .map(|(p, v)| (*p, v.clone()))
+                        .collect();
+                    let index = ix.positions(other.0, other.1, lk, reg, comparisons);
+                    for (p, ns) in probes {
+                        *comparisons += 1;
+                        let Some(t) = shifted(p, dv, sign) else { continue };
+                        if let Some(ms) = index.by_pos.get(&t) {
+                            matches += ns.len() * ms.len();
+                            found = Some(if sign == 1 { (ns[0], ms[0]) } else { (ms[0], ns[0]) });
+                            if matches > 1 {
+                                break;
+                            }
+                        }
+                    }
                 }
             }
-        }
-        if let (1, Some((i, j))) = (matches, found) {
-            pick = [i, j];
-            repeated = [false, false];
+            match (matches, found) {
+                (1, Some((n1, n2))) => (
+                    [
+                        copy_at(&u1, n1, &t1, lk, reg, ix),
+                        copy_at(&u2, n2, &t2, lk, reg, ix),
+                    ],
+                    [false, false],
+                ),
+                _ => (
+                    [first(ix, &u1, &t1, comparisons), first(ix, &u2, &t2, comparisons)],
+                    [true, true],
+                ),
+            }
         }
     }
-    let [c1, c2] = candidates;
-    let take = |c: Vec<EndResult<'a>>, i: usize| {
-        c.into_iter()
-            .nth(i)
-            .unwrap_or_else(|| Err(unresolved("element not found", None)))
-    };
-    ([take(c1, pick[0]), take(c2, pick[1])], repeated)
 }
 
 /// The source key of one conductor end: `<element key>/<terminal index>`, `/j` for a junction; the element
@@ -372,6 +510,7 @@ fn map_conductors_counted(
             by_key: keys.iter().enumerate().map(|(i, k)| (k.as_str(), i)).collect(),
             tids: &tids,
         };
+        let mut ix = CopyIndex::new(&keys);
         let diagram_folio = reg
             .range((d.index, String::new())..)
             .next()
@@ -380,11 +519,11 @@ fn map_conductors_counted(
 
         for (n, c) in d.conductors.iter().enumerate() {
             let item = || Some(format!("conductor {n}"));
-            let (ends, repeated) = choose_ends(
-                &c.segments,
-                [resolve_end(&c.end1, &lk, reg), resolve_end(&c.end2, &lk, reg)],
-                &mut comparisons,
-            );
+            let cands = [
+                resolve_end(&c.end1, &lk, reg, &ix),
+                resolve_end(&c.end2, &lk, reg, &ix),
+            ];
+            let (ends, repeated) = choose_ends(&c.segments, cands, &lk, reg, &mut ix, &mut comparisons);
             let failure = ends
                 .iter()
                 .enumerate()
@@ -1102,47 +1241,57 @@ mod tests {
         }
     }
 
-    #[test]
-    fn repeated_uuid_ends_are_matched_by_position_in_linear_comparisons() {
-        // k copies of A (terminal UUID 20) at (100 i, 0) px and k copies of B (terminal UUID 22) at
-        // (100 i, 50 + 10 i) px; conductor j is drawn 50 + 10 j px down, so only A_j -> B_j fits it. Both ends
-        // have k candidates: trying every candidate pair would make k³ comparisons over the k conductors; the
-        // position index makes 2k per conductor.
-        let k: usize = 50;
-        let (a, b) = (uid(10), uid(11));
+    /// k copies of A (terminal UUID 20) at (100 i, 0) px and k distinct elements B_i at (100 i, 50 + 10 i) px;
+    /// conductor i runs from A (by UUID) to B_i, drawn 50 + 10 i px down, so only copy A_i fits it. Returns
+    /// the output, the findings and the comparison count.
+    fn copies_to_distinct_ends(k: usize) -> (WireOut, Findings, u64) {
+        let a = uid(10);
         let mut reg = Registry::new();
+        let mut elements = vec![];
         let mut conductors = Vec::new();
         for i in 0..k {
             let n = i + 1;
             let ka = if n == 1 { a.clone() } else { format!("{a}#{n}") };
-            let kb = if n == 1 { b.clone() } else { format!("{b}#{n}") };
+            let b = uid(100_000 + u128::try_from(i).unwrap());
             let x = i64::try_from(100 * i).unwrap();
             let down = 50 + 10 * i64::try_from(i).unwrap();
             let fa = 1_000 + u128::try_from(i).unwrap();
-            let fb = 2_000 + u128::try_from(i).unwrap();
+            let fb = 2_000_000 + u128::try_from(i).unwrap();
             let pa = vec![pterm_on_page(Some(uid(20)), x, 0)];
             let pb = vec![pterm_on_page(Some(uid(22)), x, down)];
             reg.insert((0, ka), placed(&format!("a{n}"), func(fa, vec![Some(0)]), pa));
-            reg.insert((0, kb), placed(&format!("b{n}"), func(fb, vec![Some(0)]), pb));
+            reg.insert(
+                (0, b.clone()),
+                placed(&format!("b{n}"), func(fb, vec![Some(0)]), pb),
+            );
+            elements.push(element(Some(a.clone()), Vec::new()));
+            elements.push(element(Some(b.clone()), Vec::new()));
             let mut c = cond(end_u(&a, &uid(20)), end_u(&b, &uid(22)));
             c.segments = vec![vertical(down)];
             conductors.push(c);
         }
-        let d = diagram(Vec::new(), conductors);
-        let mut f = Findings::new("t.qet", 1_000);
+        let d = diagram(elements, conductors);
+        let mut f = Findings::new("t.qet", 10_000);
         let (out, comparisons) = map_conductors_counted(&project(vec![d]), &reg, &ids(), &mut f);
-        let k64 = u64::try_from(k).unwrap();
-        assert_eq!(
-            comparisons,
-            2 * k64 * k64,
-            "one insertion and one lookup per candidate"
-        );
-        assert_eq!(out.lost, 0);
-        assert!(f.entries().is_empty(), "{:?}", f.entries());
-        for (i, c) in out.connections.iter().enumerate() {
-            let i = u128::try_from(i).unwrap();
-            assert_eq!(c.a, Endpoint::Cp(function(1_000 + i), 0));
-            assert_eq!(c.b, Endpoint::Cp(function(2_000 + i), 0));
+        (out, f, comparisons)
+    }
+
+    #[test]
+    fn repeated_uuid_ends_cost_linear_comparisons_overall() {
+        // The copies' terminal positions are indexed once per folio and UUID (k insertions) and each conductor
+        // makes one lookup: 2k comparisons for k conductors, the same constant for k = 50 and k = 200 (a
+        // per-conductor enumeration of the copies would make k²).
+        for k in [50usize, 200] {
+            let (out, f, comparisons) = copies_to_distinct_ends(k);
+            let k64 = u64::try_from(k).unwrap();
+            assert!(comparisons <= 3 * k64, "{comparisons} comparisons for k = {k}");
+            assert_eq!(out.lost, 0);
+            assert!(f.entries().is_empty(), "{:?}", f.entries());
+            for (i, c) in out.connections.iter().enumerate() {
+                let i = u128::try_from(i).unwrap();
+                assert_eq!(c.a, Endpoint::Cp(function(1_000 + i), 0), "k = {k}");
+                assert_eq!(c.b, Endpoint::Cp(function(2_000_000 + i), 0), "k = {k}");
+            }
         }
     }
 
