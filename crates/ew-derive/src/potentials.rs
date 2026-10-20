@@ -26,7 +26,7 @@
 //!
 //! The partition is a producer of parts (ADR-0002 amendment 5): a reader of one potential's topology
 //! ([`PartKey::Potential`]), of the potential of one endpoint ([`PartKey::Endpoint`]) or of the bonds
-//! ([`PartKey::Bonds`]) is invalidated only when an execution declares that part changed.
+//! ([`PartKey::Bonds`], [`PartKey::BondsOf`]) is invalidated only when an execution declares that part changed.
 //!
 //! - **Cold** (`run`, the oracle's reference) is the global algorithm of cycle 7: the whole stitch graph, one
 //!   union-find over its nodes, the components shaped into the value.
@@ -401,7 +401,7 @@ impl HeapBytes for Partition {
 }
 
 /// `potential_partition()`: see the module documentation. Policy Memo, incremental, a producer of the parts
-/// [`PartKey::Potential`], [`PartKey::Endpoint`] and [`PartKey::Bonds`].
+/// [`PartKey::Potential`], [`PartKey::Endpoint`], [`PartKey::Bonds`] and [`PartKey::BondsOf`].
 #[derive(Debug)]
 pub struct PotentialPartition;
 
@@ -664,8 +664,42 @@ fn difference(old: &Partition, new: &Partition) -> Vec<PartKey> {
             parts.push(PartKey::Endpoint(e));
         }
     }
-    if old.bonds != new.bonds {
-        parts.push(PartKey::Bonds);
-    }
+    parts.extend(bond_parts(&old.bonds, &new.bonds));
     parts
+}
+
+/// The bond parts that differ between two bond lists: [`PartKey::Bonds`] when a bond record (its existence,
+/// kind, via connection or path) differs, [`PartKey::BondsOf`] for the potentials before and after at every
+/// bond end whose potential differs.
+pub(crate) fn bond_parts(old: &[BondLink], new: &[BondLink]) -> Vec<PartKey> {
+    if old == new {
+        return Vec::new();
+    }
+    let record = |b: &BondLink| (b.bond, b.kind.clone(), b.via, b.path_ips.clone(), b.names.clone());
+    let mut parts: BTreeSet<PartKey> = BTreeSet::new();
+    let (o, n): (BTreeMap<_, _>, BTreeMap<_, _>) = (
+        old.iter().map(|b| (b.bond, b)).collect(),
+        new.iter().map(|b| (b.bond, b)).collect(),
+    );
+    let ids: BTreeSet<Id<Bond>> = o.keys().chain(n.keys()).copied().collect();
+    for id in ids {
+        let (a, b) = (o.get(&id).copied(), n.get(&id).copied());
+        if a.map(record) != b.map(record) {
+            parts.insert(PartKey::Bonds);
+        }
+        if a.map(|x| (x.a, x.b)) != b.map(|x| (x.a, x.b)) {
+            for p in [
+                a.and_then(|x| x.a),
+                a.and_then(|x| x.b),
+                b.and_then(|x| x.a),
+                b.and_then(|x| x.b),
+            ]
+            .into_iter()
+            .flatten()
+            {
+                parts.insert(PartKey::BondsOf(p));
+            }
+        }
+    }
+    parts.into_iter().collect()
 }

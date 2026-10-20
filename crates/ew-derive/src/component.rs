@@ -656,9 +656,7 @@ pub(crate) fn update(q: &Q, prev: &Partition, changes: Changes<'_>) -> Option<(P
             parts.push(PartKey::Endpoint(e));
         }
     }
-    if bonds != w.p.bonds {
-        parts.push(PartKey::Bonds);
-        w.p.bonds = bonds;
-    }
+    parts.extend(crate::potentials::bond_parts(&w.p.bonds, &bonds));
+    w.p.bonds = bonds;
     Some((w.p, parts))
 }

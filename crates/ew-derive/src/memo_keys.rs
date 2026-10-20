@@ -58,8 +58,12 @@ pub enum PartKey {
     Endpoint(EndpointKey),
     /// The flow entry of one potential in `potential_flow_bfs()`.
     Flow(PotentialId),
-    /// The bonds between potentials in `potential_partition()` (`Partition::bonds`).
+    /// The bond records in `potential_partition()` (`Partition::bonds`): which bonds exist, with their kind,
+    /// via connection and path. Not the potentials at their ends: see [`PartKey::BondsOf`].
     Bonds,
+    /// The bonds with an end on one potential in `potential_partition()`: a topology edit that changes the
+    /// potential at a bond end declares the potentials before and after, not every bond reader.
+    BondsOf(PotentialId),
     /// The pairing of one interruption point in `ip_pairing()`: its info (without the group index), its
     /// partners and the content of its group.
     Ip(Id<Function>),

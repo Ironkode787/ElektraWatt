@@ -153,6 +153,7 @@ impl Query for PhysicalWiresOf {
         let Some(own) = partition.get(*key) else {
             return Arc::new(PhysicalWires::default());
         };
+        // The bond records, and the bonds at every potential of the bond closure (below).
         let _ = q.get_part::<PotentialPartition>((), PartKey::Bonds);
         let mut notes: BTreeSet<DeriveNote> = BTreeSet::new();
 
@@ -161,6 +162,7 @@ impl Query for PhysicalWiresOf {
         let mut scope: BTreeSet<EndpointKey> = BTreeSet::new();
         for id in &closure {
             let _ = q.get_part::<PotentialPartition>((), PartKey::Potential(*id));
+            let _ = q.get_part::<PotentialPartition>((), PartKey::BondsOf(*id));
             let Some(p) = partition.get(*id) else { continue };
             for f in &p.ips {
                 let _ = q.get_part::<IpPairingQ>((), PartKey::Ip(*f));
