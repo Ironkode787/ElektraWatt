@@ -143,7 +143,7 @@ flowchart LR
 
 -UC1 and its plate keep their enclosure rule: page-based numbering applies only to devices whose main
 representation lies on a schematic page ▲. Assertions after commit: no orphan reference; identical connection
-endpoints and potential partition (compared by UUID); all 64 cross-reference texts unchanged (they print cells, not
+endpoints and potential partition (compared by UUID); all 63 cross-reference texts unchanged (they print cells, not
 tags); tag texts change only on folios 101, 103 and 902, in the TOC titles of 903–905 and in report folios 901 and
 903–907 and 910; one undo restores a byte-identical Golden A.
 
@@ -162,7 +162,7 @@ performance fixtures ([02c](02c-nonfunctional-requirements.md) §2.1).
 ### 2.3 Golden C
 
 Golden C imports the pilot's original QElectroTech 0.100.0-dev file of the reference set in lenient mode
-(ADR-0009, ADR-0021). The import must reproduce the 18 folios and their 64 cross-reference texts as printed
+(ADR-0009, ADR-0021). The import must reproduce the 18 folios and their 63 cross-reference texts as printed
 (including the faulty "3-B0"), list the defects as migration findings (§20.1), and become equivalent to Golden A
 after the scripted fixes of §20.2. Until the pilot supplies the file (PQ-02), Golden C is specified but not
 executable.
@@ -293,7 +293,7 @@ The first approval also settles these starter-symbol items, raised by the review
 | 15 | 202 | 5 valves drawn on -202U2 | 4 valves (overview generated from the assembly) | D-10 |
 | 16 | 2, 901 | QET tables | EW report forms with Pos/Qty/Unit columns, sub-page continuation | D-04, §16 |
 | 17 | 902 | Free rectangles, "T51", "X1031", not to scale | Placements of devices, "T55", "-X1031", scale 1:10 ▲, legend block | D-02, D-32 |
-| 18 | PDF | No outline, no links, physical page labels | Outline, 64 link annotations, folio page labels | D-07, D-33 |
+| 18 | PDF | No outline, no links, physical page labels | Outline, 63 link annotations (one per linked xref text; 64 link targets, §15), folio page labels | D-07, D-33 |
 
 ### 3.5 Anonymisation and private fixtures
 
@@ -360,7 +360,7 @@ these equal the page's structure (FR-NUM-002).
 |---|---|
 | Identifier set | EN 81346-2:2009 single letters (ADR-0026) |
 | Numbering | page-based `{page}{letter}{counter}`; strips `{letter}{page}{counter}` (a rule of `settings.numbering`); -XPE, -UC1 and -UC1-plate frozen ▲U-34; children `{parent}-{letter}{counter}`; order column then row; next free counter = the lowest unused counter in the scope (gaps are filled, [domain model](03-domain-model.md) §8.6) |
-| Cross-reference format | `{page}-{row}{column}`, the QET `%F-%l%c` equivalent (C-15); aux → main in parentheses "(201-E1)"; main → aux after "∞" |
+| Cross-reference format | `{page}-{row}{column}`, the QET `%F-%l%c` equivalent (C-15); aux → main in parentheses "(201-E1)"; main → aux after "∞"; `{page_index}` (QET `%f`) is the 1-based position in page order counting every page record (drawn page, divider, report base page) but not pagination continuation pages, so folio 102 is page 6 (FR-XRF-003) |
 | Xref anchor policy | per symbol (FR-SYM-010): named anchor points placed so that the cells of §15 result, e.g. module aux symbol at its centre (203-B4), CPX power box at its left edge (106-G3), bus port at its graphics (3-B2); interruption points at the arrow tip |
 | Frame | QET-compatible A4 landscape, 17 columns 0–16, 8 rows A–H, grid and no-grid variants (§17) |
 | Date / units | dd-mm-yyyy; SI spacing and decimal point (en) |
@@ -890,7 +890,9 @@ Rows 16–21 are replaced by two configured-product rows; all other rows stay:
 
 ## 15. Cross-reference acceptance table
 
-All 64 texts (44 interruption-point texts, 20 main/aux texts) must print exactly as below (FR-XRF-024). Arrows:
+All 63 linked texts (44 interruption-point texts, 19 main/aux texts) and the 4 external texts must print exactly as
+below (FR-XRF-024). The 63 linked texts carry 64 link targets, because the main-function text of -201U1 lists two
+auxiliary positions ("∞ 3-B2, 106-G3"); the external texts have no link. Arrows:
 ▷ outgoing, ◁ incoming; direction is a property, not page side (FR-XRF-009).
 
 **Interruption points (22 pairs):**
@@ -924,7 +926,7 @@ All 64 texts (44 interruption-point texts, 20 main/aux texts) must print exactly
 3-G15 print "+J-E-206 / JE-N1000-03" (FR-XRF-012). The box captions "External Connection (J-E-206 / JE-N1000-03)"
 and "To J-E-206 / JE-N1000-03" are texts bound to the ExternalRef.
 
-**Main ↔ auxiliary references (9 devices, 20 texts):**
+**Main ↔ auxiliary references (9 devices, 19 texts, 20 targets):**
 
 | Device | Main (printed on each aux as "(…)") | Aux positions (printed on main after "∞") |
 |---|---|---|
@@ -1172,7 +1174,7 @@ gates.
 | D-04 | BOM incomplete, X1031 twice, no quantities | Prevent: `bom_rows` (FR-REP-004 … 006) | Compare 901 with §14 | 27 rows, PT 2.5-TWIN once with 20; -106W2, -201U4 … -201U9, 571334 × 28, enclosure and plate present | M1 |
 | D-05 | Four revision formats | Prevent: revision table (FR-REV-002, FR-REV-003) | Title blocks; schema test | "V2.0" on all 36 pages; Page has no revision field; 911 lists V1.0, V2.0 | M1 |
 | D-06 | Description drift on 101 | Prevent: bound description, explicit overrides (FR-REP-036) | Title blocks; set an override on 101 | Uniform text; an override is reported as info and shown in the property grid | M1 |
-| D-07 | No bookmarks, links, page labels | Feature: FR-OUT-004 … 006 | PDF structure | Outline by section and page; 64 xref links; `/PageLabels` = folio labels | M1 |
+| D-07 | No bookmarks, links, page labels | Feature: FR-OUT-004 … 006 | PDF structure | Outline by section and page; 63 xref links; `/PageLabels` = folio labels | M1 |
 | D-08 | Free-text wire rule | Prevent: `wire_props_of` with provenance; generated cover tables (FR-CON-017, FR-REP-038) | `ew query wire_props W29 --explain`; change 24 V colour in the profile | W29 0.75 DBU "profile"; W20 1.5 mm² from CDP, DBU from profile; one commit updates folio 1, 907 and colour-dependent texts | M1 |
 | D-09 | No wire, terminal, cable, PLC, potential reports; no wire numbers | Feature: report blocks 903–911; FR-NUM-019 | Export | 16 generated pages per §16; W1–W34 numbered, unique, stable under moves | M1 |
 | D-10 | Overview 5 vs 4 valves | Prevent: generated overview (FR-DEV-023); FR-CHK-022 | Render 202; C import | 4 valves on -202U2; C: MF-14 | M1 |
@@ -1217,7 +1219,7 @@ gates.
 
 `ew import qet <original>.qet` runs the `migration` scheme in lenient mode ([15](15-checks-revisions-collaboration.md)
 §10.2): every enabled rule of `pre-delivery` at its pre-delivery severity, prevent violations as findings, plus the
-EW-IMP findings of the import run. It must import 18 folios with no structural error and the 64 cross-reference
+EW-IMP findings of the import run. It must import 18 folios with no structural error and the 63 cross-reference
 texts as printed in the reference, "3-B0" included: imported symbols keep QET's element-origin anchor (FR-IMP-038).
 Counts marked ▲ depend on the file (PQ-02). The code column gives the live rule, or the import code where only the
 import run knows the fact ([14](14-interop.md) §15.2).
@@ -1286,7 +1288,7 @@ Commands run on `golden/J-E-2416.ew` unless stated. "Exact" means the comparison
 | AC-02 | Folios 1, 3, 100–106, 200–206 and 900: every representation's anchor cell equals §6/§15; every text equals `text/<folio>.csv`; raster within the approved-PNG tolerance | FR-SYM-007, FR-SYM-013, FR-OUT-018 | M1 |
 | AC-03 | Page order, folio labels, page types, descriptions and sections equal §5 (36 pages); the TOC equals page order; Prev/Next computed | FR-PAG-001, FR-PAG-009, FR-PAG-013, FR-REP-003 | M1 |
 | AC-04 | Every page prints the same bound title-block values (§17.2: V2.0, `=P01`, `+J-E-2416`, dates, object); the schema has no per-page free-text title-block field | FR-REP-033, FR-REP-036, FR-REV-003 | M1 |
-| AC-05 | The 64 cross-reference texts equal §15, including "3-B2"; the 4 external points print the external target | FR-XRF-005, FR-XRF-012, FR-XRF-024 | M1 |
+| AC-05 | The 63 linked cross-reference texts (64 targets) equal §15, including "3-B2"; the 4 external points print the external target | FR-XRF-005, FR-XRF-012, FR-XRF-024 | M1 |
 | AC-06 | The tag set equals §6 and §9; every printed occurrence of a device's tag (pages, reports, layout labels, PDF text layer) is identical; PDF text search finds no "-4W1", "-4X1", "T51", "JE2416" or core colour "BR" | FR-NUM-001, FR-NUM-002, FR-LAY-009 | M1 |
 | AC-07 | Folio 901 equals §14.1 (27 rows over 901, 901.1); `ew export bom --mode assembly` equals §14.2 | FR-REP-004, FR-REP-005, FR-REP-006, FR-EXP-005 | M1 |
 | AC-08 | Folios 903–905 equal §9; designations unique per strip | FR-REP-009, FR-TRM-002, FR-TRM-021 | M1 |
@@ -1294,7 +1296,7 @@ Commands run on `golden/J-E-2416.ew` unless stated. "Exact" means the comparison
 | AC-10 | The potential partition equals §7.3 (19 potentials, bond B1); folio 909 equals it | FR-CON-009, FR-CON-012, FR-CON-014, FR-REP-016 | M1 |
 | AC-11 | Folio 906 and `ew export cables` equal §10 | FR-REP-012, FR-REP-013, FR-CBL-001 | M1 |
 | AC-12 | Folio 1's colour and size tables are generated from the profiles; changing the 24 V DC colour updates folio 1, every affected wire and folio 907 in one commit | FR-REP-028, FR-REP-038, FR-CON-020, FR-CON-021 | M1 |
-| AC-13 | PDF structure: outline (front matter, sections, pages), exactly 64 xref link annotations plus report back-links, `/PageLabels` = folio labels, PDF/A-2b passes veraPDF, subset-embedded fonts and no Tahoma, text extraction keeps spaces | FR-OUT-002, FR-OUT-004 … FR-OUT-008 | M1 |
+| AC-13 | PDF structure: outline (front matter, sections, pages), exactly 63 xref link annotations plus report back-links, `/PageLabels` = folio labels, PDF/A-2b passes veraPDF, subset-embedded fonts and no Tahoma, text extraction keeps spaces | FR-OUT-002, FR-OUT-004 … FR-OUT-008 | M1 |
 | AC-14 | Byte-identical PDF, SVG, CSV and JSONL across serial and parallel export and shuffled record order (M1, Linux); across Windows, macOS and Linux (MVP) | FR-OUT-019, NFR-REL-07 | M1 / MVP |
 | AC-15 | Build paths (a), (b), (c) of §3.2 agree as specified | NFR-REL-04, FR-IMP-022 | M1 |
 | AC-16 | Freshness: the scripted edits rename T55, move -102F2 by one cell, renumber folio 103 → 104 and change the 24 V colour each update every affected output in the same commit; `ew verify-derived` reports no difference with the oracle on | FR-XRF-020, NFR-REL-08 | M1 |
@@ -1306,7 +1308,7 @@ Commands run on `golden/J-E-2416.ew` unless stated. "Exact" means the comparison
 | AC-22 | With the 1.0 packs the findings equal §18.1 plus §18.2 (EF-22 superseding EF-10) | FR-CHK-005 | 1.0 |
 | AC-23 | Release of V2.0 is refused on Golden A with exactly the blockers of §18.3 and succeeds on Golden A-R after the runner's `ew revision approve --as <checker>` (§2.4), writing a verified as-built archive | FR-REV-005 … FR-REV-008 | MVP |
 | AC-24 | Every regression test of §19 passes at or after its gate | SC-2 | per row |
-| AC-25 | Golden C: `ew import qet` imports 18 folios without structural error, reproduces the 64 texts as printed and lists exactly MF-01 … MF-27 | FR-IMP-003, FR-IMP-006, FR-IMP-009, FR-IMP-010 | M2 |
+| AC-25 | Golden C: `ew import qet` imports 18 folios without structural error, reproduces the 63 texts as printed and lists exactly MF-01 … MF-27 | FR-IMP-003, FR-IMP-006, FR-IMP-009, FR-IMP-010 | M2 |
 | AC-26 | Golden C plus `c-fix.ewcmd` is equivalent to Golden A (§20.3) | FR-IMP-004, FR-CHK-010 | M2 |
 | AC-27 | The migration verifier compares the Golden C import with the reference PDF and reports only the deltas of §3.4 that apply to an import (font, 3-B0 flagged) | FR-IMP-021 | MVP |
 | AC-28 | GUI flows (egui_kittest) on Golden A: follow "102-A1" from 101-H16 and back; select W29 and see "0.75 mm² · from potential 24VDC-1 via profile DBU/WH 24 V"; change its colour and undo; add a terminal to -X1031 with ghost preview; every frame ≤ 16 ms | FR-UI-010, FR-UI-019, NFR-PERF-04 | M2 |

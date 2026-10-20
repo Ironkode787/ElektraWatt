@@ -759,6 +759,9 @@ bus with dots. That drawing is derived from the bridge connections.
   its side-2 point at (g·(k+1), h), leaving down, where g is the segment symbol's grid and h the bottom of its R0
   bounds snapped to g; every function CP of a side draws at that side's point, and CPs without a side (shaft, rail
   foot) are not drawn.
+- **Cross-references.** A strip segment is never a cross-reference target and never the cross-reference main
+  representation of its device: it neither refers nor is referred to (decision log ID-191). The tag, numbering and
+  BOM main representation is unchanged.
 - **Terminals drawn alone** (decision log ID-162). A terminal with its own representation (1X1) prints its
   designation or function text (`label_mode`), never the full tag; on a page without a segment of its strip, the
   strip tag is printed once, at the first terminal representation in (row, column, ID) order.

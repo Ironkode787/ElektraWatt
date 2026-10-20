@@ -907,7 +907,7 @@ FT-78.
 
 | Field | Value |
 |---|---|
-| Objective | Produce the 64 golden cross-reference texts from relations, synchronously with every edit. |
+| Objective | Produce the 63 golden cross-reference texts (64 link targets) from relations, synchronously with every edit. |
 | Scope in | Xref relation model and token formats (including QET `%f`/`%F`); star and chain interruption points; external targets; main/aux and overview references; contact images; freshness class I |
 | Scope out | Interactive arranging and continuing of interruption points (WP-S2.04) |
 | Deliverables | Xref queries; AC-05 passing; D-01 replay (AC-20) |
@@ -917,6 +917,8 @@ FT-78.
 | Milestone · release | M1 Spine exit: headless golden PDF · MVP |
 | Acceptance | AC-05, AC-20 |
 | Owner role | Core developer |
+
+*Status (2026-10-20, cycle 8).* Delivered with follow-up tasks: `ew-derive` has the format, relation and text queries and the interruption-point pairing (star and chain); the golden page output prints the cross-reference texts with 63 link annotations and the 4 external texts without a link, and the golden acceptance of doc 20 §15 passes (`golden_xref`: the 44 interruption-point and 19 main/aux texts, no "3-B0", the folio renumber replay). The design pass fixed the counts (63 texts, 64 targets) and the open rules (decision log ID-188 to ID-199). Open: the settings of FR-XRF-017 and FR-XRF-018 (FT-82), xref slots on the -203Q group (FT-81), the external texts on folio 101 (FT-83), the per-slot text style (FT-84) and the glyph "∞" (FT-85, awaiting the owner's approval of the download).
 
 #### WP-S1.09 Persistence core: ew-format and ew-store
 
@@ -1715,9 +1717,7 @@ provisional router, `ew-render-cpu` (vello_cpu 0.3.0, PNG), the deterministic PD
 ID-163 to ID-168; ADR-0015 amendments 5 to 7). 47 of the 72 page wires are not drawn yet (FT-54, FT-55), so the PNG
 candidates are regenerated before the first approval (FT-58, FT-10). *Update after the fix rounds:* the
 goldens and the PDF come from the `Session`'s `Q`, black boxes and strip segments carry their CPs, and the candidates
-are regenerated (FT-52, FT-54, FT-55, FT-58 closed); the golden PDF has 31 of doc 20 §16's 36 pages (ID-187). Open: generated pages from the `Session`'s `Q`
-(FT-52), link annotations with the cross-references of WP-S1.08 (AC-13), the export job (FT-59), veraPDF and
-`ew export pdf golden/`.
+are regenerated (FT-52, FT-54, FT-55, FT-58 closed); the golden PDF has 31 of doc 20 §16's 36 pages (ID-187). *Update, cycle 8:* the cross-reference texts and their 63 link annotations are in the page output, and the structure and SHA-256 goldens of the PDF are committed (WP-S1.08, ID-188); FT-52 is closed in full. Open: the export job (FT-59), veraPDF, `ew export pdf golden/`, and the first PNG approval (FT-10) after FT-83 to FT-85.
 
 #### WP-S3.05 Spine importers: CSV golden bootstrap and QET element reader
 
@@ -2728,7 +2728,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-07 | `ew-import-qet`: the one built-in FnDef is `ew.fn.ip` with `version_req` `^0.1` (`BUILTIN_FNDEF_KEYS`, `BUILTIN_VERSION_REQ`) | WP-S3.05 | Cycle 6 (fix round) | ID-33; [14](../design/14-interop.md) §4.3 |
 | FT-08 | Starter content: the `handle` link point of `ew.iec.switch-2p-manual` and no drawn linkage except the MCB's; PE and FE graphics, text slots and the content lint; regenerate the `@qet10` edition | WP-S7.02 | Cycle 6 (fix round) | ID-35, ID-36 |
 | FT-09 | `ew-scene` symbol lowering: flip text alignment under the orientation variants as [07](../design/07-symbols-parts-macros.md) §4.1 states | WP-S3.01 | Cycle 6 | ID-49 |
-| FT-10 | First PNG approval: check VR-01 (coil against resistor) and VR-02 (hook of the changeover contact) | WP-S3.04 | M1 PNG approval | ID-34; [20](../design/20-golden-project.md) §3.3 |
+| FT-10 | First PNG approval: check VR-01 (coil against resistor) and VR-02 (hook of the changeover contact) | WP-S3.04 | M1 PNG approval; stays open: the nine "∞" texts print `.notdef` until FT-85, and FT-83 and FT-84 change the candidates | ID-34; [20](../design/20-golden-project.md) §3.3 |
 | FT-11 | `ew-commands`: three productive passes plus one confirming pass; junction clean-up by worklist; history budget by the in-memory size of the rows only the history keeps alive | WP-S1.04 | Cycle 5 review fix round | ID-43, ID-44; [ADR-0008](../adr/0008-transactions-undo-preview.md) amendment 2 |
 | FT-12 | `ew-commands` command rules: colliding explicit counter edits rejected with a proposal; off-grid positions and routes rejected; `edit.delete` Bulk by delete-plan size; `device.place_from_part` unregistered; disallowed representation types refused; vanished hint targets reported; junction dissolve keeps the assigned wire number | WP-S1.04 | Cycle 5 review fix round | ID-53, ID-54, ID-55, ID-60 |
 | FT-13 | `ew-commands` interface: parameter schemas reject unknown open-enum tags; parameter document limits; `Origin::Cli { confirmed }`; a public surface of summaries only, full ops under `testkit` | WP-S1.04 | Cycle 5 review fix round | ID-56, ID-57, ID-59; [ADR-0001](../adr/0001-core-model-persistent-maps.md) amendment 3 |
@@ -2770,7 +2770,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-49 | A `DeriveNote` for EW-CORE-025 (TOC count not settled), surfaced by the `Session` as a warning | WP-S3.03 | Cycle 7 (fix round) | ID-135, ID-99 |
 | FT-50 | Honest `rust-version` per crate: the permissive crates keep 1.85 (MSRV job), `ew-export`, `ew-render-cpu` and their dependents declare 1.92, other GPL crates follow the pinned toolchain; `ci/README` states the rule | WP-S6.02 | **Closed:** implemented in the cycle-7 fix round (ID-183) | ID-141; [18](../design/18-quality-security-release.md) §6.2 |
 | FT-51 | Clusters in `ew-dl`'s `ShapedRun` (from `ew-text`), and the PDF writer's ToUnicode by cluster instead of 1:1 or one cluster per run | WP-S3.04 | Before the golden PDF is approved | ID-139 |
-| FT-52 | Golden page output from the `Session`'s `Q`: generated pages in Prev/Next, outline and `/PageLabels` with frame and title block; PDF destinations `v5(block, index)` for generated pages and the section ID for dividers, a duplicate destination an export error; `expected/pdf/structure.json` committed; `PdfOptions.date` required, the export passing FR-OUT-026's date; the PDF's SHA-256 committed once cross-references exist (WP-S1.08) | WP-S3.04 | **Closed:** implemented in the cycle-7 fix round; the PDF's SHA-256 still waits for the cross-references of WP-S1.08 | ID-139, ID-163, ID-164 |
+| FT-52 | Golden page output from the `Session`'s `Q`: generated pages in Prev/Next, outline and `/PageLabels` with frame and title block; PDF destinations `v5(block, index)` for generated pages and the section ID for dividers, a duplicate destination an export error; `expected/pdf/structure.json` committed; `PdfOptions.date` required, the export passing FR-OUT-026's date; the PDF's SHA-256 committed once cross-references exist (WP-S1.08) | WP-S3.04 | **Closed:** implemented in the cycle-7 fix round; the PDF's SHA-256 was committed in cycle 8 with the cross-references of WP-S1.08 | ID-139, ID-163, ID-164 |
 | FT-53 | Draw report content: the `tables` layer from the `RowSet` into the form's data area for generated pages and embedded blocks, so the golden PDF has every page of the order with its rows | WP-S3.03 | Cycle 8 | ID-136, ID-145, ID-163 |
 | FT-54 | Black boxes: the CSV bootstrap emits `Representation.box` from the part's black-box pattern (-102G1, -102F2, -201U1, -202U1), and `ew-scene` reads the box CPs | WP-S3.05 (importer); WP-S3.04 (`ew-scene`) | **Closed:** implemented in the cycle-7 fix round (ID-181) | ID-142 |
 | FT-55 | Strip segments: each drawn terminal gets one CP per side, one connection-grid step apart along the segment axis (the fix lead reports the exact rule for doc 08 §6.7 and doc 07 §9.1); terminal representations print the designation, the strip tag once (1X1 on folio 101) | WP-S3.04 (`ew-scene`, CP positions); WP-S7.01 (fixture) | **Closed:** implemented in the cycle-7 fix round (ID-180) | ID-143, ID-162; [08](../design/08-connections-terminals-cables.md) §6.7 |
@@ -2799,6 +2799,11 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-78 | `wire_props_of`: override provenance names the carrying constituent; built-in colours by circuit class (AC control L RD); disagreeing equal-specificity colour rows a profile load error | WP-S1.07 | **Closed:** implemented in the cycle-7 fix round | ID-176, ID-177 |
 | FT-79 | A dedicated `DeriveNote::InvalidForm` for invalid report layouts instead of `MalformedShim` | WP-S3.03 | Cycle 8 | ID-179, ID-157 |
 | FT-80 | The `DeviceLink` record kind (format change, FR-DEV-028) and with it the used-valve process-tag fallback of ID-167 | WP-S1.13 | With the WP | ID-182, ID-167 |
+| FT-81 | Xref slots on the symbols of the -203Q mains and the actuators, so that their derived cross-reference texts are drawn (the texts derive today, but the symbols have no `xref` slot and nothing prints) | WP-S7.02 | With the symbol-set rework | ID-193 |
+| FT-82 | Act on the contact-image settings `show_unused`, glyph, placement and `contact_image` (parsed with defaults today): unused part contacts, the glyph from the contact-image variant, "in path" or "on component" placement; then drop the "partial" marks of FR-XRF-017 and FR-XRF-018 | WP-S1.08 (derivation); WP-S3.04 (`ew-scene`, placement) | Cycle 9 or later | ID-195; [06](../design/06-schematic-editor.md) §2.8 |
+| FT-83 | Folio 101: move the text slot of the external-connection symbol, so that "+J-E-206 / JE-N1000-03" is no longer clipped by the symbol's slot box (the three external texts start left of the frame and overlap the next point's name; "J-E-206-PE" starts 0.27 mm left of the drawing area; golden README, gaps for FT-10); regenerate the candidates | WP-S7.02 (symbol); WP-S3.04 (goldens) | Cycle 9 | ID-196 |
+| FT-84 | `TextSlot.style`: the optional member in `ew-schema` (absent = the style of the slot's kind), honoured by `ew-scene`, the schema bless and the doc 07 §2.3 wording; how an unknown style name resolves; then the xref slots name `xref.device` where doc 06 §2.8 and doc 20 §17.5 bind it, and the `@qet10` edition and the golden candidates are regenerated | WP-S1.02 (schema); WP-S3.01 (`ew-scene`); WP-S7.02 (content) | Cycle 9 | ID-197; [20](../design/20-golden-project.md) §17.5 |
+| FT-85 | The symbol fallback font for "∞" (U+221E): after the owner approves the download of Noto Sans Math Regular (OFL-1.1, about 0.5 MB, notofonts GitHub release): pin its SHA-256, add its `NOTICE` entry, add the fontique fallback chain in `ew-text`, regenerate the PNG, text and PDF goldens, assert `dropped_notdef_glyphs` = 0 in the structure golden, then approve at FT-10 | WP-S3.02 (`ew-text`); WP-S3.04 (goldens) | **Awaiting owner approval of the download** | ID-198; [ADR-0028](../adr/0028-default-drawing-fonts.md) recommendation 3 |
 
 ---
 

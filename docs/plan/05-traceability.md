@@ -310,7 +310,7 @@ Golden gate: the "Gate" column of [golden project](../design/20-golden-project.m
 | AC-02 | Folios 1, 3, 100–106, 200–206 and 900: every representation's anchor… | M1 | G-M1 | same | FR-OUT-018, FR-SYM-007, FR-SYM-013 | WP-S1.13, WP-S3.01, WP-S3.04, WP-S7.02 | M1 | ok |
 | AC-03 | Page order, folio labels, page types, descriptions and sections equal… | M1 | G-M1 | same | FR-PAG-001, FR-PAG-009, FR-PAG-013, FR-REP-003 | WP-S1.06, WP-S3.03, WP-S7.01 | M1 | ok |
 | AC-04 | Every page prints the same bound title-block values (§17.2: V2.0, `=P… | M1 | G-M1 | same | FR-REP-033, FR-REP-036, FR-REV-003 | WP-S1.06, WP-S1.12, WP-S3.02 | M1 | ok |
-| AC-05 | The 64 cross-reference texts equal §15, including "3-B2"; the 4 exter… | M1 | G-M1 | same | FR-XRF-005, FR-XRF-012, FR-XRF-024 | WP-S1.08, WP-S7.01 | M1 | ok |
+| AC-05 | The 63 linked cross-reference texts (64 targets) equal §15, including… | M1 | G-M1 | same | FR-XRF-005, FR-XRF-012, FR-XRF-024 | WP-S1.08, WP-S7.01 | M1 | ok |
 | AC-06 | The tag set equals §6 and §9; every printed occurrence of a device's… | M1 | G-M1 | same | FR-LAY-009, FR-NUM-001..002 | WP-S1.01, WP-S1.06 | M1 | ok |
 | AC-07 | Folio 901 equals §14.1 (27 rows over 901, 901.1); `ew export bom --mo… | M1 | G-M1 + G-PP | G-M1 | FR-EXP-005, FR-REP-004..006 | WP-S1.06, WP-S1.19a, WP-S3.03, WP-S3.08, WP-S7.01 | M1 | ok |
 | AC-08 | Folios 903–905 equal §9; designations unique per strip | M1 | G-M1 | same | FR-REP-009, FR-TRM-002, FR-TRM-021 | WP-S1.14, WP-S3.03 | M1 | ok |
@@ -318,7 +318,7 @@ Golden gate: the "Gate" column of [golden project](../design/20-golden-project.m
 | AC-10 | The potential partition equals §7.3 (19 potentials, bond B1); folio 9… | M1 | G-M1 | same | FR-CON-009, FR-CON-012, FR-CON-014, FR-REP-016 | WP-S1.07, WP-S3.03 | M1 | ok |
 | AC-11 | Folio 906 and `ew export cables` equal §10 | M1 | G-M1 | same | FR-CBL-001, FR-REP-012..013 | WP-S1.14, WP-S3.03 | M1 | ok |
 | AC-12 | Folio 1's colour and size tables are generated from the profiles; cha… | M1 | G-M1 | same | FR-CON-020..021, FR-REP-028, FR-REP-038 | WP-S1.07, WP-S3.03 | M1 | ok |
-| AC-13 | PDF structure: outline (front matter, sections, pages), exactly 64 xr… | M1 | G-M1 | same | FR-OUT-002, FR-OUT-004..008 | WP-S3.04 | M1 | ok |
+| AC-13 | PDF structure: outline (front matter, sections, pages), exactly 63 xr… | M1 | G-M1 | same | FR-OUT-002, FR-OUT-004..008 | WP-S3.04 | M1 | ok |
 | AC-14 | Byte-identical PDF, SVG, CSV and JSONL across serial and parallel exp… | M1 / MVP | G-M1 + G-M2 | same | FR-OUT-019, NFR-REL-07 | WP-S1.09, WP-S3.04, WP-S6.02, WP-S6.06 | M1 | ok |
 | AC-15 | Build paths (a), (b), (c) of §3.2 agree as specified | M1 | G-M1 | same | FR-IMP-022, NFR-REL-04 | WP-S1.02, WP-S1.09, WP-S1.10, WP-S3.05, WP-S6.01 | M1 | ok |
 | AC-16 | Freshness: the scripted edits rename T55, move -102F2 by one cell, re… | M1 | G-M1 | same | FR-XRF-020, NFR-REL-08 | WP-S1.05, WP-S6.02 | M1 | ok |

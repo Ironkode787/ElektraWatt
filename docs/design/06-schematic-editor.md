@@ -245,7 +245,7 @@ matrix      = { per_row = 3, max = 9, overflow = "…" }   # one-to-many points 
 | Token | Meaning | QET variable (FR-XRF-003) |
 |---|---|---|
 | `{page}` | folio label of the target page | `%F` |
-| `{page_index}` | position in page order | `%f` |
+| `{page_index}` | position in page order, counting every page record but not report continuation pages (FR-XRF-003) | `%f` |
 | `{row}`, `{column}` | target anchor cell on the target page's frame (FR-XRF-021) | `%l`, `%c` |
 | `{function}`, `{location}` | structure of the target (`=`, `+`) | `%M`, `%LM` |
 

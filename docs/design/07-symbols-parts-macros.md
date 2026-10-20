@@ -176,7 +176,7 @@ pub struct SymbolDef {                       // library item kind "symbol"
                                              //   the generated QET-grid edition of the starter set (§3.2)
     pub graphics: Vec<Primitive>,            // nm, relative to the origin
     pub cps: Vec<SymbolCp>,                  // {idx, fn_cp: u16, pos: Pt2, dir: Dir4, discipline}
-    pub text_slots: Vec<TextSlot>,           // {kind, pos, rot, align, visible, max_width?}
+    pub text_slots: Vec<TextSlot>,           // {kind, pos, rot, align, visible, max_width?, style?}
     pub arrangements: Vec<Arrangement>,      // named slot sets: "full", "tag + rating" (FR-SYM-012)
     pub anchor: AnchorPolicy,                // Origin | Slot(kind) | GraphicCentre | Named(Pt2) (FR-SYM-010)
     pub link_points: Vec<NamedPoint>,        // ends of derived mechanical linkages (FR-SYM-014)
@@ -213,7 +213,9 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   - Tag, FunctionText, TechData, Manufacturer, PartNumber, TypeDesignation;
   - CpDesignation(idx), Xref, PlcAddress, ProcessTag, UserProp(key), ContactImage.
 
-  Text height comes from the project's text style bound to the slot kind (FR-SYM-013). The styles of the golden
+  Text height comes from the project's text style bound to the slot kind (FR-SYM-013); a slot may name its own
+  text style in the optional member `style`, which replaces that binding for the slot (decision log ID-197). The
+  styles of the golden
   project are `tag.main`, `data.small`, `cp.small` and the others listed in [20](20-golden-project.md) §17.5, which
   removes D-29.
 - **Built-in symbols.** The interruption point `ew.gen.ip`, the black-box frame `ew.gen.blackbox` (its outline and
