@@ -5,14 +5,18 @@
 
 use std::path::{Path, PathBuf};
 
+use ew_api::import::Severity;
 use ew_api::import::migration::ReportFormat;
 use ew_api::import::{StarterLibrary, import_qet};
 
 /// The usage text.
 pub const USAGE: &str = "usage:
   ew --version | -V
-  ew import qet <file.qet> [--content <dir>] [--report md|csv|json] [--report-out <file>]
-  ew help | --help | -h";
+  ew import qet <file.qet> [--content <dir>] [--report md|csv|json] [--report-out <file>] [--strict]
+  ew help | --help | -h
+
+`import qet` exits 0 when the import completes, even with findings; `--strict` exits 1 on lost connections or
+error findings. With `--report` and no `--report-out` stdout is exactly the report; the summary goes to stderr.";
 
 /// A parsed command line.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -36,6 +40,8 @@ pub struct ImportQetArgs {
     pub report: Option<ReportFormat>,
     /// The report file (`--report-out`).
     pub report_out: Option<PathBuf>,
+    /// Fail on lost connections or error findings (`--strict`).
+    pub strict: bool,
 }
 
 /// Parses the arguments after the program name.
@@ -72,6 +78,7 @@ fn parse_import_qet(mut it: impl Iterator<Item = String>) -> Result<Command, Str
     let mut content = None;
     let mut report = None;
     let mut report_out = None;
+    let mut strict = false;
     while let Some(a) = it.next() {
         match a.as_str() {
             "--content" => content = Some(PathBuf::from(value(&mut it, "--content")?)),
@@ -83,6 +90,7 @@ fn parse_import_qet(mut it: impl Iterator<Item = String>) -> Result<Command, Str
                 );
             }
             "--report-out" => report_out = Some(PathBuf::from(value(&mut it, "--report-out")?)),
+            "--strict" => strict = true,
             opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
             _ => {
                 if file.replace(PathBuf::from(&a)).is_some() {
@@ -97,6 +105,7 @@ fn parse_import_qet(mut it: impl Iterator<Item = String>) -> Result<Command, Str
         content,
         report,
         report_out,
+        strict,
     }))
 }
 
@@ -104,7 +113,8 @@ fn value(it: &mut impl Iterator<Item = String>, opt: &str) -> Result<String, Str
     it.next().ok_or_else(|| format!("`{opt}` needs a value"))
 }
 
-/// Runs `cmd` and returns the exit code (0 success, 1 model check failed, 2 usage, I/O and import errors).
+/// Runs `cmd` and returns the exit code (0 success, 1 model check failed or `--strict` violated, 2 usage, I/O and
+/// import errors).
 pub fn run(cmd: Command) -> i32 {
     match cmd {
         Command::Version => {
@@ -160,19 +170,49 @@ fn run_import_qet(a: &ImportQetArgs) -> i32 {
     };
     let c = imported.counts();
     let report = imported.migration_report();
-    println!(
+    // With the report on stdout, stdout is exactly the report: the summary goes to stderr.
+    let to_stderr = a.report.is_some() && a.report_out.is_none();
+    let say = |line: String| {
+        if to_stderr {
+            eprintln!("{line}");
+        } else {
+            println!("{line}");
+        }
+    };
+    say(format!(
         "imported {name}: {} pages, {} devices ({} strips, {} terminals), {} functions, {} representations, {} connections, {} junctions",
         c.pages, c.devices, c.strips, c.terminals, c.functions, c.representations, c.connections, c.junctions
-    );
-    println!(
+    ));
+    say(format!(
         "report: {} findings, {} lost connections",
         report.total, report.lost_connections
-    );
+    ));
+    if !report.live.is_empty() {
+        let n: u32 = report.live.iter().map(|g| g.count).sum();
+        say(format!("checks: {n} lenient findings"));
+    }
     let mut code = 0;
     match &imported.session {
-        Ok(s) => println!("derived: {} pages in page order", s.page_labels().len()),
+        Ok(s) => say(format!("derived: {} pages in page order", s.page_labels().len())),
         Err(msg) => {
-            println!("model check failed: {msg}");
+            say(format!("model check failed: {msg}"));
+            code = 1;
+        }
+    }
+    if a.strict {
+        let errors = imported
+            .batch
+            .report
+            .entries
+            .iter()
+            .filter(|e| e.severity == Severity::Error)
+            .count();
+        if report.lost_connections > 0 {
+            eprintln!("strict: {} lost connections", report.lost_connections);
+            code = 1;
+        }
+        if errors > 0 {
+            eprintln!("strict: {errors} error findings");
             code = 1;
         }
     }
@@ -239,6 +279,11 @@ mod tests {
         };
         assert_eq!(b.report, Some(ReportFormat::Json));
         assert_eq!(b.content, None);
+        assert!(!b.strict);
+        let Ok(Command::ImportQet(c)) = p(&["import", "qet", "--strict", "x.qet"]) else {
+            panic!("parse failed");
+        };
+        assert!(c.strict);
     }
 
     #[test]

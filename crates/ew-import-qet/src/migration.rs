@@ -10,7 +10,7 @@ use std::str::FromStr;
 
 use ew_interop_api::{Code, ImportReport, ReportEntry, Severity};
 
-/// The marker of the summary entry that counts the findings beyond the per-project cap.
+/// The marker of the summary entry that announces the findings beyond the per-project cap.
 const SUMMARY_MARKER: &str = "further findings not listed";
 
 /// The migration report of one import.
@@ -28,6 +28,21 @@ pub struct MigrationReport {
     pub total: u32,
     /// Connections lost (FR-IMP-007 requires 0).
     pub lost_connections: u32,
+    /// Lenient-mode rule findings of the imported model (`EW-RDS-...`), sorted by rule.
+    pub live: Vec<LiveGroup>,
+}
+
+/// The findings of one live (lenient-mode) rule.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct LiveGroup {
+    /// The rule ID, for example `EW-RDS-004`.
+    pub rule: String,
+    /// The rule's title.
+    pub title: String,
+    /// The number of findings.
+    pub count: u32,
+    /// The finding messages.
+    pub messages: Vec<String>,
 }
 
 /// The findings of one code.
@@ -116,6 +131,7 @@ pub fn code_title(code: Code) -> &'static str {
         119 => "Element without function semantics; generic black box",
         120 => "Shared element UUID disambiguated",
         121 => "Several interruption-point names on one potential",
+        122 => "Element without label; tag letter only, not numbered",
         201..=207 => "EDZ and EPLAN finding",
         251..=257 => "DXF and DWG finding",
         301..=305 => "Table round-trip finding",
@@ -131,32 +147,13 @@ fn severity_str(s: Severity) -> &'static str {
     }
 }
 
-/// The `(code, n)` pairs of a summary message: `EW-IMP-` + 3 digits + `: ` + digits, after the first `)`.
-fn parse_summary(message: &str) -> Vec<(Code, u32)> {
-    let rest = message.find(')').map_or(message, |i| &message[i + 1..]);
-    let mut out = Vec::new();
-    let mut tail = rest;
-    while let Some(i) = tail.find("EW-IMP-") {
-        tail = &tail[i + "EW-IMP-".len()..];
-        let Some(digits) = tail.get(..3).filter(|d| d.bytes().all(|b| b.is_ascii_digit())) else {
-            continue;
-        };
-        let Some(after) = tail[3..].strip_prefix(": ") else {
-            continue;
-        };
-        let n_len = after.bytes().take_while(u8::is_ascii_digit).count();
-        if n_len == 0 {
-            continue;
-        }
-        let (Ok(num), Ok(n)) = (digits.parse::<u16>(), after[..n_len].parse::<u32>()) else {
-            continue;
-        };
-        if (1..=999).contains(&num) {
-            out.push((Code::imp(num), n));
-        }
-        tail = &after[n_len..];
+/// The catalogue severity of `code` (doc 14 §2.5).
+pub fn code_severity(code: Code) -> Severity {
+    match code.number() {
+        1..=3 => Severity::Error,
+        4 | 6 | 107 | 113 | 114 | 117 | 118 | 120..=122 => Severity::Info,
+        _ => Severity::Warning,
     }
-    out
 }
 
 impl MigrationReport {
@@ -173,11 +170,6 @@ impl MigrationReport {
         };
         for e in &r.entries {
             if e.code == Code::LIMIT && e.message.contains(SUMMARY_MARKER) {
-                for (code, n) in parse_summary(&e.message) {
-                    let g = groups.entry(code).or_insert_with(|| new_group(code, e.severity));
-                    g.count = g.count.saturating_add(n);
-                    g.severity = g.severity.max(e.severity);
-                }
                 continue;
             }
             let g = groups
@@ -188,6 +180,13 @@ impl MigrationReport {
             g.severity = g.severity.max(e.severity);
             g.entries.push(e.clone());
         }
+        for (&code, &n) in &r.stats.suppressed {
+            let g = groups
+                .entry(code)
+                .or_insert_with(|| new_group(code, code_severity(code)));
+            g.count = g.count.saturating_add(n);
+            g.severity = g.severity.max(code_severity(code));
+        }
         let groups: Vec<CodeGroup> = groups.into_values().collect();
         let total = groups.iter().fold(0u32, |a, g| a.saturating_add(g.count));
         MigrationReport {
@@ -197,7 +196,18 @@ impl MigrationReport {
             groups,
             total,
             lost_connections: r.stats.lost_connections,
+            live: Vec::new(),
         }
+    }
+
+    /// The report with the lenient-mode rule findings `live` (sorted by rule); they count into the total.
+    #[must_use]
+    pub fn with_live(mut self, mut live: Vec<LiveGroup>) -> MigrationReport {
+        live.sort_by(|a, b| a.rule.cmp(&b.rule));
+        let base = self.groups.iter().fold(0u32, |a, g| a.saturating_add(g.count));
+        self.total = live.iter().fold(base, |a, g| a.saturating_add(g.count));
+        self.live = live;
+        self
     }
 
     /// The report in format `f`.
@@ -234,6 +244,15 @@ impl MigrationReport {
                 g.title.replace('|', "\\|")
             );
         }
+        for g in &self.live {
+            let _ = writeln!(
+                s,
+                "| {} | check | {} | {} |",
+                g.rule,
+                g.count,
+                g.title.replace('|', "\\|")
+            );
+        }
         for g in &self.groups {
             let _ = write!(s, "\n## {} \u{2014} {} ({})\n\n", g.code, g.title, g.count);
             for e in &g.entries {
@@ -253,6 +272,12 @@ impl MigrationReport {
             }
             if g.count > g.listed {
                 let _ = writeln!(s, "- {} further findings not listed", g.count - g.listed);
+            }
+        }
+        for g in &self.live {
+            let _ = write!(s, "\n## {} \u{2014} {} ({})\n\n", g.rule, g.title, g.count);
+            for m in &g.messages {
+                let _ = writeln!(s, "- {m}");
             }
         }
         s
@@ -278,6 +303,12 @@ impl MigrationReport {
             if g.count > g.listed {
                 let msg = format!("{} further findings not listed", g.count - g.listed);
                 csv_row(&mut s, &[&code, sev, &count, "", "", "", &msg]);
+            }
+        }
+        for g in &self.live {
+            let count = g.count.to_string();
+            for m in &g.messages {
+                csv_row(&mut s, &[&g.rule, "check", &count, "", "", "", m]);
             }
         }
         s
@@ -315,6 +346,18 @@ impl MigrationReport {
                 })
             })
             .collect();
+        let live: Vec<Value> = self
+            .live
+            .iter()
+            .map(|g| {
+                json!({
+                    "rule": g.rule,
+                    "title": g.title,
+                    "count": g.count,
+                    "messages": g.messages,
+                })
+            })
+            .collect();
         let v = json!({
             "importer": self.importer,
             "importer_version": self.importer_version,
@@ -322,6 +365,7 @@ impl MigrationReport {
             "total": self.total,
             "lost_connections": self.lost_connections,
             "groups": groups,
+            "live": live,
         });
         serde_json::to_string_pretty(&v).unwrap_or_default()
     }
@@ -393,46 +437,115 @@ mod tests {
         assert_eq!(m.groups[1].severity, Severity::Info);
     }
 
+    fn with_suppressed(mut r: ImportReport, s: &[(u16, u32)]) -> ImportReport {
+        for &(c, n) in s {
+            r.stats.suppressed.insert(Code::imp(c), n);
+        }
+        r
+    }
+
     #[test]
-    fn summary_entry_adds_counted_only_findings() {
-        let r = report(vec![
-            ReportEntry::new(Code::UNRESOLVED_REFERENCE, Severity::Error, "x"),
-            ReportEntry::new(
-                Code::LIMIT,
-                Severity::Info,
-                "9 further findings not listed (at most 1 per project): EW-IMP-003: 5, EW-IMP-119: 4",
-            ),
-        ]);
+    fn suppressed_counts_add_counted_only_findings() {
+        let r = with_suppressed(
+            report(vec![
+                ReportEntry::new(Code::UNRESOLVED_REFERENCE, Severity::Error, "x"),
+                ReportEntry::new(
+                    Code::LIMIT,
+                    Severity::Info,
+                    "9 further findings not listed (at most 1 per project)",
+                ),
+            ]),
+            &[(3, 5), (119, 4), (122, 2)],
+        );
         let m = MigrationReport::from_report(&r);
-        assert_eq!(m.groups.len(), 2, "the summary is no EW-IMP-001 finding");
+        assert_eq!(m.groups.len(), 3, "the summary is no EW-IMP-001 finding");
         let g3 = &m.groups[0];
         assert_eq!((g3.code.number(), g3.count, g3.listed), (3, 6, 1));
         let g119 = &m.groups[1];
         assert_eq!((g119.code.number(), g119.count, g119.listed), (119, 4, 0));
-        assert_eq!(g119.severity, Severity::Info);
+        assert_eq!(g119.severity, Severity::Warning);
         assert!(g119.entries.is_empty());
-        assert_eq!(m.total, 10);
+        let g122 = &m.groups[2];
+        assert_eq!((g122.count, g122.severity), (2, Severity::Info));
+        assert_eq!(g122.title, "Element without label; tag letter only, not numbered");
+        assert_eq!(m.total, 12);
     }
 
     #[test]
-    fn summary_parser_is_robust() {
-        let p = parse_summary(
-            "2 further findings not listed (at most 5 per project): EW-IMP-1: 3, EW-IMP-004: x, EW-IMP-004: 2",
+    fn severities() {
+        assert_eq!(code_severity(Code::imp(1)), Severity::Error);
+        assert_eq!(code_severity(Code::imp(3)), Severity::Error);
+        assert_eq!(code_severity(Code::imp(4)), Severity::Info);
+        assert_eq!(code_severity(Code::imp(122)), Severity::Info);
+        assert_eq!(code_severity(Code::imp(119)), Severity::Warning);
+        assert_eq!(code_severity(Code::imp(101)), Severity::Warning);
+    }
+
+    fn live() -> Vec<LiveGroup> {
+        vec![
+            LiveGroup {
+                rule: "EW-RDS-004".to_owned(),
+                title: "Tag clash".to_owned(),
+                count: 2,
+                messages: vec!["a, b".to_owned(), "c".to_owned()],
+            },
+            LiveGroup {
+                rule: "EW-RDS-001".to_owned(),
+                title: "Missing tag".to_owned(),
+                count: 1,
+                messages: vec!["d".to_owned()],
+            },
+        ]
+    }
+
+    #[test]
+    fn live_groups_sorted_and_counted() {
+        let m =
+            MigrationReport::from_report(&report(vec![ReportEntry::new(Code::imp(6), Severity::Info, "f")]))
+                .with_live(live());
+        assert_eq!(m.live[0].rule, "EW-RDS-001");
+        assert_eq!(m.total, 4);
+    }
+
+    #[test]
+    fn live_markdown() {
+        let md = MigrationReport::from_report(&report(vec![]))
+            .with_live(live())
+            .to_markdown();
+        assert!(md.contains("| EW-RDS-004 | check | 2 | Tag clash |"), "{md}");
+        assert!(
+            md.contains("## EW-RDS-004 \u{2014} Tag clash (2)\n\n- a, b\n- c\n"),
+            "{md}"
         );
-        assert_eq!(p, vec![(Code::imp(4), 2)]);
+    }
+
+    #[test]
+    fn live_csv() {
+        let csv = MigrationReport::from_report(&report(vec![]))
+            .with_live(live())
+            .to_csv();
+        assert!(csv.contains("EW-RDS-004,check,2,,,,\"a, b\"\n"), "{csv}");
+        assert!(csv.ends_with("EW-RDS-004,check,2,,,,c\n"), "{csv}");
+    }
+
+    #[test]
+    fn live_json() {
+        let m = MigrationReport::from_report(&report(vec![])).with_live(live());
+        let v: serde_json::Value = serde_json::from_str(&m.to_json()).unwrap();
+        assert_eq!(v["total"], 3);
+        assert_eq!(v["live"][1]["rule"], "EW-RDS-004");
+        assert_eq!(v["live"][1]["count"], 2);
+        assert_eq!(v["live"][1]["messages"][1], "c");
+        assert_eq!(v["live"][1]["title"], "Tag clash");
+        let empty = MigrationReport::from_report(&report(vec![]));
+        let v: serde_json::Value = serde_json::from_str(&empty.to_json()).unwrap();
+        assert_eq!(v["live"].as_array().map(Vec::len), Some(0));
     }
 
     #[test]
     fn csv_quotes_fields() {
         let e = ReportEntry::new(Code::imp(6), Severity::Info, "say \"hi\", ok\nnext").at(at("1", "e,1", 7));
-        let m = MigrationReport::from_report(&report(vec![
-            e,
-            ReportEntry::new(
-                Code::LIMIT,
-                Severity::Info,
-                "3 further findings not listed (at most 1 per project): EW-IMP-006: 3",
-            ),
-        ]));
+        let m = MigrationReport::from_report(&with_suppressed(report(vec![e]), &[(6, 3)]));
         let csv = m.to_csv();
         assert_eq!(
             csv.lines().next(),

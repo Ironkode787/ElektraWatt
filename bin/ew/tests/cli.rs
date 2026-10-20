@@ -8,6 +8,7 @@ use std::process::{Command, Output};
 use std::sync::atomic::{AtomicU32, Ordering};
 
 const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
+const LOST: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors><conductor terminal1="999" terminal2="998"/></conductors></diagram></project>"#;
 const PROJECT: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors/></diagram></project>"#;
 
 static COUNTER: AtomicU32 = AtomicU32::new(0);
@@ -24,8 +25,12 @@ impl Tmp {
     }
 
     fn project(&self) -> PathBuf {
+        self.project_with(PROJECT)
+    }
+
+    fn project_with(&self, xml: &str) -> PathBuf {
         let p = self.0.join("t.qet");
-        std::fs::write(&p, PROJECT).unwrap();
+        std::fs::write(&p, xml).unwrap();
         p
     }
 }
@@ -70,7 +75,7 @@ fn import_summary_with_content() {
     let out = stdout(&o);
     assert!(out.starts_with("imported t.qet:"), "{out}");
     assert!(out.contains("report:"), "{out}");
-    assert!(out.contains("derived: "), "{out}");
+    assert!(out.contains("derived: 1 pages"), "{out}");
     assert!(
         !out.contains(&t.0.to_string_lossy().into_owned()),
         "the name is never a path"
@@ -101,10 +106,47 @@ fn report_json_to_stdout() {
     ]);
     assert_eq!(o.status.code(), Some(0));
     let out = stdout(&o);
-    let json = &out[out.find('{').expect("json object")..];
-    let v: serde_json::Value = serde_json::from_str(json).unwrap();
+    let v: serde_json::Value = serde_json::from_str(&out).expect("stdout is exactly the report");
     assert_eq!(v["source"], "t.qet");
     assert!(v["groups"].is_array());
+    assert!(v["live"].is_array());
+    let err = String::from_utf8_lossy(&o.stderr);
+    assert!(err.contains("imported t.qet:"), "{err}");
+    assert!(err.contains("derived: 1 pages"), "{err}");
+}
+
+#[test]
+fn strict_passes_clean_project() {
+    let t = Tmp::new();
+    let f = t.project();
+    let o = ew(&[
+        "import".as_ref(),
+        "qet".as_ref(),
+        f.as_os_str(),
+        "--strict".as_ref(),
+    ]);
+    assert_eq!(o.status.code(), Some(0), "{}", String::from_utf8_lossy(&o.stderr));
+}
+
+#[test]
+fn strict_fails_on_error_finding_lenient_does_not() {
+    let t = Tmp::new();
+    let f = t.project_with(LOST);
+    let lenient = ew(&["import".as_ref(), "qet".as_ref(), f.as_os_str()]);
+    assert_eq!(
+        lenient.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&lenient.stderr)
+    );
+    let strict = ew(&[
+        "import".as_ref(),
+        "qet".as_ref(),
+        f.as_os_str(),
+        "--strict".as_ref(),
+    ]);
+    assert_eq!(strict.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&strict.stderr).contains("strict:"));
 }
 
 #[test]
