@@ -181,7 +181,7 @@ fn push_value(out: &mut String, token: &XrefToken, values: &ItemValues) {
 /// Renders one item (an `ip` or `aux_to_main` format) for one target.
 ///
 /// `zone_only` drops the page parts (page, page index, function, location) with their separator, see
-/// [`zone_only_item`]; `prefix` names the target's structure in front of the first value (ignored for a
+/// `zone_only_item`; `prefix` names the target's structure in front of the first value (ignored for a
 /// zone-only item and for a format that names the structure itself, see [`names_structure`]).
 #[must_use]
 pub fn render_item(tokens: &[XrefToken], values: &ItemValues, options: &ItemOptions) -> String {
