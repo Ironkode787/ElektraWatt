@@ -30,9 +30,6 @@
 //! checks the contract against `ew-model`'s own stamps: every row, bucket, index and table whose stamp a
 //! random commit changed is covered, and the reserved records are covered whenever they changed.
 
-// The memo backend is built in the next step of WP-S1.07; until then some items are only used by tests.
-#![allow(dead_code)]
-
 use ew_ids::Id;
 use ew_memo::Durability;
 use ew_model::{AnyKey, AnyRow, EndpointKey, Entity, IndexName, Model, Rev, RevIndex, Row};
@@ -405,7 +402,7 @@ fn index_keys(row: &AnyRow) -> Vec<(IndexName, IxKey)> {
 /// non-existent `src/memo_keys/tests/`, which Windows tolerates (lexical `..`) and Linux and macOS do not.
 #[cfg(test)]
 #[path = "../tests/common/mod.rs"]
-mod test_common;
+pub(crate) mod test_common;
 
 #[cfg(test)]
 mod tests {

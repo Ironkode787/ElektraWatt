@@ -183,6 +183,9 @@ pub struct Component {
     pub potential: Option<Potential>,
     /// A 128-bit fingerprint of the three fields above (a fast inequality check).
     fp: u128,
+    /// The bytes of the component as an entry of the partition (`Component::entry_bytes`), counted once when it
+    /// is built: a function of its content.
+    bytes: usize,
 }
 
 impl PartialEq for Component {
@@ -192,6 +195,13 @@ impl PartialEq for Component {
             && self.signals == other.signals
             && self.potential == other.potential
     }
+}
+
+#[cfg(test)]
+thread_local! {
+    /// The components whose bytes were counted on this thread (tests: an incremental commit counts the
+    /// components it rebuilt, not every component).
+    pub(crate) static ENTRY_BYTES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
 /// A deterministic 128-bit FNV-1a hasher (no randomness: fingerprints only compare values of one process).
@@ -222,12 +232,39 @@ impl Component {
         members.hash(&mut h);
         signals.hash(&mut h);
         potential.hash(&mut h);
-        Component {
+        let mut c = Component {
             members,
             signals,
             potential,
             fp: h.0,
-        }
+            bytes: 0,
+        };
+        c.bytes = c.entry_bytes();
+        c
+    }
+
+    /// The bytes of the component as an entry of the partition's component map: the entry, the component and
+    /// its vectors by length (a function of the content, so that a component built incrementally counts as the
+    /// same one built cold).
+    fn entry_bytes(&self) -> usize {
+        use std::mem::size_of;
+        #[cfg(test)]
+        ENTRY_BYTES.with(|c| c.set(c.get() + 1));
+        let signal = |s: &Signal| {
+            size_of::<Signal>() + s.nets.len() * size_of::<NetId>() + s.ips.len() * size_of::<Id<Function>>()
+        };
+        let potential = self.potential.as_ref().map_or(0, |p| {
+            p.defs.len() * size_of::<Id<PotentialDef>>()
+                + p.cps.len() * size_of::<CpRef>()
+                + p.junctions.len() * size_of::<Id<Junction>>()
+                + (p.signals.len() + p.nets.len()) * size_of::<NetId>()
+                + p.ips.len() * size_of::<Id<Function>>()
+        });
+        map_entry::<EndpointKey, Arc<Component>>()
+            + size_of::<Component>()
+            + self.members.len() * size_of::<EndpointKey>()
+            + self.signals.iter().map(signal).sum::<usize>()
+            + potential
     }
 
     /// The key of the component in the partition: its first member.
@@ -240,7 +277,11 @@ impl Component {
 pub(crate) type PageList = Vec<Id<Page>>;
 
 /// The value of [`PotentialPartition`] (see the module documentation).
-#[derive(Clone, PartialEq, Eq, Debug)]
+///
+/// It keeps a running estimate of its bytes (the components' bytes, the page-list items, the bonds' bytes),
+/// updated where the incremental maintenance changes a component, a page list or the bonds, so that its byte
+/// count is O(1) (review cycle 10, finding 2). Two partitions are equal when their topology is.
+#[derive(Clone, Debug)]
 pub struct Partition {
     /// The components by key (their first member).
     pub(crate) comps: OrdMap<EndpointKey, Arc<Component>>,
@@ -262,9 +303,123 @@ pub struct Partition {
     pub(crate) bond_paths: Arc<BondPaths>,
     /// The bonds in ID order.
     pub(crate) bonds: Vec<BondLink>,
+    /// The bytes of the component entries: the sum of their `Component::entry_bytes`.
+    comps_bytes: usize,
+    /// The page IDs over all page lists of `pages_of`.
+    pages_items: usize,
+    /// The bytes of `bonds` (`bonds_bytes`).
+    bonds_bytes: usize,
+}
+
+impl PartialEq for Partition {
+    fn eq(&self, other: &Partition) -> bool {
+        // The byte estimates are functions of the fields compared.
+        (self.comps.ptr_eq(&other.comps) || self.comps == other.comps)
+            && (self.comp_of.ptr_eq(&other.comp_of) || self.comp_of == other.comp_of)
+            && (self.pages_of.ptr_eq(&other.pages_of) || self.pages_of == other.pages_of)
+            && (self.by_id.ptr_eq(&other.by_id) || self.by_id == other.by_id)
+            && (self.signal_of.ptr_eq(&other.signal_of) || self.signal_of == other.signal_of)
+            && (self.pages.ptr_eq(&other.pages) || self.pages == other.pages)
+            && (self.links.ptr_eq(&other.links) || self.links == other.links)
+            && self.inputs == other.inputs
+            && self.bond_paths == other.bond_paths
+            && self.bonds == other.bonds
+    }
+}
+
+impl Eq for Partition {}
+
+/// The estimated bytes of one entry of a persistent map: key, value and two words of node overhead.
+const fn map_entry<K, V>() -> usize {
+    std::mem::size_of::<K>() + std::mem::size_of::<V>() + 16
+}
+
+/// The bytes of a bond list, by length (a function of the content).
+fn bonds_bytes(bonds: &[BondLink]) -> usize {
+    use std::mem::size_of;
+    bonds
+        .iter()
+        .map(|b| {
+            size_of::<BondLink>()
+                + b.path_ips.len() * size_of::<Id<Function>>()
+                + b.names
+                    .iter()
+                    .map(|n| size_of::<String>() + n.len())
+                    .sum::<usize>()
+        })
+        .sum()
 }
 
 impl Partition {
+    /// Inserts a component (replacing none: its key is free), keeping the byte estimate.
+    pub(crate) fn insert_comp(&mut self, key: EndpointKey, comp: Arc<Component>) {
+        self.comps_bytes = self.comps_bytes.saturating_add(comp.bytes);
+        if let Some(old) = self.comps.insert(key, comp) {
+            self.comps_bytes = self.comps_bytes.saturating_sub(old.bytes);
+        }
+    }
+
+    /// Removes a component, keeping the byte estimate.
+    pub(crate) fn remove_comp(&mut self, key: &EndpointKey) -> Option<Arc<Component>> {
+        let comp = self.comps.remove(key)?;
+        self.comps_bytes = self.comps_bytes.saturating_sub(comp.bytes);
+        Some(comp)
+    }
+
+    /// Sets the page list of `e` (`None` or empty: removes it), keeping the byte estimate.
+    pub(crate) fn set_pages_of(&mut self, e: EndpointKey, list: Option<PageList>) {
+        let old = self.pages_of.get(&e).map_or(0, Vec::len);
+        self.pages_items = self.pages_items.saturating_sub(old);
+        match list.filter(|l| !l.is_empty()) {
+            Some(l) => {
+                self.pages_items = self.pages_items.saturating_add(l.len());
+                self.pages_of.insert(e, l);
+            }
+            None => {
+                self.pages_of.remove(&e);
+            }
+        }
+    }
+
+    /// Sets the bonds, keeping the byte estimate.
+    pub(crate) fn set_bonds(&mut self, bonds: Vec<BondLink>) {
+        self.bonds_bytes = bonds_bytes(&bonds);
+        self.bonds = bonds;
+    }
+
+    /// The byte estimate from the running counts and the maps' lengths: O(1).
+    fn estimated_heap(&self) -> usize {
+        use std::mem::size_of;
+        self.comps_bytes
+            + self.comp_of.len() * map_entry::<EndpointKey, EndpointKey>()
+            + self.pages_of.len() * map_entry::<EndpointKey, PageList>()
+            + self.pages_items * size_of::<Id<Page>>()
+            + self.by_id.len() * map_entry::<PotentialId, EndpointKey>()
+            + self.signal_of.len() * map_entry::<NetId, EndpointKey>()
+            // The pages and links are shared with their families' memos and counted by those.
+            + self.pages.len() * map_entry::<Id<Page>, Arc<LocalNets>>()
+            + self.links.len() * map_entry::<Id<Function>, Arc<FunctionLinks>>()
+            + self.bonds_bytes
+    }
+
+    /// The running counts recomputed by a walk of the value (the cold build's start, and the tests' check of
+    /// the incremental maintenance). The components' bytes are the ones each counted when it was built.
+    fn walked_counts(&self) -> (usize, usize, usize) {
+        (
+            self.comps.values().map(|c| c.bytes).sum(),
+            self.pages_of.values().map(Vec::len).sum(),
+            bonds_bytes(&self.bonds),
+        )
+    }
+
+    /// The running counts as kept, and as a walk recomputes them (tests).
+    #[cfg(test)]
+    pub(crate) fn counts(&self) -> ((usize, usize, usize), (usize, usize, usize)) {
+        (
+            (self.comps_bytes, self.pages_items, self.bonds_bytes),
+            self.walked_counts(),
+        )
+    }
     /// The potentials in ID order.
     pub fn potentials(&self) -> impl Iterator<Item = &Potential> + '_ {
         self.by_id
@@ -375,28 +530,10 @@ impl HeapBytes for Component {
     }
 }
 
-/// An estimate of a persistent map's bytes: entries plus two words of node overhead each.
-fn map_bytes<K: Ord + Clone, V: Clone>(map: &OrdMap<K, V>, heap: impl Fn(&K, &V) -> usize) -> usize {
-    map.iter()
-        .map(|(k, v)| std::mem::size_of::<K>() + std::mem::size_of::<V>() + 16 + heap(k, v))
-        .sum()
-}
-
 impl HeapBytes for Partition {
+    /// The running estimate (`Partition::estimated_heap`): O(1), whatever the size of the partition.
     fn heap_bytes(&self) -> usize {
-        // The components own their contents; the pages and links are shared with their families' memos and
-        // counted by those (a reference each here).
-        map_bytes(&self.comps, |_, c| {
-            std::mem::size_of::<Component>() + c.heap_bytes()
-        }) + map_bytes(&self.comp_of, |_, _| 0)
-            + map_bytes(&self.pages_of, |_, p| {
-                p.capacity() * std::mem::size_of::<Id<Page>>()
-            })
-            + map_bytes(&self.by_id, |_, _| 0)
-            + map_bytes(&self.signal_of, |_, _| 0)
-            + map_bytes(&self.pages, |_, _| 0)
-            + map_bytes(&self.links, |_, _| 0)
-            + self.bonds.heap_bytes()
+        self.estimated_heap()
     }
 }
 
@@ -411,6 +548,7 @@ impl Query for PotentialPartition {
     const FAMILY: &'static str = "potential_partition";
     const POLICY: Policy = Policy::Memo;
     const INCREMENTAL: bool = true;
+    const PRODUCER: bool = true;
 
     fn bytes(value: &Self::Value) -> usize {
         crate::heap::value_bytes(value)
@@ -428,6 +566,8 @@ impl Query for PotentialPartition {
             q.changed_parts(parts);
             return Arc::new(next);
         }
+        // The cold algorithm reads everything it relies on: nothing carried stays a dependency.
+        q.drop_carried();
         let next = cold(q);
         q.changed_parts(difference(prev, &next));
         Arc::new(next)
@@ -637,10 +777,16 @@ fn cold(q: &Q) -> Partition {
         inputs,
         bond_paths,
         bonds: Vec::new(),
+        comps_bytes: 0,
+        pages_items: 0,
+        bonds_bytes: 0,
     };
-    partition.bonds = bond_links(&partition.inputs, &partition.bond_paths, |e| {
+    let bonds = bond_links(&partition.inputs, &partition.bond_paths, |e| {
         partition.potential_at(e).map(|p| p.id)
     });
+    partition.set_bonds(bonds);
+    // The cold build walks everything anyway: the running counts start from a walk.
+    (partition.comps_bytes, partition.pages_items, _) = partition.walked_counts();
     partition
 }
 

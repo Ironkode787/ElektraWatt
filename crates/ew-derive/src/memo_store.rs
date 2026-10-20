@@ -121,6 +121,12 @@ fn run<F: Query>(
             F::run(q, key)
         }
     });
+    debug_assert!(
+        !F::NOTE_FREE || out.notes.is_none(),
+        "ew-derive: the note-free family `{}` pushed notes (ARCH §6.4): {:?}",
+        F::FAMILY,
+        out.notes.as_ref().map(|n| n.notes())
+    );
     // A producer that declared the parts it changed: its notes travel with every part (part readers replay
     // them), so a change of the notes is a change of the notes part. A producer that declared nothing
     // changed every part with its value, the notes included.
@@ -274,6 +280,10 @@ impl MemoStore {
     /// report engine and oracle mode, the memos shared until either side writes. Advancing the fork does not
     /// touch this store. For a benchmark sample or a job on this thread; a fork is no more `Send` than its
     /// store.
+    ///
+    /// A fork only advances along its own descendants: [`MemoStore::advance`] takes a snapshot that a commit
+    /// produced from the fork's current snapshot (the same history as the store it was taken from up to the
+    /// fork). Moving it to another branch of history starts an empty store, as for any `MemoStore`.
     #[must_use]
     pub fn fork(&self) -> MemoStore {
         MemoStore {
@@ -355,5 +365,118 @@ impl MemoStore {
     /// The (registration key, memo) pairs of the push index.
     pub fn push_index_entries(&self) -> usize {
         self.store().push_index_entries()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    // The test edits a snapshot with the raw `Model::apply_unchecked` (a reader of ew-model's raw API).
+    #![allow(clippy::disallowed_methods)]
+
+    use std::sync::Arc;
+
+    use ew_model::{AnyRow, Entity, Op};
+    use ew_schema::Page;
+    use serde_json::json;
+
+    use super::MemoStore;
+    use crate::Q;
+    use crate::memo_keys::PartKey;
+    use crate::memo_keys::test_common::{Fx, id};
+    use crate::note::DeriveNote;
+    use crate::query::{Changes, Policy, Query};
+
+    const PAGE: u128 = 0x100;
+
+    /// An incremental producer that carries notes (`NOTE_FREE` off, the configuration the notes part exists
+    /// for): its value is the number of pages, its note names the first page's title. A rename changes its
+    /// notes, not its value, and its hook declares no changed part then.
+    struct NotedProducer;
+
+    impl Query for NotedProducer {
+        type Key = ();
+        type Value = usize;
+        const FAMILY: &'static str = "test_noted_producer";
+        const POLICY: Policy = Policy::Memo;
+        const INCREMENTAL: bool = true;
+        const PRODUCER: bool = true;
+        const NOTE_FREE: bool = false;
+
+        fn run(q: &Q, _: &()) -> Arc<usize> {
+            let pages = q.pages();
+            if let Some((_, p)) = pages.iter().next() {
+                q.note(DeriveNote::MalformedShim {
+                    member: "probe".into(),
+                    detail: format!("{:?}", p.title),
+                });
+            }
+            Arc::new(pages.len())
+        }
+
+        fn run_incremental(q: &Q, key: &(), previous: Option<(&Arc<usize>, Changes<'_>)>) -> Arc<usize> {
+            // It re-reads everything and pushes every note on every execution.
+            q.drop_carried();
+            let value = Self::run(q, key);
+            if let Some((prev, _)) = previous {
+                q.changed_parts((**prev != *value).then_some(PartKey::Bonds));
+            }
+            value
+        }
+    }
+
+    /// The producer's value read as one part (`PartKey::Bonds` stands for "the count").
+    struct NotesReader;
+
+    impl Query for NotesReader {
+        type Key = ();
+        type Value = usize;
+        const FAMILY: &'static str = "test_notes_reader";
+        const POLICY: Policy = Policy::Memo;
+
+        fn run(q: &Q, _: &()) -> Arc<usize> {
+            Arc::new(*q.get_part::<NotedProducer>((), PartKey::Bonds))
+        }
+    }
+
+    /// Review cycle 10, finding 5 (the reviewer's probe): a producer whose notes change while its value and its
+    /// declared parts do not. The part reader replays the producer's notes, so it depends on the notes part:
+    /// it re-executes, and its notes equal a cold run's.
+    #[test]
+    fn a_part_reader_follows_the_producers_notes() {
+        let m0 = Fx::new().page(PAGE, 1, None, "multi_line", &[], "first").build();
+        let store = MemoStore::new(&m0);
+        let mut q = store.query();
+        assert_eq!(*q.get::<NotesReader>(()), 1);
+        let before = q.diagnostics().notes();
+        assert_eq!(before.len(), 1, "{before:?}");
+
+        let old = Arc::clone(Q::new(&m0).pages().get(id(PAGE)).expect("the page"));
+        let mut renamed = serde_json::to_value(&*old).expect("a page serialises");
+        renamed["title"] = json!({"en": "second"});
+        let renamed: Page = serde_json::from_value(renamed).expect("a page parses");
+        let op = Op::update(AnyRow::of((*old).clone()), AnyRow::of(renamed));
+        let m1 = m0
+            .apply_unchecked(&[op], m0.rev().next())
+            .expect("the rename applies");
+        store.advance(&m1, &[Page::key(id(PAGE))]);
+
+        let mut q = store.query();
+        assert_eq!(*q.get::<NotesReader>(()), 1);
+        let mut cold = Q::new(&m1);
+        assert_eq!(*cold.get::<NotesReader>(()), 1);
+        let (memo_notes, cold_notes) = (q.diagnostics().notes(), cold.diagnostics().notes());
+        assert_eq!(memo_notes, cold_notes, "the part reader's notes equal cold");
+        assert_ne!(memo_notes, before, "the rename changed the notes");
+        let stats = store.commit_stats();
+        assert_eq!(
+            stats.family("test_noted_producer").cut_offs,
+            0,
+            "the notes changed the value"
+        );
+        assert_eq!(
+            stats.family("test_notes_reader").re_executions,
+            1,
+            "the reader was reached through the notes part only"
+        );
     }
 }

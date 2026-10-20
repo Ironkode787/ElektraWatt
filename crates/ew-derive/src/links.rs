@@ -384,6 +384,8 @@ impl Query for RailBondsQ {
                 return Arc::clone(prev);
             }
         }
+        // Built whole: it depends on what this build reads only.
+        q.drop_carried();
         Arc::new(rail_bonds(q))
     }
 }

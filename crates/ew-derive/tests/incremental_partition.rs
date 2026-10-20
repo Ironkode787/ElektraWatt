@@ -630,7 +630,22 @@ fn eq<F: Query>(memo: &Q, cold: Option<&Q>, key: F::Key) -> Result<(), String> {
 
 fn read(fam: Fam, memo: &Q, cold: Option<&Q>) -> Result<(), String> {
     match fam {
-        Fam::Partition => eq::<PotentialPartition>(memo, cold, ()),
+        Fam::Partition => {
+            eq::<PotentialPartition>(memo, cold, ())?;
+            // The byte estimate is a running count the incremental maintenance keeps (review cycle 10,
+            // finding 2); it is a function of the value, so it equals the cold value's.
+            if let Some(cold) = cold {
+                let (m, c) = (
+                    memo.get::<PotentialPartition>(()),
+                    cold.get::<PotentialPartition>(()),
+                );
+                let (mb, cb) = (PotentialPartition::bytes(&m), PotentialPartition::bytes(&c));
+                if mb != cb {
+                    return Err(format!("potential_partition bytes: memo {mb}, cold {cb}"));
+                }
+            }
+            Ok(())
+        }
         Fam::Stitch => eq::<StitchGraphQ>(memo, cold, ()),
         Fam::Flow => eq::<FlowBfs>(memo, cold, ()),
         Fam::Pairing => eq::<IpPairingQ>(memo, cold, ()),

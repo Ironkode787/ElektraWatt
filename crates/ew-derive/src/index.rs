@@ -42,15 +42,42 @@ use crate::tracker::DepKey;
 
 /// A read-only persistent map, the value of an index family: in key order, O(1) to clone, and compared by a
 /// diff that skips the subtrees two versions share.
-#[derive(Clone, PartialEq, Eq)]
+///
+/// It keeps a running estimate of its heap bytes, updated by every change of an entry, so that its byte count is
+/// O(1) whatever its size (review cycle 10, finding 2: a walk of every entry on every incremental execution
+/// cost O(project) again). Two indexes are equal when their entries are.
+#[derive(Clone)]
 pub struct Index<K: Ord + Clone, V: Clone> {
     map: OrdMap<K, V>,
+    /// The heap bytes of the entries ([`entry_bytes`]), a function of the entries alone.
+    heap: usize,
 }
+
+impl<K: Ord + Clone, V: Clone + PartialEq> PartialEq for Index<K, V> {
+    fn eq(&self, other: &Self) -> bool {
+        self.map.ptr_eq(&other.map) || self.map == other.map
+    }
+}
+
+impl<K: Ord + Clone, V: Clone + Eq> Eq for Index<K, V> {}
 
 impl<K: Ord + Clone, V: Clone> Default for Index<K, V> {
     fn default() -> Self {
-        Index { map: OrdMap::new() }
+        Index {
+            map: OrdMap::new(),
+            heap: 0,
+        }
     }
+}
+
+/// The estimated heap bytes of one entry: key, value, a node overhead of two words (ARCH §6.3 rule 4) and
+/// what the key and value own.
+fn entry_bytes<K: HeapBytes, V: HeapBytes>(k: &K, v: &V) -> usize {
+    std::mem::size_of::<K>()
+        + std::mem::size_of::<V>()
+        + 2 * std::mem::size_of::<usize>()
+        + k.heap_bytes()
+        + v.heap_bytes()
 }
 
 impl<K: Ord + Clone + fmt::Debug, V: Clone + fmt::Debug> fmt::Debug for Index<K, V> {
@@ -98,22 +125,32 @@ impl<K: Ord + Clone, V: Clone> Index<K, V> {
 
 impl<K: Ord + Clone, V: Clone + PartialEq> Index<K, V> {
     /// Sets the entry of `key` (`None`: removes it). An equal entry is left as it is, so unchanged paths stay
-    /// shared with earlier versions.
-    pub(crate) fn set(&mut self, key: K, value: Option<V>) {
+    /// shared with earlier versions. The byte estimate follows the change.
+    pub(crate) fn set(&mut self, key: K, value: Option<V>)
+    where
+        K: HeapBytes,
+        V: HeapBytes,
+    {
+        let old = self.map.get(&key);
+        if old == value.as_ref() {
+            return;
+        }
+        if let Some(old) = old {
+            self.heap = self.heap.saturating_sub(entry_bytes(&key, old));
+        }
         match value {
             Some(v) => {
-                if self.map.get(&key) != Some(&v) {
-                    self.map.insert(key, v);
-                }
+                self.heap = self.heap.saturating_add(entry_bytes(&key, &v));
+                self.map.insert(key, v);
             }
             None => {
-                if self.map.contains_key(&key) {
-                    self.map.remove(&key);
-                }
+                self.map.remove(&key);
             }
         }
     }
+}
 
+impl<K: Ord + Clone, V: Clone + PartialEq> Index<K, V> {
     /// The keys whose entries differ between `self` and `other` (added, removed or changed), in key order.
     /// Subtrees the two versions share are skipped.
     pub(crate) fn changed_keys(&self, other: &Index<K, V>) -> Vec<K> {
@@ -131,27 +168,43 @@ impl<K: Ord + Clone, V: Clone + PartialEq> Index<K, V> {
     }
 }
 
-impl<K: Ord + Clone, V: Clone> FromIterator<(K, V)> for Index<K, V> {
+impl<K: Ord + Clone + HeapBytes, V: Clone + HeapBytes> FromIterator<(K, V)> for Index<K, V> {
     fn from_iter<I: IntoIterator<Item = (K, V)>>(iter: I) -> Self {
-        Index {
-            map: iter.into_iter().collect(),
-        }
+        let map: OrdMap<K, V> = iter.into_iter().collect();
+        let heap = map.iter().map(|(k, v)| entry_bytes(k, v)).sum();
+        Index { map, heap }
     }
 }
 
 impl<K: Ord + Clone + HeapBytes, V: Clone + HeapBytes> HeapBytes for Index<K, V> {
+    /// The running estimate: O(1).
     fn heap_bytes(&self) -> usize {
-        // Entries plus a node overhead of two words per entry (an estimate, ARCH §6.3 rule 4).
-        self.map
-            .iter()
-            .map(|(k, v)| {
-                std::mem::size_of::<K>()
-                    + std::mem::size_of::<V>()
-                    + 2 * std::mem::size_of::<usize>()
-                    + k.heap_bytes()
-                    + v.heap_bytes()
-            })
-            .sum()
+        self.heap
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The running byte estimate of an index equals a walk of its entries after every change (review cycle
+    /// 10, finding 2).
+    #[test]
+    fn the_running_byte_estimate_follows_every_change() {
+        let walk = |ix: &Index<u32, String>| -> usize { ix.map.iter().map(|(k, v)| entry_bytes(k, v)).sum() };
+        let mut ix: Index<u32, String> = (0..10u32).map(|k| (k, "x".repeat(k as usize))).collect();
+        assert_eq!(ix.heap_bytes(), walk(&ix));
+        for step in 0..200u32 {
+            let key = step * 7 % 23;
+            let value = (step % 3 != 0).then(|| "y".repeat((step % 11) as usize));
+            ix.set(key, value);
+            assert_eq!(ix.heap_bytes(), walk(&ix), "after step {step}");
+        }
+        let copy = ix.clone();
+        ix.set(1, Some("z".into()));
+        ix.set(1, copy.get(&1).cloned());
+        assert_eq!(ix, copy);
+        assert_eq!(ix.heap_bytes(), copy.heap_bytes());
     }
 }
 
@@ -200,11 +253,16 @@ fn touched_rows<T: Entity>(touched: &[MemoInput]) -> BTreeSet<RowId<T>> {
 /// touched rows of `T` from `previous` (absent rows lose their entry) and re-reads the table's stamp (`len`),
 /// the dependency the cold run recorded. `select` must read nothing but the row (and values that are equal
 /// for every row of one snapshot, which a caller checks itself).
-pub(crate) fn table_index<T: Entity, V: Clone + PartialEq>(
+///
+/// The table's stamp covers every row, so the index drops the dependencies carried from its previous execution
+/// first (`Q::drop_carried`): it depends on the table and the rows of this commit, not on every row it ever
+/// re-selected (review cycle 10, finding 3). Called by the index families first thing in their hook.
+pub(crate) fn table_index<T: Entity, V: Clone + PartialEq + HeapBytes>(
     q: &Q,
     previous: Option<(&Index<RowId<T>, V>, Changes<'_>)>,
     select: impl Fn(RowId<T>, &T) -> Option<V>,
 ) -> Index<RowId<T>, V> {
+    q.drop_carried();
     let view = q.table::<T>();
     let Some((prev, touched)) = previous.and_then(|(p, c)| c.touched().map(|t| (p, t))) else {
         return view
@@ -431,6 +489,8 @@ impl Query for PagelessLinks {
         _: &(),
         previous: Option<(&Arc<Self::Value>, Changes<'_>)>,
     ) -> Arc<Self::Value> {
+        // Every dependency is read again below (the bond cut, the table's stamp, the touched rows).
+        q.drop_carried();
         let cut = q.get_value_part::<BondVias>(());
         let connections = q.table::<Connection>();
         let incremental = previous
@@ -561,6 +621,8 @@ impl Query for DefPoints {
         _: &(),
         previous: Option<(&Arc<Self::Value>, Changes<'_>)>,
     ) -> Arc<Self::Value> {
+        // Every dependency is read again below (the table's stamp, the touched rows).
+        q.drop_carried();
         let defs = q.table::<PotentialDef>();
         let Some((prev, touched)) = previous.and_then(|(p, c)| c.touched().map(|t| (p, t))) else {
             let mut v = DefPointsV::default();

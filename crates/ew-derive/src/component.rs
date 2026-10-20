@@ -96,7 +96,7 @@ struct Work {
 impl Work {
     /// Removes the component `key`; its members join the frontier.
     fn remove(&mut self, key: EndpointKey) {
-        let Some(comp) = self.p.comps.remove(&key) else {
+        let Some(comp) = self.p.remove_comp(&key) else {
             return;
         };
         let pid = comp.potential.as_ref().map(|p| p.id);
@@ -131,7 +131,7 @@ fn add_page(p: &mut Partition, e: EndpointKey, page: Id<Page>) {
     let mut list = p.pages_of.get(&e).cloned().unwrap_or_default();
     if let Err(i) = list.binary_search(&page) {
         list.insert(i, page);
-        p.pages_of.insert(e, list);
+        p.set_pages_of(e, Some(list));
     }
 }
 
@@ -142,11 +142,7 @@ fn remove_page(p: &mut Partition, e: EndpointKey, page: Id<Page>) {
     };
     if let Ok(i) = list.binary_search(&page) {
         list.remove(i);
-        if list.is_empty() {
-            p.pages_of.remove(&e);
-        } else {
-            p.pages_of.insert(e, list);
-        }
+        p.set_pages_of(e, Some(list));
     }
 }
 
@@ -517,6 +513,10 @@ pub(crate) fn update(q: &Q, prev: &Partition, changes: Changes<'_>) -> Option<(P
     }
     for page in pages {
         let new = inputs.pages.contains(&page).then(|| q.get::<PageLocalNets>(page));
+        if new.is_none() {
+            // A deleted page: the partition no longer depends on its nets (review cycle 10, finding 3).
+            q.forget::<PageLocalNets>(&page);
+        }
         update_page(&mut w, page, new);
     }
     let mut seeds: Vec<EndpointKey> = Vec::new();
@@ -611,9 +611,10 @@ pub(crate) fn update(q: &Q, prev: &Partition, changes: Changes<'_>) -> Option<(P
             w.p.by_id.insert(p.id, key);
             added.insert(p.id, Arc::clone(&comp));
         }
-        w.p.comps.insert(key, comp);
+        w.p.insert_comp(key, comp);
     }
     // The links of the functions with a CP in the graph.
+    let mut unlinked: Vec<Id<Function>> = Vec::new();
     for f in functions {
         if w.p.comp_of.range(EndpointKey::cps_of(f)).next().is_some() {
             let l = cx.links(f);
@@ -622,6 +623,7 @@ pub(crate) fn update(q: &Q, prev: &Partition, changes: Changes<'_>) -> Option<(P
             }
         } else if w.p.links.contains_key(&f) {
             w.p.links.remove(&f);
+            unlinked.push(f);
         }
     }
     for f in &touched.functions {
@@ -632,7 +634,16 @@ pub(crate) fn update(q: &Q, prev: &Partition, changes: Changes<'_>) -> Option<(P
             }
         }
     }
+    // The value depends on the links of the functions with a CP in the graph only (as the cold build reads
+    // them): a function that left the graph, or whose links this run read without keeping them, is forgotten
+    // (review cycle 10, finding 3).
+    let read: Vec<Id<Function>> = cx.links.keys().copied().collect();
     drop(cx);
+    for f in read.iter().chain(&unlinked) {
+        if !w.p.links.contains_key(f) {
+            q.forget::<FunctionLinksOf>(f);
+        }
+    }
     w.p.bond_paths = bond_paths;
     let bonds = bond_links(&w.p.inputs, &w.p.bond_paths, |e| {
         w.p.potential_at(e).map(|p| p.id)
@@ -657,6 +668,150 @@ pub(crate) fn update(q: &Q, prev: &Partition, changes: Changes<'_>) -> Option<(P
         }
     }
     parts.extend(crate::potentials::bond_parts(&w.p.bonds, &bonds));
-    w.p.bonds = bonds;
+    w.p.set_bonds(bonds);
     Some((w.p, parts))
+}
+
+#[cfg(test)]
+mod tests {
+    // The fixture edits snapshots with the raw `Model::apply_unchecked` (a reader of ew-model's raw API).
+    #![allow(clippy::disallowed_methods)]
+
+    use ew_model::{AnyKey, AnyRow, Model, Op};
+    use ew_schema::{Connection, Page};
+    use serde_json::{Value, json};
+
+    use crate::memo_keys::test_common::{Fx, uid};
+    use crate::potentials::{ENTRY_BYTES, PotentialPartition};
+    use crate::{MemoStore, Q, Query};
+
+    const FN: u128 = 0x500;
+    const SYM: u128 = 0x510;
+    const P1: u128 = 0x100;
+    /// The page the growth test adds and deletes.
+    const P2: u128 = 0x101;
+    /// Functions `F0 + i`, `i < PAIRS * 2`, each with its device `+ DEV` and representation `+ REP` on P1.
+    const F0: u128 = 0x1000;
+    const DEV: u128 = 0x10_000;
+    const REP: u128 = 0x20_000;
+    const PAIRS: u128 = 20;
+
+    /// `2 * PAIRS` two-CP functions on one page, wired in pairs: `PAIRS` potentials.
+    fn fixture() -> Model {
+        let mut fx = Fx::new();
+        fx.fndef(FN, ["Misc", "Misc", "Fixture"], &[(0, "1"), (1, "2")]);
+        fx.symbol(SYM, FN, json!("origin"), &[(0, 0, 0, 0), (1, 1, 0, 1_000_000)]);
+        fx.page(P1, 1, None, "multi_line", &[], "page 1");
+        for i in 0..PAIRS * 2 {
+            let f = F0 + i;
+            fx.device(f + DEV, "K", Some(u32::try_from(i).expect("small") + 1));
+            fx.function(f, Some(f + DEV), FN, true);
+            let y = i64::try_from(i).expect("small") * 10_000_000;
+            fx.rep(f + REP, P1, SYM, &[f], 0, y);
+        }
+        for k in 0..PAIRS {
+            fx.push(wire(0x3000 + k, F0 + 2 * k, F0 + 2 * k + 1));
+        }
+        fx.build()
+    }
+
+    /// A wire on P1 from CP 1 of `a` to CP 0 of `b`.
+    fn wire(n: u128, a: u128, b: u128) -> Value {
+        json!({
+            "$k": "connection", "id": uid(n), "page": uid(P1),
+            "a": {"cp": [uid(a), 1]}, "b": {"cp": [uid(b), 0]},
+        })
+    }
+
+    fn row<T: ew_model::Entity + serde::de::DeserializeOwned>(v: Value) -> AnyRow {
+        AnyRow::of(serde_json::from_value::<T>(v).expect("the row parses"))
+    }
+
+    /// Applies `op` to `model`, advances `store` and reads the partition through it; returns the new model and
+    /// the components whose bytes the advance and the memoised read counted.
+    fn step(store: &MemoStore, model: &Model, op: Op) -> (Model, usize) {
+        let keys: Vec<AnyKey> = vec![op.key()];
+        let after = model
+            .apply_unchecked(&[op], model.rev().next())
+            .expect("the op applies");
+        let before = ENTRY_BYTES.with(std::cell::Cell::get);
+        store.advance(&after, &keys);
+        let memo = store.query().get::<PotentialPartition>(());
+        let counted = ENTRY_BYTES.with(std::cell::Cell::get) - before;
+        let cold = Q::new(&after).get::<PotentialPartition>(());
+        assert_eq!(*memo, *cold, "the memoised partition equals the cold one");
+        let ((running, walked), bytes) = (memo.counts(), PotentialPartition::bytes(&memo));
+        assert_eq!(running, walked, "the running byte counts are kept");
+        assert_eq!(
+            bytes,
+            PotentialPartition::bytes(&cold),
+            "the estimate is the cold one's"
+        );
+        (after, counted)
+    }
+
+    fn partition_deps(store: &MemoStore) -> usize {
+        store
+            .memory()
+            .iter()
+            .find(|m| m.family == "potential_partition")
+            .map_or(0, |m| m.dep_entries)
+    }
+
+    /// Review cycle 10, finding 2: an incremental commit counts the bytes of the components it rebuilt, not of
+    /// every component (the partition's byte count is a running estimate).
+    #[test]
+    fn an_incremental_commit_counts_only_the_rebuilt_components() {
+        let m0 = fixture();
+        let store = MemoStore::new(&m0);
+        let part = store.query().get::<PotentialPartition>(());
+        assert_eq!(part.potential_count(), usize::try_from(PAIRS).expect("small"));
+        let components = part.components().count();
+        // A wire joining two potentials: one component rebuilt.
+        let join = Op::insert(row::<Connection>(wire(0x3100, F0 + 1, F0 + 3)));
+        let (_, counted) = step(&store, &m0, join);
+        assert_eq!(
+            store.commit_stats().family("potential_partition").incremental,
+            1,
+            "the hook ran"
+        );
+        assert!(
+            (1..=2).contains(&counted),
+            "{counted} components counted for a join, of {components}"
+        );
+    }
+
+    /// Review cycle 10, finding 3: a page added and deleted again leaves no dependency of the partition, no
+    /// memo of its nets and no registration behind.
+    #[test]
+    fn adding_and_deleting_a_page_leaves_nothing_behind() {
+        let mut model = fixture();
+        let store = MemoStore::new(&model);
+        store.query().get::<PotentialPartition>(());
+        let deps0 = partition_deps(&store);
+        let push0 = store.push_index_entries();
+        let nets0 = store
+            .memory()
+            .iter()
+            .find(|m| m.family == "page_local_nets")
+            .map_or(0, |m| m.memos);
+        for i in 0..40u128 {
+            let id = P2 + 0x1000 * i;
+            let page = row::<Page>(json!({
+                "id": uid(id), "folio": {"number": 2}, "kind": "multi_line",
+                "title": {"en": "page 2"}, "grid": {"num": 4_000_000, "den": 1},
+            }));
+            model = step(&store, &model, Op::insert(page.clone())).0;
+            model = step(&store, &model, Op::delete(page)).0;
+        }
+        let nets = store
+            .memory()
+            .iter()
+            .find(|m| m.family == "page_local_nets")
+            .map_or(0, |m| m.memos);
+        let (deps, push) = (partition_deps(&store), store.push_index_entries());
+        assert!(deps <= deps0 + 1, "partition dependencies {deps0} -> {deps}");
+        assert!(nets <= nets0 + 1, "page_local_nets memos {nets0} -> {nets}");
+        assert!(push <= push0 + 8, "push index entries {push0} -> {push}");
+    }
 }

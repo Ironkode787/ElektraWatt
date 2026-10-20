@@ -204,6 +204,9 @@ pub struct IpPairing {
     infos: BTreeMap<Id<Function>, Arc<IpFnInfo>>,
     /// The function index read.
     fns: Arc<Index<Id<Function>, IpSpec>>,
+    /// The heap bytes, counted once when the pairing is built (a pairing is built whole; review cycle 10,
+    /// finding 2).
+    heap: usize,
 }
 
 impl PartialEq for IpPairing {
@@ -250,14 +253,22 @@ impl IpPairing {
     }
 }
 
-impl HeapBytes for IpPairing {
-    fn heap_bytes(&self) -> usize {
+impl IpPairing {
+    /// The heap bytes by a walk of the value (once, when it is built).
+    fn walk_heap(&self) -> usize {
         self.ips.heap_bytes()
             + self.groups.heap_bytes()
             + self.notes.heap_bytes()
             + self.partners.heap_bytes()
             + self.at.len() * (std::mem::size_of::<CpRef>() + std::mem::size_of::<Id<Function>>())
             + self.infos.len() * (std::mem::size_of::<Id<Function>>() + std::mem::size_of::<usize>())
+    }
+}
+
+impl HeapBytes for IpPairing {
+    /// Counted when the pairing was built: O(1).
+    fn heap_bytes(&self) -> usize {
+        self.heap
     }
 }
 
@@ -408,7 +419,7 @@ fn pair(q: &Q) -> IpPairing {
         list.sort();
         list.dedup();
     }
-    IpPairing {
+    let mut pairing = IpPairing {
         ips,
         groups: out_groups,
         notes,
@@ -416,7 +427,10 @@ fn pair(q: &Q) -> IpPairing {
         at,
         infos,
         fns,
-    }
+        heap: 0,
+    };
+    pairing.heap = pairing.walk_heap();
+    pairing
 }
 
 /// `ip_pairing()`: every interruption point and its pairing (see the module documentation). Policy Memo,
@@ -430,6 +444,7 @@ impl Query for IpPairingQ {
     const FAMILY: &'static str = "ip_pairing";
     const POLICY: Policy = Policy::Memo;
     const INCREMENTAL: bool = true;
+    const PRODUCER: bool = true;
 
     fn bytes(value: &Self::Value) -> usize {
         crate::heap::value_bytes(value)
@@ -463,6 +478,9 @@ impl Query for IpPairingQ {
                 return Arc::clone(prev);
             }
         }
+        // The pairing is built whole: it depends on what this build reads, not on the points it read before
+        // (a deleted point's `ip_info` included).
+        q.drop_carried();
         let next = pair(q);
         let keys: BTreeSet<Id<Function>> = prev.ips.keys().chain(next.ips.keys()).copied().collect();
         q.changed_parts(

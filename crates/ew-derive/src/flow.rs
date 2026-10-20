@@ -104,6 +104,8 @@ pub struct Flow {
     partition: Option<Arc<Partition>>,
     /// The own attributes it read.
     attrs: BTreeMap<PotentialId, Arc<PotentialAttrsV>>,
+    /// The heap bytes, counted once when the BFS ran (it runs whole; review cycle 10, finding 2).
+    heap: usize,
 }
 
 impl PartialEq for Flow {
@@ -113,7 +115,15 @@ impl PartialEq for Flow {
 }
 
 impl HeapBytes for Flow {
+    /// Counted when the BFS ran: O(1).
     fn heap_bytes(&self) -> usize {
+        self.heap
+    }
+}
+
+impl Flow {
+    /// The heap bytes by a walk of the value (once, when it is built).
+    fn walk_heap(&self) -> usize {
         self.entries
             .values()
             .map(|e| {
@@ -140,6 +150,7 @@ impl Query for FlowBfs {
     const FAMILY: &'static str = "potential_flow_bfs";
     const POLICY: Policy = Policy::Memo;
     const INCREMENTAL: bool = true;
+    const PRODUCER: bool = true;
 
     fn bytes(value: &Self::Value) -> usize {
         crate::heap::value_bytes(value)
@@ -173,6 +184,9 @@ impl Query for FlowBfs {
                 return Arc::clone(prev);
             }
         }
+        // The BFS runs whole: it depends on what this run reads only (not on the attributes of potentials that
+        // are gone).
+        q.drop_carried();
         let next = run_flow(q);
         let keys: BTreeSet<PotentialId> = prev.entries.keys().chain(next.entries.keys()).copied().collect();
         q.changed_parts(
@@ -424,12 +438,15 @@ fn run_flow(q: &Q) -> Flow {
     }
     conflicts.sort();
     conflicts.dedup();
-    Flow {
+    let mut flow = Flow {
         entries,
         conflicts,
         attrs: potentials.iter().copied().zip(attrs).collect(),
         partition: Some(part),
-    }
+        heap: 0,
+    };
+    flow.heap = flow.walk_heap();
+    flow
 }
 
 /// `flow_notes()`: the EW-POT-001 notes of the pass-through conflicts of the flow, naming the two potentials

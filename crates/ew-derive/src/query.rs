@@ -8,6 +8,8 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::sync::Arc;
 
+use crate::note::NoteSet;
+
 /// How a query family is evaluated (ADR-0002 decisions 2–3, ARCH §6.4 "Initial policy").
 ///
 /// A `Q` without a memo store evaluates every family cold with its request-scoped cache. A `Q` from a
@@ -70,6 +72,17 @@ pub trait Query: 'static {
     /// for bulky values whose comparison would cost as much as the change.
     const FINGERPRINT: bool = false;
 
+    /// Whether the family is a producer of parts (ADR-0002 amendment 5): its memoised executions declare the
+    /// parts they changed and its readers read it by part. A family read as a value part (a cut-off point)
+    /// must not be one, and only a producer may declare parts; debug builds check both.
+    const PRODUCER: bool = false;
+
+    /// Whether the family's memoised executions must push no note (ARCH §6.4: an incremental hook re-reads
+    /// only what changed, so it cannot reproduce the notes of what it did not re-read). Every incremental
+    /// family by default; debug builds check it. A family that sets it to `false` while incremental must
+    /// push, on every execution, every note of its value.
+    const NOTE_FREE: bool = Self::INCREMENTAL;
+
     /// Computes the value for `key`: the cold reference.
     fn run(q: &crate::Q, key: &Self::Key) -> Arc<Self::Value>;
 
@@ -111,10 +124,12 @@ pub trait Query: 'static {
     }
 }
 
-/// One cache slot: running (for cycle detection) or done.
+/// One cache slot: running (for cycle detection) or done. A value computed inside a detached scope
+/// ([`Q::detached`](crate::Q)) keeps the notes its evaluation pushed, so that a later read outside the scope
+/// replays them as a fresh evaluation would have pushed them.
 enum Slot<V> {
     Running,
-    Done(Arc<V>),
+    Done(Arc<V>, Option<Arc<NoteSet>>),
 }
 
 type FamilyMap<Qy> = BTreeMap<<Qy as Query>::Key, Slot<<Qy as Query>::Value>>;
@@ -130,15 +145,20 @@ fn erased_len<Qy: Query>(map: &dyn Any) -> usize {
     map.downcast_ref::<FamilyMap<Qy>>().map_or(0, BTreeMap::len)
 }
 
-/// The request-scoped cache: per family name, the query type that owns it and its key → slot map.
+/// The request-scoped cache: per family name, the query type that owns it and its key → slot map. One per
+/// request and one per memo execution in progress; a detached scope shares the cache of the frame it runs in.
 #[derive(Default)]
 pub(crate) struct Cache {
     families: BTreeMap<&'static str, Family>,
+    /// The detached scopes open over this cache ([`Q::detached`](crate::Q)): while non-zero, an evaluation
+    /// keeps the notes it pushed with its value.
+    pub(crate) detached: u32,
 }
 
 /// What the cache knows about a key.
 pub(crate) enum Lookup<V> {
-    Hit(Arc<V>),
+    /// The value, with the notes to replay (those of a value computed inside a detached scope).
+    Hit(Arc<V>, Option<Arc<NoteSet>>),
     Running,
     Miss,
 }
@@ -163,7 +183,7 @@ impl Cache {
 
     pub(crate) fn lookup<Qy: Query>(&mut self, key: &Qy::Key) -> Lookup<Qy::Value> {
         match self.family::<Qy>().get(key) {
-            Some(Slot::Done(v)) => Lookup::Hit(Arc::clone(v)),
+            Some(Slot::Done(v, notes)) => Lookup::Hit(Arc::clone(v), notes.clone()),
             Some(Slot::Running) => Lookup::Running,
             None => Lookup::Miss,
         }
@@ -173,8 +193,13 @@ impl Cache {
         self.family::<Qy>().insert(key, Slot::Running);
     }
 
-    pub(crate) fn finish<Qy: Query>(&mut self, key: Qy::Key, value: Arc<Qy::Value>) {
-        self.family::<Qy>().insert(key, Slot::Done(value));
+    pub(crate) fn finish<Qy: Query>(
+        &mut self,
+        key: Qy::Key,
+        value: Arc<Qy::Value>,
+        notes: Option<Arc<NoteSet>>,
+    ) {
+        self.family::<Qy>().insert(key, Slot::Done(value, notes));
     }
 
     /// Removes the slot of `key` (a running evaluation that unwound).
