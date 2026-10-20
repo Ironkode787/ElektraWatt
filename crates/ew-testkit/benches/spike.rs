@@ -19,7 +19,7 @@
 //! | `move.*`, `wire.*` | a command, then the derived queries it invalidates, cold (latency) |
 //! | `page.renumber.folio`, `folio.renumber.*` | the folio renumber with its preview, then the page order and the tags of the page's devices (latency) |
 //! | `profile.change.*` | a change of the wire colour profile, then the wire properties of every / of the affected potentials (latency) |
-//! | `memo.*` | the same edits through `ew_derive::MemoStore`: push invalidation, part dependencies and incremental families (latency) |
+//! | `memo.*` | the same edits through `ew_derive::MemoStore`: push invalidation, part dependencies, incremental families and the composite of the page reads (latency) |
 //!
 //! # Procedure
 //!
@@ -38,8 +38,12 @@
 //! `profile.change.affected`, where the topology caches are the work an ideal memo keeps. A memo sample works
 //! on an O(1) fork ([`MemoStore::fork`]) of a store warmed on the baseline; its timed step takes the session's
 //! touched keys, advances the store with the new snapshot ([`MemoStore::advance`]) and reads the family through
-//! the store's memoising `Q`. Everything that proves the memoised values equal the cold ones (the oracle) runs
-//! outside the timer.
+//! the store's memoising `Q`. A memo sample times the **second** commit on its fork: the first is an untimed
+//! priming edit (a different edit of the same kind: the move or the wire of index `2 * i` primes, the one of
+//! index `2 * i + 1` is timed; an unrelated edit is primed with a move) followed by its memo step, so the timed
+//! step does not run on a store that has seen no commit since the warm-up. Everything that proves the memoised
+//! values equal the cold ones (the oracle) runs outside the timer: it compares the values and the derivation
+//! notes of the timed step with a cold `Q`, and its warm-up rounds replay both steps on a fork of the warm store.
 //!
 //! # Memo mode
 //!
@@ -48,8 +52,14 @@
 //! advance, so a cold figure is a cold figure. The memo families do not use the session's store: they keep
 //! their own [`MemoStore`], a fork of the store of a throw-away session over the model (`MemoMode::On`), which
 //! is how the bench gets the store's configuration, the report engine of the session, without access to
-//! `ew-reports`. The memo families read `potential_partition`, `page_local_nets` and `wire_props_of`, none of
-//! which reads a generated page.
+//! `ew-reports`. The families `memo.partition.*`, `memo.local_nets.*` and `memo.wire_props.*` read
+//! `potential_partition`, `page_local_nets` and `wire_props_of`, none of which reads a generated page. The
+//! composite `memo.composite.*` (the NFR-PERF-05 target) reads, on the page the edit touched, the partition, the
+//! local nets, `potential_name` of every potential with an endpoint on the page and `xref_text` of every
+//! representation on it; `xref_text` may read generated report pages, which it can do only through the report
+//! engine of the memo store, which the store from `memo_store()` has (the cold `Q` of its oracle comes from a
+//! session, which installs the same engine). The warm store of the composite is warmed on those reads for every
+//! page.
 //!
 //! `memo.wire_props.profile` is the colour-profile edit of `profile.change.*` (no session: the project row is
 //! replaced with `Model::apply` and the store is advanced with the project row as the touched key); the store of
@@ -60,6 +70,9 @@
 //! Memo rows note the counters of the family's last commit (`ew_derive::Counters`): `hit`, `ver` (verifications
 //! by dependency walk), `push_skip` (re-stamped by push invalidation, no walk), `re` (re-executions), `incr` (of
 //! them through the incremental hook) and `cut` (cut-offs). An unrelated edit is a push skip of the partition.
+//!
+//! The oracle compares the derivation notes of the memoising `Q` after the reads (`Q::diagnostics`) with those
+//! of the cold `Q` after the same reads, next to the values.
 //!
 //! The commit pipeline (`session.execute`) is included in every `.commit` figure, the `memo.*` total rows
 //! (commit plus memo step) and the cold `*.commit_potentials` rows carry the NFR-PERF-05 budget.
@@ -75,13 +88,13 @@ use ew_commands::commands::{
 };
 use ew_commands::testkit::seeded_ids;
 use ew_derive::{
-    DeviceTag, FamilyMemory, FlowBfs, FunctionCps, LocalNets, Oracle, PageLocalNets, PageOrder, Partition,
-    PhysicalWiresOf, PotentialId, PotentialPartition, Q, RepAnchorCell, StitchGraphQ, WirePropsMap,
-    WirePropsOf,
+    DeriveNote, DeviceTag, FamilyMemory, FlowBfs, FunctionCps, LocalNets, Oracle, PageLocalNets, PageOrder,
+    Partition, PhysicalWiresOf, PotentialId, PotentialNameOf, PotentialNames, PotentialPartition, Q,
+    RepAnchorCell, StitchGraphQ, WirePropsMap, WirePropsOf, XrefText, XrefTextOf,
 };
 use ew_ids::Id;
 use ew_model::{AnyKey, AnyRow, Model, Op, Rev};
-use ew_schema::{Device, Kind, LibDocument, Page, Project, Record};
+use ew_schema::{Device, Kind, LibDocument, Page, Project, Record, Representation};
 use ew_testkit::bench::{
     Mode, Row, WARMUP_RUNS, WARMUP_SAMPLES, budget, class_from_env, latency_samples, markdown_table, measure,
     measure_adaptive, model_bytes, summarize, time,
@@ -874,6 +887,10 @@ enum Target {
     LocalNets,
     /// `WirePropsOf` of every potential of the partition (the potential IDs are read through the same `Q`).
     WireProps,
+    /// The composite NFR-PERF-05 target on the page the edit touched: the partition, the local nets of the
+    /// page, `PotentialNameOf` of every potential with an endpoint on the page and `XrefTextOf` of every
+    /// representation on it.
+    Page,
 }
 
 impl Target {
@@ -883,15 +900,32 @@ impl Target {
             Target::Partition => "potential_partition",
             Target::LocalNets => "page_local_nets",
             Target::WireProps => "wire_props_of",
+            Target::Page => "potential_partition",
         }
     }
 }
 
-/// The memoised values a memo step returned, for the oracle.
-enum Got {
+/// The values of the composite reads of [`Target::Page`], each potential and representation with its value.
+struct PageGot {
+    partition: Arc<Partition>,
+    nets: Arc<LocalNets>,
+    names: Vec<(PotentialId, Arc<PotentialNames>)>,
+    xrefs: Vec<(Id<Representation>, Arc<XrefText>)>,
+}
+
+/// The values of the reads of a [`Target`].
+enum GotValues {
     Partition(Arc<Partition>),
     Nets(Vec<Arc<LocalNets>>),
     Props(Vec<(PotentialId, Arc<WirePropsMap>)>),
+    Page(PageGot),
+}
+
+/// What a memo step returned, for the oracle: the memoised values and the derivation notes of the `Q` that
+/// read them.
+struct Got {
+    values: GotValues,
+    notes: Vec<DeriveNote>,
 }
 
 /// The state of one memo sample: a fresh session (none for a hit) and an O(1) fork of the warm store.
@@ -935,13 +969,60 @@ fn wire_props_reads(q: &Q) -> Vec<(PotentialId, Arc<WirePropsMap>)> {
         .collect()
 }
 
-/// The memoised reads of `target` through a `Q` of `store`.
-fn memo_reads(store: &MemoStore, pages: &[Id<Page>], target: Target) -> Got {
-    let q = store.query();
+/// The composite reads of [`Target::Page`] on `page` through `q`: the partition, the local nets of the page,
+/// `potential_name` of the (deduplicated, sorted) potentials of the endpoints of the page's nets and
+/// `xref_text` of every representation on the page.
+fn page_reads(q: &Q, page: Id<Page>) -> PageGot {
+    let partition = q.get::<PotentialPartition>(());
+    let nets = q.get::<PageLocalNets>(page);
+    let ids: BTreeSet<PotentialId> = nets
+        .nets
+        .iter()
+        .flat_map(|n| &n.members)
+        .filter_map(|m| partition.potential_at(m.at).map(|p| p.id))
+        .collect();
+    let names = ids
+        .into_iter()
+        .map(|id| (id, q.get::<PotentialNameOf>(id)))
+        .collect();
+    let xrefs = q
+        .idx()
+        .reps_by_page(page)
+        .map(|r| (r, q.get::<XrefTextOf>(r)))
+        .collect();
+    PageGot {
+        partition,
+        nets,
+        names,
+        xrefs,
+    }
+}
+
+/// The reads of `target` through `q`; `page` is the page the edit touched (required by [`Target::Page`]).
+fn reads(q: &Q, pages: &[Id<Page>], page: Option<Id<Page>>, target: Target) -> GotValues {
     match target {
-        Target::Partition => Got::Partition(q.get::<PotentialPartition>(())),
-        Target::LocalNets => Got::Nets(pages.iter().map(|p| q.get::<PageLocalNets>(*p)).collect()),
-        Target::WireProps => Got::Props(wire_props_reads(&q)),
+        Target::Partition => GotValues::Partition(q.get::<PotentialPartition>(())),
+        Target::LocalNets => GotValues::Nets(pages.iter().map(|p| q.get::<PageLocalNets>(*p)).collect()),
+        Target::WireProps => GotValues::Props(wire_props_reads(q)),
+        Target::Page => GotValues::Page(page_reads(q, page.expect("memo.composite: the page of the edit"))),
+    }
+}
+
+/// The memoised reads of `target` through a `Q` of `store`, with the notes of that `Q` after the reads.
+fn memo_reads(store: &MemoStore, pages: &[Id<Page>], page: Option<Id<Page>>, target: Target) -> Got {
+    let mut q = store.query();
+    let values = reads(&q, pages, page, target);
+    let notes = q.diagnostics().notes();
+    Got { values, notes }
+}
+
+/// The cold `Q` of the oracle over `model`: `Q::new`, except for [`Target::Page`], whose `xref_text` may read
+/// generated report pages and so needs the report engine that `Session::query` installs.
+fn cold_q(model: &Model, target: Target) -> Q {
+    if target == Target::Page {
+        fresh_session(model).query()
+    } else {
+        Q::new(model)
     }
 }
 
@@ -951,11 +1032,12 @@ fn memo_reads(store: &MemoStore, pages: &[Id<Page>], target: Target) -> Got {
 /// single cold `Q`.
 const ORACLE_POTENTIALS: usize = 8;
 
-/// The reads of a warm-up round under `Oracle::Every`: as [`memo_reads`], except that `Target::WireProps`
-/// reads only [`ORACLE_POTENTIALS`] potentials of the partition, spread over it and rotating with `call`.
-fn oracle_reads(store: &MemoStore, pages: &[Id<Page>], target: Target, call: usize) {
+/// The reads of a warm-up round under `Oracle::Every`: as [`memo_reads`] (for [`Target::Page`] on the same
+/// `page` as the timed sample), except that `Target::WireProps` reads only [`ORACLE_POTENTIALS`] potentials of
+/// the partition, spread over it and rotating with `call`.
+fn oracle_reads(store: &MemoStore, pages: &[Id<Page>], page: Option<Id<Page>>, target: Target, call: usize) {
     if target != Target::WireProps {
-        memo_reads(store, pages, target);
+        memo_reads(store, pages, page, target);
         return;
     }
     let q = store.query();
@@ -968,44 +1050,87 @@ fn oracle_reads(store: &MemoStore, pages: &[Id<Page>], target: Target, call: usi
     }
 }
 
-/// Asserts that the memoised values equal the cold ones on `model`.
-fn assert_cold_equal(got: &Got, model: &Model, pages: &[Id<Page>], name: &str, sample: usize) {
-    let q = Q::new(model);
-    match got {
-        Got::Partition(v) => assert_eq!(
-            **v,
-            *q.get::<PotentialPartition>(()),
+/// Asserts that the memoised values and derivation notes equal the cold ones on `model`: the cold `Q` makes the
+/// same reads as the memo step, then its notes are read.
+fn assert_cold_equal(
+    got: &Got,
+    model: &Model,
+    pages: &[Id<Page>],
+    page: Option<Id<Page>>,
+    target: Target,
+    name: &str,
+    sample: usize,
+) {
+    let mut q = cold_q(model, target);
+    let cold = reads(&q, pages, page, target);
+    match (&got.values, &cold) {
+        (GotValues::Partition(v), GotValues::Partition(c)) => assert_eq!(
+            **v, **c,
             "{name}: sample {sample}: the memoised potential_partition differs from the cold one"
         ),
-        Got::Nets(v) => {
-            for (page, memoised) in pages.iter().zip(v) {
+        (GotValues::Nets(v), GotValues::Nets(c)) => {
+            for ((page, memoised), cold) in pages.iter().zip(v).zip(c) {
                 assert_eq!(
-                    **memoised,
-                    *q.get::<PageLocalNets>(*page),
+                    **memoised, **cold,
                     "{name}: sample {sample}: the memoised page_local_nets of {page:?} differs from the cold one"
                 );
             }
         }
-        Got::Props(v) => {
-            let cold: Vec<PotentialId> = q
-                .get::<PotentialPartition>(())
-                .potentials()
-                .map(|p| p.id)
-                .collect();
+        (GotValues::Props(v), GotValues::Props(c)) => {
+            let cold_ids: Vec<PotentialId> = c.iter().map(|(id, _)| *id).collect();
             let ids: Vec<PotentialId> = v.iter().map(|(id, _)| *id).collect();
             assert_eq!(
-                ids, cold,
+                ids, cold_ids,
                 "{name}: sample {sample}: the potentials of the memoised partition differ from the cold ones"
             );
-            for (id, memoised) in v {
+            for ((id, memoised), (_, cold)) in v.iter().zip(c) {
                 assert_eq!(
-                    **memoised,
-                    *q.get::<WirePropsOf>(*id),
+                    **memoised, **cold,
                     "{name}: sample {sample}: the memoised wire_props_of {id:?} differs from the cold one"
                 );
             }
         }
+        (GotValues::Page(v), GotValues::Page(c)) => {
+            assert_eq!(
+                *v.partition, *c.partition,
+                "{name}: sample {sample}: the memoised potential_partition differs from the cold one"
+            );
+            assert_eq!(
+                *v.nets, *c.nets,
+                "{name}: sample {sample}: the memoised page_local_nets of {page:?} differs from the cold one"
+            );
+            let ids: Vec<PotentialId> = v.names.iter().map(|(id, _)| *id).collect();
+            let cold_ids: Vec<PotentialId> = c.names.iter().map(|(id, _)| *id).collect();
+            assert_eq!(
+                ids, cold_ids,
+                "{name}: sample {sample}: the potentials on the page differ between the memoised and the cold reads"
+            );
+            for ((id, memoised), (_, cold)) in v.names.iter().zip(&c.names) {
+                assert_eq!(
+                    **memoised, **cold,
+                    "{name}: sample {sample}: the memoised potential_name {id:?} differs from the cold one"
+                );
+            }
+            let reps: Vec<Id<Representation>> = v.xrefs.iter().map(|(r, _)| *r).collect();
+            let cold_reps: Vec<Id<Representation>> = c.xrefs.iter().map(|(r, _)| *r).collect();
+            assert_eq!(
+                reps, cold_reps,
+                "{name}: sample {sample}: the representations on the page differ between the memoised and the cold reads"
+            );
+            for ((rep, memoised), (_, cold)) in v.xrefs.iter().zip(&c.xrefs) {
+                assert_eq!(
+                    **memoised, **cold,
+                    "{name}: sample {sample}: the memoised xref_text of {rep:?} differs from the cold one"
+                );
+            }
+        }
+        _ => unreachable!("{name}: the cold reads are those of the same target"),
     }
+    assert_eq!(
+        got.notes,
+        q.diagnostics().notes(),
+        "{name}: sample {sample}: the derivation notes of the memo step differ from the cold ones"
+    );
 }
 
 /// How often the oracle compares a timed sample with the cold value: every sample for S and M, every 10th for
@@ -1018,31 +1143,33 @@ fn oracle_stride(class: SizeClass) -> usize {
 }
 
 /// The oracle of one memo sample, outside the timer. The warm-up rounds (`call < WARMUP_SAMPLES`) repeat the
-/// step on a second fork of `warm` under `Oracle::Every` (the memo engine compares every memoised read with
+/// steps on a second fork of `warm` under `Oracle::Every` (the memo engine compares every memoised read with
 /// a cold one at every depth, on a fork so the pilot timings stay clean) and assert that it found no
-/// mismatch; `after` is the snapshot the step advanced to with `keys` (none: a read at the store's revision).
-/// The timed samples compare the values the step returned with a cold evaluation on `model`, every `stride`-th
-/// one; the number of comparisons is counted in `compared`.
+/// mismatch; `advanced` are the commits the steps advanced the store with, oldest first (the snapshot and the
+/// touched keys of each; none: a read at the store's revision). The timed samples compare the values and the
+/// notes the step returned with a cold evaluation on `model`, every `stride`-th one; the number of comparisons
+/// is counted in `compared`. `page` is the page of the timed edit.
 #[allow(clippy::too_many_arguments)]
 fn oracle_check(
     warm: &MemoStore,
     pages: &[Id<Page>],
+    page: Option<Id<Page>>,
     target: Target,
     name: &str,
     call: usize,
     stride: usize,
     compared: &mut usize,
     model: &Model,
-    advanced: Option<&[AnyKey]>,
+    advanced: &[(Model, Vec<AnyKey>)],
     got: &Got,
 ) {
     if call < WARMUP_SAMPLES {
         let chk = warm.fork();
         chk.set_oracle(Oracle::Every);
-        if let Some(keys) = advanced {
-            chk.advance(model, keys);
+        for (after, keys) in advanced {
+            chk.advance(after, keys);
         }
-        oracle_reads(&chk, pages, target, call);
+        oracle_reads(&chk, pages, page, target, call);
         assert!(
             chk.take_mismatches().is_empty(),
             "{name}: warm-up round {call}: the oracle found a memoised value that differs from the cold one"
@@ -1050,7 +1177,7 @@ fn oracle_check(
     } else {
         let sample = call - WARMUP_SAMPLES;
         if sample.is_multiple_of(stride) {
-            assert_cold_equal(got, model, pages, name, sample);
+            assert_cold_equal(got, model, pages, page, target, name, sample);
             *compared += 1;
         }
     }
@@ -1067,12 +1194,24 @@ fn counters_note(store: &MemoStore, family: &str, name: &str) -> String {
     note
 }
 
+/// The keys the commits of `session` since the last drain touched.
+fn touched_keys(session: &mut Session) -> Vec<AnyKey> {
+    session
+        .drain_changes()
+        .into_iter()
+        .flat_map(|c| c.touched_keys)
+        .collect()
+}
+
 /// One memo family: the `edit` (none for a hit), then the memoised reads of `target`. Rows: the memo step
 /// alone as `<name>.derive` and the commit plus the memo step as `<name>` (the NFR-PERF-05 budget); a hit has
 /// the single row `<name>`.
 ///
 /// The memo step takes the session's touched keys, advances the sample's store with the new snapshot and the
-/// keys (push invalidation) and reads `target` through the store's memoising `Q`.
+/// keys (push invalidation) and reads `target` through the store's memoising `Q`; it keeps the notes of that
+/// `Q` for the oracle. An edited sample times the second commit on its fork: an untimed priming edit and its
+/// memo step come first (the move or wire of index `2 * i`, or a move for the unrelated edit), then the timed
+/// edit (index `2 * i + 1`, or the unrelated edit) with its memo step.
 fn memo_family(cx: &mut Ctx, env: &MemoEnv<'_>, name: &str, edit: Edit, target: Target) {
     let derive_name = format!("{name}.derive");
     if !cx.wants(&[name, &derive_name]) {
@@ -1084,6 +1223,33 @@ fn memo_family(cx: &mut Ctx, env: &MemoEnv<'_>, name: &str, edit: Edit, target: 
             return;
         }
         (_, u) => u,
+    };
+    // The priming (`prime`) or the timed edit of sample `i` (the commit pipeline of the session, without memo
+    // work: `MemoMode::Off`): the time of the commit and the page it touched, if it is a move or a wire.
+    let run = |session: &mut Session, prime: bool, i: usize| -> (Duration, Option<Id<Page>>) {
+        let k = 2 * i + usize::from(!prime);
+        let what = if prime { "priming" } else { "timed" };
+        match edit {
+            Edit::Hit => unreachable!("a hit has no session"),
+            Edit::Unrelated if !prime => {
+                let cmd = unrelated.expect("checked above");
+                let (result, t) = time(|| session.execute(cmd));
+                result.unwrap_or_else(|e| panic!("{name}: the {what} edit is accepted: {e}"));
+                (t, None)
+            }
+            Edit::Unrelated | Edit::Move => {
+                let (cmd, page) = env.scen.mv(k);
+                let (result, t) = time(|| session.execute(&cmd));
+                result.unwrap_or_else(|e| panic!("{name}: the {what} edit is accepted: {e}"));
+                (t, Some(page))
+            }
+            Edit::Wire => {
+                let (cmd, page) = env.scen.wire(k);
+                let (result, t) = time(|| session.execute(&cmd));
+                result.unwrap_or_else(|e| panic!("{name}: the {what} edit is accepted: {e}"));
+                (t, Some(page))
+            }
+        }
     };
     let stride = oracle_stride(cx.class);
     let (mut calls, mut compared) = (0usize, 0usize);
@@ -1097,40 +1263,31 @@ fn memo_family(cx: &mut Ctx, env: &MemoEnv<'_>, name: &str, edit: Edit, target: 
         |st, i| {
             let call = calls;
             calls += 1;
-            // The edit (the commit pipeline of the session, without memo work: `MemoMode::Off`), timed with the
-            // memo step.
-            let mut t_commit = Duration::ZERO;
+            // The snapshots and touched keys of the commits the store advances through, for the oracle.
+            let mut advanced: Vec<(Model, Vec<AnyKey>)> = Vec::new();
+            // The priming commit and its memo step, untimed.
             if let Some(session) = st.session.as_mut() {
-                let result;
-                (result, t_commit) = match edit {
-                    Edit::Hit => unreachable!("a hit has no session"),
-                    Edit::Unrelated => {
-                        let cmd = unrelated.expect("checked above");
-                        time(|| session.execute(cmd))
-                    }
-                    Edit::Move => {
-                        let (cmd, _) = env.scen.mv(i);
-                        time(|| session.execute(&cmd))
-                    }
-                    Edit::Wire => {
-                        let (cmd, _) = env.scen.wire(i);
-                        time(|| session.execute(&cmd))
-                    }
-                };
-                result.unwrap_or_else(|e| panic!("{name}: the edit is accepted: {e}"));
+                let (_, prime_page) = run(session, true, i);
+                let keys = touched_keys(session);
+                let model = session.world().model;
+                st.store.advance(&model, &keys);
+                drop(memo_reads(&st.store, env.pages, prime_page, target));
+                advanced.push((model, keys));
+            }
+            // The timed edit, timed with the memo step.
+            let mut t_commit = Duration::ZERO;
+            let mut page = None;
+            if let Some(session) = st.session.as_mut() {
+                (t_commit, page) = run(session, false, i);
             }
             // The memo step: the touched keys, the store advance and the memoised reads.
             let ((keys, got), t_step) = time(|| {
                 let keys = st.session.as_mut().map(|session| {
-                    let keys: Vec<AnyKey> = session
-                        .drain_changes()
-                        .into_iter()
-                        .flat_map(|c| c.touched_keys)
-                        .collect();
+                    let keys = touched_keys(session);
                     st.store.advance(&session.world().model, &keys);
                     keys
                 });
-                let got = memo_reads(&st.store, env.pages, target);
+                let got = memo_reads(&st.store, env.pages, page, target);
                 (keys, got)
             });
             // The oracle, untimed.
@@ -1138,16 +1295,20 @@ fn memo_family(cx: &mut Ctx, env: &MemoEnv<'_>, name: &str, edit: Edit, target: 
                 .session
                 .as_ref()
                 .map_or_else(|| env.baseline.clone(), |s| s.world().model);
+            if let Some(keys) = keys {
+                advanced.push((model.clone(), keys));
+            }
             oracle_check(
                 env.warm,
                 env.pages,
+                page,
                 target,
                 name,
                 call,
                 stride,
                 &mut compared,
                 &model,
-                keys.as_deref(),
+                &advanced,
                 &got,
             );
             steps.push(t_step);
@@ -1166,7 +1327,14 @@ fn memo_family(cx: &mut Ctx, env: &MemoEnv<'_>, name: &str, edit: Edit, target: 
         cx.push(&derive_name, &steps, clamped, "");
         cx.push(name, &totals, clamped, &note);
     }
-    if let Some(session) = last.session {
+    if let Some(mut session) = last.session {
+        // The last sample made two commits (the priming one and the timed one): undo the timed one so that
+        // `finish` finds the one step it expects (it undoes the other one and checks the baseline).
+        while session.history().cursor() > 1 {
+            session
+                .undo()
+                .unwrap_or_else(|e| panic!("{name}: undo of the timed edit: {e}"));
+        }
         let step = finish(session, env.baseline, name);
         cx.steps.push(step);
     }
@@ -1248,19 +1416,20 @@ fn memo_profile_family(cx: &mut Ctx, edit: &ProfileEdit, pages: &[Id<Page>]) {
             let ((new, keys, got), t_step) = time(|| {
                 let (new, keys) = edit.apply(&st.model);
                 st.store.advance(&new, &keys);
-                let got = Got::Props(wire_props_reads(&st.store.query()));
+                let got = memo_reads(&st.store, pages, None, Target::WireProps);
                 (new, keys, got)
             });
             oracle_check(
                 &warm,
                 pages,
+                None,
                 Target::WireProps,
                 NAME,
                 call,
                 stride,
                 &mut compared,
                 &new,
-                Some(&keys),
+                &[(new.clone(), keys)],
                 &got,
             );
             t_step
@@ -1295,6 +1464,8 @@ fn bench_memo(
         "memo.local_nets.wire",
         "memo.wire_props.move",
         "memo.wire_props.wire",
+        "memo.composite.move",
+        "memo.composite.wire",
     ];
     let profile_name = "memo.wire_props.profile";
     let mut memory = Vec::new();
@@ -1318,6 +1489,26 @@ fn bench_memo(
             ms(t_props)
         ));
         drop(props);
+        if cx.wants(&names[8..]) {
+            // The composite reads (the potential names and cross-reference texts of every page) are warmed
+            // only when a composite family runs.
+            let (n, t_page) = time(|| {
+                let q = warm.query();
+                handles
+                    .pages
+                    .iter()
+                    .map(|p| {
+                        let r = page_reads(&q, *p);
+                        r.names.len() + r.xrefs.len()
+                    })
+                    .sum::<usize>()
+            });
+            say(format!(
+                "memo first execution: potential_name and xref_text of {n} potentials and representations on {} pages {}",
+                handles.pages.len(),
+                ms(t_page)
+            ));
+        }
         for m in warm.memory() {
             say(format!(
                 "memo store after the first execution: {} memos={} values={} value_bytes={} dep_entries={}",
@@ -1354,6 +1545,8 @@ fn bench_memo(
         memo_family(cx, &env, names[5], Edit::Wire, Target::LocalNets);
         memo_family(cx, &env, names[6], Edit::Move, Target::WireProps);
         memo_family(cx, &env, names[7], Edit::Wire, Target::WireProps);
+        memo_family(cx, &env, names[8], Edit::Move, Target::Page);
+        memo_family(cx, &env, names[9], Edit::Wire, Target::Page);
         memory.push(("baseline", warm.memory(), warm.push_index_entries()));
     }
     if cx.wants(&[profile_name]) {
