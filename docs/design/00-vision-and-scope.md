@@ -465,7 +465,9 @@ its substance:
 5. **Are the G6 size classes right?** *Recommendation:* recalibrate L/XL from the pilot's three largest projects
    before the re-test of the performance spike (gate G-SP, [global plan](../plan/01-global-plan.md) §14, PD-8).
    G-SP was held on 2026-10-20 on the assumed bounds with the outcome Recycle (ADR-0002 amendment 4); the
-   recalibration (G-SP-08, CP-03) is an owner action due before the re-test (decision log ID-224).
+   recalibration (G-SP-08, CP-03) was an owner action due before the re-test (decision log ID-224). **Resolved**
+   2026-10-20 (decision log ID-272): the pilot's three projects all sit inside class S, so the bounds stay; S is
+   the pilot's working range and M to XL remain engineering margins.
 6. **Where do thermal calculation (THM) and the read-only wiring viewer live?** **Resolved:** THM runs as queries
    in `ew-panel` ([12](12-panel-layout.md) §1.2); the viewer is the `ew-viewer` crate, used by a small
    `ew-wiring-viewer` binary for shop PCs and by the "Preview package" view of the Manufacturing workspace

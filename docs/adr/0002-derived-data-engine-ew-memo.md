@@ -1,6 +1,6 @@
 # ADR-0002: Derived-data engine: cold-first queries plus a cut-down memo layer (`ew-memo`); no salsa
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-20 (G-SP outcome: Recycle; the memo engine as built) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-20 (G-SP outcome: Recycle; the memo engine as built; incremental connectivity as built) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -275,6 +275,110 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
      `potential_names`, fixes the wire chain and benchmarks on `MemoStore`. The G-SP re-test waits for it.
    - **Licence.** `ew-memo` stays permissive (MIT OR Apache-2.0); `ew-derive` and `ew-api` are GPL-3.0-or-later;
      no dependency was added.
+6. **Incremental connectivity as built: the partition as a producer of parts** (2026-10-20, project owner
+   (delegated); decision log ID-251 to ID-265; WP-S1.07 part 2, reviewed in cycle 10 with the verdict "accept with
+   fixes" and no soundness defect, its cost and memory findings fixed in cycle 10;
+   [architecture](../design/04-architecture.md) §3, §6.3, §6.4). Amendment 4's incremental connectivity is built on
+   amendment 5's part dependencies, inside `ew-derive`:
+   - **Value parts are cut-off firewalls.** `Q::get_value_part` reads the whole value of a family as one part
+     (`PartKey::Value`): a commit that marks the family does not mark the reader; only a re-execution that changes
+     the value does. It serves the high fan-out values with early cut-off (settings members, profile rows,
+     `bond_vias`); a family read this way never declares parts. Every part read also depends on the producer's
+     `PartKey::Notes`, because a part reader replays the producer's notes, and a producer that declares the parts
+     it changed declares `Notes` whenever its notes changed. The part keys are `Potential` (one potential's
+     topology), `Endpoint` (the potential of one endpoint), `Bonds` (the bond records), `BondsOf` (the bonds with
+     an end on one potential), `Ip` (the pairing of one interruption point), `Flow` (one potential's flow entry),
+     `Value` and `Notes`. `ew-memo` needed no change for them; the fix round added the compaction and guards below.
+   - **Producers of parts carry no notes.** An incremental family whose hook re-reads only what changed cannot
+     reproduce the notes of what it did not re-read. The topology families (the partition, the index families,
+     `ip_pairing`, `ip_info`, `function_links`, `rail_terminal`, `rail_bonds`, `bond_paths`, `potential_flow_bfs`,
+     `potential_attrs`) are therefore note-free: what they must report is part of their value, and helper queries
+     whose notes belong to their own readers (the default frame of an anchor cell, a structure cycle) run in
+     `Q::detached`. The notes are pushed by reader families: `stitch_graph` (the cold reference), `ip_notes`
+     (EW-CORE-051), `flow_notes` (EW-POT-001 of pass-through conflicts) and `potential_name` (EW-POT-001 and
+     EW-POT-017 of a potential's attributes and definitions). Reading the partition surfaces no notes. Amendment 5's
+     rule that notes are part of the memoised value stands.
+   - **`Q::detached`** (as fixed in cycle 10). A detached scope shares the request cache of the frame it runs in,
+     up to the nearest memo frame: a value computed before the scope is a hit inside it, and a miss inside it is
+     cached; the notes pushed inside the scope are dropped from the running query but stay with the cache entry and
+     are replayed to a later reader outside the scope, as a fresh evaluation would push them. A cold `Q` thus
+     evaluates every (family, key) once (`a_cold_q_evaluates_every_query_once`), and the scope behaves the same in
+     a cold and in a memoising `Q`. As first built a scope had a request cache of its own, so the cold path
+     re-evaluated the helper queries per interruption point and page, O(interruption points × pages) at XL; that
+     hit `MemoMode::Off`, `query_over` (previews and exports), the oracle's cold twin and the benchmark's cold rows.
+   - **Names and attributes per potential.** Amendment 4's `potential_names()` is built as two per-potential
+     families that read one `Potential` part each: `potential_name(p)` (the canonical name, the aliases, the
+     interruption-point names and the name of each signal; it pushes the attribute notes) and `potential_attrs(p)`
+     (type, voltage, environment and class with their conflicts; note-free, so a rename does not reach the wire
+     properties or the flow). `Signal` gains its interruption points; a signal outside a potential has no name.
+   - **The partition per component.** The value is stored per connected component in persistent maps, with the
+     incidence the maintenance needs (which component holds an endpoint, the local nets of every page, the links of
+     every function in the graph, the index values it was built from). Cut-off is structural equality, with a
+     128-bit fingerprint per component as a fast inequality test; there is no whole-value fingerprint. `imbl` 7.0.2
+     (MPL-2.0+, already a dependency of `ew-memo` and `ew-model`) becomes a dependency of `ew-derive`.
+   - **The incremental hook and its cold fallback.** Cold (`run`, the oracle's reference) is the global algorithm
+     of cycle 7. The incremental execution classifies `Changes::via` into touched pages, functions and index
+     families, takes their endpoints as seeds, removes the components that held a seed, searches the components
+     through the seeds over the current inputs (a reached untouched component is absorbed: an added connection
+     unions), recomputes only those from the per-page nets and declares the potentials and endpoints whose topology
+     changed. When `via` holds an entry the hook cannot attribute (a direct input read, an unknown family), or is
+     absent because it exceeded the 4,096 entries that `ew-memo` collects, the hook runs the cold algorithm and
+     **declares the difference** between the previous and the new value, so its readers stay exact. A bulk device
+     edit at L takes this path today.
+   - **What is incremental.** `page_local_nets` per page (it reads `bond_vias` as a value part); the index families
+     `page_ids`, `pageless_links`, `ip_functions`, `def_points`, `bond_index` and `rail_terminals`, which re-select
+     only the touched rows of their table; the per-key memos `settings_member`, `profile_row_for`, `end_class`,
+     `ip_info`, `function_links`, `rail_terminal`, `potential_name` and `potential_attrs`; `ip_pairing`, which keeps
+     its value when no point changed and is a producer of `Ip` parts; `rail_bonds`, which keeps its value when no
+     terminal value changed; and the partition. **Still whole-project:** `stitch_graph` (kept as the cold reference,
+     read by tests only); `potential_flow_bfs`, which keeps its value when neither the partition nor an attribute it
+     read changed and otherwise runs the BFS whole (a producer of `Flow` parts); the re-pairing of `ip_pairing`
+     after a change; `bond_paths`, `bond_vias` and `rail_bonds` (small); and the report kinds, which read the whole
+     partition.
+   - **Value bytes** (as fixed in cycle 10). `Query::bytes` walked the whole value on every execution, cut-offs
+     included (at XL about two million partition entries). Now `ew-memo` asks for it only when a family with an LRU
+     budget writes a value (a cut-off keeps the old bytes); every other family's bytes are computed on demand when
+     `Store::memory` reports. The incremental producers keep running estimates that their hooks update (the index
+     families through `Index::set`, the partition per component, page list and bonds), and `ip_pairing` and
+     `potential_flow_bfs` count theirs once when built, so their `bytes` is O(1). Amendment 4 item (d) stands: the
+     memory gate counts values.
+   - **Compaction and collection** (as fixed in cycle 10; `ew-memo` additions). `Store::forget` and
+     `Store::drop_carried` (also on `Cx`) let a producer forget the dependencies of deleted keys and drop every
+     carried dependency before it rebuilds whole (the index families drop theirs, because the table stamp covers
+     every row; the partition forgets the nets of deleted pages and the links of functions that left the graph). A
+     declared part that no memo reads keeps no stamp, and a stamp goes when its last reader unregisters. Every
+     advance collects orphans: a memo with no reader left, which lost its last reader or was marked, and which the
+     host did not read in the revision just closed, is dropped with its registrations, marks, part stamps and LRU
+     entry (`Counters::collected`; incremental families are exempt). Collected slots stay interned, so the store is
+     bounded by the distinct keys ever read (slot reuse is follow-up task FT-126). The review measured the growth
+     before the fix over 300 page create and delete cycles: the partition's dependencies from 110 to 410, those of
+     `page_ids` from 1 to 301, the `page_local_nets` memos from 13 to 313 and the push index from 9,526 to 10,726
+     entries; after it the committed test holds every count flat (110, 2, 14 and 1,065).
+   - **Engine guards.** Two trait constants are enforced by debug guards: `Query::PRODUCER` (only a producer
+     declares parts, and a value-part read is never of a producer) and `Query::NOTE_FREE` (true by default for an
+     incremental family, which then pushes no note). `a_part_reader_follows_the_producers_notes` tests the `Notes`
+     part. The note families `ip_notes` and `flow_notes` are read whole as value parts, so their fan-out is bounded
+     by the cut-off; keying them per point and per potential is a design decision about which notes one reader
+     shows (follow-up task FT-125).
+   - **Forks.** `MemoStore::fork` is public: an O(1) snapshot for a benchmark sample or a job. A fork advances only
+     along its own descendants (snapshots derived from the one it was taken at), never touches the store it came
+     from, and returns its memos only through adopt-if-unchanged (decision 5).
+   - **The profile key.** `ProfileKey` orders and hashes by a canonical tuple (a known variant by its index, an
+     unknown one by the text of its value), because the `ew-schema` enums with an `Unknown` variant are neither
+     `Ord` nor `Hash`; `ew-schema` is unchanged.
+   - **Caches outside equality.** The pairing, the rail joins and the flow keep in their values the inputs their
+     hooks compare; these caches are excluded from equality, so they never defeat a cut-off. The flow's notes
+     became `conflicts` in its value, reported by `flow_notes`.
+   - **Evidence.** `crates/ew-api/tests/memo_oracle.rs` covers 20 edit states; the property test
+     `crates/ew-derive/tests/incremental_partition.rs` compares the incremental with the cold partition over 36
+     generated cases; an engine test pins amendment 5's mark-epoch rule for an incremental execution that leaves a
+     `via` memo unread. The review's eight groups of adversarial probes (splits, joins, page delete, undo and redo
+     across a split, bridge re-add, star and chain pairing, rename and delete, bond via moves, a flow direction flip,
+     a strip move, a cascaded delete, a four-member chain group) matched cold, and none fell back to the cold
+     algorithm. The spike benchmark runs on `MemoStore` (one smoke run, not evidence) with the composite NFR-PERF-05
+     family (`memo.composite.move`, `.wire`: the partition, the names and the cross-reference texts after the edit),
+     notes compared by its oracle, and timed samples on the second commit of a fork; the G-SP re-test runs it on a
+     BM-class runner (decision log ID-265).
 
 ## Consequences
 

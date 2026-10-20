@@ -137,6 +137,18 @@ Amendments 1 to 4 were accepted on 2026-10-18, amendments 5 to 7 on 2026-10-19. 
    group's runs in order; an optional "logical text" marker on `Group` is follow-up task FT-112. Per-glyph faces in
    `ShapedRun` are revisited only if the display list becomes a persisted or plugin-facing format, because only
    then would the grouping leak into a contract others depend on.
+9. **An invisible path is a link and pick region; one link per listed item** (2026-10-20, project owner, delegated;
+   decision log ID-267, ID-268; FT-86; [reports, forms and output](../design/09-reports-forms-output.md) §4.2). A
+   `Path` item with neither stroke nor fill is valid: renderers draw nothing for it, and it serves as an invisible
+   link region (with a `LinkSource`) or pick region (with an `EntityRef`). `ew-scene` uses it for a
+   cross-reference text that lists several items ("∞ 3-B2, 106-G3"): such a text carries one invisible path per
+   item, over that item's glyph span only (the pen travel of the text up to the item's ends, not the "∞ " prefix
+   or the parentheses), after the text's own items, with the text's `EntityRef` and a `LinkSource`; a text with one
+   item keeps its link on the text, and a slot value sets one kind or the other, never both. `ew-dl` and the
+   backends are unchanged: `ew-export` writes one link annotation per link item over the axis-aligned box of the
+   path's control points, exact at 0° and 90°; a free-angle text needs `QuadPoints` (follow-up task FT-122), and
+   exact item ends from the shaped clusters replace the prefix re-shaping, which ignores kerning across the item
+   boundary (FT-123). The golden PDF has 64 cross-reference link annotations and 96 named destinations.
 
 ## Consequences
 

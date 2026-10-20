@@ -1,6 +1,6 @@
 # Quality engineering, security and release
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) proves its correctness, performance and security, and
 how it is built, signed, shipped and supported. It turns the architecture's "prove it in CI" principle
@@ -254,7 +254,7 @@ for throughput. Nightly runs use AddressSanitizer, because the dependency closur
 | Frame geometry | hayro's parser extracts path segments in printed mm, compared with `geometry/frame.json` | ±0.2 mm (AC-01) |
 | Raster parity | hayro rasterises each page, dify compares it with the vello_cpu PNG | Within tolerance (FR-OUT-018) |
 | Outline | Entry count and titles | Front matter, sections 1, 2, 9, every folio (FR-OUT-004) |
-| Links | Link annotations and named destinations | 63 xref links (one per linked text, 64 targets) plus report back-links; every destination resolves (AC-13) |
+| Links | Link annotations and named destinations | 64 xref links (one per listed item: 63 linked texts with 64 targets; a link covers the item's glyph span only) plus report back-links; every destination resolves (AC-13) |
 | Page labels | `/PageLabels` | Physical page 6 is labelled "101" (D-33) |
 | Fonts | Embedded, subset (`ABCDEF+` prefix), no Tahoma | AC-13 |
 | Text | Extracted text keeps spaces | "SK 3110.000" (FR-OUT-008) |
@@ -351,6 +351,23 @@ must still run these subcommands in CI. The hook makes that possible without wea
   whose resolved graph enables `test-confirm`, and CI-R-09 asserts that the feature's canary string is absent from
   every release binary, like the egui `inspection` feature.
 - **Its own tests** are the `HumanOnly` rows of §11.5.
+
+### 3.16 Cross-platform source rules
+
+Added 2026-10-20 (decision log ID-270) after the CI of cycle 9 went red on Linux and macOS while every local check on
+Windows passed. Three rules, because the hosted runners only report what a local run on one OS cannot see:
+- **No `#[path]` attribute inside an inline module.** Inside `mod tests { … }` of `src/foo.rs` a `#[path]` is
+  resolved against the directory `src/foo/tests/`, which need not exist. Windows normalises `..` lexically and
+  accepts the path; Linux and macOS resolve each component on disk and fail, which broke `cargo fmt` and the test
+  builds there. A module that borrows a shared file (a test fixture builder) is declared at file level, where the
+  path is relative to the file's own directory.
+- **No edition-2024 let chains in the permissive crates.** `if let … && let …` needs Rust 1.88, and the permissive
+  crates build with their MSRV 1.85 (§6.2), which the MSRV job of CI-PR-09 checks. GPL crates follow the pinned
+  toolchain, but a pattern moved into a permissive crate must be rewritten (an early return and a plain `if let`).
+- **The Linux CI steps run locally before `main` moves.** The integrating session runs the Linux steps of
+  CI-PR-01 and CI-PR-02 (fmt, clippy, the workspace tests) in a local Linux environment, for example WSL with the
+  pinned toolchain, in addition to the Windows run, before `main` is fast-forwarded; the hosted CI stays the gate
+  of record. A `cargo xtask` lint for the first two rules is follow-up task FT-124.
 
 ---
 
@@ -1135,7 +1152,7 @@ and any commercial edition needs a liability review first.
 | Oracle and property tests | AC-16 edits: rename T55, move -102F2 one cell, renumber 103 → 104, change the 24 V DC colour. After each edit the 63 xref texts (64 targets), `device_tag` of every device, `wire_props_of(24VDC-1)`, `bom_rows` and `title_block` must equal a cold recomputation |
 | Engine statistics | A wire on folio 102 re-executes nothing keyed to folio 203; the 24 V colour change touches only the 24 V potentials and folio 1's table |
 | Determinism | SHA-256 of the GP PDF equal on Windows, macOS and Linux and across 1, 2 and 8 threads (AC-14) |
-| PDF structure | 63 xref link annotations (64 targets); folio labels ("101" on physical page 6); "SK 3110.000" with its space; no Tahoma; no "-4W1", "T51", "JE2416" or "BR" in the text layer (AC-06, AC-13) |
+| PDF structure | 64 xref link annotations (one per item of the 63 linked texts); folio labels ("101" on physical page 6); "SK 3110.000" with its space; no Tahoma; no "-4W1", "T51", "JE2416" or "BR" in the text layer (AC-06, AC-13) |
 | Performance | AC-17 on BM: open ≤ 0.5 s, full check ≤ 2 s, `ew export pdf` ≤ 3 s. Golden B is the seed of every synthetic fixture (§4.1) |
 | Network sandbox | Open GP, edit, check, export the PDF and print to file with zero non-local socket calls |
 | Crash scrubber | A forced crash with GP open yields a payload without "J-E-2416", "-102G1", "TA05-V-15", `<engineer>`, the path or the user name (NFR-PRIV-04) |

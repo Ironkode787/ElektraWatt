@@ -264,7 +264,9 @@ Xref texts are freshness class I: every move, renumber and frame change updates 
 (FR-XRF-020).
 
 **Text placement** per relation kind (FR-XRF-011, FR-XRF-022): IP partner text below the arrow, right-aligned, style
-`data.small`; aux text `(…)` under the device tag, style `xref.device`; main list after the tag (styles as in
+`data.small`, and so is the partner text of an external arrow; aux text `(…)` under the device tag and the main
+list after the tag, both style `xref.device` (as built: the xref slots of the IEC contact and coil symbols,
+`ew.ovw.module`, `ew.bus.dp-port` and `ew.gen.blackbox` name it, decision log ID-266; sizes in
 [20](20-golden-project.md) §17.5). Every xref text is a link on screen and in the PDF (FR-XRF-019, FR-OUT-005).
 
 **Interruption-point glyph.** The arrow shows signal flow, not page side (FR-XRF-009): a **Source** point draws its

@@ -332,7 +332,7 @@ milestone they precede.
 |---|---|---|---|---|---|
 | CP-01 | **ADR-0027 grid and ADR-0028 fonts** decided with the pilot user and two EPLAN users (PD-4 by spine week 2, PD-5 by spine week 3) | Mid-November 2026 (week 2) and late November 2026 (week 3) | Project owner, pilot user | G-M0 | WP-S3.01, WP-S3.02 and the starter symbols wait: the output lane stalls |
 | CP-02 | **Developer 4 decision** (PD-3) | Month 2 (Dec 2026) | Project owner, employer | G-M0 | In the first year each month of delay costs about a tenth of a month at G-M2 (start at month 4: G-M2 at 36; month 9: 36; month 15: 37; [global plan §10.3](01-global-plan.md#103-when-to-add-developer-4)) |
-| CP-03 | **Pilot size data** (three largest projects) and the QET baseline timing | By month 3 (Jan 2027) | Pilot liaison | G-M0, G-SP, G-M1, G-M3 | Size classes S/M/L/XL stay assumptions (AS-2); SC-3 has no baseline |
+| CP-03 | **Pilot size data** (three largest projects) and the QET baseline timing | **Size data closed 2026-10-20** (decision log ID-272): three projects received, all inside class S; the QET baseline timing stays due by month 3 (Jan 2027) | Pilot liaison | G-M0, G-SP, G-M1, G-M3 | Size classes S/M/L/XL stay assumptions (AS-2); SC-3 has no baseline |
 | CP-04 | **Quarterly upgrade train** with the schema-steward rotation | Jan, Apr, Jul, Oct | Quarter's steward | All gates | More than 3 developer-days or abort rule: SR-9 |
 | CP-05 | **R0 formative usability round** (think-aloud tasks T1, T2, T8 with the pilot user and a colleague) on the preview build (WP-S2.12, [global plan §12.1](01-global-plan.md#121-what-the-pilot-gets-and-gives-per-milestone)) | Month 26 (Dec 2028), with M-PP | UX researcher | G-PP, G-M2 | R1 starts without formative findings (NFR-UX-09) |
 | CP-06 | **Steward and signing enrolment submitted** (PD-7a: identity holder named; D-U-N-S, Apple organisation, Artifact Signing identity validation; SignPath fallback decision) in the first 90 days by WP-S0.05a; the enrolment lead time of at least 12 months is modelled as a lag of WP-S0.05, whose finish makes the identities usable by CI | Submitted: finish of WP-S0.05a, month 1 (Nov 2026), at the latest at G-M0 (month 3, Jan 2027). Identities usable: finish of WP-S0.05, month 33 (Jul 2029) | Steward liaison | G-M0, G-M1 (plan), G-M2 | SR-6: G-M2 cannot be passed however ready the code is. The latest submission that still holds the MVP date is about month 20 in the baseline ([global plan §9.3](01-global-plan.md#93-schedule-risk-register) SR-6) |
@@ -657,7 +657,12 @@ session) on the [spike report](../research/spike-g-sp-2026-10.md) and its indepe
   gaps are an order of magnitude beyond the machine factor. The re-test runs on a BM-class runner by
   [quality §4.3](../design/18-quality-security-release.md#43-runner-and-measurement), with 1,000 samples.
 - **G-SP-08.** The recalibration of the class bounds against the pilot's three largest projects (CP-03) stays open
-  as an owner action, due before the re-test.
+  as an owner action, due before the re-test. **Closed 2026-10-20** (decision log ID-272): the pilot's three
+  projects (34, 18 and 36 folios; at most 1,445 placed elements, 718 conductors and 3,689 terminal points) all sit
+  inside class S of NFR §2.1, so the class bounds stay as they are; class S is the pilot's working range and M to XL
+  remain engineering margins. The NFR-PERF budgets at S are the ones that matter for the pilot preview, and the
+  re-test must show S within budget first. The pilot's `.qet` of the reference set was received with them, which
+  unblocks Golden C (PQ-02); its work stays at M2 ([golden project](../design/20-golden-project.md) §2.3).
 - **Re-forecast** (GP-05, GP-06). M1 of the plan of record moves from month 15 to month 16 (+3 to +5 weeks on the
   critical chain); the likelihood of SR-7 (R-018) rises to 4 (score 16). The re-review covers the open criteria
   (G-SP-04, -08) and the re-measured families in every class; it is held at the end of the re-spike of at most four
@@ -742,7 +747,7 @@ which at month 3 costs little.
 | ID | Type | Criterion | Evidence |
 |---|---|---|---|
 | G-M1-01 | H | `ew export pdf golden/J-E-2416.ew` writes the 18 folios plus report folios 903 … 911 in a container with no display, no GPU, no system fonts and empty library directories | CI-PR-05 log; PDF digest recorded |
-| G-M1-02 | H | **AC-01 … AC-13** pass on Golden A: frame, grid and title block within ±0.2 mm; 36 pages in the order of §5; 63 cross-reference texts (64 targets) including "3-B2"; tags consistent in every output; folio 901 with 27 rows; 903 … 905, 906, 907 (44 wires, 6 bridges), 909 (19 potentials) equal their tables; PDF/A-2b passes veraPDF with outline, 63 xref link annotations and `/PageLabels` | Runner report (GP-01); CI-PR-06; CI-N-09 |
+| G-M1-02 | H | **AC-01 … AC-13** pass on Golden A: frame, grid and title block within ±0.2 mm; 36 pages in the order of §5; 63 cross-reference texts (64 targets) including "3-B2"; tags consistent in every output; folio 901 with 27 rows; 903 … 905, 906, 907 (44 wires, 6 bridges), 909 (19 potentials) equal their tables; PDF/A-2b passes veraPDF with outline, 64 xref link annotations (one per listed item) and `/PageLabels` | Runner report (GP-01); CI-PR-06; CI-N-09 |
 | G-M1-03 | H | **AC-14 (Linux)**: PDF, SVG, CSV and JSONL byte-identical across serial and parallel export and shuffled record order. Digests from Windows and macOS are reported but gate at G-M2 | CI-N-04 (Linux part) |
 | G-M1-04 | H | **AC-15** build paths (a) bootstrapped as data, (b) through commands, (c) checked-in fixture agree; **AC-16** the scripted edits (rename T55, move -102F2, renumber folio 103 → 104, change the 24 V colour) each update every affected output in the same commit and `ew verify-derived` reports no difference with the oracle on | Runner report; CI-PR-02 oracle |
 | G-M1-05 | H | **AC-17** on BM: Golden A opens in ≤ 0.5 s, `ew export pdf` ≤ 3 s, a full check ≤ 2 s (with the rules that exist at M1; the MVP packs follow at G-M2 and NFR-PERF-09 is re-measured there) | CI-N-01 report |

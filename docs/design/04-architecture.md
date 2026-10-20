@@ -1,6 +1,6 @@
 # ElektraWatt architecture specification
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-20 (G-SP outcome, §6.1 to §6.4; save order, §7.4; the memo engine as built, §2, §6.2, §6.4) · **Date:** 2026-10-17 · **Decided by:** chief architect, after a judge
+**Status:** Accepted · amended 2026-10-18, 2026-10-20 (G-SP outcome, §6.1 to §6.4; save order, §7.4; the memo engine as built, §2, §6.2, §6.4; incremental connectivity as built, §3, §6.3, §6.4) · **Date:** 2026-10-17 · **Decided by:** chief architect, after a judge
 panel over four competing proposals (A incremental, B ECS, C relational, D retained/object model)
 **Scope:** ElektraWatt (EW) v1:
 - Electric P8-class schematics;
@@ -225,7 +225,7 @@ sessions (G6).
 | `ew-plugin-wit`, `ew-plugin-sdk` (v1.x) | P | WIT package `elektrawatt:plugin` and the guest SDK with typed bindings generated from the JSON Schemas | wit-bindgen 0.63.0 |
 | `ew-model` | GPL | `Table<T>` of `ew-schema` records, the `Model` snapshot, `Op` apply and invert, base reverse indexes, structural invariants, link delete policies; the raw read API only behind the `raw-read` feature (rule 1) | ew-schema, ew-ids, ew-units, ew-mltext, ew-rds; imbl 7.0.2, smol_str 0.3.6 **(verify)** |
 | `ew-rhai` | GPL | rhai engine configuration plus the formula and rule profiles (pure, tracked reads, operation limits) | rhai 1.26.1 |
-| `ew-derive` | GPL | All domain queries (§6.4) and the tracked-read context `Q` | ew-memo, ew-model (enables raw-read), ew-rhai, ew-plcaddr, ew-schema, ew-ids, ew-units, ew-mltext, ew-rds; serde, serde_json, toml (the shipped derivation profiles in profiles/, §6.6); dev: ew-commands (agreement tests of the numbering rules; listed under `[allowed_dev_edges]`); later: icu **(verify)** |
+| `ew-derive` | GPL | All domain queries (§6.4), the tracked-read context `Q` and its memo backend `MemoStore` | ew-memo, ew-model (enables raw-read), ew-rhai, ew-plcaddr, ew-schema, ew-ids, ew-units, ew-mltext, ew-rds; imbl 7.0.2 (MPL-2.0+; the persistent maps of the partition and the index families, ADR-0002 amendment 6), serde, serde_json, toml (the shipped derivation profiles in profiles/, §6.6); dev: ew-commands (agreement tests of the numbering rules; listed under `[allowed_dev_edges]`); later: icu **(verify)** |
 | `ew-commands` | GPL | `Command`, `DynCommand`, `TxBuilder`, normalisers, validators, numbering engine, `History`, previews, macros, `ApplyImport` | ew-derive, ew-model (enables `raw-read`), ew-schema, ew-ids, ew-units, ew-mltext, ew-rds; serde, serde_json, schemars 1.2.3; dev: ew-ids/testkit, proptest, and ew-commands itself with its `testkit` feature (the crate's own integration tests; the dev-only self edge is listed under `[allowed_dev_edges]` in `ci/dep-rules.toml`) |
 | `ew-checks` | GPL | Rule engine, rule packs, the `RuleImpl` trait and registry (Rust and rhai rules implemented here), online checks as queries, offline check jobs, waivers, quick fixes | ew-derive, ew-rhai, toml 1.1.8, fluent-bundle 0.16.0, sha2 **(verify)** |
 | `ew-sqlview` | GPL | Read-only SQL projection: materialisation, `api_v1_*` views, sandbox, `ew_natural` collation; the SQL rule implementations registered into `ew-checks` | rusqlite 0.40.2 (`bundled`, `functions`, `hooks`, `limits`), ew-checks |
@@ -256,7 +256,7 @@ sessions (G6).
 | `ew` (bin) | GPL | CLI, `ew mcp`, merge driver, textconv, migration verifier | clap **(verify)**, rmcp 3.5.1 **(verify)**, ew-print, hayro 0.8.0 (`ew verify-migration`) |
 | `ew-wiring-viewer` (bin, 1.0) | GPL | Small read-only viewer for shop PCs | ew-viewer |
 | `ew-step-worker` (bin) | GPL (links LGPL OCCT) | STEP reading, tessellation, feature edges, hulls, mounting frames | occt-sys 7.8.1, opencascade 0.3.0, gltf 1.4.1 |
-| `ew-testkit` | GPL | Golden builders (CSV bootstrap through `ew-import-tables`, command DSL), S–XL and XL-A generators, oracle comparator, acceptance runner; the seeded S–XL generator ew_testkit::synth and the cold-operation benchmark harness ew_testkit::bench (WP-S1.05); the G-SP spike benches and the memo prototype (`benches/spike.rs`, `benches/spike/memo.rs`) | ew-model, ew-schema, ew-ids, ew-units, ew-mltext, ew-rds (the generator); ew-import-tables (golden builders, allowed edge); dev: ew-api, ew-commands with testkit, ew-ids with testkit, ew-derive and ew-memo (the spike measures the connectivity families cold and through a prototype `ew_memo::Db` over `ew-derive`'s dependency keys; decision log ID-223), serde_json; later: insta 1.49.0, proptest 1.12.0, dify 0.8.0, hayro 0.8.0 (test use); criterion 0.8.2 only as a front end of the nightly performance gate (NFR-PERF-20). Dev-only everywhere: no crate may take it as a normal dependency. |
+| `ew-testkit` | GPL | Golden builders (CSV bootstrap through `ew-import-tables`, command DSL), S–XL and XL-A generators, oracle comparator, acceptance runner; the seeded S–XL generator ew_testkit::synth and the cold-operation benchmark harness ew_testkit::bench (WP-S1.05); the G-SP spike bench (`benches/spike.rs`) | ew-model, ew-schema, ew-ids, ew-units, ew-mltext, ew-rds (the generator); ew-import-tables (golden builders, allowed edge); dev: ew-api, ew-commands with testkit, ew-ids with testkit, ew-derive (the spike measures the connectivity families cold and through `ew-derive`'s `MemoStore`, which is how it reaches `ew-memo`: there is no direct edge to `ew-memo`; decision log ID-223, ID-263), serde_json; later: insta 1.49.0, proptest 1.12.0, dify 0.8.0, hayro 0.8.0 (test use); criterion 0.8.2 only as a front end of the nightly performance gate (NFR-PERF-20). Dev-only everywhere: no crate may take it as a normal dependency. |
 | `ew-py` (v1.x) | GPL | Python wheel of the headless core | pyo3 0.30.1 |
 
 `xtask` and `fuzz/` are development-only and outside the product crate table; they never ship in release artefacts.
@@ -356,7 +356,7 @@ graph TD
   wv --> viewer
   stepw --> stepp
   testkit --> itab & model & schema & ids & units & mltext & rds
-  testkit -. dev .-> api & cmd & derive & memo
+  testkit -. dev .-> api & cmd & derive
   derive -. dev .-> cmd
   api -. dev .-> text & dl & rcpu & ids & units & mltext
   rcpu -. dev .-> text & units
@@ -756,10 +756,23 @@ of policy Memo or Memo + LRU is memoised (§6.4), a commit advances the store wi
 feed, and a committed oracle test over the golden project compares the memoised session with cold evaluation. The
 partition as a producer, the incremental index families and the benchmark on `MemoStore` are part 2 (cycle 10).
 
+**Status (cycle 10, WP-S1.07 part 2; ADR-0002 amendment 6).** The partition is an incremental producer of parts
+and the connectivity inputs are incremental index and per-key families (§6.4). Value parts (`Q::get_value_part`)
+make high fan-out values cut-off firewalls; the topology families are note-free; `Q::detached` shares the request cache
+of its frame, so a cold `Q` evaluates every (family, key) once; `Query::bytes` is asked for only at the writes of
+LRU families and on demand by `Store::memory`, and the incremental producers keep running estimates; producers
+forget dead keys and drop carried dependencies (`Store::forget`, `Store::drop_carried`), unread parts keep no stamp
+and every advance collects orphan memos; debug guards enforce `Query::PRODUCER` and `Query::NOTE_FREE`;
+`MemoStore::fork` is public. The benchmark runs on `MemoStore` with the composite family of a move or wire commit (names and
+cross-references included); the G-SP re-test on a BM-class runner is open.
+
 ### 6.3 Granularity and memory rules
 
 1. **No per-CP memos.** The finest memo key is a page, device, potential, strip, module, station, report block or
-   layout space.
+   layout space. *Amended 2026-10-20 (decision log ID-262):* a function is also allowed as a key where the value
+   per function is small and an incremental reader needs it per function: `function_links(f)` (up to one memo per
+   function with a CP in the graph, about 150,000 at XL-A) and `ip_info(f)` (one per interruption point). Their
+   count and bytes are under the memory gate (rule 4) like every other family.
 2. **Group small results.** Per-connection values are grouped per potential: `wire_props_of(potential) -> Arc<Map>`.
    The per-connection accessor `wire_props(conn)` is a cold lookup into that map.
 3. **Promote only what pays.** A query is memoised only if its cold cost exceeds about 20 µs, or if it is read on
@@ -771,11 +784,19 @@ partition as a producer, the incremental index families and the benchmark on `Me
 
 ### 6.4 Query catalogue
 
-*Status (cycle 9; ADR-0002 amendment 5).* In a `Session` every built family below whose policy is Memo or
+*Status (cycle 10; ADR-0002 amendments 5 and 6).* In a `Session` every built family below whose policy is Memo or
 Memo + LRU is memoised through `ew-memo`, those of `ew-reports` included; `query_over` and the tests' `Q::new` stay
-cold. Still whole-project, as one memo each that reads whole tables: `stitch_graph` and `potential_partition` (their
-per-component maintenance is WP-S1.07 part 2, cycle 10). Not built yet: `potential_names`, `profile_row_for` and
-`settings_member` (part 2).
+cold. `FAMILIES` in `crates/ew-derive/src/lib.rs` lists every built `ew-derive` family with its policy, and this
+table follows it. Connectivity is incremental since WP-S1.07 part 2: `page_local_nets` per page, the index families
+and the per-key memos re-execute only for what an edit touched, and `potential_partition` is a producer of parts
+whose incremental execution recomputes the touched components only; it falls back to the cold algorithm, and
+declares the difference, when it cannot attribute a change or `Changes::via` exceeds 4,096 entries (a bulk device
+edit at L does today). **Still whole-project:** `stitch_graph` (the cold reference, read by tests only);
+`potential_flow_bfs` (kept when the partition and the attributes it read are unchanged, otherwise one BFS); the
+re-pairing of `ip_pairing` after a change; `bond_paths`, `bond_vias` and `rail_bonds` (small); and the report kinds,
+which read the whole partition. *Note-free* below means that the family keeps what it must report in its value and
+pushes no notes; its helper queries run in `Q::detached` (ADR-0002 amendment 6). *Value part* means that readers
+take the whole value as a cut-off point (`Q::get_value_part`).
 
 | Query (key) | Depends on | Initial policy | Notes |
 |---|---|---|---|
@@ -798,17 +819,40 @@ per-component maintenance is WP-S1.07 part 2, cycle 10). Not built yet: `potenti
 | `cell_of(point, page)` | the page's frame form and connection grid | Cold | Exact frame-cell lookup: a point less than 1 nm from a grid point (the rounding window) is evaluated at that grid point on the rational grid, any other point at its exact nm value ([06](06-schematic-editor.md) §5.1, FR-PAG-020). Used by `rep_anchor_cell` and the cursor readout; `ew-units` has only the integer `Grid` primitives |
 | `frame_settings()` | the project's `frames` settings member | Cold | The `frames` settings member parsed once per `Q`, malformed parts dropped and noted once as `MalformedShim` |
 | `frame_grid(page)` | the page, `frame_settings`, the frame form | Cold | The page's frame grid, evaluated once per page per `Q`: the page's own form, else the entry for its page type, else the default form, else the built-in default grid (noted); title, TOC and divider pages default to the no-grid variant (FR-PAG-018) |
-| `xref_text(rep)` | partners' anchor cells, xref format | Memo | Star or chain interruption points; "(201-E1)", "∞ 203-B4" |
-| `page_local_nets(page)` | connections, junctions, reps on the page | Memo | Union-find over a few thousand edges. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). |
-| `stitch_graph()` | local nets, the `ip_pairing` settings member, bridges, conductors, terminal side links, bonds | Memo, maintained per component (§6.1); cycle 9: one whole-project memo | Nodes are local nets, about 10–15 % of CPs. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). After G-SP (ADR-0002 amendment 4): page-less connections, bridges, IP functions, link-bearing functions and rail-bonded terminals are read through indexes, never by iterating whole tables (§6.3 rule 5) |
-| `potential_partition()` | stitch graph, potential defs, net defs | Memo, maintained per component (§6.1); cycle 9: one whole-project memo | **Topology only** after G-SP: the components and their `PotentialId`s. `PotentialId` = the minimum `PotentialDef` ID when the potential has one or more definitions, else the minimum CP ID, so it is stable under unrelated edits. An added connection unions components; a removed one recomputes the affected components from the per-page nets. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1) |
-| `potential_names()` | potential partition, device tags, anchor cells, page order, IP names | Memo | New after G-SP: canonical name plus IP aliases (D-24) and the fallback names (`<tag>:<designation>` of the first CP in page and cell order), split out of the partition, so a folio renumber or a move re-derives names and not the topology (with tags, cells and page order already evaluated the partition still took 60 ms at M, mostly names and per-CP role checks) |
-| `physical_wires_of(potential)` | potential members, connections, junction wiring, IP pairs | Memo after a fix; cycle 9: memoised, the chain fix is part 2 | One entry per physical CP-to-CP wire, keyed by the UUID of its target-side connection. Source of the wire list, routing and `WireRecord`. Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). Its chain is super-linear (20 µs per potential at S, 241 µs at L); the cause is isolated and fixed before the family is memoised, and it goes under the LRU if its values stay bulky |
-| `potential_flow(potential)` | `potential_flow_bfs` | Cold | Flow rooted at the source-output CPs; the protective device per load (a load is a consuming function on the potential, decision log ID-172); source of the potential overview. Built in cycle 7 (WP-S1.07). Demoted to Cold after G-SP: a map lookup into `potential_flow_bfs` (< 20 µs) |
-| `potential_flow_bfs()` | potential partition, pass-through pairs, source outputs | Memo | The one BFS over the partition behind every `potential_flow(potential)` ([08](08-connections-terminals-cables.md) §3.6) |
-| `profile_row_for(attributes)` | the `colour_profile` and `size_profile` settings members | Memo | New after G-SP: the profile rule for one combination of type, voltage, AC/DC and circuit class; a profile edit re-executes the few keys and cuts off every unaffected one |
-| `settings_member(name)` | the project row | Memo (a cut-off point, not a cost saving) | New after G-SP: one key per settings member read by a derivation (`ip_pairing`, `colour_profile`, `size_profile`, `wire_default`, `numbering`, `frames`, the pinned profile), so a colour-profile edit no longer invalidates the pairing; no new stamp in `ew-model` (ADR-0002 amendment 4) |
-| `wire_props_of(potential)` | overrides, net defs, potential defs, `profile_row_for` | Memo | Precedence: connection override (CDP) > net definition > potential definition > profile rule (type × voltage × circuit class) > project default. Every value carries **provenance** (D-08). Built in cycle 7 (WP-S1.07); cold in phase 1 (§6.1). After G-SP it reads the profile only through `profile_row_for`, so a profile edit re-derives the affected potentials only; NFR-PERF-07 at L is feasible only with push invalidation (§6.2) |
+| `xref_text(rep)` | `xref_relation`, partners' anchor cells, xref format | Memo | Star or chain interruption points; "(201-E1)", "∞ 203-B4". A text that lists several items carries one link per item (decision log ID-228, ID-267) |
+| `xref_format()` | the `xref_format` settings member, else the pinned profile's `xref` table | Cold | A malformed member is noted and the profile's format applies (decision log ID-189) |
+| `xref_relation(rep)` | the representation's function, `ip_pairing` (the point's `Ip` part), `ip_notes` (value part), the device's representations | Cold | The cross-reference relation of a representation: partner points, or the main and auxiliary representations of its device |
+| `device_boxes(device)` | the device's representations with a `box` | Cold | The black-box outlines of a device in page space, once per device, so a device with many auxiliaries stays linear |
+| `page_local_nets(page)` | connections, junctions, reps on the page, `bond_vias` (value part) | Memo | Union-find over a few thousand edges, one memo per page; an edit re-executes only the pages it touched. Built in cycle 7 (WP-S1.07) |
+| `page_ids()` | the page table | Memo, incremental index | Every page in ID order; a renumber re-selects its pages and cuts off. Note-free |
+| `pageless_links()` | the connection table, `bond_vias` | Memo, incremental index | Every `Bridge` connection and every page-less joining connection that no bond cuts, by ID, with an index by end; a change of the bond cut re-selects every row. Note-free |
+| `bond_index()` | the bond table | Memo, incremental index | Every bond by ID with its kind and via connection. Note-free |
+| `bond_vias()` | `bond_index` | Memo (value part) | The connections named as some `Bond.via` (the bond cut, [08](08-connections-terminals-cables.md) §3.7), in ID order; read by `page_local_nets` and `pageless_links` as a cut-off point. Small, recomputed whole |
+| `ip_functions()` | the function table | Memo, incremental index | The specification of every interruption-point function, by ID. Note-free |
+| `def_points()` | the potential-definition table | Memo, incremental index | Where each potential definition is placed. Note-free |
+| `rail_terminals()` | the device table | Memo, incremental index | The terminal devices with `rail_bonded` set, in ID order. Note-free |
+| `ip_info(f)` | `ip_functions`, the point's CP, first representation and page, `page_structure`, `drawn_page_order`, `rep_anchor_cell`, the `ip_pairing` settings member | Memo, per function (§6.3 rule 1) | One interruption point as the pairing and the names read it: specification, CP, page, pairing scope node and page-order position; a move or renumber re-derives this one value. Note-free (its EW-CORE-051 notes are in its value) |
+| `ip_pairing()` | `ip_functions`, `ip_info` of every point, the `ip_pairing` settings member | Memo, incremental producer of `Ip` parts | Groups the points by name and scope and pairs them (star or chain, [03](03-domain-model.md) §10). Keeps its value when no point value changed, otherwise pairs again (whole) and declares the points whose pairing changed. Note-free. Split out of the stitch graph in cycle 10; `physical_wires_of` and `xref_relation` read it per point |
+| `ip_notes()` | `ip_pairing` | Memo (value part) | Pushes the EW-CORE-051 notes of the pairing, in the order of the cycle-7 stitch graph; read whole by the cross-reference relation and the stitch graph |
+| `function_links(f)` | the function, its FnDef, `function_cps`, `structure_of` for terminal groups | Memo, per function (§6.3 rule 1) | What a function contributes to the stitch graph whatever is drawn: declared FnDef links, duplicated-pin and terminal-level groups, and its flow data (protective device, N switched with L, terminal contact, source outputs). Note-free |
+| `rail_terminal(d)` | `rail_terminals`, the terminal's functions and CPs, `structure_of` | Memo, per device | The PE CPs and location of one rail-bonded terminal; its EW-TERM-005, EW-POT-008 and cycle notes are in its value (note-free) |
+| `rail_bonds()` | `rail_terminal` of every rail-bonded terminal | Memo, incremental | Per location the PE CPs that the rail joins ([08](08-connections-terminals-cables.md) §3.7); keeps its value when no terminal value it read changed. Note-free. Small |
+| `bond_paths()` | `bond_index`, `ip_pairing` | Memo (value part) | The interruption points on the `via` path of every bond and their names ([03](03-domain-model.md) §9.6). Note-free. Small, recomputed whole |
+| `stitch_graph()` | local nets, the index families, `ip_pairing`, `ip_notes`, `function_links`, `rail_bonds`, `bond_paths` | Memo; since cycle 10 the cold reference only | Nodes are local nets, about 10–15 % of CPs. Built in cycle 7 (WP-S1.07). Since cycle 10 the partition no longer reads it: it is the oracle's and the tests' whole-graph reference and pushes the pairing's notes when read. Reads through indexes, never whole tables (§6.3 rule 5) |
+| `potential_partition()` | `page_local_nets`, the index families, `ip_pairing`, `function_links`, `rail_bonds`, `bond_paths` | Memo, incremental producer of the parts `Potential`, `Endpoint`, `Bonds`, `BondsOf` | **Topology only:** the components and their `PotentialId`s, stored per component in persistent maps with the incidence the maintenance needs. `PotentialId` = the minimum `PotentialDef` ID when the potential has one or more definitions, else the minimum CP ID, so it is stable under unrelated edits. Cold = the global algorithm of cycle 7 (the oracle's reference); incremental = the components through the touched endpoints, recomputed from the per-page nets (an added connection unions), with the changed potentials and endpoints declared; cold fallback as in the status line. Cut-off by structural equality with a 128-bit fingerprint per component. Note-free |
+| `potential_name(p)` | the potential's `Potential` part, `potential_attrs`, `ip_info` of its points, `bond_paths` (value part), `device_tag`, `function_cps`, `rep_anchor_cell`, `drawn_page_order` | Memo, per potential | Replaces the `potential_names()` of ADR-0002 amendment 4. The canonical name (first definition in ID order, else the first non-external source point in page order, else the first external one, else `<tag>:<designation>` of the first member CP), the aliases (the other IP names, natural order; points on a bond's via path are named on the bond), the IP names and the name of each signal (the first IP name inside it; a signal outside a potential has none). Pushes EW-POT-001 for the attribute conflicts and EW-POT-017 for a second definition name, naming the potential. A folio renumber or a move re-derives names, not topology |
+| `potential_attrs(p)` | the potential's `Potential` part, its definitions, the member CPs' `potential_role` | Memo, per potential | Type, voltage, environment and class, each from the first definition in ID order that sets it, the type else from the member roles; every disagreeing value is a conflict kept in the value. Note-free, so a rename does not reach the wire properties or the flow |
+| `physical_wires_of(potential)` | the potential's `Potential` and `BondsOf` parts, `Bonds`, connections, junction wiring, the `Ip` parts of its points | Memo | One entry per physical CP-to-CP wire, keyed by the UUID of its target-side connection. Source of the wire list, routing and `WireRecord`. Built in cycle 7 (WP-S1.07); the causes of its super-linear chain are fixed (cycle 10); it goes under the LRU if its values stay bulky |
+| `potential_flow(potential)` | `potential_flow_bfs` (the potential's `Flow` part), `flow_notes` (value part) | Cold | Flow rooted at the source-output CPs; the protective device per load (a load is a consuming function on the potential, decision log ID-172); source of the potential overview. A lookup into `potential_flow_bfs` (< 20 µs), Cold since G-SP (decision log ID-221, ID-248) |
+| `potential_flow_bfs()` | `potential_partition`, `potential_attrs`, the pass-through pairs of `function_links` | Memo, producer of `Flow` parts | The one BFS over the partition behind every `potential_flow(potential)` ([08](08-connections-terminals-cables.md) §3.6). Keeps its value when neither the partition nor an attribute it read changed; otherwise the BFS runs whole (incremental flow is follow-up work). Note-free: the pass-through conflicts are values |
+| `flow_notes()` | `potential_flow_bfs`, `potential_name` | Memo (value part) | Pushes the EW-POT-001 notes of the pass-through conflicts, naming the two potentials |
+| `settings_member(name)` | the project row | Memo (value part; a cut-off point, not a cost saving) | One key per settings member read by a derivation (`ip_pairing`, `colour_profile`, `size_profile`, `wire_default`, `numbering`, `frames`, the pinned profile), so a colour-profile edit no longer invalidates the pairing; no new stamp in `ew-model` (ADR-0002 amendment 4). Built in cycle 10 |
+| `wire_profiles()` | the `colour_profile`, `size_profile` and pinned-profile settings members | Memo | The three provisional members parsed, with their notes; never the project row. Readers take one row through `profile_row_for` |
+| `wire_profile_notes()` | `wire_profiles` | Memo (value part) | The profile notes, sorted and deduplicated, pushed by `wire_props_of` |
+| `wire_default_props()` | the `wire_default` settings member | Memo (value part) | The project default of the wire-property chain (level 1) |
+| `profile_row_for(key)` | `wire_profiles` | Memo (value part) | The circuit class, colour row and size row of one attribute set (`ProfileKey`: type, voltage, AC/DC and the potential's own class, ordered by a canonical tuple, decision log ID-255); a profile edit re-executes the few keys and cuts off every unaffected one, so only the potentials whose row changed re-derive |
+| `end_class(scope)` | `function_cps`, the potentials of the scope's CPs (`Endpoint` parts), `profile_row_for` | Memo, per device or strip | The highest circuit class among the potentials that hold a CP of a device's functions or of a strip's terminals; the PE rule's read (FR-CON-038), once per scope instead of once per wire end. A PE wire still reads the classes of its own end function's CPs directly, so a row change of another potential on that terminal re-executes it once (follow-up work) |
+| `wire_props_of(potential)` | overrides, net defs, potential defs, `profile_row_for`, `end_class`, `wire_default_props`, `wire_profile_notes` (value parts) | Memo | Precedence: connection override (CDP) > net definition > potential definition > profile rule (type × voltage × circuit class) > project default. Every value carries **provenance** (D-08). Built in cycle 7 (WP-S1.07). It reads the profile only through `profile_row_for` and never the project row, so a profile edit re-derives the affected potentials only; NFR-PERF-07 at L is feasible only with push invalidation (§6.2) |
 | `wire_props(connection)` | `wire_props_of` of the connection's potentials | Cold | The physical wires a connection belongs to with their effective properties, in wire ID order; empty for bridges, bus and overview connections |
 | `channel_addresses(module)` | module start, part address map, channel specs | Memo | One edit re-addresses a module (D-26) |
 | `terminal_rows(strip)`, `cable_rows(cable)`, `plc_rows(station)` | terminals, levels, bridges, conductors, channels | Memo | Sources of terminal, cable and PLC reports (REF-045/049/060) |

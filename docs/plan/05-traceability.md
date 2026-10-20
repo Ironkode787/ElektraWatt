@@ -318,7 +318,7 @@ Golden gate: the "Gate" column of [golden project](../design/20-golden-project.m
 | AC-10 | The potential partition equals §7.3 (19 potentials, bond B1); folio 9… | M1 | G-M1 | same | FR-CON-009, FR-CON-012, FR-CON-014, FR-REP-016 | WP-S1.07, WP-S3.03 | M1 | ok |
 | AC-11 | Folio 906 and `ew export cables` equal §10 | M1 | G-M1 | same | FR-CBL-001, FR-REP-012..013 | WP-S1.14, WP-S3.03 | M1 | ok |
 | AC-12 | Folio 1's colour and size tables are generated from the profiles; cha… | M1 | G-M1 | same | FR-CON-020..021, FR-REP-028, FR-REP-038 | WP-S1.07, WP-S3.03 | M1 | ok |
-| AC-13 | PDF structure: outline (front matter, sections, pages), exactly 63 xr… | M1 | G-M1 | same | FR-OUT-002, FR-OUT-004..008 | WP-S3.04 | M1 | ok |
+| AC-13 | PDF structure: outline (front matter, sections, pages), exactly 64 xr… | M1 | G-M1 | same | FR-OUT-002, FR-OUT-004..008 | WP-S3.04 | M1 | ok |
 | AC-14 | Byte-identical PDF, SVG, CSV and JSONL across serial and parallel exp… | M1 / MVP | G-M1 + G-M2 | same | FR-OUT-019, NFR-REL-07 | WP-S1.09, WP-S3.04, WP-S6.02, WP-S6.06 | M1 | ok |
 | AC-15 | Build paths (a), (b), (c) of §3.2 agree as specified | M1 | G-M1 | same | FR-IMP-022, NFR-REL-04 | WP-S1.02, WP-S1.09, WP-S1.10, WP-S3.05, WP-S6.01 | M1 | ok |
 | AC-16 | Freshness: the scripted edits rename T55, move -102F2 by one cell, re… | M1 | G-M1 | same | FR-XRF-020, NFR-REL-08 | WP-S1.05, WP-S6.02 | M1 | ok |

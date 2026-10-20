@@ -1186,7 +1186,7 @@ gates.
 | D-04 | BOM incomplete, X1031 twice, no quantities | Prevent: `bom_rows` (FR-REP-004 … 006) | Compare 901 with §14 | 27 rows, PT 2.5-TWIN once with 20; -106W2, -201U4 … -201U9, 571334 × 28, enclosure and plate present | M1 |
 | D-05 | Four revision formats | Prevent: revision table (FR-REV-002, FR-REV-003) | Title blocks; schema test | "V2.0" on all 36 pages; Page has no revision field; 911 lists V1.0, V2.0 | M1 |
 | D-06 | Description drift on 101 | Prevent: bound description, explicit overrides (FR-REP-036) | Title blocks; set an override on 101 | Uniform text; an override is reported as info and shown in the property grid | M1 |
-| D-07 | No bookmarks, links, page labels | Feature: FR-OUT-004 … 006 | PDF structure | Outline by section and page; 63 xref links; `/PageLabels` = folio labels | M1 |
+| D-07 | No bookmarks, links, page labels | Feature: FR-OUT-004 … 006 | PDF structure | Outline by section and page; 64 xref links (one per item of the 63 linked texts); `/PageLabels` = folio labels | M1 |
 | D-08 | Free-text wire rule | Prevent: `wire_props_of` with provenance; generated cover tables (FR-CON-017, FR-REP-038) | `ew query wire_props W29 --explain`; change 24 V colour in the profile | W29 0.75 DBU "profile"; W20 1.5 mm² from CDP, DBU from profile; one commit updates folio 1, 907 and colour-dependent texts | M1 |
 | D-09 | No wire, terminal, cable, PLC, potential reports; no wire numbers | Feature: report blocks 903–911; FR-NUM-019 | Export | 16 generated pages per §16; W1–W34 numbered, unique, stable under moves | M1 |
 | D-10 | Overview 5 vs 4 valves | Prevent: generated overview (FR-DEV-023); FR-CHK-022 | Render 202; C import | 4 valves on -202U2; C: MF-14 | M1 |

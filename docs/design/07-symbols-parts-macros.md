@@ -216,9 +216,10 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   Text height comes from the project's text style bound to the slot kind (FR-SYM-013); a slot may name its own
   text style in the optional member `style`, which replaces that binding for the slot (decision log ID-197). A
   `style` that names no known text style falls back to the slot kind's style and is reported as a note naming the
-  symbol, the slot and the name, never as an error (decision log ID-227). The styles of the golden
-  project are `tag.main`, `data.small`, `cp.small` and the others listed in [20](20-golden-project.md) §17.5, which
-  removes D-29.
+  symbol, the slot and the name, never as an error (decision log ID-227). As built (cycle 10, FT-84): `style` is
+  an optional identifier, absent by default, and `ew-scene` reports an unknown name as
+  `PageFinding::UnknownSlotStyle` (decision log ID-266). The styles of the golden project are `tag.main`,
+  `data.small`, `cp.small` and the others listed in [20](20-golden-project.md) §17.5, which removes D-29.
 - **Built-in symbols.** The interruption point `ew.gen.ip`, the black-box frame `ew.gen.blackbox` (its outline and
   CPs live in the representation's `box: BoxSpec`, [03](03-domain-model.md) §6, [06](06-schematic-editor.md) §2.7),
   the junction dot and bevel, and the derived linkage are system symbols with fixed keys. Importers and the engine

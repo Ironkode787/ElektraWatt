@@ -688,11 +688,11 @@ sequential assembly in page order (FR-OUT-001, ARCH §2).
 
 | IR item or document feature | PDF construct | Requirement |
 |---|---|---|
-| `Path(BezPath, Stroke, Brush)` | path with stroke or fill, caps, joins, dash pattern from line style | FR-OUT-018 |
+| `Path(BezPath, Stroke, Brush)` | path with stroke or fill, caps, joins, dash pattern from line style; a path with neither stroke nor fill draws nothing and is a valid invisible link or pick region (ADR-0015 amendment 9) | FR-OUT-018 |
 | `Glyphs(ShapedRun)` | glyph run from the shared shaping result, subset-embedded font, text with real space glyphs for extraction | FR-OUT-008, D-33 |
 | `Image`, SVG asset | raster image; SVG logos as vectors via krilla-svg | FR-SYM-025 |
 | `Instance(symbol, transform)` | the symbol's paths under the instance transform | — |
-| `LinkSource` | link annotation over the xref text's bounding box (the `layout_box` of its `ShapedRun`: advance × ascent/descent in run space, filled by `ew-text`) → named destination | FR-OUT-005, FR-XRF-019 |
+| `LinkSource` | link annotation over the xref text's bounding box (the `layout_box` of its `ShapedRun`: advance × ascent/descent in run space, filled by `ew-text`) → named destination. A text that lists several items carries one link per item instead: an invisible path over that item's glyph span only (not the "∞ " prefix or the parentheses), written as a link annotation over the axis-aligned box of the path's control points (decision log ID-267, ID-268) | FR-OUT-005, FR-XRF-019 |
 | `LinkTarget` | named destination at the anchor (XYZ, zoom unchanged) | FR-OUT-007 |
 | Row `LinkRef` | link annotation per linked cell (BOM folio, wire ends, PLC xref, TOC rows) | FR-REP-042 |
 | `page_order` + sections | outline: front matter, "Section 1 – Wiring Definition" → 100 … 106, "Section 2 – Pneumatics", "Section 9 – Nomenclature"; each entry "101 Power Supply 1 - Main Current"; optional structure level | FR-OUT-004 |
@@ -710,12 +710,12 @@ sequential assembly in page order (FR-OUT-001, ARCH §2).
   Glyphs map to text one char per glyph when the counts agree, else the run is one cluster (clusters in
   `ShapedRun` follow, FT-51); `.notdef` glyphs are dropped; link annotations use a rectangle; images are skipped
   until assets reach the scene; links out of a partial export are plain text. Since cycle 9 the golden PDF has the
-  33 pages of the page order with their report tables (FT-53) and 63 link annotations (64 once FT-86 lands).
+  33 pages of the page order with their report tables (FT-53) and, since cycle 10, 64 link annotations, one per listed item (FT-86).
   Glyph coverage as built (FT-85): the font set holds Noto Sans Math Regular as its one symbol fallback face, only
   for characters the style's own face lacks in Latin, Greek and Cyrillic text; a text with such glyphs is one group
   of one glyph run per face, so the golden PDF embeds both fonts and drops no `.notdef` glyph. A `.notdef` glyph
   remains only for a character no bundled face drew, and only such a character is reported (FR-OUT-027).
-- **Golden A** gets exactly 63 xref link annotations (one per linked text; 64 link targets) plus report back-links (AC-13). "103-G6" at PE-1.1 on folio 101
+- **Golden A** gets exactly 64 xref link annotations (one per listed item: the 63 linked texts carry 64 link targets; a link covers the item's glyph span only, not the "∞ " prefix or the parentheses) plus report back-links (AC-13). "103-G6" at PE-1.1 on folio 101
   lands on cell G6 of folio 103.
 - **Partial exports** print links to non-exported pages as plain text, or as remote links into a companion file
   named by the scheme (FR-OUT-020). A remote link is a GoTo-remote action to the companion's named destination,
@@ -947,7 +947,7 @@ The golden page plan has 36 pages ([20](20-golden-project.md) §5, §16).
 | 909 | `potential_overview`: 19 potentials plus bond B1, aliases (24VDC-1 = 24VDC-AIR1 … 4) as member counts | D-09, D-24 |
 | 910 | `structure_overview`: =P01, +J-E-2416, +J-E-206, +FIELD and 68 tags over 4 pages | D-03 (one spelling) |
 | 911 | `revision_overview`: V1.0, V2.0 with changed pages 101 and 106 | D-05 |
-| PDF | outline, 63 xref links (64 targets), `/PageLabels` = folios, subset fonts, real spaces, vector logo | D-07, D-33 |
+| PDF | outline, 64 xref links (one per item of the 63 linked texts), `/PageLabels` = folios, subset fonts, real spaces, vector logo | D-07, D-33 |
 
 ### 8.2 Scripted changes
 
