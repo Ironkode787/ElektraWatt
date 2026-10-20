@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The G-SP performance spike (WP-S1.05, `docs/plan/03-gates.md` §5.1): the connectivity query families of
-//! `ew-derive` measured behind the commands that invalidate them, cold and through the memo prototype.
+//! `ew-derive` measured behind the commands that invalidate them, cold and through the memo backend of
+//! `ew-derive`.
 //!
 //! Run with `cargo bench -p ew-testkit --bench spike` (class S), `EW_BENCH_CLASS=M|L|XL` for the opt-in
 //! classes and `-- --quick` for a smoke run (20 samples, 2 runs; not gate evidence). `EW_SPIKE_ONLY` limits the
@@ -18,7 +19,7 @@
 //! | `move.*`, `wire.*` | a command, then the derived queries it invalidates, cold (latency) |
 //! | `page.renumber.folio`, `folio.renumber.*` | the folio renumber with its preview, then the page order and the tags of the page's devices (latency) |
 //! | `profile.change.*` | a change of the wire colour profile, then the wire properties of every / of the affected potentials (latency) |
-//! | `memo.*` | the same edits through the memo prototype (`spike/memo.rs`) (latency) |
+//! | `memo.*` | the same edits through `ew_derive::MemoStore`: push invalidation, part dependencies and incremental families (latency) |
 //!
 //! # Procedure
 //!
@@ -35,33 +36,50 @@
 //! section (the deallocation of its caches is part of the cold cost); the single operations `connectivity.*`
 //! drop it untimed (`measure` drops a round's state before the next setup), and so does
 //! `profile.change.affected`, where the topology caches are the work an ideal memo keeps. A memo sample works
-//! on an O(1) fork of a store warmed on the baseline; its timed step is the `ModelDb` of the new snapshot, the
-//! store advance and the memoised reads. Everything that proves the memoised values equal the cold ones (the
-//! oracle) runs outside the timer.
+//! on an O(1) fork ([`MemoStore::fork`]) of a store warmed on the baseline; its timed step takes the session's
+//! touched keys, advances the store with the new snapshot ([`MemoStore::advance`]) and reads the family through
+//! the store's memoising `Q`. Everything that proves the memoised values equal the cold ones (the oracle) runs
+//! outside the timer.
+//!
+//! # Memo mode
+//!
+//! Every session of this bench has `MemoMode::Off` (the default of `SessionOptions` is `On`): in the cold
+//! families `session.query()` is the cold `Q` with the report engine, and the commit pipeline pays no memo
+//! advance, so a cold figure is a cold figure. The memo families do not use the session's store: they keep
+//! their own [`MemoStore`], a fork of the store of a throw-away session over the model (`MemoMode::On`), which
+//! is how the bench gets the store's configuration, the report engine of the session, without access to
+//! `ew-reports`. The memo families read `potential_partition`, `page_local_nets` and `wire_props_of`, none of
+//! which reads a generated page.
+//!
+//! `memo.wire_props.profile` is the colour-profile edit of `profile.change.*` (no session: the project row is
+//! replaced with `Model::apply` and the store is advanced with the project row as the touched key); the store of
+//! that family is warmed on the model with the profile. The oracle of the warm-up rounds checks the partition,
+//! the local nets and [`ORACLE_POTENTIALS`] potentials of `wire_props_of` (each oracle check is a cold
+//! evaluation); the timed samples compare the wire properties of every potential with a cold `Q`.
+//!
+//! Memo rows note the counters of the family's last commit (`ew_derive::Counters`): `hit`, `ver` (verifications
+//! by dependency walk), `push_skip` (re-stamped by push invalidation, no walk), `re` (re-executions), `incr` (of
+//! them through the incremental hook) and `cut` (cut-offs). An unrelated edit is a push skip of the partition.
 //!
 //! The commit pipeline (`session.execute`) is included in every `.commit` figure, the `memo.*` total rows
 //! (commit plus memo step) and the cold `*.commit_potentials` rows carry the NFR-PERF-05 budget.
-
-#[allow(dead_code)]
-#[path = "spike/memo.rs"]
-mod memo;
 
 use std::collections::BTreeSet;
 use std::io::Write as _;
 use std::sync::Arc;
 use std::time::Duration;
 
-use ew_api::{Session, SessionOptions};
+use ew_api::{MemoMode, MemoStore, Session, SessionOptions};
 use ew_commands::commands::{
     Connect, EndpointParam, KindName, MoveReps, PageScope, RenumberPages, SetFields,
 };
 use ew_commands::testkit::seeded_ids;
 use ew_derive::{
-    DepKey, DeviceTag, FlowBfs, FunctionCps, LocalNets, PageLocalNets, PageOrder, Partition, PhysicalWiresOf,
-    PotentialId, PotentialPartition, Q, RepAnchorCell, StitchGraphQ, WirePropsMap, WirePropsOf,
+    DeviceTag, FamilyMemory, FlowBfs, FunctionCps, LocalNets, Oracle, PageLocalNets, PageOrder, Partition,
+    PhysicalWiresOf, PotentialId, PotentialPartition, Q, RepAnchorCell, StitchGraphQ, WirePropsMap,
+    WirePropsOf,
 };
 use ew_ids::Id;
-use ew_memo::{Oracle, Store};
 use ew_model::{AnyKey, AnyRow, Model, Op, Rev};
 use ew_schema::{Device, Kind, LibDocument, Page, Project, Record};
 use ew_testkit::bench::{
@@ -70,7 +88,6 @@ use ew_testkit::bench::{
 };
 use ew_testkit::synth::{self, GENERATOR_VERSION, Handles, SizeClass};
 use ew_units::Pt2;
-use memo::{Memo, ModelDb, durability_of_keys, store_at};
 use serde_json::{Value, json};
 
 /// The environment variable that limits the run to families by name prefix.
@@ -213,7 +230,7 @@ fn main() {
     bench_wire(&mut cx, &baseline, &scen);
     bench_folio(&mut cx, &baseline, &handles, &records);
     bench_profile(&mut cx, &project, &records, &lib);
-    let warm_memory = bench_memo(&mut cx, &baseline, &handles, &records, &scen);
+    let warm_memory = bench_memo(&mut cx, &baseline, &handles, &records, &scen, &project, &lib);
 
     // Memory.
     say("");
@@ -227,25 +244,14 @@ fn main() {
             "memory: undo history after one {name} step {bytes} bytes in {entries} entries"
         ));
     }
-    if let Some(families) = warm_memory {
-        let entry = std::mem::size_of::<(ew_memo::DepKey<DepKey>, ew_memo::Rev)>();
-        say(format!(
-            "memory: size_of DepKey<ew_derive::DepKey> {} bytes, ew_memo::Rev {} bytes, one dependency entry {entry} bytes",
-            std::mem::size_of::<ew_memo::DepKey<DepKey>>(),
-            std::mem::size_of::<ew_memo::Rev>(),
-        ));
+    for (label, families, push_index) in warm_memory {
         for m in families {
             say(format!(
-                "memory: memo {} memos={} values={} value_bytes={} dep_entries={} rdep_entries={} dep_bytes_estimate={}",
-                m.family,
-                m.memos,
-                m.values,
-                m.value_bytes,
-                m.dep_entries,
-                m.rdep_entries,
-                m.dep_entries * entry,
+                "memory: memo ({label}) {} memos={} values={} value_bytes={} dep_entries={} rdep_entries={}",
+                m.family, m.memos, m.values, m.value_bytes, m.dep_entries, m.rdep_entries,
             ));
         }
+        say(format!("memory: memo ({label}) push index entries={push_index}"));
     }
     say("peak RSS: measured externally by the spike run");
 
@@ -262,15 +268,20 @@ fn ms(d: Duration) -> String {
     format!("{}.{:03} ms", us / 1_000, us % 1_000)
 }
 
-/// A fresh session over an O(1) clone of `baseline` with a seeded ID source: empty history, so no redo branch.
+/// The options of every session of the bench: a seeded ID source and `MemoMode::Off` (see the module
+/// documentation).
+fn session_options() -> SessionOptions {
+    SessionOptions {
+        ids: Some(seeded_ids(1)),
+        memo: MemoMode::Off,
+        ..Default::default()
+    }
+}
+
+/// A fresh session over an O(1) clone of `baseline` with a seeded ID source: empty history, so no redo branch;
+/// no memo.
 fn fresh_session(baseline: &Model) -> Session {
-    Session::new(
-        baseline.clone(),
-        SessionOptions {
-            ids: Some(seeded_ids(1)),
-            ..Default::default()
-        },
-    )
+    Session::new(baseline.clone(), session_options())
 }
 
 /// Closes a command family on the session of its last sample: records the size of the undo history after the
@@ -398,17 +409,7 @@ fn bench_open(cx: &mut Ctx, project: &Project, records: &[Record], lib: &[LibDoc
         },
         |run, _| {
             let (p, r, l) = run.parts.take().expect("the parts of this run");
-            let (session, elapsed) = time(|| {
-                Session::from_records(
-                    p,
-                    r,
-                    l,
-                    SessionOptions {
-                        ids: Some(seeded_ids(1)),
-                        ..Default::default()
-                    },
-                )
-            });
+            let (session, elapsed) = time(|| Session::from_records(p, r, l, session_options()));
             run.session = Some(session.unwrap_or_else(|e| panic!("{NAME}: {e}")));
             elapsed
         },
@@ -754,20 +755,7 @@ fn bench_profile(cx: &mut Ctx, project: &Project, records: &[Record], lib: &[Lib
     if !cx.wants(&names) {
         return;
     }
-    let mut with_profile = project.clone();
-    with_profile
-        .settings
-        .extra
-        .insert("colour_profile".into(), colour_profile("BU"));
-    let m0 = Model::from_records(with_profile, records.to_vec(), lib.to_vec())
-        .expect("profile.change: valid model");
-    let old = Arc::clone(Q::new(&m0).project());
-    let mut changed = (*old).clone();
-    changed
-        .settings
-        .extra
-        .insert("colour_profile".into(), colour_profile("WH"));
-    let changed = Arc::new(changed);
+    let ProfileEdit { m0, old, changed } = ProfileEdit::new(project, records, lib);
     let m1 = put_project(&m0, &old, &changed);
 
     // Setup (untimed): the potentials, their wire properties before and after, and the difference.
@@ -863,7 +851,7 @@ fn bench_profile(cx: &mut Ctx, project: &Project, records: &[Record], lib: &[Lib
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// (g) memo prototype
+// (g) memo families on ew_derive::MemoStore
 
 /// The edit of a memo family.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -885,65 +873,137 @@ enum Target {
     Partition,
     /// `PageLocalNets` of every page.
     LocalNets,
+    /// `WirePropsOf` of every potential of the partition (the potential IDs are read through the same `Q`).
+    WireProps,
 }
 
-/// The memoised values a memo step returned, for the oracle (`Memo<F>` has the value `Arc<F::Value>`, so the
-/// store hands out an `Arc` of that `Arc`).
-#[allow(clippy::redundant_allocation)]
+impl Target {
+    /// The `ew-derive` family whose counters the row notes.
+    fn family(self) -> &'static str {
+        match self {
+            Target::Partition => "potential_partition",
+            Target::LocalNets => "page_local_nets",
+            Target::WireProps => "wire_props_of",
+        }
+    }
+}
+
+/// The memoised values a memo step returned, for the oracle.
 enum Got {
-    Partition(Arc<Arc<Partition>>),
-    Nets(Vec<Arc<Arc<LocalNets>>>),
+    Partition(Arc<Partition>),
+    Nets(Vec<Arc<LocalNets>>),
+    Props(Vec<(PotentialId, Arc<WirePropsMap>)>),
 }
 
 /// The state of one memo sample: a fresh session (none for a hit) and an O(1) fork of the warm store.
 struct MemoState {
     session: Option<Session>,
-    store: Store<ModelDb>,
+    store: MemoStore,
 }
 
 /// What every memo family needs.
 struct MemoEnv<'a> {
     baseline: &'a Model,
-    warm: &'a Store<ModelDb>,
-    db0: &'a ModelDb,
+    warm: &'a MemoStore,
     scen: &'a Scen,
     pages: &'a [Id<Page>],
     /// The unrelated edit, if the fixture has a conductor.
     unrelated: Option<&'a SetFields>,
 }
 
-/// The memoised reads of `target` on `store` at `db`.
-fn memo_reads(store: &mut Store<ModelDb>, db: &ModelDb, pages: &[Id<Page>], target: Target) -> Got {
+/// A memo store over `model` with the report engine of a session installed (a fork of the store of a session
+/// over `model` that has the default memo mode): the `Q` it hands out is the one `Session::query` hands out.
+fn memo_store(model: &Model) -> MemoStore {
+    let session = Session::new(
+        model.clone(),
+        SessionOptions {
+            ids: Some(seeded_ids(1)),
+            memo: MemoMode::On,
+            ..Default::default()
+        },
+    );
+    session
+        .memo()
+        .expect("MemoMode::On: the session has a memo store")
+        .fork()
+}
+
+/// The wire properties of every potential of `q`'s partition, in the partition's order.
+fn wire_props_reads(q: &Q) -> Vec<(PotentialId, Arc<WirePropsMap>)> {
+    let part = q.get::<PotentialPartition>(());
+    part.potentials
+        .iter()
+        .map(|p| (p.id, q.get::<WirePropsOf>(p.id)))
+        .collect()
+}
+
+/// The memoised reads of `target` through a `Q` of `store`.
+fn memo_reads(store: &MemoStore, pages: &[Id<Page>], target: Target) -> Got {
+    let q = store.query();
     match target {
-        Target::Partition => Got::Partition(
-            store
-                .get::<Memo<PotentialPartition>>(db, &())
-                .expect("no query cycle"),
-        ),
-        Target::LocalNets => Got::Nets(
-            pages
-                .iter()
-                .map(|p| store.get::<Memo<PageLocalNets>>(db, p).expect("no query cycle"))
-                .collect(),
-        ),
+        Target::Partition => Got::Partition(q.get::<PotentialPartition>(())),
+        Target::LocalNets => Got::Nets(pages.iter().map(|p| q.get::<PageLocalNets>(*p)).collect()),
+        Target::WireProps => Got::Props(wire_props_reads(&q)),
     }
 }
 
-/// Asserts that the memoised values equal the cold ones on the snapshot of `db`.
-fn assert_cold_equal(got: &Got, db: &ModelDb, pages: &[Id<Page>], name: &str, sample: usize) {
-    let q = Q::new(db.model());
+/// How many potentials the warm-up oracle checks per round: an oracle check evaluates the family cold, and a cold
+/// `wire_props_of` derives the partition, so every potential of an L or XL project through the oracle would
+/// take hours. The checked ones rotate with the round, and the timed samples compare all of them with a
+/// single cold `Q`.
+const ORACLE_POTENTIALS: usize = 8;
+
+/// The reads of a warm-up round under `Oracle::Every`: as [`memo_reads`], except that `Target::WireProps`
+/// reads only [`ORACLE_POTENTIALS`] potentials of the partition, spread over it and rotating with `call`.
+fn oracle_reads(store: &MemoStore, pages: &[Id<Page>], target: Target, call: usize) {
+    if target != Target::WireProps {
+        memo_reads(store, pages, target);
+        return;
+    }
+    let q = store.query();
+    let part = q.get::<PotentialPartition>(());
+    let n = part.potentials.len();
+    let step = (n / ORACLE_POTENTIALS).max(1);
+    for j in 0..ORACLE_POTENTIALS.min(n) {
+        q.get::<WirePropsOf>(part.potentials[(call + j * step) % n].id);
+    }
+}
+
+/// Asserts that the memoised values equal the cold ones on `model`.
+fn assert_cold_equal(got: &Got, model: &Model, pages: &[Id<Page>], name: &str, sample: usize) {
+    let q = Q::new(model);
     match got {
         Got::Partition(v) => assert_eq!(
-            &***v,
-            &*q.get::<PotentialPartition>(()),
+            **v,
+            *q.get::<PotentialPartition>(()),
             "{name}: sample {sample}: the memoised potential_partition differs from the cold one"
         ),
         Got::Nets(v) => {
             for (page, memoised) in pages.iter().zip(v) {
                 assert_eq!(
-                    &***memoised,
-                    &*q.get::<PageLocalNets>(*page),
+                    **memoised,
+                    *q.get::<PageLocalNets>(*page),
                     "{name}: sample {sample}: the memoised page_local_nets of {page:?} differs from the cold one"
+                );
+            }
+        }
+        Got::Props(v) => {
+            let cold: Vec<PotentialId> = q
+                .get::<PotentialPartition>(())
+                .potentials
+                .iter()
+                .map(|p| p.id)
+                .collect();
+            let ids: Vec<PotentialId> = v.iter().map(|(id, _)| *id).collect();
+            assert_eq!(
+                ids, cold,
+                "{name}: sample {sample}: the potentials of the memoised partition differ from the cold ones"
+            );
+            for (id, memoised) in v {
+                assert_eq!(
+                    **memoised,
+                    *q.get::<WirePropsOf>(*id),
+                    "{name}: sample {sample}: the memoised wire_props_of {id:?} differs from the cold one"
                 );
             }
         }
@@ -959,9 +1019,62 @@ fn oracle_stride(class: SizeClass) -> usize {
     }
 }
 
+/// The oracle of one memo sample, outside the timer. The warm-up rounds (`call < WARMUP_SAMPLES`) repeat the
+/// step on a second fork of `warm` under `Oracle::Every` (the memo engine compares every memoised read with
+/// a cold one at every depth, on a fork so the pilot timings stay clean) and assert that it found no
+/// mismatch; `after` is the snapshot the step advanced to with `keys` (none: a read at the store's revision).
+/// The timed samples compare the values the step returned with a cold evaluation on `model`, every `stride`-th
+/// one; the number of comparisons is counted in `compared`.
+#[allow(clippy::too_many_arguments)]
+fn oracle_check(
+    warm: &MemoStore,
+    pages: &[Id<Page>],
+    target: Target,
+    name: &str,
+    call: usize,
+    stride: usize,
+    compared: &mut usize,
+    model: &Model,
+    advanced: Option<&[AnyKey]>,
+    got: &Got,
+) {
+    if call < WARMUP_SAMPLES {
+        let chk = warm.fork();
+        chk.set_oracle(Oracle::Every);
+        if let Some(keys) = advanced {
+            chk.advance(model, keys);
+        }
+        oracle_reads(&chk, pages, target, call);
+        assert!(
+            chk.take_mismatches().is_empty(),
+            "{name}: warm-up round {call}: the oracle found a memoised value that differs from the cold one"
+        );
+    } else {
+        let sample = call - WARMUP_SAMPLES;
+        if sample.is_multiple_of(stride) {
+            assert_cold_equal(got, model, pages, name, sample);
+            *compared += 1;
+        }
+    }
+}
+
+/// The counters of `family` in the store's last commit (reset by `advance`), as a row note; printed as well.
+fn counters_note(store: &MemoStore, family: &str, name: &str) -> String {
+    let c = store.commit_stats().family(family);
+    let note = format!(
+        "hit={} ver={} push_skip={} re={} incr={} cut={}",
+        c.hits, c.verifications, c.push_skips, c.re_executions, c.incremental, c.cut_offs
+    );
+    say(format!("counters: {name} {family}: {note}"));
+    note
+}
+
 /// One memo family: the `edit` (none for a hit), then the memoised reads of `target`. Rows: the memo step
 /// alone as `<name>.derive` and the commit plus the memo step as `<name>` (the NFR-PERF-05 budget); a hit has
 /// the single row `<name>`.
+///
+/// The memo step takes the session's touched keys, advances the sample's store with the new snapshot and the
+/// keys (push invalidation) and reads `target` through the store's memoising `Q`.
 fn memo_family(cx: &mut Ctx, env: &MemoEnv<'_>, name: &str, edit: Edit, target: Target) {
     let derive_name = format!("{name}.derive");
     if !cx.wants(&[name, &derive_name]) {
@@ -986,7 +1099,8 @@ fn memo_family(cx: &mut Ctx, env: &MemoEnv<'_>, name: &str, edit: Edit, target: 
         |st, i| {
             let call = calls;
             calls += 1;
-            // The edit (the commit pipeline of the session), timed with the memo step.
+            // The edit (the commit pipeline of the session, without memo work: `MemoMode::Off`), timed with the
+            // memo step.
             let mut t_commit = Duration::ZERO;
             if let Some(session) = st.session.as_mut() {
                 let result;
@@ -1007,69 +1121,44 @@ fn memo_family(cx: &mut Ctx, env: &MemoEnv<'_>, name: &str, edit: Edit, target: 
                 };
                 result.unwrap_or_else(|e| panic!("{name}: the edit is accepted: {e}"));
             }
-            // The memo step: the database of the new snapshot, the store advance and the memoised reads.
-            let ((own_db, keys, got), t_step) = time(|| {
-                let (own_db, keys) = match st.session.as_mut() {
-                    None => (None, Vec::new()),
-                    Some(session) => {
-                        let keys: Vec<AnyKey> = session
-                            .drain_changes()
-                            .into_iter()
-                            .flat_map(|c| c.touched_keys)
-                            .collect();
-                        let db = ModelDb::new(&session.world().model);
-                        st.store.advance(db.rev(), durability_of_keys(&keys));
-                        (Some(db), keys)
-                    }
-                };
-                let db = own_db.as_ref().unwrap_or(env.db0);
-                let got = memo_reads(&mut st.store, db, env.pages, target);
-                (own_db, keys, got)
+            // The memo step: the touched keys, the store advance and the memoised reads.
+            let ((keys, got), t_step) = time(|| {
+                let keys = st.session.as_mut().map(|session| {
+                    let keys: Vec<AnyKey> = session
+                        .drain_changes()
+                        .into_iter()
+                        .flat_map(|c| c.touched_keys)
+                        .collect();
+                    st.store.advance(&session.world().model, &keys);
+                    keys
+                });
+                let got = memo_reads(&st.store, env.pages, target);
+                (keys, got)
             });
-            // The oracle, untimed. The warm-up rounds run it inside the store at every depth, on a second
-            // fork so the pilot timings stay clean; the timed samples compare with a cold evaluation.
-            let db = own_db.as_ref().unwrap_or(env.db0);
-            if call < WARMUP_SAMPLES {
-                let mut chk = env.warm.fork();
-                chk.set_oracle(Oracle::Every);
-                if own_db.is_some() {
-                    chk.advance(db.rev(), durability_of_keys(&keys));
-                }
-                memo_reads(&mut chk, db, env.pages, target);
-                assert!(
-                    chk.take_mismatches().is_empty(),
-                    "{name}: warm-up round {call}: the oracle found a memoised value that differs from the cold one"
-                );
-            } else {
-                let sample = call - WARMUP_SAMPLES;
-                if sample.is_multiple_of(stride) {
-                    assert_cold_equal(&got, db, env.pages, name, sample);
-                    compared += 1;
-                }
-            }
+            // The oracle, untimed.
+            let model = st
+                .session
+                .as_ref()
+                .map_or_else(|| env.baseline.clone(), |s| s.world().model);
+            oracle_check(
+                env.warm,
+                env.pages,
+                target,
+                name,
+                call,
+                stride,
+                &mut compared,
+                &model,
+                keys.as_deref(),
+                &got,
+            );
             steps.push(t_step);
             t_commit + t_step
         },
     );
     steps.drain(..WARMUP_SAMPLES);
     assert_eq!(steps.len(), totals.len());
-    // The counters of the store's last commit (reset by `advance`).
-    let family = match target {
-        Target::Partition => "potential_partition",
-        Target::LocalNets => "page_local_nets",
-    };
-    let c = last.store.commit_stats().family(family);
-    let mut note = format!(
-        "hit={} ver={} re={} cut={}",
-        c.hits, c.verifications, c.re_executions, c.cut_offs
-    );
-    if edit == Edit::Unrelated && (c.verifications != 1 || c.re_executions != 0) {
-        note.push_str(" UNEXPECTED (expected ver=1 re=0)");
-        say(format!(
-            "check: {name} expected verifications=1 re_executions=0, got ver={} re={}",
-            c.verifications, c.re_executions
-        ));
-    }
+    let note = counters_note(&last.store, target.family(), name);
     say(format!(
         "oracle: {name} {compared} comparisons, 0 mismatches ({WARMUP_SAMPLES} warm-up rounds under Oracle::Every)"
     ));
@@ -1085,14 +1174,120 @@ fn memo_family(cx: &mut Ctx, env: &MemoEnv<'_>, name: &str, edit: Edit, target: 
     }
 }
 
-/// The memo prototype families; returns the memory of the warm store when they ran.
+/// The colour-profile edit of the `profile.change.*` families: the project row `old` (with the 24 V row in
+/// blue) replaced by `changed` (white) on `m0`.
+struct ProfileEdit {
+    m0: Model,
+    old: Arc<Project>,
+    changed: Arc<Project>,
+}
+
+impl ProfileEdit {
+    fn new(project: &Project, records: &[Record], lib: &[LibDocument]) -> ProfileEdit {
+        let mut with_profile = project.clone();
+        with_profile
+            .settings
+            .extra
+            .insert("colour_profile".into(), colour_profile("BU"));
+        let m0 = Model::from_records(with_profile, records.to_vec(), lib.to_vec())
+            .expect("profile.change: valid model");
+        let old = Arc::clone(Q::new(&m0).project());
+        let mut changed = (*old).clone();
+        changed
+            .settings
+            .extra
+            .insert("colour_profile".into(), colour_profile("WH"));
+        ProfileEdit {
+            m0,
+            old,
+            changed: Arc::new(changed),
+        }
+    }
+
+    /// The snapshot after the edit and the touched keys of the commit that would make it.
+    fn apply(&self, model: &Model) -> (Model, Vec<AnyKey>) {
+        (
+            put_project(model, &self.old, &self.changed),
+            vec![(Kind::Project, self.old.id.cast())],
+        )
+    }
+}
+
+/// The state of one profile memo sample: the snapshot before the edit and an O(1) fork of the warm store.
+struct ProfileState {
+    model: Model,
+    store: MemoStore,
+}
+
+/// `memo.wire_props.profile`: the colour-profile edit of `profile.change.*` (applied to the model, no
+/// session: there is no command for project settings yet), then the wire properties of every potential. The
+/// timed step is the apply, the store advance with the project row as the touched key and the memoised reads.
+fn memo_profile_family(cx: &mut Ctx, edit: &ProfileEdit, pages: &[Id<Page>]) {
+    const NAME: &str = "memo.wire_props.profile";
+    if !cx.wants(&[NAME]) {
+        return;
+    }
+    // Setup (untimed): a store over the model with the profile, warmed on the wire properties of every potential.
+    let warm = memo_store(&edit.m0);
+    let (props, t_props) = time(|| wire_props_reads(&warm.query()));
+    say(format!(
+        "memo first execution (with colour profile): wire_props_of of {} potentials {}",
+        props.len(),
+        ms(t_props)
+    ));
+    drop(props);
+    let stride = oracle_stride(cx.class);
+    let (mut calls, mut compared) = (0usize, 0usize);
+    let (samples, clamped, last) = cx.latency(
+        NAME,
+        |_| ProfileState {
+            model: edit.m0.clone(),
+            store: warm.fork(),
+        },
+        |st, _| {
+            let call = calls;
+            calls += 1;
+            let ((new, keys, got), t_step) = time(|| {
+                let (new, keys) = edit.apply(&st.model);
+                st.store.advance(&new, &keys);
+                let got = Got::Props(wire_props_reads(&st.store.query()));
+                (new, keys, got)
+            });
+            oracle_check(
+                &warm,
+                pages,
+                Target::WireProps,
+                NAME,
+                call,
+                stride,
+                &mut compared,
+                &new,
+                Some(&keys),
+                &got,
+            );
+            t_step
+        },
+    );
+    let note = counters_note(&last.store, Target::WireProps.family(), NAME);
+    say(format!(
+        "oracle: {NAME} {compared} comparisons, 0 mismatches ({WARMUP_SAMPLES} warm-up rounds under Oracle::Every)"
+    ));
+    cx.push(NAME, &samples, clamped, &note);
+}
+
+/// The memory of a warm store: its label, the memory per family and the entries of the push index.
+type StoreMemory = (&'static str, Vec<FamilyMemory>, usize);
+
+/// The memo families on `ew_derive::MemoStore`; returns the memory of the warm stores that were built.
 fn bench_memo(
     cx: &mut Ctx,
     baseline: &Model,
     handles: &Handles,
     records: &[Record],
     scen: &Scen,
-) -> Option<Vec<ew_memo::FamilyMemory>> {
+    project: &Project,
+    lib: &[LibDocument],
+) -> Vec<StoreMemory> {
     let names = [
         "memo.partition.hit",
         "memo.partition.unrelated",
@@ -1100,63 +1295,72 @@ fn bench_memo(
         "memo.partition.wire",
         "memo.local_nets.move",
         "memo.local_nets.wire",
+        "memo.wire_props.move",
+        "memo.wire_props.wire",
     ];
-    if !cx.wants(&names) {
-        return None;
-    }
-    // Setup (untimed): the store warmed on the baseline.
-    let db0 = ModelDb::new(baseline);
-    let warm = store_at(&db0);
-    let (_, t_partition) = time(|| {
-        warm.get::<Memo<PotentialPartition>>(&db0, &())
-            .expect("memo setup: no query cycle")
-    });
-    let (_, t_nets) = time(|| {
-        for page in &handles.pages {
-            warm.get::<Memo<PageLocalNets>>(&db0, page)
-                .expect("memo setup: no query cycle");
-        }
-    });
-    say(format!(
-        "memo first execution: potential_partition {}, page_local_nets of {} pages {}",
-        ms(t_partition),
-        handles.pages.len(),
-        ms(t_nets)
-    ));
-    for m in warm.memory() {
+    let profile_name = "memo.wire_props.profile";
+    let mut memory = Vec::new();
+    if cx.wants(&names) {
+        // Setup (untimed): the store warmed on the baseline.
+        let warm = memo_store(baseline);
+        let (_, t_partition) = time(|| warm.query().get::<PotentialPartition>(()));
+        let (_, t_nets) = time(|| {
+            let q = warm.query();
+            for page in &handles.pages {
+                q.get::<PageLocalNets>(*page);
+            }
+        });
+        let (props, t_props) = time(|| wire_props_reads(&warm.query()));
         say(format!(
-            "memo store after the first execution: {} memos={} values={} value_bytes={} dep_entries={}",
-            m.family, m.memos, m.values, m.value_bytes, m.dep_entries
+            "memo first execution: potential_partition {}, page_local_nets of {} pages {}, wire_props_of of {} potentials {}",
+            ms(t_partition),
+            handles.pages.len(),
+            ms(t_nets),
+            props.len(),
+            ms(t_props)
         ));
-    }
-
-    // The unrelated edit: a conductor colour that differs from the current one.
-    let unrelated = records.iter().find_map(|r| match r {
-        Record::Conductor(c) => {
-            let current = serde_json::to_value(&c.colour).unwrap_or(Value::Null);
-            let colour = if current == json!(["BK"]) { "WH" } else { "BK" };
-            Some(SetFields {
-                kind: KindName::Conductor,
-                targets: vec![c.id.cast()],
-                path: "colour".into(),
-                value: json!([colour]),
-            })
+        drop(props);
+        for m in warm.memory() {
+            say(format!(
+                "memo store after the first execution: {} memos={} values={} value_bytes={} dep_entries={}",
+                m.family, m.memos, m.values, m.value_bytes, m.dep_entries
+            ));
         }
-        _ => None,
-    });
-    let env = MemoEnv {
-        baseline,
-        warm: &warm,
-        db0: &db0,
-        scen,
-        pages: &handles.pages,
-        unrelated: unrelated.as_ref(),
-    };
-    memo_family(cx, &env, names[0], Edit::Hit, Target::Partition);
-    memo_family(cx, &env, names[1], Edit::Unrelated, Target::Partition);
-    memo_family(cx, &env, names[2], Edit::Move, Target::Partition);
-    memo_family(cx, &env, names[3], Edit::Wire, Target::Partition);
-    memo_family(cx, &env, names[4], Edit::Move, Target::LocalNets);
-    memo_family(cx, &env, names[5], Edit::Wire, Target::LocalNets);
-    Some(warm.memory())
+
+        // The unrelated edit: a conductor colour that differs from the current one.
+        let unrelated = records.iter().find_map(|r| match r {
+            Record::Conductor(c) => {
+                let current = serde_json::to_value(&c.colour).unwrap_or(Value::Null);
+                let colour = if current == json!(["BK"]) { "WH" } else { "BK" };
+                Some(SetFields {
+                    kind: KindName::Conductor,
+                    targets: vec![c.id.cast()],
+                    path: "colour".into(),
+                    value: json!([colour]),
+                })
+            }
+            _ => None,
+        });
+        let env = MemoEnv {
+            baseline,
+            warm: &warm,
+            scen,
+            pages: &handles.pages,
+            unrelated: unrelated.as_ref(),
+        };
+        memo_family(cx, &env, names[0], Edit::Hit, Target::Partition);
+        memo_family(cx, &env, names[1], Edit::Unrelated, Target::Partition);
+        memo_family(cx, &env, names[2], Edit::Move, Target::Partition);
+        memo_family(cx, &env, names[3], Edit::Wire, Target::Partition);
+        memo_family(cx, &env, names[4], Edit::Move, Target::LocalNets);
+        memo_family(cx, &env, names[5], Edit::Wire, Target::LocalNets);
+        memo_family(cx, &env, names[6], Edit::Move, Target::WireProps);
+        memo_family(cx, &env, names[7], Edit::Wire, Target::WireProps);
+        memory.push(("baseline", warm.memory(), warm.push_index_entries()));
+    }
+    if cx.wants(&[profile_name]) {
+        let edit = ProfileEdit::new(project, records, lib);
+        memo_profile_family(cx, &edit, &handles.pages);
+    }
+    memory
 }

@@ -699,7 +699,6 @@ dependencies = [
  "ew-commands",
  "ew-derive",
  "ew-ids",
- "ew-memo",
  "ew-mltext",
  "ew-model",
  "ew-rds",
