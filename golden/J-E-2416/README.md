@@ -429,10 +429,11 @@ page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106). Still open:
 CSV bootstrap (path (a)) written by `ew-format`, as generation 1. It is generated and never edited by hand; a
 change to `tables/` regenerates it in the same commit (doc 20 §3.2):
 
-    EW_BLESS_GOLDEN_FIXTURE=1 cargo nextest run -p ew-api --test golden_fixture --locked
+    EW_BLESS_GOLDEN_FIXTURE=1 cargo nextest run -p ew-api --test golden_fixture --locked -E 'test(the_fixture_is_byte_identical_to_the_bootstrap)'
 
-Bless mode only writes files; it never deletes one. A file the tables no longer produce is named in the failure
-message and removed by hand.
+The filter runs the comparing test alone: nextest runs the tests of a file in parallel, and the other tests of
+`golden_fixture.rs` read the fixture while bless writes it. Bless mode only writes files; it never deletes one. A
+file the tables no longer produce is named in the failure message and removed by hand.
 
 It holds 164 files (about 0.8 MB): `manifest.json`, `project.jsonl`, `structure.jsonl`, `report-blocks.jsonl`, 13
 page files in `pages/`, 79 of the 256 anchor shards in `devices/` and 68 library copies in `lib/` (fndefs, forms,

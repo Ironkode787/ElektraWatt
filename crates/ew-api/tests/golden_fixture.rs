@@ -6,7 +6,9 @@
 //! tables is byte-identical to the committed directory (the manifest's `generator` member excepted,
 //! doc 05 §17.1) and that the store loads it cleanly.
 //!
-//! Bless: `EW_BLESS_GOLDEN_FIXTURE=1 cargo nextest run -p ew-api --test golden_fixture --locked`.
+//! Bless the one comparing test only, so that no other test of this file reads the fixture while bless
+//! writes it (nextest runs tests in parallel):
+//! `EW_BLESS_GOLDEN_FIXTURE=1 cargo nextest run -p ew-api --test golden_fixture --locked -E 'test(the_fixture_is_byte_identical_to_the_bootstrap)'`.
 
 // The tests count rows through the untracked readers (dev-dependency `ew-model/raw-read`; tests are exempt
 // from `cargo xtask check-raw-read`).
@@ -146,8 +148,9 @@ fn the_fixture_is_byte_identical_to_the_bootstrap() {
     assert!(
         differing.is_empty(),
         "golden/J-E-2416.ew is out of date with golden/J-E-2416/tables; run \
-         `EW_BLESS_GOLDEN_FIXTURE=1 cargo nextest run -p ew-api --test golden_fixture --locked` and commit the \
-         result. Differing paths:\n{}",
+         `EW_BLESS_GOLDEN_FIXTURE=1 cargo nextest run -p ew-api --test golden_fixture --locked \
+         -E 'test(the_fixture_is_byte_identical_to_the_bootstrap)'` (this test only: the others read the \
+         fixture in parallel) and commit the result. Differing paths:\n{}",
         differing.join("\n")
     );
 }

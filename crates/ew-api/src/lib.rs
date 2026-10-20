@@ -442,16 +442,27 @@ impl Session {
     /// # Errors
     ///
     /// [`SaveError`]; without a project directory, [`SaveError::ReadOnly`] with
-    /// [`ReadOnlyReason::Requested`](ew_store::ReadOnlyReason::Requested). After the commit point
-    /// ([`SaveError::Incomplete`]) the generation is decided: the session counts as saved and the store
-    /// completes the save by roll-forward ([`Session::retry_save`]).
+    /// [`ReadOnlyReason::Requested`](ew_store::ReadOnlyReason::Requested). After the commit point of this
+    /// save ([`SaveError::Incomplete`] of a generation above the one before the call) the generation is
+    /// decided: the session counts as saved and the store completes the save by roll-forward
+    /// ([`Session::retry_save`]). Every other error, [`SaveError::PendingIncomplete`] (an earlier save is
+    /// still incomplete) included, wrote nothing of this model: the session stays dirty and keeps its dirty
+    /// set for the next save.
     pub fn save(&mut self) -> Result<SaveReport, SaveError> {
         let model = self.engine.model().clone();
         let Some(p) = &mut self.persistence else {
             return Err(SaveError::ReadOnly(ew_store::ReadOnlyReason::Requested));
         };
+        let before = p.store.generation();
         let result = p.store.save(&model, Changes::Keys(&p.unsaved));
-        if matches!(result, Ok(_) | Err(SaveError::Incomplete { .. })) {
+        // Only edits that are on disk, or decided and durable in an intent, leave the dirty set (review
+        // cycle 8, blocker 1): never on the strength of an earlier save's outcome.
+        let on_disk = match &result {
+            Ok(_) => true,
+            Err(SaveError::Incomplete { generation, .. }) => *generation > before,
+            Err(_) => false,
+        };
+        if on_disk {
             p.unsaved.clear();
             p.recovered = false;
             self.engine.mark_saved();

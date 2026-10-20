@@ -177,6 +177,11 @@ pub enum OpenError {
     /// An older major needs the migration chain (WP-S1.17).
     Migration(String),
     /// A read-only opener met a save in progress for longer than the wait (doc 05 §6.4: exit code 2).
+    ///
+    /// Not returned by [`Store::open`] since review cycle 8: after [`StoreOptions::read_only_wait`] a
+    /// read-only opener reads the intent's generation in memory instead (a crashed writer's lock stays
+    /// non-stale for `lock.stale_after` where the process probe cannot tell, on Windows). Kept for the CLI's
+    /// exit code until the design pass settles doc 05 §6.4.
     SaveInProgress,
     /// The files hold no project record.
     NoProject(Vec<Finding>),
@@ -262,14 +267,24 @@ pub enum SaveError {
         /// The error.
         error: io::Error,
     },
-    /// A failure after the commit point: generation `generation` is decided and completes by roll-forward
-    /// ([`Store::retry_pending`], and at the next open). "Save incomplete" (doc 05 §5.4).
+    /// A failure after the commit point of **this** save: generation `generation` is decided, holds the
+    /// model this save was given, and completes by roll-forward ([`Store::retry_pending`], and at the next
+    /// open). "Save incomplete" (doc 05 §5.4). The caller may count the model as saved.
     Incomplete {
         /// The decided generation.
         generation: u64,
         /// The step.
         step: SaveStep,
         /// The error.
+        error: io::Error,
+    },
+    /// An **earlier** save (generation `generation`) passed its commit point but is still incomplete, and
+    /// completing it failed again: this save wrote nothing. The model given to this save is not on disk;
+    /// the caller keeps its dirty set and saves again later (review cycle 8, blocker 1).
+    PendingIncomplete {
+        /// The decided generation of the earlier save.
+        generation: u64,
+        /// Why its roll-forward failed.
         error: io::Error,
     },
     /// A record has no file or no JSON form.
@@ -296,6 +311,10 @@ impl fmt::Display for SaveError {
             } => write!(
                 f,
                 "save incomplete at {step:?} (generation {generation}): {error}"
+            ),
+            SaveError::PendingIncomplete { generation, error } => write!(
+                f,
+                "the earlier save of generation {generation} is still incomplete ({error}); nothing was saved"
             ),
             SaveError::Format(e) => e.fmt(f),
         }
@@ -325,6 +344,10 @@ pub struct SaveReport {
     pub leftovers: Vec<FilePath>,
     /// A journal write that failed (the save itself succeeded).
     pub journal_error: Option<String>,
+    /// What the save (or a roll-forward completed since the last save) found and did on disk: EW-CORE-004
+    /// for each file that sat at a path the save writes without being in the baseline, moved aside to its
+    /// [`FilePath::unlisted`] name, which the finding names.
+    pub findings: Vec<Finding>,
 }
 
 /// The state of the lock after a heartbeat.
@@ -374,12 +397,66 @@ impl std::error::Error for RecoverError {}
 
 /// The outcome of a roll-forward attempt (doc 05 §5.3).
 enum Roll {
-    /// The intent was completed to this generation.
-    Completed(u64),
+    /// The intent was completed to this generation; the findings name files moved aside (EW-CORE-004).
+    Completed(u64, Vec<Finding>),
     /// The intent was torn (unreadable): deleted with its temps.
     Torn,
     /// For some file neither the target nor its temp matches the intent: EW-CORE-002.
     NotRepairable(Vec<FilePath>),
+    /// The intent's base generation (its generation − 1) is not the generation of `manifest.json` (`None`:
+    /// the manifest is unreadable): the project moved on after the save was decided, and completing it
+    /// would overwrite that change. Nothing is touched (EW-CORE-002, review cycle 8, 5(j)).
+    BaseMoved {
+        /// The intent's base generation.
+        base: u64,
+        /// The generation of `manifest.json` (0 when absent).
+        current: Option<u64>,
+    },
+}
+
+/// Whether `path` is a temp the save protocol creates (doc 05 §5.2 steps 4 and 5): the intent
+/// `manifest.json.tmp-<g>`, or `<file>.tmp-<g>` of a writer-owned file (a record file or a library
+/// document of a known directory). Other `*.tmp-*` names (a user's or another tool's) are not ours to
+/// delete (review cycle 8, 5(f)).
+fn is_save_temp(path: &str) -> bool {
+    match classify(path) {
+        PathClass::Intent { .. } => true,
+        PathClass::Temp { target, .. } => matches!(
+            classify(&target),
+            PathClass::Records(_) | PathClass::LibDocument { .. }
+        ),
+        _ => false,
+    }
+}
+
+/// EW-CORE-002 for an interrupted save of generation `g` that is not applied because the manifest on disk
+/// is not its base (review cycle 8, 5(j)).
+fn base_moved(g: u64, base: u64, current: Option<u64>) -> Finding {
+    let now = current.map_or_else(
+        || "manifest.json is unreadable".to_owned(),
+        |c| format!("manifest.json is at generation {c}"),
+    );
+    Finding::new(
+        FindingKind::MixedGeneration,
+        FilePath::new(format!("{MANIFEST}.tmp-{g}")).ok(),
+        None,
+        format!(
+            "an interrupted save of generation {g} was based on generation {base}, but {now}: it is not \
+             completed, so that it cannot overwrite the newer state; recover its changes from the journal"
+        ),
+    )
+}
+
+/// The newest intent above generation `current` in `listing`: the save a read-only opener waits for or
+/// reads in memory, and an editing opener rolls forward.
+fn newest_intent(listing: &BTreeMap<String, EntryKind>, current: u64) -> Option<u64> {
+    listing
+        .keys()
+        .filter_map(|p| match classify(p) {
+            PathClass::Intent { generation } if generation > current => Some(generation),
+            _ => None,
+        })
+        .max()
 }
 
 /// An open project directory: the baseline of the last load or save, the lock and the journal.
@@ -406,10 +483,11 @@ pub struct Store {
     opaque: BTreeMap<FilePath, FileHash>,
     /// The model keys of every writer-owned file.
     contents: BTreeMap<FilePath, BTreeSet<AnyKey>>,
-    /// Lines written verbatim: unknown kinds and quarantined lines, per file.
-    kept: BTreeMap<FilePath, Vec<(LineKey, String)>>,
+    /// Lines written verbatim, as their bytes: unknown kinds and quarantined lines (a line that is not
+    /// UTF-8 included), per file.
+    kept: BTreeMap<FilePath, Vec<(LineKey, Vec<u8>)>>,
     /// Records with malformed variants: their original line while the row equals the loaded one.
-    untouched: BTreeMap<AnyKey, (String, AnyRow)>,
+    untouched: BTreeMap<AnyKey, (Vec<u8>, AnyRow)>,
     /// Library documents with malformed variants, likewise.
     untouched_docs: BTreeMap<AnyKey, (Vec<u8>, AnyRow)>,
     /// Files to rewrite at the next save (non-canonical at open, misplaced records).
@@ -418,6 +496,11 @@ pub struct Store {
     pending: Option<u64>,
     /// The removals of that save (doc 05 §5.2 step 8), done when it completes.
     pending_removes: Vec<FilePath>,
+    /// The SHA-256 of `manifest.json` that save started from (`None`: absent): its roll-forward is refused
+    /// when the manifest on disk is neither this nor the decided generation (an external change).
+    pending_base: Option<[u8; 32]>,
+    /// Findings of roll-forwards completed outside a save, handed out with the next save's report.
+    notes: Vec<Finding>,
     journal: Option<Journal>,
     leftovers: Vec<Segment>,
     recovery: Option<RecoveryInfo>,
@@ -519,6 +602,8 @@ impl Store {
             rewrite: BTreeSet::new(),
             pending: None,
             pending_removes: Vec::new(),
+            pending_base: None,
+            notes: Vec::new(),
             journal: None,
             leftovers: Vec::new(),
             recovery: None,
@@ -548,40 +633,37 @@ impl Store {
                 .ok()
                 .flatten()
                 .map_or(0, |(m, _)| m.generation);
-            let mut intents: Vec<u64> = listing
-                .keys()
-                .filter_map(|p| match classify(p) {
-                    PathClass::Intent { generation } => Some(generation),
-                    _ => None,
-                })
-                .collect();
-            intents.sort_unstable();
-            if let Some(&newest) = intents.last() {
-                if newest > current {
-                    match self.roll_forward(newest).map_err(io_err(&self.root))? {
-                        Roll::Completed(g) => rolled_forward = Some(g),
-                        Roll::Torn => {}
-                        Roll::NotRepairable(files) => {
-                            repairable = false;
-                            for f in files {
-                                findings.push(Finding::new(
-                                    FindingKind::MixedGeneration,
-                                    Some(f),
-                                    None,
-                                    format!(
-                                        "an interrupted save of generation {newest} cannot roll forward: \
-                                         neither the file nor its temp matches the intent"
-                                    ),
-                                ));
-                            }
+            if let Some(newest) = newest_intent(&listing, current) {
+                match self.roll_forward(newest).map_err(io_err(&self.root))? {
+                    Roll::Completed(g, moved) => {
+                        rolled_forward = Some(g);
+                        findings.extend(moved);
+                    }
+                    Roll::Torn => {}
+                    Roll::NotRepairable(files) => {
+                        repairable = false;
+                        for f in files {
+                            findings.push(Finding::new(
+                                FindingKind::MixedGeneration,
+                                Some(f),
+                                None,
+                                format!(
+                                    "an interrupted save of generation {newest} cannot roll forward: \
+                                     neither the file nor its temp matches the intent"
+                                ),
+                            ));
                         }
+                    }
+                    Roll::BaseMoved { base, current } => {
+                        repairable = false;
+                        findings.push(base_moved(newest, base, current));
                     }
                 }
             }
             if repairable {
                 listing = self.walk().map_err(io_err(&self.root))?;
                 for path in listing.keys() {
-                    if matches!(classify(path), PathClass::Temp { .. } | PathClass::Intent { .. }) {
+                    if is_save_temp(path) {
                         let full = join(&self.root, path);
                         if vfs.remove_file(&full).is_ok() {
                             removed.push(path.clone());
@@ -613,49 +695,55 @@ impl Store {
                 lock::prune_stale_locks(&*vfs, &self.root, self.opts.clock.now(), self.opts.stale_after);
                 listing = self.walk().map_err(io_err(&self.root))?;
             }
-        } else if listing
-            .keys()
-            .any(|p| matches!(classify(p), PathClass::Intent { .. }))
-        {
-            // Read-only openers never roll forward. Behind a live writer they wait for its save to finish;
-            // behind a crashed one (a stale lock, or none) waiting is pointless: the intent's generation is
-            // read in memory instead, file by file from the target or its temp, and nothing is written.
-            if self.writer_gone() {
-                abandoned = listing
-                    .keys()
-                    .filter_map(|p| match classify(p) {
-                        PathClass::Intent { generation } => Some(generation),
-                        _ => None,
-                    })
-                    .max();
-            }
-            let mut waited = Duration::ZERO;
-            while abandoned.is_none() {
-                if waited >= self.opts.read_only_wait {
-                    return Err(OpenError::SaveInProgress);
-                }
-                self.opts.clock.sleep(READ_ONLY_POLL);
-                waited += READ_ONLY_POLL;
-                listing = self.walk().map_err(io_err(&self.root))?;
-                if !listing
-                    .keys()
-                    .any(|p| matches!(classify(p), PathClass::Intent { .. }))
-                {
-                    break;
+        } else {
+            // Read-only openers never roll forward. Only an intent above the manifest's generation is a save
+            // in progress (an older one is a leftover the next editing open deletes). Behind a live writer
+            // they wait for its save to finish; behind a crashed one (a stale lock, or none) waiting is
+            // pointless. Either way, an intent still there after the wait is read in memory: the intent's
+            // generation, file by file from the target or its temp, and nothing is written. (On Windows a
+            // crashed writer's lock stays non-stale for `lock.stale_after`: the process probe cannot tell.)
+            let current = |store: &Store| {
+                store
+                    .read_manifest()
+                    .ok()
+                    .flatten()
+                    .map_or(0, |(m, _)| m.generation)
+            };
+            let mut newest = newest_intent(&listing, current(self));
+            if newest.is_some() && !self.writer_gone() {
+                let mut waited = Duration::ZERO;
+                while newest.is_some() && waited < self.opts.read_only_wait {
+                    self.opts.clock.sleep(READ_ONLY_POLL);
+                    waited += READ_ONLY_POLL;
+                    listing = self.walk().map_err(io_err(&self.root))?;
+                    newest = newest_intent(&listing, current(self));
                 }
             }
+            abandoned = newest;
         }
 
         // The manifest and the format decision (doc 05 §4, §10.1).
         let mut format = FormatAccess::ReadWrite;
         let mut pending_removal: BTreeSet<FilePath> = BTreeSet::new();
-        let intent = abandoned.and_then(|g| {
+        let mut intent = abandoned.and_then(|g| {
             let bytes = vfs.read(&join(&self.root, &format!("{MANIFEST}.tmp-{g}"))).ok()?;
             // A torn intent never committed: generation g on disk is the truth.
             Manifest::parse(&bytes, &self.opts.limits)
                 .ok()
                 .filter(|m| m.generation == g && !m.merged)
         });
+        if let Some(i) = &intent {
+            // As for a roll-forward: an intent whose base is not the manifest on disk is not applied.
+            let base = i.generation.saturating_sub(1);
+            let current = match self.read_manifest() {
+                Ok(m) => Some(m.map_or(0, |(m, _)| m.generation)),
+                Err(_) => None,
+            };
+            if current != Some(base) {
+                findings.push(base_moved(i.generation, base, current));
+                intent = None;
+            }
+        }
         if let Some(intent) = &intent {
             if let Ok(Some((old, _))) = self.read_manifest() {
                 pending_removal = old
@@ -750,6 +838,12 @@ impl Store {
                         Ok(bytes) if wanted.is_none_or(|h| h.matches(&bytes)) => Ok(bytes),
                         target => {
                             let temp = vfs.read(&join(&self.root, &path.temp(intent.generation)));
+                            // A live writer may rename the temp between the two reads: read the target
+                            // once more before calling the file mixed.
+                            let temp = match temp {
+                                Ok(bytes) if wanted.is_some_and(|h| h.matches(&bytes)) => Ok(bytes),
+                                _ => vfs.read(&full),
+                            };
                             match temp {
                                 Ok(bytes) if wanted.is_some_and(|h| h.matches(&bytes)) => Ok(bytes),
                                 _ => {
@@ -784,6 +878,9 @@ impl Store {
             }
         }
         let loaded = ew_format::load(manifest.as_ref(), &files, &limits);
+        // The loader's list is capped at `max_findings`; its flag also counts the findings it dropped
+        // (review cycle 8, major 2: a thousand duplicates must not hide a line the writer would lose).
+        let loader_read_only = loaded.read_only;
         findings.extend(loaded.findings);
         findings.sort();
         let Some(project) = loaded.project else {
@@ -793,7 +890,7 @@ impl Store {
             Ok(m) => m,
             Err(error) => return Err(OpenError::Model { error, findings }),
         };
-        if !repairable || findings.iter().any(|f| f.kind.forces_read_only()) {
+        if !repairable || loader_read_only || findings.iter().any(|f| f.kind.forces_read_only()) {
             self.demote(ReadOnlyReason::Integrity);
         }
 
@@ -971,7 +1068,9 @@ impl Store {
         Ok(out)
     }
 
-    /// Completes the save of generation `g` from its intent (doc 05 §5.3).
+    /// Completes the save of generation `g` from its intent (doc 05 §5.3), when its base (generation
+    /// `g - 1`) is the manifest on disk. A file at a target path that the base does not list and that does
+    /// not already hold the intent's bytes is moved aside first ([`Store::move_aside`]).
     fn roll_forward(&mut self, g: u64) -> io::Result<Roll> {
         let vfs = Arc::clone(&self.opts.vfs);
         let intent_rel = format!("{MANIFEST}.tmp-{g}");
@@ -980,7 +1079,7 @@ impl Store {
             for path in store.walk()?.keys() {
                 if let PathClass::Temp { generation, .. } | PathClass::Intent { generation } = classify(path)
                 {
-                    if generation == g {
+                    if generation == g && is_save_temp(path) {
                         let _ = vfs.remove_file(&join(&store.root, path));
                     }
                 }
@@ -995,6 +1094,22 @@ impl Store {
                 return Ok(Roll::Torn);
             }
         };
+        // The base: an intent of generation g was written over generation g - 1 (doc 05 §5.2 step 2).
+        let base = g.saturating_sub(1);
+        let old = match self.read_manifest() {
+            Ok(m) => m.map(|(m, _)| m),
+            Err(_) => {
+                return Ok(Roll::BaseMoved { base, current: None });
+            }
+        };
+        let current = old.as_ref().map_or(0, |m| m.generation);
+        if current != base {
+            return Ok(Roll::BaseMoved {
+                base,
+                current: Some(current),
+            });
+        }
+        let listed = |p: &FilePath| old.as_ref().is_some_and(|m| m.files.contains_key(p));
         let mut renames = Vec::new();
         let mut missing = Vec::new();
         for (path, hash) in &intent.files {
@@ -1008,7 +1123,11 @@ impl Store {
             }
             let temp = join(&self.root, &path.temp(g));
             if vfs.read(&temp).is_ok_and(|b| sha256(&b) == *h) {
-                renames.push((temp, target));
+                let occupied = !listed(path)
+                    && vfs
+                        .stat(&target)
+                        .is_ok_and(|s| matches!(s.kind, EntryKind::File | EntryKind::Link));
+                renames.push((path.clone(), temp, target, occupied));
             } else {
                 missing.push(path.clone());
             }
@@ -1017,7 +1136,11 @@ impl Store {
             return Ok(Roll::NotRepairable(missing));
         }
         let mut dirs = BTreeSet::new();
-        for (temp, target) in renames {
+        let mut moved = Vec::new();
+        for (path, temp, target, occupied) in renames {
+            if occupied {
+                moved.push(self.move_aside(&path, g)?);
+            }
             self.rename_retrying(&temp, &target)?;
             if let Some(parent) = target.parent() {
                 dirs.insert(parent.to_path_buf());
@@ -1025,7 +1148,7 @@ impl Store {
         }
         // Files of the old generation that the new one no longer lists: removed before the manifest
         // rename, while the old manifest still names them.
-        if let Ok(Some((old, _))) = self.read_manifest() {
+        if let Some(old) = &old {
             for path in old.files.keys() {
                 let owned = matches!(
                     classify(path.as_str()),
@@ -1041,7 +1164,50 @@ impl Store {
         }
         self.rename_retrying(&intent_path, &join(&self.root, MANIFEST))?;
         vfs.sync_dir(&self.root)?;
-        Ok(Roll::Completed(g))
+        Ok(Roll::Completed(g, moved))
+    }
+
+    /// Moves the file at `path`, which the baseline does not list, to a free [`FilePath::unlisted`] name
+    /// for a save of generation `g`, so that the save never renames over another user's file (review cycle
+    /// 8, owner ruling). The rename does not replace: a taken name is skipped. Returns the EW-CORE-004
+    /// finding naming the new path.
+    fn move_aside(&self, path: &FilePath, g: u64) -> io::Result<Finding> {
+        const ATTEMPTS: u32 = 1_000;
+        let vfs = &*self.opts.vfs;
+        let from = join(&self.root, path.as_str());
+        for n in 0..ATTEMPTS {
+            let aside = path.unlisted(g, n);
+            let to = join(&self.root, aside.as_str());
+            let moved = match vfs.rename_noreplace(&from, &to) {
+                Ok(()) => true,
+                Err(e) if e.kind() == io::ErrorKind::AlreadyExists => false,
+                // No rename without replacement here (doc 05 §7.4 step 3): check the name, then rename.
+                Err(e) if e.kind() == io::ErrorKind::Unsupported => match vfs.stat(&to) {
+                    Ok(_) => false,
+                    Err(e) if e.kind() == io::ErrorKind::NotFound => {
+                        self.rename_retrying(&from, &to)?;
+                        true
+                    }
+                    Err(e) => return Err(e),
+                },
+                Err(e) => return Err(e),
+            };
+            if moved {
+                return Ok(Finding::new(
+                    FindingKind::Orphan,
+                    Some(aside),
+                    None,
+                    format!(
+                        "found at {path}, which manifest.json does not list (another user's or a sync \
+                         client's file); moved here so that the save of generation {g} does not overwrite it"
+                    ),
+                ));
+            }
+        }
+        Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            format!("{path}: no free name to move the unlisted file aside"),
+        ))
     }
 
     fn rename_retrying(&self, from: &Path, to: &Path) -> io::Result<()> {
@@ -1101,7 +1267,7 @@ impl Store {
             };
             let line = ew_format::record_line(record).map_err(|e| OpenError::Format(e.to_string()))?;
             let key = LineKey::of(record).unwrap_or_else(LineKey::keyless);
-            store.kept.entry(file).or_default().push((key, line));
+            store.kept.entry(file).or_default().push((key, line.into_bytes()));
         }
         store
             .save(model, Changes::All)
@@ -1151,6 +1317,8 @@ impl Store {
             rewrite: BTreeSet::new(),
             pending: None,
             pending_removes: Vec::new(),
+            pending_base: None,
+            notes: Vec::new(),
             journal: None,
             leftovers: Vec::new(),
             recovery: None,
@@ -1192,8 +1360,18 @@ impl Store {
         if let Access::ReadOnly(reason) = &self.access {
             return Err(SaveError::ReadOnly(reason.clone()));
         }
+        // An earlier save that is still incomplete must complete first; when it cannot, this save writes
+        // nothing and says so with its own error, never with the earlier save's `Incomplete` (review cycle
+        // 8, blocker 1: the caller would count this model as saved).
         if self.pending.is_some() {
-            self.retry_pending()?;
+            if let Err(e) = self.retry_pending() {
+                return Err(match e {
+                    SaveError::Incomplete {
+                        generation, error, ..
+                    } => SaveError::PendingIncomplete { generation, error },
+                    other => other,
+                });
+            }
         }
         // Step 2: the lock still holds our session, and the manifest is what we last loaded or wrote.
         match lock::holder(&*self.opts.vfs, &self.root, &self.opts.identity) {
@@ -1259,6 +1437,7 @@ impl Store {
             self.adopt(model, plan.contents, plan.disk);
             return Ok(SaveReport {
                 generation: g,
+                findings: std::mem::take(&mut self.notes),
                 ..SaveReport::default()
             });
         }
@@ -1267,6 +1446,7 @@ impl Store {
 
         // Steps 4 and 5: temps, intent, directory syncs. Any failure deletes our temps; g stays intact.
         let mut created: Vec<PathBuf> = Vec::new();
+        let mut moved: Vec<Finding> = Vec::new();
         let mut dirs: BTreeSet<PathBuf> = BTreeSet::new();
         dirs.insert(self.root.clone());
         let pre = (|| -> Result<(), (SaveStep, PathBuf, io::Error)> {
@@ -1283,6 +1463,21 @@ impl Store {
                     }
                     dir = d.parent().map(Path::to_path_buf);
                     dirs.insert(d);
+                }
+                // Never rename over a file the baseline does not list (another user's file, a sync
+                // client's copy): move it aside first (review cycle 8, owner ruling). Its directory is
+                // synced with the temps below, so the move is durable before the commit point.
+                if !self.disk.contains_key(path) {
+                    match vfs.stat(&target) {
+                        Ok(s) if matches!(s.kind, EntryKind::File | EntryKind::Link) => moved.push(
+                            self.move_aside(path, g1)
+                                .map_err(|e| (SaveStep::Temps, target.clone(), e))?,
+                        ),
+                        // A directory or a device: the rename of step 6 fails and reports it.
+                        Ok(_) => {}
+                        Err(e) if e.kind() == io::ErrorKind::NotFound => {}
+                        Err(e) => return Err((SaveStep::Temps, target.clone(), e)),
+                    }
                 }
                 let temp = join(&self.root, &path.temp(g1));
                 let _ = vfs.remove_file(&temp);
@@ -1309,6 +1504,8 @@ impl Store {
             }
             Ok(())
         })();
+        // Files moved aside stay moved whatever happens next; the next successful save reports them.
+        self.notes.append(&mut moved);
         if let Err((step, path, error)) = pre {
             for temp in created.iter().rev() {
                 let _ = vfs.remove_file(temp);
@@ -1325,6 +1522,7 @@ impl Store {
             manifest_written: true,
             leftovers: Vec::new(),
             journal_error: None,
+            findings: Vec::new(),
         };
         let removes: Vec<FilePath> = plan.removes.iter().cloned().collect();
         if let Some(j) = &mut self.journal {
@@ -1340,6 +1538,7 @@ impl Store {
         self.generation = g1;
         self.pending = Some(g1);
         self.pending_removes.clone_from(&removes);
+        self.pending_base = on_disk;
 
         // Step 6: renames.
         for path in plan.writes.keys() {
@@ -1397,6 +1596,7 @@ impl Store {
                 report.journal_error = Some(e.to_string());
             }
         }
+        report.findings = std::mem::take(&mut self.notes);
         Ok(report)
     }
 
@@ -1425,10 +1625,11 @@ impl Store {
             Ok(Some(g))
         };
         // The manifest rename happened; only a directory sync failed.
-        if self
-            .read_manifest()
+        let on_disk = self.read_manifest();
+        if on_disk
+            .as_ref()
             .ok()
-            .flatten()
+            .and_then(Option::as_ref)
             .is_some_and(|(m, _)| m.generation == g)
         {
             if let Err(e) = self.opts.vfs.sync_dir(&self.root) {
@@ -1436,13 +1637,27 @@ impl Store {
             }
             return done(self);
         }
+        // Like the pre-check of a save: the manifest must still be the one the save started from (review
+        // cycle 8, 5(j)); otherwise an external change happened and completing the save would overwrite it.
+        let base_hash = on_disk.ok().flatten().map(|(_, h)| h);
+        if base_hash != self.pending_base {
+            return Err(incomplete(io::Error::other(
+                "manifest.json changed since the save began (an external change); not rolled forward",
+            )));
+        }
         match self.roll_forward(g) {
-            Ok(Roll::Completed(_)) => done(self),
+            Ok(Roll::Completed(_, moved)) => {
+                self.notes.extend(moved);
+                done(self)
+            }
             Ok(Roll::Torn) => Err(incomplete(io::Error::other("the intent manifest is unreadable"))),
             Ok(Roll::NotRepairable(files)) => Err(incomplete(io::Error::other(format!(
                 "{} files match neither the intent nor a temp (EW-CORE-002)",
                 files.len()
             )))),
+            Ok(Roll::BaseMoved { base, current }) => {
+                Err(incomplete(io::Error::other(base_moved(g, base, current).message)))
+            }
             Err(e) => Err(incomplete(e)),
         }
     }
@@ -1565,12 +1780,12 @@ impl Store {
             }
             return Ok(row_text(&row)?.into_bytes());
         }
-        let mut lines = Vec::with_capacity(keys.len());
+        let mut lines: Vec<(LineKey, Vec<u8>)> = Vec::with_capacity(keys.len());
         for key in keys {
             let Some(row) = model.row(key) else { continue };
             let text = match self.untouched.get(key) {
                 Some((text, original)) if row.same(original) => text.clone(),
-                _ => row_text(&row)?,
+                _ => row_text(&row)?.into_bytes(),
             };
             lines.push((row_line_key(key), text));
         }

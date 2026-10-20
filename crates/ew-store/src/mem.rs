@@ -20,7 +20,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt;
 use std::io;
-use std::path::{Component, Path};
+use std::path::{Component, Path, PathBuf};
 use std::sync::{Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -776,5 +776,17 @@ impl Vfs for MemVfs {
         let i = s.file_index(&p)?;
         s.inodes[i].modified = time;
         Ok(())
+    }
+
+    /// The normalised path (`.` dropped, `/` separators); no links are resolved (links are never followed
+    /// here). `NotFound` when nothing is at the path.
+    fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
+        let s = self.enter("canonicalize", &[path], false)?;
+        let p = norm(path)?;
+        if s.cur.is_dir(&p) || s.cur.names.contains_key(&p) {
+            Ok(PathBuf::from(p))
+        } else {
+            Err(not_found(&p))
+        }
     }
 }

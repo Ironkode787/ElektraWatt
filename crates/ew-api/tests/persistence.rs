@@ -9,13 +9,15 @@
 #![allow(clippy::disallowed_methods)]
 
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::SystemTime;
 
 use ew_api::{AnyCommand, Recovery, Session, SessionOptions};
 use ew_commands::testkit::seeded_ids;
 use ew_store::lock::{Identity, new_session_id};
-use ew_store::{Access, ReadOnlyReason, StoreOptions};
+use ew_store::mem::{DirSync, MemVfs};
+use ew_store::{Access, ManualClock, ReadOnlyReason, SaveError, StoreOptions, Vfs};
 
 const PROJECT: &str = r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
 
@@ -191,4 +193,56 @@ fn the_journal_recovers_unsaved_commits_after_a_crash() {
     again.close();
     let _ = std::fs::remove_dir_all(&dir);
     let _ = std::fs::remove_dir_all(&state);
+}
+
+#[test]
+fn a_failed_retry_keeps_the_newer_edits_dirty() {
+    // Review cycle 8, blocker 1, end to end: save 1 is incomplete (antivirus holds `manifest.json`); the
+    // edits after it must stay dirty when save 2 cannot complete save 1, and save 3 must write them, so that
+    // a clean close (which deletes the journal) loses nothing.
+    let vfs = Arc::new(MemVfs::new(DirSync::Explicit));
+    vfs.put_dir(Path::new("/state"));
+    let root = PathBuf::from("/p");
+    let held = root.join("manifest.json");
+    let mem_options = |pid: u32| {
+        let mut o = store_options(Path::new("/state"));
+        o.vfs = Arc::clone(&vfs) as Arc<dyn Vfs>;
+        o.clock = Arc::new(ManualClock::fixed());
+        o.identity.pid = pid;
+        o
+    };
+    let project = serde_json::from_str(PROJECT).unwrap();
+    let mut s = Session::from_records(project, [], [], options(21)).unwrap();
+    s.execute(&page(1)).unwrap();
+    s.create(&root, mem_options(1)).unwrap();
+
+    vfs.hold(&held, 1000);
+    s.execute(&page(2)).unwrap();
+    match s.save() {
+        Err(SaveError::Incomplete { generation: 2, .. }) => {}
+        other => panic!("save 1: expected Incomplete of generation 2, got {other:?}"),
+    }
+    assert!(!s.is_dirty(), "generation 2 is decided: page 2 counts as saved");
+
+    s.execute(&page(3)).unwrap();
+    match s.save() {
+        Err(SaveError::PendingIncomplete { generation: 2, .. }) => {}
+        other => panic!("save 2: expected PendingIncomplete of generation 2, got {other:?}"),
+    }
+    assert!(s.is_dirty(), "page 3 is not on disk");
+
+    vfs.hold(&held, 0);
+    let saved = s.save().expect("save 3 completes generation 2 and writes page 3");
+    assert_eq!(saved.generation, 3);
+    assert_eq!(saved.written.len(), 1, "{:?}", saved.written);
+    assert!(!s.is_dirty());
+    let expected = lines(&s);
+    s.close();
+
+    let (r, report) = Session::open(&root, mem_options(2), options(22), Recovery::Keep).unwrap();
+    assert_eq!(report.generation, 3);
+    assert!(report.recovery.is_none());
+    assert_eq!(pages(&r), 3);
+    assert_eq!(lines(&r), expected);
+    r.close();
 }

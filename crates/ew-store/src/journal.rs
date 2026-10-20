@@ -334,6 +334,8 @@ pub struct Journal {
 
 impl Journal {
     /// The journal of `session` for the project `project` at `path`, under the state directory `state`.
+    /// The directory is keyed by the canonical form of `path` ([`Vfs::canonicalize`]), so that one project
+    /// reached through two paths has one journal; when the path cannot be canonicalised, by `path` as given.
     pub fn new(
         vfs: Arc<dyn Vfs>,
         state: &Path,
@@ -342,9 +344,10 @@ impl Journal {
         session: &str,
         app_version: &str,
     ) -> Journal {
+        let path = vfs.canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
         Journal {
             vfs,
-            dir: journal_dir(state, project, path),
+            dir: journal_dir(state, project, &path),
             session: session.to_owned(),
             project,
             path_text: path.to_string_lossy().into_owned(),

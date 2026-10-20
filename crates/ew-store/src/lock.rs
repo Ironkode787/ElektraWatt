@@ -429,15 +429,23 @@ pub fn take_over(
         .map_or_else(|| "unknown".to_owned(), |r| sanitize(&r.session));
     let from = join(root, LOCK);
     let to = join(root, &format!("{STALE_LOCK_PREFIX}{stale_session}"));
-    match vfs.rename_noreplace(&from, &to) {
+    match rename_away(vfs, &from, &to)? {
         Ok(()) => {}
-        Err(e) if matches!(e.kind(), io::ErrorKind::AlreadyExists | io::ErrorKind::NotFound) => {
-            return Ok(Err(TakeoverError::Lost));
+        Err(TakeoverError::Lost) if left_by_a_crashed_takeover(vfs, &from, &to, &info) => {
+            // A takeover that crashed between the hard link and the unlink of `rename_noreplace` left the
+            // stale copy beside the lock, both with the stale record: every later takeover would lose to
+            // it (review cycle 8, 5(e)). The copy is redundant (the lock still holds the record): prune it
+            // and try once more; a racing instance that wins instead makes this one lose as usual.
+            match vfs.remove_file(&to) {
+                Ok(()) => {}
+                Err(e) if e.kind() == io::ErrorKind::NotFound => {}
+                Err(e) => return Err(e),
+            }
+            if let Err(lost) = rename_away(vfs, &from, &to)? {
+                return Ok(Err(lost));
+            }
         }
-        // Doc 05 §7.4 step 3: no rename without replacement on this file system; the plain rename and the
-        // re-read below (plus the heartbeat's session check) detect the loser.
-        Err(e) if e.kind() == io::ErrorKind::Unsupported => vfs.rename(&from, &to)?,
-        Err(e) => return Err(e),
+        Err(lost) => return Ok(Err(lost)),
     }
     // The renamed record keeps the holder's last heartbeat as its modification time; restamp it so that
     // "older than `stale_after`" (doc 05 §7.4, last paragraph) counts from the takeover, and the takeover's
@@ -454,6 +462,31 @@ pub fn take_over(
         return Ok(Err(TakeoverError::Lost));
     }
     Ok(Ok(info))
+}
+
+/// Step 1 of the takeover (doc 05 §7.4): renames the stale lock `from` to `to` without replacement;
+/// `Lost` when `to` exists or `from` is gone (another instance was faster).
+fn rename_away(vfs: &dyn Vfs, from: &Path, to: &Path) -> io::Result<Result<(), TakeoverError>> {
+    match vfs.rename_noreplace(from, to) {
+        Ok(()) => Ok(Ok(())),
+        Err(e) if matches!(e.kind(), io::ErrorKind::AlreadyExists | io::ErrorKind::NotFound) => {
+            Ok(Err(TakeoverError::Lost))
+        }
+        // Doc 05 §7.4 step 3: no rename without replacement on this file system; the plain rename and the
+        // re-read after the settle time (plus the heartbeat's session check) detect the loser.
+        Err(e) if e.kind() == io::ErrorKind::Unsupported => vfs.rename(from, to).map(Ok),
+        Err(e) => Err(e),
+    }
+}
+
+/// Whether the existing stale copy `to` is the leftover of a takeover that crashed after linking the lock
+/// to it and before unlinking the lock: the copy holds the same bytes as the lock `from`, which still holds
+/// the stale record of `info`. Pruning such a copy loses nothing.
+fn left_by_a_crashed_takeover(vfs: &dyn Vfs, from: &Path, to: &Path, info: &LockInfo) -> bool {
+    let (Ok(lock), Ok(copy)) = (vfs.read(from), vfs.read(to)) else {
+        return false;
+    };
+    lock == copy && LockRecord::parse(&lock) == info.record
 }
 
 /// A session ID usable in a file name: lower-case hex digits and hyphens only.

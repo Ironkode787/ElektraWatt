@@ -415,6 +415,47 @@ fn two_takeovers_one_winner() {
 }
 
 #[test]
+fn a_takeover_that_crashed_after_its_hard_link_does_not_block_the_next_one() {
+    // Review cycle 8, 5(e): the rename without replacement is a hard link plus an unlink; a crash between
+    // the two leaves `.~ew.lock.stale-<session>` beside the lock, both the stale record. Every later
+    // takeover used to lose to that copy.
+    let s = Scratch::new();
+    let a_session = crashed_holder(&s, "<host>", 1001, 61 * MIN);
+    let a_record = s.lock_record();
+    let copy = s.project.join(format!("{STALE_PREFIX}{a_session}"));
+    std::fs::hard_link(s.lock_path(), &copy).unwrap();
+    let b = s.opts(1002, "<other host>", &[]);
+    let b_session = b.identity.session.clone();
+    let taken = Store::take_over(&s.project, b).unwrap();
+    assert_eq!(taken.report.access, Access::Edit);
+    assert_eq!(s.lock_record().session, b_session);
+    assert_eq!(
+        LockRecord::parse(&std::fs::read(&copy).unwrap()),
+        Some(a_record),
+        "the stale record is kept as evidence"
+    );
+    assert_eq!(s.stale_files(), [format!("{STALE_PREFIX}{a_session}")]);
+}
+
+#[test]
+fn one_project_through_two_paths_has_one_journal() {
+    // Review cycle 8, 5(c): the journal directory is keyed by the canonical project path.
+    let s = Scratch::new();
+    let a = Store::open(&s.project, s.opts(1001, "<host>", &[])).unwrap();
+    let dir = a
+        .store
+        .journal_dir()
+        .expect("a journal with a state dir")
+        .to_path_buf();
+    a.store.close();
+    let other = s.base.join(".").join("J-E-2416.ew");
+    assert_ne!(other.as_os_str(), s.project.as_os_str(), "a different text");
+    let b = Store::open(&other, s.opts(1002, "<host>", &[])).unwrap();
+    assert_eq!(b.store.journal_dir(), Some(dir.as_path()));
+    b.store.close();
+}
+
+#[test]
 fn close_releases_and_drop_releases() {
     let s = Scratch::new();
     let o = s.opts(1001, "<host>", &[]);

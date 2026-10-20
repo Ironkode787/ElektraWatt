@@ -303,7 +303,7 @@ fn json_syntax_error_is_ew_core_005_and_read_only() {
     assert!(loaded.read_only);
     let kept = quarantined(&loaded, 3);
     assert_eq!(kept.kept, Kept::Quarantined);
-    assert_eq!(kept.text, bad);
+    assert_eq!(kept.text, bad.as_bytes());
     assert_eq!(kept.key, ew_format::LineKey::keyless().with_seq(3));
     assert_eq!(loaded.records, [record(DEVICE), record(FUNCTION)]);
     // Nothing is lost: the quarantined line stays in its file (keyless lines sort last).
@@ -319,7 +319,7 @@ fn conflict_markers_are_ew_core_006_and_read_only() {
         assert_eq!(found[0].line, Some(2));
         assert_eq!(found[0].code(), Some("EW-CORE-006"));
         assert!(loaded.read_only, "{marker}");
-        assert_eq!(quarantined(&loaded, 2).text, marker);
+        assert_eq!(quarantined(&loaded, 2).text, marker.as_bytes());
         assert_eq!(quarantined(&loaded, 2).kept, Kept::Quarantined);
         assert_eq!(loaded.records.len(), 2);
     }
@@ -339,7 +339,7 @@ fn duplicate_member_is_ew_core_007() {
         found[0].message
     );
     assert!(!loaded.read_only);
-    assert_eq!(quarantined(&loaded, 2).text, line);
+    assert_eq!(quarantined(&loaded, 2).text, line.as_bytes());
     assert_eq!(loaded.records, [record(DEVICE)]);
 }
 
@@ -351,7 +351,7 @@ fn float_is_ew_core_007() {
     assert_eq!(found.len(), 1, "{:?}", loaded.findings);
     assert_eq!(found[0].line, Some(1));
     assert_eq!(found[0].file, Some(p(PAGE_FILE)));
-    assert_eq!(quarantined(&loaded, 1).text, line);
+    assert_eq!(quarantined(&loaded, 1).text, line.as_bytes());
     assert_eq!(
         quarantined(&loaded, 1).key,
         ew_format::LineKey::of(&record(PAGE)).unwrap().with_seq(1)
@@ -375,7 +375,7 @@ fn same_id_twice_in_one_file_is_ew_core_009() {
     assert_eq!(loaded.records, [record(DEVICE)]);
     let kept = quarantined(&loaded, 2);
     assert_eq!(kept.kept, Kept::Quarantined);
-    assert_eq!(kept.text, second);
+    assert_eq!(kept.text, second.as_bytes());
     assert_eq!(
         kept.key,
         ew_format::LineKey::of(&record(DEVICE)).unwrap().with_seq(2)
@@ -407,7 +407,7 @@ fn a_second_project_record_is_a_duplicate() {
     let loaded = load_lines("project.jsonl", &[PROJECT, &other]);
     assert_eq!(of_kind(&loaded, FindingKind::DuplicateRecord).len(), 1);
     assert_eq!(loaded.project, Some(project()));
-    assert_eq!(quarantined(&loaded, 2).text, other);
+    assert_eq!(quarantined(&loaded, 2).text, other.as_bytes());
 }
 
 const UNKNOWN_A: &str =
@@ -429,7 +429,7 @@ fn unknown_kind_is_kept_verbatim_with_one_ew_core_016_per_kind_and_file() {
     assert_eq!(loaded.kept.len(), 2);
     for (kept, text) in loaded.kept.iter().zip([UNKNOWN_A, UNKNOWN_B]) {
         assert_eq!(kept.kept, Kept::UnknownKind);
-        assert_eq!(kept.text, text);
+        assert_eq!(kept.text, text.as_bytes());
         assert!(kept.key.id().is_some());
     }
     assert_eq!(loaded.kept[0].line, 1);
@@ -452,7 +452,7 @@ fn reserved_kind_is_kept_without_a_finding() {
     assert_eq!(loaded.records.len(), 1);
     assert_eq!(loaded.kept.len(), 1);
     assert_eq!(loaded.kept[0].kept, Kept::UnknownKind);
-    assert_eq!(loaded.kept[0].text, line);
+    assert_eq!(loaded.kept[0].text, line.as_bytes());
     assert!(loaded.rewrite.is_empty());
 }
 
@@ -471,7 +471,7 @@ fn malformed_variant_is_ew_core_017_and_untouched() {
         panic!("{:?}", loaded.kept[0]);
     };
     assert_eq!(**original, loaded.records[0]);
-    assert_eq!(loaded.kept[0].text, MALFORMED);
+    assert_eq!(loaded.kept[0].text, MALFORMED.as_bytes());
     assert_eq!(
         loaded.kept[0].key.id().map(|i| i.to_string()).as_deref(),
         Some(FUNCTION_ID)

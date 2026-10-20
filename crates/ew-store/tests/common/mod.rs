@@ -159,6 +159,18 @@ pub fn device_with_text(device: &Device, text: &str) -> Device {
     }
 }
 
+/// A copy of `device` with the ID `00000000-0000-7000-8000-<n as 12 hex digits>`: its shard is
+/// `devices/<n's last byte>.jsonl`.
+pub fn device_copy(device: &Device, n: u64) -> Device {
+    let mut v = serde_json::to_value(device).expect("a device serialises");
+    v["$k"] = "device".into();
+    v["id"] = format!("00000000-0000-7000-8000-{n:012x}").into();
+    match Record::from_value(v) {
+        Ok(Record::Device(d)) => d,
+        other => panic!("the copied device does not read back: {other:?}"),
+    }
+}
+
 /// A copy of `page` with the ID `00000000-0000-7000-8000-<n as 12 hex digits>` and folio number `folio`.
 pub fn page_copy(page: &Page, n: u64, folio: u32) -> Page {
     let mut v = page_value(page);

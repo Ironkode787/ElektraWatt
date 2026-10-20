@@ -243,14 +243,18 @@ pub fn pretty(compact: &str) -> String {
     out
 }
 
-/// The bytes of a JSON Lines file: the lines sorted by key (doc 05 §3.3), each followed by LF (doc 05
-/// §3.1). No lines give no bytes: a file that would be empty is not written.
-pub fn jsonl_file(mut lines: Vec<(LineKey, String)>) -> Vec<u8> {
-    lines.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
-    let len = lines.iter().map(|(_, l)| l.len() + 1).sum();
+/// The bytes of a JSON Lines file: the lines sorted by key (doc 05 §3.3; equal keys by their bytes), each
+/// followed by LF (doc 05 §3.1). No lines give no bytes: a file that would be empty is not written.
+///
+/// A line is any byte string: canonical lines are UTF-8 text, while a quarantined line (EW-CORE-005, a line
+/// that is not UTF-8) is written back byte for byte, so nothing the reader did not understand is altered
+/// (NFR-REL-04).
+pub fn jsonl_file<L: AsRef<[u8]>>(mut lines: Vec<(LineKey, L)>) -> Vec<u8> {
+    lines.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.as_ref().cmp(b.1.as_ref())));
+    let len = lines.iter().map(|(_, l)| l.as_ref().len() + 1).sum();
     let mut out = Vec::with_capacity(len);
     for (_, line) in lines {
-        out.extend_from_slice(line.as_bytes());
+        out.extend_from_slice(line.as_ref());
         out.push(b'\n');
     }
     out
@@ -291,8 +295,28 @@ mod tests {
             "page",
             Some("00000000-0000-7000-8000-000000000001".parse().unwrap()),
         );
-        let bytes = jsonl_file(vec![(a, "{\"d\":1}".into()), (b, "{\"p\":1}".into())]);
+        let bytes = jsonl_file(vec![
+            (a.clone(), "{\"d\":1}".to_owned()),
+            (b.clone(), "{\"p\":1}".to_owned()),
+        ]);
         assert_eq!(bytes, b"{\"p\":1}\n{\"d\":1}\n");
-        assert!(jsonl_file(Vec::new()).is_empty());
+        assert!(jsonl_file(Vec::<(LineKey, String)>::new()).is_empty());
+        // Byte lines sort and join exactly like text lines; a line that is not UTF-8 stays as it is.
+        let raw = jsonl_file(vec![(a, b"{\"d\":1}".to_vec()), (b, b"\xff\xfe".to_vec())]);
+        assert_eq!(raw, b"\xff\xfe\n{\"d\":1}\n");
+    }
+
+    #[test]
+    fn serde_json_objects_serialise_in_key_order() {
+        // Canonical output of records of unknown kinds and of the manifest's `extra` members relies on
+        // `serde_json::Map` being a `BTreeMap`. The `preserve_order` feature (banned in ci/dep-rules.toml)
+        // would switch it to insertion order through feature unification; this fails if it is on.
+        let mut map = serde_json::Map::new();
+        map.insert("b".into(), 1.into());
+        map.insert("a".into(), 2.into());
+        assert_eq!(
+            serde_json::to_string(&serde_json::Value::Object(map)).unwrap(),
+            r#"{"a":2,"b":1}"#
+        );
     }
 }

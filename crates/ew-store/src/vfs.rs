@@ -60,6 +60,10 @@ pub trait Vfs: Send + Sync + fmt::Debug {
     fn remove_dir(&self, dir: &Path) -> io::Result<()>;
     /// Sets a file's modification time (the lock heartbeat, doc 05 §7.2).
     fn set_modified(&self, path: &Path, time: SystemTime) -> io::Result<()>;
+    /// The canonical absolute form of an existing path, links and `.` / `..` resolved: the key of the
+    /// project's journal directory, so that one project reached through two paths (a mapped drive and its
+    /// UNC path, a symbolic link) has one journal (doc 05 §8.1).
+    fn canonicalize(&self, path: &Path) -> io::Result<PathBuf>;
 }
 
 /// The project-relative path `rel` (with `/` separators) below `root`.
@@ -178,6 +182,25 @@ impl Vfs for OsVfs {
 
     fn set_modified(&self, path: &Path, time: SystemTime) -> io::Result<()> {
         OpenOptions::new().write(true).open(path)?.set_modified(time)
+    }
+
+    fn canonicalize(&self, path: &Path) -> io::Result<PathBuf> {
+        Ok(without_verbatim_prefix(fs::canonicalize(path)?))
+    }
+}
+
+/// A Windows verbatim path in its plain form, which the recovery dialog shows: `\\?\C:\x` as `C:\x`,
+/// `\\?\UNC\server\share\x` as `\\server\share\x`; other paths unchanged.
+fn without_verbatim_prefix(path: PathBuf) -> PathBuf {
+    let Some(text) = path.to_str() else {
+        return path;
+    };
+    if let Some(rest) = text.strip_prefix(r"\\?\UNC\") {
+        return PathBuf::from(format!(r"\\{rest}"));
+    }
+    match text.strip_prefix(r"\\?\") {
+        Some(rest) if rest.as_bytes().get(1) == Some(&b':') => PathBuf::from(rest),
+        _ => path,
     }
 }
 

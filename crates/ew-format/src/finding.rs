@@ -18,8 +18,9 @@ pub enum Severity {
     Error,
 }
 
-/// What a finding is about. The variants with a catalogue ID map to the EW-CORE rules of doc 05 §6.3; the
-/// others are the classifications of doc 05 §6.2 and the reader limits of §3.6, which have no rule ID.
+/// What a finding is about. The variants with a catalogue ID map to the EW-CORE rules of doc 05 §6.3
+/// (and EW-CORE-019 for the reader limits of §3.6); the others are the classifications of doc 05 §6.2,
+/// which have no rule ID.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum FindingKind {
     /// EW-CORE-001: manifest missing, unparseable or with conflict markers (warning).
@@ -58,7 +59,9 @@ pub enum FindingKind {
     /// Doc 05 §3.1: a file that is valid but not in canonical form; rewritten at the next save (info,
     /// `ew fmt --check`).
     NonCanonical,
-    /// Doc 05 §3.6: a hostile-input limit was exceeded; the file (or line) is not read (error; read-only).
+    /// EW-CORE-019 (doc 05 §3.6): a hostile-input limit was exceeded; the file (or line) is not read
+    /// (error; read-only). The next free number of the integrity block of doc 15 §4.2, taken in review
+    /// cycle 8 for the design pass to record.
     LimitExceeded,
     /// More findings than [`Limits::max_findings`](crate::Limits::max_findings); the rest are counted only
     /// (info).
@@ -82,10 +85,10 @@ impl FindingKind {
             FindingKind::AssetMismatch => "EW-CORE-015",
             FindingKind::NewerData => "EW-CORE-016",
             FindingKind::MalformedVariant => "EW-CORE-017",
+            FindingKind::LimitExceeded => "EW-CORE-019",
             FindingKind::LineEndings
             | FindingKind::ForeignEdit
             | FindingKind::NonCanonical
-            | FindingKind::LimitExceeded
             | FindingKind::Truncated => return None,
         })
     }

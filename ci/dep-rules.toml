@@ -175,6 +175,15 @@ crate = "ew"
 feature = "test-confirm"
 allowed_kinds = ["dev"]
 
+# Doc 05 §3.1, §10.3: canonical JSON needs serde_json's sorted `Map`; `preserve_order` switches every
+# `Map` in the build to insertion order through feature unification and would change the bytes of unknown
+# records and manifest members. Requested on no edge of any kind; ew-format's unit test
+# `serde_json_objects_serialise_in_key_order` catches a third-party crate that enables it.
+[[banned_features]]
+crate = "serde_json"
+feature = "preserve_order"
+allowed_kinds = []
+
 # ARCH §3 rule 1, ADR-0002 decision 1: the untracked read API of ew-model. The tracked read layer, the
 # transaction layer and the writer may enable it; any crate may enable it for tests.
 [[banned_features]]

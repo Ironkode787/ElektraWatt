@@ -15,12 +15,16 @@ use std::path::Path;
 use std::sync::Arc;
 
 use common::{
-    edit, edit_device, fixture, mem_project, options, par_map, project_files, reopen, root, temps, try_reopen,
+    TestProbe, edit, edit_device, fixture, mem_project, options, par_map, project_files, reopen, root, temps,
+    try_reopen,
 };
 use ew_model::{AnyKey, Model};
-use ew_store::ew_format::{FindingKind, Severity};
+use ew_store::ew_format::{FindingKind, Manifest, Severity};
 use ew_store::mem::{DirSync, Fault, MemVfs};
-use ew_store::{Access, Changes, OpenReport, Opened, ReadOnlyReason, SaveError, SaveReport, Store, Vfs};
+use ew_store::{
+    Access, Changes, OpenMode, OpenReport, Opened, ReadOnlyReason, SaveError, SaveReport, Store,
+    StoreOptions, Vfs,
+};
 
 const MODES: [DirSync; 2] = [DirSync::Explicit, DirSync::Implicit];
 
@@ -541,6 +545,68 @@ fn transient_rename_failures_are_retried() {
 }
 
 #[test]
+fn a_failed_retry_of_an_incomplete_save_is_not_reported_as_this_saves_incomplete() {
+    // Review cycle 8, blocker 1. Save 1 is incomplete (a held rename). Save 2 carries new edits and meets the
+    // same held rename while completing save 1: it wrote nothing of its own, so it must not answer with save
+    // 1's `Incomplete` (on which a caller counts its model as saved and clears its dirty set). Save 3, with
+    // the dirty set kept, completes save 1 and writes the edits of save 2; after a clean close (which
+    // deletes the journal) a reopen has them.
+    for mode in MODES {
+        let (_, _, report) = dry_run(mode);
+        let first = report
+            .written
+            .first()
+            .expect("the save writes files")
+            .as_str()
+            .to_owned();
+        let held = ew_store::join(&root(), &first);
+        let mut s = setup(mode);
+        s.vfs.hold(&held, 1000);
+        match s.store.save(&s.g1, Changes::Keys(&s.keys)) {
+            Err(SaveError::Incomplete { generation: 2, .. }) => {}
+            other => panic!("{mode:?}: save 1: expected Incomplete of generation 2, got {other:?}"),
+        }
+        let (g2, keys2) = edit_device(&s.g1, 1, "second edit");
+        let before = project_files(&s.vfs, &root());
+        match s.store.save(&g2, Changes::Keys(&keys2)) {
+            Err(SaveError::PendingIncomplete { generation: 2, .. }) => {}
+            other => panic!("{mode:?}: save 2 must say that save 1 is still incomplete, got {other:?}"),
+        }
+        assert_eq!(
+            project_files(&s.vfs, &root()),
+            before,
+            "{mode:?}: save 2 wrote nothing"
+        );
+        assert!(s.store.is_incomplete());
+        // The caller keeps the dirty set of save 2.
+        s.vfs.hold(&held, 0);
+        let r = s
+            .store
+            .save(&g2, Changes::Keys(&keys2))
+            .unwrap_or_else(|e| panic!("{mode:?}: save 3: {e:?}"));
+        assert_eq!(r.generation, 3, "{mode:?}");
+        assert!(
+            !r.written.is_empty(),
+            "{mode:?}: save 3 writes the edits of save 2"
+        );
+        assert!(!s.store.is_incomplete());
+        s.store.close();
+        let o = reopen(&s.vfs, 2);
+        assert_eq!(o.report.generation, 3, "{}", describe(&o.report));
+        assert!(
+            o.model.content_eq(&g2),
+            "{mode:?}: the edits of save 2 are on disk"
+        );
+        assert!(o.report.recovery.is_none());
+        assert!(
+            worst(&o.report) <= Some(Severity::Info),
+            "{}",
+            describe(&o.report)
+        );
+    }
+}
+
+#[test]
 fn incomplete_save_rolls_forward_at_the_next_open() {
     // A held rename that never clears; the session dies; the next open finishes the save.
     for mode in MODES {
@@ -610,6 +676,165 @@ fn stale_lock_of_a_crashed_save_opens_read_only_not_as_an_error() {
             other => panic!("expected a read-only session behind a stale lock, got {other:?}"),
         },
         Err(e) => panic!("a plain open behind a crashed save's stale lock fails: {e:?}"),
+    }
+}
+
+/// The golden project after save 1 of the edit batch was interrupted past its commit point (a held rename)
+/// and the session (pid 1) crashed with its lock in place: `manifest.json.tmp-2` and the temps on disk,
+/// the manifest at generation 1. Returns the file system and the models of generations 1 and 2.
+struct Crashed {
+    vfs: Arc<MemVfs>,
+    g: Model,
+    g1: Model,
+}
+
+fn crashed_incomplete_save(mode: DirSync) -> Crashed {
+    let first = {
+        let (_, _, report) = dry_run(mode);
+        report.written.first().expect("files").as_str().to_owned()
+    };
+    let mut s = setup(mode);
+    s.vfs.hold(&ew_store::join(&root(), &first), 1000);
+    assert!(matches!(
+        s.store.save(&s.g1, Changes::Keys(&s.keys)),
+        Err(SaveError::Incomplete { .. })
+    ));
+    s.store.crash();
+    s.vfs.hold(&ew_store::join(&root(), &first), 0);
+    assert!(project_files(&s.vfs, &root()).contains_key("manifest.json.tmp-2"));
+    Crashed {
+        vfs: s.vfs,
+        g: s.g,
+        g1: s.g1,
+    }
+}
+
+#[test]
+fn behind_a_lock_that_looks_alive_a_read_only_open_reads_the_intent_after_the_wait() {
+    // Review cycle 8, major 4: where the process probe cannot tell that the writer died (Windows), its lock
+    // stays non-stale for `lock.stale_after`. Openers then wait the 5 s for the save in progress, and read
+    // the intent's generation in memory instead of failing with SaveInProgress. Nothing is written.
+    for mode in MODES {
+        let s = crashed_incomplete_save(mode);
+        let before = project_files(&s.vfs, &root());
+        for open_mode in [OpenMode::ReadOnly, OpenMode::Edit] {
+            let mut o = options(&s.vfs, 2);
+            // pid 1, the crashed writer, still looks alive: the lock is not stale.
+            o.probe = Arc::new(TestProbe { alive: 1 });
+            o.mode = open_mode;
+            let opened = Store::open(&root(), o)
+                .unwrap_or_else(|e| panic!("{mode:?} {open_mode:?}: the open fails: {e:?}"));
+            match &opened.report.access {
+                Access::ReadOnly(ReadOnlyReason::Requested) => assert_eq!(open_mode, OpenMode::ReadOnly),
+                Access::ReadOnly(ReadOnlyReason::LockedBy(info)) => {
+                    assert_eq!(open_mode, OpenMode::Edit);
+                    assert!(!info.stale);
+                }
+                other => panic!("{mode:?} {open_mode:?}: unexpected access {other:?}"),
+            }
+            assert_eq!(opened.report.generation, 2, "{}", describe(&opened.report));
+            assert!(
+                opened.model.content_eq(&s.g1),
+                "{mode:?} {open_mode:?}: the view is the intent's generation"
+            );
+            assert!(
+                worst(&opened.report) <= Some(Severity::Info),
+                "{}",
+                describe(&opened.report)
+            );
+            drop(opened);
+            assert_eq!(project_files(&s.vfs, &root()), before, "nothing written");
+        }
+    }
+}
+
+#[test]
+fn a_read_only_open_ignores_an_intent_not_above_the_manifest() {
+    // Review cycle 8, 5(a): `manifest.json.tmp-1` beside manifest generation 1 is a leftover, not a save in
+    // progress. Before the fix the read-only opener read it in memory (here: an intent that drops a page).
+    let (vfs, root) = mem_project(DirSync::Explicit);
+    let files = fixture();
+    let limits = ew_store::ew_format::Limits::default();
+    let mut stale = Manifest::parse(&files["manifest.json"], &limits).expect("the fixture's manifest");
+    let page = stale
+        .files
+        .keys()
+        .find(|p| p.as_str().starts_with("pages/"))
+        .expect("a page file")
+        .clone();
+    stale.files.remove(&page);
+    vfs.put(
+        &ew_store::join(&root, "manifest.json.tmp-1"),
+        stale.to_text().as_bytes(),
+    );
+    let mut o = options(&vfs, 1);
+    o.mode = OpenMode::ReadOnly;
+    let opened = Store::open(&root, o).expect("opens");
+    assert_eq!(opened.report.generation, 1);
+    assert!(opened.report.findings.is_empty(), "{}", describe(&opened.report));
+    let fresh = Store::open(
+        &root,
+        StoreOptions {
+            mode: OpenMode::ReadOnly,
+            ..options(&vfs, 1)
+        },
+    )
+    .expect("opens");
+    assert!(opened.model.content_eq(&fresh.model));
+    assert!(project_files(&vfs, &root).contains_key("manifest.json.tmp-1"));
+}
+
+#[test]
+fn an_intent_whose_base_moved_is_not_rolled_forward() {
+    // Review cycle 8, 5(j): an intent of generation 3 (base 2) beside manifest generation 1. Rolling it
+    // forward would overwrite whatever generation 1 is now; it is refused with EW-CORE-002, read-only, and
+    // nothing is touched (the intent and its temps stay for the journal recovery).
+    for mode in MODES {
+        let s = crashed_incomplete_save(mode);
+        let vfs = &s.vfs;
+        // Re-number the decided generation 2 as 3: the intent and every temp.
+        for (name, bytes) in project_files(vfs, &root()) {
+            let Some(target) = name.strip_suffix(".tmp-2") else {
+                continue;
+            };
+            let bytes = if name == "manifest.json.tmp-2" {
+                let text = String::from_utf8(bytes).expect("a manifest is text");
+                assert!(text.contains("\"generation\": 2,"), "{text}");
+                text.replace("\"generation\": 2,", "\"generation\": 3,")
+                    .into_bytes()
+            } else {
+                bytes
+            };
+            vfs.remove_file(&ew_store::join(&root(), &name)).expect("removes");
+            vfs.put(&ew_store::join(&root(), &format!("{target}.tmp-3")), &bytes);
+        }
+        let before = project_files(vfs, &root());
+        let opened = reopen(vfs, 2);
+        let report = &opened.report;
+        assert_eq!(report.rolled_forward, None, "{}", describe(report));
+        assert_eq!(report.generation, 1);
+        assert!(opened.model.content_eq(&s.g), "{mode:?}: generation 1 is loaded");
+        assert!(
+            report
+                .findings
+                .iter()
+                .any(|f| f.kind == FindingKind::MixedGeneration
+                    && f.file
+                        .as_ref()
+                        .is_some_and(|p| p.as_str() == "manifest.json.tmp-3")),
+            "{}",
+            describe(report)
+        );
+        assert!(
+            matches!(report.access, Access::ReadOnly(ReadOnlyReason::Integrity)),
+            "{:?}",
+            report.access
+        );
+        assert_eq!(
+            project_files(vfs, &root()),
+            before,
+            "{mode:?}: nothing is rolled forward or deleted"
+        );
     }
 }
 

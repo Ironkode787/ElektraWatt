@@ -179,6 +179,42 @@ impl FilePath {
         format!("{}{TEMP_INFIX}{generation}", self.0)
     }
 
+    /// The name a save of `generation` moves a file to that it finds at this path although the manifest
+    /// it loaded does not list it (another user's file, a sync client's copy), before writing its own file
+    /// here: `<dir>/<stem>.unlisted-<generation>.<ext>`, with `-<n>` after the generation for `n > 0` when
+    /// that name is taken. [`classify`] reports every such name as [`PathClass::Stray`], so the writer never
+    /// reads, rewrites or deletes it, and every open reports it as EW-CORE-004 until the user merges or
+    /// deletes it (review cycle 8, owner ruling: never rename over a file that is not in the baseline).
+    ///
+    /// ```
+    /// use ew_format::{FilePath, PathClass, classify};
+    ///
+    /// let shard = FilePath::new("devices/00.jsonl").unwrap();
+    /// assert_eq!(shard.unlisted(7, 0).as_str(), "devices/00.unlisted-7.jsonl");
+    /// assert_eq!(shard.unlisted(7, 2).as_str(), "devices/00.unlisted-7-2.jsonl");
+    /// assert_eq!(classify(shard.unlisted(7, 0).as_str()), PathClass::Stray);
+    /// ```
+    pub fn unlisted(&self, generation: u64, n: u32) -> FilePath {
+        let name = self.file_name();
+        let (stem, ext) = name.rsplit_once('.').unwrap_or((name, ""));
+        let suffix = if n == 0 {
+            format!("unlisted-{generation}")
+        } else {
+            format!("unlisted-{generation}-{n}")
+        };
+        let renamed = if ext.is_empty() {
+            format!("{stem}.{suffix}")
+        } else {
+            format!("{stem}.{suffix}.{ext}")
+        };
+        let dir = self.dir();
+        FilePath::known(if dir.is_empty() {
+            renamed
+        } else {
+            format!("{dir}/{renamed}")
+        })
+    }
+
     /// The directory part (`pages` for `pages/x.jsonl`), `""` for a root file.
     pub fn dir(&self) -> &str {
         self.0.rsplit_once('/').map_or("", |(d, _)| d)
@@ -468,6 +504,29 @@ mod tests {
             classify(FilePath::lib("parts", id).as_str()),
             PathClass::LibDocument { dir: "parts", id }
         );
+    }
+
+    #[test]
+    fn unlisted_names_are_strays_of_every_writer_owned_path() {
+        let id: AnyId = ID.parse().unwrap();
+        let mut owned: Vec<FilePath> = ROOT_FILES.iter().map(|r| FilePath::root(r)).collect();
+        owned.extend([
+            FilePath::page(id),
+            FilePath::shard(id),
+            FilePath::layout(id),
+            FilePath::imports(id),
+            RecordFile::Exchange(id).path(),
+        ]);
+        owned.extend(LIB_JSON_DIRS.iter().map(|d| FilePath::lib(d, id)));
+        for path in owned {
+            for (g, n) in [(1, 0), (u64::MAX, 0), (12, 3), (12, u32::MAX)] {
+                let moved = path.unlisted(g, n);
+                assert_eq!(classify(moved.as_str()), PathClass::Stray, "{moved}");
+                assert_eq!(FilePath::new(moved.as_str()), Ok(moved.clone()));
+                assert_eq!(moved.dir(), path.dir());
+                assert!(moved.is_portable(), "{moved}");
+            }
+        }
     }
 
     #[test]
