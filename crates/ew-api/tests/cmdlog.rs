@@ -3,8 +3,11 @@
 
 //! Command logs (`.ewcmd`, doc 17 §3.5): parsing and `Session::run_script`.
 
+mod golden_common;
+
 use ew_api::{CmdError, CmdLog, CmdLogError, Session, SessionOptions};
 use ew_commands::testkit::seeded_ids;
+use ew_derive::DeviceTag;
 
 const PROJECT: &str = r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
 const HEADER: &str = r#"{"$schema":"ew.cmdlog/1","label":"test log"}"#;
@@ -287,4 +290,93 @@ fn usage_and_internal_errors_of_a_line_exit_2() {
         "{missing:?}"
     );
     assert_eq!(missing.exit_code(), 2);
+}
+
+/// The printed short tag of the device a `tag:` line targets, after the line ran.
+fn short_tag(s: &Session, id: ew_derive::ew_ids::Id<ew_schema::Device>) -> String {
+    s.query()
+        .get::<DeviceTag>(id)
+        .as_ref()
+        .as_ref()
+        .expect("a tag")
+        .short()
+}
+
+#[test]
+fn tag_and_folio_references_name_exactly_one_device_or_drawn_page() {
+    let b = golden_common::batch();
+    let mut s = golden_common::session(&b);
+    let set = |target: &str, kind: &str, path: &str, value: &str| {
+        format!(
+            r#"{{"cmd":"fields.set","params":{{"kind":"{kind}","targets":[{{"ref":"{target}"}}],"path":"{path}","value":{value}}}}}"#
+        )
+    };
+    // A short tag (frozen with hidden sign, product, terminal) and a full designation resolve.
+    let l = log(&[
+        &set("tag:S51", "device", "function_text", r#"{"en":"a"}"#),
+        &set("tag:-X1031", "device", "function_text", r#"{"en":"b"}"#),
+        &set("tag:-X1031:12", "device", "function_text", r#"{"en":"c"}"#),
+        &set(
+            "tag:=P01+J-E-2416-102F1",
+            "device",
+            "function_text",
+            r#"{"en":"d"}"#,
+        ),
+        &set("folio:902", "page", "title", r#"{"en":"Layout"}"#),
+    ]);
+    assert_eq!(s.run_script(&l, "x.ewcmd").unwrap().len(), 5);
+    let q = s.query();
+    let en = |t: &ew_mltext::MlText| {
+        serde_json::to_value(t).unwrap()["en"]
+            .as_str()
+            .unwrap_or("")
+            .to_owned()
+    };
+    let texts: Vec<(String, String)> = q
+        .devices()
+        .iter()
+        .filter(|(_, d)| ["a", "b", "c", "d"].contains(&en(&d.function_text).as_str()))
+        .map(|(id, d)| (short_tag(&s, id), en(&d.function_text)))
+        .collect::<std::collections::BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    assert_eq!(
+        texts,
+        [
+            ("-102F1".to_owned(), "d".to_owned()),
+            ("-X1031".to_owned(), "b".to_owned()),
+            ("-X1031:12".to_owned(), "c".to_owned()),
+            ("S51".to_owned(), "a".to_owned()),
+        ]
+    );
+    let titled: Vec<u32> = q
+        .pages()
+        .iter()
+        .filter(|(_, p)| en(&p.title) == "Layout")
+        .map(|(_, p)| p.folio.number)
+        .collect();
+    assert_eq!(titled, [902]);
+    drop(q);
+
+    // A generated folio (report 903) and an unknown tag do not resolve. (An ambiguous tag, such as the
+    // unnumbered `-101A?` of an import, is refused the same way; online numbering keeps Golden A free of
+    // them, so `tests/golden_c.rs` exercises that case.)
+    for (reference, needle) in [("tag:-999Z9", "no device"), ("folio:903", "no drawn page")] {
+        let kind = if reference.starts_with("folio") {
+            "page"
+        } else {
+            "device"
+        };
+        let path = if kind == "page" { "title" } else { "function_text" };
+        let err = s
+            .run_script(&log(&[&set(reference, kind, path, r#"{"en":"x"}"#)]), "x.ewcmd")
+            .unwrap_err();
+        match &err {
+            CmdLogError::Reference { message, .. } => {
+                assert!(message.contains(needle), "{reference}: {message}")
+            }
+            other => panic!("{reference}: expected a reference error, got {other:?}"),
+        }
+        assert_eq!(err.exit_code(), 2);
+    }
 }

@@ -18,10 +18,14 @@
 //!
 //! **References.** Any JSON object `{"ref": "<kind>:<value>"}` inside `params` is replaced, immediately
 //! before its line runs, by the value it names in the then-current model. v0 resolves `section:<number>` (the
-//! section's ID; a reference kind of this implementation, not yet in doc 17 §3.5) and `id:<uuid>` (the text
-//! itself, once a record with that ID exists). The tag and folio references of doc 17 §3.5 need the `find`
-//! surface and are not resolved yet. A reference that cannot be resolved stops the replay with
-//! [`CmdLogError::Reference`] (exit code 2, [`CmdLogError::exit_code`]), never as a failing command.
+//! section's ID), `id:<uuid>` (the text itself, once a record with that ID exists), `tag:<tag>` (the one
+//! device whose derived tag prints `<tag>`, short form such as `-X1031` or `S51`, or full designation) and
+//! `folio:<label>` (the one drawn page whose printed folio label is `<label>`, in `page_order`). Tag and
+//! folio references match exactly, against the derived values of the then-current model; until the `find`
+//! surface of doc 17 §3.5 exists they do not search patterns. A reference that names nothing, or more than
+//! one device or page (an unnumbered `-101A?`, a duplicate terminal designation), cannot be resolved: it
+//! stops the replay with [`CmdLogError::Reference`] (exit code 2, [`CmdLogError::exit_code`]), never as a
+//! failing command; such targets need `id:<uuid>`.
 //!
 //! **Semantics.** Each line commits as its own transaction with origin [`Origin::CmdLog`]: an interactive
 //! command through `execute`, a bulk one as `preview` and `commit`, so every line is one undo step. Before the
@@ -33,7 +37,7 @@ use std::fmt;
 use ew_commands::Cost;
 use serde_json::{Map, Value};
 
-use ew_derive::Q;
+use ew_derive::{DeviceTag, PageOrder, PageRef, Q};
 use ew_schema::AnyId;
 
 use crate::{AnyCommand, CmdError, Origin, Receipt, Session, Submit};
@@ -330,8 +334,36 @@ impl Session {
                             })?;
                         serde_json::to_value(id).map_err(|e| reference(format!("`{text}`: {e}")))
                     }
+                    Some(("tag", tag)) => {
+                        let q = self.query();
+                        let found = unique(
+                            q.devices().ids().filter(|id| {
+                                q.get::<DeviceTag>(*id)
+                                    .as_ref()
+                                    .as_ref()
+                                    .is_some_and(|t| t.full == tag || t.short() == tag)
+                            }),
+                            text,
+                            "device prints this tag",
+                        )?;
+                        serde_json::to_value(found).map_err(|e| reference(format!("`{text}`: {e}")))
+                    }
+                    Some(("folio", label)) => {
+                        let q = self.query();
+                        let order = q.get::<PageOrder>(());
+                        let found = unique(
+                            order.entries.iter().filter_map(|e| match e.page {
+                                PageRef::Drawn(id) if e.folio == label => Some(id),
+                                _ => None,
+                            }),
+                            text,
+                            "drawn page has this folio label",
+                        )?;
+                        serde_json::to_value(found).map_err(|e| reference(format!("`{text}`: {e}")))
+                    }
                     _ => Err(reference(format!(
-                        "`{text}`: v0 resolves `section:<number>` and `id:<uuid>` only"
+                        "`{text}`: v0 resolves `section:<number>`, `id:<uuid>`, `tag:<tag>` and \
+                         `folio:<label>` only"
                     ))),
                 }
             }
@@ -348,6 +380,21 @@ impl Session {
             other => Ok(other.clone()),
         }
     }
+}
+
+/// The single item of `items`; an error naming `text` when there is none or more than one.
+fn unique<T>(mut items: impl Iterator<Item = T>, text: &str, what: &str) -> Result<T, String> {
+    let Some(first) = items.next() else {
+        return Err(format!("`{text}`: no {what}"));
+    };
+    let more = items.count();
+    if more > 0 {
+        return Err(format!(
+            "`{text}`: {} matches (more than one {what}); use `id:<uuid>`",
+            more + 1
+        ));
+    }
+    Ok(first)
 }
 
 /// Whether the project holds a record with this ID: the project record or a row of any table.
