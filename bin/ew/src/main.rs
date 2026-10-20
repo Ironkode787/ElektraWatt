@@ -5,6 +5,15 @@
 
 #![forbid(unsafe_code)]
 
+mod cli;
+
 fn main() {
-    println!("ew {}", env!("CARGO_PKG_VERSION"));
+    let code = match cli::parse(std::env::args().skip(1)) {
+        Ok(cmd) => cli::run(cmd),
+        Err(msg) => {
+            eprintln!("error: {msg}\n{}", cli::USAGE);
+            2
+        }
+    };
+    std::process::exit(code);
 }

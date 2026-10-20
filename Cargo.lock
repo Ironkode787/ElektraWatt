@@ -261,6 +261,7 @@ version = "0.0.0"
 dependencies = [
  "ew-api",
  "ew-print",
+ "serde_json",
 ]
 
 [[package]]

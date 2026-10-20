@@ -21,3 +21,6 @@ workspace = true
 [dependencies]
 ew-api = { path = "../../crates/ew-api" }
 ew-print = { path = "../../crates/ew-print" }
+
+[dev-dependencies]
+serde_json = "1.0.154"
