@@ -21,6 +21,10 @@
 //!   oracle re-running every memoised read cold; no mismatch and no cycle.
 //! - `the_family_list_is_the_memo_families` (the guard that a promotion or demotion of a family breaks the
 //!   test loudly).
+//! - `a_cold_q_evaluates_every_query_once` (review cycle 10, finding 1): a cold `Q` evaluates each (family,
+//!   key) once, detached scopes included.
+//! - `creating_and_deleting_a_page_300_times_does_not_grow_the_store` (review cycle 10, finding 3): the
+//!   memo store's dependencies, memos and push index stay within a small constant of the live set.
 
 // The profile edit of the last state applies raw ops to a snapshot (`Model::apply_unchecked`, `raw-read`).
 #![allow(clippy::disallowed_methods)]
@@ -29,6 +33,7 @@ mod golden_common;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::num::NonZeroU32;
+use std::rc::Rc;
 
 use ew_api::{AnyCommand, CmdError, MemoMode, Session, SessionOptions};
 use ew_commands::testkit::seeded_ids;
@@ -36,8 +41,8 @@ use ew_derive::ew_ids::Id;
 use ew_derive::{
     BomMode, BomRows, DevicePartLines, DeviceTag, DevicesByStructure, DrawnPageOrder, EndClass, EndScope,
     FlowBfs, FunctionCps, Member, Oracle, PageLocalNets, PageOrder, PageRef, PhysicalWiresOf, PotentialId,
-    PotentialPartition, ProfileKey, ProfileRowFor, Q, Query, SettingsMember, StitchGraphQ, TitleBlockValues,
-    TocRows, WireDefaultProps, WireProfileNotes, WireProfilesQ, WirePropsOf, XrefTextOf,
+    PotentialPartition, ProfileKey, ProfileRowFor, Q, Query, RecordingTracker, SettingsMember, StitchGraphQ,
+    TitleBlockValues, TocRows, WireDefaultProps, WireProfileNotes, WireProfilesQ, WirePropsOf, XrefTextOf,
 };
 use ew_derive::{
     BondIndex, BondPathsQ, BondVias, DefPoints, FlowNotes, FunctionLinksOf, IpFunctions, IpInfoOf, IpNotes,
@@ -868,4 +873,169 @@ fn oracle_finds_no_mismatch_over_every_state() {
         assert_eq!(total.cycles, 0, "{state}: cycles detected");
         assert!(total.oracle_checks > 0, "{state}: the oracle checked nothing");
     });
+}
+
+/// Review cycle 10, finding 1: a cold `Q` (`MemoMode::Off`, `Session::query_over`, the oracle's cold twin)
+/// evaluates every (family, key) at most once, detached scopes included. Before the fix every detached scope
+/// had a cache of its own: one cold partition of the golden project evaluated `drawn_page_order` once per
+/// interruption point.
+#[test]
+fn a_cold_q_evaluates_every_query_once() {
+    let batch = golden_common::batch();
+    let session = session(&batch, MemoMode::Off);
+    let model = session.world().model;
+    let recorder = Rc::new(RecordingTracker::new());
+    let q = Q::with_tracker(&model, Box::new(Rc::clone(&recorder)));
+    let part = q.get::<PotentialPartition>(());
+    let evaluated = recorder.evaluated();
+    let count = |family: &str| evaluated.iter().filter(|(f, _)| *f == family).count();
+    assert!(count("ip_info") > 1, "the golden project has interruption points");
+    assert_eq!(
+        count("drawn_page_order"),
+        1,
+        "drawn_page_order once per cold partition"
+    );
+    // The names, flows and cross-references in the same `Q`: still each evaluation once.
+    for p in part.potentials() {
+        q.get::<PotentialNameOf>(p.id);
+        q.get::<ew_derive::PotentialFlow>(p.id);
+    }
+    for rep in q.reps().ids() {
+        q.get::<XrefTextOf>(rep);
+    }
+    let mut seen = BTreeSet::new();
+    for e in recorder.evaluated() {
+        assert!(seen.insert(e.clone()), "{e:?} is evaluated twice in one cold Q");
+    }
+    eprintln!("cold evaluations: {}", seen.len());
+}
+
+/// The memo store's sizes the growth test watches: (partition dependencies, `page_ids` dependencies,
+/// `page_local_nets` memos, push-index entries).
+fn growth_counts(session: &Session) -> (usize, usize, usize, usize) {
+    let store = session.memo().expect("memoising session");
+    let memory = store.memory();
+    let of = |family: &str| {
+        memory
+            .iter()
+            .find(|m| m.family == family)
+            .copied()
+            .unwrap_or_default()
+    };
+    (
+        of("potential_partition").dep_entries,
+        of("page_ids").dep_entries,
+        of("page_local_nets").memos,
+        store.push_index_entries(),
+    )
+}
+
+/// Review cycle 10, finding 3: 300 cycles of creating and deleting an empty page, the partition read after
+/// each commit, then 20 cycles with every memoised family read for every key after each commit. Before the fix
+/// the incremental frames kept every dependency, part stamps were never pruned and the memos of deleted pages
+/// were never collected (the review's probe: partition dependencies 110 -> 410, `page_ids` dependencies
+/// 1 -> 301, `page_local_nets` memos 13 -> 313, push index 9,526 -> 10,726). Now every count stays within a
+/// small constant of the live set.
+#[test]
+fn creating_and_deleting_a_page_300_times_does_not_grow_the_store() {
+    let batch = golden_common::batch();
+    let mut session = session(&batch, MemoMode::On);
+    let live_pages = session.world().model.table::<Page>().len();
+    let sweeping = std::cell::Cell::new(false);
+    let read = |session: &Session| {
+        let q = session.query();
+        if sweeping.get() {
+            sweep(&q, None, "growth");
+        } else {
+            q.get::<PotentialPartition>(());
+        }
+    };
+    let cycle = |session: &mut Session| {
+        let receipt = session
+            .execute(&cmd("page.create", json!({"number": 9000})))
+            .expect("page.create");
+        let page = receipt
+            .created
+            .iter()
+            .find(|(kind, _)| *kind == Kind::Page)
+            .map(|(_, id)| id.cast::<Page>())
+            .expect("a page is created");
+        read(session);
+        apply(
+            session,
+            "page.delete",
+            vec![cmd("page.delete", json!({"pages": [id_json(page)]}))],
+        );
+        read(session);
+    };
+    read(&session);
+    for _ in 0..2 {
+        cycle(&mut session);
+    }
+    let before = growth_counts(&session);
+    for _ in 0..298 {
+        cycle(&mut session);
+    }
+    let after = growth_counts(&session);
+    eprintln!(
+        "(partition deps, page_ids deps, page_local_nets memos, push index): {before:?} -> {after:?} \
+         ({live_pages} live pages)"
+    );
+    assert!(
+        after.0 <= before.0 + 2,
+        "partition dependencies {before:?} -> {after:?}"
+    );
+    assert!(after.1 <= 4, "page_ids dependencies {before:?} -> {after:?}");
+    assert!(
+        after.2 <= live_pages + 2,
+        "page_local_nets memos {before:?} -> {after:?}"
+    );
+    assert!(
+        after.3 <= before.3 + 32,
+        "push index entries {before:?} -> {after:?}"
+    );
+    let collected = session
+        .memo()
+        .expect("memoising session")
+        .total_stats()
+        .total()
+        .collected;
+    assert!(
+        collected >= 290,
+        "the deleted pages' memos are collected: {collected}"
+    );
+
+    // Every family read for every key: the memos only the host reads (a deleted page's title block) go too.
+    sweeping.set(true);
+    let families = |session: &Session| -> BTreeMap<&'static str, (usize, usize)> {
+        session
+            .memo()
+            .expect("memoising session")
+            .memory()
+            .into_iter()
+            .map(|m| (m.family, (m.memos, m.dep_entries)))
+            .collect()
+    };
+    for _ in 0..2 {
+        cycle(&mut session);
+    }
+    let (before, push_before) = (families(&session), growth_counts(&session).3);
+    for _ in 0..20 {
+        cycle(&mut session);
+    }
+    let (after, push_after) = (families(&session), growth_counts(&session).3);
+    for (family, (memos, deps)) in &after {
+        let (m0, d0) = before.get(family).copied().unwrap_or_default();
+        assert!(
+            *memos <= m0 + 1 && *deps <= d0 + 8,
+            "{family}: (memos, dependency entries) {:?} -> {:?}",
+            (m0, d0),
+            (memos, deps)
+        );
+    }
+    assert!(
+        push_after <= push_before + 32,
+        "push index entries over full sweeps {push_before} -> {push_after}"
+    );
+    eprintln!("full sweeps: push index {push_before} -> {push_after}");
 }
