@@ -72,6 +72,12 @@ fn the_private_corpus_imports_derives_and_exports() {
         );
         println!("{name}: findings by code {by_code:?}");
         let live: BTreeMap<String, u32> = imported.live.iter().map(|g| (g.rule.clone(), g.count)).collect();
+        let mut map: BTreeMap<String, u32> = by_code.clone();
+        for (rule, n) in &live {
+            *map.entry(rule.clone()).or_default() += n;
+        }
+        let total: u32 = map.values().sum();
+        println!("{name}: migration report {map:?} (total {total})");
         let mut per_strip: BTreeMap<String, u32> = BTreeMap::new();
         for r in &imported.batch.records {
             if let Record::Device(d) = r
