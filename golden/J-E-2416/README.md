@@ -538,3 +538,31 @@ E55, S56, E56, 1X1, -XPE), and -X1031 and -X1032 print through the strip rule of
 (`{letter}{page}{counter}`), so B1 also has to drop that rule, which no command can do. The decision is the
 design lead's: whether `include_frozen` clears `TagSpec.frozen`, how a renumber changes the numbering rules, and
 how doc 03 §8.6 and doc 20 §2.2 are reconciled.
+
+## Acceptance runner
+
+`cargo xtask acceptance <report.md>` runs the gate-M1 runner (doc 20 §21, §22; doc 18 §3.10) over the golden project
+with the oracle on, writes a Markdown table with one row per named check (`pass`, `FAIL` or `n/a` and a one-line
+reason) and exits non-zero when any check fails or the oracle finds a memo mismatch. It runs the `#[ignore]`d test
+`gate` of `crates/ew-api/tests/acceptance.rs` (about 40 s in a debug build).
+
+It evaluates AC-01 … AC-13, AC-18 and AC-20, reports AC-14 … AC-17 and AC-39 as `n/a` with the reason, and covers
+the §19 rows gated M1 (D-01 … D-42). It compares with the committed files through the functions that write them
+(`tests/page_output/`, `tests/golden_common/`), so a check cannot drift from the golden test: the text CSVs, the frame
+geometry, the PNGs (15 folios at 0.5 %), the PDF structure and SHA-256, and `expected/csv/`. A criterion that cannot be
+evaluated yet is `n/a` with what is missing (the GUI, `ew export`, the check engine, the SQL projection), never skipped.
+The ordinary tests of the file pin the counts of the report and its determinism (two runs, same text, raster
+comparison off) and keep `expected/csv/` current:
+
+    EW_BLESS=1 cargo nextest run -p ew-api --test acceptance --locked -E 'test(expected_csv)'
+
+`expected/csv/` holds the report rows of the acceptance pairs (doc 20 §3.1): `terminals_1X1.csv`,
+`terminals_X1031.csv`, `terminals_X1032.csv` (903 … 905), `cables.csv` (906), `wires.csv` (907) and
+`potentials.csv` (909), byte-equal to `expected/rows/<folio>.csv`. The runner compares the derived rows with them.
+The SQL half of each pair (`acceptance/*.sql` over the `api_v1` views) is reported as `not applicable: SQL
+projection pending (WP-S1.10)`.
+
+The report of this revision: 61 entries, 31 pass, 12 fail, 18 not applicable. The failures are the open gaps already
+listed above (page count 33 against 36, the revision label and structure cells of the title blocks, the 23-row parts
+list, wire numbers, the DP potential, the cover tables, the ratings and part numbers on 101 and 102, the missing
+uniqueness invariant for terminal designations) and Golden B step B1.

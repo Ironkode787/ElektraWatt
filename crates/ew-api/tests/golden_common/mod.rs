@@ -14,10 +14,14 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use ew_api::{Session, SessionOptions};
+use ew_api::{CmdLog, Session, SessionOptions};
+use ew_derive::ew_ids::Id;
+use ew_derive::{DeviceTag, PageOrder, PotentialPartition, PropSource, Q, WirePropsOf, XrefTextOf};
 use ew_import_tables::ew_interop_api::{ImportBatch, ImportInput};
 use ew_import_tables::{BuiltinLibrary, TablesImporter, bootstrap_context};
-use ew_schema::{LibDocument, Record};
+use ew_reports::render::{RenderOptions, render};
+use ew_reports::{BlockRows, RowKind, RowSet, RowSetStatus};
+use ew_schema::{CircuitClass, Device, LibDocument, Record, ReportBlock, Representation};
 
 pub fn repo() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -79,6 +83,14 @@ pub fn session_with(
 /// A session over the batch with the oracle on: every memoised read is also computed cold and compared
 /// ([`ew_api::MemoMode::Oracle`]; read the mismatches with `take_oracle_mismatches`).
 pub fn session_oracle(batch: &ImportBatch) -> Session {
+    session_oracle_with(batch, |_, _| {})
+}
+
+/// [`session_oracle`] with the project record and the record list edited first.
+pub fn session_oracle_with(
+    batch: &ImportBatch,
+    edit: impl FnOnce(&mut ew_schema::Project, &mut Vec<Record>),
+) -> Session {
     let mut project = None;
     let mut records = Vec::new();
     for r in &batch.records {
@@ -87,17 +99,14 @@ pub fn session_oracle(batch: &ImportBatch) -> Session {
             other => records.push(other.clone()),
         }
     }
+    let mut project = project.expect("the batch holds the project");
+    edit(&mut project, &mut records);
     let options = SessionOptions {
         memo: ew_api::MemoMode::Oracle,
         ..SessionOptions::default()
     };
-    Session::from_records(
-        project.expect("the batch holds the project"),
-        records,
-        batch.lib.clone(),
-        options,
-    )
-    .expect("the golden batch passes the model's integrity check")
+    Session::from_records(project, records, batch.lib.clone(), options)
+        .expect("the golden batch passes the model's integrity check")
 }
 
 /// A session over the plain batch (no profiles).
@@ -242,6 +251,7 @@ pub fn source_key(r: &Record) -> Option<&str> {
         Record::Connection(x) => x.source_ref.as_ref(),
         Record::Device(x) => x.source_ref.as_ref(),
         Record::Function(x) => x.source_ref.as_ref(),
+        Record::Page(x) => x.source_ref.as_ref(),
         Record::Junction(x) => x.source_ref.as_ref(),
         Record::PotentialDef(x) => x.source_ref.as_ref(),
         Record::Bond(x) => x.source_ref.as_ref(),
@@ -263,4 +273,186 @@ pub fn ids_by_key(batch: &ImportBatch) -> BTreeMap<String, String> {
         }
     }
     out
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Report block rows (shared by the connectivity report tests and the acceptance runner)
+
+/// The ID of the report block with the source key `report_blocks|{key}`.
+pub fn block(batch: &ImportBatch, key: &str) -> Id<ReportBlock> {
+    let want = format!("report_blocks|{key}");
+    batch
+        .records
+        .iter()
+        .find_map(|r| match r {
+            Record::ReportBlock(b) if source_key(r) == Some(want.as_str()) => Some(b.id),
+            _ => None,
+        })
+        .unwrap_or_else(|| panic!("no report block `{key}`"))
+}
+
+/// A `Q` over the session's snapshot without the report engine.
+pub fn plain(s: &Session) -> Q {
+    Q::new(&s.world().model)
+}
+
+/// One row as printed texts (neutral language, no page).
+pub fn texts(q: &Q, set: &RowSet, i: usize) -> Vec<String> {
+    set.rows[i]
+        .cells
+        .iter()
+        .map(|c| render(q, c, &RenderOptions::default()))
+        .collect()
+}
+
+/// The derived rows of a report block (the block must derive).
+pub fn rows_of(q: &Q, batch: &ImportBatch, key: &str) -> std::sync::Arc<RowSet> {
+    let set = q.get::<BlockRows>(block(batch, key));
+    assert_eq!(set.status, RowSetStatus::Derived, "block {key}");
+    set
+}
+
+/// A field of the golden CSV dialect (README "CSV dialect").
+pub fn csv_field(s: &str) -> String {
+    if s.contains([',', '"', '\n', '\r']) || s.starts_with(' ') || s.ends_with(' ') {
+        format!("\"{}\"", s.replace('"', "\"\""))
+    } else {
+        s.to_owned()
+    }
+}
+
+/// The printed rows of a block: the header (`row` and the column labels), then `data` or `heading` and the
+/// printed cells of every row.
+pub fn rows_csv(q: &Q, set: &RowSet) -> String {
+    let mut out = String::new();
+    let header: Vec<String> = std::iter::once("row".to_owned())
+        .chain(
+            set.columns
+                .iter()
+                .map(|c| csv_field(c.label.as_neutral().unwrap_or(&c.key))),
+        )
+        .collect();
+    out.push_str(&header.join(","));
+    out.push('\n');
+    for i in 0..set.rows.len() {
+        let kind = if set.rows[i].kind == RowKind::Data {
+            "data"
+        } else {
+            "heading"
+        };
+        let cells: Vec<String> = std::iter::once(kind.to_owned())
+            .chain(texts(q, set, i).iter().map(|t| csv_field(t)))
+            .collect();
+        out.push_str(&cells.join(","));
+        out.push('\n');
+    }
+    out
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Effective wire properties
+
+pub fn csa_text(csa: &ew_schema::Csa) -> String {
+    match csa {
+        ew_schema::Csa::Mm2(d) => serde_json::to_string(d).unwrap().trim_matches('"').to_owned(),
+        other => format!("{other:?}"),
+    }
+}
+
+/// `["GN","YE"]` as `GNYE`.
+pub fn colour_text(c: &ew_schema::ColourSpec) -> String {
+    serde_json::to_string(c)
+        .unwrap()
+        .replace(['[', ']', '"', ','], "")
+}
+
+/// The effective properties of a wire: colour text, colour source, csa text, csa source, class.
+pub type Props = (String, PropSource, String, PropSource, Option<CircuitClass>);
+
+pub fn all_props(q: &Q) -> BTreeMap<String, Props> {
+    let part = q.get::<PotentialPartition>(());
+    let mut out = BTreeMap::new();
+    for p in part.potentials() {
+        let map = q.get::<WirePropsOf>(p.id);
+        for (id, e) in &map.wires {
+            let colour = e.colour.as_ref().expect("a colour");
+            let csa = e.csa.as_ref().expect("a cross-section");
+            let entry = (
+                colour_text(&colour.value),
+                colour.source.clone(),
+                csa_text(&csa.value),
+                csa.source.clone(),
+                e.class.clone(),
+            );
+            if let Some(prev) = out.insert(id.to_string(), entry.clone()) {
+                assert_eq!(
+                    prev, entry,
+                    "wire {id} has different properties under different potentials"
+                );
+            }
+        }
+    }
+    out
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Command-log variants and what a replay changes (Golden B, doc 20 §2.2)
+
+pub fn variant(name: &str) -> PathBuf {
+    repo().join("golden/J-E-2416/variants").join(name)
+}
+
+/// Replays a variant file; the number of lines that committed.
+pub fn run(s: &mut Session, name: &str) -> usize {
+    let text = std::fs::read_to_string(variant(name)).unwrap_or_else(|e| panic!("{name}: {e}"));
+    run_log(s, &text, name).unwrap_or_else(|e| panic!("{name}: {e}"))
+}
+
+/// Replays command-log text as origin `cmdlog:<file>`; the number of lines that committed.
+pub fn run_log(s: &mut Session, text: &str, file: &str) -> Result<usize, String> {
+    let log = CmdLog::parse(text).map_err(|e| e.to_string())?;
+    s.run_script(&log, file)
+        .map(|r| r.len())
+        .map_err(|e| e.to_string())
+}
+
+/// The printed (short) tag of every device, by device ID.
+pub fn tags(s: &Session) -> BTreeMap<Id<Device>, String> {
+    let q = s.query();
+    q.devices()
+        .ids()
+        .map(|id| {
+            let tag = q.get::<DeviceTag>(id);
+            (id, tag.as_ref().as_ref().expect("a tag").short())
+        })
+        .collect()
+}
+
+/// The printed cross-reference text of every representation that has one.
+pub fn xrefs(s: &Session) -> BTreeMap<Id<Representation>, String> {
+    let q = s.query();
+    q.reps()
+        .ids()
+        .filter_map(|id| {
+            let t = q.get::<XrefTextOf>(id);
+            (!t.text.is_empty()).then(|| (id, t.text.clone()))
+        })
+        .collect()
+}
+
+/// The folio labels of `page_order` in order.
+pub fn folios(s: &Session) -> Vec<String> {
+    let q = s.query();
+    q.get::<PageOrder>(())
+        .entries
+        .iter()
+        .map(|e| e.folio.clone())
+        .collect()
+}
+
+/// The folio number of the page a representation is on.
+pub fn folio_of(s: &Session, rep: Id<Representation>) -> u32 {
+    let q = s.query();
+    let page = q.reps().get(rep).expect("a representation").page;
+    q.pages().get(page).expect("its page").folio.number
 }

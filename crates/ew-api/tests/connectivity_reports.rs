@@ -27,51 +27,12 @@
 
 mod golden_common;
 
-use ew_api::Session;
-use ew_derive::ew_ids::Id;
 use ew_derive::{GeneratedPage, PageOrder, Q};
-use ew_reports::render::{RenderOptions, render};
 use ew_reports::{BlockPages, BlockRows, Cell, RowKind, RowSet, RowSetStatus};
-use ew_schema::{Record, ReportBlock};
-
-fn block(batch: &ew_import_tables::ew_interop_api::ImportBatch, key: &str) -> Id<ReportBlock> {
-    let want = format!("report_blocks|{key}");
-    batch
-        .records
-        .iter()
-        .find_map(|r| match r {
-            Record::ReportBlock(b) if golden_common::source_key(r) == Some(want.as_str()) => Some(b.id),
-            _ => None,
-        })
-        .unwrap_or_else(|| panic!("no report block `{key}`"))
-}
-
-/// A `Q` over the session's snapshot without the report engine.
-fn plain(s: &Session) -> Q {
-    Q::new(&s.world().model)
-}
-
-/// One row as printed texts (neutral language, no page).
-fn texts(q: &Q, set: &RowSet, i: usize) -> Vec<String> {
-    set.rows[i]
-        .cells
-        .iter()
-        .map(|c| render(q, c, &RenderOptions::default()))
-        .collect()
-}
+use golden_common::{block, plain, rows_csv, rows_of, texts};
 
 fn col(set: &RowSet, key: &str) -> usize {
     set.column(key).unwrap_or_else(|| panic!("no column `{key}`"))
-}
-
-fn rows_of(
-    q: &Q,
-    batch: &ew_import_tables::ew_interop_api::ImportBatch,
-    key: &str,
-) -> std::sync::Arc<RowSet> {
-    let set = q.get::<BlockRows>(block(batch, key));
-    assert_eq!(set.status, RowSetStatus::Derived, "block {key}");
-    set
 }
 
 fn pages(
@@ -413,43 +374,6 @@ fn cable_overview_has_three_cables_thirteen_cores_and_four_headings() {
         .map(|t| t[core].as_str())
         .collect();
     assert_eq!(w3_cores, ["A", "B", "SH"]);
-}
-
-/// A field of the golden CSV dialect (README "CSV dialect").
-fn csv_field(s: &str) -> String {
-    if s.contains([',', '"', '\n', '\r']) || s.starts_with(' ') || s.ends_with(' ') {
-        format!("\"{}\"", s.replace('"', "\"\""))
-    } else {
-        s.to_owned()
-    }
-}
-
-/// The printed rows of a block: the header (`row` and the column labels), then `data` or `heading` and the
-/// printed cells of every row.
-fn rows_csv(q: &Q, set: &RowSet) -> String {
-    let mut out = String::new();
-    let header: Vec<String> = std::iter::once("row".to_owned())
-        .chain(
-            set.columns
-                .iter()
-                .map(|c| csv_field(c.label.as_neutral().unwrap_or(&c.key))),
-        )
-        .collect();
-    out.push_str(&header.join(","));
-    out.push('\n');
-    for i in 0..set.rows.len() {
-        let kind = if set.rows[i].kind == RowKind::Data {
-            "data"
-        } else {
-            "heading"
-        };
-        let cells: Vec<String> = std::iter::once(kind.to_owned())
-            .chain(texts(q, set, i).iter().map(|t| csv_field(t)))
-            .collect();
-        out.push_str(&cells.join(","));
-        out.push('\n');
-    }
-    out
 }
 
 #[test]

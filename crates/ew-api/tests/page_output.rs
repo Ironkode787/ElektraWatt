@@ -7,6 +7,8 @@
 
 #[path = "page_output/golden_files.rs"]
 mod golden_files;
+#[path = "page_output/pdf_support.rs"]
+mod pdf_support;
 #[path = "page_output/snapshot.rs"]
 mod snapshot;
 #[path = "page_output/view.rs"]
@@ -14,7 +16,6 @@ mod view;
 
 use std::sync::Arc;
 
-use ew_derive::Q;
 use ew_dl::{DisplayList, ItemKind, Layer};
 use ew_export::{PdfDate, PdfOptions, PdfPage, pdf};
 use ew_ids::{Id, Uuid};
@@ -25,44 +26,13 @@ use serde_json::json;
 use sha2::{Digest, Sha256};
 
 use golden_files::{
-    blessing, check_or_bless, content_form, csv_rows, decode_rgba, differing_percent, expected_dir,
-    frame_figures, frame_json, page_png, text_csv,
+    blessing, check_or_bless, csv_rows, decode_rgba, differing_percent, expected_dir, frame_figure_errors,
+    frame_json, page_png, text_csv,
+};
+use pdf_support::{
+    EXPECTED_DROPPED_NOTDEF_GLYPHS, pdf_options, pdf_pages, pdf_sha256, structure_text, xref_counts,
 };
 use view::{GoldenPage, builtin_symbol, destination, fonts, golden_pages, golden_session};
-
-/// The PDF page list of the golden project.
-fn pdf_pages(q: &Q) -> Vec<PdfPage> {
-    golden_pages(q)
-        .into_iter()
-        .map(|g| {
-            let scene = page_scene(&g.view, ew_text::bundled());
-            PdfPage {
-                destination: destination(g.entry.page),
-                label: g.entry.folio.clone(),
-                title: g.outline_title.clone(),
-                section: g.section_title.clone(),
-                width: scene.sheet_width,
-                height: scene.sheet_height,
-                content: scene.sheet_list(),
-            }
-        })
-        .collect()
-}
-
-/// The export options of the golden PDF: dates from the model's edited date (FR-OUT-026).
-fn pdf_options(q: &Q) -> PdfOptions {
-    let m = &q.project().master;
-    let d = m
-        .edited
-        .expect("the golden model has an edited date (FR-OUT-026)");
-    let date = PdfDate::ymd(d.year(), d.month(), d.day());
-    PdfOptions {
-        title: Some(ew_scene::forms::ml_text(&m.description, None).to_owned()),
-        creator: Some(format!("ElektraWatt {}", env!("CARGO_PKG_VERSION"))),
-        document_id: format!("golden J-E-2416 {}", q.profile().version),
-        ..PdfOptions::new(date)
-    }
-}
 
 #[test]
 fn the_golden_pdf_has_every_folio_and_is_byte_identical_across_runs_and_record_shuffles() {
@@ -86,11 +56,6 @@ fn the_golden_pdf_has_every_folio_and_is_byte_identical_across_runs_and_record_s
     assert!(a.bytes == c.bytes, "a record shuffle changes the PDF");
 }
 
-/// The glyphs the PDF writer drops because neither bundled font has them. The "∞" of the nine main-function
-/// cross-reference texts and the "−" and "⇄" of the report pages come from the symbol fallback face (FT-85,
-/// ADR-0028 recommendation 3), so none is dropped.
-const EXPECTED_DROPPED_NOTDEF_GLYPHS: usize = 0;
-
 /// The writer's own PDF structure of the golden project, as the committed candidate
 /// `expected/pdf/structure.json` (doc 20 §3.3 "PDF structure").
 /// Fonts are named `<family name> <weight>[ Italic]` after the bundled face info, sorted and unique.
@@ -107,40 +72,7 @@ fn the_pdf_structure_matches_the_committed_file() {
         "{:?}",
         out.report
     );
-    let faces: Vec<_> = ew_text::bundled().faces().collect();
-    let mut names: Vec<String> = out
-        .report
-        .fonts
-        .iter()
-        .map(|key| {
-            let f = faces
-                .iter()
-                .find(|f| f.key == *key)
-                .expect("an embedded font is a bundled face");
-            let italic = if f.italic { " Italic" } else { "" };
-            format!("{} {:?}{italic}", f.family_name, f.weight)
-        })
-        .collect();
-    names.sort();
-    names.dedup();
-    let labels: Vec<String> = pages.iter().map(|p| p.label.clone()).collect();
-    // The JSON map of the workspace's serde_json sorts its keys, so the file is written by hand in the
-    // documented key order.
-    let mut text = String::from("{\n");
-    text += &format!("  \"pages\": {},\n", pages.len());
-    text += &format!("  \"page_labels\": {},\n", string_list(&labels, 1));
-    text += &format!(
-        "  \"outline\": {},\n",
-        outline_json(&ew_export::outline_entries(&pages), 1)
-    );
-    text += &format!("  \"links\": {},\n", out.report.links);
-    text += &format!("  \"plain_text_links\": {},\n", out.report.plain_text_links);
-    text += &format!(
-        "  \"dropped_notdef_glyphs\": {},\n",
-        out.report.dropped_notdef_glyphs
-    );
-    text += &format!("  \"destinations\": {},\n", out.report.destinations);
-    text += &format!("  \"fonts\": {}\n}}\n", string_list(&names, 1));
+    let text = structure_text(&pages, &out);
     check_or_bless(&expected_dir("pdf").join("structure.json"), text.as_bytes());
 }
 
@@ -148,12 +80,7 @@ fn the_pdf_structure_matches_the_committed_file() {
 #[test]
 fn the_pdf_sha256_matches_the_committed_file() {
     let f = fonts();
-    let build = |seed: Option<u64>| {
-        let s = golden_session(seed);
-        let q = s.query();
-        let out = pdf(&pdf_pages(&q), &pdf_options(&q), &f, None).expect("the golden PDF is written");
-        format!("{:x}", Sha256::digest(&out.bytes))
-    };
+    let build = |seed: Option<u64>| pdf_sha256(seed, &f);
     let a = build(None);
     let b = build(Some(0x5eed_1234));
     let c = build(None);
@@ -178,28 +105,7 @@ const EXTERNAL_XREF_TEXTS: usize = 4;
 fn the_golden_pdf_has_one_link_per_cross_reference_item() {
     let s = golden_session(None);
     let q = s.query();
-    let mut linked = 0;
-    let mut targets = 0;
-    let mut external = 0;
-    for g in golden_pages(&q) {
-        for r in &g.view.reps {
-            let Some(def) = &r.symbol else {
-                continue;
-            };
-            for v in &r.slots {
-                let is_xref = def
-                    .text_slots
-                    .get(usize::from(v.slot))
-                    .is_some_and(|t| t.kind == ew_schema::SlotKind::Xref);
-                if !v.item_links.is_empty() {
-                    linked += 1;
-                    targets += v.item_links.len();
-                } else if is_xref && !v.text.is_empty() {
-                    external += 1;
-                }
-            }
-        }
-    }
+    let (linked, targets, external) = xref_counts(&golden_pages(&q));
     assert_eq!(linked, LINKED_XREF_TEXTS);
     assert_eq!(targets, XREF_LINK_TARGETS);
     assert_eq!(external, EXTERNAL_XREF_TEXTS);
@@ -262,39 +168,6 @@ fn the_items_of_a_cross_reference_list_have_disjoint_ordered_link_boxes() {
     });
 }
 
-/// A JSON array of strings, one per line, indented for nesting level `depth`.
-fn string_list(items: &[String], depth: usize) -> String {
-    if items.is_empty() {
-        return "[]".to_owned();
-    }
-    let pad = "  ".repeat(depth + 1);
-    let lines: Vec<String> = items
-        .iter()
-        .map(|i| format!("{pad}{}", serde_json::to_string(i).unwrap()))
-        .collect();
-    format!("[\n{}\n{}]", lines.join(",\n"), "  ".repeat(depth))
-}
-
-/// The outline as JSON objects `{title, page, children}` in that key order.
-fn outline_json(entries: &[ew_export::OutlineEntry], depth: usize) -> String {
-    if entries.is_empty() {
-        return "[]".to_owned();
-    }
-    let pad = "  ".repeat(depth + 1);
-    let items: Vec<String> = entries
-        .iter()
-        .map(|e| {
-            let title = serde_json::to_string(&e.title).unwrap();
-            let children = outline_json(&e.children, depth + 2);
-            format!(
-                "{pad}{{\n{pad}  \"title\": {title},\n{pad}  \"page\": {},\n{pad}  \"children\": {children}\n{pad}}}",
-                e.page
-            )
-        })
-        .collect();
-    format!("[\n{}\n{}]", items.join(",\n"), "  ".repeat(depth))
-}
-
 fn with_golden_pages(f: impl FnOnce(&[GoldenPage])) {
     let s = golden_session(None);
     let q = s.query();
@@ -342,25 +215,8 @@ fn the_frame_geometry_matches_the_committed_file() {
 
 #[test]
 fn the_printed_frame_matches_doc_20_section_17_1() {
-    let tb = content_form("ew.titleblock.qet-a4");
-    let f = frame_figures(&content_form("ew.frame.qet-a4-landscape-grid"), &tb);
-    let n = |v: &serde_json::Value| v.as_f64().unwrap();
-    let near = |a: f64, b: f64, what: &str| assert!((a - b).abs() <= 0.01, "{what}: {a} vs {b}");
-    near(n(&f["outer"]["x0"]), 9.79, "outer x0");
-    near(n(&f["outer"]["x1"]), 281.18, "outer x1");
-    near(n(&f["outer"]["y0"]), 9.79, "outer y0");
-    near(n(&f["outer"]["y1"]), 199.76, "outer y1");
-    near(n(&f["header_band"]), 15.01 - 9.79, "header band thickness");
-    let xs = f["column_edges"].as_array().unwrap();
-    let ys = f["row_edges"].as_array().unwrap();
-    near(n(&xs[1]) - n(&xs[0]), 15.66, "column width");
-    near(n(&ys[1]) - n(&ys[0]), 20.88, "row height");
-    near(
-        n(&xs[0]),
-        15.01,
-        "first column edge (the left band ends at 15.01)",
-    );
-    near(n(&f["drawing_area"]["y1"]), 182.02, "drawing area bottom");
+    let errors = frame_figure_errors();
+    assert!(errors.is_empty(), "{errors:#?}");
 }
 
 #[test]

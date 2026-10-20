@@ -234,6 +234,36 @@ fn rect(x0: Nm, y0: Nm, x1: Nm, y1: Nm) -> Value {
     ])
 }
 
+/// The figures of doc 20 §17.1 that the printed frame must show, as the mismatches (each within 0.01 mm
+/// of the document's value); empty when they all agree.
+pub fn frame_figure_errors() -> Vec<String> {
+    let tb = content_form("ew.titleblock.qet-a4");
+    let f = frame_figures(&content_form("ew.frame.qet-a4-landscape-grid"), &tb);
+    let n = |v: &Value| v.as_f64().unwrap();
+    let mut errors = Vec::new();
+    let mut near = |a: f64, b: f64, what: &str| {
+        if (a - b).abs() > 0.01 {
+            errors.push(format!("{what}: {a} vs {b}"));
+        }
+    };
+    near(n(&f["outer"]["x0"]), 9.79, "outer x0");
+    near(n(&f["outer"]["x1"]), 281.18, "outer x1");
+    near(n(&f["outer"]["y0"]), 9.79, "outer y0");
+    near(n(&f["outer"]["y1"]), 199.76, "outer y1");
+    near(n(&f["header_band"]), 15.01 - 9.79, "header band thickness");
+    let xs = f["column_edges"].as_array().unwrap();
+    let ys = f["row_edges"].as_array().unwrap();
+    near(n(&xs[1]) - n(&xs[0]), 15.66, "column width");
+    near(n(&ys[1]) - n(&ys[0]), 20.88, "row height");
+    near(
+        n(&xs[0]),
+        15.01,
+        "first column edge (the left band ends at 15.01)",
+    );
+    near(n(&f["drawing_area"]["y1"]), 182.02, "drawing area bottom");
+    errors
+}
+
 /// The printed frame figures of `form` with `title_block` (doc 20 §17.1), in mm on the sheet.
 pub fn frame_figures(form: &FormDef, title_block: &FormDef) -> Value {
     let g = FrameGeometry::of(form, Some(title_block)).expect("a frame form with a grid");

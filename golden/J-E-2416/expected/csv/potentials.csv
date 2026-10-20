@@ -1,0 +1,20 @@
+row,Potential,Type,Voltage,Class,Colour,mm²,Aliases,Members,Pages
+data,+24V,L+,24 V DC,control,DBU,,0,3,102
+data,+24V-F,L+,24 V DC,control,DBU,,0,3,102
+data,0V,M,24 V DC,control,WH,0.75 mm²,5,18,102–106
+data,24VDC-1,L+,24 V DC,control,DBU,0.75 mm²,4,9,102–106
+data,24VDC-2,L+,24 V DC,control,DBU,0.75 mm²,0,3,"102, 103"
+data,24VDC-3,L+,24 V DC,control,DBU,0.75 mm²,0,3,"102, 103"
+data,24VDC-4,L+,24 V DC,control,DBU,0.75 mm²,0,3,"102, 103"
+data,L,L,230 V AC,mains,BK,1.5 mm²,1,3,101
+data,L-1,L,230 V AC,mains,BK,1.5 mm²,0,2,"101, 102"
+data,L-55,L,230 V AC,mains,BK,1.5 mm²,0,3,101
+data,L-S,L,230 V AC,mains,BK,1.5 mm²,0,3,101
+data,N,N,230 V AC,mains,BU,1.5 mm²,1,3,101
+data,N-1,N,230 V AC,mains,BU,1.5 mm²,0,2,"101, 102"
+data,N-55,N,230 V AC,mains,BU,1.5 mm²,0,3,101
+data,N-55S,,,,BU,1.5 mm²,0,2,101
+data,N-55T,N,,,BU,1.5 mm²,0,2,101
+data,N-S,N,230 V AC,mains,BU,1.5 mm²,0,3,101
+data,PE,PE,,,GNYE,0.75 mm²,7,14,101–106
+data,B1 (0V ⇄ PE),Bond,,,,,,,"102, 103"

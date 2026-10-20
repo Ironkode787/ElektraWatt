@@ -14,67 +14,10 @@
 mod golden_common;
 
 use std::collections::BTreeMap;
-use std::path::PathBuf;
 
-use ew_api::{CmdLog, Session};
-use ew_derive::{DeviceTag, PageOrder, PotentialPartition, XrefTextOf};
-use ew_ids::Id;
-use ew_schema::{Connection, Device, Representation};
-use golden_common::{batch, repo, session_oracle};
-
-fn variant(name: &str) -> PathBuf {
-    repo().join("golden/J-E-2416/variants").join(name)
-}
-
-/// Replays a variant file; the number of lines that committed.
-fn run(s: &mut Session, name: &str) -> usize {
-    let text = std::fs::read_to_string(variant(name)).unwrap_or_else(|e| panic!("{name}: {e}"));
-    let log = CmdLog::parse(&text).unwrap_or_else(|e| panic!("{name}: {e}"));
-    s.run_script(&log, name)
-        .unwrap_or_else(|e| panic!("{name}: {e}"))
-        .len()
-}
-
-/// The printed (short) tag of every device, by device ID.
-fn tags(s: &Session) -> BTreeMap<Id<Device>, String> {
-    let q = s.query();
-    q.devices()
-        .ids()
-        .map(|id| {
-            let tag = q.get::<DeviceTag>(id);
-            (id, tag.as_ref().as_ref().expect("a tag").short())
-        })
-        .collect()
-}
-
-/// The printed cross-reference text of every representation that has one.
-fn xrefs(s: &Session) -> BTreeMap<Id<Representation>, String> {
-    let q = s.query();
-    q.reps()
-        .ids()
-        .filter_map(|id| {
-            let t = q.get::<XrefTextOf>(id);
-            (!t.text.is_empty()).then(|| (id, t.text.clone()))
-        })
-        .collect()
-}
-
-/// The folio labels of `page_order` in order.
-fn folios(s: &Session) -> Vec<String> {
-    let q = s.query();
-    q.get::<PageOrder>(())
-        .entries
-        .iter()
-        .map(|e| e.folio.clone())
-        .collect()
-}
-
-/// The folio number of the page a representation is on.
-fn folio_of(s: &Session, rep: Id<Representation>) -> u32 {
-    let q = s.query();
-    let page = q.reps().get(rep).expect("a representation").page;
-    q.pages().get(page).expect("its page").folio.number
-}
+use ew_derive::PotentialPartition;
+use ew_schema::Connection;
+use golden_common::{batch, folio_of, folios, run, session_oracle, tags, xrefs};
 
 fn position(folios: &[String], folio: &str) -> usize {
     folios

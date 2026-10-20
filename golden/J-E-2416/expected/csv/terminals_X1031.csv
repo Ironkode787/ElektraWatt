@@ -1,0 +1,21 @@
+row,Terminal,Function text,Group,Part,Potential,Side 1 (clamp a),Side 2 (clamp b),Bridge,State
+data,1,1+,Pneumatics,PT 2.5-TWIN,24VDC-1,-102F2:Out1,-201U1:5 via -106W1 BN,BR1,used
+data,2,1+,Pneumatics,PT 2.5-TWIN,24VDC-1,,-201U1:4 via -106W1 WH,BR1,used
+data,3,1+,Pneumatics,PT 2.5-TWIN,24VDC-1,,-202U1:5 via -106W2 BN,BR1,used
+data,4,1+,Pneumatics,PT 2.5-TWIN,24VDC-1,,-202U1:4 via -106W2 WH,BR1,used
+data,5,2+,Spare,PT 2.5-TWIN,24VDC-2,-102F2:Out2,,BR2,spare
+data,6,2+,Spare,PT 2.5-TWIN,24VDC-2,,,BR2,spare
+data,7,3+,Spare,PT 2.5-TWIN,24VDC-3,-102F2:Out3,,BR3,spare
+data,8,3+,Spare,PT 2.5-TWIN,24VDC-3,,,BR3,spare
+data,9,4+,Spare,PT 2.5-TWIN,24VDC-4,-102F2:Out4,,BR4,spare
+data,10,4+,Spare,PT 2.5-TWIN,24VDC-4,,,BR4,spare
+data,11,1-,Pneumatics,PT 2.5-TWIN,0V,-102G1:−,-201U1:2 via -106W1 BU,BR5,used
+data,12,1-,Pneumatics,PT 2.5-TWIN,0V,,-201U1:1 via -106W1 BK,BR5,used
+data,13,1-,Pneumatics,PT 2.5-TWIN,0V,,-202U1:2 via -106W2 BU,BR5,used
+data,14,1-,Pneumatics,PT 2.5-TWIN,0V,,-202U1:1 via -106W2 BK,BR5,used
+data,15,2-,Spare,PT 2.5-TWIN,0V,,,BR5,spare
+data,16,2-,Spare,PT 2.5-TWIN,0V,,,BR5,spare
+data,17,3-,Spare,PT 2.5-TWIN,0V,,,BR5,spare
+data,18,3-,Spare,PT 2.5-TWIN,0V,,,BR5,spare
+data,19,4-,Spare,PT 2.5-TWIN,0V,,,BR5,spare
+data,20,4-,Spare,PT 2.5-TWIN,0V,,,BR5,spare

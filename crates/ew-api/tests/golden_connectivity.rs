@@ -33,7 +33,9 @@ use ew_derive::{
 };
 use ew_import_tables::ew_interop_api::ImportBatch;
 use ew_schema::{BondKind, CircuitClass, Connection, ConnectionKind, Endpoint, PotentialType, Record};
-use golden_common::{batch, ids_by_key, session, session_with, session_with_profiles, source_key, table};
+use golden_common::{
+    all_props, batch, ids_by_key, session, session_with, session_with_profiles, source_key, table,
+};
 
 // ---------------------------------------------------------------------------------------------------------
 // Expected values (doc 20 §7.3, §8.2)
@@ -240,20 +242,6 @@ fn expected_ends(
         .collect()
 }
 
-fn csa_text(csa: &ew_schema::Csa) -> String {
-    match csa {
-        ew_schema::Csa::Mm2(d) => serde_json::to_string(d).unwrap().trim_matches('"').to_owned(),
-        other => format!("{other:?}"),
-    }
-}
-
-/// `["GN","YE"]` as `GNYE`.
-fn colour_text(c: &ew_schema::ColourSpec) -> String {
-    serde_json::to_string(c)
-        .unwrap()
-        .replace(['[', ']', '"', ','], "")
-}
-
 /// Every physical wire of the model by carrier ID text (deduplicated over the potentials).
 fn all_wires(q: &Q) -> BTreeMap<String, PhysicalWire> {
     let part = q.get::<PotentialPartition>(());
@@ -261,35 +249,6 @@ fn all_wires(q: &Q) -> BTreeMap<String, PhysicalWire> {
     for p in part.potentials() {
         for w in &q.get::<PhysicalWiresOf>(p.id).wires {
             out.entry(w.id.to_string()).or_insert_with(|| w.clone());
-        }
-    }
-    out
-}
-
-/// The effective properties of a wire: colour text, colour source, csa text, csa source, class.
-type Props = (String, PropSource, String, PropSource, Option<CircuitClass>);
-
-fn all_props(q: &Q) -> BTreeMap<String, Props> {
-    let part = q.get::<PotentialPartition>(());
-    let mut out = BTreeMap::new();
-    for p in part.potentials() {
-        let map = q.get::<WirePropsOf>(p.id);
-        for (id, e) in &map.wires {
-            let colour = e.colour.as_ref().expect("a colour");
-            let csa = e.csa.as_ref().expect("a cross-section");
-            let entry = (
-                colour_text(&colour.value),
-                colour.source.clone(),
-                csa_text(&csa.value),
-                csa.source.clone(),
-                e.class.clone(),
-            );
-            if let Some(prev) = out.insert(id.to_string(), entry.clone()) {
-                assert_eq!(
-                    prev, entry,
-                    "wire {id} has different properties under different potentials"
-                );
-            }
         }
     }
     out

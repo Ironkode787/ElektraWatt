@@ -51,6 +51,9 @@ commands:
   symbols-qet10 [--check]
                        seal the native library documents and generate the QET edition (content/symbols/qet10);
                        --check changes nothing and fails when the committed files differ
+  acceptance <report.md>
+                       the acceptance runner of gate M1 over the golden project (WP-S6.01): writes the
+                       Markdown report and exits non-zero when an entry fails (crates/ew-api/tests/acceptance.rs)
   ci                   fmt, clippy and nextest (default and all features), doctests and the repository checks
                        above (except check-dco), with a summary
   help                 this text
@@ -108,6 +111,13 @@ fn main() -> ExitCode {
             Some("--check") => symbols::run(&workspace_root(), true),
             Some(other) => {
                 eprint!("symbols-qet10: unknown argument `{other}`\n\n{USAGE}");
+                Ok(false)
+            }
+        },
+        "acceptance" => match args.get(1) {
+            Some(report) if args.len() == 2 => acceptance(report),
+            _ => {
+                eprint!("acceptance needs the report file as its one argument\n\n{USAGE}");
                 Ok(false)
             }
         },
@@ -302,6 +312,35 @@ pub(crate) fn check_anonymisation_at(root: &Path, require_entries: bool) -> Resu
 
 fn check_governance_files() -> Result<Violations> {
     Ok(governance::check(&workspace_root()))
+}
+
+/// `acceptance <report.md>`: runs the `#[ignore]`d test `gate` of `crates/ew-api/tests/acceptance.rs`, which
+/// evaluates the M1 acceptance criteria over the golden project, writes the Markdown report to `report` and
+/// fails when an entry fails. The test binary runs from the workspace root, so a relative `report` is made
+/// absolute against the caller's directory first.
+fn acceptance(report: &str) -> Result<bool> {
+    let report = std::path::absolute(report).with_context(|| format!("resolving {report}"))?;
+    let status = Command::new(cargo())
+        .current_dir(workspace_root())
+        .env("EW_ACCEPTANCE_REPORT", &report)
+        .args([
+            "test",
+            "--locked",
+            "-p",
+            "ew-api",
+            "--test",
+            "acceptance",
+            "--",
+            "--ignored",
+            "--exact",
+            "gate",
+        ])
+        .status()
+        .context("running `cargo test`")?;
+    if report.exists() {
+        println!("acceptance: report written to {}", report.display());
+    }
+    Ok(status.success())
 }
 
 /// `check-dco <range>`: prints the commits without a sign-off.
