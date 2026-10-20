@@ -33,8 +33,8 @@ use ew_commands::testkit::seeded_ids;
 use ew_derive::ew_ids::Id;
 use ew_derive::{
     BomMode, BomRows, DevicePartLines, DeviceTag, DevicesByStructure, DrawnPageOrder, FlowBfs, FunctionCps,
-    Oracle, PageLocalNets, PageOrder, PageRef, PhysicalWiresOf, PotentialId, PotentialPartition, Q, Query,
-    StitchGraphQ, TitleBlockValues, TocRows, WirePropsOf, XrefTextOf,
+    Member, Oracle, PageLocalNets, PageOrder, PageRef, PhysicalWiresOf, PotentialId, PotentialPartition, Q,
+    Query, SettingsMember, StitchGraphQ, TitleBlockValues, TocRows, WirePropsOf, XrefTextOf,
 };
 use ew_model::{AnyRow, Model, Op};
 use ew_schema::{Device, Kind, Page, Record};
@@ -52,11 +52,24 @@ const SWEPT: &[&str] = &[
     "physical_wires_of",
     "potential_flow_bfs",
     "potential_partition",
+    "settings_member",
     "stitch_graph",
     "title_block",
     "toc_rows",
     "wire_props_of",
     "xref_text",
+];
+
+/// Every settings member (the keys of `settings_member`).
+const ALL_MEMBERS: [Member; 8] = [
+    Member::IpPairing,
+    Member::ColourProfile,
+    Member::SizeProfile,
+    Member::WireDefault,
+    Member::Numbering,
+    Member::Frames,
+    Member::XrefFormat,
+    Member::DerivationProfile,
 ];
 
 /// The oracle samples one memoised read in this many (see `oracle_finds_no_mismatch_over_every_state`).
@@ -169,6 +182,10 @@ fn sweep(memo: &Q, cold: Option<&Q>, state: &str) -> BTreeMap<&'static str, usiz
     put(
         PotentialPartition::FAMILY,
         check::<PotentialPartition>(memo, cold, [()], state),
+    );
+    put(
+        SettingsMember::FAMILY,
+        check::<SettingsMember>(memo, cold, ALL_MEMBERS, state),
     );
     put(
         StitchGraphQ::FAMILY,

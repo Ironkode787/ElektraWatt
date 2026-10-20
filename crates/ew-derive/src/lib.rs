@@ -60,6 +60,7 @@ mod potentials;
 mod profile;
 mod q;
 mod query;
+mod settings;
 mod stitch;
 mod structure;
 mod tag;
@@ -100,6 +101,7 @@ pub use profile::{
 };
 pub use q::{Cycle, Diagnostics, IdxView, Q, TableView};
 pub use query::{Changes, Policy, Query};
+pub use settings::{Member, SettingsMember};
 pub use stitch::{
     EdgeKind, IpGroup, IpInfo, Level, PairMode, ShortSource, StitchEdge, StitchGraph, StitchGraphQ,
     StitchNode,
@@ -167,6 +169,7 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (PotentialPartition::FAMILY, PotentialPartition::POLICY),
     (RepAnchorCell::FAMILY, RepAnchorCell::POLICY),
     (SectionStructure::FAMILY, SectionStructure::POLICY),
+    (SettingsMember::FAMILY, SettingsMember::POLICY),
     (StitchGraphQ::FAMILY, StitchGraphQ::POLICY),
     (StructureOf::FAMILY, StructureOf::POLICY),
     (StructurePath::FAMILY, StructurePath::POLICY),
