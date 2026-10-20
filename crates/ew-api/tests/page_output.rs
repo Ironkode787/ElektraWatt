@@ -476,6 +476,7 @@ fn the_display_list_of_folio_101_is_stable() {
         labels glyphs 23a4ce3c "PE" origin=(44293102,80602931) size=3439583 angle=0
         labels glyphs 313e2bc4 "N-1" origin=(269213542,168860522) size=2381250 angle=0
         labels glyphs 313e2bc4 "102-A1" origin=(260153944,172540347) size=2381250 angle=0
+        labels path 313e2bc4 els=5 first=(260153944,169994791) last=(267890625,169994791) stroke=- fill=-
         labels glyphs 57543b91 "S51" origin=(36510120,42238348) size=3439583 angle=0
         labels glyphs 57543b91 "1" origin=(45640625,38836865) size=1322917 angle=0
         labels glyphs 57543b91 "2" origin=(45640625,44128531) size=1322917 angle=0
@@ -505,8 +506,10 @@ fn the_display_list_of_folio_101_is_stable() {
         labels glyphs 9945b5aa "2" origin=(41027351,80602931) size=3439583 angle=0
         labels glyphs 9b2316f2 "PE-1.1" origin=(253338542,142402189) size=2381250 angle=0
         labels glyphs 9b2316f2 "103-G6" origin=(244067013,146082014) size=2381250 angle=0
+        labels path 9b2316f2 els=5 first=(244067013,143536458) last=(252015625,143536458) stroke=- fill=-
         labels glyphs dc21e14c "L-1" origin=(269213542,163568856) size=2381250 angle=0
         labels glyphs dc21e14c "102-A1" origin=(260153944,167248681) size=2381250 angle=0
+        labels path dc21e14c els=5 first=(260153944,164703125) last=(267890625,164703125) stroke=- fill=-
         labels glyphs de795e26 "E55" origin=(195236043,101769598) size=3439583 angle=0
         labels glyphs de795e26 "L" origin=(204390625,97045198) size=1322917 angle=0
         labels glyphs de795e26 "N" origin=(204390625,104982698) size=1322917 angle=0

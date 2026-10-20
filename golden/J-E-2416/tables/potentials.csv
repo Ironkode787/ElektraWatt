@@ -3,9 +3,9 @@ key,at,ptype,voltage,ac_dc,frequency,earthing,circuit_class
 +24V-F,-102F1:2,l_plus,24,dc,,,control
 0V,-102G1:−#1,m,24,dc,,pelv,control
 24VDC-1,-102F2:Out1,l_plus,24,dc,,,control
-24VDC-2,-102F2:Out2,l_plus,,,,,
-24VDC-3,-102F2:Out3,l_plus,,,,,
-24VDC-4,-102F2:Out4,l_plus,,,,,
+24VDC-2,-102F2:Out2,l_plus,24,dc,,,control
+24VDC-3,-102F2:Out3,l_plus,24,dc,,,control
+24VDC-4,-102F2:Out4,l_plus,24,dc,,,control
 L,1X1:1/field,l,230,ac,50,,mains
 L-1,-101F1:2,l,230,ac,50,,mains
 L-55,F55:2,l,230,ac,50,,mains

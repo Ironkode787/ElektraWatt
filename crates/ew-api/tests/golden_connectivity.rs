@@ -452,8 +452,8 @@ fn potential_member_sets_match_section_7_3_exactly() {
 }
 
 /// The voltage and circuit-class columns of §7.3: (name, voltage text, AC/DC, circuit class). `None` is a
-/// cell that states nothing: PE has no voltage, the spare 24VDC-2 to -4 have none (no source-output data in
-/// the golden PSU), and the switched N-55T and N-55S state the voltage but no class.
+/// cell that states nothing: PE has no voltage, and the switched N-55T and N-55S state the voltage but no
+/// class. The spare 24VDC-2 to -4 are 24 V DC control like 24VDC-1 (decision log ID-235).
 type ClassRow = (
     &'static str,
     Option<&'static str>,
@@ -480,9 +480,9 @@ fn class_rows() -> Vec<ClassRow> {
         control("+24V"),
         control("+24V-F"),
         control("24VDC-1"),
-        ("24VDC-2", None, None, None),
-        ("24VDC-3", None, None, None),
-        ("24VDC-4", None, None, None),
+        control("24VDC-2"),
+        control("24VDC-3"),
+        control("24VDC-4"),
         control("0V"),
     ]
 }
@@ -490,10 +490,10 @@ fn class_rows() -> Vec<ClassRow> {
 /// Doc 20 §7.3, column "Type, voltage, class" and "Colour, default size". Voltage and AC/DC are the
 /// potential's own (definition) value, else the `PotentialFlow` entry's (the switched N-55T and N-55S take
 /// them from N-55 over the pass-through pair). The class is the potential's own (`circuit_class` of a
-/// definition) where the cell states one. A cell without a class (switched, spare, PE) means "whatever the
+/// definition) where the cell states one. A cell without a class (switched, PE) means "whatever the
 /// default size column says": the class that `WirePropsOf` resolves for the potential's wires, which must
-/// be mains for N-55T and N-55S (1.5 mm²), control for the spare 24 V potentials (0.75 mm²) and, for PE,
-/// mains and control by the highest class at the wire ends ("GNYE, by class").
+/// be mains for N-55T and N-55S (1.5 mm²) and, for PE, mains and control by the highest class at the wire
+/// ends ("GNYE, by class").
 #[test]
 fn potential_voltage_and_class_columns_match_section_7_3() {
     let batch = batch();
@@ -662,43 +662,21 @@ fn wire_sizes_and_colours_follow_section_8_2() {
     for (n, _, csa, colour, csa_src, colour_src, _) in wire_rows() {
         let (got_colour, got_colour_src, got_csa, got_csa_src, class) =
             &props[&ids[&format!("connections|W{n}")]];
-        // Known data gap: 24VDC-2 to 24VDC-4 carry no voltage (the golden PSU has no source-output data)
-        // and flow does not reach them, so no colour profile row matches and the built-in default BU
-        // applies (doc 20 §8.2 expects DBU).
-        let gap = (30..=32).contains(&n);
-        if gap {
-            assert_eq!(got_colour, "BU", "W{n} colour (data gap)");
-            assert!(
-                matches!(got_colour_src, PropSource::BuiltIn { .. }),
-                "W{n}: {got_colour_src:?}"
-            );
-            assert!(
-                matches!(
-                    got_csa_src,
-                    PropSource::SizeRow {
-                        class: CircuitClass::Control,
-                        ..
-                    }
-                ),
-                "W{n}: {got_csa_src:?}"
-            );
-        } else {
-            assert_eq!(got_colour, colour, "W{n} colour");
-            match colour_src {
-                "rule" | "profile" | "bond" => {
-                    assert!(
-                        matches!(got_colour_src, PropSource::ColourRow { .. }),
-                        "W{n}: {got_colour_src:?}"
-                    )
-                }
-                "core" => {
-                    assert!(
-                        matches!(got_colour_src, PropSource::Conductor(_)),
-                        "W{n}: {got_colour_src:?}"
-                    )
-                }
-                other => panic!("{other}"),
+        assert_eq!(got_colour, colour, "W{n} colour");
+        match colour_src {
+            "rule" | "profile" | "bond" => {
+                assert!(
+                    matches!(got_colour_src, PropSource::ColourRow { .. }),
+                    "W{n}: {got_colour_src:?}"
+                )
             }
+            "core" => {
+                assert!(
+                    matches!(got_colour_src, PropSource::Conductor(_)),
+                    "W{n}: {got_colour_src:?}"
+                )
+            }
+            other => panic!("{other}"),
         }
         match csa_src {
             "cdp" => {
@@ -788,8 +766,7 @@ struct Sources {
 /// Checks the provenance level of the size and the colour of every physical wire (doc 08 §4.1): 7 where a
 /// constituent connection overrides the value, 6 where the core's conductor sets it, else 2 with profiles
 /// (3 would be a definition's props, which the golden potentials do not have), else 1 with a project
-/// default, else 0. The colour of the spare 24 V wires (no voltage: the documented data gap) matches no row
-/// and falls through to level 1 or 0. Returns the (csa, colour) level of every wire by carrier ID.
+/// default, else 0. Returns the (csa, colour) level of every wire by carrier ID.
 fn check_levels(q: &Q, batch: &ImportBatch, sources: Sources) -> BTreeMap<String, (u8, u8)> {
     let conns: BTreeMap<String, Connection> = batch
         .records
@@ -807,7 +784,6 @@ fn check_levels(q: &Q, batch: &ImportBatch, sources: Sources) -> BTreeMap<String
             _ => None,
         })
         .collect();
-    let part = q.get::<PotentialPartition>(());
     let props = all_props(q);
     let mut out = BTreeMap::new();
     for (id, w) in all_wires(q) {
@@ -818,12 +794,6 @@ fn check_levels(q: &Q, batch: &ImportBatch, sources: Sources) -> BTreeMap<String
                 .any(|c| get(&conns[&c.to_string()].overrides))
         };
         let conductor = w.core.map(|c| &conductors[&c.to_string()]);
-        let spare = w.potentials.iter().all(|p| {
-            matches!(
-                part.get(*p).map(|p| p.name.text.as_str()),
-                Some("24VDC-2" | "24VDC-3" | "24VDC-4")
-            )
-        });
         let fallback = |profile_row: bool| match (profile_row, sources) {
             (true, Sources { profiles: true, .. }) => 2,
             (_, Sources { default: true, .. }) => 1,
@@ -841,7 +811,7 @@ fn check_levels(q: &Q, batch: &ImportBatch, sources: Sources) -> BTreeMap<String
         } else if conductor.is_some_and(|c| c.colour.is_some()) {
             6
         } else {
-            fallback(!spare)
+            fallback(true)
         };
         assert_eq!(csa_src.level(), want_csa, "csa level of wire {id}: {csa_src:?}");
         assert_eq!(
@@ -867,8 +837,7 @@ fn every_connection_has_an_effective_size_and_colour() {
             .any(|n| matches!(n, DeriveNote::DefaultWireProfile { .. }))
     );
     // With profiles: the 10 wires of W4, W5, W7, W9 and W20 to W25 override the size (level 7), the 10 cores
-    // set the colour (level 6), everything else comes from the profile rows (level 2; the 3 spare 24 V wires
-    // match no colour row and take the built-in colour, level 0).
+    // set the colour (level 6), everything else comes from the profile rows (level 2).
     let levels = check_levels(
         &q,
         &batch,
@@ -880,8 +849,8 @@ fn every_connection_has_an_effective_size_and_colour() {
     assert_eq!(count_where(&levels, |l| l.0 == 7), 10);
     assert_eq!(count_where(&levels, |l| l.0 == 2), 34);
     assert_eq!(count_where(&levels, |l| l.1 == 6), 10);
-    assert_eq!(count_where(&levels, |l| l.1 == 2), 31);
-    assert_eq!(count_where(&levels, |l| l.1 == 0), 3);
+    assert_eq!(count_where(&levels, |l| l.1 == 2), 34);
+    assert_eq!(count_where(&levels, |l| l.1 == 0), 0);
 
     // Without profiles and without a default: overrides and cores as before, the rest is built in (level 0).
     let without = session(&batch);

@@ -28,9 +28,9 @@ data,,-102G1,−,-X1032:2,a,0V ⇄ PE,GNYE,0.75 mm²,bond/rule,IP PE-0VDC,,"102,
 data,,-102F1,2,-102F2,24VDC,+24V-F,DBU,1.5 mm²,cdp/rule,,,102
 data,,-102F1,2,-102F2,24VDC,+24V-F,DBU,1.5 mm²,cdp/rule,,,102
 data,,-102F2,Out1,-X1031:1,a,24VDC-1,DBU,0.75 mm²,rule,IP 24VDC-1,,"102, 103"
-data,,-102F2,Out2,-X1031:5,a,24VDC-2,BU,0.75 mm²,rule/built-in,IP 24VDC-2,,"102, 103"
-data,,-102F2,Out3,-X1031:7,a,24VDC-3,BU,0.75 mm²,rule/built-in,IP 24VDC-3,,"102, 103"
-data,,-102F2,Out4,-X1031:9,a,24VDC-4,BU,0.75 mm²,rule/built-in,IP 24VDC-4,,"102, 103"
+data,,-102F2,Out2,-X1031:5,a,24VDC-2,DBU,0.75 mm²,rule,IP 24VDC-2,,"102, 103"
+data,,-102F2,Out3,-X1031:7,a,24VDC-3,DBU,0.75 mm²,rule,IP 24VDC-3,,"102, 103"
+data,,-102F2,Out4,-X1031:9,a,24VDC-4,DBU,0.75 mm²,rule,IP 24VDC-4,,"102, 103"
 data,,-X1031:1,b,-201U1,5,24VDC-1,BN,0.75 mm²,rule/core,-106W1 BN; IP 24VDC-AIR1,,"103, 106"
 data,,-X1031:2,b,-201U1,4,24VDC-1,WH,0.75 mm²,rule/core,-106W1 WH; IP 24VDC-AIR2,,"103, 106"
 data,,-X1031:3,b,-202U1,5,24VDC-1,BN,0.75 mm²,rule/core,-106W2 BN; IP 24VDC-AIR3,,"103, 106"

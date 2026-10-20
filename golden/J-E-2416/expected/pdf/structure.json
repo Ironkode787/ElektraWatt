@@ -220,10 +220,10 @@
       ]
     }
   ],
-  "links": 63,
+  "links": 64,
   "plain_text_links": 0,
   "dropped_notdef_glyphs": 0,
-  "destinations": 95,
+  "destinations": 96,
   "fonts": [
     "Noto Sans Math Regular",
     "Noto Sans Regular"

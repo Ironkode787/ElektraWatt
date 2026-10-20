@@ -529,11 +529,14 @@ overrides".
 | +24V | L+, 24 V DC, control | — | -102G1:+#1, +#2, -102F1:1 | 102 | DBU 0.75 |
 | +24V-F | L+, 24 V DC, control | — | -102F1:2, -102F2:24VDC#1, #2 | 102 | DBU 0.75 |
 | 24VDC-1 | L+, 24 V DC, control | 24VDC-AIR1 … AIR4 | -102F2:Out1, -X1031:1 … 4, -201U1:4, :5, -202U1:4, :5 | 102, 103, 106 | DBU 0.75 |
-| 24VDC-2 | L+, spare | — | -102F2:Out2, -X1031:5, 6 | 102, 103 | DBU 0.75 |
-| 24VDC-3 | L+, spare | — | -102F2:Out3, -X1031:7, 8 | 102, 103 | DBU 0.75 |
-| 24VDC-4 | L+, spare | — | -102F2:Out4, -X1031:9, 10 | 102, 103 | DBU 0.75 |
+| 24VDC-2 | L+, 24 V DC, control | — | -102F2:Out2, -X1031:5, 6 | 102, 103 | DBU 0.75 |
+| 24VDC-3 | L+, 24 V DC, control | — | -102F2:Out3, -X1031:7, 8 | 102, 103 | DBU 0.75 |
+| 24VDC-4 | L+, 24 V DC, control | — | -102F2:Out4, -X1031:9, 10 | 102, 103 | DBU 0.75 |
 | 0V | M, 24 V DC, control | 0VDC, 0VDC-AIR1 … AIR4 | -102G1:−#1, −#2, -102F2:GND#1, #2, -X1031:11 … 20, -201U1:1, :2, -202U1:1, :2 | 102, 103, 106 | WH 0.75 |
 | DP | bus | — | -201U1:DP, -3X1, -3W1 A/B, ext. JE-N1000-03 | 3 | (cable) |
+
+24VDC-2, 24VDC-3 and 24VDC-4 are the spare outputs of -102F2. They carry the voltage and class of the 24 V DC control
+supply, so the colour rule of §7.1 applies to their wires W30 to W32 (DBU 0.75 mm²; decision log ID-235).
 
 N-55T and N-55S are switched neutrals. The fixture defines them for naming only: their type (N switched), voltage
 (230 V AC) and circuit class (mains, from N-55) are derived across the pass-through pairs of T55 and S56

@@ -1129,20 +1129,15 @@ POTENTIAL_TYPE = {"L": "l", "N": "n", "PE": "pe", "L+": "l_plus", "M": "m"}
 
 def parse_potential_type(cell):
     """Parse a section 7.3 'Type, voltage, class' cell: ``<type>[ switched][, <n> V <AC|DC>][, <class>]``,
-    ``<type>, spare`` or ``bus``. Returns None for ``bus``, else a dict (absent parts are ""/False)."""
+    or ``bus``. Returns None for ``bus``, else a dict (absent parts are ""/False)."""
     if cell == "bus":
         return None
     types = "|".join(re.escape(t) for t in sorted(POTENTIAL_TYPE, key=len, reverse=True))
-    m = re.fullmatch(rf"({types}), spare", cell)
-    if m:
-        return {"ptype": POTENTIAL_TYPE[m.group(1)], "switched": False, "spare": True, "voltage": "", "ac_dc": "",
-                "circuit_class": ""}  # fmt: skip
     m = re.fullmatch(rf"({types})( switched)?(?:, (\d+) V (AC|DC))?(?:, (mains|control))?", cell)
     check(m, f"section 7.3: unexpected 'Type, voltage, class' cell {cell!r}")
     return {
         "ptype": POTENTIAL_TYPE[m.group(1)],
         "switched": bool(m.group(2)),
-        "spare": False,
         "voltage": dec(m.group(3)) if m.group(3) else "",
         "ac_dc": m.group(4).lower() if m.group(4) else "",
         "circuit_class": m.group(5) or "",
@@ -1167,7 +1162,7 @@ def build_potentials():
     hz = re.search(r"(\d+) Hz", props["Supply"])
     check(hz, f"section 4.1: no frequency in the Supply cell {props['Supply']!r}")
     frequency = hz.group(1)
-    names, ac_rows, naming_only, spare = [], [], [], []
+    names, ac_rows, naming_only = [], [], []
     rows = []
     for r in table_dicts("### 7.3 Potentials"):
         n = r["Potential"]
@@ -1190,13 +1185,10 @@ def build_potentials():
             naming_only.append(n)
         else:
             row["ptype"] = t["ptype"]
-            if t["spare"]:
-                spare.append(n)  # the cell states no voltage or class
-            else:
-                row.update(voltage=t["voltage"], ac_dc=t["ac_dc"], circuit_class=t["circuit_class"])
-                if t["ac_dc"] == "ac":
-                    row["frequency"] = frequency  # doc 20 section 4.1 Supply: 50 Hz; the 7.3 cell gives none
-                    ac_rows.append(n)
+            row.update(voltage=t["voltage"], ac_dc=t["ac_dc"], circuit_class=t["circuit_class"])
+            if t["ac_dc"] == "ac":
+                row["frequency"] = frequency  # doc 20 section 4.1 Supply: 50 Hz; the 7.3 cell gives none
+                ac_rows.append(n)
         if n == "0V":
             # doc 20 section 4.1 "Control voltage": 24 V DC, PELV (one 0 V-PE bond, section 7.4)
             check(t["ptype"] == "m" and "PELV" in props["Control voltage"], f"section 4.1/7.3: 0V is not a PELV M: {t}")
@@ -1211,10 +1203,6 @@ def build_potentials():
         "potentials", ["ptype", "voltage", "ac_dc", "frequency", "circuit_class"], naming_only, "", "§7.3",
         "N switched: naming only; doc 03 §9.4 derives the type, including 'switched', across the"
         " PassThrough{opens: true} pair",
-    )  # fmt: skip
-    fixture(
-        "potentials", ["voltage", "ac_dc", "frequency", "circuit_class"], spare, "", "§7.3",
-        "L+, spare: the cell states the type only, no voltage or class",
     )  # fmt: skip
     cols = ["key", "at", "ptype", "voltage", "ac_dc", "frequency", "earthing", "circuit_class"]
     register("potentials", cols, rows, 18)
