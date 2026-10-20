@@ -18,8 +18,10 @@
 //!
 //! **References.** Any JSON object `{"ref": "<kind>:<value>"}` inside `params` is replaced, immediately
 //! before its line runs, by the value it names in the then-current model. v0 resolves `section:<number>` (the
-//! section's ID) and `id:<uuid>` (the text itself). The tag and folio references of doc 17 §3.5 need the
-//! `find` surface and are not resolved yet: they stop the replay.
+//! section's ID; a reference kind of this implementation, not yet in doc 17 §3.5) and `id:<uuid>` (the text
+//! itself, once a record with that ID exists). The tag and folio references of doc 17 §3.5 need the `find`
+//! surface and are not resolved yet. A reference that cannot be resolved stops the replay with
+//! [`CmdLogError::Reference`] (exit code 2, [`CmdLogError::exit_code`]), never as a failing command.
 //!
 //! **Semantics.** Each line commits as its own transaction with origin [`Origin::CmdLog`]: an interactive
 //! command through `execute`, a bulk one as `preview` and `commit`, so every line is one undo step. Before the
@@ -30,6 +32,9 @@ use std::fmt;
 
 use ew_commands::Cost;
 use serde_json::{Map, Value};
+
+use ew_derive::Q;
+use ew_schema::AnyId;
 
 use crate::{AnyCommand, CmdError, Origin, Receipt, Session, Submit};
 
@@ -55,12 +60,15 @@ pub enum CmdLogError {
         /// What is wrong.
         message: String,
     },
-    /// A `{"ref": …}` that cannot be resolved against the current model (unknown kind, no such section).
+    /// A `{"ref": …}` that cannot be resolved against the then-current model (unknown kind, no such
+    /// section, no record with that ID); its line did not run, the lines before it are committed.
     Reference {
         /// The line.
         line: usize,
         /// What is wrong.
         message: String,
+        /// How many lines were committed before it.
+        committed: usize,
     },
     /// A line's command is unknown or its exposure class refuses command logs; nothing ran.
     Refused {
@@ -84,9 +92,14 @@ impl fmt::Display for CmdLogError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CmdLogError::Malformed { line, message } => write!(f, "command log, line {line}: {message}"),
-            CmdLogError::Reference { line, message } => {
-                write!(f, "command log, line {line}: reference: {message}")
-            }
+            CmdLogError::Reference {
+                line,
+                message,
+                committed,
+            } => write!(
+                f,
+                "command log, line {line}: reference: {message} ({committed} earlier lines committed)"
+            ),
             CmdLogError::Refused { line, error } => {
                 write!(f, "command log, line {line}: not run: {error:?}")
             }
@@ -103,6 +116,26 @@ impl fmt::Display for CmdLogError {
 }
 
 impl std::error::Error for CmdLogError {}
+
+impl CmdLogError {
+    /// The process exit code of `ew apply` for this error (doc 17 §3.5): 2 for a log that cannot be
+    /// replayed as written (malformed, an unresolvable reference, a refused command), 1 for a line whose
+    /// command failed or was prevented.
+    pub fn exit_code(&self) -> u8 {
+        match self {
+            CmdLogError::Malformed { .. } | CmdLogError::Reference { .. } | CmdLogError::Refused { .. } => 2,
+            CmdLogError::Failed { .. } => 1,
+        }
+    }
+
+    /// How many lines were committed before the replay stopped (0 when nothing ran).
+    pub fn committed(&self) -> usize {
+        match self {
+            CmdLogError::Malformed { .. } | CmdLogError::Refused { .. } => 0,
+            CmdLogError::Reference { committed, .. } | CmdLogError::Failed { committed, .. } => *committed,
+        }
+    }
+}
 
 fn malformed(line: usize, message: impl Into<String>) -> CmdLogError {
     CmdLogError::Malformed {
@@ -220,7 +253,13 @@ impl Session {
         }
         let mut receipts = Vec::with_capacity(log.lines.len());
         for (line, cmd) in &log.lines {
-            let params = self.resolve_refs(*line, &cmd.params)?;
+            let params = self
+                .resolve_refs(&cmd.params)
+                .map_err(|message| CmdLogError::Reference {
+                    line: *line,
+                    message,
+                    committed: receipts.len(),
+                })?;
             let cmd = AnyCommand {
                 name: cmd.name.clone(),
                 params,
@@ -250,16 +289,24 @@ impl Session {
         Ok(receipts)
     }
 
-    /// `params` with every `{"ref": …}` replaced by what it names in the current model.
-    fn resolve_refs(&self, line: usize, params: &Value) -> Result<Value, CmdLogError> {
-        let reference = |message: String| CmdLogError::Reference { line, message };
+    /// `params` with every `{"ref": …}` replaced by what it names in the current model; `Err` with the
+    /// reason a reference cannot be resolved.
+    fn resolve_refs(&self, params: &Value) -> Result<Value, String> {
+        let reference = |message: String| message;
         match params {
             Value::Object(map) if map.len() == 1 && map.contains_key("ref") => {
                 let Some(text) = map["ref"].as_str() else {
                     return Err(reference("`ref` is a text `<kind>:<value>`".into()));
                 };
                 match text.split_once(':') {
-                    Some(("id", uuid)) => Ok(Value::String(uuid.to_owned())),
+                    Some(("id", uuid)) => {
+                        let id: AnyId = serde_json::from_value(Value::String(uuid.to_owned()))
+                            .map_err(|_| reference(format!("`{text}`: not a UUID")))?;
+                        if !record_exists(&self.query(), id) {
+                            return Err(reference(format!("`{text}`: the project has no such record")));
+                        }
+                        Ok(Value::String(uuid.to_owned()))
+                    }
                     Some(("section", number)) => {
                         let number: u16 = number.parse().map_err(|_| {
                             reference(format!("`{text}`: a section number is a whole number"))
@@ -282,15 +329,37 @@ impl Session {
             }
             Value::Object(map) => map
                 .iter()
-                .map(|(k, v)| Ok((k.clone(), self.resolve_refs(line, v)?)))
+                .map(|(k, v)| Ok((k.clone(), self.resolve_refs(v)?)))
                 .collect::<Result<Map<_, _>, _>>()
                 .map(Value::Object),
             Value::Array(items) => items
                 .iter()
-                .map(|v| self.resolve_refs(line, v))
+                .map(|v| self.resolve_refs(v))
                 .collect::<Result<Vec<_>, _>>()
                 .map(Value::Array),
             other => Ok(other.clone()),
         }
     }
+}
+
+/// Whether the project holds a record with this ID: the project record or a row of any table.
+fn record_exists(q: &Q, id: AnyId) -> bool {
+    q.project().id.cast::<()>() == id
+        || q.structure_nodes().contains(id.cast())
+        || q.sections().contains(id.cast())
+        || q.external_refs().contains(id.cast())
+        || q.pages().contains(id.cast())
+        || q.devices().contains(id.cast())
+        || q.functions().contains(id.cast())
+        || q.reps().contains(id.cast())
+        || q.connections().contains(id.cast())
+        || q.junctions().contains(id.cast())
+        || q.conductors().contains(id.cast())
+        || q.potential_defs().contains(id.cast())
+        || q.bonds().contains(id.cast())
+        || q.report_blocks().contains(id.cast())
+        || q.parts().contains(id.cast())
+        || q.symbols().contains(id.cast())
+        || q.fndefs().contains(id.cast())
+        || q.forms().contains(id.cast())
 }

@@ -175,6 +175,61 @@ fn an_unresolvable_reference_stops_the_replay() {
             matches!(err, CmdLogError::Reference { line: 2, .. }),
             "{reference}: {err:?}"
         );
+        assert_eq!(err.exit_code(), 2, "{reference}");
     }
     assert_eq!(s.world().rev.0, 0);
+}
+
+#[test]
+fn a_missing_id_reference_stops_with_exit_2_and_counts_the_committed_lines() {
+    let mut s = session();
+    let missing = "0192f0a1-0000-7000-8000-000000000001";
+    let line = format!(
+        r#"{{"cmd":"fields.set","params":{{"kind":"page","targets":[{{"ref":"id:{missing}"}}],"path":"title","value":{{"en":"T"}}}}}}"#
+    );
+    let err = s.run_script(&log(&[&page(1), &line]), "x.ewcmd").unwrap_err();
+    match &err {
+        CmdLogError::Reference {
+            line,
+            message,
+            committed,
+        } => {
+            assert_eq!((*line, *committed), (3, 1));
+            assert!(message.contains(missing), "{message}");
+        }
+        other => panic!("expected a reference error, got {other:?}"),
+    }
+    assert_eq!(err.exit_code(), 2);
+    assert_eq!(err.committed(), 1);
+    assert_eq!(s.history().entries().len(), 1, "line 2 stays committed");
+
+    // A malformed UUID is a reference error too, and an existing record's ID resolves.
+    let err = s
+        .run_script(
+            &log(&[r#"{"cmd":"page.create","params":{"number":2,"section":{"ref":"id:nope"}}}"#]),
+            "x.ewcmd",
+        )
+        .unwrap_err();
+    assert!(
+        matches!(err, CmdLogError::Reference { committed: 0, .. }),
+        "{err:?}"
+    );
+    let page_id = s.query().pages().iter().map(|(id, _)| id).next().expect("page 1");
+    let ok = format!(
+        r#"{{"cmd":"fields.set","params":{{"kind":"page","targets":[{{"ref":"id:{page_id}"}}],"path":"title","value":{{"en":"T"}}}}}}"#
+    );
+    assert_eq!(s.run_script(&log(&[&ok]), "x.ewcmd").unwrap().len(), 1);
+}
+
+#[test]
+fn exit_codes_follow_doc_17() {
+    let mut s = session();
+    let refused = s
+        .run_script(&log(&[r#"{"cmd":"no.such","params":{}}"#]), "x.ewcmd")
+        .unwrap_err();
+    assert_eq!((refused.exit_code(), refused.committed()), (2, 0));
+    let failed = s.run_script(&log(&[&page(1), &page(1)]), "x.ewcmd").unwrap_err();
+    assert_eq!((failed.exit_code(), failed.committed()), (1, 1));
+    let malformed = CmdLog::parse("{\"cmd\":\"page.create\"}\n").unwrap_err();
+    assert_eq!(malformed.exit_code(), 2);
 }
