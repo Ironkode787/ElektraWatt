@@ -790,6 +790,24 @@ fn arrange_leaves_columns_status_and_as_of_alone() {
 // ---------------------------------------------------------------------------------------------------------
 // cell_key and cell_text
 
+/// The sort and group text of a colour is the printed text, a code of a newer format included.
+#[test]
+fn the_text_of_a_colour_is_its_printed_text() {
+    use ew_derive::ew_schema::{ColourCode, ColourSpec};
+    use ew_reports::render::{RenderOptions, render};
+    let m = model();
+    let q = Q::new(&m);
+    let unknown = ColourSpec::one(ColourCode::Unknown(serde_json::json!({"future": 1})));
+    for spec in [
+        unknown,
+        serde_json::from_str("[\"BK\"]").unwrap(),
+        serde_json::from_str("[\"GN\",\"YE\"]").unwrap(),
+    ] {
+        let c = Cell::Colour(spec);
+        assert_eq!(cell_text(&q, &c), render(&q, &c, &RenderOptions::default()));
+    }
+}
+
 #[test]
 fn cell_text_of_simple_cells() {
     let m = model();

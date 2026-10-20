@@ -18,43 +18,46 @@ use ew_derive::ew_schema::{
     FunctionKind, Page, Unit,
 };
 use ew_derive::{
-    CpRef, DeviceTag, DrawnPageOrder, EffectiveProps, EndKind, FunctionCps, PageOrder, PageRef, Partition,
-    PhysicalWire, PhysicalWiresOf, PotentialId, PotentialPartition, PropSource, Q, RepAnchorCell, WireEnd,
-    WirePropsOf,
+    CpRef, DeviceTag, DrawnPageOrder, EffectiveProps, EndKind, FunctionCps, PageRef, Partition, PhysicalWire,
+    PhysicalWiresOf, PotentialId, PotentialPartition, PropSource, Q, RepAnchorCell, WireEnd, WirePropsOf,
 };
 
 use crate::rowset::{Cell, ColumnDef, NotDerived, QtyUnit, RowSet};
 
-/// Why the connectivity kinds wait: the queries they read (`potential_partition`, `physical_wires_of` and
-/// their dependents) read the full page order for the page position of interruption points and wires, and
-/// report pagination runs inside the page order.
-///
-/// Replace the check in [`ready`] and delete this text once those queries read [`DrawnPageOrder`], as the
-/// doc of that query prescribes: the kinds then derive inside pagination too.
-pub(super) const AWAITS: &str = "connectivity queries on drawn_page_order";
-
 /// The readiness gate of the connectivity kinds.
 ///
-/// Inside the pagination the page order is still being computed, and the connectivity queries read it
-/// (`PageOrder` is not yet read through [`DrawnPageOrder`] there): a read from the pagination would be a
-/// query cycle, which `Q::get` turns into a panic. The kind therefore returns a set that is not derived
-/// (one placeholder page) when it is asked from inside the page order, and its rows when it is not: for a
-/// `Q` without a report engine, which has no pagination to run. A `Q` with the engine memoises the
-/// placeholder, so its pages and rows agree.
+/// The connectivity queries these kinds read (`potential_partition`, `physical_wires_of`, `wire_props_of`)
+/// read the full page order, and a `Q` with the report engine runs the pagination inside the page order: a
+/// read from there would be a query cycle, which `Q::get` turns into a panic. So a kind is **not derived in
+/// a `Q` that carries the engine**, whatever has been evaluated before (one placeholder page naming what it
+/// awaits, no notes), and derives in a `Q` without it. The gate depends on that configuration alone, never on
+/// the order in which the page order and the rows are read.
+///
+/// Remove this gate and [`NotDerived::AwaitsPageOrder`] once those queries read `DrawnPageOrder`, as the doc of
+/// that query prescribes: the kinds then derive inside pagination too.
 ///
 /// # Errors
 ///
 /// The not-derived row set to return.
 pub(super) fn ready(q: &Q, columns: &[ColumnDef]) -> Result<(), RowSet> {
-    match q.try_get::<PageOrder>(()) {
-        Ok(_) => Ok(()),
-        // Expected while the connectivity queries read the full page order, not a defect of the model: no
-        // note is recorded, the placeholder page names what the kind awaits.
-        Err(_) => Err(RowSet::not_derived(
-            columns.to_vec(),
-            NotDerived::AwaitsQuery(AWAITS),
-        )),
+    if crate::queries::engine_installed(q) {
+        Err(RowSet::not_derived(columns.to_vec(), NotDerived::AwaitsPageOrder))
+    } else {
+        Ok(())
     }
+}
+
+/// Sets the cell of column `key`. A key the kind's columns do not have is a programming error and stops the
+/// build of the rows loudly, so a column change cannot shift the other cells silently.
+///
+/// # Panics
+///
+/// When `key` is not a column.
+pub(super) fn put(columns: &[ColumnDef], cells: &mut [Cell], key: &str, cell: Cell) {
+    let Some(i) = columns.iter().position(|c| c.key == key) else {
+        panic!("the kind has no column `{key}`");
+    };
+    cells[i] = cell;
 }
 
 /// One physical wire of the project with its effective properties.

@@ -16,9 +16,7 @@ use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
-use ew_derive::ew_schema::{
-    AnyId, ColourCode, ColourSpec, ContinuationPolicy, Date, Device, GroupSpec, ReportBlock, Set, SortKey,
-};
+use ew_derive::ew_schema::{AnyId, ContinuationPolicy, Date, Device, GroupSpec, ReportBlock, Set, SortKey};
 use ew_derive::ew_units::Dec3;
 use ew_derive::{DeviceTag, PageRef, Q, ResolvedStructure, SectionStructure, folio_label};
 
@@ -531,7 +529,7 @@ pub fn cell_key(q: &Q, cell: &Cell) -> CellKey {
         Cell::Folios(ps) => Class::Value(Val::Folios(ps.iter().map(|p| folio_key(q, *p)).collect())),
         Cell::CellRef(p, c) => Class::Value(Val::CellRef(folio_key(q, *p), c.column, c.row)),
         Cell::Qty(v, _) => Class::Value(Val::Qty(*v)),
-        Cell::Colour(c) => Class::Value(Val::Colour(natural_key(&colour_text(c)))),
+        Cell::Colour(c) => Class::Value(Val::Colour(natural_key(&crate::render::colour_text(c)))),
         Cell::Address(s) => Class::Value(Val::Address(natural_key(s))),
         Cell::Date(d) => Class::Value(Val::Date(*d)),
         Cell::Bool(b) => Class::Value(Val::Bool(*b)),
@@ -559,7 +557,7 @@ pub fn cell_text(q: &Q, cell: &Cell) -> String {
             .join(", "),
         Cell::CellRef(p, c) => format!("{}-{c}", folio_text(q, *p)),
         Cell::Qty(v, _) => v.to_string(),
-        Cell::Colour(c) => colour_text(c),
+        Cell::Colour(c) => crate::render::colour_text(c),
         Cell::Date(d) => d.to_string(),
         Cell::Bool(b) => b.to_string(),
         Cell::Range(ids) => ids
@@ -589,18 +587,6 @@ fn source_text(q: &Q, t: &MlText) -> String {
         .and_then(|l| t.get(l))
         .unwrap_or_default()
         .to_owned()
-}
-
-/// The codes of a colour joined without a separator (`GNYE`).
-fn colour_text(c: &ColourSpec) -> String {
-    c.codes()
-        .iter()
-        .map(|c| match c {
-            ColourCode::Iec(c) => c.as_str().to_owned(),
-            ColourCode::Company(i) | ColourCode::Foreign(i) => i.as_str().to_owned(),
-            ColourCode::Unknown(v) => v.to_string(),
-        })
-        .collect()
 }
 
 fn tag_text(q: &Q, id: Id<Device>) -> String {

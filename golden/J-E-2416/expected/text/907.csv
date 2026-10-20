@@ -27,4 +27,4 @@ seq,layer,entity,text,x_mm,y_mm,size_pt,angle_mdeg,box_x0_mm,box_y0_mm,box_x1_mm
 26,tables,,Via,201.304,19.388,8.88,0,201.304,16.040,205.747,20.305
 27,tables,,Wire part,241.797,19.388,8.88,0,241.797,16.040,255.435,20.305
 28,tables,,Pages,259.795,19.388,8.88,0,259.795,16.040,268.638,20.305
-29,tables,,Not derived yet: awaits the `connectivity queries on drawn_page_order` query,16.832,25.908,8.88,0,16.832,22.560,130.497,26.825
+29,tables,,Not derived yet: awaits the drawn page order,16.832,25.908,8.88,0,16.832,22.560,83.385,26.825

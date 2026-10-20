@@ -10,7 +10,7 @@ use ew_derive::{Cell as FrameCell, CpRef, Q, RepAnchorCell, WireEnd};
 
 use super::conn::{
     Bridge, WireRec, Wires, bridge_span, bridges, colour_cell, csa_cell, device_of, end_cells, ip_name,
-    page_position, pages_cell, ready, source_text, tag_key, tag_short, text_cell,
+    page_position, pages_cell, put, ready, source_text, tag_key, tag_short, text_cell,
 };
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowKind, RowSet};
@@ -24,10 +24,13 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowKind, RowS
 /// This is not the numbering order of FR-NUM-028 (the page of the From end and its cell, then the To end's
 /// cell, then the ID); it differs where an end has no cell of its own.
 ///
-/// The From end is the end the wire's constituents start from (`PhysicalWire::ends[0]`).
+/// The From end is the first of the wire's two ends after orientation (`conn::orient`, doc 08 §3.8): the end
+/// on the earlier page, else the one with the smaller anchor cell, then the smaller CP ID. It is not always
+/// `PhysicalWire::ends[0]`, the end the constituents start from.
 ///
 /// A wire's potential is its name, or `A ⇄ B` for a bond wire. `source` names where the effective
-/// cross-section and colour come from (`cdp`, `profile`, `core`, `project`, `built-in`). `via` names the
+/// cross-section and colour come from (`cdp`, `rule`, `bond`, `core`, `potential`, `project`, `built-in`;
+/// size first, then colour, joined when they differ). `via` names the
 /// cable core of a core wire (`-106W1 BK`) and the interruption points the wire passes (`IP 0VDC-AIR2`).
 /// `no` (the printed wire number) is empty: the numbering of doc 08 §5 has no query yet. `part` is the
 /// wire part the wire carries explicitly (empty at MVP, FR-CON-033).
@@ -75,7 +78,7 @@ impl ReportKindDef for WireList {
         let bridges = bridges(q);
         if !bridges.is_empty() {
             let mut heading = vec![Cell::Empty; set.columns.len()];
-            heading[0] = text_cell("Bridges");
+            put(&set.columns, &mut heading, "no", text_cell("Bridges"));
             set.rows.push(Row {
                 id: RowId(vec![RowKey::Name("bridges".to_owned())]),
                 kind: RowKind::Heading,
@@ -213,14 +216,16 @@ fn bridge_row(q: &Q, b: &Bridge) -> Row {
     let id = RowId::entity(b.strip)
         .with(RowKey::Name("bridge".to_owned()))
         .with(RowKey::Index(u32::from(b.group)));
-    let mut cells = vec![Cell::Empty; 12];
-    cells[0] = Cell::Ident(b.label.clone());
-    cells[1] = first;
-    cells[3] = last;
-    cells[5] = bridge_potential(q, b);
-    cells[9] = Cell::Text(MlText::neutral(&via));
-    cells[10] = Cell::Tbd;
-    cells[11] = b.page.map_or(Cell::Empty, |p| pages_cell(&[p]));
+    let columns = WireList.columns();
+    let mut cells = vec![Cell::Empty; columns.len()];
+    let mut set = |key: &str, cell: Cell| put(&columns, &mut cells, key, cell);
+    set("no", Cell::Ident(b.label.clone()));
+    set("from", first);
+    set("to", last);
+    set("potential", bridge_potential(q, b));
+    set("via", Cell::Text(MlText::neutral(&via)));
+    set("part", Cell::Tbd);
+    set("pages", b.page.map_or(Cell::Empty, |p| pages_cell(&[p])));
     let mut r = Row::data(id, cells);
     r.sources = b.terminals.iter().map(|t| t.cast()).collect();
     r

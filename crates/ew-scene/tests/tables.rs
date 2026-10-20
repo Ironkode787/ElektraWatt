@@ -164,6 +164,32 @@ fn text_that_does_not_fit_is_shrunk_and_reported_never_cut() {
 }
 
 #[test]
+fn rows_beyond_the_page_capacity_are_not_drawn_and_are_reported() {
+    let rows: Vec<Vec<String>> = (0..26)
+        .map(|i| vec![i.to_string(), String::new(), String::new()])
+        .collect();
+    let refs: Vec<Vec<&str>> = rows
+        .iter()
+        .map(|r| r.iter().map(String::as_str).collect())
+        .collect();
+    let slices: Vec<&[&str]> = refs.iter().map(Vec::as_slice).collect();
+    let l = page_display_list(&view(Some(table(&slices))), Layer::Tables, bundled());
+    assert!(
+        l.findings.iter().any(|f| matches!(
+            f,
+            PageFinding::Table(TableFinding::TooManyRows { given: 26, drawn: 23 })
+        )),
+        "{:?}",
+        l.findings
+    );
+    // The header's three texts and the first column of the 23 rows drawn.
+    assert_eq!(glyph_texts(&l.list).len(), 3 + 23);
+    // 23 rows fit without a finding.
+    let l = page_display_list(&view(Some(table(&slices[..23]))), Layer::Tables, bundled());
+    assert!(l.findings.is_empty(), "{:?}", l.findings);
+}
+
+#[test]
 fn a_note_takes_one_row_and_a_heading_spans_the_columns() {
     let mut t = table(&[]);
     t.note = Some("Not derived yet".to_owned());

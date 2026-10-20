@@ -24,4 +24,4 @@ seq,layer,entity,text,x_mm,y_mm,size_pt,angle_mdeg,box_x0_mm,box_y0_mm,box_x1_mm
 23,tables,,Aliases,192.696,19.388,8.88,0,192.696,16.040,202.836,20.305
 24,tables,,Members,215.388,19.388,8.88,0,215.388,16.040,229.408,20.305
 25,tables,,Pages,238.081,19.388,8.88,0,238.081,16.040,246.924,20.305
-26,tables,,Not derived yet: awaits the `connectivity queries on drawn_page_order` query,16.832,25.908,8.88,0,16.832,22.560,130.497,26.825
+26,tables,,Not derived yet: awaits the drawn page order,16.832,25.908,8.88,0,16.832,22.560,83.385,26.825

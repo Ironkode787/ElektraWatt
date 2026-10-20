@@ -106,6 +106,10 @@ pub enum NotDerived {
     /// The row query of `ew-derive` it reads does not exist yet (the connectivity queries of Derivation II:
     /// `terminal_rows`, `cable_rows`, `wire_rows`, `potential_partition`, `plc_rows`).
     AwaitsQuery(&'static str),
+    /// The connectivity queries the kind reads still read the full page order, which a `Q` with the report
+    /// engine computes while it paginates: the kind derives in a `Q` without the engine only (see
+    /// `kinds::conn`). Goes when those queries read the drawn page order.
+    AwaitsPageOrder,
     /// The model has no record shape for the source data yet (colour and size profiles, revisions).
     NoRecordShape(&'static str),
     /// The source is not supported in this build: a report kind without a row query, a user SQL report
@@ -120,6 +124,7 @@ impl fmt::Display for NotDerived {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             NotDerived::AwaitsQuery(q) => write!(f, "not derived yet: awaits the `{q}` query"),
+            NotDerived::AwaitsPageOrder => f.write_str("not derived yet: awaits the drawn page order"),
             NotDerived::NoRecordShape(r) => write!(f, "not derived yet: no `{r}` records in this format"),
             NotDerived::Unsupported(s) => write!(f, "not derived: `{s}` is not supported in this build"),
             NotDerived::Cycle(s) => write!(f, "not derived: query cycle in `{s}`"),

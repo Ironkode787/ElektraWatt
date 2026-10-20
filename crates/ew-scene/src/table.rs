@@ -54,6 +54,8 @@ pub const ROW_HEIGHT: Nm = Nm(6_520_000);
 pub const LINE_WIDTH: Nm = Nm(183_000);
 /// The header fill.
 pub const HEADER_FILL: Color = Color::from_rgb8(192, 192, 192);
+/// The most rows below the header the house form holds (doc 20 §16: 23 data rows per page).
+pub const MAX_ROWS: usize = ew_reports::layout::HOUSE_ROWS_PER_PAGE as usize;
 /// The smallest printed cap height of shrink-to-fit (doc 09 §2.5; the 1.8 mm of REF-088).
 pub const MIN_CAP_HEIGHT: Nm = Nm(1_800_000);
 
@@ -111,6 +113,13 @@ pub enum TableFinding {
         /// What happened.
         kind: OverflowKind,
     },
+    /// More rows than the house form holds ([`MAX_ROWS`]): the first `drawn` are drawn.
+    TooManyRows {
+        /// The rows given.
+        given: usize,
+        /// The rows drawn.
+        drawn: usize,
+    },
     /// Characters without a glyph in the font set (FR-OUT-027).
     MissingGlyphs {
         /// The text.
@@ -164,7 +173,16 @@ pub fn lower_table(view: &TableView, sheet: SheetMap, fonts: &FontSet) -> Lowere
     });
 
     let edges: Vec<Nm> = column_edges(&view.columns);
-    let row_count = if view.note.is_some() { 1 } else { view.rows.len() };
+    // The table never runs below the form's data area: rows beyond the page's capacity are not drawn and
+    // reported, instead of relying on the pagination's row count (FR-REP-039).
+    let given = if view.note.is_some() { 1 } else { view.rows.len() };
+    let row_count = given.min(MAX_ROWS);
+    if given > row_count {
+        out.findings.push(TableFinding::TooManyRows {
+            given,
+            drawn: row_count,
+        });
+    }
     let bottom = Nm(TOP.0 + ROW_HEIGHT.0 * (i64::try_from(row_count).unwrap_or(0) + 1));
     let to_page = |x: Nm, y: Nm| sheet.unapply(Pt2::new(x, y));
     let rect = |x0: Nm, y0: Nm, x1: Nm, y1: Nm| Rect::from_points(to_page(x0, y0), to_page(x1, y1));
@@ -267,7 +285,7 @@ pub fn lower_table(view: &TableView, sheet: SheetMap, fonts: &FontSet) -> Lowere
     if let Some(note) = &view.note {
         text(&mut out, note, LEFT, RIGHT, row_y(1), (None, 0));
     } else {
-        for (r, row) in view.rows.iter().enumerate() {
+        for (r, row) in view.rows.iter().take(row_count).enumerate() {
             let y = row_y(r + 1);
             match row.kind {
                 TableRowKind::Heading => {

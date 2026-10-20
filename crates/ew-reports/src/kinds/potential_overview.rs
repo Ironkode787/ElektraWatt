@@ -10,7 +10,7 @@ use ew_derive::ew_mltext::{NaturalKey, natural_key};
 use ew_derive::ew_schema::{CircuitClass, Page, PotentialType, ReportBlock};
 use ew_derive::{DrawnPageOrder, PageRef, Potential, PotentialId, PropSource, Q};
 
-use super::conn::{Wires, colour_cell, csa_cell, ready};
+use super::conn::{Wires, colour_cell, csa_cell, put, ready};
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 
@@ -84,15 +84,17 @@ impl ReportKindDef for PotentialOverview {
                         .map(|w| w.wire.pages.iter().map(|p| PageRef::Drawn(*p)).collect())
                 })
                 .unwrap_or_default();
-            let mut cells = vec![Cell::Empty; 9];
-            cells[0] = Cell::Ident(label);
-            cells[1] = Cell::Text(ew_derive::ew_mltext::MlText::neutral("Bond"));
-            cells[3] = Cell::Empty;
-            cells[8] = if pages.is_empty() {
-                Cell::Empty
-            } else {
-                Cell::Folios(pages)
-            };
+            let mut cells = vec![Cell::Empty; set.columns.len()];
+            put(&set.columns, &mut cells, "potential", Cell::Ident(label));
+            put(
+                &set.columns,
+                &mut cells,
+                "kind",
+                Cell::Text(ew_derive::ew_mltext::MlText::neutral("Bond")),
+            );
+            if !pages.is_empty() {
+                put(&set.columns, &mut cells, "pages", Cell::Folios(pages));
+            }
             set.rows.push(Row::data(
                 RowId::entity(bond.bond).with(RowKey::Name("bond".to_owned())),
                 cells,

@@ -253,6 +253,18 @@ fn the_text_csv_of_every_folio_matches_the_committed_file() {
                 eprintln!("{} rows {}", g.entry.folio, csv_rows(&csv));
             }
             assert!(csv_rows(&csv) > 0, "folio {} has texts", g.entry.folio);
+            // Shrink-and-report stays visible (FR-REP-039): no report table text overflows its cell even
+            // at the smallest permitted size, and no table runs past the page's rows.
+            let table_findings: Vec<_> = scene
+                .findings
+                .iter()
+                .filter(|f| matches!(f, PageFinding::Table(_)))
+                .collect();
+            assert!(
+                table_findings.is_empty(),
+                "folio {}: {table_findings:?}",
+                g.entry.folio
+            );
             check_or_bless(
                 &expected_dir("text").join(format!("{}.csv", g.entry.folio)),
                 csv.as_bytes(),

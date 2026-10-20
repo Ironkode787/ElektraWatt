@@ -78,7 +78,7 @@ pub fn render(q: &Q, cell: &Cell, opts: &RenderOptions) -> String {
                 s => format!("{n} {s}"),
             }
         }
-        Cell::Colour(c) => colour(c),
+        Cell::Colour(c) => colour_text(c),
         Cell::Date(d) => format!("{:02}-{:02}-{:04}", d.day(), d.month(), d.year()),
         Cell::Range(ds) => compress_range(q, ds),
         Cell::Tbd => opts.tbd.clone(),
@@ -100,14 +100,15 @@ fn text(ml: &MlText, lang: Option<&LangTag>) -> String {
         .to_owned()
 }
 
-/// The codes of a colour joined without a separator (`GNYE`).
-fn colour(c: &ColourSpec) -> String {
+/// The codes of a colour joined without a separator (`GNYE`); a code of a newer format prints its raw value.
+/// The printed text and the sort and group text of a colour cell are this one text.
+pub(crate) fn colour_text(c: &ColourSpec) -> String {
     c.codes()
         .iter()
         .map(|c| match c {
             ColourCode::Iec(i) => i.as_str().to_owned(),
             ColourCode::Company(i) | ColourCode::Foreign(i) => i.as_str().to_owned(),
-            ColourCode::Unknown(_) => String::new(),
+            ColourCode::Unknown(v) => v.to_string(),
         })
         .collect()
 }

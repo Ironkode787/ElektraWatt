@@ -408,10 +408,12 @@ page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106). Still open:
 - **Connectivity kinds in the page order.** `wire_list`, `potential_overview`, `terminal_diagram` and
   `cable_overview_diagrams` derive their rows from `potential_partition`, `physical_wires_of` and `wire_props_of`
   (see "Connectivity report rows"), but those queries read the full `page_order`, which a `Q` with the report engine
-  is still computing while it paginates. The kinds answer "not derived" there, so 903 … 907 and 909 are one
+  is still computing while it paginates. The gate depends on whether the report engine is installed in the `Q`, not on what was evaluated before, so
+  the kinds answer "not derived" (note "Not derived yet: awaits the drawn page order", no derivation note) in every
+  `Q` of a session, whatever is read first, and so 903 … 907 and 909 are one
   placeholder page each (907 holds 51 rows, three pages, once they derive). With the three
   `q.get::<PageOrder>(())` of `ew-derive`'s `wires.rs`, `potentials.rs` and `stitch.rs` replaced by
-  `DrawnPageOrder` (as the doc of that query prescribes), delete the gate in `ew-reports`'s `kinds/conn.rs::ready`,
+  `DrawnPageOrder` (as the doc of that query prescribes), delete the gate in `ew-reports`'s `kinds/conn.rs::ready` (and `NotDerived::AwaitsPageOrder`),
   re-bless (`EW_BLESS=1 cargo nextest run -p ew-api --test page_output`) and set the page count of `page_output.rs`
   to 33 and `EXPECTED_DROPPED_NOTDEF_GLYPHS` to 17 (the "−" of -102G1's CPs and the "⇄" of the bond wire have no glyph
   in the bundled Noto Sans, like the "∞" below; checked in a scratch copy with exactly that change).
@@ -448,9 +450,10 @@ page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106). Still open:
 ## Connectivity report rows
 
 `expected/rows/<block>.csv` (see above) holds what the four connectivity kinds print for the golden model. They were
-compared with doc 20 by hand, table by table; the counts agree (907: 44 wires, a heading and 6 bridges = 3 pages of 23,
-23 and 5 rows; 906: 3 cables, 13 cores and 4 headings = 20 rows; 903, 904 and 905: 3, 20 and 5 terminals), and so do the
-bridges BR1 … BR6 with their terminals and potentials, the terminals' groups, parts, states, bridges and targets of
+compared with doc 20 by hand, table by table; the counts agree except where noted (907: 44 wires, a heading and 6
+bridges = 51 rows, where doc 20 §16 counts 44 + 6 = 50: the counts differ by the heading row, and the pages are
+the same three of 23, 23 and 5 rows; 906: 3 cables, 13 cores and 4 headings = 20 rows; 903, 904 and 905: 3, 20 and 5
+terminals), and the bridges BR1 … BR6 with their terminals and potentials, the terminals' groups, parts, states, bridges and targets of
 doc 20 §9, the cable cores with colours and cross-sections, and the wire ends of doc 20 §8.2 except the points below.
 The expectations were not adjusted to the output; each difference is a gap of the derivation or the model, listed
 here:
@@ -469,6 +472,9 @@ here:
     doc 20 tells a profile row used as a rule (`rule`) from one used as a colour next to a CDP size (`profile`).
   - The Via column names the cable and core and the interruption points; doc 20 also names the junction (J1 … J6),
     "chain" and the EF case, which are not derived values.
+  - W33 to W44 (the cores of -106W1 and -106W2 and the PE legs) print the source `rule/core` or `rule`: the size
+    comes from the size profile, while doc 20 §10 says core cross-sections come from the cable part (the
+    conductors of the fixture carry none).
   - W30 to W32 (`24VDC-2` to `24VDC-4`) print colour BU from the built-in default, not DBU 0.75 (rule): the
     fixture's potentials carry no voltage or class ("L+, spare"), so no colour row matches them.
   - The bond wire W27 prints the potential `0V ⇄ PE` without "B1" ("⇄" has no glyph in the bundled font).
@@ -481,7 +487,8 @@ here:
   size are the profile's values for the potential's first wire that has one: empty for the size of `+24V` and
   `+24V-F` (every wire of them carries a CDP size) and for the colour of `24VDC-2` to `24VDC-4` (see W30), and for PE
   the size 0.75 of its first wire although doc 20 says "by class". N-55T and N-55S print the type of the partition,
-  not the "N switched" of the flow, and the columns "switched", "protected by" and "bonds" of doc 08 §10 are not
+  not the "N switched" of the flow (N-55S has an empty type), and both have an empty voltage and class where doc 20
+  §7.3 says 230 V AC (the fixture's definitions are naming only; the flow would propagate them). The columns "switched", "protected by" and "bonds" of doc 08 §10 are not
   printed. Pages compress consecutive pages to a range (`102–106` for 102, 103 and 106, FR-REP-046), where doc 20
   lists them. The bond row has a name and pages only.
 - **Terminal diagrams (903 … 905).** The two sides are printed in side order (side 1, side 2); doc 20 §9 puts the

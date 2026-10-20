@@ -24,4 +24,4 @@ seq,layer,entity,text,x_mm,y_mm,size_pt,angle_mdeg,box_x0_mm,box_y0_mm,box_x1_mm
 23,tables,,Side 2 (clamp b),183.130,19.388,8.88,0,183.130,16.040,206.309,20.305
 24,tables,,Bridge,244.532,19.388,8.88,0,244.532,16.040,254.287,20.305
 25,tables,,State,259.883,19.388,8.88,0,259.883,16.040,267.386,20.305
-26,tables,,Not derived yet: awaits the `connectivity queries on drawn_page_order` query,16.832,25.908,8.88,0,16.832,22.560,130.497,26.825
+26,tables,,Not derived yet: awaits the drawn page order,16.832,25.908,8.88,0,16.832,22.560,83.385,26.825
