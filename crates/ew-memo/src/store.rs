@@ -119,7 +119,8 @@ pub struct FamilyMemory {
     pub memos: usize,
     /// Memos that hold their value.
     pub values: usize,
-    /// Bytes of the held values, as `Query::bytes` reports them.
+    /// Bytes of the held values, as `Query::bytes` reports them (asked for when the report is made, except
+    /// for `Query::LRU` families, whose bytes are kept from the last write).
     pub value_bytes: usize,
     /// Recorded dependency entries over all memos.
     pub dep_entries: usize,
@@ -193,6 +194,9 @@ struct Memo<V, I: Ord + Clone> {
     verified_at: Rev,
     changed_at: Rev,
     durability: Durability,
+    /// The value's bytes ([`Query::bytes`]) for an [`LRU`](Query::LRU) family, which the budget needs at every
+    /// write; 0 for every other family, whose bytes [`Store::memory`] asks for on demand (review cycle 10,
+    /// finding 2: a value's bytes cost a walk of the value, which an incremental execution must not pay).
     bytes: usize,
 }
 
@@ -276,11 +280,27 @@ struct Family<D: Db> {
     verify: VerifyFn<D>,
     /// Drops a value (LRU eviction).
     evict: fn(&mut AnyStorage, SlotId),
+    /// Drops an unreferenced memo that was not verified at the given (closing) revision, for the collection of
+    /// orphans ([`State::collect_orphans`]).
+    collect: CollectFn<D::Input>,
     clone_storage: fn(&AnyStorage) -> AnyStorage,
     memory: fn(&AnyStorage, &'static str) -> FamilyMemory,
     /// `Debug` text of a slot's key, for cycle paths.
     describe: fn(&AnyStorage, SlotId) -> String,
 }
+
+/// What [`Family::collect`] did with a memo.
+enum Collected<I: Ord + Clone> {
+    /// The slot has no memo.
+    Absent,
+    /// The memo was verified at the closing revision (the host read it): kept.
+    Recent,
+    /// The memo was dropped; these are its registration keys.
+    Dropped(Arc<[DepKey<I>]>),
+}
+
+/// Drops the memo of a slot unless it was verified at the closing revision (see [`Family::collect`]).
+type CollectFn<I> = fn(&mut AnyStorage, SlotId, Rev) -> Collected<I>;
 
 impl<D: Db> Clone for Family<D> {
     fn clone(&self) -> Self {
@@ -290,6 +310,7 @@ impl<D: Db> Clone for Family<D> {
             storage: (self.clone_storage)(&self.storage),
             verify: self.verify,
             evict: self.evict,
+            collect: self.collect,
             clone_storage: self.clone_storage,
             memory: self.memory,
             describe: self.describe,
@@ -317,6 +338,11 @@ struct Frame<I: Ord + Clone> {
     parts: Option<Vec<I>>,
     /// A cycle was caught below this execution: its value depends on the evaluation context.
     volatile: bool,
+    /// The carried memo and part dependencies the hook dropped ([`Store::forget`]) and did not read again.
+    forgotten: BTreeSet<DepKey<I>>,
+    /// The hook dropped every carried dependency ([`Store::drop_carried`]): the execution is registered like a
+    /// full one, from its own reads.
+    dropped: bool,
 }
 
 impl<I: Ord + Clone> Frame<I> {
@@ -328,6 +354,8 @@ impl<I: Ord + Clone> Frame<I> {
             producers: BTreeSet::new(),
             parts: None,
             volatile: false,
+            forgotten: BTreeSet::new(),
+            dropped: false,
         }
     }
 
@@ -343,6 +371,8 @@ impl<I: Ord + Clone> Frame<I> {
             producers: previous.producers.iter().copied().collect(),
             parts: None,
             volatile: false,
+            forgotten: BTreeSet::new(),
+            dropped: false,
         }
     }
 
@@ -359,9 +389,31 @@ impl<I: Ord + Clone> Frame<I> {
                 if m.get(&key) == Some(&rev) && self.fresh.last() == Some(&key) {
                     return;
                 }
+                if !self.forgotten.is_empty() {
+                    self.forgotten.remove(&key);
+                }
                 m.insert(key.clone(), rev);
                 self.fresh.push(key);
             }
+        }
+    }
+
+    /// Drops a carried dependency (see [`Store::forget`]).
+    fn forget(&mut self, key: &DepKey<I>) {
+        if let FrameDeps::Map(m) = &mut self.deps {
+            m.remove(key);
+            self.forgotten.insert(key.clone());
+        }
+    }
+
+    /// Drops every carried dependency (see [`Store::drop_carried`]).
+    fn drop_carried(&mut self) {
+        if let FrameDeps::Map(m) = &mut self.deps {
+            *m = OrdMap::new();
+            self.durability = Durability::Library;
+            self.producers.clear();
+            self.forgotten.clear();
+            self.dropped = true;
         }
     }
 }
@@ -435,6 +487,9 @@ struct State<D: Db> {
     parts: OrdMap<MemoRef, Arc<Parts<D::Input>>>,
     /// Pending push marks.
     marks: OrdMap<MemoRef, Mark<D::Input>>,
+    /// Memos that lost their last memo or part reader, or were marked while no memo read them: the candidates
+    /// of the next collection ([`State::collect_orphans`]).
+    orphans: OrdSet<MemoRef>,
     /// Bumped whenever a memo's pending mark is cleared without bringing every memo it was marked through up
     /// to date (a durability skip of a marked memo; an incremental execution that did not re-read every memo
     /// of its `via`). While a mark's `walked` equals it, every transitive whole reader of the marked memo
@@ -544,6 +599,12 @@ impl<D: Db> State<D> {
         let mut visited: BTreeSet<MemoRef> = BTreeSet::new();
         while let Some((memo, via)) = queue.pop() {
             let incremental = self.families[memo.0.0 as usize].incremental;
+            // A marked memo that no memo reads is a candidate of the next collection: if the host does not read
+            // it again before the store advances, it goes (the memos of a deleted key are marked by its
+            // deletion).
+            if !self.referenced(memo) {
+                orphan(self, memo);
+            }
             let mark = self.marks.entry(memo).or_insert_with(|| Mark {
                 at: Rev::ZERO,
                 via: incremental.then(imbl::Vector::new),
@@ -586,6 +647,57 @@ impl<D: Db> State<D> {
             out.push(Arc::clone(inputs));
         }
         Some(out.iter().rev().flat_map(|l| l.iter().cloned()).collect())
+    }
+
+    /// Whether some memo reads `memo` whole or one of its parts.
+    fn referenced(&self, memo: MemoRef) -> bool {
+        self.rdeps.contains_key(&DepKey::Memo(memo.0, memo.1)) || self.part_readers.contains_key(&memo)
+    }
+
+    /// The collection of orphans (review cycle 10, finding 3), run when the store advances from the closing
+    /// revision `self.current`: every candidate that no memo reads (whole or by part) and that was not verified
+    /// at the closing revision is dropped, with its registrations, marks, part stamps and LRU entry. Dropping
+    /// a memo can orphan the memos it read; they are collected in the same pass. A candidate verified at the
+    /// closing revision (the host read it) stays, and is no candidate any more.
+    ///
+    /// A memo becomes a candidate when it loses its last reader (a memo of a deleted page, function or
+    /// potential, once its readers have re-executed without it), and when it is marked while no memo reads it
+    /// (a memo only the host reads, such as a deleted page's title block, which its key's deletion marks).
+    /// Memos of incremental families are never candidates: their hook needs the previous value, and their keys
+    /// are global in practice. Dropping is always sound: a later read re-computes the memo. The slot and its key stay interned, so a stale reference (a
+    /// producer list not yet refreshed) still names the same key.
+    fn collect_orphans(&mut self) {
+        let closing = self.current;
+        loop {
+            let batch = std::mem::take(&mut self.orphans);
+            if batch.is_empty() {
+                break;
+            }
+            for memo in batch {
+                if self.referenced(memo) {
+                    continue;
+                }
+                let family = &mut self.families[memo.0.0 as usize];
+                let name = family.name;
+                match (family.collect)(&mut family.storage, memo.1, closing) {
+                    Collected::Absent | Collected::Recent => {}
+                    Collected::Dropped(reg) => {
+                        self.record(name, Event::Collected);
+                        self.marks.remove(&memo);
+                        self.parts.remove(&memo);
+                        self.lru.remove(memo);
+                        let reg: BTreeSet<DepKey<D::Input>> = reg.iter().cloned().collect();
+                        for key in &reg {
+                            unregister(self, key, memo);
+                        }
+                        for p in part_producers(&reg) {
+                            remove_part_reader(self, p, memo);
+                        }
+                        self.mutated();
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -636,6 +748,16 @@ fn skip_bump<D: Db>(_: &State<D>) -> bool {
 /// only: the producer's re-execution declares which parts changed ([`Cx::changed_parts`]) and marks their
 /// readers then, so a per-key reader of a global value is not invalidated by every change of that value.
 ///
+/// # Bounded growth
+///
+/// An incremental execution starts with the previous memo's dependencies; its hook drops those its new value
+/// no longer relies on ([`Cx::forget`]), or all of them when it re-reads everything ([`Cx::drop_carried`]).
+/// A part that no memo reads keeps no stamp. When the store advances, every memo that no memo reads, that lost
+/// its last reader or was marked since the last advance, and that the host did not read at the closing
+/// revision is dropped (the collection of orphans, counted as
+/// [`Counters::collected`](crate::Counters::collected)): the memos of deleted keys do not accumulate. The slots
+/// and keys stay interned.
+///
 /// # Volatile executions
 ///
 /// An execution that caught a cycle below it ([`Cx::set_volatile`], or a volatile value it read) depends on
@@ -681,6 +803,7 @@ impl<D: Db> Clone for Store<D> {
                 part_readers: s.part_readers.clone(),
                 parts: s.parts.clone(),
                 marks: s.marks.clone(),
+                orphans: s.orphans.clone(),
                 mark_epoch: s.mark_epoch,
                 #[cfg(test)]
                 skip_incremental_epoch_bump: s.skip_incremental_epoch_bump,
@@ -767,6 +890,7 @@ impl<D: Db> Store<D> {
                 part_readers: OrdMap::new(),
                 parts: OrdMap::new(),
                 marks: OrdMap::new(),
+                orphans: OrdSet::new(),
                 mark_epoch: 0,
                 #[cfg(test)]
                 skip_incremental_epoch_bump: false,
@@ -804,7 +928,7 @@ impl<D: Db> Store<D> {
     /// `changed` must cover the durability of every changed input both before and after the change.
     ///
     /// The statistics of the closing commit are emitted (`tracing`, target `ew_memo::stats`, window
-    /// `commit`) and reset.
+    /// `commit`) and reset. Then the orphans are collected (see "Bounded growth" in the type documentation).
     ///
     /// # Panics
     ///
@@ -851,6 +975,8 @@ impl<D: Db> Store<D> {
         st.frames.clear();
         stats::emit(st.current, "commit", &st.commit);
         st.commit.clear();
+        // Counted in the new commit's statistics.
+        st.collect_orphans();
         for level in &mut st.last_changed[..=changed.index()] {
             *level = rev;
         }
@@ -929,6 +1055,39 @@ impl<D: Db> Store<D> {
         let mut st = self.st.borrow_mut();
         if let Some(frame) = st.frames.last_mut() {
             frame.parts.get_or_insert_with(Vec::new).extend(parts);
+        }
+    }
+
+    /// Drops `dep`, a memo or part dependency carried from the previous execution, from the innermost
+    /// incremental execution (what [`Cx::forget`] does): the hook's new value no longer relies on it (a key the
+    /// hook removed from its value). A later read in the same execution records it again. It does nothing in an
+    /// execution that carries nothing. Input dependencies are not forgotten (their registration key is coarse
+    /// and may be shared with another carried read).
+    ///
+    /// Without it an incremental family keeps every dependency it ever read (review cycle 10, finding 3).
+    pub fn forget(&self, dep: &DepKey<D::Input>) {
+        debug_assert!(
+            !matches!(dep, DepKey::Input(_)),
+            "ew-memo: only memo and part dependencies are forgotten"
+        );
+        if matches!(dep, DepKey::Input(_)) {
+            return;
+        }
+        let mut st = self.st.borrow_mut();
+        if let Some(frame) = st.frames.last_mut() {
+            frame.forget(dep);
+        }
+    }
+
+    /// Drops every dependency the innermost incremental execution carried from the previous one (what
+    /// [`Cx::drop_carried`] does), with their durability and producers: the execution depends on what it reads
+    /// from now on, and is registered for push invalidation like a full execution. For a hook that re-reads
+    /// everything its value relies on (an index over a table whose stamp it re-reads) or falls back to a full
+    /// computation. It does nothing in an execution that carries nothing.
+    pub fn drop_carried(&self) {
+        let mut st = self.st.borrow_mut();
+        if let Some(frame) = st.frames.last_mut() {
+            frame.drop_carried();
         }
     }
 
@@ -1131,6 +1290,7 @@ impl<D: Db> Store<D> {
         st.part_readers = fork.part_readers;
         st.parts = fork.parts;
         st.marks = fork.marks;
+        st.orphans = fork.orphans;
         st.mark_epoch = fork.mark_epoch;
         for (memo, bytes) in parent_touched {
             if st.lru.contains(memo) {
@@ -1146,6 +1306,19 @@ impl<D: Db> Store<D> {
         st.token = Arc::new(());
         st.base_token = None;
         true
+    }
+
+    /// The number of part stamps the producer named by `memo` (a [`DepKey::Memo`]) keeps (tests).
+    #[cfg(test)]
+    pub(crate) fn part_stamps(&self, memo: &DepKey<D::Input>) -> usize {
+        let DepKey::Memo(f, s) = memo else {
+            return 0;
+        };
+        self.st
+            .borrow()
+            .parts
+            .get(&(*f, *s))
+            .map_or(0, |p| p.stamps.len())
     }
 
     /// The pending marks as `(family, holds via keys)`, in memo order (tests).
@@ -1178,8 +1351,9 @@ impl<D: Db> Store<D> {
             storage: Box::new(storage),
             verify: verify_erased::<D, Q>,
             evict: evict_erased::<Q::Key, Q::Value, D::Input>,
+            collect: collect_erased::<Q::Key, Q::Value, D::Input>,
             clone_storage: clone_erased::<Q::Key, Q::Value, D::Input>,
-            memory: memory_erased::<Q::Key, Q::Value, D::Input>,
+            memory: memory_erased::<D, Q>,
             describe: describe_erased::<Q::Key, Q::Value, D::Input>,
         });
         st.by_type.insert(TypeId::of::<Q>(), fid);
@@ -1555,7 +1729,13 @@ impl<D: Db> Store<D> {
             }
             None => (Arc::new(value), current, false),
         };
-        let bytes = Q::bytes(&value);
+        // The bytes of an LRU family only (review cycle 10, finding 2); a cut-off that kept the previous value
+        // keeps its bytes.
+        let bytes = match prev.as_ref() {
+            _ if !Q::LRU => 0,
+            Some(p) if p.value.as_ref().is_some_and(|old| Arc::ptr_eq(old, &value)) => p.bytes,
+            _ => Q::bytes(&value),
+        };
         let durability = frame.durability;
         let deps = match frame.deps {
             FrameDeps::List(l) => Deps::List(Arc::from(l)),
@@ -1582,15 +1762,17 @@ impl<D: Db> Store<D> {
             _ => false,
         };
         // Registration keys (host code: computed before the state is borrowed).
-        let carried = incremental;
+        let carried = incremental && !frame.dropped;
         let new_keys: Vec<DepKey<D::Input>> = if carried {
             frame.fresh
         } else {
             deps.iter().map(|(k, _)| k.clone()).collect()
         };
         // The previous registrations as recorded (not recomputed in this snapshot, where a moved row has
-        // another coarse key). A full execution replaces them; an incremental one keeps them and adds the keys
-        // of its fresh reads (a carried read stays a dependency).
+        // another coarse key). A full execution (or an incremental one that dropped its carried dependencies)
+        // replaces them; an incremental one keeps them and adds the keys of its fresh reads (a carried read
+        // stays a dependency), less the memo and part dependencies its hook forgot (their registration key is
+        // the dependency itself).
         let old_reg: BTreeSet<DepKey<D::Input>> = prev
             .as_ref()
             .map(|p| p.reg.iter().cloned().collect())
@@ -1598,6 +1780,9 @@ impl<D: Db> Store<D> {
         let mut new_reg = registration(db, new_keys.iter());
         if carried {
             new_reg.extend(old_reg.iter().cloned());
+            for key in &frame.forgotten {
+                new_reg.remove(key);
+            }
         }
         let reg: Arc<[DepKey<D::Input>]> = match prev.as_ref() {
             Some(p) if new_reg.iter().eq(p.reg.iter()) => Arc::clone(&p.reg),
@@ -1624,16 +1809,7 @@ impl<D: Db> Store<D> {
             }
             let (old_producers, new_producers) = (part_producers(&old_reg), part_producers(&new_reg));
             for p in old_producers.difference(&new_producers) {
-                let empty = match st.part_readers.get_mut(p) {
-                    Some(set) => {
-                        set.remove(&me);
-                        set.is_empty()
-                    }
-                    None => false,
-                };
-                if empty {
-                    st.part_readers.remove(p);
-                }
+                remove_part_reader(&mut st, *p, me);
             }
             for p in new_producers {
                 st.part_readers.entry(p).or_default().insert(me);
@@ -1665,8 +1841,15 @@ impl<D: Db> Store<D> {
                             },
                             |p| (**p).clone(),
                         );
+                        // A part no memo reads gets no stamp (review cycle 10, finding 3: the stamps of every
+                        // part ever declared, a deleted endpoint's included, were kept for ever). Its stamp is
+                        // the base, which nobody observed; a reader registers before the part can change again.
                         for p in &declared {
-                            parts.stamps.insert(p.clone(), current);
+                            if st.rdeps.contains_key(&DepKey::Part(fid, slot, p.clone())) {
+                                parts.stamps.insert(p.clone(), current);
+                            } else {
+                                parts.stamps.remove(p);
+                            }
                         }
                         st.parts.insert(me, Arc::new(parts));
                         st.mark(
@@ -1801,6 +1984,12 @@ fn register<D: Db>(st: &mut State<D>, key: &DepKey<D::Input>, me: MemoRef) {
     st.rdeps.entry(key.clone()).or_default().insert(me);
 }
 
+/// Removes the registration of `me` under `key`. When `key` loses its last reader:
+///
+/// - a memo key makes that memo an orphan candidate (unless a part of it is still read);
+/// - a part key drops the part's stamp (review cycle 10, finding 3): no memo observed it, so the part's stamp
+///   may fall back to the producer's base; a later reader observes the base, and a later change of the part
+///   stamps it again because that reader is registered by then.
 fn unregister<D: Db>(st: &mut State<D>, key: &DepKey<D::Input>, me: MemoRef) {
     let empty = match st.rdeps.get_mut(key) {
         Some(set) => {
@@ -1809,8 +1998,50 @@ fn unregister<D: Db>(st: &mut State<D>, key: &DepKey<D::Input>, me: MemoRef) {
         }
         None => false,
     };
+    if !empty {
+        return;
+    }
+    st.rdeps.remove(key);
+    match key {
+        DepKey::Memo(f, s) => {
+            if !st.part_readers.contains_key(&(*f, *s)) {
+                orphan(st, (*f, *s));
+            }
+        }
+        DepKey::Part(f, s, part) => {
+            if let Some(parts) = st.parts.get_mut(&(*f, *s)) {
+                if parts.stamps.contains_key(part) {
+                    Arc::make_mut(parts).stamps.remove(part);
+                }
+            }
+        }
+        DepKey::Input(_) => {}
+    }
+}
+
+/// Removes `reader` from the part readers of `producer`; a producer left without part reader nor whole reader
+/// becomes an orphan candidate.
+fn remove_part_reader<D: Db>(st: &mut State<D>, producer: MemoRef, reader: MemoRef) {
+    let empty = match st.part_readers.get_mut(&producer) {
+        Some(set) => {
+            set.remove(&reader);
+            set.is_empty()
+        }
+        None => false,
+    };
     if empty {
-        st.rdeps.remove(key);
+        st.part_readers.remove(&producer);
+        if !st.rdeps.contains_key(&DepKey::Memo(producer.0, producer.1)) {
+            orphan(st, producer);
+        }
+    }
+}
+
+/// Makes an unreferenced memo a candidate of the next collection, unless its family is incremental (their
+/// memos are kept: a hook needs its previous value, and their keys are global).
+fn orphan<D: Db>(st: &mut State<D>, memo: MemoRef) {
+    if !st.families[memo.0.0 as usize].incremental {
+        st.orphans.insert(memo);
     }
 }
 
@@ -1889,6 +2120,31 @@ where
     }
 }
 
+fn collect_erased<K, V, I>(storage: &mut AnyStorage, slot: SlotId, closing: Rev) -> Collected<I>
+where
+    K: Ord + Clone + Send + Sync + 'static,
+    V: Send + Sync + 'static,
+    I: Ord + Clone + Send + Sync + 'static,
+{
+    let s: &mut FamilyStore<K, V, I> = (**storage)
+        .downcast_mut()
+        .expect("family storage of its own type");
+    let recent = match s.slots.get(slot.index()).and_then(|x| x.memo.as_ref()) {
+        None => return Collected::Absent,
+        Some(m) => m.verified_at >= closing,
+    };
+    if recent {
+        return Collected::Recent;
+    }
+    let Some(memo) = s.slots.get_mut(slot.index()).and_then(|x| x.memo.take()) else {
+        return Collected::Absent;
+    };
+    if let Some(index) = s.rdeps.as_mut() {
+        index.remove(slot, &memo.deps.to_vec());
+    }
+    Collected::Dropped(memo.reg)
+}
+
 fn clone_erased<K, V, I>(storage: &AnyStorage) -> AnyStorage
 where
     K: Ord + Clone + Send + Sync + 'static,
@@ -1901,13 +2157,9 @@ where
     Box::new(s.clone())
 }
 
-fn memory_erased<K, V, I>(storage: &AnyStorage, family: &'static str) -> FamilyMemory
-where
-    K: Ord + Clone + Send + Sync + 'static,
-    V: Send + Sync + 'static,
-    I: Ord + Clone + Send + Sync + 'static,
-{
-    let s: &FamilyStore<K, V, I> = (**storage)
+/// The memory of a family; the bytes of a family without LRU are asked for here, on demand.
+fn memory_erased<D: Db, Q: Query<D>>(storage: &AnyStorage, family: &'static str) -> FamilyMemory {
+    let s: &FamilyStore<Q::Key, Q::Value, D::Input> = (**storage)
         .downcast_ref()
         .expect("family storage of its own type");
     let mut out = FamilyMemory {
@@ -1918,9 +2170,9 @@ where
     for m in s.slots.iter().filter_map(|x| x.memo.as_ref()) {
         out.memos += 1;
         out.dep_entries += m.deps.len();
-        if m.value.is_some() {
+        if let Some(value) = &m.value {
             out.values += 1;
-            out.value_bytes += m.bytes;
+            out.value_bytes += if Q::LRU { m.bytes } else { Q::bytes(value) };
         }
     }
     out
@@ -2016,6 +2268,22 @@ impl<'a, D: Db> Cx<'a, D> {
     pub fn changed_parts(&mut self, parts: impl IntoIterator<Item = D::Input>) {
         if let Inner::Memo(store) = &self.inner {
             store.changed_parts(parts);
+        }
+    }
+
+    /// Drops a carried memo or part dependency the new value no longer relies on (see [`Store::forget`]). Cold,
+    /// it does nothing.
+    pub fn forget(&mut self, dep: &DepKey<D::Input>) {
+        if let Inner::Memo(store) = &self.inner {
+            store.forget(dep);
+        }
+    }
+
+    /// Drops every carried dependency: the execution depends on what it reads from now on (see
+    /// [`Store::drop_carried`]). Cold, it does nothing.
+    pub fn drop_carried(&mut self) {
+        if let Inner::Memo(store) = &self.inner {
+            store.drop_carried();
         }
     }
 

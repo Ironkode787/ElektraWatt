@@ -81,6 +81,8 @@ mod store;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
+mod tests_growth;
+#[cfg(test)]
 mod tests_push;
 
 pub use key::{DepKey, FamilyId, SlotId};

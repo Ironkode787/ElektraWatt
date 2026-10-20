@@ -133,6 +133,11 @@ pub trait Query<D: Db>: 'static {
     fn equivalence() -> Equivalence<Self::Value>;
 
     /// The bytes a value occupies, as the host counts them (for the LRU budget and memory reports).
+    ///
+    /// The store asks for them at every write of an [`LRU`](Query::LRU) family (the budget needs them; a cut-off
+    /// that keeps the previous value keeps its bytes), and for every other family only when
+    /// [`Store::memory`](crate::Store::memory) reports, never on the execution path. A family whose values are
+    /// large and updated incrementally should still answer cheaply (a running estimate kept in the value).
     fn bytes(_value: &Self::Value) -> usize {
         std::mem::size_of::<Self::Value>()
     }
