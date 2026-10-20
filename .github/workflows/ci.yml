@@ -91,6 +91,32 @@ jobs:
       # Feature-gated code (for example ew-ids/testkit) is only compiled and tested with its feature on.
       - name: cargo nextest (all features)
         run: cargo nextest run --workspace --all-features --locked --profile ci
+      # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
+      - name: failed tests as annotations
+        if: failure()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET, os
+          p = os.path.join("target", "nextest", "ci", "junit.xml")
+          if not os.path.exists(p):
+              print("::warning title=nextest::no junit.xml was written")
+              raise SystemExit(0)
+          n = 0
+          for tc in ET.parse(p).getroot().iter("testcase"):
+              f = tc.find("failure")
+              if f is None:
+                  f = tc.find("error")
+              if f is None:
+                  continue
+              n += 1
+              text = ((f.get("message") or "") + "
+" + (f.text or "")).strip()[:1500]
+              text = text.replace("%", "%25").replace("", "").replace("
+", "%0A")
+              print(f"::error title=nextest {tc.get('classname')}::{tc.get('name')}::{text}")
+          print(f"{n} failed test case(s) annotated")
+          PY
       # nextest does not run doctests.
       - name: cargo test --doc
         run: cargo test --doc --workspace --locked
@@ -123,6 +149,32 @@ jobs:
       # Feature-gated code (for example ew-ids/testkit) is only compiled and tested with its feature on.
       - name: cargo nextest (all features)
         run: cargo nextest run --workspace --all-features --locked --profile ci
+      # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
+      - name: failed tests as annotations
+        if: failure()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET, os
+          p = os.path.join("target", "nextest", "ci", "junit.xml")
+          if not os.path.exists(p):
+              print("::warning title=nextest::no junit.xml was written")
+              raise SystemExit(0)
+          n = 0
+          for tc in ET.parse(p).getroot().iter("testcase"):
+              f = tc.find("failure")
+              if f is None:
+                  f = tc.find("error")
+              if f is None:
+                  continue
+              n += 1
+              text = ((f.get("message") or "") + "
+" + (f.text or "")).strip()[:1500]
+              text = text.replace("%", "%25").replace("", "").replace("
+", "%0A")
+              print(f"::error title=nextest {tc.get('classname')}::{tc.get('name')}::{text}")
+          print(f"{n} failed test case(s) annotated")
+          PY
       # nextest does not run doctests.
       - name: cargo test --doc
         run: cargo test --doc --workspace --locked
@@ -155,6 +207,32 @@ jobs:
       # Feature-gated code (for example ew-ids/testkit) is only compiled and tested with its feature on.
       - name: cargo nextest (all features)
         run: cargo nextest run --workspace --all-features --locked --profile ci
+      # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
+      - name: failed tests as annotations
+        if: failure()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import xml.etree.ElementTree as ET, os
+          p = os.path.join("target", "nextest", "ci", "junit.xml")
+          if not os.path.exists(p):
+              print("::warning title=nextest::no junit.xml was written")
+              raise SystemExit(0)
+          n = 0
+          for tc in ET.parse(p).getroot().iter("testcase"):
+              f = tc.find("failure")
+              if f is None:
+                  f = tc.find("error")
+              if f is None:
+                  continue
+              n += 1
+              text = ((f.get("message") or "") + "
+" + (f.text or "")).strip()[:1500]
+              text = text.replace("%", "%25").replace("", "").replace("
+", "%0A")
+              print(f"::error title=nextest {tc.get('classname')}::{tc.get('name')}::{text}")
+          print(f"{n} failed test case(s) annotated")
+          PY
       # nextest does not run doctests.
       - name: cargo test --doc
         run: cargo test --doc --workspace --locked
