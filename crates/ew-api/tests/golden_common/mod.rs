@@ -222,6 +222,7 @@ pub fn source_key(r: &Record) -> Option<&str> {
         Record::PotentialDef(x) => x.source_ref.as_ref(),
         Record::Bond(x) => x.source_ref.as_ref(),
         Record::Conductor(x) => x.source_ref.as_ref(),
+        Record::ReportBlock(x) => x.source_ref.as_ref(),
         _ => None,
     }?;
     Some(s.key.as_str())

@@ -590,6 +590,7 @@ fn hostile_view() -> PageView {
         connections,
         junctions: Vec::new(),
         wire_marker: None,
+        table: None,
     }
 }
 

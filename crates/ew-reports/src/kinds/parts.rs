@@ -26,14 +26,14 @@ impl ReportKindDef for PartsSummary {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("pos", CellType::Ident, "Pos"),
-            ColumnDef::new("qty", CellType::Qty, "Qty"),
-            ColumnDef::new("unit", CellType::Ident, "Unit"),
-            ColumnDef::new("manufacturer", CellType::Ident, "Manufacturer"),
-            ColumnDef::new("part_number", CellType::Ident, "Part number"),
-            ColumnDef::new("description", CellType::Text, "Description"),
-            ColumnDef::new("tags", CellType::Range, "Tags"),
-            ColumnDef::new("folios", CellType::Folios, "Folios"),
+            ColumnDef::new("pos", CellType::Ident, "Pos").weighted(4),
+            ColumnDef::new("qty", CellType::Qty, "Qty").weighted(4),
+            ColumnDef::new("unit", CellType::Ident, "Unit").weighted(4),
+            ColumnDef::new("manufacturer", CellType::Ident, "Manufacturer").weighted(15),
+            ColumnDef::new("part_number", CellType::Ident, "Part number").weighted(19),
+            ColumnDef::new("description", CellType::Text, "Description").weighted(31),
+            ColumnDef::new("tags", CellType::Range, "Tags").weighted(19),
+            ColumnDef::new("folios", CellType::Folios, "Folios").weighted(8),
         ]
     }
 
@@ -104,12 +104,12 @@ impl ReportKindDef for PartsList {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("device", CellType::Tag, "Device"),
-            ColumnDef::new("qty", CellType::Qty, "Qty"),
-            ColumnDef::new("unit", CellType::Ident, "Unit"),
-            ColumnDef::new("manufacturer", CellType::Ident, "Manufacturer"),
-            ColumnDef::new("part_number", CellType::Ident, "Part number"),
-            ColumnDef::new("description", CellType::Text, "Description"),
+            ColumnDef::new("device", CellType::Tag, "Device").weighted(18),
+            ColumnDef::new("qty", CellType::Qty, "Qty").weighted(5),
+            ColumnDef::new("unit", CellType::Ident, "Unit").weighted(5),
+            ColumnDef::new("manufacturer", CellType::Ident, "Manufacturer").weighted(18),
+            ColumnDef::new("part_number", CellType::Ident, "Part number").weighted(22),
+            ColumnDef::new("description", CellType::Text, "Description").weighted(32),
         ]
     }
 

@@ -70,6 +70,38 @@ impl SheetMap {
         Nm(i64::try_from(q).unwrap_or(if q < 0 { i64::MIN } else { i64::MAX }))
     }
 
+    /// The page length that prints as `n` on the sheet: `round(n × 10⁹ / scale_ppb)`, ties toward zero (the
+    /// inverse of [`scale_len`](SheetMap::scale_len) up to rounding). A scale of 0 is treated as 1 ppb.
+    pub fn unscale_len(self, n: Nm) -> Nm {
+        let num = i128::from(n.0) * i128::from(PPB_ONE);
+        let den = i128::from(self.scale_ppb.max(1));
+        let q = num / den;
+        let r = num % den;
+        let q = if 2 * r.abs() > den { q + num.signum() } else { q };
+        Nm(i64::try_from(q).unwrap_or(if q < 0 { i64::MIN } else { i64::MAX }))
+    }
+
+    /// The page point that prints at the sheet point `p` (the inverse of [`apply`](SheetMap::apply) up to
+    /// rounding).
+    ///
+    /// ```
+    /// use ew_scene::forms::SheetMap;
+    /// use ew_units::{Nm, Pt2};
+    ///
+    /// let m = SheetMap { scale_ppb: 986_282_578, offset: Pt2::new(Nm(9_790_000), Nm(9_790_000)) };
+    /// // The report table's left edge, printed at 16.31 mm, is at page x 6.610 682 mm; it prints back to
+    /// // within a nanometre.
+    /// let page = m.unapply(Pt2::new(Nm(16_310_000), Nm(15_010_000)));
+    /// assert_eq!(page.x, Nm(6_610_682));
+    /// assert!((m.apply(page).x.0 - 16_310_000).abs() <= 1);
+    /// ```
+    pub fn unapply(self, p: Pt2) -> Pt2 {
+        Pt2::new(
+            self.unscale_len(p.x - self.offset.x),
+            self.unscale_len(p.y - self.offset.y),
+        )
+    }
+
     /// A page point on the sheet.
     pub fn apply(self, p: Pt2) -> Pt2 {
         Pt2::new(

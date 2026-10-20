@@ -18,7 +18,7 @@ use std::ops::Range;
 
 use ew_derive::ew_ids::{Id, Uuid};
 use ew_derive::ew_mltext::MlText;
-use ew_derive::ew_schema::{AnyId, ColourCode, Date, Device, Function, OrderUnit, Unit};
+use ew_derive::ew_schema::{AnyId, ColourSpec, Date, Device, Function, OrderUnit, Unit};
 use ew_derive::ew_units::Dec3;
 use ew_derive::{PageRef, Rev};
 
@@ -136,16 +136,31 @@ pub struct ColumnDef {
     pub ty: CellType,
     /// The header label (English; Fluent keys arrive with the message-list UI).
     pub label: MlText,
+    /// The relative printed width of the column in a paged table: the house report form splits its table
+    /// width by these weights ([`ColumnDef::new`] gives [`ColumnDef::DEFAULT_WEIGHT`]). Not data: XLSX and CSV
+    /// ignore it.
+    pub weight: u32,
 }
 
 impl ColumnDef {
+    /// The weight of a column that does not set one.
+    pub const DEFAULT_WEIGHT: u32 = 10;
+
     /// A column with a neutral-text label.
     pub fn new(key: &str, ty: CellType, label: &str) -> ColumnDef {
         ColumnDef {
             key: key.to_owned(),
             ty,
             label: MlText::neutral(label),
+            weight: ColumnDef::DEFAULT_WEIGHT,
         }
+    }
+
+    /// This column with printed-width weight `weight`.
+    #[must_use]
+    pub fn weighted(mut self, weight: u32) -> ColumnDef {
+        self.weight = weight;
+        self
     }
 }
 
@@ -442,8 +457,8 @@ pub enum Cell {
     CellRef(PageRef, GridCell),
     /// An exact quantity with its unit.
     Qty(Dec3, QtyUnit),
-    /// A colour code.
-    Colour(ColourCode),
+    /// A colour: one code, or two (GNYE).
+    Colour(ColourSpec),
     /// A PLC address as text (typed once `ew-plcaddr` has its address type).
     Address(String),
     /// A date.

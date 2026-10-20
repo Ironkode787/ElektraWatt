@@ -17,7 +17,7 @@ use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{LangTag, MlText, NaturalKey, natural_key};
-use ew_derive::ew_schema::{ColourCode, Device, OrderUnit, Unit};
+use ew_derive::ew_schema::{ColourCode, ColourSpec, Device, OrderUnit, Unit};
 use ew_derive::ew_units::Dec3;
 use ew_derive::{DeviceTag, DisplayedTag, PageOrder, PageRef, Policy, Q, Query, folio_label};
 
@@ -100,12 +100,16 @@ fn text(ml: &MlText, lang: Option<&LangTag>) -> String {
         .to_owned()
 }
 
-fn colour(c: &ColourCode) -> String {
-    match c {
-        ColourCode::Iec(i) => i.as_str().to_owned(),
-        ColourCode::Company(i) | ColourCode::Foreign(i) => i.as_str().to_owned(),
-        ColourCode::Unknown(_) => String::new(),
-    }
+/// The codes of a colour joined without a separator (`GNYE`).
+fn colour(c: &ColourSpec) -> String {
+    c.codes()
+        .iter()
+        .map(|c| match c {
+            ColourCode::Iec(i) => i.as_str().to_owned(),
+            ColourCode::Company(i) | ColourCode::Foreign(i) => i.as_str().to_owned(),
+            ColourCode::Unknown(_) => String::new(),
+        })
+        .collect()
 }
 
 fn tag(q: &Q, id: Id<Device>, opts: &RenderOptions) -> String {

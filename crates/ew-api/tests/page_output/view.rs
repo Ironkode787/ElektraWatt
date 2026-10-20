@@ -13,9 +13,12 @@
 //!   generated report pages take part in Prev/Next, the outline and `/PageLabels` (ARCH §6.4);
 //! - page IDs: a drawn page's ID, a divider's section ID, a generated page's v5 ID `v5(block, index)`
 //!   (`GeneratedPage::id`); every PDF destination is unique;
-//! - frame form: `Page.form`, else the no-grid frame (dividers); a generated page's `GeneratedPage::form`
-//!   (frame and title block only until the report content reaches the scene); the title block by
-//!   `FormDef.title_block`;
+//! - frame form: `Page.form`, else the no-grid frame (dividers); a generated page's `GeneratedPage::form`;
+//!   the title block by `FormDef.title_block`;
+//! - report tables (FT-53): a generated page's rows are the `GeneratedPage::rows` range of
+//!   `report_rows(block)` (`BlockRows`, read after the page order exists), each cell printed by
+//!   `ew_reports::render::render` for that page (neutral language, displayed tags); a page with a `note`
+//!   prints the note in one row instead; the column widths are the columns' weights;
 //! - bindings: every `title_block(page)` value, the project's date format, no display language (neutral);
 //! - slot values: `tag` → `displayed_tag(device, page)`, except that a terminal's own representation prints
 //!   only the terminal's designation (ID-162, doc 08 §6.7; the strip tag appears once per strip
@@ -40,19 +43,22 @@ use std::sync::Arc;
 
 use ew_api::{Session, SessionOptions};
 use ew_derive::{
-    DisplayedTag, FunctionCps, PageEntry, PageOrder, PageOrderV, PageRef, PageTitle, Q, TbValue,
-    TitleBlockValues, XrefTextOf,
+    DisplayedTag, FunctionCps, GeneratedPage, PageEntry, PageOrder, PageOrderV, PageRef, PageTitle, Q,
+    TbValue, TitleBlockValues, XrefTextOf,
 };
 use ew_dl::{Destination, FontKey};
 use ew_ids::Id;
 use ew_import_tables::ew_interop_api::ImportInput;
 use ew_import_tables::{BuiltinLibrary, TablesImporter, bootstrap_context};
 use ew_render_cpu::FontBytes;
+use ew_reports::render::{RenderOptions, render};
+use ew_reports::{BlockRows, RowKind};
 use ew_scene::forms::{AssetRef, BoundValue, PageBindings};
 use ew_scene::page::{
     ConnectionView, FrameView, JunctionView, PageKind, PageView, RepView, SegmentTerminal, SlotValue,
     SymbolRef,
 };
+use ew_scene::table::{TableColumn, TableRow, TableRowKind, TableView};
 use ew_schema::{
     Csa, FnRole, FormDef, Function, FunctionKind, JunctionStyle, LibCopy, LibDocument, Page, PageType,
     Record, RepType, Representation, Side, SlotKind, SymbolDef,
@@ -317,6 +323,7 @@ pub fn golden_pages(q: &Q) -> Vec<GoldenPage> {
             connections: Vec::new(),
             junctions: Vec::new(),
             wire_marker: marker.clone(),
+            table: None,
         };
         match entry.page {
             PageRef::Drawn(p) => {
@@ -379,8 +386,10 @@ pub fn golden_pages(q: &Q) -> Vec<GoldenPage> {
                 }
             }
             PageRef::Generated { .. } => {
-                let f = order.generated(entry.page).and_then(|g| form(q, g.form));
+                let g = order.generated(entry.page);
+                let f = g.and_then(|g| form(q, g.form));
                 view.frame = frame_view(q, f.or_else(|| nogrid.clone()), entry.page);
+                view.table = g.map(|g| table_view(q, g, entry.page));
             }
             PageRef::Divider(_) => {
                 view.frame = frame_view(q, nogrid.clone(), entry.page);
@@ -394,6 +403,47 @@ pub fn golden_pages(q: &Q) -> Vec<GoldenPage> {
         });
     }
     out
+}
+
+/// The printed table of a generated page (see the module documentation).
+fn table_view(q: &Q, g: &GeneratedPage, page: PageRef) -> TableView {
+    let set = q.get::<BlockRows>(g.block);
+    let opts = RenderOptions {
+        page: Some(page),
+        ..RenderOptions::default()
+    };
+    let columns = set
+        .columns
+        .iter()
+        .map(|c| TableColumn {
+            header: neutral(&c.label),
+            weight: c.weight,
+        })
+        .collect();
+    if let Some(note) = &g.note {
+        return TableView {
+            columns,
+            rows: Vec::new(),
+            note: Some(neutral(note)),
+        };
+    }
+    let end = (g.rows.end as usize).min(set.rows.len());
+    let start = (g.rows.start as usize).min(end);
+    let rows = set.rows[start..end]
+        .iter()
+        .map(|r| TableRow {
+            kind: match r.kind {
+                RowKind::Data => TableRowKind::Data,
+                RowKind::Heading | RowKind::GroupHeader | RowKind::GroupFooter => TableRowKind::Heading,
+            },
+            cells: r.cells.iter().map(|c| render(q, c, &opts)).collect(),
+        })
+        .collect();
+    TableView {
+        columns,
+        rows,
+        note: None,
+    }
 }
 
 /// The stable UUID of a page of the page order: the page's, the section's for its divider, and for a

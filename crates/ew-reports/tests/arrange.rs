@@ -809,10 +809,15 @@ fn cell_text_of_simple_cells() {
     assert_eq!(t(Cell::Stale(Box::new(Cell::Number(5)), Rev(1))), "5");
     assert_eq!(t(Cell::Folios(Vec::new())), "");
     assert_eq!(t(Cell::Range(Vec::new())), "");
-    assert_eq!(t(Cell::Colour(serde_json::from_str("\"BK\"").unwrap())), "BK");
+    assert_eq!(t(Cell::Colour(serde_json::from_str("[\"BK\"]").unwrap())), "BK");
+    // Two codes (GNYE) print joined.
+    assert_eq!(
+        t(Cell::Colour(serde_json::from_str("[\"GN\",\"YE\"]").unwrap())),
+        "GNYE"
+    );
     assert_eq!(
         t(Cell::Colour(
-            serde_json::from_str("{\"foreign\":\"BR\"}").unwrap()
+            serde_json::from_str("[{\"foreign\":\"BR\"}]").unwrap()
         )),
         "BR"
     );
@@ -856,7 +861,7 @@ fn cell_key_is_a_total_order_over_classes() {
         Cell::Number(-1),
         Cell::Number(7),
         Cell::Qty(Dec3(1), QtyUnit::None),
-        Cell::Colour(serde_json::from_str("\"BK\"").unwrap()),
+        Cell::Colour(serde_json::from_str("[\"BK\"]").unwrap()),
         Cell::Address("a".into()),
         Cell::Date("2026-01-01".parse().unwrap()),
         Cell::Bool(false),

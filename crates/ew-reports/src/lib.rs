@@ -84,6 +84,10 @@ mod tests {
             let k = reg.by_name(n).unwrap();
             assert_eq!(k.name(), *n);
             assert!(!k.columns().is_empty(), "kind `{n}` has no columns");
+            assert!(
+                k.columns().iter().all(|c| c.weight > 0),
+                "kind `{n}` has a column without printed width"
+            );
         }
         for want in [
             "toc",

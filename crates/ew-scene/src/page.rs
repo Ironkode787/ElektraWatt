@@ -23,6 +23,7 @@
 //! | [`Layer::Symbols`] | `reps` | per representation (by ID): one [`Item::instance`] of `symbol_geometry(symbol, orient)` at `pos`, tagged with the representation and its [`Link::Target`]; then its static symbol texts |
 //! | [`Layer::Wires`] | `reps` (CP positions), `connections`, `junctions` | per connection (by ID): its polyline; then per junction (by ID): its dot or bevel symbol |
 //! | [`Layer::Labels`] | `reps`, `connections`, `wire_marker` | per representation (by ID): its visible slot texts (a [`Link::Source`] where the slot value names a destination); then per connection with a marker (by ID): the marker box and text |
+//! | [`Layer::Tables`] | `table` | [`crate::table::lower_table`]: the house report table of a generated page |
 //! | others | — | empty: embedded blocks, revision marks and highlights arrive with their work packages |
 //!
 //! Panel-layout pages ([`PageKind::Panel`]) use [`Layer::PANEL`]; their surface, carrier, placement,
@@ -88,6 +89,7 @@ use crate::forms::{
 };
 use crate::route::{RouteEnd, connection_polyline};
 use crate::symbol::{self, TextSource};
+use crate::table::{TableFinding, TableView, lower_table};
 
 /// The radius of a junction dot drawn without a junction symbol: 1.25 QET px (0.33 mm), the radius of
 /// `ew.gen.junction-dot@qet10`.
@@ -231,6 +233,8 @@ pub struct PageView {
     pub junctions: Vec<JunctionView>,
     /// The wire-marker symbol (`ew.gen.wire-marker`); markers draw their text only without it.
     pub wire_marker: Option<SymbolRef>,
+    /// The report table of a generated page (FT-53); `None` on every other page.
+    pub table: Option<TableView>,
 }
 
 /// Something worth reporting while building a page.
@@ -264,6 +268,8 @@ pub enum PageFinding {
         /// The characters, each once.
         chars: Vec<char>,
     },
+    /// A finding of the report table.
+    Table(TableFinding),
 }
 
 /// One layer of one page: the display list in page coordinates, the symbol geometry its instances name,
@@ -290,6 +296,7 @@ pub fn page_display_list(view: &PageView, layer: Layer, fonts: &FontSet) -> Laye
         Layer::Symbols => b.symbols(view),
         Layer::Wires => b.wires(view),
         Layer::Labels => b.labels(view),
+        Layer::Tables => b.tables(view),
         _ => {}
     }
     b.out
@@ -501,6 +508,21 @@ impl Builder<'_> {
         self.out
             .findings
             .extend(lowered.findings.into_iter().map(PageFinding::Form));
+    }
+
+    fn tables(&mut self, view: &PageView) {
+        let Some(table) = &view.table else { return };
+        let sheet = view
+            .frame
+            .as_ref()
+            .map_or(SheetMap::IDENTITY, |f| SheetMap::of(&f.form));
+        let lowered = lower_table(table, sheet, self.fonts);
+        for item in lowered.items {
+            self.push(item);
+        }
+        self.out
+            .findings
+            .extend(lowered.findings.into_iter().map(PageFinding::Table));
     }
 
     fn symbols(&mut self, view: &PageView) {

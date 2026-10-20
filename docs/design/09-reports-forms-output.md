@@ -669,8 +669,10 @@ frame form is applied once, identically, by every writer.
 *As built (cycle 7, decision log ID-125, ID-136, ID-144; ADR-0015 amendment 7).* `ew-scene` builds each layer as a
 pure function of a caller-filled `PageView` (records by reference, derived texts as slot values); each layer reads
 only its own inputs, records are taken in ID order, a CP's position comes from the representation with the smallest
-ID that draws it, and slot visibility is the override, else the arrangement, else the symbol default. The `tables`,
-`revision` and `highlights` layers are empty so far, so generated pages print their frame only (FT-53). Wires
+ID that draws it, and slot visibility is the override, else the arrangement, else the symbol default. The `revision`
+and `highlights` layers are empty so far; the `tables` layer draws the house report table of a generated page from a
+caller-filled `TableView` of printed texts (cycle 9, FT-53: x 16.31 to 277.27 mm, rows of 6.52 mm, header #C0C0C0,
+column widths by the kinds' weights, text shrunk to a printed cap height of 1.8 mm and then reported, never cut). Wires
 without a stored route take the provisional router (decision log ID-137). Until a `Session` export job exists
 (FT-59), the view of a divider or generated page uses the no-grid frame, the wire-marker text is "csa colour", and
 only the tag, CP designation, function text and process tag slots are filled.

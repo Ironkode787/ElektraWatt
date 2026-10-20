@@ -27,11 +27,11 @@ impl ReportKindDef for StructureOverview {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("designation", CellType::Ident, "Designation"),
-            ColumnDef::new("kind", CellType::Text, "Kind"),
-            ColumnDef::new("function_text", CellType::Text, "Function text"),
-            ColumnDef::new("part", CellType::Ident, "Part"),
-            ColumnDef::new("location", CellType::Ident, "Location (+)"),
+            ColumnDef::new("designation", CellType::Ident, "Designation").weighted(28),
+            ColumnDef::new("kind", CellType::Text, "Kind").weighted(9),
+            ColumnDef::new("function_text", CellType::Text, "Function text").weighted(30),
+            ColumnDef::new("part", CellType::Ident, "Part").weighted(19),
+            ColumnDef::new("location", CellType::Ident, "Location (+)").weighted(14),
         ]
     }
 

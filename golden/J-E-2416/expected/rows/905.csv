@@ -1,0 +1,6 @@
+row,Terminal,Function text,Group,Part,Potential,Side 1 (clamp a),Side 2 (clamp b),Bridge,State
+data,1,PE,,PT 2.5-TWIN-PE,PE,-202U1:3 via -106W2 GNYE,E55:PE,BR6,used
+data,2,PE,,PT 2.5-TWIN-PE,PE,-102G1:−,-102G1:PE,BR6,used
+data,3,PE,,PT 2.5-TWIN-PE,PE,-201U1:3 via -106W1 GNYE,-201U1:FE,BR6,used
+data,4,PE,,PT 2.5-TWIN-PE,PE,,-202U1:FE,BR6,used
+data,5,PE,,PT 2.5-TWIN-PE,PE,,,BR6,spare

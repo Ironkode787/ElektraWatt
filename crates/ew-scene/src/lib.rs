@@ -19,3 +19,4 @@ pub mod forms;
 pub mod page;
 pub mod route;
 pub mod symbol;
+pub mod table;

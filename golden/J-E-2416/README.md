@@ -370,6 +370,12 @@ cargo nextest run -p ew-api --test page_output                # compares (no EW_
   `page_order` (dialect as above). Columns `seq,layer,entity,text,x_mm,y_mm,size_pt,angle_mdeg,box_x0_mm,box_y0_mm,
   box_x1_mm,box_y1_mm`. The **anchor** of §3.3 recorded is the run origin (the baseline start, `x_mm,y_mm`, 3 decimals)
   together with the run's layout box; `size_pt` has 2 decimals; `angle_mdeg` is the run's own angle in [0, 360000).
+- `rows/<block>.csv` (903 … 907, 909): the printed rows of the connectivity report blocks, written by
+  `crates/ew-api/tests/connectivity_reports.rs` (`EW_BLESS=1 cargo nextest run -p ew-api --test
+  connectivity_reports`). First column `row` is `data` or `heading`, then the columns of the kind as printed (neutral
+  language). They are read from a `Q` without the report engine and over the golden tables **with** the colour and
+  size profiles of doc 20 §7.1, §7.2 (the page goldens have none yet). Same dialect as above. Once the kinds
+  paginate, their page text files carry the same rows.
 - `geometry/frame.json`: the printed frame figures of the two frame forms with the QET title block, in mm on the
   sheet (3 decimals): sheet, outer, drawing area, header band, column and row edges, labels, title block, line width.
 - `png/<folio>.png`: the sheet at 150 dpi. They are **candidates awaiting the first PNG approval (FT-10, an owner
@@ -390,9 +396,25 @@ page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106). Still open:
   -X1031 and -X1032 run collinear along the top of each segment and over the strip tags, and the column-1
   interruption points (0VDC, 24VDC-1 … 4, PE-AIR2, PE-0VDC, PE-AIR1) are joined by one collinear vertical route that
   reads as 24 V shorted to 0 V and PE; on 106 the twelve feeds of the CPX power boxes run along the box edges.
-- **Report and divider pages.** The generated pages (2, 2.1, 901, 903 … 911) and the dividers 100, 200 and 900
-  show frame and title block only; their content comes with the report forms in the scene. Doc 20 §5 counts 36
-  pages; the page order has 31 until the report engine paginates every block (for example 901.1).
+- **Report pages.** The generated pages (2, 2.1, 901, 903 … 911) draw their `tables` layer (FT-53): the house
+  report table of doc 20 §16 (x 16.31 to 277.27 mm, rows of 6.52 mm, header #C0C0C0, 8.88 pt), column widths by
+  the columns' weights (no data area in the golden report forms, so the widths are the kinds' choice: only the TOC's
+  follow the reference). A page of a block that is not derived prints its reason in one row. Row links
+  (FR-REP-042) and the cover tables are not drawn yet. The dividers 100, 200 and 900 show frame and title block only.
+- **Page count.** Doc 20 §5 counts 36 pages; the page order has 31. Five pages are missing for reasons outside the
+  table drawing: 901.1 (the TBD parts of BOM rows 24 to 27 are not in the tables, so 901 holds its 23 rows), 907.1
+  and 907.2 (the connectivity kinds derive their rows but cannot paginate, next item) and 908.1 and 908.2 (the PLC
+  overview has no channel records).
+- **Connectivity kinds in the page order.** `wire_list`, `potential_overview`, `terminal_diagram` and
+  `cable_overview_diagrams` derive their rows from `potential_partition`, `physical_wires_of` and `wire_props_of`
+  (see "Connectivity report rows"), but those queries read the full `page_order`, which a `Q` with the report engine
+  is still computing while it paginates. The kinds answer "not derived" there, so 903 … 907 and 909 are one
+  placeholder page each (907 holds 51 rows, three pages, once they derive). With the three
+  `q.get::<PageOrder>(())` of `ew-derive`'s `wires.rs`, `potentials.rs` and `stitch.rs` replaced by
+  `DrawnPageOrder` (as the doc of that query prescribes), delete the gate in `ew-reports`'s `kinds/conn.rs::ready`,
+  re-bless (`EW_BLESS=1 cargo nextest run -p ew-api --test page_output`) and set the page count of `page_output.rs`
+  to 33 and `EXPECTED_DROPPED_NOTDEF_GLYPHS` to 17 (the "−" of -102G1's CPs and the "⇄" of the bond wire have no glyph
+  in the bundled Noto Sans, like the "∞" below; checked in a scratch copy with exactly that change).
 - **TOC pages.** The title blocks of 2 and 2.1 print no `=P01` and `+J-E-2416` (14 rows against 16 on 903): the TOC
   pages' structure binding in `ew-derive` is still open (doc 20 §5 gives every page both signs).
 - **Folio 1.** The cover content of doc 20 §17.3 is not drawn.
@@ -422,6 +444,54 @@ page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106). Still open:
 - **Link annotations.** The PDF has 63 link annotations against the 64 of §3.4 row 18: one per xref text slot,
   and a slot that lists several items ("∞ 3-B2, 106-G3") links to its first item only (the scene carries one
   link per text).
+
+## Connectivity report rows
+
+`expected/rows/<block>.csv` (see above) holds what the four connectivity kinds print for the golden model. They were
+compared with doc 20 by hand, table by table; the counts agree (907: 44 wires, a heading and 6 bridges = 3 pages of 23,
+23 and 5 rows; 906: 3 cables, 13 cores and 4 headings = 20 rows; 903, 904 and 905: 3, 20 and 5 terminals), and so do the
+bridges BR1 … BR6 with their terminals and potentials, the terminals' groups, parts, states, bridges and targets of
+doc 20 §9, the cable cores with colours and cross-sections, and the wire ends of doc 20 §8.2 except the points below.
+The expectations were not adjusted to the output; each difference is a gap of the derivation or the model, listed
+here:
+
+- **Wire list (907).**
+  - Rows are in reading order (page, then the frame-grid cell of an end where a representation draws it, then the
+    tags and CPs, then the wire ID), not in the W1 … W44 order of doc 20 (W is a fixture label). The numbering order
+    of FR-NUM-028 needs the cells of terminals in strip segments, which no query gives.
+  - The "No." column is empty: the wire numbering of doc 08 §5 has no query yet.
+  - From and To follow doc 08 §3.8 (FR-CON-040) without its flow-distance step (`ew-derive` has no per-CP distance):
+    on one page the end with the smaller anchor cell is From. W1 to W3 (the supply to 1X1) and W4, W5 (1X1 to S51)
+    print the other way round.
+  - Repeated CP designations print plainly (`-101F1:N`, `-102G1:+`, `-102G1:−`, `-102F2:GND`), without the `#1`,
+    `#2` of doc 20; a terminal end prints the clamp in the CP column (`-X1031:1` and `b`), not as `1/b`.
+  - The Source column prints `cdp`, `rule`, `core`, `bond` (size first, then colour, joined when they differ);
+    doc 20 tells a profile row used as a rule (`rule`) from one used as a colour next to a CDP size (`profile`).
+  - The Via column names the cable and core and the interruption points; doc 20 also names the junction (J1 … J6),
+    "chain" and the EF case, which are not derived values.
+  - W30 to W32 (`24VDC-2` to `24VDC-4`) print colour BU from the built-in default, not DBU 0.75 (rule): the
+    fixture's potentials carry no voltage or class ("L+, spare"), so no colour row matches them.
+  - The bond wire W27 prints the potential `0V ⇄ PE` without "B1" ("⇄" has no glyph in the bundled font).
+  - The page goldens are made without the colour and size profiles (the importer does not emit them yet, decision
+    log ID-90): their colours and sizes are the built-in defaults. `rows/907.csv` has the profiles.
+- **Potential overview (909).** 18 potentials and B1 (19 rows): the PROFIBUS `DP` potential of doc 20 §7.3 needs the
+  `Bus` connections of the PLC work package. The rows are in natural order of the name, not in the order of doc 20.
+  Members are counted as doc 20 counts them (device CPs, a terminal once, external points); the rails and the plate
+  "by declared bonding" are not in the model (PE: 14, doc 20 lists 13 and the bonded carriers). The default colour and
+  size are the profile's values for the potential's first wire that has one: empty for the size of `+24V` and
+  `+24V-F` (every wire of them carries a CDP size) and for the colour of `24VDC-2` to `24VDC-4` (see W30), and for PE
+  the size 0.75 of its first wire although doc 20 says "by class". N-55T and N-55S print the type of the partition,
+  not the "N switched" of the flow, and the columns "switched", "protected by" and "bonds" of doc 08 §10 are not
+  printed. Pages compress consecutive pages to a range (`102–106` for 102, 103 and 106, FR-REP-046), where doc 20
+  lists them. The bond row has a name and pages only.
+- **Terminal diagrams (903 … 905).** The two sides are printed in side order (side 1, side 2); doc 20 §9 puts the
+  field side of 1X1 first (`Strip.field_side` is not applied). Targets carry no wire number (W29 …) and no `#n`.
+  Multi-level terminals would need one row per level.
+- **Cable overview (906).** Cores are in natural order of the core name (BK, BN, BU, GNYE, WH), not in pin order
+  (BK, BU, GNYE, WH, BN): pins are not modelled. The length of -106W1 and -106W2 prints "from part" (the part has no
+  length value, ▲U-18), -3W1 "length missing". The bus cable -3W1 has no ends (its line is a `Bus` connection, not a
+  physical wire; doc 20 gives -3X1 In to the external end), and the connector designation of -201U1 X1 is not
+  derived.
 
 ## The checked-in project fixture (path (c))
 
