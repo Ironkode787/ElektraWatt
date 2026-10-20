@@ -15,5 +15,13 @@ publish = false
 workspace = true
 
 [dependencies]
+# The format: paths, canonical lines, manifest, reader; and, re-exported, the record types of ew-schema.
 ew-format = { path = "../ew-format" }
-ew-model = { path = "../ew-model" }
+# The writer reads rows untracked (ARCH §3 rule 1, ADR-0001 amendment 2): `ew-store` is one of the three
+# crates allowed to enable `raw-read` (ci/dep-rules.toml).
+ew-model = { path = "../ew-model", features = ["raw-read"] }
+# The lock record and the journal lines (doc 05 §7.1, §8.1); rows as JSON for the journal's field diffs.
+serde_json = "1.0.154"
+
+[dev-dependencies]
+proptest = { version = "1.12.0", default-features = false, features = ["std"] }

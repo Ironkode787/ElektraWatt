@@ -686,6 +686,8 @@ version = "0.0.0"
 dependencies = [
  "ew-format",
  "ew-model",
+ "proptest",
+ "serde_json",
 ]
 
 [[package]]
