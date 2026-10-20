@@ -140,6 +140,10 @@ impl Query for PhysicalWiresOf {
     const FAMILY: &'static str = "physical_wires_of";
     const POLICY: Policy = Policy::Memo;
 
+    fn bytes(value: &Self::Value) -> usize {
+        crate::heap::value_bytes(value)
+    }
+
     fn run(q: &Q, key: &PotentialId) -> Arc<PhysicalWires> {
         let partition = q.get::<PotentialPartition>(());
         let Some(own) = partition.get(*key) else {

@@ -94,8 +94,20 @@ pub trait Query: 'static {
 
     /// The 128-bit fingerprint of a value, for [`FINGERPRINT`](Query::FINGERPRINT) families: equal values have
     /// equal fingerprints, and different ones differ with overwhelming probability.
+    ///
+    /// A family that sets `FINGERPRINT` must implement it. There is no usable default: a constant would make
+    /// every change look like an unchanged value (an early cut-off) and every memo look equal to the oracle's
+    /// cold run, so the default panics at the first memoised execution of such a family. It is never called
+    /// for a family without `FINGERPRINT`.
+    ///
+    /// # Panics
+    ///
+    /// The default always panics.
     fn fingerprint(_value: &Self::Value) -> u128 {
-        0
+        panic!(
+            "ew-derive: query family `{}` sets FINGERPRINT but does not implement Query::fingerprint",
+            Self::FAMILY
+        )
     }
 }
 

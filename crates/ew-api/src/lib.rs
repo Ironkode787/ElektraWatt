@@ -183,6 +183,18 @@ struct Persistence {
 }
 
 /// One open project: the facade every front-end (GUI, `ew` CLI, scripts, MCP) talks to.
+///
+/// # Threads
+///
+/// A `Session` is not `Send` (nor `Sync`): its memo store ([`MemoStore`], [`MemoMode::On`] by default) shares
+/// the `ew-memo` store with the `Q`s it hands out through an `Rc` and `RefCell`s. The thread that owns the
+/// session, the UI thread (ARCH §2), drives it; work on other threads takes a snapshot ([`Session::world`],
+/// O(1)) and derives from it with a cold `Q`. The intent is checked at compile time:
+///
+/// ```compile_fail
+/// fn must_be_send<T: Send>() {}
+/// must_be_send::<ew_api::Session>();
+/// ```
 pub struct Session {
     engine: Engine,
     load_findings: Vec<DerivationFinding>,

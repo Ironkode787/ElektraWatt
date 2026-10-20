@@ -50,6 +50,7 @@ mod bom;
 mod cell;
 mod cps;
 mod flow;
+mod heap;
 mod memo_keys;
 mod memo_store;
 mod nets;
@@ -211,13 +212,14 @@ mod tests {
             "stitch_graph",
             "potential_partition",
             "physical_wires_of",
-            "potential_flow",
             "potential_flow_bfs",
             "wire_props_of",
         ] {
             assert_eq!(policy(memo), Some(Policy::Memo), "{memo}");
         }
         assert_eq!(policy("wire_props"), Some(Policy::Cold));
+        // ID-221 (ADR-0002 amendment 4): `potential_flow(potential)` is a cold lookup into the memoised BFS.
+        assert_eq!(policy("potential_flow"), Some(Policy::Cold));
         // WP-S1.08: `xref_text(rep)` is Memo (ARCH §6.4); the format and the relation are cold lookups.
         assert_eq!(policy("xref_text"), Some(Policy::Memo));
         assert_eq!(policy("xref_relation"), Some(Policy::Cold));

@@ -19,7 +19,7 @@ use ew_schema::{
 
 use crate::memo_keys::{self, MemoInput, PartKey};
 use crate::memo_store::{self, MemoOf};
-use crate::note::DeriveNote;
+use crate::note::{DeriveNote, NoteFrame, NoteSet};
 use crate::profile::{self, DerivationProfile, ProfileStatus};
 use crate::query::{Cache, Lookup, Policy, Query};
 use crate::tracker::{ColdTracker, DepKey, IxKey, Tracker};
@@ -68,8 +68,9 @@ pub struct Q {
     tracker: Box<dyn Tracker>,
     /// The request-scoped caches: the request's, then one per memo execution in progress.
     cache: RefCell<Vec<Cache>>,
-    /// The notes: the request's, then the notes of each memo execution in progress.
-    notes: RefCell<Vec<BTreeSet<DeriveNote>>>,
+    /// The notes: the request's, then the notes of each memo execution in progress (own notes, and the
+    /// shared note sets of the memoised values read).
+    notes: RefCell<Vec<NoteFrame>>,
     profile: &'static DerivationProfile,
     profile_status: ProfileStatus,
     /// The report engine behind generated pages (`Q::with_report_pages`, WP-S3.03); none by default.
@@ -150,7 +151,7 @@ impl Diagnostics<'_> {
             .notes
             .borrow()
             .first()
-            .map(|n| n.iter().cloned().collect())
+            .map(|n| n.notes().into_iter().collect())
             .unwrap_or_default()
     }
 }
@@ -178,7 +179,7 @@ impl Q {
             model,
             tracker,
             cache: RefCell::new(vec![Cache::default()]),
-            notes: RefCell::new(vec![notes]),
+            notes: RefCell::new(vec![NoteFrame::with(notes)]),
             profile,
             profile_status,
             report_pages: crate::pages::ProviderSlot::default(),
@@ -213,14 +214,15 @@ impl Q {
             .filter(|s| s.current().0 == self.model.rev().0)
     }
 
-    /// Runs one memo execution of `Qy` (the body of [`MemoOf`]): its own request cache and note set, the
-    /// tracker bracket; returns the value and the notes the execution pushed (nested memoised values'
-    /// replayed notes included). A panic in `body` unwinds the frames.
+    /// Runs one memo execution of `Qy` (the body of [`MemoOf`]): its own request cache and note frame, the
+    /// tracker bracket; returns the value and the execution's note set (its own notes and, by reference,
+    /// those of the memoised values it read; `None` without notes) with whether that set is a new allocation.
+    /// A panic in `body` unwinds the frames.
     pub(crate) fn memo_frame<Qy: Query>(
         &self,
         key: &Qy::Key,
         body: impl FnOnce() -> Arc<Qy::Value>,
-    ) -> (Arc<Qy::Value>, Vec<DeriveNote>) {
+    ) -> (Arc<Qy::Value>, Option<Arc<NoteSet>>, bool) {
         struct Frames<'q> {
             q: &'q Q,
             family: &'static str,
@@ -240,7 +242,7 @@ impl Q {
             }
         }
         self.cache.borrow_mut().push(Cache::default());
-        self.notes.borrow_mut().push(BTreeSet::new());
+        self.notes.borrow_mut().push(NoteFrame::default());
         self.tracker.enter(Qy::FAMILY, key);
         let mut frames = Frames {
             q: self,
@@ -251,17 +253,17 @@ impl Q {
         frames.armed = false;
         self.tracker.exit(Qy::FAMILY);
         self.cache.borrow_mut().pop();
-        let notes = self.notes.borrow_mut().pop().unwrap_or_default();
-        (value, notes.into_iter().collect())
+        let frame = self.notes.borrow_mut().pop().unwrap_or_default();
+        let (notes, owned) = frame.into_set();
+        (value, notes, owned)
     }
 
-    /// Adds the notes of a memoised value to the innermost note set (a read of the value).
-    pub(crate) fn replay(&self, notes: &[DeriveNote]) {
-        if notes.is_empty() {
-            return;
-        }
+    /// Adds the notes of a memoised value to the innermost note frame (a read of the value): one shared
+    /// reference, not a copy of the notes.
+    pub(crate) fn replay(&self, notes: Option<&Arc<NoteSet>>) {
+        let Some(notes) = notes else { return };
         if let Some(top) = self.notes.borrow_mut().last_mut() {
-            top.extend(notes.iter().cloned());
+            top.replay(notes);
         }
     }
 
@@ -385,7 +387,7 @@ impl Q {
         let notes = self.notes.get_mut();
         notes.truncate(1);
         if let Some(n) = notes.first_mut() {
-            n.retain(|n| matches!(n, DeriveNote::UnknownProfile { .. }));
+            n.retain_own(|n| matches!(n, DeriveNote::UnknownProfile { .. }));
         }
         // A provider switched on a memoising `Q` would mix configurations in one store: memoise no more.
         self.memo = None;
@@ -552,9 +554,10 @@ impl Q {
 
     /// The records of a reserved kind (one without a typed table in this format version, such as
     /// `revision`), in the writer's line order. They carry no revision stamps, so the read is recorded as
-    /// the coarse [`DepKey::Reserved`] at `model.rev()`: any change to the model invalidates every reader.
-    /// `title_block`, which reads revisions through it, is therefore memo-hostile until revisions are typed
-    /// records (doc 03 §18) with their own table and stamps.
+    /// the coarse [`DepKey::Reserved`] at `model.rev()`. Push invalidation touches it only when the reserved
+    /// records themselves differ (a stamp change with equal content need not be pushed, `ew_memo::Db`), so a
+    /// memoised `title_block` is not re-marked by every commit; a pull verification still sees the newer stamp
+    /// and re-executes. Revisions become typed records (doc 03 §18) with their own table and stamps later.
     pub fn reserved(&self, kind: Kind) -> impl Iterator<Item = &serde_json::Value> + '_ {
         self.read(DepKey::Reserved, self.model.rev());
         let name = kind.name();

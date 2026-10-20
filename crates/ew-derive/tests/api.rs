@@ -280,13 +280,12 @@ fn the_public_api_exposes_no_raw_model_access() {
                     .split(|c: char| !(c.is_alphanumeric() || c == '_'))
                     .any(|w| w == word);
                 // Inputs only: `Q::new`, `Q::with_tracker` and `MemoStore::new` take the snapshot to read,
-                // `MemoStore::advance` and `MemoStore::replace` the snapshot the store moves to; none of them
-                // returns a row, a table or the model (ADR-0002 amendment 4).
+                // `MemoStore::advance` the snapshot the store moves to; none of them returns a row, a table or
+                // the model (ADR-0002 amendment 4).
                 let allowed = word == "Model"
                     && (sig.starts_with("pub fn new(model: &Model)")
                         || sig.starts_with("pub fn with_tracker(model: &Model,")
-                        || sig.starts_with("pub fn advance(&self, after: &Model, keys: &[AnyKey])")
-                        || sig.starts_with("pub fn replace(&self, model: &Model)"));
+                        || sig.starts_with("pub fn advance(&self, after: &Model, keys: &[AnyKey])"));
                 assert!(!hit || allowed, "{}: `{sig}` exposes {word}", file.display());
             }
             rest = &rest[sig_end..];

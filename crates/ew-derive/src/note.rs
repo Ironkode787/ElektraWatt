@@ -13,11 +13,17 @@
 //! `&mut Q` and is therefore out of reach of a query body (a query must not depend on what other queries
 //! happened to evaluate).
 //!
-//! **Memo engine.** A note is a side output of the evaluation that pushed it. While every family is cold
-//! (phase 1) a fresh `Q` re-evaluates and re-notes. Before `ew-memo` memoises a family that pushes notes,
-//! the notes must become part of the memoised value (or the family stays cold).
+//! **Memo engine.** A note is a side output of the evaluation that pushed it. A cold `Q` re-evaluates and
+//! re-notes. A memoised family keeps its notes with its value as a [`NoteSet`]: the notes its execution pushed
+//! itself, and **by reference** the note sets of the memoised values it read. A read of a memoised value adds
+//! one reference to the reader's notes, never a copy, so a per-key reader of a global value does not hold
+//! copies of the global value's notes and a memo hit costs one reference whatever the number of notes (review
+//! cycle 9, finding 3). The flattened set is the same as if every note had been copied: same order, no
+//! duplicates.
 
+use std::collections::BTreeSet;
 use std::fmt;
+use std::sync::Arc;
 
 /// How serious a note is.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -222,6 +228,151 @@ impl fmt::Display for DeriveNote {
                 detail,
             } => write!(f, "{code} {subject}: {detail}"),
         }
+    }
+}
+
+/// The notes of a memoised value: its execution's own notes and the shared note sets of the memoised values
+/// it read (see the module documentation). Immutable once built; shared as `Arc<NoteSet>`.
+#[derive(Debug)]
+pub(crate) struct NoteSet {
+    /// The notes the execution pushed itself, in canonical order, each once.
+    own: Box<[DeriveNote]>,
+    /// The note sets of the memoised values it read, in first-read order, each allocation once.
+    nested: Box<[Arc<NoteSet>]>,
+}
+
+/// The identity of a shared note set (its allocation), to keep each set once in a reader's list.
+fn identity(set: &Arc<NoteSet>) -> usize {
+    Arc::as_ptr(set).cast::<()>().addr()
+}
+
+impl NoteSet {
+    /// The notes of one execution: `None` when there are none; the one nested set itself when the
+    /// execution pushed no note of its own and read one value with notes (no new allocation); a new set
+    /// otherwise. The second member is whether a new set was allocated (its bytes belong to the caller).
+    pub(crate) fn of(
+        own: BTreeSet<DeriveNote>,
+        mut nested: Vec<Arc<NoteSet>>,
+    ) -> (Option<Arc<NoteSet>>, bool) {
+        if own.is_empty() {
+            match nested.len() {
+                0 => return (None, false),
+                1 => return (nested.pop(), false),
+                _ => {}
+            }
+        }
+        let set = NoteSet {
+            own: own.into_iter().collect(),
+            nested: nested.into(),
+        };
+        (Some(Arc::new(set)), true)
+    }
+
+    /// A set of plain notes (a cold evaluation's).
+    pub(crate) fn flat(notes: impl IntoIterator<Item = DeriveNote>) -> Option<Arc<NoteSet>> {
+        NoteSet::of(notes.into_iter().collect(), Vec::new()).0
+    }
+
+    /// Adds every note reachable from this set to `out`; `seen` holds the sets already visited.
+    pub(crate) fn collect(self: &Arc<NoteSet>, out: &mut BTreeSet<DeriveNote>, seen: &mut BTreeSet<usize>) {
+        if !seen.insert(identity(self)) {
+            return;
+        }
+        out.extend(self.own.iter().cloned());
+        for n in &self.nested {
+            n.collect(out, seen);
+        }
+    }
+
+    /// Every note reachable from this set, each once, in canonical order.
+    pub(crate) fn notes(self: &Arc<NoteSet>) -> BTreeSet<DeriveNote> {
+        let mut out = BTreeSet::new();
+        self.collect(&mut out, &mut BTreeSet::new());
+        out
+    }
+
+    /// The bytes this set owns: its own notes and the references to the nested sets (which their own
+    /// values count).
+    pub(crate) fn own_bytes(&self) -> usize {
+        std::mem::size_of::<NoteSet>()
+            + self
+                .own
+                .iter()
+                .map(|n| std::mem::size_of::<DeriveNote>() + crate::heap::HeapBytes::heap_bytes(n))
+                .sum::<usize>()
+            + self.nested.len() * std::mem::size_of::<Arc<NoteSet>>()
+    }
+}
+
+/// Whether two optional note sets hold the same notes: the same allocation, or the same flattened notes.
+pub(crate) fn same_notes(a: Option<&Arc<NoteSet>>, b: Option<&Arc<NoteSet>>) -> bool {
+    match (a, b) {
+        (None, None) => true,
+        (Some(a), Some(b)) => {
+            Arc::ptr_eq(a, b)
+                || (a.own == b.own
+                    && a.nested.len() == b.nested.len()
+                    && a.nested
+                        .iter()
+                        .zip(b.nested.iter())
+                        .all(|(x, y)| Arc::ptr_eq(x, y)))
+                || a.notes() == b.notes()
+        }
+        // `NoteSet::of` never builds a set without a note.
+        (Some(_), None) | (None, Some(_)) => false,
+    }
+}
+
+/// The notes a request has collected so far: its own and the shared sets of the memoised values it read
+/// (each set once). One frame per request and per memo execution in progress.
+#[derive(Default)]
+pub(crate) struct NoteFrame {
+    own: BTreeSet<DeriveNote>,
+    nested: Vec<Arc<NoteSet>>,
+    seen: BTreeSet<usize>,
+}
+
+impl NoteFrame {
+    /// A frame holding `own`.
+    pub(crate) fn with(own: BTreeSet<DeriveNote>) -> NoteFrame {
+        NoteFrame {
+            own,
+            ..NoteFrame::default()
+        }
+    }
+
+    /// Records a note pushed in this frame.
+    pub(crate) fn insert(&mut self, note: DeriveNote) {
+        self.own.insert(note);
+    }
+
+    /// Records a read of a memoised value's notes: one reference, once per set.
+    pub(crate) fn replay(&mut self, set: &Arc<NoteSet>) {
+        if self.seen.insert(identity(set)) {
+            self.nested.push(Arc::clone(set));
+        }
+    }
+
+    /// Keeps only the own notes that satisfy `keep` and drops the replayed sets.
+    pub(crate) fn retain_own(&mut self, keep: impl FnMut(&DeriveNote) -> bool) {
+        self.own.retain(keep);
+        self.nested.clear();
+        self.seen.clear();
+    }
+
+    /// Every note of the frame, each once, in canonical order.
+    pub(crate) fn notes(&self) -> BTreeSet<DeriveNote> {
+        let mut out = self.own.clone();
+        let mut seen = BTreeSet::new();
+        for n in &self.nested {
+            n.collect(&mut out, &mut seen);
+        }
+        out
+    }
+
+    /// The frame as a memoised value's note set, and whether a new set was allocated.
+    pub(crate) fn into_set(self) -> (Option<Arc<NoteSet>>, bool) {
+        NoteSet::of(self.own, self.nested)
     }
 }
 

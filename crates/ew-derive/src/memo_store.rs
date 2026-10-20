@@ -25,22 +25,47 @@ use ew_memo::{Cx, Durability, Equivalence, FamilyMemory, Mismatch, Oracle, Stats
 use ew_model::{AnyKey, Model};
 
 use crate::memo_keys::{self, MemoInput, PartKey};
-use crate::note::DeriveNote;
+use crate::note::{DeriveNote, NoteSet, same_notes};
 use crate::q::DeriveStore;
 use crate::query::{Changes, Policy, Query};
 use crate::{Cycle, Q, ReportPagesProvider};
 
-/// A memoised value with the notes its execution pushed.
+/// A memoised value with the notes of its execution.
 pub(crate) struct Memoised<V> {
     pub(crate) value: Arc<V>,
-    pub(crate) notes: Arc<[DeriveNote]>,
+    /// The execution's notes, sharing the note sets of the memoised values it read (`None`: no note).
+    pub(crate) notes: Option<Arc<NoteSet>>,
+    /// The bytes of `notes` this value owns: 0 when the set is a nested value's, shared as is.
+    notes_bytes: usize,
+}
+
+impl<V> Memoised<V> {
+    fn new(value: Arc<V>, notes: Option<Arc<NoteSet>>, owned: bool) -> Memoised<V> {
+        let notes_bytes = match &notes {
+            Some(set) if owned => set.own_bytes(),
+            _ => 0,
+        };
+        Memoised {
+            value,
+            notes,
+            notes_bytes,
+        }
+    }
+
+    /// Every note of the value, flattened.
+    fn flat_notes(&self) -> Vec<DeriveNote> {
+        self.notes
+            .as_ref()
+            .map(|n| n.notes().into_iter().collect())
+            .unwrap_or_default()
+    }
 }
 
 impl<V: fmt::Debug> fmt::Debug for Memoised<V> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Memoised")
             .field("value", &self.value)
-            .field("notes", &self.notes)
+            .field("notes", &self.flat_notes())
             .finish()
     }
 }
@@ -48,7 +73,7 @@ impl<V: fmt::Debug> fmt::Debug for Memoised<V> {
 /// The `ew-memo` query that memoises the `ew-derive` family `F`.
 pub(crate) struct MemoOf<F>(PhantomData<F>);
 
-/// A deterministic 128-bit fingerprint of the notes (FNV-1a over their `Debug` text).
+/// A deterministic 128-bit fingerprint of the notes (FNV-1a over their `Debug` text, in canonical order).
 fn notes_fingerprint(notes: &[DeriveNote]) -> u128 {
     const PRIME: u128 = 0x0000_0000_0100_0000_0000_0000_0000_013b;
     let mut h: u128 = 0x6c62_272e_07bb_0142_62b8_2175_6295_c58d;
@@ -63,11 +88,11 @@ fn notes_fingerprint(notes: &[DeriveNote]) -> u128 {
 }
 
 fn same<F: Query>(a: &Memoised<F::Value>, b: &Memoised<F::Value>) -> bool {
-    (Arc::ptr_eq(&a.value, &b.value) || a.value == b.value) && a.notes == b.notes
+    (Arc::ptr_eq(&a.value, &b.value) || a.value == b.value) && same_notes(a.notes.as_ref(), b.notes.as_ref())
 }
 
 fn fingerprint<F: Query>(m: &Memoised<F::Value>) -> u128 {
-    F::fingerprint(&m.value) ^ notes_fingerprint(&m.notes)
+    F::fingerprint(&m.value) ^ notes_fingerprint(&m.flat_notes())
 }
 
 /// One memoised (or, in oracle mode, cold) evaluation of `F`.
@@ -81,28 +106,22 @@ fn run<F: Query>(
         // The reference: `F` evaluated cold, nested families too, in a fresh `Q`.
         let mut twin = q.cold_twin();
         let value = twin.get::<F>(key.clone());
-        let notes: Vec<DeriveNote> = twin
-            .diagnostics()
-            .notes()
-            .into_iter()
-            .filter(|n| !matches!(n, DeriveNote::UnknownProfile { .. }))
-            .collect();
-        return Memoised {
-            value,
-            notes: notes.into(),
-        };
+        let notes = NoteSet::flat(
+            twin.diagnostics()
+                .notes()
+                .into_iter()
+                .filter(|n| !matches!(n, DeriveNote::UnknownProfile { .. })),
+        );
+        return Memoised::new(value, notes, true);
     }
-    let (value, notes) = q.memo_frame::<F>(key, || {
+    let (value, notes, owned) = q.memo_frame::<F>(key, || {
         if F::INCREMENTAL {
             F::run_incremental(q, key, previous.map(|(p, inner)| (&p.value, Changes { inner })))
         } else {
             F::run(q, key)
         }
     });
-    Memoised {
-        value,
-        notes: notes.into(),
-    }
+    Memoised::new(value, notes, owned)
 }
 
 impl<F: Query> ew_memo::Query<Q> for MemoOf<F> {
@@ -121,7 +140,7 @@ impl<F: Query> ew_memo::Query<Q> for MemoOf<F> {
     }
 
     fn bytes(value: &Memoised<F::Value>) -> usize {
-        F::bytes(&value.value) + std::mem::size_of_val::<[DeriveNote]>(&value.notes)
+        F::bytes(&value.value) + value.notes_bytes
     }
 
     fn execute(cx: &mut Cx<'_, Q>, key: &F::Key) -> Result<Memoised<F::Value>, ew_memo::Cycle> {
@@ -141,7 +160,7 @@ impl<F: Query> ew_memo::Query<Q> for MemoOf<F> {
 pub(crate) fn get<F: Query>(q: &Q, store: &DeriveStore, key: &F::Key) -> Result<Arc<F::Value>, Cycle> {
     match store.get::<MemoOf<F>>(q, key) {
         Ok(m) => {
-            q.replay(&m.notes);
+            q.replay(m.notes.as_ref());
             Ok(Arc::clone(&m.value))
         }
         Err(_) => Err(Cycle {
@@ -162,7 +181,7 @@ pub(crate) fn get_part<F: Query>(
 ) -> Result<Arc<F::Value>, Cycle> {
     match store.get_part::<MemoOf<F>>(q, key, &MemoInput::Part(part)) {
         Ok(m) => {
-            q.replay(&m.notes);
+            q.replay(m.notes.as_ref());
             Ok(Arc::clone(&m.value))
         }
         Err(_) => Err(Cycle {
@@ -179,6 +198,10 @@ pub(crate) fn get_part<F: Query>(
 /// [`MemoStore::advance`] moves it to the next committed snapshot with push invalidation. A `Q` over any
 /// other snapshot (a preview's candidate, an export fork) is cold: build it with [`Q::new`]. The report
 /// engine is part of the store's configuration (FT-60), fixed by [`MemoStore::with_report_pages`].
+///
+/// A `MemoStore` is neither `Send` nor `Sync`: the `ew-memo` store is shared with the `Q`s it hands out
+/// through an `Rc` and mutated through `RefCell`s. It lives on the thread that owns the session (the UI thread,
+/// ARCH §2); a job on another thread derives from its own snapshot with a cold `Q`.
 pub struct MemoStore {
     store: RefCell<Rc<DeriveStore>>,
     model: RefCell<Model>,
@@ -244,10 +267,15 @@ impl MemoStore {
         self.model.borrow().rev()
     }
 
-    /// Moves the store from its snapshot to `after`, the snapshot a commit produced by putting the rows
-    /// `keys` (the change feed's touched keys; the union over several commits is fine): push invalidation
-    /// with the page-level keys of the touched rows before and after. A snapshot at the same revision is
-    /// ignored; an older one replaces the store.
+    /// Moves the store from its snapshot to `after`, the snapshot a commit produced from it by putting the
+    /// rows `keys` (the change feed's touched keys; the union over several commits is fine): push
+    /// invalidation with the page-level keys of the touched rows before and after. `after` must descend from
+    /// the store's snapshot through those commits. A snapshot at the same revision is ignored; an older one
+    /// (another history) starts a new, empty store.
+    ///
+    /// There is deliberately no "move to any snapshot" (review cycle 9, finding 10): verifying memos of one
+    /// history by pull against the stamps of another compares incomparable revisions, which can find a stale
+    /// memo green. A session that opens, recovers or reloads a project builds a new `MemoStore`.
     pub fn advance(&self, after: &Model, keys: &[AnyKey]) {
         let rev = after.rev();
         let before = self.model.borrow().clone();
@@ -255,7 +283,7 @@ impl MemoStore {
             return;
         }
         if rev < before.rev() {
-            self.replace(after);
+            self.restart(after);
             return;
         }
         let (touched, durability) = memo_keys::touched(&before, after, keys);
@@ -264,17 +292,10 @@ impl MemoStore {
         *self.model.borrow_mut() = after.clone();
     }
 
-    /// Moves the store to `model` without knowing what changed (an open, a recovery, a reload): every memo is
-    /// verified by a dependency walk at its next read. An older or equal revision starts a new store (the old
-    /// memos describe another history; `Q`s still holding the old store keep it until they are dropped).
-    pub fn replace(&self, model: &Model) {
-        let current = self.model.borrow().rev();
-        if model.rev() > current {
-            self.store()
-                .advance(ew_memo::Rev(model.rev().0), Durability::Library);
-        } else {
-            *self.store.borrow_mut() = fresh_store(model, self.oracle.get());
-        }
+    /// Drops every memo and starts over at `model` (the old memos describe another history; `Q`s still
+    /// holding the old store keep it until they are dropped).
+    fn restart(&self, model: &Model) {
+        *self.store.borrow_mut() = fresh_store(model, self.oracle.get());
         *self.model.borrow_mut() = model.clone();
     }
 

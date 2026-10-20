@@ -268,11 +268,28 @@ impl StitchGraph {
 #[derive(Debug)]
 pub struct StitchGraphQ;
 
+impl crate::heap::HeapBytes for StitchGraph {
+    fn heap_bytes(&self) -> usize {
+        self.nodes.heap_bytes()
+            + self.edges.heap_bytes()
+            + self.ips.heap_bytes()
+            + self.ip_groups.heap_bytes()
+            + self.cut.heap_bytes()
+            + self.notes.heap_bytes()
+            + self.node_of.heap_bytes()
+            + self.partners.heap_bytes()
+    }
+}
+
 impl Query for StitchGraphQ {
     type Key = ();
     type Value = StitchGraph;
     const FAMILY: &'static str = "stitch_graph";
     const POLICY: Policy = Policy::Memo;
+
+    fn bytes(value: &Self::Value) -> usize {
+        crate::heap::value_bytes(value)
+    }
 
     fn run(q: &Q, _: &()) -> Arc<StitchGraph> {
         let mut b = Builder {

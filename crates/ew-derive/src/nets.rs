@@ -161,11 +161,21 @@ impl LocalNets {
 #[derive(Debug)]
 pub struct PageLocalNets;
 
+impl crate::heap::HeapBytes for LocalNets {
+    fn heap_bytes(&self) -> usize {
+        self.nets.heap_bytes() + self.cut.heap_bytes() + self.net_of.heap_bytes()
+    }
+}
+
 impl Query for PageLocalNets {
     type Key = Id<Page>;
     type Value = LocalNets;
     const FAMILY: &'static str = "page_local_nets";
     const POLICY: Policy = Policy::Memo;
+
+    fn bytes(value: &Self::Value) -> usize {
+        crate::heap::value_bytes(value)
+    }
 
     fn run(q: &Q, page: &Id<Page>) -> Arc<LocalNets> {
         let vias = bond_vias(q);

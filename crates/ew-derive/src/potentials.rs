@@ -202,11 +202,26 @@ impl Partition {
 #[derive(Debug)]
 pub struct PotentialPartition;
 
+impl crate::heap::HeapBytes for Partition {
+    fn heap_bytes(&self) -> usize {
+        self.potentials.heap_bytes()
+            + self.signals.heap_bytes()
+            + self.bonds.heap_bytes()
+            + self.notes.heap_bytes()
+            + self.of_node.heap_bytes()
+            + self.by_id.heap_bytes()
+    }
+}
+
 impl Query for PotentialPartition {
     type Key = ();
     type Value = Partition;
     const FAMILY: &'static str = "potential_partition";
     const POLICY: Policy = Policy::Memo;
+
+    fn bytes(value: &Self::Value) -> usize {
+        crate::heap::value_bytes(value)
+    }
 
     fn run(q: &Q, _: &()) -> Arc<Partition> {
         let g = q.get::<StitchGraphQ>(());

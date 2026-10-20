@@ -19,13 +19,16 @@
 //! # The contract between registration and touch
 //!
 //! A commit from `before` to `after` that put the rows `keys` reports [`touched`] inputs. They must include
-//! the coarse key, **in the snapshot it was read from**, of every read whose stamp the commit changed. Since a
-//! memo read a row or a bucket in some earlier snapshot and the row was not changed in between, that snapshot
-//! agrees with `before` on the row; so `touched` covers, for every put row, its keys in `before` and in
-//! `after`: the row's page or shard, the coarse key of every index bucket the row feeds, the whole indexes it
-//! feeds, its table, the project row when the row is the project, and the reserved records (their stamp is
-//! the model revision, so every commit changes them). A unit test checks the contract against `ew-model`'s
-//! own stamps: every row, bucket, index and table whose stamp a random commit changed is covered.
+//! the coarse key, **in the snapshot it was read from**, of every read whose content the commit changed
+//! (`ew_memo::Db`: a stamp that changed with equal content need not be reported). Since a memo read a row or a
+//! bucket in some earlier snapshot and the row was not changed in between, that snapshot agrees with `before`
+//! on the row; so `touched` covers, for every put row, its keys in `before` and in `after`: the row's page or
+//! shard, the coarse key of every index bucket the row feeds, the whole indexes it feeds, its table, and the
+//! project row when the row is the project. The reserved records carry no stamps (their stamp is the model
+//! revision, which every commit changes); they are touched only when they differ between `before` and
+//! `after`, so a commit does not re-mark every `title_block` memo (review cycle 9, finding 4). A unit test
+//! checks the contract against `ew-model`'s own stamps: every row, bucket, index and table whose stamp a
+//! random commit changed is covered, and the reserved records are covered whenever they changed.
 
 // The memo backend is built in the next step of WP-S1.07; until then some items are only used by tests.
 #![allow(dead_code)]
@@ -269,13 +272,17 @@ pub(crate) fn durability(input: &MemoInput) -> Durability {
 /// For every key: `Read(Row(key))`, `Read(Table(kind))` (or `Read(Project)` for the project row),
 /// `Shard(kind, shard(id))`, and in `before` and in `after` (where the row exists): the row's `Page`, and for
 /// every named base index the row feeds, the bucket's coarse key and `Read(Index(name))`. `Read(Reserved)`
-/// is always included. The list is sorted and deduplicated.
+/// is included when the reserved records of `before` and `after` differ (their stamp changes with every
+/// commit, their content almost never: no command puts them). The list is sorted and deduplicated.
 ///
 /// The durability is the most durable level among the keys (`Drawing` for an empty list): `Settings` for the
 /// project row, `Library` for a library copy. A kind's level never changes, so it covers the input before and
 /// after the change (ADR-0002 amendment 3).
 pub(crate) fn touched(before: &Model, after: &Model, keys: &[AnyKey]) -> (Vec<MemoInput>, Durability) {
-    let mut out = vec![MemoInput::Read(DepKey::Reserved)];
+    let mut out = Vec::new();
+    if reserved_changed(before, after) {
+        out.push(MemoInput::Read(DepKey::Reserved));
+    }
     let mut level = Durability::Drawing;
     for key in keys {
         let (kind, id) = *key;
@@ -299,6 +306,13 @@ pub(crate) fn touched(before: &Model, after: &Model, keys: &[AnyKey]) -> (Vec<Me
     out.sort_unstable();
     out.dedup();
     (out, level)
+}
+
+/// Whether the reserved records (what `Q::reserved` reads) differ between two snapshots: the same slice
+/// (the usual case, shared by every commit) or equal content is no change.
+fn reserved_changed(before: &Model, after: &Model) -> bool {
+    let (a, b) = (before.unknown_records(), after.unknown_records());
+    !(std::ptr::eq(a, b) || a == b)
 }
 
 fn by_id<T>(out: &mut Vec<(IndexName, IxKey)>, name: IndexName, id: Id<T>) {
@@ -775,7 +789,7 @@ mod tests {
 
         let (list, level) = touched(&m, &m, &[]);
         assert_eq!(level, Durability::Drawing);
-        assert_eq!(list, vec![MemoInput::Read(DepKey::Reserved)]);
+        assert_eq!(list, Vec::new(), "the reserved records did not change");
 
         assert_eq!(
             durability(&MemoInput::Read(DepKey::Project)),
@@ -1190,6 +1204,15 @@ mod tests {
                 deps.extend(bucket_keys(m).into_iter().map(|(n, k)| DepKey::IndexKey(n, k)));
             }
             for d in deps {
+                // The reserved records' stamp is the model revision; their content is what counts (the
+                // `ew_memo::Db` content rule), and no op changes it.
+                if d == DepKey::Reserved {
+                    prop_assert_eq!(
+                        list.contains(&MemoInput::Read(DepKey::Reserved)),
+                        model.unknown_records() != after.unknown_records()
+                    );
+                    continue;
+                }
                 if stamp(&model, &d) != stamp(&after, &d) {
                     changed.set(changed.get() + 1);
                     let c = coarse(&model, &MemoInput::Read(d));

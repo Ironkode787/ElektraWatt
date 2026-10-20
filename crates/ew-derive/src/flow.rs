@@ -359,8 +359,8 @@ fn run_flow(q: &Q) -> Flow {
     Flow { entries, notes }
 }
 
-/// `potential_flow(potential)`: the potential's entry of [`FlowBfs`]; `None` for an unknown ID. Initial
-/// policy Memo (ARCH §6.4).
+/// `potential_flow(potential)`: the potential's entry of [`FlowBfs`]; `None` for an unknown ID. Policy Cold:
+/// a lookup into the memoised `potential_flow_bfs` (ADR-0002 amendment 4, decision log ID-221, ARCH §6.4).
 #[derive(Debug)]
 pub struct PotentialFlow;
 
@@ -368,7 +368,7 @@ impl Query for PotentialFlow {
     type Key = PotentialId;
     type Value = Option<FlowEntry>;
     const FAMILY: &'static str = "potential_flow";
-    const POLICY: Policy = Policy::Memo;
+    const POLICY: Policy = Policy::Cold;
 
     fn run(q: &Q, key: &PotentialId) -> Arc<Option<FlowEntry>> {
         Arc::new(q.get::<FlowBfs>(()).entries.get(key).cloned())

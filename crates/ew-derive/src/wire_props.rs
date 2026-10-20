@@ -194,6 +194,10 @@ impl Query for WirePropsOf {
     const FAMILY: &'static str = "wire_props_of";
     const POLICY: Policy = Policy::Memo;
 
+    fn bytes(value: &Self::Value) -> usize {
+        crate::heap::value_bytes(value)
+    }
+
     fn run(q: &Q, key: &PotentialId) -> Arc<WirePropsMap> {
         let physical = q.get::<PhysicalWiresOf>(*key);
         let profiles = load_profiles(q.project());
