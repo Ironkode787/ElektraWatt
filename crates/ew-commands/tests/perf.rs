@@ -149,6 +149,7 @@ fn renumber_devices(devices: usize, per_page: usize, target: Duration) {
     let cmd = RenumberDevices {
         scope: DeviceScope::Project,
         scheme: Default::default(),
+        include_frozen: false,
         options: RenumberOptions::default(),
     };
     let elapsed = timed(&mut e, &cmd);

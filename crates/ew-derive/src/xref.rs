@@ -150,41 +150,19 @@ impl Query for XrefSettingsOf {
         let project = q.project();
         let format = match project.settings.extra.get("xref_format") {
             None => q.profile().xref.clone(),
-            Some(v) => {
-                // Doc 03 §5.1 gives the scheme a display `name`, which the profile's type does not carry;
-                // the `key` is optional there and `structure` and `same_page` have defaults.
-                let mut v = v.clone();
-                if let Value::Object(m) = &mut v {
-                    m.remove("name");
-                    m.entry("key").or_insert_with(|| Value::from("custom"));
-                }
-                match serde_json::from_value::<XrefFormat>(v) {
-                    Ok(f) => f,
-                    Err(e) => {
-                        malformed(format!("not an xref format ({e})"));
-                        q.profile().xref.clone()
-                    }
-                }
-            }
+            Some(v) => read_format(v).unwrap_or_else(|e| {
+                malformed(e);
+                q.profile().xref.clone()
+            }),
         };
-        let structure = match format.structure.as_str() {
-            "when_different" | "when-different" => StructureRule::WhenDifferent,
-            "always" => StructureRule::Always,
-            other => {
-                malformed(format!(
-                    "structure {other:?} is not \"when_different\" or \"always\""
-                ));
-                StructureRule::WhenDifferent
-            }
-        };
-        let same_page = match format.same_page.as_str() {
-            "full" => SamePage::Full,
-            "zone_only" | "zone-only" => SamePage::ZoneOnly,
-            other => {
-                malformed(format!("same_page {other:?} is not \"full\" or \"zone_only\""));
-                SamePage::Full
-            }
-        };
+        let structure = structure_rule(&format.structure).unwrap_or_else(|e| {
+            malformed(e);
+            StructureRule::WhenDifferent
+        });
+        let same_page = same_page_rule(&format.same_page).unwrap_or_else(|e| {
+            malformed(e);
+            SamePage::Full
+        });
         Arc::new(XrefSettings {
             ip: parse_format(&format.ip),
             aux_to_main: parse_format(&format.aux_to_main),
@@ -194,6 +172,44 @@ impl Query for XrefSettingsOf {
             format,
         })
     }
+}
+
+/// Reads a project `xref_format` member. Doc 03 §5.1 gives the scheme a display `name`, which the profile's
+/// type does not carry; the `key` is optional there and `structure` and `same_page` have defaults.
+fn read_format(v: &Value) -> Result<XrefFormat, String> {
+    let mut v = v.clone();
+    if let Value::Object(m) = &mut v {
+        m.remove("name");
+        m.entry("key").or_insert_with(|| Value::from("custom"));
+    }
+    serde_json::from_value::<XrefFormat>(v).map_err(|e| format!("not an xref format ({e})"))
+}
+
+fn structure_rule(s: &str) -> Result<StructureRule, String> {
+    match s {
+        "when_different" | "when-different" => Ok(StructureRule::WhenDifferent),
+        "always" => Ok(StructureRule::Always),
+        other => Err(format!(
+            "structure {other:?} is not \"when_different\" or \"always\""
+        )),
+    }
+}
+
+fn same_page_rule(s: &str) -> Result<SamePage, String> {
+    match s {
+        "full" => Ok(SamePage::Full),
+        "zone_only" | "zone-only" => Ok(SamePage::ZoneOnly),
+        other => Err(format!("same_page {other:?} is not \"full\" or \"zone_only\"")),
+    }
+}
+
+/// Checks a project `xref_format` member as [`XrefSettingsOf`] reads it: `Err` with the detail of the
+/// `MalformedShim` note the query would write.
+pub(crate) fn check_format_member(v: &Value) -> Result<(), String> {
+    let format = read_format(v)?;
+    structure_rule(&format.structure)?;
+    same_page_rule(&format.same_page)?;
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------------------------------------

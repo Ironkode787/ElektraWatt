@@ -192,6 +192,17 @@
     {
       "aliases": [],
       "confirmation": "none",
+      "cost": "bulk",
+      "exposure": "edit",
+      "name": "project.settings.set",
+      "params_version": 1,
+      "schema": "project.settings.set.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
       "name": "rep.move",

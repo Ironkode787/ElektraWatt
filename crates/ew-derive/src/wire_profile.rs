@@ -279,6 +279,22 @@ fn read<T: DeserializeOwned>(value: Option<&Value>, name: &str, notes: &mut Vec<
     }
 }
 
+/// Checks one provisional member (`colour_profile`, `size_profile` or `wire_default`) with the parser
+/// [`load_members`] uses: `Err` with the detail of its `MalformedShim` note.
+pub(crate) fn check_member(name: &str, value: &Value) -> Result<(), String> {
+    fn parse<T: DeserializeOwned>(value: &Value) -> Result<(), String> {
+        serde_json::from_value::<T>(value.clone())
+            .map(drop)
+            .map_err(|e| e.to_string())
+    }
+    match name {
+        "colour_profile" => parse::<ColourProfileRaw>(value),
+        "size_profile" => parse::<SizeProfileRaw>(value),
+        "wire_default" => parse::<WireProps>(value),
+        other => Err(format!("`{other}` is not a wire-profile member")),
+    }
+}
+
 /// Parses `colour_profile`, `size_profile` and `wire_default` (the members of `ProjectSettings.extra`; `None`
 /// when absent).
 ///

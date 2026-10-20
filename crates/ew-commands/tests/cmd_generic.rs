@@ -415,6 +415,7 @@ fn renumber(scope: DeviceScope, options: RenumberOptions) -> RenumberDevices {
     RenumberDevices {
         scope,
         scheme: Default::default(),
+        include_frozen: false,
         options,
     }
 }

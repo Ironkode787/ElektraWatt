@@ -55,6 +55,62 @@ impl Member {
             Member::DerivationProfile => "derivation_profile",
         }
     }
+
+    /// Every member, in declaration order.
+    pub const ALL: [Member; 8] = [
+        Member::IpPairing,
+        Member::ColourProfile,
+        Member::SizeProfile,
+        Member::WireDefault,
+        Member::Numbering,
+        Member::Frames,
+        Member::XrefFormat,
+        Member::DerivationProfile,
+    ];
+
+    /// The member stored under `name` ([`Member::name`]).
+    pub fn from_name(name: &str) -> Option<Member> {
+        Member::ALL.into_iter().find(|m| m.name() == name)
+    }
+}
+
+/// Checks a value for a settings member with the parser its derivations read it with, so that a command
+/// can refuse what the derivation would only note: `Err` carries the detail of the `MalformedShim` note
+/// (or, for `ip_pairing`, the record type's error) that the value would cause.
+///
+/// Checked: `numbering` ([`crate::NumberingSettings`]; every scheme must also be one that `device_tag`
+/// applies, the `SchemeNotApplied` rule of decision log ID-99: counter scope `"page"` and formats with
+/// `{page}`, `{letter}` and `{counter}`), `xref_format` (the `XrefFormat` shape with its `structure` and
+/// `same_page` values), `colour_profile`, `size_profile`, `wire_default` and `ip_pairing`. `frames` and
+/// `derivation_profile` have no checker here and are refused with a message saying so.
+pub fn check_member(member: Member, value: &Value) -> Result<(), String> {
+    match member {
+        Member::Numbering => {
+            let settings = serde_json::from_value::<crate::NumberingSettings>(value.clone())
+                .map_err(|e| e.to_string())?;
+            for scheme in &settings.schemes {
+                if let Some(issue) = crate::tag::scheme_issue(scheme) {
+                    return Err(format!(
+                        "scheme `{}` would not be applied ({}); until WP-S1.11 a scheme needs counter \
+                         scope \"page\" and formats with {{page}}, {{letter}} and {{counter}}",
+                        scheme.key,
+                        issue.describe()
+                    ));
+                }
+            }
+            Ok(())
+        }
+        Member::XrefFormat => crate::xref::check_format_member(value),
+        Member::ColourProfile | Member::SizeProfile | Member::WireDefault => {
+            crate::wire_profile::check_member(member.name(), value)
+        }
+        Member::IpPairing => serde_json::from_value::<IpPairing>(value.clone())
+            .map(drop)
+            .map_err(|e| e.to_string()),
+        Member::Frames | Member::DerivationProfile => {
+            Err(format!("`{}` has no value checker", member.name()))
+        }
+    }
 }
 
 /// `settings_member(m)`: the member's value as JSON, `None` when absent. The pinned derivation profile is its
@@ -107,5 +163,51 @@ pub(crate) fn profile_key(q: &Q) -> String {
     match member(q, Member::DerivationProfile).as_ref() {
         Some(Value::String(s)) => s.clone(),
         _ => String::new(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::*;
+
+    #[test]
+    fn member_names_round_trip() {
+        for m in Member::ALL {
+            assert_eq!(Member::from_name(m.name()), Some(m));
+        }
+        assert_eq!(Member::from_name("identifier_set"), None);
+    }
+
+    #[test]
+    fn check_member_uses_the_derivation_parsers() {
+        let numbering = json!({"default": "page-based", "schemes": [
+            {"key": "page-based", "format": "{page}{letter}{counter}", "rules": []}]});
+        assert_eq!(check_member(Member::Numbering, &numbering), Ok(()));
+        assert!(
+            check_member(Member::Numbering, &json!({"schemes": []})).is_err(),
+            "no default"
+        );
+        assert!(check_member(Member::Numbering, &json!(7)).is_err());
+        let flat = json!({"default": "flat", "schemes": [{"key": "flat", "format": "{letter}{counter}"}]});
+        let err = check_member(Member::Numbering, &flat).unwrap_err();
+        assert!(err.contains("`flat`") && err.contains("{page}"), "{err}");
+
+        let xref = json!({"name": "QET", "ip": "{page}-{row}{column}", "aux_to_main": "({page}-{row}{column})",
+            "main_to_aux": "∞ {list}", "matrix": {"per_row": 2, "max": 6, "overflow": "…"}});
+        assert_eq!(check_member(Member::XrefFormat, &xref), Ok(()));
+        let mut bad = xref.clone();
+        bad["structure"] = json!("sometimes");
+        let err = check_member(Member::XrefFormat, &bad).unwrap_err();
+        assert!(err.contains("sometimes"), "{err}");
+
+        assert_eq!(
+            check_member(Member::ColourProfile, &json!({"key": "k", "rows": []})),
+            Ok(())
+        );
+        assert!(check_member(Member::ColourProfile, &json!({"rows": 3})).is_err());
+        assert!(check_member(Member::SizeProfile, &json!({"rows": [{"class": "control"}]})).is_err());
+        assert!(check_member(Member::Frames, &json!({})).is_err());
     }
 }

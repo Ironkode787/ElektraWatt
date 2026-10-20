@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
 use ew_mltext::Ident;
-use ew_schema::{Device, Page};
+use ew_schema::{Device, Page, TagScheme};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -48,9 +48,6 @@ pub enum NumberingScheme {
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RenumberOptions {
-    /// Leave devices with a frozen tag alone (always true in v0: a frozen tag is never renumbered).
-    #[serde(default = "yes")]
-    pub skip_frozen: bool,
     /// Renumber only devices without a counter or whose counter collides in their scope.
     #[serde(default)]
     pub only_nonconforming: bool,
@@ -62,7 +59,6 @@ pub struct RenumberOptions {
 impl Default for RenumberOptions {
     fn default() -> RenumberOptions {
         RenumberOptions {
-            skip_frozen: true,
             only_nonconforming: false,
             close_gaps: true,
         }
@@ -72,9 +68,10 @@ impl Default for RenumberOptions {
 /// `numbering.renumber` (`RenumberDevices`): renumbers device counters under the page-based scheme.
 ///
 /// The devices in scope that take part in numbering (`numbering::numbered`: no terminal aspect, no frozen
-/// tag, default scheme) and are placed are grouped by (page of the main representation, letter). In each
-/// group the devices are ordered by their main representation's position, column first (x, then y), then
-/// by ID. Counters held by devices of the group outside the scope are reserved. Then, in order:
+/// tag, default scheme; with `include_frozen` also the frozen ones) and are placed are grouped by (page of
+/// the main representation, letter). In each group the devices are ordered by their main representation's
+/// position, column first (x, then y), then by ID. Counters held by devices of the group outside the scope
+/// are reserved. Then, in order:
 ///
 /// - `only_nonconforming`: a device keeps its counter unless it has none or shares it with an earlier
 ///   device of the group (or a reserved one); those get the lowest free counter, one that no device of
@@ -84,9 +81,17 @@ impl Default for RenumberOptions {
 /// - else: as `only_nonconforming` (a device keeps a counter that is not reserved and not taken by an
 ///   earlier device; the others get the lowest free one).
 ///
-/// Only counters change: identities and every reference by ID stay, so the topology is identical and no
-/// reference is orphaned (Golden B, FR-NUM-008). Running it twice changes nothing the second time. Bulk.
-/// Outcome: none.
+/// **Frozen tags.** Without `include_frozen` (the default) a device with a frozen tag is left alone. With
+/// `include_frozen: true`, each frozen device in scope that the scheme numbers (placed, no terminal aspect,
+/// default scheme) takes part like the others and is unfrozen: `TagSpec.frozen` is cleared, keeping no
+/// literal, so its tag follows the numbering rule from then on; this explicit renumber, previewed and
+/// undoable like every command, is the one user action that changes a frozen tag (doc 03 §8.6). A frozen
+/// device in scope that the scheme cannot number (unplaced, a terminal, a `Child` or named scheme) keeps its
+/// frozen tag, because without it the tag would print "?".
+///
+/// Only counters (and, with `include_frozen`, frozen tags) change: identities and every reference by ID
+/// stay, so the topology is identical and no reference is orphaned (Golden B, FR-NUM-008). Running it
+/// twice changes nothing the second time. Bulk. Outcome: none.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RenumberDevices {
@@ -95,9 +100,20 @@ pub struct RenumberDevices {
     /// The scheme.
     #[serde(default)]
     pub scheme: NumberingScheme,
+    /// Renumber and unfreeze the frozen devices in scope that the scheme numbers (default false).
+    #[serde(default)]
+    pub include_frozen: bool,
     /// The options.
     #[serde(default)]
     pub options: RenumberOptions,
+}
+
+/// Whether a device takes part in this renumber: page-based numbering's rule (`numbering::numbered`),
+/// with a frozen tag allowed under `include_frozen`.
+fn takes_part(device: &Device, include_frozen: bool) -> bool {
+    device.aspects.terminal.is_none()
+        && device.tag.scheme == TagScheme::Default
+        && (include_frozen || device.tag.frozen.is_none())
 }
 
 impl Command for RenumberDevices {
@@ -133,7 +149,7 @@ impl Command for RenumberDevices {
             let Some(device) = tx.get::<Device>(*id) else {
                 continue;
             };
-            if !numbering::numbered(&device) {
+            if !takes_part(&device, self.include_frozen) {
                 continue;
             }
             let Some(rep) = numbering::main_rep(tx, *id) else {
@@ -159,7 +175,10 @@ impl Command for RenumberDevices {
             assignments.extend(assign_counters(&counters, &reserved, &self.options));
         }
         for (id, counter) in assignments {
-            tx.update::<Device>(id, |d| d.tag.counter = Some(counter))?;
+            tx.update::<Device>(id, |d| {
+                d.tag.counter = Some(counter);
+                d.tag.frozen = None;
+            })?;
         }
         Ok(Outcome::default())
     }

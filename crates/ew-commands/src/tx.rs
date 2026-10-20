@@ -323,11 +323,30 @@ impl<'a> TxBuilder<'a> {
         self.row(&T::key(id)).is_some()
     }
 
-    /// The project record (pending puts of the project row are not supported in v0).
+    /// The project record, with read-your-writes over [`TxBuilder::set_project`].
     pub fn project(&self) -> Arc<Project> {
         let key = (Kind::Project, self.base.project().id.cast::<()>());
+        if let Some(Some(AnyRow::Project(p))) = self.pending.get(&key) {
+            return Arc::clone(p);
+        }
         self.note_row(key, true);
         Arc::clone(self.base.project())
+    }
+
+    /// Replaces the project record (an update of the project row: its ID never changes, it is never
+    /// inserted or removed). A record equal to the current one puts nothing.
+    pub fn set_project(&mut self, project: Project) -> Result<(), CmdError> {
+        let current = self.project();
+        if project.id != current.id {
+            return Err(CmdError::internal(format!(
+                "{}: the project record cannot be re-keyed",
+                self.source
+            )));
+        }
+        if project != *current {
+            self.put_row(AnyRow::Project(Arc::new(project)));
+        }
+        Ok(())
     }
 
     /// Every current record of kind `T`, in ID order. Records a whole-table read.

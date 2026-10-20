@@ -11,7 +11,7 @@
 //! - **Commands.** [`Command`] (typed, with a stable dotted name, [`CommandMeta`] and a JSON Schema for its
 //!   parameters) and its object-safe companion [`DynCommand`]. [`CommandRegistry`] is the single list of
 //!   commands; [`AnyCommand`] is the untyped form of scripts, plugins and MCP, validated against the
-//!   command's schema. The 23 v0 commands are in [`commands`].
+//!   command's schema. The 24 v0 commands are in [`commands`].
 //! - **Transactions.** [`TxBuilder`] is a scratch snapshot with read-your-writes over the current model;
 //!   it mints IDs from an injected `IdSource` and records the [`ReadSet`] for the optimistic rebase.
 //! - **Pipeline.** [`Engine`] runs a command, the [`normalise`] registry (at most three passes), validates
@@ -61,6 +61,7 @@
 
 mod command;
 pub mod commands;
+mod derived;
 mod diff;
 mod engine;
 mod error;
@@ -84,6 +85,7 @@ mod transaction;
 mod tx;
 
 pub use command::{Command, DynCommand, Outcome};
+pub use derived::{DerivedChange, DerivedDiff, derived_diff};
 pub use diff::{ChangeKind, EntityChange, ModelDiff, diff_model};
 pub use engine::{
     Change, Engine, EngineOptions, NoPrevent, Preview, Receipt, Restored, World, affected_pages,

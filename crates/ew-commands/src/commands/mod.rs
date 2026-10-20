@@ -29,6 +29,7 @@
 //! | `fields.set` | [`SetFields`] | Interactive |
 //! | `edit.delete` | [`DeleteSelection`] | Interactive; Bulk above 500 targets |
 //! | `numbering.renumber` | [`RenumberDevices`] | Bulk |
+//! | `project.settings.set` | [`SetProjectSettings`] | Bulk |
 //!
 //! Every command is undoable, of exposure class `Edit` and stability `Preview`.
 
@@ -39,6 +40,7 @@ mod edit;
 mod fields;
 mod page;
 mod renumber;
+mod settings;
 mod structure;
 mod terminal;
 
@@ -52,6 +54,7 @@ pub use edit::{BULK_ABOVE, DeleteSelection};
 pub use fields::{ASPECTS, SETTABLE, SetFields};
 pub use page::{CreatePage, DeletePages, PageScope, RenumberPages};
 pub use renumber::{DeviceScope, NumberingScheme, RenumberDevices, RenumberOptions};
+pub use settings::{SETTABLE_SETTINGS, SetProjectSettings, SettableSetting};
 pub use structure::{CreateReportBlock, CreateSection, CreateStructureNode};
 pub use terminal::{AddConductors, AddTerminals, ConductorSpec, CreateCable, TerminalSpec};
 
@@ -82,4 +85,5 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<SetFields>();
     r.register::<DeleteSelection>();
     r.register::<RenumberDevices>();
+    r.register::<SetProjectSettings>();
 }

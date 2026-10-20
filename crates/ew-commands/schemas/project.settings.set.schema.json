@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`project.settings.set` (`SetProjectSettings`): sets one member of the project settings.\n\n`member` must name an entry of [`SETTABLE_SETTINGS`]; any other name is rejected with\n[`CmdError::InvalidParams`] at `/member`, listing the settable members. `value` is the member's whole\nnew value in its JSON shape (doc 03 §5.1), checked with the derivation's parser\n([`ew_derive::check_settings_member`]); a value it does not accept is rejected at `/value` with the\nparser's message. A JSON `null` removes the member, so the pinned derivation profile's default applies.\nA value equal to the stored one changes nothing.\n\nOnly the project record changes: no device, page or connection record is touched, so the topology is\nidentical, and the derived values that follow the member (tags, cross-reference texts, wire\nproperties) change on every page at once. Bulk: front-ends preview it and show the derived diff\n(`ew_commands::derived_diff`, `Session::derived_diff`). Undoable as one step. Outcome: none.",
+  "properties": {
+    "member": {
+      "description": "The member to set: a name of the settable table (`numbering`, `colour_profile`, `size_profile`,\n`xref_format`).",
+      "type": "string"
+    },
+    "value": {
+      "description": "The member's new value in its JSON shape; `null` removes it (the profile's default applies)."
+    }
+  },
+  "required": [
+    "member",
+    "value"
+  ],
+  "title": "project.settings.set",
+  "type": "object"
+}

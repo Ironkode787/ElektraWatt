@@ -215,7 +215,7 @@ fn tag_of(q: &Q, device: Id<Device>) -> Result<Option<Tag>, ()> {
 }
 
 /// Why the command layer's counters would not make `scheme`'s tags unique, if they would not.
-fn scheme_issue(scheme: &NumberingScheme) -> Option<SchemeIssue> {
+pub(crate) fn scheme_issue(scheme: &NumberingScheme) -> Option<SchemeIssue> {
     if scheme.counter_scope != CounterScope::Named("page".to_owned()) {
         return Some(SchemeIssue::CounterScope);
     }

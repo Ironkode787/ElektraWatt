@@ -233,6 +233,7 @@ fn renumber_devices() -> RenumberDevices {
     RenumberDevices {
         scope: DeviceScope::Project,
         scheme: Default::default(),
+        include_frozen: false,
         options: RenumberOptions::default(),
     }
 }

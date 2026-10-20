@@ -420,6 +420,7 @@ fn bench_numbering(class: SizeClass, mode: Mode, baseline: &Model) -> (Summary, 
     let cmd = RenumberDevices {
         scope: DeviceScope::Project,
         scheme: NumberingScheme::PageBased,
+        include_frozen: false,
         options: RenumberOptions::default(),
     };
     let mut previews = Vec::new();

@@ -50,6 +50,18 @@ pub enum SchemeIssue {
     UnknownKey,
 }
 
+impl SchemeIssue {
+    /// Why the scheme is not applied, as a clause for messages.
+    pub fn describe(&self) -> &'static str {
+        match self {
+            SchemeIssue::CounterScope => "its counter scope is not \"page\"",
+            SchemeIssue::FormatWithoutPage => "its format has no {page} token",
+            SchemeIssue::FormatWithoutCounter => "its format lacks {letter} or {counter}",
+            SchemeIssue::UnknownKey => "the project's settings define no scheme of this key",
+        }
+    }
+}
+
 /// One derivation note.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 #[non_exhaustive]
@@ -187,12 +199,7 @@ impl fmt::Display for DeriveNote {
                  pages are displayed with profile {used} and may differ from the released output"
             ),
             DeriveNote::SchemeNotApplied { scheme, issue } => {
-                let why = match issue {
-                    SchemeIssue::CounterScope => "its counter scope is not \"page\"",
-                    SchemeIssue::FormatWithoutPage => "its format has no {page} token",
-                    SchemeIssue::FormatWithoutCounter => "its format lacks {letter} or {counter}",
-                    SchemeIssue::UnknownKey => "the project's settings define no scheme of this key",
-                };
+                let why = issue.describe();
                 write!(
                     f,
                     "numbering scheme {scheme} is not applied ({why}); tags use the profile's default scheme"

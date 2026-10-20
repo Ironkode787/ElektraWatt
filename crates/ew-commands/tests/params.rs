@@ -116,8 +116,13 @@ fn examples() -> Vec<(&'static str, Value)> {
         ),
         (
             "numbering.renumber",
-            json!({"scope": "project", "scheme": "page_based",
-                "options": {"skip_frozen": true, "only_nonconforming": false, "close_gaps": true}}),
+            json!({"scope": "project", "scheme": "page_based", "include_frozen": true,
+                "options": {"only_nonconforming": false, "close_gaps": true}}),
+        ),
+        (
+            "project.settings.set",
+            json!({"member": "numbering", "value": {"default": "page-based", "schemes": [
+                {"key": "page-based", "format": "{page}{letter}{counter}", "rules": []}]}}),
         ),
     ]
 }
@@ -146,7 +151,7 @@ fn every_registered_command_has_an_example() {
     let registry = CommandRegistry::builtin();
     let registered: BTreeSet<&str> = registry.commands().map(|c| c.meta().name).collect();
     let covered: BTreeSet<&str> = examples().iter().map(|(n, _)| *n).collect();
-    assert_eq!(registered.len(), 23);
+    assert_eq!(registered.len(), 24);
     assert_eq!(registered, covered);
     assert_eq!(examples().len(), covered.len(), "one example per command");
 }
