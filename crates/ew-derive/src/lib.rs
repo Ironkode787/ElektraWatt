@@ -48,6 +48,7 @@
 
 mod bom;
 mod cell;
+mod component;
 mod cps;
 mod flow;
 mod heap;
@@ -56,6 +57,7 @@ mod ip;
 mod links;
 mod memo_keys;
 mod memo_store;
+mod names;
 mod nets;
 mod note;
 mod pages;
@@ -88,7 +90,7 @@ pub use index::{
     BondIndex, BondRec, BondVias, DefPoints, DefPointsV, Index, IpFunctions, Link, PageIds, PagelessLinks,
     PagelessLinksV, RailTerminals,
 };
-pub use ip::{IpFnInfo, IpInfoOf, IpPairing, IpPairingQ};
+pub use ip::{IpFnInfo, IpInfoOf, IpNotes, IpPairing, IpPairingQ};
 pub use links::{
     BondPath, BondPaths, BondPathsQ, DeclaredLink, FunctionLinks, FunctionLinksOf, RailBonds, RailBondsQ,
     RailTerminal, RailTerminalOf,
@@ -97,7 +99,8 @@ pub use memo_keys::{MemoInput, PartKey};
 pub use memo_store::MemoStore;
 // The memo engine types a session configures and reads (oracle mode, statistics, memory).
 pub use ew_memo::{Counters, FamilyMemory, Mismatch, Oracle, Stats};
-pub use flow::{Flow, FlowBfs, FlowEntry, Load, PotentialFlow, Upstream};
+pub use flow::{Flow, FlowBfs, FlowConflict, FlowEntry, FlowNotes, Load, PotentialFlow, Upstream};
+pub use names::{PotentialAttrsOf, PotentialAttrsV, PotentialNameOf, PotentialNames, potential_named};
 pub use nets::{CpRef, LocalNet, LocalNets, NetId, NetMember, PageLocalNets, joins_net};
 pub use note::{DeriveNote, EW_CORE_018, NoteSeverity, SchemeIssue};
 pub use pages::{
@@ -105,8 +108,8 @@ pub use pages::{
     SectionStructure, folio_label, map_ml, report_pages,
 };
 pub use potentials::{
-    Attr, AttrSource, BondLink, NameSource, Partition, Potential, PotentialId, PotentialName,
-    PotentialPartition, Signal,
+    Attr, AttrSource, BondLink, Component, NameSource, Partition, Potential, PotentialAttrs, PotentialId,
+    PotentialName, PotentialPartition, Signal,
 };
 pub use profile::{
     CounterScope, DerivationProfile, NumberingRule, NumberingScheme, NumberingSettings, NumberingSettingsOf,
@@ -176,12 +179,14 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (DisplayedTag::FAMILY, DisplayedTag::POLICY),
     (DrawnPageOrder::FAMILY, DrawnPageOrder::POLICY),
     (EndClass::FAMILY, EndClass::POLICY),
+    (FlowNotes::FAMILY, FlowNotes::POLICY),
     (FrameGridOf::FAMILY, FrameGridOf::POLICY),
     (FrameSettings::FAMILY, FrameSettings::POLICY),
     (FunctionCps::FAMILY, FunctionCps::POLICY),
     (FunctionLinksOf::FAMILY, FunctionLinksOf::POLICY),
     (IpFunctions::FAMILY, IpFunctions::POLICY),
     (IpInfoOf::FAMILY, IpInfoOf::POLICY),
+    (IpNotes::FAMILY, IpNotes::POLICY),
     (IpPairingQ::FAMILY, IpPairingQ::POLICY),
     (MainFunction::FAMILY, MainFunction::POLICY),
     (MainRep::FAMILY, MainRep::POLICY),
@@ -194,8 +199,10 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (PageTitle::FAMILY, PageTitle::POLICY),
     (PagelessLinks::FAMILY, PagelessLinks::POLICY),
     (PhysicalWiresOf::FAMILY, PhysicalWiresOf::POLICY),
+    (PotentialAttrsOf::FAMILY, PotentialAttrsOf::POLICY),
     (PotentialFlow::FAMILY, PotentialFlow::POLICY),
     (FlowBfs::FAMILY, FlowBfs::POLICY),
+    (PotentialNameOf::FAMILY, PotentialNameOf::POLICY),
     (PotentialPartition::FAMILY, PotentialPartition::POLICY),
     (ProfileRowFor::FAMILY, ProfileRowFor::POLICY),
     (RailBondsQ::FAMILY, RailBondsQ::POLICY),

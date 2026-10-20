@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};
 use ew_derive::ew_schema::{Device, DeviceState, ReportBlock, Side};
-use ew_derive::{CpRef, DevicePartLines, FunctionCps, PotentialPartition, Q, StitchGraphQ};
+use ew_derive::{CpRef, DevicePartLines, FunctionCps, PotentialNameOf, PotentialPartition, Q};
 
 use super::conn::{WireRec, Wires, bridges, end_text, tag_short, text_cell};
 use crate::kind::ReportKindDef;
@@ -58,7 +58,6 @@ impl ReportKindDef for TerminalDiagram {
         let by_cp = wires_by_cp(&wires);
         let bridges = bridges(q);
         let partition = q.get::<PotentialPartition>(());
-        let graph = q.get::<StitchGraphQ>(());
 
         let mut set = RowSet::new(columns);
         for strip in strips {
@@ -95,9 +94,9 @@ impl ReportKindDef for TerminalDiagram {
                     for cp in q.get::<FunctionCps>(f).iter() {
                         let r = CpRef::new(f, cp.idx);
                         if potential == Cell::Empty
-                            && let Some(p) = partition.of(&graph, r.key())
+                            && let Some(p) = partition.potential_at(r.key())
                         {
-                            potential = Cell::Ident(p.name.text.clone());
+                            potential = Cell::Ident(q.get::<PotentialNameOf>(p.id).name.text.clone());
                         }
                         let Some(recs) = by_cp.get(&r) else { continue };
                         wired = true;

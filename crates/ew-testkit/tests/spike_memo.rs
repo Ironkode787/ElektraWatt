@@ -44,7 +44,7 @@ fn read_all(store: &MemoStore, pages: &[Id<Page>]) {
     for page in pages {
         q.get::<PageLocalNets>(*page);
     }
-    for p in &part.potentials {
+    for p in part.potentials() {
         q.get::<WirePropsOf>(p.id);
     }
 }
@@ -74,10 +74,10 @@ fn assert_matches_cold(store: &MemoStore, model: &Model, pages: &[Id<Page>], wha
         );
     }
     assert!(
-        !memoised.potentials.is_empty(),
+        memoised.potential_count() > 0,
         "{what}: the fixture has potentials"
     );
-    for (i, p) in memoised.potentials.iter().enumerate() {
+    for (i, p) in memoised.potentials().enumerate() {
         store.set_oracle(if i % ORACLE_STRIDE == 0 {
             Oracle::Every
         } else {

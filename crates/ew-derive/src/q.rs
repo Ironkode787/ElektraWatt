@@ -312,8 +312,6 @@ impl Q {
     /// `Q` the reading execution is invalidated when `Qy`'s execution declares `part` changed (or its notes,
     /// [`PartKey::Notes`]), not on every change of `Qy`. The caller must read only what `part` names. Cold, it
     /// is [`Q::get`].
-    // Readers arrive with WP-S1.07 part 2 (the partition as a producer).
-    #[allow(dead_code)]
     pub(crate) fn get_part<Qy: Query>(&self, key: Qy::Key, part: PartKey) -> Arc<Qy::Value> {
         if Qy::POLICY != Policy::Cold
             && let Some(store) = self.memo_store()
@@ -331,8 +329,6 @@ impl Q {
     /// `Qy(key)` does not mark the reading execution (no transitive marking through it); the reader is
     /// invalidated only when a re-execution of `Qy(key)` changes its value. For high fan-out values with
     /// early cut-off: settings members, profile rows. `Qy` must not declare parts. Cold, it is [`Q::get`].
-    // Readers arrive with WP-S1.07 part 2 (the partition as a producer).
-    #[allow(dead_code)]
     pub(crate) fn get_value_part<Qy: Query>(&self, key: Qy::Key) -> Arc<Qy::Value> {
         self.get_part::<Qy>(key, PartKey::Value)
     }
@@ -341,8 +337,6 @@ impl Q {
     /// readers of other parts stay valid). A producer that declares parts must declare every changed part
     /// whenever it has a previous value; `memo_store` adds [`PartKey::Notes`] when its notes changed. Cold, it
     /// does nothing.
-    // Readers arrive with WP-S1.07 part 2 (the partition as a producer).
-    #[allow(dead_code)]
     pub(crate) fn changed_parts(&self, parts: impl IntoIterator<Item = PartKey>) {
         if let Some(store) = self.memo_store() {
             if let Some(top) = self.parts_declared.borrow_mut().last_mut() {

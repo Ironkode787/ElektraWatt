@@ -282,8 +282,9 @@ impl Query for RailTerminalOf {
     }
 }
 
-/// The value of [`RailBondsQ`].
-#[derive(Clone, PartialEq, Eq, Debug, Default)]
+/// The value of [`RailBondsQ`]. Two values are equal when their joins and notes are (the terminal values kept
+/// for the incremental check are not compared).
+#[derive(Clone, Eq, Debug, Default)]
 pub struct RailBonds {
     /// Per location, the PE CPs of its rail-bonded terminals, sorted.
     pub by_location: BTreeMap<Id<StructureNode>, Vec<CpRef>>,
@@ -297,6 +298,15 @@ pub struct RailBonds {
     terminals: BTreeMap<Id<Device>, Arc<RailTerminal>>,
     /// The terminal index read.
     devices: Arc<Index<Id<Device>, ()>>,
+}
+
+impl PartialEq for RailBonds {
+    fn eq(&self, other: &RailBonds) -> bool {
+        self.by_location == other.by_location
+            && self.location_of == other.location_of
+            && self.notes == other.notes
+            && self.cycles == other.cycles
+    }
 }
 
 impl HeapBytes for RailBonds {

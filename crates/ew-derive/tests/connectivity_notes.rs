@@ -153,8 +153,8 @@ fn star_group_of_4000_members_is_linear() {
         "a plain function has no partners"
     );
     let part = q.get::<PotentialPartition>(());
-    assert_eq!(part.potentials.len(), 1);
-    let pid = part.potentials[0].id;
+    assert_eq!(part.potential_count(), 1);
+    let pid = part.potentials().next().unwrap().id;
     // A star group with a drawn feed is a hub (doc 08 §3.8): each target arm resolves to one wire that
     // shares the feed arm.
     let wires = q.get::<PhysicalWiresOf>(pid);
@@ -195,8 +195,8 @@ fn star_source_with_two_drawn_connections_is_no_hub_and_noted() {
     let m = star_of_three(&[0x1001, 0x1002]).build();
     let mut q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
-    assert_eq!(part.potentials.len(), 1);
-    let wires = q.get::<PhysicalWiresOf>(part.potentials[0].id);
+    assert_eq!(part.potential_count(), 1);
+    let wires = q.get::<PhysicalWiresOf>(part.potentials().next().unwrap().id);
     let found = notes_with(&mut q, "EW-POT-011", "2 drawn connections");
     assert_eq!(found.len(), 1, "{:?}", q.diagnostics().notes());
     assert_eq!(found[0].0, uid(0x1101));
@@ -217,9 +217,8 @@ fn star_source_without_a_drawn_connection_is_no_hub_and_noted() {
     let m = star_of_three(&[]).build();
     let mut q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
-    let graph = q.get::<StitchGraphQ>(());
     let pid = part
-        .of(&graph, EndpointKey::Cp(id(0x1003), 0))
+        .potential_at(EndpointKey::Cp(id(0x1003), 0))
         .expect("potential")
         .id;
     let _ = q.get::<PhysicalWiresOf>(pid);
@@ -233,7 +232,7 @@ fn star_hub_with_one_feed_raises_no_note() {
     let m = star_of_three(&[0x1001]).build();
     let mut q = Q::new(&m);
     let part = q.get::<PotentialPartition>(());
-    let _ = q.get::<PhysicalWiresOf>(part.potentials[0].id);
+    let _ = q.get::<PhysicalWiresOf>(part.potentials().next().unwrap().id);
     assert!(
         notes_with(&mut q, "EW-POT-011", "").is_empty(),
         "{:?}",
@@ -365,7 +364,11 @@ fn rail_bonding_joins_pe_cps_only() {
     let mut q = Q::new(&m);
     let g = q.get::<StitchGraphQ>(());
     let part = q.get::<PotentialPartition>(());
-    let of = |f: u128, idx: u16| part.of(&g, EndpointKey::Cp(id(f), idx)).expect("a potential").id;
+    let of = |f: u128, idx: u16| {
+        part.potential_at(EndpointKey::Cp(id(f), idx))
+            .expect("a potential")
+            .id
+    };
     // The PE CPs and what hangs on them are one potential ...
     let pe = of(0x1001, 1);
     for (f, idx) in [(0x1004, 0), (0x1002, 1), (0x1006, 0)] {
@@ -378,7 +381,7 @@ fn rail_bonding_joins_pe_cps_only() {
     assert_ne!(a, b);
     assert_eq!(of(0x1003, 0), a);
     assert_eq!(of(0x1005, 0), b);
-    assert_eq!(part.potentials.len(), 3);
+    assert_eq!(part.potential_count(), 3);
     let bonds = rail_bonds(&g);
     assert_eq!(bonds.len(), 1, "{bonds:?}");
     assert_eq!(bonds[0].2, id(LOC_A));
@@ -426,7 +429,7 @@ fn unlocated_rail_bonded_terminals_do_not_bond() {
     let g = q.get::<StitchGraphQ>(());
     assert!(rail_bonds(&g).is_empty(), "{:?}", rail_bonds(&g));
     let part = q.get::<PotentialPartition>(());
-    assert_eq!(part.potentials.len(), 2);
+    assert_eq!(part.potential_count(), 2);
     let found = notes_with(&mut q, "EW-POT-008", "no location");
     let subjects: BTreeSet<String> = found.into_iter().map(|(s, _)| s).collect();
     assert_eq!(subjects, BTreeSet::from([uid(T1), uid(T2)]));

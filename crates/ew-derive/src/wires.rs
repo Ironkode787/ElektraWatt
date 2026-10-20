@@ -29,12 +29,14 @@ use ew_schema::{
     JunctionWiring, Page, WireOverrides,
 };
 
+use crate::ip::{IpPairing, IpPairingQ};
+use crate::memo_keys::PartKey;
 use crate::nets::{CpRef, Dsu, ends};
 use crate::note::DeriveNote;
 use crate::pages::PageOrderV;
 use crate::potentials::{Partition, PotentialId, PotentialPartition};
 use crate::query::{Policy, Query};
-use crate::stitch::{PairMode, StitchGraph, StitchGraphQ};
+use crate::stitch::PairMode;
 use crate::{DrawnPageOrder, PageRef, Q};
 
 /// What a wire end is.
@@ -145,20 +147,30 @@ impl Query for PhysicalWiresOf {
     }
 
     fn run(q: &Q, key: &PotentialId) -> Arc<PhysicalWires> {
-        let partition = q.get::<PotentialPartition>(());
+        // The partition's parts this wire list depends on (WP-S1.07 part 2): the potential, the bonds, every
+        // potential of the bond closure, and the pairing of every interruption point in the scope.
+        let partition = q.get_part::<PotentialPartition>((), PartKey::Potential(*key));
         let Some(own) = partition.get(*key) else {
             return Arc::new(PhysicalWires::default());
         };
-        let graph = q.get::<StitchGraphQ>(());
+        let _ = q.get_part::<PotentialPartition>((), PartKey::Bonds);
         let mut notes: BTreeSet<DeriveNote> = BTreeSet::new();
 
         // 1. Extraction scope: the bond closure of the potential.
         let closure = bond_closure(&partition, *key);
         let mut scope: BTreeSet<EndpointKey> = BTreeSet::new();
-        for p in closure.iter().filter_map(|p| partition.get(*p)) {
+        for id in &closure {
+            let _ = q.get_part::<PotentialPartition>((), PartKey::Potential(*id));
+            let Some(p) = partition.get(*id) else { continue };
+            for f in &p.ips {
+                let _ = q.get_part::<IpPairingQ>((), PartKey::Ip(*f));
+            }
             scope.extend(p.cps.iter().map(|c| c.key()));
             scope.extend(p.junctions.iter().map(|j| EndpointKey::Junction(*j)));
         }
+
+        // The pairing the partition was built from (the current one); the parts above cover what is read of it.
+        let ip = partition.ip_pairing();
 
         // 2. The drawing graph: `Wire` and `Core` connections inside the scope, and the IP pair links.
         let connections = q.connections();
@@ -180,14 +192,14 @@ impl Query for PhysicalWiresOf {
         let mut pair_set: BTreeMap<CpRef, BTreeSet<CpRef>> = BTreeMap::new();
         for n in &scope {
             let Some(cp) = CpRef::of(*n) else { continue };
-            let Some(info) = graph.ips.get(&cp.function) else {
+            let Some(info) = ip.ips.get(&cp.function) else {
                 continue;
             };
             if info.cp != Some(cp) {
                 continue;
             }
-            for partner in graph.ip_partners(cp.function) {
-                let Some(pcp) = graph.ips.get(partner).and_then(|i| i.cp) else {
+            for partner in ip.partners(cp.function) {
+                let Some(pcp) = ip.ips.get(partner).and_then(|i| i.cp) else {
                     continue;
                 };
                 if pcp != cp && scope.contains(&pcp.key()) {
@@ -238,7 +250,7 @@ impl Query for PhysicalWiresOf {
             at.entry(*b).or_default().push(*id);
         }
         let mut drawing = Drawing {
-            graph: &graph,
+            ip,
             edges,
             at,
             pairs,
@@ -259,7 +271,7 @@ impl Query for PhysicalWiresOf {
         // 10.-11. Fields; only wires that touch the potential itself.
         let page_order = q.get::<DrawnPageOrder>(());
         let mut bond_of_via: BTreeMap<Id<Connection>, Id<Bond>> = BTreeMap::new();
-        for b in &partition.bonds {
+        for b in partition.bonds() {
             if let Some(v) = b.via {
                 bond_of_via.entry(v).or_insert(b.bond);
             }
@@ -284,7 +296,6 @@ impl Query for PhysicalWiresOf {
             let ctx = FinishCtx {
                 q,
                 partition: &partition,
-                graph: &graph,
                 page_order: &page_order,
                 bond_of_via: &bond_of_via,
             };
@@ -308,7 +319,7 @@ fn bond_closure(partition: &Partition, key: PotentialId) -> BTreeSet<PotentialId
     let mut set = BTreeSet::from([key]);
     loop {
         let mut grew = false;
-        for b in &partition.bonds {
+        for b in partition.bonds() {
             if b.via.is_none() {
                 continue;
             }
@@ -458,7 +469,7 @@ impl Frame {
 }
 
 struct Drawing<'a> {
-    graph: &'a StitchGraph,
+    ip: &'a IpPairing,
     edges: BTreeMap<Id<Connection>, (EndpointKey, EndpointKey)>,
     at: BTreeMap<EndpointKey, Vec<Id<Connection>>>,
     pairs: BTreeMap<CpRef, Vec<CpRef>>,
@@ -481,7 +492,7 @@ impl Drawing<'_> {
         if let Some(&h) = self.hub_of_cp.get(&cp) {
             return Class::Hub(h);
         }
-        let Some(info) = self.graph.ips.get(&cp.function) else {
+        let Some(info) = self.ip.ips.get(&cp.function) else {
             return Class::End(EndKind::Device);
         };
         if info.external {
@@ -499,7 +510,7 @@ impl Drawing<'_> {
             [a, b]
                 .into_iter()
                 .filter_map(|k| CpRef::of(*k))
-                .filter_map(|cp| self.graph.ips.get(&cp.function))
+                .filter_map(|cp| self.ip.ips.get(&cp.function))
                 .any(|i| i.direction == IpDirection::Target)
         })
     }
@@ -566,20 +577,29 @@ impl Drawing<'_> {
                 starts,
             });
         }
-        for group in &self.graph.ip_groups {
+        // The star groups with a point in the scope, in group order (a group whose source is outside the scope
+        // is no hub of this scope). Scanning only the scope's points keeps the hub specification linear in the
+        // potential (WP-S1.07 part 2: it scanned every group of the project per potential).
+        let groups: BTreeSet<usize> = scope
+            .iter()
+            .filter_map(|n| CpRef::of(*n))
+            .filter_map(|cp| self.ip.ips.get(&cp.function).filter(|i| i.cp == Some(cp)))
+            .filter_map(|i| i.group)
+            .collect();
+        for group in groups.into_iter().filter_map(|g| self.ip.groups.get(g)) {
             if group.mode != PairMode::Star {
                 continue;
             }
             let Some(source) = group.source else { continue };
-            let Some(scp) = self.graph.ips.get(&source).and_then(|i| i.cp) else {
+            let Some(scp) = self.ip.ips.get(&source).and_then(|i| i.cp) else {
                 continue;
             };
             if !scope.contains(&scp.key()) {
                 continue;
             }
             let mut members = vec![scp];
-            for p in self.graph.ip_partners(source) {
-                if let Some(pcp) = self.graph.ips.get(p).and_then(|i| i.cp)
+            for p in self.ip.partners(source) {
+                if let Some(pcp) = self.ip.ips.get(p).and_then(|i| i.cp)
                     && pcp != scp
                     && scope.contains(&pcp.key())
                 {
@@ -644,7 +664,7 @@ impl Drawing<'_> {
     fn walk(&self, start: EndpointKey, first: Id<Connection>) -> (Path, Reached) {
         let mut path = Path::default();
         if let Some(cp) = CpRef::of(start)
-            && self.graph.ips.contains_key(&cp.function)
+            && self.ip.ips.contains_key(&cp.function)
         {
             path.ips.push(cp.function);
         }
@@ -926,7 +946,6 @@ impl Drawing<'_> {
 struct FinishCtx<'a> {
     q: &'a Q,
     partition: &'a Partition,
-    graph: &'a StitchGraph,
     page_order: &'a PageOrderV,
     bond_of_via: &'a BTreeMap<Id<Connection>, Id<Bond>>,
 }
@@ -1024,7 +1043,7 @@ impl FinishCtx<'_> {
         let bond = w.conns.iter().find_map(|c| self.bond_of_via.get(c).copied());
         let mut potentials: Vec<PotentialId> = [w.start.0, w.end.0]
             .iter()
-            .filter_map(|cp| self.partition.of(self.graph, cp.key()).map(|p| p.id))
+            .filter_map(|cp| self.partition.potential_at(cp.key()).map(|p| p.id))
             .collect();
         potentials.sort();
         potentials.dedup();

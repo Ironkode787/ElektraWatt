@@ -181,8 +181,6 @@ pub(crate) fn get<F: Query>(q: &Q, store: &DeriveStore, key: &F::Key) -> Result<
 
 /// Reads `F(key)` depending on its part `part` only, and replays its notes. The reader also depends on the
 /// notes part ([`PartKey::Notes`]): the notes it replays are the producer's.
-// Readers arrive with WP-S1.07 part 2 (the partition as a producer).
-#[allow(dead_code)]
 pub(crate) fn get_part<F: Query>(
     q: &Q,
     store: &DeriveStore,

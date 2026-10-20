@@ -28,8 +28,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_api::Session;
 use ew_derive::{
-    ConnWireProps, DeriveNote, EdgeKind, PhysicalWire, PhysicalWiresOf, PotentialFlow, PotentialId,
-    PotentialPartition, PropSource, Q, SizeRule, StitchGraphQ, WirePropsOf,
+    ConnWireProps, DeriveNote, EdgeKind, PhysicalWire, PhysicalWiresOf, PotentialAttrsOf, PotentialFlow,
+    PotentialId, PotentialNameOf, PotentialPartition, PropSource, Q, SizeRule, StitchGraphQ, WirePropsOf,
 };
 use ew_import_tables::ew_interop_api::ImportBatch;
 use ew_schema::{BondKind, CircuitClass, Connection, ConnectionKind, Endpoint, PotentialType, Record};
@@ -258,7 +258,7 @@ fn colour_text(c: &ew_schema::ColourSpec) -> String {
 fn all_wires(q: &Q) -> BTreeMap<String, PhysicalWire> {
     let part = q.get::<PotentialPartition>(());
     let mut out: BTreeMap<String, PhysicalWire> = BTreeMap::new();
-    for p in &part.potentials {
+    for p in part.potentials() {
         for w in &q.get::<PhysicalWiresOf>(p.id).wires {
             out.entry(w.id.to_string()).or_insert_with(|| w.clone());
         }
@@ -272,7 +272,7 @@ type Props = (String, PropSource, String, PropSource, Option<CircuitClass>);
 fn all_props(q: &Q) -> BTreeMap<String, Props> {
     let part = q.get::<PotentialPartition>(());
     let mut out = BTreeMap::new();
-    for p in &part.potentials {
+    for p in part.potentials() {
         let map = q.get::<WirePropsOf>(p.id);
         for (id, e) in &map.wires {
             let colour = e.colour.as_ref().expect("a colour");
@@ -296,10 +296,7 @@ fn all_props(q: &Q) -> BTreeMap<String, Props> {
 }
 
 fn pot_id(q: &Q, name: &str) -> PotentialId {
-    q.get::<PotentialPartition>(())
-        .by_name(name)
-        .unwrap_or_else(|| panic!("potential {name}"))
-        .id
+    ew_derive::potential_named(q, name).unwrap_or_else(|| panic!("potential {name}"))
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -313,14 +310,16 @@ fn potential_partition_matches_section_7_3() {
     let q = Q::new(&s.world().model);
     let part = q.get::<PotentialPartition>(());
     // The DP potential is not loaded by the bootstrap (decision log ID-69).
-    assert_eq!(part.potentials.len(), 18);
+    assert_eq!(part.potential_count(), 18);
     assert_eq!(potential_rows().len(), 18);
     for (name, aliases, members, ptype) in potential_rows() {
-        let p = part.by_name(name).unwrap_or_else(|| panic!("potential {name}"));
+        let p = part
+            .get(ew_derive::potential_named(&q, name).unwrap_or_else(|| panic!("potential {name}")))
+            .unwrap();
         // Doc 08 §3.5: the aliases come in natural order, which is the order of the §7.3 cells; compared
         // as returned, without sorting.
         let want: Vec<String> = aliases.iter().map(|a| (*a).to_owned()).collect();
-        assert_eq!(p.aliases, want, "aliases of {name}");
+        assert_eq!(q.get::<PotentialNameOf>(p.id).aliases, want, "aliases of {name}");
         for m in members {
             let fns = functions_of(&ids, m);
             assert!(
@@ -330,12 +329,17 @@ fn potential_partition_matches_section_7_3() {
         }
         // A potential without a definition type or a CP role (N-55S: a lamp CP has no role) takes its type
         // from the flow propagation (doc 08 §3.6); the partition alone leaves it unset.
-        let got = p.ptype.as_ref().map(|t| t.value.clone()).or_else(|| {
-            q.get::<PotentialFlow>(p.id)
-                .as_ref()
-                .as_ref()
-                .and_then(|e| e.ptype.as_ref().map(|t| t.value.clone()))
-        });
+        let got = q
+            .get::<PotentialAttrsOf>(p.id)
+            .ptype
+            .as_ref()
+            .map(|t| t.value.clone())
+            .or_else(|| {
+                q.get::<PotentialFlow>(p.id)
+                    .as_ref()
+                    .as_ref()
+                    .and_then(|e| e.ptype.as_ref().map(|t| t.value.clone()))
+            });
         assert_eq!(got, Some(ptype), "type of {name}");
     }
 }
@@ -445,7 +449,9 @@ fn potential_member_sets_match_section_7_3_exactly() {
     let sets = member_sets();
     assert_eq!(sets.len(), 18);
     for (name, want) in sets {
-        let p = part.by_name(name).unwrap_or_else(|| panic!("potential {name}"));
+        let p = part
+            .get(ew_derive::potential_named(&q, name).unwrap_or_else(|| panic!("potential {name}")))
+            .unwrap();
         let want: BTreeSet<String> = want.into_iter().collect();
         assert_eq!(member_text(&q, &ids, p), want, "members of {name}");
     }
@@ -502,22 +508,25 @@ fn potential_voltage_and_class_columns_match_section_7_3() {
     let part = q.get::<PotentialPartition>(());
     assert_eq!(class_rows().len(), 18);
     for (name, voltage, ac_dc, class) in class_rows() {
-        let p = part.by_name(name).unwrap_or_else(|| panic!("potential {name}"));
+        let p = part
+            .get(ew_derive::potential_named(&q, name).unwrap_or_else(|| panic!("potential {name}")))
+            .unwrap();
         let flow = q.get::<PotentialFlow>(p.id);
         let entry = flow.as_ref().as_ref().expect("a flow entry");
-        let got_voltage = p
+        let attrs = q.get::<PotentialAttrsOf>(p.id);
+        let got_voltage = attrs
             .voltage
             .as_ref()
             .or(entry.voltage.as_ref())
             .map(|a| a.value.to_string());
         assert_eq!(got_voltage.as_deref(), voltage, "voltage of {name}");
-        let got_env = p
+        let got_env = attrs
             .env
             .as_ref()
             .or(entry.env.as_ref())
             .and_then(|a| a.value.ac_dc.clone());
         assert_eq!(got_env, ac_dc, "AC/DC of {name}");
-        let own_class = p.circuit_class.as_ref().map(|a| a.value.clone());
+        let own_class = attrs.circuit_class.as_ref().map(|a| a.value.clone());
         assert_eq!(own_class, class, "own circuit class of {name}");
         // The class the wires of the potential resolve (level-2 size rule).
         let resolved: BTreeSet<String> = q
@@ -544,20 +553,27 @@ fn bond_b1_links_0v_and_pe() {
     let ids = ids_by_key(&batch);
     let q = Q::new(&s.world().model);
     let part = q.get::<PotentialPartition>(());
-    assert_eq!(part.bonds.len(), 1);
-    let b = &part.bonds[0];
+    assert_eq!(part.bonds().len(), 1);
+    let b = &part.bonds()[0];
     assert_eq!(b.kind, BondKind::Pelv0vPe);
     let sides: BTreeSet<String> = [b.a, b.b]
         .into_iter()
-        .map(|p| part.get(p.expect("a bond side")).unwrap().name.text.clone())
+        .map(|p| {
+            q.get::<PotentialNameOf>(p.expect("a bond side"))
+                .name
+                .text
+                .clone()
+        })
         .collect();
     assert_eq!(sides, BTreeSet::from(["0V".to_owned(), "PE".to_owned()]));
     assert_eq!(b.via.map(|v| v.to_string()), Some(ids["connections|W27"].clone()));
     assert_eq!(b.names, vec!["PE-0VDC".to_owned()]);
     assert!(
-        part.potentials
+        part.potentials().all(|p| !q
+            .get::<PotentialNameOf>(p.id)
+            .aliases
             .iter()
-            .all(|p| !p.aliases.iter().any(|a| a == "PE-0VDC")),
+            .any(|a| a == "PE-0VDC")),
         "PE-0VDC is a bond name, no alias"
     );
 }
@@ -594,7 +610,7 @@ fn bridges_join_their_potentials() {
             .parse()
             .unwrap();
         let pot = ["24VDC-1", "24VDC-2", "24VDC-3", "24VDC-4", "0V", "PE"][group - 1];
-        let p = part.by_name(pot).unwrap();
+        let p = part.get(ew_derive::potential_named(&q, pot).unwrap()).unwrap();
         for e in [&conn.a, &conn.b] {
             let Endpoint::Cp(f, idx) = e else {
                 panic!("{key}: not a CP end")
@@ -820,7 +836,9 @@ fn check_levels(q: &Q, batch: &ImportBatch, sources: Sources) -> BTreeMap<String
         let conductor = w.core.map(|c| &conductors[&c.to_string()]);
         let spare = w.potentials.iter().all(|p| {
             matches!(
-                part.get(*p).map(|p| p.name.text.as_str()),
+                part.get(*p)
+                    .map(|p| q.get::<PotentialNameOf>(p.id).name.text.clone())
+                    .as_deref(),
                 Some("24VDC-2" | "24VDC-3" | "24VDC-4")
             )
         });
@@ -986,10 +1004,9 @@ fn flow_matches_doc_08_section_3_6() {
         assert_eq!(entry(root).distance, Some(0), "{root}");
     }
     let switched: BTreeSet<String> = part
-        .potentials
-        .iter()
-        .filter(|p| entry(&p.name.text).switched)
-        .map(|p| p.name.text.clone())
+        .potentials()
+        .map(|p| q.get::<PotentialNameOf>(p.id).name.text.clone())
+        .filter(|name| entry(name).switched)
         .collect();
     assert_eq!(switched, BTreeSet::from(["N-55T".to_owned(), "N-55S".to_owned()]));
     assert_eq!(
@@ -1046,7 +1063,7 @@ fn digest(s: &Session) -> String {
     let q = Q::new(&s.world().model);
     let part = q.get::<PotentialPartition>(());
     let mut out = format!("{:?}\n", *part);
-    for p in &part.potentials {
+    for p in part.potentials() {
         out += &format!(
             "{:?}\n{:?}\n",
             *q.get::<PhysicalWiresOf>(p.id),
@@ -1086,7 +1103,8 @@ fn no_connectivity_notes_on_the_golden_model() {
     let s = session_with_profiles(&batch);
     let mut q = check_all_connections(&s, &batch);
     let part = q.get::<PotentialPartition>(());
-    for p in &part.potentials {
+    for p in part.potentials() {
+        let _ = q.get::<PotentialNameOf>(p.id);
         let _ = q.get::<PhysicalWiresOf>(p.id);
         let _ = q.get::<WirePropsOf>(p.id);
         let _ = q.get::<PotentialFlow>(p.id);

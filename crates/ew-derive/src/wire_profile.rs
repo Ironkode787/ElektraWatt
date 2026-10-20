@@ -37,8 +37,9 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 use crate::heap::HeapBytes;
+use crate::names::PotentialAttrsOf;
 use crate::note::DeriveNote;
-use crate::potentials::{Partition, PotentialId, PotentialPartition};
+use crate::potentials::PotentialId;
 use crate::query::{Policy, Query};
 use crate::settings::{self, Member};
 use crate::{PotentialFlow, Q};
@@ -54,8 +55,9 @@ pub struct Attrs {
     pub ac_dc: Option<AcDc>,
 }
 
-/// The final attributes of a potential: the flow values, else the partition's own (none for an unknown ID).
-pub(crate) fn attrs_of(q: &Q, partition: &Partition, id: PotentialId) -> Attrs {
+/// The final attributes of a potential: the flow values, else its own (`potential_attrs`; none for an unknown
+/// ID).
+pub(crate) fn attrs_of(q: &Q, id: PotentialId) -> Attrs {
     if let Some(e) = q.get::<PotentialFlow>(id).as_ref() {
         return Attrs {
             ptype: e.ptype.as_ref().map(|a| a.value.clone()),
@@ -63,21 +65,19 @@ pub(crate) fn attrs_of(q: &Q, partition: &Partition, id: PotentialId) -> Attrs {
             ac_dc: e.env.as_ref().and_then(|a| a.value.ac_dc.clone()),
         };
     }
-    match partition.get(id) {
-        Some(p) => Attrs {
-            ptype: p.ptype.as_ref().map(|a| a.value.clone()),
-            voltage: p.voltage.as_ref().map(|a| a.value),
-            ac_dc: p.env.as_ref().and_then(|a| a.value.ac_dc.clone()),
-        },
-        None => Attrs::default(),
+    let own = q.get::<PotentialAttrsOf>(id);
+    Attrs {
+        ptype: own.ptype.as_ref().map(|a| a.value.clone()),
+        voltage: own.voltage.as_ref().map(|a| a.value),
+        ac_dc: own.env.as_ref().and_then(|a| a.value.ac_dc.clone()),
     }
 }
 
 /// The circuit class a potential's own definition gives it, if any.
-pub(crate) fn own_class(partition: &Partition, id: PotentialId) -> Option<CircuitClass> {
-    partition
-        .get(id)
-        .and_then(|p| p.circuit_class.as_ref())
+pub(crate) fn own_class(q: &Q, id: PotentialId) -> Option<CircuitClass> {
+    q.get::<PotentialAttrsOf>(id)
+        .circuit_class
+        .as_ref()
         .map(|c| c.value.clone())
 }
 
@@ -482,16 +482,10 @@ impl ProfileKey {
         }
     }
 
-    /// The key the wire properties of potential `p` use: its final attributes (the flow values, else the
-    /// partition's own) and its defined circuit class.
+    /// The key the wire properties of potential `p` use: its final attributes (the flow values, else its own)
+    /// and its defined circuit class.
     pub fn of_potential(q: &Q, p: PotentialId) -> ProfileKey {
-        let partition = q.get::<PotentialPartition>(());
-        ProfileKey::in_partition(q, &partition, p)
-    }
-
-    /// [`ProfileKey::of_potential`] with the partition already read.
-    pub(crate) fn in_partition(q: &Q, partition: &Partition, p: PotentialId) -> ProfileKey {
-        ProfileKey::new(&attrs_of(q, partition, p), own_class(partition, p))
+        ProfileKey::new(&attrs_of(q, p), own_class(q, p))
     }
 
     /// The attributes.

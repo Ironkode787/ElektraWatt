@@ -31,8 +31,8 @@ use std::rc::Rc;
 
 use common::{Fx, id, uid};
 use ew_derive::{
-    DepKey, EndClass, EndScope, MemoStore, PotentialId, PotentialPartition, PropSource, Q, RecordingTracker,
-    SizeRule, WirePropsMap, WirePropsOf,
+    DepKey, EndClass, EndScope, MemoStore, PotentialId, PotentialNameOf, PotentialPartition, PropSource, Q,
+    RecordingTracker, SizeRule, WirePropsMap, WirePropsOf,
 };
 use ew_model::{AnyRow, Model, Op};
 use ew_schema::{CircuitClass, Csa, Device, Kind, Project};
@@ -160,9 +160,8 @@ fn fixture() -> Fx {
 /// The potentials of a model by name.
 fn potentials(q: &Q) -> BTreeMap<String, PotentialId> {
     q.get::<PotentialPartition>(())
-        .potentials
-        .iter()
-        .map(|p| (p.name.text.clone(), p.id))
+        .potentials()
+        .map(|p| (q.get::<PotentialNameOf>(p.id).name.text.clone(), p.id))
         .collect()
 }
 

@@ -23,9 +23,7 @@ use serde_json::Value;
 
 use crate::nets::{CpRef, LocalNet, NetId, NetMember};
 use crate::note::{DeriveNote, SchemeIssue};
-use crate::potentials::{
-    Attr, AttrSource, BondLink, NameSource, Potential, PotentialId, PotentialName, Signal,
-};
+use crate::potentials::{Attr, AttrSource, BondLink, NameSource, PotentialId, PotentialName};
 use crate::stitch::{EdgeKind, IpGroup, IpInfo, Level, PairMode, ShortSource, StitchEdge, StitchNode};
 use crate::wire_profile::ProfileRow;
 use crate::wire_props::{EffectiveProps, PropSource, Prov, SizeRule, WirePropsMap};
@@ -315,32 +313,6 @@ impl HeapBytes for PotentialName {
 impl<T: HeapBytes> HeapBytes for Attr<T> {
     fn heap_bytes(&self) -> usize {
         self.value.heap_bytes() + self.source.heap_bytes()
-    }
-}
-
-impl HeapBytes for Potential {
-    fn heap_bytes(&self) -> usize {
-        self.id.heap_bytes()
-            + self.name.heap_bytes()
-            + self.aliases.heap_bytes()
-            + self.ip_names.heap_bytes()
-            + self.defs.heap_bytes()
-            + self.cps.heap_bytes()
-            + self.junctions.heap_bytes()
-            + self.nodes.heap_bytes()
-            + self.signals.heap_bytes()
-            + self.nets.heap_bytes()
-            + self.ips.heap_bytes()
-            + self.ptype.heap_bytes()
-            + self.voltage.heap_bytes()
-            + self.env.heap_bytes()
-            + self.circuit_class.heap_bytes()
-    }
-}
-
-impl HeapBytes for Signal {
-    fn heap_bytes(&self) -> usize {
-        self.id.heap_bytes() + self.name.heap_bytes() + self.nets.heap_bytes()
     }
 }
 

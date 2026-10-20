@@ -116,8 +116,6 @@ impl<K: Ord + Clone, V: Clone + PartialEq> Index<K, V> {
 
     /// The keys whose entries differ between `self` and `other` (added, removed or changed), in key order.
     /// Subtrees the two versions share are skipped.
-    // Read by the incremental partition (the next step of WP-S1.07 part 2).
-    #[allow(dead_code)]
     pub(crate) fn changed_keys(&self, other: &Index<K, V>) -> Vec<K> {
         let mut out: Vec<K> = self
             .map

@@ -467,8 +467,8 @@ fn bench_connectivity(cx: &mut Ctx, baseline: &Model, handles: &Handles) {
             pages.len(),
             graph.nodes.len(),
             graph.edges.len(),
-            part.potentials.len(),
-            part.signals.len(),
+            part.potential_count(),
+            part.signal_count(),
         ));
     }
 
@@ -531,7 +531,7 @@ fn bench_connectivity(cx: &mut Ctx, baseline: &Model, handles: &Handles) {
     single_q(cx, names[6], baseline, |q| {
         let part = q.get::<PotentialPartition>(());
         let ((), t) = time(|| {
-            for p in &part.potentials {
+            for p in part.potentials() {
                 q.get::<WirePropsOf>(p.id);
             }
         });
@@ -763,8 +763,7 @@ fn bench_profile(cx: &mut Ctx, project: &Project, records: &[Record], lib: &[Lib
         let mut q = Q::new(model);
         let ids: Vec<PotentialId> = q
             .get::<PotentialPartition>(())
-            .potentials
-            .iter()
+            .potentials()
             .map(|p| p.id)
             .collect();
         let props = ids.iter().map(|p| q.get::<WirePropsOf>(*p)).collect();
@@ -931,8 +930,7 @@ fn memo_store(model: &Model) -> MemoStore {
 /// The wire properties of every potential of `q`'s partition, in the partition's order.
 fn wire_props_reads(q: &Q) -> Vec<(PotentialId, Arc<WirePropsMap>)> {
     let part = q.get::<PotentialPartition>(());
-    part.potentials
-        .iter()
+    part.potentials()
         .map(|p| (p.id, q.get::<WirePropsOf>(p.id)))
         .collect()
 }
@@ -962,10 +960,11 @@ fn oracle_reads(store: &MemoStore, pages: &[Id<Page>], target: Target, call: usi
     }
     let q = store.query();
     let part = q.get::<PotentialPartition>(());
-    let n = part.potentials.len();
+    let ids: Vec<PotentialId> = part.potentials().map(|p| p.id).collect();
+    let n = ids.len();
     let step = (n / ORACLE_POTENTIALS).max(1);
     for j in 0..ORACLE_POTENTIALS.min(n) {
-        q.get::<WirePropsOf>(part.potentials[(call + j * step) % n].id);
+        q.get::<WirePropsOf>(ids[(call + j * step) % n]);
     }
 }
 
@@ -990,8 +989,7 @@ fn assert_cold_equal(got: &Got, model: &Model, pages: &[Id<Page>], name: &str, s
         Got::Props(v) => {
             let cold: Vec<PotentialId> = q
                 .get::<PotentialPartition>(())
-                .potentials
-                .iter()
+                .potentials()
                 .map(|p| p.id)
                 .collect();
             let ids: Vec<PotentialId> = v.iter().map(|(id, _)| *id).collect();

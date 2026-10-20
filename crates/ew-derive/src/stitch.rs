@@ -332,31 +332,9 @@ impl StitchInputs {
             rail: q.get::<RailBondsQ>(()),
         }
     }
-
-    /// Whether `at` is a stitch node outside the page-local nets: an end of a page-less link, a definition
-    /// point, a bond end or an interruption point's CP.
-    // Read by the incremental partition (the next step of WP-S1.07 part 2).
-    #[allow(dead_code)]
-    pub(crate) fn names_point(&self, at: EndpointKey) -> bool {
-        self.pageless.touches(at)
-            || self.defs.at(at).next().is_some()
-            || self.bonds_at(at)
-            || CpRef::of(at).is_some_and(|cp| self.ip.at(cp).is_some())
-    }
-
-    /// Whether a bond with both ends known ends at `at` (bonds are few: a scan).
-    // Read by the incremental partition (the next step of WP-S1.07 part 2).
-    #[allow(dead_code)]
-    fn bonds_at(&self, at: EndpointKey) -> bool {
-        self.bonds
-            .iter()
-            .any(|(_, b)| matches!((b.a, b.b), (Some(x), Some(y)) if x == at || y == at))
-    }
 }
 
 /// A stitch graph with what its build read: the inputs of the partition's cold run.
-// Read by the incremental partition (the next step of WP-S1.07 part 2).
-#[allow(dead_code)]
 pub(crate) struct StitchBuild {
     /// The graph.
     pub(crate) graph: StitchGraph,

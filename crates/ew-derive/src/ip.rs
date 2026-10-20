@@ -63,6 +63,19 @@ impl IpFnInfo {
         self.spec.as_ref().map_or("", |s| s.name.as_str())
     }
 
+    /// Whether the pairing reads the same from `other`: everything but the page-order position, which only
+    /// chain mode reads (a symbol moved on its page in star mode pairs as before).
+    fn same_pairing(&self, other: &IpFnInfo, chain: bool) -> bool {
+        self.spec == other.spec
+            && self.cp == other.cp
+            && self.rep == other.rep
+            && self.page == other.page
+            && self.pairs == other.pairs
+            && self.scope == other.scope
+            && self.notes == other.notes
+            && (!chain || self.order == other.order)
+    }
+
     /// The chain order key (sort key, page position, anchor row, anchor column).
     fn chain(&self) -> (i64, usize, u32, u32) {
         let sort = self
@@ -173,8 +186,9 @@ impl Query for IpInfoOf {
     }
 }
 
-/// The value of [`IpPairingQ`].
-#[derive(Clone, PartialEq, Eq, Debug)]
+/// The value of [`IpPairingQ`]. Two values are equal when their pairing is (the point values kept for the
+/// incremental check are not compared: a re-pairing that changes nothing cuts off).
+#[derive(Clone, Eq, Debug)]
 pub struct IpPairing {
     /// Every interruption point by function.
     pub ips: BTreeMap<Id<Function>, IpInfo>,
@@ -190,6 +204,16 @@ pub struct IpPairing {
     infos: BTreeMap<Id<Function>, Arc<IpFnInfo>>,
     /// The function index read.
     fns: Arc<Index<Id<Function>, IpSpec>>,
+}
+
+impl PartialEq for IpPairing {
+    fn eq(&self, other: &IpPairing) -> bool {
+        self.ips == other.ips
+            && self.groups == other.groups
+            && self.notes == other.notes
+            && self.partners == other.partners
+            && self.at == other.at
+    }
 }
 
 impl IpPairing {
@@ -420,11 +444,15 @@ impl Query for IpPairingQ {
             return Arc::new(pair(q));
         };
         if let Some(via) = changes.via() {
+            let chain = pairing_setting(q).0 == PairMode::Chain;
             let mut same = true;
             for dep in via {
                 if let Some(f) = q.via_key::<IpInfoOf>(dep) {
                     let now = q.get::<IpInfoOf>(f);
-                    same &= prev.infos.get(&f).is_some_and(|old| Arc::ptr_eq(old, &now));
+                    same &= prev
+                        .infos
+                        .get(&f)
+                        .is_some_and(|old| Arc::ptr_eq(old, &now) || old.same_pairing(&now, chain));
                 } else if q.via_key::<IpFunctions>(dep).is_some() {
                     same &= Arc::ptr_eq(&q.get::<IpFunctions>(()), &prev.fns);
                 } else {
@@ -443,5 +471,30 @@ impl Query for IpPairingQ {
                 .map(PartKey::Ip),
         );
         Arc::new(next)
+    }
+}
+
+/// `ip_notes()`: the EW-CORE-051 notes of the pairing (`IpPairing::notes`), pushed. The pairing itself is
+/// note-free; the stitch graph and the interruption points' cross-references read this family, so their
+/// readers see the notes as before the split. Policy Memo.
+#[derive(Debug)]
+pub struct IpNotes;
+
+impl Query for IpNotes {
+    type Key = ();
+    type Value = Vec<DeriveNote>;
+    const FAMILY: &'static str = "ip_notes";
+    const POLICY: Policy = Policy::Memo;
+
+    fn bytes(value: &Self::Value) -> usize {
+        crate::heap::value_bytes(value)
+    }
+
+    fn run(q: &Q, _: &()) -> Arc<Vec<DeriveNote>> {
+        let notes = q.get::<IpPairingQ>(()).notes.clone();
+        for n in &notes {
+            q.note(n.clone());
+        }
+        Arc::new(notes)
     }
 }

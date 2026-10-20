@@ -95,8 +95,6 @@ pub(crate) fn member(q: &Q, m: Member) -> Arc<Option<Value>> {
 }
 
 /// The project's `ip_pairing` setting, typed; `None` when absent.
-// Readers arrive with WP-S1.07 part 2.
-#[allow(dead_code)]
 pub(crate) fn ip_pairing(q: &Q) -> Option<IpPairing> {
     member(q, Member::IpPairing)
         .as_ref()

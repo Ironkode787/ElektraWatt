@@ -230,16 +230,15 @@ fn bridge_row(q: &Q, b: &Bridge) -> Row {
 
 /// The potential a bridge joins, by the first terminal's first CP.
 fn bridge_potential(q: &Q, b: &Bridge) -> Cell {
-    use ew_derive::{PotentialPartition, StitchGraphQ};
+    use ew_derive::{PotentialNameOf, PotentialPartition};
     let Some(t) = b.terminals.first() else {
         return Cell::Empty;
     };
     let partition = q.get::<PotentialPartition>(());
-    let graph = q.get::<StitchGraphQ>(());
     for f in q.idx().functions_of_device(*t) {
         for cp in q.get::<ew_derive::FunctionCps>(f).iter() {
-            if let Some(p) = partition.of(&graph, CpRef::new(f, cp.idx).key()) {
-                return Cell::Ident(p.name.text.clone());
+            if let Some(p) = partition.potential_at(CpRef::new(f, cp.idx).key()) {
+                return Cell::Ident(q.get::<PotentialNameOf>(p.id).name.text.clone());
             }
         }
     }
