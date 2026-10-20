@@ -1,0 +1,18 @@
+{
+  "$k": "fndef",
+  "id": "d9fa054e-2d79-58ae-bf1a-fcc5c0e03e99",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "962af61e-25e5-51b2-870b-1d30bddae6d0",
+  "version": "0.1.0",
+  "sha256": "sha256:30ec7a4797f66940b2acfe55e97ae9c3b395dab492d80470aa6cde26e6958d7d",
+  "meta": {
+    "key": "ew.fn.position-switch-no",
+    "licence": "CC-BY-SA-4.0",
+    "sources": ["ew.original"],
+    "status": "draft"
+  },
+  "category": ["SensingPosition", "PositionSwitch", "NO"],
+  "contact_kind": "no",
+  "cps": [{"idx": 0, "designation": "13"}, {"idx": 1, "designation": "14"}],
+  "internal": [{"a": 0, "b": 1, "kind": {"pass_through": {"opens": true}}}]
+}

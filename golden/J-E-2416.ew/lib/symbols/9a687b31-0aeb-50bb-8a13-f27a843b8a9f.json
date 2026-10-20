@@ -1,0 +1,53 @@
+{
+  "$k": "symbol",
+  "id": "9a687b31-0aeb-50bb-8a13-f27a843b8a9f",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "ac15c1df-5e94-5194-9e57-c804f7f87226",
+  "version": "0.1.0",
+  "sha256": "sha256:d0c4483a734b062729bc7c180c9f3106c3799ddbe5ea16c6ae69954a332ac058",
+  "meta": {"key": "ew.iec.heater@qet10", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
+  "name": {"en": "Heater"},
+  "keywords": ["heater", "heating", "load"],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "b27e3d26-3a4b-519a-b716-7b17a6f86cd6",
+    "version_req": "^0.1",
+    "key": "ew.fn.heater"
+  },
+  "grid": {"num": 7937500, "den": 3},
+  "graphics": [
+    {"line": {"from": [0, 0], "to": [0, 2645833], "stroke": {"pen": {"width": 264583}}}},
+    {"rect": {"rect": [[-1322917, 2645833], [1322917, 7937500]], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [0, 7937500], "to": [0, 10583333], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [1322917, 5291667], "to": [2645833, 5291667], "stroke": {"pen": {"width": 264583}}}},
+    {
+      "polyline": {
+        "points": [
+          [-992187, 3307292],
+          [992187, 3968750],
+          [-992187, 4630208],
+          [992187, 5291667],
+          [-992187, 5953125],
+          [992187, 6614583],
+          [-992187, 7276042]
+        ],
+        "stroke": {"pen": {"width": 132292}}
+      }
+    }
+  ],
+  "cps": [
+    {"idx": 0, "fn_cp": 0, "pos": [0, 0], "dir": "up"},
+    {"idx": 1, "fn_cp": 1, "pos": [0, 10583333], "dir": "down"},
+    {"idx": 2, "fn_cp": 2, "pos": [2645833, 5291667], "dir": "right"}
+  ],
+  "text_slots": [
+    {"kind": "tag", "pos": [-2645833, 5291667], "align": "middle_right", "visible": true},
+    {"kind": "function_text", "pos": [-2645833, 7937500], "align": "middle_right"},
+    {"kind": "tech_data", "pos": [3968750, 7276042], "align": "middle_left", "visible": true},
+    {"kind": {"cp_designation": 0}, "pos": [661458, 1322917], "align": "middle_left", "visible": true},
+    {"kind": {"cp_designation": 1}, "pos": [661458, 9260417], "align": "middle_left", "visible": true},
+    {"kind": {"cp_designation": 2}, "pos": [3307292, 4630208], "align": "bottom_left", "visible": true}
+  ],
+  "arrangements": [{"name": "full", "slots": [0, 1, 2, 3, 4, 5]}, {"name": "tag", "slots": [0]}],
+  "anchor": {"named": [0, 5291667]}
+}

@@ -1,0 +1,17 @@
+{
+  "$k": "part",
+  "id": "afadf5a1-d905-53a7-98ce-23f2db576353",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "2952fc68-177f-54bd-bcdb-39956330a5b9",
+  "version": "1.0.0",
+  "sha256": "sha256:9cd927f8b8d9eec956eaaf20471975752ed1ac2119c748b08a5e5edaaddef651",
+  "meta": {"key": "A9F78116", "sources": ["golden.table:parts|A9F78116"]},
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "1bd48037-1c0b-5035-b88c-1576b03a7e74",
+    "version_req": "*",
+    "key": "Schneider Electric"
+  },
+  "part_number": "A9F78116",
+  "description": "Miniature circuit breaker 1P, B, 16 A"
+}

@@ -1,0 +1,2 @@
+{"$k":"device","id":"fbe7bb44-302e-5226-81d7-5bc16d86daa0","tag":{"letter":"X","frozen":{"text":"XPE"}},"structure":{"function":"bd9f9872-b9b9-5904-bc9a-80eefffadbfb","location":"101a2f5d-a009-511b-a9a9-8068d1624101"},"source_ref":{"lineage":"763dd2f1-b9b8-558e-8d55-97d7304a4929","key":"devices|-XPE"}}
+{"$k":"function","id":"34b33ee8-89a5-51b8-b28f-40d679d0e9ef","device":"fbe7bb44-302e-5226-81d7-5bc16d86daa0","def":"42cda040-6e1c-59c9-a7a6-051633364977","source_ref":{"lineage":"763dd2f1-b9b8-558e-8d55-97d7304a4929","key":"functions|-XPE"}}

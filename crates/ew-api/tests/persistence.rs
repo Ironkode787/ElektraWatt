@@ -1,0 +1,194 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! The Session's persistence (WP-S1.09): create, open, incremental save, undo across a save, the
+//! read-only second session, and journal recovery after a crash (doc 05 §5, §7, §8).
+
+// The tests count rows through the untracked readers (dev-dependency `ew-model/raw-read`; tests are exempt
+// from `cargo xtask check-raw-read`).
+#![allow(clippy::disallowed_methods)]
+
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU32, Ordering};
+use std::time::SystemTime;
+
+use ew_api::{AnyCommand, Recovery, Session, SessionOptions};
+use ew_commands::testkit::seeded_ids;
+use ew_store::lock::{Identity, new_session_id};
+use ew_store::{Access, ReadOnlyReason, StoreOptions};
+
+const PROJECT: &str = r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#;
+
+fn temp(tag: &str) -> PathBuf {
+    static N: AtomicU32 = AtomicU32::new(0);
+    let nanos = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .map_or(0, |d| d.as_nanos());
+    let dir = std::env::temp_dir().join(format!(
+        "ew-api-persistence-{tag}-{}-{}-{nanos}",
+        std::process::id(),
+        N.fetch_add(1, Ordering::Relaxed)
+    ));
+    std::fs::create_dir_all(&dir).unwrap();
+    dir
+}
+
+fn store_options(state: &Path) -> StoreOptions {
+    let mut o = StoreOptions::new("ElektraWatt test");
+    o.state_dir = Some(state.to_path_buf());
+    o.identity = Identity {
+        session: new_session_id(),
+        user: "<os user>".into(),
+        host: "<host>".into(),
+        pid: std::process::id(),
+        pid_started: SystemTime::UNIX_EPOCH,
+        app_version: "ElektraWatt test".into(),
+    };
+    o
+}
+
+fn options(seed: u64) -> SessionOptions {
+    SessionOptions {
+        ids: Some(seeded_ids(seed)),
+        ..SessionOptions::default()
+    }
+}
+
+fn page(number: u32) -> AnyCommand {
+    AnyCommand {
+        name: "page.create".into(),
+        params: serde_json::json!({ "number": number }),
+    }
+}
+
+fn lines(s: &Session) -> Vec<(ew_model::AnyKey, String)> {
+    ew_commands::rows::model_lines(&s.world().model).unwrap()
+}
+
+fn pages(s: &Session) -> usize {
+    s.world().model.table::<ew_schema::Page>().len()
+}
+
+/// A project with two pages written to a fresh directory.
+fn created(state: &Path) -> (Session, PathBuf) {
+    let dir = temp("project");
+    let project = serde_json::from_str(PROJECT).unwrap();
+    let mut s = Session::from_records(project, [], [], options(7)).unwrap();
+    s.execute(&page(1)).unwrap();
+    s.execute(&page(2)).unwrap();
+    s.create(&dir, store_options(state)).unwrap();
+    assert!(!s.is_dirty());
+    (s, dir)
+}
+
+#[test]
+fn create_save_and_reopen() {
+    let state = temp("state");
+    let (mut s, dir) = created(&state);
+    assert!(dir.join("manifest.json").exists());
+    assert!(dir.join("project.jsonl").exists());
+
+    // An unchanged project saves nothing.
+    let none = s.save().unwrap();
+    assert!(none.written.is_empty() && !none.manifest_written);
+    assert_eq!(none.generation, 1);
+
+    // One new page: its own file and the manifest, nothing else (doc 05 §17.2).
+    s.execute(&page(3)).unwrap();
+    assert!(s.is_dirty());
+    let saved = s.save().unwrap();
+    assert!(!s.is_dirty());
+    assert_eq!(saved.generation, 2);
+    assert_eq!(saved.written.len(), 1, "{:?}", saved.written);
+    assert!(saved.written[0].as_str().starts_with("pages/"));
+    let expected = lines(&s);
+    s.close();
+    assert!(!dir.join(".~ew.lock").exists());
+
+    let (r, report) = Session::open(&dir, store_options(&state), options(8), Recovery::Keep).unwrap();
+    assert_eq!(report.access, Access::Edit);
+    assert!(report.findings.is_empty(), "{:#?}", report.findings);
+    assert_eq!(report.generation, 2);
+    assert!(report.recovery.is_none());
+    assert_eq!(lines(&r), expected);
+    assert_eq!(pages(&r), 3);
+    r.close();
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::remove_dir_all(&state);
+}
+
+#[test]
+fn undo_after_a_save_removes_the_file_again() {
+    let state = temp("state");
+    let (mut s, dir) = created(&state);
+    s.execute(&page(3)).unwrap();
+    let added = s.save().unwrap();
+    let file = added.written[0].clone();
+    assert!(dir.join(file.as_str()).exists());
+    s.undo().unwrap();
+    let removed = s.save().unwrap();
+    assert_eq!(removed.removed, vec![file.clone()]);
+    assert!(removed.written.is_empty());
+    assert!(!dir.join(file.as_str()).exists());
+    assert_eq!(removed.generation, 3);
+    s.close();
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::remove_dir_all(&state);
+}
+
+#[test]
+fn a_second_session_is_read_only() {
+    let state = temp("state");
+    let (s, dir) = created(&state);
+    let (mut other, report) = Session::open(&dir, store_options(&state), options(9), Recovery::Keep).unwrap();
+    assert!(
+        matches!(&report.access, Access::ReadOnly(ReadOnlyReason::LockedBy(info)) if !info.stale),
+        "{:?}",
+        report.access
+    );
+    assert!(other.save().is_err());
+    drop(other);
+    // The second session did not take the holder's lock away.
+    assert!(dir.join(".~ew.lock").exists());
+    s.close();
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::remove_dir_all(&state);
+}
+
+#[test]
+fn the_journal_recovers_unsaved_commits_after_a_crash() {
+    let state = temp("state");
+    let (mut s, dir) = created(&state);
+    s.execute(&page(4)).unwrap();
+    s.execute(&page(5)).unwrap();
+    let live = lines(&s);
+    // A crash: no save, no clean close. Dropping the session releases the lock and keeps the journal.
+    drop(s);
+
+    let (kept, report) = Session::open(&dir, store_options(&state), options(10), Recovery::Keep).unwrap();
+    let info = report.recovery.clone().expect("a leftover journal");
+    assert_eq!(info.transactions, 2);
+    assert!(info.base_matches);
+    assert_eq!(pages(&kept), 2, "Keep opens the disk state");
+    drop(kept);
+
+    let (mut r, report) = Session::open(&dir, store_options(&state), options(11), Recovery::Apply).unwrap();
+    assert!(report.recovery.is_some());
+    assert_eq!(
+        lines(&r),
+        live,
+        "journal replay equals the live state (NFR-REL-08)"
+    );
+    assert!(r.is_dirty());
+    let saved = r.save().unwrap();
+    assert_eq!(saved.written.len(), 2);
+    assert!(!r.is_dirty());
+    r.close();
+
+    let (again, report) = Session::open(&dir, store_options(&state), options(12), Recovery::Keep).unwrap();
+    assert!(report.recovery.is_none(), "the recovered journal is gone");
+    assert_eq!(lines(&again), live);
+    again.close();
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::remove_dir_all(&state);
+}

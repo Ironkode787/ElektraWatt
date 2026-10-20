@@ -1,0 +1,17 @@
+{
+  "$k": "part",
+  "id": "5c675976-c163-5a61-96f8-3fdcd723cc6c",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "c423c61c-07a3-5aea-bad0-4ef6084bf167",
+  "version": "1.0.0",
+  "sha256": "sha256:95f3498d5ec446b0276d6976a6ec8df5079571141961b849506d65f39862a77e",
+  "meta": {"key": "SK 3110.000", "sources": ["golden.table:parts|SK 3110.000"]},
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "a3b0f9a2-b3bc-54eb-ac08-9ece5bda07e5",
+    "version_req": "*",
+    "key": "Rittal"
+  },
+  "part_number": "SK 3110.000",
+  "description": "Thermostat"
+}

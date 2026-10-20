@@ -1,0 +1,21 @@
+{
+  "$k": "fndef",
+  "id": "1d40ab08-aff6-5bfb-8b75-76eaf7523c85",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "b4f8132f-1f44-5a21-a3ba-e082898d00d4",
+  "version": "0.1.0",
+  "sha256": "sha256:209c8cab93e87d97e670db37ee72451f284ba34c827edd904fa6a584d910f871",
+  "meta": {"key": "ew.fn.dp-connector", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
+  "category": ["ConnectorSignal", "BusConnector", "Profibus"],
+  "contact_kind": "bus_port",
+  "cps": [
+    {"idx": 0, "designation": "A1", "discipline": "bus"},
+    {"idx": 1, "designation": "B1", "discipline": "bus"},
+    {"idx": 2, "designation": "A2", "discipline": "bus", "optional": true},
+    {"idx": 3, "designation": "B2", "discipline": "bus", "optional": true}
+  ],
+  "internal": [
+    {"a": 0, "b": 2, "kind": {"pass_through": {"opens": true}}},
+    {"a": 1, "b": 3, "kind": {"pass_through": {"opens": true}}}
+  ]
+}

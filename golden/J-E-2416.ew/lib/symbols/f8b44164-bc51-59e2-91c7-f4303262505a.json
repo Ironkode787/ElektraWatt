@@ -1,0 +1,31 @@
+{
+  "$k": "symbol",
+  "id": "f8b44164-bc51-59e2-91c7-f4303262505a",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "984db895-d703-519a-ae47-c8f90390f3b3",
+  "version": "0.1.0",
+  "sha256": "sha256:44c418e2a5118bfc6c4b27d17e4cf62c4d3a40e3c3ab7cf93bda7608fee5644c",
+  "meta": {"key": "ew.iec.pe@qet10", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
+  "name": {"en": "Protective earth"},
+  "keywords": ["earth", "pe", "protective"],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "5577d486-8f2b-55ca-b96d-fc598876290f",
+    "version_req": "^0.1",
+    "key": "ew.fn.pe"
+  },
+  "grid": {"num": 7937500, "den": 3},
+  "graphics": [
+    {"line": {"from": [0, 0], "to": [0, 2645833], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [-1984375, 2645833], "to": [1984375, 2645833], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [-1322917, 3307292], "to": [1322917, 3307292], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [-661458, 3968750], "to": [661458, 3968750], "stroke": {"pen": {"width": 264583}}}},
+    {"circle": {"centre": [0, 3307292], "r": 2645833, "stroke": {"pen": {"width": 264583}}}}
+  ],
+  "cps": [{"idx": 0, "fn_cp": 0, "pos": [0, 0], "dir": "up"}],
+  "text_slots": [
+    {"kind": "tag", "pos": [3968750, 1322917], "align": "middle_left"},
+    {"kind": "function_text", "pos": [3968750, 3307292], "align": "middle_left", "visible": true}
+  ],
+  "arrangements": [{"name": "full", "slots": [0, 1]}, {"name": "tag", "slots": [0]}]
+}

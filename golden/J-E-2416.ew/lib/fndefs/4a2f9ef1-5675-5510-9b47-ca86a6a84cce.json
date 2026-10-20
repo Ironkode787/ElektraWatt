@@ -1,0 +1,16 @@
+{
+  "$k": "fndef",
+  "id": "4a2f9ef1-5675-5510-9b47-ca86a6a84cce",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "e6f46588-2ed1-594f-857b-4810ffe4a028",
+  "version": "0.1.0",
+  "sha256": "sha256:cd7848264aaf391593c96b79186cfc4d4fba883e2c8be9d06d829cd08d3f320d",
+  "meta": {"key": "ew.fn.terminal", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
+  "category": ["Terminal", "FeedThrough", "1Level"],
+  "contact_kind": "terminal",
+  "cps": [
+    {"idx": 0, "designation": "1", "level": 1, "side": "side1", "clamp": {"clamp": "a"}},
+    {"idx": 1, "designation": "2", "level": 1, "side": "side2", "clamp": {"clamp": "a"}}
+  ],
+  "internal": [{"a": 0, "b": 1, "kind": "short"}]
+}

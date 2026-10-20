@@ -1,0 +1,17 @@
+{
+  "$k": "part",
+  "id": "2b23f42b-b502-5f8b-aab9-6200eb76adcf",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "98be07a2-7435-577d-982a-47e276532085",
+  "version": "1.0.0",
+  "sha256": "sha256:49d1ad3bd65f681392293c5c0748f969791aba025bd28fb934053431ebc8719d",
+  "meta": {"key": "571334", "sources": ["golden.table:parts|571334"]},
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "52dbf48a-f70f-55c9-8e9b-577475b13a4e",
+    "version_req": "*",
+    "key": "Festo"
+  },
+  "part_number": "571334",
+  "description": "5/2 monostable solenoid valve"
+}

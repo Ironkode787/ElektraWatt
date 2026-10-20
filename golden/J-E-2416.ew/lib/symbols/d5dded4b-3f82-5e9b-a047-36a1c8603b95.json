@@ -1,0 +1,67 @@
+{
+  "$k": "symbol",
+  "id": "d5dded4b-3f82-5e9b-a047-36a1c8603b95",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "3ec3decc-c165-5fcd-b9a5-01ca8e345c4d",
+  "version": "0.1.0",
+  "sha256": "sha256:03e7cdef5707c48573e6852c0183e175857f09341e642bfe99d8255234157435",
+  "meta": {"key": "ew.iec.mcb-1pn@qet10", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
+  "name": {"en": "Miniature circuit breaker, 1 pole and neutral"},
+  "keywords": ["breaker", "mcb", "overcurrent"],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "473bc9ca-9b42-5683-ada8-f5f0a4081772",
+    "version_req": "^0.1",
+    "key": "ew.fn.mcb-1pn"
+  },
+  "grid": {"num": 7937500, "den": 3},
+  "graphics": [
+    {"line": {"from": [0, 0], "to": [0, 3307292], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [0, 10583333], "to": [0, 7937500], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [0, 7937500], "to": [-1322917, 3307292], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [-661458, 2645833], "to": [661458, 3968750], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [-661458, 3968750], "to": [661458, 2645833], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [7937500, 0], "to": [7937500, 3307292], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [7937500, 10583333], "to": [7937500, 7937500], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [7937500, 7937500], "to": [6614583, 3307292], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [7276042, 2645833], "to": [8598958, 3968750], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [7276042, 3968750], "to": [8598958, 2645833], "stroke": {"pen": {"width": 264583}}}},
+    {
+      "line": {"from": [-661458, 5622396], "to": [1322917, 5622396], "stroke": {"pen": {"width": 132292}, "dash": "dash42"}}
+    },
+    {"rect": {"rect": [[1322917, 4630208], [2645833, 6614583]], "stroke": {"pen": {"width": 264583}}}},
+    {
+      "polyline": {
+        "points": [[2645833, 5622396], [2976562, 4960937], [3638021, 6283854], [3968750, 5622396]],
+        "stroke": {"pen": {"width": 132292}}
+      }
+    },
+    {
+      "line": {"from": [3968750, 5622396], "to": [7276042, 5622396], "stroke": {"pen": {"width": 132292}, "dash": "dash42"}}
+    }
+  ],
+  "cps": [
+    {"idx": 0, "fn_cp": 0, "pos": [0, 0], "dir": "up"},
+    {"idx": 1, "fn_cp": 1, "pos": [0, 10583333], "dir": "down"},
+    {"idx": 2, "fn_cp": 2, "pos": [7937500, 0], "dir": "up"},
+    {"idx": 3, "fn_cp": 3, "pos": [7937500, 10583333], "dir": "down"}
+  ],
+  "text_slots": [
+    {"kind": "tag", "pos": [-2645833, 5291667], "align": "middle_right", "visible": true},
+    {"kind": "manufacturer", "pos": [9921875, 3307292], "align": "middle_left", "visible": true},
+    {"kind": "part_number", "pos": [9921875, 5291667], "align": "middle_left", "visible": true},
+    {"kind": "tech_data", "pos": [9921875, 7276042], "align": "middle_left", "visible": true},
+    {"kind": "function_text", "pos": [-2645833, 7937500], "align": "middle_right"},
+    {"kind": {"cp_designation": 0}, "pos": [661458, 1322917], "align": "middle_left", "visible": true},
+    {"kind": {"cp_designation": 1}, "pos": [661458, 9260417], "align": "middle_left", "visible": true},
+    {"kind": {"cp_designation": 2}, "pos": [8598958, 1322917], "align": "middle_left", "visible": true},
+    {"kind": {"cp_designation": 3}, "pos": [8598958, 9260417], "align": "middle_left", "visible": true}
+  ],
+  "arrangements": [
+    {"name": "full", "slots": [0, 1, 2, 3, 4, 5, 6, 7, 8]},
+    {"name": "tag", "slots": [0]},
+    {"name": "tag + rating", "slots": [0, 3]}
+  ],
+  "anchor": {"named": [2645833, 5291667]},
+  "link_points": [{"name": "pole_l", "pos": [-661458, 5622396]}, {"name": "pole_n", "pos": [7276042, 5622396]}]
+}

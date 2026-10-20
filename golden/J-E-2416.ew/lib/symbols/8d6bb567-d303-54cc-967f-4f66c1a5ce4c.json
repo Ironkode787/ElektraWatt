@@ -1,0 +1,52 @@
+{
+  "$k": "symbol",
+  "id": "8d6bb567-d303-54cc-967f-4f66c1a5ce4c",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "c9092d21-7e35-5443-9f3a-d16df4d5d383",
+  "version": "0.1.0",
+  "sha256": "sha256:ede4a33d6cb6ab712562943ef120450f86b7e630068caf4a4d07e844eb3ceaf7",
+  "meta": {"key": "ew.iec.mcb-1p@qet10", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
+  "name": {"en": "Miniature circuit breaker, 1 pole"},
+  "keywords": ["breaker", "mcb", "overcurrent"],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "a9d08d61-e896-5ecd-8f6b-2b330d8f522b",
+    "version_req": "^0.1",
+    "key": "ew.fn.mcb-1p"
+  },
+  "grid": {"num": 7937500, "den": 3},
+  "graphics": [
+    {"line": {"from": [0, 0], "to": [0, 3307292], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [0, 10583333], "to": [0, 7937500], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [0, 7937500], "to": [-1322917, 3307292], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [-661458, 2645833], "to": [661458, 3968750], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [-661458, 3968750], "to": [661458, 2645833], "stroke": {"pen": {"width": 264583}}}},
+    {
+      "line": {"from": [-661458, 5622396], "to": [1322917, 5622396], "stroke": {"pen": {"width": 132292}, "dash": "dash42"}}
+    },
+    {"rect": {"rect": [[1322917, 4630208], [2645833, 6614583]], "stroke": {"pen": {"width": 264583}}}},
+    {
+      "polyline": {
+        "points": [[2645833, 5622396], [2976562, 4960937], [3638021, 6283854], [3968750, 5622396]],
+        "stroke": {"pen": {"width": 132292}}
+      }
+    }
+  ],
+  "cps": [{"idx": 0, "fn_cp": 0, "pos": [0, 0], "dir": "up"}, {"idx": 1, "fn_cp": 1, "pos": [0, 10583333], "dir": "down"}],
+  "text_slots": [
+    {"kind": "tag", "pos": [-2645833, 5291667], "align": "middle_right", "visible": true},
+    {"kind": "manufacturer", "pos": [5291667, 3307292], "align": "middle_left", "visible": true},
+    {"kind": "part_number", "pos": [5291667, 5291667], "align": "middle_left", "visible": true},
+    {"kind": "tech_data", "pos": [5291667, 7276042], "align": "middle_left", "visible": true},
+    {"kind": "function_text", "pos": [-2645833, 7937500], "align": "middle_right"},
+    {"kind": {"cp_designation": 0}, "pos": [661458, 1322917], "align": "middle_left", "visible": true},
+    {"kind": {"cp_designation": 1}, "pos": [661458, 9260417], "align": "middle_left", "visible": true}
+  ],
+  "arrangements": [
+    {"name": "full", "slots": [0, 1, 2, 3, 4, 5, 6]},
+    {"name": "tag", "slots": [0]},
+    {"name": "tag + rating", "slots": [0, 3]}
+  ],
+  "anchor": {"named": [0, 5291667]},
+  "link_points": [{"name": "pole", "pos": [-661458, 5622396]}]
+}

@@ -1,0 +1,2 @@
+{"$k":"device","id":"2e937cb7-2349-5fcc-a6d9-1b19f0c616b3","tag":{"letter":"E","frozen":{"text":"E56","sign":"hidden"}},"structure":{"function":"bd9f9872-b9b9-5904-bc9a-80eefffadbfb","location":"101a2f5d-a009-511b-a9a9-8068d1624101"},"source_ref":{"lineage":"763dd2f1-b9b8-558e-8d55-97d7304a4929","key":"devices|E56"}}
+{"$k":"function","id":"a702f956-8a54-5643-9087-430201368907","device":"2e937cb7-2349-5fcc-a6d9-1b19f0c616b3","def":"c15149e0-a49b-52a4-8e9b-dede426d0f22","source_ref":{"lineage":"763dd2f1-b9b8-558e-8d55-97d7304a4929","key":"functions|E56"}}

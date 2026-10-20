@@ -1,0 +1,37 @@
+{
+  "$k": "part",
+  "id": "4db9940a-862a-5af9-b16c-35cbba22b2fe",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "45668d76-60d9-540a-a5a4-6120922fd1ea",
+  "version": "1.0.0",
+  "sha256": "sha256:6b885148a3f181d60b9a43459fc2db58c927f419726300156b700295350bea59",
+  "meta": {"key": "PT 2.5-TWIN-PE", "sources": ["golden.table:parts|PT 2.5-TWIN-PE"]},
+  "kind": "terminal",
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "c7cc7426-9bee-56de-807e-d6db02ca0d01",
+    "version_req": "*",
+    "key": "Phoenix Contact"
+  },
+  "part_number": "PT 2.5-TWIN-PE",
+  "description": "PE terminal, 3 connections",
+  "cp_pattern": [
+    {"idx": 0, "designation": "a", "potential_role": "pe", "level": 1, "side": "side1", "clamp": {"clamp": "a"}},
+    {"idx": 1, "designation": "b", "potential_role": "pe", "level": 1, "side": "side2", "clamp": {"clamp": "b"}},
+    {"idx": 2, "designation": "c", "potential_role": "pe", "level": 1, "side": "side2", "clamp": {"clamp": "c"}},
+    {"idx": 3, "designation": "s1", "potential_role": "pe", "level": 1, "clamp": {"shaft": 1}},
+    {"idx": 4, "designation": "RF", "potential_role": "pe", "level": 1, "clamp": "rail_foot"}
+  ],
+  "function_template": [
+    {
+      "fndef": {
+        "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+        "item": "3577cf46-1065-5c1e-a32d-50d8bf78b147",
+        "version_req": "^0.1",
+        "key": "ew.fn.terminal-pe"
+      },
+      "main": true,
+      "cps": [0, 1, 2, 3, 4]
+    }
+  ]
+}

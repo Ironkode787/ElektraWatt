@@ -1,0 +1,18 @@
+{
+  "$k": "part",
+  "id": "b2f07bd3-e67c-5227-b0a5-efbd68dc4435",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "e615f708-73cd-58f6-9bb1-35dd4d27f2b4",
+  "version": "1.0.0",
+  "sha256": "sha256:897cb088ce9ad65da1f5031bfd09717c95fa932f2fa32bf7065a24cf86e1c08a",
+  "meta": {"key": "USLKG 5", "sources": ["golden.table:parts|USLKG 5"]},
+  "kind": "terminal",
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "c7cc7426-9bee-56de-807e-d6db02ca0d01",
+    "version_req": "*",
+    "key": "Phoenix Contact"
+  },
+  "part_number": "USLKG 5",
+  "description": "PE terminal"
+}

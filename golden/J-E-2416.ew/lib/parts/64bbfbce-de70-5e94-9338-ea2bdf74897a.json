@@ -1,0 +1,17 @@
+{
+  "$k": "part",
+  "id": "64bbfbce-de70-5e94-9338-ea2bdf74897a",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "9d2d0ee1-4869-5ee6-b9ad-7b4fca5ceaa0",
+  "version": "1.0.0",
+  "sha256": "sha256:41726dac6b2572d5f4585dcaf8f8f2c153c7ce2471d741b8db6409d647107c89",
+  "meta": {"key": "195740", "sources": ["golden.table:parts|195740"]},
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "52dbf48a-f70f-55c9-8e9b-577475b13a4e",
+    "version_req": "*",
+    "key": "Festo"
+  },
+  "part_number": "195740",
+  "description": "CPX-FB13 bus node, PROFIBUS DP"
+}

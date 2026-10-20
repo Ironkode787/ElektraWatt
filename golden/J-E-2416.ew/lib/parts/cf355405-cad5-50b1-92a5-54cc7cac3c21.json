@@ -1,0 +1,27 @@
+{
+  "$k": "part",
+  "id": "cf355405-cad5-50b1-92a5-54cc7cac3c21",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "a9422da7-3c36-5dcf-babd-b8e64a79b8aa",
+  "version": "1.0.0",
+  "sha256": "sha256:cbe36c007e0fc3e2dcba06b4329ef5cd06c08d9bcafe6a7944be76b1b7aa7c78",
+  "meta": {"key": "NEBU-G78W5-K-2-N-LE5", "sources": ["golden.table:parts|NEBU-G78W5-K-2-N-LE5"]},
+  "kind": "cable",
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "52dbf48a-f70f-55c9-8e9b-577475b13a4e",
+    "version_req": "*",
+    "key": "Festo"
+  },
+  "part_number": "NEBU-G78W5-K-2-N-LE5",
+  "description": "Connecting cable 7/8\", 5-pin, open end",
+  "sections": {
+    "cable_cores": [
+      {"core": "BK", "colour": ["BK"]},
+      {"core": "BU", "colour": ["BU"]},
+      {"core": "GNYE", "colour": ["GN", "YE"]},
+      {"core": "WH", "colour": ["WH"]},
+      {"core": "BN", "colour": ["BN"]}
+    ]
+  }
+}

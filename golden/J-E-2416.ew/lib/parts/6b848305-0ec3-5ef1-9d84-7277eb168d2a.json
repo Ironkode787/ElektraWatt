@@ -1,0 +1,41 @@
+{
+  "$k": "part",
+  "id": "6b848305-0ec3-5ef1-9d84-7277eb168d2a",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "70fcc693-b22b-51b9-a7d3-2c97adc24577",
+  "version": "1.0.0",
+  "sha256": "sha256:1c2a7cc1dbff45b841b3edfa63118d87eda32b4a9ba54dc4b16db263db2437ff",
+  "meta": {"key": "MICO 4.10", "sources": ["golden.table:parts|MICO 4.10"]},
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "ff34c214-73ba-5dd0-b856-fac9e5216242",
+    "version_req": "*",
+    "key": "Murrelektronik"
+  },
+  "part_number": "MICO 4.10",
+  "description": "Electronic load distribution, 4 channels",
+  "cp_pattern": [
+    {"idx": 0, "designation": "24VDC"},
+    {"idx": 1, "designation": "24VDC"},
+    {"idx": 2, "designation": "GND"},
+    {"idx": 3, "designation": "GND"},
+    {"idx": 4, "designation": "13"},
+    {"idx": 5, "designation": "14"},
+    {"idx": 6, "designation": "Out1"},
+    {"idx": 7, "designation": "Out2"},
+    {"idx": 8, "designation": "Out3"},
+    {"idx": 9, "designation": "Out4"}
+  ],
+  "function_template": [
+    {
+      "fndef": {
+        "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+        "item": "8f2f5a49-a5bc-5d27-815c-47dd24106efb",
+        "version_req": "^0.1",
+        "key": "ew.fn.blackbox"
+      },
+      "main": true,
+      "cps": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    }
+  ]
+}

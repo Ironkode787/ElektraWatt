@@ -7,8 +7,8 @@ SPDX-License-Identifier: CC0-1.0
 
 This directory holds **Golden A**, the acceptance target of `docs/design/20-golden-project.md` (doc 20), as plain
 CSV tables. `ew import csv` (crate `ew-import-tables`, FR-IMP-022) turns `tables/` into format-level records (build
-path (a) of doc 20 §3.2); the checked-in fixture `golden/J-E-2416.ew/` (path (c)) follows once the JSONL writer of
-WP-S1.09 exists.
+path (a) of doc 20 §3.2); the checked-in fixture `golden/J-E-2416.ew/` (path (c)) is generated from the same tables (see
+"The checked-in project fixture" below).
 
 ## Licence and anonymisation
 
@@ -422,3 +422,25 @@ page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106). Still open:
 - **Link annotations.** The PDF has 63 link annotations against the 64 of §3.4 row 18: one per xref text slot,
   and a slot that lists several items ("∞ 3-B2, 106-G3") links to its first item only (the scene carries one
   link per text).
+
+## The checked-in project fixture (path (c))
+
+`golden/J-E-2416.ew/` is the golden project as an ElektraWatt project directory (doc 05 §2.1): the records of the
+CSV bootstrap (path (a)) written by `ew-format`, as generation 1. It is generated and never edited by hand; a
+change to `tables/` regenerates it in the same commit (doc 20 §3.2):
+
+    EW_BLESS_GOLDEN_FIXTURE=1 cargo nextest run -p ew-api --test golden_fixture --locked
+
+Bless mode only writes files; it never deletes one. A file the tables no longer produce is named in the failure
+message and removed by hand.
+
+It holds 164 files (about 0.8 MB): `manifest.json`, `project.jsonl`, `structure.jsonl`, `report-blocks.jsonl`, 13
+page files in `pages/`, 79 of the 256 anchor shards in `devices/` and 68 library copies in `lib/` (fndefs, forms,
+parts, symbols). It holds no `revisions.jsonl`, `waivers.jsonl`,
+`layout/`, `lib/manufacturers/` or `assets/` yet, because the bootstrap emits no records of those kinds: the
+revision, waiver, layout and manufacturer kinds are reserved in `ew-schema` v0.
+
+The test `the_fixture_is_byte_identical_to_the_bootstrap` (`crates/ew-api/tests/golden_fixture.rs`) regenerates
+the files and compares them with the directory byte for byte. It ignores only the manifest's `generator` member
+(doc 05 §17.1). The other tests of that file open the fixture with `ew-store` (edit, and read-only without a
+lock) and check the findings, the counts and the portable file names.

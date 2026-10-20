@@ -1,0 +1,36 @@
+{
+  "$k": "part",
+  "id": "14908083-618d-55c0-b20d-4810fbc5a350",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "eaf08311-6988-527b-be2c-4b715fc7a2f6",
+  "version": "1.0.0",
+  "sha256": "sha256:6eef32584d573c83f460a7240b462a1d23c2bacc2c752396bc37ca629022da0d",
+  "meta": {"key": "PT 2.5-TWIN", "sources": ["golden.table:parts|PT 2.5-TWIN"]},
+  "kind": "terminal",
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "c7cc7426-9bee-56de-807e-d6db02ca0d01",
+    "version_req": "*",
+    "key": "Phoenix Contact"
+  },
+  "part_number": "PT 2.5-TWIN",
+  "description": "Feed-through terminal, 3 connections",
+  "cp_pattern": [
+    {"idx": 0, "designation": "a", "level": 1, "side": "side1", "clamp": {"clamp": "a"}},
+    {"idx": 1, "designation": "b", "level": 1, "side": "side2", "clamp": {"clamp": "b"}},
+    {"idx": 2, "designation": "c", "level": 1, "side": "side2", "clamp": {"clamp": "c"}},
+    {"idx": 3, "designation": "s1", "level": 1, "clamp": {"shaft": 1}}
+  ],
+  "function_template": [
+    {
+      "fndef": {
+        "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+        "item": "e6f46588-2ed1-594f-857b-4810ffe4a028",
+        "version_req": "^0.1",
+        "key": "ew.fn.terminal"
+      },
+      "main": true,
+      "cps": [0, 1, 2, 3]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "$k": "part",
+  "id": "17103e5d-7891-56cd-a43c-4dec6bc6f9ed",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "4dfaa951-930e-5658-b2e7-88895201219c",
+  "version": "1.0.0",
+  "sha256": "sha256:6d4ceb6298b28dc8458d985cc7735c8b1bbbefd10bb39fb61dfb8e70f218320a",
+  "meta": {"key": "NSYPMM107", "sources": ["golden.table:parts|NSYPMM107"]},
+  "kind": "mounting_plate",
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "1bd48037-1c0b-5035-b88c-1576b03a7e74",
+    "version_req": "*",
+    "key": "Schneider Electric"
+  },
+  "part_number": "NSYPMM107",
+  "description": "Mounting plate"
+}

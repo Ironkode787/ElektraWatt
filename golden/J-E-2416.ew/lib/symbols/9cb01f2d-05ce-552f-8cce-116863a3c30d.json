@@ -1,0 +1,28 @@
+{
+  "$k": "symbol",
+  "id": "9cb01f2d-05ce-552f-8cce-116863a3c30d",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "0767f9ee-21ba-5168-8b23-cf353bc85205",
+  "version": "0.1.0",
+  "sha256": "sha256:af45fd98025c91b764c0b4694425ddd2583e25882cd41c74b0477dccd96b69f7",
+  "meta": {"key": "ew.ovw.module@qet10", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
+  "name": {"en": "Overview module"},
+  "keywords": ["module", "overview"],
+  "rep_type": "overview",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "d31d70bd-d668-5fa0-b956-64604e9ffd62",
+    "version_req": "^0.1",
+    "key": "ew.fn.overview"
+  },
+  "grid": {"num": 7937500, "den": 3},
+  "graphics": [{"rect": {"rect": [[0, 0], [15875000, 10583333]], "stroke": {"pen": {"width": 264583}}}}],
+  "text_slots": [
+    {"kind": "tag", "pos": [0, -661458], "align": "bottom_left", "visible": true},
+    {"kind": "manufacturer", "pos": [7937500, 1984375], "align": "centre", "visible": true},
+    {"kind": "part_number", "pos": [7937500, 5291667], "align": "centre", "visible": true},
+    {"kind": "type_designation", "pos": [7937500, 8598958], "align": "centre", "visible": true}
+  ],
+  "arrangements": [{"name": "full", "slots": [0, 1, 2, 3]}, {"name": "tag", "slots": [0]}],
+  "anchor": "graphic_centre"
+}

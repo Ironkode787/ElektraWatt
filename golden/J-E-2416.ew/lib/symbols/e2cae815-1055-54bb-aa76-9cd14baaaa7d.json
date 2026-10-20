@@ -1,0 +1,46 @@
+{
+  "$k": "symbol",
+  "id": "e2cae815-1055-54bb-aa76-9cd14baaaa7d",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "fc5100f0-d55c-50cc-9249-96cee6cb92b6",
+  "version": "0.1.0",
+  "sha256": "sha256:10d27fea188a493983012803ce366c32072e114c7e7305046152eb61222f2338",
+  "meta": {
+    "key": "ew.iec.thermostat-nc@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": ["ew.original"],
+    "status": "draft"
+  },
+  "name": {"en": "Thermostat contact, normally closed"},
+  "keywords": ["nc", "temperature", "thermostat"],
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "8d9a50e2-848e-5329-8a2b-ae81d4ec5354",
+    "version_req": "^0.1",
+    "key": "ew.fn.thermostat-nc"
+  },
+  "grid": {"num": 7937500, "den": 3},
+  "graphics": [
+    {"polyline": {"points": [[0, 0], [0, 2645833], [-1984375, 2645833]], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [0, 7937500], "to": [0, 5291667], "stroke": {"pen": {"width": 264583}}}},
+    {"line": {"from": [0, 5291667], "to": [-1322917, 2645833], "stroke": {"pen": {"width": 264583}}}},
+    {
+      "line": {"from": [-661458, 3968750], "to": [-2645833, 3968750], "stroke": {"pen": {"width": 132292}, "dash": "dash42"}}
+    },
+    {
+      "polyline": {
+        "points": [[-2645833, 1984375], [-2645833, 5953125], [-4630208, 5953125]],
+        "stroke": {"pen": {"width": 264583}}
+      }
+    }
+  ],
+  "cps": [{"idx": 0, "fn_cp": 0, "pos": [0, 0], "dir": "up"}, {"idx": 1, "fn_cp": 1, "pos": [0, 7937500], "dir": "down"}],
+  "text_slots": [
+    {"kind": "tag", "pos": [1984375, 2645833], "align": "middle_left", "visible": true},
+    {"kind": "tech_data", "pos": [1984375, 5291667], "align": "middle_left", "visible": true},
+    {"kind": {"cp_designation": 0}, "pos": [-661458, 661458], "align": "middle_right", "visible": true},
+    {"kind": {"cp_designation": 1}, "pos": [-661458, 7276042], "align": "middle_right", "visible": true}
+  ],
+  "arrangements": [{"name": "full", "slots": [0, 1, 2, 3]}, {"name": "tag", "slots": [0]}, {"name": "tag + rating", "slots": [0, 1]}],
+  "link_points": [{"name": "link", "pos": [-661458, 3968750]}]
+}

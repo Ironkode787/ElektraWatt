@@ -1,0 +1,30 @@
+{
+  "$k": "symbol",
+  "id": "35f7983c-4766-5502-9ebf-a335d4e6e64d",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "509ced12-ef7f-506c-94af-3810c0e8e6cd",
+  "version": "0.1.0",
+  "sha256": "sha256:605d4ef72b63e1763c385ea963466fa2fdd35927f9b14b60ad5119781012a65b",
+  "meta": {
+    "key": "ew.gen.strip-segment@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": ["ew.original"],
+    "status": "draft"
+  },
+  "name": {"en": "Terminal strip segment"},
+  "keywords": ["segment", "strip", "terminal"],
+  "rep_type": "strip_segment",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "2c4b506a-0063-5b62-957e-30f7f209a33e",
+    "version_req": "^0.1",
+    "key": "ew.fn.strip-segment"
+  },
+  "grid": {"num": 7937500, "den": 3},
+  "graphics": [{"rect": {"rect": [[0, 0], [5291667, 7937500]], "stroke": {"pen": {"width": 132292}, "dash": "dash42"}}}],
+  "text_slots": [
+    {"kind": "tag", "pos": [0, -661458], "align": "bottom_left", "visible": true},
+    {"kind": "function_text", "pos": [2645833, 3968750], "align": "centre", "visible": true}
+  ],
+  "arrangements": [{"name": "full", "slots": [0, 1]}, {"name": "tag", "slots": [0]}]
+}

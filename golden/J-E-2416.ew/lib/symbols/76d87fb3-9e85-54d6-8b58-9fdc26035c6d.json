@@ -1,0 +1,36 @@
+{
+  "$k": "symbol",
+  "id": "76d87fb3-9e85-54d6-8b58-9fdc26035c6d",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "24cb4438-5087-55ce-9fa9-7d1c107b98aa",
+  "version": "0.1.0",
+  "sha256": "sha256:2b5416edd9c4183145df840ade29e2714948ac81e9766cedbdb595dc08514284",
+  "meta": {"key": "ew.bus.dp-port@qet10", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
+  "name": {"en": "Bus port, PROFIBUS DP"},
+  "keywords": ["bus", "dp", "port", "profibus"],
+  "rep_type": "topology",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "b2c37b49-4fb3-5d24-802a-9b962fe6edea",
+    "version_req": "^0.1",
+    "key": "ew.fn.dp-port"
+  },
+  "grid": {"num": 7937500, "den": 3},
+  "graphics": [
+    {"rect": {"rect": [[0, 0], [7937500, 10583333]], "stroke": {"pen": {"width": 264583}}}},
+    {"text": {"pos": [3968750, 5291667], "text": "DP", "style": "cp.small", "align": "centre"}}
+  ],
+  "cps": [
+    {"idx": 0, "fn_cp": 0, "pos": [0, 2645833], "dir": "left", "discipline": "bus"},
+    {"idx": 1, "fn_cp": 1, "pos": [0, 5291667], "dir": "left", "discipline": "bus"},
+    {"idx": 2, "fn_cp": 2, "pos": [0, 7937500], "dir": "left", "discipline": "bus"}
+  ],
+  "text_slots": [
+    {"kind": "tag", "pos": [3968750, -661458], "align": "bottom_centre", "visible": true},
+    {"kind": {"cp_designation": 0}, "pos": [661458, 2645833], "align": "middle_left", "visible": true},
+    {"kind": {"cp_designation": 1}, "pos": [661458, 5291667], "align": "middle_left", "visible": true},
+    {"kind": {"cp_designation": 2}, "pos": [661458, 7937500], "align": "middle_left", "visible": true}
+  ],
+  "arrangements": [{"name": "full", "slots": [0, 1, 2, 3]}, {"name": "tag", "slots": [0]}],
+  "anchor": "graphic_centre"
+}

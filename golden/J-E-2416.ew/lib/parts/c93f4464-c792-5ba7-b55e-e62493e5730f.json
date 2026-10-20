@@ -1,0 +1,17 @@
+{
+  "$k": "part",
+  "id": "c93f4464-c792-5ba7-b55e-e62493e5730f",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "95217c92-41d2-5178-b4aa-925da4e94272",
+  "version": "1.0.0",
+  "sha256": "sha256:24b21ff6399c86a1d05d1abe91d6db51e6e56d0c9a30bcbf5f57481d44d3384d",
+  "meta": {"key": "A9P52610", "sources": ["golden.table:parts|A9P52610"]},
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "1bd48037-1c0b-5035-b88c-1576b03a7e74",
+    "version_req": "*",
+    "key": "Schneider Electric"
+  },
+  "part_number": "A9P52610",
+  "description": "Miniature circuit breaker 1P+N, C, 10 A"
+}

@@ -1,0 +1,24 @@
+{
+  "$k": "fndef",
+  "id": "ab4c7813-e809-503b-a0cb-8978f1c4ac3a",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "953db918-4c70-57d8-a7dc-97bd0818d957",
+  "version": "0.1.0",
+  "sha256": "sha256:20e27ec753ffb8b83e531d3e7bb6f963b612ba790ed661c905983f42bd43b968",
+  "meta": {
+    "key": "ew.fn.valve-5-2-sol-spring",
+    "licence": "CC-BY-SA-4.0",
+    "sources": ["ew.original"],
+    "status": "draft"
+  },
+  "category": ["ValveDirectional", "Valve52", "SolenoidSpring"],
+  "contact_kind": "valve",
+  "cps": [
+    {"idx": 0, "designation": "1", "discipline": "pneumatic"},
+    {"idx": 1, "designation": "2", "discipline": "pneumatic"},
+    {"idx": 2, "designation": "3", "discipline": "pneumatic"},
+    {"idx": 3, "designation": "4", "discipline": "pneumatic"},
+    {"idx": 4, "designation": "5", "discipline": "pneumatic"},
+    {"idx": 5, "designation": "14", "physical": false}
+  ]
+}

@@ -10,8 +10,16 @@
 //! the origin of their transactions; the exposure check, the normalisers and validation live in
 //! `ew-commands`, so no front-end can bypass them.
 //!
-//! Not in v0: persistence and the journal (WP-S1.09), the memo snapshot in [`World`] and the job pool for
-//! previews (WP-S1.05), rule registration (WP-S1.15) and export jobs.
+//! **Persistence** (WP-S1.09). [`Session::open`] opens a project directory through `ew-store` (lock,
+//! roll-forward, verification, integrity findings, leftover journal); [`Session::create`] writes the
+//! session's model as a new project. With a store attached, every committed transaction (execute, commit,
+//! undo, redo) is journalled as its field-level diff (doc 05 §8.1), its touched keys join the dirty set,
+//! and [`Session::save`] writes only the files of that set (doc 05 §5). [`Session::close`] is the clean
+//! close; dropping a session releases the lock and keeps the journal for recovery.
+//!
+//! Not in v0: the memo snapshot in [`World`] and the job pool for previews (WP-S1.05), rule registration
+//! (WP-S1.15), export jobs, the save on a writer thread, and the undo history of a recovered session
+//! (FR-COL-028: a recovered session opens dirty with an empty history).
 //!
 //! **Derivation findings.** What the derivation layer could not do as the project asks (an unknown pinned
 //! derivation profile, a numbering scheme the command layer does not number, the built-in default frame, a
@@ -45,11 +53,16 @@
 
 #![forbid(unsafe_code)]
 
+use std::collections::BTreeSet;
+use std::path::Path;
 use std::sync::Arc;
 
 use ew_derive::{DeviceTag, FrameGridOf, FrameSettings, NumberingSettingsOf, Q, ReportPagesProvider};
-use ew_model::{Model, ModelError, PreventHook};
+use ew_model::{AnyKey, Model, ModelError, PreventHook};
 use ew_schema::{LibDocument, Project, Record};
+use ew_store::{
+    Changes, LockState, OpenError, OpenReport, RecoverError, SaveError, SaveReport, Store, StoreOptions,
+};
 
 pub use ew_derive::{DeriveNote, NoteSeverity};
 
@@ -129,12 +142,39 @@ fn project_notes(model: &Model) -> Vec<DerivationFinding> {
         .collect()
 }
 
+/// What [`Session::open`] does with a leftover journal of a crashed session (doc 05 §8.3).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum Recovery {
+    /// Keep it and report it ([`OpenReport::recovery`]): the caller asks the user. "Open without
+    /// recovering" keeps the journal for 30 days.
+    #[default]
+    Keep,
+    /// Replay it: the session opens dirty with the recovered transactions.
+    Apply,
+    /// Delete it.
+    Discard,
+}
+
+/// The project directory a session saves to.
+struct Persistence {
+    store: Store,
+    /// The keys put since the last save: the dirty set of the next save (doc 05 §5.1).
+    unsaved: BTreeSet<AnyKey>,
+    /// Recovered changes that the history does not know about.
+    recovered: bool,
+}
+
 /// One open project: the facade every front-end (GUI, `ew` CLI, scripts, MCP) talks to.
 pub struct Session {
     engine: Engine,
     load_findings: Vec<DerivationFinding>,
     /// The report engine installed on every `Q` the session builds (WP-S3.03).
     reports: Arc<dyn ReportPagesProvider>,
+    persistence: Option<Persistence>,
+    /// Change-feed entries taken from the engine for the journal, not yet drained by the front-end.
+    changes: Vec<Change>,
+    /// The origin's name for the journal.
+    origin: String,
 }
 
 impl std::fmt::Debug for Session {
@@ -150,9 +190,18 @@ impl Session {
     /// A session over a loaded model.
     pub fn new(model: Model, options: SessionOptions) -> Session {
         let load_findings = project_notes(&model);
+        // `Gui`, `Cli { .. }` give `gui`, `cli`: the variant name, for the journal's `origin`.
+        let origin = format!("{:?}", options.origin)
+            .chars()
+            .take_while(char::is_ascii_alphanumeric)
+            .collect::<String>()
+            .to_ascii_lowercase();
         Session {
             load_findings,
             reports: ew_reports::engine(),
+            persistence: None,
+            changes: Vec::new(),
+            origin,
             engine: Engine::new(
                 model,
                 EngineOptions {
@@ -196,12 +245,18 @@ impl Session {
     /// Runs an interactive command through the commit pipeline (ARCH §5.2) from the session's origin.
     /// A bulk command is refused with [`CmdError::NeedsPreview`].
     pub fn execute(&mut self, cmd: &dyn DynCommand) -> Result<Receipt, CmdError> {
-        self.engine.execute(cmd)
+        let before = self.engine.model().clone();
+        let result = self.engine.execute(cmd);
+        self.committed(&before, cmd.name());
+        result
     }
 
     /// [`Session::execute`] with an explicit origin, editor context or coalescing key.
     pub fn execute_with(&mut self, cmd: &dyn DynCommand, submit: Submit) -> Result<Receipt, CmdError> {
-        self.engine.execute_with(cmd, submit)
+        let before = self.engine.model().clone();
+        let result = self.engine.execute_with(cmd, submit);
+        self.committed(&before, cmd.name());
+        result
     }
 
     /// Prepares a command on a fork of the current snapshot: the candidate model, its ops, the read set,
@@ -217,17 +272,27 @@ impl Session {
 
     /// Commits a preview after the rebase check; re-runs the command if its reads changed.
     pub fn commit(&mut self, preview: Preview) -> Result<Receipt, CmdError> {
-        self.engine.commit(preview)
+        let before = self.engine.model().clone();
+        let name = preview.command().name.clone();
+        let result = self.engine.commit(preview);
+        self.committed(&before, &name);
+        result
     }
 
     /// Undoes the last step as a new revision; returns the editor context to restore.
     pub fn undo(&mut self) -> Result<Restored, CmdError> {
-        self.engine.undo()
+        let before = self.engine.model().clone();
+        let result = self.engine.undo();
+        self.committed(&before, "undo");
+        result
     }
 
     /// Redoes the next step as a new revision.
     pub fn redo(&mut self) -> Result<Restored, CmdError> {
-        self.engine.redo()
+        let before = self.engine.model().clone();
+        let result = self.engine.redo();
+        self.committed(&before, "redo");
+        result
     }
 
     /// The undo stack.
@@ -237,7 +302,9 @@ impl Session {
 
     /// Takes the change-feed entries since the last call.
     pub fn drain_changes(&mut self) -> Vec<Change> {
-        self.engine.drain_changes()
+        let mut out = std::mem::take(&mut self.changes);
+        out.extend(self.engine.drain_changes());
+        out
     }
 
     /// The command registry: names, metadata and parameter schemas.
@@ -252,7 +319,7 @@ impl Session {
 
     /// Whether the model differs from the last saved state.
     pub fn is_dirty(&self) -> bool {
-        self.engine.is_dirty()
+        self.engine.is_dirty() || self.persistence.as_ref().is_some_and(|p| p.recovered)
     }
 
     /// The project-level derivation findings of the model the session opened with, in canonical order:
@@ -281,5 +348,151 @@ impl Session {
             .into_iter()
             .map(DerivationFinding::from)
             .collect()
+    }
+
+    // ---------------------------------------------------------------------------------------------------------
+    // Persistence (WP-S1.09)
+
+    /// After a mutating call: takes the change feed's new entries, adds their keys to the dirty set and
+    /// journals the transaction (doc 05 §8.1). Without a store the feed is left to the front-end.
+    fn committed(&mut self, before: &Model, cmd: &str) {
+        let Some(p) = &mut self.persistence else {
+            return;
+        };
+        let changes = self.engine.drain_changes();
+        if changes.is_empty() {
+            return;
+        }
+        let keys: Vec<AnyKey> = changes
+            .iter()
+            .flat_map(|c| c.touched_keys.iter().copied())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect();
+        p.unsaved.extend(keys.iter().copied());
+        // A journal failure leaves the edit standing; the store reports the journal as unavailable.
+        let _ = p
+            .store
+            .journal_commit(before, self.engine.model(), &keys, cmd, &self.origin);
+        self.changes.extend(changes);
+    }
+
+    /// Opens a project directory (doc 05 §6.1) and starts a session on it: read-write when the lock is
+    /// ours, read-only otherwise ([`OpenReport::access`]). `recovery` says what happens to a leftover
+    /// journal of a crashed session.
+    ///
+    /// # Errors
+    ///
+    /// [`OpenError`] when the project cannot be opened; integrity findings are in the report.
+    pub fn open(
+        dir: &Path,
+        store: StoreOptions,
+        options: SessionOptions,
+        recovery: Recovery,
+    ) -> Result<(Session, OpenReport), OpenError> {
+        let opened = Store::open(dir, store)?;
+        let (mut store, mut model, report) = (opened.store, opened.model, opened.report);
+        let mut unsaved = BTreeSet::new();
+        let mut recovered = false;
+        if store.recovery().is_some() {
+            match recovery {
+                Recovery::Keep => {}
+                Recovery::Discard => store.discard_recovery(),
+                Recovery::Apply => match store.recover(&model) {
+                    Ok(r) => {
+                        model = r.model;
+                        unsaved = r.keys;
+                        recovered = true;
+                    }
+                    // Collisions or an unreadable journal: the journal is kept and the disk state opens.
+                    Err(RecoverError::Nothing | RecoverError::Replay(_) | RecoverError::Io(_)) => {}
+                },
+            }
+        }
+        let mut session = Session::new(model, options);
+        session.persistence = Some(Persistence {
+            store,
+            unsaved,
+            recovered,
+        });
+        Ok((session, report))
+    }
+
+    /// Writes the session's model as a new project into `dir` (a directory without a project) and keeps
+    /// it as the session's project (Save As, doc 05 §5.5).
+    ///
+    /// # Errors
+    ///
+    /// [`OpenError`] when the directory holds a project, the lock is held or the write fails.
+    pub fn create(&mut self, dir: &Path, store: StoreOptions) -> Result<(), OpenError> {
+        let model = self.engine.model().clone();
+        let store = Store::create(dir, &model, store)?;
+        self.persistence = Some(Persistence {
+            store,
+            unsaved: BTreeSet::new(),
+            recovered: false,
+        });
+        self.engine.mark_saved();
+        Ok(())
+    }
+
+    /// Saves the current model (doc 05 §5.2): only the files of the transactions since the last save,
+    /// nothing at all for an unchanged project. On success the history gets its saved marker.
+    ///
+    /// # Errors
+    ///
+    /// [`SaveError`]; without a project directory, [`SaveError::ReadOnly`] with
+    /// [`ReadOnlyReason::Requested`](ew_store::ReadOnlyReason::Requested). After the commit point
+    /// ([`SaveError::Incomplete`]) the generation is decided: the session counts as saved and the store
+    /// completes the save by roll-forward ([`Session::retry_save`]).
+    pub fn save(&mut self) -> Result<SaveReport, SaveError> {
+        let model = self.engine.model().clone();
+        let Some(p) = &mut self.persistence else {
+            return Err(SaveError::ReadOnly(ew_store::ReadOnlyReason::Requested));
+        };
+        let result = p.store.save(&model, Changes::Keys(&p.unsaved));
+        if matches!(result, Ok(_) | Err(SaveError::Incomplete { .. })) {
+            p.unsaved.clear();
+            p.recovered = false;
+            self.engine.mark_saved();
+        }
+        result
+    }
+
+    /// Completes an incomplete save (doc 05 §5.4: the caller retries every 5 s).
+    ///
+    /// # Errors
+    ///
+    /// [`SaveError::Incomplete`] while the roll-forward still fails.
+    pub fn retry_save(&mut self) -> Result<Option<u64>, SaveError> {
+        match &mut self.persistence {
+            Some(p) => p.store.retry_pending(),
+            None => Ok(None),
+        }
+    }
+
+    /// The lock heartbeat (doc 05 §7.2); call it every [`ew_store::HEARTBEAT`].
+    ///
+    /// # Errors
+    ///
+    /// An I/O error touching the lock.
+    pub fn heartbeat(&mut self) -> std::io::Result<LockState> {
+        match &mut self.persistence {
+            Some(p) => p.store.heartbeat(),
+            None => Ok(LockState::NotHeld),
+        }
+    }
+
+    /// The project directory's store, if the session has one.
+    pub fn store(&self) -> Option<&Store> {
+        self.persistence.as_ref().map(|p| &p.store)
+    }
+
+    /// A clean close (doc 05 §8.1): deletes this session's journal and releases the lock. Unsaved changes
+    /// are discarded; save first to keep them.
+    pub fn close(self) {
+        if let Some(p) = self.persistence {
+            p.store.close();
+        }
     }
 }

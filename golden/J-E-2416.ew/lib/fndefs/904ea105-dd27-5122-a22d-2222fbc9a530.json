@@ -1,0 +1,16 @@
+{
+  "$k": "fndef",
+  "id": "904ea105-dd27-5122-a22d-2222fbc9a530",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "b2c37b49-4fb3-5d24-802a-9b962fe6edea",
+  "version": "0.1.0",
+  "sha256": "sha256:6e7244986cd6d5c4240e6ec0a7732013465fd9260d4620b1d355243759507255",
+  "meta": {"key": "ew.fn.dp-port", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
+  "category": ["Controller", "BusPort", "Profibus"],
+  "contact_kind": "bus_port",
+  "cps": [
+    {"idx": 0, "designation": "A", "discipline": "bus"},
+    {"idx": 1, "designation": "B", "discipline": "bus"},
+    {"idx": 2, "designation": "SH", "discipline": "bus", "optional": true}
+  ]
+}

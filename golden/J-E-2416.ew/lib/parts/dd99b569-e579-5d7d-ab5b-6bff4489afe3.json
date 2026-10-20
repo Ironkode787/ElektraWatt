@@ -1,0 +1,17 @@
+{
+  "$k": "part",
+  "id": "dd99b569-e579-5d7d-ab5b-6bff4489afe3",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "0707be59-489b-56d2-a166-6d5cc64ac509",
+  "version": "1.0.0",
+  "sha256": "sha256:e4bca8a20c01ba7689826c517230af6d7ed6727328d427ffe4797e3ab3a92058",
+  "meta": {"key": "533356", "sources": ["golden.table:parts|533356"]},
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "e8264efc-acd3-543a-a11d-96f1be4fb97e",
+    "version_req": "*",
+    "key": "Eaton"
+  },
+  "part_number": "533356",
+  "description": "Main switch, 2-pole, 40 A"
+}

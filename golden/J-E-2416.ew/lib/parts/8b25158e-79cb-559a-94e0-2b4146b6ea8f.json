@@ -1,0 +1,17 @@
+{
+  "$k": "part",
+  "id": "8b25158e-79cb-559a-94e0-2b4146b6ea8f",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "feba1841-26ff-5a6a-91d5-39fb01ea5bd2",
+  "version": "1.0.0",
+  "sha256": "sha256:d968da63fda0819b401ef5283ab3bbd1abf8ac0daa44e52fa0498508038d03f5",
+  "meta": {"key": "SK 3102.000", "sources": ["golden.table:parts|SK 3102.000"]},
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "a3b0f9a2-b3bc-54eb-ac08-9ece5bda07e5",
+    "version_req": "*",
+    "key": "Rittal"
+  },
+  "part_number": "SK 3102.000",
+  "description": "Enclosure heater"
+}
