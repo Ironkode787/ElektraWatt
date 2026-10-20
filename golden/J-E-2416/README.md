@@ -519,7 +519,11 @@ built (`crates/ew-api/src/cmdlog.rs`):
 - A `{"ref": "<kind>:<value>"}` object inside `params` is replaced just before its line runs: `section:<number>`
   by the section's ID (the section IDs are UUIDv5 of the tables, so a script cannot spell them portably; this
   reference kind is an implementation addition that doc 17 §3.5 does not list yet) and `id:<uuid>` by the text
-  once a record with that ID exists. The `tag:` and `folio:` references of doc 17 §3.5 are not resolved yet. A
+  once a record with that ID exists. Since cycle 12, `tag:<tag>` resolves to the one device whose derived tag
+  prints `<tag>` (short form such as `-X1031` or `S51`, or the full designation) and `folio:<label>` to the one
+  drawn page with that folio label; matching is exact, against the then-current model (the `find` surface of
+  doc 17 §3.5, FT-156, is not needed for it). A reference that names nothing or more than one record, such as an
+  unnumbered `-101A?` or a duplicate terminal designation, cannot be resolved; such targets use `id:<uuid>`. A
   reference that cannot be resolved stops the replay with exit code 2 (`CmdLogError::Reference`, with the number
   of lines committed before it).
 - `Session::run_script(&CmdLog, file)` replays a log: each line commits as its own transaction with origin
@@ -533,6 +537,7 @@ built (`crates/ew-api/src/cmdlog.rs`):
 |---|---|---|
 | `b2-renumber-pages.ewcmd` | §2.2 step B2: `page.renumber` of section 1 from 101 (folio 106 becomes 104) | tested by `crates/ew-api/tests/golden_b.rs`: exactly the 2 tags (-106W1, -106W2) and 14 cross-reference texts of §2.2 change, the page order follows, the topology (potential partition, 91 connection records) is identical, one undo restores the records byte for byte |
 | `b1-page-based-tags.ewcmd` | §2.2 step B1: `project.settings.set` drops the strip rule of `settings.numbering`, then `numbering.renumber` of the project with `include_frozen: true` (and `only_nonconforming`, see below) | tested by `crates/ew-api/tests/golden_b.rs`, alone and followed by B2: the 10 rows of the tag map hold, no cross-reference text changes, the topology is identical, one undo per line returns to Golden A byte for byte |
+| `c-fix.ewcmd` | §20.2, the steps that existing commands can do (see "Golden C as built") | replayed over the private reference import by `crates/ew-api/tests/golden_c.rs` (corpus-gated): all 49 lines commit |
 
 **Step B1 as built.** `include_frozen: true` unfreezes the frozen devices that the scheme numbers (`TagSpec.frozen`
 is cleared), and dropping the strip rule makes -X1031 and -X1032 print -103X1 and -103X2. 1X1 has no strip segment
@@ -543,6 +548,75 @@ every page output stay as they are. The log keeps conforming counters (`only_non
 main-representation rule the main representation of -X1031 is its second segment (103-A10), which would order it
 after -X1032; doc 20's `order: [column, row]` and scheme-format parameters do not exist (the format change is the
 settings line).
+
+## Golden C as built
+
+Golden C (doc 20 §2.3, §20) is the pilot's original QElectroTech file of the reference set, imported in lenient
+mode. The file is private (doc 20 §3.5): the repository holds only the expected migration-report counts
+(`expected/c-migration-report.csv`), the fix script (`variants/c-fix.ewcmd`) and the corpus-gated test
+`crates/ew-api/tests/golden_c.rs`. The test finds the source in `EW_PRIVATE_CORPUS` by its SHA-256 (the import
+lineage of a file without a QET project UUID is anchored on that hash, so the `id:` references of the fix script
+apply to that exact file). It prints counts, Golden A's own strings and sanitised imported strings only, and it
+skips when the variable is unset:
+
+```text
+EW_PRIVATE_CORPUS=<dir> cargo nextest run -p ew-api --test golden_c --run-ignored all --no-capture
+```
+
+**Migration report (cycle 12).** `expected/c-migration-report.csv` has one row per code: the MF rows of doc 20
+§20.1, doc 20's expected count, the count produced as built, and a status. The test asserts the produced counts.
+
+- *Holds:* MF-09 (8 EW-TERM-002 groups), MF-10 (1 EW-IMP-109), MF-22 (1 EW-IMP-006; the substituted family is not
+  Tahoma, but the count holds).
+- *Differs:* MF-03 lists 4 frozen labels (S51, F55, T55, E55) against 7: 1X1 is a strip and strips are not listed
+  (decision log ID-277), and S56 and E56 are not elements of this file. MF-04 gives 2 EW-IMP-104 entries (one
+  revision value differs on one folio; the per-folio description of folio 101 is reported as a folio-property
+  conflict) against "4 formats".
+- *Doc expectation does not fit this file:* MF-01. The stored labels of -3W1 and -3X1 equal their formulas, so no
+  EW-IMP-101 arises; the stale -4W1/-4X1 can only be in the nomenclature table (MF-21).
+- *Not detected yet (importer gaps):* MF-02 (FT-130), MF-06 (FT-139), MF-07, MF-18, MF-19 (FT-132), MF-08 (reported
+  as EW-IMP-008 with the designation "8", FT-141), MF-11 (FT-135), MF-12 (FT-131), MF-21 (FT-133). The live-rule
+  rows MF-13, MF-16, MF-23, MF-24, MF-25 and MF-27 need imports through the pipeline (FT-143); the text "3-B0" itself
+  is reproduced. MF-05 (EW-IMP-105), MF-14 (EW-IMP-110), MF-15 (EW-IMP-111), MF-17 (EW-IMP-121), MF-20
+  (EW-IMP-112) and MF-26 (EW-IMP-114) have no detection in the importer and no follow-up task yet.
+- *Not in §20.1:* EW-IMP-004 (94), EW-IMP-005 (3 fallback strips), EW-IMP-008 (13), EW-IMP-116 (1), EW-IMP-119 (16)
+  and EW-IMP-122 (6).
+
+**Fix script.** `variants/c-fix.ewcmd` (49 lines, every line commits) does what existing commands can do: the
+numbering scheme of doc 20 §4.4 (`project.settings.set`); -X1031 and -X1032 unfrozen onto the strip rule with their
+label mode and groups; terminal designations 1 … n with the old labels as function texts, spare states and rail
+bonding (MF-08, MF-09); the page kinds of folios 1, 3, 201 … 206 and 902 and the layout scale; the eight valves of
+folio 203 lettered Q and renumbered (-203Q1 … -203Q8). Unique targets use `tag:` and `folio:` references, the
+others `id:` references. The steps of §20.2 that need a command that does not exist:
+
+| §20.2 step | Edit it would make | Missing |
+|---|---|---|
+| 1, MF-16 | bond `pelv_0v_pe` between -102G1:−#1 and -X1032:2 via W27 | a bond command |
+| 1, MF-04 | revisions V1.0 and V2.0, per-page values dropped | a revision-create command |
+| 1, MF-02 | structure nodes =P01 and +J-E-2416 assigned to every device and page | a reference to a node created earlier in the log (`structure.create_node` exists) |
+| 1, MF-11 | core colour BR → BN on -106W1, -106W2 | cables with conductors in the import (FT-135) |
+| 3 | starter symbols instead of the QET-import symbols | `rep.exchange_symbol` (catalogued, not built; FT-127) |
+| 4 | sections 1, 2, 9 with dividers; folios 100, 200, 900 removed; report blocks 2, 901, 903 … 911 | moving a page into a section (`page.move`, not built); the frame form without grid is not in the imported library and no command embeds a library copy |
+| 5 | starter parts on every device with part data | part records in the project and a part-assignment path |
+| 6 | the valve-terminal assembly with its 28 child valves bound to channels | an assembly command |
+| 7 | layout items bound, rails and carriers | layout-page items in the import (FT-134) |
+| 8 | text styles (`tag.main` …) | a text-style command |
+
+**C fixed against Golden A.** `golden_c.rs` prints one row per comparison; `HOLDS` lists those that hold and are
+asserted. Holding: page titles (13 drawn folios), the tag source of the 35 common device tags, the function texts
+and states of the 28 common terminals. The differences, by class:
+
+- *QET-model limit (doc 14 §4.2, §4.13, FR-IMP-038):* cross-reference cells offset by the element-origin anchor
+  ((202-E1), 101-G15, 102-C15, 103-G6 against 102-D15, 103-H6); S56, E56, -XPE and the enclosure -UC1 with its plate
+  are not elements of the file; 33 unlabelled graphic elements (folios 3, 101, 102, 106, 902) and the 10 terminals
+  of the fallback strips X?101 … X?103 are QET elements where Golden A has no device (hiding them is FT-144);
+  "∞ 3-B0, 106-G3" against "∞ 3-B2, 106-G3" is the intended difference D-14 (doc 20 §3.4).
+- *Importer gaps:* no bridges (19, FT-140) and no cable cores (20, FT-135), so C has 106 plain wires against 52
+  wires, 20 cores and 19 bridges, 21 potentials against 18, and 1 of 17 comparable potentials with equal members;
+  the external points "+J-E-206 / JE-N1000-03" (FT-138); the page texts of every shared folio differ (free texts and
+  shapes FT-134, QET-import symbols FT-127, title block FT-139); 2 and 901 stay drawn pages (FT-133).
+- *Fix-script gaps (missing commands, table above):* the 28 child valves and their cross-references (step 6); the
+  dividers and report pages 2.1, 903 … 911 with their rows (step 4).
 
 ## Acceptance runner
 
