@@ -1,0 +1,41 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+QET import of the synthetic folios 101 102 103 against the golden tables
+Each metric is computed through the derivation on both sides, for these folios only.
+
+[1] drawn page order
+golden: 101 102 103
+import: 101 102 103
+equal
+
+[2] printed device tags (devices with a representation on the folios, interruption points excluded)
+golden: 41 tags
+import: 39 tags
+only in golden: -X1031 -X1032
+only in import: -
+DIFFERENT
+
+[3] potentials with a CP of a function represented on the folios
+sizes count those CPs, as <size>x<number of potentials>
+golden: 18 potentials, sizes 27x1 26x1 16x1 6x3 4x4 3x6 2x2
+import: 22 potentials, sizes 9x1 5x1 4x10 3x6 2x4
+DIFFERENT
+
+[4] wire connections drawn on the folios
+golden: 101=21 102=19 103=10 (total 50)
+import: 101=21 102=19 103=10 (total 50)
+equal
+
+[5] differences known by construction
+folios drawn by the fixture: 101 102 103
+  101: 19 elements (8 devices, 3 terminals, 6 reports, 2 junctions), 21 conductors (7 with integer ends)
+  102: 16 elements (3 devices, 0 terminals, 9 reports, 4 junctions), 19 conductors (6 with integer ends)
+  103: 45 elements (0 devices, 25 terminals, 20 reports, 0 junctions), 10 conductors (3 with integer ends)
+bridges not drawn (QET has none): 19: BR1.1 BR1.2 BR1.3 BR2.1 BR3.1 BR4.1 BR5.1 BR5.2 BR5.3 BR5.4 BR5.5 BR5.6 BR5.7 BR5.8 BR5.9 BR6.1 BR6.2 BR6.3 BR6.4
+cable cores not drawn (kind core): 10: W35.103 W36.103 W37 W38.103 W39.103 W40.103 W41.103 W42 W43.103 W44.103
+interruption points: 10 pairs linked on the folios, 15 without a partner on them
+terminal strips drawn terminal by terminal (one element per terminal): -X1031 -X1032 1X1
+not drawn: devices, cables and pages outside the folios, parts, potential definitions, bonds,
+  report blocks, wire colours and cross-sections; the golden joins potentials through
+  bridges and through interruption points that lead to folios outside the fixture.
