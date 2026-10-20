@@ -413,6 +413,35 @@ impl Q {
         }
     }
 
+    /// Runs `f` in a detached scope: its own request cache and a note frame that is dropped afterwards. The
+    /// reads inside are tracked as usual (they are dependencies of the running query); the values the scope's
+    /// cold families compute are not cached for the rest of the request, and their notes are not pushed.
+    ///
+    /// For the note-free connectivity families (ARCH §6.4): an incremental family whose hook re-reads only what
+    /// changed cannot reproduce the notes of what it did not re-read, so it carries no notes; helper queries
+    /// whose notes belong to their own readers (the default frame of an anchor cell, a structure cycle) run
+    /// detached, and the family records what it must report in its value. The scope behaves the same in a
+    /// cold and in a memoising `Q`.
+    pub(crate) fn detached<R>(&self, f: impl FnOnce() -> R) -> R {
+        struct Scope<'q> {
+            q: &'q Q,
+        }
+        impl Drop for Scope<'_> {
+            fn drop(&mut self) {
+                if let Ok(mut c) = self.q.cache.try_borrow_mut() {
+                    c.pop();
+                }
+                if let Ok(mut n) = self.q.notes.try_borrow_mut() {
+                    n.pop();
+                }
+            }
+        }
+        self.cache.borrow_mut().push(Cache::default());
+        self.notes.borrow_mut().push(NoteFrame::default());
+        let _scope = Scope { q: self };
+        f()
+    }
+
     /// Runs `f` on the innermost request cache.
     fn top_cache<R>(&self, f: impl FnOnce(&mut Cache) -> R) -> R {
         f(self.cache.borrow_mut().last_mut().expect("the request cache"))

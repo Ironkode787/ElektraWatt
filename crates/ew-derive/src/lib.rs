@@ -51,6 +51,9 @@ mod cell;
 mod cps;
 mod flow;
 mod heap;
+mod index;
+mod ip;
+mod links;
 mod memo_keys;
 mod memo_store;
 mod nets;
@@ -79,6 +82,17 @@ pub use cell::{
     anchor_point, default_frame_grid, frame_grid,
 };
 pub use cps::{Cp, FunctionCps};
+// WP-S1.07 part 2: the derived-index families of the connectivity (ARCH §6.3 rule 5) and the interruption-point
+// pairing split out of the stitch graph.
+pub use index::{
+    BondIndex, BondRec, BondVias, DefPoints, DefPointsV, Index, IpFunctions, Link, PageIds, PagelessLinks,
+    PagelessLinksV, RailTerminals,
+};
+pub use ip::{IpFnInfo, IpInfoOf, IpPairing, IpPairingQ};
+pub use links::{
+    BondPath, BondPaths, BondPathsQ, DeclaredLink, FunctionLinks, FunctionLinksOf, RailBonds, RailBondsQ,
+    RailTerminal, RailTerminalOf,
+};
 pub use memo_keys::{MemoInput, PartKey};
 pub use memo_store::MemoStore;
 // The memo engine types a session configures and reads (oracle mode, statistics, memory).
@@ -145,7 +159,11 @@ pub use {ew_ids, ew_mltext, ew_schema, ew_units};
 /// Every query family of this crate with its initial policy (ARCH §6.4), in name order.
 pub const FAMILIES: &[(&str, Policy)] = &[
     (BomRows::FAMILY, BomRows::POLICY),
+    (BondIndex::FAMILY, BondIndex::POLICY),
+    (BondPathsQ::FAMILY, BondPathsQ::POLICY),
+    (BondVias::FAMILY, BondVias::POLICY),
     (CellOf::FAMILY, CellOf::POLICY),
+    (DefPoints::FAMILY, DefPoints::POLICY),
     (xref::DeviceBoxes::FAMILY, xref::DeviceBoxes::POLICY),
     (DevicePartLines::FAMILY, DevicePartLines::POLICY),
     (DeviceTag::FAMILY, DeviceTag::POLICY),
@@ -155,18 +173,27 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (FrameGridOf::FAMILY, FrameGridOf::POLICY),
     (FrameSettings::FAMILY, FrameSettings::POLICY),
     (FunctionCps::FAMILY, FunctionCps::POLICY),
+    (FunctionLinksOf::FAMILY, FunctionLinksOf::POLICY),
+    (IpFunctions::FAMILY, IpFunctions::POLICY),
+    (IpInfoOf::FAMILY, IpInfoOf::POLICY),
+    (IpPairingQ::FAMILY, IpPairingQ::POLICY),
     (MainFunction::FAMILY, MainFunction::POLICY),
     (MainRep::FAMILY, MainRep::POLICY),
     (NumberingSettingsOf::FAMILY, NumberingSettingsOf::POLICY),
+    (PageIds::FAMILY, PageIds::POLICY),
     (PageLocalNets::FAMILY, PageLocalNets::POLICY),
     (PageOrder::FAMILY, PageOrder::POLICY),
     (PageRefStructure::FAMILY, PageRefStructure::POLICY),
     (PageStructure::FAMILY, PageStructure::POLICY),
     (PageTitle::FAMILY, PageTitle::POLICY),
+    (PagelessLinks::FAMILY, PagelessLinks::POLICY),
     (PhysicalWiresOf::FAMILY, PhysicalWiresOf::POLICY),
     (PotentialFlow::FAMILY, PotentialFlow::POLICY),
     (FlowBfs::FAMILY, FlowBfs::POLICY),
     (PotentialPartition::FAMILY, PotentialPartition::POLICY),
+    (RailBondsQ::FAMILY, RailBondsQ::POLICY),
+    (RailTerminalOf::FAMILY, RailTerminalOf::POLICY),
+    (RailTerminals::FAMILY, RailTerminals::POLICY),
     (RepAnchorCell::FAMILY, RepAnchorCell::POLICY),
     (SectionStructure::FAMILY, SectionStructure::POLICY),
     (SettingsMember::FAMILY, SettingsMember::POLICY),

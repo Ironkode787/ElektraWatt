@@ -87,11 +87,6 @@ pub fn joins_net(kind: &ConnectionKind) -> bool {
     )
 }
 
-/// The connections named as `Bond.via` (the bond cut, doc 08 §3.7). Reads the whole bond table.
-pub(crate) fn bond_vias(q: &Q) -> BTreeSet<Id<Connection>> {
-    q.bonds().iter().filter_map(|(_, b)| b.via).collect()
-}
-
 /// The endpoint keys of a connection; `None` for an endpoint of a newer format.
 pub(crate) fn ends(c: &Connection) -> Option<(EndpointKey, EndpointKey)> {
     Some((EndpointKey::of(&c.a)?, EndpointKey::of(&c.b)?))
@@ -178,7 +173,9 @@ impl Query for PageLocalNets {
     }
 
     fn run(q: &Q, page: &Id<Page>) -> Arc<LocalNets> {
-        let vias = bond_vias(q);
+        // The bond cut (doc 08 §3.7), read as a cut-off point: a bond edit reaches this page only when the cut
+        // changed.
+        let vias = q.get_value_part::<crate::index::BondVias>(());
         let mut dsu = Dsu::default();
         let mut via: BTreeMap<EndpointKey, BTreeSet<Id<Connection>>> = BTreeMap::new();
         let mut cut = Vec::new();

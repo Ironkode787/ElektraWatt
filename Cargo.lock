@@ -346,6 +346,7 @@ dependencies = [
  "ew-rhai",
  "ew-schema",
  "ew-units",
+ "imbl",
  "proptest",
  "serde",
  "serde_json",

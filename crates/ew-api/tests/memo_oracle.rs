@@ -36,6 +36,10 @@ use ew_derive::{
     Member, Oracle, PageLocalNets, PageOrder, PageRef, PhysicalWiresOf, PotentialId, PotentialPartition, Q,
     Query, SettingsMember, StitchGraphQ, TitleBlockValues, TocRows, WirePropsOf, XrefTextOf,
 };
+use ew_derive::{
+    BondIndex, BondPathsQ, BondVias, DefPoints, FunctionLinksOf, IpFunctions, IpInfoOf, IpPairingQ, PageIds,
+    PagelessLinks, RailBondsQ, RailTerminalOf, RailTerminals,
+};
 use ew_model::{AnyRow, Model, Op};
 use ew_schema::{Device, Kind, Page, Record};
 use serde_json::{Value, json};
@@ -43,15 +47,28 @@ use serde_json::{Value, json};
 /// The families this test reads: the `Memo`/`MemoLru` families of `ew_derive::FAMILIES`, sorted.
 const SWEPT: &[&str] = &[
     "bom_rows",
+    "bond_index",
+    "bond_paths",
+    "bond_vias",
+    "def_points",
     "device_part_lines",
     "device_tag",
     "devices_by_structure",
     "drawn_page_order",
+    "function_links",
+    "ip_functions",
+    "ip_info",
+    "ip_pairing",
+    "page_ids",
     "page_local_nets",
     "page_order",
+    "pageless_links",
     "physical_wires_of",
     "potential_flow_bfs",
     "potential_partition",
+    "rail_bonds",
+    "rail_terminal",
+    "rail_terminals",
     "settings_member",
     "stitch_graph",
     "title_block",
@@ -103,6 +120,7 @@ fn session(batch: &ew_import_tables::ew_interop_api::ImportBatch, memo: MemoMode
 /// The keys of the snapshot a `Q` sees, for the families with a non-trivial key.
 struct Keys {
     devices: Vec<Id<Device>>,
+    functions: Vec<Id<ew_schema::Function>>,
     pages: Vec<Id<Page>>,
     reps: Vec<Id<ew_schema::Representation>>,
     page_refs: Vec<PageRef>,
@@ -113,6 +131,7 @@ impl Keys {
     fn of(q: &Q) -> Keys {
         Keys {
             devices: q.devices().ids().collect(),
+            functions: q.functions().ids().collect(),
             pages: q.pages().ids().collect(),
             reps: q.reps().ids().collect(),
             page_refs: q.get::<PageOrder>(()).entries.iter().map(|e| e.page).collect(),
@@ -153,6 +172,38 @@ fn sweep(memo: &Q, cold: Option<&Q>, state: &str) -> BTreeMap<&'static str, usiz
         BomRows::FAMILY,
         check::<BomRows>(memo, cold, [BomMode::Component, BomMode::Assembly], state),
     );
+    for (family, count) in [
+        (BondIndex::FAMILY, check::<BondIndex>(memo, cold, [()], state)),
+        (BondPathsQ::FAMILY, check::<BondPathsQ>(memo, cold, [()], state)),
+        (BondVias::FAMILY, check::<BondVias>(memo, cold, [()], state)),
+        (DefPoints::FAMILY, check::<DefPoints>(memo, cold, [()], state)),
+        (
+            FunctionLinksOf::FAMILY,
+            check::<FunctionLinksOf>(memo, cold, keys.functions.iter().copied(), state),
+        ),
+        (IpFunctions::FAMILY, check::<IpFunctions>(memo, cold, [()], state)),
+        (
+            IpInfoOf::FAMILY,
+            check::<IpInfoOf>(memo, cold, keys.functions.iter().copied(), state),
+        ),
+        (IpPairingQ::FAMILY, check::<IpPairingQ>(memo, cold, [()], state)),
+        (PageIds::FAMILY, check::<PageIds>(memo, cold, [()], state)),
+        (
+            PagelessLinks::FAMILY,
+            check::<PagelessLinks>(memo, cold, [()], state),
+        ),
+        (RailBondsQ::FAMILY, check::<RailBondsQ>(memo, cold, [()], state)),
+        (
+            RailTerminalOf::FAMILY,
+            check::<RailTerminalOf>(memo, cold, keys.devices.iter().copied(), state),
+        ),
+        (
+            RailTerminals::FAMILY,
+            check::<RailTerminals>(memo, cold, [()], state),
+        ),
+    ] {
+        put(family, count);
+    }
     put(
         DevicePartLines::FAMILY,
         check::<DevicePartLines>(memo, cold, keys.devices.iter().copied(), state),

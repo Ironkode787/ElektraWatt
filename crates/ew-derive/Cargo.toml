@@ -29,6 +29,10 @@ ew-units = { path = "../ew-units" }
 ew-mltext = { path = "../ew-mltext" }
 # Reference designations and identifier sets (ADR-0026).
 ew-rds = { path = "../ew-rds" }
+# Persistent maps for the incremental connectivity values (the partition and its index families): O(1)
+# clones and diffs that skip shared subtrees, so an edit costs what it touches (ADR-0002 amendment 4). MPL-2.0+,
+# as in ew-memo and ew-model.
+imbl = "7.0.2"
 serde.workspace = true
 # Settings members still kept in `ProjectSettings.extra` (doc 03 §5.1) and reserved records.
 serde_json = "1.0.154"

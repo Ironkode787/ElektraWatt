@@ -60,6 +60,9 @@ pub enum PartKey {
     Flow(PotentialId),
     /// The bonds between potentials in `potential_partition()` (`Partition::bonds`).
     Bonds,
+    /// The pairing of one interruption point in `ip_pairing()`: its info (without the group index), its
+    /// partners and the content of its group.
+    Ip(Id<Function>),
     /// The whole value of a family read as a cut-off point ([`Q::get_value_part`](crate::Q)): a commit that
     /// marks the family does not mark the reader; only a re-execution that changes the value does. The
     /// family never declares parts, so every change of its value is a change of this part.
