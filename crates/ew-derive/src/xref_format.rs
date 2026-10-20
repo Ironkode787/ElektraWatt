@@ -21,7 +21,8 @@ pub enum XrefToken {
     Lit(String),
     /// `{page}` or QET `%F`: the folio label of the target page.
     Page,
-    /// `{page_index}` or QET `%f`: the 1-based position in page order.
+    /// `{page_index}` or QET `%f`: the 1-based position in `page_order` counting every page record (drawn,
+    /// divider and the base page of each report block) but not report continuation pages.
     PageIndex,
     /// `{row}` or QET `%l`.
     Row,

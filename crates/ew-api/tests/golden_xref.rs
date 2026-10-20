@@ -14,6 +14,8 @@
 //!   its cell, an anchor in the next cell prints the next cell; the bus port never prints 3-B0.
 //! - `renumbering_folio_3_to_4_updates_the_bus_port_reference` (AC-20, D-01): the cross-reference part.
 //! - `xref_texts_do_not_depend_on_record_order` (NFR-REL-07): reversed records.
+//! - `page_index_counts_every_page_record_but_not_continuations` (FR-XRF-003): `%f-%l%c` prints "6-A1" for
+//!   L-1 on folio 102.
 //! - `no_xref_notes_on_the_golden_model`: no `Xref` and no `MalformedShim` note.
 
 mod golden_common;
@@ -290,6 +292,26 @@ fn xref_texts_do_not_depend_on_record_order() {
     let forward = all_texts(&ids, &session(&b));
     let reversed = all_texts(&ids, &session_with(&b, |_, r| r.reverse()));
     assert_eq!(forward, reversed);
+}
+
+/// FR-XRF-003: `%f` is the position in `page_order` counting drawn pages, dividers and the base page of each
+/// report block (the TOC), not the continuation page 2.1: front 1, TOC 2, [2.1], 3, divider 100, 101, 102
+/// is the sixth.
+#[test]
+fn page_index_counts_every_page_record_but_not_continuations() {
+    let b = batch();
+    let ids = ids_by_key(&b);
+    let s = session_with(&b, |p, _| {
+        p.settings.extra.insert(
+            "xref_format".into(),
+            serde_json::json!({
+                "key": "qet", "ip": "%f-%l%c", "aux_to_main": "({page}-{row}{column})",
+                "main_to_aux": "∞ {list}", "structure": "when_different", "same_page": "full",
+                "matrix": {"per_row": 3, "max": 9, "overflow": "…"},
+            }),
+        );
+    });
+    assert_eq!(text(&s, rep(&ids, "L-1@101")).text, "6-A1");
 }
 
 #[test]

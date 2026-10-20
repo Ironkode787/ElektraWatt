@@ -49,8 +49,9 @@
 //!   21 → 2, 113 → 11), then designation, then target order, joined by ", " ("13-14 /105.3, 21-22 /106.5").
 //! - **Matrix** (FR-XRF-008): only the first `matrix.max` items are formatted; the overflow mark stands for
 //!   the rest, so a star of 10 000 points costs nine items.
-//! - **Page index** (`{page_index}`, QET `%f`): the 1-based position among the drawn pages only (generated
-//!   pages and dividers do not count), as QET numbers its folios.
+//! - **Page index** (`{page_index}`, QET `%f`): the 1-based position in `page_order` counting every page
+//!   record (drawn pages, section dividers and the base page of each report block, such as the table of
+//!   contents) but not the continuation pages the report engine generates ("2.1"), as QET numbers its folios.
 //! - **External** (FR-XRF-012): "{location} / {device}" of the `ExternalRef` ("+J-E-206 / JE-N1000-03"),
 //!   preceded by the other project's name and a space when it names one; no link.
 //!
@@ -69,7 +70,7 @@ use serde_json::Value;
 
 use crate::cell::{Cell, RepAnchorCell, anchor_point};
 use crate::note::{DeriveNote, EW_INV_002};
-use crate::pages::{DrawnPageOrder, PageOrder, PageOrderV, PageRef, folio_label};
+use crate::pages::{PageOrder, PageOrderV, PageRef, folio_label};
 use crate::profile::XrefFormat;
 use crate::query::{Policy, Query};
 use crate::stitch::{PairMode, StitchGraphQ};
@@ -459,8 +460,8 @@ fn device_relation(
                 code: EW_CORE_053,
                 subject: format!("representation {rid}"),
                 detail: format!(
-                    "the main function of device {device} has no representation; the auxiliary prints no \
-                     cross-reference"
+                    "the main function of device {device} is drawn only as a strip segment, which cannot \
+                     carry a cross-reference target; the auxiliary prints no cross-reference"
                 ),
             });
             none
@@ -645,7 +646,7 @@ impl Query for XrefTextOf {
         let cx = TextCx {
             q,
             settings: &settings,
-            drawn: q.get::<DrawnPageOrder>(()),
+            order: q.get::<PageOrder>(()),
             source,
             source_structure: q.get::<PageStructure>(source),
         };
@@ -695,19 +696,21 @@ fn links(rendered: &Rendered, shown: &[&XrefTarget]) -> Vec<XrefLink> {
 struct TextCx<'a> {
     q: &'a Q,
     settings: &'a XrefSettings,
-    /// The drawn pages in order, for `{page_index}`.
-    drawn: Arc<PageOrderV>,
+    /// The page order, for `{page_index}`.
+    order: Arc<PageOrderV>,
     source: Id<Page>,
     source_structure: Arc<ResolvedStructure>,
 }
 
-/// The 1-based position of `page` among the drawn pages of `order` (dividers and generated pages do not
-/// count, as in QET), `None` for a page outside the order.
-fn drawn_index(order: &PageOrderV, page: Id<Page>) -> Option<usize> {
+/// The 1-based position of `page` in `order` counting every page record: drawn pages, section dividers and
+/// the base page (index 0) of each report block, but not the pagination continuation pages of a block
+/// (index 1 and up, the "2.1"-style pages, which have no page record), as in QET. `None` for a page outside
+/// the order.
+fn page_index(order: &PageOrderV, page: Id<Page>) -> Option<usize> {
     let pos = order.position(PageRef::Drawn(page))?;
     let before = order.entries[..pos]
         .iter()
-        .filter(|e| matches!(e.page, PageRef::Drawn(_)))
+        .filter(|e| !matches!(e.page, PageRef::Generated { index, .. } if index > 0))
         .count();
     Some(before + 1)
 }
@@ -756,7 +759,7 @@ impl TextCx<'_> {
         let values = ItemValues {
             page,
             page_index: if tokens.contains(&XrefToken::PageIndex) {
-                drawn_index(&self.drawn, t.page)
+                page_index(&self.order, t.page)
             } else {
                 None
             },

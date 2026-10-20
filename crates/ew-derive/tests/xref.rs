@@ -31,7 +31,7 @@
 //! - `zone_only_drops_page_parts_with_their_separators`
 //! - `empty_formats_print_nothing`
 //! - `star_formats_only_the_shown_items`
-//! - `page_index_counts_drawn_pages_only`
+//! - `page_index_counts_dividers_but_not_continuations`
 //! - `dangling_external_ref_is_refused_at_load`
 //! - `dangling_external_ref_prints_nothing_and_is_noted_on_a_raw_model`
 //! - `hostile_shapes_are_refused_at_load`
@@ -1186,9 +1186,11 @@ fn star_formats_only_the_shown_items() {
 }
 
 #[test]
-fn page_index_counts_drawn_pages_only() {
-    // FR-XRF-003: `%f` is the position among the drawn pages, as in QET: the divider page of a section is
-    // not counted, so "L-1" on folio 102 of a section with a divider prints 3 (front page, 101, 102), not 4.
+fn page_index_counts_dividers_but_not_continuations() {
+    // FR-XRF-003: `%f` is the position in `page_order` counting every page record, as in QET: the divider
+    // page of a section counts, so "L-1" on folio 102 of a section with a divider prints 4 (front page,
+    // divider, 101, 102). Report base pages count and continuation pages do not: the golden project's
+    // "6-A1" is asserted in `ew-api` (`golden_xref`), which has the report engine.
     let mut fx = lib();
     fx.section(0x5001, 1, (100, 199), "Section", true);
     fx.page(pg(1), 1, None, "multi_line", &[], "front");
@@ -1203,9 +1205,8 @@ fn page_index_counts_drawn_pages_only() {
     ip(&mut fx, 0x1101, pg(3), "L-1", "target", (0, 0));
     let m = fx.build();
     let q = Q::new(&m);
-    assert_eq!(text(&q, rep_of(0x1100)), "3-A0");
+    assert_eq!(text(&q, rep_of(0x1100)), "4-A0");
     assert_eq!(text(&q, rep_of(0x1101)), "1-A0");
-    // The divider is in the page order of the drawn pages; the index skips it.
-    let order = q.get::<ew_derive::DrawnPageOrder>(());
+    let order = q.get::<ew_derive::PageOrder>(());
     assert_eq!(order.entries.len(), 4, "{:?}", order.entries);
 }
