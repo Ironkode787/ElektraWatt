@@ -30,6 +30,7 @@
 //!   enums, as are the short `Ident` payloads of enum variants (`TagScheme::Named`, `SlotKind::UserProp`).
 //! - A `TechValue` counts its key and `extra`, not its value (a number, a quantity or a short text); the
 //!   colour of a wire counts the array of its codes, not the company identifiers inside.
+//! - A `TextSlot` counts its optional `style` name and `extra`.
 //! - A `Primitive` counts its point vectors, text, style and `extra`; the `Stroke` of a primitive counts its
 //!   `extra` only (fills and pens are plain data).
 //! - Everything else is plain data stored inline in the struct and therefore part of `size_of`.
@@ -223,12 +224,17 @@ extra_only!(
     SlotOverride,
     FnFlags,
     SymbolCp,
-    TextSlot,
     InternalLinkDef,
     StructureAssignment,
     PotentialEnv,
     BoxCp,
 );
+
+impl HeapSize for TextSlot {
+    fn heap_size(&self) -> usize {
+        self.style.heap_size() + self.extra.heap_size()
+    }
+}
 
 impl HeapSize for Bond {
     fn heap_size(&self) -> usize {
@@ -825,5 +831,29 @@ impl HeapSize for FormDef {
 impl<T: HeapSize> HeapSize for LibCopy<T> {
     fn heap_size(&self) -> usize {
         self.version.heap_size() + self.item.heap_size()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn slot(extra: serde_json::Value) -> TextSlot {
+        let mut v = serde_json::json!({"kind": "xref", "pos": [0, 0], "align": "top_left"});
+        v.as_object_mut()
+            .unwrap()
+            .extend(extra.as_object().unwrap().clone());
+        serde_json::from_value(v).expect("a text slot")
+    }
+
+    #[test]
+    fn a_text_slot_counts_its_style_name_and_extra() {
+        let plain = slot(serde_json::json!({}));
+        assert_eq!(plain.heap_size(), 0);
+        let styled = slot(serde_json::json!({"style": "xref.device"}));
+        assert_eq!(styled.heap_size(), "xref.device".len());
+        let both = slot(serde_json::json!({"style": "xref.device", "note": "abc"}));
+        assert_eq!(both.heap_size(), "xref.device".len() + both.extra.heap_size(),);
+        assert!(both.extra.heap_size() > 0);
     }
 }

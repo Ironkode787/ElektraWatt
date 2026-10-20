@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "b628ca8f-9f29-5f06-87e9-b0b859f90399",
   "version": "0.1.0",
-  "sha256": "sha256:c2062fb6280d95be2a8b268cb18cacae479573dfa652312034a1a9437348d0b0",
+  "sha256": "sha256:8b70fd35be2786dfacdca81778723d9fbd60777cc4fefa02d619a840c676dee7",
   "meta": {
     "key": "ew.iec.contact-co",
     "licence": "CC-BY-SA-4.0",
@@ -139,7 +139,8 @@
         8000000
       ],
       "align": "middle_left",
-      "visible": true
+      "visible": true,
+      "style": "xref.device"
     },
     {
       "kind": {

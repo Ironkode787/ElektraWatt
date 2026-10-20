@@ -45,6 +45,9 @@ use ew_schema::{
 };
 use ew_units::{Grid, Nm, Orient2, Pt2};
 
+/// The interruption-point symbols: their xref slot keeps the default style of its kind.
+const INTERRUPTION_POINTS: [&str; 2] = ["ew.gen.ip", "ew.gen.external-arrow"];
+
 /// The 36 keys of the native starter library; the qet10 edition has the same keys with `@qet10`.
 const STARTER_KEYS: [&str; 36] = [
     "ew.iec.contact-no",
@@ -965,13 +968,18 @@ fn text_slots_and_arrangements() {
                 ));
             }
         }
-        // Doc 20 §17.5 binds `xref.device` to the cross-reference slots of these symbols (FT-84).
+        // Doc 06 §2.8 and doc 20 §17.5 bind `xref.device` to the cross-reference texts of devices (the aux text
+        // "(…)" under the tag, the main list after it). The interruption-point symbols print their partner text
+        // in `data.small`, the default style of the slot kind, and name no style (FT-84).
         let base = d.key.strip_suffix("@qet10").unwrap_or(&d.key);
-        if ["ew.ovw.module", "ew.bus.dp-port", "ew.gen.blackbox"].contains(&base) {
-            for (i, s) in def.text_slots.iter().enumerate() {
-                if s.kind == SlotKind::Xref && s.style.as_ref().map(|n| n.as_str()) != Some("xref.device") {
-                    problems.push(format!("{who}: xref slot {i} must name the style xref.device"));
-                }
+        let want = if INTERRUPTION_POINTS.contains(&base) {
+            None
+        } else {
+            Some("xref.device")
+        };
+        for (i, s) in def.text_slots.iter().enumerate() {
+            if s.kind == SlotKind::Xref && s.style.as_ref().map(|n| n.as_str()) != want {
+                problems.push(format!("{who}: xref slot {i} must name the style {want:?}"));
             }
         }
         let mut names = BTreeSet::new();

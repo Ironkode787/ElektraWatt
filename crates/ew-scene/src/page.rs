@@ -61,9 +61,9 @@
 //!   representation's arrangement (FR-SYM-012), else by the symbol's default; an empty value prints
 //!   nothing. Position and angle overrides are in the symbol frame. Placement follows
 //!   [`crate::symbol`]: the position turns with the orientation, the angle is made readable, the alignment
-//!   flips (doc 07 §4.1); the style is the slot's own `style` when it names a known text style, else [`symbol::default_style_key`] of
-//!   the slot kind (an unknown name is reported as [`PageFinding::UnknownSlotStyle`], ID-227). `max_width` is not
-//!   applied yet.
+//!   flips (doc 07 §4.1); the style is the slot's own `style` when it names a known text style, else
+//!   [`symbol::default_style_key`] of the slot kind (an unknown name is reported as
+//!   [`PageFinding::UnknownSlotStyle`], ID-227). `max_width` is not applied yet.
 //!   A text that lists several items carries one link per item ([`SlotValue::item_links`], FT-86): an invisible
 //!   path item over the item's glyph span (the pen travel of the text up to the item's ends), after the text's
 //!   own items, with the text's entity and a [`Link::Source`].
@@ -150,10 +150,13 @@ pub struct SlotValue {
     pub slot: u16,
     /// The printed text.
     pub text: String,
-    /// Where the whole text links to, if anywhere (the text items carry the link).
+    /// Where the whole text links to, if anywhere (the text items carry the link). Exclusive with
+    /// [`item_links`](SlotValue::item_links): a value sets one of the two kinds, never both.
     pub link: Option<Destination>,
     /// One link per listed item of the text (a cross-reference list, FT-86): each covers the glyph span of
-    /// its item, as an invisible path item over the item's box next to the text items.
+    /// its item, as an invisible path item over the item's box next to the text items. Exclusive with
+    /// [`link`](SlotValue::link). A value that sets both is reported as [`PageFinding::ConflictingLinks`]
+    /// and prints with its item links only.
     pub item_links: Vec<ItemLink>,
 }
 
@@ -276,6 +279,13 @@ pub enum PageFinding {
         entity: Uuid,
         /// The key.
         key: String,
+    },
+    /// A slot value that sets both a whole-text link and item links; the item links were used.
+    ConflictingLinks {
+        /// The entity the text belongs to.
+        entity: Uuid,
+        /// The index of the slot in the symbol's `text_slots`.
+        slot: u16,
     },
     /// A text slot whose `style` names no text style; the style of the slot's kind was used (ID-227).
     UnknownSlotStyle {
@@ -682,6 +692,13 @@ impl Builder<'_> {
                         name: name.to_owned(),
                     });
                 }
+                let conflict = value.link.is_some() && !value.item_links.is_empty();
+                if conflict {
+                    self.out.findings.push(PageFinding::ConflictingLinks {
+                        entity: entity.0,
+                        slot: value.slot,
+                    });
+                }
                 self.text(&TextSpec {
                     text: &value.text,
                     at: rep.pos + rep.orient.apply(pos),
@@ -689,7 +706,7 @@ impl Builder<'_> {
                     align: &symbol::placed_align(&slot.align, rot, rep.orient),
                     style_key,
                     entity,
-                    link: value.link.map(Link::Source),
+                    link: value.link.filter(|_| !conflict).map(Link::Source),
                     items: &value.item_links,
                 });
             }

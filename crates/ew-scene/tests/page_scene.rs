@@ -406,6 +406,61 @@ fn a_text_with_several_items_carries_one_link_per_item_over_its_own_span() {
 }
 
 #[test]
+fn a_whole_text_link_and_item_links_are_exclusive() {
+    let mut v = view();
+    let text = "3-B2, 106-G3";
+    let dest = |n: u128| Destination::Representation(Uuid::from_u128(n));
+    v.reps[1].slots = vec![SlotValue {
+        slot: 0,
+        text: text.into(),
+        link: Some(dest(0x70)),
+        item_links: vec![ItemLink {
+            range: 0..4,
+            dest: dest(0x71),
+        }],
+    }];
+    let labels = page_display_list(&v, Layer::Labels, bundled());
+    let notes: Vec<&PageFinding> = labels
+        .findings
+        .iter()
+        .filter(|f| matches!(f, PageFinding::ConflictingLinks { .. }))
+        .collect();
+    assert_eq!(notes.len(), 1, "{:?}", labels.findings);
+    // The item links win: one link box, and the text items carry no link.
+    let links: Vec<(bool, Link)> = labels
+        .list
+        .items
+        .iter()
+        .filter(|i| i.entity == Some(EntityRef(Uuid::from_u128(0x11))))
+        .filter_map(|i| i.link.map(|l| (matches!(i.kind, ItemKind::Path(_)), l)))
+        .collect();
+    assert_eq!(links, [(true, Link::Source(dest(0x71)))]);
+    // Either kind alone raises no finding.
+    for (link, item_links) in [
+        (Some(dest(0x70)), Vec::new()),
+        (
+            None,
+            vec![ItemLink {
+                range: 0..4,
+                dest: dest(0x71),
+            }],
+        ),
+    ] {
+        v.reps[1].slots[0].link = link;
+        v.reps[1].slots[0].item_links = item_links;
+        let labels = page_display_list(&v, Layer::Labels, bundled());
+        assert!(
+            !labels
+                .findings
+                .iter()
+                .any(|f| matches!(f, PageFinding::ConflictingLinks { .. })),
+            "{:?}",
+            labels.findings
+        );
+    }
+}
+
+#[test]
 fn hidden_slots_stay_hidden_and_overrides_move_texts() {
     let mut v = view();
     let r = Arc::make_mut(&mut v.reps[1].rep);

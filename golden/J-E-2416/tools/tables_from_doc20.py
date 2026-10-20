@@ -159,6 +159,7 @@ def as_text(value):
 
 def fixture(table, columns, keys, value, section, reason, cell=None, marks=None):
     """Record one fixture choice. The U-nn marks come from the consumed doc cell (``cell``) or from ``marks``."""
+    check(keys, f"fixture choice for {table}.csv {as_text(columns)!r} has an empty key list")
     found = list(marks) if marks is not None else tri_marks(cell or "")
     entry = (table, as_text(columns), as_text(keys), value, section, ", ".join(found) if found else "—", reason)
     check(entry not in FIXTURE_CHOICES, f"fixture choice recorded twice: {entry!r}")
