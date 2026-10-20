@@ -228,8 +228,63 @@ fn exit_codes_follow_doc_17() {
         .run_script(&log(&[r#"{"cmd":"no.such","params":{}}"#]), "x.ewcmd")
         .unwrap_err();
     assert_eq!((refused.exit_code(), refused.committed()), (2, 0));
+    // A domain refusal (a second page 1) is exit 1.
     let failed = s.run_script(&log(&[&page(1), &page(1)]), "x.ewcmd").unwrap_err();
+    assert!(
+        matches!(
+            &failed,
+            CmdLogError::Failed {
+                error: CmdError::Prevented { .. } | CmdError::Rejected { .. },
+                ..
+            }
+        ),
+        "{failed:?}"
+    );
     assert_eq!((failed.exit_code(), failed.committed()), (1, 1));
     let malformed = CmdLog::parse("{\"cmd\":\"page.create\"}\n").unwrap_err();
     assert_eq!(malformed.exit_code(), 2);
+}
+
+#[test]
+fn usage_and_internal_errors_of_a_line_exit_2() {
+    let mut s = session();
+    // Invalid parameters: a usage error.
+    let invalid = s
+        .run_script(
+            &log(&[&page(5), r#"{"cmd":"page.create","params":{"number":"seven"}}"#]),
+            "x.ewcmd",
+        )
+        .unwrap_err();
+    assert!(
+        matches!(
+            &invalid,
+            CmdLogError::Failed {
+                error: CmdError::InvalidParams { .. },
+                committed: 1,
+                ..
+            }
+        ),
+        "{invalid:?}"
+    );
+    assert_eq!(invalid.exit_code(), 2);
+    // A target that does not exist, named without a reference: a usage error too.
+    let missing = s
+        .run_script(
+            &log(&[
+                r#"{"cmd":"fields.set","params":{"kind":"page","targets":["0192f0a1-0000-7000-8000-000000000002"],"path":"title","value":{"en":"T"}}}"#,
+            ]),
+            "x.ewcmd",
+        )
+        .unwrap_err();
+    assert!(
+        matches!(
+            &missing,
+            CmdLogError::Failed {
+                error: CmdError::NotFound { .. },
+                ..
+            }
+        ),
+        "{missing:?}"
+    );
+    assert_eq!(missing.exit_code(), 2);
 }

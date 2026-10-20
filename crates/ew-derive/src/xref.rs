@@ -209,6 +209,17 @@ pub(crate) fn check_format_member(v: &Value) -> Result<(), String> {
     let format = read_format(v)?;
     structure_rule(&format.structure)?;
     same_page_rule(&format.same_page)?;
+    for (name, f) in [
+        ("ip", &format.ip),
+        ("aux_to_main", &format.aux_to_main),
+        ("main_to_aux", &format.main_to_aux),
+    ] {
+        if let Some(token) = crate::xref_format::unknown_token(f) {
+            return Err(format!(
+                "{name} {f:?}: unknown token {token:?} (it would print as text)"
+            ));
+        }
+    }
     Ok(())
 }
 

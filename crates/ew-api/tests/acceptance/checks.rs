@@ -187,11 +187,7 @@ pub fn all(r: &mut Runner) {
         "changing the 24 V colour updates every affected wire and folio 907",
         ac12_colour,
     );
-    r.entry("AC-12", "the colour change is one commit", |_| {
-        not_built(
-            "no command edits the colour profile (it is a member of the project settings): the check above edits the project record before loading, so it cannot show one commit",
-        )
-    });
+    r.entry("AC-12", "the colour change is one commit", ac12_one_commit);
     r.entry(
         "AC-13",
         "PDF structure equals expected/pdf (outline, 64 links, page labels, fonts, SHA-256)",
@@ -238,11 +234,7 @@ pub fn all(r: &mut Runner) {
     r.entry(
         "AC-18",
         "step B2: the preview lists the 2 tag and 14 cross-reference changes",
-        |_| {
-            not_built(
-                "a preview carries the model diff only; the derived diff of tags and cross-reference texts (diff_query, `ew apply --preview`) does not exist yet",
-            )
-        },
+        ac18_derived_preview,
     );
     r.entry(
         "AC-18",
@@ -1584,6 +1576,120 @@ fn ac18_preview(c: &Ctx) -> Outcome {
             diff.len(),
             list(kinds, 4)
         ))
+    }
+}
+
+/// Step B2's preview with its derived diff (`Session::derived_diff`): exactly the two tags -106W1, -106W2
+/// and 14 cross-reference texts "106-…" → "104-…", nothing committed.
+fn ac18_derived_preview(c: &Ctx) -> Outcome {
+    let mut s = golden_common::session(&c.batch);
+    let cmd = b2_command(&s);
+    let preview = match s.preview(&cmd) {
+        Ok(p) => p,
+        Err(e) => return fail(format!("the preview failed: {e:?}")),
+    };
+    let d = s.derived_diff(&preview);
+    let mut wrong = Vec::new();
+    let mut tags: Vec<(&str, &str)> = d
+        .tags
+        .iter()
+        .map(|t| (t.before.as_str(), t.after.as_str()))
+        .collect();
+    tags.sort_unstable();
+    if tags != [("-106W1", "-104W1"), ("-106W2", "-104W2")] {
+        wrong.push(format!("the tag changes are {tags:?}"));
+    }
+    if d.xrefs.len() != 14 {
+        wrong.push(format!(
+            "{} cross-reference texts change, expected 14",
+            d.xrefs.len()
+        ));
+    }
+    if let Some(x) = d
+        .xrefs
+        .iter()
+        .find(|x| !x.before.contains("106-") || x.after != x.before.replace("106-", "104-"))
+    {
+        wrong.push(format!("{:?} becomes {:?}", x.before, x.after));
+    }
+    if s.world().rev.0 != 0 {
+        wrong.push("the preview committed".into());
+    }
+    if wrong.is_empty() {
+        pass(
+            "the derived diff of the preview lists -106W1 → -104W1, -106W2 → -104W2 and 14 texts \"106-…\" → \"104-…\"; nothing is committed",
+        )
+    } else {
+        fail(wrong.join("; "))
+    }
+}
+
+/// The 24 V colour change of AC-12 as one command: `project.settings.set` of the colour profile with row 0
+/// (24 V DC positive) set to RD, previewed and committed as one undo step; the wires that take row 0 follow,
+/// nothing else changes, folio 907's rows follow, and one undo restores the wire colours.
+fn ac12_one_commit(c: &Ctx) -> Outcome {
+    let mut s = golden_common::session_with_profiles(&c.batch);
+    let before = all_props(&golden_common::plain(&s));
+    let rows_before = {
+        let q = golden_common::plain(&s);
+        rows_csv(&q, &rows_of(&q, &c.batch, "907"))
+    };
+    let (mut colour, _) = golden_common::profiles_json();
+    colour["rows"][0]["colour"] = serde_json::json!(["RD"]);
+    let cmd = ew_api::AnyCommand {
+        name: "project.settings.set".into(),
+        params: serde_json::json!({"member": "colour_profile", "value": colour}),
+    };
+    let preview = match s.preview(&cmd) {
+        Ok(p) => p,
+        Err(e) => return fail(format!("the preview failed: {e:?}")),
+    };
+    let mut wrong = Vec::new();
+    if preview.diff().len() != 1 || preview.diff().changes[0].key.0 != ew_schema::Kind::Project {
+        wrong.push(format!(
+            "the preview changes {} records, expected the project record only",
+            preview.diff().len()
+        ));
+    }
+    if let Err(e) = s.commit(preview) {
+        return fail(format!("the commit failed: {e:?}"));
+    }
+    if s.history().entries().len() != 1 {
+        wrong.push(format!("{} undo steps, expected 1", s.history().entries().len()));
+    }
+    let after = all_props(&golden_common::plain(&s));
+    let mut changed = 0;
+    for (w, b) in &before {
+        let a = &after[w];
+        if matches!(&b.1, ew_derive::PropSource::ColourRow { row: 0, .. }) {
+            if a.0 == "RD" {
+                changed += 1;
+            } else {
+                wrong.push(format!("wire {w} kept {}", a.0));
+            }
+        } else if a != b {
+            wrong.push(format!("wire {w} changed without taking row 0"));
+        }
+    }
+    let rows_after = {
+        let q = golden_common::plain(&s);
+        rows_csv(&q, &rows_of(&q, &c.batch, "907"))
+    };
+    if rows_after == rows_before {
+        wrong.push("folio 907 prints the same rows after the commit".into());
+    }
+    if s.undo().is_err() || all_props(&golden_common::plain(&s)) != before {
+        wrong.push("one undo does not restore the wire colours".into());
+    }
+    if changed == 0 {
+        wrong.push("no wire takes row 0".into());
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "one project.settings.set commit (one undo step, the project record only): {changed} wires take RD, nothing else changes, folio 907 follows, one undo restores"
+        ))
+    } else {
+        fail(list(wrong, 3))
     }
 }
 

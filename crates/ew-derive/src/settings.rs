@@ -78,17 +78,44 @@ impl Member {
 /// can refuse what the derivation would only note: `Err` carries the detail of the `MalformedShim` note
 /// (or, for `ip_pairing`, the record type's error) that the value would cause.
 ///
-/// Checked: `numbering` ([`crate::NumberingSettings`]; every scheme must also be one that `device_tag`
-/// applies, the `SchemeNotApplied` rule of decision log ID-99: counter scope `"page"` and formats with
-/// `{page}`, `{letter}` and `{counter}`), `xref_format` (the `XrefFormat` shape with its `structure` and
-/// `same_page` values), `colour_profile`, `size_profile`, `wire_default` and `ip_pairing`. `frames` and
-/// `derivation_profile` have no checker here and are refused with a message saying so.
+/// Checked:
+/// - `numbering` ([`crate::NumberingSettings`]): `default` must name one of `schemes` (otherwise the
+///   profile's scheme applies silently, decision log ID-103); every format must use only the known tokens
+///   (an unknown one prints into tags); every scheme must be one that `device_tag` applies (the
+///   `SchemeNotApplied` rule of decision log ID-99: counter scope `"page"` and formats with `{page}`,
+///   `{letter}` and `{counter}`);
+/// - `xref_format`: the `XrefFormat` shape, its `structure` and `same_page` values, and only known tokens in
+///   `ip`, `aux_to_main` and `main_to_aux`;
+/// - `colour_profile`: every colour code an IEC 60757 code or a company code that the profile's `codes`
+///   declare on an IEC 60757 base; `size_profile`: every cross-section a positive number (mm², AWG or kcmil);
+/// - `wire_default` and `ip_pairing`: their shapes.
+///
+/// `frames` and `derivation_profile` have no checker here and are refused with a message saying so.
 pub fn check_member(member: Member, value: &Value) -> Result<(), String> {
     match member {
         Member::Numbering => {
             let settings = serde_json::from_value::<crate::NumberingSettings>(value.clone())
                 .map_err(|e| e.to_string())?;
+            // A default that names no scheme falls back to the profile's scheme (decision log ID-103).
+            if !settings.schemes.iter().any(|s| s.key == settings.default) {
+                return Err(format!(
+                    "the default `{}` names no scheme of `schemes`; tags would silently use the profile's \
+                     default scheme",
+                    settings.default
+                ));
+            }
             for scheme in &settings.schemes {
+                let formats = std::iter::once(&scheme.format).chain(scheme.rules.iter().map(|r| &r.format));
+                for f in formats {
+                    if let Some(token) = crate::tag::unknown_numbering_token(f) {
+                        return Err(format!(
+                            "scheme `{}`: format {f:?} has the unknown token {token:?}, which would print into \
+                             tags; tokens are {{letter}}, {{counter}}, {{subcounter}}, {{page}}, {{column}}, \
+                             {{row}}",
+                            scheme.key
+                        ));
+                    }
+                }
                 if let Some(issue) = crate::tag::scheme_issue(scheme) {
                     return Err(format!(
                         "scheme `{}` would not be applied ({}); until WP-S1.11 a scheme needs counter \
@@ -209,5 +236,79 @@ mod tests {
         assert!(check_member(Member::ColourProfile, &json!({"rows": 3})).is_err());
         assert!(check_member(Member::SizeProfile, &json!({"rows": [{"class": "control"}]})).is_err());
         assert!(check_member(Member::Frames, &json!({})).is_err());
+    }
+
+    fn err(member: Member, value: Value) -> String {
+        check_member(member, &value).expect_err("refused")
+    }
+
+    #[test]
+    fn numbering_that_would_fall_back_or_print_a_bogus_token_is_refused() {
+        let scheme = |format: &str| json!({"key": "page-based", "format": format});
+        let e = err(
+            Member::Numbering,
+            json!({"default": "other", "schemes": [scheme("{page}{letter}{counter}")]}),
+        );
+        assert!(e.contains("`other` names no scheme"), "{e}");
+        let e = err(Member::Numbering, json!({"default": "page-based", "schemes": []}));
+        assert!(e.contains("names no scheme"), "{e}");
+        let e = err(
+            Member::Numbering,
+            json!({"default": "page-based", "schemes": [scheme("{page}{letter}{counter}{bogus}")]}),
+        );
+        assert!(e.contains("{bogus}"), "{e}");
+        let e = err(
+            Member::Numbering,
+            json!({"default": "page-based", "schemes": [scheme("{page}{letter}{counter}{page")]}),
+        );
+        assert!(e.contains("unknown token \"{page\""), "{e}");
+        let rule = json!({"default": "page-based", "schemes": [{"key": "page-based",
+            "format": "{page}{letter}{counter}",
+            "rules": [{"select": {"aspect": "strip"}, "format": "{letter}{page}{cnt}"}]}]});
+        assert!(err(Member::Numbering, rule).contains("{cnt}"));
+    }
+
+    #[test]
+    fn xref_formats_with_unknown_tokens_are_refused() {
+        let xref = |ip: &str| {
+            json!({"ip": ip, "aux_to_main": "({page}-{row}{column})", "main_to_aux": "∞ {list}",
+                "matrix": {"per_row": 2, "max": 6, "overflow": "…"}})
+        };
+        assert_eq!(check_member(Member::XrefFormat, &xref("%F-%l%c %%")), Ok(()));
+        assert!(err(Member::XrefFormat, xref("{page}-{bogus}")).contains("{bogus}"));
+        assert!(err(Member::XrefFormat, xref("%F-%Z")).contains("%Z"));
+        assert!(err(Member::XrefFormat, xref("{page")).contains("unknown token"));
+    }
+
+    #[test]
+    fn colour_codes_and_cross_sections_are_checked() {
+        let colour =
+            |codes: Value, colour: Value| json!({"key": "k", "codes": codes, "rows": [{"colour": colour}]});
+        let dbu = json!([{"code": "DBU", "base": "BU", "shade": "dark"}]);
+        assert_eq!(
+            check_member(Member::ColourProfile, &colour(dbu.clone(), json!(["DBU"]))),
+            Ok(())
+        );
+        assert_eq!(
+            check_member(Member::ColourProfile, &colour(json!([]), json!(["GN", "YE"]))),
+            Ok(())
+        );
+        assert!(
+            err(Member::ColourProfile, colour(json!([]), json!(["DBU"]))).contains("neither an IEC 60757")
+        );
+        assert!(err(Member::ColourProfile, colour(dbu, json!([{"foreign": "BR"}]))).contains("foreign"));
+        let no_base = json!([{"code": "DBU"}]);
+        assert!(err(Member::ColourProfile, colour(no_base, json!(["DBU"]))).contains("base"));
+        let iec = json!([{"code": "BK", "base": "BK"}]);
+        assert!(err(Member::ColourProfile, colour(iec, json!(["BK"]))).contains("is an IEC 60757 code"));
+
+        let size = |csa: Value| json!({"key": "s", "rows": [{"class": "control", "csa": csa}]});
+        assert_eq!(check_member(Member::SizeProfile, &size(json!("0.75"))), Ok(()));
+        assert_eq!(
+            check_member(Member::SizeProfile, &size(json!({"awg": 18}))),
+            Ok(())
+        );
+        assert!(err(Member::SizeProfile, size(json!("thick"))).contains("not a positive number"));
+        assert!(err(Member::SizeProfile, size(json!("0"))).contains("not a positive number"));
     }
 }

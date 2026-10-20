@@ -1,6 +1,6 @@
 # Acceptance report: golden project J-E-2416, gate M1 (headless)
 
-83 entries: 39 pass, 10 fail, 28 not_built, 6 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
+83 entries: 41 pass, 10 fail, 26 not_built, 6 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
 
 | Criterion | Check | Status | Reason |
 |---|---|---|---|
@@ -29,7 +29,7 @@
 | AC-11 | export cables equals §10 | not_built | `ew export cables` does not exist yet (FR-EXP-005) |
 | AC-12 | folio 1 prints the colour and size tables generated from the profiles | fail | folio 1 prints only its frame and title block: the cover tables are not drawn (README, "Folio 1") |
 | AC-12 | changing the 24 V colour updates every affected wire and folio 907 | pass | 8 wires take the new colour and nothing else changes; folio 907's rows follow (recomputed from the edited profile) |
-| AC-12 | the colour change is one commit | not_built | no command edits the colour profile (it is a member of the project settings): the check above edits the project record before loading, so it cannot show one commit |
+| AC-12 | the colour change is one commit | pass | one project.settings.set commit (one undo step, the project record only): 8 wires take RD, nothing else changes, folio 907 follows, one undo restores |
 | AC-13 | PDF structure equals expected/pdf (outline, 64 links, page labels, fonts, SHA-256) | pass | 33 pages: outline, 64 links, page labels = folio labels, embedded fonts and SHA-256 equal the committed files; no Tahoma (the folio count is 33 against 36, AC-03) |
 | AC-13 | text extraction of the PDF keeps spaces | not_built | the harness has no PDF text extraction (FR-OUT-008); the ToUnicode maps are written, but nothing reads them back |
 | AC-13 | PDF/A-2b validated in process by krilla | pass | the 33-page PDF was written under Conformance::PdfA2b, which makes krilla's A2_B archival validator check the document (it refuses an invalid one) |
@@ -41,7 +41,7 @@
 | AC-18 | step B1: the ten tags of the tag map | pass | the ten tags of the tag map change and nothing else; no cross-reference text changes |
 | AC-18 | step B2: 2 tags and 14 cross-reference texts, same topology, undo restores the records | pass | folio 106 becomes 104: 2 tags and 14 texts change, same potentials and connections, one undo restores the records |
 | AC-18 | step B2: the preview lists the folio change as one page record | pass | the preview changes one page record (Changed Page ["folio.number"]) and commits nothing |
-| AC-18 | step B2: the preview lists the 2 tag and 14 cross-reference changes | not_built | a preview carries the model diff only; the derived diff of tags and cross-reference texts (diff_query, `ew apply --preview`) does not exist yet |
+| AC-18 | step B2: the preview lists the 2 tag and 14 cross-reference changes | pass | the derived diff of the preview lists -106W1 → -104W1, -106W2 → -104W2 and 14 texts "106-…" → "104-…"; nothing is committed |
 | AC-18 | step B2: no orphan reference and the same interruption-point pairing after the commit | pass | the model's integrity check (every reference resolves) holds, and all interruption-point and main/auxiliary link targets are the same records |
 | AC-20 | renumbering folio 3 to 4 updates -3W1, -3X1 and "3-B2" everywhere; undo restores | pass | -3W1 and -3X1 become -4W1 and -4X1, 1 cross-reference text(s) follow ("3-B2" becomes "4-B2"), undo restores the records |
 | AC-20 | renumbering folio 3 to 4 writes only that page's file | pass | the save writes pages/93d03619-9f8d-5086-8b99-1a4f05456f21.jsonl only (and rewrites the manifest) |

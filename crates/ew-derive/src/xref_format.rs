@@ -122,6 +122,40 @@ pub fn parse_format(format: &str) -> Vec<XrefToken> {
     out
 }
 
+/// The first piece of a format that [`parse_format`] keeps as literal text although it looks like a token:
+/// an unknown `{…}`, an unclosed `{`, an unknown `%x` or a trailing `%`. `None` when every token is known.
+pub(crate) fn unknown_token(format: &str) -> Option<String> {
+    let mut rest = format;
+    while let Some(c) = rest.chars().next() {
+        if c == '{' {
+            let Some(end) = rest.find('}') else {
+                return Some(rest.to_owned());
+            };
+            if !matches!(
+                &rest[1..end],
+                "page" | "page_index" | "row" | "column" | "function" | "location" | "list"
+            ) {
+                return Some(rest[..=end].to_owned());
+            }
+            rest = &rest[end + 1..];
+        } else if c == '%' {
+            let after = &rest[1..];
+            if let Some(tail) = after.strip_prefix("LM") {
+                rest = tail;
+                continue;
+            }
+            match after.chars().next() {
+                Some('F' | 'f' | 'l' | 'c' | 'M' | '%') => rest = &after[1..],
+                Some(other) => return Some(format!("%{other}")),
+                None => return Some("%".to_owned()),
+            }
+        } else {
+            rest = &rest[c.len_utf8()..];
+        }
+    }
+    None
+}
+
 /// The values one target supplies to an item format.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct ItemValues {

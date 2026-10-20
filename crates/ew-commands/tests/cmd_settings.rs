@@ -105,6 +105,53 @@ fn settings_set_refuses_invalid_values() {
     assert_eq!(path, "/value");
 }
 
+/// Values the derivation would not apply, or would print wrongly, are refused through the command too
+/// (review cycle 11 B2): every case of `ew_derive::check_settings_member` reaches `/value`.
+#[test]
+fn settings_set_refuses_what_the_derivation_would_not_apply() {
+    let mut e = engine(golden_model());
+    let scheme = json!({"key": "page-based", "format": "{page}{letter}{counter}"});
+    let cases = [
+        (
+            "numbering",
+            json!({"default": "other", "schemes": [scheme]}),
+            "names no scheme",
+        ),
+        (
+            "numbering",
+            json!({"default": "page-based", "schemes": []}),
+            "names no scheme",
+        ),
+        (
+            "numbering",
+            json!({"default": "page-based", "schemes": [{"key": "page-based", "format": "{page}{letter}{counter}{bogus}"}]}),
+            "{bogus}",
+        ),
+        (
+            "xref_format",
+            json!({"ip": "{page}-{bogus}", "aux_to_main": "x", "main_to_aux": "y",
+                "matrix": {"per_row": 2, "max": 6, "overflow": "…"}}),
+            "{bogus}",
+        ),
+        (
+            "colour_profile",
+            json!({"key": "k", "rows": [{"colour": ["DBU"]}]}),
+            "neither an IEC 60757",
+        ),
+        (
+            "size_profile",
+            json!({"key": "s", "rows": [{"class": "control", "csa": "thick"}]}),
+            "not a positive number",
+        ),
+    ];
+    for (member, value, needle) in cases {
+        let (path, message) = invalid(&mut e, &set(member, value));
+        assert_eq!(path, "/value", "{member}");
+        assert!(message.contains(needle), "{member}: {message}");
+    }
+    assert_eq!(e.world().rev.0, 0, "nothing committed");
+}
+
 #[test]
 fn settings_set_null_removes_and_equal_values_change_nothing() {
     let mut e = engine(golden_model());

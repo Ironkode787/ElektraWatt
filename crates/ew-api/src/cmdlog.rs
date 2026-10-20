@@ -118,13 +118,21 @@ impl fmt::Display for CmdLogError {
 impl std::error::Error for CmdLogError {}
 
 impl CmdLogError {
-    /// The process exit code of `ew apply` for this error (doc 17 §3.5): 2 for a log that cannot be
-    /// replayed as written (malformed, an unresolvable reference, a refused command), 1 for a line whose
-    /// command failed or was prevented.
+    /// The process exit code of `ew apply` for this error (doc 17 §3.2, §3.5): 1 for a domain failure, a
+    /// line that a prevent rule or the command's own domain rule refused ([`CmdError::Prevented`],
+    /// [`CmdError::Rejected`]); 2 for everything that could not complete: a malformed log, an unresolvable
+    /// reference, a refused command (unknown, exposure), and a failing line whose error is a usage error
+    /// (invalid parameters, a missing record, a bulk command without preview) or an internal error.
     pub fn exit_code(&self) -> u8 {
         match self {
-            CmdLogError::Malformed { .. } | CmdLogError::Reference { .. } | CmdLogError::Refused { .. } => 2,
-            CmdLogError::Failed { .. } => 1,
+            CmdLogError::Failed {
+                error: CmdError::Prevented { .. } | CmdError::Rejected { .. },
+                ..
+            } => 1,
+            CmdLogError::Malformed { .. }
+            | CmdLogError::Reference { .. }
+            | CmdLogError::Refused { .. }
+            | CmdLogError::Failed { .. } => 2,
         }
     }
 

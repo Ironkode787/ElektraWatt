@@ -393,6 +393,26 @@ fn kind_name(kind: &DeviceKind) -> Option<&str> {
     }
 }
 
+/// The tokens of a numbering format ([`render_format`]).
+const NUMBERING_TOKENS: [&str; 6] = ["letter", "counter", "subcounter", "page", "column", "row"];
+
+/// The first `{…}` of a numbering format that [`render_format`] would print verbatim (an unknown token or
+/// an unclosed `{`); `None` when every token is known.
+pub(crate) fn unknown_numbering_token(format: &str) -> Option<String> {
+    let mut rest = format;
+    while let Some(open) = rest.find('{') {
+        let after = &rest[open..];
+        let Some(close) = after.find('}') else {
+            return Some(after.to_owned());
+        };
+        if !NUMBERING_TOKENS.contains(&&after[1..close]) {
+            return Some(after[..=close].to_owned());
+        }
+        rest = &after[close + 1..];
+    }
+    None
+}
+
 /// Renders a numbering format for a device.
 fn render_format(q: &Q, id: Id<Device>, dev: &Device, format: &str) -> String {
     let main_rep = *q.get::<MainRep>(id);

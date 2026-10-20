@@ -524,7 +524,10 @@ built (`crates/ew-api/src/cmdlog.rs`):
   of lines committed before it).
 - `Session::run_script(&CmdLog, file)` replays a log: each line commits as its own transaction with origin
   `cmdlog:<file>` (bulk commands as preview then commit), so one `undo` takes back one line. Every command is
-  looked up and checked against its exposure class before the first line runs.
+  looked up and checked against its exposure class before the first line runs. Exit codes (doc 17 §3.2,
+  `CmdLogError::exit_code`): 1 for a line refused by a prevent rule or by the command's domain rule; 2 for a
+  malformed log, an unresolvable reference, a refused command, and a line with invalid parameters, a missing record
+  or an internal error.
 
 | File | Doc 20 | State |
 |---|---|---|
@@ -576,7 +579,7 @@ its report with the committed `expected/acceptance_headless.md` (so two runs mus
 The SQL half of each pair (`acceptance/*.sql` over the `api_v1` views) is `not_built`: SQL projection pending
 (WP-S1.10).
 
-The headless report of this revision: 83 entries, 39 pass, 10 fail, 28 not_built, 6 not_applicable (the full run adds
+The headless report of this revision: 83 entries, 41 pass, 10 fail, 26 not_built, 6 not_applicable (the full run adds
 the raster comparison as a pass). The failures are the open gaps listed above (page count 33 against 36, the
 revision label and structure cells of the title blocks, the 23-row parts list, the DP potential, the cover tables, the
 ratings and part numbers on 101 and 102, the missing uniqueness invariant for terminal designations). An empty terminal designation refused at the parameter layer counts as refused for D-11 (ADR-0008).

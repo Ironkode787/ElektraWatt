@@ -288,11 +288,85 @@ pub(crate) fn check_member(name: &str, value: &Value) -> Result<(), String> {
             .map_err(|e| e.to_string())
     }
     match name {
-        "colour_profile" => parse::<ColourProfileRaw>(value),
-        "size_profile" => parse::<SizeProfileRaw>(value),
+        "colour_profile" => {
+            parse::<ColourProfileRaw>(value)?;
+            check_colour_codes(value)
+        }
+        "size_profile" => {
+            parse::<SizeProfileRaw>(value)?;
+            let profile: SizeProfileRaw = serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+            for (i, row) in profile.rows.iter().enumerate() {
+                let positive = match &row.csa {
+                    ew_schema::Csa::Mm2(d) | ew_schema::Csa::Kcmil(d) => d.0 > 0,
+                    ew_schema::Csa::Awg(_) => true,
+                    ew_schema::Csa::Unknown(_) => false,
+                };
+                if !positive {
+                    return Err(format!(
+                        "rows[{i}]: the cross-section {} is not a positive number (mm² as a decimal text, \
+                         {{\"awg\": n}} or {{\"kcmil\": d}})",
+                        serde_json::to_string(&row.csa).unwrap_or_default()
+                    ));
+                }
+            }
+            Ok(())
+        }
         "wire_default" => parse::<WireProps>(value),
         other => Err(format!("`{other}` is not a wire-profile member")),
     }
+}
+
+/// Every colour code of a colour profile is an IEC 60757 code or a company code that the profile's `codes`
+/// list declares on an IEC 60757 base (doc 08 §4.5: DBU, base BU, shade dark).
+fn check_colour_codes(value: &Value) -> Result<(), String> {
+    use ew_schema::{ColourCode, IecColour};
+    let mut declared: Vec<&str> = Vec::new();
+    if let Some(codes) = value.get("codes") {
+        let Some(codes) = codes.as_array() else {
+            return Err("`codes` is a list of company-code declarations".into());
+        };
+        for (i, c) in codes.iter().enumerate() {
+            let Some(code) = c.get("code").and_then(Value::as_str) else {
+                return Err(format!("codes[{i}]: a declaration has a `code` text"));
+            };
+            if code.parse::<IecColour>().is_ok() {
+                return Err(format!(
+                    "codes[{i}]: `{code}` is an IEC 60757 code, not a company code"
+                ));
+            }
+            match c.get("base").and_then(Value::as_str) {
+                Some(base) if base.parse::<IecColour>().is_ok() => declared.push(code),
+                _ => {
+                    return Err(format!(
+                        "codes[{i}]: company code `{code}` needs an IEC 60757 `base`"
+                    ));
+                }
+            }
+        }
+    }
+    let profile: ColourProfileRaw = serde_json::from_value(value.clone()).map_err(|e| e.to_string())?;
+    for (i, row) in profile.rows.iter().enumerate() {
+        for code in row.colour.codes() {
+            match code {
+                ColourCode::Iec(_) => {}
+                ColourCode::Company(c) if declared.contains(&c.as_str()) => {}
+                ColourCode::Company(c) => {
+                    return Err(format!(
+                        "rows[{i}]: `{c}` is neither an IEC 60757 code nor a company code declared in `codes`"
+                    ));
+                }
+                ColourCode::Foreign(c) => {
+                    return Err(format!(
+                        "rows[{i}]: the foreign colour code `{c}` is not allowed in a profile"
+                    ));
+                }
+                ColourCode::Unknown(v) => {
+                    return Err(format!("rows[{i}]: {v} is not a colour code"));
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Parses `colour_profile`, `size_profile` and `wire_default` (the members of `ProjectSettings.extra`; `None`
