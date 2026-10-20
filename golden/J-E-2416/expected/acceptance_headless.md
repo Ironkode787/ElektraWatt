@@ -1,6 +1,6 @@
 # Acceptance report: golden project J-E-2416, gate M1 (headless)
 
-81 entries: 37 pass, 12 fail, 26 not_built, 6 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
+83 entries: 38 pass, 11 fail, 28 not_built, 6 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
 
 | Criterion | Check | Status | Reason |
 |---|---|---|---|
@@ -45,8 +45,10 @@
 | AC-18 | step B2: no orphan reference and the same interruption-point pairing after the commit | pass | the model's integrity check (every reference resolves) holds, and all interruption-point and main/auxiliary link targets are the same records |
 | AC-20 | renumbering folio 3 to 4 updates -3W1, -3X1 and "3-B2" everywhere; undo restores | pass | -3W1 and -3X1 become -4W1 and -4X1, 1 cross-reference text(s) follow ("3-B2" becomes "4-B2"), undo restores the records |
 | AC-20 | renumbering folio 3 to 4 writes only that page's file | pass | the save writes pages/93d03619-9f8d-5086-8b99-1a4f05456f21.jsonl only (and rewrites the manifest) |
-| AC-14 | byte-identical PDF, SVG, CSV and JSONL across serial, parallel and shuffled runs | not_applicable | a Linux-only gate criterion evaluated by the CI Linux job (the PDF across runs and record shuffles is tests/page_output.rs, the JSONL tests/golden_fixture.rs; the SVG and parallel exports are not built) |
-| AC-15 | build paths (a), (b) and (c) agree | not_applicable | evaluated outside this runner: (a) against (c) is tests/golden_fixture.rs; path (b), the builder DSL, belongs to the ew-testkit builders (WP-S6.01) |
+| AC-14 | PDF and JSONL are byte-identical across runs and record shuffles | not_applicable | a Linux-only gate criterion, evaluated by tests/page_output.rs (PDF), tests/golden_fixture.rs (JSONL) and the CI Linux job, not by this runner |
+| AC-14 | SVG and the parallel export are byte-identical to the serial export | not_built | neither the SVG export nor a parallel export exists yet (FR-OUT-013, FR-OUT-019) |
+| AC-15 | build path (a), the CSV bootstrap, equals path (c), the checked-in fixture | not_applicable | evaluated by tests/golden_fixture.rs (byte-identical regeneration), not by this runner |
+| AC-15 | build path (b), the builder DSL, produces the same expected CSVs | not_built | the builder DSL (the golden builders of ew-testkit, WP-S6.01) does not exist yet |
 | AC-16 | freshness: scripted edits update every output; verify-derived is clean with the oracle on | not_built | the scripted edits (rename T55, move -102F2, folio 103 to 104, 24 V colour) need the tag, move and profile commands and `ew verify-derived`; for the record, the oracle is on for the sessions `oracle` and `profiled` of this run, and off for the sessions that apply edits or scripts (AC-12, AC-18, AC-20, D-06, D-11, D-12) and for the cross-reference scans |
 | AC-17 | open <= 0.5 s, check <= 2 s, PDF export <= 3 s | not_applicable | measured at milestone deliveries (cargo xtask acceptance --milestone, release profile) |
 | AC-39 | the anonymisation guard passes on golden/, docs/ and expected/ | not_applicable | the guard is `cargo xtask check-anonymisation` (the xtask crate, outside this test crate); the repository checks run it |
@@ -63,8 +65,8 @@
 | D-08 | W29 takes 0.75 DBU from the profile, W20 1.5 mm2 from its CDP and DBU from the profile | pass | W29 0.75 DBU from the profile; W20 1.5 mm2 from its CDP, DBU from the profile (the explain output and the one-commit update of folios 1 and 907 are AC-12) |
 | D-09 | W1-W44 are numbered, unique and stable | not_built | Same check as AC-09 "every wire has a wire number": 0 of 44 wires have a wire number: the wire numbering query does not exist yet (FT-100) |
 | D-10 | -202U2 carries 4 valves | pass | -202U2 has 4 child valves (the rendering of folio 202 is covered by AC-02) |
-| D-11 | an empty terminal designation is rejected by the invariant | fail | terminals\|-X1031:8: designation `` is rejected with InvalidParams, not by an invariant or a prevent rule (InvalidParams { command: "fields.set", path: "/value", message: "identifier is empty at \"\"" }) |
-| D-12 | a duplicate designation is rejected by the invariant | fail | `4` was accepted for terminals\|-X1031:3, expected a rejection by an invariant (designations are unique per strip by invariant, but v0 has no such invariant and ew-checks holds no prevent rule yet) |
+| D-11 | an empty terminal designation is rejected (parameter layer or invariant) | pass | terminals\|-X1031:8: designation `` is refused by the parameter layer (InvalidParams at /value) |
+| D-12 | a duplicate designation is rejected by the invariant | fail | `4` was accepted for terminals\|-X1031:3, expected a refusal (designations are unique per strip by invariant, but v0 has no such invariant and ew-checks holds no prevent rule yet) |
 | D-12 | swapping two designations in one transaction is accepted | not_built | no composite command exists to put two edits into one transaction (a swap over two `fields.set` commands passes through a duplicate) |
 | D-14 | the bus port prints "3-B2", never "3-B0" | pass | -201U1 prints "∞ 3-B2, 106-G3" |
 | D-14 | forcing the origin anchor reports "3-B0: empty cell" | not_built | no command sets a representation's anchor policy, and the check engine (FR-CHK-035) does not exist yet |

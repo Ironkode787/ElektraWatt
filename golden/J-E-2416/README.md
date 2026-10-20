@@ -576,8 +576,8 @@ its report with the committed `expected/acceptance_headless.md` (so two runs mus
 The SQL half of each pair (`acceptance/*.sql` over the `api_v1` views) is `not_built`: SQL projection pending
 (WP-S1.10).
 
-The headless report of this revision: 81 entries, 37 pass, 12 fail, 26 not_built, 6 not_applicable (the full run adds
-the raster comparison as a pass). The 12 failures are the open gaps listed above (page count 33 against 36, the
+The headless report of this revision: 83 entries, 38 pass, 11 fail, 28 not_built, 6 not_applicable (the full run adds
+the raster comparison as a pass). The 11 failures are the open gaps listed above (page count 33 against 36, the
 revision label and structure cells of the title blocks, the 23-row parts list, the DP potential, the cover tables, the
-ratings and part numbers on 101 and 102, the missing uniqueness invariant for terminal designations, an empty
-designation rejected as a parameter error instead of by the invariant) and Golden B step B1 (the 1X1 and -XPE rows, see "Step B1 as built").
+ratings and part numbers on 101 and 102, the missing uniqueness invariant for terminal designations) and Golden B
+step B1. An empty terminal designation refused at the parameter layer counts as refused for D-11 (ADR-0008).

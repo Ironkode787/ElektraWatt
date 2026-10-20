@@ -261,12 +261,24 @@ pub fn all(r: &mut Runner) {
     );
 
     // The other criteria of gate G-M1 (doc 20 §22).
-    r.entry("AC-14", "byte-identical PDF, SVG, CSV and JSONL across serial, parallel and shuffled runs", |_| {
-        na("a Linux-only gate criterion evaluated by the CI Linux job (the PDF across runs and record shuffles is tests/page_output.rs, the JSONL tests/golden_fixture.rs; the SVG and parallel exports are not built)")
+    r.entry("AC-14", "PDF and JSONL are byte-identical across runs and record shuffles", |_| {
+        na("a Linux-only gate criterion, evaluated by tests/page_output.rs (PDF), tests/golden_fixture.rs (JSONL) and the CI Linux job, not by this runner")
     });
-    r.entry("AC-15", "build paths (a), (b) and (c) agree", |_| {
-        na("evaluated outside this runner: (a) against (c) is tests/golden_fixture.rs; path (b), the builder DSL, belongs to the ew-testkit builders (WP-S6.01)")
-    });
+    r.entry(
+        "AC-14",
+        "SVG and the parallel export are byte-identical to the serial export",
+        |_| not_built("neither the SVG export nor a parallel export exists yet (FR-OUT-013, FR-OUT-019)"),
+    );
+    r.entry(
+        "AC-15",
+        "build path (a), the CSV bootstrap, equals path (c), the checked-in fixture",
+        |_| na("evaluated by tests/golden_fixture.rs (byte-identical regeneration), not by this runner"),
+    );
+    r.entry(
+        "AC-15",
+        "build path (b), the builder DSL, produces the same expected CSVs",
+        |_| not_built("the builder DSL (the golden builders of ew-testkit, WP-S6.01) does not exist yet"),
+    );
     r.entry("AC-16", "freshness: scripted edits update every output; verify-derived is clean with the oracle on", |_| {
         not_built("the scripted edits (rename T55, move -102F2, folio 103 to 104, 24 V colour) need the tag, move and profile commands and `ew verify-derived`; for the record, the oracle is on for the sessions `oracle` and `profiled` of this run, and off for the sessions that apply edits or scripts (AC-12, AC-18, AC-20, D-06, D-11, D-12) and for the cross-reference scans")
     });
@@ -1225,11 +1237,12 @@ fn defects(r: &mut Runner) {
     });
     r.entry(
         "D-11",
-        "an empty terminal designation is rejected by the invariant",
-        |c| set_designation(c, "terminals|-X1031:8", ""),
+        "an empty terminal designation is rejected (parameter layer or invariant)",
+        |c| set_designation(c, "terminals|-X1031:8", "", true),
     );
+
     r.entry("D-12", "a duplicate designation is rejected by the invariant", |c| {
-        let (status, reason) = set_designation(c, "terminals|-X1031:3", "4");
+        let (status, reason) = set_designation(c, "terminals|-X1031:3", "4", false);
         if status == Status::Fail {
             fail(format!(
                 "{reason} (designations are unique per strip by invariant, but v0 has no such invariant and ew-checks holds no prevent rule yet)"
@@ -1736,9 +1749,12 @@ fn error_kind(e: &ew_api::CmdError) -> &'static str {
     }
 }
 
-/// Sets the designation of a terminal through `fields.set` and expects the rejection of an invariant or a
-/// prevent rule (a domain rejection), not a parameter error and not an acceptance.
-fn set_designation(c: &Ctx, key: &str, value: &str) -> Outcome {
+/// Sets the designation of a terminal through `fields.set` and expects a refusal: an invariant or a prevent
+/// rule, and with `params_layer` also the parameter layer (`InvalidParams`: parameter validation is part of the
+/// command discipline, ADR-0008). An acceptance, or any other error, is a failure.
+fn set_designation(c: &Ctx, key: &str, value: &str, params_layer: bool) -> Outcome {
+    use ew_api::CmdError;
+    use ew_model::ModelError;
     let mut s = golden_common::session(&c.batch);
     let cmd = ew_api::AnyCommand {
         name: "fields.set".into(),
@@ -1749,23 +1765,26 @@ fn set_designation(c: &Ctx, key: &str, value: &str) -> Outcome {
             "value": value,
         }),
     };
-    match s.execute(&cmd) {
-        Ok(_) => fail(format!(
-            "`{value}` was accepted for {key}, expected a rejection by an invariant"
-        )),
-        Err(e) => {
-            let kind = error_kind(&e);
-            if matches!(
-                kind,
-                "Model(Invariant)" | "Model(Prevented)" | "Prevented" | "Rejected"
-            ) {
-                pass(format!("{key}: designation `{value}` is rejected with {kind}"))
-            } else {
-                fail(format!(
-                    "{key}: designation `{value}` is rejected with {kind}, not by an invariant or a prevent rule ({e:?})"
-                ))
-            }
+    let Err(e) = s.execute(&cmd) else {
+        return fail(format!("`{value}` was accepted for {key}, expected a refusal"));
+    };
+    let layer = match &e {
+        CmdError::Model(ModelError::Invariant { id, .. }) => Some(format!("the invariant {id}")),
+        CmdError::Model(ModelError::Prevented { rule, .. }) | CmdError::Prevented { rule, .. } => {
+            Some(format!("the prevent rule {rule}"))
         }
+        CmdError::Rejected { source, .. } => Some(format!("the command's own rule ({source})")),
+        CmdError::InvalidParams { path, .. } if params_layer => {
+            Some(format!("the parameter layer (InvalidParams at {path})"))
+        }
+        _ => None,
+    };
+    match layer {
+        Some(layer) => pass(format!("{key}: designation `{value}` is refused by {layer}")),
+        None => fail(format!(
+            "{key}: designation `{value}` is refused with {}, not by an invariant or a prevent rule ({e:?})",
+            error_kind(&e)
+        )),
     }
 }
 
