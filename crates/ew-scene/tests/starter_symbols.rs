@@ -956,6 +956,23 @@ fn text_slots_and_arrangements() {
                     "{who}: text slot {i} designates CP {idx}, which does not exist"
                 ));
             }
+            if let Some(style) = &s.style
+                && ew_text::builtin().get(style.as_str()).is_none()
+            {
+                problems.push(format!(
+                    "{who}: text slot {i} names the unknown text style {:?}",
+                    style.as_str()
+                ));
+            }
+        }
+        // Doc 20 §17.5 binds `xref.device` to the cross-reference slots of these symbols (FT-84).
+        let base = d.key.strip_suffix("@qet10").unwrap_or(&d.key);
+        if ["ew.ovw.module", "ew.bus.dp-port", "ew.gen.blackbox"].contains(&base) {
+            for (i, s) in def.text_slots.iter().enumerate() {
+                if s.kind == SlotKind::Xref && s.style.as_ref().map(|n| n.as_str()) != Some("xref.device") {
+                    problems.push(format!("{who}: xref slot {i} must name the style xref.device"));
+                }
+            }
         }
         let mut names = BTreeSet::new();
         for a in &def.arrangements {

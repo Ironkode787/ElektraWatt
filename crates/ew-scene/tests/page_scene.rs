@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 use ew_dl::{Destination, EntityRef, ItemKind, Layer, Link, PathEl};
 use ew_ids::{Id, Uuid};
+use ew_mltext::Ident;
 use ew_scene::forms::{FrameGeometry, PageBindings, SheetMap};
 use ew_scene::page::{
     ConnectionView, FrameView, JunctionView, PageFinding, PageKind, PageView, RepView, SlotValue, SymbolRef,
@@ -274,6 +275,75 @@ fn slot_texts_print_their_values_with_links_and_markers_their_text() {
     assert!(labels.list.items.iter().any(
         |i| matches!(i.kind, ItemKind::Instance(_)) && i.entity == Some(EntityRef(Uuid::from_u128(0x23)))
     ));
+}
+
+/// The em size of the run printing `text` on the labels layer of `v`.
+fn run_size(v: &PageView, text: &str) -> Nm {
+    let labels = page_display_list(v, Layer::Labels, bundled());
+    labels
+        .list
+        .items
+        .iter()
+        .find_map(|i| match &i.kind {
+            ItemKind::Glyphs(r) if r.text == text => Some(r.size),
+            _ => None,
+        })
+        .unwrap_or_else(|| panic!("no run {text}"))
+}
+
+fn style_size(key: &str) -> Nm {
+    ew_text::builtin().resolve(key).expect("a built-in style").size
+}
+
+#[test]
+fn a_slot_style_replaces_the_style_of_the_slot_kind() {
+    let mut v = view();
+    // Without the member the tag slot prints in `tag.main`.
+    assert_eq!(run_size(&v, "-X1"), style_size("tag.main"));
+    // `xref.device` is 7 QET px = 5.25 pt native; the QET sheet map prints it at 5.18 pt (doc 20 §17.5).
+    let mut def = (**v.reps[1].symbol.as_ref().unwrap()).clone();
+    def.text_slots[0].style = Some(Ident::from_input("xref.device").unwrap());
+    v.reps[1].symbol = Some(Arc::new(def));
+    assert_eq!(run_size(&v, "-X1"), style_size("xref.device"));
+    assert_ne!(style_size("xref.device"), style_size("tag.main"));
+    let labels = page_display_list(&v, Layer::Labels, bundled());
+    assert!(
+        !labels
+            .findings
+            .iter()
+            .any(|f| matches!(f, PageFinding::UnknownSlotStyle { .. })),
+        "{:?}",
+        labels.findings
+    );
+}
+
+#[test]
+fn an_unknown_slot_style_falls_back_to_the_kind_style_with_a_note() {
+    let mut v = view();
+    let mut def = (**v.reps[1].symbol.as_ref().unwrap()).clone();
+    def.text_slots[0].style = Some(Ident::from_input("no.such.style").unwrap());
+    v.reps[1].symbol = Some(Arc::new(def));
+    assert_eq!(run_size(&v, "-X1"), style_size("tag.main"));
+    let labels = page_display_list(&v, Layer::Labels, bundled());
+    let notes: Vec<&PageFinding> = labels
+        .findings
+        .iter()
+        .filter(|f| matches!(f, PageFinding::UnknownSlotStyle { .. }))
+        .collect();
+    assert_eq!(notes.len(), 1, "{:?}", labels.findings);
+    let PageFinding::UnknownSlotStyle {
+        entity,
+        symbol,
+        slot,
+        name,
+    } = notes[0]
+    else {
+        unreachable!()
+    };
+    assert_eq!(*entity, Uuid::from_u128(0x11));
+    assert_eq!(*symbol, v.reps[1].rep.symbol.as_uuid());
+    assert_eq!(*slot, 0);
+    assert_eq!(name, "no.such.style");
 }
 
 #[test]

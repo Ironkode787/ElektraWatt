@@ -97,8 +97,9 @@ use ew_dl::{
 };
 use ew_mltext::MlText;
 use ew_schema::{
-    Align, AnchorPolicy, Colour, Dash, Dir4, Pen, Primitive, RectPrim, SlotKind, Stroke, SymbolDef,
+    Align, AnchorPolicy, Colour, Dash, Dir4, Pen, Primitive, RectPrim, SlotKind, Stroke, SymbolDef, TextSlot,
 };
+use ew_text::builtin;
 use ew_units::{Angle2, Grid, Nm, Orient2, Pt2, Rect};
 
 /// The colour `Colour::ByLayer` resolves to until layer colours exist: black.
@@ -199,7 +200,7 @@ pub fn lower(def: &SymbolDef, variant: Orient2) -> SymbolGeometry {
             pos: variant.apply(slot.pos),
             angle: placement(slot.rot, variant).0,
             align: placed_align(&slot.align, slot.rot, variant),
-            style_key: default_style_key(&slot.kind).to_owned(),
+            style_key: slot_style_key(slot).0.to_owned(),
             max_width: slot.max_width,
             visible: slot.visible,
         });
@@ -468,6 +469,17 @@ pub fn placed_align(align: &Align, angle: Angle2, variant: Orient2) -> Align {
         (-1, 1) => Align::BottomLeft,
         (0, 1) => Align::BottomCentre,
         _ => Align::BottomRight,
+    }
+}
+
+/// The text-style key of a slot: its own `style` member when it names a style of the style table, else
+/// [`default_style_key`] of its kind (decision log ID-197, ID-227). The second value is the unknown name when
+/// the slot's style is not in the table and the kind's style was used instead.
+pub fn slot_style_key(slot: &TextSlot) -> (&str, Option<&str>) {
+    match &slot.style {
+        Some(name) if builtin().resolve(name.as_str()).is_some() => (name.as_str(), None),
+        Some(name) => (default_style_key(&slot.kind), Some(name.as_str())),
+        None => (default_style_key(&slot.kind), None),
     }
 }
 

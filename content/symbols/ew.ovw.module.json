@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "8e2bd37c-548c-5e79-abb1-4d84bb349763",
   "version": "0.1.0",
-  "sha256": "sha256:c228c06f1d67d2f8d33bcf670f1455e360ab311e529e65968ee11f148612c7cf",
+  "sha256": "sha256:5d9b27992cee03883030499eeb1598a99449e86508cee2f97f17fba975a88f06",
   "meta": {
     "key": "ew.ovw.module",
     "licence": "CC-BY-SA-4.0",
@@ -94,7 +94,8 @@
         17000000
       ],
       "align": "top_left",
-      "visible": true
+      "visible": true,
+      "style": "xref.device"
     }
   ],
   "arrangements": [

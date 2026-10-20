@@ -140,6 +140,34 @@ fn golden_library_documents_are_canonical() {
     );
 }
 
+#[test]
+fn a_text_slot_style_is_optional_and_round_trips() {
+    // The golden symbol has two slots without a style; the member is written only when present (ID-197).
+    let plain = fill(GOLDEN_LIB[1]);
+    let LibDocument::Symbol(copy) = assert_lib_canonical(&plain) else {
+        panic!("a symbol");
+    };
+    assert!(copy.item.text_slots.iter().all(|s| s.style.is_none()));
+    assert!(!plain.contains("\"style\":\"xref.device\""));
+
+    let styled = plain.replacen(
+        r#""max_width":10000000}"#,
+        r#""max_width":10000000,"style":"xref.device"}"#,
+        1,
+    );
+    assert_ne!(styled, plain);
+    let LibDocument::Symbol(copy) = assert_lib_canonical(&styled) else {
+        panic!("a symbol");
+    };
+    let styles: Vec<Option<&str>> = copy
+        .item
+        .text_slots
+        .iter()
+        .map(|s| s.style.as_ref().map(|n| n.as_str()))
+        .collect();
+    assert_eq!(styles, [None, Some("xref.device")]);
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // Unknown content
 

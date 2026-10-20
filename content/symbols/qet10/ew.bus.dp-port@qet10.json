@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "24cb4438-5087-55ce-9fa9-7d1c107b98aa",
   "version": "0.1.0",
-  "sha256": "sha256:fadb52450090003ce59853a43bc0c6ed2a25c4d507e259a75bf964de176ff13d",
+  "sha256": "sha256:7d44b05f741dcb9ef96d69fef9a95a9da31c5f6d9d79be73991560c60b1a1c89",
   "meta": {
     "key": "ew.bus.dp-port@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -147,7 +147,8 @@
         11244792
       ],
       "align": "top_centre",
-      "visible": true
+      "visible": true,
+      "style": "xref.device"
     }
   ],
   "arrangements": [

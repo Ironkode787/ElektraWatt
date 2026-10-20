@@ -1232,7 +1232,7 @@
     },
     "TextSlot": {
       "additionalProperties": true,
-      "description": "A typed text slot of a symbol (doc 07 §2.3). Its height comes from the text style bound to its kind.",
+      "description": "A typed text slot of a symbol (doc 07 §2.3). Its height comes from the text style bound to its kind unless\nthe slot names its own `style`.",
       "properties": {
         "align": {
           "$ref": "#/$defs/Align",
@@ -1260,6 +1260,17 @@
         "rot": {
           "$ref": "#/$defs/Angle2",
           "description": "Rotation."
+        },
+        "style": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Name of the text style that replaces the style bound to the slot's kind (decision log ID-197); absent\nmeans the kind's style."
         },
         "visible": {
           "description": "Visible by default.",

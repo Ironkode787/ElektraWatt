@@ -61,7 +61,8 @@
 //!   representation's arrangement (FR-SYM-012), else by the symbol's default; an empty value prints
 //!   nothing. Position and angle overrides are in the symbol frame. Placement follows
 //!   [`crate::symbol`]: the position turns with the orientation, the angle is made readable, the alignment
-//!   flips (doc 07 §4.1); the style is [`symbol::default_style_key`] of the slot kind. `max_width` is not
+//!   flips (doc 07 §4.1); the style is the slot's own `style` when it names a known text style, else [`symbol::default_style_key`] of
+//!   the slot kind (an unknown name is reported as [`PageFinding::UnknownSlotStyle`], ID-227). `max_width` is not
 //!   applied yet.
 //! - **Wire markers** (FR-OUT-011 keeps them in monochrome): the caller's marker text, centred in style
 //!   `marker` on the midpoint of the polyline's longest segment (the first of equal ones), turned 90° on a
@@ -258,6 +259,17 @@ pub enum PageFinding {
         entity: Uuid,
         /// The key.
         key: String,
+    },
+    /// A text slot whose `style` names no text style; the style of the slot's kind was used (ID-227).
+    UnknownSlotStyle {
+        /// The entity the text belongs to.
+        entity: Uuid,
+        /// The symbol of the representation.
+        symbol: Uuid,
+        /// The index of the slot in the symbol's `text_slots`.
+        slot: u16,
+        /// The unknown style name.
+        name: String,
     },
     /// Characters without a glyph in the font set (FR-OUT-027).
     MissingGlyphs {
@@ -643,12 +655,21 @@ impl Builder<'_> {
                 }
                 let pos = ov.and_then(|o| o.pos).unwrap_or(slot.pos);
                 let rot = ov.and_then(|o| o.angle).unwrap_or(slot.rot);
+                let (style_key, unknown) = symbol::slot_style_key(slot);
+                if let Some(name) = unknown {
+                    self.out.findings.push(PageFinding::UnknownSlotStyle {
+                        entity: entity.0,
+                        symbol: rep.symbol.as_uuid(),
+                        slot: value.slot,
+                        name: name.to_owned(),
+                    });
+                }
                 self.text(&TextSpec {
                     text: &value.text,
                     at: rep.pos + rep.orient.apply(pos),
                     angle: symbol::readable_angle(rot, rep.orient),
                     align: &symbol::placed_align(&slot.align, rot, rep.orient),
-                    style_key: symbol::default_style_key(&slot.kind),
+                    style_key,
                     entity,
                     link: value.link.map(Link::Source),
                 });

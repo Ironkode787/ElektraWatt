@@ -386,6 +386,7 @@ pub fn dynamic_text(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed)
         align,
         visible: true,
         max_width,
+        style: None,
         extra,
     });
     Ok(())
@@ -432,6 +433,7 @@ pub fn input(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed) -> Res
         align: Align::TopLeft,
         visible: true,
         max_width: None,
+        style: None,
         extra,
     });
     Ok(())

@@ -705,7 +705,8 @@ pub struct SymbolCp {
     pub extra: Extra,
 }
 
-/// A typed text slot of a symbol (doc 07 §2.3). Its height comes from the text style bound to its kind.
+/// A typed text slot of a symbol (doc 07 §2.3). Its height comes from the text style bound to its kind unless
+/// the slot names its own `style`.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct TextSlot {
     /// What the slot prints.
@@ -726,6 +727,11 @@ pub struct TextSlot {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<NmS>")]
     pub max_width: Option<Nm>,
+    /// Name of the text style that replaces the style bound to the slot's kind (decision log ID-197); absent
+    /// means the kind's style.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub style: Option<Ident>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
