@@ -20,9 +20,9 @@ use ew_derive::ew_schema::{
     FunctionKind, Page, Unit,
 };
 use ew_derive::{
-    CpRef, DeviceTag, DrawnPageOrder, EffectiveProps, EndKind, FunctionCps, PageRef, Partition, PhysicalWire,
+    CpRef, DeviceTag, EffectiveProps, EndKind, FunctionCps, PageRef, Partition, PhysicalWire,
     PhysicalWiresOf, PotentialId, PotentialNameOf, PotentialNames, PotentialPartition, PropSource, Q,
-    RepAnchorCell, WireEnd, WirePropsOf,
+    WireEnd, WirePropsOf, orient_wire,
 };
 
 use crate::rowset::{Cell, ColumnDef, QtyUnit};
@@ -73,7 +73,7 @@ impl Wires {
             for w in &physical.wires {
                 by_id.entry(w.id).or_insert_with(|| {
                     let mut wire = w.clone();
-                    orient(q, &mut wire);
+                    orient_wire(q, &mut wire);
                     WireRec {
                         wire,
                         props: props.wires.get(&w.id).cloned().unwrap_or_default(),
@@ -107,42 +107,6 @@ impl Wires {
             .map(|p| self.potential_name(*p))
             .collect::<Vec<_>>()
             .join(" \u{21C4} ")
-    }
-}
-
-/// Puts the From end of a wire first (doc 08 §3.8 "Orientation (From/To)", FR-CON-040): on different pages
-/// the end on the earlier page in the page order; otherwise the end with the smaller anchor cell (row, then
-/// column), then the smaller CP ID. The page of an end is the page of the constituent that ends there.
-///
-/// The flow-distance step of the rule (hops over wires, bridges and terminal shorts from the points where
-/// the potential enters) is not applied: it needs a per-CP flow distance that `ew-derive` does not expose.
-/// A wire that rule decides differently on one page prints its ends the other way round.
-fn orient(q: &Q, w: &mut PhysicalWire) {
-    let page_of = |c: Option<&Id<Connection>>| c.and_then(|c| q.connections().get(*c)).and_then(|c| c.page);
-    let (pa, pb) = (page_of(w.constituents.first()), page_of(w.constituents.last()));
-    let swap = match (pa, pb) {
-        (Some(a), Some(b)) if a != b => page_position(q, b) < page_position(q, a),
-        _ => {
-            let cell = |e: &WireEnd, page: Option<Id<Page>>| -> (u32, u32) {
-                let Some(page) = page else {
-                    return (u32::MAX, u32::MAX);
-                };
-                let mut reps: Vec<_> = q
-                    .idx()
-                    .reps_of_function(e.cp.function)
-                    .filter(|r| q.reps().get(*r).is_some_and(|r| r.page == page))
-                    .collect();
-                reps.sort();
-                reps.first()
-                    .and_then(|r| q.get::<RepAnchorCell>(*r).as_ref().clone())
-                    .map_or((u32::MAX, u32::MAX), |c| (c.row, c.column))
-            };
-            let page = pa.or(pb);
-            (cell(&w.ends[1], page), w.ends[1].cp) < (cell(&w.ends[0], page), w.ends[0].cp)
-        }
-    };
-    if swap {
-        w.ends.swap(0, 1);
     }
 }
 
@@ -249,13 +213,6 @@ pub(super) fn tag_key(q: &Q, d: Id<Device>) -> NaturalKey {
             .map(|t| t.full.as_str())
             .unwrap_or(""),
     )
-}
-
-/// The position of a drawn page in the drawn page order (`usize::MAX` for an unknown page).
-pub(super) fn page_position(q: &Q, page: Id<Page>) -> usize {
-    q.get::<DrawnPageOrder>(())
-        .position(PageRef::Drawn(page))
-        .unwrap_or(usize::MAX)
 }
 
 /// The pages of a wire as a folio cell, in page order.

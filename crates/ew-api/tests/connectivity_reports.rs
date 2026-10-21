@@ -174,8 +174,25 @@ fn wire_rows_carry_the_effective_properties_and_cable_cores() {
         assert!(!t[from].is_empty() && !t[to].is_empty(), "{t:?}");
         assert!(!t[pot].is_empty() && !t[col(&set, "pages")].is_empty(), "{t:?}");
     }
-    // Wire numbers are not derived yet (doc 08 §5).
-    assert!(wires.iter().all(|t| t[col(&set, "no")].is_empty()));
+    // Wire numbers (doc 08 §5.2, doc 20 §8.1): `{page}.{counter}` on the 34 wires, none on the 10 cable cores,
+    // and the rows are in the numbering order, so the counters of a page rise down the list (FT-100).
+    let no = col(&set, "no");
+    let mut last: std::collections::BTreeMap<String, u32> = std::collections::BTreeMap::new();
+    let mut numbered = 0;
+    for t in &wires {
+        if t[via].contains("-106W") {
+            assert!(t[no].is_empty(), "a cable core is not numbered: {t:?}");
+            continue;
+        }
+        let (page, counter) = t[no]
+            .split_once('.')
+            .unwrap_or_else(|| panic!("no number: {t:?}"));
+        let counter: u32 = counter.parse().expect("a counter");
+        let prev = last.insert(page.to_owned(), counter).unwrap_or(0);
+        assert_eq!(counter, prev + 1, "counters rise by one on folio {page}: {t:?}");
+        numbered += 1;
+    }
+    assert_eq!(numbered, 34);
 }
 
 #[test]

@@ -49,6 +49,7 @@
 mod bom;
 mod cell;
 mod component;
+mod cp_point;
 mod cps;
 mod flow;
 mod heap;
@@ -60,6 +61,7 @@ mod memo_store;
 mod names;
 mod nets;
 mod note;
+mod numbering;
 mod pages;
 mod part_text;
 mod potentials;
@@ -84,6 +86,7 @@ pub use cell::{
     Cell, CellOf, FrameGridOf, FrameSettings, FrameSettingsValue, FrameTypeEntry, RepAnchorCell,
     anchor_point, default_frame_grid, frame_grid,
 };
+pub use cp_point::{cp_cell, cp_point};
 pub use cps::{Cp, FunctionCps};
 // WP-S1.07 part 2: the derived-index families of the connectivity (ARCH §6.3 rule 5) and the interruption-point
 // pairing split out of the stitch graph.
@@ -104,6 +107,7 @@ pub use flow::{Flow, FlowBfs, FlowConflict, FlowEntry, FlowNotes, Load, Potentia
 pub use names::{PotentialAttrsOf, PotentialAttrsV, PotentialNameOf, PotentialNames, potential_named};
 pub use nets::{CpRef, LocalNet, LocalNets, NetId, NetMember, PageLocalNets, joins_net};
 pub use note::{DeriveNote, EW_CORE_018, NoteSeverity, SchemeIssue};
+pub use numbering::{NumberedWire, WireNumber, WireNumbers, WireNumbersV, orient_wire};
 pub use pages::{
     GeneratedPage, Origin, PageEntry, PageOrder, PageOrderV, PageRef, PageRefStructure, PageTitle,
     SectionStructure, folio_label, map_ml, report_pages,
@@ -219,6 +223,7 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (TitleBlockValues::FAMILY, TitleBlockValues::POLICY),
     (TocRows::FAMILY, TocRows::POLICY),
     (WireDefaultProps::FAMILY, WireDefaultProps::POLICY),
+    (WireNumbers::FAMILY, WireNumbers::POLICY),
     (WireProfileNotes::FAMILY, WireProfileNotes::POLICY),
     (WireProfilesQ::FAMILY, WireProfilesQ::POLICY),
     (ConnWireProps::FAMILY, ConnWireProps::POLICY),
@@ -263,6 +268,8 @@ mod tests {
             "physical_wires_of",
             "potential_flow_bfs",
             "wire_props_of",
+            // FT-100: the connection-oriented wire numbers (doc 08 §5.2).
+            "wire_numbers",
             // ID-226 (ADR-0002 amendment 4 "Query shapes"): the profile reads of the wire chain.
             "wire_profiles",
             "wire_profile_notes",

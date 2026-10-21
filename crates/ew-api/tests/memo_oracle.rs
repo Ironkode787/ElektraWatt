@@ -42,7 +42,8 @@ use ew_derive::{
     BomMode, BomRows, DevicePartLines, DeviceTag, DevicesByStructure, DrawnPageOrder, EndClass, EndScope,
     FlowBfs, FunctionCps, Member, Oracle, PageLocalNets, PageOrder, PageRef, PhysicalWiresOf, PotentialId,
     PotentialPartition, ProfileKey, ProfileRowFor, Q, Query, RecordingTracker, SettingsMember, StitchGraphQ,
-    TitleBlockValues, TocRows, WireDefaultProps, WireProfileNotes, WireProfilesQ, WirePropsOf, XrefTextOf,
+    TitleBlockValues, TocRows, WireDefaultProps, WireNumbers, WireProfileNotes, WireProfilesQ, WirePropsOf,
+    XrefTextOf,
 };
 use ew_derive::{
     BondIndex, BondPathsQ, BondVias, DefPoints, FlowNotes, FunctionLinksOf, IpFunctions, IpInfoOf, IpNotes,
@@ -89,6 +90,7 @@ const SWEPT: &[&str] = &[
     "title_block",
     "toc_rows",
     "wire_default_props",
+    "wire_numbers",
     "wire_profile_notes",
     "wire_profiles",
     "wire_props_of",
@@ -311,6 +313,7 @@ fn sweep(memo: &Q, cold: Option<&Q>, state: &str) -> BTreeMap<&'static str, usiz
         WireDefaultProps::FAMILY,
         check::<WireDefaultProps>(memo, cold, [()], state),
     );
+    put(WireNumbers::FAMILY, check::<WireNumbers>(memo, cold, [()], state));
     put(
         WireProfileNotes::FAMILY,
         check::<WireProfileNotes>(memo, cold, [()], state),

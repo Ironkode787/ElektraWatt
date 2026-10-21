@@ -18,6 +18,10 @@
 //!   level of every value (7 override, 6 core, 2 profile, 1 project default, 0 built in).
 //! - `changing_the_24v_colour_updates_every_affected_wire` (AC-12): one profile edit, all affected wires.
 //! - `flow_matches_doc_08_section_3_6`: distances, switched and protected potentials, loads (decision D4).
+//! - `wire_numbers_are_connection_oriented_per_page` (AC-09, D-09; doc 20 §8.1, doc 08 §5.2): W1 to W34 numbered
+//!   `{page}.{counter}`, the 10 cable cores not, counters 1..n per page in the numbering order.
+//! - `end_cells_follow_the_drawn_cp_points` (FT-100): the frame cell of a CP of a symbol, a black box and a
+//!   terminal in a strip segment.
 //! - `connectivity_does_not_depend_on_record_order` (NFR-REL-07): reversed and shuffled records.
 //! - `no_connectivity_notes_on_the_golden_model`: no `Connectivity`, `MalformedShim`, `ProfileOverlap` or
 //!   `DefaultWireProfile` note.
@@ -29,7 +33,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use ew_api::Session;
 use ew_derive::{
     ConnWireProps, DeriveNote, EdgeKind, PhysicalWire, PhysicalWiresOf, PotentialAttrsOf, PotentialFlow,
-    PotentialId, PotentialNameOf, PotentialPartition, PropSource, Q, SizeRule, StitchGraphQ, WirePropsOf,
+    PotentialId, PotentialNameOf, PotentialPartition, PropSource, Q, SizeRule, StitchGraphQ, WireNumbers,
+    WirePropsOf, cp_cell,
 };
 use ew_import_tables::ew_interop_api::ImportBatch;
 use ew_schema::{BondKind, CircuitClass, Connection, ConnectionKind, Endpoint, PotentialType, Record};
@@ -999,6 +1004,118 @@ fn digest(s: &Session) -> String {
         );
     }
     out
+}
+
+/// The page prefix of "No." in doc 20 §8.2 for W1 to W34: 19 wires on 101, 13 on 102, 2 on 103.
+fn doc20_folio(n: u32) -> &'static str {
+    match n {
+        1..=19 => "101",
+        20..=32 => "102",
+        _ => "103",
+    }
+}
+
+#[test]
+fn wire_numbers_are_connection_oriented_per_page() {
+    let batch = batch();
+    let s = session_with_profiles(&batch);
+    let ids = ids_by_key(&batch);
+    let q = Q::new(&s.world().model);
+    let numbers = q.get::<WireNumbers>(());
+    // Every physical wire is in the order; only W1 to W34 are numbered, the cores W35 to W44 are not.
+    assert_eq!(numbers.wires.len(), 44);
+    let mut labels = BTreeSet::new();
+    let mut by_page: BTreeMap<String, Vec<u32>> = BTreeMap::new();
+    for n in 1..=44u32 {
+        let id = ids[&format!("connections|W{n}")]
+            .parse()
+            .expect("a connection ID");
+        let number = numbers.number(id);
+        if n > 34 {
+            assert!(number.is_none(), "W{n} is a cable core and is not numbered");
+            continue;
+        }
+        let number = number.unwrap_or_else(|| panic!("W{n} has a number"));
+        let (page, counter) = number.label.split_once('.').expect("{page}.{counter}");
+        assert_eq!(page, doc20_folio(n), "W{n}: the {{page}} token (doc 20 §8.2)");
+        assert_eq!(counter, number.counter.to_string());
+        assert!(
+            labels.insert(number.label.clone()),
+            "W{n}: {} is not unique",
+            number.label
+        );
+        by_page.entry(page.to_owned()).or_default().push(number.counter);
+    }
+    assert_eq!(labels.len(), 34, "34 unique numbers");
+    // Counter scope page: 1..n on every page, 19 + 13 + 2 wires (doc 20 §8.2).
+    for (page, mut counters) in by_page {
+        counters.sort_unstable();
+        let want: Vec<u32> = (1..=counters.len() as u32).collect();
+        assert_eq!(counters, want, "counters on {page}");
+    }
+    // W33 and W34 are the whole of folio 103 (doc 20: 103.1 and 103.2; doc 08 §5.2).
+    let label = |n: u32| {
+        let id = ids[&format!("connections|W{n}")]
+            .parse()
+            .expect("a connection ID");
+        numbers.number(id).map(|x| x.label.clone())
+    };
+    assert_eq!(label(33).as_deref(), Some("103.1"));
+    assert_eq!(label(34).as_deref(), Some("103.2"));
+    // The order is by page first: the numbered wires of 101 precede those of 102 and 103.
+    let pages: Vec<&str> = numbers
+        .wires
+        .iter()
+        .filter_map(|w| w.number.as_ref())
+        .map(|n| n.label.split('.').next().unwrap())
+        .collect();
+    let mut sorted = pages.clone();
+    sorted.sort_unstable();
+    assert_eq!(pages, sorted);
+    // A tie group is a run with the same range on every member and a counter inside it.
+    for w in numbers.wires.iter().filter_map(|w| w.number.as_ref()) {
+        if let Some((a, b)) = w.tie {
+            assert!(a < b && (a..=b).contains(&w.counter), "{}: tie {a}..{b}", w.label);
+        }
+    }
+}
+
+#[test]
+fn end_cells_follow_the_drawn_cp_points() {
+    let batch = batch();
+    let s = session_with_profiles(&batch);
+    let ids = ids_by_key(&batch);
+    let q = Q::new(&s.world().model);
+    let wires = all_wires(&q);
+    let cell_of = |wire: u32, device: &str, page: &str| {
+        let w = &wires[&ids[&format!("connections|W{wire}")]];
+        let page = ids[&format!("pages|{page}")].parse().expect("a page ID");
+        let device_id = ids
+            .get(&format!("devices|{device}"))
+            .or_else(|| ids.get(&format!("terminals|{device}")))
+            .unwrap_or_else(|| panic!("no device {device}"));
+        let end = w
+            .ends
+            .iter()
+            .find(|e| {
+                q.functions()
+                    .get(e.cp.function)
+                    .and_then(|f| f.device)
+                    .is_some_and(|d| d.to_string() == *device_id)
+            })
+            .unwrap_or_else(|| panic!("W{wire} has no end at {device}"));
+        cp_cell(&q, end.cp.function, end.cp.idx, page).map(|c| c.to_string())
+    };
+    // A symbol CP: F55:2 of W13 on folio 101.
+    assert_eq!(cell_of(13, "F55", "101").as_deref(), Some("B12"));
+    // A black box (box CPs): -102G1:+ of W20 on folio 102.
+    assert_eq!(cell_of(20, "-102G1", "102").as_deref(), Some("B6"));
+    // Terminals in strip segments (doc 08 §6.7): -X1031 draws its first terminals in the segment at 103-A3, the
+    // 0 V group in the one at 103-A10; side 1 and side 2 of a terminal share the row of a one-row segment.
+    assert_eq!(cell_of(29, "-X1031:1", "103").as_deref(), Some("A3"));
+    assert_eq!(cell_of(35, "-X1031:12", "103").as_deref(), Some("A10"));
+    // A terminal is drawn on its segment's page only.
+    assert_eq!(cell_of(29, "-X1031:1", "101"), None);
 }
 
 #[test]
