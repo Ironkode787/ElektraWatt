@@ -17,6 +17,7 @@ use ew_derive::{
     DeviceTag, PageOrder, PageRef, PotentialNameOf, PotentialPartition, RepAnchorCell, TitleBlockValues,
     WireNumbers, XrefTextOf,
 };
+use ew_export::Parallelism;
 use ew_ids::Id;
 use ew_scene::page::page_scene;
 use ew_schema::{Device, Record, Representation};
@@ -1855,7 +1856,7 @@ fn ac17_pdf(c: &Ctx) -> Outcome {
     let view = golden_session(None);
     let q = view.query();
     let started = std::time::Instant::now();
-    let pages = pdf_pages(&q);
+    let pages = pdf_pages(&q, Parallelism::Serial);
     let out = ew_export::pdf(&pages, &pdf_options(&q), &c.fonts, None);
     let elapsed = started.elapsed().as_secs_f64();
     match out {
@@ -2419,8 +2420,31 @@ fn printed_runs(c: &Ctx, folio: &str) -> Vec<String> {
         .unwrap_or_default()
 }
 
+/// The comparison of one page's text layer with the glyph runs it prints: equal run by run and character by
+/// character, so a lost, unmapped (U+FFFD) or merged space is a mismatch. Empty when they agree.
+pub fn text_layer_mismatches(
+    folio: &str,
+    printed: &[String],
+    read: &[crate::pdf_read::TextRun],
+) -> Vec<String> {
+    if read.len() != printed.len() {
+        return vec![format!(
+            "{folio}: {} text objects, {} printed runs",
+            read.len(),
+            printed.len()
+        )];
+    }
+    read.iter()
+        .zip(printed)
+        .enumerate()
+        .find(|(_, (r, p))| r.text != **p)
+        .map(|(i, (r, p))| format!("{folio}: run {} reads {:?}, the page prints {p:?}", i + 1, r.text))
+        .into_iter()
+        .collect()
+}
+
 /// AC-13, FR-OUT-008, D-33: the text layer of every page, read through the fonts' ToUnicode maps, equals
-/// the glyph runs the page prints, run by run and character by character (spaces included).
+/// the glyph runs the page prints ([`text_layer_mismatches`]).
 fn ac13_text_extraction(c: &Ctx) -> Outcome {
     let pages = match read_back(c) {
         Ok(p) => p,
@@ -2429,31 +2453,13 @@ fn ac13_text_extraction(c: &Ctx) -> Outcome {
     let (mut total, mut spaced) = (0, 0);
     let mut wrong = Vec::new();
     for (g, page) in c.pages.iter().zip(pages) {
-        let want = printed_runs(c, &g.entry.folio);
-        let got: Vec<&str> = page.runs.iter().map(|r| r.text.as_str()).collect();
-        total += got.len();
-        spaced += got.iter().filter(|t| t.contains(' ')).count();
-        if got.len() != want.len() {
-            wrong.push(format!(
-                "{}: {} text objects, {} printed runs",
-                g.entry.folio,
-                got.len(),
-                want.len()
-            ));
-            continue;
-        }
-        if let Some((i, (a, b))) = got
-            .iter()
-            .zip(&want)
-            .enumerate()
-            .find(|(_, (a, b))| **a != b.as_str())
-        {
-            wrong.push(format!(
-                "{}: run {} reads {a:?}, the page prints {b:?}",
-                g.entry.folio,
-                i + 1
-            ));
-        }
+        wrong.extend(text_layer_mismatches(
+            &g.entry.folio,
+            &printed_runs(c, &g.entry.folio),
+            &page.runs,
+        ));
+        total += page.runs.len();
+        spaced += page.runs.iter().filter(|r| r.text.contains(' ')).count();
     }
     let sk = c
         .pages
@@ -2474,8 +2480,49 @@ fn ac13_text_extraction(c: &Ctx) -> Outcome {
     }
 }
 
-/// AC-06: every device tag occurs in the text layer of each page as often as the page prints it, and no
-/// stale token is in the text layer.
+/// The tokens that must not be printed anywhere (doc 20 §19: D-01, D-03, D-17 and the old tag of T55).
+const STALE_TOKENS: [&str; 4] = ["-4W1", "-4X1", "T51", "JE2416"];
+
+/// The occurrences of `tag` in `text` on token boundaries: the characters before and after are neither
+/// alphanumeric nor `-`, so "-K1" is not counted inside "-K10" or inside "-201U3-K1".
+pub fn count_tag(text: &str, tag: &str) -> usize {
+    let bound = |c: Option<char>| c.is_none_or(|c| !c.is_alphanumeric() && c != '-');
+    text.match_indices(tag)
+        .filter(|(i, _)| bound(text[..*i].chars().next_back()) && bound(text[i + tag.len()..].chars().next()))
+        .count()
+}
+
+/// The per-tag comparison of one page: every tag occurs in the text layer as often as the page prints it
+/// (on token boundaries), and no stale token is in the text layer. The mismatches and the number of
+/// printed occurrences.
+pub fn tag_mismatches(
+    folio: &str,
+    tags: &BTreeSet<String>,
+    printed: &[String],
+    read: &[crate::pdf_read::TextRun],
+) -> (Vec<String>, usize) {
+    let mut wrong = Vec::new();
+    let mut occurrences = 0;
+    for tag in tags {
+        let n_printed: usize = printed.iter().map(|t| count_tag(t, tag)).sum();
+        let n_read: usize = read.iter().map(|r| count_tag(&r.text, tag)).sum();
+        if n_printed != n_read {
+            wrong.push(format!(
+                "{folio}: {tag} printed {n_printed} times, read {n_read} times"
+            ));
+        }
+        occurrences += n_printed;
+    }
+    for r in read {
+        if STALE_TOKENS.iter().any(|s| r.text.contains(s)) || r.text == "BR" {
+            wrong.push(format!("{folio}: stale \"{}\" in the text layer", r.text));
+        }
+    }
+    (wrong, occurrences)
+}
+
+/// AC-06: the PDF text equals the page text through AC-13's entry; this one counts every device tag on token
+/// boundaries per page in both and scans the text layer for stale tokens ([`tag_mismatches`]).
 fn ac06_text_layer(c: &Ctx) -> Outcome {
     let pages = match read_back(c) {
         Ok(p) => p,
@@ -2490,41 +2537,22 @@ fn ac06_text_layer(c: &Ctx) -> Outcome {
             tags.insert(t.short());
         }
     }
-    let stale = ["-4W1", "-4X1", "T51", "JE2416"];
     let (mut occurrences, mut on_pages) = (0, 0);
     let mut wrong = Vec::new();
     for (g, page) in c.pages.iter().zip(pages) {
-        let printed = printed_runs(c, &g.entry.folio);
-        let mut here = 0;
-        for tag in &tags {
-            let n_printed: usize = printed.iter().map(|t| t.matches(tag.as_str()).count()).sum();
-            let n_read: usize = page
-                .runs
-                .iter()
-                .map(|r| r.text.matches(tag.as_str()).count())
-                .sum();
-            if n_printed != n_read {
-                wrong.push(format!(
-                    "{}: {tag} printed {n_printed} times, read {n_read} times",
-                    g.entry.folio
-                ));
-            }
-            here += n_printed;
-        }
-        occurrences += here;
-        on_pages += usize::from(here > 0);
-        for r in &page.runs {
-            if stale.iter().any(|s| r.text.contains(s)) || r.text == "BR" {
-                wrong.push(format!(
-                    "{}: stale \"{}\" in the text layer",
-                    g.entry.folio, r.text
-                ));
-            }
-        }
+        let (w, n) = tag_mismatches(
+            &g.entry.folio,
+            &tags,
+            &printed_runs(c, &g.entry.folio),
+            &page.runs,
+        );
+        wrong.extend(w);
+        occurrences += n;
+        on_pages += usize::from(n > 0);
     }
     if wrong.is_empty() {
         pass(format!(
-            "{occurrences} printed occurrences of the {} device tags on {on_pages} pages read back identically from the PDF text layer (same count per tag and page); no stale token in it",
+            "the PDF text equals the page text (AC-13 entry); counted on token boundaries, the {occurrences} printed occurrences of the {} device tags on {on_pages} pages occur as often per tag and page in the PDF text layer, and no stale token is in it",
             tags.len()
         ))
     } else {
@@ -2680,7 +2708,8 @@ pub fn frame_figures_json() -> Result<serde_json::Value, String> {
 /// AC-01 (doc 18 §3.9 "Frame geometry"): on every page of the written PDF, each line of the page's frame
 /// form in `expected/geometry/frame.json` is a stroked segment within 0.2 mm (both endpoints) with the
 /// frame's line width, the media box is the sheet, and no other line lies in the header bands or on the
-/// outer frame ([`frame_mismatches`]). Title-block texts are AC-04's.
+/// outer frame ([`frame_mismatches`]). `frame.json` holds the title block's bounding box only, so no check
+/// compares the title block's inner lines; AC-04 checks the title-block texts.
 fn ac01_pdf_vectors(c: &Ctx) -> Outcome {
     let pages = match read_back(c) {
         Ok(p) => p,
@@ -2691,6 +2720,8 @@ fn ac01_pdf_vectors(c: &Ctx) -> Outcome {
         Err(e) => return fail(e),
     };
     let (mut lines_checked, mut worst) = (0usize, 0.0f64);
+    // Lines per page → pages: the formula of the line count.
+    let mut per_page: BTreeMap<usize, usize> = BTreeMap::new();
     let mut wrong = Vec::new();
     for (g, page) in c.pages.iter().zip(pages) {
         let folio = &g.entry.folio;
@@ -2704,12 +2735,19 @@ fn ac01_pdf_vectors(c: &Ctx) -> Outcome {
         let (w, n, d) = frame_mismatches(folio, page, &frame[key], show_grid);
         wrong.extend(w);
         lines_checked += n;
+        *per_page.entry(n).or_default() += 1;
         worst = worst.max(d);
     }
+    let formula: Vec<String> = per_page
+        .iter()
+        .rev()
+        .map(|(lines, pages)| format!("{pages} pages × {lines}"))
+        .collect();
     if wrong.is_empty() {
         pass(format!(
-            "{} pages: the {lines_checked} frame lines of expected/geometry/frame.json (outer frame, title-block separator, header bands and grid ticks of the page's form) are stroked in the PDF within 0.2 mm (largest endpoint deviation {worst:.3} mm) at the frame's line width; media boxes equal the sheet; no other line in the bands",
-            pages.len()
+            "{} pages: the {lines_checked} frame lines of expected/geometry/frame.json ({}: outer frame and title-block separator, plus header bands and grid ticks on a page whose form shows the grid) are stroked in the PDF within 0.2 mm (largest endpoint deviation {worst:.3} mm) at the frame's line width; media boxes equal the sheet; no other line in the bands; no check compares the title block's inner lines (frame.json holds its bounding box only)",
+            pages.len(),
+            formula.join(" + ")
         ))
     } else {
         fail(list(wrong, 3))
@@ -2719,26 +2757,114 @@ fn ac01_pdf_vectors(c: &Ctx) -> Outcome {
 /// The seed of the record shuffle of AC-14.
 const SHUFFLE_SEED: u64 = 0x5eed_ac14;
 
+/// Two SVG exports are the same files; an export that failed is a mismatch, never an agreement.
+pub fn same_svg(
+    a: &Result<ew_export::SvgOutput, ew_export::SvgError>,
+    b: &Result<ew_export::SvgOutput, ew_export::SvgError>,
+) -> Result<(), String> {
+    match (a, b) {
+        (Ok(a), Ok(b)) if a == b => Ok(()),
+        (Ok(_), Ok(_)) => Err("the SVG files differ".to_owned()),
+        (Err(e), _) | (_, Err(e)) => Err(format!("the SVG export failed: {e}")),
+    }
+}
+
+/// Every `href` of an SVG export whose file is not in the export or whose fragment is not an `id` of that
+/// file (written once), and every id written twice in one file.
+pub fn svg_dangling(out: &ew_export::SvgOutput) -> Vec<String> {
+    let ids = |text: &str, id: &str| text.matches(&format!(" id=\"{id}\"")).count();
+    let mut bad = Vec::new();
+    for f in &out.files {
+        for rest in f.text.split("href=\"").skip(1) {
+            let h = &rest[..rest.find('"').unwrap_or(rest.len())];
+            let (file, fragment) = h.split_once('#').map_or((h, None), |(a, b)| (a, Some(b)));
+            match out.files.iter().find(|g| g.name == file) {
+                None => bad.push(format!("{}: {h} (no such file)", f.name)),
+                Some(g) => {
+                    if let Some(id) = fragment
+                        && ids(&g.text, id) != 1
+                    {
+                        bad.push(format!("{}: {h} (no such id)", f.name));
+                    }
+                }
+            }
+        }
+        for rest in f.text.split(" id=\"").skip(1) {
+            let id = &rest[..rest.find('"').unwrap_or(rest.len())];
+            if ids(&f.text, id) != 1 {
+                bad.push(format!("{}: id {id} written twice", f.name));
+            }
+        }
+    }
+    bad.sort();
+    bad.dedup();
+    bad
+}
+
+/// The files of a directory tree by their path relative to `base`, with `/` separators.
+fn read_tree(
+    dir: &std::path::Path,
+    base: &std::path::Path,
+    out: &mut BTreeMap<String, Vec<u8>>,
+) -> Result<(), String> {
+    for e in std::fs::read_dir(dir).map_err(|e| format!("{}: {e}", dir.display()))? {
+        let path = e.map_err(|e| e.to_string())?.path();
+        if path.is_dir() {
+            read_tree(&path, base, out)?;
+        } else {
+            let rel = path
+                .strip_prefix(base)
+                .map_err(|e| e.to_string())?
+                .to_string_lossy()
+                .replace('\\', "/");
+            out.insert(rel, std::fs::read(&path).map_err(|e| e.to_string())?);
+        }
+    }
+    Ok(())
+}
+
+/// The bytes a save writes: the session saved as a new project (`Session::create`) into a scratch
+/// directory, read back file by file (without the session lock file).
+fn saved_files(s: &mut Session, tag: &str) -> Result<BTreeMap<String, Vec<u8>>, String> {
+    let dir = scratch_dir(tag);
+    let state = scratch_dir(&format!("{tag}-state"));
+    let mut options = StoreOptions::new("acceptance");
+    options.state_dir = Some(state.clone());
+    let out = s
+        .create(&dir, options)
+        .map_err(|e| format!("the save failed: {e:?}"))
+        .and_then(|()| {
+            let mut files = BTreeMap::new();
+            read_tree(&dir, &dir, &mut files)?;
+            // The session lock is the open session's runtime state (session id, user, host), not saved
+            // project content (doc 05).
+            files.remove(ew_store::ew_format::LOCK);
+            Ok(files)
+        });
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::remove_dir_all(&state);
+    out
+}
+
 /// AC-14 (platform-neutral half): the golden model loaded with its records in a shuffled order writes the
-/// same PDF, SVG, text and report CSVs and JSONL record lines as in file order. This run compares on its
-/// own platform; the gate platform of doc 20 §21 (M1) is Linux, and the cross-platform digests are MVP.
+/// same PDF, SVG, text and report CSVs and saved project files (JSONL and manifest, through
+/// `Session::create`) as in file order. This run compares on its own platform; the gate platform of doc 20
+/// §21 (M1) is Linux, and the cross-platform digests are MVP.
 fn ac14_shuffle(c: &Ctx) -> Outcome {
-    let base = golden_session(None);
-    let shuffled = golden_session(Some(SHUFFLE_SEED));
+    let mut base = golden_session(None);
+    let mut shuffled = golden_session(Some(SHUFFLE_SEED));
     let qs = shuffled.query();
     let mut wrong = Vec::new();
-    let pages_s = pdf_pages(&qs);
+    let pages_s = pdf_pages(&qs, Parallelism::Serial);
     let pdf_s = ew_export::pdf(&pages_s, &pdf_options(&qs), &c.fonts, None);
     match &pdf_s {
         Ok(o) if o.bytes == c.pdf.bytes => {}
         Ok(_) => wrong.push("the PDF differs".to_owned()),
         Err(e) => wrong.push(format!("the shuffled PDF is not written: {e}")),
     }
-    let svg = |pages: &[ew_export::PdfPage]| {
-        ew_export::svg(pages, &svg_options(), None, ew_export::Parallelism::Serial)
-    };
-    if svg(&pages_s) != svg(&c.pdf_pages) {
-        wrong.push("the SVG files differ".to_owned());
+    let svg = |pages: &[ew_export::PdfPage]| ew_export::svg(pages, &svg_options(), None, Parallelism::Serial);
+    if let Err(e) = same_svg(&svg(&pages_s), &svg(&c.pdf_pages)) {
+        wrong.push(e);
     }
     let text_s: BTreeMap<String, String> = crate::view::golden_pages(&qs)
         .iter()
@@ -2752,23 +2878,65 @@ fn ac14_shuffle(c: &Ctx) -> Outcome {
     }
     let (pb, ps) = (golden_common::plain(&base), golden_common::plain(&shuffled));
     for (name, _) in ROW_PAIRS {
-        if row_pair_text(&c.batch, &pb, name) != row_pair_text(&c.batch, &ps, name) {
-            wrong.push(format!("the report CSV {name} differs"));
+        match (
+            row_pair_text(&c.batch, &pb, name),
+            row_pair_text(&c.batch, &ps, name),
+        ) {
+            (Ok(a), Ok(b)) if a == b => {}
+            _ => wrong.push(format!("the report CSV {name} differs")),
         }
     }
-    let lines = |s: &Session| ew_commands::rows::model_lines(&s.world().model).map_err(|e| e.to_string());
-    let (lb, ls) = (lines(&base), lines(&shuffled));
-    match (&lb, &ls) {
-        (Ok(a), Ok(b)) if a == b => {}
-        _ => wrong.push("the JSONL record lines differ".to_owned()),
-    }
+    drop(qs);
+    let (fb, fs) = (
+        saved_files(&mut base, "ac14-file-order"),
+        saved_files(&mut shuffled, "ac14-shuffled"),
+    );
+    let saved = match (&fb, &fs) {
+        (Ok(a), Ok(b)) if a == b => a.len(),
+        (Ok(a), Ok(b)) => {
+            let names: BTreeSet<&String> = a.keys().chain(b.keys()).collect();
+            let differing: Vec<String> = names
+                .into_iter()
+                .filter(|n| a.get(*n) != b.get(*n))
+                .map(|n| {
+                    let line = |m: &BTreeMap<String, Vec<u8>>| {
+                        m.get(n).map(|v| {
+                            String::from_utf8_lossy(v)
+                                .lines()
+                                .map(str::to_owned)
+                                .collect::<Vec<_>>()
+                        })
+                    };
+                    match (line(a), line(b)) {
+                        (Some(x), Some(y)) => {
+                            let i = x
+                                .iter()
+                                .zip(&y)
+                                .position(|(p, q)| p != q)
+                                .unwrap_or(x.len().min(y.len()));
+                            let cut = |v: &[String]| {
+                                v.get(i).map_or(String::new(), |l| l.chars().take(160).collect())
+                            };
+                            format!("{n} line {}: {:?} vs {:?}", i + 1, cut(&x), cut(&y))
+                        }
+                        _ => format!("{n} (only in one save)"),
+                    }
+                })
+                .collect();
+            wrong.push(format!("the saved project files differ: {}", list(differing, 3)));
+            0
+        }
+        (Err(e), _) | (_, Err(e)) => {
+            wrong.push(e.clone());
+            0
+        }
+    };
     if wrong.is_empty() {
         pass(format!(
-            "on the platform of this run, the model loaded with its records shuffled (seed {SHUFFLE_SEED:#x}) writes the PDF (SHA-256 of expected/pdf/sha256.txt), the {} SVG files, the {} page text CSVs, the {} report CSVs and the {} JSONL record lines of the file-order load byte for byte (gate platform Linux; across Windows, macOS and Linux at MVP)",
+            "on the platform of this run, the model loaded with its records shuffled (seed {SHUFFLE_SEED:#x}) writes the PDF (SHA-256 of expected/pdf/sha256.txt), the {} SVG files, the {} page text CSVs, the {} report CSVs and the {saved} files a save writes (JSONL and manifest) of the file-order load byte for byte (gate platform Linux; across Windows, macOS and Linux at MVP)",
             c.pdf_pages.len(),
             c.text.len(),
             ROW_PAIRS.len(),
-            lb.map_or(0, |l| l.len())
         ))
     } else {
         fail(wrong.join("; "))
@@ -2776,23 +2944,23 @@ fn ac14_shuffle(c: &Ctx) -> Outcome {
 }
 
 /// AC-14, FR-OUT-013, FR-OUT-019: the SVG export (one file per page from the page scene the PDF draws, every
-/// glyph run as `<text>`) and the parallel page phase on 2 and 8 threads give the bytes of the serial export.
+/// glyph run as `<text>`, every link resolving) and the page phase of `pdf_pages` on 2 and 8 threads give
+/// the bytes of the serial export.
 fn ac14_parallel(c: &Ctx) -> Outcome {
-    use ew_export::{Parallelism, par_map, svg};
-    let serial = match svg(&c.pdf_pages, &svg_options(), None, Parallelism::Serial) {
-        Ok(s) => s,
-        Err(e) => return fail(format!("the SVG export failed: {e}")),
+    let serial = ew_export::svg(&c.pdf_pages, &svg_options(), None, Parallelism::Serial);
+    let Ok(out) = &serial else {
+        return fail(same_svg(&serial, &serial).err().unwrap_or_default());
     };
     let runs: usize = c.text.values().map(|csv| runs(csv).len()).sum();
     let mut wrong = Vec::new();
-    if serial.files.len() != c.pdf_pages.len() {
+    if out.files.len() != c.pdf_pages.len() {
         wrong.push(format!(
             "{} SVG files for {} pages",
-            serial.files.len(),
+            out.files.len(),
             c.pdf_pages.len()
         ));
     }
-    let r = &serial.report;
+    let r = &out.report;
     if r.texts != runs || !r.missing_fonts.is_empty() || r.dropped_notdef_glyphs != 0 {
         wrong.push(format!(
             "{} <text> elements for {runs} printed runs, {} missing faces, {} dropped glyphs",
@@ -2807,22 +2975,16 @@ fn ac14_parallel(c: &Ctx) -> Outcome {
             r.links, r.plain_text_links, c.pdf.report.links, c.pdf.report.plain_text_links
         ));
     }
+    let dangling = svg_dangling(out);
+    if !dangling.is_empty() {
+        wrong.push(format!("dangling links: {}", list(dangling, 3)));
+    }
+    let hrefs: usize = out.files.iter().map(|f| f.text.matches("href=\"").count()).sum();
     let view = golden_session(None);
     let options = pdf_options(&view.query());
     for threads in [2, 8] {
         let p = Parallelism::threads(threads);
-        let pages: Vec<ew_export::PdfPage> = par_map(&c.pages, p, |_, g| {
-            let scene = page_scene(&g.view, ew_text::bundled());
-            ew_export::PdfPage {
-                destination: crate::view::destination(g.entry.page),
-                label: g.entry.folio.clone(),
-                title: g.outline_title.clone(),
-                section: g.section_title.clone(),
-                width: scene.sheet_width,
-                height: scene.sheet_height,
-                content: scene.sheet_list(),
-            }
-        });
+        let pages = crate::pdf_support::pdf_pages_of(&c.pages, p);
         if pages != c.pdf_pages {
             wrong.push(format!("{threads} threads: the page display lists differ"));
             continue;
@@ -2832,17 +2994,17 @@ fn ac14_parallel(c: &Ctx) -> Outcome {
             Ok(_) => wrong.push(format!("{threads} threads: the PDF differs")),
             Err(e) => wrong.push(format!("{threads} threads: {e}")),
         }
-        if svg(&pages, &svg_options(), None, p).as_ref() != Ok(&serial) {
-            wrong.push(format!("{threads} threads: the SVG files differ"));
+        if let Err(e) = same_svg(&ew_export::svg(&pages, &svg_options(), None, p), &serial) {
+            wrong.push(format!("{threads} threads: {e}"));
         }
     }
     if wrong.is_empty() {
         pass(format!(
-            "{} SVG files (one per page, {} glyph runs as <text>, {} links as in the PDF; SHA-256 {}); the page phase on 2 and 8 threads gives the serial display lists, PDF and SVG byte for byte",
-            serial.files.len(),
+            "{} SVG files (one per page, {} glyph runs as <text>, {} links as in the PDF, all {hrefs} hrefs resolve to a file and an id; SHA-256 {}); the page phase on 2 and 8 threads gives the serial display lists, PDF and SVG byte for byte",
+            out.files.len(),
             r.texts,
             r.links,
-            svg_sha256(&serial)
+            svg_sha256(out)
         ))
     } else {
         fail(list(wrong, 3))

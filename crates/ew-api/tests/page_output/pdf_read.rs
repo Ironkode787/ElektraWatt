@@ -696,6 +696,8 @@ struct Run {
     text: Option<(String, Option<(f64, f64)>)>,
     /// Marked-content stack: `Some(actual text)` for a span that replaces its shown text.
     marked: Vec<Option<String>>,
+    /// Where the shown text of a replacing span outside a text object started (its run is pushed at `EMC`).
+    span_origin: Option<(f64, f64)>,
 }
 
 impl Interp<'_> {
@@ -728,6 +730,7 @@ impl Interp<'_> {
             font: None,
             text: None,
             marked: Vec::new(),
+            span_origin: None,
         };
         let mut p = Parser::new(data, true);
         let mut args: Vec<Obj> = Vec::new();
@@ -801,10 +804,17 @@ impl Interp<'_> {
                 }
                 b"ET" => {
                     let (text, origin) = st.text.take().ok_or("ET without BT")?;
-                    self.out.runs.push(TextRun {
-                        text,
-                        origin: origin.unwrap_or_default(),
-                    });
+                    if text.is_empty() && st.marked.iter().any(Option::is_some) {
+                        // A text object inside a replacing span: its run is the span's actual text, at EMC.
+                        if let Some(o) = origin {
+                            st.span_origin.get_or_insert(o);
+                        }
+                    } else {
+                        self.out.runs.push(TextRun {
+                            text,
+                            origin: origin.unwrap_or_default(),
+                        });
+                    }
                 }
                 b"Tf" => {
                     let Some(Obj::Name(name)) = args.first() else {
@@ -861,14 +871,26 @@ impl Interp<'_> {
                         Obj::Str(s) => Some(text_string(s)),
                         _ => None,
                     });
+                    if actual.is_some() && !st.marked.iter().any(Option::is_some) {
+                        st.span_origin = None;
+                    }
                     st.marked.push(actual);
                 }
                 b"EMC" => {
                     if let Some(Some(actual)) = st.marked.pop() {
                         let origin = self.origin(&st);
-                        let (text, o) = st.text.get_or_insert_with(|| (String::new(), None));
-                        o.get_or_insert(origin);
-                        text.push_str(&actual);
+                        match st.text.as_mut() {
+                            // Inside a text object: the actual text joins its run.
+                            Some((text, o)) => {
+                                o.get_or_insert(origin);
+                                text.push_str(&actual);
+                            }
+                            // Around whole text objects: the actual text is one run.
+                            None => self.out.runs.push(TextRun {
+                                text: actual,
+                                origin: st.span_origin.take().unwrap_or(origin),
+                            }),
+                        }
                     }
                 }
                 b"Do" => {
@@ -1029,6 +1051,9 @@ fn parse_cmap(data: &[u8]) -> Result<Cmap, String> {
                             let mut j = i + 3;
                             let mut c = lo;
                             while let Some(Tok::Str(dst)) = toks.get(j) {
+                                if c > hi {
+                                    return Err("bfrange array longer than its range".into());
+                                }
                                 cmap.map.insert(c, utf16(dst));
                                 c += 1;
                                 j += 1;
@@ -1074,6 +1099,82 @@ mod tests {
                 Tok::DictClose,
             ]
         );
+    }
+
+    /// A hand-written uncompressed PDF: `cm` with a scale, `w` scaled by it, `re S`, the y-flip to mm,
+    /// `Tm` and `Td`, `TJ` with kerning numbers, 2-byte Type0 codes through a ToUnicode `bfchar`/`bfrange`,
+    /// an unmapped code, and a `BDC /ActualText` span around a text object.
+    fn hand_written() -> Vec<u8> {
+        let cmap = "/CIDInit /ProcSet findresource begin 12 dict begin begincmap\n\
+                    1 begincodespacerange <0000> <FFFF> endcodespacerange\n\
+                    2 beginbfchar <0001> <0053> <0002> <0020> endbfchar\n\
+                    1 beginbfrange <0003> <0004> <004B> endbfrange\n\
+                    endcmap end end\n";
+        let content = "q 2 0 0 2 10 10 cm 0.5 w 0 0 10 5 re S Q\n\
+                       BT /F1 12 Tf 1 0 0 1 20 50 Tm <00010002> Tj ET\n\
+                       BT /F1 12 Tf 30 40 Td [<0001> -120 <0003> 50 <0004>] TJ ET\n\
+                       BT /F1 12 Tf 1 0 0 1 5 5 Tm <0009> Tj ET\n\
+                       /Span <</ActualText (\\376\\377\\000X)>> BDC BT /F1 12 Tf 1 0 0 1 60 70 Tm <0003> Tj ET EMC\n";
+        let objects = [
+            "<< /Type /Catalog /Pages 2 0 R >>".to_owned(),
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 200 100] >>".to_owned(),
+            "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>"
+                .to_owned(),
+            format!("<< /Length {} >>\nstream\n{content}endstream", content.len()),
+            "<< /Type /Font /Subtype /Type0 /BaseFont /T /Encoding /Identity-H /ToUnicode 6 0 R >>"
+                .to_owned(),
+            // A wrong /Length: the reader falls back to the `endstream` keyword.
+            format!("<< /Length 3 >>\nstream\n{cmap}endstream"),
+        ];
+        let mut out = String::from("%PDF-1.7\n%\u{e2}\n");
+        for (i, o) in objects.iter().enumerate() {
+            out.push_str(&format!("{} 0 obj\n{o}\nendobj\n", i + 1));
+        }
+        out.push_str(
+            "xref\n0 1\n0000000000 65535 f \ntrailer\n<< /Size 7 /Root 1 0 R >>\nstartxref\n0\n%%EOF\n",
+        );
+        out.into_bytes()
+    }
+
+    fn near(a: (f64, f64), b: (f64, f64)) -> bool {
+        (a.0 - b.0).abs() < 1e-9 && (a.1 - b.1).abs() < 1e-9
+    }
+
+    #[test]
+    fn a_hand_written_pdf_reads_back_segments_and_text() {
+        let pages = PdfFile::parse(&hand_written()).unwrap().pages().unwrap();
+        assert_eq!(pages.len(), 1);
+        let p = &pages[0];
+        let k = MM_PER_PT;
+        assert!((p.width_mm - 200.0 * k).abs() < 1e-9 && (p.height_mm - 100.0 * k).abs() < 1e-9);
+        // `re` 0 0 10 5 under `2 0 0 2 10 10 cm`: page space (10, 10) … (30, 20); mm with y down from the
+        // top of the 100 pt media box; width 0.5 × 2 = 1 pt.
+        let mm = |x: f64, y: f64| (x * k, (100.0 - y) * k);
+        let want = [
+            (mm(10.0, 10.0), mm(30.0, 10.0)),
+            (mm(30.0, 10.0), mm(30.0, 20.0)),
+            (mm(30.0, 20.0), mm(10.0, 20.0)),
+            (mm(10.0, 20.0), mm(10.0, 10.0)),
+        ];
+        assert_eq!(p.segments.len(), 4);
+        for (s, (a, b)) in p.segments.iter().zip(want) {
+            assert!(near(s.a, a) && near(s.b, b), "{s:?}");
+            assert!((s.width - k).abs() < 1e-9);
+        }
+        let texts: Vec<&str> = p.runs.iter().map(|r| r.text.as_str()).collect();
+        assert_eq!(texts, ["S ", "SKL", "\u{fffd}", "X"]);
+        assert!(near(p.runs[0].origin, mm(20.0, 50.0)));
+        assert!(near(p.runs[1].origin, mm(30.0, 40.0)), "Td from the identity");
+        assert!(
+            near(p.runs[3].origin, mm(60.0, 70.0)),
+            "the span's run starts where its text did"
+        );
+    }
+
+    #[test]
+    fn a_bfrange_array_longer_than_its_range_is_refused() {
+        let bad = parse_cmap(b"1 beginbfrange <0001> <0002> [<0041> <0042> <0043>] endbfrange");
+        assert!(bad.is_err());
     }
 
     #[test]

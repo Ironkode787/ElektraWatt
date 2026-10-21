@@ -17,7 +17,7 @@ mod view;
 use std::sync::Arc;
 
 use ew_dl::{DisplayList, ItemKind, Layer};
-use ew_export::{PdfDate, PdfOptions, PdfPage, pdf};
+use ew_export::{Parallelism, PdfDate, PdfOptions, PdfPage, pdf};
 use ew_ids::{Id, Uuid};
 use ew_scene::page::{
     ConnectionView, PageFinding, PageKind, PageScene, PageView, RepView, page_display_list, page_scene,
@@ -38,7 +38,7 @@ use view::{GoldenPage, builtin_symbol, destination, fonts, golden_pages, golden_
 fn the_golden_pdf_has_every_folio_and_is_byte_identical_across_runs_and_record_shuffles() {
     let s = golden_session(None);
     let q = s.query();
-    let pages = pdf_pages(&q);
+    let pages = pdf_pages(&q, Parallelism::Serial);
     assert_eq!(
         pages.len(),
         36,
@@ -52,7 +52,7 @@ fn the_golden_pdf_has_every_folio_and_is_byte_identical_across_runs_and_record_s
     assert!(a.bytes == b.bytes, "two runs differ");
     let shuffled = golden_session(Some(0x5eed_1234));
     let q2 = shuffled.query();
-    let c = pdf(&pdf_pages(&q2), &pdf_options(&q2), &f, None).unwrap();
+    let c = pdf(&pdf_pages(&q2, Parallelism::Serial), &pdf_options(&q2), &f, None).unwrap();
     assert!(a.bytes == c.bytes, "a record shuffle changes the PDF");
 }
 
@@ -63,7 +63,7 @@ fn the_golden_pdf_has_every_folio_and_is_byte_identical_across_runs_and_record_s
 fn the_pdf_structure_matches_the_committed_file() {
     let s = golden_session(None);
     let q = s.query();
-    let pages = pdf_pages(&q);
+    let pages = pdf_pages(&q, Parallelism::Serial);
     let out = pdf(&pages, &pdf_options(&q), &fonts(), None).expect("the golden PDF is written");
     // Noto Sans has no glyph for "∞", "−" or "⇄"; they print with Noto Sans Math, the symbol fallback, so the
     // PDF embeds two fonts and drops no `.notdef` glyph (FR-OUT-027).
@@ -112,7 +112,13 @@ fn the_golden_pdf_has_one_link_per_cross_reference_item() {
     assert_eq!(linked, LINKED_XREF_TEXTS);
     assert_eq!(targets, XREF_LINK_TARGETS);
     assert_eq!(external, EXTERNAL_XREF_TEXTS);
-    let out = pdf(&pdf_pages(&q), &pdf_options(&q), &fonts(), None).expect("the golden PDF is written");
+    let out = pdf(
+        &pdf_pages(&q, Parallelism::Serial),
+        &pdf_options(&q),
+        &fonts(),
+        None,
+    )
+    .expect("the golden PDF is written");
     assert_eq!(out.report.links, 64 + 28, "{:?}", out.report);
     assert_eq!(out.report.links, targets + PLC_ROW_LINKS, "{:?}", out.report);
     assert_eq!(out.report.plain_text_links, 0, "{:?}", out.report);
@@ -658,7 +664,10 @@ fn find(hay: &[u8], needle: &[u8]) -> Option<usize> {
 fn the_pdf_of_folio_101_has_one_width_class_for_frame_symbols_and_wires() {
     let s = golden_session(None);
     let q = s.query();
-    let pages: Vec<PdfPage> = pdf_pages(&q).into_iter().filter(|p| p.label == "101").collect();
+    let pages: Vec<PdfPage> = pdf_pages(&q, Parallelism::Serial)
+        .into_iter()
+        .filter(|p| p.label == "101")
+        .collect();
     assert_eq!(pages.len(), 1);
     let out = pdf(&pages, &pdf_options(&q), &fonts(), None).expect("the PDF of folio 101");
     let widths = pdf_line_widths(&out.bytes);

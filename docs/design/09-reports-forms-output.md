@@ -775,7 +775,7 @@ partial file (FR-UI-024).
   XML IDs may not contain colons); links as `<a href="103.svg#ew-r-<uuid>">`.
   *As built (cycle 14):* `ew_export::svg` writes one `<label>.svg` per page from the sheet display lists of the PDF:
   `viewBox` and lengths in mm with at most 3 decimals from integer nm, element order = IR order, text as `<text>`
-  with one `x` per character, link targets as `id="ew-r-<uuid>"`, sources as `<a href="<file>#<id>">`. The fonts are
+  with one `x` per character; ids are written for link targets only (`id="ew-r-<uuid>"`, once per page on the first drawn item of the target; links point at the first page that draws it), sources as `<a href="<file>#<id>">` (SVG 2 `href`, so the root carries no `version` attribute). The fonts are
   named (`font-family`, weight, style), not embedded: subset embedding needs a subsetter that keeps the `cmap`
   (open). The per-page phase runs on `ew_export::par_map` (scoped `std` threads, results by page index) instead of
   rayon; serial and parallel exports are byte-identical (AC-14). The `ew export svg` subcommand waits for FT-59.

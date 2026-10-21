@@ -8,7 +8,9 @@ use std::collections::BTreeMap;
 
 use ew_derive::Q;
 use ew_dl::FontKey;
-use ew_export::{PdfDate, PdfOptions, PdfOutput, PdfPage, SvgFace, SvgOptions, SvgOutput, pdf};
+use ew_export::{
+    Parallelism, PdfDate, PdfOptions, PdfOutput, PdfPage, SvgFace, SvgOptions, SvgOutput, par_map, pdf,
+};
 use ew_render_cpu::FontBytes;
 use ew_scene::page::page_scene;
 use sha2::{Digest, Sha256};
@@ -20,23 +22,26 @@ use super::view::{GoldenPage, destination, golden_pages, golden_session};
 /// ADR-0028 recommendation 3), so none is dropped.
 pub const EXPECTED_DROPPED_NOTDEF_GLYPHS: usize = 0;
 
-/// The PDF page list of the golden project.
-pub fn pdf_pages(q: &Q) -> Vec<PdfPage> {
-    golden_pages(q)
-        .into_iter()
-        .map(|g| {
-            let scene = page_scene(&g.view, ew_text::bundled());
-            PdfPage {
-                destination: destination(g.entry.page),
-                label: g.entry.folio.clone(),
-                title: g.outline_title.clone(),
-                section: g.section_title.clone(),
-                width: scene.sheet_width,
-                height: scene.sheet_height,
-                content: scene.sheet_list(),
-            }
-        })
-        .collect()
+/// The PDF page list of the golden project, the per-page phase (scene and sheet display list) under
+/// `parallelism` (FR-OUT-019; one code path for the serial and the parallel export).
+pub fn pdf_pages(q: &Q, parallelism: Parallelism) -> Vec<PdfPage> {
+    pdf_pages_of(&golden_pages(q), parallelism)
+}
+
+/// The PDF pages of `pages` (see [`pdf_pages`]), results by page index whatever the parallelism.
+pub fn pdf_pages_of(pages: &[GoldenPage], parallelism: Parallelism) -> Vec<PdfPage> {
+    par_map(pages, parallelism, |_, g| {
+        let scene = page_scene(&g.view, ew_text::bundled());
+        PdfPage {
+            destination: destination(g.entry.page),
+            label: g.entry.folio.clone(),
+            title: g.outline_title.clone(),
+            section: g.section_title.clone(),
+            width: scene.sheet_width,
+            height: scene.sheet_height,
+            content: scene.sheet_list(),
+        }
+    })
 }
 
 /// The export options of the golden PDF: dates from the model's edited date (FR-OUT-026).
@@ -92,7 +97,8 @@ pub fn svg_sha256(out: &SvgOutput) -> String {
 pub fn pdf_sha256(seed: Option<u64>, fonts: &BTreeMap<FontKey, FontBytes>) -> String {
     let s = golden_session(seed);
     let q = s.query();
-    let out = pdf(&pdf_pages(&q), &pdf_options(&q), fonts, None).expect("the golden PDF is written");
+    let out = pdf(&pdf_pages(&q, Parallelism::Serial), &pdf_options(&q), fonts, None)
+        .expect("the golden PDF is written");
     format!("{:x}", Sha256::digest(&out.bytes))
 }
 

@@ -21,7 +21,7 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use ew_api::Session;
 use ew_derive::Q;
 use ew_dl::FontKey;
-use ew_export::{PdfOutput, PdfPage, pdf};
+use ew_export::{Parallelism, PdfOutput, PdfPage, pdf};
 use ew_import_tables::ew_interop_api::ImportBatch;
 use ew_render_cpu::FontBytes;
 use ew_scene::page::page_scene;
@@ -91,7 +91,7 @@ impl Ctx {
             })
             .collect();
         let fonts = fonts();
-        let pdf_pages = pdf_pages(&q);
+        let pdf_pages = pdf_pages(&q, Parallelism::Serial);
         let pdf = pdf(&pdf_pages, &pdf_options(&q), &fonts, None).expect("the golden PDF is written");
         let pdf_read = PdfFile::parse(&pdf.bytes).and_then(|f| f.pages());
         let checks = profiled.check(&ew_api::checks::PRE_DELIVERY, ew_api::checks::CheckMode::Release);

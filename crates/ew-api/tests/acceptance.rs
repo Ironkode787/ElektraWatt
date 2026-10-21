@@ -206,6 +206,73 @@ fn the_pdf_frame_comparison_detects_moved_thin_and_extra_lines() {
     );
 }
 
+/// AC-13's comparison sees a lost space, an unmapped space (U+FFFD) and a missing run.
+#[test]
+fn the_text_layer_comparison_sees_a_lost_or_unmapped_space() {
+    use pdf_read::TextRun;
+    let printed = vec!["SK 3110.000".to_owned(), "-101F1".to_owned()];
+    let run = |t: &str| TextRun {
+        text: t.to_owned(),
+        origin: (0.0, 0.0),
+    };
+    let check = |read: &[TextRun]| checks::text_layer_mismatches("101", &printed, read);
+    assert!(check(&[run("SK 3110.000"), run("-101F1")]).is_empty());
+    assert_eq!(check(&[run("SK3110.000"), run("-101F1")]).len(), 1);
+    assert_eq!(check(&[run("SK\u{fffd}3110.000"), run("-101F1")]).len(), 1);
+    assert_eq!(check(&[run("SK 3110.000")]).len(), 1);
+}
+
+/// AC-06's comparison counts tags on token boundaries and sees a changed count and a stale token.
+#[test]
+fn the_tag_comparison_counts_on_token_boundaries_and_sees_stale_tokens() {
+    use pdf_read::TextRun;
+    assert_eq!(checks::count_tag("-K10 -K1, (-K1)", "-K1"), 2);
+    assert_eq!(checks::count_tag("-201U3-K1", "-K1"), 0);
+    assert_eq!(checks::count_tag("-201U3-K1", "-201U3"), 0);
+    assert_eq!(checks::count_tag("∞ -201U3-K1", "-201U3-K1"), 1);
+    let run = |t: &str| TextRun {
+        text: t.to_owned(),
+        origin: (0.0, 0.0),
+    };
+    let tags: std::collections::BTreeSet<String> = ["-K1".to_owned(), "-K10".to_owned()].into();
+    let printed = vec!["-K1 -K10".to_owned()];
+    let (wrong, n) = checks::tag_mismatches("101", &tags, &printed, &[run("-K1 -K10")]);
+    assert!(wrong.is_empty(), "{wrong:?}");
+    assert_eq!(n, 2);
+    let (wrong, _) = checks::tag_mismatches("101", &tags, &printed, &[run("-K10 -K10")]);
+    assert_eq!(wrong.len(), 2, "{wrong:?}");
+    let (wrong, _) = checks::tag_mismatches("101", &tags, &[], &[run("-4W1")]);
+    assert!(wrong.iter().any(|w| w.contains("stale")), "{wrong:?}");
+}
+
+/// AC-14's comparisons: two failed exports are not equal, and a link to a missing file or id dangles.
+#[test]
+fn the_svg_comparison_needs_written_exports_and_resolving_links() {
+    use ew_export::{SvgError, SvgFile, SvgOutput};
+    let err: Result<SvgOutput, SvgError> = Err(SvgError::NoPages);
+    assert!(checks::same_svg(&err, &err).is_err());
+    let file = |name: &str, text: &str| SvgFile {
+        name: name.to_owned(),
+        text: text.to_owned(),
+    };
+    let mut out = SvgOutput {
+        files: vec![
+            file(
+                "1.svg",
+                "<svg id=\"ew-p-1\"><a href=\"2.svg#ew-r-9\"></a><a href=\"2.svg\"></a></svg>",
+            ),
+            file("2.svg", "<svg id=\"ew-p-2\"><path id=\"ew-r-9\"/></svg>"),
+        ],
+        report: Default::default(),
+    };
+    let ok = Ok(out.clone());
+    assert!(checks::same_svg(&ok, &ok).is_ok());
+    assert!(checks::svg_dangling(&out).is_empty());
+    out.files[1].text = out.files[1].text.replace(" id=\"ew-r-9\"", "");
+    out.files[0].text.push_str("<a href=\"3.svg\"></a>");
+    assert_eq!(checks::svg_dangling(&out).len(), 2);
+}
+
 #[test]
 fn the_markdown_has_one_line_per_entry_and_escapes_pipes() {
     use report::{Check, Report};

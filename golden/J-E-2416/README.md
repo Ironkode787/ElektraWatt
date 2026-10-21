@@ -855,18 +855,22 @@ ToUnicode maps; test code only) and checks three entries against it:
 
 - AC-13 "text extraction keeps spaces": every page's text layer equals its printed glyph runs (the rows of its text
   CSV) run by run, spaces included, and folio 101 reads "SK 3110.000" (D-33, FR-OUT-008).
-- AC-06 "the PDF text layer included": every device tag occurs in each page's text layer as often as the page
-  prints it, and no stale token is in it.
+- AC-06 "the PDF text layer included": the PDF text equals the page text through the AC-13 entry; this entry
+  counts every device tag on token boundaries ("-K1" is not counted inside "-K10") in each page's text layer
+  and printed runs, and scans the text layer for stale tokens.
 - AC-01 "vector content within 0.2 mm": on every page the lines of the page's frame form in
   `expected/geometry/frame.json` (outer frame, title-block separator, and for a form that shows its grid the two
   header-band lines and the interior column and row ticks) are stroked segments within 0.2 mm of both endpoints at
   the frame's line width; the media box is the sheet; no other line lies in the header bands or on the outer frame.
-  The title block's inner lines and texts are AC-04's.
+  `frame.json` holds the title block's bounding box only, so no check compares the title block's inner lines;
+  AC-04 checks the title-block texts. The line count is 12 grid pages × 30 lines (4 outer edges, the separator,
+  the 2 band lines, 16 column ticks and 7 row ticks) + 24 no-grid pages × 5 = 480.
 
 **AC-14 (cycle 14).** The SVG export of `ew-export` (one file per page from the same sheet display lists as the PDF,
 text as `<text>`) and the parallel page phase (`ew_export::par_map`, results by page index) are compared with the
-serial export: the page display lists, PDF and SVG on 2 and 8 threads are byte-identical, and the model loaded with
-its records shuffled writes the same PDF, SVG, page text CSVs, report CSVs and JSONL record lines. The SVG set is not
+serial export: the page display lists, PDF and SVG on 2 and 8 threads are byte-identical, every SVG `href` resolves
+to a file and an `id` of it, and the model loaded with its records shuffled writes the same PDF, SVG, page text
+CSVs, report CSVs and the same files when saved (`Session::create`: the JSONL files and the manifest). The SVG set is not
 committed as golden files (doc 18 asks for none); its SHA-256 is in the AC-14 reason of the committed report, so a
 change of any SVG byte shows there. The comparison runs on the platform of the run; the gate platform is Linux and
 the cross-platform digests are MVP.
