@@ -11,7 +11,7 @@ use ew_import_tables::ids::{self, record_id};
 use ew_interop_api::{Code, ImportBatch, Severity};
 use ew_schema::{
     Bond, Connection, ConnectionKind, Device, Endpoint, Function, ImportLineage, LibDocument, LineageAnchor,
-    Project, Record, Representation,
+    OrderUnit, PartKind, Project, Record, Representation,
 };
 use ew_units::{Grid, Nm, Pt2};
 
@@ -89,12 +89,98 @@ fn the_per_kind_counts_are_those_of_doc_20() {
     assert_eq!(n("bond"), 1);
     // doc 20 §16, §17.3: 11 page-oriented and 4 embedded report blocks.
     assert_eq!(n("report_block"), 15);
-    // doc 20 §14.1: 23 BOM rows with a part number.
-    assert_eq!(n("part"), 23);
+    // doc 20 §14.1: 27 BOM rows, 23 with a part number and the 4 TBD parts of rows 24-27.
+    assert_eq!(n("part"), 27);
     assert_eq!(n("project"), 1);
     assert_eq!(n("import_lineage"), 1);
     // doc 20 §4.1: the revisions V1.0 and V2.0.
     assert_eq!(n("revision"), 2);
+}
+
+/// The four TBD parts of doc 20 §14.1 rows 24-27 are test parts used by the enclosure (rail, duct) and the
+/// strips (end brackets, bridges), with the quantities of doc 20 §13 and §8.3.
+#[test]
+fn the_tbd_parts_are_used_by_the_enclosure_and_the_strips() {
+    let b = golden();
+    let part_of = |key: &str| {
+        b.lib
+            .iter()
+            .find_map(|d| match d {
+                LibDocument::Part(p) if p.item.meta.key.as_ref().is_some_and(|k| k.as_str() == key) => {
+                    Some(p)
+                }
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("part {key}"))
+    };
+    // (key, kind, unit, description)
+    for (key, kind, unit, description) in [
+        ("TBD DIN rail", PartKind::Rail, OrderUnit::Metre, "DIN rail TS 35"),
+        (
+            "TBD wiring duct",
+            PartKind::Duct,
+            OrderUnit::Metre,
+            "Wiring duct 40×60",
+        ),
+        (
+            "TBD end bracket",
+            PartKind::EndBracket,
+            OrderUnit::Piece,
+            "End bracket",
+        ),
+        (
+            "TBD plug-in bridge",
+            PartKind::Accessory,
+            OrderUnit::Piece,
+            "Plug-in bridge",
+        ),
+    ] {
+        let p = &part_of(key).item;
+        assert_eq!(p.part_number.as_str(), "TBD", "{key}");
+        assert_eq!((&p.kind, &p.unit), (&kind, &unit), "{key}");
+        assert_eq!(p.description.as_neutral(), Some(description), "{key}");
+    }
+    // Quantity per device: -UC1 the carriers' lengths in metres, the strips their brackets and bridges.
+    let uses = |tag: &str| -> Vec<(String, String)> {
+        let id: Id<Device> = record_id("devices", tag);
+        let dev = b
+            .records
+            .iter()
+            .find_map(|r| match r {
+                Record::Device(d) if d.id == id => Some(d),
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("device {tag}"));
+        dev.parts
+            .iter()
+            .filter_map(|u| {
+                let p = b.lib.iter().find_map(|d| match d {
+                    LibDocument::Part(p) if p.id == u.part.copy => Some(p),
+                    _ => None,
+                })?;
+                let key = p.item.meta.key.as_ref()?.as_str().to_owned();
+                key.starts_with("TBD").then(|| (key, u.qty.to_string()))
+            })
+            .collect()
+    };
+    let owned = |v: &[(&str, &str)]| -> Vec<(String, String)> {
+        v.iter()
+            .map(|(k, q)| ((*k).to_owned(), (*q).to_owned()))
+            .collect()
+    };
+    assert_eq!(
+        uses("-UC1"),
+        owned(&[("TBD DIN rail", "2.192"), ("TBD wiring duct", "3.81")])
+    );
+    assert_eq!(uses("1X1"), owned(&[("TBD end bracket", "2")]));
+    assert_eq!(
+        uses("-X1031"),
+        owned(&[("TBD end bracket", "1"), ("TBD plug-in bridge", "5")])
+    );
+    assert_eq!(
+        uses("-X1032"),
+        owned(&[("TBD end bracket", "1"), ("TBD plug-in bridge", "1")])
+    );
 }
 
 /// The revision records carry label, date, state, the author's party role and the page notes (doc 03 §18).
@@ -215,7 +301,7 @@ fn identity_follows_the_rule() {
             }
         })
         .collect();
-    assert_eq!(parts.len(), 23);
+    assert_eq!(parts.len(), 27);
     for p in parts {
         assert_eq!(p.library_id.as_uuid(), project.id.as_uuid());
     }

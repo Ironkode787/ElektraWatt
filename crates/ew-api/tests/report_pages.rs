@@ -64,20 +64,21 @@ fn the_golden_page_order_includes_the_generated_pages_with_two_toc_pages() {
     }
     assert_eq!(labels.last(), Some(&"911"));
 
-    // The whole order: 33 pages. Doc 20 §5 and §16 list 36; the three continuation pages 901.1, 908.1 and
-    // 908.2 are not derived yet: BOM rows 24-27 have no golden parts, and the PLC overview (908) is one
-    // placeholder page. With them the count is 36. The wire list 907 paginates into 907, 907.1 and 907.2.
+    // The whole order: 34 pages. Doc 20 §5 and §16 list 36; the two continuation pages 908.1 and 908.2 are
+    // not derived yet: the PLC overview (908) has no channel records and is one placeholder page. With them
+    // the count is 36. The parts list 901 paginates into 901 and 901.1 (27 rows, FT-110) and the wire list
+    // 907 into 907, 907.1 and 907.2.
     assert_eq!(
         labels,
         [
             "1", "2", "2.1", "3", "100", "101", "102", "103", "106", "200", "201", "202", "203", "204",
-            "205", "206", "900", "901", "902", "903", "904", "905", "906", "907", "907.1", "907.2", "908",
-            "909", "910", "910.1", "910.2", "910.3", "911",
+            "205", "206", "900", "901", "901.1", "902", "903", "904", "905", "906", "907", "907.1", "907.2",
+            "908", "909", "910", "910.1", "910.2", "910.3", "911",
         ]
     );
 
-    // The TOC fixpoint (doc 09 §3.1): 33 pages need two TOC pages of 23 rows; the count is stable.
-    assert_eq!(order.len(), 33);
+    // The TOC fixpoint (doc 09 §3.1): 34 pages need two TOC pages of 23 rows; the count is stable.
+    assert_eq!(order.len(), 34);
     assert_eq!(order.toc_pages, 2);
     assert!(order.fixpoint_reached);
 

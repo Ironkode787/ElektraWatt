@@ -41,7 +41,7 @@ fn the_golden_pdf_has_every_folio_and_is_byte_identical_across_runs_and_record_s
     let pages = pdf_pages(&q);
     assert_eq!(
         pages.len(),
-        33,
+        34,
         "page_order of the golden model with its report pages"
     );
     let f = fonts();
@@ -177,7 +177,7 @@ fn with_golden_pages(f: impl FnOnce(&[GoldenPage])) {
 #[test]
 fn the_text_csv_of_every_folio_matches_the_committed_file() {
     with_golden_pages(|pages| {
-        assert_eq!(pages.len(), 33);
+        assert_eq!(pages.len(), 34);
         for g in pages {
             let scene = page_scene(&g.view, ew_text::bundled());
             let csv = text_csv(&scene);
@@ -270,7 +270,7 @@ fn every_committed_png_is_at_most_300_kb() {
         assert!(len <= 300 * 1024, "{}: {len} bytes", p.display());
         n += 1;
     }
-    assert_eq!(n, 33);
+    assert_eq!(n, 34);
 }
 
 fn folio<'a>(pages: &'a [GoldenPage], folio: &str) -> &'a GoldenPage {

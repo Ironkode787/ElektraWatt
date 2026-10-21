@@ -150,8 +150,11 @@ pub struct BomRow {
 ///    devices' main representations (a terminal without one takes its strip's first segment; a missing
 ///    cell counts as `u32::MAX`), then by the head rank, then by
 ///    part number; rows without a placed device after them, by the legend rank of the part kind
-///    (enclosure, mounting plate, rail, duct, other), part number and description. The key breaks every
-///    remaining tie. The *head rank* is 0 for every row that is not a configured product. Configured
+///    (enclosure, mounting plate, rail, duct, other), part number and description. A row of a
+///    layout-only accessory ([`PartKind::EndBracket`], [`PartKind::Accessory`]) is always in the second
+///    group, whatever the placement of its devices: the accessories of a strip belong to the layout legend
+///    (doc 12 §5.4, doc 20 §14.1 rows 26 and 27), not to the schematic position of the strip. Its pages
+///    are still those of its devices. The key breaks every remaining tie. The *head rank* is 0 for every row that is not a configured product. Configured
 ///    products of one head device tie on the cell, and the head's own order of its configured parts breaks
 ///    that tie before the part number does (doc 20 §14.2: order code 1 is A1, order code 2 is A2): the head
 ///    of a configured row is the device of the row whose main representation gives the row's least
@@ -205,12 +208,13 @@ impl Query for BomRows {
             devices.sort_by_cached_key(|d| tag_order(q, *d));
             let part_number = part.part_number.as_str().to_owned();
             let configured = part.kind == PartKind::Configured;
+            let layout_only = matches!(part.kind, PartKind::EndBracket | PartKind::Accessory);
             let sort = match placements.iter().map(|(d, p)| (p.order, *d)).min() {
-                Some(((pos, column, row), head)) => {
+                Some(((pos, column, row), head)) if !layout_only => {
                     let rank = if configured { head_rank(q, head, k.part) } else { 0 };
                     RowOrder::Placed(pos, column, row, rank, natural_key(&part_number), k.clone())
                 }
-                None => RowOrder::Unplaced(
+                _ => RowOrder::Unplaced(
                     legend_rank(&part.kind),
                     natural_key(&part_number),
                     natural_key(&description_text(&part.description)),

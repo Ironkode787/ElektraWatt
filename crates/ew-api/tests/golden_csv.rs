@@ -127,13 +127,13 @@ fn the_golden_batch_loads_with_the_counts_of_doc_20() {
     assert_eq!(n("bond"), 1);
     // doc 20 §16 and §17.3 (doc 03 §20): 11 page-oriented report blocks and 4 embedded ones.
     assert_eq!(n("report_block"), 11 + 4);
-    // doc 20 §14.1: 23 BOM rows with a part number (rows 24–27 are TBD).
+    // doc 20 §14.1: 27 BOM rows, 23 with a part number and the 4 TBD test parts of rows 24–27.
     let parts = batch
         .lib
         .iter()
         .filter(|d| matches!(d, LibDocument::Part(_)))
         .count();
-    assert_eq!(parts, 23);
+    assert_eq!(parts, 27);
 }
 
 /// The rows of one committed golden table by key: column name → cell. The golden tables quote no field

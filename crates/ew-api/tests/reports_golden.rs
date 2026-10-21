@@ -86,7 +86,11 @@ fn part_numbers(rows: &RowSet) -> Vec<String> {
     let col = rows.column("part_number").expect("a part_number column");
     rows.rows
         .iter()
-        .map(|r| ident(&r.cells[col]).to_owned())
+        .map(|r| match &r.cells[col] {
+            // A part number still to be decided prints "TBD".
+            Cell::Tbd => "TBD".to_owned(),
+            c => ident(c).to_owned(),
+        })
         .collect()
 }
 
@@ -98,14 +102,16 @@ fn parts_summary_901_derives_the_golden_tables_bom() {
     let b = block("901");
     let rows = q.get::<BlockRows>(b);
 
-    // Doc 20 §14.1 lists 27 rows (901 holds 23, 901.1 holds 4). The golden tables carry no parts for the
-    // rails, ducts, end brackets and bridges (rows 24-27, all TBD), so the derived BOM has rows 1-23: one
-    // page, 901.
+    // Doc 20 §14.1 lists 27 rows: 901 holds 23 and the continuation page 901.1 holds the 4 TBD rows 24-27
+    // (the rails, ducts, end brackets and bridges, FT-110).
     assert!(rows.is_derived());
-    assert_eq!(rows.rows.len(), 23);
+    assert_eq!(rows.rows.len(), 27);
     assert_eq!(
         page_summary(&order, b),
-        vec![("901".to_owned(), "Partlist 1".to_owned(), 0..23)]
+        vec![
+            ("901".to_owned(), "Partlist 1".to_owned(), 0..23),
+            ("901.1".to_owned(), "Partlist 2".to_owned(), 23..27),
+        ]
     );
     for r in &rows.rows {
         assert_eq!(r.cells.len(), rows.columns.len());
@@ -161,11 +167,51 @@ fn parts_summary_901_derives_the_golden_tables_bom() {
             "571334",
             "NSYPLA1074G",
             "NSYPMM107",
+            // Rows 24-27, the TBD parts, in layout-legend order: rail, duct, then the layout-only
+            // accessories (end bracket, bridge) by description.
+            "TBD",
+            "TBD",
+            "TBD",
+            "TBD",
+        ]
+    );
+    let descriptions: Vec<String> = rows.rows[23..]
+        .iter()
+        .map(|r| match &r.cells[5] {
+            Cell::Text(t) => text(t),
+            other => panic!("not a text: {other:?}"),
+        })
+        .collect();
+    assert_eq!(
+        descriptions,
+        [
+            "DIN rail TS 35",
+            "Wiring duct 40×60",
+            "End bracket",
+            "Plug-in bridge"
         ]
     );
     let placed = |i: usize| matches!(&rows.rows[i].cells[7], Cell::Folios(f) if !f.is_empty());
     assert!((0..21).all(placed));
-    assert!((21..23).all(|i| !placed(i)));
+    assert!((21..25).all(|i| !placed(i)));
+    // The accessories keep the folios of their strips: the brackets 101 and 103, the bridges 103.
+    let folios_of = |i: usize| -> Vec<String> {
+        let Cell::Folios(folios) = &rows.rows[i].cells[7] else {
+            panic!("folios column")
+        };
+        folios
+            .iter()
+            .map(|p| order.entry(*p).expect("in the page order").folio.clone())
+            .collect()
+    };
+    assert_eq!(folios_of(25), ["101", "103"]);
+    assert_eq!(folios_of(26), ["103"]);
+    // Quantities: 2.192 m of rail and 3.81 m of duct from the carriers, 4 brackets, 6 bridges.
+    let qty = |i: usize| match &rows.rows[i].cells[1] {
+        Cell::Qty(q, _) => q.to_string(),
+        other => panic!("not a quantity: {other:?}"),
+    };
+    assert_eq!([qty(23), qty(24), qty(25), qty(26)], ["2.192", "3.81", "4", "6"]);
     for i in [12, 13] {
         let Cell::Folios(folios) = &rows.rows[i].cells[7] else {
             panic!("folios column")

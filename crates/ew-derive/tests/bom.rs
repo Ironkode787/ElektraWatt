@@ -294,13 +294,13 @@ fn component_rows_are_ordered_and_numbered() {
             "A9P52610",    //
             "UK 5 N",      //
             "USLKG 5",     //
-            "C-EB",        // page 103: the strip without a segment, placed through terminal 2
-            "PT 2.5-TWIN", //
+            "PT 2.5-TWIN", // page 103
             "550208",      // pages 201, 202
             "NSYPLA1074G", // unplaced: enclosure, plate, rail, duct, other
             "NSYPMM107",   //
             "A-RAIL",      //
             "B-DUCT",      //
+            "C-EB",        // a layout-only accessory: with the legend rows, pages 103
         ]
     );
     let pos: Vec<u32> = out.iter().map(|r| r.pos).collect();
@@ -384,9 +384,12 @@ fn devices_without_parts_and_not_fitted_devices_have_no_rows() {
 #[test]
 fn unplaced_rows_follow_placed_ones_by_legend_rank() {
     let out = rows(&golden(), BomMode::Component);
-    let tail: Vec<&str> = numbers(&out)[8..].to_vec();
-    assert_eq!(tail, ["NSYPLA1074G", "NSYPMM107", "A-RAIL", "B-DUCT"]);
-    assert!(out[8..].iter().all(|r| r.pages.is_empty()));
+    let tail: Vec<&str> = numbers(&out)[7..].to_vec();
+    assert_eq!(tail, ["NSYPLA1074G", "NSYPMM107", "A-RAIL", "B-DUCT", "C-EB"]);
+    assert!(out[7..11].iter().all(|r| r.pages.is_empty()));
+    // A layout-only accessory sorts with the legend rows although its strip is placed (doc 20 §14.1 rows
+    // 26, 27); it keeps the pages of its devices.
+    assert_eq!(out[11].pages, [PageRef::Drawn(id(PAGE103))]);
 }
 
 #[test]

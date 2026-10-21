@@ -241,7 +241,9 @@ Could).
 **BOM row order.** Component mode sorts device rows by the page order of the row's first main representation, then
 its position on that page (column, then row, the numbering order of [20](20-golden-project.md) §4.4), then the part
 number. Rows without a schematic representation (enclosure, plate, carriers, accessories) follow in the layout-legend
-order of [12](12-panel-layout.md) §5.4: enclosure, plate, carriers, then accessories. On Golden A the folio-3 rows
+order of [12](12-panel-layout.md) §5.4: enclosure, plate, carriers, then accessories. A row whose part is a layout-only
+accessory (kind end bracket or accessory) is always in that second group, whatever the placement of the strip it sits
+on; its folio column still lists the folios of its devices. On Golden A the folio-3 rows
 (-3X1, -3W1) therefore come first, and the enclosure and plate are rows 22 and 23 ([20](20-golden-project.md) §14.1).
 
 EPLAN report types without a kind of their own: the cable connection diagram (`.f07`) and the cable assignment

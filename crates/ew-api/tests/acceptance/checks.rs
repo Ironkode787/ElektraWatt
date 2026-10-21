@@ -497,7 +497,7 @@ fn ac03_pages(c: &Ctx) -> Outcome {
         .cloned()
         .collect();
     fail(format!(
-        "{} folios derived against 36 in §5; missing {}{} (901.1: the BOM rows 24-27 are not in the tables, FT-110; 908.1, 908.2: no PLC channel records, FT-111)",
+        "{} folios derived against 36 in §5; missing {}{} (908.1, 908.2: no PLC channel records, FT-111)",
         derived.len(),
         list(missing, 6),
         if extra.is_empty() {
@@ -670,7 +670,7 @@ fn ac07_bom(c: &Ctx) -> Outcome {
         pass("27 rows over 901 and 901.1")
     } else {
         fail(format!(
-            "{n} rows over {pages} page(s), §14.1 has 27 over 2 (rows 24-27 are TBD parts that the tables do not hold, FT-110)"
+            "{n} rows over {pages} page(s), §14.1 has 27 over 2 (901 and 901.1, the 4 TBD rows 24-27 on the second)"
         ))
     }
 }
@@ -893,7 +893,7 @@ fn ac13_structure(c: &Ctx) -> Outcome {
     }
     if wrong.is_empty() {
         pass(format!(
-            "{} pages: outline, 64 links, page labels = folio labels, embedded fonts and SHA-256 equal the committed files; no Tahoma (the folio count is 33 against 36, AC-03)",
+            "{0} pages: outline, 64 links, page labels = folio labels, embedded fonts and SHA-256 equal the committed files; no Tahoma (the folio count is {0} against 36, AC-03)",
             c.pdf_pages.len()
         ))
     } else {

@@ -657,11 +657,40 @@ def parse_x1_pins(cell):
     return out
 
 
+# doc 20 section 14.1 rows 24-27 (the carriers and accessories, ▲U-27): every row has the part number TBD, so the
+# parts are keyed by their role (the key is the fixture's name, like -UC1-plate). Position -> (key, part kind).
+TBD_PARTS = {
+    "24": ("TBD DIN rail", "rail"),
+    "25": ("TBD wiring duct", "duct"),
+    "26": ("TBD end bracket", "end_bracket"),
+    "27": ("TBD plug-in bridge", "accessory"),
+}
+TBD_MANUFACTURER = "TBD"  # the Manufacturer cell of rows 24-27 is a bare ▲: no manufacturer is known
+
+
 def build_parts():
     out = []
+    tbd = []
     for r in table_dicts("### 14.1 Component mode (folio 901)"):
         pn = strip_tri(r["Part number"])
         if pn == "TBD":
+            check(r["Pos"] in TBD_PARTS, f"section 14.1: row {r['Pos']} has the part number TBD, TBD_PARTS does not")
+            key, kind = TBD_PARTS[r["Pos"]]
+            check(strip_tri(r["Manufacturer"]) == "", f"section 14.1 row {r['Pos']}: the manufacturer is {r['Manufacturer']!r}")
+            tbd.append((key, r["Pos"]))
+            out.append(
+                {
+                    "key": key,
+                    "manufacturer": TBD_MANUFACTURER,
+                    "part_number": "TBD",
+                    "kind": kind,
+                    # the parenthesis of the cell explains the quantity ("3 rows; length from carriers"), it is no
+                    # part of the description
+                    "description": re.sub(r"\s*\([^)]*\)", "", strip_tri(r["Description"])),
+                    "unit": UNIT[r["Unit"]],
+                    "test_data": "true",
+                }
+            )
             continue
         out.append(
             {
@@ -674,13 +703,114 @@ def build_parts():
             }
         )
     cols = ["key", "manufacturer", "part_number", "kind", "type_designation", "description", "unit", "test_data"]
-    register("parts", cols, out, 23)
+    check(sorted(pos for _, pos in tbd) == sorted(TBD_PARTS), f"section 14.1: the TBD rows are {tbd}")
+    register("parts", cols, out, 27)
+    tbd_keys = [key for key, _ in tbd]
+    fixture(
+        "parts", ["manufacturer", "test_data"], tbd_keys, f"{TBD_MANUFACTURER}; true", "§14.1 rows 24-27",
+        "the manufacturer and part number of the rails, ducts, end brackets and bridges are unknown (TBD): the"
+        " parts are test parts (confidence test), keyed by their role",
+        marks=["U-27"],
+    )  # fmt: skip
+    for pos, (key, kind) in TBD_PARTS.items():
+        fixture(
+            "parts", "kind", key, kind, f"§14.1 row {pos}",
+            "the component BOM gives no part kind; the kind follows the part's role in the project",
+            marks=["U-27"],
+        )  # fmt: skip
     for kind in dict.fromkeys(PART_KIND.values()):
         fixture(
             "parts", "kind", [pn for pn, k in PART_KIND.items() if k == kind], kind, "§14.1",
             "the component BOM gives no part kind; the kind follows the part's role in the project",
         )  # fmt: skip
     return {p["key"] for p in out}
+
+
+def carrier_lengths():
+    """(duct metres, rail metres) from the section 13 carriers table: the paper lengths of D1 ... D5 at the 1:10 scale
+    of folio 902 (test input), and three rails of the width of D4."""
+    scale = Decimal(10)
+    rows = table_dicts("**Carriers.**")
+    ducts, widths = [], {}
+    rails = 0
+    for r in rows:
+        name = r["Carrier"]
+        if re.fullmatch(r"D\d", name):
+            x, y, w, h = (Decimal(v) for v in re.split(r",\s*", r["Reference x, y, w, h (paper mm)"]))
+            ducts.append(max(w, h) * scale)
+            widths[name] = w * scale
+        elif name.startswith("R"):
+            rails = len(expand_range(name))
+    check(len(ducts) == 5, f"section 13: {len(ducts)} ducts, 5 expected")
+    check(rails == 3 and "D4" in widths, f"section 13: {rails} rails, 3 expected, and the duct D4")
+    metres = Decimal("0.001")
+    return (sum(ducts) / 1000).quantize(metres, ROUND_HALF_UP), (3 * widths["D4"] / 1000).quantize(metres, ROUND_HALF_UP)
+
+
+def tbd_part_uses():
+    """{device key: [``<part key>[*<qty>]``]}: where the four TBD parts of section 14.1 are used.
+
+    The enclosure -UC1 carries the rails and ducts (rows 24, 25: tags -UC1, quantity from the carriers of section 13);
+    the strips carry the end brackets (row 26) and the plug-in bridges (row 27). Every quantity and tag set is checked
+    against its section 14.1 row."""
+    rows = {r["Pos"]: r for r in table_dicts("### 14.1 Component mode (folio 901)")}
+    key = {pos: k for pos, (k, _) in TBD_PARTS.items()}
+    duct_m, rail_m = carrier_lengths()
+    uses = {"-UC1": [f"{key['24']}*{dec(str(rail_m))}", f"{key['25']}*{dec(str(duct_m))}"]}
+    for pos in ("24", "25"):
+        check(strip_tri(rows[pos]["Tags"]) == "-UC1", f"section 14.1 row {pos}: the tags are {rows[pos]['Tags']!r}")
+        check(strip_tri(rows[pos]["Qty"]) == "", f"section 14.1 row {pos}: the quantity is {rows[pos]['Qty']!r}")
+    check("3 rows" in rows["24"]["Description"], "section 14.1 row 24: not 3 rows")
+    check("5 segments" in rows["25"]["Description"], "section 14.1 row 25: not 5 segments")
+
+    # the end brackets (section 13, carrier R2): a bracket belongs to the strip before it, the first to the first strip
+    placements = {r["Row"]: r for r in table_dicts("**Placements, in order on each carrier**")}
+    order = [t.strip() for t in placements["R2"]["Golden A (as drawn, fixed)"].split(",")]
+    strips = [t for t in order if t != "end bracket"]
+    check(strips == ["1X1", "-X1031", "-X1032"], f"section 13, R2: the strips are {strips}")
+    brackets = dict.fromkeys(strips, 0)
+    current = strips[0]
+    for t in order:
+        if t == "end bracket":
+            brackets[current] += 1
+        else:
+            current = t
+    check(sum(brackets.values()) == int(rows["26"]["Qty"]), f"section 13, R2: {brackets} against the quantity of row 26")
+    check(
+        [t.strip() for t in strip_tri(rows["26"]["Tags"]).split(",")] == strips,
+        f"section 14.1 row 26: the tags are {rows['26']['Tags']!r}",
+    )
+    for strip, n in brackets.items():
+        uses.setdefault(strip, []).append(key["26"] + (f"*{n}" if n != 1 else ""))
+
+    # the bridges (section 8.3): one plug-in bridge per row of the bridge table, on the strip of the row
+    bridges = dict.fromkeys(strips[1:], 0)
+    for r in table_dicts("### 8.3 Junctions and bridges", 1):
+        check(r["Strip"] in bridges, f"section 8.3: the bridge {r['Bridge']} is on {r['Strip']!r}")
+        bridges[r["Strip"]] += 1
+    check(sum(bridges.values()) == int(rows["27"]["Qty"]), f"section 8.3: {bridges} against the quantity of row 27")
+    check(
+        [t.strip() for t in strip_tri(rows["27"]["Tags"]).split(",")] == list(bridges),
+        f"section 14.1 row 27: the tags are {rows['27']['Tags']!r}",
+    )
+    for strip, n in bridges.items():
+        uses[strip].append(key["27"] + (f"*{n}" if n != 1 else ""))
+
+    fixture(
+        "devices", "parts", "-UC1", f"{key['24']}*{dec(str(rail_m))}; {key['25']}*{dec(str(duct_m))}", "§13, §14.1 rows 24, 25",
+        "the quantity of the rails and ducts is a ▲ (length from carriers): the paper lengths of the carriers table at the"
+        " 1:10 scale of folio 902 (the five ducts D1 ... D5 added, and three rails of the width of D4), in metres",
+        marks=["U-26", "U-27"],
+    )  # fmt: skip
+    fixture(
+        "devices", "parts", strips, " / ".join(f"{k}: {'; '.join(v)}" for k, v in uses.items() if k != "-UC1"),
+        "§13 (R2), §14.1 row 26",
+        "the end brackets sit on the strips as part uses (a bracket belongs to the strip before it, the first to the first"
+        " strip), the bridges of §8.3 as one part use per bridge on its strip: the parts list prints them after the legend"
+        " rows",
+        marks=["U-27"],
+    )  # fmt: skip
+    return uses
 
 
 def build_part_cps_templates(part_keys):
@@ -986,6 +1116,7 @@ def build_devices_terminals(part_keys):
     check(set(PARTS_BY_TAG) <= tags61, f"PARTS_BY_TAG names tags missing in section 6.1: {set(PARTS_BY_TAG) - tags61}")
 
     strips = strip_data()
+    tbd_uses = tbd_part_uses()
     devices = []
 
     def add(**kw):
@@ -1014,7 +1145,9 @@ def build_devices_terminals(part_keys):
             set(filter(None, want.split(";"))) == named,
             f"section 6.1 Part cell of {tag}: {part_cell!r} names {sorted(named)}, PARTS_BY_TAG has {want!r}",
         )
-        d = dict(key=tag, function=FUNCTION_KEY, location=LOCATION_KEY, parts=want)
+        d = dict(
+            key=tag, function=FUNCTION_KEY, location=LOCATION_KEY, parts=";".join(filter(None, [want, *tbd_uses.get(tag, [])]))
+        )
         if tag in FROZEN:
             d.update(letter=re.search(r"[A-Z]", tag).group(0), frozen=tag, frozen_sign="hidden")
         elif re.fullmatch(r"-203Q\d", tag):
