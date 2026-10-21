@@ -336,3 +336,331 @@ fn cell_boundaries_are_exactly_the_lines_and_the_outline() {
     }
     assert_eq!(cell_edges, drawn);
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// The cover frame (doc 20 §17.3, D-30)
+
+const FRAME_COVER: &str = include_str!("../../../content/forms/ew.frame.qet-a4-landscape-cover.json");
+const FRAME_COVER_KEY: &str = "ew.frame.qet-a4-landscape-cover";
+
+/// The sheet offset and scale of the QET frames: a printed coordinate is `offset + page × scale`.
+const OFFSET_NM: i64 = 9_790_000;
+const SCALE_PPB: i128 = 986_282_578;
+
+/// A printed x or y (nm) as a page coordinate, rounded to the nanometre.
+fn page_nm(printed: i64) -> i64 {
+    let n = i128::from(printed - OFFSET_NM) * 1_000_000_000;
+    i64::try_from((2 * n + SCALE_PPB) / (2 * SCALE_PPB)).unwrap()
+}
+
+/// A printed length (a line width, a shadow) as a page length.
+fn page_len(printed: i64) -> i64 {
+    let n = i128::from(printed) * 1_000_000_000;
+    i64::try_from((2 * n + SCALE_PPB) / (2 * SCALE_PPB)).unwrap()
+}
+
+/// Printed millimetres as nanometres.
+fn mm(v: f64) -> i64 {
+    (v * 1_000_000.0).round() as i64
+}
+
+fn pt(x: f64, y: f64) -> Value {
+    json!([page_nm(mm(x)), page_nm(mm(y))])
+}
+
+fn pen(width_mm: f64) -> Value {
+    json!({"pen": {"width": page_len(mm(width_mm))}})
+}
+
+/// The geometry of doc 20 §17.3 in printed millimetres: the rules, the project data box and its separators.
+const RULE_X: (f64, f64) = (11.09, 279.88);
+const BOX: (f64, f64, f64, f64) = (13.70, 47.63, 118.09, 175.50);
+const SEPARATORS: [f64; 3] = [84.16, 120.70, 154.62];
+
+fn cover_graphics() -> Vec<Value> {
+    let rule =
+        |y: f64, w: f64| json!({"line": {"from": pt(RULE_X.0, y), "to": pt(RULE_X.1, y), "stroke": pen(w)}});
+    let mut g = vec![
+        rule(13.70, 1.305),
+        rule(45.02, 0.522),
+        json!({"rect": {
+            "rect": [pt(BOX.0, BOX.1), pt(BOX.2, BOX.3)],
+            "shadow": page_len(mm(2.61)),
+            "stroke": pen(0.418),
+        }}),
+    ];
+    for y in SEPARATORS {
+        g.push(json!({"line": {"from": pt(BOX.0, y), "to": pt(BOX.2, y), "stroke": pen(0.261)}}));
+    }
+    g
+}
+
+/// The label of a cover row and the placeholder it prints; `None`: no placeholder path exists yet.
+type CoverRow = (&'static str, Option<&'static str>);
+
+/// The rows of the project data box by group (the separators of §17.3 bound them). The reference prints 15
+/// properties; three have no placeholder path yet (the manufacturing year, the control current and the
+/// consumption: `title_block` resolves none of them, `Quantity` has no text form), so their rows keep their
+/// slot and print nothing.
+const COVER_GROUPS: [&[CoverRow]; 4] = [
+    &[
+        ("Company / Customer", Some("{party.customer.name}")),
+        ("Project Description", Some("{project.long_description}")),
+        ("Drawing Identification", Some("{project.drawing_id}")),
+        ("Project Reference", Some("{project.reference}")),
+    ],
+    &[
+        ("End User", Some("{party.end_user.name}")),
+        ("Address", Some("{party.end_user.address.street}")),
+        (
+            "Postcode / City",
+            Some("{party.end_user.address.postcode} {party.end_user.address.city}"),
+        ),
+        ("Country", Some("{party.end_user.address.country}")),
+    ],
+    &[
+        ("Manufacturing Year", None),
+        ("Supply", Some("{project.supply}")),
+        ("Control Current", None),
+        ("Consumption", None),
+    ],
+    &[
+        ("Created On", Some("{project.created | date}")),
+        ("Edited On", Some("{project.edited | date}")),
+        ("Engineer", Some("{party.engineer.name}")),
+    ],
+];
+
+/// Label column and value column of the box, printed x.
+const LABEL_X: (f64, f64) = (14.70, 55.00);
+const VALUE_X: (f64, f64) = (55.00, 117.10);
+
+fn cover_cell(
+    x: (f64, f64),
+    y: (f64, f64),
+    label: Option<&str>,
+    value: Option<&str>,
+    style: &str,
+    align: &str,
+) -> Value {
+    let mut cell = json!({"rect": [pt(x.0, y.0), pt(x.1, y.1)]});
+    if let Some(l) = label {
+        cell["label"] = json!({"en-GB": l});
+    }
+    if let Some(v) = value {
+        cell["value"] = json!(v);
+    }
+    cell["style"] = json!(style);
+    cell["align"] = json!(align);
+    cell["overflow"] = json!({"shrink_to_fit": {"min_cap_height": 1_200_000}});
+    cell
+}
+
+fn cover_cells() -> Vec<Value> {
+    let mut cells = vec![
+        cover_cell(
+            RULE_X,
+            (14.50, 32.00),
+            None,
+            Some("{project.object}"),
+            "cover.title",
+            "centre",
+        ),
+        cover_cell(
+            RULE_X,
+            (32.00, 44.50),
+            None,
+            Some("{project.document_title}"),
+            "cover.subtitle",
+            "centre",
+        ),
+    ];
+    let mut tops = vec![BOX.1];
+    tops.extend(SEPARATORS);
+    let bottoms = [SEPARATORS[0], SEPARATORS[1], SEPARATORS[2], BOX.3];
+    for ((group, top), bottom) in COVER_GROUPS.iter().zip(tops).zip(bottoms) {
+        // Every group is cut in one slot per listed row.
+        let slot = (bottom - top) / group.len() as f64;
+        for (i, (label, value)) in group.iter().enumerate() {
+            let Some(value) = value else { continue };
+            let y = (top + slot * i as f64, top + slot * (i + 1) as f64);
+            cells.push(cover_cell(
+                LABEL_X,
+                y,
+                Some(label),
+                None,
+                "data.small",
+                "middle_left",
+            ));
+            cells.push(cover_cell(
+                VALUE_X,
+                y,
+                None,
+                Some(value),
+                "text.normal",
+                "middle_left",
+            ));
+        }
+    }
+    cells
+}
+
+/// The cover frame: the QET A4 landscape frame without grid, plus the cover's rules, project data box, title,
+/// subtitle and the cells bound to the project and its parties.
+fn cover_text() -> String {
+    let mut doc = serde_json::to_value(LibDocument::Form(form(FRAME_NOGRID))).unwrap();
+    let (item, id) = identity(FRAME_COVER_KEY);
+    doc["id"] = json!(id.to_string());
+    doc["item_id"] = json!(item.to_string());
+    doc["graphics"] = Value::Array(cover_graphics());
+    doc["cells"] = Value::Array(cover_cells());
+    doc["meta"] = json!({
+        "key": FRAME_COVER_KEY,
+        "licence": "CC-BY-SA-4.0",
+        "sources": [
+            "docs/design/20-golden-project.md §17.3",
+            "docs/research/reference-drawing.md §1.1"
+        ],
+    });
+    let mut copy = form(&doc.to_string());
+    copy.sha256 = Sha256(sha2::Sha256::digest(serde_json::to_string(&copy.item).unwrap().as_bytes()).into());
+    serde_json::to_string_pretty(&LibDocument::Form(copy)).unwrap() + "\n"
+}
+
+/// The committed cover frame is generated by `cover_text` (`EW_BLESS=1` rewrites it).
+#[test]
+fn the_cover_frame_is_the_generated_one() {
+    let text = cover_text();
+    if std::env::var_os("EW_BLESS").is_some_and(|v| v == "1") {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../content/forms/ew.frame.qet-a4-landscape-cover.json");
+        std::fs::write(path, text.as_bytes()).unwrap();
+        return;
+    }
+    assert!(
+        FRAME_COVER == text,
+        "content/forms/ew.frame.qet-a4-landscape-cover.json differs from the generated frame (EW_BLESS=1 rewrites it)"
+    );
+}
+
+#[test]
+fn the_cover_frame_parses_strictly_and_has_its_identity_and_hash() {
+    let doc = LibDocument::from_json(FRAME_COVER).unwrap();
+    let (loaded, malformed) = LibDocument::load(parse_value(FRAME_COVER).unwrap()).unwrap();
+    assert!(malformed.is_empty(), "{malformed:?}");
+    assert_eq!(loaded, doc);
+    doc.validate().unwrap();
+    assert_eq!(
+        FRAME_COVER,
+        serde_json::to_string_pretty(&doc).unwrap() + "\n",
+        "not canonical"
+    );
+    let copy = form(FRAME_COVER);
+    let (item, id) = identity(FRAME_COVER_KEY);
+    assert_eq!(
+        (copy.library_id.as_uuid(), copy.item_id.as_uuid(), copy.id),
+        (BUILTIN_LIBRARY, item, id)
+    );
+    let digest = sha2::Sha256::digest(serde_json::to_string(&copy.item).unwrap().as_bytes());
+    assert_eq!(copy.sha256, Sha256(digest.into()), "stale sha256");
+    assert_eq!(to_value!(copy.item.meta.key), json!(FRAME_COVER_KEY));
+    assert_eq!(copy.item.meta.licence.as_deref(), Some("CC-BY-SA-4.0"));
+}
+
+/// The cover frame is the no-grid frame with graphics and cells: the same kind, sheet, transform, grid and title
+/// block.
+#[test]
+fn the_cover_frame_is_the_nogrid_frame_plus_the_cover() {
+    let (cover, nogrid) = (form(FRAME_COVER).item, form(FRAME_NOGRID).item);
+    assert_eq!(cover.kind, FormKind::Frame);
+    assert_eq!(cover.sheet, nogrid.sheet);
+    assert_eq!(cover.page_to_sheet, nogrid.page_to_sheet);
+    assert_eq!(cover.grid, nogrid.grid);
+    assert_eq!(cover.title_block, nogrid.title_block);
+    assert_eq!(cover.extra, nogrid.extra);
+    // Two rules, the box and its three separators.
+    assert_eq!(cover.graphics.len(), 6);
+    assert!(matches!(cover.graphics[2], Primitive::Rect(_)));
+    // The title, the subtitle and a label and a value cell per bound row (the box prints 12 rows).
+    let rows = COVER_GROUPS
+        .iter()
+        .flat_map(|g| g.iter())
+        .filter(|r| r.1.is_some())
+        .count();
+    assert_eq!(rows, 12);
+    assert_eq!(cover.cells.len(), 2 + 2 * rows);
+}
+
+/// Every cell lies inside the sheet, uses a known style, has balanced braces and does not overlap another
+/// cell; the box cells lie inside the box.
+#[test]
+fn the_cover_cells_are_inside_the_sheet_and_do_not_overlap() {
+    let item = form(FRAME_COVER).item;
+    let rects: Vec<_> = item
+        .cells
+        .iter()
+        .map(|c| (c.rect.0.min(), c.rect.0.max()))
+        .collect();
+    for (n, (cell, (min, max))) in item.cells.iter().zip(&rects).enumerate() {
+        assert!(
+            STYLE_KEYS.contains(&cell.style.as_str()),
+            "cell {n}: {}",
+            cell.style
+        );
+        assert!(min.x >= Nm::ZERO && min.y >= Nm::ZERO, "cell {n}");
+        assert!(
+            max.x <= item.sheet.width && max.y <= item.sheet.height,
+            "cell {n}"
+        );
+        if let Some(v) = &cell.value {
+            assert_eq!(v.matches('{').count(), v.matches('}').count(), "cell {n}: {v}");
+        }
+    }
+    for (i, a) in rects.iter().enumerate() {
+        for (j, b) in rects.iter().enumerate().skip(i + 1) {
+            let disjoint = a.1.x <= b.0.x || b.1.x <= a.0.x || a.1.y <= b.0.y || b.1.y <= a.0.y;
+            assert!(disjoint, "cells {i} and {j} overlap");
+        }
+    }
+    let (x0, y0) = (page_nm(mm(BOX.0)), page_nm(mm(BOX.1)));
+    let (x1, y1) = (page_nm(mm(BOX.2)), page_nm(mm(BOX.3)));
+    for (n, (min, max)) in rects.iter().enumerate().skip(2) {
+        assert!(
+            min.x.0 >= x0 && max.x.0 <= x1 && min.y.0 >= y0 && max.y.0 <= y1,
+            "cell {n} leaves the box"
+        );
+    }
+}
+
+/// Printed coordinates map back to doc 20 §17.3 through the sheet transform (the rules, the box, the
+/// separators).
+#[test]
+fn the_cover_rules_and_box_land_on_the_printed_figures() {
+    let item = form(FRAME_COVER).item;
+    let sheet = |nm: Nm| (i128::from(nm.0) * SCALE_PPB / 1_000_000_000) as i64 + OFFSET_NM;
+    let near = |a: i64, b: f64| (a - mm(b)).abs() <= 2;
+    let Primitive::Line(heavy) = &item.graphics[0] else {
+        panic!("not a line")
+    };
+    assert!(
+        near(sheet(heavy.from.y), 13.70)
+            && near(sheet(heavy.from.x), 11.09)
+            && near(sheet(heavy.to.x), 279.88)
+    );
+    let Primitive::Line(light) = &item.graphics[1] else {
+        panic!("not a line")
+    };
+    assert!(near(sheet(light.from.y), 45.02));
+    let Primitive::Rect(b) = &item.graphics[2] else {
+        panic!("not a rect")
+    };
+    let (min, max) = (b.rect.0.min(), b.rect.0.max());
+    assert!(near(sheet(min.x), 13.70) && near(sheet(min.y), 47.63));
+    assert!(near(sheet(max.x), 118.09) && near(sheet(max.y), 175.50));
+    for (prim, y) in item.graphics[3..].iter().zip(SEPARATORS) {
+        let Primitive::Line(l) = prim else {
+            panic!("not a line")
+        };
+        assert!(near(sheet(l.from.y), y), "separator at {y}");
+    }
+}

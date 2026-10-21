@@ -1,0 +1,705 @@
+{
+  "$k": "form",
+  "id": "81ee0d6d-6c0e-55e4-b7fd-1896f594051f",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "29099ec6-0549-51c8-8ea4-c372b103111e",
+  "version": "1.0.0",
+  "sha256": "sha256:3d037b44dc0ef95225e9b574afcf63e55203f38f1a225c7d55370acad6443bd1",
+  "kind": "frame",
+  "sheet": {
+    "width": 297000000,
+    "height": 210000000
+  },
+  "page_to_sheet": {
+    "scale_ppb": 986282578,
+    "offset": [
+      9790000,
+      9790000
+    ]
+  },
+  "grid": {
+    "header_band": {
+      "num": 15875000,
+      "den": 3
+    },
+    "columns": {
+      "count": 17,
+      "width": {
+        "num": 15875000,
+        "den": 1
+      }
+    },
+    "rows": {
+      "count": 8,
+      "height": {
+        "num": 63500000,
+        "den": 3
+      }
+    },
+    "ew.frame.line_width": 264583,
+    "ew.frame.show_grid": false
+  },
+  "title_block": "496e5258-a93b-5354-84af-c2c185e84d54",
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          1318081,
+          3964381
+        ],
+        "to": [
+          273846468,
+          3964381
+        ],
+        "stroke": {
+          "pen": {
+            "width": 1323150
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          1318081,
+          35719986
+        ],
+        "to": [
+          273846468,
+          35719986
+        ],
+        "stroke": {
+          "pen": {
+            "width": 529260
+          }
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            3964381,
+            38366287
+          ],
+          [
+            109806259,
+            168014729
+          ]
+        ],
+        "shadow": 2646300,
+        "stroke": {
+          "pen": {
+            "width": 423814
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          3964381,
+          75404353
+        ],
+        "to": [
+          109806259,
+          75404353
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264630
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          3964381,
+          112452559
+        ],
+        "to": [
+          109806259,
+          112452559
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264630
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          3964381,
+          146844326
+        ],
+        "to": [
+          109806259,
+          146844326
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264630
+          }
+        }
+      }
+    }
+  ],
+  "cells": [
+    {
+      "rect": [
+        [
+          1318081,
+          4775508
+        ],
+        [
+          273846468,
+          22518901
+        ]
+      ],
+      "value": "{project.object}",
+      "style": "cover.title",
+      "align": "centre",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          1318081,
+          22518901
+        ],
+        [
+          273846468,
+          35192754
+        ]
+      ],
+      "value": "{project.document_title}",
+      "style": "cover.subtitle",
+      "align": "centre",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          4978289,
+          38366287
+        ],
+        [
+          45838790,
+          47625803
+        ]
+      ],
+      "label": {
+        "en-GB": "Company / Customer"
+      },
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          45838790,
+          38366287
+        ],
+        [
+          108802490,
+          47625803
+        ]
+      ],
+      "value": "{party.customer.name}",
+      "style": "text.normal",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          4978289,
+          47625803
+        ],
+        [
+          45838790,
+          56885320
+        ]
+      ],
+      "label": {
+        "en-GB": "Project Description"
+      },
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          45838790,
+          47625803
+        ],
+        [
+          108802490,
+          56885320
+        ]
+      ],
+      "value": "{project.long_description}",
+      "style": "text.normal",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          4978289,
+          56885320
+        ],
+        [
+          45838790,
+          66144837
+        ]
+      ],
+      "label": {
+        "en-GB": "Drawing Identification"
+      },
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          45838790,
+          56885320
+        ],
+        [
+          108802490,
+          66144837
+        ]
+      ],
+      "value": "{project.drawing_id}",
+      "style": "text.normal",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          4978289,
+          66144837
+        ],
+        [
+          45838790,
+          75404353
+        ]
+      ],
+      "label": {
+        "en-GB": "Project Reference"
+      },
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          45838790,
+          66144837
+        ],
+        [
+          108802490,
+          75404353
+        ]
+      ],
+      "value": "{project.reference}",
+      "style": "text.normal",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          4978289,
+          75404353
+        ],
+        [
+          45838790,
+          84666405
+        ]
+      ],
+      "label": {
+        "en-GB": "End User"
+      },
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          45838790,
+          75404353
+        ],
+        [
+          108802490,
+          84666405
+        ]
+      ],
+      "value": "{party.end_user.name}",
+      "style": "text.normal",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          4978289,
+          84666405
+        ],
+        [
+          45838790,
+          93928456
+        ]
+      ],
+      "label": {
+        "en-GB": "Address"
+      },
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          45838790,
+          84666405
+        ],
+        [
+          108802490,
+          93928456
+        ]
+      ],
+      "value": "{party.end_user.address.street}",
+      "style": "text.normal",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          4978289,
+          93928456
+        ],
+        [
+          45838790,
+          103190508
+        ]
+      ],
+      "label": {
+        "en-GB": "Postcode / City"
+      },
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          45838790,
+          93928456
+        ],
+        [
+          108802490,
+          103190508
+        ]
+      ],
+      "value": "{party.end_user.address.postcode} {party.end_user.address.city}",
+      "style": "text.normal",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          4978289,
+          103190508
+        ],
+        [
+          45838790,
+          112452559
+        ]
+      ],
+      "label": {
+        "en-GB": "Country"
+      },
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          45838790,
+          103190508
+        ],
+        [
+          108802490,
+          112452559
+        ]
+      ],
+      "value": "{party.end_user.address.country}",
+      "style": "text.normal",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          4978289,
+          121050501
+        ],
+        [
+          45838790,
+          129648442
+        ]
+      ],
+      "label": {
+        "en-GB": "Supply"
+      },
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          45838790,
+          121050501
+        ],
+        [
+          108802490,
+          129648442
+        ]
+      ],
+      "value": "{project.supply}",
+      "style": "text.normal",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          4978289,
+          146844326
+        ],
+        [
+          45838790,
+          153901127
+        ]
+      ],
+      "label": {
+        "en-GB": "Created On"
+      },
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          45838790,
+          146844326
+        ],
+        [
+          108802490,
+          153901127
+        ]
+      ],
+      "value": "{project.created | date}",
+      "style": "text.normal",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          4978289,
+          153901127
+        ],
+        [
+          45838790,
+          160957928
+        ]
+      ],
+      "label": {
+        "en-GB": "Edited On"
+      },
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          45838790,
+          153901127
+        ],
+        [
+          108802490,
+          160957928
+        ]
+      ],
+      "value": "{project.edited | date}",
+      "style": "text.normal",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          4978289,
+          160957928
+        ],
+        [
+          45838790,
+          168014729
+        ]
+      ],
+      "label": {
+        "en-GB": "Engineer"
+      },
+      "style": "data.small",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    },
+    {
+      "rect": [
+        [
+          45838790,
+          160957928
+        ],
+        [
+          108802490,
+          168014729
+        ]
+      ],
+      "value": "{party.engineer.name}",
+      "style": "text.normal",
+      "align": "middle_left",
+      "overflow": {
+        "shrink_to_fit": {
+          "min_cap_height": 1200000
+        }
+      }
+    }
+  ],
+  "meta": {
+    "key": "ew.frame.qet-a4-landscape-cover",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "docs/design/20-golden-project.md §17.3",
+      "docs/research/reference-drawing.md §1.1"
+    ]
+  },
+  "ew.layout.estimated": true
+}

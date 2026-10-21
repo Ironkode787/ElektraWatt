@@ -351,3 +351,45 @@ fn deterministic_and_sheet_mapped() {
     assert!(near(b.min().x, 979) && near(b.min().y, 979), "{b:?}");
     assert!(near(b.max().x, 28_118) && near(b.max().y, 19_976), "{b:?}");
 }
+
+fn cover_frame() -> FormDef {
+    form(include_str!(
+        "../../../content/forms/ew.frame.qet-a4-landscape-cover.json"
+    ))
+}
+
+/// The cover prints the bound party and project values; a cell holds several placeholders ("Postcode / City")
+/// and an unbound path prints nothing and is reported, never a placeholder text (decision log ID-40).
+#[test]
+fn the_cover_prints_the_bound_values_and_a_cell_may_hold_two_placeholders() {
+    let mut b = bindings();
+    for (path, text) in [
+        ("party.customer.name", "<customer>"),
+        ("party.end_user.address.postcode", "<postcode>"),
+        ("party.end_user.address.city", "<city>"),
+        ("project.document_title", "Electrical Definition"),
+    ] {
+        b.text(path, text).unwrap();
+    }
+    let out = lower_form(&cover_frame(), Some(&title_block()), &b, bundled());
+    let text = summary(&out.display_list);
+    for want in [
+        "\"J-E-2416\"",
+        "\"Electrical Definition\"",
+        "\"Company / Customer\"",
+        "\"<customer>\"",
+        "\"<end user>\"",
+        "\"<postcode> <city>\"",
+    ] {
+        assert!(text.contains(want), "{want} is not printed:\n{text}");
+    }
+    assert!(!text.contains('{'), "a placeholder is printed:\n{text}");
+    // The properties the bindings above do not give are reported, not printed.
+    assert!(out.findings.iter().any(|f| matches!(
+        f,
+        FormFinding::Binding {
+            finding: BindingFinding::Unresolved { .. },
+            ..
+        }
+    )));
+}
