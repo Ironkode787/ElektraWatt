@@ -382,7 +382,7 @@ provisioning. A test that fails nondeterministically is quarantined within one w
 owner. Quarantined tests keep running nightly. More than 10 quarantined tests block the next release
 (NFR-MAINT-13).
 
-**CI time budget** (2026-10-22; decision log ID-381). The per-PR budget stays 30 min wall time (NFR-MAINT-05). Measured before the cycle-15 delivery: the Linux test job 21 to 23 min, macOS 26 min, and the Windows job over 30 min, when its all-features nextest run hit the old 30-minute job timeout; GitHub reports a job stopped by its timeout as "cancelled", so a cancelled test job is read as a timeout, not as a user cancel. The three test jobs have `timeout-minutes: 50` as a guard, not as the budget. The headless acceptance tests run in both nextest runs of a job (default and all features); they run once per job (FT-268), and WP-S6.03 adds the CI-time trend to its gate (FT-269).
+**CI time budget** (2026-10-22; decision log ID-381). The per-PR budget stays 30 min wall time (NFR-MAINT-05). Measured by the GitHub jobs API at d3ecf70: the Linux test job 23 min 18 s, macOS 26 min 04 s, and the Windows job past 30 min, when its all-features nextest run hit the old 30-minute job timeout; at 95149ab, with the new guard, Windows 21 min 14 s, Linux 21 min 13 s and macOS 22 min 37 s; GitHub reports a job stopped by its timeout as "cancelled", so a cancelled test job is read as a timeout, not as a user cancel. The three test jobs have `timeout-minutes: 50` as a guard, not as the budget. The headless acceptance tests run in both nextest runs of a job (default and all features); they run once per job (FT-268), and WP-S6.03 adds the CI-time trend to its gate (FT-269).
 
 ### 3.15 Test-build confirmation hook
 
