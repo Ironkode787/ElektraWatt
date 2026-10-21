@@ -15,6 +15,10 @@ pub const USAGE: &str = "usage:
   ew --version | -V
   ew import qet <file.qet> [--content <dir>] [--report md|csv|json] [--report-out <file>] [--strict]
   ew check [<project-dir>] [--scheme <name>] [--mode release|online] [--format text|md|json] [--out <file>]
+  ew sql [<project-dir>] \"<select>\" [--format csv|json] [--timeout <seconds>] [--out <file>]
+  ew sql [<project-dir>] --file <query.sql> [--format csv|json] [--timeout <seconds>] [--out <file>]
+  ew sql dump [<project-dir>] <out.sqlite>
+  ew sql schema
   ew help | --help | -h
 
 `import qet` exits 0 when the import completes, even with findings; `--strict` exits 1 on lost connections or
@@ -22,7 +26,13 @@ error findings. With `--report` and no `--report-out` stdout is exactly the repo
 
 `check` runs a check scheme (default `pre-delivery`, mode `release`, format `text`) over a project directory
 (default: the nearest ancestor of the current directory holding `manifest.json`) and exits 0 with no unwaived
-errors, 1 with errors, 2 on usage and open errors.";
+errors, 1 with errors, 2 on usage and open errors.
+
+`sql` runs one read-only SELECT against the SQL projection of a project (the `api_v1_*` views; `ew sql schema` prints
+them) in the sandbox of doc 17 §3.4, with the query given inline or from `--file`. The result is CSV (default) or
+JSON on stdout, the row count on stderr; with `--out` it goes to a file. `--timeout` sets a deadline in seconds.
+`--project <dir>` may replace the positional project directory. `sql dump` writes the projection as a SQLite
+database file. `sql` exits 0 on success and 2 on everything else (usage, open and SQL errors, denials, limits).";
 
 /// A parsed command line.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -35,6 +45,54 @@ pub enum Command {
     ImportQet(ImportQetArgs),
     /// Check a project.
     Check(CheckArgs),
+    /// Run a read-only query on the SQL projection.
+    Sql(SqlArgs),
+    /// Write the SQL projection as a SQLite file.
+    SqlDump(SqlDumpArgs),
+    /// Print the SQL schema.
+    SqlSchema,
+}
+
+/// The result format of `ew sql`.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum SqlFormat {
+    /// RFC 4180 CSV.
+    Csv,
+    /// JSON (`ew.sql-result/1`).
+    Json,
+}
+
+/// Where the query text of `ew sql` comes from.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum SqlSource {
+    /// The query on the command line.
+    Text(String),
+    /// A file holding the query (`--file`).
+    File(PathBuf),
+}
+
+/// The arguments of `ew sql`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct SqlArgs {
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// The query.
+    pub query: SqlSource,
+    /// The result format (`--format`).
+    pub format: SqlFormat,
+    /// The deadline in seconds (`--timeout`).
+    pub timeout: Option<u64>,
+    /// The output file (`--out`).
+    pub out: Option<PathBuf>,
+}
+
+/// The arguments of `ew sql dump`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct SqlDumpArgs {
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// The SQLite file to write.
+    pub out: PathBuf,
 }
 
 /// The output format of `ew check`.
@@ -97,6 +155,7 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Command, String>
             None => Err("`import` needs a format (qet)".to_owned()),
         },
         "check" => parse_check(it),
+        "sql" => parse_sql(it),
         other => Err(format!("unknown command `{other}`")),
     }
 }
@@ -192,6 +251,131 @@ fn parse_check(mut it: impl Iterator<Item = String>) -> Result<Command, String> 
     }))
 }
 
+fn parse_sql(it: impl Iterator<Item = String>) -> Result<Command, String> {
+    let mut rest: Vec<String> = it.collect();
+    match rest.first().map(String::as_str) {
+        Some("schema") => {
+            return match rest.get(1) {
+                None => Ok(Command::SqlSchema),
+                Some(extra) => Err(format!("unexpected argument `{extra}`")),
+            };
+        }
+        Some("dump") => {
+            rest.remove(0);
+            return parse_sql_dump(rest.into_iter());
+        }
+        _ => {}
+    }
+    let mut it = rest.into_iter();
+    let mut positionals: Vec<String> = Vec::new();
+    let mut project_opt = None;
+    let mut file = None;
+    let mut format = SqlFormat::Csv;
+    let mut timeout = None;
+    let mut out = None;
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--project" => {
+                if project_opt
+                    .replace(PathBuf::from(value(&mut it, "--project")?))
+                    .is_some()
+                {
+                    return Err("`--project` given twice".to_owned());
+                }
+            }
+            "--file" => file = Some(PathBuf::from(value(&mut it, "--file")?)),
+            "--format" => {
+                format = match value(&mut it, "--format")?.as_str() {
+                    "csv" => SqlFormat::Csv,
+                    "json" => SqlFormat::Json,
+                    "xlsx" => return Err("`--format xlsx` is not built yet (csv, json)".to_owned()),
+                    other => return Err(format!("unknown format `{other}` (csv, json)")),
+                };
+            }
+            "--timeout" => {
+                let v = value(&mut it, "--timeout")?;
+                match v.parse::<u64>() {
+                    Ok(n) if n >= 1 => timeout = Some(n),
+                    _ => {
+                        return Err(format!(
+                            "`--timeout` needs a positive number of seconds, got `{v}`"
+                        ));
+                    }
+                }
+            }
+            "--out" => out = Some(PathBuf::from(value(&mut it, "--out")?)),
+            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
+            _ => positionals.push(a),
+        }
+    }
+    let mut pos = positionals.into_iter();
+    let (positional_project, query) = match file {
+        Some(f) => {
+            let project = pos.next().map(PathBuf::from);
+            if let Some(extra) = pos.next() {
+                return Err(format!(
+                    "`--file` cannot be combined with a query text (`{extra}`)"
+                ));
+            }
+            (project, SqlSource::File(f))
+        }
+        None => match (pos.next(), pos.next(), pos.next()) {
+            (Some(q), None, _) => (None, SqlSource::Text(q)),
+            (Some(d), Some(q), None) => (Some(PathBuf::from(d)), SqlSource::Text(q)),
+            (None, ..) => return Err("`sql` needs a query (or `--file`)".to_owned()),
+            (Some(_), Some(_), Some(extra)) => return Err(format!("unexpected argument `{extra}`")),
+        },
+    };
+    let project = match (project_opt, positional_project) {
+        (Some(_), Some(_)) => {
+            return Err("`--project` cannot be combined with a positional project directory".to_owned());
+        }
+        (Some(d), None) | (None, Some(d)) => Some(d),
+        (None, None) => None,
+    };
+    Ok(Command::Sql(SqlArgs {
+        project,
+        query,
+        format,
+        timeout,
+        out,
+    }))
+}
+
+fn parse_sql_dump(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
+    let mut positionals: Vec<String> = Vec::new();
+    let mut project_opt = None;
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--project" => {
+                if project_opt
+                    .replace(PathBuf::from(value(&mut it, "--project")?))
+                    .is_some()
+                {
+                    return Err("`--project` given twice".to_owned());
+                }
+            }
+            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
+            _ => positionals.push(a),
+        }
+    }
+    let mut pos = positionals.into_iter();
+    let (positional_project, out) = match (pos.next(), pos.next(), pos.next()) {
+        (Some(o), None, _) => (None, PathBuf::from(o)),
+        (Some(d), Some(o), None) => (Some(PathBuf::from(d)), PathBuf::from(o)),
+        (None, ..) => return Err("`sql dump` needs an output file".to_owned()),
+        (Some(_), Some(_), Some(extra)) => return Err(format!("unexpected argument `{extra}`")),
+    };
+    let project = match (project_opt, positional_project) {
+        (Some(_), Some(_)) => {
+            return Err("`--project` cannot be combined with a positional project directory".to_owned());
+        }
+        (Some(d), None) | (None, Some(d)) => Some(d),
+        (None, None) => None,
+    };
+    Ok(Command::SqlDump(SqlDumpArgs { project, out }))
+}
+
 fn value(it: &mut impl Iterator<Item = String>, opt: &str) -> Result<String, String> {
     it.next().ok_or_else(|| format!("`{opt}` needs a value"))
 }
@@ -210,6 +394,12 @@ pub fn run(cmd: Command) -> i32 {
         }
         Command::ImportQet(a) => run_import_qet(&a),
         Command::Check(a) => run_check(&a),
+        Command::Sql(a) => run_sql(&a),
+        Command::SqlDump(a) => run_sql_dump(&a),
+        Command::SqlSchema => {
+            print!("{}", ew_api::sql::schema::schema_text());
+            0
+        }
     }
 }
 
@@ -219,6 +409,102 @@ fn find_project(start: &Path) -> Option<PathBuf> {
         .ancestors()
         .find(|d| d.join("manifest.json").is_file())
         .map(Path::to_path_buf)
+}
+
+/// The explicit project directory, else the one found from the current directory.
+fn project_dir(explicit: Option<&PathBuf>) -> Option<PathBuf> {
+    match explicit {
+        Some(d) => Some(d.clone()),
+        None => {
+            let found = std::env::current_dir().ok().and_then(|cwd| find_project(&cwd));
+            if found.is_none() {
+                eprintln!("error: no project directory given and none found above the current directory");
+            }
+            found
+        }
+    }
+}
+
+/// Opens the project read-only and builds its SQL projection (exit code 2 on failure).
+fn open_projection(project: Option<&PathBuf>) -> Result<ew_api::sql::Projection, i32> {
+    let dir = project_dir(project).ok_or(2)?;
+    let (session, opened) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "sql") {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {}: {e}", dir.display());
+            return Err(2);
+        }
+    };
+    let report = session
+        .check(&ew_api::checks::PRE_DELIVERY, CheckMode::Release)
+        .with_integrity(ew_api::integrity_items(&opened));
+    session.sql_projection(Some(&report)).map_err(|e| {
+        eprintln!("error: {e}");
+        2
+    })
+}
+
+fn run_sql(a: &SqlArgs) -> i32 {
+    let sql = match &a.query {
+        SqlSource::Text(t) => t.clone(),
+        SqlSource::File(f) => match std::fs::read_to_string(f) {
+            Ok(t) => t,
+            Err(e) => {
+                eprintln!("error: {}: {e}", f.display());
+                return 2;
+            }
+        },
+    };
+    let projection = match open_projection(a.project.as_ref()) {
+        Ok(p) => p,
+        Err(code) => return code,
+    };
+    let mut profile = ew_api::sql::Profile::EW_SQL;
+    if let Some(n) = a.timeout {
+        profile = profile.with_deadline(std::time::Duration::from_secs(n));
+    }
+    let set = match projection.reader(profile).and_then(|r| r.query(&sql)) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    let text = match a.format {
+        SqlFormat::Csv => set.to_csv(),
+        SqlFormat::Json => format!("{:#}\n", set.to_json()),
+    };
+    match &a.out {
+        Some(path) => match write_report(path, &text) {
+            Ok(()) => println!("result written to {}", path.display()),
+            Err(e) => {
+                eprintln!("error: {}: {e}", path.display());
+                return 2;
+            }
+        },
+        None => {
+            print!("{text}");
+            eprintln!("{} rows", set.rows.len());
+        }
+    }
+    0
+}
+
+fn run_sql_dump(a: &SqlDumpArgs) -> i32 {
+    let projection = match open_projection(a.project.as_ref()) {
+        Ok(p) => p,
+        Err(code) => return code,
+    };
+    match std::fs::write(&a.out, projection.image()) {
+        Ok(()) => {
+            println!("projection written to {}", a.out.display());
+            0
+        }
+        Err(e) => {
+            eprintln!("error: {}: {e}", a.out.display());
+            2
+        }
+    }
 }
 
 fn run_check(a: &CheckArgs) -> i32 {
@@ -468,6 +754,99 @@ mod tests {
         assert!(p(&["check", "a", "b"]).is_err());
         assert!(p(&["check", "--bogus"]).is_err());
         assert!(p(&["check", "--scheme"]).is_err());
+    }
+
+    fn sql(args: &[&str]) -> SqlArgs {
+        let mut v = vec!["sql"];
+        v.extend_from_slice(args);
+        match p(&v) {
+            Ok(Command::Sql(a)) => a,
+            other => panic!("parse failed: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn sql_defaults_and_positionals() {
+        let a = sql(&["SELECT 1"]);
+        assert_eq!(a.project, None);
+        assert_eq!(a.query, SqlSource::Text("SELECT 1".to_owned()));
+        assert_eq!(a.format, SqlFormat::Csv);
+        assert_eq!(a.timeout, None);
+        assert_eq!(a.out, None);
+        let b = sql(&[
+            "proj",
+            "SELECT 1",
+            "--format",
+            "json",
+            "--timeout",
+            "5",
+            "--out",
+            "r.json",
+        ]);
+        assert_eq!(b.project, Some(PathBuf::from("proj")));
+        assert_eq!(b.query, SqlSource::Text("SELECT 1".to_owned()));
+        assert_eq!(b.format, SqlFormat::Json);
+        assert_eq!(b.timeout, Some(5));
+        assert_eq!(b.out, Some(PathBuf::from("r.json")));
+        let c = sql(&["--file", "q.sql"]);
+        assert_eq!(c.project, None);
+        assert_eq!(c.query, SqlSource::File(PathBuf::from("q.sql")));
+        let d = sql(&["proj", "--file", "q.sql"]);
+        assert_eq!(d.project, Some(PathBuf::from("proj")));
+        let e = sql(&["--project", "proj", "SELECT 1"]);
+        assert_eq!(e.project, Some(PathBuf::from("proj")));
+        assert_eq!(e.query, SqlSource::Text("SELECT 1".to_owned()));
+        let f = sql(&["--file", "q.sql", "--project", "proj"]);
+        assert_eq!(f.project, Some(PathBuf::from("proj")));
+    }
+
+    #[test]
+    fn sql_dump_and_schema_forms() {
+        assert_eq!(
+            p(&["sql", "dump", "o.sqlite"]),
+            Ok(Command::SqlDump(SqlDumpArgs {
+                project: None,
+                out: PathBuf::from("o.sqlite")
+            }))
+        );
+        assert_eq!(
+            p(&["sql", "dump", "proj", "o.sqlite"]),
+            Ok(Command::SqlDump(SqlDumpArgs {
+                project: Some(PathBuf::from("proj")),
+                out: PathBuf::from("o.sqlite")
+            }))
+        );
+        assert_eq!(
+            p(&["sql", "dump", "--project", "proj", "o.sqlite"]),
+            Ok(Command::SqlDump(SqlDumpArgs {
+                project: Some(PathBuf::from("proj")),
+                out: PathBuf::from("o.sqlite")
+            }))
+        );
+        assert_eq!(p(&["sql", "schema"]), Ok(Command::SqlSchema));
+    }
+
+    #[test]
+    fn sql_errors() {
+        let xlsx = p(&["sql", "SELECT 1", "--format", "xlsx"]).unwrap_err();
+        assert_eq!(xlsx, "`--format xlsx` is not built yet (csv, json)");
+        let unknown = p(&["sql", "SELECT 1", "--format", "x"]).unwrap_err();
+        assert_eq!(unknown, "unknown format `x` (csv, json)");
+        assert!(p(&["sql", "SELECT 1", "--timeout", "0"]).is_err());
+        assert!(p(&["sql", "SELECT 1", "--timeout", "abc"]).is_err());
+        assert!(p(&["sql", "SELECT 1", "--timeout", "-1"]).is_err());
+        assert!(p(&["sql", "SELECT 1", "--timeout"]).is_err());
+        assert!(p(&["sql", "proj", "SELECT 1", "--file", "q.sql"]).is_err());
+        assert!(p(&["sql", "a", "b", "c"]).is_err());
+        assert!(p(&["sql"]).is_err());
+        assert!(p(&["sql", "schema", "extra"]).is_err());
+        assert!(p(&["sql", "dump"]).is_err());
+        assert!(p(&["sql", "dump", "a", "b", "c"]).is_err());
+        assert!(p(&["sql", "SELECT 1", "--bogus"]).is_err());
+        assert!(p(&["sql", "dump", "a", "--bogus"]).is_err());
+        assert!(p(&["sql", "--project", "p", "proj", "SELECT 1"]).is_err());
+        assert!(p(&["sql", "--project", "p", "proj", "--file", "q.sql"]).is_err());
+        assert!(p(&["sql", "dump", "--project", "p", "a", "b"]).is_err());
     }
 
     #[test]

@@ -278,6 +278,132 @@ fn check_unknown_scheme_is_exit_2() {
     assert_eq!(o.status.code(), Some(2));
 }
 
+fn stderr(o: &Output) -> String {
+    String::from_utf8_lossy(&o.stderr).into_owned()
+}
+
+fn sql(query: &str) -> Output {
+    ew(&["sql".as_ref(), GOLDEN_A.as_ref(), query.as_ref()])
+}
+
+#[test]
+fn sql_count_terminals() {
+    let o = sql("SELECT count(*) AS n FROM api_v1_terminal");
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert_eq!(stdout(&o), "n\n28\n");
+    assert!(stderr(&o).contains("1 rows"), "{}", stderr(&o));
+    assert!(!std::path::Path::new(GOLDEN_A).join(".~ew.lock").exists());
+}
+
+#[test]
+fn sql_attach_is_denied() {
+    let o = sql("ATTACH 'other.db' AS x");
+    assert_eq!(o.status.code(), Some(2));
+    assert!(
+        stderr(&o).contains("statement denied by the projection sandbox (ATTACH)"),
+        "{}",
+        stderr(&o)
+    );
+}
+
+#[test]
+fn sql_statement_gate_blocks_vacuum_into() {
+    let t = Tmp::new();
+    let target = t.0.join("x.db");
+    let path = target.to_string_lossy().replace('\'', "''");
+    let o = sql(&format!("SELECT 1; VACUUM INTO '{path}'"));
+    assert_eq!(o.status.code(), Some(2), "{}", stdout(&o));
+    assert!(!target.exists());
+}
+
+#[test]
+fn sql_json_natural_order() {
+    let o = ew(&[
+        "sql".as_ref(),
+        GOLDEN_A.as_ref(),
+        "SELECT designation FROM api_v1_terminal WHERE strip_tag = '-X1031' ORDER BY designation COLLATE ew_natural LIMIT 3"
+            .as_ref(),
+        "--format".as_ref(),
+        "json".as_ref(),
+    ]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let v: serde_json::Value = serde_json::from_str(&stdout(&o)).unwrap();
+    assert_eq!(v["$schema"], "ew.sql-result/1");
+    assert_eq!(v["rows"], serde_json::json!([["1"], ["2"], ["3"]]));
+}
+
+#[test]
+fn sql_query_from_file() {
+    let t = Tmp::new();
+    let f = t.0.join("q.sql");
+    std::fs::write(
+        &f,
+        "SELECT count(*) AS n FROM api_v1_wire WHERE kind = 'bridge'\n",
+    )
+    .unwrap();
+    let o = ew(&[
+        "sql".as_ref(),
+        GOLDEN_A.as_ref(),
+        "--file".as_ref(),
+        f.as_os_str(),
+    ]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert_eq!(stdout(&o), "n\n6\n");
+}
+
+#[test]
+fn sql_dump_writes_sqlite_file() {
+    let t = Tmp::new();
+    let out = t.0.join("p.sqlite");
+    let o = ew(&[
+        "sql".as_ref(),
+        "dump".as_ref(),
+        GOLDEN_A.as_ref(),
+        out.as_os_str(),
+    ]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert!(stdout(&o).contains("projection written to"), "{}", stdout(&o));
+    let bytes = std::fs::read(&out).unwrap();
+    assert!(bytes.starts_with(b"SQLite format 3\0"));
+}
+
+#[test]
+fn sql_schema_lists_views() {
+    let o = ew(&["sql".as_ref(), "schema".as_ref()]);
+    assert_eq!(o.status.code(), Some(0));
+    let out = stdout(&o);
+    assert!(out.contains("api_v1_terminal"), "{out}");
+    assert!(out.contains("api_v1_wire"), "{out}");
+}
+
+#[test]
+fn sql_out_writes_csv_file() {
+    let t = Tmp::new();
+    let out = t.0.join("r.csv");
+    let o = ew(&[
+        "sql".as_ref(),
+        GOLDEN_A.as_ref(),
+        "SELECT count(*) AS n FROM api_v1_terminal".as_ref(),
+        "--out".as_ref(),
+        out.as_os_str(),
+    ]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert!(stdout(&o).contains("result written to"), "{}", stdout(&o));
+    assert_eq!(std::fs::read_to_string(&out).unwrap(), "n\n28\n");
+}
+
+#[test]
+fn sql_random_is_denied_and_missing_project_is_exit_2() {
+    let o = sql("SELECT random()");
+    assert_eq!(o.status.code(), Some(2));
+    assert!(stderr(&o).contains("function random"), "{}", stderr(&o));
+    let t = Tmp::new();
+    let missing = t.0.join("nope.ew");
+    let o = ew(&["sql".as_ref(), missing.as_os_str(), "SELECT 1".as_ref()]);
+    assert_eq!(o.status.code(), Some(2));
+    assert!(stderr(&o).contains("error:"));
+}
+
 #[test]
 fn check_missing_project_is_exit_2() {
     let t = Tmp::new();
