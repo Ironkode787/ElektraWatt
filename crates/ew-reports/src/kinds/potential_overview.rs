@@ -22,7 +22,8 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 /// whatever its clamps and sides) and its external points. `colour` and
 /// `cross_section` are the profile's default for the potential: the effective values of its first wire (by
 /// wire ID) whose value comes from the profile or a potential definition (not from a wire override, a core
-/// or a bond rule); empty when no wire has one. `pages` are the pages of its wires and of its drawn `Bus`
+/// or a bond rule); "(cable)" for a bus line without one, whose colour and size are its cable's (a `Bus`
+/// connection with `BusLine.cable`, doc 20 §7.3); empty otherwise. `pages` are the pages of its wires and of its drawn `Bus`
 /// connections (a bus line is not a physical wire: the PROFIBUS `DP` of doc 20 §7.3 is drawn on folio 3 as
 /// one single-line connection, FR-CBL-008), in page order.
 #[derive(Clone, Copy, Debug)]
@@ -166,6 +167,19 @@ fn potential_row(q: &Q, wires: &Wires, p: &Potential, pages: Vec<PageRef>) -> Ro
         default(&|w| w.props.csa.as_ref().is_some_and(|c| profile(&c.source))).and_then(|e| e.csa.as_ref());
     let attrs = q.get::<ew_derive::PotentialAttrsOf>(p.id);
     let names = q.get::<ew_derive::PotentialNameOf>(p.id);
+    // A bus line without a profile value takes colour and size from its cable: "(cable)" (doc 20 §7.3).
+    let from_cable = || {
+        (!ew_derive::bus_line_cables(q, &wires.partition, p.id).is_empty())
+            .then(|| Cell::Text(ew_derive::ew_mltext::MlText::neutral("(cable)")))
+    };
+    let colour_value = match colour {
+        Some(c) => colour_cell(Some(&c.value)),
+        None => from_cable().unwrap_or_else(|| colour_cell(None)),
+    };
+    let csa_value = match csa {
+        Some(c) => csa_cell(Some(&c.value)),
+        None => from_cable().unwrap_or_else(|| csa_cell(None)),
+    };
     let kind = attrs.ptype.as_ref().map_or(Cell::Empty, |t| {
         Cell::Text(ew_derive::ew_mltext::MlText::neutral(type_name(&t.value)))
     });
@@ -191,8 +205,8 @@ fn potential_row(q: &Q, wires: &Wires, p: &Potential, pages: Vec<PageRef>) -> Ro
             kind,
             voltage,
             class,
-            colour_cell(colour.map(|c| &c.value)),
-            csa_cell(csa.map(|c| &c.value)),
+            colour_value,
+            csa_value,
             Cell::Number(i64::try_from(names.aliases.len()).unwrap_or(i64::MAX)),
             Cell::Number(i64::try_from(member_count(q, p)).unwrap_or(i64::MAX)),
             if pages.is_empty() {

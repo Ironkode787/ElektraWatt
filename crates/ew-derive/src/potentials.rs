@@ -870,3 +870,26 @@ pub fn bus_line_pages(q: &Q, partition: &Partition, potential: PotentialId) -> B
     }
     out
 }
+
+/// The cables of the `Bus` connections of a potential (`BusLine.cable`, drawn or page-less; FR-CBL-008): a
+/// bus line takes its colour and cross-section from its cable, not from the profile (doc 20 §7.3 "(cable)").
+pub fn bus_line_cables(
+    q: &Q,
+    partition: &Partition,
+    potential: PotentialId,
+) -> BTreeSet<Id<ew_schema::Device>> {
+    let mut out = BTreeSet::new();
+    for (_, c) in q.connections().iter() {
+        let (ew_schema::ConnectionKind::Bus(line), ew_schema::Endpoint::Cp(f, idx)) = (&c.kind, &c.a) else {
+            continue;
+        };
+        let Some(cable) = line.cable else { continue };
+        if partition
+            .potential_at(CpRef::new(*f, *idx).key())
+            .is_some_and(|p| p.id == potential)
+        {
+            out.insert(cable);
+        }
+    }
+    out
+}
