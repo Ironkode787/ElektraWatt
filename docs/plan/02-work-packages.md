@@ -1,6 +1,6 @@
 # Work breakdown structure
 
-**Status:** Draft v0.6 · **Date:** 2026-10-21 (v0.6: the cycle-12 statuses, Golden C, the check engine, the M1 report and page gaps, FT-164 to FT-210, FT-15, FT-62, FT-65, FT-110 and FT-159 to FT-162 closed; v0.5: the cycle-11 statuses, the QET project import spike, the acceptance runner, Golden B, the symbol rulings, FT-127 to FT-163; v0.4: the cycle-10 statuses, WP-S1.07 part 2 delivered, FT-84, FT-86 and FT-109 closed, FT-117 to FT-126; v0.3: the cycle-9 statuses, WP-S1.07 in two parts, FT-100 to FT-116; v0.2: the estimates of WP-S1.05, WP-S1.07 and WP-S1.08 after G-SP, the cycle-8 statuses and FT-86 to FT-99) · **Part of:** ElektraWatt plan
+**Status:** Draft v0.6 · **Date:** 2026-10-21 (v0.6: the cycle-12 statuses, Golden C, the check engine, the M1 report and page gaps, FT-164 to FT-211, FT-15, FT-62, FT-65, FT-110 and FT-159 to FT-162 closed; v0.5: the cycle-11 statuses, the QET project import spike, the acceptance runner, Golden B, the symbol rulings, FT-127 to FT-163; v0.4: the cycle-10 statuses, WP-S1.07 part 2 delivered, FT-84, FT-86 and FT-109 closed, FT-117 to FT-126; v0.3: the cycle-9 statuses, WP-S1.07 in two parts, FT-100 to FT-116; v0.2: the estimates of WP-S1.05, WP-S1.07 and WP-S1.08 after G-SP, the cycle-8 statuses and FT-86 to FT-99) · **Part of:** ElektraWatt plan
 
 **Purpose.** This document breaks the full v1 scope of ElektraWatt (EW) into 123 work packages (WPs) in eight
 streams. For every WP it states the objective, scope, deliverables, dependencies, the requirements it delivers,
@@ -3040,6 +3040,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-208 | Define a device's main part (the part use that provides the main function) and use it in `main_part`; today the first part use is taken | WP-S1.19a | With the WP | ID-315 |
 | FT-209 | "Supplied by others": the device attribute `supply_scope` (`own`, `by_others`; FR-DEV-037) in `ew-schema` and the model, the golden fixture marks the process valves -203Q1 to -203Q8, the BOM leaves such devices out with a note, and EW-CORE-041 exempts them | WP-S1.13; WP-S7.01 (fixture); WP-S1.16 (rule) | With FT-192 | ID-322 |
 | FT-210 | The restore-on-touch mode of `Strict` projects: a transaction that touches a key with an existing prevent violation must restore it (doc 15 §3.5, ADR-0009 amendment 5); the MVP rule refuses only violations a transaction creates | WP-S1.15 | After MVP, with FT-183 | ID-323 |
+| FT-211 | The cover's size note ("If size or sign is not indicated in diagram, standard size or sign is to be used.") prints only when the project's wire-marker mode makes it apply (doc 08 §4.2); today `profile_tables` prints it whenever a size profile exists, because the wire-marker mode is not yet a project setting (ADR-0008) | WP-S3.04 | With the wire-marker setting | Lane B review, cycle 12 |
 
 ---
 
