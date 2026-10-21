@@ -562,6 +562,9 @@ dependencies = [
 [[package]]
 name = "ew-plcaddr"
 version = "0.0.0"
+dependencies = [
+ "proptest",
+]
 
 [[package]]
 name = "ew-plugin-host"
