@@ -48,13 +48,15 @@ the default) lists every component part; `--mode assembly` replaces the parts a 
 row. `export` exits 0 on success and 2 on everything else (usage, open errors, a project without the block).
 
 `export pdf` writes the project's pages as one PDF/A-2b (outline, page labels, links) and `export svg` one
-`<folio>.svg` per page into the directory `--out`, through the session's export job with the bundled fonts only.
+`<folio>.svg` per page into the directory `--out` (replaced as a whole; it may hold SVG files only), through
+the session's export job with the bundled fonts only.
 `--pages` selects folio labels and ranges in page order (`101-106,901`); `--threads` changes the speed, never the
 bytes. The date is `SOURCE_DATE_EPOCH` when set, else the model's. Exit 0 on success, 2 on everything else.
 
 `apply` replays a command log (`.ewcmd`, doc 17 section 3.5) on the project, each line one transaction, and saves.
 `--preview` replays it on a copy in memory, prints the changed records, tags and cross-references, and saves
-nothing; `--one-step` saves only when every line commits. Exit 0 when every line commits, 1 when a prevent or
+nothing; `--one-step` saves only when every line commits. A project with unsaved changes of a crashed session is
+refused (exit 2) until they are recovered or discarded. Exit 0 when every line commits, 1 when a prevent or
 domain rule refuses a line, 2 on everything else (usage, a malformed log, an unresolvable reference, a refused
 command, an open, lock or save error). Without `--one-step` the lines before a failing one are saved.
 
@@ -783,13 +785,79 @@ fn source_date() -> Result<Option<ew_api::output::PdfDate>, String> {
 /// Writes `bytes` to `<path>.tmp` and renames it to `path`, so a failed export leaves no partial file (doc 09
 /// section 4.3).
 fn write_atomically(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
-    let mut tmp = path.as_os_str().to_owned();
-    tmp.push(".tmp");
-    let tmp = PathBuf::from(tmp);
-    std::fs::write(&tmp, bytes)?;
-    std::fs::rename(&tmp, path).inspect_err(|_| {
-        let _ = std::fs::remove_file(&tmp);
-    })
+    let tmp = sibling(path, ".tmp");
+    write_synced(&tmp, bytes)
+        .and_then(|()| std::fs::rename(&tmp, path))
+        .inspect_err(|_| {
+            let _ = std::fs::remove_file(&tmp);
+        })
+}
+
+/// `path` with `suffix` appended to its last component.
+fn sibling(path: &Path, suffix: &str) -> PathBuf {
+    let mut s = path.as_os_str().to_owned();
+    s.push(suffix);
+    PathBuf::from(s)
+}
+
+/// Writes `bytes` to `path` and flushes them to the disk before returning.
+fn write_synced(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    use std::io::Write;
+    let mut f = std::fs::File::create(path)?;
+    f.write_all(bytes)?;
+    f.sync_all()
+}
+
+/// Writes an SVG set into the directory `out` as a whole: the files go to a fresh sibling directory first, which
+/// then replaces `out`, so `out` holds exactly this export (no stale page of an earlier export) and a failure
+/// leaves the earlier set as it was. A directory that holds anything but `.svg` files is refused, so no other file
+/// is ever removed.
+fn write_svg_set(out: &Path, files: &[ew_api::output::SvgFile]) -> Result<(), String> {
+    let at = |p: &Path, e: std::io::Error| format!("{}: {e}", p.display());
+    if out.exists() {
+        let entries = std::fs::read_dir(out).map_err(|e| at(out, e))?;
+        for e in entries {
+            let path = e.map_err(|e| at(out, e))?.path();
+            if !path.is_file() || path.extension().is_none_or(|x| x != "svg") {
+                return Err(format!(
+                    "{}: the directory holds {}, which is not an SVG file; choose an empty or SVG-only directory",
+                    out.display(),
+                    path.file_name()
+                        .map_or_else(String::new, |n| n.to_string_lossy().into_owned())
+                ));
+            }
+        }
+    }
+    let tmp = sibling(out, &format!(".tmp-{}", std::process::id()));
+    let old = sibling(out, &format!(".old-{}", std::process::id()));
+    let written = std::fs::create_dir_all(&tmp)
+        .map_err(|e| at(&tmp, e))
+        .and_then(|()| {
+            files.iter().try_for_each(|f| {
+                let path = tmp.join(&f.name);
+                write_synced(&path, f.text.as_bytes()).map_err(|e| at(&path, e))
+            })
+        });
+    if let Err(e) = written {
+        let _ = std::fs::remove_dir_all(&tmp);
+        return Err(e);
+    }
+    let had = out.exists();
+    if had && let Err(e) = std::fs::rename(out, &old) {
+        let _ = std::fs::remove_dir_all(&tmp);
+        return Err(at(out, e));
+    }
+    if let Err(e) = std::fs::rename(&tmp, out) {
+        if had {
+            let _ = std::fs::rename(&old, out);
+        }
+        let _ = std::fs::remove_dir_all(&tmp);
+        return Err(at(out, e));
+    }
+    if had {
+        let _ = std::fs::remove_dir_all(&old);
+    }
+    Ok(())
 }
 
 fn run_export_pages(a: &ExportPagesArgs) -> i32 {
@@ -850,16 +918,9 @@ fn run_export_pages(a: &ExportPagesArgs) -> i32 {
                     return 2;
                 }
             };
-            if let Err(e) = std::fs::create_dir_all(&a.out) {
-                eprintln!("error: {}: {e}", a.out.display());
+            if let Err(e) = write_svg_set(&a.out, &svg.files) {
+                eprintln!("error: {e}");
                 return 2;
-            }
-            for f in &svg.files {
-                let path = a.out.join(&f.name);
-                if let Err(e) = write_atomically(&path, f.text.as_bytes()) {
-                    eprintln!("error: {}: {e}", path.display());
-                    return 2;
-                }
             }
             (
                 format!("SVG written to {}: {} files", a.out.display(), svg.files.len()),
@@ -924,7 +985,15 @@ fn run_apply(a: &ApplyArgs) -> i32 {
         return 2;
     }
     if opened.recovery.is_some() {
-        eprintln!("warning: a crashed session left unsaved changes; they are kept for recovery, not applied");
+        // A replay on top of a crashed session's unsaved changes would hide them behind a new save (doc 05 section
+        // 8.3): they are recovered or discarded first.
+        eprintln!(
+            "error: {}: a crashed session left unsaved changes in its journal; recover or discard them first \
+             (`ew recover`, not built yet, or open the project in ElektraWatt); nothing was applied",
+            dir.display()
+        );
+        session.close();
+        return 2;
     }
     let result = session.run_script(&log, &file);
     let (code, committed) = match &result {

@@ -545,7 +545,7 @@ fn verify_derived_tiny_project_is_clean() {
     assert_eq!(o.status.code(), Some(0), "{}{}", stdout(&o), stderr(&o));
     let out = stdout(&o);
     assert!(
-        out.starts_with("verify-derived: 60 families, ")
+        out.starts_with("verify-derived: 64 families, ")
             && out.ends_with(" keys, 0 differences, 0 oracle mismatches\n"),
         "{out}"
     );
@@ -622,6 +622,11 @@ fn verify_derived_golden_a_is_clean() {
 /// user state is read and the journal of a writer goes there. The export uses the bundled fonts only (the PDF's
 /// digest holds that), and no subcommand uses a GPU.
 fn ew_isolated(home: &std::path::Path, args: &[&std::ffi::OsStr]) -> Output {
+    ew_isolated_with(home, args, None)
+}
+
+/// [`ew_isolated`] with `SOURCE_DATE_EPOCH` set to `epoch`.
+fn ew_isolated_with(home: &std::path::Path, args: &[&std::ffi::OsStr], epoch: Option<&str>) -> Output {
     let dirs = [
         "HOME",
         "USERPROFILE",
@@ -642,7 +647,23 @@ fn ew_isolated(home: &std::path::Path, args: &[&std::ffi::OsStr]) -> Output {
         std::fs::create_dir_all(&dir).unwrap();
         cmd.env(d, &dir);
     }
+    if let Some(e) = epoch {
+        cmd.env("SOURCE_DATE_EPOCH", e);
+    }
     cmd.output().unwrap()
+}
+
+/// The OS state directory the isolated `ew` uses for journals (`ew_store::default_state_dir` under the user
+/// directories of [`ew_isolated`]).
+fn isolated_state_dir(home: &std::path::Path) -> PathBuf {
+    if cfg!(windows) {
+        home.join("localappdata").join("ElektraWatt").join("state")
+    } else if cfg!(target_os = "macos") {
+        home.join("home")
+            .join("Library/Application Support/ElektraWatt/state")
+    } else {
+        home.join("xdg_state_home").join("elektrawatt")
+    }
 }
 
 /// Every file of a directory tree with its bytes, by relative path.
@@ -780,6 +801,8 @@ fn apply_golden_b2_previews_then_saves() {
     let out = stdout(&preview);
     assert!(out.starts_with("preview: 1 of 1 lines commit;"), "{out}");
     assert!(out.contains("-106W1 -> -104W1"), "{out}");
+    // Doc 20 section 2.2, step B2: 2 tags (-106W1, -106W2) and 14 cross-reference texts change.
+    assert!(out.contains(" 2 tags and 14 cross-references change"), "{out}");
     assert!(tree(&project) == before, "a preview wrote into the project");
     let svg = |pages: &str| {
         ew_isolated(
@@ -876,4 +899,161 @@ fn apply_exit_codes_and_one_step() {
     );
     assert!(tree(&project) != before, "the committed line is saved");
     assert!(!project.join(".~ew.lock").exists());
+}
+
+/// `ew apply --preview` of Golden B step B1 (doc 20 section 2.2): the 10 device tags of the tag map change, the 28
+/// terminal tags follow their strips (38 tag lines), and no cross-reference text changes; nothing is saved.
+#[test]
+fn apply_preview_of_golden_b1_prints_the_10_tag_changes() {
+    let t = Tmp::new();
+    let project = golden_copy(&t);
+    let before = tree(&project);
+    let log = std::path::Path::new(VARIANTS).join("b1-page-based-tags.ewcmd");
+    let o = ew_isolated(
+        &t.0.join("home"),
+        &[
+            "apply".as_ref(),
+            project.as_os_str(),
+            log.as_os_str(),
+            "--preview".as_ref(),
+        ],
+    );
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let out = stdout(&o);
+    assert!(out.starts_with("preview: 2 of 2 lines commit;"), "{out}");
+    assert!(out.contains(" 38 tags and 0 cross-references change"), "{out}");
+    for (before, after) in [
+        ("-X1031", "-103X1"),
+        ("-X1032", "-103X2"),
+        ("-XPE", "-101X2"),
+        ("1X1", "-101X1"),
+        ("E55", "-101E1"),
+        ("E56", "-101E2"),
+        ("F55", "-101F2"),
+        ("S51", "-101S1"),
+        ("S56", "-101S2"),
+        ("T55", "-101T1"),
+    ] {
+        let line = format!(": {before} -> {after}");
+        assert_eq!(
+            out.lines()
+                .filter(|l| l.starts_with("tag ") && l.ends_with(&line))
+                .count(),
+            1,
+            "{line}: {out}"
+        );
+    }
+    assert!(tree(&project) == before);
+}
+
+/// `SOURCE_DATE_EPOCH` (doc 17 section 3.1) sets the creation date and with it the document ID: the PDF differs
+/// from the model-dated one, carries the date, and is the same bytes on one and four threads; an invalid value
+/// exits 2 and writes nothing.
+#[test]
+fn source_date_epoch_dates_the_pdf() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let export = |name: &str, threads: &str, epoch: &str| {
+        let out = t.0.join(name);
+        let o = ew_isolated_with(
+            &home,
+            &[
+                "export".as_ref(),
+                "pdf".as_ref(),
+                GOLDEN_A.as_ref(),
+                "--out".as_ref(),
+                out.as_os_str(),
+                "--threads".as_ref(),
+                threads.as_ref(),
+            ],
+            Some(epoch),
+        );
+        (o, out)
+    };
+    // 2023-11-14T22:13:20Z.
+    let (o1, p1) = export("a.pdf", "1", "1700000000");
+    assert_eq!(o1.status.code(), Some(0), "{}", stderr(&o1));
+    let (o4, p4) = export("b.pdf", "4", "1700000000");
+    assert_eq!(o4.status.code(), Some(0), "{}", stderr(&o4));
+    let (a, b) = (std::fs::read(&p1).unwrap(), std::fs::read(&p4).unwrap());
+    assert!(a == b, "1 and 4 threads differ");
+    use sha2::{Digest, Sha256};
+    assert_ne!(format!("{:x}\n", Sha256::digest(&a)), expected("pdf/sha256.txt"));
+    let text = String::from_utf8_lossy(&a);
+    assert!(
+        text.contains("2023-11-14") || text.contains("D:20231114"),
+        "the PDF carries the date of SOURCE_DATE_EPOCH"
+    );
+    let (bad, out) = export("c.pdf", "1", "yesterday");
+    assert_eq!(bad.status.code(), Some(2), "{}", stderr(&bad));
+    assert!(stderr(&bad).contains("SOURCE_DATE_EPOCH"), "{}", stderr(&bad));
+    assert!(!out.exists());
+}
+
+/// `ew export svg` replaces the directory's SVG set as a whole (no stale page of an earlier export stays) and
+/// refuses a directory that holds another file, leaving it untouched.
+#[test]
+fn export_svg_replaces_the_set_and_keeps_other_files() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let dir = t.0.join("svg");
+    let svg = |pages: &str, dir: &std::path::Path| {
+        ew_isolated(
+            &home,
+            &[
+                "export".as_ref(),
+                "svg".as_ref(),
+                GOLDEN_A.as_ref(),
+                "--out".as_ref(),
+                dir.as_os_str(),
+                "--pages".as_ref(),
+                pages.as_ref(),
+            ],
+        )
+    };
+    assert_eq!(svg("1,2,101", &dir).status.code(), Some(0));
+    assert_eq!(svg("101-106", &dir).status.code(), Some(0));
+    let files: Vec<String> = tree(&dir).into_keys().collect();
+    assert_eq!(files, ["101.svg", "102.svg", "103.svg", "106.svg"]);
+    let mixed = t.0.join("mixed");
+    std::fs::create_dir_all(&mixed).unwrap();
+    std::fs::write(mixed.join("notes.txt"), "keep").unwrap();
+    let o = svg("101", &mixed);
+    assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
+    assert!(stderr(&o).contains("notes.txt"), "{}", stderr(&o));
+    let files: Vec<String> = tree(&mixed).into_keys().collect();
+    assert_eq!(files, ["notes.txt"]);
+    assert_eq!(std::fs::read_to_string(mixed.join("notes.txt")).unwrap(), "keep");
+}
+
+/// `ew apply` refuses a project whose crashed session left a journal (exit 2, naming the recovery), and applies
+/// nothing.
+#[test]
+fn apply_refuses_a_project_with_a_crashed_session_journal() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let project = golden_copy(&t);
+    // A session that commits one edit and is dropped without a save or a clean close: its journal stays.
+    let mut store = ew_api::StoreOptions::new("test");
+    store.state_dir = Some(isolated_state_dir(&home));
+    let (mut session, _) = ew_api::Session::open(
+        &project,
+        store,
+        ew_api::SessionOptions::default(),
+        ew_api::Recovery::Keep,
+    )
+    .unwrap();
+    session
+        .execute(&ew_api::AnyCommand {
+            name: "page.create".into(),
+            params: serde_json::json!({"number": 7777, "title": {"en": "T"}}),
+        })
+        .unwrap();
+    drop(session);
+    let before = tree(&project);
+    let log = std::path::Path::new(VARIANTS).join("b2-renumber-pages.ewcmd");
+    let o = ew_isolated(&home, &["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
+    assert_eq!(o.status.code(), Some(2), "{}{}", stdout(&o), stderr(&o));
+    assert!(stderr(&o).contains("ew recover"), "{}", stderr(&o));
+    assert!(tree(&project) == before, "nothing is applied");
 }
