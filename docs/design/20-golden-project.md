@@ -601,9 +601,9 @@ bond (FR-CON-014, D-22). W27 is listed in the wire list with potential "0V ⇄ P
 | 4 | 101.7 | 101 | 1X1:1 internal | S51:2 | L | 2.5 (CDP) BK (profile), marker below S51 | — |
 | 5 | 101.6 | 101 | 1X1:2 internal | S51:4 | N | 2.5 (CDP) BU (profile) | — |
 | 6 | 101.8 | 101 | 1X1:PE internal | -XPE:PE | PE | 1.5 GNYE (rule) ▲U-19 | EF-06 |
-| 7 | 101.5 | 101 | S51:1 | -101F1:1 | L-S | 2.5 (CDP) BK (profile), marker above S51 | chain at -101F1:1 |
+| 7 | 101.5 | 101 | S51:1 | -101F1:1 | L-S | 2.5 (CDP) BK (profile), marker above S51 | chain on -101F1:1 |
 | 8 | 101.9 | 101 | -101F1:1 | F55:1 | L-S | 1.5 BK (rule) | chain |
-| 9 | 101.4 | 101 | S51:3 | -101F1:N#1 | N-S | 2.5 (CDP) BU (profile) | chain at -101F1:N#1 |
+| 9 | 101.4 | 101 | S51:3 | -101F1:N#1 | N-S | 2.5 (CDP) BU (profile) | chain on -101F1:N#1 |
 | 10 | 101.10 | 101 | -101F1:N#1 | F55:N#1 | N-S | 1.5 BU (rule) | chain |
 | 11 | 101.11 | 101→102 | -101F1:2 | -102G1:L | L-1 | 1.5 BK (rule) | IP L-1 |
 | 12 | 101.12 | 101→102 | -101F1:N#2 | -102G1:N | N-1 | 1.5 BU (rule) | IP N-1 |
@@ -881,15 +881,15 @@ screw-mounted test part ([12](12-panel-layout.md) §10).
 |---|---|---|---|---|---|---|---|
 | 1 | 1 | pc | Festo | 532216 | PROFIBUS DP plug with terminating resistor | -3X1 | 3 |
 | 2 | ▲U-21 | m | Siemens | 6XV1830-0EH10 | PROFIBUS FC standard cable | -3W1 | 3 |
-| 3 | 1 | pc | Eaton | 533356 ▲U-16 | Main switch, 2-pole, 40 A | S51 | 101 |
+| 3 | 1 | pc | Eaton | 533356 ▲U-16 | Main switch, 2-pole | S51 | 101 |
 | 4 | 2 | pc | Phoenix Contact | UK 5 N | Feed-through terminal | 1X1:1, 1X1:2 | 101 |
 | 5 | 1 | pc | Phoenix Contact | USLKG 5 ▲U-17 | PE terminal | 1X1:PE | 101 |
-| 6 | 1 | pc | Schneider Electric | A9P52610 | Miniature circuit breaker 1P+N, C, 10 A | -101F1 | 101 |
-| 7 | 1 | pc | Siemens | 5SY4204-7 | Miniature circuit breaker 1P+N, C, 4 A | F55 | 101 |
+| 6 | 1 | pc | Schneider Electric | A9P52610 | Miniature circuit breaker 1P+N | -101F1 | 101 |
+| 7 | 1 | pc | Siemens | 5SY4204-7 | Miniature circuit breaker 1P+N | F55 | 101 |
 | 8 | 1 | pc | Rittal | SK 3110.000 | Thermostat | T55 | 101 |
 | 9 | 1 | pc | Rittal | SK 3102.000 | Enclosure heater ▲U-14 | E55 | 101 |
-| 10 | 1 | pc | Phoenix Contact | 2904602 | Power supply 1 AC / 24 V DC / 20 A | -102G1 | 102 |
-| 11 | 1 | pc | Schneider Electric | A9F78116 | Miniature circuit breaker 1P, B, 16 A | -102F1 | 102 |
+| 10 | 1 | pc | Phoenix Contact | 2904602 | Power supply 1 AC / DC | -102G1 | 102 |
+| 11 | 1 | pc | Schneider Electric | A9F78116 | Miniature circuit breaker 1P | -102F1 | 102 |
 | 12 | 1 | pc | Murrelektronik | MICO 4.10 ▲U-15 | Electronic load distribution, 4 channels | -102F2 | 102 |
 | 13 | 20 ▲U-09 | pc | Phoenix Contact | PT 2.5-TWIN | Feed-through terminal, 3 connections | -X1031:1 … 20 | 103 |
 | 14 | 5 | pc | Phoenix Contact | PT 2.5-TWIN-PE | PE terminal, 3 connections | -X1032:1 … 5 | 103 |
