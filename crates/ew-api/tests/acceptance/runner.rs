@@ -24,7 +24,6 @@ use ew_dl::FontKey;
 use ew_export::{Parallelism, PdfOutput, PdfPage, pdf};
 use ew_import_tables::ew_interop_api::ImportBatch;
 use ew_render_cpu::FontBytes;
-use ew_scene::page::page_scene;
 
 use crate::golden_common;
 use crate::golden_files::text_csv;
@@ -86,10 +85,11 @@ impl Ctx {
         let view = golden_session(None);
         let q = view.query();
         let pages = golden_pages(&q);
+        // The page text as the shipped export job draws it (the memoised layers of `ew_api::output`).
         let text = pages
             .iter()
             .map(|g| {
-                let scene = page_scene(&g.view, ew_text::bundled());
+                let scene = ew_api::output::page_scene(&q, &g.entry);
                 (g.entry.folio.clone(), text_csv(&scene))
             })
             .collect();

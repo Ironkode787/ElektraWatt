@@ -283,6 +283,11 @@ pub fn all(r: &mut Runner) {
     );
     r.entry(
         "AC-15",
+        "the shipped PDF export over path (c), the checked-in fixture, writes the PDF of path (a)",
+        ac15_export_paths,
+    );
+    r.entry(
+        "AC-15",
         "build path (b), the builder DSL, produces the same expected CSVs",
         |_| not_built("the builder DSL (the golden builders of ew-testkit, WP-S6.01) does not exist yet"),
     );
@@ -1989,20 +1994,55 @@ fn ac17_open(_: &Ctx) -> Outcome {
     outcome
 }
 
-fn ac17_pdf(c: &Ctx) -> Outcome {
-    let view = golden_session(None);
-    let q = view.query();
+/// AC-17's PDF export: `ew export pdf` of the checked-in fixture, the shipped export job (opened outside the
+/// measurement).
+fn ac17_pdf(_: &Ctx) -> Outcome {
+    let session = match fixture_session() {
+        Ok(s) => s,
+        Err(e) => return fail(e),
+    };
     let started = std::time::Instant::now();
-    let pages = pdf_pages(&q, Parallelism::Serial);
-    let out = ew_export::pdf(&pages, &pdf_options(&q), &c.fonts, None);
+    let out = session.export_pdf(&ew_api::output::ExportOptions::default());
     let elapsed = started.elapsed().as_secs_f64();
     match out {
-        Ok(_) if elapsed <= 3.0 => pass(format!("{} pages exported in {elapsed:.3} s", pages.len())),
-        Ok(_) => fail(format!(
+        Ok(o) if elapsed <= 3.0 => pass(format!("{} pages exported in {elapsed:.3} s", o.pages)),
+        Ok(o) => fail(format!(
             "{} pages exported in {elapsed:.3} s, the limit is 3 s",
-            pages.len()
+            o.pages
         )),
-        Err(e) => fail(format!("the export failed: {e:?}")),
+        Err(e) => fail(format!("the export failed: {e}")),
+    }
+}
+
+/// AC-15 and G-M1-01: the shipped export job over build path (c), the checked-in fixture opened as `ew export pdf`
+/// opens it, writes the PDF of path (a), the bootstrapped model (`expected/pdf/sha256.txt`), with the bundled
+/// fonts only.
+fn ac15_export_paths(_: &Ctx) -> Outcome {
+    let session = match fixture_session() {
+        Ok(s) => s,
+        Err(e) => return fail(e),
+    };
+    let out = match session.export_pdf(&ew_api::output::ExportOptions::default()) {
+        Ok(o) => o,
+        Err(e) => return fail(format!("the export failed: {e}")),
+    };
+    let sha = format!("{:x}\n", Sha256::digest(&out.bytes));
+    let mut wrong = Vec::new();
+    if let Err(e) = same_as_expected("pdf/sha256.txt", sha.as_bytes()) {
+        wrong.push(e);
+    }
+    let bundled: BTreeSet<_> = ew_text::bundled().faces().map(|f| f.key).collect();
+    if out.report.fonts.iter().any(|k| !bundled.contains(k)) || !out.report.missing_fonts.is_empty() {
+        wrong.push("a font that is not bundled is embedded or missing".to_owned());
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "Session::export_pdf over golden/J-E-2416.ew (read-only, as ew export pdf opens it) writes the {} pages of the PDF of expected/pdf/sha256.txt, embedding {} bundled faces and nothing else",
+            out.pages,
+            out.report.fonts.len()
+        ))
+    } else {
+        fail(wrong.join("; "))
     }
 }
 
@@ -3038,11 +3078,13 @@ fn ac14_shuffle(c: &Ctx) -> Outcome {
     if let Err(e) = same_svg(&svg(&pages_s), &svg(&c.pdf_pages)) {
         wrong.push(e);
     }
-    let text_s: BTreeMap<String, String> = crate::view::golden_pages(&qs)
+    let text_s: BTreeMap<String, String> = qs
+        .get::<PageOrder>(())
+        .entries
         .iter()
-        .map(|g| {
-            let scene = page_scene(&g.view, ew_text::bundled());
-            (g.entry.folio.clone(), crate::golden_files::text_csv(&scene))
+        .map(|e| {
+            let scene = ew_api::output::page_scene(&qs, e);
+            (e.folio.clone(), crate::golden_files::text_csv(&scene))
         })
         .collect();
     if text_s != c.text {
@@ -3116,8 +3158,8 @@ fn ac14_shuffle(c: &Ctx) -> Outcome {
 }
 
 /// AC-14, FR-OUT-013, FR-OUT-019: the SVG export (one file per page from the page scene the PDF draws, every
-/// glyph run as `<text>`, every link resolving) and the page phase of `pdf_pages` on 2 and 8 threads give
-/// the bytes of the serial export.
+/// glyph run as `<text>`, every link resolving) and the page phase of the shipped export job
+/// (`ew_api::output::export_pages`, `par_map`) on 2 and 8 threads give the bytes of the serial export.
 fn ac14_parallel(c: &Ctx) -> Outcome {
     let serial = ew_export::svg(&c.pdf_pages, &svg_options(), None, Parallelism::Serial);
     let Ok(out) = &serial else {
@@ -3153,10 +3195,12 @@ fn ac14_parallel(c: &Ctx) -> Outcome {
     }
     let hrefs: usize = out.files.iter().map(|f| f.text.matches("href=\"").count()).sum();
     let view = golden_session(None);
-    let options = pdf_options(&view.query());
+    let q = view.query();
+    let options = pdf_options(&q);
     for threads in [2, 8] {
         let p = Parallelism::threads(threads);
-        let pages = crate::pdf_support::pdf_pages_of(&c.pages, p);
+        // The shipped export job (`ew_api::output::export_pages`): its page phase on `par_map`.
+        let pages = pdf_pages(&q, p);
         if pages != c.pdf_pages {
             wrong.push(format!("{threads} threads: the page display lists differ"));
             continue;
@@ -3172,7 +3216,7 @@ fn ac14_parallel(c: &Ctx) -> Outcome {
     }
     if wrong.is_empty() {
         pass(format!(
-            "{} SVG files (one per page, {} glyph runs as <text>, {} links as in the PDF, all {hrefs} hrefs resolve to a file and an id; SHA-256 {}); the page phase on 2 and 8 threads gives the serial display lists, PDF and SVG byte for byte",
+            "{} SVG files (one per page, {} glyph runs as <text>, {} links as in the PDF, all {hrefs} hrefs resolve to a file and an id; SHA-256 {}); the shipped export job (ew_api::output, the page phase on par_map) on 2 and 8 threads gives the serial display lists, PDF and SVG byte for byte",
             out.files.len(),
             r.texts,
             r.links,
@@ -3569,10 +3613,11 @@ fn ac16(r: &mut Runner) {
 /// The text CSV of one folio of `s`, as the page output generates it.
 fn folio_text(s: &Session, folio: &str) -> Result<String, String> {
     let q = s.query();
-    crate::view::golden_pages(&q)
+    q.get::<PageOrder>(())
+        .entries
         .iter()
-        .find(|g| g.entry.folio == folio)
-        .map(|g| crate::golden_files::text_csv(&page_scene(&g.view, ew_text::bundled())))
+        .find(|e| e.folio == folio)
+        .map(|e| crate::golden_files::text_csv(&ew_api::output::page_scene(&q, e)))
         .ok_or_else(|| format!("folio {folio} is not drawn"))
 }
 

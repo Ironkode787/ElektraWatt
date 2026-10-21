@@ -247,8 +247,8 @@ sessions (G6).
 | `ew-import-catalog` | GPL | Parts from CSV/XLSX (MVP), BMEcat and ETIM xChange (1.x), behind `ew-interop-api` | csv, calamine, quick-xml |
 | `ew-import-tables` | GPL | The golden CSV bootstrap behind `ew import csv`, the round-trip table reader and translation tables; reused by `ew-testkit`; the bootstrap importer TablesImporter reads a directory of tables (ADR-0021 amendment 6) | ew-interop-api, ew-schema, ew-units, ew-ids, ew-mltext, ew-rds (as ew-import-qet); serde, serde_json, sha2; an own bounded RFC-4180 reader (no csv crate yet); later: csv, calamine (round-trip reader) |
 | `ew-script`, `ew-plugin-host` | GPL | rhai automation bindings over queries and commands (profile from `ew-rhai`); WIT world and host on the wasmtime LTS line current at plugin launch (48.x in development), plugin export roles (§10.4), plugin rule implementations registered into `ew-checks`, the `secret-get` capability (v1.x) | ew-rhai; wasmtime LTS, wit-bindgen 0.63.0 |
-| `ew-jobs` | GPL | Scheduler, progress, cancellation, staleness tagging, adopt-if-unchanged | rayon |
-| `ew-api` | GPL | The `Session` facade shared by every front-end; registers the SQL and plugin rule implementations at session start; composes `.ewpp` export jobs from `ew-mfg` data, `ew-export` PDF/DXF and `ew-panel` glb | v0: ew-commands, ew-checks (the shipped prevent hook, `Session::check` and the migration scheme on imports, decision log ID-306, ID-312), ew-derive (normal edge: the Session surfaces derivation findings, tracked reads only), ew-reports (the Session installs the report engine on every `Q`, decision log ID-126), ew-model, ew-schema (no `raw-read`); dev: ew-commands/testkit, ew-derive, ew-model/raw-read, ew-text, ew-dl, ew-render-cpu, ew-ids, ew-units, ew-mltext, png, sha2, insta (the page-output goldens of WP-S3.04); eventually everything above except UI |
+| `ew-jobs` | GPL | Scheduler, progress, cancellation, staleness tagging, adopt-if-unchanged; an empty stub so far: the export job of `ew-api` (FT-59) is synchronous and runs its page phase on `ew_export::par_map` | rayon |
+| `ew-api` | GPL | The `Session` facade shared by every front-end; registers the SQL and plugin rule implementations at session start; composes `.ewpp` export jobs from `ew-mfg` data, `ew-export` PDF/DXF and `ew-panel` glb; the page-output export job (cycle 15, FT-59: the page views, one memoised `page_display_list` family per layer, PDF and SVG) | v0: ew-commands, ew-checks (the shipped prevent hook, `Session::check` and the migration scheme on imports, decision log ID-306, ID-312), ew-derive (normal edge: the Session surfaces derivation findings, tracked reads only), ew-reports (the Session installs the report engine on every `Q`, decision log ID-126), ew-model, ew-schema (no `raw-read`), ew-scene and ew-export (the export job), ew-text (the bundled fonts it shapes with and embeds) and ew-dl (the layer types; normal edges since FT-59); dev: ew-commands/testkit, ew-derive, ew-model/raw-read, ew-render-cpu, ew-ids, ew-units, ew-mltext, png, sha2, insta (the page-output goldens of WP-S3.04); eventually everything above except UI |
 | `ew-viewmodel` | GPL | Toolkit-agnostic panel models: navigator trees, table rows with edit→command mapping, property-grid rows with provenance, message lists, each with a revision stamp | ew-api |
 | `ew-ui` | GPL | egui widgets, canvas host, tools (state machines), command palette, keymaps, the action registry behind every menu, the 3D transform gizmo over `ew-render3d`'s camera and pick API | egui 0.37.0, egui_tiles 0.17.1, egui_table 0.10.0, egui_ltreeview 0.9.0, transform-gizmo-egui 0.11.0 |
 | `ew-viewer` (1.0) | GPL | The read-only `.ewpp` wiring viewer on `ew-ui` widgets, used by the `ew-wiring-viewer` binary and the "Preview package" view of the Manufacturing workspace | ew-ewpp, ew-ui, ew-render-cpu, hayro 0.8.0 (after the fidelity check) |
@@ -347,7 +347,7 @@ graph TD
   itab --> iapi & schema & units & ids & mltext & rds
   script --> cmd & rhai
   plug --> cmd & sqlv & checks
-  api --> store & cmd & derive & checks & sqlv & lib & scene & exp & plc & panel & mfg & imp & icat & itab & script & plug & jobs & model & schema & rep
+  api --> store & cmd & derive & checks & sqlv & lib & scene & exp & plc & panel & mfg & imp & icat & itab & script & plug & jobs & model & schema & rep & text & dl
   vm --> api
   ui --> vm & r2d & rcpu & r3d
   viewer --> ewpp & ui & rcpu
@@ -358,7 +358,7 @@ graph TD
   testkit --> itab & model & schema & ids & units & mltext & rds
   testkit -. dev .-> api & cmd & derive
   derive -. dev .-> cmd
-  api -. dev .-> text & dl & rcpu & ids & units & mltext
+  api -. dev .-> rcpu & ids & units & mltext
   rcpu -. dev .-> text & units
   exp -. dev .-> text & units
   rep -. dev .-> model
@@ -863,7 +863,7 @@ take the whole value as a cut-off point (`Q::get_value_part`).
 | `report_block_pages(block, toc_pages)` (`ew-reports`) | `report_rows`, form layouts, the block's numbering | Memo + LRU | Generated pages with IDs `v5(block, index)`; `toc_pages` matters only for a TOC, other blocks are keyed 0; feeds `page_order` through the provider ([09](09-reports-forms-output.md) §3.2) |
 | `toc_rows()`, `title_block(pageref)` (struct `TitleBlockValues`), `layout_label(placement)` (not built yet) | page order, project data, overrides, revisions, tags | Memo | Bound fields only; overrides explicit and flagged (D-05, D-06, D-02) |
 | `checks(scope)` (page, potential, strip, station) | rule inputs | Memo | Online message panel (§12). As built (cycle 12, decision log ID-305): `check_findings(rule, scope)` with the scope kinds project, page, strip, device, cable and potential; severity, supersession and waivers apply on top |
-| `page_display_list(page, layer, lang)` | per-layer inputs | Memo + LRU | Schematic layers: frame, symbols, wires, labels, tables, revision, highlights. Panel-page layers: surface, carriers, placements, features, dims, plus frame, labels, tables and highlights. A wire edit never rebuilds the title block. As built (cycle 7) it is a pure function over a caller-filled `PageView` (rule 7, decision log ID-125, ID-136); the memoised family arrives with the export job (FT-59) |
+| `page_display_list(page, layer, lang)` | per-layer inputs | Memo + LRU | Schematic layers: frame, symbols, wires, labels, tables, revision, highlights. Panel-page layers: surface, carriers, placements, features, dims, plus frame, labels, tables and highlights. A wire edit never rebuilds the title block. As built (cycle 7) it is a pure function over a caller-filled `PageView` (rule 7, decision log ID-125, ID-136). As built (cycle 15, FT-59): one Memo + LRU family per layer in `ew-api` (`page_display_list_frame`, `_symbols`, `_wires`, `_labels`, `_tables`; the other layers are empty) over memoised view parts (`page_frame`, `page_grid`, `page_reps`, `page_slots`, `page_cp_targets`); neutral language, no `lang` key yet |
 | `panel_front_reps(dev)` | placements of the device, surfaces | Cold | Derived panel-front representations for navigation and "show all representations" (§4.2) |
 | `layout_scene(space)` | placements, carriers, mesh refs, committed routes | Memo | Input to the 3D reconciler (§8.5) |
 | `sql_table(api_table)` | the table's sources | Class II | SQL projection (§10.2) |

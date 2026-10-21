@@ -1,83 +1,51 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The golden PDF (doc 20 §3.3 "PDF structure"): the page list and options of the golden project, the committed
-//! structure file's text and the SHA-256. Shared by `tests/page_output.rs` and the acceptance runner.
+//! The golden PDF (doc 20 §3.3 "PDF structure"): the page list and options of the golden project through the
+//! shipped export job (`ew_api::output`), the committed structure file's text and the SHA-256. Shared by
+//! `tests/page_output.rs` and the acceptance runner.
 
 use std::collections::BTreeMap;
 
+use ew_api::output::{self, ExportOptions};
 use ew_derive::Q;
 use ew_dl::FontKey;
-use ew_export::{
-    Parallelism, PdfDate, PdfOptions, PdfOutput, PdfPage, SvgFace, SvgOptions, SvgOutput, par_map, pdf,
-};
+use ew_export::{Parallelism, PdfOptions, PdfOutput, PdfPage, SvgOptions, SvgOutput, pdf};
 use ew_render_cpu::FontBytes;
-use ew_scene::page::page_scene;
 use sha2::{Digest, Sha256};
 
-use super::view::{GoldenPage, destination, golden_pages, golden_session};
+use super::view::{GoldenPage, golden_session};
 
 /// The glyphs the PDF writer drops because neither bundled font has them. The "∞" of the nine main-function
 /// cross-reference texts and the "−" and "⇄" of the report pages come from the symbol fallback face (FT-85,
 /// ADR-0028 recommendation 3), so none is dropped.
 pub const EXPECTED_DROPPED_NOTDEF_GLYPHS: usize = 0;
 
-/// The PDF page list of the golden project, the per-page phase (scene and sheet display list) under
-/// `parallelism` (FR-OUT-019; one code path for the serial and the parallel export).
+/// The PDF page list of the golden project through the shipped export job (`ew_api::output::export_pages`: the
+/// memoised layers, then the page phase on `par_map` under `parallelism`; FR-OUT-019, one code path for the
+/// serial and the parallel export).
 pub fn pdf_pages(q: &Q, parallelism: Parallelism) -> Vec<PdfPage> {
-    pdf_pages_of(&golden_pages(q), parallelism)
+    output::export_pages(
+        q,
+        &ExportOptions {
+            parallelism,
+            ..ExportOptions::default()
+        },
+    )
+    .expect("the golden pages export")
+    .pages
 }
 
-/// The PDF pages of `pages` (see [`pdf_pages`]), results by page index whatever the parallelism.
-pub fn pdf_pages_of(pages: &[GoldenPage], parallelism: Parallelism) -> Vec<PdfPage> {
-    par_map(pages, parallelism, |_, g| {
-        let scene = page_scene(&g.view, ew_text::bundled());
-        PdfPage {
-            destination: destination(g.entry.page),
-            label: g.entry.folio.clone(),
-            title: g.outline_title.clone(),
-            section: g.section_title.clone(),
-            width: scene.sheet_width,
-            height: scene.sheet_height,
-            content: scene.sheet_list(),
-        }
-    })
-}
-
-/// The export options of the golden PDF: dates from the model's edited date (FR-OUT-026).
+/// The export options of the golden PDF: the shipped job's (`ew_api::output::pdf_options`; dates from the
+/// model's edited date, FR-OUT-026).
 pub fn pdf_options(q: &Q) -> PdfOptions {
-    let m = &q.project().master;
-    let d = m
-        .edited
-        .expect("the golden model has an edited date (FR-OUT-026)");
-    let date = PdfDate::ymd(d.year(), d.month(), d.day());
-    PdfOptions {
-        title: Some(ew_scene::forms::ml_text(&m.description, None).to_owned()),
-        creator: Some(format!("ElektraWatt {}", env!("CARGO_PKG_VERSION"))),
-        document_id: format!("golden J-E-2416 {}", q.profile().version),
-        ..PdfOptions::new(date)
-    }
+    output::pdf_options(q, &ExportOptions::default(), None)
 }
 
-/// The SVG options of the golden export (used by the acceptance runner, AC-14): the bundled faces by family, weight and style.
+/// The SVG options of the golden export (used by the acceptance runner, AC-14): the shipped job's.
 #[allow(dead_code)]
 pub fn svg_options() -> SvgOptions {
-    SvgOptions {
-        monochrome: false,
-        faces: ew_text::bundled()
-            .faces()
-            .map(|f| {
-                (
-                    f.key,
-                    SvgFace {
-                        family: f.family_name.clone(),
-                        weight: f.weight.value(),
-                        italic: f.italic,
-                    },
-                )
-            })
-            .collect(),
-    }
+    output::svg_options(false)
 }
 
 /// The SHA-256 over an SVG export: every file as its name, a newline, its text, in page order.

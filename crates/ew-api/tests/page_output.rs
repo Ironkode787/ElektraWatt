@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Page output of the golden project (WP-S3.04): page display lists, PNG candidates and the PDF of every
-//! folio of `page_order`. It lives here because `ew-scene` reads derived data only through a caller-filled
-//! view, and the caller with `Q` is the session layer (see `page_output/view.rs`).
+//! Page output of the golden project (WP-S3.04, FT-59): page display lists, PNG candidates and the PDF of every
+//! folio of `page_order`, through the session's export job (`ew_api::output`: the product's page views and one
+//! memoised `page_display_list` family per layer; `page_output/view.rs` keeps the test-only loading).
 
 #[path = "page_output/golden_files.rs"]
 mod golden_files;
@@ -33,6 +33,64 @@ use pdf_support::{
     EXPECTED_DROPPED_NOTDEF_GLYPHS, pdf_options, pdf_pages, pdf_sha256, structure_text, xref_counts,
 };
 use view::{GoldenPage, builtin_symbol, destination, fonts, golden_pages, golden_session};
+
+/// The export job's page scene, assembled from the memoised layer families, equals `ew-scene`'s page scene over
+/// the full view on every page: every layer of the page's kind, the geometry, the findings and the sheet. So the
+/// partial view of each layer reads everything its layer draws.
+#[test]
+fn the_memoised_layers_equal_the_scene_of_the_full_view_on_every_page() {
+    let s = golden_session(None);
+    let q = s.query();
+    let order = q.get::<ew_derive::PageOrder>(());
+    assert_eq!(order.entries.len(), 36);
+    for entry in &order.entries {
+        let job = ew_api::output::page_scene(&q, entry);
+        let full = page_scene(&ew_api::output::page_view(&q, entry), ew_text::bundled());
+        assert!(job == full, "folio {}: the job's scene differs", entry.folio);
+    }
+    // A second pass reads the layers from the memo store: the same values.
+    let q2 = s.query();
+    for entry in &order.entries {
+        assert!(
+            ew_api::output::page_scene(&q2, entry) == ew_api::output::page_scene(&q, entry),
+            "folio {}",
+            entry.folio
+        );
+    }
+}
+
+/// `--pages`: folio labels and ranges in page order, each page once; a partial export prints the links to pages
+/// it does not hold as plain text (FR-OUT-020).
+#[test]
+fn a_page_selection_exports_those_folios_in_page_order() {
+    use ew_api::output::{ExportOptions, PageSelection};
+    let s = golden_session(None);
+    let options = |spec: &str| ExportOptions {
+        pages: PageSelection::parse(spec).expect("a selection"),
+        ..ExportOptions::default()
+    };
+    let pages = s
+        .export_pages(&options("101-106,1,103"))
+        .expect("the selection exports");
+    let labels: Vec<&str> = pages.pages.iter().map(|p| p.label.as_str()).collect();
+    assert_eq!(labels, ["1", "101", "102", "103", "106"]);
+    let all = s
+        .export_pages(&ExportOptions::default())
+        .expect("everything exports");
+    assert_ne!(pages.options.document_id, all.options.document_id);
+    let pdf = s.export_pdf(&options("101-106")).expect("a partial PDF");
+    assert_eq!(pdf.pages, 4);
+    assert!(pdf.report.plain_text_links > 0, "{:?}", pdf.report);
+    for bad in ["104", "106-101", "x-y"] {
+        assert!(
+            matches!(
+                s.export_pages(&options(bad)),
+                Err(ew_api::output::OutputError::Selection(_))
+            ),
+            "{bad}"
+        );
+    }
+}
 
 #[test]
 fn the_golden_pdf_has_every_folio_and_is_byte_identical_across_runs_and_record_shuffles() {

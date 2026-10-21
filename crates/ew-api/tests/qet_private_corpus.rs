@@ -19,9 +19,8 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use ew_api::import::{StarterLibrary, import_qet};
+use ew_api::output::{ExportOptions, PdfDate};
 use ew_derive::{DeviceTag, PageOrder, PotentialPartition};
-use ew_export::{PdfDate, PdfOptions, PdfPage, pdf};
-use ew_scene::page::page_scene;
 use ew_schema::Record;
 
 #[test]
@@ -106,37 +105,19 @@ fn the_private_corpus_imports_derives_and_exports() {
             partition.potentials().count(),
             devices.len()
         );
-        let pages: Vec<PdfPage> = view::golden_pages(&q)
-            .into_iter()
-            .map(|g| {
-                let scene = page_scene(&g.view, ew_text::bundled());
-                PdfPage {
-                    destination: view::destination(g.entry.page),
-                    label: g.entry.folio.clone(),
-                    title: g.outline_title.clone(),
-                    section: g.section_title.clone(),
-                    width: scene.sheet_width,
-                    height: scene.sheet_height,
-                    content: scene.sheet_list(),
-                }
+        drop(q);
+        // The shipped export job (`Session::export_pdf`, FT-59) with a fixed date.
+        let out = session
+            .export_pdf(&ExportOptions {
+                date: Some(PdfDate::ymd(2026, 1, 1)),
+                ..ExportOptions::default()
             })
-            .collect();
-        let out = pdf(
-            &pages,
-            &PdfOptions::new(PdfDate::ymd(2026, 1, 1)),
-            &view::fonts(),
-            None,
-        )
-        .unwrap_or_else(|e| panic!("{name}: PDF export failed: {e:?}"));
+            .unwrap_or_else(|e| panic!("{name}: PDF export failed: {e}"));
         let pdf_pages = page_objects(&out.bytes);
         println!("{name}: PDF {pdf_pages} pages, {} bytes", out.bytes.len());
+        assert_eq!(pdf_pages, out.pages, "{name}: one page object per exported page");
         assert_eq!(
-            pdf_pages,
-            pages.len(),
-            "{name}: one page object per exported page"
-        );
-        assert_eq!(
-            pages.len(),
+            out.pages,
             order.entries.len(),
             "{name}: one PDF page per page-order entry"
         );

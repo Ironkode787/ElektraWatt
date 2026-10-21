@@ -4,15 +4,16 @@
 //! `ew verify-derived`: the memoised derived data against a cold recomputation (FR-EXT-005, NFR-REL-08,
 //! doc 18 §3.4).
 //!
-//! [`sweep`] reads every `Memo` and `MemoLru` family of `ew_derive::FAMILIES` and `ew_reports::FAMILIES` (the
-//! report rows, the generated pages and the tag classes) at every key of the snapshot through a memoising [`Q`]
-//! and through a cold one, and lists the keys whose values differ.
+//! [`sweep`] reads every `Memo` and `MemoLru` family of `ew_derive::FAMILIES`, `ew_reports::FAMILIES` (the
+//! report rows, the generated pages and the tag classes) and [`crate::output::FAMILIES`] (the page views and the
+//! per-layer page display lists of the export job) at every key of the snapshot through a memoising [`Q`] and
+//! through a cold one, and lists the keys whose values differ.
 //! [`verify_derived`] runs it over a session twice (the second pass reads mostly memo hits) and adds the
 //! mismatches that the session's own oracle found while the sweep ran ([`MemoMode::Oracle`](crate::MemoMode)).
 //! The acceptance runner calls it after each scripted edit of AC-16, the CLI after opening a project.
 //!
-//! The family list [`SWEPT`] is pinned against both `FAMILIES` lists by `tests/verify.rs` (a promotion or demotion
-//! of a family breaks that test).
+//! The family list [`SWEPT`] is pinned against the three `FAMILIES` lists by `tests/verify.rs` (a promotion or
+//! demotion of a family breaks that test).
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -32,10 +33,14 @@ use ew_schema::{
     Representation,
 };
 
+use crate::output::{
+    FrameLayer, LabelsLayer, PageCpTargetsOf, PageFrameOf, PageGridOf, PageRepsOf, PageSlotsOf, SymbolsLayer,
+    TablesLayer, WiresLayer,
+};
 use crate::{Mismatch, Session};
 
-/// The families the sweep reads: the `Memo` and `MemoLru` families of `ew_derive::FAMILIES` and
-/// `ew_reports::FAMILIES`, sorted.
+/// The families the sweep reads: the `Memo` and `MemoLru` families of `ew_derive::FAMILIES`,
+/// `ew_reports::FAMILIES` and `ew_api::output::FAMILIES`, sorted.
 pub const SWEPT: &[&str] = &[
     "bom_rows",
     "bond_index",
@@ -60,9 +65,19 @@ pub const SWEPT: &[&str] = &[
     "ip_pairing",
     "module_order",
     "module_starts",
+    "page_cp_targets",
+    "page_display_list_frame",
+    "page_display_list_labels",
+    "page_display_list_symbols",
+    "page_display_list_tables",
+    "page_display_list_wires",
+    "page_frame",
+    "page_grid",
     "page_ids",
     "page_local_nets",
     "page_order",
+    "page_reps",
+    "page_slots",
     "pageless_links",
     "physical_wires_of",
     "plc_rows",
@@ -255,6 +270,17 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<WireProfilesQ>(memo, cold, [()], o);
     check::<WirePropsOf>(memo, cold, keys.potentials.iter().copied(), o);
     check::<XrefTextOf>(memo, cold, keys.reps.iter().copied(), o);
+    // The page output (FT-59): the memoised parts of the page views and the page display list of every layer.
+    check::<PageFrameOf>(memo, cold, keys.page_refs.iter().copied(), o);
+    check::<PageGridOf>(memo, cold, keys.page_refs.iter().copied(), o);
+    check::<PageRepsOf>(memo, cold, keys.pages.iter().copied(), o);
+    check::<PageSlotsOf>(memo, cold, keys.pages.iter().copied(), o);
+    check::<PageCpTargetsOf>(memo, cold, keys.pages.iter().copied(), o);
+    check::<FrameLayer>(memo, cold, keys.page_refs.iter().copied(), o);
+    check::<SymbolsLayer>(memo, cold, keys.page_refs.iter().copied(), o);
+    check::<WiresLayer>(memo, cold, keys.page_refs.iter().copied(), o);
+    check::<LabelsLayer>(memo, cold, keys.page_refs.iter().copied(), o);
+    check::<TablesLayer>(memo, cold, keys.page_refs.iter().copied(), o);
     out
 }
 

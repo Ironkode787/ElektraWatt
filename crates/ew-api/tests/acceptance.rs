@@ -9,9 +9,10 @@
 //! `tests/page_output.rs` and `tests/connectivity_reports.rs` (text CSV, frame geometry, PNG, PDF structure and
 //! SHA-256, report rows); they live in `tests/page_output/` and `tests/golden_common/` and are included here.
 //!
-//! The runner lives in this test crate because the page output pipeline (display lists, PNG, PDF) is test
-//! code in v0: `ew-scene` reads derived data through a caller-filled view that only the session layer fills
-//! (`tests/page_output/view.rs`). It moves to `ew-testkit` (`ew-testkit accept --gate`) with that view.
+//! The page output is the product's since cycle 15 (FT-59): the views, the per-layer page display lists and the
+//! PDF and SVG export are the session's export job (`ew_api::output`), which AC-13, AC-14, AC-15 and AC-17 run.
+//! The runner stays in this test crate for its shared helpers (`tests/page_output/`, `tests/golden_common/`); it
+//! moves to `ew-testkit` (`ew-testkit accept --gate`) with the golden builders (WP-S6.01).
 //!
 //! - `cargo xtask acceptance <report.md>` runs the gate: the `#[ignore]`d test `gate` writes the report and
 //!   fails when any entry fails or is not built (exit status non-zero).
@@ -46,7 +47,7 @@ use report::Status;
 use runner::{Options, run};
 
 /// The (pass, fail, not_built, not_applicable) counts of the headless report; updated with the committed report.
-const EXPECTED: (usize, usize, usize, usize) = (81, 0, 6, 5);
+const EXPECTED: (usize, usize, usize, usize) = (82, 0, 6, 5);
 
 /// The committed report of the headless run without the raster comparison (`expected/acceptance_headless.md`):
 /// the ordinary test runs the runner once and compares its report with this file, which pins the statuses and

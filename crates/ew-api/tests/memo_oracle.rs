@@ -13,7 +13,8 @@
 //!
 //! Tests:
 //! - `memo_equals_cold_over_every_state` (`MemoMode::On`): at every state every `Memo`/`MemoLru` family of
-//!   `ew_derive::FAMILIES` (`potential_flow` is a cold lookup, decision log ID-221) is read for every key of
+//!   `ew_derive::FAMILIES` (`potential_flow` is a cold lookup, decision log ID-221), `ew_reports::FAMILIES` and
+//!   `ew_api::output::FAMILIES` (the page views and the page display list of every layer) is read for every key of
 //!   the snapshot through a memoising `Q` and through `Session::query_over`; the values are equal, so are the
 //!   derivation notes, and a second memoising `Q` (mostly memo hits) is equal again, with hits in the
 //!   commit statistics.
@@ -45,7 +46,8 @@ use ew_model::{AnyRow, EndpointKey, Model, Op};
 use ew_schema::{Kind, Page, Record};
 use serde_json::{Value, json};
 
-// The families this test reads: the memoised families of both `FAMILIES` lists (`ew_api::verify`).
+// The families this test reads: the memoised families of the three `FAMILIES` lists (`ew_api::verify`): the
+// derived data, the report engine and the page output (the views and the per-layer page display lists, FT-59).
 use ew_api::verify::SWEPT;
 
 /// The oracle samples one memoised read in this many (see `oracle_finds_no_mismatch_over_every_state`).
@@ -565,6 +567,7 @@ fn assert_family_list() {
     let mut memoised: Vec<&str> = FAMILIES
         .iter()
         .chain(ew_reports::FAMILIES)
+        .chain(ew_api::output::FAMILIES)
         .filter(|(_, p)| matches!(p, Policy::Memo | Policy::MemoLru))
         .map(|(n, _)| *n)
         .collect();

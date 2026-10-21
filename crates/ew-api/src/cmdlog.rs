@@ -40,7 +40,7 @@ use serde_json::{Map, Value};
 use ew_derive::{DeviceTag, PageOrder, PageRef, Q};
 use ew_schema::AnyId;
 
-use crate::{AnyCommand, CmdError, Origin, Receipt, Session, Submit};
+use crate::{AnyCommand, CmdError, DerivedDiff, ModelDiff, Origin, Receipt, Session, Submit, World};
 
 /// The `$schema` of a command log header.
 pub const SCHEMA: &str = "ew.cmdlog/1";
@@ -236,7 +236,30 @@ impl CmdLog {
     }
 }
 
+/// What the session's model and derived values changed since a snapshot (`ew apply --preview`, doc 17 §3.5): the
+/// `diff_model` summary (entity and field changes, never values) and the v0 `diff_query` (printed tags and
+/// cross-reference texts).
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct ScriptDiff {
+    /// The entity and field changes, in key order.
+    pub model: ModelDiff,
+    /// The printed tags and cross-reference texts that differ.
+    pub derived: DerivedDiff,
+}
+
 impl Session {
+    /// The changes from `before` (a snapshot of this session taken earlier, [`Session::world`]) to the current
+    /// snapshot: what a replay did (see [`ScriptDiff`]). O(model).
+    ///
+    /// # Errors
+    ///
+    /// [`CmdError`] when a record does not serialise (an internal error).
+    pub fn diff_from(&self, before: &World) -> Result<ScriptDiff, CmdError> {
+        let model = ew_commands::diff_model(&before.model, &self.world().model)?;
+        let derived = ew_commands::derived_diff(&self.query_over(&before.model), &self.query());
+        Ok(ScriptDiff { model, derived })
+    }
+
     /// Replays a command log (doc 17 §3.5; see the module documentation): every line is one transaction
     /// with origin [`Origin::CmdLog`] named `file`, so one [`Session::undo`] takes back one line. Returns the
     /// receipts in order.

@@ -25,12 +25,10 @@ use ew_api::{BomMode, Export, Session};
 use ew_derive::{DeviceTag, Oracle, PageOrder, PropSource, Q, RepAnchorCell, XrefTextOf};
 use ew_ids::Id;
 use ew_reports::export::export_csv;
-use ew_scene::page::page_scene;
 use ew_schema::Representation;
 
 use crate::golden_common::{self, all_props, repo, rows_csv, rows_of};
 use crate::golden_files::text_csv;
-use crate::view::golden_pages;
 
 use super::checks::runs;
 use super::runner::Ctx;
@@ -113,12 +111,12 @@ fn snap(c: &Ctx, q: &Q) -> Result<Snap, String> {
         cables: export(Export::Cables)?,
         wires: rows_csv(q, &rows_of(q, &c.batch, "907")),
         potentials: rows_csv(q, &rows_of(q, &c.batch, "909")),
-        texts: golden_pages(q)
+        // The shipped export job's page scenes: the memoised layers of the session after the edit.
+        texts: q
+            .get::<PageOrder>(())
+            .entries
             .iter()
-            .map(|g| {
-                let scene = page_scene(&g.view, ew_text::bundled());
-                (g.entry.folio.clone(), text_csv(&scene))
-            })
+            .map(|e| (e.folio.clone(), text_csv(&ew_api::output::page_scene(q, e))))
             .collect(),
         labels: q
             .get::<PageOrder>(())

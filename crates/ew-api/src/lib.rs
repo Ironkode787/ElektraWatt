@@ -20,9 +20,13 @@
 //! **Command logs** (doc 17 §3.5). [`Session::run_script`] replays a parsed [`CmdLog`] (`.ewcmd`, JSON Lines):
 //! one transaction per line with origin [`Origin::CmdLog`], so one [`Session::undo`] takes back one line.
 //!
+//! **Page output** (FT-59, [`output`]). [`Session::export_pdf`] and [`Session::export_svg`] run the export job: the
+//! page views and one memoised `page_display_list` family per layer through the session's memo store, the page
+//! phase on `ew_export::par_map`, then the PDF or SVG writer with the bundled fonts.
+//!
 //! Not in v0: the memo snapshot in [`World`] and the job pool for previews (WP-S1.05), rule registration
-//! (WP-S1.15), export jobs, the save on a writer thread, and the undo history of a recovered session
-//! (FR-COL-028: a recovered session opens dirty with an empty history).
+//! (WP-S1.15), progress and cancellation of export jobs (`ew-jobs`), the save on a writer thread, and the undo
+//! history of a recovered session (FR-COL-028: a recovered session opens dirty with an empty history).
 //!
 //! **Derivation findings.** What the derivation layer could not do as the project asks (an unknown pinned
 //! derivation profile, a numbering scheme the command layer does not number, the built-in default frame, a
@@ -58,6 +62,7 @@
 
 mod cmdlog;
 pub mod import;
+pub mod output;
 pub mod verify;
 
 use std::collections::BTreeSet;
@@ -71,7 +76,7 @@ use ew_model::{AnyKey, Model, ModelError, PreventHook};
 use ew_schema::{LibDocument, Project, Record};
 use ew_store::{Changes, LockState, RecoverError, SaveError, SaveReport, Store};
 
-pub use cmdlog::{CmdLog, CmdLogError, SCHEMA as CMDLOG_SCHEMA};
+pub use cmdlog::{CmdLog, CmdLogError, SCHEMA as CMDLOG_SCHEMA, ScriptDiff};
 /// The check engine (`ew check`, the message panel, the migration report): rules, schemes, findings.
 pub use ew_checks as checks;
 pub use ew_derive::{BomMode, DeriveNote, MemoStore, Mismatch, NoteSeverity};
@@ -79,11 +84,12 @@ pub use ew_derive::{BomMode, DeriveNote, MemoStore, Mismatch, NoteSeverity};
 pub use ew_reports::export::{Export, ExportError, Exported};
 /// The read-only SQL projection (`ew sql`, the acceptance SQL, ADR-0017): views, sandbox, results.
 pub use ew_sqlview as sql;
-pub use ew_store::{OpenError, OpenReport, StoreOptions};
+pub use ew_store::{Access, OpenError, OpenReport, ReadOnlyReason, StoreOptions};
 
 pub use ew_commands::{
-    AnyCommand, Change, CmdError, CommandRegistry, DerivedChange, DerivedDiff, DynCommand, History,
-    HistoryLimits, IdSource, Origin, Preview, Receipt, Restored, Submit, TxContext, World,
+    AnyCommand, Change, ChangeKind, CmdError, CommandRegistry, DerivedChange, DerivedDiff, DynCommand,
+    EntityChange, History, HistoryLimits, IdSource, ModelDiff, Origin, Preview, Receipt, Restored, Submit,
+    TxContext, World,
 };
 
 use ew_commands::{Engine, EngineOptions};

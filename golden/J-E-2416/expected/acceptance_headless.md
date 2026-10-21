@@ -1,6 +1,6 @@
 # Acceptance report: golden project J-E-2416, gate M1 (headless)
 
-92 entries: 81 pass, 0 fail, 6 not_built, 5 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
+93 entries: 82 pass, 0 fail, 6 not_built, 5 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
 
 | Criterion | Check | Status | Reason |
 |---|---|---|---|
@@ -47,16 +47,17 @@
 | AC-20 | renumbering folio 3 to 4 updates -3W1, -3X1 and "3-B2" everywhere; undo restores | pass | -3W1 and -3X1 become -4W1 and -4X1, 1 cross-reference text(s) follow ("3-B2" becomes "4-B2"), undo restores the records |
 | AC-20 | renumbering folio 3 to 4 writes only that page's file | pass | the save writes pages/93d03619-9f8d-5086-8b99-1a4f05456f21.jsonl only (and rewrites the manifest) |
 | AC-14 | PDF, SVG, CSV and JSONL are byte-identical across record shuffles | pass | on the platform of this run, the model loaded with its records shuffled (seed 0x5eedac14) writes the PDF (SHA-256 of expected/pdf/sha256.txt), the 36 SVG files, the 36 page text CSVs, the 7 report CSVs and the 170 files a save writes (JSONL and manifest) of the file-order load byte for byte (gate platform Linux; across Windows, macOS and Linux at MVP) |
-| AC-14 | SVG and the parallel export are byte-identical to the serial export | pass | 36 SVG files (one per page, 3708 glyph runs as <text>, 92 links as in the PDF, all 92 hrefs resolve to a file and an id; SHA-256 d0e4eba25172f2e52cf6ddb860fe8b842b723fa60d192de6ba04c5557bd17f4f); the page phase on 2 and 8 threads gives the serial display lists, PDF and SVG byte for byte |
+| AC-14 | SVG and the parallel export are byte-identical to the serial export | pass | 36 SVG files (one per page, 3708 glyph runs as <text>, 92 links as in the PDF, all 92 hrefs resolve to a file and an id; SHA-256 d0e4eba25172f2e52cf6ddb860fe8b842b723fa60d192de6ba04c5557bd17f4f); the shipped export job (ew_api::output, the page phase on par_map) on 2 and 8 threads gives the serial display lists, PDF and SVG byte for byte |
 | AC-15 | build path (a), the CSV bootstrap, equals path (c), the checked-in fixture | not_applicable | evaluated by tests/golden_fixture.rs (byte-identical regeneration), not by this runner |
 | AC-15 | the acceptance SQL returns the same expected CSVs over path (a) and over path (c), the checked-in fixture | pass | the 6 acceptance SQL files return the same expected CSVs over both paths; path (b) is the next entry |
+| AC-15 | the shipped PDF export over path (c), the checked-in fixture, writes the PDF of path (a) | pass | Session::export_pdf over golden/J-E-2416.ew (read-only, as ew export pdf opens it) writes the 36 pages of the PDF of expected/pdf/sha256.txt, embedding 2 bundled faces and nothing else |
 | AC-15 | build path (b), the builder DSL, produces the same expected CSVs | not_built | the builder DSL (the golden builders of ew-testkit, WP-S6.01) does not exist yet |
 | AC-16 | the script variants/ac16-freshness.ewcmd: 4 edits, one commit each, undo restores the records | pass | 4 edits, 4 commits (one undo step each), 4 undos restore the records byte for byte; the session ran with the oracle on (one memoised read in 8 re-run cold) |
 | AC-16 | rename T55: every affected output follows in its commit | pass | T55 becomes T57 and nothing else changes: the tag, the BOM row and folios 101, 901, 907, 910.2 (the folios that printed it); no folio prints T55 |
 | AC-16 | move -102F2 by one cell: every affected output follows in its commit | pass | -102F2 moves from cell (7, 4) to (8, 4); only folio 102 changes; no tag, cross-reference text or page label changes |
 | AC-16 | renumber folio 103 to 104: every affected output follows in its commit | pass | folio 103 becomes 104 in the page order; 27 tags (-X103n to -X104n) and 20 cross-reference texts follow; the BOM and cable exports and folios 101, 102, 104, 106, 2, 901, 901.1, 904, 905, 906, 907, 907.1, 907.2, 909, 910.3, 103 change; nothing prints the old folio |
 | AC-16 | change the 24 V DC colour: every affected output follows in its commit | pass | 8 wires take RD and nothing else changes; folios 1, 907, 907.1, 909 change (folio 1 prints the new row of the colour table); no tag, text, export or page label changes |
-| AC-16 | verify-derived is clean and the memoised outputs equal the cold ones after every edit, with the oracle on | pass | after each of the 4 edits, 1659 keys of 50 memoised families equal their cold recomputation (two passes), and the oracle found no mismatch |
+| AC-16 | verify-derived is clean and the memoised outputs equal the cold ones after every edit, with the oracle on | pass | after each of the 4 edits, 1950 keys of 60 memoised families equal their cold recomputation (two passes), and the oracle found no mismatch |
 | AC-17 | open <= 0.5 s, check <= 2 s, PDF export <= 3 s | not_applicable | measured at milestone deliveries (cargo xtask acceptance --milestone, release profile) |
 | AC-39 | the anonymisation guard passes on golden/, docs/ and expected/ | not_applicable | the guard is `cargo xtask check-anonymisation` (the xtask crate, outside this test crate); the repository checks run it |
 | D-01 | renumber folio 3 as 4: -4W1, -4X1 and "4-B2" everywhere, undo restores | pass | Same check as AC-20 "renumbering folio 3 to 4 updates -3W1, -3X1 and "3-B2" everywhere; undo restores": -3W1 and -3X1 become -4W1 and -4X1, 1 cross-reference text(s) follow ("3-B2" becomes "4-B2"), undo restores the records |

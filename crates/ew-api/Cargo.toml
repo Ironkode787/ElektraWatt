@@ -46,14 +46,16 @@ ew-reports = { path = "../ew-reports" }
 ew-schema = { path = "../ew-schema" }
 # The command log parser (`Session::run_script`, doc 17 §3.5).
 serde_json = "1.0.154"
+# The export job (FT-59, `output`): the bundled fonts that shape the page texts and that the writers embed, and the
+# display-list types of the per-layer page queries.
+ew-text = { path = "../ew-text" }
+ew-dl = { path = "../ew-dl" }
 
 [dev-dependencies]
 ew-commands = { path = "../ew-commands", features = ["testkit"] }
 # `tests/golden_csv.rs` compares the derived anchor cells, CPs and tags of the loaded golden model with its tables.
 ew-model = { path = "../ew-model", features = ["raw-read"] }
 # tests/page_output.rs: page display lists, PNG and PDF of the golden folios (WP-S3.04).
-ew-text = { path = "../ew-text" }
-ew-dl = { path = "../ew-dl" }
 ew-render-cpu = { path = "../ew-render-cpu" }
 ew-ids = { path = "../ew-ids" }
 ew-units = { path = "../ew-units" }
