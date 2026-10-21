@@ -22,7 +22,7 @@
 | AC-08 | folios 903-905 equal expected/csv, designations unique per strip | pass | 3, 20 and 5 terminal rows equal the committed CSVs (hand-compared with §9, differences in the README); designations unique per strip |
 | AC-09 | folio 907 equals expected/csv/wires.csv: 44 wires, 6 bridges | pass | 44 wire rows and 6 bridge rows equal expected/csv/wires.csv |
 | AC-09 | every wire has an effective size and colour | pass | 44 wires have an effective size and colour |
-| AC-09 | every wire has a wire number | pass | W1-W34 carry 34 unique `{page}.{counter}` numbers (19 on 101, 13 on 102, 2 on 103, counters 1..n per page), W35-W44 (cable cores) none; folio 907 prints them; the same numbers with reversed records |
+| AC-09 | every wire has a wire number | pass | W1-W34 carry 34 unique `{page}.{counter}` numbers (counters 1..n per page) equal to the "No." column of doc 20 §8.2; W1-W5, W7 and W9 (provisional until FT-101) equal it too; W35-W44 (cable cores) none; folio 907 prints them; the same numbers with reversed records |
 | AC-10 | the potential partition holds the 19 potentials of §7.3 and bond B1 | fail | 18 potentials, §7.3 has 19 (the PROFIBUS DP potential needs the Bus connections, FT-105) |
 | AC-10 | folio 909 equals expected/csv/potentials.csv | pass | the derived rows equal expected/csv/potentials.csv (the SQL half is a separate entry) |
 | AC-11 | folio 906 equals expected/csv/cables.csv: 3 cables, 13 cores | pass | 3 cables and 13 cores equal expected/csv/cables.csv |
@@ -64,7 +64,7 @@
 | D-06 | an override is reported as info and shown in the property grid | not_built | rule EW-CORE-023 (title-block override, info, doc 15 §4, FR-REP-036) is not in ew-checks (WP-S1.16), and the property grid (FR-UI-009) does not exist |
 | D-07 | outline, 64 cross-reference links and page labels | pass | Same check as AC-13 "PDF structure equals expected/pdf (outline, 64 links, page labels, fonts, SHA-256)": 34 pages: outline, 64 links, page labels = folio labels, embedded fonts and SHA-256 equal the committed files; no Tahoma (the folio count is 34 against 36, AC-03) |
 | D-08 | W29 takes 0.75 DBU from the profile, W20 1.5 mm2 from its CDP and DBU from the profile | pass | W29 0.75 DBU from the profile; W20 1.5 mm2 from its CDP, DBU from the profile (the explain output and the one-commit update of folios 1 and 907 are AC-12) |
-| D-09 | W1-W34 are numbered, unique and stable; the cable cores are not numbered | pass | Same check as AC-09 "every wire has a wire number": W1-W34 carry 34 unique `{page}.{counter}` numbers (19 on 101, 13 on 102, 2 on 103, counters 1..n per page), W35-W44 (cable cores) none; folio 907 prints them; the same numbers with reversed records |
+| D-09 | W1-W34 are numbered, unique and stable; the cable cores are not numbered | pass | Same check as AC-09 "every wire has a wire number": W1-W34 carry 34 unique `{page}.{counter}` numbers (counters 1..n per page) equal to the "No." column of doc 20 §8.2; W1-W5, W7 and W9 (provisional until FT-101) equal it too; W35-W44 (cable cores) none; folio 907 prints them; the same numbers with reversed records |
 | D-10 | -202U2 carries 4 valves | pass | -202U2 has 4 child valves (the rendering of folio 202 is covered by AC-02) |
 | D-11 | an empty terminal designation is rejected (parameter layer or invariant) | pass | terminals\|-X1031:8: designation `` is refused by the parameter layer (InvalidParams at /value) |
 | D-12 | a duplicate designation is rejected by the invariant | pass | terminals\|-X1031:3: designation `4` is refused by the prevent rule EW-TERM-002 |
@@ -84,7 +84,7 @@
 | D-30 | the title block binds the end user | pass | all 34 title blocks print "End user: <end user>" |
 | D-30 | the cover binds the customer | not_built | the cover (folio 1) is not drawn (README, "Folio 1") |
 | D-33 | "SK 3110.000" keeps its space and physical page 6 is labelled "101" | pass | both hold |
-| D-35 | BOM descriptions per §14, ratings only at symbols | not_built | rule EW-CORE-065 (description lint, EF-25, FR-CHK-040) is not in ew-checks (1.0, FT-192); the 27-row parts list is D-04 |
+| D-35 | BOM descriptions per §14, ratings only at symbols | not_built | rule EW-CORE-065 (description lint, EF-25, FR-CHK-040) is a 1.0 rule (doc 15 §4) of the 1.0 pack, which ew-checks does not ship yet; the 27-row parts list is D-04 |
 | D-36 | assembly rows A1 and A2, order code on folio 3 | not_built | the assembly BOM mode and `ew export bom` do not exist yet (FR-REP-005) |
 | D-37 | profiles name their basis; the cover prints it | pass | the colour profile's basis is company_convention with DBU declared a company code on BU; the cover prints "IEC60757 / EN60204-1" and keeps the basis note as metadata (U-35) |
 | D-41 | one assembly -201U1 with children on both pages, break marks | not_built | the assembly aspect and the generated overview break marks are not implemented (schema v0 keeps the assembly in `extra`) |

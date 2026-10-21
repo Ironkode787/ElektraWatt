@@ -636,7 +636,9 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
 | Formulas | sandboxed rhai (FR-NUM-026) | 1.0 |
 
 - **Numbering order** (FR-NUM-028): the page of the wire's From end, then the From end's cell (column, then row),
-  then the To end's cell, then the wire ID. Counters are assigned once and stored. `{page}` and `{column}` are tokens
+  then the To end's page and cell (the page first, then column, then row), then the wire ID. The cell of an end is
+  the cell of the CP's drawn point on the page of the constituent that ends there, a terminal in a strip segment
+  included (§6.7). Counters are assigned once and stored. `{page}` and `{column}` are tokens
   evaluated from the From end. A page renumber therefore changes page-based numbers only through its preview, as it
   does for tags.
 - **Commands.** `NumberWires{scope, scheme, mode: All | Unassigned | NonConforming, include_frozen: false}` is
@@ -646,9 +648,10 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
 - **Display** (FR-CON-026): on each segment, once per page or at both ends, with the text style `wire.number`.
 - **Golden** (▲U-33): connection-oriented `{page}.{counter}` (the `{page}` token prints the folio label; it is the
   one page token of every format), counter scope page, cores not numbered, not printed. W1–W34 receive 34 unique
-  numbers, listed in the derived "No." column of [20](20-golden-project.md) §8.2: W29 gets 102.5 and W33 103.1. The
-  acceptance runner generates `expected/wires.csv` with this rule; it holds the exact counters where 20 marks a
-  tie (Open question 12).
+  numbers, listed in the derived "No." column of [20](20-golden-project.md) §8.2: W29 gets 102.10 and W33 103.1.
+  The acceptance runner generates `expected/wires.csv` with this rule, which also decides the ties between wires of
+  equal cells by the wire ID. W1 to W5, W7 and W9 are provisional until the orientation has its flow-distance step
+  (FT-101).
 - **Potential-oriented example** (1.0): `{potential}.{subcounter}` with net extension gives W29 and the BN core of
   -106W1 one number, "24VDC-1.1", because terminal 1 is one signal. The WH core on terminal 2 is in another signal
   and gets "24VDC-1.2", because bridges bound signals.

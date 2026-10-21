@@ -37,6 +37,7 @@ TABLES_DIR = SCRIPT_DIR / ".." / "tables"
 README_PATH = SCRIPT_DIR / ".." / "README.md"
 EXPECTED_DIR = SCRIPT_DIR / ".." / "expected"
 PARTS_LIST_FILE = "parts_list_14_1.csv"
+WIRE_NUMBERS_FILE = "wire_numbers_8_2.csv"
 README_BEGIN = "<!-- test-inputs:begin -->"
 README_END = "<!-- test-inputs:end -->"
 
@@ -2229,6 +2230,25 @@ def build_connections(ips, device_keys, conductor_keys, fkeys):
 # ---------------------------------------------------------------------------------------------------------------
 
 
+def wire_numbers_expected():
+    """The "No." column of doc 20 section 8.2 (``expected/wire_numbers_8_2.csv``, columns ``wire`` and ``no``): the
+    connection-oriented number ``{page}.{counter}`` of each of W1 to W34 as the document prints it (section 8.1: the
+    numbers follow the numbering order of doc 08 section 5.2 as the acceptance runner computes it), and no number
+    on the ten cable cores W35 to W44 (FR-NUM-019). AC-09 compares the runner's numbers with this file."""
+    out = []
+    for r in table_dicts("### 8.2 Wire table"):
+        wire, no = r["W"], clean(r["No."])
+        n = int(wire)
+        if n <= 34:
+            check(re.fullmatch(r"\d+\.\d+", no), f"section 8.2: wire W{wire} has the number {no!r}, not {{page}}.{{counter}}")
+            out.append({"wire": f"W{wire}", "no": no})
+        else:
+            check(no in ("", "—"), f"section 8.2: the cable core W{wire} has the number {no!r}")
+    check(len(out) == 34, f"section 8.2: {len(out)} numbered wires, 34 expected")
+    check(len({r["no"] for r in out}) == 34, "section 8.2: the 34 wire numbers are not unique")
+    return ["wire", "no"], out
+
+
 def build_all():
     build_project()
     build_parties()
@@ -2283,6 +2303,9 @@ def main(argv):
     list_cols, list_rows = parts_list_expected()
     parts_list = csv_bytes(list_cols, list_rows)
     print(f"{PARTS_LIST_FILE}: {len(list_rows)} rows")
+    numbers_cols, numbers_rows = wire_numbers_expected()
+    wire_numbers = csv_bytes(numbers_cols, numbers_rows)
+    print(f"{WIRE_NUMBERS_FILE}: {len(numbers_rows)} rows")
     print(f"README test inputs: {len(FIXTURE_CHOICES)} rows")
     readme = README_PATH.read_text(encoding="utf-8")
     new_readme = readme_with_block(readme, render_fixture_choices())
@@ -2307,6 +2330,11 @@ def main(argv):
             bad.append(f"missing: expected/{PARTS_LIST_FILE}")
         elif path.read_bytes() != parts_list:
             bad.append(f"differs: expected/{PARTS_LIST_FILE}")
+        path = EXPECTED_DIR / WIRE_NUMBERS_FILE
+        if not path.exists():
+            bad.append(f"missing: expected/{WIRE_NUMBERS_FILE}")
+        elif path.read_bytes() != wire_numbers:
+            bad.append(f"differs: expected/{WIRE_NUMBERS_FILE}")
         for line in bad:
             print(line)
         return 1 if bad else 0
@@ -2316,6 +2344,7 @@ def main(argv):
         (TABLES_DIR / f"{name}.csv").write_bytes(data)
     EXPECTED_DIR.mkdir(parents=True, exist_ok=True)
     (EXPECTED_DIR / PARTS_LIST_FILE).write_bytes(parts_list)
+    (EXPECTED_DIR / WIRE_NUMBERS_FILE).write_bytes(wire_numbers)
     if new_readme != readme:
         with open(README_PATH, "w", encoding="utf-8", newline="") as f:
             f.write(new_readme)

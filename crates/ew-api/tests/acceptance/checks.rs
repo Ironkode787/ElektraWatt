@@ -1544,7 +1544,7 @@ fn defects(r: &mut Runner) {
         "BOM descriptions per §14, ratings only at symbols",
         |_| {
             not_built(
-                "rule EW-CORE-065 (description lint, EF-25, FR-CHK-040) is not in ew-checks (1.0, FT-192); the 27-row parts list is D-04",
+                "rule EW-CORE-065 (description lint, EF-25, FR-CHK-040) is a 1.0 rule (doc 15 §4) of the 1.0 pack, which ew-checks does not ship yet; the 27-row parts list is D-04",
             )
         },
     );
@@ -1656,12 +1656,56 @@ fn ac05_main_aux(c: &Ctx) -> Outcome {
     }
 }
 
+/// The wires whose number in doc 20 §8.2 is provisional (§8.1, FT-101) and the reason for each. The runner
+/// orients a wire without the flow-distance step of doc 08 §3.8, so these rows may differ from the table until
+/// FT-101 lands: a difference there is reported in the reason, not a failure. Any other row must be equal.
+const FT101_ROWS: [(u32, &str); 7] = [
+    (
+        1,
+        "the supply end J-E-206-L is From in doc 20, the runner starts at 1X1:1",
+    ),
+    (
+        2,
+        "the supply end J-E-206-N is From in doc 20, the runner starts at 1X1:2",
+    ),
+    (
+        3,
+        "the supply end J-E-206-PE is From in doc 20, the runner starts at 1X1:PE",
+    ),
+    (4, "1X1:1 is From in doc 20, the runner starts at S51:2"),
+    (5, "1X1:2 is From in doc 20, the runner starts at S51:4"),
+    (
+        7,
+        "shares the From page and cells with W4 and W5, so its counter follows their orientation",
+    ),
+    (
+        9,
+        "shares the From page and cells with W4 and W5, so its counter follows their orientation",
+    ),
+];
+
+/// The "No." column of doc 20 §8.2 (`expected/wire_numbers_8_2.csv`, written from the document by
+/// `tools/tables_from_doc20.py`): wire number to its printed number.
+fn doc20_numbers() -> BTreeMap<u32, String> {
+    let text = std::fs::read_to_string(repo().join("golden/J-E-2416/expected/wire_numbers_8_2.csv"))
+        .expect("expected/wire_numbers_8_2.csv (run tools/tables_from_doc20.py)");
+    text.lines()
+        .skip(1)
+        .map(|l| {
+            let (w, no) = l.split_once(',').expect("wire,no");
+            (
+                w.trim_start_matches('W').parse().expect("a wire number"),
+                no.to_owned(),
+            )
+        })
+        .collect()
+}
+
 /// AC-09, D-09: the wire numbers of doc 20 §8.1 (FT-100): connection-oriented `{page}.{counter}`, counter scope
 /// page, W1 to W34 numbered and the ten cable cores W35 to W44 not (FR-NUM-019), numbers not printed on the
-/// pages. The page of each number is the folio of doc 20 §8.2; the counters inside a page follow the numbering
-/// order of doc 08 §5.2, which the document leaves to the runner (§8.1: the ties and the cells of the CPs), so
-/// their order is not compared with the "No." column of §8.2. The same numbers come out of a model with
-/// reversed records.
+/// pages. The numbers equal the "No." column of doc 20 §8.2, which holds the numbers this runner computes
+/// (section 8.1); the rows of [`FT101_ROWS`] are the one known-deviation list. The same numbers come out of a
+/// model with reversed records.
 fn ac09_numbers(c: &Ctx) -> Outcome {
     let numbers_of = |s: &Session| -> Vec<(u32, Option<String>)> {
         let q = golden_common::plain(s);
@@ -1676,19 +1720,19 @@ fn ac09_numbers(c: &Ctx) -> Outcome {
     let q = golden_common::plain(&c.profiled);
     let got = numbers_of(&c.profiled);
     let mut wrong = Vec::new();
+    let mut provisional = Vec::new();
+    let doc = doc20_numbers();
     let mut labels = BTreeSet::new();
     let mut per_page: BTreeMap<String, Vec<u32>> = BTreeMap::new();
     for (w, label) in &got {
         match (*w <= 34, label) {
             (true, Some(l)) => {
                 let (page, counter) = l.split_once('.').unwrap_or((l, ""));
-                let folio = match w {
-                    1..=19 => "101",
-                    20..=32 => "102",
-                    _ => "103",
-                };
-                if page != folio {
-                    wrong.push(format!("W{w} is {l}, doc 20 §8.2 puts it on folio {folio}"));
+                match (doc.get(w), FT101_ROWS.iter().find(|(k, _)| k == w)) {
+                    (Some(d), _) if d == l => {}
+                    (Some(d), Some((_, why))) => provisional.push(format!("W{w} is {l}, doc 20 {d} ({why})")),
+                    (Some(d), None) => wrong.push(format!("W{w} is {l}, doc 20 §8.2 has {d}")),
+                    (None, _) => wrong.push(format!("doc 20 §8.2 has no number for W{w}")),
                 }
                 if !labels.insert(l.clone()) {
                     wrong.push(format!("{l} is given twice"));
@@ -1733,8 +1777,13 @@ fn ac09_numbers(c: &Ctx) -> Outcome {
         wrong.push("a model with reversed records numbers the wires differently".to_owned());
     }
     if wrong.is_empty() {
+        let known = if provisional.is_empty() {
+            "W1-W5, W7 and W9 (provisional until FT-101) equal it too".to_owned()
+        } else {
+            format!("known deviations (FT-101): {}", provisional.join("; "))
+        };
         pass(format!(
-            "W1-W34 carry {} unique `{{page}}.{{counter}}` numbers (19 on 101, 13 on 102, 2 on 103, counters 1..n per page), W35-W44 (cable cores) none; folio 907 prints them; the same numbers with reversed records",
+            "W1-W34 carry {} unique `{{page}}.{{counter}}` numbers (counters 1..n per page) equal to the \"No.\" column of doc 20 §8.2; {known}; W35-W44 (cable cores) none; folio 907 prints them; the same numbers with reversed records",
             labels.len()
         ))
     } else {
@@ -1753,7 +1802,8 @@ fn d22_plain_wire(c: &Ctx) -> Outcome {
             .map(|f| f.message.clone())
             .collect()
     };
-    let clean = golden_common::session(&c.batch);
+    // The same construction for both models: the golden records with the profiles.
+    let clean = golden_common::session_with(&c.batch, |p, _| golden_common::with_profiles(p));
     let baseline = findings(&clean);
     if !baseline.is_empty() {
         return fail(format!(

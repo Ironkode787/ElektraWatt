@@ -506,23 +506,27 @@ here, with the follow-up task of the [work breakdown](../../docs/plan/02-work-pa
 
 - **Wire list (907).**
   - Rows are in the numbering order of FR-NUM-028 (doc 08 §5.2): the page of the From end, the From end's frame
-    cell (column, then row), the To end's cell, then the wire ID; the cable cores sort in the same order. The
+    cell (column, then row), the To end's page and cell (the page first), then the wire ID; the cable cores sort in
+    the same order. The
     order and the numbers are the `wire_numbers` query of `ew-derive` (FT-100), not the W1 … W44 order of doc 20
     (W is a fixture label). The cell of an end is the cell of the CP's drawn point on the page of the constituent
     that ends there: the symbol CP, the box CP of a black box, or the point of the terminal in its strip segment
     (doc 08 §6.7); the strip-segment and black-box points are restated in `ew-derive` from the page scene's rules.
   - The "No." column prints `{page}.{counter}` (counter scope page) on the 34 wires W1 … W34 and nothing on the 10
-    cable cores (FR-NUM-019). `expected/csv/wires.csv` holds the exact counters, also where doc 20 §8.2 marks a
-    tie ("(tie)"): the wire ID decides there, and the query keeps the counter range of the group
-    (`WireNumber::tie`) for a table that wants to print it as doc 20 does. The page of every number equals doc
-    20's, and the page totals (19 on 101, 13 on 102, 2 on 103) agree. Inside a page 9 of the 34 numbers fall in
-    the range doc 20 gives (W6, W7, W15, W18, W20, W31, W32, W33, W34); the other 25 differ, among them W29, which
-    gets 102.10 where doc 20 and doc 08 §5.2 write 102.5. Doc 20 §8.1 says the order cannot be stated in advance;
-    its column was written by hand, and the committed numbers are the rule's. Numbers are not printed on pages
+    cable cores (FR-NUM-019). `expected/csv/wires.csv` holds the exact counters, also where two wires have equal
+    cells (a tie): the wire ID decides there, and the query keeps the counter range of the group
+    (`WireNumber::tie`) for a table that wants to print it. The page of every number equals doc
+    20's "No." column, which now holds the computed numbers (W29 is 102.10; doc 20 §8.1 said the order could not be
+    stated in advance); `expected/wire_numbers_8_2.csv` is that column, written by `tools/tables_from_doc20.py`, and
+    AC-09 compares the runner's numbers with it. The numbers of W1 to W5, W7 and W9 are consequences of the
+    orientation gap (FT-101): the wires W1 to W5 start at the other end than doc 20's From column (no flow-distance
+    step), and W7 and W9 share the From page and cells with W4 and W5, so their counters follow; these seven numbers
+    are provisional and change when FT-101 lands. Numbers are not printed on pages
     (FR-CON-026 follows with the number display) and not stored: `NumberWires` and the stored `NumberSpec` are the
     numbering schemes of FR-NUM-020.
   - From and To follow doc 08 §3.8 (FR-CON-040) without its flow-distance step (`ew-derive` has no per-CP distance):
-    on one page the end with the smaller anchor cell is From. W1 to W3 (the supply to 1X1) and W4, W5 (1X1 to S51)
+    on one page the end with the smaller anchor cell is From (a terminal drawn only by a strip segment has no
+    anchor: the cell of its CP in the segment counts). W1 to W3 (the supply to 1X1) and W4, W5 (1X1 to S51)
     print the other way round (FT-101).
   - Repeated CP designations print plainly (`-101F1:N`, `-102G1:+`, `-102G1:−`, `-102F2:GND`), without the `#1`,
     `#2` of doc 20; a terminal end prints the clamp in the CP column (`-X1031:1` and `b`), not as `1/b` (FT-102).
