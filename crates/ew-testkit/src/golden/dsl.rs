@@ -750,16 +750,21 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         })
     }
 
-    /// `fields.set` of a connection's `overrides` members and `number`; `route` (drawn with the
-    /// connection) and the other members are written by `connection.draw`.
+    /// `fields.set` of a connection's `overrides` members and `number`; its ends, page and kind are written
+    /// by `connection.draw`; a stored `route` is noted as not written.
     ///
     /// # Errors
     ///
     /// A command's error.
     pub fn connection_details(&mut self, id: Id<Connection>, c: &Connection) -> Result<()> {
         let mut m = members(Record::Connection(c.clone()));
-        for k in ["a", "b", "page", "kind", "route"] {
+        for k in ["a", "b", "page", "kind"] {
             m.remove(k);
+        }
+        // The builder draws without a route (a junction's connections come from a split); a stored route
+        // is not written, for every connection alike (`connection.route` would need the drawn geometry).
+        if take(&mut m, "route").is_some() {
+            self.not_written("connection.route", 1);
         }
         if let Some(Value::Object(o)) = take(&mut m, "overrides") {
             for (k, v) in o {

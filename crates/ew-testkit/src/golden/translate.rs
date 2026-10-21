@@ -168,6 +168,22 @@ fn short_reason(message: &str) -> String {
     out.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
+/// The two ends of the connection that splits another at a junction's point `on`: the point and `far`, the
+/// connection's end away from the junction, in the connection's own order (`starts_at_junction`: its `a`
+/// is the junction). A missing far end is an error, never the point itself (a connection from the point
+/// to itself).
+fn split_ends(
+    starts_at_junction: bool,
+    far: Option<End>,
+    on: End,
+) -> std::result::Result<(End, End), String> {
+    let far = far.ok_or_else(|| "the end away from the junction is not built".to_owned())?;
+    if far == on {
+        return Err("both ends are the split point".to_owned());
+    }
+    Ok(if starts_at_junction { (on, far) } else { (far, on) })
+}
+
 fn endpoint_function(e: &Endpoint) -> Option<Id<Function>> {
     match e {
         Endpoint::Cp(f, _) => Some(*f),
@@ -443,24 +459,23 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
             continue;
         };
         let page_built = map.get(page);
-        // x: CP -> CP of y; the third connection splits it at the junction's point.
-        let temp = b.connect(&xa, &yb, page_built, &map.apply(&x.kind))?;
         let mut rest = seq.iter().copied().filter(|c| c.id != x.id && c.id != y.id);
         let z = rest
             .next()
             .ok_or_else(|| error("connection.draw", "a junction of fewer than three".into()))?;
-        let on = End::On(temp.connection, j.at);
-        let (za, zb) = if at_j(&z.a) {
-            (on, end(&map, &z.b))
-        } else {
-            (end(&map, &z.a).unwrap_or(on), Some(on))
-        };
-        let Some(zb) = zb else {
+        // The far end of z (the end that is not the junction) must be built before anything is drawn.
+        let z_starts_at_j = at_j(&z.a);
+        let far = end(&map, if z_starts_at_j { &z.b } else { &z.a });
+        if far.is_none() {
             return Err(error(
                 "connection.draw",
-                format!("an end of {} is not built", z.id),
+                format!("{}: the end away from the junction is not built", z.id),
             ));
-        };
+        }
+        // x: CP -> CP of y; the third connection splits it at the junction's point.
+        let temp = b.connect(&xa, &yb, page_built, &map.apply(&x.kind))?;
+        let (za, zb) = split_ends(z_starts_at_j, far, End::On(temp.connection, j.at))
+            .map_err(|m| error("connection.draw", format!("{}: {m}", z.id)))?;
         let drawn = b.connect(&za, &zb, page_built, &map.apply(&z.kind))?;
         let (Some(jid), Some(second)) = (drawn.junction, drawn.split) else {
             return Err(error("connection.draw", "the split created no junction".into()));
@@ -501,9 +516,6 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
         let kind: ConnectionKind = map.apply(&c.kind);
         let d = b.connect(&a, &bb, c.page.and_then(|p| map.get(p)), &kind)?;
         map.insert(c.id, d.connection);
-        if !c.route.is_empty() {
-            b.not_written("connection.route", 1);
-        }
     }
     for c in &connections {
         if let Some(id) = map.get(c.id) {
@@ -569,4 +581,38 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
         unwritten,
         ids: map.0,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn id<T>(n: u128) -> Id<T> {
+        let h = format!("{n:032x}");
+        let text = format!(
+            "{}-{}-{}-{}-{}",
+            &h[0..8],
+            &h[8..12],
+            &h[12..16],
+            &h[16..20],
+            &h[20..32]
+        );
+        serde_json::from_value(Value::String(text)).expect("a UUID")
+    }
+
+    #[test]
+    fn a_splitting_connection_never_runs_from_the_split_point_to_itself() {
+        let on = End::On(id(7), ew_units::Pt2::ORIGIN);
+        let far = End::Cp(id(1), 2);
+        assert_eq!(split_ends(true, Some(far), on), Ok((on, far)));
+        assert_eq!(split_ends(false, Some(far), on), Ok((far, on)));
+        assert!(
+            split_ends(false, None, on).is_err(),
+            "a missing far end is an error"
+        );
+        assert!(
+            split_ends(true, Some(on), on).is_err(),
+            "never the split point twice"
+        );
+    }
 }
