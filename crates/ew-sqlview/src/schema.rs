@@ -543,6 +543,10 @@ pub const POTENTIAL: View = View {
             "bond_ids",
             "the bonds joining this potential to another, JSON array of UUIDs",
         ),
+        t(
+            "bus_cable_ids",
+            "the cables of the potential's bus lines (`Bus` connections with a cable, FR-CBL-008), JSON array of UUIDs; a bus line takes its colour and size from them (doc 20 §7.3 \"(cable)\")",
+        ),
         i(
             "member_count",
             "device CPs (a terminal once) and external points on the potential (doc 20 §7.3)",
@@ -729,7 +733,10 @@ pub const PREVIEW_ADDITIONS: &[(&str, &[&str])] = &[
     ("api_v1_function", &["ip_name"]),
     ("api_v1_meta", &["api_status", "preview_additions"]),
     ("api_v1_page", &["number", "section_id", "title_ml"]),
-    ("api_v1_potential", &["colour_iec", "default_csa_unit"]),
+    (
+        "api_v1_potential",
+        &["colour_iec", "default_csa_unit", "bus_cable_ids"],
+    ),
     (
         "api_v1_terminal",
         &["tag", "function_text", "strip_group", "bridge"],

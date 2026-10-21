@@ -895,6 +895,15 @@ fn potentials(q: &Q, wires: &Wires) -> Vec<Row> {
                 .set("protected_by_tag", protected_device.and_then(|d| tag_short(q, d)))
                 .set("protected_by_cp", protected_cp.and_then(non_empty))
                 .set("bond_ids", json_array(&bond_ids))
+                .set(
+                    "bus_cable_ids",
+                    json_array(
+                        &ew_derive::bus_line_cables(q, &wires.partition, p.id)
+                            .into_iter()
+                            .map(uuid)
+                            .collect::<Vec<_>>(),
+                    ),
+                )
                 .set("member_count", member_count(q, p))
                 .set(
                     "pages",

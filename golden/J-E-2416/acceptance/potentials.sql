@@ -39,9 +39,14 @@ lines AS (
               THEN p.voltage || CASE p.ac_dc WHEN 'ac' THEN ' V AC' WHEN 'dc' THEN ' V DC' ELSE ' V' END
          END AS voltage,
          p.circuit_class AS class,
-         p.colour AS colour,
-         CASE p.default_csa_unit WHEN 'mm²' THEN p.default_csa || ' mm²' WHEN 'AWG' THEN 'AWG' || p.default_csa
-                                 WHEN 'kcmil' THEN p.default_csa || ' kcmil' END AS csa,
+         -- A bus line without a profile value takes colour and size from its cable: "(cable)".
+         CASE WHEN p.colour IS NULL AND json_array_length(p.bus_cable_ids) > 0 THEN '(cable)'
+              ELSE p.colour END AS colour,
+         CASE WHEN p.default_csa IS NULL AND json_array_length(p.bus_cable_ids) > 0 THEN '(cable)'
+              ELSE CASE p.default_csa_unit WHEN 'mm²' THEN p.default_csa || ' mm²'
+                                           WHEN 'AWG' THEN 'AWG' || p.default_csa
+                                           WHEN 'kcmil' THEN p.default_csa || ' kcmil' END
+         END AS csa,
          json_array_length(p.aliases) AS aliases,
          p.member_count AS members,
          f.text AS pages
