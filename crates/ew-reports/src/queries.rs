@@ -6,8 +6,8 @@
 use std::sync::Arc;
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{ReportBlock, ReportSource};
-use ew_derive::{Cycle, GeneratedPage, Policy, Q, Query, ReportPagesProvider};
+use ew_derive::ew_schema::{Device, ReportBlock, ReportSource};
+use ew_derive::{Cycle, DeviceTag, GeneratedPage, Policy, Q, Query, ReportPagesProvider, map_ml};
 
 use crate::arrange::{Arrangement, arrange};
 use crate::kind::{Registry, kind_name};
@@ -63,10 +63,16 @@ impl Query for BlockRows {
         if is_toc(block) || !rows.is_derived() {
             return Arc::new(rows);
         }
-        let layouts = Layouts::of_form(q, block.form);
-        let how = Arrangement::of_block(block, layouts.first()).with_group_context(q, block);
-        Arc::new(arrange(q, rows, &how))
+        Arc::new(arranged(q, block, rows))
     }
+}
+
+/// `rows` after the block's manual selection, filter, sort and grouping: the tail of [`BlockRows`], shared
+/// with the exports that bring their own rows (`ew export bom --mode`).
+pub fn arranged(q: &Q, block: &ReportBlock, rows: RowSet) -> RowSet {
+    let layouts = Layouts::of_form(q, block.form);
+    let how = Arrangement::of_block(block, layouts.first()).with_group_context(q, block);
+    arrange(q, rows, &how)
 }
 
 /// `report_block_pages(block, toc_pages)`: the generated pages of a page-oriented block (doc 09 §3.2).
@@ -88,9 +94,10 @@ impl Query for BlockPages {
         let Some(block) = q.report_blocks().get(id) else {
             return Arc::new(Vec::new());
         };
-        let Some(spec) = BlockSpec::of_block(id, block) else {
+        let Some(mut spec) = BlockSpec::of_block(id, block) else {
             return Arc::new(Vec::new());
         };
+        spec.title = resolve_title(q, block, &spec.title);
         let layouts = Layouts::of_form(q, block.form);
         if is_toc(block) {
             let slices = toc_slices(toc_pages, toc_rows_per_page(q, block));
@@ -104,6 +111,46 @@ impl Query for BlockPages {
         };
         Arc::new(paginate(&rows, &spec, &layouts, &FixedLines))
     }
+}
+
+/// The page-title format with `{strip}` and `{device}` resolved: the short tag of the first device of the block's
+/// manual selection (the first strip for `{strip}`), so that renaming or renumbering the device renames the pages
+/// ("Terminal Diagram {strip}"; ruling of cycle 14). A placeholder without such a device stays as written.
+fn resolve_title(
+    q: &Q,
+    block: &ReportBlock,
+    title: &ew_derive::ew_mltext::MlText,
+) -> ew_derive::ew_mltext::MlText {
+    let devices: Vec<Id<Device>> = block
+        .manual
+        .include
+        .as_slice()
+        .iter()
+        .map(|a| Id::<Device>::from_uuid(a.as_uuid()))
+        .filter(|d| q.devices().contains(*d))
+        .collect();
+    let tag = |d: Id<Device>| {
+        q.get::<DeviceTag>(d)
+            .as_ref()
+            .as_ref()
+            .map(|t| t.short())
+            .unwrap_or_default()
+    };
+    let strip = devices
+        .iter()
+        .find(|d| q.devices().get(**d).is_some_and(|x| x.aspects.strip.is_some()))
+        .map(|d| tag(*d));
+    let device = devices.first().map(|d| tag(*d));
+    map_ml(title, |t| {
+        let mut t = t.to_owned();
+        if let Some(s) = &strip {
+            t = t.replace("{strip}", s);
+        }
+        if let Some(d) = &device {
+            t = t.replace("{device}", d);
+        }
+        t
+    })
 }
 
 /// The rows one page of a TOC block holds (doc 09 §3.1, decision D3): the TOC form's data area when the

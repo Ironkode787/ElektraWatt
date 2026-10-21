@@ -432,3 +432,183 @@ fn check_missing_project_is_exit_2() {
     assert_eq!(o.status.code(), Some(2));
     assert!(String::from_utf8_lossy(&o.stderr).contains("error:"));
 }
+
+const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
+
+fn expected(path: &str) -> String {
+    std::fs::read_to_string(std::path::Path::new(EXPECTED).join(path)).unwrap()
+}
+
+/// `ew export cables` writes the cable list of doc 20 §10 exactly as `expected/csv/cables.csv`.
+#[test]
+fn export_cables_is_the_expected_csv() {
+    let o = ew(&["export".as_ref(), "cables".as_ref(), GOLDEN_A.as_ref()]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert_eq!(stdout(&o), expected("csv/cables.csv"));
+    assert!(stderr(&o).contains("20 rows"), "{}", stderr(&o));
+    assert!(!std::path::Path::new(GOLDEN_A).join(".~ew.lock").exists());
+}
+
+#[test]
+fn export_out_writes_a_file() {
+    let t = Tmp::new();
+    let out = t.0.join("cables.csv");
+    let o = ew(&[
+        "export".as_ref(),
+        "cables".as_ref(),
+        GOLDEN_A.as_ref(),
+        "--out".as_ref(),
+        out.as_os_str(),
+    ]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert!(stdout(&o).starts_with("export written to"), "{}", stdout(&o));
+    assert_eq!(std::fs::read_to_string(&out).unwrap(), expected("csv/cables.csv"));
+}
+
+/// `ew export bom` lists the parts by default (`--mode parts` and its alias `component`): the 27 rows of folios
+/// 901 and 901.1.
+#[test]
+fn export_bom_parts_is_the_expected_csv() {
+    for args in [&[][..], &["--mode", "parts"][..], &["--mode", "component"][..]] {
+        let mut a: Vec<&std::ffi::OsStr> = vec!["export".as_ref(), "bom".as_ref(), GOLDEN_A.as_ref()];
+        a.extend(args.iter().map(|s| std::ffi::OsStr::new(*s)));
+        let o = ew(&a);
+        assert_eq!(o.status.code(), Some(0), "{args:?}: {}", stderr(&o));
+        assert_eq!(stdout(&o), expected("csv/bom_parts.csv"), "{args:?}");
+    }
+}
+
+/// The golden project holds no configured product yet (D-41, cycle 15), so the assembly list is the parts list;
+/// the replacement of rows 16-21 by A1 and A2 is tested over a model with configured parts (`ew-api`,
+/// `tests/export_bom.rs`).
+#[test]
+fn export_bom_assembly_runs_over_the_golden_project() {
+    let o = ew(&[
+        "export".as_ref(),
+        "bom".as_ref(),
+        GOLDEN_A.as_ref(),
+        "--mode".as_ref(),
+        "assembly".as_ref(),
+    ]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert_eq!(stdout(&o), expected("csv/bom_parts.csv"));
+}
+
+#[test]
+fn export_errors_are_exit_2() {
+    let t = Tmp::new();
+    let missing = t.0.join("nope.ew");
+    for args in [
+        &["export", "cables"][..],
+        &["export", "wires"][..],
+        &["export", "bom", "--format", "xlsx"][..],
+    ] {
+        // A command line without a project that no ancestor of the working directory holds, or a bad option.
+        let mut a: Vec<&std::ffi::OsStr> = args.iter().map(|s| std::ffi::OsStr::new(*s)).collect();
+        if args.len() == 2 && args[1] == "cables" {
+            a.push(missing.as_os_str());
+        }
+        let o = ew(&a);
+        assert_eq!(o.status.code(), Some(2), "{args:?}: {}", stderr(&o));
+        assert!(stderr(&o).contains("error:"), "{args:?}");
+    }
+}
+
+/// A small saved project: one page, no report blocks.
+fn tiny_project(t: &Tmp) -> PathBuf {
+    let project = serde_json::from_str(
+        r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#,
+    )
+    .unwrap();
+    let mut session =
+        ew_api::Session::from_records(project, [], [], ew_api::SessionOptions::default()).unwrap();
+    session
+        .execute(&ew_api::AnyCommand {
+            name: "page.create".into(),
+            params: serde_json::json!({"number": 1, "title": "Cover"}),
+        })
+        .unwrap();
+    let dir = t.0.join("tiny.ew");
+    let mut store = ew_api::StoreOptions::new("test");
+    store.state_dir = None;
+    session.create(&dir, store).unwrap();
+    session.close();
+    dir
+}
+
+/// `ew verify-derived` over a small project: exit 0 and the summary line (every family, no difference).
+#[test]
+fn verify_derived_tiny_project_is_clean() {
+    let t = Tmp::new();
+    let dir = tiny_project(&t);
+    let o = ew(&["verify-derived".as_ref(), dir.as_os_str()]);
+    assert_eq!(o.status.code(), Some(0), "{}{}", stdout(&o), stderr(&o));
+    let out = stdout(&o);
+    assert!(
+        out.starts_with("verify-derived: 50 families, ")
+            && out.ends_with(" keys, 0 differences, 0 oracle mismatches\n"),
+        "{out}"
+    );
+    assert!(!dir.join(".~ew.lock").exists());
+}
+
+/// A project without the report block cannot export: exit 2 with the reason.
+#[test]
+fn export_without_the_block_is_exit_2() {
+    let t = Tmp::new();
+    let dir = tiny_project(&t);
+    let o = ew(&["export".as_ref(), "cables".as_ref(), dir.as_os_str()]);
+    assert_eq!(o.status.code(), Some(2));
+    assert!(
+        stderr(&o).contains("no report block of kind `cable_overview_diagrams`"),
+        "{}",
+        stderr(&o)
+    );
+}
+
+/// `--out` to a path that cannot be written is exit 2 with the path in the message, and writes nothing.
+#[test]
+fn export_out_to_an_unwritable_path_is_exit_2() {
+    let t = Tmp::new();
+    let out = t.0.join("no-such-dir").join("cables.csv");
+    for what in ["cables", "bom"] {
+        let o = ew(&[
+            "export".as_ref(),
+            what.as_ref(),
+            GOLDEN_A.as_ref(),
+            "--out".as_ref(),
+            out.as_os_str(),
+        ]);
+        assert_eq!(o.status.code(), Some(2), "{what}: {}", stdout(&o));
+        assert!(
+            stderr(&o).contains("error:") && stderr(&o).contains("cables.csv"),
+            "{}",
+            stderr(&o)
+        );
+        assert!(!out.exists());
+    }
+}
+
+#[test]
+fn verify_derived_missing_project_is_exit_2() {
+    let t = Tmp::new();
+    let missing = t.0.join("nope.ew");
+    let o = ew(&["verify-derived".as_ref(), missing.as_os_str()]);
+    assert_eq!(o.status.code(), Some(2));
+    assert!(stderr(&o).contains("error:"));
+}
+
+/// `ew verify-derived` over Golden A: every memoised value equals its cold recomputation with the oracle on.
+/// The oracle re-runs every memoised read, about 90 s in a debug build, so the test is run by hand
+/// (`cargo nextest run -p ew --run-ignored only`) and by the acceptance runner's AC-16 at the library level.
+#[test]
+#[ignore = "about 90 s in a debug build (the oracle re-runs every memoised read)"]
+fn verify_derived_golden_a_is_clean() {
+    let o = ew(&["verify-derived".as_ref(), GOLDEN_A.as_ref()]);
+    assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
+    assert!(
+        stdout(&o).contains("0 differences, 0 oracle mismatches"),
+        "{}",
+        stdout(&o)
+    );
+}

@@ -9,6 +9,7 @@ use ew_api::checks::{CheckMode, report, scheme};
 use ew_api::import::Severity;
 use ew_api::import::migration::ReportFormat;
 use ew_api::import::{StarterLibrary, import_qet};
+use ew_api::{BomMode, Export};
 
 /// The usage text.
 pub const USAGE: &str = "usage:
@@ -19,6 +20,9 @@ pub const USAGE: &str = "usage:
   ew sql [<project-dir>] --file <query.sql> [--format csv|json] [--timeout <seconds>] [--out <file>]
   ew sql dump [<project-dir>] <out.sqlite>
   ew sql schema
+  ew export cables [<project-dir>] [--format csv] [--out <file>]
+  ew export bom [<project-dir>] [--mode parts|assembly] [--format csv] [--out <file>]
+  ew verify-derived [<project-dir>]
   ew help | --help | -h
 
 `import qet` exits 0 when the import completes, even with findings; `--strict` exits 1 on lost connections or
@@ -32,7 +36,15 @@ errors, 1 with errors, 2 on usage and open errors.
 them) in the sandbox of doc 17 §6.2, with the query given inline or from `--file`. The result is CSV (default) or
 JSON on stdout, the row count on stderr; with `--out` it goes to a file. `--timeout` sets a deadline in seconds.
 `--project <dir>` may replace the positional project directory. `sql dump` writes the projection as a SQLite
-database file. `sql` exits 0 on success and 2 on everything else (usage, open and SQL errors, denials, limits).";
+database file. `sql` exits 0 on success and 2 on everything else (usage, open and SQL errors, denials, limits).
+
+`export cables` writes the cable list and `export bom` the bill of materials as CSV (the rows of the project's cable
+overview and parts summary blocks, the golden dialect), to stdout or to `--out`. `--mode parts` (alias `component`,
+the default) lists every component part; `--mode assembly` replaces the parts a configured product covers by its
+row. `export` exits 0 on success and 2 on everything else (usage, open errors, a project without the block).
+
+`verify-derived` opens a project with the memo oracle on, recomputes every derived value cold and compares it with
+the memoised one: exit 0 with no difference, 1 with differences, 2 on usage and open errors.";
 
 /// A parsed command line.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -51,6 +63,37 @@ pub enum Command {
     SqlDump(SqlDumpArgs),
     /// Print the SQL schema.
     SqlSchema,
+    /// Write a report's rows as CSV.
+    Export(ExportArgs),
+    /// Compare the memoised derived data with a cold recomputation.
+    VerifyDerived(VerifyArgs),
+}
+
+/// What `ew export` writes.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ExportKind {
+    /// The cable list (`export cables`).
+    Cables,
+    /// The bill of materials in a mode (`export bom --mode`).
+    Bom(BomMode),
+}
+
+/// The arguments of `ew export`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ExportArgs {
+    /// What to write.
+    pub kind: ExportKind,
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// The output file (`--out`); `None`: stdout.
+    pub out: Option<PathBuf>,
+}
+
+/// The arguments of `ew verify-derived`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct VerifyArgs {
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
 }
 
 /// The result format of `ew sql`.
@@ -156,6 +199,8 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Command, String>
         },
         "check" => parse_check(it),
         "sql" => parse_sql(it),
+        "export" => parse_export(it),
+        "verify-derived" => parse_verify(it),
         other => Err(format!("unknown command `{other}`")),
     }
 }
@@ -249,6 +294,61 @@ fn parse_check(mut it: impl Iterator<Item = String>) -> Result<Command, String> 
         format,
         out,
     }))
+}
+
+fn parse_export(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
+    let what = match it.next().as_deref() {
+        Some(w @ ("cables" | "bom")) => w.to_owned(),
+        Some(other) => return Err(format!("unknown export `{other}` (cables, bom)")),
+        None => return Err("`export` needs a subject (cables, bom)".to_owned()),
+    };
+    let mut project = None;
+    let mut out = None;
+    let mut mode = BomMode::Component;
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--out" => out = Some(PathBuf::from(value(&mut it, "--out")?)),
+            "--format" => match value(&mut it, "--format")?.as_str() {
+                "csv" => {}
+                other @ ("xlsx" | "pdf") => return Err(format!("`--format {other}` is not built yet (csv)")),
+                other => return Err(format!("unknown format `{other}` (csv)")),
+            },
+            "--mode" if what == "bom" => {
+                mode = match value(&mut it, "--mode")?.as_str() {
+                    "parts" | "component" => BomMode::Component,
+                    "assembly" => BomMode::Assembly,
+                    other => return Err(format!("unknown mode `{other}` (parts, assembly)")),
+                };
+            }
+            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
+            _ => {
+                if project.replace(PathBuf::from(&a)).is_some() {
+                    return Err(format!("unexpected argument `{a}`"));
+                }
+            }
+        }
+    }
+    let kind = if what == "cables" {
+        ExportKind::Cables
+    } else {
+        ExportKind::Bom(mode)
+    };
+    Ok(Command::Export(ExportArgs { kind, project, out }))
+}
+
+fn parse_verify(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
+    let mut project = None;
+    for a in it.by_ref() {
+        match a.as_str() {
+            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
+            _ => {
+                if project.replace(PathBuf::from(&a)).is_some() {
+                    return Err(format!("unexpected argument `{a}`"));
+                }
+            }
+        }
+    }
+    Ok(Command::VerifyDerived(VerifyArgs { project }))
 }
 
 fn parse_sql(it: impl Iterator<Item = String>) -> Result<Command, String> {
@@ -401,6 +501,8 @@ pub fn run(cmd: Command) -> i32 {
         Command::Check(a) => run_check(&a),
         Command::Sql(a) => run_sql(&a),
         Command::SqlDump(a) => run_sql_dump(&a),
+        Command::Export(a) => run_export(&a),
+        Command::VerifyDerived(a) => run_verify_derived(&a),
         Command::SqlSchema => {
             print!("{}", ew_api::sql::schema::schema_text());
             0
@@ -493,6 +595,83 @@ fn run_sql(a: &SqlArgs) -> i32 {
         }
     }
     0
+}
+
+fn run_export(a: &ExportArgs) -> i32 {
+    let Some(dir) = project_dir(a.project.as_ref()) else {
+        return 2;
+    };
+    let (session, _) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "export") {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {}: {e}", dir.display());
+            return 2;
+        }
+    };
+    let what = match a.kind {
+        ExportKind::Cables => Export::Cables,
+        ExportKind::Bom(mode) => Export::Bom(mode),
+    };
+    let exported = match session.export(what) {
+        Ok(e) => e,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    match &a.out {
+        Some(path) => match write_report(path, &exported.csv) {
+            Ok(()) => println!("export written to {}", path.display()),
+            Err(e) => {
+                eprintln!("error: {}: {e}", path.display());
+                return 2;
+            }
+        },
+        None => {
+            print!("{}", exported.csv);
+            eprintln!("{} rows", exported.rows);
+        }
+    }
+    0
+}
+
+fn run_verify_derived(a: &VerifyArgs) -> i32 {
+    let Some(dir) = project_dir(a.project.as_ref()) else {
+        return 2;
+    };
+    let (session, _) = match ew_api::Session::open_reader_with(
+        &dir,
+        env!("CARGO_PKG_VERSION"),
+        "verify-derived",
+        ew_api::MemoMode::Oracle,
+    ) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {}: {e}", dir.display());
+            return 2;
+        }
+    };
+    let report = match ew_api::verify::verify_derived(&session) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    println!(
+        "verify-derived: {} families, {} keys, {} differences, {} oracle mismatches",
+        report.keys.len(),
+        report.total_keys(),
+        report.differences.len(),
+        report.oracle.len()
+    );
+    for d in &report.differences {
+        println!("differs: {d}");
+    }
+    for m in &report.oracle {
+        println!("oracle: {m:?}");
+    }
+    i32::from(!report.is_clean())
 }
 
 fn run_sql_dump(a: &SqlDumpArgs) -> i32 {
@@ -898,5 +1077,66 @@ SELECT 1"
         assert!(p(&["import", "qet", "a", "--bogus"]).is_err());
         assert!(p(&["import", "qet", "a", "--report"]).is_err());
         assert!(p(&["import", "qet", "a", "--report", "xml"]).is_err());
+    }
+    #[test]
+    fn export_forms() {
+        let Ok(Command::Export(a)) = p(&["export", "cables"]) else {
+            panic!("parse failed");
+        };
+        assert_eq!(a.kind, ExportKind::Cables);
+        assert_eq!((a.project, a.out), (None, None));
+        let Ok(Command::Export(b)) = p(&["export", "cables", "proj", "--format", "csv", "--out", "c.csv"])
+        else {
+            panic!("parse failed");
+        };
+        assert_eq!(b.project, Some(PathBuf::from("proj")));
+        assert_eq!(b.out, Some(PathBuf::from("c.csv")));
+        // The parts list is the default of `export bom`; `component` is the doc 17 name of `parts`.
+        for (args, mode) in [
+            (&["export", "bom"][..], BomMode::Component),
+            (&["export", "bom", "--mode", "parts"][..], BomMode::Component),
+            (&["export", "bom", "--mode", "component"][..], BomMode::Component),
+            (
+                &["export", "bom", "proj", "--mode", "assembly"][..],
+                BomMode::Assembly,
+            ),
+        ] {
+            let Ok(Command::Export(c)) = p(args) else {
+                panic!("{args:?}: parse failed");
+            };
+            assert_eq!(c.kind, ExportKind::Bom(mode), "{args:?}");
+        }
+    }
+
+    #[test]
+    fn export_errors() {
+        assert!(p(&["export"]).is_err());
+        assert!(p(&["export", "wires"]).is_err());
+        assert!(p(&["export", "cables", "a", "b"]).is_err());
+        assert!(p(&["export", "cables", "--bogus"]).is_err());
+        assert!(p(&["export", "cables", "--out"]).is_err());
+        // `--mode` belongs to `bom`; the other formats are not built.
+        assert!(p(&["export", "cables", "--mode", "parts"]).is_err());
+        assert!(p(&["export", "bom", "--mode", "everything"]).is_err());
+        assert!(p(&["export", "bom", "--mode"]).is_err());
+        assert!(p(&["export", "bom", "--format", "xlsx"]).is_err());
+        assert!(p(&["export", "bom", "--format", "pdf"]).is_err());
+        assert!(p(&["export", "bom", "--format", "tsv"]).is_err());
+    }
+
+    #[test]
+    fn verify_derived_forms() {
+        assert_eq!(
+            p(&["verify-derived"]),
+            Ok(Command::VerifyDerived(VerifyArgs { project: None }))
+        );
+        assert_eq!(
+            p(&["verify-derived", "proj"]),
+            Ok(Command::VerifyDerived(VerifyArgs {
+                project: Some(PathBuf::from("proj"))
+            }))
+        );
+        assert!(p(&["verify-derived", "a", "b"]).is_err());
+        assert!(p(&["verify-derived", "--bogus"]).is_err());
     }
 }

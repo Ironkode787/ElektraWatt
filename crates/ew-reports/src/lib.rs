@@ -29,6 +29,8 @@
 #![forbid(unsafe_code)]
 
 pub mod arrange;
+pub mod csv;
+pub mod export;
 mod kind;
 pub mod kinds;
 pub mod layout;
@@ -41,7 +43,7 @@ pub use arrange::{Arrangement, Filter, FilterOp, arrange};
 pub use kind::{Registry, ReportKindDef, kind_name};
 pub use layout::{Layouts, PageLayout};
 pub use paginate::{BlockSpec, Break, Continuation, FixedLines, RowLines, Slice, paginate};
-pub use queries::{BlockPages, BlockRows, ReportEngine, engine, rows_of};
+pub use queries::{BlockPages, BlockRows, ReportEngine, arranged, engine, rows_of};
 pub use render::TagClassMembers;
 pub use rowset::{
     Cell, CellType, ColumnDef, GridCell, GroupRange, LinkRef, LinkTarget, MissingReason, NotDerived, QtyUnit,

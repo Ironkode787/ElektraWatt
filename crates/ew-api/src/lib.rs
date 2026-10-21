@@ -58,6 +58,7 @@
 
 mod cmdlog;
 pub mod import;
+pub mod verify;
 
 use std::collections::BTreeSet;
 use std::path::Path;
@@ -68,15 +69,17 @@ use ew_derive::{
 };
 use ew_model::{AnyKey, Model, ModelError, PreventHook};
 use ew_schema::{LibDocument, Project, Record};
-use ew_store::{Changes, LockState, RecoverError, SaveError, SaveReport, Store, StoreOptions};
+use ew_store::{Changes, LockState, RecoverError, SaveError, SaveReport, Store};
 
 pub use cmdlog::{CmdLog, CmdLogError, SCHEMA as CMDLOG_SCHEMA};
 /// The check engine (`ew check`, the message panel, the migration report): rules, schemes, findings.
 pub use ew_checks as checks;
-pub use ew_derive::{DeriveNote, MemoStore, Mismatch, NoteSeverity};
+pub use ew_derive::{BomMode, DeriveNote, MemoStore, Mismatch, NoteSeverity};
+/// The row sources of `ew export cables|bom` (doc 17 §3.3): what to export and why it could not.
+pub use ew_reports::export::{Export, ExportError, Exported};
 /// The read-only SQL projection (`ew sql`, the acceptance SQL, ADR-0017): views, sandbox, results.
 pub use ew_sqlview as sql;
-pub use ew_store::{OpenError, OpenReport};
+pub use ew_store::{OpenError, OpenReport, StoreOptions};
 
 pub use ew_commands::{
     AnyCommand, Change, CmdError, CommandRegistry, DerivedChange, DerivedDiff, DynCommand, History,
@@ -604,6 +607,21 @@ impl Session {
         app_version: &str,
         subcommand: &str,
     ) -> Result<(Session, OpenReport), OpenError> {
+        Session::open_reader_with(dir, app_version, subcommand, MemoMode::default())
+    }
+
+    /// [`Session::open_reader`] with the memo mode of the session (`ew verify-derived` opens with
+    /// [`MemoMode::Oracle`]).
+    ///
+    /// # Errors
+    ///
+    /// [`OpenError`] when the project cannot be opened; integrity findings are in the report.
+    pub fn open_reader_with(
+        dir: &Path,
+        app_version: &str,
+        subcommand: &str,
+        memo: MemoMode,
+    ) -> Result<(Session, OpenReport), OpenError> {
         let mut store = StoreOptions::new(app_version);
         store.mode = ew_store::OpenMode::ReadOnly;
         store.state_dir = None;
@@ -612,6 +630,7 @@ impl Session {
                 subcommand: subcommand.to_owned(),
                 confirmed: false,
             },
+            memo,
             ..SessionOptions::default()
         };
         Session::open(dir, store, options, Recovery::Keep)
@@ -644,6 +663,26 @@ impl Session {
     /// (doc 15 §3): the findings, the totals and `ew check`'s exit code ([`checks::CheckReport`]).
     pub fn check(&self, scheme: &checks::Scheme, mode: checks::CheckMode) -> checks::CheckReport {
         checks::run(&self.query(), scheme, mode)
+    }
+
+    /// The CSV text of an export over the current snapshot (`ew export cables|bom`, doc 17 §3.3): the rows
+    /// of the project's report block of the matching kind, through the same row source and CSV writer as
+    /// the folio (`ew_reports::export`).
+    ///
+    /// # Errors
+    ///
+    /// [`ExportError`] when the project has no block of the kind or the block does not derive.
+    pub fn export_csv(&self, what: Export) -> Result<String, ExportError> {
+        ew_reports::export::export_csv(&self.query(), what)
+    }
+
+    /// [`Session::export_csv`] with the number of rows written.
+    ///
+    /// # Errors
+    ///
+    /// [`ExportError`] when the project has no block of the kind or the block does not derive.
+    pub fn export(&self, what: Export) -> Result<Exported, ExportError> {
+        ew_reports::export::export(&self.query(), what)
     }
 
     /// Writes the session's model as a new project into `dir` (a directory without a project) and keeps

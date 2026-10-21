@@ -39,83 +39,14 @@ use ew_api::{AnyCommand, CmdError, MemoMode, Session, SessionOptions};
 use ew_commands::testkit::seeded_ids;
 use ew_derive::ew_ids::Id;
 use ew_derive::{
-    BomMode, BomRows, DevicePartLines, DeviceTag, DevicesByStructure, DrawnPageOrder, EndClass, EndScope,
-    FlowBfs, FunctionCps, Member, Oracle, PageLocalNets, PageOrder, PageRef, PhysicalWiresOf, PotentialId,
-    PotentialPartition, ProfileKey, ProfileRowFor, Q, Query, RecordingTracker, SettingsMember, StitchGraphQ,
-    TitleBlockValues, TocRows, WireDefaultProps, WireNumbers, WireProfileNotes, WireProfilesQ, WirePropsOf,
-    XrefTextOf,
-};
-use ew_derive::{
-    BondIndex, BondPathsQ, BondVias, DefPoints, FlowNotes, FunctionLinksOf, IpFunctions, IpInfoOf, IpNotes,
-    IpPairingQ, PageIds, PagelessLinks, PotentialAttrsOf, PotentialNameOf, RailBondsQ, RailTerminalOf,
-    RailTerminals,
+    FunctionCps, Oracle, PotentialId, PotentialNameOf, PotentialPartition, Q, RecordingTracker, XrefTextOf,
 };
 use ew_model::{AnyRow, EndpointKey, Model, Op};
-use ew_schema::{CircuitClass, Device, Kind, Page, Record};
+use ew_schema::{Kind, Page, Record};
 use serde_json::{Value, json};
 
-/// The families this test reads: the `Memo`/`MemoLru` families of `ew_derive::FAMILIES`, sorted.
-const SWEPT: &[&str] = &[
-    "bom_rows",
-    "bond_index",
-    "bond_paths",
-    "bond_vias",
-    "channel_addresses",
-    "channel_states",
-    "channel_targets",
-    "channel_texts",
-    "cp_flow_distance",
-    "def_points",
-    "device_part_lines",
-    "device_tag",
-    "devices_by_structure",
-    "drawn_page_order",
-    "end_class",
-    "flow_notes",
-    "function_links",
-    "ip_functions",
-    "ip_info",
-    "ip_notes",
-    "ip_pairing",
-    "module_order",
-    "module_starts",
-    "page_ids",
-    "page_local_nets",
-    "page_order",
-    "pageless_links",
-    "physical_wires_of",
-    "plc_rows",
-    "potential_attrs",
-    "potential_flow_bfs",
-    "potential_name",
-    "potential_partition",
-    "profile_row_for",
-    "rail_bonds",
-    "rail_terminal",
-    "rail_terminals",
-    "settings_member",
-    "stitch_graph",
-    "title_block",
-    "toc_rows",
-    "wire_default_props",
-    "wire_numbers",
-    "wire_profile_notes",
-    "wire_profiles",
-    "wire_props_of",
-    "xref_text",
-];
-
-/// Every settings member (the keys of `settings_member`).
-const ALL_MEMBERS: [Member; 8] = [
-    Member::IpPairing,
-    Member::ColourProfile,
-    Member::SizeProfile,
-    Member::WireDefault,
-    Member::Numbering,
-    Member::Frames,
-    Member::XrefFormat,
-    Member::DerivationProfile,
-];
+// The families this test reads: the memoised families of both `FAMILIES` lists (`ew_api::verify`).
+use ew_api::verify::SWEPT;
 
 /// The oracle samples one memoised read in this many (see `oracle_finds_no_mismatch_over_every_state`).
 const ORACLE_ONE_IN: u32 = 8;
@@ -145,240 +76,19 @@ fn session(batch: &ew_import_tables::ew_interop_api::ImportBatch, memo: MemoMode
     .expect("the golden batch passes the model's integrity check")
 }
 
-/// The keys of the snapshot a `Q` sees, for the families with a non-trivial key.
-struct Keys {
-    cfgs: Vec<Id<ew_schema::PlcConfigProject>>,
-    devices: Vec<Id<Device>>,
-    functions: Vec<Id<ew_schema::Function>>,
-    pages: Vec<Id<Page>>,
-    reps: Vec<Id<ew_schema::Representation>>,
-    page_refs: Vec<PageRef>,
-    potentials: Vec<PotentialId>,
-    /// The profile keys of the potentials, and the same attributes with each known circuit class.
-    profile_keys: BTreeSet<ProfileKey>,
-}
-
-impl Keys {
-    fn of(q: &Q) -> Keys {
-        let potentials: Vec<PotentialId> = q
-            .get::<PotentialPartition>(())
-            .potentials()
-            .map(|p| p.id)
-            .collect();
-        let mut profile_keys = BTreeSet::new();
-        for p in &potentials {
-            let key = ProfileKey::of_potential(q, *p);
-            for class in [
-                CircuitClass::Mains,
-                CircuitClass::Control,
-                CircuitClass::Analogue,
-                CircuitClass::Bus,
-                CircuitClass::Pe,
-            ] {
-                profile_keys.insert(ProfileKey::new(&key.attrs(), Some(class)));
-            }
-            profile_keys.insert(key);
-        }
-        Keys {
-            cfgs: q.table::<ew_schema::PlcConfigProject>().ids().collect(),
-            devices: q.devices().ids().collect(),
-            functions: q.functions().ids().collect(),
-            pages: q.pages().ids().collect(),
-            reps: q.reps().ids().collect(),
-            page_refs: q.get::<PageOrder>(()).entries.iter().map(|e| e.page).collect(),
-            potentials,
-            profile_keys,
-        }
-    }
-}
-
-/// Reads `F` at every key through `memo` and, when given, `cold`; the values must be equal. Returns the
-/// number of keys.
-fn check<F: Query>(memo: &Q, cold: Option<&Q>, keys: impl IntoIterator<Item = F::Key>, state: &str) -> usize {
-    let mut n = 0;
-    for key in keys {
-        let m = memo.get::<F>(key.clone());
-        if let Some(cold) = cold {
-            let c = cold.get::<F>(key.clone());
-            assert_eq!(*m, *c, "{state}: {}({key:?})", F::FAMILY);
-        }
-        n += 1;
-    }
-    n
-}
-
-/// Reads every family at every key of the snapshot through `memo` (and compares with `cold`). The keys come
-/// from `cold` when there is one, else from `memo`. Returns the keys read per family.
+/// Reads every family at every key of the snapshot through `memo` (and compares with `cold`), through the
+/// sweep `ew verify-derived` runs (`ew_api::verify`); a difference fails the test. The keys come from `cold`
+/// when there is one, else from `memo`. Returns the keys read per family.
 fn sweep(memo: &Q, cold: Option<&Q>, state: &str) -> BTreeMap<&'static str, usize> {
-    let keys = Keys::of(cold.unwrap_or(memo));
-    let mut n = BTreeMap::new();
-    let mut put = |family: &'static str, count: usize| {
-        n.insert(family, count);
-    };
-    put(
-        BomRows::FAMILY,
-        check::<BomRows>(memo, cold, [BomMode::Component, BomMode::Assembly], state),
+    let result = ew_api::verify::sweep(memo, cold);
+    assert!(
+        result.differences.is_empty(),
+        "{state}: memoised values differ from cold: {:?}",
+        result.differences
     );
-    for (family, count) in [
-        (BondIndex::FAMILY, check::<BondIndex>(memo, cold, [()], state)),
-        (BondPathsQ::FAMILY, check::<BondPathsQ>(memo, cold, [()], state)),
-        (BondVias::FAMILY, check::<BondVias>(memo, cold, [()], state)),
-        (DefPoints::FAMILY, check::<DefPoints>(memo, cold, [()], state)),
-        (
-            FunctionLinksOf::FAMILY,
-            check::<FunctionLinksOf>(memo, cold, keys.functions.iter().copied(), state),
-        ),
-        (IpFunctions::FAMILY, check::<IpFunctions>(memo, cold, [()], state)),
-        (
-            IpInfoOf::FAMILY,
-            check::<IpInfoOf>(memo, cold, keys.functions.iter().copied(), state),
-        ),
-        (IpPairingQ::FAMILY, check::<IpPairingQ>(memo, cold, [()], state)),
-        (PageIds::FAMILY, check::<PageIds>(memo, cold, [()], state)),
-        (
-            PagelessLinks::FAMILY,
-            check::<PagelessLinks>(memo, cold, [()], state),
-        ),
-        (RailBondsQ::FAMILY, check::<RailBondsQ>(memo, cold, [()], state)),
-        (
-            RailTerminalOf::FAMILY,
-            check::<RailTerminalOf>(memo, cold, keys.devices.iter().copied(), state),
-        ),
-        (
-            RailTerminals::FAMILY,
-            check::<RailTerminals>(memo, cold, [()], state),
-        ),
-        (FlowNotes::FAMILY, check::<FlowNotes>(memo, cold, [()], state)),
-        (IpNotes::FAMILY, check::<IpNotes>(memo, cold, [()], state)),
-        (
-            PotentialAttrsOf::FAMILY,
-            check::<PotentialAttrsOf>(memo, cold, keys.potentials.iter().copied(), state),
-        ),
-        (
-            PotentialNameOf::FAMILY,
-            check::<PotentialNameOf>(memo, cold, keys.potentials.iter().copied(), state),
-        ),
-    ] {
-        put(family, count);
-    }
-    for (family, count) in [
-        (
-            ew_derive::ModuleOrder::FAMILY,
-            check::<ew_derive::ModuleOrder>(memo, cold, keys.cfgs.iter().copied(), state),
-        ),
-        (
-            ew_derive::ModuleStarts::FAMILY,
-            check::<ew_derive::ModuleStarts>(memo, cold, keys.cfgs.iter().copied(), state),
-        ),
-        (
-            ew_derive::ChannelAddresses::FAMILY,
-            check::<ew_derive::ChannelAddresses>(memo, cold, keys.devices.iter().copied(), state),
-        ),
-        (
-            ew_derive::ChannelStates::FAMILY,
-            check::<ew_derive::ChannelStates>(memo, cold, keys.devices.iter().copied(), state),
-        ),
-        (
-            ew_derive::ChannelTargets::FAMILY,
-            check::<ew_derive::ChannelTargets>(memo, cold, keys.devices.iter().copied(), state),
-        ),
-        (
-            ew_derive::ChannelTexts::FAMILY,
-            check::<ew_derive::ChannelTexts>(memo, cold, keys.devices.iter().copied(), state),
-        ),
-        (
-            ew_derive::PlcRows::FAMILY,
-            check::<ew_derive::PlcRows>(memo, cold, keys.devices.iter().copied(), state),
-        ),
-    ] {
-        put(family, count);
-    }
-    put(
-        DevicePartLines::FAMILY,
-        check::<DevicePartLines>(memo, cold, keys.devices.iter().copied(), state),
-    );
-    put(
-        DeviceTag::FAMILY,
-        check::<DeviceTag>(memo, cold, keys.devices.iter().copied(), state),
-    );
-    put(
-        DevicesByStructure::FAMILY,
-        check::<DevicesByStructure>(memo, cold, [()], state),
-    );
-    put(
-        DrawnPageOrder::FAMILY,
-        check::<DrawnPageOrder>(memo, cold, [()], state),
-    );
-    put(
-        EndClass::FAMILY,
-        check::<EndClass>(
-            memo,
-            cold,
-            keys.devices
-                .iter()
-                .flat_map(|d| [EndScope::Device(*d), EndScope::Strip(*d)]),
-            state,
-        ),
-    );
-    put(
-        PageLocalNets::FAMILY,
-        check::<PageLocalNets>(memo, cold, keys.pages.iter().copied(), state),
-    );
-    put(PageOrder::FAMILY, check::<PageOrder>(memo, cold, [()], state));
-    put(
-        PhysicalWiresOf::FAMILY,
-        check::<PhysicalWiresOf>(memo, cold, keys.potentials.iter().copied(), state),
-    );
-    put(FlowBfs::FAMILY, check::<FlowBfs>(memo, cold, [()], state));
-    put(
-        ew_derive::CpFlowDistanceOf::FAMILY,
-        check::<ew_derive::CpFlowDistanceOf>(memo, cold, keys.potentials.iter().copied(), state),
-    );
-    put(
-        PotentialPartition::FAMILY,
-        check::<PotentialPartition>(memo, cold, [()], state),
-    );
-    put(
-        ProfileRowFor::FAMILY,
-        check::<ProfileRowFor>(memo, cold, keys.profile_keys.iter().cloned(), state),
-    );
-    put(
-        SettingsMember::FAMILY,
-        check::<SettingsMember>(memo, cold, ALL_MEMBERS, state),
-    );
-    put(
-        StitchGraphQ::FAMILY,
-        check::<StitchGraphQ>(memo, cold, [()], state),
-    );
-    put(
-        TitleBlockValues::FAMILY,
-        check::<TitleBlockValues>(memo, cold, keys.page_refs.iter().copied(), state),
-    );
-    put(TocRows::FAMILY, check::<TocRows>(memo, cold, [()], state));
-    put(
-        WireDefaultProps::FAMILY,
-        check::<WireDefaultProps>(memo, cold, [()], state),
-    );
-    put(WireNumbers::FAMILY, check::<WireNumbers>(memo, cold, [()], state));
-    put(
-        WireProfileNotes::FAMILY,
-        check::<WireProfileNotes>(memo, cold, [()], state),
-    );
-    put(
-        WireProfilesQ::FAMILY,
-        check::<WireProfilesQ>(memo, cold, [()], state),
-    );
-    put(
-        WirePropsOf::FAMILY,
-        check::<WirePropsOf>(memo, cold, keys.potentials.iter().copied(), state),
-    );
-    put(
-        XrefTextOf::FAMILY,
-        check::<XrefTextOf>(memo, cold, keys.reps.iter().copied(), state),
-    );
-    let swept: Vec<&str> = n.keys().copied().collect();
+    let swept: Vec<&str> = result.keys.keys().copied().collect();
     assert_eq!(swept, SWEPT, "the sweep reads exactly the listed families");
-    n
+    result.keys
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -849,11 +559,12 @@ fn memo_q_notes_equal(session: &Session, model: &Model, state: &str) -> BTreeMap
 // ---------------------------------------------------------------------------------------------------------
 // Tests
 
-/// The guard: the swept list is the memoised families of `ew_derive::FAMILIES`.
+/// The guard: the swept list is the memoised families of `ew_derive::FAMILIES` and `ew_reports::FAMILIES`.
 fn assert_family_list() {
     use ew_derive::{FAMILIES, Policy};
     let mut memoised: Vec<&str> = FAMILIES
         .iter()
+        .chain(ew_reports::FAMILIES)
         .filter(|(_, p)| matches!(p, Policy::Memo | Policy::MemoLru))
         .map(|(n, _)| *n)
         .collect();

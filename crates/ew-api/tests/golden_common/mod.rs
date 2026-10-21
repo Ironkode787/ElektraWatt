@@ -19,8 +19,7 @@ use ew_derive::ew_ids::Id;
 use ew_derive::{DeviceTag, PageOrder, PotentialPartition, PropSource, Q, WirePropsOf, XrefTextOf};
 use ew_import_tables::ew_interop_api::{ImportBatch, ImportInput};
 use ew_import_tables::{BuiltinLibrary, TablesImporter, bootstrap_context};
-use ew_reports::render::{RenderOptions, render};
-use ew_reports::{BlockRows, RowKind, RowSet, RowSetStatus};
+use ew_reports::{BlockRows, RowSet, RowSetStatus};
 use ew_schema::{CircuitClass, Device, LibDocument, Record, ReportBlock, Representation};
 
 pub fn repo() -> PathBuf {
@@ -235,13 +234,8 @@ pub fn plain(s: &Session) -> Q {
 }
 
 /// One row as printed texts (neutral language, no page).
-pub fn texts(q: &Q, set: &RowSet, i: usize) -> Vec<String> {
-    set.rows[i]
-        .cells
-        .iter()
-        .map(|c| render(q, c, &RenderOptions::default()))
-        .collect()
-}
+#[allow(unused_imports)]
+pub use ew_reports::csv::row_texts as texts;
 
 /// The derived rows of a report block (the block must derive).
 pub fn rows_of(q: &Q, batch: &ImportBatch, key: &str) -> std::sync::Arc<RowSet> {
@@ -250,42 +244,9 @@ pub fn rows_of(q: &Q, batch: &ImportBatch, key: &str) -> std::sync::Arc<RowSet> 
     set
 }
 
-/// A field of the golden CSV dialect (README "CSV dialect").
-pub fn csv_field(s: &str) -> String {
-    if s.contains([',', '"', '\n', '\r']) || s.starts_with(' ') || s.ends_with(' ') {
-        format!("\"{}\"", s.replace('"', "\"\""))
-    } else {
-        s.to_owned()
-    }
-}
-
-/// The printed rows of a block: the header (`row` and the column labels), then `data` or `heading` and the
-/// printed cells of every row.
-pub fn rows_csv(q: &Q, set: &RowSet) -> String {
-    let mut out = String::new();
-    let header: Vec<String> = std::iter::once("row".to_owned())
-        .chain(
-            set.columns
-                .iter()
-                .map(|c| csv_field(c.label.as_neutral().unwrap_or(&c.key))),
-        )
-        .collect();
-    out.push_str(&header.join(","));
-    out.push('\n');
-    for i in 0..set.rows.len() {
-        let kind = if set.rows[i].kind == RowKind::Data {
-            "data"
-        } else {
-            "heading"
-        };
-        let cells: Vec<String> = std::iter::once(kind.to_owned())
-            .chain(texts(q, set, i).iter().map(|t| csv_field(t)))
-            .collect();
-        out.push_str(&cells.join(","));
-        out.push('\n');
-    }
-    out
-}
+/// The CSV writer of the golden dialect: the one `ew export` uses (`ew_reports::csv`).
+#[allow(unused_imports)]
+pub use ew_reports::csv::{csv_field, rows_csv};
 
 // ---------------------------------------------------------------------------------------------------------
 // Effective wire properties

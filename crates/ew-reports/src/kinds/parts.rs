@@ -44,10 +44,24 @@ impl ReportKindDef for PartsSummary {
             .and_then(|p| p.get("mode"))
             .and_then(|m| m.as_str())
             == Some("assembly");
-        let (mode, mode_name) = if assembly {
-            (BomMode::Assembly, "assembly")
-        } else {
-            (BomMode::Component, "component")
+        self.rows_in_mode(
+            q,
+            if assembly {
+                BomMode::Assembly
+            } else {
+                BomMode::Component
+            },
+        )
+    }
+}
+
+impl PartsSummary {
+    /// The rows in the given BOM mode, in the default order (`BomRows`): the block's `params.mode` for a
+    /// folio, the `--mode` of `ew export bom` for an export.
+    pub fn rows_in_mode(&self, q: &Q, mode: BomMode) -> RowSet {
+        let mode_name = match mode {
+            BomMode::Component => "component",
+            BomMode::Assembly => "assembly",
         };
         let mut set = RowSet::new(self.columns());
         for row in q.get::<BomRows>(mode).iter() {

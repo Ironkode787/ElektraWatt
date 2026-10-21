@@ -1,0 +1,28 @@
+row,Pos,Qty,Unit,Manufacturer,Part number,Description,Tags,Folios
+data,1,1,pc,Festo,532216,PROFIBUS DP plug with terminating resistor,-3X1,3
+data,2,1,m,Siemens,6XV1830-0EH10,PROFIBUS FC standard cable,-3W1,3
+data,3,1,pc,Eaton,533356,"Main switch, 2-pole, 40 A",S51,101
+data,4,2,pc,Phoenix Contact,UK 5 N,Feed-through terminal,"1X1:1, 1X1:2",101
+data,5,1,pc,Phoenix Contact,USLKG 5,PE terminal,1X1:PE,101
+data,6,1,pc,Schneider Electric,A9P52610,"Miniature circuit breaker 1P+N, C, 10 A",-101F1,101
+data,7,1,pc,Siemens,5SY4204-7,"Miniature circuit breaker 1P+N, C, 4 A",F55,101
+data,8,1,pc,Rittal,SK 3110.000,Thermostat,T55,101
+data,9,1,pc,Rittal,SK 3102.000,Enclosure heater,E55,101
+data,10,1,pc,Phoenix Contact,2904602,Power supply 1 AC / 24 V DC / 20 A,-102G1,102
+data,11,1,pc,Schneider Electric,A9F78116,"Miniature circuit breaker 1P, B, 16 A",-102F1,102
+data,12,1,pc,Murrelektronik,MICO 4.10,"Electronic load distribution, 4 channels",-102F2,102
+data,13,20,pc,Phoenix Contact,PT 2.5-TWIN,"Feed-through terminal, 3 connections",-X1031:1 … 20,103
+data,14,5,pc,Phoenix Contact,PT 2.5-TWIN-PE,"PE terminal, 3 connections",-X1032:1 … 5,103
+data,15,2,pc,Festo,NEBU-G78W5-K-2-N-LE5,"Connecting cable 7/8"", 5-pin, open end","-106W1, -106W2",106
+data,16,1,pc,Festo,195740,"CPX-FB13 bus node, PROFIBUS DP",-201U1,201
+data,17,2,pc,Festo,550208,CPX-M-GE-EV-S-7/8-5POL interlinking block with supply,"-201U1, -202U1","201, 202"
+data,18,1,pc,Festo,552286,VMPA-FB-EPLM-G pneumatic interface,-201U2,201
+data,19,7,pc,Festo,533361,"VMPA1-FB-EMG-8 electronic module, 4 positions","-201U3 … -201U8, -202U2","201, 202"
+data,20,2,pc,Festo,533354,VMPA1-FB-SP supply plate,"-201U9, -202U3","201, 202"
+data,21,28,pc,Festo,571334,5/2 monostable solenoid valve,-201U3-Q1 … -202U2-Q4,203–206
+data,22,1,pc,Schneider Electric,NSYPLA1074G,"Enclosure, polyester",-UC1,
+data,23,1,pc,Schneider Electric,NSYPMM107,Mounting plate,-UC1-plate,
+data,24,2.192,m,TBD,TBD,DIN rail TS 35,-UC1,
+data,25,3.81,m,TBD,TBD,Wiring duct 40×60,-UC1,
+data,26,4,pc,TBD,TBD,End bracket,"-X1031, -X1032, 1X1","101, 103"
+data,27,6,pc,TBD,TBD,Plug-in bridge,"-X1031, -X1032",103
