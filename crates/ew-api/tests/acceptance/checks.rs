@@ -11,14 +11,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
 
+use ew_api::checks::{CheckMode, PRE_DELIVERY};
 use ew_api::{Recovery, Session, SessionOptions};
 use ew_derive::{
     DeviceTag, PageOrder, PageRef, PotentialNameOf, PotentialPartition, RepAnchorCell, TitleBlockValues,
-    XrefTextOf,
+    WireNumbers, XrefTextOf,
 };
 use ew_ids::Id;
 use ew_scene::page::page_scene;
-use ew_schema::{Device, Representation};
+use ew_schema::{Device, Record, Representation};
 use sha2::{Digest, Sha256};
 
 use ew_store::StoreOptions;
@@ -281,7 +282,7 @@ pub fn all(r: &mut Runner) {
             ac17_open,
         );
         r.entry("AC-17", "a full check takes at most 2 s", |_| {
-            not_built("the check engine (`ew check`) does not exist yet: ew-checks holds no rule")
+            not_built("the pre-delivery pack is incomplete (the remaining rules are FT-192, `ew check` offline mode FT-191), so a full-check time would not be the time of doc 20 §18")
         });
         r.entry("AC-17", "exporting the PDF takes at most 3 s", ac17_pdf);
     } else {
@@ -1234,7 +1235,11 @@ fn defects(r: &mut Runner) {
     r.entry(
         "D-03",
         "the numbering report lists the frozen tags (EF-15)",
-        |_| not_built("the numbering report and the check engine's finding EF-15 do not exist yet"),
+        |_| {
+            not_built(
+                "rule EW-NUM-001 (EF-15: a frozen tag that deviates from the scheme reports at info, FR-CHK-025) is not in ew-checks (FT-192), and no numbering report lists the frozen tags (FR-NUM-022)",
+            )
+        },
     );
     r.entry_from(
         "D-04",
@@ -1274,7 +1279,11 @@ fn defects(r: &mut Runner) {
     r.entry(
         "D-06",
         "an override is reported as info and shown in the property grid",
-        |_| not_built("the check engine (info finding) and the property grid do not exist yet"),
+        |_| {
+            not_built(
+                "rule EW-CORE-023 (title-block override, info, doc 15 §4, FR-REP-036) is not in ew-checks (WP-S1.16), and the property grid (FR-UI-009) does not exist",
+            )
+        },
     );
     r.entry_from(
         "D-07",
@@ -1292,7 +1301,7 @@ fn defects(r: &mut Runner) {
     );
     r.entry_from(
         "D-09",
-        "W1-W44 are numbered, unique and stable",
+        "W1-W34 are numbered, unique and stable; the cable cores are not numbered",
         ("AC-09", "every wire has a wire number"),
         "",
     );
@@ -1335,7 +1344,7 @@ fn defects(r: &mut Runner) {
         }
     });
     r.entry("D-14", "forcing the origin anchor reports \"3-B0: empty cell\"", |_| {
-        not_built("no command sets a representation's anchor policy, and the check engine (FR-CHK-035) does not exist yet")
+        not_built("no command sets a representation's anchor policy, and rule EW-CORE-053 (cross-reference cell invalid, FR-CHK-035) is not in ew-checks (WP-S1.16)")
     });
     r.entry("D-17", "core colour BN is printed, never BR", |c| {
         let q = c.rows_q();
@@ -1388,9 +1397,20 @@ fn defects(r: &mut Runner) {
             fail(format!("{bonds} bonds, expected B1 only"))
         }
     });
-    r.entry("D-22", "replacing B1 by a plain wire is reported", |_| {
-        not_built("the check engine (FR-CHK-028) does not exist yet")
-    });
+    r.entry(
+        "D-22",
+        "replacing B1 by a plain wire is reported (EW-POT-001)",
+        d22_plain_wire,
+    );
+    r.entry(
+        "D-22",
+        "a PELV potential without exactly one 0 V-PE bond is reported",
+        |_| {
+            not_built(
+                "rule EW-POT-002 (PELV or SELV bonding, FR-CHK-028) is not in ew-checks (WP-S1.16, no FT row yet): the replacement is reported by EW-POT-001 only",
+            )
+        },
+    );
     r.entry("D-24", "24VDC-1, 0V and PE carry their IP names as aliases", d24);
     r.entry(
         "D-27",
@@ -1442,7 +1462,11 @@ fn defects(r: &mut Runner) {
     r.entry(
         "D-35",
         "BOM descriptions per §14, ratings only at symbols",
-        |_| not_built("the typed-data lint EF-25 of the check engine does not exist yet (the 27-row parts list is D-04)"),
+        |_| {
+            not_built(
+                "rule EW-CORE-065 (description lint, EF-25, FR-CHK-040) is not in ew-checks (1.0, FT-192); the 27-row parts list is D-04",
+            )
+        },
     );
     r.entry("D-36", "assembly rows A1 and A2, order code on folio 3", |_| {
         not_built("the assembly BOM mode and `ew export bom` do not exist yet (FR-REP-005)")
@@ -1552,16 +1576,123 @@ fn ac05_main_aux(c: &Ctx) -> Outcome {
     }
 }
 
+/// AC-09, D-09: the wire numbers of doc 20 §8.1 (FT-100): connection-oriented `{page}.{counter}`, counter scope
+/// page, W1 to W34 numbered and the ten cable cores W35 to W44 not (FR-NUM-019), numbers not printed on the
+/// pages. The page of each number is the folio of doc 20 §8.2; the counters inside a page follow the numbering
+/// order of doc 08 §5.2, which the document leaves to the runner (§8.1: the ties and the cells of the CPs), so
+/// their order is not compared with the "No." column of §8.2. The same numbers come out of a model with
+/// reversed records.
 fn ac09_numbers(c: &Ctx) -> Outcome {
+    let numbers_of = |s: &Session| -> Vec<(u32, Option<String>)> {
+        let q = golden_common::plain(s);
+        let n = q.get::<WireNumbers>(());
+        (1..=44u32)
+            .map(|w| {
+                let id: Id<ew_schema::Connection> = id_of(c, &format!("connections|W{w}"));
+                (w, n.number(id).map(|x| x.label.clone()))
+            })
+            .collect()
+    };
     let q = golden_common::plain(&c.profiled);
+    let got = numbers_of(&c.profiled);
+    let mut wrong = Vec::new();
+    let mut labels = BTreeSet::new();
+    let mut per_page: BTreeMap<String, Vec<u32>> = BTreeMap::new();
+    for (w, label) in &got {
+        match (*w <= 34, label) {
+            (true, Some(l)) => {
+                let (page, counter) = l.split_once('.').unwrap_or((l, ""));
+                let folio = match w {
+                    1..=19 => "101",
+                    20..=32 => "102",
+                    _ => "103",
+                };
+                if page != folio {
+                    wrong.push(format!("W{w} is {l}, doc 20 §8.2 puts it on folio {folio}"));
+                }
+                if !labels.insert(l.clone()) {
+                    wrong.push(format!("{l} is given twice"));
+                }
+                if let Ok(n) = counter.parse::<u32>() {
+                    per_page.entry(page.to_owned()).or_default().push(n);
+                }
+            }
+            (true, None) => wrong.push(format!("W{w} has no number")),
+            (false, Some(l)) => wrong.push(format!("the cable core W{w} is numbered {l}")),
+            (false, None) => {}
+        }
+    }
+    for (page, mut counters) in per_page {
+        counters.sort_unstable();
+        if counters != (1..=counters.len() as u32).collect::<Vec<_>>() {
+            wrong.push(format!("the counters of folio {page} are {counters:?}, not 1..n"));
+        }
+    }
+    // The 907 rows print the same numbers, wire by wire.
     let rows = rows_of(&q, &c.batch, "907");
     let no = rows.column("no").expect("the No. column");
-    let numbered = (0..44).filter(|i| !texts(&q, &rows, *i)[no].is_empty()).count();
-    if numbered == 44 {
-        pass("44 wires have a wire number")
+    for (w, label) in &got {
+        let id: Id<ew_schema::Connection> = id_of(c, &format!("connections|W{w}"));
+        let printed = rows
+            .rows
+            .iter()
+            .position(|r| r.id == ew_reports::RowId::entity(id))
+            .map(|i| texts(&q, &rows, i)[no].clone());
+        if printed.as_deref() != Some(label.as_deref().unwrap_or("")) {
+            wrong.push(format!(
+                "folio 907 prints {printed:?} for W{w}, the query gives {label:?}"
+            ));
+        }
+    }
+    // Stable: record order does not matter.
+    let reversed = golden_common::session_with(&c.batch, |p, r| {
+        golden_common::with_profiles(p);
+        r.reverse();
+    });
+    if numbers_of(&reversed) != got {
+        wrong.push("a model with reversed records numbers the wires differently".to_owned());
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "W1-W34 carry {} unique `{{page}}.{{counter}}` numbers (19 on 101, 13 on 102, 2 on 103, counters 1..n per page), W35-W44 (cable cores) none; folio 907 prints them; the same numbers with reversed records",
+            labels.len()
+        ))
     } else {
-        not_built(format!(
-            "{numbered} of 44 wires have a wire number: the wire numbering query does not exist yet (FT-100)"
+        fail(list(wrong, 4))
+    }
+}
+
+/// D-22: dropping the bond record leaves W27 a plain wire between 0V and PE, so one potential holds two
+/// potential types; EW-POT-001 reports it. Golden A itself is clean (checked first).
+fn d22_plain_wire(c: &Ctx) -> Outcome {
+    let findings = |s: &Session| -> Vec<String> {
+        s.check(&PRE_DELIVERY, CheckMode::Release)
+            .findings
+            .iter()
+            .filter(|f| f.rule == "EW-POT-001" && f.is_open())
+            .map(|f| f.message.clone())
+            .collect()
+    };
+    let clean = golden_common::session(&c.batch);
+    let baseline = findings(&clean);
+    if !baseline.is_empty() {
+        return fail(format!(
+            "Golden A with its bond already reports EW-POT-001: {}",
+            list(baseline, 2)
+        ));
+    }
+    let bond = c.ids["bonds|B1"].clone();
+    let edited = golden_common::session_with(&c.batch, |p, records| {
+        golden_common::with_profiles(p);
+        records.retain(|r| !matches!(r, Record::Bond(b) if b.id.to_string() == bond));
+    });
+    let reported = findings(&edited);
+    if reported.is_empty() {
+        fail("without B1, W27 joins 0V and PE and EW-POT-001 reports nothing")
+    } else {
+        pass(format!(
+            "Golden A is clean; without B1, W27 joins 0V and PE and EW-POT-001 reports {} type conflict(s)",
+            reported.len()
         ))
     }
 }

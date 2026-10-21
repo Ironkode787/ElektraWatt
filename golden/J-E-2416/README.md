@@ -505,10 +505,22 @@ The expectations were not adjusted to the output; each difference is a gap of th
 here, with the follow-up task of the [work breakdown](../../docs/plan/02-work-packages.md) Appendix B that closes it:
 
 - **Wire list (907).**
-  - Rows are in reading order (page, then the frame-grid cell of an end where a representation draws it, then the
-    tags and CPs, then the wire ID), not in the W1 … W44 order of doc 20 (W is a fixture label). The numbering order
-    of FR-NUM-028 needs the cells of terminals in strip segments, which no query gives (FT-100).
-  - The "No." column is empty: the wire numbering of doc 08 §5 has no query yet (FT-100).
+  - Rows are in the numbering order of FR-NUM-028 (doc 08 §5.2): the page of the From end, the From end's frame
+    cell (column, then row), the To end's cell, then the wire ID; the cable cores sort in the same order. The
+    order and the numbers are the `wire_numbers` query of `ew-derive` (FT-100), not the W1 … W44 order of doc 20
+    (W is a fixture label). The cell of an end is the cell of the CP's drawn point on the page of the constituent
+    that ends there: the symbol CP, the box CP of a black box, or the point of the terminal in its strip segment
+    (doc 08 §6.7); the strip-segment and black-box points are restated in `ew-derive` from the page scene's rules.
+  - The "No." column prints `{page}.{counter}` (counter scope page) on the 34 wires W1 … W34 and nothing on the 10
+    cable cores (FR-NUM-019). `expected/csv/wires.csv` holds the exact counters, also where doc 20 §8.2 marks a
+    tie ("(tie)"): the wire ID decides there, and the query keeps the counter range of the group
+    (`WireNumber::tie`) for a table that wants to print it as doc 20 does. The page of every number equals doc
+    20's, and the page totals (19 on 101, 13 on 102, 2 on 103) agree. Inside a page 9 of the 34 numbers fall in
+    the range doc 20 gives (W6, W7, W15, W18, W20, W31, W32, W33, W34); the other 25 differ, among them W29, which
+    gets 102.10 where doc 20 and doc 08 §5.2 write 102.5. Doc 20 §8.1 says the order cannot be stated in advance;
+    its column was written by hand, and the committed numbers are the rule's. Numbers are not printed on pages
+    (FR-CON-026 follows with the number display) and not stored: `NumberWires` and the stored `NumberSpec` are the
+    numbering schemes of FR-NUM-020.
   - From and To follow doc 08 §3.8 (FR-CON-040) without its flow-distance step (`ew-derive` has no per-CP distance):
     on one page the end with the smaller anchor cell is From. W1 to W3 (the supply to 1X1) and W4, W5 (1X1 to S51)
     print the other way round (FT-101).
@@ -536,8 +548,8 @@ across the pass-through pair, FT-108). The columns "switched", "protected by" an
   printed. Pages compress consecutive pages to a range (`102–106` for 102, 103 and 106, FR-REP-046), where doc 20
   lists them. The bond row has a name and pages only.
 - **Terminal diagrams (903 … 905).** The two sides are printed in side order (side 1, side 2); doc 20 §9 puts the
-  field side of 1X1 first (`Strip.field_side` is not applied). Targets carry no wire number (W29 …) and no `#n`
-  (FT-103, FT-102).
+  field side of 1X1 first (`Strip.field_side` is not applied). Targets carry no wire number (W29 …; FT-100 gives
+  the number, FT-103 prints it) and no `#n` (FT-102).
   Multi-level terminals would need one row per level.
 - **Cable overview (906).** Cores are in natural order of the core name (BK, BN, BU, GNYE, WH), not in pin order
   (BK, BU, GNYE, WH, BN): pins are not modelled (FT-104). The length of -106W1 and -106W2 prints "from part" (the part
@@ -737,6 +749,6 @@ its report with the committed `expected/acceptance_headless.md` (so two runs mus
 The SQL half of each pair (`acceptance/*.sql` over the `api_v1` views) is `not_built`: SQL projection pending
 (WP-S1.10).
 
-The headless report of this revision: 83 entries, 51 pass, 2 fail, 24 not_built, 6 not_applicable (the full run adds
+The headless report of this revision: 84 entries, 54 pass, 2 fail, 22 not_built, 6 not_applicable (the full run adds
 the raster comparison as a pass). The failures are the open gaps listed above (page count 34 against 36: the PLC
 overview folios 908.1 and 908.2, FT-111; the DP potential, FT-105). An empty terminal designation refused at the parameter layer counts as refused for D-11 (ADR-0008).

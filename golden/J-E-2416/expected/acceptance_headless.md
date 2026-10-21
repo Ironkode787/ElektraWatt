@@ -1,6 +1,6 @@
 # Acceptance report: golden project J-E-2416, gate M1 (headless)
 
-83 entries: 51 pass, 2 fail, 24 not_built, 6 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
+84 entries: 54 pass, 2 fail, 22 not_built, 6 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
 
 | Criterion | Check | Status | Reason |
 |---|---|---|---|
@@ -22,7 +22,7 @@
 | AC-08 | folios 903-905 equal expected/csv, designations unique per strip | pass | 3, 20 and 5 terminal rows equal the committed CSVs (hand-compared with §9, differences in the README); designations unique per strip |
 | AC-09 | folio 907 equals expected/csv/wires.csv: 44 wires, 6 bridges | pass | 44 wire rows and 6 bridge rows equal expected/csv/wires.csv |
 | AC-09 | every wire has an effective size and colour | pass | 44 wires have an effective size and colour |
-| AC-09 | every wire has a wire number | not_built | 0 of 44 wires have a wire number: the wire numbering query does not exist yet (FT-100) |
+| AC-09 | every wire has a wire number | pass | W1-W34 carry 34 unique `{page}.{counter}` numbers (19 on 101, 13 on 102, 2 on 103, counters 1..n per page), W35-W44 (cable cores) none; folio 907 prints them; the same numbers with reversed records |
 | AC-10 | the potential partition holds the 19 potentials of §7.3 and bond B1 | fail | 18 potentials, §7.3 has 19 (the PROFIBUS DP potential needs the Bus connections, FT-105) |
 | AC-10 | folio 909 equals expected/csv/potentials.csv | pass | the derived rows equal expected/csv/potentials.csv (the SQL half is a separate entry) |
 | AC-11 | folio 906 equals expected/csv/cables.csv: 3 cables, 13 cores | pass | 3 cables and 13 cores equal expected/csv/cables.csv |
@@ -55,34 +55,35 @@
 | D-01 | renumber folio 3 as 4: -4W1, -4X1 and "4-B2" everywhere, undo restores | pass | Same check as AC-20 "renumbering folio 3 to 4 updates -3W1, -3X1 and "3-B2" everywhere; undo restores": -3W1 and -3X1 become -4W1 and -4X1, 1 cross-reference text(s) follow ("3-B2" becomes "4-B2"), undo restores the records |
 | D-01 | renumbering writes only that page's file | pass | Same check as AC-20 "renumbering folio 3 to 4 writes only that page's file": the save writes pages/93d03619-9f8d-5086-8b99-1a4f05456f21.jsonl only (and rewrites the manifest) |
 | D-03 | no output prints the structure alias JE2416 | pass | no page text contains "JE2416" |
-| D-03 | the numbering report lists the frozen tags (EF-15) | not_built | the numbering report and the check engine's finding EF-15 do not exist yet |
+| D-03 | the numbering report lists the frozen tags (EF-15) | not_built | rule EW-NUM-001 (EF-15: a frozen tag that deviates from the scheme reports at info, FR-CHK-025) is not in ew-checks (FT-192), and no numbering report lists the frozen tags (FR-NUM-022) |
 | D-04 | the parts list holds the 27 rows of §14.1 | pass | Same check as AC-07 "folio 901 holds the 27 rows of §14.1 over 901 and 901.1": 27 rows over 901 and 901.1 equal expected/parts_list_14_1.csv (§14.1) in every cell but 6 accepted differences (folio 902 of rows 22-26: layout placements are not modelled; row 26 tags in the ID-9 sign order) |
 | D-05 | V2.0 on every page | pass | Folio 911 (the revision overview, V1.0 and V2.0) is still a placeholder: the report kind does not read the revision records yet. Same check as AC-04 "every page prints the bound title-block values": all 34 pages print the six bound values |
 | D-06 | the project description is one text on every page | pass | all 34 pages print "Description: Expansion Control Cabinets" |
 | D-06 | an override set on 101 changes the description of 101 only | pass | the description of 101 becomes the override; 102 keeps the project description |
-| D-06 | an override is reported as info and shown in the property grid | not_built | the check engine (info finding) and the property grid do not exist yet |
+| D-06 | an override is reported as info and shown in the property grid | not_built | rule EW-CORE-023 (title-block override, info, doc 15 §4, FR-REP-036) is not in ew-checks (WP-S1.16), and the property grid (FR-UI-009) does not exist |
 | D-07 | outline, 64 cross-reference links and page labels | pass | Same check as AC-13 "PDF structure equals expected/pdf (outline, 64 links, page labels, fonts, SHA-256)": 34 pages: outline, 64 links, page labels = folio labels, embedded fonts and SHA-256 equal the committed files; no Tahoma (the folio count is 34 against 36, AC-03) |
 | D-08 | W29 takes 0.75 DBU from the profile, W20 1.5 mm2 from its CDP and DBU from the profile | pass | W29 0.75 DBU from the profile; W20 1.5 mm2 from its CDP, DBU from the profile (the explain output and the one-commit update of folios 1 and 907 are AC-12) |
-| D-09 | W1-W44 are numbered, unique and stable | not_built | Same check as AC-09 "every wire has a wire number": 0 of 44 wires have a wire number: the wire numbering query does not exist yet (FT-100) |
+| D-09 | W1-W34 are numbered, unique and stable; the cable cores are not numbered | pass | Same check as AC-09 "every wire has a wire number": W1-W34 carry 34 unique `{page}.{counter}` numbers (19 on 101, 13 on 102, 2 on 103, counters 1..n per page), W35-W44 (cable cores) none; folio 907 prints them; the same numbers with reversed records |
 | D-10 | -202U2 carries 4 valves | pass | -202U2 has 4 child valves (the rendering of folio 202 is covered by AC-02) |
 | D-11 | an empty terminal designation is rejected (parameter layer or invariant) | pass | terminals\|-X1031:8: designation `` is refused by the parameter layer (InvalidParams at /value) |
 | D-12 | a duplicate designation is rejected by the invariant | pass | terminals\|-X1031:3: designation `4` is refused by the prevent rule EW-TERM-002 |
 | D-12 | swapping two designations in one transaction is accepted | pass | one terminal.designate transaction swaps -X1031:3 and -X1031:4 (one undo step); EW-TERM-002 accepts the final state |
 | D-14 | the bus port prints "3-B2", never "3-B0" | pass | -201U1 prints "∞ 3-B2, 106-G3" |
-| D-14 | forcing the origin anchor reports "3-B0: empty cell" | not_built | no command sets a representation's anchor policy, and the check engine (FR-CHK-035) does not exist yet |
+| D-14 | forcing the origin anchor reports "3-B0: empty cell" | not_built | no command sets a representation's anchor policy, and rule EW-CORE-053 (cross-reference cell invalid, FR-CHK-035) is not in ew-checks (WP-S1.16) |
 | D-17 | core colour BN is printed, never BR | pass | folio 906 prints core colour BN and no BR |
 | D-17 | strict import rejects "BR"; lenient import keeps it as a foreign code with the quick fix "use BN" | not_built | the CSV importer has no strict or lenient mode (ImportContext carries none) and quick fixes do not exist yet |
 | D-18 | the typed ratings and manufacturer names print on folios 101 and 102 | pass | all six values print |
 | D-20 | W13/W14 are a star at F55:2, W7/W8 a chain on -101F1:1 | not_built | the wire list prints neither the junction nor its wiring style (README, "Wire list (907)"), so the wire list cannot show the notation |
 | D-22 | the 0 V to PE connection is the bond B1 | pass | the model holds exactly one bond, B1 (the connectivity test bond_b1_links_0v_and_pe checks its ends) |
-| D-22 | replacing B1 by a plain wire is reported | not_built | the check engine (FR-CHK-028) does not exist yet |
+| D-22 | replacing B1 by a plain wire is reported (EW-POT-001) | pass | Golden A is clean; without B1, W27 joins 0V and PE and EW-POT-001 reports 1 type conflict(s) |
+| D-22 | a PELV potential without exactly one 0 V-PE bond is reported | not_built | rule EW-POT-002 (PELV or SELV bonding, FR-CHK-028) is not in ew-checks (WP-S1.16, no FT row yet): the replacement is reported by EW-POT-001 only |
 | D-24 | 24VDC-1, 0V and PE carry their IP names as aliases | pass | 24VDC-1 with AIR1-AIR4, 0V with 0VDC and AIR1-AIR4, PE with its 7 aliases (the canonical name and aliases of folio 909 are in AC-10) |
 | D-27 | 28 valve child tags and 8 field devices with process tags in +FIELD | pass | 28 valve child tags (-201U3-Q1 ...) and 8 field devices with process tags in +FIELD |
 | D-29 | every device tag prints in the style tag.main (9.62 pt) | pass | 17 printed device tags on 101, 202 and 203-206 are all 9.62 pt |
 | D-30 | the title block binds the end user | pass | all 34 title blocks print "End user: <end user>" |
 | D-30 | the cover binds the customer | not_built | the cover (folio 1) is not drawn (README, "Folio 1") |
 | D-33 | "SK 3110.000" keeps its space and physical page 6 is labelled "101" | pass | both hold |
-| D-35 | BOM descriptions per §14, ratings only at symbols | not_built | the typed-data lint EF-25 of the check engine does not exist yet (the 27-row parts list is D-04) |
+| D-35 | BOM descriptions per §14, ratings only at symbols | not_built | rule EW-CORE-065 (description lint, EF-25, FR-CHK-040) is not in ew-checks (1.0, FT-192); the 27-row parts list is D-04 |
 | D-36 | assembly rows A1 and A2, order code on folio 3 | not_built | the assembly BOM mode and `ew export bom` do not exist yet (FR-REP-005) |
 | D-37 | profiles name their basis; the cover prints it | pass | the colour profile's basis is company_convention with DBU declared a company code on BU; the cover prints "IEC60757 / EN60204-1" and keeps the basis note as metadata (U-35) |
 | D-41 | one assembly -201U1 with children on both pages, break marks | not_built | the assembly aspect and the generated overview break marks are not implemented (schema v0 keeps the assembly in `extra`) |
