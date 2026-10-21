@@ -16,6 +16,7 @@
 //! | `device.place` | [`PlaceSymbol`] | Interactive |
 //! | `rep.move` | [`MoveReps`] | Interactive |
 //! | `rep.transform` | [`TransformReps`] | Interactive |
+//! | `rep.set_anchor_policy` | [`SetAnchorPolicy`] | Interactive |
 //! | `connection.draw` | [`Connect`] | Interactive |
 //! | `connection.route` | [`RouteConnection`] | Interactive |
 //! | `connection.delete` | [`DeleteConnections`] | Interactive |
@@ -50,7 +51,9 @@ pub use connection::{
     Connect, ContinueIp, DefinePotential, DeleteConnections, EditJunction, PlaceIp, RouteConnection,
     WiringChoice,
 };
-pub use device::{ConnectHint, CreateDevice, MoveReps, PlaceSymbol, PlaceTarget, TransformReps};
+pub use device::{
+    ConnectHint, CreateDevice, MoveReps, PlaceSymbol, PlaceTarget, SetAnchorPolicy, TransformReps,
+};
 pub use edit::{BULK_ABOVE, DeleteSelection};
 pub use fields::{ASPECTS, SETTABLE, SetFields};
 pub use page::{CreatePage, DeletePages, PageScope, RenumberPages};
@@ -76,6 +79,7 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<PlaceSymbol>();
     r.register::<MoveReps>();
     r.register::<TransformReps>();
+    r.register::<SetAnchorPolicy>();
     r.register::<Connect>();
     r.register::<RouteConnection>();
     r.register::<DeleteConnections>();

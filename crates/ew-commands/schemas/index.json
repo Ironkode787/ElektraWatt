@@ -216,6 +216,17 @@
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
+      "name": "rep.set_anchor_policy",
+      "params_version": 1,
+      "schema": "rep.set_anchor_policy.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
       "name": "rep.transform",
       "params_version": 1,
       "schema": "rep.transform.schema.json",

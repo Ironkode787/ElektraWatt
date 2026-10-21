@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Device and representation commands: `device.create`, `device.place`, `rep.move`, `rep.transform`.
+//! Device and representation commands: `device.create`, `device.place`, `rep.move`, `rep.transform`,
+//! `rep.set_anchor_policy`.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -9,9 +10,9 @@ use std::sync::Arc;
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
-    Connection, ConnectionKind, Device, DeviceAspects, DeviceKind, Endpoint, Extra, FnDef, FnRole, Function,
-    FunctionKind, Junction, JunctionStyle, Kind, LibCopy, NumberSpec, Page, PageType, PartUse, RepType,
-    Representation, Strip, StructureAssignment, SymbolDef, TagSpec,
+    AnchorPolicy, Connection, ConnectionKind, Device, DeviceAspects, DeviceKind, Endpoint, Extra, FnDef,
+    FnRole, Function, FunctionKind, Junction, JunctionStyle, Kind, LibCopy, NumberSpec, Page, PageType,
+    PartUse, RepType, Representation, Strip, StructureAssignment, SymbolDef, TagSpec,
 };
 use ew_units::{Orient2, Pt2};
 use schemars::JsonSchema;
@@ -709,6 +710,91 @@ impl Command for TransformReps {
             tx.put(rep);
         }
         Ok(Outcome::default())
+    }
+}
+
+/// `rep.set_anchor_policy`: sets the cross-reference anchor policy of representations (FR-SYM-010; the
+/// quick fix of MF-13, doc 07 §3.6).
+///
+/// The policy lives on the symbol copy a representation uses (`Representation.symbol`), so the command
+/// updates `LibCopy<SymbolDef>.item.anchor` of each distinct symbol copy once; a copy that already holds
+/// the policy is left untouched. `anchor` is `origin`, `graphic_centre`, `{"slot": <kind>}` or
+/// `{"named": [x, y]}`; an unknown (newer-format) policy is rejected. Rejections: an empty or duplicated
+/// `reps` list, an unknown policy; a missing representation or symbol copy is not found. Cost: interactive.
+/// Outcome: none, with one notice per changed symbol copy that representations outside `reps` also use.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SetAnchorPolicy {
+    /// The representations, at least one; each at most once.
+    #[schemars(with = "Vec<UuidS>")]
+    #[schemars(length(min = 1))]
+    pub reps: Vec<Id<Representation>>,
+    /// The cross-reference anchor policy (FR-SYM-010): `origin`, `graphic_centre`, `{"slot": <kind>}`,
+    /// `{"named": [x, y]}`.
+    pub anchor: AnchorPolicy,
+}
+
+impl Command for SetAnchorPolicy {
+    const NAME: &'static str = "rep.set_anchor_policy";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if self.reps.is_empty() {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/reps",
+                "give at least one representation",
+            ));
+        }
+        let mut seen = BTreeSet::new();
+        for (i, id) in self.reps.iter().enumerate() {
+            if !seen.insert(*id) {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    format!("/reps/{i}"),
+                    "the representation is listed twice",
+                ));
+            }
+        }
+        if matches!(self.anchor, AnchorPolicy::Unknown(_)) {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/anchor",
+                "unknown anchor policy",
+            ));
+        }
+        let mut symbols: Vec<Id<SymbolDef>> = Vec::new();
+        for id in &self.reps {
+            let rep = tx.require::<Representation>(*id)?;
+            tx.require::<LibCopy<SymbolDef>>(rep.symbol)?;
+            if !symbols.contains(&rep.symbol) {
+                symbols.push(rep.symbol);
+            }
+        }
+        let mut notices = Vec::new();
+        for sym in symbols {
+            if tx.require::<LibCopy<SymbolDef>>(sym)?.item.anchor == self.anchor {
+                continue;
+            }
+            tx.update::<LibCopy<SymbolDef>>(sym, |c| c.item.anchor = self.anchor.clone())?;
+            let others = tx
+                .iter::<Representation>()
+                .iter()
+                .filter(|r| r.symbol == sym && !seen.contains(&r.id))
+                .count();
+            if others > 0 {
+                notices.push(format!(
+                    "symbol copy {sym}: the anchor policy also applies to {others} other representation(s)"
+                ));
+            }
+        }
+        Ok(Outcome {
+            notices,
+            ..Outcome::default()
+        })
     }
 }
 

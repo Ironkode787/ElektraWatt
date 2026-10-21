@@ -12,13 +12,13 @@ use common::fixture::*;
 use common::*;
 use ew_commands::commands::{
     AddConductors, AddTerminals, ConductorSpec, ConnectHint, CreateCable, CreateDevice, EndpointParam,
-    MoveReps, PlaceSymbol, PlaceTarget, TerminalSpec, TransformReps,
+    MoveReps, PlaceSymbol, PlaceTarget, SetAnchorPolicy, TerminalSpec, TransformReps,
 };
-use ew_commands::{CmdError, Engine, Receipt};
+use ew_commands::{AnyCommand, CmdError, Engine, Receipt};
 use ew_model::{Entity, Model};
 use ew_schema::{
-    Cable, Conductor, Connection, Device, DeviceAspects, DeviceKind, Function, Kind, NumberSpec, PartRef,
-    PartUse, Record, Representation,
+    AnchorPolicy, Cable, Conductor, Connection, Device, DeviceAspects, DeviceKind, Function, Kind, LibCopy,
+    NumberSpec, PartRef, PartUse, Record, Representation, SymbolDef,
 };
 use ew_units::{Orient2, Pt2};
 
@@ -959,4 +959,90 @@ fn add_conductors_undo_restores_bytes() {
     .unwrap();
     e.undo().unwrap();
     assert_eq!(lines(e.model()), before);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// rep.set_anchor_policy
+
+fn anchor_of(e: &Engine) -> AnchorPolicy {
+    e.model()
+        .table::<LibCopy<SymbolDef>>()
+        .get(&SYM)
+        .expect("symbol copy")
+        .item
+        .anchor
+        .clone()
+}
+
+fn set_anchor(reps: Vec<ew_ids::Id<Representation>>, anchor: AnchorPolicy) -> SetAnchorPolicy {
+    SetAnchorPolicy { reps, anchor }
+}
+
+fn invalid_at<T: std::fmt::Debug>(r: Result<T, CmdError>, at: &str) {
+    match r {
+        Err(CmdError::InvalidParams { path, .. }) => assert_eq!(path, at),
+        other => panic!("expected InvalidParams at {at}, got {other:?}"),
+    }
+}
+
+#[test]
+fn set_anchor_policy_changes_the_symbol_copy_and_undoes() {
+    let mut e = engine(golden_model());
+    assert_eq!(anchor_of(&e), AnchorPolicy::Origin);
+    let r = e
+        .execute(&set_anchor(vec![REP_102F2], AnchorPolicy::GraphicCentre))
+        .unwrap();
+    assert_eq!(anchor_of(&e), AnchorPolicy::GraphicCentre);
+    assert_eq!(r.outcome.notices.len(), 1, "other reps share the symbol copy");
+    assert!(r.outcome.notices[0].contains("other representation(s)"));
+    e.execute(&set_anchor(vec![REP_102F2, REP_101F1], AnchorPolicy::Origin))
+        .unwrap();
+    assert_eq!(anchor_of(&e), AnchorPolicy::Origin);
+    e.undo().unwrap();
+    assert_eq!(anchor_of(&e), AnchorPolicy::GraphicCentre);
+}
+
+#[test]
+fn set_anchor_policy_rejections() {
+    let mut e = engine(golden_model());
+    invalid_at(e.execute(&set_anchor(vec![], AnchorPolicy::Origin)), "/reps");
+    invalid_at(
+        e.execute(&set_anchor(vec![REP_102F2, REP_102F2], AnchorPolicy::Origin)),
+        "/reps/1",
+    );
+    invalid_at(
+        e.execute(&set_anchor(
+            vec![REP_102F2],
+            AnchorPolicy::Unknown(serde_json::json!("future")),
+        )),
+        "/anchor",
+    );
+    not_found(e.execute(&set_anchor(vec![id(0x999)], AnchorPolicy::GraphicCentre)));
+    assert_eq!(e.model().rev().0, 0);
+}
+
+#[test]
+fn set_anchor_policy_with_the_same_policy_changes_nothing() {
+    let mut e = engine(golden_model());
+    let before = anchor_of(&e);
+    let r = e.execute(&set_anchor(vec![REP_102F2], before.clone()));
+    assert!(r.map_or(true, |r| r.outcome.notices.is_empty()));
+    assert_eq!(anchor_of(&e), before);
+}
+
+#[test]
+fn set_anchor_policy_parses_from_json() {
+    let mut e = engine(golden_model());
+    let cmd = AnyCommand {
+        name: "rep.set_anchor_policy".into(),
+        params: serde_json::json!({ "reps": [REP_102F2.to_string()], "anchor": "graphic_centre" }),
+    };
+    e.execute(&cmd).unwrap();
+    assert_eq!(anchor_of(&e), AnchorPolicy::GraphicCentre);
+    let cmd = AnyCommand {
+        name: "rep.set_anchor_policy".into(),
+        params: serde_json::json!({ "reps": [REP_102F2.to_string()], "anchor": { "slot": "tag" } }),
+    };
+    e.execute(&cmd).unwrap();
+    assert!(matches!(anchor_of(&e), AnchorPolicy::Slot(_)));
 }

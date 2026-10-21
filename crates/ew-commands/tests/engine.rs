@@ -153,7 +153,7 @@ fn rejected_commands_change_nothing() {
 #[test]
 fn every_v0_command_is_an_edit_command() {
     let r = ew_commands::CommandRegistry::builtin();
-    assert_eq!(r.names().count(), 25);
+    assert_eq!(r.names().count(), 26);
     for c in r.commands() {
         assert_eq!(c.meta().exposure, Exposure::Edit, "{}", c.meta().name);
         assert!(c.meta().undoable);

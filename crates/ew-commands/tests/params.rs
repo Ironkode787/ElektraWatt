@@ -66,6 +66,10 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"reps": [REP_102F2.to_string(), REP_102G1.to_string()], "rotate": 1, "mirror": true}),
         ),
         (
+            "rep.set_anchor_policy",
+            json!({"reps": [REP_102F2.to_string()], "anchor": "graphic_centre"}),
+        ),
+        (
             "connection.draw",
             json!({"a": fn_a, "b": fn_b, "page": PAGE_102.to_string(), "route": [[0, 0], [7_937_500, 0]]}),
         ),
@@ -155,7 +159,7 @@ fn every_registered_command_has_an_example() {
     let registry = CommandRegistry::builtin();
     let registered: BTreeSet<&str> = registry.commands().map(|c| c.meta().name).collect();
     let covered: BTreeSet<&str> = examples().iter().map(|(n, _)| *n).collect();
-    assert_eq!(registered.len(), 25);
+    assert_eq!(registered.len(), 26);
     assert_eq!(registered, covered);
     assert_eq!(examples().len(), covered.len(), "one example per command");
 }

@@ -314,6 +314,7 @@ vanished is dropped and reported in the outcome's notices.
 | `device.place` (`PlaceSymbol`) | page, symbol, pos, orient, rep_type, target, autoconnect hints | Interactive | §3.3; part-first placement is `target = FromPart`; `device.place_from_part` and `symbol.place` are `CommandMeta.aliases` ([17](17-extensibility.md) §2.1), and the journal records `device.place` |
 | `rep.move`, `rep.transform` | reps, delta or page; rotate, mirror, variant | Interactive | routes follow (FR-CON-004) |
 | `rep.exchange_symbol` | rep, symbol, CP mapping | Interactive | FR-SYM-022 |
+| `rep.set_anchor_policy` | reps, anchor (origin, graphic centre, slot, named point) | Interactive | FR-SYM-010; the MF-13 quick fix of EW-CORE-053 (D-14). The policy lives on the symbol copy, so every representation of that copy follows; the outcome names the others (cycle 14) |
 | `connection.draw` (`Connect`) | a, b (CP, junction or point on a connection), route, kind | Interactive | §4.4 |
 | `connection.route` | connection, route | Interactive | FR-CON-007 |
 | `junction.edit` | style, wiring, sequence | Interactive | FR-CON-005 |
