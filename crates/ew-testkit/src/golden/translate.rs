@@ -100,7 +100,20 @@ impl Remap {
                     *s = to.clone();
                 }
             }
-            Value::Array(items) => items.iter_mut().for_each(|x| self.value(x)),
+            Value::Array(items) => {
+                // A list of IDs stored sorted is a set (`Set<Id<…>>`, e.g. an assembly configuration's
+                // `covers`): it stays sorted under the new IDs, which the reader requires.
+                let sorted_ids = items.len() > 1
+                    && items
+                        .iter()
+                        .any(|x| x.as_str().is_some_and(|s| self.0.contains_key(s)))
+                    && items.iter().all(Value::is_string)
+                    && items.windows(2).all(|w| w[0].as_str() < w[1].as_str());
+                items.iter_mut().for_each(|x| self.value(x));
+                if sorted_ids {
+                    items.sort_by(|a, b| a.as_str().cmp(&b.as_str()));
+                }
+            }
             Value::Object(m) => m.values_mut().for_each(|x| self.value(x)),
             _ => {}
         }
@@ -111,7 +124,8 @@ impl Remap {
     fn apply<T: Serialize + DeserializeOwned>(&self, record: &T) -> T {
         let mut v = serde_json::to_value(record).expect("a record serialises");
         self.value(&mut v);
-        serde_json::from_value(v).expect("a remapped record deserialises")
+        serde_json::from_value(v.clone())
+            .unwrap_or_else(|e| panic!("a remapped record deserialises: {e}: {v}"))
     }
 }
 
