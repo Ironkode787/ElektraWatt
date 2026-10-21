@@ -849,3 +849,24 @@ pub(crate) fn bond_parts(old: &[BondLink], new: &[BondLink]) -> Vec<PartKey> {
     }
     parts.into_iter().collect()
 }
+
+/// The pages of the drawn `Bus` connections of a potential (doc 08 §3.3; FT-105): a bus line joins its nets
+/// but is no physical wire, so the pages a potential is drawn on are the pages of its wires and these. A
+/// connection belongs to the potential of its first endpoint (both ends are in one potential).
+pub fn bus_line_pages(q: &Q, partition: &Partition, potential: PotentialId) -> BTreeSet<Id<Page>> {
+    let mut out = BTreeSet::new();
+    for (_, c) in q.connections().iter() {
+        let (ew_schema::ConnectionKind::Bus(_), Some(page), ew_schema::Endpoint::Cp(f, idx)) =
+            (&c.kind, c.page, &c.a)
+        else {
+            continue;
+        };
+        if partition
+            .potential_at(CpRef::new(*f, *idx).key())
+            .is_some_and(|p| p.id == potential)
+        {
+            out.insert(page);
+        }
+    }
+    out
+}

@@ -121,7 +121,7 @@ pub use plc::{
 };
 pub use potentials::{
     Attr, AttrSource, BondLink, Component, NameSource, Partition, Potential, PotentialAttrs, PotentialId,
-    PotentialName, PotentialPartition, Signal,
+    PotentialName, PotentialPartition, Signal, bus_line_pages,
 };
 pub use profile::{
     CounterScope, DerivationProfile, NumberingRule, NumberingScheme, NumberingSettings, NumberingSettingsOf,

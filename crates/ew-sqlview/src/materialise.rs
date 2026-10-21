@@ -848,6 +848,10 @@ fn potentials(q: &Q, wires: &Wires) -> Vec<Row> {
                     }
                 }
             }
+            // The pages of its drawn bus lines too, as the potential overview counts them (FT-105).
+            for page in ew_derive::bus_line_pages(q, &wires.partition, p.id) {
+                pages.insert((order.position(PageRef::Drawn(page)).unwrap_or(usize::MAX), page));
+            }
             let protected = flow.as_ref().as_ref().and_then(|f| f.protected_by);
             let protected_device = protected.and_then(|f| device_of(q, f));
             let protected_cp = flow.as_ref().as_ref().and_then(|f| {

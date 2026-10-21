@@ -7,8 +7,8 @@ use std::collections::BTreeSet;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_schema::{CircuitClass, ConnectionKind, Endpoint, Page, PotentialType, ReportBlock};
-use ew_derive::{CpRef, DrawnPageOrder, PageRef, Potential, PotentialId, PropSource, Q};
+use ew_derive::ew_schema::{CircuitClass, Page, PotentialType, ReportBlock};
+use ew_derive::{DrawnPageOrder, PageRef, Potential, PotentialId, PropSource, Q};
 
 use super::conn::{Wires, colour_cell, csa_cell, put};
 use crate::kind::ReportKindDef;
@@ -111,17 +111,8 @@ fn potential_pages(q: &Q, wires: &Wires, p: &Potential, order: &ew_derive::PageO
             }
         }
     }
-    for (_, c) in q.connections().iter() {
-        let (ConnectionKind::Bus(_), Some(page), Endpoint::Cp(f, idx)) = (&c.kind, c.page, &c.a) else {
-            continue;
-        };
-        if wires
-            .partition
-            .potential_at(CpRef::new(*f, *idx).key())
-            .is_some_and(|x| x.id == p.id)
-        {
-            add(page);
-        }
+    for page in ew_derive::bus_line_pages(q, &wires.partition, p.id) {
+        add(page);
     }
     pages.into_iter().map(|(_, p)| PageRef::Drawn(p)).collect()
 }

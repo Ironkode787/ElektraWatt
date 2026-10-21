@@ -72,6 +72,7 @@ pub fn model_lines(model: &Model) -> Result<Vec<(AnyKey, String)>, CmdError> {
     let mut out = Vec::new();
     let project = AnyRow::Project(std::sync::Arc::clone(model.project()));
     out.push((project.key(), row_text(&project)?));
+    table::<ew_schema::PlcConfigProject>(model, &mut out)?;
     table::<ImportLineage>(model, &mut out)?;
     table::<StructureNode>(model, &mut out)?;
     table::<Section>(model, &mut out)?;
@@ -83,8 +84,10 @@ pub fn model_lines(model: &Model) -> Result<Vec<(AnyKey, String)>, CmdError> {
     table::<Connection>(model, &mut out)?;
     table::<Junction>(model, &mut out)?;
     table::<Conductor>(model, &mut out)?;
+    table::<ew_schema::Channel>(model, &mut out)?;
     table::<PotentialDef>(model, &mut out)?;
     table::<Bond>(model, &mut out)?;
+    table::<ew_schema::DeviceLink>(model, &mut out)?;
     table::<ReportBlock>(model, &mut out)?;
     table::<LibCopy<Part>>(model, &mut out)?;
     table::<LibCopy<SymbolDef>>(model, &mut out)?;
