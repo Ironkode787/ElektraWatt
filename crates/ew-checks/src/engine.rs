@@ -89,7 +89,7 @@ pub fn scopes(q: &Q, kind: ScopeKind) -> Vec<Scope> {
     }
 }
 
-/// The totals of a report (doc 20 §18.1: "42 errors, 32 warnings, 28 infos, 1 waived").
+/// The totals of a report (doc 20 §18.1: "42 errors, 32 warnings, 31 infos, 1 waived").
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Counts {
     /// Open findings at error severity.
