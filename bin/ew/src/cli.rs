@@ -5,6 +5,7 @@
 
 use std::path::{Path, PathBuf};
 
+use ew_api::checks::{CheckMode, report, scheme};
 use ew_api::import::Severity;
 use ew_api::import::migration::ReportFormat;
 use ew_api::import::{StarterLibrary, import_qet};
@@ -13,10 +14,15 @@ use ew_api::import::{StarterLibrary, import_qet};
 pub const USAGE: &str = "usage:
   ew --version | -V
   ew import qet <file.qet> [--content <dir>] [--report md|csv|json] [--report-out <file>] [--strict]
+  ew check [<project-dir>] [--scheme <name>] [--mode release|online] [--format text|md|json] [--out <file>]
   ew help | --help | -h
 
 `import qet` exits 0 when the import completes, even with findings; `--strict` exits 1 on lost connections or
-error findings. With `--report` and no `--report-out` stdout is exactly the report; the summary goes to stderr.";
+error findings. With `--report` and no `--report-out` stdout is exactly the report; the summary goes to stderr.
+
+`check` runs a check scheme (default `pre-delivery`, mode `release`, format `text`) over a project directory
+(default: the nearest ancestor of the current directory holding `manifest.json`) and exits 0 with no unwaived
+errors, 1 with errors, 2 on usage and open errors.";
 
 /// A parsed command line.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -27,6 +33,34 @@ pub enum Command {
     Help,
     /// Import a QElectroTech project.
     ImportQet(ImportQetArgs),
+    /// Check a project.
+    Check(CheckArgs),
+}
+
+/// The output format of `ew check`.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum CheckFormat {
+    /// One line per finding.
+    Text,
+    /// Markdown.
+    Markdown,
+    /// JSON (`ew.check-result/1`).
+    Json,
+}
+
+/// The arguments of `ew check`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct CheckArgs {
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// The scheme name (`--scheme`).
+    pub scheme: String,
+    /// The mode (`--mode`).
+    pub mode: CheckMode,
+    /// The output format (`--format`).
+    pub format: CheckFormat,
+    /// The output file (`--out`).
+    pub out: Option<PathBuf>,
 }
 
 /// The arguments of `ew import qet`.
@@ -62,6 +96,7 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Command, String>
             Some(other) => Err(format!("unknown import format `{other}`")),
             None => Err("`import` needs a format (qet)".to_owned()),
         },
+        "check" => parse_check(it),
         other => Err(format!("unknown command `{other}`")),
     }
 }
@@ -109,6 +144,54 @@ fn parse_import_qet(mut it: impl Iterator<Item = String>) -> Result<Command, Str
     }))
 }
 
+fn parse_check(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
+    let mut project = None;
+    let mut scheme_name = "pre-delivery".to_owned();
+    let mut mode = CheckMode::Release;
+    let mut format = CheckFormat::Text;
+    let mut out = None;
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--scheme" => {
+                let name = value(&mut it, "--scheme")?;
+                if scheme(&name).is_none() {
+                    return Err(format!("unknown scheme `{name}`"));
+                }
+                scheme_name = name;
+            }
+            "--mode" => {
+                mode = match value(&mut it, "--mode")?.as_str() {
+                    "release" => CheckMode::Release,
+                    "online" => CheckMode::Online,
+                    other => return Err(format!("unknown mode `{other}` (release, online)")),
+                };
+            }
+            "--format" => {
+                format = match value(&mut it, "--format")?.as_str() {
+                    "text" => CheckFormat::Text,
+                    "md" => CheckFormat::Markdown,
+                    "json" => CheckFormat::Json,
+                    other => return Err(format!("unknown format `{other}` (text, md, json)")),
+                };
+            }
+            "--out" => out = Some(PathBuf::from(value(&mut it, "--out")?)),
+            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
+            _ => {
+                if project.replace(PathBuf::from(&a)).is_some() {
+                    return Err(format!("unexpected argument `{a}`"));
+                }
+            }
+        }
+    }
+    Ok(Command::Check(CheckArgs {
+        project,
+        scheme: scheme_name,
+        mode,
+        format,
+        out,
+    }))
+}
+
 fn value(it: &mut impl Iterator<Item = String>, opt: &str) -> Result<String, String> {
     it.next().ok_or_else(|| format!("`{opt}` needs a value"))
 }
@@ -126,7 +209,70 @@ pub fn run(cmd: Command) -> i32 {
             0
         }
         Command::ImportQet(a) => run_import_qet(&a),
+        Command::Check(a) => run_check(&a),
     }
+}
+
+/// The nearest ancestor of `start` (itself included) that holds `manifest.json` (doc 17 §3.1).
+fn find_project(start: &Path) -> Option<PathBuf> {
+    start
+        .ancestors()
+        .find(|d| d.join("manifest.json").is_file())
+        .map(Path::to_path_buf)
+}
+
+fn run_check(a: &CheckArgs) -> i32 {
+    let dir = match &a.project {
+        Some(d) => d.clone(),
+        None => {
+            let found = std::env::current_dir().ok().and_then(|cwd| find_project(&cwd));
+            match found {
+                Some(d) => d,
+                None => {
+                    eprintln!("error: no project directory given and none found above the current directory");
+                    return 2;
+                }
+            }
+        }
+    };
+    let Some(sch) = scheme(&a.scheme) else {
+        eprintln!("error: unknown scheme `{}`", a.scheme);
+        return 2;
+    };
+    let (session, opened) = match ew_api::Session::open_read_only(&dir, env!("CARGO_PKG_VERSION")) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {}: {e}", dir.display());
+            return 2;
+        }
+    };
+    if !opened.findings.is_empty() {
+        eprintln!("warning: {} integrity findings on opening", opened.findings.len());
+    }
+    let result = session.check(sch, a.mode);
+    let text = match a.format {
+        CheckFormat::Text => report::to_text(&result),
+        CheckFormat::Markdown => report::to_markdown(&result),
+        CheckFormat::Json => format!("{:#}\n", report::to_json(&result)),
+    };
+    match &a.out {
+        Some(path) => match write_report(path, &text) {
+            Ok(()) => println!("report written to {}", path.display()),
+            Err(e) => {
+                eprintln!("error: {}: {e}", path.display());
+                return 2;
+            }
+        },
+        None => {
+            print!("{text}");
+            let c = result.counts;
+            eprintln!(
+                "{}: {} errors, {} warnings, {} infos, {} waived",
+                result.scheme, c.errors, c.warnings, c.infos, c.waived
+            );
+        }
+    }
+    result.exit_code()
 }
 
 fn run_import_qet(a: &ImportQetArgs) -> i32 {
@@ -284,6 +430,43 @@ mod tests {
             panic!("parse failed");
         };
         assert!(c.strict);
+    }
+
+    #[test]
+    fn check_defaults_and_options() {
+        let Ok(Command::Check(a)) = p(&["check"]) else {
+            panic!("parse failed");
+        };
+        assert_eq!(a.project, None);
+        assert_eq!(a.scheme, "pre-delivery");
+        assert_eq!(a.mode, CheckMode::Release);
+        assert_eq!(a.format, CheckFormat::Text);
+        assert_eq!(a.out, None);
+        let Ok(Command::Check(b)) = p(&[
+            "check", "proj", "--scheme", "drafting", "--mode", "online", "--format", "json", "--out",
+            "r.json",
+        ]) else {
+            panic!("parse failed");
+        };
+        assert_eq!(b.project, Some(PathBuf::from("proj")));
+        assert_eq!(b.scheme, "drafting");
+        assert_eq!(b.mode, CheckMode::Online);
+        assert_eq!(b.format, CheckFormat::Json);
+        assert_eq!(b.out, Some(PathBuf::from("r.json")));
+        let Ok(Command::Check(c)) = p(&["check", "--format", "md", "proj"]) else {
+            panic!("parse failed");
+        };
+        assert_eq!(c.format, CheckFormat::Markdown);
+    }
+
+    #[test]
+    fn check_errors() {
+        assert!(p(&["check", "--scheme", "bogus"]).is_err());
+        assert!(p(&["check", "--mode", "x"]).is_err());
+        assert!(p(&["check", "--format", "xml"]).is_err());
+        assert!(p(&["check", "a", "b"]).is_err());
+        assert!(p(&["check", "--bogus"]).is_err());
+        assert!(p(&["check", "--scheme"]).is_err());
     }
 
     #[test]

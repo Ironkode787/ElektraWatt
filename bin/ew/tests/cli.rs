@@ -184,3 +184,62 @@ fn usage_errors_are_exit_2() {
     assert_eq!(ew(&["bogus".as_ref()]).status.code(), Some(2));
     assert_eq!(ew(&[]).status.code(), Some(2));
 }
+
+const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
+
+#[test]
+fn check_golden_a_json() {
+    let o = ew(&[
+        "check".as_ref(),
+        GOLDEN_A.as_ref(),
+        "--format".as_ref(),
+        "json".as_ref(),
+    ]);
+    let code = o.status.code();
+    assert!(
+        code == Some(0) || code == Some(1),
+        "{code:?}: {}",
+        String::from_utf8_lossy(&o.stderr)
+    );
+    let v: serde_json::Value = serde_json::from_str(&stdout(&o)).unwrap();
+    assert_eq!(v["$schema"], "ew.check-result/1");
+    assert_eq!(v["scheme"], "pre-delivery");
+    assert_eq!(v["exit_code"].as_i64(), code.map(i64::from));
+    assert!(!std::path::Path::new(GOLDEN_A).join(".~ew.lock").exists());
+}
+
+#[test]
+fn check_markdown_title() {
+    let o = ew(&[
+        "check".as_ref(),
+        GOLDEN_A.as_ref(),
+        "--format".as_ref(),
+        "md".as_ref(),
+    ]);
+    assert!(matches!(o.status.code(), Some(0 | 1)));
+    assert!(
+        stdout(&o).starts_with("# Check report: pre-delivery"),
+        "{}",
+        stdout(&o)
+    );
+}
+
+#[test]
+fn check_unknown_scheme_is_exit_2() {
+    let o = ew(&[
+        "check".as_ref(),
+        GOLDEN_A.as_ref(),
+        "--scheme".as_ref(),
+        "bogus".as_ref(),
+    ]);
+    assert_eq!(o.status.code(), Some(2));
+}
+
+#[test]
+fn check_missing_project_is_exit_2() {
+    let t = Tmp::new();
+    let missing = t.0.join("nope.ew");
+    let o = ew(&["check".as_ref(), missing.as_os_str()]);
+    assert_eq!(o.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&o.stderr).contains("error:"));
+}
