@@ -602,26 +602,26 @@ bond (FR-CON-014, D-22). W27 is listed in the wire list with potential "0V ⇄ P
 | 5 | 101.6 | 101 | 1X1:2 internal | S51:4 | N | 2.5 (CDP) BU (profile) | — |
 | 6 | 101.8 | 101 | 1X1:PE internal | -XPE:PE | PE | 1.5 GNYE (rule) ▲U-19 | EF-06 |
 | 7 | 101.5 | 101 | S51:1 | -101F1:1 | L-S | 2.5 (CDP) BK (profile), marker above S51 | chain on -101F1:1 |
-| 8 | 101.9 | 101 | -101F1:1 | F55:1 | L-S | 1.5 BK (rule) | chain on -101F1:1 |
+| 8 | 101.9 | 101 | -101F1:1 | F55:1 | L-S | 1.5 BK (rule) | chain |
 | 9 | 101.4 | 101 | S51:3 | -101F1:N#1 | N-S | 2.5 (CDP) BU (profile) | chain on -101F1:N#1 |
-| 10 | 101.10 | 101 | -101F1:N#1 | F55:N#1 | N-S | 1.5 BU (rule) | chain on -101F1:N#1 |
+| 10 | 101.10 | 101 | -101F1:N#1 | F55:N#1 | N-S | 1.5 BU (rule) | chain |
 | 11 | 101.11 | 101→102 | -101F1:2 | -102G1:L | L-1 | 1.5 BK (rule) | IP L-1 |
 | 12 | 101.12 | 101→102 | -101F1:N#2 | -102G1:N | N-1 | 1.5 BU (rule) | IP N-1 |
-| 13 | 101.14 | 101 | F55:2 | E55:L | L-55 | 1.5 BK (rule) | 101-C11 star at F55:2 |
-| 14 | 101.16 | 101 | F55:2 | E56:X2 ▲ | L-55 | 1.5 BK (rule) | 101-C11 star at F55:2 |
-| 15 | 101.13 | 101 | F55:N#2 | T55:5 | N-55 | 1.5 BU (rule) | 101-C13 star at F55:N#2 |
-| 16 | 101.15 | 101 | F55:N#2 | S56:13 ▲ | N-55 | 1.5 BU (rule) | 101-C13 star at F55:N#2 |
+| 13 | 101.14 | 101 | F55:2 | E55:L | L-55 | 1.5 BK (rule) | J1 |
+| 14 | 101.16 | 101 | F55:2 | E56:X2 ▲ | L-55 | 1.5 BK (rule) | J1 |
+| 15 | 101.13 | 101 | F55:N#2 | T55:5 | N-55 | 1.5 BU (rule) | J2 |
+| 16 | 101.15 | 101 | F55:N#2 | S56:13 ▲ | N-55 | 1.5 BU (rule) | J2 |
 | 17 | 101.17 | 101 | T55:3 | E55:N | N-55T | 1.5 BU (rule) | — |
 | 18 | 101.19 | 101 | S56:14 ▲ | E56:X1 ▲ | N-55S | 1.5 BU (rule) | — |
 | 19 | 101.18 | 101→103 | E55:PE | -X1032:1/b | PE | 1.5 GNYE (rule, mains device) | IP PE-1.1 |
-| 20 | 102.1 | 102 | -102G1:+#1 | -102F1:1 | +24V | 1.5 (CDP) DBU (profile) | 102-C6 chain on -102F1:1 |
-| 21 | 102.2 | 102 | -102G1:+#2 | -102F1:1 | +24V | 1.5 (CDP) DBU (profile) | 102-C6 chain on -102F1:1; 2 wires on -102F1:1 |
-| 22 | 102.4 | 102 | -102G1:−#1 | -102F2:GND#1 | 0V | 1.5 (CDP) WH (profile) | 102-D5 star at -102G1:−#1 |
-| 23 | 102.3 | 102 | -102G1:−#2 | -102F2:GND#2 | 0V | 1.5 (CDP) WH (profile) | 102-D6 star at -102G1:−#2 |
-| 24 | 102.8 | 102 | -102F1:2 | -102F2:24VDC#1 | +24V-F | 1.5 (CDP) DBU (profile) | 102-D7 chain on -102F1:2 |
-| 25 | 102.9 | 102 | -102F1:2 | -102F2:24VDC#2 | +24V-F | 1.5 (CDP) DBU (profile) | 102-D7 chain on -102F1:2 |
-| 26 | 102.7 | 102→103 | -102G1:−#2 | -X1031:11/a | 0V | 0.75 WH (rule) | 102-D6 star at -102G1:−#2; IP 0VDC |
-| 27 | 102.5 | 102→103 | -102G1:−#1 | -X1032:2/a | 0V ⇄ PE | 0.75 GNYE (bond rule) ▲U-19 | 102-D5 star at -102G1:−#1; IP PE-0VDC |
+| 20 | 102.1 | 102 | -102G1:+#1 | -102F1:1 | +24V | 1.5 (CDP) DBU (profile) | J3 |
+| 21 | 102.2 | 102 | -102G1:+#2 | -102F1:1 | +24V | 1.5 (CDP) DBU (profile) | J3; 2 wires on -102F1:1 |
+| 22 | 102.4 | 102 | -102G1:−#1 | -102F2:GND#1 | 0V | 1.5 (CDP) WH (profile) | J5 |
+| 23 | 102.3 | 102 | -102G1:−#2 | -102F2:GND#2 | 0V | 1.5 (CDP) WH (profile) | J6 |
+| 24 | 102.8 | 102 | -102F1:2 | -102F2:24VDC#1 | +24V-F | 1.5 (CDP) DBU (profile) | J4 |
+| 25 | 102.9 | 102 | -102F1:2 | -102F2:24VDC#2 | +24V-F | 1.5 (CDP) DBU (profile) | J4 |
+| 26 | 102.7 | 102→103 | -102G1:−#2 | -X1031:11/a | 0V | 0.75 WH (rule) | J6; IP 0VDC |
+| 27 | 102.5 | 102→103 | -102G1:−#1 | -X1032:2/a | 0V ⇄ PE | 0.75 GNYE (bond rule) ▲U-19 | J5; IP PE-0VDC |
 | 28 | 102.6 | 102→103 | -102G1:PE | -X1032:2/b | PE | 1.5 GNYE (rule, mains device) | IP PE-1.2 |
 | 29 | 102.10 | 102→103 | -102F2:Out1 | -X1031:1/a | 24VDC-1 | 0.75 DBU (rule) | IP 24VDC-1 |
 | 30 | 102.11 | 102→103 | -102F2:Out2 | -X1031:5/a | 24VDC-2 | 0.75 DBU (rule) | IP 24VDC-2 |
