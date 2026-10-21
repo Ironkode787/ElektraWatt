@@ -14,7 +14,7 @@
 //! | `Group` | `<g transform>` with a `<clipPath>` rectangle when clipped |
 //! | `Instance` | the resolved geometry under the instance transform in a `<g>`; unresolved: skipped and counted |
 //! | `Image` | skipped and counted, as in the PDF |
-//! | [`Link::Target`] | the item's `id`: the destination name with `:` replaced by `-` (`ew-r-<uuid>`); the first target in page order wins |
+//! | [`Link::Target`] | the item's `id`: the destination name with `:` replaced by `-` (`ew-r-<uuid>`), written once per page on the first item of that target that is drawn; links point at the first page in page order that draws it (ids are written for link targets only) |
 //! | [`Link::Source`] | `<a href="<file>#<id>">` around the item (a page destination links the file); a destination outside the export prints as plain text |
 //!
 //! # Determinism
@@ -201,17 +201,30 @@ pub fn svg(
     } else {
         pages.iter().map(|p| &p.content).collect()
     };
-    // Where every destination is: pages by their own destination, link targets first in page order.
+    let files: Vec<String> = pages.iter().map(|p| svg_file_name(&p.label)).collect();
+    // Pass 1: which link targets each page actually draws (an id is written only on a drawn element, so a
+    // target whose item draws nothing, such as an empty path, an image or an unresolved instance, is not
+    // one). Ids do not depend on links, so the pass writes with no destinations and keeps only the ids.
+    let none = BTreeMap::new();
+    let probe = Ctx {
+        targets: &none,
+        files: &files,
+        faces: &options.faces,
+        geometry,
+    };
+    let drawn = par_map(pages, parallelism, |i, page| probe.page(i, page, contents[i]).2);
+    // Where every destination is: pages by their own destination, link targets on the first page in page
+    // order that draws them.
     let mut targets: BTreeMap<Destination, (usize, bool)> = BTreeMap::new();
     for (i, p) in pages.iter().enumerate() {
         targets.insert(p.destination, (i, true));
     }
-    for (i, list) in contents.iter().enumerate() {
-        scan(&list.items, geometry, 0, &mut |d| {
-            targets.entry(d).or_insert((i, false));
-        });
+    for (i, ids) in drawn.iter().enumerate() {
+        for d in ids {
+            targets.entry(*d).or_insert((i, false));
+        }
     }
-    let files: Vec<String> = pages.iter().map(|p| svg_file_name(&p.label)).collect();
+    // Pass 2: the documents, with the links resolved.
     let ctx = Ctx {
         targets: &targets,
         files: &files,
@@ -221,34 +234,11 @@ pub fn svg(
     let written = par_map(pages, parallelism, |i, page| ctx.page(i, page, contents[i]));
     let mut report = SvgReport::default();
     let mut out = Vec::with_capacity(pages.len());
-    for ((text, r), name) in written.into_iter().zip(files) {
+    for ((text, r, _), name) in written.into_iter().zip(files) {
         report.add(&r);
         out.push(SvgFile { name, text });
     }
     Ok(SvgOutput { files: out, report })
-}
-
-/// Calls `found` with every link target of `items`, in drawing order.
-fn scan(
-    items: &[Item],
-    geometry: Option<&(dyn GeometryResolver + Sync)>,
-    depth: usize,
-    found: &mut dyn FnMut(Destination),
-) {
-    for item in items {
-        if let Some(Link::Target(d)) = item.link {
-            found(d);
-        }
-        match &item.kind {
-            ItemKind::Group(g) => scan(&g.items, geometry, depth, found),
-            ItemKind::Instance(inst) if depth < MAX_INSTANCE_DEPTH => {
-                if let Some(geom) = geometry.and_then(|g| g.geometry(inst.symbol)) {
-                    scan(&geom.items, geometry, depth + 1, found);
-                }
-            }
-            _ => {}
-        }
-    }
 }
 
 struct Ctx<'a> {
@@ -259,7 +249,13 @@ struct Ctx<'a> {
 }
 
 impl Ctx<'_> {
-    fn page(&self, index: usize, page: &PdfPage, list: &DisplayList) -> (String, SvgReport) {
+    /// One document, its report and the link targets it draws (each with its `id`, once per page).
+    fn page(
+        &self,
+        index: usize,
+        page: &PdfPage,
+        list: &DisplayList,
+    ) -> (String, SvgReport, BTreeSet<Destination>) {
         let mut w = PageWriter {
             ctx: self,
             index,
@@ -271,13 +267,13 @@ impl Ctx<'_> {
         let (wd, ht) = (mm(page.width), mm(page.height));
         let _ = write!(
             w.out,
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" id=\"{}\" width=\"{wd}mm\" height=\"{ht}mm\" viewBox=\"0 0 {wd} {ht}\">\n<title>{}</title>\n<style>text{{white-space:pre}}</style>\n",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<svg xmlns=\"http://www.w3.org/2000/svg\" id=\"{}\" width=\"{wd}mm\" height=\"{ht}mm\" viewBox=\"0 0 {wd} {ht}\">\n<title>{}</title>\n<style>text{{white-space:pre}}</style>\n",
             svg_id(&page.destination),
             escape(&page.title)
         );
         w.items(&list.items, 0);
         w.out.push_str("</svg>\n");
-        (w.out, w.report)
+        (w.out, w.report, w.ids)
     }
 }
 
@@ -287,7 +283,7 @@ struct PageWriter<'a> {
     out: String,
     report: SvgReport,
     clips: usize,
-    /// The target ids written on this page (an id is written once).
+    /// The link targets whose id this page wrote (an id is written once per page, on a drawn element).
     ids: BTreeSet<Destination>,
 }
 
@@ -298,15 +294,12 @@ impl PageWriter<'_> {
         }
     }
 
-    /// The `id` attribute of a link target that is the first one in page order.
-    fn id_attr(&mut self, item: &Item) -> String {
+    /// The link target of `item` whose id this page has not written yet, and its `id` attribute (empty
+    /// otherwise). The id is claimed only when the item is drawn ([`PageWriter::item`]).
+    fn target_id(&self, item: &Item) -> (Option<Destination>, String) {
         match item.link {
-            Some(Link::Target(d))
-                if self.ctx.targets.get(&d) == Some(&(self.index, false)) && self.ids.insert(d) =>
-            {
-                format!(" id=\"{}\"", svg_id(&d))
-            }
-            _ => String::new(),
+            Some(Link::Target(d)) if !self.ids.contains(&d) => (Some(d), format!(" id=\"{}\"", svg_id(&d))),
+            _ => (None, String::new()),
         }
     }
 
@@ -336,11 +329,14 @@ impl PageWriter<'_> {
             let _ = writeln!(self.out, "<a href=\"{}\">", escape(h));
             self.report.links += 1;
         }
-        let id = self.id_attr(item);
-        match &item.kind {
+        let (target, id) = self.target_id(item);
+        let drawn = match &item.kind {
             ItemKind::Path(p) => self.path(&p.path.els, p.stroke.as_ref(), p.fill, &id, link.is_some()),
             ItemKind::Glyphs(run) => self.glyphs(run, &id),
-            ItemKind::Image(_) => self.report.skipped_images += 1,
+            ItemKind::Image(_) => {
+                self.report.skipped_images += 1;
+                false
+            }
             ItemKind::Instance(inst) => {
                 let geom = (depth < MAX_INSTANCE_DEPTH)
                     .then(|| self.ctx.geometry.and_then(|g| g.geometry(inst.symbol)))
@@ -350,8 +346,12 @@ impl PageWriter<'_> {
                         let _ = writeln!(self.out, "<g{id}{}>", transform_attr(inst.transform));
                         self.items(&geom.items, depth + 1);
                         self.out.push_str("</g>\n");
+                        true
                     }
-                    None => self.report.unresolved_instances += 1,
+                    None => {
+                        self.report.unresolved_instances += 1;
+                        false
+                    }
                 }
             }
             ItemKind::Group(g) => {
@@ -376,17 +376,29 @@ impl PageWriter<'_> {
                 }
                 self.items(&g.items, depth);
                 self.out.push_str("</g>\n");
+                true
             }
+        };
+        if let Some(d) = target.filter(|_| drawn) {
+            self.ids.insert(d);
         }
         if link.is_some() {
             self.out.push_str("</a>\n");
         }
     }
 
-    fn path(&mut self, els: &[PathEl], stroke: Option<&Stroke>, fill: Option<Brush>, id: &str, hit: bool) {
+    /// Writes a path; `false` when it draws nothing and nothing is written.
+    fn path(
+        &mut self,
+        els: &[PathEl],
+        stroke: Option<&Stroke>,
+        fill: Option<Brush>,
+        id: &str,
+        hit: bool,
+    ) -> bool {
         let stroke = stroke.filter(|s| s.width > Nm::ZERO);
         if els.is_empty() || (stroke.is_none() && fill.is_none() && !hit) {
-            return;
+            return false;
         }
         let mut d = String::new();
         for el in els {
@@ -449,23 +461,27 @@ impl PageWriter<'_> {
             self.out.push_str(" pointer-events=\"all\"");
         }
         self.out.push_str("/>\n");
+        true
     }
 
-    fn glyphs(&mut self, run: &ShapedRun, id: &str) {
+    /// Writes a glyph run as `<text>`; `false` when nothing is written.
+    fn glyphs(&mut self, run: &ShapedRun, id: &str) -> bool {
         if run.glyphs.is_empty() || run.text.is_empty() || run.size <= Nm::ZERO {
-            return;
+            return false;
         }
         let Some(face) = self.ctx.faces.get(&run.font) else {
             if let Err(i) = self.report.missing_fonts.binary_search(&run.font) {
                 self.report.missing_fonts.insert(i, run.font);
             }
-            return;
+            return false;
         };
         let chars: Vec<char> = run.text.chars().collect();
         let one_to_one = chars.len() == run.glyphs.len();
         let kept: Vec<usize> = (0..run.glyphs.len()).filter(|&i| run.glyphs[i].id != 0).collect();
         self.report.dropped_notdef_glyphs += run.glyphs.len() - kept.len();
-        let Some(&first) = kept.first() else { return };
+        let Some(&first) = kept.first() else {
+            return false;
+        };
         let place = Transform {
             translate: run.origin + run.transform.translate,
             ..run.transform
@@ -515,6 +531,7 @@ impl PageWriter<'_> {
         }
         let _ = writeln!(self.out, ">{}</text>", escape(&text));
         self.report.texts += 1;
+        true
     }
 }
 
