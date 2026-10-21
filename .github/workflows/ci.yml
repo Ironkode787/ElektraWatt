@@ -110,10 +110,8 @@ jobs:
               if f is None:
                   continue
               n += 1
-              text = ((f.get("message") or "") + "
-" + (f.text or "")).strip()[:1500]
-              text = text.replace("%", "%25").replace("", "").replace("
-", "%0A")
+              text = ((f.get("message") or "") + "\n" + (f.text or "")).strip()[:1500]
+              text = text.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
               print(f"::error title=nextest {tc.get('classname')}::{tc.get('name')}::{text}")
           print(f"{n} failed test case(s) annotated")
           PY
@@ -168,10 +166,8 @@ jobs:
               if f is None:
                   continue
               n += 1
-              text = ((f.get("message") or "") + "
-" + (f.text or "")).strip()[:1500]
-              text = text.replace("%", "%25").replace("", "").replace("
-", "%0A")
+              text = ((f.get("message") or "") + "\n" + (f.text or "")).strip()[:1500]
+              text = text.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
               print(f"::error title=nextest {tc.get('classname')}::{tc.get('name')}::{text}")
           print(f"{n} failed test case(s) annotated")
           PY
@@ -226,10 +222,8 @@ jobs:
               if f is None:
                   continue
               n += 1
-              text = ((f.get("message") or "") + "
-" + (f.text or "")).strip()[:1500]
-              text = text.replace("%", "%25").replace("", "").replace("
-", "%0A")
+              text = ((f.get("message") or "") + "\n" + (f.text or "")).strip()[:1500]
+              text = text.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
               print(f"::error title=nextest {tc.get('classname')}::{tc.get('name')}::{text}")
           print(f"{n} failed test case(s) annotated")
           PY
