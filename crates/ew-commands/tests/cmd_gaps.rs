@@ -190,8 +190,34 @@ fn black_box_cp_off_grid_is_refused() {
     let before = lines(e.model());
     let mut b = spec();
     b.cps = vec![box_cp(0, pt(G, 3 * G)), box_cp(1, pt(2 * G + 1000, 3 * G))];
-    let r = e.execute(&black(pt(0, 0), Some(b), new_device("A")));
-    assert!(r.is_err(), "an off-grid box CP is refused: {r:?}");
+    rejected(e.execute(&black(pt(0, 0), Some(b), new_device("A"))));
+    assert_eq!(lines(e.model()), before);
+}
+
+#[test]
+fn black_box_off_grid_pos_and_disallowed_rep_type_are_refused() {
+    let mut e = engine(golden_model());
+    let before = lines(e.model());
+    rejected(e.execute(&black(pt(G + 1000, 0), Some(spec()), new_device("A"))));
+    let mut cmd = black(pt(3 * G, 4 * G), Some(spec()), new_device("A"));
+    cmd.rep_type = Some(ew_schema::RepType::Overview);
+    rejected(e.execute(&cmd));
+    assert_eq!(lines(e.model()), before);
+}
+
+#[test]
+fn black_box_second_main_function_is_refused_by_ew_inv_002() {
+    let mut e = engine(golden_model());
+    let before = lines(e.model());
+    let target = PlaceTarget::JoinDevice {
+        device: DEV_102F2,
+        fndef: None,
+        role: FnRole::Main,
+    };
+    let err = e
+        .execute(&black(pt(3 * G, 4 * G), Some(spec()), target))
+        .unwrap_err();
+    assert!(matches!(err, CmdError::Model(_)), "{err:?}");
     assert_eq!(lines(e.model()), before);
 }
 
@@ -247,6 +273,16 @@ fn bond_create_rejects_on_connection_end_and_equal_ends() {
     };
     rejected(e.execute(&bond(on_conn, cp_param(FN_102G1, 1), None)));
     rejected(e.execute(&bond(cp_param(FN_102G1, 1), cp_param(FN_102G1, 1), None)));
+}
+
+#[test]
+fn bond_create_rejects_an_unknown_kind_and_a_missing_function() {
+    let mut e = engine(golden_model());
+    let mut cmd = bond(cp_param(FN_102F2, 1), cp_param(FN_102G1, 1), None);
+    cmd.kind = BondKind::Unknown(serde_json::json!("future_kind"));
+    assert_eq!(invalid_path(e.execute(&cmd), "bond.create"), "/kind");
+    not_found(e.execute(&bond(cp_param(id(0xbeef), 0), cp_param(FN_102G1, 1), None)));
+    assert_eq!(e.model().rev().0, 0);
 }
 
 #[test]
