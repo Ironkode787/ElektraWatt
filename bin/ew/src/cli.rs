@@ -9,7 +9,8 @@ use ew_api::checks::{CheckMode, report, scheme};
 use ew_api::import::Severity;
 use ew_api::import::migration::ReportFormat;
 use ew_api::import::{StarterLibrary, import_qet};
-use ew_api::{BomMode, Export};
+use ew_api::output::{ExportOptions, PageSelection, Parallelism, date_from_epoch};
+use ew_api::{BomMode, CmdLog, Export};
 
 /// The usage text.
 pub const USAGE: &str = "usage:
@@ -22,6 +23,9 @@ pub const USAGE: &str = "usage:
   ew sql schema
   ew export cables [<project-dir>] [--format csv] [--out <file>]
   ew export bom [<project-dir>] [--mode parts|assembly] [--format csv] [--out <file>]
+  ew export pdf [<project-dir>] --out <file.pdf> [--pages <folios>] [--threads <n>]
+  ew export svg [<project-dir>] --out <dir> [--pages <folios>] [--threads <n>]
+  ew apply [<project-dir>] <file.ewcmd> [--preview] [--one-step]
   ew verify-derived [<project-dir>]
   ew help | --help | -h
 
@@ -42,6 +46,17 @@ database file. `sql` exits 0 on success and 2 on everything else (usage, open an
 overview and parts summary blocks, the golden dialect), to stdout or to `--out`. `--mode parts` (alias `component`,
 the default) lists every component part; `--mode assembly` replaces the parts a configured product covers by its
 row. `export` exits 0 on success and 2 on everything else (usage, open errors, a project without the block).
+
+`export pdf` writes the project's pages as one PDF/A-2b (outline, page labels, links) and `export svg` one
+`<folio>.svg` per page into the directory `--out`, through the session's export job with the bundled fonts only.
+`--pages` selects folio labels and ranges in page order (`101-106,901`); `--threads` changes the speed, never the
+bytes. The date is `SOURCE_DATE_EPOCH` when set, else the model's. Exit 0 on success, 2 on everything else.
+
+`apply` replays a command log (`.ewcmd`, doc 17 section 3.5) on the project, each line one transaction, and saves.
+`--preview` replays it on a copy in memory, prints the changed records, tags and cross-references, and saves
+nothing; `--one-step` saves only when every line commits. Exit 0 when every line commits, 1 when a prevent or
+domain rule refuses a line, 2 on everything else (usage, a malformed log, an unresolvable reference, a refused
+command, an open, lock or save error). Without `--one-step` the lines before a failing one are saved.
 
 `verify-derived` opens a project with the memo oracle on, recomputes every derived value cold and compares it with
 the memoised one: exit 0 with no difference, 1 with differences, 2 on usage and open errors.";
@@ -67,6 +82,47 @@ pub enum Command {
     Export(ExportArgs),
     /// Compare the memoised derived data with a cold recomputation.
     VerifyDerived(VerifyArgs),
+    /// Write the pages as PDF or SVG.
+    ExportPages(ExportPagesArgs),
+    /// Replay a command log.
+    Apply(ApplyArgs),
+}
+
+/// The page format of `ew export pdf|svg`.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum PageFormat {
+    /// One PDF file (`export pdf`).
+    Pdf,
+    /// One SVG file per page in a directory (`export svg`).
+    Svg,
+}
+
+/// The arguments of `ew export pdf|svg`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ExportPagesArgs {
+    /// PDF or SVG.
+    pub format: PageFormat,
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// The PDF file or the SVG directory (`--out`).
+    pub out: PathBuf,
+    /// The page selection (`--pages`).
+    pub pages: PageSelection,
+    /// The threads of the page phase (`--threads`); `None`: the machine's parallelism.
+    pub threads: Option<usize>,
+}
+
+/// The arguments of `ew apply`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ApplyArgs {
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// The command log.
+    pub log: PathBuf,
+    /// Replay on a copy and print the changes (`--preview`).
+    pub preview: bool,
+    /// Save only when every line commits (`--one-step`).
+    pub one_step: bool,
 }
 
 /// What `ew export` writes.
@@ -200,6 +256,7 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Command, String>
         "check" => parse_check(it),
         "sql" => parse_sql(it),
         "export" => parse_export(it),
+        "apply" => parse_apply(it),
         "verify-derived" => parse_verify(it),
         other => Err(format!("unknown command `{other}`")),
     }
@@ -299,8 +356,10 @@ fn parse_check(mut it: impl Iterator<Item = String>) -> Result<Command, String> 
 fn parse_export(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
     let what = match it.next().as_deref() {
         Some(w @ ("cables" | "bom")) => w.to_owned(),
-        Some(other) => return Err(format!("unknown export `{other}` (cables, bom)")),
-        None => return Err("`export` needs a subject (cables, bom)".to_owned()),
+        Some("pdf") => return parse_export_pages(PageFormat::Pdf, it),
+        Some("svg") => return parse_export_pages(PageFormat::Svg, it),
+        Some(other) => return Err(format!("unknown export `{other}` (cables, bom, pdf, svg)")),
+        None => return Err("`export` needs a subject (cables, bom, pdf, svg)".to_owned()),
     };
     let mut project = None;
     let mut out = None;
@@ -334,6 +393,76 @@ fn parse_export(mut it: impl Iterator<Item = String>) -> Result<Command, String>
         ExportKind::Bom(mode)
     };
     Ok(Command::Export(ExportArgs { kind, project, out }))
+}
+
+fn parse_export_pages(format: PageFormat, mut it: impl Iterator<Item = String>) -> Result<Command, String> {
+    let mut project = None;
+    let mut out = None;
+    let mut pages = PageSelection::All;
+    let mut threads = None;
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--out" => out = Some(PathBuf::from(value(&mut it, "--out")?)),
+            "--pages" => {
+                pages = PageSelection::parse(&value(&mut it, "--pages")?).map_err(|e| e.to_string())?;
+            }
+            "--threads" => {
+                let v = value(&mut it, "--threads")?;
+                match v.parse::<usize>() {
+                    Ok(n) if (1..=256).contains(&n) => threads = Some(n),
+                    _ => return Err(format!("`--threads` needs a number from 1 to 256, got `{v}`")),
+                }
+            }
+            opt @ ("--lang" | "--omit-personal-data") => {
+                return Err(format!("`{opt}` is not built yet"));
+            }
+            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
+            _ => {
+                if project.replace(PathBuf::from(&a)).is_some() {
+                    return Err(format!("unexpected argument `{a}`"));
+                }
+            }
+        }
+    }
+    let what = match format {
+        PageFormat::Pdf => "export pdf` needs `--out <file.pdf>",
+        PageFormat::Svg => "export svg` needs `--out <dir>",
+    };
+    let out = out.ok_or_else(|| format!("`{what}`"))?;
+    Ok(Command::ExportPages(ExportPagesArgs {
+        format,
+        project,
+        out,
+        pages,
+        threads,
+    }))
+}
+
+fn parse_apply(it: impl Iterator<Item = String>) -> Result<Command, String> {
+    let mut positionals = Vec::new();
+    let mut preview = false;
+    let mut one_step = false;
+    for a in it {
+        match a.as_str() {
+            "--preview" => preview = true,
+            "--one-step" => one_step = true,
+            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
+            _ => positionals.push(PathBuf::from(a)),
+        }
+    }
+    let mut pos = positionals.into_iter();
+    let (project, log) = match (pos.next(), pos.next(), pos.next()) {
+        (Some(log), None, _) => (None, log),
+        (Some(dir), Some(log), None) => (Some(dir), log),
+        (None, ..) => return Err("`apply` needs a command log (<file.ewcmd>)".to_owned()),
+        (Some(_), Some(_), Some(extra)) => return Err(format!("unexpected argument `{}`", extra.display())),
+    };
+    Ok(Command::Apply(ApplyArgs {
+        project,
+        log,
+        preview,
+        one_step,
+    }))
 }
 
 fn parse_verify(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
@@ -503,6 +632,8 @@ pub fn run(cmd: Command) -> i32 {
         Command::SqlDump(a) => run_sql_dump(&a),
         Command::Export(a) => run_export(&a),
         Command::VerifyDerived(a) => run_verify_derived(&a),
+        Command::ExportPages(a) => run_export_pages(&a),
+        Command::Apply(a) => run_apply(&a),
         Command::SqlSchema => {
             print!("{}", ew_api::sql::schema::schema_text());
             0
@@ -633,6 +764,245 @@ fn run_export(a: &ExportArgs) -> i32 {
         }
     }
     0
+}
+
+/// The creation date of `SOURCE_DATE_EPOCH` (doc 17 section 3.1, FR-OUT-026); `Ok(None)` when it is not set.
+fn source_date() -> Result<Option<ew_api::output::PdfDate>, String> {
+    let Some(v) = std::env::var_os("SOURCE_DATE_EPOCH").filter(|v| !v.is_empty()) else {
+        return Ok(None);
+    };
+    let text = v.to_string_lossy();
+    text.trim()
+        .parse::<i64>()
+        .ok()
+        .and_then(date_from_epoch)
+        .map(Some)
+        .ok_or_else(|| format!("SOURCE_DATE_EPOCH is not a date in seconds since 1970: `{text}`"))
+}
+
+/// Writes `bytes` to `<path>.tmp` and renames it to `path`, so a failed export leaves no partial file (doc 09
+/// section 4.3).
+fn write_atomically(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    let mut tmp = path.as_os_str().to_owned();
+    tmp.push(".tmp");
+    let tmp = PathBuf::from(tmp);
+    std::fs::write(&tmp, bytes)?;
+    std::fs::rename(&tmp, path).inspect_err(|_| {
+        let _ = std::fs::remove_file(&tmp);
+    })
+}
+
+fn run_export_pages(a: &ExportPagesArgs) -> i32 {
+    let Some(dir) = project_dir(a.project.as_ref()) else {
+        return 2;
+    };
+    let date = match source_date() {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    let (session, _) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "export") {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {}: {e}", dir.display());
+            return 2;
+        }
+    };
+    let threads = a
+        .threads
+        .unwrap_or_else(|| std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get));
+    let options = ExportOptions {
+        pages: a.pages.clone(),
+        parallelism: Parallelism::threads(threads),
+        monochrome: false,
+        date,
+    };
+    let (written, findings) = match a.format {
+        PageFormat::Pdf => {
+            let pdf = match session.export_pdf(&options) {
+                Ok(p) => p,
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    return 2;
+                }
+            };
+            if let Err(e) = write_atomically(&a.out, &pdf.bytes) {
+                eprintln!("error: {}: {e}", a.out.display());
+                return 2;
+            }
+            (
+                format!(
+                    "PDF written to {}: {} pages, {} links",
+                    a.out.display(),
+                    pdf.pages,
+                    pdf.report.links
+                ),
+                pdf.findings.len(),
+            )
+        }
+        PageFormat::Svg => {
+            let svg = match session.export_svg(&options) {
+                Ok(s) => s,
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    return 2;
+                }
+            };
+            if let Err(e) = std::fs::create_dir_all(&a.out) {
+                eprintln!("error: {}: {e}", a.out.display());
+                return 2;
+            }
+            for f in &svg.files {
+                let path = a.out.join(&f.name);
+                if let Err(e) = write_atomically(&path, f.text.as_bytes()) {
+                    eprintln!("error: {}: {e}", path.display());
+                    return 2;
+                }
+            }
+            (
+                format!("SVG written to {}: {} files", a.out.display(), svg.files.len()),
+                svg.findings.len(),
+            )
+        }
+    };
+    println!("{written}");
+    if findings > 0 {
+        eprintln!("{findings} page findings (unresolved wire ends, unknown styles, overflowing table texts)");
+    }
+    0
+}
+
+fn run_apply(a: &ApplyArgs) -> i32 {
+    let text = match std::fs::read_to_string(&a.log) {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("error: {}: {e}", a.log.display());
+            return 2;
+        }
+    };
+    let log = match CmdLog::parse(&text) {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return i32::from(e.exit_code());
+        }
+    };
+    // The origin names the log by its file name, never its path.
+    let file = a.log.file_name().map_or_else(
+        || a.log.to_string_lossy().into_owned(),
+        |n| n.to_string_lossy().into_owned(),
+    );
+    let Some(dir) = project_dir(a.project.as_ref()) else {
+        return 2;
+    };
+    if a.preview {
+        return run_apply_preview(&dir, &log, &file);
+    }
+    let options = ew_api::SessionOptions {
+        origin: ew_api::Origin::Cli {
+            subcommand: "apply".to_owned(),
+            confirmed: false,
+        },
+        ..ew_api::SessionOptions::default()
+    };
+    let store = ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION"));
+    let (mut session, opened) = match ew_api::Session::open(&dir, store, options, ew_api::Recovery::Keep) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {}: {e}", dir.display());
+            return 2;
+        }
+    };
+    if let ew_api::Access::ReadOnly(reason) = &opened.access {
+        eprintln!(
+            "error: {}: the project opens read-only ({reason:?})",
+            dir.display()
+        );
+        session.close();
+        return 2;
+    }
+    if opened.recovery.is_some() {
+        eprintln!("warning: a crashed session left unsaved changes; they are kept for recovery, not applied");
+    }
+    let result = session.run_script(&log, &file);
+    let (code, committed) = match &result {
+        Ok(receipts) => (0, receipts.len()),
+        Err(e) => {
+            eprintln!("error: {e}");
+            (i32::from(e.exit_code()), e.committed())
+        }
+    };
+    if code != 0 && (a.one_step || committed == 0) {
+        if a.one_step && committed > 0 {
+            eprintln!("--one-step: nothing saved ({committed} lines were replayed and discarded)");
+        }
+        session.close();
+        return code;
+    }
+    match session.save() {
+        Ok(_) => {
+            println!("applied {committed} of {} lines; saved", log.len());
+            session.close();
+            code
+        }
+        Err(e) => {
+            eprintln!("error: the save failed: {e:?}");
+            session.close();
+            2
+        }
+    }
+}
+
+/// `ew apply --preview`: the replay on a read-only session (no lock, no journal, never saved), then the changes.
+fn run_apply_preview(dir: &Path, log: &CmdLog, file: &str) -> i32 {
+    let (mut session, _) = match ew_api::Session::open_reader(dir, env!("CARGO_PKG_VERSION"), "apply") {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {}: {e}", dir.display());
+            return 2;
+        }
+    };
+    let before = session.world();
+    let result = session.run_script(log, file);
+    let (code, committed) = match &result {
+        Ok(receipts) => (0, receipts.len()),
+        Err(e) => {
+            eprintln!("error: {e}");
+            (i32::from(e.exit_code()), e.committed())
+        }
+    };
+    let diff = match session.diff_from(&before) {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("error: {e:?}");
+            return 2;
+        }
+    };
+    println!(
+        "preview: {committed} of {} lines commit; {} records, {} tags and {} cross-references change; nothing is saved",
+        log.len(),
+        diff.model.changes.len(),
+        diff.derived.tags.len(),
+        diff.derived.xrefs.len()
+    );
+    for c in &diff.model.changes {
+        let (kind, id) = c.key;
+        let fields = if c.fields.is_empty() {
+            String::new()
+        } else {
+            format!(": {}", c.fields.join(", "))
+        };
+        println!("{:?} {kind} {id}{fields}", c.change);
+    }
+    for t in &diff.derived.tags {
+        println!("tag {}: {} -> {}", t.key, t.before, t.after);
+    }
+    for x in &diff.derived.xrefs {
+        println!("xref {}: {} -> {}", x.key, x.before, x.after);
+    }
+    code
 }
 
 fn run_verify_derived(a: &VerifyArgs) -> i32 {
@@ -1122,6 +1492,74 @@ SELECT 1"
         assert!(p(&["export", "bom", "--format", "xlsx"]).is_err());
         assert!(p(&["export", "bom", "--format", "pdf"]).is_err());
         assert!(p(&["export", "bom", "--format", "tsv"]).is_err());
+    }
+
+    #[test]
+    fn export_pages_forms() {
+        let Ok(Command::ExportPages(a)) = p(&["export", "pdf", "proj", "--out", "o.pdf"]) else {
+            panic!("parse failed");
+        };
+        assert_eq!(a.format, PageFormat::Pdf);
+        assert_eq!(a.project, Some(PathBuf::from("proj")));
+        assert_eq!(a.out, PathBuf::from("o.pdf"));
+        assert_eq!((a.pages, a.threads), (PageSelection::All, None));
+        let Ok(Command::ExportPages(b)) = p(&[
+            "export",
+            "svg",
+            "--out",
+            "svg",
+            "--pages",
+            "101-106,1",
+            "--threads",
+            "4",
+        ]) else {
+            panic!("parse failed");
+        };
+        assert_eq!(b.format, PageFormat::Svg);
+        assert_eq!(b.project, None);
+        assert_eq!(
+            b.pages,
+            PageSelection::Folios(vec!["101-106".to_owned(), "1".to_owned()])
+        );
+        assert_eq!(b.threads, Some(4));
+    }
+
+    #[test]
+    fn export_pages_errors() {
+        assert!(p(&["export", "pdf"]).is_err(), "--out is required");
+        assert!(p(&["export", "svg", "proj"]).is_err());
+        assert!(p(&["export", "pdf", "--out"]).is_err());
+        assert!(p(&["export", "pdf", "--out", "o", "--pages", ""]).is_err());
+        assert!(p(&["export", "pdf", "--out", "o", "--threads", "0"]).is_err());
+        assert!(p(&["export", "pdf", "--out", "o", "--threads", "x"]).is_err());
+        assert!(p(&["export", "pdf", "--out", "o", "--lang", "de"]).is_err());
+        assert!(p(&["export", "pdf", "--out", "o", "a", "b"]).is_err());
+        assert!(p(&["export", "png", "--out", "o"]).is_err());
+    }
+
+    #[test]
+    fn apply_forms() {
+        assert_eq!(
+            p(&["apply", "proj", "x.ewcmd", "--preview"]),
+            Ok(Command::Apply(ApplyArgs {
+                project: Some(PathBuf::from("proj")),
+                log: PathBuf::from("x.ewcmd"),
+                preview: true,
+                one_step: false,
+            }))
+        );
+        assert_eq!(
+            p(&["apply", "--one-step", "x.ewcmd"]),
+            Ok(Command::Apply(ApplyArgs {
+                project: None,
+                log: PathBuf::from("x.ewcmd"),
+                preview: false,
+                one_step: true,
+            }))
+        );
+        assert!(p(&["apply"]).is_err());
+        assert!(p(&["apply", "a", "b", "c"]).is_err());
+        assert!(p(&["apply", "x.ewcmd", "--bogus"]).is_err());
     }
 
     #[test]

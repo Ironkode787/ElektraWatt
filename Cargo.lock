@@ -272,6 +272,7 @@ dependencies = [
  "ew-api",
  "ew-print",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]

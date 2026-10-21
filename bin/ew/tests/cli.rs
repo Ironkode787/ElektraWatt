@@ -545,7 +545,7 @@ fn verify_derived_tiny_project_is_clean() {
     assert_eq!(o.status.code(), Some(0), "{}{}", stdout(&o), stderr(&o));
     let out = stdout(&o);
     assert!(
-        out.starts_with("verify-derived: 50 families, ")
+        out.starts_with("verify-derived: 60 families, ")
             && out.ends_with(" keys, 0 differences, 0 oracle mismatches\n"),
         "{out}"
     );
@@ -611,4 +611,269 @@ fn verify_derived_golden_a_is_clean() {
         "{}",
         stdout(&o)
     );
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// `ew export pdf|svg` (FT-59, G-M1-01) and `ew apply` (FT-156)
+
+/// `ew` in the environment of G-M1-01 as far as a test can set it: no display (`DISPLAY`, `WAYLAND_DISPLAY`
+/// removed), no starter content (`EW_CONTENT_DIR` removed), no `SOURCE_DATE_EPOCH`, and the user directories
+/// (home, application data, state, data and config) pointing at empty directories, so no user library and no
+/// user state is read and the journal of a writer goes there. The export uses the bundled fonts only (the PDF's
+/// digest holds that), and no subcommand uses a GPU.
+fn ew_isolated(home: &std::path::Path, args: &[&std::ffi::OsStr]) -> Output {
+    let dirs = [
+        "HOME",
+        "USERPROFILE",
+        "LOCALAPPDATA",
+        "APPDATA",
+        "XDG_STATE_HOME",
+        "XDG_DATA_HOME",
+        "XDG_CONFIG_HOME",
+    ];
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_ew"));
+    cmd.args(args)
+        .env_remove("EW_CONTENT_DIR")
+        .env_remove("DISPLAY")
+        .env_remove("WAYLAND_DISPLAY")
+        .env_remove("SOURCE_DATE_EPOCH");
+    for d in dirs {
+        let dir = home.join(d.to_ascii_lowercase());
+        std::fs::create_dir_all(&dir).unwrap();
+        cmd.env(d, &dir);
+    }
+    cmd.output().unwrap()
+}
+
+/// Every file of a directory tree with its bytes, by relative path.
+fn tree(dir: &std::path::Path) -> std::collections::BTreeMap<String, Vec<u8>> {
+    fn go(
+        dir: &std::path::Path,
+        base: &std::path::Path,
+        out: &mut std::collections::BTreeMap<String, Vec<u8>>,
+    ) {
+        for e in std::fs::read_dir(dir).unwrap() {
+            let p = e.unwrap().path();
+            if p.is_dir() {
+                go(&p, base, out);
+            } else {
+                let rel = p.strip_prefix(base).unwrap().to_string_lossy().replace('\\', "/");
+                out.insert(rel, std::fs::read(&p).unwrap());
+            }
+        }
+    }
+    let mut out = std::collections::BTreeMap::new();
+    go(dir, dir, &mut out);
+    out
+}
+
+/// A copy of Golden A in `t`.
+fn golden_copy(t: &Tmp) -> PathBuf {
+    let copy = t.0.join("J-E-2416.ew");
+    copy_dir(std::path::Path::new(GOLDEN_A), &copy);
+    copy
+}
+
+/// G-M1-01: `ew export pdf golden/J-E-2416.ew` writes the 36 pages of the page order as the PDF whose SHA-256 is
+/// `expected/pdf/sha256.txt`, on one thread and on four, writes nothing into the project and leaves no `.tmp`
+/// file.
+#[test]
+fn export_pdf_of_golden_a_is_the_committed_pdf() {
+    use sha2::{Digest, Sha256};
+    let t = Tmp::new();
+    let project = golden_copy(&t);
+    let before = tree(&project);
+    let want = expected("pdf/sha256.txt");
+    for threads in ["1", "4"] {
+        let out = t.0.join(format!("J-E-2416-{threads}.pdf"));
+        let o = ew_isolated(
+            &t.0.join("home"),
+            &[
+                "export".as_ref(),
+                "pdf".as_ref(),
+                project.as_os_str(),
+                "--out".as_ref(),
+                out.as_os_str(),
+                "--threads".as_ref(),
+                threads.as_ref(),
+            ],
+        );
+        assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+        assert!(stdout(&o).contains(": 36 pages, 92 links"), "{}", stdout(&o));
+        let bytes = std::fs::read(&out).unwrap();
+        assert_eq!(
+            format!("{:x}\n", Sha256::digest(&bytes)),
+            want,
+            "{threads} threads"
+        );
+        assert!(!t.0.join(format!("J-E-2416-{threads}.pdf.tmp")).exists());
+    }
+    assert!(tree(&project) == before, "the export wrote into the project");
+}
+
+/// `ew export svg --pages 101-106` writes one file per selected page; an unknown folio, a missing `--out` and a
+/// missing project exit 2.
+#[test]
+fn export_svg_writes_the_selected_pages() {
+    let t = Tmp::new();
+    let dir = t.0.join("svg");
+    let o = ew_isolated(
+        &t.0.join("home"),
+        &[
+            "export".as_ref(),
+            "svg".as_ref(),
+            GOLDEN_A.as_ref(),
+            "--out".as_ref(),
+            dir.as_os_str(),
+            "--pages".as_ref(),
+            "101-106".as_ref(),
+        ],
+    );
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let files: Vec<String> = tree(&dir).into_keys().collect();
+    assert_eq!(files, ["101.svg", "102.svg", "103.svg", "106.svg"]);
+    let unknown = ew(&[
+        "export".as_ref(),
+        "svg".as_ref(),
+        GOLDEN_A.as_ref(),
+        "--out".as_ref(),
+        dir.as_os_str(),
+        "--pages".as_ref(),
+        "104".as_ref(),
+    ]);
+    assert_eq!(unknown.status.code(), Some(2), "{}", stderr(&unknown));
+    assert!(stderr(&unknown).contains("104"), "{}", stderr(&unknown));
+    let no_out = ew(&["export".as_ref(), "pdf".as_ref(), GOLDEN_A.as_ref()]);
+    assert_eq!(no_out.status.code(), Some(2));
+    let missing = ew(&[
+        "export".as_ref(),
+        "pdf".as_ref(),
+        t.0.join("nope").as_os_str(),
+        "--out".as_ref(),
+        t.0.join("x.pdf").as_os_str(),
+    ]);
+    assert_eq!(missing.status.code(), Some(2));
+    assert!(!t.0.join("x.pdf").exists());
+}
+
+const VARIANTS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/variants");
+
+/// `ew apply --preview` of Golden B step B2 prints the renumbered tags and changes nothing on disk; `ew apply`
+/// commits and saves it (folio 106 becomes 104, which `ew export svg --pages 104` then finds), leaving no lock.
+#[test]
+fn apply_golden_b2_previews_then_saves() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let project = golden_copy(&t);
+    let log = std::path::Path::new(VARIANTS).join("b2-renumber-pages.ewcmd");
+    let before = tree(&project);
+    let preview = ew_isolated(
+        &home,
+        &[
+            "apply".as_ref(),
+            project.as_os_str(),
+            log.as_os_str(),
+            "--preview".as_ref(),
+        ],
+    );
+    assert_eq!(preview.status.code(), Some(0), "{}", stderr(&preview));
+    let out = stdout(&preview);
+    assert!(out.starts_with("preview: 1 of 1 lines commit;"), "{out}");
+    assert!(out.contains("-106W1 -> -104W1"), "{out}");
+    assert!(tree(&project) == before, "a preview wrote into the project");
+    let svg = |pages: &str| {
+        ew_isolated(
+            &home,
+            &[
+                "export".as_ref(),
+                "svg".as_ref(),
+                project.as_os_str(),
+                "--out".as_ref(),
+                t.0.join("svg").as_os_str(),
+                "--pages".as_ref(),
+                pages.as_ref(),
+            ],
+        )
+    };
+    assert_eq!(
+        svg("104").status.code(),
+        Some(2),
+        "no folio 104 before the replay"
+    );
+    let applied = ew_isolated(&home, &["apply".as_ref(), project.as_os_str(), log.as_os_str()]);
+    assert_eq!(applied.status.code(), Some(0), "{}", stderr(&applied));
+    assert!(
+        stdout(&applied).contains("applied 1 of 1 lines; saved"),
+        "{}",
+        stdout(&applied)
+    );
+    assert!(tree(&project) != before, "the replay is saved");
+    assert!(!project.join(".~ew.lock").exists(), "the lock is released");
+    assert_eq!(svg("104").status.code(), Some(0), "folio 104 after the replay");
+}
+
+/// Exit codes of `ew apply` (doc 17 section 3.2): a line a domain rule refuses (a second page 7777) exits 1, the
+/// line before it is saved, and with `--one-step` nothing is saved; a malformed log and an unresolvable
+/// reference exit 2 and save nothing.
+#[test]
+fn apply_exit_codes_and_one_step() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let project = golden_copy(&t);
+    let write = |name: &str, lines: &[&str]| {
+        let p = t.0.join(name);
+        let mut text = String::from("{\"$schema\":\"ew.cmdlog/1\",\"label\":\"test\"}\n");
+        for l in lines {
+            text.push_str(l);
+            text.push('\n');
+        }
+        std::fs::write(&p, text).unwrap();
+        p
+    };
+    let page = r#"{"cmd":"page.create","params":{"number":7777,"title":{"en":"T"}}}"#;
+    let dup = write("dup.ewcmd", &[page, page]);
+    let before = tree(&project);
+    let one_step = ew_isolated(
+        &home,
+        &[
+            "apply".as_ref(),
+            project.as_os_str(),
+            dup.as_os_str(),
+            "--one-step".as_ref(),
+        ],
+    );
+    assert_eq!(one_step.status.code(), Some(1), "{}", stderr(&one_step));
+    assert!(
+        stderr(&one_step).contains("nothing saved"),
+        "{}",
+        stderr(&one_step)
+    );
+    assert!(tree(&project) == before, "--one-step saved a partial replay");
+    let bad_ref = write(
+        "ref.ewcmd",
+        &[
+            r#"{"cmd":"fields.set","params":{"kind":"device","targets":[{"ref":"tag:-NOPE"}],"path":"tag.counter","value":1}}"#,
+        ],
+    );
+    let o = ew_isolated(
+        &home,
+        &["apply".as_ref(), project.as_os_str(), bad_ref.as_os_str()],
+    );
+    assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
+    let malformed = write("bad.ewcmd", &["{\"cmd\":1}"]);
+    let o = ew_isolated(
+        &home,
+        &["apply".as_ref(), project.as_os_str(), malformed.as_os_str()],
+    );
+    assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
+    assert!(tree(&project) == before, "a refused log saved something");
+    let partial = ew_isolated(&home, &["apply".as_ref(), project.as_os_str(), dup.as_os_str()]);
+    assert_eq!(partial.status.code(), Some(1), "{}", stderr(&partial));
+    assert!(
+        stdout(&partial).contains("applied 1 of 2 lines; saved"),
+        "{}",
+        stdout(&partial)
+    );
+    assert!(tree(&project) != before, "the committed line is saved");
+    assert!(!project.join(".~ew.lock").exists());
 }
