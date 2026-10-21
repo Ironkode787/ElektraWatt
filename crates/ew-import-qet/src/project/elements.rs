@@ -556,13 +556,14 @@ pub(crate) const LINE_NUDGE_NM: i64 = 2;
 /// element a few nm left or up keeps its printed cross-reference cell as QET prints it (owner rulings,
 /// reviews of cycle 12; the derivation's cell rule stays).
 ///
-/// Only **interruption-point elements** (`next_report`, `previous_report`) move, the elements whose cell a
-/// cross-reference prints: any other element keeps its exact position, so its connection points stay on
-/// the 10 px grid (FR-IMP-008, doc 14 §4.2: 0 nm deviation). Only on QET's default border, the one the QET
+/// Only the elements whose cell a cross-reference prints move: **interruption points** (`next_report`,
+/// `previous_report`) and **masters and slaves** (`master`, `slave`, whose cells the slave and master
+/// cross-references print). Any other element (terminals, simple elements) keeps its exact position, so
+/// its connection points stay on the 10 px grid (FR-IMP-008, doc 14 §4.2: 0 nm deviation). Only on QET's default border, the one the QET
 /// frame form reproduces; the frame edges are not moved. A cell-boundary policy for imported projects is
 /// the proper home of this rule (an ADR-0027 item; follow-up task by the design pass).
 pub(crate) fn qet_cell_nudge(link_type: &str, x: Decimal, y: Decimal, b: &Border) -> (i64, i64) {
-    if !matches!(link_type, "next_report" | "previous_report") || !is_qet_border(b) {
+    if !matches!(link_type, "next_report" | "previous_report" | "master" | "slave") || !is_qet_border(b) {
         return (0, 0);
     }
     let on_line = |v: Decimal, size: Option<Decimal>, count: Option<u32>| -> bool {
@@ -1097,17 +1098,21 @@ mod tests {
     }
 
     #[test]
-    fn only_interruption_points_move() {
+    fn only_elements_with_a_printed_cell_move() {
         let b = qet_border();
-        // A terminal, a master and a simple element on the row line y = 260 px keep their exact position, so
-        // their connection points stay on the 10 px grid.
-        for link in ["terminal", "master", "simple", "slave", ""] {
+        // A terminal, a simple element and an element without link type on the row line y = 260 px keep
+        // their exact position, so their connection points stay on the 10 px grid.
+        for link in ["terminal", "simple", ""] {
             assert_eq!(qet_cell_nudge(link, px("920"), px("260"), &b), (0, 0), "{link}");
         }
-        assert_eq!(
-            qet_cell_nudge("previous_report", px("920"), px("260"), &b),
-            (LINE_NUDGE_NM, LINE_NUDGE_NM)
-        );
+        // Interruption points, masters and slaves move: a cross-reference prints their cell.
+        for link in ["previous_report", "next_report", "master", "slave"] {
+            assert_eq!(
+                qet_cell_nudge(link, px("920"), px("260"), &b),
+                (LINE_NUDGE_NM, LINE_NUDGE_NM),
+                "{link}"
+            );
+        }
     }
 
     /// The nudged coordinate lies outside the 1 nm snap window of the line and above it.
