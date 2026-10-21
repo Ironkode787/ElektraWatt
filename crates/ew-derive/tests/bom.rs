@@ -623,6 +623,41 @@ fn a_config_without_a_part_prints_and_covers_nothing() {
 }
 
 #[test]
+fn a_cover_outside_the_heads_subtree_is_ignored() {
+    // Order code 2 also names an unrelated device (-101F1, no descendant of -201U1): its part stays.
+    let mut fx = assembly_with(json!([
+        config("51E-F13GCQP-D+H2GG", Some(P_CONF_CPX), &[0x2000]),
+        config("32P-VGL-R", Some(P_CONF_MPA), &[0x2010, 0x2020, 0x3000]),
+    ]));
+    dev(&mut fx, 0x3000, "101F1", false, &[(P_MCB_A, "1")], Some(PAGE101));
+    let out = rows(&fx, BomMode::Assembly);
+    let mcb = row(&out, "A9P52610");
+    assert_eq!(mcb.devices, [id(0x3000)]);
+    let mpa = row(&out, "32P-VGL-R");
+    assert_eq!(
+        mpa.covers,
+        [id(0x2010), id(0x2020)],
+        "the outside cover is not listed"
+    );
+}
+
+#[test]
+fn a_head_covered_by_another_assembly_prints_no_config_rows() {
+    // The module -201U3 is itself an assembly head (order code X, covering its valve); -201U1's order code 2
+    // covers it, so the outer assembly replaces it: no row X, and the valve is covered by -201U1 only.
+    let mut fx = assembly();
+    fx.record(0x2010)["assembly"] = json!({"configs": [config("X-INNER", Some(P_SPARE), &[0x2020])]});
+    let out = rows(&fx, BomMode::Assembly);
+    assert_eq!(numbers(&out), ["51E-F13GCQP-D+H2GG", "32P-VGL-R", "550208"]);
+    assert!(out.iter().all(|r| r.part_number != "D-SPARE"));
+    // Without the outer cover the inner head prints its row.
+    let mut fx = assembly_with(json!([config("51E-F13GCQP-D+H2GG", Some(P_CONF_CPX), &[0x2000])]));
+    fx.record(0x2010)["assembly"] = json!({"configs": [config("X-INNER", Some(P_SPARE), &[0x2020])]});
+    let out = rows(&fx, BomMode::Assembly);
+    assert!(out.iter().any(|r| r.part_number == "D-SPARE" && r.configured));
+}
+
+#[test]
 fn a_components_basis_keeps_the_components_in_assembly_mode() {
     let mut fx = assembly();
     fx.record(0x2000)["assembly"]["bom_basis"] = json!("components");

@@ -154,8 +154,11 @@ pub struct BomRow {
 ///    ([`LineSource::AssemblyConfig`], configured), and the devices that config `covers` lose all their
 ///    own lines (part uses and strip accessories). Covers are explicit, not transitive: a child the configs
 ///    do not name keeps its lines. A config without a part, or whose copy is missing, prints nothing and
-///    covers nothing, so no part disappears silently; a `components` basis keeps the components. Other
-///    lines, configured part uses included, stay.
+///    covers nothing, so no part disappears silently; a `components` basis keeps the components. A cover
+///    outside the head's subtree (neither the head nor a descendant by `Device.parent`, cycle-safe) is
+///    ignored, so a config never drops an unrelated device's parts (reported by a check, not here). A head
+///    that a config of another head covers prints no config rows and covers nothing: the outer assembly
+///    replaces it. Other lines, configured part uses included, stay.
 /// 3. **Aggregation** by [`BomRowKey`] and the configured flag: quantities add up (an overflowing sum
 ///    saturates at the `Dec3` limit); part data comes from the part copy; the devices are sorted by their
 ///    short tag, full tag and ID (natural order); the pages are those of the devices' main
@@ -440,11 +443,14 @@ fn filtered_lines(q: &Q, mode: BomMode) -> Vec<Line> {
     }
 }
 
+/// A printable config of a head: its configured part and its covers inside the head's subtree.
+type HeadConfig = (PartRef, Vec<Id<Device>>);
+
 /// The config lines of every assembly head (step 2) and the devices they cover.
 fn assembly_lines(q: &Q) -> (Vec<Line>, BTreeSet<Id<Device>>) {
     let parts = q.parts();
-    let mut lines = Vec::new();
-    let mut covered = BTreeSet::new();
+    // Every head's printable configs with the covers inside its subtree.
+    let mut heads: Vec<(Id<Device>, Vec<HeadConfig>)> = Vec::new();
     for (head, dev) in q.devices().iter() {
         let Some(assembly) = &dev.aspects.assembly else {
             continue;
@@ -452,24 +458,65 @@ fn assembly_lines(q: &Q) -> (Vec<Line>, BTreeSet<Id<Device>>) {
         if assembly.bom_basis != BomBasis::Assembly || dev.state == DeviceState::NotFitted {
             continue;
         }
-        for config in &assembly.configs {
-            let Some(part) = config.part.as_ref().filter(|p| parts.contains(p.copy)) else {
-                continue;
-            };
-            let covers: Vec<Id<Device>> = config.covers.iter().copied().collect();
+        let configs: Vec<HeadConfig> = assembly
+            .configs
+            .iter()
+            .filter_map(|config| {
+                let part = config.part.as_ref().filter(|p| parts.contains(p.copy))?;
+                let covers = config
+                    .covers
+                    .iter()
+                    .copied()
+                    .filter(|d| in_subtree(q, head, *d))
+                    .collect();
+                Some((part.clone(), covers))
+            })
+            .collect();
+        heads.push((head, configs));
+    }
+    // A head that another head's config covers is replaced by the outer assembly.
+    let covered_by_other = |h: Id<Device>| {
+        heads
+            .iter()
+            .any(|(other, configs)| *other != h && configs.iter().any(|(_, c)| c.contains(&h)))
+    };
+    let mut lines = Vec::new();
+    let mut covered = BTreeSet::new();
+    for (head, configs) in &heads {
+        if covered_by_other(*head) {
+            continue;
+        }
+        for (part, covers) in configs {
             covered.extend(covers.iter().copied());
             lines.push(Line {
                 line: PartLine {
-                    device: head,
+                    device: *head,
                     part: part.copy,
                     variant: part.variant.clone(),
                     qty: Dec3::ONE,
                     source: LineSource::AssemblyConfig,
                     configured: true,
                 },
-                covers,
+                covers: covers.clone(),
             });
         }
     }
     (lines, covered)
+}
+
+/// Whether `device` is `head` or one of its descendants (`Device.parent`, followed upwards, cycle-safe).
+fn in_subtree(q: &Q, head: Id<Device>, device: Id<Device>) -> bool {
+    let devices = q.devices();
+    let mut seen = BTreeSet::new();
+    let mut at = Some(device);
+    while let Some(d) = at {
+        if d == head {
+            return true;
+        }
+        if !seen.insert(d) {
+            return false;
+        }
+        at = devices.get(d).and_then(|dev| dev.parent);
+    }
+    false
 }
