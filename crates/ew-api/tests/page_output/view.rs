@@ -20,6 +20,10 @@
 //!   `ew_reports::render::render` for that page (neutral language, displayed tags); a page with a `note`
 //!   prints the note in one row instead; the column widths are the columns' weights;
 //! - bindings: every `title_block(page)` value, the project's date format, no display language (neutral);
+//! - embedded blocks (FR-REP-028): a drawn page's `profile_tables` block is drawn into the `tables` layer in its
+//!   rectangle: the rows of `BlockRows` split by their `table` column into the colour table (a heading row is
+//!   the basis caption, "Basis: " a label of the cover form), the control sizes and the mains sizes, each cell printed by `render` (neutral
+//!   language); the group titles are the labels of the cover form's regions. PART DATA blocks are not drawn yet;
 //! - slot values: `tag` → `displayed_tag(device, page)`, except that a terminal's own representation prints
 //!   only the terminal's designation (ID-162, doc 08 §6.7; the strip tag appears once per strip
 //!   representation) and an interruption point has no `tag` slot; `cp_designation(i)` → the designation of
@@ -52,7 +56,8 @@ use ew_import_tables::ew_interop_api::ImportInput;
 use ew_import_tables::{BuiltinLibrary, TablesImporter, bootstrap_context};
 use ew_render_cpu::FontBytes;
 use ew_reports::render::{RenderOptions, render};
-use ew_reports::{BlockRows, RowKind};
+use ew_reports::{BlockRows, Row, RowKind};
+use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedView};
 use ew_scene::forms::{AssetRef, BoundValue, PageBindings};
 use ew_scene::page::{
     ConnectionView, FrameView, ItemLink, JunctionView, PageKind, PageView, RepView, SegmentTerminal,
@@ -61,7 +66,7 @@ use ew_scene::page::{
 use ew_scene::table::{TableColumn, TableRow, TableRowKind, TableView};
 use ew_schema::{
     Csa, FnRole, FormDef, Function, FunctionKind, JunctionStyle, LibCopy, LibDocument, Page, PageType,
-    Record, RepType, Representation, Side, SlotKind, SymbolDef,
+    Record, RepType, ReportBlock, ReportKind, ReportSource, Representation, Side, SlotKind, SymbolDef,
 };
 
 pub fn repo() -> PathBuf {
@@ -295,6 +300,71 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &ew_schema::Representation, def: &Sym
     out
 }
 
+/// The titles of the cover's three regions (the labels of the cover form).
+const COVER_TITLES: [&str; 3] = [
+    "CABLE COLOUR DEFINITIONS",
+    "STANDARD SIZES CONTROL",
+    "STANDARD SIZES MAINS",
+];
+
+/// The embedded blocks of a drawn page that the scene draws: the `profile_tables` blocks.
+fn embedded_views(q: &Q, page: Id<Page>) -> Vec<EmbeddedView> {
+    q.report_blocks()
+        .iter()
+        .filter_map(|(_, b)| {
+            let embed = b.embedded.as_ref().filter(|e| e.page == page)?;
+            matches!(b.source, ReportSource::Kind(ReportKind::ProfileTables)).then(|| EmbeddedView {
+                rect: embed.rect.0,
+                content: EmbeddedContent::Cover(cover_tables(q, b)),
+            })
+        })
+        .collect()
+}
+
+/// The three tables of a `profile_tables` block as printed texts.
+fn cover_tables(q: &Q, block: &ReportBlock) -> CoverTables {
+    let set = q.get::<BlockRows>(block.id);
+    let opts = RenderOptions::default();
+    let cell = |row: &Row, key: &str| -> String {
+        set.column(key)
+            .and_then(|i| row.cells.get(i))
+            .map(|c| render(q, c, &opts))
+            .unwrap_or_default()
+    };
+    let label = |key: &str| -> String {
+        set.column(key)
+            .map(|i| neutral(&set.columns[i].label))
+            .unwrap_or_default()
+    };
+    let colour_keys = ["voltage_class", "function", "potential_type", "colour"];
+    let mut cover = CoverTables::default();
+    cover.colours.title = COVER_TITLES[0].to_owned();
+    cover.colours.header = colour_keys.map(label).to_vec();
+    cover.control.title = COVER_TITLES[1].to_owned();
+    cover.mains.title = COVER_TITLES[2].to_owned();
+    for row in &set.rows {
+        match (cell(row, "table").as_str(), row.kind) {
+            ("colours", RowKind::Heading) => {
+                cover.colours.caption = Some(format!("Basis: {}", cell(row, "voltage_class")));
+            }
+            ("colours", RowKind::Data) => cover
+                .colours
+                .rows
+                .push(colour_keys.map(|k| cell(row, k)).to_vec()),
+            ("control", RowKind::Data) => cover
+                .control
+                .rows
+                .push(["colour", "size"].map(|k| cell(row, k)).to_vec()),
+            ("mains", RowKind::Data) => cover
+                .mains
+                .rows
+                .push(["colour", "size"].map(|k| cell(row, k)).to_vec()),
+            _ => {}
+        }
+    }
+    cover
+}
+
 /// Every page of the page order as a view.
 pub fn golden_pages(q: &Q) -> Vec<GoldenPage> {
     let nogrid = form_by_key(q, "ew.frame.qet-a4-landscape-nogrid");
@@ -328,6 +398,7 @@ pub fn golden_pages(q: &Q) -> Vec<GoldenPage> {
             junctions: Vec::new(),
             wire_marker: marker.clone(),
             table: None,
+            embedded: Vec::new(),
         };
         match entry.page {
             PageRef::Drawn(p) => {
@@ -335,6 +406,7 @@ pub fn golden_pages(q: &Q) -> Vec<GoldenPage> {
                 let f = page.as_ref().and_then(|pg| pg.form).and_then(|id| form(q, id));
                 let f = f.or_else(|| nogrid.clone());
                 view.frame = frame_view(q, f, entry.page);
+                view.embedded = embedded_views(q, p);
                 for rid in q.idx().reps_by_page(p) {
                     let Some(rep) = q.reps().get(rid).cloned() else {
                         continue;

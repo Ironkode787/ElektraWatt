@@ -26,9 +26,11 @@ impl ReportKindDef for PartsSummary {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            ColumnDef::new("pos", CellType::Ident, "Pos").weighted(4),
-            ColumnDef::new("qty", CellType::Qty, "Qty").weighted(4),
-            ColumnDef::new("unit", CellType::Ident, "Unit").weighted(4),
+            // Qty holds a length with its unit ("2.192 m" of rail), so it takes the width of the position and
+            // the unit column's share.
+            ColumnDef::new("pos", CellType::Ident, "Pos").weighted(3),
+            ColumnDef::new("qty", CellType::Qty, "Qty").weighted(6),
+            ColumnDef::new("unit", CellType::Ident, "Unit").weighted(3),
             ColumnDef::new("manufacturer", CellType::Ident, "Manufacturer").weighted(15),
             ColumnDef::new("part_number", CellType::Ident, "Part number").weighted(19),
             ColumnDef::new("description", CellType::Text, "Description").weighted(31),

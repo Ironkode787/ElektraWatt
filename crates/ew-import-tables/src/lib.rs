@@ -31,7 +31,7 @@
 //! | `functions`, `representations` | `function` (interruption points included), `representation` |
 //! | `connections`, `junctions`, `conductors`, `potentials`, `bonds` | `connection`, `junction`, `conductor`, `potential_def`, `bond` |
 //! | `revisions` | the reserved `revision` records |
-//! | `colour_profile`, `size_profile` | none yet (reported once each, EW-IMP-004) |
+//! | `colour_profile`, `size_profile` | the `colour_profile` and `size_profile` members of the project settings (doc 03 §5.1; `emit/profiles.rs`) |
 //!
 //! # Hostile input (doc 14 §11)
 //!

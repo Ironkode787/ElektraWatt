@@ -109,9 +109,17 @@ pub fn session_oracle_with(
         .expect("the golden batch passes the model's integrity check")
 }
 
-/// A session over the plain batch (no profiles).
+/// A session over the batch as imported (the bootstrap emits the colour and size profiles since cycle 12).
 pub fn session(batch: &ImportBatch) -> Session {
     session_with(batch, |_, _| {})
+}
+
+/// A session over the batch without the colour and size profiles (the built-in defaults apply).
+pub fn session_without_profiles(batch: &ImportBatch) -> Session {
+    session_with(batch, |p, _| {
+        p.settings.extra.remove("colour_profile");
+        p.settings.extra.remove("size_profile");
+    })
 }
 
 /// A session with the golden colour and size profiles in `ProjectSettings.extra`.
@@ -148,100 +156,30 @@ fn split(line: &str) -> Vec<String> {
     out
 }
 
-/// Adds `colour_profile` and `size_profile` in the doc 03 §5.1 shape, built from the golden tables
-/// (doc 20 §7.1, §7.2; doc 08 §4.2).
+/// Adds `colour_profile` and `size_profile` to `project`. The bootstrap emits both members since cycle 12
+/// (`ew-import-tables`, FT-159), so on a project of the golden batch this changes nothing; it restores them on
+/// a project that lost them.
 pub fn with_profiles(project: &mut ew_schema::Project) {
     let (colour, size) = profiles_json();
     project.settings.extra.insert("colour_profile".into(), colour);
     project.settings.extra.insert("size_profile".into(), size);
 }
 
-/// The two profile members as JSON.
+/// The two profile members of the golden batch's project settings (doc 03 §5.1, doc 08 §4.2) as JSON.
 pub fn profiles_json() -> (serde_json::Value, serde_json::Value) {
-    use serde_json::json;
-    let mut rows = Vec::new();
-    for (_, r) in table("colour_profile.csv")
-        .into_iter()
-        .map(|(k, r)| (k.parse::<u32>().unwrap(), r))
-        .collect::<BTreeMap<_, _>>()
-    {
-        let class = r["voltage_class"].as_str();
-        let (ac_dc, u_min, u_max) = match class {
-            "24 VDC" => ("dc", None, Some("120")),
-            "230 VAC" => ("ac", Some("50"), Some("250")),
-            "400 VAC" => ("ac", Some("250"), Some("1000")),
-            _ => ("", None, None),
-        };
-        let pt = r["potential_type"].as_str();
-        let (ptype, analogue): (Vec<&str>, bool) = match pt {
-            "L+" => (vec!["l_plus"], false),
-            "M" => (vec!["m"], false),
-            "L" => (vec!["l"], false),
-            "N" => (vec!["n"], false),
-            "PE" => (vec!["pe"], false),
-            "L1" => (vec!["l1"], false),
-            "L2" => (vec!["l2"], false),
-            "L3" => (vec!["l3"], false),
-            // The analogue pair keeps its polarity in the type (positive L+, negative L−) so that the two
-            // rows do not share a selector (doc 08 §4.2: overlapping rows must agree).
-            "signal +" => (vec!["l_plus"], true),
-            "signal −" => (vec!["l_minus"], true),
-            _ => (vec!["signal"], false),
-        };
-        let mut select = serde_json::Map::new();
-        select.insert("ptype".into(), json!(ptype));
-        // The PE rows select by type only (doc 08 §4.2); the others by AC/DC and voltage range.
-        if pt != "PE" && !analogue {
-            select.insert("ac_dc".into(), json!(ac_dc));
-            if let Some(u) = u_min {
-                select.insert("u_min".into(), json!(u));
-            }
-            if let Some(u) = u_max {
-                select.insert("u_max".into(), json!(u));
-            }
+    for r in batch().records {
+        if let Record::Project(p) = r {
+            let member = |name: &str| {
+                p.settings
+                    .extra
+                    .get(name)
+                    .cloned()
+                    .unwrap_or_else(|| panic!("the golden project has a `{name}` settings member"))
+            };
+            return (member("colour_profile"), member("size_profile"));
         }
-        if analogue {
-            select.insert("analogue".into(), json!(true));
-        }
-        rows.push(json!({
-            "group": {"en": class},
-            "function": {"en": r["function"]},
-            "select": select,
-            "colour": colour_json(&r["code"]),
-        }));
     }
-    let colour = json!({
-        "key": "company.dbu-wh-24v",
-        "name": {"en": "DBU/WH 24 V"},
-        "basis": "company_convention",
-        "verified": true,
-        "codes": [{"code": "DBU", "base": "BU", "shade": "dark", "export_as": "DBU", "names": {"en": "Dark Blue"}}],
-        "rows": rows,
-    });
-    let size = json!({
-        "key": "company.0.75-1.5",
-        "name": {"en": "0.75/1.5"},
-        "verified": true,
-        "class_rules": [
-            {"select": {"ptype": ["pe", "pen", "fe"]}, "class": "pe"},
-            {"select": {"discipline": "bus"}, "class": "bus"},
-            {"select": {"analogue": true}, "class": "analogue"},
-            {"select": {"ac_dc": "ac", "u_min": "50"}, "class": "mains"},
-            {"select": {}, "class": "control"},
-        ],
-        "pe_class": "highest_at_ends",
-        "bond_rule": {"colour_from": "pe", "class_from": "non_pe_side"},
-        "rows": [{"class": "control", "csa": "0.75"}, {"class": "mains", "csa": "1.5"}],
-    });
-    (colour, size)
-}
-
-/// A colour code of the tables as a `ColourSpec` (`"GNYE"` is the two codes GN and YE).
-pub fn colour_json(code: &str) -> serde_json::Value {
-    match code {
-        "GNYE" => serde_json::json!(["GN", "YE"]),
-        c => serde_json::json!([c]),
-    }
+    panic!("the golden batch holds the project")
 }
 
 /// The source key (`connections|W29`, `functions|-102F2`, …) of a record.

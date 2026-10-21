@@ -18,9 +18,11 @@ workspace = true
 ew-derive = { path = "../ew-derive" }
 ew-sqlview = { path = "../ew-sqlview" }
 ew-text = { path = "../ew-text" }
+# `profile_tables` reads the provisional `colour_profile` and `size_profile` members of the project settings
+# (`ProjectSettings.extra`, doc 03 §5.1) as JSON values.
+serde_json = "1.0.154"
 
 [dev-dependencies]
 # Unit tests build small snapshots (`Model::from_records`) to run row queries over a `Q`; no `raw-read`.
 ew-model = { path = "../ew-model" }
-serde_json = "1.0.154"
 proptest = { version = "1.12.0", default-features = false, features = ["std"] }

@@ -205,29 +205,14 @@ impl TablesImporter {
         emit::connect::emit_bonds(&mut cx, t("bonds"));
         emit::project::emit_report_blocks(&mut cx, t("report_blocks"));
         emit::project::emit_revisions(&mut cx, t("revisions"), t("parties"));
-        let project = emit::project::emit_project(&mut cx, t("project"), t("parties"));
+        let profiles = emit::profiles::emit(&mut cx, t("colour_profile"), t("size_profile"));
+        let project = emit::project::emit_project(&mut cx, t("project"), t("parties"), profiles);
         if project.is_none() {
             return Err(ImportError::Malformed {
                 message: "the project row of project.csv is unusable (see the report)".into(),
                 line: None,
             });
         }
-        for name in schema::KEPT_ONLY {
-            if let Some(table) = tables.get(name) {
-                cx.findings.at(
-                    Code::DROPPED_BY_DESIGN,
-                    Severity::Info,
-                    &table.file,
-                    None,
-                    None,
-                    format!(
-                        "{} rows read; schema v0 has no record shape for them yet",
-                        table.len()
-                    ),
-                );
-            }
-        }
-
         // The manifest digest: file names and SHA-256 of every input, in name order.
         let mut manifest = String::new();
         for (name, input) in &by_name {

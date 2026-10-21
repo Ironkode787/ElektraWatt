@@ -8,7 +8,7 @@ mod common;
 
 use ew_ids::Id;
 use ew_import_tables::ids::{self, record_id};
-use ew_interop_api::{Code, ImportBatch, Severity};
+use ew_interop_api::ImportBatch;
 use ew_schema::{
     Bond, Connection, ConnectionKind, Device, Endpoint, Function, ImportLineage, LibDocument, LineageAnchor,
     OrderUnit, PartKind, Project, Record, Representation,
@@ -44,27 +44,66 @@ fn lib_key(d: &LibDocument) -> Option<String> {
     }
 }
 
-/// Only the two schema-v0 gaps (the profiles) are reported, each once as an info.
+/// The golden tables import without a single report entry: every table has its record or settings member.
 #[test]
-fn the_report_has_only_the_two_known_infos() {
+fn the_report_is_empty() {
     let b = golden();
-    let bad: Vec<_> = b
-        .report
-        .entries
+    assert!(b.report.entries.is_empty(), "{:#?}", b.report.entries);
+}
+
+/// The colour and size profile tables become the `colour_profile` and `size_profile` members of the project
+/// settings (doc 03 §5.1, doc 08 §4.2, doc 20 §7.1, §7.2).
+#[test]
+fn the_profiles_are_project_settings() {
+    let b = golden();
+    let project = b
+        .records
         .iter()
-        .filter(|e| matches!(e.severity, Severity::Warning | Severity::Error))
-        .collect();
-    assert!(bad.is_empty(), "{bad:#?}");
-    let infos: Vec<_> = b.report.with_code(Code::imp(4)).collect();
-    assert_eq!(b.report.entries.len(), 2, "{:#?}", b.report.entries);
-    assert_eq!(infos.len(), 2);
-    assert!(infos.iter().all(|e| e.severity == Severity::Info));
-    let mut files: Vec<String> = infos
-        .iter()
-        .map(|e| e.location.as_ref().unwrap().file.clone())
-        .collect();
-    files.sort();
-    assert_eq!(files, ["colour_profile.csv", "size_profile.csv"]);
+        .find_map(|r| match r {
+            Record::Project(p) => Some(p),
+            _ => None,
+        })
+        .expect("the project record");
+    let colour = &project.settings.extra["colour_profile"];
+    assert_eq!(colour["key"], "company.dbu-wh-24v");
+    assert_eq!(colour["name"]["en"], "DBU/WH 24 V");
+    assert_eq!(colour["basis"], "company_convention");
+    let rows = colour["rows"].as_array().expect("rows");
+    assert_eq!(rows.len(), 15);
+    // Row 1: 24 VDC, Positive, L+ -> Dark Blue DBU (DC up to 120 V).
+    assert_eq!(rows[0]["group"]["en"], "24 VDC");
+    assert_eq!(rows[0]["function"]["en"], "Positive");
+    assert_eq!(rows[0]["potential_type"]["en"], "L+");
+    assert_eq!(rows[1]["potential_type"]["en"], "signal, 24 V DC");
+    assert_eq!(rows[0]["colour_name"]["en"], "Dark Blue");
+    assert_eq!(rows[0]["colour"], serde_json::json!(["DBU"]));
+    assert_eq!(
+        rows[0]["select"],
+        serde_json::json!({"ptype": ["l_plus"], "ac_dc": "dc", "u_max": "120"})
+    );
+    // A PE row selects by type only, GNYE is GN + YE; an analogue row by type and the analogue attribute.
+    assert_eq!(rows[6]["colour"], serde_json::json!(["GN", "YE"]));
+    assert_eq!(rows[6]["select"], serde_json::json!({"ptype": ["pe"]}));
+    assert_eq!(
+        rows[12]["select"],
+        serde_json::json!({"ptype": ["l_plus"], "analogue": true})
+    );
+    // 400 VAC: AC 250 to 1000 V.
+    assert_eq!(
+        rows[7]["select"],
+        serde_json::json!({"ptype": ["l1"], "ac_dc": "ac", "u_min": "250", "u_max": "1000"})
+    );
+
+    let size = &project.settings.extra["size_profile"];
+    assert_eq!(size["name"]["en"], "0.75/1.5");
+    assert_eq!(
+        size["rows"],
+        serde_json::json!([
+            {"class": "control", "csa": "0.75", "codes": ["DBU", "GNYE", "WH"]},
+            {"class": "mains", "csa": "1.5", "codes": ["BK", "BU", "GNYE"]},
+        ])
+    );
+    assert_eq!(size["class_rules"].as_array().map(Vec::len), Some(5));
 }
 
 /// The per-kind counts of the report are those of doc 20.

@@ -10,7 +10,8 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_schema::{Record, ReportBlock};
 use ew_derive::{DeviceTag, GeneratedPage, PageOrder, PageOrderV, PageRef, Q};
-use ew_reports::{BlockRows, Cell, NotDerived, RowSet, RowSetStatus};
+use ew_reports::render::{RenderOptions, render};
+use ew_reports::{BlockRows, Cell, RowKind, RowSet, RowSetStatus};
 
 /// The block of a golden `report_blocks` row.
 fn block(key: &str) -> Id<ReportBlock> {
@@ -313,6 +314,127 @@ fn not_derived_kinds_paginate_to_one_placeholder_page() {
     }
 }
 
+/// The printed cells of row `i` of a row set.
+fn printed(q: &Q, set: &RowSet, i: usize) -> Vec<String> {
+    let opts = RenderOptions::default();
+    set.rows[i].cells.iter().map(|c| render(q, c, &opts)).collect()
+}
+
+/// The cover's colour and standard-size tables are rows of the profiles in the project settings (FT-159,
+/// doc 20 §7.1, §7.2): the basis, the 15 colour rows, then the control and the mains sizes.
+#[test]
+fn the_cover_tables_follow_the_profiles() {
+    let s = common::golden_session();
+    let q = s.query();
+    let set = q.get::<BlockRows>(block("cover-tables"));
+    assert!(set.is_derived());
+    assert_eq!(set.rows.len(), 1 + 15 + 3 + 3);
+    let labels: Vec<String> = set.columns.iter().map(|c| text(&c.label)).collect();
+    assert_eq!(
+        labels,
+        [
+            "Voltage class",
+            "Function",
+            "Potential type",
+            "Colour",
+            "Code",
+            "Size",
+            "Table"
+        ]
+    );
+
+    // The basis of the colour profile (doc 20 §7.1, D-37) is a heading row in the group of the colours.
+    assert_eq!(set.rows[0].kind, RowKind::Heading);
+    assert_eq!(
+        printed(&q, &set, 0)[0],
+        "company convention; codes per IEC 60757, DBU is a company code (BU, dark shade)"
+    );
+    assert_eq!(printed(&q, &set, 0)[6], "colours");
+
+    // The 15 colour rows in the order of the profile.
+    assert_eq!(
+        printed(&q, &set, 1),
+        ["24 VDC", "Positive", "L+", "Dark Blue", "DBU", "", "colours"]
+    );
+    assert_eq!(
+        printed(&q, &set, 7),
+        ["230 VAC", "Earth", "PE", "Yellow / Green", "GNYE", "", "colours"]
+    );
+    assert_eq!(
+        printed(&q, &set, 14),
+        [
+            "Analogue Signals",
+            "Negative",
+            "signal \u{2212}",
+            "White",
+            "WH",
+            "",
+            "colours"
+        ]
+    );
+    assert!((1..16).all(|i| set.rows[i].kind == RowKind::Data));
+
+    // The sizes: the codes that have the class's size, with its cross-section.
+    for (i, (colour, code, group)) in [
+        ("Dark Blue", "DBU", "control"),
+        ("Yellow / Green", "GNYE", "control"),
+        ("White", "WH", "control"),
+        ("Black", "BK", "mains"),
+        ("Blue", "BU", "mains"),
+        ("Yellow / Green", "GNYE", "mains"),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let size = if group == "control" {
+            "0.75 mm\u{b2}"
+        } else {
+            "1.5 mm\u{b2}"
+        };
+        assert_eq!(
+            printed(&q, &set, 16 + i),
+            ["", "", "", colour, code, size, group],
+            "size row {i}"
+        );
+    }
+    // Row IDs are the group and the index inside it.
+    let ids: std::collections::BTreeSet<String> = set.rows.iter().map(|r| r.id.to_string()).collect();
+    assert_eq!(ids.len(), set.rows.len());
+}
+
+/// Editing the profile edits the cover table (AC-12); a project without profiles has no cover rows.
+#[test]
+fn the_cover_tables_follow_an_edited_profile_and_vanish_without_one() {
+    let batch = common::golden_batch();
+    let cover = block("cover-tables");
+    let rows = |edit: &dyn Fn(&mut ew_derive::ew_schema::Project)| {
+        let (mut project, records) = common::split(&batch);
+        edit(&mut project);
+        let s = common::session_of(project, records, batch.lib.clone());
+        let q = s.query();
+        let set = q.get::<BlockRows>(cover);
+        (0..set.rows.len())
+            .map(|i| printed(&q, &set, i))
+            .collect::<Vec<_>>()
+    };
+    let base = rows(&|_| {});
+    let edited = rows(&|p| {
+        p.settings
+            .extra
+            .get_mut("colour_profile")
+            .expect("colour profile")["rows"][0]["colour"] = serde_json::json!(["RD"]);
+    });
+    // Only the code of the first colour row changes.
+    let changed: Vec<usize> = (0..base.len()).filter(|&i| base[i] != edited[i]).collect();
+    assert_eq!(changed, [1]);
+    assert_eq!(edited[1][4], "RD");
+    let none = rows(&|p| {
+        p.settings.extra.remove("colour_profile");
+        p.settings.extra.remove("size_profile");
+    });
+    assert!(none.is_empty());
+}
+
 #[test]
 fn embedded_blocks_have_no_page_and_derive_part_data() {
     let s = common::golden_session();
@@ -322,10 +444,8 @@ fn embedded_blocks_have_no_page_and_derive_part_data() {
         assert!(pages_of(&order, block(key)).is_empty(), "{key} has no page");
     }
 
-    assert_eq!(
-        q.get::<BlockRows>(block("cover-tables")).status,
-        RowSetStatus::NotDerived(NotDerived::NoRecordShape("colour_profile"))
-    );
+    // The cover's colour and size tables derive from the profiles (FT-159); see `the_cover_tables_...`.
+    assert!(q.get::<BlockRows>(block("cover-tables")).is_derived());
 
     // Pages 201 and 202 both show devices whose root ancestor is -201U1 (-202U1 is its child), so both boxes
     // list the part lines of -201U1 (195740, 550208; doc 09 §3.4 repeats the box on 202). Its descendants

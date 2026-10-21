@@ -234,6 +234,7 @@ impl Table {
     }
 
     /// The number of rows.
+    #[cfg(test)]
     pub(crate) fn len(&self) -> usize {
         self.lines.len()
     }

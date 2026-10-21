@@ -237,14 +237,25 @@ pub(crate) const POTENTIALS: TableSpec = spec(
 /// `bonds.csv`.
 pub(crate) const BONDS: TableSpec = spec("bonds", &["key", "a", "b", "kind"], &["via"]);
 
-/// `colour_profile.csv` (no record shape in schema v0).
+/// `colour_profile.csv` (the colour profile of the project settings).
 pub(crate) const COLOUR_PROFILE: TableSpec = spec(
     "colour_profile",
     &["key"],
-    &["voltage_class", "function", "potential_type", "colour", "code"],
+    &[
+        "voltage_class",
+        "function",
+        "potential_type",
+        "colour",
+        "code",
+        "ptype",
+        "ac_dc",
+        "u_min",
+        "u_max",
+        "analogue",
+    ],
 );
 
-/// `size_profile.csv` (no record shape in schema v0).
+/// `size_profile.csv` (the size profile of the project settings).
 pub(crate) const SIZE_PROFILE: TableSpec = spec("size_profile", &["key"], &["control", "mains"]);
 
 /// `revisions.csv` (reserved `revision` records).
@@ -287,6 +298,3 @@ pub(crate) const ALL: [TableSpec; 23] = [
     SIZE_PROFILE,
     REVISIONS,
 ];
-
-/// The tables that are read but not emitted (no record shape in schema v0).
-pub(crate) const KEPT_ONLY: [&str; 2] = ["colour_profile", "size_profile"];

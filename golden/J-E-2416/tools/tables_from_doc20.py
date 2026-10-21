@@ -1342,6 +1342,46 @@ def build_potentials():
     register("potentials", cols, rows, 18)
 
 
+# doc 08 section 4.2 gives the selectors of the colour profile rows (the profile shipped as the sample of the pilot
+# basic project): the voltage class of a row selects AC or DC and a voltage interval, the potential type a type.
+# Doc 20 section 7.1 prints both as labels, so the selector columns of colour_profile.csv are fixture choices:
+# voltage class -> (ac_dc, u_min, u_max) and potential type -> (ptype, analogue).
+PROFILE_VOLTAGE = {
+    "24 VDC": ("dc", "", "120"),
+    "230 VAC": ("ac", "50", "250"),
+    "400 VAC": ("ac", "250", "1000"),
+    "Analogue Signals": ("", "", ""),
+}
+PROFILE_PTYPE = {
+    "L+": ("l_plus", False),
+    "M": ("m", False),
+    "L": ("l", False),
+    "N": ("n", False),
+    "PE": ("pe", False),
+    "L1": ("l1", False),
+    "L2": ("l2", False),
+    "L3": ("l3", False),
+    "signal +": ("l_plus", True),
+    "signal \u2212": ("l_minus", True),
+    "signal, 24 V DC": ("signal", False),
+    "signal, 230 V AC": ("signal", False),
+}
+
+
+def profile_selector(voltage_class, potential_type):
+    """(ptype, ac_dc, u_min, u_max, analogue) of a colour row: a PE row selects by type only, an analogue row by
+    type and the analogue attribute, every other row by type, AC or DC and the voltage interval."""
+    check(voltage_class in PROFILE_VOLTAGE, f"section 7.1: unknown voltage class {voltage_class!r}")
+    check(potential_type in PROFILE_PTYPE, f"section 7.1: unknown potential type {potential_type!r}")
+    ptype, analogue = PROFILE_PTYPE[potential_type]
+    if ptype == "pe":
+        return ptype, "", "", "", ""
+    if analogue:
+        return ptype, "", "", "", "true"
+    ac_dc, u_min, u_max = PROFILE_VOLTAGE[voltage_class]
+    return ptype, ac_dc, u_min, u_max, ""
+
+
 def build_profiles():
     out = []
     n = 0
@@ -1355,6 +1395,7 @@ def build_profiles():
         code = re.sub(r"\s*\(\d+ rows\)", "", r["Code"])
         for f, p in zip(funcs, pts):
             n += 1
+            ptype, ac_dc, u_min, u_max, analogue = profile_selector(r["Voltage class"], p)
             out.append(
                 {
                     "key": str(n),
@@ -1363,9 +1404,26 @@ def build_profiles():
                     "potential_type": p,
                     "colour": r["Colour"],
                     "code": code,
+                    "ptype": ptype,
+                    "ac_dc": ac_dc,
+                    "u_min": u_min,
+                    "u_max": u_max,
+                    "analogue": analogue,
                 }
             )
-    register("colour_profile", ["key", "voltage_class", "function", "potential_type", "colour", "code"], out, 15)
+    cols = [
+        "key", "voltage_class", "function", "potential_type", "colour", "code", "ptype", "ac_dc", "u_min", "u_max",
+        "analogue",
+    ]  # fmt: skip
+    register("colour_profile", cols, out, 15)
+    fixture(
+        "colour_profile", ["ptype", "ac_dc", "u_min", "u_max", "analogue"], "all",
+        "(per row: the selector of the voltage class and the potential type)", "§7.1",
+        "doc 20 prints the voltage class and the potential type as labels; the selector of a row (the profile of doc 08 §4.2)"
+        " is 24 VDC = DC up to 120 V, 230 VAC = AC 50 to 250 V, 400 VAC = AC 250 to 1000 V; a PE row selects by type only,"
+        " an analogue row by type and the analogue attribute",
+        cell=DOC_LINES[find_line('### 7.1 Colour profile "DBU/WH 24 V"') + 2],
+    )  # fmt: skip
 
     def mm(c):
         return "" if c == "—" else dec(c.replace("mm²", "").strip())

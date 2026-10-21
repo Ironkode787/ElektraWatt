@@ -1,16 +1,16 @@
-key,voltage_class,function,potential_type,colour,code
-1,24 VDC,Positive,L+,Dark Blue,DBU
-2,24 VDC,Signal,"signal, 24 V DC",Dark Blue,DBU
-3,24 VDC,0V,M,White,WH
-4,230 VAC,Live,L,Black,BK
-5,230 VAC,Signal,"signal, 230 V AC",Black,BK
-6,230 VAC,Neutral,N,Blue,BU
-7,230 VAC,Earth,PE,Yellow / Green,GNYE
-8,400 VAC,Phase 1,L1,Black,BK
-9,400 VAC,Phase 2,L2,Black,BK
-10,400 VAC,Phase 3,L3,Black,BK
-11,400 VAC,Neutral,N,Blue,BU
-12,400 VAC,Earth,PE,Yellow / Green,GNYE
-13,Analogue Signals,Positive,signal +,Gray,GY
-14,Analogue Signals,Negative,signal −,White,WH
-15,Analogue Signals,Earth,PE,Yellow / Green,GNYE
+key,voltage_class,function,potential_type,colour,code,ptype,ac_dc,u_min,u_max,analogue
+1,24 VDC,Positive,L+,Dark Blue,DBU,l_plus,dc,,120,
+2,24 VDC,Signal,"signal, 24 V DC",Dark Blue,DBU,signal,dc,,120,
+3,24 VDC,0V,M,White,WH,m,dc,,120,
+4,230 VAC,Live,L,Black,BK,l,ac,50,250,
+5,230 VAC,Signal,"signal, 230 V AC",Black,BK,signal,ac,50,250,
+6,230 VAC,Neutral,N,Blue,BU,n,ac,50,250,
+7,230 VAC,Earth,PE,Yellow / Green,GNYE,pe,,,,
+8,400 VAC,Phase 1,L1,Black,BK,l1,ac,250,1000,
+9,400 VAC,Phase 2,L2,Black,BK,l2,ac,250,1000,
+10,400 VAC,Phase 3,L3,Black,BK,l3,ac,250,1000,
+11,400 VAC,Neutral,N,Blue,BU,n,ac,250,1000,
+12,400 VAC,Earth,PE,Yellow / Green,GNYE,pe,,,,
+13,Analogue Signals,Positive,signal +,Gray,GY,l_plus,,,,true
+14,Analogue Signals,Negative,signal −,White,WH,l_minus,,,,true
+15,Analogue Signals,Earth,PE,Yellow / Green,GNYE,pe,,,,

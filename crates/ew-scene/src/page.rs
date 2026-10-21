@@ -23,8 +23,8 @@
 //! | [`Layer::Symbols`] | `reps` | per representation (by ID): one [`Item::instance`] of `symbol_geometry(symbol, orient)` at `pos`, tagged with the representation and its [`Link::Target`]; then its static symbol texts |
 //! | [`Layer::Wires`] | `reps` (CP positions), `connections`, `junctions` | per connection (by ID): its polyline; then per junction (by ID): its dot or bevel symbol |
 //! | [`Layer::Labels`] | `reps`, `connections`, `wire_marker` | per representation (by ID): its visible slot texts (a [`Link::Source`] where the slot value names a destination); then per connection with a marker (by ID): the marker box and text |
-//! | [`Layer::Tables`] | `table` | [`crate::table::lower_table`]: the house report table of a generated page |
-//! | others | — | empty: embedded blocks, revision marks and highlights arrive with their work packages |
+//! | [`Layer::Tables`] | `table`, `embedded` | [`crate::table::lower_table`]: the house report table of a generated page; then per embedded block (by its rectangle): [`crate::embedded::lower_embedded`] (the cover's colour and standard-size tables) |
+//! | others | — | empty: revision marks and highlights arrive with their work packages |
 //!
 //! Panel-layout pages ([`PageKind::Panel`]) use [`Layer::PANEL`]; their surface, carrier, placement,
 //! feature and dimension layers are empty until the panel work package.
@@ -90,6 +90,7 @@ use ew_schema::{
 use ew_text::{DEFAULT_STYLE_KEY, FontSet, Shaped, TextStyle, builtin};
 use ew_units::{Angle2, Grid, Nm, Orient2, Pt2, Rect};
 
+use crate::embedded::{EmbeddedView, lower_embedded};
 use crate::forms::{
     BoxSpec, FormFinding, FrameGeometry, PageBindings, SheetMap, lower_form, ml_text, place, split_align,
 };
@@ -256,6 +257,8 @@ pub struct PageView {
     pub wire_marker: Option<SymbolRef>,
     /// The report table of a generated page (FT-53); `None` on every other page.
     pub table: Option<TableView>,
+    /// The embedded report blocks of a drawn page (FR-REP-028), drawn into the `tables` layer.
+    pub embedded: Vec<EmbeddedView>,
 }
 
 /// Something worth reporting while building a page.
@@ -550,18 +553,31 @@ impl Builder<'_> {
     }
 
     fn tables(&mut self, view: &PageView) {
-        let Some(table) = &view.table else { return };
         let sheet = view
             .frame
             .as_ref()
             .map_or(SheetMap::IDENTITY, |f| SheetMap::of(&f.form));
-        let lowered = lower_table(table, sheet, self.fonts);
-        for item in lowered.items {
-            self.push(item);
+        if let Some(table) = &view.table {
+            let lowered = lower_table(table, sheet, self.fonts);
+            for item in lowered.items {
+                self.push(item);
+            }
+            self.out
+                .findings
+                .extend(lowered.findings.into_iter().map(PageFinding::Table));
         }
-        self.out
-            .findings
-            .extend(lowered.findings.into_iter().map(PageFinding::Table));
+        // The embedded blocks in the order of their rectangles, whatever order the caller gives them in.
+        let mut embedded: Vec<&EmbeddedView> = view.embedded.iter().collect();
+        embedded.sort_by_key(|e| (e.rect.min().y, e.rect.min().x, e.rect.max().y, e.rect.max().x));
+        for e in embedded {
+            let lowered = lower_embedded(e, sheet, self.fonts);
+            for item in lowered.items {
+                self.push(item);
+            }
+            self.out
+                .findings
+                .extend(lowered.findings.into_iter().map(PageFinding::Table));
+        }
     }
 
     fn symbols(&mut self, view: &PageView) {

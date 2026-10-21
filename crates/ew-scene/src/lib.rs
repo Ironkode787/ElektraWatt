@@ -12,9 +12,13 @@
 //! WP-S3.02 adds [`forms`]: frame geometry from the frame grid, the page-to-sheet transform
 //! ([`forms::SheetMap`], FR-PAG-029), placeholder bindings and the lowering of frame and title-block forms
 //! to the `frame` layer ([`forms::lower_form`]), with text shaped by `ew-text`.
+//!
+//! [`embedded`] draws the embedded report blocks of a drawn page into the `tables` layer (the cover's colour
+//! and standard-size tables, FR-REP-028).
 
 #![forbid(unsafe_code)]
 
+pub mod embedded;
 pub mod forms;
 pub mod page;
 pub mod route;

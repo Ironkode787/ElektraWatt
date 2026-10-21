@@ -21,6 +21,7 @@ use crate::table::{Findings, Row};
 pub(crate) mod connect;
 pub(crate) mod devices;
 pub(crate) mod parts;
+pub(crate) mod profiles;
 pub(crate) mod project;
 
 /// One CP of a function: its index and what the endpoint notation matches on.

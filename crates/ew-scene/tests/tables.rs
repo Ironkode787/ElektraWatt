@@ -42,6 +42,7 @@ fn view(table: Option<TableView>) -> PageView {
         junctions: Vec::new(),
         wire_marker: None,
         table,
+        embedded: Vec::new(),
     }
 }
 

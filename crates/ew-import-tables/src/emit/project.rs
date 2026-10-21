@@ -521,7 +521,12 @@ fn numbering(r: &mut Rd<'_>) -> Option<serde_json::Value> {
 }
 
 /// `project.csv` (first row) and `parties.csv` → the `project` record, pushed into the records.
-pub(crate) fn emit_project(cx: &mut Cx<'_>, table: Option<&Table>, parties: Option<&Table>) -> Option<()> {
+pub(crate) fn emit_project(
+    cx: &mut Cx<'_>,
+    table: Option<&Table>,
+    parties: Option<&Table>,
+    profiles: Vec<(String, serde_json::Value)>,
+) -> Option<()> {
     let table = table?;
     let mut rows = table.rows();
     let row = rows.next()?;
@@ -611,8 +616,10 @@ pub(crate) fn emit_project(cx: &mut Cx<'_>, table: Option<&Table>, parties: Opti
             extra: Default::default(),
         },
         extra: numbering(&mut r)
-            .map(|n| ew_schema::Extra::from([("numbering".to_owned(), n)]))
-            .unwrap_or_default(),
+            .map(|n| ("numbering".to_owned(), n))
+            .into_iter()
+            .chain(profiles)
+            .collect(),
     };
     let derivation_profile = r.req_ident("derivation_profile");
     if let Err(e) = r.finish() {

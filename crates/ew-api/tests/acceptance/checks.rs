@@ -805,18 +805,42 @@ fn ac11_cables(c: &Ctx) -> Outcome {
     }
 }
 
+/// Folio 1's colour and size tables are generated from the profiles of the project settings: every text the
+/// profiles give for the cover (the voltage class, function, potential type and colour name of each colour
+/// row, the size of each size row and the basis text) is printed outside the frame layer.
 fn ac12_tables(c: &Ctx) -> Outcome {
-    let csv = &c.text["1"];
-    let table_texts = runs(csv)
+    let printed: BTreeSet<String> = runs(&c.text["1"])
         .into_iter()
         .filter(|(layer, _, _)| layer != "frame")
-        .count();
-    if table_texts > 0 {
-        pass(format!("folio 1 prints {table_texts} texts outside the frame"))
+        .map(|(_, text, _)| text)
+        .collect();
+    let (colour, size) = golden_common::profiles_json();
+    let en = |v: &serde_json::Value| v["en"].as_str().unwrap_or_default().to_owned();
+    let mut want: Vec<String> = Vec::new();
+    let rows = colour["rows"].as_array().map_or(&[][..], Vec::as_slice);
+    for row in rows {
+        for key in ["group", "function", "potential_type", "colour_name"] {
+            want.push(en(&row[key]));
+        }
+    }
+    let sizes = size["rows"].as_array().map_or(&[][..], Vec::as_slice);
+    for row in sizes {
+        want.push(format!("{} mm²", row["csa"].as_str().unwrap_or_default()));
+    }
+    want.push(format!("Basis: {}", en(&colour["basis_note"])));
+    want.sort();
+    want.dedup();
+    let missing: Vec<String> = want.iter().filter(|w| !printed.contains(*w)).cloned().collect();
+    if printed.is_empty() {
+        fail("folio 1 prints only its frame and title block: the cover tables are not drawn")
+    } else if missing.is_empty() {
+        pass(format!(
+            "folio 1 prints the {} colour rows, the {} size tables and the basis text of the profiles",
+            rows.len(),
+            sizes.len()
+        ))
     } else {
-        fail(
-            "folio 1 prints only its frame and title block: the cover tables are not drawn (README, \"Folio 1\")",
-        )
+        fail(format!("folio 1 does not print {}", list(missing, 4)))
     }
 }
 
@@ -1355,8 +1379,23 @@ fn defects(r: &mut Runner) {
     r.entry("D-36", "assembly rows A1 and A2, order code on folio 3", |_| {
         not_built("the assembly BOM mode and `ew export bom` do not exist yet (FR-REP-005)")
     });
-    r.entry("D-37", "profiles name their basis; the cover prints it", |_| {
-        not_built("the bootstrap does not emit the colour and size profiles (decision log ID-90) and the cover is not drawn")
+    r.entry("D-37", "profiles name their basis; the cover prints it", |c| {
+        let (colour, _) = golden_common::profiles_json();
+        let basis = colour["basis"].as_str().unwrap_or_default();
+        let note = colour["basis_note"]["en"].as_str().unwrap_or_default();
+        let want = format!("Basis: {note}");
+        if basis.is_empty() || note.is_empty() {
+            fail("the colour profile names no basis")
+        } else if runs(&c.text["1"])
+            .iter()
+            .any(|(layer, t, _)| layer != "frame" && *t == want)
+        {
+            pass(format!(
+                "the colour profile's basis is {basis} and the cover prints \"{note}\""
+            ))
+        } else {
+            fail(format!("the cover does not print \"{want}\""))
+        }
     });
     r.entry("D-41", "one assembly -201U1 with children on both pages, break marks", |_| {
         not_built("the assembly aspect and the generated overview break marks are not implemented (schema v0 keeps the assembly in `extra`)")

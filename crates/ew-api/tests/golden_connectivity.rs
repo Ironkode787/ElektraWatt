@@ -828,7 +828,7 @@ fn every_connection_has_an_effective_size_and_colour() {
     assert_eq!(count_where(&levels, |l| l.1 == 0), 0);
 
     // Without profiles and without a default: overrides and cores as before, the rest is built in (level 0).
-    let without = session(&batch);
+    let without = golden_common::session_without_profiles(&batch);
     let mut q = check_all_connections(&without, &batch);
     let notes = q.diagnostics().notes();
     for member in ["colour_profile", "size_profile"] {
@@ -852,6 +852,8 @@ fn every_connection_has_an_effective_size_and_colour() {
 
     // With a project default and no profiles the same wires take level 1.
     let defaulted = session_with(&batch, |p, _| {
+        p.settings.extra.remove("colour_profile");
+        p.settings.extra.remove("size_profile");
         p.settings.extra.insert(
             "wire_default".into(),
             serde_json::json!({"csa": "1", "colour": ["GY"]}),

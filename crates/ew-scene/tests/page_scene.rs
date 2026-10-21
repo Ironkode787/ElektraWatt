@@ -156,6 +156,7 @@ fn view() -> PageView {
         }],
         wire_marker: Some(symbol(MARKER)),
         table: None,
+        embedded: Vec::new(),
     }
 }
 
@@ -576,6 +577,7 @@ fn bare(reps: Vec<RepView>, connections: Vec<ConnectionView>) -> PageView {
         junctions: Vec::new(),
         wire_marker: None,
         table: None,
+        embedded: Vec::new(),
     }
 }
 
