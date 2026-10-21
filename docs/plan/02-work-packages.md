@@ -1,6 +1,6 @@
 # Work breakdown structure
 
-**Status:** Draft v0.7 · **Date:** 2026-10-21 (v0.7: the cycle-13 statuses, wire numbering, the SQL projection v0, the PLC record kinds and the DP bus potential, FT-212 to FT-231, FT-100, FT-105, FT-111 and FT-201 closed, FT-80 partly; v0.6: the cycle-12 statuses, Golden C, the check engine, the M1 report and page gaps, FT-164 to FT-211, FT-15, FT-62, FT-65, FT-110 and FT-159 to FT-162 closed; v0.5: the cycle-11 statuses, the QET project import spike, the acceptance runner, Golden B, the symbol rulings, FT-127 to FT-163; v0.4: the cycle-10 statuses, WP-S1.07 part 2 delivered, FT-84, FT-86 and FT-109 closed, FT-117 to FT-126; v0.3: the cycle-9 statuses, WP-S1.07 in two parts, FT-100 to FT-116; v0.2: the estimates of WP-S1.05, WP-S1.07 and WP-S1.08 after G-SP, the cycle-8 statuses and FT-86 to FT-99) · **Part of:** ElektraWatt plan
+**Status:** Draft v0.7 · **Date:** 2026-10-21 (v0.7: the cycle-13 statuses, wire numbering, the SQL projection v0, the PLC record kinds and the DP bus potential, FT-212 to FT-232, FT-100, FT-105, FT-111 and FT-201 closed, FT-80 partly; v0.6: the cycle-12 statuses, Golden C, the check engine, the M1 report and page gaps, FT-164 to FT-211, FT-15, FT-62, FT-65, FT-110 and FT-159 to FT-162 closed; v0.5: the cycle-11 statuses, the QET project import spike, the acceptance runner, Golden B, the symbol rulings, FT-127 to FT-163; v0.4: the cycle-10 statuses, WP-S1.07 part 2 delivered, FT-84, FT-86 and FT-109 closed, FT-117 to FT-126; v0.3: the cycle-9 statuses, WP-S1.07 in two parts, FT-100 to FT-116; v0.2: the estimates of WP-S1.05, WP-S1.07 and WP-S1.08 after G-SP, the cycle-8 statuses and FT-86 to FT-99) · **Part of:** ElektraWatt plan
 
 **Purpose.** This document breaks the full v1 scope of ElektraWatt (EW) into 123 work packages (WPs) in eight
 streams. For every WP it states the objective, scope, deliverables, dependencies, the requirements it delivers,
@@ -3071,6 +3071,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-229 | Orphan-channel check: a channel whose module does not exist or carries no `plc_module` aspect is reported (integrity finding with a delete quick fix) instead of being kept silently | WP-S1.16; WP-S1.21 | With FT-226 | ID-333, ID-334 |
 | FT-230 | Mixed-build test of ID-334: a project in which an older 0.1 build deleted a module (channels kept verbatim, module gone) opens in the current build, anchors the channels by the anchor fallback (ID-205) and reports them through FT-229 | WP-S1.09 | With FT-229 | ID-334 |
 | FT-231 | Row links of the TOC and the parts list drawn in the page scene and the PDF, as the `plc_overview` rows are since cycle 13 (`ew-scene` table rows draw a row's link); then the golden PDF's annotation count is re-blessed | WP-S3.04 | With the next golden PDF change | ID-333 |
+| FT-232 | Row-level golden of folio 908: `expected/rows/908.csv` with the 56 `plc_overview` rows, generated from doc 20 §11.3 and compared by the runner like the other connectivity folios (ID-232 unchanged) | WP-S3.03; WP-S7.01 | Before AC-29 (G-M2) | ID-333 |
 
 ---
 

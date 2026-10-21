@@ -84,7 +84,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    imported audits" is not used while the public-repository rule stands, because `imports.lock` would record other
    organisations' auditor names and e-mail addresses: every crate needs the project's own audit or a frozen
    exemption. The cost is more review time per dependency bump. Revisit when a steward exists.
-4. **How exemptions are added** (2026-10-21, lead designer; decision log ID-332;
+4. **How exemptions are added** (2026-10-21, project owner (delegated); decision log ID-332;
    [18](../design/18-quality-security-release.md) §11). Decision 1's "frozen at the first commit" is not how the
    list works, and is replaced: the work package that adds or updates a crate adds one `[[exemptions.<crate>]]`
    entry per crate and exact version to `supply-chain/config.toml`, with the criteria its use needs
@@ -92,7 +92,9 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    whose message lists the exempted crates; the review of that commit checks the list, and `cargo vet` in CI fails
    for any crate with neither an audit nor an exemption. The list is burned down by the project's own audits in
    `supply-chain/audits.toml` (amendment 3), never by imported audit sets; an exemption is never widened to a new
-   version without a new reviewed entry. Example: the cycle-13 rusqlite commit exempted cc, fallible-iterator,
+   version without a new reviewed entry. Every exemption is audited or replaced before the first signed release,
+   and until then a work package adds exemptions only for the crates it introduces (project owner (delegated),
+   2026-10-21). Example: the cycle-13 rusqlite commit exempted cc, fallible-iterator,
    fallible-streaming-iterator, find-msvc-tools, libsqlite3-sys, pkg-config, rusqlite, shlex and vcpkg. Trade-off:
    no audit debt blocks a work package, but the debt is visible and grows with each dependency until audits catch up.
 

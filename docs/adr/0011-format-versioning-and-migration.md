@@ -98,8 +98,10 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    A build from before the change keeps such records verbatim (a reserved kind is not EW-CORE-016, decision log
    ID-206) and their unknown members in `extra`, so no data is lost; it does not enforce the delete links of the
    newly typed kind, so an older build that deletes a module leaves that module's channels dangling, which the newer
-   build reports (FT-229, FT-230). Once a format is released, the minor-version rules of decision 1 and amendment 1
-   apply unchanged. First use: the PLC kinds `plc_config_project`, `channel` and `device_link`, the aspects
+   build reports (FT-229, FT-230). Once a format is released, typing a reserved kind that adds cascade links, or any
+   other semantics an older reader must apply to keep the file consistent, is a minor bump that raises
+   `min_reader`, so an older build no longer writes such a file; typing without such semantics stays additive under
+   decision 1 and amendment 1. First use: the PLC kinds `plc_config_project`, `channel` and `device_link`, the aspects
    `plc_station` and `plc_module` and the part section `plc` in format 0.1 (cycle 13, decision log ID-333); the
    precedent is the optional `TextSlot.style` member (decision log ID-197).
 

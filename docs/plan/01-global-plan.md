@@ -458,7 +458,7 @@ estimates in pw stay the measure of size and of the velocity ratio of §3.7.
 **Observed throughput.** Cycles 1 to 13 (2026-10-18 to 2026-10-21) delivered the two technical M0 work packages
 and 17 of the 22 M1 work packages in whole or in large part, about 28 deliveries when a work package delivered in
 parts (WP-S1.05, WP-S1.07, WP-S3.03, WP-S3.05, WP-S6.01, WP-S7.01) counts each part, plus the QET project import
-spike pulled forward from M3, Golden C's migration report and the first `ew-checks` rule packs (WP-S1.15 and WP-S1.16a scope) in cycle 12, and the SQL projection v0 (WP-S1.10), wire numbering and the golden PLC and bus records (WP-S1.21 in part) in cycle 13: roughly **2–3 work packages per cycle**, plus the follow-up tasks of each review (231 recorded, 50 closed; Appendix B of the
+spike pulled forward from M3, Golden C's migration report and the first `ew-checks` rule packs (WP-S1.15 and WP-S1.16a scope) in cycle 12, and the SQL projection v0 (WP-S1.10), wire numbering and the golden PLC and bus records (WP-S1.21 in part) in cycle 13: roughly **2–3 work packages per cycle**, plus the follow-up tasks of each review (232 recorded, 50 closed; Appendix B of the
 [work breakdown](02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles)). Owner-side items
 (legal gates, enrolments, pilot answers, approvals of goldens and downloads) do not follow the cycle pace; they are
 listed separately because they, not the agents' throughput, bound the gates.
