@@ -45,7 +45,10 @@
 //!   device's function text, or an interruption point's pairing name; `process_tag` → the device's process tag;
 //!   `xref` → `xref_text(rep)` with one link per listed item; `tech_data` → `tech_data_text(device)`;
 //!   `manufacturer`, `part_number` and `type_designation` → the device's main part (its first part use, FT-162);
-//!   every other kind has no value. An empty text is not listed.
+//!   `order_code` → `order_code_text(device)` (the order code of its first assembly config, D-36); every other kind
+//!   has no value. An empty text is not listed.
+//! - **Break marks** (D-41, doc 11 §5.5 step 5): the `assembly_break_marks()` of a drawn page ([`page_break_marks`]),
+//!   drawn by the scene at the side of their representation.
 //! - **Wire markers** (ID-144, provisional): connections with `overrides.show_marker` print the explicit
 //!   cross-section and the colour codes (their file spelling), joined by a space.
 //! - **Junction and wire-marker symbols**: the built-in generic symbols `ew.gen.junction-dot@qet10`,
@@ -65,7 +68,7 @@ use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_units::Grid;
 use ew_derive::{
     DisplayedTag, FunctionCps, GeneratedPage, PageOrder, PageRef, Policy, Q, Query, TbValue,
-    TitleBlockValues, XrefTextOf, main_part, manufacturer_name, tech_data_text,
+    TitleBlockValues, XrefTextOf, main_part, manufacturer_name, order_code_text, tech_data_text,
 };
 use ew_dl::Destination;
 use ew_reports::render::{RenderOptions, render};
@@ -73,8 +76,8 @@ use ew_reports::{BlockRows, LinkTarget, Row, RowKind};
 use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedView};
 use ew_scene::forms::{AssetRef, BoundValue, PageBindings};
 use ew_scene::page::{
-    ConnectionView, CpTarget, FrameView, ItemLink, JunctionView, RepView, SegmentTerminal, SlotValue,
-    SymbolRef,
+    BreakMarkView, BreakSide, ConnectionView, CpTarget, FrameView, ItemLink, JunctionView, RepView,
+    SegmentTerminal, SlotValue, SymbolRef,
 };
 use ew_scene::table::{TableColumn, TableRow, TableRowKind, TableView};
 use ew_schema::{
@@ -441,6 +444,22 @@ impl Query for CpTargetsByPage {
     }
 }
 
+/// The break marks of the assembly overviews on a drawn page (`assembly_break_marks()`, D-41), in the derived
+/// order. A plain function of the tracked reads of `q`: the symbols layer that calls it depends on the marks.
+pub fn page_break_marks(q: &Q, page: Id<Page>) -> Vec<BreakMarkView> {
+    q.get::<ew_derive::AssemblyBreakMarks>(())
+        .iter()
+        .filter(|m| m.page == page)
+        .map(|m| BreakMarkView {
+            rep: m.rep,
+            side: match m.side {
+                ew_derive::BreakSide::Left => BreakSide::Left,
+                ew_derive::BreakSide::Right => BreakSide::Right,
+            },
+        })
+        .collect()
+}
+
 /// `page_cp_targets(page)`: the CPs of a drawn page that a report row links to, with the representation that
 /// draws each one's function there (the named destinations `ew:cp:<uuid>` of doc 09 §4.2): the page's part of
 /// [`CpTargetsByPage`], its own memo, so a row change that keeps a page's targets is cut off here.
@@ -591,6 +610,7 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
             SlotKind::PartNumber => device
                 .and_then(|d| main_part(q, d))
                 .map(|p| p.item.part_number.as_str().to_owned()),
+            SlotKind::OrderCode => device.map(|d| order_code_text(q, d)),
             SlotKind::TypeDesignation => device
                 .and_then(|d| main_part(q, d))
                 .and_then(|p| p.item.type_designation.as_ref().map(|t| t.as_str().to_owned())),

@@ -42,6 +42,7 @@ use crate::{Mismatch, Session};
 /// The families the sweep reads: the `Memo` and `MemoLru` families of `ew_derive::FAMILIES`,
 /// `ew_reports::FAMILIES` and `ew_api::output::FAMILIES`, sorted.
 pub const SWEPT: &[&str] = &[
+    "assembly_break_marks",
     "bom_rows",
     "bond_index",
     "bond_paths",
@@ -221,6 +222,7 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     );
     check::<TagClassMembers>(memo, cold, [()], o);
     check::<BomRows>(memo, cold, [BomMode::Component, BomMode::Assembly], o);
+    check::<ew_derive::AssemblyBreakMarks>(memo, cold, [()], o);
     check::<BondIndex>(memo, cold, [()], o);
     check::<BondPathsQ>(memo, cold, [()], o);
     check::<BondVias>(memo, cold, [()], o);

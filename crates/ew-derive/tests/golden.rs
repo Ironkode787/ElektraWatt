@@ -44,8 +44,8 @@ use std::collections::BTreeMap;
 
 use common::{Fx, id};
 use ew_derive::{
-    BomMode, BomRow, BomRows, DeviceTag, DisplayedTag, PageOrder, PageRef, Q, RepAnchorCell, TbValue,
-    TitleBlockValues, TocRow, TocRows,
+    AssemblyBreakMarks, BomMode, BomRow, BomRows, BreakSide, DeviceTag, DisplayedTag, PageOrder, PageRef, Q,
+    RepAnchorCell, TbValue, TitleBlockValues, TocRow, TocRows,
 };
 use ew_mltext::MlText;
 use ew_schema::{Date, OrderUnit};
@@ -686,8 +686,8 @@ fn bom_assembly_rows_replace_the_covered_rows() {
     let component = rows_of(&q, BomMode::Component);
     let assembly = rows_of(&q, BomMode::Assembly);
 
-    // Rows 1 to 15 stay (same order, positions and quantities); rows 16 to 21 are gone: -201U1 heads the
-    // assembly, and -201U2 ... -201U9, -202U1 and the valves are its descendants.
+    // Rows 1 to 15 stay (same order, positions and quantities); rows 16 to 21 are gone: -201U1's assembly
+    // aspect covers its own parts (order code 1) and -201U2 ... -201U9, -202U1 and the valves (order code 2).
     assert_eq!(assembly.len(), 15 + 2);
     for (a, c) in assembly.iter().zip(component.iter().take(15)) {
         assert_eq!((&a.part_number, a.pos, a.qty), (&c.part_number, c.pos, c.qty));
@@ -704,9 +704,67 @@ fn bom_assembly_rows_replace_the_covered_rows() {
         assert_eq!(r.pages, [PageRef::Drawn(id(PAGE_201))]);
     }
     // Doc 20 §14.2: the CPX order code is A1 and the MPA order code is A2. Both rows sit at the head's cell,
-    // so the head's part order (CPX before MPA) decides, not the part numbers (32P-... sorts first).
+    // so the config order (CPX before MPA) decides, not the part numbers (32P-... sorts first).
     let codes: Vec<&str> = configured.iter().map(|r| r.part_number.as_str()).collect();
     assert_eq!(codes, [CODE_CPX, CODE_MPA]);
+}
+
+/// The fixture with the overview representations of -201U1's members (the head, -201U2 … -201U9 on 201,
+/// -202U1 on 202) typed `overview`, as the golden tables draw them.
+fn overview_fixture() -> Fx {
+    let mut fx = golden();
+    let members: Vec<u128> = (1..=9).map(dev_201u).chain([DEV_202U1]).collect();
+    for dev in members {
+        fx.record(rep_of(dev))["rep_type"] = serde_json::json!("overview");
+    }
+    fx
+}
+
+fn break_marks(fx: &Fx) -> Vec<(u128, u128, BreakSide, u128)> {
+    let m = fx.build();
+    let q = Q::new(&m);
+    let marks = q.get::<AssemblyBreakMarks>(());
+    marks
+        .iter()
+        .map(|b| {
+            (
+                b.page.as_uuid().as_u128(),
+                b.rep.as_uuid().as_u128(),
+                b.side,
+                b.assembly.as_uuid().as_u128(),
+            )
+        })
+        .collect()
+}
+
+#[test]
+fn the_assembly_overview_breaks_where_it_continues_on_another_page() {
+    // D-41, doc 11 §5.5 step 5: right after -201U9 (the last member on 201), left before -202U1 (202).
+    let mut want = vec![
+        (PAGE_201, rep_of(dev_201u(9)), BreakSide::Right, dev_201u(1)),
+        (PAGE_202, rep_of(DEV_202U1), BreakSide::Left, dev_201u(1)),
+    ];
+    want.sort();
+    let mut got = break_marks(&overview_fixture());
+    got.sort();
+    assert_eq!(got, want);
+}
+
+#[test]
+fn an_overview_on_one_page_or_without_an_assembly_has_no_break_marks() {
+    // Not drawn as an overview: no segment, no mark.
+    assert!(break_marks(&golden()).is_empty());
+    // One page: -202U1 moved to 201.
+    let mut fx = overview_fixture();
+    fx.record(rep_of(DEV_202U1))["page"] = serde_json::json!(common::uid(PAGE_201));
+    assert!(break_marks(&fx).is_empty());
+    // No assembly aspect: no assembly overview.
+    let mut fx = overview_fixture();
+    fx.record(dev_201u(1))
+        .as_object_mut()
+        .expect("an object")
+        .remove("assembly");
+    assert!(break_marks(&fx).is_empty());
 }
 
 // ---------------------------------------------------------------------------------------------------------

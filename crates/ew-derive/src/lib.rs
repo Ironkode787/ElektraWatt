@@ -46,6 +46,7 @@
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
+mod assembly;
 mod bom;
 mod cell;
 mod component;
@@ -84,6 +85,7 @@ mod wires;
 mod xref;
 mod xref_format;
 
+pub use assembly::{AssemblyBreakMarks, BreakMark, BreakSide, order_code_text};
 pub use bom::{BomMode, BomRow, BomRowKey, BomRows, DevicePartLines, LineSource, PartLine};
 pub use cell::{
     Cell, CellOf, FrameGridOf, FrameSettings, FrameSettingsValue, FrameTypeEntry, RepAnchorCell,
@@ -186,6 +188,7 @@ pub use ew_rds;
 
 /// Every query family of this crate with its initial policy (ARCH §6.4), in name order.
 pub const FAMILIES: &[(&str, Policy)] = &[
+    (AssemblyBreakMarks::FAMILY, AssemblyBreakMarks::POLICY),
     (BomRows::FAMILY, BomRows::POLICY),
     (BondIndex::FAMILY, BondIndex::POLICY),
     (BondPathsQ::FAMILY, BondPathsQ::POLICY),

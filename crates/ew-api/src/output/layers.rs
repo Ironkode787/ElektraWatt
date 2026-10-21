@@ -8,7 +8,7 @@
 //! | Family | Layer | Reads |
 //! |---|---|---|
 //! | [`FrameLayer`] | [`Layer::Frame`] | `page_frame`, `page_bindings` (`title_block(page)`, the date format) |
-//! | [`SymbolsLayer`] | [`Layer::Symbols`] | `page_reps`, `page_cp_targets` |
+//! | [`SymbolsLayer`] | [`Layer::Symbols`] | `page_reps`, `page_cp_targets`, `assembly_break_marks`, `page_grid` (the pen of the break marks) |
 //! | [`WiresLayer`] | [`Layer::Wires`] | `page_reps`, `page_connections`, `page_junctions`, `page_grid`, `page_frame` (the page rectangle) |
 //! | [`LabelsLayer`] | [`Layer::Labels`] | `page_reps`, `page_slots`, `page_connections`, `page_junctions`, `page_frame` |
 //! | [`TablesLayer`] | [`Layer::Tables`] | `page_frame` (the sheet map), `page_table` or `page_embedded` |
@@ -33,7 +33,7 @@ use ew_schema::PageType;
 
 use super::view::{
     PageBindingsOf, PageConnectionsOf, PageCpTargetsOf, PageEmbeddedOf, PageFrameOf, PageJunctionsOf,
-    PageRepsOf, PageSlotsOf, PageTableOf, generic_symbols, page_grid, page_uuid,
+    PageRepsOf, PageSlotsOf, PageTableOf, generic_symbols, page_break_marks, page_grid, page_uuid,
 };
 
 /// One layer of one page: the display list in page coordinates, the symbol geometry its instances name and the
@@ -62,6 +62,7 @@ fn base_view(page: PageRef) -> PageView {
         wire_marker: None,
         table: None,
         embedded: Vec::new(),
+        break_marks: Vec::new(),
         cp_targets: Vec::new(),
     }
 }
@@ -107,6 +108,9 @@ fn layer_view(q: &Q, page: PageRef, layer: Layer) -> Option<PageView> {
             let p = drawn?;
             v.reps = (*q.get::<PageRepsOf>(p)).clone();
             v.cp_targets = (*q.get::<PageCpTargetsOf>(p)).clone();
+            v.break_marks = page_break_marks(q, p);
+            // The break marks are stroked with the page's wire pen.
+            v.grid = page_grid(q, page);
         }
         Layer::Wires => {
             let p = drawn?;
@@ -276,6 +280,7 @@ pub fn page_view(q: &Q, entry: &PageEntry) -> PageView {
             v.connections = (*q.get::<PageConnectionsOf>(p)).clone();
             v.junctions = (*q.get::<PageJunctionsOf>(p)).clone();
             v.cp_targets = (*q.get::<PageCpTargetsOf>(p)).clone();
+            v.break_marks = page_break_marks(q, p);
             v.embedded = (*q.get::<PageEmbeddedOf>(p)).clone();
         }
         _ => v.table = (*q.get::<PageTableOf>(page)).clone(),

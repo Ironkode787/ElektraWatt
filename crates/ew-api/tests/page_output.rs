@@ -628,6 +628,7 @@ fn hostile_view() -> PageView {
         wire_marker: None,
         table: None,
         embedded: Vec::new(),
+        break_marks: Vec::new(),
         cp_targets: Vec::new(),
     }
 }

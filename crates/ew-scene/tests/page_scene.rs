@@ -157,6 +157,7 @@ fn view() -> PageView {
         wire_marker: Some(symbol(MARKER)),
         table: None,
         embedded: Vec::new(),
+        break_marks: Vec::new(),
         cp_targets: Vec::new(),
     }
 }
@@ -579,6 +580,7 @@ fn bare(reps: Vec<RepView>, connections: Vec<ConnectionView>) -> PageView {
         wire_marker: None,
         table: None,
         embedded: Vec::new(),
+        break_marks: Vec::new(),
         cp_targets: Vec::new(),
     }
 }
@@ -751,4 +753,45 @@ fn cp_targets_are_named_destinations_at_the_cp_else_at_the_representation() {
     assert_eq!(at(0).len(), 1);
     assert_ne!(at(0), vec![p(40, 40)]);
     assert_eq!(at(9), vec![p(40, 40)]);
+}
+
+#[test]
+fn break_marks_close_the_overview_at_the_symbol_bounds() {
+    use ew_scene::page::{BREAK_GAP, BreakMarkView, BreakSide};
+    let t = symbol(TERMINAL);
+    let reps = vec![RepView {
+        rep: rep(0x42, 0xF1, t.id, 40, 40, "r0"),
+        symbol: Some(t.def.clone()),
+        slots: Vec::new(),
+        terminals: Vec::new(),
+    }];
+    let mut v = bare(reps, Vec::new());
+    let mark = |side| BreakMarkView {
+        rep: Id::from_uuid(Uuid::from_u128(0x42)),
+        side,
+    };
+    // A mark of a representation that is not on the page draws nothing; a repeated mark draws once.
+    v.break_marks = vec![
+        mark(BreakSide::Right),
+        mark(BreakSide::Left),
+        mark(BreakSide::Right),
+        BreakMarkView {
+            rep: Id::from_uuid(Uuid::from_u128(0x99)),
+            side: BreakSide::Left,
+        },
+    ];
+    let lines = polylines(&page_display_list(&v, Layer::Symbols, bundled()).list);
+    assert_eq!(lines.len(), 2, "one path per side");
+    let bounds = ew_scene::symbol::lower(&t.def, ew_units::Orient2::R0).bounds;
+    let pos = p(40, 40);
+    for (uuid, pts) in &lines {
+        assert_eq!(uuid.as_u128(), 0x42, "tagged with the representation");
+        assert_eq!(pts.len(), 6, "a vertical stroke with a zig-zag");
+        assert_eq!(pts[0].x, pts[5].x);
+        assert_eq!(pts[0].y, pos.y + bounds.min().y - BREAK_GAP);
+        assert_eq!(pts[5].y, pos.y + bounds.max().y + BREAK_GAP);
+    }
+    // Left mark first (BreakSide order), left of the bounds; then the right one, right of them.
+    assert_eq!(lines[0].1[0].x, pos.x + bounds.min().x - BREAK_GAP);
+    assert_eq!(lines[1].1[0].x, pos.x + bounds.max().x + BREAK_GAP);
 }

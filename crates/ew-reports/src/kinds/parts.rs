@@ -15,7 +15,10 @@ use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, QtyUnit, Row
 
 /// The summarised parts list (EPLAN `.f02`).
 ///
-/// Component mode by default; assembly mode when the block's `params.mode` is `"assembly"`.
+/// Component mode by default; assembly mode when the block's `params.mode` is `"assembly"`. Both modes
+/// print one "Part number" column (a configured product's order code prints there; ID-356); assembly mode
+/// appends the "Covers" column (doc 20 §14.2): the devices whose part lines a configured product replaces,
+/// as a compressed tag list, empty on the component rows.
 #[derive(Clone, Copy, Debug)]
 pub struct PartsSummary;
 
@@ -63,7 +66,11 @@ impl PartsSummary {
             BomMode::Component => "component",
             BomMode::Assembly => "assembly",
         };
-        let mut set = RowSet::new(self.columns());
+        let mut columns = self.columns();
+        if mode == BomMode::Assembly {
+            columns.push(ColumnDef::new("covers", CellType::Range, "Covers").weighted(19));
+        }
+        let mut set = RowSet::new(columns);
         for row in q.get::<BomRows>(mode).iter() {
             let pos = if row.configured {
                 format!("A{}", row.pos)
@@ -81,19 +88,30 @@ impl PartsSummary {
                 ),
                 RowKey::Name(mode_name.to_owned()),
             ]);
-            let mut r = Row::data(
-                id,
-                vec![
-                    Cell::Ident(pos),
-                    qty_cell(row.qty),
-                    Cell::Ident(unit_symbol(&row.unit)),
-                    Cell::Ident(manufacturer_text(&row.manufacturer)),
-                    part_number_cell(&row.part_number),
-                    Cell::Text(row.description.clone()),
-                    Cell::Range(row.devices.clone()),
-                    Cell::Folios(row.pages.clone()),
-                ],
-            );
+            // A configured row of a part that is also a component row of the same list keeps its own ID.
+            let id = if row.configured {
+                id.with(RowKey::Name("configured".to_owned()))
+            } else {
+                id
+            };
+            let mut cells = vec![
+                Cell::Ident(pos),
+                qty_cell(row.qty),
+                Cell::Ident(unit_symbol(&row.unit)),
+                Cell::Ident(manufacturer_text(&row.manufacturer)),
+                part_number_cell(&row.part_number),
+                Cell::Text(row.description.clone()),
+                Cell::Range(row.devices.clone()),
+                Cell::Folios(row.pages.clone()),
+            ];
+            if mode == BomMode::Assembly {
+                cells.push(if row.covers.is_empty() {
+                    Cell::Empty
+                } else {
+                    Cell::Range(row.covers.clone())
+                });
+            }
+            let mut r = Row::data(id, cells);
             r.sources = row.devices.iter().map(|d| d.cast()).collect();
             if let Some(d) = row.devices.first() {
                 r.links = vec![LinkRef {

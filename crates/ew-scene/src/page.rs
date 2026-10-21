@@ -20,7 +20,7 @@
 //! | Layer | Reads | Items, in order |
 //! |---|---|---|
 //! | [`Layer::Frame`] | `frame` | [`crate::forms::lower_form`]: frame, grid labels, form graphics and cells, title block |
-//! | [`Layer::Symbols`] | `reps` | per representation (by ID): one [`Item::instance`] of `symbol_geometry(symbol, orient)` at `pos`, tagged with the representation and its [`Link::Target`]; then its static symbol texts |
+//! | [`Layer::Symbols`] | `reps`, `break_marks` | per representation (by ID): one [`Item::instance`] of `symbol_geometry(symbol, orient)` at `pos`, tagged with the representation and its [`Link::Target`]; then its static symbol texts; then per break mark (by representation and side): its path |
 //! | [`Layer::Wires`] | `reps` (CP positions), `connections`, `junctions` | per connection (by ID): its polyline; then per junction (by ID): its dot or bevel symbol |
 //! | [`Layer::Labels`] | `reps`, `connections`, `wire_marker` | per representation (by ID): its visible slot texts (a [`Link::Source`] where the slot value names a destination); then per connection with a marker (by ID): the marker box and text |
 //! | [`Layer::Tables`] | `table`, `embedded` | [`crate::table::lower_table`]: the house report table of a generated page; then per embedded block (by its rectangle): [`crate::embedded::lower_embedded`] (the cover's colour and standard-size tables) |
@@ -55,6 +55,12 @@
 //! - **Strokes.** Wires are solid black in [`wire_stroke`] of the page's grid: on the QET 10 px grid the 1.0
 //!   QET px pen [`QET_PEN_1PX`] (printed 0.261 mm through the QET frame's sheet map, like the frame and the
 //!   `@qet10` symbols), else the 0.26 mm house pen (doc 20 §17.4).
+//! - **Break marks** (doc 11 §5.5 step 5, FR-DEV-023, D-41). A [`BreakMarkView`] closes an assembly
+//!   overview segment at one side of a representation's symbol bounds `b` (in its orientation): at
+//!   `x = pos.x + b.max.x + BREAK_GAP` for the right side, `pos.x + b.min.x − BREAK_GAP` for the left, a vertical
+//!   stroke from `b.min.y − BREAK_GAP` to `b.max.y + BREAK_GAP` (relative to `pos.y`) with a zig-zag of
+//!   amplitude [`BREAK_ZIGZAG`] at its middle, in the page's [`wire_stroke`], tagged with the representation.
+//!   A mark whose representation or symbol is not in the view draws nothing.
 //! - **Junctions** draw the caller's junction symbol at `at` in the bevel's orientation; without a symbol a
 //!   dot is a filled black disc of radius [`JUNCTION_DOT_RADIUS`].
 //! - **Slot texts.** A slot is shown when its override says so, else when it belongs to the
@@ -213,6 +219,31 @@ pub struct JunctionView {
     pub symbol: Option<SymbolRef>,
 }
 
+/// The side of a representation a break mark closes (see [`BreakMarkView`]).
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum BreakSide {
+    /// Before the representation: the overview continues from an earlier page.
+    Left,
+    /// After the representation: the overview continues on a later page.
+    Right,
+}
+
+/// A break mark of an assembly overview that continues on another page (the caller derives them,
+/// `ew_derive::AssemblyBreakMarks`).
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub struct BreakMarkView {
+    /// The representation at whose side the mark is drawn.
+    pub rep: Id<Representation>,
+    /// The side.
+    pub side: BreakSide,
+}
+
+/// The gap between a symbol's bounds and its break mark, and the mark's overhang: 1 mm.
+pub const BREAK_GAP: Nm = Nm(1_000_000);
+
+/// The amplitude of a break mark's zig-zag: 1.5 mm.
+pub const BREAK_ZIGZAG: Nm = Nm(1_500_000);
+
 /// Which layer set a page has (ADR-0015 amendment 2).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub enum PageKind {
@@ -259,6 +290,8 @@ pub struct PageView {
     pub table: Option<TableView>,
     /// The embedded report blocks of a drawn page (FR-REP-028), drawn into the `tables` layer.
     pub embedded: Vec<EmbeddedView>,
+    /// The break marks of assembly overviews on this page (doc 11 §5.5, D-41), drawn in [`Layer::Symbols`].
+    pub break_marks: Vec<BreakMarkView>,
     /// The connection points of this page that a link of the export points at (a PLC overview row links to
     /// its coil, doc 10 §5): each gets a named destination ([`Destination::Cp`]) at its drawn position, else
     /// at its representation's position (a CP the symbol does not draw, such as the internal coil 14).
@@ -644,6 +677,39 @@ impl Builder<'_> {
                     items: &[],
                 });
             }
+        }
+        // Break marks, after the symbols.
+        let mut marks = view.break_marks.clone();
+        marks.sort();
+        marks.dedup();
+        for m in marks {
+            let Some(rv) = view.reps.iter().find(|r| r.rep.id == m.rep) else {
+                continue;
+            };
+            let Some(def) = &rv.symbol else { continue };
+            let b = symbol::lower(def, rv.rep.orient).bounds;
+            let pos = rv.rep.pos;
+            let x = match m.side {
+                BreakSide::Right => pos.x + b.max().x + BREAK_GAP,
+                BreakSide::Left => pos.x + b.min().x - BREAK_GAP,
+            };
+            let y0 = pos.y + b.min().y - BREAK_GAP;
+            let y1 = pos.y + b.max().y + BREAK_GAP;
+            let ym = Nm((y0.0 + y1.0) / 2);
+            let a = BREAK_ZIGZAG;
+            let half = Nm(a.0 / 2);
+            let pts = [
+                Pt2::new(x, y0),
+                Pt2::new(x, ym - a),
+                Pt2::new(x + a, ym - half),
+                Pt2::new(x - a, ym + half),
+                Pt2::new(x, ym + a),
+                Pt2::new(x, y1),
+            ];
+            self.push(
+                Item::path(Path::polyline(&pts), Some(wire_stroke(view.grid)), None)
+                    .with_entity(EntityRef(m.rep.as_uuid())),
+            );
         }
         // The CP destinations of the page, after the symbols (an empty group at the CP: invisible).
         if !view.cp_targets.is_empty() {

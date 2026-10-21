@@ -478,11 +478,9 @@ fn export_bom_parts_is_the_expected_csv() {
     }
 }
 
-/// The golden project holds no configured product yet (D-41, cycle 15), so the assembly list is the parts list;
-/// the replacement of rows 16-21 by A1 and A2 is tested over a model with configured parts (`ew-api`,
-/// `tests/export_bom.rs`).
+/// The assembly list of the golden project (doc 20 §14.2): A1 and A2 in place of rows 16-21, the "Covers" column.
 #[test]
-fn export_bom_assembly_runs_over_the_golden_project() {
+fn export_bom_assembly_is_the_expected_csv() {
     let o = ew(&[
         "export".as_ref(),
         "bom".as_ref(),
@@ -491,7 +489,7 @@ fn export_bom_assembly_runs_over_the_golden_project() {
         "assembly".as_ref(),
     ]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    assert_eq!(stdout(&o), expected("csv/bom_parts.csv"));
+    assert_eq!(stdout(&o), expected("csv/bom_assembly.csv"));
 }
 
 #[test]

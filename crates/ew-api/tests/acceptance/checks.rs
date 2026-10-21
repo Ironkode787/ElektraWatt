@@ -56,8 +56,9 @@ const TITLE_BLOCK_VALUES: [&str; 6] = [
     "Saved: 14-04-2025",
 ];
 
-/// The expected CSV of the report rows (`expected/csv/<name>.csv`) and the report block that derives them.
-pub const ROW_PAIRS: [(&str, &str); 7] = [
+/// The expected CSV of the report rows (`expected/csv/<name>.csv`) and the report block that derives them
+/// (`901.assembly`: the parts summary 901 in assembly mode, the rows of `ew export bom --mode assembly`).
+pub const ROW_PAIRS: [(&str, &str); 8] = [
     ("terminals_1X1", "903"),
     ("terminals_X1031", "904"),
     ("terminals_X1032", "905"),
@@ -65,6 +66,7 @@ pub const ROW_PAIRS: [(&str, &str); 7] = [
     ("wires", "907"),
     ("potentials", "909"),
     ("bom_parts", "901"),
+    ("bom_assembly", "901.assembly"),
 ];
 
 pub fn all(r: &mut Runner) {
@@ -791,61 +793,121 @@ fn ac07_export_parts(_: &Ctx) -> Outcome {
     )
 }
 
-/// `ew export bom --mode assembly` against doc 20 §14.2: rows 1-15 and 22-27 as in §14.1 and the two
-/// configured-product rows A1 and A2 in place of rows 16-21.
-///
-/// The golden project holds no configured product and no assembly aspect today (`tables/parts.csv` has no
-/// part of kind `configured`, the importer writes no `assembly` slot; D-41's typed assembly aspect is cycle 15),
-/// so the export prints the 27 component rows unchanged and the entry is `not_built` with that reason. The
-/// export itself is exercised over a model with configured parts by `tests/export_bom.rs`.
+/// `ew export bom --mode assembly` against doc 20 §14.2: the library entry `ew export` calls, over the fixture,
+/// writes `expected/csv/bom_assembly.csv` byte for byte; rows 1-15 and 22-27 are those of the parts list (rows
+/// 22-27 renumbered 16-21, owner ruling ID-356), the two configured-product rows A1 and A2 of -201U1's assembly
+/// aspect replace rows 16-21, the column "Part number" prints the order codes, and the "Covers" column names
+/// the covered devices.
 fn ac07_export_assembly(_: &Ctx) -> Outcome {
-    let text = match fixture_session().and_then(|s| {
-        s.export_csv(Export::Bom(BomMode::Assembly))
-            .map_err(|e| e.to_string())
+    let (parts, text) = match fixture_session().and_then(|s| {
+        let parts = s
+            .export_csv(Export::Bom(BomMode::Component))
+            .map_err(|e| e.to_string())?;
+        let assembly = s
+            .export_csv(Export::Bom(BomMode::Assembly))
+            .map_err(|e| e.to_string())?;
+        Ok((parts, assembly))
     }) {
         Ok(t) => t,
         Err(e) => return fail(e),
     };
+    let mut wrong = Vec::new();
+    if let Err(e) = same_as_expected("csv/bom_assembly.csv", text.as_bytes()) {
+        wrong.push(format!("export bom --mode assembly: {e}"));
+    }
+    let header: Vec<String> = csv_rows(&text).into_iter().next().unwrap_or_default();
+    let want_header = [
+        "row",
+        "Pos",
+        "Qty",
+        "Unit",
+        "Manufacturer",
+        "Part number",
+        "Description",
+        "Tags",
+        "Folios",
+        "Covers",
+    ];
+    if header != want_header {
+        wrong.push(format!("header {header:?}"));
+    }
+    // Rows: the printed columns without `row`.
     let rows: Vec<Vec<String>> = csv_rows(&text)
         .into_iter()
         .skip(1)
         .map(|r| r.into_iter().skip(1).collect())
         .collect();
-    let configured: Vec<&Vec<String>> = rows.iter().filter(|r| r[0].starts_with('A')).collect();
-    if configured.is_empty() {
-        return not_built(
-            "the export runs and prints the 27 component rows unchanged: the golden project has no configured product (no part of kind `configured` in tables/parts.csv, no assembly aspect on -201U1; D-41 types the aspect in cycle 15), so rows 16-21 are not replaced by A1 and A2",
-        );
-    }
-    // Configured products exist: §14.2 in full.
-    let want_a = [
-        ("A1", "1", "set", "Festo", "51E-F13GCQP-D+H2GG"),
-        ("A2", "1", "set", "Festo", "32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS"),
-    ];
-    let mut wrong = Vec::new();
-    if rows.len() != 15 + 2 + 6 {
+    let component: Vec<Vec<String>> = csv_rows(&parts)
+        .into_iter()
+        .skip(1)
+        .map(|r| r.into_iter().skip(1).collect())
+        .collect();
+    if rows.len() != 15 + 2 + 6 || component.len() != 27 {
         wrong.push(format!(
-            "{} rows, §14.2 has 23 (rows 1-15, A1, A2, rows 22-27)",
-            rows.len()
+            "{} rows, §14.2 has 23 (rows 1-15, A1, A2, rows 22-27); the parts list has {}",
+            rows.len(),
+            component.len()
         ));
+        return fail(list(wrong, 3));
     }
-    for (row, want) in configured.iter().zip(want_a) {
-        if (
+    // Rows 1-15 and 22-27 equal the parts list, an empty Covers cell appended; 22-27 print 16-21.
+    for (i, (got, want)) in rows[..15]
+        .iter()
+        .zip(&component[..15])
+        .chain(rows[17..].iter().zip(&component[21..]))
+        .enumerate()
+    {
+        let mut want = want.clone();
+        want[0] = (i + 1).to_string();
+        want.push(String::new());
+        if *got != want {
+            wrong.push(format!("row {}: {:?}", got[0], &got[..5]));
+        }
+    }
+    let want_a = [
+        (
+            "A1",
+            "1",
+            "set",
+            "Festo",
+            "51E-F13GCQP-D+H2GG",
+            "CPX terminal (order code 1)",
+        ),
+        (
+            "A2",
+            "1",
+            "set",
+            "Festo",
+            "32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS",
+            "MPA valve terminal (order code 2)",
+        ),
+    ];
+    for (row, want) in rows[15..17].iter().zip(want_a) {
+        let got = (
             row[0].as_str(),
             row[1].as_str(),
             row[2].as_str(),
             row[3].as_str(),
             row[4].as_str(),
-        ) != want
-        {
-            wrong.push(format!("row {}: {:?}", row[0], &row[..5]));
+            row[5].as_str(),
+        );
+        if got != want || row[6] != "-201U1" || row[7] != "201" {
+            wrong.push(format!("row {}: {:?}", row[0], &row[..8]));
         }
     }
-    if configured.len() != 2 {
-        wrong.push(format!("{} configured rows, §14.2 has 2", configured.len()));
+    let covers = (rows[15][8].as_str(), rows[16][8].as_str());
+    if covers.0 != "-201U1"
+        || !covers.1.contains("-201U2")
+        || !covers.1.contains("-202U3")
+        || !covers.1.contains("-201U3-Q1")
+    {
+        wrong.push(format!("Covers {covers:?}"));
     }
     if wrong.is_empty() {
-        pass("rows A1 and A2 replace rows 16-21 as in §14.2")
+        pass(format!(
+            "export bom --mode assembly writes expected/csv/bom_assembly.csv: A1 and A2 replace rows 16-21 as in §14.2 (Part number = order code; Covers \"{}\" and \"{}\"), rows 22-27 renumber 16-21",
+            covers.0, covers.1
+        ))
     } else {
         fail(list(wrong, 3))
     }
@@ -908,6 +970,9 @@ pub fn row_pair_text(
         .iter()
         .find(|(n, _)| *n == name)
         .ok_or_else(|| format!("no row pair {name}"))?;
+    if *block == "901.assembly" {
+        return ew_reports::export::export_csv(q, Export::Bom(BomMode::Assembly)).map_err(|e| e.to_string());
+    }
     Ok(rows_csv(q, &rows_of(q, batch, block)))
 }
 
@@ -1574,7 +1639,7 @@ fn defects(r: &mut Runner) {
     r.entry(
         "D-17",
         "strict import rejects \"BR\"; lenient import keeps it as a foreign code with the quick fix \"use BN\"",
-        |_| not_built("the CSV importer has no strict or lenient mode (ImportContext carries none) and quick fixes do not exist yet"),
+        d17_modes,
     );
     r.entry(
         "D-18",
@@ -1676,12 +1741,11 @@ fn defects(r: &mut Runner) {
             .iter()
             .any(|(_, t, _)| t.contains("51E-F13GCQP-D+H2GG"));
         match (assembly, on_folio_3) {
-            (Status::Pass, true) => pass("rows A1 and A2 replace rows 16-21 and folio 3 prints order code 1"),
-            (Status::Fail, _) => fail(why),
-            (_, printed) => not_built(format!(
-                "assembly export: {why}; folio 3 {} the order code of the CPX terminal (the assembly's order code 1 has no record to render it from)",
-                if printed { "prints" } else { "does not print" }
-            )),
+            (Status::Pass, true) => pass(
+                "rows A1 and A2 replace rows 16-21 (assembly export) and folio 3 prints order code 1 \"51E-F13GCQP-D+H2GG\" from -201U1's assembly aspect",
+            ),
+            (Status::Pass, false) => fail("folio 3 does not print the order code 51E-F13GCQP-D+H2GG"),
+            (_, _) => fail(format!("assembly export: {why}")),
         }
     });
     // Doc 20 §19: the profile names its basis ("company convention") and declares DBU a company code (profile
@@ -1720,14 +1784,212 @@ fn defects(r: &mut Runner) {
             fail(wrong.join("; "))
         }
     });
-    r.entry("D-41", "one assembly -201U1 with children on both pages, break marks", |_| {
-        not_built("the assembly aspect and the generated overview break marks are not implemented (schema v0 keeps the assembly in `extra`)")
-    });
+    r.entry(
+        "D-41",
+        "one assembly -201U1 with children on both pages, break marks",
+        d41_assembly,
+    );
     r.entry(
         "D-42",
         "one strip -X1031 with segments at 103-A3 and 103-A10",
         d42,
     );
+}
+
+/// D-17 (doc 20 §19, doc 14 §4.12, doc 15 §2.6): the golden tables with core -106W1:BN coloured "BR". A strict
+/// import refuses the row with the importer's finding (EW-IMP-002 naming EW-CORE-031); a lenient one keeps
+/// `ColourCode::Foreign("BR")` and reports EW-IMP-008 with the quick fix "use BN", a declarative `fields.set`
+/// that the session applies through the command surface, after which the core is BN.
+fn d17_modes(_: &Ctx) -> Outcome {
+    use ew_import_tables::ew_interop_api::{Code, ImportMode, Severity};
+    let row = "-106W1:BN,-106W1,BN,BN,,,";
+    let foreign = "-106W1:BN,-106W1,BN,BR,,,";
+    let key = "conductors|-106W1:BN";
+    let colour_of = |b: &ew_import_tables::ew_interop_api::ImportBatch| {
+        b.records.iter().find_map(|r| match r {
+            Record::Conductor(c) if golden_common::source_key(r) == Some(key) => Some(c.colour.clone()),
+            _ => None,
+        })
+    };
+    let mut wrong = Vec::new();
+    // Strict.
+    let strict = match golden_common::batch_with("conductors.csv", row, foreign, ImportMode::Strict) {
+        Ok(b) => b,
+        Err(e) => return fail(format!("strict import: {e}")),
+    };
+    let refused = strict.report.entries.iter().find(|e| {
+        e.code == Code::MALFORMED_ITEM && e.severity == Severity::Error && e.message.contains("`BR`")
+    });
+    match refused {
+        None => wrong.push("the strict import reports no EW-IMP-002 error naming `BR`".to_owned()),
+        Some(e) if !e.message.contains("EW-CORE-031") => wrong.push(format!(
+            "the strict finding does not name EW-CORE-031: {}",
+            e.message
+        )),
+        Some(_) => {}
+    }
+    if colour_of(&strict).is_some() {
+        wrong.push("the strict import keeps the conductor -106W1:BN".to_owned());
+    }
+    if strict.report.with_code(Code::FOREIGN_VALUE).next().is_some() {
+        wrong.push("the strict import keeps a foreign value (EW-IMP-008)".to_owned());
+    }
+    // Lenient.
+    let lenient = match golden_common::batch_with("conductors.csv", row, foreign, ImportMode::Lenient) {
+        Ok(b) => b,
+        Err(e) => return fail(format!("lenient import: {e}")),
+    };
+    let kept = colour_of(&lenient)
+        .flatten()
+        .map(|c| serde_json::to_value(&c).unwrap_or_default());
+    if kept != Some(serde_json::json!([{"foreign": "BR"}])) {
+        wrong.push(format!("the lenient import keeps the colour {kept:?}"));
+    }
+    let findings: Vec<_> = lenient.report.with_code(Code::FOREIGN_VALUE).collect();
+    let fix = match findings.as_slice() {
+        [f] => f.fix.clone(),
+        _ => {
+            wrong.push(format!("{} EW-IMP-008 findings, expected 1", findings.len()));
+            None
+        }
+    };
+    let Some(fix) = fix else {
+        wrong.push("the EW-IMP-008 finding offers no quick fix".to_owned());
+        return fail(list(wrong, 4));
+    };
+    if fix.label != "use BN" || fix.command != "fields.set" {
+        wrong.push(format!("the quick fix is \"{}\" ({})", fix.label, fix.command));
+    }
+    // The quick fix through the command surface.
+    let mut s = golden_common::session(&lenient);
+    if let Err(e) = s.execute(&ew_api::AnyCommand {
+        name: fix.command.clone(),
+        params: fix.params.clone(),
+    }) {
+        return fail(format!("the quick fix was rejected: {e:?}"));
+    }
+    let id: Id<ew_schema::Conductor> = match lenient.records.iter().find_map(|r| match r {
+        Record::Conductor(c) if golden_common::source_key(r) == Some(key) => Some(c.id),
+        _ => None,
+    }) {
+        Some(id) => id,
+        None => return fail("the lenient batch has no conductor -106W1:BN"),
+    };
+    let fixed = s
+        .query()
+        .conductors()
+        .get(id)
+        .and_then(|c| c.colour.clone())
+        .map(|c| serde_json::to_value(&c).unwrap_or_default());
+    if fixed != Some(serde_json::json!(["BN"])) {
+        wrong.push(format!("after the quick fix the core is {fixed:?}"));
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "strict import refuses \"BR\" (EW-IMP-002, EW-CORE-031); lenient keeps it as a foreign code with EW-IMP-008 and the quick fix \"{}\" ({} {}), which the session applies: the core is BN",
+            fix.label, fix.command, fix.params
+        ))
+    } else {
+        fail(list(wrong, 4))
+    }
+}
+
+/// D-41 (doc 20 §19, FR-DEV-022, FR-DEV-023): -201U1 is one assembly (the typed aspect with order codes 1
+/// and 2) whose 11 children are drawn on both 201 and 202; its order codes cover the head, the children and
+/// the 28 valves once each; and the overview's break marks are generated: right after -201U9 on 201, left
+/// before -202U1 on 202, in the page views that the PDF and PNG are drawn from.
+fn d41_assembly(c: &Ctx) -> Outcome {
+    let q = c.oracle.query();
+    let head: Id<Device> = id_of(c, "devices|-201U1");
+    let Some(dev) = q.devices().get(head) else {
+        return fail("no device -201U1");
+    };
+    let Some(assembly) = dev.aspects.assembly.clone() else {
+        return fail("-201U1 carries no assembly aspect");
+    };
+    let mut wrong = Vec::new();
+    let codes: Vec<&str> = assembly.configs.iter().map(|c| c.order_code.as_str()).collect();
+    if codes != ["51E-F13GCQP-D+H2GG", "32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS"] {
+        wrong.push(format!("order codes {codes:?}"));
+    }
+    if dev.extra.contains_key("assembly") {
+        wrong.push("the assembly is kept in `extra`".to_owned());
+    }
+    // Children and their pages.
+    let children: Vec<Id<Device>> = q.idx().device_children(head).collect();
+    let mut pages = BTreeSet::new();
+    for child in &children {
+        if let Some(r) = (*q.get::<ew_derive::MainRep>(*child)).and_then(|rep| q.reps().get(rep)) {
+            pages.insert(r.page);
+        }
+    }
+    let p201: Id<ew_schema::Page> = id_of(c, "pages|201");
+    let p202: Id<ew_schema::Page> = id_of(c, "pages|202");
+    if children.len() != 11 || pages != BTreeSet::from([p201, p202]) {
+        wrong.push(format!("{} children on {} pages", children.len(), pages.len()));
+    }
+    // One identity: every member covered once.
+    let mut descendants: BTreeSet<Id<Device>> = BTreeSet::from([head]);
+    let mut stack = vec![head];
+    while let Some(d) = stack.pop() {
+        for ch in q.idx().device_children(d) {
+            if descendants.insert(ch) {
+                stack.push(ch);
+            }
+        }
+    }
+    let covered: Vec<Id<Device>> = assembly
+        .configs
+        .iter()
+        .flat_map(|c| c.covers.iter().copied())
+        .collect();
+    let distinct: BTreeSet<Id<Device>> = covered.iter().copied().collect();
+    if distinct.len() != covered.len() || distinct != descendants || descendants.len() != 1 + 11 + 28 {
+        wrong.push(format!(
+            "the order codes cover {} devices ({} distinct), the assembly has {}",
+            covered.len(),
+            distinct.len(),
+            descendants.len()
+        ));
+    }
+    // Break marks: derived, and in the page views.
+    let marks = q.get::<ew_derive::AssemblyBreakMarks>(());
+    let got: BTreeSet<(Id<ew_schema::Page>, Id<Representation>, ew_derive::BreakSide)> =
+        marks.iter().map(|m| (m.page, m.rep, m.side)).collect();
+    let want = BTreeSet::from([
+        (
+            p201,
+            id_of::<Representation>(c, "representations|-201U9"),
+            ew_derive::BreakSide::Right,
+        ),
+        (
+            p202,
+            id_of::<Representation>(c, "representations|-202U1"),
+            ew_derive::BreakSide::Left,
+        ),
+    ]);
+    if got != want {
+        wrong.push(format!(
+            "{} break marks, not right after -201U9 and left before -202U1",
+            got.len()
+        ));
+    }
+    let drawn: usize = c
+        .pages
+        .iter()
+        .filter(|g| g.entry.folio == "201" || g.entry.folio == "202")
+        .map(|g| g.view.break_marks.len())
+        .sum();
+    if drawn != 2 {
+        wrong.push(format!("the page views of 201 and 202 draw {drawn} break marks"));
+    }
+    if wrong.is_empty() {
+        pass(
+            "-201U1 is one assembly (order codes 1 and 2 covering the head, its 11 children on 201 and 202 and the 28 valves once each); break marks generated right after -201U9 on 201 and left before -202U1 on 202",
+        )
+    } else {
+        fail(list(wrong, 4))
+    }
 }
 
 /// The main and auxiliary texts of doc 20 §15 ("Main ↔ auxiliary references"): what each main prints after

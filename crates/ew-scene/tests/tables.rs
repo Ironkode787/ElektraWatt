@@ -43,6 +43,7 @@ fn view(table: Option<TableView>) -> PageView {
         wire_marker: None,
         table,
         embedded: Vec::new(),
+        break_marks: Vec::new(),
         cp_targets: Vec::new(),
     }
 }

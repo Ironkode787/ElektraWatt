@@ -60,6 +60,34 @@ pub fn batch() -> ImportBatch {
         .expect("the golden tables import")
 }
 
+/// The golden import batch in `mode`, with the text `from` (which occurs once) replaced by `to` in the table
+/// `file` (D-17: a core colour "BR").
+pub fn batch_with(
+    file: &str,
+    from: &str,
+    to: &str,
+    mode: ew_import_tables::ew_interop_api::ImportMode,
+) -> Result<ImportBatch, String> {
+    let mut inputs = Vec::new();
+    for p in files(&repo().join("golden/J-E-2416/tables"), "csv") {
+        let name = p.file_name().unwrap().to_string_lossy().into_owned();
+        let mut bytes = std::fs::read(&p).unwrap();
+        if name == file {
+            let text = String::from_utf8(bytes).map_err(|e| e.to_string())?;
+            if text.matches(from).count() != 1 {
+                return Err(format!("{file}: `{from}` does not occur exactly once"));
+            }
+            bytes = text.replace(from, to).into_bytes();
+        }
+        inputs.push(ImportInput::new(&name, bytes).map_err(|e| e.to_string())?);
+    }
+    let mut ctx = bootstrap_context();
+    ctx.mode = mode;
+    TablesImporter::new(library())
+        .import(&inputs, &ctx)
+        .map_err(|e| format!("{e:?}"))
+}
+
 /// A session over the batch; `edit` may change the project record and the record list first.
 pub fn session_with(
     batch: &ImportBatch,

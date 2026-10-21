@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "24cb4438-5087-55ce-9fa9-7d1c107b98aa",
   "version": "0.1.0",
-  "sha256": "sha256:7d44b05f741dcb9ef96d69fef9a95a9da31c5f6d9d79be73991560c60b1a1c89",
+  "sha256": "sha256:6695bba76df2e1c39fc5461382dba02783251e3c17a5bc339984f7a8dce0247e",
   "meta": {
     "key": "ew.bus.dp-port@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -149,6 +149,24 @@
       "align": "top_centre",
       "visible": true,
       "style": "xref.device"
+    },
+    {
+      "kind": "manufacturer",
+      "pos": [
+        9260417,
+        2645833
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "order_code",
+      "pos": [
+        9260417,
+        5291667
+      ],
+      "align": "middle_left",
+      "visible": true
     }
   ],
   "arrangements": [
@@ -159,7 +177,9 @@
         1,
         2,
         3,
-        4
+        4,
+        5,
+        6
       ]
     },
     {

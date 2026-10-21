@@ -512,15 +512,22 @@ fn embedded_blocks_have_no_page_and_derive_part_data() {
     assert!(q.get::<BlockRows>(block("cover-tables")).is_derived());
 
     // Pages 201 and 202 both show devices whose root ancestor is -201U1 (-202U1 is its child), so both boxes
-    // list the part lines of -201U1 (195740, 550208; doc 09 §3.4 repeats the box on 202). Its descendants
-    // are drawn as their own symbols, so the box does not repeat them. The golden tables carry no
-    // configured product (▲U-24), so the lines are not "Order Code" rows.
+    // list -201U1 (doc 09 §3.4 repeats the box on 202). -201U1 carries the assembly aspect with order codes 1
+    // and 2 (doc 20 §14.2, D-36), so the box lists them: "Order Code 1" 51E-F13GCQP-D+H2GG and "Order Code 2"
+    // 32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS (doc 11 §5.5 step 6).
     let r201 = q.get::<BlockRows>(block("part-data-201"));
     let r202 = q.get::<BlockRows>(block("part-data-202"));
     assert!(r201.is_derived());
-    assert_eq!(part_numbers(&r201), ["195740", "550208"]);
+    assert_eq!(
+        part_numbers(&r201),
+        ["51E-F13GCQP-D+H2GG", "32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS"]
+    );
     assert_eq!(part_numbers(&r201), part_numbers(&r202));
-    assert!(r201.rows.iter().all(|r| r.cells[0] == Cell::Empty));
+    let labels: Vec<Cell> = r201.rows.iter().map(|r| r.cells[0].clone()).collect();
+    assert_eq!(
+        labels,
+        ["Order Code 1", "Order Code 2"].map(|l| Cell::Text(ew_derive::ew_mltext::MlText::neutral(l)))
+    );
 
     // No representation on page 902 yet (placements arrive with ew-panel): no rows.
     let r902 = q.get::<BlockRows>(block("part-data-902"));

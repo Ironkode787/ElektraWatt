@@ -17,9 +17,12 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 /// The PART DATA box.
 ///
 /// Source devices: the block's `manual.include` devices, else the root ancestors of the devices drawn on the
-/// embedded page. A source with configured part lines lists one row per order code; otherwise it lists the
-/// part lines of the device and of those descendants that have no representation of their own (a
-/// cabinet's mounting plate; a valve that the drawings show as its own symbol is not repeated in the box).
+/// embedded page. A source with an assembly aspect that has configs lists one row per order code (doc 11
+/// §5.5 step 6, D-36): the config's label ("Order Code 1"; "Order Code n" when it has none), and the
+/// manufacturer, part number and description of its configured part, or the order code alone without one.
+/// Otherwise it lists the part lines of the device and of those descendants that have no representation of
+/// their own (a cabinet's mounting plate; a valve that the drawings show as its own symbol is not repeated in
+/// the box).
 #[derive(Clone, Copy, Debug)]
 pub struct PartData;
 
@@ -40,16 +43,10 @@ impl ReportKindDef for PartData {
     fn rows(&self, q: &Q, block: &ReportBlock) -> RowSet {
         let mut set = RowSet::new(self.columns());
         for d in source_devices(q, block) {
-            let lines = q.get::<DevicePartLines>(d);
-            let configured: Vec<(usize, &PartLine)> =
-                lines.iter().enumerate().filter(|(_, l)| l.configured).collect();
-            if !configured.is_empty() {
-                for (n, (i, _)) in configured.into_iter().enumerate() {
-                    let label = Cell::Text(MlText::neutral(&format!("Order Code {}", n + 1)));
-                    push_row(q, &mut set, d, &lines, i, label);
-                }
+            if push_configs(q, &mut set, d) {
                 continue;
             }
+            let lines = q.get::<DevicePartLines>(d);
             for i in 0..lines.len() {
                 push_row(q, &mut set, d, &lines, i, Cell::Empty);
             }
@@ -65,6 +62,44 @@ impl ReportKindDef for PartData {
         }
         set
     }
+}
+
+/// The order-code rows of `source`'s assembly configs; `false` when it has none.
+fn push_configs(q: &Q, set: &mut RowSet, source: Id<Device>) -> bool {
+    let Some(dev) = q.devices().get(source) else {
+        return false;
+    };
+    let Some(assembly) = dev.aspects.assembly.as_ref().filter(|a| !a.configs.is_empty()) else {
+        return false;
+    };
+    for (n, config) in assembly.configs.iter().enumerate() {
+        let label = if config.label.is_empty() {
+            MlText::neutral(&format!("Order Code {}", n + 1))
+        } else {
+            config.label.clone()
+        };
+        let copy = config.part.as_ref().and_then(|p| q.parts().get(p.copy));
+        let [manufacturer, part_number, description] = match copy {
+            Some(copy) => part_cells(&copy.item),
+            None => [
+                Cell::Empty,
+                Cell::Ident(config.order_code.as_str().to_owned()),
+                Cell::Empty,
+            ],
+        };
+        let id = RowId(vec![
+            RowKey::Entity(source.as_uuid()),
+            RowKey::Name("config".to_owned()),
+            RowKey::Index(u32::try_from(n).unwrap_or(u32::MAX)),
+        ]);
+        let mut row = Row::data(
+            id,
+            vec![Cell::Text(label), manufacturer, part_number, description],
+        );
+        row.sources = vec![source.cast()];
+        set.rows.push(row);
+    }
+    true
 }
 
 fn push_row(q: &Q, set: &mut RowSet, source: Id<Device>, lines: &[PartLine], index: usize, label: Cell) {
