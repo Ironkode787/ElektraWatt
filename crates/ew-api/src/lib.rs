@@ -74,6 +74,8 @@ pub use cmdlog::{CmdLog, CmdLogError, SCHEMA as CMDLOG_SCHEMA};
 /// The check engine (`ew check`, the message panel, the migration report): rules, schemes, findings.
 pub use ew_checks as checks;
 pub use ew_derive::{DeriveNote, MemoStore, Mismatch, NoteSeverity};
+/// The read-only SQL projection (`ew sql`, the acceptance SQL, ADR-0017): views, sandbox, results.
+pub use ew_sqlview as sql;
 pub use ew_store::{OpenError, OpenReport};
 
 pub use ew_commands::{
@@ -588,17 +590,54 @@ impl Session {
     ///
     /// [`OpenError`] when the project cannot be opened; integrity findings are in the report.
     pub fn open_read_only(dir: &Path, app_version: &str) -> Result<(Session, OpenReport), OpenError> {
+        Session::open_reader(dir, app_version, "check")
+    }
+
+    /// [`Session::open_read_only`] for the reader subcommand `subcommand` (`check`, `sql`), which names the
+    /// origin of the session.
+    ///
+    /// # Errors
+    ///
+    /// [`OpenError`] when the project cannot be opened; integrity findings are in the report.
+    pub fn open_reader(
+        dir: &Path,
+        app_version: &str,
+        subcommand: &str,
+    ) -> Result<(Session, OpenReport), OpenError> {
         let mut store = StoreOptions::new(app_version);
         store.mode = ew_store::OpenMode::ReadOnly;
         store.state_dir = None;
         let options = SessionOptions {
             origin: Origin::Cli {
-                subcommand: "check".to_owned(),
+                subcommand: subcommand.to_owned(),
                 confirmed: false,
             },
             ..SessionOptions::default()
         };
         Session::open(dir, store, options, Recovery::Keep)
+    }
+
+    /// Builds the read-only SQL projection of the current snapshot (ADR-0017 decision 3: `ew sql`, exports and
+    /// release checks build it on their own fork at the opened generation, so it is fresh by construction).
+    /// `checks` fills `api_v1_message`; `None` leaves it empty. `api_v1_meta` carries the revision, the store
+    /// generation and this program's version.
+    ///
+    /// # Errors
+    ///
+    /// [`sql::BuildError`] when SQLite fails while the tables are written.
+    pub fn sql_projection(
+        &self,
+        checks: Option<&checks::CheckReport>,
+    ) -> Result<sql::Projection, sql::BuildError> {
+        let world = self.world();
+        let input = sql::BuildInput {
+            rev: i64::try_from(world.rev.0).ok(),
+            generation: self.store().and_then(|s| i64::try_from(s.generation()).ok()),
+            ew_version: env!("CARGO_PKG_VERSION"),
+            as_of: None,
+            checks,
+        };
+        sql::Projection::build(&self.query(), &input)
     }
 
     /// Runs the check scheme `scheme` in `mode` over the current snapshot through the session's memo store

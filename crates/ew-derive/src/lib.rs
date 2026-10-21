@@ -170,6 +170,10 @@ pub use ew_model::Rev;
 // the model's types through `ew-derive` alone (`ew-reports`, ARCH §3).
 pub use {ew_ids, ew_mltext, ew_schema, ew_units};
 
+// The reference-designation types of `ResolvedStructure` (`Aspect`, `RdsSyntax`), for the crates that render a
+// structure aspect on their own (`ew-sqlview`'s `structure_function` and `structure_location` columns).
+pub use ew_rds;
+
 /// Every query family of this crate with its initial policy (ARCH §6.4), in name order.
 pub const FAMILIES: &[(&str, Policy)] = &[
     (BomRows::FAMILY, BomRows::POLICY),
