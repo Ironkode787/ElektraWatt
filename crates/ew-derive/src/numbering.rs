@@ -37,6 +37,7 @@ use ew_ids::Id;
 use ew_schema::{Connection, Page};
 
 use crate::cp_point::cp_cell;
+use crate::flow_distance::CpFlowDistanceOf;
 use crate::pages::DrawnPageOrder;
 use crate::query::{Policy, Query};
 use crate::wires::{PhysicalWire, PhysicalWiresOf, WireEnd};
@@ -220,16 +221,18 @@ fn entry(q: &Q, order: &crate::pages::PageOrderV, wire: &PhysicalWire) -> Entry 
     }
 }
 
-/// Puts the From end of a wire first (doc 08 §3.8 "Orientation (From/To)", FR-CON-040): on different pages
-/// the end on the earlier page in the page order; otherwise the end with the smaller anchor cell (row, then
-/// column), then the smaller CP ID. The page of an end is the page of the constituent that ends there. A
-/// function that no representation draws on the page, a terminal drawn only by a strip segment, has no
-/// anchor: its cell is that of its CP in the segment (doc 08 §6.7, [`cp_cell`]). Returns whether the ends
-/// were swapped.
+/// Puts the From end of a wire first (doc 08 §3.8 "Orientation (From/To)", FR-CON-040):
 ///
-/// The flow-distance step of the rule (hops over wires, bridges and terminal shorts from the points where
-/// the potential enters) is not applied: it needs a per-CP flow distance that this crate does not expose
-/// (FT-101). A wire that rule decides differently on one page has its ends the other way round.
+/// 1. on different pages, the end on the earlier page in the page order;
+/// 2. on one page, the end with the smaller flow distance ([`CpFlowDistanceOf`]: hops over the potential's
+///    wires, bridges and terminal shorts from the CPs where the potential enters; FT-101), when both ends lie
+///    in the wire's one potential and the walk reaches both with different distances;
+/// 3. otherwise the end with the smaller anchor cell (row, then column), then the smaller CP ID.
+///
+/// The page of an end is the page of the constituent that ends there. A function that no representation draws
+/// on the page, a terminal drawn only by a strip segment, has no anchor: its cell is that of its CP in the
+/// segment (doc 08 §6.7, [`cp_cell`]). A bond wire joins two potentials, so step 2 does not compare its ends.
+/// Returns whether the ends were swapped.
 pub fn orient_wire(q: &Q, w: &mut PhysicalWire) -> bool {
     let position = |page: Id<Page>| {
         q.get::<DrawnPageOrder>(())
@@ -240,28 +243,44 @@ pub fn orient_wire(q: &Q, w: &mut PhysicalWire) -> bool {
     let (pa, pb) = (page_of(w.constituents.first()), page_of(w.constituents.last()));
     let swap = match (pa, pb) {
         (Some(a), Some(b)) if a != b => position(b) < position(a),
-        _ => {
-            let cell = |e: &WireEnd, page: Option<Id<Page>>| -> (u32, u32) {
-                let Some(page) = page else {
-                    return (u32::MAX, u32::MAX);
+        _ => match by_flow_distance(q, w) {
+            Some(swap) => swap,
+            None => {
+                let cell = |e: &WireEnd, page: Option<Id<Page>>| -> (u32, u32) {
+                    let Some(page) = page else {
+                        return (u32::MAX, u32::MAX);
+                    };
+                    let mut reps: Vec<_> = q
+                        .idx()
+                        .reps_of_function(e.cp.function)
+                        .filter(|r| q.reps().get(*r).is_some_and(|r| r.page == page))
+                        .collect();
+                    reps.sort();
+                    reps.first()
+                        .and_then(|r| q.get::<RepAnchorCell>(*r).as_ref().clone())
+                        .or_else(|| cp_cell(q, e.cp.function, e.cp.idx, page))
+                        .map_or((u32::MAX, u32::MAX), |c| (c.row, c.column))
                 };
-                let mut reps: Vec<_> = q
-                    .idx()
-                    .reps_of_function(e.cp.function)
-                    .filter(|r| q.reps().get(*r).is_some_and(|r| r.page == page))
-                    .collect();
-                reps.sort();
-                reps.first()
-                    .and_then(|r| q.get::<RepAnchorCell>(*r).as_ref().clone())
-                    .or_else(|| cp_cell(q, e.cp.function, e.cp.idx, page))
-                    .map_or((u32::MAX, u32::MAX), |c| (c.row, c.column))
-            };
-            let page = pa.or(pb);
-            (cell(&w.ends[1], page), w.ends[1].cp) < (cell(&w.ends[0], page), w.ends[0].cp)
-        }
+                let page = pa.or(pb);
+                (cell(&w.ends[1], page), w.ends[1].cp) < (cell(&w.ends[0], page), w.ends[0].cp)
+            }
+        },
     };
     if swap {
         w.ends.swap(0, 1);
     }
     swap
+}
+
+/// Step 2 of the orientation: `Some(swap)` when both ends lie in the wire's one potential and have different
+/// flow distances, else `None` (step 3 decides).
+fn by_flow_distance(q: &Q, w: &PhysicalWire) -> Option<bool> {
+    let [p] = w.potentials.as_slice() else {
+        return None;
+    };
+    let d = q.get::<CpFlowDistanceOf>(*p);
+    match (d.get(w.ends[0].cp), d.get(w.ends[1].cp)) {
+        (Some(a), Some(b)) if a != b => Some(b < a),
+        _ => None,
+    }
 }

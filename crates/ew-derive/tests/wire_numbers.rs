@@ -350,3 +350,51 @@ fn a_terminal_in_a_strip_segment_has_a_cell_for_the_orientation() {
     let rows = order(&m);
     assert_eq!(label(&rows, 0x2001).as_deref(), Some("101.1"));
 }
+
+/// FT-101, doc 08 §3.8 rule 2: on one page the end with the smaller flow distance is From, before the anchor
+/// cell decides. A source S (a source-output CP) in cell (8, D) feeds B in (2, A), and B feeds A in (0, A):
+/// by cell A and B would come first, by flow distance S → B and B → A.
+#[test]
+fn the_flow_distance_decides_before_the_anchor_cell() {
+    const FN_SRC: u128 = 0x504;
+    const SYM_SRC: u128 = 0x514;
+    let mut fx = fixture();
+    fx.lib_item(
+        "fndef",
+        FN_SRC,
+        json!({
+            "meta": {}, "category": ["Misc", "Misc", "Source"], "contact_kind": "pole",
+            "cps": [{"idx": 0, "designation": "+", "source_output": true}],
+        }),
+    );
+    fx.symbol(SYM_SRC, FN_SRC, json!("origin"), &[(0, 0, 0, 0)]);
+    let s = at(8, 3);
+    fx.device(0x1000 + 0x20_000, "G", Some(1));
+    fx.function(0x1000, Some(0x1000 + 0x20_000), FN_SRC, true);
+    fx.rep(0x1000 + REP, P1, SYM_SRC, &[0x1000], s.x.0, s.y.0);
+    node(&mut fx, 0x1002, P1, 2, 0);
+    node(&mut fx, 0x1001, P1, 0, 0);
+    wire(&mut fx, 0x2001, Some(P1), 0x1002, 0x1000);
+    wire(&mut fx, 0x2002, Some(P1), 0x1001, 0x1002);
+    let m = fx.build();
+    let q = Q::new(&m);
+    let partition = q.get::<PotentialPartition>(());
+    let mut from = Vec::new();
+    for p in partition.potentials() {
+        let d = q.get::<ew_derive::CpFlowDistanceOf>(p.id);
+        assert_eq!(d.entries.len(), 1, "the source output is the one entry");
+        for w in &q.get::<PhysicalWiresOf>(p.id).wires {
+            let mut w = w.clone();
+            orient_wire(&q, &mut w);
+            from.push((w.id, w.ends[0].cp.function, w.ends[1].cp.function));
+        }
+    }
+    from.sort();
+    assert_eq!(
+        from,
+        vec![
+            (id(0x2001), id(0x1000), id(0x1002)),
+            (id(0x2002), id(0x1002), id(0x1001)),
+        ]
+    );
+}

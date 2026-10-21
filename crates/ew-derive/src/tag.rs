@@ -309,6 +309,20 @@ fn product_designation(q: &Q, id: Id<Device>, dev: &Device) -> (String, Option<S
         let sign = !matches!(frozen.sign, TagSign::Hidden);
         return (frozen.text.as_str().to_owned(), None, sign, TagSource::Frozen);
     }
+    rule_designation(q, id, dev)
+}
+
+/// The rule-derived product designation of a device: what [`DeviceTag`] derives when the device's frozen
+/// tag is left out (rules 2 to 4), with its source. The numbering report and EW-NUM-001 print it next to a
+/// frozen tag ("rule-derived value", FR-REP-022, FR-CHK-025); "?" stands for a value the scheme cannot
+/// derive (an unnumbered or unplaced device). `None` for a missing device.
+pub fn rule_product(q: &Q, device: Id<Device>) -> Option<(String, TagSource)> {
+    let dev = q.devices().get(device)?;
+    let (product, _, _, source) = rule_designation(q, device, dev);
+    Some((product, source))
+}
+
+fn rule_designation(q: &Q, id: Id<Device>, dev: &Device) -> (String, Option<String>, bool, TagSource) {
     if let Some(t) = &dev.aspects.terminal {
         // The strip edge of the inheritance graph (EW-INV-015): a cycle prints "?" instead of panicking.
         let (product, sign) = match tag_of(q, t.strip) {

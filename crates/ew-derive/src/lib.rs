@@ -52,9 +52,11 @@ mod component;
 mod cp_point;
 mod cps;
 mod flow;
+mod flow_distance;
 mod heap;
 mod index;
 mod ip;
+mod joins;
 mod links;
 mod memo_keys;
 mod memo_store;
@@ -96,6 +98,7 @@ pub use index::{
     PagelessLinksV, RailTerminals,
 };
 pub use ip::{IpFnInfo, IpInfoOf, IpNotes, IpPairing, IpPairingQ};
+pub use joins::{JoinStyle, JoinWiring, JunctionJoin, WireJoin, wire_join};
 pub use links::{
     BondPath, BondPaths, BondPathsQ, DeclaredLink, FunctionLinks, FunctionLinksOf, RailBonds, RailBondsQ,
     RailTerminal, RailTerminalOf,
@@ -105,6 +108,7 @@ pub use memo_store::MemoStore;
 // The memo engine types a session configures and reads (oracle mode, statistics, memory).
 pub use ew_memo::{Counters, FamilyMemory, Mismatch, Oracle, Stats};
 pub use flow::{Flow, FlowBfs, FlowConflict, FlowEntry, FlowNotes, Load, PotentialFlow, Upstream};
+pub use flow_distance::{CpFlowDistanceOf, CpFlowDistances};
 pub use names::{PotentialAttrsOf, PotentialAttrsV, PotentialNameOf, PotentialNames, potential_named};
 pub use nets::{CpRef, LocalNet, LocalNets, NetId, NetMember, PageLocalNets, joins_net};
 pub use note::{DeriveNote, EW_CORE_018, NoteSeverity, SchemeIssue};
@@ -139,7 +143,7 @@ pub use structure::{
     DEVICE_ASPECTS, DevicesByStructure, NodePath, PAGE_ASPECTS, PageStructure, ResolvedSlot,
     ResolvedStructure, SlotSource, StructureOf, StructurePath,
 };
-pub use tag::{DeviceTag, DisplayedTag, MainFunction, MainRep, Tag, TagSource};
+pub use tag::{DeviceTag, DisplayedTag, MainFunction, MainRep, Tag, TagSource, rule_product};
 pub use title_block::{TbValue, TitleBlock, TitleBlockValues};
 pub use toc::{TocRow, TocRows};
 pub use tracker::{ColdTracker, DepKey, IxKey, Recorded, RecordingTracker, Tracker};
@@ -191,6 +195,7 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (ChannelStates::FAMILY, ChannelStates::POLICY),
     (ChannelTargets::FAMILY, ChannelTargets::POLICY),
     (ChannelTexts::FAMILY, ChannelTexts::POLICY),
+    (CpFlowDistanceOf::FAMILY, CpFlowDistanceOf::POLICY),
     (DefPoints::FAMILY, DefPoints::POLICY),
     (xref::DeviceBoxes::FAMILY, xref::DeviceBoxes::POLICY),
     (DevicePartLines::FAMILY, DevicePartLines::POLICY),
