@@ -50,6 +50,47 @@
         }
       ]
     },
+    "AnchorPolicy": {
+      "description": "Where a symbol's cross-reference anchor lies (FR-SYM-010).",
+      "oneOf": [
+        {
+          "const": "origin",
+          "description": "The symbol origin (the default).",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The position of a text slot.",
+          "properties": {
+            "slot": {
+              "$ref": "#/$defs/SlotKind"
+            }
+          },
+          "required": [
+            "slot"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "graphic_centre",
+          "description": "The centre of the graphics.",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A named point.",
+          "properties": {
+            "named": {
+              "$ref": "#/$defs/Pt2"
+            }
+          },
+          "required": [
+            "named"
+          ],
+          "type": "object"
+        }
+      ]
+    },
     "Angle2": {
       "description": "An angle in 10^-3 degree, counter-clockwise on the sheet, within the i32 range (doc 05 §3.2).",
       "maximum": 2147483647,
@@ -811,6 +852,90 @@
       "pattern": "^sha256:[0-9a-f]{64}$",
       "type": "string"
     },
+    "SlotKind": {
+      "description": "What a text slot prints (doc 07 §2.3).",
+      "oneOf": [
+        {
+          "const": "tag",
+          "description": "Device tag.",
+          "type": "string"
+        },
+        {
+          "const": "function_text",
+          "description": "Function text.",
+          "type": "string"
+        },
+        {
+          "const": "tech_data",
+          "description": "Technical data.",
+          "type": "string"
+        },
+        {
+          "const": "manufacturer",
+          "description": "Manufacturer.",
+          "type": "string"
+        },
+        {
+          "const": "part_number",
+          "description": "Part number.",
+          "type": "string"
+        },
+        {
+          "const": "type_designation",
+          "description": "Type designation.",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Designation of CP `idx`.",
+          "properties": {
+            "cp_designation": {
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "cp_designation"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "xref",
+          "description": "Cross-reference.",
+          "type": "string"
+        },
+        {
+          "const": "plc_address",
+          "description": "PLC address.",
+          "type": "string"
+        },
+        {
+          "const": "process_tag",
+          "description": "Process tag.",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A user property.",
+          "properties": {
+            "user_prop": {
+              "$ref": "#/$defs/Ident"
+            }
+          },
+          "required": [
+            "user_prop"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "contact_image",
+          "description": "Contact image.",
+          "type": "string"
+        }
+      ]
+    },
     "SlotOverride": {
       "additionalProperties": true,
       "description": "An override of one text slot of the symbol (by index into `SymbolDef.text_slots`).",
@@ -959,6 +1084,17 @@
       "maximum": 65535,
       "minimum": 0,
       "type": "integer"
+    },
+    "anchor": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AnchorPolicy"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The cross-reference anchor policy of this representation (FR-SYM-010, D-14, MF-13); absent: the symbol\ncopy's policy. Set by `rep.set_anchor_policy`; an optional member without cascade semantics, additive\nwithin format 0.1 (ADR-0011 amendment 4, decision log ID-334)."
     },
     "arrangement": {
       "anyOf": [

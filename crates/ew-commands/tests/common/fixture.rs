@@ -288,6 +288,7 @@ pub fn rep(rep_id: Id<Representation>, page: Id<Page>, functions: Vec<Id<Functio
         pin_map: Default::default(),
         text_slots: Default::default(),
         arrangement: None,
+        anchor: None,
         box_: None,
         source_ref: None,
         extra: Extra::new(),

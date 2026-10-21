@@ -41,17 +41,17 @@ use ew_ids::Id;
 use ew_mltext::{Ident, LangTag, MlText, MlTextView};
 use ew_model::AnyRow;
 use ew_schema::{
-    Address, Arrangement, Bond, BoxCp, BoxSpec, Cable, CableCore, Conductor, Connection, ConnectionKind,
-    CpData, CpDef, CpOverride, DataArea, Device, DeviceAspects, ExternalRef, ExtraVariant, FnDef, FnFlags,
-    FormCell, FormDef, Formatting, FrameColumns, FrameGrid, FrameRows, FreeProp, FrozenTag, Function,
-    FunctionKind, ImportLineage, InternalLinkDef, IpPairing, IpSpec, ItemMeta, ItemStatus, Junction, Keyed,
-    KeyedList, LevelSpec, LibCopy, LibRef, LineageAnchor, LineageCopy, ManualSelection, MasterData,
-    NamedPoint, NumberSpec, Open, Overflow, Page, Part, PartRef, PartSections, PartUse, Party, PinMapEntry,
-    PotentialDef, PotentialEnv, Primitive, Project, ProjectLanguages, ProjectSettings, Quantity, ReportBlock,
-    ReportSource, Representation, RowTemplate, RowTemplates, Section, Set, SlotOverride, SortKey, SourceRef,
-    SqlQuery, Strip, StripAccessory, StructureAssignment, StructureNode, SupplyOrigin, SupplySpec, SymbolCp,
-    SymbolDef, TagSpec, TechValue, TemplateFn, Terminal, TerminalGroup, TextSlot, WireFlags, WireOverrides,
-    WireProps,
+    Address, AnchorPolicy, Arrangement, Bond, BoxCp, BoxSpec, Cable, CableCore, Conductor, Connection,
+    ConnectionKind, CpData, CpDef, CpOverride, DataArea, Device, DeviceAspects, ExternalRef, ExtraVariant,
+    FnDef, FnFlags, FormCell, FormDef, Formatting, FrameColumns, FrameGrid, FrameRows, FreeProp, FrozenTag,
+    Function, FunctionKind, ImportLineage, InternalLinkDef, IpPairing, IpSpec, ItemMeta, ItemStatus,
+    Junction, Keyed, KeyedList, LevelSpec, LibCopy, LibRef, LineageAnchor, LineageCopy, ManualSelection,
+    MasterData, NamedPoint, NumberSpec, Open, Overflow, Page, Part, PartRef, PartSections, PartUse, Party,
+    PinMapEntry, PotentialDef, PotentialEnv, Primitive, Project, ProjectLanguages, ProjectSettings, Quantity,
+    ReportBlock, ReportSource, Representation, RowTemplate, RowTemplates, Section, Set, SlotOverride,
+    SortKey, SourceRef, SqlQuery, Strip, StripAccessory, StructureAssignment, StructureNode, SupplyOrigin,
+    SupplySpec, SymbolCp, SymbolDef, TagSpec, TechValue, TemplateFn, Terminal, TerminalGroup, TextSlot,
+    WireFlags, WireOverrides, WireProps,
 };
 use serde_json::Value;
 
@@ -546,9 +546,19 @@ impl HeapSize for Representation {
             + self.pin_map.heap_size()
             + self.text_slots.heap_size()
             + self.arrangement.heap_size()
+            + self.anchor.heap_size()
             + self.box_.heap_size()
             + self.source_ref.heap_size()
             + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for AnchorPolicy {
+    fn heap_size(&self) -> usize {
+        match self {
+            AnchorPolicy::Unknown(v) => v.heap_size(),
+            _ => 0,
+        }
     }
 }
 

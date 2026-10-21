@@ -296,6 +296,7 @@ pub(crate) fn rep(
         pin_map: Default::default(),
         text_slots: Default::default(),
         arrangement: None,
+        anchor: None,
         box_: None,
         source_ref: None,
         extra: Extra::new(),

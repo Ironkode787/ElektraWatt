@@ -160,11 +160,18 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`rep.set_anchor_policy`: sets the cross-reference anchor policy of representations (FR-SYM-010; the\nquick fix of MF-13, doc 07 §3.6).\n\nThe policy lives on the symbol copy a representation uses (`Representation.symbol`), so the command\nupdates `LibCopy<SymbolDef>.item.anchor` of each distinct symbol copy once; a copy that already holds\nthe policy is left untouched. `anchor` is `origin`, `graphic_centre`, `{\"slot\": <kind>}` or\n`{\"named\": [x, y]}`; an unknown (newer-format) policy is rejected. Rejections: an empty or duplicated\n`reps` list, an unknown policy; a missing representation or symbol copy is not found. Cost: interactive.\nOutcome: none, with one notice per changed symbol copy that representations outside `reps` also use.",
+  "description": "`rep.set_anchor_policy`: sets the cross-reference anchor policy of representations (FR-SYM-010; the\nquick fix of MF-13, doc 07 §3.6).\n\nThe policy is a per-representation override, `Representation.anchor` (owner ruling, cycle 14): `anchor`\nis `origin`, `graphic_centre`, `{\"slot\": <kind>}` or `{\"named\": [x, y]}`, and `null` removes the override,\nso the representation follows its symbol copy's policy again. Other representations of the same symbol\ncopy keep theirs. A representation that already holds the value is left untouched. Rejections: an empty\nor duplicated `reps` list, an unknown (newer-format) policy; a missing representation is not found. Cost:\ninteractive. Outcome: none.",
   "properties": {
     "anchor": {
-      "$ref": "#/$defs/AnchorPolicy",
-      "description": "The cross-reference anchor policy (FR-SYM-010): `origin`, `graphic_centre`, `{\"slot\": <kind>}`,\n`{\"named\": [x, y]}`."
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AnchorPolicy"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The cross-reference anchor policy (FR-SYM-010): `origin`, `graphic_centre`, `{\"slot\": <kind>}`,\n`{\"named\": [x, y]}`; `null` resets to the symbol copy's policy."
     },
     "reps": {
       "description": "The representations, at least one; each at most once.",
@@ -176,8 +183,7 @@
     }
   },
   "required": [
-    "reps",
-    "anchor"
+    "reps"
   ],
   "title": "rep.set_anchor_policy",
   "type": "object"

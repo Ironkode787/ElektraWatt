@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::json::{Extra, de_extra, is_default, is_false, is_v1, v1};
-use crate::library::{Dir4, FormDef, Primitive, RepType, SymbolDef};
+use crate::library::{AnchorPolicy, Dir4, FormDef, Primitive, RepType, SymbolDef};
 use crate::proxy::{Angle2S, GridS, IdentS, MlTextS, Orient2S, Pt2S, UuidS};
 use crate::set::{KeyedList, Set, keyed};
 use crate::track::open_enum;
@@ -190,6 +190,11 @@ pub struct Representation {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<IdentS>")]
     pub arrangement: Option<Ident>,
+    /// The cross-reference anchor policy of this representation (FR-SYM-010, D-14, MF-13); absent: the symbol
+    /// copy's policy. Set by `rep.set_anchor_policy`; an optional member without cascade semantics, additive
+    /// within format 0.1 (ADR-0011 amendment 4, decision log ID-334).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub anchor: Option<AnchorPolicy>,
     /// Black-box outline and CPs, drawn with the built-in symbol `ew.gen.blackbox`.
     #[serde(rename = "box", default, skip_serializing_if = "Option::is_none")]
     pub box_: Option<BoxSpec>,

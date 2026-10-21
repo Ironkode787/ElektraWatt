@@ -821,6 +821,7 @@ pub(crate) fn emit_representations(cx: &mut Cx<'_>, table: Option<&Table>) {
             pin_map: KeyedList::default(),
             text_slots: KeyedList::default(),
             arrangement,
+            anchor: None,
             box_,
             source_ref: Some(source_ref("representations", row.key())),
             extra: Default::default(),

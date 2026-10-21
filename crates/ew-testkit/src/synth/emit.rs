@@ -585,6 +585,7 @@ pub(super) fn emit(plan: &Plan, seed: u64, options: &Options) -> Generated {
             pin_map: Default::default(),
             text_slots: Default::default(),
             arrangement: None,
+            anchor: None,
             box_: None,
             source_ref: None,
             extra: Extra::new(),

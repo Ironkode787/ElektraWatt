@@ -289,6 +289,7 @@ impl Command for PlaceSymbol {
             pin_map: Default::default(),
             text_slots: Default::default(),
             arrangement: None,
+            anchor: None,
             box_: None,
             source_ref: None,
             extra: Extra::new(),
@@ -716,12 +717,12 @@ impl Command for TransformReps {
 /// `rep.set_anchor_policy`: sets the cross-reference anchor policy of representations (FR-SYM-010; the
 /// quick fix of MF-13, doc 07 §3.6).
 ///
-/// The policy lives on the symbol copy a representation uses (`Representation.symbol`), so the command
-/// updates `LibCopy<SymbolDef>.item.anchor` of each distinct symbol copy once; a copy that already holds
-/// the policy is left untouched. `anchor` is `origin`, `graphic_centre`, `{"slot": <kind>}` or
-/// `{"named": [x, y]}`; an unknown (newer-format) policy is rejected. Rejections: an empty or duplicated
-/// `reps` list, an unknown policy; a missing representation or symbol copy is not found. Cost: interactive.
-/// Outcome: none, with one notice per changed symbol copy that representations outside `reps` also use.
+/// The policy is a per-representation override, `Representation.anchor` (owner ruling, cycle 14): `anchor`
+/// is `origin`, `graphic_centre`, `{"slot": <kind>}` or `{"named": [x, y]}`, and `null` removes the override,
+/// so the representation follows its symbol copy's policy again. Other representations of the same symbol
+/// copy keep theirs. A representation that already holds the value is left untouched. Rejections: an empty
+/// or duplicated `reps` list, an unknown (newer-format) policy; a missing representation is not found. Cost:
+/// interactive. Outcome: none.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SetAnchorPolicy {
@@ -730,8 +731,8 @@ pub struct SetAnchorPolicy {
     #[schemars(length(min = 1))]
     pub reps: Vec<Id<Representation>>,
     /// The cross-reference anchor policy (FR-SYM-010): `origin`, `graphic_centre`, `{"slot": <kind>}`,
-    /// `{"named": [x, y]}`.
-    pub anchor: AnchorPolicy,
+    /// `{"named": [x, y]}`; `null` resets to the symbol copy's policy.
+    pub anchor: Option<AnchorPolicy>,
 }
 
 impl Command for SetAnchorPolicy {
@@ -759,46 +760,25 @@ impl Command for SetAnchorPolicy {
                 ));
             }
         }
-        if matches!(self.anchor, AnchorPolicy::Unknown(_)) {
+        if matches!(self.anchor, Some(AnchorPolicy::Unknown(_))) {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "/anchor",
                 "unknown anchor policy",
             ));
         }
-        let mut symbols: Vec<Id<SymbolDef>> = Vec::new();
         for id in &self.reps {
             let rep = tx.require::<Representation>(*id)?;
-            tx.require::<LibCopy<SymbolDef>>(rep.symbol)?;
-            if !symbols.contains(&rep.symbol) {
-                symbols.push(rep.symbol);
-            }
-        }
-        let mut notices = Vec::new();
-        for sym in symbols {
-            if tx.require::<LibCopy<SymbolDef>>(sym)?.item.anchor == self.anchor {
+            if rep.anchor == self.anchor {
                 continue;
             }
-            tx.update::<LibCopy<SymbolDef>>(sym, |c| c.item.anchor = self.anchor.clone())?;
-            let others = tx
-                .iter::<Representation>()
-                .iter()
-                .filter(|r| r.symbol == sym && !seen.contains(&r.id))
-                .count();
-            if others > 0 {
-                notices.push(format!(
-                    "symbol copy {sym}: the anchor policy also applies to {others} other representation(s)"
-                ));
-            }
+            tx.update::<Representation>(*id, |r| r.anchor = self.anchor.clone())?;
         }
-        Ok(Outcome {
-            notices,
-            ..Outcome::default()
-        })
+        Ok(Outcome::default())
     }
 }
 
-/// The functions a representation draws: its `functions` and the functions of its pin map.
+// The functions a representation draws: its `functions` and the functions of its pin map.
 fn drawn_functions(rep: &Representation) -> BTreeSet<Id<Function>> {
     rep.functions
         .iter()

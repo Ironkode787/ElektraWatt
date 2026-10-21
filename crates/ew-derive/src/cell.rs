@@ -366,8 +366,8 @@ fn letter(r: u32, skip_io: bool) -> Option<String> {
 // rep_anchor_cell
 
 /// The anchor point of a representation on its page, in nm: `rep.pos + rep.orient.apply(anchor)` with the
-/// anchor taken from the symbol's [`AnchorPolicy`] (FR-SYM-010) in symbol coordinates; `None` for a missing
-/// representation or symbol copy, or on overflow.
+/// anchor taken from the representation's [`AnchorPolicy`] override, else its symbol's (FR-SYM-010), in
+/// symbol coordinates; `None` for a missing representation or symbol copy, or on overflow.
 ///
 /// - `Origin`, `Unknown` and a `Slot` without a matching slot: the symbol origin.
 /// - `Named(p)`: `p`.
@@ -387,9 +387,10 @@ pub fn anchor_point(q: &Q, rep: Id<Representation>) -> Option<Pt2> {
     rep.pos.checked_add(offset)
 }
 
-/// The anchor in symbol coordinates.
+/// The anchor in symbol coordinates, from the representation's own policy (`Representation.anchor`, set by
+/// `rep.set_anchor_policy`) or else its symbol copy's.
 fn symbol_anchor(symbol: &SymbolDef, rep: &Representation) -> Option<Pt2> {
-    match &symbol.anchor {
+    match rep.anchor.as_ref().unwrap_or(&symbol.anchor) {
         AnchorPolicy::Origin | AnchorPolicy::Unknown(_) => Some(Pt2::ORIGIN),
         AnchorPolicy::Named(p) => Some(*p),
         AnchorPolicy::Slot(kind) => {

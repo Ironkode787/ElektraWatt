@@ -400,6 +400,7 @@ impl Mx<'_, '_> {
             pin_map: Default::default(),
             text_slots: Default::default(),
             arrangement: None,
+            anchor: None,
             box_: None,
             source_ref: Some(ids.source_ref(&rkey)),
             extra: BTreeMap::new(),
