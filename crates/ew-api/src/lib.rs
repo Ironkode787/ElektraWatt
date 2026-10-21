@@ -715,7 +715,7 @@ impl Session {
     /// # Errors
     ///
     /// [`SaveError`]; without a project directory, [`SaveError::ReadOnly`] with
-    /// [`ReadOnlyReason::Requested`](ew_store::ReadOnlyReason::Requested). After the commit point of this
+    /// [`ew_store::ReadOnlyReason::Requested`]. After the commit point of this
     /// save ([`SaveError::Incomplete`] of a generation above the one before the call) the generation is
     /// decided: the session counts as saved and the store completes the save by roll-forward
     /// ([`Session::retry_save`]). Every other error, [`SaveError::PendingIncomplete`] (an earlier save is
