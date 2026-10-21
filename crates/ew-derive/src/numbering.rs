@@ -12,7 +12,8 @@
 //!
 //! 1. the page of the wire's From end (the page order of the drawn pages),
 //! 2. the From end's frame cell, column then row,
-//! 3. the To end's frame cell, column then row,
+//! 3. the To end's page, then the To end's frame cell, column then row (the To page compares first: a wire to
+//!    another page sorts after the wires that stay on the From page; ruling of cycle 13),
 //! 4. the wire ID.
 //!
 //! The From end is the end [`orient_wire`] puts first (doc 08 §3.8). The cell of an end is the cell of the CP's
@@ -108,8 +109,8 @@ impl Query for WireNumbers {
 /// A frame cell as the sort key `(column, row)`; `(MAX, MAX)` when the end has none.
 type CellKey = (u32, u32);
 
-/// The sort key of a wire: page position, From cell, To cell, wire ID.
-type Key = (usize, CellKey, CellKey, Id<Connection>);
+/// The sort key of a wire: From page position, From cell, To page position, To cell, wire ID.
+type Key = (usize, CellKey, usize, CellKey, Id<Connection>);
 
 struct Entry {
     key: Key,
@@ -142,7 +143,10 @@ fn number_wires(q: &Q) -> WireNumbersV {
             _ => None,
         });
     }
-    let group_of = |i: usize| (entries[i].1.key.0, entries[i].1.key.1, entries[i].1.key.2);
+    let group_of = |i: usize| {
+        let k = &entries[i].1.key;
+        (k.0, k.1, k.2, k.3)
+    };
     let mut ties: Vec<Option<(u32, u32)>> = vec![None; entries.len()];
     let mut i = 0;
     while i < entries.len() {
@@ -198,11 +202,19 @@ fn entry(q: &Q, order: &crate::pages::PageOrderV, wire: &PhysicalWire) -> Entry 
         page.and_then(|p| cp_cell(q, end.cp.function, end.cp.idx, p))
             .map_or((u32::MAX, u32::MAX), |c| (c.column, c.row))
     };
-    let pos = from_page
-        .and_then(|p| order.position(PageRef::Drawn(p)))
-        .unwrap_or(usize::MAX);
+    let position = |page: Option<Id<Page>>| {
+        page.and_then(|p| order.position(PageRef::Drawn(p)))
+            .unwrap_or(usize::MAX)
+    };
+    let pos = position(from_page);
     Entry {
-        key: (pos, cell(&w.ends[0], from_page), cell(&w.ends[1], to_page), w.id),
+        key: (
+            pos,
+            cell(&w.ends[0], from_page),
+            position(to_page),
+            cell(&w.ends[1], to_page),
+            w.id,
+        ),
         page: from_page.filter(|_| pos != usize::MAX),
         core: w.core.is_some(),
     }
@@ -210,8 +222,10 @@ fn entry(q: &Q, order: &crate::pages::PageOrderV, wire: &PhysicalWire) -> Entry 
 
 /// Puts the From end of a wire first (doc 08 §3.8 "Orientation (From/To)", FR-CON-040): on different pages
 /// the end on the earlier page in the page order; otherwise the end with the smaller anchor cell (row, then
-/// column), then the smaller CP ID. The page of an end is the page of the constituent that ends there.
-/// Returns whether the ends were swapped.
+/// column), then the smaller CP ID. The page of an end is the page of the constituent that ends there. A
+/// function that no representation draws on the page, a terminal drawn only by a strip segment, has no
+/// anchor: its cell is that of its CP in the segment (doc 08 §6.7, [`cp_cell`]). Returns whether the ends
+/// were swapped.
 ///
 /// The flow-distance step of the rule (hops over wires, bridges and terminal shorts from the points where
 /// the potential enters) is not applied: it needs a per-CP flow distance that this crate does not expose
@@ -239,6 +253,7 @@ pub fn orient_wire(q: &Q, w: &mut PhysicalWire) -> bool {
                 reps.sort();
                 reps.first()
                     .and_then(|r| q.get::<RepAnchorCell>(*r).as_ref().clone())
+                    .or_else(|| cp_cell(q, e.cp.function, e.cp.idx, page))
                     .map_or((u32::MAX, u32::MAX), |c| (c.row, c.column))
             };
             let page = pa.or(pb);

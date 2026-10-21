@@ -174,6 +174,34 @@ fn with_golden_pages(f: impl FnOnce(&[GoldenPage])) {
     f(&golden_pages(&q));
 }
 
+/// `ew-derive`'s `cp_point` (the position of a function CP on a page, which the wire numbers read) and the page
+/// scene's CP positions are the same geometry written twice; they agree on every CP of every golden page, the
+/// terminals in strip segments and the black-box CPs included.
+#[test]
+fn cp_point_equals_the_cp_points_of_the_page_scene() {
+    let s = golden_session(None);
+    let q = s.query();
+    let mut checked = 0;
+    let mut in_segments = 0;
+    for g in golden_pages(&q) {
+        for ((function, idx), at) in ew_scene::page::cp_points(&g.view) {
+            let function = Id::from_uuid(function);
+            assert_eq!(
+                ew_derive::cp_point(&q, function, idx, g.view.page),
+                Some(at),
+                "CP {idx} of {function} on folio {}",
+                g.entry.folio
+            );
+            checked += 1;
+            if g.view.reps.iter().any(|r| !r.terminals.is_empty()) {
+                in_segments += 1;
+            }
+        }
+    }
+    assert!(checked > 150, "{checked} CPs compared");
+    assert!(in_segments > 0, "pages with strip segments were compared");
+}
+
 #[test]
 fn the_text_csv_of_every_folio_matches_the_committed_file() {
     with_golden_pages(|pages| {

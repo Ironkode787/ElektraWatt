@@ -435,6 +435,13 @@ struct Builder<'a> {
 /// A drawn CP: its position and the direction a wire leaves it.
 type CpMap = BTreeMap<(Uuid, u16), (Pt2, Dir4)>;
 
+/// The point of every function CP the page draws, by `(function, CP index)`: the CP positions of the page scene
+/// without the directions. `ew-derive`'s `cp_point` restates these rules over `Q` (the wire numbers order
+/// wires by the cell of their ends), and a test holds the two equal on the golden pages.
+pub fn cp_points(view: &PageView) -> BTreeMap<(Uuid, u16), Pt2> {
+    cp_map(view).into_iter().map(|(k, (pos, _))| (k, pos)).collect()
+}
+
 fn sorted_reps(view: &PageView) -> Vec<&RepView> {
     let mut reps: Vec<&RepView> = view.reps.iter().collect();
     reps.sort_by_key(|r| r.rep.id);
