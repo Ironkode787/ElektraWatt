@@ -47,6 +47,15 @@ lines AS (
               ELSE w.csa_source || '/' || w.colour_source END AS source,
          nullif(concat_ws('; ',
                           CASE WHEN w.core IS NOT NULL THEN w.cable_tag || ' ' || w.core END,
+                          -- The junction by its place and wiring (doc 08 §3.2, D-20).
+                          CASE WHEN w.junction_style IS NOT NULL THEN
+                            w.junction_cell || ' ' || w.junction_wiring
+                            || coalesce((SELECT CASE w.junction_wiring WHEN 'star' THEN ' at ' ELSE ' on ' END
+                                                || group_concat(value, ', ' ORDER BY key)
+                                         FROM json_each(w.junction_cps)), '')
+                          END,
+                          -- Daisy chains: two conductors on one clamp (FR-CON-006).
+                          (SELECT 'chain on ' || group_concat(value, ', ' ORDER BY key) FROM json_each(w.chain_cps)),
                           (SELECT 'IP ' || group_concat(value, ', ' ORDER BY key) FROM json_each(w.ips))),
                 '') AS via,
          CASE WHEN w.wire_part IN ('', 'TBD') THEN 'TBD' ELSE w.wire_part END AS part,

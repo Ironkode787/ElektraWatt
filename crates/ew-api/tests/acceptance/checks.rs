@@ -1312,11 +1312,7 @@ fn defects(r: &mut Runner) {
     r.entry(
         "D-03",
         "the numbering report lists the frozen tags (EF-15)",
-        |_| {
-            not_built(
-                "rule EW-NUM-001 (EF-15: a frozen tag that deviates from the scheme reports at info, FR-CHK-025) is not in ew-checks (FT-192), and no numbering report lists the frozen tags (FR-NUM-022)",
-            )
-        },
+        d03_frozen,
     );
     r.entry_from(
         "D-04",
@@ -1355,10 +1351,15 @@ fn defects(r: &mut Runner) {
     );
     r.entry(
         "D-06",
+        "an override is reported as info (EW-CORE-023)",
+        d06_override_info,
+    );
+    r.entry(
+        "D-06",
         "an override is reported as info and shown in the property grid",
         |_| {
             not_built(
-                "rule EW-CORE-023 (title-block override, info, doc 15 §4, FR-REP-036) is not in ew-checks (WP-S1.16), and the property grid (FR-UI-009) does not exist",
+                "the property grid (FR-UI-009) does not exist; the info half is the entry above (EW-CORE-023)",
             )
         },
     );
@@ -1420,9 +1421,11 @@ fn defects(r: &mut Runner) {
             fail(format!("-201U1 prints \"{text}\""))
         }
     });
-    r.entry("D-14", "forcing the origin anchor reports \"3-B0: empty cell\"", |_| {
-        not_built("no command sets a representation's anchor policy, and rule EW-CORE-053 (cross-reference cell invalid, FR-CHK-035) is not in ew-checks (WP-S1.16)")
-    });
+    r.entry(
+        "D-14",
+        "forcing the origin anchor reports \"3-B0: empty cell\"",
+        d14_origin,
+    );
     r.entry("D-17", "core colour BN is printed, never BR", |c| {
         let q = c.rows_q();
         let set = rows_of(&q, &c.batch, "906");
@@ -1462,9 +1465,11 @@ fn defects(r: &mut Runner) {
             }
         },
     );
-    r.entry("D-20", "W13/W14 are a star at F55:2, W7/W8 a chain on -101F1:1", |_| {
-        not_built("the wire list prints neither the junction nor its wiring style (README, \"Wire list (907)\"), so the wire list cannot show the notation")
-    });
+    r.entry(
+        "D-20",
+        "W13/W14 are a star at F55:2, W7/W8 a chain on -101F1:1",
+        d20,
+    );
     r.entry("D-22", "the 0 V to PE connection is the bond B1", |c| {
         let q = c.oracle.query();
         let bonds = q.bonds().len();
@@ -1482,11 +1487,7 @@ fn defects(r: &mut Runner) {
     r.entry(
         "D-22",
         "a PELV potential without exactly one 0 V-PE bond is reported",
-        |_| {
-            not_built(
-                "rule EW-POT-002 (PELV or SELV bonding, FR-CHK-028) is not in ew-checks (WP-S1.16, no FT row yet): the replacement is reported by EW-POT-001 only",
-            )
-        },
+        d22_pelv,
     );
     r.entry("D-24", "24VDC-1, 0V and PE carry their IP names as aliases", d24);
     r.entry(
@@ -1536,15 +1537,7 @@ fn defects(r: &mut Runner) {
             }
         },
     );
-    r.entry(
-        "D-35",
-        "BOM descriptions per §14, ratings only at symbols",
-        |_| {
-            not_built(
-                "rule EW-CORE-065 (description lint, EF-25, FR-CHK-040) is a 1.0 rule (doc 15 §4) of the 1.0 pack, which ew-checks does not ship yet; the 27-row parts list is D-04",
-            )
-        },
-    );
+    r.entry("D-35", "BOM descriptions per §14, ratings only at symbols", d35);
     r.entry("D-36", "assembly rows A1 and A2, order code on folio 3", |_| {
         not_built("the assembly BOM mode and `ew export bom` do not exist yet (FR-REP-005)")
     });
@@ -1653,34 +1646,6 @@ fn ac05_main_aux(c: &Ctx) -> Outcome {
     }
 }
 
-/// The wires whose number in doc 20 §8.2 is provisional (§8.1, FT-101) and the reason for each. The runner
-/// orients a wire without the flow-distance step of doc 08 §3.8, so these rows may differ from the table until
-/// FT-101 lands: a difference there is reported in the reason, not a failure. Any other row must be equal.
-const FT101_ROWS: [(u32, &str); 7] = [
-    (
-        1,
-        "the supply end J-E-206-L is From in doc 20, the runner starts at 1X1:1",
-    ),
-    (
-        2,
-        "the supply end J-E-206-N is From in doc 20, the runner starts at 1X1:2",
-    ),
-    (
-        3,
-        "the supply end J-E-206-PE is From in doc 20, the runner starts at 1X1:PE",
-    ),
-    (4, "1X1:1 is From in doc 20, the runner starts at S51:2"),
-    (5, "1X1:2 is From in doc 20, the runner starts at S51:4"),
-    (
-        7,
-        "shares the From page and cells with W4 and W5, so its counter follows their orientation",
-    ),
-    (
-        9,
-        "shares the From page and cells with W4 and W5, so its counter follows their orientation",
-    ),
-];
-
 /// The "No." column of doc 20 §8.2 (`expected/wire_numbers_8_2.csv`, written from the document by
 /// `tools/tables_from_doc20.py`): wire number to its printed number.
 fn doc20_numbers() -> BTreeMap<u32, String> {
@@ -1701,8 +1666,8 @@ fn doc20_numbers() -> BTreeMap<u32, String> {
 /// AC-09, D-09: the wire numbers of doc 20 §8.1 (FT-100): connection-oriented `{page}.{counter}`, counter scope
 /// page, W1 to W34 numbered and the ten cable cores W35 to W44 not (FR-NUM-019), numbers not printed on the
 /// pages. The numbers equal the "No." column of doc 20 §8.2, which holds the numbers this runner computes
-/// (section 8.1); the rows of [`FT101_ROWS`] are the one known-deviation list. The same numbers come out of a
-/// model with reversed records.
+/// (section 8.1); since FT-101 (the flow-distance step of the orientation) there is no known deviation. The
+/// same numbers come out of a model with reversed records.
 fn ac09_numbers(c: &Ctx) -> Outcome {
     let numbers_of = |s: &Session| -> Vec<(u32, Option<String>)> {
         let q = golden_common::plain(s);
@@ -1717,7 +1682,6 @@ fn ac09_numbers(c: &Ctx) -> Outcome {
     let q = golden_common::plain(&c.profiled);
     let got = numbers_of(&c.profiled);
     let mut wrong = Vec::new();
-    let mut provisional = Vec::new();
     let doc = doc20_numbers();
     let mut labels = BTreeSet::new();
     let mut per_page: BTreeMap<String, Vec<u32>> = BTreeMap::new();
@@ -1725,11 +1689,10 @@ fn ac09_numbers(c: &Ctx) -> Outcome {
         match (*w <= 34, label) {
             (true, Some(l)) => {
                 let (page, counter) = l.split_once('.').unwrap_or((l, ""));
-                match (doc.get(w), FT101_ROWS.iter().find(|(k, _)| k == w)) {
-                    (Some(d), _) if d == l => {}
-                    (Some(d), Some((_, why))) => provisional.push(format!("W{w} is {l}, doc 20 {d} ({why})")),
-                    (Some(d), None) => wrong.push(format!("W{w} is {l}, doc 20 §8.2 has {d}")),
-                    (None, _) => wrong.push(format!("doc 20 §8.2 has no number for W{w}")),
+                match doc.get(w) {
+                    Some(d) if d == l => {}
+                    Some(d) => wrong.push(format!("W{w} is {l}, doc 20 §8.2 has {d}")),
+                    None => wrong.push(format!("doc 20 §8.2 has no number for W{w}")),
                 }
                 if !labels.insert(l.clone()) {
                     wrong.push(format!("{l} is given twice"));
@@ -1774,13 +1737,8 @@ fn ac09_numbers(c: &Ctx) -> Outcome {
         wrong.push("a model with reversed records numbers the wires differently".to_owned());
     }
     if wrong.is_empty() {
-        let known = if provisional.is_empty() {
-            "W1-W5, W7 and W9 (provisional until FT-101) equal it too".to_owned()
-        } else {
-            format!("known deviations (FT-101): {}", provisional.join("; "))
-        };
         pass(format!(
-            "W1-W34 carry {} unique `{{page}}.{{counter}}` numbers (counters 1..n per page) equal to the \"No.\" column of doc 20 §8.2; {known}; W35-W44 (cable cores) none; folio 907 prints them; the same numbers with reversed records",
+            "W1-W34 carry {} unique `{{page}}.{{counter}}` numbers (counters 1..n per page) equal to the \"No.\" column of doc 20 §8.2, with no known deviation (the From ends follow the flow-distance step, FT-101); W35-W44 (cable cores) none; folio 907 prints them; the same numbers with reversed records",
             labels.len()
         ))
     } else {
@@ -2888,5 +2846,305 @@ fn ac14_parallel(c: &Ctx) -> Outcome {
         ))
     } else {
         fail(list(wrong, 3))
+    }
+}
+
+/// The open findings of `rule` in a pre-delivery release run of a session.
+fn open_findings(s: &Session, rule: &str) -> Vec<ew_api::checks::Finding> {
+    s.check(&PRE_DELIVERY, CheckMode::Release)
+        .findings
+        .into_iter()
+        .filter(|f| f.rule == rule && f.is_open())
+        .collect()
+}
+
+/// The frozen tags of doc 20 §18.1 EF-15, by device key.
+const EF_15: [&str; 7] = ["S51", "F55", "T55", "E55", "S56", "E56", "1X1"];
+
+/// The frozen tags that are ▲U-34 test inputs (doc 20 §2.1 rule 1: -XPE, -UC1 and -UC1-plate are frozen too,
+/// standing in for per-class numbering rules that are not modelled). They deviate from the page rule as the
+/// seven of EF-15 do, so EW-NUM-001 reports them as well; EF-15 does not count them (open ruling, cycle 14).
+const U_34_FROZEN: [&str; 3] = ["-XPE", "-UC1", "-UC1-plate"];
+
+/// D-03: EW-NUM-001 reports the frozen tags of EF-15 at info with their rule-derived values, and the
+/// numbering report (FR-REP-022) lists them. The ▲U-34 frozen inputs are listed apart in the reason.
+fn d03_frozen(c: &Ctx) -> Outcome {
+    let s = golden_common::session_with(&c.batch, |p, _| golden_common::with_profiles(p));
+    let findings = open_findings(&s, "EW-NUM-001");
+    let dev = |key: &str| -> Id<Device> { id_of(c, &format!("devices|{key}")) };
+    let expected: BTreeSet<Id<Device>> = EF_15.iter().chain(U_34_FROZEN.iter()).map(|k| dev(k)).collect();
+    let mut wrong = Vec::new();
+    let mut reported: BTreeSet<Id<Device>> = BTreeSet::new();
+    for f in &findings {
+        let Some(t) = f.targets.first() else { continue };
+        reported.insert(t.id.cast());
+        if f.severity != ew_api::checks::Severity::Info {
+            wrong.push(format!("{} is reported at {}, not info", f.subject, f.severity));
+        }
+        if !f
+            .message
+            .contains("frozen, deviates from scheme (rule-derived value")
+        {
+            wrong.push(format!("{}: {}", f.subject, f.message));
+        }
+    }
+    if reported != expected {
+        let name = |d: &Id<Device>| -> String {
+            c.ids
+                .iter()
+                .find(|(k, v)| k.starts_with("devices|") && **v == d.to_string())
+                .map_or_else(
+                    || d.to_string(),
+                    |(k, _)| k.trim_start_matches("devices|").to_owned(),
+                )
+        };
+        wrong.push(format!(
+            "EW-NUM-001 reports {}, expected {}",
+            list(reported.iter().map(name), 12),
+            list(expected.iter().map(name), 12)
+        ));
+    }
+    // The numbering report lists the same devices, each "deviates".
+    let q = golden_common::plain(&s);
+    let block = q
+        .report_blocks()
+        .get(golden_common::block(&c.batch, "907"))
+        .expect("block 907");
+    let set = ew_reports::ReportKindDef::rows(&ew_reports::kinds::NumberingReport, &q, block);
+    let listed: BTreeSet<Id<Device>> = set
+        .rows
+        .iter()
+        .filter_map(|r| match r.cells.first() {
+            Some(ew_reports::Cell::Tag(d)) => Some(*d),
+            _ => None,
+        })
+        .collect();
+    let status = set.column("status").expect("the status column");
+    let deviating = (0..set.rows.len())
+        .filter(|i| texts(&q, &set, *i)[status] == "deviates")
+        .count();
+    if listed != expected || deviating != expected.len() {
+        wrong.push(format!(
+            "the numbering report lists {} frozen tags ({deviating} deviating), expected {}",
+            listed.len(),
+            expected.len()
+        ));
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "EW-NUM-001 reports the 7 frozen tags of EF-15 ({}) at info as \"frozen, deviates from scheme\" with their rule-derived values, and the numbering report (FR-REP-022) lists them; both also list the 3 ▲U-34 frozen test inputs ({}), which EF-15 does not count (open ruling)",
+            EF_15.join(", "),
+            U_34_FROZEN.join(", ")
+        ))
+    } else {
+        fail(list(wrong, 4))
+    }
+}
+
+/// D-06: an override set on folio 101 is reported by EW-CORE-023 at info, naming the page; Golden A has none.
+fn d06_override_info(c: &Ctx) -> Outcome {
+    let mut s = golden_common::session(&c.batch);
+    let before = open_findings(&s, "EW-CORE-023");
+    if !before.is_empty() {
+        return fail(format!("Golden A already reports {} override(s)", before.len()));
+    }
+    let cmd = ew_api::AnyCommand {
+        name: "fields.set".into(),
+        params: serde_json::json!({
+            "kind": "page",
+            "targets": [c.ids["pages|101"]],
+            "path": "description_override",
+            "value": {"en": "Override text"},
+        }),
+    };
+    if let Err(e) = s.execute(&cmd) {
+        return fail(format!("the override was rejected: {e:?}"));
+    }
+    let page: Id<ew_schema::Page> = id_of(c, "pages|101");
+    let after = open_findings(&s, "EW-CORE-023");
+    match after.as_slice() {
+        [f] if f.severity == ew_api::checks::Severity::Info && f.page == Some(page) => pass(format!(
+            "Golden A reports none; after the override EW-CORE-023 reports one info on folio 101: \"{}\" (quick fix \"{}\")",
+            f.message,
+            f.fix.as_ref().map_or("", |x| x.label.as_str())
+        )),
+        other => fail(format!(
+            "after the override EW-CORE-023 reports {:?}",
+            other
+                .iter()
+                .map(|f| (&f.severity, &f.message))
+                .collect::<Vec<_>>()
+        )),
+    }
+}
+
+/// D-14: `rep.set_anchor_policy` forces the bus port's anchor to its origin; doc 20 §19 expects -201U1 to
+/// print "3-B0" and EW-CORE-053 to report "3-B0: empty cell", whose quick fix (the graphics centre) restores
+/// "3-B2". Golden A reports no EW-CORE-053 finding.
+///
+/// The starter symbol `ew.bus.dp-port@qet10` has its origin at the top-left corner of its graphics, inside
+/// cell B2, so on Golden A the origin anchor still prints "3-B2" and the cell is not empty: the "3-B0" of the
+/// reference comes from QET's element origin (Golden C, MF-13). The entry then shows the rule with an anchor
+/// that does leave the graphics, a named point two columns left of the graphics centre, and fails on the
+/// criterion as written (open ruling, cycle 14).
+fn d14_origin(c: &Ctx) -> Outcome {
+    let main: Id<Representation> = id_of(c, "representations|-201U1");
+    let port = c.ids["representations|-201U1#bus"].clone();
+    let xref = |s: &Session| s.query().get::<XrefTextOf>(main).text.clone();
+    let force =
+        |anchor: serde_json::Value| -> Result<(Session, String, Vec<ew_api::checks::Finding>), String> {
+            let mut s = golden_common::session(&c.batch);
+            let cmd = ew_api::AnyCommand {
+                name: "rep.set_anchor_policy".into(),
+                params: serde_json::json!({"reps": [port.clone()], "anchor": anchor}),
+            };
+            s.execute(&cmd)
+                .map_err(|e| format!("rep.set_anchor_policy was rejected: {e:?}"))?;
+            let text = xref(&s);
+            let findings = open_findings(&s, "EW-CORE-053");
+            Ok((s, text, findings))
+        };
+    let golden = golden_common::session(&c.batch);
+    let baseline = open_findings(&golden, "EW-CORE-053");
+    if !baseline.is_empty() {
+        return fail(format!(
+            "Golden A already reports EW-CORE-053: {}",
+            list(baseline.iter().map(|f| f.message.clone()), 3)
+        ));
+    }
+    // The QET frame's column is 60 px (6 grid steps of 7937500/3 nm); the symbol's graphics centre is
+    // (3968750, 5291666) nm (`SymbolDef::graphic_centre`).
+    let named = serde_json::json!({"named": [3_968_750 - 2 * 15_875_000, 5_291_666]});
+    let (origin_text, origin_findings) = match force(serde_json::json!("origin")) {
+        Ok((_, t, f)) => (t, f),
+        Err(e) => return fail(e),
+    };
+    let reported = |f: &[ew_api::checks::Finding]| {
+        f.iter()
+            .find(|f| f.message.starts_with("3-B0: empty cell"))
+            .cloned()
+    };
+    let (mut s, named_text, named_findings) = match force(named) {
+        Ok(v) => v,
+        Err(e) => return fail(e),
+    };
+    let Some(f) = reported(&named_findings) else {
+        return fail(format!(
+            "with a named anchor two columns left of the graphics -201U1 prints \"{named_text}\" and EW-CORE-053 reports {}",
+            list(named_findings.iter().map(|f| f.message.clone()), 3)
+        ));
+    };
+    let Some(fix) = f.fix.clone() else {
+        return fail("the EW-CORE-053 finding offers no quick fix");
+    };
+    if let Err(e) = s.execute(&ew_api::AnyCommand {
+        name: fix.command.clone(),
+        params: fix.params.clone(),
+    }) {
+        return fail(format!("the quick fix was rejected: {e:?}"));
+    }
+    let fixed = xref(&s);
+    let left = open_findings(&s, "EW-CORE-053");
+    if !(named_findings.len() == 1 && fixed.contains("3-B2") && left.is_empty()) {
+        return fail(format!(
+            "{} finding(s) with the named anchor; after the quick fix -201U1 prints \"{fixed}\" and {} remain",
+            named_findings.len(),
+            left.len()
+        ));
+    }
+    let shown = format!(
+        "rep.set_anchor_policy with a named anchor two columns left of the bus port's graphics makes -201U1 print \"{named_text}\" and EW-CORE-053 report \"3-B0: empty cell\" (warning); its quick fix \"{}\" restores \"{fixed}\"; Golden A reports none",
+        fix.label
+    );
+    if reported(&origin_findings).is_some() && origin_text.contains("3-B0") {
+        pass(format!(
+            "the origin anchor prints \"{origin_text}\" and is reported; {shown}"
+        ))
+    } else {
+        fail(format!(
+            "the criterion does not hold on Golden A as written: the origin anchor keeps \"{origin_text}\" (the starter symbol's origin, the top-left corner of its graphics, lies in cell B2, so the cell is not empty and EW-CORE-053 rightly reports nothing; the reference's \"3-B0\" is QET's element origin, Golden C MF-13); {shown} (open ruling: restate D-14 for Golden A)"
+        ))
+    }
+}
+
+/// D-20: the wire list's Via column names the junction with its style and wiring and the daisy chains: W13
+/// and W14 a star at F55:2 (J1 at 101-C11), W7 and W8 a chain on -101F1:1.
+fn d20(c: &Ctx) -> Outcome {
+    let q = golden_common::plain(&c.profiled);
+    let rows = rows_of(&q, &c.batch, "907");
+    let via = rows.column("via").expect("the Via column");
+    let via_of = |w: u32| -> String {
+        let id: Id<ew_schema::Connection> = id_of(c, &format!("connections|W{w}"));
+        rows.rows
+            .iter()
+            .position(|r| r.id == ew_reports::RowId::entity(id))
+            .map(|i| texts(&q, &rows, i)[via].clone())
+            .unwrap_or_default()
+    };
+    let want = [
+        (13, "101-C11 ", "star at F55:2"),
+        (14, "101-C11 ", "star at F55:2"),
+        (7, "", "chain on -101F1:1"),
+        (8, "", "chain on -101F1:1"),
+    ];
+    let mut wrong = Vec::new();
+    let mut shown = Vec::new();
+    for (w, style, wiring) in want {
+        let text = via_of(w);
+        if !(text.contains(style) && text.contains(wiring)) {
+            wrong.push(format!("W{w} prints \"{text}\""));
+        }
+        shown.push(format!("W{w} \"{text}\""));
+    }
+    if wrong.is_empty() {
+        pass(format!("folio 907 prints {}", shown.join(", ")))
+    } else {
+        fail(list(wrong, 4))
+    }
+}
+
+/// D-22: without B1, the PELV potential 0V has no 0 V–PE bond, and EW-POT-002 reports it; Golden A is clean.
+fn d22_pelv(c: &Ctx) -> Outcome {
+    let clean = golden_common::session_with(&c.batch, |p, _| golden_common::with_profiles(p));
+    let baseline = open_findings(&clean, "EW-POT-002");
+    if !baseline.is_empty() {
+        return fail(format!(
+            "Golden A with its bond already reports EW-POT-002: {}",
+            list(baseline.iter().map(|f| f.message.clone()), 2)
+        ));
+    }
+    let bond = c.ids["bonds|B1"].clone();
+    let edited = golden_common::session_with(&c.batch, |p, records| {
+        golden_common::with_profiles(p);
+        records.retain(|r| !matches!(r, Record::Bond(b) if b.id.to_string() == bond));
+    });
+    let reported = open_findings(&edited, "EW-POT-002");
+    match reported.as_slice() {
+        [f] if f.severity == ew_api::checks::Severity::Error => pass(format!(
+            "Golden A is clean; without B1 EW-POT-002 reports one error: \"{}\"",
+            f.message
+        )),
+        other => fail(format!(
+            "without B1 EW-POT-002 reports {}",
+            list(other.iter().map(|f| f.message.clone()), 3)
+        )),
+    }
+}
+
+/// D-35: EW-CORE-065, the description lint of the EW-CORE pack's 1.0 content (doc 15 §4.2), over the part
+/// descriptions of Golden A: EF-25 expects none (the seeded "10A C" of D-18 is a unit test of the rule).
+fn d35(c: &Ctx) -> Outcome {
+    let s = golden_common::session_with(&c.batch, |p, _| golden_common::with_profiles(p));
+    let found = open_findings(&s, "EW-CORE-065");
+    if found.is_empty() {
+        pass(
+            "EW-CORE-065 (1.0 content of the EW-CORE pack, run in release mode) reports no part description of Golden A (EF-25); the 27-row parts list is D-04",
+        )
+    } else {
+        fail(format!(
+            "EW-CORE-065 reports {} part description(s) where EF-25 expects none: {}",
+            found.len(),
+            list(found.iter().map(|f| f.message.clone()), 6)
+        ))
     }
 }

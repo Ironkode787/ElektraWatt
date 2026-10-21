@@ -610,22 +610,22 @@ here, with the follow-up task of the [work breakdown](../../docs/plan/02-work-pa
     (`WireNumber::tie`) for a table that wants to print it. The page of every number equals doc
     20's "No." column, which now holds the computed numbers (W29 is 102.10; doc 20 §8.1 said the order could not be
     stated in advance); `expected/wire_numbers_8_2.csv` is that column, written by `tools/tables_from_doc20.py`, and
-    AC-09 compares the runner's numbers with it. The numbers of W1 to W5, W7 and W9 are consequences of the
-    orientation gap (FT-101): the wires W1 to W5 start at the other end than doc 20's From column (no flow-distance
-    step), and W7 and W9 share the From page and cells with W4 and W5, so their counters follow; these seven numbers
-    are provisional and change when FT-101 lands. Numbers are not printed on pages
+    AC-09 compares the runner's numbers with it, with no known deviation since FT-101 (cycle 14: the From ends
+    follow the flow-distance step, so W1 to W5 start at the supply side and their numbers, and those of W7 and W9,
+    are final). Numbers are not printed on pages
     (FR-CON-026 follows with the number display) and not stored: `NumberWires` and the stored `NumberSpec` are the
     numbering schemes of FR-NUM-020.
-  - From and To follow doc 08 §3.8 (FR-CON-040) without its flow-distance step (`ew-derive` has no per-CP distance):
-    on one page the end with the smaller anchor cell is From (a terminal drawn only by a strip segment has no
-    anchor: the cell of its CP in the segment counts). W1 to W3 (the supply to 1X1) and W4, W5 (1X1 to S51)
-    print the other way round (FT-101).
+  - From and To follow doc 08 §3.8 (FR-CON-040): on one page the end with the smaller flow distance is From
+    (`cp_flow_distance`, FT-101), then the end with the smaller anchor cell (a terminal drawn only by a strip
+    segment has no anchor: the cell of its CP in the segment counts). Every From/To pair equals doc 20 §8.2.
   - Repeated CP designations print plainly (`-101F1:N`, `-102G1:+`, `-102G1:−`, `-102F2:GND`), without the `#1`,
     `#2` of doc 20; a terminal end prints the clamp in the CP column (`-X1031:1` and `b`), not as `1/b` (FT-102).
   - The Source column prints `cdp`, `rule`, `core`, `bond` or `built-in` (size first, then colour, joined when they
     differ), as doc 20 §8.1 now states; its "(rule)" and "(profile)" are both the source `rule`.
-  - The Via column names the cable and core and the interruption points; doc 20 also names the junction (J1 … J6),
-    "chain" and the EF case, which are not derived values.
+  - The Via column names the cable and core, the junction by its place and wiring ("101-C11 star at F55:2",
+    "102-C6 chain on -102F1:1"), the daisy chains ("chain on -101F1:1", D-20) and the interruption points; doc 20
+    names the junction by its fixture key (J1 … J6, not a derived value) and the EF case, which the list does not
+    print.
   - W33 to W44 (the cores of -106W1 and -106W2 and the PE legs) print the source `rule/core` or `rule`: the size
     comes from the size profile, while doc 20 §10 says core cross-sections come from the cable part (the
     conductors of the fixture carry none; FT-107).
@@ -871,8 +871,10 @@ committed as golden files (doc 18 asks for none); its SHA-256 is in the AC-14 re
 change of any SVG byte shows there. The comparison runs on the platform of the run; the gate platform is Linux and
 the cross-platform digests are MVP.
 
-The headless report of this revision: 85 entries, 66 pass, 0 fail, 14 not_built, 5 not_applicable, 0 oracle
-mismatches (cycle 14: AC-01, AC-06, AC-13 and the two AC-14 entries moved to pass). Cycle 13: 61 pass, 0 fail,
-18 not_built, 6 not_applicable (the full run adds the raster comparison as a pass; decision log ID-338). AC-03 (36 folios, FT-111) and
+The headless report of this revision: 86 entries, 70 pass, 2 fail, 9 not_built, 5 not_applicable, 0 oracle
+mismatches (the full run adds the raster comparison as a pass). Cycle 14 closed AC-01, AC-06, AC-13 and the two
+AC-14 entries, D-03, D-20, D-22's PELV entry and the info half of D-06 (a new entry), and emptied AC-09's deviation
+list (FT-101); D-14 and D-35 run and fail on their criteria as written (doc 20 §22, owner rulings pending their fix
+round). Cycle 13: 61 pass, 0 fail, 18 not_built, 6 not_applicable (decision log ID-338). AC-03 (36 folios, FT-111) and
 AC-10 (19 potentials, FT-105) pass, and so do their SQL halves: `acceptance/potentials.sql` prints the DP row's
-"(cable)" through the Preview column `api_v1_potential.bus_cable_ids`. The M1 gap list has no fails left. An empty terminal designation refused at the parameter layer counts as refused for D-11 (ADR-0008).
+"(cable)" through the Preview column `api_v1_potential.bus_cable_ids`. An empty terminal designation refused at the parameter layer counts as refused for D-11 (ADR-0008).

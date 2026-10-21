@@ -64,6 +64,7 @@ const SWEPT: &[&str] = &[
     "channel_states",
     "channel_targets",
     "channel_texts",
+    "cp_flow_distance",
     "def_points",
     "device_part_lines",
     "device_tag",
@@ -329,6 +330,10 @@ fn sweep(memo: &Q, cold: Option<&Q>, state: &str) -> BTreeMap<&'static str, usiz
         check::<PhysicalWiresOf>(memo, cold, keys.potentials.iter().copied(), state),
     );
     put(FlowBfs::FAMILY, check::<FlowBfs>(memo, cold, [()], state));
+    put(
+        ew_derive::CpFlowDistanceOf::FAMILY,
+        check::<ew_derive::CpFlowDistanceOf>(memo, cold, keys.potentials.iter().copied(), state),
+    );
     put(
         PotentialPartition::FAMILY,
         check::<PotentialPartition>(memo, cold, [()], state),

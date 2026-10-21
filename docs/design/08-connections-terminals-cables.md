@@ -230,6 +230,13 @@ A junction tells the shop **which CP is wired to which**. A dot or a bevel only 
 
 J5 and J6 are Bevel junctions set to Star, as drawn in the walkthrough of [06](06-schematic-editor.md) §9.2 step 10.
 
+*As built (cycle 14, D-20).* The wire list prints how a wire is joined in its Via column: the junction it passes by
+its place and effective wiring, "101-C11 star at F55:2" (Star: the entering CP) or "102-C6 chain on -102F1:1"
+(Chain: the wire's ends shared with another wire of the junction), and its daisy chains, "chain on -101F1:1" (a
+device CP that two drawn `Wire` or `Core` connections touch). `ew-derive`'s `wire_join` derives it; the style (dot,
+bevel) stays drawing notation. `api_v1_wire` carries the same facts (`junction_id`, `junction_style`,
+`junction_wiring`, `junction_cell`, `junction_cps`, `chain_cps`, Preview additions).
+
 ### 3.3 Net, signal, potential
 
 | Level | Joined by | Bounded by | Used for |
@@ -409,10 +416,14 @@ physical_wires_of(potential):                              // memo per potential
   This reproduces every From/To pair of [20](20-golden-project.md) §8.2. Examples: 1X1:1 → S51:2, because the supply
   enters at J-E-206-L; -102G1:+#2 → -102F1:1; E55:PE → -X1032:1/b, by page order.
 
-  **As built (cycle 13; decision log ID-324, ID-327).** `ew-derive`'s `orient_wire` applies rules 1 and 3; rule 2,
-  the flow distance, needs a per-CP distance that is not exposed yet (FT-101), so a wire that rule 2 decides
-  differently on one page has its ends the other way round (W1 to W5 of the golden project). The point and cell of
-  every CP come from one owner, `cp_point` and `cp_cell` (the page scene restates them until FT-215).
+  **As built (cycle 13; decision log ID-324, ID-327; cycle 14, FT-101).** `ew-derive`'s `orient_wire` applies the
+  three rules. Rule 2 reads the memo query `cp_flow_distance(potential)`: a breadth-first walk from the entry CPs (a
+  root potential's external points and source outputs; otherwise the `to` CP of its upstream pass-through pair)
+  over the potential's physical wires, bridges and the shorts inside a function (terminal levels, declared
+  `Short` links), duplicated pins of a black box at the same distance; rail bonds are not hops. It decides only when
+  both ends lie in the wire's one potential and the walk reaches both with different distances (a bond wire and an
+  unreached potential fall through to rule 3). The point and cell of every CP come from one owner, `cp_point` and
+  `cp_cell` (the page scene restates them until FT-215).
 - **Wire-end locus.** A terminal end prints `strip:terminal (level/clamp)`, for example "-X1031:1 (1/a)"
   (FR-TRM-006, FR-MFG-002). A device end prints `tag:designation`, with `#n` only where printed designations repeat
   (`-102G1:+ #1`).
@@ -656,8 +667,8 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
   one page token of every format), counter scope page, cores not numbered, not printed. W1–W34 receive 34 unique
   numbers, listed in the derived "No." column of [20](20-golden-project.md) §8.2: W29 gets 102.10 and W33 103.1.
   The acceptance runner generates `expected/wires.csv` with this rule, which also decides the ties between wires of
-  equal cells by the wire ID. W1 to W5, W7 and W9 are provisional until the orientation has its flow-distance step
-  (FT-101); AC-09 lists them as its known deviations (decision log ID-325). **As built (cycle 13; decision log
+  equal cells by the wire ID. Since the orientation has its flow-distance step (FT-101, cycle 14) AC-09 has no
+  known deviation (decision log ID-325 listed W1 to W5, W7 and W9 until then). **As built (cycle 13; decision log
   ID-324):** the numbers are derived by the query `wire_numbers` and printed on folio 907; they are not yet stored
   (`NumberWires` and the stored number come with WP-S1.11) and not printed on the pages (FR-CON-026). Where wires
   tie on their cells, the query keeps the counter range of the group (`WireNumber::tie`) beside the exact counter.
