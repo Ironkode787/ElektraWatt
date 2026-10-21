@@ -41,12 +41,15 @@ use sha2::{Digest, Sha256};
 /// The SHA-256 of the Golden C source file.
 const SOURCE_SHA256: &str = "94235575d350d98df2491f49b8474f769fd5c64912b560f41f30d8b555c2fafc";
 
-/// The comparisons of `the_fixed_import_compared_with_golden_a` that hold today.
-const HOLDS: &[&str] = &[
-    "pages.titles",
-    "devices.tag_source",
-    "terminals.function_text",
-    "terminals.state",
+/// The comparisons of `the_fixed_import_compared_with_golden_a` that hold today, with the number of
+/// common keys each compares (titles of drawn folios, device tags, terminal tags). A comparison over keys
+/// both sides have holds trivially when the common key set shrinks, so the count is asserted too.
+const HOLDS: &[(&str, usize)] = &[
+    ("pages.titles", 13),
+    ("devices.tag_source", 35),
+    ("terminals.function_text", 28),
+    ("terminals.state", 28),
+    ("devices.no_duplicate_common_tags", 0),
 ];
 
 // ---------------------------------------------------------------------------------------------------------
@@ -331,7 +334,7 @@ fn the_migration_report_has_the_expected_counts_per_code() {
     let text = std::fs::read_to_string(view::repo().join("golden/J-E-2416/expected/c-migration-report.csv"))
         .expect("the expected migration report is committed");
     let mut lines = text.lines();
-    assert_eq!(lines.next(), Some("code,mf,doc20,as_built,status"));
+    assert_eq!(lines.next(), Some("code,mf,doc20,as_built,status,note"));
     let mut expected: BTreeMap<String, u32> = BTreeMap::new();
     println!("code | mf | doc20 | as_built | actual | status");
     let mut listed = BTreeSet::new();
@@ -464,6 +467,28 @@ fn compare(a: &Session, c: &Session, san: &San, details: &mut Vec<String>) -> Ve
 
     // devices.*, terminals.*
     let (da, dc) = (devices(a), devices(c));
+    // The keyed comparisons below map tag → value, so a tag that C prints twice would collapse: count the
+    // C tags that Golden A has and that C prints more than once.
+    let a_tags: BTreeSet<&str> = da.iter().map(|d| d.tag.as_str()).collect();
+    let duplicates: BTreeMap<String, usize> = counts(
+        dc.iter()
+            .filter(|d| a_tags.contains(d.tag.as_str()))
+            .map(|d| d.tag.clone()),
+    )
+    .into_iter()
+    .filter(|(_, n)| *n > 1)
+    .collect();
+    details.push(format!(
+        "devices.no_duplicate_common_tags: [{}]",
+        san.list(&duplicates)
+    ));
+    out.push(Cmp {
+        name: "devices.no_duplicate_common_tags".into(),
+        a: 0,
+        c: duplicates.len(),
+        common: duplicates.len(),
+        holds: duplicates.is_empty(),
+    });
     let split = |d: &[DeviceInfo], terminal: bool| -> Vec<String> {
         d.iter()
             .filter(|x| x.tag.contains(':') == terminal)
@@ -540,6 +565,22 @@ fn compare(a: &Session, c: &Session, san: &San, details: &mut Vec<String>) -> Ve
         c: pc,
         common: pa.min(pc),
         holds: pa == pc,
+    });
+    // The reference file stores no bridge (no `<terminal_strips>`, no bridge element): Golden A without its
+    // bridge connections shows how much of the potential count that source limit explains.
+    let ab = golden_common::batch();
+    let unbridged = golden_common::session_with(&ab, |_, records| {
+        records.retain(
+            |r| !matches!(r, ew_schema::Record::Connection(x) if matches!(x.kind, ConnectionKind::Bridge(_))),
+        );
+    });
+    let pu = n_potentials(&unbridged);
+    out.push(Cmp {
+        name: "potentials.count_a_without_bridges".into(),
+        a: pu,
+        c: pc,
+        common: pu.min(pc),
+        holds: pu == pc,
     });
     let keep: BTreeSet<String> = da
         .iter()
@@ -666,11 +707,12 @@ fn the_fixed_import_compared_with_golden_a() {
         .map(|r| r.name.as_str())
         .collect();
     println!("holding today: {held:?}");
-    for name in HOLDS {
+    for (name, common) in HOLDS {
         let row = table
             .iter()
             .find(|r| r.name == *name)
             .unwrap_or_else(|| panic!("`{name}` is listed in HOLDS but not computed"));
         assert!(row.holds, "`{name}` held before and no longer does");
+        assert_eq!(row.common, *common, "`{name}`: the number of common keys changed");
     }
 }

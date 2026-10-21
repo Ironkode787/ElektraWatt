@@ -358,9 +358,7 @@ fn tag_and_folio_references_name_exactly_one_device_or_drawn_page() {
     assert_eq!(titled, [902]);
     drop(q);
 
-    // A generated folio (report 903) and an unknown tag do not resolve. (An ambiguous tag, such as the
-    // unnumbered `-101A?` of an import, is refused the same way; online numbering keeps Golden A free of
-    // them, so `tests/golden_c.rs` exercises that case.)
+    // A generated folio (report 903) and an unknown tag do not resolve.
     for (reference, needle) in [("tag:-999Z9", "no device"), ("folio:903", "no drawn page")] {
         let kind = if reference.starts_with("folio") {
             "page"
@@ -379,4 +377,24 @@ fn tag_and_folio_references_name_exactly_one_device_or_drawn_page() {
         }
         assert_eq!(err.exit_code(), 2);
     }
+
+    // An ambiguous tag does not resolve either: once S51 is frozen to "102F1", two devices print -102F1.
+    // The first line commits; the second stops the replay.
+    let l = log(&[
+        &set("tag:S51", "device", "tag.frozen", r#"{"text":"102F1"}"#),
+        &set("tag:-102F1", "device", "function_text", r#"{"en":"x"}"#),
+    ]);
+    let err = s.run_script(&l, "x.ewcmd").unwrap_err();
+    match &err {
+        CmdLogError::Reference {
+            line,
+            message,
+            committed,
+        } => {
+            assert_eq!((*line, *committed), (3, 1));
+            assert!(message.contains("2 matches"), "{message}");
+        }
+        other => panic!("expected a reference error, got {other:?}"),
+    }
+    assert_eq!(err.exit_code(), 2);
 }
