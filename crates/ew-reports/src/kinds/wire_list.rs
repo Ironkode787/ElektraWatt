@@ -10,7 +10,7 @@ use ew_derive::{CpRef, Q, WireNumbers};
 
 use super::conn::{
     Bridge, WireRec, Wires, bridge_span, bridges, colour_cell, csa_cell, device_of, end_cells, ip_name,
-    pages_cell, put, source_text, tag_short, text_cell,
+    join_texts, pages_cell, put, source_text, tag_short, text_cell,
 };
 use crate::kind::ReportKindDef;
 use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowKind, RowSet};
@@ -29,8 +29,10 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowKind, RowS
 ///
 /// A wire's potential is its name, or `A ⇄ B` for a bond wire. `source` names where the effective
 /// cross-section and colour come from (`cdp`, `rule`, `bond`, `core`, `potential`, `project`, `built-in`;
-/// size first, then colour, joined when they differ). `via` names the
-/// cable core of a core wire (`-106W1 BK`) and the interruption points the wire passes (`IP 0VDC-AIR2`).
+/// size first, then colour, joined when they differ). `via` names, joined by "; ", the cable core of a core
+/// wire (`-106W1 BK`), the junction the wire passes by its place and wiring (`101-C11 star at
+/// F55:2`; `102-C6 chain on -102F1:1`), its daisy chains (`chain on -101F1:1`, two conductors on one
+/// clamp) and the interruption points it passes (`IP 0VDC-AIR2`; doc 08 §3.2, D-20).
 /// `no` is the wire number `{page}.{counter}` of the connection-oriented scheme (counter scope page), empty
 /// for a cable core; a tie between wires of equal cells is decided by the wire ID and not printed. `part` is
 /// the wire part the wire carries explicitly (empty at MVP, FR-CON-033).
@@ -45,15 +47,15 @@ impl ReportKindDef for WireList {
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
             ColumnDef::new("no", CellType::Ident, "No.").weighted(7),
-            ColumnDef::new("from", CellType::Tag, "From").weighted(15),
+            ColumnDef::new("from", CellType::Tag, "From").weighted(13),
             ColumnDef::new("from_cp", CellType::Ident, "CP").weighted(6),
-            ColumnDef::new("to", CellType::Tag, "To").weighted(15),
+            ColumnDef::new("to", CellType::Tag, "To").weighted(13),
             ColumnDef::new("to_cp", CellType::Ident, "CP").weighted(6),
             ColumnDef::new("potential", CellType::Ident, "Potential").weighted(11),
             ColumnDef::new("colour", CellType::Colour, "Colour").weighted(6),
             ColumnDef::new("cross_section", CellType::Qty, "mm\u{00B2}").weighted(6),
             ColumnDef::new("source", CellType::Ident, "Source").weighted(10),
-            ColumnDef::new("via", CellType::Text, "Via").weighted(18),
+            ColumnDef::new("via", CellType::Text, "Via").weighted(22),
             ColumnDef::new("part", CellType::Ident, "Wire part").weighted(8),
             ColumnDef::new("pages", CellType::Folios, "Pages").weighted(8),
         ]
@@ -102,6 +104,9 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, number: Option<&str>) -> Row {
     if let Some(core) = w.core.and_then(|c| q.conductors().get(c)) {
         via.push(format!("{} {}", tag_short(q, core.cable), core.core.as_str()));
     }
+    let (junction, daisy) = join_texts(q, w);
+    via.extend(junction);
+    via.extend(daisy);
     // The interruption points the wire passes, by name (the two points of a pair share one), not the
     // external point it ends at.
     let mut ips: Vec<String> = Vec::new();

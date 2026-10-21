@@ -350,6 +350,30 @@ pub const WIRE: View = View {
             "the interruption points the wire passes, JSON array of names in path order",
         ),
         t(
+            "junction_id",
+            "the first junction the wire passes (doc 08 §3.2); NULL otherwise",
+        ),
+        t(
+            "junction_style",
+            "that junction's style: dot or bevel (\"junction\" for a newer style); NULL without a junction",
+        ),
+        t(
+            "junction_wiring",
+            "its effective wiring: star or chain (the style's default when unset); NULL without a junction",
+        ),
+        t(
+            "junction_cell",
+            "its folio and frame cell (\"101-C11\"; the folio alone outside the drawing area); NULL without a junction",
+        ),
+        t(
+            "junction_cps",
+            "star: the entering CP; chain: the wire's ends shared with another wire of the junction; JSON array of CP texts (\"F55:2\")",
+        ),
+        t(
+            "chain_cps",
+            "the wire's ends on a CP that two or more drawn connections touch (a daisy chain, FR-CON-006), JSON array of CP texts",
+        ),
+        t(
             "bridge_kind",
             "plug-in, saddle, wire or inter-level for a bridge; NULL for a wire",
         ),
@@ -754,6 +778,12 @@ pub const PREVIEW_ADDITIONS: &[(&str, &[&str])] = &[
             "conductor_id",
             "bond_id",
             "ips",
+            "junction_id",
+            "junction_style",
+            "junction_wiring",
+            "junction_cell",
+            "junction_cps",
+            "chain_cps",
             "bridge_kind",
             "csa_source",
             "colour_source",

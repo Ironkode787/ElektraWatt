@@ -9,7 +9,8 @@
 //! properties): `wire_list`, `potential_overview`, `terminal_diagram`, `cable_overview_diagrams`. Those
 //! queries read the drawn page order, which has no report pages, so these kinds derive their rows inside the
 //! pagination like the others.
-//! Derived from the PLC queries (`plc_rows`, doc 10 §2.10): `plc_overview`.
+//! Derived from the PLC queries (`plc_rows`, doc 10 §2.10): `plc_overview`. From the tags and wire numbers:
+//! `numbering_report` (frozen values with their rule values, FR-REP-022).
 //! Registered with its columns but **not derived yet** (an empty row set marked [`NotDerived`]):
 //! `revision_overview` (the revision records are reserved, not typed). Other schema kinds are not registered; their blocks report
 //! [`NotDerived::Unsupported`].
@@ -22,6 +23,7 @@ use crate::rowset::{CellType, ColumnDef, NotDerived, RowSet};
 
 mod cable_overview;
 mod conn;
+mod numbering_report;
 mod part_data;
 mod parts;
 mod plc_overview;
@@ -33,6 +35,7 @@ mod toc;
 mod wire_list;
 
 pub use cable_overview::CableOverview;
+pub use numbering_report::NumberingReport;
 pub use part_data::PartData;
 pub use parts::{PartsList, PartsSummary};
 pub use plc_overview::PlcOverview;
@@ -56,6 +59,7 @@ pub(crate) fn builtin() -> Vec<&'static dyn ReportKindDef> {
         &WireList,
         &PotentialOverview,
         &PlcOverview,
+        &NumberingReport,
         &ProfileTables,
         &REVISION_OVERVIEW,
     ]

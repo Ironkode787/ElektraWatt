@@ -451,7 +451,28 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, seq: usize) -> Row {
             ips.push(name);
         }
     }
-    r.set("ips", json_array(&ips))
+    r.set("ips", json_array(&ips));
+    // How the wire is joined (doc 08 §3.2, D-20): the junction it passes and its daisy chains.
+    let join = ew_derive::wire_join(q, w);
+    if let Some(j) = &join.junction {
+        let folio = q
+            .get::<PageOrder>(())
+            .entry(PageRef::Drawn(j.page))
+            .map(|e| e.folio.clone())
+            .unwrap_or_default();
+        let place = match &j.cell {
+            Some(c) => format!("{folio}-{c}"),
+            None => folio,
+        };
+        let cps: Vec<String> = j.cps.iter().map(|cp| cp_text(q, *cp)).collect();
+        r.set("junction_id", uuid(j.junction))
+            .set("junction_style", j.style.name())
+            .set("junction_wiring", j.wiring.name())
+            .set("junction_cell", place)
+            .set("junction_cps", json_array(&cps));
+    }
+    let chain: Vec<String> = join.daisy.iter().map(|cp| cp_text(q, *cp)).collect();
+    r.set("chain_cps", json_array(&chain))
         .set(
             "pages",
             folios_json(q, w.pages.iter().map(|pg| PageRef::Drawn(*pg))),
@@ -464,6 +485,30 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, seq: usize) -> Row {
             p.colour.as_ref().map(|c| source_words(q, &c.source)),
         );
     r
+}
+
+/// A device CP as one text, as the wire list prints a wire end: `-101F1:1`, a terminal `-X1031:1/b`.
+fn cp_text(q: &Q, cp: CpRef) -> String {
+    let Some(d) = device_of(q, cp.function) else {
+        return String::new();
+    };
+    let short = tag_short(q, d).unwrap_or_default();
+    let c = cp_of(q, cp);
+    let is_terminal = q.devices().get(d).is_some_and(|d| d.aspects.terminal.is_some());
+    if is_terminal {
+        match c.as_ref().and_then(|c| match &c.clamp {
+            Some(ew_derive::ew_schema::ClampKey::Clamp(ch)) => Some(ch.to_string()),
+            _ => None,
+        }) {
+            Some(clamp) => format!("{short}/{clamp}"),
+            None => short,
+        }
+    } else {
+        match c.map(|c| c.designation).filter(|d| !d.is_empty()) {
+            Some(des) => format!("{short}:{des}"),
+            None => short,
+        }
+    }
 }
 
 fn potential_uuid(p: PotentialId) -> String {

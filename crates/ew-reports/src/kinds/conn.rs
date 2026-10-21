@@ -195,6 +195,49 @@ pub(super) fn end_text(q: &Q, end: &WireEnd) -> String {
     }
 }
 
+/// How a wire is joined (doc 08 §3.2, FR-CON-005, FR-CON-006; D-20), as the Via column prints it: the
+/// junction it passes by its place and wiring, `"<folio>-<cell> star at <CP>"` or `"… chain on <CP>[, <CP>]"`
+/// (the wiring without CPs when none decides), then its daisy chains, `"chain on <CP>[, <CP>]"`; each `None`
+/// when absent. The junction's style (dot, bevel) is drawing notation and stays on the page.
+pub(super) fn join_texts(q: &Q, w: &PhysicalWire) -> (Option<String>, Option<String>) {
+    let join = ew_derive::wire_join(q, w);
+    let cp_text = |cp: &CpRef| {
+        end_text(
+            q,
+            &WireEnd {
+                cp: *cp,
+                kind: EndKind::Device,
+            },
+        )
+    };
+    let junction = join.junction.map(|j| {
+        let folio = q
+            .get::<ew_derive::DrawnPageOrder>(())
+            .entry(PageRef::Drawn(j.page))
+            .map(|e| e.folio.clone())
+            .unwrap_or_default();
+        let place = match &j.cell {
+            Some(c) => format!("{folio}-{c}"),
+            None => folio,
+        };
+        let cps: Vec<String> = j.cps.iter().map(cp_text).collect();
+        let mut text = format!("{place} {}", j.wiring.name());
+        if !cps.is_empty() {
+            let word = match j.wiring {
+                ew_derive::JoinWiring::Star => "at",
+                ew_derive::JoinWiring::Chain => "on",
+            };
+            text.push_str(&format!(" {word} {}", cps.join(", ")));
+        }
+        text
+    });
+    let daisy = (!join.daisy.is_empty()).then(|| {
+        let cps: Vec<String> = join.daisy.iter().map(cp_text).collect();
+        format!("chain on {}", cps.join(", "))
+    });
+    (junction, daisy)
+}
+
 /// The tag of a device without its structure (`-X1031:1`), `""` for a device without one.
 pub(super) fn tag_short(q: &Q, d: Id<Device>) -> String {
     q.get::<DeviceTag>(d)
