@@ -362,8 +362,11 @@ or "checker ≠ author on release", are not rules and cannot be waived.
 - **Lenient is not a loophole.** In release mode every prevent violation is an error, whatever the strictness.
 - **Files on disk win, in both modes.** An external change or a merge cannot be rejected, because the files already
   hold it. In a `Strict` project its violations are committed too, as EW-CORE-013 (uniqueness collisions, §6.4) or
-  as findings of the violated prevent rule with origin `merge`; as with EW-CORE-012, the next interactive
-  transaction that touches the key must restore the invariant.
+  as findings of the violated prevent rule with origin `merge`. At MVP, in every project, a later transaction is
+  refused only for violations it creates, and an edit that leaves an existing violation alone is allowed (the
+  base-snapshot rule, decision log ID-306, ID-323). The target for `Strict` projects is restore-on-touch: as with
+  EW-CORE-012, the next interactive transaction that touches the key must restore the invariant (ADR-0009
+  amendment 5, FT-210).
 
 *As built (cycle 12; decision log ID-306).* `PreventHook::check(base, candidate, touched)` compares the base snapshot with the candidate. The implementer is ew-api's `ShippedPrevent`, installed by every session unless it names its own hook, because ew-commands may not depend on ew-checks. Only violations the batch creates are refused, as `CmdError::Prevented` with the duplicate set and the remedy. A violation the model already held, such as a lenient import or files on disk, does not block an edit that leaves it alone. The strictness setting and the import origin are not yet consulted (FT-199).
 
@@ -613,7 +616,7 @@ cross-file reconciliation after merges is FR-COL-016 (1.0).
 | EW-CORE-035 | Core on the wrong pin | A pre-assembled cable core on a pin other than the part's pin map | conflict | o r | warning | cable | MVP | FR-CHK-056 | D-17 | 08 §8.1 |
 | EW-CORE-036 | Core assigned twice | A core assigned to two wires, or more assignments than cores (prevent class of invariant CI-05) | conflict | p o | error | cable | MVP | FR-CBL-003, FR-CBL-011 | — | 08 §8.1 |
 | EW-CORE-037 | Shield not connected | A shield connected at neither end | completeness | o | warning | cable | MVP | FR-CBL-007 | — | 08 §8.1 |
-| EW-CORE-041 | Device without part | Device without part assignment | completeness | o r | warning | device | MVP | FR-CHK-024 | D-04; EF-04, EF-19 (waived) | 15 |
+| EW-CORE-041 | Device without part | Device without part assignment, unless the device is marked "supplied by others" (`supply_scope = by_others`, FR-DEV-037; the attribute is intended and not yet built, so the rule fires for such devices until then; decision log ID-322, FT-209) | completeness | o r | warning | device | MVP | FR-CHK-024 | D-04; EF-04, EF-19 (waived) | 15 |
 | EW-CORE-042 | Incomplete part data | A part copy with empty description, missing manufacturer or no CP pattern | completeness | o r | warning | device | MVP | FR-CHK-024 | D-04 | 15 |
 | EW-CORE-043 | Placeholder part | A `Tbd` part | completeness | o r | warning/error | device | MVP | FR-CHK-034 | D-04; EF-17 | 15 |
 | EW-CORE-044 | Open `Tbd` value | Another typed `Tbd` value in a mandatory field; superseded by EW-BUS-001 for bus addresses and by EW-PLC-015 for module starts and channel addresses | completeness | o r | info/error | device | MVP | FR-CHK-034 | D-15 | 15 |

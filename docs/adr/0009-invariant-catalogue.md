@@ -91,7 +91,9 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    not block an edit that leaves it alone (decision 4, FR-CHK-011). The hook is implemented by `ew-api`, which may
    depend on `ew-checks`; `ew-commands` may not. The one shipped prevent rule is EW-TERM-002 (unique per strip,
    D-12); EW-TERM-001 cannot fire while designations are non-empty identifiers (FT-141), and EW-CORE-052's prevent
-   mode (amendment 1) follows with FT-194. Reading the project's strictness and the import origin is FT-199.
+   mode (amendment 1) follows with FT-194. Reading the project's strictness and the import origin is FT-199. The
+   base-snapshot rule is the MVP rule for every project (decision log ID-323); for `Strict` projects the target is
+   restore-on-touch, where a transaction that touches a key with an existing violation must restore it (FT-210).
 
 ## Consequences
 
