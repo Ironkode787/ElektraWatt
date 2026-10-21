@@ -2167,11 +2167,6 @@ def build_bus_connections(rows):
     )  # fmt: skip
 
 
-# The grid cell of each junction (a fixture choice, junctions.csv); the printed join notation of decision log ID-348
-# ("101-C11 star at F55:2") names it, so a Via cell in that notation resolves to its junction.
-JUNCTION_CELLS = {"J1": "C11", "J2": "C13", "J3": "C6", "J4": "D7", "J5": "D5", "J6": "D6"}
-
-
 def build_connections(ips, device_keys, conductor_keys, fkeys):
     wires = table_dicts("### 8.2 Wire table")
     check(len(wires) == 44, f"section 8.2: {len(wires)} wires, 44 expected")
@@ -2223,16 +2218,6 @@ def build_connections(ips, device_keys, conductor_keys, fkeys):
         tokens = [x.strip() for x in via.split(";")]
         ipname = next((x[3:] for x in tokens if x.startswith("IP ")), None)
         jn = next((x for x in tokens if re.fullmatch(r"J\d", x)), None)
-        for x in tokens:
-            # also accepted: the printed join notation of ID-348 (the table keeps the J tokens, the prose prints
-            # this form): "<folio>-<cell> star at <CP>" or "<folio>-<cell> chain on <CP>"
-            jm = re.fullmatch(r"(\d+)-([A-H]\d+) (star at|chain on) (\S+)", x)
-            if jm:
-                found = [j for j, c in JUNCTION_CELLS.items() if c == jm.group(2) and junction[j]["page"] == jm.group(1)]
-                check(len(found) == 1, f"section 8.2: wire {wid}: no junction at {jm.group(1)}-{jm.group(2)}")
-                jn = found[0]
-                want = "star at" if junction[jn]["mode"] == "star" else "chain on"
-                check(jm.group(3) == want, f"section 8.2: wire {wid}: {x!r}, but {jn} is a {junction[jn]['mode']}")
         frm = normalise_endpoint(r["From"], f)
         to = normalise_endpoint(r["To"], t or f)
         size = r["Size, colour (source)"]
@@ -2311,7 +2296,7 @@ def build_connections(ips, device_keys, conductor_keys, fkeys):
                 check(end.split(":")[0] in device_keys, f"connection endpoint {end!r}: no such device or strip")
 
     # junctions.csv: cells are fixture choices (test positions, triangle); doc 20 section 8.3 gives the folio
-    cells = JUNCTION_CELLS
+    cells = {"J1": "C11", "J2": "C13", "J3": "C6", "J4": "D7", "J5": "D5", "J6": "D6"}
     fixture(
         "junctions", "cell", list(cells), "; ".join(cells.values()), "§8.3",
         "test input (fixture choice): doc 20 gives the folio of a junction, not its cell",
