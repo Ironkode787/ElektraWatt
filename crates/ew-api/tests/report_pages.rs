@@ -18,7 +18,7 @@ use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_schema::{ReportBlock, ReportKind, ReportSource};
 use ew_derive::{
     BomMode, BomRows, DeriveNote, DrawnPageOrder, GeneratedPage, Origin, PageOrder, PageOrderV, PageRef,
-    PageTitle, Q, RecordingTracker, ReportPagesProvider,
+    PageRefStructure, PageTitle, Q, RecordingTracker, ReportPagesProvider, TbValue, TitleBlockValues,
 };
 use ew_schema::Record;
 
@@ -105,6 +105,58 @@ fn the_golden_page_order_includes_the_generated_pages_with_two_toc_pages() {
     let last = order.entries.last().unwrap().page;
     assert!(order.next(last).is_none());
     assert_eq!(title(&q, last), "Revision Overview");
+}
+
+/// FT-160: a generated page of a block outside every section (the TOC) takes the structure all drawn pages
+/// share, so its title block prints `=P01` and `+J-E-2416` like every other page (doc 20 §5); where the drawn
+/// pages disagree it has none.
+#[test]
+fn the_toc_pages_take_the_structure_all_drawn_pages_share() {
+    let rds = Default::default();
+    let toc = block("2");
+    let toc_pages = [0, 1].map(|index| PageRef::Generated { block: toc, index });
+    let s = common::golden_session();
+    let q = s.query();
+    for page in toc_pages {
+        let structure = q.get::<PageRefStructure>(page);
+        assert_eq!(structure.render(&rds), "=P01+J-E-2416", "{page:?}");
+        let tb = q.get::<TitleBlockValues>(page);
+        assert_eq!(
+            tb.get("page.function"),
+            Some(&TbValue::Text("=P01".to_owned())),
+            "{page:?}"
+        );
+        assert_eq!(
+            tb.get("page.location"),
+            Some(&TbValue::Text("+J-E-2416".to_owned())),
+            "{page:?}"
+        );
+        // The current revision of the golden revision records (D-05): the open V2.0, on every page.
+        assert_eq!(
+            tb.get("revision.current.label"),
+            Some(&TbValue::Text("V2.0".to_owned())),
+            "{page:?}"
+        );
+        assert!(tb.get("revision.current.author.name").is_some(), "{page:?}");
+        assert_eq!(tb.get("revision.current.checker.name"), None, "{page:?}");
+    }
+
+    // One drawn page without a location: the pages disagree and the TOC pages print no structure.
+    let batch = common::golden_batch();
+    let (project, mut records) = common::split(&batch);
+    let odd = records
+        .iter_mut()
+        .find_map(|r| match r {
+            Record::Page(p) if p.folio.number == 3 => Some(p),
+            _ => None,
+        })
+        .expect("folio 3");
+    odd.structure.location = None;
+    let s = common::session_of(project, records, batch.lib.clone());
+    let q = s.query();
+    for page in toc_pages {
+        assert_eq!(q.get::<PageRefStructure>(page).render(&rds), "", "{page:?}");
+    }
 }
 
 #[test]

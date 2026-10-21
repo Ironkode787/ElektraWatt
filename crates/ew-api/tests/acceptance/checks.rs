@@ -530,8 +530,7 @@ fn ac04_title_blocks(c: &Ctx) -> Outcome {
                 .iter()
                 .map(|(want, folios)| format!("\"{want}\" missing on {} pages", folios.len()))
                 .collect::<Vec<_>>()
-                .join("; ")
-                + " (the revision label is not bound yet; the TOC pages print no structure cells)",
+                .join("; "),
         )
     }
 }
@@ -1161,7 +1160,7 @@ fn defects(r: &mut Runner) {
         "D-05",
         "V2.0 on every page",
         ("AC-04", "every page prints the bound title-block values"),
-        "The revision table (page 911 lists V1.0 and V2.0) is not derived: schema v0 has no revision record.",
+        "Folio 911 (the revision overview, V1.0 and V2.0) is still a placeholder: the report kind does not read the revision records yet.",
     );
     r.entry("D-06", "the project description is one text on every page", |c| {
         let want = "Description: Expansion Control Cabinets";

@@ -677,3 +677,97 @@ pub(crate) fn emit_project(cx: &mut Cx<'_>, table: Option<&Table>, parties: Opti
     }));
     Some(())
 }
+
+/// `revisions.csv` → reserved `revision` records (doc 03 §18). The title-block query of `ew-derive` reads the
+/// reserved records leniently, so they are emitted as [`Record::Unknown`] values.
+///
+/// `key` is the label and `state` one of `open`, `released`, `withdrawn`. `author` and `checker` name a party
+/// of `parties.csv` by its key or its name; the record keeps the party's role, the only party reference form
+/// doc 03 §18 allows so far. Every page of `changed_pages` becomes a page note.
+pub(crate) fn emit_revisions(cx: &mut Cx<'_>, table: Option<&Table>, parties: Option<&Table>) {
+    let Some(table) = table else { return };
+    // Party reference (key or name) → role; the first party of a name wins.
+    let mut roles: BTreeMap<String, &'static str> = BTreeMap::new();
+    for row in parties.into_iter().flat_map(Table::rows) {
+        let Some(role) = row
+            .get("role")
+            .and_then(|r| ROLES.iter().find(|(n, _)| *n == r))
+            .map(|(n, _)| *n)
+        else {
+            continue;
+        };
+        roles.entry(row.key().to_owned()).or_insert(role);
+        if let Some(name) = row.get("name") {
+            roles.entry(name.to_owned()).or_insert(role);
+        }
+    }
+    let mut seen = BTreeMap::<String, ()>::new();
+    for row in table.rows() {
+        if !fresh(&mut cx.findings, row, &seen) {
+            continue;
+        }
+        let mut r = row.reader();
+        let date = r.date("date");
+        let description = r.mltext("description");
+        let state = r.req_choice(
+            "state",
+            &[
+                ("open", "open"),
+                ("released", "released"),
+                ("withdrawn", "withdrawn"),
+            ],
+        );
+        let party = |r: &mut Rd<'_>, col: &str| match r.text(col) {
+            None => None,
+            Some(p) => match roles.get(p) {
+                Some(role) => Some(*role),
+                None => {
+                    r.fail(format!("column `{col}`: unknown party `{p}`"));
+                    None
+                }
+            },
+        };
+        let author = party(&mut r, "author");
+        let checker = party(&mut r, "checker");
+        let mut notes = Vec::new();
+        for page in r.list("changed_pages") {
+            match cx.pages.get(page) {
+                Some(info) => notes.push(serde_json::json!({ "page": info.id })),
+                None => r.fail(format!("column `changed_pages`: unknown page `{page}`")),
+            }
+        }
+        if let Err(e) = r.finish() {
+            cx.malformed(row, &e);
+            continue;
+        }
+        let Some(state) = state else { continue };
+        seen.insert(row.key().to_owned(), ());
+        let id: Id<()> = record_id("revisions", row.key());
+        let mut members = serde_json::Map::new();
+        members.insert("$k".into(), "revision".into());
+        members.insert("id".into(), serde_json::json!(id));
+        members.insert("label".into(), row.key().into());
+        members.insert("state".into(), state.into());
+        if let Some(d) = date {
+            members.insert("date".into(), serde_json::json!(d));
+        }
+        if !description.is_empty() {
+            members.insert("description".into(), serde_json::json!(description));
+        }
+        if let Some(a) = author {
+            members.insert("author".into(), a.into());
+        }
+        if let Some(c) = checker {
+            members.insert("checker".into(), c.into());
+        }
+        if !notes.is_empty() {
+            members.insert("page_notes".into(), serde_json::Value::Array(notes));
+        }
+        members.insert(
+            "source_ref".into(),
+            serde_json::json!(source_ref("revisions", row.key())),
+        );
+        cx.records
+            .push(Record::Unknown(serde_json::Value::Object(members)));
+    }
+}

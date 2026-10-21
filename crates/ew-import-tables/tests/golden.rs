@@ -44,9 +44,9 @@ fn lib_key(d: &LibDocument) -> Option<String> {
     }
 }
 
-/// Only the three schema-v0 gaps are reported, each once as an info.
+/// Only the two schema-v0 gaps (the profiles) are reported, each once as an info.
 #[test]
-fn the_report_has_only_the_three_known_infos() {
+fn the_report_has_only_the_two_known_infos() {
     let b = golden();
     let bad: Vec<_> = b
         .report
@@ -56,15 +56,15 @@ fn the_report_has_only_the_three_known_infos() {
         .collect();
     assert!(bad.is_empty(), "{bad:#?}");
     let infos: Vec<_> = b.report.with_code(Code::imp(4)).collect();
-    assert_eq!(b.report.entries.len(), 3, "{:#?}", b.report.entries);
-    assert_eq!(infos.len(), 3);
+    assert_eq!(b.report.entries.len(), 2, "{:#?}", b.report.entries);
+    assert_eq!(infos.len(), 2);
     assert!(infos.iter().all(|e| e.severity == Severity::Info));
     let mut files: Vec<String> = infos
         .iter()
         .map(|e| e.location.as_ref().unwrap().file.clone())
         .collect();
     files.sort();
-    assert_eq!(files, ["colour_profile.csv", "revisions.csv", "size_profile.csv"]);
+    assert_eq!(files, ["colour_profile.csv", "size_profile.csv"]);
 }
 
 /// The per-kind counts of the report are those of doc 20.
@@ -93,6 +93,48 @@ fn the_per_kind_counts_are_those_of_doc_20() {
     assert_eq!(n("part"), 23);
     assert_eq!(n("project"), 1);
     assert_eq!(n("import_lineage"), 1);
+    // doc 20 §4.1: the revisions V1.0 and V2.0.
+    assert_eq!(n("revision"), 2);
+}
+
+/// The revision records carry label, date, state, the author's party role and the page notes (doc 03 §18).
+#[test]
+fn the_revisions_are_the_two_of_doc_20() {
+    let b = golden();
+    let revisions: Vec<&serde_json::Value> = b
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            Record::Unknown(v) if v.get("$k").and_then(|k| k.as_str()) == Some("revision") => Some(v),
+            _ => None,
+        })
+        .collect();
+    let by_label = |l: &str| {
+        revisions
+            .iter()
+            .find(|v| v["label"] == l)
+            .unwrap_or_else(|| panic!("revision {l}"))
+    };
+    let (v1, v2) = (by_label("V1.0"), by_label("V2.0"));
+    assert_eq!(
+        (v1["state"].as_str(), v1["date"].as_str()),
+        (Some("released"), Some("2025-03-03"))
+    );
+    assert_eq!(
+        (v2["state"].as_str(), v2["date"].as_str()),
+        (Some("open"), Some("2025-04-14"))
+    );
+    assert_eq!(v2["author"], "engineer");
+    assert!(v1.get("author").is_none() && v2.get("checker").is_none());
+    // Changed pages 101 and 106 are the page notes of V2.0; V1.0 has none.
+    let page = |key: &str| serde_json::json!(record_id::<ew_schema::Page>("pages", key));
+    assert_eq!(
+        v2["page_notes"],
+        serde_json::json!([{"page": page("101")}, {"page": page("106")}])
+    );
+    assert!(v1.get("page_notes").is_none());
+    let id: Id<()> = record_id("revisions", "V2.0");
+    assert_eq!(v2["id"], serde_json::json!(id));
 }
 
 /// Records are sorted by (kind rank, id), library documents by (kind name, copy id).

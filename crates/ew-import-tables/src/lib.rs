@@ -30,7 +30,8 @@
 //! | `devices`, `terminals` | `device` (strip, terminal and cable aspects) |
 //! | `functions`, `representations` | `function` (interruption points included), `representation` |
 //! | `connections`, `junctions`, `conductors`, `potentials`, `bonds` | `connection`, `junction`, `conductor`, `potential_def`, `bond` |
-//! | `colour_profile`, `size_profile`, `revisions` | none yet (reported once each, EW-IMP-004) |
+//! | `revisions` | the reserved `revision` records |
+//! | `colour_profile`, `size_profile` | none yet (reported once each, EW-IMP-004) |
 //!
 //! # Hostile input (doc 14 §11)
 //!

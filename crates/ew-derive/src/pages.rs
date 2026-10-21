@@ -122,8 +122,9 @@ impl Query for SectionStructure {
 }
 
 /// `page_ref_structure(page)`: the structure of any page of the page order: a drawn page's own, the
-/// section's shared structure for a divider and for a generated page of a block in a section, else
-/// none.
+/// section's shared structure for a divider and for a generated page of a block in a section, and for a
+/// generated page of a block outside every section (the table of contents, doc 20 §5) the structure all
+/// drawn pages of the project share; empty where they disagree (FT-160).
 #[derive(Debug)]
 pub struct PageRefStructure;
 
@@ -139,10 +140,25 @@ impl Query for PageRefStructure {
             PageRef::Divider(s) => q.get::<SectionStructure>(s),
             PageRef::Generated { block, .. } => match q.report_blocks().get(block).and_then(|b| b.section) {
                 Some(s) => q.get::<SectionStructure>(s),
-                None => Arc::new(ResolvedStructure::default()),
+                None => project_structure(q),
             },
         }
     }
+}
+
+/// The structure every drawn page of the project shares; empty when the pages disagree in any aspect or
+/// the project has no drawn page (the project-wide counterpart of [`SectionStructure`]).
+fn project_structure(q: &Q) -> Arc<ResolvedStructure> {
+    let mut common: Option<Arc<ResolvedStructure>> = None;
+    for page in q.pages().ids() {
+        let s = q.get::<PageStructure>(page);
+        match &common {
+            None => common = Some(s),
+            Some(c) if **c == *s => {}
+            Some(_) => return Arc::new(ResolvedStructure::default()),
+        }
+    }
+    common.unwrap_or_default()
 }
 
 /// One page of the page order.

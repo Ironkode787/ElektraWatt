@@ -287,6 +287,14 @@ connection ending at it are dropped (EW-IMP-002, never snapped).
 
 `key` R, `a` R, `b` R (endpoints), `kind` R (`pelv_0v_pe`, …), `via` O (`connections` key).
 
+### `revisions.csv` → reserved `revision` records (doc 20 §4.1, doc 03 §18)
+
+`key` R (the label, `V1.0`), `date` O, `description` O, `state` R (`open`, `released`, `withdrawn`), `author` O and
+`checker` O (a `parties` key or name; the record keeps the party's role string, the only party reference form of
+doc 03 §18 so far), `changed_pages` O (list of `pages` keys; the page notes of the record). The records are
+`Record::Unknown` values of kind `revision` (the kind is reserved in `ew-schema` v0, written to `revisions.jsonl`);
+the title-block query of `ew-derive` reads them leniently (`revision.current.*`).
+
 ### Tables without a record kind in schema v0
 
 These are part of the source of truth and are read, but `ew-schema` v0 has no record shape for them yet; the importer
@@ -295,8 +303,6 @@ reports each once (EW-IMP-004, info) and emits nothing:
 - `colour_profile.csv` (doc 20 §7.1): `key` (row number), `voltage_class`, `function`, `potential_type`, `colour`,
   `code`.
 - `size_profile.csv` (doc 20 §7.2): `key` (colour code), `control`, `mains` (Dec3 mm²).
-- `revisions.csv` (doc 20 §4.1): `key` (label), `date`, `description`, `state`, `author`, `checker`, `changed_pages`
-  (list).
 
 ## Stopgaps
 
@@ -406,11 +412,11 @@ page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106). Still open:
   Three pages are missing for reasons outside the table drawing: 901.1 (the TBD parts of BOM rows 24 to 27 are not
   in the tables, so 901 holds its 23 rows; FT-110) and 908.1 and 908.2 (the PLC overview has no channel records;
   FT-111).
-- **TOC pages.** The title blocks of 2 and 2.1 print no `=P01` and `+J-E-2416` (14 rows against 16 on 903): the TOC
-  pages' structure binding in `ew-derive` is still open (doc 20 §5 gives every page both signs).
+- **TOC pages.** The title blocks of 2 and 2.1 print `=P01` and `+J-E-2416`: a generated page of a block outside
+  every section takes the structure all drawn pages share (`page_ref_structure`, FT-160).
 - **Folio 1.** The cover content of doc 20 §17.3 is not drawn.
-- **Title block.** The Author cell is empty, `ew.titleblock.qet-a4` has no Notice cell yet, and the logo and the
-  revision label are not bound.
+- **Title block.** The revision label ("Revision: V2.0") and the author ("Author: <engineer>") come from the
+  revision records on every page; `ew.titleblock.qet-a4` has no Notice cell yet and the logo is not bound.
 - **Black boxes.** The box outline is the 10 × 6 grid-step symbol rectangle; the inner graphics ("AC ~ / 24 VDC"
   on -102G1, the "24VDC" and "GND" fields of -102F2) and the part-number slot are not filled yet.
 - **Strip segments.** The dashed segment rectangle does not stretch over the terminals the segment draws.

@@ -247,7 +247,7 @@ pub(crate) const COLOUR_PROFILE: TableSpec = spec(
 /// `size_profile.csv` (no record shape in schema v0).
 pub(crate) const SIZE_PROFILE: TableSpec = spec("size_profile", &["key"], &["control", "mains"]);
 
-/// `revisions.csv` (no record shape in schema v0).
+/// `revisions.csv` (reserved `revision` records).
 pub(crate) const REVISIONS: TableSpec = spec(
     "revisions",
     &["key"],
@@ -288,5 +288,5 @@ pub(crate) const ALL: [TableSpec; 23] = [
     REVISIONS,
 ];
 
-/// The tables that are read but not emitted (no record kind in schema v0).
-pub(crate) const KEPT_ONLY: [&str; 3] = ["colour_profile", "size_profile", "revisions"];
+/// The tables that are read but not emitted (no record shape in schema v0).
+pub(crate) const KEPT_ONLY: [&str; 2] = ["colour_profile", "size_profile"];
