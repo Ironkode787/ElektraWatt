@@ -249,3 +249,78 @@ fn pot008_a_located_terminal_has_no_finding() {
     let m = rail_model(Some(LOC), Some(0x1001));
     assert!(findings_of(&m, "EW-POT-008").is_empty());
 }
+
+/// Two potentials of two wires each: one on the wire of functions 0x1001 and 0x1003 (its definition `def`
+/// at 0x1001) and a PE potential on 0x1002 and 0x1004, with `bonds` 0 V-PE bonds between them (the first at
+/// the two lower functions, the second at the upper ones).
+fn bonded(def: &Value, bonds: usize) -> Model {
+    let mut fx = Fx::base();
+    for n in [0x1001, 0x1002, 0x1003, 0x1004] {
+        fx.func(n, P1);
+    }
+    fx.conn(0x2001, P1, cp(0x1001), cp(0x1003), &none());
+    fx.conn(0x2002, P1, cp(0x1002), cp(0x1004), &none());
+    fx.def(0x5001, cp(0x1001), def);
+    fx.def(0x5002, cp(0x1002), &json!({"ptype": "pe"}));
+    for (i, (a, b)) in [(0x1001u128, 0x1002u128), (0x1003, 0x1004)]
+        .into_iter()
+        .take(bonds)
+        .enumerate()
+    {
+        fx.push(json!({
+            "$k": "bond", "id": us(0x4001 + i as u128), "a": {"cp": [us(a), 0]}, "b": {"cp": [us(b), 0]},
+            "kind": "pelv_0v_pe",
+        }));
+    }
+    fx.build()
+}
+
+fn pelv_m() -> Value {
+    json!({"ptype": "m", "env": {"earthing": "pelv"}})
+}
+
+#[test]
+fn pot002_reports_a_pelv_potential_without_a_bond() {
+    let f = findings_of(&bonded(&pelv_m(), 0), "EW-POT-002");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert_eq!(f[0].code, "005002");
+    assert_eq!(f[0].severity, Severity::Error);
+    assert_eq!(f[0].discriminator, "pelv");
+    assert_eq!(f[0].targets, vec![target(Kind::PotentialDef, 0x5001)]);
+    assert!(f[0].message.contains("no 0 V–PE bond"), "{}", f[0].message);
+}
+
+#[test]
+fn pot002_a_pelv_potential_with_one_bond_has_no_finding() {
+    assert!(findings_of(&bonded(&pelv_m(), 1), "EW-POT-002").is_empty());
+}
+
+#[test]
+fn pot002_reports_a_pelv_potential_with_two_bonds() {
+    let f = findings_of(&bonded(&pelv_m(), 2), "EW-POT-002");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert_eq!(f[0].discriminator, "pelv");
+    assert!(f[0].message.contains("has 2 0 V–PE bonds"), "{}", f[0].message);
+    let bonds = f[0].targets.iter().filter(|t| t.kind == Kind::Bond).count();
+    assert_eq!(bonds, 2, "{:?}", f[0].targets);
+}
+
+#[test]
+fn pot002_reports_a_bonded_selv_potential() {
+    let m = bonded(&json!({"ptype": "m", "env": {"earthing": "selv"}}), 1);
+    let f = findings_of(&m, "EW-POT-002");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert_eq!(f[0].severity, Severity::Error);
+    assert_eq!(f[0].discriminator, "selv");
+    assert!(
+        f[0].targets.contains(&target(Kind::Bond, 0x4001)),
+        "{:?}",
+        f[0].targets
+    );
+}
+
+#[test]
+fn pot002_a_pelv_potential_that_is_not_m_type_has_no_finding() {
+    let m = bonded(&json!({"ptype": "l_plus", "env": {"earthing": "pelv"}}), 0);
+    assert!(findings_of(&m, "EW-POT-002").is_empty());
+}

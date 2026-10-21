@@ -11,7 +11,7 @@ use ew_derive::ew_schema::{Device, Kind};
 use ew_derive::{DeviceTag, Q};
 
 use crate::finding::{Finding, Severity, Target};
-use crate::rule::{Modes, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
+use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::term::case_setting;
 
 /// EW-RDS-004 "Duplicate designation" (doc 15 §4.3): conflict, o r, error, project (the catalogue's p is
@@ -27,6 +27,7 @@ pub const DUPLICATE_DESIGNATION: RuleMeta = RuleMeta {
     release_severity: None,
     scope: ScopeKind::Project,
     supersedes: &[],
+    release: Release::Mvp,
 };
 
 /// EW-RDS-004: two devices print the same full designation (FR-NUM-016). Terminals are excluded: their

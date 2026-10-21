@@ -9,11 +9,16 @@ use crate::rules as shipped;
 
 /// Every shipped rule implementation, in rule-ID order.
 static RULES: &[&dyn Rule] = &[
+    &shipped::core::TitleBlockOverride,
     &shipped::core::CableWithoutLength,
     &shipped::core::UnpairedInterruptionPoint,
     &shipped::core::AmbiguousInterruptionPoint,
+    &shipped::core::XrefCellInvalid,
+    &shipped::core::DescriptionLint,
     &shipped::core::WaiverMatchesNothing,
+    &shipped::num::TagDeviates,
     &shipped::pot::TypeOrVoltageConflict,
+    &shipped::pot::PelvSelvBonding,
     &shipped::pot::PeIsland,
     &shipped::pot::JunctionFeedAmbiguous,
     &shipped::pot::RingInDrawingGraph,

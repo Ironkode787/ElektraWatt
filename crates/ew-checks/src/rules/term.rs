@@ -12,7 +12,7 @@ use ew_derive::{DeriveNote, DeviceTag, Q, RailTerminalOf};
 
 use crate::engine::touched_ids;
 use crate::finding::{Finding, Severity, Target};
-use crate::rule::{Modes, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
+use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
 
 /// The project's case setting for identifier uniqueness (FR-NUM-016, FR-NUM-017): sensitive unless the
 /// project says insensitive.
@@ -64,6 +64,7 @@ pub const TERMINAL_WITHOUT_DESIGNATION: RuleMeta = RuleMeta {
     release_severity: None,
     scope: ScopeKind::Strip,
     supersedes: &[],
+    release: Release::Mvp,
 };
 
 /// EW-TERM-001: a terminal of a strip whose designation is empty. `Ident` is non-empty, so a model built
@@ -128,6 +129,7 @@ pub const DUPLICATE_DESIGNATION: RuleMeta = RuleMeta {
     release_severity: None,
     scope: ScopeKind::Strip,
     supersedes: &[],
+    release: Release::Mvp,
 };
 
 /// EW-TERM-002: a designation used by more than one terminal of a strip (FR-TRM-002, D-12; doc 08 §6.8).
@@ -256,6 +258,7 @@ pub const RAIL_BONDING_ON_NON_PE: RuleMeta = RuleMeta {
     release_severity: None,
     scope: ScopeKind::Strip,
     supersedes: &[],
+    release: Release::Mvp,
 };
 
 /// EW-TERM-005: a terminal with `rail_bonded` set that has no PE connection point (doc 08 §6.8). The

@@ -6,6 +6,7 @@
 //! scope) and implements [`Rule`](crate::Rule).
 
 pub mod core;
+pub mod num;
 pub mod pot;
 pub mod rds;
 pub mod term;

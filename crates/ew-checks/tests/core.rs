@@ -223,3 +223,201 @@ fn a_run_is_deterministic() {
     let release = |q: &Q| run(q, &FULL, CheckMode::Release);
     assert_eq!(release(&Q::new(&m)), release(&Q::new(&m)));
 }
+
+// EW-CORE-023 title-block override.
+
+fn page_with_override(over: Option<Value>) -> ew_model::Model {
+    let mut fx = Fx::base();
+    if let Some(o) = over {
+        let page = fx
+            .records
+            .iter_mut()
+            .find(|r| r["id"] == json!(us(P1)))
+            .expect("page 1");
+        page["description_override"] = o;
+    }
+    fx.build()
+}
+
+#[test]
+fn core023_reports_a_page_with_a_description_override() {
+    let m = page_with_override(Some(json!({"en": "Override"})));
+    let f = findings_of(&m, "EW-CORE-023");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert_eq!(f[0].rule, "EW-CORE-023");
+    assert_eq!(f[0].code, "101023");
+    assert_eq!(f[0].severity, Severity::Info);
+    assert_eq!(f[0].discriminator, "description_override");
+    assert_eq!(f[0].targets.len(), 1);
+    assert_eq!((f[0].targets[0].kind, f[0].targets[0].id), (Kind::Page, uid(P1)));
+    assert!(f[0].message.contains("folio 1"), "{}", f[0].message);
+    assert!(f[0].message.contains("Override"), "{}", f[0].message);
+    let fix = f[0].fix.as_ref().expect("a quick fix");
+    assert_eq!(fix.command, "fields.set");
+    assert_eq!(fix.params["path"], json!("description_override"));
+    assert_eq!(fix.params["value"], Value::Null);
+}
+
+#[test]
+fn core023_a_page_without_override_has_no_finding() {
+    assert!(findings_of(&page_with_override(None), "EW-CORE-023").is_empty());
+}
+
+// EW-CORE-053 cross-reference cell invalid.
+
+const SYM_X: u128 = 0x510;
+
+/// A device with a main function on page 1 and an auxiliary one on page 2 whose symbol draws a line 30 to
+/// 50 mm right of its origin, under `anchor`; `graphics` switches the line off.
+fn main_and_aux(anchor: &str, graphics: bool) -> ew_model::Model {
+    let mut fx = Fx::base();
+    let sym = fx
+        .lib
+        .iter_mut()
+        .find(|d| d["id"] == json!(us(SYM_X)))
+        .expect("the symbol");
+    sym["anchor"] = json!(anchor);
+    if graphics {
+        sym["graphics"] = json!([{"line": {"from": [30_000_000, 0], "to": [50_000_000, 0]}}]);
+    }
+    // The main function's own symbol is judged clean (graphics centre), so only the auxiliary one is in
+    // question.
+    let mut main_sym = fx
+        .lib
+        .iter()
+        .find(|d| d["id"] == json!(us(SYM_X)))
+        .cloned()
+        .expect("the symbol");
+    main_sym["id"] = json!(us(0x520));
+    main_sym["item_id"] = json!(us(0x1_0520));
+    main_sym["sha256"] = json!(format!("sha256:{}", "cd".repeat(32)));
+    main_sym["anchor"] = json!("graphic_centre");
+    main_sym["graphics"] = json!([{"line": {"from": [30_000_000, 0], "to": [50_000_000, 0]}}]);
+    fx.lib.push(main_sym);
+    fx.device(0x2000, "K", Some(1));
+    for (n, page, role, x, symbol) in [
+        (0x1001u128, P1, None, 25_000_000i64, 0x520),
+        (0x1002, P2, Some("aux"), 26_000_000, SYM_X),
+    ] {
+        let mut f = json!({"$k": "function", "id": us(n), "device": us(0x2000), "def": us(FNDEF)});
+        if let Some(r) = role {
+            f["role"] = json!(r);
+        }
+        fx.push(f);
+        fx.push(json!({
+            "$k": "representation", "id": us(n + 0x10_000), "functions": [us(n)], "page": us(page),
+            "symbol": us(symbol), "pos": [x, 40_000_000],
+        }));
+    }
+    fx.build()
+}
+
+#[test]
+fn core053_an_anchor_at_the_graphics_centre_has_no_finding() {
+    let m = main_and_aux("graphic_centre", true);
+    assert!(findings_of(&m, "EW-CORE-053").is_empty());
+}
+
+#[test]
+fn core053_an_origin_anchor_outside_the_graphics_is_an_empty_cell() {
+    let m = main_and_aux("origin", true);
+    let f = findings_of(&m, "EW-CORE-053");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert_eq!(f[0].code, "103053");
+    assert_eq!(f[0].severity, Severity::Warning);
+    assert_eq!(f[0].discriminator, "empty-cell");
+    assert_eq!(f[0].page.map(|p| p.to_string()), Some(us(P1)));
+    assert_eq!(f[0].targets.len(), 2);
+    assert_eq!(f[0].targets[0].kind, Kind::Representation);
+    assert!(f[0].message.contains(": empty cell"), "{}", f[0].message);
+    assert!(f[0].message.starts_with(&f[0].subject), "{}", f[0].message);
+    let fix = f[0].fix.as_ref().expect("a quick fix");
+    assert_eq!(fix.command, "rep.set_anchor_policy");
+    assert_eq!(fix.params["anchor"], json!("graphic_centre"));
+}
+
+#[test]
+fn core053_a_symbol_without_graphics_is_not_judged() {
+    let m = main_and_aux("origin", false);
+    assert!(findings_of(&m, "EW-CORE-053").is_empty());
+}
+
+// EW-CORE-065 description lint.
+
+fn lint(text: &str) -> (Vec<String>, Vec<String>) {
+    let l = ew_checks::rules::core::lint_description(text);
+    (l.ratings, l.formats)
+}
+
+fn strs(items: &[&str]) -> Vec<String> {
+    items.iter().map(|s| (*s).to_owned()).collect()
+}
+
+#[test]
+fn core065_lint_description_table() {
+    let cases: &[(&str, &[&str], &[&str])] = &[
+        ("Miniature circuit breaker 1P+N, C, 10 A", &["10 A"], &[]),
+        ("10A C", &["10A"], &["10A"]),
+        ("50hz", &["50hz"], &["50hz"]),
+        ("Power supply 1 AC / 24 V DC / 20 A", &["24 V", "20 A"], &[]),
+        ("VMPA1-FB-EMG-8 electronic module, 4 positions", &[], &[]),
+        ("Wiring duct 40×60", &[], &[]),
+        ("PROFIBUS FC standard cable", &[], &[]),
+        ("Connecting cable 7/8\", 5-pin, open end", &[], &[]),
+    ];
+    for (text, ratings, formats) in cases {
+        assert_eq!(lint(text), (strs(ratings), strs(formats)), "{text}");
+    }
+    let (ratings, formats) = lint("cable 0.75 mm ²");
+    assert!(ratings.is_empty());
+    assert!(formats.contains(&"0.75 mm ²".to_owned()), "{formats:?}");
+}
+
+fn part_model(description: &str) -> ew_model::Model {
+    let mut fx = Fx::base();
+    fx.lib.push(json!({
+        "$k": "part", "id": us(0x8000), "library_id": us(0x7000), "item_id": us(0x1_8000),
+        "version": "1.0.0", "sha256": format!("sha256:{}", "ab".repeat(32)),
+        "meta": {}, "kind": "device",
+        "manufacturer": {"library": us(0x7000), "item": us(0x9000), "version_req": "^1"},
+        "part_number": "PN-1", "description": description, "unit": "piece",
+    }));
+    fx.build()
+}
+
+fn release_findings(m: &ew_model::Model, rule: &str) -> Vec<ew_checks::Finding> {
+    let q = Q::new(m);
+    run(&q, &FULL, CheckMode::Release)
+        .findings
+        .into_iter()
+        .filter(|f| f.rule == rule)
+        .collect()
+}
+
+#[test]
+fn core065_a_plain_description_has_no_finding() {
+    assert!(release_findings(&part_model("Thermostat"), "EW-CORE-065").is_empty());
+}
+
+#[test]
+fn core065_a_rating_and_a_glued_unit_are_two_warnings() {
+    let f = release_findings(&part_model("Miniature circuit breaker, 10A C"), "EW-CORE-065");
+    let mut found: Vec<&str> = f.iter().map(|f| f.discriminator.as_str()).collect();
+    found.sort_unstable();
+    assert_eq!(found, ["rating", "unit-format"], "{f:#?}");
+    for finding in &f {
+        assert_eq!(finding.code, "104065");
+        assert_eq!(finding.severity, Severity::Warning);
+        assert_eq!(finding.targets.len(), 1);
+        assert_eq!(
+            (finding.targets[0].kind, finding.targets[0].id),
+            (Kind::Part, uid(0x8000))
+        );
+    }
+}
+
+#[test]
+fn core065_does_not_run_online() {
+    let m = part_model("Miniature circuit breaker, 10A C");
+    assert!(findings_of(&m, "EW-CORE-065").is_empty());
+}

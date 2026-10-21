@@ -139,6 +139,28 @@ pub struct RuleMeta {
     pub scope: ScopeKind,
     /// The rules this rule supersedes for overlapping targets (doc 15 §3.6).
     pub supersedes: &'static [&'static str],
+    /// The release whose pack ships the rule (the catalogue's release column, doc 15 §4.1): a 1.0 rule of a
+    /// pack that is complete at 1.0, such as EW-CORE-065, belongs to the pack's 1.0 content.
+    pub release: Release,
+}
+
+/// The release column of the rule catalogue (doc 15 §4, §4.1).
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum Release {
+    /// The MVP content of the pack.
+    Mvp,
+    /// The pack's 1.0 content (the pack is complete at 1.0).
+    V1_0,
+}
+
+impl Release {
+    /// The catalogue's text: `MVP`, `1.0`.
+    pub fn name(self) -> &'static str {
+        match self {
+            Release::Mvp => "MVP",
+            Release::V1_0 => "1.0",
+        }
+    }
 }
 
 impl RuleMeta {

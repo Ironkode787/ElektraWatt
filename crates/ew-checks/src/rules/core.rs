@@ -4,11 +4,13 @@
 //! EW-CORE rules (doc 15 §4.2).
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Function, IpDirection, Kind, LengthSource};
-use ew_derive::{IpPairingQ, PairMode, Q};
+use ew_derive::ew_mltext::MlText;
+use ew_derive::ew_schema::{Function, IpDirection, Kind, LengthSource, Primitive, Representation};
+use ew_derive::ew_units::{Nm, Pt2};
+use ew_derive::{CellOf, IpPairingQ, PairMode, Q, XrefRelationOf, XrefTextOf, folio_label};
 
-use crate::finding::{Finding, Severity, Target};
-use crate::rule::{Modes, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
+use crate::finding::{Finding, QuickFix, Severity, Target};
+use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::term::full_tag;
 
 /// EW-CORE-033 "Cable without length" (doc 15 §4.2): completeness, o r, error, cable.
@@ -23,6 +25,7 @@ pub const CABLE_WITHOUT_LENGTH: RuleMeta = RuleMeta {
     release_severity: None,
     scope: ScopeKind::Cable,
     supersedes: &[],
+    release: Release::Mvp,
 };
 
 /// EW-CORE-033: a cable whose length source is `missing` (FR-CBL-009). A manual length and a length from
@@ -70,6 +73,7 @@ pub const UNPAIRED_INTERRUPTION_POINT: RuleMeta = RuleMeta {
     release_severity: None,
     scope: ScopeKind::Project,
     supersedes: &[],
+    release: Release::Mvp,
 };
 
 /// EW-CORE-051: an interruption point without a partner (FR-CHK-017, doc 08 §3.5), read from the typed
@@ -146,6 +150,7 @@ pub const AMBIGUOUS_INTERRUPTION_POINT: RuleMeta = RuleMeta {
     release_severity: None,
     scope: ScopeKind::Project,
     supersedes: &[],
+    release: Release::Mvp,
 };
 
 /// EW-CORE-052: a star-mode pairing group that violates "at most one star source per name and scope"
@@ -210,6 +215,7 @@ pub const WAIVER_MATCHES_NOTHING: RuleMeta = RuleMeta {
     release_severity: None,
     scope: ScopeKind::Project,
     supersedes: &[],
+    release: Release::Mvp,
 };
 
 /// EW-CORE-081: a waiver whose fingerprint matches no finding. The finding depends on the findings of every
@@ -226,6 +232,448 @@ impl Rule for WaiverMatchesNothing {
     fn run(&self, _q: &Q, _scope: &Scope) -> Vec<Finding> {
         Vec::new()
     }
+}
+
+/// EW-CORE-023 "Title-block override" (doc 15 §4.2): hygiene, o r, info, page.
+pub const TITLE_BLOCK_OVERRIDE: RuleMeta = RuleMeta {
+    id: "EW-CORE-023",
+    code: "101023",
+    pack: "EW-CORE",
+    title: "Title-block override",
+    kind: RuleKind::Hygiene,
+    modes: Modes::letters("or"),
+    severity: Severity::Info,
+    release_severity: None,
+    scope: ScopeKind::Page,
+    supersedes: &[],
+    release: Release::Mvp,
+};
+
+/// EW-CORE-023: a title-block value overridden on one page (FR-REP-036, D-06, MF-05). The page's
+/// `description_override` replaces the bound project description in its title block; the only per-page
+/// title-block override of schema v0. One finding per page, target the page, discriminator
+/// `description_override`, with the quick fix "drop override" (`fields.set` of the member to null).
+#[derive(Clone, Copy, Debug)]
+pub struct TitleBlockOverride;
+
+impl Rule for TitleBlockOverride {
+    fn meta(&self) -> &'static RuleMeta {
+        &TITLE_BLOCK_OVERRIDE
+    }
+
+    fn run(&self, q: &Q, scope: &Scope) -> Vec<Finding> {
+        let Scope::Page(page) = *scope else {
+            return Vec::new();
+        };
+        let Some(p) = q.pages().get(page) else {
+            return Vec::new();
+        };
+        let Some(text) = p.description_override.as_ref() else {
+            return Vec::new();
+        };
+        let folio = folio_label(p);
+        let shown = ml_texts(text)
+            .first()
+            .map(|t| (*t).to_owned())
+            .unwrap_or_default();
+        vec![
+            Finding::new(
+                &TITLE_BLOCK_OVERRIDE,
+                [Target::new(Kind::Page, page)],
+                "description_override",
+                format!("folio {folio}"),
+                format!(
+                    "folio {folio} overrides the project description in its title block with \"{shown}\""
+                ),
+            )
+            .on_page(page)
+            .with_fix(QuickFix {
+                label: "drop override".to_owned(),
+                command: "fields.set".to_owned(),
+                params: serde_json::json!({
+                    "kind": "page",
+                    "targets": [page.to_string()],
+                    "path": "description_override",
+                    "value": null,
+                }),
+            }),
+        ]
+    }
+}
+
+/// The texts of a multilingual text: the neutral text, else every language's, in tag order.
+fn ml_texts(t: &MlText) -> Vec<&str> {
+    match t.as_neutral() {
+        Some(s) => vec![s],
+        None => t.languages().filter_map(|l| t.get(l)).collect(),
+    }
+}
+
+/// EW-CORE-053 "Cross-reference cell invalid" (doc 15 §4.2): hygiene, o r, warning, page.
+pub const XREF_CELL_INVALID: RuleMeta = RuleMeta {
+    id: "EW-CORE-053",
+    code: "103053",
+    pack: "EW-CORE",
+    title: "Cross-reference cell invalid",
+    kind: RuleKind::Hygiene,
+    modes: Modes::letters("or"),
+    severity: Severity::Warning,
+    release_severity: None,
+    scope: ScopeKind::Page,
+    supersedes: &[],
+    release: Release::Mvp,
+};
+
+/// EW-CORE-053: a printed cross-reference whose target cell lies outside the frame or contains no graphics
+/// of the target (FR-CHK-035, STD XR-05; D-14, MF-13).
+///
+/// For every representation on the page whose cross-reference text shows a target (`xref_relation`,
+/// `xref_text`): the target's anchor cell (from its symbol's anchor policy) must exist and lie inside the
+/// cells its graphics cover. The covered cells are the column and row ranges of the cells of the four
+/// corners of the integer bounding box of the target's graphics (the symbol's primitives as
+/// `graphic_centre` counts them, and a black box's outline and inner graphics), transformed by the
+/// representation's orientation and position. A target whose graphics leave the drawing area, or that has
+/// no graphics, is not judged (EW-LIB-002 owns symbols without graphics).
+///
+/// One finding per cross-reference: targets the source and the target representation, discriminator
+/// `outside` or `empty-cell`, shown on the page; the message starts with the printed item, "3-B0: empty
+/// cell". An empty cell offers the MF-13 quick fix `rep.set_anchor_policy` to the graphics centre. The
+/// note of decision log ID-199 (an auxiliary whose main function has no cross-reference main
+/// representation) is not reported yet.
+#[derive(Clone, Copy, Debug)]
+pub struct XrefCellInvalid;
+
+impl Rule for XrefCellInvalid {
+    fn meta(&self) -> &'static RuleMeta {
+        &XREF_CELL_INVALID
+    }
+
+    fn run(&self, q: &Q, scope: &Scope) -> Vec<Finding> {
+        let Scope::Page(page) = *scope else {
+            return Vec::new();
+        };
+        let mut sources: Vec<Id<Representation>> = q.idx().reps_by_page(page).collect();
+        sources.sort();
+        sources.dedup();
+        let mut out = Vec::new();
+        for source in sources {
+            let relation = q.get::<XrefRelationOf>(source);
+            if relation.targets.is_empty() {
+                continue;
+            }
+            let text = q.get::<XrefTextOf>(source);
+            for t in &relation.targets {
+                let Some(item) = text
+                    .links
+                    .iter()
+                    .find(|l| l.rep == t.rep)
+                    .and_then(|l| text.text.get(l.range.clone()))
+                else {
+                    continue;
+                };
+                let targets = [
+                    Target::new(Kind::Representation, source),
+                    Target::new(Kind::Representation, t.rep),
+                ];
+                let finding = match &t.cell {
+                    None => Finding::new(
+                        &XREF_CELL_INVALID,
+                        targets,
+                        "outside",
+                        item.to_owned(),
+                        format!("{item}: outside the frame (the target's anchor has no cell)"),
+                    ),
+                    Some(cell) => {
+                        let Some((columns, rows)) = graphics_cells(q, t.rep) else {
+                            continue;
+                        };
+                        if columns.contains(&cell.column) && rows.contains(&cell.row) {
+                            continue;
+                        }
+                        Finding::new(
+                            &XREF_CELL_INVALID,
+                            targets,
+                            "empty-cell",
+                            item.to_owned(),
+                            format!(
+                                "{item}: empty cell (cell {cell} holds no graphics of the target; its symbol's anchor policy places the anchor outside them)"
+                            ),
+                        )
+                        .with_fix(QuickFix {
+                            label: "anchor at the graphics centre".to_owned(),
+                            command: "rep.set_anchor_policy".to_owned(),
+                            params: serde_json::json!({
+                                "reps": [t.rep.to_string()],
+                                "anchor": "graphic_centre",
+                            }),
+                        })
+                    }
+                };
+                out.push(finding.on_page(page));
+            }
+        }
+        out
+    }
+}
+
+/// The column and row ranges of the cells a representation's graphics cover on its page; `None` without
+/// graphics, when a corner leaves the drawing area, or on overflow.
+fn graphics_cells(
+    q: &Q,
+    rep: Id<Representation>,
+) -> Option<(std::ops::RangeInclusive<u32>, std::ops::RangeInclusive<u32>)> {
+    let r = q.reps().get(rep)?;
+    let mut bb: Option<[i128; 4]> = None;
+    let mut add = |x: i128, y: i128| {
+        let b = bb.get_or_insert([x, y, x, y]);
+        b[0] = b[0].min(x);
+        b[1] = b[1].min(y);
+        b[2] = b[2].max(x);
+        b[3] = b[3].max(y);
+    };
+    let symbol = q.symbols().get(r.symbol);
+    let mut graphics: Vec<&Primitive> = Vec::new();
+    if let Some(s) = &symbol {
+        graphics.extend(s.item.graphics.iter());
+    }
+    if let Some(b) = &r.box_ {
+        for p in &b.outline {
+            add(i128::from(p.x.0), i128::from(p.y.0));
+        }
+        graphics.extend(b.inner.iter());
+    }
+    for g in graphics {
+        let mut pt = |p: Pt2| add(i128::from(p.x.0), i128::from(p.y.0));
+        match g {
+            Primitive::Line(l) => {
+                pt(l.from);
+                pt(l.to);
+            }
+            Primitive::Polyline(p) => p.points.iter().for_each(|p| pt(*p)),
+            Primitive::Polygon(p) => p.points.iter().for_each(|p| pt(*p)),
+            Primitive::Rect(x) => {
+                pt(x.rect.0.min());
+                pt(x.rect.0.max());
+            }
+            Primitive::Ellipse(x) => {
+                pt(x.rect.0.min());
+                pt(x.rect.0.max());
+            }
+            Primitive::Arc(x) => {
+                pt(x.rect.0.min());
+                pt(x.rect.0.max());
+            }
+            Primitive::Image(x) => {
+                pt(x.rect.0.min());
+                pt(x.rect.0.max());
+            }
+            Primitive::Circle(c) => {
+                let (x, y, rad) = (
+                    i128::from(c.centre.x.0),
+                    i128::from(c.centre.y.0),
+                    i128::from(c.r.0),
+                );
+                add(x - rad, y - rad);
+                add(x + rad, y + rad);
+            }
+            Primitive::Text(t) => pt(t.pos),
+            Primitive::Unknown(_) => {}
+        }
+    }
+    let [x0, y0, x1, y1] = bb?;
+    let mut columns: Option<(u32, u32)> = None;
+    let mut rows: Option<(u32, u32)> = None;
+    for (x, y) in [(x0, y0), (x1, y0), (x0, y1), (x1, y1)] {
+        let local = Pt2::new(Nm(i64::try_from(x).ok()?), Nm(i64::try_from(y).ok()?));
+        let at = r.pos.checked_add(r.orient.checked_apply(local)?)?;
+        let cell = q.get::<CellOf>((r.page, at)).as_ref().clone()?;
+        let c = columns.get_or_insert((cell.column, cell.column));
+        c.0 = c.0.min(cell.column);
+        c.1 = c.1.max(cell.column);
+        let w = rows.get_or_insert((cell.row, cell.row));
+        w.0 = w.0.min(cell.row);
+        w.1 = w.1.max(cell.row);
+    }
+    let (columns, rows) = (columns?, rows?);
+    Some((columns.0..=columns.1, rows.0..=rows.1))
+}
+
+/// EW-CORE-065 "Description lint" (doc 15 §4.2): hygiene, f r, warning, project; a rule of the EW-CORE pack's
+/// 1.0 content.
+pub const DESCRIPTION_LINT: RuleMeta = RuleMeta {
+    id: "EW-CORE-065",
+    code: "104065",
+    pack: "EW-CORE",
+    title: "Description lint",
+    kind: RuleKind::Hygiene,
+    modes: Modes::letters("fr"),
+    severity: Severity::Warning,
+    release_severity: None,
+    scope: ScopeKind::Project,
+    supersedes: &[],
+    release: Release::V1_0,
+};
+
+/// EW-CORE-065: the descriptions of the project's parts (the BOM description, `Part.description`, "a noun
+/// phrase, never ratings", FR-DEV-010) linted for ratings and unit formatting (FR-CHK-040; D-18, D-35, EF-25).
+///
+/// A **rating** is a number followed, with or without a space, by a rating unit (A, mA, kA, V, mV, kV, W,
+/// kW, MW, VA, kVA, Hz, kHz; the unit compared case-insensitively): "10 A", "10A C", "24 V", "50hz". It belongs
+/// in the technical data, so the finding (discriminator `rating`) says "move to technical data"; no command
+/// edits a part copy's description yet, so it carries no quick fix. **Unit formatting** (discriminator
+/// `unit-format`): a number glued to its unit ("10A", "50hz"), a known unit in the wrong case ("50 hz",
+/// "0.75 MM²") and a space inside a unit ("0.75 mm ²"). The check of manufacturer spelling needs the
+/// manufacturer master (FR-PRT-002), which is not modelled: it is not checked. One finding per part and
+/// problem kind, target the part copy, listing every match of every language.
+#[derive(Clone, Copy, Debug)]
+pub struct DescriptionLint;
+
+impl Rule for DescriptionLint {
+    fn meta(&self) -> &'static RuleMeta {
+        &DESCRIPTION_LINT
+    }
+
+    fn run(&self, q: &Q, scope: &Scope) -> Vec<Finding> {
+        if *scope != Scope::Project {
+            return Vec::new();
+        }
+        let mut out = Vec::new();
+        for (id, copy) in q.parts().iter() {
+            let part = &copy.item;
+            let mut ratings: Vec<String> = Vec::new();
+            let mut formats: Vec<String> = Vec::new();
+            let texts = ml_texts(&part.description);
+            for text in &texts {
+                let lint = lint_description(text);
+                for r in lint.ratings {
+                    if !ratings.contains(&r) {
+                        ratings.push(r);
+                    }
+                }
+                for f in lint.formats {
+                    if !formats.contains(&f) {
+                        formats.push(f);
+                    }
+                }
+            }
+            let subject = part.part_number.as_str().to_owned();
+            let shown = texts.first().copied().unwrap_or_default();
+            if !ratings.is_empty() {
+                out.push(Finding::new(
+                    &DESCRIPTION_LINT,
+                    [Target::new(Kind::Part, id)],
+                    "rating",
+                    subject.clone(),
+                    format!(
+                        "description \"{shown}\" of part {subject} holds the rating {}: move it to the technical data",
+                        quoted(&ratings)
+                    ),
+                ));
+            }
+            if !formats.is_empty() {
+                out.push(Finding::new(
+                    &DESCRIPTION_LINT,
+                    [Target::new(Kind::Part, id)],
+                    "unit-format",
+                    subject.clone(),
+                    format!(
+                        "description \"{shown}\" of part {subject}: unit formatting {} (a space between number and unit, units as written in SI)",
+                        quoted(&formats)
+                    ),
+                ));
+            }
+        }
+        out
+    }
+}
+
+fn quoted(items: &[String]) -> String {
+    items
+        .iter()
+        .map(|i| format!("\"{i}\""))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// Rating units: a value with one of them is a rating.
+const RATING_UNITS: [&str; 13] = [
+    "A", "mA", "kA", "V", "mV", "kV", "W", "kW", "MW", "VA", "kVA", "Hz", "kHz",
+];
+/// Other units whose case and spacing are checked.
+const OTHER_UNITS: [&str; 8] = ["mm", "mm²", "mm2", "cm", "m", "°C", "bar", "Nm"];
+
+/// What [`lint_description`] found in one text.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct DescriptionFindings {
+    /// The ratings, as written ("10 A", "50hz").
+    pub ratings: Vec<String>,
+    /// The unit-formatting problems, as written ("10A", "mm ²").
+    pub formats: Vec<String>,
+}
+
+/// Lints one description text (see [`DescriptionLint`]). A number starts at a digit that does not follow a
+/// letter, digit or decimal separator (so "VMPA1" and "5SY4204" hold none); it runs over digits with at most
+/// one inner "." or ","; an optional single space follows, then the unit: a run of letters (with °, ², ³, µ,
+/// Ω) that ends at a character that is neither a letter nor a digit.
+pub fn lint_description(text: &str) -> DescriptionFindings {
+    let chars: Vec<char> = text.chars().collect();
+    let is_unit_char = |c: char| c.is_alphabetic() || matches!(c, '°' | '²' | '³' | 'µ' | 'Ω');
+    let mut out = DescriptionFindings::default();
+    let mut i = 0;
+    while i < chars.len() {
+        let c = chars[i];
+        let starts = c.is_ascii_digit()
+            && (i == 0 || !(chars[i - 1].is_alphanumeric() || matches!(chars[i - 1], '.' | ',')));
+        if !starts {
+            i += 1;
+            continue;
+        }
+        let start = i;
+        let mut j = i;
+        let mut separator = false;
+        while j < chars.len() {
+            if chars[j].is_ascii_digit() {
+                j += 1;
+            } else if matches!(chars[j], '.' | ',')
+                && !separator
+                && chars.get(j + 1).is_some_and(char::is_ascii_digit)
+            {
+                separator = true;
+                j += 1;
+            } else {
+                break;
+            }
+        }
+        let number_end = j;
+        let spaced = chars.get(j) == Some(&' ');
+        let unit_start = if spaced { j + 1 } else { j };
+        let mut k = unit_start;
+        while k < chars.len() && is_unit_char(chars[k]) {
+            k += 1;
+        }
+        let bounded = k > unit_start && chars.get(k).is_none_or(|c| !c.is_alphanumeric());
+        if bounded {
+            let unit: String = chars[unit_start..k].iter().collect();
+            let exact = RATING_UNITS.contains(&unit.as_str()) || OTHER_UNITS.contains(&unit.as_str());
+            let rating = RATING_UNITS.iter().any(|u| u.eq_ignore_ascii_case(&unit));
+            let known = rating || OTHER_UNITS.iter().any(|u| u.eq_ignore_ascii_case(&unit));
+            let written: String = chars[start..k].iter().collect();
+            if rating {
+                out.ratings.push(written.clone());
+            }
+            if known && (!spaced || !exact) {
+                out.formats.push(written);
+            }
+            // A space inside the unit: "mm ²".
+            if known && chars.get(k) == Some(&' ') && matches!(chars.get(k + 1), Some('²' | '³')) {
+                out.formats.push(chars[start..k + 2].iter().collect());
+            }
+            i = k;
+        } else {
+            i = number_end.max(i + 1);
+        }
+    }
+    out
 }
 
 /// An integrity rule's metadata: kind integrity, scope project, no supersessions.
@@ -247,6 +695,7 @@ const fn integrity(
         release_severity: None,
         scope: ScopeKind::Project,
         supersedes: &[],
+        release: Release::Mvp,
     }
 }
 

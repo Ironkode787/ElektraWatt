@@ -3,14 +3,14 @@
 
 //! EW-POT rules (doc 15 §4.3; content in doc 08 §3, §8.1).
 
-use ew_derive::ew_schema::Kind;
+use ew_derive::ew_schema::{BondKind, Kind, PotentialEarthing, PotentialType};
 use ew_derive::{
-    DeriveNote, FlowBfs, PhysicalWiresOf, PotentialAttrsOf, PotentialId, PotentialNameOf, PotentialPartition,
-    Q, RailTerminalOf,
+    DeriveNote, FlowBfs, PhysicalWiresOf, PotentialAttrsOf, PotentialFlow, PotentialId, PotentialNameOf,
+    PotentialPartition, Q, RailTerminalOf,
 };
 
 use crate::finding::{Finding, Severity, Target};
-use crate::rule::{Modes, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
+use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::term::full_tag;
 
 /// The targets of a potential and the suffix its findings' discriminators carry.
@@ -87,6 +87,7 @@ pub const TYPE_OR_VOLTAGE_CONFLICT: RuleMeta = RuleMeta {
     release_severity: None,
     scope: ScopeKind::Potential,
     supersedes: &[],
+    release: Release::Mvp,
 };
 
 /// EW-POT-001: two definitions or member roles of one potential disagree on type, voltage, environment or
@@ -152,6 +153,7 @@ pub const PE_ISLAND: RuleMeta = RuleMeta {
     release_severity: None,
     scope: ScopeKind::Project,
     supersedes: &[],
+    release: Release::Mvp,
 };
 
 /// EW-POT-008, **partial**: only the half "a rail-bonded terminal without a location", from the
@@ -208,6 +210,7 @@ pub const JUNCTION_FEED_AMBIGUOUS: RuleMeta = RuleMeta {
     release_severity: None,
     scope: ScopeKind::Potential,
     supersedes: &[],
+    release: Release::Mvp,
 };
 
 /// EW-POT-011: the arm between two junctions feeds both or neither, or a source feeds a star without a
@@ -241,6 +244,7 @@ pub const RING_IN_DRAWING_GRAPH: RuleMeta = RuleMeta {
     release_severity: None,
     scope: ScopeKind::Potential,
     supersedes: &[],
+    release: Release::Mvp,
 };
 
 /// EW-POT-012: the connections of a potential form a ring; the highest connection of the ring forms no
@@ -273,6 +277,7 @@ pub const PHYSICAL_WIRE_CONFLICT: RuleMeta = RuleMeta {
     release_severity: None,
     scope: ScopeKind::Potential,
     supersedes: &[],
+    release: Release::Mvp,
 };
 
 /// EW-POT-014: the constituents of one physical wire name different conductors or carry different
@@ -291,5 +296,110 @@ impl Rule for PhysicalWireConflict {
             Scope::Potential(p) => wire_note_findings(q, &PHYSICAL_WIRE_CONFLICT, p),
             _ => Vec::new(),
         }
+    }
+}
+
+/// EW-POT-002 "PELV or SELV bonding" (doc 15 §4.3): safety, o r, error, potential.
+pub const PELV_SELV_BONDING: RuleMeta = RuleMeta {
+    id: "EW-POT-002",
+    code: "005002",
+    pack: "EW-POT",
+    title: "PELV or SELV bonding",
+    kind: RuleKind::Safety,
+    modes: Modes::letters("or"),
+    severity: Severity::Error,
+    release_severity: None,
+    scope: ScopeKind::Potential,
+    supersedes: &[],
+    release: Release::Mvp,
+};
+
+/// EW-POT-002: a PELV potential without exactly one 0 V–PE bond, a SELV potential with any (FR-CHK-028,
+/// doc 08 §3.7).
+///
+/// - **PELV.** An M-type potential (its own type, else the type of its flow, or one of its definitions
+///   declares type M) is PELV when it or one of its definitions declares `env.earthing = pelv` or a
+///   `Pelv0vPe` bond ends at it; it must have exactly one such bond. None (the bond replaced by a plain wire,
+///   which merges 0V into PE, D-22) or two are one finding, discriminator `pelv`.
+/// - **SELV.** A potential that declares `env.earthing = selv` (itself or a definition) must have no
+///   `Pelv0vPe` bond; one or more are one finding, discriminator `selv`.
+///
+/// Targets: the potential's (see `potential_targets`) and the bonds counted. Golden A: 0V is PELV with B1.
+#[derive(Clone, Copy, Debug)]
+pub struct PelvSelvBonding;
+
+impl Rule for PelvSelvBonding {
+    fn meta(&self) -> &'static RuleMeta {
+        &PELV_SELV_BONDING
+    }
+
+    fn run(&self, q: &Q, scope: &Scope) -> Vec<Finding> {
+        let Scope::Potential(p) = *scope else {
+            return Vec::new();
+        };
+        let attrs = q.get::<PotentialAttrsOf>(p);
+        let earthing = attrs.env.as_ref().and_then(|e| e.value.earthing.clone());
+        let ptype = attrs.ptype.as_ref().map(|a| a.value.clone()).or_else(|| {
+            q.get::<PotentialFlow>(p)
+                .as_ref()
+                .as_ref()
+                .and_then(|e| e.ptype.as_ref().map(|a| a.value.clone()))
+        });
+        let partition = q.get::<PotentialPartition>(());
+        let bonds: Vec<_> = partition
+            .bonds()
+            .iter()
+            .filter(|b| b.kind == BondKind::Pelv0vPe && (b.a == Some(p) || b.b == Some(p)))
+            .map(|b| b.bond)
+            .collect();
+        // The definitions of the potential: a plain wire that merges 0V into PE (D-22) leaves one potential
+        // whose type is the first definition's, but the 0 V definition still declares an M-type PELV circuit.
+        let defs = partition.get(p).map(|x| x.defs.clone()).unwrap_or_default();
+        let declared = |pred: &dyn Fn(&ew_derive::ew_schema::PotentialDef) -> bool| {
+            defs.iter()
+                .filter_map(|d| q.potential_defs().get(*d))
+                .any(|d| pred(d))
+        };
+        let m_type = ptype == Some(PotentialType::M) || declared(&|d| d.ptype == Some(PotentialType::M));
+        let earthed = |e: PotentialEarthing| {
+            earthing.as_ref() == Some(&e) || declared(&|d| d.env.earthing.as_ref() == Some(&e))
+        };
+        let pelv = m_type && (earthed(PotentialEarthing::Pelv) || !bonds.is_empty());
+        let selv = earthed(PotentialEarthing::Selv);
+        let (discriminator, message) = if pelv && bonds.len() != 1 {
+            let found = if bonds.is_empty() {
+                "has no 0 V–PE bond".to_owned()
+            } else {
+                format!("has {} 0 V–PE bonds", bonds.len())
+            };
+            (
+                "pelv",
+                format!(
+                    "PELV potential {} {found}; a PELV circuit needs exactly one (declare the bond on the 0 V–PE wire)",
+                    potential_name(q, p)
+                ),
+            )
+        } else if selv && !bonds.is_empty() {
+            (
+                "selv",
+                format!(
+                    "SELV potential {} is bonded to PE ({} 0 V–PE bond(s)); a SELV circuit must not be earthed",
+                    potential_name(q, p),
+                    bonds.len()
+                ),
+            )
+        } else {
+            return Vec::new();
+        };
+        let (targets, suffix) = potential_targets(q, p);
+        vec![Finding::new(
+            &PELV_SELV_BONDING,
+            targets
+                .into_iter()
+                .chain(bonds.iter().map(|b| Target::new(Kind::Bond, *b))),
+            format!("{discriminator}{suffix}"),
+            potential_name(q, p),
+            message,
+        )]
     }
 }
