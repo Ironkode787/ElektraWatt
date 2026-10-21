@@ -6,7 +6,7 @@
 //! leniency towards duplicates a model already holds, FR-CHK-011).
 //!
 //! The Golden A expectations are the rules the MVP engine implements so far; the full target is doc 20
-//! §18.1 (42 errors, 32 warnings, 28 infos, 1 waived). `golden_a_pre_delivery_summary` prints the per-rule
+//! §18.1 (42 errors, 32 warnings, 31 infos, 1 waived). `golden_a_pre_delivery_summary` prints the per-rule
 //! counts for the comparison.
 
 mod golden_common;
