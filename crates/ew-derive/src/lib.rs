@@ -64,6 +64,7 @@ mod note;
 mod numbering;
 mod pages;
 mod part_text;
+mod plc;
 mod potentials;
 mod profile;
 mod q;
@@ -113,6 +114,11 @@ pub use pages::{
     SectionStructure, folio_label, map_ml, report_pages,
 };
 pub use part_text::{main_part, manufacturer_name, tech_data_text, unit_symbol};
+pub use plc::{
+    ChannelAddr, ChannelAddrEntry, ChannelAddresses, ChannelStates, ChannelTarget, ChannelTargets,
+    ChannelText, ChannelTexts, EffectiveState, ModuleOrder, ModuleStart, ModuleStarts, OrderedModule, PlcRow,
+    PlcRows, Slot, Start, driven_device, module_part, profile_of, station_of, stations,
+};
 pub use potentials::{
     Attr, AttrSource, BondLink, Component, NameSource, Partition, Potential, PotentialAttrs, PotentialId,
     PotentialName, PotentialPartition, Signal,
@@ -181,6 +187,10 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (BondPathsQ::FAMILY, BondPathsQ::POLICY),
     (BondVias::FAMILY, BondVias::POLICY),
     (CellOf::FAMILY, CellOf::POLICY),
+    (ChannelAddresses::FAMILY, ChannelAddresses::POLICY),
+    (ChannelStates::FAMILY, ChannelStates::POLICY),
+    (ChannelTargets::FAMILY, ChannelTargets::POLICY),
+    (ChannelTexts::FAMILY, ChannelTexts::POLICY),
     (DefPoints::FAMILY, DefPoints::POLICY),
     (xref::DeviceBoxes::FAMILY, xref::DeviceBoxes::POLICY),
     (DevicePartLines::FAMILY, DevicePartLines::POLICY),
@@ -200,6 +210,8 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (IpPairingQ::FAMILY, IpPairingQ::POLICY),
     (MainFunction::FAMILY, MainFunction::POLICY),
     (MainRep::FAMILY, MainRep::POLICY),
+    (ModuleOrder::FAMILY, ModuleOrder::POLICY),
+    (ModuleStarts::FAMILY, ModuleStarts::POLICY),
     (NumberingSettingsOf::FAMILY, NumberingSettingsOf::POLICY),
     (PageIds::FAMILY, PageIds::POLICY),
     (PageLocalNets::FAMILY, PageLocalNets::POLICY),
@@ -209,6 +221,7 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (PageTitle::FAMILY, PageTitle::POLICY),
     (PagelessLinks::FAMILY, PagelessLinks::POLICY),
     (PhysicalWiresOf::FAMILY, PhysicalWiresOf::POLICY),
+    (PlcRows::FAMILY, PlcRows::POLICY),
     (PotentialAttrsOf::FAMILY, PotentialAttrsOf::POLICY),
     (PotentialFlow::FAMILY, PotentialFlow::POLICY),
     (FlowBfs::FAMILY, FlowBfs::POLICY),

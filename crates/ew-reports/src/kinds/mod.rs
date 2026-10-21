@@ -9,9 +9,9 @@
 //! properties): `wire_list`, `potential_overview`, `terminal_diagram`, `cable_overview_diagrams`. Those
 //! queries read the drawn page order, which has no report pages, so these kinds derive their rows inside the
 //! pagination like the others.
-//! Registered with their columns but **not derived yet** (an empty row set marked
-//! [`NotDerived`]): `plc_overview` (no channel records), and `revision_overview` (the revision records are
-//! reserved, not typed). Other schema kinds are not registered; their blocks report
+//! Derived from the PLC queries (`plc_rows`, doc 10 §2.10): `plc_overview`.
+//! Registered with its columns but **not derived yet** (an empty row set marked [`NotDerived`]):
+//! `revision_overview` (the revision records are reserved, not typed). Other schema kinds are not registered; their blocks report
 //! [`NotDerived::Unsupported`].
 
 use ew_derive::Q;
@@ -24,6 +24,7 @@ mod cable_overview;
 mod conn;
 mod part_data;
 mod parts;
+mod plc_overview;
 mod potential_overview;
 mod profile_tables;
 mod structure_overview;
@@ -34,6 +35,7 @@ mod wire_list;
 pub use cable_overview::CableOverview;
 pub use part_data::PartData;
 pub use parts::{PartsList, PartsSummary};
+pub use plc_overview::PlcOverview;
 pub use potential_overview::PotentialOverview;
 pub use profile_tables::{GROUPS as PROFILE_TABLE_GROUPS, ProfileTables};
 pub use structure_overview::StructureOverview;
@@ -53,7 +55,7 @@ pub(crate) fn builtin() -> Vec<&'static dyn ReportKindDef> {
         &CableOverview,
         &WireList,
         &PotentialOverview,
-        &PLC_OVERVIEW,
+        &PlcOverview,
         &ProfileTables,
         &REVISION_OVERVIEW,
     ]
@@ -90,23 +92,6 @@ impl ReportKindDef for Pending {
         RowSet::not_derived(self.columns(), self.reason.clone())
     }
 }
-
-// The columns below are provisional: the row content of the PLC overview is owned by doc 10 and doc 20 §11,
-// and lands with the PLC work package.
-
-/// PLC overview per station or module (FR-REP-019; golden 908–908.2).
-pub static PLC_OVERVIEW: Pending = Pending {
-    name: "plc_overview",
-    columns: &[
-        ("module", CellType::Tag, "Module"),
-        ("channel", CellType::Ident, "Channel"),
-        ("address", CellType::Address, "Address"),
-        ("symbol", CellType::Ident, "Symbol"),
-        ("function", CellType::Text, "Function text"),
-        ("page", CellType::CellRef, "Page"),
-    ],
-    reason: NotDerived::AwaitsQuery("plc_rows"),
-};
 
 /// Revision overview (FR-REP-018; golden 911).
 pub static REVISION_OVERVIEW: Pending = Pending {

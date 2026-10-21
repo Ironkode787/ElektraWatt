@@ -7,8 +7,8 @@ use std::collections::BTreeSet;
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{NaturalKey, natural_key};
-use ew_derive::ew_schema::{CircuitClass, Page, PotentialType, ReportBlock};
-use ew_derive::{DrawnPageOrder, PageRef, Potential, PotentialId, PropSource, Q};
+use ew_derive::ew_schema::{CircuitClass, ConnectionKind, Endpoint, Page, PotentialType, ReportBlock};
+use ew_derive::{CpRef, DrawnPageOrder, PageRef, Potential, PotentialId, PropSource, Q};
 
 use super::conn::{Wires, colour_cell, csa_cell, put};
 use crate::kind::ReportKindDef;
@@ -22,10 +22,9 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 /// whatever its clamps and sides) and its external points. `colour` and
 /// `cross_section` are the profile's default for the potential: the effective values of its first wire (by
 /// wire ID) whose value comes from the profile or a potential definition (not from a wire override, a core
-/// or a bond rule); empty when no wire has one. `pages` are the pages of its wires, in page order.
-///
-/// A potential the model has no record of (the PROFIBUS `DP` bus line of doc 20 §7.3, which needs the `Bus`
-/// connections of the PLC work package) has no row.
+/// or a bond rule); empty when no wire has one. `pages` are the pages of its wires and of its drawn `Bus`
+/// connections (a bus line is not a physical wire: the PROFIBUS `DP` of doc 20 §7.3 is drawn on folio 3 as
+/// one single-line connection, FR-CBL-008), in page order.
 #[derive(Clone, Copy, Debug)]
 pub struct PotentialOverview;
 
@@ -56,7 +55,7 @@ impl ReportKindDef for PotentialOverview {
             .partition
             .potentials()
             .map(|p| {
-                let pages = potential_pages(&wires, p, &order);
+                let pages = potential_pages(q, &wires, p, &order);
                 (
                     (natural_key(wires.potential_name(p.id)), p.id),
                     potential_row(q, &wires, p, pages),
@@ -100,13 +99,28 @@ impl ReportKindDef for PotentialOverview {
     }
 }
 
-fn potential_pages(wires: &Wires, p: &Potential, order: &ew_derive::PageOrderV) -> Vec<PageRef> {
+fn potential_pages(q: &Q, wires: &Wires, p: &Potential, order: &ew_derive::PageOrderV) -> Vec<PageRef> {
     let mut pages: BTreeSet<(usize, Id<Page>)> = BTreeSet::new();
+    let mut add = |page: Id<Page>| {
+        pages.insert((order.position(PageRef::Drawn(page)).unwrap_or(usize::MAX), page));
+    };
     for w in &wires.wires {
         if w.wire.potentials.contains(&p.id) {
             for page in &w.wire.pages {
-                pages.insert((order.position(PageRef::Drawn(*page)).unwrap_or(usize::MAX), *page));
+                add(*page);
             }
+        }
+    }
+    for (_, c) in q.connections().iter() {
+        let (ConnectionKind::Bus(_), Some(page), Endpoint::Cp(f, idx)) = (&c.kind, c.page, &c.a) else {
+            continue;
+        };
+        if wires
+            .partition
+            .potential_at(CpRef::new(*f, *idx).key())
+            .is_some_and(|x| x.id == p.id)
+        {
+            add(page);
         }
     }
     pages.into_iter().map(|(_, p)| PageRef::Drawn(p)).collect()
