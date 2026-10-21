@@ -27,8 +27,15 @@ fn render() {
 
 #[test]
 fn bits_and_units() {
-    assert_eq!(p().bit_at(Area::Q, 6, 7), PlcAddress::bit(Area::Q, 6, 7));
-    assert_eq!(p().bit_at(Area::Q, 0, 9), PlcAddress::bit(Area::Q, 1, 1));
+    assert_eq!(p().bit_at(Area::Q, 6, 7), Some(PlcAddress::bit(Area::Q, 6, 7)));
+    assert_eq!(p().bit_at(Area::Q, 0, 9), Some(PlcAddress::bit(Area::Q, 1, 1)));
+    // Hostile input: a start byte at the end of the range and a large offset overflow instead of wrapping.
+    assert_eq!(
+        p().bit_at(Area::Q, u32::MAX, 7),
+        Some(PlcAddress::bit(Area::Q, u32::MAX, 7))
+    );
+    assert_eq!(p().bit_at(Area::Q, u32::MAX, 8), None);
+    assert_eq!(p().bit_at(Area::Q, u32::MAX - 1, 16), None);
     assert_eq!((p().units(8), p().units(9), p().units(0)), (1, 2, 0));
     assert_eq!(Size::LWord.bits(), 64);
 }
@@ -83,5 +90,37 @@ proptest! {
     fn map_round_trip(p in any::<bool>(), k in 1u32.., c in any::<u32>()) {
         let e = MapExpr { var: if p { MapVar::P } else { MapVar::N }, k, c };
         prop_assert_eq!(MapExpr::parse(&e.to_string()), Some(e));
+    }
+}
+
+/// One operation on the intervals: insert `(area, start, len)`.
+fn op() -> impl Strategy<Value = (bool, u32, u32)> {
+    (any::<bool>(), 0u32..48, 0u32..10)
+}
+
+proptest! {
+    /// `AreaIntervals` against a brute-force bitset per area: overlaps and first_free agree after any inserts.
+    #[test]
+    fn intervals_agree_with_a_bitset(
+        ops in proptest::collection::vec(op(), 0..12),
+        queries in proptest::collection::vec((any::<bool>(), 0u32..60, 1u32..10), 1..12),
+    ) {
+        const N: usize = 256;
+        let mut iv = AreaIntervals::new();
+        let mut bits = [[false; N]; 2];
+        let area = |q: bool| if q { Area::Q } else { Area::I };
+        for (q, start, len) in ops {
+            iv.insert(area(q), start, len);
+            for b in start..start + len {
+                bits[usize::from(q)][b as usize] = true;
+            }
+        }
+        for (q, from, len) in queries {
+            let set = &bits[usize::from(q)];
+            let busy = |s: u32| (s..s + len).any(|b| set[b as usize]);
+            prop_assert_eq!(iv.overlaps(area(q), from, len), busy(from));
+            let brute = (from..).find(|s| !busy(*s)).unwrap();
+            prop_assert_eq!(iv.first_free(area(q), from, len), brute);
+        }
     }
 }

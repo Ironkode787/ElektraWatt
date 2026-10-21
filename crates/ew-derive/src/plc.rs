@@ -179,6 +179,8 @@ pub enum Slot {
     },
     /// The 1-based rank among the station's positional modules (manifold order).
     Positional(u32),
+    /// A slot form of a newer format: listed after the others, not ranked, never addressed.
+    Unresolved,
 }
 
 /// One module of a configuration project in allocation order.
@@ -249,6 +251,7 @@ fn station_modules(q: &Q, station: Id<Device>) -> Vec<OrderedModule> {
     }
     let mut racks = Vec::new();
     let mut positional = Vec::new();
+    let mut unresolved = Vec::new();
     for d in walk {
         let Some(m) = devices.get(d).and_then(|dev| dev.aspects.plc_module.as_ref()) else {
             continue;
@@ -263,7 +266,9 @@ fn station_modules(q: &Q, station: Id<Device>) -> Vec<OrderedModule> {
                     subslot: r.subslot,
                 },
             }),
-            _ => positional.push(d),
+            SlotPath::Positional => positional.push(d),
+            // A newer slot form does not take a positional rank, so its siblings keep theirs.
+            SlotPath::Unknown(_) => unresolved.push(d),
         }
     }
     racks.sort_by_key(|m| (m.slot, m.module));
@@ -277,6 +282,11 @@ fn station_modules(q: &Q, station: Id<Device>) -> Vec<OrderedModule> {
                 slot: Slot::Positional(u32::try_from(i + 1).unwrap_or(u32::MAX)),
             }),
     );
+    racks.extend(unresolved.into_iter().map(|module| OrderedModule {
+        station,
+        module,
+        slot: Slot::Unresolved,
+    }));
     racks
 }
 
@@ -321,6 +331,7 @@ impl Query for ModuleStarts {
         let devices = q.devices();
         let modules: Vec<(Id<Device>, ew_schema::IoStarts, Vec<ew_schema::IoRange>)> = order
             .iter()
+            .filter(|m| m.slot != Slot::Unresolved)
             .map(|m| {
                 let starts = devices
                     .get(m.module)
@@ -332,6 +343,14 @@ impl Query for ModuleStarts {
             })
             .collect();
         let mut out = BTreeMap::new();
+        // A module whose slot is of a newer format is not allocated: its ranges are unresolved.
+        for m in order.iter().filter(|m| m.slot == Slot::Unresolved) {
+            let mut s = ModuleStart::default();
+            for r in module_part(q, m.module).map(|(_, s)| s.io).unwrap_or_default() {
+                set(&mut s, &r.dir, Start::Unresolved);
+            }
+            out.insert(m.module, s);
+        }
         let Some(prof) = profile else {
             for (module, _, io) in &modules {
                 let mut s = ModuleStart::default();
@@ -351,8 +370,11 @@ impl Query for ModuleStarts {
         for (_, starts, io) in &modules {
             for r in io {
                 if let AddrSpec::Manual(a) = spec(starts, &r.dir) {
-                    if let Some(area) = area_of(&a.area) {
-                        used.insert(area, a.byte, prof.units(r.bits));
+                    // A manual start in another area than the range's direction is not placed (unresolved).
+                    if let (Some(area), Some(dir)) = (area_of(&a.area), dir_area(&r.dir)) {
+                        if area == dir {
+                            used.insert(area, a.byte, prof.units(r.bits));
+                        }
                     }
                 }
             }
@@ -381,7 +403,10 @@ impl Query for ModuleStarts {
                     at = at.div_ceil(prof.word_align).saturating_mul(prof.word_align);
                 }
                 let (start, next) = match spec(starts, &r.dir) {
-                    AddrSpec::Manual(a) => (Start::At(a.byte), at.saturating_add(units)),
+                    AddrSpec::Manual(a) if area_of(&a.area) == Some(area) => {
+                        (Start::At(a.byte), at.saturating_add(units))
+                    }
+                    AddrSpec::Manual(_) => (Start::Unresolved, at.saturating_add(units)),
                     AddrSpec::Excluded => (Start::Excluded, at.saturating_add(units)),
                     AddrSpec::Tbd => (Start::Tbd, at.saturating_add(units)),
                     AddrSpec::Auto => {
@@ -529,11 +554,13 @@ fn address_of(
                         return ChannelAddr::Unresolved;
                     };
                     let a = if is_analog(&c.kind) {
-                        ew_plcaddr::PlcAddress::unit(area, Size::Word, byte + offset / prof.unit_bits)
+                        byte.checked_add(offset / prof.unit_bits)
+                            .map(|b| ew_plcaddr::PlcAddress::unit(area, Size::Word, b))
                     } else {
                         prof.bit_at(area, byte, offset)
                     };
-                    render(a)
+                    // An address beyond the u32 byte range (a hostile start or map) is not derivable.
+                    a.map_or(ChannelAddr::Unresolved, render)
                 }
                 Some(Start::Excluded) => ChannelAddr::Excluded,
                 Some(Start::Tbd) => ChannelAddr::Tbd,

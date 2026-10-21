@@ -305,48 +305,108 @@ where
     ew_model::Op::update(before, ew_model::AnyRow::of(after))
 }
 
-type Edit = Box<dyn Fn(&ew_model::Model) -> ew_model::Op>;
+/// The row of `key` in `model`.
+fn row_of(model: &ew_model::Model, key: ew_model::AnyKey) -> ew_model::AnyRow {
+    model.row(&key).expect("a row")
+}
+
+fn channel(module: u128, n: u16) -> u128 {
+    v5::plc_channel_id::<Device, ew_schema::Channel>(id(module), n)
+        .as_uuid()
+        .as_u128()
+}
+
+type Edit = Box<dyn Fn(&ew_model::Model) -> Vec<ew_model::Op>>;
 
 #[test]
 fn memoised_rows_equal_cold_rows_across_edits() {
     use ew_derive::MemoStore;
     use ew_memo::Oracle;
+    use ew_model::{AnyRow, Entity, Op};
+    use ew_schema::{Channel, DeviceLink, LibCopy, Part};
 
     let m0 = fixture().build();
     let store = MemoStore::new(&m0);
     store.set_oracle(Oracle::Every);
     assert_eq!(read_all(&store.query()), read_all(&Q::new(&m0)));
 
-    // A manual start on M2, an explicit state on a channel of M3, a new process tag on the field device.
-    let ch = v5::plc_channel_id::<Device, ew_schema::Channel>(id(M3), 0)
-        .as_uuid()
-        .as_u128();
-    let edits: [(&str, Edit); 3] = [
+    let edits: Vec<(&str, Edit)> = vec![
         (
-            "start",
+            "manual start",
             Box::new(|m| {
-                update::<Device>(m, M2, |v| {
+                vec![update::<Device>(m, M2, |v| {
                     v["plc_module"] = json!({"start": {"output": {"manual": {"area": "q", "byte": 10}}}});
-                })
+                })]
             }),
         ),
         (
-            "state",
-            Box::new(move |m| update::<ew_schema::Channel>(m, ch, |v| v["state"] = json!("spare"))),
+            "explicit state",
+            Box::new(|m| {
+                vec![update::<Channel>(m, channel(M3, 0), |v| {
+                    v["state"] = json!("spare")
+                })]
+            }),
         ),
         (
-            "tag",
-            Box::new(|m| update::<Device>(m, FIELD, |v| v["process_tag"] = json!("TA05-V-99"))),
+            "process tag",
+            Box::new(|m| {
+                vec![update::<Device>(m, FIELD, |v| {
+                    v["process_tag"] = json!("TA05-V-99")
+                })]
+            }),
+        ),
+        (
+            "binding moves from channel 1 to channel 3",
+            Box::new(|m| {
+                vec![
+                    update::<Channel>(m, channel(M1, 1), |v| {
+                        v.as_object_mut().expect("object").remove("binding");
+                    }),
+                    update::<Channel>(m, channel(M1, 3), |v| v["binding"] = json!({"cp": [uid(F1), 0]})),
+                ]
+            }),
+        ),
+        (
+            "device link inserted",
+            Box::new(|_| {
+                let link: DeviceLink = serde_json::from_value(json!({
+                    "id": uid(LINK + 1), "from": uid(V2), "to": uid(FIELD), "kind": "drives",
+                }))
+                .expect("a link");
+                vec![Op::insert(AnyRow::of(link))]
+            }),
+        ),
+        (
+            "device link deleted",
+            Box::new(|m| vec![Op::delete(row_of(m, DeviceLink::key(id(LINK))))]),
+        ),
+        (
+            "bit_of edit",
+            Box::new(|m| {
+                vec![update::<LibCopy<Part>>(m, PART, |v| {
+                    v["sections"]["plc"]["bit_of"] = json!([7, 6, 5, 4, 3, 2, 1, 0]);
+                })]
+            }),
+        ),
+        (
+            "module deleted",
+            Box::new(|m| {
+                let mut ops: Vec<Op> = (0..8u16)
+                    .map(|n| Op::delete(row_of(m, Channel::key(id(channel(M3, n))))))
+                    .collect();
+                ops.push(Op::delete(row_of(m, Device::key(id(M3)))));
+                ops
+            }),
         ),
     ];
     let mut model = m0;
     for (name, edit) in &edits {
-        let op = edit(&model);
-        let key = op.key();
+        let ops = edit(&model);
+        let keys: Vec<ew_model::AnyKey> = ops.iter().map(Op::key).collect();
         model = model
-            .apply_unchecked(std::slice::from_ref(&op), model.rev().next())
-            .expect("the op applies");
-        store.advance(&model, &[key]);
+            .apply_unchecked(&ops, model.rev().next())
+            .expect("the ops apply");
+        store.advance(&model, &keys);
         let memo = read_all(&store.query());
         assert_eq!(memo, read_all(&Q::new(&model)), "after {name}");
         assert!(
@@ -355,7 +415,75 @@ fn memoised_rows_equal_cold_rows_across_edits() {
         );
     }
     let rows = read_all(&store.query());
-    assert!(matches!(&rows[8].address, ChannelAddr::At { text, .. } if text == "Q10.0"));
-    assert_eq!(rows[16].state, EffectiveState::Spare);
-    assert_eq!(rows[1].text.process_tag.as_deref(), Some("TA05-V-99"));
+    assert_eq!(rows.len(), 16, "M3 and its channels are gone");
+    // bit_of reversed: channel 0 of M2 (manual Q10) is bit 7.
+    assert!(matches!(&rows[8].address, ChannelAddr::At { text, .. } if text == "Q10.7"));
+    assert_eq!(rows[1].state, EffectiveState::Deactivated);
+    assert_eq!(rows[3].state, EffectiveState::Used);
+    assert_eq!(rows[3].text.process_tag, None, "the link of V1 is deleted");
+    assert_eq!(
+        rows[9].text.process_tag.as_deref(),
+        Some("TA05-V-99"),
+        "V2 drives FIELD"
+    );
+}
+
+#[test]
+fn hostile_starts_and_maps_are_unresolved_not_wrapped() {
+    let mut fx = fixture();
+    set_output(&mut fx, M2, json!({"manual": {"area": "q", "byte": u32::MAX}}));
+    let part = fx
+        .lib
+        .iter_mut()
+        .find(|d| d["id"] == json!(uid(PART)))
+        .expect("the part");
+    part["sections"]["plc"]["bit_of"] = json!("16n");
+    let m = fx.build();
+    let q = Q::new(&m);
+    let a = q.get::<ChannelAddresses>(id(M2));
+    assert!(matches!(&a[0].address, ChannelAddr::At { text, .. } if text == "Q4294967295.0"));
+    assert!(a[1..].iter().all(|c| c.address == ChannelAddr::Unresolved));
+}
+
+#[test]
+fn a_manual_start_in_another_area_is_unresolved() {
+    let mut fx = fixture();
+    set_output(&mut fx, M2, json!({"manual": {"area": "i", "byte": 5}}));
+    let m = fx.build();
+    let q = Q::new(&m);
+    assert_eq!(
+        q.get::<ModuleStarts>(cfg())[&id(M2)].output,
+        Some(Start::Unresolved)
+    );
+    assert!(
+        q.get::<ChannelAddresses>(id(M2))
+            .iter()
+            .all(|a| a.address == ChannelAddr::Unresolved)
+    );
+    // The cursor still advances by M2's width, and I5 is not occupied in the output area.
+    assert_eq!(texts(&q, M3)[0], "Q2.0");
+}
+
+#[test]
+fn a_slot_of_a_newer_format_takes_no_rank() {
+    let mut fx = fixture();
+    fx.record(M1)["plc_module"] = json!({"slot": {"future_slot": {"x": 1}}});
+    let m = fx.build();
+    let q = Q::new(&m);
+    let order = q.get::<ModuleOrder>(cfg());
+    let got: Vec<(Id<Device>, Slot)> = order.iter().map(|o| (o.module, o.slot)).collect();
+    assert_eq!(
+        got,
+        [
+            (id(M2), Slot::Positional(1)),
+            (id(M3), Slot::Positional(2)),
+            (id(M1), Slot::Unresolved),
+        ]
+    );
+    assert!(
+        q.get::<ChannelAddresses>(id(M1))
+            .iter()
+            .all(|a| a.address == ChannelAddr::Unresolved)
+    );
+    assert_eq!(texts(&q, M2)[0], "Q0.0");
 }

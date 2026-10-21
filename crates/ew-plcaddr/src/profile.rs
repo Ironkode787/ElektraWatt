@@ -98,13 +98,12 @@ impl AddressProfile {
         out
     }
 
-    /// The bit address `bit_offset` bits after `start_byte`.
-    pub fn bit_at(&self, area: Area, start_byte: u32, bit_offset: u32) -> PlcAddress {
-        PlcAddress::bit(
-            area,
-            start_byte + bit_offset / self.unit_bits,
-            (bit_offset % self.unit_bits) as u8,
-        )
+    /// The bit address `bit_offset` bits after `start_byte`; `None` when the byte overflows `u32` (a hostile
+    /// start or map) or the bit does not fit a `u8`.
+    pub fn bit_at(&self, area: Area, start_byte: u32, bit_offset: u32) -> Option<PlcAddress> {
+        let byte = start_byte.checked_add(bit_offset / self.unit_bits)?;
+        let bit = u8::try_from(bit_offset % self.unit_bits).ok()?;
+        Some(PlcAddress::bit(area, byte, bit))
     }
 
     /// Units needed for `bits` bits.
