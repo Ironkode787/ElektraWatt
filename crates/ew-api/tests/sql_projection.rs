@@ -129,8 +129,8 @@ fn every_view_has_its_documented_columns_and_the_golden_counts() {
     );
     assert_eq!(count("api_v1_bom_component"), "27");
     assert_eq!(count("api_v1_bond"), "1");
-    assert_eq!(count("api_v1_potential"), "18");
-    assert_eq!(count("api_v1_page"), "34");
+    assert_eq!(count("api_v1_potential"), "19");
+    assert_eq!(count("api_v1_page"), "36");
     assert_eq!(count("api_v1_meta"), "1");
     // The counts the projection reports equal the views'.
     for (view, n) in p.counts() {

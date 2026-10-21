@@ -511,13 +511,15 @@ cargo nextest run -p ew-api --test page_output                # compares (no EW_
   channel), not byte for byte.
 - `pdf/structure.json`: the writer's PDF structure of the whole page order (page count, `/PageLabels`, outline
   tree, link, plain-text-link, dropped-`.notdef`-glyph and destination counts, embedded fonts), compared exactly
-  (§3.3 "PDF structure"; 64 links, one per listed cross-reference item); `pdf/sha256.txt` holds the SHA-256 of
-  the whole PDF.
+  (§3.3 "PDF structure"; 92 links: one per listed cross-reference item (64) and one per bound channel row of
+  the PLC overview to its coil (28, doc 10 §5)); `pdf/sha256.txt` holds the SHA-256 of the whole PDF.
 - Everything under `golden/` is CC0-1.0 (`REUSE.toml`, annotation L8).
 
-**Known gaps for the FT-10 approval.** The candidates cover the 34 pages of `page_order` with the report engine
+**Known gaps for the FT-10 approval.** The candidates cover the 36 pages of `page_order` with the report engine
 installed (`Session::query()`), so Prev/Next, the outline and the page labels include the generated pages. All 72
-page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106). Still open:
+page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106), and the single-line bus cable -3W1 on folio 3
+(`DP.1`, from the external point DP to -3X1; the plug-on connection `DP.2` is page-less and not drawn; the route is
+the provisional router's). Still open:
 
 - **Router.** Wires use the provisional orthogonal router (doc 06 §5.4 owns the real one), so routes overlap: on
   101 the S51 → -101F1 L and N routes run collinear along row B; on 102 the feeds of -102G1 run along the box's top
@@ -530,9 +532,18 @@ page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106). Still open:
   the columns' weights (no data area in the golden report forms, so the widths are the kinds' choice: only the TOC's
   follow the reference). A page of a block that is not derived prints its reason in one row. Row links
   (FR-REP-042) are not drawn yet. The dividers 100, 200 and 900 show frame and title block only.
-- **Page count.** Doc 20 §5 counts 36 pages; the page order has 34 (901 paginates into 901 and 901.1, 907 into
-  907, 907.1 and 907.2). Two pages are missing for a reason outside the table drawing: 908.1 and 908.2 (the PLC
-  overview has no channel records; FT-111).
+- **Page count.** The page order has the 36 pages of doc 20 §5: 901 paginates into 901 and 901.1, 907 into 907,
+  907.1 and 907.2, and 908 into 908, 908.1 and 908.2 (FT-111).
+- **PLC overview (908).** The 56 channels of -201U1 (doc 20 §11.3) on three pages of 23, 23 and 10 rows, derived by
+  `plc_rows(-201U1)` from the channel records, the module aspects, the PLC section of part 533361, the address
+  profile of the configuration project and the device links: addresses Q0.0 … Q6.7, 8 used, 20 spare and 28
+  deactivated, the valve as target, the function text (the driven field device's process tag, or "Spare") and the
+  process tag in separate columns, and the frame cell of the coil's representation (203-D1 …), which links to the
+  coil's CP (`ew:cp:<uuid>`, a named destination at the valve's position, since the valve symbol does not draw the
+  internal coil 14; 28 bound rows, doc 10 §5). The columns are those of doc 10 §5 (module, part, address, channel,
+  designation, kind, symbol, function text, process tag, target, state, page); doc 20 §11.3 names a subset.
+  Symbols are empty (Golden A; templates are 1.0). The station address "TBD" is not printed (no `BusPort` record
+  yet). The TOC's and the parts list's row links are not drawn yet (FR-REP-042).
 - **Parts list.** 901 holds the 27 rows of doc 20 §14.1 (23 on 901, the 4 TBD rows on 901.1). Rows 24 to 27 come
   from four TBD test parts (the part number TBD, U-27) used by -UC1 (rail 2.192 m, duct 3.81 m from the carriers of
   §13) and by the strips (4 end brackets, 6 bridges of §8.3). The rows after the legend rows of the enclosure and
@@ -565,8 +576,8 @@ page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106). Still open:
   of the drawing area.
 - **Interruption points.** The texts of two points that share a cell overlap: PE-1.1 and PE-1.4 at 103-G6,
   0VDC-AIR3 and PE-AIR2 at 106-B1, 0VDC-AIR1 and PE-AIR1 at 106-E1.
-- **Folios 203–206.** Used valves print no text in the function-text slot: the process-tag fallback through
-  `DeviceLink{Drives}` (§6.2) needs the `DeviceLink` record, which schema v0 does not implement.
+- **Folios 203–206.** Used valves print no text in the function-text slot: the `DeviceLink{Drives}` records exist (the
+  PLC overview reads them), but the page view's slot does not apply the process-tag fallback of §6.2 yet (FT-80).
 - **Cross-references, folio 101.** The three external texts ("+J-E-206 / JE-N1000-03") start left of the frame
   and overlap the next point's name; the N-1 wire crosses "102-A1".
 - **Cross-references, folio 103.** The texts overlap neighbouring arrows: 0VDC and 24VDC-1, 24VDC-AIR4 and
@@ -620,8 +631,12 @@ here, with the follow-up task of the [work breakdown](../../docs/plan/02-work-pa
     conductors of the fixture carry none; FT-107).
   - Since cycle 12 the page goldens are built with the colour and size profiles (FT-65 closed): the wire-list pages
     print the same sources as `rows/907.csv`.
-- **Potential overview (909).** 18 potentials and B1 (19 rows): the PROFIBUS `DP` potential of doc 20 §7.3 needs the
-  `Bus` connections of the PLC work package (FT-105). The rows are in natural order of the name, not in the order of doc 20.
+- **Potential overview (909).** 19 potentials and B1 (20 rows). The PROFIBUS `DP` potential (FT-105) is joined by its
+  two `Bus` connections and named by its definition at -201U1:A: class "bus", no type or voltage, "(cable)" for
+  colour and size (its bus connection carries the cable -3W1, doc 20 §7.3), 3 members (the port -201U1:DP, the plug
+  -3X1 and the external point; doc 20 also lists the cable -3W1, an edge of the bus graph under doc 10 §3.8 A5, not a
+  connection point) and page 3 (its drawn bus connection). The rows are in natural order of the name, not in the
+  order of doc 20.
   Members are counted as doc 20 counts them (device CPs, a terminal once, external points); the rails and the plate
   "by declared bonding" are not in the model (PE: 14, doc 20 lists 13 and the bonded carriers). The default colour and
   size are the profile's values for the potential's first wire that has one: empty for the size of `+24V` and
@@ -834,6 +849,8 @@ its report with the committed `expected/acceptance_headless.md` (so two runs mus
 The SQL half of each pair (`acceptance/*.sql` over the `api_v1` views) is `not_built`: SQL projection pending
 (WP-S1.10).
 
-The headless report of this revision: 84 entries, 54 pass, 2 fail, 22 not_built, 6 not_applicable (the full run adds
-the raster comparison as a pass). The failures are the open gaps listed above (page count 34 against 36: the PLC
-overview folios 908.1 and 908.2, FT-111; the DP potential, FT-105). An empty terminal designation refused at the parameter layer counts as refused for D-11 (ADR-0008).
+The headless report of this revision: 85 entries, 58 pass, 3 fail, 18 not_built, 6 not_applicable (the full run adds
+the raster comparison as a pass). AC-03 (36 folios, FT-111) and AC-10 (19 potentials, FT-105) pass. The failures are
+SQL halves: AC-09 and AC-15 (`acceptance/wires.sql`, the SQL projection's pending fix) and AC-10
+(`acceptance/potentials.sql`: the DP row's "(cable)" needs the bus cable in `api_v1_potential`, a projection
+column the SQL lane adds). An empty terminal designation refused at the parameter layer counts as refused for D-11 (ADR-0008).

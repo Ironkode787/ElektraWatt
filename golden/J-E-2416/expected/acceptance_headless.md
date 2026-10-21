@@ -10,8 +10,8 @@
 | AC-02 | every representation anchors in the cell of representations.csv | pass | all 135 anchor cells equal their table cells |
 | AC-02 | text of folios 1, 3, 100-106, 200-206, 900 equals expected/text | pass | 15 folios: strings, anchors (3 decimals) and sizes equal the committed text CSVs |
 | AC-02 | raster of those folios within 0.5 % of expected/png | not_applicable | the raster comparison was switched off for this run (Options::raster) |
-| AC-03 | page order equals the 36 folios of §5 | fail | 34 folios derived against 36 in §5; missing 908.1, 908.2 (908.1, 908.2: no PLC channel records, FT-111) |
-| AC-04 | every page prints the bound title-block values | pass | all 34 pages print the six bound values |
+| AC-03 | page order equals the 36 folios of §5 | pass | 36 folios in the order of §5; Prev/Next follow the order by construction |
+| AC-04 | every page prints the bound title-block values | pass | all 36 pages print the six bound values |
 | AC-05 | the interruption-point texts equal §15 (22 pairs, 44 texts) | pass | 44 texts equal the "Printed at source / target" columns of §15 |
 | AC-05 | the 9 main and 10 auxiliary texts equal §15 by value | pass | the 9 main texts ("∞ ...") and 10 auxiliary texts ("(...)") equal §15 as a multiset |
 | AC-05 | 63 linked texts with 64 targets, 4 external texts, "3-B2" | pass | 63 linked texts with 64 link targets and 4 external texts on the drawn pages; -201U1 prints 3-B2 |
@@ -23,20 +23,20 @@
 | AC-09 | folio 907 equals expected/csv/wires.csv: 44 wires, 6 bridges | pass | 44 wire rows and 6 bridge rows equal expected/csv/wires.csv |
 | AC-09 | every wire has an effective size and colour | pass | 44 wires have an effective size and colour |
 | AC-09 | every wire has a wire number | pass | W1-W34 carry 34 unique `{page}.{counter}` numbers (counters 1..n per page) equal to the "No." column of doc 20 §8.2; W1-W5, W7 and W9 (provisional until FT-101) equal it too; W35-W44 (cable cores) none; folio 907 prints them; the same numbers with reversed records |
-| AC-10 | the potential partition holds the 19 potentials of §7.3 and bond B1 | fail | 18 potentials, §7.3 has 19 (the PROFIBUS DP potential needs the Bus connections, FT-105) |
+| AC-10 | the potential partition holds the 19 potentials of §7.3 and bond B1 | pass | 19 potentials and bond B1 |
 | AC-10 | folio 909 equals expected/csv/potentials.csv | pass | the derived rows equal expected/csv/potentials.csv (the SQL half is a separate entry) |
 | AC-11 | folio 906 equals expected/csv/cables.csv: 3 cables, 13 cores | pass | 3 cables and 13 cores equal expected/csv/cables.csv |
 | AC-11 | export cables equals §10 | not_built | `ew export cables` does not exist yet (FR-EXP-005) |
 | AC-12 | folio 1 prints the colour and size tables generated from the profiles | pass | folio 1 prints the 15 colour rows, the 2 size tables, the standards text of the profile and the note |
 | AC-12 | changing the 24 V colour updates every affected wire and folio 907 | pass | 8 wires take the new colour and nothing else changes; folio 907's rows follow (recomputed from the edited profile) |
 | AC-12 | the colour change is one commit | pass | one project.settings.set commit (one undo step, the project record only): 8 wires take RD, nothing else changes, folio 907 follows, one undo restores |
-| AC-13 | PDF structure equals expected/pdf (outline, 64 links, page labels, fonts, SHA-256) | pass | 34 pages: outline, 64 links, page labels = folio labels, embedded fonts and SHA-256 equal the committed files; no Tahoma (the folio count is 34 against 36, AC-03) |
+| AC-13 | PDF structure equals expected/pdf (outline, 92 links, page labels, fonts, SHA-256) | pass | 36 pages: outline, 92 links (64 cross-reference items, 28 PLC overview rows), page labels = folio labels, embedded fonts and SHA-256 equal the committed files; no Tahoma (the folio count of AC-03 is a separate entry) |
 | AC-13 | text extraction of the PDF keeps spaces | not_built | the harness has no PDF text extraction (FR-OUT-008); the ToUnicode maps are written, but nothing reads them back |
-| AC-13 | PDF/A-2b validated in process by krilla | pass | the 34-page PDF was written under Conformance::PdfA2b, which makes krilla's A2_B archival validator check the document (it refuses an invalid one) |
+| AC-13 | PDF/A-2b validated in process by krilla | pass | the 36-page PDF was written under Conformance::PdfA2b, which makes krilla's A2_B archival validator check the document (it refuses an invalid one) |
 | AC-13 | veraPDF cross-check of PDF/A-2b | not_applicable | veraPDF is an external tool that is not installed in the headless harness; the CI job that has it runs the cross-check |
 | AC-08 | acceptance SQL over the api_v1 views equals expected/csv: terminals_1X1, terminals_X1031, terminals_X1032 | pass | acceptance/terminals_1X1.sql, acceptance/terminals_X1031.sql, acceptance/terminals_X1032.sql over the api_v1 views returns expected/csv/terminals_1X1.csv, expected/csv/terminals_X1031.csv, expected/csv/terminals_X1032.csv row by row |
 | AC-09 | acceptance SQL over the api_v1 views equals expected/csv: wires | pass | acceptance/wires.sql over the api_v1 views returns expected/csv/wires.csv row by row |
-| AC-10 | acceptance SQL over the api_v1 views equals expected/csv: potentials | pass | acceptance/potentials.sql over the api_v1 views returns expected/csv/potentials.csv row by row |
+| AC-10 | acceptance SQL over the api_v1 views equals expected/csv: potentials | fail | acceptance/potentials.sql differs from expected/csv/potentials.csv at line 9 |
 | AC-11 | acceptance SQL over the api_v1 views equals expected/csv: cables | pass | acceptance/cables.sql over the api_v1 views returns expected/csv/cables.csv row by row |
 | AC-18 | step B1: the ten tags of the tag map | pass | the ten tags of the tag map change and nothing else; no cross-reference text changes |
 | AC-18 | step B2: 2 tags and 14 cross-reference texts, same topology, undo restores the records | pass | folio 106 becomes 104: 2 tags and 14 texts change, same potentials and connections, one undo restores the records |
@@ -48,7 +48,7 @@
 | AC-14 | PDF and JSONL are byte-identical across runs and record shuffles | not_applicable | a Linux-only gate criterion, evaluated by tests/page_output.rs (PDF), tests/golden_fixture.rs (JSONL) and the CI Linux job, not by this runner |
 | AC-14 | SVG and the parallel export are byte-identical to the serial export | not_built | neither the SVG export nor a parallel export exists yet (FR-OUT-013, FR-OUT-019) |
 | AC-15 | build path (a), the CSV bootstrap, equals path (c), the checked-in fixture | not_applicable | evaluated by tests/golden_fixture.rs (byte-identical regeneration), not by this runner |
-| AC-15 | the acceptance SQL returns the same expected CSVs over path (a) and over path (c), the checked-in fixture | pass | the 6 acceptance SQL files return the same expected CSVs over both paths; path (b) is the next entry |
+| AC-15 | the acceptance SQL returns the same expected CSVs over path (a) and over path (c), the checked-in fixture | fail | path (a): acceptance/potentials.sql differs from expected/csv/potentials.csv at line 9 |
 | AC-15 | build path (b), the builder DSL, produces the same expected CSVs | not_built | the builder DSL (the golden builders of ew-testkit, WP-S6.01) does not exist yet |
 | AC-16 | freshness: scripted edits update every output; verify-derived is clean with the oracle on | not_built | the scripted edits (rename T55, move -102F2, folio 103 to 104, 24 V colour) need the tag, move and profile commands and `ew verify-derived`; for the record, the oracle is on for the sessions `oracle` and `profiled` of this run, and off for the sessions that apply edits or scripts (AC-12, AC-18, AC-20, D-06, D-11, D-12) and for the cross-reference scans |
 | AC-17 | open <= 0.5 s, check <= 2 s, PDF export <= 3 s | not_applicable | measured at milestone deliveries (cargo xtask acceptance --milestone, release profile) |
@@ -58,11 +58,11 @@
 | D-03 | no output prints the structure alias JE2416 | pass | no page text contains "JE2416" |
 | D-03 | the numbering report lists the frozen tags (EF-15) | not_built | rule EW-NUM-001 (EF-15: a frozen tag that deviates from the scheme reports at info, FR-CHK-025) is not in ew-checks (FT-192), and no numbering report lists the frozen tags (FR-NUM-022) |
 | D-04 | the parts list holds the 27 rows of §14.1 | pass | Same check as AC-07 "folio 901 holds the 27 rows of §14.1 over 901 and 901.1": 27 rows over 901 and 901.1 equal expected/parts_list_14_1.csv (§14.1) in every cell but 6 accepted differences (folio 902 of rows 22-26: layout placements are not modelled; row 26 tags in the ID-9 sign order) |
-| D-05 | V2.0 on every page | pass | Folio 911 (the revision overview, V1.0 and V2.0) is still a placeholder: the report kind does not read the revision records yet. Same check as AC-04 "every page prints the bound title-block values": all 34 pages print the six bound values |
-| D-06 | the project description is one text on every page | pass | all 34 pages print "Description: Expansion Control Cabinets" |
+| D-05 | V2.0 on every page | pass | Folio 911 (the revision overview, V1.0 and V2.0) is still a placeholder: the report kind does not read the revision records yet. Same check as AC-04 "every page prints the bound title-block values": all 36 pages print the six bound values |
+| D-06 | the project description is one text on every page | pass | all 36 pages print "Description: Expansion Control Cabinets" |
 | D-06 | an override set on 101 changes the description of 101 only | pass | the description of 101 becomes the override; 102 keeps the project description |
 | D-06 | an override is reported as info and shown in the property grid | not_built | rule EW-CORE-023 (title-block override, info, doc 15 §4, FR-REP-036) is not in ew-checks (WP-S1.16), and the property grid (FR-UI-009) does not exist |
-| D-07 | outline, 64 cross-reference links and page labels | pass | Same check as AC-13 "PDF structure equals expected/pdf (outline, 64 links, page labels, fonts, SHA-256)": 34 pages: outline, 64 links, page labels = folio labels, embedded fonts and SHA-256 equal the committed files; no Tahoma (the folio count is 34 against 36, AC-03) |
+| D-07 | outline, 64 cross-reference links and page labels | pass | Same check as AC-13 "PDF structure equals expected/pdf (outline, 92 links, page labels, fonts, SHA-256)": 36 pages: outline, 92 links (64 cross-reference items, 28 PLC overview rows), page labels = folio labels, embedded fonts and SHA-256 equal the committed files; no Tahoma (the folio count of AC-03 is a separate entry) |
 | D-08 | W29 takes 0.75 DBU from the profile, W20 1.5 mm2 from its CDP and DBU from the profile | pass | W29 0.75 DBU from the profile; W20 1.5 mm2 from its CDP, DBU from the profile (the explain output and the one-commit update of folios 1 and 907 are AC-12) |
 | D-09 | W1-W34 are numbered, unique and stable; the cable cores are not numbered | pass | Same check as AC-09 "every wire has a wire number": W1-W34 carry 34 unique `{page}.{counter}` numbers (counters 1..n per page) equal to the "No." column of doc 20 §8.2; W1-W5, W7 and W9 (provisional until FT-101) equal it too; W35-W44 (cable cores) none; folio 907 prints them; the same numbers with reversed records |
 | D-10 | -202U2 carries 4 valves | pass | -202U2 has 4 child valves (the rendering of folio 202 is covered by AC-02) |
@@ -81,7 +81,7 @@
 | D-24 | 24VDC-1, 0V and PE carry their IP names as aliases | pass | 24VDC-1 with AIR1-AIR4, 0V with 0VDC and AIR1-AIR4, PE with its 7 aliases (the canonical name and aliases of folio 909 are in AC-10) |
 | D-27 | 28 valve child tags and 8 field devices with process tags in +FIELD | pass | 28 valve child tags (-201U3-Q1 ...) and 8 field devices with process tags in +FIELD |
 | D-29 | every device tag prints in the style tag.main (9.62 pt) | pass | 17 printed device tags on 101, 202 and 203-206 are all 9.62 pt |
-| D-30 | the title block binds the end user | pass | all 34 title blocks print "End user: <end user>" |
+| D-30 | the title block binds the end user | pass | all 36 title blocks print "End user: <end user>" |
 | D-30 | the cover binds the customer | not_built | the cover (folio 1) is not drawn (README, "Folio 1") |
 | D-33 | "SK 3110.000" keeps its space and physical page 6 is labelled "101" | pass | both hold |
 | D-35 | BOM descriptions per §14, ratings only at symbols | not_built | rule EW-CORE-065 (description lint, EF-25, FR-CHK-040) is a 1.0 rule (doc 15 §4) of the 1.0 pack, which ew-checks does not ship yet; the 27-row parts list is D-04 |

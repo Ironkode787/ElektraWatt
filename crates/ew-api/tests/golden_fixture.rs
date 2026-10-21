@@ -191,7 +191,7 @@ fn the_fixture_opens_without_findings() {
     assert_eq!(model.table::<StructureNode>().len(), 4);
     assert_eq!(model.table::<ExternalRef>().len(), 4);
     assert_eq!(model.table::<Device>().len(), 68 + 28);
-    assert_eq!(model.table::<Connection>().len(), 72 + 19);
+    assert_eq!(model.table::<Connection>().len(), 72 + 19 + 2);
     assert_eq!(model.table::<Function>().len(), functions);
     assert_eq!(model.table::<Representation>().len(), representations);
     assert_eq!(model.lib().parts().len(), parts);

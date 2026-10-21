@@ -60,6 +60,10 @@ const SWEPT: &[&str] = &[
     "bond_index",
     "bond_paths",
     "bond_vias",
+    "channel_addresses",
+    "channel_states",
+    "channel_targets",
+    "channel_texts",
     "def_points",
     "device_part_lines",
     "device_tag",
@@ -72,11 +76,14 @@ const SWEPT: &[&str] = &[
     "ip_info",
     "ip_notes",
     "ip_pairing",
+    "module_order",
+    "module_starts",
     "page_ids",
     "page_local_nets",
     "page_order",
     "pageless_links",
     "physical_wires_of",
+    "plc_rows",
     "potential_attrs",
     "potential_flow_bfs",
     "potential_name",
@@ -139,6 +146,7 @@ fn session(batch: &ew_import_tables::ew_interop_api::ImportBatch, memo: MemoMode
 
 /// The keys of the snapshot a `Q` sees, for the families with a non-trivial key.
 struct Keys {
+    cfgs: Vec<Id<ew_schema::PlcConfigProject>>,
     devices: Vec<Id<Device>>,
     functions: Vec<Id<ew_schema::Function>>,
     pages: Vec<Id<Page>>,
@@ -171,6 +179,7 @@ impl Keys {
             profile_keys.insert(key);
         }
         Keys {
+            cfgs: q.table::<ew_schema::PlcConfigProject>().ids().collect(),
             devices: q.devices().ids().collect(),
             functions: q.functions().ids().collect(),
             pages: q.pages().ids().collect(),
@@ -247,6 +256,38 @@ fn sweep(memo: &Q, cold: Option<&Q>, state: &str) -> BTreeMap<&'static str, usiz
         (
             PotentialNameOf::FAMILY,
             check::<PotentialNameOf>(memo, cold, keys.potentials.iter().copied(), state),
+        ),
+    ] {
+        put(family, count);
+    }
+    for (family, count) in [
+        (
+            ew_derive::ModuleOrder::FAMILY,
+            check::<ew_derive::ModuleOrder>(memo, cold, keys.cfgs.iter().copied(), state),
+        ),
+        (
+            ew_derive::ModuleStarts::FAMILY,
+            check::<ew_derive::ModuleStarts>(memo, cold, keys.cfgs.iter().copied(), state),
+        ),
+        (
+            ew_derive::ChannelAddresses::FAMILY,
+            check::<ew_derive::ChannelAddresses>(memo, cold, keys.devices.iter().copied(), state),
+        ),
+        (
+            ew_derive::ChannelStates::FAMILY,
+            check::<ew_derive::ChannelStates>(memo, cold, keys.devices.iter().copied(), state),
+        ),
+        (
+            ew_derive::ChannelTargets::FAMILY,
+            check::<ew_derive::ChannelTargets>(memo, cold, keys.devices.iter().copied(), state),
+        ),
+        (
+            ew_derive::ChannelTexts::FAMILY,
+            check::<ew_derive::ChannelTexts>(memo, cold, keys.devices.iter().copied(), state),
+        ),
+        (
+            ew_derive::PlcRows::FAMILY,
+            check::<ew_derive::PlcRows>(memo, cold, keys.devices.iter().copied(), state),
         ),
     ] {
         put(family, count);

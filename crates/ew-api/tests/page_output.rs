@@ -100,6 +100,9 @@ const LINKED_XREF_TEXTS: usize = 44 + 19;
 const XREF_LINK_TARGETS: usize = LINKED_XREF_TEXTS + 1;
 /// The external interruption points print "+J-E-206 / JE-N1000-03" without a link (no in-project target).
 const EXTERNAL_XREF_TEXTS: usize = 4;
+/// The rows of the PLC overview (908 … 908.2) that link to their coil (doc 10 §5): one per bound channel, the
+/// 8 used and the 20 spare valves' coils.
+const PLC_ROW_LINKS: usize = 8 + 20;
 
 #[test]
 fn the_golden_pdf_has_one_link_per_cross_reference_item() {
@@ -110,8 +113,8 @@ fn the_golden_pdf_has_one_link_per_cross_reference_item() {
     assert_eq!(targets, XREF_LINK_TARGETS);
     assert_eq!(external, EXTERNAL_XREF_TEXTS);
     let out = pdf(&pdf_pages(&q), &pdf_options(&q), &fonts(), None).expect("the golden PDF is written");
-    assert_eq!(out.report.links, 64, "{:?}", out.report);
-    assert_eq!(out.report.links, targets, "{:?}", out.report);
+    assert_eq!(out.report.links, 64 + 28, "{:?}", out.report);
+    assert_eq!(out.report.links, targets + PLC_ROW_LINKS, "{:?}", out.report);
     assert_eq!(out.report.plain_text_links, 0, "{:?}", out.report);
 }
 

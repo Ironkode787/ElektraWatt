@@ -191,7 +191,7 @@ pub fn all(r: &mut Runner) {
     r.entry("AC-12", "the colour change is one commit", ac12_one_commit);
     r.entry(
         "AC-13",
-        "PDF structure equals expected/pdf (outline, 64 links, page labels, fonts, SHA-256)",
+        "PDF structure equals expected/pdf (outline, 92 links, page labels, fonts, SHA-256)",
         ac13_structure,
     );
     r.entry("AC-13", "text extraction of the PDF keeps spaces", |_| {
@@ -1037,9 +1037,10 @@ fn ac13_structure(c: &Ctx) -> Outcome {
         wrong.push(e);
     }
     let r = &c.pdf.report;
-    if r.links != 64 || r.plain_text_links != 0 {
+    // 64 cross-reference items (doc 20 §15) and 28 PLC overview rows linked to their coils (doc 10 §5).
+    if r.links != 64 + 28 || r.plain_text_links != 0 {
         wrong.push(format!(
-            "{} links and {} plain-text links, expected 64 and 0",
+            "{} links and {} plain-text links, expected 92 and 0",
             r.links, r.plain_text_links
         ));
     }
@@ -1060,7 +1061,7 @@ fn ac13_structure(c: &Ctx) -> Outcome {
     }
     if wrong.is_empty() {
         pass(format!(
-            "{0} pages: outline, 64 links, page labels = folio labels, embedded fonts and SHA-256 equal the committed files; no Tahoma (the folio count is {0} against 36, AC-03)",
+            "{0} pages: outline, 92 links (64 cross-reference items, 28 PLC overview rows), page labels = folio labels, embedded fonts and SHA-256 equal the committed files; no Tahoma (the folio count of AC-03 is a separate entry)",
             c.pdf_pages.len()
         ))
     } else {
@@ -1370,7 +1371,7 @@ fn defects(r: &mut Runner) {
         "outline, 64 cross-reference links and page labels",
         (
             "AC-13",
-            "PDF structure equals expected/pdf (outline, 64 links, page labels, fonts, SHA-256)",
+            "PDF structure equals expected/pdf (outline, 92 links, page labels, fonts, SHA-256)",
         ),
         "",
     );

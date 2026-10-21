@@ -107,8 +107,9 @@ fn the_golden_batch_loads_with_the_counts_of_doc_20() {
         .count();
     assert_eq!(ips, 48);
     // doc 20 §8.2: 44 physical wires drawn as 72 connections (22 through IP pairs as two parts, 6 junction
-    // arms that carry no wire ID), plus the 19 bridge connections of BR1 … BR6 (§8.3).
-    assert_eq!(n("connection"), 72 + 19);
+    // arms that carry no wire ID), plus the 19 bridge connections of BR1 … BR6 (§8.3) and the two `Bus`
+    // connections of the DP line (§11.1: the cable -3W1 on folio 3 and the page-less plug-on mating).
+    assert_eq!(n("connection"), 72 + 19 + 2);
     let wire_ids = batch
         .records
         .iter()
@@ -120,11 +121,15 @@ fn the_golden_batch_loads_with_the_counts_of_doc_20() {
         })
         .count();
     assert_eq!(wire_ids, 44);
-    // doc 20 §8.3: J1 … J6; §10: 13 conductors; §7.3: 19 potentials less DP (bus, §11) = 18; §7.4: B1.
+    // doc 20 §8.3: J1 … J6; §10: 13 conductors; §7.3: 19 potentials (DP included); §7.4: B1.
     assert_eq!(n("junction"), 6);
     assert_eq!(n("conductor"), 13);
-    assert_eq!(n("potential_def"), 18);
+    assert_eq!(n("potential_def"), 19);
     assert_eq!(n("bond"), 1);
+    // doc 20 §11.2, §11.3, §6.2: one configuration project, 7 modules × 8 channels, 8 driven field devices.
+    assert_eq!(n("plc_config_project"), 1);
+    assert_eq!(n("channel"), 56);
+    assert_eq!(n("device_link"), 8);
     // doc 20 §16 and §17.3 (doc 03 §20): 11 page-oriented report blocks and 4 embedded ones.
     assert_eq!(n("report_block"), 11 + 4);
     // doc 20 §14.1: 27 BOM rows, 23 with a part number and the 4 TBD test parts of rows 24–27.

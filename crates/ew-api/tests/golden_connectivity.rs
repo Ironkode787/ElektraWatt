@@ -273,9 +273,30 @@ fn potential_partition_matches_section_7_3() {
     let ids = ids_by_key(&batch);
     let q = Q::new(&s.world().model);
     let part = q.get::<PotentialPartition>(());
-    // The DP potential is not loaded by the bootstrap (decision log ID-69).
-    assert_eq!(part.potential_count(), 18);
+    // Doc 20 §7.3 has 19 potentials: the 18 rows below and the PROFIBUS DP line (FT-105), whose members are
+    // the bus CPs of its two `Bus` connections and the external point (checked below the loop).
+    assert_eq!(part.potential_count(), 19);
     assert_eq!(potential_rows().len(), 18);
+    let dp = part
+        .get(ew_derive::potential_named(&q, "DP").expect("potential DP"))
+        .expect("DP is a potential");
+    for m in ["-201U1#bus", "-3X1", "DP@3"] {
+        let fns: Vec<String> = ids
+            .iter()
+            .filter(|(k, _)| k.as_str() == format!("functions|{m}"))
+            .map(|(_, v)| v.clone())
+            .collect();
+        assert!(
+            dp.cps.iter().any(|c| fns.contains(&c.function.to_string())),
+            "DP: member {m} has no CP in the potential"
+        );
+    }
+    assert_eq!(
+        dp.cps.len(),
+        3,
+        "DP: the port, the plug's In entry and the external point"
+    );
+    assert!(dp.defs.len() == 1 && dp.ips.len() == 1);
     for (name, aliases, members, ptype) in potential_rows() {
         let p = part
             .get(ew_derive::potential_named(&q, name).unwrap_or_else(|| panic!("potential {name}")))

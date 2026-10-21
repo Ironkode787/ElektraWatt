@@ -201,15 +201,15 @@ fn potential_overview_lists_every_potential_and_the_bond() {
     let s = golden_common::session_with_profiles(&batch);
     let q = plain(&s);
     let set = rows_of(&q, &batch, "909");
-    // Doc 20 §7.3 has 19 potentials; the PROFIBUS `DP` line needs the `Bus` connections (no row), so 18
-    // potentials and the bond B1.
-    assert_eq!(set.rows.len(), 19);
+    // Doc 20 §7.3: 19 potentials (the PROFIBUS `DP` line through its `Bus` connections, FT-105) and the
+    // bond B1.
+    assert_eq!(set.rows.len(), 20);
     let rows: Vec<Vec<String>> = (0..set.rows.len()).map(|i| texts(&q, &set, i)).collect();
     let pot = col(&set, "potential");
     let named: Vec<&str> = rows.iter().map(|t| t[pot].as_str()).collect();
     for want in [
         "L", "N", "L-S", "N-S", "L-1", "N-1", "L-55", "N-55", "N-55T", "N-55S", "PE", "+24V", "+24V-F",
-        "24VDC-1", "24VDC-2", "24VDC-3", "24VDC-4", "0V",
+        "24VDC-1", "24VDC-2", "24VDC-3", "24VDC-4", "0V", "DP",
     ] {
         assert!(named.contains(&want), "potential {want}");
     }
@@ -262,7 +262,7 @@ fn potential_overview_lists_every_potential_and_the_bond() {
     let m = row("0V");
     assert_eq!((m[colour].as_str(), m[csa].as_str()), ("WH", "0.75 mm\u{00B2}"));
     assert!(m[members].parse::<usize>().is_ok_and(|n| n >= 14));
-    assert_eq!(pages(&q, &batch, "909"), vec![("909".to_owned(), 0..19)]);
+    assert_eq!(pages(&q, &batch, "909"), vec![("909".to_owned(), 0..20)]);
 }
 
 #[test]

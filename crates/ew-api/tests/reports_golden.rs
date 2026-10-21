@@ -287,31 +287,86 @@ fn structure_overview_910_has_four_nodes_and_68_non_terminal_devices() {
     );
 }
 
+/// Folio 908 (doc 20 §11.3, §16): 56 channels of -201U1 on three pages of 23, 23 and 10 rows; addresses
+/// Q0.0 … Q6.7; 8 used, 20 spare and 28 deactivated; a used channel prints the driven process tag as function
+/// text and process tag and the cell of its coil on 203; symbols are empty in Golden A.
+#[test]
+fn plc_overview_908_lists_the_56_channels_of_the_valve_terminal() {
+    let s = common::golden_session();
+    let q = s.query();
+    let order = q.get::<PageOrder>(());
+    let b = block("908");
+    assert_eq!(
+        page_summary(&order, b),
+        vec![
+            ("908".to_owned(), "PLC Overview -201U1 1".to_owned(), 0..23),
+            ("908.1".to_owned(), "PLC Overview -201U1 2".to_owned(), 23..46),
+            ("908.2".to_owned(), "PLC Overview -201U1 3".to_owned(), 46..56),
+        ]
+    );
+    let set = q.get::<BlockRows>(b);
+    assert!(set.is_derived());
+    assert_eq!(set.rows.len(), 56);
+    let col = |k: &str| set.column(k).unwrap_or_else(|| panic!("column {k}"));
+    let rows: Vec<Vec<String>> = (0..set.rows.len()).map(|i| printed(&q, &set, i)).collect();
+    let addresses: Vec<&str> = rows.iter().map(|r| r[col("address")].as_str()).collect();
+    let want: Vec<String> = (0..7)
+        .flat_map(|b| (0..8).map(move |i| format!("Q{b}.{i}")))
+        .collect();
+    assert_eq!(addresses, want.iter().map(String::as_str).collect::<Vec<_>>());
+    let count = |state: &str| rows.iter().filter(|r| r[col("state")] == state).count();
+    assert_eq!((count("used"), count("spare"), count("deactivated")), (8, 20, 28));
+    let used = &rows[1];
+    assert_eq!(
+        (
+            used[col("module")].as_str(),
+            used[col("target")].as_str(),
+            used[col("function")].as_str(),
+            used[col("process_tag")].as_str(),
+            used[col("page")].as_str(),
+        ),
+        ("-201U3", "-201U3-Q1", "TA05-V-15", "TA05-V-15", "203-D1")
+    );
+    let spare = &rows[2 * 8 + 1];
+    assert_eq!(
+        (
+            spare[col("target")].as_str(),
+            spare[col("function")].as_str(),
+            spare[col("process_tag")].as_str()
+        ),
+        ("-201U5-Q1", "Spare", "")
+    );
+    assert!(
+        rows.iter().all(|r| r[col("symbol")].is_empty()),
+        "symbols are empty in Golden A"
+    );
+    assert_eq!(rows[55][col("module")], "-202U2");
+}
+
 #[test]
 fn not_derived_kinds_paginate_to_one_placeholder_page() {
     let s = common::golden_session();
     let q = s.query();
     let order = q.get::<PageOrder>(());
-    // The connectivity kinds derive inside the pagination (their queries read the drawn page order); only
-    // the kinds without a row source keep the placeholder page.
-    for key in ["903", "904", "905", "906", "907", "909"] {
+    // The connectivity kinds derive inside the pagination (their queries read the drawn page order), the PLC
+    // overview from the channel records; only the kind without a row source keeps the placeholder page.
+    for key in ["903", "904", "905", "906", "907", "908", "909"] {
         assert!(q.get::<BlockRows>(block(key)).is_derived(), "{key} is derived");
     }
-    for (key, title) in [("908", "PLC Overview -201U1 1"), ("911", "Revision Overview")] {
-        let b = block(key);
-        assert!(
-            matches!(q.get::<BlockRows>(b).status, RowSetStatus::NotDerived(_)),
-            "{key} is not derived"
-        );
-        let pages = pages_of(&order, b);
-        assert_eq!(pages.len(), 1, "{key}: one generated page");
-        assert_eq!(text(&pages[0].title), title, "{key}");
-        let note = text(pages[0].note.as_ref().unwrap_or_else(|| panic!("{key}: a note")));
-        assert!(
-            note.contains("awaits") || note.contains("no `"),
-            "{key}: note `{note}` gives the reason"
-        );
-    }
+    let (key, title) = ("911", "Revision Overview");
+    let b = block(key);
+    assert!(
+        matches!(q.get::<BlockRows>(b).status, RowSetStatus::NotDerived(_)),
+        "{key} is not derived"
+    );
+    let pages = pages_of(&order, b);
+    assert_eq!(pages.len(), 1, "{key}: one generated page");
+    assert_eq!(text(&pages[0].title), title, "{key}");
+    let note = text(pages[0].note.as_ref().unwrap_or_else(|| panic!("{key}: a note")));
+    assert!(
+        note.contains("awaits") || note.contains("no `"),
+        "{key}: note `{note}` gives the reason"
+    );
 }
 
 /// The printed cells of row `i` of a row set.

@@ -326,7 +326,11 @@ fn step_b2_keeps_the_topology_and_one_undo_restores_the_records_byte_for_byte() 
                 .collect::<Vec<Connection>>(),
         )
     };
-    assert_eq!(connections.len(), 72 + 19, "wires and bridges");
+    assert_eq!(
+        connections.len(),
+        72 + 19 + 2,
+        "wires, bridges and the two bus connections"
+    );
 
     run(&mut s, "b2-renumber-pages.ewcmd");
     assert_eq!(s.history().entries().len(), 1, "the script line is one undo step");
