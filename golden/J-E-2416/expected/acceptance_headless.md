@@ -1,6 +1,6 @@
 # Acceptance report: golden project J-E-2416, gate M1 (headless)
 
-93 entries: 86 pass, 0 fail, 2 not_built, 5 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
+93 entries: 86 pass, 1 fail, 1 not_built, 5 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
 
 | Criterion | Check | Status | Reason |
 |---|---|---|---|
@@ -51,7 +51,7 @@
 | AC-15 | build path (a), the CSV bootstrap, equals path (c), the checked-in fixture | not_applicable | evaluated by tests/golden_fixture.rs (byte-identical regeneration), not by this runner |
 | AC-15 | the acceptance SQL returns the same expected CSVs over path (a) and over path (c), the checked-in fixture | pass | the 6 acceptance SQL files return the same expected CSVs over both paths; path (b) is the next entry |
 | AC-15 | the shipped PDF export over path (c), the checked-in fixture, writes the PDF of path (a) | pass | Session::export_pdf over golden/J-E-2416.ew (read-only, as ew export pdf opens it) writes the 36 pages of the PDF of expected/pdf/sha256.txt, embedding 2 bundled faces and nothing else |
-| AC-15 | build path (b), the builder DSL, produces the same expected CSVs | not_built | the builder DSL (the golden builders of ew-testkit, WP-S6.01) does not exist yet |
+| AC-15 | build path (b), the builder DSL, produces the same expected CSVs | fail | 430 commands from the project shell; export bom --mode parts differs from expected/csv/bom_parts.csv (the valve-terminal assembly's 28 valves and the mounting plate are not built, FT-169); not built by any command yet: channel: 56, device (child tag scheme: valve-terminal assembly, FT-169): 29, device.assembly: 1, device.parent: 11, device.plc_module: 7, device.plc_station: 1, device.position: 11, device_link: 8, function (of a child-scheme device): 28, plc_config_project: 1, project.supply.origin.source: 1, representation (of a child-scheme device): 28, revision or other kind without a schema type: 2; the project row (except 4 settings members) and the library copies come from the shell (FT-167); bom_assembly.csv is not compared until FT-169 |
 | AC-16 | the script variants/ac16-freshness.ewcmd: 4 edits, one commit each, undo restores the records | pass | 4 edits, 4 commits (one undo step each), 4 undos restore the records byte for byte; the session ran with the oracle on (one memoised read in 8 re-run cold) |
 | AC-16 | rename T55: every affected output follows in its commit | pass | T55 becomes T57 and nothing else changes: the tag, the BOM row and folios 101, 901, 907, 910.2 (the folios that printed it); no folio prints T55 |
 | AC-16 | move -102F2 by one cell: every affected output follows in its commit | pass | -102F2 moves from cell (7, 4) to (8, 4); only folio 102 changes; no tag, cross-reference text or page label changes |

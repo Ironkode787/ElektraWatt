@@ -101,12 +101,34 @@ fn sql_results(session: &Session) -> BTreeMap<&'static str, String> {
         .collect()
 }
 
+/// The fields of one CSV line of the golden dialect (quoted fields, doubled quotes).
+fn csv_fields(line: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut field = String::new();
+    let mut quoted = false;
+    let mut chars = line.chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            '"' if quoted && chars.peek() == Some(&'"') => {
+                field.push('"');
+                chars.next();
+            }
+            '"' => quoted = !quoted,
+            ',' if !quoted => out.push(std::mem::take(&mut field)),
+            c => field.push(c),
+        }
+    }
+    out.push(field);
+    out
+}
+
 fn expected(name: &str) -> String {
     std::fs::read_to_string(repo().join(format!("golden/J-E-2416/expected/csv/{name}.csv")))
         .expect("expected CSV")
 }
 
-/// AC-15 path (b): the acceptance SQL over the command-built project returns the expected CSVs, and no
+/// AC-15 path (b): the acceptance SQL over the command-built project returns the expected CSVs (the parts
+/// list differs only by the assembly that no command builds yet, FT-169), and no
 /// representation of the tables is refused (the page-type rule as amended by the owner ruling on ID-55:
 /// the cable markers are graphic on folios 106 and 3, the CPX black boxes multi-line on 203 … 206).
 #[test]
@@ -115,6 +137,33 @@ fn path_b_returns_the_expected_csvs() {
     for (name, csv) in sql_results(&session) {
         assert_eq!(csv, expected(name), "acceptance/{name}.sql over path (b)");
     }
+    // Known gap (FT-169): `bom_parts.csv` differs, because the valve-terminal assembly is not built — the 28
+    // valves (571334) and the mounting plate -UC1-plate (NSYPMM107) are child-scheme devices, and without
+    // `parent`/`position` the seven modules print as a list instead of "-201U3 … -201U8, -202U2". Every
+    // other part number of the expected parts list is there.
+    let bom = session
+        .export_csv(ew_api::Export::Bom(ew_api::BomMode::Component))
+        .expect("the parts list exports");
+    let parts = |text: &str| -> Vec<String> {
+        text.lines()
+            .skip(1)
+            .map(|l| csv_fields(l).get(5).cloned().unwrap_or_default())
+            .collect()
+    };
+    let want: Vec<String> = parts(&expected("bom_parts"))
+        .into_iter()
+        .filter(|p| p != "571334" && p != "NSYPMM107")
+        .collect();
+    assert_ne!(
+        bom,
+        expected("bom_parts"),
+        "the FT-169 gap is closed; compare the whole text"
+    );
+    assert_eq!(
+        parts(&bom),
+        want,
+        "the parts list over path (b), without the assembly's parts"
+    );
     assert!(
         !built
             .unwritten

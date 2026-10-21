@@ -737,7 +737,7 @@ project, the 2 revisions (FT-165), the valve-terminal assembly (the 29 child-sch
 and representations, and `parent`, `position`, `plc_module`, `plc_station` of the modules; FT-169) and the supply's
 origin, and the assembly aspect of -201U1. 430 commands build the rest (17 command names; the run takes about a second in a debug build).
 
-**Status (AC-15 path (b): `pass`).** The six acceptance SQL files over the built project return `expected/csv/`. The cable markers (representation type graphic on the multi-line folio 106 and the bus-topology folio 3) and the seven CPX black boxes drawn multi-line on the fluid folios 203 … 206 are placed under the owner ruling of cycle 15 that amends decision log ID-55 (doc 06 §2.2): before it, the page-type rule refused them, a cable without its marker had no page and printed `-?W1`, and four of the six files differed.
+**Status (AC-15 path (b): `fail` until FT-169).** The six acceptance SQL files over the built project return `expected/csv/`. The entry also compares `bom_parts.csv` (`ew export bom --mode parts`; `bom_assembly.csv` is excluded until FT-169): it lacks the 28 valves (571334) and the mounting plate (NSYPMM107), and prints the seven modules one by one instead of "-201U3 … -201U8, -202U2", because the valve-terminal assembly is not built. The cable markers (representation type graphic on the multi-line folio 106 and the bus-topology folio 3) and the seven CPX black boxes drawn multi-line on the fluid folios 203 … 206 are placed under the owner ruling of cycle 15 that amends decision log ID-55 (doc 06 §2.2): before it, the page-type rule refused them, a cable without its marker had no page and printed `-?W1`, and four of the six files differed.
 
 ## Variants and command logs
 

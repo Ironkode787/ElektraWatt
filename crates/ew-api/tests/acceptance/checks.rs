@@ -1109,35 +1109,53 @@ fn ac15_builder_path(c: &Ctx) -> Outcome {
         .copied()
         .filter(|n| sql_pair(&projection, n).is_err())
         .collect();
+    // Doc 20 §3.2 compares every expected CSV: the six SQL results and the parts list (`ew export bom --mode
+    // parts`). `bom_assembly.csv` is excluded by name until the valve-terminal assembly can be built (FT-169).
+    let parts = match session.export_csv(Export::Bom(BomMode::Component)) {
+        Ok(t) => t,
+        Err(e) => return fail(format!("the parts list of path (b) does not export: {e}")),
+    };
+    let parts_differ = same_as_expected("csv/bom_parts.csv", parts.as_bytes()).is_err();
+    // A representation the command layer refuses must never degrade path (b) silently.
     let refused: Vec<String> = built
         .unwritten
         .iter()
-        .filter_map(|(k, n)| {
-            k.strip_prefix("representation (refused: representation type ")
-                .map(|r| format!("{n} × {}", r.trim_end_matches(')')))
-        })
+        .filter(|(k, _)| k.starts_with("representation (refused"))
+        .map(|(k, n)| format!("{n} × {k}"))
         .collect();
-    let left_out: usize = built
-        .unwritten
-        .iter()
-        .filter(|(k, _)| !k.starts_with("representation (refused"))
-        .count();
+    let not_built = format!(
+        "not built by any command yet: {}; the project row (except 4 settings members) and the library copies \
+         come from the shell (FT-167); bom_assembly.csv is not compared until FT-169",
+        built.unwritten_summary()
+    );
     let commands = built.script.len();
-    if differing.is_empty() {
+    let mut problems = Vec::new();
+    if !differing.is_empty() {
+        problems.push(format!(
+            "acceptance/{}.sql differ from expected/csv",
+            differing.join(".sql, acceptance/")
+        ));
+    }
+    if parts_differ {
+        problems.push(
+            "export bom --mode parts differs from expected/csv/bom_parts.csv (the valve-terminal assembly's 28 \
+             valves and the mounting plate are not built, FT-169)"
+                .to_owned(),
+        );
+    }
+    if !refused.is_empty() {
+        problems.push(format!("the command layer refused {}", refused.join("; ")));
+    }
+    if problems.is_empty() {
         return pass(format!(
-            "{commands} commands from the project shell; the {} acceptance SQL files return the expected CSVs; \
-             {left_out} kinds of records or members are not written (no command yet, see ew-testkit golden_dsl)",
+            "{commands} commands from the project shell; the {} acceptance SQL files and export bom --mode parts \
+             return expected/csv; {not_built}",
             names.len()
         ));
     }
     fail(format!(
-        "{commands} commands from the project shell; acceptance/{}.sql differ from expected/csv in the lines that \
-         print a cable tag (-?W1 for -106W1, -106W2, -3W1): the page-type rule of the placing commands (doc 06 \
-         §2.2, decision log ID-55) refuses representations of the golden tables ({}), among them the 3 cable \
-         markers, so the cables have no page; the {} other acceptance SQL files match; ruling pending",
-        differing.join(".sql, acceptance/"),
-        refused.join("; "),
-        names.len() - differing.len()
+        "{commands} commands from the project shell; {}; {not_built}",
+        problems.join("; ")
     ))
 }
 
