@@ -34,8 +34,8 @@ use ew_schema::{
 };
 
 use crate::output::{
-    FrameLayer, LabelsLayer, PageCpTargetsOf, PageFrameOf, PageGridOf, PageRepsOf, PageSlotsOf, SymbolsLayer,
-    TablesLayer, WiresLayer,
+    CpTargetsByPage, FrameLayer, LabelsLayer, PageBindingsOf, PageCpTargetsOf, PageEmbeddedOf, PageFrameOf,
+    PageGridOf, PageRepsOf, PageSlotsOf, PageTableOf, SymbolsLayer, TablesLayer, WiresLayer,
 };
 use crate::{Mismatch, Session};
 
@@ -51,6 +51,7 @@ pub const SWEPT: &[&str] = &[
     "channel_targets",
     "channel_texts",
     "cp_flow_distance",
+    "cp_targets_by_page",
     "def_points",
     "device_part_lines",
     "device_tag",
@@ -65,12 +66,14 @@ pub const SWEPT: &[&str] = &[
     "ip_pairing",
     "module_order",
     "module_starts",
+    "page_bindings",
     "page_cp_targets",
     "page_display_list_frame",
     "page_display_list_labels",
     "page_display_list_symbols",
     "page_display_list_tables",
     "page_display_list_wires",
+    "page_embedded",
     "page_frame",
     "page_grid",
     "page_ids",
@@ -78,6 +81,7 @@ pub const SWEPT: &[&str] = &[
     "page_order",
     "page_reps",
     "page_slots",
+    "page_table",
     "pageless_links",
     "physical_wires_of",
     "plc_rows",
@@ -276,6 +280,10 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<PageRepsOf>(memo, cold, keys.pages.iter().copied(), o);
     check::<PageSlotsOf>(memo, cold, keys.pages.iter().copied(), o);
     check::<PageCpTargetsOf>(memo, cold, keys.pages.iter().copied(), o);
+    check::<CpTargetsByPage>(memo, cold, [()], o);
+    check::<PageBindingsOf>(memo, cold, keys.page_refs.iter().copied(), o);
+    check::<PageTableOf>(memo, cold, keys.page_refs.iter().copied(), o);
+    check::<PageEmbeddedOf>(memo, cold, keys.pages.iter().copied(), o);
     check::<FrameLayer>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<SymbolsLayer>(memo, cold, keys.page_refs.iter().copied(), o);
     check::<WiresLayer>(memo, cold, keys.page_refs.iter().copied(), o);

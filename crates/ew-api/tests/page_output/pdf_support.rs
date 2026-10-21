@@ -39,7 +39,9 @@ pub fn pdf_pages(q: &Q, parallelism: Parallelism) -> Vec<PdfPage> {
 /// The export options of the golden PDF: the shipped job's (`ew_api::output::pdf_options`; dates from the
 /// model's edited date, FR-OUT-026).
 pub fn pdf_options(q: &Q) -> PdfOptions {
-    output::pdf_options(q, &ExportOptions::default(), None)
+    output::export_pages(q, &ExportOptions::default())
+        .expect("the golden pages export")
+        .options
 }
 
 /// The SVG options of the golden export (used by the acceptance runner, AC-14): the shipped job's.

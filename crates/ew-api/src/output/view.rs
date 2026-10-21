@@ -10,15 +10,15 @@
 //! | Family (key) | Policy | Part | Read by the layers |
 //! |---|---|---|---|
 //! | [`PageFrameOf`] (`PageRef`) | Memo | the frame form and its title-block form | frame, wires, labels, tables |
-//! | [`PageBindingsOf`] (`PageRef`) | Cold | the title-block bindings | frame |
+//! | [`PageBindingsOf`] (`PageRef`) | Memo | the title-block bindings | frame |
 //! | [`PageGridOf`] (`PageRef`) | Memo | the connection grid | wires |
 //! | [`PageRepsOf`] (page) | Memo | the representations with their symbols and strip-segment terminals, no slot texts | symbols, wires, labels |
 //! | [`PageSlotsOf`] (page) | Memo | the slot texts of every representation | labels |
 //! | [`PageConnectionsOf`] (page) | Cold | the connections with their wire-marker texts | wires, labels |
 //! | [`PageJunctionsOf`] (page) | Cold | the junctions with their symbols | wires, labels |
-//! | [`PageCpTargetsOf`] (page) | Memo | the CPs a report row links to | symbols |
-//! | [`PageTableOf`] (`PageRef`) | Cold | the printed table of a generated page | tables |
-//! | [`PageEmbeddedOf`] (page) | Cold | the embedded `profile_tables` blocks of a drawn page | tables |
+//! | [`PageCpTargetsOf`] (page) | Memo | the CPs a report row links to, the page's part of [`CpTargetsByPage`] (`()`, Memo) | symbols |
+//! | [`PageTableOf`] (`PageRef`) | Memo | the printed table of a generated page | tables |
+//! | [`PageEmbeddedOf`] (page) | Memo | the embedded `profile_tables` blocks of a drawn page | tables |
 //!
 //! # The rules (formerly the test glue of `tests/page_output/view.rs`)
 //!
@@ -57,6 +57,7 @@
 //!   `⌊j·N/m⌋ … ⌊(j+1)·N/m⌋ − 1` of `N`. Each drawn terminal is its device's main function (else its first
 //!   function) with the CPs of `function_cps` on side 1 and side 2.
 
+use std::collections::BTreeMap;
 use std::sync::{Arc, OnceLock};
 
 use ew_derive::ew_ids::{self, Id, Uuid};
@@ -105,19 +106,41 @@ fn builtin_symbol(json: &str) -> Option<SymbolRef> {
     }
 }
 
-/// The built-in generic symbols, parsed once (compiled in from `content/symbols/qet10`).
+const JUNCTION_DOT: &str = include_str!("../../../../content/symbols/qet10/ew.gen.junction-dot@qet10.json");
+const JUNCTION_BEVEL: &str =
+    include_str!("../../../../content/symbols/qet10/ew.gen.junction-bevel@qet10.json");
+const WIRE_MARKER: &str = include_str!("../../../../content/symbols/qet10/ew.gen.wire-marker@qet10.json");
+
+/// The derivation profile the compiled-in generic symbols belong to: their seals below are part of that
+/// profile's output. Regenerating `content/symbols/qet10` changes a seal, and the seal test then fails until the
+/// new symbols ship with a new derivation profile (ADR-0003: a project's printed output changes only with the
+/// profile it pins).
+pub const GENERIC_SYMBOLS_PROFILE: &str = "2027.1";
+
+/// The `sha256` seals (doc 05 §13.2) of the compiled-in generic symbols of [`GENERIC_SYMBOLS_PROFILE`], by key.
+pub const GENERIC_SYMBOL_SEALS: [(&str, &str); 3] = [
+    (
+        "ew.gen.junction-dot@qet10",
+        "sha256:5c96763c7eb1041383074d1ba74a8148a5c764c0e5f9f7feed8e56cafc0e2ceb",
+    ),
+    (
+        "ew.gen.junction-bevel@qet10",
+        "sha256:cd5dd5c572e2c82ce2a7e401b57782e163f69f80849791b2b989d55c9b18706b",
+    ),
+    (
+        "ew.gen.wire-marker@qet10",
+        "sha256:8724aa49d6e6d50f96311c4c6a0630f68132a3e8bd859389031027c45b7910b8",
+    ),
+];
+
+/// The built-in generic symbols, parsed once (compiled in from `content/symbols/qet10`, sealed by
+/// [`GENERIC_SYMBOL_SEALS`]).
 pub fn generic_symbols() -> &'static GenericSymbols {
     static SET: OnceLock<GenericSymbols> = OnceLock::new();
     SET.get_or_init(|| GenericSymbols {
-        junction_dot: builtin_symbol(include_str!(
-            "../../../../content/symbols/qet10/ew.gen.junction-dot@qet10.json"
-        )),
-        junction_bevel: builtin_symbol(include_str!(
-            "../../../../content/symbols/qet10/ew.gen.junction-bevel@qet10.json"
-        )),
-        wire_marker: builtin_symbol(include_str!(
-            "../../../../content/symbols/qet10/ew.gen.wire-marker@qet10.json"
-        )),
+        junction_dot: builtin_symbol(JUNCTION_DOT),
+        junction_bevel: builtin_symbol(JUNCTION_BEVEL),
+        wire_marker: builtin_symbol(WIRE_MARKER),
     })
 }
 
@@ -204,7 +227,8 @@ impl Query for PageFrameOf {
 }
 
 /// `page_bindings(page)`: the title-block bindings of a page: every `title_block(page)` value and the project's
-/// date format, neutral language.
+/// date format, neutral language. Its own memo: it reads the whole project record (the date format), so an edit of
+/// the project record that keeps the bindings is cut off here and does not rebuild the frame layers.
 #[derive(Debug)]
 pub struct PageBindingsOf;
 
@@ -212,7 +236,7 @@ impl Query for PageBindingsOf {
     type Key = PageRef;
     type Value = PageBindings;
     const FAMILY: &'static str = "page_bindings";
-    const POLICY: Policy = Policy::Cold;
+    const POLICY: Policy = Policy::Memo;
 
     fn run(q: &Q, key: &PageRef) -> Arc<PageBindings> {
         let mut b = PageBindings::new();
@@ -373,8 +397,53 @@ impl Query for PageJunctionsOf {
     }
 }
 
+/// `cp_targets_by_page()`: every CP a report row links to, with the representation that draws its function on
+/// each drawn page (not a contact image), by page: one pass over the rows of every report block for the project.
+#[derive(Debug)]
+pub struct CpTargetsByPage;
+
+impl Query for CpTargetsByPage {
+    type Key = ();
+    type Value = BTreeMap<Id<Page>, Vec<CpTarget>>;
+    const FAMILY: &'static str = "cp_targets_by_page";
+    const POLICY: Policy = Policy::Memo;
+
+    fn run(q: &Q, (): &()) -> Arc<Self::Value> {
+        let mut out: BTreeMap<Id<Page>, Vec<CpTarget>> = BTreeMap::new();
+        for (block, _) in q.report_blocks().iter() {
+            let set = q.get::<BlockRows>(block);
+            for r in &set.rows {
+                for l in &r.links {
+                    let LinkTarget::Cp { function, idx } = l.target else {
+                        continue;
+                    };
+                    // The smallest-ID representation of the function on each page that draws it.
+                    let mut seen = std::collections::BTreeSet::new();
+                    for rid in q.idx().reps_of_function(function) {
+                        let Some(x) = q.reps().get(rid) else { continue };
+                        if x.rep_type == RepType::ContactImage || !seen.insert(x.page) {
+                            continue;
+                        }
+                        out.entry(x.page).or_default().push(CpTarget {
+                            rep: rid,
+                            function,
+                            idx,
+                        });
+                    }
+                }
+            }
+        }
+        for targets in out.values_mut() {
+            targets.sort();
+            targets.dedup();
+        }
+        Arc::new(out)
+    }
+}
+
 /// `page_cp_targets(page)`: the CPs of a drawn page that a report row links to, with the representation that
-/// draws each one's function there (the named destinations `ew:cp:<uuid>` of doc 09 §4.2).
+/// draws each one's function there (the named destinations `ew:cp:<uuid>` of doc 09 §4.2): the page's part of
+/// [`CpTargetsByPage`], its own memo, so a row change that keeps a page's targets is cut off here.
 #[derive(Debug)]
 pub struct PageCpTargetsOf;
 
@@ -385,33 +454,13 @@ impl Query for PageCpTargetsOf {
     const POLICY: Policy = Policy::Memo;
 
     fn run(q: &Q, key: &Id<Page>) -> Arc<Vec<CpTarget>> {
-        let page = *key;
-        let mut out = Vec::new();
-        for (block, _) in q.report_blocks().iter() {
-            let set = q.get::<BlockRows>(block);
-            for r in &set.rows {
-                for l in &r.links {
-                    let LinkTarget::Cp { function, idx } = l.target else {
-                        continue;
-                    };
-                    let rep = q.idx().reps_of_function(function).find(|rid| {
-                        q.reps()
-                            .get(*rid)
-                            .is_some_and(|x| x.page == page && x.rep_type != RepType::ContactImage)
-                    });
-                    if let Some(rep) = rep {
-                        out.push(CpTarget { rep, function, idx });
-                    }
-                }
-            }
-        }
-        out.sort();
-        out.dedup();
-        Arc::new(out)
+        Arc::new(q.get::<CpTargetsByPage>(()).get(key).cloned().unwrap_or_default())
     }
 }
 
-/// `page_table(page)`: the printed table of a generated page; `None` for other pages.
+/// `page_table(page)`: the printed table of a generated page; `None` for other pages. Its own memo: it reads
+/// `page_order` and the block's rows, so a page-order or row change that keeps this page's printed table is cut
+/// off here and does not rebuild its tables layer.
 #[derive(Debug)]
 pub struct PageTableOf;
 
@@ -419,11 +468,21 @@ impl Query for PageTableOf {
     type Key = PageRef;
     type Value = Option<TableView>;
     const FAMILY: &'static str = "page_table";
-    const POLICY: Policy = Policy::Cold;
+    const POLICY: Policy = Policy::Memo;
 
     fn run(q: &Q, key: &PageRef) -> Arc<Option<TableView>> {
-        if !matches!(key, PageRef::Generated { .. }) {
-            return Arc::new(None);
+        // A drawn page or a divider has no table. Its record is still read, so that deleting it marks this memo
+        // and the store collects it (memo keys of deleted records must not accumulate).
+        match *key {
+            PageRef::Drawn(p) => {
+                let _ = q.pages().get(p);
+                return Arc::new(None);
+            }
+            PageRef::Divider(s) => {
+                let _ = q.sections().get(s);
+                return Arc::new(None);
+            }
+            PageRef::Generated { .. } => {}
         }
         let order = q.get::<PageOrder>(());
         Arc::new(order.generated(*key).map(|g| table_view(q, g, *key)))
@@ -431,6 +490,7 @@ impl Query for PageTableOf {
 }
 
 /// `page_embedded(page)`: the embedded blocks of a drawn page that the scene draws, the `profile_tables` blocks.
+/// Its own memo: it reads every report block.
 #[derive(Debug)]
 pub struct PageEmbeddedOf;
 
@@ -438,7 +498,7 @@ impl Query for PageEmbeddedOf {
     type Key = Id<Page>;
     type Value = Vec<EmbeddedView>;
     const FAMILY: &'static str = "page_embedded";
-    const POLICY: Policy = Policy::Cold;
+    const POLICY: Policy = Policy::Memo;
 
     fn run(q: &Q, key: &Id<Page>) -> Arc<Vec<EmbeddedView>> {
         let page = *key;
@@ -730,4 +790,47 @@ fn segment_terminals(q: &Q, rep: &Representation) -> Vec<SegmentTerminal> {
             })
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sha2::{Digest, Sha256};
+
+    /// The seal of each compiled-in generic symbol (doc 05 §13.2: the SHA-256 of the item's compact JSON) holds,
+    /// equals the pinned [`GENERIC_SYMBOL_SEALS`], and the pinned profile is the newest shipped derivation profile:
+    /// regenerating `content/symbols/qet10` fails here instead of silently changing every project's output.
+    #[test]
+    fn the_compiled_in_generic_symbols_keep_their_seals_and_profile() {
+        for (json, (key, seal)) in [JUNCTION_DOT, JUNCTION_BEVEL, WIRE_MARKER]
+            .into_iter()
+            .zip(GENERIC_SYMBOL_SEALS)
+        {
+            let Ok(LibDocument::Symbol(copy)) = LibDocument::from_json(json) else {
+                panic!("{key} is a symbol copy");
+            };
+            assert_eq!(copy.item.meta.key.as_ref().map(|k| k.as_str()), Some(key));
+            let compact = serde_json::to_string(&copy.item).expect("a symbol serialises");
+            let own = format!("sha256:{:x}", Sha256::digest(compact.as_bytes()));
+            let stated = serde_json::to_value(copy.sha256).expect("a seal serialises");
+            assert_eq!(
+                stated.as_str(),
+                Some(own.as_str()),
+                "{key}: the copy's seal does not hold"
+            );
+            assert_eq!(
+                own, seal,
+                "{key}: the compiled-in symbol changed; ship it with a new derivation profile"
+            );
+        }
+        let newest = ew_derive::shipped_profiles()
+            .iter()
+            .map(|p| p.version.as_str())
+            .max()
+            .expect("a shipped profile");
+        assert_eq!(
+            newest, GENERIC_SYMBOLS_PROFILE,
+            "re-seal the generic symbols for the new profile"
+        );
+    }
 }

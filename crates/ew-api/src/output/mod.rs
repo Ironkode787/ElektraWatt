@@ -27,8 +27,9 @@
 //! **Metadata** ([`pdf_options`], doc 09 §4.3). Title: the project description (neutral). Creator: `ElektraWatt
 //! <version>`. Date (FR-OUT-026): the caller's (`SOURCE_DATE_EPOCH` in the CLI), else the model's edited date, else
 //! its created date, else 1980-01-01; never the wall clock. Document ID: krilla's hash of the text
-//! `ew-pdf/1 <project id> <derivation profile> <date> <pages>[ mono]` (doc 09 §4.3 rule 2: a hash of the export
-//! input), `<pages>` being `all` or the selected folio labels joined by `,`.
+//! `ew-pdf/1 <project id> <derivation profile> <date> <pages>[ mono] ew <version> sha256:<digest>` (doc 09 §4.3
+//! rule 2: a hash of the export input), `<pages>` being `all` or the selected folio labels joined by `,` and
+//! `<digest>` the [`content_digest`] of the pages and the bundled fonts.
 
 mod layers;
 mod view;
@@ -42,6 +43,7 @@ use ew_dl::FontKey;
 use ew_export::ew_render_cpu::FontBytes;
 use ew_export::{PdfError, PdfOptions, PdfPage, SvgError, SvgFace, SvgOptions, par_map};
 use ew_scene::page::PageFinding;
+use sha2::{Digest, Sha256};
 
 pub use ew_export::{Parallelism, PdfDate, PdfReport, SvgFile, SvgReport, svg_file_name};
 pub use layers::{
@@ -49,9 +51,9 @@ pub use layers::{
     page_scene, page_view,
 };
 pub use view::{
-    FrameForms, GenericSymbols, NOGRID_FRAME, PageBindingsOf, PageConnectionsOf, PageCpTargetsOf,
-    PageEmbeddedOf, PageFrameOf, PageGridOf, PageJunctionsOf, PageRepsOf, PageSlotsOf, PageTableOf,
-    generic_symbols, page_destination, page_uuid,
+    CpTargetsByPage, FrameForms, GENERIC_SYMBOL_SEALS, GENERIC_SYMBOLS_PROFILE, GenericSymbols, NOGRID_FRAME,
+    PageBindingsOf, PageConnectionsOf, PageCpTargetsOf, PageEmbeddedOf, PageFrameOf, PageGridOf,
+    PageJunctionsOf, PageRepsOf, PageSlotsOf, PageTableOf, generic_symbols, page_destination, page_uuid,
 };
 
 use crate::Session;
@@ -59,6 +61,7 @@ use crate::Session;
 /// Every query family of the page output with its policy, in name order (the memoised ones are swept by
 /// `ew verify-derived`, [`crate::verify::SWEPT`]).
 pub const FAMILIES: &[(&str, Policy)] = &[
+    (CpTargetsByPage::FAMILY, CpTargetsByPage::POLICY),
     (PageBindingsOf::FAMILY, PageBindingsOf::POLICY),
     (PageConnectionsOf::FAMILY, PageConnectionsOf::POLICY),
     (PageCpTargetsOf::FAMILY, PageCpTargetsOf::POLICY),
@@ -295,23 +298,72 @@ fn model_date(q: &Q) -> PdfDate {
     })
 }
 
-/// The PDF options of an export of `labels` (`None`: every page) of the model behind `q` (see the module
-/// documentation).
-pub fn pdf_options(q: &Q, options: &ExportOptions, labels: Option<&[String]>) -> PdfOptions {
+/// A [`std::hash::Hasher`] that feeds SHA-256: the `Hash` impls of the display-list types write their fields in
+/// a fixed order (integers in the target's byte order, lengths as `usize`), so the digest is the same for the same
+/// pages on every 64-bit little-endian target, whatever the record order or the thread count.
+struct Sha256Hasher(Sha256);
+
+impl std::hash::Hasher for Sha256Hasher {
+    fn write(&mut self, bytes: &[u8]) {
+        self.0.update(bytes);
+    }
+
+    fn finish(&self) -> u64 {
+        0
+    }
+}
+
+/// The content digest of an export (doc 09 §4.3 rule 2, the hash of the export input): SHA-256 over every page
+/// (label, outline title and section, sheet size, destination, sheet display list) and the pinned SHA-256 of
+/// every bundled font. The pages are derived values, so the digest is the same however the model was loaded
+/// (bootstrapped tables, the saved project, a shuffled record order).
+pub fn content_digest(pages: &[PdfPage]) -> String {
+    use std::hash::Hash;
+    let mut h = Sha256Hasher(Sha256::new());
+    pages.len().hash(&mut h);
+    for p in pages {
+        p.label.hash(&mut h);
+        p.title.hash(&mut h);
+        p.section.hash(&mut h);
+        p.width.hash(&mut h);
+        p.height.hash(&mut h);
+        p.destination.hash(&mut h);
+        p.content.hash(&mut h);
+    }
+    for font in [
+        ew_text::NOTO_SANS_REGULAR_SHA256,
+        ew_text::NOTO_SANS_BOLD_SHA256,
+        ew_text::NOTO_SANS_MATH_REGULAR_SHA256,
+    ] {
+        h.0.update(font);
+    }
+    format!("{:x}", h.0.finalize())
+}
+
+/// The PDF options of an export of `pages` (`labels`: the selected folio labels; `None`: every page) of the model
+/// behind `q` (see the module documentation).
+pub fn pdf_options(
+    q: &Q,
+    options: &ExportOptions,
+    labels: Option<&[String]>,
+    pages: &[PdfPage],
+) -> PdfOptions {
     let date = options.date.unwrap_or_else(|| model_date(q));
-    let pages = labels.map_or_else(|| "all".to_owned(), |l| l.join(","));
+    let selection = labels.map_or_else(|| "all".to_owned(), |l| l.join(","));
     let mono = if options.monochrome { " mono" } else { "" };
     PdfOptions {
         title: Some(view::neutral(&q.project().master.description)),
         creator: Some(format!("ElektraWatt {}", env!("CARGO_PKG_VERSION"))),
         monochrome: options.monochrome,
         document_id: format!(
-            "ew-pdf/1 {} {} {:04}-{:02}-{:02} {pages}{mono}",
+            "ew-pdf/1 {} {} {:04}-{:02}-{:02} {selection}{mono} ew {} sha256:{}",
             q.project().id.as_uuid().hyphenated(),
             q.profile().version,
             date.year,
             date.month,
-            date.day
+            date.day,
+            env!("CARGO_PKG_VERSION"),
+            content_digest(pages)
         ),
         ..PdfOptions::new(date)
     }
@@ -389,7 +441,7 @@ pub fn export_pages(q: &Q, options: &ExportOptions) -> Result<ExportPages, Outpu
         PageSelection::Folios(_) => Some(pages.iter().map(|p| p.label.clone()).collect()),
     };
     Ok(ExportPages {
-        options: pdf_options(q, options, labels.as_deref()),
+        options: pdf_options(q, options, labels.as_deref(), &pages),
         pages,
         findings,
     })

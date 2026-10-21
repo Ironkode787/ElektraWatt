@@ -14,7 +14,8 @@ mod golden_common;
 use std::collections::BTreeMap;
 
 use ew_api::output::{
-    ExportOptions, FrameLayer, LabelsLayer, SymbolsLayer, TablesLayer, WiresLayer, export_pdf,
+    ExportOptions, FrameLayer, LabelsLayer, PageEmbeddedOf, PageFrameOf, PageTableOf, SymbolsLayer,
+    TablesLayer, WiresLayer, export_pdf,
 };
 use ew_api::{AnyCommand, CmdError, Session};
 use ew_derive::{PageOrder, PageRef, Query, TitleBlockValues};
@@ -114,38 +115,75 @@ fn a_wire_edit_rebuilds_no_title_block() {
 }
 
 /// `page.renumber` of section 1 (folio 106 becomes 104, Golden B step B2): exactly the frames whose title-block
-/// values changed (Prev/Next, the folio) run again; no wire layer does.
+/// values change (Prev/Next, the folio) and exactly the tables layers whose printed table, embedded blocks or frame
+/// form change (the TOC rows, the report cells that print a folio) run again; no symbol and no wire layer does.
 #[test]
-fn a_renumber_rebuilds_only_the_title_blocks_that_change() {
+fn a_renumber_rebuilds_only_the_title_blocks_and_tables_that_change() {
     let batch = golden_common::batch();
     let mut s = golden_common::session(&batch);
     s.export_pdf(&ExportOptions::default()).expect("the first export");
-    let title_blocks = |s: &Session| {
+    // The cold inputs of the frame and the tables layers, by page.
+    let inputs = |s: &Session| {
         let q = s.query_over(&s.world().model);
         q.get::<PageOrder>(())
             .entries
             .iter()
-            .map(|e| (e.page, (*q.get::<TitleBlockValues>(e.page)).clone()))
+            .map(|e| {
+                let embedded = match e.page {
+                    PageRef::Drawn(p) => (*q.get::<PageEmbeddedOf>(p)).clone(),
+                    _ => Vec::new(),
+                };
+                let frame = (*q.get::<PageFrameOf>(e.page)).clone();
+                let title_block = (*q.get::<TitleBlockValues>(e.page)).clone();
+                let tables = ((*q.get::<PageTableOf>(e.page)).clone(), embedded, frame);
+                (e.page, (title_block, tables))
+            })
             .collect::<BTreeMap<_, _>>()
     };
-    let old = title_blocks(&s);
+    let old = inputs(&s);
     golden_common::run(&mut s, "b2-renumber-pages.ewcmd");
-    let new = title_blocks(&s);
-    let changed = new
-        .iter()
-        .filter(|(page, tb)| old.get(*page) != Some(*tb))
-        .count();
+    let new = inputs(&s);
+    let changed = |pick: &dyn Fn(&(TitleBlock, Tables)) -> String| {
+        new.iter()
+            .filter(|(page, v)| old.get(*page).map(pick) != Some(pick(v)))
+            .count()
+    };
+    let frames = changed(&|v| format!("{:?}", v.0));
+    let tables = changed(&|v| format!("{:?}", v.1));
     assert!(
-        changed > 0 && changed < new.len(),
-        "{changed} of {} title blocks change",
+        frames > 0 && frames < new.len(),
+        "{frames} of {} title blocks change",
+        new.len()
+    );
+    assert!(
+        tables > 0 && tables < new.len(),
+        "{tables} of {} tables layers' inputs change",
         new.len()
     );
     assert_equals_cold(&s);
     let runs = layer_runs(&s);
+    let count = |n: usize| u64::try_from(n).expect("a page count");
     assert_eq!(
         runs[FrameLayer::FAMILY],
-        u64::try_from(changed).expect("a page count"),
+        count(frames),
         "the frames that run again are the changed title blocks: {runs:?}"
+    );
+    assert_eq!(
+        runs[TablesLayer::FAMILY],
+        count(tables),
+        "the tables layers that run again are those whose inputs changed: {runs:?}"
+    );
+    assert_eq!(
+        runs[SymbolsLayer::FAMILY],
+        0,
+        "no symbol layer runs again: {runs:?}"
     );
     assert_eq!(runs[WiresLayer::FAMILY], 0, "no wire layer runs again: {runs:?}");
 }
+
+type TitleBlock = ew_derive::TitleBlock;
+type Tables = (
+    Option<ew_scene::table::TableView>,
+    Vec<ew_scene::embedded::EmbeddedView>,
+    Option<ew_api::output::FrameForms>,
+);

@@ -148,10 +148,36 @@ fn build(q: &Q, page: PageRef, layer: Layer) -> Arc<PageLayer> {
     })
 }
 
-/// The bytes of a layer (the memory gate): its items and the geometry it names, by item count.
+/// The heap and inline bytes of display-list items: each item, its path elements, its glyph run (glyphs and text)
+/// and, recursively, the children of a group; image bytes are shared and counted once per item.
+fn items_bytes(items: &[ew_dl::Item]) -> usize {
+    use ew_dl::ItemKind;
+    items
+        .iter()
+        .map(|item| {
+            std::mem::size_of::<ew_dl::Item>()
+                + match &item.kind {
+                    ItemKind::Path(p) => p.path.els.len() * std::mem::size_of::<ew_dl::PathEl>(),
+                    ItemKind::Glyphs(run) => {
+                        std::mem::size_of::<ew_dl::ShapedRun>()
+                            + run.glyphs.len() * std::mem::size_of::<ew_dl::Glyph>()
+                            + run.text.len()
+                    }
+                    ItemKind::Image(i) => i.image.bytes.len(),
+                    ItemKind::Instance(_) => 0,
+                    ItemKind::Group(g) => items_bytes(&g.items),
+                }
+        })
+        .sum()
+}
+
+/// The bytes of a layer (the memory gate, `Query::bytes`): its items and the geometry its instances name, with
+/// paths, glyph runs, texts and group children, plus its findings.
 fn layer_bytes(v: &PageLayer) -> usize {
-    let items = v.list.items.len() + v.geometry.values().map(|g| g.items.len()).sum::<usize>();
-    std::mem::size_of::<PageLayer>() + items * std::mem::size_of::<ew_dl::Item>()
+    std::mem::size_of::<PageLayer>()
+        + items_bytes(&v.list.items)
+        + v.geometry.values().map(|g| items_bytes(&g.items)).sum::<usize>()
+        + v.findings.len() * std::mem::size_of::<PageFinding>()
 }
 
 macro_rules! layer_family {
@@ -284,5 +310,39 @@ pub fn page_scene(q: &Q, entry: &PageEntry) -> PageScene {
         layers,
         geometry,
         findings,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ew_derive::ew_units::{Nm, Pt2};
+    use ew_dl::{Item, Path, Stroke};
+
+    /// A path's elements and a group's children count, not only the top-level items.
+    #[test]
+    fn layer_bytes_count_path_elements_and_group_children() {
+        let line = |n: i64| {
+            let pts: Vec<Pt2> = (0..n).map(|i| Pt2::new(Nm(i), Nm(0))).collect();
+            Item::path(Path::polyline(&pts), Some(Stroke::solid(Nm(1))), None)
+        };
+        let small = PageLayer {
+            list: Arc::new(DisplayList { items: vec![line(2)] }),
+            ..PageLayer::default()
+        };
+        let long = PageLayer {
+            list: Arc::new(DisplayList {
+                items: vec![line(200)],
+            }),
+            ..PageLayer::default()
+        };
+        let grouped = PageLayer {
+            list: Arc::new(DisplayList {
+                items: vec![Item::group(None, None, vec![line(200), line(200)])],
+            }),
+            ..PageLayer::default()
+        };
+        assert!(layer_bytes(&long) > layer_bytes(&small) + 100 * std::mem::size_of::<ew_dl::PathEl>());
+        assert!(layer_bytes(&grouped) > 2 * (layer_bytes(&long) - std::mem::size_of::<PageLayer>()));
     }
 }

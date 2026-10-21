@@ -50,6 +50,9 @@ serde_json = "1.0.154"
 # display-list types of the per-layer page queries.
 ew-text = { path = "../ew-text" }
 ew-dl = { path = "../ew-dl" }
+# The export job: the PDF document ID hashes the export input (doc 09 §4.3 rule 2); the seal test of the
+# compiled-in generic symbols.
+sha2 = { workspace = true }
 
 [dev-dependencies]
 ew-commands = { path = "../ew-commands", features = ["testkit"] }
@@ -63,5 +66,4 @@ ew-mltext = { path = "../ew-mltext" }
 png = "0.18.1"
 # tests/page_output.rs: inflates the PDF content streams to read the line widths (doc 20 §17.4).
 flate2 = "1.1.10"
-sha2 = { workspace = true }
 insta = { version = "1.49.0", default-features = false }
