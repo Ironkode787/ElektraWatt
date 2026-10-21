@@ -246,10 +246,11 @@ fn run_check(a: &CheckArgs) -> i32 {
             return 2;
         }
     };
-    if !opened.findings.is_empty() {
-        eprintln!("warning: {} integrity findings on opening", opened.findings.len());
-    }
-    let result = session.check(sch, a.mode);
+    // The integrity findings of opening (EW-CORE-001 … 019) join the report: in release mode the "n r"
+    // errors count and set the exit code (doc 15 §4.2).
+    let result = session
+        .check(sch, a.mode)
+        .with_integrity(ew_api::integrity_items(&opened));
     let text = match a.format {
         CheckFormat::Text => report::to_text(&result),
         CheckFormat::Markdown => report::to_markdown(&result),

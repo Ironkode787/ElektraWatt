@@ -23,6 +23,14 @@ pub enum CheckMode {
 }
 
 impl CheckMode {
+    /// The lower-case name: `online`, `release`.
+    pub fn name(self) -> &'static str {
+        match self {
+            CheckMode::Online => "online",
+            CheckMode::Release => "release",
+        }
+    }
+
     /// Whether a rule with these metadata runs in this mode.
     pub fn runs(self, meta: &RuleMeta) -> bool {
         match self {

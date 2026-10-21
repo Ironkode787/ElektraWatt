@@ -202,6 +202,35 @@ impl PreventHook for ShippedPrevent {
     }
 }
 
+/// The integrity findings of opening a project as items for [`checks::CheckReport::with_integrity`]: every
+/// store finding with a catalogue ID (EW-CORE-001 … 019, doc 05 §6.3) at its severity, located by its
+/// project-relative file and line. Notices without an ID (line endings, foreign edits) are left out.
+pub fn integrity_items(report: &OpenReport) -> Vec<checks::IntegrityItem> {
+    use ew_store::ew_format::Severity as S;
+    report
+        .findings
+        .iter()
+        .filter_map(|f| {
+            let rule = f.kind.code()?;
+            let location = match (&f.file, f.line) {
+                (Some(file), Some(line)) => format!("{file}:{line}"),
+                (Some(file), None) => file.to_string(),
+                (None, _) => String::new(),
+            };
+            Some(checks::IntegrityItem {
+                rule: rule.to_owned(),
+                severity: match f.kind.severity() {
+                    S::Error => checks::Severity::Error,
+                    S::Warning => checks::Severity::Warning,
+                    S::Info => checks::Severity::Info,
+                },
+                location,
+                message: f.message.clone(),
+            })
+        })
+        .collect()
+}
+
 /// What [`Session::open`] does with a leftover journal of a crashed session (doc 05 §8.3).
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum Recovery {

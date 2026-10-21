@@ -106,6 +106,16 @@ impl Rule for TerminalWithoutDesignation {
     }
 }
 
+/// Whether the strip carries a frozen designation with `?`, as the QET importer's fallback strips `X?<page>`
+/// do (doc 14 §14 item 5). The stored tag is read, not the derived one: an unplaced strip also derives a
+/// designation with `?`, and its terminals are still one strip.
+fn is_unnumbered_strip(q: &Q, strip: Id<Device>) -> bool {
+    q.devices()
+        .get(strip)
+        .and_then(|d| d.tag.frozen.as_ref())
+        .is_some_and(|f| f.text.as_str().contains('?'))
+}
+
 /// EW-TERM-002 "Duplicate designation" (doc 15 §4.4): conflict, p o r, error, strip.
 pub const DUPLICATE_DESIGNATION: RuleMeta = RuleMeta {
     id: "EW-TERM-002",
@@ -124,7 +134,9 @@ pub const DUPLICATE_DESIGNATION: RuleMeta = RuleMeta {
 /// Designations compare under the project's case setting.
 ///
 /// - **Online and release:** one finding per duplicated designation, targets every terminal of the group,
-///   no discriminator (renaming a member makes it another defect).
+///   no discriminator (renaming a member makes it another defect). A strip whose frozen designation is
+///   unnumbered (it contains `?`) is skipped: the QET importer's fallback strip `X?<page>` (EW-IMP-005)
+///   collects the unlabelled terminals of a folio, which are not one strip (decision log ID-276).
 /// - **Prevent:** a touched terminal whose (strip, designation) the batch changed, or that the batch
 ///   created, and that now shares its designation within its strip. A duplicate the base snapshot already
 ///   held (a lenient import) does not refuse an edit that leaves it alone. The rule runs on the candidate,
@@ -142,6 +154,9 @@ impl Rule for DuplicateDesignation {
         let Scope::Strip(strip) = *scope else {
             return Vec::new();
         };
+        if is_unnumbered_strip(q, strip) {
+            return Vec::new();
+        }
         let strip_tag = full_tag(q, strip, "strip");
         designation_groups(q, strip)
             .into_values()

@@ -212,3 +212,92 @@ fn a_waiver_matches_by_fingerprint_and_an_unmatched_one_is_reported() {
     assert!(report.findings.iter().any(|f| f.rule == "EW-CORE-081"));
     assert_eq!(report.exit_code(), 0);
 }
+
+#[test]
+fn term002_skips_the_importers_fallback_strip_but_counts_real_strips() {
+    // The QET importer's fallback strip `X?<page>` (EW-IMP-005) gathers unlabelled terminals: not one strip.
+    let fallback = record(json!({
+        "$k": "device", "id": us(0x200),
+        "tag": {"letter": "X", "frozen": {"text": "X?103"}}, "strip": {}
+    }));
+    let mut records = three_terminals(["1", "2", "2"]);
+    records.push(fallback);
+    records.push(terminal(0x201, 0x200, 1, "1"));
+    records.push(terminal(0x202, 0x200, 2, "1"));
+    let m = model(records);
+    let report = run(&Q::new(&m), &MIGRATION, CheckMode::Release);
+    let term: Vec<_> = report
+        .findings
+        .iter()
+        .filter(|f| f.rule == "EW-TERM-002")
+        .collect();
+    assert_eq!(term.len(), 1, "only the real strip: {term:#?}");
+    assert!(term[0].targets.iter().all(|t| t.id != uid(0x201)));
+}
+
+#[test]
+fn a_waiver_for_a_rule_that_did_not_run_is_not_evaluated() {
+    let mut records = three_terminals(["1", "2", "3"]);
+    // EW-POT-013 is not implemented; EW-TERM-005 does not run in release mode.
+    for (n, rule) in [(0x910, "EW-POT-013"), (0x911, "EW-TERM-005")] {
+        records.push(record(json!({
+            "$k": "waiver", "id": us(n), "rule": rule,
+            "target": {"finding": "00000000000000000000000000000001"}, "reason": {"en-GB": "not evaluated here"}
+        })));
+    }
+    let m = model(records);
+    let report = run(&Q::new(&m), &PRE_DELIVERY, CheckMode::Release);
+    let f: Vec<_> = report
+        .findings
+        .iter()
+        .filter(|f| f.rule == "EW-CORE-081")
+        .collect();
+    assert_eq!(f.len(), 2, "{f:#?}");
+    for x in &f {
+        assert!(x.message.contains("not evaluated"), "{}", x.message);
+        assert!(x.discriminator.starts_with("not-evaluated"));
+        assert_eq!(x.severity, ew_checks::Severity::Info);
+    }
+    assert_eq!(report.exit_code(), 0);
+}
+
+#[test]
+fn integrity_items_join_the_counts_in_release_mode_only() {
+    let m = model(three_terminals(["1", "2", "3"]));
+    let items = || {
+        vec![
+            ew_checks::IntegrityItem {
+                rule: "EW-CORE-005".into(),
+                severity: ew_checks::Severity::Error,
+                location: "pages/p.jsonl:3".into(),
+                message: "JSON syntax error".into(),
+            },
+            // EW-CORE-004 runs on open only (n), not in release mode.
+            ew_checks::IntegrityItem {
+                rule: "EW-CORE-004".into(),
+                severity: ew_checks::Severity::Warning,
+                location: "stray.jsonl".into(),
+                message: "orphan file".into(),
+            },
+            ew_checks::IntegrityItem {
+                rule: "EW-NOPE-001".into(),
+                severity: ew_checks::Severity::Error,
+                location: String::new(),
+                message: "unknown".into(),
+            },
+        ]
+    };
+    let release = run(&Q::new(&m), &PRE_DELIVERY, CheckMode::Release).with_integrity(items());
+    assert_eq!(release.counts.errors, 1, "{:#?}", release.findings);
+    assert_eq!(release.counts.warnings, 0);
+    assert_eq!(release.exit_code(), 1);
+    assert!(
+        release
+            .findings
+            .iter()
+            .any(|f| f.rule == "EW-CORE-005" && f.code == "100005")
+    );
+    assert!(release.rules.iter().any(|r| r.id == "EW-CORE-005"));
+    let online = run(&Q::new(&m), &DRAFTING, CheckMode::Online).with_integrity(items());
+    assert_eq!(online.exit_code(), 0);
+}

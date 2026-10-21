@@ -47,7 +47,7 @@ mod rule;
 pub mod rules;
 mod scheme;
 
-pub use engine::{CheckOf, CheckReport, Counts, prevent, run, scopes};
+pub use engine::{CheckOf, CheckReport, Counts, IntegrityItem, prevent, run, scopes};
 pub use finding::{Finding, FindingState, Fingerprint, QuickFix, Severity, Target, sort_findings};
 pub use registry::{rule, rules};
 pub use rule::{Modes, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};

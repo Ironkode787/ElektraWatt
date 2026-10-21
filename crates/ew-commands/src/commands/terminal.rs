@@ -66,6 +66,7 @@ pub struct TerminalDesignation {
 #[serde(deny_unknown_fields)]
 pub struct DesignateTerminals {
     /// The assignments, at least one; each terminal at most once.
+    #[schemars(length(min = 1))]
     pub assignments: Vec<TerminalDesignation>,
 }
 

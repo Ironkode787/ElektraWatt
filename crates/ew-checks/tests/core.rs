@@ -69,14 +69,14 @@ fn core051_reports_an_interruption_point_without_a_partner() {
     assert_eq!(f.len(), 1, "{f:#?}");
     assert_eq!(f[0].code, "103051");
     assert_eq!(f[0].severity, Severity::Error);
-    // The note names the point as "(<function id>)": that function is the target.
+    // The point's function is the target; the discriminator holds no name (doc 15 §2.5).
     assert_eq!(f[0].targets.len(), 1);
     assert_eq!(
         (f[0].targets[0].kind, f[0].targets[0].id),
         (Kind::Function, uid(0x1101))
     );
-    assert!(f[0].discriminator.contains(&us(0x1101)), "{}", f[0].discriminator);
-    assert_eq!(f[0].discriminator, f[0].subject);
+    assert_eq!(f[0].discriminator, "unpaired");
+    assert!(f[0].subject.contains("LONELY"), "{}", f[0].subject);
     assert!(f[0].message.contains("no partner"), "{}", f[0].message);
 }
 
@@ -88,6 +88,7 @@ fn core051_reports_an_interruption_point_without_a_connection_point() {
     assert_eq!(f.len(), 1, "{f:#?}");
     assert_eq!(f[0].targets.len(), 1);
     assert_eq!(f[0].targets[0].id, uid(0x1101));
+    assert_eq!(f[0].discriminator, "no-cp");
     assert!(f[0].message.contains("no connection point"), "{}", f[0].message);
 }
 
@@ -104,8 +105,9 @@ fn core051_a_pair_has_no_finding() {
 }
 
 #[test]
-fn core051_a_group_note_without_an_id_has_no_target() {
-    // Two sources and no star flag: the group note names the point's name only.
+fn core052_two_sources_without_a_star_flag_are_ambiguous_not_unpaired() {
+    // Two sources and no star flag: the derivation pairs from the smallest ID; EW-CORE-052 asks for the
+    // decision, and no point is reported as unpaired (EW-CORE-051).
     let mut fx = Fx::base();
     for (f, page) in [(0x1001, P1), (0x1002, P2), (0x1003, P2)] {
         fx.func(f, page);
@@ -116,10 +118,31 @@ fn core051_a_group_note_without_an_id_has_no_target() {
     fx.conn(0x2001, P1, cp(0x1001), cp(0x1101), &Value::Null);
     fx.conn(0x2002, P2, cp(0x1002), cp(0x1102), &Value::Null);
     fx.conn(0x2003, P2, cp(0x1003), cp(0x1103), &Value::Null);
-    let f = findings_of(&fx.build(), "EW-CORE-051");
+    let m = fx.build();
+    assert!(findings_of(&m, "EW-CORE-051").is_empty());
+    let f = findings_of(&m, "EW-CORE-052");
     assert_eq!(f.len(), 1, "{f:#?}");
-    assert!(f[0].targets.is_empty());
+    assert_eq!(f[0].code, "103052");
+    assert_eq!(f[0].targets.len(), 3);
+    assert_eq!(f[0].discriminator, "star-source");
     assert!(f[0].message.contains("source points"), "{}", f[0].message);
+}
+
+#[test]
+fn core052_one_source_is_not_ambiguous() {
+    let mut fx = Fx::base();
+    for (f, page) in [(0x1001, P1), (0x1002, P2), (0x1003, P2)] {
+        fx.func(f, page);
+    }
+    fx.ip(0x1101, P1, "X", "source");
+    fx.ip(0x1102, P2, "X", "target");
+    fx.ip(0x1103, P2, "X", "target");
+    fx.conn(0x2001, P1, cp(0x1001), cp(0x1101), &Value::Null);
+    fx.conn(0x2002, P2, cp(0x1002), cp(0x1102), &Value::Null);
+    fx.conn(0x2003, P2, cp(0x1003), cp(0x1103), &Value::Null);
+    let m = fx.build();
+    assert!(findings_of(&m, "EW-CORE-052").is_empty());
+    assert!(findings_of(&m, "EW-CORE-051").is_empty());
 }
 
 /// The catalogue columns of every shipped rule of this work package: id, code, title, kind, modes
@@ -133,12 +156,13 @@ fn shipped_rules_carry_their_catalogue_metadata() {
     let table = [
         ("EW-CORE-033", "003033", "Cable without length", Completeness, (true, false, true), Error, Cable),
         ("EW-CORE-051", "103051", "Unpaired interruption point", Completeness, (true, false, true), Error, Project),
+        ("EW-CORE-052", "103052", "Ambiguous interruption point", Conflict, (true, false, true), Error, Project),
         ("EW-POT-001", "005001", "Type or voltage conflict", Conflict, (true, false, true), Error, Potential),
         ("EW-POT-008", "005008", "PE island", Conflict, (true, false, true), Warning, Project),
         ("EW-POT-011", "005011", "Junction feed ambiguous", Conflict, (true, false, false), Warning, Potential),
         ("EW-POT-012", "005012", "Ring in the drawing graph", Hygiene, (true, false, false), Warning, Potential),
         ("EW-POT-014", "005014", "Physical-wire conflict", Conflict, (true, false, true), Error, Potential),
-        ("EW-RDS-004", "017004", "Duplicate designation", Conflict, (true, true, true), Error, Project),
+        ("EW-RDS-004", "017004", "Duplicate designation", Conflict, (true, false, true), Error, Project),
         ("EW-TERM-001", "001001", "Terminal without designation", Conflict, (true, true, true), Error, Strip),
         ("EW-TERM-005", "001005", "Rail bonding on a non-PE terminal", Conflict, (true, false, false), Error, Strip),
     ];

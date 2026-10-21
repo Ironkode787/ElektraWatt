@@ -195,17 +195,60 @@ fn check_golden_a_json() {
         "--format".as_ref(),
         "json".as_ref(),
     ]);
+    // Golden A has unwaived errors (doc 20 §18.1: AC-21 exits 1); today EW-CORE-033 on -3W1 is one.
     let code = o.status.code();
-    assert!(
-        code == Some(0) || code == Some(1),
-        "{code:?}: {}",
-        String::from_utf8_lossy(&o.stderr)
-    );
+    assert_eq!(code, Some(1), "{}", String::from_utf8_lossy(&o.stderr));
     let v: serde_json::Value = serde_json::from_str(&stdout(&o)).unwrap();
     assert_eq!(v["$schema"], "ew.check-result/1");
     assert_eq!(v["scheme"], "pre-delivery");
-    assert_eq!(v["exit_code"].as_i64(), code.map(i64::from));
+    assert_eq!(v["exit_code"].as_i64(), Some(1));
     assert!(!std::path::Path::new(GOLDEN_A).join(".~ew.lock").exists());
+}
+
+fn copy_dir(from: &std::path::Path, to: &std::path::Path) {
+    std::fs::create_dir_all(to).unwrap();
+    for e in std::fs::read_dir(from).unwrap() {
+        let e = e.unwrap();
+        let target = to.join(e.file_name());
+        if e.file_type().unwrap().is_dir() {
+            copy_dir(&e.path(), &target);
+        } else {
+            std::fs::copy(e.path(), &target).unwrap();
+        }
+    }
+}
+
+/// A damaged project: the integrity findings of opening join the counts and the exit code (doc 15 §4.2).
+#[test]
+fn check_counts_integrity_errors_of_a_damaged_project() {
+    let tmp = Tmp::new();
+    let dir = tmp.0.join("damaged.ew");
+    copy_dir(std::path::Path::new(GOLDEN_A), &dir);
+    // A JSON syntax error in a page file (EW-CORE-005, error, opens read-only).
+    let pages = dir.join("pages");
+    let page = std::fs::read_dir(&pages)
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .min()
+        .unwrap();
+    let mut text = std::fs::read_to_string(&page).unwrap();
+    text.push_str("{not json\n");
+    std::fs::write(&page, text).unwrap();
+    let o = ew(&[
+        "check".as_ref(),
+        dir.as_os_str(),
+        "--format".as_ref(),
+        "json".as_ref(),
+    ]);
+    assert_eq!(o.status.code(), Some(1), "{}", String::from_utf8_lossy(&o.stderr));
+    let v: serde_json::Value = serde_json::from_str(&stdout(&o)).unwrap();
+    let rules: Vec<&str> = v["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|f| f["rule"].as_str())
+        .collect();
+    assert!(rules.contains(&"EW-CORE-005"), "{rules:?}");
 }
 
 #[test]

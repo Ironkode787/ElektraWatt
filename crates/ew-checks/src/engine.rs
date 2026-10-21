@@ -14,7 +14,7 @@ use ew_derive::{Policy, PotentialPartition, Q, Query};
 use crate::finding::{Finding, FindingState, Fingerprint, Severity, Target, sort_findings};
 use crate::registry::{rule, rules};
 use crate::rule::{RuleMeta, Scope, ScopeKind, Touched};
-use crate::rules::core::WAIVER_MATCHES_NOTHING;
+use crate::rules::core::{INTEGRITY, WAIVER_MATCHES_NOTHING};
 use crate::scheme::{CheckMode, Scheme};
 
 /// `check_findings(rule, scope)`: the findings of one shipped rule in one scope, at the rule's own
@@ -131,6 +131,62 @@ impl CheckReport {
         }
         out
     }
+
+    /// The report with the integrity findings of opening the project joined (doc 15 §4.2: the integrity
+    /// rules EW-CORE-001 … 019 run on open and, where the catalogue lists `r`, in release mode). In release
+    /// mode every item of a rule whose modes include release joins the findings, the counts and the exit
+    /// code at the item's severity; items of other rules, of unknown IDs, and every item in online mode are
+    /// left out. Integrity findings are never waivable. The findings are re-sorted.
+    #[must_use]
+    pub fn with_integrity(mut self, items: impl IntoIterator<Item = IntegrityItem>) -> CheckReport {
+        for item in items {
+            let Some(meta) = INTEGRITY.iter().find(|m| m.id == item.rule) else {
+                continue;
+            };
+            if !self.mode.runs(meta) {
+                continue;
+            }
+            if !self.rules.iter().any(|m| m.id == meta.id) {
+                self.rules.push(meta);
+            }
+            self.findings.push(
+                Finding::new(meta, [], item.location.clone(), item.location, item.message)
+                    .with_severity(item.severity),
+            );
+        }
+        self.rules.sort_by_key(|m| m.id);
+        sort_findings(&mut self.findings);
+        self.counts = count(&self.findings);
+        self
+    }
+}
+
+/// One integrity finding of opening a project (the store's findings, doc 05 §6.3), for
+/// [`CheckReport::with_integrity`].
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct IntegrityItem {
+    /// The rule ID, `EW-CORE-001` … `EW-CORE-019`.
+    pub rule: String,
+    /// The severity the store gave it.
+    pub severity: Severity,
+    /// Where: the file and line as text (the discriminator and the subject), empty for the project.
+    pub location: String,
+    /// What happened.
+    pub message: String,
+}
+
+/// The totals of a finding list.
+fn count(findings: &[Finding]) -> Counts {
+    let mut counts = Counts::default();
+    for f in findings {
+        match (&f.state, f.severity) {
+            (FindingState::Waived { .. }, _) => counts.waived += 1,
+            (FindingState::Open, Severity::Error) => counts.errors += 1,
+            (FindingState::Open, Severity::Warning) => counts.warnings += 1,
+            (FindingState::Open, Severity::Info) => counts.infos += 1,
+        }
+    }
+    counts
 }
 
 /// One waiver record (`waivers.jsonl`, doc 15 §2.5), as far as matching needs it.
@@ -248,35 +304,48 @@ pub fn run(q: &Q, scheme: &Scheme, mode: CheckMode) -> CheckReport {
                 kind: Kind::Waiver,
                 id,
             });
-            let f = Finding::new(
-                meta081,
-                target,
-                if target.is_none() {
-                    w.id.clone()
-                } else {
-                    String::new()
-                },
-                format!("waiver {}", w.id),
-                format!(
-                    "waiver {} for {} matches no finding; remove it or correct its target",
-                    w.id, w.rule
-                ),
-            );
-            let sev = mode.severity(meta081, f.severity);
-            findings.push(f.with_severity(sev));
+            let id_part = if target.is_none() {
+                w.id.clone()
+            } else {
+                String::new()
+            };
+            // Only a waiver whose rule ran here can be said to match nothing; one for a rule that is not
+            // implemented, or not enabled in this scheme and mode, was not evaluated (an info).
+            let ran = evaluated.iter().any(|m| m.id == w.rule);
+            let f = if ran {
+                Finding::new(
+                    meta081,
+                    target,
+                    id_part,
+                    format!("waiver {}", w.id),
+                    format!(
+                        "waiver {} for {} matches no finding; remove it or correct its target",
+                        w.id, w.rule
+                    ),
+                )
+                .with_severity(mode.severity(meta081, meta081.severity))
+            } else {
+                Finding::new(
+                    meta081,
+                    target,
+                    format!("not-evaluated{id_part}"),
+                    format!("waiver {}", w.id),
+                    format!(
+                        "waiver {} for {} was not evaluated: the rule did not run in scheme {} ({} mode)",
+                        w.id,
+                        w.rule,
+                        scheme.name,
+                        mode.name()
+                    ),
+                )
+                .with_severity(Severity::Info)
+            };
+            findings.push(f);
         }
     }
 
     sort_findings(&mut findings);
-    let mut counts = Counts::default();
-    for f in &findings {
-        match (&f.state, f.severity) {
-            (FindingState::Waived { .. }, _) => counts.waived += 1,
-            (FindingState::Open, Severity::Error) => counts.errors += 1,
-            (FindingState::Open, Severity::Warning) => counts.warnings += 1,
-            (FindingState::Open, Severity::Info) => counts.infos += 1,
-        }
-    }
+    let counts = count(&findings);
     evaluated.sort_by_key(|m| m.id);
     CheckReport {
         scheme: scheme.name,

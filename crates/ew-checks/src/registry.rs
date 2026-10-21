@@ -11,6 +11,7 @@ use crate::rules as shipped;
 static RULES: &[&dyn Rule] = &[
     &shipped::core::CableWithoutLength,
     &shipped::core::UnpairedInterruptionPoint,
+    &shipped::core::AmbiguousInterruptionPoint,
     &shipped::core::WaiverMatchesNothing,
     &shipped::pot::TypeOrVoltageConflict,
     &shipped::pot::PeIsland,

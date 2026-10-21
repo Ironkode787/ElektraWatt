@@ -42,6 +42,7 @@
       "items": {
         "$ref": "#/$defs/TerminalDesignation"
       },
+      "minItems": 1,
       "type": "array"
     }
   },

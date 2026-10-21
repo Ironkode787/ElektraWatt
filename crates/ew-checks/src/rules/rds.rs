@@ -14,14 +14,15 @@ use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
 use crate::rules::term::case_setting;
 
-/// EW-RDS-004 "Duplicate designation" (doc 15 §4.2): conflict, p o r, error, project.
+/// EW-RDS-004 "Duplicate designation" (doc 15 §4.3): conflict, o r, error, project (the catalogue's p is
+/// not declared at MVP).
 pub const DUPLICATE_DESIGNATION: RuleMeta = RuleMeta {
     id: "EW-RDS-004",
     code: "017004",
     pack: "EW-IEC81346",
     title: "Duplicate designation",
     kind: RuleKind::Conflict,
-    modes: Modes::letters("opr"),
+    modes: Modes::letters("or"),
     severity: Severity::Error,
     release_severity: None,
     scope: ScopeKind::Project,
@@ -35,9 +36,9 @@ pub const DUPLICATE_DESIGNATION: RuleMeta = RuleMeta {
 /// One finding per duplicated designation, targets every device of the group, no discriminator.
 ///
 /// Deviations: the catalogue lists the scope as device, but the grouping is project-wide, so the rule is
-/// evaluated once in the project scope. Prevent mode is not wired at MVP: tag uniqueness on commit needs
-/// every derived tag, which is a decision for the design pass; the rule declares the mode and the default
-/// prevent reports nothing.
+/// evaluated once in the project scope. Prevent mode is not declared at MVP (owner ruling; ADR-0009
+/// decision 3 is amended by the design pass): tag uniqueness on commit would need every derived tag on
+/// each commit.
 #[derive(Clone, Copy, Debug)]
 pub struct DuplicateDesignation;
 
