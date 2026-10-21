@@ -128,6 +128,10 @@ fn expected_csv_is_the_derived_rows_and_mirrors_expected_rows() {
         if bless {
             std::fs::create_dir_all(path.parent().unwrap()).unwrap();
             std::fs::write(&path, csv.as_bytes()).unwrap();
+            // the rows mirror of a block that no other test blesses (the connectivity blocks are written by
+            // `connectivity_reports`; the texts are equal by this test's assertion)
+            let mirror = dir.join("rows").join(format!("{block}.csv"));
+            std::fs::write(&mirror, csv.as_bytes()).unwrap();
             continue;
         }
         let committed = std::fs::read(&path)
