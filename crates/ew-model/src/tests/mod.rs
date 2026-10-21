@@ -8,4 +8,5 @@ mod field_mask;
 pub(crate) mod fixture;
 mod invariants;
 mod ops;
+mod plc_links;
 mod props;
