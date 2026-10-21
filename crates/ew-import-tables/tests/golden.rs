@@ -279,7 +279,7 @@ fn the_ratings_are_typed_technical_data() {
     assert_eq!(part("5SY4204-7"), ["characteristic=C", "rated_current=4 A"]);
     assert_eq!(part("A9F78116"), ["characteristic=B", "rated_current=16 A"]);
     assert_eq!(part("533356"), ["rated_current=40 A"]);
-    assert_eq!(part("2904602"), ["rated_current=20 A"]);
+    assert_eq!(part("2904602"), ["output_voltage=24 V", "rated_current=20 A"]);
     assert_eq!(part("MICO 4.10"), ["channel_current=6 A"]);
     assert!(part("SK 3110.000").is_empty());
     let id: Id<Device> = record_id("devices", "T55");

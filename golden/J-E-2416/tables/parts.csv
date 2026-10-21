@@ -9,7 +9,7 @@ key,manufacturer,part_number,kind,type_designation,description,unit,test_data,te
 550208,Festo,550208,,,CPX-M-GE-EV-S-7/8-5POL interlinking block with supply,piece,,
 552286,Festo,552286,,,VMPA-FB-EPLM-G pneumatic interface,piece,,
 571334,Festo,571334,,,5/2 monostable solenoid valve,piece,,
-2904602,Phoenix Contact,2904602,,,Power supply 1 AC / DC,piece,,rated_current=20 A
+2904602,Phoenix Contact,2904602,,,Power supply 1 AC / DC,piece,,output_voltage=24 V;rated_current=20 A
 A9F78116,Schneider Electric,A9F78116,,,Miniature circuit breaker 1P,piece,,characteristic=B;rated_current=16 A
 A9P52610,Schneider Electric,A9P52610,,,Miniature circuit breaker 1P+N,piece,,characteristic=C;rated_current=10 A
 MICO 4.10,Murrelektronik,MICO 4.10,,,"Electronic load distribution, 4 channels",piece,,channel_current=6 A

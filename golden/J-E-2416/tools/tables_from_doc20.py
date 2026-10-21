@@ -677,7 +677,7 @@ def tech_values():
     the ratings in prose: ``({part key: tech_data cell}, {device tag: tech_data cell})``.
 
     The ratings of a part belong to the part (an MCB's characteristic and rated current, a switch's rated
-    current, a PSU's output current, the current setting of a load-distribution channel); the setpoint of the
+    current, a PSU's output voltage and current, the current setting of a load-distribution channel); the setpoint of the
     thermostat belongs to the device. A cell is ``;``-separated ``<key>=<value>`` items, a quantity written
     ``<number> <unit>`` with the unit in the ASCII spelling of the format (``A``, ``degC``)."""
 
@@ -692,15 +692,21 @@ def tech_values():
         m = need(tag, r"\bMCB 1P(?:\+N)? ([BCD])(\d+)\b")
         parts[PARTS_BY_TAG[tag]] = f"characteristic={m.group(1)};rated_current={m.group(2)} A"
     parts[PARTS_BY_TAG["S51"]] = f"rated_current={need('S51', r'(\d+) A\b').group(1)} A"
-    parts[PARTS_BY_TAG["-102G1"]] = f"rated_current={need('-102G1', r'(\d+) A$').group(1)} A"
+    # The PSU's output voltage: no typed key exists for it yet (doc 07 §2.6 lists none; ID-315's native plain keys
+    # are characteristic, rated_current, channel_current and setpoint), so the plain key output_voltage holds it.
+    parts[PARTS_BY_TAG["-102G1"]] = (
+        f"output_voltage={need('-102G1', r'(\d+) V DC').group(1)} V;"
+        f"rated_current={need('-102G1', r'(\d+) A$').group(1)} A"
+    )
     parts[PARTS_BY_TAG["-102F2"]] = f"channel_current={need('-102F2', r'4 × (\d+) A').group(1)} A"
     devices = {"T55": f"setpoint={need('T55', r'setpoint (\d+) °C').group(1)} degC"}
     fixture(
-        "parts", "tech_data", sorted(parts, key=natural_key), "(per part: characteristic, rated_current, channel_current)",
+        "parts", "tech_data", sorted(parts, key=natural_key),
+        "(per part: characteristic, rated_current, channel_current, output_voltage)",
         "§6.1 (Function column), §3.4 row 8",
         "the ratings are typed technical data of the part: the MCB characteristic and rated current ('MCB 1P+N C10'), the"
-        " rated current of the switch and the PSU, the channel current of the load distribution; notation 'C10', '40 A',"
-        " '6 A' of U-32",
+        " rated current of the switch and the PSU, the PSU's output voltage (plain key output_voltage: no typed key"
+        " exists yet), the channel current of the load distribution; notation 'C10', '40 A', '6 A' of U-32",
         marks=["U-32"],
     )  # fmt: skip
     fixture(
