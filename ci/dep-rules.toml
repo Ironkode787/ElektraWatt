@@ -130,6 +130,8 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 
 # ew-reports' unit tests build small model snapshots to run report row queries over a `Q` (no `raw-read`).
 "ew-reports" = ["ew-model"]
+# ew-checks' unit tests build small model snapshots to evaluate rules over a `Q` (no `raw-read`).
+"ew-checks" = ["ew-model"]
 
 # ARCH §3 Rule 2: only ew-sqlview and ew-library link rusqlite.
 [[external_owner]]

@@ -312,7 +312,10 @@ name = "ew-checks"
 version = "0.0.0"
 dependencies = [
  "ew-derive",
+ "ew-model",
  "ew-rhai",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]
