@@ -482,7 +482,9 @@ black box) and "supplied by others" for the process valves -203Q1 … -203Q8 (FR
 ## Expected page output (candidates)
 
 `expected/` holds what the page output of the golden model must reproduce (doc 20 §3.1, §3.3). It is **generated**,
-never edited by hand, by `crates/ew-api/tests/page_output.rs`:
+never edited by hand, by `crates/ew-api/tests/page_output.rs`, through the session's export job (`ew_api::output`,
+FT-59: the product's page views and one memoised `page_display_list` family per layer; since cycle 15 no page view is
+test glue):
 
 ```text
 EW_BLESS=1 cargo nextest run -p ew-api --test page_output     # rewrites expected/ from the model
@@ -512,7 +514,12 @@ cargo nextest run -p ew-api --test page_output                # compares (no EW_
 - `pdf/structure.json`: the writer's PDF structure of the whole page order (page count, `/PageLabels`, outline
   tree, link, plain-text-link, dropped-`.notdef`-glyph and destination counts, embedded fonts), compared exactly
   (§3.3 "PDF structure"; 92 links: one per listed cross-reference item (64) and one per bound channel row of
-  the PLC overview to its coil (28, doc 10 §5)); `pdf/sha256.txt` holds the SHA-256 of the whole PDF.
+  the PLC overview to its coil (28, doc 10 §5)); `pdf/sha256.txt` holds the SHA-256 of the whole PDF, which
+  `ew export pdf golden/J-E-2416.ew --out <file>` writes byte for byte (G-M1-01; `bin/ew/tests/cli.rs` runs it on
+  one and four threads with no display, no starter content and empty user directories). Re-blessed in cycle 15: the
+  PDF's document ID is the export job's, the hash of `ew-pdf/1 <project id> <profile> <date> all` (doc 09 §4.3 rule
+  2), where the cycle-14 harness hashed a test label; the page content is unchanged (the same pages with the old ID
+  give the old digest).
 - Everything under `golden/` is CC0-1.0 (`REUSE.toml`, annotation L8).
 
 **Known gaps for the FT-10 approval.** The candidates cover the 36 pages of `page_order` with the report engine
@@ -712,6 +719,10 @@ built (`crates/ew-api/src/cmdlog.rs`):
   unnumbered `-101A?` or a duplicate terminal designation, cannot be resolved; such targets use `id:<uuid>`. A
   reference that cannot be resolved stops the replay with exit code 2 (`CmdLogError::Reference`, with the number
   of lines committed before it).
+- `ew apply [<project>] <file.ewcmd> [--preview] [--one-step]` (cycle 15, FT-156) replays a log on a project
+  directory and saves it; `--preview` prints the changed records, tags and cross-references and saves nothing;
+  `--one-step` saves only when every line commits. `bin/ew/tests/cli.rs` previews and applies
+  `b2-renumber-pages.ewcmd` on a copy of the fixture.
 - `Session::run_script(&CmdLog, file)` replays a log: each line commits as its own transaction with origin
   `cmdlog:<file>` (bulk commands as preview then commit), so one `undo` takes back one line. Every command is
   looked up and checked against its exposure class before the first line runs. Exit codes (doc 17 §3.2,
@@ -882,17 +893,20 @@ ToUnicode maps; test code only) and checks three entries against it:
   AC-04 checks the title-block texts. The line count is 12 grid pages × 30 lines (4 outer edges, the separator,
   the 2 band lines, 16 column ticks and 7 row ticks) + 24 no-grid pages × 5 = 480.
 
-**AC-14 (cycle 14).** The SVG export of `ew-export` (one file per page from the same sheet display lists as the PDF,
-text as `<text>`) and the parallel page phase (`ew_export::par_map`, results by page index) are compared with the
-serial export: the page display lists, PDF and SVG on 2 and 8 threads are byte-identical, every SVG `href` resolves
+**AC-14 (cycle 14; the shipped path since cycle 15).** The SVG export of `ew-export` (one file per page from the
+same sheet display lists as the PDF, text as `<text>`) and the parallel page phase (`ew_export::par_map`, results by
+page index) of the session's export job (`ew_api::output`, FT-59) are compared with the serial export: the page display lists, PDF and SVG on 2 and 8 threads are byte-identical, every SVG `href` resolves
 to a file and an `id` of it, and the model loaded with its records shuffled writes the same PDF, SVG, page text
 CSVs, report CSVs and the same files when saved (`Session::create`: the JSONL files and the manifest). The SVG set is not
 committed as golden files (doc 18 asks for none); its SHA-256 is in the AC-14 reason of the committed report, so a
 change of any SVG byte shows there. The comparison runs on the platform of the run; the gate platform is Linux and
 the cross-platform digests are MVP.
 
-The headless report of this revision: 92 entries, 81 pass, 0 fail, 6 not_built, 5 not_applicable, 0 oracle
-mismatches (the full run adds the raster comparison as a pass). Cycle 14 closed AC-01, AC-06, AC-13 and the two
+The headless report of this revision: 93 entries, 82 pass, 0 fail, 6 not_built, 5 not_applicable, 0 oracle
+mismatches (the full run adds the raster comparison as a pass). Cycle 15 (FT-59) runs the page output through the
+export job: the text CSVs, the PDF, the SVG set, AC-16's page texts and AC-17's PDF time come from
+`ew_api::output`; the new AC-15 entry exports the checked-in fixture as `ew export pdf` does and finds the digest of
+`expected/pdf/sha256.txt`; AC-16 sweeps 60 memoised families (the 10 of the page output included). Cycle 14 closed AC-01, AC-06, AC-13 and the two
 AC-14 entries, D-03 (EF-15 counts 10: the seven frozen tags of doc 20 §18.1 and the three U-34 frozen test inputs, listed apart), D-14 (restated by the owner ruling: a named anchor policy that leaves the bus port's graphics, set on -201U1's bus representation alone, makes -201U1 print "3-B0", EW-CORE-053 reports it and its quick fix restores "3-B2"), D-20 (the Via notation "star at" and "chain on"), D-22's PELV entry,
 D-35 (the §14.1 descriptions without ratings; EW-CORE-065 with the 1.0 content) and the info half of D-06 (a new
 entry), and emptied AC-09's deviation list (FT-101). Cycle 14 lane B added the exports (AC-07 parts and AC-11; the

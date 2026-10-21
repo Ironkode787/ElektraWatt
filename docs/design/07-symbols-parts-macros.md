@@ -372,8 +372,9 @@ current composed as "C10" (the reading of U-32); other values print as value and
 values are joined with ", " in key order. Two interims apply. The main part of a device is its first part use, not
 yet "the use that provides the main function" (FT-208); the manufacturer name is read from the manufacturer
 `LibRef`'s `extra["key"]`, a stopgap until typed manufacturer copies exist (FT-39). The helpers `tech_data_text`,
-`main_part` and `manufacturer_name` are built in `ew-derive` (`part_text.rs`); the slot-text mapping lives in the
-`ew-api` test glue today and becomes an `ew-derive` product query (FT-206). *Cycle 14 (decision log ID-352).* The 24 V DC
+`main_part` and `manufacturer_name` are built in `ew-derive` (`part_text.rs`); the slot-text mapping is a product
+query of the `Session` export job since cycle 15 (`ew_api::output::PageSlotsOf`, FT-59; FT-206 asked for it in
+`ew-derive`). *Cycle 14 (decision log ID-352).* The 24 V DC
 output of part 2904602 is recorded under the plain key `output_voltage` ("24 V") beside `rated_current`; a typed key for
 an output voltage is FT-244.
 

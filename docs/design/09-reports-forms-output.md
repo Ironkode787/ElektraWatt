@@ -685,9 +685,14 @@ ID that draws it, and slot visibility is the override, else the arrangement, els
 and `highlights` layers are empty so far; the `tables` layer draws the house report table of a generated page from a
 caller-filled `TableView` of printed texts (cycle 9, FT-53: x 16.31 to 277.27 mm, rows of 6.52 mm, header #C0C0C0,
 column widths by the kinds' weights, text shrunk to a printed cap height of 1.8 mm and then reported, never cut). Wires
-without a stored route take the provisional router (decision log ID-137). Until a `Session` export job exists
-(FT-59), the view of a divider or generated page uses the no-grid frame, the wire-marker text is "csa colour", and
-only the tag, CP designation, function text and process tag slots are filled.
+without a stored route take the provisional router (decision log ID-137). *As built (cycle 15, FT-59):* the `Session`
+export job (`ew_api::output`) owns the view's glue rules: a divider or a page without a form uses the no-grid frame,
+the wire-marker text is "csa colour" (both provisional, ID-144), and the slots filled are the tag, the CP
+designation, the function text, the process tag, the cross-reference with its item links, the technical data, the
+manufacturer, the part number and the type designation (ID-315, FT-206). Each part of the view is a query family, and
+each layer is its own Memo + LRU family (`page_display_list_frame`, `_symbols`, `_wires`, `_labels`, `_tables`) over
+the parts it reads, so a wire edit re-runs no frame layer and a renumber re-runs exactly the frames whose title-block
+values change (tested on the golden project; the memo oracle compares every layer with its cold value).
 
 ### 4.2 PDF (krilla)
 
@@ -779,7 +784,7 @@ partial file (FR-UI-024).
   with one `x` per character; ids are written for link targets only (`id="ew-r-<uuid>"`, once per page on the first drawn item of the target; links point at the first page that draws it), sources as `<a href="<file>#<id>">` (SVG 2 `href`, so the root carries no `version` attribute). The fonts are
   named (`font-family`, weight, style), not embedded: subset embedding needs a subsetter that keeps the `cmap`
   (open: it needs a `cmap`-keeping subsetter, FT-233; the `@font-face` embedding above is the target). The per-page phase runs on `ew_export::par_map` (scoped `std` threads, results by page index) instead of
-  rayon (decision log ID-344); serial and parallel exports are byte-identical (AC-14). The SVG SHA-256 printed in the headless report's AC-14 entry is an SVG golden: a change to the SVG output re-blesses the headless report in the same commit, with the reason in the commit message, as the PDF SHA-256 does. Cross-platform comparison of the PDF and SVG digests is FT-234 (MVP). The `ew export svg` and `ew export pdf` subcommands are not built; they wait for the `Session` export job FT-59, the first cycle-15 item, which runs `par_map` in the shipped export path (decision log ID-346).
+  rayon (decision log ID-344); serial and parallel exports are byte-identical (AC-14). The SVG SHA-256 printed in the headless report's AC-14 entry is an SVG golden: a change to the SVG output re-blesses the headless report in the same commit, with the reason in the commit message, as the PDF SHA-256 does. Cross-platform comparison of the PDF and SVG digests is FT-234 (MVP). The `ew export svg` and `ew export pdf` subcommands are built since cycle 15 over the `Session` export job (FT-59), which runs `par_map` in the shipped export path; AC-14 tests that path (decision log ID-346).
 - **PNG (MVP, FR-OUT-014).** vello_cpu through `ew-render-cpu` at a chosen DPI (`ew render --page 103 --png --dpi
   150`). vello_cpu may choose different SIMD paths per CPU, so PNGs compare within the dify tolerance across
   platforms; if the performance spike (gate G-SP) finds a deterministic scalar mode, `ew render` and the CI goldens use it and PNG returns

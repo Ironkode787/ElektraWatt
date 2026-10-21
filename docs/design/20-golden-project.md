@@ -1416,7 +1416,7 @@ closed:
 | Page order: 34 of 36 folios present (908.1 and 908.2 need PLC channel records) | AC-03 | FT-111 (cycle 13, ID-333): 36 of 36 folios, 908 split 23, 23 and 10 rows |
 | 18 of 19 potentials; DP via Bus connections | AC-10 | FT-105 (cycle 13, ID-336): 19 of 19 potentials; the DP row prints 3 members and "(cable)" |
 
-What remains before G-M1 are the 6 `not_built` entries below, the `ew export pdf` subcommand (FT-59, G-M1-01), the WP-S6.02, WP-S6.03 and WP-S0.06 remainders, and the owner-side items of the plan.
+What remains before G-M1 are the 6 `not_built` entries below, the WP-S6.02, WP-S6.03 and WP-S0.06 remainders, and the owner-side items of the plan. `ew export pdf golden/J-E-2416.ew` is built since cycle 15 (FT-59, G-M1-01): the shipped export job writes the digest of `expected/pdf/sha256.txt`, and the AC-15 entry of the runner holds it over the checked-in fixture.
 
 Closed in cycle 12: AC-04 and D-05 (FT-62, FT-160), AC-07 and D-04 (27 rows, FT-110), AC-12 (FT-159), D-12 (both entries, FT-161), D-18 and D-33 (FT-162), D-37, and the page goldens built with the colour and size profiles (FT-65). Folio 911 is still a placeholder (deriving `revision_overview` from the revision records is FT-207).
 
