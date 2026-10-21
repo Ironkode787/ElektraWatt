@@ -22,7 +22,7 @@ therefore legal. `Model::integrity_check`, run by `Model::from_records`, evaluat
 
 Prevent rules are not in this file. They are rule-pack rules of `ew-checks`. They cover terminal designations,
 tag, PLC address, interruption-point pairing and conductor colours. They plug into `Model::apply_with`
-through `PreventHook` and are governed by `Strictness`.
+through `PreventHook` and are governed by `Strictness`. At MVP the shipped prevent rule is EW-TERM-002 (cycle 12, doc 08 §6.8); EW-RDS-004 has no prevent mode at MVP (ADR-0009 amendment 5) and EW-CORE-052's prevent mode is not wired (FT-194).
 
 ## 2. ID scheme
 

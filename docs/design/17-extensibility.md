@@ -1,6 +1,6 @@
 # Extensibility: CLI, scripting, SQL, plugins and agents
 
-**Status:** Draft v0.2 · **Date:** 2026-10-21 (v0.2: cycle-11 design pass: `project.settings.set` and its exposure, §2.1, §2.3; the command log as built, §3.5; `ew import qet` as built, §3.2, §3.3) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.3 · **Date:** 2026-10-21 (v0.3: cycle-12 design pass: `ew check` as built, §3.1, §3.3; `tag:` and `folio:` references, §3.5; Session v0, §4; v0.2: cycle-11 design pass: `project.settings.set` and its exposure, §2.1, §2.3; the command log as built, §3.5; `ew import qet` as built, §3.2, §3.3) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies every way to drive, extend or query ElektraWatt (EW) other than the GUI: the
 `ew` command-line tool, the headless `Session` API behind it, rhai formulas, rules and automation scripts, the
@@ -263,7 +263,7 @@ ARCH §5.2), so no front-end can bypass it; `ew-api` only sets the origin.
 
 *v0* (WP-S1.04; decision log ID-42, ID-45). The engine checks the exposure first, before `run`. Its `Origin` carries
 the variants above with their identifying name only (file, script, client, plugin ID); the `sha256`, `session` and
-`version` members join when the front-ends that know them land (WP-S1.22, WP-S1.23). All 24 v0 commands (with `project.settings.set`, cycle 11) are
+`version` members join when the front-ends that know them land (WP-S1.22, WP-S1.23). All 25 v0 commands (with `project.settings.set`, cycle 11, and `terminal.designate`, cycle 12) are
 `Edit` and `Preview`. `Origin::Cli` carries a `confirmed` flag, and a `HumanOnly` command is admitted only from `Origin::Gui`
 or from a CLI origin with `confirmed` set (FR-EXT-030; decision log ID-57); the dedicated subcommands that set it
 after the typed confirmation above arrive with the CLI work package (WP-S1.22). Before the first `HumanOnly` command
@@ -339,7 +339,7 @@ trust entry    = {project id, content_sha256, signer?, decision, decided_at (loc
 |---|---|
 | Binary | `ew` (GPL), a thin `clap` front-end over `ew-api`; same build and version as the GUI |
 | Project argument | First positional argument, or `--project <dir \| .ewz>`, else the nearest ancestor of the working directory holding an EW `manifest.json` |
-| Locks | Readers (`check`, `export`, `query`, `sql`, `render`, `diff`, `review`, `jobs run`) take no lock and read one generation; while a save is in progress they retry for up to 5 s, then exit 2. Writers (`apply`, `import`, `fmt` (writing), `upgrade`, `recover`, `revision approve\|release\|withdraw`, `waiver add\|remove`, `merge resolve`, `script run`, `trust sign`, `mcp --writable`, and the GUI) take `.~ew.lock` or exit 2 naming the holder ([05](05-project-format-and-persistence.md) §6.4) |
+| Locks | Readers (`check`, `export`, `query`, `sql`, `render`, `diff`, `review`, `jobs run`) take no lock and read one generation; while a save is in progress they retry for up to 5 s, then exit 2. Writers (`apply`, `import`, `fmt` (writing), `upgrade`, `recover`, `revision approve\|release\|withdraw`, `waiver add\|remove`, `merge resolve`, `script run`, `trust sign`, `mcp --writable`, and the GUI) take `.~ew.lock` or exit 2 naming the holder ([05](05-project-format-and-persistence.md) §6.4). As built (cycle 12): `ew check` opens read-only without the retry (FT-200) |
 | Output | Results to stdout; diagnostics to stderr. `--json` prints one object with `"$schema": "ew.<command>-result/<n>"` (FR-EXT-024). Human-readable text is not an API |
 | Language | `--lang <BCP 47>` selects `MlText` output; machine formats (JSON, CSV for machines) are locale-independent |
 | Dates | Outputs take dates from the release context, `--as-of`, `SOURCE_DATE_EPOCH` or the model, never the wall clock ([09](09-reports-forms-output.md) §4.3) |
@@ -358,6 +358,8 @@ FR-EXT-002 fixes three codes for every subcommand:
 | 1 | Completed with a domain failure | unwaived errors (`check`); a failing gate step (`jobs run`); a prevented command (`apply`); conflict records written (`merge-driver`); differences found (`fmt --check`, `verify-derived`, `diff --exit-code`, `archive verify`); `ew import qet --strict` with lost connections or error findings (a lenient import exits 0 with its summary, [14](14-interop.md) §13; decision log ID-282) |
 | 2 | Could not complete | usage error; unreadable, locked or newer-major project; I/O error; content refused (untrusted, sandbox denial such as `ATTACH`); limit or deadline hit by the requested SQL or script; caught internal error (message plus local crash-report path) |
 
+As built (cycle 12; decision log ID-309), `ew check` counts the integrity findings of opening in its exit code: a JSON syntax error in a project file is EW-CORE-005 and exits 1.
+
 CI scripts should treat 2 as an infrastructure failure, not as "the drawing has errors".
 
 For `ew apply`, a command log exits 1 only for a line refused by a prevent rule or by the command's own domain rule,
@@ -372,7 +374,7 @@ driver exits 0 (clean), 1 (conflict records written) or 129 for a caught interna
 
 | Group | Subcommand | Purpose | Rel | Req |
 |---|---|---|---|---|
-| Inspect | `ew check [--scheme <s>] [--mode release\|offline] [--gate] [--integrity] [--pages <range> \| --structure <rds>] [--packs-as-of <label>] [--format text\|json\|junit\|sarif] [--baseline <git-rev \| rev:<label> \| findings.json>]` | Rule engine in release mode by default; `--gate` adds the EW-REL rules of the open revision; `--pages 101-106` or `--structure =P01+J-E-2416` restrict an offline run; `--packs-as-of V2.0` reproduces a released check report; `--baseline` exits 1 only on new unwaived errors ([15](15-checks-revisions-collaboration.md) §3.2, §3.3, §3.9, §6.3). SARIF from 1.0 | MVP (`--baseline` Should; SARIF 1.0) | FR-EXT-002, FR-EXT-024, FR-EXT-025; FR-CHK-048, FR-CHK-053 ([15](15-checks-revisions-collaboration.md)) |
+| Inspect | `ew check [--scheme <s>] [--mode release\|offline] [--gate] [--integrity] [--pages <range> \| --structure <rds>] [--packs-as-of <label>] [--format text\|json\|junit\|sarif] [--baseline <git-rev \| rev:<label> \| findings.json>]` | Rule engine in release mode by default; `--gate` adds the EW-REL rules of the open revision; `--pages 101-106` or `--structure =P01+J-E-2416` restrict an offline run; `--packs-as-of V2.0` reproduces a released check report; `--baseline` exits 1 only on new unwaived errors ([15](15-checks-revisions-collaboration.md) §3.2, §3.3, §3.9, §6.3). SARIF from 1.0. **As built (cycle 12, decision log ID-309):** `ew check [<project-dir>] [--scheme <name>] [--mode release\|online] [--format text\|md\|json] [--out <file>]`; the default scheme is `pre-delivery`, the mode `release` and the format `text`; the project directory defaults to the nearest ancestor with `manifest.json`. `--mode online` stands in for `offline` until an offline mode exists, and `--format md` is added. Not built: `--gate`, `--integrity`, `--pages`, `--structure`, `--packs-as-of`, `--baseline`, and the junit and sarif formats (FT-191) | MVP (`--baseline` Should; SARIF 1.0) | FR-EXT-002, FR-EXT-024, FR-EXT-025; FR-CHK-048, FR-CHK-053 ([15](15-checks-revisions-collaboration.md)) |
 | | `ew query <name> <key> [--json] [--explain]` | Any public query; `--explain` adds dependency trail, memo state, provenance | MVP | FR-EXT-005 |
 | | `ew verify-derived` | Cold recomputation against memos | MVP | FR-EXT-005 |
 | | `ew find <pattern> [--kind …]` | Tags, part numbers, texts → entities | MVP | FR-UI-020 |
@@ -473,7 +475,7 @@ used by the macro recorder, the journal and the golden variants (`b1-page-based-
 Lines 2 and 3 are `variants/b1-page-based-tags.ewcmd` (step B1) and line 4 is `variants/b2-renumber-pages.ewcmd`
 (step B2); in the repository they are two files, which FT-155 merges. Every line validates against the command schemas
 as built. A `fields.set` line takes `{"kind":"device","targets":[…],"path":"function_text","value":{…}}`; a `tag:`
-reference in `targets` is the specified form and resolves once FT-156 lands.
+reference in `targets` names the device whose printed tag matches (see References below). Golden C's `variants/c-fix.ewcmd` uses `tag:` and `folio:` references.
 
 **As built (cycle 11; decision log ID-288).** The replay engine is the library entry `Session::run_script(&CmdLog,
 file)`; the `ew apply` subcommand is follow-up task FT-156.
@@ -481,10 +483,13 @@ file)`; the `ew apply` subcommand is follow-up task FT-156.
 - **Header and lines** (as built). The first line is an object with `"$schema":"ew.cmdlog/1"` and an optional free
   `label`; other header members are advisory and ignored. Every further line is an object with exactly `cmd` (a command
   name or alias) and `params` (an object; empty when absent).
-- **References** (as built: `section:<n>` and `id:<uuid>`). Any object `{"ref":"<kind>:<value>"}` inside `params` is
-  replaced immediately before its line runs. v0 resolves `section:<n>` (the ID of the section with that number) and
-  `id:<uuid>` (once a record with that ID exists). `tag:<tag>` and `folio:<label>` are specified and resolve through
-  `find` once FT-156 lands. An unresolvable reference stops the replay with exit 2 and reports `committed`.
+- **References** (as built; decision log ID-303). Any object `{"ref":"<kind>:<value>"}` inside `params` is
+  replaced immediately before its line runs. The kinds are `section:<n>` (the ID of the section with that number; an
+  implementation addition), `tag:<tag>`, `folio:<label>` and `id:<uuid>` (once a record with that ID exists).
+  `tag:<tag>` resolves to the one device whose derived tag prints `<tag>`, in the printed short form or as the full
+  designation with its sign. `folio:<label>` resolves to the one drawn page with that folio label. Matching is exact
+  against the then-current model. No match, or several matches, stops the replay with exit 2 (`CmdLogError::Reference`)
+  and reports `committed`. `structure:<code>` is not built (FT-171).
 - **Exposure.** Every line is looked up and checked against the command registry before the first line runs. A
   `HumanOnly` command anywhere in the log refuses the whole replay with exit 2, so a log can never approve, release,
   waive or trust (§2.3, FR-EXT-030). Golden A-R's sign-off is therefore a terminal step after the overlay, not a log
@@ -592,7 +597,7 @@ impl Session {
 **v0** (WP-S1.04; decision log ID-42). `Session` is a thin facade over the `ew-commands` `Engine`, with no
 persistence, no threads and no queries yet: `new` and `from_records` (instead of `open`), `world`, `execute` and
 `execute_with`, `preview` and `preview_with`, `commit`, `undo`, `redo`, `history`, `drain_changes` (the change feed),
-`registry` (instead of `commands`), `mark_saved` and `is_dirty`. The `_with` forms take the origin, the editor context
+`registry` (instead of `commands`), `mark_saved` and `is_dirty`. Cycle 12 adds `check(&Scheme, CheckMode) -> CheckReport`, evaluated through the session's memo store, and `open_read_only(dir, app_version)`, which takes no lock and does no roll-forward or journal write (decision log ID-305, ID-309). The `_with` forms take the origin, the editor context
 and the coalescing key. `execute` and `commit` return a `Receipt {rev, outcome, created, passes}` and `undo` and
 `redo` a `Restored {rev, context, label}`; `preview` is synchronous until the job pool of WP-S1.05 returns a
 `JobHandle`, and a `Cost::Bulk` command sent to `execute` is refused with `CmdError::NeedsPreview`. `ew-api` depends

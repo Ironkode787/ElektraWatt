@@ -1,6 +1,6 @@
 # ADR-0009: Invariant catalogue: structural vs configurable prevent rules; lenient import
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-19 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-21 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -80,6 +80,18 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    parent. The combined graph of these edges is acyclic: a new structural invariant of `ew-model`'s catalogue
    (decision 5), so a derivation never meets an inheritance cycle. The fix round adds it with the next free number
    (EW-INV-015 at the cycle-6 integration) and names that number in its commit (task FT-36).
+5. **Prevent rules at MVP; EW-RDS-004 without prevent** (2026-10-21, project owner (delegated), after the
+   independent review of cycle 12; decision log ID-306, ID-311). Decision 3 lists "device tag unique within its
+   structure scope" among the prevent rules; at MVP EW-RDS-004 runs online and in release only and declares no
+   prevent mode. Device tags are derived, so a duplicate full designation usually arises from a derivation input
+   (structure, frozen literals that do not yet reserve their counters) rather than from the batch that touches the
+   device, and a prevent rule would refuse unrelated edits; duplicates stay visible at once and block release. As
+   built, the prevent hook receives the base snapshot as well as the candidate (`PreventHook::check(base,
+   candidate, touched)`), so only violations a batch creates are refused and a violation the model already held does
+   not block an edit that leaves it alone (decision 4, FR-CHK-011). The hook is implemented by `ew-api`, which may
+   depend on `ew-checks`; `ew-commands` may not. The one shipped prevent rule is EW-TERM-002 (unique per strip,
+   D-12); EW-TERM-001 cannot fire while designations are non-empty identifiers (FT-141), and EW-CORE-052's prevent
+   mode (amendment 1) follows with FT-194. Reading the project's strictness and the import origin is FT-199.
 
 ## Consequences
 

@@ -381,7 +381,7 @@ Source: [golden project](../design/20-golden-project.md) §19 (rule that fires o
 | D-09 | No wire, terminal, cable, PLC, potential reports;… | FR-NUM-019, FR-REP-009..010, FR-REP-012..014, FR-REP-016, FR-REP-019 | WP-S1.11, WP-S3.03, WP-S3.06 | G-M1 | ok |
 | D-10 | Overview 5 vs 4 valves | FR-CHK-022, FR-DEV-023 | WP-S1.13, WP-S1.16 | G-M1 | ok |
 | D-11 | Terminal without designation | FR-TRM-002 | WP-S1.07 | G-M1 | ok |
-| D-12 | Duplicate designations | (requirements citing the defect) FR-CHK-016, FR-IMP-003, FR-MFG-002, FR-MFG-048, FR-TRM-002 | WP-S1.07, WP-S1.16a, WP-S3.09, WP-S5.01, WP-S5.03 | G-M1 | ok |
+| D-12 | Duplicate designations | rules EW-TERM-002; FR-CHK-016, FR-TRM-002 | WP-S1.07, WP-S1.16a | G-M1 | ok |
 | D-13 | T55, S56 in the neutral | rules EW-POT-013; FR-CHK-019 | WP-S1.16 | G-M2 | ok |
 | D-14 | "3-B0" | FR-CHK-035, FR-SYM-010, FR-XRF-005 | WP-S1.08, WP-S1.16a, WP-S3.01 | G-M1 | ok |
 | D-15 | Node "TBD"; termination as text | rules EW-BUS-001, EW-BUS-004, EW-BUS-004; FR-BUS-015..016, FR-CHK-034 | WP-S1.16, WP-S1.21 | G-M2 | ok |

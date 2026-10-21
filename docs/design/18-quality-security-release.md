@@ -1,6 +1,6 @@
 # Quality engineering, security and release
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1; amended 2026-10-21, cycle-12 design pass: acceptance counts and comparison against doc 20 data in §3.10) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) proves its correctness, performance and security, and
 how it is built, signed, shipped and supported. It turns the architecture's "prove it in CI" principle
@@ -295,11 +295,11 @@ measures AC-17; without it AC-17 is `not_applicable`. Steps 1 (path (b), the bui
 A criterion that passes in part is split into its own entries (one per check), so partial passes are visible. The
 committed headless report `golden/J-E-2416/expected/acceptance_headless.md` is compared by the ordinary
 (non-ignored) test, which runs the runner once; the ordinary tests never run it more than once (testing policy).
-Current counts: **83 entries: 41 pass, 10 fail, 26 not_built, 6 not_applicable; 0 oracle mismatches.** The 10 fails
-are the M1 gap list of [20](20-golden-project.md) §22: AC-03 page order (901.1 BOM rows, FT-110; 908.1 and 908.2 PLC
-channel records, FT-111); AC-04 and D-05 the revision label (FT-62) and the TOC structure cells (FT-160); AC-07 and
-D-04 the parts list (FT-110); AC-10 18 of 19 potentials (FT-105); AC-12 folio 1 cover tables (FT-159); D-12 a
-duplicate terminal designation accepted (FT-161); D-18 and D-33 part data on folios 101 and 102 (FT-162).
+Current counts: **83 entries: 51 pass, 2 fail, 24 not_built, 6 not_applicable; 0 oracle mismatches** (decision log
+ID-320). The 2 fails are the M1 gap list of [20](20-golden-project.md) §22: AC-03 page order (34 of 36 folios; 908.1 and
+908.2 need PLC channel records, FT-111) and AC-10 (18 of 19 potentials; the DP potential needs the Bus connections,
+FT-105). Acceptance criteria compare against doc 20's data (committed expected files generated from doc 20), never
+against the importer's own output (decision log ID-320).
 
 **PDF/A-2b** (decision log ID-287): AC-13's conformance passes through krilla's PDF/A-2b validator
 (`Conformance::PdfA2b`) in every run; the veraPDF cross-check of §3.9 is `not_applicable` in the headless run

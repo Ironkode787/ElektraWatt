@@ -73,6 +73,20 @@ and goldens once. Independent of the outcome:
    hand. The full 1.0 library gets no such edition ([07](../design/07-symbols-parts-macros.md) §3.2 rule 2, OQ14;
    FR-SYM-030).
 
+## Open items
+
+1. **Cell-boundary policy for imported QET pages** (recorded 2026-10-21 by the cycle-12 design pass; decision log
+   ID-301; follow-up task FT-179). Not decided. QET assigns a point that lies exactly on an inner column or row
+   line to the left column or upper row (`convertPosition` takes the ceiling); EW's cell rule (`cell_of`, floor
+   with a 1 nm snap window) assigns it to the right column or lower row. Cross-reference texts print the cell of
+   the target, so an imported element on a frame line would print a different cell than QET does. The interim rule
+   (owner ruling of the cycle-12 reviews) is an importer nudge: interruption points, masters and slaves on such a
+   line move 2 nm left or up, which keeps QET's printed cells (Golden C: 102-C15, 103-G6, (202-E1)) but leaves
+   their connection points 2 nm off the 10 px grid, an exception to FR-IMP-008. The question for this ADR is where
+   the boundary rule belongs instead, for example a cell convention carried by QET-grid pages or their frame form
+   and honoured by `cell_of`, so imported positions stay exact and the nudge can be removed; the answer must keep
+   native pages unchanged and decide what "convert page to native grid" (recommendation 3) does with such a page.
+
 ## Consequences
 
 If 4 mm is accepted:

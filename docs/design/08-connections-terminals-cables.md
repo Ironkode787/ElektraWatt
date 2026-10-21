@@ -1,6 +1,6 @@
 # Connections, terminals and cables
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: page token of segment-less strips as built, decision log ID-293) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: page token of segment-less strips as built, decision log ID-293; cycle 12: EW-TERM-002 as built, §6.8, and the cover size note, §4.2) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) turns drawn connections into electrical meaning. It covers
 connection points, connections and junctions, the three connectivity levels (net, signal, potential) with stable
@@ -517,6 +517,10 @@ rows = [ { class = "control", csa = "0.75" }, { class = "mains", csa = "1.5" } ]
 - **Cover tables.** Folio 1's CABLE COLOUR DEFINITIONS and standard-size tables are embedded report blocks over
   these rows (FR-REP-028, REF-005). In marker mode "only explicit overrides" the cover also prints the note "If size
   or sign is not indicated in diagram, standard size or sign is to be used." That note is derived text, not a rule.
+  *As built (cycle 12; decision log ID-319).* The `profile_tables` kind draws the colour and size tables; their
+  display order is the profile's `order`, the cover prints the profile's `standards` text and keeps the basis note
+  as metadata, and the note is part of the size-table block, always printed on the golden cover while the marker
+  mode is not modelled (lane B's cycle-12 fix round).
 
 ### 4.3 Shipped profiles
 
@@ -786,6 +790,7 @@ bus with dots. That drawing is derived from the bridge connections.
 - **Generating designations** (FR-TRM-014): a pattern of prefix, start, step, numeric or alphanumeric and per level,
   as a preview. Schemes per profile follow at 1.0 (FR-NUM-024). Sorting uses natural order: 1, 2, … 10, never 1, 10,
   2 (FR-NUM-018).
+- **As built (cycle 12; decision log ID-306, ID-308).** EW-TERM-002 is the prevent rule of this section, not a structural invariant. It is evaluated through the shipped prevent hook on the base and the candidate snapshot, and only a duplicate the batch creates is refused. The command `terminal.designate` sets the designations of several terminals in one transaction, so a swap needs no temporary names (FR-TRM-022). EW-TERM-002 skips fallback strips, those whose stored frozen tag contains `?`. The quick fix "renumber 1–n" is not built (FT-186).
 
 ### 6.9 Terminal reports linkage
 

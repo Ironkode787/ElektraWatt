@@ -500,8 +500,8 @@ here, with the follow-up task of the [work breakdown](../../docs/plan/02-work-pa
   - W33 to W44 (the cores of -106W1 and -106W2 and the PE legs) print the source `rule/core` or `rule`: the size
     comes from the size profile, while doc 20 §10 says core cross-sections come from the cable part (the
     conductors of the fixture carry none; FT-107).
-  - The page goldens are made without the colour and size profiles (the importer does not emit them yet, decision
-    log ID-90): their colours and sizes are the built-in defaults. `rows/907.csv` has the profiles.
+  - Since cycle 12 the page goldens are built with the colour and size profiles (FT-65 closed): the wire-list pages
+    print the same sources as `rows/907.csv`.
 - **Potential overview (909).** 18 potentials and B1 (19 rows): the PROFIBUS `DP` potential of doc 20 §7.3 needs the
   `Bus` connections of the PLC work package (FT-105). The rows are in natural order of the name, not in the order of doc 20.
   Members are counted as doc 20 counts them (device CPs, a terminal once, external points); the rails and the plate
@@ -623,8 +623,9 @@ EW_PRIVATE_CORPUS=<dir> cargo nextest run -p ew-api --test golden_c --run-ignore
   surfaces inside EW-IMP-008, as the terminal numbered "8" for want of a designation, FT-141; the CSV lists MF-08 on
   both rows), MF-11 (FT-135), MF-12 (FT-131), MF-21 (FT-133). The live-rule
   rows MF-13, MF-16, MF-23, MF-24, MF-25 and MF-27 need imports through the pipeline (FT-143); the text "3-B0" itself
-  is reproduced. MF-05 (EW-IMP-105), MF-14 (EW-IMP-110), MF-15 (EW-IMP-111), MF-17 (EW-IMP-121), MF-20
-  (EW-IMP-112) and MF-26 (EW-IMP-114) have no detection in the importer and no follow-up task yet.
+  is reproduced. MF-05 (EW-IMP-105, FT-173), MF-06 (EW-IMP-106, FT-174), MF-14 and MF-20 (EW-IMP-110 and
+  EW-IMP-112, FT-175), MF-15 (EW-IMP-111, FT-176), MF-26 (EW-IMP-114, FT-177) and MF-17 (EW-IMP-121, FT-178) have
+  no detection in the importer yet.
 - *Not in §20.1:* EW-IMP-004 (94), EW-IMP-005 (3 fallback strips), EW-IMP-008 (13), EW-IMP-116 (1), EW-IMP-119 (16)
   and EW-IMP-122 (6).
 
@@ -641,20 +642,20 @@ of §20.2 that need a command that does not exist:
 
 | §20.2 step | Edit it would make | Missing |
 |---|---|---|
-| 1, MF-16 | bond `pelv_0v_pe` between -102G1:−#1 and -X1032:2 via W27 | a bond command |
-| 1, MF-04 | revisions V1.0 and V2.0, per-page values dropped | a revision-create command |
-| 1, MF-02 | structure nodes =P01 and +J-E-2416 assigned to every device and page | a reference to a node created earlier in the log (`structure.create_node` exists) |
+| 1, MF-16 | bond `pelv_0v_pe` between -102G1:−#1 and -X1032:2 via W27 | a bond command (FT-164) |
+| 1, MF-04 | revisions V1.0 and V2.0, per-page values dropped | a revision-create command (FT-165) |
+| 1, MF-02 | structure nodes =P01 and +J-E-2416 assigned to every device and page | a reference to a node created earlier in the log (`structure.create_node` exists; the `structure:<code>` reference, FT-171) |
 | 1, MF-11 | core colour BR → BN on -106W1, -106W2 | cables with conductors in the import (FT-135) |
 | 1, MF-05 | `description_override` of folio 101 removed | the import keeps the description in `Page.extra` (EW-IMP-104), so there is no override to drop; the importer must map it to `description_override` with EW-IMP-105, after which `fields.set` (`description_override` = null) does it |
 | 1, MF-12 | manufacturers mapped to the master; "UK5N / ULSKG5" split into UK 5 N (terminals 1, 2) and USLKG 5 (PE) | parts from element information (FT-131) and a manufacturer master |
-| 1, MF-13 | anchor policy "graphics" for the bus-port symbol of -201U1 on folio 3, so the master prints "∞ 3-B2, 106-G3" | the anchor is a member of the imported symbol copy (`SymbolDef.anchor`); `project.settings.set` has no anchor member and no command edits a symbol copy |
+| 1, MF-13 | anchor policy "graphics" for the bus-port symbol of -201U1 on folio 3, so the master prints "∞ 3-B2, 106-G3" | the anchor is a member of the imported symbol copy (`SymbolDef.anchor`); `project.settings.set` has no anchor member and no command edits a symbol copy (the anchor-policy command, FT-172) |
 | 2, MF-06 | the title-block "Customer" cell bound to the party role of ▲U-01 | title-block forms from the QET template (FT-139) and a party-binding command |
 | 3 | starter symbols instead of the QET-import symbols | `rep.exchange_symbol` (catalogued, not built; FT-127) |
-| 4 | sections 1, 2, 9 with dividers; folios 100, 200, 900 removed; report blocks 2, 901, 903 … 911 | moving a page into a section (`page.move`, not built); the frame form without grid is not in the imported library and no command embeds a library copy |
-| 5 | starter parts on every device with part data | part records in the project and a part-assignment path |
-| 6 | the valve-terminal assembly with its 28 child valves bound to channels | an assembly command |
+| 4 | sections 1, 2, 9 with dividers; folios 100, 200, 900 removed; report blocks 2, 901, 903 … 911 | moving a page into a section (`page.move`, not built); the frame form without grid is not in the imported library and no command embeds a library copy (moving a page into a section FT-166; embedding a library copy FT-167) |
+| 5 | starter parts on every device with part data | part records in the project and a part-assignment path (FT-168) |
+| 6 | the valve-terminal assembly with its 28 child valves bound to channels | an assembly command (valve-terminal assembly, FT-169) |
 | 7 | layout items bound, rails and carriers | layout-page items in the import (FT-134) |
-| 8 | text styles (`tag.main` …) | a text-style command |
+| 8 | text styles (`tag.main` …) | a text-style command (FT-170) |
 
 **C fixed against Golden A.** `golden_c.rs` prints one row per comparison; `HOLDS` lists those that hold and are
 asserted. Holding: page titles (13 drawn folios), the tag source of the 35 common device tags, the function texts
@@ -676,8 +677,9 @@ common-key counts, so a shrinking key set fails). The differences, by class:
   page texts of every shared folio differ (free texts and shapes FT-134, QET-import symbols FT-127, title block
   FT-139); 2 and 901 stay drawn pages (FT-133).
 - *Fix-script gaps (missing commands, table above):* "∞ 3-B0, 106-G3" against "∞ 3-B2, 106-G3" (MF-13, step 1:
-  doc 20 §20.3 requires C fixed ≡ A, so the anchor quick fix belongs to the script); the 28 child valves and their
-  cross-references (step 6); the dividers and report pages 2.1, 903 … 911 with their rows (step 4).
+  doc 20 §20.3 requires C fixed ≡ A, so the anchor quick fix belongs to the script; the anchor-policy command is FT-172); the 28 child valves and
+  their cross-references (step 6, FT-169); the dividers and report pages 2.1, 903 … 911 with their rows (step 4,
+  FT-166, FT-167).
 
 ## Acceptance runner
 
@@ -714,6 +716,6 @@ its report with the committed `expected/acceptance_headless.md` (so two runs mus
 The SQL half of each pair (`acceptance/*.sql` over the `api_v1` views) is `not_built`: SQL projection pending
 (WP-S1.10).
 
-The headless report of this revision: 83 entries, 49 pass, 3 fail, 25 not_built, 6 not_applicable (the full run adds
+The headless report of this revision: 83 entries, 51 pass, 2 fail, 24 not_built, 6 not_applicable (the full run adds
 the raster comparison as a pass). The failures are the open gaps listed above (page count 34 against 36: the PLC
-overview folios 908.1 and 908.2, the DP potential, the missing uniqueness invariant for terminal designations). An empty terminal designation refused at the parameter layer counts as refused for D-11 (ADR-0008).
+overview folios 908.1 and 908.2, FT-111; the DP potential, FT-105). An empty terminal designation refused at the parameter layer counts as refused for D-11 (ADR-0008).

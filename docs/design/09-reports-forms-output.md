@@ -128,6 +128,10 @@ pub struct ReportBlock {
 }
 ```
 
+**As built (cycle 12; decision log ID-319).** The cover block is the report kind `profile_tables` (`ew-reports`), drawn by the
+`embedded` module of `ew-scene` into the tables layer; its layout (proportions in 560ths of the block width, 24 rows) is
+hard-coded in `ew-scene` and provisional until it moves into the form's regions (FT-203).
+
 **Encodings and deferred members** (decision log ID-16):
 - `source` is `{"kind": "<report kind>"}` with the snake_case names of §2.4, or
   `{"sql_query": {"api": "v1", "file": "<uuid>"}}`.
@@ -243,7 +247,8 @@ its position on that page (column, then row, the numbering order of [20](20-gold
 number. Rows without a schematic representation (enclosure, plate, carriers, accessories) follow in the layout-legend
 order of [12](12-panel-layout.md) §5.4: enclosure, plate, carriers, then accessories. A row whose part is a layout-only
 accessory (kind end bracket or accessory) is always in that second group, whatever the placement of the strip it sits
-on; its folio column still lists the folios of its devices. On Golden A the folio-3 rows
+on; its folio column still lists the folios of its devices. Until layout placements exist, that column prints the folios of the
+devices' representations instead of the layout page ([20](20-golden-project.md) §14.1 prints 902; decision log ID-317, FT-204). On Golden A the folio-3 rows
 (-3X1, -3W1) therefore come first, and the enclosure and plate are rows 22 and 23 ([20](20-golden-project.md) §14.1).
 
 EPLAN report types without a kind of their own: the cable connection diagram (`.f07`) and the cable assignment

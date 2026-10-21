@@ -1,6 +1,6 @@
 # Domain model
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: frozen tags change only by explicit user action, segment-less strips, the `project.settings.set` command; decision log ID-290, ID-292, ID-293) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: frozen tags change only by explicit user action, segment-less strips, the `project.settings.set` command; decision log ID-290, ID-292, ID-293; cycle 12: the colour and size profile rows and their display order, §5.1, decision log ID-319) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -609,7 +609,7 @@ contact-image settings of 06 §2.8 are a later member owned by WP-S1.08.
 | `basis`, `basis_note` | `"standard"` or `"company_convention"` (D-37); `MlText` |
 | `verified` | `bool`, default `false` |
 | `codes` | the company codes, keyed by `code`: `{code: Ident, base: <IEC code>, shade: "light" \| "dark", export_as?: Ident, names: MlText}` (DBU = BU, dark) |
-| `rows` | `Vec<{group: MlText, function: MlText, select: ProfileSelect, colour: ColourSpec}>` in cover-table order |
+| `rows` | `Vec<{group: MlText, function: MlText, select: ProfileSelect, colour: ColourSpec, order: u32, potential_type: PotentialType, colour_name: MlText}>`; the display order of the cover's colour table is the row's `order`, not the storage order. `potential_type` (the printed potential type) and `colour_name` (the printed colour name) are as built in cycle 12 in the provisional JSON member; `colour_name` is redundant with the code names and the company codes' names and is interim until the profiles are typed (decision log ID-319, FT-25) |
 
 **`SizeProfile`** (08 §4.2):
 
@@ -619,7 +619,12 @@ contact-image settings of 06 §2.8 are a later member owned by WP-S1.08.
 | `class_rules` | `Vec<{select: ProfileSelect, class: CircuitClass}>`, first match wins |
 | `pe_class` | `"highest_at_ends"` (FR-CON-038; the default) |
 | `bond_rule` | `{colour_from: "pe", class_from: "non_pe_side"}` (the default) |
-| `rows` | `Vec<{class: CircuitClass, csa: Csa}>`, keyed by `class` |
+| `rows` | `Vec<{class: CircuitClass, csa: Csa, order: u32}>`, keyed by `class`; the display order of the cover's size table is the row's `order` (golden: DBU, WH, GNYE for control; BK, BU, GNYE for mains; decision log ID-319) |
+
+The company profile data (key, name, basis note, a `standards` text, the DBU code, `verified`) come from a `profiles.csv`
+source table, not from importer constants. The cover prints the `standards` text ("IEC60757 / EN60204-1", [20](20-golden-project.md)
+U-35); the basis note stays metadata (FR-CON-020, D-37). The `order` column, `profiles.csv`, `standards` and the size note
+are delivered by the cycle-12 fix round of the golden-project lane (decision log ID-319).
 
 `ProfileSelect` is `{ptype: Vec<PotentialType>, ac_dc?: AcDc, u_min?: Dec3, u_max?: Dec3, discipline?: Discipline,
 analogue?: bool}`. An absent or empty member matches anything. Values use the record spellings (`l_plus`, `dc`), not

@@ -1,6 +1,6 @@
 # Golden project: acceptance-test specification
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (cycle-11 design pass 2026-10-21: Golden B as built, Golden C runnable, acceptance runner statuses) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (cycle-11 design pass 2026-10-21: Golden B as built, Golden C runnable, acceptance runner statuses; cycle-12 design pass 2026-10-21: Golden C as built, the M1 gap list at the cycle-12 counts) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -165,9 +165,9 @@ performance fixtures ([02c](02c-nonfunctional-requirements.md) §2.1).
 ### 2.3 Golden C
 
 Golden C imports the pilot's original QElectroTech 0.100.0-dev file of the reference set in lenient mode
-(ADR-0009, ADR-0021). The import must reproduce the 18 folios and their 63 cross-reference texts as printed
+(ADR-0009, ADR-0021). The import must reproduce the 18 folios and the cross-reference texts as printed
 (including the faulty "3-B0"), list the defects as migration findings (§20.1), and become equivalent to Golden A
-after the scripted fixes of §20.2. The pilot supplied the file on 2026-10-20 (PQ-02, decision log ID-272); it lives in the private store (§3.5). As built in cycle 11 (decision log ID-273, ID-283), the lenient project importer imports it with 0 lost connections and reports the 8 EW-TERM-002 groups that MF-09 expects. The migration report against §20.1 and the fix script `variants/c-fix.ewcmd` are cycle-12 work, and Golden C stays gated at G-M3 (lever b). The importer still opens the batch without `ApplyImport` and without import passes (FT-143), so the MF rows that need passes, formulas or recognisers are not produced yet (FT-128 … FT-140).
+after the scripted fixes of §20.2. The pilot supplied the file on 2026-10-20 (PQ-02, decision log ID-272); it lives in the private store (§3.5). As built in cycle 11 (decision log ID-273, ID-283), the lenient project importer imports it with 0 lost connections and reports the 8 EW-TERM-002 groups that MF-09 expects. As built in cycle 12 (decision log ID-301, ID-302), the migration report is `expected/c-migration-report.csv` (§20.1) and the fix script is `variants/c-fix.ewcmd` (§20.2). The file yields 61 of the reference's 63 cross-reference texts: the source of the interruption point PE-1.1 on folio 101 is not an element of the file, which is a source limit. On QET's default border, an interruption point, master or slave lying exactly on an inner column or row line moves 2 nm left or up into QET's cell, and every other element keeps its exact position; with it the cross-reference cells 102-C15, 103-G6 and (202-E1) print as the reference prints them (decision log ID-301; the proper home is a cell-boundary policy, ADR-0027 open item, FT-179). After the fix script, 60 of these 61 texts equal Golden A's; the exception is "3-B0" against "3-B2" (MF-13), which needs the anchor-policy command FT-172. Golden C's gate stays G-M3 (plan of record, lever b). The importer still opens the batch without `ApplyImport` and without import passes (FT-143), so the MF rows that need passes, formulas or recognisers are not produced yet (FT-128 … FT-140).
 
 ### 2.4 Golden A-R: the resolution overlay
 
@@ -227,6 +227,7 @@ golden/
                                #   wires, potentials, cables, plc, fluid, placements, findings_mvp, findings_1_0,
                                #   findings_manufacturing, findings_en60204, release_blockers (CSV);
                                #   acceptance_headless.md (the committed headless runner report, §22);
+                               #   c-migration-report.csv (Golden C's counts per code, §20.1);
                                #   mfg/*.csv (Komax and Rittal WT rows, manual.csv with finishing tasks, consumables);
                                #   geometry/frame.json; text/<folio>.csv; png/<folio>.png
     acceptance/*.sql           # queries over the api_v1 views producing expected/*.csv (ADR-0017)
@@ -499,6 +500,8 @@ cover table of folio 1 is generated from these 15 rows (REF-005):
 | Analogue Signals | Positive | signal + | Gray | GY |
 | Analogue Signals | Negative | signal − | White | WH |
 | Analogue Signals | Earth | PE | Yellow / Green | GNYE |
+
+**As built (cycle 12; decision log ID-319).** The display order of the colour and size tables is the profile's explicit `order` (the golden size order is DBU, WH, GNYE for control and BK, BU, GNYE for mains, as §7.2). The company profile data (key, name, basis note, `standards` text, DBU code, verified) come from a `profiles.csv` source table, not from importer constants. The cover prints the profile's `standards` text "IEC60757 / EN60204-1" (▲U-35); the basis note stays metadata (the D-37 criterion is unchanged). The size note "If size or sign is not indicated in diagram, standard size or sign is to be used." is part of the cover's size-table block and is always printed on the golden cover. The `profiles.csv` table, the `order` column and the size note are delivered by lane B's cycle-12 fix round.
 
 ### 7.2 Size profile and class rules
 
@@ -831,6 +834,8 @@ order only); the model holds carriers in plate millimetres from the test dimensi
 | D5 | duct, lower, type ▲U-26 | 7.82, 54.80, 73.07, 5.22 |
 | R1 … R3 | TS 35 rails, rows 1–3 (not drawn in the reference) ▲, `pe_bond = true` | between D1/D4, D4/D5, below D5 |
 
+As built (cycle 12; decision log ID-316), the rail length of 2.192 m and the duct length of 3.81 m are stored as quantities of -UC1's part uses; this is interim, and they are derived from the carriers once layout exists (FT-205).
+
 **Placements, in order on each carrier** (acceptance: carrier, order, no overlap, derived labels):
 
 | Row | Golden A (as drawn, fixed) | Added in A-R ▲ |
@@ -883,6 +888,8 @@ screw-mounted test part ([12](12-panel-layout.md) §10).
 | 25 | ▲ | m | ▲ | TBD | Wiring duct 40×60 (5 segments; length from carriers) | -UC1 | 902 |
 | 26 | 4 | pc | ▲ | TBD | End bracket | 1X1, -X1031, -X1032 | 902 |
 | 27 | 6 | pc | ▲ | TBD | Plug-in bridge (pole count per use) | -X1031, -X1032 | 103 |
+
+**As built (cycle 12; decision log ID-316, ID-317).** Rows 24–27 come from four TBD test parts (DIN rail, wiring duct, end bracket, plug-in bridge; part number TBD; kinds `rail`, `duct`, `end_bracket`, `accessory`), generated from §13, §8.3 and §14.1. The rail (2.192 m) and the duct (3.81 m) are stored as quantities of -UC1's part uses (interim; derived from carriers once layout exists, FT-205); the 4 end brackets and 6 bridges are part uses on the strips. Folio 901.1 holds rows 24–27, so the page order has 34 of 36 pages. The EF-17 placeholder-part check on the four TBD parts is part of FT-192. Until layout placements exist, accessory and layout rows print the folios of their devices' representations: rows 22–25 (on -UC1, which has no representation) print no folio, row 26 prints "101, 103" and row 27 "103", where the table above prints 902 for rows 22–26 (accepted interim; FT-204). Row 26's tags print in the sign order of decision log ID-9, "-X1031, -X1032, 1X1"; the manual order "1X1, -X1031, -X1032" of the table above is an accepted difference.
 
 27 rows: folio 901 holds 23, folio 901.1 holds 4. S56 and E56 have no rows (no parts, EF-04); field devices and the
 external master are excluded. Consecutive tags are compressed into ranges (FR-REP-046). Descriptions come from part
@@ -1062,6 +1069,8 @@ forms that declare one.
 | TOC columns | Folio number 16.31–79.73, Title 79.73–214.90, Location (+) 214.90–277.27 |
 | BOM columns ▲ | Pos 12, Qty 14, Unit 10, Manufacturer 36, Part number 42, Description 62, Tags 50.96, Folios 34 (sum 260.96) |
 
+**As built (cycle 12; decision log ID-319).** The `profile_tables` report kind and the embedded block draw the colour table and the two standard-size tables on folio 1 from the profiles; the layout of the block is hard-coded in `ew-scene` (provisional, FT-203). The title, subtitle, logo, project data box and the heavy and light rules are not drawn yet (FT-202).
+
 ### 17.4 Line widths and dash patterns
 
 | Width (mm, printed) | Native px | Pattern (× pen width) | Use |
@@ -1196,7 +1205,7 @@ gates.
 | D-09 | No wire, terminal, cable, PLC, potential reports; no wire numbers | Feature: report blocks 903–911; FR-NUM-019 | Export | 16 generated pages per §16; W1–W34 numbered, unique, stable under moves | M1 |
 | D-10 | Overview 5 vs 4 valves | Prevent: generated overview (FR-DEV-023); FR-CHK-022 | Render 202; C import | 4 valves on -202U2; C: MF-14 | M1 |
 | D-11 | Terminal without designation | Invariant (FR-TRM-002), strict | Command sets designation "" on -X1031:8 | Rejected before commit (parameter validation or invariant; decision log ID-287); C: MF-08 (lenient) | M1 |
-| D-12 | Duplicate designations | Invariant, unique per strip | Set -X1031:3 to "4"; swap 3 ↔ 4 in one transaction | First rejected, swap accepted; C: MF-09 | M1 |
+| D-12 | Duplicate designations | Prevent rule EW-TERM-002, unique per strip (not a structural invariant) | Set -X1031:3 to "4"; swap 3 ↔ 4 in one transaction | First rejected, swap accepted; C: MF-09 | M1 |
 | D-13 | T55, S56 in the neutral | EW-POT-013 | Check run; A-R rewiring | EF-01 (2); clears in A-R; a 2-pole switch in L and N is not reported | M2 |
 | D-14 | "3-B0" | Prevent: anchor policy (FR-SYM-010, FR-XRF-005); FR-CHK-035 | Render 201; force origin anchor on the bus port | "3-B2"; forcing the origin reports "3-B0: empty cell"; C: MF-13 | M1 |
 | D-15 | Node "TBD"; termination as text | Typed `Tbd`, EW-BUS-001; termination property, EW-BUS-004 | Check; set -3X1 Off | EF-03 blocks release; "Switch to "ON"" rendered; Off yields an EW-BUS-004 error | M2 |
@@ -1232,23 +1241,23 @@ gates.
 
 ## 20. Golden C: migration report and fix script
 
-**State (cycle 11).** The import runs on the reference file with 0 lost connections and MF-09's 8 groups. The full report and the fix script are cycle-12 work (decision log ID-283); private-corpus figures are in decision log ID-273.
+**State (cycle 12; decision log ID-302).** The import runs on the reference file with 0 lost connections. `expected/c-migration-report.csv` holds the counts per code with a status (holds, differs, ft, doc, extra); `variants/c-fix.ewcmd` has 49 lines and every line commits; the test `crates/ew-api/tests/golden_c.rs` is gated on the private corpus. Holds: MF-09, MF-10, MF-22. Differs: MF-03 and MF-04. MF-01 does not fit the file. Golden C's gate stays G-M3 (plan of record). Private-corpus figures are in decision log ID-273.
 
 ### 20.1 Expected migration report
 
 `ew import qet <original>.qet` runs the `migration` scheme in lenient mode ([15](15-checks-revisions-collaboration.md)
 §10.2): every enabled rule of `pre-delivery` at its pre-delivery severity, prevent violations as findings, plus the
-EW-IMP findings of the import run. It must import 18 folios with no structural error and the 63 cross-reference
-texts as printed in the reference, "3-B0" included: imported symbols keep QET's element-origin anchor (FR-IMP-038).
+EW-IMP findings of the import run. It must import 18 folios with no structural error and the cross-reference
+texts as printed in the reference (61 of its 63 for the reference file, §2.3), "3-B0" included: imported symbols keep QET's element-origin anchor (FR-IMP-038).
 Counts marked ▲ depend on the file (PQ-02). The code column gives the live rule, or the import code where only the
 import run knows the fact ([14](14-interop.md) §15.2).
 
 | MF | Finding class | Code | Defect | Expected | Quick fix |
 |---|---|---|---|---|---|
-| MF-01 | Stored label differs from the formula result | EW-IMP-101 | D-01 | -3W1 (stored -4W1), -3X1 (stored -4X1) | use derived tag |
+| MF-01 | Stored label differs from the formula result | EW-IMP-101 | D-01 | 0 in the reference file (stored labels equal their formulas; the stale -4W1/-4X1 only in the nomenclature table, MF-21) | use derived tag |
 | MF-02 | Structure-code spelling variants | EW-RDS-010 | D-03 | "+JE2416" vs "+J-E-2416" | merge into +J-E-2416, keep alias |
-| MF-03 | Plain-text labels become frozen tags | EW-IMP-103 | D-03 | S51, F55, T55, E55, S56, E56, 1X1 (▲ others) | convert to scheme where conforming |
-| MF-04 | Per-folio revision values conflict | EW-IMP-104 | D-05 | 4 formats on 18 folios | create revisions V1.0, V2.0; drop per-page values |
+| MF-03 | Plain-text labels become frozen tags | EW-IMP-103 | D-03 | S51, F55, T55, E55 (4); strips are not listed (ID-277), S56 and E56 are not elements of the file | convert to scheme where conforming |
+| MF-04 | Per-folio revision values conflict | EW-IMP-104 | D-05 | 4 formats on 18 folios; 2 EW-IMP-104 entries as built (ID-302) | create revisions V1.0, V2.0; drop per-page values |
 | MF-05 | Per-folio description differs | EW-CORE-023 | D-06 | folio 101 | drop override |
 | MF-06 | Title-block party differs from cover party | EW-IMP-106 | D-30 | "Customer" cell = end user | bind per ▲U-01 (manual) |
 | MF-07 | Wire-marker texts converted to overrides (FR-IMP-017) | EW-IMP-107 | D-08 | 4 marker groups → 10 CDPs (W4, W5, W7, W9, W20–W25), cross-section only | — (info) |
@@ -1266,12 +1275,14 @@ import run knows the fact ([14](14-interop.md) §15.2).
 | MF-19 | PLC address texts recognised (FR-IMP-017) | EW-IMP-107 | D-26 | 28 texts Q0.1 … Q6.7 | bind after MF-20 |
 | MF-20 | Valve symbols without device | EW-IMP-112 | D-27 | 28 | build assembly and children (script step 6) |
 | MF-21 | Imported nomenclature table differs from the derived BOM | EW-IMP-113 | D-04 | rows -4W1, -4X1 gone; missing parts added | — (info) |
-| MF-22 | Font substitution (FR-IMP-020) | EW-IMP-006 | — | Tahoma → default font | — (info) |
+| MF-22 | Font substitution (FR-IMP-020) | EW-IMP-006 | — | Sans Serif → default font | — (info) |
 | MF-23 | N switching | EW-POT-013 | D-13 | T55, S56 | — |
 | MF-24 | Unconnected CP (FR-CHK-018) | EW-POT-009 | D-23 | -102F2:13, 14 | mark unused |
 | MF-25 | Text below minimum height: FR-CHK-023 (scheme minimum 1.2 mm cap height) | EW-CORE-061 | D-31 | imported 3.70 pt texts | apply text styles |
 | MF-26 | Text sizes not styled | EW-CORE-063 | D-29 | tags at 8.88 pt | apply `tag.main` |
 | MF-27 | External connection without cable | EW-CORE-034 | D-19 | +J-E-206 → 1X1 | — |
+
+**As built (cycle 12).** `expected/c-migration-report.csv` has one row per code with the MF rows, this table's expected count, the count produced on the file and a status. Codes outside the MF table produced on the file: EW-IMP-004 (94), EW-IMP-005 (3 fallback strips), EW-IMP-008 (13; includes MF-08, the empty designation numbered "8", FT-141), EW-IMP-116 (1), EW-IMP-119 (16), EW-IMP-122 (6), EW-CORE-051 (5 unpaired interruption points; the missing source of PE-1.1 on folio 101 is among them) and EW-CORE-052 (0). Not detected yet: MF-02 (FT-130), MF-05 (FT-173), MF-06 (FT-174, FT-139), MF-07, MF-18 and MF-19 (FT-132), MF-08 (FT-141), MF-11 (FT-135), MF-12 (FT-131), MF-14 and MF-20 (FT-175), MF-15 (FT-176), MF-17 (FT-178), MF-21 (FT-133) and MF-26 (FT-177). The live-rule rows MF-13, MF-16, MF-23, MF-24, MF-25 and MF-27 need imports through the pipeline (FT-143) and their rules (FT-192).
 
 ### 20.2 Fix script `variants/c-fix.ewcmd`
 
@@ -1289,11 +1300,15 @@ import run knows the fact ([14](14-interop.md) §15.2).
 7. Confirm the layout review queue (MF-15); add rails and carriers.
 8. Apply text styles (MF-25, MF-26); set the derivation profile and check scheme of §4.4.
 
+**As built (cycle 12; decision log ID-302, ID-304).** `variants/c-fix.ewcmd` has 49 lines and every line commits. It does what existing commands can do: the numbering scheme of §4.4 (`project.settings.set`); -X1031 and -X1032 unfrozen onto the strip rule with their label mode and groups; terminal designations 1 … n with the old labels as function texts, spare states and rail bonding (MF-08, MF-09); the page kinds of folios 1, 3, 201 … 206 and 902 and the layout scale; the eight valves of folio 203 lettered Q and renumbered. The missing commands and their follow-up tasks: bond (step 1, MF-16) FT-164; revision create (MF-04) FT-165; moving a page into a section (step 4) FT-166; embedding a library copy, the frame form without grid (step 4) FT-167; part assignment (step 5) FT-168; valve-terminal assembly (step 6; MF-14, MF-19, MF-20) FT-169; text styles (step 8; MF-25, MF-26) FT-170; the `structure:<code>` command-log reference (MF-02) FT-171; the anchor policy (MF-13) FT-172. The symbol exchange `rep.exchange_symbol` (step 3) is part of FT-127. Importer detections that had no task until now: EW-IMP-105 (MF-05) FT-173, EW-IMP-106 (MF-06) FT-174, EW-IMP-110 and EW-IMP-112 (MF-14, MF-20) FT-175, EW-IMP-111 (MF-15) FT-176, EW-IMP-114 (MF-26) FT-177 and EW-IMP-121 (MF-17) FT-178.
+
 ### 20.3 Equivalence
 
 "C fixed ≡ Golden A" means: every `expected/*.csv` produced from C fixed equals Golden A's, ignoring the `id`,
 `source_ref` and provenance columns; AC-01 and AC-02 pass on C fixed; the finding set equals §18.1 except MF-22,
 which stays as an info in the migration history.
+
+**Anonymisation caveat.** Golden A's title-block values are anonymised placeholders (§3.5), while the import keeps the original file's title-block values in `Page.extra`; no command sets them, so C fixed differs from Golden A in the title-block values by design (decision log ID-302).
 
 ---
 
@@ -1371,21 +1386,18 @@ plan of record is the lean variant, which moves AC-25 … AC-27 to G-M3 (lever b
 (lever c), as in the table ([vision](00-vision-and-scope.md) §9.1). The **Gate** column of §21 names the full-scope
 milestone; the table above is the gate assignment of the plan of record.
 
-The acceptance runner reports pass/fail per AC and per D-nn (NFR-MAINT-11). **As built (cycle 11; decision log ID-285).** `cargo xtask acceptance <report.md> [--milestone]` runs the headless M1 subset through nextest with `--profile ci` (JUnit XML) and writes the Markdown report. `--milestone` runs the release profile with `EW_PERF_ASSERT=1` and measures AC-17; without it AC-17 is `not_applicable`. Each entry has one of four statuses: `pass`, `fail`, `not_built` (the feature or the comparison does not exist yet; blocks like a failure) and `not_applicable` (cannot be evaluated by this run; does not block). `not_applicable` needs one of four reasons: headless, pilot, external tool or BM runner. A criterion that passes in part is split into its own entries, one per check. The committed report `golden/J-E-2416/expected/acceptance_headless.md` is compared by the ordinary test, which runs the runner once. Current counts: **83 entries: 41 pass, 10 fail, 26 not_built, 6 not_applicable**, with 0 oracle mismatches. The golden README ("Acceptance runner") has the details.
+The acceptance runner reports pass/fail per AC and per D-nn (NFR-MAINT-11). **As built (cycle 11; decision log ID-285).** `cargo xtask acceptance <report.md> [--milestone]` runs the headless M1 subset through nextest with `--profile ci` (JUnit XML) and writes the Markdown report. `--milestone` runs the release profile with `EW_PERF_ASSERT=1` and measures AC-17; without it AC-17 is `not_applicable`. Each entry has one of four statuses: `pass`, `fail`, `not_built` (the feature or the comparison does not exist yet; blocks like a failure) and `not_applicable` (cannot be evaluated by this run; does not block). `not_applicable` needs one of four reasons: headless, pilot, external tool or BM runner. A criterion that passes in part is split into its own entries, one per check. The committed report `golden/J-E-2416/expected/acceptance_headless.md` is compared by the ordinary test, which runs the runner once. Current counts (cycle 12, decision log ID-320): **83 entries: 51 pass, 2 fail, 24 not_built, 6 not_applicable**, with 0 oracle mismatches; the full runner (raster on) adds the raster comparison of AC-02 as a pass. Acceptance criteria compare against doc 20's data (the committed expected files, generated from doc 20), never against the importer's own output; AC-07 compares row by row against a committed `expected/parts_list_14_1.csv` with a documented list of accepted differences (lane B's cycle-12 fix round). The golden README ("Acceptance runner") has the details.
 
-**M1 gap list (the 10 fails; decision log ID-286).**
+**M1 gap list (the 2 fails at the cycle-12 counts; decision log ID-320).**
 
 | Gap | Failing entries | Follow-up |
 |---|---|---|
-| Page order: 33 of 36 folios present (901.1 BOM rows 24–27; 908.1 and 908.2 PLC channel records) | AC-03 | FT-110, FT-111 |
-| Revision label not bound; structure cells missing on the TOC pages | AC-04, D-05 | FT-62, FT-160 |
-| Parts list has 23 rows on one page against 27 on two | AC-07, D-04 | FT-110 |
+| Page order: 34 of 36 folios present (908.1 and 908.2 need PLC channel records) | AC-03 | FT-111 |
 | 18 of 19 potentials; DP via Bus connections | AC-10 | FT-105 |
-| Folio 1 cover tables missing | AC-12 | FT-159 |
-| A duplicate terminal designation is accepted (no invariant or prevent rule; `ew-checks` is a stub) | D-12 | FT-161 |
-| Ratings, manufacturer names and the enclosure part text not printed on 101 and 102 | D-18, D-33 | FT-162 |
 
-The 26 `not_built` entries are AC-01 (vector comparison of the written PDF), AC-06 (PDF text layer), AC-07 (assembly BOM and `ew export bom`), AC-08 SQL, AC-09 (wire numbers, FT-100), AC-09 SQL, AC-10 SQL, AC-11 (`ew export cables`), AC-11 SQL, AC-13 (text extraction keeps spaces), AC-14 (SVG and parallel export), AC-15 (builder DSL path (b)), AC-16 (freshness edits), D-03 (numbering report EF-15), D-06, D-09, D-12 (swap in one transaction), D-14, D-17, D-20, D-22, D-30, D-35, D-36, D-37 and D-41; the SQL halves of AC-08 … AC-11 wait for WP-S1.10. The 6 `not_applicable` entries are AC-02 raster (headless approval), AC-13 veraPDF (external tool), AC-14 Linux byte identity (evaluated by the platform CI job), AC-15 path (a) = (c) (evaluated by the fixture test), AC-17 (BM runner; `--milestone`) and AC-39 (`cargo xtask check-anonymisation`). AC-13's PDF/A-2b requirement passes through krilla's PDF/A-2b validator; the veraPDF cross-check is `not_applicable` headless and runs in the CI job that has veraPDF (decision log ID-287).
+Closed in cycle 12: AC-04 and D-05 (FT-62, FT-160), AC-07 and D-04 (27 rows, FT-110), AC-12 (FT-159), D-12 (both entries, FT-161), D-18 and D-33 (FT-162), D-37, and the page goldens built with the colour and size profiles (FT-65). Folio 911 is still a placeholder (deriving `revision_overview` from the revision records is FT-207).
+
+The 24 `not_built` entries are AC-01 (vector comparison of the written PDF), AC-06 (PDF text layer), AC-07 (assembly BOM and `ew export bom`), AC-08 SQL, AC-09 (wire numbers, FT-100), AC-09 SQL, AC-10 SQL, AC-11 (`ew export cables`), AC-11 SQL, AC-13 (text extraction keeps spaces), AC-14 (SVG and parallel export), AC-15 (builder DSL path (b)), AC-16 (freshness edits), D-03 (numbering report EF-15), D-06 (override info and property grid), D-09 (wire numbers), D-14 (forcing the origin anchor), D-17 (strict and lenient import), D-20, D-22 (replacing B1), D-30 (the cover binds the customer), D-35, D-36 and D-41; the SQL halves of AC-08 … AC-11 wait for WP-S1.10. The 6 `not_applicable` entries are AC-02 raster (headless approval), AC-13 veraPDF (external tool), AC-14 Linux byte identity (evaluated by the platform CI job), AC-15 path (a) = (c) (evaluated by the fixture test), AC-17 (BM runner; `--milestone`) and AC-39 (`cargo xtask check-anonymisation`). AC-13's PDF/A-2b requirement passes through krilla's PDF/A-2b validator; the veraPDF cross-check is `not_applicable` headless and runs in the CI job that has veraPDF (decision log ID-287).
 
 ---
 
@@ -1421,12 +1433,12 @@ The 26 `not_built` entries are AC-01 (vector comparison of the written PDF), AC-
 | U-24 | Festo configuration | -202U1 = 550208; 533354 supply plate; 4 valves; order-code split per §6.2 | §6, §14 | PQ-14 |
 | U-25 | Tubes, supply, spare ports | unspecified; no supply; open (A-R: PU 6×4 BU, 1,200 mm, supply line F17 to -201U9:1, silencers and plugs, §2.4) | §12 | PQ-18 |
 | U-26 | Enclosure size, scale, missing placements, lower duct | 1000 × 750 × 420 mm; 1:10; unplaced; unknown | §13 | PQ-24 |
-| U-27 | Accessory and carrier parts; valve-terminal mounting | placeholders TBD (A-R: test parts incl. the -X1031 end cover, a rail-mounting kit on R3 and one screw-mounted part) | §9, §13, §14, EF-17 | PQ-24 |
+| U-27 | Accessory and carrier parts; valve-terminal mounting | placeholders TBD (A-R: test parts incl. the -X1031 end cover, a rail-mounting kit on R3 and one screw-mounted part); Golden A: four TBD test parts for rows 24–27 (ID-316) | §9, §13, §14, EF-17 | PQ-24 |
 | U-28 | Report folios 903–911 | in section 9 | §16 | PQ-12 |
 | U-29 | Drawing font | Noto Sans | §17.5 | PQ-07 |
 | U-30 | Logo and notice in the public fixture | placeholders | §3.5 | — (public-repository rule) |
 | U-31 | Minimum text height | 1.2 mm cap height | EF-12 | PQ-36 |
-| U-32 | Technical-data format | "C10", "C4", "B16", "20 A", "40 A", "6 A", "15 °C" | §3.4 | PQ-36 |
+| U-32 | Technical-data format | "C10", "C4", "B16", "20 A", "40 A", "6 A", "15 °C"; "C10" = characteristic + rated current (ID-315) | §3.4 | PQ-36 |
 | U-33 | Wire-number format | `{page}.{counter}`, not printed | §8.1 | PQ-22 |
 | U-34 | -XPE, -UC1 identity and numbering | frozen tags -XPE (letter X), -UC1 (letter U) and -UC1-plate (the mounting plate, child of -UC1); -XPE without own part (waiver) | §2.1, §4.4, §6 | PQ-36 |
 | U-35 | Cover basis text | "IEC60757 / EN60204-1" kept, profile basis shown in metadata | D-37 | PQ-05 |

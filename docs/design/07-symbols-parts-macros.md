@@ -1,6 +1,6 @@
 # Symbols, parts and macros
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle-11 design pass: symbol rulings for the pilot corpus, decision log ID-294 to ID-296; generated pole-count families, §3.2 rule 10) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle-12 design pass: typed technical data in slot texts, the two appended symbol slots, decision log ID-314 and ID-315; cycle-11 design pass: symbol rulings for the pilot corpus, decision log ID-294 to ID-296; generated pole-count families, §3.2 rule 10) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies ElektraWatt's (EW) master data: symbols and function definitions (FnDefs), the
 parts database, macros with value sets, basic projects (company templates), and the libraries and governance that
@@ -364,6 +364,16 @@ classification scheme is spelled `"<scheme>:<id>"` inside `key` (`etim:EF001234`
 enumeration values are `Ident` values (`"true"`, `"false"`, the enumeration member) until a typed form is needed. One
 encoding for every property keeps the v0 schema small; ETIM features arrive only with WP-S1.28 (FR-PRT-018), which
 may append a typed value variant without changing stored keys.
+
+**As built (cycle 12; decision log ID-315).** Typed technical data on parts and devices use the native plain keys
+`characteristic`, `rated_current`, `channel_current` and `setpoint` (ID-15's plain-key form). A slot text follows
+these rules: a device's own value wins over its part's; a miniature circuit-breaker prints characteristic and rated
+current composed as "C10" (the reading of U-32); other values print as value and unit ("40 A", "15 °C"); several
+values are joined with ", " in key order. Two interims apply. The main part of a device is its first part use, not
+yet "the use that provides the main function" (FT-208); the manufacturer name is read from the manufacturer
+`LibRef`'s `extra["key"]`, a stopgap until typed manufacturer copies exist (FT-39). The helpers `tech_data_text`,
+`main_part` and `manufacturer_name` are built in `ew-derive` (`part_text.rs`); the slot-text mapping lives in the
+`ew-api` test glue today and becomes an `ew-derive` product query (FT-206).
 
 Part data is organised in **data levels**. Each level lists its consumers and the release that first needs it:
 
@@ -1032,12 +1042,12 @@ native-grid projects place the native edition.
 | `ew.iec.switch-2p-manual` | 2 poles, PassThrough{opens}, `switches_n_with_l` (1–2, 3–4) | S51, folio 101; dashed linkage derived from the link points `pole1` → `pole2` → `handle` (§3.2 rule 8) |
 | `ew.iec.mcb-1pn` | ProtectionOvercurrent, 1–2 and N–N pass-through (1, 2, N, N) | -101F1, F55 |
 | `ew.iec.mcb-1p` | 1–2 (1 alias L1, 2 alias T1 from part) | -102F1 |
-| `ew.iec.thermostat-nc` | NC pass-through 5–3 ▲U-12; text slots tag, technical data (the setpoint "15 °C") and part number ("SK 3110.000", D-33) | T55; splits N-55 into N-55T (EF-01) |
+| `ew.iec.thermostat-nc` | NC pass-through 5–3 ▲U-12; text slots tag, technical data (the setpoint "15 °C") and part number ("SK 3110.000", D-33; the part-number slot was appended in cycle 12, decision log ID-314) | T55; splits N-55 into N-55T (EF-01) |
 | `ew.iec.position-switch-no` | NO 13–14 | S56 |
 | `ew.iec.lamp`, `ew.iec.heater` | loads (X1, X2), (L, N, PE) | E56, E55 |
 | `ew.iec.terminal`, `ew.iec.terminal-pe`, `ew.gen.strip-segment` | feed-through `Short` per level; PE with rail contact; the segment gives each terminal it draws one CP per side, one grid step apart along its axis, terminals shared out over the strip's segments ([08](08-connections-terminals-cables.md) §6.7, decision log ID-143, ID-180) | 1X1 (three terminal symbols), -X1031 (two segments at 103-A3 and 103-A10), -X1032 |
 | `ew.iec.pe`, `ew.iec.fe`, `ew.iec.plug-pin` | earth roles PE and FE; plug pin. PE is the earth sign inside a circle (IEC 60417-5019), FE the plain earth sign (IEC 60417-5018), as the ruling of decision log ID-36 identifies them (not yet verified against the standard, like every `iec60617_ref`); their text slots sit at x = 6 mm (PE, clear of the circle) and 4 mm (FE), and a content lint guards the assignment | folio 101 earth ([reference drawing](../research/reference-drawing.md) §1.5); CPX FE screw; X1 pins on 106 |
-| `ew.gen.blackbox` | from the part pattern; without drawn geometry the bootstrap derives the outline and CP positions from the pattern ([14](14-interop.md) §8.4, decision log ID-181); text slots tag, function text, cross-reference, part number and manufacturer ("Murrelektronik", D-18) | -102G1, -102F2, CPX power blocks on 106 |
+| `ew.gen.blackbox` | from the part pattern; without drawn geometry the bootstrap derives the outline and CP positions from the pattern ([14](14-interop.md) §8.4, decision log ID-181); text slots tag, function text, cross-reference, part number and manufacturer ("Murrelektronik", D-18; the manufacturer slot was appended in cycle 12, decision log ID-314) | -102G1, -102F2, CPX power blocks on 106 |
 | `ew.gen.ip`, `ew.gen.external-arrow`, junction dot and bevel, cable marker, wire marker | built in (the interruption point's FnDef is `ew.fn.ip`, §2.3; it prints its pairing name in the function-text slot, decision log ID-166); the wire marker is the graphic of a `PageItem::WireMarker` ([03](03-domain-model.md) §6) | L-1, N-1, 24VDC-1 …; J-E-206 points; -106W1 marker; "2.5 BK" on W7 |
 | `ew.bus.dp-port`, `ew.bus.dp-connector` | BusPort | -201U1 on folio 3; anchor at graphics gives "3-B2" (D-14) |
 | `ew.ovw.module`, `ew.ovw.valve-top` | overview of the assembly view | generated overview on 201/202 |

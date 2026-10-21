@@ -1,6 +1,6 @@
 # Interoperability: import, export and migration
 
-**Status:** Draft v0.2 · **Date:** 2026-10-21 (v0.2: the QET project importer as built in cycle 11, decision log ID-273 to ID-284) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.3 · **Date:** 2026-10-21 (v0.3: cycle-12 design pass: the grid-line nudge (§4.2), the migration scheme on imports (§2.5, §4.16), the importer detections still missing; v0.2: the QET project importer as built in cycle 11, decision log ID-273 to ID-284) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) reads and writes foreign formats: the permissive
 importer and exporter contracts, the QElectroTech (QET) migration path in detail, EPLAN part and report data, DXF
@@ -343,11 +343,11 @@ The migration report of FR-IMP-003 is one check-run view over two sources:
 | **Import findings** `EW-IMP-nnn` from the `ImportRun` | Facts visible only at import: dropped, substituted, inferred, recognised, conflicting per-folio values | Persisted; acknowledged items turn into info |
 | **Lenient check findings** of the `migration` scheme on the candidate ([15](15-checks-revisions-collaboration.md) §10.2) | EW-TERM-001/002 (D-11, D-12), EW-RDS-010 (D-03), EW-CORE-023 (D-06), EW-CORE-031 (D-17), EW-POT-013 (D-13), EW-CORE-053 (D-14, FR-CHK-035) … | Live: they disappear when the model is fixed |
 
-**Interim (cycle 11; decision log ID-276).** Until imports run through `ApplyImport` with the `migration` scheme
-(follow-up task FT-143), the lenient half has two checks only: EW-RDS-004 (duplicate designation) and EW-TERM-002
-(duplicate terminal designation) run on the imported model in the `ew_api::import` front door and join the import
-findings in the report, grouped by condition. Every other live rule of the table above is not yet evaluated on an
-import.
+**As built (cycle 12; decision log ID-312).** The import front door runs the `migration` scheme of `ew-checks` on the
+imported model (`ew_api::import::lenient_findings`): every `pre-delivery` rule that is built (EW-TERM-001/002/005,
+EW-RDS-004, EW-POT-001/008/011/012/014, EW-CORE-033/051/052/081), lenient. This replaces the two hand-written
+duplicate checks of ID-276. EW-TERM-002 skips the fallback strips `X?<page>` (ID-308). The path through `ApplyImport`
+is still open (FT-143); rules that are not built yet are not evaluated on an import.
 
 The panel filters both by lineage, sorts by folio and cell, and offers each quick fix as a previewed command
 (FR-CHK-010). `ew import … --report json|csv|md` writes the same list.
@@ -552,6 +552,17 @@ rejected (§14).
   QET 0.200 `mirror`, and assuming QET mirrors in the element frame before rotating: `horizontal` → M(90k),
   `vertical` → M(180 + 90k), `both` → R(180 + 90k), angles mod 360. The assumption is unverified and is fixed by
   rendering mirrored corpus elements in QET and in EW (Open question 12).
+- **Grid-line positions (as built, cycle 12; decision log ID-301).** On QET's default border (17 × 60 px columns,
+  8 × 80 px rows, 20 px headers), an element whose cell a cross-reference prints (an interruption point
+  `next_report`/`previous_report`, a master or a slave) that lies exactly on an inner column or row line
+  (x = 20 + k × 60, y = 20 + k × 80 px) moves 2 nm left or up. QET's `convertPosition` takes the ceiling, so a line
+  point belongs to the left column or upper row; EW's cell rule (floor, unchanged) would put it right or below, and
+  2 nm leave the cell rule's 1 nm snap window, so the printed cells are QET's (Golden C: 102-C15, 103-G6, (202-E1)).
+  Every other element (terminals, simple elements) keeps its exact position. This is an exception to FR-IMP-008's
+  "0 nm deviation": the connection points of a nudged element are 2 nm off the 10 px grid (in the reference file:
+  three masters and one slave). The proper home is a cell-boundary policy for imported pages (ADR-0027 open item,
+  FT-179), which would remove the nudge. The row "element position" of `crates/ew-import-qet/README.md` states the
+  same rule.
 - **Pages.** Imported pages keep the 10 px grid permanently (ADR-0027, FR-PAG-021); "convert to native grid" is the
   previewed command of FR-PAG-022 (1.x).
 - **Frame.** A border of 17 × 60 px columns, 8 × 80 px rows and 20 px headers maps to the shipped QET-compatible
@@ -951,8 +962,9 @@ interruption points (§4.6), conductor ends (§4.7), title blocks (§4.9), strip
 
 - **Route into a session (interim, ID-281).** The batch is opened through `Session::from_records`: no
   `ApplyImport`, no lenient validators, no import passes P1 to P7, no proposals and no `ImportRun` record yet. The
-  front door `ew_api::import` adds the two duplicate checks of §2.5. Moving to the pipeline of §3 is follow-up task
-  FT-143. Definition findings are reported only for definitions that placed elements use, and a font substitution
+  front door `ew_api::import` runs the `migration` scheme of `ew-checks` on the imported model, every built
+  `pre-delivery` rule, lenient (§2.5, ID-312). Moving to the pipeline of §3 is follow-up task FT-143, which is
+  partly done (the scheme). Definition findings are reported only for definitions that placed elements use, and a font substitution
   once per family.
 - **Not imported yet** (each reported, mostly as EW-IMP-004 or EW-IMP-008 with counts): formulas and EW-IMP-101
   (FT-128), rules R2/R3 (FT-129), structure nodes and EW-IMP-102 (FT-130), parts from element information (FT-131),
@@ -961,13 +973,15 @@ interruption points (§4.6), conductor ends (§4.7), title blocks (§4.9), strip
   auto-route (FT-137; conductors without segments get EW's provisional route), chain mode and external points
   (FT-138), title-block template forms (FT-139), `<terminal_strips>` and their bridges (FT-140), empty terminal
   designations (FT-141), and the exchange of QET-import symbols for starter symbols through `symbol-map.csv`
-  (FT-127, [23](23-symbol-coverage-pilot-corpus.md) M-01 to M-09). A junction element is counted against the first
+  (FT-127, [23](23-symbol-coverage-pilot-corpus.md) M-01 to M-09; the symbol exchange `rep.exchange_symbol` is part of
+  FT-127). The import detections EW-IMP-105 (FT-173), EW-IMP-106 (FT-174), EW-IMP-110 and EW-IMP-112 (FT-175),
+  EW-IMP-111 (FT-176), EW-IMP-114 (FT-177) and EW-IMP-121 (FT-178) are not built yet (decision log ID-302, ID-304). A junction element is counted against the first
   of several pasted copies (FT-142, minor; no corpus file has one).
 - **Evidence.** All three pilot projects import, derive and export to PDF with no lost connection: 34 folios, 1,004
   devices, 645 connections and 22 strips; 18, 110, 106 and 6 (the reference set, Golden C's source); 36, 734, 718
   and 48. The import of each is byte-identical across runs. On the reference set the duplicate-designation check
   reports exactly the 8 EW-TERM-002 groups that MF-09 expects ([20](20-golden-project.md) §20.1); Golden C's
-  migration report against §20.1 and its fix script are cycle-12 work (ID-283). The synthetic fixture of golden
+  migration report and fix script are built (cycle 12, decision log ID-302; [20](20-golden-project.md) §20). The synthetic fixture of golden
   folios 101 to 103 imports its 50 wires as 50 connections; its differences (strips without a strip
   representation, no drawn bridges, terminals with two CPs where Golden A's part has four) are limits of the QET
   source, except the bridges that QET 0.100+ stores in `<terminal_strips>` (FT-140).

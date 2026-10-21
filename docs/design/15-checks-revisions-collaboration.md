@@ -1,6 +1,6 @@
 # Checks, revisions and collaboration
 
-**Status:** Draft v0.3 · **Date:** 2026-10-21 (v0.3: EW-IMP-122 and EW-IMP-123 added, the interim lenient checks of imports; v0.2: EW-CORE-019 added; EW-CORE-004 and -016 clarified) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.4 · **Date:** 2026-10-21 (v0.4: the check engine as built in cycle 12, decision log ID-305 to ID-313: scope deviations, EW-CORE-051/052 split, waiver semantics, the migration scheme on imports; v0.3: EW-IMP-122 and EW-IMP-123 added, the interim lenient checks of imports; v0.2: EW-CORE-019 added; EW-CORE-004 and -016 clarified) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -92,6 +92,8 @@ Additions to [03](03-domain-model.md) §18–§19 are marked *(add)*. A = author
 
 Every rule has two identifiers. This document is their registry: §4 holds one row for every rule that any
 document of the set names, and a rule ID that §4 does not list does not exist.
+
+*As built (cycle 12).* The registry is the in-code list `ew_checks::rules()` in ID order, and a unit test checks the order and the families. The registry file and the CI test of this section are follow-up task FT-185.
 
 **The rule ID** is the key used by waivers, documentation, CLI filters and the golden CSVs. All rules use one form:
 
@@ -233,6 +235,7 @@ fingerprint = first 128 bits of SHA-256("ew-fp/1" ‖ rule_id ‖ sorted target 
 - **Expiry.** `expires` is `never`, `next_release` or a date. A bulk "legacy" waiver after a migration should use
   `next_release` (1.0).
 - **Unmatched and expired waivers** are reported (EW-CORE-081, EW-CORE-082). They are never silently deleted.
+- **As built (cycle 12; decision log ID-310).** The engine matches waivers by fingerprint against the reserved `waiver` records. A waiver that matches no finding gives EW-CORE-081 (info) only when its rule ran in the scheme and mode. A waiver whose rule did not run gets an info finding "not evaluated" under the EW-CORE-081 ID. Part targets and `expires` (EW-CORE-082) are FT-184. A finding cannot yet target a CP by `v5(function, idx)`, because `Target` needs a record kind and there is no CP kind (FT-193); POT findings target the function.
 - **Reporting.** Check and release reports list every waived finding instance, not only the waiver count.
 - **Who may waive.** `waiver.create` and `waiver.remove` are `HumanOnly` commands (ADR-0019 decision 8,
   [17](17-extensibility.md) §2.3): the GUI may run them, and on the command line only the dedicated subcommands
@@ -267,6 +270,8 @@ A quick fix is a command proposal that always runs as a preview on a fork and co
 | **release** | Release gate, `ew check` (default) | Fork at the saved generation; every enabled rule evaluated cold | Fresh by construction | All |
 | **export** | Before an exporter writes | The exporter calls the engine on its fork | — | EW-PLC-005, EW-MFG-001 … 006 |
 
+*As built (cycle 12).* Two check modes exist: `Online` (rules with o) and `Release` (rules with r or p). There is no offline, export, integrity or gate mode yet.
+
 Mode abbreviations in the catalogue tables of §4: o online, f offline, p prevent, r release, x export, plus g (gate
 only), n (integrity run), i (import run) and l (library linter), explained in §4.
 
@@ -295,6 +300,8 @@ dialogs, and `ew check --gate`). They test the revision workflow, not the drawin
 contradicting AC-21 and the `ew check` examples of [17](17-extensibility.md) §3.4.
 
 ### 3.3 Online evaluation
+
+*As built (cycle 12; decision log ID-305).* The check memo family is `check_findings(rule, scope)`, a policy Memo with the scope kinds project, page, strip, device, cable and potential. Effective severity, supersession and waivers are applied on top of the memoised findings. Per-commit online evaluation through reverse dependencies, as below, is FT-197.
 
 Online rules are queries (ADR-0019). The engine decides which scopes a commit can have affected, without
 re-verifying every `checks(scope)` memo of an XL project:
@@ -357,6 +364,8 @@ or "checker ≠ author on release", are not rules and cannot be waived.
   hold it. In a `Strict` project its violations are committed too, as EW-CORE-013 (uniqueness collisions, §6.4) or
   as findings of the violated prevent rule with origin `merge`; as with EW-CORE-012, the next interactive
   transaction that touches the key must restore the invariant.
+
+*As built (cycle 12; decision log ID-306).* `PreventHook::check(base, candidate, touched)` compares the base snapshot with the candidate. The implementer is ew-api's `ShippedPrevent`, installed by every session unless it names its own hook, because ew-commands may not depend on ew-checks. Only violations the batch creates are refused, as `CmdError::Prevented` with the duplicate set and the remedy. A violation the model already held, such as a lenient import or files on disk, does not block an edit that leaves it alone. The strictness setting and the import origin are not yet consulted (FT-199).
 
 ### 3.6 Supersession and de-duplication
 
@@ -502,6 +511,14 @@ This is the complete catalogue: every rule of every shipped pack, the import fin
 per ID. The owning documents in the Def. column specify the algorithms, examples and quick fixes; IDs, kinds,
 modes, default severities and scopes are fixed here, and a change to them changes this catalogue first.
 
+**As built (cycle 12; decision log ID-305, ID-307, ID-311).** The engine ships these rules: EW-TERM-001, EW-TERM-002 (prevent), EW-TERM-005, EW-RDS-004, EW-POT-001, EW-POT-008 (the rail-bonded-terminal-without-location half), EW-POT-011, EW-POT-012, EW-POT-014, EW-CORE-033, EW-CORE-051, EW-CORE-052 and EW-CORE-081. Scopes deviate from the catalogue for five rules, accepted as built:
+
+- EW-RDS-004 has the scope project instead of device.
+- EW-CORE-051 and EW-CORE-052 have the scope project instead of potential.
+- EW-POT-011 and EW-POT-012 have the scope potential instead of net.
+
+The remaining rules of §18.1 of [20](20-golden-project.md) are FT-192.
+
 **Columns.**
 - **Kind** (§2.3): `safety`, `conflict`, `completeness`, `hygiene`; `integrity` for findings about the stored
   project, the check run and the release workflow (never waivable, never pending); `import` for import-run
@@ -605,8 +622,8 @@ cross-file reconciliation after merges is FR-COL-016 (1.0).
 | EW-CORE-047 | Device not in the schematic | A device whose functions require a representation but have none on any page; always blocks release | completeness | o r | warning/error | device | MVP | FR-REV-007 | D-32 | 15 |
 | EW-CORE-048 | Order codes do not cover the children | An assembly with `bom_basis = Assembly` whose order codes do not cover each child exactly once | conflict | o r | warning | device | MVP | FR-DEV-020 | D-36 | 15 |
 | EW-CORE-049 | Hand-drawn part list differs | A hand-drawn part-list page kept as graphics differs from the derived BOM; differences seen only at import are EW-IMP-113 | hygiene | f r | info | page | MVP | FR-IMP-003 | D-01, D-04 | 15 |
-| EW-CORE-051 | Unpaired interruption point | An interruption point without partner; an external target counts as a partner | completeness | o r | error | potential | MVP | FR-CHK-017 (STD XR-01) | — | 15 |
-| EW-CORE-052 | Ambiguous interruption point | Violates "at most one star source per name and scope; in chain mode an even count, ordered by sort key" | conflict | o p r | error | potential | MVP | FR-CHK-017 | — | 15, ADR-0009 |
+| EW-CORE-051 | Unpaired interruption point | An interruption point without partner (discriminator `unpaired`) or without CP (`no-cp`); an external target counts as a partner. Targeted at the point's function; the name is not in the fingerprint. As built (cycle 12; decision log ID-307): scope project; the scope-fallback notice is no finding; an odd chain-mode group is still reported here (FT-195) | completeness | o r | error | potential | MVP | FR-CHK-017 (STD XR-01) | — | 15 |
+| EW-CORE-052 | Ambiguous interruption point | Violates "at most one star source per name and scope; in chain mode an even count, ordered by sort key". As built (cycle 12; decision log ID-307): ambiguous star sources only (more than one point flagged as star source, or none flagged and two or more source points), one finding per group targeting every member's function, discriminator `star-source`; modes `o r` at MVP, prevent mode not wired (FT-194); scope project | conflict | o p r | error | potential | MVP | FR-CHK-017 | — | 15, ADR-0009 |
 | EW-CORE-053 | Cross-reference cell invalid | A cross-reference target cell outside the frame or without graphics of the target. Implementation note (decision log ID-199): the note for an auxiliary whose main function has no cross-reference main representation states the reason: drawn only as a strip segment, drawn only as contact images, or not placed | hygiene | o r | warning | page | MVP | FR-CHK-035 (STD XR-05) | D-14; MF-13 | 15 |
 | EW-CORE-054 | Overview without detail link | An overview representation without a detail link | hygiene | o r | warning | device | MVP | FR-CHK-060 (STD XR-04) | D-10 | 15 |
 | EW-CORE-055 | Unplaced contacts | Contacts of the main function's part neither placed nor marked unused; off in `pre-delivery` | completeness | o | info | device | 1.0 | FR-CHK-061 (STD XR-03) | — | 15 |
@@ -618,7 +635,7 @@ cross-file reconciliation after merges is FR-COL-016 (1.0).
 | EW-CORE-065 | Description lint | A rating in a description, unit formatting ("50hz", "0.75 mm ²"), manufacturer spelling | hygiene | f r | warning | project | 1.0 | FR-CHK-040 | D-18, D-35; EF-25 | 15 |
 | EW-CORE-066 | Glyph missing | A character that no bundled face drew (it prints as `.notdef`); a character drawn by the bundled symbol fallback face is not a finding | hygiene | o x r | warning/error | page | MVP | FR-OUT-027 | — | 09 §7 |
 | EW-CORE-071 | Graphic line on a CP | A graphic line ending on a CP, which has no electrical meaning (a QET habit); quick fix "convert to connection" | hygiene | o | info | page | MVP | FR-CON-001 | — | 06 §8 |
-| EW-CORE-081 | Waiver matches nothing | A waiver whose fingerprint or part target matches no finding | hygiene | o r | info | project | MVP | FR-CHK-009, FR-CHK-049 | — | 15 |
+| EW-CORE-081 | Waiver matches nothing | A waiver whose fingerprint or part target matches no finding. As built (cycle 12; decision log ID-310): reported only when the waiver's rule ran in the scheme and mode; a waiver whose rule did not run gets an info "not evaluated" finding under this ID; part targets and expiry are FT-184 | hygiene | o r | info | project | MVP | FR-CHK-009, FR-CHK-049 | — | 15 |
 | EW-CORE-082 | Waiver expired | A waiver past its expiry date or release | hygiene | o r | warning | project | 1.0 | FR-CHK-049 | — | 15 |
 | EW-CORE-083 | Rule not evaluated | A rule could not be evaluated: rhai operation limit, SQL error, formula cycle, caught panic | integrity | all | warning/error | project | MVP | FR-CHK-047 | — | 15 |
 | EW-CORE-084 | Rule pack not evaluated | A pack did not run: untrusted project, incompatible `api`, data table missing | integrity | all | warning/error | project | MVP | FR-CHK-047 | — | 15 |
@@ -637,7 +654,7 @@ structural rows keep their IDs so that the RD-nn traceability stays visible in t
 | EW-RDS-001 | Designation does not parse | The derived full designation does not parse under the strict grammar of the active identifier set (standards §1.3); frozen tags are superseded by EW-NUM-001 | conflict | o r | error | device | MVP | FR-NUM-001 | D-03 | 15 |
 | EW-RDS-002 | Separator in a structure code | A node code contains prefix or separator characters, so exported full designations are ambiguous to third-party parsers: **`+J-E-2416` reads as location `J`, then products `-E` and `-2416`.** EW stores codes as atomic tokens (FR-PRJ-017) and never re-parses them; the finding warns about exports (AML, EPLAN XML, CSV). Runs in `drafting` and `full`, not in `pre-delivery` | hygiene | o | info | project | MVP | FR-CHK-027 (STD RD-02) | D-03 | 15 |
 | EW-RDS-003 | Letter code against function | The letter code does not match the device's function category in the active identifier set, with a suggestion (BT under the 2019 set); frozen and new tags alike, parameter `frozen_severity` | hygiene | o r | warning | device | MVP | FR-CHK-026 (STD RD-03) | D-03; EF-18 | 15, ADR-0026 |
-| EW-RDS-004 | Duplicate designation | A duplicate full designation in the uniqueness scope (project, `=` or `+` aspect) | conflict | o p r | error | device | MVP | FR-NUM-012 | — | 15 |
+| EW-RDS-004 | Duplicate designation | A duplicate full designation in the uniqueness scope (project, `=` or `+` aspect). No prevent at MVP (ADR-0009 amendment 5). As built (cycle 12; decision log ID-311): scope project | conflict | o r | error | device | MVP | FR-NUM-012 | — | 15 |
 | EW-RDS-005 | *Structural:* placements reference devices | Layout objects reference devices (EW-LAY-002) | structural | — | — | — | MVP | FR-CHK-039 | D-02 | 15 |
 | EW-RDS-006 | *Structural:* one displayed form | The displayed designation form is one project setting | structural | — | — | — | MVP | FR-NUM-002 | D-03 | 15 |
 | EW-RDS-007 | Reserved letters | Letters I or O in a letter code; letters reserved in the 2019 set used as class codes | hygiene | o r | warning | device | MVP | FR-CHK-060 (STD RD-07) | — | 15 |
@@ -655,7 +672,7 @@ EW-POT-013, -006, -007 and -009 are detailed in §8.2 there. EW-POT-018 and EW-P
 | ID | Name | Checks | Kind | Modes | Severity | Scope | Rel | Req. | D (golden) | Def. |
 |---|---|---|---|---|---|---|---|---|---|---|
 | EW-TERM-001 | Terminal without designation | A terminal without designation; prevent, lenient on import | conflict | p o r | error | strip | MVP | FR-TRM-002, FR-CHK-016 | D-11; MF-08 | 08 §8.1 |
-| EW-TERM-002 | Duplicate designation | A duplicate designation within a strip; prevent, lenient on import | conflict | p o r | error | strip | MVP | FR-TRM-002, FR-CHK-016 | D-12; MF-09 | 08 §8.1 |
+| EW-TERM-002 | Duplicate designation | A duplicate designation within a strip; prevent, lenient on import. As built (cycle 12): skips strips whose stored frozen tag contains `?`, the importer's fallback strips (decision log ID-308); designations compare under the project's case setting | conflict | p o r | error | strip | MVP | FR-TRM-002, FR-CHK-016 | D-12; MF-09 | 08 §8.1 |
 | EW-TERM-003 | Spare wired on the field side | A spare terminal wired on its field side | conflict | o | warning | strip | MVP | FR-TRM-009 | — | 08 §8.1 |
 | EW-TERM-004 | Bridge group invalid | A bridge group not consecutive, overlapping, or across strips (prevent class of invariant CI-06) | conflict | p o | error | strip | MVP | FR-TRM-007 | — | 08 §8.1 |
 | EW-TERM-005 | Rail bonding on a non-PE terminal | `rail_bonded` set on a terminal without any PE CP (decision log ID-185) | conflict | o | error | strip | MVP | FR-TRM-017 | — | 08 §8.1 |
@@ -666,11 +683,11 @@ EW-POT-013, -006, -007 and -009 are detailed in §8.2 there. EW-POT-018 and EW-P
 | EW-POT-005 | BU on a non-N conductor | Exact code BU on a non-N conductor in a project with an N potential | conflict | o r | warning | potential | MVP | FR-CHK-031 (STD M-10) | EF-11 | 08 §8.1 |
 | EW-POT-006 | PE undersized | A PE cross-section below the sizing table for its associated line conductors | safety | o r | error | potential | MVP | FR-CHK-020 (STD M-04) | D-38; EF-06 | 08 §8.2 |
 | EW-POT-007 | PE continuity | Every PE-typed CP reaches the main PE point through wires, bridges, rails and carriers | safety | f r | error | project | 1.0 | FR-CHK-029 | D-21; EF-23 | 08 §8.2 |
-| EW-POT-008 | PE island | More than one PE potential in one location, or a rail-bonded terminal without a location (decision log ID-185) | conflict | o r | warning | project | MVP | FR-CHK-055 | D-21 | 08 §8.1 |
+| EW-POT-008 | PE island | More than one PE potential in one location, or a rail-bonded terminal without a location (decision log ID-185). As built (cycle 12): the rail-without-location half only (FT-189) | conflict | o r | warning | project | MVP | FR-CHK-055 | D-21 | 08 §8.1 |
 | EW-POT-009 | Unconnected CP | An unconnected electrical CP of a placed function; info when marked `unused`; fluid ports are EW-FL-001 | completeness | o r | warning (unused: info) | page | MVP | FR-CHK-018 | D-23; EF-09, MF-24 | 08 §8.2 |
 | EW-POT-010 | Clamp capacity exceeded | Conductors or cross-section on a CP beyond its clamp data | safety | o r | error | device | 1.0 | FR-CHK-021 (STD M-08) | — | 08 §8.1 |
-| EW-POT-011 | Junction feed ambiguous | Junctions that disagree on the feed arm (08 §3.2) | conflict | o | warning | net | MVP | FR-CON-041 | D-20 | 08 §8.1 |
-| EW-POT-012 | Ring in the drawing graph | A ring in the drawing graph of a net | hygiene | o | warning | net | MVP | FR-CON-005, FR-CON-035 | D-20 | 08 §8.1 |
+| EW-POT-011 | Junction feed ambiguous | Junctions that disagree on the feed arm (08 §3.2). As built (cycle 12): scope potential | conflict | o | warning | net | MVP | FR-CON-041 | D-20 | 08 §8.1 |
+| EW-POT-012 | Ring in the drawing graph | A ring in the drawing graph of a net. As built (cycle 12): scope potential | hygiene | o | warning | net | MVP | FR-CON-005, FR-CON-035 | D-20 | 08 §8.1 |
 | EW-POT-013 | N switching | An opening pass-through pair carries N without the associated L; N-isolating terminals at info | safety | o r | error | potential | MVP | FR-CHK-019 | D-13; EF-01, MF-23 | 08 §8.2 |
 | EW-POT-014 | Physical-wire conflict | A physical wire with constituents on different conductors or with conflicting overrides; the carrier's value applies | conflict | o r | error | potential | MVP | FR-CHK-057 | — | 08 §8.1 |
 | EW-POT-015 | Wire-number conflict | One wire number on two numbering units, or two numbers within one unit (08 §5.3); supersedes EW-MFG-005 per target | conflict | o r | error | project | MVP | FR-NUM-019, FR-NUM-020 | — | 08 §8.1 |
@@ -1446,7 +1463,7 @@ All outputs follow NFR-REL-07: no wall-clock times, sorted rows and stable IDs.
 ### 10.1 Golden A pre-delivery findings with final rule IDs
 
 [20](20-golden-project.md) §18 names some rules by their FR. These are the final IDs; the counts are unchanged:
-**42 errors, 32 warnings, 28 infos, 1 waived**, and `ew check --scheme pre-delivery` exits 1 (AC-21).
+**42 errors, 32 warnings, 28 infos, 1 waived**, and `ew check --scheme pre-delivery` exits 1 (AC-21). As built (cycle 12; decision log ID-313), the pre-delivery run produces only EF-08 (EW-CORE-033 on -3W1); the rules of the other rows are not built (FT-192).
 
 | EF | Final rule | Code | Severity | Count | D |
 |---|---|---|---|---|---|
@@ -1485,10 +1502,7 @@ import code names the same condition (MF-02, MF-05, MF-11, MF-14, MF-26), it is 
 exist only in the import run, so they are import findings; the remaining MF rows are import findings too, mapped
 in [14](14-interop.md) §15.2.
 
-*Interim (cycle 11; decision log ID-276).* The project importer does not run this scheme yet: until imports pass
-through `ApplyImport` (follow-up task FT-143), only EW-RDS-004 and EW-TERM-002 run on the imported model, in the
-`ew_api::import` front door ([14](14-interop.md) §2.5). On the reference set EW-TERM-002 reports the 8 groups of
-MF-09.
+*As built (cycle 12; decision log ID-312).* The scheme runs on imports: `ew_api::import::lenient_findings` runs the `migration` scheme on the imported model, and the lenient groups of the migration report are the engine's open findings per rule. This replaces the front-door duplicate checks of decision log ID-276. FT-143 is therefore partly done; `ApplyImport`, the lenient validators, passes P1 to P7, proposals and the `ImportRun` record remain. On the reference set EW-TERM-002 reports the 8 groups of MF-09 and EW-CORE-051 reports 5 unpaired points; EW-CORE-052 reports none (see `golden/J-E-2416/expected/c-migration-report.csv`).
 
 | MF | Row | MF | Row | MF | Row |
 |---|---|---|---|---|---|

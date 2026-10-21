@@ -298,11 +298,11 @@ Every command has a stable dotted name and a JSON Schema (FR-EXT-015). `Cost::Bu
 jobs (ARCH §5.1). The Bulk threshold of `edit.delete` counts the records affected, which is the size of the delete
 plan, not the number of selected targets (decision log ID-55).
 
-*v0* (WP-S1.04; decision log ID-45, ID-55). 23 commands are registered, all exposure `Edit`, stability `Preview`
+*v0* (WP-S1.04; decision log ID-45, ID-55). 25 commands are registered, all exposure `Edit`, stability `Preview`
 and undoable: those of the table except `page.copy`, `page.move`, `rep.exchange_symbol`, `ip.arrange`, `box.*`,
 `item.place`, `edit.paste` and `macro.insert`, which arrive with their work packages, plus `connection.delete`,
-`structure.create_node`, `section.create`, `report_block.create`, `device.create`, `terminal.add`, `cable.create`
-and `conductor.add`. The alias `device.place_from_part` stays unregistered until parts exist (WP-S1.19a). A
+`structure.create_node`, `section.create`, `report_block.create`, `device.create`, `terminal.add`, `cable.create`,
+`conductor.add`, `project.settings.set` (cycle 11) and `terminal.designate` (cycle 12). The alias `device.place_from_part` stays unregistered until parts exist (WP-S1.19a). A
 placement whose `rep_type` the page type does not allow is refused (§2.2), and an autoconnect hint whose target
 vanished is dropped and reported in the outcome's notices.
 
@@ -325,6 +325,7 @@ vanished is dropped and reported in the outcome's notices.
 | `edit.delete`, `edit.paste` | selection; fragment, anchor, options | Interactive; Bulk above 500 records | §3.6 |
 | `macro.insert` (`InsertMacro`) | macro, at, value set | Bulk | [07](07-symbols-parts-macros.md), FR-MAC-005 |
 | `numbering.renumber` (`RenumberDevices`) | scope, scheme, options | Bulk | FR-NUM-008, FR-NUM-009 |
+| `terminal.designate` | assignments (terminal, designation), at least one | Interactive | one transaction, swaps without temporary names; uniqueness by the prevent rule EW-TERM-002 (FR-TRM-022, [08](08-connections-terminals-cables.md) §6.8) |
 
 ### 3.2 Normalisers that run behind the editor
 

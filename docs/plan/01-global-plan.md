@@ -1,6 +1,6 @@
 # Global plan
 
-**Status:** Draft v0.5 · **Date:** 2026-10-21 (v0.5: the cycle-11 progress view, the M1 gap list and the cycle-12 candidates, §3.8, decision log ID-300; v0.4: the months are a human-team reference, progress is tracked in cycles, §3.8, decision log ID-271; v0.3: the G-SP re-forecast of 2026-10-20) · **Part of:** ElektraWatt plan
+**Status:** Draft v0.6 · **Date:** 2026-10-21 (v0.6: the cycle-12 progress view, the M1 gap list at two fails and the cycle-13 candidates, §3.8, decision log ID-321; v0.5: the cycle-11 progress view, the M1 gap list and the cycle-12 candidates, §3.8, decision log ID-300; v0.4: the months are a human-team reference, progress is tracked in cycles, §3.8, decision log ID-271; v0.3: the G-SP re-forecast of 2026-10-20) · **Part of:** ElektraWatt plan
 
 **Purpose.** This is the global plan of ElektraWatt (EW). It turns the [work breakdown](02-work-packages.md) (123
 work packages, WPs, with three-point estimates and dependencies) into a capacity model, milestone dates for teams
@@ -455,24 +455,24 @@ progress **by content**: a milestone is reached when its work packages, the foll
 its gate items are done, whatever the date. WBS, estimates, gates and acceptance criteria are unchanged; the
 estimates in pw stay the measure of size and of the velocity ratio of §3.7.
 
-**Observed throughput.** Cycles 1 to 11 (2026-10-18 to 2026-10-21) delivered the two technical M0 work packages
-and 17 of the 22 M1 work packages in whole or in large part, about 25 deliveries when a work package delivered in
+**Observed throughput.** Cycles 1 to 12 (2026-10-18 to 2026-10-21) delivered the two technical M0 work packages
+and 17 of the 22 M1 work packages in whole or in large part, about 28 deliveries when a work package delivered in
 parts (WP-S1.05, WP-S1.07, WP-S3.03, WP-S3.05, WP-S6.01, WP-S7.01) counts each part, plus the QET project import
-spike pulled forward from M3: roughly **2–3 work packages per cycle**, plus the follow-up tasks of each review (163 recorded, 38 closed; Appendix B of the
+spike pulled forward from M3, Golden C's migration report and the first `ew-checks` rule packs (WP-S1.15 and WP-S1.16a scope) in cycle 12: roughly **2–3 work packages per cycle**, plus the follow-up tasks of each review (208 recorded, 46 closed; Appendix B of the
 [work breakdown](02-work-packages.md#appendix-b-follow-up-tasks-from-the-implementation-cycles)). Owner-side items
 (legal gates, enrolments, pilot answers, approvals of goldens and downloads) do not follow the cycle pace; they are
 listed separately because they, not the agents' throughput, bound the gates.
 
-| Milestone or gate | Work packages (lean) | Content-based status (2026-10-21, after cycle 11) | Remaining |
+| Milestone or gate | Work packages (lean) | Content-based status (2026-10-21, after cycle 12) | Remaining |
 |---|---|---|---|
 | **M0** Foundations | 4 | Technical part delivered: WP-S0.01 (workspace and CI on three OSes, green again after the cycle-9 repair, decision log ID-270) and WP-S0.02 (licensing, REUSE, licence-boundary check). The grid and font defaults are in force (ID-1, ID-2) | Owner side: WP-S0.05a (signing enrolment, trademark search), WP-S0.08 (pilot kick-off, PD-1, PD-3, PD-14), LG-5, ADR-0027 and ADR-0028 acceptance, the repository settings (branch protection, the CI denylist hashes); gate G-M0 not held |
 | **G-SP** Performance spike | — | Held 2026-10-20 in cycle 8: **passed with the outcome Recycle** (ADR-0002 amendment 4). The recycle's engine and incremental connectivity are delivered in cycles 9 and 10 (WP-S1.07 parts 1 and 2, ADR-0002 amendments 5 and 6) | The re-test on a BM-class runner (DEC-034), with the memory measurements at XL (FT-114) and FT-26 (the composite bench family and the growth test were delivered in the cycle-10 fix round); S within budget first, because the pilot's size data (received 2026-10-20, G-SP-08 closed) puts all its projects in class S |
-| **M1** Spine exit | 22 | Delivered with open follow-up tasks: WP-S1.01 to WP-S1.04, WP-S1.06 to WP-S1.09, WP-S3.01 to WP-S3.05, WP-S7.02; WP-S1.05 (engine and instruments; the re-test above is open); WP-S7.01 for Golden A (tables, expected rows, 33 of the 36 pages) and Golden B (two command logs, AC-18 headless); WP-S6.01's acceptance runner (`cargo xtask acceptance`, 83 entries: 41 pass, 10 fail, 26 not built, 6 not applicable; ID-285). Delivered ahead of plan in cycle 11: the QET project import spike (M3 scope, ID-273) and `project.settings.set` (WP-S1.11 scope, ID-290). The golden PDF is generated from the model with 64 link annotations | Development: the **M1 gap list** of the runner's ten fails (ID-286): the last golden pages 901.1 (FT-110) and 908.1/908.2 (FT-111), the revision label (FT-62) and the TOC structure cells (FT-160), the 27-row parts list (FT-110), the DP potential via Bus (FT-105), the folio 1 cover tables (FT-159), the terminal-designation uniqueness rule with the first `ew-checks` pack (FT-161), part data on 101/102 (FT-162); the not-built entries that gate M1, among them wire numbering (FT-100), the builder DSL (WP-S6.01) and the PDF text and vector checks; WP-S1.10 (SQL projection v0, which also unblocks the four SQL halves); WP-S6.02 (determinism, property tests and the command fuzzer: oracle and property tests exist, the fuzzer does not); WP-S6.03 (performance and memory gate: the harness exists, the gate does not); WP-S0.06 (documentation and website infrastructure); the open follow-up tasks due before the M1 approvals; the G-SP re-test. Owner side: WP-S0.04 (LG-1, LG-2, LG-5), the first PNG approval (FT-10), the pilot's P1 and P2 answers |
+| **M1** Spine exit | 22 | Delivered with open follow-up tasks: WP-S1.01 to WP-S1.04, WP-S1.06 to WP-S1.09, WP-S3.01 to WP-S3.05, WP-S7.02; WP-S1.05 (engine and instruments; the re-test above is open); WP-S7.01 for Golden A (tables, expected rows, 34 of the 36 pages, the 27-row parts list, the cover tables, part data on 101 and 102), Golden B (two command logs, AC-18 headless) and Golden C (migration report and fix script, gated at G-M3; ID-302); WP-S6.01's acceptance runner (`cargo xtask acceptance`, 83 entries: 51 pass, 2 fail, 24 not built, 6 not applicable; ID-320). Delivered ahead of plan: the QET project import spike (M3 scope, ID-273) and `project.settings.set` (WP-S1.11 scope, ID-290) in cycle 11; the check engine with prevent at apply and `ew check` (WP-S1.15 and WP-S1.16a scope, ID-305, ID-306, ID-309) in cycle 12. The golden PDF is generated from the model with 64 link annotations | Development: the **M1 gap list** of the runner's two fails (ID-320): the PLC overview pages 908.1/908.2 (FT-111) and the DP potential via Bus (FT-105); the not-built entries that gate M1, among them wire numbering (FT-100), the builder DSL (WP-S6.01) and the PDF text and vector checks; WP-S1.10 (SQL projection v0, which also unblocks the four SQL halves); WP-S6.02 (determinism, property tests and the command fuzzer: oracle and property tests exist, the fuzzer does not); WP-S6.03 (performance and memory gate: the harness exists, the gate does not); WP-S0.06 (documentation and website infrastructure); the open follow-up tasks due before the M1 approvals; the G-SP re-test. Owner side: WP-S0.04 (LG-1, LG-2, LG-5), the first PNG approval (FT-10), the pilot's P1 and P2 answers |
 | **M-PP** Pilot preview | 14 | Not started | All 14 (the UI chain WP-S2.01 → WP-S2.03 → WP-S2.04 first, §9.2 rule 3) |
 | **M2** MVP 0.1.0 | 27 | Not started | All 27; the legal and signing gates (SR-6) |
 | **M3 to M6**, 1.x | 38, 18 | Not started | All |
 
-At the observed throughput the M1 development work left after cycle 11 is about **two to three cycles** (an estimate from the table,
+At the observed throughput the M1 development work left after cycle 12 is about **two cycles** (an estimate from the table,
 not a commitment); the owner-side items decide when G-M1 can be held. The figure is re-read after every cycle from
 the table above, which the design pass of each cycle updates with the work-package statuses of the
 [work breakdown](02-work-packages.md).
@@ -482,17 +482,20 @@ held privately, have 18 to 36 folios and at most 1,445 placed elements and 718 c
 S budgets therefore decide the pilot preview, and M to XL stay engineering margins. The pilot's drawings carry no
 proper BOMs and have known layout imprecision owed to QET; ElektraWatt reproduces their content, not that style
 (owner statement, 2026-10-20). Since cycle 11 the lenient project importer reads all three with no lost connection
-(P1 34 folios and 1,004 devices, P2 18 and 110, P3 36 and 734; decision log ID-273), and Golden C is runnable on the
-reference set; its migration report and fix script are cycle-12 work, and it stays gated at G-M3 in the plan of
-record (ID-283).
+(P1 34 folios and 1,004 devices, P2 18 and 110, P3 36 and 734; decision log ID-273), and since cycle 12 Golden C has its migration report and fix script on the reference set (ID-302); it stays gated
+at G-M3 in the plan of record.
 
-**Cycle 12 candidates** (decision log ID-300, in the order the lead recommends): (1) the M1 gap list above, which
-decides G-M1 among the development items: the last three golden pages, the revision label and structure cells,
-the BOM rows and the 27-row parts list, the DP potential via Bus, the cover tables, the terminal-designation
-uniqueness rule with the first `ew-checks` rule pack, part data on 101/102; (2) wire numbering (FT-100); (3) the
-SQL projection v0 (WP-S1.10); (4) Golden C's migration report against doc 20 §20.1 and its fix script on P2, with
-the importer tasks it needs first (FT-127, FT-128, FT-140, FT-143); (5) the symbol tickets (FT-148, FT-149) and the
-memo retention policy (FT-157).
+**Cycle 12 delivered** (decision log ID-301 to ID-321): Golden C's migration report and fix script, with the
+grid-line nudge for printed cells; the first `ew-checks` rule packs, prevent at apply through the shipped hook,
+`terminal.designate` and `ew check`; the M1 report and page gaps (revision label and TOC structure, the 27-row parts
+list on 901 and 901.1, the cover tables, part data on 101 and 102). FT-15, FT-62, FT-65, FT-110 and FT-159 to
+FT-162 are closed.
+
+**Cycle 13 candidates** (decision log ID-321, in the order the lead recommends): (1) the two M1 fails: the DP
+potential via Bus connections (AC-10, FT-105) and the PLC overview 908.1 and 908.2 (AC-03, FT-111); (2) wire
+numbering (FT-100, AC-09 and D-09); (3) the SQL projection v0 (WP-S1.10, the four SQL halves); (4) the symbol
+tickets (FT-148, FT-149); (5) the orphan-retention code of ADR-0002 amendment 7 (FT-157) and the split of
+`ip_notes` and `flow_notes` (FT-125). Golden C's fix-script commands (FT-164 to FT-172) wait for G-M3.
 
 **What stays calendar-bound.** External lead times (signing enrolment of at least 12 months, §9.2 rule 5; counsel;
 trademark search), the pilot's availability and answers, the usability rounds with real participants and the
