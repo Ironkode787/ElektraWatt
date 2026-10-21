@@ -30,7 +30,7 @@ use serde_json::Value;
 
 use super::builtins::Builtins;
 use super::cx::{Findings, Ids};
-use super::model::{QetDiagram, QetProject};
+use super::model::{Border, QetDiagram, QetProject};
 
 /// The derivation profile of imported projects (the shipped profile, doc 20 §4.4).
 pub const DERIVATION_PROFILE: &str = "2027.1";
@@ -69,6 +69,15 @@ struct Evaluated {
 }
 
 /// The title-block attributes whose per-folio conflicts are EW-IMP-104 (D-05).
+/// Whether a diagram border is QET's default A4 border (17 columns of 60 px, 8 rows of 80 px), the one the
+/// frame form [`QET_FRAME_KEY`] reproduces.
+pub(crate) fn is_qet_border(b: &Border) -> bool {
+    b.cols == Some(17)
+        && b.rows == Some(8)
+        && b.colsize.is_some_and(|c| c.to_plain_string() == "60")
+        && b.rowsize.is_some_and(|r| r.to_plain_string() == "80")
+}
+
 const CONFLICT_NAMES: [&str; 3] = ["author", "date", "indexrev"];
 
 /// Evaluates the `folio` attribute of a diagram at `position` (1-based, in `order`) of `total`.
@@ -329,10 +338,7 @@ pub fn map(
     for (i, d) in project.diagrams.iter().enumerate() {
         let (e, key) = &evaluated[i];
         let b = d.border;
-        let qet_border = b.cols == Some(17)
-            && b.rows == Some(8)
-            && b.colsize.is_some_and(|c| c.to_plain_string() == "60")
-            && b.rowsize.is_some_and(|r| r.to_plain_string() == "80");
+        let qet_border = is_qet_border(&b);
         let form = if qet_border {
             if frame.is_some() {
                 used.insert(QET_FRAME_KEY.to_owned());

@@ -36,9 +36,10 @@ use serde_json::Value;
 use super::Def;
 use super::builtins::Builtins;
 use super::cx::{ElementKey, Findings, Ids, Placed, PlacedTerminal, Registry, Target, element_keys};
-use super::model::{QetElement, QetProject, norm_uuid};
-use super::pages::PagesOut;
+use super::model::{Border, QetElement, QetProject, norm_uuid};
+use super::pages::{PagesOut, is_qet_border};
 use super::strips;
+use crate::decimal::Decimal;
 use crate::element::ElementImport;
 
 /// The inputs of the element mapper.
@@ -540,6 +541,43 @@ impl Mx<'_, '_> {
     }
 }
 
+/// The width of QET's frame headers, px: the row header on the left and the column header on top
+/// (`BorderTitleBlock`), so column `k` starts at `20 + k × colsize` and row `k` at `20 + k × rowsize`.
+const QET_HEADER_PX: i64 = 20;
+
+/// How far an element lying on a frame line moves up or left, in nm: one past the 1 nm window in which the
+/// cell rule of `ew-derive` reads a coordinate as the exact grid position.
+pub(crate) const LINE_NUDGE_NM: i64 = 2;
+
+/// The nudge `(dx, dy)` in nm (each 0 or [`LINE_NUDGE_NM`], to subtract) of an element at QET position
+/// `(x, y)` px on a diagram with border `b`. QET's `convertPosition` takes the cell index as the ceiling of
+/// `(v − 20) / size`, so a point exactly on an inner column or row line belongs to the left column or the
+/// upper row, while EW's cell rule (floor) puts it right or below. Moving such an element a few nm left or
+/// up keeps every printed cross-reference cell as QET prints it (owner ruling, review of cycle 12; the
+/// derivation's cell rule stays). Only on QET's default border, the one the QET frame form reproduces;
+/// the frame edges are not moved.
+pub(crate) fn qet_cell_nudge(x: Decimal, y: Decimal, b: &Border) -> (i64, i64) {
+    if !is_qet_border(b) {
+        return (0, 0);
+    }
+    let on_line = |v: Decimal, size: Option<Decimal>, count: Option<u32>| -> bool {
+        let (Some(size), Some(count)) = (size, count) else {
+            return false;
+        };
+        (1..count).any(|k| {
+            Decimal::from_int(i64::from(k))
+                .checked_mul(size)
+                .and_then(|l| l.checked_add(Decimal::from_int(QET_HEADER_PX)))
+                .is_ok_and(|line| line == v)
+        })
+    };
+    let nudge = |hit: bool| if hit { LINE_NUDGE_NM } else { 0 };
+    (
+        nudge(on_line(x, b.colsize, b.cols)),
+        nudge(on_line(y, b.rowsize, b.rows)),
+    )
+}
+
 /// Maps the placed elements.
 pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Findings) -> ElementsOut {
     let mut mx = Mx {
@@ -585,11 +623,12 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
                 .defs
                 .get(el.type_path.as_str())
                 .and_then(|def| def.import.as_ref());
+            let (dx, dy) = qet_cell_nudge(el.x, el.y, &d.border);
             let pos =
                 el.x.px_to_nm()
                     .ok()
                     .zip(el.y.px_to_nm().ok())
-                    .map(|(x, y)| Pt2::new(x, y));
+                    .map(|(x, y)| Pt2::new(Nm(x.0 - dx), Nm(y.0 - dy)));
             let (Some(import), Some(pos)) = (import, pos) else {
                 let folio = mx.folio(d.index).to_owned();
                 let loc = mx.findings.loc(Some(&folio), Some(ek.clone()), Some(el.line));
@@ -983,6 +1022,68 @@ mod tests {
             t.letter.as_str().to_owned(),
             o,
         )
+    }
+
+    fn qet_border() -> Border {
+        Border {
+            cols: Some(17),
+            colsize: Some(Decimal::from_int(60)),
+            rows: Some(8),
+            rowsize: Some(Decimal::from_int(80)),
+            height: None,
+        }
+    }
+
+    fn px(s: &str) -> Decimal {
+        Decimal::parse(s).unwrap()
+    }
+
+    #[test]
+    fn an_element_on_a_row_line_moves_into_the_upper_row() {
+        let b = qet_border();
+        // y = 260 px = 20 + 3 × 80 lies on the line between rows C and D; QET prints C.
+        assert_eq!(qet_cell_nudge(px("135"), px("260"), &b), (0, LINE_NUDGE_NM));
+        assert_eq!(qet_cell_nudge(px("135"), px("580.0"), &b), (0, LINE_NUDGE_NM));
+        // Inside a row, on the frame edges (20, 660) and in the header band: no move.
+        for y in ["261", "259.5", "20", "660", "10"] {
+            assert_eq!(qet_cell_nudge(px("135"), px(y), &b), (0, 0), "y = {y}");
+        }
+    }
+
+    #[test]
+    fn an_element_on_a_column_line_moves_into_the_left_column() {
+        let b = qet_border();
+        // x = 920 px = 20 + 15 × 60 lies on the line between columns 15 and 16; QET prints 15.
+        assert_eq!(qet_cell_nudge(px("920"), px("130"), &b), (LINE_NUDGE_NM, 0));
+        assert_eq!(
+            qet_cell_nudge(px("920"), px("260"), &b),
+            (LINE_NUDGE_NM, LINE_NUDGE_NM)
+        );
+        for x in ["921", "20", "1040", "0"] {
+            assert_eq!(qet_cell_nudge(px(x), px("130"), &b), (0, 0), "x = {x}");
+        }
+        // Another border has no QET frame form, so nothing moves.
+        let other = Border {
+            cols: Some(10),
+            ..qet_border()
+        };
+        assert_eq!(qet_cell_nudge(px("920"), px("260"), &other), (0, 0));
+    }
+
+    /// The nudged coordinate lies outside the 1 nm snap window of the line and above it.
+    #[test]
+    fn the_nudge_leaves_the_snap_window_of_the_cell_rule() {
+        for v in ["260", "580", "920"] {
+            let rounded = i128::from(px(v).px_to_nm().unwrap().0);
+            let exact_num = v.parse::<i128>().unwrap() * 793_750; // exact line = exact_num / 3 nm
+            assert!(
+                (rounded * 3 - exact_num).abs() <= 3,
+                "{v}: the rounded line is in the window"
+            );
+            let nudged = rounded - i128::from(LINE_NUDGE_NM);
+            assert!((nudged * 3 - exact_num).abs() > 3, "{v}: outside the window");
+            assert!(nudged * 3 < exact_num, "{v}: above or left of the line");
+        }
     }
 
     #[test]
