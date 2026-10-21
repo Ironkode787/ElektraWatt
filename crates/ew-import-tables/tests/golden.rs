@@ -68,6 +68,18 @@ fn the_profiles_are_project_settings() {
     assert_eq!(colour["key"], "company.dbu-wh-24v");
     assert_eq!(colour["name"]["en"], "DBU/WH 24 V");
     assert_eq!(colour["basis"], "company_convention");
+    // The header comes from profiles.csv: the basis text stays metadata, the standards text is what the cover
+    // prints (doc 20 U-35), DBU is declared a company code on BU in the dark shade (D-37).
+    assert_eq!(
+        colour["basis_note"]["en"],
+        "company convention; codes per IEC 60757, DBU is a company code (BU, dark shade)"
+    );
+    assert_eq!(colour["standards"]["en"], "IEC60757 / EN60204-1");
+    assert_eq!(colour["verified"], true);
+    assert_eq!(
+        colour["codes"],
+        serde_json::json!([{"code": "DBU", "base": "BU", "shade": "dark", "export_as": "DBU"}])
+    );
     let rows = colour["rows"].as_array().expect("rows");
     assert_eq!(rows.len(), 15);
     // Row 1: 24 VDC, Positive, L+ -> Dark Blue DBU (DC up to 120 V).
@@ -95,15 +107,22 @@ fn the_profiles_are_project_settings() {
     );
 
     let size = &project.settings.extra["size_profile"];
+    assert_eq!(size["key"], "company.0.75-1.5");
     assert_eq!(size["name"]["en"], "0.75/1.5");
+    // The codes of a class in table (key) order, each with the `order` column of its row (doc 20 §7.2: DBU, WH,
+    // BK, BU, GNYE); the report sorts by it.
     assert_eq!(
         size["rows"],
         serde_json::json!([
-            {"class": "control", "csa": "0.75", "codes": ["DBU", "GNYE", "WH"]},
-            {"class": "mains", "csa": "1.5", "codes": ["BK", "BU", "GNYE"]},
+            {"class": "control", "csa": "0.75", "codes": [
+                {"code": "DBU", "order": 1}, {"code": "GNYE", "order": 5}, {"code": "WH", "order": 2}]},
+            {"class": "mains", "csa": "1.5", "codes": [
+                {"code": "BK", "order": 3}, {"code": "BU", "order": 4}, {"code": "GNYE", "order": 5}]},
         ])
     );
     assert_eq!(size["class_rules"].as_array().map(Vec::len), Some(5));
+    assert_eq!(size["pe_class"], "highest_at_ends");
+    assert_eq!(size["bond_rule"]["class_from"], "non_pe_side");
 }
 
 /// The per-kind counts of the report are those of doc 20.

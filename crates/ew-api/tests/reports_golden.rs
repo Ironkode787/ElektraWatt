@@ -328,7 +328,8 @@ fn the_cover_tables_follow_the_profiles() {
     let q = s.query();
     let set = q.get::<BlockRows>(block("cover-tables"));
     assert!(set.is_derived());
-    assert_eq!(set.rows.len(), 1 + 15 + 3 + 3);
+    // Per table its title; the 15 colour rows with the standards caption; 3 + 3 size rows; the note.
+    assert_eq!(set.rows.len(), (1 + 15 + 1) + (1 + 3) + (1 + 3) + 1);
     let labels: Vec<String> = set.columns.iter().map(|c| text(&c.label)).collect();
     assert_eq!(
         labels,
@@ -343,13 +344,13 @@ fn the_cover_tables_follow_the_profiles() {
         ]
     );
 
-    // The basis of the colour profile (doc 20 §7.1, D-37) is a heading row in the group of the colours.
-    assert_eq!(set.rows[0].kind, RowKind::Heading);
-    assert_eq!(
-        printed(&q, &set, 0)[0],
-        "company convention; codes per IEC 60757, DBU is a company code (BU, dark shade)"
-    );
+    // The title of the colours is a group-header row; the cover prints the standards text of the profile
+    // (doc 20 U-35), not its basis note, which stays metadata.
+    assert_eq!(set.rows[0].kind, RowKind::GroupHeader);
+    assert_eq!(printed(&q, &set, 0)[0], "CABLE COLOUR DEFINITIONS");
     assert_eq!(printed(&q, &set, 0)[6], "colours");
+    assert_eq!(set.rows[16].kind, RowKind::GroupFooter);
+    assert_eq!(printed(&q, &set, 16)[0], "IEC60757 / EN60204-1");
 
     // The 15 colour rows in the order of the profile.
     assert_eq!(
@@ -374,29 +375,37 @@ fn the_cover_tables_follow_the_profiles() {
     );
     assert!((1..16).all(|i| set.rows[i].kind == RowKind::Data));
 
-    // The sizes: the codes that have the class's size, with its cross-section.
-    for (i, (colour, code, group)) in [
-        ("Dark Blue", "DBU", "control"),
-        ("Yellow / Green", "GNYE", "control"),
-        ("White", "WH", "control"),
-        ("Black", "BK", "mains"),
-        ("Blue", "BU", "mains"),
-        ("Yellow / Green", "GNYE", "mains"),
-    ]
-    .into_iter()
-    .enumerate()
-    {
+    // The sizes in the order of the size profile (doc 20 §7.2: DBU, WH, GNYE; BK, BU, GNYE), each table after
+    // its title.
+    assert_eq!(printed(&q, &set, 17)[0], "STANDARD SIZES CONTROL");
+    assert_eq!(printed(&q, &set, 21)[0], "STANDARD SIZES MAINS");
+    for (at, colour, code, group) in [
+        (18, "Dark Blue", "DBU", "control"),
+        (19, "White", "WH", "control"),
+        (20, "Yellow / Green", "GNYE", "control"),
+        (22, "Black", "BK", "mains"),
+        (23, "Blue", "BU", "mains"),
+        (24, "Yellow / Green", "GNYE", "mains"),
+    ] {
         let size = if group == "control" {
             "0.75 mm\u{b2}"
         } else {
             "1.5 mm\u{b2}"
         };
         assert_eq!(
-            printed(&q, &set, 16 + i),
+            printed(&q, &set, at),
             ["", "", "", colour, code, size, group],
-            "size row {i}"
+            "size row {at}"
         );
     }
+    // The note of the cover (doc 08 §4.2, doc 20 §7.2) closes the rows.
+    let last = set.rows.len() - 1;
+    assert_eq!(set.rows[last].kind, RowKind::GroupFooter);
+    assert_eq!(
+        printed(&q, &set, last)[0],
+        "If size or sign is not indicated in diagram, standard size or sign is to be used."
+    );
+    assert_eq!(printed(&q, &set, last)[6], "note");
     // Row IDs are the group and the index inside it.
     let ids: std::collections::BTreeSet<String> = set.rows.iter().map(|r| r.id.to_string()).collect();
     assert_eq!(ids.len(), set.rows.len());

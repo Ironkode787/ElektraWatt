@@ -12,9 +12,11 @@
 //!
 //! | Region | x (of 560) | y |
 //! |---|---|---|
-//! | colour table | 0 to 560; columns 160, 180, 130, 90 | title `1.5 u`, header `1 u`, the data rows (15) of `1 u`, then the basis text (`1 u`) |
+//! | colour table | 0 to 560; columns 160, 180, 130, 90 | title `1.5 u`, header `1 u`, the data rows (15) of `1 u`, then the caption (`1 u`) |
 //! | control sizes | 0 to 270; columns 170, 100 | from `19.5 u`: title `1.5 u`, then the rows (3) of `1 u` |
 //! | mains sizes | 290 to 560; columns 170, 100 | as the control sizes |
+//!
+//! The note of the cover is drawn in style `data.small` (6.66 pt printed) in the row under the rectangle.
 //!
 //! A title is drawn in style `cover.table` (11.84 pt printed), every other text in `text.normal`, left aligned
 //! and centred on the row's midline, inset by [`CELL_PADDING`]. The grid (the outline and the row and column
@@ -59,6 +61,8 @@ pub struct CoverTables {
     pub control: RegionTable,
     /// The standard sizes of the mains class: colour, size.
     pub mains: RegionTable,
+    /// The note under the size tables, in the row below the block's rectangle (style `data.small`).
+    pub note: Option<String>,
 }
 
 /// What an embedded block draws.
@@ -106,6 +110,16 @@ fn lower_cover(rect: Rect, cover: &CoverTables, sheet: SheetMap, fonts: &FontSet
     let sizes_top = Nm(y0.0 + row.0 * 39 / 2);
     p.table(&cover.control, &[x(0), x(170), x(270)], sizes_top);
     p.table(&cover.mains, &[x(290), x(460), x(560)], sizes_top);
+    if let Some(note) = &cover.note {
+        let top = rect.max().y;
+        p.text(
+            note,
+            "data.small",
+            (x0, top),
+            (x(560), Nm(top.0 + row.0)),
+            (None, 0),
+        );
+    }
     p.out
 }
 
@@ -266,6 +280,7 @@ mod tests {
             },
             control: t("CONTROL", &[&["Dark Blue", "0.75 mm²"], &["White", "0.75 mm²"]]),
             mains: t("MAINS", &[&["Black", "1.5 mm²"]]),
+            note: None,
         }
     }
 

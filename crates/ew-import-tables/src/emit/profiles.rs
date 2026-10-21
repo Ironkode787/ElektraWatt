@@ -2,12 +2,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The colour and size profiles of the project settings (doc 03 §5.1, doc 08 §4.2, doc 20 §7.1, §7.2):
-//! `colour_profile.csv` and `size_profile.csv` → `ProjectSettings.extra["colour_profile"]` and
-//! `["size_profile"]`, in the JSON shapes the wire-property chain of `ew-derive` reads.
+//! `profiles.csv`, `colour_profile.csv` and `size_profile.csv` → `ProjectSettings.extra["colour_profile"]` and
+//! `["size_profile"]`, in the JSON shapes the wire-property chain of `ew-derive` reads. Everything comes from
+//! the tables; the importer holds no profile data of its own.
 //!
-//! The rows come from the tables; what a table cannot hold is the shipped company profile of doc 08 §4.2 (the
-//! sample of the pilot basic project) and doc 20 §7.1: its key, name, basis, the company code DBU and the
-//! size profile's class rules. They are constants of this module.
+//! # `profiles.csv`
+//!
+//! One row per profile, told apart by `profile` (`colour` or `size`): `key` (the profile id), `name`, and for
+//! the colour profile `basis` (an identifier such as `company_convention`), `basis_note` (the basis text),
+//! `standards` (the standards text the cover prints, doc 20 U-35), `dbu_code` (`<code>:<base>:<shade>`, the
+//! company code the profile declares) and `verified`; for the size profile `pe_class`, `class_rules` and
+//! `bond_rule` (the last two as JSON text).
 //!
 //! # Colour profile
 //!
@@ -20,42 +25,140 @@
 //! # Size profile
 //!
 //! `rows[]` = `{class, csa, codes}` for `control` and `mains`: `csa` is the one cross-section the class
-//! column holds and `codes` the colour codes that have it, in table order (the cover's standard-size tables).
+//! column holds and `codes` the colour codes that have it, each `{code, order}` with the `order` column of its
+//! row (the cover lists them in that order), in table order.
 
 use std::collections::BTreeMap;
 
+use ew_interop_api::{Code, Severity};
 use serde_json::{Value, json};
 
 use super::{Cx, fresh};
 use crate::emit::parts::ROLES;
-use crate::table::Table;
-
-/// The key of the shipped company colour profile (doc 08 §4.2, doc 20 §7.1).
-const COLOUR_PROFILE_KEY: &str = "company.dbu-wh-24v";
-/// Its name.
-const COLOUR_PROFILE_NAME: &str = "DBU/WH 24 V";
-/// Its basis text (doc 20 §7.1, D-37): printed on the cover under the colour table.
-const COLOUR_PROFILE_BASIS: &str =
-    "company convention; codes per IEC 60757, DBU is a company code (BU, dark shade)";
-/// The key and name of the shipped company size profile (doc 08 §4.3: Control 0.75 mm², Mains 1.5 mm²).
-const SIZE_PROFILE_KEY: &str = "company.0.75-1.5";
-const SIZE_PROFILE_NAME: &str = "0.75/1.5";
+use crate::table::{Rd, Row, Table};
 
 /// The two settings members of the profile tables, `(member name, value)`; a member is left out when its
-/// table is absent or holds no usable row.
-pub(crate) fn emit(cx: &mut Cx<'_>, colour: Option<&Table>, size: Option<&Table>) -> Vec<(String, Value)> {
+/// table is absent or holds no usable row, or `profiles.csv` has no row for it (reported).
+pub(crate) fn emit(
+    cx: &mut Cx<'_>,
+    profiles: Option<&Table>,
+    colour: Option<&Table>,
+    size: Option<&Table>,
+) -> Vec<(String, Value)> {
     let mut out = Vec::new();
-    if let Some(v) = colour_profile(cx, colour) {
-        out.push(("colour_profile".to_owned(), v));
-    }
-    if let Some(v) = size_profile(cx, size) {
-        out.push(("size_profile".to_owned(), v));
+    let mut headers = headers(cx, profiles);
+    for (member, table, kind) in [
+        ("colour_profile", colour, "colour"),
+        ("size_profile", size, "size"),
+    ] {
+        let Some(table) = table else { continue };
+        let Some(header) = headers.remove(kind) else {
+            let file = table.file.clone();
+            cx.findings.at(
+                Code::UNRESOLVED_REFERENCE,
+                Severity::Error,
+                &file,
+                None,
+                None,
+                format!("table ignored: profiles.csv has no `{kind}` row for it"),
+            );
+            continue;
+        };
+        let value = if kind == "colour" {
+            colour_profile(cx, table, header)
+        } else {
+            size_profile(cx, table, header)
+        };
+        if let Some(v) = value {
+            out.push((member.to_owned(), v));
+        }
     }
     out
 }
 
-fn colour_profile(cx: &mut Cx<'_>, table: Option<&Table>) -> Option<Value> {
-    let table = table?;
+/// The header members of a profile (everything but the rows), as read from `profiles.csv`.
+type Header = serde_json::Map<String, Value>;
+
+/// `profiles.csv`: the header of each profile by its `profile` cell.
+fn headers(cx: &mut Cx<'_>, table: Option<&Table>) -> BTreeMap<String, Header> {
+    let mut out = BTreeMap::new();
+    let Some(table) = table else { return out };
+    let mut seen = BTreeMap::<String, ()>::new();
+    for row in table.rows() {
+        if !fresh(&mut cx.findings, row, &seen) {
+            continue;
+        }
+        let mut r = row.reader();
+        let kind = r.req_choice("profile", &[("colour", "colour"), ("size", "size")]);
+        let name = r.req("name").map(str::to_owned);
+        let mut h = Header::new();
+        h.insert("key".into(), row.key().into());
+        if let Some(n) = &name {
+            h.insert("name".into(), json!({ "en": n }));
+        }
+        h.insert("verified".into(), r.flag("verified").into());
+        match kind {
+            Some("colour") => colour_header(&mut r, &mut h),
+            Some("size") => size_header(&mut r, &mut h),
+            _ => {}
+        }
+        if let Err(e) = r.finish() {
+            cx.malformed(row, &e);
+            continue;
+        }
+        let Some(kind) = kind else { continue };
+        if out.contains_key(kind) {
+            cx.malformed(row, &format!("a second `{kind}` profile"));
+            continue;
+        }
+        seen.insert(row.key().to_owned(), ());
+        out.insert(kind.to_owned(), h);
+    }
+    out
+}
+
+fn colour_header(r: &mut Rd<'_>, h: &mut Header) {
+    if let Some(b) = r.text("basis") {
+        h.insert("basis".into(), b.into());
+    }
+    for col in ["basis_note", "standards"] {
+        if let Some(t) = r.text(col) {
+            h.insert(col.into(), json!({ "en": t }));
+        }
+    }
+    if let Some(cell) = r.text("dbu_code") {
+        let parts: Vec<&str> = cell.split(':').collect();
+        match parts.as_slice() {
+            [code, base, shade] => {
+                h.insert(
+                    "codes".into(),
+                    json!([{ "code": code, "base": base, "shade": shade, "export_as": code }]),
+                );
+            }
+            _ => r.fail(format!(
+                "column `dbu_code`: `{cell}` is not <code>:<base>:<shade>"
+            )),
+        }
+    }
+}
+
+fn size_header(r: &mut Rd<'_>, h: &mut Header) {
+    if let Some(p) = r.text("pe_class") {
+        h.insert("pe_class".into(), p.into());
+    }
+    for (col, member) in [("class_rules", "class_rules"), ("bond_rule", "bond_rule")] {
+        if let Some(text) = r.text(col) {
+            match serde_json::from_str::<Value>(text) {
+                Ok(v) => {
+                    h.insert(member.into(), v);
+                }
+                Err(e) => r.fail(format!("column `{col}`: not JSON: {e}")),
+            }
+        }
+    }
+}
+
+fn colour_profile(cx: &mut Cx<'_>, table: &Table, header: Header) -> Option<Value> {
     let mut seen = BTreeMap::<String, ()>::new();
     let mut rows = Vec::new();
     for row in table.rows() {
@@ -117,35 +220,29 @@ fn colour_profile(cx: &mut Cx<'_>, table: Option<&Table>) -> Option<Value> {
     if rows.is_empty() {
         return None;
     }
-    Some(json!({
-        "key": COLOUR_PROFILE_KEY,
-        "name": { "en": COLOUR_PROFILE_NAME },
-        "basis": "company_convention",
-        "basis_note": { "en": COLOUR_PROFILE_BASIS },
-        "verified": true,
-        // DBU is the company code of the profile: BU in the dark shade (doc 20 §7.1).
-        "codes": [{ "code": "DBU", "base": "BU", "shade": "dark", "export_as": "DBU" }],
-        "rows": rows,
-    }))
+    let mut profile = header;
+    profile.insert("rows".into(), Value::Array(rows));
+    Some(Value::Object(profile))
 }
 
-fn size_profile(cx: &mut Cx<'_>, table: Option<&Table>) -> Option<Value> {
-    let table = table?;
+fn size_profile(cx: &mut Cx<'_>, table: &Table, header: Header) -> Option<Value> {
     let mut seen = BTreeMap::<String, ()>::new();
-    // class → (csa, codes in table order)
-    let mut classes: BTreeMap<&'static str, (Option<String>, Vec<String>)> = BTreeMap::new();
-    for row in table.rows() {
+    // class → (csa, codes with their order, in table order)
+    let mut classes: BTreeMap<&'static str, (Option<String>, Vec<Value>)> = BTreeMap::new();
+    for (index, row) in table.rows().enumerate() {
         if !fresh(&mut cx.findings, row, &seen) {
             continue;
         }
         let mut r = row.reader();
         let control = r.dec3("control");
         let mains = r.dec3("mains");
+        let order = r.uint::<u32>("order");
         if let Err(e) = r.finish() {
             cx.malformed(row, &e);
             continue;
         }
         seen.insert(row.key().to_owned(), ());
+        let order = order.unwrap_or_else(|| u32::try_from(index + 1).unwrap_or(u32::MAX));
         for (class, csa) in [("control", control), ("mains", mains)] {
             let Some(csa) = csa else { continue };
             let entry = classes.entry(class).or_default();
@@ -154,14 +251,11 @@ fn size_profile(cx: &mut Cx<'_>, table: Option<&Table>) -> Option<Value> {
                 None => entry.0 = Some(csa),
                 Some(c) if *c == csa => {}
                 Some(c) => {
-                    cx.malformed(
-                        row,
-                        &format!("column `{class}`: the size `{csa}` differs from `{c}` of an earlier row"),
-                    );
+                    size_conflict(cx, row, class, &csa, c);
                     continue;
                 }
             }
-            entry.1.push(row.key().to_owned());
+            entry.1.push(json!({ "code": row.key(), "order": order }));
         }
     }
     let rows: Vec<Value> = classes
@@ -173,20 +267,14 @@ fn size_profile(cx: &mut Cx<'_>, table: Option<&Table>) -> Option<Value> {
     if rows.is_empty() {
         return None;
     }
-    // The class rules, the PE rule and the bond rule of the shipped profile (doc 08 §4.2).
-    Some(json!({
-        "key": SIZE_PROFILE_KEY,
-        "name": { "en": SIZE_PROFILE_NAME },
-        "verified": true,
-        "class_rules": [
-            {"select": {"ptype": ["pe", "pen", "fe"]}, "class": "pe"},
-            {"select": {"discipline": "bus"}, "class": "bus"},
-            {"select": {"analogue": true}, "class": "analogue"},
-            {"select": {"ac_dc": "ac", "u_min": "50"}, "class": "mains"},
-            {"select": {}, "class": "control"},
-        ],
-        "pe_class": "highest_at_ends",
-        "bond_rule": {"colour_from": "pe", "class_from": "non_pe_side"},
-        "rows": rows,
-    }))
+    let mut profile = header;
+    profile.insert("rows".into(), Value::Array(rows));
+    Some(Value::Object(profile))
+}
+
+fn size_conflict(cx: &mut Cx<'_>, row: Row<'_>, class: &str, csa: &str, first: &str) {
+    cx.malformed(
+        row,
+        &format!("column `{class}`: the size `{csa}` differs from `{first}` of an earlier row"),
+    );
 }

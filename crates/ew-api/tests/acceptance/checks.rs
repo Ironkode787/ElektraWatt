@@ -659,6 +659,25 @@ fn ac06_tags(c: &Ctx) -> Outcome {
     }
 }
 
+/// The differences between the printed parts list and the table of doc 20 §14.1 that are accepted, as
+/// `(position, column, doc 20 prints, the parts list prints, why)`. Every other cell must be equal.
+///
+/// - Rows 22 to 26, folio column: §14.1 gives folio 902 (the layout page the enclosure, plate, rail, duct and
+///   brackets are placed on). The layout placements are not modelled yet (follow-up task), so rows 22 to 25
+///   have no folio and row 26 lists the folios of the strips that carry the brackets.
+/// - Row 26, tags: §14.1 lists "1X1, -X1031, -X1032"; the parts list sorts the tags in the order of the ID-9
+///   sign order, "-X1031, -X1032, 1X1" (ruling).
+const AC07_ACCEPTED: [(&str, &str, &str, &str); 6] = [
+    ("22", "Folios", "902", ""),
+    ("23", "Folios", "902", ""),
+    ("24", "Folios", "902", ""),
+    ("25", "Folios", "902", ""),
+    ("26", "Folios", "902", "101, 103"),
+    ("26", "Tags", "1X1, -X1031, -X1032", "-X1031, -X1032, 1X1"),
+];
+
+/// Folio 901 equals the 27 rows of doc 20 §14.1 (`expected/parts_list_14_1.csv`, generated from the doc by
+/// `tables_from_doc20.py`) over 901 and 901.1, cell by cell, but for the accepted differences.
 fn ac07_bom(c: &Ctx) -> Outcome {
     let q = c.rows_q();
     let set = rows_of(&q, &c.batch, "901");
@@ -666,11 +685,44 @@ fn ac07_bom(c: &Ctx) -> Outcome {
     let pages = q
         .get::<ew_reports::BlockPages>((golden_common::block(&c.batch, "901"), 0))
         .len();
-    if n == 27 && pages == 2 {
-        pass("27 rows over 901 and 901.1")
+    if n != 27 || pages != 2 {
+        return fail(format!(
+            "{n} rows over {pages} page(s), §14.1 has 27 over 2 (901 and 901.1, the 4 TBD rows 24-27 on the second)"
+        ));
+    }
+    let want = match expected("parts_list_14_1.csv") {
+        Ok(bytes) => csv_rows(&String::from_utf8_lossy(&bytes)),
+        Err(e) => return fail(e),
+    };
+    let header = &want[0];
+    let mut wrong = Vec::new();
+    let mut accepted = 0;
+    for (i, expect) in want.iter().skip(1).enumerate() {
+        let got = golden_common::texts(&q, &set, i);
+        for (col, name) in header.iter().enumerate() {
+            let (e, g) = (expect[col].as_str(), got.get(col).map_or("", String::as_str));
+            if e == g {
+                continue;
+            }
+            if AC07_ACCEPTED.contains(&(expect[0].as_str(), name.as_str(), e, g)) {
+                accepted += 1;
+            } else {
+                wrong.push(format!(
+                    "row {} {name}: §14.1 \"{e}\", printed \"{g}\"",
+                    expect[0]
+                ));
+            }
+        }
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "27 rows over 901 and 901.1 equal expected/parts_list_14_1.csv (§14.1) in every cell but {accepted} accepted differences (folio 902 of rows 22-26: layout placements are not modelled; row 26 tags in the ID-9 sign order)"
+        ))
     } else {
         fail(format!(
-            "{n} rows over {pages} page(s), §14.1 has 27 over 2 (901 and 901.1, the 4 TBD rows 24-27 on the second)"
+            "{} cells differ from §14.1: {}",
+            wrong.len(),
+            list(wrong, 4)
         ))
     }
 }
@@ -807,7 +859,8 @@ fn ac11_cables(c: &Ctx) -> Outcome {
 
 /// Folio 1's colour and size tables are generated from the profiles of the project settings: every text the
 /// profiles give for the cover (the voltage class, function, potential type and colour name of each colour
-/// row, the size of each size row and the basis text) is printed outside the frame layer.
+/// row, the size of each size row, the standards text of the profile and the note of §7.2) is printed outside
+/// the frame layer.
 fn ac12_tables(c: &Ctx) -> Outcome {
     let runs_outside_the_frame: Vec<String> = runs(&c.text["1"])
         .into_iter()
@@ -831,7 +884,8 @@ fn ac12_tables(c: &Ctx) -> Outcome {
     for row in sizes {
         want.push(format!("{} mm²", row["csa"].as_str().unwrap_or_default()));
     }
-    want.push(format!("Basis: {}", en(&colour["basis_note"])));
+    want.push(en(&colour["standards"]));
+    want.push("If size or sign is not indicated in diagram, standard size or sign is to be used.".to_owned());
     want.sort();
     want.dedup();
     let missing: Vec<String> = want
@@ -843,7 +897,7 @@ fn ac12_tables(c: &Ctx) -> Outcome {
         fail("folio 1 prints only its frame and title block: the cover tables are not drawn")
     } else if missing.is_empty() {
         pass(format!(
-            "folio 1 prints the {} colour rows, the {} size tables and the basis text of the profiles",
+            "folio 1 prints the {} colour rows, the {} size tables, the standards text of the profile and the note",
             rows.len(),
             sizes.len()
         ))
@@ -1393,22 +1447,40 @@ fn defects(r: &mut Runner) {
     r.entry("D-36", "assembly rows A1 and A2, order code on folio 3", |_| {
         not_built("the assembly BOM mode and `ew export bom` do not exist yet (FR-REP-005)")
     });
+    // Doc 20 §19: the profile names its basis ("company convention") and declares DBU a company code (profile
+    // metadata); the cover prints the standards text of U-35, not the basis note.
     r.entry("D-37", "profiles name their basis; the cover prints it", |c| {
         let (colour, _) = golden_common::profiles_json();
         let basis = colour["basis"].as_str().unwrap_or_default();
         let note = colour["basis_note"]["en"].as_str().unwrap_or_default();
-        let want = format!("Basis: {note}");
-        if basis.is_empty() || note.is_empty() {
-            fail("the colour profile names no basis")
-        } else if runs(&c.text["1"])
-            .iter()
-            .any(|(layer, t, _)| layer != "frame" && *t == want)
-        {
+        let standards = colour["standards"]["en"].as_str().unwrap_or_default();
+        let dbu = colour["codes"]
+            .as_array()
+            .and_then(|codes| codes.iter().find(|c| c["code"] == "DBU"));
+        let printed: Vec<String> = runs(&c.text["1"])
+            .into_iter()
+            .filter(|(layer, _, _)| layer != "frame")
+            .map(|(_, t, _)| t)
+            .collect();
+        let mut wrong = Vec::new();
+        if basis != "company_convention" || !note.starts_with("company convention") {
+            wrong.push(format!("the profile's basis is `{basis}`, expected the company convention"));
+        }
+        if dbu.is_none_or(|d| d["base"] != "BU") {
+            wrong.push("DBU is not declared a company code on BU".to_owned());
+        }
+        if standards.is_empty() || !printed.iter().any(|t| t == standards) {
+            wrong.push(format!("the cover does not print the standards text \"{standards}\""));
+        }
+        if printed.iter().any(|t| t.contains(note)) {
+            wrong.push("the cover prints the basis note, which is metadata".to_owned());
+        }
+        if wrong.is_empty() {
             pass(format!(
-                "the colour profile's basis is {basis} and the cover prints \"{note}\""
+                "the colour profile's basis is {basis} with DBU declared a company code on BU; the cover prints \"{standards}\" and keeps the basis note as metadata (U-35)"
             ))
         } else {
-            fail(format!("the cover does not print \"{want}\""))
+            fail(wrong.join("; "))
         }
     });
     r.entry("D-41", "one assembly -201U1 with children on both pages, break marks", |_| {

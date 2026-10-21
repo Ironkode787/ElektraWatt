@@ -264,7 +264,23 @@ pub(crate) const COLOUR_PROFILE: TableSpec = spec(
 );
 
 /// `size_profile.csv` (the size profile of the project settings).
-pub(crate) const SIZE_PROFILE: TableSpec = spec("size_profile", &["key"], &["control", "mains"]);
+pub(crate) const SIZE_PROFILE: TableSpec = spec("size_profile", &["key"], &["control", "mains", "order"]);
+
+/// `profiles.csv`: the header of the colour and the size profile.
+pub(crate) const PROFILES: TableSpec = spec(
+    "profiles",
+    &["key", "profile", "name"],
+    &[
+        "basis",
+        "basis_note",
+        "standards",
+        "dbu_code",
+        "verified",
+        "pe_class",
+        "class_rules",
+        "bond_rule",
+    ],
+);
 
 /// `revisions.csv` (reserved `revision` records).
 pub(crate) const REVISIONS: TableSpec = spec(
@@ -281,7 +297,7 @@ pub(crate) const REVISIONS: TableSpec = spec(
 );
 
 /// Every known table.
-pub(crate) const ALL: [TableSpec; 23] = [
+pub(crate) const ALL: [TableSpec; 24] = [
     PROJECT,
     PARTIES,
     STRUCTURE,
@@ -304,5 +320,6 @@ pub(crate) const ALL: [TableSpec; 23] = [
     BONDS,
     COLOUR_PROFILE,
     SIZE_PROFILE,
+    PROFILES,
     REVISIONS,
 ];

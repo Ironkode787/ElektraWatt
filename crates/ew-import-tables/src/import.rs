@@ -205,7 +205,7 @@ impl TablesImporter {
         emit::connect::emit_bonds(&mut cx, t("bonds"));
         emit::project::emit_report_blocks(&mut cx, t("report_blocks"));
         emit::project::emit_revisions(&mut cx, t("revisions"), t("parties"));
-        let profiles = emit::profiles::emit(&mut cx, t("colour_profile"), t("size_profile"));
+        let profiles = emit::profiles::emit(&mut cx, t("profiles"), t("colour_profile"), t("size_profile"));
         let project = emit::project::emit_project(&mut cx, t("project"), t("parties"), profiles);
         if project.is_none() {
             return Err(ImportError::Malformed {

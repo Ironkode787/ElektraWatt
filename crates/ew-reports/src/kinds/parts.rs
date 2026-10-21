@@ -26,11 +26,9 @@ impl ReportKindDef for PartsSummary {
 
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
-            // Qty holds a length with its unit ("2.192 m" of rail), so it takes the width of the position and
-            // the unit column's share.
-            ColumnDef::new("pos", CellType::Ident, "Pos").weighted(3),
-            ColumnDef::new("qty", CellType::Qty, "Qty").weighted(6),
-            ColumnDef::new("unit", CellType::Ident, "Unit").weighted(3),
+            ColumnDef::new("pos", CellType::Ident, "Pos").weighted(4),
+            ColumnDef::new("qty", CellType::Qty, "Qty").weighted(4),
+            ColumnDef::new("unit", CellType::Ident, "Unit").weighted(4),
             ColumnDef::new("manufacturer", CellType::Ident, "Manufacturer").weighted(15),
             ColumnDef::new("part_number", CellType::Ident, "Part number").weighted(19),
             ColumnDef::new("description", CellType::Text, "Description").weighted(31),
@@ -73,7 +71,7 @@ impl ReportKindDef for PartsSummary {
                 id,
                 vec![
                     Cell::Ident(pos),
-                    qty_cell(row.qty, &row.unit),
+                    qty_cell(row.qty),
                     Cell::Ident(unit_symbol(&row.unit)),
                     Cell::Ident(manufacturer_text(&row.manufacturer)),
                     part_number_cell(&row.part_number),
@@ -129,7 +127,7 @@ impl ReportKindDef for PartsList {
                     line_id(RowId::entity(device), &lines, i),
                     vec![
                         Cell::Tag(device),
-                        qty_cell(line.qty, &part.unit),
+                        qty_cell(line.qty),
                         Cell::Ident(unit_symbol(&part.unit)),
                         Cell::Ident(manufacturer_text(&part.manufacturer)),
                         part_number_cell(part.part_number.as_str()),
@@ -174,9 +172,10 @@ pub(super) fn tag_key(q: &Q, device: Id<Device>) -> NaturalKey {
     natural_key(tag.as_ref().as_ref().map(|t| t.full.as_str()).unwrap_or(""))
 }
 
-/// A quantity in the part's order unit.
-pub(super) fn qty_cell(qty: Dec3, unit: &OrderUnit) -> Cell {
-    Cell::Qty(qty, QtyUnit::Order(unit.clone()))
+/// A quantity as a number: the order unit is the value of the Unit column next to it (doc 20 §14.1 prints
+/// "28" and "pc", not "28 pc" twice).
+pub(super) fn qty_cell(qty: Dec3) -> Cell {
+    Cell::Qty(qty, QtyUnit::None)
 }
 
 /// The symbol of an order unit (`pc`, `m`, `set`).

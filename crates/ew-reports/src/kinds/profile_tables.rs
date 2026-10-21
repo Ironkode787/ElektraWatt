@@ -5,17 +5,24 @@
 //! folio 1; doc 08 §4.2, doc 20 §7.1, §7.2, §17.3).
 //!
 //! The rows are generated from the project's colour and size profiles (`ProjectSettings.extra`
-//! `colour_profile` and `size_profile`, doc 03 §5.1), never typed on the cover. They fall into three groups,
-//! told apart by the last column `table`; the cover form gives each group its own region
-//! ([doc 09](../../../../docs/design/09-reports-forms-output.md) §2.2):
+//! `colour_profile` and `size_profile`, doc 03 §5.1), never typed on the cover. They fall into groups, told
+//! apart by the last column `table`; the cover form gives each group its own region
+//! ([doc 09](../../../../docs/design/09-reports-forms-output.md) §2.2). The kind supplies the texts of the
+//! regions as rows of their own: a [`RowKind::GroupHeader`] row is the title of a table, a
+//! [`RowKind::GroupFooter`] row a caption or note under one (not a `Heading`: the arrangement of a row set
+//! reads a heading as the head of the rows after it and drops one without data rows); their text is in the first
+//! cell.
 //!
 //! | `table` | Rows |
 //! |---|---|
-//! | `colours` | a heading row with the profile's basis text (when it has one), then one data row per profile row: voltage class, function, potential type, colour name, colour code |
-//! | `control`, `mains` | one data row per colour code that has the class's standard size: colour name, colour code, size |
+//! | `colours` | the title "CABLE COLOUR DEFINITIONS", one data row per profile row (voltage class, function, potential type, colour name, colour code), then the profile's standards text as a caption (doc 20 U-35; the basis text stays metadata) |
+//! | `control`, `mains` | the title, then one data row per colour code that has the class's standard size, in the order of the size profile: colour name, colour code, size |
+//! | `note` | the note "If size or sign is not indicated in diagram, standard size or sign is to be used." (doc 08 §4.2, doc 20 §7.2) |
 //!
 //! A project without a colour or size profile has no rows of that part (the built-in defaults of the
-//! derivation profile have no cover table). The row IDs are the group and the index inside it.
+//! derivation profile have no cover table), and no note. The note is derived text of the wire-marker mode
+//! "only explicit overrides", which the golden project has; the mode is not a setting of this format yet, so
+//! the note is printed whenever the cover has a table. The row IDs are the group and the index inside it.
 
 use std::collections::BTreeMap;
 
@@ -34,7 +41,17 @@ use crate::rowset::{Cell, CellType, ColumnDef, QtyUnit, Row, RowId, RowKey, RowK
 pub struct ProfileTables;
 
 /// The groups, in cover order.
-pub const GROUPS: [&str; 3] = ["colours", "control", "mains"];
+pub const GROUPS: [&str; 4] = ["colours", "control", "mains", "note"];
+
+/// The titles of the three tables.
+const TITLES: [(&str, &str); 3] = [
+    ("colours", "CABLE COLOUR DEFINITIONS"),
+    ("control", "STANDARD SIZES CONTROL"),
+    ("mains", "STANDARD SIZES MAINS"),
+];
+
+/// The note under the size tables.
+const NOTE: &str = "If size or sign is not indicated in diagram, standard size or sign is to be used.";
 
 impl ReportKindDef for ProfileTables {
     fn name(&self) -> &'static str {
@@ -63,6 +80,14 @@ impl ReportKindDef for ProfileTables {
         if let Some(profile) = extra.get("size_profile") {
             sizes(profile, &mut set, &names);
         }
+        if !set.rows.is_empty() {
+            set.rows.push(text_row(
+                "note",
+                RowKind::GroupFooter,
+                "note",
+                MlText::neutral(NOTE),
+            ));
+        }
         set
     }
 }
@@ -80,32 +105,42 @@ fn id(group: &str, index: usize) -> RowId {
     ])
 }
 
-/// The empty cells of a row of seven columns, with `group` last.
-fn cells(group: &str, mut fill: Vec<(usize, Cell)>) -> Vec<Cell> {
+/// The cells of a row of seven columns, with `group` last.
+fn cells(group: &str, fill: Vec<(usize, Cell)>) -> Vec<Cell> {
     let mut out = vec![Cell::Empty; 7];
-    for (i, c) in fill.drain(..) {
+    for (i, c) in fill {
         out[i] = c;
     }
     out[6] = Cell::Ident(group.to_owned());
     out
 }
 
-fn colours(profile: &Value, set: &mut RowSet, names: &mut BTreeMap<String, (MlText, ColourSpec)>) {
-    let basis = ml(profile.get("basis_note"));
-    if !basis.is_empty() {
-        set.rows.push(Row {
-            id: id("colours", usize::MAX),
-            kind: RowKind::Heading,
-            cells: cells("colours", vec![(0, Cell::Text(basis))]),
-            links: Vec::new(),
-            sources: Vec::new(),
-        });
+/// A group header or heading row: `text` in the first cell; `tag` tells it from the data rows of its group.
+fn text_row(group: &str, kind: RowKind, tag: &str, text: MlText) -> Row {
+    Row {
+        id: RowId(vec![RowKey::Name(group.to_owned()), RowKey::Name(tag.to_owned())]),
+        kind,
+        cells: cells(group, vec![(0, Cell::Text(text))]),
+        links: Vec::new(),
+        sources: Vec::new(),
     }
-    let rows = profile
+}
+
+fn title_of(group: &str) -> MlText {
+    TITLES
+        .iter()
+        .find(|(g, _)| *g == group)
+        .map(|(_, t)| MlText::neutral(t))
+        .unwrap_or_default()
+}
+
+fn colours(profile: &Value, set: &mut RowSet, names: &mut BTreeMap<String, (MlText, ColourSpec)>) {
+    let mut rows = Vec::new();
+    let list = profile
         .get("rows")
         .and_then(Value::as_array)
         .map_or(&[][..], Vec::as_slice);
-    for (i, row) in rows.iter().enumerate() {
+    for (i, row) in list.iter().enumerate() {
         let Some(colour) = row
             .get("colour")
             .and_then(|c| serde_json::from_value::<ColourSpec>(c.clone()).ok())
@@ -116,7 +151,7 @@ fn colours(profile: &Value, set: &mut RowSet, names: &mut BTreeMap<String, (MlTe
         names
             .entry(colour_text(&colour))
             .or_insert_with(|| (name.clone(), colour.clone()));
-        set.rows.push(Row::data(
+        rows.push(Row::data(
             id("colours", i),
             cells(
                 "colours",
@@ -130,15 +165,30 @@ fn colours(profile: &Value, set: &mut RowSet, names: &mut BTreeMap<String, (MlTe
             ),
         ));
     }
+    if rows.is_empty() {
+        return;
+    }
+    set.rows.push(text_row(
+        "colours",
+        RowKind::GroupHeader,
+        "title",
+        title_of("colours"),
+    ));
+    set.rows.extend(rows);
+    let standards = ml(profile.get("standards"));
+    if !standards.is_empty() {
+        set.rows
+            .push(text_row("colours", RowKind::GroupFooter, "standards", standards));
+    }
 }
 
 fn sizes(profile: &Value, set: &mut RowSet, names: &BTreeMap<String, (MlText, ColourSpec)>) {
-    let rows = profile
+    let list = profile
         .get("rows")
         .and_then(Value::as_array)
         .map_or(&[][..], Vec::as_slice);
     for group in ["control", "mains"] {
-        let Some(row) = rows
+        let Some(row) = list
             .iter()
             .find(|r| r.get("class").and_then(Value::as_str) == Some(group))
         else {
@@ -151,11 +201,22 @@ fn sizes(profile: &Value, set: &mut RowSet, names: &BTreeMap<String, (MlText, Co
         else {
             continue;
         };
-        let codes = row
+        // The codes with their order, sorted by it (stable: equal orders keep the table order).
+        let mut codes: Vec<(u64, &str)> = row
             .get("codes")
             .and_then(Value::as_array)
-            .map_or(&[][..], Vec::as_slice);
-        for (i, code) in codes.iter().filter_map(Value::as_str).enumerate() {
+            .map_or(&[][..], Vec::as_slice)
+            .iter()
+            .filter_map(|c| {
+                Some((
+                    c.get("order").and_then(Value::as_u64).unwrap_or(u64::MAX),
+                    c.get("code")?.as_str()?,
+                ))
+            })
+            .collect();
+        codes.sort_by_key(|(order, _)| *order);
+        let mut rows = Vec::new();
+        for (i, (_, code)) in codes.into_iter().enumerate() {
             // A code the colour profile does not list prints as its text.
             let (name, colour) = match names.get(code) {
                 Some(found) => found.clone(),
@@ -164,7 +225,7 @@ fn sizes(profile: &Value, set: &mut RowSet, names: &BTreeMap<String, (MlText, Co
                     Err(_) => continue,
                 },
             };
-            set.rows.push(Row::data(
+            rows.push(Row::data(
                 id(group, i),
                 cells(
                     group,
@@ -176,5 +237,11 @@ fn sizes(profile: &Value, set: &mut RowSet, names: &BTreeMap<String, (MlText, Co
                 ),
             ));
         }
+        if rows.is_empty() {
+            continue;
+        }
+        set.rows
+            .push(text_row(group, RowKind::GroupHeader, "title", title_of(group)));
+        set.rows.extend(rows);
     }
 }

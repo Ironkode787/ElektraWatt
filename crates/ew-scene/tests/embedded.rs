@@ -56,7 +56,7 @@ fn cover() -> EmbeddedView {
                     &["24 VDC", "Positive", "L+", "Dark Blue"],
                     &["24 VDC", "0V", "M", "White"],
                 ],
-                Some("Basis: company convention"),
+                Some("IEC60757 / EN60204-1"),
             ),
             control: table(
                 "STANDARD SIZES CONTROL",
@@ -65,6 +65,7 @@ fn cover() -> EmbeddedView {
                 None,
             ),
             mains: table("STANDARD SIZES MAINS", &[], &[&["Black", "1.5 mm²"]], None),
+            note: Some("If size or sign is not indicated in diagram.".to_owned()),
         }),
     }
 }
@@ -125,7 +126,7 @@ fn the_cover_tables_print_title_header_rows_and_caption_in_reading_order() {
             "0V",
             "M",
             "White",
-            "Basis: company convention",
+            "IEC60757 / EN60204-1",
             "STANDARD SIZES CONTROL",
             "Dark Blue",
             "0.75 mm²",
@@ -134,6 +135,7 @@ fn the_cover_tables_print_title_header_rows_and_caption_in_reading_order() {
             "STANDARD SIZES MAINS",
             "Black",
             "1.5 mm²",
+            "If size or sign is not indicated in diagram.",
         ]
     );
     // The grid: per table the outline, the row separators and the column separators, each line once.
@@ -149,12 +151,17 @@ fn the_cover_tables_print_title_header_rows_and_caption_in_reading_order() {
 }
 
 #[test]
-fn everything_lies_inside_the_blocks_rectangle() {
+fn everything_lies_inside_the_blocks_rectangle_and_the_note_row_below_it() {
     let l = page_display_list(&view(vec![cover()]), Layer::Tables, bundled());
     let r = rect();
+    // The note sits in the row below the rectangle: a 24th of its height.
+    let below = Nm(r.height().0 / 24);
     let b = l.list.bounds().expect("the tables have items");
     assert!(
-        b.min().x >= r.min().x && b.max().x <= r.max().x && b.min().y >= r.min().y && b.max().y <= r.max().y,
+        b.min().x >= r.min().x
+            && b.max().x <= r.max().x
+            && b.min().y >= r.min().y
+            && b.max().y <= Nm(r.max().y.0 + below.0),
         "{b:?} outside {r:?}"
     );
 }

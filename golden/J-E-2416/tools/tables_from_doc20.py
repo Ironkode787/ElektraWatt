@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: CC0-1.0
 """Generate the golden project source tables (Golden A, J-E-2416) from doc 20.
 
-Reads ``docs/design/20-golden-project.md`` (the ONLY data source) and writes the 23 CSV tables of
+Reads ``docs/design/20-golden-project.md`` (the ONLY data source) and writes the 24 CSV tables of
 ``golden/J-E-2416/tables/`` in the dialect documented in ``golden/J-E-2416/README.md``: UTF-8, no BOM, LF, NFC, a
 field quoted exactly when it contains ``,``, ``"``, LF, CR or begins/ends with a space, rows in the natural order of
 the ``key`` column (``ew_mltext::natural_key``, version 1).
@@ -24,6 +24,7 @@ Usage (from the repository root)::
 Standard library only; deterministic; no network.
 """
 
+import json
 import re
 import sys
 import unicodedata
@@ -34,6 +35,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_DOC_PATH = SCRIPT_DIR / ".." / ".." / ".." / "docs" / "design" / "20-golden-project.md"
 TABLES_DIR = SCRIPT_DIR / ".." / "tables"
 README_PATH = SCRIPT_DIR / ".." / "README.md"
+EXPECTED_DIR = SCRIPT_DIR / ".." / "expected"
+PARTS_LIST_FILE = "parts_list_14_1.csv"
 README_BEGIN = "<!-- test-inputs:begin -->"
 README_END = "<!-- test-inputs:end -->"
 
@@ -861,6 +864,43 @@ def tbd_part_uses():
     return uses
 
 
+def parts_list_expected():
+    """The 27 rows of doc 20 section 14.1 as the parts list prints them (``expected/parts_list_14_1.csv``): the cells of
+    the table without the unknown marks, with the fixture values where the table leaves a ▲: quantity 1 for the cable
+    -3W1 (U-46), the lengths of rails and ducts of section 13, the manufacturer TBD of the TBD parts; the parentheses
+    that explain a quantity of the TBD rows are no part of the description; the plate's tag reads -UC1-plate."""
+    duct_m, rail_m = carrier_lengths()
+    lengths = {"24": dec(str(rail_m)), "25": dec(str(duct_m))}
+    out = []
+    for r in table_dicts("### 14.1 Component mode (folio 901)"):
+        pos = r["Pos"]
+        tbd = strip_tri(r["Part number"]) == "TBD"
+        qty = strip_tri(r["Qty"])
+        if not qty:
+            qty = lengths.get(pos) or ("1" if strip_tri(r["Part number"]) == PROFIBUS_CABLE else "")
+        check(qty, f"section 14.1 row {pos}: no quantity")
+        desc = strip_tri(r["Description"])
+        tags = strip_tri(r["Tags"])
+        out.append(
+            {
+                "Pos": pos,
+                "Qty": qty,
+                "Unit": r["Unit"],
+                "Manufacturer": strip_tri(r["Manufacturer"]) or TBD_MANUFACTURER,
+                "Part number": strip_tri(r["Part number"]),
+                "Description": re.sub(r"\s*\([^)]*\)", "", desc) if tbd else desc,
+                "Tags": re.sub(r"^(-UC1) \(plate\)$", r"\1-plate", tags),
+                "Folios": strip_tri(r["Folios"]),
+            }
+        )
+    check(len(out) == 27, f"section 14.1 has {len(out)} rows, 27 expected")
+    fixture(
+        "devices", "key", "-UC1-plate", "-UC1-plate", "§14.1 row 23",
+        "the Tags cell of row 23 reads '-UC1 (plate)': the expected parts list prints the plate under its fixture key",
+    )  # fmt: skip
+    return ["Pos", "Qty", "Unit", "Manufacturer", "Part number", "Description", "Tags", "Folios"], out
+
+
 def build_part_cps_templates(part_keys):
     cps = []
 
@@ -1480,10 +1520,89 @@ def build_profiles():
         return "" if c == "—" else dec(c.replace("mm²", "").strip())
 
     sizes = [
-        {"key": r["Code"], "control": mm(r["Control"]), "mains": mm(r["Mains"])}
-        for r in table_dicts("### 7.2 Size profile and class rules")
+        {"key": r["Code"], "control": mm(r["Control"]), "mains": mm(r["Mains"]), "order": str(i)}
+        for i, r in enumerate(table_dicts("### 7.2 Size profile and class rules"), start=1)
     ]
-    register("size_profile", ["key", "control", "mains"], sizes, 5)
+    register("size_profile", ["key", "control", "mains", "order"], sizes, 5)
+    fixture(
+        "size_profile", "order", "all", "(the row number of the table of section 7.2)", "§7.2",
+        "the standard-size tables of the cover list the codes in the order of doc 20 section 7.2 (DBU, WH, GNYE; BK, BU,"
+        " GNYE), not in key order: the order is a column",
+    )  # fmt: skip
+    build_profile_headers(sizes)
+
+
+# doc 08 section 4.2: the class rules, the PE rule and the bond rule of the shipped company size profile (the sample
+# of the pilot basic project). Doc 20 gives them in prose only ("Circuit class: ..."), so they are fixture choices.
+CLASS_RULES = [
+    {"select": {"ptype": ["pe", "pen", "fe"]}, "class": "pe"},
+    {"select": {"discipline": "bus"}, "class": "bus"},
+    {"select": {"analogue": True}, "class": "analogue"},
+    {"select": {"ac_dc": "ac", "u_min": "50"}, "class": "mains"},
+    {"select": {}, "class": "control"},
+]
+PE_CLASS = "highest_at_ends"
+BOND_RULE = {"colour_from": "pe", "class_from": "non_pe_side"}
+COLOUR_PROFILE_KEY = "company.dbu-wh-24v"
+
+
+def build_profile_headers(sizes):
+    """``profiles.csv``: the colour profile and the size profile of the project (key, name, basis, standards text, the
+    company code, verification), read from doc 20 sections 7.1, 7.2 and the register of unknowns (U-35)."""
+    marker = '### 7.1 Colour profile "'
+    heading = DOC_LINES[find_line(marker)]
+    name = re.match(r'^### 7\.1 Colour profile "([^"]+)"', heading)
+    check(name, f"section 7.1: the heading {heading!r} names no profile")
+    basis_line = next((ln for ln in DOC_LINES[find_line(marker) :] if ln.startswith('Basis: "')), None)
+    check(basis_line, "section 7.1: no 'Basis: \"...\"' line")
+    note = re.match(r'^Basis: "([^"]+)"', basis_line).group(1)
+    company = re.search(r"(\w+) is a company code \((\w+), (\w+) shade\)", note)
+    check(company, f"section 7.1: the basis {note!r} declares no company code")
+    u35 = next((ln for ln in DOC_LINES if ln.startswith("| U-35 ")), None)
+    check(u35, "the register of unknowns has no U-35")
+    standards = re.search(r'"([^"]+)" kept', u35)
+    check(standards, f"U-35: no quoted standards text in {u35!r}")
+    check(note.startswith("company convention"), f"section 7.1: the basis {note!r} is not the company convention")
+    control = {r["control"] for r in sizes if r["control"]}
+    mains = {r["mains"] for r in sizes if r["mains"]}
+    check(len(control) == 1 and len(mains) == 1, f"section 7.2: the size classes hold {control} and {mains}")
+    size_name = f"{next(iter(control))}/{next(iter(mains))}"
+    compact = lambda v: json.dumps(v, separators=(",", ":"), ensure_ascii=False)  # noqa: E731
+    cols = [
+        "key", "profile", "name", "basis", "basis_note", "standards", "dbu_code", "verified", "pe_class", "class_rules",
+        "bond_rule",
+    ]  # fmt: skip
+    rows = [
+        {
+            "key": COLOUR_PROFILE_KEY, "profile": "colour", "name": name.group(1), "basis": "company_convention",
+            "basis_note": note, "standards": standards.group(1),
+            "dbu_code": ":".join(company.groups()), "verified": "true",
+        },
+        {
+            "key": f"company.{size_name.replace('/', '-')}", "profile": "size", "name": size_name, "verified": "true",
+            "pe_class": PE_CLASS, "class_rules": compact(CLASS_RULES), "bond_rule": compact(BOND_RULE),
+        },
+    ]  # fmt: skip
+    register("profiles", cols, rows, 2)
+    fixture(
+        "profiles", "key", "colour", COLOUR_PROFILE_KEY, "§7.1",
+        "the profile id of the shipped company profile of doc 08 section 4.2; the size profile's id is its name"
+        " ('0.75/1.5', read from §7.2) with the company prefix",
+    )  # fmt: skip
+    fixture(
+        "profiles", "verified", "all", "true", "§7.1, §7.2",
+        "the golden profiles are verified data (doc 08 section 4.2)",
+    )  # fmt: skip
+    fixture(
+        "profiles", ["class_rules", "pe_class", "bond_rule"], "size", "(the rules of doc 08 §4.2 as JSON)", "§7.2",
+        "doc 20 section 7.2 gives the circuit classes in prose; the class rules, the PE class rule and the bond rule are"
+        " those of the company size profile of doc 08 section 4.2",
+    )  # fmt: skip
+    fixture(
+        "profiles", "standards", "colour", standards.group(1), "§23.1 (U-35)",
+        "the cover prints the standards text of the reference ('IEC60757 / EN60204-1', kept); the basis note stays metadata",
+        marks=["U-35"],
+    )  # fmt: skip
 
 
 def build_revisions():
@@ -2127,7 +2246,7 @@ def build_all():
     ips, ip_order = parse_ips()
     fkeys = build_functions_representations(devices, terms, ips, ip_order, ext)
     build_connections(ips, set(devices) | {t["key"] for t in terms}, conductor_keys, fkeys)
-    check(len(TABLES) == 23, f"{len(TABLES)} tables built, 23 expected: {sorted(TABLES)}")
+    check(len(TABLES) == 24, f"{len(TABLES)} tables built, 24 expected: {sorted(TABLES)}")
 
 
 def readme_with_block(text, block):
@@ -2161,6 +2280,9 @@ def main(argv):
     outputs = {name: csv_bytes(cols, rows) for name, (cols, rows) in sorted(TABLES.items())}
     for name, (cols, rows) in sorted(TABLES.items()):
         print(f"{name}.csv: {len(rows)} rows")
+    list_cols, list_rows = parts_list_expected()
+    parts_list = csv_bytes(list_cols, list_rows)
+    print(f"{PARTS_LIST_FILE}: {len(list_rows)} rows")
     print(f"README test inputs: {len(FIXTURE_CHOICES)} rows")
     readme = README_PATH.read_text(encoding="utf-8")
     new_readme = readme_with_block(readme, render_fixture_choices())
@@ -2180,6 +2302,11 @@ def main(argv):
             bad.append(f"README.md: the markers {README_BEGIN} and {README_END} are missing")
         elif new_readme != readme:
             bad.append("differs: the test-input table of README.md")
+        path = EXPECTED_DIR / PARTS_LIST_FILE
+        if not path.exists():
+            bad.append(f"missing: expected/{PARTS_LIST_FILE}")
+        elif path.read_bytes() != parts_list:
+            bad.append(f"differs: expected/{PARTS_LIST_FILE}")
         for line in bad:
             print(line)
         return 1 if bad else 0
@@ -2187,6 +2314,8 @@ def main(argv):
     TABLES_DIR.mkdir(parents=True, exist_ok=True)
     for name, data in outputs.items():
         (TABLES_DIR / f"{name}.csv").write_bytes(data)
+    EXPECTED_DIR.mkdir(parents=True, exist_ok=True)
+    (EXPECTED_DIR / PARTS_LIST_FILE).write_bytes(parts_list)
     if new_readme != readme:
         with open(README_PATH, "w", encoding="utf-8", newline="") as f:
             f.write(new_readme)

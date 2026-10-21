@@ -21,9 +21,10 @@
 //!   prints the note in one row instead; the column widths are the columns' weights;
 //! - bindings: every `title_block(page)` value, the project's date format, no display language (neutral);
 //! - embedded blocks (FR-REP-028): a drawn page's `profile_tables` block is drawn into the `tables` layer in its
-//!   rectangle: the rows of `BlockRows` split by their `table` column into the colour table (a heading row is
-//!   the basis caption, "Basis: " a label of the cover form), the control sizes and the mains sizes, each cell printed by `render` (neutral
-//!   language); the group titles are the labels of the cover form's regions. PART DATA blocks are not drawn yet;
+//!   rectangle: the rows of `BlockRows` split by their `table` column into the colour table, the control sizes
+//!   and the mains sizes; a group-header row is the title of its table, a group-footer row of the colours its
+//!   caption (the standards text) and the group-footer row of the group `note` the note under the tables; each cell
+//!   printed by `render` (neutral language). PART DATA blocks are not drawn yet;
 //! - slot values: `tag` → `displayed_tag(device, page)`, except that a terminal's own representation prints
 //!   only the terminal's designation (ID-162, doc 08 §6.7; the strip tag appears once per strip
 //!   representation) and an interruption point has no `tag` slot; `cp_designation(i)` → the designation of
@@ -313,13 +314,6 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &ew_schema::Representation, def: &Sym
     out
 }
 
-/// The titles of the cover's three regions (the labels of the cover form).
-const COVER_TITLES: [&str; 3] = [
-    "CABLE COLOUR DEFINITIONS",
-    "STANDARD SIZES CONTROL",
-    "STANDARD SIZES MAINS",
-];
-
 /// The embedded blocks of a drawn page that the scene draws: the `profile_tables` blocks.
 fn embedded_views(q: &Q, page: Id<Page>) -> Vec<EmbeddedView> {
     q.report_blocks()
@@ -351,15 +345,15 @@ fn cover_tables(q: &Q, block: &ReportBlock) -> CoverTables {
     };
     let colour_keys = ["voltage_class", "function", "potential_type", "colour"];
     let mut cover = CoverTables::default();
-    cover.colours.title = COVER_TITLES[0].to_owned();
     cover.colours.header = colour_keys.map(label).to_vec();
-    cover.control.title = COVER_TITLES[1].to_owned();
-    cover.mains.title = COVER_TITLES[2].to_owned();
     for row in &set.rows {
+        let text = cell(row, "voltage_class");
         match (cell(row, "table").as_str(), row.kind) {
-            ("colours", RowKind::Heading) => {
-                cover.colours.caption = Some(format!("Basis: {}", cell(row, "voltage_class")));
-            }
+            ("colours", RowKind::GroupHeader) => cover.colours.title = text,
+            ("control", RowKind::GroupHeader) => cover.control.title = text,
+            ("mains", RowKind::GroupHeader) => cover.mains.title = text,
+            ("colours", RowKind::GroupFooter) => cover.colours.caption = Some(text),
+            ("note", RowKind::GroupFooter) => cover.note = Some(text),
             ("colours", RowKind::Data) => cover
                 .colours
                 .rows

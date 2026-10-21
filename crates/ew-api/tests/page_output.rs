@@ -334,9 +334,9 @@ fn the_display_list_of_folio_101_is_stable() {
         labels glyphs 313e2bc4 "102-A1" origin=(260153944,172540347) size=2381250 angle=0
         labels path 313e2bc4 els=5 first=(260153944,169994791) last=(267890625,169994791) stroke=- fill=-
         labels glyphs 57543b91 "S51" origin=(36510120,42238348) size=3439583 angle=0
-        labels glyphs 57543b91 "Eaton" origin=(54901042,39876148) size=2381250 angle=0
+        labels glyphs 57543b91 "Eaton" origin=(54901042,38553231) size=2381250 angle=0
         labels glyphs 57543b91 "533356" origin=(54901042,41860523) size=2381250 angle=0
-        labels glyphs 57543b91 "40 A" origin=(54901042,43844898) size=2381250 angle=0
+        labels glyphs 57543b91 "40 A" origin=(54901042,45167815) size=2381250 angle=0
         labels glyphs 57543b91 "1" origin=(45640625,38836865) size=1322917 angle=0
         labels glyphs 57543b91 "2" origin=(45640625,44128531) size=1322917 angle=0
         labels glyphs 57543b91 "3" origin=(50932292,38836865) size=1322917 angle=0
@@ -347,23 +347,23 @@ fn the_display_list_of_folio_101_is_stable() {
         labels glyphs 6112da7c "X1" origin=(236140625,101675406) size=1322917 angle=0
         labels glyphs 6112da7c "X2" origin=(236140625,108289990) size=1322917 angle=0
         labels glyphs 66c620c1 "1" origin=(35735684,80602931) size=3439583 angle=0
-        labels glyphs 682aa707 "T55" origin=(205713542,62082097) size=3439583 angle=0
-        labels glyphs 682aa707 "15 °C" origin=(205713542,64350106) size=2381250 angle=0
+        labels glyphs 682aa707 "T55" origin=(205713542,61420639) size=3439583 angle=0
+        labels glyphs 682aa707 "15 °C" origin=(205713542,65011564) size=2381250 angle=0
         labels glyphs 682aa707 "5" origin=(202311000,59342072) size=1322917 angle=0
         labels glyphs 682aa707 "3" origin=(202311000,65956656) size=1322917 angle=0
-        labels glyphs 682aa707 "SK 3110.000" origin=(205713542,66995939) size=2381250 angle=0
+        labels glyphs 682aa707 "SK 3110.000" origin=(205713542,68318856) size=2381250 angle=0
         labels glyphs 7b76f7a3 "-101F1" origin=(124175045,38269598) size=3439583 angle=0
-        labels glyphs 7b76f7a3 "Schneider Electric" origin=(147505208,35907398) size=2381250 angle=0
+        labels glyphs 7b76f7a3 "Schneider Electric" origin=(147505208,34584481) size=2381250 angle=0
         labels glyphs 7b76f7a3 "A9P52610" origin=(147505208,37891773) size=2381250 angle=0
-        labels glyphs 7b76f7a3 "C10" origin=(147505208,39876148) size=2381250 angle=0
+        labels glyphs 7b76f7a3 "C10" origin=(147505208,41199064) size=2381250 angle=0
         labels glyphs 7b76f7a3 "1" origin=(138244791,33545198) size=1322917 angle=0
         labels glyphs 7b76f7a3 "2" origin=(138244791,41482698) size=1322917 angle=0
         labels glyphs 7b76f7a3 "N" origin=(146182291,33545198) size=1322917 angle=0
         labels glyphs 7b76f7a3 "N" origin=(146182291,41482698) size=1322917 angle=0
         labels glyphs 8c4dbb72 "F55" origin=(192717473,38269598) size=3439583 angle=0
-        labels glyphs 8c4dbb72 "Siemens" origin=(211005208,35907398) size=2381250 angle=0
+        labels glyphs 8c4dbb72 "Siemens" origin=(211005208,34584481) size=2381250 angle=0
         labels glyphs 8c4dbb72 "5SY4204-7" origin=(211005208,37891773) size=2381250 angle=0
-        labels glyphs 8c4dbb72 "C4" origin=(211005208,39876148) size=2381250 angle=0
+        labels glyphs 8c4dbb72 "C4" origin=(211005208,41199064) size=2381250 angle=0
         labels glyphs 8c4dbb72 "1" origin=(201744791,33545198) size=1322917 angle=0
         labels glyphs 8c4dbb72 "2" origin=(201744791,41482698) size=1322917 angle=0
         labels glyphs 8c4dbb72 "N" origin=(209682291,33545198) size=1322917 angle=0

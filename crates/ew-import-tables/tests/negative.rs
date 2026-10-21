@@ -618,6 +618,49 @@ fn a_device_parent_cycle_is_dropped_with_its_children() {
     assert_eq!(devices(&b), 1);
 }
 
+/// A profile table needs its header row in `profiles.csv` (key, name, basis, standards): without one the table is
+/// ignored and reported; with one the members of the project settings appear.
+#[test]
+fn a_profile_table_without_its_profiles_row_is_ignored() {
+    let colours = "key,voltage_class,function,code\n1,24 VDC,Positive,DBU\n";
+    let b = run(&[("colour_profile.csv", colours)]);
+    let unresolved = errors(&b, 3);
+    assert_eq!(unresolved.len(), 1, "{:#?}", b.report.entries);
+    assert!(unresolved[0].message.contains("profiles.csv has no `colour` row"));
+    let project = b
+        .records
+        .iter()
+        .find_map(|r| match r {
+            Record::Project(p) => Some(p),
+            _ => None,
+        })
+        .expect("the project");
+    assert!(!project.settings.extra.contains_key("colour_profile"));
+
+    let profiles = "key,profile,name,basis,dbu_code\nc.p,colour,P,company_convention,DBU:BU:dark\n";
+    let b = run(&[("colour_profile.csv", colours), ("profiles.csv", profiles)]);
+    assert!(b.report.entries.is_empty(), "{:#?}", b.report.entries);
+    let project = b
+        .records
+        .iter()
+        .find_map(|r| match r {
+            Record::Project(p) => Some(p),
+            _ => None,
+        })
+        .expect("the project");
+    let colour = &project.settings.extra["colour_profile"];
+    assert_eq!(colour["key"], "c.p");
+    assert_eq!(colour["codes"][0]["code"], "DBU");
+    // A malformed company code or JSON drops the profile row.
+    let bad = "key,profile,name,dbu_code\nc.p,colour,P,DBU\n";
+    let b = run(&[("colour_profile.csv", colours), ("profiles.csv", bad)]);
+    assert!(
+        b.report.with_code(Code::imp(2)).count() >= 1,
+        "{:#?}",
+        b.report.entries
+    );
+}
+
 /// Technical data cells are `<key>=<value>` items: a malformed item, an unknown unit or a repeated key drops
 /// the row; a good cell becomes typed values of the device, in key order.
 #[test]

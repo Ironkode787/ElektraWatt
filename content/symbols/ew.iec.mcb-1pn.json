@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "b1057f75-bba8-5767-8b57-58c39a3f88fe",
   "version": "0.1.0",
-  "sha256": "sha256:d5d9ff8e07fedd01524ef52d687380c2577996f31ccf79990177d73a319205c4",
+  "sha256": "sha256:a55f5bc792f2512b3e1329a2efd7090f570470b98da9cd092863d155f6d7cfb8",
   "meta": {
     "key": "ew.iec.mcb-1pn",
     "licence": "CC-BY-SA-4.0",
@@ -309,7 +309,7 @@
       "kind": "manufacturer",
       "pos": [
         15000000,
-        5000000
+        3000000
       ],
       "align": "middle_left",
       "visible": true
@@ -327,7 +327,7 @@
       "kind": "tech_data",
       "pos": [
         15000000,
-        11000000
+        13000000
       ],
       "align": "middle_left",
       "visible": true
