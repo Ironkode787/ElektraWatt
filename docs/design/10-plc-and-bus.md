@@ -1,6 +1,6 @@
 # PLC, I/O and fieldbus
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.2 · **Date:** 2026-10-21 (v0.2: cycle-13 design pass: the PLC record kinds, channels and the DP bus potential as built, §2.2–§2.4, §2.6, §2.10, §3.2, §3.3, §3.8, §5; decision log ID-333 to ID-337) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) models PLC configuration projects, stations, modules,
 channels and fieldbus networks. It defines how EW derives addresses, symbols, function texts and targets instead of
@@ -116,6 +116,8 @@ conflict, while the same symbol renamed on both sides gives one conflict row. Ow
 field group whose owner is then `Plc`: before that import, EW edits of the DP station address (Golden A-R sets 3)
 are ordinary edits, flagged "export pending".
 
+**As built (cycle 13; decision log ID-333).** `plc_config_project` (rank 11, `project.jsonl`) is typed in `ew-schema` with `name`, `profile` (the pinned reference `id@version`, here `siemens-tia-intl@2027.1`) and `cpu`, plus the import-provenance member `source_ref`. The address grammar lives in the new permissive crate `ew-plcaddr` (addresses, the built-in TIA address profile, unit intervals and the part map language of §2.6). `allocation`, `ownership`, `symbols` and `exchange` are not typed yet and stay in `extra` until their work packages, so the ownership table above and the protection of §3.9 are design only. Golden A has one configuration project, `PLC1`, without a CPU. The kind was already reserved with its rank and ownership, so it was implemented additively within format 0.1 (decision log ID-334). Deleting the CPU device unlinks `cpu`; a configuration project cannot be deleted while a `plc_station` aspect still names it.
+
 ### 2.3 Stations and modules
 
 ```rust
@@ -153,6 +155,8 @@ on a tag or on the page a child is drawn on (D-41).
 
 **A module's I/O widths come from part data** (§2.6). A module may have an input and an output range at once, so
 `start` holds one `AddrSpec` per direction. AR APC carries the same list of `{StartAddress, Length, IoType}`.
+
+**As built (cycle 13; decision log ID-333, ID-337).** `plc_station` carries `config_project`, `role` (`StationRole`, all seven variants) and `order`. `plc_module` carries `slot` (`SlotPath`: `positional`, the default, or `rack` with rack, slot and subslot), `start` (`IoStarts`; `auto` for both directions by default), `part_use` and `integrated`. Not typed, and kept in `extra` until their work packages: `PlcStation.firmware`, `PlcStation.dd` (§2.8), `PlcModule.type_ident` (with the `plc_card_list` of §5) and `PlcModule.safety` (§2.9). The aspects are written in the member order of [05](05-project-format-and-persistence.md) §3.1: `assembly` (held verbatim until its work package) before `plc_station` before `plc_module`. The module order of `module_order` is: stations by (`order`, ID); within a station, rack slots first by (rack, slot, subslot), then positional modules in manifold order, whose slot is their 1-based rank. Golden A has seven modules (-201U3 … -201U8, -202U2).
 
 ### 2.4 Channels
 
@@ -193,6 +197,8 @@ pub struct Channel {                     // shard of its module device; id = v5(
 | Function text | none: it is edited at the target device | the target device's determined function text, else the tracked process tag of the device it drives (§3.4) | MVP for direct targets; 1.0 for traced targets |
 | Comment | `Channel.comment` | `{function_text}` at export, if empty | 1.0 |
 | Target | `Channel.target` (FR-PLC-054) | target tracking (§3.5) | MVP direct; 1.0 traced (FR-PLC-018) |
+
+**As built (cycle 13; decision log ID-333, ID-335).** `channel` (rank 37, in the shard of its module device) is typed with `module`, `number`, `designation`, `kind`, `address` (`AddrSpec`: `auto`, the default, `manual`, `excluded`, `tbd`), `state`, `symbol`, `comment`, `binding`, `target` and the import-provenance member `source_ref`. `ChannelKind` has `di`, `do`, `ai`, `ao`, `counter`, `io_link_port` and `power_supply`; `multi_function` (§3.8) is additive. Not members of the record, and kept in `extra` until their work packages: `data_type`, `aux_pins`, `signal_range` and `safety`. Until then the data type is the part's (`ChannelSpec.data_type` in the part section, §2.6), not a channel member. **Channel IDs** are `v5(module, "channel", number)` (ADR-0004 amendment 2; `ew_ids::v5::plc_channel_id`); the golden importer maps each `channels.csv` row to that ID, not to the `v5(ns, "channels|key")` of the other golden tables, so two branches that add the same module mint the same channel IDs (decision log ID-335). `source_ref.key` still reads `channels|<label>`. **Channels come only from import**: the channel-creating normaliser N1 of §3.3 is not built. Link policy: a channel is deleted with its module; deleting the bound function or the target function unlinks the member. An older 0.1 build keeps channel records verbatim but does not enforce these links; a check for orphan channels is FT-229, and FT-230 tests the older-build case (decision log ID-334).
 
 ### 2.5 Addresses and address profiles
 
@@ -311,6 +317,8 @@ The valve part 571334 declares `solenoids = ["14"]` in its fluid section ([11](1
 - **The bus-port signal map** resolves per-core pins where a multi-line representation of the port exists. It
   answers [08](08-connections-terminals-cables.md) Open question 5 (FR-BUS-023).
 
+**As built (cycle 13; decision log ID-333).** The part section is `sections.plc` (`PlcSection`): `role` (`station` or `module`), `io` (a list of `IoRange{dir, bits, class}`), `channels` (`ChannelSpec{count, kind, data_type, designation}`), `bit_of` and `unbound` (the state of channels neither bound nor claimed; absent: spare). `bit_of` is a `MapSpec`: `MapSpec::Expr` holds the expression text of the map language (`"n"`, `"16n"`, `"2p+1"`) and `MapSpec::List` an explicit list. The schema stores the text; `ew-plcaddr` (`MapExpr`) parses it and the derivation gives an unresolved address for a map it cannot parse. Not modelled yet, and kept in `extra`: the solenoid-position map `[plc.positions]` (FT-228, with EW-PLC-012 from FT-192), the supply groups, the earth pin, the bus ports and the `meta` confidence. Golden A has one `part_plc` row, part 533361: module, `out:8`, 8 `do` channels, `Bool`, designation `{n}`, `bit_of = "n"`, `unbound = deactivated`.
+
 ### 2.7 Bus model
 
 ```rust
@@ -405,6 +413,8 @@ configuration project or network (ARCH §6.3).
 `ew query channel_addresses -201U3 --explain` prints the dependency trail and provenance of each address
 (ARCH §6.8).
 
+**As built (cycle 13; decision log ID-333).** `ew-derive` implements `module_order(cfg)`, `module_starts(cfg)`, `channel_addresses(module)`, `channel_states(module)`, `channel_targets(module)`, `channel_texts(module)` and `plc_rows(station)` (the queries `ModuleOrder`, `ModuleStarts`, `ChannelAddresses`, `ChannelStates`, `ChannelTargets`, `ChannelTexts` and `PlcRows`), with algorithms A1 and A2 of §3.1, A3 of §3.2 (without step 4) and the direct targets of §3.5. Not built: `address_index`, `bus_segments`, `net_members` and `exchange_image`. A module reads its own channels by ID, but the per-module early cut-off of `module_starts` is not built: an edit re-runs `channel_addresses` for every module of the configuration project (FT-224; FR-PLC-012, AC-29). `plc_rows` feeds the `plc_overview` report kind (§5).
+
 ---
 
 ## 3. Behaviour and rules
@@ -490,6 +500,8 @@ monostable 571334 declares. **Both hypotheses therefore give 8 used, 20 spare an
 ([20](20-golden-project.md) §11.2). The PLC overview lists all 56. New I/O-list blocks default to
 `state != Deactivated` and list 28 rows (FR-PLC-019, FR-PLC-023).
 
+**As built (cycle 13; decision log ID-333).** `channel_states` applies steps 1, 2, 3 and 5. Step 4 (the position map claims a channel) is not modelled, because the part section has no solenoid-position map yet (FT-228, with EW-PLC-012 from FT-192). On Golden A step 4 changes nothing under either hypothesis, so the counts above (8 used, 20 spare, 28 deactivated) hold.
+
 ### 3.3 Binding and normalisers
 
 The normalisers run in the commit pipeline (ARCH §5.2); [06](06-schematic-editor.md) §3.2 holds the registry and
@@ -524,6 +536,8 @@ configuration project's profile (prefixes "" and "%"):
    `Manual(text)` so the print is preserved, and let EW-PLC-012 (discriminator `manual`) report the deviation.
 3. **Ambiguous or no module.** The text goes to the import review list (FR-IMP-017 uncertain matches); nothing is
    bound.
+
+**As built (cycle 13; decision log ID-333).** The channel-creating normaliser N1 is not built: channels come only from import (the golden importer reads `channels.csv`, §2.4), and a change of a module's part creates or removes none. `Channel.binding` is stored as an `Endpoint` (a CP of the module or of the served coil); the golden project binds channel 2p + 1 to coil 14 of valve position p + 1, as drawn.
 
 ### 3.4 Symbols, designations and function texts
 
@@ -674,6 +688,8 @@ such as 32 bytes ▲). In IO-Link mode the connected device's IODD supplies the 
 data type: the Balluff sample's 88 input bits give an 11-byte input window and a struct-typed symbol. The module's
 I/O width is the sum of its port windows in their current modes, so a mode change re-runs A1 for the following
 Auto modules (§8, item 10). EW-IOL-002 compares the IODD lengths with the window.
+
+**As built (cycle 13; decision log ID-333, ID-336; FT-105).** The `BusPort`, `LogicalNet` and `PhysicalNet` kinds and `bus_segments` are not built (FT-225), so Golden A models the DP line as an interim. A1 of the plug's In entry and A of the DP port are the representative CPs of the single-line bus line. `DP.1` (page 3, cable -3W1) is the whole cable from the external end to -3X1 In. `DP.2` is the plug-on mating, a page-less `Bus` connection without a cable (§2.7). The DP potential is defined at -201U1:A with circuit class `bus` and no voltage; the pages of a bus potential come from its `Bus` connections, because a bus line joins nets but is no wire. Its colour and size come from the cable (`BusLine.cable`), so the colour/size cell of folio 909 prints "(cable)". Folio 909's DP row has 3 members where doc 20 prints 4: the cable is an edge of the segment graph, not a member (A5 above), which is a model limit until FT-225. The station address "TBD" waits for `BusPort` as well (§5).
 
 ### 3.9 Commands, freezing and ownership
 
@@ -1051,6 +1067,8 @@ Q6.7; valve DTs; printed function texts TA05-V-15 … (the driven devices' proce
 20 spare, 28 deactivated; one link per bound row to the valve on 203–206 (AC-29). The network address list has two
 rows: JE-N1000-03 (master, external) and -201U1 (slave, `Tbd` flagged).
 
+**As built (cycle 13; decision log ID-333).** `plc_overview` is a report kind in `ew-reports` over `plc_rows(station)`. Folio 908 prints the column set of the table above (module, part, address, channel number, designation, kind, symbol, function text, process tag, target, state and the page cell), a superset of the table of doc 20 §11.3. Every row whose channel is bound to a coil (8 used and 20 spare) links with `LinkTarget::Cp` to the coil position, the "link to the main representation" of the table; the golden PDF has 92 link annotations, 64 cross-reference links plus these 28. The station address "TBD" is not printed, because there is no `BusPort` record yet (FT-225). The station list is the block's manual selection of stations, else every station in natural tag order.
+
 ---
 
 ## 6. UI and UX touchpoints
@@ -1143,6 +1161,8 @@ rows: JE-N1000-03 (master, external) and -201U1 (slave, `Tbd` flagged).
 | 201–202 | assembly overview generated from the children in manifold order | "∞ 203-B4" … "∞ 206-B4"; 4 valves on -202U2 | FR-DEV-023, FR-XRF-016 |
 | 203–206 | 28 valve representations, each drawing fluid function + coil function; 28 bindings | Q0.1 … Q6.7 from `channel_addresses`; TA05-V-xx from the driven device's process tag (used valves carry no function text), or the manual function text "Spare" | FR-PLC-011, FR-FLU-005 |
 | 908 (new) | `plc_overview` report block | 56 rows on 908–908.2 | FR-PLC-022 |
+
+**As built (cycle 13; decision log ID-333).** The coil addresses on folios 203–206 (Q0.1 … Q6.7) are not printed yet; their text slot is FT-227. Folio 908 is built (§5). Folio 3's "Node TBD" waits for the `BusPort` record (FT-225; §3.8).
 
 ### 9.2 Module -201U3 under H1 and H2
 

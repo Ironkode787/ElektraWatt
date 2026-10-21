@@ -148,10 +148,11 @@ Format 0.1 is unreleased; these entries record what changed since the first gold
 | Object payloads of enum variants carry `extra` | 0.1 | No change on the wire |
 | Sets and keyed lists are enforced on read | 0.1 | Files that were unsorted were never canonical |
 
-Known limitation: device aspects that v0 does not implement (`assembly`, `plc_station`, `plc_module`,
-`bus_node`, `valve_terminal`) are kept in `extra` and therefore written in byte-wise key order after
-`cable`, not in doc 05 §3.1's aspect order (`plc_module` would precede `plc_station`). The order becomes
-doc 05's as each aspect is implemented; until then an untouched record keeps its original line.
+Aspect order (cycle 13, decision log ID-337): `strip`, `terminal`, `cable`, `assembly`, `plc_station`,
+`plc_module` are written in doc 05 §3.1's order; `assembly` is held verbatim in its own slot so that it keeps its
+place before `plc_station`. Known limitation: `bus_node` and `valve_terminal`, not yet implemented, are kept in
+`extra` and therefore written in byte-wise key order after the typed aspects, which equals doc 05's order for these
+two; until they are implemented an untouched record keeps its original line.
 
 ## How to add a kind
 

@@ -846,11 +846,10 @@ its report with the committed `expected/acceptance_headless.md` (so two runs mus
 `expected/csv/` holds the report rows of the acceptance pairs (doc 20 §3.1): `terminals_1X1.csv`,
 `terminals_X1031.csv`, `terminals_X1032.csv` (903 … 905), `cables.csv` (906), `wires.csv` (907) and
 `potentials.csv` (909), byte-equal to `expected/rows/<folio>.csv`. The runner compares the derived rows with them.
-The SQL half of each pair (`acceptance/*.sql` over the `api_v1` views) is `not_built`: SQL projection pending
-(WP-S1.10).
+The SQL half of each pair (`acceptance/*.sql` over the `api_v1` views) runs since cycle 13 (WP-S1.10, decision log
+ID-328) and returns `expected/csv/` row by row.
 
-The headless report of this revision: 85 entries, 58 pass, 3 fail, 18 not_built, 6 not_applicable (the full run adds
-the raster comparison as a pass). AC-03 (36 folios, FT-111) and AC-10 (19 potentials, FT-105) pass. The failures are
-SQL halves: AC-09 and AC-15 (`acceptance/wires.sql`, the SQL projection's pending fix) and AC-10
-(`acceptance/potentials.sql`: the DP row's "(cable)" needs the bus cable in `api_v1_potential`, a projection
-column the SQL lane adds). An empty terminal designation refused at the parameter layer counts as refused for D-11 (ADR-0008).
+The headless report of this revision: 85 entries, 61 pass, 0 fail, 18 not_built, 6 not_applicable, 0 oracle
+mismatches (the full run adds the raster comparison as a pass; decision log ID-338). AC-03 (36 folios, FT-111) and
+AC-10 (19 potentials, FT-105) pass, and so do their SQL halves: `acceptance/potentials.sql` prints the DP row's
+"(cable)" through the Preview column `api_v1_potential.bus_cable_ids`. The M1 gap list has no fails left. An empty terminal designation refused at the parameter layer counts as refused for D-11 (ADR-0008).

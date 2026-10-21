@@ -1,6 +1,6 @@
 # Golden project: acceptance-test specification
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (cycle-11 design pass 2026-10-21: Golden B as built, Golden C runnable, acceptance runner statuses; cycle-12 design pass 2026-10-21: Golden C as built, the M1 gap list at the cycle-12 counts) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (cycle-11 design pass 2026-10-21: Golden B as built, Golden C runnable, acceptance runner statuses; cycle-12 design pass 2026-10-21: Golden C as built, the M1 gap list at the cycle-12 counts; cycle-13 design pass 2026-10-21: the computed wire numbers, the DP row and folio 908 as built, the M1 gap list closed) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -546,6 +546,12 @@ overrides".
 24VDC-2, 24VDC-3 and 24VDC-4 are the spare outputs of -102F2. They carry the voltage and class of the 24 V DC control
 supply, so the colour rule of §7.1 applies to their wires W30 to W32 (DBU 0.75 mm²; decision log ID-235).
 
+The DP row as built (cycle 13; decision log ID-336): until the bus kinds exist (FT-225), the bus is modelled
+single-line, with a page-less `Bus` connection for the plug-on mating of -3X1, and the potential is defined at
+-201U1:A (class bus, no voltage). Folio 909 prints 3 members, -201U1:DP, -3X1 and the external end: the cable -3W1 is
+an edge of the bus line, not a member ([10](10-plc-and-bus.md) §3.8 A5), so the Members cell above names one member
+more than the model has (a model limit, accepted). The colour and size cell prints "(cable)" from the bus line's cable.
+
 N-55T and N-55S are switched neutrals. The fixture defines them for naming only: their type (N switched), voltage
 (230 V AC) and circuit class (mains, from N-55) are derived across the pass-through pairs of T55 and S56
 ([domain model](03-domain-model.md) §9.4), never stored, and the potential overview (folio 909) prints the derived
@@ -789,6 +795,12 @@ field device, or the manual function text "Spare". Folio 908 lists all 56 channe
 function text, process tag (separate columns), state and a cross-reference to the coil's representation on 203–206
 (FR-PLC-022). Symbols are empty in Golden A; from 1.0 they derive from the
 template `{target.process_tag}` with IEC 61131-3 cleaning (TA05_V_15, FR-PLC-017, FR-PLC-047).
+
+**As built (cycle 13; decision log ID-333).** Folio 908 prints the `plc_overview` column set of
+[10](10-plc-and-bus.md) §5 (module, part, address, channel number, designation, kind, symbol, function text, process
+tag, target, state, page: the cell reference of the coil), a superset of the table above, over 908, 908.1 and 908.2 with 23, 23 and 10 rows. Each row whose channel is bound to a coil (28: 8 used, 20
+spare) links to the coil's position (`LinkTarget::Cp`), so the PDF has 92 link annotations (64 + 28). The station address "TBD" is not printed yet (no `BusPort`, FT-225),
+and the coil addresses on 203–206 follow with FT-227.
 
 ---
 
@@ -1395,20 +1407,23 @@ plan of record is the lean variant, which moves AC-25 … AC-27 to G-M3 (lever b
 (lever c), as in the table ([vision](00-vision-and-scope.md) §9.1). The **Gate** column of §21 names the full-scope
 milestone; the table above is the gate assignment of the plan of record.
 
-The acceptance runner reports pass/fail per AC and per D-nn (NFR-MAINT-11). **As built (cycle 11; decision log ID-285).** `cargo xtask acceptance <report.md> [--milestone]` runs the headless M1 subset through nextest with `--profile ci` (JUnit XML) and writes the Markdown report. `--milestone` runs the release profile with `EW_PERF_ASSERT=1` and measures AC-17; without it AC-17 is `not_applicable`. Each entry has one of four statuses: `pass`, `fail`, `not_built` (the feature or the comparison does not exist yet; blocks like a failure) and `not_applicable` (cannot be evaluated by this run; does not block). `not_applicable` needs one of four reasons: headless, pilot, external tool or BM runner. A criterion that passes in part is split into its own entries, one per check. The committed report `golden/J-E-2416/expected/acceptance_headless.md` is compared by the ordinary test, which runs the runner once. Current counts (cycle 12, decision log ID-320): **83 entries: 51 pass, 2 fail, 24 not_built, 6 not_applicable**, with 0 oracle mismatches; the full runner (raster on) adds the raster comparison of AC-02 as a pass. Acceptance criteria compare against doc 20's data (the committed expected files, generated from doc 20), never against the importer's own output; AC-07 compares row by row against a committed `expected/parts_list_14_1.csv` with a documented list of accepted differences (lane B's cycle-12 fix round). The golden README ("Acceptance runner") has the details.
+The acceptance runner reports pass/fail per AC and per D-nn (NFR-MAINT-11). **As built (cycle 11; decision log ID-285).** `cargo xtask acceptance <report.md> [--milestone]` runs the headless M1 subset through nextest with `--profile ci` (JUnit XML) and writes the Markdown report. `--milestone` runs the release profile with `EW_PERF_ASSERT=1` and measures AC-17; without it AC-17 is `not_applicable`. Each entry has one of four statuses: `pass`, `fail`, `not_built` (the feature or the comparison does not exist yet; blocks like a failure) and `not_applicable` (cannot be evaluated by this run; does not block). `not_applicable` needs one of four reasons: headless, pilot, external tool or BM runner. A criterion that passes in part is split into its own entries, one per check. The committed report `golden/J-E-2416/expected/acceptance_headless.md` is compared by the ordinary test, which runs the runner once. Current counts (cycle 13, decision log ID-338): **85 entries: 61 pass, 0 fail, 18 not_built, 6 not_applicable**, with 0 oracle mismatches (cycle 12, ID-320: 83 entries, 51 pass, 2 fail, 24 not_built, 6 not_applicable); the full runner (raster on) adds the raster comparison of AC-02 as a pass. Acceptance criteria compare against doc 20's data (the committed expected files, generated from doc 20), never against the importer's own output; AC-07 compares row by row against a committed `expected/parts_list_14_1.csv` with a documented list of accepted differences (lane B's cycle-12 fix round). The golden README ("Acceptance runner") has the details.
 
-**M1 gap list (the 2 fails at the cycle-12 counts; decision log ID-320).**
+**M1 gap list: no fails left (cycle 13; decision log ID-338).** The two fails of the cycle-12 counts (ID-320) are
+closed:
 
-| Gap | Failing entries | Follow-up |
+| Gap at cycle 12 | Entries | Closed by |
 |---|---|---|
-| Page order: 34 of 36 folios present (908.1 and 908.2 need PLC channel records) | AC-03 | FT-111 |
-| 18 of 19 potentials; DP via Bus connections | AC-10 | FT-105 |
+| Page order: 34 of 36 folios present (908.1 and 908.2 need PLC channel records) | AC-03 | FT-111 (cycle 13, ID-333): 36 of 36 folios, 908 split 23, 23 and 10 rows |
+| 18 of 19 potentials; DP via Bus connections | AC-10 | FT-105 (cycle 13, ID-336): 19 of 19 potentials; the DP row prints 3 members and "(cable)" |
+
+What remains before G-M1 are the 18 `not_built` entries below and the owner-side items of the plan.
 
 Closed in cycle 12: AC-04 and D-05 (FT-62, FT-160), AC-07 and D-04 (27 rows, FT-110), AC-12 (FT-159), D-12 (both entries, FT-161), D-18 and D-33 (FT-162), D-37, and the page goldens built with the colour and size profiles (FT-65). Folio 911 is still a placeholder (deriving `revision_overview` from the revision records is FT-207).
 
-Closed in cycle 13: AC-09 and D-09 (the wire numbers, FT-100; the numbers of W1 to W5, W7 and W9 are provisional until FT-101), the replacement check of D-22 (EW-POT-001), and, **as built (WP-S1.10)**, the SQL halves of AC-08 … AC-11 (`acceptance/terminals_1X1.sql`, `terminals_X1031.sql`, `terminals_X1032.sql`, `wires.sql`, `potentials.sql` and `cables.sql` over the `api_v1` views return `expected/csv/` row by row) and the new AC-15 entry (the acceptance SQL returns the same CSVs over path (a) and over the checked-in fixture (c)).
+Closed in cycle 13: AC-03 (36 of 36 folios, FT-111) and AC-10 (19 of 19 potentials, FT-105; the SQL half through the Preview column `api_v1_potential.bus_cable_ids`, ID-336); AC-09 and D-09 (the wire numbers, FT-100; the numbers of W1 to W5, W7 and W9 are provisional until FT-101), the replacement check of D-22 (EW-POT-001), and, **as built (WP-S1.10)**, the SQL halves of AC-08 … AC-11 (`acceptance/terminals_1X1.sql`, `terminals_X1031.sql`, `terminals_X1032.sql`, `wires.sql`, `potentials.sql` and `cables.sql` over the `api_v1` views return `expected/csv/` row by row) and the new AC-15 entry (the acceptance SQL returns the same CSVs over path (a) and over the checked-in fixture (c)). AC-13 counts 92 link annotations on the 36 pages: the 64 cross-reference items plus 28 row links of the PLC overview (ID-333).
 
-The 18 `not_built` entries are AC-01 (vector comparison of the written PDF), AC-06 (PDF text layer), AC-07 (assembly BOM and `ew export bom`), AC-11 (`ew export cables`), AC-13 (text extraction keeps spaces), AC-14 (SVG and parallel export), AC-15 (builder DSL path (b)), AC-16 (freshness edits), D-03 (numbering report EF-15), D-06 (override info and property grid), D-14 (forcing the origin anchor), D-17 (strict and lenient import), D-20, D-22 (EW-POT-002, PELV bonding), D-30 (the cover binds the customer), D-35, D-36 and D-41. The 6 `not_applicable` entries are AC-02 raster (headless approval), AC-13 veraPDF (external tool), AC-14 Linux byte identity (evaluated by the platform CI job), AC-15 path (a) = (c) (evaluated by the fixture test), AC-17 (BM runner; `--milestone`) and AC-39 (`cargo xtask check-anonymisation`). AC-13's PDF/A-2b requirement passes through krilla's PDF/A-2b validator; the veraPDF cross-check is `not_applicable` headless and runs in the CI job that has veraPDF (decision log ID-287).
+The 18 `not_built` entries are AC-01 (vector comparison of the written PDF), AC-06 (PDF text layer), AC-07 (assembly BOM and `ew export bom`), AC-11 (`ew export cables`), AC-13 (text extraction keeps spaces), AC-14 (SVG and parallel export), AC-15 (builder DSL path (b)), AC-16 (freshness edits), D-03 (numbering report EF-15), D-06 (override info and property grid), D-14 (forcing the origin anchor), D-17 (strict and lenient import), D-20, D-22 (EW-POT-002, PELV bonding, FT-212), D-30 (the cover binds the customer), D-35, D-36 and D-41. The 6 `not_applicable` entries are AC-02 raster (headless approval), AC-13 veraPDF (external tool), AC-14 Linux byte identity (evaluated by the platform CI job), AC-15 path (a) = (c) (evaluated by the fixture test), AC-17 (BM runner; `--milestone`) and AC-39 (`cargo xtask check-anonymisation`). AC-13's PDF/A-2b requirement passes through krilla's PDF/A-2b validator; the veraPDF cross-check is `not_applicable` headless and runs in the CI job that has veraPDF (decision log ID-287).
 
 ---
 

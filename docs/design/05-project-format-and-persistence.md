@@ -1,6 +1,6 @@
 # Project format and persistence
 
-**Status:** Draft v0.2 · **Date:** 2026-10-21 (v0.2: the persistence core as built and reviewed in cycle 8,
+**Status:** Draft v0.3 · **Date:** 2026-10-21 (v0.3, cycle 13: the member order of the flattened device aspects as built, §3.1, decision log ID-337; additive implementation of reserved kinds, §10.3, ID-334; v0.2: the persistence core as built and reviewed in cycle 8,
 ADR-0010 amendment 3, decision log ID-200 to ID-217; cycle 11: journal granularity of `project.settings.set`, Golden B1 files, ID-290) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
@@ -242,7 +242,8 @@ numbers live in `Connection.number`. A released revision's report snapshots live
   1. `"$k"`, `"id"`, `"$v"` (per-kind schema version, omitted when 1, §10.2);
   2. known members in **schema declaration order**;
   3. flattened device aspects (`strip`, `terminal`, `cable`, `assembly`, `plc_station`, `plc_module`, `bus_node`,
-     `valve_terminal`), as in the ARCH §7.3 example;
+     `valve_terminal`), as in the ARCH §7.3 example (as built, cycle 13: `assembly` is written before
+     `plc_station`; decision log ID-337);
   4. the `extra` map (unknown members and namespaced `plugin.<id>.*` keys, FR-EXT-021), in byte-wise key order.
 - **Defaults omitted.** A member equal to its schema default is not written: `None`, empty arrays and maps, `false`
   flags and default enum variants. Where the default is not the type's zero value the schema names it. The v0
@@ -982,6 +983,7 @@ amendment 1):
 1. **New members** are optional with a default, are **appended** after the existing members of their kind, and
    carry `since = "1.n"`, which feeds `min_reader`.
 2. **New kinds** take a new rank and declare their ownership.
+   *As built (cycle 13; decision log ID-334, ADR-0011 amendment 4).* A kind that the registry already reserves with a rank and ownership (§2.2), and a device aspect or part section that this document already names, may get its typed table within the current unreleased 0.x format: no format bump, no `$v` bump, and `schemas/0.1` is re-blessed. This is additive. An older 0.1 build keeps such records verbatim (a reserved kind, ID-206) or their members in `extra`, but it does not enforce their links: an older build that deletes a module leaves its channels dangling (FT-229 reports them, FT-230 tests that case). Precedent: FT-84, decision log ID-197.
 3. **Enums.** Every persisted enum has an `Unknown(serde_json::Value)` catch-all, so adding a variant is additive.
    Derivations treat `Unknown` conservatively: an unknown connection kind joins no net and is drawn grey and dashed.
    It blocks release where it affects outputs, as here (EW-CORE-016).

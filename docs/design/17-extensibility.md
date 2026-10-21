@@ -1,6 +1,6 @@
 # Extensibility: CLI, scripting, SQL, plugins and agents
 
-**Status:** Draft v0.3 · **Date:** 2026-10-21 (v0.3: cycle-12 design pass: `ew check` as built, §3.1, §3.3; `tag:` and `folio:` references, §3.5; Session v0, §4; v0.2: cycle-11 design pass: `project.settings.set` and its exposure, §2.1, §2.3; the command log as built, §3.5; `ew import qet` as built, §3.2, §3.3) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.4 · **Date:** 2026-10-21 (v0.4: cycle-13 design pass: the SQL projection v0 as built, §3.4, §6.1, §6.2; v0.3: cycle-12 design pass: `ew check` as built, §3.1, §3.3; `tag:` and `folio:` references, §3.5; Session v0, §4; v0.2: cycle-11 design pass: `project.settings.set` and its exposure, §2.1, §2.3; the command log as built, §3.5; `ew import qet` as built, §3.2, §3.3) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies every way to drive, extend or query ElektraWatt (EW) other than the GUI: the
 `ew` command-line tool, the headless `Session` API behind it, rhai formulas, rules and automation scripts, the
@@ -425,9 +425,13 @@ $ ew check <golden-a-r>.ew --scheme pre-delivery; echo $?
 0                                   # Golden A-R: Golden A plus the resolution overlay (20 §2.4)
 
 $ ew sql "SELECT count(*) FROM api_v1_terminal"
-28                                  # 1X1: 3, -X1031: 20, -X1032: 5
+count(*)
+28                                  # CSV with its header line (golden dialect); 1X1: 3, -X1031: 20, -X1032: 5
+$ ew sql --timeout 5 "SELECT count(*) FROM api_v1_wire"   # --timeout: 1..86400 s, default 60 s
+count(*)
+50                                  # 44 wires and 6 bridges
 $ ew sql "ATTACH 'other.db' AS x"; echo $?
-error: statement denied by the projection sandbox (ATTACH)
+error: statement denied by the projection sandbox (ATTACH): only SELECT, WITH or VALUES may run
 2
 $ ew render --page 103 --png --dpi 150 --out 103.png              # equals the approved golden PNG (FR-EXT-004)
 
@@ -774,19 +778,20 @@ views.
 
 | View | One row per | Key columns (abridged) | Golden rows | Rel |
 |---|---|---|---|---|
-| `api_v1_meta` | projection | `rev, generation, format, derivation_profile, ew_version, languages, as_of` | 1 | MVP* |
-| `api_v1_device` | device | `id, tag, tag_full, letter, counter, frozen, kind, parent_id, structure_function, structure_location, function_text, process_tag, state, main_page_id, main_folio, main_cell, has_part, manufacturer, part_number, tech_data, aspects, placed` | — | MVP |
-| `api_v1_function` | function | `id, device_id, device_tag, role, kind, fndef, category, page_id, folio, cell, xref_text` | — | MVP |
-| `api_v1_page` | page incl. generated | `id, folio, label, section, kind, title, description, description_overridden, structure_function, structure_location, prev_folio, next_folio, generated, report_block_id, physical_index` | 36 | MVP |
-| `api_v1_cp` | connected or named CP | `id, function_id, device_id, device_tag, cp, idx, discipline, potential_id, potential_name, role, unused, page_id, cell`; `i_load` (1.0). `role` is derived: `source` (the CP definition is a source output, `CpDef.source_output`), `through` (CPs of a pass-through pair in `FnDef.internal`), `load` (supply CPs of consumer functions) or `other`. `i_load` is the part's electrical load current for that supply CP (decimal text in A, empty when unknown; [07](07-symbols-parts-macros.md) part data, ADR-0017 amendment 3) | — | MVP* (`i_load` 1.0) |
-| `api_v1_wire` | physical wire or bridge | `id, number, kind, from_device_id, from_tag, from_cp, from_level, from_clamp, to_device_id, to_tag, to_cp, to_level, to_clamp, potential_id, potential_name, csa, csa_unit, colour, colour_iec, wire_part, length_nm, length_source, cable_id, cable_tag, core, pages, prov_csa, prov_colour` ([08](08-connections-terminals-cables.md) §10) | 50 | MVP |
-| `api_v1_terminal` | terminal | `id, strip_id, strip_tag, designation, printed, seq, part_number, levels, potential_id, potential_name, potential_type, state, rail_bonded, page_id, cell` | 28 | MVP |
-| `api_v1_cable` | cable | `id, tag, part_number, cores, length_nm, length_source, from_location, to_location, external_end, shield, pages` | 3 | MVP |
-| `api_v1_conductor` | conductor | `id, cable_id, cable_tag, core, colour, colour_iec, csa, shield, wire_id` | 13 | MVP |
-| `api_v1_potential` | potential | `id, name, aliases, ptype, voltage, ac_dc, circuit_class, colour, default_csa, switched, protected_by_device_id, protected_by_tag, protected_by_cp, bond_ids, member_count, pages` | 19 | MVP |
-| `api_v1_bom_component` / `api_v1_bom_assembly` | BOM row per mode | `position, part_id, manufacturer, part_number, type, description, quantity, unit, tags, folios` (+ `assembly_tag, level`) | 27 rows on 901 | MVP |
+| `api_v1_meta` | projection | `rev, generation, format, derivation_profile, ew_version, languages, as_of`; `api_status, preview_additions` (Preview addition) | 1 | MVP* |
+| `api_v1_device` | device | `id, tag, tag_full, letter, counter, frozen, kind, parent_id, structure_function, structure_location, function_text, process_tag, state, main_page_id, main_folio, main_cell, has_part, manufacturer, part_number, tech_data, aspects, placed`; `function_text_ml` (Preview addition) | — | MVP |
+| `api_v1_function` | function | `id, device_id, device_tag, role, kind, fndef, category, page_id, folio, cell, xref_text`; `ip_name` (Preview addition, the interruption point's name) | — | MVP |
+| `api_v1_page` | page incl. generated | `id, folio, label, section_id, kind, title, description, description_overridden, structure_function, structure_location, prev_folio, next_folio, generated, report_block_id, physical_index`; `number, title_ml` (Preview addition) | 36 | MVP |
+| `api_v1_cp` (not built, FT-216) | connected or named CP | `id, function_id, device_id, device_tag, cp, idx, discipline, potential_id, potential_name, role, unused, page_id, cell`; `i_load` (1.0). `role` is derived: `source` (the CP definition is a source output, `CpDef.source_output`), `through` (CPs of a pass-through pair in `FnDef.internal`), `load` (supply CPs of consumer functions) or `other`. `i_load` is the part's electrical load current for that supply CP (decimal text in A, empty when unknown; [07](07-symbols-parts-macros.md) part data, ADR-0017 amendment 3) | — | MVP* (`i_load` 1.0) |
+| `api_v1_wire` | physical wire or bridge | `id, number, kind, from_device_id, from_tag, from_cp, from_level, from_clamp, to_device_id, to_tag, to_cp, to_level, to_clamp, potential_id, potential_name, csa, csa_unit, colour, colour_iec, wire_part, length_nm, length_source, cable_id, cable_tag, core, pages, prov_csa, prov_colour` ([08](08-connections-terminals-cables.md) §10); `seq, from_end, from_side, from_ip, to_end, to_side, to_ip, conductor_id, bond_id, ips, bridge_kind, csa_source, colour_source` (Preview addition) | 50 | MVP |
+| `api_v1_terminal` | terminal | `id, strip_id, strip_tag, designation, printed, seq, part_number, levels, potential_id, potential_name, potential_type, state, rail_bonded, page_id, cell`; `tag, function_text, strip_group, bridge` (Preview addition) | 28 | MVP |
+| `api_v1_cable` | cable | `id, tag, part_number, cores, length_nm, length_source, from_location, to_location, external_end, shield, pages`; `tag_full, end_a, end_b` (Preview addition) | 3 | MVP |
+| `api_v1_conductor` | conductor | `id, cable_id, cable_tag, core, colour, colour_iec, csa, shield, wire_id`; `pair, csa_unit` (Preview addition) | 13 | MVP |
+| `api_v1_potential` | potential | `id, name, aliases, ptype, voltage, ac_dc, circuit_class, colour, default_csa, switched, protected_by_device_id, protected_by_tag, protected_by_cp, bond_ids, member_count, pages`; `colour_iec, default_csa_unit, bus_cable_ids` (Preview addition; `bus_cable_ids` is the JSON array of the cable UUIDs of the potential's bus lines, like `bond_ids`, decision log ID-329, ID-336) | 19 | MVP |
+| `api_v1_bond` | bond between two potentials | `id, label, kind, a_potential_id, a_potential_name, b_potential_id, b_potential_name, wire_id, names, pages` ([08](08-connections-terminals-cables.md) §3.7) | 1 | MVP** |
+| `api_v1_bom_component` / `api_v1_bom_assembly` | BOM row per mode | `position, part_id, manufacturer, part_number, type, description, quantity, unit, tags, folios`; `configured, variant, description_ml` (Preview addition, both views); `assembly_tag, level` (assembly view only, built) | 27 rows on 901 | MVP |
 | `api_v1_message` | finding | `fingerprint, rule, pack, pack_version, severity, mode, state, target_ids, target_tags, page_id, cell, message, args, waiver_id` | 103 incl. 1 waived | MVP |
-| `api_v1_structure`, `api_v1_xref`, `api_v1_revision` | node, xref text, revision | `aspect, code, aliases, parent_id`; `rep_id, page, cell, text, partner_page, partner_cell, kind`; `label, date, state, author, checker` | —, 64, 2 | MVP* |
+| `api_v1_structure`, `api_v1_xref`, `api_v1_revision` (not built, FT-216) | node, xref text, revision | `aspect, code, aliases, parent_id`; `rep_id, page, cell, text, partner_page, partner_cell, kind`; `label, date, state, author, checker` | —, 64, 2 | MVP* |
 | `api_v1_plc_channel` | channel | the `io_list` columns of [10](10-plc-and-bus.md) §5 plus `id, station_id, module_id, target_id, address_source` | 56 | 1.0 |
 | `api_v1_placement` | placement | `id, device_id, device_tag, space_id, carrier_id, carrier_kind, x_nm, y_nm, z_nm, rotation, locked, collides` | — | 1.0 |
 | `api_v1_fluid_line`, `api_v1_valve_position`, `api_v1_medium` | tube, valve position, medium | columns owned by [11](11-fluid-power.md) §8.3 | 16, 28, 0 | 1.0* |
@@ -795,23 +800,67 @@ views.
 `Preview` until the 1.0 freeze (§11). Person columns (`author`, `checker`) are omitted when the context asks for
 personal-data minimisation (§7.4).
 
+\*\* `api_v1_bond` is a Preview addition beyond FR-EXT-007 and FR-EXT-032 (ADR-0017 amendment 2, extended in cycle
+13; decision log ID-329).
+
+**As built (cycle 13, WP-S1.10; decision log ID-328, ID-329, ID-330).** `ew-sqlview` builds thirteen views: the
+eleven of FR-EXT-007 (`api_v1_device`, `api_v1_function`, `api_v1_page`, `api_v1_wire`, `api_v1_terminal`,
+`api_v1_cable`, `api_v1_conductor`, `api_v1_potential`, `api_v1_bom_component`, `api_v1_bom_assembly`,
+`api_v1_message`; the table above shows the two BOM views in one row), `api_v1_meta` and `api_v1_bond`. Every column
+listed above for a built view exists in the code; no listed column of a built view is missing.
+- **Not built.** `api_v1_cp` (with `role` and `i_load`), `api_v1_structure`, `api_v1_xref` and `api_v1_revision`
+  of FR-EXT-032 (FT-216). The 1.0 views (`api_v1_plc_channel`, `api_v1_placement`, `api_v1_fluid_line`,
+  `api_v1_valve_position`, `api_v1_medium`) are not built either.
+- **Preview additions.** The columns marked "(Preview addition)" in the table and the view `api_v1_bond` are
+  additive Preview of `api_v1` (decision log ID-329). `ew sql schema` marks each of them `[preview addition]`, and
+  `api_v1_meta` carries `api_status` (`preview`) and `preview_additions` (a JSON array of `view` or `view.column`
+  names), so a consumer can tell the documented key columns from the additions. Within v1 columns are only added.
+- **Page IDs.** A divider page takes its section's UUID as `id`; a generated page takes its v5 page ID. The column
+  that holds the section is `api_v1_page.section_id` (NULL for front matter); the document follows the code and no
+  longer calls it `section` (decision log ID-330).
+- **Potential type and voltage.** `api_v1_potential.ptype` and `voltage` are the potential's own attributes: stored
+  on its definition or derived per [03](03-domain-model.md) §9.4 (the `potential_attrs` query) (decision log ID-330).
+- **BOM assembly.** `api_v1_bom_assembly` has `assembly_tag` (the list-form tag of the head device of a configured
+  product when the row has exactly one, else NULL) and `level` (NULL until configured products exist) (decision log
+  ID-330).
+
 ### 6.2 Sandbox
 
 | Control | Setting |
 |---|---|
-| Connection | Separate connection per consumer, `SQLITE_OPEN_READONLY`, `PRAGMA query_only = 1`, `SQLITE_DBCONFIG_DEFENSIVE`, extension loading off, `trusted_schema = OFF`. An in-memory projection reaches a consumer as a read-only deserialised copy (`sqlite3_deserialize` with `SQLITE_DESERIALIZE_READONLY`; rusqlite `serialize` feature **(verify)**), a file-backed XL projection by opening its file read-only |
+| Connection | Separate connection per consumer, `SQLITE_OPEN_READONLY`, `PRAGMA query_only = 1`, `SQLITE_DBCONFIG_DEFENSIVE`, extension loading off, `trusted_schema = OFF`. An in-memory projection reaches a consumer as a read-only deserialised copy (`sqlite3_deserialize` with `SQLITE_DESERIALIZE_READONLY`; rusqlite `serialize` feature, enabled), a file-backed XL projection by opening its file read-only |
 | Statement gate | Exactly one statement per call (a non-empty tail after the first statement is refused); the statement must start with `SELECT`, `WITH` or `VALUES` and `sqlite3_stmt_readonly()` must be true. This refuses `VACUUM INTO` and `WITH … INSERT` before they run, independent of which authorizer codes SQLite raises for them |
-| Authorizer allows | `SELECT`; `READ` of `t_*` columns only when the innermost responsible view (the authorizer's fourth argument) is an `api_v1_*` view; `RECURSIVE` (bounded below); allowlisted `FUNCTION`s |
-| Authorizer denies | `ATTACH`, `DETACH`, all `PRAGMA`s, every DDL and DML, transactions and savepoints, `ANALYZE`, `REINDEX`, direct reads of `t_*` from top-level SQL |
-| Functions | SQLite core scalars and aggregates, window functions, JSON functions, `ew_ml`, `ew_regexp`, collation `ew_natural` (X2 < X10). `random()` and `randomblob()` denied; date and time functions overridden to reject `'now'` |
+| Authorizer allows | `SELECT`; `READ` of `t_*` columns only when the innermost responsible view (the authorizer's fourth argument) is the table's own `api_v1_*` view (own-view rule: `t_x` through `api_v1_x` only); `RECURSIVE` (bounded below); allowlisted `FUNCTION`s |
+| Authorizer denies | `ATTACH`, `DETACH`, all `PRAGMA`s, every DDL and DML, transactions and savepoints, `ANALYZE`, `REINDEX`, direct reads of `t_*` and of the schema table from top-level SQL |
+| Functions | SQLite core scalars and aggregates, window functions, math functions, JSON functions, `ew_ml`, collation `ew_natural` (X2 < X10); `ew_regexp` is not built (FT-217). `random()` and `randomblob()` denied; date and time functions overridden to reject the `'now'`, `'localtime'` and `'utc'` modifiers, also as BLOB arguments, and a call without a time value; `CURRENT_DATE`, `CURRENT_TIME` and `CURRENT_TIMESTAMP` denied |
 | Registration | EW functions flagged `SQLITE_DETERMINISTIC \| SQLITE_INNOCUOUS`, as required with `trusted_schema = OFF` |
-| Limits (`SQLITE_LIMIT_*`) | `LENGTH` 16 MiB, `SQL_LENGTH` 256 KiB, `COLUMN` 256, `EXPR_DEPTH` 200, `COMPOUND_SELECT` 50, `VDBE_OP` 250,000 (a prepare-time program-size cap whose enforcement by current SQLite is **(verify)**), `FUNCTION_ARG` 32, `ATTACHED` 0, `LIKE_PATTERN_LENGTH` 1,000, `VARIABLE_NUMBER` 256, `TRIGGER_DEPTH` 0, `WORKER_THREADS` 0 |
-| Deadline (progress handler every 10,000 VM steps; `sqlite3_interrupt` from the job): the runtime bound, whatever `VDBE_OP` enforces | user report 2 s ([09](09-reports-forms-output.md) §3.5); SQL rule 10 s; MCP 5 s; `ew sql` 60 s (`--timeout`) |
-| Result caps | report 100,000 rows; MCP 1,000 rows and 1 MiB; `ew sql` 1,000,000 rows and 256 MiB |
+| Limits (`SQLITE_LIMIT_*`) | `LENGTH` 16 MiB, `SQL_LENGTH` 256 KiB, `COLUMN` 256, `EXPR_DEPTH` 200, `COMPOUND_SELECT` 50, `VDBE_OP` 250,000 (set on every connection; no property rests on it, the deadline bounds the runtime), `FUNCTION_ARG` 32, `ATTACHED` 0, `LIKE_PATTERN_LENGTH` 1,000, `VARIABLE_NUMBER` 256, `TRIGGER_DEPTH` 0, `WORKER_THREADS` 0 |
+| Deadline (progress handler every 10,000 VM steps; `sqlite3_interrupt` from the job): the runtime bound, whatever `VDBE_OP` enforces | user report 2 s ([09](09-reports-forms-output.md) §3.5); SQL rule 10 s; MCP 5 s; `ew sql` 60 s by default, `--timeout` 1..86400 s (the cap is `Profile::MAX_DEADLINE`, 1 day) |
+| Result caps | report 100,000 rows; MCP 1,000 rows and 1 MiB; `ew sql` and SQL rules 1,000,000 rows and 256 MiB (bytes count text and BLOB lengths, 8 per number) |
 
-The sandbox is fuzzed with hostile SQL (recursive-CTE bombs, deep expressions, authorizer bypass attempts) per
-NFR-SEC-03 and NFR-SEC-06. SQLite has no per-connection memory cap; memory is bounded indirectly by the length and
+The sandbox is to be fuzzed with hostile SQL (recursive-CTE bombs, deep expressions, authorizer bypass attempts) per
+NFR-SEC-03 and NFR-SEC-06; the fuzz target and the hostile-SQL corpus are not built (FT-223). SQLite has no per-connection memory cap; memory is bounded indirectly by the length and
 row limits, the deadline and the projection's memory gate (NFR-PERF-13).
+
+**As built (cycle 13, WP-S1.10; decision log ID-328, ID-331).** `ew-sqlview` uses rusqlite 0.40.2, bundled, with
+the features `functions`, `collation`, `hooks`, `limits` and `serialize`. Every connection is `SQLITE_OPEN_READONLY` on
+a read-only deserialised copy of the projection image, with `SQLITE_DBCONFIG_DEFENSIVE`, `trusted_schema = OFF`,
+triggers and the FTS3 tokenizer off and `query_only = 1`. The limits and result caps of the table are the values in the
+code.
+- **Clock.** The date and time functions refuse the `'now'`, `'localtime'` and `'utc'` modifiers, also when they are
+  passed as BLOB arguments (`date(CAST('now' AS BLOB))`, `unixepoch(x'6e6f77')`).
+- **Deadline.** It is capped at `Profile::MAX_DEADLINE` (1 day); `ew sql --timeout` accepts 1..86400 s, checked
+  without overflow, and refuses anything else with exit 2.
+- **Own-view rule.** A `t_x` table is readable only through its own view `api_v1_x`: the authorizer's innermost view
+  must be the accessor of that table.
+- **Known limit, accepted and documented.** A common table expression named after an `api_v1` view reads the table
+  behind it, so it sees that view's table columns and its `rowid` only, never another table. The rule guards the
+  contract, not secrecy, because every column of `t_x` is also a column of `api_v1_x`.
+- **Comments and options.** An inline query that starts with a `-- comment` is accepted; a lone argument that starts
+  with `-word` is refused as an unknown option. CSV output keeps its header line (golden dialect).
+- **Not built.** `ew_regexp` (FT-217), `--format xlsx` (FT-218), file-backed XL projections (FT-219), per-table
+  refresh (FT-220), the CI prepare/EXPLAIN lint of `.sql` files (FT-222) and the sandbox fuzz target with its
+  hostile-SQL corpus (FT-223).
 
 ### 6.3 Freshness, trust and writes
 
@@ -1544,7 +1593,8 @@ The fourteen rows this document proposed are in the catalogues with the numbers 
 12. **`api_v1` before 1.0.** The views are a public contract from MVP while the format still upgrades on every
     release before 1.0 (ARCH §7.6). **Resolved:** `api_v1` is `Preview` until the 1.0 freeze and the golden
     acceptance SQL is its compatibility corpus (ADR-0017 amendment 2, ARCH §10.2); column renames after MVP are
-    release-note items (§11).
+    release-note items (§11). **Settled (cycle 13):** the marking is built: `ew sql schema` flags every addition and
+    `api_v1_meta` carries `api_status` and `preview_additions` (§6.1; decision log ID-329).
 13. **Merge-driver argument list.** ARCH §7.5 and FR-COL-014 wrote `%O %A %B %P`, while
     [05](05-project-format-and-persistence.md) §11.1 configures `%O %A %B %L %P`. **Resolved:** the canonical form is
     `ew merge-driver %O %A %B %L %P` (`%L`, the marker size, is used for conflict rendering) and the four-argument

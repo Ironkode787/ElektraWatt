@@ -1,6 +1,6 @@
 # Domain model
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: frozen tags change only by explicit user action, segment-less strips, the `project.settings.set` command; decision log ID-290, ID-292, ID-293; cycle 12: the colour and size profile rows and their display order, §5.1, decision log ID-319) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: frozen tags change only by explicit user action, segment-less strips, the `project.settings.set` command; decision log ID-290, ID-292, ID-293; cycle 12: the colour and size profile rows and their display order, §5.1, decision log ID-319; cycle 13: the PLC kinds and `DeviceLink` as built, §7, §13, §14, decision log ID-333 to ID-335) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -969,6 +969,8 @@ classDiagram
 | `MacroDef`: reusable fragment | L, `lib/macros/` | `meta: ItemMeta`; kind `Window \| Symbol \| Page`; variants per representation type; records in the project format with an insertion point; variables with field-path bindings; value sets `Vec<ValueSet{name, values}>` (FR-MAC-004); `groups: Vec<PlaceholderGroup{name, members, include: Option<VarName>}>` | `InsertMacro` remaps IDs and numbers the new devices (arch §5.5); a group whose `include` variable is false is removed before the remap. Placed instances reach the groups through `MacroInstance.macro`, so a group is never a separate project record | — |
 | `MacroInstance` (added): provenance of one placed macro | A, the file of its anchor page (rank 46 of [05](05-project-format-and-persistence.md) §2.2) | `macro` (copy ID of the `MacroDef`), `variant`, `value_set?`, `values: BTreeMap<VarName, Value>` (the values used), `members: Vec<(local_id, Id)>` (fragment-local ID → created record) | "Where used" and provenance at MVP; from 1.0 the placeholder object to which another value set can be re-applied (FR-MAC-008) | — |
 
+**As built (cycle 13; decision log ID-333, ID-334).** `device_link` (rank 42, in the shard of `from`) is typed in `ew-schema` with `from`, `to` and `kind` (`drives` or `linkage`), plus the import-provenance member `source_ref`. Deleting either device deletes the link. Golden A has eight links: the valves -201U3-Q1 … Q4 and -201U4-Q1 … Q4 drive the field devices -203Q1 … -203Q8. The `DeviceLink` half of FT-80 is done; the half that prints the tracked process tag in a used valve's function-text slot stays open.
+
 **Device kinds.** `DeviceKind` is a hint for UI defaults and for the selectors of numbering rules (§5.1, §8.2), never
 a type: behaviour comes from aspects and functions. It is an open enum persisted as a snake_case string. The v0 list
 holds the kinds that a derivation or the golden project names: `psu` (-102G1), `terminal` and `blanking_plate` (a
@@ -1791,6 +1793,8 @@ reported. Newly placed valves are bound by the normaliser according to the map. 
 claimed by the map get the derived state `Deactivated` (OQ 9), which gives 8 used, 20 spare and 28 deactivated
 channels. Changing -201U5's start re-addresses only its 8 channels.
 
+**As built (cycle 13; decision log ID-333, ID-334, ID-335).** `ew-schema` implements, additively within format 0.1 (FT-111), `plc_config_project` (rank 11: `name`, `profile` = `id@version`, `cpu`), `channel` (rank 37, shard of `module`, ID `v5(module, "channel", number)`: `number`, `designation`, `kind`, `address` = `AddrSpec`, `state`, `symbol`, `comment`, `binding`, `target`) and `device_link` (rank 42, §7), the device aspects `plc_station` (`config_project`, `role`, `order`) and `plc_module` (`slot` = `SlotPath`, `start` = `IoStarts`, `part_use`, `integrated`), and the part section `sections.plc` (`role`, `io`, `channels`, `bit_of` = `MapSpec`, `unbound`): the subset of doc 10 §2.2–§2.6 that the golden project needs. The other members of the classes above stay in `extra` until their work packages: `allocation`, `ownership`, `symbols` and `exchange`; `firmware`, `dd`, `type_ident` and `safety`; `data_type`, `aux_pins` and `signal_range`; and the solenoid-position map of the `AddressMap` (`MultiFunction` is not yet a `ChannelKind`). `AddrSpec` and `PlcAddress` are implemented in full. The diagram's `AddressMap` is, as built, `sections.plc` with its `bit_of`; the position half is FT-228. `PlcRow` is the derived row of `ew-derive`. Channels come only from import: the normaliser that creates them is not built. An older 0.1 build keeps the new records but does not enforce their links (decision log ID-334).
+
 **Equivalents.** EPLAN: configuration project (20161), PLC box and card, PLC connection points with channel
 designation, PLC address (20400), symbolic address (manual/automatic/determined), start address, addressing and
 readdressing, AML AR APC exchange. QET: `plc_type`, `plc_address`, `plc_function`, `plc_comment` element info and,
@@ -1855,6 +1859,8 @@ classDiagram
 derived physical segment is JE-N1000-03 → -3W1 → -3X1 → -201U1 DP, master first (FR-BUS-003). -3X1 (Festo 532216) is a
 connector device whose port function has `termination: On`; its "Switch to ON" text is rendered from that property.
 -201U1's DP port has `address: Tbd`, an open item (D-15).
+
+**As built (cycle 13; decision log ID-333, ID-336).** `Bus` connections exist (`ConnectionKind::Bus(BusLine)` with `BusLine.cable`), and Golden A draws the DP cable -3W1 and the plug-on mating with them; `BusPort`, `LogicalNet` and `PhysicalNet` and `bus_segments` are not built yet (FT-225).
 
 **Equivalents.** EPLAN: bus port (`BusTerminal` with bus address, bus system, master flag), logical network
 (20414), physical network (20413), bus configuration transfer. QET: none (bus lines are conductors with `bus`

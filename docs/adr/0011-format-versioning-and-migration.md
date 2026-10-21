@@ -1,6 +1,6 @@
 # ADR-0011: Format versioning, per-kind migration and format-change windows
 
-**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-21 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -89,6 +89,19 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    migration step reports its own. Decision 4's schemas are published in one form only for format 0.1, which allows
    additional members; the "strict" variant that forbids them is not generated, because the typed reader is the
    strict check. A strict variant returns only if a third-party consumer needs one.
+4. **Implementing a reserved kind within an unreleased format** (2026-10-21, project owner (delegated); decision log
+   ID-334; [project format](../design/05-project-format-and-persistence.md) §2.2, §3.3, §10.3). A record kind that the
+   registry already reserves with a rank and an ownership rule, and a device aspect or part section that the format
+   document already names, may get its typed table within the current, unreleased 0.x format as an additive change:
+   no format bump, no `$v` bump, the published schemas of that format re-blessed, and the additive rules of
+   decision 1 and amendment 1 followed (optional members, catch-all enums, no type change of an existing member).
+   A build from before the change keeps such records verbatim (a reserved kind is not EW-CORE-016, decision log
+   ID-206) and their unknown members in `extra`, so no data is lost; it does not enforce the delete links of the
+   newly typed kind, so an older build that deletes a module leaves that module's channels dangling, which the newer
+   build reports (FT-229, FT-230). Once a format is released, the minor-version rules of decision 1 and amendment 1
+   apply unchanged. First use: the PLC kinds `plc_config_project`, `channel` and `device_link`, the aspects
+   `plc_station` and `plc_module` and the part section `plc` in format 0.1 (cycle 13, decision log ID-333); the
+   precedent is the optional `TextSlot.style` member (decision log ID-197).
 
 ## Consequences
 

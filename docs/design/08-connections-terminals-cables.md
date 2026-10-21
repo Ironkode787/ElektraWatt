@@ -1,6 +1,6 @@
 # Connections, terminals and cables
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: page token of segment-less strips as built, decision log ID-293; cycle 12: EW-TERM-002 as built, §6.8, and the cover size note, §4.2) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: page token of segment-less strips as built, decision log ID-293; cycle 12: EW-TERM-002 as built, §6.8, and the cover size note, §4.2; cycle 13: the orientation of segment-only terminals, §3.8, the numbering order and the golden numbers as built, §5.2, and the segment wording, §6.7) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) turns drawn connections into electrical meaning. It covers
 connection points, connections and junctions, the three connectivity levels (net, signal, potential) with stable
@@ -403,10 +403,16 @@ physical_wires_of(potential):                              // memo per potential
   2. On one page, From is the end with the smaller flow distance: hops over the potential's wires, bridges and
      terminal shorts, from the CPs where the potential enters (roots of §3.6, or the downstream side of its upstream
      pass-through pair).
-  3. Ties are broken by the anchor cell (row, column) and then by CP ID.
+  3. Ties are broken by the anchor cell (row, column) and then by CP ID. A terminal drawn only by a strip segment
+     has no anchor of its own: its anchor cell is the cell of its CP in the segment (§6.7; decision log ID-327).
 
   This reproduces every From/To pair of [20](20-golden-project.md) §8.2. Examples: 1X1:1 → S51:2, because the supply
   enters at J-E-206-L; -102G1:+#2 → -102F1:1; E55:PE → -X1032:1/b, by page order.
+
+  **As built (cycle 13; decision log ID-324, ID-327).** `ew-derive`'s `orient_wire` applies rules 1 and 3; rule 2,
+  the flow distance, needs a per-CP distance that is not exposed yet (FT-101), so a wire that rule 2 decides
+  differently on one page has its ends the other way round (W1 to W5 of the golden project). The point and cell of
+  every CP come from one owner, `cp_point` and `cp_cell` (the page scene restates them until FT-215).
 - **Wire-end locus.** A terminal end prints `strip:terminal (level/clamp)`, for example "-X1031:1 (1/a)"
   (FR-TRM-006, FR-MFG-002). A device end prints `tag:designation`, with `#n` only where printed designations repeat
   (`-102G1:+ #1`).
@@ -638,7 +644,7 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
 - **Numbering order** (FR-NUM-028): the page of the wire's From end, then the From end's cell (column, then row),
   then the To end's page and cell (the page first, then column, then row), then the wire ID. The cell of an end is
   the cell of the CP's drawn point on the page of the constituent that ends there, a terminal in a strip segment
-  included (§6.7). Counters are assigned once and stored. `{page}` and `{column}` are tokens
+  included (§6.7; decision log ID-326). Counters are assigned once and stored. `{page}` and `{column}` are tokens
   evaluated from the From end. A page renumber therefore changes page-based numbers only through its preview, as it
   does for tags.
 - **Commands.** `NumberWires{scope, scheme, mode: All | Unassigned | NonConforming, include_frozen: false}` is
@@ -651,7 +657,10 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
   numbers, listed in the derived "No." column of [20](20-golden-project.md) §8.2: W29 gets 102.10 and W33 103.1.
   The acceptance runner generates `expected/wires.csv` with this rule, which also decides the ties between wires of
   equal cells by the wire ID. W1 to W5, W7 and W9 are provisional until the orientation has its flow-distance step
-  (FT-101).
+  (FT-101); AC-09 lists them as its known deviations (decision log ID-325). **As built (cycle 13; decision log
+  ID-324):** the numbers are derived by the query `wire_numbers` and printed on folio 907; they are not yet stored
+  (`NumberWires` and the stored number come with WP-S1.11) and not printed on the pages (FR-CON-026). Where wires
+  tie on their cells, the query keeps the counter range of the group (`WireNumber::tie`) beside the exact counter.
 - **Potential-oriented example** (1.0): `{potential}.{subcounter}` with net extension gives W29 and the BN core of
   -106W1 one number, "24VDC-1.1", because terminal 1 is one signal. The WH core on terminal 2 is in another signal
   and gets "24VDC-1.2", because bridges bound signals.
@@ -755,8 +764,9 @@ bus with dots. That drawing is derived from the bridge connections.
 
 ### 6.7 Segments on several pages
 
-- **One device.** A strip is drawn as one or more `StripSegment` representations of its main function. Each segment
-  lists the terminals it shows (FR-TRM-011). -X1031 at 103-A3 (24 V group) and 103-A10 (0 V group) is one device with
+- **One device.** A strip is drawn as one or more `StripSegment` representations of its main function
+  (FR-TRM-011). A segment stores no list of terminals: which terminals it shows follows from the strip's terminal
+  order and the number of its segments, by the split below. -X1031 at 103-A3 (24 V group) and 103-A10 (0 V group) is one device with
   one BOM row (D-42).
 - **Tag printing.** `tag_print = PerSegment` prints "-X1031" at both segments. `PerPage` prints it once per page.
 - **Terminal CPs of a segment** (2026-10-19, decision log ID-143, ID-180). A segment gives each terminal it draws one

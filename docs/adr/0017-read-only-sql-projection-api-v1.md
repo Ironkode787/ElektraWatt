@@ -1,6 +1,6 @@
 # ADR-0017: Read-only SQL projection with versioned `api_v1` views
 
-**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-21 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
 
 ## Context
 
@@ -108,6 +108,15 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    `api_v1_structure`, `api_v1_xref`, `api_v1_revision`, `api_v1_fluid_line`, `api_v1_valve_position` and
    `api_v1_medium`, with the columns listed there. `api_v1` is marked **Preview** until the 1.0 freeze; the golden
    acceptance SQL is its compatibility corpus. After the freeze, the lifetime rules of decision 6 apply.
+   *Extended 2026-10-21* (cycle 13, project owner (delegated); decision log ID-328 to ID-330;
+   [17](../design/17-extensibility.md) §6.1): the v1 contract also gains `api_v1_bond` (one row per bond: its
+   potentials, CPs, kind and via connection) and, as **Preview additions**, the columns that v0 exposes beyond
+   [17](../design/17-extensibility.md) §6.1 (`seq`, the side and interruption-point columns, `csa_source` and
+   `colour_source`, `end_a` and `end_b`, `bridge`, `strip_group`, and the others listed there). Preview additions
+   are additive and may still be renamed or dropped before the freeze; `ew sql schema` and `api_v1_meta`
+   (`api_status`, `preview_additions`) list them, so a user query can tell a Preview column from a stable one. The
+   v0 build has `api_v1_meta` and `api_v1_bond`; `api_v1_cp`, `api_v1_structure`, `api_v1_xref` and
+   `api_v1_revision` follow (FT-216).
 3. **Load current per pin and CP roles** (2026-10-18; [17](../design/17-extensibility.md), open question 20). Parts
    gain an optional electrical load current per supply CP (part data in decimal A,
    [07](../design/07-symbols-parts-macros.md)), and `api_v1_cp` exposes it as `i_load` (decimal text in A, empty
