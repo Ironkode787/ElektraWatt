@@ -885,13 +885,14 @@ its report with the committed `expected/acceptance_headless.md` (so two runs mus
 
 `expected/csv/` holds the report rows of the acceptance pairs (doc 20 §3.1): `terminals_1X1.csv`,
 `terminals_X1031.csv`, `terminals_X1032.csv` (903 … 905), `cables.csv` (906), `wires.csv` (907),
-`potentials.csv` (909) and `bom_parts.csv` (901 and 901.1), byte-equal to `expected/rows/<folio>.csv`. The runner
+`potentials.csv` (909), `bom_parts.csv` (901 and 901.1) and `bom_assembly.csv` (the parts summary 901 in assembly
+mode), byte-equal to `expected/rows/<folio>.csv` (`rows/901.assembly.csv` for the assembly list). The runner
 compares the derived rows with them. Since cycle 14 the exports `ew export cables` (`cables.csv`) and
 `ew export bom --mode parts` (`bom_parts.csv`) write these files byte for byte through the same CSV writer
 (`ew_reports::csv`); the runner calls the library entry over the committed fixture, `bin/ew/tests/cli.rs` runs the
-binary. `ew export bom --mode assembly` equals the parts list until the golden project holds configured products
-(§14.2: the two configured parts and the assembly aspect of -201U1, D-41; the typed aspect is FT-245, cycle 15); `crates/ew-api/tests/export_bom.rs` tests
-the replacement of rows 16-21 by A1 and A2 over the golden model with two configured parts added.
+binary. Since cycle 15 `ew export bom --mode assembly` writes `bom_assembly.csv` (§14.2): -201U1's typed assembly aspect
+(`tables/assembly_configs.csv`, D-41) replaces rows 16-21 by A1 and A2, rows 22-27 renumber 16-21, and the "Covers"
+column names the covered devices; `crates/ew-api/tests/export_bom.rs` and the AC-07 assembly entry test it.
 The SQL half of each pair (`acceptance/*.sql` over the `api_v1` views) runs since cycle 13 (WP-S1.10, decision log
 ID-328) and returns `expected/csv/` row by row.
 
@@ -921,15 +922,17 @@ committed as golden files (doc 18 asks for none); its SHA-256 is in the AC-14 re
 change of any SVG byte shows there. The comparison runs on the platform of the run; the gate platform is Linux and
 the cross-platform digests are MVP.
 
-The headless report of this revision: 93 entries, 82 pass, 0 fail, 6 not_built, 5 not_applicable, 0 oracle
-mismatches (the full run adds the raster comparison as a pass). Cycle 15 (FT-59) runs the page output through the
+The headless report of this revision: 93 entries, 86 pass, 0 fail, 2 not_built (AC-15's builder DSL, D-06's
+property grid), 5 not_applicable, 0 oracle mismatches (the full run adds the raster comparison as a pass). Cycle 15 (FT-59) runs the page output through the
 export job: the text CSVs, the PDF, the SVG set, AC-16's page texts and AC-17's PDF time come from
 `ew_api::output`; the new AC-15 entry exports the checked-in fixture as `ew export pdf` does and finds the digest of
-`expected/pdf/sha256.txt`; AC-16 sweeps 64 memoised families (the 14 of the page output included). Cycle 14 closed AC-01, AC-06, AC-13 and the two
+`expected/pdf/sha256.txt`; AC-16 sweeps 65 memoised families (the 14 of the page output and `assembly_break_marks` included). Cycle 15 lane B
+closed the AC-07 assembly entry, D-17 (strict and lenient colour import with the quick fix "use BN"), D-36 (rows A1
+and A2, the order code on folio 3) and D-41 (one assembly -201U1, break marks after -201U9 and before -202U1). Cycle 14 closed AC-01, AC-06, AC-13 and the two
 AC-14 entries, D-03 (EF-15 counts 10: the seven frozen tags of doc 20 §18.1 and the three U-34 frozen test inputs, listed apart), D-14 (restated by the owner ruling: a named anchor policy that leaves the bus port's graphics, set on -201U1's bus representation alone, makes -201U1 print "3-B0", EW-CORE-053 reports it and its quick fix restores "3-B2"), D-20 (the Via notation "star at" and "chain on"), D-22's PELV entry,
 D-35 (the §14.1 descriptions without ratings; EW-CORE-065 with the 1.0 content) and the info half of D-06 (a new
 entry), and emptied AC-09's deviation list (FT-101). Cycle 14 lane B added the exports (AC-07 parts and AC-11; the
-AC-07 assembly entry and D-36 stay `not_built`: no configured product in the golden project), the freshness script
+AC-07 assembly entry and D-36 followed in cycle 15), the freshness script
 AC-16 (six entries, all pass: `ew verify-derived` is clean after each edit and the memoised outputs equal the cold
 ones) and D-30 (the cover). The titles of the terminal-diagram and PLC-overview blocks are templates since lane B
 ("Terminal Diagram {strip}", "PLC Overview {device} {n}": the short tag of the block's first included strip or
