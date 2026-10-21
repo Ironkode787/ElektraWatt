@@ -8,7 +8,7 @@
 //! a header line, a field quoted exactly when it contains `,`, `"`, LF or CR or begins or ends with a space,
 //! quotes doubled. The first column is `row`: `data` for a data row and `heading` for every other kind; the
 //! other columns are the block's columns, headed by their neutral labels and holding the printed cells
-//! ([`render`](crate::render::render) in neutral language).
+//! ([`crate::render::render`] in neutral language).
 
 use ew_derive::Q;
 
