@@ -204,9 +204,11 @@ fn run(texts: &[(String, bool)], tally: &mut Tally) {
     }
 }
 
-/// The counts observed when the test was written: 259 objects in the examples, 184 of them extensible.
+/// The counts observed when the test was written: 259 objects in the examples, 184 of them extensible. The
+/// PLC lines added five refusing enum wrappers and payloads (`address`, `output`, `slot`, `binding`,
+/// `comment`).
 const MIN_SURVIVORS: usize = 184;
-const MAX_REJECTED: usize = 75;
+const MAX_REJECTED: usize = 80;
 
 fn examples() -> Vec<(String, bool)> {
     let mut all: Vec<(String, bool)> = DOC05_LINES.iter().map(|l| (fill(l), false)).collect();

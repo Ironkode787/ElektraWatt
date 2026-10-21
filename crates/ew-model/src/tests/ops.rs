@@ -247,7 +247,7 @@ fn malformed_ops_are_rejected() {
     ));
 
     let reserved = Op::Put {
-        key: (Kind::Channel, nid::<()>(0x20002)),
+        key: (Kind::NetDef, nid::<()>(0x20002)),
         before: None,
         after: None,
     };
@@ -765,8 +765,8 @@ fn from_records_rejects_duplicates() {
 /// Records of reserved kinds are kept in canonical order, whatever the input order.
 #[test]
 fn from_records_keeps_unknown_records() {
-    let a = Record::Unknown(json!({"$k": "channel", "id": "00000000-0000-0000-0000-00000000a001"}));
-    let b = Record::Unknown(json!({"$k": "channel", "id": "00000000-0000-0000-0000-00000000b002"}));
+    let a = Record::Unknown(json!({"$k": "net_def", "id": "00000000-0000-0000-0000-00000000a001"}));
+    let b = Record::Unknown(json!({"$k": "net_def", "id": "00000000-0000-0000-0000-00000000b002"}));
     let load = |extra: Vec<Record>| {
         let (project, mut records, lib) = mini_golden_parts();
         records.extend(extra);
@@ -834,13 +834,13 @@ fn expected_order(kinds: &[&str]) -> Vec<(String, String)> {
 #[test]
 fn from_records_orders_unknown_records_by_line_order() {
     let mut input = vec![];
-    for kind in ["zz_future", "channel", "logical_net", "aa_early"] {
+    for kind in ["zz_future", "net_def", "logical_net", "aa_early"] {
         for id in [ID_LOW_FULL, ID_HIGH_FULL] {
             input.push(unknown_record(kind, id));
         }
     }
     // `logical_net` has rank 12, `channel` rank 37; the unregistered kinds follow by `$k` text.
-    let expected = expected_order(&["logical_net", "channel", "aa_early", "zz_future"]);
+    let expected = expected_order(&["logical_net", "net_def", "aa_early", "zz_future"]);
     let order = |m: &Model| -> Vec<(String, String)> {
         m.unknown_records()
             .iter()
@@ -871,12 +871,12 @@ fn from_records_rejects_duplicate_unknown_records() {
     let xs = x.as_uuid().to_string();
     assert_eq!(
         load_records(vec![
-            unknown_record("channel", &xs),
-            unknown_record("channel", &xs)
+            unknown_record("net_def", &xs),
+            unknown_record("net_def", &xs)
         ])
         .unwrap_err(),
         ModelError::DuplicateRecord {
-            key: (Kind::Channel, x)
+            key: (Kind::NetDef, x)
         }
     );
     assert_eq!(
@@ -891,7 +891,7 @@ fn from_records_rejects_duplicate_unknown_records() {
         }
     );
     let m = load_records(vec![
-        unknown_record("channel", &xs),
+        unknown_record("net_def", &xs),
         unknown_record("zz_future", &xs),
         unknown_record("zz_other", &xs),
     ])

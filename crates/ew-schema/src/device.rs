@@ -30,9 +30,9 @@ use crate::{ExternalRef, SchemaError};
 /// Everything with one tag; the single owner of parts (ADR-0006, doc 03 §7, rank 31). The printed tag is
 /// derived from `tag`, the numbering scheme and the main representation; it is stored nowhere.
 ///
-/// Aspects follow the known members, flattened in the order of doc 05 §3.1. v0 implements `strip`,
-/// `terminal` and `cable`; `assembly`, `plc_station`, `plc_module`, `bus_node` and `valve_terminal` arrive
-/// with their work packages and are kept in `extra` until then, which already places them after `cable`.
+/// Aspects follow the known members, flattened in the order of doc 05 §3.1. Implemented: `strip`,
+/// `terminal`, `cable`, `plc_station` and `plc_module`; `assembly`, `bus_node` and `valve_terminal` arrive
+/// with their work packages and are kept in `extra` until then, which places them after the typed aspects.
 /// `user_props` has no field-level definition yet and is kept in `extra` too.
 ///
 /// Deserialisation takes the aspects out of the object first and reads each at its own path, because
@@ -125,6 +125,8 @@ impl DeviceAspects {
             strip: aspect(map, "strip")?,
             terminal: aspect(map, "terminal")?,
             cable: aspect(map, "cable")?,
+            plc_station: aspect(map, "plc_station")?,
+            plc_module: aspect(map, "plc_module")?,
         })
     }
 }
@@ -260,6 +262,12 @@ pub struct DeviceAspects {
     /// Cable.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cable: Option<Cable>,
+    /// PLC station (doc 10 §2.3).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plc_station: Option<crate::PlcStation>,
+    /// PLC module (doc 10 §2.3).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plc_module: Option<crate::PlcModule>,
 }
 
 /// The `Strip` aspect (doc 03 §11).

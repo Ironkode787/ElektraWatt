@@ -9,9 +9,9 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use ew_format::ew_schema::{
-    AnyId, Bond, Conductor, Connection, Device, ExternalRef, FnDef, FormDef, Function, ImportLineage,
-    Junction, Kind, LibCopy, LibDocument, Page, Part, PotentialDef, Record, ReportBlock, Representation,
-    Section, StructureNode, SymbolDef,
+    AnyId, Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, FnDef, FormDef, Function,
+    ImportLineage, Junction, Kind, LibCopy, LibDocument, Page, Part, PlcConfigProject, PotentialDef, Record,
+    ReportBlock, Representation, Section, StructureNode, SymbolDef,
 };
 use ew_format::{
     Anchors, FilePath, FormatError, LineKey, lib_dir, record_file, tagged_document, tagged_line,
@@ -25,6 +25,10 @@ macro_rules! with_row {
         match $row {
             AnyRow::Project($r) => {
                 let $kind = Kind::Project;
+                $body
+            }
+            AnyRow::PlcConfigProject($r) => {
+                let $kind = Kind::PlcConfigProject;
                 $body
             }
             AnyRow::ImportLineage($r) => {
@@ -71,12 +75,20 @@ macro_rules! with_row {
                 let $kind = Kind::Conductor;
                 $body
             }
+            AnyRow::Channel($r) => {
+                let $kind = Kind::Channel;
+                $body
+            }
             AnyRow::PotentialDef($r) => {
                 let $kind = Kind::PotentialDef;
                 $body
             }
             AnyRow::Bond($r) => {
                 let $kind = Kind::Bond;
+                $body
+            }
+            AnyRow::DeviceLink($r) => {
+                let $kind = Kind::DeviceLink;
                 $body
             }
             AnyRow::ReportBlock($r) => {
@@ -107,6 +119,7 @@ macro_rules! with_row {
 pub(crate) fn row_record(row: &AnyRow) -> Option<Record> {
     Some(match row {
         AnyRow::Project(r) => Record::Project((**r).clone()),
+        AnyRow::PlcConfigProject(r) => Record::PlcConfigProject((**r).clone()),
         AnyRow::ImportLineage(r) => Record::ImportLineage((**r).clone()),
         AnyRow::StructureNode(r) => Record::StructureNode((**r).clone()),
         AnyRow::Section(r) => Record::Section((**r).clone()),
@@ -118,8 +131,10 @@ pub(crate) fn row_record(row: &AnyRow) -> Option<Record> {
         AnyRow::Connection(r) => Record::Connection((**r).clone()),
         AnyRow::Junction(r) => Record::Junction((**r).clone()),
         AnyRow::Conductor(r) => Record::Conductor((**r).clone()),
+        AnyRow::Channel(r) => Record::Channel((**r).clone()),
         AnyRow::PotentialDef(r) => Record::PotentialDef((**r).clone()),
         AnyRow::Bond(r) => Record::Bond((**r).clone()),
+        AnyRow::DeviceLink(r) => Record::DeviceLink((**r).clone()),
         AnyRow::ReportBlock(r) => Record::ReportBlock((**r).clone()),
         AnyRow::Part(_) | AnyRow::Symbol(_) | AnyRow::Fndef(_) | AnyRow::Form(_) => return None,
     })
@@ -129,6 +144,7 @@ pub(crate) fn row_record(row: &AnyRow) -> Option<Record> {
 pub(crate) fn record_row(record: Record) -> Option<AnyRow> {
     Some(match record {
         Record::Project(r) => AnyRow::Project(Arc::new(r)),
+        Record::PlcConfigProject(r) => AnyRow::of(r),
         Record::ImportLineage(r) => AnyRow::of(r),
         Record::StructureNode(r) => AnyRow::of(r),
         Record::Section(r) => AnyRow::of(r),
@@ -140,8 +156,10 @@ pub(crate) fn record_row(record: Record) -> Option<AnyRow> {
         Record::Connection(r) => AnyRow::of(r),
         Record::Junction(r) => AnyRow::of(r),
         Record::Conductor(r) => AnyRow::of(r),
+        Record::Channel(r) => AnyRow::of(r),
         Record::PotentialDef(r) => AnyRow::of(r),
         Record::Bond(r) => AnyRow::of(r),
+        Record::DeviceLink(r) => AnyRow::of(r),
         Record::ReportBlock(r) => AnyRow::of(r),
         Record::Unknown(_) => return None,
     })
@@ -253,6 +271,7 @@ pub(crate) fn all_keys(model: &Model) -> BTreeSet<AnyKey> {
     }
     let mut out = BTreeSet::new();
     out.insert((Kind::Project, model.project().id.cast()));
+    table::<PlcConfigProject>(model, &mut out);
     table::<ImportLineage>(model, &mut out);
     table::<StructureNode>(model, &mut out);
     table::<Section>(model, &mut out);
@@ -264,8 +283,10 @@ pub(crate) fn all_keys(model: &Model) -> BTreeSet<AnyKey> {
     table::<Connection>(model, &mut out);
     table::<Junction>(model, &mut out);
     table::<Conductor>(model, &mut out);
+    table::<Channel>(model, &mut out);
     table::<PotentialDef>(model, &mut out);
     table::<Bond>(model, &mut out);
+    table::<DeviceLink>(model, &mut out);
     table::<ReportBlock>(model, &mut out);
     table::<LibCopy<Part>>(model, &mut out);
     table::<LibCopy<SymbolDef>>(model, &mut out);

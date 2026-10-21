@@ -6,6 +6,9 @@
       "$ref": "project.schema.json"
     },
     {
+      "$ref": "plc_config_project.schema.json"
+    },
+    {
       "$ref": "import_lineage.schema.json"
     },
     {
@@ -39,10 +42,16 @@
       "$ref": "conductor.schema.json"
     },
     {
+      "$ref": "channel.schema.json"
+    },
+    {
       "$ref": "potential_def.schema.json"
     },
     {
       "$ref": "bond.schema.json"
+    },
+    {
+      "$ref": "device_link.schema.json"
     },
     {
       "$ref": "report_block.schema.json"

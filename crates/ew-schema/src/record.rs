@@ -15,8 +15,9 @@ use crate::library::{FnDef, FormDef, LibCopy, Part, SymbolDef};
 use crate::track::{buffer_strict, check_value_at, de_here, parse_value, raise, with_context};
 use crate::value::Endpoint;
 use crate::{
-    Bond, Conductor, Connection, Device, ExternalRef, Function, ImportLineage, Junction, Page, PotentialDef,
-    Project, ReportBlock, Representation, SchemaError, Section, StructureNode,
+    Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, ImportLineage, Junction,
+    Page, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, SchemaError, Section,
+    StructureNode,
 };
 
 /// `$k` first, then the record's own members in declaration order.
@@ -120,6 +121,8 @@ fn endpoint_anchor(e: &Endpoint) -> AnchorRef {
 pub enum Record {
     /// `project` (10).
     Project(Project),
+    /// `plc_config_project` (11).
+    PlcConfigProject(PlcConfigProject),
     /// `import_lineage` (15).
     ImportLineage(ImportLineage),
     /// `structure_node` (20).
@@ -142,10 +145,14 @@ pub enum Record {
     Junction(Junction),
     /// `conductor` (36).
     Conductor(Conductor),
+    /// `channel` (37).
+    Channel(Channel),
     /// `potential_def` (38).
     PotentialDef(PotentialDef),
     /// `bond` (41).
     Bond(Bond),
+    /// `device_link` (42).
+    DeviceLink(DeviceLink),
     /// `report_block` (45).
     ReportBlock(ReportBlock),
     /// A record of a kind this reader does not implement, with its `$k`, kept verbatim.
@@ -160,6 +167,7 @@ impl Record {
     pub fn kind(&self) -> Option<Kind> {
         Some(match self {
             Record::Project(_) => Kind::Project,
+            Record::PlcConfigProject(_) => Kind::PlcConfigProject,
             Record::ImportLineage(_) => Kind::ImportLineage,
             Record::StructureNode(_) => Kind::StructureNode,
             Record::Section(_) => Kind::Section,
@@ -171,8 +179,10 @@ impl Record {
             Record::Connection(_) => Kind::Connection,
             Record::Junction(_) => Kind::Junction,
             Record::Conductor(_) => Kind::Conductor,
+            Record::Channel(_) => Kind::Channel,
             Record::PotentialDef(_) => Kind::PotentialDef,
             Record::Bond(_) => Kind::Bond,
+            Record::DeviceLink(_) => Kind::DeviceLink,
             Record::ReportBlock(_) => Kind::ReportBlock,
             Record::Unknown(_) => return None,
         })
@@ -190,6 +200,7 @@ impl Record {
     pub fn id(&self) -> Option<Uuid> {
         Some(match self {
             Record::Project(r) => r.id.as_uuid(),
+            Record::PlcConfigProject(r) => r.id.as_uuid(),
             Record::ImportLineage(r) => r.id.as_uuid(),
             Record::StructureNode(r) => r.id.as_uuid(),
             Record::Section(r) => r.id.as_uuid(),
@@ -201,8 +212,10 @@ impl Record {
             Record::Connection(r) => r.id.as_uuid(),
             Record::Junction(r) => r.id.as_uuid(),
             Record::Conductor(r) => r.id.as_uuid(),
+            Record::Channel(r) => r.id.as_uuid(),
             Record::PotentialDef(r) => r.id.as_uuid(),
             Record::Bond(r) => r.id.as_uuid(),
+            Record::DeviceLink(r) => r.id.as_uuid(),
             Record::ReportBlock(r) => r.id.as_uuid(),
             Record::Unknown(v) => {
                 return v
@@ -218,6 +231,7 @@ impl Record {
     pub fn anchor_ref(&self) -> AnchorRef {
         match self {
             Record::Project(_)
+            | Record::PlcConfigProject(_)
             | Record::ImportLineage(_)
             | Record::StructureNode(_)
             | Record::Section(_)
@@ -235,6 +249,8 @@ impl Record {
                 None => endpoint_anchor(&r.a),
             },
             Record::Conductor(r) => AnchorRef::Direct(r.cable.as_uuid()),
+            Record::Channel(r) => AnchorRef::Direct(r.module.as_uuid()),
+            Record::DeviceLink(r) => AnchorRef::Direct(r.from.as_uuid()),
             Record::PotentialDef(r) => endpoint_anchor(&r.at),
             Record::Bond(r) => endpoint_anchor(&r.a),
             Record::ReportBlock(r) => match &r.embedded {
@@ -280,6 +296,7 @@ impl Serialize for Record {
         }
         match self {
             Record::Project(r) => tagged(Kind::Project, r, serializer),
+            Record::PlcConfigProject(r) => tagged(Kind::PlcConfigProject, r, serializer),
             Record::ImportLineage(r) => tagged(Kind::ImportLineage, r, serializer),
             Record::StructureNode(r) => tagged(Kind::StructureNode, r, serializer),
             Record::Section(r) => tagged(Kind::Section, r, serializer),
@@ -291,8 +308,10 @@ impl Serialize for Record {
             Record::Connection(r) => tagged(Kind::Connection, r, serializer),
             Record::Junction(r) => tagged(Kind::Junction, r, serializer),
             Record::Conductor(r) => tagged(Kind::Conductor, r, serializer),
+            Record::Channel(r) => tagged(Kind::Channel, r, serializer),
             Record::PotentialDef(r) => tagged(Kind::PotentialDef, r, serializer),
             Record::Bond(r) => tagged(Kind::Bond, r, serializer),
+            Record::DeviceLink(r) => tagged(Kind::DeviceLink, r, serializer),
             Record::ReportBlock(r) => tagged(Kind::ReportBlock, r, serializer),
             Record::Unknown(v) => v.serialize(serializer),
         }
@@ -358,6 +377,7 @@ impl Record {
         let (_, map) = take_kind(value)?;
         Ok(match kind {
             Kind::Project => Record::Project(typed(kind, map, |r: &Project| r.v)?),
+            Kind::PlcConfigProject => Record::PlcConfigProject(typed(kind, map, |r: &PlcConfigProject| r.v)?),
             Kind::ImportLineage => Record::ImportLineage(typed(kind, map, |r: &ImportLineage| r.v)?),
             Kind::StructureNode => Record::StructureNode(typed(kind, map, |r: &StructureNode| r.v)?),
             Kind::Section => Record::Section(typed(kind, map, |r: &Section| r.v)?),
@@ -369,8 +389,10 @@ impl Record {
             Kind::Connection => Record::Connection(typed(kind, map, |r: &Connection| r.v)?),
             Kind::Junction => Record::Junction(typed(kind, map, |r: &Junction| r.v)?),
             Kind::Conductor => Record::Conductor(typed(kind, map, |r: &Conductor| r.v)?),
+            Kind::Channel => Record::Channel(typed(kind, map, |r: &Channel| r.v)?),
             Kind::PotentialDef => Record::PotentialDef(typed(kind, map, |r: &PotentialDef| r.v)?),
             Kind::Bond => Record::Bond(typed(kind, map, |r: &Bond| r.v)?),
+            Kind::DeviceLink => Record::DeviceLink(typed(kind, map, |r: &DeviceLink| r.v)?),
             Kind::ReportBlock => Record::ReportBlock(typed(kind, map, |r: &ReportBlock| r.v)?),
             k => return Err(SchemaError::UnknownKind(k.name().into())),
         })

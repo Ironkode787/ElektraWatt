@@ -186,9 +186,9 @@ fn unknown_members_are_kept_and_written_last_in_byte_order() {
 
 #[test]
 fn unknown_device_aspects_follow_the_known_ones() {
-    // `assembly` is not implemented in v0; it is kept in `extra`, after the known aspects.
+    // `assembly` and `bus_node` are not implemented yet; they are kept in `extra`, after the known aspects.
     let line = fill(
-        r#"{"$k":"device","id":"@DEV_G1","tag":{"letter":"U","counter":1},"cable":{},"assembly":{"bom_basis":"assembly"},"plc_station":{"role":"valve_terminal"}}"#,
+        r#"{"$k":"device","id":"@DEV_G1","tag":{"letter":"U","counter":1},"cable":{},"assembly":{"bom_basis":"assembly"},"bus_node":{"role":"slave"}}"#,
     );
     let Record::Device(d) = assert_canonical(&line) else {
         panic!("a device");

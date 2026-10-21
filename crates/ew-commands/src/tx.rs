@@ -105,6 +105,7 @@ fn row_changed_at(model: &Model, key: &AnyKey) -> Option<Rev> {
             let row = model.project_row();
             (row.value().id.cast::<()>() == id).then(|| row.changed_at())
         }
+        Kind::PlcConfigProject => at::<ew_schema::PlcConfigProject>(model, id),
         Kind::ImportLineage => at::<ImportLineage>(model, id),
         Kind::StructureNode => at::<StructureNode>(model, id),
         Kind::Section => at::<Section>(model, id),
@@ -116,8 +117,10 @@ fn row_changed_at(model: &Model, key: &AnyKey) -> Option<Rev> {
         Kind::Connection => at::<Connection>(model, id),
         Kind::Junction => at::<Junction>(model, id),
         Kind::Conductor => at::<Conductor>(model, id),
+        Kind::Channel => at::<ew_schema::Channel>(model, id),
         Kind::PotentialDef => at::<PotentialDef>(model, id),
         Kind::Bond => at::<Bond>(model, id),
+        Kind::DeviceLink => at::<ew_schema::DeviceLink>(model, id),
         Kind::ReportBlock => at::<ReportBlock>(model, id),
         Kind::Part => at::<LibCopy<Part>>(model, id),
         Kind::Symbol => at::<LibCopy<SymbolDef>>(model, id),
@@ -134,6 +137,7 @@ fn table_changed_at(model: &Model, kind: Kind) -> Rev {
     }
     match kind {
         Kind::Project => model.project_row().changed_at(),
+        Kind::PlcConfigProject => at::<ew_schema::PlcConfigProject>(model),
         Kind::ImportLineage => at::<ImportLineage>(model),
         Kind::StructureNode => at::<StructureNode>(model),
         Kind::Section => at::<Section>(model),
@@ -145,8 +149,10 @@ fn table_changed_at(model: &Model, kind: Kind) -> Rev {
         Kind::Connection => at::<Connection>(model),
         Kind::Junction => at::<Junction>(model),
         Kind::Conductor => at::<Conductor>(model),
+        Kind::Channel => at::<ew_schema::Channel>(model),
         Kind::PotentialDef => at::<PotentialDef>(model),
         Kind::Bond => at::<Bond>(model),
+        Kind::DeviceLink => at::<ew_schema::DeviceLink>(model),
         Kind::ReportBlock => at::<ReportBlock>(model),
         Kind::Part => at::<LibCopy<Part>>(model),
         Kind::Symbol => at::<LibCopy<SymbolDef>>(model),

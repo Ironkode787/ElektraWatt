@@ -31,6 +31,7 @@ pub fn row_json(row: &AnyRow) -> Result<Value, CmdError> {
     }
     match row {
         AnyRow::Project(r) => v(&**r, row),
+        AnyRow::PlcConfigProject(r) => v(&**r, row),
         AnyRow::ImportLineage(r) => v(&**r, row),
         AnyRow::StructureNode(r) => v(&**r, row),
         AnyRow::Section(r) => v(&**r, row),
@@ -42,8 +43,10 @@ pub fn row_json(row: &AnyRow) -> Result<Value, CmdError> {
         AnyRow::Connection(r) => v(&**r, row),
         AnyRow::Junction(r) => v(&**r, row),
         AnyRow::Conductor(r) => v(&**r, row),
+        AnyRow::Channel(r) => v(&**r, row),
         AnyRow::PotentialDef(r) => v(&**r, row),
         AnyRow::Bond(r) => v(&**r, row),
+        AnyRow::DeviceLink(r) => v(&**r, row),
         AnyRow::ReportBlock(r) => v(&**r, row),
         AnyRow::Part(r) => v(&**r, row),
         AnyRow::Symbol(r) => v(&**r, row),

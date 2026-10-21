@@ -30,6 +30,39 @@
         }
       ]
     },
+    "AddrSpec": {
+      "description": "An address specification (doc 10 §2.5): derived, deliberate, excluded or open.",
+      "oneOf": [
+        {
+          "const": "auto",
+          "description": "Module start plus the address-map offset (the default).",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A deliberate value; every deviation from the derived value is reported (EW-PLC-012).",
+          "properties": {
+            "manual": {
+              "$ref": "#/$defs/PlcAddress"
+            }
+          },
+          "required": [
+            "manual"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "excluded",
+          "description": "Not addressed (\"do not include in addressing\").",
+          "type": "string"
+        },
+        {
+          "const": "tbd",
+          "description": "A typed open item; prints \"TBD\" and blocks release (EW-PLC-015).",
+          "type": "string"
+        }
+      ]
+    },
     "Cable": {
       "additionalProperties": true,
       "description": "The `Cable` aspect (doc 03 §12).",
@@ -150,6 +183,21 @@
       "minLength": 1,
       "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
       "type": "string"
+    },
+    "IoStarts": {
+      "additionalProperties": true,
+      "description": "One start per direction (doc 10 §2.3).",
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/AddrSpec",
+          "description": "The input start."
+        },
+        "output": {
+          "$ref": "#/$defs/AddrSpec",
+          "description": "The output start."
+        }
+      },
+      "type": "object"
     },
     "LabelMode": {
       "description": "What the terminals of a strip print.",
@@ -300,6 +348,158 @@
       ],
       "type": "object"
     },
+    "PlcAddress": {
+      "additionalProperties": true,
+      "description": "A canonical PLC address (doc 10 §2.5), rendered by the configuration project's profile.",
+      "properties": {
+        "area": {
+          "$ref": "#/$defs/PlcArea",
+          "description": "The area."
+        },
+        "bit": {
+          "description": "The bit, for a bit address.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "byte": {
+          "description": "The byte.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "size": {
+          "$ref": "#/$defs/PlcSize",
+          "description": "The access size; default a bit."
+        }
+      },
+      "required": [
+        "area",
+        "byte"
+      ],
+      "type": "object"
+    },
+    "PlcArea": {
+      "description": "The area of a PLC address.",
+      "oneOf": [
+        {
+          "const": "i",
+          "description": "Inputs.",
+          "type": "string"
+        },
+        {
+          "const": "q",
+          "description": "Outputs.",
+          "type": "string"
+        },
+        {
+          "const": "m",
+          "description": "Markers.",
+          "type": "string"
+        },
+        {
+          "const": "pi",
+          "description": "Peripheral inputs.",
+          "type": "string"
+        },
+        {
+          "const": "pq",
+          "description": "Peripheral outputs.",
+          "type": "string"
+        }
+      ]
+    },
+    "PlcModule": {
+      "additionalProperties": true,
+      "description": "The `PlcModule` aspect (doc 10 §2.3): a card or sub-module of a station, on the station device or on a\ndescendant of it. Its I/O widths and maps come from the part's `plc` section.",
+      "properties": {
+        "integrated": {
+          "description": "Created with the station; not deletable alone (FR-PLC-003).",
+          "type": "boolean"
+        },
+        "part_use": {
+          "description": "Which part use of the device supplies the PLC section (index into `Device.parts`); absent: the first\npart use whose part has one.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "slot": {
+          "$ref": "#/$defs/SlotPath",
+          "description": "The slot; default positional (the rank among the station's modules by `Device.position`)."
+        },
+        "start": {
+          "$ref": "#/$defs/IoStarts",
+          "description": "The start address per direction; default `auto` for both."
+        }
+      },
+      "type": "object"
+    },
+    "PlcSize": {
+      "description": "The access size of a PLC address.",
+      "oneOf": [
+        {
+          "const": "bit",
+          "description": "One bit (the default).",
+          "type": "string"
+        },
+        {
+          "const": "byte",
+          "description": "A byte.",
+          "type": "string"
+        },
+        {
+          "const": "word",
+          "description": "A word.",
+          "type": "string"
+        },
+        {
+          "const": "dword",
+          "description": "A double word.",
+          "type": "string"
+        },
+        {
+          "const": "lword",
+          "description": "A long word.",
+          "type": "string"
+        }
+      ]
+    },
+    "PlcStation": {
+      "additionalProperties": true,
+      "description": "The `PlcStation` aspect (doc 10 §2.3): an addressable participant of a configuration project.",
+      "properties": {
+        "config_project": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The configuration project."
+        },
+        "order": {
+          "description": "Address-allocation order; absent: by ID (never by tag, page or bus address).",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "role": {
+          "$ref": "#/$defs/StationRole",
+          "description": "The station's role."
+        }
+      },
+      "required": [
+        "config_project",
+        "role"
+      ],
+      "type": "object"
+    },
     "Quantity": {
       "additionalProperties": true,
       "description": "A decimal value with its unit (doc 03 §3.2): `{\"value\": Dec3, \"unit\": Unit}`. Rendering (\"0.75 mm²\",\ndecimal comma in nl and de) is a query, never stored text (D-18).\n\n```\nuse ew_schema::{Quantity, Unit};\n\nlet q: Quantity = serde_json::from_str(r#\"{\"value\":\"20\",\"unit\":\"A\"}\"#).unwrap();\nassert_eq!(q.unit, Unit::A);\nassert_eq!(serde_json::to_string(&q).unwrap(), r#\"{\"value\":\"20\",\"unit\":\"A\"}\"#);\n```",
@@ -316,6 +516,41 @@
       "required": [
         "value",
         "unit"
+      ],
+      "type": "object"
+    },
+    "RackSlot": {
+      "additionalProperties": true,
+      "description": "An authored rack position.",
+      "properties": {
+        "rack": {
+          "description": "The rack.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "slot": {
+          "description": "The slot.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "subslot": {
+          "description": "The subslot.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "rack",
+        "slot"
       ],
       "type": "object"
     },
@@ -345,6 +580,29 @@
       ],
       "description": "A structure slot: a structure node ID or \"none\"; absent means inherit (doc 05 §3.2)."
     },
+    "SlotPath": {
+      "description": "The slot of a module (doc 10 §2.3).",
+      "oneOf": [
+        {
+          "const": "positional",
+          "description": "The 1-based rank among the station's I/O-module descendants by `Device.position` (the default).",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Rack, slot and subslot.",
+          "properties": {
+            "rack": {
+              "$ref": "#/$defs/RackSlot"
+            }
+          },
+          "required": [
+            "rack"
+          ],
+          "type": "object"
+        }
+      ]
+    },
     "SourceRef": {
       "additionalProperties": true,
       "description": "The import provenance of a record (doc 14 §2.3, ADR-0004 amendment 1): the lineage and the source key\nfrom which the record's ID `v5(lineage namespace, key)` was derived.",
@@ -363,6 +621,46 @@
         "key"
       ],
       "type": "object"
+    },
+    "StationRole": {
+      "description": "The role of a station (doc 10 §2.3).",
+      "oneOf": [
+        {
+          "const": "cpu",
+          "description": "A CPU.",
+          "type": "string"
+        },
+        {
+          "const": "head_station",
+          "description": "A head station of remote I/O.",
+          "type": "string"
+        },
+        {
+          "const": "io_device",
+          "description": "An I/O device.",
+          "type": "string"
+        },
+        {
+          "const": "valve_terminal",
+          "description": "A valve terminal.",
+          "type": "string"
+        },
+        {
+          "const": "io_link_master",
+          "description": "An IO-Link master.",
+          "type": "string"
+        },
+        {
+          "const": "drive",
+          "description": "A drive.",
+          "type": "string"
+        },
+        {
+          "const": "external_partner",
+          "description": "A placeholder for a partner outside the project (FR-BUS-005).",
+          "type": "string"
+        }
+      ]
     },
     "Strip": {
       "additionalProperties": true,
@@ -781,7 +1079,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "description": "Everything with one tag; the single owner of parts (ADR-0006, doc 03 §7, rank 31). The printed tag is\nderived from `tag`, the numbering scheme and the main representation; it is stored nowhere.\n\nAspects follow the known members, flattened in the order of doc 05 §3.1. v0 implements `strip`,\n`terminal` and `cable`; `assembly`, `plc_station`, `plc_module`, `bus_node` and `valve_terminal` arrive\nwith their work packages and are kept in `extra` until then, which already places them after `cable`.\n`user_props` has no field-level definition yet and is kept in `extra` too.\n\nDeserialisation takes the aspects out of the object first and reads each at its own path, because\nserde reads flattened fields from a buffer that loses the paths of errors inside them.",
+  "description": "Everything with one tag; the single owner of parts (ADR-0006, doc 03 §7, rank 31). The printed tag is\nderived from `tag`, the numbering scheme and the main representation; it is stored nowhere.\n\nAspects follow the known members, flattened in the order of doc 05 §3.1. Implemented: `strip`,\n`terminal`, `cable`, `plc_station` and `plc_module`; `assembly`, `bus_node` and `valve_terminal` arrive\nwith their work packages and are kept in `extra` until then, which places them after the typed aspects.\n`user_props` has no field-level definition yet and is kept in `extra` too.\n\nDeserialisation takes the aspects out of the object first and reads each at its own path, because\nserde reads flattened fields from a buffer that loses the paths of errors inside them.",
   "properties": {
     "$k": {
       "const": "device",
@@ -841,6 +1139,28 @@
         "$ref": "#/$defs/PartUse"
       },
       "type": "array"
+    },
+    "plc_module": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PlcModule"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "PLC module (doc 10 §2.3)."
+    },
+    "plc_station": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PlcStation"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "PLC station (doc 10 §2.3)."
     },
     "position": {
       "description": "Order inside the parent (manifold position).",

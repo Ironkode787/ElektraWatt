@@ -199,6 +199,18 @@ fn junction(e: &Endpoint, out: &mut Vec<Target>) {
     }
 }
 
+fn opt_cp(e: &Option<Endpoint>, out: &mut Vec<Target>) {
+    if let Some(e) = e {
+        cp(e, out);
+    }
+}
+
+fn opt_junction(e: &Option<Endpoint>, out: &mut Vec<Target>) {
+    if let Some(e) = e {
+        junction(e, out);
+    }
+}
+
 /// The embedded copy a `LibRef` resolves to: `v5(NS_LIBCOPY, library ‖ item)` (doc 05 §13.2). A second copy
 /// minted by "keep both" (`‖ version`) is never the resolution of a `LibRef`.
 fn lib_ref(r: &LibRef, out: &mut Vec<Target>) {
@@ -308,6 +320,17 @@ pub static LINKS: &[LinkDecl] = &[
         }
         Some(AnyRow::Project(Arc::new(p)))
     })),
+    // plc_config_project
+    link!(PlcConfigProject."cpu" -> Device, Unlink, None, |v, out| opt(v.cpu, out),
+    Some(|row, del| {
+        let AnyRow::PlcConfigProject(p) = row else { return Some(row.clone()) };
+        let mut p = (**p).clone();
+        if p.cpu.is_some_and(|d| gone(del, Kind::Device, d)) {
+            p.cpu = None;
+        }
+        Some(AnyRow::PlcConfigProject(Arc::new(p)))
+    })),
+    lineage_link!(PlcConfigProject),
     // structure_node
     link!(StructureNode."parent" -> StructureNode, Forbid, Some(I::StructureChildren), |v, out| opt(v.parent, out)),
     lineage_link!(StructureNode),
@@ -350,6 +373,8 @@ pub static LINKS: &[LinkDecl] = &[
     DEVICE_SLOTS[6],
     link!(Device."terminal.strip" -> Device, Forbid, Some(I::TerminalsByStrip),
         |v, out| opt(v.aspects.terminal.as_ref().map(|t| t.strip), out)),
+    link!(Device."plc_station.config_project" -> PlcConfigProject, Forbid, None,
+        |v, out| opt(v.aspects.plc_station.as_ref().map(|s| s.config_project), out)),
     lineage_link!(Device),
     // function
     link!(Function."device" -> Device, Cascade, Some(I::FunctionsByDevice), |v, out| opt(v.device, out)),
@@ -430,6 +455,36 @@ pub static LINKS: &[LinkDecl] = &[
     // conductor
     link!(Conductor."cable" -> Device, Cascade, Some(I::ConductorsByCable), |v, out| id(v.cable, out)),
     lineage_link!(Conductor),
+    // channel
+    link!(Channel."module" -> Device, Cascade, None, |v, out| id(v.module, out)),
+    link!(Channel."binding.cp[0]" -> Function, Unlink, None, |v, out| opt_cp(&v.binding, out),
+    Some(|row, del| {
+        let AnyRow::Channel(c) = row else { return Some(row.clone()) };
+        let mut c = (**c).clone();
+        if matches!(c.binding, Some(Endpoint::Cp(f, _)) if gone(del, Kind::Function, f)) {
+            c.binding = None;
+        }
+        Some(AnyRow::Channel(Arc::new(c)))
+    })),
+    link!(Channel."binding.junction" -> Junction, Unlink, None, |v, out| opt_junction(&v.binding, out),
+    Some(|row, del| {
+        let AnyRow::Channel(c) = row else { return Some(row.clone()) };
+        let mut c = (**c).clone();
+        if matches!(c.binding, Some(Endpoint::Junction(j)) if gone(del, Kind::Junction, j)) {
+            c.binding = None;
+        }
+        Some(AnyRow::Channel(Arc::new(c)))
+    })),
+    link!(Channel."target" -> Function, Unlink, None, |v, out| opt(v.target, out),
+    Some(|row, del| {
+        let AnyRow::Channel(c) = row else { return Some(row.clone()) };
+        let mut c = (**c).clone();
+        if c.target.is_some_and(|f| gone(del, Kind::Function, f)) {
+            c.target = None;
+        }
+        Some(AnyRow::Channel(Arc::new(c)))
+    })),
+    lineage_link!(Channel),
     // potential_def
     link!(PotentialDef."at.cp[0]" -> Function, Unlink, Some(I::PotentialDefsByEndpoint), |v, out| cp(&v.at, out), DROP),
     link!(PotentialDef."at.junction" -> Junction, Unlink, Some(I::PotentialDefsByEndpoint),
@@ -452,6 +507,10 @@ pub static LINKS: &[LinkDecl] = &[
         Some(AnyRow::Bond(Arc::new(b)))
     })),
     lineage_link!(Bond),
+    // device_link
+    link!(DeviceLink."from" -> Device, Cascade, None, |v, out| id(v.from, out)),
+    link!(DeviceLink."to" -> Device, Cascade, None, |v, out| id(v.to, out)),
+    lineage_link!(DeviceLink),
     // report_block
     link!(ReportBlock."form" -> Form, Forbid, None, |v, out| id(v.form, out)),
     link!(ReportBlock."section" -> Section, Forbid, None, |v, out| opt(v.section, out)),

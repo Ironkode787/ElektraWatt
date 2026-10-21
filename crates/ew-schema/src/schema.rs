@@ -15,8 +15,8 @@ use serde_json::{Map, Value, json};
 use crate::kind::{FORMAT, Kind, KindStatus};
 use crate::library::{FnDef, FormDef, LibCopy, Part, SymbolDef};
 use crate::{
-    Bond, Conductor, Connection, Device, ExternalRef, Function, ImportLineage, Junction, Page, PotentialDef,
-    Project, ReportBlock, Representation, Section, StructureNode,
+    Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, ImportLineage, Junction,
+    Page, PlcConfigProject, PotentialDef, Project, ReportBlock, Representation, Section, StructureNode,
 };
 
 /// The schema of `T`, titled and tagged as `kind`.
@@ -55,6 +55,7 @@ fn generate<T: JsonSchema>(kind: Kind) -> Value {
 pub fn kind_schema(kind: Kind) -> Option<Value> {
     Some(match kind {
         Kind::Project => generate::<Project>(kind),
+        Kind::PlcConfigProject => generate::<PlcConfigProject>(kind),
         Kind::ImportLineage => generate::<ImportLineage>(kind),
         Kind::StructureNode => generate::<StructureNode>(kind),
         Kind::Section => generate::<Section>(kind),
@@ -66,8 +67,10 @@ pub fn kind_schema(kind: Kind) -> Option<Value> {
         Kind::Connection => generate::<Connection>(kind),
         Kind::Junction => generate::<Junction>(kind),
         Kind::Conductor => generate::<Conductor>(kind),
+        Kind::Channel => generate::<Channel>(kind),
         Kind::PotentialDef => generate::<PotentialDef>(kind),
         Kind::Bond => generate::<Bond>(kind),
+        Kind::DeviceLink => generate::<DeviceLink>(kind),
         Kind::ReportBlock => generate::<ReportBlock>(kind),
         Kind::Part => generate::<LibCopy<Part>>(kind),
         Kind::Symbol => generate::<LibCopy<SymbolDef>>(kind),

@@ -1,0 +1,97 @@
+{
+  "$defs": {
+    "DeviceLinkKind": {
+      "description": "The kind of a device link.",
+      "oneOf": [
+        {
+          "const": "drives",
+          "description": "`from` drives `to` (a valve and its field device).",
+          "type": "string"
+        },
+        {
+          "const": "linkage",
+          "description": "A mechanical linkage (FR-SYM-014).",
+          "type": "string"
+        }
+      ]
+    },
+    "SourceRef": {
+      "additionalProperties": true,
+      "description": "The import provenance of a record (doc 14 §2.3, ADR-0004 amendment 1): the lineage and the source key\nfrom which the record's ID `v5(lineage namespace, key)` was derived.",
+      "properties": {
+        "key": {
+          "description": "The source key, byte for byte (NFC), such as `qet:el:<uuid>`.",
+          "type": "string"
+        },
+        "lineage": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The import lineage."
+        }
+      },
+      "required": [
+        "lineage",
+        "key"
+      ],
+      "type": "object"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "A functional relation between two devices (doc 03 §7, doc 11 §3.1, rank 42, in the shard of `from`):\nvalve -201U3-Q1 drives field device -203Q1, whose process tag the valve's texts and the PLC overview\ntrack.",
+  "properties": {
+    "$k": {
+      "const": "device_link",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "from": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The driving or linked device."
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The record ID."
+    },
+    "kind": {
+      "$ref": "#/$defs/DeviceLinkKind",
+      "description": "The relation."
+    },
+    "source_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SourceRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Import provenance."
+    },
+    "to": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The driven or linked device."
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "from",
+    "to",
+    "kind"
+  ],
+  "title": "device_link",
+  "type": "object"
+}

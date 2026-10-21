@@ -222,6 +222,8 @@ pub(crate) fn emit_devices(cx: &mut Cx<'_>, table: Option<&Table>) {
                 strip,
                 terminal: None,
                 cable,
+                plc_station: None,
+                plc_module: None,
             },
             extra: Default::default(),
         };
@@ -334,6 +336,8 @@ pub(crate) fn emit_terminals(cx: &mut Cx<'_>, table: Option<&Table>) {
                     extra: Default::default(),
                 }),
                 cable: None,
+                plc_station: None,
+                plc_module: None,
             },
             extra: Default::default(),
         }));

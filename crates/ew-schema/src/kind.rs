@@ -257,7 +257,7 @@ impl Kind {
         use KindStatus::{Implemented as I, Reserved as R};
         match self {
             Kind::Project => ("project", Some(10), F::ProjectFile, I),
-            Kind::PlcConfigProject => ("plc_config_project", Some(11), F::ProjectFile, R),
+            Kind::PlcConfigProject => ("plc_config_project", Some(11), F::ProjectFile, I),
             Kind::LogicalNet => ("logical_net", Some(12), F::ProjectFile, R),
             Kind::PhysicalNet => ("physical_net", Some(13), F::ProjectFile, R),
             Kind::Medium => ("medium", Some(14), F::ProjectFile, R),
@@ -272,12 +272,12 @@ impl Kind {
             Kind::Connection => ("connection", Some(34), F::PageOrShard, I),
             Kind::Junction => ("junction", Some(35), F::PageFile, I),
             Kind::Conductor => ("conductor", Some(36), F::Shard, I),
-            Kind::Channel => ("channel", Some(37), F::Shard, R),
+            Kind::Channel => ("channel", Some(37), F::Shard, I),
             Kind::PotentialDef => ("potential_def", Some(38), F::ShardOrPage, I),
             Kind::NetDef => ("net_def", Some(39), F::ShardOrPage, R),
             Kind::MediumDef => ("medium_def", Some(40), F::ShardOrPage, R),
             Kind::Bond => ("bond", Some(41), F::ShardOrPage, I),
-            Kind::DeviceLink => ("device_link", Some(42), F::Shard, R),
+            Kind::DeviceLink => ("device_link", Some(42), F::Shard, I),
             Kind::PageItem => ("page_item", Some(43), F::PageFile, R),
             Kind::StructureBox => ("structure_box", Some(44), F::PageFile, R),
             Kind::ReportBlock => ("report_block", Some(45), F::ReportBlocksOrPage, I),
@@ -370,6 +370,7 @@ impl fmt::Display for Kind {
 /// breaks its kind and is allowed only in a format major (doc 05 §10.2); it ships a migration step.
 pub const SCHEMA_VERSIONS: &[(Kind, u16)] = &[
     (Kind::Project, 1),
+    (Kind::PlcConfigProject, 1),
     (Kind::ImportLineage, 1),
     (Kind::StructureNode, 1),
     (Kind::Section, 1),
@@ -381,8 +382,10 @@ pub const SCHEMA_VERSIONS: &[(Kind, u16)] = &[
     (Kind::Connection, 1),
     (Kind::Junction, 1),
     (Kind::Conductor, 1),
+    (Kind::Channel, 1),
     (Kind::PotentialDef, 1),
     (Kind::Bond, 1),
+    (Kind::DeviceLink, 1),
     (Kind::ReportBlock, 1),
     (Kind::Part, 1),
     (Kind::Symbol, 1),

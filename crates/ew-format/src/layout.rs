@@ -87,7 +87,7 @@ pub fn record_file(record: &Record, anchors: &dyn Anchors) -> Result<FilePath, F
         _ => None,
     };
     let file = match record {
-        Record::Project(_) | Record::ImportLineage(_) => FilePath::project(),
+        Record::Project(_) | Record::PlcConfigProject(_) | Record::ImportLineage(_) => FilePath::project(),
         Record::StructureNode(_) | Record::Section(_) | Record::ExternalRef(_) => FilePath::structure(),
         Record::Page(r) => FilePath::page(r.id.cast()),
         Record::Device(r) => FilePath::shard(r.id.cast()),
@@ -98,6 +98,8 @@ pub fn record_file(record: &Record, anchors: &dyn Anchors) -> Result<FilePath, F
         Record::Representation(r) => FilePath::page(r.page.cast()),
         Record::Junction(r) => FilePath::page(r.page.cast()),
         Record::Conductor(r) => FilePath::shard(r.cable.cast()),
+        Record::Channel(r) => FilePath::shard(r.module.cast()),
+        Record::DeviceLink(r) => FilePath::shard(r.from.cast()),
         Record::ReportBlock(r) => match &r.embedded {
             Some(e) => FilePath::page(e.page.cast()),
             None => FilePath::report_blocks(),

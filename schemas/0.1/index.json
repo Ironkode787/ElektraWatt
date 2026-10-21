@@ -13,9 +13,9 @@
       "file": "project.jsonl",
       "kind": "plc_config_project",
       "rank": 11,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "plc_config_project.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "project.jsonl",
@@ -133,9 +133,9 @@
       "file": "devices/<xx>.jsonl",
       "kind": "channel",
       "rank": 37,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "channel.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "devices/<xx>.jsonl or pages/<page>.jsonl",
@@ -173,9 +173,9 @@
       "file": "devices/<xx>.jsonl",
       "kind": "device_link",
       "rank": 42,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "device_link.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "pages/<page>.jsonl",

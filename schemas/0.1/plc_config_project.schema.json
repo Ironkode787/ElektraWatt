@@ -1,0 +1,94 @@
+{
+  "$defs": {
+    "Ident": {
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "SourceRef": {
+      "additionalProperties": true,
+      "description": "The import provenance of a record (doc 14 §2.3, ADR-0004 amendment 1): the lineage and the source key\nfrom which the record's ID `v5(lineage namespace, key)` was derived.",
+      "properties": {
+        "key": {
+          "description": "The source key, byte for byte (NFC), such as `qet:el:<uuid>`.",
+          "type": "string"
+        },
+        "lineage": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The import lineage."
+        }
+      },
+      "required": [
+        "lineage",
+        "key"
+      ],
+      "type": "object"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "One target PLC-software project (doc 10 §2.2, rank 11, `project.jsonl`): it scopes address and symbol\nuniqueness (FR-PLC-002) and pins the address profile that renders every address (FR-PLC-008).",
+  "properties": {
+    "$k": {
+      "const": "plc_config_project",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "cpu": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The CPU device; absent when the master sits outside the project (Golden A)."
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The record ID."
+    },
+    "name": {
+      "$ref": "#/$defs/Ident",
+      "description": "The name (\"PLC1\")."
+    },
+    "profile": {
+      "$ref": "#/$defs/Ident",
+      "description": "The pinned address profile, `id@version` (\"siemens-tia-intl@2027.1\"; doc 10 §2.5)."
+    },
+    "source_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SourceRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Import provenance."
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "name",
+    "profile"
+  ],
+  "title": "plc_config_project",
+  "type": "object"
+}

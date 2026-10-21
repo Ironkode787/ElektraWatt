@@ -8,9 +8,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_schema::{
-    Bond, Conductor, Connection, Device, ExternalRef, Function, FunctionKind, ImportLineage, Junction, Kind,
-    KindRegistry, LibDocument, Page, PotentialDef, Project, Record, ReportBlock, Representation, Section,
-    StructureNode,
+    Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, Function, FunctionKind,
+    ImportLineage, Junction, Kind, KindRegistry, LibDocument, Page, PlcConfigProject, PotentialDef, Project,
+    Record, ReportBlock, Representation, Section, StructureNode,
 };
 
 use crate::entity::{AnyKey, AnyRow, Entity, LibraryCopies, get_row, put_row, same_tables};
@@ -31,6 +31,7 @@ use crate::rev::{Rev, Row, Table};
 pub struct Model {
     pub(crate) rev: Rev,
     pub(crate) project: Row<Project>,
+    pub(crate) plc_config_projects: Table<PlcConfigProject>,
     pub(crate) lineages: Table<ImportLineage>,
     pub(crate) structure: Table<StructureNode>,
     pub(crate) sections: Table<Section>,
@@ -42,8 +43,10 @@ pub struct Model {
     pub(crate) connections: Table<Connection>,
     pub(crate) junctions: Table<Junction>,
     pub(crate) conductors: Table<Conductor>,
+    pub(crate) channels: Table<Channel>,
     pub(crate) potential_defs: Table<PotentialDef>,
     pub(crate) bonds: Table<Bond>,
+    pub(crate) device_links: Table<DeviceLink>,
     pub(crate) report_blocks: Table<ReportBlock>,
     pub(crate) lib: LibraryCopies,
     /// Records of unknown or reserved kinds, kept for the writer in the line order of doc 05 §3.3; they
@@ -60,6 +63,7 @@ impl Model {
         Model {
             rev: Rev::ZERO,
             project: Row::new(Arc::new(project), Rev::ZERO),
+            plc_config_projects: Table::default(),
             lineages: Table::default(),
             structure: Table::default(),
             sections: Table::default(),
@@ -71,8 +75,10 @@ impl Model {
             connections: Table::default(),
             junctions: Table::default(),
             conductors: Table::default(),
+            channels: Table::default(),
             potential_defs: Table::default(),
             bonds: Table::default(),
+            device_links: Table::default(),
             report_blocks: Table::default(),
             lib: LibraryCopies::default(),
             unknown: Arc::new(Vec::new()),
@@ -106,6 +112,7 @@ impl Model {
             .into_iter()
             .filter_map(|r| match r {
                 Record::Project(p) => Some(AnyRow::Project(Arc::new(p))),
+                Record::PlcConfigProject(r) => Some(AnyRow::of(r)),
                 Record::ImportLineage(r) => Some(AnyRow::of(r)),
                 Record::StructureNode(r) => Some(AnyRow::of(r)),
                 Record::Section(r) => Some(AnyRow::of(r)),
@@ -117,8 +124,10 @@ impl Model {
                 Record::Connection(r) => Some(AnyRow::of(r)),
                 Record::Junction(r) => Some(AnyRow::of(r)),
                 Record::Conductor(r) => Some(AnyRow::of(r)),
+                Record::Channel(r) => Some(AnyRow::of(r)),
                 Record::PotentialDef(r) => Some(AnyRow::of(r)),
                 Record::Bond(r) => Some(AnyRow::of(r)),
+                Record::DeviceLink(r) => Some(AnyRow::of(r)),
                 Record::ReportBlock(r) => Some(AnyRow::of(r)),
                 other => {
                     unknown.push(other);

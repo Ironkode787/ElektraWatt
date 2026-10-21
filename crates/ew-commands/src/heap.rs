@@ -73,6 +73,7 @@ pub fn row_bytes(row: &AnyRow) -> usize {
     }
     match row {
         AnyRow::Project(r) => of(&**r),
+        AnyRow::PlcConfigProject(r) => of(&**r),
         AnyRow::ImportLineage(r) => of(&**r),
         AnyRow::StructureNode(r) => of(&**r),
         AnyRow::Section(r) => of(&**r),
@@ -84,8 +85,10 @@ pub fn row_bytes(row: &AnyRow) -> usize {
         AnyRow::Connection(r) => of(&**r),
         AnyRow::Junction(r) => of(&**r),
         AnyRow::Conductor(r) => of(&**r),
+        AnyRow::Channel(r) => of(&**r),
         AnyRow::PotentialDef(r) => of(&**r),
         AnyRow::Bond(r) => of(&**r),
+        AnyRow::DeviceLink(r) => of(&**r),
         AnyRow::ReportBlock(r) => of(&**r),
         AnyRow::Part(r) => of(&**r),
         AnyRow::Symbol(r) => of(&**r),
@@ -233,6 +236,58 @@ extra_only!(
 impl HeapSize for TextSlot {
     fn heap_size(&self) -> usize {
         self.style.heap_size() + self.extra.heap_size()
+    }
+}
+
+// ---- PLC (doc 10 §2): enum payloads of a newer format are not counted ----
+
+extra_only!(
+    ew_schema::PlcStation,
+    ew_schema::IoStarts,
+    ew_schema::IoRange,
+    ew_schema::DeviceLink
+);
+
+impl HeapSize for ew_schema::PlcModule {
+    fn heap_size(&self) -> usize {
+        self.start.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::PlcConfigProject {
+    fn heap_size(&self) -> usize {
+        self.name.heap_size()
+            + self.profile.heap_size()
+            + self.source_ref.heap_size()
+            + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::Channel {
+    fn heap_size(&self) -> usize {
+        self.designation.heap_size()
+            + self.symbol.heap_size()
+            + self.comment.heap_size()
+            + self.source_ref.heap_size()
+            + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::ChannelSpec {
+    fn heap_size(&self) -> usize {
+        self.data_type.heap_size() + self.designation.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::PlcSection {
+    fn heap_size(&self) -> usize {
+        let map = match &self.bit_of {
+            Some(ew_schema::MapSpec::Expr(s)) => s.heap_size(),
+            Some(ew_schema::MapSpec::List(l)) => l.heap_size(),
+            Some(ew_schema::MapSpec::Unknown(v)) => v.heap_size(),
+            None => 0,
+        };
+        self.io.heap_size() + self.channels.heap_size() + map + self.extra.heap_size()
     }
 }
 
@@ -416,7 +471,11 @@ impl HeapSize for Terminal {
 
 impl HeapSize for DeviceAspects {
     fn heap_size(&self) -> usize {
-        self.strip.heap_size() + self.terminal.heap_size() + self.cable.heap_size()
+        self.strip.heap_size()
+            + self.terminal.heap_size()
+            + self.cable.heap_size()
+            + self.plc_station.heap_size()
+            + self.plc_module.heap_size()
     }
 }
 
@@ -737,7 +796,7 @@ impl HeapSize for CableCore {
 
 impl HeapSize for PartSections {
     fn heap_size(&self) -> usize {
-        self.cable_cores.heap_size() + self.extra.heap_size()
+        self.cable_cores.heap_size() + self.plc.heap_size() + self.extra.heap_size()
     }
 }
 

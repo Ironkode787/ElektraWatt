@@ -1229,12 +1229,15 @@ pub struct TemplateFn {
     pub extra: Extra,
 }
 
-/// Domain sections of a part (FR-PRT-010). v0 types the cable cores.
+/// Domain sections of a part (FR-PRT-010). Typed: the cable cores and the PLC section.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct PartSections {
     /// Cores of a cable part, from which conductors are generated (FR-CBL-004).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub cable_cores: Vec<CableCore>,
+    /// The PLC section (doc 10 §2.6).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plc: Option<crate::PlcSection>,
     /// Unknown members (other sections).
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

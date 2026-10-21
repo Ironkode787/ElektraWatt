@@ -10,9 +10,9 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_schema::{
-    AnyId, Bond, Conductor, Connection, Device, ExternalRef, FnDef, FormDef, Function, ImportLineage,
-    Junction, Kind, LibCopy, Page, Part, PotentialDef, Project, ReportBlock, Representation, Section,
-    StructureNode, SymbolDef,
+    AnyId, Bond, Channel, Conductor, Connection, Device, DeviceLink, ExternalRef, FnDef, FormDef, Function,
+    ImportLineage, Junction, Kind, LibCopy, Page, Part, PlcConfigProject, PotentialDef, Project, ReportBlock,
+    Representation, Section, StructureNode, SymbolDef,
 };
 
 use crate::model::Model;
@@ -225,6 +225,7 @@ macro_rules! entities {
 }
 
 entities! {
+    PlcConfigProject: PlcConfigProject, PlcConfigProject, plc_config_projects;
     ImportLineage: ImportLineage, ImportLineage, lineages;
     StructureNode: StructureNode, StructureNode, structure;
     Section: Section, Section, sections;
@@ -236,8 +237,10 @@ entities! {
     Connection: Connection, Connection, connections;
     Junction: Junction, Junction, junctions;
     Conductor: Conductor, Conductor, conductors;
+    Channel: Channel, Channel, channels;
     PotentialDef: PotentialDef, PotentialDef, potential_defs;
     Bond: Bond, Bond, bonds;
+    DeviceLink: DeviceLink, DeviceLink, device_links;
     ReportBlock: ReportBlock, ReportBlock, report_blocks;
     Part: LibCopy<Part>, Part, lib.parts;
     Symbol: LibCopy<SymbolDef>, SymbolDef, lib.symbols;

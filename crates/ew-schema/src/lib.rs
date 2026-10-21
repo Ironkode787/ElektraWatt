@@ -51,6 +51,7 @@
 //! | Pages | `page` (30), `representation` (33), `report_block` (45) |
 //! | Devices | `device` (31) with the `strip`, `terminal` and `cable` aspects, `function` (32) |
 //! | Connectivity | `connection` (34), `junction` (35), `conductor` (36), `potential_def` (38), `bond` (41) |
+//! | PLC | `plc_config_project` (11), `channel` (37), the `plc_station` and `plc_module` aspects, the part's `plc` section, `device_link` (42) |
 //! | Library documents | `part`, `symbol`, `fndef`, `form`, each a [`LibCopy`] |
 //!
 //! Every other kind of doc 05 §2.2 is in the registry as [`KindStatus::Reserved`]: its rank is taken, and
@@ -80,6 +81,7 @@ mod json;
 mod kind;
 mod library;
 mod page;
+mod plc;
 mod project;
 mod proxy;
 mod record;
@@ -115,6 +117,11 @@ pub use page::{
     BoxCp, BoxSpec, ContinuationPolicy, EmbedSpec, EmptyPolicy, Folio, GroupBreak, GroupSpec,
     ManualSelection, Page, PageType, PinMapEntry, ReportBlock, ReportKind, ReportSource, Representation,
     Scale, SlotOverride, SortKey, SqlQuery,
+};
+pub use plc::{
+    AddrSpec, Channel, ChannelKind, ChannelSpec, ChannelState, DeviceLink, DeviceLinkKind, IoClass, IoDir,
+    IoRange, IoStarts, MapSpec, PlcAddress, PlcArea, PlcConfigProject, PlcModule, PlcRole, PlcSection,
+    PlcSize, PlcStation, RackSlot, SlotPath, StationRole,
 };
 pub use project::{
     Address, DateFormat, DecimalSeparator, EarthingSystem, ExternalRef, Formatting, ImportLineage, ImportRun,

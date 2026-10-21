@@ -107,6 +107,7 @@ pub(crate) fn shard(id: AnyId) -> u16 {
 macro_rules! by_kind {
     ($kind:expr, $f:ident ( $($arg:expr),* ), $other:expr) => {
         match $kind {
+            Kind::PlcConfigProject => $f::<ew_schema::PlcConfigProject>($($arg),*),
             Kind::ImportLineage => $f::<ImportLineage>($($arg),*),
             Kind::StructureNode => $f::<StructureNode>($($arg),*),
             Kind::Section => $f::<Section>($($arg),*),
@@ -118,8 +119,10 @@ macro_rules! by_kind {
             Kind::Connection => $f::<Connection>($($arg),*),
             Kind::Junction => $f::<Junction>($($arg),*),
             Kind::Conductor => $f::<Conductor>($($arg),*),
+            Kind::Channel => $f::<ew_schema::Channel>($($arg),*),
             Kind::PotentialDef => $f::<PotentialDef>($($arg),*),
             Kind::Bond => $f::<Bond>($($arg),*),
+            Kind::DeviceLink => $f::<ew_schema::DeviceLink>($($arg),*),
             Kind::ReportBlock => $f::<ReportBlock>($($arg),*),
             Kind::Part => $f::<LibCopy<Part>>($($arg),*),
             Kind::Symbol => $f::<LibCopy<SymbolDef>>($($arg),*),
@@ -440,7 +443,8 @@ mod tests {
     const ABSENT: u128 = 0xdead;
 
     /// The kinds with a table, in the order of the `by_kind!` macro.
-    const TABLE_KINDS: [Kind; 18] = [
+    const TABLE_KINDS: [Kind; 21] = [
+        Kind::PlcConfigProject,
         Kind::ImportLineage,
         Kind::StructureNode,
         Kind::Section,
@@ -452,8 +456,10 @@ mod tests {
         Kind::Connection,
         Kind::Junction,
         Kind::Conductor,
+        Kind::Channel,
         Kind::PotentialDef,
         Kind::Bond,
+        Kind::DeviceLink,
         Kind::ReportBlock,
         Kind::Part,
         Kind::Symbol,

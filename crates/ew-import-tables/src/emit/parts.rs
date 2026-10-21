@@ -330,6 +330,7 @@ pub(crate) fn emit(
                 .collect(),
             sections: PartSections {
                 cable_cores: core_rows.into_iter().map(|c| c.1).collect(),
+                plc: None,
                 extra: Default::default(),
             },
             extra: Default::default(),
