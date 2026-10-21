@@ -226,6 +226,19 @@ fuzz_target!(|input: (u8, Vec<FuzzCmd>)| {
 The corpus starts from the AC-16 script, the Golden B steps and the Golden C fix script. PR runs use no sanitizer,
 for throughput. Nightly runs use AddressSanitizer, because the dependency closure contains `unsafe` code.
 
+*As built (cycle 15, lane C; WP-S6.02).* A first fuzzer is the test `crates/ew-testkit/tests/command_fuzz.rs`, not yet a
+cargo-fuzz target: a seeded SplitMix64 generator picks, by index into the live records read through `Session::query`,
+`rep.move`, `rep.transform`, `fields.set`, `connection.delete`, `edit.delete`, `page.renumber`,
+`numbering.renumber`, `junction.edit`, `terminal.designate`, `connection.draw`, `potential.define`, undo and redo over
+Golden A (path (a), oracle mode, the shipped prevent rules). After every changing step it runs
+`Model::integrity_check` (the full structural check against the engine's incremental one) and a sample of memoised
+reads whose oracle mismatches must be empty; at a configurable cadence the pre-delivery check (no `EW-TERM-002`
+finding the project did not already have, i.e. none slipped past the prevent hook) and `verify_derived`; at the end
+every step is undone and the model must equal the initial one. A failure prints the seed, the step and the command
+log. `fuzz_smoke` (2 seeds × 30 steps, sampled oracle, integrity and undo-all) runs in the targeted tests;
+`fuzz_long` is `#[ignore]`d (`EW_FUZZ_SEEDS`, `EW_FUZZ_STEPS`). A first run of 20 seeds × 200 steps (2,324 commits,
+426 undo/redo) found no defect. Not yet: save/reload round trips, macro insertion and imports in the step set.
+
 ### 3.7 Snapshots
 
 - **What is snapshotted.** Typed query outputs on GP: tags, xref texts, potentials with aliases, wire properties with
@@ -305,6 +318,8 @@ As built (cycle 13, WP-S1.10): step 2 runs: the runner builds the SQL projection
 ID-320). Its 2 fails, the M1 gap list of [20](20-golden-project.md) §22, closed in cycle 13: AC-03 page order (36 of
 36 folios with the PLC channel records, FT-111) and AC-10 (19 of 19 potentials with the Bus connections, FT-105). Acceptance criteria compare against doc 20's data (committed expected files generated from doc 20), never
 against the importer's own output (decision log ID-320).
+
+*As built (cycle 15, lane C; WP-S6.01).* Step 1's path (b) exists: `ew_testkit::golden` holds both golden builders, `bootstrap` (path (a)) and `build` (path (b)), which issues one command per record of the bootstrap batch (its typed description) from the project shell (the project row and the embedded library copies, which no command creates yet) through a `CommandSink`, a function from a command name and its JSON parameters (the command-log form of doc 17 §3.5) to the created keys. `ew-testkit` keeps `ew-api` and `ew-commands` as dev-only edges; the runner in `ew-api`'s tests implements the sink over its `Session` (`ew-api` → `ew-testkit` is a dev edge). What no command writes is listed, never injected. The AC-15 path (b) entry compares the six acceptance SQL files over the built project by content and is `fail` pending a ruling on the page-type rule (doc 06 §2.2, decision log ID-55), which refuses the golden tables' cable markers and CPX black boxes; the counts become 93 entries: 82 pass, 1 fail, 5 not_built, 5 not_applicable. `ew-testkit accept --gate` itself (a binary over `ew-api`) would need a normal edge from `ew-testkit` to `ew-api` and stays open.
 
 **PDF/A-2b** (decision log ID-287): AC-13's conformance passes through krilla's PDF/A-2b validator
 (`Conformance::PdfA2b`) in every run; the veraPDF cross-check of §3.9 is `not_applicable` in the headless run

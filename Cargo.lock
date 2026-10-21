@@ -305,6 +305,7 @@ dependencies = [
  "ew-script",
  "ew-sqlview",
  "ew-store",
+ "ew-testkit",
  "ew-text",
  "ew-units",
  "flate2",

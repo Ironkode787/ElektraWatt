@@ -715,6 +715,36 @@ the files and compares them with the directory byte for byte. It ignores only th
 (doc 05 §17.1). The other tests of that file open the fixture with `ew-store` (edit, and read-only without a
 lock) and check the findings, the counts and the portable file names.
 
+## The builder DSL (path (b))
+
+`ew_testkit::golden` (WP-S6.01, cycle 15) holds both golden builders: `bootstrap(repo)` is path (a), the CSV
+bootstrap above, and `build(batch, sink)` is path (b), which constructs the same project **through commands
+only**. It starts from the `shell(batch)`: the project row (without its import provenance, the supply's
+external-reference origin and the four settings members that `project.settings.set` edits) and the embedded library
+copies, because no command creates a project row (`ew new`) or embeds a library copy yet (FT-167). Then it issues,
+in dependency order, one command per record, with the bootstrap batch as its typed description (the same source of
+truth as path (a)): `project.settings.set`, `structure.create_node`, `section.create`, `external_ref.create`,
+`page.create`, `device.create`, `terminal.add`, `cable.create`, `device.place`, `box.black`, `ip.place`,
+`connection.draw` (a junction is created by the connection that splits another one at its point),
+`junction.edit`, `potential.define`, `bond.create`, `report_block.create` and `fields.set` for the members the
+creating commands do not take. The commands mint their own IDs, so path (b) agrees with path (a) by content
+(doc 20 §3.2: every column except `id` and `source_ref`); with the same ID source the build is deterministic, and
+its command log (`Built::command_log`, doc 17 §3.5) replays with `ew apply` to the same model.
+
+The builder never injects a record. What no command writes yet is left out and listed (`Built::unwritten`,
+pinned by `crates/ew-testkit/tests/golden_dsl.rs`): the 56 PLC channels, the 8 device links, the PLC configuration
+project, the 2 revisions (FT-165), the valve-terminal assembly (the 29 child-scheme devices with their functions
+and representations, and `parent`, `position`, `plc_module`, `plc_station` of the modules; FT-169) and the supply's
+origin. 420 commands build the rest (21 kinds; the run takes about a second in a debug build).
+
+**Status (AC-15 path (b): `fail`, ruling pending).** The page-type rule of the placing commands (doc 06 §2.2,
+decision log ID-55) refuses ten representations of the tables: the three cable markers (representation type graphic
+on the multi-line folio 106 and the bus-topology folio 3) and the seven CPX black boxes drawn multi-line on the
+fluid folios 203 … 206. Without its marker a cable has no page, so its page-based tag prints `-?W1`, and the four
+acceptance SQL files that print a cable tag differ in exactly those lines; `terminals_1X1.sql` and `potentials.sql`
+match. With graphic representations allowed on multi-line and bus-topology pages (and multi-line ones on fluid
+pages) all six match; whether the rule or the tables change is the open ruling.
+
 ## Variants and command logs
 
 `variants/*.ewcmd` are command logs (doc 17 §3.5): JSON Lines, a header and then one command per line. Format as

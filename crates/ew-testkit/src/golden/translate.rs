@@ -123,6 +123,9 @@ fn error(command: &str, message: String) -> BuildError {
     }
 }
 
+/// Terminals of one strip with main functions of one FnDef, in sequence order: one `terminal.add`.
+type TerminalRun<'a> = (Id<ew_schema::FnDef>, Vec<(&'a Device, &'a Function)>);
+
 /// The child tag scheme (`tag.scheme = child`): the valve-terminal assembly's children (FT-169).
 fn child_scheme(d: &Device) -> bool {
     serde_json::to_value(&d.tag)
@@ -266,7 +269,7 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
         let strip_built = map
             .get(strip)
             .ok_or_else(|| error("terminal.add", format!("strip {strip} was not built")))?;
-        let mut runs: Vec<(Id<ew_schema::FnDef>, Vec<(&Device, &Function)>)> = Vec::new();
+        let mut runs: Vec<TerminalRun<'_>> = Vec::new();
         for t in terminals {
             let Some(f) = main_normal(t.id) else {
                 b.not_written("device (terminal without a main function)", 1);

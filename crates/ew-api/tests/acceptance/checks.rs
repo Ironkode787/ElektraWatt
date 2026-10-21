@@ -291,7 +291,7 @@ pub fn all(r: &mut Runner) {
     r.entry(
         "AC-15",
         "build path (b), the builder DSL, produces the same expected CSVs",
-        |_| not_built("the builder DSL (the golden builders of ew-testkit, WP-S6.01) does not exist yet"),
+        ac15_builder_path,
     );
     ac16(r);
     if r.perf() {
@@ -1043,6 +1043,101 @@ fn ac15_sql_paths(c: &Ctx) -> Outcome {
     pass(format!(
         "the {} acceptance SQL files return the same expected CSVs over both paths; path (b) is the next entry",
         names.len()
+    ))
+}
+
+/// One command of the builder DSL on `session`: a bulk command as preview and commit.
+fn run_json(
+    session: &mut Session,
+    name: &str,
+    params: serde_json::Value,
+) -> Result<ew_testkit::golden::dsl::Done, String> {
+    let cmd = ew_api::AnyCommand {
+        name: name.to_owned(),
+        params,
+    };
+    let bulk = session
+        .registry()
+        .get(name)
+        .is_some_and(|e| e.meta().cost == ew_commands::Cost::Bulk);
+    let receipt = if bulk {
+        session.preview(&cmd).and_then(|p| session.commit(p))
+    } else {
+        session.execute(&cmd)
+    };
+    receipt
+        .map(|r| ew_testkit::golden::dsl::Done {
+            primary: r.outcome.primary,
+            created: r.created,
+        })
+        .map_err(|e| format!("{e:?}"))
+}
+
+/// AC-15 path (b) (doc 20 §3.2, WP-S6.01): the builder DSL of `ew-testkit` builds Golden A through commands
+/// only, from the project shell (the project row and the embedded library copies), with the bootstrap
+/// batch as its typed description; the acceptance SQL over the built project must return the expected CSVs
+/// (by content: the commands mint their own IDs).
+fn ac15_builder_path(c: &Ctx) -> Outcome {
+    let shell = ew_testkit::golden::shell(&c.batch);
+    let mut session = match Session::from_records(
+        shell.project,
+        [],
+        shell.lib,
+        SessionOptions {
+            ids: Some(Box::new(ew_testkit::synth::SynthSource::new(1))),
+            memo: ew_api::MemoMode::Off,
+            ..SessionOptions::default()
+        },
+    ) {
+        Ok(s) => s,
+        Err(e) => return fail(format!("the project shell is not a valid model: {e:?}")),
+    };
+    let built = match ew_testkit::golden::build(&c.batch, &mut |name: &str, params| {
+        run_json(&mut session, name, params)
+    }) {
+        Ok(b) => b,
+        Err(e) => return fail(format!("path (b) stopped at a command: {e}")),
+    };
+    let checks = session.check(&PRE_DELIVERY, CheckMode::Release);
+    let projection = match session.sql_projection(Some(&checks)) {
+        Ok(p) => p,
+        Err(e) => return fail(format!("the SQL projection of path (b) did not build: {e}")),
+    };
+    let names: Vec<&str> = SQL_PAIRS.iter().flat_map(|(_, n)| n.iter().copied()).collect();
+    let differing: Vec<&str> = names
+        .iter()
+        .copied()
+        .filter(|n| sql_pair(&projection, n).is_err())
+        .collect();
+    let refused: Vec<String> = built
+        .unwritten
+        .iter()
+        .filter_map(|(k, n)| {
+            k.strip_prefix("representation (refused: representation type ")
+                .map(|r| format!("{n} × {}", r.trim_end_matches(')')))
+        })
+        .collect();
+    let left_out: usize = built
+        .unwritten
+        .iter()
+        .filter(|(k, _)| !k.starts_with("representation (refused"))
+        .count();
+    let commands = built.script.len();
+    if differing.is_empty() {
+        return pass(format!(
+            "{commands} commands from the project shell; the {} acceptance SQL files return the expected CSVs; \
+             {left_out} kinds of records or members are not written (no command yet, see ew-testkit golden_dsl)",
+            names.len()
+        ));
+    }
+    fail(format!(
+        "{commands} commands from the project shell; acceptance/{}.sql differ from expected/csv in the lines that \
+         print a cable tag (-?W1 for -106W1, -106W2, -3W1): the page-type rule of the placing commands (doc 06 \
+         §2.2, decision log ID-55) refuses representations of the golden tables ({}), among them the 3 cable \
+         markers, so the cables have no page; the {} other acceptance SQL files match; ruling pending",
+        differing.join(".sql, acceptance/"),
+        refused.join("; "),
+        names.len() - differing.len()
     ))
 }
 

@@ -124,8 +124,9 @@ planned = ["ew-viewer", "ew-wiring-viewer", "ew-plugin-wit", "ew-plugin-sdk", "e
 "ew-derive" = ["ew-commands"]
 # ew-api's golden CSV test compares the derived anchor cells, CPs and tags of the loaded golden model with its
 # tables (the importer may not depend on the model, so the test lives in ew-api). Its page-output test (WP-S3.04)
-# renders the PNGs of the golden folios (ew-text and ew-dl are normal edges since the export job, FT-59).
-"ew-api" = ["ew-derive", "ew-render-cpu", "ew-ids", "ew-units", "ew-mltext"]
+# renders the PNGs of the golden folios (ew-text and ew-dl are normal edges since the export job, FT-59). The
+# acceptance runner builds AC-15's path (b) with the golden builder DSL of ew-testkit (WP-S6.01).
+"ew-api" = ["ew-derive", "ew-render-cpu", "ew-ids", "ew-units", "ew-mltext", "ew-testkit"]
 # The renderer's and the PDF writer's tests shape their text with the bundled fonts (WP-S3.04).
 "ew-render-cpu" = ["ew-text", "ew-units"]
 "ew-export" = ["ew-text", "ew-units"]

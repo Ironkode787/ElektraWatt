@@ -67,3 +67,6 @@ png = "0.18.1"
 # tests/page_output.rs: inflates the PDF content streams to read the line widths (doc 20 §17.4).
 flate2 = "1.1.10"
 insta = { version = "1.49.0", default-features = false }
+# The acceptance runner builds path (b) of AC-15 with the golden builder DSL of ew-testkit (WP-S6.01); a
+# dev-only edge, as every edge to ew-testkit (doc 04 §3).
+ew-testkit = { path = "../ew-testkit" }

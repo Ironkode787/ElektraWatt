@@ -306,6 +306,17 @@ and undoable: those of the table except `page.copy`, `page.move`, `rep.exchange_
 placement whose `rep_type` the page type does not allow is refused (§2.2), and an autoconnect hint whose target
 vanished is dropped and reported in the outcome's notices.
 
+*As built (cycle 15, lane C; the golden builder of WP-S6.01).* Three commands join, all `Edit`, `Preview`, undoable,
+with committed schemas: `box.black` (`PlaceBlackBox`: page, black-box symbol, pos, orient, rep type, optional `box:
+BoxSpec`, and the placement target of `device.place`; the created function is of kind `black_box`, an existing one must
+be; an outline has at least three points, box CP indexes are distinct and on the grid; the containment gesture of
+§2.7 is the place tool's, not this command's), `bond.create` (`CreateBond`: a, b as CP or junction, kind, optional
+`via`; the label is derived; the PELV and type rules stay checks) and `external_ref.create` (`CreateExternalRef`:
+location node of the location aspect, device, optional connection and project). 29 commands are registered. The
+page-type admission of ID-55 refuses the golden tables' cable markers (graphic on MultiLine and BusTopology pages)
+and their CPX black boxes (multi-line on Fluid pages); whether this table or the tables change is open (AC-15
+path (b), [20](20-golden-project.md) §22).
+
 | Command (`NAME`) | Parameters (abridged) | Cost | Notes |
 |---|---|---|---|
 | `page.create` | folio, kind, section, structure, title, form?, grid | Interactive | folio proposal §5.6 |
