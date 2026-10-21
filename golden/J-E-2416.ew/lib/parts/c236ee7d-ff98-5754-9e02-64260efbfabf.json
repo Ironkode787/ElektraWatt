@@ -1,0 +1,22 @@
+{
+  "$k": "part",
+  "id": "c236ee7d-ff98-5754-9e02-64260efbfabf",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "f55cd650-f081-5fad-a791-375bfb4d9a11",
+  "version": "1.0.0",
+  "sha256": "sha256:31d78161d0858bec0d7359b6e5565f910c0f6aa633268e8ac30d103d4ce81e7d",
+  "meta": {
+    "key": "TBD end bracket",
+    "sources": ["golden.table:parts|TBD end bracket"],
+    "confidence": {"cp_pattern": "test", "function_template": "test", "part": "test", "sections": "test"}
+  },
+  "kind": "end_bracket",
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "9ec896f8-f264-52e9-9bc2-cefa41e0435f",
+    "version_req": "*",
+    "key": "TBD"
+  },
+  "part_number": "TBD",
+  "description": "End bracket"
+}

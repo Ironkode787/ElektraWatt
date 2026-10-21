@@ -1,0 +1,23 @@
+{
+  "$k": "part",
+  "id": "215ab51c-0f37-54d7-bf95-19c352e2f4f6",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "bffc7d36-477f-561c-9f81-ddead8863511",
+  "version": "1.0.0",
+  "sha256": "sha256:1c0a935a9f50c201f0d51f968aa6aa0fdc1d45cfab482f412b8872b544fae9c4",
+  "meta": {
+    "key": "TBD wiring duct",
+    "sources": ["golden.table:parts|TBD wiring duct"],
+    "confidence": {"cp_pattern": "test", "function_template": "test", "part": "test", "sections": "test"}
+  },
+  "kind": "duct",
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "9ec896f8-f264-52e9-9bc2-cefa41e0435f",
+    "version_req": "*",
+    "key": "TBD"
+  },
+  "part_number": "TBD",
+  "description": "Wiring duct 40×60",
+  "unit": "m"
+}

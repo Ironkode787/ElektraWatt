@@ -809,11 +809,15 @@ fn ac11_cables(c: &Ctx) -> Outcome {
 /// profiles give for the cover (the voltage class, function, potential type and colour name of each colour
 /// row, the size of each size row and the basis text) is printed outside the frame layer.
 fn ac12_tables(c: &Ctx) -> Outcome {
-    let printed: BTreeSet<String> = runs(&c.text["1"])
+    let runs_outside_the_frame: Vec<String> = runs(&c.text["1"])
         .into_iter()
         .filter(|(layer, _, _)| layer != "frame")
         .map(|(_, text, _)| text)
         .collect();
+    let printed: BTreeSet<&str> = runs_outside_the_frame.iter().map(String::as_str).collect();
+    // A text with a character the default font lacks (the minus of "signal \u{2212}") is printed in several runs
+    // (the symbol fallback font): the runs of the cover joined in paint order must contain it.
+    let joined = runs_outside_the_frame.concat();
     let (colour, size) = golden_common::profiles_json();
     let en = |v: &serde_json::Value| v["en"].as_str().unwrap_or_default().to_owned();
     let mut want: Vec<String> = Vec::new();
@@ -830,7 +834,11 @@ fn ac12_tables(c: &Ctx) -> Outcome {
     want.push(format!("Basis: {}", en(&colour["basis_note"])));
     want.sort();
     want.dedup();
-    let missing: Vec<String> = want.iter().filter(|w| !printed.contains(*w)).cloned().collect();
+    let missing: Vec<String> = want
+        .iter()
+        .filter(|w| !printed.contains(w.as_str()) && !joined.contains(w.as_str()))
+        .cloned()
+        .collect();
     if printed.is_empty() {
         fail("folio 1 prints only its frame and title block: the cover tables are not drawn")
     } else if missing.is_empty() {

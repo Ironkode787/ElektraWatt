@@ -416,7 +416,7 @@ cargo nextest run -p ew-api --test page_output                # compares (no EW_
   the whole PDF.
 - Everything under `golden/` is CC0-1.0 (`REUSE.toml`, annotation L8).
 
-**Known gaps for the FT-10 approval.** The candidates cover the 33 pages of `page_order` with the report engine
+**Known gaps for the FT-10 approval.** The candidates cover the 34 pages of `page_order` with the report engine
 installed (`Session::query()`), so Prev/Next, the outline and the page labels include the generated pages. All 72
 page wires are drawn (21 on 101, 19 on 102, 20 on 103, 12 on 106). Still open:
 
@@ -536,11 +536,11 @@ The filter runs the comparing test alone: nextest runs the tests of a file in pa
 `golden_fixture.rs` read the fixture while bless writes it. Bless mode only writes files; it never deletes one. A
 file the tables no longer produce is named in the failure message and removed by hand.
 
-It holds 164 files (about 0.8 MB): `manifest.json`, `project.jsonl`, `structure.jsonl`, `report-blocks.jsonl`, 13
-page files in `pages/`, 79 of the 256 anchor shards in `devices/` and 68 library copies in `lib/` (fndefs, forms,
-parts, symbols). It holds no `revisions.jsonl`, `waivers.jsonl`,
+It holds 169 files (about 0.8 MB): `manifest.json`, `project.jsonl`, `structure.jsonl`, `report-blocks.jsonl`,
+`revisions.jsonl` (the two revisions), 13 page files in `pages/`, 79 of the 256 anchor shards in `devices/` and 72
+library copies in `lib/` (fndefs, forms, parts, symbols). It holds no `waivers.jsonl`,
 `layout/`, `lib/manufacturers/` or `assets/` yet, because the bootstrap emits no records of those kinds: the
-revision, waiver, layout and manufacturer kinds are reserved in `ew-schema` v0.
+waiver, layout and manufacturer kinds are reserved in `ew-schema` v0.
 
 The test `the_fixture_is_byte_identical_to_the_bootstrap` (`crates/ew-api/tests/golden_fixture.rs`) regenerates
 the files and compares them with the directory byte for byte. It ignores only the manifest's `generator` member
@@ -714,7 +714,6 @@ its report with the committed `expected/acceptance_headless.md` (so two runs mus
 The SQL half of each pair (`acceptance/*.sql` over the `api_v1` views) is `not_built`: SQL projection pending
 (WP-S1.10).
 
-The headless report of this revision: 83 entries, 41 pass, 10 fail, 26 not_built, 6 not_applicable (the full run adds
-the raster comparison as a pass). The failures are the open gaps listed above (page count 33 against 36, the
-revision label and structure cells of the title blocks, the 23-row parts list, the DP potential, the cover tables, the
-ratings and part numbers on 101 and 102, the missing uniqueness invariant for terminal designations). An empty terminal designation refused at the parameter layer counts as refused for D-11 (ADR-0008).
+The headless report of this revision: 83 entries, 49 pass, 3 fail, 25 not_built, 6 not_applicable (the full run adds
+the raster comparison as a pass). The failures are the open gaps listed above (page count 34 against 36: the PLC
+overview folios 908.1 and 908.2, the DP potential, the missing uniqueness invariant for terminal designations). An empty terminal designation refused at the parameter layer counts as refused for D-11 (ADR-0008).

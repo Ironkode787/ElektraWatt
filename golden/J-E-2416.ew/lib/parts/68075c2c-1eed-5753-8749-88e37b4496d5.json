@@ -4,7 +4,7 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "801e4bf5-b638-575e-81cb-175e0345d825",
   "version": "1.0.0",
-  "sha256": "sha256:94542ecc07cb13a76658095aeb94f245f514b8d494c545e0acb935ab6357f976",
+  "sha256": "sha256:496a0fefab657a361ea73ae947b4994d00e11b2655e951922c5a5db0eaf48822",
   "meta": {"key": "2904602", "sources": ["golden.table:parts|2904602"]},
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",
@@ -14,6 +14,7 @@
   },
   "part_number": "2904602",
   "description": "Power supply 1 AC / 24 V DC / 20 A",
+  "tech_data": [{"key": "rated_current", "value": {"value": "20", "unit": "A"}}],
   "cp_pattern": [
     {"idx": 0, "designation": "L", "potential_role": "l"},
     {"idx": 1, "designation": "N", "potential_role": "n"},
