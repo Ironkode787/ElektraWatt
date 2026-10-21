@@ -2,15 +2,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The connectivity facts the wire, terminal, cable, conductor, potential and bond tables share: the
-//! project's physical wires with their effective properties, oriented From/To, in reading order; the
-//! terminal bridges with their labels.
+//! project's physical wires with their effective properties, oriented From/To (`ew_derive::orient_wire`),
+//! in the numbering order of FR-NUM-028 with their wire numbers (`ew_derive::WireNumbers`); the terminal
+//! bridges with their labels.
 //!
 //! These are the same rules the report kinds of `ew-reports` apply to the wire list, the terminal diagrams,
 //! the cable overview and the potential overview (doc 08 §3.8, §6.5; doc 20 §7.3), read through the same
-//! `ew-derive` queries; the acceptance SQL over the views and the report rows are compared with the same
-//! expected CSVs, so the two implementations are held equal by the golden tests. Moving them into shared
-//! `ew-derive` queries is follow-up work (the dependency rules let `ew-reports` use `ew-sqlview`, not the
-//! reverse).
+//! `ew-derive` queries (orientation and numbering are shared there); the acceptance SQL over the views and
+//! the report rows are compared with the same expected CSVs, so the remaining shared rules (bridges, member
+//! counts, profile defaults) are held equal by the golden tests. Moving those into `ew-derive` is follow-up
+//! work (the dependency rules let `ew-reports` use `ew-sqlview`, not the reverse).
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -21,9 +22,8 @@ use ew_derive::ew_schema::{
     BridgeKind, Connection, ConnectionKind, Device, Endpoint, Function, FunctionKind, Page,
 };
 use ew_derive::{
-    CpRef, DeviceTag, DrawnPageOrder, EffectiveProps, FunctionCps, PageRef, Partition, PhysicalWire,
-    PhysicalWiresOf, PotentialId, PotentialNameOf, PotentialNames, PotentialPartition, Q, RepAnchorCell,
-    WireEnd, WirePropsOf,
+    CpRef, DeviceTag, EffectiveProps, FunctionCps, Partition, PhysicalWire, PhysicalWiresOf, PotentialId,
+    PotentialNameOf, PotentialNames, PotentialPartition, Q, WireNumbers, WirePropsOf, orient_wire,
 };
 
 /// One physical wire with its effective properties, oriented (`ends[0]` is the From end).
@@ -33,25 +33,28 @@ pub(crate) struct WireRec {
     pub wire: PhysicalWire,
     /// Its effective properties.
     pub props: EffectiveProps,
+    /// Its wire number (`101.1`); `None` for a cable core and a wire drawn on no page.
+    pub number: Option<String>,
 }
 
-/// Every physical wire of the project in reading order, with the partition and the potential names.
+/// Every physical wire of the project in the numbering order, with the partition and the potential names.
 pub(crate) struct Wires {
     /// The partition.
     pub partition: Arc<Partition>,
     /// The names of every potential.
     pub names: BTreeMap<PotentialId, Arc<PotentialNames>>,
-    /// The wires in reading order (doc 08 §3.8): see [`Wires::of`].
+    /// The wires in the numbering order: see [`Wires::of`].
     pub wires: Vec<WireRec>,
 }
 
 impl Wires {
     /// Reads the partition, the physical wires of every potential (deduplicated: a bond wire belongs to two)
-    /// and their effective properties; orients each wire and sorts them in reading order: the page of the
-    /// wire's first constituent, the frame cell (column, row) of the From end and of the To end on that page,
-    /// the tags and CP designations of the ends, the wire ID.
+    /// and their effective properties; orients each wire (doc 08 §3.8) and sorts them in the numbering order
+    /// of `wire_numbers` (FR-NUM-028, doc 08 §5.2: the From end's page, the From and To cells, the wire ID),
+    /// a wire the numbering does not list last, by ID.
     pub fn of(q: &Q) -> Wires {
         let partition = q.get::<PotentialPartition>(());
+        let numbers = q.get::<WireNumbers>(());
         let mut by_id: BTreeMap<Id<Connection>, WireRec> = BTreeMap::new();
         let mut names = BTreeMap::new();
         for p in partition.potentials() {
@@ -61,16 +64,20 @@ impl Wires {
             for w in &physical.wires {
                 by_id.entry(w.id).or_insert_with(|| {
                     let mut wire = w.clone();
-                    orient(q, &mut wire);
+                    orient_wire(q, &mut wire);
                     WireRec {
                         wire,
                         props: props.wires.get(&w.id).cloned().unwrap_or_default(),
+                        number: numbers.number(w.id).map(|n| n.label.clone()),
                     }
                 });
             }
         }
-        let mut keyed: Vec<(WireKey, WireRec)> = by_id.into_values().map(|r| (wire_key(q, &r), r)).collect();
-        keyed.sort_by(|a, b| a.0.cmp(&b.0));
+        let mut keyed: Vec<((usize, Id<Connection>), WireRec)> = by_id
+            .into_values()
+            .map(|r| ((numbers.position(r.wire.id).unwrap_or(usize::MAX), r.wire.id), r))
+            .collect();
+        keyed.sort_by_key(|e| e.0);
         Wires {
             partition,
             names,
@@ -99,74 +106,6 @@ impl Wires {
             .collect::<Vec<_>>()
             .join(" \u{21C4} ")
     }
-}
-
-/// Puts the From end of a wire first (doc 08 §3.8, FR-CON-040): on different pages the end on the earlier
-/// page; otherwise the end with the smaller anchor cell (row, then column), then the smaller CP ID. The
-/// flow-distance step of the rule is not applied (no per-CP flow distance is derived yet).
-fn orient(q: &Q, w: &mut PhysicalWire) {
-    let page_of = |c: Option<&Id<Connection>>| c.and_then(|c| q.connections().get(*c)).and_then(|c| c.page);
-    let (pa, pb) = (page_of(w.constituents.first()), page_of(w.constituents.last()));
-    let swap = match (pa, pb) {
-        (Some(a), Some(b)) if a != b => page_position(q, b) < page_position(q, a),
-        _ => {
-            let page = pa.or(pb);
-            let cell = |e: &WireEnd| {
-                anchor_cell(q, e.cp.function, page)
-                    .map_or((u32::MAX, u32::MAX), |(column, row)| (row, column))
-            };
-            (cell(&w.ends[1]), w.ends[1].cp) < (cell(&w.ends[0]), w.ends[0].cp)
-        }
-    };
-    if swap {
-        w.ends.swap(0, 1);
-    }
-}
-
-/// The (column, row) of the frame cell of the first representation (by ID) that draws `function` on `page`.
-pub(crate) fn anchor_cell(q: &Q, function: Id<Function>, page: Option<Id<Page>>) -> Option<(u32, u32)> {
-    let page = page?;
-    let mut reps: Vec<_> = q
-        .idx()
-        .reps_of_function(function)
-        .filter(|r| q.reps().get(*r).is_some_and(|r| r.page == page))
-        .collect();
-    reps.sort();
-    let cell = q.get::<RepAnchorCell>(*reps.first()?);
-    cell.as_ref().as_ref().map(|c| (c.column, c.row))
-}
-
-type WireKey = (
-    usize,
-    (u32, u32),
-    (u32, u32),
-    NaturalKey,
-    String,
-    NaturalKey,
-    String,
-    Id<Connection>,
-);
-
-fn wire_key(q: &Q, rec: &WireRec) -> WireKey {
-    let w = &rec.wire;
-    let page = w.pages.first().copied();
-    let pos = page.map_or(usize::MAX, |p| page_position(q, p));
-    let [a, b] = &w.ends;
-    let cell = |e: &WireEnd| anchor_cell(q, e.cp.function, page).unwrap_or((u32::MAX, u32::MAX));
-    let tag = |e: &WireEnd| match device_of(q, e.cp.function) {
-        Some(d) => tag_key(q, d),
-        None => natural_key(&ip_name(q, e.cp.function)),
-    };
-    (
-        pos,
-        cell(a),
-        cell(b),
-        tag(a),
-        cp_designation(q, a.cp),
-        tag(b),
-        cp_designation(q, b.cp),
-        w.id,
-    )
 }
 
 /// The device of a CP's function; `None` for an interruption point.
@@ -209,13 +148,6 @@ pub(crate) fn tag_key(q: &Q, d: Id<Device>) -> NaturalKey {
             .map(|t| t.full.as_str())
             .unwrap_or(""),
     )
-}
-
-/// The position of a drawn page in the drawn page order (`usize::MAX` for an unknown page).
-pub(crate) fn page_position(q: &Q, page: Id<Page>) -> usize {
-    q.get::<DrawnPageOrder>(())
-        .position(PageRef::Drawn(page))
-        .unwrap_or(usize::MAX)
 }
 
 /// One terminal bridge: the bridge connections of one group on one strip (doc 08 §6.5).

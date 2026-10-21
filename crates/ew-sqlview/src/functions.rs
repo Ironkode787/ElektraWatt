@@ -107,8 +107,17 @@ fn date_function(
     let mut args = Vec::with_capacity(ctx.len());
     for i in 0..ctx.len() {
         let v: SqlValue = ctx.get(i)?;
-        if let SqlValue::Text(t) = &v {
-            let lower = t.trim().to_ascii_lowercase();
+        // SQLite's date functions read a BLOB argument as text, so `CAST('now' AS BLOB)` and x'6e6f77' are
+        // refused like 'now'.
+        let text = match &v {
+            SqlValue::Text(t) => Some(t.clone()),
+            SqlValue::Blob(b) => Some(String::from_utf8_lossy(b).into_owned()),
+            _ => None,
+        };
+        if let Some(t) = text {
+            let lower = t
+                .trim_matches(|c: char| c.is_whitespace() || c == '\0')
+                .to_ascii_lowercase();
             if CLOCK_ARGUMENTS.contains(&lower.as_str()) {
                 return Err(user_error(format!(
                     "{name}(): '{lower}' reads the clock or the host time zone, which the projection does not allow"

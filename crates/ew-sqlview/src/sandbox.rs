@@ -10,7 +10,7 @@
 //! - **Statement gate.** Exactly one statement per call, starting with `SELECT`, `WITH` or `VALUES`, for
 //!   which `sqlite3_stmt_readonly()` is true. This refuses `VACUUM INTO` and `WITH … INSERT` before they run.
 //! - **Authorizer.** It allows `SELECT`, `RECURSIVE`, the allowlisted functions, and `READ` of a `t_*` column
-//!   only when the innermost responsible view is an `api_v1_*` view; reads of the table-valued JSON
+//!   only when the innermost responsible view is its own `api_v1_*` view; reads of the table-valued JSON
 //!   functions are allowed. It denies everything else: `ATTACH`, `DETACH`, every `PRAGMA`, DDL, DML,
 //!   transactions and savepoints, `ANALYZE`, `REINDEX`, direct reads of `t_*` and of the schema table.
 //! - **Limits** (`SQLITE_LIMIT_*`, [`LIMITS`]), a **deadline** through the progress handler, and **result
@@ -74,11 +74,21 @@ impl Profile {
         max_bytes: MIB,
     };
 
-    /// The same profile with another deadline (`ew sql --timeout`).
+    /// The longest deadline a profile may have: one day.
+    pub const MAX_DEADLINE: Duration = Duration::from_secs(24 * 60 * 60);
+
+    /// The same profile with another deadline (`ew sql --timeout`), at most [`Profile::MAX_DEADLINE`].
     #[must_use]
     pub fn with_deadline(mut self, deadline: Duration) -> Profile {
-        self.deadline = deadline;
+        self.deadline = deadline.min(Profile::MAX_DEADLINE);
         self
+    }
+
+    /// The instant the deadline of a statement started at `start` passes; a deadline beyond
+    /// [`Profile::MAX_DEADLINE`] counts as that maximum (a hand-built profile cannot overflow the clock).
+    fn deadline_from(&self, start: Instant) -> Instant {
+        let d = self.deadline.min(Profile::MAX_DEADLINE);
+        start.checked_add(d).unwrap_or(start)
     }
 }
 
@@ -266,15 +276,16 @@ impl AuthState {
     /// The decision for one action.
     ///
     /// `READ` rules (doc 17 §6.2): a column of an `api_v1_*` view is readable; a column of a `t_*` table only
-    /// when the innermost responsible view is an `api_v1_*` view of the image. SQLite flattens a view into
+    /// when the innermost responsible view is that table's own `api_v1_*` view of the image. SQLite flattens a view into
     /// the outer query, and a query that reads no column of it (`count(*)`) then reads the table itself
     /// with an empty column name from top-level SQL: that is allowed only for a table the same statement
     /// already reads through a view.
     ///
-    /// The `t_*` rule guards the contract, not secrecy: every column of `t_x` is also a column of
-    /// `api_v1_x`. A common table expression named after a view is reported as that view by SQLite's
-    /// authorizer, so such a CTE can read the table behind the view it shadows; it sees nothing the view
-    /// does not show.
+    /// A `t_x` table is readable only through its own view `api_v1_x`. The rule guards the contract, not
+    /// secrecy: every column of `t_x` is also a column of `api_v1_x`. A common table expression named after
+    /// a view is reported as that view by SQLite's authorizer, so `WITH api_v1_x AS (SELECT … FROM t_x)` can
+    /// read the one table behind the view it shadows; it sees the view's columns and `rowid` (the insertion
+    /// order, the view's `seq` where it has one), never another table.
     fn decide(&mut self, ctx: &AuthContext<'_>) -> Result<(), String> {
         match ctx.action {
             AuthAction::Select | AuthAction::Recursive => Ok(()),
@@ -283,7 +294,10 @@ impl AuthState {
                 column_name,
             } => {
                 if table_name.starts_with("t_") {
-                    let through_view = ctx.accessor.is_some_and(|v| self.views.contains(v));
+                    // Only the view of the same name reads a table: `t_wire` through `api_v1_wire`.
+                    let through_view = ctx.accessor.is_some_and(|v| {
+                        self.views.contains(v) && v.strip_prefix("api_v1_") == table_name.strip_prefix("t_")
+                    });
                     if through_view {
                         self.via_views.insert(table_name.to_owned());
                         Ok(())
@@ -424,7 +438,7 @@ impl Reader {
         }
         let columns: Vec<String> = stmt.column_names().iter().map(|c| (*c).to_owned()).collect();
         let n = columns.len();
-        self.set_deadline(Some(Instant::now() + self.profile.deadline));
+        self.set_deadline(Some(self.profile.deadline_from(Instant::now())));
         let result = self.collect(&mut stmt, n);
         self.set_deadline(None);
         result.map(|rows| ResultSet { columns, rows })

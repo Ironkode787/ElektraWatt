@@ -99,6 +99,14 @@ pub const META: View = View {
         ),
         t("languages", "the project languages, JSON array of BCP 47 tags"),
         t("as_of", "the date of the release context; NULL without one"),
+        t(
+            "api_status",
+            "\"preview\": api_v1 is Preview until the 1.0 freeze (ADR-0017 amendment 2); columns may still be added",
+        ),
+        t(
+            "preview_additions",
+            "the views and columns beyond doc 17 §6.1, JSON array of \"view\" or \"view.column\" (PREVIEW_ADDITIONS)",
+        ),
     ],
 };
 
@@ -264,11 +272,11 @@ pub const WIRE: View = View {
         ),
         i(
             "seq",
-            "the reading order of the wire list (doc 08 §3.8): wires first, then bridges by label",
+            "the order of the wire list: wires in the numbering order of FR-NUM-028 (doc 08 §5.2), then bridges by label",
         ),
         t(
             "number",
-            "the printed wire number (NULL until wire numbering is derived); a bridge's label \"BR1\"",
+            "the printed wire number (\"101.1\", `wire_numbers`; NULL for a cable core); a bridge's label \"BR1\"",
         ),
         t("kind", "wire or bridge"),
         t("from_end", "device, external or open"),
@@ -573,7 +581,10 @@ pub const BOND: View = View {
     ],
 };
 
-const BOM_COLUMNS: &[Column] = &[
+/// The columns of both BOM views, then the extra columns of one.
+macro_rules! bom_columns {
+    ($($extra:expr),* $(,)?) => {
+        &[
     i("position", "the 1-based position within its group"),
     i("configured", "1 for a configured product (printed A1, A2, …)"),
     t("part_id", "the part copy"),
@@ -596,20 +607,32 @@ const BOM_COLUMNS: &[Column] = &[
         "folios",
         "the folios of those devices' main representations, JSON array in page order",
     ),
-];
+            $($extra,)*
+        ]
+    };
+}
 
 /// `api_v1_bom_component`.
 pub const BOM_COMPONENT: View = View {
     name: "api_v1_bom_component",
     row: "bill-of-materials row in component mode (doc 20 §14.1), in list order",
-    columns: BOM_COLUMNS,
+    columns: bom_columns!(),
 };
 
 /// `api_v1_bom_assembly`.
 pub const BOM_ASSEMBLY: View = View {
     name: "api_v1_bom_assembly",
     row: "bill-of-materials row in assembly mode (doc 20 §14.2), in list order",
-    columns: BOM_COLUMNS,
+    columns: bom_columns!(
+        t(
+            "assembly_tag",
+            "the list-form tag of the configured product's head device when the row has exactly one; NULL otherwise (not derived for several heads yet)",
+        ),
+        i(
+            "level",
+            "the level in the assembly tree; NULL until assembly levels are derived"
+        ),
+    ),
 };
 
 /// `api_v1_message`.
@@ -684,13 +707,99 @@ pub(crate) fn ddl() -> String {
     sql
 }
 
-/// The schema as text, one block per view (`ew sql schema`).
+/// The status of the contract: `api_v1` is Preview until the 1.0 freeze (ADR-0017 amendment 2); the golden
+/// acceptance SQL is its compatibility corpus.
+pub const API_STATUS: &str = "preview";
+
+/// The views and columns beyond the key columns of doc 17 §6.1 (owner ruling, cycle 13): a whole view as
+/// `(view, &[])`, columns as `(view, &[columns])`.
+pub const PREVIEW_ADDITIONS: &[(&str, &[&str])] = &[
+    (
+        "api_v1_bom_assembly",
+        &["configured", "variant", "description_ml"],
+    ),
+    (
+        "api_v1_bom_component",
+        &["configured", "variant", "description_ml"],
+    ),
+    ("api_v1_bond", &[]),
+    ("api_v1_cable", &["tag_full", "end_a", "end_b"]),
+    ("api_v1_conductor", &["pair", "csa_unit"]),
+    ("api_v1_device", &["function_text_ml"]),
+    ("api_v1_function", &["ip_name"]),
+    ("api_v1_meta", &["api_status", "preview_additions"]),
+    ("api_v1_page", &["number", "section_id", "title_ml"]),
+    ("api_v1_potential", &["colour_iec", "default_csa_unit"]),
+    (
+        "api_v1_terminal",
+        &["tag", "function_text", "strip_group", "bridge"],
+    ),
+    (
+        "api_v1_wire",
+        &[
+            "seq",
+            "from_end",
+            "from_side",
+            "from_ip",
+            "to_end",
+            "to_side",
+            "to_ip",
+            "conductor_id",
+            "bond_id",
+            "ips",
+            "bridge_kind",
+            "csa_source",
+            "colour_source",
+        ],
+    ),
+];
+
+/// [`PREVIEW_ADDITIONS`] as `view` and `view.column` names, in order.
+pub fn preview_additions() -> Vec<String> {
+    PREVIEW_ADDITIONS
+        .iter()
+        .flat_map(|(view, cols)| {
+            if cols.is_empty() {
+                vec![(*view).to_owned()]
+            } else {
+                cols.iter().map(|c| format!("{view}.{c}")).collect()
+            }
+        })
+        .collect()
+}
+
+fn is_addition(view: &str, column: Option<&str>) -> bool {
+    PREVIEW_ADDITIONS.iter().any(|(v, cols)| {
+        *v == view
+            && match column {
+                None => cols.is_empty(),
+                Some(c) => cols.is_empty() || cols.contains(&c),
+            }
+    })
+}
+
+/// The schema as text, one block per view (`ew sql schema`): the Preview status first, then every view with
+/// its columns; the additions beyond doc 17 §6.1 are marked `[preview addition]`.
 pub fn schema_text() -> String {
-    let mut out = String::new();
+    let mut out = String::from(
+        "api_v1 is Preview until the 1.0 freeze (ADR-0017 amendment 2): views and columns may still be added; \
+         within v1 none is removed, renamed or retyped. Entries marked [preview addition] go beyond the \
+         documented key columns (doc 17 §6.1).\n\n",
+    );
     for v in VIEWS {
-        out.push_str(&format!("{} — one row per {}\n", v.name, v.row));
+        let mark = if is_addition(v.name, None) {
+            " [preview addition]"
+        } else {
+            ""
+        };
+        out.push_str(&format!("{} — one row per {}{mark}\n", v.name, v.row));
         for c in v.columns {
-            out.push_str(&format!("  {:<24} {:<8} {}\n", c.name, c.ty.sql(), c.doc));
+            let mark = if is_addition(v.name, Some(c.name)) && !is_addition(v.name, None) {
+                " [preview addition]"
+            } else {
+                ""
+            };
+            out.push_str(&format!("  {:<24} {:<8} {}{mark}\n", c.name, c.ty.sql(), c.doc));
         }
         out.push('\n');
     }
@@ -716,6 +825,30 @@ mod tests {
             cols.dedup();
             assert_eq!(cols.len(), n, "duplicate column in {}", v.name);
         }
+    }
+
+    #[test]
+    fn every_preview_addition_exists_and_the_schema_text_marks_it() {
+        for (view, cols) in PREVIEW_ADDITIONS {
+            let v = VIEWS
+                .iter()
+                .find(|v| v.name == *view)
+                .unwrap_or_else(|| panic!("{view}"));
+            for c in *cols {
+                assert!(v.columns.iter().any(|x| x.name == *c), "{view}.{c}");
+            }
+        }
+        let text = schema_text();
+        assert!(text.starts_with("api_v1 is Preview until the 1.0 freeze"));
+        assert!(text.contains(
+            "api_v1_bond — one row per bond between two potentials (doc 08 §3.7) [preview addition]"
+        ));
+        assert!(
+            text.lines()
+                .any(|l| l.trim_start().starts_with("seq ") && l.ends_with("[preview addition]"))
+        );
+        assert!(preview_additions().contains(&"api_v1_wire.csa_source".to_owned()));
+        assert!(preview_additions().contains(&"api_v1_bond".to_owned()));
     }
 
     #[test]

@@ -85,6 +85,24 @@ fn every_view_has_its_documented_columns_and_the_golden_counts() {
         let set = reader.query(&format!("SELECT * FROM {}", v.name)).unwrap();
         let names: Vec<&str> = v.columns.iter().map(|c| c.name).collect();
         assert_eq!(set.columns, names, "{}", v.name);
+        // Every value has its column's declared type or is NULL.
+        for c in v.columns {
+            let types = reader
+                .query(&format!(
+                    "SELECT DISTINCT typeof({}) FROM {} ORDER BY 1",
+                    c.name, v.name
+                ))
+                .unwrap();
+            let want = c.ty.sql().to_ascii_lowercase();
+            for t in types.rows.iter().map(|r| r[0].text()) {
+                assert!(
+                    t == want || t == "null",
+                    "{}.{}: a {t} value in a {want} column",
+                    v.name,
+                    c.name
+                );
+            }
+        }
     }
     let count = |view: &str| {
         reader

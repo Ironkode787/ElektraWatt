@@ -118,7 +118,9 @@ fn meta(q: &Q, input: &BuildInput<'_>) -> Vec<Row> {
         .set("derivation_profile", q.profile().version.as_str())
         .set("ew_version", input.ew_version)
         .set("languages", json_array(&languages))
-        .set("as_of", input.as_of);
+        .set("as_of", input.as_of)
+        .set("api_status", schema::API_STATUS)
+        .set("preview_additions", json_array(&schema::preview_additions()));
     vec![r]
 }
 
@@ -402,7 +404,10 @@ fn wire_row(q: &Q, wires: &Wires, rec: &WireRec, seq: usize) -> Row {
     let w = &rec.wire;
     let p = &rec.props;
     let mut r = Row::new(&WIRE);
-    r.set("id", uuid(w.id)).set("seq", seq).set("kind", "wire");
+    r.set("id", uuid(w.id))
+        .set("seq", seq)
+        .set("number", rec.number.clone())
+        .set("kind", "wire");
     set_end(q, &mut r, "from", &w.ends[0]);
     set_end(q, &mut r, "to", &w.ends[1]);
     let potential = if w.bond.is_some() {
@@ -956,6 +961,15 @@ fn bom(q: &Q, mode: BomMode, view: &'static View) -> Vec<Row> {
                 .set("unit", enum_text(&b.unit))
                 .set("tags", json_array(&tags))
                 .set("folios", folios_json(q, b.pages.iter().copied()));
+            if mode == BomMode::Assembly {
+                // The head of a configured product when the row has exactly one; the assembly level is not
+                // derived yet (NULL).
+                let head = match (b.configured, b.devices.as_slice()) {
+                    (true, [one]) => tag_short(q, *one),
+                    _ => None,
+                };
+                r.set("assembly_tag", head);
+            }
             r
         })
         .collect()

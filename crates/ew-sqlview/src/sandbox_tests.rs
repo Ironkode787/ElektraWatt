@@ -17,7 +17,10 @@ fn image() -> Vec<u8> {
     conn.execute_batch(
         "CREATE TABLE t_item (name TEXT, n INTEGER);
          CREATE VIEW api_v1_item AS SELECT name, n FROM t_item;
-         INSERT INTO t_item VALUES ('X10', 10), ('X2', 2), ('x1', 1), ('X1', 1), ('-X1031:2', 2);",
+         INSERT INTO t_item VALUES ('X10', 10), ('X2', 2), ('x1', 1), ('X1', 1), ('-X1031:2', 2);
+         CREATE TABLE t_other (code TEXT, hidden TEXT);
+         CREATE VIEW api_v1_other AS SELECT code FROM t_other;
+         INSERT INTO t_other VALUES ('a', 'not in the view');",
     )
     .unwrap();
     conn.serialize("main").unwrap().to_vec()
@@ -337,6 +340,66 @@ fn a_count_reads_the_flattened_view_and_nothing_else() {
         )
         .contains("sqlite_")
     );
+}
+
+#[test]
+fn a_cte_named_after_a_view_reads_only_that_views_table() {
+    let r = ew_sql();
+    assert_eq!(texts(&r, "SELECT code FROM api_v1_other"), ["a"]);
+    // Cross-table: a CTE named after one view reading another view's table.
+    assert!(
+        denied(
+            &r,
+            "WITH api_v1_other AS (SELECT name FROM t_item) SELECT * FROM api_v1_other"
+        )
+        .contains("t_item")
+    );
+    assert!(
+        denied(
+            &r,
+            "WITH api_v1_item AS (SELECT rowid, * FROM t_other) SELECT * FROM api_v1_item"
+        )
+        .contains("t_other")
+    );
+    assert!(denied(&r, "SELECT i.name FROM api_v1_item AS i JOIN t_other AS o ON 1").contains("t_other"));
+}
+
+#[test]
+fn date_functions_reject_the_clock_in_blob_arguments() {
+    let r = ew_sql();
+    for sql in [
+        "SELECT date(CAST('now' AS BLOB))",
+        "SELECT unixepoch(x'6e6f77')",
+        "SELECT datetime('2025-01-01', CAST('localtime' AS BLOB))",
+        "SELECT datetime('2025-01-01', CAST('UTC' AS BLOB))",
+        "SELECT strftime('%Y', x'4e4f57')",
+    ] {
+        match r.query(sql) {
+            Err(SqlError::Sql(msg)) => {
+                assert!(msg.contains("clock") || msg.contains("time zone"), "{sql}: {msg}")
+            }
+            other => panic!("{sql}: {other:?}"),
+        }
+    }
+    // A blob holding a date is still a date.
+    assert_eq!(
+        texts(&r, "SELECT date(CAST('2025-03-03' AS BLOB))"),
+        ["2025-03-03"]
+    );
+}
+
+#[test]
+fn a_huge_deadline_is_capped_and_never_overflows_the_clock() {
+    let capped = Profile::EW_SQL.with_deadline(Duration::from_secs(u64::MAX));
+    assert_eq!(capped.deadline, Profile::MAX_DEADLINE);
+    let r = reader(capped);
+    assert_eq!(texts(&r, "SELECT count(*) FROM api_v1_item"), ["5"]);
+    // A hand-built profile beyond the cap runs too.
+    let r = reader(Profile {
+        deadline: Duration::MAX,
+        ..Profile::EW_SQL
+    });
+    assert_eq!(texts(&r, "SELECT count(*) FROM api_v1_item"), ["5"]);
 }
 
 #[test]
