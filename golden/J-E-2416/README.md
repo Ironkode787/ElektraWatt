@@ -35,7 +35,10 @@ value only in prose, as a ▲ test input, or where a value is a choice of this f
 junction position), the mapping writes it explicitly with a comment citing the section. Symbol and function keys
 follow doc 07 §9.1 (the starter set mapped to the golden folios); CP patterns of black-box and terminal parts follow
 doc 07 §9.2 and doc 03 §11. A test of `ew-import-tables` fails when a committed table differs from the script's
-output, so a change to doc 20 and to the tables lands in one commit. The fixture choices that doc 20 gives no cell for
+output, so a change to doc 20 and to the tables lands in one commit. Doc 20 §8.2's Via column is part of this
+contract: the script reads only the junction tokens J1 … J6, "idem", "IP …" and "; 2 wires on …" there, and the
+printed notation of the wire list ("star at", "chain on") lives in doc 20's prose and in `expected/csv/wires.csv`
+(decision log ID-379). The fixture choices that doc 20 gives no cell for
 are registered as ▲U-38 … ▲U-48 in doc 20 §23.1.
 
 ## CSV dialect

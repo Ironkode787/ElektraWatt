@@ -256,6 +256,8 @@ A quick fix is a command proposal that always runs as a preview on a fork and co
 - **No fix where a person must decide.** Some rules deliberately have no fix, because the correct answer is a human
   decision. EW-POT-013 is the example: the correct wiring of T55 is unknown (▲U-11).
 
+*As built (cycle 15; decision log ID-376).* The first declarative quick fix is the lenient CSV import's "use BN": it sits on the import finding EW-IMP-008 (EW-CORE-031, which owns it once it runs as a live check, is not built: FT-261) and is a `fields.set` proposal with concrete parameters, the finding's targets and the mapped code filled in by the importer. Parameter templates (`$target`, `$arg.*`) and `scope = AllOfRule` remain the shape of a rule pack's declarative fixes and are not built. Two record types carry a proposal: `ew_interop_api::QuickFixProposal` in the permissive import contract and `ew_checks::QuickFix` in the GPL rule engine; the import contract cannot depend on the GPL crate, so both stay, with one conversion in `ew-api` and a shape test (FT-267, with FT-186). The alias table's confidence (GR → GY is medium) has no field yet (FT-267).
+
 ---
 
 ## 3. Rule engine behaviour

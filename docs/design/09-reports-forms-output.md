@@ -749,12 +749,12 @@ profile, font files by hash). Rules:
    `SOURCE_DATE_EPOCH`, the model's edited date. Never the wall clock (FR-OUT-026, NFR-REL-07). *As built (cycle 15,
    FT-59):* the export job takes the caller's date (`ew export` reads `SOURCE_DATE_EPOCH`; an unparsable value exits
    2), else the model's edited date, else its created date, else 1980-01-01; release contexts and scheme dates do not
-   exist yet.
+   exist yet (decision log ID-365).
 2. **Identifiers.** The PDF document ID and XMP instance ID are hashes of the export input, not random. *As built
    (cycle 15, FT-59; owner ruling):* the document ID is krilla's hash of the text `ew-pdf/1 <project id> <derivation
    profile> <date> <pages>[ mono] ew <EW version> sha256:<digest>`, `<pages>` being `all` or the selected folio
    labels, and `<digest>` the SHA-256 over every exported page (label, outline title and section, sheet size,
-   destination, sheet display list through its `Hash` order) and the pinned SHA-256 of every bundled font. The pages
+   destination, sheet display list through its `Hash` order) and the pinned SHA-256 of every bundled font. The digest is computed through the std `Hash` order of the display lists today, which is not guaranteed stable across toolchains; moving it to sha2 over canonical bytes is part of FT-234 (decision log ID-364). The pages
    are derived values, so the ID is the same however the model was loaded (the bootstrapped tables, the saved
    project, a shuffled record order; AC-14, AC-15); it is per build target like the PNGs until FT-234.
 3. **Order.** Pages in `page_order`; objects and resources in first-use order; maps are ordered (`BTreeMap`); parallel
@@ -793,7 +793,7 @@ partial file (FR-UI-024).
   with one `x` per character; ids are written for link targets only (`id="ew-r-<uuid>"`, once per page on the first drawn item of the target; links point at the first page that draws it), sources as `<a href="<file>#<id>">` (SVG 2 `href`, so the root carries no `version` attribute). The fonts are
   named (`font-family`, weight, style), not embedded: subset embedding needs a subsetter that keeps the `cmap`
   (open: it needs a `cmap`-keeping subsetter, FT-233; the `@font-face` embedding above is the target). The per-page phase runs on `ew_export::par_map` (scoped `std` threads, results by page index) instead of
-  rayon (decision log ID-344); serial and parallel exports are byte-identical (AC-14). The SVG SHA-256 printed in the headless report's AC-14 entry is an SVG golden: a change to the SVG output re-blesses the headless report in the same commit, with the reason in the commit message, as the PDF SHA-256 does. Cross-platform comparison of the PDF and SVG digests is FT-234 (MVP). The `ew export svg` and `ew export pdf` subcommands are built since cycle 15 over the `Session` export job (FT-59), which runs `par_map` in the shipped export path; AC-14 tests that path (decision log ID-346).
+  rayon (decision log ID-344); serial and parallel exports are byte-identical (AC-14). The SVG SHA-256 printed in the headless report's AC-14 entry is an SVG golden: a change to the SVG output re-blesses the headless report in the same commit, with the reason in the commit message, as the PDF SHA-256 does. Cross-platform comparison of the PDF and SVG digests is FT-234 (MVP). The `ew export svg` and `ew export pdf` subcommands are built since cycle 15 over the `Session` export job (FT-59), which runs `par_map` in the shipped export path; AC-14 tests that path (decision log ID-346). The `--out` directory of `ew export svg` may hold SVG files only (exit 2 otherwise) and is replaced as a whole through a sibling temporary directory, so no stale or partial set remains; the PDF is written to `<file>.tmp`, synced and renamed (decision log ID-370).
 - **PNG (MVP, FR-OUT-014).** vello_cpu through `ew-render-cpu` at a chosen DPI (`ew render --page 103 --png --dpi
   150`). vello_cpu may choose different SIMD paths per CPU, so PNGs compare within the dify tolerance across
   platforms; if the performance spike (gate G-SP) finds a deterministic scalar mode, `ew render` and the CI goldens use it and PNG returns

@@ -93,7 +93,7 @@ defined in §5.
 | `Assembly{configs: [AssemblyConfig{label, order_code, part?, covers}], bom_basis}` | A | device shard | The order codes printed in the PART DATA boxes (D-36; FR-DEV-020, FR-PRT-006) |
 | `DeviceLink{from, to, kind: Drives \| Linkage}` | A | device shard of `from` | Valve → field device |
 | `Channel.binding: Endpoint` | A | module device shard | The channel–coil link. There is no `Connection` row and it never appears in a wire list (FR-PLC-006) |
-| `Representation{rep_type: Fluid \| Overview, assembly_view?}` | A | page file | Fluid symbols on 203–206 and the generated overview on 201/202 |
+| `Representation{rep_type: Fluid \| Overview}` | A | page file | Fluid symbols on 203–206 and the generated overview on 201/202 |
 | `PartCopy.sections.fluid` | L | `lib/parts/` | §2.6 |
 
 ### 2.2 Fluid ports
@@ -479,8 +479,7 @@ lookup into that map. A line with no effective od/id/material after level 4 is E
 
 ### 5.5 Assembly overview generation
 
-The overview on 201/202 is the representation of -201U1's main function with
-`assembly_view{assembly, children: range, break_marks}` ([03](03-domain-model.md) §6, FR-DEV-023). The fluid
+The overview on 201/202 is made of the overview representations of the assembly device and its children ([03](03-domain-model.md) §6, FR-DEV-023). The fluid
 content is derived as follows:
 1. **Order.** Walk the segment's children in position order. Each module glyph is the part's `overview.symbol`.
    Its width is `overview.width`, and modules accumulate left to right on the page grid.
@@ -493,13 +492,13 @@ content is derived as follows:
 4. **Tags and references.** Above each module: its tag and the "∞" list of its auxiliary representations
    ("∞ 203-B4"; FR-XRF-015). Each child slot has a v5 ID `(rep, child)` that serves as anchor, PDF destination and
    main representation (so -201U3 is page-based on 201).
-5. **Breaks.** Break marks at the segment's open end (right on 201, left on 202).
+5. **Breaks.** Break marks at each segment's open end (right on 201, left on 202), derived from the members' pages, never stored (decision log ID-373).
 6. **PART DATA.** The box is an embedded report block over `Assembly.configs` ("Order Code 1: 51E-F13GCQP-D+H2GG",
    "Order Code 2: 32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS") on 201 and 202 (D-36).
 
-**MVP and 1.0.** At MVP the content of each segment is generated (FR-DEV-023): the user places one
-`assembly_view` representation per page and sets its `children` range (Golden A: -201U1 … -201U9 on 201,
--202U1 … -202U3 on 202). At 1.0 `valve_terminal.generate_overview` builds the pages as well. It splits the children
+**MVP and 1.0.** At MVP the content of each segment is generated (FR-DEV-023): the user places the overview
+representations of the members on their pages (Golden A: -201U1 … -201U9 on 201, -202U1 … -202U3 on 202), and the
+break marks follow from the pages. At 1.0 `valve_terminal.generate_overview` builds the pages as well. It splits the children
 into segments by the frame's usable width, never inside a module, and previews the tag changes a new break would
 cause, because modules are page-based ([06](06-schematic-editor.md) §8).
 
@@ -712,7 +711,7 @@ The result equals step 6 of the Golden C fix script ([20](20-golden-project.md) 
 
 | Fact | Model |
 |---|---|
-| One manifold drawn over 201 and 202 | -201U1 with 11 children in manifold order; two `assembly_view` segments with break marks; one identity (FR-DEV-022, D-41) |
+| One manifold drawn over 201 and 202 | -201U1 with 11 children in manifold order; two overview segments with derived break marks; one identity (FR-DEV-022, D-41) |
 | 7 × VMPA1-FB-EMG-8 | -201U3 … -201U8, -202U2: `PlcModule` slots 1–7, 4 positions each, output bytes Q0 … Q6 |
 | 28 × 571334 | -201U3-Q1 … -202U2-Q4: 5/2 monostable valve function plus coil 14 (internal CP). 8 used (-201U3, -201U4), 20 spare (state Spare, valve fitted, ▲U-36) |
 | Order codes | `Assembly.configs`: 51E-F13GCQP-D+H2GG covers 195740 and 550208 of -201U1; 32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS covers the rest (▲U-24) |
@@ -802,7 +801,7 @@ keep the manual function text "Spare". Reports keep function text and process ta
 | Depends on | For |
 |---|---|
 | [04-architecture](04-architecture.md) §3, §4.2–§4.6, §5.2, §6.3–§6.5, §10.2, §12; ADR-0001, ADR-0003, ADR-0005, ADR-0006, ADR-0007, ADR-0009, ADR-0017, ADR-0018, ADR-0019, ADR-0021, ADR-0024, ADR-0027 | Records, normalisers, granularity, freshness, invariants, rule engine, licences of the ISO 1219 drawings (own drawings, CC-BY-SA-4.0), QET grid |
-| [03-domain-model](03-domain-model.md) §6, §7, §8.5, §13, §15 | `assembly_view`, `FnDef`, `CpDef`, `DeviceLink`, child tags, channels, fluid records |
+| [03-domain-model](03-domain-model.md) §6, §7, §8.5, §13, §15 | overview representations, `FnDef`, `CpDef`, `DeviceLink`, child tags, channels, fluid records |
 | [05-project-format-and-persistence](05-project-format-and-persistence.md) §2 | Storage of `medium_def`, page-less links |
 | [06-schematic-editor](06-schematic-editor.md) §2.2, §8 | Fluid page tools; refusal on overview pages |
 | [07-symbols-parts-macros](07-symbols-parts-macros.md) §2.3–§2.5, §3.6, §9 | Symbol and FnDef format, `symbol-map.csv`, starter symbols, valve-module typical, part sections |

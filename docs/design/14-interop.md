@@ -364,7 +364,7 @@ no live counterpart until the assembly exists; EW-CORE-046 (FR-CHK-022) takes ov
 | Code | Finding | Sev. | Defect class | Proposal / quick fix |
 |---|---|---|---|---|
 | EW-IMP-001 | Input limit exceeded; item or file refused | error | — | — |
-| EW-IMP-002 | Malformed item skipped (NaN, overflow, unparsable node) | error | — | — |
+| EW-IMP-002 | Malformed or refused item skipped (NaN, overflow, unparsable node; in a strict import, a value that a prevent rule refuses, the message naming the rule, for example EW-CORE-031 for a foreign colour code) | error | — | — |
 | EW-IMP-003 | Unresolvable reference dropped (conductor end, link UUID) | error | — | — |
 | EW-IMP-004 | Content dropped by design (QET custom SQL, `.ema` geometry, `.e3d`, DXF 3D solids) | info | — | — |
 | EW-IMP-005 | Object inferred (strip, cable, section, junction), review | warning | — | confirm / split |
@@ -402,6 +402,8 @@ no live counterpart until the assembly exists; EW-CORE-046 (FR-CHK-022) takes ov
 Golden C's MF-01 … MF-27 map onto these codes and live rules in §15.2. The `EW-IMP` family is registered with the
 rule catalogue of [15](15-checks-revisions-collaboration.md) as message class 160 (EW-IMP-101 prints as `160101`)
 and documented per code like every rule (NFR-DOC-02).
+
+*Decided (cycle 15; decision log ID-375).* A strict import that meets a value a prevent rule would refuse drops only that row, under EW-IMP-002 with the rule in the message; no separate code is added, because the row is skipped exactly like a malformed one and the rule ID keeps the cause visible.
 
 ---
 
@@ -1287,7 +1289,7 @@ manufacturer is referenced by its name in a `LibRef`'s `extra.key` until a manuf
 Not covered yet: the MICO 4.10 13-14 signal-contact template, FR-DEV-037 "supplied by others", the -201U1:DP port,
 and doc 20 §11–§13 and §14.2. `ew import csv` is not wired yet, because `bin/ew` has no subcommands (task FT-27).
 
-*As built (cycle 15).* `ImportContext.mode` (`Strict`, the default, or `Lenient`) reaches the table readers, and `bootstrap_context()` is strict. A colour cell whose two-letter codes are IEC 60757 codes or aliases of §4.12, at least one of them an alias, holds a foreign code. A strict import refuses the row (EW-IMP-002, naming EW-CORE-031). A lenient one keeps `ColourCode::Foreign` and reports EW-IMP-008 with the quick fix "use BN" on conductors and connection overrides: a declarative `fields.set` with the alias mapped, which the session applies like any command (D-17). Cable cores and the colour profile get the finding without a fix. `assembly_configs.csv` emits the assembly aspect (doc 20 §14.2). The QET project import sets `Lenient`.
+*As built (cycle 15; decision log ID-375, ID-376).* `ImportContext.mode` (`Strict`, the default, or `Lenient`) reaches the table readers, and `bootstrap_context()` is strict. A colour cell whose two-letter codes are IEC 60757 codes or aliases of §4.12, at least one of them an alias, holds a foreign code. A strict import refuses the row (EW-IMP-002, naming EW-CORE-031). A lenient one keeps `ColourCode::Foreign` and reports EW-IMP-008 with the quick fix "use BN" on conductors and connection overrides: a declarative `fields.set` with the alias mapped, which the session applies like any command (D-17). Cable cores and the colour profile get the finding without a fix. `assembly_configs.csv` emits the assembly aspect (doc 20 §14.2). The QET project import sets `Lenient`. The subcommand `ew import csv` with `--strict` and `--lenient` is FT-27; the "GN/YE" alias of §4.12 is not yet accepted by the table reader (FT-259); EW-CORE-031 as a live check, which then owns the fix, is FT-261.
 
 *As built (cycle 7, decision log ID-181).* A black box without drawn geometry gets its `Representation.box` from the
 part's CP pattern: the first ⌊n/2⌋ pattern CPs sit on the top edge leaving up, the rest on the bottom edge leaving

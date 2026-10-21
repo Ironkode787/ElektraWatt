@@ -103,12 +103,12 @@ The page type governs what a page can contain and what drawing means on it (FR-P
 
 | Page type | Representation types offered | Wire tool creates | Autoconnect | Joins nets | Reference folios |
 |---|---|---|---|---|---|
-| MultiLine | MultiLine, ContactImage, StripSegment | `Wire` (electrical) | on | yes | 101, 102, 103, 106 |
+| MultiLine | MultiLine, ContactImage, StripSegment, Graphic (cable markers, black boxes; decision log ID-385) | `Wire` (electrical) | on | yes | 101, 102, 103, 106 |
 | SingleLine | SingleLine | MVP: `Overview` kind; 1.0: `SingleLine{conductors}` connection (FR-CON-044, FR-CON-029) | on | MVP: no; 1.0: mapped onto the multi-line connections | — |
 | Overview | Overview | `Overview` | off | no | — |
-| AssemblyOverview | Overview with `assembly_view` (generated) | `Overview` | off | no | 201, 202 |
-| BusTopology | Topology (bus ports, connectors, single-line bus cables) | `Bus` | on, bus ports only | bus nets | 3 |
-| Fluid | Fluid | `Fluid` with line kind | on, fluid ports only | fluid graph only (FR-FLU-002) | 203–206 |
+| AssemblyOverview | Overview of an assembly member (break marks derived, decision log ID-373) | `Overview` | off | no | 201, 202 |
+| BusTopology | Topology (bus ports, connectors, single-line bus cables), Graphic (cable markers; ID-385) | `Bus` | on, bus ports only | bus nets | 3 |
+| Fluid | Fluid, MultiLine (electrical parts drawn in a fluid diagram, the CPX blocks on 203–206; ID-385) | `Fluid` with line kind | on, fluid ports only | fluid graph only (FR-FLU-002) | 203–206 |
 | Graphic | Graphic | nothing (graphics tools only) | off | no | — |
 | TitlePage | cover form content, page items | nothing | off | no | 1 |
 | PanelLayout | `SurfaceView` of placements (derived; [12](12-panel-layout.md)) | nothing | off | no | 902 |
@@ -119,6 +119,8 @@ A line drawn between two CPs on folio 201 is an `Overview` connection and joins 
 single-line connection must not join nets either: a device drawn single-line and multi-line would otherwise produce
 its wires twice in the wire list. The tool palette changes with the page type, so a user cannot pick the wire tool
 on a graphic page.
+
+*Owner ruling (2026-10-22; decision log ID-385, amending ID-55).* The reference drawings place cable markers and black boxes as graphics on multi-line and bus-topology pages and draw the CPX blocks multi-line on the fluid pages, so the table offers those combinations; every other combination is still refused at placement. The builder DSL of AC-15 path (b) found the restriction (the "(a) ≠ (b)" gap class, [18](18-quality-security-release.md) §3.10).
 
 ### 2.3 Folios, sections and page names
 

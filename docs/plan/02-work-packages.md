@@ -1,6 +1,6 @@
 # Work breakdown structure
 
-**Status:** Draft v0.8 · **Date:** 2026-10-21 (v0.8: the cycle-14 statuses, WP-S6.13 (the blind-drafter harness, 124 WPs), FT-233 to FT-245, FT-101 and FT-212 to FT-214 closed; v0.7: the cycle-13 statuses, wire numbering, the SQL projection v0, the PLC record kinds and the DP bus potential, FT-212 to FT-232, FT-100, FT-105, FT-111 and FT-201 closed, FT-80 partly; v0.6: the cycle-12 statuses, Golden C, the check engine, the M1 report and page gaps, FT-164 to FT-211, FT-15, FT-62, FT-65, FT-110 and FT-159 to FT-162 closed; v0.5: the cycle-11 statuses, the QET project import spike, the acceptance runner, Golden B, the symbol rulings, FT-127 to FT-163; v0.4: the cycle-10 statuses, WP-S1.07 part 2 delivered, FT-84, FT-86 and FT-109 closed, FT-117 to FT-126; v0.3: the cycle-9 statuses, WP-S1.07 in two parts, FT-100 to FT-116; v0.2: the estimates of WP-S1.05, WP-S1.07 and WP-S1.08 after G-SP, the cycle-8 statuses and FT-86 to FT-99) · **Part of:** ElektraWatt plan
+**Status:** Draft v0.9 · **Date:** 2026-10-22 (v0.9: the cycle-15 statuses (the export job, `ew apply`, the assembly aspect, the import modes), the builder DSL and the fuzzer, FT-246 to FT-272, FT-59, FT-156, FT-164, FT-206 and FT-245 closed; v0.8: the cycle-14 statuses, WP-S6.13 (the blind-drafter harness, 124 WPs), FT-233 to FT-245, FT-101 and FT-212 to FT-214 closed; v0.7: the cycle-13 statuses, wire numbering, the SQL projection v0, the PLC record kinds and the DP bus potential, FT-212 to FT-232, FT-100, FT-105, FT-111 and FT-201 closed, FT-80 partly; v0.6: the cycle-12 statuses, Golden C, the check engine, the M1 report and page gaps, FT-164 to FT-211, FT-15, FT-62, FT-65, FT-110 and FT-159 to FT-162 closed; v0.5: the cycle-11 statuses, the QET project import spike, the acceptance runner, Golden B, the symbol rulings, FT-127 to FT-163; v0.4: the cycle-10 statuses, WP-S1.07 part 2 delivered, FT-84, FT-86 and FT-109 closed, FT-117 to FT-126; v0.3: the cycle-9 statuses, WP-S1.07 in two parts, FT-100 to FT-116; v0.2: the estimates of WP-S1.05, WP-S1.07 and WP-S1.08 after G-SP, the cycle-8 statuses and FT-86 to FT-99) · **Part of:** ElektraWatt plan
 
 **Purpose.** This document breaks the full v1 scope of ElektraWatt (EW) into 124 work packages (WPs) in eight
 streams. For every WP it states the objective, scope, deliverables, dependencies, the requirements it delivers,
@@ -1076,6 +1076,8 @@ save budgets (milestone performance run).
 | Acceptance | AC-02, AC-32 |
 | Owner role | Core developer |
 
+*Status (2026-10-22, cycle 15).* Built ahead of the WP for Golden A (D-36, D-41): the typed assembly aspect (`configs` with label, order code, configured part and covers; `bom_basis`) with its model links, the assembly BOM rows A1 and A2 with the "Covers" column, the derived break marks and the order-code slot (decision log ID-371 to ID-374, ID-377, ID-378). Not built: `fields.set` paths for `assembly.*` (FT-256), a per-page break-mark family (FT-257), the generated overview content (FT-263), the Chk rule for out-of-scope covers (FT-260) and the covers-cascade repair (FT-266).
+
 #### WP-S1.14 Terminals, strips, cables and conductors
 
 | Field | Value |
@@ -1250,6 +1252,8 @@ save budgets (milestone performance run).
 | Owner role | Core developer |
 
 *Status (2026-10-21, cycle 14).* Built ahead of the WP: `ew export cables`, `ew export bom --mode parts|assembly` and `ew verify-derived` (decision log ID-356, ID-357). Not built: `ew export pdf` and `ew export svg` (FT-59, cycle 15), `ew apply` (FT-156), the other exports and formats (FT-241, FT-242).
+
+*Status (2026-10-22, cycle 15).* `ew export pdf|svg` (FT-59, closed) and `ew apply [--preview] [--one-step]` (FT-156, closed) are built (decision log ID-362, ID-368, ID-370); `ew export bom --mode assembly` prints A1 and A2. Not built: `--project` and `--json` for these subcommands (FT-249), `--lang` (FT-250), `--omit-personal-data` (FT-255), `ew export png` (FT-254), `ew recover` (FT-252), composite undo and the BOM and wire rows of the preview (FT-247, FT-248), `ew import csv` (FT-27).
 
 #### WP-S1.23 Headless read-only MCP server
 
@@ -1828,6 +1832,8 @@ are regenerated (FT-52, FT-54, FT-55, FT-58 closed); the golden PDF has 31 of do
 
 *Status (2026-10-21, cycle 14).* The SVG writer and the parallel page phase are built (`ew_export::svg`, `ew_export::par_map`; FR-OUT-013 partial, AC-14 passes; decision log ID-344, ID-345); the export job with the `ew export pdf` and `ew export svg` subcommands is FT-59, the first item of cycle 15 (ID-346); font embedding in SVG, cross-platform digests and raster parity are FT-233 to FT-235.
 
+*Status (2026-10-22, cycle 15).* **The export job is delivered** (FT-59 closed; decision log ID-362 to ID-367, ID-369, ID-370): `ew_api::output` with the view parts and one Memo + LRU family per layer, the page phase on `par_map` in the shipped path, `ew export pdf|svg`, the PDF ID with a content digest, durable writes; G-M1-01's command writes the golden digest. Open: the job pool with progress and cancel (FT-251), PNG export (FT-254), the `lang` key (FT-250), sha2 for the digest (FT-234), the per-edit completeness check of the partial views (FT-246).
+
 #### WP-S3.05 Spine importers: CSV golden bootstrap and QET element reader
 
 | Field | Value |
@@ -1844,6 +1850,8 @@ are regenerated (FT-52, FT-54, FT-55, FT-58 closed); the golden PDF has 31 of do
 | Owner role | Output and migration developer |
 
 *Status (2026-10-21, cycle 11).* Beyond this WP's scope, the lenient import of whole QET projects was delivered as a spike, pulled forward from lever (b) (decision log ID-273 to ID-284; [interop](../design/14-interop.md) §4.16): the pilot's three projects import, derive and export to PDF with no lost connection, and the reference set (Golden C's source) reports the 8 EW-TERM-002 groups of MF-09. The spike is a head start on WP-S3.10 and WP-S3.11, whose estimates and milestones are unchanged; their remaining scope is FT-127 to FT-145.
+
+*Status (2026-10-22, cycle 15).* The table importer has `ImportContext.mode`: strict by default, refusing only the row (EW-IMP-002 naming EW-CORE-031), and lenient, keeping a foreign colour with EW-IMP-008 and the quick fix "use BN"; `assembly_configs.csv` emits the assembly aspect (decision log ID-375, ID-376). Open: the subcommand (FT-27), the "GN/YE" alias (FT-259).
 
 #### WP-S3.06 MVP report pack
 
@@ -2485,6 +2493,8 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 
 *Status (2026-10-21, cycle 14).* The runner reads the written PDF back with an in-repo reader for AC-01, AC-06 and AC-13 (decision log ID-343), compares serial, parallel and shuffled exports for AC-14 and runs the freshness script of AC-16 with a per-edit verify (ID-357): 92 entries, 81 pass, 0 fail, 6 not_built, 5 not_applicable (ID-360). The builder DSL of AC-15 path (b) remains; the TOC-length limit of the sweep is FT-243.
 
+*Status (2026-10-22, cycle 15).* **Delivered** (decision log ID-384, ID-387, ID-390): both golden builders in `ew_testkit::golden` (path (a) `bootstrap`, path (b) `build` with the builder DSL through a `CommandSink`, 420 commands), the runner as `cargo xtask acceptance` (no `ew-testkit accept` binary, ID-387), the digests and the anonymisation guard; the S–XL generator existed. Headless: 93 entries, 87 pass, 0 fail, 1 not_built (D-06's property grid, M-PP), 5 not_applicable; the AC-15 entries cover `ew export pdf` over the fixture and path (b). Open follow-ups: the records path (b) still lists as unwritten (FT-165, FT-167, FT-169, FT-270), the per-edit completeness of the partial views (FT-246), the assembly edit in AC-16 (FT-258), the acceptance tests once per CI job (FT-268).
+
 #### WP-S6.02 Determinism, property tests and command fuzzer
 
 | Field | Value |
@@ -2499,6 +2509,8 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 | Milestone · release | M1 Spine exit: headless golden PDF · MVP |
 | Acceptance | AC-14, AC-16 |
 | Owner role | Release engineer |
+
+*Status (2026-10-22, cycle 15).* **In part** (decision log ID-388): the command-sequence fuzzer as a seeded test over Golden A with the integrity, memo-oracle, prevent and undo-all oracles (`fuzz_smoke` in the targeted tests; a run of 20 seeds × 200 steps found no defect), beside the shuffle and parallel-export tests of cycle 14. Remaining: the ordered-collection lint (FT-271), save and reload, macros and imports in the step set and a cargo-fuzz target (FT-272), the platform digests (FT-234).
 
 #### WP-S6.03 Performance and memory gate
 
@@ -2705,6 +2717,8 @@ S7 produces the content that makes EW correct by default and learnable: the gold
 
 *Status (2026-10-21, cycle 14).* Golden A: the final wire numbers (FT-101), part descriptions without ratings and `output_voltage` in the technical data (ID-352), the cover frame on the title page, title templates in `report_blocks.csv`, `expected/csv/bom_parts.csv`, `variants/ac16-freshness.ewcmd` and the cover lines in `frame.json`; the assembly configuration of -201U1 is FT-245.
 
+*Status (2026-10-22, cycle 15).* Golden A: `assembly_configs.csv` and the two configured parts (29 parts), `expected/csv/bom_assembly.csv`, the folio-3 order code on two lines (decision log ID-374, ID-377); doc 20 §8.2's Via column is a generator contract, and the generator reads only the junction tokens (ID-379). Open: the type designation of 195740 (FT-262).
+
 #### WP-S7.02 Starter symbol set
 
 | Field | Value |
@@ -2898,7 +2912,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-24 | Move `BUILTIN_LIBRARY` from `ew-import-qet` and `ew-import-tables` to `ew-interop-api` when the system library is named | WP-S1.19a | With the WP | ID-66, ID-24 |
 | FT-25 | Type the `ew-derive` shims in `ew-schema` and remove them: `settings.numbering`, `settings.frames` (with WP-S3.02 if that comes first), the company logo and notice, the `revision` record; the colour and size profiles (with `order`; `colour_name` derived from the code names, ID-319) | WP-S1.11 | With the WP | ID-78 |
 | FT-26 | Generator option for a non-conformantly numbered project, so the renumber benchmark needs no counter scrambling | WP-S1.05 | With the G-SP re-test (cycle 10, after WP-S1.07 part 2); the first spike measured the folio renumber, not the device renumbering | ID-79, ID-218, ID-250 |
-| FT-27 | Wire `TablesImporter` to `ew import csv <dir>` once `bin/ew` has subcommands | WP-S3.05 | With the first `ew` subcommands | ID-65; [14](../design/14-interop.md) §8.4 |
+| FT-27 | Wire `TablesImporter` to `ew import csv <dir>` once `bin/ew` has subcommands | WP-S3.05 | With the first `ew` subcommands; since cycle 15 the library importer has `ImportContext.mode` (strict by default, lenient); the subcommand takes `--strict` and `--lenient` (ID-375) | ID-65; [14](../design/14-interop.md) §8.4, ID-375 |
 | FT-28 | Bind `project.control_voltage` and `project.consumption` once `Quantity` has a text formatter | WP-S1.06 | With the `Quantity` formatter | ID-88; [09](../design/09-reports-forms-output.md) §3.7 |
 | FT-29 | Golden tables: `project.csv` and the generator store the identifier-set key `EN81346-2:2009`; needs the pilot's acknowledgement (PD-15) | WP-S7.01 | Cycle 6 (fix round) | ID-92, ID-80 |
 | FT-30 | Main representation by doc 03 §8.2 step 4 (page order, row, column, ID among counted types) in `ew-commands` and `ew-derive` together | WP-S1.11 | With the WP | ID-73 |
@@ -2930,7 +2944,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-56 | `ew-scene`: draw stored symbol variants (the geometry key's `extra`) and apply a slot's `max_width` | WP-S3.01 | Cycle 8 | ID-142 |
 | FT-57 | Validate font bytes when fonts are loaded and remove the `catch_unwind` around glifo in `ew-render-cpu` | WP-S3.04 | **Closed:** implemented in the cycle-7 fix round (fonts validated on load; the `catch_unwind` stays as a backstop) | ID-142 |
 | FT-58 | Regenerate the PNG and text candidates of folios 102, 103 and 106 once FT-54 and FT-55 draw their wires, before the first PNG approval | WP-S3.04 | **Closed:** implemented in the cycle-7 fix round (candidates regenerated, still awaiting FT-10) | ID-138, ID-142 |
-| FT-59 | The `Session` export job (`ew-api`, `ew-jobs`): it owns the glue rules of the view, builds one view and one memoised `page_display_list` query per layer that reads only that layer's inputs, so a wire edit never rebuilds the title block; it runs the page phase on `ew_export::par_map` in the shipped path, AC-14 then tests that path, and it brings `ew export pdf` and `ew export svg` (G-M1-01) | WP-S3.04 | **Cycle 15, first item** (G-M1-01 needs `ew export pdf golden/J-E-2416.ew`; ID-346) | ID-125, ID-144, ID-344, ID-346; [ADR-0015](../adr/0015-display-list-renderers-pdf.md) amendment 7 |
+| FT-59 | The `Session` export job (`ew-api`, `ew-jobs`): it owns the glue rules of the view, builds one view and one memoised `page_display_list` query per layer that reads only that layer's inputs, so a wire edit never rebuilds the title block; it runs the page phase on `ew_export::par_map` in the shipped path, AC-14 then tests that path, and it brings `ew export pdf` and `ew export svg` (G-M1-01) | WP-S3.04 | **Closed:** implemented in cycle 15 (`ew_api::output`: the view parts and one Memo + LRU family per layer, the page phase on `par_map` in the shipped path, `ew export pdf\|svg`; `ew export pdf golden/J-E-2416.ew` writes the digest of `expected/pdf/sha256.txt`, G-M1-01; ID-362 to ID-364) | ID-125, ID-144, ID-344, ID-346; [ADR-0015](../adr/0015-display-list-renderers-pdf.md) amendment 7, ID-362 |
 | FT-60 | When `ew-memo` backs `Q`: bind the report-pages provider to the memo store at creation; `Q`s with different providers never share a store | WP-S1.05 (phase 2) | **Closed:** implemented in cycle 9 (`MemoStore::with_report_pages`; the `Session` binds its report engine at creation) | ID-126, ID-220, ID-246 |
 | FT-61 | `ew-reports`: XLSX and CSV writers over the `RowSet` (rust_xlsxwriter, csv), and wrapped rows measured with `shaped_text` once the schema has a wrap policy | WP-S3.03 | With the WP; **the CSV half is done** since cycle 14 (`ew_reports::csv` in the golden dialect, shared by the exports and the golden tests; ID-356); the XLSX writer and wrapped rows remain | ID-130, ID-356; [09](../design/09-reports-forms-output.md) §3.2, §4.6 |
 | FT-62 | Bind `revision.current.label` in the title block (the current revision of ID-105) | WP-S1.06 | **Closed:** implemented in cycle 12 (revision records from `revisions.csv`; ID-318) | ID-105, ID-286 |
@@ -3027,7 +3041,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-153 | `affected_pages` of a preview ignores changes of the project row, so a settings edit reports no affected page; list the pages whose derived output changes | WP-S1.04 | With FT-152 | ID-290 |
 | FT-154 | The renumber preview lists the frozen devices that `include_frozen` leaves frozen (unplaced, terminals, `Child` or named-scheme devices) | WP-S1.11 | With the WP | ID-292 |
 | FT-155 | Golden B in one `variants/b-renumber.ewcmd` (B1 and B2 in one log, doc 20 §2) once WP-S1.11's main-representation rule allows a full renumber without swapping -X1031 and -X1032 | WP-S7.01; WP-S1.11 | With WP-S1.11 | ID-289 |
-| FT-156 | `ew apply <project> <file.ewcmd> [--preview] [--one-step]` (FR-EXT-029) over `Session::run_script` with the exit codes of `CmdLogError::exit_code`; the `tag:` and `folio:` references exist since cycle 12 without `find` (ID-303) | WP-S1.22 | Cycle-15 candidate, with FT-59 (ID-361) | ID-288, ID-356 |
+| FT-156 | `ew apply <project> <file.ewcmd> [--preview] [--one-step]` (FR-EXT-029) over `Session::run_script` with the exit codes of `CmdLogError::exit_code`; the `tag:` and `folio:` references exist since cycle 12 without `find` (ID-303) | WP-S1.22 | **Closed:** implemented in cycle 15 (`ew apply [--preview] [--one-step]`, saving once, refusing a crashed session's journal; composite undo FT-247, BOM and wire rows FT-248; ID-368) | ID-288, ID-356, ID-368 |
 | FT-157 | Orphan-collection retention (ADR-0002 amendment 7): collect only memos of dead keys or under LRU eviction; the host passes each commit's deleted record IDs, `ew-derive` maps record kinds to families, producers retire derived keys through `Store::forget`; no cascade by readership; the 300-cycle growth test stays flat and a test shows that a representation move keeps the unread `device_tag` and `device_part_lines` memos | WP-S1.05 (`ew-memo`); WP-S1.07 (`ew-derive`) | Cycle 12 | ID-297 |
 | FT-158 | `cargo xtask` lint: fail on an assertion that compares `Instant`/`elapsed` durations outside an `#[ignore]`d test or an `EW_PERF_ASSERT` guard | WP-S6.03 (`xtask`) | Cycle 12 | ID-298 |
 | FT-159 | Folio 1 cover tables generated from the colour and size profiles (AC-12, D-30, D-37), with the bootstrap emitting the profiles (ID-90) | WP-S3.03; WP-S3.05 (bootstrap) | **Closed:** implemented in cycle 12 (`profile_tables` and the embedded block; title, logo and data box are FT-202; ID-319) | ID-286 |
@@ -3035,7 +3049,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-161 | Terminal-designation uniqueness: the prevent rule of FR-TRM-002 on the candidate snapshot (strict rejects, lenient reports EW-TERM-001/002) as the first rule pack of `ew-checks`, so D-12 is rejected and a swap in one transaction passes | WP-S1.14; WP-S1.16a | **Closed:** implemented in cycle 12 (EW-TERM-002 as prevent rule, `terminal.designate`; ID-306) | ID-286 |
 | FT-162 | Part data in the symbol slots of folios 101 and 102: typed ratings ("C10", "B16", "15 °C"), manufacturer names from the master and the enclosure part text "SK 3110.000" (D-18, D-33) | WP-S1.19a; WP-S3.04 | **Closed:** implemented in cycle 12 (typed technical data, `tech_data_text`, two new slots; ID-314, ID-315) | ID-286 |
 | FT-163 | Numbering formats whose tokens are ambiguous without separators (`{page}{counter}{letter}`: page 20 with counter 16 and page 201 with counter 6 both print "-2016U") must be refused or made unambiguous by `check_settings_member`; the still-accepted, harmless cases to settle with it: duplicate scheme keys, an unknown rule aspect, an empty child separator, matrix 0, empty colour or size rows | WP-S1.11 | With the WP | ID-290 |
-| FT-164 | A bond command: declare a bond between two potentials at named CPs and a via connection (doc 20 §20.2 step 1, MF-16: `pelv_0v_pe` between -102G1:−#1 and -X1032:2 via W27), previewed, undoable, so Golden C's fix script can declare B1 | WP-S1.14 | Before AC-25 (G-M3) | ID-304 |
+| FT-164 | A bond command: declare a bond between two potentials at named CPs and a via connection (doc 20 §20.2 step 1, MF-16: `pelv_0v_pe` between -102G1:−#1 and -X1032:2 via W27), previewed, undoable, so Golden C's fix script can declare B1 | WP-S1.14 | **Closed:** implemented in cycle 15 (`bond.create`, used by the builder DSL of AC-15 path (b); ID-386) | ID-304, ID-386 |
 | FT-165 | A revision-create command (open revision with label, date and state; a historic released revision without archive) and the removal of per-page revision values, for MF-04 and §20.2 step 1 | WP-S1.18 | Before AC-25 (G-M3) | ID-304 |
 | FT-166 | Moving pages into a section (`page.move` of doc 06 §3.1) and turning imported folios into generated section dividers (§20.2 step 4) | WP-S1.12 | Before AC-25 (G-M3) | ID-304 |
 | FT-167 | A command that embeds a library copy into the project (the frame form without grid for the dividers and report pages of §20.2 step 4), with its lineage | WP-S1.19 | Before AC-25 (G-M3) | ID-304 |
@@ -3077,7 +3091,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-203 | The cover block's layout from the form's regions instead of the proportions hard-coded in `ew-scene`'s `embedded` module | WP-S3.02 | With FT-202 | ID-319 |
 | FT-204 | Layout placements, so the folio column of the layout and accessory rows of the parts list prints the layout page (902) as doc 20 §14.1 does | WP-S4.01 | With the WP | ID-317 |
 | FT-205 | Rail and duct lengths derived from the carriers of doc 20 §13 instead of quantities stored on -UC1's part uses | WP-S4.01 | With the WP | ID-316 |
-| FT-206 | The slot texts of symbols (part number, manufacturer, technical data, type designation) as an `ew-derive` product query; today the `ew-api` test glue fills them (`slot_values`) | WP-S1.19a; WP-S3.04 | With the export job (FT-59) | ID-315 |
+| FT-206 | The slot texts of symbols (part number, manufacturer, technical data, type designation) as an `ew-derive` product query; today the `ew-api` test glue fills them (`slot_values`) | WP-S1.19a; WP-S3.04 | **Closed:** resolved in `ew-api` in cycle 15 (the export job's view part `page_slots`, `PageSlotsOf`; it moves into `ew-derive` when a second reader needs it; ID-367) | ID-315, ID-367 |
 | FT-207 | `revision_overview` (folio 911) derived from the revision records, which exist since cycle 12 | WP-S1.18; WP-S3.06 | With the WP | ID-318 |
 | FT-208 | Define a device's main part (the part use that provides the main function) and use it in `main_part`; today the first part use is taken | WP-S1.19a | With the WP | ID-315 |
 | FT-209 | "Supplied by others": the device attribute `supply_scope` (`own`, `by_others`; FR-DEV-037) in `ew-schema` and the model, the golden fixture marks the process valves -203Q1 to -203Q8, the BOM leaves such devices out with a note, and EW-CORE-041 exempts them | WP-S1.13; WP-S7.01 (fixture); WP-S1.16 (rule) | With FT-192 | ID-322 |
@@ -3096,7 +3110,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-222 | CI lint for every shipped and acceptance `.sql` file: prepare it against the current `api_v1` schema and run `EXPLAIN`, so a renamed column fails the PR, not the acceptance run | WP-S6.01 | With FT-216 | ID-328 |
 | FT-223 | A fuzz target for the SQL sandbox and a committed hostile-SQL corpus (recursive-CTE bombs, deep expressions, authorizer bypass attempts, clock leaks through BLOB arguments, CTEs named after views) run in CI (NFR-SEC-03, NFR-SEC-06) | WP-S6.04 | Before G-M2 | ID-328, ID-331 |
 | FT-224 | The per-module cut-off of `module_starts`: an edit to one module re-derives only that module's starts and channel addresses, not `channel_addresses` of every module (FR-PLC-012; AC-29 "changing -201U5's start re-addresses only its 8 channels") | WP-S1.21 | Before AC-29 (G-M2) | ID-333 |
-| FT-225 | The bus kinds `BusPort`, `LogicalNet` and `PhysicalNet` and the query `bus_segments` (doc 10 §2.7, §3.8), replacing the interim single-line model of ID-336; the station address `Tbd` printed "TBD" on folio 3 and 908, and the network address list | WP-S1.21 | Before AC-31 (G-M2) | ID-333, ID-336 |
+| FT-225 | The bus kinds `BusPort`, `LogicalNet` and `PhysicalNet` and the query `bus_segments` (doc 10 §2.7, §3.8), replacing the interim single-line model of ID-336; the station address `Tbd` printed "TBD" on folio 3 and 908, and the network address list | WP-S1.21 | Before AC-31 (G-M2); folio 3's "Node TBD" line waits for it (ID-377) | ID-333, ID-336, ID-377 |
 | FT-226 | `ew-commands` for the PLC kinds: `KindName` and `fields.set` for `plc_config_project`, `channel` and `device_link`, and the affected-pages computation ignoring `Channel` rows that no page draws | WP-S1.21; WP-S1.04 | With the first PLC command | ID-333 |
 | FT-227 | Channel addresses printed at the coils on folios 203 to 206 (doc 10 §9.1) | WP-S1.21; WP-S3.04 | Before AC-29 (G-M2) | ID-333 |
 | FT-228 | Derivation step 4 of doc 10 §3.2 (the solenoid-position map of part 533361, test input H1 of doc 20 §11.2) in the part section and the channel-state derivation, so EW-PLC-012 (FT-192) can report 28 findings under H1 and none under H2 | WP-S1.21 | Before AC-29 (G-M2) | ID-333 |
@@ -3105,7 +3119,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-231 | Row links of the TOC and the parts list drawn in the page scene and the PDF, as the `plc_overview` rows are since cycle 13 (`ew-scene` table rows draw a row's link); then the golden PDF's annotation count is re-blessed | WP-S3.04 | With the next golden PDF change | ID-333 |
 | FT-232 | Row-level golden of folio 908: `expected/rows/908.csv` with the 56 `plc_overview` rows, generated from doc 20 §11.3 and compared by the runner like the other connectivity folios (ID-232 unchanged) | WP-S3.03; WP-S7.01 | Before AC-29 (G-M2) | ID-333 |
 | FT-233 | SVG fonts embedded as `@font-face` subsets with a subsetter that keeps the `cmap`, as doc 09 §4.4 specifies; the SVG then renders without the fonts installed, and FR-OUT-013 is complete | WP-S3.04 | Before G-M2 | ID-345 |
-| FT-234 | Cross-platform digests: the platform CI matrix compares the PDF and SVG SHA-256 of the golden project on Linux, Windows and macOS (SC-6, AC-14's platform entry) | WP-S6.06; WP-S3.04 | MVP (before G-M2) | ID-345 |
+| FT-234 | Cross-platform digests: the platform CI matrix compares the PDF and SVG SHA-256 of the golden project on Linux, Windows and macOS (SC-6, AC-14's platform entry) | WP-S6.06; WP-S3.04 | MVP (before G-M2); since cycle 15 it also moves the PDF ID's content digest from the std `Hash` order to sha2 over canonical bytes (ID-364) | ID-345, ID-364 |
 | FT-235 | Raster parity of doc 18 §3.9: hayro rasterises each page of the written PDF and dify compares it with the vello_cpu PNG within tolerance (FR-OUT-018), with its cargo-vet exemption (ID-332) | WP-S3.04; WP-S6.01 | Before G-M2 | ID-343 |
 | FT-236 | Part reads for potential-scope checks: `potential_targets` and EW-POT-002 read the bonds of their potential through a part query (`BondsOf`) instead of whole partitions, so a topology change re-runs only the checks of the potentials it touches (NFR-PERF-09) | WP-S1.16; WP-S1.07 | Before the M2 performance gate | ID-354 |
 | FT-237 | A command that edits a part's description in the project (previewed, undoable), the quick fix of EW-CORE-065 | WP-S1.19a | With FT-168 | ID-354 |
@@ -3116,7 +3130,34 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-242 | The CSV presets of doc 09 §4.6 for the exports, and the FR-EXP-005 columns (column-map profile, ECLASS, ETIM, type); the golden dialect stays the default of the acceptance files | WP-S3.06 | Before G-M2 | ID-356 |
 | FT-243 | `ew_api::verify` sweeps the TOC pages for the page count the block actually has, not for counts 1 to 3 only, so a longer table of contents is checked | WP-S6.01 | With the next change of `ew_api::verify` | ID-357 |
 | FT-244 | A typed technical-data key `output_voltage` in the native key list (doc 07 §2.5, ID-15, ID-315), with its slot composition; the golden part 2904602 moves to it from the plain key | WP-S1.19a | With the parts work | ID-352 |
-| FT-245 | The assembly mode on the golden project: D-41's typed assembly aspect of -201U1, its configured parts, the rows A1 and A2 with the "Covers" column of doc 20 §14.2 and the order-code text on folio 3 (D-36); then AC-07's assembly entry, D-36 and D-41 pass | WP-S1.13; WP-S3.03; WP-S7.01 | Cycle 15 candidate (before G-M1) | ID-356, ID-360 |
+| FT-245 | The assembly mode on the golden project: D-41's typed assembly aspect of -201U1, its configured parts, the rows A1 and A2 with the "Covers" column of doc 20 §14.2 and the order-code text on folio 3 (D-36); then AC-07's assembly entry, D-36 and D-41 pass | WP-S1.13; WP-S3.03; WP-S7.01 | **Closed:** implemented in cycle 15 (the typed assembly aspect, A1 and A2 with the "Covers" column, the derived break marks, the folio-3 order code; AC-07's assembly entry, D-36 and D-41 pass; ID-371 to ID-374, ID-377) | ID-356, ID-360, ID-371 |
+| FT-246 | Per-edit completeness of the partial page views: at every edit state of AC-16 (and in `ew verify-derived`), check that the views a layer reads are complete, not only that memoised and cold values agree | WP-S6.01; WP-S3.04 | Before G-M1 approvals | ID-363 |
+| FT-247 | The composite command of `ew apply --one-step`: the whole log as one undo step (doc 17 §3.5), needed once the GUI or a long-lived session runs a log; the CLI's on-disk result is already all-or-nothing | WP-S1.22 | With the GUI's command-log entry | ID-368 |
+| FT-248 | BOM and wire rows in the `ew apply --preview` diff (`diff_query` of doc 17 §3.5); today it prints changed records, printed tags and cross-reference texts | WP-S1.22 | Before G-M2 | ID-368 |
+| FT-249 | `--project` and `--json` (doc 17 §3.1, FR-EXT-024) for `ew export pdf\|svg` and `ew apply` | WP-S1.22 | Before G-M2 | ID-362, ID-368 |
+| FT-250 | The `lang` key of the `page_display_list` families and `ew export --lang` (FR-I18N-005): the layers are built in the neutral language today | WP-S3.04 | With the first translation (WP-S7.07 or earlier) | ID-363 |
+| FT-251 | The export job as an `ew-jobs` job on a `World` fork with progress and cooperative cancel (NFR-PERF-19, ARCH §2); needs a memo snapshot in the fork | WP-S1.05; WP-S3.04 | Before the GUI exports (M-PP) | ID-362 |
+| FT-252 | `ew recover` (doc 17 §3.1, doc 05 recovery): replay or discard a crashed session's journal from the CLI; `ew apply` refuses such a project and names it | WP-S1.09; WP-S1.22 | Before G-M2 | ID-368 |
+| FT-253 | The journal-refusal test of `ew apply` asserts that the crashed session's journal survives the refusal (and that `Session::close` deletes only its own journal) | WP-S1.22; WP-S1.09 | With the next change of `ew apply` | ID-368 |
+| FT-254 | `ew export png` (FR-OUT-014) over the export job, one PNG per page | WP-S3.04 | Before G-M2 | ID-362 |
+| FT-255 | `--omit-personal-data` for the page exports (doc 17 §3.3); a usage error today | WP-S1.22; WP-S6.05 | Before G-M2 | ID-362 |
+| FT-256 | `fields.set` paths for the assembly aspect (`assembly.configs[]`, `assembly.bom_basis`), so an assembly can be edited by command and by a command log | WP-S1.13 | Before AC-16's assembly edit (FT-258) | ID-376 |
+| FT-257 | A per-page break-mark family (`page_break_marks` memoised per page) instead of the project-level `assembly_break_marks()`, so a move on one page re-reads no other page's marks | WP-S1.13 | With the performance gate (WP-S6.03) | ID-373 |
+| FT-258 | AC-16 assembly edit: move -202U1 to folio 201 and back in the freshness script, with the break marks and the BOM checked after each edit | WP-S6.01 | After FT-256 | ID-373 |
+| FT-259 | The "GN/YE" alias of doc 14 §4.12 in the table reader's colour parser (a slash-separated foreign notation) | WP-S3.05 | With the next importer change | ID-376 |
+| FT-260 | The Chk rule for a cover outside the assembly device's subtree (doc 03 §7): report the configuration and the device; the BOM derivation already ignores it | WP-S1.16 | Before G-M2 | ID-371 |
+| FT-261 | EW-CORE-031 as a live check and prevent rule (doc 15 §4); it then owns the "use BN" quick fix that EW-IMP-008 carries today | WP-S1.16 | Before G-M2 | ID-375, ID-376 |
+| FT-262 | The type designation of part 195740 ("CPX FB13") in the golden part data, so folio 3 prints the part type line | WP-S7.01; WP-S1.19 | Before the folio-3 approval | ID-377 |
+| FT-263 | The generated content of the assembly overview (doc 11 §5.5 steps 1 to 4: module glyphs, part texts, valve glyphs, tags and "∞" lists from the children; AC-32) | WP-S1.13; WP-S1.20 | AC-32 (MVP part, G-M2) | ID-373 |
+| FT-264 | A2's Folios column in the assembly BOM prints the pages of the devices it covers, not only the head's page | WP-S3.03 | Before G-M2 | ID-374 |
+| FT-265 | Folio 3's manufacturer slot reads the configured part of the order code, not the device's main part | WP-S1.13; WP-S1.19 | With FT-262 | ID-374 |
+| FT-266 | A dangling cover (a covered device deleted by an older 0.1 build) opens: report it, then unlink it, instead of `Model::from_records` refusing the project; a mixed-build test as FT-230 | WP-S1.09; WP-S1.16 | With FT-229 | ID-378 |
+| FT-267 | One conversion from `ew_interop_api::QuickFixProposal` to `ew_checks::QuickFix` in `ew-api` with a shape test, and a confidence field for the alias table's proposals (GR → GY medium) | WP-S1.15 | With FT-186 | ID-376 |
+| FT-268 | The headless acceptance tests run once per CI test job (behind the all-features run or a nextest filter), not in both nextest runs | WP-S6.01; WP-S0.01 | Next CI change (cycle 16 candidate) | ID-381 |
+| FT-269 | The CI-time trend (per-job durations on the hosted runners) in the performance gate's report, against NFR-MAINT-05 | WP-S6.03 | With WP-S6.03 | ID-381 |
+| FT-270 | Commands for the records that the builder DSL still lists as unwritten and no other task covers: PLC channels and their bindings, device links, the PLC configuration project and the supply origin, so path (b) builds them through commands (revisions, library embedding and the valve-terminal assembly are FT-165, FT-167 and FT-169) | WP-S1.21; WP-S1.13 | Before G-M2 | ID-384 |
+| FT-271 | The ordered-collection lint of WP-S6.02: no `HashMap` or `HashSet` iteration order reaches a persisted, exported or printed sequence (a `cargo xtask` check or a clippy `disallowed-types` list for the output crates) | WP-S6.02 | With the rest of WP-S6.02 | ID-388 |
+| FT-272 | The command fuzzer's remaining steps and form: save and reload round trips, macro insertion and imports in the step set, and a cargo-fuzz target over the same generator for the nightly run (doc 18 §3.6, CI-N-02) | WP-S6.02 | With the rest of WP-S6.02 | ID-388 |
 
 ---
 
