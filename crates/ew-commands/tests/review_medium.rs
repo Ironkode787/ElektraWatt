@@ -119,6 +119,47 @@ fn place_refuses_a_rep_type_the_page_does_not_allow() {
     assert!(reason.contains("no representations"), "{reason}");
 }
 
+/// The owner ruling that amends ID-55 (cycle 15): graphic representations (cable markers) on multi-line and
+/// bus-topology pages and multi-line ones (the CPX black boxes) on fluid pages are allowed; the other types
+/// stay refused there.
+#[test]
+fn graphic_on_multi_line_and_bus_topology_and_multi_line_on_fluid_are_allowed() {
+    let mut e = engine(golden_model());
+    e.execute(&place(PAGE_102, Some(RepType::Graphic)))
+        .expect("graphic on multi-line");
+
+    let mut e = engine(with_page_type(PageType::BusTopology));
+    e.execute(&place(PAGE_101, Some(RepType::Graphic)))
+        .expect("graphic on bus topology");
+    e.execute(&place(PAGE_101, Some(RepType::Topology)))
+        .expect("topology on bus topology");
+    let reason = rejection_reason(e.execute(&place(PAGE_101, Some(RepType::MultiLine))));
+    assert!(
+        reason.contains("Topology") && reason.contains("Graphic"),
+        "{reason}"
+    );
+
+    let mut e = engine(with_page_type(PageType::Fluid));
+    e.execute(&place(PAGE_101, Some(RepType::MultiLine)))
+        .expect("multi-line on fluid");
+    e.execute(&place(PAGE_101, Some(RepType::Fluid)))
+        .expect("fluid on fluid");
+    let reason = rejection_reason(e.execute(&place(PAGE_101, Some(RepType::Graphic))));
+    assert!(
+        reason.contains("Fluid") && reason.contains("MultiLine"),
+        "{reason}"
+    );
+
+    // Still refused: graphic on a single-line page, fluid on a multi-line page.
+    let mut e = engine(with_page_type(PageType::SingleLine));
+    let reason = rejection_reason(e.execute(&place(PAGE_101, Some(RepType::Graphic))));
+    assert!(reason.contains("SingleLine"), "{reason}");
+    let mut e = engine(golden_model());
+    let reason = rejection_reason(e.execute(&place(PAGE_102, Some(RepType::Fluid))));
+    assert!(reason.contains("Fluid") && reason.contains("Graphic"), "{reason}");
+    assert_eq!(e.model().rev().0, 0);
+}
+
 #[test]
 fn move_refuses_a_page_whose_type_does_not_allow_the_rep() {
     let mut e = engine(with_page_type(PageType::Overview));

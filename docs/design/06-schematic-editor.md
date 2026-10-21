@@ -313,9 +313,9 @@ be; an outline has at least three points, box CP indexes are distinct and on the
 §2.7 is the place tool's, not this command's), `bond.create` (`CreateBond`: a, b as CP or junction, kind, optional
 `via`; the label is derived; the PELV and type rules stay checks) and `external_ref.create` (`CreateExternalRef`:
 location node of the location aspect, device, optional connection and project). 29 commands are registered. The
-page-type admission of ID-55 refuses the golden tables' cable markers (graphic on MultiLine and BusTopology pages)
-and their CPX black boxes (multi-line on Fluid pages); whether this table or the tables change is open (AC-15
-path (b), [20](20-golden-project.md) §22).
+page-type admission of ID-55 is amended by the owner ruling of cycle 15: MultiLine and BusTopology pages also take
+graphic representations (cable markers) and Fluid pages multi-line ones (the CPX black boxes of a valve terminal), as
+the reference drawings show (`allowed_rep_types`; AC-15 path (b), [20](20-golden-project.md) §22).
 
 | Command (`NAME`) | Parameters (abridged) | Cost | Notes |
 |---|---|---|---|

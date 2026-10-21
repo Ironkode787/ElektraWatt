@@ -405,16 +405,26 @@ fn split_for_hint(
 /// (generated or read-only pages, title pages, model views, external documents; panel layouts, whose
 /// surface view has no `RepType` yet).
 ///
-/// MultiLine takes multi-line, contact-image and strip-segment representations; SingleLine takes
-/// single-line; Overview and AssemblyOverview take overview; BusTopology takes topology; Fluid takes
-/// fluid; Graphic takes graphic.
+/// MultiLine takes multi-line, contact-image, strip-segment and graphic representations; SingleLine takes
+/// single-line; Overview and AssemblyOverview take overview; BusTopology takes topology and graphic; Fluid
+/// takes fluid and multi-line; Graphic takes graphic.
+///
+/// The graphic representations on MultiLine and BusTopology pages (cable markers, the screen graphic) and
+/// the multi-line ones on Fluid pages (the CPX black boxes of a valve terminal drawn on its fluid pages) are
+/// the owner ruling that amends decision log ID-55 (cycle 15): the reference drawings contain exactly these,
+/// and Golden A's tables place them so (doc 20, build path (b)).
 pub fn allowed_rep_types(page: &PageType) -> Option<&'static [RepType]> {
     Some(match page {
-        PageType::MultiLine => &[RepType::MultiLine, RepType::ContactImage, RepType::StripSegment],
+        PageType::MultiLine => &[
+            RepType::MultiLine,
+            RepType::ContactImage,
+            RepType::StripSegment,
+            RepType::Graphic,
+        ],
         PageType::SingleLine => &[RepType::SingleLine],
         PageType::Overview | PageType::AssemblyOverview => &[RepType::Overview],
-        PageType::BusTopology => &[RepType::Topology],
-        PageType::Fluid => &[RepType::Fluid],
+        PageType::BusTopology => &[RepType::Topology, RepType::Graphic],
+        PageType::Fluid => &[RepType::Fluid, RepType::MultiLine],
         PageType::Graphic => &[RepType::Graphic],
         PageType::PanelLayout
         | PageType::TableOfContents

@@ -106,40 +106,23 @@ fn expected(name: &str) -> String {
         .expect("expected CSV")
 }
 
-/// Known gap (doc 20 §22, the AC-15 path (b) entry): the page-type rule of doc 06 §2.2 as applied by
-/// `device.place` (decision log ID-55) refuses the three cable markers of the golden tables (representation
-/// type graphic on multi-line folio 106 and bus-topology folio 3) and the seven CPX black boxes drawn
-/// multi-line on the fluid folios 203 … 206. Without its marker a cable has no page, so its page-based tag
-/// prints `-?W1`: the four CSVs that print a cable tag differ from the expected ones in exactly the lines
-/// that print it, and the other two equal them. When the ruling lands (graphic markers allowed on those page
-/// types, or the tables changed), this test fails and is inverted to full equality.
+/// AC-15 path (b): the acceptance SQL over the command-built project returns the expected CSVs, and no
+/// representation of the tables is refused (the page-type rule as amended by the owner ruling on ID-55:
+/// the cable markers are graphic on folios 106 and 3, the CPX black boxes multi-line on 203 … 206).
 #[test]
-fn path_b_matches_the_expected_csvs_except_the_refused_cable_markers() {
+fn path_b_returns_the_expected_csvs() {
     let (session, built) = built(1);
-    let got = sql_results(&session);
-    for (name, csv) in &got {
-        let want = expected(name);
-        if matches!(*name, "terminals_1X1" | "potentials") {
-            assert_eq!(*csv, want, "acceptance/{name}.sql over path (b)");
-            continue;
-        }
-        assert_ne!(*csv, want, "{name}: the known gap is closed; invert this test");
-        let (g, w): (Vec<&str>, Vec<&str>) = (csv.lines().collect(), want.lines().collect());
-        assert_eq!(g.len(), w.len(), "{name}: line count");
-        for (a, b) in g.iter().zip(&w) {
-            assert!(
-                a == b || a.contains("-?W"),
-                "{name}: a line differs that prints no cable tag:\n  got  {a}\n  want {b}"
-            );
-        }
+    for (name, csv) in sql_results(&session) {
+        assert_eq!(csv, expected(name), "acceptance/{name}.sql over path (b)");
     }
-    let refused: usize = built
-        .unwritten
-        .iter()
-        .filter(|(k, _)| k.starts_with("representation (refused"))
-        .map(|(_, n)| n)
-        .sum();
-    assert_eq!(refused, 3 + 7, "{}", built.unwritten_summary());
+    assert!(
+        !built
+            .unwritten
+            .keys()
+            .any(|k| k.starts_with("representation (refused")),
+        "{}",
+        built.unwritten_summary()
+    );
 }
 
 /// What path (b) issues and what it cannot write yet (no command): pinned, so that a new command or a
@@ -154,21 +137,17 @@ fn path_b_issues_these_commands_and_leaves_out_these_records() {
         .collect();
     assert_eq!(
         commands.join(", "),
-        "bond.create: 1, box.black: 4, cable.create: 3, connection.draw: 87, device.create: 36, \
-         device.place: 45, external_ref.create: 4, fields.set: 125, ip.place: 48, junction.edit: 6, \
+        "bond.create: 1, box.black: 11, cable.create: 3, connection.draw: 87, device.create: 36, \
+         device.place: 48, external_ref.create: 4, fields.set: 125, ip.place: 48, junction.edit: 6, \
          page.create: 13, potential.define: 19, project.settings.set: 3, report_block.create: 15, \
          section.create: 3, structure.create_node: 4, terminal.add: 4"
     );
     assert_eq!(
         built.unwritten_summary(),
-        "channel: 56, device (child tag scheme: valve-terminal assembly, FT-169): 29, device.parent: 11, \
-         device.plc_module: 7, device.plc_station: 1, device.position: 11, device_link: 8, \
-         function (no representation built): 10, function (of a child-scheme device): 28, \
-         plc_config_project: 1, project.supply.origin.source: 1, \
-         representation (of a child-scheme device): 28, \
-         representation (refused: representation type Graphic is not allowed on a BusTopology page): 1, \
-         representation (refused: representation type Graphic is not allowed on a MultiLine page): 2, \
-         representation (refused: representation type MultiLine is not allowed on a Fluid page): 7, \
+        "channel: 56, device (child tag scheme: valve-terminal assembly, FT-169): 29, device.assembly: 1, \
+         device.parent: 11, device.plc_module: 7, device.plc_station: 1, device.position: 11, \
+         device_link: 8, function (of a child-scheme device): 28, plc_config_project: 1, \
+         project.supply.origin.source: 1, representation (of a child-scheme device): 28, \
          revision or other kind without a schema type: 2"
     );
 }
@@ -216,7 +195,7 @@ fn the_command_log_replays_and_every_step_undoes() {
     }
     // one undo step per command that changed the model: two of the commands leave the model as it was
     // (a value the record already had), so they leave no step
-    assert_eq!((steps, built.script.len()), (418, 420), "undo steps, commands");
+    assert_eq!((steps, built.script.len()), (428, 430), "undo steps, commands");
     assert!(
         session.world().model.content_eq(&shell_session(1).world().model),
         "undoing every step returns to the shell"

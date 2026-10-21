@@ -735,15 +735,9 @@ The builder never injects a record. What no command writes yet is left out and l
 pinned by `crates/ew-testkit/tests/golden_dsl.rs`): the 56 PLC channels, the 8 device links, the PLC configuration
 project, the 2 revisions (FT-165), the valve-terminal assembly (the 29 child-scheme devices with their functions
 and representations, and `parent`, `position`, `plc_module`, `plc_station` of the modules; FT-169) and the supply's
-origin. 420 commands build the rest (21 kinds; the run takes about a second in a debug build).
+origin, and the assembly aspect of -201U1. 430 commands build the rest (17 command names; the run takes about a second in a debug build).
 
-**Status (AC-15 path (b): `fail`, ruling pending).** The page-type rule of the placing commands (doc 06 §2.2,
-decision log ID-55) refuses ten representations of the tables: the three cable markers (representation type graphic
-on the multi-line folio 106 and the bus-topology folio 3) and the seven CPX black boxes drawn multi-line on the
-fluid folios 203 … 206. Without its marker a cable has no page, so its page-based tag prints `-?W1`, and the four
-acceptance SQL files that print a cable tag differ in exactly those lines; `terminals_1X1.sql` and `potentials.sql`
-match. With graphic representations allowed on multi-line and bus-topology pages (and multi-line ones on fluid
-pages) all six match; whether the rule or the tables change is the open ruling.
+**Status (AC-15 path (b): `pass`).** The six acceptance SQL files over the built project return `expected/csv/`. The cable markers (representation type graphic on the multi-line folio 106 and the bus-topology folio 3) and the seven CPX black boxes drawn multi-line on the fluid folios 203 … 206 are placed under the owner ruling of cycle 15 that amends decision log ID-55 (doc 06 §2.2): before it, the page-type rule refused them, a cable without its marker had no page and printed `-?W1`, and four of the six files differed.
 
 ## Variants and command logs
 
