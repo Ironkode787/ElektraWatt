@@ -1,6 +1,6 @@
 # Acceptance report: golden project J-E-2416, gate M1 (headless)
 
-93 entries: 82 pass, 0 fail, 6 not_built, 5 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
+93 entries: 83 pass, 0 fail, 5 not_built, 5 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
 
 | Criterion | Check | Status | Reason |
 |---|---|---|---|
@@ -19,7 +19,7 @@
 | AC-06 | every printed occurrence of a tag is identical, the PDF text layer included | pass | the PDF text equals the page text (AC-13 entry); counted on token boundaries, the 426 printed occurrences of the 96 device tags on 25 pages occur as often per tag and page in the PDF text layer, and no stale token is in it |
 | AC-07 | folio 901 holds the 27 rows of §14.1 over 901 and 901.1 | pass | 27 rows over 901 and 901.1 equal expected/parts_list_14_1.csv (§14.1) in every cell but 6 accepted differences (folio 902 of rows 22-26: layout placements are not modelled; row 26 tags in the ID-9 sign order) |
 | AC-07 | bom export --mode parts equals folio 901 and the 27 rows of §14.1 | pass | export bom --mode parts equals expected/csv/bom_parts.csv and its 27 rows equal §14.1 in every cell but 6 accepted differences (folio 902 of rows 22-26: layout placements are not modelled; row 26 tags in the ID-9 sign order) |
-| AC-07 | bom export --mode assembly equals §14.2 | not_built | the export runs and prints the 27 component rows unchanged: the golden project has no configured product (no part of kind `configured` in tables/parts.csv, no assembly aspect on -201U1; D-41 types the aspect in cycle 15), so rows 16-21 are not replaced by A1 and A2 |
+| AC-07 | bom export --mode assembly equals §14.2 | pass | rows A1 and A2 replace rows 16-21 as in §14.2 |
 | AC-08 | folios 903-905 equal expected/csv, designations unique per strip | pass | 3, 20 and 5 terminal rows equal the committed CSVs (hand-compared with §9, differences in the README); designations unique per strip |
 | AC-09 | folio 907 equals expected/csv/wires.csv: 44 wires, 6 bridges | pass | 44 wire rows and 6 bridge rows equal expected/csv/wires.csv |
 | AC-09 | every wire has an effective size and colour | pass | 44 wires have an effective size and colour |
@@ -46,7 +46,7 @@
 | AC-18 | step B2: no orphan reference and the same interruption-point pairing after the commit | pass | the model's integrity check (every reference resolves) holds, and all interruption-point and main/auxiliary link targets are the same records |
 | AC-20 | renumbering folio 3 to 4 updates -3W1, -3X1 and "3-B2" everywhere; undo restores | pass | -3W1 and -3X1 become -4W1 and -4X1, 1 cross-reference text(s) follow ("3-B2" becomes "4-B2"), undo restores the records |
 | AC-20 | renumbering folio 3 to 4 writes only that page's file | pass | the save writes pages/93d03619-9f8d-5086-8b99-1a4f05456f21.jsonl only (and rewrites the manifest) |
-| AC-14 | PDF, SVG, CSV and JSONL are byte-identical across record shuffles | pass | on the platform of this run, the model loaded with its records shuffled (seed 0x5eedac14) writes the PDF (SHA-256 of expected/pdf/sha256.txt), the 36 SVG files, the 36 page text CSVs, the 7 report CSVs and the 170 files a save writes (JSONL and manifest) of the file-order load byte for byte (gate platform Linux; across Windows, macOS and Linux at MVP) |
+| AC-14 | PDF, SVG, CSV and JSONL are byte-identical across record shuffles | pass | on the platform of this run, the model loaded with its records shuffled (seed 0x5eedac14) writes the PDF (SHA-256 of expected/pdf/sha256.txt), the 36 SVG files, the 36 page text CSVs, the 7 report CSVs and the 172 files a save writes (JSONL and manifest) of the file-order load byte for byte (gate platform Linux; across Windows, macOS and Linux at MVP) |
 | AC-14 | SVG and the parallel export are byte-identical to the serial export | pass | 36 SVG files (one per page, 3708 glyph runs as <text>, 92 links as in the PDF, all 92 hrefs resolve to a file and an id; SHA-256 d0e4eba25172f2e52cf6ddb860fe8b842b723fa60d192de6ba04c5557bd17f4f); the shipped export job (ew_api::output, the page phase on par_map) on 2 and 8 threads gives the serial display lists, PDF and SVG byte for byte |
 | AC-15 | build path (a), the CSV bootstrap, equals path (c), the checked-in fixture | not_applicable | evaluated by tests/golden_fixture.rs (byte-identical regeneration), not by this runner |
 | AC-15 | the acceptance SQL returns the same expected CSVs over path (a) and over path (c), the checked-in fixture | pass | the 6 acceptance SQL files return the same expected CSVs over both paths; path (b) is the next entry |
@@ -93,7 +93,7 @@
 | D-30 | the cover binds the customer | pass | the cover prints <customer> in "Company / Customer" and <end user> in "End User"; renaming the customer changes only the customer cell, renaming the end user changes the "End User" cell and the title block |
 | D-33 | "SK 3110.000" keeps its space and physical page 6 is labelled "101" | pass | both hold |
 | D-35 | BOM descriptions per §14, ratings only at symbols | pass | with the 1.0 content enabled, EW-CORE-065 reports no part description of Golden A (EF-25): the descriptions of §14.1 hold no ratings, which the technical data carries and the symbols print (D-18); the MVP schemes do not run it; the 27-row parts list is D-04 |
-| D-36 | assembly rows A1 and A2, order code on folio 3 | not_built | assembly export: the export runs and prints the 27 component rows unchanged: the golden project has no configured product (no part of kind `configured` in tables/parts.csv, no assembly aspect on -201U1; D-41 types the aspect in cycle 15), so rows 16-21 are not replaced by A1 and A2; folio 3 does not print the order code of the CPX terminal (the assembly's order code 1 has no record to render it from) |
+| D-36 | assembly rows A1 and A2, order code on folio 3 | not_built | assembly export: rows A1 and A2 replace rows 16-21 as in §14.2; folio 3 does not print the order code of the CPX terminal (the assembly's order code 1 has no record to render it from) |
 | D-37 | profiles name their basis; the cover prints it | pass | the colour profile's basis is company_convention with DBU declared a company code on BU; the cover prints "IEC60757 / EN60204-1" and keeps the basis note as metadata (U-35) |
 | D-41 | one assembly -201U1 with children on both pages, break marks | not_built | the assembly aspect and the generated overview break marks are not implemented (schema v0 keeps the assembly in `extra`) |
 | D-42 | one strip -X1031 with segments at 103-A3 and 103-A10 | pass | one device -X1031 (of 3 strips) with segments at 103-A3 and 103-A10 (the single BOM row is part of D-04) |

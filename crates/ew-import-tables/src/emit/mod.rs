@@ -18,6 +18,7 @@ use ew_units::{Grid, Nm, Pt2};
 use crate::library::BuiltinLibrary;
 use crate::table::{Findings, Row};
 
+pub(crate) mod assembly;
 pub(crate) mod connect;
 pub(crate) mod devices;
 pub(crate) mod parts;

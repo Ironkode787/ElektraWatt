@@ -1,0 +1,22 @@
+{
+  "$k": "part",
+  "id": "51ce16b3-c917-5c9f-8903-26992dc1aedf",
+  "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
+  "item_id": "dcaa358c-75f4-5550-b6cb-2c894f66a584",
+  "version": "1.0.0",
+  "sha256": "sha256:b7d238fb41afc04f5de834f49b4955711a11d88dda46889ec7806ba031a84f31",
+  "meta": {
+    "key": "32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS",
+    "sources": ["golden.table:parts|32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS"]
+  },
+  "kind": "configured",
+  "manufacturer": {
+    "library": "d76f5765-c456-5393-935c-4cec32a87b01",
+    "item": "52dbf48a-f70f-55c9-8e9b-577475b13a4e",
+    "version_req": "*",
+    "key": "Festo"
+  },
+  "part_number": "32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS",
+  "description": "MPA valve terminal (order code 2)",
+  "unit": "set"
+}

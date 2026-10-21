@@ -153,8 +153,9 @@ fn the_per_kind_counts_are_those_of_doc_20() {
     assert_eq!(n("device_link"), 8);
     // doc 20 §16, §17.3: 11 page-oriented and 4 embedded report blocks.
     assert_eq!(n("report_block"), 15);
-    // doc 20 §14.1: 27 BOM rows, 23 with a part number and the 4 TBD parts of rows 24-27.
-    assert_eq!(n("part"), 27);
+    // doc 20 §14.1: 27 BOM rows, 23 with a part number and the 4 TBD parts of rows 24-27; §14.2: the 2 configured
+    // products.
+    assert_eq!(n("part"), 29);
     assert_eq!(n("project"), 1);
     assert_eq!(n("import_lineage"), 1);
     // doc 20 §4.1: the revisions V1.0 and V2.0.
@@ -412,7 +413,7 @@ fn identity_follows_the_rule() {
             }
         })
         .collect();
-    assert_eq!(parts.len(), 27);
+    assert_eq!(parts.len(), 29);
     for p in parts {
         assert_eq!(p.library_id.as_uuid(), project.id.as_uuid());
     }

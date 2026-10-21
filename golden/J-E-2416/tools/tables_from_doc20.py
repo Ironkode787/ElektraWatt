@@ -731,6 +731,30 @@ def tech_values():
 DEVICE_TECH = {}  # device tag -> tech_data cell, filled by build_parts for build_devices_terminals
 
 
+ASSEMBLY_DEVICE = "-201U1"  # the device whose order codes section 14.2 lists (section 6.1 row 19, doc 03 section 7)
+CONFIGURED_KIND = "configured"
+
+
+def assembly_rows():
+    """The rows of the table of doc 20 section 14.2 (assembly mode) as dicts, each with its order-code index ``n``.
+
+    Checked: the positions are A1, A2 in order, the quantity is 1, the unit ``set`` and the description names
+    ``(order code n)`` for the row's index."""
+    rows = table_dicts("### 14.2 Assembly mode")
+    check(len(rows) == 2, f"section 14.2 has {len(rows)} rows, 2 expected")
+    out = []
+    for n, r in enumerate(rows, 1):
+        check(r["Pos"] == f"A{n}", f"section 14.2 row {n}: the position is {r['Pos']!r}, A{n} expected")
+        check(r["Qty"] == "1", f"section 14.2 row {r['Pos']}: the quantity is {r['Qty']!r}, 1 expected")
+        check(r["Unit"] == "set", f"section 14.2 row {r['Pos']}: the unit is {r['Unit']!r}, set expected")
+        check(
+            f"(order code {n})" in r["Description"],
+            f"section 14.2 row {r['Pos']}: the description {r['Description']!r} lacks '(order code {n})'",
+        )
+        out.append({**r, "n": n})
+    return out
+
+
 def build_parts():
     part_tech, device_tech = tech_values()
     DEVICE_TECH.update(device_tech)
@@ -773,7 +797,20 @@ def build_parts():
     ]  # fmt: skip
     check(set(part_tech) <= {p["key"] for p in out}, f"technical data of parts that are not in section 14.1: {set(part_tech)}")
     check(sorted(pos for _, pos in tbd) == sorted(TBD_PARTS), f"section 14.1: the TBD rows are {tbd}")
-    register("parts", cols, out, 27)
+    # The configured products of section 14.2 (D-36, D-41): one part copy per order code.
+    configured = assembly_rows()
+    for r in configured:
+        out.append(
+            {
+                "key": r["Part number"],
+                "manufacturer": r["Manufacturer"],
+                "part_number": r["Part number"],
+                "kind": CONFIGURED_KIND,
+                "description": r["Description"],
+                "unit": UNIT[r["Unit"]],
+            }
+        )
+    register("parts", cols, out, 29)
     tbd_keys = [key for key, _ in tbd]
     fixture(
         "parts", ["manufacturer", "test_data"], tbd_keys, f"{TBD_MANUFACTURER}; true", "§14.1 rows 24-27",
@@ -792,7 +829,8 @@ def build_parts():
             "parts", "kind", [pn for pn, k in PART_KIND.items() if k == kind], kind, "§14.1",
             "the component BOM gives no part kind; the kind follows the part's role in the project",
         )  # fmt: skip
-    return {p["key"] for p in out}
+    # The 27 components of section 14.1: the configured products are no component of a device's part cell.
+    return {p["key"] for p in out} - {r["Part number"] for r in configured}
 
 
 def carrier_lengths():
@@ -2129,6 +2167,11 @@ def build_bus_connections(rows):
     )  # fmt: skip
 
 
+# The grid cell of each junction (a fixture choice, junctions.csv); the printed join notation of decision log ID-348
+# ("101-C11 star at F55:2") names it, so a Via cell in that notation resolves to its junction.
+JUNCTION_CELLS = {"J1": "C11", "J2": "C13", "J3": "C6", "J4": "D7", "J5": "D5", "J6": "D6"}
+
+
 def build_connections(ips, device_keys, conductor_keys, fkeys):
     wires = table_dicts("### 8.2 Wire table")
     check(len(wires) == 44, f"section 8.2: {len(wires)} wires, 44 expected")
@@ -2180,6 +2223,16 @@ def build_connections(ips, device_keys, conductor_keys, fkeys):
         tokens = [x.strip() for x in via.split(";")]
         ipname = next((x[3:] for x in tokens if x.startswith("IP ")), None)
         jn = next((x for x in tokens if re.fullmatch(r"J\d", x)), None)
+        for x in tokens:
+            # also accepted: the printed join notation of ID-348 (the table keeps the J tokens, the prose prints
+            # this form): "<folio>-<cell> star at <CP>" or "<folio>-<cell> chain on <CP>"
+            jm = re.fullmatch(r"(\d+)-([A-H]\d+) (star at|chain on) (\S+)", x)
+            if jm:
+                found = [j for j, c in JUNCTION_CELLS.items() if c == jm.group(2) and junction[j]["page"] == jm.group(1)]
+                check(len(found) == 1, f"section 8.2: wire {wid}: no junction at {jm.group(1)}-{jm.group(2)}")
+                jn = found[0]
+                want = "star at" if junction[jn]["mode"] == "star" else "chain on"
+                check(jm.group(3) == want, f"section 8.2: wire {wid}: {x!r}, but {jn} is a {junction[jn]['mode']}")
         frm = normalise_endpoint(r["From"], f)
         to = normalise_endpoint(r["To"], t or f)
         size = r["Size, colour (source)"]
@@ -2258,7 +2311,7 @@ def build_connections(ips, device_keys, conductor_keys, fkeys):
                 check(end.split(":")[0] in device_keys, f"connection endpoint {end!r}: no such device or strip")
 
     # junctions.csv: cells are fixture choices (test positions, triangle); doc 20 section 8.3 gives the folio
-    cells = {"J1": "C11", "J2": "C13", "J3": "C6", "J4": "D7", "J5": "D5", "J6": "D6"}
+    cells = JUNCTION_CELLS
     fixture(
         "junctions", "cell", list(cells), "; ".join(cells.values()), "§8.3",
         "test input (fixture choice): doc 20 gives the folio of a junction, not its cell",
@@ -2355,6 +2408,100 @@ def plc_station_facts():
         "station": station, "role": role, "modules": modules, "part": part, "count": count, "kind": kind,
         "bit_of": bit_of, "bindings": bindings,
     }  # fmt: skip
+
+
+VALVE_PART = "571334"  # the valve part of the 28 valves (section 6.1)
+
+
+def build_assembly_configs():
+    """``assembly_configs.csv``: the two order codes of the valve terminal -201U1 (doc 20 section 14.2, D-36, D-41).
+
+    The Covers cell of row A1 names the head's own parts, so A1 covers the head; row A2 names the children
+    ``-201U2 … -202U3`` and the 28 valves. Covers are explicit device lists (not transitive), written in natural key
+    order. Checked: the two lists are disjoint and together cover the head, its 11 children and the 28 valves."""
+    columns, device_rows_ = TABLES["devices"]
+    check(
+        {"key", "parent", "position", "parts"} <= set(columns),
+        "devices.csv lacks a column that section 14.2 needs",
+    )
+    by_key = {d["key"]: d for d in device_rows_}
+    head = by_key.get(ASSEMBLY_DEVICE)
+    check(head is not None, f"section 14.2: {ASSEMBLY_DEVICE} is not a device")
+    children = sorted(
+        (d for d in device_rows_ if d["parent"] == ASSEMBLY_DEVICE), key=lambda d: int(d["position"])
+    )
+    check(len(children) == 11, f"section 14.2: {ASSEMBLY_DEVICE} has {len(children)} children, 11 expected")
+    child_keys = [d["key"] for d in children]
+    valves = [d["key"] for d in device_rows_ if d["parent"] in child_keys and d["parts"] == VALVE_PART]
+    check(len(valves) == 28, f"section 14.2: {len(valves)} valves under the children, 28 expected")
+    part_keys = {d["key"] for d in TABLES["parts"][1]}
+    rows = []
+    covers = {}
+    for r in assembly_rows():
+        n, cell = r["n"], r["Covers"]
+        text = strip_tri(cell)
+        if n == 1:
+            m = re.fullmatch(r"(\d+), (\d+) of (\S+)", text)
+            check(m is not None, f"section 14.2 row A1: the Covers cell {cell!r} is not '<part>, <part> of <tag>'")
+            check(m.group(3) == ASSEMBLY_DEVICE, f"section 14.2 row A1: the Covers cell names {m.group(3)!r}")
+            check(
+                set(head["parts"].split(";")) == {m.group(1), m.group(2)},
+                f"section 14.2 row A1: {m.group(1)}, {m.group(2)} are not the parts of {ASSEMBLY_DEVICE}",
+            )
+            covered = [ASSEMBLY_DEVICE]
+            marks = tri_marks(cell)
+        else:
+            m = re.fullmatch(r"(\S+) … (\S+) and the (\d+) valves", text)
+            check(m is not None, f"section 14.2 row A2: the Covers cell {cell!r} is not '<tag> … <tag> and the <n> valves'")
+            first, last = m.group(1), m.group(2)
+            check(first in child_keys and last in child_keys, f"section 14.2 row A2: {first}, {last} are no children")
+            span = child_keys[child_keys.index(first) : child_keys.index(last) + 1]
+            check(int(m.group(3)) == len(valves), f"section 14.2 row A2: {m.group(3)} valves, the devices have {len(valves)}")
+            covered = span + valves
+            marks = tri_marks(cell)
+        check(r["Part number"] in part_keys, f"section 14.2 row {r['Pos']}: {r['Part number']!r} is not a part")
+        covers[n] = covered
+        rows.append(
+            {
+                "key": f"{ASSEMBLY_DEVICE}:{n}",
+                "assembly": ASSEMBLY_DEVICE,
+                "n": str(n),
+                "label": f"Order Code {n}",
+                "order_code": r["Part number"],
+                "part": r["Part number"],
+                "covers": ";".join(sorted(covered, key=natural_key)),
+            }
+        )
+    check(not set(covers[1]) & set(covers[2]), "section 14.2: the two Covers lists overlap")
+    everything = {ASSEMBLY_DEVICE, *child_keys, *valves}
+    check(
+        set(covers[1]) | set(covers[2]) == everything,
+        "section 14.2: the Covers lists do not cover the head, its 11 children and the 28 valves",
+    )
+    cols = ["key", "assembly", "n", "label", "order_code", "part", "covers"]
+    register("assembly_configs", cols, rows, 2)
+    fixture(
+        "assembly_configs", "label", [r["key"] for r in rows], "Order Code <n>", "§14.2; doc 09 §3.4 PART DATA",
+        "the label of order code n: the reference prints each PART DATA entry as the label line \"Order Code n:\""
+        " above the order code",
+    )  # fmt: skip
+    fixture(
+        "assembly_configs", "covers", rows[0]["key"], ASSEMBLY_DEVICE, "§14.2 row A1",
+        "the Covers cell lists 195740 and 550208 of -201U1, the head's own parts: A1 covers the head device itself",
+        cell=assembly_rows()[0]["Covers"],
+    )  # fmt: skip
+    fixture(
+        "assembly_configs", "covers", rows[1]["key"], "the 11 children and the 28 valves", "§14.2 row A2",
+        "covers are explicit device lists, never transitive: A2 names the 28 valves (devices under -201U3 … -201U8 and"
+        " -202U2) next to the children -201U2 … -202U3, in natural key order",
+        cell=assembly_rows()[1]["Covers"],
+    )  # fmt: skip
+    fixture(
+        "assembly_configs", "covers", rows[1]["key"], "-202U1", "§14.2 rows A1, A2",
+        "which order code covers -202U1 (part 550208) is unknown: the fixture follows the table, whose A2 cell spans"
+        " -201U2 … -202U3, so A2",
+        marks=["U-24"],
+    )  # fmt: skip
 
 
 def build_plc(device_keys, part_keys, facts):
@@ -2478,7 +2625,8 @@ def build_all():
     for f in ("-201U1#bus", "-3X1", "-3W1"):
         check(f in fkeys, f"section 11.1: the bus connections need the function {f!r}")
     build_plc(set(devices), part_keys, plc_station_facts())
-    check(len(TABLES) == 28, f"{len(TABLES)} tables built, 28 expected: {sorted(TABLES)}")
+    build_assembly_configs()
+    check(len(TABLES) == 29, f"{len(TABLES)} tables built, 29 expected: {sorted(TABLES)}")
 
 
 def readme_with_block(text, block):

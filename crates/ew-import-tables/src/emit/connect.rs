@@ -17,7 +17,7 @@ use ew_units::Pt2;
 use super::parts::ROLES;
 use super::{ConnInfo, Cx, PlaceError, cell_point, fresh, parse_cell, place};
 use crate::ids::{record_id, source_ref};
-use crate::table::{Row, Table, parse_ident};
+use crate::table::{ColourFix, Row, Table, parse_ident};
 
 /// The file name of `connections.csv`, the file of the findings about connections dropped with a junction.
 const CONNECTIONS_FILE: &str = "connections.csv";
@@ -56,6 +56,7 @@ pub(crate) fn emit_conductors(cx: &mut Cx<'_>, table: Option<&Table>) {
         let csa = r.csa("csa");
         let shield = r.flag("shield");
         let pair = r.uint::<u8>("pair");
+        let foreign = r.take_foreign();
         if let Err(e) = r.finish() {
             cx.malformed(row, &e);
             continue;
@@ -68,6 +69,15 @@ pub(crate) fn emit_conductors(cx: &mut Cx<'_>, table: Option<&Table>) {
             continue;
         };
         let id = record_id::<Conductor>("conductors", row.key());
+        cx.findings.foreign_colours(
+            row,
+            foreign,
+            Some(ColourFix {
+                kind: "conductor",
+                path: "colour",
+                target: id.to_string(),
+            }),
+        );
         cx.conductors.insert(row.key().to_owned(), id);
         cx.records.push(Record::Conductor(Conductor {
             id,
@@ -151,6 +161,7 @@ pub(crate) fn emit_connections(cx: &mut Cx<'_>, table: Option<&Table>) {
             show_marker: r.flag("show_marker"),
             ..WireOverrides::default()
         };
+        let foreign = r.take_foreign();
         if let Err(e) = r.finish() {
             cx.malformed(row, &e);
             continue;
@@ -214,6 +225,15 @@ pub(crate) fn emit_connections(cx: &mut Cx<'_>, table: Option<&Table>) {
             },
         };
         let id = record_id::<Connection>("connections", row.key());
+        cx.findings.foreign_colours(
+            row,
+            foreign,
+            Some(ColourFix {
+                kind: "connection",
+                path: "overrides.colour",
+                target: id.to_string(),
+            }),
+        );
         cx.connections.insert(
             row.key().to_owned(),
             ConnInfo {

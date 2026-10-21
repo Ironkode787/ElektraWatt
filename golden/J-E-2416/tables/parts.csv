@@ -1,6 +1,8 @@
 key,manufacturer,part_number,kind,type_designation,description,unit,test_data,tech_data
 5SY4204-7,Siemens,5SY4204-7,,,Miniature circuit breaker 1P+N,piece,,characteristic=C;rated_current=4 A
 6XV1830-0EH10,Siemens,6XV1830-0EH10,cable,,PROFIBUS FC standard cable,m,,
+32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS,Festo,32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS,configured,,MPA valve terminal (order code 2),set,,
+51E-F13GCQP-D+H2GG,Festo,51E-F13GCQP-D+H2GG,configured,,CPX terminal (order code 1),set,,
 195740,Festo,195740,,,"CPX-FB13 bus node, PROFIBUS DP",piece,,
 532216,Festo,532216,,,PROFIBUS DP plug with terminating resistor,piece,,
 533354,Festo,533354,,,VMPA1-FB-SP supply plate,piece,,

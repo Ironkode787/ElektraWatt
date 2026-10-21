@@ -25,8 +25,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::{Id, Uuid, v5};
 use ew_interop_api::{
-    Code, Detection, ImportBatch, ImportContext, ImportError, ImportInput, ImportReport, Importer, Limits,
-    LineageInfo, Severity, SourceInfo,
+    Code, Detection, ImportBatch, ImportContext, ImportError, ImportInput, ImportMode, ImportReport,
+    Importer, Limits, LineageInfo, Severity, SourceInfo,
 };
 use ew_mltext::Ident;
 use ew_schema::{ImportLineage, LibDocument, LineageAnchor, Project, Record, Sha256};
@@ -49,10 +49,13 @@ use cx::{Findings, Ids, MAX_PROJECT_ENTRIES};
 pub const PROJECT_KEY: &str = "qet:project";
 
 /// A context for importing a `.qet` into a new project: a nil project ID (the importer then mints the
-/// project ID `v5(namespace, "qet:project")`, [`PROJECT_KEY`]), a new lineage, no `as_of` date and the
-/// default [`Limits`] (doc 14 §11: the project limits).
+/// project ID `v5(namespace, "qet:project")`, [`PROJECT_KEY`]), a new lineage, no `as_of` date, the
+/// default [`Limits`] (doc 14 §11: the project limits) and [`ImportMode::Lenient`] (the QET project import is
+/// lenient, doc 14 §4.16).
 pub fn new_project_context() -> ImportContext {
-    ImportContext::new(Id::from_uuid(Uuid::nil()))
+    let mut ctx = ImportContext::new(Id::from_uuid(Uuid::nil()));
+    ctx.mode = ImportMode::Lenient;
+    ctx
 }
 
 /// The importer of `.qet` project files.

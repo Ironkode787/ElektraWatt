@@ -330,8 +330,15 @@ pub(crate) const CHANNELS: TableSpec = spec(
 /// `device_links.csv`.
 pub(crate) const DEVICE_LINKS: TableSpec = spec("device_links", &["key", "from", "to", "kind"], &[]);
 
+/// `assembly_configs.csv` (the order codes of an assembly device, doc 03 §7).
+pub(crate) const ASSEMBLY_CONFIGS: TableSpec = spec(
+    "assembly_configs",
+    &["key", "assembly", "n", "order_code"],
+    &["label", "part", "covers"],
+);
+
 /// Every known table.
-pub(crate) const ALL: [TableSpec; 28] = [
+pub(crate) const ALL: [TableSpec; 29] = [
     PROJECT,
     PARTIES,
     STRUCTURE,
@@ -360,4 +367,5 @@ pub(crate) const ALL: [TableSpec; 28] = [
     PART_PLC,
     CHANNELS,
     DEVICE_LINKS,
+    ASSEMBLY_CONFIGS,
 ];

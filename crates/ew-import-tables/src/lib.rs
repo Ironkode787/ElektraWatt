@@ -31,6 +31,7 @@
 //! | `functions`, `representations` | `function` (interruption points included), `representation` |
 //! | `connections`, `junctions`, `conductors`, `potentials`, `bonds` | `connection` (wire, core, bridge and bus), `junction`, `conductor`, `potential_def`, `bond` |
 //! | `plc_config_projects`, `channels`, `device_links` | `plc_config_project`, `channel` (ID `plc_channel_id(module, number)`, not the table rule), `device_link` |
+//! | `assembly_configs` | the `assembly` aspect of the device `assembly` (its `AssemblyConfig`s in `n` order; `emit/assembly.rs`) |
 //! | `revisions` | the reserved `revision` records |
 //! | `colour_profile`, `size_profile` | the `colour_profile` and `size_profile` members of the project settings (doc 03 §5.1; `emit/profiles.rs`) |
 //!
@@ -47,6 +48,14 @@
 //! resolve (structural invariants are never relaxed, doc 14 §3.3); a position off the page grid is refused
 //! with EW-IMP-002 (error) and the row is dropped (doc 06 §5.7, ID-54; doc 14 §9 strict mode). At most
 //! [`MAX_REPORT_ENTRIES`] findings are listed; the rest are counted in one EW-IMP-001 entry.
+//!
+//! # Strict and lenient colours (doc 14 §4.12, §8.4)
+//!
+//! A colour cell whose two-letter chunks are IEC 60757 codes or the foreign aliases `BR`, `SW`, `BL`, `RT`, `GE`,
+//! `WS`, `GR` (with at least one alias) holds a foreign code. Under [`ImportMode::Strict`](ew_interop_api::ImportMode)
+//! (the default, and [`bootstrap_context`]) the row is dropped with EW-IMP-002 (EW-CORE-031); under
+//! `Lenient` it is kept with the alias chunks as `ColourCode::Foreign` and one EW-IMP-008 warning per cell, which
+//! proposes the declarative quick fix `fields.set` with the IEC colour for conductors and connection overrides.
 
 #![forbid(unsafe_code)]
 
@@ -82,12 +91,14 @@ pub const MAX_TABLE_FILES: usize = 64;
 pub const MAX_REPORT_ENTRIES: usize = 1_000;
 
 /// A context for the bootstrap: the [`Limits::bootstrap_tables`](ew_interop_api::Limits::bootstrap_tables)
-/// preset (64 MiB for all table files together), no lineage (the importer creates the golden one) and a nil
-/// project ID: the project row decides the project ID ([`ids::project_id`]), and the import refuses a context
-/// that targets another one.
+/// preset (64 MiB for all table files together), no lineage (the importer creates the golden one), a nil
+/// project ID (the project row decides the project ID, [`ids::project_id`], and the import refuses a context
+/// that targets another one) and [`ImportMode::Strict`](ew_interop_api::ImportMode::Strict), set explicitly:
+/// the bootstrap runs strict (doc 14 §8.4), so a foreign colour code such as `BR` fails its row (EW-IMP-002).
 pub fn bootstrap_context() -> ew_interop_api::ImportContext {
     let mut ctx = ew_interop_api::ImportContext::new(ew_ids::Id::from_uuid(ew_ids::Uuid::nil()));
     ctx.limits = ew_interop_api::Limits::bootstrap_tables();
+    ctx.mode = ew_interop_api::ImportMode::Strict;
     ctx
 }
 

@@ -179,6 +179,7 @@ fn colour_profile(cx: &mut Cx<'_>, table: &Table, header: Header) -> Option<Valu
         let analogue = r.flag("analogue");
         let colour = r.colour("code");
         let name = r.text("colour").map(str::to_owned);
+        let foreign = r.take_foreign();
         if let Err(e) = r.finish() {
             cx.malformed(row, &e);
             continue;
@@ -187,6 +188,8 @@ fn colour_profile(cx: &mut Cx<'_>, table: &Table, header: Header) -> Option<Valu
             cx.malformed(row, "column `code` is empty");
             continue;
         };
+        // No command edits the colour profile yet: the finding carries no quick fix.
+        cx.findings.foreign_colours(row, foreign, None);
         let mut select = serde_json::Map::new();
         if let Some(p) = ptype {
             select.insert("ptype".into(), json!([p]));

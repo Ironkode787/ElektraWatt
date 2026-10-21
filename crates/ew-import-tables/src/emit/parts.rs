@@ -268,6 +268,7 @@ pub(crate) fn emit(
             let csa = r.csa("csa");
             let shield = r.flag("shield");
             let pair = r.uint::<u8>("pair");
+            let foreign = r.take_foreign();
             if let Err(e) = r.finish() {
                 cx.malformed(crow, &e);
                 continue;
@@ -275,6 +276,8 @@ pub(crate) fn emit(
             let (Some(n), Some(core)) = (n, core) else {
                 continue;
             };
+            // No command edits a part copy yet: the finding carries no quick fix.
+            cx.findings.foreign_colours(crow, foreign, None);
             core_rows.push((
                 n,
                 CableCore {

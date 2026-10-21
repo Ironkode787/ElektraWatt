@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::sync::Arc;
 
-use ew_interop_api::{Code, ReportEntry, Severity, SourceLocation};
+use ew_interop_api::{Code, ImportMode, QuickFixProposal, ReportEntry, Severity, SourceLocation};
 use ew_mltext::{Ident, MlText, is_nfc, to_nfc};
 use ew_schema::{
     ColourCode, ColourSpec, Csa, Date, IecColour, KeyedList, Quantity, TechVal, TechValue, Unit,
@@ -104,6 +104,8 @@ pub(crate) struct Table {
     cells: Vec<Cell>,
     /// Unescaped and NFC-normalised text.
     owned: String,
+    /// Strict or lenient: what the cell readers do with a value that a strict import refuses.
+    mode: ImportMode,
 }
 
 impl fmt::Debug for Table {
@@ -120,8 +122,8 @@ impl fmt::Debug for Table {
 const KEY_NOT_NFC: &str = "row dropped: the key is not in Unicode NFC (keys are hashed byte for byte)";
 
 impl Table {
-    /// The table `csv`, parsed from `input`, of `file` under `spec`, or `None` when a required column is
-    /// missing (reported as EW-IMP-002). Unknown columns are reported (EW-IMP-004) and ignored.
+    /// The table `csv`, parsed from `input`, of `file` under `spec` and import `mode`, or `None` when a required
+    /// column is missing (reported as EW-IMP-002). Unknown columns are reported (EW-IMP-004) and ignored.
     ///
     /// Keys are hashed byte for byte (README of the golden tables, doc 14 §9 strict mode): a row whose `key`
     /// cell is not in NFC is dropped with EW-IMP-002. Every other cell of a known column is NFC-normalised,
@@ -131,6 +133,7 @@ impl Table {
         file: &str,
         input: Arc<[u8]>,
         csv: CsvTable,
+        mode: ImportMode,
         findings: &mut Findings,
     ) -> Option<Table> {
         let mut columns = BTreeMap::new();
@@ -222,6 +225,7 @@ impl Table {
             lines,
             cells,
             owned,
+            mode,
         })
     }
 
@@ -272,9 +276,18 @@ impl<'t> Row<'t> {
         &self.table.file
     }
 
+    /// The import mode of the table.
+    pub(crate) fn mode(&self) -> ImportMode {
+        self.table.mode
+    }
+
     /// A reader of this row's cells that remembers the first problem.
     pub(crate) fn reader(self) -> Rd<'t> {
-        Rd { row: self, err: None }
+        Rd {
+            row: self,
+            err: None,
+            foreign: Vec::new(),
+        }
     }
 }
 
@@ -287,6 +300,8 @@ impl<'t> Row<'t> {
 pub(crate) struct Rd<'t> {
     row: Row<'t>,
     err: Option<String>,
+    /// The foreign colour cells a lenient import kept, as `(column, colour)`.
+    foreign: Vec<(String, ForeignColour)>,
 }
 
 impl<'t> Rd<'t> {
@@ -432,10 +447,22 @@ impl<'t> Rd<'t> {
         self.choice(col, table)
     }
 
-    /// A colour cell (`BK`, `GNYE`, `DBU`).
+    /// A colour cell (`BK`, `GNYE`, `DBU`). A foreign colour code (`BR`, [`ForeignColour`]) fails the row in a
+    /// strict import; a lenient import keeps it and notes it for [`Rd::take_foreign`].
     pub(crate) fn colour(&mut self, col: &str) -> Option<ColourSpec> {
         let v = self.text(col);
-        self.parse(col, v, parse_colour)
+        let mode = self.row.mode();
+        let (spec, foreign) = self.parse(col, v, |s| parse_colour(s, mode))?;
+        if let Some(f) = foreign {
+            self.foreign.push((col.to_owned(), f));
+        }
+        Some(spec)
+    }
+
+    /// The foreign colour cells kept so far. The caller reports them with [`Findings::foreign_colours`] once
+    /// the row is certain to be kept.
+    pub(crate) fn take_foreign(&mut self) -> Vec<(String, ForeignColour)> {
+        std::mem::take(&mut self.foreign)
     }
 
     /// A cross-section in mm².
@@ -505,26 +532,150 @@ pub(crate) fn parse_dec3(s: &str) -> Result<Dec3, String> {
         .map_err(|e| format!("`{s}` is not a decimal: {e}"))
 }
 
+/// The foreign colour notations of doc 14 §4.12 and the IEC 60757 codes they stand for.
+const COLOUR_ALIASES: [(&str, IecColour); 7] = [
+    ("BR", IecColour::Bn),
+    ("SW", IecColour::Bk),
+    ("BL", IecColour::Bu),
+    ("RT", IecColour::Rd),
+    ("GE", IecColour::Ye),
+    ("WS", IecColour::Wh),
+    ("GR", IecColour::Gy),
+];
+
+/// A colour cell that holds foreign codes (doc 14 §4.12): every two-letter chunk is an IEC 60757 code or an
+/// alias, and at least one is an alias.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub(crate) struct ForeignColour {
+    /// The alias chunks of the cell with their IEC code, in cell order.
+    pub(crate) aliases: Vec<(&'static str, IecColour)>,
+    /// The cell with every alias mapped to its IEC code.
+    pub(crate) mapped: ColourSpec,
+}
+
+impl ForeignColour {
+    /// The finding text after "column `x`: ": one alias names its IEC code, several list each pair.
+    fn describe(&self, strict: bool) -> String {
+        let (one, many) = if strict {
+            ("is", "are")
+        } else {
+            ("kept as", "kept as")
+        };
+        match self.aliases.as_slice() {
+            [(alias, code)] => format!(
+                "`{alias}` {one} a foreign colour code (IEC 60757: {})",
+                code.as_str()
+            ),
+            _ => {
+                let pairs: Vec<String> = self
+                    .aliases
+                    .iter()
+                    .map(|(a, c)| format!("`{a}` → `{}`", c.as_str()))
+                    .collect();
+                let list = match pairs.split_last() {
+                    Some((last, rest)) if !rest.is_empty() => format!("{} and {last}", rest.join(", ")),
+                    _ => pairs.join(""),
+                };
+                format!("{list} {many} foreign colour codes (IEC 60757)")
+            }
+        }
+    }
+}
+
 /// A colour cell: a run of IEC 60757 two-letter codes (`BK`, `GNYE` = GN + YE), else one company code (`DBU`).
-pub(crate) fn parse_colour(s: &str) -> Result<ColourSpec, String> {
+///
+/// A run whose chunks are IEC codes or foreign aliases ([`COLOUR_ALIASES`]), with at least one alias, holds a
+/// foreign code: a strict import refuses the cell (EW-CORE-031), a lenient one keeps the alias chunks as
+/// [`ColourCode::Foreign`] and returns the [`ForeignColour`] with the IEC mapping.
+pub(crate) fn parse_colour(s: &str, mode: ImportMode) -> Result<(ColourSpec, Option<ForeignColour>), String> {
     let bytes = s.as_bytes();
     if s.is_ascii() && bytes.len() % 2 == 0 && !bytes.is_empty() {
-        let codes: Option<Vec<ColourCode>> = bytes
+        // Per chunk: the code as stored, the IEC code, and the alias when the chunk is one.
+        type Chunk = (ColourCode, IecColour, Option<&'static str>);
+        let chunks: Option<Vec<Chunk>> = bytes
             .chunks(2)
             .map(|c| {
-                std::str::from_utf8(c)
-                    .ok()
-                    .and_then(|c| c.parse::<IecColour>().ok())
-                    .map(ColourCode::Iec)
+                let c = std::str::from_utf8(c).ok()?;
+                if let Ok(iec) = c.parse::<IecColour>() {
+                    return Some((ColourCode::Iec(iec), iec, None));
+                }
+                let (alias, iec) = COLOUR_ALIASES.iter().find(|(a, _)| *a == c)?;
+                let foreign = parse_ident(alias).ok()?;
+                Some((ColourCode::Foreign(foreign), *iec, Some(*alias)))
             })
             .collect();
-        if let Some(codes) = codes {
-            return ColourSpec::new(codes).map_err(|e| format!("`{s}`: {e}"));
+        if let Some(chunks) = chunks {
+            let aliases: Vec<(&'static str, IecColour)> = chunks
+                .iter()
+                .filter_map(|(_, iec, alias)| alias.map(|a| (a, *iec)))
+                .collect();
+            let spec = |codes: Vec<ColourCode>| ColourSpec::new(codes).map_err(|e| format!("`{s}`: {e}"));
+            if aliases.is_empty() {
+                return Ok((spec(chunks.into_iter().map(|c| c.0).collect())?, None));
+            }
+            let found = ForeignColour {
+                aliases,
+                mapped: spec(chunks.iter().map(|c| ColourCode::Iec(c.1)).collect())?,
+            };
+            return match mode {
+                ImportMode::Strict => Err(format!(
+                    "{}; a strict import stores no foreign code (EW-CORE-031)",
+                    found.describe(true)
+                )),
+                ImportMode::Lenient => Ok((spec(chunks.into_iter().map(|c| c.0).collect())?, Some(found))),
+            };
         }
     }
     let code = parse_ident(s)?;
     let code = ColourCode::company(code).map_err(|e| format!("`{s}`: {e}"))?;
-    Ok(ColourSpec::one(code))
+    Ok((ColourSpec::one(code), None))
+}
+
+/// The quick fix target of a foreign colour: the `fields.set` kind and path, and the record's UUID.
+pub(crate) struct ColourFix {
+    /// The record kind of the command (`conductor`, `connection`).
+    pub(crate) kind: &'static str,
+    /// The field path (`colour`, `overrides.colour`).
+    pub(crate) path: &'static str,
+    /// The record's UUID.
+    pub(crate) target: String,
+}
+
+impl Findings {
+    /// EW-IMP-008 (warning) for each foreign colour cell of the kept row `row`: the alias is kept as a foreign
+    /// code. `fix` adds the quick fix "use <IEC codes>" (a declarative `fields.set` proposal), for the tables
+    /// whose records a command can edit.
+    pub(crate) fn foreign_colours(
+        &mut self,
+        row: Row<'_>,
+        found: Vec<(String, ForeignColour)>,
+        fix: Option<ColourFix>,
+    ) {
+        for (column, colour) in found {
+            let message = format!("column `{column}`: {}", colour.describe(false));
+            let location = SourceLocation {
+                file: row.file().to_owned(),
+                item: Some(row.key().to_owned()),
+                line: Some(row.line()),
+                ..SourceLocation::default()
+            };
+            let mut entry = ReportEntry::new(Code::FOREIGN_VALUE, Severity::Warning, message).at(location);
+            if let (Some(fix), Ok(value)) = (&fix, serde_json::to_value(&colour.mapped)) {
+                let codes: Vec<&str> = colour.aliases.iter().map(|(_, c)| c.as_str()).collect();
+                entry = entry.with_fix(QuickFixProposal {
+                    label: format!("use {}", codes.join(", ")),
+                    command: "fields.set".to_owned(),
+                    params: serde_json::json!({
+                        "kind": fix.kind,
+                        "targets": [fix.target],
+                        "path": fix.path,
+                        "value": value,
+                    }),
+                });
+            }
+            self.push(entry);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -540,7 +691,8 @@ mod tests {
     fn table_of(text: &str, findings: &mut Findings) -> Table {
         let bytes: Arc<[u8]> = Arc::from(text.as_bytes());
         let csv = crate::csv::parse(&bytes, &crate::csv::TableLimits::default()).unwrap();
-        Table::new(SPEC, "t.csv", bytes, csv, findings).expect("the required column is there")
+        Table::new(SPEC, "t.csv", bytes, csv, ImportMode::Strict, findings)
+            .expect("the required column is there")
     }
 
     #[test]
@@ -599,20 +751,89 @@ mod tests {
         assert_eq!(rows, [("B", "b", 3), ("C", "d\"d", 5)]);
     }
 
+    fn colour(s: &str, mode: ImportMode) -> Result<ColourSpec, String> {
+        parse_colour(s, mode).map(|(spec, _)| spec)
+    }
+
     #[test]
     fn colours() {
+        for mode in [ImportMode::Strict, ImportMode::Lenient] {
+            assert_eq!(
+                colour("BK", mode).unwrap().codes(),
+                [ColourCode::Iec(IecColour::Bk)]
+            );
+            assert_eq!(
+                colour("GNYE", mode).unwrap().codes(),
+                [ColourCode::Iec(IecColour::Gn), ColourCode::Iec(IecColour::Ye)]
+            );
+            // A company code is no foreign code in either mode, and neither is a cell that mixes in a
+            // letter pair that is no alias.
+            assert!(matches!(
+                parse_colour("DBU", mode).unwrap(),
+                (spec, None) if matches!(spec.codes(), [ColourCode::Company(_)])
+            ));
+            assert!(matches!(
+                parse_colour("BRXX", mode).unwrap(),
+                (spec, None) if matches!(spec.codes(), [ColourCode::Company(_)])
+            ));
+        }
+    }
+
+    #[test]
+    fn a_foreign_colour_is_refused_strict_and_kept_lenient() {
+        for (alias, iec) in [
+            ("BR", IecColour::Bn),
+            ("SW", IecColour::Bk),
+            ("BL", IecColour::Bu),
+            ("RT", IecColour::Rd),
+            ("GE", IecColour::Ye),
+            ("WS", IecColour::Wh),
+            ("GR", IecColour::Gy),
+        ] {
+            assert_eq!(
+                colour(alias, ImportMode::Strict).unwrap_err(),
+                format!(
+                    "`{alias}` is a foreign colour code (IEC 60757: {}); a strict import stores no foreign code (EW-CORE-031)",
+                    iec.as_str()
+                )
+            );
+            let (spec, found) = parse_colour(alias, ImportMode::Lenient).unwrap();
+            assert_eq!(spec.codes(), [ColourCode::Foreign(alias.parse().unwrap())]);
+            let found = found.unwrap();
+            assert_eq!(found.aliases, [(alias, iec)]);
+            assert_eq!(found.mapped.codes(), [ColourCode::Iec(iec)]);
+        }
+    }
+
+    #[test]
+    fn a_two_chunk_cell_keeps_its_iec_chunk() {
+        let (spec, found) = parse_colour("BRWH", ImportMode::Lenient).unwrap();
         assert_eq!(
-            parse_colour("BK").unwrap().codes(),
-            [ColourCode::Iec(IecColour::Bk)]
+            spec.codes(),
+            [
+                ColourCode::Foreign("BR".parse().unwrap()),
+                ColourCode::Iec(IecColour::Wh)
+            ]
         );
+        let found = found.unwrap();
+        assert_eq!(found.aliases, [("BR", IecColour::Bn)]);
         assert_eq!(
-            parse_colour("GNYE").unwrap().codes(),
-            [ColourCode::Iec(IecColour::Gn), ColourCode::Iec(IecColour::Ye)]
+            found.mapped.codes(),
+            [ColourCode::Iec(IecColour::Bn), ColourCode::Iec(IecColour::Wh)]
         );
-        assert!(matches!(
-            parse_colour("DBU").unwrap().codes(),
-            [ColourCode::Company(_)]
-        ));
+        let err = colour("BRWH", ImportMode::Strict).unwrap_err();
+        assert!(
+            err.starts_with("`BR` is a foreign colour code (IEC 60757: BN);"),
+            "{err}"
+        );
+        // Two aliases list each pair.
+        let err = colour("BRWS", ImportMode::Strict).unwrap_err();
+        assert_eq!(
+            err,
+            "`BR` → `BN` and `WS` → `WH` are foreign colour codes (IEC 60757); a strict import stores no foreign code (EW-CORE-031)"
+        );
+        // Three chunks are no colour spec in either mode.
+        assert!(colour("BRWHBK", ImportMode::Lenient).is_err());
     }
 
     #[test]

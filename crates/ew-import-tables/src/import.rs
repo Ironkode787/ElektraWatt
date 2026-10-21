@@ -134,7 +134,9 @@ impl TablesImporter {
             };
             match csv::parse(input.bytes(), &limits) {
                 Ok(t) => {
-                    if let Some(t) = Table::new(*spec, name, Arc::clone(input.bytes()), t, &mut findings) {
+                    if let Some(t) =
+                        Table::new(*spec, name, Arc::clone(input.bytes()), t, ctx.mode, &mut findings)
+                    {
                         tables.insert(spec.name, t);
                     }
                 }
@@ -208,6 +210,7 @@ impl TablesImporter {
         emit::connect::emit_bonds(&mut cx, t("bonds"));
         emit::plc::emit_channels(&mut cx, t("channels"));
         emit::plc::emit_device_links(&mut cx, t("device_links"));
+        emit::assembly::emit_assembly_configs(&mut cx, t("assembly_configs"));
         emit::project::emit_report_blocks(&mut cx, t("report_blocks"));
         emit::project::emit_revisions(&mut cx, t("revisions"), t("parties"));
         let profiles = emit::profiles::emit(&mut cx, t("profiles"), t("colour_profile"), t("size_profile"));

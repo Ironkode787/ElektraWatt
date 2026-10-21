@@ -225,7 +225,7 @@ fn mutated_golden_tables_never_panic() {
     const MUTATIONS_PER_TABLE: usize = 60;
     const SEED: u64 = 0xC5F0_7A11_0B5E_ED01;
     let golden = common::golden_inputs();
-    assert_eq!(golden.len(), 28, "the golden project has 28 tables");
+    assert_eq!(golden.len(), 29, "the golden project has 29 tables");
     let importer = TablesImporter::new(common::library());
     let ctx = common::context();
     std::thread::scope(|scope| {
