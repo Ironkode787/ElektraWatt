@@ -17,3 +17,11 @@ workspace = true
 [dependencies]
 ew-derive = { path = "../ew-derive" }
 ew-checks = { path = "../ew-checks" }
+# ADR-0017 decision 1 and ARCH §3 rule 2: SQLite, bundled (the C source is vendored in libsqlite3-sys, so the
+# build needs only a C compiler, NFR-MAINT-09). `functions` and `collation`: ew_ml, ew_regexp, the overridden
+# date functions and ew_natural; `hooks`: the authorizer and the progress-handler deadline; `limits`:
+# SQLITE_LIMIT_*; `serialize`: the read-only deserialised copy each consumer reads (doc 17 §6.2).
+rusqlite = { version = "0.40.2", default-features = false, features = ["bundled", "functions", "collation", "hooks", "limits", "serialize"] }
+# JSON array columns, the `_ml` columns and `ew_ml`, and the JSON result (`ew.sql-result/1`).
+serde = { workspace = true }
+serde_json = "1.0.154"

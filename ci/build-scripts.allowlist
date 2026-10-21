@@ -50,3 +50,9 @@ icu_segmenter_data # 2.3.0
 # Reviewed at WP-S3.04 (vello_cpu, krilla). The only new build script runs `rustc --version` and emits cfg flags;
 # it writes no file and opens no network connection.
 crc32fast # 1.5.2: reads RUSTC, runs `$RUSTC --version`, emits rustc-check-cfg / rustc-cfg lines only
+#
+# Reviewed at WP-S1.10 (ew-sqlview: rusqlite 0.40.2 with `bundled`). The build script compiles the vendored
+# sqlite3.c with cc into OUT_DIR and copies the pre-generated bindings (no bindgen without `buildtime_bindgen`);
+# it reads only CARGO_*/TARGET/HOST and the documented SQLITE_MAX_*/LIBSQLITE3_FLAGS variables, runs no command
+# but the C compiler cc invokes, downloads nothing and opens no network connection.
+libsqlite3-sys # 0.38.2: cc-compiles the bundled SQLite amalgamation into OUT_DIR, emits link and cfg lines
