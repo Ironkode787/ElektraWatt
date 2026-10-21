@@ -746,8 +746,17 @@ The export input is the tuple (snapshot revision, export scheme, date, release c
 profile, font files by hash). Rules:
 
 1. **Dates.** PDF, XMP, XLSX and ZIP dates come from, in order: the release context, an explicit scheme date,
-   `SOURCE_DATE_EPOCH`, the model's edited date. Never the wall clock (FR-OUT-026, NFR-REL-07).
-2. **Identifiers.** The PDF document ID and XMP instance ID are hashes of the export input, not random.
+   `SOURCE_DATE_EPOCH`, the model's edited date. Never the wall clock (FR-OUT-026, NFR-REL-07). *As built (cycle 15,
+   FT-59):* the export job takes the caller's date (`ew export` reads `SOURCE_DATE_EPOCH`; an unparsable value exits
+   2), else the model's edited date, else its created date, else 1980-01-01; release contexts and scheme dates do not
+   exist yet.
+2. **Identifiers.** The PDF document ID and XMP instance ID are hashes of the export input, not random. *As built
+   (cycle 15, FT-59; owner ruling):* the document ID is krilla's hash of the text `ew-pdf/1 <project id> <derivation
+   profile> <date> <pages>[ mono] ew <EW version> sha256:<digest>`, `<pages>` being `all` or the selected folio
+   labels, and `<digest>` the SHA-256 over every exported page (label, outline title and section, sheet size,
+   destination, sheet display list through its `Hash` order) and the pinned SHA-256 of every bundled font. The pages
+   are derived values, so the ID is the same however the model was loaded (the bootstrapped tables, the saved
+   project, a shuffled record order; AC-14, AC-15); it is per build target like the PNGs until FT-234.
 3. **Order.** Pages in `page_order`; objects and resources in first-use order; maps are ordered (`BTreeMap`); parallel
    page building collects results by page index, so serial and parallel exports are identical (AC-14).
 4. **Arithmetic.** nm → pt conversion runs in integer arithmetic (milli-pt = nm × 72 / 25 400, rounded half to

@@ -517,9 +517,10 @@ cargo nextest run -p ew-api --test page_output                # compares (no EW_
   the PLC overview to its coil (28, doc 10 §5)); `pdf/sha256.txt` holds the SHA-256 of the whole PDF, which
   `ew export pdf golden/J-E-2416.ew --out <file>` writes byte for byte (G-M1-01; `bin/ew/tests/cli.rs` runs it on
   one and four threads with no display, no starter content and empty user directories). Re-blessed in cycle 15: the
-  PDF's document ID is the export job's, the hash of `ew-pdf/1 <project id> <profile> <date> all` (doc 09 §4.3 rule
-  2), where the cycle-14 harness hashed a test label; the page content is unchanged (the same pages with the old ID
-  give the old digest).
+  PDF's document ID is the export job's, the hash of `ew-pdf/1 <project id> <profile> <date> all ew <version>
+  sha256:<digest>` (doc 09 §4.3 rule 2; the digest covers the sheet display lists of every page and the bundled font
+  hashes, so it is the same over the tables and the fixture), where the cycle-14 harness hashed a test label; the
+  page content is unchanged (the same pages with the old ID give the old digest).
 - Everything under `golden/` is CC0-1.0 (`REUSE.toml`, annotation L8).
 
 **Known gaps for the FT-10 approval.** The candidates cover the 36 pages of `page_order` with the report engine
@@ -906,7 +907,7 @@ The headless report of this revision: 93 entries, 82 pass, 0 fail, 6 not_built, 
 mismatches (the full run adds the raster comparison as a pass). Cycle 15 (FT-59) runs the page output through the
 export job: the text CSVs, the PDF, the SVG set, AC-16's page texts and AC-17's PDF time come from
 `ew_api::output`; the new AC-15 entry exports the checked-in fixture as `ew export pdf` does and finds the digest of
-`expected/pdf/sha256.txt`; AC-16 sweeps 60 memoised families (the 10 of the page output included). Cycle 14 closed AC-01, AC-06, AC-13 and the two
+`expected/pdf/sha256.txt`; AC-16 sweeps 64 memoised families (the 14 of the page output included). Cycle 14 closed AC-01, AC-06, AC-13 and the two
 AC-14 entries, D-03 (EF-15 counts 10: the seven frozen tags of doc 20 §18.1 and the three U-34 frozen test inputs, listed apart), D-14 (restated by the owner ruling: a named anchor policy that leaves the bus port's graphics, set on -201U1's bus representation alone, makes -201U1 print "3-B0", EW-CORE-053 reports it and its quick fix restores "3-B2"), D-20 (the Via notation "star at" and "chain on"), D-22's PELV entry,
 D-35 (the §14.1 descriptions without ratings; EW-CORE-065 with the 1.0 content) and the info half of D-06 (a new
 entry), and emptied AC-09's deviation list (FT-101). Cycle 14 lane B added the exports (AC-07 parts and AC-11; the
