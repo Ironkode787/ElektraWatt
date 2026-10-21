@@ -1025,6 +1025,8 @@ save budgets (milestone performance run).
 | Acceptance | AC-15, NFR-PERF-14 |
 | Owner role | Core developer |
 
+*Status (2026-10-21, cycle 13 lane C).* Delivered: `ew-sqlview` (rusqlite 0.40.2 bundled; in-memory build, read-only deserialised copy per consumer, statement gate, authorizer, `SQLITE_LIMIT_*`, deadline, row and byte caps, `ew_natural`, `ew_ml`, date functions without the clock), thirteen `api_v1` views (the eleven of FR-EXT-007, `api_v1_meta`, `api_v1_bond`), `ew sql` (query, `--file`, dump, schema) and the six acceptance SQL/CSV pairs (AC-08 … AC-11 SQL halves and an AC-15 entry pass). Open: the FR-EXT-032 views `api_v1_cp`, `_structure`, `_xref`, `_revision`; `ew_regexp`; file-backed XL projections and the per-table refresh; `--format xlsx`; NFR-PERF-14 not measured (milestone rule).
+
 #### WP-S1.11 Numbering engine and renumber commands
 
 | Field | Value |

@@ -378,7 +378,7 @@ driver exits 0 (clean), 1 (conflict records written) or 129 for a caught interna
 | | `ew query <name> <key> [--json] [--explain]` | Any public query; `--explain` adds dependency trail, memo state, provenance | MVP | FR-EXT-005 |
 | | `ew verify-derived` | Cold recomputation against memos | MVP | FR-EXT-005 |
 | | `ew find <pattern> [--kind …]` | Tags, part numbers, texts → entities | MVP | FR-UI-020 |
-| | `ew sql [<project>] "<select>" [--format csv\|json\|xlsx] [--timeout s]`; `ew sql dump <out.sqlite>`; `ew sql schema` | Projection under the sandbox (§6) | MVP | FR-EXT-006, -007 |
+| | `ew sql [<project>] "<select>" [--format csv\|json\|xlsx] [--timeout s]`; `ew sql dump <out.sqlite>`; `ew sql schema` | Projection under the sandbox (§6). **As built (cycle 13, WP-S1.10):** `ew sql [<project-dir>] "<select>" \| --file <query.sql> [--format csv\|json] [--timeout <s>] [--out <file>]`, `ew sql dump [<project-dir>] <out.sqlite>`, `ew sql schema`; `--project <dir>` as in §3.1. CSV in the golden dialect with a header line, JSON `ew.sql-result/1`; exit 0 or 2. Not built: `--format xlsx` | MVP | FR-EXT-006, -007 |
 | | `ew commands [--json]`, `ew queries [--json]`, `ew schema <name>` | Registries and JSON Schemas | MVP | FR-EXT-015, NFR-DOC-06 |
 | Output | `ew export pdf\|svg\|png` `[--pages 101-106] [--lang] [--omit-personal-data]`; `ew export dxf` (1.0) | Page output ([09](09-reports-forms-output.md) §4) | MVP; DXF 1.0 (FR-OUT-015) | FR-EXT-003 |
 | | `ew export bom [--mode component\|assembly]`, `wires`, `terminals`, `cables` `[--format xlsx\|csv\|pdf]` | Report row sources | MVP | FR-EXT-003 |

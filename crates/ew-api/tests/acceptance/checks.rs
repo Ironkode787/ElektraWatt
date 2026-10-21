@@ -202,20 +202,25 @@ pub fn all(r: &mut Runner) {
         na("veraPDF is an external tool that is not installed in the headless harness; the CI job that has it runs the cross-check")
     });
 
-    // The SQL half of the acceptance pairs (doc 20 §3.1 `acceptance/*.sql`, doc 18 §3.10 step 2).
-    for (id, name) in [
-        ("AC-08", "terminals_1X1, terminals_X1031, terminals_X1032"),
-        ("AC-09", "wires"),
-        ("AC-10", "potentials"),
-        ("AC-11", "cables"),
-    ] {
+    // The SQL half of the acceptance pairs (doc 20 §3.1 `acceptance/*.sql`, doc 18 §3.10 steps 2 and 3): the
+    // SQL runs under the `ew sql` sandbox profile over the projection of the profiled model.
+    for (id, names) in SQL_PAIRS {
         r.entry(
             id,
-            &format!("acceptance SQL over the api_v1 views equals expected/csv: {name}"),
-            |_| {
-                not_built(
-                    "SQL projection pending (WP-S1.10); the CSV half above compares the derived report rows",
-                )
+            &format!(
+                "acceptance SQL over the api_v1 views equals expected/csv: {}",
+                names.join(", ")
+            ),
+            |c| match &c.sql {
+                Ok(p) => match names.iter().try_for_each(|n| sql_pair(p, n)) {
+                    Ok(()) => pass(format!(
+                        "acceptance/{}.sql over the api_v1 views returns expected/csv/{}.csv row by row",
+                        names.join(".sql, acceptance/"),
+                        names.join(".csv, expected/csv/")
+                    )),
+                    Err(e) => fail(e),
+                },
+                Err(e) => fail(format!("the SQL projection did not build: {e}")),
             },
         );
     }
@@ -266,6 +271,11 @@ pub fn all(r: &mut Runner) {
         "AC-15",
         "build path (a), the CSV bootstrap, equals path (c), the checked-in fixture",
         |_| na("evaluated by tests/golden_fixture.rs (byte-identical regeneration), not by this runner"),
+    );
+    r.entry(
+        "AC-15",
+        "the acceptance SQL returns the same expected CSVs over path (a) and over path (c), the checked-in fixture",
+        ac15_sql_paths,
     );
     r.entry(
         "AC-15",
@@ -771,6 +781,76 @@ pub fn row_pair_text(
         .find(|(n, _)| *n == name)
         .ok_or_else(|| format!("no row pair {name}"))?;
     Ok(rows_csv(q, &rows_of(q, batch, block)))
+}
+
+/// The acceptance SQL/CSV pairs by criterion: `acceptance/<name>.sql` returns `expected/csv/<name>.csv`.
+pub const SQL_PAIRS: [(&str, &[&str]); 4] = [
+    ("AC-08", &["terminals_1X1", "terminals_X1031", "terminals_X1032"]),
+    ("AC-09", &["wires"]),
+    ("AC-10", &["potentials"]),
+    ("AC-11", &["cables"]),
+];
+
+/// The result of `acceptance/<name>.sql` over `projection` as CSV, under the `ew sql` sandbox profile.
+fn sql_csv(projection: &ew_api::sql::Projection, name: &str) -> Result<String, String> {
+    let path = repo().join(format!("golden/J-E-2416/acceptance/{name}.sql"));
+    let sql = std::fs::read_to_string(&path).map_err(|e| format!("acceptance/{name}.sql: {e}"))?;
+    projection
+        .reader(ew_api::sql::Profile::EW_SQL)
+        .and_then(|r| r.query(&sql))
+        .map(|set| set.to_csv())
+        .map_err(|e| format!("acceptance/{name}.sql: {e}"))
+}
+
+/// `acceptance/<name>.sql` over `projection` returns `expected/csv/<name>.csv` (row by row: the whole text).
+fn sql_pair(projection: &ew_api::sql::Projection, name: &str) -> Result<(), String> {
+    let got = sql_csv(projection, name)?;
+    let want = String::from_utf8(expected(&format!("csv/{name}.csv"))?).map_err(|e| e.to_string())?;
+    match want.lines().zip(got.lines()).position(|(a, b)| a != b) {
+        None if want == got => Ok(()),
+        None => Err(format!(
+            "acceptance/{name}.sql returns {} lines, expected/csv/{name}.csv has {}",
+            got.lines().count(),
+            want.lines().count()
+        )),
+        Some(i) => Err(format!(
+            "acceptance/{name}.sql differs from expected/csv/{name}.csv at line {}",
+            i + 1
+        )),
+    }
+}
+
+/// AC-15 for the SQL half (doc 20 §3.2): the projection of path (a), the CSV bootstrap the runner builds,
+/// and of path (c), the checked-in fixture `golden/J-E-2416.ew` opened read-only, return the same expected
+/// CSVs.
+fn ac15_sql_paths(c: &Ctx) -> Outcome {
+    let a = match &c.sql {
+        Ok(p) => p,
+        Err(e) => return fail(format!("the SQL projection of path (a) did not build: {e}")),
+    };
+    let dir = repo().join("golden/J-E-2416.ew");
+    let fixture = match Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "acceptance") {
+        Ok((s, _)) => s,
+        Err(e) => return fail(format!("golden/J-E-2416.ew does not open: {e}")),
+    };
+    let checks = fixture.check(&ew_api::checks::PRE_DELIVERY, ew_api::checks::CheckMode::Release);
+    let fc = match fixture.sql_projection(Some(&checks)) {
+        Ok(p) => p,
+        Err(e) => return fail(format!("the SQL projection of path (c) did not build: {e}")),
+    };
+    let names: Vec<&str> = SQL_PAIRS.iter().flat_map(|(_, n)| n.iter().copied()).collect();
+    for name in &names {
+        if let Err(e) = sql_pair(a, name) {
+            return fail(format!("path (a): {e}"));
+        }
+        if let Err(e) = sql_pair(&fc, name) {
+            return fail(format!("path (c): {e}"));
+        }
+    }
+    pass(format!(
+        "the {} acceptance SQL files return the same expected CSVs over both paths; path (b) is the next entry",
+        names.len()
+    ))
 }
 
 fn row_pair(c: &Ctx, name: &str) -> Outcome {

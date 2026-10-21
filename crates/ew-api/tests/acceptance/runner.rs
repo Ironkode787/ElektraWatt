@@ -65,6 +65,9 @@ pub struct Ctx {
     pub pdf_pages: Vec<PdfPage>,
     pub pdf: PdfOutput,
     pub fonts: BTreeMap<FontKey, FontBytes>,
+    /// The SQL projection of the profiled model with its pre-delivery check run (WP-S1.10), or why it did
+    /// not build.
+    pub sql: Result<ew_api::sql::Projection, String>,
 }
 
 impl Ctx {
@@ -87,7 +90,10 @@ impl Ctx {
         let fonts = fonts();
         let pdf_pages = pdf_pages(&q);
         let pdf = pdf(&pdf_pages, &pdf_options(&q), &fonts, None).expect("the golden PDF is written");
+        let checks = profiled.check(&ew_api::checks::PRE_DELIVERY, ew_api::checks::CheckMode::Release);
+        let sql = profiled.sql_projection(Some(&checks)).map_err(|e| e.to_string());
         Ctx {
+            sql,
             raster: options.raster,
             perf: options.perf,
             batch,

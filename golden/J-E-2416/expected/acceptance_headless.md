@@ -1,6 +1,6 @@
 # Acceptance report: golden project J-E-2416, gate M1 (headless)
 
-84 entries: 54 pass, 2 fail, 22 not_built, 6 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
+85 entries: 57 pass, 4 fail, 18 not_built, 6 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
 
 | Criterion | Check | Status | Reason |
 |---|---|---|---|
@@ -34,10 +34,10 @@
 | AC-13 | text extraction of the PDF keeps spaces | not_built | the harness has no PDF text extraction (FR-OUT-008); the ToUnicode maps are written, but nothing reads them back |
 | AC-13 | PDF/A-2b validated in process by krilla | pass | the 34-page PDF was written under Conformance::PdfA2b, which makes krilla's A2_B archival validator check the document (it refuses an invalid one) |
 | AC-13 | veraPDF cross-check of PDF/A-2b | not_applicable | veraPDF is an external tool that is not installed in the headless harness; the CI job that has it runs the cross-check |
-| AC-08 | acceptance SQL over the api_v1 views equals expected/csv: terminals_1X1, terminals_X1031, terminals_X1032 | not_built | SQL projection pending (WP-S1.10); the CSV half above compares the derived report rows |
-| AC-09 | acceptance SQL over the api_v1 views equals expected/csv: wires | not_built | SQL projection pending (WP-S1.10); the CSV half above compares the derived report rows |
-| AC-10 | acceptance SQL over the api_v1 views equals expected/csv: potentials | not_built | SQL projection pending (WP-S1.10); the CSV half above compares the derived report rows |
-| AC-11 | acceptance SQL over the api_v1 views equals expected/csv: cables | not_built | SQL projection pending (WP-S1.10); the CSV half above compares the derived report rows |
+| AC-08 | acceptance SQL over the api_v1 views equals expected/csv: terminals_1X1, terminals_X1031, terminals_X1032 | pass | acceptance/terminals_1X1.sql, acceptance/terminals_X1031.sql, acceptance/terminals_X1032.sql over the api_v1 views returns expected/csv/terminals_1X1.csv, expected/csv/terminals_X1031.csv, expected/csv/terminals_X1032.csv row by row |
+| AC-09 | acceptance SQL over the api_v1 views equals expected/csv: wires | fail | acceptance/wires.sql differs from expected/csv/wires.csv at line 2 |
+| AC-10 | acceptance SQL over the api_v1 views equals expected/csv: potentials | pass | acceptance/potentials.sql over the api_v1 views returns expected/csv/potentials.csv row by row |
+| AC-11 | acceptance SQL over the api_v1 views equals expected/csv: cables | pass | acceptance/cables.sql over the api_v1 views returns expected/csv/cables.csv row by row |
 | AC-18 | step B1: the ten tags of the tag map | pass | the ten tags of the tag map change and nothing else; no cross-reference text changes |
 | AC-18 | step B2: 2 tags and 14 cross-reference texts, same topology, undo restores the records | pass | folio 106 becomes 104: 2 tags and 14 texts change, same potentials and connections, one undo restores the records |
 | AC-18 | step B2: the preview lists the folio change as one page record | pass | the preview changes one page record (Changed Page ["folio.number"]) and commits nothing |
@@ -48,6 +48,7 @@
 | AC-14 | PDF and JSONL are byte-identical across runs and record shuffles | not_applicable | a Linux-only gate criterion, evaluated by tests/page_output.rs (PDF), tests/golden_fixture.rs (JSONL) and the CI Linux job, not by this runner |
 | AC-14 | SVG and the parallel export are byte-identical to the serial export | not_built | neither the SVG export nor a parallel export exists yet (FR-OUT-013, FR-OUT-019) |
 | AC-15 | build path (a), the CSV bootstrap, equals path (c), the checked-in fixture | not_applicable | evaluated by tests/golden_fixture.rs (byte-identical regeneration), not by this runner |
+| AC-15 | the acceptance SQL returns the same expected CSVs over path (a) and over path (c), the checked-in fixture | fail | path (a): acceptance/wires.sql differs from expected/csv/wires.csv at line 2 |
 | AC-15 | build path (b), the builder DSL, produces the same expected CSVs | not_built | the builder DSL (the golden builders of ew-testkit, WP-S6.01) does not exist yet |
 | AC-16 | freshness: scripted edits update every output; verify-derived is clean with the oracle on | not_built | the scripted edits (rename T55, move -102F2, folio 103 to 104, 24 V colour) need the tag, move and profile commands and `ew verify-derived`; for the record, the oracle is on for the sessions `oracle` and `profiled` of this run, and off for the sessions that apply edits or scripts (AC-12, AC-18, AC-20, D-06, D-11, D-12) and for the cross-reference scans |
 | AC-17 | open <= 0.5 s, check <= 2 s, PDF export <= 3 s | not_applicable | measured at milestone deliveries (cargo xtask acceptance --milestone, release profile) |
