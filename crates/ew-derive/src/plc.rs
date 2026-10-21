@@ -584,6 +584,8 @@ pub struct ChannelTarget {
     pub device: Option<Id<Device>>,
     /// The representation that draws the bound CP's function (the coil on 203–206), else the target's.
     pub rep: Option<Id<Representation>>,
+    /// The bound CP (the coil's internal CP), the link destination of the channel's row (doc 10 §5).
+    pub cp: Option<crate::CpRef>,
 }
 
 /// `channel_targets(module)`: the direct targets, in channel-number order.
@@ -617,6 +619,12 @@ impl Query for ChannelTargets {
                     function,
                     device: function.and_then(|f| functions.get(f).and_then(|f| f.device)),
                     rep: bound.or(function).and_then(drawn),
+                    cp: match &c.binding {
+                        Some(Endpoint::Cp(f, idx)) if functions.contains(*f) => {
+                            Some(crate::CpRef::new(*f, *idx))
+                        }
+                        _ => None,
+                    },
                 }
             })
             .collect();
@@ -808,6 +816,8 @@ pub struct PlcRow {
     pub target_device: Option<Id<Device>>,
     /// The representation of the bound coil (or of the target).
     pub rep: Option<Id<Representation>>,
+    /// The bound CP, which the row links to (doc 10 §5).
+    pub cp: Option<crate::CpRef>,
     /// The effective state.
     pub state: EffectiveState,
 }
@@ -862,6 +872,7 @@ impl Query for PlcRows {
                     target: target.and_then(|t| t.function),
                     target_device: target.and_then(|t| t.device),
                     rep: target.and_then(|t| t.rep),
+                    cp: target.and_then(|t| t.cp),
                     state: states
                         .iter()
                         .find(|(id, _)| *id == c.id)

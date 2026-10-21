@@ -87,6 +87,7 @@ fn view(embedded: Vec<EmbeddedView>) -> PageView {
         wire_marker: None,
         table: None,
         embedded,
+        cp_targets: Vec::new(),
     }
 }
 

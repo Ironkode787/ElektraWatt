@@ -30,12 +30,13 @@
 //! reported ([`TableFinding::Overflow`], carried by [`PageFinding::Table`](crate::page::PageFinding::Table)); it is never clipped
 //! (FR-REP-039).
 //!
-//! # Not drawn yet
+//! # Row links
 //!
-//! Row links (FR-REP-042: the PDF link annotations and canvas jumps of cells) and group header and footer
-//! templates: a group row prints as a heading row.
+//! A data cell named by [`TableRow::links`] carries a [`Link::Source`] to its destination on its text, which
+//! the PDF writes as a link annotation over the text (FR-REP-042). Not drawn yet: group header and footer
+//! templates (a group row prints as a heading row).
 
-use ew_dl::{Brush, Color, Item, Path, Stroke};
+use ew_dl::{Brush, Color, Destination, Item, Link, Path, Stroke};
 use ew_schema::{Overflow, ShrinkSpec};
 use ew_text::{DEFAULT_STYLE_KEY, FontSet, TextStyle, builtin};
 use ew_units::{Nm, Pt2, Rect};
@@ -85,6 +86,8 @@ pub struct TableRow {
     pub kind: TableRowKind,
     /// One text per column (a heading row uses the first).
     pub cells: Vec<String>,
+    /// The cells that link somewhere: `(column, destination)` (FR-REP-042).
+    pub links: Vec<(usize, Destination)>,
 }
 
 /// The table of one generated page.
@@ -247,7 +250,13 @@ pub fn lower_table(view: &TableView, sheet: SheetMap, fonts: &FontSet) -> Lowere
     }
 
     // Texts: the header, then the rows (or the note).
-    let text = |out: &mut LoweredTable, s: &str, x0: Nm, x1: Nm, y0: Nm, at: (Option<usize>, usize)| {
+    let text = |out: &mut LoweredTable,
+                s: &str,
+                x0: Nm,
+                x1: Nm,
+                y0: Nm,
+                at: (Option<usize>, usize),
+                link: Option<Destination>| {
         if s.is_empty() {
             return;
         }
@@ -275,22 +284,35 @@ pub fn lower_table(view: &TableView, sheet: SheetMap, fonts: &FontSet) -> Lowere
                 kind,
             });
         }
-        out.items.extend(laid.items);
+        match link {
+            Some(d) => out
+                .items
+                .extend(laid.items.into_iter().map(|i| i.with_link(Link::Source(d)))),
+            None => out.items.extend(laid.items),
+        }
     };
     for (c, col) in view.columns.iter().enumerate() {
         if col.weight > 0 {
-            text(&mut out, &col.header, edges[c], edges[c + 1], row_y(0), (None, c));
+            text(
+                &mut out,
+                &col.header,
+                edges[c],
+                edges[c + 1],
+                row_y(0),
+                (None, c),
+                None,
+            );
         }
     }
     if let Some(note) = &view.note {
-        text(&mut out, note, LEFT, RIGHT, row_y(1), (None, 0));
+        text(&mut out, note, LEFT, RIGHT, row_y(1), (None, 0), None);
     } else {
         for (r, row) in view.rows.iter().take(row_count).enumerate() {
             let y = row_y(r + 1);
             match row.kind {
                 TableRowKind::Heading => {
                     let s = row.cells.first().map_or("", String::as_str);
-                    text(&mut out, s, LEFT, RIGHT, y, (Some(r), 0));
+                    text(&mut out, s, LEFT, RIGHT, y, (Some(r), 0), None);
                 }
                 TableRowKind::Data => {
                     for (c, col) in view.columns.iter().enumerate() {
@@ -298,7 +320,8 @@ pub fn lower_table(view: &TableView, sheet: SheetMap, fonts: &FontSet) -> Lowere
                             continue;
                         }
                         let s = row.cells.get(c).map_or("", String::as_str);
-                        text(&mut out, s, edges[c], edges[c + 1], y, (Some(r), c));
+                        let link = row.links.iter().find(|(k, _)| *k == c).map(|(_, d)| *d);
+                        text(&mut out, s, edges[c], edges[c + 1], y, (Some(r), c), link);
                     }
                 }
             }

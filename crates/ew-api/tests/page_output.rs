@@ -41,7 +41,7 @@ fn the_golden_pdf_has_every_folio_and_is_byte_identical_across_runs_and_record_s
     let pages = pdf_pages(&q);
     assert_eq!(
         pages.len(),
-        34,
+        36,
         "page_order of the golden model with its report pages"
     );
     let f = fonts();
@@ -205,7 +205,7 @@ fn cp_point_equals_the_cp_points_of_the_page_scene() {
 #[test]
 fn the_text_csv_of_every_folio_matches_the_committed_file() {
     with_golden_pages(|pages| {
-        assert_eq!(pages.len(), 34);
+        assert_eq!(pages.len(), 36);
         for g in pages {
             let scene = page_scene(&g.view, ew_text::bundled());
             let csv = text_csv(&scene);
@@ -298,7 +298,7 @@ fn every_committed_png_is_at_most_300_kb() {
         assert!(len <= 300 * 1024, "{}: {len} bytes", p.display());
         n += 1;
     }
-    assert_eq!(n, 34);
+    assert_eq!(n, 36);
 }
 
 fn folio<'a>(pages: &'a [GoldenPage], folio: &str) -> &'a GoldenPage {
@@ -561,6 +561,7 @@ fn hostile_view() -> PageView {
         wire_marker: None,
         table: None,
         embedded: Vec::new(),
+        cp_targets: Vec::new(),
     }
 }
 
@@ -730,6 +731,7 @@ fn every_page_wire_of_the_golden_model_is_drawn() {
             total += drawn;
             assert_eq!(drawn, g.view.connections.len(), "folio {}", g.entry.folio);
         }
-        assert_eq!(total, 72, "page wires of the golden model");
+        // 72 wire connections and the single-line bus cable -3W1 on folio 3 (DP.1; DP.2 is page-less).
+        assert_eq!(total, 72 + 1, "page connections of the golden model");
     });
 }

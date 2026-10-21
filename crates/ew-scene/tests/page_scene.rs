@@ -157,6 +157,7 @@ fn view() -> PageView {
         wire_marker: Some(symbol(MARKER)),
         table: None,
         embedded: Vec::new(),
+        cp_targets: Vec::new(),
     }
 }
 
@@ -578,6 +579,7 @@ fn bare(reps: Vec<RepView>, connections: Vec<ConnectionView>) -> PageView {
         wire_marker: None,
         table: None,
         embedded: Vec::new(),
+        cp_targets: Vec::new(),
     }
 }
 
@@ -712,4 +714,41 @@ fn a_strip_segment_draws_one_point_per_terminal_and_side() {
             connection: Id::from_uuid(Uuid::from_u128(0x74))
         }]
     );
+}
+
+#[test]
+fn cp_targets_are_named_destinations_at_the_cp_else_at_the_representation() {
+    let t = symbol(TERMINAL);
+    let reps = vec![RepView {
+        rep: rep(0x42, 0xF1, t.id, 40, 40, "r0"),
+        symbol: Some(t.def.clone()),
+        slots: Vec::new(),
+        terminals: Vec::new(),
+    }];
+    let mut v = bare(reps, Vec::new());
+    let target = |idx: u16| ew_scene::page::CpTarget {
+        rep: Id::from_uuid(Uuid::from_u128(0x42)),
+        function: Id::from_uuid(Uuid::from_u128(0xF1)),
+        idx,
+    };
+    v.cp_targets = vec![target(9), target(0), target(0)];
+    let list = page_display_list(&v, Layer::Symbols, bundled()).list;
+    let dest = |idx: u16| {
+        let cp: Id<()> = ew_ids::v5::cp_id(Id::<()>::from_uuid(Uuid::from_u128(0xF1)), u32::from(idx));
+        Destination::Cp(cp.as_uuid())
+    };
+    let at = |idx: u16| -> Vec<Pt2> {
+        list.items
+            .iter()
+            .filter(|i| i.link == Some(Link::Target(dest(idx))))
+            .filter_map(|i| match &i.kind {
+                ItemKind::Group(g) => g.transform.map(|t| t.translate),
+                _ => None,
+            })
+            .collect()
+    };
+    // CP 0 is drawn by the terminal symbol (once, deduplicated); CP 9 is not, so it sits at the anchor.
+    assert_eq!(at(0).len(), 1);
+    assert_ne!(at(0), vec![p(40, 40)]);
+    assert_eq!(at(9), vec![p(40, 40)]);
 }

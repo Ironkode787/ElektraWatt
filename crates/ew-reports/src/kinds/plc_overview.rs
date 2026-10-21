@@ -21,8 +21,8 @@ use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, 
 /// (doc 10 §5). The columns are those of doc 10 §5: module, part, address (rendered by the configuration
 /// project's profile; "TBD" for an open item, empty when excluded), channel number, designation, kind,
 /// symbol (manual only before the templates of 1.0), function text (the target's, else the tracked process
-/// tag), process tag, target, state, and the frame cell of the bound coil's representation, which the row
-/// links to (doc 20 §11.3).
+/// tag), process tag, target, state, and the frame cell of the bound coil's representation; the cell links
+/// to the bound CP, the coil's position (doc 10 §5, doc 20 §11.3).
 #[derive(Clone, Copy, Debug)]
 pub struct PlcOverview;
 
@@ -168,10 +168,14 @@ fn plc_row(q: &Q, columns: &[ColumnDef], r: &PlcRow) -> Row {
                 "page",
                 Cell::CellRef(PageRef::Drawn(page), cell),
             );
-            if let (Some(col), Some(d)) = (page_col, r.target_device) {
+            // The row links to the coil's position (doc 10 §5): the bound CP.
+            if let (Some(col), Some(cp)) = (page_col, r.cp) {
                 links.push(LinkRef {
                     column: u16::try_from(col).unwrap_or(u16::MAX),
-                    target: LinkTarget::MainRep(d),
+                    target: LinkTarget::Cp {
+                        function: cp.function,
+                        idx: cp.idx,
+                    },
                 });
             }
         }

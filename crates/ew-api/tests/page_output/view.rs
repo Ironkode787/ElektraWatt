@@ -60,12 +60,12 @@ use ew_import_tables::ew_interop_api::ImportInput;
 use ew_import_tables::{BuiltinLibrary, TablesImporter, bootstrap_context};
 use ew_render_cpu::FontBytes;
 use ew_reports::render::{RenderOptions, render};
-use ew_reports::{BlockRows, Row, RowKind};
+use ew_reports::{BlockRows, LinkTarget, Row, RowKind};
 use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedView};
 use ew_scene::forms::{AssetRef, BoundValue, PageBindings};
 use ew_scene::page::{
-    ConnectionView, FrameView, ItemLink, JunctionView, PageKind, PageView, RepView, SegmentTerminal,
-    SlotValue, SymbolRef,
+    ConnectionView, CpTarget, FrameView, ItemLink, JunctionView, PageKind, PageView, RepView,
+    SegmentTerminal, SlotValue, SymbolRef,
 };
 use ew_scene::table::{TableColumn, TableRow, TableRowKind, TableView};
 use ew_schema::{
@@ -406,6 +406,7 @@ pub fn golden_pages(q: &Q) -> Vec<GoldenPage> {
             wire_marker: marker.clone(),
             table: None,
             embedded: Vec::new(),
+            cp_targets: Vec::new(),
         };
         match entry.page {
             PageRef::Drawn(p) => {
@@ -467,6 +468,7 @@ pub fn golden_pages(q: &Q) -> Vec<GoldenPage> {
                     };
                     view.junctions.push(JunctionView { junction: j, symbol });
                 }
+                view.cp_targets = cp_targets(q, p);
             }
             PageRef::Generated { .. } => {
                 let g = order.generated(entry.page);
@@ -485,6 +487,49 @@ pub fn golden_pages(q: &Q) -> Vec<GoldenPage> {
             section_title,
         });
     }
+    out
+}
+
+/// The drawn row links of a report row (FR-REP-042): the links to a connection point, which the PLC overview
+/// sets to the coil of each bound channel (doc 10 §5). The TOC's page links and the parts list's
+/// representation links are not drawn yet.
+fn row_links(r: &Row) -> Vec<(usize, Destination)> {
+    r.links
+        .iter()
+        .filter_map(|l| match l.target {
+            LinkTarget::Cp { function, idx } => {
+                let cp: Id<()> = ew_ids::v5::cp_id(function, u32::from(idx));
+                Some((usize::from(l.column), Destination::Cp(cp.as_uuid())))
+            }
+            _ => None,
+        })
+        .collect()
+}
+
+/// The CPs of drawn page `page` that a report row links to, with the representation that draws each one's
+/// function there (the named destinations `ew:cp:<uuid>` of doc 09 §4.2).
+fn cp_targets(q: &Q, page: Id<Page>) -> Vec<CpTarget> {
+    let mut out = Vec::new();
+    for (block, _) in q.report_blocks().iter() {
+        let set = q.get::<BlockRows>(block);
+        for r in &set.rows {
+            for l in &r.links {
+                let LinkTarget::Cp { function, idx } = l.target else {
+                    continue;
+                };
+                let rep = q.idx().reps_of_function(function).find(|rid| {
+                    q.reps()
+                        .get(*rid)
+                        .is_some_and(|x| x.page == page && x.rep_type != RepType::ContactImage)
+                });
+                if let Some(rep) = rep {
+                    out.push(CpTarget { rep, function, idx });
+                }
+            }
+        }
+    }
+    out.sort();
+    out.dedup();
     out
 }
 
@@ -520,6 +565,7 @@ fn table_view(q: &Q, g: &GeneratedPage, page: PageRef) -> TableView {
                 RowKind::Heading | RowKind::GroupHeader | RowKind::GroupFooter => TableRowKind::Heading,
             },
             cells: r.cells.iter().map(|c| render(q, c, &opts)).collect(),
+            links: row_links(r),
         })
         .collect();
     TableView {

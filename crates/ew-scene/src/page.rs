@@ -259,6 +259,21 @@ pub struct PageView {
     pub table: Option<TableView>,
     /// The embedded report blocks of a drawn page (FR-REP-028), drawn into the `tables` layer.
     pub embedded: Vec<EmbeddedView>,
+    /// The connection points of this page that a link of the export points at (a PLC overview row links to
+    /// its coil, doc 10 §5): each gets a named destination ([`Destination::Cp`]) at its drawn position, else
+    /// at its representation's position (a CP the symbol does not draw, such as the internal coil 14).
+    pub cp_targets: Vec<CpTarget>,
+}
+
+/// A connection point that is a link destination on its page (see [`PageView::cp_targets`]).
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub struct CpTarget {
+    /// The representation that draws the CP's function on the page.
+    pub rep: Id<Representation>,
+    /// The function.
+    pub function: Id<Function>,
+    /// The CP index.
+    pub idx: u16,
 }
 
 /// Something worth reporting while building a page.
@@ -628,6 +643,25 @@ impl Builder<'_> {
                     link: None,
                     items: &[],
                 });
+            }
+        }
+        // The CP destinations of the page, after the symbols (an empty group at the CP: invisible).
+        if !view.cp_targets.is_empty() {
+            let cps = cp_map(view);
+            let mut targets = view.cp_targets.clone();
+            targets.sort();
+            targets.dedup();
+            for t in targets {
+                let at = cps
+                    .get(&(t.function.as_uuid(), t.idx))
+                    .map(|(p, _)| *p)
+                    .or_else(|| view.reps.iter().find(|r| r.rep.id == t.rep).map(|r| r.rep.pos));
+                let Some(at) = at else { continue };
+                let cp: Id<()> = ew_ids::v5::cp_id(t.function, u32::from(t.idx));
+                self.push(
+                    Item::group(Some(Transform::from_translation(at)), None, Vec::new())
+                        .with_link(Link::Target(Destination::Cp(cp.as_uuid()))),
+                );
             }
         }
     }

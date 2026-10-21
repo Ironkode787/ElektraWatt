@@ -43,6 +43,7 @@ fn view(table: Option<TableView>) -> PageView {
         wire_marker: None,
         table,
         embedded: Vec::new(),
+        cp_targets: Vec::new(),
     }
 }
 
@@ -61,6 +62,7 @@ fn table(rows: &[&[&str]]) -> TableView {
             .map(|r| TableRow {
                 kind: TableRowKind::Data,
                 cells: r.iter().map(|c| (*c).to_owned()).collect(),
+                links: Vec::new(),
             })
             .collect(),
         note: None,
@@ -206,6 +208,7 @@ fn a_note_takes_one_row_and_a_heading_spans_the_columns() {
         TableRow {
             kind: TableRowKind::Heading,
             cells: vec!["Bridges".to_owned()],
+            links: Vec::new(),
         },
     );
     let l = page_display_list(&view(Some(t)), Layer::Tables, bundled());
@@ -222,4 +225,20 @@ fn a_note_takes_one_row_and_a_heading_spans_the_columns() {
         .filter(|i| matches!(&i.kind, ItemKind::Path(p) if p.stroke.is_some()))
         .count();
     assert_eq!(strokes, 1 + 2 + 2 * 2);
+}
+
+#[test]
+fn a_linked_cell_carries_a_link_source() {
+    let mut t = table(&[&["1", "Title", "+J"]]);
+    let d = ew_dl::Destination::Cp(Uuid::from_u128(0x77));
+    t.rows[0].links = vec![(1, d)];
+    let l = page_display_list(&view(Some(t)), Layer::Tables, bundled());
+    let linked: Vec<&ew_dl::Item> = l
+        .list
+        .items
+        .iter()
+        .filter(|i| i.link == Some(ew_dl::Link::Source(d)))
+        .collect();
+    assert!(!linked.is_empty());
+    assert!(linked.iter().all(|i| matches!(i.kind, ItemKind::Glyphs(_))));
 }
