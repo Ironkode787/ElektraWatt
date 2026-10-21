@@ -159,7 +159,7 @@ pub struct BomRow {
 ///    that tie before the part number does (doc 20 §14.2: order code 1 is A1, order code 2 is A2): the head
 ///    of a configured row is the device of the row whose main representation gives the row's least
 ///    placement (the smallest device ID if several tie), and the rank is the index of the config of the
-///    head's `assembly` aspect (`Device.extra["assembly"].configs`, doc 03 §7) whose `part` names the part
+///    head's `assembly` aspect (`DeviceAspects.assembly`, its `configs`, doc 03 §7) whose `part` names the part
 ///    copy, else, after every named part, the index of the part in the head's `Device.parts`. A malformed
 ///    `assembly` member is ignored, so `Device.parts` order alone applies.
 /// 5. **Positions:** 1, 2, … over the component rows and, separately, over the configured rows.
@@ -334,12 +334,14 @@ fn head_rank(q: &Q, head: Id<Device>, part: Id<Part>) -> usize {
     configs.len() + by_use
 }
 
-/// The `part` copy of each entry of `Device.extra["assembly"].configs`, in order; empty when the member is
-/// absent or not of the expected shape. An entry without a readable `part` gives `None`.
+/// The `part` copy of each entry of the untyped `assembly` aspect's `configs` (`DeviceAspects.assembly`), in
+/// order; empty when the member is absent or not of the expected shape. An entry without a readable `part`
+/// gives `None`.
 fn assembly_config_parts(dev: &Device) -> Vec<Option<Id<Part>>> {
     let Some(configs) = dev
-        .extra
-        .get("assembly")
+        .aspects
+        .assembly
+        .as_ref()
         .and_then(|a| a.get("configs"))
         .and_then(|c| c.as_array())
     else {
