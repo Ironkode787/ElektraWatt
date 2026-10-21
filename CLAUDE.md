@@ -80,6 +80,17 @@ be expensive or hard to detect (data, safety, legal)? Is verification weak (no t
   **milestone deliveries**, never in a fix round or a cycle gate. Perf claims in reports are marked
   "not measured (milestone rule)" unless a number came from a run that was needed to develop the fix.
 
+## Disk and build concurrency (owner's rule, 2026-10-21)
+
+- `.claude/settings.json` sets, for every Claude session in this project, `CARGO_PROFILE_DEV_DEBUG=line-tables-only`
+  (panics keep file and line; the PDBs lose most of their size), `CARGO_INCREMENTAL=0` and `CARGO_BUILD_JOBS=4`. Do
+  not override them in a lane; a full-debuginfo build is a deliberate, one-off choice.
+- A lane's worktree `target` is deleted the moment its work is integrated and re-verified (`cmd //c "rmdir /s /q
+  <worktree>	arget"` when `rm -rf` fails on stale incremental entries); the main checkout's `target` is cleaned
+  after every gate. The orchestrator keeps at least 150 GB free before a gate and never lets a third lane build while
+  two are building.
+- Agents never delete anything outside their own worktree; if the disk runs short they stop and report.
+
 ## Repository rules
 
 - Commit on the working branch, then merge into `main` and push both (owner's standing instruction).
