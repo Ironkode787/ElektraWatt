@@ -367,7 +367,7 @@ pub const WIRE: View = View {
         ),
         t(
             "junction_cps",
-            "star: the entering CP; chain: the wire's ends shared with another wire of the junction; JSON array of CP texts (\"F55:2\")",
+            "star: the entering CP; chain: the wire's ends shared with another wire of the junction; JSON array of CP texts (\"F55:2\", \"-102G1:−#1\": `#n` where printed designations repeat)",
         ),
         t(
             "chain_cps",

@@ -201,15 +201,8 @@ pub(super) fn end_text(q: &Q, end: &WireEnd) -> String {
 /// when absent. The junction's style (dot, bevel) is drawing notation and stays on the page.
 pub(super) fn join_texts(q: &Q, w: &PhysicalWire) -> (Option<String>, Option<String>) {
     let join = ew_derive::wire_join(q, w);
-    let cp_text = |cp: &CpRef| {
-        end_text(
-            q,
-            &WireEnd {
-                cp: *cp,
-                kind: EndKind::Device,
-            },
-        )
-    };
+    // `#n` where printed designations repeat, so the star centres of J5 and J6 stay apart.
+    let cp_text = |cp: &CpRef| ew_derive::cp_label(q, *cp);
     let junction = join.junction.map(|j| {
         let folio = q
             .get::<ew_derive::DrawnPageOrder>(())

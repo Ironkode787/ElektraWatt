@@ -98,7 +98,7 @@ pub use index::{
     PagelessLinksV, RailTerminals,
 };
 pub use ip::{IpFnInfo, IpInfoOf, IpNotes, IpPairing, IpPairingQ};
-pub use joins::{JoinStyle, JoinWiring, JunctionJoin, WireJoin, wire_join};
+pub use joins::{JoinStyle, JoinWiring, JunctionJoin, WireJoin, cp_label, wire_join};
 pub use links::{
     BondPath, BondPaths, BondPathsQ, DeclaredLink, FunctionLinks, FunctionLinksOf, RailBonds, RailBondsQ,
     RailTerminal, RailTerminalOf,

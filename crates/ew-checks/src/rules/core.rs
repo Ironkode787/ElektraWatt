@@ -324,7 +324,7 @@ pub const XREF_CELL_INVALID: RuleMeta = RuleMeta {
     release: Release::Mvp,
 };
 
-//// EW-CORE-053: a printed cross-reference whose target cell lies outside the frame or contains no graphics
+/// EW-CORE-053: a printed cross-reference whose target cell lies outside the frame or contains no graphics
 /// of the target (FR-CHK-035, STD XR-05; D-14, MF-13).
 ///
 /// For every representation on the page whose cross-reference text shows a target (`xref_relation`,

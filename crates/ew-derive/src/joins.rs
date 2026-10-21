@@ -191,3 +191,52 @@ fn daisy_ends(q: &Q, w: &PhysicalWire) -> Vec<CpRef> {
     }
     out
 }
+
+/// A CP as one text, as the junction notation prints it (doc 08 §3.8 "Wire-end locus"): a device CP
+/// `tag:designation` with `#n` where the function's printed designations repeat (`-102G1:−#1`, the n-th CP of
+/// that designation in index order), a terminal `strip:terminal/clamp` (`-X1031:1/b`), an interruption
+/// point its name; empty for an unknown function.
+pub fn cp_label(q: &Q, cp: CpRef) -> String {
+    let Some(f) = q.functions().get(cp.function) else {
+        return String::new();
+    };
+    let Some(device) = f.device else {
+        return match &f.kind {
+            ew_schema::FunctionKind::Ip(ip) => ip.name.as_str().to_owned(),
+            _ => String::new(),
+        };
+    };
+    let short = q
+        .get::<crate::DeviceTag>(device)
+        .as_ref()
+        .as_ref()
+        .map(|t| t.short())
+        .unwrap_or_default();
+    let cps = q.get::<crate::FunctionCps>(cp.function);
+    let Some(this) = cps.iter().find(|c| c.idx == cp.idx) else {
+        return short;
+    };
+    let terminal = q
+        .devices()
+        .get(device)
+        .is_some_and(|d| d.aspects.terminal.is_some());
+    if terminal {
+        return match &this.clamp {
+            Some(ew_schema::ClampKey::Clamp(ch)) => format!("{short}/{ch}"),
+            _ => short,
+        };
+    }
+    if this.designation.is_empty() {
+        return short;
+    }
+    let mut same: Vec<u16> = cps
+        .iter()
+        .filter(|c| c.designation == this.designation)
+        .map(|c| c.idx)
+        .collect();
+    same.sort_unstable();
+    match same.iter().position(|i| *i == cp.idx) {
+        Some(n) if same.len() > 1 => format!("{short}:{}#{}", this.designation, n + 1),
+        _ => format!("{short}:{}", this.designation),
+    }
+}
