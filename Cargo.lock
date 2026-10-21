@@ -721,11 +721,13 @@ dependencies = [
  "ew-commands",
  "ew-derive",
  "ew-ids",
+ "ew-import-tables",
  "ew-mltext",
  "ew-model",
  "ew-rds",
  "ew-schema",
  "ew-units",
+ "serde",
  "serde_json",
 ]
 

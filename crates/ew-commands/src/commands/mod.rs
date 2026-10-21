@@ -32,6 +32,9 @@
 //! | `edit.delete` | [`DeleteSelection`] | Interactive; Bulk above 500 targets |
 //! | `numbering.renumber` | [`RenumberDevices`] | Bulk |
 //! | `project.settings.set` | [`SetProjectSettings`] | Bulk |
+//! | `box.black` | [`PlaceBlackBox`] | Interactive |
+//! | `bond.create` | [`CreateBond`] | Interactive |
+//! | `external_ref.create` | [`CreateExternalRef`] | Interactive |
 //!
 //! Every command is undoable, of exposure class `Edit` and stability `Preview`.
 
@@ -48,18 +51,19 @@ mod terminal;
 
 pub use common::{EndpointParam, KindName, TargetRef};
 pub use connection::{
-    Connect, ContinueIp, DefinePotential, DeleteConnections, EditJunction, PlaceIp, RouteConnection,
-    WiringChoice,
+    Connect, ContinueIp, CreateBond, DefinePotential, DeleteConnections, EditJunction, PlaceIp,
+    RouteConnection, WiringChoice,
 };
 pub use device::{
-    ConnectHint, CreateDevice, MoveReps, PlaceSymbol, PlaceTarget, SetAnchorPolicy, TransformReps,
+    ConnectHint, CreateDevice, MoveReps, PlaceBlackBox, PlaceSymbol, PlaceTarget, SetAnchorPolicy,
+    TransformReps,
 };
 pub use edit::{BULK_ABOVE, DeleteSelection};
 pub use fields::{ASPECTS, SETTABLE, SetFields};
 pub use page::{CreatePage, DeletePages, PageScope, RenumberPages};
 pub use renumber::{DeviceScope, NumberingScheme, RenumberDevices, RenumberOptions};
 pub use settings::{SETTABLE_SETTINGS, SetProjectSettings, SettableSetting};
-pub use structure::{CreateReportBlock, CreateSection, CreateStructureNode};
+pub use structure::{CreateExternalRef, CreateReportBlock, CreateSection, CreateStructureNode};
 pub use terminal::{
     AddConductors, AddTerminals, ConductorSpec, CreateCable, DesignateTerminals, TerminalDesignation,
     TerminalSpec,
@@ -95,4 +99,7 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<DeleteSelection>();
     r.register::<RenumberDevices>();
     r.register::<SetProjectSettings>();
+    r.register::<PlaceBlackBox>();
+    r.register::<CreateBond>();
+    r.register::<CreateExternalRef>();
 }

@@ -23,6 +23,11 @@ ew-ids = { path = "../ew-ids" }
 ew-units = { path = "../ew-units" }
 ew-mltext = { path = "../ew-mltext" }
 ew-rds = { path = "../ew-rds" }
+# The golden builders (WP-S6.01): path (a), the CSV bootstrap, and path (b), the builder DSL, which reads the
+# bootstrap batch as its typed description and speaks the JSON parameters of the commands (doc 17 §3.5).
+ew-import-tables = { path = "../ew-import-tables" }
+serde = { workspace = true }
+serde_json = "1.0.154"
 
 [dev-dependencies]
 # Tests and benches load the generated projects through the Session facade and run commands on them.

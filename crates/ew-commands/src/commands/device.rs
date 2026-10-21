@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Device and representation commands: `device.create`, `device.place`, `rep.move`, `rep.transform`,
-//! `rep.set_anchor_policy`.
+//! `rep.set_anchor_policy`, `box.black`.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -10,9 +10,9 @@ use std::sync::Arc;
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
-    AnchorPolicy, Connection, ConnectionKind, Device, DeviceAspects, DeviceKind, Endpoint, Extra, FnDef,
-    FnRole, Function, FunctionKind, Junction, JunctionStyle, Kind, LibCopy, NumberSpec, Page, PageType,
-    PartUse, RepType, Representation, Strip, StructureAssignment, SymbolDef, TagSpec,
+    AnchorPolicy, BoxSpec, Connection, ConnectionKind, Device, DeviceAspects, DeviceKind, Endpoint, Extra,
+    FnDef, FnRole, Function, FunctionKind, Junction, JunctionStyle, Kind, LibCopy, NumberSpec, Page,
+    PageType, PartUse, RepType, Representation, Strip, StructureAssignment, SymbolDef, TagSpec,
 };
 use ew_units::{Orient2, Pt2};
 use schemars::JsonSchema;
@@ -241,24 +241,7 @@ impl Command for PlaceSymbol {
         let function = match &self.target {
             PlaceTarget::NewDevice { letter, fndef, kind } => {
                 let def = place_fndef(tx, &symbol, *fndef)?;
-                let device: Id<Device> = tx.mint();
-                tx.insert(Device {
-                    id: device,
-                    v: 1,
-                    tag: TagSpec::new(letter.clone(), None),
-                    kind: kind.clone(),
-                    parent: None,
-                    position: None,
-                    structure: StructureAssignment::default(),
-                    parts: Vec::new(),
-                    function_text: MlText::default(),
-                    process_tag: None,
-                    tech_data: Default::default(),
-                    state: Default::default(),
-                    source_ref: None,
-                    aspects: DeviceAspects::default(),
-                    extra: Extra::new(),
-                })?;
+                let device = insert_new_device(tx, letter, kind)?;
                 insert_function(tx, Some(device), def, FnRole::Main)?
             }
             PlaceTarget::ExistingFunction { function } => {
@@ -778,6 +761,149 @@ impl Command for SetAnchorPolicy {
     }
 }
 
+/// `box.black` (`PlaceBlackBox`, doc 06 §2.7, §3.1): places a black box, a function of kind `black_box`
+/// drawn with the black-box symbol and its page geometry.
+///
+/// - The page and the symbol copy must exist (the built-in black-box symbol `ew.gen.blackbox` draws the
+///   outline, CPs and inner graphics of `box`). The representation is `{functions: [f], page, symbol, pos,
+///   orient, rep_type, box}`; `rep_type` defaults to the symbol's and must be one the page type allows (as
+///   `device.place`); `pos` must be on the page's connection grid.
+/// - `box` (`BoxSpec`, doc 03 §6): the outline, the device CPs with their function CP index, position
+///   relative to the representation and direction, and the inner graphics. Absent: the function is drawn
+///   by the symbol alone (a black-box function shown without its outline, as the CPX blocks of folios
+///   203 … 206). Rejected: an outline of fewer than three points; two box CPs with the same index; a box CP
+///   off the page's connection grid (with `orient` r0, the check is on `pos + cp.pos`).
+/// - `target` as in `device.place`, with the function's kind `black_box`: `new_device` creates a device
+///   `{tag: {letter, counter: none}, kind}` and its main black-box function; `join_device` a black-box
+///   function of the device with the given role (default auxiliary; a second main function is rejected by
+///   EW-INV-002); `existing_function` another representation of an existing function, which must be of kind
+///   `black_box` (else rejected with a hint to use `device.place`).
+/// - The black box's CPs are derived, not stored on the function: the part's CP pattern (the
+///   template-origin rule of doc 03 §7) or the box CPs.
+///
+/// Containment (a function placed inside the outline joins the box's device, doc 06 §2.7) is a gesture of
+/// the place tool and is not done here. Outcome: the representation.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct PlaceBlackBox {
+    /// The page.
+    #[schemars(with = "UuidS")]
+    pub page: Id<Page>,
+    /// The black-box symbol copy.
+    #[schemars(with = "UuidS")]
+    pub symbol: Id<SymbolDef>,
+    /// The insertion point.
+    #[schemars(with = "Pt2S")]
+    pub pos: Pt2,
+    /// The orientation.
+    #[serde(default)]
+    #[schemars(with = "Orient2S")]
+    pub orient: Orient2,
+    /// The representation type; default the symbol's.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rep_type: Option<RepType>,
+    /// The outline, CPs and inner graphics; absent draws the symbol alone.
+    #[serde(rename = "box", default, skip_serializing_if = "Option::is_none")]
+    pub box_: Option<BoxSpec>,
+    /// Which device the black box belongs to.
+    pub target: PlaceTarget,
+}
+
+impl Command for PlaceBlackBox {
+    const NAME: &'static str = "box.black";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let page = tx.require::<Page>(self.page)?;
+        let symbol = tx.require::<LibCopy<SymbolDef>>(self.symbol)?;
+        require_on_grid(tx, self.page, self.pos, "/pos")?;
+        let rep_type = self
+            .rep_type
+            .clone()
+            .unwrap_or_else(|| symbol.item.rep_type.clone());
+        check_rep_type(tx, &page, &rep_type)?;
+        if let Some(b) = &self.box_ {
+            if b.outline.len() < 3 {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    "/box/outline",
+                    "an outline has at least three points",
+                ));
+            }
+            let mut seen = BTreeSet::new();
+            for (i, cp) in b.cps.iter().enumerate() {
+                if !seen.insert(cp.idx) {
+                    return Err(CmdError::invalid_params(
+                        Self::NAME,
+                        format!("/box/cps/{i}/idx"),
+                        "two box CPs have the same function CP index",
+                    ));
+                }
+                if self.orient == Orient2::default() {
+                    let Ok(at) = add(self.pos, cp.pos) else {
+                        return tx.reject(format!(
+                            "box CP {i} lies outside the drawable range; place the box nearer the page origin"
+                        ));
+                    };
+                    require_on_grid(tx, self.page, at, &format!("/box/cps/{i}/pos"))?;
+                }
+            }
+        }
+        let function = match &self.target {
+            PlaceTarget::NewDevice { letter, fndef, kind } => {
+                let def = place_fndef(tx, &symbol, *fndef)?;
+                let device = insert_new_device(tx, letter, kind)?;
+                insert_function_of_kind(tx, Some(device), def, FnRole::Main, FunctionKind::BlackBox)?
+            }
+            PlaceTarget::ExistingFunction { function } => {
+                let f = tx.require::<Function>(*function)?;
+                if f.kind != FunctionKind::BlackBox {
+                    return tx.reject(
+                        "the function is not a black box; place another representation of it with \
+                         `device.place`",
+                    );
+                }
+                *function
+            }
+            PlaceTarget::JoinDevice { device, fndef, role } => {
+                tx.require::<Device>(*device)?;
+                let def = place_fndef(tx, &symbol, *fndef)?;
+                insert_function_of_kind(tx, Some(*device), def, role.clone(), FunctionKind::BlackBox)?
+            }
+        };
+        let rep: Id<Representation> = tx.mint();
+        let record = Representation {
+            id: rep,
+            v: 1,
+            functions: vec![function],
+            page: self.page,
+            symbol: self.symbol,
+            variant: 0,
+            pos: self.pos,
+            orient: self.orient,
+            rep_type,
+            pin_map: Default::default(),
+            text_slots: Default::default(),
+            arrangement: None,
+            anchor: None,
+            box_: self.box_.clone(),
+            source_ref: None,
+            extra: Extra::new(),
+        };
+        if rep_cps_checked(tx, &record).is_err() {
+            return tx.reject(
+                "`/pos` puts a connection point of the black box outside the drawable range; place it nearer \
+                 the page origin",
+            );
+        }
+        tx.insert(record)?;
+        Ok(Outcome::primary((Kind::Representation, rep.cast())))
+    }
+}
+
 // The functions a representation draws: its `functions` and the functions of its pin map.
 fn drawn_functions(rep: &Representation) -> BTreeSet<Id<Function>> {
     rep.functions
@@ -815,6 +941,17 @@ fn insert_function(
     def: Id<FnDef>,
     role: FnRole,
 ) -> Result<Id<Function>, CmdError> {
+    insert_function_of_kind(tx, device, def, role, FunctionKind::Normal)
+}
+
+/// Inserts a function of `device` with the given definition, role and kind.
+fn insert_function_of_kind(
+    tx: &mut TxBuilder<'_>,
+    device: Option<Id<Device>>,
+    def: Id<FnDef>,
+    role: FnRole,
+    kind: FunctionKind,
+) -> Result<Id<Function>, CmdError> {
     let id: Id<Function> = tx.mint();
     tx.insert(Function {
         id,
@@ -822,9 +959,35 @@ fn insert_function(
         device,
         def,
         role,
-        kind: FunctionKind::Normal,
+        kind,
         cp_overrides: Default::default(),
         source_ref: None,
+        extra: Extra::new(),
+    })
+}
+
+/// Inserts the device of a `new_device` placement target: `{tag: {letter, counter: none}, kind}`.
+fn insert_new_device(
+    tx: &mut TxBuilder<'_>,
+    letter: &Ident,
+    kind: &Option<DeviceKind>,
+) -> Result<Id<Device>, CmdError> {
+    let device: Id<Device> = tx.mint();
+    tx.insert(Device {
+        id: device,
+        v: 1,
+        tag: TagSpec::new(letter.clone(), None),
+        kind: kind.clone(),
+        parent: None,
+        position: None,
+        structure: StructureAssignment::default(),
+        parts: Vec::new(),
+        function_text: MlText::default(),
+        process_tag: None,
+        tech_data: Default::default(),
+        state: Default::default(),
+        source_ref: None,
+        aspects: DeviceAspects::default(),
         extra: Extra::new(),
     })
 }

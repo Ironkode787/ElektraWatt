@@ -8,4 +8,5 @@
 #![deny(missing_docs)]
 
 pub mod bench;
+pub mod golden;
 pub mod synth;

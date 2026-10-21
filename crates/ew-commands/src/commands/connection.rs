@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Connectivity commands (ADR-0007, doc 06 §3.5): `connection.draw`, `connection.route`,
-//! `connection.delete`, `junction.edit`, `ip.place`, `ip.continue`, `potential.define`.
+//! `connection.delete`, `junction.edit`, `ip.place`, `ip.continue`, `potential.define`, `bond.create`.
 
 use std::sync::Arc;
 
@@ -10,10 +10,10 @@ use ew_ids::Id;
 use ew_mltext::Ident;
 use ew_model::EndpointKey;
 use ew_schema::{
-    CircuitClass, Connection, ConnectionKind, Endpoint, ExternalRef, Extra, FnDef, FnRole, Function,
-    FunctionKind, IpDirection, IpSpec, Junction, JunctionStyle, JunctionWiring, Kind, LibCopy, NumberSpec,
-    Page, PotentialDef, PotentialEnv, PotentialType, RepType, Representation, SymbolDef, WireOverrides,
-    WireProps,
+    Bond, BondKind, CircuitClass, Connection, ConnectionKind, Endpoint, ExternalRef, Extra, FnDef, FnRole,
+    Function, FunctionKind, IpDirection, IpSpec, Junction, JunctionStyle, JunctionWiring, Kind, LibCopy,
+    NumberSpec, Page, PotentialDef, PotentialEnv, PotentialType, RepType, Representation, SymbolDef,
+    WireOverrides, WireProps,
 };
 use ew_units::{Dec3, Orient2, Pt2};
 use schemars::JsonSchema;
@@ -579,5 +579,65 @@ impl Command for DefinePotential {
             extra: Extra::new(),
         })?;
         Ok(Outcome::primary((Kind::PotentialDef, id.cast())))
+    }
+}
+
+/// `bond.create` (`CreateBond`): declares a bond, a link of two potentials that does not merge them
+/// (doc 03 §9.6, doc 08 §3.7; FR-CON-014, the "declare bond" quick fix of EW-POT-001).
+///
+/// Creates `Bond {a, b, kind, via}`. `a` and `b` must each be a CP of an existing function or an existing
+/// junction (a point on a connection is rejected) and must differ; `via`, the connection that realises the
+/// bond (W27 for PE-0VDC of Golden A), must exist when given. The bond's label (`B1`) is derived. Whether
+/// the two ends lie on different potentials, and the PELV rule of exactly one 0 V-PE bond, are checks
+/// (EW-POT-001, EW-POT-002), not refusals. Outcome: the bond.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct CreateBond {
+    /// First end.
+    pub a: EndpointParam,
+    /// Second end.
+    pub b: EndpointParam,
+    /// The bond kind.
+    pub kind: BondKind,
+    /// The connection that realises the bond.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub via: Option<Id<Connection>>,
+}
+
+impl Command for CreateBond {
+    const NAME: &'static str = "bond.create";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let (Some(a), Some(b)) = (self.a.endpoint(), self.b.endpoint()) else {
+            return tx.reject("a bond ends at a CP or a junction, not on a connection; name one of them");
+        };
+        if a == b {
+            return tx.reject("both ends of the bond are the same point; pick two different ends");
+        }
+        if matches!(self.kind, BondKind::Unknown(_)) {
+            return Err(CmdError::invalid_params(Self::NAME, "/kind", "unknown bond kind"));
+        }
+        self.a.check(tx)?;
+        self.b.check(tx)?;
+        if let Some(via) = self.via {
+            tx.require::<Connection>(via)?;
+        }
+        let id: Id<Bond> = tx.mint();
+        tx.insert(Bond {
+            id,
+            v: 1,
+            a,
+            b,
+            kind: self.kind.clone(),
+            via: self.via,
+            source_ref: None,
+            extra: Extra::new(),
+        })?;
+        Ok(Outcome::primary((Kind::Bond, id.cast())))
     }
 }

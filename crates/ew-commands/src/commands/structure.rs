@@ -1,14 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Project structure commands: `structure.create_node`, `section.create`, `report_block.create`.
+//! Project structure commands: `structure.create_node`, `section.create`, `report_block.create`,
+//! `external_ref.create`.
 
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_rds::Aspect;
 use ew_schema::{
-    ContinuationPolicy, EmbedSpec, EmptyPolicy, Extra, FormDef, GroupSpec, Kind, LibCopy, ManualSelection,
-    Open, Page, ReportBlock, ReportSource, Section, Set, SortKey, StructureNode,
+    ContinuationPolicy, EmbedSpec, EmptyPolicy, ExternalRef, Extra, FormDef, GroupSpec, Kind, LibCopy,
+    ManualSelection, Open, Page, ReportBlock, ReportSource, Section, Set, SortKey, StructureNode,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -242,5 +243,61 @@ impl Command for CreateReportBlock {
             extra: Extra::new(),
         })?;
         Ok(Outcome::primary((Kind::ReportBlock, id.cast())))
+    }
+}
+
+/// `external_ref.create` (`CreateExternalRef`): a point outside the project that an interruption point or
+/// a structure box can name (doc 03 §6, FR-XRF-011): a device, and optionally its connection, at a
+/// location node, optionally in another project ("JE-N1000-03", connection "L", at +J-E-206).
+///
+/// Creates `ExternalRef {project, location, device, connection}`. The location node must exist and be of
+/// the location aspect (else rejected). Its fields are edited with `fields.set`; it is named by
+/// `ip.place`'s `external`. Outcome: the new reference.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct CreateExternalRef {
+    /// The location node.
+    #[schemars(with = "UuidS")]
+    pub location: Id<StructureNode>,
+    /// The device there.
+    #[schemars(with = "IdentS")]
+    pub device: Ident,
+    /// The connection there.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub connection: Option<Ident>,
+    /// The other project.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub project: Option<Ident>,
+}
+
+impl Command for CreateExternalRef {
+    const NAME: &'static str = "external_ref.create";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let node = tx.require::<StructureNode>(self.location)?;
+        if node.aspect != Open::Known(Aspect::Location) {
+            return tx.reject(format!(
+                "node {} is not a location; an external reference sits at a location node",
+                node.code.as_str()
+            ));
+        }
+        let id: Id<ExternalRef> = tx.mint();
+        tx.insert(ExternalRef {
+            id,
+            v: 1,
+            project: self.project.clone(),
+            location: self.location,
+            device: self.device.clone(),
+            connection: self.connection.clone(),
+            source_ref: None,
+            extra: Extra::new(),
+        })?;
+        Ok(Outcome::primary((Kind::ExternalRef, id.cast())))
     }
 }
