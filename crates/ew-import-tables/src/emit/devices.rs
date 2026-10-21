@@ -9,11 +9,12 @@ use ew_ids::Id;
 use ew_schema::{
     BoxCp, BoxSpec, Cable, CpOverride, Device, DeviceAspects, DeviceKind, DeviceState, Dir4, FnRole,
     FrozenTag, Function, FunctionKind, IpDirection, IpSpec, KeyedList, LabelMode, LengthSource, PartRef,
-    PartUse, Record, Representation, Side, Strip, TagPrint, TagScheme, TagSign, TagSpec, Terminal,
-    TerminalGroup,
+    PartUse, PlcModule, PlcStation, Record, Representation, Side, Strip, TagPrint, TagScheme, TagSign,
+    TagSpec, Terminal, TerminalGroup,
 };
 use ew_units::{Dec3, Grid, Nm, Pt2};
 
+use super::plc::STATION_ROLES;
 use super::project::structure_assignment;
 use super::{
     CpInfo, Cx, DeviceInfo, Fate, FnInfo, PlaceError, cell_point, dec3_mm_to_nm, fresh, grid_index,
@@ -179,10 +180,36 @@ pub(crate) fn emit_devices(cx: &mut Cx<'_>, table: Option<&Table>) {
         if strip.is_some() && cable.is_some() {
             r.fail("a device is a strip or a cable, not both (EW-INV-010)");
         }
+        let plc_station = r.text("plc_station");
+        let plc_role = r.choice("plc_role", STATION_ROLES);
+        let plc_order = r.uint::<u32>("plc_order");
+        let plc_module = r.flag("plc_module");
+        if plc_station.is_none() {
+            for column in ["plc_role", "plc_order"] {
+                if r.text(column).is_some() {
+                    r.fail(format!("column `{column}` needs column `plc_station`"));
+                }
+            }
+        } else if plc_role.is_none() {
+            r.fail("column `plc_role` is empty (required with `plc_station`)");
+        }
         if let Err(e) = r.finish() {
             cx.malformed(row, &e);
             continue;
         }
+        let station = match plc_station {
+            None => None,
+            Some(key) => match cx.plc_projects.get(key) {
+                Some(id) => Some(*id),
+                None => {
+                    cx.unresolved(
+                        row,
+                        &format!("unknown configuration project `{key}` in column `plc_station`"),
+                    );
+                    continue;
+                }
+            },
+        };
         let Some(letter) = letter else { continue };
         let id = record_id::<Device>("devices", row.key());
         cx.devices.insert(
@@ -222,8 +249,13 @@ pub(crate) fn emit_devices(cx: &mut Cx<'_>, table: Option<&Table>) {
                 strip,
                 terminal: None,
                 cable,
-                plc_station: None,
-                plc_module: None,
+                plc_station: station.zip(plc_role).map(|(config_project, role)| PlcStation {
+                    config_project,
+                    role,
+                    order: plc_order,
+                    extra: Default::default(),
+                }),
+                plc_module: plc_module.then(PlcModule::default),
             },
             extra: Default::default(),
         };

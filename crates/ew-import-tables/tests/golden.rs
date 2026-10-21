@@ -10,8 +10,10 @@ use ew_ids::Id;
 use ew_import_tables::ids::{self, record_id};
 use ew_interop_api::ImportBatch;
 use ew_schema::{
-    Bond, Connection, ConnectionKind, Device, Endpoint, Function, ImportLineage, LibDocument, LineageAnchor,
-    OrderUnit, PartKind, Project, Record, Representation,
+    AddrSpec, Bond, BusLine, Channel, ChannelKind, ChannelSpec, ChannelState, CircuitClass, Connection,
+    ConnectionKind, Device, DeviceLink, DeviceLinkKind, Endpoint, Function, ImportLineage, IoClass, IoDir,
+    IoRange, LibDocument, LineageAnchor, MapSpec, OrderUnit, Page, PartKind, PlcConfigProject, PlcRole,
+    PlcSection, PlcStation, PotentialDef, Project, Record, Representation, StationRole,
 };
 use ew_units::{Grid, Nm, Pt2};
 
@@ -138,13 +140,17 @@ fn the_per_kind_counts_are_those_of_doc_20() {
     assert_eq!(n("external_ref"), 4);
     // doc 20 §6.1 and §9: 68 devices plus 28 terminal devices.
     assert_eq!(n("device"), 96);
-    // doc 20 §8.2, §8.3: 72 drawn wire parts plus 19 bridge connections.
-    assert_eq!(n("connection"), 91);
-    // doc 20 §8.3: J1 to J6; §10: 13 conductors; §7.3: 18 potentials without DP; §7.4: B1.
+    // doc 20 §8.2, §8.3, §11.1: 72 drawn wire parts, 19 bridge connections and the 2 bus connections of DP.
+    assert_eq!(n("connection"), 93);
+    // doc 20 §8.3: J1 to J6; §10: 13 conductors; §7.3: 19 potentials (DP included); §7.4: B1.
     assert_eq!(n("junction"), 6);
     assert_eq!(n("conductor"), 13);
-    assert_eq!(n("potential_def"), 18);
+    assert_eq!(n("potential_def"), 19);
     assert_eq!(n("bond"), 1);
+    // doc 20 §11.2: one configuration project; §11.3: 56 channels; §6.2: 8 device links.
+    assert_eq!(n("plc_config_project"), 1);
+    assert_eq!(n("channel"), 56);
+    assert_eq!(n("device_link"), 8);
     // doc 20 §16, §17.3: 11 page-oriented and 4 embedded report blocks.
     assert_eq!(n("report_block"), 15);
     // doc 20 §14.1: 27 BOM rows, 23 with a part number and the 4 TBD parts of rows 24-27.
@@ -560,6 +566,250 @@ fn black_boxes_carry_their_cp_pattern_geometry() {
         let outline: Vec<_> = spec.outline.iter().map(|p| step(*p)).collect();
         assert_eq!(outline, [(0, 0), (10, 0), (10, 6), (0, 6)], "{key}");
         assert!(spec.inner.is_empty());
+    }
+}
+
+const MODULES: [&str; 7] = [
+    "-201U3", "-201U4", "-201U5", "-201U6", "-201U7", "-201U8", "-202U2",
+];
+
+fn device_of(b: &ImportBatch, key: &str) -> Device {
+    let id: Id<Device> = record_id("devices", key);
+    b.records
+        .iter()
+        .find_map(|r| match r {
+            Record::Device(d) if d.id == id => Some(d.clone()),
+            _ => None,
+        })
+        .unwrap_or_else(|| panic!("device {key} is emitted"))
+}
+
+/// Doc 20 §11.1, §7.3 row DP, §10 row -3W1: the bus cable from the external end to the plug (single-line, on
+/// folio 3), the page-less plug-on connection to the port, and the DP potential of class bus.
+#[test]
+fn the_bus_connections_and_the_dp_potential_are_those_of_doc_20() {
+    let b = golden();
+    let one = connection(&b, "DP.1");
+    assert_eq!(
+        one.kind,
+        ConnectionKind::Bus(BusLine {
+            cable: Some(record_id("devices", "-3W1")),
+            extra: Default::default()
+        })
+    );
+    assert_eq!(one.page, Some(record_id::<Page>("pages", "3")));
+    assert_eq!((one.a, one.b), (cp("DP@3", 0), cp("-3X1", 0)));
+    let two = connection(&b, "DP.2");
+    assert_eq!(
+        two.kind,
+        ConnectionKind::Bus(BusLine {
+            cable: None,
+            extra: Default::default()
+        })
+    );
+    assert_eq!(two.page, None, "the mating of the plug is not drawn");
+    assert_eq!((two.a, two.b), (cp("-3X1", 0), cp("-201U1#bus", 0)));
+
+    let id: Id<PotentialDef> = record_id("potentials", "DP");
+    let dp = b
+        .records
+        .iter()
+        .find_map(|r| match r {
+            Record::PotentialDef(p) if p.id == id => Some(p),
+            _ => None,
+        })
+        .expect("the DP potential definition");
+    assert_eq!(dp.name.as_str(), "DP");
+    assert_eq!(dp.at, cp("-201U1#bus", 0));
+    assert_eq!(dp.circuit_class, Some(CircuitClass::Bus));
+    assert!(dp.ptype.is_none() && dp.voltage.is_none());
+}
+
+/// Doc 20 §11.2: one configuration project (PLC1, the TIA profile), the station -201U1 (valve terminal) and the
+/// seven modules; the PLC section of part 533361 (doc 10 §2.6).
+#[test]
+fn the_plc_station_the_modules_and_the_part_section_are_those_of_doc_20() {
+    let b = golden();
+    let project_id: Id<PlcConfigProject> = record_id("plc_config_projects", "PLC1");
+    let projects: Vec<&PlcConfigProject> = b
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            Record::PlcConfigProject(p) => Some(p),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(projects.len(), 1);
+    assert_eq!(projects[0].id, project_id);
+    assert_eq!(projects[0].name.as_str(), "PLC1");
+    assert_eq!(projects[0].profile.as_str(), "siemens-tia-intl@2027.1");
+    assert!(projects[0].cpu.is_none());
+    assert_eq!(
+        projects[0].source_ref.as_ref().map(|s| s.key.as_str()),
+        Some("plc_config_projects|PLC1")
+    );
+
+    // Only -201U1 is a station, only the seven modules carry the module aspect.
+    let station = device_of(&b, "-201U1")
+        .aspects
+        .plc_station
+        .expect("the station aspect");
+    assert_eq!(
+        station,
+        PlcStation {
+            config_project: project_id,
+            role: StationRole::ValveTerminal,
+            order: None,
+            extra: Default::default()
+        }
+    );
+    let stations: Vec<Id<Device>> = b
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            Record::Device(d) if d.aspects.plc_station.is_some() => Some(d.id),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(stations, [record_id::<Device>("devices", "-201U1")]);
+    let mut modules: Vec<Id<Device>> = b
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            Record::Device(d) if d.aspects.plc_module.is_some() => Some(d.id),
+            _ => None,
+        })
+        .collect();
+    let mut want: Vec<Id<Device>> = MODULES.iter().map(|m| record_id("devices", m)).collect();
+    modules.sort();
+    want.sort();
+    assert_eq!(modules, want);
+    for m in MODULES {
+        assert_eq!(
+            device_of(&b, m).aspects.plc_module,
+            Some(ew_schema::PlcModule::default()),
+            "{m}"
+        );
+    }
+
+    let part = b
+        .lib
+        .iter()
+        .find_map(|d| match d {
+            LibDocument::Part(p) if p.item.meta.key.as_ref().is_some_and(|k| k.as_str() == "533361") => {
+                Some(p)
+            }
+            _ => None,
+        })
+        .expect("part 533361");
+    assert_eq!(
+        part.item.sections.plc,
+        Some(PlcSection {
+            role: PlcRole::Module,
+            io: vec![IoRange {
+                dir: IoDir::Out,
+                bits: 8,
+                class: IoClass::Digital,
+                extra: Default::default()
+            }],
+            channels: Some(ChannelSpec {
+                count: 8,
+                kind: ChannelKind::Do,
+                data_type: Some("Bool".parse().unwrap()),
+                designation: Some("{n}".to_owned()),
+                extra: Default::default()
+            }),
+            bit_of: Some(MapSpec::Expr("n".to_owned())),
+            unbound: Some(ChannelState::Deactivated),
+            extra: Default::default()
+        })
+    );
+    // No other part has a PLC section.
+    let with_plc = b
+        .lib
+        .iter()
+        .filter(|d| matches!(d, LibDocument::Part(p) if p.item.sections.plc.is_some()))
+        .count();
+    assert_eq!(with_plc, 1);
+}
+
+/// Doc 20 §11.2, §11.3: 56 channels (7 modules, numbers 0 to 7), each with the ID `plc_channel_id(module,
+/// number)`; coil 14 of position p is bound to channel 2p + 1, the even channels are unbound.
+#[test]
+fn the_56_channels_are_those_of_doc_20() {
+    let b = golden();
+    let channels: Vec<&Channel> = b
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            Record::Channel(c) => Some(c),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(channels.len(), 56);
+    for module in MODULES {
+        let module_id: Id<Device> = record_id("devices", module);
+        for number in 0..8u16 {
+            let id: Id<Channel> = ew_ids::v5::plc_channel_id(module_id, number);
+            let c = channels
+                .iter()
+                .find(|c| c.id == id)
+                .unwrap_or_else(|| panic!("channel {module}:{number} has the ID of the identity rule"));
+            assert_eq!(
+                (c.module, c.number, &c.kind),
+                (module_id, number, &ChannelKind::Do)
+            );
+            assert_eq!(c.address, AddrSpec::Auto);
+            assert!(c.state.is_none() && c.symbol.is_none() && c.target.is_none() && c.designation.is_none());
+            assert!(c.comment.is_empty());
+            // The key of the row stays in the provenance; the ID is not the table rule's.
+            let key = format!("channels|{module}:{number}");
+            assert_eq!(c.source_ref.as_ref().map(|s| s.key.as_str()), Some(key.as_str()));
+            assert_ne!(
+                c.id.as_uuid(),
+                record_id::<Channel>("channels", &format!("{module}:{number}")).as_uuid()
+            );
+            // Valve index 14 is CP 5 of the valve FnDef.
+            let binding = (number % 2 == 1).then(|| cp(&format!("{module}-Q{}", number / 2 + 1), 5));
+            assert_eq!(c.binding, binding, "{module}:{number}");
+        }
+    }
+}
+
+/// Doc 20 §6.2: the valves -201U3-Q1 … Q4 and -201U4-Q1 … Q4 drive -203Q1 … -203Q8.
+#[test]
+fn the_eight_device_links_are_those_of_doc_20() {
+    let b = golden();
+    let links: Vec<&DeviceLink> = b
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            Record::DeviceLink(l) => Some(l),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(links.len(), 8);
+    let valves = [
+        "-201U3-Q1",
+        "-201U3-Q2",
+        "-201U3-Q3",
+        "-201U3-Q4",
+        "-201U4-Q1",
+        "-201U4-Q2",
+        "-201U4-Q3",
+        "-201U4-Q4",
+    ];
+    for (k, valve) in valves.iter().enumerate() {
+        let field = format!("-203Q{}", k + 1);
+        let key = format!("{valve}>{field}");
+        let id: Id<DeviceLink> = record_id("device_links", &key);
+        let link = links
+            .iter()
+            .find(|l| l.id == id)
+            .unwrap_or_else(|| panic!("link {key}"));
+        assert_eq!(link.from, record_id::<Device>("devices", valve));
+        assert_eq!(link.to, record_id::<Device>("devices", &field));
+        assert_eq!(link.kind, DeviceLinkKind::Drives);
     }
 }
 

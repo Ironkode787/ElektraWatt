@@ -11,7 +11,7 @@ use ew_interop_api::{Code, Severity};
 use ew_mltext::Ident;
 use ew_schema::{
     ClampKey, Conductor, Connection, Device, Endpoint, ExternalRef, Function, Junction, LibDocument, Page,
-    Part, Project, Record, Section, Side, StructureNode,
+    Part, PlcConfigProject, Project, Record, Section, Side, StructureNode,
 };
 use ew_units::{Grid, Nm, Pt2};
 
@@ -21,6 +21,7 @@ use crate::table::{Findings, Row};
 pub(crate) mod connect;
 pub(crate) mod devices;
 pub(crate) mod parts;
+pub(crate) mod plc;
 pub(crate) mod profiles;
 pub(crate) mod project;
 
@@ -164,6 +165,8 @@ pub(crate) struct Cx<'l> {
     pub(crate) conductors: BTreeMap<String, Id<Conductor>>,
     /// `connections` keys.
     pub(crate) connections: BTreeMap<String, ConnInfo>,
+    /// `plc_config_projects` keys (registered before the devices, whose station aspects name them).
+    pub(crate) plc_projects: BTreeMap<String, Id<PlcConfigProject>>,
 }
 
 impl<'l> Cx<'l> {
@@ -187,6 +190,7 @@ impl<'l> Cx<'l> {
             junctions: BTreeMap::new(),
             conductors: BTreeMap::new(),
             connections: BTreeMap::new(),
+            plc_projects: BTreeMap::new(),
         }
     }
 

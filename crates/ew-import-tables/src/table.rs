@@ -467,7 +467,7 @@ pub(crate) fn parse_ident(s: &str) -> Result<Ident, String> {
         .map_err(|e| format!("`{s}` is not an identifier: {e}"))
 }
 
-fn parse_uint<T: TryFrom<u64>>(s: &str) -> Result<T, String> {
+pub(crate) fn parse_uint<T: TryFrom<u64>>(s: &str) -> Result<T, String> {
     if s.is_empty() || !s.bytes().all(|b| b.is_ascii_digit()) {
         return Err(format!("`{s}` is not an unsigned integer"));
     }

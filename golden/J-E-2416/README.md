@@ -68,6 +68,12 @@ record itself is `v5(ns, "import_lineage|golden")` with importer `csv`, source n
 Keys are hashed byte for byte, so a `key` cell must already be in Unicode NFC: a row whose key is not is dropped
 with EW-IMP-002 (doc 14 §9 strict mode). Other cells are NFC-normalised when needed.
 
+**Exception: channels.** A row of `channels.csv` has the ID `ew_ids::v5::plc_channel_id(module_id, number)` =
+`v5(module, "channel" ␟ number)` (doc 10 §2.4, ADR-0004 amendment 2), not `v5(ns, "channels|{key}")`: the identity of
+a channel is its module and number, so two branches that add the same module mint the same channel IDs. The record's
+`source_ref.key` is still `channels|{key}`; the `key` column is only a label (`<module key>:<number>`) that must be
+unique. Two rows with the same module and number are a duplicate channel: the second is dropped with EW-IMP-002.
+
 Library items:
 
 - Starter symbols, function definitions and forms are referenced **by key** (`ew.iec.mcb-1pn@qet10`, `ew.fn.ip`,
@@ -214,6 +220,10 @@ CPs from it), `cps` R (non-empty list of `part_cps` indexes).
 | `cable` | O | `true` on cables (emits the cable aspect) |
 | `cable_length` | O | `missing` (empty), `from_part`, or a manual length in mm (Dec3) |
 | `tech_data` | O | typed technical data of the device (below) |
+| `plc_station` | O | `plc_config_projects` key: the device is a PLC station of that configuration project (emits the `plc_station` aspect; doc 20 §11.2 "Station", doc 10 §2.3) |
+| `plc_role` | O | `StationRole` in snake_case (`cpu`, `head_station`, `io_device`, `valve_terminal`, `io_link_master`, `drive`, `external_partner`); required when `plc_station` is set, malformed without it |
+| `plc_order` | O | integer: the station's address-allocation order (`PlcStation.order`); malformed without `plc_station` |
+| `plc_module` | O | boolean: the device is a PLC module (emits the default `plc_module` aspect; doc 20 §11.2 "Modules") |
 
 **Technical data** (`tech_data` of `parts.csv` and `devices.csv`, FR-DEV-009, U-32) is a `;`-separated list of
 `<key>=<value>` items; a value is a quantity `<decimal> <unit>` with the unit in the ASCII spelling of the format (`10 A`,
@@ -265,11 +275,17 @@ log ID-54).
 | `wire` | O | the physical wire of doc 20 §8.2 (documentation; not stored) |
 | `page` | O | `pages` key; empty for bridges (strip editor) |
 | `a`, `b` | R | endpoints in the notation above |
-| `kind` | O | `wire` (empty), `core`, `bridge` |
+| `kind` | O | `wire` (empty), `core`, `bridge`, `bus` |
 | `core` | O | `conductors` key (kind `core`) |
 | `bridge_group`, `bridge_kind`, `bridge_shaft` | O | bridges (kind `bridge`): group number, `plug_in` …, shaft (default 1) |
 | `csa`, `colour` | O | the CDP: explicit cross-section (mm², Dec3) and colour |
 | `show_marker` | O | boolean |
+| `cable` | O | `devices` key of a cable (kind `bus` only: `ConnectionKind::Bus(BusLine { cable })`, doc 10 §2.7, §3.8); a `cable` cell on another kind is malformed, a key that is not a cable device is unresolved |
+
+A `bus` connection joins two CPs of a bus segment. A bus cable is drawn single-line (FR-CBL-008, doc 20 §10): `DP.1`
+(page `3`, `ip:DP@3` to `-3X1:A1`, cable `-3W1`) is the whole cable, from the external end to the cable entry In of
+the plug, and `DP.2` (page empty, `-3X1:A1` to `-201U1:A`, no cable) is the plug on the DP port, whose mating is not
+drawn (doc 10 §2.7, doc 20 §11.1 "Physical segment"). Both `wire` cells are empty (a bus line has no wire ID).
 
 Wire IDs follow doc 03 §9.2: through an IP pair the target-side connection carries the wire ID; through a junction
 each non-first arm carries the ID of the wire it closes (Star: first CP to every other; Chain: consecutive CPs).
@@ -289,11 +305,65 @@ connection ending at it are dropped (EW-IMP-002, never snapped).
 ### `potentials.csv` → `potential_def` (doc 20 §7.3)
 
 `key` R (the potential name), `at` R (endpoint), `ptype` O (empty: naming only), `voltage` O (Dec3 V), `ac_dc` O,
-`frequency` O, `earthing` O (`pelv`, `selv`, `floating`), `circuit_class` O.
+`frequency` O, `earthing` O (`pelv`, `selv`, `floating`), `circuit_class` O (`mains`, `control`, `analogue`, `bus`, `pe`).
+The row `DP` (doc 20 §7.3, §11.1) is the bus potential: `at` is the DP port's CP `-201U1:A`, `circuit_class` `bus`, every
+other cell empty (no voltage; the colour comes from the cable).
 
 ### `bonds.csv` → `bond` (doc 20 §7.4)
 
 `key` R, `a` R, `b` R (endpoints), `kind` R (`pelv_0v_pe`, …), `via` O (`connections` key).
+
+### `plc_config_projects.csv` → `plc_config_project` (doc 20 §11.2, doc 10 §2.2)
+
+`key` R, `name` R (identifier), `profile` R (identifier `id@version`, the pinned address profile, doc 10 §2.5), `cpu` O
+(`devices` key; an unknown key drops the row, and the `plc_station` aspects that named the project with it). One row,
+`PLC1`, profile `siemens-tia-intl@2027.1`: doc 20 §11.2 "Configuration project: one, address profile Siemens TIA
+(international)".
+
+### `part_plc.csv` → `part.sections.plc` (doc 20 §11.2, doc 10 §2.6)
+
+The PLC section of the part copy named by `key` (a `parts.csv` key; a key with no part is unresolved).
+
+| Column | | Meaning |
+|---|---|---|
+| `key` | R | the part key |
+| `role` | R | `station` or `module` |
+| `io` | O | `;`-list of `<dir>:<bits>` or `<dir>:<bits>:<class>`; `dir` is `in` or `out`, `class` `digital` (default) or `analog` |
+| `channel_count` | O | integer: the channels a module instantiates (numbers 0 … count − 1) |
+| `channel_kind` | O | `ChannelKind` in snake_case (`di`, `do`, `ai`, `ao`, `counter`, `io_link_port`, `power_supply`); required exactly when `channel_count` is set |
+| `data_type` | O | identifier (`Bool`); needs `channel_count` |
+| `designation` | O | the automatic designation pattern, which may contain `{n}`; needs `channel_count` |
+| `bit_of` | O | the channel map as a map-language expression (`n`), stored as `MapSpec::Expr` |
+| `unbound` | O | `ChannelState` of channels neither bound nor claimed (`spare`, `reserved`, `deactivated`) |
+
+One row: part `533361`, `module`, `out:8`, 8 `do` channels, `Bool`, `{n}`, `n`, `deactivated`: doc 20 §11.2
+"Channel map (part 533361): channel n → bit n, 8 DO channels per module" and doc 10 §2.6.
+
+### `channels.csv` → `channel` (doc 20 §11.2, §11.3; doc 10 §2.4)
+
+| Column | | Meaning |
+|---|---|---|
+| `key` | R | a label, `<module key>:<number>` (`-201U3:1`); the ID is not derived from it (see "Identity") |
+| `module` | R | `devices` key of the module |
+| `number` | R | integer 0 … 65535 |
+| `kind` | R | `ChannelKind` (as in `part_plc.csv`) |
+| `address` | O | `auto` (default, empty), `tbd` or `excluded`; anything else is malformed: manual addresses are not a fixture form |
+| `state` | O | `ChannelState`; empty: derived (doc 10 §3.2) |
+| `symbol` | O | identifier |
+| `comment` | O | text |
+| `binding` | O | the signal CP in the endpoint notation above (`-201U3-Q1:14`); a junction is malformed |
+| `target` | O | `functions` key (a manual target override) |
+
+56 rows: the seven modules of §11.3 in manifold order, numbers 0 … 7, kind `do`. The odd channel 2p + 1 is bound to
+coil 14 of valve position p + 1 of its module (`-201U3:1` → `-201U3-Q1:14`; doc 20 §11.2 "Bindings (as drawn)", the
+Bit 1/3/5/7 columns of §11.3); the even channels have no binding. No state, symbol, comment or target: states are
+derived and the symbols are empty in Golden A.
+
+### `device_links.csv` → `device_link` (doc 20 §6.2)
+
+`key` R (`<from>><to>`, `-201U3-Q1>-203Q1`), `from` R, `to` R (`devices` keys; the two must differ), `kind` R (`drives`
+or `linkage`). Eight rows: the valves `-201U3-Q1 … Q4` and `-201U4-Q1 … Q4` drive the field devices `-203Q1 … -203Q8`
+(§6.2 "Driven by (DeviceLink)").
 
 ### `revisions.csv` → reserved `revision` records (doc 20 §4.1, doc 03 §18)
 
@@ -366,6 +436,7 @@ The table is generated by `tools/tables_from_doc20.py` from the fixture choices 
 | `devices.csv` | `frozen; frozen_sign` | `-XPE; -UC1; -UC1-plate` | `frozen = the tag without its sign (XPE, UC1, UC1-plate); frozen_sign = shown` | §2.1 rule 1, §6.1 rows 9, 31, 32 | U-34 | per-class numbering rules are not modelled yet: the tags are frozen overrides with the sign shown, so Golden B's include_frozen renumbers -XPE as §2.2 expects |
 | `devices.csv` | `key` | `-UC1-plate` | `-UC1-plate` | §6.1 row 32 | — | doc 20 gives the mounting plate no tag ('mounting plate, child of -UC1'): the key is the fixture's name |
 | `devices.csv` | `cable_length` | `-106W1; -106W2` | `from_part` | §10 | U-18 | the 2 m length is read from the part's type code; the source of the length is a ▲ |
+| `potentials.csv` | `at; circuit_class` | `DP` | `-201U1:A; bus` | §7.3, §11.1 | — | the Members cell names the port as -201U1:DP; the definition point is the port function's first CP A (the one CP that a single-line bus connection uses, FR-CBL-008); class bus from the Type cell, no voltage (the colour comes from the cable) |
 | `potentials.csv` | `frequency` | `L; N; L-S; N-S; L-1; N-1; L-55; N-55` | `50` | §4.1, §7.3 | — | the Type cell of §7.3 gives no frequency; every AC potential takes the 50 Hz of the §4.1 Supply |
 | `potentials.csv` | `ptype; voltage; ac_dc; frequency; circuit_class` | `N-55T; N-55S` | (empty) | §7.3 | — | N switched: naming only; doc 03 §9.4 derives the type, including 'switched', across the PassThrough{opens: true} pair |
 | `colour_profile.csv` | `ptype; ac_dc; u_min; u_max; analogue` | all | `(per row: the selector of the voltage class and the potential type)` | §7.1 | — | doc 20 prints the voltage class and the potential type as labels; the selector of a row (the profile of doc 08 §4.2) is 24 VDC = DC up to 120 V, 230 VAC = AC 50 to 250 V, 400 VAC = AC 250 to 1000 V; a PE row selects by type only, an analogue row by type and the analogue attribute |
@@ -382,21 +453,31 @@ The table is generated by `tools/tables_from_doc20.py` from the fixture choices 
 | `representations.csv` | `dy` | `J-E-206-L@101; J-E-206-N@101; J-E-206-PE@101` | `-20; 0; 20` | §15 | — | test input (fixture choice): the three mains points share the cell 101-G0 and are stacked |
 | `representations.csv` | `dx; dy` | `interruption points that share a cell` | `k-th member of a coincident group (natural key order): +(0,0), +(0,20), +(0,-20), +(20,0) px` | §15 | — | ▲ test input (fixture choice): separates coincident interruption points; the cell is what doc 20 §15 asserts |
 | `representations.csv` | `arrangement` | `-201U3-Q1 … -202U2-Q4; -203Q1 … -203Q8; -203Q1#actuator … -203Q8#actuator` | `ports` | §6.2 | — | test input (fixture choice): the symbol's arrangement without the Tag slot (FR-SYM-012) |
+| `connections.csv` | `a; b` | `DP.1; DP.2` | `A1 of the In entry of -3X1; A of the port -201U1#bus` | §10 (-3W1), §11.1 | — | a bus cable is drawn single-line (FR-CBL-008): one bus connection per hop, between one representative CP of each end (A1 of the In entry, A of the DP port) |
+| `connections.csv` | `page` | `DP.2` | (empty) | §11.1 | — | the plug -3X1 is plugged onto the port and the mating is not drawn: the plug-on connection has no page (doc 10 §2.7) |
 | `junctions.csv` | `cell` | `J1; J2; J3; J4; J5; J6` | `C11; C13; C6; D7; D5; D6` | §8.3 | — | test input (fixture choice): doc 20 gives the folio of a junction, not its cell |
+| `plc_config_projects.csv` | `name` | `PLC1` | `PLC1` | §11.2 | — | doc 20 gives the configuration project no name: the name PLC1 is the default name of a new project (doc 10 §2.2) |
+| `plc_config_projects.csv` | `profile` | `PLC1` | `siemens-tia-intl@2027.1` | §11.2 | — | doc 20 names the profile 'Siemens TIA (international)': the reference is the id and version of the built-in profile of that label (doc 10 §2.5) |
+| `part_plc.csv` | `io; designation; data_type; unbound` | `533361` | `out:8; {n}; Bool; deactivated` | §11.2, §11.3 | — | doc 20 gives the channel count, the kind and the map; the width of the output range (one bit per channel), the designation pattern, the data type and the state of unbound channels are those of the PLC section of part 533361 in doc 10 §2.6 |
 | `devices.csv` | `key` | `-UC1-plate` | `-UC1-plate` | §14.1 row 23 | — | the Tags cell of row 23 reads '-UC1 (plate)': the expected parts list prints the plate under its fixture key |
 
 <!-- test-inputs:end -->
 
 ## Not covered yet
 
-Doc 20 §11 (PLC and bus: channels, the bus segment, the DP potential), §12 (fluid lines F1–F16), §13 (layout space,
-carriers, placements) and §14.2 (configured products) need record kinds that `ew-schema` v0 reserves but does not
-implement; their tables follow with those work packages. §14.1 (component BOM) is covered through `parts.csv` and the
-part uses of `devices.csv` and `terminals.csv`; the BOM rows themselves are derived.
+Doc 20 §11 (PLC and bus) is covered for the bus connections (`DP.1`, `DP.2`), the DP potential, the configuration
+project, the station and module aspects, the PLC section of part 533361, the 56 channels and the device links (§6.2).
+Not covered yet from §11: the `BusPort`, `LogicalNet` and `PhysicalNet` records and `bus_segments` (doc 10 §2.7,
+§3.8), the solenoid-position map and the supply groups of part 533361 (doc 10 §2.6; derivation step 4 of doc 10 §3.2
+has no input), the valve function-text slot fallback (FT-80) and the station address `Tbd`.
+
+§12 (fluid lines F1–F16), §13 (layout space, carriers, placements) and §14.2 (configured products) need record kinds
+that `ew-schema` v0 reserves but does not implement; their tables follow with those work packages. §14.1 (component
+BOM) is covered through `parts.csv` and the part uses of `devices.csv` and `terminals.csv`; the BOM rows themselves
+are derived.
 
 Also not covered yet: the 13-14 signal-contact function of the MICO 4.10 template (its CPs 13 and 14 belong to the
-black box), "supplied by others" for the process valves -203Q1 … -203Q8 (FR-DEV-037), and the `DP` port of -201U1
-(doc 20 §6.1 row 19).
+black box) and "supplied by others" for the process valves -203Q1 … -203Q8 (FR-DEV-037).
 
 ## Expected page output (candidates)
 

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: CC0-1.0
 """Generate the golden project source tables (Golden A, J-E-2416) from doc 20.
 
-Reads ``docs/design/20-golden-project.md`` (the ONLY data source) and writes the 24 CSV tables of
+Reads ``docs/design/20-golden-project.md`` (the ONLY data source) and writes the 28 CSV tables of
 ``golden/J-E-2416/tables/`` in the dialect documented in ``golden/J-E-2416/README.md``: UTF-8, no BOM, LF, NFC, a
 field quoted exactly when it contains ``,``, ``"``, LF, CR or begins/ends with a space, rows in the natural order of
 the ``key`` column (``ew_mltext::natural_key``, version 1).
@@ -1039,7 +1039,7 @@ def build_cables_conductors(part_keys):
 DEVICE_COLS = [
     "key", "letter", "counter", "scheme", "frozen", "frozen_sign", "parent", "position", "function", "location",
     "kind", "parts", "function_text", "process_tag", "state", "strip_label_mode", "strip_groups",
-    "strip_field_side", "cable", "cable_length", "tech_data",
+    "strip_field_side", "cable", "cable_length", "tech_data", "plc_station", "plc_role", "plc_order", "plc_module",
 ]  # fmt: skip
 
 # doc 20 section 6.1 "Part" column mapped to parts.csv keys. ``build_devices_terminals`` checks the map against the
@@ -1204,6 +1204,8 @@ def build_devices_terminals(part_keys):
     tags61 = {t for t, num, r, k in rows61}
     check(set(PARTS_BY_TAG) <= tags61, f"PARTS_BY_TAG names tags missing in section 6.1: {set(PARTS_BY_TAG) - tags61}")
 
+    plc = plc_station_facts()
+    check(plc["station"] in {t for t, num, r, k in rows61}, f"section 11.2: the station {plc['station']} is no device")
     strips = strip_data()
     tbd_uses = tbd_part_uses()
     device_tech = DEVICE_TECH
@@ -1266,6 +1268,10 @@ def build_devices_terminals(part_keys):
             d.update(parent="-201U1", position=str(children.index(tag) + 1))
         if tag == "-102G1":
             d["kind"] = "psu"
+        if tag == plc["station"]:
+            d.update(plc_station=PLC_PROJECT_KEY, plc_role=plc["role"])  # section 11.2 "Station"
+        if tag in plc["modules"]:
+            d["plc_module"] = "true"  # section 11.2 "Modules"
         if tag in ("-106W1", "-106W2"):
             d.update(cable="true", cable_length="from_part")  # section 10: 2 m from the part's type code
         if tag == "-3W1":
@@ -1278,6 +1284,10 @@ def build_devices_terminals(part_keys):
             d["strip_groups"] = strips[tag]["groups"]
         add(**d)
     register("devices", DEVICE_COLS, devices, 68)
+    check(
+        sorted(d["key"] for d in devices if d["plc_module"] == "true") == sorted(plc["modules"]),
+        "section 11.2: the devices with the PLC module aspect are not the modules",
+    )
     fixture(
         "devices", ["frozen", "frozen_sign"], ["-XPE", "-UC1", "-UC1-plate"],
         "frozen = the tag without its sign (XPE, UC1, UC1-plate); frozen_sign = shown",
@@ -1349,6 +1359,9 @@ POTENTIAL_AT = {
 }
 
 
+# the definition point of the bus potential DP: the signal A of the DP port function of -201U1 (fixture choice)
+POTENTIAL_BUS_AT = "-201U1:A"
+
 # doc 20 section 7.3 "Type, voltage, class" -> ew-schema potential type
 POTENTIAL_TYPE = {"L": "l", "N": "n", "PE": "pe", "L+": "l_plus", "M": "m"}
 
@@ -1394,8 +1407,20 @@ def build_potentials():
         n = r["Potential"]
         t = parse_potential_type(r["Type, voltage, class"])
         if t is None:
-            # the bus potential: not a row (doc 20 section 11, not covered yet)
+            # the bus potential (doc 20 section 7.3, 11.1): type "bus", no voltage; the colour comes from the cable
             check(n == "DP", f"section 7.3: the bus potential is {n!r}, expected DP")
+            check(
+                POTENTIAL_BUS_AT.split(":")[0] in r["Members"],
+                f"section 7.3: the members of DP {r['Members']!r} do not name {POTENTIAL_BUS_AT.split(':')[0]}",
+            )
+            rows.append({"key": n, "at": POTENTIAL_BUS_AT, "circuit_class": "bus"})
+            fixture(
+                "potentials", ["at", "circuit_class"], n, f"{POTENTIAL_BUS_AT}; bus", "§7.3, §11.1",
+                "the Members cell names the port as -201U1:DP; the definition point is the port function's first"
+                " CP A (the one CP that a single-line bus connection uses, FR-CBL-008); class bus from the Type"
+                " cell, no voltage (the colour comes from the cable)",
+                marks=[],
+            )  # fmt: skip
             continue
         names.append(n)
         check(n in POTENTIAL_AT, f"section 7.3: potential {n!r} is not in POTENTIAL_AT")
@@ -1431,7 +1456,7 @@ def build_potentials():
         " PassThrough{opens: true} pair",
     )  # fmt: skip
     cols = ["key", "at", "ptype", "voltage", "ac_dc", "frequency", "earthing", "circuit_class"]
-    register("potentials", cols, rows, 18)
+    register("potentials", cols, rows, 19)
 
 
 # doc 08 section 4.2 gives the selectors of the colour profile rows (the profile shipped as the sample of the pilot
@@ -1971,7 +1996,7 @@ def build_functions_representations(devices, terms, ips, ip_order, ext):
 
 CONN_COLS = [
     "key", "wire", "page", "a", "b", "kind", "core", "bridge_group", "bridge_kind", "bridge_shaft", "csa",
-    "colour", "show_marker",
+    "colour", "show_marker", "cable",
 ]  # fmt: skip
 
 
@@ -2056,6 +2081,35 @@ def junction_plan(junction, wires):
             check(endpoint == v["feed"], f"section 8.3: {jn} Sequence feed {endpoint!r}, Wiring feed {v['feed']!r}")
             seqs[jn] = ";".join([f"{jn}.feed"] + shown)
     return chain, seqs
+
+
+def build_bus_connections(rows):
+    """The two bus connections of the PROFIBUS segment (doc 20 sections 7.3 row DP, 10 row -3W1, 11.1; doc 10 2.7):
+    the bus cable from the external end (the interruption point DP) to the plug's In entry, drawn single-line on
+    its folio, and the plug-on connection of the plug to the DP port, which is not drawn."""
+    cable_row = next(r for r in table_dicts("## 10. Cables and conductors") if r["Cable"] == "-3W1")
+    check(
+        "-3X1 In" in cable_row["Ends"] and "drawn single-line (FR-CBL-008)" in cable_row["Cores → wire"],
+        f"section 10: the -3W1 row {cable_row!r}",
+    )
+    rows.append(
+        {"key": "DP.1", "wire": "", "page": "3", "a": "ip:DP@3", "b": "-3X1:A1", "kind": "bus", "cable": "-3W1"}
+    )  # the cable from the external end to the cable entry In of the plug (section 10, 11.1)
+    rows.append(
+        {"key": "DP.2", "wire": "", "a": "-3X1:A1", "b": POTENTIAL_BUS_AT, "kind": "bus"}
+    )  # the plug on the port, without a cable (doc 10 section 2.7): not drawn, so no page
+    fixture(
+        "connections", ["a", "b"], ["DP.1", "DP.2"], "A1 of the In entry of -3X1; A of the port -201U1#bus",
+        "§10 (-3W1), §11.1", "a bus cable is drawn single-line (FR-CBL-008): one bus connection per hop, between"
+        " one representative CP of each end (A1 of the In entry, A of the DP port)",
+        marks=[],
+    )  # fmt: skip
+    fixture(
+        "connections", "page", "DP.2", "", "§11.1",
+        "the plug -3X1 is plugged onto the port and the mating is not drawn: the plug-on connection has no page"
+        " (doc 10 §2.7)",
+        marks=[],
+    )  # fmt: skip
 
 
 def build_connections(ips, device_keys, conductor_keys, fkeys):
@@ -2173,9 +2227,10 @@ def build_connections(ips, device_keys, conductor_keys, fkeys):
             )  # fmt: skip
             bridges += 1
     check(bridges == 19, f"section 8.3: {bridges} bridge connections, 19 expected")
+    build_bus_connections(rows)
     n_wires = sum(1 for x in rows if x["wire"].startswith("W") and x["key"] == x["wire"])
     check(n_wires == 44, f"{n_wires} wire connections, 44 expected")
-    register("connections", CONN_COLS, rows, 72 + 19)
+    register("connections", CONN_COLS, rows, 72 + 19 + 2)
 
     # endpoint sanity: device or terminal exists, IP function exists
     for x in rows:
@@ -2225,6 +2280,143 @@ def build_connections(ips, device_keys, conductor_keys, fkeys):
     )
 
 
+
+# ---------------------------------------------------------------------------------------------------------------
+# PLC and bus (doc 20 sections 6.2, 11; doc 10 sections 2.2 to 2.7)
+# ---------------------------------------------------------------------------------------------------------------
+
+PLC_PROJECT_KEY = "PLC1"
+# doc 10 section 2.5: the built-in profile of the label "Siemens TIA (international)" (id and version)
+PLC_PROFILE = "siemens-tia-intl@2027.1"
+PLC_CHANNEL_KIND = {"DO": "do"}  # doc 20 section 11.2 "8 DO channels per module"
+PLC_IO_DIR = {"do": "out"}  # the output direction of a digital output module (doc 10 section 2.6)
+PLC_DATA_TYPE = {"do": "Bool"}  # doc 10 section 2.6, part 533361: data_type = "Bool"
+PLC_DESIGNATION = "{n}"  # doc 10 section 2.6, part 533361: designation = "{n}"
+PLC_UNBOUND = "deactivated"  # doc 10 section 2.6, part 533361 (doc 20 section 11.3: bits 0, 2, 4, 6 deactivated)
+PLC_BITS = ("Bit 1", "Bit 3", "Bit 5", "Bit 7")  # the columns of doc 20 section 11.3 (coil 14 of position p: 2p + 1)
+
+
+def plc_station_facts():
+    """The station, its role and the modules of doc 20 section 11.2, and the channel map of section 11.3, checked
+    against each other: ``{station, role, modules, part, count, kind, bit_of, bindings}`` where ``bindings`` maps
+    ``(module, bit)`` to the valve (``-201U3-Q1``) that section 11.3 binds to the bit."""
+    items = {r["Item"]: r["Golden A value"] for r in table_dicts("### 11.2 Station, modules and the address map")}
+    cfg = items.get("Configuration project", "")
+    check(
+        cfg.startswith("one,") and '"Siemens TIA (international)"' in cfg,
+        f"section 11.2: Configuration project cell {cfg!r}",
+    )
+    m = re.fullmatch(r"(-\S+), role (valve terminal) / DP slave", items.get("Station", ""))
+    check(m, f"section 11.2: Station cell {items.get('Station')!r}")
+    station, role = m.group(1), m.group(2).replace(" ", "_")
+    cell = items.get("Modules", "")
+    check(" in manifold slots 1–7" in cell, f"section 11.2: Modules cell {cell!r}")
+    modules = []
+    for item in cell.split(" in manifold slots")[0].split(", "):
+        modules.extend(expand_range(item))
+    check(modules == MODULES, f"section 11.2: modules {modules}, the devices table has {MODULES}")
+    label = next((k for k in items if k.startswith("Channel map (part ")), None)
+    check(label, "section 11.2: no 'Channel map (part ...)' item")
+    part = re.fullmatch(r"Channel map \(part (\S+)\)", label).group(1)
+    m = re.match(r"channel n → bit (\w+), (\d+) (DO) channels per module", items[label])
+    check(m, f"section 11.2: Channel map cell {items[label]!r}")
+    bit_of, count, kind = m.group(1), int(m.group(2)), PLC_CHANNEL_KIND[m.group(3)]
+    check(count == 8, f"section 11.2: {count} channels per module, 8 bits expected")
+    check(bit_of == "n", f"section 11.2: channel map 'bit {bit_of}', expected the linear map n")
+    bindings = {}
+    rows = table_dicts("### 11.3 Channel map (folio 908)")
+    check([r["Module"] for r in rows] == modules, f"section 11.3: modules {[r['Module'] for r in rows]}")
+    for index, r in enumerate(rows):
+        check(r["Byte"] == f"Q{index}", f"section 11.3: {r['Module']} is in byte {r['Byte']}, Q{index} expected")
+        check(r["Bits 0, 2, 4, 6"] == PLC_UNBOUND, f"section 11.3: {r['Module']} even bits {r['Bits 0, 2, 4, 6']!r}")
+        for p, column in enumerate(PLC_BITS):
+            q = re.match(r"Q(\d+)\b", r[column])
+            # a cell that names the valve ("Q1 TA05-V-15", "Q1 Spare") names position p + 1
+            check(not q or int(q.group(1)) == p + 1, f"section 11.3: {r['Module']} {column}: {r[column]!r}")
+            bindings[(r["Module"], 2 * p + 1)] = f"{r['Module']}-Q{p + 1}"
+    return {
+        "station": station, "role": role, "modules": modules, "part": part, "count": count, "kind": kind,
+        "bit_of": bit_of, "bindings": bindings,
+    }  # fmt: skip
+
+
+def build_plc(device_keys, part_keys, facts):
+    """plc_config_projects, part_plc, channels and device_links (doc 20 sections 6.2, 11.2, 11.3)."""
+    register(
+        "plc_config_projects", ["key", "name", "profile", "cpu"],
+        [{"key": PLC_PROJECT_KEY, "name": PLC_PROJECT_KEY, "profile": PLC_PROFILE}], 1,
+    )  # fmt: skip
+    fixture(
+        "plc_config_projects", "name", PLC_PROJECT_KEY, PLC_PROJECT_KEY, "§11.2",
+        "doc 20 gives the configuration project no name: the name PLC1 is the default name of a new project"
+        " (doc 10 §2.2)",
+        marks=[],
+    )  # fmt: skip
+    fixture(
+        "plc_config_projects", "profile", PLC_PROJECT_KEY, PLC_PROFILE, "§11.2",
+        "doc 20 names the profile 'Siemens TIA (international)': the reference is the id and version of the"
+        " built-in profile of that label (doc 10 §2.5)",
+        marks=[],
+    )  # fmt: skip
+
+    # part_plc.csv: the PLC section of the part of the modules (doc 20 section 11.2 "Channel map (part ...)")
+    part, kind = facts["part"], facts["kind"]
+    check(part in part_keys, f"section 11.2: the channel map names the part {part!r}, which is not a part")
+    check(
+        {PARTS_BY_TAG[m] for m in facts["modules"]} == {part},
+        f"section 11.2: the modules do not all carry the part {part!r}",
+    )
+    io = f"{PLC_IO_DIR[kind]}:{facts['count']}"
+    register(
+        "part_plc",
+        ["key", "role", "io", "channel_count", "channel_kind", "data_type", "designation", "bit_of", "unbound"],
+        [
+            {
+                "key": part, "role": "module", "io": io, "channel_count": str(facts["count"]),
+                "channel_kind": kind, "data_type": PLC_DATA_TYPE[kind], "designation": PLC_DESIGNATION,
+                "bit_of": facts["bit_of"], "unbound": PLC_UNBOUND,
+            }
+        ],
+        1,
+    )  # fmt: skip
+    fixture(
+        "part_plc", ["io", "designation", "data_type", "unbound"], part,
+        f"{io}; {PLC_DESIGNATION}; {PLC_DATA_TYPE[kind]}; {PLC_UNBOUND}", "§11.2, §11.3",
+        "doc 20 gives the channel count, the kind and the map; the width of the output range (one bit per channel),"
+        " the designation pattern, the data type and the state of unbound channels are those of the PLC section"
+        " of part 533361 in doc 10 §2.6",
+        marks=[],
+    )  # fmt: skip
+
+    # channels.csv: every module, channels 0 .. count - 1; coil 14 of position p is bound to channel 2p + 1
+    rows = []
+    for module in facts["modules"]:
+        check(module in device_keys, f"section 11.3: {module} is not a device")
+        for n in range(facts["count"]):
+            row = {"key": f"{module}:{n}", "module": module, "number": str(n), "kind": facts["kind"]}
+            valve = facts["bindings"].get((module, n))
+            if valve:
+                check(valve in device_keys, f"section 11.3: {valve} is not a device")
+                row["binding"] = f"{valve}:14"  # section 11.2: coil 14 of position p -> channel 2p + 1
+            rows.append(row)
+    register(
+        "channels", ["key", "module", "number", "kind", "address", "state", "symbol", "comment", "binding", "target"],
+        rows, len(facts["modules"]) * facts["count"],
+    )  # fmt: skip
+
+    # device_links.csv: section 6.2, the field devices and the valves that drive them
+    links = []
+    for r in table_dicts("### 6.2 Valve terminal and field devices", 1):
+        tags = expand_range(strip_tri(r["Field device (DT ▲U-07)"]))
+        m = re.fullmatch(r"(-\S+-Q)(\d+) … Q(\d+)", r["Driven by (DeviceLink)"])
+        check(m, f"section 6.2: Driven by cell {r['Driven by (DeviceLink)']!r}")
+        valves = [f"{m.group(1)}{k}" for k in range(int(m.group(2)), int(m.group(3)) + 1)]
+        check(len(valves) == len(tags), f"section 6.2: {len(valves)} valves drive {len(tags)} field devices")
+        for valve, tag in zip(valves, tags):
+            check(valve in device_keys and tag in device_keys, f"section 6.2: {valve} or {tag} is not a device")
+            links.append({"key": f"{valve}>{tag}", "from": valve, "to": tag, "kind": "drives"})
+    register("device_links", ["key", "from", "to", "kind"], links, 8)
+
 # ---------------------------------------------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------------------------------------------
@@ -2266,7 +2458,10 @@ def build_all():
     ips, ip_order = parse_ips()
     fkeys = build_functions_representations(devices, terms, ips, ip_order, ext)
     build_connections(ips, set(devices) | {t["key"] for t in terms}, conductor_keys, fkeys)
-    check(len(TABLES) == 24, f"{len(TABLES)} tables built, 24 expected: {sorted(TABLES)}")
+    for f in ("-201U1#bus", "-3X1", "-3W1"):
+        check(f in fkeys, f"section 11.1: the bus connections need the function {f!r}")
+    build_plc(set(devices), part_keys, plc_station_facts())
+    check(len(TABLES) == 28, f"{len(TABLES)} tables built, 28 expected: {sorted(TABLES)}")
 
 
 def readme_with_block(text, block):

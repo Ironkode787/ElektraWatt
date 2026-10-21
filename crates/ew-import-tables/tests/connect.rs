@@ -10,8 +10,8 @@ use ew_ids::Id;
 use ew_import_tables::ids::record_id;
 use ew_interop_api::{Code, ImportBatch, Severity};
 use ew_schema::{
-    BridgeKind, Conductor, Connection, ConnectionKind, Endpoint, Function, Junction, JunctionStyle,
-    JunctionWiring, Record,
+    BridgeKind, BusLine, Conductor, Connection, ConnectionKind, Device, Endpoint, Function, Junction,
+    JunctionStyle, JunctionWiring, Record,
 };
 use ew_units::Grid;
 
@@ -289,15 +289,88 @@ fn equal_endpoints_are_malformed() {
 fn an_unsupported_kind_and_an_unknown_page_are_refused() {
     let batch = run(&[(
         "connections.csv",
-        "key,a,b,kind,page\nW1,-1F1:1,-2F1:1,bus,\nW2,-1F1:1,-2F1:2,,777\n",
+        "key,a,b,kind,page\nW1,-1F1:1,-2F1:1,twisted,\nW2,-1F1:1,-2F1:2,,777\n",
     )]);
     assert!(connection(&batch, "W1").is_none());
     assert!(connection(&batch, "W2").is_none());
-    assert!(messages(&batch, 2).iter().any(|m| m.contains("not supported")));
+    let msgs = messages(&batch, 2);
+    assert!(
+        msgs.iter()
+            .any(|m| m.contains("not supported (wire, core, bridge or bus)")),
+        "{msgs:?}"
+    );
     assert!(
         messages(&batch, 3)
             .iter()
             .any(|m| m.contains("unknown page `777`"))
+    );
+}
+
+/// Doc 10 §2.7, doc 20 §11.1: a bus connection carries its cable device, or none for the plug-on mating; it may
+/// be page-less.
+#[test]
+fn a_bus_connection_reads_its_cable() {
+    let batch = run(&[(
+        "connections.csv",
+        "key,page,a,b,kind,cable\nDP.1,101,-1F1:1,-2F1:1,bus,-1W1\nDP.2,,-1F1:2,-2F1:2,bus,\n",
+    )]);
+    assert!(!batch.report.has_errors(), "{:?}", batch.report.entries);
+    let cable: Id<Device> = record_id("devices", "-1W1");
+    let one = connection(&batch, "DP.1").expect("DP.1 is emitted");
+    assert_eq!(
+        one.kind,
+        ConnectionKind::Bus(BusLine {
+            cable: Some(cable),
+            extra: Default::default()
+        })
+    );
+    assert!(one.page.is_some());
+    let two = connection(&batch, "DP.2").expect("DP.2 is emitted");
+    assert_eq!(
+        two.kind,
+        ConnectionKind::Bus(BusLine {
+            cable: None,
+            extra: Default::default()
+        })
+    );
+    assert!(two.page.is_none());
+}
+
+#[test]
+fn a_bus_cable_that_does_not_resolve_is_unresolved() {
+    // `-9W1` is unknown, `-1F1` is a device without the cable aspect.
+    let batch = run(&[(
+        "connections.csv",
+        "key,a,b,kind,cable\nDP.1,-1F1:1,-2F1:1,bus,-9W1\nDP.2,-1F1:2,-2F1:2,bus,-1F1\n",
+    )]);
+    assert!(connection(&batch, "DP.1").is_none());
+    assert!(connection(&batch, "DP.2").is_none());
+    assert_eq!(count(&batch, 3, Severity::Error), 2);
+    let msgs = messages(&batch, 3);
+    assert!(
+        msgs.iter().any(|m| m.contains("`-9W1` in column `cable`")),
+        "{msgs:?}"
+    );
+    assert!(
+        msgs.iter().any(|m| m.contains("`-1F1` in column `cable`")),
+        "{msgs:?}"
+    );
+}
+
+#[test]
+fn a_cable_cell_on_another_kind_is_malformed() {
+    let batch = run(&[(
+        "connections.csv",
+        "key,a,b,kind,cable\nW1,-1F1:1,-2F1:1,,-1W1\nW2,-1F1:2,-2F1:2,wire,-1W1\nW3,-1F1:1,-3F1:1,,\n",
+    )]);
+    assert!(connection(&batch, "W1").is_none());
+    assert!(connection(&batch, "W2").is_none());
+    assert!(connection(&batch, "W3").is_some());
+    assert_eq!(count(&batch, 2, Severity::Error), 2);
+    assert!(
+        messages(&batch, 2)
+            .iter()
+            .all(|m| m.contains("column `cable` is only read for kind `bus`"))
     );
 }
 

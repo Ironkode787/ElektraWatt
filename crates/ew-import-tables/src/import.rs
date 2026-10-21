@@ -188,13 +188,16 @@ impl TablesImporter {
             t("part_cps"),
             t("part_templates"),
             t("cable_cores"),
+            t("part_plc"),
         );
         emit::project::emit_structure(&mut cx, t("structure"));
         emit::project::emit_external_refs(&mut cx, t("external_refs"));
         emit::project::emit_sections(&mut cx, t("sections"));
         emit::project::emit_pages(&mut cx, t("pages"));
+        let projects = emit::plc::read_config_projects(&mut cx, t("plc_config_projects"));
         emit::devices::emit_devices(&mut cx, t("devices"));
         emit::devices::emit_terminals(&mut cx, t("terminals"));
+        emit::plc::emit_config_projects(&mut cx, projects);
         emit::devices::emit_functions(&mut cx, t("functions"));
         emit::devices::emit_representations(&mut cx, t("representations"));
         emit::connect::register_junctions(&mut cx, t("junctions"));
@@ -203,6 +206,8 @@ impl TablesImporter {
         emit::connect::emit_junctions(&mut cx, t("junctions"));
         emit::connect::emit_potentials(&mut cx, t("potentials"));
         emit::connect::emit_bonds(&mut cx, t("bonds"));
+        emit::plc::emit_channels(&mut cx, t("channels"));
+        emit::plc::emit_device_links(&mut cx, t("device_links"));
         emit::project::emit_report_blocks(&mut cx, t("report_blocks"));
         emit::project::emit_revisions(&mut cx, t("revisions"), t("parties"));
         let profiles = emit::profiles::emit(&mut cx, t("profiles"), t("colour_profile"), t("size_profile"));

@@ -6,6 +6,7 @@ key,at,ptype,voltage,ac_dc,frequency,earthing,circuit_class
 24VDC-2,-102F2:Out2,l_plus,24,dc,,,control
 24VDC-3,-102F2:Out3,l_plus,24,dc,,,control
 24VDC-4,-102F2:Out4,l_plus,24,dc,,,control
+DP,-201U1:A,,,,,,bus
 L,1X1:1/field,l,230,ac,50,,mains
 L-1,-101F1:2,l,230,ac,50,,mains
 L-55,F55:2,l,230,ac,50,,mains

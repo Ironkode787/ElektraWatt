@@ -10,7 +10,10 @@ use ew_import_tables::TablesImporter;
 use ew_import_tables::ids;
 use ew_interop_api::ReportEntry;
 use ew_interop_api::{Code, ImportBatch, ImportError, LineageInfo, Severity};
-use ew_schema::{Device, LibDocument, LibItem, Page, Record, Representation};
+use ew_schema::{
+    AddrSpec, Channel, ChannelKind, ChannelState, Device, DeviceLinkKind, IoClass, IoDir, LibDocument,
+    LibItem, MapSpec, Page, PlcRole, Record, Representation, StationRole,
+};
 
 const PAGES: &str = "key,number,kind,form,grid\n101,101,multi_line,ew.frame.qet-a4-landscape-grid,qet10\n";
 const DEVICES: &str = "key,letter,counter\n-1F1,F,1\n";
@@ -691,4 +694,248 @@ fn technical_data_cells_are_typed_or_the_row_is_dropped() {
         .expect("the device");
     let keys: Vec<&str> = dev.tech_data.iter().map(|t| t.key.as_str()).collect();
     assert_eq!(keys, ["characteristic", "setpoint"]);
+}
+
+// ---- PLC tables ------------------------------------------------------------------------------------------
+
+const PLC_DEVICES: &str = "key,letter,counter,plc_station,plc_role,plc_order,plc_module\n\
+    -1F1,F,1,,,,\n\
+    -1U1,U,1,PLC1,valve_terminal,2,\n\
+    -1U3,U,3,,,,true\n";
+const PLC_PROJECTS: &str = "key,name,profile,cpu\nPLC1,PLC1,siemens-tia-intl@2027.1,\n";
+
+fn plc_run(extra: &[(&str, &str)]) -> ImportBatch {
+    let mut files = vec![
+        ("devices.csv", PLC_DEVICES),
+        ("plc_config_projects.csv", PLC_PROJECTS),
+    ];
+    for (name, text) in extra {
+        match files.iter_mut().find(|(n, _)| n == name) {
+            Some(slot) => slot.1 = text,
+            None => files.push((name, text)),
+        }
+    }
+    run(&files)
+}
+
+fn channels(b: &ImportBatch) -> Vec<&Channel> {
+    b.records
+        .iter()
+        .filter_map(|r| match r {
+            Record::Channel(c) => Some(c),
+            _ => None,
+        })
+        .collect()
+}
+
+fn device<'a>(b: &'a ImportBatch, key: &str) -> Option<&'a Device> {
+    let id: ew_ids::Id<Device> = ids::record_id("devices", key);
+    b.records.iter().find_map(|r| match r {
+        Record::Device(d) if d.id == id => Some(d),
+        _ => None,
+    })
+}
+
+fn plc_aspects(b: &ImportBatch) -> usize {
+    b.records
+        .iter()
+        .filter(|r| {
+            matches!(r, Record::Device(d)
+                if d.aspects.plc_station.is_some() || d.aspects.plc_module.is_some())
+        })
+        .count()
+}
+
+/// The station, module, channel and project rows import cleanly; a channel ID is `plc_channel_id`.
+#[test]
+fn the_plc_tables_import() {
+    let b = plc_run(&[(
+        "channels.csv",
+        "key,module,number,kind,address,state,symbol,comment,binding\n\
+         -1U3:0,-1U3,0,do,tbd,spare,Y0,a comment,\n\
+         -1U3:1,-1U3,1,do,,,,,-1F1:1\n",
+    )]);
+    assert!(b.report.entries.is_empty(), "{:#?}", b.report.entries);
+    let station = device(&b, "-1U1")
+        .and_then(|d| d.aspects.plc_station.as_ref())
+        .unwrap();
+    assert_eq!(station.role, StationRole::ValveTerminal);
+    assert_eq!(station.order, Some(2));
+    assert_eq!(
+        station.config_project,
+        ids::record_id("plc_config_projects", "PLC1")
+    );
+    assert!(device(&b, "-1U3").unwrap().aspects.plc_module.is_some());
+    assert!(device(&b, "-1F1").unwrap().aspects.plc_module.is_none());
+    let module: ew_ids::Id<Device> = ids::record_id("devices", "-1U3");
+    let all = channels(&b);
+    assert_eq!(all.len(), 2);
+    let c0 = all.iter().find(|c| c.number == 0).unwrap();
+    assert_eq!(c0.id, ew_ids::v5::plc_channel_id::<_, Channel>(module, 0));
+    assert_eq!(c0.address, AddrSpec::Tbd);
+    assert_eq!(c0.state, Some(ChannelState::Spare));
+    assert_eq!(c0.symbol.as_ref().map(|s| s.as_str()), Some("Y0"));
+    assert_eq!(c0.comment.as_neutral(), Some("a comment"));
+    assert!(c0.binding.is_none());
+    let c1 = all.iter().find(|c| c.number == 1).unwrap();
+    assert_eq!(c1.address, AddrSpec::Auto);
+    assert!(matches!(c1.binding, Some(ew_schema::Endpoint::Cp(_, 0))));
+}
+
+/// A second row of the same module and number is a duplicate channel, whatever its key.
+#[test]
+fn a_duplicate_channel_is_dropped() {
+    let b = plc_run(&[(
+        "channels.csv",
+        "key,module,number,kind\n-1U3:1,-1U3,1,do\n-1U3:1b,-1U3,1,do\n",
+    )]);
+    expect_error(&b, 2, "channels.csv", "-1U3:1b", "duplicate channel");
+    assert_eq!(channels(&b).len(), 1);
+    assert_eq!(
+        channels(&b)[0].source_ref.as_ref().unwrap().key,
+        "channels|-1U3:1"
+    );
+}
+
+/// Manual addresses are no fixture form: `address` is `auto`, `tbd` or `excluded`.
+#[test]
+fn a_manual_channel_address_is_malformed() {
+    let b = plc_run(&[(
+        "channels.csv",
+        "key,module,number,kind,address\n-1U3:1,-1U3,1,do,Q0.1\n",
+    )]);
+    expect_error(&b, 2, "channels.csv", "-1U3:1", "Q0.1");
+    assert!(channels(&b).is_empty());
+}
+
+#[test]
+fn a_channel_reference_that_does_not_resolve_is_dropped() {
+    let b = plc_run(&[(
+        "channels.csv",
+        "key,module,number,kind,binding,target\n\
+         A,-9U9,0,do,,\n\
+         B,-1U3,1,do,-1F1:99,\n\
+         C,-1U3,2,do,,nope\n\
+         D,-1U3,3,laser,,\n\
+         E,-1U3,70000,do,,\n\
+         F,-1U3,4,do,@J9,\n",
+    )]);
+    expect_error(&b, 3, "channels.csv", "A", "unknown device `-9U9`");
+    expect_error(&b, 3, "channels.csv", "B", "no CP `99`");
+    expect_error(&b, 3, "channels.csv", "C", "unknown function `nope`");
+    expect_error(&b, 2, "channels.csv", "D", "kind");
+    expect_error(&b, 2, "channels.csv", "E", "number");
+    expect_error(&b, 3, "channels.csv", "F", "junction");
+    assert!(channels(&b).is_empty());
+}
+
+#[test]
+fn a_plc_role_needs_a_station_and_a_station_needs_a_role() {
+    let rows = "key,letter,counter,plc_station,plc_role,plc_order\n\
+        -1F1,F,1,,valve_terminal,\n\
+        -1U1,U,1,PLC1,,\n\
+        -1U2,U,2,,,5\n\
+        -1U3,U,3,PLC1,sideways,\n\
+        -1U4,U,4,PLC9,drive,\n";
+    let b = plc_run(&[("devices.csv", rows)]);
+    expect_error(&b, 2, "devices.csv", "-1F1", "needs column `plc_station`");
+    expect_error(&b, 2, "devices.csv", "-1U1", "required with `plc_station`");
+    expect_error(&b, 2, "devices.csv", "-1U2", "needs column `plc_station`");
+    expect_error(&b, 2, "devices.csv", "-1U3", "plc_role");
+    expect_error(&b, 3, "devices.csv", "-1U4", "PLC9");
+    assert_eq!(devices(&b), 0);
+    assert_eq!(plc_aspects(&b), 0);
+}
+
+/// A project whose CPU is unknown is dropped, and the stations that named it lose their aspect.
+#[test]
+fn a_project_with_an_unknown_cpu_is_dropped_with_its_stations() {
+    let projects = "key,name,profile,cpu\nPLC1,PLC1,siemens-tia-intl@2027.1,-9X9\n";
+    let b = plc_run(&[("plc_config_projects.csv", projects)]);
+    expect_error(&b, 3, "plc_config_projects.csv", "PLC1", "-9X9");
+    expect_error(&b, 3, "devices.csv", "-1U1", "station aspect is removed");
+    assert!(!b.records.iter().any(|r| matches!(r, Record::PlcConfigProject(_))));
+    assert!(device(&b, "-1U1").unwrap().aspects.plc_station.is_none());
+    // A known CPU resolves to the device.
+    let projects = "key,name,profile,cpu\nPLC1,PLC1,siemens-tia-intl@2027.1,-1F1\n";
+    let b = plc_run(&[("plc_config_projects.csv", projects)]);
+    assert!(b.report.entries.is_empty(), "{:#?}", b.report.entries);
+    let p = b
+        .records
+        .iter()
+        .find_map(|r| match r {
+            Record::PlcConfigProject(p) => Some(p),
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(p.cpu, Some(ids::record_id("devices", "-1F1")));
+}
+
+#[test]
+fn a_device_link_needs_two_distinct_known_devices() {
+    let b = plc_run(&[(
+        "device_links.csv",
+        "key,from,to,kind\n\
+         ok,-1U3,-1F1,drives\n\
+         unknown,-1U3,-9Z9,drives\n\
+         same,-1U3,-1U3,drives\n\
+         odd,-1U3,-1F1,pushes\n",
+    )]);
+    expect_error(&b, 3, "device_links.csv", "unknown", "`-9Z9` in column `to`");
+    expect_error(&b, 2, "device_links.csv", "same", "same device");
+    expect_error(&b, 2, "device_links.csv", "odd", "kind");
+    let links: Vec<_> = b
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            Record::DeviceLink(l) => Some(l),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(links.len(), 1);
+    assert_eq!(links[0].kind, DeviceLinkKind::Drives);
+}
+
+#[test]
+fn the_plc_section_of_a_part_is_read_or_the_row_dropped() {
+    let b = with_parts(&[(
+        "part_plc.csv",
+        "key,role,io,channel_count,channel_kind,data_type,designation,bit_of,unbound\n\
+         P1,module,out:8;in:16:analog,8,do,Bool,{n},n,deactivated\n\
+         P9,module,,,,,,,\n\
+         P2,module,,8,,,,,\n\
+         P3,module,sideways:8,,,,,,\n\
+         P4,robot,,,,,,,\n\
+         P5,module,,,,Bool,,,\n\
+         P6,module,,,,,,,gone\n",
+    )]);
+    expect_error(&b, 3, "part_plc.csv", "P9", "unknown part `P9`");
+    expect_error(&b, 2, "part_plc.csv", "P2", "channel_kind");
+    expect_error(&b, 2, "part_plc.csv", "P3", "sideways:8");
+    expect_error(&b, 2, "part_plc.csv", "P4", "robot");
+    expect_error(&b, 2, "part_plc.csv", "P5", "need `channel_count`");
+    expect_error(&b, 2, "part_plc.csv", "P6", "gone");
+    let plc = part(&b, "P1")
+        .unwrap()
+        .item
+        .sections
+        .plc
+        .as_ref()
+        .expect("the PLC section");
+    assert_eq!(plc.role, PlcRole::Module);
+    assert_eq!(
+        plc.io
+            .iter()
+            .map(|r| (r.dir.clone(), r.bits, r.class.clone()))
+            .collect::<Vec<_>>(),
+        [
+            (IoDir::Out, 8, IoClass::Digital),
+            (IoDir::In, 16, IoClass::Analog)
+        ]
+    );
+    let channels = plc.channels.as_ref().unwrap();
+    assert_eq!((channels.count, channels.kind.clone()), (8, ChannelKind::Do));
+    assert_eq!(channels.designation.as_deref(), Some("{n}"));
+    assert_eq!(plc.bit_of, Some(MapSpec::Expr("n".to_owned())));
+    assert_eq!(plc.unbound, Some(ChannelState::Deactivated));
 }

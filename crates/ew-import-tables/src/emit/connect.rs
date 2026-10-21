@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use ew_ids::Id;
 use ew_interop_api::{Code, Severity};
 use ew_schema::{
-    AcDc, BevelSpec, Bond, BondKind, BridgeKind, BridgeSpec, CircuitClass, Conductor, Connection,
+    AcDc, BevelSpec, Bond, BondKind, BridgeKind, BridgeSpec, BusLine, CircuitClass, Conductor, Connection,
     ConnectionKind, Endpoint, Junction, JunctionStyle, JunctionWiring, NumberSpec, Page, PotentialDef,
     PotentialEarthing, PotentialEnv, Record, WireOverrides, WireProps,
 };
@@ -92,6 +92,8 @@ enum PendingKind<'t> {
     Core(&'t str),
     /// A terminal bridge.
     Bridge(BridgeSpec),
+    /// A bus connection, with its cable device by `devices` key (doc 10 §2.7).
+    Bus(Option<&'t str>),
 }
 
 /// `connections.csv` → `connection`. The `wire` column is documentation and is not read.
@@ -105,8 +107,10 @@ pub(crate) fn emit_connections(cx: &mut Cx<'_>, table: Option<&Table>) {
         let a = r.req("a");
         let b = r.req("b");
         let page = r.text("page");
+        let cable = r.text("cable");
         let kind = match r.text("kind") {
             None | Some("wire") => Some(PendingKind::Wire),
+            Some("bus") => Some(PendingKind::Bus(cable)),
             Some("core") => r.req("core").map(PendingKind::Core),
             Some("bridge") => {
                 let kind = r
@@ -133,11 +137,14 @@ pub(crate) fn emit_connections(cx: &mut Cx<'_>, table: Option<&Table>) {
             }
             Some(other) => {
                 r.fail(format!(
-                    "column `kind`: `{other}` is not supported (wire, core or bridge)"
+                    "column `kind`: `{other}` is not supported (wire, core, bridge or bus)"
                 ));
                 None
             }
         };
+        if cable.is_some() && !matches!(kind, Some(PendingKind::Bus(_))) {
+            r.fail("column `cable` is only read for kind `bus`");
+        }
         let overrides = WireOverrides {
             csa: r.csa("csa"),
             colour: r.colour("colour"),
@@ -182,6 +189,22 @@ pub(crate) fn emit_connections(cx: &mut Cx<'_>, table: Option<&Table>) {
         let kind = match kind {
             PendingKind::Wire => ConnectionKind::Wire,
             PendingKind::Bridge(spec) => ConnectionKind::Bridge(spec),
+            PendingKind::Bus(cable) => {
+                let cable = match cable {
+                    None => None,
+                    Some(key) => match cx.devices.get(key).filter(|d| d.cable) {
+                        Some(d) => Some(d.id),
+                        None => {
+                            cx.unresolved(row, &format!("`{key}` in column `cable` is not a cable device"));
+                            continue;
+                        }
+                    },
+                };
+                ConnectionKind::Bus(BusLine {
+                    cable,
+                    extra: Default::default(),
+                })
+            }
             PendingKind::Core(key) => match cx.conductors.get(key) {
                 Some(id) => ConnectionKind::Core(*id),
                 None => {

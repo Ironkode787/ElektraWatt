@@ -26,10 +26,11 @@
 //! |---|---|
 //! | `project`, `parties` | `project` (with its parties), `import_lineage` |
 //! | `structure`, `external_refs`, `sections`, `pages`, `report_blocks` | `structure_node`, `external_ref`, `section`, `page`, `report_block` |
-//! | `parts`, `part_cps`, `part_templates`, `cable_cores` | `part` library copies |
-//! | `devices`, `terminals` | `device` (strip, terminal and cable aspects) |
+//! | `parts`, `part_cps`, `part_templates`, `cable_cores`, `part_plc` | `part` library copies (`part_plc`: the PLC section) |
+//! | `devices`, `terminals` | `device` (strip, terminal, cable, PLC station and PLC module aspects) |
 //! | `functions`, `representations` | `function` (interruption points included), `representation` |
-//! | `connections`, `junctions`, `conductors`, `potentials`, `bonds` | `connection`, `junction`, `conductor`, `potential_def`, `bond` |
+//! | `connections`, `junctions`, `conductors`, `potentials`, `bonds` | `connection` (wire, core, bridge and bus), `junction`, `conductor`, `potential_def`, `bond` |
+//! | `plc_config_projects`, `channels`, `device_links` | `plc_config_project`, `channel` (ID `plc_channel_id(module, number)`, not the table rule), `device_link` |
 //! | `revisions` | the reserved `revision` records |
 //! | `colour_profile`, `size_profile` | the `colour_profile` and `size_profile` members of the project settings (doc 03 §5.1; `emit/profiles.rs`) |
 //!

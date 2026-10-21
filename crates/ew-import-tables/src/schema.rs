@@ -155,6 +155,10 @@ pub(crate) const DEVICES: TableSpec = spec(
         "cable",
         "cable_length",
         "tech_data",
+        "plc_station",
+        "plc_role",
+        "plc_order",
+        "plc_module",
     ],
 );
 
@@ -211,6 +215,7 @@ pub(crate) const CONNECTIONS: TableSpec = spec(
         "csa",
         "colour",
         "show_marker",
+        "cable",
     ],
 );
 
@@ -296,8 +301,37 @@ pub(crate) const REVISIONS: TableSpec = spec(
     ],
 );
 
+/// `plc_config_projects.csv`.
+pub(crate) const PLC_CONFIG_PROJECTS: TableSpec =
+    spec("plc_config_projects", &["key", "name", "profile"], &["cpu"]);
+
+/// `part_plc.csv` (the PLC section of a part copy).
+pub(crate) const PART_PLC: TableSpec = spec(
+    "part_plc",
+    &["key", "role"],
+    &[
+        "io",
+        "channel_count",
+        "channel_kind",
+        "data_type",
+        "designation",
+        "bit_of",
+        "unbound",
+    ],
+);
+
+/// `channels.csv`.
+pub(crate) const CHANNELS: TableSpec = spec(
+    "channels",
+    &["key", "module", "number", "kind"],
+    &["address", "state", "symbol", "comment", "binding", "target"],
+);
+
+/// `device_links.csv`.
+pub(crate) const DEVICE_LINKS: TableSpec = spec("device_links", &["key", "from", "to", "kind"], &[]);
+
 /// Every known table.
-pub(crate) const ALL: [TableSpec; 24] = [
+pub(crate) const ALL: [TableSpec; 28] = [
     PROJECT,
     PARTIES,
     STRUCTURE,
@@ -322,4 +356,8 @@ pub(crate) const ALL: [TableSpec; 24] = [
     SIZE_PROFILE,
     PROFILES,
     REVISIONS,
+    PLC_CONFIG_PROJECTS,
+    PART_PLC,
+    CHANNELS,
+    DEVICE_LINKS,
 ];

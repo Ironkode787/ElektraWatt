@@ -120,8 +120,13 @@ pub(crate) fn emit(
     part_cps: Option<&Table>,
     templates: Option<&Table>,
     cores: Option<&Table>,
+    part_plc: Option<&Table>,
 ) {
-    let Some(parts) = parts else { return };
+    let mut plc = super::plc::read_part_plc(cx, part_plc);
+    let Some(parts) = parts else {
+        super::plc::report_unknown_parts(cx, plc);
+        return;
+    };
     let mut keys = BTreeMap::new();
     let mut heads = Vec::new();
     for row in parts.rows() {
@@ -330,7 +335,7 @@ pub(crate) fn emit(
                 .collect(),
             sections: PartSections {
                 cable_cores: core_rows.into_iter().map(|c| c.1).collect(),
-                plc: None,
+                plc: plc.remove(&key).map(|(_, section)| section),
                 extra: Default::default(),
             },
             extra: Default::default(),
@@ -358,6 +363,7 @@ pub(crate) fn emit(
         );
         cx.local_lib.push(LibDocument::Part(copy));
     }
+    super::plc::report_unknown_parts(cx, plc);
 }
 
 #[cfg(test)]

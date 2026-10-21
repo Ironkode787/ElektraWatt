@@ -153,6 +153,32 @@ const MUTATIONS: &[(&str, &str, &str)] = &[
         "Phoenix Contact 2904603 | L, N, PE",
     ),
     (
+        "bus-potential-members",
+        "| -201U1:DP, -3X1, -3W1 A/B",
+        "| -3X1, -3W1 A/B",
+    ),
+    (
+        "bus-cable-drawn-single-line",
+        "drawn single-line (FR-CBL-008)",
+        "drawn per core (FR-CBL-008)",
+    ),
+    (
+        "plc-station-role",
+        "role valve terminal / DP slave",
+        "role valve terminal / DP master",
+    ),
+    (
+        "plc-modules",
+        "-201U3 … -201U8, -202U2 in manifold slots",
+        "-201U3 … -201U7, -202U2 in manifold slots",
+    ),
+    ("channel-binding-position", "| Q2 TA05-V-33 |", "| Q3 TA05-V-33 |"),
+    (
+        "device-link-driver",
+        "| -203Q5 … -203Q8 | TA05-V-36, TA05-V-38, TA05-V-16, TA05-V-37 | +FIELD ▲ | -201U4-Q1 … Q4 |",
+        "| -203Q5 … -203Q8 | TA05-V-36, TA05-V-38, TA05-V-16, TA05-V-37 | +FIELD ▲ | -201U4-Q1 … Q3 |",
+    ),
+    (
         "strip-numbering-format",
         "strips `{letter}{page}{counter}`",
         "strips `{page}{letter}{counter}`",
