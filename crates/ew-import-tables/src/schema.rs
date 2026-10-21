@@ -103,7 +103,14 @@ pub(crate) const REPORT_BLOCKS: TableSpec = spec(
 pub(crate) const PARTS: TableSpec = spec(
     "parts",
     &["key", "manufacturer", "part_number"],
-    &["kind", "type_designation", "description", "unit", "test_data"],
+    &[
+        "kind",
+        "type_designation",
+        "description",
+        "unit",
+        "test_data",
+        "tech_data",
+    ],
 );
 
 /// `part_cps.csv`.
@@ -147,6 +154,7 @@ pub(crate) const DEVICES: TableSpec = spec(
         "strip_field_side",
         "cable",
         "cable_length",
+        "tech_data",
     ],
 );
 

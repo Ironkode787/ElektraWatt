@@ -145,6 +145,7 @@ pub(crate) fn emit(
             )
             .unwrap_or_default();
         let test_data = r.flag("test_data");
+        let tech_data = r.tech_data("tech_data");
         if let Err(e) = r.finish() {
             cx.malformed(row, &e);
             continue;
@@ -162,6 +163,7 @@ pub(crate) fn emit(
             description,
             unit,
             test_data,
+            tech_data,
         ));
     }
 
@@ -170,7 +172,9 @@ pub(crate) fn emit(
     let mut cable = by_part(cx, cores, &keys);
     let library = Id::<Library>::from_uuid(cx.project.as_uuid());
 
-    for (row, manufacturer, part_number, kind, type_designation, description, unit, test_data) in heads {
+    for (row, manufacturer, part_number, kind, type_designation, description, unit, test_data, tech_data) in
+        heads
+    {
         let key = row.key().to_owned();
         // CP pattern.
         let mut pattern = BTreeMap::new();
@@ -311,7 +315,7 @@ pub(crate) fn emit(
             gtin: None,
             description,
             category: None,
-            tech_data: KeyedList::default(),
+            tech_data,
             free_props: KeyedList::default(),
             unit,
             cp_pattern,

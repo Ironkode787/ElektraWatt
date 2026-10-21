@@ -133,6 +133,7 @@ pub(crate) fn emit_devices(cx: &mut Cx<'_>, table: Option<&Table>) {
         let (parts, part_keys) = part_uses(cx, &mut r);
         let function_text = r.mltext("function_text");
         let process_tag = r.ident("process_tag");
+        let tech_data = r.tech_data("tech_data");
         let state = r.choice("state", STATES).unwrap_or_default();
         let is_strip = ["strip_label_mode", "strip_groups", "strip_field_side"]
             .iter()
@@ -214,7 +215,7 @@ pub(crate) fn emit_devices(cx: &mut Cx<'_>, table: Option<&Table>) {
             parts,
             function_text,
             process_tag,
-            tech_data: KeyedList::default(),
+            tech_data,
             state,
             source_ref: Some(source_ref("devices", row.key())),
             aspects: DeviceAspects {

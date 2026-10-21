@@ -617,3 +617,35 @@ fn a_device_parent_cycle_is_dropped_with_its_children() {
     expect_error(&b, 3, "devices.csv", "-1F3", "was dropped");
     assert_eq!(devices(&b), 1);
 }
+
+/// Technical data cells are `<key>=<value>` items: a malformed item, an unknown unit or a repeated key drops
+/// the row; a good cell becomes typed values of the device, in key order.
+#[test]
+fn technical_data_cells_are_typed_or_the_row_is_dropped() {
+    for bad in [
+        "rated_current",
+        "rated_current=10 A;rated_current=16 A",
+        "rated_current=10 parsec",
+        "rated_current=x A",
+        "=10 A",
+    ] {
+        let csv = format!("key,letter,counter,tech_data\n-1F1,F,1,\"{bad}\"\n");
+        let b = run(&[("devices.csv", &csv)]);
+        let errors = b.report.with_code(Code::imp(2)).count();
+        assert!(errors >= 1, "`{bad}`: {:#?}", b.report.entries);
+        assert_eq!(devices(&b), 0, "`{bad}` drops the device");
+    }
+    let csv = "key,letter,counter,tech_data\n-1F1,F,1,setpoint=15 degC;characteristic=C\n";
+    let b = run(&[("devices.csv", csv)]);
+    assert!(b.report.entries.is_empty(), "{:#?}", b.report.entries);
+    let dev = b
+        .records
+        .iter()
+        .find_map(|r| match r {
+            Record::Device(d) => Some(d),
+            _ => None,
+        })
+        .expect("the device");
+    let keys: Vec<&str> = dev.tech_data.iter().map(|t| t.key.as_str()).collect();
+    assert_eq!(keys, ["characteristic", "setpoint"]);
+}

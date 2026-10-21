@@ -30,7 +30,10 @@
 //!   the function CP that symbol CP `i` draws, `function_text` → the device's function text, or an
 //!   interruption point's pairing name, `process_tag` → the device's process tag; `xref` →
 //!   `xref_text(rep)` with one link per listed item to that item's target representation (FT-86, ID-228);
-//!   an external point prints the external target without a link; every other kind has no value;
+//!   an external point prints the external target without a link; `tech_data` → `tech_data_text(device)` (the
+//!   typed ratings of the device and its part, "C10", "40 A", "15 °C"), `manufacturer`, `part_number` and
+//!   `type_designation` → the main part of the device (its first part use, FT-162; D-18, D-33); every other kind
+//!   has no value;
 //! - wire markers: connections with `overrides.show_marker`, printing the explicit cross-section in mm²
 //!   and the colour codes, joined by a space (provisional format);
 //! - junction and wire-marker symbols: the built-in `@qet10` symbols of `content/symbols`;
@@ -48,7 +51,7 @@ use std::sync::Arc;
 use ew_api::{Session, SessionOptions};
 use ew_derive::{
     DisplayedTag, FunctionCps, GeneratedPage, PageEntry, PageOrder, PageOrderV, PageRef, PageTitle, Q,
-    TbValue, TitleBlockValues, XrefTextOf,
+    TbValue, TitleBlockValues, XrefTextOf, main_part, manufacturer_name, tech_data_text,
 };
 use ew_dl::{Destination, FontKey};
 use ew_ids::Id;
@@ -273,6 +276,16 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &ew_schema::Representation, def: &Sym
             SlotKind::ProcessTag => dev
                 .as_ref()
                 .and_then(|d| d.process_tag.as_ref().map(|t| t.as_str().to_owned())),
+            SlotKind::TechData => device.map(|d| tech_data_text(q, d)),
+            SlotKind::Manufacturer => device
+                .and_then(|d| main_part(q, d))
+                .map(|p| manufacturer_name(&p.item.manufacturer)),
+            SlotKind::PartNumber => device
+                .and_then(|d| main_part(q, d))
+                .map(|p| p.item.part_number.as_str().to_owned()),
+            SlotKind::TypeDesignation => device
+                .and_then(|d| main_part(q, d))
+                .and_then(|p| p.item.type_designation.as_ref().map(|t| t.as_str().to_owned())),
             SlotKind::Xref => {
                 let x = q.get::<XrefTextOf>(rep.id);
                 // One link per listed item, so the main list "∞ 3-B2, 106-G3" links both targets.

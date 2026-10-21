@@ -10,7 +10,9 @@ use std::sync::Arc;
 
 use ew_interop_api::{Code, ReportEntry, Severity, SourceLocation};
 use ew_mltext::{Ident, MlText, is_nfc, to_nfc};
-use ew_schema::{ColourCode, ColourSpec, Csa, Date, IecColour};
+use ew_schema::{
+    ColourCode, ColourSpec, Csa, Date, IecColour, KeyedList, Quantity, TechVal, TechValue, Unit,
+};
 use ew_units::Dec3;
 
 use crate::MAX_REPORT_ENTRIES;
@@ -440,6 +442,23 @@ impl<'t> Rd<'t> {
     pub(crate) fn csa(&mut self, col: &str) -> Option<Csa> {
         self.dec3(col).map(Csa::Mm2)
     }
+
+    /// Technical data (doc 03 §7, U-32): `;`-separated `<key>=<value>` items whose value is a quantity
+    /// `<decimal> <unit>` (`10 A`, `15 degC`, the unit in its ASCII spelling of the format) or an identifier
+    /// (`C`). A malformed item fails the row; a repeated key too.
+    pub(crate) fn tech_data(&mut self, col: &str) -> KeyedList<TechValue> {
+        let mut items = Vec::new();
+        for item in self.list(col) {
+            match parse_tech_value(item) {
+                Ok(v) => items.push(v),
+                Err(e) => self.fail(format!("column `{col}`: {e}")),
+            }
+        }
+        KeyedList::from_vec(items).unwrap_or_else(|_| {
+            self.fail(format!("column `{col}`: a key is repeated"));
+            KeyedList::default()
+        })
+    }
 }
 
 /// An identifier from a cell (already NFC and trimmed by the dialect).
@@ -454,6 +473,30 @@ fn parse_uint<T: TryFrom<u64>>(s: &str) -> Result<T, String> {
     }
     let n: u64 = s.parse().map_err(|_| format!("`{s}` is out of range"))?;
     T::try_from(n).map_err(|_| format!("`{s}` is out of range"))
+}
+
+/// One technical value `<key>=<decimal> <unit>` or `<key>=<identifier>`.
+fn parse_tech_value(item: &str) -> Result<TechValue, String> {
+    let (key, value) = item
+        .split_once('=')
+        .ok_or_else(|| format!("`{item}` is not <key>=<value>"))?;
+    let key = parse_ident(key)?;
+    let value = match value.split_once(' ') {
+        Some((number, unit)) => {
+            let unit: Unit = serde_json::from_value(serde_json::Value::String(unit.to_owned()))
+                .map_err(|e| format!("`{unit}` is not a unit: {e}"))?;
+            if matches!(unit, Unit::Unknown(_)) {
+                return Err(format!("`{unit:?}` is not a unit of the format"));
+            }
+            TechVal::Quantity(Quantity::new(parse_dec3(number)?, unit))
+        }
+        None => TechVal::Ident(parse_ident(value)?),
+    };
+    Ok(TechValue {
+        key,
+        value,
+        extra: Default::default(),
+    })
 }
 
 /// A canonical `Dec3` cell.

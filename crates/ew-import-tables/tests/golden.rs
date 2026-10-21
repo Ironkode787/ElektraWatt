@@ -222,6 +222,53 @@ fn the_tbd_parts_are_used_by_the_enclosure_and_the_strips() {
     );
 }
 
+/// The ratings of doc 20 §6.1 are typed technical data (FR-DEV-009, U-32): of the parts for the MCBs, the
+/// switch, the PSU and the load distribution, of the device for the setpoint of the thermostat.
+#[test]
+fn the_ratings_are_typed_technical_data() {
+    let b = golden();
+    let tech = |values: &[ew_schema::TechValue]| -> Vec<String> {
+        values
+            .iter()
+            .map(|t| match &t.value {
+                ew_schema::TechVal::Quantity(q) => format!("{}={} {:?}", t.key.as_str(), q.value, q.unit),
+                ew_schema::TechVal::Ident(i) => format!("{}={}", t.key.as_str(), i.as_str()),
+                ew_schema::TechVal::Unknown(v) => format!("{}={v}", t.key.as_str()),
+            })
+            .collect()
+    };
+    let part = |key: &str| -> Vec<String> {
+        let p = b
+            .lib
+            .iter()
+            .find_map(|d| match d {
+                LibDocument::Part(p) if p.item.meta.key.as_ref().is_some_and(|k| k.as_str() == key) => {
+                    Some(p)
+                }
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("part {key}"));
+        tech(&p.item.tech_data)
+    };
+    assert_eq!(part("A9P52610"), ["characteristic=C", "rated_current=10 A"]);
+    assert_eq!(part("5SY4204-7"), ["characteristic=C", "rated_current=4 A"]);
+    assert_eq!(part("A9F78116"), ["characteristic=B", "rated_current=16 A"]);
+    assert_eq!(part("533356"), ["rated_current=40 A"]);
+    assert_eq!(part("2904602"), ["rated_current=20 A"]);
+    assert_eq!(part("MICO 4.10"), ["channel_current=6 A"]);
+    assert!(part("SK 3110.000").is_empty());
+    let id: Id<Device> = record_id("devices", "T55");
+    let t55 = b
+        .records
+        .iter()
+        .find_map(|r| match r {
+            Record::Device(d) if d.id == id => Some(d),
+            _ => None,
+        })
+        .expect("device T55");
+    assert_eq!(tech(&t55.tech_data), ["setpoint=15 DegC"]);
+}
+
 /// The revision records carry label, date, state, the author's party role and the page notes (doc 03 §18).
 #[test]
 fn the_revisions_are_the_two_of_doc_20() {

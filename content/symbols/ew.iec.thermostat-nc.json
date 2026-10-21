@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "1c0a08d1-df27-5eb7-ab54-2d12d75117eb",
   "version": "0.1.0",
-  "sha256": "sha256:8dbdf5cbcb0150edbf7ad6a8216852f738ef03ff7ba05618de6ffb4db28ccbad",
+  "sha256": "sha256:7f10877f9c6b039a5e9b96bb3bbde1bb6fed7d0c45331877c7a483bae3e25b80",
   "meta": {
     "key": "ew.iec.thermostat-nc",
     "licence": "CC-BY-SA-4.0",
@@ -181,6 +181,15 @@
       ],
       "align": "middle_right",
       "visible": true
+    },
+    {
+      "kind": "part_number",
+      "pos": [
+        3000000,
+        12000000
+      ],
+      "align": "middle_left",
+      "visible": true
     }
   ],
   "arrangements": [
@@ -190,7 +199,8 @@
         0,
         1,
         2,
-        3
+        3,
+        4
       ]
     },
     {

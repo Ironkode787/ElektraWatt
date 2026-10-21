@@ -1,28 +1,28 @@
-key,manufacturer,part_number,kind,type_designation,description,unit,test_data
-5SY4204-7,Siemens,5SY4204-7,,,"Miniature circuit breaker 1P+N, C, 4 A",piece,
-6XV1830-0EH10,Siemens,6XV1830-0EH10,cable,,PROFIBUS FC standard cable,m,
-195740,Festo,195740,,,"CPX-FB13 bus node, PROFIBUS DP",piece,
-532216,Festo,532216,,,PROFIBUS DP plug with terminating resistor,piece,
-533354,Festo,533354,,,VMPA1-FB-SP supply plate,piece,
-533356,Eaton,533356,,,"Main switch, 2-pole, 40 A",piece,
-533361,Festo,533361,,,"VMPA1-FB-EMG-8 electronic module, 4 positions",piece,
-550208,Festo,550208,,,CPX-M-GE-EV-S-7/8-5POL interlinking block with supply,piece,
-552286,Festo,552286,,,VMPA-FB-EPLM-G pneumatic interface,piece,
-571334,Festo,571334,,,5/2 monostable solenoid valve,piece,
-2904602,Phoenix Contact,2904602,,,Power supply 1 AC / 24 V DC / 20 A,piece,
-A9F78116,Schneider Electric,A9F78116,,,"Miniature circuit breaker 1P, B, 16 A",piece,
-A9P52610,Schneider Electric,A9P52610,,,"Miniature circuit breaker 1P+N, C, 10 A",piece,
-MICO 4.10,Murrelektronik,MICO 4.10,,,"Electronic load distribution, 4 channels",piece,
-NEBU-G78W5-K-2-N-LE5,Festo,NEBU-G78W5-K-2-N-LE5,cable,,"Connecting cable 7/8"", 5-pin, open end",piece,
-NSYPLA1074G,Schneider Electric,NSYPLA1074G,enclosure,,"Enclosure, polyester",piece,
-NSYPMM107,Schneider Electric,NSYPMM107,mounting_plate,,Mounting plate,piece,
-PT 2.5-TWIN,Phoenix Contact,PT 2.5-TWIN,terminal,,"Feed-through terminal, 3 connections",piece,
-PT 2.5-TWIN-PE,Phoenix Contact,PT 2.5-TWIN-PE,terminal,,"PE terminal, 3 connections",piece,
-SK 3102.000,Rittal,SK 3102.000,,,Enclosure heater,piece,
-SK 3110.000,Rittal,SK 3110.000,,,Thermostat,piece,
-TBD DIN rail,TBD,TBD,rail,,DIN rail TS 35,m,true
-TBD end bracket,TBD,TBD,end_bracket,,End bracket,piece,true
-TBD plug-in bridge,TBD,TBD,accessory,,Plug-in bridge,piece,true
-TBD wiring duct,TBD,TBD,duct,,Wiring duct 40×60,m,true
-UK 5 N,Phoenix Contact,UK 5 N,terminal,,Feed-through terminal,piece,
-USLKG 5,Phoenix Contact,USLKG 5,terminal,,PE terminal,piece,
+key,manufacturer,part_number,kind,type_designation,description,unit,test_data,tech_data
+5SY4204-7,Siemens,5SY4204-7,,,"Miniature circuit breaker 1P+N, C, 4 A",piece,,characteristic=C;rated_current=4 A
+6XV1830-0EH10,Siemens,6XV1830-0EH10,cable,,PROFIBUS FC standard cable,m,,
+195740,Festo,195740,,,"CPX-FB13 bus node, PROFIBUS DP",piece,,
+532216,Festo,532216,,,PROFIBUS DP plug with terminating resistor,piece,,
+533354,Festo,533354,,,VMPA1-FB-SP supply plate,piece,,
+533356,Eaton,533356,,,"Main switch, 2-pole, 40 A",piece,,rated_current=40 A
+533361,Festo,533361,,,"VMPA1-FB-EMG-8 electronic module, 4 positions",piece,,
+550208,Festo,550208,,,CPX-M-GE-EV-S-7/8-5POL interlinking block with supply,piece,,
+552286,Festo,552286,,,VMPA-FB-EPLM-G pneumatic interface,piece,,
+571334,Festo,571334,,,5/2 monostable solenoid valve,piece,,
+2904602,Phoenix Contact,2904602,,,Power supply 1 AC / 24 V DC / 20 A,piece,,rated_current=20 A
+A9F78116,Schneider Electric,A9F78116,,,"Miniature circuit breaker 1P, B, 16 A",piece,,characteristic=B;rated_current=16 A
+A9P52610,Schneider Electric,A9P52610,,,"Miniature circuit breaker 1P+N, C, 10 A",piece,,characteristic=C;rated_current=10 A
+MICO 4.10,Murrelektronik,MICO 4.10,,,"Electronic load distribution, 4 channels",piece,,channel_current=6 A
+NEBU-G78W5-K-2-N-LE5,Festo,NEBU-G78W5-K-2-N-LE5,cable,,"Connecting cable 7/8"", 5-pin, open end",piece,,
+NSYPLA1074G,Schneider Electric,NSYPLA1074G,enclosure,,"Enclosure, polyester",piece,,
+NSYPMM107,Schneider Electric,NSYPMM107,mounting_plate,,Mounting plate,piece,,
+PT 2.5-TWIN,Phoenix Contact,PT 2.5-TWIN,terminal,,"Feed-through terminal, 3 connections",piece,,
+PT 2.5-TWIN-PE,Phoenix Contact,PT 2.5-TWIN-PE,terminal,,"PE terminal, 3 connections",piece,,
+SK 3102.000,Rittal,SK 3102.000,,,Enclosure heater,piece,,
+SK 3110.000,Rittal,SK 3110.000,,,Thermostat,piece,,
+TBD DIN rail,TBD,TBD,rail,,DIN rail TS 35,m,true,
+TBD end bracket,TBD,TBD,end_bracket,,End bracket,piece,true,
+TBD plug-in bridge,TBD,TBD,accessory,,Plug-in bridge,piece,true,
+TBD wiring duct,TBD,TBD,duct,,Wiring duct 40×60,m,true,
+UK 5 N,Phoenix Contact,UK 5 N,terminal,,Feed-through terminal,piece,,
+USLKG 5,Phoenix Contact,USLKG 5,terminal,,PE terminal,piece,,

@@ -1293,19 +1293,27 @@ fn defects(r: &mut Runner) {
         "strict import rejects \"BR\"; lenient import keeps it as a foreign code with the quick fix \"use BN\"",
         |_| not_built("the CSV importer has no strict or lenient mode (ImportContext carries none) and quick fixes do not exist yet"),
     );
-    r.entry("D-18", "the typed ratings and manufacturer names print on folios 101 and 102", |c| {
-        let want = ["C10", "C4", "B16", "15 \u{00b0}C", "Murrelektronik", "Eaton"];
-        let printed: BTreeSet<String> = ["101", "102"]
-            .iter()
-            .flat_map(|f| runs(&c.text[*f]).into_iter().map(|(_, t, _)| t))
-            .collect();
-        let missing: Vec<&str> = want.iter().copied().filter(|w| !printed.iter().any(|p| p.contains(w))).collect();
-        if missing.is_empty() {
-            pass("all six values print")
-        } else {
-            fail(format!("not printed on 101/102: {} (the symbol slots for ratings and part data are not filled yet)", missing.join(", ")))
-        }
-    });
+    r.entry(
+        "D-18",
+        "the typed ratings and manufacturer names print on folios 101 and 102",
+        |c| {
+            let want = ["C10", "C4", "B16", "15 \u{00b0}C", "Murrelektronik", "Eaton"];
+            let printed: BTreeSet<String> = ["101", "102"]
+                .iter()
+                .flat_map(|f| runs(&c.text[*f]).into_iter().map(|(_, t, _)| t))
+                .collect();
+            let missing: Vec<&str> = want
+                .iter()
+                .copied()
+                .filter(|w| !printed.iter().any(|p| p.contains(w)))
+                .collect();
+            if missing.is_empty() {
+                pass("all six values print")
+            } else {
+                fail(format!("not printed on 101/102: {}", missing.join(", ")))
+            }
+        },
+    );
     r.entry("D-20", "W13/W14 are a star at F55:2, W7/W8 a chain on -101F1:1", |_| {
         not_built("the wire list prints neither the junction nor its wiring style (README, \"Wire list (907)\"), so the wire list cannot show the notation")
     });
@@ -1357,9 +1365,7 @@ fn defects(r: &mut Runner) {
             let label = c.pdf_pages.get(5).map(|p| p.label.as_str());
             let mut wrong = Vec::new();
             if !space {
-                wrong.push(
-                    "folio 101 prints no \"SK 3110.000\" (the part-number slot is not filled yet)".to_owned(),
-                );
+                wrong.push("folio 101 prints no \"SK 3110.000\"".to_owned());
             }
             if label != Some("101") {
                 wrong.push(format!("physical page 6 is labelled {label:?}"));

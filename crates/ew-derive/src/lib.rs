@@ -61,6 +61,7 @@ mod names;
 mod nets;
 mod note;
 mod pages;
+mod part_text;
 mod potentials;
 mod profile;
 mod q;
@@ -107,6 +108,7 @@ pub use pages::{
     GeneratedPage, Origin, PageEntry, PageOrder, PageOrderV, PageRef, PageRefStructure, PageTitle,
     SectionStructure, folio_label, map_ml, report_pages,
 };
+pub use part_text::{main_part, manufacturer_name, tech_data_text, unit_symbol};
 pub use potentials::{
     Attr, AttrSource, BondLink, Component, NameSource, Partition, Potential, PotentialAttrs, PotentialId,
     PotentialName, PotentialPartition, Signal,

@@ -668,7 +668,51 @@ TBD_PARTS = {
 TBD_MANUFACTURER = "TBD"  # the Manufacturer cell of rows 24-27 is a bare ▲: no manufacturer is known
 
 
+def tech_values():
+    """Typed technical data (FR-DEV-009, test input U-32) read from the Function column of section 6.1, which prints
+    the ratings in prose: ``({part key: tech_data cell}, {device tag: tech_data cell})``.
+
+    The ratings of a part belong to the part (an MCB's characteristic and rated current, a switch's rated
+    current, a PSU's output current, the current setting of a load-distribution channel); the setpoint of the
+    thermostat belongs to the device. A cell is ``;``-separated ``<key>=<value>`` items, a quantity written
+    ``<number> <unit>`` with the unit in the ASCII spelling of the format (``A``, ``degC``)."""
+
+    def need(tag, pattern):
+        cell = strip_tri(row61(tag)["Function"])
+        m = re.search(pattern, cell)
+        check(m, f"section 6.1 row of {tag}: the Function cell {cell!r} does not match {pattern!r}")
+        return m
+
+    parts = {}
+    for tag in ("-101F1", "F55", "-102F1"):
+        m = need(tag, r"\bMCB 1P(?:\+N)? ([BCD])(\d+)\b")
+        parts[PARTS_BY_TAG[tag]] = f"characteristic={m.group(1)};rated_current={m.group(2)} A"
+    parts[PARTS_BY_TAG["S51"]] = f"rated_current={need('S51', r'(\d+) A\b').group(1)} A"
+    parts[PARTS_BY_TAG["-102G1"]] = f"rated_current={need('-102G1', r'(\d+) A$').group(1)} A"
+    parts[PARTS_BY_TAG["-102F2"]] = f"channel_current={need('-102F2', r'4 × (\d+) A').group(1)} A"
+    devices = {"T55": f"setpoint={need('T55', r'setpoint (\d+) °C').group(1)} degC"}
+    fixture(
+        "parts", "tech_data", sorted(parts, key=natural_key), "(per part: characteristic, rated_current, channel_current)",
+        "§6.1 (Function column), §3.4 row 8",
+        "the ratings are typed technical data of the part: the MCB characteristic and rated current ('MCB 1P+N C10'), the"
+        " rated current of the switch and the PSU, the channel current of the load distribution; notation 'C10', '40 A',"
+        " '6 A' of U-32",
+        marks=["U-32"],
+    )  # fmt: skip
+    fixture(
+        "devices", "tech_data", sorted(devices, key=natural_key), "setpoint=15 degC", "§6.1 (Function column), §3.4 row 8",
+        "the setpoint of the thermostat is typed technical data of the device ('15 °C' of U-32)",
+        marks=["U-32"],
+    )  # fmt: skip
+    return parts, devices
+
+
+DEVICE_TECH = {}  # device tag -> tech_data cell, filled by build_parts for build_devices_terminals
+
+
 def build_parts():
+    part_tech, device_tech = tech_values()
+    DEVICE_TECH.update(device_tech)
     out = []
     tbd = []
     for r in table_dicts("### 14.1 Component mode (folio 901)"):
@@ -700,9 +744,13 @@ def build_parts():
                 "kind": PART_KIND.get(pn, ""),
                 "description": strip_tri(r["Description"]),
                 "unit": UNIT[r["Unit"]],
+                "tech_data": part_tech.get(pn, ""),
             }
         )
-    cols = ["key", "manufacturer", "part_number", "kind", "type_designation", "description", "unit", "test_data"]
+    cols = [
+        "key", "manufacturer", "part_number", "kind", "type_designation", "description", "unit", "test_data", "tech_data",
+    ]  # fmt: skip
+    check(set(part_tech) <= {p["key"] for p in out}, f"technical data of parts that are not in section 14.1: {set(part_tech)}")
     check(sorted(pos for _, pos in tbd) == sorted(TBD_PARTS), f"section 14.1: the TBD rows are {tbd}")
     register("parts", cols, out, 27)
     tbd_keys = [key for key, _ in tbd]
@@ -950,7 +998,7 @@ def build_cables_conductors(part_keys):
 DEVICE_COLS = [
     "key", "letter", "counter", "scheme", "frozen", "frozen_sign", "parent", "position", "function", "location",
     "kind", "parts", "function_text", "process_tag", "state", "strip_label_mode", "strip_groups",
-    "strip_field_side", "cable", "cable_length",
+    "strip_field_side", "cable", "cable_length", "tech_data",
 ]  # fmt: skip
 
 # doc 20 section 6.1 "Part" column mapped to parts.csv keys. ``build_devices_terminals`` checks the map against the
@@ -1117,6 +1165,7 @@ def build_devices_terminals(part_keys):
 
     strips = strip_data()
     tbd_uses = tbd_part_uses()
+    device_tech = DEVICE_TECH
     devices = []
 
     def add(**kw):
@@ -1170,6 +1219,8 @@ def build_devices_terminals(part_keys):
             d.update(letter="U", scheme="child", parent="-UC1", frozen="UC1-plate", frozen_sign="shown")
         else:
             fail(f"unexpected device tag {tag!r}")
+        if tag in device_tech:
+            d["tech_data"] = device_tech[tag]
         if tag in children:
             d.update(parent="-201U1", position=str(children.index(tag) + 1))
         if tag == "-102G1":
