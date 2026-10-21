@@ -1,0 +1,177 @@
+{
+  "$defs": {
+    "BondKind": {
+      "description": "Bond kinds.",
+      "oneOf": [
+        {
+          "const": "pelv_0v_pe",
+          "description": "The one 0 V–PE bond of a PELV system.",
+          "type": "string"
+        },
+        {
+          "const": "fe_pe",
+          "description": "FE to PE.",
+          "type": "string"
+        },
+        {
+          "const": "equipotential",
+          "description": "Equipotential bonding.",
+          "type": "string"
+        },
+        {
+          "const": "shield",
+          "description": "Shield bonding.",
+          "type": "string"
+        }
+      ]
+    },
+    "CmdPt2": {
+      "description": "A point or a displacement [x, y] in nanometres, y downwards (doc 05 §3.2).",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "EndpointParam": {
+      "description": "An endpoint named in command parameters: a function CP, a junction, or a point on an existing\nconnection (which splits it and creates a junction there, doc 06 §3.5).\n\nJSON: `{\"cp\": {\"function\": \"…\", \"idx\": 1}}`, `{\"junction\": {\"junction\": \"…\"}}`,\n`{\"on_connection\": {\"connection\": \"…\", \"at\": [x, y]}}`.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "Connection point `idx` of a function.",
+          "properties": {
+            "cp": {
+              "additionalProperties": false,
+              "properties": {
+                "function": {
+                  "$ref": "#/$defs/CmdUuid",
+                  "description": "The function."
+                },
+                "idx": {
+                  "description": "The CP index.",
+                  "format": "uint16",
+                  "maximum": 65535,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "function",
+                "idx"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "cp"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A junction.",
+          "properties": {
+            "junction": {
+              "additionalProperties": false,
+              "properties": {
+                "junction": {
+                  "$ref": "#/$defs/CmdUuid",
+                  "description": "The junction."
+                }
+              },
+              "required": [
+                "junction"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "junction"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A point on an existing connection's route.",
+          "properties": {
+            "on_connection": {
+              "additionalProperties": false,
+              "properties": {
+                "at": {
+                  "$ref": "#/$defs/CmdPt2",
+                  "description": "The point (on the route, if the connection has one)."
+                },
+                "connection": {
+                  "$ref": "#/$defs/CmdUuid",
+                  "description": "The connection to split."
+                }
+              },
+              "required": [
+                "connection",
+                "at"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "on_connection"
+          ],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`bond.create` (`CreateBond`): declares a bond, a link of two potentials that does not merge them\n(doc 03 §9.6, doc 08 §3.7; FR-CON-014, the \"declare bond\" quick fix of EW-POT-001).\n\nCreates `Bond {a, b, kind, via}`. `a` and `b` must each be a CP of an existing function or an existing\njunction (a point on a connection is rejected) and must differ; `via`, the connection that realises the\nbond (W27 for PE-0VDC of Golden A), must exist when given. The bond's label (`B1`) is derived. Whether\nthe two ends lie on different potentials, and the PELV rule of exactly one 0 V-PE bond, are checks\n(EW-POT-001, EW-POT-002), not refusals. Outcome: the bond.",
+  "properties": {
+    "a": {
+      "$ref": "#/$defs/EndpointParam",
+      "description": "First end."
+    },
+    "b": {
+      "$ref": "#/$defs/EndpointParam",
+      "description": "Second end."
+    },
+    "kind": {
+      "$ref": "#/$defs/BondKind",
+      "description": "The bond kind."
+    },
+    "via": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdUuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The connection that realises the bond."
+    }
+  },
+  "required": [
+    "a",
+    "b",
+    "kind"
+  ],
+  "title": "bond.create",
+  "type": "object"
+}

@@ -1,0 +1,58 @@
+{
+  "$defs": {
+    "CmdIdent": {
+      "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`external_ref.create` (`CreateExternalRef`): a point outside the project that an interruption point or\na structure box can name (doc 03 §6, FR-XRF-011): a device, and optionally its connection, at a\nlocation node, optionally in another project (\"JE-N1000-03\", connection \"L\", at +J-E-206).\n\nCreates `ExternalRef {project, location, device, connection}`. The location node must exist and be of\nthe location aspect (else rejected). Its fields are edited with `fields.set`; it is named by\n`ip.place`'s `external`. Outcome: the new reference.",
+  "properties": {
+    "connection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdIdent"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The connection there."
+    },
+    "device": {
+      "$ref": "#/$defs/CmdIdent",
+      "description": "The device there."
+    },
+    "location": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The location node."
+    },
+    "project": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdIdent"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The other project."
+    }
+  },
+  "required": [
+    "location",
+    "device"
+  ],
+  "title": "external_ref.create",
+  "type": "object"
+}

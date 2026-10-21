@@ -5,6 +5,28 @@
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
+      "name": "bond.create",
+      "params_version": 1,
+      "schema": "bond.create.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "box.black",
+      "params_version": 1,
+      "schema": "box.black.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
       "name": "cable.create",
       "params_version": 1,
       "schema": "cable.create.schema.json",
@@ -87,6 +109,17 @@
       "name": "edit.delete",
       "params_version": 1,
       "schema": "edit.delete.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "external_ref.create",
+      "params_version": 1,
+      "schema": "external_ref.create.schema.json",
       "stability": "preview",
       "undoable": true
     },

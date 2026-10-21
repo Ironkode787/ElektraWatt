@@ -5,7 +5,7 @@
 
 The editing layer of ElektraWatt (ADR-0008): every change of a project is a `Command` that runs against a
 `TxBuilder`, is completed by the normalisers, validated by `ew-model` and committed as one `Transaction` of
-`Op`s. The crate holds the 23 v0 commands, the `CommandRegistry`, the `Engine` pipeline with previews, the
+`Op`s. The crate holds the 29 v0 commands, the `CommandRegistry`, the `Engine` pipeline with previews, the
 project-wide `History` (undo and redo) and the change feed. `ew_api::Session` wraps the engine.
 
 ## Parameter schemas

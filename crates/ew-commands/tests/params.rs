@@ -115,6 +115,22 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"cable": DEV_3W1.to_string(), "conductors": [{"core": "D"}]}),
         ),
         (
+            "box.black",
+            json!({"page": PAGE_102.to_string(), "symbol": SYM_TWO.to_string(), "pos": [7_937_500, 0],
+                "box": {"outline": [[0, 0], [31_750_000, 0], [31_750_000, 23_812_500]],
+                    "cps": [{"idx": 0, "pos": [7_937_500, 0], "dir": "down"}]},
+                "target": {"new_device": {"letter": "A"}}}),
+        ),
+        (
+            "bond.create",
+            json!({"a": fn_a.clone(), "b": fn_b.clone(), "kind": "equipotential",
+                "via": CON_W27.to_string()}),
+        ),
+        (
+            "external_ref.create",
+            json!({"location": LOC.to_string(), "device": "JE-N1000-03", "connection": "L"}),
+        ),
+        (
             "fields.set",
             json!({"kind": "device", "targets": [DEV_102F2.to_string()], "path": "tag.counter", "value": 5}),
         ),
@@ -159,7 +175,7 @@ fn every_registered_command_has_an_example() {
     let registry = CommandRegistry::builtin();
     let registered: BTreeSet<&str> = registry.commands().map(|c| c.meta().name).collect();
     let covered: BTreeSet<&str> = examples().iter().map(|(n, _)| *n).collect();
-    assert_eq!(registered.len(), 26);
+    assert_eq!(registered.len(), 29);
     assert_eq!(registered, covered);
     assert_eq!(examples().len(), covered.len(), "one example per command");
 }
