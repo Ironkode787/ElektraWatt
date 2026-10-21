@@ -211,7 +211,8 @@ pub enum Primitive { Line, Polyline, Rect{rx, ry, shadow: Option<Nm>}, Circle, E
   draw a subset of the FnDef's CPs: a single-line MCB draws two of four.
 - **Text slots** are typed. The kinds are:
   - Tag, FunctionText, TechData, Manufacturer, PartNumber, TypeDesignation;
-  - CpDesignation(idx), Xref, PlcAddress, ProcessTag, UserProp(key), ContactImage.
+  - CpDesignation(idx), Xref, PlcAddress, ProcessTag, UserProp(key), ContactImage;
+  - OrderCode (added in cycle 15): the order code of the device's first assembly config (doc 20 §11.1, D-36).
 
   Text height comes from the project's text style bound to the slot kind (FR-SYM-013); a slot may name its own
   text style in the optional member `style`, which replaces that binding for the slot (decision log ID-197). A
@@ -1052,7 +1053,7 @@ native-grid projects place the native edition.
 | `ew.iec.pe`, `ew.iec.fe`, `ew.iec.plug-pin` | earth roles PE and FE; plug pin. PE is the earth sign inside a circle (IEC 60417-5019), FE the plain earth sign (IEC 60417-5018), as the ruling of decision log ID-36 identifies them (not yet verified against the standard, like every `iec60617_ref`); their text slots sit at x = 6 mm (PE, clear of the circle) and 4 mm (FE), and a content lint guards the assignment | folio 101 earth ([reference drawing](../research/reference-drawing.md) §1.5); CPX FE screw; X1 pins on 106 |
 | `ew.gen.blackbox` | from the part pattern; without drawn geometry the bootstrap derives the outline and CP positions from the pattern ([14](14-interop.md) §8.4, decision log ID-181); text slots tag, function text, cross-reference, part number and manufacturer ("Murrelektronik", D-18; the manufacturer slot was appended in cycle 12, decision log ID-314) | -102G1, -102F2, CPX power blocks on 106 |
 | `ew.gen.ip`, `ew.gen.external-arrow`, junction dot and bevel, cable marker, wire marker | built in (the interruption point's FnDef is `ew.fn.ip`, §2.3; it prints its pairing name in the function-text slot, decision log ID-166); the wire marker is the graphic of a `PageItem::WireMarker` ([03](03-domain-model.md) §6) | L-1, N-1, 24VDC-1 …; J-E-206 points; -106W1 marker; "2.5 BK" on W7 |
-| `ew.bus.dp-port`, `ew.bus.dp-connector` | BusPort | -201U1 on folio 3; anchor at graphics gives "3-B2" (D-14) |
+| `ew.bus.dp-port`, `ew.bus.dp-connector` | BusPort | -201U1 on folio 3; anchor at graphics gives "3-B2" (D-14); the port's `manufacturer` and `order_code` slots (appended in cycle 15, slots 5 and 6) print "Festo" and order code 1 (doc 20 §11.1, D-36) |
 | `ew.ovw.module`, `ew.ovw.valve-top` | overview of the assembly view | generated overview on 201/202 |
 | `ew.iso.valve-5-2-sol-spring` | fluid 5/2, ports 1–5, solenoid 14 with manual override, spring | 28 valves, 203–206 |
 | `ew.iso.cylinder-double-acting`, `ew.iso.process-valve-2way` | fluid; linkage points | TA05-V-15 … TA05-V-37 on 203 |

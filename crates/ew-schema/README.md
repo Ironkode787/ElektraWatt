@@ -147,10 +147,12 @@ Format 0.1 is unreleased; these entries record what changed since the first gold
 | `LineageAnchor::Copy.of` holds the original lineage's **namespace** | 0.1 | As `ew_ids::v5::LineageAnchor::Copy` and ADR-0004 amendment 4 |
 | Object payloads of enum variants carry `extra` | 0.1 | No change on the wire |
 | Sets and keyed lists are enforced on read | 0.1 | Files that were unsorted were never canonical |
+| The `assembly` aspect is typed (cycle 15, D-41) | 0.1 | `Assembly{configs, bom_basis}`, `AssemblyConfig{label, order_code, part, covers}` (doc 03 §7): additive because the aspect was reserved (ID-334); its links (`configs[].part.copy` forbids, `configs[].covers[]` unlinks) have semantics, which after a format release would raise `min_reader`. `covers` is a `Set` |
+| `SlotKind::OrderCode` appended | 0.1 | The order code of the device's first assembly config (doc 20 §11.1) |
 
 Aspect order (cycle 13, decision log ID-337): `strip`, `terminal`, `cable`, `assembly`, `plc_station`,
-`plc_module` are written in doc 05 §3.1's order; `assembly` is held verbatim in its own slot so that it keeps its
-place before `plc_station`. Known limitation: `bus_node` and `valve_terminal`, not yet implemented, are kept in
+`plc_module` are written in doc 05 §3.1's order. `assembly` was held verbatim in its own slot so that it kept
+its place before `plc_station`, and it has been typed since cycle 15. Known limitation: `bus_node` and `valve_terminal`, not yet implemented, are kept in
 `extra` and therefore written in byte-wise key order after the typed aspects, which equals doc 05's order for these
 two; until they are implemented an untouched record keeps its original line.
 

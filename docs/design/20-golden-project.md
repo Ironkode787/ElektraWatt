@@ -759,7 +759,7 @@ lenient import keeps it, as a foreign colour code with the quick fix "use BN" (M
 | Logical network | PROFIBUS DP; master = external partner JE-N1000-03 in +J-E-206 (FR-BUS-005), not in the BOM; data rate unset ▲U-22 |
 | Slave | -201U1, bus port "DP", station address `Tbd` (EF-03) |
 | Physical segment | master first: JE-N1000-03 (external end, termination unknown, EF-16) → -3W1 → -3X1 (plugged on the port, termination On) → -201U1:DP; the segment is derived from the `Bus` connections (`bus_segments`, [10](10-plc-and-bus.md) §3.8) |
-| Folio 3 texts | "Festo / 51E-F13GCQP-D+H2GG / CPX FB13 / Node TBD" rendered from the assembly's order code 1, the part type and the station address (`Tbd` prints "TBD"); "Switch to "ON"" rendered from `-3X1.termination = On` (FR-BUS-004) |
+| Folio 3 texts | "Festo / 51E-F13GCQP-D+H2GG / CPX FB13 / Node TBD" rendered from the assembly's order code 1, the part type and the station address (`Tbd` prints "TBD"); "Switch to "ON"" rendered from `-3X1.termination = On` (FR-BUS-004). **As built (cycle 15):** the DP port symbol's `manufacturer` and `order_code` slots print "Festo" and "51E-F13GCQP-D+H2GG" as two lines. The part type is not printed because the part data has no type designation, and "Node TBD" waits for the station address on a `BusPort` (FT-225) |
 
 ### 11.2 Station, modules and the address map
 
@@ -928,7 +928,7 @@ Rows 16–21 are replaced by two configured-product rows; all other rows stay, a
 | A1 | 1 | set | Festo | 51E-F13GCQP-D+H2GG | CPX terminal (order code 1) | 195740, 550208 of -201U1 ▲U-24 |
 | A2 | 1 | set | Festo | 32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS | MPA valve terminal (order code 2) | -201U2 … -202U3 and the 28 valves |
 
-**As built (cycle 14; decision log ID-356).** `ew export bom --mode assembly` runs, but the golden project has no configured product yet, so it prints the 27 component rows of §14.1; the "Covers" column is not built. A1 and A2, the Covers column, the order-code text on folio 3 and D-36 wait for the typed assembly aspect of D-41 (FT-245, cycle 15).
+**As built (cycle 15; FT-245).** -201U1 carries the typed assembly aspect (doc 03 §7) with order codes 1 and 2 (`tables/assembly_configs.csv`) and their configured parts (kind `configured`, unit `set`, in `tables/parts.csv`). `ew export bom --mode assembly` prints rows 1–15, A1, A2 and rows 22–27 renumbered 16–21 (`expected/csv/bom_assembly.csv`). The CSV keeps the Tags and Folios columns of §14.1 and appends "Covers": the devices an order code replaces, as a compressed tag list. A1 covers the head itself (its 195740 and 550208) and prints "-201U1". A2 covers the 11 children and the 28 valves, named explicitly because covers are not transitive, and prints "-201U2 … -202U3, -201U3-Q1 … -202U2-Q4". Which order code covers -202U1 stays ▲U-24, and the fixture follows this table: A2. AC-07's assembly entry and D-36 pass.
 
 ---
 
@@ -1230,7 +1230,7 @@ gates.
 | D-14 | "3-B0" | Prevent: anchor policy (FR-SYM-010, FR-XRF-005); FR-CHK-035 | Render 201; force a named anchor policy on the bus port | "3-B2"; a forced named anchor policy that leaves the bus port's graphics, set on -201U1's bus representation alone (`Representation.anchor`), prints "∞ 3-B0, 106-G3" and EW-CORE-053 reports "3-B0: empty cell", its quick fix restores "3-B2" (the origin alone gives no "3-B0" on Golden A: the starter symbol's origin lies in cell B2; decision log ID-350); C: MF-13 is the real instance | M1 |
 | D-15 | Node "TBD"; termination as text | Typed `Tbd`, EW-BUS-001; termination property, EW-BUS-004 | Check; set -3X1 Off | EF-03 blocks release; "Switch to "ON"" rendered; Off yields an EW-BUS-004 error | M2 |
 | D-16 | FE vs PE mixed | EW-POT-003 (FR-CHK-030, MVP), EW-PLC-013 (1.0) | Check | EF-10, then EF-22 at 1.0 | M2 |
-| D-17 | Core colour "BR" | `ColourCode` (FR-CON-019), FR-CBL-005, FR-CHK-032; prevent rule EW-CORE-031 | Render 106; CSV import of "BR" | "BN" printed; strict import rejects "BR", lenient keeps it as a foreign code and reports it with the quick fix "use BN"; C: MF-11 | M1 |
+| D-17 | Core colour "BR" | `ColourCode` (FR-CON-019), FR-CBL-005, FR-CHK-032; prevent rule EW-CORE-031 | Render 106; CSV import of "BR" | "BN" printed; strict import rejects "BR", lenient keeps it as a foreign code and reports it with the quick fix "use BN"; C: MF-11. As built (cycle 15): strict refuses the row (EW-IMP-002 naming EW-CORE-031), lenient reports EW-IMP-008 with the declarative fix `fields.set` | M1 |
 | D-18 | Typos, manufacturer names, "50hz" | Manufacturer master (FR-PRT-002), typed values, FR-CHK-040 (1.0) | Render 1, 101, 102; seed "10A C" into a description | §3.4 rows 7–8; the seeded description is linted at 1.0 | M1 / 1.0 |
 | D-19 | No supply cable; no lengths | EW-CORE-034, EW-CORE-033 (FR-CHK-033) | Check | EF-07, EF-08; release blocked by EF-08 | M2 |
 | D-20 | Junction notation mixed | Junction entities with style and wiring (FR-CON-005) | Wire list | W13/W14 star at F55:2; W7/W8 chain on -101F1:1; dots and bevels drawn as in the reference (as built: the wire list's Via notation, ID-348) | M1 |
@@ -1249,12 +1249,12 @@ gates.
 | D-33 | Physical page labels; lost spaces | FR-OUT-006, FR-OUT-008 | Text extraction of 101 | "SK 3110.000" with its space; physical page 6 labelled "101" | M1 |
 | D-34 | Author = checker | Release invariant (FR-REV-005) | Release with checker unset / = author / `<checker>` | Refused, refused, accepted (A-R) | MVP |
 | D-35 | BOM description misuse | Separate description and technical data (FR-DEV-010); FR-CHK-040 | 901 | Descriptions per §14; ratings only at symbols; EF-25 | M1 |
-| D-36 | Order code vs components | Assembly aspect, BOM modes (FR-DEV-020, FR-REP-005) | 901 and assembly export | Rows 16–21 vs A1, A2 (§14); folio 3 prints order code 1 from the assembly (not built: no configured product until D-41, FT-245; ID-356) | M1 |
+| D-36 | Order code vs components | Assembly aspect, BOM modes (FR-DEV-020, FR-REP-005) | 901 and assembly export | Rows 16–21 vs A1, A2 (§14); folio 3 prints order code 1 from the assembly (built in cycle 15, §14.2) | M1 |
 | D-37 | Colour-profile basis | Profiles name their basis (FR-CON-020) | Profile metadata; cover | Basis "company convention", DBU declared a company code; cover basis text per ▲U-35 | M1 |
 | D-38 | PE smaller than line | EW-POT-006 (FR-CHK-020) | Check; A-R | EF-06; cleared by W6 = 2.5 | M2 |
 | D-39 | IP order not systematic | Assisted: sort tool (FR-XRF-013) | Arrange IPs on 102 by name | As drawn N-1 above L-1; after the command L-1 above N-1; no check | MVP |
 | D-40 | CPX block inside MPA section | Assisted: configurator validation EW-FL-003 (1.x, plugin) | — | No finding before 1.x; kept as ▲U-24 | 1.x |
-| D-41 | Assembly tagged from two pages | One assembly identity (FR-DEV-022) | Assembly export; 201/202 | One assembly -201U1 with children on both pages; break marks generated (not built: the typed assembly aspect, FT-245) | M1 |
+| D-41 | Assembly tagged from two pages | One assembly identity (FR-DEV-022) | Assembly export; 201/202 | One assembly -201U1 with children on both pages; break marks generated (built in cycle 15: the typed aspect, and `assembly_break_marks` derives the marks right after -201U9 on 201 and left before -202U1 on 202) | M1 |
 | D-42 | Strip drawn twice | One strip, two segments (FR-TRM-011); merged at import (FR-IMP-013) | 103, 901 | One -X1031 device with segments at 103-A3 and 103-A10; one BOM row; C: MF-10 (info) | M1 |
 
 ---
