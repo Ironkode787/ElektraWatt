@@ -249,6 +249,7 @@ pub(crate) fn emit_devices(cx: &mut Cx<'_>, table: Option<&Table>) {
                 strip,
                 terminal: None,
                 cable,
+                assembly: None,
                 plc_station: station.zip(plc_role).map(|(config_project, role)| PlcStation {
                     config_project,
                     role,
@@ -368,6 +369,7 @@ pub(crate) fn emit_terminals(cx: &mut Cx<'_>, table: Option<&Table>) {
                     extra: Default::default(),
                 }),
                 cable: None,
+                assembly: None,
                 plc_station: None,
                 plc_module: None,
             },

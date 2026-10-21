@@ -474,6 +474,7 @@ impl HeapSize for DeviceAspects {
         self.strip.heap_size()
             + self.terminal.heap_size()
             + self.cable.heap_size()
+            + self.assembly.heap_size()
             + self.plc_station.heap_size()
             + self.plc_module.heap_size()
     }

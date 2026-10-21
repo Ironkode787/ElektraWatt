@@ -30,9 +30,11 @@ use crate::{ExternalRef, SchemaError};
 /// Everything with one tag; the single owner of parts (ADR-0006, doc 03 §7, rank 31). The printed tag is
 /// derived from `tag`, the numbering scheme and the main representation; it is stored nowhere.
 ///
-/// Aspects follow the known members, flattened in the order of doc 05 §3.1. Implemented: `strip`,
-/// `terminal`, `cable`, `plc_station` and `plc_module`; `assembly`, `bus_node` and `valve_terminal` arrive
-/// with their work packages and are kept in `extra` until then, which places them after the typed aspects.
+/// Aspects follow the known members, flattened in the order of doc 05 §3.1: `strip`, `terminal`, `cable`,
+/// `assembly`, `plc_station`, `plc_module`, then `bus_node` and `valve_terminal`. Typed: `strip`, `terminal`,
+/// `cable`, `plc_station` and `plc_module`; `assembly` is held verbatim in its own slot so that it keeps its
+/// place before `plc_station`; `bus_node` and `valve_terminal` arrive with their work packages and are kept
+/// in `extra` until then, which places them after the typed aspects.
 /// `user_props` has no field-level definition yet and is kept in `extra` too.
 ///
 /// Deserialisation takes the aspects out of the object first and reads each at its own path, because
@@ -125,6 +127,7 @@ impl DeviceAspects {
             strip: aspect(map, "strip")?,
             terminal: aspect(map, "terminal")?,
             cable: aspect(map, "cable")?,
+            assembly: map.remove("assembly"),
             plc_station: aspect(map, "plc_station")?,
             plc_module: aspect(map, "plc_module")?,
         })
@@ -262,6 +265,10 @@ pub struct DeviceAspects {
     /// Cable.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cable: Option<Cable>,
+    /// The assembly aspect (doc 03 §6, doc 11 §2.7), kept verbatim until it is typed; it is written in its
+    /// doc 05 §3.1 place, before `plc_station`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub assembly: Option<Value>,
     /// PLC station (doc 10 §2.3).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub plc_station: Option<crate::PlcStation>,

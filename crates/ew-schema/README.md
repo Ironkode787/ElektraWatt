@@ -13,7 +13,15 @@ crate (MIT OR Apache-2.0): third parties read and write EW files with it without
 v0 (WP-S1.02) holds the golden subset: `project`, `import_lineage`, `structure_node`, `section`,
 `external_ref`, `page`, `device` (aspects `strip`, `terminal`, `cable`), `function`, `representation`,
 `connection`, `junction`, `conductor`, `potential_def`, `bond`, `report_block`, and the library documents
-`part`, `symbol`, `fndef` and `form`. Every other kind of doc 05 §2.2 is in the registry as reserved.
+`part`, `symbol`, `fndef` and `form`. Cycle 13 (FT-111, additive within format 0.1) adds the PLC kinds
+`plc_config_project` (rank 11: `name`, `profile` = `id@version`, `cpu`), `channel` (rank 37, shard of
+`module`, ID `v5(module, "channel", number)`: `number`, `designation`, `kind`, `address` = `AddrSpec`,
+`state`, `symbol`, `comment`, `binding`, `target`) and `device_link` (rank 42, shard of `from`: `from`, `to`,
+`kind` = `drives` | `linkage`), the device aspects `plc_station` (`config_project`, `role`, `order`) and
+`plc_module` (`slot` = `SlotPath`, `start` = `IoStarts`, `part_use`, `integrated`), and the part section
+`sections.plc` (`role`, `io`, `channels`, `bit_of` = `MapSpec`, `unbound`): the subset of doc 10 §2.2–§2.6
+the golden project needs; the other members of doc 10 stay in `extra` until their work packages. Every other
+kind of doc 05 §2.2 is in the registry as reserved.
 
 Field-level truth: `docs/design/03-domain-model.md`. Encoding: `docs/design/05-project-format-and-persistence.md`
 §3. Versioning: ADR-0011 and doc 05 §10.

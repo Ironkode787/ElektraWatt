@@ -186,7 +186,8 @@ fn unknown_members_are_kept_and_written_last_in_byte_order() {
 
 #[test]
 fn unknown_device_aspects_follow_the_known_ones() {
-    // `assembly` and `bus_node` are not implemented yet; they are kept in `extra`, after the known aspects.
+    // `assembly` is kept verbatim in its own slot; `bus_node` is not implemented yet and stays in `extra`, after
+    // the known aspects.
     let line = fill(
         r#"{"$k":"device","id":"@DEV_G1","tag":{"letter":"U","counter":1},"cable":{},"assembly":{"bom_basis":"assembly"},"bus_node":{"role":"slave"}}"#,
     );
@@ -194,7 +195,23 @@ fn unknown_device_aspects_follow_the_known_ones() {
         panic!("a device");
     };
     assert!(d.aspects.cable.is_some());
-    assert_eq!(d.extra.len(), 2);
+    assert!(d.aspects.assembly.is_some());
+    assert_eq!(d.extra.len(), 1);
+}
+
+#[test]
+fn the_assembly_aspect_is_written_before_the_plc_aspects() {
+    // Doc 05 §3.1: strip, terminal, cable, assembly, plc_station, plc_module, then the later aspects.
+    let line = fill(
+        r#"{"$k":"device","id":"@DEV_G1","tag":{"letter":"U","counter":1},"assembly":{"bom_basis":"assembly"},"plc_station":{"config_project":"@PLC1","role":"valve_terminal"},"plc_module":{},"bus_node":{"role":"slave"}}"#,
+    );
+    assert_canonical(&line);
+    let assembly = r#""assembly":{"bom_basis":"assembly"},"#;
+    let shuffled = line
+        .replace(assembly, "")
+        .replace(r#""bus_node""#, &format!("{assembly}\"bus_node\""));
+    assert_ne!(shuffled, line);
+    assert_eq!(round_trip(&shuffled), line);
 }
 
 #[test]
