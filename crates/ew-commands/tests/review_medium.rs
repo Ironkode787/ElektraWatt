@@ -278,7 +278,12 @@ fn potential_define_at_a_junction_notifies_the_junction_page() {
 struct RejectAll;
 
 impl PreventHook for RejectAll {
-    fn check(&self, _candidate: &Model, _touched: &[ew_model::AnyKey]) -> Result<(), PreventViolation> {
+    fn check(
+        &self,
+        _base: &Model,
+        _candidate: &Model,
+        _touched: &[ew_model::AnyKey],
+    ) -> Result<(), PreventViolation> {
         Err(PreventViolation {
             rule: "EW-TEST-001".to_owned(),
             message: "no candidate passes".to_owned(),

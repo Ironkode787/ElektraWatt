@@ -72,9 +72,15 @@ pub struct PreventViolation {
 ///
 /// The hook reads [`Model::strictness`] and decides itself what a lenient project lets through; an `Err`
 /// rejects the batch with [`ModelError::Prevented`](crate::ModelError::Prevented).
+///
+/// The hook also receives the snapshot the batch was applied to (`base`), so that a rule can tell a
+/// violation the batch creates from one the model already held: a lenient import may have committed
+/// duplicates, and an edit elsewhere on the same strip must not be refused for them (doc 15 §3.5,
+/// FR-CHK-011).
 pub trait PreventHook: Send + Sync {
-    /// Checks the candidate; `touched` lists the keys the batch put, sorted.
-    fn check(&self, candidate: &Model, touched: &[AnyKey]) -> Result<(), PreventViolation>;
+    /// Checks `candidate`, the result of applying a batch to `base`; `touched` lists the keys the batch
+    /// put, sorted.
+    fn check(&self, base: &Model, candidate: &Model, touched: &[AnyKey]) -> Result<(), PreventViolation>;
 }
 
 /// Options of [`Model::apply_with`](crate::Model::apply_with).

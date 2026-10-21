@@ -43,7 +43,7 @@ use crate::tx::{ReadSet, TxBuilder};
 pub struct NoPrevent;
 
 impl PreventHook for NoPrevent {
-    fn check(&self, _candidate: &Model, _touched: &[AnyKey]) -> Result<(), PreventViolation> {
+    fn check(&self, _base: &Model, _candidate: &Model, _touched: &[AnyKey]) -> Result<(), PreventViolation> {
         Ok(())
     }
 }

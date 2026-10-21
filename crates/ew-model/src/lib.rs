@@ -57,10 +57,10 @@
 //! }
 //! ```
 //!
-//! Prevent rules follow the same rule. [`PreventHook::check`] receives the candidate `&Model`; its
-//! implementer is `ew-commands`, which holds `raw-read`, builds the tracked query context from the candidate
-//! through `ew-derive` and calls the prevent rules of `ew-checks` with that context. `ew-checks` therefore
-//! reads through queries only (ADR-0019) and does not enable `raw-read`.
+//! Prevent rules follow the same rule. [`PreventHook::check`] receives the base and the candidate `&Model`;
+//! its implementer is `ew-api` (the shipped hook it installs in every session), which builds the tracked query
+//! contexts of `ew-derive` over both snapshots and calls the prevent rules of `ew-checks` with them.
+//! `ew-checks` therefore reads through queries only (ADR-0019) and does not enable `raw-read`.
 //!
 //! # Example
 //!

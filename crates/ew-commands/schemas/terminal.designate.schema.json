@@ -1,0 +1,53 @@
+{
+  "$defs": {
+    "CmdIdent": {
+      "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "TerminalDesignation": {
+      "additionalProperties": false,
+      "description": "One assignment of [`DesignateTerminals`].",
+      "properties": {
+        "designation": {
+          "$ref": "#/$defs/CmdIdent",
+          "description": "Its new designation (non-empty NFC plain string, never translated)."
+        },
+        "terminal": {
+          "$ref": "#/$defs/CmdUuid",
+          "description": "The terminal device."
+        }
+      },
+      "required": [
+        "terminal",
+        "designation"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`terminal.designate`: sets the designations of one or more terminals in one transaction (doc 03 §11).\n\nRejected: no assignment; a terminal listed twice; a device that is not a terminal (no terminal\naspect). A missing device is `NotFound`; an assignment equal to the current designation changes\nnothing. Uniqueness within the strip is not checked here: it is the prevent rule EW-TERM-002,\nevaluated on the candidate at the end of the transaction, so a swap or a re-designation needs no\ntemporary names (doc 08 §6.8, FR-TRM-022). Cost Interactive, Outcome none.",
+  "properties": {
+    "assignments": {
+      "description": "The assignments, at least one; each terminal at most once.",
+      "items": {
+        "$ref": "#/$defs/TerminalDesignation"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "assignments"
+  ],
+  "title": "terminal.designate",
+  "type": "object"
+}

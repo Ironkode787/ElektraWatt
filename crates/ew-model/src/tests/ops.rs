@@ -1053,11 +1053,12 @@ fn strictness_reads_project_settings() {
     assert_eq!(with(json!("garbage")), Strictness::Strict);
 }
 
-/// Rejects any batch that touches a device.
+/// Rejects any batch that touches a device; checks that it receives the base and the candidate.
 struct NoDevices;
 
 impl PreventHook for NoDevices {
-    fn check(&self, _: &Model, touched: &[AnyKey]) -> Result<(), PreventViolation> {
+    fn check(&self, base: &Model, candidate: &Model, touched: &[AnyKey]) -> Result<(), PreventViolation> {
+        assert!(base.rev() < candidate.rev(), "the hook gets the base, then the candidate");
         if touched.iter().any(|k| k.0 == Kind::Device) {
             return Err(PreventViolation {
                 rule: "EW-TERM-002".into(),

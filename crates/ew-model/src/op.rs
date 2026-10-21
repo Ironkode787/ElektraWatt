@@ -147,7 +147,7 @@ impl Model {
     ///    record that a `forbid` link still names is [`ModelError::Referenced`]; `cascade` and `unlink`
     ///    are not executed here (see `Model::delete_plan`, behind `raw-read`), so a remaining referrer is
     ///    a violation of EW-INV-001.
-    /// 5. The prevent hook, if any, checks the candidate.
+    /// 5. The prevent hook, if any, checks the candidate against `self`, the base snapshot.
     ///
     /// `apply(ops)` followed by `apply(invert_batch(ops))` restores every row value and index entry; only
     /// the `changed_at` stamps differ.
@@ -156,7 +156,7 @@ impl Model {
         invariants::check(&m, &scope)?;
         if let Some(hook) = opts.prevent {
             let touched: Vec<AnyKey> = scope.keys.iter().copied().collect();
-            hook.check(&m, &touched).map_err(|v| ModelError::Prevented {
+            hook.check(self, &m, &touched).map_err(|v| ModelError::Prevented {
                 rule: v.rule,
                 message: v.message,
                 keys: v.keys,

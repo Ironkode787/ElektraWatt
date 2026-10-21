@@ -265,6 +265,17 @@
       "schema": "terminal.add.schema.json",
       "stability": "preview",
       "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "terminal.designate",
+      "params_version": 1,
+      "schema": "terminal.designate.schema.json",
+      "stability": "preview",
+      "undoable": true
     }
   ]
 }

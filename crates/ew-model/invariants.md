@@ -98,10 +98,11 @@ and the table and index getters) is behind the cargo feature `raw-read` of `ew-m
 decision 1). `delete_plan` is part of it because its ops carry the current rows (`before`); `apply` and `apply_with`
 only consume ops and stay public. Only
 `ew-derive`, `ew-commands` and `ew-store` enable it on a normal dependency edge; `cargo xtask check-features`
-enforces this. Prevent rules do not read the model directly: `PreventHook::check(&Model, &[AnyKey])` is implemented
-by `ew-commands`, which builds the tracked query context from the candidate model through `ew-derive` and calls
-the prevent rules of `ew-checks` with it. `ew-checks` reads through queries only (ADR-0019) and does not enable
-`raw-read`.
+enforces this. Prevent rules do not read the model directly: `PreventHook::check(&Model, &Model, &[AnyKey])`
+(base, candidate, touched keys) is implemented by `ew-api`, which builds the tracked query contexts of the base
+and the candidate model through `ew-derive` and calls the prevent rules of `ew-checks` with them (`ew-commands`
+may not depend on `ew-checks`, ci/dep-rules.toml). `ew-checks` reads through queries only (ADR-0019) and does not
+enable `raw-read`.
 
 Fields are written as `kind.path`. "referrers" means the generic referrer index.
 

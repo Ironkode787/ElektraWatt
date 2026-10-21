@@ -24,6 +24,7 @@
 //! | `ip.continue` | [`ContinueIp`] | Interactive |
 //! | `potential.define` | [`DefinePotential`] | Interactive |
 //! | `terminal.add` | [`AddTerminals`] | Interactive |
+//! | `terminal.designate` | [`DesignateTerminals`] | Interactive |
 //! | `cable.create` | [`CreateCable`] | Interactive |
 //! | `conductor.add` | [`AddConductors`] | Interactive |
 //! | `fields.set` | [`SetFields`] | Interactive |
@@ -56,7 +57,10 @@ pub use page::{CreatePage, DeletePages, PageScope, RenumberPages};
 pub use renumber::{DeviceScope, NumberingScheme, RenumberDevices, RenumberOptions};
 pub use settings::{SETTABLE_SETTINGS, SetProjectSettings, SettableSetting};
 pub use structure::{CreateReportBlock, CreateSection, CreateStructureNode};
-pub use terminal::{AddConductors, AddTerminals, ConductorSpec, CreateCable, TerminalSpec};
+pub use terminal::{
+    AddConductors, AddTerminals, ConductorSpec, CreateCable, DesignateTerminals, TerminalDesignation,
+    TerminalSpec,
+};
 
 use crate::registry::CommandRegistry;
 
@@ -80,6 +84,7 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<ContinueIp>();
     r.register::<DefinePotential>();
     r.register::<AddTerminals>();
+    r.register::<DesignateTerminals>();
     r.register::<CreateCable>();
     r.register::<AddConductors>();
     r.register::<SetFields>();

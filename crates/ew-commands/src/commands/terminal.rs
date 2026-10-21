@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Terminal and cable commands (doc 03 §11–§12): `terminal.add`, `cable.create`, `conductor.add`.
+//! Terminal and cable commands (doc 03 §11–§12): `terminal.add`, `terminal.designate`, `cable.create`,
+//! `conductor.add`.
 
 use std::collections::BTreeSet;
 
@@ -40,6 +41,73 @@ pub struct TerminalSpec {
     /// Bonded to the rail.
     #[serde(default)]
     pub rail_bonded: bool,
+}
+
+/// One assignment of [`DesignateTerminals`].
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct TerminalDesignation {
+    /// The terminal device.
+    #[schemars(with = "UuidS")]
+    pub terminal: Id<Device>,
+    /// Its new designation (non-empty NFC plain string, never translated).
+    #[schemars(with = "IdentS")]
+    pub designation: Ident,
+}
+
+/// `terminal.designate`: sets the designations of one or more terminals in one transaction (doc 03 §11).
+///
+/// Rejected: no assignment; a terminal listed twice; a device that is not a terminal (no terminal
+/// aspect). A missing device is `NotFound`; an assignment equal to the current designation changes
+/// nothing. Uniqueness within the strip is not checked here: it is the prevent rule EW-TERM-002,
+/// evaluated on the candidate at the end of the transaction, so a swap or a re-designation needs no
+/// temporary names (doc 08 §6.8, FR-TRM-022). Cost Interactive, Outcome none.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct DesignateTerminals {
+    /// The assignments, at least one; each terminal at most once.
+    pub assignments: Vec<TerminalDesignation>,
+}
+
+impl Command for DesignateTerminals {
+    const NAME: &'static str = "terminal.designate";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if self.assignments.is_empty() {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/assignments",
+                "give at least one assignment",
+            ));
+        }
+        let mut seen: BTreeSet<Id<Device>> = BTreeSet::new();
+        for (i, a) in self.assignments.iter().enumerate() {
+            if !seen.insert(a.terminal) {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    format!("/assignments/{i}/terminal"),
+                    "the terminal is listed twice",
+                ));
+            }
+        }
+        for (i, a) in self.assignments.iter().enumerate() {
+            let device = tx.require::<Device>(a.terminal)?;
+            let Some(mut terminal) = device.aspects.terminal.clone() else {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    format!("/assignments/{i}/terminal"),
+                    "the device is not a terminal",
+                ));
+            };
+            terminal.designation = a.designation.clone();
+            tx.update::<Device>(a.terminal, |d| d.aspects.terminal = Some(terminal))?;
+        }
+        Ok(Outcome::default())
+    }
 }
 
 /// `terminal.add`: terminals of a strip; a terminal is a device with the terminal aspect (doc 03 §11).
