@@ -4,7 +4,7 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "801e4bf5-b638-575e-81cb-175e0345d825",
   "version": "1.0.0",
-  "sha256": "sha256:496a0fefab657a361ea73ae947b4994d00e11b2655e951922c5a5db0eaf48822",
+  "sha256": "sha256:653cf61cad23e1aca406b9efacc1b9ee5ff392573a6f91168701e6a5d23a695c",
   "meta": {"key": "2904602", "sources": ["golden.table:parts|2904602"]},
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",
@@ -13,7 +13,7 @@
     "key": "Phoenix Contact"
   },
   "part_number": "2904602",
-  "description": "Power supply 1 AC / 24 V DC / 20 A",
+  "description": "Power supply 1 AC / DC",
   "tech_data": [{"key": "rated_current", "value": {"value": "20", "unit": "A"}}],
   "cp_pattern": [
     {"idx": 0, "designation": "L", "potential_role": "l"},

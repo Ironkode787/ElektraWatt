@@ -1424,8 +1424,8 @@ fn defects(r: &mut Runner) {
     });
     r.entry(
         "D-14",
-        "forcing the origin anchor reports \"3-B0: empty cell\"",
-        d14_origin,
+        "forcing an anchor that leaves the bus port's graphics reports \"3-B0: empty cell\"",
+        d14_anchor,
     );
     r.entry("D-17", "core colour BN is printed, never BR", |c| {
         let q = c.rows_q();
@@ -3025,7 +3025,7 @@ const EF_15: [&str; 7] = ["S51", "F55", "T55", "E55", "S56", "E56", "1X1"];
 
 /// The frozen tags that are ▲U-34 test inputs (doc 20 §2.1 rule 1: -XPE, -UC1 and -UC1-plate are frozen too,
 /// standing in for per-class numbering rules that are not modelled). They deviate from the page rule as the
-/// seven of EF-15 do, so EW-NUM-001 reports them as well; EF-15 does not count them (open ruling, cycle 14).
+/// seven of EF-15 do, so EW-NUM-001 reports them as well: EF-15 counts 10 (owner ruling, cycle 14).
 const U_34_FROZEN: [&str; 3] = ["-XPE", "-UC1", "-UC1-plate"];
 
 /// D-03: EW-NUM-001 reports the frozen tags of EF-15 at info with their rule-derived values, and the
@@ -3094,7 +3094,7 @@ fn d03_frozen(c: &Ctx) -> Outcome {
     }
     if wrong.is_empty() {
         pass(format!(
-            "EW-NUM-001 reports the 7 frozen tags of EF-15 ({}) at info as \"frozen, deviates from scheme\" with their rule-derived values, and the numbering report (FR-REP-022) lists them; both also list the 3 ▲U-34 frozen test inputs ({}), which EF-15 does not count (open ruling)",
+            "EW-NUM-001 reports the 10 frozen tags of EF-15 at info as \"frozen, deviates from scheme\" with their rule-derived values, and the numbering report (FR-REP-022) lists them: {} and the 3 ▲U-34 frozen test inputs {}",
             EF_15.join(", "),
             U_34_FROZEN.join(", ")
         ))
@@ -3140,60 +3140,55 @@ fn d06_override_info(c: &Ctx) -> Outcome {
     }
 }
 
-/// D-14: `rep.set_anchor_policy` forces the bus port's anchor to its origin; doc 20 §19 expects -201U1 to
-/// print "3-B0" and EW-CORE-053 to report "3-B0: empty cell", whose quick fix (the graphics centre) restores
-/// "3-B2". Golden A reports no EW-CORE-053 finding.
-///
-/// The starter symbol `ew.bus.dp-port@qet10` has its origin at the top-left corner of its graphics, inside
-/// cell B2, so on Golden A the origin anchor still prints "3-B2" and the cell is not empty: the "3-B0" of the
-/// reference comes from QET's element origin (Golden C, MF-13). The entry then shows the rule with an anchor
-/// that does leave the graphics, a named point two columns left of the graphics centre, and fails on the
-/// criterion as written (open ruling, cycle 14).
-fn d14_origin(c: &Ctx) -> Outcome {
+/// D-14 (restated by the owner ruling of cycle 14): `rep.set_anchor_policy` gives the bus port -201U1#bus a
+/// named anchor two columns left of its graphics; -201U1 then prints "3-B0", EW-CORE-053 reports "3-B0: empty
+/// cell", and its quick fix (the graphics centre) restores "3-B2". Golden A reports no EW-CORE-053 finding, and
+/// the override is the representation's own: no other representation's cross-reference text changes. The real
+/// instance of the defect is Golden C's MF-13 (QET's element origin).
+fn d14_anchor(c: &Ctx) -> Outcome {
     let main: Id<Representation> = id_of(c, "representations|-201U1");
     let port = c.ids["representations|-201U1#bus"].clone();
-    let xref = |s: &Session| s.query().get::<XrefTextOf>(main).text.clone();
-    let force =
-        |anchor: serde_json::Value| -> Result<(Session, String, Vec<ew_api::checks::Finding>), String> {
-            let mut s = golden_common::session(&c.batch);
-            let cmd = ew_api::AnyCommand {
-                name: "rep.set_anchor_policy".into(),
-                params: serde_json::json!({"reps": [port.clone()], "anchor": anchor}),
-            };
-            s.execute(&cmd)
-                .map_err(|e| format!("rep.set_anchor_policy was rejected: {e:?}"))?;
-            let text = xref(&s);
-            let findings = open_findings(&s, "EW-CORE-053");
-            Ok((s, text, findings))
-        };
-    let golden = golden_common::session(&c.batch);
-    let baseline = open_findings(&golden, "EW-CORE-053");
+    let texts_of = |s: &Session| -> BTreeMap<Id<Representation>, String> {
+        let q = s.query();
+        let ids: Vec<Id<Representation>> = q.reps().ids().collect();
+        ids.into_iter()
+            .map(|r| (r, q.get::<XrefTextOf>(r).text.clone()))
+            .collect()
+    };
+    let mut s = golden_common::session(&c.batch);
+    let baseline = open_findings(&s, "EW-CORE-053");
     if !baseline.is_empty() {
         return fail(format!(
             "Golden A already reports EW-CORE-053: {}",
             list(baseline.iter().map(|f| f.message.clone()), 3)
         ));
     }
+    let before = texts_of(&s);
     // The QET frame's column is 60 px (6 grid steps of 7937500/3 nm); the symbol's graphics centre is
     // (3968750, 5291666) nm (`SymbolDef::graphic_centre`).
     let named = serde_json::json!({"named": [3_968_750 - 2 * 15_875_000, 5_291_666]});
-    let (origin_text, origin_findings) = match force(serde_json::json!("origin")) {
-        Ok((_, t, f)) => (t, f),
-        Err(e) => return fail(e),
+    let cmd = ew_api::AnyCommand {
+        name: "rep.set_anchor_policy".into(),
+        params: serde_json::json!({"reps": [port], "anchor": named}),
     };
-    let reported = |f: &[ew_api::checks::Finding]| {
-        f.iter()
-            .find(|f| f.message.starts_with("3-B0: empty cell"))
-            .cloned()
-    };
-    let (mut s, named_text, named_findings) = match force(named) {
-        Ok(v) => v,
-        Err(e) => return fail(e),
-    };
-    let Some(f) = reported(&named_findings) else {
+    if let Err(e) = s.execute(&cmd) {
+        return fail(format!("rep.set_anchor_policy was rejected: {e:?}"));
+    }
+    let after = texts_of(&s);
+    let changed: Vec<Id<Representation>> = after
+        .iter()
+        .filter(|(r, t)| before.get(r) != Some(t))
+        .map(|(r, _)| *r)
+        .collect();
+    let forced = after.get(&main).cloned().unwrap_or_default();
+    let findings = open_findings(&s, "EW-CORE-053");
+    let Some(f) = findings
+        .iter()
+        .find(|f| f.message.starts_with("3-B0: empty cell"))
+    else {
         return fail(format!(
-            "with a named anchor two columns left of the graphics -201U1 prints \"{named_text}\" and EW-CORE-053 reports {}",
-            list(named_findings.iter().map(|f| f.message.clone()), 3)
+            "with the named anchor -201U1 prints \"{forced}\" and EW-CORE-053 reports {}",
+            list(findings.iter().map(|f| f.message.clone()), 3)
         ));
     };
     let Some(fix) = f.fix.clone() else {
@@ -3205,32 +3200,27 @@ fn d14_origin(c: &Ctx) -> Outcome {
     }) {
         return fail(format!("the quick fix was rejected: {e:?}"));
     }
-    let fixed = xref(&s);
+    let fixed = s.query().get::<XrefTextOf>(main).text.clone();
     let left = open_findings(&s, "EW-CORE-053");
-    if !(named_findings.len() == 1 && fixed.contains("3-B2") && left.is_empty()) {
-        return fail(format!(
-            "{} finding(s) with the named anchor; after the quick fix -201U1 prints \"{fixed}\" and {} remain",
-            named_findings.len(),
-            left.len()
-        ));
-    }
-    let shown = format!(
-        "rep.set_anchor_policy with a named anchor two columns left of the bus port's graphics makes -201U1 print \"{named_text}\" and EW-CORE-053 report \"3-B0: empty cell\" (warning); its quick fix \"{}\" restores \"{fixed}\"; Golden A reports none",
-        fix.label
-    );
-    if reported(&origin_findings).is_some() && origin_text.contains("3-B0") {
+    if findings.len() == 1 && changed == vec![main] && fixed.contains("3-B2") && left.is_empty() {
         pass(format!(
-            "the origin anchor prints \"{origin_text}\" and is reported; {shown}"
+            "Golden A reports none; a named anchor two columns left of the bus port's graphics makes -201U1 print \"{forced}\" (no other cross-reference text changes) and EW-CORE-053 report \"3-B0: empty cell\" (warning); its quick fix \"{}\" restores \"{fixed}\"",
+            fix.label
         ))
     } else {
         fail(format!(
-            "the criterion does not hold on Golden A as written: the origin anchor keeps \"{origin_text}\" (the starter symbol's origin, the top-left corner of its graphics, lies in cell B2, so the cell is not empty and EW-CORE-053 rightly reports nothing; the reference's \"3-B0\" is QET's element origin, Golden C MF-13); {shown} (open ruling: restate D-14 for Golden A)"
+            "{} finding(s) with the named anchor, {} cross-reference text(s) changed; after the quick fix -201U1 prints \"{fixed}\" and {} finding(s) remain",
+            findings.len(),
+            changed.len(),
+            left.len()
         ))
     }
 }
 
-/// D-20: the wire list's Via column names the junction with its style and wiring and the daisy chains: W13
-/// and W14 a star at F55:2 (J1 at 101-C11), W7 and W8 a chain on -101F1:1.
+/// D-20: the wire list's Via column names the junction by its place and wiring and the daisy chains: W13 and
+/// W14 a star at F55:2 (J1 at 101-C11), W7 and W8 a chain on -101F1:1, W20 and W21 a chain on -102F1:1 (J3),
+/// W24 and W25 a chain on -102F1:2 (J4), W22 and W27 a star at -102G1:−#1 (J5), W23 and W26 a star at
+/// -102G1:−#2 (J6). The drawn dots and bevels (the other half of the criterion) are not checked here.
 fn d20(c: &Ctx) -> Outcome {
     let q = golden_common::plain(&c.profiled);
     let rows = rows_of(&q, &c.batch, "907");
@@ -3248,20 +3238,31 @@ fn d20(c: &Ctx) -> Outcome {
         (14, "101-C11 ", "star at F55:2"),
         (7, "", "chain on -101F1:1"),
         (8, "", "chain on -101F1:1"),
+        (20, "102-C6 ", "chain on -102F1:1"),
+        (21, "102-C6 ", "chain on -102F1:1"),
+        (24, "102-D7 ", "chain on -102F1:2"),
+        (25, "102-D7 ", "chain on -102F1:2"),
+        (22, "102-D5 ", "star at -102G1:−#1"),
+        (27, "102-D5 ", "star at -102G1:−#1"),
+        (23, "102-D6 ", "star at -102G1:−#2"),
+        (26, "102-D6 ", "star at -102G1:−#2"),
     ];
     let mut wrong = Vec::new();
     let mut shown = Vec::new();
     for (w, style, wiring) in want {
         let text = via_of(w);
         if !(text.contains(style) && text.contains(wiring)) {
-            wrong.push(format!("W{w} prints \"{text}\""));
+            wrong.push(format!("W{w} prints \"{text}\", expected \"{style}{wiring}\""));
         }
         shown.push(format!("W{w} \"{text}\""));
     }
     if wrong.is_empty() {
-        pass(format!("folio 907 prints {}", shown.join(", ")))
+        pass(format!(
+            "folio 907 prints {} (the drawn dots and bevels are not checked by this entry)",
+            shown.join(", ")
+        ))
     } else {
-        fail(list(wrong, 4))
+        fail(list(wrong, 12))
     }
 }
 
@@ -3294,13 +3295,27 @@ fn d22_pelv(c: &Ctx) -> Outcome {
 }
 
 /// D-35: EW-CORE-065, the description lint of the EW-CORE pack's 1.0 content (doc 15 §4.2), over the part
-/// descriptions of Golden A: EF-25 expects none (the seeded "10A C" of D-18 is a unit test of the rule).
+/// descriptions of Golden A, in a pre-delivery run with the 1.0 content enabled (the MVP schemes do not run
+/// it, owner ruling of cycle 14): EF-25 expects none (the seeded "10A C" of D-18 is a unit test of the rule).
 fn d35(c: &Ctx) -> Outcome {
+    use ew_api::checks::Release;
     let s = golden_common::session_with(&c.batch, |p, _| golden_common::with_profiles(p));
-    let found = open_findings(&s, "EW-CORE-065");
+    if s.check(&PRE_DELIVERY, CheckMode::Release)
+        .rules
+        .iter()
+        .any(|m| m.id == "EW-CORE-065")
+    {
+        return fail("the MVP pre-delivery scheme runs the 1.0 rule EW-CORE-065");
+    }
+    let found: Vec<ew_api::checks::Finding> = s
+        .check(&PRE_DELIVERY.with_content(Release::V1_0), CheckMode::Release)
+        .findings
+        .into_iter()
+        .filter(|f| f.rule == "EW-CORE-065" && f.is_open())
+        .collect();
     if found.is_empty() {
         pass(
-            "EW-CORE-065 (1.0 content of the EW-CORE pack, run in release mode) reports no part description of Golden A (EF-25); the 27-row parts list is D-04",
+            "with the 1.0 content enabled, EW-CORE-065 reports no part description of Golden A (EF-25): the descriptions of §14.1 hold no ratings, which the technical data carries and the symbols print (D-18); the MVP schemes do not run it; the 27-row parts list is D-04",
         )
     } else {
         fail(format!(

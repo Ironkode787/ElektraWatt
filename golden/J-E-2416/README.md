@@ -875,10 +875,10 @@ committed as golden files (doc 18 asks for none); its SHA-256 is in the AC-14 re
 change of any SVG byte shows there. The comparison runs on the platform of the run; the gate platform is Linux and
 the cross-platform digests are MVP.
 
-The headless report of this revision: 86 entries, 70 pass, 2 fail, 9 not_built, 5 not_applicable, 0 oracle
+The headless report of this revision: 86 entries, 72 pass, 0 fail, 9 not_built, 5 not_applicable, 0 oracle
 mismatches (the full run adds the raster comparison as a pass). Cycle 14 closed AC-01, AC-06, AC-13 and the two
-AC-14 entries, D-03, D-20, D-22's PELV entry and the info half of D-06 (a new entry), and emptied AC-09's deviation
-list (FT-101); D-14 and D-35 run and fail on their criteria as written (doc 20 §22, owner rulings pending their fix
-round). Cycle 13: 61 pass, 0 fail, 18 not_built, 6 not_applicable (decision log ID-338). AC-03 (36 folios, FT-111) and
+AC-14 entries, D-03, D-14 (restated: a named anchor that leaves the bus port's graphics), D-20, D-22's PELV entry,
+D-35 (the §14.1 descriptions without ratings; EW-CORE-065 with the 1.0 content) and the info half of D-06 (a new
+entry), and emptied AC-09's deviation list (FT-101). Cycle 13: 61 pass, 0 fail, 18 not_built, 6 not_applicable (decision log ID-338). AC-03 (36 folios, FT-111) and
 AC-10 (19 potentials, FT-105) pass, and so do their SQL halves: `acceptance/potentials.sql` prints the DP row's
 "(cable)" through the Preview column `api_v1_potential.bus_cable_ids`. An empty terminal designation refused at the parameter layer counts as refused for D-11 (ADR-0008).
