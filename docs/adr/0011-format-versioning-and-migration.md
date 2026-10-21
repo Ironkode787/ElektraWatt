@@ -103,7 +103,9 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    `min_reader`, so an older build no longer writes such a file; typing without such semantics stays additive under
    decision 1 and amendment 1. First use: the PLC kinds `plc_config_project`, `channel` and `device_link`, the aspects
    `plc_station` and `plc_module` and the part section `plc` in format 0.1 (cycle 13, decision log ID-333); the
-   precedent is the optional `TextSlot.style` member (decision log ID-197).
+   precedent is the optional `TextSlot.style` member (decision log ID-197). Applied again in cycle 14 to the optional
+   member `Representation.anchor` (decision log ID-351): an optional member without cascade semantics, additive
+   within 0.1.
 
 ## Consequences
 

@@ -8,7 +8,7 @@
 
 ## Summary for decision makers
 
-**Result in one paragraph.** The catalogues hold 1081 requirements (934 FR, 147 NFR). The 123 WPs cover 1059 of them (98.0 %). No MVP or 1.0 Must or Should requirement that the plan promises lacks a WP (§3). In the full scope, no MVP Must/Should requirements are covered only by WPs after M2; in the lean scope of record, 24 such requirements, because the scope levers move their WPs until the catalogues are re-labelled (§4). No WP cites a token that is not a requirement ID or that names no requirement (§5).
+**Result in one paragraph.** The catalogues hold 1081 requirements (934 FR, 147 NFR). The 124 WPs cover 1059 of them (98.0 %). No MVP or 1.0 Must or Should requirement that the plan promises lacks a WP (§3). In the full scope, no MVP Must/Should requirements are covered only by WPs after M2; in the lean scope of record, 24 such requirements, because the scope levers move their WPs until the catalogues are re-labelled (§4). No WP cites a token that is not a requirement ID or that names no requirement (§5).
 
 **What is asked of the plan owner.** (1) Treat the gap lists of §3 as input to the next WP revision: each listed ID either joins an existing WP, gets a new WP, or is re-labelled in the catalogue (release or priority) with a decision record. (2) Fix the invalid citations of §5, which are typing errors, not scope decisions. (3) Re-run `python3 -I docs/plan/tools/trace.py` after every change of the CSV or the catalogues; the gate reviews of [gates](03-gates.md) use this document as their scope check.
 
@@ -375,7 +375,7 @@ Source: [golden project](../design/20-golden-project.md) §19 (rule that fires o
 | D-03 | Mixed schemes; "+JE2416" | FR-CHK-025 | WP-S1.16a | G-M1 | ok |
 | D-04 | BOM incomplete, X1031 twice, no quantities | FR-REP-004..006 | WP-S1.06, WP-S3.03 | G-M1 | ok |
 | D-05 | Four revision formats | FR-REV-002..003 | WP-S1.06, WP-S1.18 | G-M1 | ok |
-| D-06 | Description drift on 101 | FR-REP-036 | WP-S3.02 | G-M1 | ok |
+| D-06 | Description drift on 101 | rules EW-CORE-023; FR-REP-036 | WP-S3.02 | G-M1 | ok |
 | D-07 | No bookmarks, links, page labels | FR-OUT-004..006 | WP-S3.04 | G-M1 | ok |
 | D-08 | Free-text wire rule | FR-CON-017, FR-REP-038 | WP-S1.07, WP-S3.03 | G-M1 | ok |
 | D-09 | No wire, terminal, cable, PLC, potential reports;… | FR-NUM-019, FR-REP-009..010, FR-REP-012..014, FR-REP-016, FR-REP-019 | WP-S1.11, WP-S3.03, WP-S3.06 | G-M1 | ok |
@@ -383,7 +383,7 @@ Source: [golden project](../design/20-golden-project.md) §19 (rule that fires o
 | D-11 | Terminal without designation | FR-TRM-002 | WP-S1.07 | G-M1 | ok |
 | D-12 | Duplicate designations | rules EW-TERM-002; FR-CHK-016, FR-TRM-002 | WP-S1.07, WP-S1.16a | G-M1 | ok |
 | D-13 | T55, S56 in the neutral | rules EW-POT-013; FR-CHK-019 | WP-S1.16 | G-M2 | ok |
-| D-14 | "3-B0" | FR-CHK-035, FR-SYM-010, FR-XRF-005 | WP-S1.08, WP-S1.16a, WP-S3.01 | G-M1 | ok |
+| D-14 | "3-B0" | rules EW-CORE-053; FR-CHK-035, FR-SYM-010, FR-XRF-005 | WP-S1.08, WP-S1.16a, WP-S3.01 | G-M1 | ok |
 | D-15 | Node "TBD"; termination as text | rules EW-BUS-001, EW-BUS-004, EW-BUS-004; FR-BUS-015..016, FR-CHK-034 | WP-S1.16, WP-S1.21 | G-M2 | ok |
 | D-16 | FE vs PE mixed | rules EW-POT-003, EW-PLC-013; FR-CHK-030, FR-PLC-048 | WP-S1.16, WP-S1.24 | G-M2 | ok |
 | D-17 | Core colour "BR" | rules EW-CORE-031; FR-CBL-005, FR-CHK-032, FR-CON-019 | WP-S1.07, WP-S1.14, WP-S1.16 | G-M1 | ok |
@@ -391,7 +391,7 @@ Source: [golden project](../design/20-golden-project.md) §19 (rule that fires o
 | D-19 | No supply cable; no lengths | rules EW-CORE-034, EW-CORE-033; FR-CHK-033 | WP-S1.16a | G-M2 | ok |
 | D-20 | Junction notation mixed | FR-CON-005 | WP-S1.04, WP-S2.04 | G-M1 | ok |
 | D-21 | PE continuity not drawn | FR-CHK-029, FR-CON-015, FR-TRM-017 | WP-S1.07, WP-S1.14, WP-S1.30, WP-S4.09 | G-M2 + G-M5 | ok |
-| D-22 | 0V–PE by a plain wire | FR-CHK-028, FR-CON-014 | WP-S1.07, WP-S1.16a | G-M1 | ok |
+| D-22 | 0V–PE by a plain wire | rules EW-POT-001, EW-POT-002; FR-CHK-028, FR-CON-014 | WP-S1.07, WP-S1.16a | G-M1 | ok |
 | D-23 | 13-14 unconnected | rules EW-POT-009; FR-CHK-018 | WP-S1.16a | G-M2 | ok |
 | D-24 | Five IP names on one net | FR-CON-012 | WP-S1.07 | G-M1 | ok |
 | D-25 | Crossed supply pairs, one channel | rules EW-PLC-014; FR-PLC-048, FR-REP-026 | WP-S1.24, WP-S3.15 | G-M5 | ok |

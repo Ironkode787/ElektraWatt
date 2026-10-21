@@ -70,7 +70,7 @@ set. The project has no code yet; the documents are the product of the design ph
 |---|---|
 | [README](plan/README.md) | What each plan file is, generators, headline dates |
 | [01 Global plan](plan/01-global-plan.md) | Capacity model, scenarios, milestones, phases, pilot preview, release train |
-| [02 Work packages](plan/02-work-packages.md) | The work breakdown: 123 WPs with estimates, dependencies, acceptance |
+| [02 Work packages](plan/02-work-packages.md) | The work breakdown: 124 WPs with estimates, dependencies, acceptance |
 | [03 Gates](plan/03-gates.md) | Gate system G-M0 ... G-M6, G-PP, G-SP: criteria, checkpoints, kill triggers |
 | [04 Risk register](plan/04-risk-register.md) | Scored risks with owners, mitigations, contingencies, review gates |
 | [05 Traceability](plan/05-traceability.md) | Generated report: requirements, ACs, defects to WPs; gaps |

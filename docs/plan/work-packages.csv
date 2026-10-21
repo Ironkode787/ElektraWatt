@@ -114,6 +114,7 @@ WP-S6.09,S6,Monthly 0.x releases and support from MVP to 1.0,M5,M5,,1.0,2.5,4,6,
 WP-S6.10,S6,1.0 quality layers and release hardening,M6,M6,,1.0,4,6,9,WP-S6.03 WP-S4.07 WP-S5.07 WP-S6.07,,FR-COL-011 FR-EXT-023 NFR-SEC-20 NFR-REL-05 NFR-REL-12 NFR-REL-14,NFR-REL-05 NFR-REL-14,Release engineer
 WP-S6.11,S6,"External acceptance: TIA Portal, CODESYS and a machine shop (SC-7, SC-8)",M6,M6,,1.0,2,3.5,6,WP-S3.16 WP-S5.07,,FR-PLC-036 FR-PLC-037 FR-MFG-020 FR-MFG-021,AC-30 AC-35,Output and migration developer
 WP-S6.12,S6,1.0 beta-to-release stabilisation,M6,M6,,1.0,4,6,9,WP-S1.26 WP-S1.27 WP-S1.29 WP-S1.30 WP-S1.32 WP-S2.14 WP-S2.15 WP-S2.16 WP-S3.14 WP-S3.15 WP-S3.16 WP-S3.17 WP-S3.18 WP-S4.09 WP-S4.10 WP-S5.05 WP-S5.06 WP-S5.08 WP-S5.09 WP-S6.08 WP-S6.10 WP-S7.04 WP-S7.06,,NFR-COMP-06 NFR-REL-14,AC-22 AC-35 AC-42,Release engineer
+WP-S6.13,S6,"Blind-drafter gate agent: harness, personas and prompt",M-PP,M-PP,,MVP,1,1.5,2.5,WP-S2.04 WP-S6.01,,NFR-UX-04,,UX researcher
 WP-S7.01,S7,"Golden project data (A, B, C) and expected outputs",M1,M1,,MVP,3,4.5,6.5,WP-S3.05 WP-S0.08,,NFR-DOC-04 NFR-UX-08,AC-01 AC-03 AC-05 AC-07 AC-09 AC-39,Content maintainer
 WP-S7.02,S7,Starter symbol set,M1,M1,,MVP,2,3,4.5,WP-S3.01 WP-S0.08,,FR-SYM-007 FR-SYM-019 FR-SYM-030 NFR-LIC-07,AC-02,Content maintainer
 WP-S7.03,S7,"Starter parts, profiles, address maps and basic project",M2,M2,,MVP,2,3,4.5,WP-S1.19 WP-S1.21,,FR-PLC-008 FR-CON-020 FR-CON-021 NFR-LIC-06 NFR-LIC-07,AC-40 NFR-UX-08,Content maintainer

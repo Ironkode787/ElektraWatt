@@ -1,6 +1,6 @@
 # Quality engineering, security and release
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1; amended 2026-10-21, cycle-12 design pass: acceptance counts and comparison against doc 20 data in §3.10) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1; amended 2026-10-21, cycle-12 design pass: acceptance counts and comparison against doc 20 data in §3.10; amended 2026-10-21, cycle-14 design pass: documents as built in §3.9, §3.10 and §3.16, blind drafter §3.17) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) proves its correctness, performance and security, and
 how it is built, signed, shipped and supported. It turns the architecture's "prove it in CI" principle
@@ -251,8 +251,8 @@ for throughput. Nightly runs use AddressSanitizer, because the dependency closur
 
 | Check | Method | GP expectation |
 |---|---|---|
-| Frame geometry | hayro's parser extracts path segments in printed mm, compared with `geometry/frame.json` | ±0.2 mm (AC-01) |
-| Raster parity | hayro rasterises each page, dify compares it with the vello_cpu PNG | Within tolerance (FR-OUT-018) |
+| Frame geometry | The in-repo PDF reader (`crates/ew-api/tests/page_output/pdf_read.rs`, test code, no dependency; decision log ID-343) extracts the stroked lines in printed mm, compared with `geometry/frame.json` | ±0.2 mm (AC-01) |
+| Raster parity | hayro (the candidate, FT-235) rasterises each page, dify compares it with the vello_cpu PNG | Within tolerance (FR-OUT-018) |
 | Outline | Entry count and titles | Front matter, sections 1, 2, 9, every folio (FR-OUT-004) |
 | Links | Link annotations and named destinations | 64 xref links (one per listed item: 63 linked texts with 64 targets; a link covers the item's glyph span only) plus report back-links; every destination resolves (AC-13) |
 | Page labels | `/PageLabels` | Physical page 6 is labelled "101" (D-33) |
@@ -261,11 +261,11 @@ for throughput. Nightly runs use AddressSanitizer, because the dependency closur
 | Metadata | XMP and Info dates from the model or `SOURCE_DATE_EPOCH`; document ID a hash of the export input | No wall-clock value (NFR-REL-07) |
 | Conformance | veraPDF, PDF/A-2b profile; PDF/UA-1 profile at 1.0 (**verify**, 02c OQ 9) | Pass |
 
-*As built (cycle 14):* the frame-geometry and text rows run in the headless acceptance run over the written PDF
+*As built (cycle 14; decision log ID-343):* the frame-geometry and text rows run in the headless acceptance run over the written PDF
 with an in-repo reader (`crates/ew-api/tests/page_output/pdf_read.rs`: indirect objects, Flate streams, page tree,
-content streams, ToUnicode maps; test code), not hayro: AC-01 compares the frame lines of `geometry/frame.json` per
+content streams, ToUnicode maps; test code only, no dependency), not hayro: AC-01 compares the frame lines of `geometry/frame.json` per
 page within 0.2 mm, AC-13 the text layer with the printed glyph runs, AC-06 the tag occurrences in it. hayro stays
-the candidate for the raster-parity row.
+the candidate for the raster-parity row (FT-235). `frame.json` now lists the stroked lines of a form's own `graphics` too (the cover's rules and project data box; pinned to [20](20-golden-project.md) §17.3 by `crates/ew-scene/tests/forms_content.rs`), so AC-01 compares 489 lines (12 pages × 30 + 1 × 14 + 23 × 5; decision log ID-358). The SVG SHA-256 printed in the AC-14 entry of the headless report is an SVG golden: a change to the SVG output re-blesses the headless report in the same commit, with the reason in the commit message, like the PDF SHA-256 (decision log ID-345). Comparing the PDF and SVG digests across platforms is FT-234 (MVP).
 
 veraPDF is a test tool run from a pinned container image with a checked digest. It is never distributed. The headless acceptance run (§3.10) does not require it: krilla's PDF/A-2b validator covers AC-13 there, and the veraPDF cross-check runs in the CI job that has it.
 
@@ -301,7 +301,7 @@ measures AC-17; without it AC-17 is `not_applicable`. Steps 1 (path (b), the bui
 A criterion that passes in part is split into its own entries (one per check), so partial passes are visible. The
 committed headless report `golden/J-E-2416/expected/acceptance_headless.md` is compared by the ordinary
 (non-ignored) test, which runs the runner once; the ordinary tests never run it more than once (testing policy).
-As built (cycle 13, WP-S1.10): step 2 runs: the runner builds the SQL projection and the SQL halves of AC-08 … AC-11 compare `acceptance/*.sql` with `expected/csv/` (pass), and an AC-15 entry compares the acceptance SQL over path (a) and path (c); path (b) stays `not_built`. Counts at the cycle-14 tip (the written PDF read back for AC-01, AC-06 and AC-13; the SVG export and the parallel page phase for AC-14): **85 entries: 66 pass, 0 fail, 14 not_built, 5 not_applicable; 0 oracle mismatches**; AC-14's record-shuffle entry is evaluated on the platform of the run (the gate platform is Linux). Counts at the cycle-13 tip (wire numbering, the SQL projection v0, the PLC records and the DP bus potential; decision log ID-338): **85 entries: 61 pass, 0 fail, 18 not_built, 6 not_applicable; 0 oracle mismatches**. Counts at the cycle-12 tip: **83 entries: 51 pass, 2 fail, 24 not_built, 6 not_applicable; 0 oracle mismatches** (decision log
+As built (cycle 13, WP-S1.10): step 2 runs: the runner builds the SQL projection and the SQL halves of AC-08 … AC-11 compare `acceptance/*.sql` with `expected/csv/` (pass), and an AC-15 entry compares the acceptance SQL over path (a) and path (c); path (b) stays `not_built`. Counts at the cycle-14 tip (the written PDF read back for AC-01, AC-06 and AC-13; the SVG export and the parallel page phase for AC-14; the cover; the per-edit verify of AC-16; decision log ID-360): **92 entries: 81 pass, 0 fail, 6 not_built (AC-07 assembly, AC-15 path (b), D-06 property grid, D-17, D-36, D-41), 5 not_applicable; 0 oracle mismatches**. AC-16 applies `variants/ac16-freshness.ewcmd` edit by edit in one session with the oracle on (one memoised read in 8 re-run cold) and runs the `verify-derived` sweep after every edit, requiring the memoised snapshot to equal the cold one byte for byte (decision log ID-357). AC-14's record-shuffle entry is evaluated on the platform of the run (the gate platform is Linux). Counts at the cycle-13 tip (wire numbering, the SQL projection v0, the PLC records and the DP bus potential; decision log ID-338): **85 entries: 61 pass, 0 fail, 18 not_built, 6 not_applicable; 0 oracle mismatches**. Counts at the cycle-12 tip: **83 entries: 51 pass, 2 fail, 24 not_built, 6 not_applicable; 0 oracle mismatches** (decision log
 ID-320). Its 2 fails, the M1 gap list of [20](20-golden-project.md) §22, closed in cycle 13: AC-03 page order (36 of
 36 folios with the PLC channel records, FT-111) and AC-10 (19 of 19 potentials with the Bus connections, FT-105). Acceptance criteria compare against doc 20's data (committed expected files generated from doc 20), never
 against the importer's own output (decision log ID-320).
@@ -406,6 +406,20 @@ Windows passed. Four rules, because the hosted runners only report what a local 
   tests and flaked on Linux under load; it now prints unless the variable is set. A `cargo xtask` lint that finds
   `elapsed` or `Instant` comparisons in assertions outside `#[ignore]` tests or an `EW_PERF_ASSERT` guard is
   follow-up task FT-158.
+- **Disk and build concurrency of agent sessions** (decision log ID-359): agent sessions follow the rule recorded in `CLAUDE.md` (line-tables-only debuginfo, no incremental caches, four build jobs; a lane's worktree target is deleted at integration, the main target after every gate; at most two lanes build at once).
+
+### 3.17 Blind drafter (gate agent)
+
+Added 2026-10-21 (owner ruling; decision log ID-341). **Purpose.** An outside view of large UI changes: an agent draws a cabinet with EW alone, as a user would, and reports what it could and could not do. The method is modelled on the blind player of a game-playtesting practice (the blind-player method): the player knows nothing the product does not teach, so every point where it gets lost is a finding. It gives early signals on NFR-UX-04, NFR-UX-05 and SC-9 and on product principle PR-13 of [00](00-vision-and-scope.md) §8 (the pilot's QET drawings are the content target, never the style or process target; designing a cabinet must become easier, faster and more fun than in QET). It does not replace the moderated rounds of WP-S2.12.
+
+- **What it may read.** Only user-facing material: the user documentation, the UI, the CLI help and the output of its harness. Never the design documents, the code or the tests.
+- **Run protocol.** The agent chooses its own task ("it can run whatever it wants") and writes a live note after every action. It keeps a patience score and a flow score; each has a quit rule. A step that fails twice is marked "broken" and the agent moves on. A run has a time cap and an action cap.
+- **Fixed hand-back.** (1) A keep/drop score; (2) where it lost me; (3) what the tool is, in the agent's own words; (4) broken; (5) the drawing set compared against the project's design language, including the time a QET veteran would need for the same set; (6) a flow chart; (7) good.
+- **Personas.** The QET veteran (modelled on the pilot's engineers, never named), the switcher from EPLAN or E3, and later the apprentice. A persona is a short brief that fixes habits and vocabulary, not knowledge of EW.
+- **Harness.** `cargo xtask blind` with `start`, `do`, `note`, `stop` and `check`. One folder per run holds `drafter.md` (the notes), the replayable `.ewcmd`, the PDF and PNGs and the check report. The prompt is `tools/blind/BLIND_DRAFTER.md`, the personas are under `tools/blind/personas/`, and a compose script assembles the prompt of a run.
+- **When.** Never in the headless run (it is skipped while no editor exists) and never blocking. It runs only after a large UI change or a large feature implementation; G-PP and G-M2 are its natural occasions, and the first possible run is at M-PP, when the editor exists. It uses task sheets and placeholder data only, never customer data.
+- **Who.** The drafters run on Sonnet; an Opus lead reads the logs. Findings become follow-up tasks through the next design pass.
+- **Work package.** WP-S6.13 (harness, personas, prompt; about 1.6 pw PERT, M-PP).
 
 ---
 

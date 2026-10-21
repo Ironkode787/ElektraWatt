@@ -373,7 +373,9 @@ values are joined with ", " in key order. Two interims apply. The main part of a
 yet "the use that provides the main function" (FT-208); the manufacturer name is read from the manufacturer
 `LibRef`'s `extra["key"]`, a stopgap until typed manufacturer copies exist (FT-39). The helpers `tech_data_text`,
 `main_part` and `manufacturer_name` are built in `ew-derive` (`part_text.rs`); the slot-text mapping lives in the
-`ew-api` test glue today and becomes an `ew-derive` product query (FT-206).
+`ew-api` test glue today and becomes an `ew-derive` product query (FT-206). *Cycle 14 (decision log ID-352).* The 24 V DC
+output of part 2904602 is recorded under the plain key `output_voltage` ("24 V") beside `rated_current`; a typed key for
+an output voltage is FT-244.
 
 Part data is organised in **data levels**. Each level lists its consumers and the release that first needs it:
 
@@ -1064,7 +1066,8 @@ Seven further symbols join the starter set for the pilot corpus (§2.3, decision
   Electric", "A9P52610" and "C10" (▲U-32) from typed data, never from the description (D-35).
 - **-102G1.** 2904602 defines a PSU function with L, N, PE, +, +, −, −. The potential roles are + = L+, − = M and
   PE = PE, so the 24 V potentials get their type from the part (FR-CON-011). The same pin list arrives from a vendor
-  EDZ at 1.0 (AC-38).
+  EDZ at 1.0 (AC-38). The part description carries no rating; the output voltage lives in the technical data
+  (decision log ID-352).
 - **-201U1.** 195740 + 550208: two part uses on one device. The 550208 pattern declares pin 3 as FE (▲U-18), so
   FR-CHK-030 reports -201U1:3 on PE (EF-10, D-16).
 - **-106W1, -106W2.** NEBU-G78W5-K-2-N-LE5 has the cable cores BK, BU, GNYE, WH, BN. Conductors are generated from

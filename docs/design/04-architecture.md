@@ -237,7 +237,7 @@ sessions (G6).
 | `ew-scene` | GPL | Model to display lists per page and layer, forms engine (frames, title blocks, report forms), text through `ew-text`, spatial index, hit-testing; PDF underlays (1.0); page layers as pure functions of a caller-filled `PageView` (rule 7) and the provisional orthogonal router `route` (decision log ID-137) | ew-reports, ew-dl, ew-text; ew-schema (symbol lowering reads `SymbolDef` records by reference), ew-units, ew-ids, ew-mltext; serde_json; rstar 0.13.0, hayro 0.8.0 (underlays, 1.0); the `ew-reports` edge is declared for report forms and not used yet; dev: sha2, insta 1.49.0, proptest |
 | `ew-render2d` | GPL | wgpu 2D renderer: lyon tessellation once per symbol, instancing, screen-space lines, glyph atlas | wgpu 30.0.1, lyon_tessellation 1.0.22 |
 | `ew-render-cpu` | GPL | vello_cpu renderer: GPU-less fallback, thumbnails, golden PNGs, banded printing | ew-dl; vello_cpu 0.3.0 (default features off: `std`, `text`, `u8_pipeline`; `Level::baseline()`), png 0.18.1; dev: ew-text, ew-units, sha2 |
-| `ew-export` | GPL | PDF (as built: PDF/A-2b with outline, `/PageLabels`, named destinations, link annotations and subset fonts; ADR-0015 amendments 5 to 7), SVG, DXF, PNG (through `ew-render-cpu`) | ew-dl, ew-render-cpu; krilla 0.8.2 (default features off); later: krilla-svg 0.8.1, dxf 0.6.2; dev: ew-text, ew-units, sha2, uuid |
+| `ew-export` | GPL | PDF (as built: PDF/A-2b with outline, `/PageLabels`, named destinations, link annotations and subset fonts; ADR-0015 amendments 5 to 7), SVG (as built in cycle 14 with no new dependency, the page phase on `par_map` with scoped std threads instead of rayon; decision log ID-344, ID-345), DXF, PNG (through `ew-render-cpu`) | ew-dl, ew-render-cpu; krilla 0.8.2 (default features off); later: krilla-svg 0.8.1, dxf 0.6.2; dev: ew-text, ew-units, sha2, uuid |
 | `ew-print` | GPL | OS print adapters with per-OS features (§8.4) | ew-export, ew-render-cpu |
 | `ew-plc` | GPL | Exchange orchestration, merge and writers: AML AR APC (CAEX 2.15 write, 2.15 and 3.0 read, through `ew-caex`), the TIA "PLC Tags" XLSX exporter and importer, PLCopen XML; rack and slot logic | ew-plcaddr, ew-caex, ew-devdesc, quick-xml 0.42.0, calamine 0.36.1 |
 | `ew-panel` | GPL | Layout queries, collision reconciler, routing graph, negotiated-congestion routing, lengths, duct fill, 2D panel projection; glTF (glb) and STL writer for `layout_scene` | parry3d 0.31.1, pathfinding 4.16.0, petgraph 0.8.3, glam 0.34.1, gltf-json **(verify)** |
@@ -942,7 +942,7 @@ not cold figures; the re-test after the recycle replaces them with measurements.
 
 - **`ew query <name> <key> --json`** prints any derived value. `--explain` adds its dependency trail, the memo state
   (hit, verified or re-executed) and the provenance of each field.
-- **`ew verify-derived`** (also in the GUI under Help) recomputes everything cold and reports differences.
+- **`ew verify-derived`** (also in the GUI under Help) recomputes everything cold and reports differences. On a fresh open it checks determinism only (memo and cold computed on one snapshot agree); staleness across edits needs a long-lived session (decision log ID-357).
 - **Oracle mode.** In CI, debug builds and nightly runs, after each transaction sampled queries are recomputed cold
   and compared (all of them nightly).
 - **Projection dump.** `ew sql dump <project> out.sqlite` writes the projection for inspection in any SQLite browser
@@ -1711,7 +1711,7 @@ and the re-baseline at G-M1 are in the plan.
 | M3 | month 47 | PLC, bus and fluid 1.0; QET migration; EDZ, AML, TIA tag and PLCopen exchange; DXF and DWG |
 | M4 | month 58 | 3D panel, collision, routing and lengths; manufacturing outputs and machine profiles |
 | M5 | month 59 | 1.0 feature complete (beta) |
-| M6 (v1.0) | month 64 | Hardening, docs, format freeze, signed 1.0 |
+| M6 (v1.0) | month 65 | Hardening, docs, format freeze, signed 1.0 |
 
 **Rotating schema-steward role.** Every format change passes the steward rule (§7.6).
 

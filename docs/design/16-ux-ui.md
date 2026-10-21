@@ -539,7 +539,7 @@ the device navigator" (06 §8, D-10).
 | Potentials | potential → signals → nets → CPs | canonical name, aliases, type, voltage, class, colour, size, pages, members | — | 19 potentials and bond B1; 24VDC-1 with aliases 24VDC-AIR1 … AIR4 | MVP | 08 |
 | Interruption points | name → points with direction and star source → partner cell | name, page-cell, direction, partner, state | — | 22 pairs, 4 external points | MVP | 06 |
 | Structure identifiers | aspect → node | code, description, aliases, usage count | — | =P01; +J-E-2416 (alias JE2416), +J-E-206, +FIELD | MVP | [03](03-domain-model.md) §5 |
-| Messages | severity → rule → finding | §8.4 | — | 42 errors, 32 warnings, 28 infos, 1 waived | MVP | [15](15-checks-revisions-collaboration.md) |
+| Messages | severity → rule → finding | §8.4 | — | 42 errors, 32 warnings, 31 infos, 1 waived | MVP | [15](15-checks-revisions-collaboration.md) |
 | Parts in use | manufacturer → part → devices | quantity, library status (current, update available, local fork) | — | 2904602 → -102G1 | MVP Should | 07 |
 | Unplaced devices | location → device | part, dimensions | rail or surface | F55, E55, E56, S56, -201U9 | MVP | [12](12-panel-layout.md) |
 | Report blocks | section → block | kind, folio, filter, pages | — | 11 page blocks (2, 901, 903 … 911) plus embedded blocks (PART DATA on 201, 202, 902; cover tables on 1) | MVP | 09 |

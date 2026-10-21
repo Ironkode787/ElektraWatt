@@ -141,6 +141,7 @@ hard-coded in `ew-scene` and provisional until it moves into the form's regions 
   WP-S3.03 built typed filters (`Eq`, `Ne`, `Within`, `Present`, `Absent`) but persists none; the typed
   `filter` and `params` encoding is a format decision of WP-S3.06 (FT-46), and `parts_summary` reads
   `extra.params.mode` provisionally until then.
+- **Block titles are templates** (owner ruling; decision log ID-355). `title` may name `{n}`, `{count}` and `{group}` (§4.1) and, as built (cycle 14), `{strip}` and `{device}`, which `ew-reports` resolves at derivation, before pagination: `{device}` is the short tag of the first device of the block's manual selection, `{strip}` that of the first selected device that has a strip aspect, so renumbering a strip renames its folios and its TOC rows. A placeholder with no such device stays as written, and no title is exempt by its text prefix. `{n}` is the 1-based page number within the block, `{count}` the block's page count. The golden blocks use "Terminal Diagram {strip}" (903 to 905) and "PLC Overview {device} {n}" (908 and its sub-pages).
 - **Group header and footer rows** are not a `GroupSpec` member. A block emits them when its form's data area has a
   `group_header` or `group_footer` template (§2.5), so `GroupSpec` is `{key, break}`.
 - **`first_folio`** is required for a page-oriented block (a structural invariant) and ignored when `embedded` is
@@ -230,7 +231,7 @@ owned by the listed document; this document owns forms, pagination and output fo
 | `bus_overview`, `network_address_list`, `bus_cable_list`, `iolink_port_list` | Bus reports | [10](10-plc-and-bus.md) | network | 1.0 | FR-REP-020, FR-BUS-007, FR-BUS-008, FR-BUS-014 | — |
 | `revision_overview` | Revision overview: every revision, Withdrawn ones with their reason; from 1.0 also the issue purpose and the last transmittal response | revisions, page change status, transmittals (1.0) | — | MVP | FR-REP-018 | 911 |
 | `open_items` | Open items | Tbd values, unplaced, missing parts and lengths | category | MVP | FR-REP-021 | — |
-| `numbering_report` | Frozen tags and numbers with rule values | `TagSpec.frozen`, `NumberSpec` | — | MVP | FR-REP-022 | — |
+| `numbering_report` | Frozen tags and numbers with rule values. *As built (cycle 14; decision log ID-349):* columns `item` (the device tag; empty for a wire), `kind` (`tag` or `wire number`), `frozen` (the frozen text), `rule` (the value the active scheme derives where the frozen value is left out: `rule_product` for a tag, the `wire_numbers` label for a wire; empty when the scheme derives none) and `status` (`matches` or `deviates`); one row per frozen tag in natural order of the full tag, then one row per frozen wire number in connection ID order; EW-NUM-001 reports the deviating frozen tags (the 10 infos of EF-15 on the golden project); frozen wire numbers are EW-NUM-002's, not built | `TagSpec.frozen`, `NumberSpec` | — | MVP | FR-REP-022 | — |
 | `enclosure_legend`, `mounting_list` | Enclosure legend (EPLAN `.f18`), mounting list (`.f32`) | placements ([12](12-panel-layout.md)) | surface | legend embedded on the layout page: MVP (FR-LAY-012); as pages and mounting list: 1.0 (FR-REP-023) | FR-REP-023, FR-LAY-012 | 902 |
 | `tube_list`, `tube_cut_list`, `valve_terminal_config`, `medium_overview` | Fluid lists | [11](11-fluid-power.md) | — | 1.0 | FR-FLU-012, FR-FLU-013, FR-FLU-015, FR-FLU-016 | — |
 | `load_summary` | Load per potential and protective device | part currents, potentials | potential | 1.0 | FR-REP-026 | — |
@@ -691,7 +692,7 @@ only the tag, CP designation, function text and process tag slots are filled.
 ### 4.2 PDF (krilla)
 
 Exports run as a job on an O(1) fork: global queries first, then per-page display lists in parallel (rayon), then
-sequential assembly in page order (FR-OUT-001, ARCH §2).
+sequential assembly in page order (FR-OUT-001, ARCH §2). *As built (cycle 14; decision log ID-344):* the page phase runs on `ew_export::par_map`, scoped `std` threads with a strided split and results collected by page index, instead of rayon; serial and parallel share one code path and their output is byte-identical (AC-14).
 
 | IR item or document feature | PDF construct | Requirement |
 |---|---|---|
@@ -773,12 +774,12 @@ partial file (FR-UI-024).
   text as `<text>` with the font subset embedded as `@font-face` data; element order equals IR order; `id`
   attributes from entity IDs in NCName form (`ew-r-<uuid>`: the PDF destination name with ":" replaced, because
   XML IDs may not contain colons); links as `<a href="103.svg#ew-r-<uuid>">`.
-  *As built (cycle 14):* `ew_export::svg` writes one `<label>.svg` per page from the sheet display lists of the PDF:
+  *As built (cycle 14; decision log ID-345, ID-346; FR-OUT-013 partial: named fonts, FT-233):* `ew_export::svg` writes one `<label>.svg` per page from the sheet display lists of the PDF:
   `viewBox` and lengths in mm with at most 3 decimals from integer nm, element order = IR order, text as `<text>`
   with one `x` per character; ids are written for link targets only (`id="ew-r-<uuid>"`, once per page on the first drawn item of the target; links point at the first page that draws it), sources as `<a href="<file>#<id>">` (SVG 2 `href`, so the root carries no `version` attribute). The fonts are
   named (`font-family`, weight, style), not embedded: subset embedding needs a subsetter that keeps the `cmap`
-  (open). The per-page phase runs on `ew_export::par_map` (scoped `std` threads, results by page index) instead of
-  rayon; serial and parallel exports are byte-identical (AC-14). The `ew export svg` subcommand waits for FT-59.
+  (open: it needs a `cmap`-keeping subsetter, FT-233; the `@font-face` embedding above is the target). The per-page phase runs on `ew_export::par_map` (scoped `std` threads, results by page index) instead of
+  rayon (decision log ID-344); serial and parallel exports are byte-identical (AC-14). The SVG SHA-256 printed in the headless report's AC-14 entry is an SVG golden: a change to the SVG output re-blesses the headless report in the same commit, with the reason in the commit message, as the PDF SHA-256 does. Cross-platform comparison of the PDF and SVG digests is FT-234 (MVP). The `ew export svg` and `ew export pdf` subcommands are not built; they wait for the `Session` export job FT-59, the first cycle-15 item, which runs `par_map` in the shipped export path (decision log ID-346).
 - **PNG (MVP, FR-OUT-014).** vello_cpu through `ew-render-cpu` at a chosen DPI (`ew render --page 103 --png --dpi
   150`). vello_cpu may choose different SIMD paths per CPU, so PNGs compare within the dify tolerance across
   platforms; if the performance spike (gate G-SP) finds a deterministic scalar mode, `ew render` and the CI goldens use it and PNG returns
@@ -825,6 +826,7 @@ Every report block and navigator table exports from its `RowSet` with exactly th
 - **CSV** dialects (FR-EXP-003): `excel-nl` (`;`, decimal comma, UTF-8 BOM, CRLF), `excel-en` (`,`, decimal point,
   UTF-8 BOM, CRLF), `rfc4180` (`,`, CRLF, no BOM, values unaltered). The Excel presets apply the formula-injection
   guard of NFR-SEC-17 (Open question 8); `rfc4180` and machine profiles never alter values.
+- *As built (cycle 14; decision log ID-356):* the shipped `ew export cables|bom` write the golden dialect only (`ew_reports::csv`: LF line ends, no BOM, header `row,<column labels>`), not the presets above; the presets and the FR-EXP-005 gaps are FT-242.
 - `ew export bom|wires|terminals|cables` (FR-EXT-003) and a generic `ew export report --block <name>` (FR-EXT-027,
   listed in [17](17-extensibility.md) §3.3) use the same code.
 

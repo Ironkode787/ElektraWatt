@@ -568,8 +568,8 @@ the provisional router's). Still open:
   the long description, the drawing identification and project reference, the end user, address and country, "Postcode /
   City" (the golden end user has none), the supply, the creation and edit dates and the engineer. Three rows of the
   reference have no placeholder path yet and are not printed: the manufacturing year, the control current and the
-  consumption (`title_block` resolves none of them, `Quantity` has no text form). The cell layout (label column 14.70-55.00,
-  value column 55.00-117.10, equal slots per group) and the logo (no asset) are provisional (FT-202).
+  consumption (`title_block` resolves none of them, `Quantity` has no text form; FT-240). The cell layout (label column 14.70-55.00,
+  value column 55.00-117.10, equal slots per group) and the logo (no asset) are provisional (FT-202, FT-203).
 - **Title block.** The revision label ("Revision: V2.0") and the author ("Author: <engineer>") come from the
   revision records on every page; `ew.titleblock.qet-a4` has no Notice cell yet and the logo is not bound.
 - **Black boxes.** The box outline is the 10 × 6 grid-step symbol rectangle; the inner graphics ("AC ~ / 24 VDC"
@@ -860,7 +860,7 @@ compares the derived rows with them. Since cycle 14 the exports `ew export cable
 `ew export bom --mode parts` (`bom_parts.csv`) write these files byte for byte through the same CSV writer
 (`ew_reports::csv`); the runner calls the library entry over the committed fixture, `bin/ew/tests/cli.rs` runs the
 binary. `ew export bom --mode assembly` equals the parts list until the golden project holds configured products
-(§14.2: the two configured parts and the assembly aspect of -201U1, D-41); `crates/ew-api/tests/export_bom.rs` tests
+(§14.2: the two configured parts and the assembly aspect of -201U1, D-41; the typed aspect is FT-245, cycle 15); `crates/ew-api/tests/export_bom.rs` tests
 the replacement of rows 16-21 by A1 and A2 over the golden model with two configured parts added.
 The SQL half of each pair (`acceptance/*.sql` over the `api_v1` views) runs since cycle 13 (WP-S1.10, decision log
 ID-328) and returns `expected/csv/` row by row.
@@ -893,7 +893,7 @@ the cross-platform digests are MVP.
 
 The headless report of this revision: 92 entries, 81 pass, 0 fail, 6 not_built, 5 not_applicable, 0 oracle
 mismatches (the full run adds the raster comparison as a pass). Cycle 14 closed AC-01, AC-06, AC-13 and the two
-AC-14 entries, D-03, D-14 (restated: a named anchor that leaves the bus port's graphics), D-20, D-22's PELV entry,
+AC-14 entries, D-03 (EF-15 counts 10: the seven frozen tags of doc 20 §18.1 and the three U-34 frozen test inputs, listed apart), D-14 (restated by the owner ruling: a named anchor policy that leaves the bus port's graphics, set on -201U1's bus representation alone, makes -201U1 print "3-B0", EW-CORE-053 reports it and its quick fix restores "3-B2"), D-20 (the Via notation "star at" and "chain on"), D-22's PELV entry,
 D-35 (the §14.1 descriptions without ratings; EW-CORE-065 with the 1.0 content) and the info half of D-06 (a new
 entry), and emptied AC-09's deviation list (FT-101). Cycle 14 lane B added the exports (AC-07 parts and AC-11; the
 AC-07 assembly entry and D-36 stay `not_built`: no configured product in the golden project), the freshness script

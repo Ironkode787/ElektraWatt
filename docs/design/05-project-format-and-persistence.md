@@ -405,7 +405,9 @@ Folio 101's page file holds the page row, the -101F1 representation and wire W7 
 
 - **Page.** The record has no description override and no revision, Prev/Next or title-block text (D-05, D-06). It
   uses `title` and `description_override` as the [domain model](03-domain-model.md) §1.2 amends ARCH §4.2.
-- **Representation.** Its position (10 px grid indices 52, 12) lies in cell B8.
+- **Representation.** Its position (10 px grid indices 52, 12) lies in cell B8. The optional member `anchor` (an
+  `AnchorPolicy`, absent here) overrides the anchor policy of the symbol copy for this one representation; adding it
+  is additive within 0.1 (ADR-0011 amendment 4, decision log ID-334, ID-351).
 - **W7.** Its 2.5 mm² BK is an explicit override (CDP) with a marker. W8 (-101F1:1 → F55:1) has **no**
   `overrides` member: its 1.5 mm² BK is derived (D-08).
 

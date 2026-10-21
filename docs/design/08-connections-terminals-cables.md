@@ -235,7 +235,10 @@ its place and effective wiring, "101-C11 star at F55:2" (Star: the entering CP) 
 (Chain: the wire's ends shared with another wire of the junction), and its daisy chains, "chain on -101F1:1" (a
 device CP that two drawn `Wire` or `Core` connections touch). `ew-derive`'s `wire_join` derives it; the style (dot,
 bevel) stays drawing notation. `api_v1_wire` carries the same facts (`junction_id`, `junction_style`,
-`junction_wiring`, `junction_cell`, `junction_cps`, `chain_cps`, Preview additions).
+`junction_wiring`, `junction_cell`, `junction_cps`, `chain_cps`, Preview additions). A daisy chain is reported at a
+device CP only: a terminal CP touched by two wires is not a chain, because a terminal joins its wires through its
+levels and clamps (§6) and the code excludes terminals. Every CP in the Via text, in `junction_cps` and in `chain_cps`
+is printed by the one label rule `cp_label` (§3.8 "Wire-end locus"; decision log ID-348).
 
 ### 3.3 Net, signal, potential
 
@@ -419,14 +422,18 @@ physical_wires_of(potential):                              // memo per potential
   **As built (cycle 13; decision log ID-324, ID-327; cycle 14, FT-101).** `ew-derive`'s `orient_wire` applies the
   three rules. Rule 2 reads the memo query `cp_flow_distance(potential)`: a breadth-first walk from the entry CPs (a
   root potential's external points and source outputs; otherwise the `to` CP of its upstream pass-through pair)
-  over the potential's physical wires, bridges and the shorts inside a function (terminal levels, declared
-  `Short` links), duplicated pins of a black box at the same distance; rail bonds are not hops. It decides only when
-  both ends lie in the wire's one potential and the walk reaches both with different distances (a bond wire and an
-  unreached potential fall through to rule 3). The point and cell of every CP come from one owner, `cp_point` and
+  over the potential's physical wires, bridges and the `Short` links of any function (terminal levels and declared
+  shorts alike); duplicated pins of a black box count as one point (the same distance). A rail bond is not a hop, so
+  a rail-bonded island that the walk reaches only through the rail stays unreached and its wires fall through to
+  rule 3. It decides only when both ends lie in the wire's one potential and the walk reaches both with different
+  distances (a bond wire and an unreached potential fall through to rule 3). Rule 2 decides before the anchor cell;
+  W1 to W5 start at the supply side; FT-101 is closed (decision log ID-347). The point and cell of every CP come from one owner, `cp_point` and
   `cp_cell` (the page scene restates them until FT-215).
 - **Wire-end locus.** A terminal end prints `strip:terminal (level/clamp)`, for example "-X1031:1 (1/a)"
   (FR-TRM-006, FR-MFG-002). A device end prints `tag:designation`, with `#n` only where printed designations repeat
-  (`-102G1:+ #1`).
+  (`-102G1:+ #1`). `cp_label` of `ew-derive` is the one owner
+  of this label; the From/To CP columns of the wire list (`conn::end_text` in `ew-reports`) still drop `#n` and are to
+  converge on it (FT-102; decision log ID-348).
 
 *As built (cycle 7, WP-S1.07; decision log ID-146 to ID-151).* The families of §3.3 to §3.8 exist in `ew-derive`,
 Memo by policy and cold in phase 1. Decisions the code had to fix:
@@ -668,7 +675,7 @@ A `WireNumberingScheme` holds format groups, an order, a counter scope and an on
   numbers, listed in the derived "No." column of [20](20-golden-project.md) §8.2: W29 gets 102.10 and W33 103.1.
   The acceptance runner generates `expected/wires.csv` with this rule, which also decides the ties between wires of
   equal cells by the wire ID. Since the orientation has its flow-distance step (FT-101, cycle 14) AC-09 has no
-  known deviation (decision log ID-325 listed W1 to W5, W7 and W9 until then). **As built (cycle 13; decision log
+  known deviation: the numbers of W1 to W5, W7 and W9 are final (decision log ID-325 listed them until then; ID-347). **As built (cycle 13; decision log
   ID-324):** the numbers are derived by the query `wire_numbers` and printed on folio 907; they are not yet stored
   (`NumberWires` and the stored number come with WP-S1.11) and not printed on the pages (FR-CON-026). Where wires
   tie on their cells, the query keeps the counter range of the group (`WireNumber::tie`) beside the exact counter.

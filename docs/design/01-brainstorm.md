@@ -1,6 +1,6 @@
 # Brainstorm: lessons, ideas and open questions
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: PQ-40 note) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: PQ-40 note; cycle 14: the content-not-style maxim, §2) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This is the structured record of the ElektraWatt (EW) brainstorm. It turns the 42 defects of the
 reference drawing set into product ideas, catalogues 109 candidate ideas with value, effort and a suggested release,
@@ -73,6 +73,12 @@ Four root causes explain all 42 defects
 - *If the tool knows it, the tool writes the document* (L9, L10, L12).
 - *Keep the user's style.* The tool let things drift; the engineer's conventions were sound. "Only if different"
   wire markers, page-based tags and the 0-based 17 × 8 frame stay (REF-008, REF-013, REF-023).
+- *Content, not style, is the target* (owner statement 2026-10-20, reaffirmed 2026-10-21; decision log ID-340;
+  [vision](00-vision-and-scope.md) PR-13). The pilot's QET projects show what EW must be able to draw; they are
+  examples of a design language that QET limits (no proper BOMs, imprecise layouts, possible errors), never the style
+  or process target and never a hard comparison. The conventions kept above are kept because they are sound, not
+  because QET printed them. The measure is that designing a cabinet becomes easier, faster and more fun than in QET
+  (SC-3, SC-9, NFR-UX-04).
 
 ---
 

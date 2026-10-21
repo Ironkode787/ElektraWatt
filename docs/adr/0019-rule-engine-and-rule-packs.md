@@ -140,7 +140,7 @@ canonical forms of [15](../design/15-checks-revisions-collaboration.md) §2.2 an
 - **Incremental panel.** The message panel updates incrementally: a commit re-evaluates only the scopes it touched,
   and online checks are queries, so they are fresh when read (ADR-0003).
 - **Shared expected findings.** On Golden A, `ew check --scheme pre-delivery` reports exactly the rows of
-  `expected/findings_mvp.csv` ([20](../design/20-golden-project.md) §18.1: 42 errors, 32 warnings, 28 infos,
+  `expected/findings_mvp.csv` ([20](../design/20-golden-project.md) §18.1: 42 errors, 32 warnings, 31 infos,
   1 waived) and exits 1. The headline items are those of FR-CHK-042: EW-POT-013 on T55 and S56 (D-13, kept as
   drawn), 28 odd-bit coil bindings Q0.1 … Q6.7 (EW-PLC-012, D-26), the `Tbd` DP address (EW-BUS-001, D-15), S56
   and E56 without parts (FR-CHK-024) and five unplaced devices (EW-LAY-001, D-32). This is a CI fixture that the

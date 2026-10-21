@@ -1,6 +1,6 @@
 # Checks, revisions and collaboration
 
-**Status:** Draft v0.4 · **Date:** 2026-10-21 (v0.4: the check engine as built in cycle 12, decision log ID-305 to ID-313: scope deviations, EW-CORE-051/052 split, waiver semantics, the migration scheme on imports; v0.3: EW-IMP-122 and EW-IMP-123 added, the interim lenient checks of imports; v0.2: EW-CORE-019 added; EW-CORE-004 and -016 clarified) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.5 · **Date:** 2026-10-21 (v0.5: the cycle-14 rules EW-NUM-001, EW-CORE-023, EW-CORE-053, EW-POT-002 and EW-CORE-065 as built, the release gate of scheme content, decision log ID-349, ID-353, ID-354; v0.4: the check engine as built in cycle 12, decision log ID-305 to ID-313: scope deviations, EW-CORE-051/052 split, waiver semantics, the migration scheme on imports; v0.3: EW-IMP-122 and EW-IMP-123 added, the interim lenient checks of imports; v0.2: EW-CORE-019 added; EW-CORE-004 and -016 clarified) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
 
@@ -520,6 +520,8 @@ modes, default severities and scopes are fixed here, and a change to them change
 - EW-CORE-051 and EW-CORE-052 have the scope project instead of potential.
 - EW-POT-011 and EW-POT-012 have the scope potential instead of net.
 
+**As built (cycle 14; decision log ID-354).** Five more rules ship: EW-NUM-001 (the frozen-tag half), EW-CORE-023, EW-CORE-053, EW-POT-002 and EW-CORE-065 (the 1.0 content of the EW-CORE pack). Their scopes, severities and modes are those of the catalogue; the rows of §4.2, §4.3 and §4.4 carry the details.
+
 The remaining rules of §18.1 of [20](20-golden-project.md) are FT-192.
 
 **Columns.**
@@ -561,6 +563,8 @@ The remaining rules of §18.1 of [20](20-golden-project.md) are FT-192.
 
 FR-CHK-004 (MVP packs) and FR-CHK-005 (domain packs: their MVP subsets at MVP, complete at 1.0) are satisfied by
 this table. EW-LIB is not a project pack: the library linter runs it (§4.11), and no project scheme enables it.
+
+*As built (cycle 14; decision log ID-353).* `RuleMeta.release` (`Release::Mvp`, `Release::V1_0`) gates the content of a scheme: a scheme runs the rules whose release lies within its `content`. Every shipped scheme runs the MVP content, so EW-CORE-065 (release 1.0) runs only under `Scheme::with_content(Release::V1_0)`; the acceptance runner enables it for D-35.
 
 ### 4.2 EW-CORE
 
@@ -605,7 +609,7 @@ cross-file reconciliation after merges is FR-COL-016 (1.0).
 |---|---|---|---|---|---|---|---|---|---|---|
 | EW-CORE-021 | Folio outside its section | Page folio outside its section's folio range | conflict | o r | error | page | MVP | FR-CHK-038 | — | 15 |
 | EW-CORE-022 | Folio collision | Collision between drawn pages, report blocks and sub-pages | conflict | o p r | error | project | MVP | FR-CHK-038, FR-REP-041 | — | 09 §3.1 |
-| EW-CORE-023 | Title-block override | A title-block value, such as the description, overridden on one page | hygiene | o r | info | page | MVP | FR-REP-036 | D-06; MF-05 | 15 |
+| EW-CORE-023 | Title-block override | A title-block value, such as the description, overridden on one page As built (cycle 14, ID-354): scope page, info, modes o r; the quick fix "drop override" removes the override. | hygiene | o r | info | page | MVP | FR-REP-036 | D-06; MF-05 | 15 |
 | EW-CORE-024 | Required report block missing | A report block that the declared applicable standards require is missing: the EN 60204-1 clause 17 set (through EW-EN60204-015) or the IEC 61439-1 clause 11 routine-verification checklist; off when no standard is declared | completeness | o r | warning/error | project | 1.0 | FR-CHK-054, FR-MFG-036, FR-MFG-037 | D-09 | 15 |
 | EW-CORE-025 | TOC fixpoint not reached | The confirming round of the TOC page count (closed form, [09](09-reports-forms-output.md) §3.1) needed more pages; the larger count is used | hygiene | o r | warning | project | MVP | FR-REP-003 | — | 09 §3.1 |
 | EW-CORE-026 | Report coverage gap | A strip, cable or PLC station that no report block of its family covers | completeness | o r | info/warning | project | MVP | FR-REP-047 | D-09 | 09 §7 |
@@ -627,7 +631,7 @@ cross-file reconciliation after merges is FR-COL-016 (1.0).
 | EW-CORE-049 | Hand-drawn part list differs | A hand-drawn part-list page kept as graphics differs from the derived BOM; differences seen only at import are EW-IMP-113 | hygiene | f r | info | page | MVP | FR-IMP-003 | D-01, D-04 | 15 |
 | EW-CORE-051 | Unpaired interruption point | An interruption point without partner (discriminator `unpaired`) or without CP (`no-cp`); an external target counts as a partner. Targeted at the point's function; the name is not in the fingerprint. As built (cycle 12; decision log ID-307): scope project; the scope-fallback notice is no finding; an odd chain-mode group is still reported here (FT-195) | completeness | o r | error | potential | MVP | FR-CHK-017 (STD XR-01) | — | 15 |
 | EW-CORE-052 | Ambiguous interruption point | Violates "at most one star source per name and scope; in chain mode an even count, ordered by sort key". As built (cycle 12; decision log ID-307): ambiguous star sources only (more than one point flagged as star source, or none flagged and two or more source points), one finding per group targeting every member's function, discriminator `star-source`; modes `o r` at MVP, prevent mode not wired (FT-194); scope project | conflict | o p r | error | potential | MVP | FR-CHK-017 | — | 15, ADR-0009 |
-| EW-CORE-053 | Cross-reference cell invalid | A cross-reference target cell outside the frame or without graphics of the target. Implementation note (decision log ID-199): the note for an auxiliary whose main function has no cross-reference main representation states the reason: drawn only as a strip segment, drawn only as contact images, or not placed | hygiene | o r | warning | page | MVP | FR-CHK-035 (STD XR-05) | D-14; MF-13 | 15 |
+| EW-CORE-053 | Cross-reference cell invalid | A cross-reference target cell outside the frame or without graphics of the target. Implementation note (decision log ID-199): the note for an auxiliary whose main function has no cross-reference main representation states the reason: drawn only as a strip segment, drawn only as contact images, or not placed. As built (cycle 14, ID-354): one finding per printed cross-reference; one fingerprint without a discriminator, so an anchor that moves between "outside the frame" and "empty cell", a renumber or a move keeps it (§2.5); the message names the anchor policy; the quick fix `rep.set_anchor_policy` on the representation sets the policy to the graphics centre. The reason note of ID-199 is not built (FT-239) | hygiene | o r | warning | page | MVP | FR-CHK-035 (STD XR-05) | D-14; MF-13 | 15 |
 | EW-CORE-054 | Overview without detail link | An overview representation without a detail link | hygiene | o r | warning | device | MVP | FR-CHK-060 (STD XR-04) | D-10 | 15 |
 | EW-CORE-055 | Unplaced contacts | Contacts of the main function's part neither placed nor marked unused; off in `pre-delivery` | completeness | o | info | device | 1.0 | FR-CHK-061 (STD XR-03) | — | 15 |
 | EW-CORE-056 | External reference without target | An external reference to a project that is open but has no matching target | completeness | o | info | project | 1.0 | FR-CHK-061 (G15) | — | 15 |
@@ -635,7 +639,7 @@ cross-file reconciliation after merges is FR-COL-016 (1.0).
 | EW-CORE-062 | Text overflow | Text overflows a title-block cell or report column after shrink-to-fit, per display language | hygiene | o r | warning | page | 1.0 | FR-I18N-012, FR-REP-039 | — | 09 §7 |
 | EW-CORE-063 | Unstyled text size | A text with an explicit size not bound to a text style | hygiene | o | info | page | MVP | FR-SYM-013 | D-29; MF-26 | 15 |
 | EW-CORE-064 | *Retired* | Font substitution at import is the import finding EW-IMP-006 | — | — | — | — | — | — | — | — |
-| EW-CORE-065 | Description lint | A rating in a description, unit formatting ("50hz", "0.75 mm ²"), manufacturer spelling | hygiene | f r | warning | project | 1.0 | FR-CHK-040 | D-18, D-35; EF-25 | 15 |
+| EW-CORE-065 | Description lint | A rating in a description, unit formatting ("50hz", "0.75 mm ²"), manufacturer spelling As built (cycle 14, ID-354, ID-353): in the 1.0 content of the EW-CORE pack, scope project, modes f r; it checks ratings and unit formatting in part descriptions and accepts "24 VDC" and "230 VAC"; the manufacturer-spelling half is not built and needs the manufacturer master of FR-PRT-002 (FT-238); its quick fix, a command to edit part descriptions, is FT-237. | hygiene | f r | warning | project | 1.0 | FR-CHK-040 | D-18, D-35; EF-25 | 15 |
 | EW-CORE-066 | Glyph missing | A character that no bundled face drew (it prints as `.notdef`); a character drawn by the bundled symbol fallback face is not a finding | hygiene | o x r | warning/error | page | MVP | FR-OUT-027 | — | 09 §7 |
 | EW-CORE-071 | Graphic line on a CP | A graphic line ending on a CP, which has no electrical meaning (a QET habit); quick fix "convert to connection" | hygiene | o | info | page | MVP | FR-CON-001 | — | 06 §8 |
 | EW-CORE-081 | Waiver matches nothing | A waiver whose fingerprint or part target matches no finding. As built (cycle 12; decision log ID-310): reported only when the waiver's rule ran in the scheme and mode; a waiver whose rule did not run gets an info "not evaluated" finding under this ID; part targets and expiry are FT-184 | hygiene | o r | info | project | MVP | FR-CHK-009, FR-CHK-049 | — | 15 |
@@ -664,7 +668,7 @@ structural rows keep their IDs so that the RD-nn traceability stays visible in t
 | EW-RDS-008 | *Structural:* renumbering is one transaction | Renumbering is one transaction (ADR-0008) | structural | — | — | — | MVP | FR-NUM-008 | D-01 | 15 |
 | EW-RDS-009 | Confusable character | A confusable or mixed-script character in an identifier (a Cyrillic "А" in a tag). An identifier whose confusable skeleton is pure ASCII while it contains non-ASCII letters (a tag typed on a Cyrillic keyboard) is an **error**, because such a tag is unreachable by search and breaks cross-references; a genuinely non-Latin identifier produces no finding | conflict | o p r | error | device | MVP | FR-I18N-011 | — | 15 |
 | EW-RDS-010 | Structure-code variants | Two structure nodes whose codes differ only in separators or case (`+JE2416` against `+J-E-2416`); quick fix: merge, keeping the alias | conflict | o r | warning | project | MVP | FR-PRJ-018 | D-03; MF-02 | 15 |
-| EW-NUM-001 | Tag deviates from the scheme | A tag that does not match the active numbering scheme; a frozen tag reports at info as "frozen, deviates from scheme" with the rule-derived value | hygiene | o r | warning (frozen: info) | device | MVP | FR-CHK-025 | D-03; EF-15 | 15 |
+| EW-NUM-001 | Tag deviates from the scheme | A tag that does not match the active numbering scheme; a frozen tag reports at info as "frozen, deviates from scheme" with the rule-derived value. As built (cycle 14, ID-354, ID-349): only the frozen half (info) can fire; every tag that is not frozen is derived from the active scheme, so no unfrozen tag can deviate, and the warning half becomes reachable with stored tags (imports, the numbering-scheme changes of WP-S1.11). | hygiene | o r | warning (frozen: info) | device | MVP | FR-CHK-025 | D-03; EF-15 | 15 |
 | EW-NUM-002 | Frozen value deviates | A frozen wire number, address or other frozen value deviates from its rule after an edit | hygiene | o r | info | project | MVP | FR-CHK-037 | — | 15 |
 
 ### 4.4 EW-TERM and EW-POT
@@ -680,7 +684,7 @@ EW-POT-013, -006, -007 and -009 are detailed in §8.2 there. EW-POT-018 and EW-P
 | EW-TERM-004 | Bridge group invalid | A bridge group not consecutive, overlapping, or across strips (prevent class of invariant CI-06) | conflict | p o | error | strip | MVP | FR-TRM-007 | — | 08 §8.1 |
 | EW-TERM-005 | Rail bonding on a non-PE terminal | `rail_bonded` set on a terminal without any PE CP (decision log ID-185) | conflict | o | error | strip | MVP | FR-TRM-017 | — | 08 §8.1 |
 | EW-POT-001 | Type or voltage conflict | A type or voltage conflict in one potential without a bond | conflict | o r | error | potential | MVP | FR-CHK-028 | D-22; MF-16 | 08 §8.1 |
-| EW-POT-002 | PELV or SELV bonding | A PELV potential without exactly one 0 V–PE bond; a SELV potential with any | safety | o r | error | potential | MVP | FR-CHK-028 | D-22 | 08 §8.1 |
+| EW-POT-002 | PELV or SELV bonding | A PELV potential without exactly one 0 V–PE bond; a SELV potential with any As built (cycle 14, ID-354): scope potential, error; it reads whole potential partitions, so every potential-scope check re-runs on any topology change until part reads `BondsOf` exist (FT-236). | safety | o r | error | potential | MVP | FR-CHK-028 | D-22 | 08 §8.1 |
 | EW-POT-003 | FE pin on PE | An FE-role CP on a PE potential without an FePe bond; superseded by EW-PLC-013 for PLC supply CPs at 1.0 | conflict | o r | warning | potential | MVP | FR-CHK-030 | D-16; EF-10 | 08 §8.1 |
 | EW-POT-004 | GNYE on a non-PE potential | GNYE on a non-PE potential; bond wires are exempt | safety | o r | error | potential | MVP | FR-CHK-031 (STD M-09) | — | 08 §8.1 |
 | EW-POT-005 | BU on a non-N conductor | Exact code BU on a non-N conductor in a project with an N potential | conflict | o r | warning | potential | MVP | FR-CHK-031 (STD M-10) | EF-11 | 08 §8.1 |
@@ -1466,7 +1470,7 @@ All outputs follow NFR-REL-07: no wall-clock times, sorted rows and stable IDs.
 ### 10.1 Golden A pre-delivery findings with final rule IDs
 
 [20](20-golden-project.md) §18 names some rules by their FR. These are the final IDs; the counts are unchanged:
-**42 errors, 32 warnings, 28 infos, 1 waived**, and `ew check --scheme pre-delivery` exits 1 (AC-21). As built (cycle 12; decision log ID-313), the pre-delivery run produces only EF-08 (EW-CORE-033 on -3W1); the rules of the other rows are not built (FT-192).
+**42 errors, 32 warnings, 31 infos, 1 waived**, and `ew check --scheme pre-delivery` exits 1 (AC-21). As built (cycle 12; decision log ID-313), the pre-delivery run produces only EF-08 (EW-CORE-033 on -3W1); the rules of the other rows are not built (FT-192).
 
 | EF | Final rule | Code | Severity | Count | D |
 |---|---|---|---|---|---|
@@ -1484,7 +1488,7 @@ All outputs follow NFR-REL-07: no wall-clock times, sorted rows and stable IDs.
 | EF-12 | EW-CORE-061 | 104061 | warning | 2 (styles `cp.small`, `marker`) | D-31 |
 | EF-13 | EW-FL-001 | 120001 | warning | 20 | D-28 |
 | EF-14 | EW-FL-004 | 120004 | info | 20 | — |
-| EF-15 | EW-NUM-001 | 017101 | info | 7 (S51 … 1X1) | D-03 |
+| EF-15 | EW-NUM-001 | 017101 | info | 10 (S51 … 1X1 and the three ▲U-34 frozen test inputs, listed apart; ID-349) | D-03 |
 | EF-16 | EW-BUS-004 | 111004 | info | 1 | D-15 |
 | EF-17 | EW-CORE-043 | 102043 | error (release) | 4 | D-04 |
 | EF-18 | EW-RDS-003 | 017003 | warning | 1 (T55) | D-03 |

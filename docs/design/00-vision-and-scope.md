@@ -1,6 +1,6 @@
 # ElektraWatt vision and scope
 
-**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: the QET project import spike, §9.1) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-21 (cycle 11: the QET project import spike, §9.1; cycle 14: product principle PR-13, §8; the 1.0 month of the plan of record, §9) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document states why ElektraWatt (EW) exists, who it is for, what it must achieve and what it
 deliberately leaves out. It fixes the release targets (MVP, 1.0, 1.x, Later) per capability area, so that the
@@ -300,6 +300,7 @@ product decisions. When two requirements conflict, the lower-numbered principle 
 | PR-10 | **Conventions are data** | Identifier sets, colour and size profiles, forms, rule packs, xref formats and machine profiles are versioned data |
 | PR-11 | **Migration is a feature** | Lenient import, migration report as a check run, legacy tags kept as frozen tags |
 | PR-12 | **Reuse, do not rebuild; prove it in CI** | No own UI toolkit or B-rep kernel; golden, oracle, fuzz and performance gates from month one |
+| PR-13 | **The pilot's drawings are the content target, never the style or process target** | The pilot's QElectroTech projects show the content EW must be able to create; they are examples of a design language that QET limits (no proper BOMs, imprecise layouts, possible errors), never a hard comparison of style or of the way of working. The product's measure is that designing a cabinet becomes easier, faster and more fun than in QET: SC-3 (no slower than the pilot's own QET baseline), SC-9 and NFR-UX-04 (unassisted core tasks; folio 102 within 30 minutes for a QET user), checked early by the blind drafter of [18](18-quality-security-release.md) §3.17 (owner statement 2026-10-20, reaffirmed 2026-10-21; decision log ID-340) |
 
 ---
 
@@ -315,7 +316,7 @@ checks; it adds no release column, because it is a slice of MVP rows ([global pl
 
 **Dates are not set here.** The calendar is the plan of record: see [global plan](../plan/01-global-plan.md)
 §3.4 and §5.1 and [milestones.csv](../plan/milestones.csv). For the plan of record (three developers, lean scope,
-month 1 = November 2026) these are M-PP at month 26, M2 (MVP) at month 41 and M6 (1.0) at month 64; the plan
+month 1 = November 2026) these are M-PP at month 26, M2 (MVP) at month 41 and M6 (1.0) at month 65; the plan
 re-baselines them from measured velocity at G-M1.
 
 | Area | MVP | 1.0 | 1.x | Later |
