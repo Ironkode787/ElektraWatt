@@ -29,7 +29,7 @@ error findings. With `--report` and no `--report-out` stdout is exactly the repo
 errors, 1 with errors, 2 on usage and open errors.
 
 `sql` runs one read-only SELECT against the SQL projection of a project (the `api_v1_*` views; `ew sql schema` prints
-them) in the sandbox of doc 17 §3.4, with the query given inline or from `--file`. The result is CSV (default) or
+them) in the sandbox of doc 17 §6.2, with the query given inline or from `--file`. The result is CSV (default) or
 JSON on stdout, the row count on stderr; with `--out` it goes to a file. `--timeout` sets a deadline in seconds.
 `--project <dir>` may replace the positional project directory. `sql dump` writes the projection as a SQLite
 database file. `sql` exits 0 on success and 2 on everything else (usage, open and SQL errors, denials, limits).";
@@ -294,17 +294,22 @@ fn parse_sql(it: impl Iterator<Item = String>) -> Result<Command, String> {
             }
             "--timeout" => {
                 let v = value(&mut it, "--timeout")?;
+                let max = ew_api::sql::Profile::MAX_DEADLINE.as_secs();
                 match v.parse::<u64>() {
-                    Ok(n) if n >= 1 => timeout = Some(n),
+                    Ok(n) if (1..=max).contains(&n) => timeout = Some(n),
                     _ => {
                         return Err(format!(
-                            "`--timeout` needs a positive number of seconds, got `{v}`"
+                            "`--timeout` needs a number of seconds from 1 to {max}, got `{v}`"
                         ));
                     }
                 }
             }
             "--out" => out = Some(PathBuf::from(value(&mut it, "--out")?)),
-            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
+            // An argument is an option only when it is one of the above; an inline query may start with an
+            // SQL comment (`-- …`). A single word starting with `-` is still a mistyped option.
+            opt if opt.starts_with('-') && !opt.contains(char::is_whitespace) => {
+                return Err(format!("unknown option `{opt}`"));
+            }
             _ => positionals.push(a),
         }
     }
@@ -836,6 +841,41 @@ mod tests {
         assert!(p(&["sql", "SELECT 1", "--timeout", "abc"]).is_err());
         assert!(p(&["sql", "SELECT 1", "--timeout", "-1"]).is_err());
         assert!(p(&["sql", "SELECT 1", "--timeout"]).is_err());
+        // The timeout is capped at one day: no overflow of the clock.
+        assert!(p(&["sql", "SELECT 1", "--timeout", "18446744073709551615"]).is_err());
+        assert!(p(&["sql", "SELECT 1", "--timeout", "86401"]).is_err());
+        assert!(matches!(
+            p(&["sql", "SELECT 1", "--timeout", "86400"]),
+            Ok(Command::Sql(SqlArgs {
+                timeout: Some(86_400),
+                ..
+            }))
+        ));
+        // An inline query may start with an SQL comment.
+        let Ok(Command::Sql(c)) = p(&[
+            "sql",
+            "-- count
+SELECT 1",
+        ]) else {
+            panic!("a query starting with a comment is not an option");
+        };
+        assert_eq!(
+            c.query,
+            SqlSource::Text(
+                "-- count
+SELECT 1"
+                    .to_owned()
+            )
+        );
+        assert!(
+            p(&[
+                "sql",
+                "proj",
+                "-- c
+SELECT 1"
+            ])
+            .is_ok()
+        );
         assert!(p(&["sql", "proj", "SELECT 1", "--file", "q.sql"]).is_err());
         assert!(p(&["sql", "a", "b", "c"]).is_err());
         assert!(p(&["sql"]).is_err());

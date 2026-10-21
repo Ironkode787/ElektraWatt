@@ -296,6 +296,26 @@ fn sql_count_terminals() {
 }
 
 #[test]
+fn sql_inline_query_may_start_with_a_comment() {
+    let o = sql("-- the terminal count of doc 20 §9\nSELECT count(*) AS n FROM api_v1_terminal");
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert_eq!(stdout(&o), "n\n28\n");
+}
+
+#[test]
+fn sql_huge_timeout_is_a_usage_error_not_a_panic() {
+    let o = ew(&[
+        "sql".as_ref(),
+        GOLDEN_A.as_ref(),
+        "SELECT 1".as_ref(),
+        "--timeout".as_ref(),
+        "18446744073709551615".as_ref(),
+    ]);
+    assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
+    assert!(stderr(&o).contains("--timeout"), "{}", stderr(&o));
+}
+
+#[test]
 fn sql_attach_is_denied() {
     let o = sql("ATTACH 'other.db' AS x");
     assert_eq!(o.status.code(), Some(2));
