@@ -49,7 +49,7 @@ it cannot map as `EW-IMP` findings. It never aborts on an item; only an unreadab
 | other element information (`manufacturer`, `designation`, `comment`, `formula` …) | `Device.extra["qet.info"]` (slaves: `Function.extra`) | EW-IMP-008 per name with a count; parts, tech data and formulas not mapped |
 | instance dynamic texts, text groups | not imported | the symbol's slots print derived values |
 | conductor | `Connection { kind: wire }` between function CPs or junctions | ends by UUID, else per-folio terminal ID; a UUID repeated on the folio is decided by the route geometry, else the first copy (EW-IMP-120); unresolved or identical ends dropped (EW-IMP-003, lost) |
-| derived tags of the imported model | lenient checks EW-RDS-004 (duplicate designation) and EW-TERM-002 (duplicate terminal designation) in the migration report | `ew_api::import::duplicate_designations` |
+| the imported model | lenient check findings of the `migration` scheme (EW-RDS-004, EW-TERM-002 and every other `pre-delivery` rule of `ew-checks`) in the migration report | `ew_api::import::lenient_findings` |
 | `<segment>`s | `Connection.route` (interior points) | conductors without segments get EW's provisional route (QET's auto-route not ported) |
 | `num` | `NumberSpec::Frozen` (non-empty), else `Unassigned` | |
 | `function`, `tension_protocol`, `conductor_color`, `conductor_section` | `Connection.extra["qet.*"]` | EW-IMP-008 per field; no potential definitions or wire overrides yet |

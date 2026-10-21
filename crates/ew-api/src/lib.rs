@@ -68,12 +68,13 @@ use ew_derive::{
 };
 use ew_model::{AnyKey, Model, ModelError, PreventHook};
 use ew_schema::{LibDocument, Project, Record};
-use ew_store::{
-    Changes, LockState, OpenError, OpenReport, RecoverError, SaveError, SaveReport, Store, StoreOptions,
-};
+use ew_store::{Changes, LockState, RecoverError, SaveError, SaveReport, Store, StoreOptions};
 
 pub use cmdlog::{CmdLog, CmdLogError, SCHEMA as CMDLOG_SCHEMA};
+/// The check engine (`ew check`, the message panel, the migration report): rules, schemes, findings.
+pub use ew_checks as checks;
 pub use ew_derive::{DeriveNote, MemoStore, Mismatch, NoteSeverity};
+pub use ew_store::{OpenError, OpenReport};
 
 pub use ew_commands::{
     AnyCommand, Change, CmdError, CommandRegistry, DerivedChange, DerivedDiff, DynCommand, History,
@@ -90,7 +91,8 @@ pub struct SessionOptions {
     pub history: HistoryLimits,
     /// The source of new IDs; the system clock and OS entropy when `None`. Tests pass a seeded one.
     pub ids: Option<Box<dyn IdSource + Send>>,
-    /// The prevent-rule hook (`ew-checks` from WP-S1.15); none when `None`.
+    /// The prevent-rule hook; `None` installs the shipped prevent rules of `ew-checks` ([`ShippedPrevent`]).
+    /// Tests that need an unchecked engine pass their own hook.
     pub prevent: Option<Box<dyn PreventHook>>,
     /// Whether [`Session::query`] memoises across requests (ADR-0002 amendment 4), and with oracle mode.
     pub memo: MemoMode,
@@ -167,6 +169,37 @@ fn project_notes(model: &Model) -> Vec<DerivationFinding> {
         .into_iter()
         .map(DerivationFinding::from)
         .collect()
+}
+
+/// The shipped prevent rules of `ew-checks` as the model's commit validator (ADR-0009 decision 3, doc 15
+/// §3.5): every session installs it unless [`SessionOptions::prevent`] names another hook.
+///
+/// It builds cold tracked-read contexts over the base and the candidate snapshot and asks
+/// [`checks::prevent`] for the violations the batch creates; the first one (in finding order) rejects the
+/// batch as `ModelError::Prevented`, which the command layer reports as [`CmdError::Prevented`] with the
+/// rule ID and the message (for EW-TERM-002 the duplicate set and the remedy). Interactive and scripted edits
+/// are validated strictly whatever the project's strictness (FR-CHK-011).
+#[derive(Clone, Copy, Debug, Default)]
+pub struct ShippedPrevent;
+
+impl PreventHook for ShippedPrevent {
+    fn check(
+        &self,
+        base: &Model,
+        candidate: &Model,
+        touched: &[AnyKey],
+    ) -> Result<(), ew_model::PreventViolation> {
+        let keys: Vec<(ew_schema::Kind, ew_schema::AnyId)> = touched.iter().map(|k| (k.0, k.1)).collect();
+        let violations = checks::prevent(&Q::new(base), &Q::new(candidate), &keys);
+        match violations.into_iter().next() {
+            None => Ok(()),
+            Some(f) => Err(ew_model::PreventViolation {
+                rule: f.rule.to_owned(),
+                message: f.message,
+                keys: f.targets.iter().map(|t| (t.kind, t.id)).collect(),
+            }),
+        }
+    }
 }
 
 /// What [`Session::open`] does with a leftover journal of a crashed session (doc 05 §8.3).
@@ -261,7 +294,11 @@ impl Session {
                     history: options.history,
                     origin: options.origin,
                     ids: options.ids,
-                    prevent: options.prevent,
+                    prevent: Some(
+                        options
+                            .prevent
+                            .unwrap_or_else(|| Box::new(ShippedPrevent) as Box<dyn PreventHook>),
+                    ),
                     registry: None,
                 },
             ),
@@ -512,6 +549,33 @@ impl Session {
             recovered,
         });
         Ok((session, report))
+    }
+
+    /// Opens a project directory read-only for a reader such as `ew check` (doc 17 §3.1: readers take no
+    /// lock and read one generation): no lock, no roll-forward, no journal. `app_version` names the program
+    /// in the store's diagnostics.
+    ///
+    /// # Errors
+    ///
+    /// [`OpenError`] when the project cannot be opened; integrity findings are in the report.
+    pub fn open_read_only(dir: &Path, app_version: &str) -> Result<(Session, OpenReport), OpenError> {
+        let mut store = StoreOptions::new(app_version);
+        store.mode = ew_store::OpenMode::ReadOnly;
+        store.state_dir = None;
+        let options = SessionOptions {
+            origin: Origin::Cli {
+                subcommand: "check".to_owned(),
+                confirmed: false,
+            },
+            ..SessionOptions::default()
+        };
+        Session::open(dir, store, options, Recovery::Keep)
+    }
+
+    /// Runs the check scheme `scheme` in `mode` over the current snapshot through the session's memo store
+    /// (doc 15 §3): the findings, the totals and `ew check`'s exit code ([`checks::CheckReport`]).
+    pub fn check(&self, scheme: &checks::Scheme, mode: checks::CheckMode) -> checks::CheckReport {
+        checks::run(&self.query(), scheme, mode)
     }
 
     /// Writes the session's model as a new project into `dir` (a directory without a project) and keeps

@@ -1,6 +1,6 @@
 # Acceptance report: golden project J-E-2416, gate M1 (headless)
 
-83 entries: 41 pass, 10 fail, 26 not_built, 6 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
+83 entries: 43 pass, 9 fail, 25 not_built, 6 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
 
 | Criterion | Check | Status | Reason |
 |---|---|---|---|
@@ -66,8 +66,8 @@
 | D-09 | W1-W44 are numbered, unique and stable | not_built | Same check as AC-09 "every wire has a wire number": 0 of 44 wires have a wire number: the wire numbering query does not exist yet (FT-100) |
 | D-10 | -202U2 carries 4 valves | pass | -202U2 has 4 child valves (the rendering of folio 202 is covered by AC-02) |
 | D-11 | an empty terminal designation is rejected (parameter layer or invariant) | pass | terminals\|-X1031:8: designation `` is refused by the parameter layer (InvalidParams at /value) |
-| D-12 | a duplicate designation is rejected by the invariant | fail | `4` was accepted for terminals\|-X1031:3, expected a refusal (designations are unique per strip by invariant, but v0 has no such invariant and ew-checks holds no prevent rule yet) |
-| D-12 | swapping two designations in one transaction is accepted | not_built | no composite command exists to put two edits into one transaction (a swap over two `fields.set` commands passes through a duplicate) |
+| D-12 | a duplicate designation is rejected by the invariant | pass | terminals\|-X1031:3: designation `4` is refused by the prevent rule EW-TERM-002 |
+| D-12 | swapping two designations in one transaction is accepted | pass | one terminal.designate transaction swaps -X1031:3 and -X1031:4 (one undo step); EW-TERM-002 accepts the final state |
 | D-14 | the bus port prints "3-B2", never "3-B0" | pass | -201U1 prints "∞ 3-B2, 106-G3" |
 | D-14 | forcing the origin anchor reports "3-B0: empty cell" | not_built | no command sets a representation's anchor policy, and the check engine (FR-CHK-035) does not exist yet |
 | D-17 | core colour BN is printed, never BR | pass | folio 906 prints core colour BN and no BR |

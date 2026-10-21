@@ -1227,19 +1227,16 @@ fn defects(r: &mut Runner) {
         |c| set_designation(c, "terminals|-X1031:8", "", true),
     );
 
-    r.entry("D-12", "a duplicate designation is rejected by the invariant", |c| {
-        let (status, reason) = set_designation(c, "terminals|-X1031:3", "4", false);
-        if status == Status::Fail {
-            fail(format!(
-                "{reason} (designations are unique per strip by invariant, but v0 has no such invariant and ew-checks holds no prevent rule yet)"
-            ))
-        } else {
-            (status, reason)
-        }
-    });
-    r.entry("D-12", "swapping two designations in one transaction is accepted", |_| {
-        not_built("no composite command exists to put two edits into one transaction (a swap over two `fields.set` commands passes through a duplicate)")
-    });
+    r.entry(
+        "D-12",
+        "a duplicate designation is rejected by the invariant",
+        |c| set_designation(c, "terminals|-X1031:3", "4", false),
+    );
+    r.entry(
+        "D-12",
+        "swapping two designations in one transaction is accepted",
+        d12_swap,
+    );
     r.entry("D-14", "the bus port prints \"3-B2\", never \"3-B0\"", |c| {
         let q = c.memoised.query();
         let text = q
@@ -1828,6 +1825,44 @@ fn d08(c: &Ctx) -> Outcome {
         )
     } else {
         fail(wrong.join("; "))
+    }
+}
+
+/// D-12: -X1031:3 and -X1031:4 swap designations in one `terminal.designate` transaction; the prevent rule
+/// EW-TERM-002 sees only the final state, so no temporary name is needed (FR-TRM-022).
+fn d12_swap(c: &Ctx) -> Outcome {
+    let mut s = golden_common::session(&c.batch);
+    let (k3, k4) = ("terminals|-X1031:3", "terminals|-X1031:4");
+    let cmd = ew_api::AnyCommand {
+        name: "terminal.designate".into(),
+        params: serde_json::json!({"assignments": [
+            {"terminal": c.ids[k3], "designation": "4"},
+            {"terminal": c.ids[k4], "designation": "3"},
+        ]}),
+    };
+    let before = s.world().rev;
+    if let Err(e) = s.execute(&cmd) {
+        return fail(format!("the swap was refused with {} ({e})", error_kind(&e)));
+    }
+    let after = s.world().rev;
+    let q = s.query();
+    let designation = |key: &str| {
+        q.devices()
+            .get(id_of::<Device>(c, key))
+            .and_then(|d| d.aspects.terminal.as_ref())
+            .map(|t| t.designation.as_str().to_owned())
+            .unwrap_or_default()
+    };
+    let (d3, d4) = (designation(k3), designation(k4));
+    let undo_steps = s.history().entries().len();
+    if d3 == "4" && d4 == "3" && after > before && undo_steps == 1 {
+        pass(
+            "one terminal.designate transaction swaps -X1031:3 and -X1031:4 (one undo step); EW-TERM-002 accepts the final state",
+        )
+    } else {
+        fail(format!(
+            "after the swap -X1031:3 is `{d3}` and -X1031:4 is `{d4}` ({undo_steps} undo steps)"
+        ))
     }
 }
 

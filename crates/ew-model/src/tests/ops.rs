@@ -1058,7 +1058,10 @@ struct NoDevices;
 
 impl PreventHook for NoDevices {
     fn check(&self, base: &Model, candidate: &Model, touched: &[AnyKey]) -> Result<(), PreventViolation> {
-        assert!(base.rev() < candidate.rev(), "the hook gets the base, then the candidate");
+        assert!(
+            base.rev() < candidate.rev(),
+            "the hook gets the base, then the candidate"
+        );
         if touched.iter().any(|k| k.0 == Kind::Device) {
             return Err(PreventViolation {
                 rule: "EW-TERM-002".into(),

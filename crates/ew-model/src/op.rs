@@ -156,11 +156,12 @@ impl Model {
         invariants::check(&m, &scope)?;
         if let Some(hook) = opts.prevent {
             let touched: Vec<AnyKey> = scope.keys.iter().copied().collect();
-            hook.check(self, &m, &touched).map_err(|v| ModelError::Prevented {
-                rule: v.rule,
-                message: v.message,
-                keys: v.keys,
-            })?;
+            hook.check(self, &m, &touched)
+                .map_err(|v| ModelError::Prevented {
+                    rule: v.rule,
+                    message: v.message,
+                    keys: v.keys,
+                })?;
         }
         Ok(m)
     }
