@@ -549,15 +549,20 @@ const QET_HEADER_PX: i64 = 20;
 /// cell rule of `ew-derive` reads a coordinate as the exact grid position.
 pub(crate) const LINE_NUDGE_NM: i64 = 2;
 
-/// The nudge `(dx, dy)` in nm (each 0 or [`LINE_NUDGE_NM`], to subtract) of an element at QET position
-/// `(x, y)` px on a diagram with border `b`. QET's `convertPosition` takes the cell index as the ceiling of
-/// `(v − 20) / size`, so a point exactly on an inner column or row line belongs to the left column or the
-/// upper row, while EW's cell rule (floor) puts it right or below. Moving such an element a few nm left or
-/// up keeps every printed cross-reference cell as QET prints it (owner ruling, review of cycle 12; the
-/// derivation's cell rule stays). Only on QET's default border, the one the QET frame form reproduces;
-/// the frame edges are not moved.
-pub(crate) fn qet_cell_nudge(x: Decimal, y: Decimal, b: &Border) -> (i64, i64) {
-    if !is_qet_border(b) {
+/// The nudge `(dx, dy)` in nm (each 0 or [`LINE_NUDGE_NM`], to subtract) of an element of link type
+/// `link_type` at QET position `(x, y)` px on a diagram with border `b`. QET's `convertPosition` takes the
+/// cell index as the ceiling of `(v − 20) / size`, so a point exactly on an inner column or row line belongs
+/// to the left column or the upper row, while EW's cell rule (floor) puts it right or below. Moving such an
+/// element a few nm left or up keeps its printed cross-reference cell as QET prints it (owner rulings,
+/// reviews of cycle 12; the derivation's cell rule stays).
+///
+/// Only **interruption-point elements** (`next_report`, `previous_report`) move, the elements whose cell a
+/// cross-reference prints: any other element keeps its exact position, so its connection points stay on
+/// the 10 px grid (FR-IMP-008, doc 14 §4.2: 0 nm deviation). Only on QET's default border, the one the QET
+/// frame form reproduces; the frame edges are not moved. A cell-boundary policy for imported projects is
+/// the proper home of this rule (an ADR-0027 item; follow-up task by the design pass).
+pub(crate) fn qet_cell_nudge(link_type: &str, x: Decimal, y: Decimal, b: &Border) -> (i64, i64) {
+    if !matches!(link_type, "next_report" | "previous_report") || !is_qet_border(b) {
         return (0, 0);
     }
     let on_line = |v: Decimal, size: Option<Decimal>, count: Option<u32>| -> bool {
@@ -623,7 +628,8 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
                 .defs
                 .get(el.type_path.as_str())
                 .and_then(|def| def.import.as_ref());
-            let (dx, dy) = qet_cell_nudge(el.x, el.y, &d.border);
+            let link_type = import.map_or("", |i| i.link_type.as_str());
+            let (dx, dy) = qet_cell_nudge(link_type, el.x, el.y, &d.border);
             let pos =
                 el.x.px_to_nm()
                     .ok()
@@ -1042,11 +1048,21 @@ mod tests {
     fn an_element_on_a_row_line_moves_into_the_upper_row() {
         let b = qet_border();
         // y = 260 px = 20 + 3 × 80 lies on the line between rows C and D; QET prints C.
-        assert_eq!(qet_cell_nudge(px("135"), px("260"), &b), (0, LINE_NUDGE_NM));
-        assert_eq!(qet_cell_nudge(px("135"), px("580.0"), &b), (0, LINE_NUDGE_NM));
+        assert_eq!(
+            qet_cell_nudge("next_report", px("135"), px("260"), &b),
+            (0, LINE_NUDGE_NM)
+        );
+        assert_eq!(
+            qet_cell_nudge("next_report", px("135"), px("580.0"), &b),
+            (0, LINE_NUDGE_NM)
+        );
         // Inside a row, on the frame edges (20, 660) and in the header band: no move.
         for y in ["261", "259.5", "20", "660", "10"] {
-            assert_eq!(qet_cell_nudge(px("135"), px(y), &b), (0, 0), "y = {y}");
+            assert_eq!(
+                qet_cell_nudge("next_report", px("135"), px(y), &b),
+                (0, 0),
+                "y = {y}"
+            );
         }
     }
 
@@ -1054,20 +1070,44 @@ mod tests {
     fn an_element_on_a_column_line_moves_into_the_left_column() {
         let b = qet_border();
         // x = 920 px = 20 + 15 × 60 lies on the line between columns 15 and 16; QET prints 15.
-        assert_eq!(qet_cell_nudge(px("920"), px("130"), &b), (LINE_NUDGE_NM, 0));
         assert_eq!(
-            qet_cell_nudge(px("920"), px("260"), &b),
+            qet_cell_nudge("next_report", px("920"), px("130"), &b),
+            (LINE_NUDGE_NM, 0)
+        );
+        assert_eq!(
+            qet_cell_nudge("next_report", px("920"), px("260"), &b),
             (LINE_NUDGE_NM, LINE_NUDGE_NM)
         );
         for x in ["921", "20", "1040", "0"] {
-            assert_eq!(qet_cell_nudge(px(x), px("130"), &b), (0, 0), "x = {x}");
+            assert_eq!(
+                qet_cell_nudge("next_report", px(x), px("130"), &b),
+                (0, 0),
+                "x = {x}"
+            );
         }
         // Another border has no QET frame form, so nothing moves.
         let other = Border {
             cols: Some(10),
             ..qet_border()
         };
-        assert_eq!(qet_cell_nudge(px("920"), px("260"), &other), (0, 0));
+        assert_eq!(
+            qet_cell_nudge("next_report", px("920"), px("260"), &other),
+            (0, 0)
+        );
+    }
+
+    #[test]
+    fn only_interruption_points_move() {
+        let b = qet_border();
+        // A terminal, a master and a simple element on the row line y = 260 px keep their exact position, so
+        // their connection points stay on the 10 px grid.
+        for link in ["terminal", "master", "simple", "slave", ""] {
+            assert_eq!(qet_cell_nudge(link, px("920"), px("260"), &b), (0, 0), "{link}");
+        }
+        assert_eq!(
+            qet_cell_nudge("previous_report", px("920"), px("260"), &b),
+            (LINE_NUDGE_NM, LINE_NUDGE_NM)
+        );
     }
 
     /// The nudged coordinate lies outside the 1 nm snap window of the line and above it.
