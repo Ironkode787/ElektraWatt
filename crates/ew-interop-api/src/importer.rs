@@ -151,6 +151,18 @@ impl Default for Limits {
     }
 }
 
+/// How an import treats a value that a prevent rule forbids in a strict project, such as the foreign core
+/// colour "BR" (EW-CORE-031; doc 15 §3.5, doc 14 §8.4, FR-CHK-011, D-17).
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub enum ImportMode {
+    /// The value is refused: the item that carries it is dropped with an error finding (the default; the
+    /// golden CSV bootstrap runs strict, doc 14 §8.4).
+    #[default]
+    Strict,
+    /// The value is kept as foreign data and reported, with a quick fix where one exists.
+    Lenient,
+}
+
 /// What an import runs against (doc 14 §2.1 `ImportCx`, minimal form): plain data, never the model.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ImportContext {
@@ -164,16 +176,21 @@ pub struct ImportContext {
     pub as_of: Option<Date>,
     /// Input limits.
     pub limits: Limits,
+    /// Strict or lenient (an importer that has no strict form, such as the lenient QET project import,
+    /// ignores it).
+    pub mode: ImportMode,
 }
 
 impl ImportContext {
-    /// A context for importing into `project`: a new lineage, no `as_of` date and the default [`Limits`].
+    /// A context for importing into `project`: a new lineage, no `as_of` date, the default [`Limits`] and
+    /// [`ImportMode::Strict`].
     pub fn new(project: Id<Project>) -> ImportContext {
         ImportContext {
             project,
             lineage: None,
             as_of: None,
             limits: Limits::default(),
+            mode: ImportMode::Strict,
         }
     }
 }

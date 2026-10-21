@@ -38,6 +38,8 @@ pub const GOLDEN: &[&str] = &[
     r#"{"$k":"device","id":"@DEV_W106_1","tag":{"letter":"W","counter":1},"parts":[{"part":{"copy":"@PART_NEBU"},"qty":"1"}],"cable":{"length":"from_part","core_id_mode":"colour"}}"#,
     r#"{"$k":"device","id":"@DEV_W3_1","tag":{"letter":"W","counter":1},"cable":{}}"#,
     r#"{"$k":"device","id":"@DEV_G1","tag":{"letter":"G","counter":1},"cable":{"length":{"manual":2000000000},"pre_assembled":true}}"#,
+    // the assembly aspect (doc 20 §14.2, D-41)
+    r#"{"$k":"device","id":"@DEV_G1","tag":{"letter":"U","counter":1},"parts":[{"part":{"copy":"@PART_NEBU"},"qty":"1"}],"assembly":{"configs":[{"label":{"en-GB":"Order Code 1"},"order_code":"51E-F13GCQP-D+H2GG","part":{"copy":"@PART_NEBU"},"covers":["@DEV_G1"]},{"label":{"en-GB":"Order Code 2"},"order_code":"32P-VGL-R","covers":["@DEV_S51","@DEV_X1031"]}],"bom_basis":"components"},"plc_station":{"config_project":"@PLC1","role":"valve_terminal"}}"#,
     // PLC aspects (doc 20 §11.2)
     r#"{"$k":"device","id":"@DEV_G1","tag":{"letter":"U","counter":1},"plc_station":{"config_project":"@PLC1","role":"valve_terminal"}}"#,
     r#"{"$k":"device","id":"@DEV_S51","tag":{"letter":"U","counter":3},"parent":"@DEV_G1","position":2,"plc_module":{}}"#,

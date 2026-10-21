@@ -96,9 +96,10 @@ pub use connect::{
     PotentialEarthing, PotentialEnv, PotentialType, WireFlags, WireOverrides, WireProps,
 };
 pub use device::{
-    AccessoryKind, Cable, CoreIdMode, CpOverride, Device, DeviceAspects, DeviceKind, DeviceState, FnRole,
-    FrozenTag, Function, FunctionKind, IpDirection, IpSpec, LabelMode, LengthSource, LevelRole, LevelSpec,
-    Strip, StripAccessory, TagPrint, TagScheme, TagSign, TagSpec, Terminal, TerminalGroup,
+    AccessoryKind, Assembly, AssemblyConfig, BomBasis, Cable, CoreIdMode, CpOverride, Device, DeviceAspects,
+    DeviceKind, DeviceState, FnRole, FrozenTag, Function, FunctionKind, IpDirection, IpSpec, LabelMode,
+    LengthSource, LevelRole, LevelSpec, Strip, StripAccessory, TagPrint, TagScheme, TagSign, TagSpec,
+    Terminal, TerminalGroup,
 };
 pub use error::{MalformedVariant, SchemaError};
 pub use json::{Extra, MAX_SAFE_INTEGER, Open, check_value, normalize_nfc};

@@ -19,7 +19,7 @@ use serde_json::{Map, Value};
 use crate::json::{Extra, de_extra, is_default, is_false, is_v1, v1};
 use crate::library::{FnDef, Side};
 use crate::proxy::{IdentS, MlTextS, NmS, UuidS};
-use crate::set::{KeyedList, keyed};
+use crate::set::{KeyedList, Set, keyed};
 use crate::track::{ValueDe, buffer, de_member, open_enum, raise};
 use crate::value::{PartRef, PartUse, SourceRef, StructureAssignment, TechValue};
 use crate::{ExternalRef, SchemaError};
@@ -32,9 +32,8 @@ use crate::{ExternalRef, SchemaError};
 ///
 /// Aspects follow the known members, flattened in the order of doc 05 §3.1: `strip`, `terminal`, `cable`,
 /// `assembly`, `plc_station`, `plc_module`, then `bus_node` and `valve_terminal`. Typed: `strip`, `terminal`,
-/// `cable`, `plc_station` and `plc_module`; `assembly` is held verbatim in its own slot so that it keeps its
-/// place before `plc_station`; `bus_node` and `valve_terminal` arrive with their work packages and are kept
-/// in `extra` until then, which places them after the typed aspects.
+/// `cable`, `assembly` (cycle 15, D-41), `plc_station` and `plc_module`; `bus_node` and `valve_terminal` arrive
+/// with their work packages and are kept in `extra` until then, which places them after the typed aspects.
 /// `user_props` has no field-level definition yet and is kept in `extra` too.
 ///
 /// Deserialisation takes the aspects out of the object first and reads each at its own path, because
@@ -127,7 +126,7 @@ impl DeviceAspects {
             strip: aspect(map, "strip")?,
             terminal: aspect(map, "terminal")?,
             cable: aspect(map, "cable")?,
-            assembly: map.remove("assembly"),
+            assembly: aspect(map, "assembly")?,
             plc_station: aspect(map, "plc_station")?,
             plc_module: aspect(map, "plc_module")?,
         })
@@ -265,16 +264,73 @@ pub struct DeviceAspects {
     /// Cable.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cable: Option<Cable>,
-    /// The assembly aspect (doc 03 §6, doc 11 §2.7), kept verbatim until it is typed; it is written in its
-    /// doc 05 §3.1 place, before `plc_station`.
+    /// Configured product with child devices (doc 03 §7, FR-DEV-020, FR-DEV-022); written in its doc 05
+    /// §3.1 place, before `plc_station`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub assembly: Option<Value>,
+    pub assembly: Option<Assembly>,
     /// PLC station (doc 10 §2.3).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub plc_station: Option<crate::PlcStation>,
     /// PLC module (doc 10 §2.3).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub plc_module: Option<crate::PlcModule>,
+}
+
+/// The `Assembly` aspect (doc 03 §7, FR-DEV-020, FR-DEV-022, D-36, D-41): the configurator order codes of a
+/// configured product whose children are the devices with this device as `parent` (ordered by `position`).
+///
+/// In the assembly BOM (`bom_rows(Assembly)`, FR-REP-005) every config that names a `part` prints one row
+/// and replaces the own part lines of the devices it `covers`, unless `bom_basis` is `components`.
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct Assembly {
+    /// The order codes, in order (order code 1 first).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub configs: Vec<AssemblyConfig>,
+    /// What the assembly BOM lists for this assembly; default the configured products.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub bom_basis: BomBasis,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// One configurator order code of an assembly (doc 03 §7).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct AssemblyConfig {
+    /// The label ("Order Code 1"); empty when unset.
+    #[serde(default, skip_serializing_if = "MlText::is_empty")]
+    #[schemars(with = "MlTextS")]
+    pub label: MlText,
+    /// The order code, stored verbatim (doc 10 §2.3).
+    #[schemars(with = "IdentS")]
+    pub order_code: Ident,
+    /// The configured part copy (kind `configured`, FR-PRT-006) that the assembly BOM prints for it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub part: Option<PartRef>,
+    /// The devices whose own part lines this order code replaces in the assembly BOM: the assembly device
+    /// itself or its descendants, each named explicitly (not transitive).
+    #[serde(default, skip_serializing_if = "Set::is_empty")]
+    #[schemars(with = "Set<UuidS>")]
+    pub covers: Set<Id<Device>>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// What the assembly BOM lists for an assembly (doc 03 §7).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "BomBasis")]
+pub enum BomBasis {
+    /// One row per configured product, replacing the covered parts (the default).
+    #[default]
+    Assembly,
+    /// The component parts, as in the component BOM.
+    Components,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// The `Strip` aspect (doc 03 §11).
@@ -641,6 +697,7 @@ keyed!(CpOverride, idx: u16);
 
 open_enum!(
     TagScheme,
+    BomBasis,
     TagSign,
     DeviceKind,
     DeviceState,

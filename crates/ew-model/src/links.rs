@@ -373,6 +373,38 @@ pub static LINKS: &[LinkDecl] = &[
     DEVICE_SLOTS[6],
     link!(Device."terminal.strip" -> Device, Forbid, Some(I::TerminalsByStrip),
         |v, out| opt(v.aspects.terminal.as_ref().map(|t| t.strip), out)),
+    // The assembly aspect (doc 03 §7, D-41): a configured part copy is kept alive like a part use; a covered
+    // device that is removed leaves the cover list (ID-334: additive within the unreleased 0.1).
+    link!(Device."assembly.configs[].part.copy" -> Part, Forbid, None, |v, out| {
+        if let Some(a) = &v.aspects.assembly {
+            for c in &a.configs {
+                if let Some(p) = &c.part {
+                    id(p.copy, out);
+                }
+            }
+        }
+    }),
+    link!(Device."assembly.configs[].covers[]" -> Device, Unlink, None, |v, out| {
+        if let Some(a) = &v.aspects.assembly {
+            for c in &a.configs {
+                for d in c.covers.iter() {
+                    id(*d, out);
+                }
+            }
+        }
+    },
+    Some(|row, del| {
+        let AnyRow::Device(d) = row else { return Some(row.clone()) };
+        let mut d = (**d).clone();
+        if let Some(a) = d.aspects.assembly.as_mut() {
+            for c in &mut a.configs {
+                if c.covers.iter().any(|x| gone(del, Kind::Device, *x)) {
+                    c.covers = c.covers.iter().copied().filter(|x| !gone(del, Kind::Device, *x)).collect();
+                }
+            }
+        }
+        Some(AnyRow::Device(Arc::new(d)))
+    })),
     link!(Device."plc_station.config_project" -> PlcConfigProject, Forbid, None,
         |v, out| opt(v.aspects.plc_station.as_ref().map(|s| s.config_project), out)),
     lineage_link!(Device),

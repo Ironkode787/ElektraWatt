@@ -4,6 +4,7 @@
 //! In-crate tests: they see the crate-private internals (tables, scopes) and share the `mini_golden()`
 //! fixture without a testkit dependency.
 
+mod assembly_links;
 mod field_mask;
 pub(crate) mod fixture;
 mod invariants;

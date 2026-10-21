@@ -809,16 +809,7 @@ pub fn golden() -> Fx {
             fx.record(dev_201u(k))["parent"] = json!(uid(dev_201u(1)));
         }
     }
-    uses(
-        &mut fx,
-        dev_201u(1),
-        &[
-            (PART_195740, "1"),
-            (PART_550208, "1"),
-            (PART_CONF_CPX, "1"),
-            (PART_CONF_MPA, "1"),
-        ],
-    );
+    uses(&mut fx, dev_201u(1), &[(PART_195740, "1"), (PART_550208, "1")]);
     uses(&mut fx, dev_201u(2), &[(PART_552286, "1")]);
     for k in 3..=8 {
         uses(&mut fx, dev_201u(k), &[(PART_533361, "1")]);
@@ -848,6 +839,27 @@ pub fn golden() -> Fx {
             uses(&mut fx, dev, &[(PART_571334, "1")]);
         }
     }
+
+    // The assembly aspect of -201U1 (doc 20 §14.2): order code 1 covers the head's own parts, order code 2 the
+    // children and the valves.
+    let sorted = |ids: Vec<u128>| {
+        let mut v: Vec<String> = ids.into_iter().map(uid).collect();
+        v.sort();
+        v
+    };
+    let mut mpa: Vec<u128> = (2..=9).map(dev_201u).collect();
+    mpa.push(DEV_202U1);
+    mpa.extend(
+        [3, 4]
+            .into_iter()
+            .flat_map(|sub| (1..=4u128).map(move |q| valve(sub, q))),
+    );
+    fx.record(dev_201u(1))["assembly"] = json!({"configs": [
+        {"label": "Order Code 1", "order_code": CODE_CPX, "part": {"copy": uid(PART_CONF_CPX)},
+         "covers": sorted(vec![dev_201u(1)])},
+        {"label": "Order Code 2", "order_code": CODE_MPA, "part": {"copy": uid(PART_CONF_MPA)},
+         "covers": sorted(mpa)},
+    ]});
 
     // Field devices of folio 203 (§6.2) in +FIELD, supplied by others: no parts.
     for n in 1..=8u128 {

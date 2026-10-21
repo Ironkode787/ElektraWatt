@@ -19,3 +19,5 @@ ew-schema = { path = "../ew-schema" }
 ew-ids = { path = "../ew-ids" }
 # SHA-256 of the input bytes (`ImportInput::new`); the same line as xtask, MSRV 1.72.
 sha2.workspace = true
+# The parameters of a quick-fix proposal (`ReportEntry::fix`, doc 15 §2.6). Never with `preserve_order`.
+serde_json = "1.0.154"

@@ -63,6 +63,76 @@
         }
       ]
     },
+    "Assembly": {
+      "additionalProperties": true,
+      "description": "The `Assembly` aspect (doc 03 §7, FR-DEV-020, FR-DEV-022, D-36, D-41): the configurator order codes of a\nconfigured product whose children are the devices with this device as `parent` (ordered by `position`).\n\nIn the assembly BOM (`bom_rows(Assembly)`, FR-REP-005) every config that names a `part` prints one row\nand replaces the own part lines of the devices it `covers`, unless `bom_basis` is `components`.",
+      "properties": {
+        "bom_basis": {
+          "$ref": "#/$defs/BomBasis",
+          "description": "What the assembly BOM lists for this assembly; default the configured products."
+        },
+        "configs": {
+          "description": "The order codes, in order (order code 1 first).",
+          "items": {
+            "$ref": "#/$defs/AssemblyConfig"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "AssemblyConfig": {
+      "additionalProperties": true,
+      "description": "One configurator order code of an assembly (doc 03 §7).",
+      "properties": {
+        "covers": {
+          "description": "The devices whose own part lines this order code replaces in the assembly BOM: the assembly device\nitself or its descendants, each named explicitly (not transitive).",
+          "items": {
+            "$ref": "#/$defs/Uuid"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        "label": {
+          "$ref": "#/$defs/MlText",
+          "description": "The label (\"Order Code 1\"); empty when unset."
+        },
+        "order_code": {
+          "$ref": "#/$defs/Ident",
+          "description": "The order code, stored verbatim (doc 10 §2.3)."
+        },
+        "part": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PartRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The configured part copy (kind `configured`, FR-PRT-006) that the assembly BOM prints for it."
+        }
+      },
+      "required": [
+        "order_code"
+      ],
+      "type": "object"
+    },
+    "BomBasis": {
+      "description": "What the assembly BOM lists for an assembly (doc 03 §7).",
+      "oneOf": [
+        {
+          "const": "assembly",
+          "description": "One row per configured product, replacing the covered parts (the default).",
+          "type": "string"
+        },
+        {
+          "const": "components",
+          "description": "The component parts, as in the component BOM.",
+          "type": "string"
+        }
+      ]
+    },
     "Cable": {
       "additionalProperties": true,
       "description": "The `Cable` aspect (doc 03 §12).",
@@ -1079,7 +1149,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": true,
-  "description": "Everything with one tag; the single owner of parts (ADR-0006, doc 03 §7, rank 31). The printed tag is\nderived from `tag`, the numbering scheme and the main representation; it is stored nowhere.\n\nAspects follow the known members, flattened in the order of doc 05 §3.1: `strip`, `terminal`, `cable`,\n`assembly`, `plc_station`, `plc_module`, then `bus_node` and `valve_terminal`. Typed: `strip`, `terminal`,\n`cable`, `plc_station` and `plc_module`; `assembly` is held verbatim in its own slot so that it keeps its\nplace before `plc_station`; `bus_node` and `valve_terminal` arrive with their work packages and are kept\nin `extra` until then, which places them after the typed aspects.\n`user_props` has no field-level definition yet and is kept in `extra` too.\n\nDeserialisation takes the aspects out of the object first and reads each at its own path, because\nserde reads flattened fields from a buffer that loses the paths of errors inside them.",
+  "description": "Everything with one tag; the single owner of parts (ADR-0006, doc 03 §7, rank 31). The printed tag is\nderived from `tag`, the numbering scheme and the main representation; it is stored nowhere.\n\nAspects follow the known members, flattened in the order of doc 05 §3.1: `strip`, `terminal`, `cable`,\n`assembly`, `plc_station`, `plc_module`, then `bus_node` and `valve_terminal`. Typed: `strip`, `terminal`,\n`cable`, `assembly` (cycle 15, D-41), `plc_station` and `plc_module`; `bus_node` and `valve_terminal` arrive\nwith their work packages and are kept in `extra` until then, which places them after the typed aspects.\n`user_props` has no field-level definition yet and is kept in `extra` too.\n\nDeserialisation takes the aspects out of the object first and reads each at its own path, because\nserde reads flattened fields from a buffer that loses the paths of errors inside them.",
   "properties": {
     "$k": {
       "const": "device",
@@ -1093,7 +1163,15 @@
       "type": "integer"
     },
     "assembly": {
-      "description": "The assembly aspect (doc 03 §6, doc 11 §2.7), kept verbatim until it is typed; it is written in its\ndoc 05 §3.1 place, before `plc_station`."
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Assembly"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Configured product with child devices (doc 03 §7, FR-DEV-020, FR-DEV-022); written in its doc 05\n§3.1 place, before `plc_station`."
     },
     "cable": {
       "anyOf": [

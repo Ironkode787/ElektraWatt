@@ -186,27 +186,48 @@ fn unknown_members_are_kept_and_written_last_in_byte_order() {
 
 #[test]
 fn unknown_device_aspects_follow_the_known_ones() {
-    // `assembly` is kept verbatim in its own slot; `bus_node` is not implemented yet and stays in `extra`, after
-    // the known aspects.
+    // `assembly` is typed (cycle 15); `bus_node` is not implemented yet and stays in `extra`, after the known
+    // aspects.
     let line = fill(
-        r#"{"$k":"device","id":"@DEV_G1","tag":{"letter":"U","counter":1},"cable":{},"assembly":{"bom_basis":"assembly"},"bus_node":{"role":"slave"}}"#,
+        r#"{"$k":"device","id":"@DEV_G1","tag":{"letter":"U","counter":1},"cable":{},"assembly":{"bom_basis":"components"},"bus_node":{"role":"slave"}}"#,
     );
     let Record::Device(d) = assert_canonical(&line) else {
         panic!("a device");
     };
     assert!(d.aspects.cable.is_some());
-    assert!(d.aspects.assembly.is_some());
+    assert_eq!(
+        d.aspects.assembly.as_ref().map(|a| &a.bom_basis),
+        Some(&ew_schema::BomBasis::Components)
+    );
     assert_eq!(d.extra.len(), 1);
+}
+
+#[test]
+fn the_assembly_aspect_is_typed() {
+    // Doc 03 §7, doc 20 §14.2: two order codes on -201U1, the second covering two children.
+    let line = fill(
+        r#"{"$k":"device","id":"@DEV_G1","tag":{"letter":"U","counter":1},"assembly":{"configs":[{"label":{"en-GB":"Order Code 1"},"order_code":"51E-F13GCQP-D+H2GG","part":{"copy":"@PART_NEBU"},"covers":["@DEV_G1"]},{"order_code":"32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS","covers":["@DEV_S51","@DEV_X1031"]}]}}"#,
+    );
+    let Record::Device(d) = assert_canonical(&line) else {
+        panic!("a device");
+    };
+    let a = d.aspects.assembly.as_ref().expect("the assembly aspect");
+    assert_eq!(a.configs.len(), 2);
+    assert_eq!(a.configs[0].order_code.as_str(), "51E-F13GCQP-D+H2GG");
+    assert!(a.configs[0].part.is_some());
+    assert_eq!(a.configs[1].covers.len(), 2);
+    assert_eq!(a.bom_basis, ew_schema::BomBasis::Assembly);
+    assert!(d.extra.is_empty());
 }
 
 #[test]
 fn the_assembly_aspect_is_written_before_the_plc_aspects() {
     // Doc 05 §3.1: strip, terminal, cable, assembly, plc_station, plc_module, then the later aspects.
     let line = fill(
-        r#"{"$k":"device","id":"@DEV_G1","tag":{"letter":"U","counter":1},"assembly":{"bom_basis":"assembly"},"plc_station":{"config_project":"@PLC1","role":"valve_terminal"},"plc_module":{},"bus_node":{"role":"slave"}}"#,
+        r#"{"$k":"device","id":"@DEV_G1","tag":{"letter":"U","counter":1},"assembly":{"bom_basis":"components"},"plc_station":{"config_project":"@PLC1","role":"valve_terminal"},"plc_module":{},"bus_node":{"role":"slave"}}"#,
     );
     assert_canonical(&line);
-    let assembly = r#""assembly":{"bom_basis":"assembly"},"#;
+    let assembly = r#""assembly":{"bom_basis":"components"},"#;
     let shuffled = line
         .replace(assembly, "")
         .replace(r#""bus_node""#, &format!("{assembly}\"bus_node\""));

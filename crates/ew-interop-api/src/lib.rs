@@ -60,9 +60,11 @@ mod input;
 mod report;
 
 pub use ew_schema::SourceRef;
-pub use importer::{Detection, ImportBatch, ImportContext, ImportError, Importer, Limits, LineageInfo};
+pub use importer::{
+    Detection, ImportBatch, ImportContext, ImportError, ImportMode, Importer, Limits, LineageInfo,
+};
 pub use input::{ImportInput, InputNameError, check_file_name};
 pub use report::{
-    Code, CodeParseError, DefectClass, ImportReport, ImportStats, ReportEntry, Severity, SourceInfo,
-    SourceLocation,
+    Code, CodeParseError, DefectClass, ImportReport, ImportStats, QuickFixProposal, ReportEntry, Severity,
+    SourceInfo, SourceLocation,
 };

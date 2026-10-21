@@ -3,9 +3,10 @@
 
 //! The BOM export over a model with configured products (doc 20 §14.2, FR-REP-005, D-36).
 //!
-//! The golden project holds no configured product yet (the assembly of D-41 arrives in cycle 15), so the
-//! assembly rows A1 and A2 are tested over the golden model with two configured parts added to -201U1: the
-//! export replaces rows 16-21 by two `set` rows and leaves every other row of the parts list as it was.
+//! The golden tables hold no configured product yet, so the assembly rows A1 and A2 are tested over the golden
+//! model with two configured parts and the assembly aspect of doc 20 §14.2 added to -201U1 (order code 1 covers
+//! the head, order code 2 its descendants): the export replaces rows 16-21 by two `set` rows and leaves every
+//! other row of the parts list as it was.
 
 mod golden_common;
 
@@ -18,7 +19,8 @@ const MPA: &str = "32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS";
 const CPX_COPY: &str = "5e2f0c1a-7b3d-5c11-8a42-000000000001";
 const MPA_COPY: &str = "5e2f0c1a-7b3d-5c11-8a42-000000000002";
 
-/// The golden model with the configured parts of §14.2 as part uses of -201U1 (CPX first, MPA second).
+/// The golden model with the configured parts of §14.2 named by -201U1's assembly aspect (CPX first, MPA
+/// second).
 fn configured() -> Session {
     let batch = golden_common::batch();
     let mut lib = batch.lib.clone();
@@ -46,17 +48,40 @@ fn configured() -> Session {
         v["meta"] = json!({"key": code});
         lib.push(LibDocument::from_json(&v.to_string()).expect("a configured part"));
     }
+    // -201U1 and its descendants (by `parent`).
+    let head = batch
+        .records
+        .iter()
+        .find_map(|r| match r {
+            Record::Device(d) if golden_common::source_key(r) == Some("devices|-201U1") => Some(d.id),
+            _ => None,
+        })
+        .expect("-201U1 is in the batch");
+    let mut descendants: Vec<String> = Vec::new();
+    let mut frontier = vec![head];
+    while let Some(parent) = frontier.pop() {
+        for r in &batch.records {
+            if let Record::Device(d) = r
+                && d.parent == Some(parent)
+            {
+                descendants.push(d.id.to_string());
+                frontier.push(d.id);
+            }
+        }
+    }
+    descendants.sort();
+    let assembly = json!({"configs": [
+        {"order_code": CPX, "part": {"copy": CPX_COPY}, "covers": [head.to_string()]},
+        {"order_code": MPA, "part": {"copy": MPA_COPY}, "covers": descendants},
+    ]});
     let mut project = None;
     let mut records = Vec::new();
     for r in &batch.records {
         match r {
             Record::Project(p) => project = Some(p.clone()),
-            Record::Device(d) if golden_common::source_key(r) == Some("devices|-201U1") => {
+            Record::Device(d) if d.id == head => {
                 let mut v = serde_json::to_value(d).expect("a device serialises");
-                let parts = v["parts"].as_array_mut().expect("the device has parts");
-                for copy in [CPX_COPY, MPA_COPY] {
-                    parts.push(json!({"part": {"copy": copy}, "qty": "1"}));
-                }
+                v["assembly"] = assembly.clone();
                 records.push(Record::Device(serde_json::from_value(v).expect("a device")));
             }
             other => records.push(other.clone()),

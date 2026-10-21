@@ -122,6 +122,8 @@ Fields are written as `kind.path`. "referrers" means the generic referrer index.
 | device.parent | device | forbid | device_children |
 | device.parts[].part.copy | part | forbid | referrers |
 | device.strip.accessories[].part.copy | part | forbid | referrers |
+| device.assembly.configs[].part.copy | part | forbid | referrers |
+| device.assembly.configs[].covers[] | device | unlink (entry removed) | referrers |
 | device.structure.* (seven slots) | structure_node | forbid | referrers |
 | device.terminal.strip | device | forbid | terminals_by_strip |
 | device.source_ref.lineage | import_lineage | forbid | referrers |

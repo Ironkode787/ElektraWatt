@@ -6,6 +6,7 @@
 
 use std::collections::BTreeMap;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 use std::str::FromStr;
 
 /// An import finding code `EW-IMP-nnn` (doc 14 §2.5 catalogue), stored as its number `nnn` (1–999).
@@ -32,6 +33,8 @@ impl Code {
     pub const DROPPED_BY_DESIGN: Code = Code(4);
     /// Font substituted.
     pub const FONT_SUBSTITUTED: Code = Code(6);
+    /// Value mapped through an alias table.
+    pub const ALIAS_MAPPED: Code = Code(7);
     /// Value kept as foreign or opaque text.
     pub const FOREIGN_VALUE: Code = Code(8);
     /// Imported text styles not bound to slot kinds.
@@ -136,6 +139,29 @@ pub struct SourceLocation {
     pub line: Option<u32>,
 }
 
+/// A quick fix an import finding proposes (doc 15 §2.6): a declarative command proposal, never code. The
+/// command is a name of the command catalogue (FR-EXT-015, doc 06 §3.1) and `params` its parameters with the
+/// finding's targets already filled in; the host runs it as a preview and commits it as one undoable
+/// transaction (ADR-0008).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct QuickFixProposal {
+    /// The label, in English ("use BN").
+    pub label: String,
+    /// The command name, for example `fields.set`.
+    pub command: String,
+    /// The command's parameters.
+    pub params: serde_json::Value,
+}
+
+impl Hash for QuickFixProposal {
+    /// Hashes the compact JSON text of `params`, which equal values share (no `preserve_order`).
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.label.hash(state);
+        self.command.hash(state);
+        self.params.to_string().hash(state);
+    }
+}
+
 /// One finding of an import (doc 14 §2.4).
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct ReportEntry {
@@ -149,6 +175,8 @@ pub struct ReportEntry {
     pub message: String,
     /// Where.
     pub location: Option<SourceLocation>,
+    /// A quick fix, where the finding offers one.
+    pub fix: Option<QuickFixProposal>,
 }
 
 impl ReportEntry {
@@ -160,6 +188,7 @@ impl ReportEntry {
             defect: None,
             message: message.into(),
             location: None,
+            fix: None,
         }
     }
 
@@ -167,6 +196,14 @@ impl ReportEntry {
     pub fn at(self, location: SourceLocation) -> ReportEntry {
         ReportEntry {
             location: Some(location),
+            ..self
+        }
+    }
+
+    /// This entry with the quick fix `fix`.
+    pub fn with_fix(self, fix: QuickFixProposal) -> ReportEntry {
+        ReportEntry {
+            fix: Some(fix),
             ..self
         }
     }

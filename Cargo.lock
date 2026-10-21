@@ -482,6 +482,7 @@ version = "0.0.0"
 dependencies = [
  "ew-ids",
  "ew-schema",
+ "serde_json",
  "sha2",
 ]
 

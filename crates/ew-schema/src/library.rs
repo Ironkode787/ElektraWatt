@@ -767,6 +767,8 @@ pub enum SlotKind {
     UserProp(#[schemars(with = "IdentS")] Ident),
     /// Contact image.
     ContactImage,
+    /// The order code of the device's first assembly config (doc 10 §6 folio 3, doc 20 §11.1, D-36).
+    OrderCode,
     /// A value of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),

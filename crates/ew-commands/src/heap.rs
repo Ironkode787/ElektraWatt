@@ -469,6 +469,24 @@ impl HeapSize for Terminal {
     }
 }
 
+// ---- the assembly aspect (doc 03 §7): enum payloads of a newer format are not counted ----
+
+impl HeapSize for ew_schema::Assembly {
+    fn heap_size(&self) -> usize {
+        self.configs.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::AssemblyConfig {
+    fn heap_size(&self) -> usize {
+        self.label.heap_size()
+            + self.order_code.heap_size()
+            + self.part.heap_size()
+            + self.covers.heap_size()
+            + self.extra.heap_size()
+    }
+}
+
 impl HeapSize for DeviceAspects {
     fn heap_size(&self) -> usize {
         self.strip.heap_size()

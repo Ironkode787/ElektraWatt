@@ -452,7 +452,16 @@ fn variants_are_separate_rows() {
 fn lines_follow_the_model_order_and_carry_the_configured_flag() {
     // A reference to a missing part copy cannot occur in a valid snapshot (EW-INV-001); the drop of such
     // a line in `device_part_lines` is defensive.
-    let m = assembly().build();
+    let mut fx = base();
+    dev(
+        &mut fx,
+        0x2000,
+        "201U1",
+        false,
+        &[(P_BUS_NODE, "1"), (P_LINK_BLOCK, "1"), (P_CONF_CPX, "1")],
+        Some(PAGE201),
+    );
+    let m = fx.build();
     let q = Q::new(&m);
     let lines = q.get::<DevicePartLines>(id(0x2000));
     let seen: Vec<(Id<ew_schema::Part>, bool)> = lines.iter().map(|l| (l.part, l.configured)).collect();
@@ -461,8 +470,7 @@ fn lines_follow_the_model_order_and_carry_the_configured_flag() {
         [
             (id(P_BUS_NODE), false),
             (id(P_LINK_BLOCK), false),
-            (id(P_CONF_CPX), true),
-            (id(P_CONF_MPA), true)
+            (id(P_CONF_CPX), true)
         ]
     );
     assert!(
@@ -472,22 +480,34 @@ fn lines_follow_the_model_order_and_carry_the_configured_flag() {
     );
 }
 
-/// Head -201U1 carries two configured products and its modules; the modules are its children.
-fn assembly() -> Fx {
+/// An assembly config: its configured part (if any) and the devices it covers.
+fn config(order_code: &str, part: Option<u128>, covers: &[u128]) -> Value {
+    let mut c = json!({"order_code": order_code});
+    if let Some(p) = part {
+        c["part"] = json!({"copy": uid(p)});
+    }
+    let mut covers: Vec<String> = covers.iter().map(|d| uid(*d)).collect();
+    covers.sort();
+    if !covers.is_empty() {
+        c["covers"] = json!(covers);
+    }
+    c
+}
+
+/// Head -201U1 (195740 and 550208) with its assembly aspect: order code 1 (the CPX product) covers the head,
+/// order code 2 (the MPA product) covers the module -201U3 and its valve -201U3-Q1 (doc 20 §14.2). -202U1
+/// is a child that no order code names.
+fn assembly_with(configs: Value) -> Fx {
     let mut fx = base();
     dev(
         &mut fx,
         0x2000,
         "201U1",
         false,
-        &[
-            (P_BUS_NODE, "1"),
-            (P_LINK_BLOCK, "1"),
-            (P_CONF_CPX, "1"),
-            (P_CONF_MPA, "1"),
-        ],
+        &[(P_BUS_NODE, "1"), (P_LINK_BLOCK, "1")],
         Some(PAGE201),
     );
+    fx.record(0x2000)["assembly"] = json!({"configs": configs});
     dev(&mut fx, 0x2010, "201U3", false, &[(P_MODULE, "1")], Some(PAGE201));
     fx.record(0x2010)["parent"] = json!(uid(0x2000));
     // A grandchild: a valve of the module.
@@ -500,7 +520,7 @@ fn assembly() -> Fx {
         Some(PAGE201),
     );
     fx.record(0x2020)["parent"] = json!(uid(0x2010));
-    // -202U1 is no child: its link block stays.
+    // -202U1 is a child that no order code covers: its link block stays.
     dev(
         &mut fx,
         0x2100,
@@ -509,25 +529,47 @@ fn assembly() -> Fx {
         &[(P_LINK_BLOCK, "1")],
         Some(PAGE202),
     );
+    fx.record(0x2100)["parent"] = json!(uid(0x2000));
     fx
 }
 
+fn assembly() -> Fx {
+    assembly_with(json!([
+        config("51E-F13GCQP-D+H2GG", Some(P_CONF_CPX), &[0x2000]),
+        config("32P-VGL-R", Some(P_CONF_MPA), &[0x2010, 0x2020]),
+    ]))
+}
+
 #[test]
-fn component_mode_drops_configured_parts() {
+fn component_mode_ignores_the_assembly() {
     let out = rows(&assembly(), BomMode::Component);
     // All on page 201 at one point: part number order.
     assert_eq!(numbers(&out), ["195740", "533361", "550208", "571334"]);
-    assert!(out.iter().all(|r| !r.configured));
+    assert!(out.iter().all(|r| !r.configured && r.covers.is_empty()));
     let pos: Vec<u32> = out.iter().map(|r| r.pos).collect();
     assert_eq!(pos, [1, 2, 3, 4]);
     assert_eq!(row(&out, "550208").qty, Dec3(2_000));
 }
 
 #[test]
+fn component_mode_drops_configured_part_uses() {
+    let mut fx = base();
+    dev(
+        &mut fx,
+        0x2000,
+        "201U1",
+        false,
+        &[(P_BUS_NODE, "1"), (P_CONF_CPX, "1")],
+        Some(PAGE201),
+    );
+    assert_eq!(numbers(&rows(&fx, BomMode::Component)), ["195740"]);
+}
+
+#[test]
 fn assembly_mode_replaces_the_covered_rows_by_configured_rows() {
     let out = rows(&assembly(), BomMode::Assembly);
-    // Both configured products sit on the head: same position, the head's part order decides (CPX first),
-    // not the part number.
+    // Both configured products sit on the head: same position, the config order decides (CPX first), not
+    // the part number.
     assert_eq!(numbers(&out), ["51E-F13GCQP-D+H2GG", "32P-VGL-R", "550208"]);
     let configured: Vec<&BomRow> = out.iter().filter(|r| r.configured).collect();
     assert_eq!(configured.len(), 2);
@@ -538,62 +580,88 @@ fn assembly_mode_replaces_the_covered_rows_by_configured_rows() {
             .all(|r| r.qty == Dec3::ONE && r.unit == OrderUnit::Set)
     );
     assert!(configured.iter().all(|r| r.devices == [id(0x2000)]));
+    assert_eq!(configured[0].covers, [id(0x2000)]);
+    assert_eq!(configured[1].covers, [id(0x2010), id(0x2020)]);
 
-    // The head's own components, the modules and the valves are gone; -202U1's link block stays, numbered
-    // 1 in the component sequence.
+    // The head's own components, the module and the valve are gone; -202U1's link block stays (no order
+    // code covers it), numbered 1 in the component sequence.
     let rest = row(&out, "550208");
     assert!(!rest.configured);
+    assert!(rest.covers.is_empty());
     assert_eq!(rest.pos, 1);
     assert_eq!(rest.qty, Dec3::ONE);
     assert_eq!(rest.devices, [id(0x2100)]);
     assert_eq!(rest.pages, [PageRef::Drawn(id(PAGE202))]);
 }
 
-/// The configured rows of a head with `parts` (and optionally an `assembly` member), in assembly mode.
-fn configured_numbers(parts: &[(u128, &str)], assembly: Option<Value>) -> Vec<String> {
-    let mut fx = base();
-    dev(&mut fx, 0x2000, "201U1", false, parts, Some(PAGE201));
-    if let Some(a) = assembly {
-        fx.record(0x2000)["assembly"] = a;
-    }
-    rows(&fx, BomMode::Assembly)
-        .into_iter()
-        .filter(|r| r.configured)
-        .map(|r| r.part_number)
-        .collect()
+#[test]
+fn covers_are_explicit_not_transitive() {
+    // Order code 2 names the module but not its valve: the valve keeps its row (one cell for all devices: the
+    // head rank orders A2 after the component rows of the cell).
+    let fx = assembly_with(json!([
+        config("51E-F13GCQP-D+H2GG", Some(P_CONF_CPX), &[0x2000]),
+        config("32P-VGL-R", Some(P_CONF_MPA), &[0x2010]),
+    ]));
+    let out = rows(&fx, BomMode::Assembly);
+    assert_eq!(
+        numbers(&out),
+        ["51E-F13GCQP-D+H2GG", "571334", "32P-VGL-R", "550208"]
+    );
 }
 
 #[test]
-fn configured_rows_follow_the_heads_part_order() {
-    // The part numbers sort 32P-... < 51E-..., the head lists the CPX product first: A1 is the CPX product.
-    let parts = [(P_CONF_CPX, "1"), (P_CONF_MPA, "1")];
+fn a_config_without_a_part_prints_and_covers_nothing() {
+    let fx = assembly_with(json!([
+        config("51E-F13GCQP-D+H2GG", Some(P_CONF_CPX), &[0x2000]),
+        config("32P-VGL-R", None, &[0x2010, 0x2020]),
+    ]));
+    let out = rows(&fx, BomMode::Assembly);
     assert_eq!(
-        configured_numbers(&parts, None),
-        ["51E-F13GCQP-D+H2GG", "32P-VGL-R"]
+        numbers(&out),
+        ["51E-F13GCQP-D+H2GG", "533361", "571334", "550208"]
     );
-    // An assembly member without configs, or a malformed one, leaves the part order in force.
-    for assembly in [json!({}), json!("junk"), json!({"configs": 3})] {
-        assert_eq!(
-            configured_numbers(&parts, Some(assembly)),
-            ["51E-F13GCQP-D+H2GG", "32P-VGL-R"]
-        );
-    }
+}
+
+#[test]
+fn a_components_basis_keeps_the_components_in_assembly_mode() {
+    let mut fx = assembly();
+    fx.record(0x2000)["assembly"]["bom_basis"] = json!("components");
+    let assembly_rows = rows(&fx, BomMode::Assembly);
+    assert_eq!(numbers(&assembly_rows), numbers(&rows(&fx, BomMode::Component)));
+    assert!(assembly_rows.iter().all(|r| !r.configured));
+}
+
+#[test]
+fn a_configured_part_use_without_an_aspect_stays_and_covers_nothing() {
+    let mut fx = base();
+    dev(
+        &mut fx,
+        0x2000,
+        "201U1",
+        false,
+        &[(P_BUS_NODE, "1"), (P_CONF_CPX, "1")],
+        Some(PAGE201),
+    );
+    let out = rows(&fx, BomMode::Assembly);
+    // A part no config names ranks after the configs: after the component row of the cell.
+    assert_eq!(numbers(&out), ["195740", "51E-F13GCQP-D+H2GG"]);
+    assert!(out[1].configured && out[1].covers.is_empty());
 }
 
 #[test]
 fn configured_rows_follow_the_assembly_config_order() {
-    // The head lists the MPA product first, but its configs name the CPX product first.
-    let parts = [(P_CONF_MPA, "1"), (P_CONF_CPX, "1")];
+    // The part numbers sort 32P-... < 51E-...; the config order decides either way.
+    let cpx_first = assembly();
     assert_eq!(
-        configured_numbers(&parts, None),
-        ["32P-VGL-R", "51E-F13GCQP-D+H2GG"]
-    );
-    let assembly = json!({"configs": [
-        {"label": {"en": "CPX"}, "order_code": "1", "part": {"copy": uid(P_CONF_CPX)}, "covers": []},
-        {"label": {"en": "MPA"}, "order_code": "2", "part": {"copy": uid(P_CONF_MPA)}, "covers": []},
-    ]});
-    assert_eq!(
-        configured_numbers(&parts, Some(assembly)),
+        numbers(&rows(&cpx_first, BomMode::Assembly))[..2],
         ["51E-F13GCQP-D+H2GG", "32P-VGL-R"]
+    );
+    let mpa_first = assembly_with(json!([
+        config("32P-VGL-R", Some(P_CONF_MPA), &[0x2010, 0x2020]),
+        config("51E-F13GCQP-D+H2GG", Some(P_CONF_CPX), &[0x2000]),
+    ]));
+    assert_eq!(
+        numbers(&rows(&mpa_first, BomMode::Assembly))[..2],
+        ["32P-VGL-R", "51E-F13GCQP-D+H2GG"]
     );
 }

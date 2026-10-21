@@ -9,7 +9,9 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText, NaturalKey, natural_key};
-use ew_schema::{Device, DeviceState, LibRef, OrderUnit, Part, PartKind, PartRef, RepType, Representation};
+use ew_schema::{
+    BomBasis, Device, DeviceState, LibRef, OrderUnit, Part, PartKind, PartRef, RepType, Representation,
+};
 use ew_units::Dec3;
 
 use crate::Q;
@@ -23,7 +25,8 @@ use crate::tag::{DeviceTag, MainFunction, MainRep};
 pub enum BomMode {
     /// Every component part; configured products are left out.
     Component,
-    /// Configured products as one row each, replacing the components they cover.
+    /// Configured products (the order codes of the assembly aspects) as one row each, replacing the part
+    /// lines of the devices they cover.
     Assembly,
 }
 
@@ -34,6 +37,9 @@ pub enum LineSource {
     Device,
     /// A strip accessory (`Strip.accessories[].part`), one piece each.
     StripAccessory,
+    /// An order code of the device's assembly aspect (`Assembly.configs[].part`), one set each; assembly
+    /// mode only.
+    AssemblyConfig,
 }
 
 /// One part line of one device.
@@ -126,6 +132,9 @@ pub struct BomRow {
     pub manufacturer: LibRef,
     /// The part number (the order code for a configured product).
     pub part_number: String,
+    /// The devices whose part lines a configured product replaces (`AssemblyConfig.covers`, the union over
+    /// the configs of the row), in tag natural order; empty for every other row.
+    pub covers: Vec<Id<Device>>,
     /// The type designation.
     pub type_designation: Option<String>,
     /// The part description (never ratings, D-35).
@@ -139,13 +148,18 @@ pub struct BomRow {
 /// `bom_rows(mode)`: the bill of materials (doc 20 §14.1, §14.2).
 ///
 /// 1. **Lines:** the `device_part_lines` of every device, in ID order.
-/// 2. **Mode filter.** Component mode drops configured lines. Assembly mode: a device with at least one
-///    configured line keeps only its configured lines, and every line of its descendants
-///    (`Device.parent`, transitively, cycle-safe) is dropped; a descendant is dropped even if it is a head
-///    itself, so the outermost head wins.
-/// 3. **Aggregation** by [`BomRowKey`]: quantities add up (an overflowing sum saturates at the `Dec3`
-///    limit); part data comes from the part copy; the devices are sorted by their short tag, full tag and
-///    ID (natural order); the pages are those of the devices' main representations, in page order.
+/// 2. **Mode filter.** Component mode drops configured lines (a part use of a part of kind `configured`).
+///    Assembly mode (doc 20 §14.2, D-36): every device with an `assembly` aspect whose `bom_basis` is
+///    `assembly` (the *head*) contributes one line of quantity 1 per config whose `part` copy exists
+///    ([`LineSource::AssemblyConfig`], configured), and the devices that config `covers` lose all their
+///    own lines (part uses and strip accessories). Covers are explicit, not transitive: a child the configs
+///    do not name keeps its lines. A config without a part, or whose copy is missing, prints nothing and
+///    covers nothing, so no part disappears silently; a `components` basis keeps the components. Other
+///    lines, configured part uses included, stay.
+/// 3. **Aggregation** by [`BomRowKey`] and the configured flag: quantities add up (an overflowing sum
+///    saturates at the `Dec3` limit); part data comes from the part copy; the devices are sorted by their
+///    short tag, full tag and ID (natural order); the pages are those of the devices' main
+///    representations, in page order; the covers of a configured row are the union of its configs' covers.
 /// 4. **Order:** rows with a placed device first, by the least (page-order position, column, row) of their
 ///    devices' main representations (a terminal without one takes its strip's first segment; a missing
 ///    cell counts as `u32::MAX`), then by the head rank, then by
@@ -160,9 +174,9 @@ pub struct BomRow {
 ///    of a configured row is the device of the row whose main representation gives the row's least
 ///    placement (the smallest device ID if several tie), and the rank is the index of the config of the
 ///    head's `assembly` aspect (`DeviceAspects.assembly`, its `configs`, doc 03 §7) whose `part` names the part
-///    copy, else, after every named part, the index of the part in the head's `Device.parts`. A malformed
-///    `assembly` member is ignored, so `Device.parts` order alone applies.
-/// 5. **Positions:** 1, 2, … over the component rows and, separately, over the configured rows.
+///    copy, else, after every named part, the index of the part in the head's `Device.parts`.
+/// 5. **Positions:** 1, 2, … over the component rows and, separately, over the configured rows, so in
+///    assembly mode the component rows after the replaced ones renumber (owner ruling, decision log ID-356).
 #[derive(Debug)]
 pub struct BomRows;
 
@@ -180,19 +194,20 @@ impl Query for BomRows {
         let parts = q.parts();
 
         // Aggregate.
-        let mut acc: BTreeMap<BomRowKey, (Dec3, BTreeSet<Id<Device>>)> = BTreeMap::new();
+        let mut acc: BTreeMap<(bool, BomRowKey), Acc> = BTreeMap::new();
         for l in &lines {
             let k = BomRowKey {
-                part: l.part,
-                variant: l.variant.clone(),
+                part: l.line.part,
+                variant: l.line.variant.clone(),
             };
-            let e = acc.entry(k).or_default();
-            e.0 = Dec3(e.0.0.saturating_add(l.qty.0));
-            e.1.insert(l.device);
+            let e = acc.entry((l.line.configured, k)).or_default();
+            e.qty = Dec3(e.qty.0.saturating_add(l.line.qty.0));
+            e.devices.insert(l.line.device);
+            e.covers.extend(l.covers.iter().copied());
         }
 
         let mut rows: Vec<(RowOrder, BomRow)> = Vec::new();
-        for (k, (qty, devices)) in acc {
+        for ((configured, k), Acc { qty, devices, covers }) in acc {
             let Some(copy) = parts.get(k.part) else {
                 continue;
             };
@@ -206,8 +221,9 @@ impl Query for BomRows {
             pages.dedup();
             let mut devices: Vec<Id<Device>> = devices.into_iter().collect();
             devices.sort_by_cached_key(|d| tag_order(q, *d));
+            let mut covers: Vec<Id<Device>> = covers.into_iter().collect();
+            covers.sort_by_cached_key(|d| tag_order(q, *d));
             let part_number = part.part_number.as_str().to_owned();
-            let configured = part.kind == PartKind::Configured;
             let layout_only = matches!(part.kind, PartKind::EndBracket | PartKind::Accessory);
             let sort = match placements.iter().map(|(d, p)| (p.order, *d)).min() {
                 Some(((pos, column, row), head)) if !layout_only => {
@@ -230,6 +246,7 @@ impl Query for BomRows {
                     unit: part.unit.clone(),
                     manufacturer: part.manufacturer.clone(),
                     part_number,
+                    covers,
                     type_designation: part.type_designation.as_ref().map(|t| t.as_str().to_owned()),
                     description: part.description.clone(),
                     devices,
@@ -256,6 +273,20 @@ impl Query for BomRows {
             .collect();
         Arc::new(rows)
     }
+}
+
+/// The aggregate of one row (step 3).
+#[derive(Default)]
+struct Acc {
+    qty: Dec3,
+    devices: BTreeSet<Id<Device>>,
+    covers: BTreeSet<Id<Device>>,
+}
+
+/// A part line after the mode filter, with the devices it covers (a config line) or none.
+struct Line {
+    line: PartLine,
+    covers: Vec<Id<Device>>,
 }
 
 /// The sort key of a row (step 4): placed rows first, then unplaced ones.
@@ -322,7 +353,17 @@ fn head_rank(q: &Q, head: Id<Device>, part: Id<Part>) -> usize {
     let Some(dev) = q.devices().get(head) else {
         return usize::MAX;
     };
-    let configs = assembly_config_parts(dev);
+    let configs: Vec<Option<Id<Part>>> = dev
+        .aspects
+        .assembly
+        .as_ref()
+        .map(|a| {
+            a.configs
+                .iter()
+                .map(|c| c.part.as_ref().map(|p| p.copy))
+                .collect()
+        })
+        .unwrap_or_default();
     if let Some(i) = configs.iter().position(|c| *c == Some(part)) {
         return i;
     }
@@ -332,28 +373,6 @@ fn head_rank(q: &Q, head: Id<Device>, part: Id<Part>) -> usize {
         .position(|u| u.part.copy == part)
         .unwrap_or(usize::MAX - configs.len());
     configs.len() + by_use
-}
-
-/// The `part` copy of each entry of the untyped `assembly` aspect's `configs` (`DeviceAspects.assembly`), in
-/// order; empty when the member is absent or not of the expected shape. An entry without a readable `part`
-/// gives `None`.
-fn assembly_config_parts(dev: &Device) -> Vec<Option<Id<Part>>> {
-    let Some(configs) = dev
-        .aspects
-        .assembly
-        .as_ref()
-        .and_then(|a| a.get("configs"))
-        .and_then(|c| c.as_array())
-    else {
-        return Vec::new();
-    };
-    configs
-        .iter()
-        .map(|c| {
-            let part = c.get("part")?.clone();
-            serde_json::from_value::<PartRef>(part).ok().map(|p| p.copy)
-        })
-        .collect()
 }
 
 /// The sort key of a device inside a row: short tag, full tag (natural order), then the ID.
@@ -390,53 +409,67 @@ fn description_text(text: &MlText) -> String {
 }
 
 /// Steps 1 and 2: the part lines of every device, filtered for the mode.
-fn filtered_lines(q: &Q, mode: BomMode) -> Vec<PartLine> {
+fn filtered_lines(q: &Q, mode: BomMode) -> Vec<Line> {
     let per_device: Vec<(Id<Device>, Arc<Vec<PartLine>>)> = q
         .devices()
         .ids()
         .map(|d| (d, q.get::<DevicePartLines>(d)))
         .collect();
+    let plain = |line: &PartLine| Line {
+        line: line.clone(),
+        covers: Vec::new(),
+    };
     match mode {
         BomMode::Component => per_device
             .iter()
             .flat_map(|(_, lines)| lines.iter())
             .filter(|l| !l.configured)
-            .cloned()
+            .map(plain)
             .collect(),
         BomMode::Assembly => {
-            let heads: BTreeSet<Id<Device>> = per_device
-                .iter()
-                .filter(|(_, lines)| lines.iter().any(|l| l.configured))
-                .map(|(d, _)| *d)
-                .collect();
-            let mut covered: BTreeSet<Id<Device>> = BTreeSet::new();
-            for head in &heads {
-                descendants(q, *head, &mut covered);
-            }
-            per_device
+            let (configs, covered) = assembly_lines(q);
+            let mut out: Vec<Line> = per_device
                 .iter()
                 .filter(|(d, _)| !covered.contains(d))
-                .flat_map(|(d, lines)| {
-                    let head = heads.contains(d);
-                    lines.iter().filter(move |l| !head || l.configured)
-                })
-                .cloned()
-                .collect()
+                .flat_map(|(_, lines)| lines.iter())
+                .map(plain)
+                .collect();
+            out.extend(configs);
+            out
         }
     }
 }
 
-/// Adds every descendant of `head` (`Device.parent` children, transitively) to `out`; `head` itself is
-/// not added unless a cycle leads back to it from another head. Cycle-safe.
-fn descendants(q: &Q, head: Id<Device>, out: &mut BTreeSet<Id<Device>>) {
-    let mut seen: BTreeSet<Id<Device>> = BTreeSet::from([head]);
-    let mut stack = vec![head];
-    while let Some(d) = stack.pop() {
-        for c in q.idx().device_children(d) {
-            if seen.insert(c) {
-                out.insert(c);
-                stack.push(c);
-            }
+/// The config lines of every assembly head (step 2) and the devices they cover.
+fn assembly_lines(q: &Q) -> (Vec<Line>, BTreeSet<Id<Device>>) {
+    let parts = q.parts();
+    let mut lines = Vec::new();
+    let mut covered = BTreeSet::new();
+    for (head, dev) in q.devices().iter() {
+        let Some(assembly) = &dev.aspects.assembly else {
+            continue;
+        };
+        if assembly.bom_basis != BomBasis::Assembly || dev.state == DeviceState::NotFitted {
+            continue;
+        }
+        for config in &assembly.configs {
+            let Some(part) = config.part.as_ref().filter(|p| parts.contains(p.copy)) else {
+                continue;
+            };
+            let covers: Vec<Id<Device>> = config.covers.iter().copied().collect();
+            covered.extend(covers.iter().copied());
+            lines.push(Line {
+                line: PartLine {
+                    device: head,
+                    part: part.copy,
+                    variant: part.variant.clone(),
+                    qty: Dec3::ONE,
+                    source: LineSource::AssemblyConfig,
+                    configured: true,
+                },
+                covers,
+            });
         }
     }
+    (lines, covered)
 }

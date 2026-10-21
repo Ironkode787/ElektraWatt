@@ -154,6 +154,11 @@
           "const": "contact_image",
           "description": "Contact image.",
           "type": "string"
+        },
+        {
+          "const": "order_code",
+          "description": "The order code of the device's first assembly config (doc 10 §6 folio 3, doc 20 §11.1, D-36).",
+          "type": "string"
         }
       ]
     }
