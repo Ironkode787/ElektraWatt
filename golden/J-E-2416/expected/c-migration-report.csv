@@ -3,6 +3,8 @@ EW-CORE-023,MF-05,1,0,ft,the description of folio 101 arrives as an EW-IMP-104 f
 EW-CORE-031,MF-11,2,0,ft,
 EW-CORE-034,MF-27,1,0,ft,
 EW-CORE-046,MF-14,1,0,ft,
+EW-CORE-051,,,5,extra,unpaired interruption points; the missing source of PE-1.1 (folio 101) is among them
+EW-CORE-052,,,0,extra,no ambiguous star source in the file
 EW-CORE-053,MF-13,1,0,ft,the text 3-B0 is reproduced
 EW-CORE-061,MF-25,,0,ft,
 EW-CORE-063,MF-26,,0,ft,
