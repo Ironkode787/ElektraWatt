@@ -13,7 +13,7 @@ use ew_dl::{DisplayList, FontKey, Item, ItemKind, Transform};
 use ew_render_cpu::FontBytes;
 use ew_scene::forms::{FrameGeometry, SheetMap};
 use ew_scene::page::PageScene;
-use ew_schema::{FormDef, LibCopy, LibDocument};
+use ew_schema::{FormDef, LibCopy, LibDocument, Pen, Primitive, Stroke};
 use ew_units::{Nm, Pt2, Rect};
 use serde_json::{Map, Value};
 
@@ -280,7 +280,45 @@ pub fn frame_figures(form: &FormDef, title_block: &FormDef) -> Value {
         rect(o.x, o.y, e.x, e.y)
     });
     let strings = |v: &[String]| Value::Array(v.iter().cloned().map(Value::from).collect());
-    obj(vec![
+    // The stroked lines of the form's own graphics (the cover's rules and boxes), as sheet segments with their
+    // printed width; a stroke with a named pen or no stroke is not listed.
+    let width = |s: &Option<Stroke>| {
+        s.as_ref().and_then(|s| match &s.pen {
+            Pen::Width(n) => Some(map.scale_len(*n)),
+            _ => None,
+        })
+    };
+    let segment = |a: Pt2, b: Pt2, w: Nm| {
+        let (a, b) = (p(a), p(b));
+        obj(vec![
+            ("x0", mm(a.x)),
+            ("y0", mm(a.y)),
+            ("x1", mm(b.x)),
+            ("y1", mm(b.y)),
+            ("width", mm(w)),
+        ])
+    };
+    let mut graphics = Vec::new();
+    for prim in &form.graphics {
+        match prim {
+            Primitive::Line(l) => {
+                if let Some(w) = width(&l.stroke) {
+                    graphics.push(segment(l.from, l.to, w));
+                }
+            }
+            Primitive::Rect(r) => {
+                if let Some(w) = width(&r.stroke) {
+                    let (a, b) = (r.rect.0.min(), r.rect.0.max());
+                    let (tr, bl) = (Pt2::new(b.x, a.y), Pt2::new(a.x, b.y));
+                    for (from, to) in [(a, tr), (tr, b), (b, bl), (bl, a)] {
+                        graphics.push(segment(from, to, w));
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    let mut members = vec![
         (
             "sheet",
             obj(vec![
@@ -297,7 +335,11 @@ pub fn frame_figures(form: &FormDef, title_block: &FormDef) -> Value {
         ("row_labels", strings(&g.row_labels)),
         ("title_block", tb.unwrap_or(Value::Null)),
         ("line_width", mm(map.scale_len(g.line_width))),
-    ])
+    ];
+    if !graphics.is_empty() {
+        members.push(("graphics", Value::Array(graphics)));
+    }
+    obj(members)
 }
 
 /// `frame.json`: the figures of the frame forms with the QET title block, keyed by form key.
@@ -306,6 +348,8 @@ pub fn frame_json() -> String {
     let members: Vec<(&str, Value)> = [
         "ew.frame.qet-a4-landscape-grid",
         "ew.frame.qet-a4-landscape-nogrid",
+        // The cover frame is the no-grid frame with the cover graphics (D-30).
+        "ew.frame.qet-a4-landscape-cover",
     ]
     .into_iter()
     .map(|key| (key, frame_figures(&content_form(key), &tb)))

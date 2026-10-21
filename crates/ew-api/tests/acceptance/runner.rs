@@ -33,6 +33,7 @@ use crate::pdf_support::{pdf_options, pdf_pages};
 use crate::view::{GoldenPage, fonts, golden_pages, golden_session};
 
 use super::checks;
+use super::freshness;
 use super::report::{Check, Outcome, Report, fail};
 
 /// Options of a run.
@@ -71,6 +72,8 @@ pub struct Ctx {
     /// The SQL projection of the profiled model with its pre-delivery check run (WP-S1.10), or why it did
     /// not build.
     pub sql: Result<ew_api::sql::Projection, String>,
+    /// The AC-16 run (`freshness.rs`), computed by the first entry that reads it.
+    pub ac16: std::cell::OnceCell<Result<freshness::Run, String>>,
 }
 
 impl Ctx {
@@ -98,6 +101,7 @@ impl Ctx {
         let sql = profiled.sql_projection(Some(&checks)).map_err(|e| e.to_string());
         Ctx {
             sql,
+            ac16: std::cell::OnceCell::new(),
             raster: options.raster,
             perf: options.perf,
             batch,

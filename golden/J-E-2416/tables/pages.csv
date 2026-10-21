@@ -1,5 +1,5 @@
 key,number,label,section,kind,title,form,function,location,scale,grid
-1,1,,,title_page,Title Page,ew.frame.qet-a4-landscape-nogrid,=P01,+J-E-2416,,qet10
+1,1,,,title_page,Title Page,ew.frame.qet-a4-landscape-cover,=P01,+J-E-2416,,qet10
 3,3,,,bus_topology,Bus Topology - Profibus,ew.frame.qet-a4-landscape-grid,=P01,+J-E-2416,,qet10
 101,101,,1,multi_line,Power Supply 1 - Main Current,ew.frame.qet-a4-landscape-grid,=P01,+J-E-2416,,qet10
 102,102,,1,multi_line,Power Supply 2 - Control Current,ew.frame.qet-a4-landscape-grid,=P01,+J-E-2416,,qet10

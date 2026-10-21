@@ -35,6 +35,8 @@ mod view;
 
 #[path = "acceptance/checks.rs"]
 mod checks;
+#[path = "acceptance/freshness.rs"]
+mod freshness;
 #[path = "acceptance/report.rs"]
 mod report;
 #[path = "acceptance/runner.rs"]
@@ -44,7 +46,7 @@ use report::Status;
 use runner::{Options, run};
 
 /// The (pass, fail, not_built, not_applicable) counts of the headless report; updated with the committed report.
-const EXPECTED: (usize, usize, usize, usize) = (72, 0, 9, 5);
+const EXPECTED: (usize, usize, usize, usize) = (81, 0, 6, 5);
 
 /// The committed report of the headless run without the raster comparison (`expected/acceptance_headless.md`):
 /// the ordinary test runs the runner once and compares its report with this file, which pins the statuses and

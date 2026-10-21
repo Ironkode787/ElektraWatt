@@ -12,7 +12,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
 
 use ew_api::checks::{CheckMode, PRE_DELIVERY};
-use ew_api::{Recovery, Session, SessionOptions};
+use ew_api::{BomMode, Export, Recovery, Session, SessionOptions};
 use ew_derive::{
     DeviceTag, PageOrder, PageRef, PotentialNameOf, PotentialPartition, RepAnchorCell, TitleBlockValues,
     WireNumbers, XrefTextOf,
@@ -25,6 +25,7 @@ use sha2::{Digest, Sha256};
 
 use ew_store::StoreOptions;
 
+use super::freshness;
 use super::report::{Outcome, Status, fail, na, not_built, pass};
 use super::runner::{Ctx, Runner};
 use crate::golden_common::{self, all_props, repo, rows_csv, rows_of, run_log, tags, texts, xrefs};
@@ -56,13 +57,14 @@ const TITLE_BLOCK_VALUES: [&str; 6] = [
 ];
 
 /// The expected CSV of the report rows (`expected/csv/<name>.csv`) and the report block that derives them.
-pub const ROW_PAIRS: [(&str, &str); 6] = [
+pub const ROW_PAIRS: [(&str, &str); 7] = [
     ("terminals_1X1", "903"),
     ("terminals_X1031", "904"),
     ("terminals_X1032", "905"),
     ("cables", "906"),
     ("wires", "907"),
     ("potentials", "909"),
+    ("bom_parts", "901"),
 ];
 
 pub fn all(r: &mut Runner) {
@@ -136,9 +138,16 @@ pub fn all(r: &mut Runner) {
         "folio 901 holds the 27 rows of §14.1 over 901 and 901.1",
         ac07_bom,
     );
-    r.entry("AC-07", "bom export --mode assembly equals §14.2", |_| {
-        not_built("the assembly BOM mode and `ew export bom` do not exist yet (FR-EXP-005, FR-REP-005)")
-    });
+    r.entry(
+        "AC-07",
+        "bom export --mode parts equals folio 901 and the 27 rows of §14.1",
+        ac07_export_parts,
+    );
+    r.entry(
+        "AC-07",
+        "bom export --mode assembly equals §14.2",
+        ac07_export_assembly,
+    );
     r.entry(
         "AC-08",
         "folios 903-905 equal expected/csv, designations unique per strip",
@@ -168,9 +177,7 @@ pub fn all(r: &mut Runner) {
         "folio 906 equals expected/csv/cables.csv: 3 cables, 13 cores",
         ac11_cables,
     );
-    r.entry("AC-11", "export cables equals §10", |_| {
-        not_built("`ew export cables` does not exist yet (FR-EXP-005)")
-    });
+    r.entry("AC-11", "export cables equals §10", ac11_export);
     r.entry(
         "AC-12",
         "folio 1 prints the colour and size tables generated from the profiles",
@@ -279,9 +286,7 @@ pub fn all(r: &mut Runner) {
         "build path (b), the builder DSL, produces the same expected CSVs",
         |_| not_built("the builder DSL (the golden builders of ew-testkit, WP-S6.01) does not exist yet"),
     );
-    r.entry("AC-16", "freshness: scripted edits update every output; verify-derived is clean with the oracle on", |_| {
-        not_built("the scripted edits (rename T55, move -102F2, folio 103 to 104, 24 V colour) need the tag, move and profile commands and `ew verify-derived`; for the record, the oracle is on for the sessions `oracle` and `profiled` of this run, and off for the sessions that apply edits or scripts (AC-12, AC-18, AC-20, D-06, D-11, D-12) and for the cross-reference scans")
-    });
+    ac16(r);
     if r.perf() {
         r.entry(
             "AC-17",
@@ -353,7 +358,7 @@ fn csv_rows(text: &str) -> Vec<Vec<String>> {
 }
 
 /// The (layer, text, y in mm) of every glyph run of a text CSV.
-fn runs(csv: &str) -> Vec<(String, String, f64)> {
+pub(super) fn runs(csv: &str) -> Vec<(String, String, f64)> {
     csv_rows(csv)
         .into_iter()
         .skip(1)
@@ -381,7 +386,7 @@ fn list(items: impl IntoIterator<Item = String>, limit: usize) -> String {
 fn ac01_frame(_: &Ctx) -> Outcome {
     match same_as_expected("geometry/frame.json", frame_json().as_bytes()) {
         Ok(()) => pass(
-            "the two frame forms and the QET title block print the committed figures (exact, stricter than 0.2 mm)",
+            "the frame forms (grid, no grid, cover) and the QET title block print the committed figures (exact, stricter than 0.2 mm)",
         ),
         Err(e) => fail(e),
     }
@@ -698,15 +703,27 @@ fn ac07_bom(c: &Ctx) -> Outcome {
             "{n} rows over {pages} page(s), §14.1 has 27 over 2 (901 and 901.1, the 4 TBD rows 24-27 on the second)"
         ));
     }
+    let rows: Vec<Vec<String>> = (0..n).map(|i| golden_common::texts(&q, &set, i)).collect();
+    compare_14_1(
+        &rows,
+        "27 rows over 901 and 901.1 equal expected/parts_list_14_1.csv (§14.1)",
+    )
+}
+
+/// The 27 printed rows (one text per column, no leading `row` cell) against doc 20 §14.1, cell by cell, but for
+/// the accepted differences. `what` starts the reason of a pass.
+fn compare_14_1(got_rows: &[Vec<String>], what: &str) -> Outcome {
     let want = match expected("parts_list_14_1.csv") {
         Ok(bytes) => csv_rows(&String::from_utf8_lossy(&bytes)),
         Err(e) => return fail(e),
     };
+    if got_rows.len() + 1 != want.len() {
+        return fail(format!("{} rows, §14.1 has {}", got_rows.len(), want.len() - 1));
+    }
     let header = &want[0];
     let mut wrong = Vec::new();
     let mut accepted = 0;
-    for (i, expect) in want.iter().skip(1).enumerate() {
-        let got = golden_common::texts(&q, &set, i);
+    for (expect, got) in want.iter().skip(1).zip(got_rows) {
         for (col, name) in header.iter().enumerate() {
             let (e, g) = (expect[col].as_str(), got.get(col).map_or("", String::as_str));
             if e == g {
@@ -724,7 +741,7 @@ fn ac07_bom(c: &Ctx) -> Outcome {
     }
     if wrong.is_empty() {
         pass(format!(
-            "27 rows over 901 and 901.1 equal expected/parts_list_14_1.csv (§14.1) in every cell but {accepted} accepted differences (folio 902 of rows 22-26: layout placements are not modelled; row 26 tags in the ID-9 sign order)"
+            "{what} in every cell but {accepted} accepted differences (folio 902 of rows 22-26: layout placements are not modelled; row 26 tags in the ID-9 sign order)"
         ))
     } else {
         fail(format!(
@@ -732,6 +749,115 @@ fn ac07_bom(c: &Ctx) -> Outcome {
             wrong.len(),
             list(wrong, 4)
         ))
+    }
+}
+
+/// The committed fixture `golden/J-E-2416.ew` opened read-only, as `ew export` opens a project (build path (c)).
+fn fixture_session() -> Result<Session, String> {
+    let dir = repo().join("golden/J-E-2416.ew");
+    Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "export")
+        .map(|(s, _)| s)
+        .map_err(|e| format!("golden/J-E-2416.ew does not open: {e}"))
+}
+
+/// `ew export bom --mode parts`: the library entry `ew export` calls, over the fixture, writes
+/// `expected/csv/bom_parts.csv` byte for byte, and its 27 rows equal §14.1 (the accepted differences of folio
+/// 901 apply).
+fn ac07_export_parts(_: &Ctx) -> Outcome {
+    let text = match fixture_session().and_then(|s| {
+        s.export_csv(Export::Bom(BomMode::Component))
+            .map_err(|e| e.to_string())
+    }) {
+        Ok(t) => t,
+        Err(e) => return fail(e),
+    };
+    if let Err(e) = same_as_expected("csv/bom_parts.csv", text.as_bytes()) {
+        return fail(format!("export bom --mode parts: {e}"));
+    }
+    // Rows: `row`, then the 8 printed columns.
+    let rows: Vec<Vec<String>> = csv_rows(&text)
+        .into_iter()
+        .skip(1)
+        .map(|r| r.into_iter().skip(1).collect())
+        .collect();
+    compare_14_1(
+        &rows,
+        "export bom --mode parts equals expected/csv/bom_parts.csv and its 27 rows equal §14.1",
+    )
+}
+
+/// `ew export bom --mode assembly` against doc 20 §14.2: rows 1-15 and 22-27 as in §14.1 and the two
+/// configured-product rows A1 and A2 in place of rows 16-21.
+///
+/// The golden project holds no configured product and no assembly aspect today (`tables/parts.csv` has no
+/// part of kind `configured`, the importer writes no `assembly` slot; D-41's typed assembly aspect is cycle 15),
+/// so the export prints the 27 component rows unchanged and the entry is `not_built` with that reason. The
+/// export itself is exercised over a model with configured parts by `tests/export_bom.rs`.
+fn ac07_export_assembly(_: &Ctx) -> Outcome {
+    let text = match fixture_session().and_then(|s| {
+        s.export_csv(Export::Bom(BomMode::Assembly))
+            .map_err(|e| e.to_string())
+    }) {
+        Ok(t) => t,
+        Err(e) => return fail(e),
+    };
+    let rows: Vec<Vec<String>> = csv_rows(&text)
+        .into_iter()
+        .skip(1)
+        .map(|r| r.into_iter().skip(1).collect())
+        .collect();
+    let configured: Vec<&Vec<String>> = rows.iter().filter(|r| r[0].starts_with('A')).collect();
+    if configured.is_empty() {
+        return not_built(
+            "the export runs and prints the 27 component rows unchanged: the golden project has no configured product (no part of kind `configured` in tables/parts.csv, no assembly aspect on -201U1; D-41 types the aspect in cycle 15), so rows 16-21 are not replaced by A1 and A2",
+        );
+    }
+    // Configured products exist: §14.2 in full.
+    let want_a = [
+        ("A1", "1", "set", "Festo", "51E-F13GCQP-D+H2GG"),
+        ("A2", "1", "set", "Festo", "32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS"),
+    ];
+    let mut wrong = Vec::new();
+    if rows.len() != 15 + 2 + 6 {
+        wrong.push(format!(
+            "{} rows, §14.2 has 23 (rows 1-15, A1, A2, rows 22-27)",
+            rows.len()
+        ));
+    }
+    for (row, want) in configured.iter().zip(want_a) {
+        if (
+            row[0].as_str(),
+            row[1].as_str(),
+            row[2].as_str(),
+            row[3].as_str(),
+            row[4].as_str(),
+        ) != want
+        {
+            wrong.push(format!("row {}: {:?}", row[0], &row[..5]));
+        }
+    }
+    if configured.len() != 2 {
+        wrong.push(format!("{} configured rows, §14.2 has 2", configured.len()));
+    }
+    if wrong.is_empty() {
+        pass("rows A1 and A2 replace rows 16-21 as in §14.2")
+    } else {
+        fail(list(wrong, 3))
+    }
+}
+
+/// `ew export cables`: the library entry `ew export` calls, over the fixture, writes `expected/csv/cables.csv`
+/// byte for byte (the cable list of doc 20 §10: 3 cables, 13 cores).
+fn ac11_export(_: &Ctx) -> Outcome {
+    match fixture_session().and_then(|s| s.export_csv(Export::Cables).map_err(|e| e.to_string())) {
+        Err(e) => fail(e),
+        Ok(text) => match same_as_expected("csv/cables.csv", text.as_bytes()) {
+            Ok(()) => pass(format!(
+                "export cables writes expected/csv/cables.csv byte for byte: {} lines (3 cables, 13 cores)",
+                text.lines().count()
+            )),
+            Err(e) => fail(format!("export cables: {e}")),
+        },
     }
 }
 
@@ -1515,9 +1641,7 @@ fn defects(r: &mut Runner) {
             fail(format!("not printed on {}", list(off, 5)))
         }
     });
-    r.entry("D-30", "the cover binds the customer", |_| {
-        not_built("the cover (folio 1) is not drawn (README, \"Folio 1\")")
-    });
+    r.entry("D-30", "the cover binds the customer", d30_cover);
     r.entry(
         "D-33",
         "\"SK 3110.000\" keeps its space and physical page 6 is labelled \"101\"",
@@ -1539,8 +1663,21 @@ fn defects(r: &mut Runner) {
         },
     );
     r.entry("D-35", "BOM descriptions per §14, ratings only at symbols", d35);
-    r.entry("D-36", "assembly rows A1 and A2, order code on folio 3", |_| {
-        not_built("the assembly BOM mode and `ew export bom` do not exist yet (FR-REP-005)")
+    r.entry("D-36", "assembly rows A1 and A2, order code on folio 3", |c| {
+        // Rows A1 and A2 (the export, §14.2) and the order code of the CPX terminal on folio 3 (§11.1: the text
+        // "Festo / 51E-F13GCQP-D+H2GG / CPX FB13 / Node TBD" is rendered from the assembly's order code 1).
+        let (assembly, why) = ac07_export_assembly(c);
+        let on_folio_3 = runs(&c.text["3"])
+            .iter()
+            .any(|(_, t, _)| t.contains("51E-F13GCQP-D+H2GG"));
+        match (assembly, on_folio_3) {
+            (Status::Pass, true) => pass("rows A1 and A2 replace rows 16-21 and folio 3 prints order code 1"),
+            (Status::Fail, _) => fail(why),
+            (_, printed) => not_built(format!(
+                "assembly export: {why}; folio 3 {} the order code of the CPX terminal (the assembly's order code 1 has no record to render it from)",
+                if printed { "prints" } else { "does not print" }
+            )),
+        }
     });
     // Doc 20 §19: the profile names its basis ("company convention") and declares DBU a company code (profile
     // metadata); the cover prints the standards text of U-35, not the basis note.
@@ -2660,6 +2797,40 @@ pub fn frame_mismatches(
         }
         checked += 1;
     }
+    // The stroked lines of the form's own graphics (the cover's rules and project data box, `graphics` in
+    // frame.json) are expected too, each with its own width.
+    let own: Vec<(Line, f64)> = fig["graphics"]
+        .as_array()
+        .map(|a| {
+            a.iter()
+                .filter_map(|g| {
+                    let n = |k: &str| g[k].as_f64();
+                    Some((((n("x0")?, n("y0")?), (n("x1")?, n("y1")?)), n("width")?))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    for (l, w) in &own {
+        let best = page
+            .segments
+            .iter()
+            .map(|s| (deviation(l, s), s))
+            .min_by(|a, b| a.0.total_cmp(&b.0));
+        match best {
+            Some((d, s)) if d <= tol => {
+                worst = worst.max(d);
+                if (s.width - w).abs() > 0.01 {
+                    wrong.push(format!(
+                        "{folio}: the graphic line {l:?} is {:.3} mm wide, expected {w} mm",
+                        s.width
+                    ));
+                }
+            }
+            Some((d, _)) => wrong.push(format!("{folio}: the graphic line {l:?} is {d:.3} mm off")),
+            None => wrong.push(format!("{folio}: no stroked segment")),
+        }
+        checked += 1;
+    }
     // The reverse direction: a stroked segment in the header bands or on the outer frame is a frame line.
     // A segment along the drawing area's edge (a report table's border, the separator) is not judged.
     let r = |k: &str| {
@@ -2689,6 +2860,7 @@ pub fn frame_mismatches(
             && in_band(mid)
             && !near_area
             && !lines.iter().any(|l| deviation(l, s) <= tol)
+            && !own.iter().any(|(l, _)| deviation(l, s) <= tol)
         {
             wrong.push(format!(
                 "{folio}: an extra line from ({:.3}, {:.3}) to ({:.3}, {:.3}) mm in the frame bands",
@@ -2745,7 +2917,7 @@ fn ac01_pdf_vectors(c: &Ctx) -> Outcome {
         .collect();
     if wrong.is_empty() {
         pass(format!(
-            "{} pages: the {lines_checked} frame lines of expected/geometry/frame.json ({}: outer frame and title-block separator, plus header bands and grid ticks on a page whose form shows the grid) are stroked in the PDF within 0.2 mm (largest endpoint deviation {worst:.3} mm) at the frame's line width; media boxes equal the sheet; no other line in the bands; no check compares the title block's inner lines (frame.json holds its bounding box only)",
+            "{} pages: the {lines_checked} frame lines of expected/geometry/frame.json ({}: outer frame and title-block separator, plus header bands and grid ticks on a page whose form shows the grid, plus the stroked lines of the form's own graphics: the cover's two rules and project data box) are stroked in the PDF within 0.2 mm (largest endpoint deviation {worst:.3} mm) at the frame's line width; media boxes equal the sheet; no other line in the bands; no check compares the title block's inner lines (frame.json holds its bounding box only)",
             pages.len(),
             formula.join(" + ")
         ))
@@ -3323,5 +3495,173 @@ fn d35(c: &Ctx) -> Outcome {
             found.len(),
             list(found.iter().map(|f| f.message.clone()), 6)
         ))
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// AC-16: the freshness script (the run is `freshness.rs`)
+
+fn ac16_step(c: &Ctx, index: usize) -> Outcome {
+    match freshness::run(c) {
+        Err(e) => fail(e.clone()),
+        Ok(run) => {
+            let step = &run.steps[index];
+            if step.problems.is_empty() {
+                pass(step.note.clone())
+            } else {
+                fail(list(step.problems.clone(), 3))
+            }
+        }
+    }
+}
+
+fn ac16(r: &mut Runner) {
+    r.entry(
+        "AC-16",
+        "the script variants/ac16-freshness.ewcmd: 4 edits, one commit each, undo restores the records",
+        |c| match freshness::run(c) {
+            Err(e) => fail(e.clone()),
+            Ok(run) => match &run.script {
+                Ok(note) => pass(note.clone()),
+                Err(e) => fail(e.clone()),
+            },
+        },
+    );
+    r.entry(
+        "AC-16",
+        "rename T55: every affected output follows in its commit",
+        |c| ac16_step(c, 0),
+    );
+    r.entry(
+        "AC-16",
+        "move -102F2 by one cell: every affected output follows in its commit",
+        |c| ac16_step(c, 1),
+    );
+    r.entry(
+        "AC-16",
+        "renumber folio 103 to 104: every affected output follows in its commit",
+        |c| ac16_step(c, 2),
+    );
+    r.entry(
+        "AC-16",
+        "change the 24 V DC colour: every affected output follows in its commit",
+        |c| ac16_step(c, 3),
+    );
+    r.entry("AC-16", "verify-derived is clean and the memoised outputs equal the cold ones after every edit, with the oracle on", |c| match freshness::run(c) {
+        Err(e) => fail(e.clone()),
+        Ok(run) => {
+            let v = &run.verified;
+            if v.problems.is_empty() {
+                pass(format!(
+                    "after each of the 4 edits, {} keys of {} memoised families equal their cold recomputation (two passes), and the oracle found no mismatch",
+                    v.keys, v.families
+                ))
+            } else {
+                fail(list(v.problems.clone(), 3))
+            }
+        }
+    });
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// D-30: customer and end user on the cover
+
+/// The text CSV of one folio of `s`, as the page output generates it.
+fn folio_text(s: &Session, folio: &str) -> Result<String, String> {
+    let q = s.query();
+    crate::view::golden_pages(&q)
+        .iter()
+        .find(|g| g.entry.folio == folio)
+        .map(|g| crate::golden_files::text_csv(&page_scene(&g.view, ew_text::bundled())))
+        .ok_or_else(|| format!("folio {folio} is not drawn"))
+}
+
+/// The value a frame-layer text row of a text CSV prints next to `label`: the run to the right of the label's
+/// run within 2 mm of its line.
+fn cover_value(csv: &str, label: &str) -> Option<String> {
+    let rows: Vec<(String, String, f64, f64)> = csv_rows(csv)
+        .into_iter()
+        .skip(1)
+        .map(|r| {
+            (
+                r[1].clone(),
+                r[3].clone(),
+                r[4].parse().unwrap_or(0.0),
+                r[5].parse().unwrap_or(0.0),
+            )
+        })
+        .collect();
+    let (_, _, x, y) = rows.iter().find(|r| r.0 == "frame" && r.1 == label)?;
+    rows.iter()
+        .filter(|r| r.0 == "frame" && r.2 > *x && (r.3 - y).abs() <= 2.0)
+        .min_by(|a, b| a.2.total_cmp(&b.2))
+        .map(|r| r.1.clone())
+}
+
+/// The cover (folio 1) prints the customer in the cell bound to the customer role and the end user in the one
+/// bound to the end-user role (FR-PRJ-003, doc 20 §4.2): the golden placeholders, and, with each party renamed
+/// in turn, only the cells of that role follow (the title block binds the end user, ▲U-01).
+fn d30_cover(c: &Ctx) -> Outcome {
+    use ew_schema::PartyRole;
+    let customer = "Company / Customer";
+    let end_user = "End User";
+    let base = c.text["1"].as_str();
+    let mut wrong = Vec::new();
+    for (label, want) in [
+        (customer, "<customer>"),
+        (end_user, "<end user>"),
+        ("Engineer", "<engineer>"),
+    ] {
+        let got = cover_value(base, label);
+        if got.as_deref() != Some(want) {
+            wrong.push(format!(
+                "the cover prints {got:?} for \"{label}\", expected \"{want}\""
+            ));
+        }
+    }
+    let renamed = |role: PartyRole, name: &str| -> Result<String, String> {
+        let s = golden_common::session_with(&c.batch, |p, _| {
+            for party in p.parties.iter_mut().filter(|x| x.role == role) {
+                party.name = ew_mltext::MlText::neutral(name);
+            }
+        });
+        folio_text(&s, "1")
+    };
+    match renamed(PartyRole::Customer, "<customer B>") {
+        Err(e) => wrong.push(e),
+        Ok(t) => {
+            if cover_value(&t, customer).as_deref() != Some("<customer B>") {
+                wrong
+                    .push("renaming the customer does not change the \"Company / Customer\" cell".to_owned());
+            }
+            if cover_value(&t, end_user).as_deref() != Some("<end user>")
+                || !t.contains("End user: <end user>")
+            {
+                wrong.push("renaming the customer changes a cell bound to the end user".to_owned());
+            }
+        }
+    }
+    match renamed(PartyRole::EndUser, "<end user B>") {
+        Err(e) => wrong.push(e),
+        Ok(t) => {
+            if cover_value(&t, end_user).as_deref() != Some("<end user B>")
+                || !t.contains("End user: <end user B>")
+            {
+                wrong.push(
+                    "renaming the end user does not change the \"End User\" cell and the title block"
+                        .to_owned(),
+                );
+            }
+            if cover_value(&t, customer).as_deref() != Some("<customer>") {
+                wrong.push("renaming the end user changes the \"Company / Customer\" cell".to_owned());
+            }
+        }
+    }
+    if wrong.is_empty() {
+        pass(
+            "the cover prints <customer> in \"Company / Customer\" and <end user> in \"End User\"; renaming the customer changes only the customer cell, renaming the end user changes the \"End User\" cell and the title block",
+        )
+    } else {
+        fail(list(wrong, 3))
     }
 }

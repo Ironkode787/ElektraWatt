@@ -268,6 +268,7 @@ def register(name, columns, rows, expected=None):
 
 FRAME_GRID = "ew.frame.qet-a4-landscape-grid"
 FRAME_NOGRID = "ew.frame.qet-a4-landscape-nogrid"
+FRAME_COVER = "ew.frame.qet-a4-landscape-cover"  # doc 20 section 17.3: the cover frame (no grid) with the project data box
 FUNCTION_KEY = "=P01"
 LOCATION_KEY = "+J-E-2416"
 FIELD_KEY = "+FIELD"
@@ -477,6 +478,8 @@ def build_pages():
         kind = next(v for k, v in PAGE_KIND if r["Page type (FR-PAG-001)"].startswith(k))
         section = "" if r["Section"] == "—" else r["Section"]
         form = FRAME_GRID if r["Frame"] == "grid" else FRAME_NOGRID
+        if kind == "title_page":
+            form = FRAME_COVER  # doc 20 section 17.3: the title page is the cover (D-30)
         for f, t in zip(folios, titles):
             out.append(
                 {
@@ -537,6 +540,14 @@ def build_report_blocks():
             include = desc.split()[-1]
         elif kind == "plc_overview":
             include = m.group(1).split()[-1]
+        # The printed description names the included device; the block stores a title template, so that a
+        # renamed or renumbered strip renames its pages ("Terminal Diagram {strip}", ruling of cycle 14).
+        if kind == "terminal_diagram":
+            check(title.endswith(include), f"section 16: {folio} title {title!r} does not end with {include!r}")
+            title = title[: -len(include)] + "{strip}"
+        elif kind == "plc_overview":
+            check(include in title, f"section 16: {folio} title {title!r} does not name {include!r}")
+            title = title.replace(include, "{device}")
         out.append(
             {
                 "key": folio,
