@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "978b78d1-a563-594b-b98a-2cfe4b9f4512",
   "version": "0.1.0",
-  "sha256": "sha256:dfaf457d15452106821802c430b24fde14c758e29c3b2aaf491d2809e576e198",
+  "sha256": "sha256:eb5da637b85f21d65f016976655a550648377f68dee9eaf463c58e9ed5c52b86",
   "meta": {
     "key": "ew.iec.switch-2p-manual@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -37,9 +37,9 @@
   ],
   "text_slots": [
     {"kind": "tag", "pos": [-2645833, 3968750], "align": "middle_right", "visible": true},
-    {"kind": "manufacturer", "pos": [9921875, 1984375], "align": "middle_left", "visible": true},
+    {"kind": "manufacturer", "pos": [9921875, 661458], "align": "middle_left", "visible": true},
     {"kind": "part_number", "pos": [9921875, 3968750], "align": "middle_left", "visible": true},
-    {"kind": "tech_data", "pos": [9921875, 5953125], "align": "middle_left", "visible": true},
+    {"kind": "tech_data", "pos": [9921875, 7276042], "align": "middle_left", "visible": true},
     {"kind": "function_text", "pos": [-2645833, 6614583], "align": "middle_right"},
     {"kind": {"cp_designation": 0}, "pos": [661458, 1322917], "align": "middle_left", "visible": true},
     {"kind": {"cp_designation": 1}, "pos": [661458, 6614583], "align": "middle_left", "visible": true},
