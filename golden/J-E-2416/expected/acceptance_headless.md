@@ -1,12 +1,12 @@
 # Acceptance report: golden project J-E-2416, gate M1 (headless)
 
-85 entries: 61 pass, 0 fail, 18 not_built, 6 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
+85 entries: 66 pass, 0 fail, 14 not_built, 5 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
 
 | Criterion | Check | Status | Reason |
 |---|---|---|---|
 | AC-01 | frame, grid and title-block geometry equals expected/geometry/frame.json | pass | the two frame forms and the QET title block print the committed figures (exact, stricter than 0.2 mm) |
 | AC-01 | the printed frame equals the figures of §17.1 | pass | outer frame, header band, column width, row height, first column edge and drawing area within 0.01 mm |
-| AC-01 | the written PDF's vector content of every page equals the frame geometry within 0.2 mm | not_built | no per-page comparison of the written PDF exists: the checks above read the frame forms and AC-04 the title-block texts, not the lines of the PDF (vector extraction with the 0.2 mm tolerance of §3.3) |
+| AC-01 | the written PDF's vector content of every page equals the frame geometry within 0.2 mm | pass | 36 pages: the 480 frame lines of expected/geometry/frame.json (outer frame, title-block separator, header bands and grid ticks of the page's form) are stroked in the PDF within 0.2 mm (largest endpoint deviation 0.001 mm) at the frame's line width; media boxes equal the sheet; no other line in the bands |
 | AC-02 | every representation anchors in the cell of representations.csv | pass | all 135 anchor cells equal their table cells |
 | AC-02 | text of folios 1, 3, 100-106, 200-206, 900 equals expected/text | pass | 15 folios: strings, anchors (3 decimals) and sizes equal the committed text CSVs |
 | AC-02 | raster of those folios within 0.5 % of expected/png | not_applicable | the raster comparison was switched off for this run (Options::raster) |
@@ -16,7 +16,7 @@
 | AC-05 | the 9 main and 10 auxiliary texts equal §15 by value | pass | the 9 main texts ("∞ ...") and 10 auxiliary texts ("(...)") equal §15 as a multiset |
 | AC-05 | 63 linked texts with 64 targets, 4 external texts, "3-B2" | pass | 63 linked texts with 64 link targets and 4 external texts on the drawn pages; -201U1 prints 3-B2 |
 | AC-06 | every device tag equals its table key; no stale token in any page text | pass | 96 devices print their table key; no "-4W1", "-4X1", "T51", "JE2416" or core colour "BR" in any page text |
-| AC-06 | every printed occurrence of a tag is identical, the PDF text layer included | not_built | the harness has no PDF text extraction (FR-OUT-008): the check above reads the generated page texts, not the text layer of the written PDF |
+| AC-06 | every printed occurrence of a tag is identical, the PDF text layer included | pass | 550 printed occurrences of the 96 device tags on 29 pages read back identically from the PDF text layer (same count per tag and page); no stale token in it |
 | AC-07 | folio 901 holds the 27 rows of §14.1 over 901 and 901.1 | pass | 27 rows over 901 and 901.1 equal expected/parts_list_14_1.csv (§14.1) in every cell but 6 accepted differences (folio 902 of rows 22-26: layout placements are not modelled; row 26 tags in the ID-9 sign order) |
 | AC-07 | bom export --mode assembly equals §14.2 | not_built | the assembly BOM mode and `ew export bom` do not exist yet (FR-EXP-005, FR-REP-005) |
 | AC-08 | folios 903-905 equal expected/csv, designations unique per strip | pass | 3, 20 and 5 terminal rows equal the committed CSVs (hand-compared with §9, differences in the README); designations unique per strip |
@@ -31,7 +31,7 @@
 | AC-12 | changing the 24 V colour updates every affected wire and folio 907 | pass | 8 wires take the new colour and nothing else changes; folio 907's rows follow (recomputed from the edited profile) |
 | AC-12 | the colour change is one commit | pass | one project.settings.set commit (one undo step, the project record only): 8 wires take RD, nothing else changes, folio 907 follows, one undo restores |
 | AC-13 | PDF structure equals expected/pdf (outline, 92 links, page labels, fonts, SHA-256) | pass | 36 pages: outline, 92 links (64 cross-reference items, 28 PLC overview rows), page labels = folio labels, embedded fonts and SHA-256 equal the committed files; no Tahoma (the folio count of AC-03 is a separate entry) |
-| AC-13 | text extraction of the PDF keeps spaces | not_built | the harness has no PDF text extraction (FR-OUT-008); the ToUnicode maps are written, but nothing reads them back |
+| AC-13 | text extraction of the PDF keeps spaces | pass | 36 pages: the text layer, read back from the content streams through the ToUnicode maps, equals the 3660 printed glyph runs in order (857 with spaces, kept as U+0020); folio 101 reads "SK 3110.000" (D-33) |
 | AC-13 | PDF/A-2b validated in process by krilla | pass | the 36-page PDF was written under Conformance::PdfA2b, which makes krilla's A2_B archival validator check the document (it refuses an invalid one) |
 | AC-13 | veraPDF cross-check of PDF/A-2b | not_applicable | veraPDF is an external tool that is not installed in the headless harness; the CI job that has it runs the cross-check |
 | AC-08 | acceptance SQL over the api_v1 views equals expected/csv: terminals_1X1, terminals_X1031, terminals_X1032 | pass | acceptance/terminals_1X1.sql, acceptance/terminals_X1031.sql, acceptance/terminals_X1032.sql over the api_v1 views returns expected/csv/terminals_1X1.csv, expected/csv/terminals_X1031.csv, expected/csv/terminals_X1032.csv row by row |
@@ -45,8 +45,8 @@
 | AC-18 | step B2: no orphan reference and the same interruption-point pairing after the commit | pass | the model's integrity check (every reference resolves) holds, and all interruption-point and main/auxiliary link targets are the same records |
 | AC-20 | renumbering folio 3 to 4 updates -3W1, -3X1 and "3-B2" everywhere; undo restores | pass | -3W1 and -3X1 become -4W1 and -4X1, 1 cross-reference text(s) follow ("3-B2" becomes "4-B2"), undo restores the records |
 | AC-20 | renumbering folio 3 to 4 writes only that page's file | pass | the save writes pages/93d03619-9f8d-5086-8b99-1a4f05456f21.jsonl only (and rewrites the manifest) |
-| AC-14 | PDF and JSONL are byte-identical across runs and record shuffles | not_applicable | a Linux-only gate criterion, evaluated by tests/page_output.rs (PDF), tests/golden_fixture.rs (JSONL) and the CI Linux job, not by this runner |
-| AC-14 | SVG and the parallel export are byte-identical to the serial export | not_built | neither the SVG export nor a parallel export exists yet (FR-OUT-013, FR-OUT-019) |
+| AC-14 | PDF, SVG, CSV and JSONL are byte-identical across record shuffles | pass | on the platform of this run, the model loaded with its records shuffled (seed 0x5eedac14) writes the PDF (SHA-256 of expected/pdf/sha256.txt), the 36 SVG files, the 36 page text CSVs, the 6 report CSVs and the 701 JSONL record lines of the file-order load byte for byte (gate platform Linux; across Windows, macOS and Linux at MVP) |
+| AC-14 | SVG and the parallel export are byte-identical to the serial export | pass | 36 SVG files (one per page, 3660 glyph runs as <text>, 92 links as in the PDF; SHA-256 adc24c7b888f00852e9561e05939cc2e03bef47df7a5dc23aa88bf809eb0ca18); the page phase on 2 and 8 threads gives the serial display lists, PDF and SVG byte for byte |
 | AC-15 | build path (a), the CSV bootstrap, equals path (c), the checked-in fixture | not_applicable | evaluated by tests/golden_fixture.rs (byte-identical regeneration), not by this runner |
 | AC-15 | the acceptance SQL returns the same expected CSVs over path (a) and over path (c), the checked-in fixture | pass | the 6 acceptance SQL files return the same expected CSVs over both paths; path (b) is the next entry |
 | AC-15 | build path (b), the builder DSL, produces the same expected CSVs | not_built | the builder DSL (the golden builders of ew-testkit, WP-S6.01) does not exist yet |

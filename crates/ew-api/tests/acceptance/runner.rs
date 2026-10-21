@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The acceptance runner: opens the golden project with the oracle on, evaluates the M1 criteria of doc 20 §21
-//! (AC-01 … AC-13, AC-18, AC-20) and the defect regression rows of §19 that gate at M1, and returns the
+//! (AC-01 … AC-14, AC-18, AC-20) and the defect regression rows of §19 that gate at M1, and returns the
 //! [`Report`]. The checks live in `checks.rs`; this file builds their context.
 //!
 //! **What a check compares with.** Doc 20's expected outputs where they are committed files
@@ -28,6 +28,7 @@ use ew_scene::page::page_scene;
 
 use crate::golden_common;
 use crate::golden_files::text_csv;
+use crate::pdf_read::{PageRead, PdfFile};
 use crate::pdf_support::{pdf_options, pdf_pages};
 use crate::view::{GoldenPage, fonts, golden_pages, golden_session};
 
@@ -64,6 +65,8 @@ pub struct Ctx {
     pub text: BTreeMap<String, String>,
     pub pdf_pages: Vec<PdfPage>,
     pub pdf: PdfOutput,
+    /// The written PDF read back (text layer and stroked segments per page), or why it does not read.
+    pub pdf_read: Result<Vec<PageRead>, String>,
     pub fonts: BTreeMap<FontKey, FontBytes>,
     /// The SQL projection of the profiled model with its pre-delivery check run (WP-S1.10), or why it did
     /// not build.
@@ -90,6 +93,7 @@ impl Ctx {
         let fonts = fonts();
         let pdf_pages = pdf_pages(&q);
         let pdf = pdf(&pdf_pages, &pdf_options(&q), &fonts, None).expect("the golden PDF is written");
+        let pdf_read = PdfFile::parse(&pdf.bytes).and_then(|f| f.pages());
         let checks = profiled.check(&ew_api::checks::PRE_DELIVERY, ew_api::checks::CheckMode::Release);
         let sql = profiled.sql_projection(Some(&checks)).map_err(|e| e.to_string());
         Ctx {
@@ -105,6 +109,7 @@ impl Ctx {
             text,
             pdf_pages,
             pdf,
+            pdf_read,
             fonts,
         }
     }

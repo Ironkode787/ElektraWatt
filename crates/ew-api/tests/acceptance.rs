@@ -3,7 +3,7 @@
 
 //! The acceptance runner (WP-S6.01, WP-S7.01; doc 20 §21, §22; doc 18 §3.10) for gate M1, headless.
 //!
-//! It opens the golden project with the oracle on and evaluates AC-01 … AC-13, AC-18, AC-20 and the §19 rows
+//! It opens the golden project with the oracle on and evaluates AC-01 … AC-14, AC-18, AC-20 and the §19 rows
 //! gated M1 (`acceptance/checks.rs`), each as a named entry that passes, fails or is not applicable with a
 //! one-line reason (`acceptance/report.rs`). The comparisons with committed files reuse the functions of
 //! `tests/page_output.rs` and `tests/connectivity_reports.rs` (text CSV, frame geometry, PNG, PDF structure and
@@ -26,6 +26,8 @@
 mod golden_common;
 #[path = "page_output/golden_files.rs"]
 mod golden_files;
+#[path = "page_output/pdf_read.rs"]
+mod pdf_read;
 #[path = "page_output/pdf_support.rs"]
 mod pdf_support;
 #[path = "page_output/view.rs"]
@@ -42,7 +44,7 @@ use report::Status;
 use runner::{Options, run};
 
 /// The (pass, fail, not_built, not_applicable) counts of the headless report; updated with the committed report.
-const EXPECTED: (usize, usize, usize, usize) = (61, 0, 18, 6);
+const EXPECTED: (usize, usize, usize, usize) = (66, 0, 14, 5);
 
 /// The committed report of the headless run without the raster comparison (`expected/acceptance_headless.md`):
 /// the ordinary test runs the runner once and compares its report with this file, which pins the statuses and
@@ -136,6 +138,72 @@ fn expected_csv_is_the_derived_rows_and_mirrors_expected_rows() {
         let rows = std::fs::read(dir.join("rows").join(format!("{block}.csv"))).unwrap();
         assert!(committed == rows, "{name}.csv differs from rows/{block}.csv");
     }
+}
+
+/// The AC-01 vector comparison sees a frame line moved by more than 0.2 mm, a wrong line width and an extra
+/// line in the header band; it accepts the exact frame, a line moved by 0.15 mm and a table border along the
+/// drawing area's edge.
+#[test]
+fn the_pdf_frame_comparison_detects_moved_thin_and_extra_lines() {
+    use pdf_read::{PageRead, Segment};
+    let frame = checks::frame_figures_json().expect("frame.json");
+    let fig = &frame["ew.frame.qet-a4-landscape-grid"];
+    let width = fig["line_width"].as_f64().unwrap();
+    let lines = checks::frame_lines(fig, true).expect("the figures");
+    let page = |segments: Vec<Segment>| PageRead {
+        width_mm: 297.0,
+        height_mm: 210.0,
+        runs: Vec::new(),
+        segments,
+    };
+    let exact: Vec<Segment> = lines.iter().map(|&(a, b)| Segment { a, b, width }).collect();
+    let (wrong, checked, worst) = checks::frame_mismatches("t", &page(exact.clone()), fig, true);
+    assert!(wrong.is_empty(), "{wrong:?}");
+    assert_eq!((checked, worst), (lines.len(), 0.0));
+    let nudge = |d: f64| {
+        let mut s = exact.clone();
+        s[0].a.1 += d;
+        s[0].b.1 += d;
+        s
+    };
+    assert!(
+        checks::frame_mismatches("t", &page(nudge(0.15)), fig, true)
+            .0
+            .is_empty()
+    );
+    let (wrong, _, _) = checks::frame_mismatches("t", &page(nudge(0.3)), fig, true);
+    assert!(wrong.iter().any(|w| w.contains("mm off")), "{wrong:?}");
+    let mut thin = exact.clone();
+    thin[1].width = width / 2.0;
+    assert!(
+        checks::frame_mismatches("t", &page(thin), fig, true)
+            .0
+            .iter()
+            .any(|w| w.contains("wide"))
+    );
+    let mut extra = exact.clone();
+    extra.push(Segment {
+        a: (20.0, 11.0),
+        b: (40.0, 11.0),
+        width,
+    });
+    assert!(
+        checks::frame_mismatches("t", &page(extra), fig, true)
+            .0
+            .iter()
+            .any(|w| w.contains("extra"))
+    );
+    let mut table = exact;
+    table.push(Segment {
+        a: (16.31, 15.01),
+        b: (277.27, 15.01),
+        width,
+    });
+    assert!(
+        checks::frame_mismatches("t", &page(table), fig, true)
+            .0
+            .is_empty()
+    );
 }
 
 #[test]

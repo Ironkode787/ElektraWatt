@@ -773,6 +773,12 @@ partial file (FR-UI-024).
   text as `<text>` with the font subset embedded as `@font-face` data; element order equals IR order; `id`
   attributes from entity IDs in NCName form (`ew-r-<uuid>`: the PDF destination name with ":" replaced, because
   XML IDs may not contain colons); links as `<a href="103.svg#ew-r-<uuid>">`.
+  *As built (cycle 14):* `ew_export::svg` writes one `<label>.svg` per page from the sheet display lists of the PDF:
+  `viewBox` and lengths in mm with at most 3 decimals from integer nm, element order = IR order, text as `<text>`
+  with one `x` per character, link targets as `id="ew-r-<uuid>"`, sources as `<a href="<file>#<id>">`. The fonts are
+  named (`font-family`, weight, style), not embedded: subset embedding needs a subsetter that keeps the `cmap`
+  (open). The per-page phase runs on `ew_export::par_map` (scoped `std` threads, results by page index) instead of
+  rayon; serial and parallel exports are byte-identical (AC-14). The `ew export svg` subcommand waits for FT-59.
 - **PNG (MVP, FR-OUT-014).** vello_cpu through `ew-render-cpu` at a chosen DPI (`ew render --page 103 --png --dpi
   150`). vello_cpu may choose different SIMD paths per CPU, so PNGs compare within the dify tolerance across
   platforms; if the performance spike (gate G-SP) finds a deterministic scalar mode, `ew render` and the CI goldens use it and PNG returns

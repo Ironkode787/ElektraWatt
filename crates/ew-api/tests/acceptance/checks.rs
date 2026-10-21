@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The checks of the acceptance runner (doc 20 §21 AC-01 … AC-13, AC-18, AC-20; §19 rows gated M1).
+//! The checks of the acceptance runner (doc 20 §21 AC-01 … AC-14, AC-18, AC-20; §19 rows gated M1).
 //!
 //! Every entry says what it compared and what is left out. A criterion whose feature does not exist yet is
 //! `not_built` (it blocks the gate like a failure); one that cannot be evaluated headless or at this delivery
@@ -28,7 +28,7 @@ use super::report::{Outcome, Status, fail, na, not_built, pass};
 use super::runner::{Ctx, Runner};
 use crate::golden_common::{self, all_props, repo, rows_csv, rows_of, run_log, tags, texts, xrefs};
 use crate::golden_files::{decode_rgba, differing_percent, frame_figure_errors, frame_json, page_png};
-use crate::pdf_support::{pdf_options, pdf_pages, structure_text, xref_counts};
+use crate::pdf_support::{pdf_options, pdf_pages, structure_text, svg_options, svg_sha256, xref_counts};
 use crate::view::golden_session;
 
 /// The folios of doc 20 §5 in page order (36 pages): the stored pages, the dividers and the generated report
@@ -82,11 +82,7 @@ pub fn all(r: &mut Runner) {
     r.entry(
         "AC-01",
         "the written PDF's vector content of every page equals the frame geometry within 0.2 mm",
-        |_| {
-            not_built(
-                "no per-page comparison of the written PDF exists: the checks above read the frame forms and AC-04 the title-block texts, not the lines of the PDF (vector extraction with the 0.2 mm tolerance of §3.3)",
-            )
-        },
+        ac01_pdf_vectors,
     );
     r.entry(
         "AC-02",
@@ -132,11 +128,7 @@ pub fn all(r: &mut Runner) {
     r.entry(
         "AC-06",
         "every printed occurrence of a tag is identical, the PDF text layer included",
-        |_| {
-            not_built(
-                "the harness has no PDF text extraction (FR-OUT-008): the check above reads the generated page texts, not the text layer of the written PDF",
-            )
-        },
+        ac06_text_layer,
     );
     r.entry(
         "AC-07",
@@ -194,9 +186,11 @@ pub fn all(r: &mut Runner) {
         "PDF structure equals expected/pdf (outline, 92 links, page labels, fonts, SHA-256)",
         ac13_structure,
     );
-    r.entry("AC-13", "text extraction of the PDF keeps spaces", |_| {
-        not_built("the harness has no PDF text extraction (FR-OUT-008); the ToUnicode maps are written, but nothing reads them back")
-    });
+    r.entry(
+        "AC-13",
+        "text extraction of the PDF keeps spaces",
+        ac13_text_extraction,
+    );
     r.entry("AC-13", "PDF/A-2b validated in process by krilla", ac13_pdfa);
     r.entry("AC-13", "veraPDF cross-check of PDF/A-2b", |_| {
         na("veraPDF is an external tool that is not installed in the headless harness; the CI job that has it runs the cross-check")
@@ -259,13 +253,15 @@ pub fn all(r: &mut Runner) {
     );
 
     // The other criteria of gate G-M1 (doc 20 §22).
-    r.entry("AC-14", "PDF and JSONL are byte-identical across runs and record shuffles", |_| {
-        na("a Linux-only gate criterion, evaluated by tests/page_output.rs (PDF), tests/golden_fixture.rs (JSONL) and the CI Linux job, not by this runner")
-    });
+    r.entry(
+        "AC-14",
+        "PDF, SVG, CSV and JSONL are byte-identical across record shuffles",
+        ac14_shuffle,
+    );
     r.entry(
         "AC-14",
         "SVG and the parallel export are byte-identical to the serial export",
-        |_| not_built("neither the SVG export nor a parallel export exists yet (FR-OUT-013, FR-OUT-019)"),
+        ac14_parallel,
     );
     r.entry(
         "AC-15",
@@ -2432,5 +2428,465 @@ fn d42(c: &Ctx) -> Outcome {
         ))
     } else {
         fail(format!("segments at {got:?}"))
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// The written PDF read back (FR-OUT-008; doc 18 §3.9) and the export determinism of AC-14
+
+/// The tolerance of doc 18 §3.9 for the vector content of the PDF (AC-01), mm.
+const PDF_TOLERANCE_MM: f64 = 0.2;
+
+/// The pages of the written PDF as the in-repo reader reads them back (`pdf_read.rs`).
+fn read_back(c: &Ctx) -> Result<&[crate::pdf_read::PageRead], String> {
+    let pages = c
+        .pdf_read
+        .as_deref()
+        .map_err(|e| format!("the written PDF does not read back: {e}"))?;
+    if pages.len() != c.pages.len() {
+        return Err(format!(
+            "the PDF has {} pages, the page order {}",
+            pages.len(),
+            c.pages.len()
+        ));
+    }
+    Ok(pages)
+}
+
+/// The glyph runs of a folio's text CSV, in drawing order.
+fn printed_runs(c: &Ctx, folio: &str) -> Vec<String> {
+    c.text
+        .get(folio)
+        .map(|csv| runs(csv).into_iter().map(|r| r.1).collect())
+        .unwrap_or_default()
+}
+
+/// AC-13, FR-OUT-008, D-33: the text layer of every page, read through the fonts' ToUnicode maps, equals
+/// the glyph runs the page prints, run by run and character by character (spaces included).
+fn ac13_text_extraction(c: &Ctx) -> Outcome {
+    let pages = match read_back(c) {
+        Ok(p) => p,
+        Err(e) => return fail(e),
+    };
+    let (mut total, mut spaced) = (0, 0);
+    let mut wrong = Vec::new();
+    for (g, page) in c.pages.iter().zip(pages) {
+        let want = printed_runs(c, &g.entry.folio);
+        let got: Vec<&str> = page.runs.iter().map(|r| r.text.as_str()).collect();
+        total += got.len();
+        spaced += got.iter().filter(|t| t.contains(' ')).count();
+        if got.len() != want.len() {
+            wrong.push(format!(
+                "{}: {} text objects, {} printed runs",
+                g.entry.folio,
+                got.len(),
+                want.len()
+            ));
+            continue;
+        }
+        if let Some((i, (a, b))) = got
+            .iter()
+            .zip(&want)
+            .enumerate()
+            .find(|(_, (a, b))| **a != b.as_str())
+        {
+            wrong.push(format!(
+                "{}: run {} reads {a:?}, the page prints {b:?}",
+                g.entry.folio,
+                i + 1
+            ));
+        }
+    }
+    let sk = c
+        .pages
+        .iter()
+        .zip(pages)
+        .find(|(g, _)| g.entry.folio == "101")
+        .is_some_and(|(_, p)| p.runs.iter().any(|r| r.text.contains("SK 3110.000")));
+    if !sk {
+        wrong.push("folio 101 does not read \"SK 3110.000\"".into());
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "{} pages: the text layer, read back from the content streams through the ToUnicode maps, equals the {total} printed glyph runs in order ({spaced} with spaces, kept as U+0020); folio 101 reads \"SK 3110.000\" (D-33)",
+            pages.len()
+        ))
+    } else {
+        fail(list(wrong, 3))
+    }
+}
+
+/// AC-06: every device tag occurs in the text layer of each page as often as the page prints it, and no
+/// stale token is in the text layer.
+fn ac06_text_layer(c: &Ctx) -> Outcome {
+    let pages = match read_back(c) {
+        Ok(p) => p,
+        Err(e) => return fail(e),
+    };
+    let q = c.oracle.query();
+    let mut tags = BTreeSet::new();
+    for r in &c.batch.records {
+        if let ew_schema::Record::Device(dev) = r
+            && let Some(t) = q.get::<DeviceTag>(dev.id).as_ref().as_ref()
+        {
+            tags.insert(t.short());
+        }
+    }
+    let stale = ["-4W1", "-4X1", "T51", "JE2416"];
+    let (mut occurrences, mut on_pages) = (0, 0);
+    let mut wrong = Vec::new();
+    for (g, page) in c.pages.iter().zip(pages) {
+        let printed = printed_runs(c, &g.entry.folio);
+        let mut here = 0;
+        for tag in &tags {
+            let n_printed: usize = printed.iter().map(|t| t.matches(tag.as_str()).count()).sum();
+            let n_read: usize = page
+                .runs
+                .iter()
+                .map(|r| r.text.matches(tag.as_str()).count())
+                .sum();
+            if n_printed != n_read {
+                wrong.push(format!(
+                    "{}: {tag} printed {n_printed} times, read {n_read} times",
+                    g.entry.folio
+                ));
+            }
+            here += n_printed;
+        }
+        occurrences += here;
+        on_pages += usize::from(here > 0);
+        for r in &page.runs {
+            if stale.iter().any(|s| r.text.contains(s)) || r.text == "BR" {
+                wrong.push(format!(
+                    "{}: stale \"{}\" in the text layer",
+                    g.entry.folio, r.text
+                ));
+            }
+        }
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "{occurrences} printed occurrences of the {} device tags on {on_pages} pages read back identically from the PDF text layer (same count per tag and page); no stale token in it",
+            tags.len()
+        ))
+    } else {
+        fail(list(wrong, 3))
+    }
+}
+
+/// An expected frame line of `expected/geometry/frame.json`, mm.
+pub type Line = ((f64, f64), (f64, f64));
+
+/// The lines `frame.json`'s figures put on a sheet (doc 20 §17.1; `ew_scene::forms` paint order 1): the
+/// outer rectangle, the title-block separator and, when the form shows its grid, the two header-band lines
+/// and the interior column and row ticks.
+pub fn frame_lines(fig: &serde_json::Value, show_grid: bool) -> Option<Vec<Line>> {
+    let n = |v: &serde_json::Value| v.as_f64();
+    let r = |k: &str| -> Option<(f64, f64, f64, f64)> {
+        let o = &fig[k];
+        Some((n(&o["x0"])?, n(&o["y0"])?, n(&o["x1"])?, n(&o["y1"])?))
+    };
+    let (x0, y0, x1, y1) = r("outer")?;
+    let mut lines = vec![
+        ((x0, y0), (x1, y0)),
+        ((x1, y0), (x1, y1)),
+        ((x1, y1), (x0, y1)),
+        ((x0, y1), (x0, y0)),
+    ];
+    if let Some((_, ty, _, _)) = r("title_block") {
+        lines.push(((x0, ty), (x1, ty)));
+    }
+    if show_grid {
+        let (dx0, dy0, dx1, dy1) = r("drawing_area")?;
+        lines.push(((x0, dy0), (dx1, dy0)));
+        lines.push(((dx0, y0), (dx0, dy1)));
+        let edges = |k: &str| -> Option<Vec<f64>> { fig[k].as_array()?.iter().map(n).collect() };
+        let cols = edges("column_edges")?;
+        let rows = edges("row_edges")?;
+        for &x in cols.iter().take(cols.len().saturating_sub(1)).skip(1) {
+            lines.push(((x, y0), (x, dy0)));
+        }
+        for &y in rows.iter().take(rows.len().saturating_sub(1)).skip(1) {
+            lines.push(((x0, y), (dx0, y)));
+        }
+    }
+    Some(lines)
+}
+
+fn dist(a: (f64, f64), b: (f64, f64)) -> f64 {
+    (a.0 - b.0).hypot(a.1 - b.1)
+}
+
+/// The larger endpoint distance between a line and a segment, in the better of the two directions.
+fn deviation(l: &Line, s: &crate::pdf_read::Segment) -> f64 {
+    let fwd = dist(l.0, s.a).max(dist(l.1, s.b));
+    let back = dist(l.0, s.b).max(dist(l.1, s.a));
+    fwd.min(back)
+}
+
+/// The comparison of one page of the written PDF with its frame form's figures in `frame.json`: the
+/// mismatches, the number of frame lines compared and the largest endpoint deviation of a matched line.
+pub fn frame_mismatches(
+    folio: &str,
+    page: &crate::pdf_read::PageRead,
+    fig: &serde_json::Value,
+    show_grid: bool,
+) -> (Vec<String>, usize, f64) {
+    let tol = PDF_TOLERANCE_MM;
+    let mut wrong = Vec::new();
+    let (mut checked, mut worst) = (0usize, 0.0f64);
+    let (Some(lines), Some(width), Some(sw), Some(sh)) = (
+        frame_lines(fig, show_grid),
+        fig["line_width"].as_f64(),
+        fig["sheet"]["width"].as_f64(),
+        fig["sheet"]["height"].as_f64(),
+    ) else {
+        return (
+            vec![format!("{folio}: frame.json has no figures for its form")],
+            0,
+            0.0,
+        );
+    };
+    if (page.width_mm - sw).abs() > tol || (page.height_mm - sh).abs() > tol {
+        wrong.push(format!(
+            "{folio}: media box {:.3} x {:.3} mm, sheet {sw} x {sh} mm",
+            page.width_mm, page.height_mm
+        ));
+    }
+    for l in &lines {
+        let best = page
+            .segments
+            .iter()
+            .map(|s| (deviation(l, s), s))
+            .min_by(|a, b| a.0.total_cmp(&b.0));
+        match best {
+            Some((d, s)) if d <= tol => {
+                worst = worst.max(d);
+                if (s.width - width).abs() > 0.01 {
+                    wrong.push(format!(
+                        "{folio}: the line {l:?} is {:.3} mm wide, the frame {width} mm",
+                        s.width
+                    ));
+                }
+            }
+            Some((d, _)) => wrong.push(format!("{folio}: the line {l:?} is {d:.3} mm off")),
+            None => wrong.push(format!("{folio}: no stroked segment")),
+        }
+        checked += 1;
+    }
+    // The reverse direction: a stroked segment in the header bands or on the outer frame is a frame line.
+    // A segment along the drawing area's edge (a report table's border, the separator) is not judged.
+    let r = |k: &str| {
+        let o = &fig[k];
+        [&o["x0"], &o["y0"], &o["x1"], &o["y1"]].map(|v| v.as_f64().unwrap_or(f64::NAN))
+    };
+    let (outer, area, tb) = (r("outer"), r("drawing_area"), r("title_block"));
+    let inside = |b: [f64; 4], p: (f64, f64)| {
+        p.0 > b[0] + tol && p.0 < b[2] - tol && p.1 > b[1] + tol && p.1 < b[3] - tol
+    };
+    let in_band = |p: (f64, f64)| {
+        p.0 >= outer[0] - tol
+            && p.0 <= outer[2] + tol
+            && p.1 >= outer[1] - tol
+            && p.1 <= outer[3] + tol
+            && !inside(area, p)
+            && !inside(tb, p)
+    };
+    for s in &page.segments {
+        let mid = ((s.a.0 + s.b.0) / 2.0, (s.a.1 + s.b.1) / 2.0);
+        let near_area = mid.0 >= area[0] - tol
+            && mid.0 <= area[2] + tol
+            && mid.1 >= area[1] - tol
+            && mid.1 <= area[3] + tol;
+        if in_band(s.a)
+            && in_band(s.b)
+            && in_band(mid)
+            && !near_area
+            && !lines.iter().any(|l| deviation(l, s) <= tol)
+        {
+            wrong.push(format!(
+                "{folio}: an extra line from ({:.3}, {:.3}) to ({:.3}, {:.3}) mm in the frame bands",
+                s.a.0, s.a.1, s.b.0, s.b.1
+            ));
+        }
+    }
+    (wrong, checked, worst)
+}
+
+/// The figures of `expected/geometry/frame.json`.
+pub fn frame_figures_json() -> Result<serde_json::Value, String> {
+    expected("geometry/frame.json")
+        .and_then(|b| serde_json::from_slice(&b).map_err(|e| format!("frame.json: {e}")))
+}
+
+/// AC-01 (doc 18 §3.9 "Frame geometry"): on every page of the written PDF, each line of the page's frame
+/// form in `expected/geometry/frame.json` is a stroked segment within 0.2 mm (both endpoints) with the
+/// frame's line width, the media box is the sheet, and no other line lies in the header bands or on the
+/// outer frame ([`frame_mismatches`]). Title-block texts are AC-04's.
+fn ac01_pdf_vectors(c: &Ctx) -> Outcome {
+    let pages = match read_back(c) {
+        Ok(p) => p,
+        Err(e) => return fail(e),
+    };
+    let frame = match frame_figures_json() {
+        Ok(v) => v,
+        Err(e) => return fail(e),
+    };
+    let (mut lines_checked, mut worst) = (0usize, 0.0f64);
+    let mut wrong = Vec::new();
+    for (g, page) in c.pages.iter().zip(pages) {
+        let folio = &g.entry.folio;
+        let Some(view) = &g.view.frame else {
+            wrong.push(format!("{folio}: no frame form"));
+            continue;
+        };
+        let key = view.form.meta.key.as_ref().map_or("", |k| k.as_str());
+        let show_grid = ew_scene::forms::FrameGeometry::of(&view.form, view.title_block.as_deref())
+            .is_some_and(|g| g.show_grid);
+        let (w, n, d) = frame_mismatches(folio, page, &frame[key], show_grid);
+        wrong.extend(w);
+        lines_checked += n;
+        worst = worst.max(d);
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "{} pages: the {lines_checked} frame lines of expected/geometry/frame.json (outer frame, title-block separator, header bands and grid ticks of the page's form) are stroked in the PDF within 0.2 mm (largest endpoint deviation {worst:.3} mm) at the frame's line width; media boxes equal the sheet; no other line in the bands",
+            pages.len()
+        ))
+    } else {
+        fail(list(wrong, 3))
+    }
+}
+
+/// The seed of the record shuffle of AC-14.
+const SHUFFLE_SEED: u64 = 0x5eed_ac14;
+
+/// AC-14 (platform-neutral half): the golden model loaded with its records in a shuffled order writes the
+/// same PDF, SVG, text and report CSVs and JSONL record lines as in file order. This run compares on its
+/// own platform; the gate platform of doc 20 §21 (M1) is Linux, and the cross-platform digests are MVP.
+fn ac14_shuffle(c: &Ctx) -> Outcome {
+    let base = golden_session(None);
+    let shuffled = golden_session(Some(SHUFFLE_SEED));
+    let qs = shuffled.query();
+    let mut wrong = Vec::new();
+    let pages_s = pdf_pages(&qs);
+    let pdf_s = ew_export::pdf(&pages_s, &pdf_options(&qs), &c.fonts, None);
+    match &pdf_s {
+        Ok(o) if o.bytes == c.pdf.bytes => {}
+        Ok(_) => wrong.push("the PDF differs".to_owned()),
+        Err(e) => wrong.push(format!("the shuffled PDF is not written: {e}")),
+    }
+    let svg = |pages: &[ew_export::PdfPage]| {
+        ew_export::svg(pages, &svg_options(), None, ew_export::Parallelism::Serial)
+    };
+    if svg(&pages_s) != svg(&c.pdf_pages) {
+        wrong.push("the SVG files differ".to_owned());
+    }
+    let text_s: BTreeMap<String, String> = crate::view::golden_pages(&qs)
+        .iter()
+        .map(|g| {
+            let scene = page_scene(&g.view, ew_text::bundled());
+            (g.entry.folio.clone(), crate::golden_files::text_csv(&scene))
+        })
+        .collect();
+    if text_s != c.text {
+        wrong.push("the page text CSVs differ".to_owned());
+    }
+    let (pb, ps) = (golden_common::plain(&base), golden_common::plain(&shuffled));
+    for (name, _) in ROW_PAIRS {
+        if row_pair_text(&c.batch, &pb, name) != row_pair_text(&c.batch, &ps, name) {
+            wrong.push(format!("the report CSV {name} differs"));
+        }
+    }
+    let lines = |s: &Session| ew_commands::rows::model_lines(&s.world().model).map_err(|e| e.to_string());
+    let (lb, ls) = (lines(&base), lines(&shuffled));
+    match (&lb, &ls) {
+        (Ok(a), Ok(b)) if a == b => {}
+        _ => wrong.push("the JSONL record lines differ".to_owned()),
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "on the platform of this run, the model loaded with its records shuffled (seed {SHUFFLE_SEED:#x}) writes the PDF (SHA-256 of expected/pdf/sha256.txt), the {} SVG files, the {} page text CSVs, the {} report CSVs and the {} JSONL record lines of the file-order load byte for byte (gate platform Linux; across Windows, macOS and Linux at MVP)",
+            c.pdf_pages.len(),
+            c.text.len(),
+            ROW_PAIRS.len(),
+            lb.map_or(0, |l| l.len())
+        ))
+    } else {
+        fail(wrong.join("; "))
+    }
+}
+
+/// AC-14, FR-OUT-013, FR-OUT-019: the SVG export (one file per page from the page scene the PDF draws, every
+/// glyph run as `<text>`) and the parallel page phase on 2 and 8 threads give the bytes of the serial export.
+fn ac14_parallel(c: &Ctx) -> Outcome {
+    use ew_export::{Parallelism, par_map, svg};
+    let serial = match svg(&c.pdf_pages, &svg_options(), None, Parallelism::Serial) {
+        Ok(s) => s,
+        Err(e) => return fail(format!("the SVG export failed: {e}")),
+    };
+    let runs: usize = c.text.values().map(|csv| runs(csv).len()).sum();
+    let mut wrong = Vec::new();
+    if serial.files.len() != c.pdf_pages.len() {
+        wrong.push(format!(
+            "{} SVG files for {} pages",
+            serial.files.len(),
+            c.pdf_pages.len()
+        ));
+    }
+    let r = &serial.report;
+    if r.texts != runs || !r.missing_fonts.is_empty() || r.dropped_notdef_glyphs != 0 {
+        wrong.push(format!(
+            "{} <text> elements for {runs} printed runs, {} missing faces, {} dropped glyphs",
+            r.texts,
+            r.missing_fonts.len(),
+            r.dropped_notdef_glyphs
+        ));
+    }
+    if r.links != c.pdf.report.links || r.plain_text_links != c.pdf.report.plain_text_links {
+        wrong.push(format!(
+            "{} SVG links and {} plain, the PDF {} and {}",
+            r.links, r.plain_text_links, c.pdf.report.links, c.pdf.report.plain_text_links
+        ));
+    }
+    let view = golden_session(None);
+    let options = pdf_options(&view.query());
+    for threads in [2, 8] {
+        let p = Parallelism::threads(threads);
+        let pages: Vec<ew_export::PdfPage> = par_map(&c.pages, p, |_, g| {
+            let scene = page_scene(&g.view, ew_text::bundled());
+            ew_export::PdfPage {
+                destination: crate::view::destination(g.entry.page),
+                label: g.entry.folio.clone(),
+                title: g.outline_title.clone(),
+                section: g.section_title.clone(),
+                width: scene.sheet_width,
+                height: scene.sheet_height,
+                content: scene.sheet_list(),
+            }
+        });
+        if pages != c.pdf_pages {
+            wrong.push(format!("{threads} threads: the page display lists differ"));
+            continue;
+        }
+        match ew_export::pdf(&pages, &options, &c.fonts, None) {
+            Ok(o) if o.bytes == c.pdf.bytes => {}
+            Ok(_) => wrong.push(format!("{threads} threads: the PDF differs")),
+            Err(e) => wrong.push(format!("{threads} threads: {e}")),
+        }
+        if svg(&pages, &svg_options(), None, p).as_ref() != Ok(&serial) {
+            wrong.push(format!("{threads} threads: the SVG files differ"));
+        }
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "{} SVG files (one per page, {} glyph runs as <text>, {} links as in the PDF; SHA-256 {}); the page phase on 2 and 8 threads gives the serial display lists, PDF and SVG byte for byte",
+            serial.files.len(),
+            r.texts,
+            r.links,
+            svg_sha256(&serial)
+        ))
+    } else {
+        fail(list(wrong, 3))
     }
 }

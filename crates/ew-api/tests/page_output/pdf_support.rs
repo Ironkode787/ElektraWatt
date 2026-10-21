@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 
 use ew_derive::Q;
 use ew_dl::FontKey;
-use ew_export::{PdfDate, PdfOptions, PdfOutput, PdfPage, pdf};
+use ew_export::{PdfDate, PdfOptions, PdfOutput, PdfPage, SvgFace, SvgOptions, SvgOutput, pdf};
 use ew_render_cpu::FontBytes;
 use ew_scene::page::page_scene;
 use sha2::{Digest, Sha256};
@@ -52,6 +52,39 @@ pub fn pdf_options(q: &Q) -> PdfOptions {
         document_id: format!("golden J-E-2416 {}", q.profile().version),
         ..PdfOptions::new(date)
     }
+}
+
+/// The SVG options of the golden export (used by the acceptance runner, AC-14): the bundled faces by family, weight and style.
+#[allow(dead_code)]
+pub fn svg_options() -> SvgOptions {
+    SvgOptions {
+        monochrome: false,
+        faces: ew_text::bundled()
+            .faces()
+            .map(|f| {
+                (
+                    f.key,
+                    SvgFace {
+                        family: f.family_name.clone(),
+                        weight: f.weight.value(),
+                        italic: f.italic,
+                    },
+                )
+            })
+            .collect(),
+    }
+}
+
+/// The SHA-256 over an SVG export: every file as its name, a newline, its text, in page order.
+#[allow(dead_code)]
+pub fn svg_sha256(out: &SvgOutput) -> String {
+    let mut h = Sha256::new();
+    for f in &out.files {
+        h.update(f.name.as_bytes());
+        h.update(b"\n");
+        h.update(f.text.as_bytes());
+    }
+    format!("{:x}", h.finalize())
 }
 
 /// The SHA-256 of the golden PDF built over the golden model with its records shuffled by `seed` (`None`: in

@@ -831,7 +831,7 @@ A row has one of four statuses:
 | `not_applicable` | it cannot be evaluated headless or at this delivery (GUI, pilot, an external tool that is not installed, a milestone-only measurement); the reason is required | no |
 
 A criterion with a part that holds and a part that is missing has one row per part. The runner evaluates AC-01 …
-AC-13, AC-18 and AC-20, lists AC-14 … AC-17 and AC-39 with their status and reason, and covers the §19 rows gated M1.
+AC-14, AC-18 and AC-20, lists AC-15 … AC-17 and AC-39 with their status and reason, and covers the §19 rows gated M1.
 It compares with the committed files through the functions that write them (`tests/page_output/`,
 `tests/golden_common/`): the text CSVs, the frame geometry, the PNGs (15 folios at 0.5 %), the PDF structure and
 SHA-256, and `expected/csv/`. AC-17 (open, check and PDF export times) is `not_applicable` outside a milestone run;
@@ -849,7 +849,30 @@ its report with the committed `expected/acceptance_headless.md` (so two runs mus
 The SQL half of each pair (`acceptance/*.sql` over the `api_v1` views) runs since cycle 13 (WP-S1.10, decision log
 ID-328) and returns `expected/csv/` row by row.
 
-The headless report of this revision: 85 entries, 61 pass, 0 fail, 18 not_built, 6 not_applicable, 0 oracle
-mismatches (the full run adds the raster comparison as a pass; decision log ID-338). AC-03 (36 folios, FT-111) and
+**The written PDF read back (cycle 14).** The runner reads the golden PDF with the in-repo reader
+`tests/page_output/pdf_read.rs` (indirect objects, Flate streams, the page tree, content streams and the fonts'
+ToUnicode maps; test code only) and checks three entries against it:
+
+- AC-13 "text extraction keeps spaces": every page's text layer equals its printed glyph runs (the rows of its text
+  CSV) run by run, spaces included, and folio 101 reads "SK 3110.000" (D-33, FR-OUT-008).
+- AC-06 "the PDF text layer included": every device tag occurs in each page's text layer as often as the page
+  prints it, and no stale token is in it.
+- AC-01 "vector content within 0.2 mm": on every page the lines of the page's frame form in
+  `expected/geometry/frame.json` (outer frame, title-block separator, and for a form that shows its grid the two
+  header-band lines and the interior column and row ticks) are stroked segments within 0.2 mm of both endpoints at
+  the frame's line width; the media box is the sheet; no other line lies in the header bands or on the outer frame.
+  The title block's inner lines and texts are AC-04's.
+
+**AC-14 (cycle 14).** The SVG export of `ew-export` (one file per page from the same sheet display lists as the PDF,
+text as `<text>`) and the parallel page phase (`ew_export::par_map`, results by page index) are compared with the
+serial export: the page display lists, PDF and SVG on 2 and 8 threads are byte-identical, and the model loaded with
+its records shuffled writes the same PDF, SVG, page text CSVs, report CSVs and JSONL record lines. The SVG set is not
+committed as golden files (doc 18 asks for none); its SHA-256 is in the AC-14 reason of the committed report, so a
+change of any SVG byte shows there. The comparison runs on the platform of the run; the gate platform is Linux and
+the cross-platform digests are MVP.
+
+The headless report of this revision: 85 entries, 66 pass, 0 fail, 14 not_built, 5 not_applicable, 0 oracle
+mismatches (cycle 14: AC-01, AC-06, AC-13 and the two AC-14 entries moved to pass). Cycle 13: 61 pass, 0 fail,
+18 not_built, 6 not_applicable (the full run adds the raster comparison as a pass; decision log ID-338). AC-03 (36 folios, FT-111) and
 AC-10 (19 potentials, FT-105) pass, and so do their SQL halves: `acceptance/potentials.sql` prints the DP row's
 "(cable)" through the Preview column `api_v1_potential.bus_cable_ids`. The M1 gap list has no fails left. An empty terminal designation refused at the parameter layer counts as refused for D-11 (ADR-0008).

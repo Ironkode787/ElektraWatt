@@ -261,6 +261,12 @@ for throughput. Nightly runs use AddressSanitizer, because the dependency closur
 | Metadata | XMP and Info dates from the model or `SOURCE_DATE_EPOCH`; document ID a hash of the export input | No wall-clock value (NFR-REL-07) |
 | Conformance | veraPDF, PDF/A-2b profile; PDF/UA-1 profile at 1.0 (**verify**, 02c OQ 9) | Pass |
 
+*As built (cycle 14):* the frame-geometry and text rows run in the headless acceptance run over the written PDF
+with an in-repo reader (`crates/ew-api/tests/page_output/pdf_read.rs`: indirect objects, Flate streams, page tree,
+content streams, ToUnicode maps; test code), not hayro: AC-01 compares the frame lines of `geometry/frame.json` per
+page within 0.2 mm, AC-13 the text layer with the printed glyph runs, AC-06 the tag occurrences in it. hayro stays
+the candidate for the raster-parity row.
+
 veraPDF is a test tool run from a pinned container image with a checked digest. It is never distributed. The headless acceptance run (§3.10) does not require it: krilla's PDF/A-2b validator covers AC-13 there, and the veraPDF cross-check runs in the CI job that has it.
 
 ### 3.10 Acceptance runner
@@ -295,7 +301,7 @@ measures AC-17; without it AC-17 is `not_applicable`. Steps 1 (path (b), the bui
 A criterion that passes in part is split into its own entries (one per check), so partial passes are visible. The
 committed headless report `golden/J-E-2416/expected/acceptance_headless.md` is compared by the ordinary
 (non-ignored) test, which runs the runner once; the ordinary tests never run it more than once (testing policy).
-As built (cycle 13, WP-S1.10): step 2 runs: the runner builds the SQL projection and the SQL halves of AC-08 … AC-11 compare `acceptance/*.sql` with `expected/csv/` (pass), and an AC-15 entry compares the acceptance SQL over path (a) and path (c); path (b) stays `not_built`. Counts at the cycle-13 tip (wire numbering, the SQL projection v0, the PLC records and the DP bus potential; decision log ID-338): **85 entries: 61 pass, 0 fail, 18 not_built, 6 not_applicable; 0 oracle mismatches**. Counts at the cycle-12 tip: **83 entries: 51 pass, 2 fail, 24 not_built, 6 not_applicable; 0 oracle mismatches** (decision log
+As built (cycle 13, WP-S1.10): step 2 runs: the runner builds the SQL projection and the SQL halves of AC-08 … AC-11 compare `acceptance/*.sql` with `expected/csv/` (pass), and an AC-15 entry compares the acceptance SQL over path (a) and path (c); path (b) stays `not_built`. Counts at the cycle-14 tip (the written PDF read back for AC-01, AC-06 and AC-13; the SVG export and the parallel page phase for AC-14): **85 entries: 66 pass, 0 fail, 14 not_built, 5 not_applicable; 0 oracle mismatches**; AC-14's record-shuffle entry is evaluated on the platform of the run (the gate platform is Linux). Counts at the cycle-13 tip (wire numbering, the SQL projection v0, the PLC records and the DP bus potential; decision log ID-338): **85 entries: 61 pass, 0 fail, 18 not_built, 6 not_applicable; 0 oracle mismatches**. Counts at the cycle-12 tip: **83 entries: 51 pass, 2 fail, 24 not_built, 6 not_applicable; 0 oracle mismatches** (decision log
 ID-320). Its 2 fails, the M1 gap list of [20](20-golden-project.md) §22, closed in cycle 13: AC-03 page order (36 of
 36 folios with the PLC channel records, FT-111) and AC-10 (19 of 19 potentials with the Bus connections, FT-105). Acceptance criteria compare against doc 20's data (committed expected files generated from doc 20), never
 against the importer's own output (decision log ID-320).
