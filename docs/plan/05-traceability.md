@@ -386,7 +386,7 @@ Source: [golden project](../design/20-golden-project.md) §19 (rule that fires o
 | D-14 | "3-B0" | rules EW-CORE-053; FR-CHK-035, FR-SYM-010, FR-XRF-005 | WP-S1.08, WP-S1.16a, WP-S3.01 | G-M1 | ok |
 | D-15 | Node "TBD"; termination as text | rules EW-BUS-001, EW-BUS-004, EW-BUS-004; FR-BUS-015..016, FR-CHK-034 | WP-S1.16, WP-S1.21 | G-M2 | ok |
 | D-16 | FE vs PE mixed | rules EW-POT-003, EW-PLC-013; FR-CHK-030, FR-PLC-048 | WP-S1.16, WP-S1.24 | G-M2 | ok |
-| D-17 | Core colour "BR" | rules EW-CORE-031; FR-CBL-005, FR-CHK-032, FR-CON-019 | WP-S1.07, WP-S1.14, WP-S1.16 | G-M1 | ok |
+| D-17 | Core colour "BR" | rules EW-CORE-031, EW-IMP-002, EW-CORE-031, EW-IMP-008; FR-CBL-005, FR-CHK-032, FR-CON-019, FR-IMP-005, FR-IMP-044 | WP-S1.07, WP-S1.14, WP-S1.16, WP-S3.09, WP-S3.10 | G-M1 | ok |
 | D-18 | Typos, manufacturer names, "50hz" | FR-CHK-040, FR-PRT-002 | WP-S1.19a, WP-S1.30 | G-M1 + G-M5 | ok |
 | D-19 | No supply cable; no lengths | rules EW-CORE-034, EW-CORE-033; FR-CHK-033 | WP-S1.16a | G-M2 | ok |
 | D-20 | Junction notation mixed | FR-CON-005 | WP-S1.04, WP-S2.04 | G-M1 | ok |
