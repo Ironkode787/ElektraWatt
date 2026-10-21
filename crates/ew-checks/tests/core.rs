@@ -7,7 +7,7 @@
 mod common;
 
 use common::*;
-use ew_checks::{CheckMode, FULL, RuleKind, ScopeKind, Severity, run};
+use ew_checks::{CheckMode, FULL, Release, RuleKind, ScopeKind, Severity, run};
 use ew_derive::Q;
 use ew_derive::ew_schema::Kind;
 use serde_json::{Value, json};
@@ -270,7 +270,21 @@ const SYM_X: u128 = 0x510;
 /// A device with a main function on page 1 and an auxiliary one on page 2 whose symbol draws a line 30 to
 /// 50 mm right of its origin, under `anchor`; `graphics` switches the line off.
 fn main_and_aux(anchor: &str, graphics: bool) -> ew_model::Model {
+    main_and_aux_at(anchor, graphics, 26_000_000, None)
+}
+
+/// [`main_and_aux`] with the auxiliary representation at `aux_x` and, when given, folio number `folio2` for
+/// page 2.
+fn main_and_aux_at(anchor: &str, graphics: bool, aux_x: i64, folio2: Option<u32>) -> ew_model::Model {
     let mut fx = Fx::base();
+    if let Some(n) = folio2 {
+        let page = fx
+            .records
+            .iter_mut()
+            .find(|r| r["id"] == json!(us(P2)))
+            .expect("page 2");
+        page["folio"] = json!({"number": n});
+    }
     let sym = fx
         .lib
         .iter_mut()
@@ -297,7 +311,7 @@ fn main_and_aux(anchor: &str, graphics: bool) -> ew_model::Model {
     fx.device(0x2000, "K", Some(1));
     for (n, page, role, x, symbol) in [
         (0x1001u128, P1, None, 25_000_000i64, 0x520),
-        (0x1002, P2, Some("aux"), 26_000_000, SYM_X),
+        (0x1002, P2, Some("aux"), aux_x, SYM_X),
     ] {
         let mut f = json!({"$k": "function", "id": us(n), "device": us(0x2000), "def": us(FNDEF)});
         if let Some(r) = role {
@@ -325,7 +339,7 @@ fn core053_an_origin_anchor_outside_the_graphics_is_an_empty_cell() {
     assert_eq!(f.len(), 1, "{f:#?}");
     assert_eq!(f[0].code, "103053");
     assert_eq!(f[0].severity, Severity::Warning);
-    assert_eq!(f[0].discriminator, "empty-cell");
+    assert_eq!(f[0].discriminator, "");
     assert_eq!(f[0].page.map(|p| p.to_string()), Some(us(P1)));
     assert_eq!(f[0].targets.len(), 2);
     assert_eq!(f[0].targets[0].kind, Kind::Representation);
@@ -334,6 +348,41 @@ fn core053_an_origin_anchor_outside_the_graphics_is_an_empty_cell() {
     let fix = f[0].fix.as_ref().expect("a quick fix");
     assert_eq!(fix.command, "rep.set_anchor_policy");
     assert_eq!(fix.params["anchor"], json!("graphic_centre"));
+}
+
+#[test]
+fn core053_an_anchor_outside_the_frame_is_reported_with_the_same_fingerprint() {
+    let inside = findings_of(&main_and_aux("origin", true), "EW-CORE-053");
+    // 400 mm to the right lies beyond the A4 drawing area: the anchor has no cell.
+    let outside = findings_of(&main_and_aux_at("origin", true, 400_000_000, None), "EW-CORE-053");
+    assert_eq!((inside.len(), outside.len()), (1, 1), "{inside:#?} {outside:#?}");
+    assert!(
+        outside[0].message.contains(": outside the frame"),
+        "{}",
+        outside[0].message
+    );
+    assert_eq!(outside[0].discriminator, "");
+    assert_eq!(
+        outside[0].fingerprint, inside[0].fingerprint,
+        "moving the target keeps the fingerprint"
+    );
+}
+
+#[test]
+fn core053_the_fingerprint_survives_a_renumber_and_a_move() {
+    let base = findings_of(&main_and_aux("origin", true), "EW-CORE-053");
+    let renumbered = findings_of(
+        &main_and_aux_at("origin", true, 26_000_000, Some(7)),
+        "EW-CORE-053",
+    );
+    let moved = findings_of(&main_and_aux_at("origin", true, 14_000_000, None), "EW-CORE-053");
+    assert_eq!((base.len(), renumbered.len(), moved.len()), (1, 1, 1));
+    assert_ne!(
+        renumbered[0].subject, base[0].subject,
+        "the printed item follows the folio"
+    );
+    assert_eq!(renumbered[0].fingerprint, base[0].fingerprint);
+    assert_eq!(moved[0].fingerprint, base[0].fingerprint);
 }
 
 #[test]
@@ -360,6 +409,9 @@ fn core065_lint_description_table() {
         ("10A C", &["10A"], &["10A"]),
         ("50hz", &["50hz"], &["50hz"]),
         ("Power supply 1 AC / 24 V DC / 20 A", &["24 V", "20 A"], &[]),
+        ("Power supply 24 VDC", &["24 VDC"], &[]),
+        ("Heater 230 VAC", &["230 VAC"], &[]),
+        ("Lamp 24vdc", &["24vdc"], &["24vdc"]),
         ("VMPA1-FB-EMG-8 electronic module, 4 positions", &[], &[]),
         ("Wiring duct 40×60", &[], &[]),
         ("PROFIBUS FC standard cable", &[], &[]),
@@ -387,7 +439,7 @@ fn part_model(description: &str) -> ew_model::Model {
 
 fn release_findings(m: &ew_model::Model, rule: &str) -> Vec<ew_checks::Finding> {
     let q = Q::new(m);
-    run(&q, &FULL, CheckMode::Release)
+    run(&q, &FULL.with_content(Release::V1_0), CheckMode::Release)
         .findings
         .into_iter()
         .filter(|f| f.rule == rule)

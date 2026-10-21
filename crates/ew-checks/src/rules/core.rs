@@ -324,21 +324,22 @@ pub const XREF_CELL_INVALID: RuleMeta = RuleMeta {
     release: Release::Mvp,
 };
 
-/// EW-CORE-053: a printed cross-reference whose target cell lies outside the frame or contains no graphics
+//// EW-CORE-053: a printed cross-reference whose target cell lies outside the frame or contains no graphics
 /// of the target (FR-CHK-035, STD XR-05; D-14, MF-13).
 ///
 /// For every representation on the page whose cross-reference text shows a target (`xref_relation`,
-/// `xref_text`): the target's anchor cell (from its symbol's anchor policy) must exist and lie inside the
-/// cells its graphics cover. The covered cells are the column and row ranges of the cells of the four
-/// corners of the integer bounding box of the target's graphics (the symbol's primitives as
-/// `graphic_centre` counts them, and a black box's outline and inner graphics), transformed by the
-/// representation's orientation and position. A target whose graphics leave the drawing area, or that has
-/// no graphics, is not judged (EW-LIB-002 owns symbols without graphics).
+/// `xref_text`): the target's anchor cell (from its anchor policy: the representation's override, else its
+/// symbol copy's) must exist and lie inside the cells its graphics cover. The covered cells are the column
+/// and row ranges of the cells of the four corners of the integer bounding box of the target's graphics
+/// (the symbol's primitives as `graphic_centre` counts them, and a black box's outline and inner graphics),
+/// transformed by the representation's orientation and position. A target whose graphics leave the drawing
+/// area, or that has no graphics, is not judged (EW-LIB-002 owns symbols without graphics).
 ///
-/// One finding per cross-reference: targets the source and the target representation, discriminator
-/// `outside` or `empty-cell`, shown on the page; the message starts with the printed item, "3-B0: empty
-/// cell". An empty cell offers the MF-13 quick fix `rep.set_anchor_policy` to the graphics centre. The
-/// note of decision log ID-199 (an auxiliary whose main function has no cross-reference main
+/// One finding per cross-reference: targets the source and the target representation, no discriminator,
+/// so the fingerprint stays when the target moves between "outside the frame" and "empty cell" or a
+/// renumber changes the printed item (doc 15 §2.5); shown on the page; the message starts with the printed
+/// item, "3-B0: empty cell", and offers the MF-13 quick fix `rep.set_anchor_policy` to the graphics centre.
+/// The note of decision log ID-199 (an auxiliary whose main function has no cross-reference main
 /// representation) is not reported yet.
 #[derive(Clone, Copy, Debug)]
 pub struct XrefCellInvalid;
@@ -371,18 +372,8 @@ impl Rule for XrefCellInvalid {
                 else {
                     continue;
                 };
-                let targets = [
-                    Target::new(Kind::Representation, source),
-                    Target::new(Kind::Representation, t.rep),
-                ];
-                let finding = match &t.cell {
-                    None => Finding::new(
-                        &XREF_CELL_INVALID,
-                        targets,
-                        "outside",
-                        item.to_owned(),
-                        format!("{item}: outside the frame (the target's anchor has no cell)"),
-                    ),
+                let message = match &t.cell {
+                    None => format!("{item}: outside the frame (the target's anchor has no cell)"),
                     Some(cell) => {
                         let Some((columns, rows)) = graphics_cells(q, t.rep) else {
                             continue;
@@ -390,25 +381,29 @@ impl Rule for XrefCellInvalid {
                         if columns.contains(&cell.column) && rows.contains(&cell.row) {
                             continue;
                         }
-                        Finding::new(
-                            &XREF_CELL_INVALID,
-                            targets,
-                            "empty-cell",
-                            item.to_owned(),
-                            format!(
-                                "{item}: empty cell (cell {cell} holds no graphics of the target; its symbol's anchor policy places the anchor outside them)"
-                            ),
+                        format!(
+                            "{item}: empty cell (cell {cell} holds no graphics of the target; its anchor policy places the anchor outside them)"
                         )
-                        .with_fix(QuickFix {
-                            label: "anchor at the graphics centre".to_owned(),
-                            command: "rep.set_anchor_policy".to_owned(),
-                            params: serde_json::json!({
-                                "reps": [t.rep.to_string()],
-                                "anchor": "graphic_centre",
-                            }),
-                        })
                     }
                 };
+                let finding = Finding::new(
+                    &XREF_CELL_INVALID,
+                    [
+                        Target::new(Kind::Representation, source),
+                        Target::new(Kind::Representation, t.rep),
+                    ],
+                    "",
+                    item.to_owned(),
+                    message,
+                )
+                .with_fix(QuickFix {
+                    label: "anchor at the graphics centre".to_owned(),
+                    command: "rep.set_anchor_policy".to_owned(),
+                    params: serde_json::json!({
+                        "reps": [t.rep.to_string()],
+                        "anchor": "graphic_centre",
+                    }),
+                });
                 out.push(finding.on_page(page));
             }
         }
@@ -416,7 +411,7 @@ impl Rule for XrefCellInvalid {
     }
 }
 
-/// The column and row ranges of the cells a representation's graphics cover on its page; `None` without
+// The column and row ranges of the cells a representation's graphics cover on its page; `None` without
 /// graphics, when a corner leaves the drawing area, or on overflow.
 fn graphics_cells(
     q: &Q,
@@ -518,7 +513,7 @@ pub const DESCRIPTION_LINT: RuleMeta = RuleMeta {
 /// phrase, never ratings", FR-DEV-010) linted for ratings and unit formatting (FR-CHK-040; D-18, D-35, EF-25).
 ///
 /// A **rating** is a number followed, with or without a space, by a rating unit (A, mA, kA, V, mV, kV, W,
-/// kW, MW, VA, kVA, Hz, kHz; the unit compared case-insensitively): "10 A", "10A C", "24 V", "50hz". It belongs
+/// kW, MW, VA, kVA, Hz, kHz, VDC, VAC; the unit compared case-insensitively): "10 A", "10A C", "24 V", "50hz". It belongs
 /// in the technical data, so the finding (discriminator `rating`) says "move to technical data"; no command
 /// edits a part copy's description yet, so it carries no quick fix. **Unit formatting** (discriminator
 /// `unit-format`): a number glued to its unit ("10A", "50hz"), a known unit in the wrong case ("50 hz",
@@ -596,8 +591,8 @@ fn quoted(items: &[String]) -> String {
 }
 
 /// Rating units: a value with one of them is a rating.
-const RATING_UNITS: [&str; 13] = [
-    "A", "mA", "kA", "V", "mV", "kV", "W", "kW", "MW", "VA", "kVA", "Hz", "kHz",
+const RATING_UNITS: [&str; 15] = [
+    "A", "mA", "kA", "V", "mV", "kV", "W", "kW", "MW", "VA", "kVA", "Hz", "kHz", "VDC", "VAC",
 ];
 /// Other units whose case and spacing are checked.
 const OTHER_UNITS: [&str; 8] = ["mm", "mm²", "mm2", "cm", "m", "°C", "bar", "Nm"];
