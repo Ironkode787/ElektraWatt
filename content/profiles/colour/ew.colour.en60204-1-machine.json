@@ -1,0 +1,81 @@
+{
+  "basis": "standard",
+  "basis_note": {
+    "en": "ElektraWatt's own table after EN 60204-1 clause 13.2 (docs/design/08-connections-terminals-cables.md section 4.3); codes per IEC 60757; not yet checked against a licensed copy"
+  },
+  "codes": [],
+  "key": "ew.en60204-1-machine",
+  "name": {
+    "en": "EN 60204-1 machine"
+  },
+  "rows": [
+    {
+      "colour": ["BK"],
+      "colour_name": {"en": "Black"},
+      "function": {"en": "Line"},
+      "group": {"en": "AC power"},
+      "potential_type": {"en": "L, L1, L2, L3"},
+      "select": {"ac_dc": "ac", "ptype": ["l", "l1", "l2", "l3"]}
+    },
+    {
+      "colour": ["BU"],
+      "colour_name": {"en": "Light Blue"},
+      "function": {"en": "Neutral"},
+      "group": {"en": "AC power"},
+      "potential_type": {"en": "N"},
+      "select": {"ptype": ["n"]}
+    },
+    {
+      "colour": ["GN", "YE"],
+      "colour_name": {"en": "Green / Yellow"},
+      "function": {"en": "Protective earth"},
+      "group": {"en": "Earth"},
+      "potential_type": {"en": "PE"},
+      "select": {"ptype": ["pe"]}
+    },
+    {
+      "colour": ["RD"],
+      "colour_name": {"en": "Red"},
+      "function": {"en": "Control"},
+      "group": {"en": "AC control"},
+      "potential_type": {"en": "signal, AC"},
+      "select": {"ac_dc": "ac", "ptype": ["signal"]}
+    },
+    {
+      "colour": ["BU"],
+      "colour_name": {"en": "Blue"},
+      "function": {"en": "Positive"},
+      "group": {"en": "DC control"},
+      "potential_type": {"en": "L+"},
+      "select": {"ac_dc": "dc", "ptype": ["l_plus"]}
+    },
+    {
+      "colour": ["BU"],
+      "colour_name": {"en": "Blue"},
+      "function": {"en": "0 V (verify)"},
+      "group": {"en": "DC control"},
+      "potential_type": {"en": "M"},
+      "select": {"ac_dc": "dc", "ptype": ["m"]}
+    },
+    {
+      "colour": ["BU"],
+      "colour_name": {"en": "Blue"},
+      "function": {"en": "Negative"},
+      "group": {"en": "DC control"},
+      "potential_type": {"en": "L-"},
+      "select": {"ac_dc": "dc", "ptype": ["l_minus"]}
+    },
+    {
+      "colour": ["BU"],
+      "colour_name": {"en": "Blue"},
+      "function": {"en": "Signal"},
+      "group": {"en": "DC control"},
+      "potential_type": {"en": "signal, DC"},
+      "select": {"ac_dc": "dc", "ptype": ["signal"]}
+    }
+  ],
+  "standards": {
+    "en": "EN 60204-1 13.2 / IEC 60757"
+  },
+  "verified": false
+}

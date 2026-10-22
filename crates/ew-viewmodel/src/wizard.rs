@@ -7,10 +7,12 @@
 //!
 //! **What is written.** The wizard builds a basic project (`Project.kind = Basic`) from the built-in one, and only
 //! through model commands (`Session::run_script`): the shipped frame and title-block forms (`library.embed`), the
-//! company (`project.company.set`: the panel-builder party and the title-block notice), the frame defaults
-//! (`project.frames.set`), the colour profile, the size profile, the numbering schemes and the cross-reference
-//! format (`project.settings.set`), the languages and printed formats (`project.languages.set`), the structure
-//! nodes, the sections and the first revision (FT-336). The check scheme is validated and kept in the draft, listed
+//! company (`project.company.set`: the panel-builder party, the title-block notice and the logo as a project asset,
+//! FT-337), the frame defaults (`project.frames.set`), the colour profile (the sample's convention or one of the
+//! shipped EN 60204-1 and IEC 60445 profiles, FT-337), the size profile, the numbering schemes and the
+//! cross-reference format (`project.settings.set`), the languages and printed formats (`project.languages.set`),
+//! the structure nodes, the sections (FT-336), the report blocks of the golden layout (`report_block.create`, each
+//! with its form from the library, FT-341) and the first revision. The check scheme is validated and kept in the draft, listed
 //! on the review step as "kept in the draft": its command, `project.checks.set`, is `HumanOnly` (ADR-0008
 //! amendment 3: it decides a check outcome), so a script, the wizard's included, cannot submit it. A field's
 //! [`FieldMeta::written`] says which kind it is.
@@ -28,13 +30,19 @@ use ew_api::output::{ExportOptions, ExportPages, PageSelection};
 use ew_api::{CmdLog, Session};
 use serde_json::{Value, json};
 
+use std::sync::Arc;
+
 use crate::strings;
 use crate::wizard_data::{
-    COLOUR_PROFILE_SAMPLE, COVER_FRAME, GRID_FRAME, NOGRID_FRAME, SHIPPED_FORMS, SIZE_PROFILE_SAMPLE,
+    COLOUR_PROFILE_SAMPLE, COVER_FRAME, GOLDEN_REPORT_LAYOUT, GRID_FRAME, NOGRID_FRAME,
+    SHIPPED_COLOUR_PROFILES, SHIPPED_FORMS, SIZE_PROFILE_SAMPLE, TITLE_BLOCK,
 };
 
 /// The field of the check scheme, the one field `wizard.finish` keeps in the draft (FT-336).
 pub const CHECK_SCHEME_FIELD: &str = "check_scheme";
+
+/// The field of the company logo: the path of an SVG, PNG or JPEG file (FT-337).
+pub const LOGO_FIELD: &str = "company_logo";
 
 /// The `$schema` of the draft file.
 pub const DRAFT_SCHEMA: &str = "ew.wizard-draft/1";
@@ -204,6 +212,14 @@ pub static FIELDS: &[FieldMeta] = &[
         true,
     ),
     field(
+        Step::Company,
+        LOGO_FIELD,
+        "wizard-field-company-logo",
+        Text,
+        "",
+        true,
+    ),
+    field(
         Step::Frame,
         "frame",
         "wizard-field-frame",
@@ -215,7 +231,7 @@ pub static FIELDS: &[FieldMeta] = &[
         Step::Colour,
         "colour",
         "wizard-field-colour",
-        Choice(&["sample", "default"]),
+        Choice(&["sample", "en60204-machine", "iec60445-installation", "default"]),
         "sample",
         true,
     ),
@@ -321,6 +337,14 @@ pub static FIELDS: &[FieldMeta] = &[
         "wizard-field-decimal",
         Choice(&["point", "comma"]),
         "point",
+        true,
+    ),
+    field(
+        Step::Reports,
+        "report_blocks",
+        "wizard-field-report-blocks",
+        Choice(&["golden", "none"]),
+        "golden",
         true,
     ),
     field(
@@ -488,6 +512,13 @@ pub fn validate(meta: &FieldMeta, value: &str) -> Result<(), &'static str> {
             }
         }
         (_, "sections") => parse_sections(value).map(|_| ()),
+        (_, LOGO_FIELD) => {
+            if value.chars().count() <= 1000 && !value.contains('\n') {
+                Ok(())
+            } else {
+                Err("wizard-error-text")
+            }
+        }
         (_, "first_revision") => {
             if !value.is_empty() && value.len() <= 20 && !value.contains(char::is_whitespace) {
                 Ok(())
@@ -512,10 +543,38 @@ pub fn validate(meta: &FieldMeta, value: &str) -> Result<(), &'static str> {
     }
 }
 
+/// The logo file the `company_logo` field names, read when the field is set.
+#[derive(Clone, PartialEq, Eq, Debug)]
+struct Logo {
+    bytes: Arc<[u8]>,
+    format: ew_api::AssetFormat,
+    /// A 64-bit FNV-1a digest of the bytes: the logo's part of the preview key, so that the key does not carry the
+    /// file.
+    digest: u64,
+}
+
+impl Logo {
+    /// Reads and sniffs the logo file at `path` (SVG, PNG or JPEG within the asset store's limits).
+    fn read(path: &str) -> Result<Logo, &'static str> {
+        let bytes = std::fs::read(path).map_err(|_| "wizard-error-logo")?;
+        let (format, _) = ew_api::sniff_asset(&bytes).map_err(|_| "wizard-error-logo")?;
+        let digest = bytes.iter().fold(0xcbf2_9ce4_8422_2325_u64, |h, b| {
+            (h ^ u64::from(*b)).wrapping_mul(0x0100_0000_01b3)
+        });
+        Ok(Logo {
+            bytes: bytes.into(),
+            format,
+            digest,
+        })
+    }
+}
+
 /// The values of the wizard's fields.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Draft {
     values: BTreeMap<String, String>,
+    /// The file of the `company_logo` field, read when it was set.
+    logo: Option<Logo>,
 }
 
 impl Default for Draft {
@@ -525,6 +584,7 @@ impl Default for Draft {
                 .iter()
                 .map(|f| (f.key.to_owned(), f.default.to_owned()))
                 .collect(),
+            logo: None,
         }
     }
 }
@@ -535,16 +595,30 @@ impl Draft {
         self.values.get(key).map_or("", String::as_str)
     }
 
-    /// Sets a validated value.
+    /// Sets a validated value. The `company_logo` field names a file, which is read and sniffed here: an empty
+    /// value removes the logo.
     ///
     /// # Errors
     ///
-    /// The reason key when the name is no field or the value is not valid for it.
+    /// The reason key when the name is no field or the value is not valid for it (for the logo: a file that cannot
+    /// be read, or that is no SVG, PNG or JPEG file within the asset store's limits).
     pub fn set(&mut self, key: &str, value: &str) -> Result<(), &'static str> {
         let meta = field_meta(key).ok_or("wizard-error-field")?;
         validate(meta, value)?;
+        if key == LOGO_FIELD {
+            self.logo = if value.is_empty() {
+                None
+            } else {
+                Some(Logo::read(value)?)
+            };
+        }
         self.values.insert(key.to_owned(), value.to_owned());
         Ok(())
+    }
+
+    /// Whether the logo is a raster image (PNG, JPEG), which prints rasterised (D-07); `false` without a logo.
+    pub fn logo_is_raster(&self) -> bool {
+        self.logo.as_ref().is_some_and(|l| l.format.is_raster())
     }
 
     /// The draft file's text: `{"$schema":...,"step":<0-based>,"values":{...}}`, one line, members sorted.
@@ -582,10 +656,17 @@ impl Draft {
         Some((draft, step))
     }
 
-    /// The colour profile value, or `None` for the profile default (no member).
+    /// The colour profile value, or `None` for the profile default (no member): the sample project's convention or
+    /// a shipped profile ([`SHIPPED_COLOUR_PROFILES`]).
     fn colour_value(&self) -> Option<Value> {
-        (self.get("colour") == "sample")
-            .then(|| serde_json::from_str(COLOUR_PROFILE_SAMPLE).unwrap_or(Value::Null))
+        let text = match self.get("colour") {
+            "sample" => COLOUR_PROFILE_SAMPLE,
+            choice => SHIPPED_COLOUR_PROFILES
+                .iter()
+                .find(|(c, _)| *c == choice)
+                .map(|(_, text)| *text)?,
+        };
+        Some(serde_json::from_str(text).unwrap_or(Value::Null))
     }
 
     /// The size profile value, or `None` for the profile default. The sample profile with the draft's cross
@@ -639,8 +720,9 @@ impl Draft {
     }
 
     /// The company command (`project.company.set`) with the members the draft names (an empty field sends
-    /// nothing, so it leaves the project's value as it is), or `None` when it names neither a company nor a notice.
-    fn company_command(&self) -> Option<(&'static str, Value)> {
+    /// nothing, so it leaves the project's value as it is), or `None` when it names no company, notice or logo. The
+    /// logo is sent as its file's bytes in base64 (FT-337); `logo_text` turns the logo into that text.
+    fn company_command_with(&self, logo_text: impl Fn(&Logo) -> String) -> Option<(&'static str, Value)> {
         let mut params = serde_json::Map::new();
         for (field, member) in [("company_name", "name"), ("company_notice", "notice")] {
             let value = self.get(field);
@@ -648,7 +730,15 @@ impl Draft {
                 params.insert(member.to_owned(), Value::from(value));
             }
         }
+        if let Some(logo) = &self.logo {
+            params.insert("logo".to_owned(), Value::from(logo_text(logo)));
+        }
         (!params.is_empty()).then_some(("project.company.set", Value::Object(params)))
+    }
+
+    /// [`Draft::company_command_with`] with the logo's bytes in base64.
+    fn company_command(&self) -> Option<(&'static str, Value)> {
+        self.company_command_with(|logo| ew_api::base64_encode(&logo.bytes))
     }
 
     /// The frame-defaults command (`project.frames.set`): the frame of the `frame` field for drawn pages, the cover
@@ -689,16 +779,53 @@ impl Draft {
         )
     }
 
-    /// The commands the live preview applies to the sample project, in order: the company, the frame defaults,
-    /// the settings, and the languages and formats. The sample project holds the shipped forms already, so the
-    /// preview embeds nothing.
+    /// The commands the live preview applies to the sample project, in order: the company (the logo included), the
+    /// frame defaults, the settings, and the languages and formats. The sample project holds the shipped forms and
+    /// the golden report blocks already, so the preview embeds nothing and adds no block.
     pub fn preview_commands(&self) -> Vec<(&'static str, Value)> {
+        self.preview_commands_with(self.company_command())
+    }
+
+    fn preview_commands_with(&self, company: Option<(&'static str, Value)>) -> Vec<(&'static str, Value)> {
         let mut out = Vec::new();
-        out.extend(self.company_command());
+        out.extend(company);
         out.extend(self.frames_command());
         out.extend(self.settings_commands());
         out.push(self.languages_command());
         out
+    }
+
+    /// The report blocks of the golden layout ([`GOLDEN_REPORT_LAYOUT`]) when the `report_blocks` field says so:
+    /// one `report_block.create` per block, on the shipped frame without the grid, with that form and the title
+    /// block it names as `form_copies` (the form comes from the library with the block, FT-341), in the section
+    /// whose folio range holds the block's first folio (a `{"ref": "section:<n>"}`), else in none.
+    fn report_commands(&self, sections: &[SectionRow]) -> Vec<(&'static str, Value)> {
+        if self.get("report_blocks") != "golden" {
+            return Vec::new();
+        }
+        let copies: Vec<Value> = [NOGRID_FRAME, TITLE_BLOCK]
+            .iter()
+            .filter_map(|key| shipped_form(key))
+            .collect();
+        let Some(form) = shipped_form_id(NOGRID_FRAME) else {
+            return Vec::new();
+        };
+        GOLDEN_REPORT_LAYOUT
+            .iter()
+            .map(|(kind, folio, title)| {
+                let mut params = json!({
+                    "source": { "kind": kind },
+                    "form": form,
+                    "form_copies": copies,
+                    "first_folio": folio,
+                    "title": title,
+                });
+                if let Some(s) = sections.iter().find(|s| s.first <= *folio && *folio <= s.last) {
+                    params["section"] = json!({ "ref": format!("section:{}", s.number) });
+                }
+                ("report_block.create", params)
+            })
+            .collect()
     }
 
     /// The settings commands of the draft (`project.settings.set`), in order.
@@ -724,8 +851,8 @@ impl Draft {
     }
 
     /// Every command that builds the basic project from the built-in one: the embedding of the shipped forms, the
-    /// preview's commands ([`Draft::preview_commands`]), then the structure nodes, the sections and the first
-    /// revision.
+    /// preview's commands ([`Draft::preview_commands`]), then the structure nodes, the sections, the report blocks
+    /// and the first revision.
     ///
     /// # Errors
     ///
@@ -743,7 +870,8 @@ impl Draft {
                 out.push(("structure.create_node", json!({ "aspect": aspect, "code": code })));
             }
         }
-        for s in parse_sections(self.get("sections"))? {
+        let sections = parse_sections(self.get("sections"))?;
+        for s in &sections {
             out.push((
                 "section.create",
                 json!({
@@ -754,6 +882,7 @@ impl Draft {
                 }),
             ));
         }
+        out.extend(self.report_commands(&sections));
         out.push(("revision.create", json!({ "label": self.get("first_revision") })));
         Ok(out)
     }
@@ -767,9 +896,12 @@ impl Draft {
         text
     }
 
-    /// A key that changes whenever the preview's commands change: the live preview rebuilds on a new key only.
+    /// A key that changes whenever the preview's commands change: the live preview rebuilds on a new key only. The
+    /// logo takes part by its length and digest, not by its bytes (the key is built every frame).
     pub fn preview_key(&self) -> String {
-        Draft::cmdlog("preview", &self.preview_commands())
+        let company =
+            self.company_command_with(|logo| format!("fnv1a:{:016x}:{}", logo.digest, logo.bytes.len()));
+        Draft::cmdlog("preview", &self.preview_commands_with(company))
     }
 
     /// The review step's lines: each field with its value, and whether it is written or kept in the draft.
@@ -786,27 +918,39 @@ impl Draft {
             .collect()
     }
 
-    /// The value as the review shows it: the label of a choice, the text otherwise, "-" when empty.
+    /// The value as the review shows it: the label of a choice, the text otherwise, "-" when empty; the logo by its
+    /// file name, with the note that a raster logo prints rasterised.
     pub fn display_value(&self, f: &FieldMeta) -> String {
         let v = self.get(f.key);
         match f.kind {
             FieldKind::Choice(_) => strings::text(&format!("choice-{}-{v}", f.key)).to_owned(),
             _ if v.is_empty() => "-".to_owned(),
+            _ if f.key == LOGO_FIELD => {
+                let name = Path::new(v)
+                    .file_name()
+                    .map_or_else(|| v.to_owned(), |n| n.to_string_lossy().into_owned());
+                if self.logo_is_raster() {
+                    strings::format("wizard-logo-raster", &[&name])
+                } else {
+                    name
+                }
+            }
             _ => v.replace('\n', "; "),
         }
     }
 }
 
-/// The copy ID of the shipped form with `key` ([`SHIPPED_FORMS`]).
-fn shipped_form_id(key: &str) -> Option<Value> {
+/// The library document of the shipped form with `key` ([`SHIPPED_FORMS`]).
+fn shipped_form(key: &str) -> Option<Value> {
     SHIPPED_FORMS.iter().find_map(|text| {
         let form: Value = serde_json::from_str(text).ok()?;
-        if form.pointer("/meta/key").and_then(Value::as_str) == Some(key) {
-            form.get("id").cloned()
-        } else {
-            None
-        }
+        (form.pointer("/meta/key").and_then(Value::as_str) == Some(key)).then_some(form)
     })
+}
+
+/// The copy ID of the shipped form with `key` ([`SHIPPED_FORMS`]).
+fn shipped_form_id(key: &str) -> Option<Value> {
+    shipped_form(key).and_then(|form| form.get("id").cloned())
 }
 
 /// The sample project with the draft's settings applied, for the live preview (doc 16 section 9.2: "rendered with
@@ -1082,9 +1226,57 @@ mod tests {
                 "section.create",
                 "section.create",
                 "section.create",
+                "report_block.create",
+                "report_block.create",
+                "report_block.create",
+                "report_block.create",
+                "report_block.create",
+                "report_block.create",
+                "report_block.create",
+                "report_block.create",
+                "report_block.create",
                 "revision.create"
             ]
         );
+        // FT-341: the golden layout, each block with its form and the title block it names from the library.
+        let blocks: Vec<&Value> = cmds
+            .iter()
+            .filter(|(n, _)| *n == "report_block.create")
+            .map(|(_, p)| p)
+            .collect();
+        let layout: Vec<(u64, &str)> = blocks
+            .iter()
+            .map(|p| {
+                (
+                    p["first_folio"].as_u64().unwrap(),
+                    p["source"]["kind"].as_str().unwrap(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            layout,
+            [
+                (2, "toc"),
+                (901, "parts_summary"),
+                (903, "terminal_diagram"),
+                (906, "cable_overview_diagrams"),
+                (907, "wire_list"),
+                (908, "plc_overview"),
+                (909, "potential_overview"),
+                (910, "structure_overview"),
+                (911, "revision_overview")
+            ]
+        );
+        assert_eq!(blocks[0].get("section"), None, "no section holds folio 2");
+        assert_eq!(blocks[1]["section"], json!({"ref": "section:9"}));
+        assert_eq!(blocks[1]["form"], shipped_form_id(NOGRID_FRAME).unwrap());
+        let copies: Vec<&str> = blocks[1]["form_copies"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|c| c["meta"]["key"].as_str().unwrap())
+            .collect();
+        assert_eq!(copies, [NOGRID_FRAME, TITLE_BLOCK]);
         assert_eq!(
             cmds[0].1["copies"].as_array().map(Vec::len),
             Some(SHIPPED_FORMS.len()),
@@ -1155,6 +1347,85 @@ mod tests {
         e.set("check_scheme", "full").unwrap();
         assert_eq!(e.preview_key(), Draft::default().preview_key());
         assert_eq!(e.commands(), Draft::default().commands());
+    }
+
+    #[test]
+    fn the_shipped_profiles_and_no_report_blocks_change_the_commands() {
+        let colour = |d: &Draft| {
+            d.settings_commands()
+                .into_iter()
+                .find(|(_, p)| p["member"] == "colour_profile")
+                .map(|(_, p)| p["value"]["key"].clone())
+        };
+        let mut d = Draft::default();
+        assert_eq!(colour(&d), Some(json!("company.dbu-wh-24v")));
+        d.set("colour", "en60204-machine").unwrap();
+        assert_eq!(colour(&d), Some(json!("ew.en60204-1-machine")));
+        d.set("colour", "iec60445-installation").unwrap();
+        assert_eq!(colour(&d), Some(json!("ew.iec60445-installation")));
+        assert_ne!(d.preview_key(), Draft::default().preview_key());
+        d.set("report_blocks", "none").unwrap();
+        assert!(
+            d.commands()
+                .unwrap()
+                .iter()
+                .all(|(n, _)| *n != "report_block.create")
+        );
+        // Every shipped profile is a valid, unverified value of the member, with the project's own basis note.
+        for (choice, text) in SHIPPED_COLOUR_PROFILES {
+            let v: Value = serde_json::from_str(text).unwrap();
+            assert_eq!(v["verified"], json!(false), "{choice}");
+            assert_eq!(v["basis"], json!("standard"), "{choice}");
+            assert!(v["rows"].as_array().is_some_and(|r| r.len() >= 8), "{choice}");
+        }
+    }
+
+    #[test]
+    fn the_logo_field_reads_its_file_and_reaches_the_company_command() {
+        let dir = std::env::temp_dir().join(format!("ew-wizard-logo-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let svg = dir.join("logo.svg");
+        std::fs::write(
+            &svg,
+            br#"<svg viewBox="0 0 40 10"><rect width="40" height="10"/></svg>"#,
+        )
+        .unwrap();
+        let text = dir.join("notes.txt");
+        std::fs::write(&text, b"not an image").unwrap();
+        let mut d = Draft::default();
+        assert_eq!(
+            d.set(LOGO_FIELD, &text.to_string_lossy()),
+            Err("wizard-error-logo")
+        );
+        assert_eq!(
+            d.set(LOGO_FIELD, &dir.join("missing.svg").to_string_lossy()),
+            Err("wizard-error-logo")
+        );
+        assert_eq!(d.get(LOGO_FIELD), "", "a refused file leaves the field as it was");
+        d.set(LOGO_FIELD, &svg.to_string_lossy()).unwrap();
+        assert!(!d.logo_is_raster());
+        let company = d
+            .preview_commands()
+            .into_iter()
+            .find(|(n, _)| *n == "project.company.set")
+            .unwrap()
+            .1;
+        let bytes = std::fs::read(&svg).unwrap();
+        assert_eq!(company, json!({"logo": ew_api::base64_encode(&bytes)}));
+        assert!(
+            !d.preview_key().contains(&ew_api::base64_encode(&bytes)),
+            "the preview key carries a digest, not the file"
+        );
+        assert_ne!(d.preview_key(), Draft::default().preview_key());
+        let review = d.review();
+        let line = review.iter().find(|l| l.key == LOGO_FIELD).unwrap();
+        assert_eq!((line.value.as_str(), line.written), ("logo.svg", true));
+        // The draft file keeps the path; reading it back reads the file again.
+        let (back, _) = Draft::from_json(&d.to_json(Step::Company)).unwrap();
+        assert_eq!(back, d);
+        d.set(LOGO_FIELD, "").unwrap();
+        assert_eq!(d.preview_commands(), Draft::default().preview_commands());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

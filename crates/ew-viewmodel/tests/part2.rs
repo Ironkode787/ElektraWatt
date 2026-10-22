@@ -785,7 +785,7 @@ fn every_choice_of_the_wizard_is_accepted_by_the_commands() {
     let mut shell = tmp.shell();
     done(&mut shell, "tools.company_standard", json!({}));
     let mut n = 0;
-    for colour in ["sample", "default"] {
+    for colour in ["sample", "en60204-machine", "iec60445-installation", "default"] {
         for size in ["sample", "default"] {
             for xref in ["qet", "eplan"] {
                 for (field, value) in [("colour", colour), ("size", size), ("xref", xref)] {
@@ -801,7 +801,7 @@ fn every_choice_of_the_wizard_is_accepted_by_the_commands() {
             }
         }
     }
-    assert_eq!(n, 8);
+    assert_eq!(n, 16);
     shell.shutdown();
 }
 
@@ -995,6 +995,142 @@ fn the_wizard_writes_the_company_the_frame_and_the_formats() {
         "the grid frame's column and row labels"
     );
     assert_ne!(printed(&other), labels, "the no-grid frame has no full label set");
+    shell.shutdown();
+}
+
+/// The images of a page output, by content hash and format, in display-list order.
+fn page_images(
+    pages: &ew_viewmodel::ew_api::output::ExportPages,
+) -> Vec<([u8; 32], ew_viewmodel::ew_api::output::ew_dl::ImageFormat)> {
+    use ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
+    fn walk(items: &[Item], out: &mut Vec<([u8; 32], ew_viewmodel::ew_api::output::ew_dl::ImageFormat)>) {
+        for item in items {
+            match &item.kind {
+                ItemKind::Image(image) => out.push((image.image.sha256, image.image.format)),
+                ItemKind::Group(group) => walk(&group.items, out),
+                _ => {}
+            }
+        }
+    }
+    let mut out = Vec::new();
+    for page in &pages.pages {
+        walk(&page.content.items, &mut out);
+    }
+    out
+}
+
+/// The company logo's reference in a project directory's `project.jsonl`: its hash (raw) and the member as written.
+fn logo_of(dir: &Path) -> Option<([u8; 32], Value)> {
+    let text = std::fs::read_to_string(dir.join("project.jsonl")).ok()?;
+    let project: Value = text
+        .lines()
+        .filter_map(|l| serde_json::from_str::<Value>(l).ok())
+        .find(|v| v["$k"] == "project")?;
+    let logo = project.get("ew.company")?.get("logo")?.clone();
+    let hex = logo["sha256"].as_str()?.strip_prefix("sha256:")?;
+    let mut sha = [0u8; 32];
+    for (i, b) in sha.iter_mut().enumerate() {
+        *b = u8::from_str_radix(&hex[2 * i..2 * i + 2], 16).ok()?;
+    }
+    Some((sha, logo))
+}
+
+/// FT-337 and FT-341: the wizard writes the logo as a project asset that the title block draws, the shipped EN 60204-1
+/// colour profile, and the report blocks of the golden layout, whose folios render through the page output; the
+/// preview shows the logo on the sample's cover; a project made from the basic project carries the asset; the review
+/// says `written` for every field but the check scheme.
+#[test]
+fn the_wizard_writes_the_logo_the_shipped_profile_and_the_report_blocks() {
+    use ew_viewmodel::ew_api::output::ew_dl::ImageFormat;
+    // A placeholder logo, no company's artwork.
+    const LOGO: &[u8] = br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 10"><rect width="40" height="10"/></svg>"#;
+    let tmp = Tmp::new();
+    let logo_file = tmp.0.join("logo.svg");
+    std::fs::write(&logo_file, LOGO).unwrap();
+    let mut shell = tmp.shell();
+    done(&mut shell, "tools.company_standard", json!({}));
+    for (field, value) in [
+        ("company_name", "Example Panels".to_owned()),
+        ("company_logo", path(&logo_file)),
+        ("colour", "en60204-machine".to_owned()),
+        ("preview", "cover".to_owned()),
+    ] {
+        done(&mut shell, "wizard.set", json!({"field": field, "value": value}));
+    }
+    // The preview: the sample's cover with the logo in its title block.
+    let cover = shell.wizard_preview_content().expect("the cover");
+    let images = page_images(&cover);
+    assert!(
+        images.iter().any(|(_, f)| *f == ImageFormat::Svg),
+        "the logo on the preview's cover: {images:?}"
+    );
+    // The review: every field is written but the check scheme.
+    let review = shell.wizard().unwrap().review();
+    let kept: Vec<&str> = review.iter().filter(|l| !l.written).map(|l| l.key).collect();
+    assert_eq!(kept, ["check_scheme"], "{review:?}");
+    let logo_line = review.iter().find(|l| l.key == "company_logo").unwrap();
+    assert_eq!(logo_line.value, "logo.svg");
+
+    let basic = tmp.0.join("basic.ew");
+    done(&mut shell, "wizard.finish", json!({ "dir": path(&basic) }));
+    // The logo: an asset file named by its hash, the company member naming it with its format and size.
+    let (sha, member) = logo_of(&basic).expect("the company logo is written");
+    assert_eq!(member["format"], "svg");
+    assert_eq!(member["size"], json!([40, 10]));
+    let hex: String = sha.iter().map(|b| format!("{b:02x}")).collect();
+    let asset = basic.join("assets").join(format!("{hex}.svg"));
+    assert_eq!(std::fs::read(&asset).unwrap(), LOGO, "the asset holds the file");
+    let manifest = std::fs::read_to_string(basic.join("manifest.json")).unwrap();
+    assert!(manifest.contains(&format!("assets/{hex}.svg")), "{manifest}");
+    // The title block of folio 1 draws it.
+    let folio_1 = render_folio(&basic, "1");
+    assert!(
+        page_images(&folio_1).contains(&(sha, ImageFormat::Svg)),
+        "the logo in the title block of folio 1"
+    );
+    let (session, _) = Session::open_read_only(&basic, VERSION).unwrap();
+    let held = session
+        .asset(&ew_viewmodel::ew_api::Sha256(sha))
+        .expect("the project holds the asset");
+    assert_eq!(held.0.format, ew_viewmodel::ew_api::AssetFormat::Svg);
+    assert_eq!(&*held.1, LOGO);
+    drop(session);
+    // The shipped profile reaches the records.
+    let project = std::fs::read_to_string(basic.join("project.jsonl")).unwrap();
+    assert!(project.contains("\"key\":\"ew.en60204-1-machine\""), "{project}");
+    assert!(project.contains("\"verified\":false"), "{project}");
+    // The report blocks of the golden layout, on the embedded no-grid frame.
+    let blocks = std::fs::read_to_string(basic.join("report-blocks.jsonl")).unwrap();
+    assert_eq!(blocks.lines().count(), 9, "{blocks}");
+    for kind in ["toc", "parts_summary", "terminal_diagram", "revision_overview"] {
+        assert!(
+            blocks.contains(&format!("{{\"kind\":\"{kind}\"}}")),
+            "{kind} in {blocks}"
+        );
+    }
+    assert_eq!(std::fs::read_dir(basic.join("lib/forms")).unwrap().count(), 4);
+    // A report folio renders through the page output: the revision overview lists the first revision.
+    let revisions = render_folio(&basic, "911");
+    assert_eq!(revisions.pages.len(), 1);
+    let texts = page_texts(&revisions);
+    assert!(texts.iter().any(|t| t.contains("V1.0")), "{texts:?}");
+    let toc = render_folio(&basic, "2");
+    assert!(!toc.pages.is_empty(), "the table of contents renders");
+    assert!(
+        page_texts(&toc).iter().any(|t| t.contains("911")),
+        "the TOC lists folio 911"
+    );
+
+    // A project made from the basic project carries the asset.
+    done(&mut shell, "wizard.cancel", json!({}));
+    let job = tmp.0.join("job.ew");
+    done(&mut shell, "file.new", json!({ "dir": path(&job) }));
+    assert_eq!(logo_of(&job).map(|(s, _)| s), Some(sha));
+    assert_eq!(
+        std::fs::read(job.join("assets").join(format!("{hex}.svg"))).unwrap(),
+        LOGO
+    );
+    assert!(page_images(&render_folio(&job, "1")).contains(&(sha, ImageFormat::Svg)));
     shell.shutdown();
 }
 

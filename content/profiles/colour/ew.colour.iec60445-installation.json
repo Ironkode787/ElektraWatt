@@ -1,0 +1,97 @@
+{
+  "basis": "standard",
+  "basis_note": {
+    "en": "ElektraWatt's own table after IEC 60445 (docs/design/08-connections-terminals-cables.md section 4.3); codes per IEC 60757; the 0 V of a two-wire supply is typed M and mapped like L-; not yet checked against a licensed copy"
+  },
+  "codes": [],
+  "key": "ew.iec60445-installation",
+  "name": {
+    "en": "IEC 60445 installation"
+  },
+  "rows": [
+    {
+      "colour": ["BN"],
+      "colour_name": {"en": "Brown"},
+      "function": {"en": "Phase 1 (verify)"},
+      "group": {"en": "AC"},
+      "potential_type": {"en": "L1"},
+      "select": {"ac_dc": "ac", "ptype": ["l1"]}
+    },
+    {
+      "colour": ["BK"],
+      "colour_name": {"en": "Black"},
+      "function": {"en": "Phase 2 (verify)"},
+      "group": {"en": "AC"},
+      "potential_type": {"en": "L2"},
+      "select": {"ac_dc": "ac", "ptype": ["l2"]}
+    },
+    {
+      "colour": ["GY"],
+      "colour_name": {"en": "Grey"},
+      "function": {"en": "Phase 3 (verify)"},
+      "group": {"en": "AC"},
+      "potential_type": {"en": "L3"},
+      "select": {"ac_dc": "ac", "ptype": ["l3"]}
+    },
+    {
+      "colour": ["BN"],
+      "colour_name": {"en": "Brown"},
+      "function": {"en": "Line (verify)"},
+      "group": {"en": "AC"},
+      "potential_type": {"en": "L, signal AC"},
+      "select": {"ac_dc": "ac", "ptype": ["l", "signal"]}
+    },
+    {
+      "colour": ["BU"],
+      "colour_name": {"en": "Blue"},
+      "function": {"en": "Neutral"},
+      "group": {"en": "AC"},
+      "potential_type": {"en": "N"},
+      "select": {"ptype": ["n"]}
+    },
+    {
+      "colour": ["GN", "YE"],
+      "colour_name": {"en": "Green / Yellow"},
+      "function": {"en": "Protective earth"},
+      "group": {"en": "Earth"},
+      "potential_type": {"en": "PE"},
+      "select": {"ptype": ["pe"]}
+    },
+    {
+      "colour": ["GN", "YE"],
+      "colour_name": {"en": "Green / Yellow, blue marking"},
+      "function": {"en": "PEN"},
+      "group": {"en": "Earth"},
+      "potential_type": {"en": "PEN"},
+      "select": {"ptype": ["pen"]}
+    },
+    {
+      "colour": ["PK"],
+      "colour_name": {"en": "Pink"},
+      "function": {"en": "Functional earth"},
+      "group": {"en": "Earth"},
+      "potential_type": {"en": "FE"},
+      "select": {"ptype": ["fe"]}
+    },
+    {
+      "colour": ["RD"],
+      "colour_name": {"en": "Red"},
+      "function": {"en": "Positive"},
+      "group": {"en": "DC"},
+      "potential_type": {"en": "L+, signal DC"},
+      "select": {"ac_dc": "dc", "ptype": ["l_plus", "signal"]}
+    },
+    {
+      "colour": ["WH"],
+      "colour_name": {"en": "White"},
+      "function": {"en": "Negative, 0 V (verify)"},
+      "group": {"en": "DC"},
+      "potential_type": {"en": "L-, M"},
+      "select": {"ac_dc": "dc", "ptype": ["l_minus", "m"]}
+    }
+  ],
+  "standards": {
+    "en": "IEC 60445 / IEC 60757"
+  },
+  "verified": false
+}

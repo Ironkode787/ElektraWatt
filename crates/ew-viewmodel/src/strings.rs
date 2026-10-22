@@ -391,7 +391,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "wizard-step-languages" => "Languages and formats",
         "wizard-step-reports" => "Reports and checks",
         "wizard-step-review" => "Review and create",
-        "wizard-hint-company" => "The panel builder's name and the notice for the title block.",
+        "wizard-hint-company" => "The panel builder's name, the notice and the logo for the title block.",
         "wizard-hint-frame" => {
             "The frame and title block of new pages; the cover and the section dividers keep their own frames."
         }
@@ -406,7 +406,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "wizard-hint-revisions" => "The label of the first revision.",
         "wizard-hint-languages" => "The source language and the formats of printed dates and numbers.",
         "wizard-hint-reports" => {
-            "The check scheme of new projects. Kept in the draft: it decides what the release gate checks, so a person sets it in the project, not the wizard's script."
+            "The report blocks of new projects, and their check scheme. The check scheme is kept in the draft: it decides what the release gate checks, so a person applies it after finishing, not the wizard's script."
         }
         "wizard-hint-review" => "Check the choices, then write the basic project to a new directory.",
         "wizard-field-company-name" => "Company name",
@@ -427,6 +427,18 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "wizard-field-date-format" => "Date format",
         "wizard-field-decimal" => "Decimal separator",
         "wizard-field-check-scheme" => "Check scheme",
+        "wizard-field-company-logo" => "Logo file (SVG; PNG or JPEG print rasterised)",
+        "wizard-field-report-blocks" => "Report blocks",
+        "choice-colour-en60204-machine" => "EN 60204-1 machine (shipped, not yet verified)",
+        "choice-colour-iec60445-installation" => "IEC 60445 installation (shipped, not yet verified)",
+        "choice-report_blocks-golden" => {
+            "The standard layout: TOC 2, parts 901, terminals 903, cables 906, wires 907, PLC 908, potentials 909, tags 910, revisions 911"
+        }
+        "choice-report_blocks-none" => "None",
+        "wizard-error-logo" => {
+            "The logo must be a readable SVG, PNG or JPEG file (SVG up to 8 MiB, PNG and JPEG up to 16 MiB)."
+        }
+        "wizard-logo-raster" => "{0} (a raster image: it prints rasterised)",
         "choice-frame-qet-grid" => "QET-compatible A4 landscape, with grid",
         "choice-frame-qet-nogrid" => "QET-compatible A4 landscape, without grid",
         "choice-colour-sample" => "DBU/WH 24 V (the sample project's convention)",
