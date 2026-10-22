@@ -98,65 +98,69 @@ impl NavigatorPane {
         }
         // The rows are made in a scope whose AccessKit parent is the list, so they are the Tree's items (§6.9).
         ui.scope_builder(egui::UiBuilder::new().accessibility_parent(list_id), |ui| {
-        area.show_rows(ui, ROW_HEIGHT, visible.len(), |ui, range| {
-            for row in &visible[range] {
-                let text = match &row.kind {
-                    RowKind::Node { label, .. } => {
-                        format!("{} {label}", if row.expanded { "-" } else { "+" })
-                    }
-                    RowKind::Page(i) => {
-                        let r = &rows[*i];
-                        let mut t = format!("{} {}", r.folio, r.title);
-                        if r.generated {
-                            t.push_str(&format!(" [{}]", strings::text("badge-generated")));
+            area.show_rows(ui, ROW_HEIGHT, visible.len(), |ui, range| {
+                for row in &visible[range] {
+                    let text = match &row.kind {
+                        RowKind::Node { label, .. } => {
+                            format!("{} {label}", if row.expanded { "-" } else { "+" })
                         }
-                        if r.qet_grid {
-                            t.push_str(&format!(" [{}]", strings::text("badge-qet-grid")));
+                        RowKind::Page(i) => {
+                            let r = &rows[*i];
+                            let mut t = format!("{} {}", r.folio, r.title);
+                            if r.generated {
+                                t.push_str(&format!(" [{}]", strings::text("badge-generated")));
+                            }
+                            if r.qet_grid {
+                                t.push_str(&format!(" [{}]", strings::text("badge-qet-grid")));
+                            }
+                            t
                         }
-                        t
-                    }
-                };
-                let is_current = matches!(row.kind, RowKind::Page(i) if Some(ew_viewmodel::canvas::PageId::of(&rows[i])) == current);
-                let selected = cursor.as_deref() == Some(row.key.as_str());
-                let response = ui
-                    .horizontal(|ui| {
-                        ui.add_space(INDENT * (row.level.saturating_sub(1)) as f32);
-                        let rich = if is_current {
-                            egui::RichText::new(text).strong()
-                        } else {
-                            egui::RichText::new(text)
-                        };
-                        ui.add(egui::Button::selectable(selected, rich).frame(false))
-                    })
-                    .inner;
-                let name = PageNavigator::accessible_name(row, rows, current);
-                response.widget_info(|| egui::WidgetInfo::selected(egui::Role::TreeItem, true, selected, &name));
-                let (level, position, size, expanded) = (row.level, row.position, row.set_size, row.expanded);
-                let node = matches!(row.kind, RowKind::Node { .. });
-                ui.ctx().accesskit_node_builder(response.id, |n| {
-                    n.set_level(level);
-                    n.set_position_in_set(position);
-                    n.set_size_of_set(size);
-                    if node {
-                        n.set_expanded(expanded);
-                    }
-                });
-                if response.clicked_by(PointerButton::Middle) {
-                    if matches!(row.kind, RowKind::Page(_)) {
+                    };
+                    let is_current = matches!(row.kind, RowKind::Page(i)
+                        if Some(ew_viewmodel::canvas::PageId::of(&rows[i])) == current);
+                    let selected = cursor.as_deref() == Some(row.key.as_str());
+                    let response = ui
+                        .horizontal(|ui| {
+                            ui.add_space(INDENT * (row.level.saturating_sub(1)) as f32);
+                            let rich = if is_current {
+                                egui::RichText::new(text).strong()
+                            } else {
+                                egui::RichText::new(text)
+                            };
+                            ui.add(egui::Button::selectable(selected, rich).frame(false))
+                        })
+                        .inner;
+                    let name = PageNavigator::accessible_name(row, rows, current);
+                    response.widget_info(|| {
+                        egui::WidgetInfo::selected(egui::Role::TreeItem, true, selected, &name)
+                    });
+                    let (level, position, size, expanded) =
+                        (row.level, row.position, row.set_size, row.expanded);
+                    let node = matches!(row.kind, RowKind::Node { .. });
+                    ui.ctx().accesskit_node_builder(response.id, |n| {
+                        n.set_level(level);
+                        n.set_position_in_set(position);
+                        n.set_size_of_set(size);
+                        if node {
+                            n.set_expanded(expanded);
+                        }
+                    });
+                    if response.clicked_by(PointerButton::Middle) {
+                        if matches!(row.kind, RowKind::Page(_)) {
+                            events.push(Event::Action(
+                                "pages.open",
+                                json!({"key": row.key, "new_tab": true}),
+                            ));
+                        }
+                    } else if response.clicked() {
+                        events.push(Event::Action("ui.focus", json!({"area": "navigator"})));
                         events.push(Event::Action(
-                            "pages.open",
-                            json!({"key": row.key, "new_tab": true}),
+                            if node { "pages.toggle" } else { "pages.open" },
+                            json!({"key": row.key}),
                         ));
                     }
-                } else if response.clicked() {
-                    events.push(Event::Action("ui.focus", json!({"area": "navigator"})));
-                    events.push(Event::Action(
-                        if node { "pages.toggle" } else { "pages.open" },
-                        json!({"key": row.key}),
-                    ));
                 }
-            }
-        });
+            });
         });
     }
 

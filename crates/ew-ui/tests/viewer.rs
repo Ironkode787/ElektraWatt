@@ -263,9 +263,26 @@ fn v10_exact_counts_of_the_multi_canvas_host() {
         "the counters are live: {counters:?}"
     );
     // 200 mixed steps between pages in the page-content cache at one revision.
+    let mut done = std::collections::BTreeMap::<&str, u32>::new();
     for i in 0..200 {
+        if i % 20 == 0 {
+            // A jump and its history: the cursor on a link, follow it, back, and every other time forward.
+            let mut steps = vec!["nav.next_link", "nav.follow", "nav.back"];
+            if i % 40 == 0 {
+                steps.push("nav.forward");
+            }
+            for action in steps {
+                let out = h.state_mut().shell_mut().dispatch(action, &json!({}));
+                assert!(
+                    matches!(out, Outcome::Done | Outcome::Refused { .. }),
+                    "{action}: {out:?}"
+                );
+                if out == Outcome::Done {
+                    *done.entry(action).or_default() += 1;
+                }
+            }
+        }
         let (action, params) = match i % 10 {
-            0 if i % 20 == 0 => ("nav.follow", json!({})),
             0 => ("tab.next", json!({})),
             1 => ("cursor.right", json!({})),
             2 => ("canvas.pointer", json!({"x_mm": 100 + i % 9, "y_mm": 70})),
@@ -275,8 +292,6 @@ fn v10_exact_counts_of_the_multi_canvas_host() {
             6 => ("canvas.pointer", json!({"group": 1, "x_mm": 80, "y_mm": 90})),
             7 => ("view.side_by_side", json!({})),
             8 => ("view.side_by_side", json!({})),
-            _ if i % 20 == 9 => ("nav.back", json!({})),
-            _ if i % 40 == 19 => ("nav.forward", json!({})),
             _ => ("canvas.pointer", json!({})),
         };
         let out = h.state_mut().shell_mut().dispatch(action, &params);
@@ -289,6 +304,12 @@ fn v10_exact_counts_of_the_multi_canvas_host() {
         }
     }
     settle(&mut h);
+    for action in ["nav.next_link", "nav.follow", "nav.back", "nav.forward"] {
+        assert!(
+            done.get(action).copied().unwrap_or(0) >= 1,
+            "{action} ran: {done:?}"
+        );
+    }
     let after = h.state().shell().session_calls();
     assert_eq!(after.link_targets, calls.link_targets, "{after:?} {calls:?}");
     assert_eq!(after.page_cells, calls.page_cells);
@@ -322,12 +343,19 @@ fn v11_hidden_canvas_tabs_keep_their_tiles_and_a_closed_page_drops_its_scene() {
     let scenes = h.state().canvas_scene_count();
     assert_eq!(scenes, 2, "two tabs, two pages, two scenes");
     assert!(h.state().canvas_hidden_bytes() <= ew_ui::canvas::HIDDEN_CACHE_BYTES);
-    // Back to the hidden tab of 102: its tiles are still cached, no tile is rasterised.
-    let rastered = h.state().canvas_counters().tiles_rastered;
+    // Back to the hidden tab of 102: its tiles are still cached, so the very first frame draws the page complete,
+    // with no tile to wait for. (Only what the test controls is counted: the cache's content, not the pool's
+    // deliveries, whose timing varies.) Both pages are fitted A4 sheets in one pane, so the view does not change and
+    // the plan is settled at once.
+    let fitted_103 = h.state().shell().canvas().unwrap().view_nm();
     dispatch(&mut h, "tab.previous", json!({}));
-    settle(&mut h);
-    wait_for_page(&mut h);
-    assert_eq!(h.state().canvas_counters().tiles_rastered, rastered);
+    assert_eq!(folio(&h), "102");
+    assert_eq!(h.state().shell().canvas().unwrap().view_nm(), fitted_103);
+    h.step();
+    assert!(
+        h.state().page_view_ready(),
+        "every tile of the hidden tab's page was kept"
+    );
     // Closing the last tab of 103 drops its scene.
     dispatch(&mut h, "tab.next", json!({}));
     dispatch(&mut h, "tab.close", json!({}));
