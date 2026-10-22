@@ -19,3 +19,15 @@ ew-viewmodel = { path = "../ew-viewmodel" }
 ew-render2d = { path = "../ew-render2d" }
 ew-render-cpu = { path = "../ew-render-cpu" }
 ew-render3d = { path = "../ew-render3d" }
+# The widgets (AccessKit is a hard dependency of egui 0.37, not a feature). `default_fonts` is off: egui's default fonts carry the Ubuntu font under its own licence, which
+# deny.toml does not allow; the UI uses the bundled Noto Sans (WP-S2.01 spec section 4).
+egui = { version = "=0.37.0", default-features = false }
+# The headless transcript.
+serde_json = "1.0.154"
+# Picks the regular face among the bundled fonts by its family name and weight (already in the graph through
+# ew-render-cpu).
+skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
+
+[dev-dependencies]
+# Interaction tests and the accessible-name walker, without rendering (no snapshot or wgpu feature).
+egui_kittest = { version = "=0.37.0", default-features = false }

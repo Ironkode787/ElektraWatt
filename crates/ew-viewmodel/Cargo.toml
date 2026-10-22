@@ -16,3 +16,7 @@ workspace = true
 
 [dependencies]
 ew-api = { path = "../ew-api" }
+# UI-script lines, command parameters and the transcript (ew.uiscript/1, ew.uitranscript/1).
+serde_json = "1.0.154"
+# settings.toml; a `toml::Table` keeps unknown keys, sorted.
+toml = { workspace = true }
