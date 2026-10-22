@@ -12,6 +12,7 @@ mod anonymise;
 mod build_scripts;
 mod dco;
 mod deps;
+mod docs_gen;
 mod features;
 mod governance;
 mod licence;
@@ -51,6 +52,10 @@ commands:
   symbols-qet10 [--check]
                        seal the native library documents and generate the QET edition (content/symbols/qet10);
                        --check changes nothing and fails when the committed files differ
+  docs-gen [--check]   the generated reference pages of the user documentation book (docs/book/src/reference/):
+                       one page per command (crates/ew-commands/schemas/) and per rule pack
+                       (crates/ew-checks/catalogue/rules.json); --check changes nothing and fails when a
+                       committed page differs
   acceptance [--milestone] <report.md>
                        the acceptance runner of gate M1 over the golden project (WP-S6.01): writes the
                        Markdown report and a JUnit file (target/nextest/ci/junit.xml) and exits non-zero when an
@@ -113,6 +118,18 @@ fn main() -> ExitCode {
             Some("--check") => symbols::run(&workspace_root(), true),
             Some(other) => {
                 eprint!("symbols-qet10: unknown argument `{other}`\n\n{USAGE}");
+                Ok(false)
+            }
+        },
+        "docs-gen" => match args.get(1).map(String::as_str) {
+            None => docs_gen::run(&workspace_root(), false),
+            Some("--check") => docs_gen::run(&workspace_root(), true),
+            Some(other) => {
+                eprint!(
+                    "docs-gen: unknown argument `{other}`
+
+{USAGE}"
+                );
                 Ok(false)
             }
         },
@@ -317,6 +334,11 @@ fn check_governance_files() -> Result<Violations> {
     Ok(governance::check(&workspace_root()))
 }
 
+/// `docs-gen --check` as an in-process check: the generated reference pages of the book are current.
+fn check_docs_gen() -> Result<Violations> {
+    docs_gen::violations(&workspace_root())
+}
+
 /// `acceptance [--milestone] <report.md>`: runs the `#[ignore]`d test `gate` of
 /// `crates/ew-api/tests/acceptance.rs` with nextest and its `ci` profile (which writes the JUnit file of doc 18
 /// §3.10 step 5). The test evaluates the M1 acceptance criteria over the golden project, writes the Markdown
@@ -468,7 +490,7 @@ fn ci() -> Result<bool> {
             &["test", "--doc", "--workspace", "--all-features", "--locked"],
         ),
     ];
-    let checks: [Check; 8] = [
+    let checks: [Check; 9] = [
         ("check-deps", check_deps),
         ("check-features", check_features),
         ("check-raw-read", check_raw_read),
@@ -477,6 +499,7 @@ fn ci() -> Result<bool> {
         ("check-licence-map", check_licence_map),
         ("check-anonymisation", check_anonymisation),
         ("check-governance-files", check_governance_files),
+        ("docs-gen-check", check_docs_gen),
     ];
 
     let mut summary: Vec<(&str, bool)> = Vec::new();

@@ -1,0 +1,730 @@
+{
+  "rules": [
+    {
+      "code": "101023",
+      "id": "EW-CORE-023",
+      "kind": "hygiene",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "page",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Title-block override",
+      "waivable": true
+    },
+    {
+      "code": "003033",
+      "id": "EW-CORE-033",
+      "kind": "completeness",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "cable",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Cable without length",
+      "waivable": true
+    },
+    {
+      "code": "103051",
+      "id": "EW-CORE-051",
+      "kind": "completeness",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Unpaired interruption point",
+      "waivable": true
+    },
+    {
+      "code": "103052",
+      "id": "EW-CORE-052",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Ambiguous interruption point",
+      "waivable": true
+    },
+    {
+      "code": "103053",
+      "id": "EW-CORE-053",
+      "kind": "hygiene",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "page",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Cross-reference cell invalid",
+      "waivable": true
+    },
+    {
+      "code": "104065",
+      "id": "EW-CORE-065",
+      "kind": "hygiene",
+      "modes": [
+        "offline",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "1.0",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "full",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "migration",
+          "online": false,
+          "release": false
+        },
+        {
+          "name": "pre-delivery",
+          "online": false,
+          "release": false
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Description lint",
+      "waivable": true
+    },
+    {
+      "code": "105081",
+      "id": "EW-CORE-081",
+      "kind": "hygiene",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-CORE",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "info",
+      "supersedes": [],
+      "title": "Waiver matches nothing",
+      "waivable": true
+    },
+    {
+      "code": "017101",
+      "id": "EW-NUM-001",
+      "kind": "hygiene",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-IEC81346",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "device",
+      "severity": "warning",
+      "supersedes": [
+        "EW-NUM-002",
+        "EW-RDS-001"
+      ],
+      "title": "Tag deviates from the scheme",
+      "waivable": true
+    },
+    {
+      "code": "005001",
+      "id": "EW-POT-001",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-POT",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "potential",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Type or voltage conflict",
+      "waivable": true
+    },
+    {
+      "code": "005002",
+      "id": "EW-POT-002",
+      "kind": "safety",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-POT",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "potential",
+      "severity": "error",
+      "supersedes": [],
+      "title": "PELV or SELV bonding",
+      "waivable": true
+    },
+    {
+      "code": "005008",
+      "id": "EW-POT-008",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-POT",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "PE island",
+      "waivable": true
+    },
+    {
+      "code": "005011",
+      "id": "EW-POT-011",
+      "kind": "conflict",
+      "modes": [
+        "online"
+      ],
+      "pack": "EW-POT",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": false
+        }
+      ],
+      "scope": "potential",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Junction feed ambiguous",
+      "waivable": true
+    },
+    {
+      "code": "005012",
+      "id": "EW-POT-012",
+      "kind": "hygiene",
+      "modes": [
+        "online"
+      ],
+      "pack": "EW-POT",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": false
+        }
+      ],
+      "scope": "potential",
+      "severity": "warning",
+      "supersedes": [],
+      "title": "Ring in the drawing graph",
+      "waivable": true
+    },
+    {
+      "code": "005014",
+      "id": "EW-POT-014",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-POT",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "potential",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Physical-wire conflict",
+      "waivable": true
+    },
+    {
+      "code": "017004",
+      "id": "EW-RDS-004",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "release"
+      ],
+      "pack": "EW-IEC81346",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "project",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Duplicate designation",
+      "waivable": true
+    },
+    {
+      "code": "001001",
+      "id": "EW-TERM-001",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "prevent",
+        "release"
+      ],
+      "pack": "EW-TERM",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "strip",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Terminal without designation",
+      "waivable": true
+    },
+    {
+      "code": "001002",
+      "id": "EW-TERM-002",
+      "kind": "conflict",
+      "modes": [
+        "online",
+        "prevent",
+        "release"
+      ],
+      "pack": "EW-TERM",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": true
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": true
+        }
+      ],
+      "scope": "strip",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Duplicate designation",
+      "waivable": true
+    },
+    {
+      "code": "001005",
+      "id": "EW-TERM-005",
+      "kind": "conflict",
+      "modes": [
+        "online"
+      ],
+      "pack": "EW-TERM",
+      "release": "MVP",
+      "release_severity": null,
+      "schemes": [
+        {
+          "name": "drafting",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "full",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "migration",
+          "online": true,
+          "release": false
+        },
+        {
+          "name": "pre-delivery",
+          "online": true,
+          "release": false
+        }
+      ],
+      "scope": "strip",
+      "severity": "error",
+      "supersedes": [],
+      "title": "Rail bonding on a non-PE terminal",
+      "waivable": true
+    }
+  ],
+  "schemes": [
+    {
+      "lenient": false,
+      "name": "drafting",
+      "purpose": "default online scheme while editing"
+    },
+    {
+      "lenient": false,
+      "name": "full",
+      "purpose": "audits and acceptance of hygiene rules"
+    },
+    {
+      "lenient": true,
+      "name": "migration",
+      "purpose": "lenient run behind a migration report"
+    },
+    {
+      "lenient": false,
+      "name": "pre-delivery",
+      "purpose": "release scheme; ew check --scheme pre-delivery"
+    }
+  ]
+}
