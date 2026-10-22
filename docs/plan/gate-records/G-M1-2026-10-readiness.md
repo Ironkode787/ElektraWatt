@@ -197,7 +197,7 @@ Ordered by what they unblock. "Pack" means on file before T − 7 days; statemen
 | O9 | **Golden acknowledgement** and the pilot having seen the tables | Pilot user | Acknowledge the golden-table change list (FT-300), including FT-29, FT-40 and FT-63 (PD-15), and confirm having seen the tables | Condition (G-M1-09); entry criterion E3 | Owner |
 | O10 | **The pilot's P1 and P2 answers** ([decision log Part C](../06-decision-log.md#42-the-kick-off-agenda-all-p1-questions)) | Pilot user, at the kick-off (WP-S0.08) | Answer the ten open P1 questions (PQ-31, PQ-37 to PQ-42, PQ-53, PQ-06, PQ-07; PQ-01 is answered and PQ-02 in part, ID-272) and the 19 P2 questions, which freeze goldens and defaults; answers are recorded without names (§4.4 of the log) | P1: blocking through O1 to O3 and G-M0; P2: condition (G-M1-23's "no question open more than two months" starts counting when they are asked) | Owner |
 | O11 | **Side-by-side review** and the pilot log | Pilot user with the project lead | Compare the generated PDF with the reference set; the intended deviations are those of golden §3.4, and the pilot's drawings are the content target, never a hard comparison of style (ID-272, ID-340); start the pilot log | Condition (G-M1-23) | Owner |
-| O12 | **FT-284** `docs-book` as a required check; branch protection | Repository owner | After the first green `docs-book` run on `main` (FT-283, reported by the orchestrator), add `docs-book` to the required status checks of `main`; confirm the protection rules of doc 18 §5.4 | Condition (CI-PR-10's docs part; G-M0-04's branch protection) | Owner |
+| O12 | **FT-284** `docs-book` as a required check; branch protection | Repository owner | The first `docs-book` run on `main` is green (2026-10-22, docs run 39706671506, FT-283 closed): add `docs-book` to the required status checks of `main`; confirm the protection rules of doc 18 §5.4 | Condition (CI-PR-10's docs part; G-M0-04's branch protection) | Owner |
 | O13 | **LG-3** trademark clearance search | Steward | Commission the TMview, EUIPO eSearch and BOIP search (classes 9 and 42) and the domain check; file the report | Condition (G-M1-21) | Owner |
 | O14 | **PD-11** re-plan, G-M1-25 and G-M1-26 | Project owner | Take ruling R4 and, at T, the re-plan decision it defines | Blocking (G-M1-24, H) | Ruling; T |
 | O15 | **FT-281** Weblate project; **FT-285** website | A maintainer (FT-281); project owner (FT-285) | Create the Weblate project for the guide and the UI strings; commission the website with the download and privacy pages | Follow-up: FT-281 is due before the Dutch tutorials (MVP), FT-285 before the first public download (M-PP) | Their own dues |
@@ -226,7 +226,7 @@ delivered concurrently by lanes A and B and are confirmed at that delivery.
 | **FT-87, FT-88, FT-89, FT-91** (due "before M1") and **FT-92** (the crash harness, "G-M1 evidence") | WP-S1.09; WP-S6.02 | Follow-up: no G-M1 criterion names them (the crash harness is CI-N-07, required at G-M2) | Ruling R7 proposes "before G-PP" | The plan view of §3.8 had not listed them (ID-426) |
 | **The rest of WP-S1.10**: the FR-EXT-032 views and their companions (FT-216 to FT-218, FT-220) and the file-backed XL projection (FT-219) | WP-S1.10 | Follow-up: FT-216 is due before G-M2; NFR-PERF-14 is not a G-M1 budget (§8.6 of the gates) | Their dues | FT-219's "before the M1 performance run" is moot while XL is measured only for open time and commit latency |
 | **WP-S6.02's FT-234** the cross-platform digests | WP-S6.06; WP-S3.04 | Follow-up (G-M2, AC-14 all platforms) | Before G-M2 | — |
-| **WP-S0.06's remaining items**: the first `docs-book` run (FT-283) and mdbook-i18n-helpers (FT-282) | WP-S0.06 | FT-283: condition (reported by the orchestrator); FT-282: follow-up (with FT-281) | FT-283 at the next push to `main` | — |
+| **WP-S0.06's remaining items**: the first `docs-book` run (FT-283) and mdbook-i18n-helpers (FT-282) | WP-S0.06 | FT-283: closed (green on 2026-10-22, run 39706671506); FT-282: follow-up (with FT-281) | FT-283 at the next push to `main` | — |
 | **The pack** (GP-01 … GP-14): the landscape re-check (G-M1-27), the forecast under ruling R4, the CI evidence | — | Pack | Pack | Lead work |
 | **FT-301** the bookkeeping sweep of Appendix B | — | Follow-up (GP-07 hygiene) | Cn | 230 of 293 tasks are open, and many carry a past cycle as their due (FT-02 to FT-13 among them); their real state is not verified |
 
@@ -288,7 +288,7 @@ and BM+7. The development side will be ready first.
 |---|---|---|
 | A | FT-165 the typed `Revision` | The runner's AC-15 path (b) entry lists no unwritten records; the per-page revision values are removed; the acceptance counts stay 0 fail (expected: 93 entries, 87 pass, 1 `not_built`, 5 `not_applicable`, unless the lane adds entries) |
 | B | FT-279, FT-272 the fuzzer's coverage and nightly form | The fuzzer covers the 36 registered commands; a nightly job runs it; its nights then count for G-M1-13 |
-| Orchestrator | FT-283 the first `docs-book` run on `main` | The job is green with the network-less build; O12 can then be done |
+| Orchestrator | FT-283 the first `docs-book` run on `main` | Done: green on 2026-10-22 (docs run 39706671506, 49 s) with the network-less build; O12 can be done now |
 
 ---
 

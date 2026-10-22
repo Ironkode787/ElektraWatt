@@ -72,21 +72,22 @@ external contributions (LG-2), opening community channels and the re-based plan 
 
 ## 4. CI evidence (GP-03)
 
-The integrating session fills the run IDs. Gates at de23b55 as reported: Windows 2,612 and Linux 2,623 tests, clippy,
+Run IDs filled by the integrating session on 2026-10-22 (GitHub Actions, repository `ElektraWatt`; job wall times in
+parentheses). Gates at de23b55 as reported: Windows 2,612 and Linux 2,623 tests, clippy,
 doctests, rustdoc and the 16 steps of `cargo xtask ci`.
 
 | Job (doc 18 §5.2) | Workflow and job | Commit | Run | Result |
 |---|---|---|---|---|
-| CI-PR-01 lint | `ci.yml` `lint` | de23b55 | `<run id>` | `<green>` |
-| CI-PR-02 test-linux | `ci.yml` `test-linux` | de23b55 | `<run id>` | `<green; tests 2,623>` |
-| CI-PR-03 test-windows | `ci.yml` `test-windows` | de23b55 | `<run id>` | `<green; tests 2,612>` |
-| CI-PR-04 test-macos | `ci.yml` `test-macos` | de23b55 | `<run id>` | `<green>` |
-| CI-PR-09 supply-chain | `ci.yml` `supply-chain` | de23b55 | `<run id>` | `<green>` |
-| CI-PR-10 legal-docs | `docs.yml` `legal-docs` (reuse, licence map, anonymisation guard, governance files, rustdoc, DCO and LG-2 block on pull requests) | de23b55 | `<run id>` | `<green>` |
-| CI-PR-10 docs-book | `docs.yml` `docs-book` (first run on `main`, FT-283) | `<commit>` | `<run id>` | `<result, reported separately>` |
-| CI-PR-15 docs-diagrams | `docs.yml` `docs-diagrams` | de23b55 | `<run id>` | `<green or skipped by path filter>` |
+| CI-PR-01 lint | `ci.yml` `lint` | de23b55 | 39706671490 | green (0:58) |
+| CI-PR-02 test-linux | `ci.yml` `test-linux` | de23b55 | 39706671490 | green (21:30; the all-features run 2,623 tests) |
+| CI-PR-03 test-windows | `ci.yml` `test-windows` | de23b55 | 39706671490 | green (30:54, above the 30-minute budget of NFR-MAINT-05 by 54 s, within the 50-minute guard; the filtered run 2,612 tests) |
+| CI-PR-04 test-macos | `ci.yml` `test-macos` | de23b55 | 39706671490 | green (19:36) |
+| CI-PR-09 supply-chain | `ci.yml` `supply-chain` | de23b55 | 39706671490 | green (1:17) |
+| CI-PR-10 legal-docs | `docs.yml` `legal-docs` (reuse, licence map, anonymisation guard, governance files, rustdoc, DCO and LG-2 block on pull requests) | de23b55 | 39706671506 | green (1:12) |
+| CI-PR-10 docs-book | `docs.yml` `docs-book` (first run on `main`, FT-283) | de23b55 | 39706671506 | green (0:49): the network-less build under `sudo unshare --net`, the pinned mdBook 0.5.4 digest and the link check all passed on the hosted runner; FT-283 closed |
+| CI-PR-15 docs-diagrams | `docs.yml` `docs-diagrams` | de23b55 | 39706671506 | green (2:55) |
 | CI-N-01 perf (hosted, report-only, class S) | `perf.yml` `perf-gate` | `<commit>` | `<run ids of the last 7 nights>` | `<report verdicts; informational, ID-411>` |
-| `cargo xtask ci` (16 steps) | Integrating session, Windows and Linux | de23b55 | `<log references>` | `<green>` |
+| `cargo xtask ci` (16 steps) | Integrating session, Windows and Linux | de23b55 | The integrating session's gate logs (cycle 16; not committed) | green: Windows 2,612 + 2,623 tests, Linux 2,623 (all features), clippy, doctests, rustdoc on both |
 | CI-PR-05 headless | Not built (FT-295) | — | — | Required at G-M1 |
 | CI-PR-06 output | Not a separate job; the golden PNG and PDF-structure comparisons run in the test jobs; veraPDF not built (FT-294) | — | — | Required at G-M1 |
 | CI-PR-08 fuzz-smoke | Not built (FT-272 in cycle 17, FT-297) | — | — | Required at G-M1 |
