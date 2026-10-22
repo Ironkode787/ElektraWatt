@@ -309,6 +309,17 @@ allowed = ["OFL-1.1"]
 glob = "docs/**"
 allowed = ["CC-BY-4.0"]
 
+# The generated reference pages of the user guide (`cargo xtask docs-gen`) are made of the doc comments of the GPL
+# crates (command schemas of ew-commands, rule catalogue of ew-checks): they keep the crates' licence (owner ruling,
+# cycle 16). The longer globs beat `docs/**`; REUSE.toml annotates the same paths.
+[[path]]
+glob = "docs/book/src/reference/commands/**"
+allowed = ["GPL-3.0-or-later"]
+
+[[path]]
+glob = "docs/book/src/reference/rules/**"
+allowed = ["GPL-3.0-or-later"]
+
 [[path]]
 glob = "*.md"
 allowed = ["CC-BY-4.0"]

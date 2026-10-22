@@ -11,8 +11,9 @@ keeps none). At least one child; children distinct and different from the parent
 (`CmdError::NotFound`). Rejected: a position 0 (positions are 1-based, at `/children/i/position`); two
 children of the command at one position; a position another child of the parent already holds (no
 push insert in v0: move that child first); a child that is the parent's ancestor (the assembly graph is
-acyclic, EW-INV-009). A child that has another parent moves to this one. The tag of a child is not
-touched: a child tag (`tag.scheme = child`) is set with `fields.set`, a valve is added with `valve.add`.
+acyclic, EW-INV-009). A child that has another parent moves to this one. A child tag (`tag.scheme =
+child`, not frozen) whose counter equals its old position follows the new position (N-FL-2, doc 11
+§4.2); any other tag is not touched. A child tag is set with `fields.set`, a valve added with `valve.add`.
 The generated assembly overviews, slots, break marks and the PLC overview follow from the tree (they are
 derived). Outcome: the parent.
 
@@ -63,7 +64,7 @@ A command runs as one line of a command log replayed by `ew apply` ([doc 17 §3.
 | Code | Meaning |
 |---|---|
 | 0 | The line committed as one transaction. |
-| 1 | A prevent rule or the command's own domain rule refused the line (`Prevented`, `Rejected`); the lines before it stay committed. |
+| 1 | A prevent rule or the command's own domain rule refused the line (`Prevented`, `Rejected`); without `--one-step` the lines before it stay committed and are saved, with `--one-step` nothing is saved. |
 | 2 | Anything else stops the replay: invalid parameters, a missing record, an unresolvable reference, an open, lock or save error. |
 
 The codes of every subcommand are in [doc 17 §3.2](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#32-exit-codes).

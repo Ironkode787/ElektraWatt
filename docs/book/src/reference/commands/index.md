@@ -34,7 +34,7 @@ A command is the one way to change a project (`Command` → `Transaction` → `O
 | [`plc.config_project.create`](plc.config_project.create.md) | `plc.config_project.create` (`CreatePlcConfigProject`): a configuration project, the target PLC-software project that scopes address and symbol uniqueness (doc 10 §2.2, FR-PLC-002). | interactive | edit | preview |
 | [`potential.define`](potential.define.md) | names and types a potential at a CP or a junction (FR-CON-010). | interactive | edit | preview |
 | [`project.settings.set`](project.settings.set.md) | `project.settings.set` (`SetProjectSettings`): sets one member of the project settings. | bulk | edit | preview |
-| [`project.supply.set`](project.supply.set.md) | `project.supply.set` (`SetProjectSupply`): sets one member of the project's supply, such as its origin, the external reference the supply comes from ("J-E-206-L", doc 20 §4.2). | interactive | edit | preview |
+| [`project.supply.set`](project.supply.set.md) | `project.supply.set` (`SetProjectSupply`): sets one member of the project's supply; in v0 only its origin, the external reference the supply comes from ("J-E-206-L", doc 20 §4.2). | interactive | edit | preview |
 | [`rep.move`](rep.move.md) | moves representations by a delta, optionally to another page (doc 06 §3.4). Moves never change connectivity (FR-CON-004). | interactive | edit | preview |
 | [`rep.set_anchor_policy`](rep.set_anchor_policy.md) | sets the cross-reference anchor policy of representations (FR-SYM-010; the quick fix of MF-13, doc 07 §3.6). | interactive | edit | preview |
 | [`rep.transform`](rep.transform.md) | rotates, mirrors or changes the variant of representations about their insertion point (doc 06 §3.4). | interactive | edit | preview |

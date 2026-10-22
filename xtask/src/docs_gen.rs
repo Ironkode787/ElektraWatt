@@ -55,6 +55,9 @@ const PACK_SECTIONS: &[(&str, &str, &str)] = &[
     ("EW-TERM", "4.4 EW-TERM and EW-POT", "44-ew-term-and-ew-pot"),
 ];
 
+/// Rust constants that command descriptions name (`[`NAME`]`), as (name, source file): the page lists the values.
+const LISTED_CONSTS: &[(&str, &str)] = &[("SETTABLE_SUPPLY", "crates/ew-commands/src/commands/supply.rs")];
+
 /// The entries a generated page list adds to `SUMMARY.md`: link text and path relative to the book source.
 type SummaryItems = Vec<(String, String)>;
 
@@ -118,8 +121,7 @@ fn plan(root: &Path) -> Result<Plan> {
 }
 
 /// The violations of `docs-gen --check` (NFR-DOC-06): one per page that differs, is missing or is stale.
-pub(crate) fn violations(root: &Path) -> Result<Vec<String>> {
-    let plan = plan(root)?;
+fn violations_of(plan: &Plan) -> Vec<String> {
     let differing = plan
         .differing
         .iter()
@@ -128,14 +130,19 @@ pub(crate) fn violations(root: &Path) -> Result<Vec<String>> {
         .stale
         .iter()
         .map(|rel| format!("{BOOK_SRC}/{rel} is stale (no source); run `cargo xtask docs-gen`"));
-    Ok(differing.chain(stale).collect())
+    differing.chain(stale).collect()
+}
+
+/// The violations of `docs-gen --check` for the repository at `root`.
+pub(crate) fn violations(root: &Path) -> Result<Vec<String>> {
+    Ok(violations_of(&plan(root)?))
 }
 
 /// `docs-gen [--check]` for the repository at `root`.
 pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
     let plan = plan(root)?;
     if check {
-        let violations = violations(root)?;
+        let violations = violations_of(&plan);
         if violations.is_empty() {
             println!(
                 "docs-gen: ok ({} commands, {} rule packs)",
@@ -312,7 +319,33 @@ fn join_or(items: &[String]) -> String {
 // ---------------------------------------------------------------------------------------------------------------
 // Commands
 
+/// The string elements of `const <name>: &[&str] = &[...]` in the source file `rel`, as inline code joined by commas.
+fn const_strings(root: &Path, rel: &str, name: &str) -> Result<String> {
+    let text = read_lf(&root.join(rel))?.with_context(|| format!("{rel} is missing"))?;
+    let start = text
+        .find(&format!("const {name}:"))
+        .with_context(|| format!("{rel}: no `const {name}`"))?;
+    let item = &text[start..];
+    let item = &item[..item
+        .find(';')
+        .with_context(|| format!("{rel}: `const {name}` has no end"))?];
+    let values: Vec<String> = item
+        .split('"')
+        .skip(1)
+        .step_by(2)
+        .map(|v| format!("`{v}`"))
+        .collect();
+    if values.is_empty() {
+        bail!("{rel}: `const {name}` lists no strings");
+    }
+    Ok(values.join(", "))
+}
+
 fn command_pages(root: &Path, files: &mut BTreeMap<String, String>) -> Result<SummaryItems> {
+    let mut consts = BTreeMap::new();
+    for (name, rel) in LISTED_CONSTS {
+        consts.insert(*name, const_strings(root, rel, name)?);
+    }
     let index = read_json(root, &format!("{SCHEMA_DIR}/index.json"))?;
     let entries = index
         .get("commands")
@@ -328,7 +361,7 @@ fn command_pages(root: &Path, files: &mut BTreeMap<String, String>) -> Result<Su
         }
         let file = str_of(entry, "schema");
         let schema = read_json(root, &format!("{SCHEMA_DIR}/{file}"))?;
-        let page = command_page(entry, &schema);
+        let page = command_page(entry, &schema, &consts);
         let summary = first_paragraph(str_of(&schema, "description"));
         let summary = summary
             .strip_prefix(&format!("`{name}`: "))
@@ -367,14 +400,18 @@ fn command_pages(root: &Path, files: &mut BTreeMap<String, String>) -> Result<Su
 }
 
 /// The page of one command.
-fn command_page(entry: &Value, schema: &Value) -> String {
+fn command_page(entry: &Value, schema: &Value, consts: &BTreeMap<&str, String>) -> String {
     let name = str_of(entry, "name");
+    let mut description = str_of(schema, "description").to_owned();
+    for (constant, values) in consts {
+        description = description.replace(&format!("[`{constant}`]"), values);
+    }
     let mut out = String::new();
     let _ = write!(
         out,
         "# `{name}`\n\n{}\n\n{}\n\n",
         header(&format!("{SCHEMA_DIR}/{}", str_of(entry, "schema"))),
-        clean(str_of(schema, "description")),
+        clean(&description),
     );
 
     let aliases: Vec<String> = entry
@@ -453,7 +490,7 @@ fn command_page(entry: &Value, schema: &Value) -> String {
          `ew apply` is:\n\n\
          | Code | Meaning |\n|---|---|\n\
          | 0 | The line committed as one transaction. |\n\
-         | 1 | A prevent rule or the command's own domain rule refused the line (`Prevented`, `Rejected`); the lines before it stay committed. |\n\
+         | 1 | A prevent rule or the command's own domain rule refused the line (`Prevented`, `Rejected`); without `--one-step` the lines before it stay committed and are saved, with `--one-step` nothing is saved. |\n\
          | 2 | Anything else stops the replay: invalid parameters, a missing record, an unresolvable reference, an open, lock or save error. |\n\n\
          The codes of every subcommand are in [doc 17 §3.2]({}).\n",
         repo_link("docs/design/17-extensibility.md", Some("35-command-logs-ewcmd")),
@@ -1020,7 +1057,8 @@ mod tests {
             "required": ["ids"],
             "type": "object"
         });
-        let page = command_page(&entry, &schema);
+        let consts = BTreeMap::from([("LIST", "`a`, `b`".to_owned())]);
+        let page = command_page(&entry, &schema, &consts);
         assert!(page.starts_with("# `x.y`\n"), "{page}");
         assert!(
             page.contains("| `ids` | array of [`Id`](#id) | yes |  | The ids. |"),
@@ -1032,6 +1070,12 @@ mod tests {
         );
         assert!(page.contains("## Exit codes"), "{page}");
         assert!(page.contains("bulk command"), "{page}");
+        let listed = json!({"description": "`path` is one of [`LIST`] (else invalid)."});
+        let page = command_page(&entry, &listed, &consts);
+        assert!(
+            page.contains("`path` is one of `a`, `b` (else invalid)."),
+            "{page}"
+        );
     }
 
     #[test]

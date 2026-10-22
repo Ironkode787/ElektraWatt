@@ -26,3 +26,6 @@ git-repository-url = "https://github.com/Ironkode787/ElektraWatt"
 # The offline build embeds its own search index; nothing is loaded from the network.
 [output.html.search]
 enable = true
+# The bundle is read offline: no "run" button that would post code to the Rust playground.
+[output.html.playground]
+runnable = false

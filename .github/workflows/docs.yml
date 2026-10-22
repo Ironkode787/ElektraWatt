@@ -174,9 +174,18 @@ jobs:
           mkdir "$RUNNER_TEMP/mdbook"
           tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP/mdbook"
           "$RUNNER_TEMP/mdbook/mdbook" --version
-      - name: build the book offline
+      - name: check that the offline sandbox is available
+        # ubuntu-24.04 restricts unprivileged user namespaces, so the sandbox needs `unshare` and passwordless sudo.
+        # Fail here with the reason instead of as a documentation failure of the build step.
         run: |
-          sudo unshare --net -- "$RUNNER_TEMP/mdbook/mdbook" build docs/book --dest-dir "$RUNNER_TEMP/book"
+          command -v unshare >/dev/null || { echo "::error::unshare (util-linux) is not installed on this runner: the offline book build needs it"; exit 1; }
+          sudo -n true || { echo "::error::passwordless sudo is not available on this runner: the offline book build needs it for unshare --net"; exit 1; }
+          sudo unshare --net --setuid "$(id -u)" --setgid "$(id -g)" -- true || { echo "::error::unshare --net failed on this runner: the offline book build needs a network namespace"; exit 1; }
+      - name: build the book offline
+        # The namespace has no network; the build itself runs as the runner user, not as root.
+        run: |
+          sudo unshare --net --setuid "$(id -u)" --setgid "$(id -g)" -- \
+            "$RUNNER_TEMP/mdbook/mdbook" build docs/book --dest-dir "$RUNNER_TEMP/book"
       - name: link check of the built book
         run: python3 -I ci/check-book-links.py "$RUNNER_TEMP/book"
       - name: upload the built book

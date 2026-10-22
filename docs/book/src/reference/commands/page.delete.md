@@ -48,7 +48,7 @@ A command runs as one line of a command log replayed by `ew apply` ([doc 17 §3.
 | Code | Meaning |
 |---|---|
 | 0 | The line committed as one transaction. |
-| 1 | A prevent rule or the command's own domain rule refused the line (`Prevented`, `Rejected`); the lines before it stay committed. |
+| 1 | A prevent rule or the command's own domain rule refused the line (`Prevented`, `Rejected`); without `--one-step` the lines before it stay committed and are saved, with `--one-step` nothing is saved. |
 | 2 | Anything else stops the replay: invalid parameters, a missing record, an unresolvable reference, an open, lock or save error. |
 
 The codes of every subcommand are in [doc 17 §3.2](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#32-exit-codes).

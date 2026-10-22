@@ -7,7 +7,8 @@ channel to its signal CP, rebinds it, or unbinds it (FR-PLC-020).
 
 Sets `Channel.binding` to the CP (`{"cp": {"function", "idx"}}`: a module pin, or the internal CP of
 the coil a valve-terminal channel serves) or, with `endpoint: null`, removes it. The channel and the
-function exist (`CmdError::NotFound`); the CP index must be a CP of the function's FnDef copy (else
+function exist (`CmdError::NotFound`); the function must belong to the channel's module or to one of
+its descendants (else rejected); the CP index must be a CP of the function's FnDef copy (else
 rejected); a junction or a point on a connection is not a signal CP (at `/endpoint`). Another channel
 bound to the same CP is unbound in the same transaction (a CP is in at most one channel, FR-PLC-005),
 and the outcome's notices name it. An explicit binding wins over the solenoid-position map (N2, which
@@ -91,7 +92,7 @@ A command runs as one line of a command log replayed by `ew apply` ([doc 17 §3.
 | Code | Meaning |
 |---|---|
 | 0 | The line committed as one transaction. |
-| 1 | A prevent rule or the command's own domain rule refused the line (`Prevented`, `Rejected`); the lines before it stay committed. |
+| 1 | A prevent rule or the command's own domain rule refused the line (`Prevented`, `Rejected`); without `--one-step` the lines before it stay committed and are saved, with `--one-step` nothing is saved. |
 | 2 | Anything else stops the replay: invalid parameters, a missing record, an unresolvable reference, an open, lock or save error. |
 
 The codes of every subcommand are in [doc 17 §3.2](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#32-exit-codes).

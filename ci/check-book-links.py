@@ -13,7 +13,7 @@ The book is built offline, so this check never touches the network. It reads eve
   - a `#fragment` does not name an `id` (or `name`) of the target page;
   - a link into this repository (`https://github.com/<owner>/<repo>/blob|tree/<branch>/<path>[#anchor]`, how the book links
     the design documents, which are not part of the book) names a file that is not in the checkout at `--repo-root`
-    (default: the current directory), or an anchor that is not a heading of that Markdown file (GitHub slug rules).
+    (default: the current directory), or an anchor that is neither a heading (ATX or setext, GitHub slug rules) nor an explicit `<a id>` of that Markdown file.
 
 Other `http(s)` links are counted and not followed. Exit code 1 on any finding.
 """
@@ -24,7 +24,11 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-REPO_BLOB = re.compile(r"^https://github\.com/[^/]+/[^/]+/(?P<kind>blob|tree)/[^/]+/(?P<path>[^#?]+)(?:#(?P<frag>.*))?$")
+# `rest` is `<branch>/<path>`; a branch name may hold slashes (`release/1.0`), so `resolve_repo` tries every split.
+REPO_BLOB = re.compile(r"^https://github\.com/[^/]+/[^/]+/(?P<kind>blob|tree)/(?P<rest>[^#?]+)(?:#(?P<frag>.*))?$")
+EXPLICIT_ANCHOR = re.compile(r"<a\s[^>]*?\b(?:id|name)\s*=\s*[\"']([^\"']+)[\"']", re.I)
+FENCE = re.compile(r"^\s*(`{3,}|~{3,})")
+SETEXT = re.compile(r"^ {0,3}(=+|-+)\s*$")
 SKIPPED_PAGES = {"print.html", "toc.html"}
 LINK_ATTRS = {"a": "href", "link": "href", "img": "src", "script": "src", "source": "src", "iframe": "src"}
 
@@ -62,19 +66,51 @@ def slug(heading):
 
 
 def markdown_anchors(path):
-    anchors, counts, fence = set(), {}, False
-    for line in path.read_text(encoding="utf-8").split("\n"):
-        if line.startswith("```"):
-            fence = not fence
+    """The anchors of a Markdown file: ATX and setext headings (GitHub slugs, repeats numbered) and explicit
+    `<a id>` / `<a name>` anchors; text inside fenced blocks (backticks or tildes, indented or not) is skipped."""
+    anchors, counts, fence = set(), {}, None
+    lines = path.read_text(encoding="utf-8").split("\n")
+
+    def add(heading):
+        base = slug(heading)
+        n = counts.get(base, 0)
+        anchors.add(base if n == 0 else f"{base}-{n}")
+        counts[base] = n + 1
+
+    for i, line in enumerate(lines):
+        m = FENCE.match(line)
+        if m:
+            marker = m.group(1)
+            if fence is None:
+                fence = marker
+            elif marker[0] == fence[0] and len(marker) >= len(fence) and line.strip() == marker:
+                fence = None
+            continue
         if fence:
             continue
-        m = re.match(r"^#{1,6}\s+(.*)", line)
+        anchors.update(EXPLICIT_ANCHOR.findall(line))
+        m = re.match(r"^ {0,3}#{1,6}\s+(.*)", line)
         if m:
-            base = slug(m.group(1))
-            n = counts.get(base, 0)
-            anchors.add(base if n == 0 else f"{base}-{n}")
-            counts[base] = n + 1
+            add(re.sub(r"\s+#+\s*$", "", m.group(1)))
+        elif (
+            line.strip()
+            and not re.match(r"^\s*([-*+>|]|\d+[.)])", line)
+            and i + 1 < len(lines)
+            and SETEXT.match(lines[i + 1])
+        ):
+            add(line)
     return anchors
+
+
+def resolve_repo(rest, repo_root, kind):
+    """The repository path named by `<branch>/<path>` of a blob or tree link, or None. Branch names may hold
+    slashes, so every split of `rest` is tried; the first whose path exists wins."""
+    segments = unquote(rest).split("/")
+    for i in range(1, len(segments)):
+        target = repo_root / "/".join(segments[i:])
+        if target.is_dir() if kind == "tree" else target.is_file():
+            return target
+    return None
 
 
 def check(book, repo_root):
@@ -97,12 +133,13 @@ def check(book, repo_root):
                     external += 1
                     continue
                 repo_links += 1
-                target = repo_root / unquote(m.group("path"))
-                if not (target.is_dir() if m.group("kind") == "tree" else target.is_file()):
+                target = resolve_repo(m.group("rest"), repo_root, m.group("kind"))
+                if target is None:
                     findings.append(f"{where}: repository file missing: {link}")
                 elif m.group("frag") and target.suffix == ".md":
-                    anchors = md_anchors.setdefault(target, markdown_anchors(target))
-                    if m.group("frag") not in anchors:
+                    if target not in md_anchors:
+                        md_anchors[target] = markdown_anchors(target)
+                    if unquote(m.group("frag")) not in md_anchors[target]:
                         findings.append(f"{where}: anchor missing in the repository file: {link}")
                 continue
             if parts.scheme or parts.netloc:
