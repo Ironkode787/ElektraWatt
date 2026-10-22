@@ -93,7 +93,12 @@ fn manifest_switches(text: &str) -> Vec<(String, usize)> {
                 continue;
             };
             for key in keys {
-                let allowed = match table.get(*key) {
+                // Cargo accepts `disallowed-types` and `disallowed_types` alike: normalise the dash.
+                let value = table
+                    .iter()
+                    .find(|(k, _)| k.replace('-', "_") == *key)
+                    .map(|(_, v)| v);
+                let allowed = match value {
                     Some(toml::Value::String(level)) => level == "allow",
                     Some(toml::Value::Table(t)) => {
                         t.get("level").and_then(toml::Value::as_str) == Some("allow")
@@ -103,7 +108,7 @@ fn manifest_switches(text: &str) -> Vec<(String, usize)> {
                 if allowed {
                     let line = text
                         .lines()
-                        .position(|l| l.trim_start().starts_with(key))
+                        .position(|l| l.trim_start().replace('-', "_").starts_with(key))
                         .map_or(1, |n| n + 1);
                     out.push((format!("{group}::{key}"), line));
                 }
@@ -896,6 +901,15 @@ mod tests {
             v[0].starts_with("crates/c/Cargo.toml:3: a manifest sets the lint `clippy::disallowed_types`"),
             "{v:#?}"
         );
+        // Cargo accepts the dashed spelling of a lint key as well.
+        let mut dashed = pkg("c", &[]);
+        dashed.manifest_text = "[lints.clippy]
+disallowed-types = \"allow\"
+"
+        .to_owned();
+        let v = check(&[dashed], &List::default());
+        assert_eq!(v.len(), 1, "{v:#?}");
+        assert!(v[0].contains("`clippy::disallowed_types`"), "{v:#?}");
     }
 
     #[test]
