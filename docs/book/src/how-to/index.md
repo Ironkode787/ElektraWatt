@@ -5,9 +5,11 @@ EW, start with a [tutorial](../tutorials/index.md) instead.
 
 ## Available now
 
-There are no how-to guides yet. The first ones follow the headless workflow of the
-[first tutorial](../tutorials/headless-workflow.md), for example replaying a command log with `ew apply`, checking a
-project in a CI job, and exporting for a single page range.
+- [Use the application window](application-window.md): the start page, new, sample and imported projects, recovery,
+  the command palette, workspaces, the first-run setup, the company-standard wizard and F1.
+
+More follow the headless workflow of the [first tutorial](../tutorials/headless-workflow.md), for example replaying a
+command log with `ew apply`, checking a project in a CI job, and exporting for a single page range.
 
 ## Writing a how-to guide
 

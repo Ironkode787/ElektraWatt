@@ -10,6 +10,7 @@
 # How-to guides
 
 - [How-to guides](how-to/index.md)
+  - [Use the application window](how-to/application-window.md)
 
 # Reference
 
