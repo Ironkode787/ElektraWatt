@@ -202,9 +202,11 @@ fn ft_356_a_page_pane_behind_another_tab_keeps_its_tiles_within_a_share() {
         frames,
         "the canvas is not on screen"
     );
+    // What the test controls: the tiles drawn before are kept, within the hidden share. (Not a comparison with the
+    // count before: a tile still in flight may arrive and be kept after it was taken.)
     let hidden = h.state().canvas_cached_tiles();
     assert!(hidden > 0, "the hidden pane keeps tiles (FT-356)");
-    assert!(hidden <= shown);
+    assert!(h.state().canvas_hidden_bytes() <= ew_ui::canvas::HIDDEN_CACHE_BYTES);
     // Closing the project still lets go of every tile.
     assert_eq!(
         h.state_mut().shell_mut().dispatch("file.close", &json!({})),
