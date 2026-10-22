@@ -21,10 +21,11 @@
 //!
 //! # States, targets, texts (doc 10 §3.2–§3.5)
 //!
-//! [`ChannelStates`] applies A3 steps 1, 2, 3 and 5: an explicit state, a `Tbd` address, the state of the
-//! bound target device, else the part's `unbound` state (spare by default). Step 4 (a channel claimed by the
-//! solenoid-position map gives `Reserved`) needs the position map, which the part data does not carry yet;
-//! on the golden project it changes nothing (doc 10 §3.2). [`ChannelTargets`] takes the manual target, else
+//! [`ChannelStates`] applies A3: an explicit state, a `Tbd` address, the state of the bound target device, a
+//! channel that the solenoid-position map claims gives `Reserved` (step 4, FT-228), else the part's
+//! `unbound` state (spare by default). [`SolenoidPositions`] applies the part's position map
+//! (`PlcSection.positions`) to the module's valve children; on the golden project (test input H1) it claims
+//! no channel, because every coil is bound to channel 2p + 1 (doc 10 §3.2). [`ChannelTargets`] takes the manual target, else
 //! the function of the bound CP (direct targets, MVP; traced targets are 1.0). [`ChannelTexts`] determines
 //! the designation (manual, else the part pattern over `{n}`), the symbol (manual only: templates are 1.0),
 //! the function text (the target device's function text, else the process tag of the device it drives
@@ -40,11 +41,12 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ew_ids::{Id, v5};
+use ew_mltext::Ident;
 use ew_plcaddr::{AddressProfile, Area, AreaIntervals, MapExpr, MapVar, Purpose, Size};
 use ew_schema::{
     AddrSpec, Channel, ChannelKind, ChannelState, Device, DeviceLink, DeviceLinkKind, DeviceState, Endpoint,
-    Function, IoClass, IoDir, LibCopy, MapSpec, Part, PlcArea, PlcConfigProject, PlcSection, PlcSize,
-    RepType, Representation, SlotPath,
+    FnDef, Function, IoClass, IoDir, LibCopy, MapSpec, Part, PlcArea, PlcConfigProject, PlcSection, PlcSize,
+    RepType, Representation, SlotPath, SolenoidChannel,
 };
 
 use crate::Q;
@@ -145,21 +147,51 @@ fn dir_area(dir: &IoDir) -> Option<Area> {
     }
 }
 
-/// The value of a part-data map at `x`; `None` for an unparsable expression, a `p` map or an index outside
-/// a list.
-fn map_at(map: Option<&MapSpec>, x: u32) -> Option<u32> {
+/// The value of a part-data map over the variable `var` at `x` (doc 10 §2.6): an expression in `var`, or the
+/// list entry at index `x`. `None` for an unparsable expression, an expression in the other variable, an
+/// index outside a list, an overflow or a form of a newer format.
+pub fn eval_map(map: &MapSpec, var: MapVar, x: u32) -> Option<u32> {
     match map {
-        None => Some(x),
-        Some(MapSpec::Expr(s)) => {
+        MapSpec::Expr(s) => {
             let e = MapExpr::parse(s)?;
-            if e.var != MapVar::N {
+            if e.var != var {
                 return None;
             }
             e.eval(x)
         }
-        Some(MapSpec::List(l)) => l.get(usize::try_from(x).ok()?).copied(),
-        Some(MapSpec::Unknown(_)) => None,
+        MapSpec::List(l) => l.get(usize::try_from(x).ok()?).copied(),
+        MapSpec::Unknown(_) => None,
     }
+}
+
+/// The value of a part-data channel map at `x`; absent: linear (`x`). See [`eval_map`].
+fn map_at(map: Option<&MapSpec>, x: u32) -> Option<u32> {
+    map.map_or(Some(x), |m| eval_map(m, MapVar::N, x))
+}
+
+/// The channel number a solenoid-position map entry assigns at position index `p` (0-based; doc 10 §2.6):
+/// a `p` expression or a list indexed by `p`; `None` when it does not resolve or exceeds `u16`. The single
+/// evaluation of the map, shared by `solenoid_positions` and normaliser N2 (`ew-commands`).
+pub fn solenoid_channel(entry: &SolenoidChannel, p: u32) -> Option<u16> {
+    eval_map(&entry.channel, MapVar::P, p).and_then(|c| u16::try_from(c).ok())
+}
+
+/// The pin a channel → pin map assigns to channel `number`: the CP index on the module's main function (doc
+/// 10 §3.3, normaliser N3); `None` when it does not resolve or exceeds `u16`.
+pub fn channel_pin(pin_of: &MapSpec, number: u16) -> Option<u16> {
+    eval_map(pin_of, MapVar::N, u32::from(number)).and_then(|c| u16::try_from(c).ok())
+}
+
+/// The coil CP of solenoid `solenoid` in a function definition: its first CP (by index) whose designation is
+/// the solenoid's name and that is not physical (the internal coil CP of a valve on a valve terminal, doc 11
+/// §3.1). Until N-FL-1 and the typed `fluid.solenoids` of the valve part exist, a valve **declares** solenoid
+/// s exactly when one of its functions has such a CP (decision of cycle 18, lane C). Shared by
+/// `solenoid_positions` and normaliser N2.
+pub fn coil_cp_idx(def: &FnDef, solenoid: &Ident) -> Option<u16> {
+    def.cps
+        .iter()
+        .find(|cp| !cp.physical && cp.designation == *solenoid)
+        .map(|cp| cp.idx)
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -633,6 +665,87 @@ impl Query for ChannelTargets {
 }
 
 // ---------------------------------------------------------------------------------------------------------
+// solenoid_positions(module)
+
+/// One solenoid of one valve position of a module (doc 10 §2.6, §3.2 step 4): what the module part's
+/// solenoid-position map assigns, and what the valve child at that position declares.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct SolenoidSlot {
+    /// The 1-based position (`Device.position`; the map's index is `position − 1`).
+    pub position: u32,
+    /// The solenoid name of the map entry ("14").
+    pub solenoid: Ident,
+    /// The channel number the map assigns; `None` when the entry does not resolve at this position or the
+    /// number is not below the part's channel count.
+    pub channel: Option<u16>,
+    /// The device at that position among the module's children (the lowest ID when several hold it).
+    pub valve: Option<Id<Device>>,
+    /// The valve's coil CP for the solenoid ([`coil_cp_idx`] over its functions in ID order); `None` when the
+    /// valve does not declare the solenoid or no valve sits at the position.
+    pub coil: Option<crate::CpRef>,
+}
+
+/// `solenoid_positions(module)`: the solenoid-position map of the module's part (doc 10 §2.6
+/// `[plc.positions]`) applied to the module's valve children, one [`SolenoidSlot`] per position (1 …
+/// `count`) and map entry, in (position, map order). Empty for a module whose part has no position map.
+/// Derivation step 4 of doc 10 §3.2 ([`ChannelStates`]) and, later, EW-PLC-012 (FT-192) read it; normaliser
+/// N2 (`ew-commands`) applies the same map through [`solenoid_channel`] and [`coil_cp_idx`].
+#[derive(Debug)]
+pub struct SolenoidPositions;
+
+impl Query for SolenoidPositions {
+    type Key = Id<Device>;
+    type Value = Vec<SolenoidSlot>;
+    const FAMILY: &'static str = "solenoid_positions";
+    const POLICY: Policy = Policy::Memo;
+
+    fn run(q: &Q, key: &Self::Key) -> Arc<Vec<SolenoidSlot>> {
+        let Some((_, plc)) = module_part(q, *key) else {
+            return Arc::new(Vec::new());
+        };
+        let Some(map) = plc.positions.as_ref() else {
+            return Arc::new(Vec::new());
+        };
+        let channel_count = plc.channels.as_ref().map_or(0, |c| c.count);
+        let devices = q.devices();
+        let functions = q.functions();
+        let fndefs = q.fndefs();
+        // the child at each position, the lowest ID first
+        let mut at: BTreeMap<u32, Id<Device>> = BTreeMap::new();
+        let mut children: Vec<Id<Device>> = q.idx().device_children(*key).collect();
+        children.sort();
+        for c in children {
+            if let Some(p) = devices.get(c).and_then(|d| d.position) {
+                at.entry(p).or_insert(c);
+            }
+        }
+        let mut out = Vec::new();
+        for position in 1..=u32::from(map.count) {
+            let valve = at.get(&position).copied();
+            let mut fns: Vec<Id<Function>> = valve
+                .map(|v| q.idx().functions_of_device(v).collect())
+                .unwrap_or_default();
+            fns.sort();
+            for entry in &map.map {
+                let channel = solenoid_channel(entry, position - 1).filter(|c| *c < channel_count);
+                let coil = fns.iter().find_map(|f| {
+                    let def = fndefs.get(functions.get(*f)?.def)?;
+                    coil_cp_idx(&def.item, &entry.solenoid).map(|idx| crate::CpRef::new(*f, idx))
+                });
+                out.push(SolenoidSlot {
+                    position,
+                    solenoid: entry.solenoid.clone(),
+                    channel,
+                    valve,
+                    coil,
+                });
+            }
+        }
+        Arc::new(out)
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
 // channel_states(module)
 
 /// The effective state of a channel (doc 10 §3.2).
@@ -672,7 +785,8 @@ fn explicit(s: &ChannelState) -> Option<EffectiveState> {
     }
 }
 
-/// `channel_states(module)`: A3 of doc 10 §3.2 (steps 1, 2, 3 and 5), in channel-number order.
+/// `channel_states(module)`: A3 of doc 10 §3.2 (steps 1 to 5), in channel-number order. Step 4 reads
+/// [`SolenoidPositions`].
 #[derive(Debug)]
 pub struct ChannelStates;
 
@@ -687,8 +801,29 @@ impl Query for ChannelStates {
             .and_then(|(_, s)| s.unbound.as_ref().and_then(explicit))
             .unwrap_or(EffectiveState::Spare);
         let targets = q.get::<ChannelTargets>(*key);
+        let slots = q.get::<SolenoidPositions>(*key);
         let devices = q.devices();
-        let out = module_channels(q, *key)
+        let channels = module_channels(q, *key);
+        // Step 4: the map claims channel c when it assigns c to solenoid s of position p, the valve at p
+        // declares s, and s is unbound or bound to c. Only an unbound channel reaches step 4, so "bound to c"
+        // cannot hold there; a coil counts as bound when a channel of this module binds it (a channel binds
+        // only within its module's subtree, `plc.bind_channel`, FR-PLC-005).
+        let bound: std::collections::BTreeSet<(Id<Function>, u16)> = channels
+            .iter()
+            .filter_map(|c| match &c.binding {
+                Some(Endpoint::Cp(f, idx)) => Some((*f, *idx)),
+                _ => None,
+            })
+            .collect();
+        let claimed: std::collections::BTreeSet<u16> = slots
+            .iter()
+            .filter_map(|s| {
+                let coil = s.coil?;
+                let channel = s.channel?;
+                (!bound.contains(&(coil.function, coil.idx))).then_some(channel)
+            })
+            .collect();
+        let out = channels
             .iter()
             .map(|c| {
                 let target = targets.iter().find(|t| t.channel == c.id);
@@ -703,6 +838,8 @@ impl Query for ChannelStates {
                         DeviceState::NotFitted => EffectiveState::Deactivated,
                         _ => EffectiveState::Used,
                     }
+                } else if c.binding.is_none() && claimed.contains(&c.number) {
+                    EffectiveState::Reserved
                 } else {
                     unbound
                 };

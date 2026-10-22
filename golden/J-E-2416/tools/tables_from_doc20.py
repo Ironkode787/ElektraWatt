@@ -2378,6 +2378,19 @@ def plc_station_facts():
     bit_of, count, kind = m.group(1), int(m.group(2)), PLC_CHANNEL_KIND[m.group(3)]
     check(count == 8, f"section 11.2: {count} channels per module, 8 bits expected")
     check(bit_of == "n", f"section 11.2: channel map 'bit {bit_of}', expected the linear map n")
+    # the solenoid-position map, test input H1 (doc 10 section 2.6 [plc.positions]; FT-228): position p (0 .. k)
+    # -> coil s on channel <map in p>, one entry per coil, written `14:2p;12:2p+1` (spaces dropped)
+    label = f"Solenoid-position map (part {part})"
+    cell = items.get(label, "")
+    m = re.fullmatch(r"test input H1: position p \(0–(\d+)\) → (.+?) ▲U-23", cell)
+    check(m, f"section 11.2: {label} cell {cell!r}")
+    positions = int(m.group(1)) + 1
+    position_map = []
+    for entry in m.group(2).split(", "):
+        e = re.fullmatch(r"coil (\w+) on channel ([0-9p +]+)", entry)
+        check(e, f"section 11.2: {label} entry {entry!r}")
+        position_map.append(f"{e.group(1)}:{e.group(2).replace(' ', '')}")
+    check(positions * 2 == count, f"section 11.2: {positions} positions of 2 coils for {count} channels")
     bindings = {}
     rows = table_dicts("### 11.3 Channel map (folio 908)")
     check([r["Module"] for r in rows] == modules, f"section 11.3: modules {[r['Module'] for r in rows]}")
@@ -2391,7 +2404,7 @@ def plc_station_facts():
             bindings[(r["Module"], 2 * p + 1)] = f"{r['Module']}-Q{p + 1}"
     return {
         "station": station, "role": role, "modules": modules, "part": part, "count": count, "kind": kind,
-        "bit_of": bit_of, "bindings": bindings,
+        "bit_of": bit_of, "bindings": bindings, "positions": positions, "position_map": ";".join(position_map),
     }  # fmt: skip
 
 
@@ -2518,12 +2531,16 @@ def build_plc(device_keys, part_keys, facts):
     io = f"{PLC_IO_DIR[kind]}:{facts['count']}"
     register(
         "part_plc",
-        ["key", "role", "io", "channel_count", "channel_kind", "data_type", "designation", "bit_of", "unbound"],
+        [
+            "key", "role", "io", "channel_count", "channel_kind", "data_type", "designation", "bit_of", "unbound",
+            "positions", "position_map",
+        ],
         [
             {
                 "key": part, "role": "module", "io": io, "channel_count": str(facts["count"]),
                 "channel_kind": kind, "data_type": PLC_DATA_TYPE[kind], "designation": PLC_DESIGNATION,
                 "bit_of": facts["bit_of"], "unbound": PLC_UNBOUND,
+                "positions": str(facts["positions"]), "position_map": facts["position_map"],
             }
         ],
         1,

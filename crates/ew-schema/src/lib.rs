@@ -124,7 +124,7 @@ pub use page::{
 pub use plc::{
     AddrSpec, Channel, ChannelKind, ChannelSpec, ChannelState, DeviceLink, DeviceLinkKind, IoClass, IoDir,
     IoRange, IoStarts, MapSpec, PlcAddress, PlcArea, PlcConfigProject, PlcModule, PlcRole, PlcSection,
-    PlcSize, PlcStation, RackSlot, SlotPath, StationRole,
+    PlcSize, PlcStation, PositionMap, RackSlot, SlotPath, SolenoidChannel, StationRole,
 };
 pub use project::{
     Address, DateFormat, DecimalSeparator, EarthingSystem, ExternalRef, Formatting, ImportLineage, ImportRun,

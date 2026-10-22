@@ -97,6 +97,7 @@ pub const SWEPT: &[&str] = &[
     "report_block_pages",
     "report_rows",
     "settings_member",
+    "solenoid_positions",
     "stitch_graph",
     "tag_class_members",
     "title_block",
@@ -246,6 +247,7 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<ew_derive::ChannelStates>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::ChannelTargets>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::ChannelTexts>(memo, cold, keys.devices.iter().copied(), o);
+    check::<ew_derive::SolenoidPositions>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::PlcRows>(memo, cold, keys.devices.iter().copied(), o);
     check::<DevicePartLines>(memo, cold, keys.devices.iter().copied(), o);
     check::<DeviceTag>(memo, cold, keys.devices.iter().copied(), o);

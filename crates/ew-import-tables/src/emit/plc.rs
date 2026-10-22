@@ -12,7 +12,8 @@ use ew_interop_api::{Code, Severity};
 use ew_mltext::Ident;
 use ew_schema::{
     AddrSpec, Channel, ChannelKind, ChannelSpec, ChannelState, Device, DeviceLink, DeviceLinkKind, Endpoint,
-    IoClass, IoDir, IoRange, MapSpec, PlcConfigProject, PlcRole, PlcSection, Record, StationRole,
+    IoClass, IoDir, IoRange, MapSpec, PlcConfigProject, PlcRole, PlcSection, PositionMap, Record,
+    SolenoidChannel, StationRole,
 };
 
 use super::{Cx, fresh};
@@ -152,6 +153,23 @@ fn drop_project(cx: &mut Cx<'_>, key: &str, id: Id<PlcConfigProject>) {
 // ---------------------------------------------------------------------------------------------------------
 // The PLC section of a part
 
+/// One `position_map` item: `<solenoid>:<channel expression>` (`14:2p`), the expression stored as
+/// `MapSpec::Expr` like `bit_of` (the derivation parses it).
+fn parse_solenoid(item: &str) -> Result<SolenoidChannel, String> {
+    let bad = || format!("`{item}` is not <solenoid>:<channel expression> (`14:2p`)");
+    let (solenoid, channel) = item.split_once(':').ok_or_else(bad)?;
+    let (solenoid, channel) = (solenoid.trim(), channel.trim());
+    if channel.is_empty() || channel.contains(':') {
+        return Err(bad());
+    }
+    let solenoid: Ident = solenoid.parse().map_err(|_| bad())?;
+    Ok(SolenoidChannel {
+        solenoid,
+        channel: MapSpec::Expr(channel.to_owned()),
+        extra: Default::default(),
+    })
+}
+
 /// One `io` item: `<dir>:<bits>` or `<dir>:<bits>:<class>`.
 fn parse_io(item: &str) -> Result<IoRange, String> {
     let mut parts = item.split(':');
@@ -208,7 +226,29 @@ pub(crate) fn read_part_plc<'t>(
         let data_type = r.ident("data_type");
         let designation = r.text("designation").map(str::to_owned);
         let bit_of = r.text("bit_of").map(|s| MapSpec::Expr(s.to_owned()));
+        let pin_of = r.text("pin_of").map(|s| MapSpec::Expr(s.to_owned()));
         let unbound = r.choice("unbound", CHANNEL_STATES);
+        let position_count = r.uint::<u16>("positions");
+        let mut map = Vec::new();
+        for item in r.list("position_map") {
+            match parse_solenoid(item) {
+                Ok(entry) => map.push(entry),
+                Err(e) => r.fail(format!("column `position_map`: {e}")),
+            }
+        }
+        let positions = match position_count {
+            Some(count) => Some(PositionMap {
+                count,
+                map,
+                extra: Default::default(),
+            }),
+            None => {
+                if !map.is_empty() {
+                    r.fail("column `position_map` needs `positions`");
+                }
+                None
+            }
+        };
         let channels = match (count, kind) {
             (Some(count), Some(kind)) => Some(ChannelSpec {
                 count,
@@ -246,7 +286,9 @@ pub(crate) fn read_part_plc<'t>(
                     io,
                     channels,
                     bit_of,
+                    pin_of,
                     unbound,
+                    positions,
                     extra: Default::default(),
                 },
             ),

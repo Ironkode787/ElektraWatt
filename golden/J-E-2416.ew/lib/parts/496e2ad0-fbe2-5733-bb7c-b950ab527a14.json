@@ -4,7 +4,7 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "55f342c0-c7f4-5dd9-a24a-82bcd8b73e4f",
   "version": "1.0.0",
-  "sha256": "sha256:ed65baf80cc9758d327bf00b3bc5127f4accf75205be74d1618ec45856e9d432",
+  "sha256": "sha256:103b99c9c8d5db0b3d4475e0035bf37131241871da902bad97294bd0f01f4c50",
   "meta": {"key": "533361", "sources": ["golden.table:parts|533361"]},
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",
@@ -20,7 +20,8 @@
       "io": [{"dir": "out", "bits": 8}],
       "channels": {"count": 8, "kind": "do", "data_type": "Bool", "designation": "{n}"},
       "bit_of": "n",
-      "unbound": "deactivated"
+      "unbound": "deactivated",
+      "positions": {"count": 4, "map": [{"solenoid": "14", "channel": "2p"}, {"solenoid": "12", "channel": "2p+1"}]}
     }
   }
 }

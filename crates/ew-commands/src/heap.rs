@@ -299,15 +299,36 @@ impl HeapSize for ew_schema::ChannelSpec {
     }
 }
 
+/// The heap bytes of a part-data map.
+fn map_heap(map: &ew_schema::MapSpec) -> usize {
+    match map {
+        ew_schema::MapSpec::Expr(s) => s.heap_size(),
+        ew_schema::MapSpec::List(l) => l.heap_size(),
+        ew_schema::MapSpec::Unknown(v) => v.heap_size(),
+    }
+}
+
+impl HeapSize for ew_schema::SolenoidChannel {
+    fn heap_size(&self) -> usize {
+        self.solenoid.heap_size() + map_heap(&self.channel) + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::PositionMap {
+    fn heap_size(&self) -> usize {
+        self.map.heap_size() + self.extra.heap_size()
+    }
+}
+
 impl HeapSize for ew_schema::PlcSection {
     fn heap_size(&self) -> usize {
-        let map = match &self.bit_of {
-            Some(ew_schema::MapSpec::Expr(s)) => s.heap_size(),
-            Some(ew_schema::MapSpec::List(l)) => l.heap_size(),
-            Some(ew_schema::MapSpec::Unknown(v)) => v.heap_size(),
-            None => 0,
-        };
-        self.io.heap_size() + self.channels.heap_size() + map + self.extra.heap_size()
+        let map = |m: &Option<ew_schema::MapSpec>| m.as_ref().map_or(0, map_heap);
+        self.io.heap_size()
+            + self.channels.heap_size()
+            + map(&self.bit_of)
+            + map(&self.pin_of)
+            + self.positions.heap_size()
+            + self.extra.heap_size()
     }
 }
 

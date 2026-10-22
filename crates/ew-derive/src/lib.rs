@@ -123,7 +123,8 @@ pub use part_text::{main_part, manufacturer_name, tech_data_text, unit_symbol};
 pub use plc::{
     ChannelAddr, ChannelAddrEntry, ChannelAddresses, ChannelStates, ChannelTarget, ChannelTargets,
     ChannelText, ChannelTexts, EffectiveState, ModuleOrder, ModuleStart, ModuleStarts, OrderedModule, PlcRow,
-    PlcRows, Slot, Start, driven_device, module_part, profile_of, station_of, stations,
+    PlcRows, Slot, SolenoidPositions, SolenoidSlot, Start, channel_pin, coil_cp_idx, driven_device, eval_map,
+    module_part, profile_of, solenoid_channel, station_of, stations,
 };
 pub use potentials::{
     Attr, AttrSource, BondLink, Component, NameSource, Partition, Potential, PotentialAttrs, PotentialId,
@@ -242,6 +243,7 @@ pub const FAMILIES: &[(&str, Policy)] = &[
     (RepAnchorCell::FAMILY, RepAnchorCell::POLICY),
     (SectionStructure::FAMILY, SectionStructure::POLICY),
     (SettingsMember::FAMILY, SettingsMember::POLICY),
+    (SolenoidPositions::FAMILY, SolenoidPositions::POLICY),
     (StitchGraphQ::FAMILY, StitchGraphQ::POLICY),
     (StructureOf::FAMILY, StructureOf::POLICY),
     (StructurePath::FAMILY, StructurePath::POLICY),

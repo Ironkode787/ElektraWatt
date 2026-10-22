@@ -355,8 +355,8 @@ pub enum ChannelState {
 // ---------------------------------------------------------------------------------------------------------
 // Part data
 
-/// The PLC section of a part (doc 10 §2.6, level L2 part data). The solenoid-position map, supply groups,
-/// earth and bus ports are additive and stay in `extra` until their work packages.
+/// The PLC section of a part (doc 10 §2.6, level L2 part data). The supply groups, earth, bus ports and the
+/// `meta` confidence are additive and stay in `extra` until their work packages.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct PlcSection {
     /// What the part is in the PLC model.
@@ -371,9 +371,47 @@ pub struct PlcSection {
     /// list); absent: linear.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bit_of: Option<MapSpec>,
+    /// The channel → pin map of a module with physical pins (doc 10 §3.3, normaliser N3): channel number →
+    /// the CP index (`idx`) on the module device's main function ("n", "n+1" or a list); absent: the
+    /// channels have no pins (internal channels, such as the solenoid outputs of a valve-terminal module).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pin_of: Option<MapSpec>,
     /// The state of channels neither bound nor claimed (doc 10 §3.2); absent: spare.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unbound: Option<ChannelState>,
+    /// The solenoid-position map of a valve-terminal module (doc 10 §2.6 `[plc.positions]`, §3.2 step 4,
+    /// §3.3 normaliser N2); absent: the module serves no valve positions.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub positions: Option<PositionMap>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The solenoid-position map of a valve-terminal module part (doc 10 §2.6 `[plc.positions]`): the channel
+/// that each solenoid of the valve at position index `p` drives. The position index is 0-based: the valve
+/// child at `Device.position` = q sits at p = q − 1 (doc 11 §3.2). Part 533361 of Golden A carries the test
+/// input H1, `count = 4`, solenoid 14 → `2p`, solenoid 12 → `2p+1` (doc 20 §11.2).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct PositionMap {
+    /// The number of valve positions (p = 0 … count − 1).
+    pub count: u16,
+    /// One entry per solenoid name, in part-data order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub map: Vec<SolenoidChannel>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// One entry of a [`PositionMap`]: the channel of one solenoid as a function of the position index.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct SolenoidChannel {
+    /// The solenoid ("14", "12"), matched against the designation of the valve's coil CP.
+    #[schemars(with = "IdentS")]
+    pub solenoid: Ident,
+    /// The channel number at position index p: a `p` expression ("2p", "2p+1") or a list indexed by p.
+    pub channel: MapSpec,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

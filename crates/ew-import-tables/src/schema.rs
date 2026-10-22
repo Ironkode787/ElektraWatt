@@ -316,7 +316,10 @@ pub(crate) const PART_PLC: TableSpec = spec(
         "data_type",
         "designation",
         "bit_of",
+        "pin_of",
         "unbound",
+        "positions",
+        "position_map",
     ],
 );
 

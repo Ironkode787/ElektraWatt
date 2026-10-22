@@ -340,10 +340,16 @@ The PLC section of the part copy named by `key` (a `parts.csv` key; a key with n
 | `data_type` | O | identifier (`Bool`); needs `channel_count` |
 | `designation` | O | the automatic designation pattern, which may contain `{n}`; needs `channel_count` |
 | `bit_of` | O | the channel map as a map-language expression (`n`), stored as `MapSpec::Expr` |
+| `pin_of` | O | the channel → pin map (the CP index on the module's main function) as a map-language expression, stored as `MapSpec::Expr`; read by normaliser N3 |
 | `unbound` | O | `ChannelState` of channels neither bound nor claimed (`spare`, `reserved`, `deactivated`) |
+| `positions` | O | integer: the valve positions of the solenoid-position map (`PositionMap.count`) |
+| `position_map` | O | `;`-list of `<solenoid>:<channel expression in p>` (`14:2p`), each stored as a `SolenoidChannel` with `MapSpec::Expr`; needs `positions` |
 
 One row: part `533361`, `module`, `out:8`, 8 `do` channels, `Bool`, `{n}`, `n`, `deactivated`: doc 20 §11.2
-"Channel map (part 533361): channel n → bit n, 8 DO channels per module" and doc 10 §2.6.
+"Channel map (part 533361): channel n → bit n, 8 DO channels per module" and doc 10 §2.6; positions `4` and
+the map `14:2p;12:2p+1`: doc 20 §11.2 "Solenoid-position map (part 533361): test input H1" (FT-228). Under H1
+the map claims no channel (every coil is bound to channel 2p + 1), so the channel states stay 8 used, 20 spare
+and 28 deactivated; switching to H2 is the edit `14:2p+1;12:2p`.
 
 ### `channels.csv` → `channel` (doc 20 §11.2, §11.3; doc 10 §2.4)
 

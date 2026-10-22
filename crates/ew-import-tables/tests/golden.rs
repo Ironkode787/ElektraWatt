@@ -13,7 +13,8 @@ use ew_schema::{
     AddrSpec, Bond, BusLine, Channel, ChannelKind, ChannelSpec, ChannelState, CircuitClass, Connection,
     ConnectionKind, Device, DeviceLink, DeviceLinkKind, Endpoint, Function, ImportLineage, IoClass, IoDir,
     IoRange, LibDocument, LineageAnchor, MapSpec, OrderUnit, Page, PartKind, PlcConfigProject, PlcRole,
-    PlcSection, PlcStation, PotentialDef, Project, Record, Representation, StationRole,
+    PlcSection, PlcStation, PositionMap, PotentialDef, Project, Record, Representation, SolenoidChannel,
+    StationRole,
 };
 use ew_units::{Grid, Nm, Pt2};
 
@@ -723,7 +724,25 @@ fn the_plc_station_the_modules_and_the_part_section_are_those_of_doc_20() {
                 extra: Default::default()
             }),
             bit_of: Some(MapSpec::Expr("n".to_owned())),
+            pin_of: None,
             unbound: Some(ChannelState::Deactivated),
+            // test input H1 of doc 20 §11.2 (FT-228): coil 14 on channel 2p, coil 12 on 2p + 1
+            positions: Some(PositionMap {
+                count: 4,
+                map: vec![
+                    SolenoidChannel {
+                        solenoid: "14".parse().unwrap(),
+                        channel: MapSpec::Expr("2p".to_owned()),
+                        extra: Default::default()
+                    },
+                    SolenoidChannel {
+                        solenoid: "12".parse().unwrap(),
+                        channel: MapSpec::Expr("2p+1".to_owned()),
+                        extra: Default::default()
+                    },
+                ],
+                extra: Default::default()
+            }),
             extra: Default::default()
         })
     );

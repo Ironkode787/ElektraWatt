@@ -741,7 +741,7 @@
     },
     "PlcSection": {
       "additionalProperties": true,
-      "description": "The PLC section of a part (doc 10 §2.6, level L2 part data). The solenoid-position map, supply groups,\nearth and bus ports are additive and stay in `extra` until their work packages.",
+      "description": "The PLC section of a part (doc 10 §2.6, level L2 part data). The supply groups, earth, bus ports and the\n`meta` confidence are additive and stay in `extra` until their work packages.",
       "properties": {
         "bit_of": {
           "anyOf": [
@@ -772,6 +772,28 @@
           },
           "type": "array"
         },
+        "pin_of": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MapSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The channel → pin map of a module with physical pins (doc 10 §3.3, normaliser N3): channel number →\nthe CP index (`idx`) on the module device's main function (\"n\", \"n+1\" or a list); absent: the\nchannels have no pins (internal channels, such as the solenoid outputs of a valve-terminal module)."
+        },
+        "positions": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PositionMap"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The solenoid-position map of a valve-terminal module (doc 10 §2.6 `[plc.positions]`, §3.2 step 4,\n§3.3 normaliser N2); absent: the module serves no valve positions."
+        },
         "role": {
           "$ref": "#/$defs/PlcRole",
           "description": "What the part is in the PLC model."
@@ -790,6 +812,30 @@
       },
       "required": [
         "role"
+      ],
+      "type": "object"
+    },
+    "PositionMap": {
+      "additionalProperties": true,
+      "description": "The solenoid-position map of a valve-terminal module part (doc 10 §2.6 `[plc.positions]`): the channel\nthat each solenoid of the valve at position index `p` drives. The position index is 0-based: the valve\nchild at `Device.position` = q sits at p = q − 1 (doc 11 §3.2). Part 533361 of Golden A carries the test\ninput H1, `count = 4`, solenoid 14 → `2p`, solenoid 12 → `2p+1` (doc 20 §11.2).",
+      "properties": {
+        "count": {
+          "description": "The number of valve positions (p = 0 … count − 1).",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "map": {
+          "description": "One entry per solenoid name, in part-data order.",
+          "items": {
+            "$ref": "#/$defs/SolenoidChannel"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "count"
       ],
       "type": "object"
     },
@@ -901,6 +947,25 @@
           "type": "string"
         }
       ]
+    },
+    "SolenoidChannel": {
+      "additionalProperties": true,
+      "description": "One entry of a [`PositionMap`]: the channel of one solenoid as a function of the position index.",
+      "properties": {
+        "channel": {
+          "$ref": "#/$defs/MapSpec",
+          "description": "The channel number at position index p: a `p` expression (\"2p\", \"2p+1\") or a list indexed by p."
+        },
+        "solenoid": {
+          "$ref": "#/$defs/Ident",
+          "description": "The solenoid (\"14\", \"12\"), matched against the designation of the valve's coil CP."
+        }
+      },
+      "required": [
+        "solenoid",
+        "channel"
+      ],
+      "type": "object"
     },
     "TechVal": {
       "anyOf": [
