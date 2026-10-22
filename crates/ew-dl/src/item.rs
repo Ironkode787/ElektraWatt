@@ -280,6 +280,50 @@ impl DisplayList {
         collect(&self.items, &|p| p, Some(resolver), 0, &mut acc);
         acc
     }
+
+    /// The bounds of every item that names an entity, at any depth: for each item whose
+    /// [`entity`](Item::entity) is set, its control-point bounds by the rules of [`bounds`](DisplayList::bounds)
+    /// (instances contribute their anchor, a clipped group its clipped content), mapped through the transforms of
+    /// the groups that enclose it. In paint order: depth first, a group before its members (pre-order). An item
+    /// without a point is left out. Exact for transforms whose angles are multiples of 90°.
+    ///
+    /// This is what a viewer picks and highlights over until a spatial index exists (WP-S2.02 §4.2).
+    ///
+    /// ```
+    /// use ew_dl::{DisplayList, EntityRef, Item, Path, Transform};
+    /// use ew_units::{Nm, Pt2, Rect};
+    /// use uuid::Uuid;
+    ///
+    /// let p = |x, y| Pt2::new(Nm(x), Nm(y));
+    /// let e = EntityRef(Uuid::from_u128(1));
+    /// let line = Item::path(Path::line(p(0, 0), p(10, 5)), None, None).with_entity(e);
+    /// let dl = DisplayList {
+    ///     items: vec![Item::group(Some(Transform::from_translation(p(100, 0))), None, vec![line])],
+    /// };
+    /// assert_eq!(dl.entity_bounds(), vec![(e, Rect::from_points(p(100, 0), p(110, 5)))]);
+    /// ```
+    pub fn entity_bounds(&self) -> Vec<(EntityRef, Rect)> {
+        let mut out = Vec::new();
+        collect_entities(&self.items, &|p| p, &mut out);
+        out
+    }
+}
+
+/// The walk of [`DisplayList::entity_bounds`]: `map` takes a point of `items`' coordinates to the list's.
+fn collect_entities(items: &[Item], map: &dyn Fn(Pt2) -> Pt2, out: &mut Vec<(EntityRef, Rect)>) {
+    for item in items {
+        if let Some(entity) = item.entity {
+            let mut acc = None;
+            collect(std::slice::from_ref(item), map, None, 0, &mut acc);
+            if let Some(r) = acc {
+                out.push((entity, r));
+            }
+        }
+        if let ItemKind::Group(g) = &item.kind {
+            let t = g.transform.unwrap_or(Transform::IDENTITY);
+            collect_entities(&g.items, &|q| map(t.apply(q)), out);
+        }
+    }
 }
 
 fn add(acc: &mut Option<Rect>, p: Pt2) {
@@ -517,6 +561,66 @@ mod tests {
         assert!(matches!(g.kind, ItemKind::Group(GroupItem { ref items, .. }) if items.len() == 1));
         // Value semantics: equal content, equal hash.
         assert_eq!(hash_of(&it), hash_of(&it.clone()));
+    }
+
+    #[test]
+    fn entity_bounds_follow_nested_transforms_in_pre_order() {
+        let e = |n: u128| EntityRef(Uuid::from_u128(n));
+        // A 10 × 4 rectangle at the origin, its entity 3.
+        let rect = Item::path(
+            Path::rect(Rect::from_points(p(0, 0), p(10, 4))),
+            Some(Stroke::pen(Pen::P026)),
+            None,
+        )
+        .with_entity(e(3));
+        // Inner group: a quarter turn (x, y) → (−y, x), then +1000 in x.
+        let turned = Item::group(
+            Some(Transform::new(p(1_000, 0), Orient2::R90, Angle2::ZERO)),
+            None,
+            vec![rect.clone()],
+        )
+        .with_entity(e(2));
+        // Outer group: mirrored (x, y) → (−x, y), then +(0, 500); it holds the turned group and a plain copy.
+        let outer = Item::group(
+            Some(Transform::new(p(0, 500), Orient2::M0, Angle2::ZERO)),
+            None,
+            vec![turned, rect.clone()],
+        )
+        .with_entity(e(1));
+        let untagged = Item::path(Path::line(p(-7, -7), p(7, 7)), None, None);
+        let dl = DisplayList {
+            items: vec![
+                outer,
+                untagged,
+                rect,
+                Item::path(Path::new(), None, None).with_entity(e(9)),
+            ],
+        };
+        // e3 inside the turned group: R90 gives x ∈ [−4, 0], y ∈ [0, 10]; +1000 → x ∈ [996, 1000]; mirror → x ∈
+        // [−1000, −996]; +500 in y → y ∈ [500, 510].
+        let in_turned = Rect::from_points(p(-1_000, 500), p(-996, 510));
+        // e3 directly in the outer group: mirror → x ∈ [−10, 0], y ∈ [500, 504].
+        let in_outer = Rect::from_points(p(-10, 500), p(0, 504));
+        assert_eq!(
+            dl.entity_bounds(),
+            vec![
+                (e(1), in_turned.union(in_outer)),
+                (e(2), in_turned),
+                (e(3), in_turned),
+                (e(3), in_outer),
+                (e(3), Rect::from_points(p(0, 0), p(10, 4))),
+            ],
+            "pre-order, the empty path left out"
+        );
+        // Every entity rectangle is the bounds of a list holding only that item at the same place.
+        assert_eq!(
+            dl.entity_bounds()[0].1,
+            DisplayList {
+                items: vec![dl.items[0].clone()]
+            }
+            .bounds()
+            .unwrap()
+        );
     }
 
     fn pt() -> impl Strategy<Value = Pt2> {

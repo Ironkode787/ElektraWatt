@@ -809,3 +809,52 @@ fn every_page_wire_of_the_golden_model_is_drawn() {
         assert_eq!(total, 72 + 1, "page connections of the golden model");
     });
 }
+
+/// WP-S2.02 A3 on a real page: `render_region` over the full rectangle of folio 103 at 150 dpi gives the bytes of
+/// `render`, with and without culling, so the canvas's CPU path is the golden reference.
+#[test]
+fn the_full_region_of_folio_103_is_the_render_byte_for_byte() {
+    let f = fonts();
+    with_golden_pages(|pages| {
+        let g = folio(pages, "103");
+        let scene = page_scene(&g.view, ew_text::bundled());
+        let list = scene.sheet_list();
+        let sheet = ew_render_cpu::SheetSize {
+            width: scene.sheet_width,
+            height: scene.sheet_height,
+        };
+        let options = ew_render_cpu::RenderOptions {
+            dpi: 150,
+            ..Default::default()
+        };
+        let (whole, _) = ew_render_cpu::render(&list, sheet, &options, &f, None).unwrap();
+        let region = ew_render_cpu::RegionOptions {
+            dpi: 150,
+            x: 0,
+            y: 0,
+            width: whole.width,
+            height: whole.height,
+            background: ew_dl::Color::WHITE,
+            surround: ew_dl::Color::BLACK,
+        };
+        let bounds = ew_render_cpu::ItemBounds::of(&list, None);
+        let (culled, report) =
+            ew_render_cpu::render_region(&list, Some(&bounds), sheet, &region, &f, None).unwrap();
+        assert!(report.missing_fonts.is_empty(), "{report:?}");
+        assert!(culled == whole, "culled region differs from render");
+        let (plain, _) = ew_render_cpu::render_region(&list, None, sheet, &region, &f, None).unwrap();
+        assert!(plain == whole, "region differs from render");
+    });
+}
+
+/// `Session::page_grid`: the drawn pages of Golden A have QElectroTech's 10 px grid and the QET frame's
+/// page-to-sheet map; an unknown folio has none.
+#[test]
+fn session_page_grid_gives_the_grid_and_the_sheet_map() {
+    let s = golden_session(None);
+    let grid = s.page_grid("103").expect("folio 103 has a grid");
+    assert_eq!((grid.num_nm, grid.den), (7_937_500, 3));
+    assert_eq!(grid.sheet_scale_ppb, 986_282_578);
+    assert_eq!(grid.sheet_offset_nm, (9_790_000, 9_790_000));
+    assert_eq!(s.page_grid("no such folio"), None);
+}

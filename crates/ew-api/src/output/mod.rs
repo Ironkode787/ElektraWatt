@@ -45,6 +45,10 @@ use ew_export::{PdfError, PdfOptions, PdfPage, SvgError, SvgFace, SvgOptions, pa
 use ew_scene::page::PageFinding;
 use sha2::{Digest, Sha256};
 
+/// The display-list IR the pages of an export are made of ([`ExportPages`]' `content`), re-exported so that the
+/// shell names its types (`DisplayList`, `EntityRef`, `Rect`) without a workspace edge to `ew-dl` (WP-S2.02 §4.2;
+/// architecture §3 rule 7).
+pub use ew_dl;
 pub use ew_export::{Parallelism, PdfDate, PdfReport, SvgFile, SvgReport, svg_file_name};
 pub use layers::{
     FrameLayer, LabelsLayer, PageLayer, SymbolsLayer, TablesLayer, WiresLayer, page_kind, page_layer,
@@ -484,7 +488,46 @@ pub fn export_svg(q: &Q, options: &ExportOptions) -> Result<SvgExport, OutputErr
     })
 }
 
+/// The connection grid of a page (`Page.grid`, ADR-0005, ADR-0027) as a rational pitch, with the page-to-sheet map
+/// of the page's frame form (FR-PAG-029), so that a viewer draws the grid points where the page's connection points
+/// print on the sheet: grid point `(i, j)` of the page lies at `offset + scale × (i, j) × num_nm / den` on the
+/// sheet, `scale = sheet_scale_ppb / 10⁹`.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct PageGrid {
+    /// The numerator of the pitch in nanometres on the page (`7_937_500` for QElectroTech's 10 px).
+    pub num_nm: i64,
+    /// The denominator of the pitch (`3` for QElectroTech's 10 px); at least 1.
+    pub den: i64,
+    /// The scale of the page-to-sheet map in parts per 10⁹ (`1_000_000_000` without a map).
+    pub sheet_scale_ppb: u32,
+    /// Where the page origin lands on the sheet, in nanometres (`(0, 0)` without a map).
+    pub sheet_offset_nm: (i64, i64),
+}
+
 impl Session {
+    /// The connection grid of the page labelled `folio` in the page order, with its page-to-sheet map
+    /// ([`PageGrid`]); `None` when no page has that printed folio label. Reads the memoised `page_order`,
+    /// `page_grid` and `page_frame` queries.
+    pub fn page_grid(&self, folio: &str) -> Option<PageGrid> {
+        let q = self.query();
+        let order = q.get::<PageOrder>(());
+        let entry = order.entries.iter().find(|e| e.folio == folio)?;
+        let grid = *q.get::<PageGridOf>(entry.page);
+        let frame = q.get::<PageFrameOf>(entry.page);
+        let map = frame
+            .as_ref()
+            .as_ref()
+            .map_or(ew_scene::forms::SheetMap::IDENTITY, |f| {
+                ew_scene::forms::SheetMap::of(&f.form)
+            });
+        Some(PageGrid {
+            num_nm: i64::try_from(grid.num()).unwrap_or(i64::MAX),
+            den: i64::try_from(grid.den()).unwrap_or(i64::MAX),
+            sheet_scale_ppb: map.scale_ppb,
+            sheet_offset_nm: (map.offset.x.0, map.offset.y.0),
+        })
+    }
+
     /// The sheet display lists of an export of the current snapshot through the session's memo store
     /// ([`export_pages`]).
     ///

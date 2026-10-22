@@ -144,13 +144,299 @@ pub fn render(
     let degenerate = sheet.width.0 <= 0 || sheet.height.0 <= 0 || options.dpi == 0;
     let side = |v: u64| u16::try_from(v).ok().filter(|&v| v > 0);
     let (Some(pw), Some(ph), false) = (side(w), side(h), degenerate) else {
-        let zero_if = |extent: Nm, v: u64| if extent.0 <= 0 || options.dpi == 0 { 0 } else { v };
+        return Err(degenerate_error(sheet, options.dpi, w, h));
+    };
+    let scale = f64::from(options.dpi) / NM_PER_INCH as f64;
+    Ok(paint(
+        list,
+        None,
+        Canvas {
+            width: pw,
+            height: ph,
+            device: Affine::scale(scale),
+            scale,
+            background: options.background,
+        },
+        fonts,
+        geometry,
+    ))
+}
+
+/// The [`RenderError::Size`] of a sheet without extent or of `dpi == 0` (0 for such an axis), else of the pixel
+/// size `(w, h)`.
+fn degenerate_error(sheet: SheetSize, dpi: u32, w: u64, h: u64) -> RenderError {
+    let zero_if = |extent: Nm, v: u64| if extent.0 <= 0 || dpi == 0 { 0 } else { v };
+    RenderError::Size {
+        width: zero_if(sheet.width, w),
+        height: zero_if(sheet.height, h),
+    }
+}
+
+/// The largest side of a [`render_region`] image.
+const MAX_REGION_SIDE: u32 = 4096;
+
+/// What [`render_region`] renders: a rectangle of the full-sheet raster at `dpi`.
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+pub struct RegionOptions {
+    /// Dots per inch of the full-sheet raster the region is cut from (as [`RenderOptions::dpi`]).
+    pub dpi: u32,
+    /// The column of the full-sheet raster that becomes the region's first column; may be negative or beyond
+    /// the sheet.
+    pub x: i64,
+    /// The row of the full-sheet raster that becomes the region's first row; may be negative or beyond the sheet.
+    pub y: i64,
+    /// The region's width in pixels, `1..=4096`.
+    pub width: u32,
+    /// The region's height in pixels, `1..=4096`.
+    pub height: u32,
+    /// Painted under everything inside the sheet (as [`RenderOptions::background`]).
+    pub background: Color,
+    /// Every pixel outside the sheet's [`pixel_size`] rectangle.
+    pub surround: Color,
+}
+
+/// Renders a rectangle of the full-sheet raster: output pixel `(i, j)` is pixel `(x + i, y + j)` of
+/// [`render`]'s image at `options.dpi` where that pixel lies inside [`pixel_size`]`(sheet, dpi)`, and
+/// `options.surround` elsewhere; inside the sheet the background is `options.background`. The sheet may be larger
+/// than [`render`]'s `u16::MAX` limit: only the region is rasterised.
+///
+/// The full rectangle (`x = y = 0` and the sheet's pixel size) gives the bytes of [`render`] exactly: the same
+/// single-threaded `Level::baseline()` pipeline runs with the same transforms. Another rectangle rounds its
+/// coordinates at another magnitude, so its pixels match the full raster's within anti-aliasing noise, not
+/// necessarily byte for byte (WP-S2.02 §8).
+///
+/// With `bounds` (from [`ItemBounds::of`] on the same list and resolver), a top-level item whose inflated bounds
+/// miss the region is skipped; culling never changes a pixel. Bounds made for a list with another number of items
+/// are ignored.
+///
+/// # Errors
+///
+/// [`RenderError::Size`] when `width` or `height` is outside `1..=4096` (the fields are the region's size), or
+/// for a sheet without extent or `dpi == 0` (as [`render`]).
+pub fn render_region(
+    list: &DisplayList,
+    bounds: Option<&ItemBounds>,
+    sheet: SheetSize,
+    options: &RegionOptions,
+    fonts: &dyn FontResolver,
+    geometry: Option<&dyn GeometryResolver>,
+) -> Result<(RgbaImage, RenderReport), RenderError> {
+    let region_side = |v: u32| {
+        u16::try_from(v)
+            .ok()
+            .filter(|&v| v > 0 && u32::from(v) <= MAX_REGION_SIDE)
+    };
+    let (Some(rw), Some(rh)) = (region_side(options.width), region_side(options.height)) else {
         return Err(RenderError::Size {
-            width: zero_if(sheet.width, w),
-            height: zero_if(sheet.height, h),
+            width: u64::from(options.width),
+            height: u64::from(options.height),
         });
     };
+    let (sw, sh) = pixel_size(sheet, options.dpi);
+    if sheet.width.0 <= 0 || sheet.height.0 <= 0 || options.dpi == 0 {
+        return Err(degenerate_error(sheet, options.dpi, sw, sh));
+    }
+    let scale = f64::from(options.dpi) / NM_PER_INCH as f64;
+    let device = Affine::translate((-(options.x as f64), -(options.y as f64))) * Affine::scale(scale);
+    // Culling: every top-level item's reach, inflated by 2 device pixels, against the region in device pixels.
+    let visible = bounds.filter(|b| b.items.len() == list.items.len()).map(|b| {
+        let margin = 2.0 / scale;
+        b.items
+            .iter()
+            .map(|reach| {
+                reach.is_some_and(|r| {
+                    let grow = r.pad + margin;
+                    let on_device = device.transform_rect_bbox(r.rect.inflate(grow, grow));
+                    on_device.x0 < f64::from(rw)
+                        && on_device.x1 > 0.0
+                        && on_device.y0 < f64::from(rh)
+                        && on_device.y1 > 0.0
+                })
+            })
+            .collect::<Vec<bool>>()
+    });
+    let (mut image, report) = paint(
+        list,
+        visible.as_deref(),
+        Canvas {
+            width: rw,
+            height: rh,
+            device,
+            scale,
+            background: options.background,
+        },
+        fonts,
+        geometry,
+    );
+    // Pixels outside the sheet's raster are the surround, whatever was drawn there.
+    let inside = |v: i64, n: u64| u64::try_from(v).is_ok_and(|v| v < n);
+    let surround = [
+        options.surround.r,
+        options.surround.g,
+        options.surround.b,
+        options.surround.a,
+    ];
+    for (j, row) in image.pixels.chunks_exact_mut(usize::from(rw) * 4).enumerate() {
+        let row_inside = inside(options.y.saturating_add(j as i64), sh);
+        for (i, px) in row.as_chunks_mut::<4>().0.iter_mut().enumerate() {
+            if !(row_inside && inside(options.x.saturating_add(i as i64), sw)) {
+                px.copy_from_slice(&surround);
+            }
+        }
+    }
+    Ok((image, report))
+}
 
+/// The bounds of the top-level items of a display list, for [`render_region`]'s culling.
+///
+/// Per top-level item: the box (in sheet nanometres) of everything the renderer draws for it (path control boxes,
+/// glyph-run layout boxes and glyph origins, resolved instances, groups under their transforms and cut to their
+/// clips; images are not drawn and add nothing) and how far ink can reach beyond that box: half the widest stroke
+/// times the miter limit (a miter join reaches that far) and twice the em size of a glyph run (outlines reach
+/// beyond their layout box). [`render_region`] adds 2 device pixels for anti-aliasing.
+#[derive(Clone, PartialEq, Debug)]
+pub struct ItemBounds {
+    items: Vec<Option<Reach>>,
+}
+
+/// A box and how far beyond it ink reaches, in nm.
+#[derive(Clone, Copy, PartialEq, Debug)]
+struct Reach {
+    rect: kurbo::Rect,
+    pad: f64,
+}
+
+impl ItemBounds {
+    /// The bounds of every top-level item of `list`, resolving instances through `geometry` as [`render`] does.
+    pub fn of(list: &DisplayList, geometry: Option<&dyn GeometryResolver>) -> ItemBounds {
+        ItemBounds {
+            items: list
+                .items
+                .iter()
+                .map(|item| {
+                    let mut acc = Acc::default();
+                    reach_of(
+                        std::slice::from_ref(item),
+                        Affine::IDENTITY,
+                        0,
+                        0,
+                        geometry,
+                        &mut acc,
+                    );
+                    acc.rect.map(|rect| Reach { rect, pad: acc.pad })
+                })
+                .collect(),
+        }
+    }
+}
+
+/// The running box and reach of one top-level item.
+#[derive(Default)]
+struct Acc {
+    rect: Option<kurbo::Rect>,
+    pad: f64,
+}
+
+impl Acc {
+    fn add(&mut self, r: kurbo::Rect) {
+        self.rect = Some(self.rect.map_or(r, |a| a.union(r)));
+    }
+}
+
+/// The walk of [`ItemBounds::of`]; it follows [`Painter::items`], and what that skips adds nothing.
+fn reach_of(
+    items: &[ew_dl::Item],
+    cur: Affine,
+    depth: usize,
+    inst_depth: usize,
+    geometry: Option<&dyn GeometryResolver>,
+    acc: &mut Acc,
+) {
+    for item in items {
+        match &item.kind {
+            ItemKind::Path(p) => {
+                if p.path.is_empty() {
+                    continue;
+                }
+                acc.add(cur.transform_rect_bbox(p.path.to_kurbo().control_box()));
+                if let Some(stroke) = &p.stroke
+                    && stroke.width.0 > 0
+                {
+                    acc.pad = acc.pad.max(stroke.width.0 as f64 / 2.0 * MITER_LIMIT.max(2.0));
+                }
+            }
+            ItemKind::Glyphs(run) => {
+                if run.size.0 <= 0 || run.glyphs.is_empty() {
+                    continue;
+                }
+                for q in run.bound_points() {
+                    let p = cur * kurbo::Point::new(q.x.0 as f64, q.y.0 as f64);
+                    acc.add(kurbo::Rect::from_points(p, p));
+                }
+                acc.pad = acc.pad.max(2.0 * run.size.0 as f64);
+            }
+            ItemKind::Image(_) => {}
+            ItemKind::Instance(inst) => {
+                let geom = geometry
+                    .filter(|_| inst_depth < MAX_INSTANCE_DEPTH)
+                    .and_then(|g| g.geometry(inst.symbol));
+                if let Some(dl) = geom {
+                    let t = cur * inst.transform.to_affine();
+                    reach_of(&dl.items, t, depth, inst_depth + 1, geometry, acc);
+                }
+            }
+            ItemKind::Group(g) => {
+                if depth >= MAX_GROUP_DEPTH {
+                    continue;
+                }
+                let t = cur * g.transform.unwrap_or(Transform::IDENTITY).to_affine();
+                match g.clip {
+                    None => reach_of(&g.items, t, depth + 1, inst_depth, geometry, acc),
+                    Some(clip) => {
+                        // Nothing inside reaches beyond the clip: the content's inflated box, cut to it.
+                        let mut inner = Acc::default();
+                        reach_of(&g.items, t, depth + 1, inst_depth, geometry, &mut inner);
+                        if let Some(r) = inner.rect {
+                            let r = r.inflate(inner.pad, inner.pad);
+                            let cut = r.intersect(t.transform_rect_bbox(nm_rect(clip)));
+                            if cut.width() >= 0.0 && cut.height() >= 0.0 {
+                                acc.add(cut);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// The pixel buffer one [`paint`] call draws into.
+struct Canvas {
+    width: u16,
+    height: u16,
+    /// Sheet nm to device pixels.
+    device: Affine,
+    /// Pixels per nm (the scale part of `device`).
+    scale: f64,
+    background: Color,
+}
+
+/// Draws the top-level items of `list` that `visible` lets through (all of them without it) onto `canvas`: the
+/// one pipeline of [`render`] and [`render_region`].
+fn paint(
+    list: &DisplayList,
+    visible: Option<&[bool]>,
+    canvas: Canvas,
+    fonts: &dyn FontResolver,
+    geometry: Option<&dyn GeometryResolver>,
+) -> (RgbaImage, RenderReport) {
+    let Canvas {
+        width: pw,
+        height: ph,
+        device,
+        scale,
+        background,
+    } = canvas;
     let mut ctx = RenderContext::new_with(
         pw,
         ph,
@@ -160,16 +446,16 @@ pub fn render(
         },
     );
     let resources = Resources::new();
-    let scale = f64::from(options.dpi) / NM_PER_INCH as f64;
 
     // The background is a full-size rectangle under everything.
     ctx.set_transform(Affine::IDENTITY);
-    ctx.set_paint(paint_color(options.background));
+    ctx.set_paint(paint_color(background));
     ctx.fill_rect(&kurbo::Rect::new(0.0, 0.0, f64::from(pw), f64::from(ph)));
 
     let mut painter = Painter {
         ctx,
         resources,
+        device,
         scale,
         fonts,
         geometry,
@@ -178,7 +464,14 @@ pub fn render(
         unresolved_instances: 0,
         skipped_images: 0,
     };
-    painter.items(&list.items, Affine::IDENTITY, 0, 0);
+    match visible {
+        None => painter.items(&list.items, Affine::IDENTITY, 0, 0),
+        Some(visible) => {
+            for (item, _) in list.items.iter().zip(visible).filter(|(_, v)| **v) {
+                painter.items(std::slice::from_ref(item), Affine::IDENTITY, 0, 0);
+            }
+        }
+    }
 
     let Painter {
         mut ctx,
@@ -202,7 +495,7 @@ pub fn render(
         unresolved_instances,
         skipped_images,
     };
-    Ok((image, report))
+    (image, report)
 }
 
 /// Premultiplied RGBA8 to straight alpha with exact integer rounding.
@@ -265,6 +558,8 @@ fn kurbo_stroke(s: &Stroke) -> kurbo::Stroke {
 struct Painter<'a> {
     ctx: RenderContext,
     resources: Resources,
+    /// Sheet nm to device pixels: the scale, and for a region the shift to its first pixel.
+    device: Affine,
     /// Pixels per nm.
     scale: f64,
     fonts: &'a dyn FontResolver,
@@ -318,7 +613,7 @@ impl Painter<'_> {
 
     /// Nm space under `cur` to device pixels.
     fn pixel_transform(&self, cur: Affine) -> Affine {
-        Affine::scale(self.scale) * cur
+        self.device * cur
     }
 
     fn path(&mut self, item: &PathItem, cur: Affine) {
@@ -376,7 +671,7 @@ impl Painter<'_> {
             * run.transform.to_affine();
         let k = self.scale;
         self.ctx
-            .set_transform(Affine::scale(k) * placed * Affine::scale(1.0 / k));
+            .set_transform(self.device * placed * Affine::scale(1.0 / k));
         self.ctx.set_paint(paint_color(brush_color(run.brush)));
         let glyphs = run.glyphs.iter().map(|g| vello_cpu::Glyph {
             id: g.id,
