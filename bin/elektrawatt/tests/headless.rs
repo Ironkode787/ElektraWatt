@@ -432,6 +432,8 @@ fn the_smoke_flag_opens_read_only_and_draws_a_page() {
     assert!(text.contains("at 36 dpi"), "{text}");
     // Read-only: the project directory is as it was (no lock file, no new generation).
     assert_eq!(listing(&dir), before);
+    // And no settings were written.
+    assert!(!tmp.path("config").exists());
 
     let out = elektrawatt(&tmp, &["--smoke".as_ref(), tmp.path("missing").as_os_str()]);
     assert_eq!(out.status.code(), Some(1));

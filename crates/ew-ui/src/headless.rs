@@ -150,7 +150,9 @@ pub fn run(
 
 /// `elektrawatt --smoke <project-dir>` (architecture section 10.1): opens the project read-only, renders its first
 /// page at 36 dpi through the page-view path and exits. Returns 0 or 1.
-pub fn smoke(config: ShellConfig, dir: &Path, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
+pub fn smoke(mut config: ShellConfig, dir: &Path, out: &mut dyn Write, err: &mut dyn Write) -> i32 {
+    // A smoke run reads: it leaves no settings file and no recent-projects entry behind.
+    config.config_dir = None;
     let mut shell = ShellModel::new(Mode::Headless, config);
     let opened = shell.dispatch(
         "file.open",

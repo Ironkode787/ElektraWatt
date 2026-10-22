@@ -270,3 +270,19 @@ fn the_file_menu_greys_out_what_needs_a_project() {
         "Save is disabled without a project"
     );
 }
+
+#[test]
+fn the_ui_scale_setting_scales_the_frame() {
+    let tmp = Tmp::new();
+    let mut h = harness(&tmp, Scripted::default(), None);
+    settle(&mut h);
+    assert_eq!(h.ctx.zoom_factor(), 1.0);
+    h.get_by_label("View").click();
+    settle(&mut h);
+    h.get_by_label("UI scale").click();
+    settle(&mut h);
+    h.get_by_label("150 %").click();
+    settle(&mut h);
+    assert_eq!(h.state().shell().settings().ui_scale, 1.5);
+    assert_eq!(h.ctx.zoom_factor(), 1.5);
+}

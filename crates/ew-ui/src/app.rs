@@ -127,9 +127,11 @@ impl App {
     /// Paints one frame into the root `ui` of the window.
     pub fn ui(&mut self, ui: &mut Ui) {
         let ctx = ui.ctx().clone();
-        let want = ctx.native_pixels_per_point().unwrap_or(1.0) * self.shell.settings().ui_scale;
-        if (ctx.pixels_per_point() - want).abs() > 1e-3 {
-            ctx.set_pixels_per_point(want);
+        // `ui_scale` is a factor on the native scale: egui's zoom factor is exactly that, and follows the window
+        // to another monitor.
+        let scale = self.shell.settings().ui_scale;
+        if (ctx.zoom_factor() - scale).abs() > 1e-3 {
+            ctx.set_zoom_factor(scale);
         }
         if ctx.input(|i| i.viewport().close_requested()) && !self.shell.should_quit() {
             ctx.send_viewport_cmd(ViewportCommand::CancelClose);
