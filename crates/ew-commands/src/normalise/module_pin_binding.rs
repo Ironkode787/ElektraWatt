@@ -4,13 +4,16 @@
 //! Normaliser #14, module pin binding (N3; doc 06 §3.2 row 14, doc 10 §3.3; FT-275).
 //!
 //! A channel created in this transaction (by N1 or an import), unbound, on a module whose part carries a
-//! channel → pin map (`PlcSection.pin_of`, doc 10 §3.3) takes `binding = Cp(main, pin)`: the CP index
-//! `ew_derive::channel_pin(pin_of, number)` on the module device's main function (the lowest ID of its
-//! functions with role main). The binding is set only when that CP exists in the function's FnDef copy and
-//! no other channel binds it (a CP is in at most one channel, FR-PLC-005); otherwise the channel stays
-//! unbound and a notice says why. A channel that is bound already (an explicit binding in the same
-//! transaction) is left as it is. Channels that existed before the transaction are never touched, so an
-//! explicit unbinding stays.
+//! channel → pin map (`PlcSection.pin_of`, doc 10 §3.3) takes `binding = Cp(main, idx)`: the pin designation
+//! `ew_derive::channel_pin(pin_of, number)` ("X2:1") resolved **by name** on the module device's main
+//! function (the lowest ID of its functions with role main). The CPs searched are the part's CP pattern when
+//! it has one (black boxes and template functions take their CPs from it, doc 07 §4.2), else the CPs of the
+//! main function's FnDef copy; the first CP with that designation, by index, is the pin (review ruling,
+//! cycle 18: a designation survives a reordering of the FnDef's CPs, an index does not). The binding is set
+//! only when the pin resolves and no other channel binds it (a CP is in at most one channel, FR-PLC-005);
+//! otherwise the channel stays unbound and a notice says why. A channel that is bound already (an explicit
+//! binding in the same transaction) is left as it is. Channels that existed before the transaction are
+//! never touched, so an explicit unbinding stays (and a part change does not re-pin them: FT to record).
 //!
 //! Idempotent: a second run finds each new channel bound, or meets the same notice.
 
@@ -21,7 +24,7 @@ use ew_schema::{Channel, Device, Endpoint, FnDef, FnRole, Function, Kind, LibCop
 
 use crate::error::CmdError;
 use crate::normalise::Normaliser;
-use crate::normalise::channel_instantiation::module_section;
+use crate::normalise::channel_instantiation::{module_part_copy, module_section};
 use crate::tx::TxBuilder;
 
 /// Normaliser #14.
@@ -35,6 +38,29 @@ fn main_function(tx: &TxBuilder<'_>, device: Id<Device>) -> Option<std::sync::Ar
     fns.into_iter()
         .filter_map(|f| tx.get::<Function>(f))
         .find(|f| f.role == FnRole::Main)
+}
+
+/// The CP index of the pin named `pin` on the module's main function: the part's CP pattern when it has
+/// one, else the main function's FnDef copy; the lowest index with that designation.
+fn pin_idx(tx: &TxBuilder<'_>, dev: &Device, main: &Function, pin: &str) -> Option<u16> {
+    let pattern = module_part_copy(tx, dev).filter(|p| !p.item.cp_pattern.is_empty());
+    match pattern {
+        Some(part) => part
+            .item
+            .cp_pattern
+            .iter()
+            .filter(|c| c.designation.as_str() == pin)
+            .map(|c| c.idx)
+            .min(),
+        None => tx
+            .get::<LibCopy<FnDef>>(main.def)?
+            .item
+            .cps
+            .iter()
+            .filter(|c| c.designation.as_str() == pin)
+            .map(|c| c.idx)
+            .min(),
+    }
 }
 
 impl Normaliser for ModulePinBinding {
@@ -77,16 +103,13 @@ impl Normaliser for ModulePinBinding {
                 ));
                 continue;
             };
-            let has_cp = tx
-                .get::<LibCopy<FnDef>>(main.def)
-                .is_some_and(|d| d.item.cps.get(&pin).is_some());
-            if !has_cp {
+            let Some(idx) = pin_idx(tx, &dev, &main, &pin) else {
                 tx.notice(format!(
-                    "channel {} of module {} stays unbound: its pin {pin} is not a CP of the main function {}",
+                    "channel {} of module {} stays unbound: no CP of the main function {} is named {pin}",
                     c.number, c.module, main.id
                 ));
                 continue;
-            }
+            };
             let held = bound.get_or_insert_with(|| {
                 tx.iter::<Channel>()
                     .into_iter()
@@ -96,15 +119,15 @@ impl Normaliser for ModulePinBinding {
                     })
                     .collect()
             });
-            if held.contains(&(main.id, pin)) {
+            if held.contains(&(main.id, idx)) {
                 tx.notice(format!(
                     "channel {} of module {} stays unbound: another channel binds its pin {pin} (FR-PLC-005)",
                     c.number, c.module
                 ));
                 continue;
             }
-            held.insert((main.id, pin));
-            let endpoint = Endpoint::Cp(main.id, pin);
+            held.insert((main.id, idx));
+            let endpoint = Endpoint::Cp(main.id, idx);
             tx.update::<Channel>(c.id, |c| c.binding = Some(endpoint))?;
             changed = true;
         }

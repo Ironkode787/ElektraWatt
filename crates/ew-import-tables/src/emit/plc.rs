@@ -12,7 +12,7 @@ use ew_interop_api::{Code, Severity};
 use ew_mltext::Ident;
 use ew_schema::{
     AddrSpec, Channel, ChannelKind, ChannelSpec, ChannelState, Device, DeviceLink, DeviceLinkKind, Endpoint,
-    IoClass, IoDir, IoRange, MapSpec, PlcConfigProject, PlcRole, PlcSection, PositionMap, Record,
+    IoClass, IoDir, IoRange, MapSpec, PinMap, PlcConfigProject, PlcRole, PlcSection, PositionMap, Record,
     SolenoidChannel, StationRole,
 };
 
@@ -226,7 +226,7 @@ pub(crate) fn read_part_plc<'t>(
         let data_type = r.ident("data_type");
         let designation = r.text("designation").map(str::to_owned);
         let bit_of = r.text("bit_of").map(|s| MapSpec::Expr(s.to_owned()));
-        let pin_of = r.text("pin_of").map(|s| MapSpec::Expr(s.to_owned()));
+        let pin_of = r.text("pin_of").map(|s| PinMap::Pattern(s.to_owned()));
         let unbound = r.choice("unbound", CHANNEL_STATES);
         let position_count = r.uint::<u16>("positions");
         let mut map = Vec::new();

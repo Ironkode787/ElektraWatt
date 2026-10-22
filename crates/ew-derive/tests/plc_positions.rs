@@ -194,6 +194,40 @@ fn unresolvable_maps_claim_nothing_and_an_explicit_state_wins() {
     assert_eq!(states(&Q::new(&m))[2], EffectiveState::Spare);
 }
 
+/// The ID of a channel that is not `v5(module, "channel", number)`.
+const FOREIGN: u128 = 0xc000;
+
+/// A channel of `module` with a non-v5 ID that binds V2's coil 14.
+fn foreign_binding(module: u128) -> Channel {
+    serde_json::from_value(json!({
+        "id": uid(FOREIGN), "module": uid(module), "number": 0, "kind": "do",
+        "binding": {"cp": [uid(F2), 5]}
+    }))
+    .expect("a channel")
+}
+
+/// Review ruling (cycle 18): a coil counts as bound when any channel binds it, of another module (a valve
+/// moved by `assembly.attach` keeps its binding) or of this module with a non-v5 ID, so the map's channel is
+/// not reserved.
+#[test]
+fn a_coil_bound_by_any_channel_claims_nothing() {
+    use EffectiveState::{Deactivated as D, Used as U};
+    for module in [STATION, M1] {
+        let mut fx = fixture(H1);
+        fx.push({
+            let mut v = serde_json::to_value(foreign_binding(module)).expect("serialises");
+            v["$k"] = json!("channel");
+            v
+        });
+        let m = fx.build();
+        assert_eq!(
+            states(&Q::new(&m)),
+            vec![D, U, D, D, D, D, D, D],
+            "bound by a channel of {module:#x}"
+        );
+    }
+}
+
 fn update<T>(model: &ew_model::Model, n: u128, f: impl FnOnce(&mut Value)) -> Op
 where
     T: Entity + serde::Serialize + serde::de::DeserializeOwned,
@@ -222,6 +256,14 @@ fn memoised_claims_equal_cold_claims_across_edits() {
     assert_eq!(read(&store.query()), read(&Q::new(&m0)));
 
     let edits: Vec<(&str, Edit)> = vec![
+        (
+            "a channel of another module binds V2's coil",
+            Box::new(|_| vec![Op::insert(AnyRow::of(foreign_binding(STATION)))]),
+        ),
+        (
+            "that channel deleted",
+            Box::new(|m| vec![Op::delete(m.row(&Channel::key(id(FOREIGN))).expect("foreign"))]),
+        ),
         (
             "map H1 → H2",
             Box::new(|m| {

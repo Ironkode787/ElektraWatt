@@ -340,7 +340,7 @@ The PLC section of the part copy named by `key` (a `parts.csv` key; a key with n
 | `data_type` | O | identifier (`Bool`); needs `channel_count` |
 | `designation` | O | the automatic designation pattern, which may contain `{n}`; needs `channel_count` |
 | `bit_of` | O | the channel map as a map-language expression (`n`), stored as `MapSpec::Expr` |
-| `pin_of` | O | the channel → pin map (the CP index on the module's main function) as a map-language expression, stored as `MapSpec::Expr`; read by normaliser N3 |
+| `pin_of` | O | the channel → pin map: a pin-designation pattern with `{<expression in n>}` placeholders (`X2:{n+1}`), stored as `PinMap::Pattern`; normaliser N3 binds each new channel to the CP of that designation on the module's main function |
 | `unbound` | O | `ChannelState` of channels neither bound nor claimed (`spare`, `reserved`, `deactivated`) |
 | `positions` | O | integer: the valve positions of the solenoid-position map (`PositionMap.count`) |
 | `position_map` | O | `;`-list of `<solenoid>:<channel expression in p>` (`14:2p`), each stored as a `SolenoidChannel` with `MapSpec::Expr`; needs `positions` |

@@ -45,8 +45,8 @@ use ew_mltext::Ident;
 use ew_plcaddr::{AddressProfile, Area, AreaIntervals, MapExpr, MapVar, Purpose, Size};
 use ew_schema::{
     AddrSpec, Channel, ChannelKind, ChannelState, Device, DeviceLink, DeviceLinkKind, DeviceState, Endpoint,
-    FnDef, Function, IoClass, IoDir, LibCopy, MapSpec, Part, PlcArea, PlcConfigProject, PlcSection, PlcSize,
-    RepType, Representation, SlotPath, SolenoidChannel,
+    FnDef, Function, IoClass, IoDir, LibCopy, MapSpec, Part, PinMap, PlcArea, PlcConfigProject, PlcSection,
+    PlcSize, RepType, Representation, SlotPath, SolenoidChannel,
 };
 
 use crate::Q;
@@ -176,10 +176,36 @@ pub fn solenoid_channel(entry: &SolenoidChannel, p: u32) -> Option<u16> {
     eval_map(&entry.channel, MapVar::P, p).and_then(|c| u16::try_from(c).ok())
 }
 
-/// The pin a channel → pin map assigns to channel `number`: the CP index on the module's main function (doc
-/// 10 §3.3, normaliser N3); `None` when it does not resolve or exceeds `u16`.
-pub fn channel_pin(pin_of: &MapSpec, number: u16) -> Option<u16> {
-    eval_map(pin_of, MapVar::N, u32::from(number)).and_then(|c| u16::try_from(c).ok())
+/// The pin designation a channel → pin map assigns to channel `number` (doc 10 §3.3, normaliser N3): the
+/// pattern with each `{<expression in n>}` expanded (`"X2:{n+1}"` → `X2:1` for channel 0), or the list
+/// entry at `number`. `None` for an unclosed or unparsable placeholder, an expression in `p`, an overflow,
+/// an index outside the list, an empty result or a form of a newer format.
+pub fn channel_pin(pin_of: &PinMap, number: u16) -> Option<String> {
+    let out = match pin_of {
+        PinMap::Pattern(pattern) => {
+            let mut out = String::new();
+            let mut rest = pattern.as_str();
+            while let Some(open) = rest.find('{') {
+                out.push_str(&rest[..open]);
+                let tail = &rest[open + 1..];
+                let close = tail.find('}')?;
+                let expr = MapExpr::parse(&tail[..close])?;
+                if expr.var != MapVar::N {
+                    return None;
+                }
+                out.push_str(&expr.eval(u32::from(number))?.to_string());
+                rest = &tail[close + 1..];
+            }
+            if rest.contains('}') {
+                return None;
+            }
+            out.push_str(rest);
+            out
+        }
+        PinMap::List(l) => l.get(usize::from(number))?.as_str().to_owned(),
+        PinMap::Unknown(_) => return None,
+    };
+    (!out.is_empty()).then_some(out)
 }
 
 /// The coil CP of solenoid `solenoid` in a function definition: its first CP (by index) whose designation is
@@ -806,11 +832,13 @@ impl Query for ChannelStates {
         let channels = module_channels(q, *key);
         // Step 4: the map claims channel c when it assigns c to solenoid s of position p, the valve at p
         // declares s, and s is unbound or bound to c. Only an unbound channel reaches step 4, so "bound to c"
-        // cannot hold there; a coil counts as bound when a channel of this module binds it (a channel binds
-        // only within its module's subtree, `plc.bind_channel`, FR-PLC-005).
-        let bound: std::collections::BTreeSet<(Id<Function>, u16)> = channels
+        // cannot hold there; a coil counts as bound when any channel binds it, of this module or another
+        // (a valve moved by `assembly.attach` keeps its binding) and whatever its ID (review ruling, cycle
+        // 18): the whole channel table, as normaliser N2 and `plc.bind_channel` read it.
+        let bound: std::collections::BTreeSet<(Id<Function>, u16)> = q
+            .table::<Channel>()
             .iter()
-            .filter_map(|c| match &c.binding {
+            .filter_map(|(_, c)| match &c.binding {
                 Some(Endpoint::Cp(f, idx)) => Some((*f, *idx)),
                 _ => None,
             })

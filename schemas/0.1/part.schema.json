@@ -724,6 +724,21 @@
       },
       "type": "object"
     },
+    "PinMap": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        }
+      ],
+      "description": "A channel → pin map (doc 10 §3.3): a designation pattern with `{<expression in n>}` placeholders (\"X2:{n+1}\"), or an explicit list of pin designations."
+    },
     "PlcRole": {
       "description": "The PLC role of a part.",
       "oneOf": [
@@ -775,13 +790,13 @@
         "pin_of": {
           "anyOf": [
             {
-              "$ref": "#/$defs/MapSpec"
+              "$ref": "#/$defs/PinMap"
             },
             {
               "type": "null"
             }
           ],
-          "description": "The channel → pin map of a module with physical pins (doc 10 §3.3, normaliser N3): channel number →\nthe CP index (`idx`) on the module device's main function (\"n\", \"n+1\" or a list); absent: the\nchannels have no pins (internal channels, such as the solenoid outputs of a valve-terminal module)."
+          "description": "The channel → pin map of a module with physical pins (doc 10 §3.3, normaliser N3): channel number →\nthe designation of the module's connection point (\"X2:{n+1}\", or a list); absent: the channels have\nno pins (internal channels, such as the solenoid outputs of a valve-terminal module)."
         },
         "positions": {
           "anyOf": [

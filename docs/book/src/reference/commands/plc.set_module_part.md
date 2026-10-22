@@ -7,8 +7,8 @@ and removes the channels the new part no longer has, after the confirmation that
 
 Sets `Device.parts` to `parts` (absent: the parts stay as they are) and deletes the module's channels
 numbered at or above the channel count of the resulting PLC section (the part use named by
-`plc_module.part_use`, else the first part use whose part has a PLC section; a device without the
-`plc_module` aspect, or whose part has no channel spec, has a count of 0). Their bindings, symbols and
+`plc_module.part_use`, else the first part use whose part has a PLC section; a part without a channel
+spec has a count of 0). Their bindings, symbols and
 comments are members of the channel record and go with it; no other record refers to a channel, and
 exchange records do not exist yet (doc 10 §4). Normaliser N1 then creates the missing channels and applies
 the part's channel kind, as for any part change.
@@ -17,8 +17,10 @@ the part's channel kind, as for any part change.
 confirmation: the preview's diff lists every deleted channel, and its outcome has one notice per channel
 with its number, binding and symbol. `fields.set` on `parts` stays the interactive way to change a part:
 it never removes a channel, and N1 names the surplus channels it leaves, which this command without
-`parts` removes. Rejected: a part copy that does not exist and a module that does not exist
-(`CmdError::NotFound`). A module whose parts and channels need no change gives an empty transaction,
+`parts` removes. Rejected: a device without the `plc_module` aspect; new `parts` in which the aspect's
+`part_use` names no entry (at `/parts`: the count would fall to 0 and every channel go); a part copy that
+does not exist and a module that does not exist (`CmdError::NotFound`). A module whose parts and
+channels need no change gives an empty transaction,
 which commits nothing. Undoable as one step. Outcome: the module.
 
 ## Registry entry

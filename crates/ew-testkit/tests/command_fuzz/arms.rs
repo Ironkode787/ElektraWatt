@@ -2222,7 +2222,7 @@ fn plc_set_module_part(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 Step::cmd("plc.set_module_part", p)
                     .accept()
                     .counts(&[(Table::Devices, 0)])
-                    .check(move |_, after| {
+                    .check(move |before, after| {
                         let id = typed::<ew_schema::Device>(&module).ok_or("a device ID")?;
                         let has_aspect = after
                             .devices()
@@ -2240,9 +2240,21 @@ fn plc_set_module_part(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                             .iter()
                             .filter(|(_, c)| c.module == id && c.number >= count)
                             .count();
-                        (surplus == 0)
-                            .then_some(())
-                            .ok_or_else(|| format!("{surplus} surplus channels remain"))
+                        if surplus != 0 {
+                            return Err(format!("{surplus} surplus channels remain"));
+                        }
+                        // no over-deletion: every channel below the count survives with its binding
+                        for (cid, c) in before.table::<ew_schema::Channel>().iter() {
+                            if c.module != id || c.number >= count {
+                                continue;
+                            }
+                            match after.table::<ew_schema::Channel>().get(cid) {
+                                Some(a) if a.binding == c.binding => {}
+                                Some(_) => return Err(format!("channel {} lost its binding", c.number)),
+                                None => return Err(format!("channel {} below the count is gone", c.number)),
+                            }
+                        }
+                        Ok(())
                     }),
             )
         }

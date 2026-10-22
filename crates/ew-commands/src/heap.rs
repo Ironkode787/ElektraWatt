@@ -322,12 +322,17 @@ impl HeapSize for ew_schema::PositionMap {
 
 impl HeapSize for ew_schema::PlcSection {
     fn heap_size(&self) -> usize {
-        let map = |m: &Option<ew_schema::MapSpec>| m.as_ref().map_or(0, map_heap);
+        let pins = match &self.pin_of {
+            Some(ew_schema::PinMap::Pattern(s)) => s.heap_size(),
+            Some(ew_schema::PinMap::List(l)) => l.heap_size(),
+            Some(ew_schema::PinMap::Unknown(v)) => v.heap_size(),
+            None => 0,
+        };
         self.io.heap_size()
             + self.channels.heap_size()
-            + map(&self.bit_of)
-            + map(&self.pin_of)
+            + self.bit_of.as_ref().map_or(0, map_heap)
             + self.positions.heap_size()
+            + pins
             + self.extra.heap_size()
     }
 }

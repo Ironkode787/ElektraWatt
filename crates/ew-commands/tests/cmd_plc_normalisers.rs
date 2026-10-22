@@ -264,7 +264,8 @@ fn an_explicit_rebinding_after_n2_stays() {
 }
 
 /// A move within the module re-evaluates the valve: a free coil binds at the new position; a bound coil
-/// keeps its channel (EW-PLC-012 reports the deviation from the map, doc 11 §4.2 N-FL-2).
+/// keeps its channel, with a notice (owner ruling, cycle 18; EW-PLC-012 reports the deviation from the map,
+/// doc 11 §4.2 N-FL-2).
 #[test]
 fn n2_on_a_move_binds_a_free_coil_and_keeps_a_bound_one() {
     let mut e = engine(model_with(vec![]));
@@ -277,15 +278,19 @@ fn n2_on_a_move_binds_a_free_coil_and_keeps_a_bound_one() {
             position: Some(p),
         }],
     };
-    e.execute(&move_to(2)).expect("move to 2");
+    let r = e.execute(&move_to(2)).expect("move to 2");
     assert_eq!(
         binding(&e, 0),
         Some(Endpoint::Cp(f, 5)),
         "a bound coil keeps its channel"
     );
     assert_eq!(binding(&e, 2), None);
+    assert_eq!(r.outcome.notices.len(), 1, "{:?}", r.outcome.notices);
+    assert!(has_notice(&r, "assigns channel 2"), "{:?}", r.outcome.notices);
+    assert!(has_notice(&r, "EW-PLC-012"), "{:?}", r.outcome.notices);
     e.execute(&bind(channel_id(DEV_102F2, 0), None)).expect("unbind");
-    e.execute(&move_to(4)).expect("move to 4");
+    let r = e.execute(&move_to(4)).expect("move to 4");
+    assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
     assert_eq!(
         binding(&e, 6),
         Some(Endpoint::Cp(f, 5)),
@@ -314,7 +319,7 @@ fn n2_reports_a_map_that_gives_no_channel() {
 // ---------------------------------------------------------------------------------------------------------
 // N3: module pin binding
 
-fn pinned(part_id: Id<Part>, pin_of: &str) -> LibCopy<Part> {
+fn pinned(part_id: Id<Part>, pin_of: Value) -> LibCopy<Part> {
     plc_part(
         part_id,
         "DI-4",
@@ -323,51 +328,93 @@ fn pinned(part_id: Id<Part>, pin_of: &str) -> LibCopy<Part> {
     )
 }
 
-/// N3 binds each new channel of a module with a pin map to the pin on the module's main function
-/// (`FN_102F2`, FnDef MICO with CPs 0 … 9).
+/// N3 binds each new channel of a module with a pin map to the pin of that designation on the module's
+/// main function (`FN_102F2`, FnDef MICO: 24VDC, 24VDC, GND, GND, 13, 14, Out1 … Out4 at CPs 0 … 9).
 #[test]
-fn n3_binds_new_channels_to_the_module_pins() {
+fn n3_binds_new_channels_to_the_module_pins_by_designation() {
     const PINNED: Id<Part> = id(0x70);
-    let mut e = engine(model_with(vec![pinned(PINNED, "2n+1")]));
+    let mut e = engine(model_with(vec![pinned(PINNED, json!("Out{n+1}"))]));
     let r = make_module(&mut e, PINNED);
     for n in 0..4u16 {
-        assert_eq!(
-            binding(&e, n),
-            Some(Endpoint::Cp(FN_102F2, 2 * n + 1)),
-            "channel {n}"
-        );
+        assert_eq!(binding(&e, n), Some(Endpoint::Cp(FN_102F2, 6 + n)), "channel {n}");
     }
     assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
 }
 
-/// A pin that is not a CP of the main function, or that another channel binds, leaves the channel unbound
-/// with a notice.
+/// A list names each pin; a designation printed twice resolves to its lowest CP index.
 #[test]
-fn n3_reports_missing_and_held_pins() {
+fn n3_takes_a_list_and_the_lowest_index_of_a_repeated_designation() {
+    const PINNED: Id<Part> = id(0x76);
+    let mut e = engine(model_with(vec![pinned(
+        PINNED,
+        json!(["GND", "13", "24VDC", "Out4"]),
+    )]));
+    make_module(&mut e, PINNED);
+    let pins: Vec<_> = (0..4u16).map(|n| binding(&e, n)).collect();
+    let cp = |idx| Some(Endpoint::Cp(FN_102F2, idx));
+    assert_eq!(pins, vec![cp(2), cp(4), cp(0), cp(9)]);
+}
+
+/// The part's CP pattern, when present, holds the pin designations (black boxes, doc 07 §4.2).
+#[test]
+fn n3_resolves_pins_in_the_part_pattern() {
+    const PINNED: Id<Part> = id(0x77);
+    let mut part = pinned(PINNED, json!("X2:{n+1}"));
+    let pattern: Vec<ew_schema::CpData> = (0..4u16)
+        .map(|n| {
+            serde_json::from_value(json!({"idx": 20 + n, "designation": format!("X2:{}", n + 1)}))
+                .expect("cp")
+        })
+        .collect();
+    part.item.cp_pattern = ew_schema::KeyedList::from_vec(pattern).expect("distinct indexes");
+    let mut e = engine(model_with(vec![part]));
+    make_module(&mut e, PINNED);
+    for n in 0..4u16 {
+        assert_eq!(
+            binding(&e, n),
+            Some(Endpoint::Cp(FN_102F2, 20 + n)),
+            "channel {n}"
+        );
+    }
+}
+
+/// A pin that no CP carries, a pin that another channel binds, and a pattern that does not expand leave
+/// the channel unbound with a notice.
+#[test]
+fn n3_reports_missing_held_and_unexpandable_pins() {
     const PINNED: Id<Part> = id(0x71);
-    // a channel of another module that holds pin 8 of FN_102F2 (an import; FR-PLC-005)
+    const BROKEN: Id<Part> = id(0x78);
+    // a channel of another module that holds pin Out4 (CP 9) of FN_102F2 (an import; FR-PLC-005)
     let holder: Record = Record::Channel(
         serde_json::from_value(json!({
             "id": id::<Channel>(0xc100), "module": DEV_101F1, "number": 0, "kind": "di",
-            "binding": {"cp": [FN_102F2, 8]}
+            "binding": {"cp": [FN_102F2, 9]}
         }))
         .expect("channel"),
     );
-    let mut e = engine(model_with_records(vec![pinned(PINNED, "n+7")], vec![holder]));
+    let mut e = engine(model_with_records(
+        vec![pinned(PINNED, json!("Out{n+3}")), pinned(BROKEN, json!("Out{n"))],
+        vec![holder],
+    ));
     let r = make_module(&mut e, PINNED);
-    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(FN_102F2, 7)));
-    assert_eq!(binding(&e, 1), None, "pin 8 is held");
-    assert_eq!(binding(&e, 2), Some(Endpoint::Cp(FN_102F2, 9)));
-    assert_eq!(binding(&e, 3), None, "pin 10 is not a CP");
+    assert_eq!(binding(&e, 0), Some(Endpoint::Cp(FN_102F2, 8)), "Out3");
+    assert_eq!(binding(&e, 1), None, "Out4 is held");
+    assert_eq!(binding(&e, 2), None, "no CP is named Out5");
+    assert_eq!(binding(&e, 3), None, "no CP is named Out6");
     assert!(has_notice(&r, "FR-PLC-005"), "{:?}", r.outcome.notices);
-    assert!(has_notice(&r, "is not a CP"), "{:?}", r.outcome.notices);
+    assert!(has_notice(&r, "is named Out5"), "{:?}", r.outcome.notices);
+
+    let mut e = engine(model_with(vec![pinned(BROKEN, json!("Out{n"))]));
+    let r = make_module(&mut e, BROKEN);
+    assert!((0..4u16).all(|n| binding(&e, n).is_none()));
+    assert!(has_notice(&r, "gives no pin"), "{:?}", r.outcome.notices);
 }
 
 /// N3 binds only channels created in the transaction: an explicit unbinding of an old channel stays.
 #[test]
 fn n3_leaves_an_unbound_old_channel_alone() {
     const PINNED: Id<Part> = id(0x72);
-    let mut e = engine(model_with(vec![pinned(PINNED, "n")]));
+    let mut e = engine(model_with(vec![pinned(PINNED, json!("Out{n+1}"))]));
     make_module(&mut e, PINNED);
     e.execute(&bind(channel_id(DEV_102F2, 2), None)).expect("unbind");
     e.execute(&set_device(DEV_102F2, "function_text", json!("I/O")))
@@ -594,19 +641,46 @@ fn set_module_part_may_change_nothing_and_checks_its_references() {
     assert!(matches!(e.preview(&bad), Err(CmdError::NotFound { .. })));
 }
 
-/// A device that lost its `plc_module` aspect, or whose new part has no channels, has a count of 0: every
-/// channel is surplus.
+/// A new part without a channel spec has a count of 0: every channel is surplus.
 #[test]
-fn without_the_aspect_or_a_channel_spec_every_channel_is_surplus() {
+fn a_part_without_channels_makes_every_channel_surplus() {
     let mut e = engine(model_with(vec![]));
     make_module(&mut e, MODULE_H1);
     let preview = e.preview(&set_part(Some(VALVE))).expect("preview");
     assert_eq!(removed(&preview), channel_keys(0..8));
+    e.commit(preview).expect("confirm");
+    assert_eq!(e.model().table::<Channel>().iter().count(), 0);
+}
+
+/// Review ruling (cycle 18): a device without the `plc_module` aspect is refused, and so are new parts in
+/// which `plc_module.part_use` names no entry (the count would fall to 0 and every channel go).
+#[test]
+fn set_module_part_refuses_a_non_module_and_a_dangling_part_use() {
+    let mut e = engine(model_with(vec![narrow()]));
+    make_module(&mut e, MODULE_H1);
+    e.execute(&set_device(
+        DEV_102F2,
+        "parts",
+        json!([{"part": {"copy": MODULE_H1}, "qty": "1"}, {"part": {"copy": NARROW}, "qty": "1"}]),
+    ))
+    .expect("two part uses");
+    e.execute(&set_device(DEV_102F2, "plc_module.part_use", json!(1)))
+        .expect("part use 1");
+    match e.preview(&set_part(Some(NARROW))) {
+        Err(CmdError::InvalidParams { command, path, .. }) => {
+            assert_eq!(
+                (command.as_str(), path.as_str()),
+                ("plc.set_module_part", "/parts")
+            );
+        }
+        other => panic!("expected InvalidParams at /parts, got {other:?}"),
+    }
+    assert_eq!(e.model().table::<Channel>().iter().count(), 8);
 
     e.execute(&set_device(DEV_102F2, "plc_module", Value::Null))
         .expect("remove the aspect");
-    let preview = e.preview(&set_part(None)).expect("preview");
-    assert_eq!(preview.diff().len(), 8);
-    e.commit(preview).expect("confirm");
-    assert_eq!(e.model().table::<Channel>().iter().count(), 0);
+    assert!(matches!(
+        e.preview(&set_part(None)),
+        Err(CmdError::Rejected { .. })
+    ));
 }

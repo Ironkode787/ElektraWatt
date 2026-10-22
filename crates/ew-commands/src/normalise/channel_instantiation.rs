@@ -45,16 +45,21 @@ pub struct ChannelInstantiation;
 /// whose part has a PLC section (the rule of `ew_derive::module_part`). `None` for a device without the
 /// `plc_module` aspect.
 pub(crate) fn module_section(tx: &TxBuilder<'_>, dev: &Device) -> Option<PlcSection> {
+    module_part_copy(tx, dev).and_then(|p| p.item.sections.plc.clone())
+}
+
+/// The part copy that supplies a module device's PLC section (see [`module_section`]).
+pub(crate) fn module_part_copy(tx: &TxBuilder<'_>, dev: &Device) -> Option<Arc<LibCopy<Part>>> {
     let module = dev.aspects.plc_module.as_ref()?;
-    let section = |i: usize| {
+    let with_plc = |i: usize| {
         dev.parts
             .get(i)
             .and_then(|u| tx.get::<LibCopy<Part>>(u.part.copy))
-            .and_then(|p| p.item.sections.plc.clone())
+            .filter(|p| p.item.sections.plc.is_some())
     };
     match module.part_use {
-        Some(i) => section(usize::from(i)),
-        None => (0..dev.parts.len()).find_map(section),
+        Some(i) => with_plc(usize::from(i)),
+        None => (0..dev.parts.len()).find_map(with_plc),
     }
 }
 

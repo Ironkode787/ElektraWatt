@@ -371,11 +371,6 @@ pub struct PlcSection {
     /// list); absent: linear.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bit_of: Option<MapSpec>,
-    /// The channel → pin map of a module with physical pins (doc 10 §3.3, normaliser N3): channel number →
-    /// the CP index (`idx`) on the module device's main function ("n", "n+1" or a list); absent: the
-    /// channels have no pins (internal channels, such as the solenoid outputs of a valve-terminal module).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub pin_of: Option<MapSpec>,
     /// The state of channels neither bound nor claimed (doc 10 §3.2); absent: spare.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub unbound: Option<ChannelState>,
@@ -383,6 +378,11 @@ pub struct PlcSection {
     /// §3.3 normaliser N2); absent: the module serves no valve positions.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub positions: Option<PositionMap>,
+    /// The channel → pin map of a module with physical pins (doc 10 §3.3, normaliser N3): channel number →
+    /// the designation of the module's connection point ("X2:{n+1}", or a list); absent: the channels have
+    /// no pins (internal channels, such as the solenoid outputs of a valve-terminal module).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pin_of: Option<PinMap>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -549,6 +549,67 @@ impl JsonSchema for MapSpec {
             "anyOf": [
                 {"type": "string"},
                 {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 4_294_967_295_u64}}
+            ]
+        })
+    }
+}
+
+/// A channel → pin map (doc 10 §3.3, normaliser N3): the designation of the connection point a channel is
+/// wired to, by channel number. A pattern is text in which each `{<expression>}` is a map-language
+/// expression in `n` (doc 10 §2.6: `{n}`, `{n+1}`, `{2n+1}`), so `"X2:{n+1}"` gives `X2:1` for channel 0;
+/// a list gives the designation of channel n at index n. The schema keeps the text; the derivation and N3
+/// expand it and treat a pattern they cannot expand as giving no pin.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum PinMap {
+    /// A designation pattern.
+    Pattern(String),
+    /// An explicit list of designations, indexed by the channel number.
+    List(Vec<Ident>),
+    /// A form of a newer format, kept verbatim.
+    Unknown(Value),
+}
+
+impl Serialize for PinMap {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        match self {
+            PinMap::Pattern(s) => s.serialize(serializer),
+            PinMap::List(l) => l.serialize(serializer),
+            PinMap::Unknown(v) => v.serialize(serializer),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for PinMap {
+    /// A string is a pattern and an array a list of designations; a one-member object is a form of a newer
+    /// format ([`PinMap::Unknown`]). A list whose elements are not designations is a malformed variant.
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = buffer(deserializer)?;
+        match &value {
+            Value::String(s) => Ok(PinMap::Pattern(s.clone())),
+            Value::Array(_) => match de_here::<Vec<Ident>>(&value) {
+                Ok(l) => Ok(PinMap::List(l)),
+                Err(e) => malformed("list", e, value, PinMap::Unknown),
+            },
+            Value::Object(map) if map.len() == 1 => Ok(PinMap::Unknown(value)),
+            Value::Object(_) => Err(not_a_variant()),
+            _ => Err(raise(invalid(
+                "expected a pin pattern or a list of pin designations",
+            ))),
+        }
+    }
+}
+
+impl JsonSchema for PinMap {
+    fn schema_name() -> Cow<'static, str> {
+        Cow::Borrowed("PinMap")
+    }
+
+    fn json_schema(_generator: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "description": "A channel → pin map (doc 10 §3.3): a designation pattern with `{<expression in n>}` placeholders (\"X2:{n+1}\"), or an explicit list of pin designations.",
+            "anyOf": [
+                {"type": "string"},
+                {"type": "array", "items": {"type": "string", "minLength": 1}}
             ]
         })
     }
