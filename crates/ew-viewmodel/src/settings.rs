@@ -181,7 +181,7 @@ fn copy_aside(path: &Path) -> Option<String> {
 /// An environment variable as a path, `None` when unset or empty.
 // Program boundary: the settings directory override is read once at start-up and passed in.
 #[allow(clippy::disallowed_methods)]
-pub fn env_path(name: &str) -> Option<PathBuf> {
+pub(crate) fn env_path(name: &str) -> Option<PathBuf> {
     std::env::var_os(name)
         .filter(|v| !v.is_empty())
         .map(PathBuf::from)

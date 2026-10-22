@@ -11,6 +11,11 @@
 # and this list differ, so a new allow is reviewed in the change that adds it; `--bless` rewrites the file.
 
 [[allow]]
+crate = "elektrawatt"
+item = "fn dbus_env_path"
+count = 1
+
+[[allow]]
 crate = "ew"
 item = "fn content_dir"
 count = 1

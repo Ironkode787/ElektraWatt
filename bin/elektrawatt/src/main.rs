@@ -21,7 +21,6 @@ use std::path::PathBuf;
 
 use eframe::egui;
 use ew_ui::app::{App, Pick, Platform, setup};
-use ew_ui::ew_viewmodel::settings::env_path;
 use ew_ui::ew_viewmodel::shell::{Mode, Prompt, ShellConfig, ShellModel};
 use ew_ui::ew_viewmodel::strings;
 use ew_ui::headless::{self, HeadlessArgs, ScriptSource};
@@ -102,6 +101,15 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
 /// The file dialogs of the operating system through `rfd`.
 struct RfdPlatform;
 
+/// An environment variable as a path, `None` when unset or empty.
+// Program boundary: portal availability heuristic.
+#[allow(clippy::disallowed_methods)]
+fn dbus_env_path(name: &str) -> Option<PathBuf> {
+    std::env::var_os(name)
+        .filter(|v| !v.is_empty())
+        .map(PathBuf::from)
+}
+
 /// Whether a session bus is there for the xdg desktop portal, which `rfd` talks to on Linux: the address in the
 /// environment, or the bus socket in the runtime directory. Without one `rfd` returns nothing, silently.
 fn session_bus_present(address: Option<PathBuf>, runtime_dir: Option<PathBuf>) -> bool {
@@ -111,7 +119,10 @@ fn session_bus_present(address: Option<PathBuf>, runtime_dir: Option<PathBuf>) -
 impl Platform for RfdPlatform {
     fn pick(&mut self, prompt: Prompt) -> Pick {
         if cfg!(target_os = "linux")
-            && !session_bus_present(env_path("DBUS_SESSION_BUS_ADDRESS"), env_path("XDG_RUNTIME_DIR"))
+            && !session_bus_present(
+                dbus_env_path("DBUS_SESSION_BUS_ADDRESS"),
+                dbus_env_path("XDG_RUNTIME_DIR"),
+            )
         {
             return Pick::Unavailable;
         }

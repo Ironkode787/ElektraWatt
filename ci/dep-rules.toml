@@ -291,6 +291,12 @@ count = 2
 reason = "the helpers source_date_epoch and content_dir, the CLI's program-boundary environment reads; reviewed in ci/disallowed-methods-allow.toml"
 
 [[raw_read.allow]]
+path = "bin/elektrawatt/src/main.rs"
+item = "disallowed_methods"
+count = 1
+reason = "the helper dbus_env_path, the portal availability heuristic (two D-Bus variables); reviewed in ci/disallowed-methods-allow.toml"
+
+[[raw_read.allow]]
 path = "crates/ew-viewmodel/src/settings.rs"
 item = "disallowed_methods"
 count = 1
