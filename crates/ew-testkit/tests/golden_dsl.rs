@@ -55,7 +55,11 @@ fn run(session: &mut Session, name: &str, params: serde_json::Value) -> Result<D
 /// A session over the shell of path (a)'s batch, IDs from `seed`, without the memo.
 fn shell_session(seed: u64) -> Session {
     let batch = golden::bootstrap(&repo()).expect("path (a) imports");
-    let shell = golden::shell(&batch);
+    session_over(golden::shell(&batch), seed)
+}
+
+/// A session over `shell`, IDs from `seed`, without the memo.
+fn session_over(shell: golden::Shell, seed: u64) -> Session {
     Session::from_records(
         shell.project,
         [],
@@ -183,7 +187,7 @@ fn path_b_issues_these_commands_and_leaves_out_these_records() {
         commands.join(", "),
         "assembly.attach: 2, bond.create: 1, box.black: 11, cable.create: 3, connection.draw: 87, \
          device.create: 37, device.link: 8, device.place: 76, external_ref.create: 4, fields.set: 204, \
-         ip.place: 48, junction.edit: 6, page.create: 13, plc.bind_channel: 28, \
+         ip.place: 48, junction.edit: 6, library.embed: 1, page.create: 13, plc.bind_channel: 28, \
          plc.config_project.create: 1, potential.define: 19, project.settings.set: 3, \
          project.supply.set: 1, report_block.create: 15, revision.create: 2, section.create: 3, \
          structure.create_node: 4, terminal.add: 4, valve.add: 28"
@@ -235,10 +239,72 @@ fn the_command_log_replays_and_every_step_undoes() {
     }
     // one undo step per command that changed the model: two of the commands leave the model as it was
     // (a value the record already had), so they leave no step
-    assert_eq!((steps, built.script.len()), (606, 608), "undo steps, commands");
+    assert_eq!((steps, built.script.len()), (606, 609), "undo steps, commands");
+    // The last step left is the first command, `library.embed` (FT-278): the shell's project-local parts
+    // name the embedded function definitions (`part.function_template[].fndef`), so removing the copies is
+    // refused (delete policy forbid) and the model stays at the shell plus its library copies.
+    let refused = session
+        .undo()
+        .expect_err("the copies are named by the project-local parts");
+    assert!(format!("{refused:?}").contains("still names it"), "{refused:?}");
+    let batch = golden::bootstrap(&repo()).expect("path (a) imports");
+    let mut start = golden::shell(&batch);
+    start.lib.extend(golden::embedded_copies(&batch));
+    let start = session_over(start, 1);
     assert!(
-        session.world().model.content_eq(&shell_session(1).world().model),
-        "undoing every step returns to the shell"
+        session.world().model.content_eq(&start.world().model),
+        "undoing every step but the embedding returns to the shell with its library copies"
+    );
+}
+
+/// FT-278: the shell holds the project row and the project-local parts only; the non-local copies come
+/// from one `library.embed`, the first command, and path (b) holds the library of path (a) in the end.
+#[test]
+fn the_builder_embeds_the_non_local_library_copies() {
+    let batch = golden::bootstrap(&repo()).expect("path (a) imports");
+    let shell = golden::shell(&batch);
+    let project = shell.project.id.as_uuid();
+    let local = |d: &ew_schema::LibDocument| match d {
+        ew_schema::LibDocument::Part(c) => c.library_id.as_uuid() == project,
+        _ => false,
+    };
+    assert!(
+        !shell.lib.is_empty() && shell.lib.iter().all(local),
+        "the shell keeps only project-local parts"
+    );
+    let copies = golden::embedded_copies(&batch);
+    assert!(!copies.is_empty() && !copies.iter().any(local));
+    assert_eq!(
+        shell.lib.len() + copies.len(),
+        batch.lib.len(),
+        "nothing else is dropped"
+    );
+    let (session, built) = built(1);
+    let (name, params) = &built.script[0];
+    assert_eq!(name, "library.embed", "the first command embeds the copies");
+    assert_eq!(params["copies"].as_array().map(Vec::len), Some(copies.len()));
+    assert_eq!(built.by_command.get("library.embed"), Some(&1));
+    let lib_rows = |s: &Session| {
+        rows_by_key(s)
+            .into_keys()
+            .filter(|k| {
+                ["part:", "symbol:", "fndef:", "form:"]
+                    .iter()
+                    .any(|p| k.starts_with(p))
+            })
+            .collect::<Vec<_>>()
+    };
+    let a = Session::from_records(
+        golden::shell(&batch).project,
+        [],
+        batch.lib.clone(),
+        SessionOptions::default(),
+    )
+    .expect("the library alone is a valid model");
+    assert_eq!(
+        lib_rows(&session),
+        lib_rows(&a),
+        "path (b) holds the library copies of path (a)"
     );
 }
 

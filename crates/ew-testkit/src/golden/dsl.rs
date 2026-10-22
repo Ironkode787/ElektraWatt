@@ -24,8 +24,8 @@ use ew_ids::Id;
 use ew_model::AnyKey;
 use ew_schema::{
     AnyId, Bond, Channel, Conductor, Connection, ConnectionKind, Device, DeviceLink, Endpoint, ExternalRef,
-    FnDef, FnRole, Function, FunctionKind, IpSpec, Junction, Kind, Page, PlcConfigProject, PotentialDef,
-    Record, ReportBlock, Representation, Revision, RevisionState, Section, StructureNode,
+    FnDef, FnRole, Function, FunctionKind, IpSpec, Junction, Kind, LibDocument, Page, PlcConfigProject,
+    PotentialDef, Record, ReportBlock, Representation, Revision, RevisionState, Section, StructureNode,
 };
 use ew_units::Pt2;
 use serde_json::{Map, Value, json};
@@ -277,6 +277,29 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
             }
         }
         Ok(())
+    }
+
+    /// `library.embed` of `copies`, the non-local library documents of the project, in one command (the
+    /// caller owns the closure, so the whole set goes in together). No command when `copies` is empty.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn embed_library(&mut self, copies: &[LibDocument]) -> Result<()> {
+        if copies.is_empty() {
+            return Ok(());
+        }
+        let docs = copies
+            .iter()
+            .map(|d| {
+                serde_json::to_value(d).map_err(|e| BuildError {
+                    command: "library.embed".into(),
+                    params: Value::Null,
+                    message: format!("a library document does not serialise: {e}"),
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+        self.run("library.embed", json!({"copies": docs})).map(|_| ())
     }
 
     /// `project.settings.set` of one member.

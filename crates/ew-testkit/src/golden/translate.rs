@@ -7,6 +7,8 @@
 //! record before the record is handed to the builder (`Remap`), so each builder step sees a record of the
 //! built project. The order:
 //!
+//! 0. the non-local library copies of the batch (`library.embed`, one command, FT-278); their IDs are the
+//!    copy identities, so no reference to them is rewritten;
 //! 1. the project settings members of [`super::SETTINGS_BY_COMMAND`];
 //! 2. structure nodes (parents first), sections, external references, the supply's origin
 //!    (`project.supply.set`), pages;
@@ -264,6 +266,9 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
             })
         };
     }
+
+    // 0. The non-local library copies (FT-278), in one command: the closure is the batch's.
+    b.embed_library(&super::embedded_copies(batch))?;
 
     // 1. Settings.
     if let Some(project) = of!(Project).next() {

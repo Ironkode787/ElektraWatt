@@ -724,10 +724,12 @@ lock) and check the findings, the counts and the portable file names.
 `ew_testkit::golden` (WP-S6.01, cycle 15) holds both golden builders: `bootstrap(repo)` is path (a), the CSV
 bootstrap above, and `build(batch, sink)` is path (b), which constructs the same project **through commands
 only**. It starts from the `shell(batch)`: the project row (without its import provenance, the supply's
-external-reference origin and the four settings members that `project.settings.set` edits) and the embedded library
-copies, because no command creates a project row (`ew new`); `library.embed` exists (cycle 16, FT-167) but the
-shell keeps the copies, which include the project-local parts that are created in the project, not embedded
-(embedding the non-local copies through `library.embed` is FT-278). Then
+external-reference origin and the four settings members that `project.settings.set` edits) and the 26 project-local
+parts, because no command creates a project row (`ew new`) and the project-local parts are created in the project,
+not embedded. Its first command is `library.embed` (FT-278, cycle 18) of the 46 non-local library copies (symbols,
+function definitions and forms of `content/`), in one transaction, taken from the bootstrap batch as raw documents
+with their copy identities and hashes (the shell kept them until cycle 17). Undoing the whole build stops at that
+command: the shell's parts name the embedded function definitions, so the copies cannot be removed. Then
 it issues, in dependency order, one command per record, with the bootstrap batch as its typed description (the same
 source of truth as path (a)): `project.settings.set`, `structure.create_node`, `section.create`,
 `external_ref.create`, `project.supply.set` (the supply's origin), `page.create`, `device.create`, `terminal.add`,
@@ -743,7 +745,7 @@ its command log (`Built::command_log`, doc 17 §3.5) replays with `ew apply` to 
 
 The builder never injects a record. What no command writes yet would be left out and listed (`Built::unwritten`,
 pinned by `crates/ew-testkit/tests/golden_dsl.rs`); since cycle 17 the list is empty: `revision.create` writes the
-historic released V1.0 and the open V2.0 with its page notes (FT-165). 608 commands build the project (24 command
+historic released V1.0 and the open V2.0 with its page notes (FT-165). 609 commands build the project (25 command
 names; about two seconds in a debug build). The same test file checks that path (b) holds the records of path (a) record for record, up to the
 IDs the commands minted (`source_ref` aside, the import lineage being path (a)'s own).
 
@@ -958,7 +960,9 @@ the cross-platform digests are MVP.
 
 The headless report of this revision: 94 entries, 88 pass, 0 fail, 0 not_built, 6 not_applicable (D-06's property
 grid, a UI entry of M-PP, is `not_applicable` at the headless M1 gate under decision log ID-422), 0 oracle
-mismatches (the full run adds the raster comparison as a pass). Cycle 17 (FT-165) typed the revisions: path (b) writes every record (608 commands, the 2 revisions by `revision.create`),
+mismatches (the full run adds the raster comparison as a pass). Cycle 18 (FT-278) moved the 46 non-local library
+copies from the shell to a first `library.embed` command (609 commands; the counts of the report are unchanged).
+Cycle 17 (FT-165) typed the revisions: path (b) writes every record (608 commands, the 2 revisions by `revision.create`),
 and a second D-05 entry checks that no page record holds a revision value. Folio 911 stays a placeholder whose note
 now reads "awaits the `revision_rows` query" (FT-207), which changed its text CSV, its PNG candidate, the PDF digest
 and the SVG digest of AC-14. Cycle 16 closed AC-15 path (b): 606 commands built the project, both BOM exports

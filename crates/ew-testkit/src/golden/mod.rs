@@ -11,9 +11,10 @@
 //!   `page.create`, `device.create`, `terminal.add`, `cable.create`, `device.place`, `box.black`,
 //!   `ip.place`, `connection.draw`, `junction.edit`, `potential.define`, `bond.create`,
 //!   `report_block.create`, `fields.set`, `assembly.attach`, `valve.add`, `plc.bind_channel`,
-//!   `revision.create`, …) against
-//!   a session, starting from the [`Shell`]: the project row (a new project is `ew new`) and the embedded
-//!   library copies (among them the project-local parts, which are not embedded). The content comes from the same source of truth as path (a): the
+//!   `revision.create`, `library.embed`, …) against a session, starting from the [`Shell`]: the project
+//!   row (a new project is `ew new`) and the project-local library items (the parts, which are created in
+//!   the project, not embedded); the builder's first command, `library.embed`, embeds the non-local copies
+//!   (symbols, function definitions, forms; FT-278). The content comes from the same source of truth as path (a): the
 //!   records of the bootstrap batch are the typed description, translated into commands in dependency
 //!   order; the commands mint their own IDs, so path (b) agrees with (a) by content (the acceptance SQL and
 //!   its expected CSVs), never by ID (doc 20 §3.2: "all columns except `id` and `source_ref`").
@@ -93,19 +94,60 @@ pub fn bootstrap(repo: &Path) -> Result<ImportBatch, String> {
         .map_err(|e| format!("the golden tables do not import: {e:?}"))
 }
 
-/// The starting point of path (b): the project row and the embedded library copies.
+/// Whether `doc` is a project-local library item: its `library_id` is the project's (doc 05 §13.2). A
+/// document of an unknown kind is kept verbatim, never embedded.
+fn is_local(doc: &LibDocument, project: ew_ids::Uuid) -> bool {
+    let library = match doc {
+        LibDocument::Part(c) => c.library_id.as_uuid(),
+        LibDocument::Symbol(c) => c.library_id.as_uuid(),
+        LibDocument::Fndef(c) => c.library_id.as_uuid(),
+        LibDocument::Form(c) => c.library_id.as_uuid(),
+        LibDocument::Unknown(_) => return true,
+    };
+    library == project
+}
+
+fn project_of(batch: &ImportBatch) -> &Project {
+    batch
+        .records
+        .iter()
+        .find_map(|r| match r {
+            Record::Project(p) => Some(p),
+            _ => None,
+        })
+        .expect("a bootstrap batch holds the project row")
+}
+
+/// The library copies of `batch` that are not project-local, in the batch's order: what the builder embeds
+/// with `library.embed` (FT-278).
 ///
-/// No command creates a project row (a new project is `ew new`), and the project-local parts among the
-/// copies are created in the project, not embedded (`library.embed` refuses them), so path (b) starts from
-/// them. The project row is the bootstrap's without its import provenance, without the supply's origin
-/// (`project.supply.set`) and without the [`SETTINGS_BY_COMMAND`] members, which the builder sets through
-/// `project.settings.set`; its ID stays the bootstrap's, because the project-local parts name the project as
-/// their library (doc 05 §13.2).
+/// # Panics
+///
+/// When the batch holds no project row (a bootstrap batch always does).
+pub fn embedded_copies(batch: &ImportBatch) -> Vec<LibDocument> {
+    let project = project_of(batch).id.as_uuid();
+    batch
+        .lib
+        .iter()
+        .filter(|d| !is_local(d, project))
+        .cloned()
+        .collect()
+}
+
+/// The starting point of path (b): the project row and the project-local library items.
+///
+/// No command creates a project row (a new project is `ew new`), and the project-local parts are created in
+/// the project, not embedded (`library.embed` refuses them), so path (b) starts from them. The non-local
+/// copies are not part of the shell: the builder embeds them with `library.embed` (FT-278). The project row
+/// is the bootstrap's without its import provenance, without the supply's origin (`project.supply.set`) and
+/// without the [`SETTINGS_BY_COMMAND`] members, which the builder sets through `project.settings.set`; its
+/// ID stays the bootstrap's, because the project-local parts name the project as their library (doc 05
+/// §13.2).
 #[derive(Clone, Debug)]
 pub struct Shell {
     /// The project row.
     pub project: Project,
-    /// The embedded library copies (symbols, function definitions, forms and the project-local parts).
+    /// The project-local library items (the parts).
     pub lib: Vec<LibDocument>,
 }
 
@@ -115,14 +157,7 @@ pub struct Shell {
 ///
 /// When the batch holds no project row (a bootstrap batch always does).
 pub fn shell(batch: &ImportBatch) -> Shell {
-    let mut project = batch
-        .records
-        .iter()
-        .find_map(|r| match r {
-            Record::Project(p) => Some(p.clone()),
-            _ => None,
-        })
-        .expect("a bootstrap batch holds the project row");
+    let mut project = project_of(batch).clone();
     project.source_ref = None;
     // The supply's origin names an external reference, which the builder creates by command later and
     // then names with `project.supply.set`.
@@ -132,8 +167,7 @@ pub fn shell(batch: &ImportBatch) -> Shell {
     for member in SETTINGS_BY_COMMAND {
         project.settings.extra.remove(member);
     }
-    Shell {
-        project,
-        lib: batch.lib.clone(),
-    }
+    let id = project.id.as_uuid();
+    let lib = batch.lib.iter().filter(|d| is_local(d, id)).cloned().collect();
+    Shell { project, lib }
 }

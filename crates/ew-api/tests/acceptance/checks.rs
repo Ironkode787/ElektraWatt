@@ -1186,7 +1186,8 @@ fn run_json(
 }
 
 /// AC-15 path (b) (doc 20 §3.2, WP-S6.01): the builder DSL of `ew-testkit` builds Golden A through commands
-/// only, from the project shell (the project row and the embedded library copies), with the bootstrap
+/// only, from the project shell (the project row and the project-local parts; the non-local library copies
+/// come from `library.embed`, FT-278), with the bootstrap
 /// batch as its typed description; the acceptance SQL over the built project must return the expected CSVs
 /// (by content: the commands mint their own IDs).
 fn ac15_builder_path(c: &Ctx) -> Outcome {
@@ -1241,8 +1242,9 @@ fn ac15_builder_path(c: &Ctx) -> Outcome {
         .filter(|(k, _)| k.starts_with("representation (refused"))
         .map(|(k, n)| format!("{n} × {k}"))
         .collect();
-    let shell = "the project row (except 4 settings members and the supply origin) and the embedded library \
-                 copies come from the shell";
+    let shell = "the project row (except 4 settings members and the supply origin) and the project-local parts \
+                 come from the shell";
+    let copies = ew_testkit::golden::embedded_copies(&c.batch).len();
     let not_built = if built.unwritten.is_empty() {
         let revisions = built.by_command.get("revision.create").copied().unwrap_or(0);
         format!("no record is left unwritten (the {revisions} revisions by revision.create, FT-165); {shell}")
@@ -1271,8 +1273,9 @@ fn ac15_builder_path(c: &Ctx) -> Outcome {
     }
     if problems.is_empty() {
         return pass(format!(
-            "{commands} commands from the project shell (the valve-terminal assembly by assembly.attach, valve.add \
-             and fields.set, the 56 channels by normaliser N1 and plc.bind_channel); the {} acceptance SQL files \
+            "{commands} commands from the project shell (the {copies} non-local library copies by library.embed, \
+             the valve-terminal assembly by assembly.attach, valve.add and fields.set, the 56 channels by \
+             normaliser N1 and plc.bind_channel); the {} acceptance SQL files \
              and export bom --mode parts and --mode assembly return expected/csv; {not_built}",
             names.len()
         ));

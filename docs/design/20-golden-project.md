@@ -1451,6 +1451,14 @@ revision records exist, which changed `911.csv`, the 911 PNG candidate, the PDF 
 while "Revision: V2.0" is byte-identical on every page. Headless counts: **94 entries, 88 pass, 0 fail, 0 not_built,
 6 not_applicable**: the headless M1 acceptance list has no blocking entry.
 
+*As built (cycle 18; FT-278).* The builder's first command is `library.embed` of the 46 non-local library copies
+(symbols, function definitions and forms of `content/`, as the raw documents of the bootstrap batch, in one
+transaction); the project shell keeps the project row and the 26 project-local parts. Path (b) issues 609 commands
+of 25 names and still equals path (a) record for record (the library copies are rows of both). The report's counts
+are unchanged (94 entries, 88 pass, 0 fail, 0 not_built, 6 not_applicable); the AC-15 path (b) entry names the
+embedding. Undoing the whole build stops at `library.embed`: the shell's parts name the embedded function
+definitions, so the delete policy refuses to remove them.
+
 ---
 
 ## 23. Unknowns register and questions for the pilot user
