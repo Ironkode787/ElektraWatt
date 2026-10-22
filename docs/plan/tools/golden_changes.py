@@ -19,7 +19,9 @@ Decision IDs of a commit (ID-n, FT-n, DEC-n, ADR-n):
   2. an FT-n cited in the message also pulls in the decision-log entries that cite that FT-n and a golden table;
   3. a range in the message (`ID-33…ID-63`, or open `ID-324..`, which ends before the next range start of the
      history) pulls in the entries of that range that cite doc 20 or a golden table and name a touched table: its
-     CSV name, or its section number of doc 20 (`§8.2`, or the parent `§8`).
+     CSV name, or its section number of doc 20 (`§8.2`, or the parent `§8`);
+  4. a decision-log entry that names the commit's short hash as inline code (`abc1234`, as listed) cites it: a design
+     pass maps a commit whose message cites nothing this way (decision log ID-550).
 A commit without any of these reads "no ID - review".
 
 The list is written between `<!-- generated:golden-changes -->` markers. Its stamp is the newest listed commit (not
@@ -198,8 +200,11 @@ def markers(changes):
     return res
 
 
-def decision_ids(message, row_texts, log, range_starts, marks=()):
+def decision_ids(message, row_texts, log, range_starts, marks=(), commit=None):
     ids, ranges = message_ids(message)
+    if commit:  # rule 4: an entry that names the commit's short hash as inline code
+        named = re.compile(r"`%s`" % re.escape(commit))
+        ids |= {"ID-%d" % n for n, (text, _) in log.items() if named.search(text)}
     for k in [i for i in ids if i.startswith("FT-")]:
         for n, (text, cites) in log.items():
             if cites and re.search(r"\b%s\b" % re.escape(k), text):
@@ -260,7 +265,7 @@ def collect(root):
         if not chg:
             continue
         ids = decision_ids(message, [t for c in chg if c["path"] == DOC20 for t in c["rows_text"]], log, starts,
-                           markers(chg))
+                           markers(chg), h)
         pd15 = [ft for ft in PD15 if ft in ids or
                 set(ids) & {"ID-%d" % n for n, (t, _) in log.items() if re.search(r"\b%s\b" % ft, t)}]
         entries.append({"hash": h, "date": d, "subject": subject, "ids": ids, "changes": chg, "pd15": pd15})
@@ -455,6 +460,15 @@ def selftest():
             body = (self.root / OUT).read_text(encoding="utf-8")
             self.assertTrue(body.startswith("# Golden-table change list"))
             self.assertEqual(body.count(BEGIN), 1)
+
+        def test_hash_named_in_log(self):
+            plain = [e for e in collect(self.root) if e["subject"] == "plain change without any reference"][0]
+            log = (self.root / DECISION_LOG).read_text(encoding="utf-8")
+            rows = ("| ID-90 | **Mapped.** golden commit `%s`. | Core | x |\n"
+                    "| ID-91 | **Not it.** a bare mention %s does not count. | Core | x |\n")
+            self.commit({DECISION_LOG: log + rows % (plain["hash"], plain["hash"])}, "docs: map")
+            again = [e for e in collect(self.root) if e["hash"] == plain["hash"]][0]
+            self.assertEqual(again["ids"], ["ID-90"])
 
         def test_markers(self):
             ms = markers([{"path": DOC20, "label": "8.2 Wires"}, {"path": TABLES_DIR + "/parts.csv", "label": ""}])
