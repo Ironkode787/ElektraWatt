@@ -828,3 +828,175 @@ fn library_embed_validates_every_copy() {
     assert_eq!(invalid_path(e.execute(&embed(vec![])), c), "/copies");
     assert!(!has_form(&e, copy_id));
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// library.embed and the LibRef keep-alive (FT-316, EW-INV-021, ADR-0009 amendment 7)
+
+/// The part copy of these tests: its one function template names [`ITEM_Y`] of [`LIBRARY_X`].
+const PART_316: Id<Part> = id(0xa316);
+
+/// The golden model with an embedded part copy whose function template names an FnDef item the project does
+/// not embed: valid, the `LibRef` names nothing (NFR-REL-11).
+fn model_with_part_naming_an_unembedded_fndef() -> Model {
+    let (p, r, _) = mini_golden_parts();
+    let mut lib = library();
+    lib.push(LibDocument::Part(part_using(
+        PART_316, "TPL-316", LIBRARY_X, ITEM_Y,
+    )));
+    Model::from_records(p, r, lib).expect("a LibRef to an FnDef that is not embedded is valid")
+}
+
+/// The FnDef copy that [`PART_316`]'s template names, as a library document with its true hash.
+fn named_fndef() -> (Id<ew_schema::FnDef>, Value) {
+    let copy = fndef_copy_for(LIBRARY_X, ITEM_Y, &["1", "2"]);
+    let hash =
+        ew_commands::commands::library_copy_hash(&LibDocument::Fndef(copy.clone())).expect("a known kind");
+    let mut v = serde_json::to_value(&copy).expect("copy json");
+    v["$k"] = json!("fndef");
+    v["sha256"] = json!(format!(
+        "sha256:{}",
+        hash.iter().map(|b| format!("{b:02x}")).collect::<String>()
+    ));
+    (copy.id, v)
+}
+
+fn has_fndef(e: &Engine, id: Id<ew_schema::FnDef>) -> bool {
+    e.model().table::<LibCopy<ew_schema::FnDef>>().get(&id).is_some()
+}
+
+/// A stand-in for the purge (`library.purge_unused`, doc 07 §2, not built): removes library copies through the
+/// delete plan (`TxBuilder::delete_many`), the way every delete command does.
+#[derive(Clone, PartialEq, Eq, Debug, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct PurgeCopies {
+    fndefs: Vec<String>,
+    parts: Vec<String>,
+}
+
+impl PurgeCopies {
+    fn keys(&self) -> Vec<ew_model::AnyKey> {
+        let parse = |s: &String| s.parse::<Id<()>>().expect("an ID");
+        let mut keys: Vec<ew_model::AnyKey> = self.fndefs.iter().map(|s| (Kind::Fndef, parse(s))).collect();
+        keys.extend(self.parts.iter().map(|s| (Kind::Part, parse(s))));
+        keys
+    }
+}
+
+impl ew_commands::Command for PurgeCopies {
+    const NAME: &'static str = "test.purge_copies";
+
+    fn meta() -> ew_commands::CommandMeta {
+        ew_commands::CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut ew_commands::TxBuilder<'_>) -> Result<ew_commands::Outcome, CmdError> {
+        tx.delete_many(&self.keys())?;
+        Ok(ew_commands::Outcome::default())
+    }
+}
+
+/// A writer that removes library copies without the delete plan (`TxBuilder::remove_row`): only the model's
+/// own rules stand between it and the removal.
+#[derive(Clone, PartialEq, Eq, Debug, serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct RemoveCopiesRaw {
+    fndefs: Vec<String>,
+}
+
+impl ew_commands::Command for RemoveCopiesRaw {
+    const NAME: &'static str = "test.remove_copies_raw";
+
+    fn meta() -> ew_commands::CommandMeta {
+        ew_commands::CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut ew_commands::TxBuilder<'_>) -> Result<ew_commands::Outcome, CmdError> {
+        for s in &self.fndefs {
+            tx.remove_row((Kind::Fndef, s.parse::<Id<()>>().expect("an ID")));
+        }
+        Ok(ew_commands::Outcome::default())
+    }
+}
+
+/// FT-316: `library.embed` of the FnDef copy that a part already names undoes to the state before the
+/// embedding (the undo law, ARCH §13), redoes and undoes again; every state passes the integrity check.
+#[test]
+fn library_embed_of_a_named_fndef_undoes_to_the_state_before() {
+    let m0 = model_with_part_naming_an_unembedded_fndef();
+    let mut e = engine(m0.clone());
+    let (fndef, json) = named_fndef();
+    let r = e
+        .execute(&embed(vec![json]))
+        .expect("library.embed of the FnDef the part names");
+    assert_eq!(r.outcome.primary, Some((Kind::Fndef, fndef.cast())));
+    let embedded = e.model().clone();
+    let restored = e
+        .undo()
+        .expect("FT-316: the undo of the embedding is not refused");
+    assert_eq!(restored.label, "library.embed");
+    assert!(!has_fndef(&e, fndef));
+    assert!(
+        e.model().content_eq(&m0),
+        "undo restores the state before the embedding"
+    );
+    assert!(e.model().integrity_check().is_ok());
+    e.redo().expect("redo embeds the copy again");
+    assert!(e.model().content_eq(&embedded));
+    e.undo().expect("and undo removes it again");
+    assert!(e.model().content_eq(&m0));
+    assert!(e.undo().is_err(), "nothing left to undo");
+}
+
+/// An edit cannot remove an embedded FnDef copy that a part names (EW-INV-021): the delete plan refuses it, and
+/// a writer that bypasses the plan is refused by the model with the same message; nothing changes. With the
+/// part in the same deletion the copy goes. `edit.delete` does not take library copies at all: it refuses
+/// them at its parameters, as before.
+#[test]
+fn a_named_fndef_copy_cannot_be_removed_by_an_edit() {
+    let mut e = engine(model_with_part_naming_an_unembedded_fndef());
+    let (fndef, json) = named_fndef();
+    e.execute(&embed(vec![json])).expect("library.embed");
+    let before = e.model().clone();
+    let message = format!(
+        "fndef:{fndef} cannot be removed: part:{PART_316} still names it through \
+         part.function_template[].fndef.item (delete policy forbid)"
+    );
+    let purge = PurgeCopies {
+        fndefs: vec![fndef.to_string()],
+        parts: vec![],
+    };
+    let err = e
+        .execute(&purge)
+        .expect_err("the delete plan refuses a named copy");
+    assert!(
+        matches!(&err, CmdError::Model(ew_model::ModelError::Referenced { .. })),
+        "{err:?}"
+    );
+    assert_eq!(err.to_string(), message);
+    let raw = RemoveCopiesRaw {
+        fndefs: vec![fndef.to_string()],
+    };
+    let err = e
+        .execute(&raw)
+        .expect_err("the model refuses a named copy removed without the plan");
+    assert_eq!(err.to_string(), message);
+    let delete = ew_commands::AnyCommand {
+        name: "edit.delete".into(),
+        params: json!({"targets": [{"kind": "fndef", "id": fndef}]}),
+    };
+    assert!(
+        matches!(e.execute(&delete), Err(CmdError::InvalidParams { .. })),
+        "edit.delete names no library copy"
+    );
+    assert!(e.model().content_eq(&before) && e.model().rev() == before.rev());
+
+    let both = PurgeCopies {
+        fndefs: vec![fndef.to_string()],
+        parts: vec![PART_316.to_string()],
+    };
+    e.execute(&both)
+        .expect("the copy goes with the last record that names it");
+    assert!(!has_fndef(&e, fndef));
+    e.undo().expect("and comes back with it");
+    assert!(e.model().content_eq(&before));
+}

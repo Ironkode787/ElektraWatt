@@ -36,7 +36,9 @@ use crate::tx::TxBuilder;
 /// a previewed command of its own, FR-PRT-014), and the same item twice in `copies`. The closure (a part's
 /// FnDefs, a symbol's FnDef) is the caller's to include: a reference to an item that is not embedded is
 /// not a link (doc 05 §13.2), and the commands that use an item resolve it. Unused copies stay until
-/// purged. Outcome: the first copy; the receipt lists every inserted key.
+/// purged; an edit never removes a copy that a record names through a `LibRef` (EW-INV-021), but undo
+/// removes the embedded copies again, also when records name them, because the state before the embedding
+/// is valid (ADR-0009 amendment 7). Outcome: the first copy; the receipt lists every inserted key.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct EmbedLibraryCopies {

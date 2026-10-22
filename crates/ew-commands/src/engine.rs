@@ -9,7 +9,7 @@
 //! run       Command::run against a TxBuilder on the current snapshot (exposure checked first)
 //! normalise the normaliser registry, passes until quiet: at most three productive passes and a
 //!           confirming one (D1)
-//! validate  Model::apply_with: structural invariants, then the PreventHook
+//! validate  Model::apply_with: structural invariants, the delete-time rule EW-INV-021, the PreventHook
 //! commit    swap in the candidate Model, Rev + 1, push to History (coalescing)
 //! notify    append a Change {rev, touched keys, touched pages} to the change feed
 //! ```
@@ -592,8 +592,10 @@ impl Engine {
         Ok(self.finalize(prepared, command, meta, submit))
     }
 
-    /// Reverts the step below the cursor by applying its inverse ops as a new revision (ARCH §5.3).
-    /// Structural invariants are checked; prevent rules are not (the restored state passed them).
+    /// Reverts the step below the cursor by applying its inverse ops as a new revision (ARCH §5.3), on the
+    /// history path (`Model::apply`): structural invariants are checked; prevent rules are not (the restored
+    /// state passed them), nor is the model's delete-time rule EW-INV-021, so the undo of `library.embed`
+    /// restores the state before it even where records name the copies through a `LibRef` (FT-316).
     pub fn undo(&mut self) -> Result<Restored, CmdError> {
         let index = self.history.undo_index()?;
         let entry = self.history.entry(index).expect("undo index is in range");
@@ -608,7 +610,7 @@ impl Engine {
         })
     }
 
-    /// Re-applies the step above the cursor as a new revision.
+    /// Re-applies the step above the cursor as a new revision, on the history path like [`Engine::undo`].
     pub fn redo(&mut self) -> Result<Restored, CmdError> {
         let index = self.history.redo_index()?;
         let entry = self.history.entry(index).expect("redo index is in range");

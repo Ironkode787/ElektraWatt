@@ -549,7 +549,8 @@ impl<'a> TxBuilder<'a> {
     }
 
     /// Removes a row without consulting the delete policies. The caller guarantees that nothing still
-    /// names it at the end of the transaction (the invariants check it anyway).
+    /// names it at the end of the transaction (the structural invariants check it anyway, and so does the
+    /// delete-time rule EW-INV-021 for a library copy named through a `LibRef`).
     pub fn remove_row(&mut self, key: AnyKey) {
         if !self.pending.contains_key(&key) {
             let present = self.base.row(&key).is_some();
