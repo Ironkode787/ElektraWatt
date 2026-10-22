@@ -68,6 +68,9 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     {
                         set(events, "update_check", json!(on));
                     }
+                    if ui.button(strings::text("about-privacy-button")).clicked() {
+                        events.push(Event::OpenPrivacy);
+                    }
                 }
                 FirstRunStep::Appearance => {
                     ui.label(strings::text("firstrun-text-appearance"));

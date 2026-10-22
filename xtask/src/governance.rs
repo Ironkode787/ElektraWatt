@@ -5,7 +5,7 @@
 //! §2.4 exist and are not empty.
 //!
 //! This is the M0 set of WP-S0.03. From the first binary release (M2) the check also requires `GOVERNANCE.md`,
-//! `PRIVACY.md`, `TRADEMARKS.md`, `ROADMAP.md` and `.github/FUNDING.yml`; add them to [`REQUIRED_FILES`] in the
+//! `TRADEMARKS.md`, `ROADMAP.md` and `.github/FUNDING.yml`; add them to [`REQUIRED_FILES`] in the
 //! work package that writes them.
 
 use std::path::Path;
@@ -16,6 +16,7 @@ pub const REQUIRED_FILES: &[&str] = &[
     "CONTRIBUTING.md",
     "CODE_OF_CONDUCT.md",
     "SECURITY.md",
+    "PRIVACY.md",
     ".github/CODEOWNERS",
     ".github/PULL_REQUEST_TEMPLATE.md",
 ];

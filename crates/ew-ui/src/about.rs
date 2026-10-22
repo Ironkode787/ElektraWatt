@@ -54,6 +54,9 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                     ui.label(line);
                 }
                 ui.horizontal(|ui| {
+                    if ui.button(strings::text("about-privacy-button")).clicked() {
+                        events.push(Event::OpenPrivacy);
+                    }
                     if ui.button(strings::text("about-notices-button")).clicked() {
                         events.push(Event::Action("help.notices", Value::Null));
                     }

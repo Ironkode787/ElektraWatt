@@ -1799,7 +1799,8 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
     for needle in [
         "Support: pre-release build; only the latest 0.x release is supported.",
         "ElektraWatt's checks do not replace engineering verification by a competent person.",
-        "PRIVACY.md does not exist yet",
+        "PRIVACY.md lists every data flow",
+        "button \"Privacy (PRIVACY.md)\"",
         "button \"Third-party notices\"",
     ] {
         assert!(about.contains(needle), "{needle}\n{about}");

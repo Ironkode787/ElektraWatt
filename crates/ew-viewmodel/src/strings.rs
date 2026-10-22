@@ -330,9 +330,11 @@ pub fn lookup(key: &str) -> Option<&'static str> {
             "Update check: on (this version has none; nothing is sent). Crash reports: none"
         }
         "about-privacy-file" => {
-            "PRIVACY.md does not exist yet; it comes with the first release. Until then this version makes no network \
+            "PRIVACY.md lists every data flow and what is stored on this computer. This version makes no network \
              connection and sends nothing."
         }
+        "about-privacy-button" => "Privacy (PRIVACY.md)",
+        "privacy-open-failed" => "PRIVACY.md could not be opened in a browser; it is at {0}.",
         "about-disclaimer" => {
             "ElektraWatt's checks do not replace engineering verification by a competent person."
         }

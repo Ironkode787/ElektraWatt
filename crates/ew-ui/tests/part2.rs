@@ -458,7 +458,8 @@ fn f1_without_an_installed_guide_says_so() {
 #[test]
 fn the_about_dialog_is_complete_and_leads_to_the_notices() {
     let tmp = Tmp::new();
-    let mut h = harness_with(gui_shell(&tmp), Scripted::default(), None);
+    let platform = Scripted::default();
+    let mut h = harness_with(gui_shell(&tmp), platform.clone(), None);
     settle(&mut h);
     h.get_by_label("Help").click();
     settle(&mut h);
@@ -473,7 +474,14 @@ fn the_about_dialog_is_complete_and_leads_to_the_notices() {
     ] {
         assert!(h.query_by_label(label).is_some(), "{label}");
     }
-    assert!(h.query_by_label_contains("PRIVACY.md").is_some());
+    assert!(h.query_by_label_contains("lists every data flow").is_some());
+    h.get_by_label("Privacy (PRIVACY.md)").click();
+    settle(&mut h);
+    assert_eq!(
+        *platform.opened.borrow(),
+        [ew_ui::ew_viewmodel::about::PRIVACY_URL]
+    );
+    assert!(ew_ui::ew_viewmodel::about::PRIVACY_URL.ends_with("/blob/main/PRIVACY.md"));
     h.get_by_label("Third-party notices").click();
     settle(&mut h);
     assert!(matches!(h.state().shell().dialog(), Some(Dialog::Notices)));
@@ -538,4 +546,25 @@ fn a_leftover_journal_is_discarded_from_the_banner() {
     assert!(!shell.page_labels().iter().any(|l| l == "996"));
     assert!(h.query_by_label_contains("were discarded").is_some());
     h.state_mut().shell_mut().shutdown();
+}
+
+#[test]
+fn the_first_run_privacy_step_links_privacy_md() {
+    let tmp = Tmp::new();
+    let mut shell = gui_shell(&tmp);
+    shell.start_first_run_if_needed();
+    let platform = Scripted::default();
+    let mut h = harness_with(shell, platform.clone(), None);
+    settle(&mut h);
+    h.get_by_label("Next").click();
+    settle(&mut h);
+    h.get_by_label("Skip").click();
+    settle(&mut h);
+    assert!(h.query_by_label_contains("3 / 5: Privacy").is_some());
+    h.get_by_label("Privacy (PRIVACY.md)").click();
+    settle(&mut h);
+    assert_eq!(
+        *platform.opened.borrow(),
+        [ew_ui::ew_viewmodel::about::PRIVACY_URL]
+    );
 }

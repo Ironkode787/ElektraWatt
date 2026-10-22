@@ -9,8 +9,10 @@
 //! support end embedded at build time. The notices are the repository's `NOTICE` (the bundled fonts) and, when the
 //! installation has it, the generated `THIRD-PARTY-NOTICES.txt` of the Rust crates (cargo-about, per release).
 //!
-//! Not here yet: `PRIVACY.md` (the file does not exist; the dialog says so) and the dismissible banner after the
-//! support end (at most once a month), which needs a clock and a setting.
+//! `PRIVACY.md` (FT-342) is linked by a button of the dialog and of the first-run privacy step ([`PRIVACY_URL`]).
+//!
+//! Not here yet: the dismissible banner after the support end (at most once a month), which needs a clock and a
+//! setting.
 
 use crate::shell::ShellModel;
 use crate::strings;
@@ -19,6 +21,11 @@ use crate::strings;
 /// successor's planned date plus six months). A pre-1.0 build has none: only the latest 0.x is supported, and the
 /// release process (WP-S6.07) fills this in from the published cadence.
 pub const SUPPORT_END: Option<&str> = None;
+
+/// Where `PRIVACY.md` is read: the file on the repository's default branch, opened in the system browser by the
+/// user (a click; the application sends nothing). The installed builds of the release phase bundle the file next
+/// to the user guide and open that copy instead.
+pub const PRIVACY_URL: &str = concat!(env!("CARGO_PKG_REPOSITORY"), "/blob/main/PRIVACY.md");
 
 /// The repository's third-party notices of committed material (the bundled fonts).
 pub const NOTICE: &str = include_str!("../../../NOTICE");

@@ -51,6 +51,8 @@ pub(crate) enum Event {
     WorkspaceText(String),
     /// The banner's own button.
     DismissBanner,
+    /// The privacy button of the About dialog and of the first-run privacy step: `PRIVACY.md` in the system browser.
+    OpenPrivacy,
 }
 
 /// What a file dialog came back with.
@@ -70,8 +72,8 @@ pub trait Platform {
     /// Asks the user for a path: a project directory, a new directory, a PDF file or a QElectroTech file.
     fn pick(&mut self, prompt: Prompt) -> Pick;
 
-    /// Opens a `file://` URL of the installed user guide in the system browser (a user action; no network traffic);
-    /// `false` when it could not be opened.
+    /// Opens a URL in the system browser: a `file://` URL of the installed user guide, or the repository's
+    /// `PRIVACY.md` (a user action; the application itself sends nothing); `false` when it could not be opened.
     fn open_url(&mut self, _url: &str) -> bool {
         false
     }
@@ -508,6 +510,12 @@ impl App {
             Event::GotoGo(text) => self.dispatch("nav.goto", &json!({ "text": text })),
             Event::WorkspaceText(text) => self.shell.set_workspace_text(&text),
             Event::DismissBanner => self.shell.dismiss_banner(),
+            Event::OpenPrivacy => {
+                if !self.platform.open_url(ew_viewmodel::about::PRIVACY_URL) {
+                    let text = strings::format("privacy-open-failed", &[ew_viewmodel::about::PRIVACY_URL]);
+                    self.shell.show_banner(&text);
+                }
+            }
         }
     }
 

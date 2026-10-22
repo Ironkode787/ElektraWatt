@@ -243,11 +243,14 @@ fn first_run(model: &ShellModel, lines: &mut Vec<String>) {
                 quick_label("origin", &s.comes_from)
             }
         )),
-        FirstRunStep::Privacy => lines.push(format!(
-            "  choice \"{}\": {}",
-            strings::text("firstrun-update-check"),
-            if s.update_check { "on" } else { "off" }
-        )),
+        FirstRunStep::Privacy => {
+            lines.push(format!(
+                "  choice \"{}\": {}",
+                strings::text("firstrun-update-check"),
+                if s.update_check { "on" } else { "off" }
+            ));
+            lines.push(format!("  button \"{}\"", strings::text("about-privacy-button")));
+        }
         FirstRunStep::Appearance => {
             lines.push(format!(
                 "  choice \"{}\": \"{}\" (options: {})",
@@ -512,6 +515,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
             for line in crate::about::about_lines(model) {
                 lines.push(format!("  label \"{line}\""));
             }
+            lines.push(format!("  button \"{}\"", strings::text("about-privacy-button")));
             lines.push(format!("  button \"{}\"", strings::text("about-notices-button")));
             lines.push(format!("  button \"{}\"", strings::text("about-docs-button")));
             lines.push(format!("  button \"{}\"", strings::text("dialog-close")));

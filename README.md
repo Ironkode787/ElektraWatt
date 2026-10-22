@@ -108,7 +108,8 @@ their own worktrees and never push.
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow, the DCO, the AI-use policy and the confidentiality rules,
-[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [SECURITY.md](SECURITY.md) (private vulnerability reporting) and
-[LICENSE.md](LICENSE.md) (the licence index). Roles, the RFC and ADR process and the AI-use policy are described in
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), [SECURITY.md](SECURITY.md) (private vulnerability reporting),
+[PRIVACY.md](PRIVACY.md) (every data flow; there is no telemetry) and [LICENSE.md](LICENSE.md) (the licence index).
+Roles, the RFC and ADR process and the AI-use policy are described in
 the [open-source governance document](docs/design/19-open-source-governance.md). The repository is public: do not
 include customer data, personal names or confidential material in issues or pull requests.
