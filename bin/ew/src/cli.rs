@@ -26,7 +26,7 @@ pub const USAGE: &str = "usage:
   ew export pdf [<project-dir>] --out <file.pdf> [--pages <folios>] [--threads <n>]
   ew export svg [<project-dir>] --out <dir> [--pages <folios>] [--threads <n>]
   ew apply [<project-dir>] <file.ewcmd> [--preview] [--one-step]
-  ew project checks set [<project-dir>] [--active <scheme>] [--release <scheme>] --confirm
+  ew project checks set [<project-dir>] [--active <scheme>] [--release <scheme>]
   ew verify-derived [<project-dir>]
   ew help | --help | -h
 
@@ -63,9 +63,11 @@ command, an open, lock or save error). Without `--one-step` the lines before a f
 
 `project checks set` names the project's check schemes (`project.checks.set`): `--active` the online scheme,
 `--release` the scheme of the release gate and `ew check`; a scheme not given returns to its default (`drafting`,
-`pre-delivery`). The check scheme decides check outcomes, so the command is human-only (ADR-0008 amendment 3): it
-runs only with `--confirm`, typed by a person, and is never accepted from a command log or a UI script. Exit 0 when
-written and saved, 1 without `--confirm` or when the command refuses a scheme, 2 on usage, open and save errors.
+`pre-delivery`). The check scheme decides check outcomes, so the command is human-only (ADR-0008 amendment 3,
+doc 17 section 2.3): it prints the change and asks the person to type the scheme's name (the active one, else the
+release one) on a controlling terminal; there is no `--yes` flag. Without a terminal it exits 2 (HumanOnly: needs
+an interactive terminal) before the project is opened. Exit 0 when written and saved, 1 for a scheme that does
+not ship or an answer that is not the name, 2 on usage, terminal, open and save errors.
 
 `verify-derived` opens a project with the memo oracle on, recomputes every derived value cold and compares it with
 the memoised one: exit 0 with no difference, 1 with differences, 2 on usage and open errors.";
@@ -108,8 +110,6 @@ pub struct ChecksSetArgs {
     pub active: Option<String>,
     /// The release scheme (`--release`).
     pub release: Option<String>,
-    /// Whether a person confirmed it (`--confirm`).
-    pub confirm: bool,
 }
 
 /// The page format of `ew export pdf|svg`.
@@ -498,13 +498,11 @@ fn parse_checks_set(mut it: impl Iterator<Item = String>) -> Result<Command, Str
         project: None,
         active: None,
         release: None,
-        confirm: false,
     };
     while let Some(a) = it.next() {
         match a.as_str() {
             "--active" => args.active = Some(value(&mut it, "--active")?),
             "--release" => args.release = Some(value(&mut it, "--release")?),
-            "--confirm" => args.confirm = true,
             opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
             _ if args.project.is_none() => args.project = Some(PathBuf::from(a)),
             _ => return Err(format!("unexpected argument `{a}`")),
@@ -1092,13 +1090,34 @@ fn open_for_writing(dir: &Path, origin: ew_api::Origin) -> Result<ew_api::Sessio
 }
 
 /// `ew project checks set`: `project.checks.set` from a confirmed CLI subcommand, the human origin the command's
-/// exposure class `HumanOnly` accepts (ADR-0008 amendment 3, FT-336); without `--confirm` nothing is opened.
+/// exposure class `HumanOnly` accepts (ADR-0008 amendment 3, FT-336), after the confirmation typed on a controlling
+/// terminal (doc 17 section 2.3, FR-EXT-030); without a terminal nothing is opened.
 fn run_checks_set(a: &ChecksSetArgs) -> i32 {
-    if !a.confirm {
+    use std::io::IsTerminal;
+    // 1. The read-only part: every named scheme ships (doc 15 section 4.9); else exit 1 without asking.
+    for name in [&a.active, &a.release].into_iter().flatten() {
+        if scheme(name).is_none() {
+            let names: Vec<&str> = ew_api::checks::SCHEMES.iter().map(|s| s.name).collect();
+            eprintln!(
+                "error: `{name}` is not a shipped check scheme; the schemes are: {}; nothing was changed",
+                names.join(", ")
+            );
+            return 1;
+        }
+    }
+    // 2. Without a controlling terminal (CI, a pipe, a script) a HumanOnly command is never submitted (doc 17
+    //    section 2.3, FR-EXT-030); the project is not opened, so nothing is locked or journalled.
+    if !(std::io::stdin().is_terminal() && std::io::stdout().is_terminal()) {
         eprintln!(
-            "error: the check scheme decides check outcomes (which rules the release gate runs), so a person \
-             confirms it: run again with `--confirm`; nothing was changed"
+            "error: HumanOnly: needs an interactive terminal (`project checks set` is confirmed by typing the              scheme name); nothing was changed"
         );
+        return 2;
+    }
+    // 3. The change summary, then the typed confirmation: the scheme's name, exactly. There is no `--yes` flag.
+    let mut input = std::io::stdin().lock();
+    let mut output = std::io::stdout().lock();
+    if !confirm_typed(a, &mut input, &mut output) {
+        eprintln!("error: not confirmed; nothing was changed");
         return 1;
     }
     let Some(dir) = project_dir(a.project.as_ref()) else {
@@ -1112,34 +1131,10 @@ fn run_checks_set(a: &ChecksSetArgs) -> i32 {
         Ok(s) => s,
         Err(code) => return code,
     };
-    // The command line as one line of a command log (doc 17 section 3.5), read by the parser `ew apply` uses; it runs
-    // with the session's confirmed CLI origin, not as a replayed log.
-    let mut members = Vec::new();
-    if let Some(s) = &a.active {
-        members.push(format!("\"active_scheme\":{}", json_string(s)));
-    }
-    if let Some(s) = &a.release {
-        members.push(format!("\"release_scheme\":{}", json_string(s)));
-    }
-    let text = format!(
-        "{{\"$schema\":\"{}\"}}\n{{\"cmd\":\"project.checks.set\",\"params\":{{{}}}}}\n",
-        ew_api::CMDLOG_SCHEMA,
-        members.join(",")
-    );
-    let log = match CmdLog::parse(&text) {
-        Ok(l) => l,
-        Err(e) => {
-            eprintln!("error: {e}");
-            session.close();
-            return 2;
-        }
-    };
-    for cmd in log.commands() {
-        if let Err(e) = session.execute(cmd) {
-            eprintln!("error: {e}");
-            session.close();
-            return 1;
-        }
+    if let Err(e) = session.execute(&checks_set_command(a)) {
+        eprintln!("error: {e}");
+        session.close();
+        return 1;
     }
     let code = match session.save() {
         Ok(_) => {
@@ -1155,20 +1150,56 @@ fn run_checks_set(a: &ChecksSetArgs) -> i32 {
     code
 }
 
-/// `text` as a JSON string literal.
-fn json_string(text: &str) -> String {
-    let mut out = String::with_capacity(text.len() + 2);
-    out.push('"');
-    for c in text.chars() {
-        match c {
-            '"' => out.push_str("\\\""),
-            '\\' => out.push_str("\\\\"),
-            c if u32::from(c) < 0x20 => out.push_str(&format!("\\u{:04x}", u32::from(c))),
-            c => out.push(c),
-        }
+/// The `project.checks.set` command of `a`: a scheme not given is absent (its default applies).
+fn checks_set_command(a: &ChecksSetArgs) -> ew_api::AnyCommand {
+    let mut params = serde_json::Map::new();
+    if let Some(s) = &a.active {
+        params.insert("active_scheme".to_owned(), serde_json::Value::from(s.as_str()));
     }
-    out.push('"');
-    out
+    if let Some(s) = &a.release {
+        params.insert("release_scheme".to_owned(), serde_json::Value::from(s.as_str()));
+    }
+    ew_api::AnyCommand {
+        name: "project.checks.set".to_owned(),
+        params: serde_json::Value::Object(params),
+    }
+}
+
+/// The scheme name the person types to confirm `a`: the active scheme's, else the release scheme's.
+fn confirmation_word(a: &ChecksSetArgs) -> &str {
+    a.active.as_deref().or(a.release.as_deref()).unwrap_or_default()
+}
+
+/// Prints the change summary of `a` to `output` and reads one line from `input`: `true` when it is exactly the
+/// confirmation word ([`confirmation_word`]), surrounding white space aside (doc 17 section 2.3).
+fn confirm_typed(
+    a: &ChecksSetArgs,
+    input: &mut dyn std::io::BufRead,
+    output: &mut dyn std::io::Write,
+) -> bool {
+    let word = confirmation_word(a);
+    let line = |name: &str, scheme: &Option<String>, default: &str| match scheme {
+        Some(s) => format!("  {name} scheme: {s}\n"),
+        None => format!("  {name} scheme: back to the default ({default})\n"),
+    };
+    let summary = format!(
+        "project checks set:\n{}{}The check scheme decides check outcomes: which rules the release gate runs and what \
+         the checks report.\nType `{word}` to apply it, anything else to abort: ",
+        line("active", &a.active, "drafting"),
+        line("release", &a.release, "pre-delivery"),
+    );
+    if output
+        .write_all(summary.as_bytes())
+        .and_then(|()| output.flush())
+        .is_err()
+    {
+        return false;
+    }
+    let mut answer = String::new();
+    match input.read_line(&mut answer) {
+        Ok(_) => answer.trim() == word,
+        Err(_) => false,
+    }
 }
 
 /// `ew apply --preview`: the replay on a read-only session (no lock, no journal, never saved), then the changes.
@@ -1796,5 +1827,73 @@ SELECT 1"
         );
         assert!(p(&["verify-derived", "a", "b"]).is_err());
         assert!(p(&["verify-derived", "--bogus"]).is_err());
+    }
+}
+
+#[cfg(test)]
+mod checks_set_tests {
+    use super::*;
+
+    fn args(active: Option<&str>, release: Option<&str>) -> ChecksSetArgs {
+        ChecksSetArgs {
+            project: None,
+            active: active.map(str::to_owned),
+            release: release.map(str::to_owned),
+        }
+    }
+
+    fn typed(a: &ChecksSetArgs, answer: &str) -> (bool, String) {
+        let mut input = std::io::Cursor::new(answer.as_bytes().to_vec());
+        let mut output = Vec::new();
+        let ok = confirm_typed(a, &mut input, &mut output);
+        (ok, String::from_utf8(output).unwrap())
+    }
+
+    #[test]
+    fn the_typed_confirmation_is_the_scheme_name_exactly() {
+        let a = args(Some("drafting"), Some("full"));
+        let (ok, shown) = typed(&a, "drafting\n");
+        assert!(ok);
+        assert!(shown.contains("active scheme: drafting"), "{shown}");
+        assert!(shown.contains("release scheme: full"), "{shown}");
+        assert!(shown.contains("decides check outcomes"), "{shown}");
+        assert!(shown.contains("Type `drafting`"), "{shown}");
+        for wrong in ["", "\n", "y\n", "yes\n", "Drafting\n", "full\n", "drafting-x\n"] {
+            assert!(!typed(&a, wrong).0, "{wrong:?} must abort");
+        }
+        // Only a release scheme: its name is the word, and the active one is said to return to its default.
+        let b = args(None, Some("pre-delivery"));
+        let (ok, shown) = typed(&b, "  pre-delivery \r\n");
+        assert!(ok);
+        assert!(
+            shown.contains("active scheme: back to the default (drafting)"),
+            "{shown}"
+        );
+    }
+
+    #[test]
+    fn the_command_carries_the_given_schemes_only() {
+        let c = checks_set_command(&args(None, Some("full")));
+        assert_eq!(c.name, "project.checks.set");
+        assert_eq!(c.params, serde_json::json!({"release_scheme": "full"}));
+    }
+
+    #[test]
+    fn the_subcommand_takes_no_yes_flag() {
+        let parse = |a: &[&str]| parse(a.iter().map(|s| (*s).to_owned()));
+        assert!(parse(&["project", "checks", "set", "--release", "full", "--confirm"]).is_err());
+        assert!(parse(&["project", "checks", "set", "--yes"]).is_err());
+        assert!(
+            parse(&["project", "checks", "set"]).is_err(),
+            "a scheme is needed"
+        );
+        assert_eq!(
+            parse(&["project", "checks", "set", "p.ew", "--active", "full"]),
+            Ok(Command::ChecksSet(ChecksSetArgs {
+                project: Some(PathBuf::from("p.ew")),
+                active: Some("full".to_owned()),
+                release: None,
+            }))
+        );
     }
 }

@@ -1056,11 +1056,13 @@ fn apply_refuses_a_project_with_a_crashed_session_journal() {
     assert!(tree(&project) == before, "nothing is applied");
 }
 
-/// FT-336 (ruling 1): `ew project checks set` is the headless human path of the `HumanOnly` command
-/// `project.checks.set`: refused without `--confirm` (exit 1, nothing changed), written with it from the confirmed
-/// CLI origin; a scheme that does not ship is refused (exit 1) and a missing scheme is a usage error (exit 2).
+/// FT-336 (ruling 1, design-pass correction): `ew project checks set` submits the `HumanOnly` command
+/// `project.checks.set` only after a confirmation typed on a controlling terminal (doc 17 section 2.3, FR-EXT-030).
+/// Without a terminal (here: stdout captured, stdin empty or piped) it exits 2 before the project is opened: nothing
+/// changes, no lock, no journal. A scheme that does not ship exits 1 without asking; a usage error (no scheme, a
+/// `--confirm` or `--yes` flag) exits 2. The typed path is a unit test with an injected reader and writer (`cli.rs`).
 #[test]
-fn project_checks_set_needs_a_confirmation_and_writes_the_schemes() {
+fn project_checks_set_needs_an_interactive_terminal() {
     let t = Tmp::new();
     let home = t.0.join("home");
     let project = golden_copy(&t);
@@ -1075,29 +1077,50 @@ fn project_checks_set_needs_a_confirmation_and_writes_the_schemes() {
         args.extend(extra.iter().map(|a| std::ffi::OsStr::new(*a)));
         ew_isolated(&home, &args)
     };
-    let o = set(&["--release", "full"]);
-    assert_eq!(o.status.code(), Some(1), "{}{}", stdout(&o), stderr(&o));
-    assert!(stderr(&o).contains("decides check outcomes"), "{}", stderr(&o));
-    assert!(tree(&project) == before, "nothing is changed without --confirm");
-    let o = set(&["--release", "lenient", "--confirm"]);
+    let o = set(&["--active", "drafting", "--release", "full"]);
+    assert_eq!(o.status.code(), Some(2), "{}{}", stdout(&o), stderr(&o));
+    assert!(
+        stderr(&o).contains("HumanOnly: needs an interactive terminal"),
+        "{}",
+        stderr(&o)
+    );
+    // The answer on a pipe does not count: a pipe is no terminal.
+    let mut child = Command::new(bin_exe())
+        .args(["project", "checks", "set"])
+        .arg(&project)
+        .args(["--active", "drafting"])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    {
+        use std::io::Write as _;
+        let mut stdin = child.stdin.take().unwrap();
+        let _ = stdin.write_all(
+            b"drafting
+",
+        );
+    }
+    let piped = child.wait_with_output().unwrap();
+    assert_eq!(piped.status.code(), Some(2), "{}", stderr(&piped));
+    let o = set(&["--release", "lenient"]);
     assert_eq!(o.status.code(), Some(1), "{}{}", stdout(&o), stderr(&o));
     assert!(
         stderr(&o).contains("not a shipped check scheme"),
         "{}",
         stderr(&o)
     );
-    let o = set(&["--confirm"]);
-    assert_eq!(o.status.code(), Some(2), "{}{}", stdout(&o), stderr(&o));
-    let o = set(&["--active", "drafting", "--release", "full", "--confirm"]);
-    assert_eq!(o.status.code(), Some(0), "{}{}", stdout(&o), stderr(&o));
-    let text = std::fs::read_to_string(project.join("project.jsonl")).unwrap();
+    for usage in [&[][..], &["--release", "full", "--confirm"][..], &["--yes"][..]] {
+        let o = set(usage);
+        assert_eq!(o.status.code(), Some(2), "{usage:?}: {}", stderr(&o));
+    }
+    assert!(tree(&project) == before, "nothing is changed, locked or written");
+    let state = isolated_state_dir(&home);
     assert!(
-        text.contains("\"checks\":{\"active_scheme\":\"drafting\",\"release_scheme\":\"full\"}"),
-        "{text}"
+        !state.exists() || std::fs::read_dir(&state).unwrap().next().is_none(),
+        "no journal was opened"
     );
-    // The project stays consistent: the memoised derived values equal the cold ones.
-    let o = ew_isolated(&home, &["verify-derived".as_ref(), project.as_os_str()]);
-    assert_eq!(o.status.code(), Some(0), "{}{}", stdout(&o), stderr(&o));
 }
 
 /// The path of the `ew` binary under test. nextest sets `NEXTEST_BIN_EXE_ew` at run time (the binaries of a

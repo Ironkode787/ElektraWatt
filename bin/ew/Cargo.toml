@@ -21,8 +21,9 @@ workspace = true
 [dependencies]
 ew-api = { path = "../../crates/ew-api" }
 ew-print = { path = "../../crates/ew-print" }
+# The parameters of `project.checks.set` that `ew project checks set` submits (already a dev-dependency).
+serde_json = "1.0.154"
 
 [dev-dependencies]
-serde_json = "1.0.154"
 # tests/cli.rs: the SHA-256 of `ew export pdf` against `expected/pdf/sha256.txt` (G-M1-01).
 sha2 = { workspace = true }
