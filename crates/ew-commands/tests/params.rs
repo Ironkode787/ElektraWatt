@@ -184,6 +184,20 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"member": "numbering", "value": {"default": "page-based", "schemes": [
                 {"key": "page-based", "format": "{page}{letter}{counter}", "rules": []}]}}),
         ),
+        (
+            "project.company.set",
+            json!({"name": "Example Panels", "notice": "Property of Example Panels."}),
+        ),
+        (
+            "project.frames.set",
+            json!({"default": FORM.to_string(),
+                "per_page_type": [{"page_type": "title_page", "form": FORM.to_string()}]}),
+        ),
+        (
+            "project.languages.set",
+            json!({"source": "en", "date": "dd_mm_yyyy", "decimal_separator": "point"}),
+        ),
+        ("project.checks.set", json!({"release_scheme": "pre-delivery"})),
     ]
 }
 
@@ -211,7 +225,7 @@ fn every_registered_command_has_an_example() {
     let registry = CommandRegistry::builtin();
     let registered: BTreeSet<&str> = registry.commands().map(|c| c.meta().name).collect();
     let covered: BTreeSet<&str> = examples().iter().map(|(n, _)| *n).collect();
-    assert_eq!(registered.len(), 38);
+    assert_eq!(registered.len(), 42);
     assert_eq!(registered, covered);
     assert_eq!(examples().len(), covered.len(), "one example per command");
 }

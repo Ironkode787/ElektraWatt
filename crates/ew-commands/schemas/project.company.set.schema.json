@@ -1,0 +1,60 @@
+{
+  "$defs": {
+    "CmdMlText": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4,8})(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*(?:-[a-wy-z0-9](?:-[a-z0-9]{2,8})+)*(?:-x(?:-[a-z0-9]{1,8})+)?$",
+            "type": "string"
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags in ascending order with non-empty string values (doc 05 §3.2)."
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`project.company.set` (`SetCompany`): sets the company of the project, the panel builder (doc 16 §9.2 step 1).\n\n- `name`: the name of the first party with role `panel_builder` (FR-PRJ-003; the title-block path\n  `party.panel_builder.name`). Without such a party, a non-empty name appends one; an empty name then changes\n  nothing. An empty name on an existing party removes its name and keeps the party (its address and other\n  members stay).\n- `notice`: the notice text of the title block (`project.notice`), stored as `notice` of the project-row\n  member [`COMPANY_MEMBER`]; an empty text removes it (and the member when nothing else is left in it).\n- `personal_data`: whether the panel-builder party is personal data (FR-PRJ-024, NFR-PRIV-06: \"omit personal\n  data\" exports leave it out). A party this command appends is marked `true` unless the parameter says\n  otherwise; without a party (and without a name that creates one) the parameter is refused.\n\nAn absent member leaves its value as it is; at least one member must be given (else invalid at the root).\nRejected: a project row whose [`COMPANY_MEMBER`] is not an object (a newer or damaged format; the command never\noverwrites it). Only the project record changes. Bulk: the name and the notice are printed in every title\nblock, so front-ends preview the change. Undoable as one step. Outcome: none.",
+  "properties": {
+    "name": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdMlText"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The company name (the panel-builder party's name); empty removes it; absent keeps it."
+    },
+    "notice": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdMlText"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The title-block notice text (`project.notice`); empty removes it; absent keeps it."
+    },
+    "personal_data": {
+      "description": "Whether the panel-builder party is personal data (FR-PRJ-024); absent keeps it (`true` for a new party).",
+      "type": [
+        "boolean",
+        "null"
+      ]
+    }
+  },
+  "title": "project.company.set",
+  "type": "object"
+}

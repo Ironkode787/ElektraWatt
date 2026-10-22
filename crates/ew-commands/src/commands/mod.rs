@@ -44,15 +44,24 @@
 //! | `project.supply.set` | [`SetProjectSupply`] | Interactive |
 //! | `library.embed` | [`EmbedLibraryCopies`] | Interactive |
 //! | `revision.create` | [`CreateRevision`] | Interactive |
+//! | `project.company.set` | [`SetCompany`] | Bulk |
+//! | `project.frames.set` | [`SetFrameDefaults`] | Bulk |
+//! | `project.languages.set` | [`SetProjectLanguages`] | Bulk |
+//! | `project.checks.set` | [`SetCheckSchemes`] | Interactive; exposure `HumanOnly` |
 //!
-//! Every command is undoable, of exposure class `Edit` and stability `Preview`.
+//! Every command is undoable and of stability `Preview`; every one is of exposure class `Edit` except
+//! `project.checks.set`, which is `HumanOnly` (ADR-0008 amendment 3: it decides a check outcome).
 
 mod assembly;
+mod checks;
 pub mod common;
+mod company;
 mod connection;
 mod device;
 mod edit;
 mod fields;
+mod frames;
+mod languages;
 mod library;
 mod page;
 mod plc;
@@ -64,7 +73,9 @@ mod supply;
 mod terminal;
 
 pub use assembly::{AddValve, AttachChildren, ChildSpec, LinkDevices};
+pub use checks::{CHECKS_MEMBER, SHIPPED_CHECK_SCHEMES, SetCheckSchemes};
 pub use common::{EndpointParam, KindName, TargetRef};
+pub use company::{COMPANY_MEMBER, SetCompany};
 pub use connection::{
     Connect, ContinueIp, CreateBond, DefinePotential, DeleteConnections, EditJunction, PlaceIp,
     RouteConnection, WiringChoice,
@@ -75,6 +86,8 @@ pub use device::{
 };
 pub use edit::{BULK_ABOVE, DeleteSelection};
 pub use fields::{ASPECTS, SETTABLE, SetFields};
+pub use frames::{FRAMES_MEMBER, FrameForPageType, SetFrameDefaults};
+pub use languages::SetProjectLanguages;
 pub use library::{EmbedLibraryCopies, library_copy_hash};
 pub use page::{CreatePage, DeletePages, PageScope, RenumberPages};
 pub use plc::{BindChannel, CreatePlcConfigProject, SetModulePart};
@@ -130,4 +143,8 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<SetProjectSupply>();
     r.register::<EmbedLibraryCopies>();
     r.register::<CreateRevision>();
+    r.register::<SetCompany>();
+    r.register::<SetFrameDefaults>();
+    r.register::<SetProjectLanguages>();
+    r.register::<SetCheckSchemes>();
 }

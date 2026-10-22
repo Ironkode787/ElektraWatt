@@ -291,6 +291,50 @@
     {
       "aliases": [],
       "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "human_only",
+      "name": "project.checks.set",
+      "params_version": 1,
+      "schema": "project.checks.set.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "bulk",
+      "exposure": "edit",
+      "name": "project.company.set",
+      "params_version": 1,
+      "schema": "project.company.set.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "bulk",
+      "exposure": "edit",
+      "name": "project.frames.set",
+      "params_version": 1,
+      "schema": "project.frames.set.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "bulk",
+      "exposure": "edit",
+      "name": "project.languages.set",
+      "params_version": 1,
+      "schema": "project.languages.set.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
       "cost": "bulk",
       "exposure": "edit",
       "name": "project.settings.set",

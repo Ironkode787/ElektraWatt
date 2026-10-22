@@ -1,0 +1,39 @@
+{
+  "$defs": {
+    "CmdIdent": {
+      "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`project.checks.set` (`SetCheckSchemes`): names the project's check schemes (doc 03 §15 `CheckSettings`): the\nonline scheme of the message panel (`active_scheme`, default `drafting`) and the scheme of the release gate\nand `ew check` (`release_scheme`, default `pre-delivery`, doc 15 §3.2).\n\nBoth members are the new value: an absent one is removed from the settings member [`CHECKS_MEMBER`], so the\ndefault applies; the member's other contents (pack pins, strictness, members of newer formats) are kept, and\nan empty member is removed. Each name must be a shipped scheme ([`SHIPPED_CHECK_SCHEMES`]; else invalid at its\npointer). Rejected: a settings member [`CHECKS_MEMBER`] that is not an object (a newer or damaged format).\n\n**Exposure `HumanOnly`** (ADR-0008 amendment 3, ADR-0020): the release scheme decides which rules the release\ngate runs, a check outcome, so only the GUI and a confirmed CLI subcommand may submit it; command logs,\nscripts, MCP and plugins may not. Interactive: no printed value follows the scheme. Undoable as one step.\nOutcome: none.",
+  "properties": {
+    "active_scheme": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdIdent"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The online scheme (doc 15 §3.1); absent: the default `drafting`."
+    },
+    "release_scheme": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdIdent"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The release-gate scheme (doc 15 §3.2); absent: the default `pre-delivery`."
+    }
+  },
+  "title": "project.checks.set",
+  "type": "object"
+}

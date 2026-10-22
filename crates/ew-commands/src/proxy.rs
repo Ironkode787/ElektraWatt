@@ -146,6 +146,18 @@ proxy!(
 );
 
 proxy!(
+    /// `LangTag`: a canonical BCP 47 language tag.
+    LangTagS,
+    "CmdLangTag",
+    {
+        "type": "string",
+        "minLength": 2,
+        "pattern": LANG_TAG_PATTERN,
+        "description": "A canonical BCP 47 language tag such as \"en\" or \"de-CH\" (doc 05 §3.2)."
+    }
+);
+
+proxy!(
     /// `Dec3`: a canonical decimal string with at most three fraction digits.
     Dec3S,
     "CmdDec3",

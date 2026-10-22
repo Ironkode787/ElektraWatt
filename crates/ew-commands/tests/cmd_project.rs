@@ -1,0 +1,456 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! The company-standard commands of FT-336: `project.company.set`, `project.frames.set`,
+//! `project.languages.set` and `project.checks.set` (doc 16 §9.2 steps 1, 2, 8 and 9).
+// A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
+#![allow(clippy::disallowed_methods)]
+
+mod common;
+
+use common::fixture::{FORM, form, id, mini_golden_parts};
+use common::*;
+use ew_commands::commands::{COMPANY_MEMBER, SHIPPED_CHECK_SCHEMES, SetCheckSchemes, SetCompany};
+use ew_commands::{
+    AnyCommand, CmdError, CommandRegistry, Cost, DynCommand, Engine, Exposure, Origin, Submit,
+};
+use ew_ids::Id;
+use ew_mltext::MlText;
+use ew_model::Model;
+use ew_schema::{FormDef, FormKind, LibDocument, PartyRole};
+use serde_json::{Value, json};
+
+fn any(name: &str, params: Value) -> AnyCommand {
+    AnyCommand {
+        name: name.to_owned(),
+        params,
+    }
+}
+
+fn commit(e: &mut Engine, cmd: &dyn DynCommand) {
+    let p = e
+        .preview(cmd)
+        .unwrap_or_else(|err| panic!("{}: {err:?}", cmd.name()));
+    e.commit(p).unwrap();
+}
+
+fn invalid(e: &mut Engine, cmd: &dyn DynCommand) -> (String, String) {
+    match e.preview(cmd).unwrap_err() {
+        CmdError::InvalidParams { path, message, .. } => (path, message),
+        other => panic!("expected InvalidParams, got {other:?}"),
+    }
+}
+
+fn rejected(e: &mut Engine, cmd: &dyn DynCommand) -> String {
+    match e.preview(cmd).unwrap_err() {
+        CmdError::Rejected { reason, .. } => reason,
+        other => panic!("expected Rejected, got {other:?}"),
+    }
+}
+
+fn settings_member(e: &Engine, member: &str) -> Option<Value> {
+    e.model().project().settings.extra.get(member).cloned()
+}
+
+/// The registered metadata: three Bulk `Edit` commands and one interactive `HumanOnly` command, all undoable.
+#[test]
+fn the_company_standard_commands_are_registered_with_their_cost_and_exposure() {
+    let registry = CommandRegistry::builtin();
+    for (name, cost, exposure) in [
+        ("project.company.set", Cost::Bulk, Exposure::Edit),
+        ("project.frames.set", Cost::Bulk, Exposure::Edit),
+        ("project.languages.set", Cost::Bulk, Exposure::Edit),
+        ("project.checks.set", Cost::Interactive, Exposure::HumanOnly),
+    ] {
+        let meta = registry
+            .get(name)
+            .unwrap_or_else(|| panic!("{name} is registered"))
+            .meta();
+        assert_eq!((meta.cost, meta.exposure), (cost, exposure), "{name}");
+        assert!(meta.undoable, "{name}");
+    }
+    let mut e = engine(golden_model());
+    let err = e
+        .execute(&any("project.company.set", json!({"name": "Example Panels"})))
+        .unwrap_err();
+    assert!(matches!(err, CmdError::NeedsPreview { .. }), "{err:?}");
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// project.company.set
+
+#[test]
+fn company_set_creates_the_panel_builder_party_and_the_notice_and_undoes() {
+    let mut e = engine(golden_model());
+    let before = lines(e.model());
+    let cmd = SetCompany {
+        name: Some(MlText::neutral("Example Panels")),
+        notice: Some(MlText::neutral("Property of Example Panels.")),
+        personal_data: None,
+    };
+    let p = e.preview(&cmd).unwrap();
+    assert_eq!(p.diff().len(), 1, "only the project record changes");
+    e.commit(p).unwrap();
+    let project = e.model().project().clone();
+    let builders: Vec<_> = project
+        .parties
+        .iter()
+        .filter(|p| p.role == PartyRole::PanelBuilder)
+        .collect();
+    assert_eq!(builders.len(), 1);
+    assert_eq!(builders[0].name.as_neutral(), Some("Example Panels"));
+    assert!(
+        builders[0].personal_data,
+        "a new party is personal data unless told otherwise"
+    );
+    assert_eq!(
+        project.extra.get(COMPANY_MEMBER),
+        Some(&json!({"notice": "Property of Example Panels."}))
+    );
+    e.undo().unwrap();
+    assert_eq!(lines(e.model()), before);
+    e.redo().unwrap();
+    assert_eq!(e.model().project().parties.len(), 1);
+}
+
+#[test]
+fn company_set_edits_the_existing_party_and_keeps_the_logo() {
+    let (mut project, records, _) = mini_golden_parts();
+    project.parties.push(ew_schema::Party {
+        role: PartyRole::PanelBuilder,
+        name: Default::default(),
+        address: Some(ew_schema::Address {
+            city: Some("Example City".into()),
+            ..Default::default()
+        }),
+        personal_data: true,
+        extra: Default::default(),
+    });
+    let logo = format!("sha256:{}", "ab".repeat(32));
+    project.extra.insert(
+        COMPANY_MEMBER.into(),
+        json!({"logo": logo, "notice": "Old notice"}),
+    );
+    let mut e = engine(Model::from_records(project, records, library()).unwrap());
+    commit(
+        &mut e,
+        &SetCompany {
+            name: Some(MlText::neutral("Example Panels")),
+            notice: Some(Default::default()),
+            personal_data: Some(false),
+        },
+    );
+    let project = e.model().project().clone();
+    assert_eq!(project.parties.len(), 1, "the party is edited, not added");
+    let party = &project.parties[0];
+    assert_eq!(party.name.as_neutral(), Some("Example Panels"));
+    assert!(!party.personal_data);
+    assert!(party.address.is_some(), "the address stays");
+    assert_eq!(
+        project.extra.get(COMPANY_MEMBER),
+        Some(&json!({"logo": logo})),
+        "an empty notice removes the notice and keeps the logo"
+    );
+    // An empty name keeps the party.
+    commit(
+        &mut e,
+        &SetCompany {
+            name: Some(Default::default()),
+            notice: None,
+            personal_data: None,
+        },
+    );
+    assert_eq!(e.model().project().parties.len(), 1);
+    assert!(e.model().project().parties[0].name.is_empty());
+}
+
+#[test]
+fn company_set_refuses_what_it_cannot_do() {
+    let mut e = engine(golden_model());
+    let (path, _) = invalid(&mut e, &any("project.company.set", json!({})));
+    assert_eq!(path, "");
+    let reason = rejected(
+        &mut e,
+        &any("project.company.set", json!({"personal_data": false})),
+    );
+    assert!(reason.contains("no panel-builder party"), "{reason}");
+    // An empty name without a party changes nothing (an empty transaction).
+    let rev = e.model().rev();
+    commit(&mut e, &any("project.company.set", json!({"name": ""})));
+    assert_eq!(e.model().rev(), rev);
+    // A company member of another shape is never overwritten.
+    let (mut project, records, _) = mini_golden_parts();
+    project.extra.insert(COMPANY_MEMBER.into(), json!("newer"));
+    let mut e = engine(Model::from_records(project, records, library()).unwrap());
+    let reason = rejected(&mut e, &any("project.company.set", json!({"notice": "x"})));
+    assert!(reason.contains("not an object"), "{reason}");
+    // The name alone does not touch that member.
+    commit(&mut e, &any("project.company.set", json!({"name": "Example"})));
+    assert_eq!(
+        e.model().project().extra.get(COMPANY_MEMBER),
+        Some(&json!("newer"))
+    );
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// project.frames.set
+
+/// A model whose library also holds a title-block form copy.
+fn with_title_block() -> (Model, Id<FormDef>) {
+    let tb: Id<FormDef> = id(0x4f);
+    let mut copy = form(tb);
+    copy.item.kind = FormKind::TitleBlock;
+    let (p, r, _) = mini_golden_parts();
+    let mut lib = library();
+    lib.push(LibDocument::Form(copy));
+    (Model::from_records(p, r, lib).unwrap(), tb)
+}
+
+#[test]
+fn frames_set_stores_the_frame_defaults_in_page_type_order_and_undoes() {
+    let mut e = engine(golden_model());
+    let before = lines(e.model());
+    let form = FORM.to_string();
+    commit(
+        &mut e,
+        &any(
+            "project.frames.set",
+            json!({"default": form, "per_page_type": [
+                {"page_type": "title_page", "form": form},
+                {"page_type": "section_divider", "form": form},
+            ]}),
+        ),
+    );
+    assert_eq!(
+        settings_member(&e, "frames"),
+        Some(json!({"default": form, "per_page_type": [
+            {"form": form, "page_type": "section_divider"},
+            {"form": form, "page_type": "title_page"},
+        ]}))
+    );
+    // The derivation reads the member as written: no malformed-shim note.
+    let mut q = ew_derive::Q::new(e.model());
+    let frames = q.get::<ew_derive::FrameSettings>(());
+    assert_eq!(frames.default, Some(FORM));
+    assert_eq!(frames.per_page_type.len(), 2);
+    let notes = q.diagnostics().notes();
+    assert!(notes.is_empty(), "{notes:?}");
+    // No default and no entry removes the member.
+    commit(&mut e, &any("project.frames.set", json!({})));
+    assert_eq!(settings_member(&e, "frames"), None);
+    e.undo().unwrap();
+    e.undo().unwrap();
+    assert_eq!(lines(e.model()), before);
+}
+
+#[test]
+fn frames_set_refuses_bad_forms_and_page_types() {
+    let (model, tb) = with_title_block();
+    let mut e = engine(model);
+    let form = FORM.to_string();
+    let err = e
+        .preview(&any(
+            "project.frames.set",
+            json!({"default": id::<FormDef>(0x999).to_string()}),
+        ))
+        .unwrap_err();
+    assert!(matches!(err, CmdError::NotFound { .. }), "{err:?}");
+    let (path, message) = invalid(
+        &mut e,
+        &any("project.frames.set", json!({"default": tb.to_string()})),
+    );
+    assert_eq!(path, "/default");
+    assert!(message.contains("not a frame"), "{message}");
+    let (path, _) = invalid(
+        &mut e,
+        &any(
+            "project.frames.set",
+            json!({"per_page_type": [{"page_type": "report", "form": form}]}),
+        ),
+    );
+    assert_eq!(path, "/per_page_type/0/page_type");
+    let (path, message) = invalid(
+        &mut e,
+        &any(
+            "project.frames.set",
+            json!({"per_page_type": [
+                {"page_type": "multi_line", "form": form},
+                {"page_type": "multi_line", "form": form},
+            ]}),
+        ),
+    );
+    assert_eq!(path, "/per_page_type/1/page_type");
+    assert!(message.contains("one entry per page type"), "{message}");
+    let (path, _) = invalid(
+        &mut e,
+        &any(
+            "project.frames.set",
+            json!({"per_page_type": [{"page_type": "multi_line", "form": tb.to_string()}]}),
+        ),
+    );
+    assert_eq!(path, "/per_page_type/0/form");
+    // The parameter schema refuses a page type it does not know.
+    let (path, _) = invalid(
+        &mut e,
+        &any(
+            "project.frames.set",
+            json!({"per_page_type": [{"page_type": "hologram", "form": form}]}),
+        ),
+    );
+    assert!(path.starts_with("/per_page_type/0"), "{path}");
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// project.languages.set
+
+#[test]
+fn languages_set_writes_the_languages_and_the_formats_as_one_value() {
+    let (mut project, records, _) = mini_golden_parts();
+    project.settings.formatting.tag_case = Some(ew_schema::TagCase::Insensitive);
+    let mut e = engine(Model::from_records(project, records, library()).unwrap());
+    let before = lines(e.model());
+    commit(
+        &mut e,
+        &any(
+            "project.languages.set",
+            json!({"source": "en", "translations": ["nl", "de"], "date": "iso8601", "decimal_separator": "comma"}),
+        ),
+    );
+    let project = e.model().project().clone();
+    let languages = project.languages.as_ref().expect("languages");
+    assert_eq!(languages.source.as_str(), "en");
+    let translations: Vec<&str> = languages.translations.iter().map(|t| t.as_str()).collect();
+    assert_eq!(translations, ["de", "nl"], "a set, sorted");
+    assert_eq!(
+        project.settings.formatting.date,
+        Some(ew_schema::DateFormat::Iso8601)
+    );
+    assert_eq!(
+        project.settings.formatting.decimal_separator,
+        Some(ew_schema::DecimalSeparator::Comma)
+    );
+    assert_eq!(
+        project.settings.formatting.tag_case,
+        Some(ew_schema::TagCase::Insensitive),
+        "the tag case is not this command's"
+    );
+    // Absent members are removed: the value is the whole step.
+    commit(
+        &mut e,
+        &any("project.languages.set", json!({"date": "dd_mm_yyyy"})),
+    );
+    let project = e.model().project().clone();
+    assert_eq!(project.languages, None);
+    assert_eq!(
+        project.settings.formatting.date,
+        Some(ew_schema::DateFormat::DdMmYyyy)
+    );
+    assert_eq!(project.settings.formatting.decimal_separator, None);
+    e.undo().unwrap();
+    e.undo().unwrap();
+    assert_eq!(lines(e.model()), before);
+}
+
+#[test]
+fn languages_set_refuses_translations_that_do_not_fit() {
+    let mut e = engine(golden_model());
+    let (path, _) = invalid(
+        &mut e,
+        &any("project.languages.set", json!({"translations": ["de"]})),
+    );
+    assert_eq!(path, "/translations");
+    let (path, message) = invalid(
+        &mut e,
+        &any(
+            "project.languages.set",
+            json!({"source": "en", "translations": ["en"]}),
+        ),
+    );
+    assert_eq!(path, "/translations");
+    assert!(message.contains("source language"), "{message}");
+    let (path, _) = invalid(
+        &mut e,
+        &any(
+            "project.languages.set",
+            json!({"source": "en", "translations": ["de", "de"]}),
+        ),
+    );
+    assert_eq!(path, "/translations");
+    let (path, _) = invalid(&mut e, &any("project.languages.set", json!({"date": "mm/dd/yy"})));
+    assert!(path.starts_with("/date") || path.is_empty(), "{path}");
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// project.checks.set
+
+#[test]
+fn checks_set_names_the_schemes_and_keeps_the_rest_of_the_member() {
+    let (mut project, records, _) = mini_golden_parts();
+    project
+        .settings
+        .extra
+        .insert("checks".into(), json!({"strictness": "strict"}));
+    let mut e = engine(Model::from_records(project, records, library()).unwrap());
+    let before = lines(e.model());
+    let cmd = SetCheckSchemes {
+        active_scheme: Some("drafting".parse().unwrap()),
+        release_scheme: Some("full".parse().unwrap()),
+    };
+    e.execute(&cmd).unwrap();
+    assert_eq!(
+        settings_member(&e, "checks"),
+        Some(json!({"active_scheme": "drafting", "release_scheme": "full", "strictness": "strict"}))
+    );
+    e.execute(&any(
+        "project.checks.set",
+        json!({"release_scheme": "pre-delivery"}),
+    ))
+    .unwrap();
+    assert_eq!(
+        settings_member(&e, "checks"),
+        Some(json!({"release_scheme": "pre-delivery", "strictness": "strict"}))
+    );
+    e.undo().unwrap();
+    e.undo().unwrap();
+    assert_eq!(lines(e.model()), before);
+    // Without anything else in the member, removing both schemes removes the member.
+    let mut e = engine(golden_model());
+    e.execute(&any("project.checks.set", json!({"release_scheme": "full"})))
+        .unwrap();
+    e.execute(&any("project.checks.set", json!({}))).unwrap();
+    assert_eq!(settings_member(&e, "checks"), None);
+}
+
+#[test]
+fn checks_set_takes_shipped_schemes_only_and_only_from_a_human() {
+    let mut e = engine(golden_model());
+    let err = e
+        .execute(&any("project.checks.set", json!({"release_scheme": "lenient"})))
+        .unwrap_err();
+    let CmdError::InvalidParams { path, message, .. } = err else {
+        panic!("{err:?}");
+    };
+    assert_eq!(path, "/release_scheme");
+    assert!(message.contains(&SHIPPED_CHECK_SCHEMES.join(", ")), "{message}");
+    for origin in [
+        Origin::CmdLog {
+            file: "wizard.ewcmd".into(),
+        },
+        Origin::Mcp {
+            client: "agent".into(),
+        },
+        Origin::Cli {
+            subcommand: "apply".into(),
+            confirmed: false,
+        },
+    ] {
+        let err = e
+            .execute_with(
+                &any("project.checks.set", json!({"release_scheme": "full"})),
+                Submit::from(origin.clone()),
+            )
+            .unwrap_err();
+        assert!(matches!(err, CmdError::Exposure { .. }), "{origin:?}: {err:?}");
+    }
+    assert_eq!(settings_member(&e, "checks"), None);
+}

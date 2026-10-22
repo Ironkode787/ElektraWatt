@@ -1,0 +1,87 @@
+{
+  "$defs": {
+    "CmdLangTag": {
+      "description": "A canonical BCP 47 language tag such as \"en\" or \"de-CH\" (doc 05 §3.2).",
+      "minLength": 2,
+      "pattern": "^(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4,8})(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*(?:-[a-wy-z0-9](?:-[a-z0-9]{2,8})+)*(?:-x(?:-[a-z0-9]{1,8})+)?$",
+      "type": "string"
+    },
+    "DateFormat": {
+      "description": "Printed date format.",
+      "oneOf": [
+        {
+          "const": "dd_mm_yyyy",
+          "description": "dd-mm-yyyy.",
+          "type": "string"
+        },
+        {
+          "const": "iso8601",
+          "description": "ISO 8601, yyyy-mm-dd.",
+          "type": "string"
+        }
+      ]
+    },
+    "DecimalSeparator": {
+      "description": "Printed decimal separator.",
+      "oneOf": [
+        {
+          "const": "point",
+          "description": "\"0.75\".",
+          "type": "string"
+        },
+        {
+          "const": "comma",
+          "description": "\"0,75\".",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`project.languages.set` (`SetProjectLanguages`): sets the project's languages and its printed formats as one\nvalue, the four fields of the wizard's step 8 (doc 16 §9.2):\n\n- `source` and `translations` become `Project.languages` (`ProjectLanguages`); without `source` the project\n  has no languages member (texts are read in their neutral or first language);\n- `date` and `decimal_separator` become `ProjectSettings.formatting.date` and `.decimal_separator`; an absent\n  value removes the member, so the pinned derivation profile's default applies. The formatting's other\n  members (`tag_case`, which decides when tags collide, and members of newer formats) are kept.\n\nEvery member is the new value, so an absent one is removed, not kept. Rejected: `translations` without\n`source` or containing it, and the same translation twice (at `/translations`); a format of a newer version\n(at its pointer). Only the project record changes. Bulk: the date format changes the dates of every title\nblock. Undoable as one step. Outcome: none.",
+  "properties": {
+    "date": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DateFormat"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The date format of printed dates; absent: the profile default."
+    },
+    "decimal_separator": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DecimalSeparator"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The decimal separator of printed numbers; absent: the profile default."
+    },
+    "source": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdLangTag"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The language texts are authored in; absent: the project names no languages."
+    },
+    "translations": {
+      "description": "The translation languages (a set; 1.0 content); needs `source`.",
+      "items": {
+        "$ref": "#/$defs/CmdLangTag"
+      },
+      "type": "array"
+    }
+  },
+  "title": "project.languages.set",
+  "type": "object"
+}

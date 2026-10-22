@@ -1,0 +1,130 @@
+{
+  "$defs": {
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "FrameForPageType": {
+      "additionalProperties": false,
+      "description": "One `per_page_type` entry of the frame defaults.",
+      "properties": {
+        "form": {
+          "$ref": "#/$defs/CmdUuid",
+          "description": "The frame form copy for pages of that type."
+        },
+        "page_type": {
+          "$ref": "#/$defs/PageType",
+          "description": "The page type the entry applies to."
+        }
+      },
+      "required": [
+        "page_type",
+        "form"
+      ],
+      "type": "object"
+    },
+    "PageType": {
+      "description": "Page type (FR-PAG-001). `report` pages are always generated, never stored.",
+      "oneOf": [
+        {
+          "const": "title_page",
+          "description": "Title page (cover form).",
+          "type": "string"
+        },
+        {
+          "const": "table_of_contents",
+          "description": "Table of contents.",
+          "type": "string"
+        },
+        {
+          "const": "section_divider",
+          "description": "Section divider.",
+          "type": "string"
+        },
+        {
+          "const": "graphic",
+          "description": "Graphic page without electrical meaning.",
+          "type": "string"
+        },
+        {
+          "const": "single_line",
+          "description": "Single-line diagram.",
+          "type": "string"
+        },
+        {
+          "const": "multi_line",
+          "description": "Multi-line schematic.",
+          "type": "string"
+        },
+        {
+          "const": "overview",
+          "description": "Overview.",
+          "type": "string"
+        },
+        {
+          "const": "bus_topology",
+          "description": "Bus topology.",
+          "type": "string"
+        },
+        {
+          "const": "fluid",
+          "description": "Fluid-power schematic.",
+          "type": "string"
+        },
+        {
+          "const": "assembly_overview",
+          "description": "Assembly overview.",
+          "type": "string"
+        },
+        {
+          "const": "panel_layout",
+          "description": "Panel layout.",
+          "type": "string"
+        },
+        {
+          "const": "model_view",
+          "description": "3D model view.",
+          "type": "string"
+        },
+        {
+          "const": "external_document",
+          "description": "External document.",
+          "type": "string"
+        },
+        {
+          "const": "report",
+          "description": "Report (generated only).",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`project.frames.set` (`SetFrameDefaults`): sets the frame defaults of the project (doc 03 §5.1 `FrameDefaults`,\nFR-PAG-018): the frame form of a drawn page whose `form` is unset is the entry of its page type, else\n`default`; a section divider takes the entry of `section_divider`; generated report pages keep the form of\ntheir block.\n\nThe parameters are the whole new value `{default?, per_page_type}`, stored as the settings member\n[`FRAMES_MEMBER`] with the entries in page-type order; no default and no entry removes the member, so the\nbuilt-in frames apply again. Each form must be an embedded form copy (else [`CmdError::NotFound`]) of kind\n`frame`, `cover` or `divider` (else invalid at its pointer). Rejected at `/per_page_type/i/page_type`: a page\ntype named twice, `report` (report pages take their block's form, EW-INV-012) and a type of a newer format.\nThe cell mapping of the title block is part of the form copies (`library.embed`); this command does not edit\nforms. Only the project record changes. Bulk: one stored value changes the frame of every page that has no\nform of its own. Undoable as one step. Outcome: none.",
+  "properties": {
+    "default": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdUuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The frame form of drawn pages whose type has no entry; absent: none (the built-in frame applies)."
+    },
+    "per_page_type": {
+      "description": "The frame form per page type, at most one entry per type.",
+      "items": {
+        "$ref": "#/$defs/FrameForPageType"
+      },
+      "type": "array"
+    }
+  },
+  "title": "project.frames.set",
+  "type": "object"
+}

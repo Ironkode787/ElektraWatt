@@ -151,11 +151,17 @@ fn rejected_commands_change_nothing() {
 }
 
 #[test]
-fn every_v0_command_is_an_edit_command() {
+fn every_v0_command_is_an_edit_command_but_the_check_schemes() {
     let r = ew_commands::CommandRegistry::builtin();
-    assert_eq!(r.names().count(), 38);
+    assert_eq!(r.names().count(), 42);
     for c in r.commands() {
-        assert_eq!(c.meta().exposure, Exposure::Edit, "{}", c.meta().name);
+        // ADR-0008 amendment 3: the release scheme decides a check outcome, so its command is `HumanOnly`.
+        let expected = if c.meta().name == "project.checks.set" {
+            Exposure::HumanOnly
+        } else {
+            Exposure::Edit
+        };
+        assert_eq!(c.meta().exposure, expected, "{}", c.meta().name);
         assert!(c.meta().undoable);
     }
     assert_eq!(CreatePage::meta().cost, Cost::Interactive);
