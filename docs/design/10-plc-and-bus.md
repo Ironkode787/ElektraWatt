@@ -198,7 +198,7 @@ pub struct Channel {                     // shard of its module device; id = v5(
 | Comment | `Channel.comment` | `{function_text}` at export, if empty | 1.0 |
 | Target | `Channel.target` (FR-PLC-054) | target tracking (§3.5) | MVP direct; 1.0 traced (FR-PLC-018) |
 
-**As built (cycle 13; decision log ID-333, ID-335).** `channel` (rank 37, in the shard of its module device) is typed with `module`, `number`, `designation`, `kind`, `address` (`AddrSpec`: `auto`, the default, `manual`, `excluded`, `tbd`), `state`, `symbol`, `comment`, `binding`, `target` and the import-provenance member `source_ref`. `ChannelKind` has `di`, `do`, `ai`, `ao`, `counter`, `io_link_port` and `power_supply`; `multi_function` (§3.8) is additive. Not members of the record, and kept in `extra` until their work packages: `data_type`, `aux_pins`, `signal_range` and `safety`. Until then the data type is the part's (`ChannelSpec.data_type` in the part section, §2.6), not a channel member. **Channel IDs** are `v5(module, "channel", number)` (ADR-0004 amendment 2; `ew_ids::v5::plc_channel_id`); the golden importer maps each `channels.csv` row to that ID, not to the `v5(ns, "channels|key")` of the other golden tables, so two branches that add the same module mint the same channel IDs (decision log ID-335). `source_ref.key` still reads `channels|<label>`. **Channels come only from import**: the channel-creating normaliser N1 of §3.3 is not built. Link policy: a channel is deleted with its module; deleting the bound function or the target function unlinks the member. An older 0.1 build keeps channel records verbatim but does not enforce these links; a check for orphan channels is FT-229, and FT-230 tests the older-build case (decision log ID-334).
+**As built (cycle 13; decision log ID-333, ID-335).** `channel` (rank 37, in the shard of its module device) is typed with `module`, `number`, `designation`, `kind`, `address` (`AddrSpec`: `auto`, the default, `manual`, `excluded`, `tbd`), `state`, `symbol`, `comment`, `binding`, `target` and the import-provenance member `source_ref`. `ChannelKind` has `di`, `do`, `ai`, `ao`, `counter`, `io_link_port` and `power_supply`; `multi_function` (§3.8) is additive. Not members of the record, and kept in `extra` until their work packages: `data_type`, `aux_pins`, `signal_range` and `safety`. Until then the data type is the part's (`ChannelSpec.data_type` in the part section, §2.6), not a channel member. **Channel IDs** are `v5(module, "channel", number)` (ADR-0004 amendment 2; `ew_ids::v5::plc_channel_id`); the golden importer maps each `channels.csv` row to that ID, not to the `v5(ns, "channels|key")` of the other golden tables, so two branches that add the same module mint the same channel IDs (decision log ID-335). `source_ref.key` still reads `channels|<label>`. Until cycle 16 channels came only from import; since then normaliser N1 of §3.3 creates them from a module's part data with the same IDs (decision log ID-399), and a channel exists when one with the same module and number exists. Link policy: a channel is deleted with its module; deleting the bound function or the target function unlinks the member. An older 0.1 build keeps channel records verbatim but does not enforce these links; a check for orphan channels is FT-229, and FT-230 tests the older-build case (decision log ID-334).
 
 ### 2.5 Addresses and address profiles
 
@@ -537,15 +537,19 @@ configuration project's profile (prefixes "" and "%"):
 3. **Ambiguous or no module.** The text goes to the import review list (FR-IMP-017 uncertain matches); nothing is
    bound.
 
-**As built (cycle 13; decision log ID-333).** The channel-creating normaliser N1 is not built: channels come only from import (the golden importer reads `channels.csv`, §2.4), and a change of a module's part creates or removes none. `Channel.binding` is stored as an `Endpoint` (a CP of the module or of the served coil); the golden project binds channel 2p + 1 to coil 14 of valve position p + 1, as drawn.
+**As built (cycle 13; decision log ID-333; superseded for N1 by the cycle-16 paragraph below).** The channel-creating normaliser N1 was not built: channels came only from import (the golden importer reads `channels.csv`, §2.4), and a change of a module's part created or removed none. `Channel.binding` is stored as an `Endpoint` (a CP of the module or of the served coil); the golden project binds channel 2p + 1 to coil 14 of valve position p + 1, as drawn.
 
 **As built (cycle 16; FT-270).** N1 is built in `ew-commands` (registry row 3 of [06](06-schematic-editor.md) §3.2):
 adding the `plc_module` aspect (`fields.set`), creating a device with it, or changing its parts or `part_use`
 creates the missing channels of the part's channel spec with their v5 IDs and the spec's kind; surplus channels
 stay. `plc.bind_channel` and `plc.config_project.create` are built (§3.9; the latter has no row there: it creates
 the configuration project that `ew new` gives a new project). N2 (the solenoid-position map) and N3 are not built:
-the map is not typed part data yet, so the golden builder binds the 28 coils with explicit `plc.bind_channel`
-commands, which win over the map by definition.
+the map is not typed part data yet (FT-228), so the golden builder binds the 28 coils with explicit `plc.bind_channel`
+commands, which win over the map by definition (FT-275). `plc.bind_channel` refuses a CP outside the channel's module
+and its descendants and unbinds another channel on the same CP (FR-PLC-005). N1 keys existing channels on (module,
+number), keeps their authored members, applies no kind change (FT-276) and removes no surplus channel until
+FR-PLC-053's confirmation exists (FT-277). The channel members are not yet settable by `fields.set` (FT-226).
+Decision log ID-395, ID-399.
 
 ### 3.4 Symbols, designations and function texts
 

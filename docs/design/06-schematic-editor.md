@@ -335,8 +335,17 @@ refused); `library.embed` (library documents of kind part, symbol, fndef or form
 must be the copy identity `v5(NS_LIBCOPY, library_id ‖ item_id)`, the `sha256` must be consistent with the item, a
 project-local item or an item already embedded is refused). `fields.set` gains `tag.scheme` and the device aspects
 `assembly`, `plc_station`, `plc_module` (as a whole or member by member; a cover that the edit adds outside the
-assembly device's subtree is refused, one already out of scope is a check, ID-371). Normaliser row 3 (N1) is built (§3.2). The golden builder of AC-15 path (b)
-builds the valve-terminal assembly, the PLC records and the supply origin with them.
+assembly device's subtree is refused, one already out of scope is a check, ID-371). Normaliser row 3 (N1) is built
+(§3.2). The golden builder of AC-15 path (b) builds the valve-terminal assembly, the PLC records and the supply origin
+with them (decision log ID-392 to ID-399, ID-401). Two parameters of `valve.add` are interim (ID-394): `fndef` and
+`letter` stand in for normaliser N-FL-1 (row 1), which is to create the valve and coil functions from the part's
+`solenoids`; when it lands, `fndef` is ignored for a part that declares solenoids and is removed at the command's
+next schema version, and `letter` stays as an override. Not built: `assembly.detach` and the push insert (FT-273), the
+library-reference form of `library.embed` (FT-274), the electrical supply members (FT-280).
+
+The table lists every registered command and the planned ones (`Cost` is the registered cost; `Bulk` commands run as
+preview jobs). The parameter schemas in `crates/ew-commands/schemas/` and the generated pages of the user guide's
+command reference are the exact form (decision log ID-403).
 
 | Command (`NAME`) | Parameters (abridged) | Cost | Notes |
 |---|---|---|---|
@@ -359,6 +368,23 @@ builds the valve-terminal assembly, the PLC records and the supply origin with t
 | `macro.insert` (`InsertMacro`) | macro, at, value set | Bulk | [07](07-symbols-parts-macros.md), FR-MAC-005 |
 | `numbering.renumber` (`RenumberDevices`) | scope, scheme, options | Bulk | FR-NUM-008, FR-NUM-009 |
 | `terminal.designate` | assignments (terminal, designation), at least one | Interactive | one transaction, swaps without temporary names; uniqueness by the prevent rule EW-TERM-002 (FR-TRM-022, [08](08-connections-terminals-cables.md) §6.8) |
+| `connection.delete` | connections | Interactive | through the delete policies; junction clean-up by row 8 |
+| `structure.create_node` | aspect, code, parent?, aliases, description | Interactive | no product-aspect node; same aspect as the parent (EW-INV-011); sibling codes unique (FR-PRJ-017) |
+| `section.create` | number, folio range, title, divider | Interactive | ranges do not overlap (FR-PAG-008) |
+| `report_block.create` | source, form, first folio, section, embedded, sort, group, manual, continuation, empty | Interactive | a page-oriented block needs `first_folio` (EW-INV-014); [09](09-reports-forms-output.md) §2.2 |
+| `device.create` | letter, counter?, kind, parts, main FnDef?, function text, structure, strip | Interactive | a device without a representation (FR-DEV-001); unnumbered until its main function is placed unless a counter is given |
+| `terminal.add` | strip, FnDef, terminals (seq, designation, levels, rail bonding) | Interactive | terminals are devices with the terminal aspect ([08](08-connections-terminals-cables.md) §6) |
+| `cable.create`, `conductor.add` | tag, parts, cable aspect, conductors (core, colour, csa, shield, pair) | Interactive | cores unique per cable ([08](08-connections-terminals-cables.md) §7) |
+| `project.settings.set` | member, value | Bulk | one settable member per command, previewed (ADR-0008 amendment 3; [17](17-extensibility.md) §2.1) |
+| `bond.create` (`CreateBond`) | a, b (CP or junction), kind, via? | Interactive | label derived; the PELV and type rules are checks (FR-CON-014; decision log ID-386) |
+| `external_ref.create` (`CreateExternalRef`) | location node, device, connection?, project? | Interactive | a location-aspect node (FR-XRF-011; ID-386) |
+| `assembly.attach` (`AttachChildren`) | parent, children (device, position?) | Interactive | sets `parent` and `position` of existing devices; no push insert, no detach (FT-273); a child-scheme counter that equalled the old position follows the new one (N-FL-2's rule); decision log ID-393 |
+| `valve.add` (`AddValve`) | module, position?, part, letter? (default Q), fndef? (interim), structure? | Interactive | [11](11-fluid-power.md) §4.3; child tag with counter = position; `fndef` and `letter` are interim until N-FL-1 (ID-394) |
+| `device.link` (`LinkDevices`) | from, to, kind | Interactive | [11](11-fluid-power.md) §4.3; no self-link, no duplicate of the same kind (ID-395) |
+| `plc.config_project.create` (`CreatePlcConfigProject`) | name, profile (`id@version`), cpu? | Interactive | [10](10-plc-and-bus.md) §2.2; names unique; the command form of what `ew new` creates (ID-395) |
+| `plc.bind_channel` (`BindChannel`) | channel, endpoint (CP or `null`) | Interactive | [10](10-plc-and-bus.md) §3.9; a CP of the module or its descendants; the CP's other channel is unbound (FR-PLC-005; ID-395) |
+| `project.supply.set` (`SetProjectSupply`) | path, value | Interactive | v0: `origin.source` only; the electrical members wait for an ADR-0008 amendment (FT-280; ID-396) |
+| `library.embed` (`EmbedLibraryCopies`) | copies (library documents in `lib/` JSON form) | Interactive | part, symbol, FnDef, form; copy identity and `sha256` checked; no project-local or already embedded item; the caller owns the closure (FT-274; ID-397) |
 
 ### 3.2 Normalisers that run behind the editor
 
@@ -373,7 +399,7 @@ for example, works through a worklist, so a dissolve that leaves another junctio
 the same run.
 
 **v0** (WP-S1.04; decision log ID-44). `ew-commands` runs rows 2, 4, 7, 8 and 12 in this order (`ORDER`, asserted by
-a test). Row 2 records nothing, because CPs are derived and no override exists yet. Row 4 numbers within the scope
+a test); since cycle 16 row 3 runs between rows 2 and 4 (six rows; decision log ID-399). Row 2 records nothing, because CPs are derived and no override exists yet. Row 4 numbers within the scope
 (page of the main representation, letter) and skips devices with a terminal aspect, a frozen tag or a scheme other
 than the page-based default (ID-48). Row 7 splits by an exact integer point-on-route test; W′ keeps its ID and
 number and W″ is new and `Unassigned`. Row 8 keeps, when a junction dissolves, the member that carries an assigned
@@ -383,8 +409,11 @@ rather than losing one (ID-60). Row 12 leaves every new connection `Unassigned` 
 unwired until WP-S1.15, so M1 accepts, for example, duplicate terminal designations; this is a documented known gap
 (ID-58). *Cycle 16:* row 3 (N1, `channel_instantiation`) runs between rows 2 and 4: a device of the transaction
 that is new with a `plc_module` aspect, gained one, or changed its parts or `part_use` gets the channels 0 … n−1 of
-its part's channel spec with v5 IDs; existing channels are kept and surplus ones are not removed (FR-PLC-053's
-confirmation is not built).
+its part's channel spec with v5 IDs; a channel exists when one with the same (module, number) exists, existing channels
+are kept with their authored members, a kind change is not applied (FT-276), and surplus channels are not removed
+(FR-PLC-053's confirmation is not built, FT-277). Row 5 (N-FL-2) is not a normaliser yet: its counter rule is applied
+inside `valve.add` and `assembly.attach`, and its push insert is FT-273. Rows 1, 13 and 14 (N-FL-1, N2, N3) are not
+built (FT-275).
 
 **Explicit counter edits** (FR-NUM-029; decision log ID-53). Row 4 renumbers only collisions that the edit itself
 creates by placing a new device, moving a main representation or changing a page. A `fields.set` that sets a tag's

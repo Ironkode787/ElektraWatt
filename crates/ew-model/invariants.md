@@ -110,6 +110,8 @@ Fields are written as `kind.path`. "referrers" means the generic referrer index.
 |-------|--------|--------|-------|
 | project.source_ref.lineage | import_lineage | forbid | referrers |
 | project.supply.origin.source | external_ref | unlink (cleared) | referrers |
+| plc_config_project.cpu | device | unlink (cleared) | referrers |
+| plc_config_project.source_ref.lineage | import_lineage | forbid | referrers |
 | structure_node.parent | structure_node | forbid | structure_children |
 | structure_node.source_ref.lineage | import_lineage | forbid | referrers |
 | section.source_ref.lineage | import_lineage | forbid | referrers |
@@ -126,6 +128,7 @@ Fields are written as `kind.path`. "referrers" means the generic referrer index.
 | device.assembly.configs[].covers[] | device | unlink (entry removed) | referrers |
 | device.structure.* (seven slots) | structure_node | forbid | referrers |
 | device.terminal.strip | device | forbid | terminals_by_strip |
+| device.plc_station.config_project | plc_config_project | forbid | referrers |
 | device.source_ref.lineage | import_lineage | forbid | referrers |
 | function.device | device | cascade | functions_by_device |
 | function.def | fndef | forbid | referrers |
@@ -148,12 +151,19 @@ Fields are written as `kind.path`. "referrers" means the generic referrer index.
 | junction.source_ref.lineage | import_lineage | forbid | referrers |
 | conductor.cable | device | cascade | conductors_by_cable |
 | conductor.source_ref.lineage | import_lineage | forbid | referrers |
+| channel.module | device | cascade | referrers |
+| channel.binding (CP) | function | unlink (cleared) | referrers |
+| channel.binding (junction) | junction | unlink (cleared) | referrers |
+| channel.target | function | unlink (cleared) | referrers |
+| channel.source_ref.lineage | import_lineage | forbid | referrers |
 | potential_def.at (CP or junction) | function / junction | unlink (definition dropped) | potential_defs_by_endpoint |
 | potential_def.props.wire_part.copy | part | forbid | referrers |
 | potential_def.source_ref.lineage | import_lineage | forbid | referrers |
 | bond.a / bond.b (CP or junction) | function / junction | unlink (bond dropped) | bonds_by_endpoint |
 | bond.via | connection | unlink (cleared) | referrers |
 | bond.source_ref.lineage | import_lineage | forbid | referrers |
+| device_link.from / device_link.to | device | cascade | referrers |
+| device_link.source_ref.lineage | import_lineage | forbid | referrers |
 | report_block.form | form | forbid | referrers |
 | report_block.section | section | forbid | referrers |
 | report_block.embedded.page | page | cascade | referrers |
@@ -189,12 +199,12 @@ These structural invariants are known but not evaluated yet.
 | Invariant | Source | Why not yet |
 |-----------|--------|-------------|
 | A placement references a device | ADR-0009 decision 2 | The layout kinds are reserved until WP-S4.01 |
-| A channel belongs to exactly one module | ADR-0009 decision 2 | The channel kind is reserved until the PLC work packages |
+| A channel's module carries the `plc_module` aspect | ADR-0009 decision 2; doc 10 §2.4 | The `channel.module` link (cascade) makes every channel belong to exactly one existing device (EW-INV-001); that the device is a module is the orphan-channel check FT-229, not a structural invariant |
 | A released revision has a checker who is not its author (D-34) | ADR-0009 decision 2 | The revision kind is reserved |
 | CI-02 connection kinds join CPs of the right discipline | doc 08 §3.1 | CP disciplines come from instantiated CPs, which are derived data (WP-S1.05 to WP-S1.08) |
 | CI-03 a bridge joins terminal CPs of one strip | doc 08 §3.1 | Needs the CP-to-terminal resolution of the derivation layer |
 | CI-04, second sentence: a junction has at least three connections | doc 08 §3.1 | Restored by the junction clean-up normaliser in the same transaction (WP-S1.04). A delete plan cannot dissolve junctions |
 | CI-07 overview connections take part in no net | doc 08 §3.1 | A property of the net derivation, not of stored data |
 | Function CP overrides name existing CP indices | doc 03, Function | CPs are instantiated from the FnDef or the part pin pattern (derived) |
-| Assembly `covers` lists only descendants; device links have existing, distinct endpoints | doc 03, Assembly and DeviceLink | The assembly aspect and the device_link kind are not in v0 |
+| Device-link endpoints are distinct | doc 03, DeviceLink | The command `device.link` refuses a self-link; the model does not. Existence is EW-INV-001 (the `from` and `to` links). Assembly `covers` outside the assembly's subtree are a check, not an invariant (decision log ID-371, FT-260) |
 | A form cell binds exactly one role; placeholders valid for the form kind | doc 03, Party and FormDef | Evaluated by the forms engine |

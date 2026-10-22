@@ -370,6 +370,18 @@ deterministic, with ties broken by ID.
 | `device.link{from, to, Drives}` | Manual driven-device link | 1 step |
 | `fluid.length.set{lines, length: Nm}`; `RouteTubes` (1.x) | Manual length; committed routing | 1 step |
 
+**As built (cycle 16; decision log ID-392 to ID-395).** `valve.add` and `device.link` are registered commands
+([06](06-schematic-editor.md) §3.1). `valve.add{module, position?, part, letter?, fndef?, structure?}` creates the
+valve child with the child tag scheme and its counter equal to its position (the lowest free position by default; a
+held one is refused, no push insert). Because N-FL-1 is not built, the interim parameter `fndef` names the FnDef copy
+of the valve's main function and `letter` its letter code (default Q); the coil functions are not created, and when
+N-FL-1 lands `fndef` is ignored for a part that declares solenoids and removed at the command's next schema version
+(ID-394). N-FL-2 is not a normaliser yet: its counter rule is applied inside `valve.add` and `assembly.attach` (a child
+tag of the child scheme, not frozen, whose counter equalled its old position follows the new one), and its push
+insert, with `assembly.detach`, is FT-273. `device.link{from, to, kind}` refuses a self-link and a duplicate of the same
+kind; N-FL-4 is not built. `valve.set_occupancy` and the other commands of the table are not built; the coil-to-channel
+binding is the explicit `plc.bind_channel` of [10](10-plc-and-bus.md) §3.9 until N2 (FT-275).
+
 ---
 
 ## 5. Algorithms

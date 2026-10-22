@@ -725,7 +725,8 @@ bootstrap above, and `build(batch, sink)` is path (b), which constructs the same
 only**. It starts from the `shell(batch)`: the project row (without its import provenance, the supply's
 external-reference origin and the four settings members that `project.settings.set` edits) and the embedded library
 copies, because no command creates a project row (`ew new`); `library.embed` exists (cycle 16, FT-167) but the
-shell keeps the copies, which include the project-local parts that are created in the project, not embedded. Then
+shell keeps the copies, which include the project-local parts that are created in the project, not embedded
+(embedding the non-local copies through `library.embed` is FT-278). Then
 it issues, in dependency order, one command per record, with the bootstrap batch as its typed description (the same
 source of truth as path (a)): `project.settings.set`, `structure.create_node`, `section.create`,
 `external_ref.create`, `project.supply.set` (the supply's origin), `page.create`, `device.create`, `terminal.add`,
@@ -847,7 +848,7 @@ of §20.2 that need a command that does not exist:
 
 | §20.2 step | Edit it would make | Missing |
 |---|---|---|
-| 1, MF-16 | bond `pelv_0v_pe` between -102G1:−#1 and -X1032:2 via W27 | a bond command (FT-164) |
+| 1, MF-16 | bond `pelv_0v_pe` between -102G1:−#1 and -X1032:2 via W27 | the script line (`bond.create` exists since cycle 15, FT-164 closed; the line is FT-286) |
 | 1, MF-04 | revisions V1.0 and V2.0, per-page values dropped | a revision-create command (FT-165) |
 | 1, MF-02 | structure nodes =P01 and +J-E-2416 assigned to every device and page | a reference to a node created earlier in the log (`structure.create_node` exists; the `structure:<code>` reference, FT-171) |
 | 1, MF-11 | core colour BR → BN on -106W1, -106W2 | cables with conductors in the import (FT-135) |
@@ -856,9 +857,9 @@ of §20.2 that need a command that does not exist:
 | 1, MF-13 | anchor policy "graphics" for the bus-port symbol of -201U1 on folio 3, so the master prints "∞ 3-B2, 106-G3" | the anchor is a member of the imported symbol copy (`SymbolDef.anchor`); `project.settings.set` has no anchor member and no command edits a symbol copy (the anchor-policy command, FT-172) |
 | 2, MF-06 | the title-block "Customer" cell bound to the party role of ▲U-01 | title-block forms from the QET template (FT-139) and a party-binding command |
 | 3 | starter symbols instead of the QET-import symbols | `rep.exchange_symbol` (catalogued, not built; FT-127) |
-| 4 | sections 1, 2, 9 with dividers; folios 100, 200, 900 removed; report blocks 2, 901, 903 … 911 | moving a page into a section (`page.move`, not built); the frame form without grid is not in the imported library and no command embeds a library copy (moving a page into a section FT-166; embedding a library copy FT-167) |
+| 4 | sections 1, 2, 9 with dividers; folios 100, 200, 900 removed; report blocks 2, 901, 903 … 911 | moving a page into a section (`page.move`, not built); the frame form without grid is not in the imported library (moving a page into a section FT-166; `library.embed` exists since cycle 16, FT-167 in part, and its script line is FT-286) |
 | 5 | starter parts on every device with part data | part records in the project and a part-assignment path (FT-168) |
-| 6 | the valve-terminal assembly with its 28 child valves bound to channels | an assembly command (valve-terminal assembly, FT-169) |
+| 6 | the valve-terminal assembly with its 28 child valves bound to channels | the script lines (`assembly.attach`, `valve.add`, `plc.bind_channel` and `device.link` exist since cycle 16, FT-169 closed; the lines are FT-286) |
 | 7 | layout items bound, rails and carriers | layout-page items in the import (FT-134) |
 | 8 | text styles (`tag.main` …) | a text-style command (FT-170) |
 
@@ -883,7 +884,7 @@ common-key counts, so a shrinking key set fails). The differences, by class:
   FT-139); 2 and 901 stay drawn pages (FT-133).
 - *Fix-script gaps (missing commands, table above):* "∞ 3-B0, 106-G3" against "∞ 3-B2, 106-G3" (MF-13, step 1:
   doc 20 §20.3 requires C fixed ≡ A, so the anchor quick fix belongs to the script; the anchor-policy command is FT-172); the 28 child valves and
-  their cross-references (step 6, FT-169); the dividers and report pages 2.1, 903 … 911 with their rows (step 4,
+  their cross-references (step 6: the commands exist since cycle 16, the script lines are FT-286); the dividers and report pages 2.1, 903 … 911 with their rows (step 4,
   FT-166, FT-167).
 
 ## Acceptance runner
@@ -954,8 +955,10 @@ committed as golden files (doc 18 asks for none); its SHA-256 is in the AC-14 re
 change of any SVG byte shows there. The comparison runs on the platform of the run; the gate platform is Linux and
 the cross-platform digests are MVP.
 
-The headless report of this revision: 93 entries, 86 pass, 0 fail, 2 not_built (AC-15's builder DSL, D-06's
-property grid), 5 not_applicable, 0 oracle mismatches (the full run adds the raster comparison as a pass). Cycle 15 (FT-59) runs the page output through the
+The headless report of this revision: 93 entries, 87 pass, 0 fail, 1 not_built (D-06's property grid, a UI entry
+of M-PP), 5 not_applicable, 0 oracle mismatches (the full run adds the raster comparison as a pass). Cycle 16
+closed AC-15 path (b): 606 commands build the project, both BOM exports included, and only the 2 revisions stay
+unwritten (FT-165). Cycle 15 (FT-59) runs the page output through the
 export job: the text CSVs, the PDF, the SVG set, AC-16's page texts and AC-17's PDF time come from
 `ew_api::output`; the new AC-15 entry exports the checked-in fixture as `ew export pdf` does and finds the digest of
 `expected/pdf/sha256.txt`; AC-16 sweeps 65 memoised families (the 14 of the page output and `assembly_break_marks` included). Cycle 15 lane B

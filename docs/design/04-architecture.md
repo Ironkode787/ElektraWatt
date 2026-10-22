@@ -262,6 +262,10 @@ sessions (G6).
 | `ew-py` (v1.x) | GPL | Python wheel of the headless core | pyo3 0.30.1 |
 
 `xtask` and `fuzz/` are development-only and outside the product crate table; they never ship in release artefacts.
+`xtask` is permissive and links no GPL crate: `cargo xtask docs-gen` (cycle 16, decision log ID-403) reads the committed
+parameter schemas of `ew-commands` and the rule-catalogue snapshot `crates/ew-checks/catalogue/rules.json` as files,
+and an `ew-checks` test keeps the snapshot equal to the registry. The user guide's other tool, mdBook, is a pinned
+binary of the `docs-book` CI job, not a crate ([18](18-quality-security-release.md) §5.5).
 
 Arrows point from a crate to its dependencies; dotted arrows are dev-dependency edges (`[allowed_dev_edges]` of `ci/dep-rules.toml`), and the dev-only self edge of `ew-commands` is not drawn:
 

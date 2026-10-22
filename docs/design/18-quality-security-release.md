@@ -154,6 +154,15 @@ copying one file.
 | Re-importing the same source yields identical IDs and an empty diff (FR-IMP-002) | QET corpus |
 | A hit-test result lies in the item's bounding box; a routed length ≥ the Euclidean distance (1.0) | S, layout fixture |
 
+*As built (cycle 16; decision log ID-405).* The model-level property tests of `ew-model` (`src/tests/props.rs`) generate
+batches of steps over a fixture with named rows. **A step whose fixture row is gone is a no-op**: a generated step that
+names a fixture row (an FnDef copy, a page, a location node) which an earlier delete plan of the sequence removed is
+skipped, not issued, because the model rightly refuses it and the generator's "rejected unexpectedly" assertion would
+report a test defect as a model defect (the cycle-15 gate finding: `AddAuxFunction` after the FnDef copy had been
+removed). Proptest regression seeds are committed (`proptest-regressions/`) with the crate's SPDX header, which the
+licence-map check requires of every committed file, and every shrunk counterexample also becomes a named,
+deterministic replay test.
+
 ### 3.4 Oracle differential: memoised versus cold
 
 The oracle catches the architecture's top risk: a stale memo silently recreating the D-01 class (ARCH §16, risk 1).
@@ -238,6 +247,10 @@ every step is undone and the model must equal the initial one. A failure prints 
 log. `fuzz_smoke` (2 seeds × 30 steps, sampled oracle, integrity and undo-all) runs in the targeted tests;
 `fuzz_long` is `#[ignore]`d (`EW_FUZZ_SEEDS`, `EW_FUZZ_STEPS`). A first run of 20 seeds × 200 steps (2,324 commits,
 426 undo/redo) found no defect. Not yet: save/reload round trips, macro insertion and imports in the step set.
+The fuzzer picks its targets by index into the live records, so the no-op rule of §3.3 holds by construction. Since
+cycle 16 it covers 11 of the 36 registered commands; the others (`device.place`, `ip.place`, `page.create`,
+`device.create`, `terminal.add`, `cable.create`, the cycle-15 and cycle-16 commands and the new `fields.set` paths) are
+FT-279.
 
 ### 3.7 Snapshots
 
@@ -323,6 +336,18 @@ against the importer's own output (decision log ID-320).
 
 *As built (cycle 15, lane C; WP-S6.01).* Step 1's path (b) exists: `ew_testkit::golden` holds both golden builders, `bootstrap` (path (a)) and `build` (path (b)), which issues one command per record of the bootstrap batch (its typed description) from the project shell (the project row and the embedded library copies, which no command creates yet) through a `CommandSink`, a function from a command name and its JSON parameters (the command-log form of doc 17 §3.5) to the created keys. `ew-testkit` keeps `ew-api` and `ew-commands` as dev-only edges; the runner in `ew-api`'s tests implements the sink over its `Session` (`ew-api` → `ew-testkit` is a dev edge). What no command writes is listed, never injected. The AC-15 path (b) entry compares the six acceptance SQL files and `bom_parts.csv` over the built project by content (`bom_assembly.csv` excluded until FT-169), with the page-type rule amended by the owner ruling on decision log ID-55 (graphic representations on MultiLine and BusTopology pages, multi-line ones on Fluid pages); the six SQL results match, the parts list does not until the valve-terminal assembly can be built (FT-169), so the entry fails and the counts are 93 entries: 86 pass, 1 fail, 1 not_built (D-06), 5 not_applicable. A representation the command layer refuses fails the entry. Owner ruling (cycle 15): no `ew-testkit accept --gate` binary and no normal edge from `ew-testkit` to `ew-api`; WP-S6.01's runner deliverable is `cargo xtask acceptance`.
 
+*As built (cycle 16; decision log ID-392 to ID-401).* **AC-15 path (b) passes.** With the seven commands of the
+device tree, the PLC records, the supply origin and library copies, the builder issues 606 commands of 23 names from the
+project shell (the project row and the library copies): the valve-terminal assembly (`assembly.attach`, `valve.add`,
+the `assembly` aspect), the PLC configuration project, the `plc_station` and `plc_module` aspects (normaliser N1
+creates the 56 channels), the 28 coil bindings, the 8 device links and the supply origin. The entry compares the six
+acceptance SQL files and both BOM exports (`bom_parts.csv` and `bom_assembly.csv`; the cycle-15 exclusion is removed);
+a test of `ew-testkit` compares path (b) with path (a) record for record, both ways, up to the minted IDs (`source_ref`,
+the import lineage and the project lineage aside; `extra` compared). `Built::unwritten` holds only the 2 revisions, a
+reserved kind no command can create (FT-165, a D5 package of its own, ID-400). Counts at the cycle-16 tip:
+**93 entries: 87 pass, 0 fail, 1 not_built (D-06 property grid, a UI entry of M-PP), 5 not_applicable; 0 oracle
+mismatches**: the headless M1 acceptance list is complete apart from the UI entry.
+
 **PDF/A-2b** (decision log ID-287): AC-13's conformance passes through krilla's PDF/A-2b validator
 (`Conformance::PdfA2b`) in every run; the veraPDF cross-check of §3.9 is `not_applicable` in the headless run
 (external tool) and runs in the CI job that has veraPDF.
@@ -380,7 +405,9 @@ These harnesses are designed in 05 and run here:
 PR CI never retries a test. Only named infrastructure steps are retried: downloads in the fetch stage and runner
 provisioning. A test that fails nondeterministically is quarantined within one working day with an issue and an
 owner. Quarantined tests keep running nightly. More than 10 quarantined tests block the next release
-(NFR-MAINT-13).
+(NFR-MAINT-13). A randomised test (proptest, the command fuzzer) that fails on one platform and not on another is not
+flaky: its committed regression seed (§3.3) replays the counterexample first on every run and platform, and the cause is
+fixed or triaged before the gate re-runs (decision log ID-405; the cycle-15 gate's counterexample was a generator gap).
 
 **CI time budget** (2026-10-22; decision log ID-381). The per-PR budget stays 30 min wall time (NFR-MAINT-05). Measured by the GitHub jobs API at d3ecf70: the Linux test job 23 min 18 s, macOS 26 min 04 s, and the Windows job past 30 min, when its all-features nextest run hit the old 30-minute job timeout; at 95149ab, with the new guard, Windows 21 min 14 s, Linux 21 min 13 s and macOS 22 min 37 s; GitHub reports a job stopped by its timeout as "cancelled", so a cancelled test job is read as a timeout, not as a user cancel. The three test jobs have `timeout-minutes: 50` as a guard, not as the budget. The headless acceptance tests run in both nextest runs of a job (default and all features); they run once per job (FT-268), and WP-S6.03 adds the CI-time trend to its gate (FT-269).
 
@@ -602,6 +629,7 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 | CI-PR-08 fuzz-smoke | 60 s per changed parser target; 60 s command fuzzer | Linux | Merge |
 | CI-PR-09 supply-chain | cargo-deny; cargo-audit; cargo-vet; build-script allowlist; licence-boundary check over every permissive crate of ARCH §3 (§10); dependency-rule check; `unsafe` allowlist; feature bans over the resolved graph (rhai `unchecked` anywhere, 17 §5.2; serde_json `preserve_order` anywhere, because the canonical writer needs sorted maps, 05 §3.1; egui `inspection`, `egui_mcp`, `ew-ids/testkit` and `ew/test-confirm` in any non-test target); MSRV build of permissive crates (NFR-SEC-10, NFR-MAINT-03) | Linux | Merge |
 | CI-PR-10 legal-docs | `reuse lint` (NFR-LIC-01, NFR-LIC-02; 19 LR-01); licence-map check against `ci/licence-map.toml` (19 LR-02), including the collective copyright notice (NFR-LIC-10); no committed third-party fixture (19 LR-11); DCO (NFR-LIC-03); merge block for non-maintainer PRs while the exception texts are missing (NFR-LIC-12, 19 LG-2); governance-file presence (NFR-DOC-08); RFC reference on PRs labelled `format-major`, `api-break` or `licence` (NFR-DOC-09); anonymisation guard (NFR-PRIV-09; 20 §3.5, 19 LR-12); mdBook and rustdoc build with link check (NFR-MAINT-08); F1 anchors (NFR-DOC-01); rule pages (NFR-DOC-02); generated references unchanged (NFR-DOC-06) | Linux | Merge |
+| CI-PR-10 docs-book | The user guide (§5.5): `cargo xtask docs-gen --check`; mdBook 0.5.4 from its release archive, pinned by version and SHA-256; `mdbook build docs/book` without network (`unshare --net`); `ci/check-book-links.py` over the built pages; the built book as an artifact (NFR-DOC-01, NFR-DOC-06) | Linux | Merge, once in the required checks (FT-284) |
 | CI-PR-11 storage | Samba share save/reopen and a case-sensitive APFS image (NFR-PLAT-05); ENOSPC/EACCES injection; read-only installation directory (NFR-PLAT-07); longest internal path ≤ 120; project path `Projecten Ü ñ 测试` (NFR-I18N-04) | Linux, Windows | Merge |
 | CI-PR-12 step-worker | Path-filtered: worker build with cached OCCT; IPC fuzz smoke; worker-kill test | Linux | Merge |
 | CI-PR-13 coverage | cargo-llvm-cov 0.9.1 on core crates, ≥ 80 % (NFR-MAINT-06) | Linux | Merge (core crates) |
@@ -660,6 +688,38 @@ NFR-SEC-19:
   advisory, and never by bot auto-merge, because every bump needs a cargo-vet audit.
 - **Scorecard.** The OpenSSF Scorecard runs weekly and its result is published; the OpenSSF Best Practices badge is
   targeted at 1.0 (19 §6).
+
+### 5.5 Documentation toolchain (as built, cycle 16)
+
+*Decision log ID-402 to ID-404; WP-S0.06 delivered in part.* The user guide is an mdBook in `docs/book` in the
+Diátaxis structure (tutorials, how-to guides, reference, explanation; a landing page per section). Design documents,
+ADRs and the plan stay in `docs/` and are linked by their GitHub address, not copied. The first tutorial runs the
+headless workflow on the golden project (`ew check`, `ew export pdf|svg|cables|bom`, `ew sql`) with command lines that
+were executed when it was written.
+
+- **Generated reference.** `cargo xtask docs-gen` writes one page per command from the committed parameter schemas of
+  `ew-commands` and one page per rule pack from the committed snapshot `crates/ew-checks/catalogue/rules.json`, and
+  regenerates their `SUMMARY.md` entries. The permissive `xtask` links no GPL crate; an `ew-checks` test keeps the
+  snapshot equal to the registry (`EW_CHECKS_BLESS=1`). Generated pages are never edited by hand; they are
+  `GPL-3.0-or-later`, the licence of the crates whose doc comments they carry ([19](19-open-source-governance.md) §2.1, L9). `docs-gen --check`
+  runs in `cargo xtask ci` (`docs-gen-check`) and in the `docs-book` job.
+- **Offline rule.** The book uses no preprocessor or plugin and builds without network access; CI enforces it by
+  building in an empty network namespace (`sudo unshare --net`, with mdBook running as the runner user, after a probe
+  that fails fast when `unshare` or passwordless sudo is missing; confirmed on the hosted runner by FT-283). The
+  playground's run button is off. The built book goes to `target/book` (CI: the runner's temporary directory), never
+  into the repository.
+- **Link check.** `ci/check-book-links.py` (Python standard library) checks relative links, anchors and the links into
+  the repository against the checked-out tree; mdbook-linkcheck is not used (a second pinned binary that fetches
+  external links).
+- **Pinning.** mdBook 0.5.4 is installed from its release archive, pinned by version and SHA-256 in `docs.yml`.
+
+| Requirement | Status at the cycle-16 tip |
+|---|---|
+| NFR-DOC-01 | In part: mdBook in the Diátaxis structure, built and link-checked per PR, offline. Not yet: versioning per release, the bundle in the application and the F1 anchors (WP-S7.05, with the UI) |
+| NFR-DOC-02 | In part: a reference page per shipped rule pack with each rule's metadata; the what, why, example, quick-fix and waiver text come with the rule messages (FT-181, WP-S7.05) |
+| NFR-DOC-03 | Not met: one headless tutorial exists; the four MVP tutorials and their scripted CI runs are WP-S7.05 |
+| NFR-DOC-06 | In part: the command catalogue with its parameter schemas and the rule catalogue are generated and checked for staleness; the CLI reference, the format specification, the `api_v1` view reference, the WIT docs and the keymap sheets are not generated yet (WP-S1.22, WP-S7.05) |
+| NFR-I18N-07 | Not met: the book declares its source language only; mdbook-i18n-helpers (FT-282) and Weblate (FT-281) are open |
 
 ---
 

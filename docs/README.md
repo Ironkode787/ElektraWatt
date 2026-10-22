@@ -80,7 +80,15 @@ set. The project has no code yet; the documents are the product of the design ph
 
 The [ADR index](adr/README.md) lists all 30 records with status and the one-line decision.
 
-### 2.4 research/
+### 2.4 book/ (the user guide)
+
+| Document | Purpose |
+|---|---|
+| [Book README](book/README.md) | The user guide as an mdBook in the Diátaxis structure (tutorials, how-to, reference, explanation): layout, offline build, generated pages, writing rules |
+| [Introduction](book/src/introduction.md) | The guide's entry page; the tutorial [a first headless run on the golden project](book/src/tutorials/headless-workflow.md) |
+| [Reference](book/src/reference/index.md) | The command and rule reference, **generated** by `cargo xtask docs-gen` from the command schemas and the rule-catalogue snapshot; never edited by hand |
+
+### 2.5 research/
 
 | Document | Purpose |
 |---|---|
@@ -116,6 +124,9 @@ The full list is in [glossary §3](design/glossary.md#3-identifier-schemes). The
 - **Decisions** go into ADRs ([how to add one](adr/README.md#how-to-add-an-adr)); open questions stay in the "Open
   questions" sections and in [decision log](plan/06-decision-log.md) Part B. After the first binary release, larger
   changes go through RFCs ([governance](design/19-open-source-governance.md) §3.4).
+- **Generated book pages** (`book/src/reference/commands/`, `book/src/reference/rules/` and their `SUMMARY.md`
+  entries) are written by `cargo xtask docs-gen` and checked with `--check` in `cargo xtask ci` and the `docs-book`
+  job ([18](design/18-quality-security-release.md) §5.5).
 - **Generated plan files** are written by scripts and checked in CI with `--check`; never edit text between
   `<!-- generated:NAME -->` markers by hand. See [plan/README](plan/README.md).
 - **Mechanical checks:** `python3 -I docs/plan/tools/doccheck.py` verifies links and anchors, table columns, WP IDs and gate IDs.

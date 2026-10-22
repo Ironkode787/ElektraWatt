@@ -264,7 +264,10 @@ ARCH §5.2), so no front-end can bypass it; `ew-api` only sets the origin.
 *v0* (WP-S1.04; decision log ID-42, ID-45). The engine checks the exposure first, before `run`. Its `Origin` carries
 the variants above with their identifying name only (file, script, client, plugin ID); the `sha256`, `session` and
 `version` members join when the front-ends that know them land (WP-S1.22, WP-S1.23). All 25 v0 commands (with `project.settings.set`, cycle 11, and `terminal.designate`, cycle 12) are
-`Edit` and `Preview`. `Origin::Cli` carries a `confirmed` flag, and a `HumanOnly` command is admitted only from `Origin::Gui`
+`Edit` and `Preview`. So are all 36 commands registered at the cycle-16 tip (decision log ID-386, ID-392), among them
+`library.embed`, which writes library copies into the project only and is therefore not the `HumanOnly`
+`library.write`, and `project.supply.set`; none of them is an `ew` subcommand (the subcommand list of §3.1 is
+unchanged in cycle 16): the CLI runs them through `ew apply` (§3.5). `Origin::Cli` carries a `confirmed` flag, and a `HumanOnly` command is admitted only from `Origin::Gui`
 or from a CLI origin with `confirmed` set (FR-EXT-030; decision log ID-57); the dedicated subcommands that set it
 after the typed confirmation above arrive with the CLI work package (WP-S1.22). Before the first `HumanOnly` command
 ships, `undo` must refuse a `HumanOnly` step from a script, MCP, plugin or Python origin (§4).
