@@ -32,7 +32,7 @@ use eframe::egui;
 use ew_ui::app::{App, Pick, Platform, setup};
 use ew_ui::ew_viewmodel::shell::{Mode, Prompt, Resources, ShellConfig, ShellModel};
 use ew_ui::ew_viewmodel::strings;
-use ew_ui::gpu::{Flags, wgpu_configuration};
+use ew_ui::gpu::{Flags, adapter_count, wgpu_configuration};
 use ew_ui::headless::{self, HeadlessArgs, ScriptSource};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -255,16 +255,20 @@ impl eframe::App for ShellApp {
 /// The exit code 3 of a host without any graphics adapter (WP-S2.02 section 7.2, decision log ID-514).
 const EXIT_NO_ADAPTER: i32 = 3;
 
-/// Whether eframe failed because no graphics adapter exists (none at all, or none the `--no-gpu` selector could
-/// take), as opposed to any other failure of the window.
-fn is_no_adapter(e: &eframe::Error) -> bool {
-    matches!(
-        e,
+/// Whether eframe failed because no graphics adapter exists, as opposed to any other failure of the window. Any
+/// wgpu error counts when `adapters` (a fresh enumeration, called only then) finds none: without any working
+/// backend egui-wgpu fails already at `create_surface` (wgpu-core's "failed to create surface for any backend"),
+/// before it asks for an adapter. An adapter request or the `--no-gpu` selector failing is the missing adapter
+/// itself.
+fn is_no_adapter(e: &eframe::Error, adapters: impl FnOnce() -> usize) -> bool {
+    match e {
         eframe::Error::Wgpu(
             eframe::egui_wgpu::WgpuError::RequestAdapterError(_)
-                | eframe::egui_wgpu::WgpuError::CustomNativeAdapterSelectionError(_)
-        )
-    )
+            | eframe::egui_wgpu::WgpuError::CustomNativeAdapterSelectionError(_),
+        ) => true,
+        eframe::Error::Wgpu(_) => adapters() == 0,
+        _ => false,
+    }
 }
 
 /// The one message of exit code 3 on the operating system `os` (`std::env::consts::OS`).
@@ -283,9 +287,9 @@ fn no_adapter_message(os: &str, detail: &str) -> String {
     m
 }
 
-/// The exit code and the message of a window that could not run.
-fn gui_failure(e: &eframe::Error, os: &str) -> (i32, String) {
-    if is_no_adapter(e) {
+/// The exit code and the message of a window that could not run; `adapters` counts the system's adapters.
+fn gui_failure(e: &eframe::Error, os: &str, adapters: impl FnOnce() -> usize) -> (i32, String) {
+    if is_no_adapter(e, adapters) {
         (EXIT_NO_ADAPTER, no_adapter_message(os, &e.to_string()))
     } else {
         (1, format!("error: the window could not be opened: {e}"))
@@ -323,7 +327,7 @@ fn run_gui(initial: Option<PathBuf>, no_gpu: bool) -> i32 {
     match result {
         Ok(()) => 0,
         Err(e) => {
-            let (code, message) = gui_failure(&e, std::env::consts::OS);
+            let (code, message) = gui_failure(&e, std::env::consts::OS, adapter_count);
             eprintln!("{message}");
             code
         }
@@ -401,7 +405,9 @@ mod tests {
         let selector = eframe::Error::Wgpu(WgpuError::CustomNativeAdapterSelectionError(
             "no graphics adapter was found".into(),
         ));
-        let (code, message) = gui_failure(&selector, "windows");
+        let none = || 0;
+        let one = || 1;
+        let (code, message) = gui_failure(&selector, "windows", one);
         assert_eq!(code, 3);
         assert!(message.contains("elektrawatt --headless"), "{message}");
         assert!(message.contains("`ew`"), "{message}");
@@ -410,19 +416,39 @@ mod tests {
             "Mesa is named on Linux only: {message}"
         );
         assert_eq!(message.lines().count(), 2);
-        let (code, linux) = gui_failure(&selector, "linux");
+        let (code, linux) = gui_failure(&selector, "linux", one);
         assert_eq!(code, 3);
         assert!(
             linux.contains("Mesa") && linux.contains("llvmpipe") && linux.contains("lavapipe"),
             "{linux}"
         );
-        // Any other failure of the window keeps exit code 1.
-        let other = eframe::Error::Wgpu(WgpuError::NoSurfaceFormatsAvailable);
-        assert_eq!(gui_failure(&other, "linux").0, 1);
-        assert!(
-            gui_failure(&other, "linux")
-                .1
-                .starts_with("error: the window could not be opened")
+        // The adapter request itself failing.
+        let request = eframe::Error::Wgpu(WgpuError::RequestAdapterError(
+            eframe::wgpu::RequestAdapterError::NotFound {
+                active_backends: eframe::wgpu::Backends::empty(),
+                requested_backends: eframe::wgpu::Backends::all(),
+                supported_backends: eframe::wgpu::Backends::all(),
+                no_fallback_backends: eframe::wgpu::Backends::empty(),
+                no_adapter_backends: eframe::wgpu::Backends::all(),
+                incompatible_surface_backends: eframe::wgpu::Backends::empty(),
+            },
+        ));
+        assert_eq!(gui_failure(&request, "linux", one).0, 3);
+        // A wgpu error before any adapter was asked for (no backend could make a surface: Linux without the Vulkan
+        // loader and EGL) is the missing adapter when a fresh enumeration finds none, and exit 1 otherwise.
+        let surface = eframe::Error::Wgpu(WgpuError::NoSurfaceFormatsAvailable);
+        assert_eq!(gui_failure(&surface, "linux", none).0, 3);
+        let (code, message) = gui_failure(&surface, "linux", one);
+        assert_eq!(code, 1);
+        assert!(message.starts_with("error: the window could not be opened"));
+        // A failure that is no wgpu error never counts the adapters.
+        let not_wgpu = eframe::Error::AppCreation("app".into());
+        assert_eq!(
+            gui_failure(&not_wgpu, "linux", || unreachable!(
+                "no enumeration for other errors"
+            ))
+            .0,
+            1
         );
     }
 

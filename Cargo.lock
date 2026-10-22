@@ -1488,6 +1488,7 @@ dependencies = [
  "lyon_tessellation",
  "pollster 1.0.1",
  "skrifa 0.44.0",
+ "tracing",
  "wgpu",
 ]
 

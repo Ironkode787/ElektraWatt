@@ -62,6 +62,12 @@ fn open(adapter: wgpu::Adapter) -> Option<HeadlessDevice> {
     })
 }
 
+/// The number of graphics adapters of the compiled backends on a fresh instance: 0 means the window cannot open
+/// on this system (the application's exit code 3, WP-S2.02 section 7.2), whichever step of eframe's setup failed.
+pub fn adapter_count() -> usize {
+    pollster::block_on(instance().enumerate_adapters(wgpu::Backends::all())).len()
+}
+
 impl HeadlessDevice {
     /// A device on the default adapter of the compiled backends (wgpu's `WGPU_BACKEND` and `WGPU_ADAPTER_NAME`
     /// apply), or on the fallback (software) adapter when there is no other: WARP on Windows, lavapipe or

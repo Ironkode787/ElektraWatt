@@ -145,6 +145,8 @@ impl FontResolver for BundledFonts {
 
 /// The scene on show and what it was made from.
 struct SceneState {
+    /// The project session (revisions restart with every session).
+    session: u64,
     rev: u64,
     folio: String,
     scene: Arc<Scene>,
@@ -457,7 +459,7 @@ impl CanvasHost {
         self.scene = None;
         self.previous = None;
         self.ready = false;
-        self.gpu.release_frame();
+        self.gpu.release();
     }
 
     /// A page pane hidden behind another tab of the dock while its project stays open (FT-356): the pool stops, the
@@ -649,6 +651,7 @@ impl CanvasHost {
     fn sync_scene(&mut self, canvas: &CanvasModel) -> Arc<Scene> {
         let page = canvas.page();
         if let Some(s) = &self.scene
+            && s.session == page.session
             && s.rev == page.rev
             && s.folio == page.folio
         {
@@ -661,17 +664,19 @@ impl CanvasHost {
             height: Nm(page.sheet.1),
         };
         let scene = Scene::new(id, Arc::clone(&page.list), sheet, Arc::clone(&self.fonts));
-        // The same folio at a new revision: the old tiles stand in until the new ones arrive. Another folio: none.
+        // The same folio of the same session at a new revision: the old tiles stand in until the new ones arrive.
+        // Another folio, or another project's session: none.
         self.previous = self
             .scene
             .as_ref()
-            .filter(|s| s.folio == page.folio)
+            .filter(|s| s.session == page.session && s.folio == page.folio)
             .map(|s| s.scene.id());
         let keep: Vec<u64> = std::iter::once(id).chain(self.previous).collect();
         self.cache.retain_scenes(&keep);
         self.arrived.retain(|(k, _, _)| keep.contains(&k.scene));
         self.submitted.clear();
         self.scene = Some(SceneState {
+            session: page.session,
             rev: page.rev,
             folio: page.folio.clone(),
             scene: Arc::clone(&scene),

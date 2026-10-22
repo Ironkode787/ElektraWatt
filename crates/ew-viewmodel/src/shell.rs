@@ -269,6 +269,9 @@ struct Opened {
 
 struct Project {
     session: Session,
+    /// The number of this project session in the shell's lifetime (the canvas's session key: revisions restart
+    /// with every session).
+    epoch: u64,
     dir: PathBuf,
     name: String,
     access: AccessMode,
@@ -313,10 +316,12 @@ pub struct ShellModel {
     frame_stats: bool,
     /// Where the canvas draws (set by the host).
     canvas_backend: CanvasBackend,
-    /// The (revision, folio) whose content could not be built, and why.
-    canvas_error: Option<(u64, String, String)>,
+    /// The (session epoch, revision, folio) whose content could not be built, and why.
+    canvas_error: Option<(u64, u64, String, String)>,
     /// How many sheet display lists the shell has built (engine-statistics tests).
     page_content_calls: Cell<u64>,
+    /// The project sessions opened so far (the source of [`Project`]'s epoch).
+    epochs: u64,
 }
 
 /// The directory's own name, never its path.
@@ -466,6 +471,7 @@ impl ShellModel {
             canvas_backend: CanvasBackend::Cpu,
             canvas_error: None,
             page_content_calls: Cell::new(0),
+            epochs: 0,
         };
         model.load_active_workspace();
         model
@@ -1068,8 +1074,10 @@ impl ShellModel {
                 ..Record::default()
             };
         }
+        self.epochs += 1;
         self.project = Some(Project {
             session,
+            epoch: self.epochs,
             dir: dir.to_path_buf(),
             name,
             access,

@@ -107,6 +107,11 @@ count = 1
 
 [[allow]]
 crate = "ew-render2d"
+item = "fn adapter_required"
+count = 1
+
+[[allow]]
+crate = "ew-render2d"
 item = "fn now"
 count = 1
 
@@ -178,6 +183,11 @@ count = 2
 [[allow]]
 crate = "ew-text"
 item = "inner attribute"
+count = 1
+
+[[allow]]
+crate = "ew-ui"
+item = "fn adapter_required"
 count = 1
 
 [[allow]]

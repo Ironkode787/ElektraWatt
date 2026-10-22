@@ -240,14 +240,19 @@ impl GpuCanvas {
         let fault = Arc::new(Mutex::new(None));
         {
             let slot = Arc::clone(&fault);
+            // The handlers are set on the window's shared device and outlive the canvas, so every error is logged as
+            // well as recorded: egui-wgpu's own errors are never swallowed silently.
             device.set_device_lost_callback(move |reason, message| {
+                tracing::error!(target: "ew_render2d::gpu", "graphics device lost ({reason:?}): {message}");
                 let mut slot = slot.lock().unwrap_or_else(PoisonError::into_inner);
                 slot.get_or_insert(GpuError::DeviceLost(format!("{reason:?}: {message}")));
             });
             let slot = Arc::clone(&fault);
             device.on_uncaptured_error(Arc::new(move |e: wgpu::Error| {
+                let message = e.to_string();
+                tracing::error!(target: "ew_render2d::gpu", "uncaptured graphics error: {message}");
                 let mut slot = slot.lock().unwrap_or_else(PoisonError::into_inner);
-                slot.get_or_insert(GpuError::Uncaptured(e.to_string()));
+                slot.get_or_insert(GpuError::Uncaptured(message));
             }));
         }
         let memory = device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);

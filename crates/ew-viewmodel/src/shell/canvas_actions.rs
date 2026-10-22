@@ -64,9 +64,17 @@ impl ShellModel {
 
     /// The message of a page whose content could not be built, for the page on show.
     pub fn canvas_error(&self) -> Option<&str> {
-        let (rev, folio, message) = self.canvas_error.as_ref()?;
-        (Some(*rev) == self.revision() && Some(folio.as_str()) == self.current_folio())
-            .then_some(message.as_str())
+        let (epoch, rev, folio, message) = self.canvas_error.as_ref()?;
+        (Some(*epoch) == self.project_epoch()
+            && Some(*rev) == self.revision()
+            && Some(folio.as_str()) == self.current_folio())
+        .then_some(message.as_str())
+    }
+
+    /// The number of the open project's session in the shell's lifetime (`None` without a project): with the
+    /// revision and the folio it identifies a page's content, since revisions restart with every session.
+    pub fn project_epoch(&self) -> Option<u64> {
+        self.project.as_ref().map(|p| p.epoch)
     }
 
     /// The canvas pane in logical points and its pixels per point (kept without a page, for the next one).
@@ -118,21 +126,25 @@ impl ShellModel {
     /// remembered for the key and not retried. A new folio fits the page; a new revision of the same folio keeps the
     /// view.
     pub(super) fn sync_canvas(&mut self) {
-        let (Some(rev), Some(folio)) = (self.revision(), self.current_folio().map(str::to_owned)) else {
+        let (Some(epoch), Some(rev), Some(folio)) = (
+            self.project_epoch(),
+            self.revision(),
+            self.current_folio().map(str::to_owned),
+        ) else {
             self.canvas = None;
             return;
         };
         if self
             .canvas
             .as_ref()
-            .is_some_and(|c| c.page().rev == rev && c.page().folio == folio)
+            .is_some_and(|c| c.page().session == epoch && c.page().rev == rev && c.page().folio == folio)
         {
             return;
         }
         if self
             .canvas_error
             .as_ref()
-            .is_some_and(|(r, f, _)| *r == rev && *f == folio)
+            .is_some_and(|(e, r, f, _)| *e == epoch && *r == rev && *f == folio)
         {
             self.canvas = None;
             return;
@@ -141,13 +153,18 @@ impl ShellModel {
             Ok(pages) => pages,
             Err(message) => {
                 self.canvas = None;
-                self.canvas_error = Some((rev, folio, message));
+                self.canvas_error = Some((epoch, rev, folio, message));
                 return;
             }
         };
         let Some(first) = pages.pages.into_iter().next() else {
             self.canvas = None;
-            self.canvas_error = Some((rev, folio, crate::strings::text("page-no-pages").to_owned()));
+            self.canvas_error = Some((
+                epoch,
+                rev,
+                folio,
+                crate::strings::text("page-no-pages").to_owned(),
+            ));
             return;
         };
         self.canvas_error = None;
@@ -157,17 +174,20 @@ impl ShellModel {
             .strip_prefix(&format!("{folio} "))
             .unwrap_or(&first.title)
             .to_owned();
-        let page = Arc::new(CanvasPage::new(
+        let mut page = CanvasPage::new(
             rev,
             &folio,
             &title,
             (first.width.0, first.height.0),
             Arc::new(first.content),
             grid,
-        ));
+        );
+        page.session = epoch;
+        let page = Arc::new(page);
         let ui_scale = self.canvas_ui_scale();
         match &mut self.canvas {
-            Some(c) if c.page().folio == folio => c.replace_page(page),
+            // A new revision of the page on show keeps the view; another page, or a page of another session, fits.
+            Some(c) if c.page().folio == folio && c.page().session == epoch => c.replace_page(page),
             _ => {
                 let mut c = CanvasModel::new(page, self.canvas_pane, self.canvas_ppp);
                 c.set_ui_scale(ui_scale);

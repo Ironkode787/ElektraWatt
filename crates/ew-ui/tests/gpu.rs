@@ -4,8 +4,9 @@
 //! The GPU canvas against the CPU raster, render to texture on a headless device (WP-S2.02 part 2, B2 to B4): the
 //! parity rule of section 8 item 3 on folio 103 at `D = 150` and on the dense A3 page, a filled #0072B2 rectangle
 //! reads back its bytes, a second preparation tessellates nothing and repeated glyphs are one mesh each, and below
-//! 2 pixels of em a glyph run is a bar. On Windows an adapter must be found (DX12 WARP at least); elsewhere a host
-//! without one prints `skipped: no adapter` and passes (section 8 item 4).
+//! 2 pixels of em a glyph run is a bar. On Windows an adapter must be found (DX12 WARP at least), and so wherever
+//! `EW_REQUIRE_GPU_ADAPTER=1` is set (the CI test jobs); elsewhere a host without one prints `skipped: no adapter`
+//! and passes (section 8 item 4).
 
 mod support;
 
@@ -29,6 +30,14 @@ fn fonts() -> &'static BTreeMap<FontKey, FontBytes> {
     font_bytes()
 }
 
+/// Whether the test run requires an adapter (`EW_REQUIRE_GPU_ADAPTER=1`, set by the CI test jobs): then a missing
+/// adapter fails the GPU tests, which otherwise skip with a note nextest does not show for a passing test.
+// Program boundary of the test binary: CI's switch for the GPU tests, read once per test; no output depends on it.
+#[allow(clippy::disallowed_methods)]
+fn adapter_required() -> bool {
+    std::env::var_os("EW_REQUIRE_GPU_ADAPTER").is_some_and(|v| v == "1")
+}
+
 /// The headless devices (the default adapter and the fallback adapter where they differ), with a note where a host
 /// has none; on Windows one must be found.
 fn devices() -> Vec<HeadlessDevice> {
@@ -36,6 +45,9 @@ fn devices() -> Vec<HeadlessDevice> {
     if all.is_empty() {
         if cfg!(windows) {
             panic!("on Windows an adapter must be found (DX12 WARP at least)");
+        }
+        if adapter_required() {
+            panic!("EW_REQUIRE_GPU_ADAPTER=1 and no graphics adapter was found");
         }
         println!("skipped: no adapter");
     }
@@ -161,9 +173,44 @@ fn unmatched(a: &RgbaImage, b: &RgbaImage) -> (usize, usize) {
     (missed, ink)
 }
 
+/// The bounds of the mean channel difference between the GPU and the CPU image at 150 dpi (see `assert_parity`):
+/// measured 0.60 on folio 103 and 6.36 on the dense A3 page (its copies overlap, so the widened hairlines add up),
+/// on a hardware DX12 adapter and on WARP alike (cycle 22); the bounds leave a quarter for other adapters' MSAA
+/// patterns. A drawing shifted by one pixel or a colour off by 64 on the ink raises the mean several times over.
+const MEAN_BOUND_FOLIO_103: f64 = 0.75;
+const MEAN_BOUND_DENSE_A3: f64 = 8.0;
+
+/// The mean absolute difference of the red, green and blue channels of two images of one size.
+fn mean_difference(a: &RgbaImage, b: &RgbaImage) -> f64 {
+    let mut sum = 0u64;
+    let mut n = 0u64;
+    for (p, q) in a
+        .pixels
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .zip(b.pixels.as_chunks::<4>().0)
+    {
+        for c in 0..3 {
+            sum += u64::from(p[c].abs_diff(q[c]));
+        }
+        n += 3;
+    }
+    sum as f64 / n.max(1) as f64
+}
+
 /// The parity rule both ways: at most 1 % of the clearly-ink pixels of each image unmatched in the other.
-fn assert_parity(label: &str, gpu: &RgbaImage, cpu: &RgbaImage) {
+fn assert_parity(label: &str, gpu: &RgbaImage, cpu: &RgbaImage, mean_bound: f64) {
     assert_eq!((gpu.width, gpu.height), (cpu.width, cpu.height));
+    // Beyond section 8's rule (the gate): the mean channel difference over the whole page. The GPU widens hairlines
+    // to one physical pixel and its MSAA coverage differs from the CPU's analytic coverage at every edge, so the
+    // mean is not 0; a shifted, missing or miscoloured drawing raises it well above the bound.
+    let mean = mean_difference(gpu, cpu);
+    println!("{label}: mean channel difference {mean:.4}");
+    assert!(
+        mean <= mean_bound,
+        "{label}: mean channel difference {mean:.4} above {mean_bound}"
+    );
     for (name, a, b) in [("GPU", gpu, cpu), ("CPU", cpu, gpu)] {
         let (missed, ink) = unmatched(a, b);
         let share = 100.0 * missed as f64 / ink.max(1) as f64;
@@ -195,6 +242,7 @@ fn b2_folio_103_at_150_dpi_matches_the_cpu_raster() {
             &format!("folio 103 at 150 dpi on {:?}", d.summary.kind),
             &gpu,
             &cpu,
+            MEAN_BOUND_FOLIO_103,
         );
     }
 }
@@ -219,6 +267,7 @@ fn b2_the_dense_a3_page_matches_the_cpu_raster() {
             &format!("dense A3 at 150 dpi on {:?}", d.summary.kind),
             &gpu,
             &cpu,
+            MEAN_BOUND_DENSE_A3,
         );
     }
 }
@@ -253,13 +302,60 @@ fn rectangle_on(d: &HeadlessDevice) {
             image.pixels[i + 3],
         ]
     };
-    for (x, y) in [(20, 20), (40, 30), (70, 40)] {
+    // The interior, and the first pixel inside each edge: 2 mm and 12 mm are 7.56 and 45.35 pixels at 96 dpi, so
+    // columns 8 and 74 and rows 8 and 44 are fully covered.
+    for (x, y) in [(20, 20), (40, 30), (70, 40), (8, 20), (74, 20), (20, 8), (20, 44)] {
         let got = at(x, y);
         for (g, want) in got.iter().zip([0x00u8, 0x72, 0xb2, 0xff]) {
             assert!(g.abs_diff(want) <= 1, "({x}, {y}): {got:?}");
         }
     }
     assert_eq!(at(2, 2), [255, 255, 255, 255], "the paper");
+}
+
+/// The first column (in row `y`) and the first row (in column `x`) whose pixel is clearly ink.
+fn first_ink(image: &RgbaImage, x: u32, y: u32) -> (Option<u32>, Option<u32>) {
+    let at = |x: u32, y: u32| {
+        let i = ((y * image.width + x) * 4) as usize;
+        &image.pixels[i..i + 3]
+    };
+    (
+        (0..image.width).find(|&c| is_ink(at(c, y))),
+        (0..image.height).find(|&r| is_ink(at(x, r))),
+    )
+}
+
+#[test]
+fn b2_the_edges_of_a_rectangle_land_on_the_cpu_rasters_pixels() {
+    // A filled black rectangle whose left and top edges lie inside pixels at 150 dpi (60.2 and 40.3 pixels), so
+    // that both renderers cover the edge pixel by more than half and the pixel before it not at all.
+    let px = |v: f64| (v * 25_400_000.0 / 150.0).round() as i64;
+    let mut list = DisplayList::new();
+    list.push(Item::path(
+        Path::rect(Rect::from_points(
+            Pt2::new(Nm(px(60.2)), Nm(px(40.3))),
+            Pt2::new(Nm(px(160.0)), Nm(px(120.0))),
+        )),
+        None,
+        Some(Brush::BLACK),
+    ));
+    let sheet = (px(200.0), px(150.0));
+    let options = RenderOptions {
+        dpi: 150,
+        ..RenderOptions::default()
+    };
+    let (cpu, _) = render(&list, sheet_size(sheet), &options, fonts(), None).unwrap();
+    let want = first_ink(&cpu, 100, 80);
+    assert_eq!(want, (Some(60), Some(40)), "the CPU raster's edges");
+    for d in devices() {
+        let gpu = gpu_image(&d, &list, sheet, 150);
+        let got = first_ink(&gpu, 100, 80);
+        println!(
+            "edges on {:?}: GPU column {:?} row {:?}, CPU column {:?} row {:?}",
+            d.summary.kind, got.0, got.1, want.0, want.1
+        );
+        assert_eq!(got, want, "the left and top edges on the same pixels (±0)");
+    }
 }
 
 #[test]
@@ -330,5 +426,114 @@ fn b4_at_10_per_cent_the_bars_are_the_runs_below_2_pixels() {
             })
             .expect("a render");
         assert_eq!((out.bars, out.glyph_runs), (below, scene.runs.len() - below));
+    }
+}
+
+/// A canvas page of `list` as the shell would show it in session `session`.
+fn page_of(session: u64, rev: u64, folio: &str, list: &Arc<DisplayList>) -> Arc<CanvasPage> {
+    let mut page = CanvasPage::new(
+        rev,
+        folio,
+        "test",
+        (297_000_000, 210_000_000),
+        Arc::clone(list),
+        None,
+    );
+    page.session = session;
+    Arc::new(page)
+}
+
+/// Asks `host` for `page` until its scene is ready (bounded at a minute): the last answer of `sync_scene`.
+fn until_ready(
+    host: &mut ew_ui::gpu::GpuHost,
+    ctx: &egui::Context,
+    page: &Arc<CanvasPage>,
+    fonts: &ew_render2d::pool::SharedFonts,
+) -> (bool, bool) {
+    for _ in 0..12_000 {
+        let got = host.sync_scene(ctx, page, fonts);
+        if got == (true, true) {
+            return got;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    host.sync_scene(ctx, page, fonts)
+}
+
+/// After a change of folio or session the old scene never stands in: nothing is shown until the new scene is in
+/// (a small scene may already be in, then it is the one asked for).
+#[track_caller]
+fn assert_no_stand_in(got: (bool, bool), host: &ew_ui::gpu::GpuHost) {
+    match got {
+        (false, false) => {}
+        (true, true) => assert_eq!(
+            host.canvas().unwrap().scene().map(|s| s.id),
+            host.requested_scene(),
+            "only the new scene may show"
+        ),
+        other => panic!("the old scene stands in: {other:?}"),
+    }
+}
+
+/// The GPU scene is keyed by (session, revision, folio): a new revision of the page on show stands in until it is
+/// ready, another folio or another project's session never does, and a late, older scene is dropped (the fix
+/// round of WP-S2.02 part 2).
+#[test]
+fn the_gpu_scene_is_keyed_by_session_revision_and_folio() {
+    let tmp = Tmp::new();
+    let folio = folio_103(&tmp);
+    let fonts: ew_render2d::pool::SharedFonts = Arc::new(fonts().clone());
+    let small = Arc::new({
+        let mut l = DisplayList::new();
+        l.push(Item::path(
+            Path::rect(Rect::from_points(
+                Pt2::new(Nm(1_000_000), Nm(1_000_000)),
+                Pt2::new(Nm(9_000_000), Nm(9_000_000)),
+            )),
+            None,
+            Some(Brush::BLACK),
+        ));
+        l
+    });
+    for d in devices() {
+        let ctx = egui::Context::default();
+        let mut host = ew_ui::gpu::GpuHost::new();
+        host.set_canvas_for_tests(d.canvas().expect("the canvas initialises"));
+        // Session 1, revision 1, folio 103.
+        let p1 = page_of(1, 1, "103", &small);
+        assert_eq!(until_ready(&mut host, &ctx, &p1, &fonts), (true, true));
+        // A new revision of the same folio (content the worker has to tessellate): the old scene stands in, not
+        // ready, then the new one is.
+        let p2 = page_of(1, 2, "103", &folio.list);
+        assert_eq!(host.sync_scene(&ctx, &p2, &fonts), (true, false));
+        assert_eq!(until_ready(&mut host, &ctx, &p2, &fonts), (true, true));
+        // Another folio: nothing stands in.
+        let p3 = page_of(1, 2, "104", &small);
+        assert_no_stand_in(host.sync_scene(&ctx, &p3, &fonts), &host);
+        assert_eq!(until_ready(&mut host, &ctx, &p3, &fonts), (true, true));
+        // Another project at the same revision and folio: a new scene, the old one never stands in.
+        let p4 = page_of(2, 2, "104", &folio.list);
+        assert_no_stand_in(host.sync_scene(&ctx, &p4, &fonts), &host);
+        assert_eq!(until_ready(&mut host, &ctx, &p4, &fonts), (true, true));
+        let shown = host.canvas().unwrap().scene().unwrap().id;
+        assert_eq!(Some(shown), host.requested_scene());
+        // A late, older scene is dropped: the newest request wins.
+        let p5 = page_of(2, 3, "104", &small);
+        let _ = host.sync_scene(&ctx, &p5, &fonts);
+        let newest = host.requested_scene().unwrap();
+        let mut cache = MeshCache::default();
+        let older = Arc::new(prepare(newest - 1, &small, fonts.as_ref(), &mut cache));
+        host.deliver_for_tests(Arc::clone(&older), &p5);
+        assert!(
+            !Arc::ptr_eq(host.canvas().unwrap().scene().unwrap(), &older),
+            "the late scene is not shown"
+        );
+        assert_eq!(until_ready(&mut host, &ctx, &p5, &fonts), (true, true));
+        assert_eq!(host.canvas().unwrap().scene().unwrap().id, newest);
+        // Releasing (the project closed) forgets the scene: a page of an equal key is asked for again.
+        host.release();
+        assert!(host.canvas().unwrap().scene().is_none());
+        assert_no_stand_in(host.sync_scene(&ctx, &p5, &fonts), &host);
+        assert!(host.requested_scene() > Some(newest));
     }
 }

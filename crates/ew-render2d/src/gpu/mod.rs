@@ -20,7 +20,7 @@ pub mod render;
 pub mod switch;
 pub mod tess;
 
-pub use device::HeadlessDevice;
+pub use device::{HeadlessDevice, adapter_count};
 pub use prepare::{MeshCache, PreparedScene, Preparer, prepare};
 pub use render::{GpuCanvas, GpuView, RenderOutcome, TARGET_FORMAT, sample_count_for};
 pub use switch::{

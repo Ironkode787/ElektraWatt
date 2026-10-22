@@ -80,8 +80,10 @@ impl ShellModel {
             dir: Some(dir.to_path_buf()),
             ..Record::default()
         };
+        self.epochs += 1;
         self.project = Some(Project {
             session,
+            epoch: self.epochs,
             dir: dir.to_path_buf(),
             name: dir_name(dir),
             access: AccessMode::Edit,
@@ -331,8 +333,10 @@ impl ShellModel {
                     dir: Some(dir.clone()),
                     ..Record::default()
                 };
+                self.epochs += 1;
                 self.project = Some(Project {
                     session,
+                    epoch: self.epochs,
                     dir,
                     name,
                     access,

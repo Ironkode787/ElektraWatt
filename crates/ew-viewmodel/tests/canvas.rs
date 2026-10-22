@@ -622,3 +622,31 @@ fn a9_view_steps_fetch_no_page_and_re_execute_no_query() {
     assert_eq!(shell.page_content_calls(), calls, "no further page_content call");
     shell.shutdown();
 }
+
+/// Revisions restart with every project session: a direct switch to another project at the same revision and
+/// folio is a new canvas page, never the old project's (the fix round of WP-S2.02 part 2).
+#[test]
+fn a_project_switch_at_the_same_revision_and_folio_is_a_new_page() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell_on_103();
+    let a = std::sync::Arc::clone(shell.canvas().unwrap().page());
+    let rev = shell.revision();
+    let other = tmp.0.join("other.ew");
+    copy_dir(Path::new(GOLDEN_A), &other);
+    done(
+        &mut shell,
+        "file.open",
+        json!({"dir": other.to_string_lossy(), "read_only": true}),
+    );
+    done(&mut shell, "page.goto", json!({"folio": "103"}));
+    assert_eq!(shell.revision(), rev, "the same revision in the new session");
+    let b = std::sync::Arc::clone(shell.canvas().unwrap().page());
+    assert_eq!((b.rev, b.folio.as_str()), (a.rev, a.folio.as_str()));
+    assert_ne!(b.session, a.session);
+    assert!(
+        !std::sync::Arc::ptr_eq(&a.list, &b.list),
+        "the new project's content"
+    );
+    assert_eq!(Some(b.session), shell.project_epoch());
+    shell.shutdown();
+}

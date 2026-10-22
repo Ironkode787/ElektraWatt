@@ -22,7 +22,7 @@ use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use egui::TextureId;
-pub use ew_render2d::gpu::{AdapterSummary, DeviceKind, Flags, GpuApi, GpuError};
+pub use ew_render2d::gpu::{AdapterSummary, DeviceKind, Flags, GpuApi, GpuError, adapter_count};
 use ew_render2d::gpu::{
     BackendSetting, CanvasBackend as Choice, GpuCanvas, GpuView, PreparedScene, Preparer, RenderOutcome,
     choose, no_gpu_adapter, sample_count_for,
@@ -70,6 +70,25 @@ fn label_of(choice: &Choice) -> CanvasBackend {
     }
 }
 
+/// What identifies a page's content: the project session (revisions restart with every session), the revision and
+/// the folio.
+#[derive(Clone, PartialEq, Eq, Debug)]
+struct PageKey {
+    session: u64,
+    rev: u64,
+    folio: String,
+}
+
+impl PageKey {
+    fn of(page: &CanvasPage) -> PageKey {
+        PageKey {
+            session: page.session,
+            rev: page.rev,
+            folio: page.folio.clone(),
+        }
+    }
+}
+
 /// The GPU side of the canvas host.
 pub struct GpuHost {
     render_state: Option<egui_wgpu::RenderState>,
@@ -84,10 +103,10 @@ pub struct GpuHost {
     canvas: Option<GpuCanvas>,
     preparer: Option<Preparer>,
     texture: Option<TextureId>,
-    /// The scene asked of the worker: (revision, folio, scene number).
-    requested: Option<(u64, String, u64)>,
-    /// The folio and number of the scene the GPU canvas holds.
-    shown: Option<(String, u64)>,
+    /// The page asked of the worker and its scene number.
+    requested: Option<(PageKey, u64)>,
+    /// The session and folio of the scene the GPU canvas holds, and its number.
+    shown: Option<(u64, String, u64)>,
     next_scene: u64,
     choice: Choice,
     /// The banners already shown (each failure is told once).
@@ -174,6 +193,36 @@ impl GpuHost {
         Ok(())
     }
 
+    /// Lets go of the scene as well as the frame (no project, the wizard, the start page): nothing of the page on
+    /// show may stand in for the next page, which may be another project's at an equal revision and folio.
+    pub fn release(&mut self) {
+        self.release_frame();
+        self.requested = None;
+        self.shown = None;
+        if let Some(c) = &mut self.canvas {
+            c.clear_scene();
+        }
+    }
+
+    /// Puts a GPU canvas into the host without a render state (tests: a headless device's canvas); the switch rule
+    /// is not asked.
+    #[doc(hidden)]
+    pub fn set_canvas_for_tests(&mut self, canvas: GpuCanvas) {
+        self.canvas = Some(canvas);
+    }
+
+    /// The scene number last asked of the worker (tests).
+    #[doc(hidden)]
+    pub fn requested_scene(&self) -> Option<u64> {
+        self.requested.as_ref().map(|r| r.1)
+    }
+
+    /// Hands a prepared scene to the host as the worker would (tests: a late, older scene).
+    #[doc(hidden)]
+    pub fn deliver_for_tests(&mut self, prepared: Arc<PreparedScene>, page: &CanvasPage) {
+        self.accept(prepared, page);
+    }
+
     /// Lets go of the canvas texture and the render targets (the canvas is not on screen or the CPU draws).
     pub fn release_frame(&mut self) {
         if let (Some(id), Some(rs)) = (self.texture.take(), &self.render_state) {
@@ -254,39 +303,42 @@ impl GpuHost {
             let ctx = ctx.clone();
             Preparer::new(Arc::new(move || ctx.request_repaint()))
         });
-        let wanted = self
-            .requested
-            .as_ref()
-            .is_some_and(|(rev, folio, _)| *rev == page.rev && *folio == page.folio);
-        if !wanted {
+        let key = PageKey::of(page);
+        if self.requested.as_ref().is_none_or(|(k, _)| *k != key) {
             let id = self.next_scene;
             self.next_scene += 1;
             preparer.submit(id, Arc::clone(&page.list), Arc::clone(fonts));
-            self.requested = Some((page.rev, page.folio.clone(), id));
-            if self.shown.as_ref().is_some_and(|(f, _)| *f != page.folio) {
-                // Another page: its old scene must not stand in.
+            self.requested = Some((key, id));
+            if self
+                .shown
+                .as_ref()
+                .is_some_and(|(s, f, _)| *s != page.session || *f != page.folio)
+            {
+                // Another page, or a page of another session: its old scene must not stand in.
                 canvas.clear_scene();
                 self.shown = None;
             }
         }
         if let Some(prepared) = preparer.try_recv() {
-            self.accept(prepared, &page.folio);
+            self.accept(prepared, page);
         }
-        let current = self.requested.as_ref().map(|r| r.2);
+        let current = self.requested.as_ref().map(|r| r.1);
         match &self.shown {
-            Some((folio, id)) if *folio == page.folio => (true, Some(*id) == current),
+            Some((session, folio, id)) if *session == page.session && *folio == page.folio => {
+                (true, Some(*id) == current)
+            }
             _ => (false, false),
         }
     }
 
-    fn accept(&mut self, prepared: Arc<PreparedScene>, folio: &str) {
+    fn accept(&mut self, prepared: Arc<PreparedScene>, page: &CanvasPage) {
         let Some(canvas) = &mut self.canvas else { return };
-        let current = self.requested.as_ref().map(|r| r.2);
+        let current = self.requested.as_ref().map(|r| r.1);
         // Only the scene last asked for is shown; an older one that arrives late is dropped.
         if Some(prepared.id) != current {
             return;
         }
-        self.shown = Some((folio.to_owned(), prepared.id));
+        self.shown = Some((page.session, page.folio.clone(), prepared.id));
         canvas.set_scene(prepared);
     }
 

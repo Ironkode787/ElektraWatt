@@ -183,6 +183,9 @@ impl CanvasBackend {
 /// The page content the canvas shows, fetched once per (revision, folio).
 #[derive(Debug)]
 pub struct CanvasPage {
+    /// The project session the content belongs to (revisions restart with every session, so a page is known by
+    /// (session, revision, folio); 0 for a page made outside a shell).
+    pub session: u64,
     /// The model revision of the content.
     pub rev: u64,
     /// The printed folio label.
@@ -211,6 +214,7 @@ impl CanvasPage {
     ) -> CanvasPage {
         let entities = list.entity_bounds();
         CanvasPage {
+            session: 0,
             rev,
             folio: folio.to_owned(),
             title: title.to_owned(),
@@ -545,6 +549,7 @@ mod tests {
 
     fn page(entities: Vec<(EntityRef, Rect)>) -> Arc<CanvasPage> {
         Arc::new(CanvasPage {
+            session: 0,
             rev: 1,
             folio: "103".into(),
             title: "Test".into(),

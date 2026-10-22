@@ -31,6 +31,8 @@ skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
 # Blocks on the error scopes, the adapter and device requests of the headless device and the readback (the
 # version eframe already uses; no new package).
 pollster = "1.0.1"
+# Logs the errors of the shared device's handlers (already in the graph through ew-memo and ew-ui).
+tracing = { version = "0.1.44", default-features = false, features = ["std"] }
 
 # FT-328: the wgpu backends per operating system. DX12 on Windows (its adapter list includes WARP, NFR-PLAT-03's
 # fallback), Metal on macOS, Vulkan and GL on Linux and the BSDs. `gles` stays on there: wgpu-hal's `gles` gives

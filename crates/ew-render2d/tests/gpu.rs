@@ -33,6 +33,14 @@ fn square(x: f64, y: f64, side: f64) -> Path {
     Path::rect(Rect::from_points(p(mm(x), mm(y)), p(mm(x + side), mm(y + side))))
 }
 
+/// Whether the test run requires an adapter (`EW_REQUIRE_GPU_ADAPTER=1`, set by the CI test jobs): then a missing
+/// adapter fails the GPU tests, which otherwise skip with a note nextest does not show for a passing test.
+// Program boundary of the test binary: CI's switch for the GPU tests, read once per test; no output depends on it.
+#[allow(clippy::disallowed_methods)]
+fn adapter_required() -> bool {
+    std::env::var_os("EW_REQUIRE_GPU_ADAPTER").is_some_and(|v| v == "1")
+}
+
 /// The headless devices (the default adapter and the fallback adapter where they differ), with a note where a host
 /// has none; on Windows one must be found.
 fn devices() -> Vec<HeadlessDevice> {
@@ -40,6 +48,9 @@ fn devices() -> Vec<HeadlessDevice> {
     if all.is_empty() {
         if cfg!(windows) {
             panic!("on Windows an adapter must be found (DX12 WARP at least)");
+        }
+        if adapter_required() {
+            panic!("EW_REQUIRE_GPU_ADAPTER=1 and no graphics adapter was found");
         }
         println!("skipped: no adapter");
     }

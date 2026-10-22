@@ -213,3 +213,39 @@ fn ft_356_a_page_pane_behind_another_tab_keeps_its_tiles_within_a_share() {
     settle(&mut h);
     assert_eq!(h.state().canvas_cached_tiles(), 0);
 }
+
+/// The CPU host keys its tile scene by (session, revision, folio) as well: a direct switch to another project at the
+/// same revision and folio is a new scene, and the old project's tiles never stand in (the fix round of WP-S2.02
+/// part 2).
+#[test]
+fn a_project_switch_at_the_same_revision_and_folio_is_a_new_tile_scene() {
+    let tmp = Tmp::new();
+    let mut h = on_103(&tmp);
+    let rev = h.state().shell().revision();
+    let session = h.state().shell().project_epoch();
+    let before = h.state().canvas_counters();
+    let other = tmp.golden("other.ew");
+    let shell = h.state_mut().shell_mut();
+    assert_eq!(
+        shell.dispatch(
+            "file.open",
+            &json!({"dir": other.to_string_lossy(), "read_only": true})
+        ),
+        Outcome::Done
+    );
+    assert_eq!(
+        shell.dispatch("page.goto", &json!({"folio": "103"})),
+        Outcome::Done
+    );
+    assert_eq!(shell.revision(), rev, "the same revision in the new session");
+    assert_ne!(shell.project_epoch(), session);
+    h.step();
+    let after = h.state().canvas_counters();
+    assert_eq!(after.scenes, before.scenes + 1, "a new scene for the new project");
+    assert_eq!(
+        after.fallback_frames, before.fallback_frames,
+        "the old project's tiles do not stand in"
+    );
+    wait_for_page(&mut h);
+    assert!(h.state().page_view_ready());
+}
