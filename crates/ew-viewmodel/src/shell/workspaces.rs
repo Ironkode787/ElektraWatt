@@ -172,7 +172,7 @@ impl ShellModel {
         }
     }
 
-    /// Writes the active workspace's file when the last layout change is [`PERSIST_DELAY`] old; `true` when it
+    /// Writes the active workspace's file when the last layout change is `PERSIST_DELAY` old; `true` when it
     /// did. A failed write keeps the change pending and raises a banner once.
     pub fn persist_layout_if_due(&mut self, now: f64) -> bool {
         match self.layout_changed_at {

@@ -221,6 +221,9 @@ impl ShellModel {
     /// settings commands when they changed). The frame calls it before it paints; the actions that change the
     /// draft call it too, so `ui.describe` and `view.snapshot` see the current preview.
     pub fn wizard_prepare_preview(&mut self) {
+        if self.wizard.is_none() {
+            return;
+        }
         let sample = self.sample_for_preview();
         let version = self.config.app_version.clone();
         if let Some(w) = &mut self.wizard {
