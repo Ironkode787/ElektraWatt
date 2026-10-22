@@ -11,7 +11,7 @@ use std::sync::Arc;
 use ew_units::{Orient2, Pt2, Rect};
 use uuid::Uuid;
 
-use crate::{Brush, EntityRef, Link, Path, ShapedRun, Stroke, Transform};
+use crate::{Brush, Destination, EntityRef, Link, Path, ShapedRun, Stroke, Transform};
 
 /// How deep [`DisplayList::bounds_with`] follows symbol instances inside symbol geometry. Symbol geometry
 /// normally contains no instances at all; the limit only guards against a cyclic resolver.
@@ -306,6 +306,61 @@ impl DisplayList {
         let mut out = Vec::new();
         collect_entities(&self.items, &|p| p, &mut out);
         out
+    }
+
+    /// Every cross-reference link source of the list, at any depth: for each item whose [`link`](Item::link) is
+    /// [`Link::Source`], its destination and the axis-aligned bounds, in the list's coordinates, of the rectangle a
+    /// PDF writer annotates (doc 09 §4.2): a glyph run's [`layout_quad`](crate::ShapedRun::layout_quad), else the
+    /// item's control-point bounds by the rules of [`bounds`](DisplayList::bounds) (their two corners), each point
+    /// mapped through the transforms of the groups that enclose the item. In paint order: depth first, a group
+    /// before its members (pre-order). An item without a point is left out; instances are not resolved.
+    ///
+    /// This is what a viewer follows a cross-reference over (WP-S2.03 §4.2).
+    ///
+    /// ```
+    /// use ew_dl::{Destination, DisplayList, Item, Link, Path, Transform};
+    /// use ew_units::{Nm, Pt2, Rect};
+    /// use uuid::Uuid;
+    ///
+    /// let p = |x, y| Pt2::new(Nm(x), Nm(y));
+    /// let d = Destination::Representation(Uuid::from_u128(7));
+    /// let mark = Item::path(Path::line(p(0, 0), p(10, 5)), None, None).with_link(Link::Source(d));
+    /// let dl = DisplayList {
+    ///     items: vec![Item::group(Some(Transform::from_translation(p(100, 0))), None, vec![mark])],
+    /// };
+    /// assert_eq!(dl.link_sources(), vec![(d, Rect::from_points(p(100, 0), p(110, 5)))]);
+    /// ```
+    pub fn link_sources(&self) -> Vec<(Destination, Rect)> {
+        let mut out = Vec::new();
+        collect_links(&self.items, &|p| p, &mut out);
+        out
+    }
+}
+
+/// The walk of [`DisplayList::link_sources`]: `map` takes a point of `items`' coordinates to the list's.
+fn collect_links(items: &[Item], map: &dyn Fn(Pt2) -> Pt2, out: &mut Vec<(Destination, Rect)>) {
+    for item in items {
+        if let Some(Link::Source(d)) = item.link {
+            let points: Vec<Pt2> = match &item.kind {
+                ItemKind::Glyphs(run) => run.layout_quad().to_vec(),
+                _ => {
+                    let mut own = None;
+                    collect(std::slice::from_ref(item), &|p| p, None, 0, &mut own);
+                    own.map_or_else(Vec::new, |r: Rect| vec![r.min(), r.max()])
+                }
+            };
+            let mut acc = None;
+            for q in points {
+                add(&mut acc, map(q));
+            }
+            if let Some(r) = acc {
+                out.push((d, r));
+            }
+        }
+        if let ItemKind::Group(g) = &item.kind {
+            let t = g.transform.unwrap_or(Transform::IDENTITY);
+            collect_links(&g.items, &|q| map(t.apply(q)), out);
+        }
     }
 }
 
@@ -621,6 +676,82 @@ mod tests {
             .bounds()
             .unwrap()
         );
+    }
+
+    #[test]
+    fn link_sources_follow_nested_transforms_and_glyph_quads_in_pre_order() {
+        let d = |n: u128| Destination::Representation(Uuid::from_u128(n));
+        // A glyph run turned a quarter (run space (x, y) → (−y, x)) about its origin (1000, 2000); its layout box
+        // spans x 0 … 1200, y −1600 … 400 in run space, so x −400 … 1600 and y 0 … 1200 about the origin.
+        let run = ShapedRun {
+            font: FontKey {
+                sha256: [1; 32],
+                face_index: 0,
+            },
+            size: Nm(2_000),
+            origin: p(1_000, 2_000),
+            transform: Transform::new(Pt2::ORIGIN, Orient2::R90, Angle2::ZERO),
+            glyphs: vec![Glyph {
+                id: 5,
+                x: Nm(0),
+                y: Nm(0),
+            }],
+            text: "X".into(),
+            brush: Brush::BLACK,
+            layout_box: Rect::from_points(p(0, -1_600), p(1_200, 400)),
+        };
+        let text = Item::glyphs(Arc::new(run.clone())).with_link(Link::Source(d(1)));
+        // A box with a link inside a mirrored group inside a translated group.
+        let mark = Item::path(Path::rect(Rect::from_points(p(0, 0), p(10, 4))), None, None)
+            .with_link(Link::Source(d(2)));
+        let mirrored = Item::group(
+            Some(Transform::new(p(0, 500), Orient2::M0, Angle2::ZERO)),
+            None,
+            vec![mark.clone(), text.clone()],
+        )
+        .with_link(Link::Source(d(3)));
+        let outer = Item::group(
+            Some(Transform::from_translation(p(10_000, 0))),
+            None,
+            vec![mirrored],
+        );
+        let targets_only = Item::path(Path::line(p(0, 0), p(1, 1)), None, None).with_link(Link::Target(d(9)));
+        let pointless = Item::path(Path::new(), None, None).with_link(Link::Source(d(8)));
+        let dl = DisplayList {
+            items: vec![outer, targets_only, pointless, text.clone()],
+        };
+        // The run at the top level: its quad.
+        let quad = |m: &dyn Fn(Pt2) -> Pt2| {
+            run.layout_quad()
+                .into_iter()
+                .map(|q| Rect::from_point(m(q)))
+                .reduce(Rect::union)
+                .unwrap()
+        };
+        let top = quad(&|q| q);
+        assert_eq!(top, Rect::from_points(p(600, 2_000), p(2_600, 3_200)));
+        // Inside the groups: mirror (x → −x), +500 in y, then +10 000 in x.
+        let nested = |q: Pt2| Pt2::new(Nm(10_000 - q.x.0), Nm(q.y.0 + 500));
+        let in_groups = quad(&nested);
+        assert_eq!(in_groups, Rect::from_points(p(7_400, 2_500), p(9_400, 3_700)));
+        let mark_box = Rect::from_points(p(9_990, 500), p(10_000, 504));
+        let group_box = DisplayList {
+            items: vec![dl.items[0].clone()],
+        }
+        .bounds()
+        .unwrap();
+        assert_eq!(
+            dl.link_sources(),
+            vec![
+                (d(3), group_box),
+                (d(2), mark_box),
+                (d(1), in_groups),
+                (d(1), top),
+            ],
+            "pre-order; targets and items without a point left out"
+        );
+        // The group's own rectangle is its content's bounds, mapped once (not twice) through its transform.
+        assert_eq!(group_box, mark_box.union(in_groups));
     }
 
     fn pt() -> impl Strategy<Value = Pt2> {
