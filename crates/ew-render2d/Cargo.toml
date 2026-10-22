@@ -5,7 +5,8 @@
 name = "ew-render2d"
 version.workspace = true
 edition.workspace = true
-rust-version.workspace = true
+# wgpu 30 needs Rust 1.87; the UI crates build with the toolchain of rust-toolchain.toml (WP-S2.02 part 2).
+rust-version = "1.95"
 license = "GPL-3.0-or-later"
 description = "The 2D canvas renderer: the CPU tile path and the wgpu path over one display list."
 repository.workspace = true
@@ -18,3 +19,27 @@ workspace = true
 ew-dl = { path = "../ew-dl" }
 # The CPU tile path rasterises tiles with `render_region` (WP-S2.02 §4.1, the edge ew-render2d -> ew-render-cpu).
 ew-render-cpu = { path = "../ew-render-cpu" }
+# The GPU path (WP-S2.02 §5, part 2): the version egui-wgpu 0.37.0 locks, so the graph has one wgpu and its types
+# are egui-wgpu's. No backend by default: each operating system gets its own below (FT-328).
+wgpu = { version = "=30.0.1", default-features = false, features = ["std", "wgsl"] }
+# Fill and stroke tessellation (architecture §3; MIT OR Apache-2.0).
+lyon_tessellation = "=1.0.22"
+# Dashes and path flattening before tessellation (already in the graph through ew-dl).
+kurbo = { version = "0.13.1", default-features = false, features = ["std"] }
+# Glyph outlines, unhinted, from the bundled fonts only (already in the graph through ew-render-cpu).
+skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
+# Blocks on the error scopes, the adapter and device requests of the headless device and the readback (the
+# version eframe already uses; no new package).
+pollster = "1.0.1"
+
+# FT-328: the wgpu backends per operating system. DX12 on Windows (its adapter list includes WARP, NFR-PLAT-03's
+# fallback), Metal on macOS, Vulkan and GL on Linux and the BSDs. `gles` stays on there: wgpu-hal's `gles` gives
+# wayland-sys its `dlopen` feature (the `[[required_features]]` guard of ci/dep-rules.toml, decision log ID-476).
+[target.'cfg(windows)'.dependencies]
+wgpu = { version = "=30.0.1", default-features = false, features = ["dx12"] }
+
+[target.'cfg(target_vendor = "apple")'.dependencies]
+wgpu = { version = "=30.0.1", default-features = false, features = ["metal"] }
+
+[target.'cfg(all(unix, not(target_vendor = "apple")))'.dependencies]
+wgpu = { version = "=30.0.1", default-features = false, features = ["vulkan", "gles"] }

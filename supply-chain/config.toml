@@ -370,6 +370,11 @@ criteria = "safe-to-deploy"
 version = "0.9.0"
 criteria = "safe-to-deploy"
 
+[[exemptions.float_next_after]]
+version = "1.0.0"
+criteria = "safe-to-deploy"
+notes = "WP-S2.02 part 2 (2026-10-22): a dependency of lyon_tessellation; MIT; no build script. Joins FT-326's audit list."
+
 [[exemptions.font-types]]
 version = "0.11.3"
 criteria = "safe-to-deploy"
@@ -641,6 +646,21 @@ criteria = "safe-to-deploy"
 [[exemptions.log]]
 version = "0.4.34"
 criteria = "safe-to-deploy"
+
+[[exemptions.lyon_geom]]
+version = "1.0.20"
+criteria = "safe-to-deploy"
+notes = "WP-S2.02 part 2 (2026-10-22): the GPU canvas's tessellation (ew-render2d); MIT OR Apache-2.0; no build script. Joins FT-326's audit list."
+
+[[exemptions.lyon_path]]
+version = "1.0.19"
+criteria = "safe-to-deploy"
+notes = "WP-S2.02 part 2 (2026-10-22): the GPU canvas's tessellation (ew-render2d); MIT OR Apache-2.0; no build script. Joins FT-326's audit list."
+
+[[exemptions.lyon_tessellation]]
+version = "1.0.22"
+criteria = "safe-to-deploy"
+notes = "WP-S2.02 part 2 (2026-10-22): the GPU canvas's fill and stroke tessellation (ew-render2d); MIT OR Apache-2.0; no build script. Joins FT-326's audit list."
 
 [[exemptions.memchr]]
 version = "2.8.3"
