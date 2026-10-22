@@ -22,8 +22,10 @@ workspace = true
 ew-ui = { path = "../../crates/ew-ui" }
 ew-print = { path = "../../crates/ew-print" }
 # The window on the wgpu renderer, so that WP-S2.02 paints into the same device (ADR-0014 decision 1); no glow,
-# no persistence, no default_fonts.
-eframe = { version = "=0.37.0", default-features = false, features = ["accesskit", "wgpu", "wayland", "x11"] }
+# no persistence, no default_fonts. `wgpu_no_default_features` instead of `wgpu`: eframe's `wgpu` turns on every
+# wgpu backend through egui-wgpu's defaults; the backends are ew-render2d's, one set per operating system (FT-328:
+# DX12 with WARP on Windows, Metal on macOS, Vulkan and GL on Linux).
+eframe = { version = "=0.37.0", default-features = false, features = ["accesskit", "wgpu_no_default_features", "wayland", "x11"] }
 # Open and Save As dialogs; the XDG-portal backend on Linux (no GTK), pollster as its executor.
 rfd = { version = "=0.17.2", default-features = false, features = ["xdg-portal"] }
 
