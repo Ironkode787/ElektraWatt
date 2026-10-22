@@ -485,6 +485,212 @@ fn bind_channel_rejects_bad_endpoints_and_unknown_channels() {
     not_found(e.execute(&bind(id(0xdead), None)));
 }
 
+/// Owner ruling (cycle 16): a channel binds a CP of its module or of one of the module's descendants.
+#[test]
+fn bind_channel_refuses_a_cp_outside_the_module_and_its_children() {
+    let mut e = engine(plc_model());
+    make_module(&mut e);
+    let c1 = channel_id(DEV_102F2, 1);
+    // FN_102G1 belongs to DEV_102G1, which is neither the module nor below it
+    rejected(e.execute(&bind(c1, cp_param(FN_102G1, 1))));
+    // once DEV_102G1 is a child of the module, its CP is accepted
+    e.execute(&attach(DEV_102F2, vec![child(DEV_102G1, Some(1))]))
+        .expect("attach");
+    e.execute(&bind(c1, cp_param(FN_102G1, 1)))
+        .expect("a CP of a child of the module");
+    assert_eq!(row(&e, c1).binding, Some(Endpoint::Cp(FN_102G1, 1)));
+}
+
+/// FR-PLC-005: binding a CP that another channel holds unbinds that channel and says so.
+#[test]
+fn rebinding_a_held_cp_names_the_unbound_channel_in_the_notice() {
+    let mut e = engine(plc_model());
+    make_module(&mut e);
+    let (c1, c3) = (channel_id(DEV_102F2, 1), channel_id(DEV_102F2, 3));
+    e.execute(&bind(c1, cp_param(FN_102F2, 4))).expect("bind");
+    let r = e.execute(&bind(c3, cp_param(FN_102F2, 4))).expect("rebind");
+    assert_eq!(r.outcome.notices.len(), 1);
+    assert!(
+        r.outcome.notices[0].contains(&c1.to_string()) && r.outcome.notices[0].contains("FR-PLC-005"),
+        "{:?}",
+        r.outcome.notices
+    );
+    e.undo().expect("undo");
+    assert_eq!(
+        row(&e, c1).binding,
+        Some(Endpoint::Cp(FN_102F2, 4)),
+        "undo rebinds channel 1"
+    );
+    assert_eq!(row(&e, c3).binding, None);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// N1 beyond the aspect
+
+/// A module part with `count` DO channels.
+fn module_part_with(part_id: Id<Part>, count: u16) -> LibCopy<Part> {
+    let mut copy = module_part(part_id);
+    if let Some(plc) = copy.item.sections.plc.as_mut() {
+        if let Some(ch) = plc.channels.as_mut() {
+            ch.count = count;
+        }
+    }
+    copy
+}
+
+/// The mini golden model with the module part and `extra` part copies (no supply).
+fn plc_model_with(extra: Vec<LibCopy<Part>>) -> Model {
+    let (p, records, mut lib) = mini_golden_parts();
+    lib.push(LibDocument::Part(module_part(MODULE_PART)));
+    lib.extend(extra.into_iter().map(LibDocument::Part));
+    Model::from_records(p, records, lib).expect("plc model is valid")
+}
+
+/// A part change on a module (the `triggered` branch) instantiates the new part's extra channels; the
+/// channels beyond a smaller part stay (FR-PLC-053's confirmation is not built), and an existing channel
+/// keeps its authored data.
+#[test]
+fn a_part_change_adds_channels_keeps_surplus_and_keeps_authored_data() {
+    const WIDE: Id<Part> = id(0x59);
+    const NARROW: Id<Part> = id(0x5a);
+    let mut e = engine(plc_model_with(vec![
+        module_part_with(WIDE, 16),
+        module_part_with(NARROW, 4),
+    ]));
+    make_module(&mut e);
+    let c2 = channel_id(DEV_102F2, 2);
+    e.execute(&bind(c2, cp_param(FN_102F2, 4)))
+        .expect("authored binding");
+    // to 16 channels: 8 more, channel 2 keeps its binding
+    let r = e
+        .execute(&set_device(
+            DEV_102F2,
+            "parts",
+            json!([{"part": {"copy": WIDE}, "qty": "1"}]),
+        ))
+        .expect("wider part");
+    assert_eq!(created::<Channel>(&r, Kind::Channel).len(), 8);
+    assert_eq!(e.model().table::<Channel>().iter().count(), 16);
+    assert_eq!(row(&e, c2).binding, Some(Endpoint::Cp(FN_102F2, 4)));
+    // to 4 channels: nothing is created, the 12 surplus channels stay
+    let r = e
+        .execute(&set_device(
+            DEV_102F2,
+            "parts",
+            json!([{"part": {"copy": NARROW}, "qty": "1"}]),
+        ))
+        .expect("narrower part");
+    assert!(created::<Channel>(&r, Kind::Channel).is_empty());
+    assert_eq!(e.model().table::<Channel>().iter().count(), 16);
+    // an edit that changes neither the aspect nor the parts does not trigger N1
+    let r = e
+        .execute(&set_device(DEV_102F2, "function_text", json!("Valves")))
+        .expect("unrelated edit");
+    assert!(created::<Channel>(&r, Kind::Channel).is_empty());
+}
+
+/// N1 keys a channel on (module, number): a module whose channels carry other IDs (pasted or imported)
+/// gets no second channel of a number it has.
+#[test]
+fn n1_keys_existing_channels_on_module_and_number_not_on_the_id() {
+    let (p, mut records, mut lib) = mini_golden_parts();
+    lib.push(LibDocument::Part(module_part(MODULE_PART)));
+    let foreign: Id<Channel> = id(0xc000);
+    records.push(Record::Channel(
+        serde_json::from_value(json!({
+            "id": foreign, "module": DEV_102F2, "number": 0, "kind": "do", "comment": "kept"
+        }))
+        .expect("channel"),
+    ));
+    let mut e = engine(Model::from_records(p, records, lib).expect("valid"));
+    let r = make_module(&mut e);
+    let made: Vec<Id<Channel>> = created(&r, Kind::Channel);
+    assert_eq!(made.len(), 7, "numbers 1 … 7 only");
+    assert!(!made.contains(&channel_id(DEV_102F2, 0)));
+    assert!(
+        e.model()
+            .table::<Channel>()
+            .get(&channel_id(DEV_102F2, 0))
+            .is_none()
+    );
+    assert_eq!(row(&e, foreign).number, 0);
+    assert_eq!(e.model().table::<Channel>().iter().count(), 8);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Owner rulings of the cycle-16 review: covers and child counters
+
+/// Only covers that the edit adds are refused; a cover that fell out of scope (its child moved away by
+/// `assembly.attach`) is a check finding (ID-371, FT-260), so a later unrelated assembly edit commits.
+#[test]
+fn a_cover_out_of_scope_already_does_not_block_an_unrelated_assembly_edit() {
+    let mut e = engine(plc_model());
+    e.execute(&attach(DEV_102G1, vec![child(DEV_102F2, Some(1))]))
+        .expect("attach");
+    e.execute(&set_device(
+        DEV_102G1,
+        "assembly",
+        json!({"configs": [{"order_code": "X1", "covers": [DEV_102G1, DEV_102F2]}]}),
+    ))
+    .expect("assembly");
+    // move the covered child out of the assembly
+    e.execute(&attach(DEV_101F1, vec![child(DEV_102F2, Some(1))]))
+        .expect("move the child away");
+    e.execute(&set_device(DEV_102G1, "assembly.bom_basis", json!("components")))
+        .expect("an unrelated assembly edit is not refused for an old cover");
+    // the same configurations written again (no cover added) commit as well
+    e.execute(&set_device(
+        DEV_102G1,
+        "assembly.configs",
+        json!([{"order_code": "X2", "covers": [DEV_102G1, DEV_102F2]}]),
+    ))
+    .expect("no cover added");
+    // adding a foreign cover is still refused
+    assert_eq!(
+        invalid_path(
+            e.execute(&set_device(
+                DEV_102G1,
+                "assembly.configs",
+                json!([{"order_code": "X2", "covers": [DEV_102G1, DEV_102F2, DEV_101F1]}]),
+            )),
+            "fields.set"
+        ),
+        "/value"
+    );
+}
+
+/// N-FL-2: a child tag whose counter equals its position follows a new position; a frozen tag, a counter
+/// that differed from the position and a non-child tag stay.
+#[test]
+fn attach_moves_the_counter_of_a_child_tag_with_its_position() {
+    let mut e = engine(plc_model());
+    let module = DEV_102G1;
+    let r = e.execute(&valve(module, Some(2), None)).expect("valve");
+    let v: Id<Device> = primary(&r);
+    assert_eq!(row(&e, v).tag.counter, Some(2));
+    e.execute(&attach(module, vec![child(v, Some(3))])).expect("move");
+    assert_eq!((row(&e, v).position, row(&e, v).tag.counter), (Some(3), Some(3)));
+    // a counter that differs from the position is the user's
+    e.execute(&set_device(v, "tag.counter", json!(7)))
+        .expect("counter");
+    e.execute(&attach(module, vec![child(v, Some(4))])).expect("move");
+    assert_eq!((row(&e, v).position, row(&e, v).tag.counter), (Some(4), Some(7)));
+    // a non-child tag keeps its counter
+    e.execute(&attach(module, vec![child(DEV_102F2, Some(1))]))
+        .expect("attach");
+    let before = row(&e, DEV_102F2).tag.counter;
+    e.execute(&attach(module, vec![child(DEV_102F2, Some(5))]))
+        .expect("move");
+    assert_eq!(row(&e, DEV_102F2).tag.counter, before);
+    // a frozen child tag keeps its counter
+    let r = e.execute(&valve(module, Some(8), None)).expect("valve");
+    let w: Id<Device> = primary(&r);
+    e.execute(&set_device(w, "tag.frozen", json!({"text": "Q8"})))
+        .expect("frozen");
+    e.execute(&attach(module, vec![child(w, Some(9))])).expect("move");
+    assert_eq!((row(&e, w).position, row(&e, w).tag.counter), (Some(9), Some(8)));
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // project.supply.set
 
@@ -510,16 +716,31 @@ fn supply_set_edits_one_member() {
         value,
     };
     assert_eq!(invalid_path(e.execute(&set("bogus", json!(1))), c), "/path");
-    assert_eq!(invalid_path(e.execute(&set("phases", json!("x"))), c), "/value");
+    // owner ruling (cycle 16): the electrical members wait for an ADR-0008 amendment
+    for path in ["phases", "u_nom", "earthing", "origin", "origin.ik_max"] {
+        assert_eq!(
+            invalid_path(e.execute(&set(path, json!(1))), c),
+            "/path",
+            "{path}"
+        );
+    }
+    assert_eq!(
+        invalid_path(e.execute(&set("origin.source", json!(5))), c),
+        "/value"
+    );
     not_found(e.execute(&set("origin.source", json!(id::<ExternalRef>(0xdead)))));
+    e.execute(&set("origin.source", Value::Null))
+        .expect("null removes it");
+    let origin = e.model().project().supply.as_ref().and_then(|s| s.origin.clone());
+    assert_eq!(origin.and_then(|o| o.source), None);
 }
 
 #[test]
 fn supply_set_is_rejected_without_a_supply() {
     let mut e = engine(golden_model());
     rejected(e.execute(&SetProjectSupply {
-        path: "phases".into(),
-        value: json!(3),
+        path: "origin.source".into(),
+        value: json!(XREF),
     }));
 }
 

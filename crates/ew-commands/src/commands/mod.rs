@@ -72,7 +72,7 @@ pub use device::{
 };
 pub use edit::{BULK_ABOVE, DeleteSelection};
 pub use fields::{ASPECTS, SETTABLE, SetFields};
-pub use library::EmbedLibraryCopies;
+pub use library::{EmbedLibraryCopies, library_copy_hash};
 pub use page::{CreatePage, DeletePages, PageScope, RenumberPages};
 pub use plc::{BindChannel, CreatePlcConfigProject};
 pub use renumber::{DeviceScope, NumberingScheme, RenumberDevices, RenumberOptions};

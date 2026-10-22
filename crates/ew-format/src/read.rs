@@ -883,18 +883,35 @@ impl Loader<'_> {
     }
 }
 
-/// EW-CORE-014: the `sha256` of a library copy is the hash of its item's compact JSON.
-fn copy_hash_matches(doc: &LibDocument) -> bool {
-    fn check<T: serde::Serialize>(item: &T, claimed: &ew_schema::Sha256) -> bool {
-        serde_json::to_string(item).is_ok_and(|text| sha256(text.as_bytes()) == claimed.0)
+/// The SHA-256 of a library copy's item: the hash of the compact JSON of the item's own members (doc 05
+/// §13.2, EW-CORE-014); `None` for a document of an unknown kind. `ew-commands`' `library.embed` computes
+/// the same value (`ew_commands::commands::library_copy_hash`); an agreement test in `ew-api` keeps the two
+/// equal.
+pub fn library_copy_hash(doc: &LibDocument) -> Option<[u8; 32]> {
+    fn hash<T: serde::Serialize>(item: &T) -> Option<[u8; 32]> {
+        serde_json::to_string(item)
+            .ok()
+            .map(|text| sha256(text.as_bytes()))
     }
     match doc {
-        LibDocument::Part(c) => check(&c.item, &c.sha256),
-        LibDocument::Symbol(c) => check(&c.item, &c.sha256),
-        LibDocument::Fndef(c) => check(&c.item, &c.sha256),
-        LibDocument::Form(c) => check(&c.item, &c.sha256),
-        LibDocument::Unknown(_) => true,
+        LibDocument::Part(c) => hash(&c.item),
+        LibDocument::Symbol(c) => hash(&c.item),
+        LibDocument::Fndef(c) => hash(&c.item),
+        LibDocument::Form(c) => hash(&c.item),
+        LibDocument::Unknown(_) => None,
     }
+}
+
+/// EW-CORE-014: the `sha256` of a library copy is the hash of its item's compact JSON.
+fn copy_hash_matches(doc: &LibDocument) -> bool {
+    let claimed = match doc {
+        LibDocument::Part(c) => &c.sha256,
+        LibDocument::Symbol(c) => &c.sha256,
+        LibDocument::Fndef(c) => &c.sha256,
+        LibDocument::Form(c) => &c.sha256,
+        LibDocument::Unknown(_) => return true,
+    };
+    library_copy_hash(doc) == Some(claimed.0)
 }
 
 #[cfg(test)]

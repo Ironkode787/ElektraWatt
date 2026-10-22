@@ -8,9 +8,10 @@
 //! of the part's `plc.channels` (the part use `plc_module.part_use`, else the first part use whose part
 //! has a channel spec), each `Channel {module, number, kind}` with the ID `v5(module, "channel", number)`
 //! (ADR-0004: instantiated records have v5 IDs), so two branches that add the same module create the same
-//! records. A channel that exists already is kept as it is (its authored data stays). Surplus channels
-//! (a part change to fewer channels) are not removed: that needs the confirmation of FR-PLC-053, which is
-//! not built in v0. Idempotent: a second run finds every channel present.
+//! records. A channel of that module and number that exists already, whatever its ID, is kept as it is (its
+//! authored data stays). Surplus channels (a part change to fewer channels) are not removed: that needs
+//! the confirmation of FR-PLC-053, which is not built in v0. Idempotent: a second run finds every channel
+//! present.
 
 use ew_ids::v5;
 use ew_mltext::MlText;
@@ -69,10 +70,22 @@ impl Normaliser for ChannelInstantiation {
             let Some(spec) = spec else {
                 continue;
             };
-            for number in 0..spec.count {
+            // existence is keyed on (module, number), not on the v5 ID: a module pasted or imported with
+            // other channel IDs keeps its channels and gets no second channel of a number
+            let present: std::collections::BTreeSet<u16> = tx
+                .iter::<Channel>()
+                .into_iter()
+                .filter(|c| c.module == dev.id)
+                .map(|c| c.number)
+                .collect();
+            for number in (0..spec.count).filter(|n| !present.contains(n)) {
                 let id = v5::plc_channel_id(dev.id, number);
-                if tx.exists::<Channel>(id) {
-                    continue;
+                if let Some(other) = tx.get::<Channel>(id) {
+                    return tx.reject(format!(
+                        "channel {number} of module {} would take the ID {id}, which channel {} of module {} \
+                         holds",
+                        dev.id, other.number, other.module
+                    ));
                 }
                 tx.insert(Channel {
                     id,

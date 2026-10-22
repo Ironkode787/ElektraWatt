@@ -29,7 +29,8 @@ use crate::tx::TxBuilder;
 /// - its `id` is the copy identity `v5(NS_LIBCOPY, library_id ‖ item_id)` (ADR-0004 amendment 2; a "keep
 ///   both" copy belongs to a paste, not to embedding);
 /// - its `library_id` is not the project's: a project-local item is created in the project, not embedded;
-/// - its `sha256` is the hash of the item's own members (the rule of EW-CORE-014), so the lineage is true.
+/// - its `sha256` is the hash of the item's own members (the rule of EW-CORE-014): the copy is consistent
+///   with the hash it claims (the hash does not prove where the copy came from).
 ///
 /// Rejected: a copy of an item the project has embedded already, at any version ("update from library" is
 /// a previewed command of its own, FR-PRT-014), and the same item twice in `copies`. The closure (a part's
@@ -52,10 +53,26 @@ struct Lineage {
     computed: Option<[u8; 32]>,
 }
 
-fn lineage<T: Serialize>(c: &LibCopy<T>) -> Lineage {
-    let computed = serde_json::to_string(&c.item)
-        .ok()
-        .map(|text| sha2::Sha256::digest(text.as_bytes()).into());
+/// The SHA-256 of a library copy's item: the hash of the compact JSON of the item's own members (doc 05
+/// §13.2, the rule of EW-CORE-014); `None` for a document of an unknown kind. The format reader computes
+/// the same value (`ew_format::library_copy_hash`); an agreement test in `ew-api` keeps the two equal.
+pub fn library_copy_hash(doc: &LibDocument) -> Option<[u8; 32]> {
+    fn hash<T: Serialize>(item: &T) -> Option<[u8; 32]> {
+        serde_json::to_string(item)
+            .ok()
+            .map(|text| sha2::Sha256::digest(text.as_bytes()).into())
+    }
+    match doc {
+        LibDocument::Part(c) => hash(&c.item),
+        LibDocument::Symbol(c) => hash(&c.item),
+        LibDocument::Fndef(c) => hash(&c.item),
+        LibDocument::Form(c) => hash(&c.item),
+        LibDocument::Unknown(_) => None,
+    }
+}
+
+fn lineage<T: Serialize>(c: &LibCopy<T>, doc: &LibDocument) -> Lineage {
+    let computed = library_copy_hash(doc);
     Lineage {
         id: c.id.cast(),
         library: c.library_id.as_uuid(),
@@ -88,10 +105,10 @@ impl Command for EmbedLibraryCopies {
             let doc = LibDocument::from_value(value.clone())
                 .map_err(|e| CmdError::invalid_params(Self::NAME, at.clone(), e.to_string()))?;
             let l = match &doc {
-                LibDocument::Part(c) => lineage(c),
-                LibDocument::Symbol(c) => lineage(c),
-                LibDocument::Fndef(c) => lineage(c),
-                LibDocument::Form(c) => lineage(c),
+                LibDocument::Part(c) => lineage(c, &doc),
+                LibDocument::Symbol(c) => lineage(c, &doc),
+                LibDocument::Fndef(c) => lineage(c, &doc),
+                LibDocument::Form(c) => lineage(c, &doc),
                 LibDocument::Unknown(_) => {
                     return Err(CmdError::invalid_params(
                         Self::NAME,
@@ -123,8 +140,8 @@ impl Command for EmbedLibraryCopies {
                     Self::NAME,
                     format!("{at}/sha256"),
                     format!(
-                        "{} is not the hash of the item's members (EW-CORE-014); the copy's lineage would be \
-                         false",
+                        "{} is not the hash of the item's members (EW-CORE-014); the copy is not consistent \
+                         with the hash it claims",
                         l.claimed
                     ),
                 ));

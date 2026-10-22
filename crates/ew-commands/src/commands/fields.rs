@@ -234,7 +234,10 @@ impl Command for SetFields {
 }
 
 /// Doc 03 §7: an assembly configuration covers the assembly device itself or its descendants, each named
-/// explicitly. A covered device outside that subtree is refused at `/value`.
+/// explicitly. A covered device outside that subtree that **this edit adds** (absent from every
+/// configuration of the base row) is refused at `/value`; a cover that was out of scope already (a child
+/// moved away by `assembly.attach`) is a check finding (decision log ID-371, FT-260), never a refusal, so an
+/// unrelated assembly edit such as `assembly.bom_basis` still commits.
 fn refuse_foreign_covers(tx: &TxBuilder<'_>, device: ew_ids::Id<Device>) -> Result<(), CmdError> {
     let Some(dev) = tx.get::<Device>(device) else {
         return Ok(());
@@ -242,8 +245,14 @@ fn refuse_foreign_covers(tx: &TxBuilder<'_>, device: ew_ids::Id<Device>) -> Resu
     let Some(assembly) = &dev.aspects.assembly else {
         return Ok(());
     };
+    let before: std::collections::BTreeSet<ew_ids::Id<Device>> = tx
+        .base_row(&(Kind::Device, device.cast()))
+        .and_then(|r| r.get::<Device>().cloned())
+        .and_then(|d| d.aspects.assembly.clone())
+        .map(|a| a.configs.iter().flat_map(|c| c.covers.iter().copied()).collect())
+        .unwrap_or_default();
     for config in &assembly.configs {
-        for covered in config.covers.iter() {
+        for covered in config.covers.iter().filter(|c| !before.contains(*c)) {
             // walk up from the covered device; the chain is acyclic (EW-INV-009), bounded anyway
             let mut at = Some(*covered);
             let mut steps = 0usize;

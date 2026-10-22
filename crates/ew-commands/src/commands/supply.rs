@@ -15,21 +15,15 @@ use crate::meta::CommandMeta;
 use crate::tx::TxBuilder;
 
 /// The member paths of the supply that `project.supply.set` edits (the `SupplySpec` JSON form).
-pub const SETTABLE_SUPPLY: &[&str] = &[
-    "phases",
-    "neutral",
-    "pe",
-    "earthing",
-    "u_nom",
-    "frequency",
-    "origin",
-    "origin.upstream_rating",
-    "origin.ik_max",
-    "origin.source",
-];
+///
+/// v0 (owner ruling, cycle 16): only `origin.source`, the external reference the supply comes from. The
+/// electrical members (phases, earthing, nominal voltage, frequency, upstream rating, short-circuit current)
+/// change derived values project-wide; they wait for an ADR-0008 amendment that makes them Bulk with a
+/// preview and semantic validation (ADR-0008 amendment 3).
+pub const SETTABLE_SUPPLY: &[&str] = &["origin.source"];
 
-/// `project.supply.set` (`SetProjectSupply`): sets one member of the project's supply, such as its origin,
-/// the external reference the supply comes from ("J-E-206-L", doc 20 §4.2).
+/// `project.supply.set` (`SetProjectSupply`): sets one member of the project's supply; in v0 only its
+/// origin, the external reference the supply comes from ("J-E-206-L", doc 20 §4.2).
 ///
 /// `path` is one of [`SETTABLE_SUPPLY`] (else invalid at `/path`); `value` is the member's JSON form, read
 /// back into the supply type (a value it does not accept is invalid at `/value`); `null` removes an
@@ -39,7 +33,7 @@ pub const SETTABLE_SUPPLY: &[&str] = &[
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SetProjectSupply {
-    /// The dotted member path.
+    /// The dotted member path; v0: `origin.source`.
     pub path: String,
     /// The new value; `null` removes an optional member.
     pub value: Value,

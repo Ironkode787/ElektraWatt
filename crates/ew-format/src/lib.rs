@@ -102,6 +102,6 @@ pub use path::{
     FilePath, LIB_JSON_DIRS, LOCK, MANIFEST, MAX_INTERNAL_PATH, MAX_PATH, OpaqueKind, PathClass, PathError,
     ROOT_FILES, RecordFile, STALE_LOCK_PREFIX, TEMP_INFIX, classify,
 };
-pub use read::{EntryKind, Kept, KeptDocument, KeptLine, Loaded, ReadPlan, load, plan};
+pub use read::{EntryKind, Kept, KeptDocument, KeptLine, Loaded, ReadPlan, library_copy_hash, load, plan};
 pub use version::{Access, reader_access};
 pub use write::{manifest_of, project_files, render_records};

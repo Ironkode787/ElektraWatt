@@ -99,7 +99,8 @@ impl Command for CreatePlcConfigProject {
 ///
 /// Sets `Channel.binding` to the CP (`{"cp": {"function", "idx"}}`: a module pin, or the internal CP of
 /// the coil a valve-terminal channel serves) or, with `endpoint: null`, removes it. The channel and the
-/// function exist ([`CmdError::NotFound`]); the CP index must be a CP of the function's FnDef copy (else
+/// function exist ([`CmdError::NotFound`]); the function must belong to the channel's module or to one of
+/// its descendants (else rejected); the CP index must be a CP of the function's FnDef copy (else
 /// rejected); a junction or a point on a connection is not a signal CP (at `/endpoint`). Another channel
 /// bound to the same CP is unbound in the same transaction (a CP is in at most one channel, FR-PLC-005),
 /// and the outcome's notices name it. An explicit binding wins over the solenoid-position map (N2, which
@@ -134,10 +135,31 @@ impl Command for BindChannel {
                 ));
             }
         };
-        tx.require::<Channel>(self.channel)?;
+        let channel = tx.require::<Channel>(self.channel)?;
         let mut notices = Vec::new();
         if let Some((function, idx)) = binding {
             let f = tx.require::<Function>(function)?;
+            // owner ruling (cycle 16): the signal CP lies on the module itself (a pin) or on one of its
+            // descendants (the coil of a valve on the module); anything else is refused
+            let mut at = f.device;
+            let mut steps = 0usize;
+            let inside = loop {
+                match at {
+                    Some(d) if d == channel.module => break true,
+                    Some(d) if steps <= 4096 => {
+                        at = tx.get::<Device>(d).and_then(|x| x.parent);
+                        steps += 1;
+                    }
+                    _ => break false,
+                }
+            };
+            if !inside {
+                return tx.reject(format!(
+                    "function {function} is not on module {} or one of its children; a channel binds a pin of \
+                     its module or the coil of a valve on it",
+                    channel.module
+                ));
+            }
             let def = tx.require::<LibCopy<FnDef>>(f.def)?;
             if def.item.cps.get(&idx).is_none() {
                 return tx.reject(format!(

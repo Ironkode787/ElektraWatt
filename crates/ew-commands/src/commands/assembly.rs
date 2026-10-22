@@ -74,8 +74,9 @@ fn taken_positions(
 /// ([`CmdError::NotFound`]). Rejected: a position 0 (positions are 1-based, at `/children/i/position`); two
 /// children of the command at one position; a position another child of the parent already holds (no
 /// push insert in v0: move that child first); a child that is the parent's ancestor (the assembly graph is
-/// acyclic, EW-INV-009). A child that has another parent moves to this one. The tag of a child is not
-/// touched: a child tag (`tag.scheme = child`) is set with `fields.set`, a valve is added with `valve.add`.
+/// acyclic, EW-INV-009). A child that has another parent moves to this one. A child tag (`tag.scheme =
+/// child`, not frozen) whose counter equals its old position follows the new position (N-FL-2, doc 11
+/// §4.2); any other tag is not touched. A child tag is set with `fields.set`, a valve added with `valve.add`.
 /// The generated assembly overviews, slots, break marks and the PLC overview follow from the tree (they are
 /// derived). Outcome: the parent.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -157,6 +158,15 @@ impl Command for AttachChildren {
         for c in &self.children {
             let (parent, position) = (self.parent, c.position);
             tx.update::<Device>(c.device, |d| {
+                // N-FL-2 (doc 11 §3.2, §4.2): a child tag keeps its counter equal to its position; a frozen
+                // tag or a counter that differed from the old position is the user's and stays
+                let follows = d.tag.scheme == TagScheme::Child
+                    && d.tag.frozen.is_none()
+                    && d.tag.counter.is_some()
+                    && d.tag.counter == d.position;
+                if follows && position.is_some() {
+                    d.tag.counter = position;
+                }
                 d.parent = Some(parent);
                 d.position = position;
             })?;

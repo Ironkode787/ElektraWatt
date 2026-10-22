@@ -322,18 +322,20 @@ the reference drawings show (`allowed_rep_types`; AC-15 path (b), [20](20-golden
 *As built (cycle 16, lane A; FT-169, FT-270, FT-167).* Seven commands join, all `Edit`, `Preview`, Interactive,
 undoable, with committed schemas; 36 commands are registered. `assembly.attach` (`AttachChildren`: parent and
 children with optional 1-based positions; sets `Device.parent`/`position`; a held position, two children at one
-position or an ancestor as child are refused, no push insert); `valve.add` ([11](11-fluid-power.md) §4.3: module,
+position or an ancestor as child are refused, no push insert; a child tag whose counter equals its old position
+follows the new position, N-FL-2); `valve.add` ([11](11-fluid-power.md) §4.3: module,
 position (default the lowest free), part use, letter (default Q), FnDef of the main function, structure; the valve
 gets the child tag scheme with its counter equal to its position); `device.link` ([11](11-fluid-power.md) §4.3:
 from, to, kind; no self-link, no duplicate); `plc.config_project.create` (name unique, profile `id@version`,
-optional CPU); `plc.bind_channel` ([10](10-plc-and-bus.md) §3.9: channel and a CP of the function's FnDef, or
-`null` to unbind; another channel on the same CP is unbound in the same transaction, FR-PLC-005);
-`project.supply.set` (one whitelisted member path of the supply, such as `origin.source`; a project without a
-supply is refused); `library.embed` (library documents of kind part, symbol, fndef or form, each with its lineage:
-the ID must be the copy identity `v5(NS_LIBCOPY, library_id ‖ item_id)`, the `sha256` must be the item's hash, a
+optional CPU); `plc.bind_channel` ([10](10-plc-and-bus.md) §3.9: channel and a CP of the function's FnDef on the
+channel's module or one of its descendants, or `null` to unbind; another channel on the same CP is unbound in the
+same transaction, FR-PLC-005); `project.supply.set` (v0: only `origin.source`, by owner ruling; the electrical
+members wait for an ADR-0008 amendment that makes them Bulk with a preview; a project without a supply is
+refused); `library.embed` (library documents of kind part, symbol, fndef or form, each with its lineage: the ID
+must be the copy identity `v5(NS_LIBCOPY, library_id ‖ item_id)`, the `sha256` must be consistent with the item, a
 project-local item or an item already embedded is refused). `fields.set` gains `tag.scheme` and the device aspects
-`assembly`, `plc_station`, `plc_module` (as a whole or member by member; an assembly configuration covers only the
-assembly device or its descendants). Normaliser row 3 (N1) is built (§3.2). The golden builder of AC-15 path (b)
+`assembly`, `plc_station`, `plc_module` (as a whole or member by member; a cover that the edit adds outside the
+assembly device's subtree is refused, one already out of scope is a check, ID-371). Normaliser row 3 (N1) is built (§3.2). The golden builder of AC-15 path (b)
 builds the valve-terminal assembly, the PLC records and the supply origin with them.
 
 | Command (`NAME`) | Parameters (abridged) | Cost | Notes |
