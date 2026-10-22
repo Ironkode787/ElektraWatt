@@ -243,6 +243,8 @@ pub struct TxBuilder<'a> {
     scratch: Option<Model>,
     /// The keys written since `scratch` was last brought up to date.
     stale: BTreeSet<AnyKey>,
+    /// The notices of the normalisers ([`TxBuilder::notice`]), in first-emission order, without repeats.
+    notices: Vec<String>,
 }
 
 impl std::fmt::Debug for TxBuilder<'_> {
@@ -267,7 +269,23 @@ impl<'a> TxBuilder<'a> {
             source: "",
             scratch: None,
             stale: BTreeSet::new(),
+            notices: Vec::new(),
         }
+    }
+
+    /// Records a notice for the command's outcome (`Outcome::notices`): what a normaliser left undone and
+    /// why (a coil that stays unbound, surplus channels kept). A notice equal to one already recorded is
+    /// dropped, so a normaliser that runs in several passes reports a condition once.
+    pub fn notice(&mut self, text: impl Into<String>) {
+        let text = text.into();
+        if !self.notices.contains(&text) {
+            self.notices.push(text);
+        }
+    }
+
+    /// Takes the recorded notices.
+    pub(crate) fn take_notices(&mut self) -> Vec<String> {
+        std::mem::take(&mut self.notices)
     }
 
     /// Names the command or normaliser now writing, for [`TxBuilder::reject`].

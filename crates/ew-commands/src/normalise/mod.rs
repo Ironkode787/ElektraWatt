@@ -9,11 +9,13 @@
 //! | # | ID | Effect |
 //! |---|---|---|
 //! | 2 | `cp_instantiation` | No-op recorder: CPs are derived from the FnDef or part pattern and only overrides persist (doc 06 §3.2 row 2), so there is nothing to store |
-//! | 3 | `channel_instantiation` | N1: a new module, or a device that gained the `plc_module` aspect or changed its parts, gets the channels of its part data with v5 IDs (doc 10 §3.3; surplus channels stay) |
+//! | 3 | `channel_instantiation` | N1: a new module, or a device that gained the `plc_module` aspect or changed its parts, gets the channels of its part data with v5 IDs and the part's channel kind (doc 10 §3.3; surplus channels stay until `plc.set_module_part` removes them after its preview) |
 //! | 4 | `online_numbering` | Gives a placed numbered device without a counter the next free counter of its page scope, and a device whose page-based tag collides (after a move of its main representation) the next free one (FR-NUM-007, FR-NUM-029) |
 //! | 7 | `connection_split` | A new representation whose two CPs lie on one segment of a connection's route splits that connection (FR-CON-008, doc 06 §5.3) |
 //! | 8 | `junction_cleanup` | A junction left with two connections dissolves into one; with one, it is removed together with that connection; with none, it is removed (CI-04) |
 //! | 12 | `wire_numbering` | Online wire numbering is off in v0 (no scheme before WP-S1.11): every new connection is `NumberSpec::Unassigned` |
+//! | 13 | `solenoid_binding` | N2: a valve added to or moved within a module whose part has a solenoid-position map, or a new channel of such a module, binds the declared coil to the channel the map assigns when both are free (doc 10 §3.3, FR-PLC-051) |
+//! | 14 | `module_pin_binding` | N3: a new unbound channel of a module whose part has a channel → pin map binds the module pin (doc 10 §3.3) |
 //!
 //! A pass runs every normaliser in order; a normaliser whose input another one creates later in the same
 //! pass sees it in the next pass. The pipeline runs passes until one changes nothing. [`MAX_PASSES`]
@@ -22,18 +24,22 @@
 //! ([`crate::CmdError::Internal`]). Every normaliser breaks ties by ID and is idempotent on its own
 //! output.
 
-mod channel_instantiation;
+pub(crate) mod channel_instantiation;
 mod connection_split;
 mod cp_instantiation;
 mod junction_cleanup;
+mod module_pin_binding;
 mod online_numbering;
+mod solenoid_binding;
 mod wire_numbering;
 
 pub use channel_instantiation::ChannelInstantiation;
 pub use connection_split::{ConnectionSplit, split_connection};
 pub use cp_instantiation::CpInstantiation;
 pub use junction_cleanup::JunctionCleanup;
+pub use module_pin_binding::ModulePinBinding;
 pub use online_numbering::OnlineNumbering;
+pub use solenoid_binding::SolenoidBinding;
 pub use wire_numbering::WireNumbering;
 
 use crate::error::CmdError;
@@ -50,13 +56,15 @@ pub trait Normaliser: Send + Sync {
 }
 
 /// The registry order within one pass: the IDs of [`registry`], asserted by a test.
-pub const ORDER: [&str; 6] = [
+pub const ORDER: [&str; 8] = [
     "cp_instantiation",
     "channel_instantiation",
     "online_numbering",
     "connection_split",
     "junction_cleanup",
     "wire_numbering",
+    "solenoid_binding",
+    "module_pin_binding",
 ];
 
 /// The maximum number of productive passes (passes that change something); one confirming pass follows.
@@ -71,6 +79,8 @@ pub fn registry() -> Vec<Box<dyn Normaliser>> {
         Box::new(ConnectionSplit),
         Box::new(JunctionCleanup),
         Box::new(WireNumbering),
+        Box::new(SolenoidBinding),
+        Box::new(ModulePinBinding),
     ]
 }
 

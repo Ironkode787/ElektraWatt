@@ -159,6 +159,11 @@ pub const ARMS: &[Arm] = &[
         build: plc_config_project_create,
     },
     Arm {
+        command: "plc.set_module_part",
+        weight: 1,
+        build: plc_set_module_part,
+    },
+    Arm {
         command: "potential.define",
         weight: 3,
         build: potential_define,
@@ -2186,6 +2191,59 @@ fn plc_bind_channel(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                         .then_some(())
                         .ok_or_else(|| format!("{n} channels are bound to the same CP"))
                 }),
+            )
+        }
+    }
+}
+
+/// `plc.set_module_part` (Bulk: the runner previews and commits it). A well-formed step sets a module's
+/// part to any part copy (or keeps it) and leaves no channel of the module at or above the new part's
+/// channel count: a part without channels removes all eight channels of a golden module with their bindings.
+fn plc_set_module_part(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let m = rng.pick(&live.modules)?.clone();
+    match rng.below(8) {
+        // Refused: the module does not exist.
+        0 => Some(Step::cmd("plc.set_module_part", json!({"module": rng.uuid()})).refuse()),
+        // Refused: the part copy does not exist.
+        1 => Some(
+            Step::cmd(
+                "plc.set_module_part",
+                json!({"module": m, "parts": [{"part": {"copy": rng.uuid()}, "qty": "1"}]}),
+            )
+            .refuse(),
+        ),
+        k => {
+            let mut p = json!({"module": m});
+            if k > 2 {
+                p["parts"] = json!([part_use(&live.parts, rng)?]);
+            }
+            let module = m.clone();
+            Some(
+                Step::cmd("plc.set_module_part", p)
+                    .accept()
+                    .counts(&[(Table::Devices, 0)])
+                    .check(move |_, after| {
+                        let id = typed::<ew_schema::Device>(&module).ok_or("a device ID")?;
+                        let has_aspect = after
+                            .devices()
+                            .get(id)
+                            .is_some_and(|d| d.aspects.plc_module.is_some());
+                        let count = if has_aspect {
+                            ew_derive::module_part(after, id)
+                                .and_then(|(_, s)| s.channels.map(|c| c.count))
+                                .unwrap_or(0)
+                        } else {
+                            0
+                        };
+                        let surplus = after
+                            .table::<ew_schema::Channel>()
+                            .iter()
+                            .filter(|(_, c)| c.module == id && c.number >= count)
+                            .count();
+                        (surplus == 0)
+                            .then_some(())
+                            .ok_or_else(|| format!("{surplus} surplus channels remain"))
+                    }),
             )
         }
     }

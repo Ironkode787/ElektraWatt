@@ -547,8 +547,9 @@ fn plc_model_with(extra: Vec<LibCopy<Part>>) -> Model {
 }
 
 /// A part change on a module (the `triggered` branch) instantiates the new part's extra channels; the
-/// channels beyond a smaller part stay (FR-PLC-053's confirmation is not built), and an existing channel
-/// keeps its authored data.
+/// channels beyond a smaller part stay and are named in a notice (FR-PLC-053: only
+/// `plc.set_module_part`, after its preview, removes them; `cmd_plc_normalisers.rs`), and an
+/// existing channel keeps its authored data.
 #[test]
 fn a_part_change_adds_channels_keeps_surplus_and_keeps_authored_data() {
     const WIDE: Id<Part> = id(0x59);
@@ -582,6 +583,14 @@ fn a_part_change_adds_channels_keeps_surplus_and_keeps_authored_data() {
         .expect("narrower part");
     assert!(created::<Channel>(&r, Kind::Channel).is_empty());
     assert_eq!(e.model().table::<Channel>().iter().count(), 16);
+    assert!(
+        r.outcome
+            .notices
+            .iter()
+            .any(|n| n.contains("12 surplus channel(s)")),
+        "{:?}",
+        r.outcome.notices
+    );
     // an edit that changes neither the aspect nor the parts does not trigger N1
     let r = e
         .execute(&set_device(DEV_102F2, "function_text", json!("Valves")))

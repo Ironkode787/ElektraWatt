@@ -40,6 +40,7 @@
 //! | `device.link` | [`LinkDevices`] | Interactive |
 //! | `plc.config_project.create` | [`CreatePlcConfigProject`] | Interactive |
 //! | `plc.bind_channel` | [`BindChannel`] | Interactive |
+//! | `plc.set_module_part` | [`SetModulePart`] | Bulk |
 //! | `project.supply.set` | [`SetProjectSupply`] | Interactive |
 //! | `library.embed` | [`EmbedLibraryCopies`] | Interactive |
 //! | `revision.create` | [`CreateRevision`] | Interactive |
@@ -76,7 +77,7 @@ pub use edit::{BULK_ABOVE, DeleteSelection};
 pub use fields::{ASPECTS, SETTABLE, SetFields};
 pub use library::{EmbedLibraryCopies, library_copy_hash};
 pub use page::{CreatePage, DeletePages, PageScope, RenumberPages};
-pub use plc::{BindChannel, CreatePlcConfigProject};
+pub use plc::{BindChannel, CreatePlcConfigProject, SetModulePart};
 pub use renumber::{DeviceScope, NumberingScheme, RenumberDevices, RenumberOptions};
 pub use revision::{CreateRevision, NewRevisionState, RevisionPageNote};
 pub use settings::{SETTABLE_SETTINGS, SetProjectSettings, SettableSetting};
@@ -125,6 +126,7 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<LinkDevices>();
     r.register::<CreatePlcConfigProject>();
     r.register::<BindChannel>();
+    r.register::<SetModulePart>();
     r.register::<SetProjectSupply>();
     r.register::<EmbedLibraryCopies>();
     r.register::<CreateRevision>();

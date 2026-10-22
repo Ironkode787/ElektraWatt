@@ -155,6 +155,7 @@ fn examples() -> Vec<(&'static str, Value)> {
             "plc.bind_channel",
             json!({"channel": DEV_T1.to_string(), "endpoint": fn_a.clone()}),
         ),
+        ("plc.set_module_part", json!({"module": DEV_102F2.to_string()})),
         (
             "project.supply.set",
             json!({"path": "origin.source", "value": null}),
@@ -210,7 +211,7 @@ fn every_registered_command_has_an_example() {
     let registry = CommandRegistry::builtin();
     let registered: BTreeSet<&str> = registry.commands().map(|c| c.meta().name).collect();
     let covered: BTreeSet<&str> = examples().iter().map(|(n, _)| *n).collect();
-    assert_eq!(registered.len(), 37);
+    assert_eq!(registered.len(), 38);
     assert_eq!(registered, covered);
     assert_eq!(examples().len(), covered.len(), "one example per command");
 }

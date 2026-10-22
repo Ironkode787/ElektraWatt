@@ -185,8 +185,9 @@ impl Command for AttachChildren {
 /// …). The module, the part copy and the FnDef copy must exist. Rejected: position 0 (at `/position`); a
 /// requested position another child of the module holds (no push insert in v0). Not in v0: the coil
 /// functions from the part's `solenoids` (N-FL-1; give `fndef`), the slot-count bound of the module's part
-/// (EW-FL-003 is a check) and the coil-to-channel binding by the part's position map (N2: bind with
-/// `plc.bind_channel`). The state (spare valves) and the function text are set with `fields.set`.
+/// (EW-FL-003 is a check). The coil-to-channel binding follows from the module part's solenoid-position
+/// map through normaliser N2 (`solenoid_binding`) when the module has channels; `plc.bind_channel` binds
+/// otherwise. The state (spare valves) and the function text are set with `fields.set`.
 /// Outcome: the valve.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

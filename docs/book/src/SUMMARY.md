@@ -39,6 +39,7 @@
     - [`page.renumber`](reference/commands/page.renumber.md)
     - [`plc.bind_channel`](reference/commands/plc.bind_channel.md)
     - [`plc.config_project.create`](reference/commands/plc.config_project.create.md)
+    - [`plc.set_module_part`](reference/commands/plc.set_module_part.md)
     - [`potential.define`](reference/commands/potential.define.md)
     - [`project.settings.set`](reference/commands/project.settings.set.md)
     - [`project.supply.set`](reference/commands/project.supply.set.md)

@@ -11,8 +11,8 @@ function exist (`CmdError::NotFound`); the function must belong to the channel's
 its descendants (else rejected); the CP index must be a CP of the function's FnDef copy (else
 rejected); a junction or a point on a connection is not a signal CP (at `/endpoint`). Another channel
 bound to the same CP is unbound in the same transaction (a CP is in at most one channel, FR-PLC-005),
-and the outcome's notices name it. An explicit binding wins over the solenoid-position map (N2, which
-is not built in v0). Outcome: the channel.
+and the outcome's notices name it. An explicit binding wins over the solenoid-position map: N2 never
+rebinds a coil that a channel binds, nor a channel that is bound. Outcome: the channel.
 
 ## Registry entry
 

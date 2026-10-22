@@ -1,0 +1,98 @@
+{
+  "$defs": {
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "Dec3": {
+      "description": "A canonical decimal string: at most three fraction digits, no trailing fraction zeros, no leading zeros, no plus sign, no \"-0\", no exponent, no white space, no unit (doc 05 §3.2). The pattern bounds the integer part to 16 digits; the exact i64 range of the thousandths (about 9.2 x 10^15) is checked by the reader.",
+      "maxLength": 21,
+      "pattern": "^(?:0|-?[1-9][0-9]{0,15}(?:\\.[0-9]{0,2}[1-9])?|-?0\\.[0-9]{0,2}[1-9])$",
+      "type": "string"
+    },
+    "Ident": {
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "PartRef": {
+      "additionalProperties": true,
+      "description": "A part on a device (doc 03 §7): the embedded copy and an optional part variant (FR-PRT-003).",
+      "properties": {
+        "copy": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The copy ID of the embedded part, `v5(NS_LIBCOPY, library ‖ item)`."
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A variant key of the part."
+        }
+      },
+      "required": [
+        "copy"
+      ],
+      "type": "object"
+    },
+    "PartUse": {
+      "additionalProperties": true,
+      "description": "A part use on a device (ADR-0006): the part and its quantity in the part's order unit.",
+      "properties": {
+        "part": {
+          "$ref": "#/$defs/PartRef",
+          "description": "The part."
+        },
+        "qty": {
+          "$ref": "#/$defs/Dec3",
+          "description": "The quantity in the part's order unit (pieces, metres, sets)."
+        }
+      },
+      "required": [
+        "part",
+        "qty"
+      ],
+      "type": "object"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`plc.set_module_part` (`SetModulePart`, FR-PLC-053, doc 10 §3.3 N1, §8 item 3): changes a module's part\nand removes the channels the new part no longer has, after the confirmation that lists them.\n\nSets `Device.parts` to `parts` (absent: the parts stay as they are) and deletes the module's channels\nnumbered at or above the channel count of the resulting PLC section (the part use named by\n`plc_module.part_use`, else the first part use whose part has a PLC section; a device without the\n`plc_module` aspect, or whose part has no channel spec, has a count of 0). Their bindings, symbols and\ncomments are members of the channel record and go with it; no other record refers to a channel, and\nexchange records do not exist yet (doc 10 §4). Normaliser N1 then creates the missing channels and applies\nthe part's channel kind, as for any part change.\n\n**Bulk:** it always runs as a preview first (ADR-0008), and committing the preview is FR-PLC-053's\nconfirmation: the preview's diff lists every deleted channel, and its outcome has one notice per channel\nwith its number, binding and symbol. `fields.set` on `parts` stays the interactive way to change a part:\nit never removes a channel, and N1 names the surplus channels it leaves, which this command without\n`parts` removes. Rejected: a part copy that does not exist and a module that does not exist\n([`CmdError::NotFound`]). A module whose parts and channels need no change gives an empty transaction,\nwhich commits nothing. Undoable as one step. Outcome: the module.",
+  "properties": {
+    "module": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The module device."
+    },
+    "parts": {
+      "description": "The module's new part uses (the whole list, as `fields.set` on `parts` takes it); absent: the parts\nstay and only the surplus channels are removed.",
+      "items": {
+        "$ref": "#/$defs/PartUse"
+      },
+      "type": [
+        "array",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "module"
+  ],
+  "title": "plc.set_module_part",
+  "type": "object"
+}

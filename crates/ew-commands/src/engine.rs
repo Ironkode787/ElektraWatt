@@ -362,8 +362,14 @@ impl Engine {
         let base = &self.model;
         let mut tx = TxBuilder::new(base, &mut *self.ids);
         tx.set_source(meta.name);
-        let outcome = cmd.run(&mut tx)?;
+        let mut outcome = cmd.run(&mut tx)?;
         let passes = normalise(&mut tx, &self.normalisers)?;
+        // the normalisers' notices follow the command's own
+        for notice in tx.take_notices() {
+            if !outcome.notices.contains(&notice) {
+                outcome.notices.push(notice);
+            }
+        }
         let (ops, read_set, created) = tx.finish();
         let candidate = if ops.is_empty() {
             base.clone()

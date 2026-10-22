@@ -269,6 +269,17 @@
     {
       "aliases": [],
       "confirmation": "none",
+      "cost": "bulk",
+      "exposure": "edit",
+      "name": "plc.set_module_part",
+      "params_version": 1,
+      "schema": "plc.set_module_part.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
       "name": "potential.define",
