@@ -264,11 +264,11 @@ jobs:
       # because the build and run jobs check out to the same workspace path on windows-2025.
       - name: cargo nextest archive (all features)
         shell: bash
-        run: cargo nextest archive --workspace --all-features --locked --archive-file nextest-archive.tar.zst
+        run: cargo nextest archive --workspace --all-features --locked --archive-file ${{ runner.temp }}/nextest-archive.tar.zst
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: nextest-archive-windows
-          path: nextest-archive.tar.zst
+          path: ${{ runner.temp }}/nextest-archive.tar.zst
           if-no-files-found: error
           retention-days: 1
           compression-level: 0
@@ -299,6 +299,9 @@ jobs:
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: nextest-archive-windows
+          # Outside the checkout: the licence-map test walks the working tree and flagged the archive in the first
+          # split run (ci run 39846775852, test-windows-1).
+          path: ${{ runner.temp }}/nextest-archive
       # Half 1 of 2 of the all-features suite (FT-353). nextest partitions by test, so the acceptance tests and the
       # command fuzzer, which belong to the all-features run unfiltered, each run once in total, in one partition.
       # The xtask tests run `cargo metadata`, which needs the registry sources.
@@ -307,7 +310,7 @@ jobs:
         run: cargo fetch --locked
       - name: cargo nextest (all features, partition 1/2)
         shell: bash
-        run: cargo nextest run --archive-file nextest-archive.tar.zst --workspace-remap . --partition count:1/2 --profile ci
+        run: cargo nextest run --archive-file ${{ runner.temp }}/nextest-archive/nextest-archive.tar.zst --workspace-remap . --partition count:1/2 --profile ci
       # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
       - name: failed tests as annotations
         if: failure()
@@ -359,6 +362,9 @@ jobs:
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: nextest-archive-windows
+          # Outside the checkout: the licence-map test walks the working tree and flagged the archive in the first
+          # split run (ci run 39846775852, test-windows-1).
+          path: ${{ runner.temp }}/nextest-archive
       # Half 2 of 2 of the all-features suite (FT-353). nextest partitions by test, so the acceptance tests and the
       # command fuzzer, which belong to the all-features run unfiltered, each run once in total, in one partition.
       # The xtask tests run `cargo metadata`, which needs the registry sources.
@@ -367,7 +373,7 @@ jobs:
         run: cargo fetch --locked
       - name: cargo nextest (all features, partition 2/2)
         shell: bash
-        run: cargo nextest run --archive-file nextest-archive.tar.zst --workspace-remap . --partition count:2/2 --profile ci
+        run: cargo nextest run --archive-file ${{ runner.temp }}/nextest-archive/nextest-archive.tar.zst --workspace-remap . --partition count:2/2 --profile ci
       # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
       - name: failed tests as annotations
         if: failure()
