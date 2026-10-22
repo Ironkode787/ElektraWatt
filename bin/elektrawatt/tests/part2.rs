@@ -585,6 +585,8 @@ fn the_part_two_transcripts_are_deterministic() {
 /// The path of the `elektrawatt` binary under test. nextest sets `NEXTEST_BIN_EXE_elektrawatt` at run time (the binaries of a
 /// `--archive-file` run are unpacked elsewhere than the compile-time path, FT-353); a plain `cargo test` falls back
 /// to the compile-time path.
+// Allowed: the program boundary of a test — nextest's binary path is read once, never persisted or printed.
+#[allow(clippy::disallowed_methods)]
 fn bin_exe() -> std::path::PathBuf {
     std::env::var_os("NEXTEST_BIN_EXE_elektrawatt")
         .map(std::path::PathBuf::from)

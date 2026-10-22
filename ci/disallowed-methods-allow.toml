@@ -12,7 +12,17 @@
 
 [[allow]]
 crate = "elektrawatt"
+item = "fn bin_exe"
+count = 3
+
+[[allow]]
+crate = "elektrawatt"
 item = "fn env_path"
+count = 1
+
+[[allow]]
+crate = "ew"
+item = "fn bin_exe"
 count = 1
 
 [[allow]]
