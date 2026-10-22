@@ -28,7 +28,7 @@ The job names are the GitHub status-check names to mark as required.
 `cargo xtask ci` runs fmt, clippy, nextest and the doctests (each with the default features and with `--all-features`)
 and the nine repository checks (`check-deps`, `check-features`, `check-raw-read`, `check-build-scripts`, `check-workflows`,
 `check-licence-map`, `check-anonymisation`, `check-governance-files`, `docs-gen --check`) in sequence and prints a summary: the local mirror of the Rust part of the PR set. `check-dco` needs a revision range and is run on its own.
-`cargo xtask ci` runs fmt, clippy, nextest and the doctests (each with the default features and with `--all-features`; the acceptance tests only in the `--all-features` nextest run, as in the jobs)
+`cargo xtask ci` runs fmt, clippy, nextest and the doctests (each with the default features and with `--all-features`; the default-features nextest step is labelled `nextest (no acceptance)` in the summary, and the acceptance tests run only in the `nextest-all-features` step, as in the jobs)
 and the seven repository checks (`check-deps`, `check-features`, `check-build-scripts`, `check-workflows`,
 `check-licence-map`, `check-anonymisation`, `check-governance-files`) in sequence and prints a summary: the local mirror of the Rust part of the PR set. `check-dco` needs a revision range and is run on its own.
 
@@ -52,21 +52,36 @@ The MSRV 1.85 applies to the permissive crates only, which are the ones the MSRV
 ## Nightly performance and memory gate (`perf.yml`, `cargo xtask perf-gate`)
 
 WP-S6.03 (NFR-PERF-20, 18 §4). The nightly workflow [`perf.yml`](../.github/workflows/perf.yml) (schedule and
-`workflow_dispatch`, with a `quick` smoke input) runs `cargo xtask perf-gate`, which
+`workflow_dispatch`, with a `quick` smoke input and a `classes` choice) runs `cargo xtask perf-gate`, which
 
-1. builds and runs the `spike` and `cold_ops` benches of `ew-testkit` over the generated fixture classes S and M
+1. builds and runs the `spike` and `cold_ops` benches of `ew-testkit` over the generated fixture classes
+   (`--classes`, default `S,M` on the command line; **the nightly run measures class S only**, because the class M
+   baseline does not exist yet and M takes over an hour in full mode; a manual dispatch can choose `S,M`)
    (full mode: 1,000 latency samples, median of 10 single runs), directly from their executables so that the
    process it watches is the bench itself;
 2. compares the **medians** and the deterministic memory estimates the benches print (model rows, undo history,
    memo values and dependency entries) with [`perf-baseline.toml`](perf-baseline.toml): a value more than 15 %
-   above its baseline is a regression (WP-S6.03), unless the change is below the noise floor of the file
-   (`noise_floor_ms`, 0.05 ms);
+   above its baseline is a regression (WP-S6.03), unless the change is below a noise floor of the file:
+   `noise_floor_ms` (0.05 ms) for the medians, `noise_floor_bytes` (16 MiB, 18 §4.4) for the memory estimates and
+   the peak RSS (entry counts have no floor). The report's "Baseline:" line prints both floors. A baseline value
+   the run did not measure (a removed family) is listed under "Missing from the run" and a value the baseline
+   does not have under "New in the run"; under enforcement a missing value fails the gate (re-bless), a new one
+   never does;
 3. reads the peak RSS of the bench process (`VmHWM`, polled every 50 ms; Linux only, elsewhere the report names the
    gap until `ew-sysprobe` exists, FT-89);
-4. writes `target/perf/report.md` (verdict, regressions, medians against the baseline, memory, the engine
-   statistics of the memo store: hit, ver, push_skip, re, incr, cut) and `target/perf/baseline.candidate.toml`;
+4. writes `target/perf/report.md` (verdict, bench failures, regressions, missing and new values, medians against
+   the baseline, memory, the engine statistics of the memo store: hit, ver, push_skip, re, incr, cut) and
+   `target/perf/baseline.candidate.toml` (of what was measured). **A bench that does not run** (a build failure,
+   a non-zero exit such as a panic, output that cannot be read) does not stop the others: it is recorded in a
+   "Bench failures" section with its command and the last 20 lines of its output, the other benches are still
+   compared, and the command exits non-zero whatever `EW_PERF_ASSERT` or `--enforce` say (an infrastructure
+   failure, not a performance verdict); `--bless` refuses to write a baseline in that case;
 5. [`ci-times.py`](ci-times.py) appends the CI-time trend (FT-269): the per-job durations of the last runs of
-   `ci.yml` from the public jobs API (at most 10 calls, no token), set against the 30-minute budget of NFR-MAINT-05.
+   `ci.yml` from the GitHub jobs API (at most 10 calls), set against the 30-minute budget of NFR-MAINT-05. The
+   hosted runners share egress addresses, so the unauthenticated limit of 60 calls an hour is often used up: the
+   step passes the automatic, read-only job token (`GITHUB_TOKEN: ${{ github.token }}` with `actions: read` on
+   the job; no configured secret), which the script sends as `Authorization: Bearer <token>` when the variable
+   is set and never prints.
 
 The report is the job summary and the artifact `perf-report`. **The job is report-only on the hosted runners**:
 they are not BM-class (DEC-034), so `EW_PERF_ASSERT` is not set and a regression does not fail the job; that
@@ -74,10 +89,11 @@ variable is the only switch that makes `perf-gate` exit non-zero (the timing rul
 `--enforce`. A baseline taken on another runner (`meta.runner`, `EW_PERF_RUNNER`, else `hosted:<os>-<arch>`) or in
 the quick mode is reported as not comparable and never enforced. **Owner item:** the dedicated BM-class runner
 (18 §4.3). When it exists, a job on it sets `EW_PERF_RUNNER=bm` and `EW_PERF_ASSERT=1`, and the baseline is
-re-blessed there with `cargo xtask perf-gate --bless` (the generator version changes it as well, 18 §4.4). The committed baseline holds class S only, taken in full mode on a developer Windows machine (runner `dev-windows-x86_64`, so the hosted nightly reports "not compared"); the M class takes over an hour in full mode and has no baseline yet.
+re-blessed there with `cargo xtask perf-gate --bless` (the generator version changes it as well, 18 §4.4). The committed baseline holds class S only, taken in full mode on a developer Windows machine (runner `dev-windows-x86_64`, so the hosted nightly reports "not compared"); the M class takes over an hour in full mode and has no baseline yet. Its `[meta]` records where the values come from: `generator_version` (the fixture generator version the benches report; a run with another version is "not compared"), `commit` (the short hash it was blessed at), `toolchain` (from `rust-toolchain.toml`), `date` (UTC) and `noise_floor_bytes`. `--bless` writes all of them; every field is required when the file is read.
 
 Locally: `cargo xtask perf-gate --dry-run` prints the plan; `--quick --classes S` is the smallest real run (a
-smoke run, no evidence); `--from <captured bench output>…` re-reports captured output without running anything.
+smoke run, no evidence); `--from <captured bench output>` re-reports one captured output without running anything (one
+file per flag; repeat the flag for more files).
 `python3 -I ci/ci-times.py --dry-run` lists the API calls; `--selftest` checks its arithmetic offline.
 
 ## Feature bans (`cargo xtask check-features`)

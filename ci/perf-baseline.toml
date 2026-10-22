@@ -9,9 +9,14 @@
 [meta]
 threshold_percent = 15.0
 noise_floor_ms = 0.05
+noise_floor_bytes = 16777216
 runner = "dev-windows-x86_64"
 mode = "full"
-note = "class S only, full mode, on a developer Windows machine (not BM-class): informational; re-bless on the BM-class runner"
+generator_version = "2"
+commit = "6f24f75"
+toolchain = "1.99.0"
+date = "2026-10-22"
+note = "class S only, full mode, on a developer Windows machine (not BM-class): informational; re-bless on the BM-class runner. Provenance (cycle-16 review): generator_version is ew_testkit::synth::GENERATOR_VERSION, commit the short hash the values were blessed at, noise_floor_bytes the 16 MiB memory floor of 18 4.4"
 
 [classes.S.median_ms]
 "cold_ops:connection.draw.commit" = 0.014

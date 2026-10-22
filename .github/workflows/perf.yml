@@ -2,10 +2,14 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 # The nightly performance and memory gate (WP-S6.03, NFR-PERF-20; docs/design/18-quality-security-release.md
-# §3.16 and §5.2): `cargo xtask perf-gate` runs the ew-testkit benches over the fixture classes S and M, compares
-# the medians and the memory estimates with ci/perf-baseline.toml (15 % threshold) and writes a Markdown report;
+# §3.16 and §5.2): `cargo xtask perf-gate` runs the ew-testkit benches over the fixture classes, compares the
+# medians and the memory estimates with ci/perf-baseline.toml (15 % threshold) and writes a Markdown report;
 # `ci/ci-times.py` appends the CI-time trend of ci.yml against the 30-minute budget of NFR-MAINT-05 (FT-269,
-# decision log ID-381). The M class takes over an hour in full mode on a desktop, hence the long timeout. The report is the job summary and the artifact `perf-report`, next to a candidate baseline.
+# decision log ID-381). The scheduled run measures class S only: the class M baseline does not exist yet and M
+# takes over an hour in full mode on a desktop (owner ruling, cycle 16); a manual dispatch can add M through the
+# `classes` input, hence the long timeout. The report is the job summary and the artifact `perf-report`, next to
+# a candidate baseline; it is written even when a bench fails (a "Bench failures" section), and a bench that
+# does not run fails the job whatever EW_PERF_ASSERT says (an infrastructure failure, not a performance verdict).
 #
 # REPORT-ONLY on the hosted runners: they are not BM-class (a dedicated, isolated machine, decision log DEC-034;
 # the BM runner is an owner item), so the job does not set EW_PERF_ASSERT, the one switch that makes a regression
@@ -14,7 +18,9 @@
 # EW_PERF_ASSERT=1 and the baseline is re-blessed there (`cargo xtask perf-gate --bless`).
 #
 # Same hardening as ci.yml (§5.4, NFR-SEC-19): actions pinned by commit SHA with a version comment, read-only
-# default token, no secrets (ci-times.py reads the public API without a token).
+# default token, no configured secrets. The job adds `actions: read` for ci-times.py, which sends the automatic,
+# read-only job token (`github.token`, passed to that one step) because the hosted runners share egress
+# addresses and the unauthenticated API limit of 60 calls an hour is often used up.
 
 name: perf
 
@@ -27,6 +33,13 @@ on:
         description: "Smoke run (20 samples, 2 runs): not gate evidence"
         type: boolean
         default: false
+      classes:
+        description: "Fixture classes to measure (M has no baseline yet and takes over an hour)"
+        type: choice
+        options:
+          - "S"
+          - "S,M"
+        default: "S"
 
 permissions:
   contents: read
@@ -46,6 +59,10 @@ jobs:
     name: perf-gate
     runs-on: ubuntu-24.04
     timeout-minutes: 240
+    # Job-level read scopes only; the workflow-level default stays `contents: read`.
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -65,11 +82,16 @@ jobs:
         shell: bash
         env:
           QUICK: ${{ inputs.quick && '--quick' || '' }}
-        run: cargo xtask perf-gate --report target/perf/report.md $QUICK
+          # The schedule has no inputs: class S only (the class M baseline does not exist yet).
+          CLASSES: ${{ inputs.classes || 'S' }}
+        run: cargo xtask perf-gate --report target/perf/report.md --classes "$CLASSES" $QUICK
       # FT-269: the CI-time trend; an unreadable API is a note in the report, not a failure.
       - name: CI-time trend
         if: always()
         shell: bash
+        env:
+          # The automatic job token (read-only: `actions: read`), not a configured secret.
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           mkdir -p target/perf
           python3 -I ci/ci-times.py --repo "$GITHUB_REPOSITORY" --append target/perf/report.md

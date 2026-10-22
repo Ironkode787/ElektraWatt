@@ -2,17 +2,20 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 """The CI-time trend of the performance gate (FT-269, NFR-MAINT-05, decision log ID-381).
 
-Reads the per-job durations of the last N completed runs of the `ci.yml` workflow through the public GitHub
-REST API (no token: the repository is public) and prints, or appends to a report file, a Markdown section that
-sets the wall time of each run against the 30-minute budget of NFR-MAINT-05.
+Reads the per-job durations of the last N completed runs of the `ci.yml` workflow through the GitHub REST API
+(the repository is public, so a token is optional) and prints, or appends to a report file, a Markdown section
+that sets the wall time of each run against the 30-minute budget of NFR-MAINT-05.
 
   python3 -I ci/ci-times.py [--runs N] [--repo OWNER/NAME] [--workflow ci.yml] [--append REPORT.md]
   python3 -I ci/ci-times.py --dry-run     # print the requests, make none
   python3 -I ci/ci-times.py --selftest    # run the offline checks
 
 Gentle by design: one request for the run list and one per run (`--runs` is at most 9, so at most 10 calls), a
-pause between calls, no retries, no token (an unauthenticated client has 60 calls an hour per address; a
-rate-limit answer is reported in the section, not retried). A failure of the API never fails the caller: the
+pause between calls, no retries. An unauthenticated client has 60 calls an hour per address, and the hosted
+runners share their egress addresses, so the API will often answer 403: when the environment variable
+`GITHUB_TOKEN` is set (the workflow passes the automatic, read-only `github.token` of the job; no configured
+secret), it is sent as `Authorization: Bearer <token>`. The token is never printed or written to the report.
+A rate-limit answer is reported in the section, not retried. A failure of the API never fails the caller: the
 section says why it has no data and the exit status stays 0, unless `--strict` is given.
 
 Standard library only. A job's duration is `completed_at - started_at` of the jobs API. The wall time of a run is
@@ -24,6 +27,7 @@ a timeout (marked with a dagger).
 import argparse
 import datetime
 import json
+import os
 import statistics
 import sys
 import time
@@ -100,7 +104,7 @@ def render(rows, repo, workflow, note=""):
         "## CI time trend (NFR-MAINT-05, FT-269)",
         "",
         f"Per-job durations of the last {len(rows)} completed runs of `{workflow}` in `{repo}` "
-        "(public GitHub jobs API, no token). The budget is 30 min wall time per PR (NFR-MAINT-05); the 50-minute "
+        "(GitHub jobs API). The budget is 30 min wall time per PR (NFR-MAINT-05); the 50-minute "
         "job timeout is a guard, not the budget (decision log ID-381).",
         "",
     ]
@@ -142,15 +146,21 @@ def render(rows, repo, workflow, note=""):
     return "\n".join(lines)
 
 
+def request_headers(token=None):
+    """The headers of an API call; `Authorization: Bearer <token>` only when a non-empty token is given."""
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "elektrawatt-ci-times",
+    }
+    token = (token or "").strip()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return headers
+
+
 def get_json(url):
-    request = urllib.request.Request(
-        url,
-        headers={
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-            "User-Agent": "elektrawatt-ci-times",
-        },
-    )
+    request = urllib.request.Request(url, headers=request_headers(os.environ.get("GITHUB_TOKEN")))
     with urllib.request.urlopen(request, timeout=20) as response:
         return json.load(response)
 
@@ -204,6 +214,16 @@ def selftest():
 
     rows = collect("o/r", "ci.yml", MAX_RUNS, fetch=fake, pause=0)
     assert len(rows) == MAX_RUNS and len(calls) == 1 + MAX_RUNS <= 10
+
+    # the request headers: no Authorization without a token, a Bearer header with one, nothing printed
+    plain = request_headers(None)
+    assert "Authorization" not in plain and "Authorization" not in request_headers("")
+    assert "Authorization" not in request_headers("  ")
+    assert plain["X-GitHub-Api-Version"] == "2022-11-28" and plain["Accept"] == "application/vnd.github+json"
+    authed = request_headers("dummy-token-value")
+    assert authed["Authorization"] == "Bearer dummy-token-value"
+    assert {k: v for k, v in authed.items() if k != "Authorization"} == plain
+    assert "dummy-token-value" not in render([row], "o/r", "ci.yml")
     print("ci-times selftest: ok")
 
 
@@ -231,7 +251,8 @@ def main(argv=None):
     if args.dry_run:
         print(f"GET {API}/repos/{args.repo}/actions/workflows/{args.workflow}/runs?status=completed&per_page={args.runs}")
         print(f"GET {API}/repos/{args.repo}/actions/runs/<id>/jobs?per_page=100   (once per run, {args.runs} at most)")
-        print(f"{1 + args.runs} calls at most, {PAUSE_SECONDS} s apart, no token")
+        auth = "with the token of GITHUB_TOKEN" if os.environ.get("GITHUB_TOKEN") else "no token (GITHUB_TOKEN is not set)"
+        print(f"{1 + args.runs} calls at most, {PAUSE_SECONDS} s apart, {auth}")
         return 0
 
     note = ""

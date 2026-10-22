@@ -8,19 +8,26 @@
 //! families, and `benches/cold_ops.rs`, the cold commands) over the generated fixture classes S and M, parses
 //! the lines they print and compares the **medians** with a committed baseline ([`BASELINE_PATH`]). A median
 //! more than 15 % above its baseline is a regression (WP-S6.03); a difference below the noise floor of the
-//! baseline file never is. Memory is gated the same way: the deterministic estimates the benches print (model
-//! rows, undo history, memo values and dependency entries) and the peak resident set of the bench process
-//! (Linux, `VmHWM`; elsewhere it is reported as a gap until `ew-sysprobe` exists, FT-89).
+//! baseline file never is. Memory is gated the same way, with a floor in bytes (16 MiB, 18 §4.4): the
+//! deterministic estimates the benches print (model rows, undo history, memo values and dependency entries) and
+//! the peak resident set of the bench process (Linux, `VmHWM`; elsewhere it is reported as a gap until
+//! `ew-sysprobe` exists, FT-89). The baseline records where it came from (fixture generator version, commit,
+//! toolchain, date); a run with another generator version is not compared.
 //!
 //! The gate writes a Markdown report (verdict, medians against the baseline, memory, the engine statistics of
 //! the memo store) and a candidate baseline next to it. It is report-only unless `EW_PERF_ASSERT` is set (or
 //! `--enforce` is given): the timing rule of docs/design/18-quality-security-release.md §3.16 allows a
 //! wall-clock assertion only on that path, and the hosted runners are not BM-class (decision log DEC-034), so
-//! the nightly job does not set it. A baseline taken on another runner, or in the quick mode, is not
-//! comparable and is never enforced.
+//! the nightly job does not set it. A baseline taken on another runner, with another generator version or in
+//! the quick mode is not comparable and is never enforced. Under enforcement a baseline value that the run did
+//! not measure fails the gate as well (a removed family: re-bless); values new in the run never do.
 //!
-//! `--from <file>…` reads captured bench output instead of running the benches (offline re-reporting and the
-//! tests of this module); `--dry-run` prints what would run.
+//! A bench that does not run (a build failure, a non-zero exit, output that cannot be read) is recorded in the
+//! report with the tail of its output, the other benches still run, and the command fails whatever the
+//! enforcement says: an infrastructure failure, not a performance verdict.
+//!
+//! `--from <file>` reads one captured bench output instead of running the benches (repeat the flag for more
+//! files; offline re-reporting and the tests of this module); `--dry-run` prints what would run.
 
 use std::collections::BTreeMap;
 use std::io::{BufRead, BufReader};
@@ -53,6 +60,10 @@ const DEFAULT_THRESHOLD_PERCENT: f64 = 15.0;
 /// The noise floor of a new baseline in milliseconds: a median that moves by less never counts as a change.
 const DEFAULT_NOISE_FLOOR_MS: f64 = 0.05;
 
+/// The memory noise floor of a new baseline in bytes (18 §4.4: 16 MB): a memory estimate or a peak RSS that moves
+/// by less never counts as a change.
+const DEFAULT_NOISE_FLOOR_BYTES: u64 = 16 * 1024 * 1024;
+
 // ---------------------------------------------------------------------------------------------------------
 // The baseline file
 
@@ -72,11 +83,23 @@ pub struct Meta {
     pub threshold_percent: f64,
     /// Medians that differ by less than this many milliseconds are noise.
     pub noise_floor_ms: f64,
+    /// Memory estimates and peak RSS values that differ by less than this many bytes are noise (18 §4.4: 16 MB).
+    pub noise_floor_bytes: u64,
     /// The runner the baseline was taken on: `EW_PERF_RUNNER`, or `hosted:<os>-<arch>`. A run on another runner
     /// is not comparable.
     pub runner: String,
     /// `full` or `quick`: a quick run (20 samples) is a smoke run and no evidence.
     pub mode: String,
+    /// The fixture generator version the benches reported (`ew_testkit::synth::GENERATOR_VERSION`, in the
+    /// `class=… generator_version=… mode=…` header). A run with another version generates other fixtures and
+    /// is not comparable.
+    pub generator_version: String,
+    /// The short commit hash the baseline was taken at.
+    pub commit: String,
+    /// The toolchain channel of `rust-toolchain.toml` the baseline was taken with.
+    pub toolchain: String,
+    /// The ISO date (UTC) the baseline was taken on.
+    pub date: String,
     /// Free text: how the baseline was taken.
     #[serde(default)]
     pub note: String,
@@ -441,8 +464,14 @@ pub fn measured_by_class(runs: &[BenchRun]) -> BTreeMap<String, Measured> {
     out
 }
 
-/// Why the run cannot be compared with the baseline, if so.
-pub fn not_comparable(baseline: &Baseline, runner: &str, quick: bool) -> Option<String> {
+/// Why the run cannot be compared with the baseline, if so. `generator_version` is what the benches reported
+/// (`None` when no bench produced output).
+pub fn not_comparable(
+    baseline: &Baseline,
+    runner: &str,
+    quick: bool,
+    generator_version: Option<&str>,
+) -> Option<String> {
     if quick {
         return Some("this is a quick run (20 samples, 2 runs): a smoke run, no evidence".to_owned());
     }
@@ -455,25 +484,57 @@ pub fn not_comparable(baseline: &Baseline, runner: &str, quick: bool) -> Option<
             baseline.meta.runner
         ));
     }
+    if let Some(version) = generator_version {
+        if version != baseline.meta.generator_version {
+            return Some(format!(
+                "the baseline was taken with fixture generator version {}, this run reports version {version}: the fixtures differ, so the values are not comparable (re-bless)",
+                baseline.meta.generator_version
+            ));
+        }
+    }
     None
 }
 
-/// Compares the measurements with the baseline, class by class (the classes of the run).
+/// Compares the measurements with the baseline, class by class (the classes of the run). The memory estimates
+/// and the peak RSS use the byte noise floor of the baseline; the entry counts among the estimates (keys with
+/// `entries`) are no bytes and have no floor.
 pub fn evaluate(baseline: &Baseline, measured: &BTreeMap<String, Measured>) -> Vec<ClassEval> {
     let empty = ClassBaseline::default();
-    let as_f64 = |m: &BTreeMap<String, u64>| -> BTreeMap<String, f64> {
-        m.iter().map(|(k, v)| (k.clone(), *v as f64)).collect()
+    let as_f64 = |m: &BTreeMap<String, u64>, counts: bool| -> BTreeMap<String, f64> {
+        m.iter()
+            .filter(|(k, _)| k.contains("entries") == counts)
+            .map(|(k, v)| (k.clone(), *v as f64))
+            .collect()
     };
+    let t = baseline.meta.threshold_percent;
+    let floor_bytes = baseline.meta.noise_floor_bytes as f64;
     measured
         .iter()
         .map(|(class, m)| {
             let base = baseline.classes.get(class).unwrap_or(&empty);
-            let t = baseline.meta.threshold_percent;
+            let mut memory = compare(
+                &as_f64(&base.memory, false),
+                &as_f64(&m.memory, false),
+                t,
+                floor_bytes,
+            );
+            memory.extend(compare(
+                &as_f64(&base.memory, true),
+                &as_f64(&m.memory, true),
+                t,
+                0.0,
+            ));
+            memory.sort_by(|a, b| a.key.cmp(&b.key));
             ClassEval {
                 class: class.clone(),
                 medians: compare(&base.median_ms, &m.median_ms, t, baseline.meta.noise_floor_ms),
-                memory: compare(&as_f64(&base.memory), &as_f64(&m.memory), t, 0.0),
-                peak_rss: compare(&as_f64(&base.peak_rss_bytes), &as_f64(&m.peak_rss_bytes), t, 0.0),
+                memory,
+                peak_rss: compare(
+                    &as_f64(&base.peak_rss_bytes, false),
+                    &as_f64(&m.peak_rss_bytes, false),
+                    t,
+                    floor_bytes,
+                ),
             }
         })
         .collect()
@@ -481,11 +542,52 @@ pub fn evaluate(baseline: &Baseline, measured: &BTreeMap<String, Measured>) -> V
 
 /// The number of regressions over all classes.
 pub fn regressions(evals: &[ClassEval]) -> usize {
+    count_changes(evals, Change::Regression)
+}
+
+/// The number of baseline values the run did not measure, over all classes (a removed family).
+pub fn missing(evals: &[ClassEval]) -> usize {
+    count_changes(evals, Change::Missing)
+}
+
+fn count_changes(evals: &[ClassEval], change: Change) -> usize {
     evals
         .iter()
         .flat_map(ClassEval::all)
-        .filter(|d| d.change == Change::Regression)
+        .filter(|d| d.change == change)
         .count()
+}
+
+/// Takes the values of a bench that did not run out of the comparison: its absence is the failure, not a
+/// removed family. Peak RSS keys are the bench name, the others `<bench>:<name>`.
+pub fn without_failed(evals: Vec<ClassEval>, failures: &[BenchFailure]) -> Vec<ClassEval> {
+    let failed = |class: &str, key: &str| {
+        failures.iter().any(|f| {
+            f.bench.as_deref().is_some_and(|b| {
+                f.class.as_deref().is_none_or(|c| c == class)
+                    && (key == b || key.strip_prefix(b).is_some_and(|r| r.starts_with(':')))
+            })
+        })
+    };
+    evals
+        .into_iter()
+        .map(|mut e| {
+            let class = e.class.clone();
+            for list in [&mut e.medians, &mut e.memory, &mut e.peak_rss] {
+                list.retain(|d| !(d.change == Change::Missing && failed(&class, &d.key)));
+            }
+            e
+        })
+        .collect()
+}
+
+/// Where and when a baseline was taken (`[meta]` of the file).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Provenance {
+    pub generator_version: String,
+    pub commit: String,
+    pub toolchain: String,
+    pub date: String,
 }
 
 /// A baseline made from the measurements (`--bless`, the candidate file of the nightly job).
@@ -495,13 +597,19 @@ pub fn make_baseline(
     quick: bool,
     note: &str,
     previous: Option<&Meta>,
+    provenance: &Provenance,
 ) -> Baseline {
     Baseline {
         meta: Meta {
             threshold_percent: previous.map_or(DEFAULT_THRESHOLD_PERCENT, |m| m.threshold_percent),
             noise_floor_ms: previous.map_or(DEFAULT_NOISE_FLOOR_MS, |m| m.noise_floor_ms),
+            noise_floor_bytes: previous.map_or(DEFAULT_NOISE_FLOOR_BYTES, |m| m.noise_floor_bytes),
             runner: runner.to_owned(),
             mode: if quick { "quick" } else { "full" }.to_owned(),
+            generator_version: provenance.generator_version.clone(),
+            commit: provenance.commit.clone(),
+            toolchain: provenance.toolchain.clone(),
+            date: provenance.date.clone(),
             note: note.to_owned(),
         },
         classes: measured
@@ -520,12 +628,98 @@ pub fn make_baseline(
     }
 }
 
+/// The fixture generator version of the runs: the one version they report, several joined with `+`, or `None`
+/// without a run.
+pub fn generator_version_of(runs: &[BenchRun]) -> Option<String> {
+    let mut versions: Vec<&str> = runs.iter().map(|r| r.generator_version.as_str()).collect();
+    versions.sort_unstable();
+    versions.dedup();
+    (!versions.is_empty()).then(|| versions.join("+"))
+}
+
+/// The channel of the `[toolchain]` table of `rust-toolchain.toml`.
+pub fn toolchain_channel(text: &str) -> Option<String> {
+    let value: toml::Value = toml::from_str(text).ok()?;
+    Some(value.get("toolchain")?.get("channel")?.as_str()?.to_owned())
+}
+
+/// The ISO date (`2026-10-22`) of a Unix time in seconds, in UTC (the civil-from-days conversion of the
+/// proleptic Gregorian calendar).
+pub fn iso_date(unix_seconds: u64) -> String {
+    let days = (unix_seconds / 86_400) as i64;
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let day_of_era = z.rem_euclid(146_097);
+    let year_of_era = (day_of_era - day_of_era / 1_460 + day_of_era / 36_524 - day_of_era / 146_096) / 365;
+    let day_of_year = day_of_era - (365 * year_of_era + year_of_era / 4 - year_of_era / 100);
+    let mp = (5 * day_of_year + 2) / 153;
+    let day = day_of_year - (153 * mp + 2) / 5 + 1;
+    let month = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = year_of_era + era * 400 + i64::from(month <= 2);
+    format!("{year:04}-{month:02}-{day:02}")
+}
+
+/// The provenance of a baseline taken now: the generator version of the runs, the short commit hash of the
+/// checkout, the toolchain channel and today's date (UTC). A value that cannot be read is `unknown`.
+fn provenance_now(runs: &[BenchRun]) -> Provenance {
+    let root = workspace_root();
+    let commit = Command::new("git")
+        .current_dir(&root)
+        .args(["rev-parse", "--short", "HEAD"])
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_owned())
+        .filter(|c| !c.is_empty())
+        .unwrap_or_else(|| "unknown".to_owned());
+    let toolchain = std::fs::read_to_string(root.join("rust-toolchain.toml"))
+        .ok()
+        .and_then(|t| toolchain_channel(&t))
+        .unwrap_or_else(|| "unknown".to_owned());
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs());
+    Provenance {
+        generator_version: generator_version_of(runs).unwrap_or_else(|| "unknown".to_owned()),
+        commit,
+        toolchain,
+        date: iso_date(secs),
+    }
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // The report
+
+/// A bench (or its build) that did not deliver usable output. It is an infrastructure failure, not a
+/// performance verdict: it fails the command whether or not the gate is enforced.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BenchFailure {
+    /// What was being done: the command, or the file that was read.
+    pub command: String,
+    /// Why it failed: the exit status, or the parse error.
+    pub reason: String,
+    /// The last [`TAIL_LINES`] lines of its output.
+    pub tail: String,
+    /// The bench it was running, when known: its values are not reported as missing.
+    pub bench: Option<String>,
+    /// The class it was measuring (`None`: all classes, as in a build failure).
+    pub class: Option<String>,
+}
+
+/// How many lines of a failed bench's output the report keeps.
+const TAIL_LINES: usize = 20;
+
+/// The last [`TAIL_LINES`] lines of `text`.
+pub fn tail_of(text: &str) -> String {
+    let lines: Vec<&str> = text.lines().collect();
+    lines[lines.len().saturating_sub(TAIL_LINES)..].join("\n")
+}
 
 /// Everything the report shows.
 pub struct ReportInput<'a> {
     pub runs: &'a [BenchRun],
+    /// The benches that did not run.
+    pub failures: &'a [BenchFailure],
     pub evals: &'a [ClassEval],
     pub baseline: Option<&'a Baseline>,
     pub runner: &'a str,
@@ -561,24 +755,89 @@ fn mib(bytes: f64) -> String {
     format!("{:.1} MiB", bytes / (1024.0 * 1024.0))
 }
 
+/// The sections "Missing from the run" and "New in the run": the keys that only one side has, per class.
+fn render_key_changes(out: &mut String, input: &ReportInput<'_>) {
+    let keys = |e: &ClassEval, change: Change| -> Vec<String> {
+        e.all()
+            .filter(|d| d.change == change)
+            .map(|d| d.key.clone())
+            .collect()
+    };
+    let gone: Vec<(&str, Vec<String>)> = input
+        .evals
+        .iter()
+        .map(|e| (e.class.as_str(), keys(e, Change::Missing)))
+        .filter(|(_, k)| !k.is_empty())
+        .collect();
+    if !gone.is_empty() {
+        out.push_str("## Missing from the run\n\nBaseline values the run did not measure (a removed family or metric). With enforcement they fail the gate; the remedy is a re-bless.\n\n| Class | Value |\n|---|---|\n");
+        for (class, keys) in gone {
+            for key in keys {
+                out.push_str(&format!("| {class} | `{key}` |\n"));
+            }
+        }
+        out.push('\n');
+    }
+    let mut lines = String::new();
+    for e in input.evals {
+        let new = keys(e, Change::New);
+        if new.is_empty() {
+            continue;
+        }
+        if input.baseline.is_none_or(|b| !b.classes.contains_key(&e.class)) {
+            lines.push_str(&format!(
+                "- Class {} has no baseline: all {} of its values are new.\n",
+                e.class,
+                new.len()
+            ));
+        } else {
+            for key in new {
+                lines.push_str(&format!("- Class {}: `{key}`\n", e.class));
+            }
+        }
+    }
+    if !lines.is_empty() {
+        out.push_str("## New in the run\n\nValues the baseline does not have; they never fail the gate, and a re-bless adds them.\n\n");
+        out.push_str(&lines);
+        out.push('\n');
+    }
+}
+
 /// The Markdown report of a run.
 pub fn render_report(input: &ReportInput<'_>) -> String {
     let regressed = regressions(input.evals);
+    let gone = missing(input.evals);
     let mut out = String::from("# Performance and memory gate\n\n");
 
-    let verdict = match (input.not_comparable, regressed, input.enforced) {
+    let mut verdict = match (input.not_comparable, regressed + gone, input.enforced) {
         (Some(why), _, _) => format!("not compared: {why}"),
         (None, 0, _) => "pass: no value is more than the threshold above its baseline".to_owned(),
-        (None, n, true) => format!("**FAIL**: {n} value(s) more than the threshold above the baseline"),
-        (None, n, false) => format!(
-            "{n} value(s) more than the threshold above the baseline (report-only: `EW_PERF_ASSERT` is not set)"
+        (None, _, true) => format!(
+            "**FAIL**: {regressed} value(s) more than the threshold above the baseline, {gone} baseline value(s) missing from the run"
+        ),
+        (None, _, false) => format!(
+            "{regressed} value(s) more than the threshold above the baseline, {gone} baseline value(s) missing from the run (report-only: `EW_PERF_ASSERT` is not set)"
         ),
     };
+    if !input.failures.is_empty() {
+        verdict = format!(
+            "**FAIL**: {} bench run(s) did not deliver output (see Bench failures; an infrastructure failure, whatever `EW_PERF_ASSERT` says); {verdict}",
+            input.failures.len()
+        );
+    }
     out.push_str(&format!("- Verdict: {verdict}\n"));
     if let Some(b) = input.baseline {
         out.push_str(&format!(
-            "- Baseline: `{BASELINE_PATH}`, runner `{}`, {} mode, threshold {} %, noise floor {} ms\n",
-            b.meta.runner, b.meta.mode, b.meta.threshold_percent, b.meta.noise_floor_ms
+            "- Baseline: `{BASELINE_PATH}`, runner `{}`, {} mode, threshold {} %, noise floor {} ms (medians) and {} (memory estimates and peak RSS), generator version {}, taken at `{}` on {} with Rust {}\n",
+            b.meta.runner,
+            b.meta.mode,
+            b.meta.threshold_percent,
+            b.meta.noise_floor_ms,
+            mib(b.meta.noise_floor_bytes as f64),
+            b.meta.generator_version,
+            b.meta.commit,
+            b.meta.date,
+            b.meta.toolchain
         ));
     } else {
         out.push_str("- Baseline: none\n");
@@ -609,6 +868,18 @@ pub fn render_report(input: &ReportInput<'_>) -> String {
     }
     out.push('\n');
 
+    if !input.failures.is_empty() {
+        out.push_str("## Bench failures\n\nThese benches did not deliver usable output; the others ran and are compared below. The command fails whatever `EW_PERF_ASSERT` says.\n\n");
+        for f in input.failures {
+            out.push_str(&format!(
+                "### `{}`\n\n{}; the last {TAIL_LINES} lines of its output:\n\n```text\n{}\n```\n\n",
+                f.command,
+                f.reason,
+                f.tail.trim_end()
+            ));
+        }
+    }
+
     if regressed > 0 && input.not_comparable.is_none() {
         out.push_str(
             "## Regressions\n\n| Class | Value | Baseline | Current | Change |\n|---|---|---:|---:|---:|\n",
@@ -627,6 +898,8 @@ pub fn render_report(input: &ReportInput<'_>) -> String {
         }
         out.push('\n');
     }
+
+    render_key_changes(&mut out, input);
 
     for run in input.runs {
         let eval = input.evals.iter().find(|e| e.class == run.class);
@@ -781,8 +1054,9 @@ fn cargo_path() -> String {
 }
 
 /// Builds the bench `name` of `ew-testkit` (cargo's bench profile) and returns its executable. Running the
-/// executable directly, instead of `cargo bench`, makes the process we poll the bench itself.
-fn build_bench(name: &str) -> Result<PathBuf> {
+/// executable directly, instead of `cargo bench`, makes the process we poll the bench itself. The error is the
+/// reason and the last lines of cargo's output.
+fn build_bench(name: &str) -> std::result::Result<PathBuf, (String, String)> {
     let output = Command::new(cargo_path())
         .current_dir(workspace_root())
         .args([
@@ -795,14 +1069,20 @@ fn build_bench(name: &str) -> Result<PathBuf> {
             "--no-run",
             "--message-format=json",
         ])
-        .stderr(Stdio::inherit())
+        .stdin(Stdio::null())
         .output()
-        .with_context(|| format!("running `cargo bench --no-run` for {name}"))?;
+        .map_err(|e| (format!("could not start cargo: {e}"), String::new()))?;
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    eprint!("{stderr}");
     if !output.status.success() {
-        bail!("`cargo bench --no-run --bench {name}` failed");
+        return Err((format!("cargo exited with {}", output.status), tail_of(&stderr)));
     }
-    executable_from_cargo_json(&String::from_utf8_lossy(&output.stdout), name)
-        .with_context(|| format!("cargo reported no executable for the bench {name}"))
+    executable_from_cargo_json(&String::from_utf8_lossy(&output.stdout), name).ok_or_else(|| {
+        (
+            format!("cargo reported no executable for the bench {name}"),
+            tail_of(&stderr),
+        )
+    })
 }
 
 /// The `executable` of the `compiler-artifact` message of the bench target `name`.
@@ -825,16 +1105,45 @@ pub fn executable_from_cargo_json(stdout: &str, name: &str) -> Option<PathBuf> {
     })
 }
 
-/// Runs the bench executable on `class`, echoing its output, and returns the captured output and the peak RSS.
-fn run_bench(exe: &Path, class: &str, quick: bool) -> Result<(String, Option<u64>)> {
+/// What one bench process did.
+struct BenchOutcome {
+    /// Its standard output, which the gate parses.
+    stdout: String,
+    /// Its standard error (a panic message).
+    stderr: String,
+    /// The peak RSS, where it was measured.
+    peak: Option<u64>,
+    /// `exited with …` when the status was not success.
+    problem: Option<String>,
+}
+
+/// Reads `source` line by line, echoing each line with `echo`, and returns the text (invalid UTF-8 is replaced:
+/// the pipe must be drained whatever the child prints).
+fn drain_lines(source: impl std::io::Read, echo: impl Fn(&str)) -> String {
+    let mut captured = String::new();
+    for line in BufReader::new(source).split(b'\n') {
+        let Ok(bytes) = line else { break };
+        let line = String::from_utf8_lossy(&bytes);
+        let line = line.trim_end_matches('\r');
+        echo(line);
+        captured.push_str(line);
+        captured.push('\n');
+    }
+    captured
+}
+
+/// Runs the bench executable on `class`, echoing its output, and returns what it printed and its peak RSS. A
+/// non-zero exit is not an error here: it is in the outcome, and the caller records it as a bench failure.
+fn run_bench(exe: &Path, class: &str, quick: bool) -> Result<BenchOutcome> {
     let mut command = Command::new(exe);
     // Cargo runs a bench from the package directory and passes `--bench`.
     command
         .current_dir(workspace_root().join("crates/ew-testkit"))
         .env("EW_BENCH_CLASS", class)
         .arg("--bench")
+        .stdin(Stdio::null())
         .stdout(Stdio::piped())
-        .stderr(Stdio::inherit());
+        .stderr(Stdio::piped());
     if quick {
         command.arg("--quick");
     }
@@ -858,23 +1167,26 @@ fn run_bench(exe: &Path, class: &str, quick: bool) -> Result<(String, Option<u64
             }
         })
     };
-    let mut captured = String::new();
-    if let Some(stdout) = child.stdout.take() {
-        for line in BufReader::new(stdout).lines() {
-            let line = line?;
-            println!("{line}");
-            captured.push_str(&line);
-            captured.push('\n');
-        }
-    }
+    let stderr_reader = child
+        .stderr
+        .take()
+        .map(|stderr| std::thread::spawn(move || drain_lines(stderr, |l| eprintln!("{l}"))));
+    let stdout = child
+        .stdout
+        .take()
+        .map(|stdout| drain_lines(stdout, |l| println!("{l}")))
+        .unwrap_or_default();
     let status = child.wait()?;
     stop.store(true, Ordering::Relaxed);
     let _ = poller.join();
-    if !status.success() {
-        bail!("{} exited with {status}", exe.display());
-    }
+    let stderr = stderr_reader.and_then(|h| h.join().ok()).unwrap_or_default();
     let peak = peak.load(Ordering::Relaxed);
-    Ok((captured, (peak > 0).then_some(peak)))
+    Ok(BenchOutcome {
+        stdout,
+        stderr,
+        peak: (peak > 0).then_some(peak),
+        problem: (!status.success()).then(|| format!("exited with {status}")),
+    })
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -927,7 +1239,7 @@ impl Args {
                 "--report" => parsed.report = Some(it.next().context("--report needs a file")?.into()),
                 "--baseline" => parsed.baseline = Some(it.next().context("--baseline needs a file")?.into()),
                 "--from" => {
-                    // every following argument that is not a flag is a captured bench output
+                    // one captured bench output per flag; repeat the flag for more files
                     parsed.from.push(it.next().context("--from needs a file")?.into());
                 }
                 other => bail!("perf-gate: unknown argument `{other}`"),
@@ -937,14 +1249,38 @@ impl Args {
     }
 }
 
-/// `cargo xtask perf-gate [options]`: returns whether the gate passes (always true while report-only).
+/// What the command reads from its environment (a parameter so that the tests do not depend on it).
+struct Env {
+    runner: String,
+    /// `EW_PERF_ASSERT` is set.
+    enforce_env: bool,
+    /// `GITHUB_SHA`, the commit under test.
+    commit: Option<String>,
+}
+
+impl Env {
+    fn from_env() -> Env {
+        Env {
+            runner: runner_label(),
+            enforce_env: std::env::var_os("EW_PERF_ASSERT").is_some(),
+            commit: std::env::var("GITHUB_SHA").ok(),
+        }
+    }
+}
+
+/// `cargo xtask perf-gate [options]`: returns whether the gate passes. A regression or a baseline value missing
+/// from the run fails it only when enforced (`EW_PERF_ASSERT`, `--enforce`); a bench that does not run fails it
+/// always (an infrastructure failure, not a performance verdict).
 pub fn run(args: &[String]) -> Result<bool> {
-    let args = Args::parse(args)?;
+    run_gate(&Args::parse(args)?, &Env::from_env())
+}
+
+fn run_gate(args: &Args, ctx: &Env) -> Result<bool> {
     let root = workspace_root();
     let baseline_path = args.baseline.clone().unwrap_or_else(|| root.join(BASELINE_PATH));
     let report_path = args.report.clone().unwrap_or_else(|| root.join(REPORT_PATH));
-    let runner = runner_label();
-    let enforced = args.enforce || std::env::var_os("EW_PERF_ASSERT").is_some();
+    let runner = ctx.runner.as_str();
+    let enforced = args.enforce || ctx.enforce_env;
     let baseline = if baseline_path.exists() {
         Some(Baseline::load(&baseline_path)?)
     } else {
@@ -963,9 +1299,10 @@ pub fn run(args: &[String]) -> Result<bool> {
             baseline_path.display(),
             match &baseline {
                 Some(b) => format!(
-                    "runner {}, {} mode, {} classes, {} medians",
+                    "runner {}, {} mode, generator version {}, {} classes, {} medians",
                     b.meta.runner,
                     b.meta.mode,
+                    b.meta.generator_version,
                     b.classes.len(),
                     b.classes.values().map(|c| c.median_ms.len()).sum::<usize>()
                 ),
@@ -991,52 +1328,118 @@ pub fn run(args: &[String]) -> Result<bool> {
     }
 
     let mut runs: Vec<BenchRun> = Vec::new();
+    let mut failures: Vec<BenchFailure> = Vec::new();
     if args.from.is_empty() {
         let mut executables: BTreeMap<&str, PathBuf> = BTreeMap::new();
         for bench in BENCHES {
             println!("==> building the {bench} bench");
-            executables.insert(bench, build_bench(bench)?);
+            match build_bench(bench) {
+                Ok(exe) => {
+                    executables.insert(bench, exe);
+                }
+                Err((reason, tail)) => failures.push(BenchFailure {
+                    command: format!("cargo bench --locked -p ew-testkit --bench {bench} --no-run"),
+                    reason,
+                    tail,
+                    bench: Some(bench.to_owned()),
+                    class: None,
+                }),
+            }
         }
         for class in &args.classes {
             for bench in BENCHES {
+                let Some(exe) = executables.get(bench) else {
+                    continue;
+                };
                 println!(
                     "==> {bench}, class {class}{}",
                     if args.quick { " (quick)" } else { "" }
                 );
-                let (text, peak) = run_bench(&executables[bench], class, args.quick)?;
-                let mut run = parse_output(&text).with_context(|| format!("reading the {bench} output"))?;
-                run.peak_rss = peak;
-                runs.push(run);
+                let command = format!(
+                    "EW_BENCH_CLASS={class} {} --bench{}",
+                    exe.file_name()
+                        .map_or_else(|| bench.to_owned(), |n| n.to_string_lossy().into_owned()),
+                    if args.quick { " --quick" } else { "" }
+                );
+                let failure = |reason: String, tail: String| BenchFailure {
+                    command: command.clone(),
+                    reason,
+                    tail,
+                    bench: Some(bench.to_owned()),
+                    class: Some(class.clone()),
+                };
+                match run_bench(exe, class, args.quick) {
+                    Err(e) => failures.push(failure(format!("{e:#}"), String::new())),
+                    Ok(outcome) => {
+                        let tail = || tail_of(&format!("{}{}", outcome.stdout, outcome.stderr));
+                        match (&outcome.problem, parse_output(&outcome.stdout)) {
+                            (Some(problem), _) => failures.push(failure(problem.clone(), tail())),
+                            (None, Err(e)) => {
+                                failures.push(failure(format!("the output could not be read: {e:#}"), tail()))
+                            }
+                            (None, Ok(mut run)) => {
+                                run.peak_rss = outcome.peak;
+                                runs.push(run);
+                            }
+                        }
+                    }
+                }
             }
         }
     } else {
         for file in &args.from {
-            let text =
-                std::fs::read_to_string(file).with_context(|| format!("reading {}", file.display()))?;
-            runs.push(parse_output(&text).with_context(|| format!("reading {}", file.display()))?);
+            let command = format!("read {}", file.display());
+            match std::fs::read_to_string(file) {
+                Err(e) => failures.push(BenchFailure {
+                    command,
+                    reason: format!("could not be read: {e}"),
+                    tail: String::new(),
+                    bench: None,
+                    class: None,
+                }),
+                Ok(text) => match parse_output(&text) {
+                    Ok(run) => runs.push(run),
+                    Err(e) => failures.push(BenchFailure {
+                        command,
+                        reason: format!("the output could not be read: {e:#}"),
+                        tail: tail_of(&text),
+                        bench: None,
+                        class: None,
+                    }),
+                },
+            }
         }
     }
-    let quick = runs.iter().any(|r| r.quick);
+    let quick = args.quick || runs.iter().any(|r| r.quick);
     let measured = measured_by_class(&runs);
+    let provenance = provenance_now(&runs);
+    let generator_version = generator_version_of(&runs);
 
     if args.bless {
-        let previous = baseline.as_ref().map(|b| &b.meta);
-        let note = format!(
-            "{} classes, taken by `cargo xtask perf-gate --bless`",
-            measured.keys().cloned().collect::<Vec<_>>().join("+")
-        );
-        let new = make_baseline(&measured, &runner, quick, &note, previous);
-        std::fs::write(&baseline_path, new.to_toml()?)
-            .with_context(|| format!("writing {}", baseline_path.display()))?;
-        println!("perf-gate: baseline written to {}", baseline_path.display());
+        if failures.is_empty() {
+            let previous = baseline.as_ref().map(|b| &b.meta);
+            let note = format!(
+                "{} classes, taken by `cargo xtask perf-gate --bless`",
+                measured.keys().cloned().collect::<Vec<_>>().join("+")
+            );
+            let new = make_baseline(&measured, runner, quick, &note, previous, &provenance);
+            std::fs::write(&baseline_path, new.to_toml()?)
+                .with_context(|| format!("writing {}", baseline_path.display()))?;
+            println!("perf-gate: baseline written to {}", baseline_path.display());
+        } else {
+            println!("perf-gate: the baseline is not written: a bench did not run, so it would lose values");
+        }
     }
 
     let (evals, why) = match &baseline {
-        Some(b) => (evaluate(b, &measured), not_comparable(b, &runner, quick)),
+        Some(b) => (
+            evaluate(b, &measured),
+            not_comparable(b, runner, quick, generator_version.as_deref()),
+        ),
         None => (
             evaluate(
                 &Baseline {
-                    meta: make_baseline(&measured, &runner, quick, "", None).meta,
+                    meta: make_baseline(&measured, runner, quick, "", None, &provenance).meta,
                     classes: BTreeMap::new(),
                 },
                 &measured,
@@ -1046,15 +1449,17 @@ pub fn run(args: &[String]) -> Result<bool> {
             )),
         ),
     };
+    let evals = without_failed(evals, &failures);
     let report = render_report(&ReportInput {
         runs: &runs,
+        failures: &failures,
         evals: &evals,
         baseline: baseline.as_ref(),
-        runner: &runner,
+        runner,
         quick,
         not_comparable: why.as_deref(),
         enforced,
-        commit: std::env::var("GITHUB_SHA").ok().as_deref(),
+        commit: ctx.commit.as_deref(),
     });
     if let Some(dir) = report_path.parent() {
         std::fs::create_dir_all(dir).with_context(|| format!("creating {}", dir.display()))?;
@@ -1062,10 +1467,11 @@ pub fn run(args: &[String]) -> Result<bool> {
     std::fs::write(&report_path, &report).with_context(|| format!("writing {}", report_path.display()))?;
     let candidate = make_baseline(
         &measured,
-        &runner,
+        runner,
         quick,
         "candidate written by `cargo xtask perf-gate`; copy over ci/perf-baseline.toml to adopt it",
         baseline.as_ref().map(|b| &b.meta),
+        &provenance,
     );
     let candidate_path = report_path.with_file_name("baseline.candidate.toml");
     std::fs::write(&candidate_path, candidate.to_toml()?)
@@ -1076,16 +1482,26 @@ pub fn run(args: &[String]) -> Result<bool> {
         candidate_path.display()
     );
 
-    let regressed = if why.is_none() { regressions(&evals) } else { 0 };
-    match (&why, regressed) {
+    let (regressed, gone) = if why.is_none() {
+        (regressions(&evals), missing(&evals))
+    } else {
+        (0, 0)
+    };
+    match (&why, regressed + gone) {
         (Some(why), _) => println!("perf-gate: not compared: {why}"),
         (None, 0) => println!("perf-gate: ok, no regression over the threshold"),
-        (None, n) => println!(
-            "perf-gate: {n} regression(s) over the threshold ({})",
+        (None, _) => println!(
+            "perf-gate: {regressed} regression(s) over the threshold, {gone} baseline value(s) missing from the run ({})",
             if enforced { "enforced" } else { "report-only" }
         ),
     }
-    Ok(!(enforced && regressed > 0))
+    for f in &failures {
+        println!(
+            "perf-gate: FAILED: `{}` did not deliver output: {}",
+            f.command, f.reason
+        );
+    }
+    Ok(failures.is_empty() && !(enforced && regressed + gone > 0))
 }
 
 #[cfg(test)]
@@ -1094,7 +1510,7 @@ mod tests {
 
     const SPIKE: &str = "\
 G-SP spike benchmarks (WP-S1.05)
-class=S generator_version=3 seed=1 mode=full
+class=S generator_version=2 seed=1 mode=full
 counts: {pages: 10}
 baseline model built in 1.000ms
 bench open.session_from_records class=S n=10 min=1.000ms median=2.000ms p99=3.000ms max=4.000ms
@@ -1111,18 +1527,32 @@ peak RSS: measured externally by the spike run
 
     const COLD: &str = "\
 cold_ops benchmarks (WP-S1.05)
-class=S generator_version=3 seed=1 mode=full
+class=S generator_version=2 seed=1 mode=full
 bench model.build class=S n=10 min=1.000ms median=5.000ms p99=7.000ms max=8.000ms
 memory: model rows 1048576 bytes (1.0 MiB)
 ";
+
+    fn prov() -> Provenance {
+        Provenance {
+            generator_version: "2".to_owned(),
+            commit: "abc1234".to_owned(),
+            toolchain: "1.99.0".to_owned(),
+            date: "2026-10-22".to_owned(),
+        }
+    }
 
     fn runner_baseline(medians: &[(&str, f64)]) -> Baseline {
         Baseline {
             meta: Meta {
                 threshold_percent: 15.0,
                 noise_floor_ms: 0.05,
+                noise_floor_bytes: 16 * 1024 * 1024,
                 runner: "bm".to_owned(),
                 mode: "full".to_owned(),
+                generator_version: "2".to_owned(),
+                commit: "abc1234".to_owned(),
+                toolchain: "1.99.0".to_owned(),
+                date: "2026-10-22".to_owned(),
                 note: String::new(),
             },
             classes: BTreeMap::from([(
@@ -1142,7 +1572,7 @@ memory: model rows 1048576 bytes (1.0 MiB)
             (run.bench.as_str(), run.class.as_str(), run.quick),
             ("spike", "S", false)
         );
-        assert_eq!(run.generator_version, "3");
+        assert_eq!(run.generator_version, "2");
         let medians: Vec<(&str, f64)> = run
             .rows
             .iter()
@@ -1184,10 +1614,10 @@ memory: model rows 1048576 bytes (1.0 MiB)
     #[test]
     fn a_cut_short_or_foreign_output_is_refused() {
         assert!(parse_output("hello").is_err());
-        let cut = "cold_ops benchmarks (WP-S1.05)\nclass=S generator_version=3 seed=1 mode=quick\n";
+        let cut = "cold_ops benchmarks (WP-S1.05)\nclass=S generator_version=2 seed=1 mode=quick\n";
         let e = parse_output(cut).unwrap_err().to_string();
         assert!(e.contains("no `bench"), "{e}");
-        let quick = "cold_ops benchmarks (WP-S1.05)\nclass=M generator_version=3 seed=1 mode=quick\nbench a class=M n=2 min=1ms median=1.000ms p99=1.000ms max=1ms\n";
+        let quick = "cold_ops benchmarks (WP-S1.05)\nclass=M generator_version=2 seed=1 mode=quick\nbench a class=M n=2 min=1ms median=1.000ms p99=1.000ms max=1ms\n";
         let run = parse_output(quick).unwrap();
         assert_eq!((run.class.as_str(), run.quick), ("M", true));
     }
@@ -1240,19 +1670,29 @@ memory: model rows 1048576 bytes (1.0 MiB)
         let evals = evaluate(&baseline, &measured);
         // 2.000 ms against 1.000 ms: a regression; the other keys are new
         assert_eq!(regressions(&evals), 1);
-        assert_eq!(not_comparable(&baseline, "bm", false), None);
+        assert_eq!(not_comparable(&baseline, "bm", false, Some("2")), None);
+        assert_eq!(not_comparable(&baseline, "bm", false, None), None);
         assert!(
-            not_comparable(&baseline, "hosted:linux-x86_64", false)
+            not_comparable(&baseline, "hosted:linux-x86_64", false, Some("2"))
                 .unwrap()
                 .contains("different machines")
         );
-        assert!(not_comparable(&baseline, "bm", true).unwrap().contains("quick"));
+        assert!(
+            not_comparable(&baseline, "bm", true, Some("2"))
+                .unwrap()
+                .contains("quick")
+        );
         let mut quick_baseline = baseline.clone();
         quick_baseline.meta.mode = "quick".to_owned();
         assert!(
-            not_comparable(&quick_baseline, "bm", false)
+            not_comparable(&quick_baseline, "bm", false, Some("2"))
                 .unwrap()
                 .contains("quick mode")
+        );
+        let other = not_comparable(&baseline, "bm", false, Some("3")).unwrap();
+        assert!(
+            other.contains("generator version 2") && other.contains("version 3"),
+            "{other}"
         );
     }
 
@@ -1267,6 +1707,7 @@ memory: model rows 1048576 bytes (1.0 MiB)
         let input = |enforced, why| {
             render_report(&ReportInput {
                 runs: &runs,
+                failures: &[],
                 evals: &evals,
                 baseline: Some(&baseline),
                 runner: "bm",
@@ -1289,6 +1730,12 @@ memory: model rows 1048576 bytes (1.0 MiB)
             "{enforced}"
         );
         assert!(enforced.contains("- Commit: `abc123`"));
+        assert!(
+            enforced.contains(
+                "noise floor 0.05 ms (medians) and 16.0 MiB (memory estimates and peak RSS), generator version 2, taken at `abc1234` on 2026-10-22 with Rust 1.99.0"
+            ),
+            "{enforced}"
+        );
         let report_only = input(false, None);
         assert!(report_only.contains("(report-only: `EW_PERF_ASSERT` is not set)"));
         let skipped = input(true, Some("machines differ"));
@@ -1300,8 +1747,18 @@ memory: model rows 1048576 bytes (1.0 MiB)
     fn a_blessed_baseline_round_trips_through_toml() {
         let runs = [parse_output(SPIKE).unwrap(), parse_output(COLD).unwrap()];
         let measured = measured_by_class(&runs);
-        let baseline = make_baseline(&measured, "bm", false, "test", None);
+        let baseline = make_baseline(&measured, "bm", false, "test", None, &prov());
         assert_eq!(baseline.meta.threshold_percent, 15.0);
+        assert_eq!(baseline.meta.noise_floor_bytes, 16_777_216, "18 §4.4: 16 MB");
+        assert_eq!(
+            (
+                baseline.meta.generator_version.as_str(),
+                baseline.meta.commit.as_str(),
+                baseline.meta.toolchain.as_str(),
+                baseline.meta.date.as_str()
+            ),
+            ("2", "abc1234", "1.99.0", "2026-10-22")
+        );
         let text = baseline.to_toml().unwrap();
         assert!(text.starts_with("# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors\n"));
         let back: Baseline = toml::from_str(&text).unwrap();
@@ -1316,7 +1773,7 @@ memory: model rows 1048576 bytes (1.0 MiB)
     fn a_seeded_slowdown_of_twenty_percent_turns_the_gate_red_and_ten_percent_does_not() {
         let runs = [parse_output(SPIKE).unwrap(), parse_output(COLD).unwrap()];
         let measured = measured_by_class(&runs);
-        let baseline = make_baseline(&measured, "bm", false, "seed", None);
+        let baseline = make_baseline(&measured, "bm", false, "seed", None, &prov());
         let slowed = |factor: f64| {
             let mut m = measured.clone();
             let s = m.get_mut("S").unwrap();
@@ -1326,14 +1783,14 @@ memory: model rows 1048576 bytes (1.0 MiB)
         };
         assert_eq!(regressions(&evaluate(&baseline, &slowed(1.20))), 1);
         assert_eq!(regressions(&evaluate(&baseline, &slowed(1.10))), 0);
-        // memory estimates are gated by the same threshold
+        // memory estimates are gated by the same threshold (above the byte floor: see the memory test)
         let mut bigger = measured.clone();
         *bigger
             .get_mut("S")
             .unwrap()
             .memory
             .get_mut("spike:model_rows")
-            .unwrap() *= 2;
+            .unwrap() *= 40;
         assert_eq!(regressions(&evaluate(&baseline, &bigger)), 1);
     }
 
@@ -1342,6 +1799,24 @@ memory: model rows 1048576 bytes (1.0 MiB)
         let path = workspace_root().join(BASELINE_PATH);
         let baseline = Baseline::load(&path).unwrap();
         assert_eq!(baseline.meta.threshold_percent, 15.0, "WP-S6.03 threshold");
+        assert_eq!(
+            baseline.meta.noise_floor_bytes,
+            16 * 1024 * 1024,
+            "18 §4.4: 16 MB"
+        );
+        assert!(
+            baseline.meta.generator_version.parse::<u32>().is_ok()
+                && !baseline.meta.commit.is_empty()
+                && baseline.meta.date.len() == 10,
+            "{:?}",
+            baseline.meta
+        );
+        let toolchain = std::fs::read_to_string(workspace_root().join("rust-toolchain.toml")).unwrap();
+        assert_eq!(
+            toolchain_channel(&toolchain).as_deref(),
+            Some(baseline.meta.toolchain.as_str()),
+            "re-bless when the toolchain moves"
+        );
         for class in baseline.classes.values() {
             assert!(!class.median_ms.is_empty());
         }
@@ -1379,5 +1854,308 @@ memory: model rows 1048576 bytes (1.0 MiB)
         assert_eq!(a.from.len(), 2);
         assert!(Args::parse(&["--classes".to_owned(), "Q".to_owned()]).is_err());
         assert!(Args::parse(&["--nope".to_owned()]).is_err());
+    }
+
+    #[test]
+    fn the_provenance_is_read_from_the_runs_the_toolchain_file_and_the_clock() {
+        assert_eq!(iso_date(0), "1970-01-01");
+        assert_eq!(iso_date(946_684_799), "1999-12-31");
+        assert_eq!(iso_date(951_868_800), "2000-03-01");
+        assert_eq!(iso_date(1_709_251_199), "2024-02-29");
+        assert_eq!(iso_date(1_792_627_200), "2026-10-22");
+        assert_eq!(iso_date(1_792_713_599), "2026-10-22");
+        assert_eq!(iso_date(4_102_444_800), "2100-01-01");
+        assert_eq!(
+            toolchain_channel("[toolchain]\nchannel = \"1.99.0\"\ncomponents = [\"rustfmt\"]\n").as_deref(),
+            Some("1.99.0")
+        );
+        assert_eq!(toolchain_channel("[toolchain]\n"), None);
+        let a = parse_output(SPIKE).unwrap();
+        let mut b = parse_output(COLD).unwrap();
+        assert_eq!(
+            generator_version_of(&[a.clone(), b.clone()]).as_deref(),
+            Some("2")
+        );
+        b.generator_version = "3".to_owned();
+        assert_eq!(generator_version_of(&[a, b]).as_deref(), Some("2+3"));
+        assert_eq!(generator_version_of(&[]), None);
+    }
+
+    #[test]
+    fn a_baseline_without_its_provenance_is_refused() {
+        let dir = scratch_dir("strict");
+        let good = runner_baseline(&[("spike:a", 1.0)]).to_toml().unwrap();
+        let path = dir.join("good.toml");
+        std::fs::write(&path, &good).unwrap();
+        assert!(Baseline::load(&path).is_ok());
+        for key in [
+            "generator_version",
+            "commit",
+            "toolchain",
+            "date",
+            "noise_floor_bytes",
+        ] {
+            let text: String = good
+                .lines()
+                .filter(|l| !l.starts_with(&format!("{key} =")))
+                .map(|l| format!("{l}\n"))
+                .collect();
+            assert_ne!(text, good, "{key} is in the file");
+            let path = dir.join(format!("without-{key}.toml"));
+            std::fs::write(&path, text).unwrap();
+            assert!(Baseline::load(&path).is_err(), "{key} is required");
+        }
+    }
+
+    #[test]
+    fn memory_and_peak_rss_use_the_byte_floor_and_entry_counts_have_none() {
+        const MIB: u64 = 1024 * 1024;
+        let mut baseline = runner_baseline(&[]);
+        baseline.classes.insert(
+            "S".to_owned(),
+            ClassBaseline {
+                memory: BTreeMap::from([
+                    ("spike:small".to_owned(), MIB),
+                    ("spike:large".to_owned(), 100 * MIB),
+                    ("spike:memo.warm.push_index_entries".to_owned(), 1000),
+                ]),
+                peak_rss_bytes: BTreeMap::from([("spike".to_owned(), 200 * MIB)]),
+                ..ClassBaseline::default()
+            },
+        );
+        let measured = BTreeMap::from([(
+            "S".to_owned(),
+            Measured {
+                memory: BTreeMap::from([
+                    ("spike:small".to_owned(), 4 * MIB),
+                    ("spike:large".to_owned(), 130 * MIB),
+                    ("spike:memo.warm.push_index_entries".to_owned(), 1200),
+                ]),
+                peak_rss_bytes: BTreeMap::from([("spike".to_owned(), 215 * MIB)]),
+                ..Measured::default()
+            },
+        )]);
+        let evals = evaluate(&baseline, &measured);
+        let memory: BTreeMap<&str, Change> = evals[0]
+            .memory
+            .iter()
+            .map(|d| (d.key.as_str(), d.change))
+            .collect();
+        assert_eq!(
+            memory["spike:small"],
+            Change::Same,
+            "+300 % but only 3 MiB: under the floor"
+        );
+        assert_eq!(
+            memory["spike:large"],
+            Change::Regression,
+            "+30 MiB is over the floor and 15 %"
+        );
+        assert_eq!(
+            memory["spike:memo.warm.push_index_entries"],
+            Change::Regression,
+            "a count has no byte floor"
+        );
+        assert_eq!(
+            evals[0].peak_rss[0].change,
+            Change::Same,
+            "+15 MiB is under the floor (and 7.5 %)"
+        );
+        let mut bigger = measured.clone();
+        bigger
+            .get_mut("S")
+            .unwrap()
+            .peak_rss_bytes
+            .insert("spike".to_owned(), 260 * MIB);
+        assert_eq!(
+            evaluate(&baseline, &bigger)[0].peak_rss[0].change,
+            Change::Regression
+        );
+    }
+
+    #[test]
+    fn missing_and_new_keys_are_listed_and_only_missing_ones_fail_the_enforced_gate() {
+        let baseline = runner_baseline(&[("spike:open.session_from_records", 2.0), ("spike:gone", 1.0)]);
+        let runs = [parse_output(SPIKE).unwrap()];
+        let measured = measured_by_class(&runs);
+        let evals = evaluate(&baseline, &measured);
+        assert_eq!((regressions(&evals), missing(&evals)), (0, 1));
+        let report = |enforced| {
+            render_report(&ReportInput {
+                runs: &runs,
+                failures: &[],
+                evals: &evals,
+                baseline: Some(&baseline),
+                runner: "bm",
+                quick: false,
+                not_comparable: None,
+                enforced,
+                commit: None,
+            })
+        };
+        let enforced = report(true);
+        assert!(enforced.contains("## Missing from the run"), "{enforced}");
+        assert!(enforced.contains("| S | `spike:gone` |"));
+        assert!(enforced.contains("## New in the run"));
+        assert!(enforced.contains("- Class S: `spike:move.commit_potentials`"));
+        assert!(enforced.contains("- Verdict: **FAIL**: 0 value(s) more than the threshold above the baseline, 1 baseline value(s) missing"));
+        let report_only = report(false);
+        assert!(report_only.contains("(report-only: `EW_PERF_ASSERT` is not set)"));
+        // a class the baseline does not have: one line, not a row per value
+        let no_class = evaluate(
+            &runner_baseline(&[]),
+            &BTreeMap::from([("M".to_owned(), measured["S"].clone())]),
+        );
+        let text = render_report(&ReportInput {
+            runs: &runs,
+            failures: &[],
+            evals: &no_class,
+            baseline: Some(&runner_baseline(&[])),
+            runner: "bm",
+            quick: false,
+            not_comparable: None,
+            enforced: true,
+            commit: None,
+        });
+        assert!(text.contains("- Class M has no baseline: all "), "{text}");
+        assert!(!text.contains("## Missing from the run"));
+        assert_eq!(missing(&no_class), 0);
+    }
+
+    fn scratch_dir(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("ew-perf-gate-test-{}-{name}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    fn gate_context() -> Env {
+        Env {
+            runner: "bm".to_owned(),
+            enforce_env: false,
+            commit: None,
+        }
+    }
+
+    fn gate_args(dir: &Path, from: &[&Path], extra: &[&str]) -> Args {
+        let mut argv: Vec<String> = vec![
+            "--report".to_owned(),
+            dir.join("report.md").display().to_string(),
+            "--baseline".to_owned(),
+            dir.join("baseline.toml").display().to_string(),
+        ];
+        for f in from {
+            argv.push("--from".to_owned());
+            argv.push(f.display().to_string());
+        }
+        argv.extend(extra.iter().map(|e| (*e).to_owned()));
+        Args::parse(&argv).unwrap()
+    }
+
+    /// Item 7 of the cycle-16 review: a bench whose output is truncated is a section of the report, the other
+    /// bench is still compared, the candidate baseline holds what was measured and the exit status is a failure
+    /// whatever the enforcement says.
+    #[test]
+    fn a_bench_that_fails_is_reported_and_fails_the_command_even_report_only() {
+        let dir = scratch_dir("failure");
+        let spike = dir.join("spike.txt");
+        let truncated = dir.join("cold.txt");
+        std::fs::write(&spike, SPIKE).unwrap();
+        let cut: String = (1..=30).map(|i| format!("line {i}\n")).collect();
+        std::fs::write(
+            &truncated,
+            format!("cold_ops benchmarks (WP-S1.05)\nclass=S generator_version=2 seed=1 mode=full\n{cut}panicked at bench.rs:1\n"),
+        )
+        .unwrap();
+        let baseline = runner_baseline(&[("spike:open.session_from_records", 2.0)]);
+        std::fs::write(dir.join("baseline.toml"), baseline.to_toml().unwrap()).unwrap();
+
+        let ok = run_gate(&gate_args(&dir, &[&spike], &[]), &gate_context()).unwrap();
+        assert!(
+            ok,
+            "the spike output alone passes report-only (new keys never fail)"
+        );
+
+        let args = gate_args(&dir, &[&spike, &truncated], &[]);
+        assert!(!args.enforce);
+        let passed = run_gate(&args, &gate_context()).unwrap();
+        assert!(
+            !passed,
+            "a bench that cannot run fails the command although the gate is report-only"
+        );
+        let report = std::fs::read_to_string(dir.join("report.md")).unwrap();
+        assert!(report.contains("## Bench failures"), "{report}");
+        assert!(report.contains("### `read "), "{report}");
+        assert!(report.contains("no `bench"), "{report}");
+        assert!(report.contains("panicked at bench.rs:1"), "{report}");
+        assert!(
+            report.contains("line 30") && report.contains("line 12\n") && !report.contains("line 11\n"),
+            "the last 20 lines"
+        );
+        assert!(
+            report.contains("- Verdict: **FAIL**: 1 bench run(s) did not deliver output"),
+            "{report}"
+        );
+        assert!(
+            report.contains("## Medians, `spike`, class S"),
+            "the other bench is compared"
+        );
+        let candidate = std::fs::read_to_string(dir.join("baseline.candidate.toml")).unwrap();
+        assert!(
+            candidate.contains("spike:open.session_from_records"),
+            "{candidate}"
+        );
+        // blessing refuses to write a baseline that lost a bench
+        let bless = gate_args(&dir, &[&spike, &truncated], &["--bless"]);
+        let before = std::fs::read_to_string(dir.join("baseline.toml")).unwrap();
+        assert!(!run_gate(&bless, &gate_context()).unwrap());
+        assert_eq!(
+            std::fs::read_to_string(dir.join("baseline.toml")).unwrap(),
+            before
+        );
+
+        let missing_file = gate_args(&dir, &[&spike, &dir.join("nope.txt")], &[]);
+        assert!(!run_gate(&missing_file, &gate_context()).unwrap());
+        assert!(
+            std::fs::read_to_string(dir.join("report.md"))
+                .unwrap()
+                .contains("could not be read")
+        );
+    }
+
+    #[test]
+    fn a_value_missing_from_the_run_fails_only_the_enforced_gate() {
+        let dir = scratch_dir("missing");
+        let spike = dir.join("spike.txt");
+        std::fs::write(&spike, SPIKE).unwrap();
+        let baseline = runner_baseline(&[("spike:open.session_from_records", 2.0), ("spike:gone", 1.0)]);
+        std::fs::write(dir.join("baseline.toml"), baseline.to_toml().unwrap()).unwrap();
+        assert!(run_gate(&gate_args(&dir, &[&spike], &[]), &gate_context()).unwrap());
+        assert!(!run_gate(&gate_args(&dir, &[&spike], &["--enforce"]), &gate_context()).unwrap());
+        let report = std::fs::read_to_string(dir.join("report.md")).unwrap();
+        assert!(report.contains("| S | `spike:gone` |"), "{report}");
+        // another generator version: not compared, so not enforced either
+        let other = dir.join("other.txt");
+        std::fs::write(
+            &other,
+            SPIKE.replace("generator_version=2", "generator_version=9"),
+        )
+        .unwrap();
+        assert!(run_gate(&gate_args(&dir, &[&other], &["--enforce"]), &gate_context()).unwrap());
+        let report = std::fs::read_to_string(dir.join("report.md")).unwrap();
+        assert!(
+            report.contains("fixture generator version 2, this run reports version 9"),
+            "{report}"
+        );
+    }
+
+    #[test]
+    fn the_tail_keeps_the_last_twenty_lines() {
+        let text: String = (1..=25).map(|i| format!("l{i}\n")).collect();
+        let tail = tail_of(&text);
+        assert_eq!(tail.lines().count(), 20);
+        assert!(tail.starts_with("l6\n") && tail.ends_with("l25"));
+        assert_eq!(tail_of("a\nb"), "a\nb");
+        assert_eq!(tail_of(""), "");
     }
 }

@@ -65,12 +65,16 @@ commands:
   perf-gate [--classes S,M] [--quick] [--report <file>] [--baseline <file>] [--from <bench-output>]...
             [--bless] [--enforce] [--dry-run]
                        the performance and memory gate of WP-S6.03 (nightly, .github/workflows/perf.yml): runs
-                       the ew-testkit benches over the fixture classes, compares the medians and the memory
-                       estimates with ci/perf-baseline.toml (15 % threshold), reads the peak RSS (Linux) and
-                       writes a Markdown report; it fails on a regression only with EW_PERF_ASSERT set or
-                       --enforce (the hosted runners are report-only); --bless writes the baseline
+                       the ew-testkit benches over the fixture classes (--classes, default S,M), compares the
+                       medians and the memory estimates with ci/perf-baseline.toml (15 % threshold, 16 MiB
+                       memory floor), reads the peak RSS (Linux) and writes a Markdown report; it fails on a
+                       regression or a baseline value missing from the run only with EW_PERF_ASSERT set or
+                       --enforce (the hosted runners are report-only), and always when a bench does not run (the
+                       report then has a 'Bench failures' section); --bless writes the baseline; --from reads
+                       one captured bench output instead of running a bench (one file per flag, repeat it)
   ci                   fmt, clippy and nextest (default and all features), doctests and the repository checks
-                       above (except check-dco), with a summary
+                       above (except check-dco), with a summary; the default-features nextest step is labelled
+                       'nextest (no acceptance)' (the headless acceptance tests run in nextest-all-features)
   help                 this text
 ";
 
@@ -495,7 +499,7 @@ fn ci() -> Result<bool> {
         ),
         // The headless acceptance tests run once, in the all-features run below (FT-268).
         (
-            "nextest",
+            "nextest (no acceptance)",
             &[
                 "nextest",
                 "run",
