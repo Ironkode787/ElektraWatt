@@ -62,7 +62,8 @@ jobs:
         run: test -z "${ICU4X_DATA_DIR:-}"
       - name: cargo fmt
         run: cargo fmt --all --check
-      # An unresolvable `disallowed-methods` or `disallowed-types` path in the generated clippy.toml is only a warning, which
+      # An unresolvable `disallowed-methods` or `disallowed-types` path in the generated clippy.toml is only a warning,
+      # which
       # `-D warnings` does not turn into an error: fail on it here (ADR-0001 amendment 2).
       - name: cargo clippy
         shell: bash
@@ -335,7 +336,8 @@ jobs:
   # (ci/ci-times.py reads the jobs of this workflow; docs.yml also fires on edited/labeled/unlabeled events and
   # would cancel and rebuild the job on every label change). About 5 minutes expected, not measured before its
   # first runs; it does not lengthen the 30-minute wall time of the test jobs. Not a required check until its first
-  # runs are green (ci/README.md). The golden PDF is exported by the shipped binary (`ew export pdf`, the path that the acceptance
+  # runs are green (ci/README.md). The golden PDF is exported by the shipped binary (`ew export pdf`, the path that the
+  # acceptance
   # runner's AC-15 path (c) runs in process) in three variants: the whole folio set with the model's date, the same
   # set dated by SOURCE_DATE_EPOCH, and a page selection. veraPDF 1.30.3 (image pinned by digest, run with no
   # network) validates each against PDF/A-2b. The Java runtime is inside the image, so the runner's JDK does not
