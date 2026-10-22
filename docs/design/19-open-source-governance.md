@@ -257,7 +257,7 @@ the enrolments, counsel's opinions and ADR-0030 are no longer gate items; ID-383
 binary) is accepted by the owner as a distribution fact, without a counsel brief. The text below is kept as the
 record of the design. The repository's licence rules are unchanged: REUSE headers, the licence map (§2.1), the
 permissive/GPL boundary and the dependency checks stay in force. The signing identities that sign release binaries
-stay a release item (WP-S6.07). The `blocked:LG-2` merge block is removed by FT-315.
+stay a release item (WP-S6.07). The `blocked:LG-2` merge block was removed in cycle 19 (FT-315, decision log ID-480).
 
 These gates belong in the global plan as milestone conditions. The release pipeline checks LG-1, LG-4 and the
 steward checklist of §3.10 as checklist items (RC-10 of [18](18-quality-security-release.md); NFR-COMP-01).

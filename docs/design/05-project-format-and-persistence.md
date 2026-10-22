@@ -1,6 +1,6 @@
 # Project format and persistence
 
-**Status:** Draft v0.3 · **Date:** 2026-10-21 (amended 2026-10-22, cycle 17: the typed `revision` kind and the open failure of old revision files that break an invariant, §10.3, decision log ID-428; v0.3, cycle 13: the member order of the flattened device aspects as built, §3.1, decision log ID-337; additive implementation of reserved kinds, §10.3, ID-334; v0.2: the persistence core as built and reviewed in cycle 8,
+**Status:** Draft v0.3 · **Date:** 2026-10-21 (amended 2026-10-22, cycle 19: the journal kept on a dirty exit and the shell's read-only open with the recovery banner, §8.1, §8.3, decision log ID-475; the replay on a moved base and a removed library copy that a `LibRef` still names, §8.2 step 4, ID-479; amended 2026-10-22, cycle 17: the typed `revision` kind and the open failure of old revision files that break an invariant, §10.3, decision log ID-428; v0.3, cycle 13: the member order of the flattened device aspects as built, §3.1, decision log ID-337; additive implementation of reserved kinds, §10.3, ID-334; v0.2: the persistence core as built and reviewed in cycle 8,
 ADR-0010 amendment 3, decision log ID-200 to ID-217; cycle 11: journal granularity of `project.settings.set`, Golden B1 files, ID-290) · **Part of:** ElektraWatt design document set
 
 > **Anonymization note:** dates and the manufacturing year of the reference project in this document are synthetic placeholders, not the original values.
@@ -877,6 +877,11 @@ base generation). The example records W20's colour change from DBU to BU
 - **Lifecycle.**
   - A successful save starts a new segment; the old one goes after the next snapshot.
   - A clean close deletes the directory (NFR-PRIV-05).
+  - A dirty session that ends without a clean close or an explicit discard keeps its journal. The shell (since
+    cycle 19, decision log ID-475) closes a clean session at exit but drops a dirty one without closing it: a window
+    closed or a log-off while dirty, and the end of a headless script with unsaved changes (which exits 1), all leave
+    the journal for the next open; only the unsaved-changes dialog's Discard, or `file.close` or `app.quit` with
+    `discard: true`, deletes it.
   - At the next editing open, leftover segments of other sessions that hold no unsaved transaction (a session that
     crashed or was dropped right after a save) are deleted; only segments with unsaved transactions reach the
     recovery dialog (decision log ID-211).
@@ -896,7 +901,11 @@ base generation). The example records W20's colour change from DBU to BU
    equals live state).
 4. **If the base moved** (a pull or a colleague's save after the crash), replay the field diffs as a candidate
    transaction against G. A field whose current value differs from `was` is a collision, resolved in the merge panel
-   (§9).
+   (§9). The replay's net removals are judged against the moved base as a candidate transaction against G, as an edit
+   on G would be: a library copy that the replay removes while a `LibRef` of the result still names it is also a
+   collision, its member being the link (the delete-time rule EW-INV-021, ADR-0009 amendment 7; decision log
+   ID-479). It is reported only when no field collision exists, which is harmless, because nothing is applied either
+   way. The judgement is net, so a copy that the journal embeds and then undoes is no collision.
 5. **Open dirty.** The recovered model opens with unsaved changes. Its transactions are rebuilt into the undo
    history from `set` and `was` (FR-COL-028).
 
@@ -905,6 +914,12 @@ base generation). The example records W20's colour change from DBU to BU
 At start-up, and when opening a project with a leftover journal, EW shows project, path, time of the last change and
 the number of unsaved transactions. The choices are "Recover", "Open without recovering" (the journal is kept 30
 days) and "Discard". The CLI equivalent is `ew recover <project> [--list | --apply | --discard]`.
+
+*As built (cycle 19; decision log ID-475).* Neither the dialog nor `ew recover` exists yet (FT-313, FT-252). The
+shell opens a project with a leftover journal read-only, with the banner "This project has unsaved changes from a
+session that ended unexpectedly. It is open read-only; recovery comes with a later version.", and keeps the journal;
+`ew apply` refuses such a project. Because every dirty exit of the shell now leaves a journal, discarding it in the
+application comes first, with WP-S2.01 part 2 (FT-313); recovery follows with WP-S2.09.
 
 ---
 

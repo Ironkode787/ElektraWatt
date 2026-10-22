@@ -1,6 +1,6 @@
 # ADR-0014: GUI toolkit: egui/eframe behind `ew-ui`, over a toolkit-agnostic `ew-viewmodel`
 
-**Status:** Accepted · amended 2026-10-18 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18 · as-built note 2026-10-22 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -58,6 +58,17 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    [architecture](../design/04-architecture.md) §3). The read-only `.ewpp` wiring viewer of 1.0 is built on
    `ew-ui` widgets. Rule 3 therefore reads: only `ew-ui`, `ew-viewer`, the app binary and the `ew-wiring-viewer`
    binary know egui; only the renderers know wgpu.
+
+## As built (cycle 19)
+
+A note, not an amendment: the decision is unchanged. WP-S2.01 part 1 (decision log ID-473 to ID-477) built the first
+shell on this ADR: egui, eframe and egui_kittest `=0.37.0`, eframe on the wgpu renderer (decision 1's shared device)
+without glow, persistence or egui's default fonts, rfd `=0.17.2` on the XDG portal. Three facts the decision text did
+not foresee: AccessKit is a hard dependency of egui 0.37, not a feature, so it is always on; muda is deferred, so the
+menu bar is drawn with egui on every OS until FT-310 (amendment 1 stays the target; decision log ID-446); and the
+crates that name egui declare `rust-version = "1.95"` (decision 5). Only `ew-ui` and `elektrawatt` name egui or
+eframe, and neither depends on wgpu directly (decision 2). The accessible-name walker of amendment 2 runs after every
+kittest flow. The UI graph adds 296 crates, all cargo-vet exemptions until the lead's audit (FT-326).
 
 ## Consequences
 

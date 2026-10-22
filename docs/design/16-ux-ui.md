@@ -1,6 +1,6 @@
 # User experience and user interface
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-22, cycle-19 design pass: the part-1 shell and its headless mode as built, §3.9, decision log ID-473 to ID-475, ID-485) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how people work with ElektraWatt (EW): the main window and its docking
 workspace, navigators, canvas tabs, the property grid with provenance, the command palette and keymaps, table
@@ -351,6 +351,36 @@ change"). It contains no news feed and opens no connection (NFR-PRIV-01). It mus
 - **Across projects.** Copy and paste between instances uses the clipboard fragment of
   [06](06-schematic-editor.md) §3.6, which remaps IDs and renumbers in the paste ghost (FR-UI-036).
 - **Windows of one project** (1.0, FR-UI-004) share its `Session`, undo stack, selection and highlights (§3.4).
+
+### 3.9 As built: the part-1 shell (cycle 19)
+
+WP-S2.01 part 1 built a subset of this section on its
+[closed specification](../plan/specs/WP-S2.01-application-shell.md) (decision log ID-473 to ID-475). The design text
+of §3.1 to §3.8 stays the target of the whole work package; this subsection records what exists and where it differs.
+
+| Element | As built | Differs from the design by |
+|---|---|---|
+| Window | `elektrawatt [<project-dir>]`: eframe 0.37.0 on the wgpu renderer, 1280 × 800 at start; the title `<directory name> - ElektraWatt`, with `*` while unsaved | No toolbar (§3.3), no docking or workspaces (§3.4, FT-309), no canvas tabs (§3.5) |
+| Menus | Drawn with egui on every OS from the toolkit-neutral registry of `ew-viewmodel`: File, Edit, View, Page, Tools, Help, each entry with its accelerator text; a disabled entry shows its reason as a tooltip | Six menus of §3.2's twelve; muda on macOS and Windows is deferred (decision log ID-446, FT-310) |
+| Start page | Open..., the recent projects (at most 10; an entry is dropped only when its path no longer exists) and the line "Update check: off" | New project, the sample project, QET import, the company standard, tutorials and the quick switches are FT-307, FT-308 and FT-312; the privacy line has no "change" link yet |
+| Project view | A fixed layout: the page list (printed folio labels; a click goes to the page), the page view, the status bar | The page list is not the navigator of §5 |
+| Page view | The current page read-only, the CPU renderer's raster fitted to the pane at the largest step of 12 dpi between 36 and 200 that fits; one long-lived worker thread renders, and the latest request wins | No GPU canvas, zoom or pan (WP-S2.02, WP-S2.03) |
+| Status bar | The hint "Read-only view", the page as `<folio> (<n> of <total>)`, the save state, the render backend `CPU`, the language `EN`, and "Exporting PDF..." during an export | No cursor, grid, selection, findings or jobs fields (§3.6) |
+| Banner | One line for a read-only reason, the integrity findings of the open report, a leftover journal ([05](05-project-format-and-persistence.md) §8.3, as built) or a missing file-dialog portal on Linux, with its own close button | The notification classes of §8.2 come with WP-S2.09 |
+| Palette | Ctrl+K or Ctrl+Shift+P: a case-insensitive substring search over the registry actions and the registered model commands, disabled entries last with their reason; model commands are listed but disabled until parameter forms exist | Ranking, aliases, prefixes and forms of §4.3 are WP-S2.08 |
+| Dialogs | About (version, "Page view: CPU renderer", the privacy line, the licence, the repository), keyboard shortcuts, go to page (Ctrl+G), and Save / Discard / Cancel when Close, Quit or Open meets unsaved changes; Open, Save As and Export PDF use the operating system's dialogs through rfd 0.17.2 (on Linux the XDG portal) | The complete About and F1 are FT-311; §3.8's "Open in new window" is not offered |
+| Keyboard | Routing: a focused text field, then the topmost popup or dialog, then the shell's shortcuts; Escape closes the topmost popup or dialog (the registry action `ui.dismiss`) and otherwise does nothing; on macOS `Ctrl` reads `Cmd` | No keymap presets or files (§4.4, WP-S2.08) |
+| Fonts and scale | The bundled faces of `ew-text` (Noto Sans, with Noto Sans Math as the last fallback) are the only UI fonts; UI scale 1.0, 1.25, 1.5 or 2.0 through egui's zoom factor | Up to 300 % (§10.4) later |
+| Exit | A clean project is closed at exit; a dirty one keeps its journal, and the next open is read-only with the recovery banner (decision log ID-475) | The recovery dialog and the discard are FT-313 |
+
+**The headless mode** (decision log ID-474). `elektrawatt --headless --script <file|->` runs the same registry actions
+on the same shell model with no window, no GPU and no display, and writes a deterministic transcript: the script is
+JSON Lines `ew.uiscript/1`, the transcript JSON Lines `ew.uitranscript/1` with the observable state after each step,
+`ui.describe` returns the visible UI as text for agents (its structural words are fixed machine text) and
+`view.snapshot` a PNG; `--record` keeps the committed model commands as an `ew.cmdlog/1` log, and a headless run uses no
+user settings unless `EW_CONFIG_DIR` or `--config-dir` names a directory. Whatever the headless mode cannot do, the
+shell does not do (decision log ID-443). `elektrawatt --smoke <project-dir>` opens a project read-only, draws its first
+page and exits.
 
 ---
 

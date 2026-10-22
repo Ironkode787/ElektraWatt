@@ -1,6 +1,6 @@
 # G-M1 readiness run
 
-**Status:** Final (readiness run; the gate is not convened; the delegated rulings of 2026-10-22 are recorded in §8 and the addendum; the owner rulings of 2026-10-22 in the second addendum; the cycle-18 delivery in the addenda of §6 and §10) · **Date:** 2026-10-22 · **Gate:** G-M1 Spine exit ·
+**Status:** Final (readiness run; the gate is not convened; the delegated rulings of 2026-10-22 are recorded in §8 and the addendum; the owner rulings of 2026-10-22 in the second addendum; the cycle-18 delivery in the addenda of §6 and §10; the cycle-19 delivery in the addendum of §6) · **Date:** 2026-10-22 · **Gate:** G-M1 Spine exit ·
 **Commit:** de23b55 (the cycle-16 delivery of `claude/m0-foundations`, equal to `main`) · **Scenario:** the
 cycle-based plan of record ([global plan §3.8](../01-global-plan.md#38-cycle-based-progress-view-plan-of-record-since-2026-10-20),
 decision log ID-271) · **Part of:** ElektraWatt plan, gate records
@@ -254,6 +254,19 @@ G-M1-01 stay open until their first green runs on `main`, and they become requir
 (owner, FT-325). **FT-296** is built report-only (the weekly `coverage.yml`, ID-459); G-M1-15 waits for the owner's
 dated plan. **FT-271** is closed (ID-463); its second half, the `disallowed-methods` lint, is FT-317 (condition,
 G-M1-14).
+
+**Addendum (cycle-19 delivery, 2026-10-22; decision log ID-483).** Rows whose state changed, without rewriting the
+run: CI for the cycle-18 delivery f316d4d was green (CI run 39731089818), with the first runs of `headless` and
+`verapdf` on `main`. **G-M1-01 is met** (the container export, FT-295). **G-M1-02**'s development part is done (the
+veraPDF evidence, FT-294); it stays open on the owner side for the pilot's PNG approval (FT-10) and the raster run
+after it. **G-M1-14 is met**: both determinism lints are built (FT-271 in cycle 18, FT-317 in cycle 19, decision log
+ID-481). **G-M1-22**: the nightly unsigned CLI artefact is built (FT-299, CI-N-12) with the skeleton of the `m1` notes;
+the first scheduled run, the filled notes and the owner's signed tag remain. FT-297, FT-298, FT-300, FT-304, the G-SP
+re-test (stopped in cycle 19 to free the machine, not re-run) and the page tasks are unchanged. **Recount:** G-M1 has 6
+of 11 applicable hard criteria met (G-M1-01, -03, -04, -06, -07, -08) and 5 open (G-M1-02 on the owner side, -05,
+-11, -12, -24); of 7 applicable must criteria 2 are met (G-M1-10, -14), 1 is met with conditions (G-M1-09) and 4 are
+open (G-M1-13, -17, -22, -23). The verdict stays **not ready**. The acceptance counts are unchanged (94 entries, 88
+pass, 0 fail, 0 `not_built`, 6 `not_applicable`).
 
 ## 7. What is not ready
 

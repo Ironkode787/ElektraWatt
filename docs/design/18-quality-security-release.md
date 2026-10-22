@@ -1,6 +1,6 @@
 # Quality engineering, security and release
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1; amended 2026-10-21, cycle-12 design pass: acceptance counts and comparison against doc 20 data in §3.10; amended 2026-10-21, cycle-14 design pass: documents as built in §3.9, §3.10 and §3.16, blind drafter §3.17; amended 2026-10-22, cycle-17 design pass: the acceptance counts in §3.10, the fuzzer's coverage and nightly form in §3.6, the `fuzz_smoke` time in §3.14, CI-N-02 and CI-N-03 in §5.2; amended 2026-10-22, cycle-18 design pass: what the ordered-collection lint misses in §3.5, the pull-failure rule in §3.14, CI-PR-05 and CI-N-09 in §5.2, the image-digest rule in §5.4; amended 2026-10-22, cycle-19 lane C: the `disallowed-methods` rule as built in §3.5, CI-N-12 and the retired LG-2 merge block in §5.2) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1; amended 2026-10-21, cycle-12 design pass: acceptance counts and comparison against doc 20 data in §3.10; amended 2026-10-21, cycle-14 design pass: documents as built in §3.9, §3.10 and §3.16, blind drafter §3.17; amended 2026-10-22, cycle-17 design pass: the acceptance counts in §3.10, the fuzzer's coverage and nightly form in §3.6, the `fuzz_smoke` time in §3.14, CI-N-02 and CI-N-03 in §5.2; amended 2026-10-22, cycle-18 design pass: what the ordered-collection lint misses in §3.5, the pull-failure rule in §3.14, CI-PR-05 and CI-N-09 in §5.2, the image-digest rule in §5.4; amended 2026-10-22, cycle-19 lane C: the `disallowed-methods` rule as built in §3.5, CI-N-12 and the retired LG-2 merge block in §5.2; amended 2026-10-22, cycle-19 design pass: the scan's gaps and the sites at the integration tip in §3.5, the shell's UI tests in §3.11, the CI time after cycle 18 and the Windows cut in §3.14, the headless mode for the blind drafter in §3.17, CI-PR-02 to CI-PR-04 and CI-N-12 in §5.2, the UI crates' `rust-version` in §6.2) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) proves its correctness, performance and security, and
 how it is built, signed, shipped and supported. It turns the architecture's "prove it in CI" principle
@@ -244,9 +244,19 @@ test and bench targets (timers asserted only with `EW_PERF_ASSERT`, bless and di
 names). In production code each allow is on a one-line helper that wraps the one call (`source_date_epoch`,
 `content_dir`, `deadline_now`, `class_var`, `timer_start`), so it does not also switch off the raw-read guard for a
 whole body. No call reaches project data or an export, except the sanctioned `SOURCE_DATE_EPOCH`; the lock record and
-the journal are persisted by design. Not covered: a call through an
-alias or re-export in a reader crate, and `std::env::temp_dir` and `current_dir`, which read the environment but are
-not in the list.
+the journal are persisted by design. At the integration tip of cycle 19 the list holds 45 sites in 20 crates: lane
+A's shell adds two program-boundary helpers, `env_path` in `ew-viewmodel` (`EW_CONFIG_DIR` and the platform directories, read once at
+start-up) and `dbus_env_path` in `elektrawatt` (the D-Bus variables of the portal heuristic), each also a counted
+`[[raw_read.allow]]` entry of `ci/dep-rules.toml` (decision log ID-481).
+
+*What the scan misses* (cycle 19; decision log ID-481). The source scan of the four reader crates is lexical: it does
+not see a call through an alias or a re-export, a fully qualified `<SystemTime>::now`, a call produced by a macro, or a
+second call under one counted `use` import. In every crate the list does not name `RandomState::default` (the
+`disallowed-types` entry for `RandomState` covers it), `std::env::temp_dir`, `current_dir` and `home_dir`, which read
+the environment, or `std::process::id`. Review covers these until FT-329: per-reader-crate `clippy.toml` files (the
+mechanism of ADR-0001 amendment 2) let the reader crates drop their root opt-out, so that clippy enforces the rule there
+by path resolution, which closes the alias, qualified-path and macro gaps; the same task adds `temp_dir`,
+`current_dir`, `home_dir` and `process::id` to the list.
 
 *What the lint does not catch* (decision log ID-463). Group lints (`clippy::all`, `clippy::style`, `warnings`) and the
 lint keys of a manifest, in either spelling, count as allow sites, so a broad allow cannot hide a site. Three gaps
@@ -442,6 +452,15 @@ tasks of NFR-A11Y-01, Escape cancelling every tool for NFR-UX-07). This document
   pseudo-locale build (+35 % length); keymap reachability per layout; 300 % scale snapshots.
 - **Watchdog.** A `tracing` subscriber fails any test in which a UI-thread span exceeds 100 ms (NFR-PERF-19).
 
+*As built (cycle 19, WP-S2.01 part 1; decision log ID-473, ID-474).* The shell's tests are ordinary nextest tests of
+`ew-viewmodel` (37: the registry invariants, the shell transitions on a copy of Golden A, settings, the UI-script
+parser), `ew-ui` (22: kittest interaction flows without rendering, each followed by the accessible-name walker, and unit
+tests of the render worker, the keys and the fonts) and `elektrawatt` (12: the headless smoke script through the built binary with the snapshot of folio
+103 against the golden PNG and the PDF against the committed digest, byte-identical transcripts, `--record`, and
+`--smoke`); they run in the three test jobs with no workflow change and need no display or GPU. Image snapshots, the
+watchdog and the other jobs of this list are WP-S2.11. The macOS build and kittest run first on CI at the cycle-19
+delivery.
+
 ### 3.12 Parser fuzzing and hostile input
 
 - **Targets.** Every target listed in 14 §11 (`qet_project`, `qetz`, `edz_7z`, `edz_zip`, `dxf`, `table_xlsx` …),
@@ -493,6 +512,8 @@ fixed or triaged before the gate re-runs (decision log ID-405; the cycle-15 gate
 *Cycle 17 (decision log ID-437).* At de23b55 the Windows test job took 30 min 54 s, 54 s over the 30-minute budget of NFR-MAINT-05 and inside the 50-minute guard. Since cycle 17 `fuzz_smoke` takes 15 to 19 s in a debug build (12.5 s before), with all 37 commands and the save-and-reload and import steps, and it runs in both nextest runs of each test job. The budget stays; running `fuzz_smoke` once per job, in the all-features run, as FT-268 did for the acceptance tests, is FT-306.
 
 *As built (cycle 18, lane A; FT-306, FT-294, FT-295, FT-296).* The filterset of the default-features run is now `not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))` (the constant `ONCE_PER_JOB_FILTER` of `xtask/src/main.rs`; the guard test of `xtask`, `.config/nextest.toml` and `ci/README.md` follow): the `command_fuzz` binary (`fuzz_smoke` and its other tests) runs in the all-features run only, so once per job and once in `cargo xtask ci`; the saving is `fuzz_smoke`'s 15 to 19 s per job, not measured on CI yet. The cycle also adds two jobs that run on every pull request in parallel with the test jobs and so do not lengthen the 30-minute wall time: `headless` (CI-PR-05, `ci.yml`: one `ew` build, a 30-minute timeout) and `verapdf` (CI-N-09, `ci.yml`: one `ew` build and an image pull, a 20-minute timeout), each about 5 minutes expected with a warm cache and not measured before their first runs; the weekly `coverage.yml` (CI-PR-13) is outside the PR set. The CI-time trend of the nightly performance report (FT-269) reads the jobs of `ci.yml`, so it lists `headless` and `verapdf` from their first runs (that is why `verapdf` is in `ci.yml`, not in `docs.yml`).
+
+*The CI time after cycle 18 (decision log ID-482).* CI for the cycle-18 delivery f316d4d was green, including the first runs of `verapdf` (2 min 14 s) and `headless` (1 min 28 s), both under the five minutes expected. The test jobs took 17 min 09 s (Linux), 20 min 50 s (macOS) and 37 min 53 s (Windows): the Windows job is 7 min 53 s over the 30-minute budget and inside the 50-minute guard, up from 30 min 54 s at de23b55, while Linux and macOS stayed below their times at 95149ab. The growth is Windows-only and is attributed to the Windows all-features build and test of the cycle-18 additions (the record has no step times). From cycle 19 the UI crates add about 100 s of debug build to every test job (a clean `cargo build -p elektrawatt` takes 103 s on four jobs; not yet measured on CI). Under ID-448 the Windows test job runs only the all-features nextest run from FT-330 on; the default-features build and run stay in the Linux and macOS jobs and in `cargo xtask ci`. If the Windows job still exceeds 30 minutes, it is split into two parallel jobs.
 
 *Retries in the evidence jobs (cycle 18; decision log ID-458).* The image pulls of `headless` and `verapdf` are named infrastructure steps in the sense of the first paragraph: each is tried three times with a back-off. When the third try fails, the job fails with an error saying that it has no evidence without the image; an evidence job never passes, skips or turns neutral without its evidence. A test inside such a job is never retried.
 
@@ -553,6 +574,12 @@ Added 2026-10-21 (owner ruling; decision log ID-341). **Purpose.** An outside vi
 - **When.** Never in the headless run (it is skipped while no editor exists) and never blocking. It runs only after a large UI change or a large feature implementation; G-PP and G-M2 are its natural occasions, and the first possible run is at M-PP, when the editor exists. It uses task sheets and placeholder data only, never customer data.
 - **Who.** The drafters run on Sonnet; an Opus lead reads the logs. Findings become follow-up tasks through the next design pass.
 - **Work package.** WP-S6.13 (harness, personas, prompt; about 1.6 pw PERT, M-PP).
+- **What it drives (cycle 19).** The shell's headless mode exists: `elektrawatt --headless --script -` reads a UI
+  script (`ew.uiscript/1`) line by line from stdin and answers each step with a transcript line (`ew.uitranscript/1`),
+  `ui.describe` gives the visible UI as text and `view.snapshot` a PNG, and `--record` keeps the run's `.ewcmd`
+  (decision log ID-474). `cargo xtask blind do` is to drive it (FT-314); the harness's help documents the
+  `ui.describe` vocabulary, which is machine text, because the drafter may not read the design documents. Until the
+  editor of WP-S2.04 exists the shell offers viewing, undo, save and export only, so the first real run stays at M-PP.
 
 ---
 
@@ -709,9 +736,9 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 | Job | Content | Runner | Blocks |
 |---|---|---|---|
 | CI-PR-01 lint | `cargo fmt --check`; clippy `--workspace --all-targets -D warnings` with the §3.5 rules; `ew fmt --check` on fixtures; Fluent string-literal lint on `ew-ui` and `ew-checks` | Linux | Merge |
-| CI-PR-02 test-linux | nextest; insta check; proptest short; oracle on GP; engine-statistics counts; acceptance (gate subset); SQL compile test; schema/fixture check; permissive-only sample reader (FR-COL-012, SC-11); forced-panic test; release fault injection, one kill point per step (§3.13); hostile corpus; the security tests of §11.5 (trust, SQL sandbox and statement gate, MCP binding, `HumanOnly`); UI-thread watchdog | Linux container (C compiler only, NFR-MAINT-09) | Merge |
-| CI-PR-03 test-windows | nextest; kittest interaction; NTFS path and permission tests | windows-2025 | Merge |
-| CI-PR-04 test-macos | nextest; kittest interaction; save and reopen on a case-sensitive APFS image | macos-15 (arm64) | Merge |
+| CI-PR-02 test-linux | nextest (since cycle 19 including the shell's tests: kittest flows, the headless smoke and `elektrawatt --smoke`, §3.11); insta check; proptest short; oracle on GP; engine-statistics counts; acceptance (gate subset); SQL compile test; schema/fixture check; permissive-only sample reader (FR-COL-012, SC-11); forced-panic test; release fault injection, one kill point per step (§3.13); hostile corpus; the security tests of §11.5 (trust, SQL sandbox and statement gate, MCP binding, `HumanOnly`); UI-thread watchdog | Linux container (C compiler only, NFR-MAINT-09) | Merge |
+| CI-PR-03 test-windows | nextest; kittest interaction; NTFS path and permission tests. From FT-330 only the all-features nextest run (decision log ID-482) | windows-2025 | Merge |
+| CI-PR-04 test-macos | nextest; kittest interaction (first run at the cycle-19 delivery); save and reopen on a case-sensitive APFS image | macos-15 (arm64) | Merge |
 | CI-PR-05 headless | `ew export pdf` and `ew render --page 103 --png` on GP with no display, no GPU, no system fonts and empty library directories (NFR-PLAT-04, NFR-REL-11); the PDF's SHA-256 equals that of the kittest GUI export of CI-PR-07 (FR-OUT-022, FR-EXT-001). *As built (cycle 18, FT-295; in part):* `ci.yml` job `headless` runs `ew export pdf golden/J-E-2416.ew` in a bare `ubuntu:24.04` container (image pinned by digest; `--network none`, a read-only root, no device; `ci/headless-export.sh` proves inside it that there is no display, GPU, font file or user-directory content) on one and four threads and compares both PDFs with `expected/pdf/sha256.txt`. The checks run as root with `DAC_READ_SEARCH` (the font search reads every directory and fails on any read error), and the export runs as the runner's user through `setpriv` with a cleared environment; the job keeps no other capability (decision log ID-457). `ew render --page 103 --png` (FT-254) and the equality with the GUI export wait for their commands and for CI-PR-07 | Linux container | Merge, once in the required checks after three green runs on `main` (FT-325, owner) |
 | CI-PR-06 output | Golden PNGs; PDF structure; veraPDF when `ew-scene`, `ew-export`, fonts or forms change; GPU smoke per backend where available (NFR-PLAT-02) | Linux, Windows | Merge |
 | CI-PR-07 ui-a11y | kittest flows and image snapshots; name walker; CVD renders; contrast lint; pseudo-locale; keymap reachability; 300 % | Linux (lavapipe) | Merge |
@@ -735,7 +762,7 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 | CI-N-09 pdf | veraPDF on every GP export variant; PDF/UA-1 at 1.0. *As built (cycle 18, FT-294; in part):* the job `verapdf` of `ci.yml` (on every pull request and push, not nightly) validates three exports of the golden PDF (all pages, dated by `SOURCE_DATE_EPOCH`, a page selection) against PDF/A-2b with veraPDF 1.30.3 (the `verapdf/cli` image pinned by digest, no network); `ci/verapdf-check.py` is the verdict over the XML report; AC-13's veraPDF entry of the acceptance runner reads that report through `EW_VERAPDF_REPORT` in the gate path only (the committed headless report keeps the entry `not_applicable`); the full export must equal the committed digest; PDF/UA-1 is not built (decision log ID-456) | Linux | Release; per push it blocks merge once in the required checks after three green runs on `main` (FT-325, owner) |
 | CI-N-10 private | Golden C, pilot QET projects, migration verifier; public log shows pass/fail and anonymised diffs only | Private runner | Release |
 | CI-N-11 corpora | QET corpus (24 examples at a pinned commit), DXF and EDZ corpora (14 §12) | Linux | Release |
-| CI-N-12 cli-artefact | The nightly `ew` CLI artefact. *As built (cycle 19, FT-299):* `.github/workflows/cli-artefact.yml` builds `ew` in the release profile on ubuntu-24.04, windows-2025 and macos-15 and uploads `ew-<os>-<arch>-unsigned-dev-<short sha>` with a README that says "unsigned development build, not a release" (90-day retention; no signing, no release, no secret; gate criterion G-M1-22); publishing and signing stay release items (WP-S6.07) | All three hosted | — |
+| CI-N-12 cli-artefact | The nightly `ew` CLI artefact. *As built (cycle 19, FT-299):* `.github/workflows/cli-artefact.yml` builds `ew` in the release profile on ubuntu-24.04, windows-2025 and macos-15 and runs `ew --version` and `ew --help` as a smoke test and uploads `ew-<os>-<arch>-unsigned-dev-<short sha>` with the licence texts (GPL-3.0-or-later, CC-BY-SA-4.0, OFL-1.1), `NOTICE`, `THIRD-PARTY-NOTICES.txt` from cargo-about 0.9.2 and a README that says "unsigned development build, not a release" (90-day retention; no signing, no release, no secret; gate criterion G-M1-22); publishing and signing stay release items (WP-S6.07) | All three hosted | — |
 | CI-W-01 soak | 8 h on M (1.0) | Dedicated runner, idle window | Release |
 | CI-W-02 fuzz-maint | Corpus minimisation, coverage of fuzz targets | Linux | — |
 | CI-W-03 dependency age | Lag against the limits of NFR-MAINT-04; advisory waivers expiring within 14 days | Linux | — (issues) |
@@ -840,7 +867,8 @@ were executed when it was written.
   and binaries need only the pinned toolchain (§6.1) and declare the `rust-version` their dependencies require:
   `ew-export`, `ew-render-cpu` and their dependents declare 1.92 for krilla 0.8.2 (vello_cpu 0.3.0 needs 1.89,
   parley 0.12.0 1.88). As applied: `ew-export`, `ew-render-cpu`, `ew-api`, `ew-print`, `ew-testkit`, `ew-ui`,
-  `ew-viewmodel` and both binaries (decision log ID-183). The workspace value 1.85 is the permissive crates' MSRV, not
+  `ew-viewmodel` and both binaries (decision log ID-183); since cycle 19 `ew-ui`, `ew-viewmodel` and `elektrawatt`
+  declare 1.95, which egui 0.37 needs (decision log ID-477). The workspace value 1.85 is the permissive crates' MSRV, not
   a promise for the application.
 
 ### 6.3 The quarterly upgrade train
