@@ -1,0 +1,173 @@
+{
+  "$defs": {
+    "CmdIdent": {
+      "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "CmdMlText": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4,8})(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*(?:-[a-wy-z0-9](?:-[a-z0-9]{2,8})+)*(?:-x(?:-[a-z0-9]{1,8})+)?$",
+            "type": "string"
+          },
+          "type": "object"
+        }
+      ],
+      "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags in ascending order with non-empty string values (doc 05 §3.2)."
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "Date": {
+      "description": "An authored date YYYY-MM-DD (doc 05 §3.2).",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "type": "string"
+    },
+    "NewRevisionState": {
+      "description": "The state of a new revision.",
+      "oneOf": [
+        {
+          "const": "open",
+          "description": "The revision that collects the current edits (at most one, EW-INV-016).",
+          "type": "string"
+        },
+        {
+          "const": "released",
+          "description": "A historic released revision: released before the project came to ElektraWatt, so it has no\nrelease record and no as-built archive (Golden A's V1.0).",
+          "type": "string"
+        }
+      ]
+    },
+    "PartyRole": {
+      "description": "The role of a [`Party`].",
+      "oneOf": [
+        {
+          "const": "customer",
+          "description": "Customer.",
+          "type": "string"
+        },
+        {
+          "const": "end_user",
+          "description": "End user.",
+          "type": "string"
+        },
+        {
+          "const": "panel_builder",
+          "description": "Panel builder (legal owner of the drawings).",
+          "type": "string"
+        },
+        {
+          "const": "author",
+          "description": "Author.",
+          "type": "string"
+        },
+        {
+          "const": "checker",
+          "description": "Checker.",
+          "type": "string"
+        },
+        {
+          "const": "engineer",
+          "description": "Engineer.",
+          "type": "string"
+        }
+      ]
+    },
+    "RevisionPageNote": {
+      "additionalProperties": false,
+      "description": "One page a new revision declares as changed (FR-REV-012).",
+      "properties": {
+        "description": {
+          "$ref": "#/$defs/CmdMlText",
+          "description": "What changed on the page."
+        },
+        "page": {
+          "$ref": "#/$defs/CmdUuid",
+          "description": "The page."
+        }
+      },
+      "required": [
+        "page"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`revision.create` (`CreateRevision`): a project revision (doc 03 §18, FR-REV-001, FT-165): the open\nrevision that collects the current edits, or a historic released revision (released before the project\ncame to ElektraWatt: no release record, no as-built archive).\n\nCreates `Revision {label, date, author, checker, description, state, page_notes}` with a new ID; author\nand checker are party roles (FR-PRJ-003). Rejected: a label that another revision has, other than a\nwithdrawal record (EW-INV-017); state `open` while another revision is open (EW-INV-016); a checker\nequal to the author (at `/checker`, EW-INV-018); a page note on a page that does not exist (at\n`/page_notes/<i>/page`) or a second note on one page (at `/page_notes/<i>`, EW-INV-019). The label's\nformat and order (FR-REV-002) are the release-gate and prevent rule EW-REL-004's, not this command's.\nThe command never changes an existing revision. Outcome: the revision.",
+  "properties": {
+    "author": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PartyRole"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The author, as a party role."
+    },
+    "checker": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PartyRole"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The checker, as a party role; never the author's."
+    },
+    "date": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Date"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The revision date."
+    },
+    "description": {
+      "$ref": "#/$defs/CmdMlText",
+      "description": "What the revision changes."
+    },
+    "label": {
+      "$ref": "#/$defs/CmdIdent",
+      "description": "The label in the project's one format (\"V2.0\")."
+    },
+    "page_notes": {
+      "description": "The pages the revision declares as changed, at most one note per page.",
+      "items": {
+        "$ref": "#/$defs/RevisionPageNote"
+      },
+      "type": "array"
+    },
+    "state": {
+      "$ref": "#/$defs/NewRevisionState",
+      "default": "open",
+      "description": "`open` (the default) or `released` (historic)."
+    }
+  },
+  "required": [
+    "label"
+  ],
+  "title": "revision.create",
+  "type": "object"
+}

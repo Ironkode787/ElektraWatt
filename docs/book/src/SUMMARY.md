@@ -46,6 +46,7 @@
     - [`rep.set_anchor_policy`](reference/commands/rep.set_anchor_policy.md)
     - [`rep.transform`](reference/commands/rep.transform.md)
     - [`report_block.create`](reference/commands/report_block.create.md)
+    - [`revision.create`](reference/commands/revision.create.md)
     - [`section.create`](reference/commands/section.create.md)
     - [`structure.create_node`](reference/commands/structure.create_node.md)
     - [`terminal.add`](reference/commands/terminal.add.md)

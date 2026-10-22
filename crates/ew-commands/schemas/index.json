@@ -348,6 +348,17 @@
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
+      "name": "revision.create",
+      "params_version": 1,
+      "schema": "revision.create.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
       "name": "section.create",
       "params_version": 1,
       "schema": "section.create.schema.json",

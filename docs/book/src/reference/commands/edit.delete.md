@@ -10,7 +10,8 @@ function goes with it); deleting a device removes its functions, their represent
 connections. A target that does not exist at the start is `NotFound`; a forbid link (a strip with
 terminals, a referenced structure node) rejects the whole command (`ModelError::Referenced`). Cost:
 `Bulk` when the plan removes or changes more than 500 records (D4; the plan is computed once by
-`cost`). Outcome: none.
+`cost`). A released or withdrawn revision is immutable (FR-REV-009): naming one is refused at
+`/targets/<i>`; the open revision may be deleted. Outcome: none.
 
 ## Registry entry
 
@@ -70,6 +71,7 @@ The record kinds a command may name generically (`edit.delete`, `fields.set`).
 | `"potential_def"` |  |
 | `"bond"` |  |
 | `"report_block"` |  |
+| `"revision"` |  |
 
 ## Exit codes
 

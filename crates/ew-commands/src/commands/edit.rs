@@ -25,7 +25,8 @@ pub const BULK_ABOVE: usize = 500;
 /// connections. A target that does not exist at the start is `NotFound`; a forbid link (a strip with
 /// terminals, a referenced structure node) rejects the whole command (`ModelError::Referenced`). Cost:
 /// `Bulk` when the plan removes or changes more than 500 records (D4; the plan is computed once by
-/// `cost`). Outcome: none.
+/// `cost`). A released or withdrawn revision is immutable (FR-REV-009): naming one is refused at
+/// `/targets/<i>`; the open revision may be deleted. Outcome: none.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DeleteSelection {
@@ -58,9 +59,17 @@ impl Command for DeleteSelection {
                 "give at least one target",
             ));
         }
-        for t in &self.targets {
+        for (i, t) in self.targets.iter().enumerate() {
             if tx.row(&t.key()).is_none() {
                 return Err(CmdError::NotFound { key: t.key() });
+            }
+            if t.kind == crate::commands::common::KindName::Revision {
+                crate::commands::revision::refuse_closed_revision(
+                    tx,
+                    Self::NAME,
+                    &format!("/targets/{i}"),
+                    t.id.cast(),
+                )?;
             }
         }
         let keys: Vec<ew_model::AnyKey> = self.targets.iter().map(|t| t.key()).collect();

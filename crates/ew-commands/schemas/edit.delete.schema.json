@@ -74,6 +74,11 @@
           "const": "report_block",
           "description": "`report_block`.",
           "type": "string"
+        },
+        {
+          "const": "revision",
+          "description": "`revision`.",
+          "type": "string"
         }
       ]
     },
@@ -99,7 +104,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`edit.delete`: removes the selected records with everything the delete policies take along\n(FR-DEV-030), in **one** delete plan for all targets (`TxBuilder::delete_many`): the result does not\ndepend on the order of the targets, a target that another target's cascade removes is planned once,\nand a target listed twice counts once. Deleting a representation leaves its function unplaced (an IP\nfunction goes with it); deleting a device removes its functions, their representations and\nconnections. A target that does not exist at the start is `NotFound`; a forbid link (a strip with\nterminals, a referenced structure node) rejects the whole command (`ModelError::Referenced`). Cost:\n`Bulk` when the plan removes or changes more than 500 records (D4; the plan is computed once by\n`cost`). Outcome: none.",
+  "description": "`edit.delete`: removes the selected records with everything the delete policies take along\n(FR-DEV-030), in **one** delete plan for all targets (`TxBuilder::delete_many`): the result does not\ndepend on the order of the targets, a target that another target's cascade removes is planned once,\nand a target listed twice counts once. Deleting a representation leaves its function unplaced (an IP\nfunction goes with it); deleting a device removes its functions, their representations and\nconnections. A target that does not exist at the start is `NotFound`; a forbid link (a strip with\nterminals, a referenced structure node) rejects the whole command (`ModelError::Referenced`). Cost:\n`Bulk` when the plan removes or changes more than 500 records (D4; the plan is computed once by\n`cost`). A released or withdrawn revision is immutable (FR-REV-009): naming one is refused at\n`/targets/<i>`; the open revision may be deleted. Outcome: none.",
   "properties": {
     "targets": {
       "description": "The selected records, at least one.",

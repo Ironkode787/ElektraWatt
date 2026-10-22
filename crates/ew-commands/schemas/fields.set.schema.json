@@ -74,6 +74,11 @@
           "const": "report_block",
           "description": "`report_block`.",
           "type": "string"
+        },
+        {
+          "const": "revision",
+          "description": "`revision`.",
+          "type": "string"
         }
       ]
     }

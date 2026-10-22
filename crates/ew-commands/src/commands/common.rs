@@ -99,6 +99,8 @@ pub enum KindName {
     Bond,
     /// `report_block`.
     ReportBlock,
+    /// `revision`.
+    Revision,
 }
 
 impl KindName {
@@ -118,6 +120,7 @@ impl KindName {
             KindName::PotentialDef => Kind::PotentialDef,
             KindName::Bond => Kind::Bond,
             KindName::ReportBlock => Kind::ReportBlock,
+            KindName::Revision => Kind::Revision,
         }
     }
 }

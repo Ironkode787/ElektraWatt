@@ -42,6 +42,7 @@
 //! | `plc.bind_channel` | [`BindChannel`] | Interactive |
 //! | `project.supply.set` | [`SetProjectSupply`] | Interactive |
 //! | `library.embed` | [`EmbedLibraryCopies`] | Interactive |
+//! | `revision.create` | [`CreateRevision`] | Interactive |
 //!
 //! Every command is undoable, of exposure class `Edit` and stability `Preview`.
 
@@ -55,6 +56,7 @@ mod library;
 mod page;
 mod plc;
 mod renumber;
+mod revision;
 mod settings;
 mod structure;
 mod supply;
@@ -76,6 +78,7 @@ pub use library::{EmbedLibraryCopies, library_copy_hash};
 pub use page::{CreatePage, DeletePages, PageScope, RenumberPages};
 pub use plc::{BindChannel, CreatePlcConfigProject};
 pub use renumber::{DeviceScope, NumberingScheme, RenumberDevices, RenumberOptions};
+pub use revision::{CreateRevision, NewRevisionState, RevisionPageNote};
 pub use settings::{SETTABLE_SETTINGS, SetProjectSettings, SettableSetting};
 pub use structure::{CreateExternalRef, CreateReportBlock, CreateSection, CreateStructureNode};
 pub use supply::{SETTABLE_SUPPLY, SetProjectSupply};
@@ -124,4 +127,5 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<BindChannel>();
     r.register::<SetProjectSupply>();
     r.register::<EmbedLibraryCopies>();
+    r.register::<CreateRevision>();
 }

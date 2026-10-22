@@ -66,6 +66,7 @@ The record kinds a command may name generically (`edit.delete`, `fields.set`).
 | `"potential_def"` |  |
 | `"bond"` |  |
 | `"report_block"` |  |
+| `"revision"` |  |
 
 ## Exit codes
 

@@ -8,7 +8,7 @@ use std::collections::BTreeSet;
 use ew_model::Entity;
 use ew_schema::{
     AnyId, Conductor, Connection, Device, ExternalRef, Function, Kind, Page, PotentialDef, ReportBlock,
-    Representation, Section, StructureNode,
+    Representation, Revision, Section, StructureNode,
 };
 use schemars::JsonSchema;
 use serde::de::DeserializeOwned;
@@ -33,6 +33,10 @@ use crate::tx::TxBuilder;
 /// Adding a `plc_module` (or changing the module's parts) instantiates its channels from the part data
 /// (normaliser N1, `channel_instantiation`). An assembly configuration's `covers` names the assembly
 /// device itself or its descendants only (doc 03 §7); any other device is rejected.
+///
+/// A revision's members are settable while it is open; a released or withdrawn revision is immutable
+/// (FR-REV-009) and refused at `/targets/<i>`. Its `state` is not settable (Open → Released is
+/// `revision.release`). A `page_notes` value names existing pages, one note per page (EW-INV-019).
 pub const SETTABLE: &[(KindName, &[&str])] = &[
     (
         KindName::Device,
@@ -125,6 +129,10 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
         ],
     ),
     (KindName::ExternalRef, &["project", "device", "connection"]),
+    (
+        KindName::Revision,
+        &["label", "date", "author", "checker", "description", "page_notes"],
+    ),
 ];
 
 /// The aspect members of a device: a path below one of them needs the aspect to exist.
@@ -205,6 +213,16 @@ impl Command for SetFields {
             return Err(CmdError::invalid_params(Self::NAME, "/path", message));
         }
         let (path, value) = (self.path.as_str(), &self.value);
+        if self.kind == KindName::Revision {
+            for (i, t) in self.targets.iter().enumerate() {
+                crate::commands::revision::refuse_closed_revision(
+                    tx,
+                    Self::NAME,
+                    &format!("/targets/{i}"),
+                    t.cast(),
+                )?;
+            }
+        }
         for t in &self.targets {
             match self.kind {
                 KindName::Device => set_one::<Device>(tx, *t, path, value)?,
@@ -218,6 +236,13 @@ impl Command for SetFields {
                 KindName::Section => set_one::<Section>(tx, *t, path, value)?,
                 KindName::ReportBlock => set_one::<ReportBlock>(tx, *t, path, value)?,
                 KindName::ExternalRef => set_one::<ExternalRef>(tx, *t, path, value)?,
+                KindName::Revision => {
+                    set_one::<Revision>(tx, *t, path, value)?;
+                    if path == "page_notes" {
+                        let notes = tx.require::<Revision>(t.cast())?.page_notes.clone();
+                        crate::commands::revision::check_page_notes(tx, Self::NAME, "/value", &notes)?;
+                    }
+                }
                 // Junctions and bonds have no settable fields: rejected above.
                 KindName::Junction | KindName::Bond => {
                     return Err(CmdError::internal("fields.set: kind without settable fields"));
