@@ -146,7 +146,7 @@ A new crates.io dependency must pass:
   message.
 
 The `who` field of a cargo-vet audit is the contributor's GitHub handle, never a personal name or e-mail address;
-say in `notes` if the audit was AI-assisted. The project imports published audit sets, but `supply-chain/imports.lock`
+an audit an AI agent performed says "AI-performed, owner-delegated (date)" in `notes`. The project imports published audit sets, but `supply-chain/imports.lock`
 must not carry the auditors' names or addresses: after any `cargo vet` run that fetches imports, run
 `cargo xtask check-vet-imports --bless`, which strips them (CI fails otherwise).
 

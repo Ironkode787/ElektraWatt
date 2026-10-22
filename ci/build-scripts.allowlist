@@ -24,7 +24,7 @@ quote@1.0.47
 serde@1.0.229
 serde_core@1.0.229
 serde_json@1.0.154
-thiserror@1.0.69 # re-read at cycle 20 (first version-keyed review): probe-compiles build/probe.rs into OUT_DIR/probe for one cfg flag; no network, no file outside OUT_DIR
+thiserror@1.0.69 # probe-compiles build/probe.rs into OUT_DIR/probe for one cfg flag; no network, no file outside OUT_DIR
 thiserror@2.0.21
 zmij@1.0.23
 #
@@ -41,7 +41,7 @@ wasm-bindgen-shared@0.2.129 # hashes two of its own source files into an env var
 # Reviewed at WP-S3.01 (ew-dl and its dev-dependencies). Neither opens a network connection or downloads
 # anything.
 libm@0.2.16 # reads CARGO_* and TARGET env vars, emits cfg flags and rustc-env values only; writes no files
-rustix@0.38.44 # re-read at cycle 20 (first version-keyed review; in the UI graph): probe-compiles snippets with rustc into OUT_DIR, deletes the artifact, emits cfg flags
+rustix@0.38.44 # (in the UI graph) probe-compiles snippets with rustc into OUT_DIR, deletes the artifact, emits cfg flags
 rustix@1.1.5 # (tempfile via insta, dev-only) probe-compiles snippets with rustc into OUT_DIR, deletes the artifact, emits cfg flags
 ref-cast@1.0.27 # (schemars, WP-S1.02) runs `rustc --version` for cfg flags, writes private.rs to OUT_DIR only
 #

@@ -974,11 +974,6 @@ criteria = "safe-to-run"
 version = "1.1.0"
 criteria = "safe-to-deploy"
 
-[[exemptions.rfd]]
-version = "0.17.2"
-criteria = "safe-to-deploy"
-notes = "Kept 2026-10-22 (cycle 20 lead audit, FT-326): whole crate fails safe-to-deploy on the gtk3 backend (format-string UB in message_dialog.rs:112, NULL filename). The xdg-portal, Windows and macOS code ElektraWatt builds passed; build.rs forbids gtk3 with xdg-portal."
-
 [[exemptions.roxmltree]]
 version = "0.21.1"
 criteria = "safe-to-deploy"
@@ -1338,6 +1333,7 @@ criteria = "safe-to-deploy"
 [[exemptions.wgpu]]
 version = "30.0.1"
 criteria = "safe-to-deploy"
+notes = "Kept 2026-10-22 (cycle 20 lead audit, FT-326): not audited in this lane and covered by no imported set (Firefox audits wgpu-core, not the wgpu front end). ID-476's distribution hold stays until it is audited."
 
 [[exemptions.wide]]
 version = "0.7.33"

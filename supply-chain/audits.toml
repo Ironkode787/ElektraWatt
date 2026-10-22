@@ -5,112 +5,118 @@
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 version = "0.23.0"
-notes = "Lead audit, cycle 20 (AI-assisted). No unsafe; all files read. AT-SPI via zbus. Discretion: the a11y bus address from AT_SPI_BUS_ADDRESS or the org.a11y.Bus reply goes to zbus, which honours unixexec:/tcp: (same-user only)."
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. No unsafe; all files read. AT-SPI via zbus. Discretion: the a11y bus address from AT_SPI_BUS_ADDRESS or the org.a11y.Bus reply goes to zbus, which honours unixexec:/tcp: (same-user only)."
 
 [[audits.accesskit_windows]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 version = "0.35.0"
-notes = "Lead audit, cycle 20 (AI-assisted). Library read fully: UIA COM providers (refcounts, VARIANT/SAFEARRAY/BSTR, free-threaded), window subclassing. Discretion: as_impl assumes in-process text ranges are AccessKit's; UIA client input can abort (same session)."
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. Library read fully: UIA COM providers (refcounts, VARIANT/SAFEARRAY/BSTR, free-threaded), window subclassing. Discretion: as_impl assumes in-process text ranges are AccessKit's; UIA client input can abort (same session)."
 
 [[audits.libloading]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 delta = "0.9.0 -> 0.8.9"
-notes = "Lead audit, cycle 20 (AI-assisted). Reverse delta to the 0.8 API: AsRef<OsStr>/&[u8] with cstr_cow_from_bytes instead of AsFilename/AsSymbolName; same dlopen/dlsym/LoadLibraryExW unsafe; name buffers outlive the calls."
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. Reverse delta to the 0.8 API: AsRef<OsStr>/&[u8] with cstr_cow_from_bytes instead of AsFilename/AsSymbolName; same dlopen/dlsym/LoadLibraryExW unsafe; name buffers outlive the calls."
 
 [[audits.naga]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 delta = "30.0.0 -> 30.0.1"
-notes = "Lead audit, cycle 20 (AI-assisted). Version and build-dependency bump only; no source change."
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. Version and build-dependency bump only; no source change."
 
 [[audits.naga-types]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 delta = "30.0.0 -> 30.0.1"
-notes = "Lead audit, cycle 20 (AI-assisted). Version bump only; no source change."
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. Version bump only; no source change."
+
+[[audits.rfd]]
+who = "Ironkode787"
+criteria = "safe-to-deploy"
+version = "0.17.2"
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit: xdg-portal (dlopen libdbus, zenity fallback from PATH), Windows COM, macOS. Caveat, not built for ElektraWatt: gtk3 format-string UB (message_dialog.rs:112), wasm innerHTML title."
 
 [[audits.wgpu-core]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 delta = "30.0.0 -> 30.0.1"
-notes = "Lead audit, cycle 20 (AI-assisted). Version and build-dependency bump only; no source change."
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. Version and build-dependency bump only; no source change."
 
 [[audits.wgpu-core-deps-apple]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 delta = "30.0.0 -> 30.0.1"
-notes = "Lead audit, cycle 20 (AI-assisted). Version bump only; the crate is a feature shim with a doc-only lib.rs."
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. Version bump only; the crate is a feature shim with a doc-only lib.rs."
 
 [[audits.wgpu-core-deps-emscripten]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 version = "30.0.1"
-notes = "Lead audit, cycle 20 (AI-assisted). Feature shim: a doc-only lib.rs and a target-gated wgpu-hal dependency; no code."
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. Feature shim: a doc-only lib.rs and a target-gated wgpu-hal dependency; no code."
 
 [[audits.wgpu-core-deps-wasm]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 version = "30.0.1"
-notes = "Lead audit, cycle 20 (AI-assisted). Feature shim: a doc-only lib.rs and a target-gated wgpu-hal dependency; no code."
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. Feature shim: a doc-only lib.rs and a target-gated wgpu-hal dependency; no code."
 
 [[audits.wgpu-core-deps-windows-linux-android]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 delta = "30.0.0 -> 30.0.1"
-notes = "Lead audit, cycle 20 (AI-assisted). Version bump only; the crate is a feature shim with a doc-only lib.rs."
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. Version bump only; the crate is a feature shim with a doc-only lib.rs."
 
 [[audits.wgpu-hal]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 delta = "30.0.0 -> 30.0.1"
-notes = "Lead audit, cycle 20 (AI-assisted). Metal: CoreGraphics colour-space constants resolved at run time from the fixed system framework path (libloading); Vulkan: the acquire fence exists only on Windows (null fence is valid)."
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. Metal: CoreGraphics colour-space constants resolved at run time from the fixed system framework path (libloading); Vulkan: the acquire fence exists only on Windows (null fence is valid)."
 
 [[audits.wgpu-naga-bridge]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 delta = "30.0.0 -> 30.0.1"
-notes = "Lead audit, cycle 20 (AI-assisted). Version bump only; no source change."
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. Version bump only; no source change."
 
 [[audits.wgpu-types]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 delta = "30.0.0 -> 30.0.1"
-notes = "Lead audit, cycle 20 (AI-assisted). Version and wasm dependency bump only; no source change."
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. Version and wasm dependency bump only; no source change."
 
 [[audits.winit]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 version = "0.30.13"
-notes = "Lead audit, cycle 20 (AI-assisted), all backends, every unsafe site. Discretion: trusts the X server, X clients, IM, compositor and same-IL window messages/drag sources (crash-only); i686 IDropTarget ABI bug (64-bit fine)."
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit, all backends, every unsafe site. Discretion: trusts the X server, X clients, IM, compositor and same-IL window messages/drag sources (crash-only); i686 IDropTarget ABI bug (64-bit fine)."
 
 [[audits.x11-dl]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 version = "2.21.0"
-notes = "Lead audit, cycle 20 (AI-assisted). dlopen by soname, then the build-time pkg-config libdir; 63 unsafe sites reviewed, signatures checked for the winit set. Discretion: the build host's libdir must be root-owned; XEvent From can read uninit."
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. dlopen by soname, then the build-time pkg-config libdir; 63 unsafe sites reviewed, signatures checked for the winit set. Discretion: the build host's libdir must be root-owned; XEvent From can read uninit."
 
 [[audits.x11rb]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 version = "0.13.2"
-notes = "Lead audit, cycle 20 (AI-assisted). All 48 unsafe sites (CSlice, xcb_ffi, the dl-libxcb loader of libxcb.so.1) and the RustConnection socket/xauth I/O reviewed. Discretion: NULL setup deref on a pre-errored connection; server-sized allocations."
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. All 48 unsafe sites (CSlice, xcb_ffi, the dl-libxcb loader of libxcb.so.1) and the RustConnection socket/xauth I/O reviewed. Discretion: NULL setup deref on a pre-errored connection; server-sized allocations."
 
 [[audits.x11rb-protocol]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 version = "0.13.2"
-notes = "Lead audit, cycle 20 (AI-assisted). forbid(unsafe_code), no build.rs; generated parsers sampled (bounds-checked, checked math). Discretion: Xrm #include reads any file named in RESOURCE_MANAGER (as Xlib); server-driven allocation DoS."
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. forbid(unsafe_code), no build.rs; generated parsers sampled (bounds-checked, checked math). Discretion: Xrm #include reads any file named in RESOURCE_MANAGER (as Xlib); server-driven allocation DoS."
 
 [[audits.zbus]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 version = "5.13.2"
-notes = "Lead audit, cycle 20 (AI-assisted). All 51 unsafe sites reviewed (unix fd/creds FFI, win32, utf8, downcast). Discretion: peer-triggered panics/disconnect (same-user DoS), received fds lack CLOEXEC, bus addresses trusted (unixexec:)."
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. All 51 unsafe sites reviewed (unix fd/creds FFI, win32, utf8, downcast). Discretion: peer-triggered panics/disconnect (same-user DoS), received fds lack CLOEXEC, bus addresses trusted (unixexec:)."
 
 [[audits.zvariant]]
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 version = "5.15.1"
-notes = "Lead audit, cycle 20 (AI-assisted). All 8 unsafe blocks reviewed; the D-Bus decoder is bounds- and depth-checked. Discretion: Fd/Value Deserialize trusts any i32 as an fd under non-zvariant deserializers; FilePath to OsString unchecked."
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit. All 8 unsafe blocks reviewed; the D-Bus decoder is bounds- and depth-checked. Discretion: Fd/Value Deserialize trusts any i32 as an fd under non-zvariant deserializers; FilePath to OsString unchecked."

@@ -196,7 +196,7 @@ after Session::commit(tx) in oracle mode:
 | Platform | Same commit on Windows, macOS and Linux | SHA-256 of GP PDF, SVG, CSV, XLSX, JSONL and `.ewpp`; PNG within the dify tolerance (09 OQ 12; this relaxes the PNG part of NFR-REL-07 and FR-OUT-014, open question 9) | N; release gate (AC-14, FR-OUT-019) |
 | Locale, time zone | `LC_ALL` en_US, nl_NL, de_DE, tr_TR; `TZ` UTC−10 and UTC+14 | File and PDF digests | N |
 | Wall clock | Two runs with the clock faked 24 h apart; `SOURCE_DATE_EPOCH` unset | Output digests | PR |
-| Build-time data | Every CI and release build asserts that `ICU4X_DATA_DIR` is unset: the build scripts of the ICU4X data crates read it, and other segmentation data would change line breaks and so every text layout (decision log ID-52) | The assertion itself | PR; release (CI-R-03) |
+| Build-time data | Every CI and release build asserts that `ICU4X_DATA_DIR` is unset: the build scripts of the ICU4X data crates read it, and other segmentation data would change line breaks and so every text layout (decision log ID-52). Every release build of `elektrawatt` also asserts `PKG_CONFIG=false` and no target-specific `PKG_CONFIG_*` variable, so x11-dl's build script bakes no build-host library directory into the binary (§5.4; FT-333) | The assertion itself | PR; release (CI-R-03) |
 | Project path | The same project opened from two directories, one named with spaces and non-ASCII | Digests (no absolute path in any output) | PR |
 
 **Static rules** (NFR-MAINT-12). In crates that produce persisted or exported bytes (`ew-format`, `ew-model`,
@@ -812,9 +812,19 @@ NFR-SEC-19:
     bytecode-alliance, embark-studios, zcash and isrg; `supply-chain/imports.lock` keeps no auditor identity
     (`cargo xtask check-vet-imports`, and `--bless` after any `cargo vet` run that fetches the sets). Only the built-in
     criteria count. The cycle-20 lead audit recorded the project's own audits of winit, zbus, zvariant, x11rb,
-    x11rb-protocol, x11-dl, accesskit_windows and accesskit_unix, and delta audits of the wgpu 30.0.0 to 30.0.1 family
-    and libloading 0.9.0 to 0.8.9; rfd 0.17.2 keeps its exemption with a dated note (its gtk3 backend, which
-    `xdg-portal` excludes, fails the criterion) and wgpu 30.0.1 keeps its exemption until audited.
+    x11rb-protocol, x11-dl, accesskit_windows, accesskit_unix and rfd, and delta audits of the wgpu 30.0.0 to 30.0.1
+    family and libloading 0.9.0 to 0.8.9; wgpu 30.0.1 keeps its exemption, with a dated note, until audited.
+  - *Unsoundness in unbuilt code.* Unsoundness in code that is not compiled for ElektraWatt's targets and features
+    does not block a `safe-to-deploy` audit; it is recorded as a caveat in the audit note. Examples: rfd's gtk3
+    backend (format-string UB; `xdg-portal` excludes it), winit's i686 `IDropTarget` ABI, x11-dl's `XEvent`
+    conversions that can read uninitialised bytes.
+  - *Attestation.* An audit an agent performed says "AI-performed, owner-delegated (date)" in its note; the owner may
+    later confirm and own it (19 §3.5).
+  - *What the scrub costs.* Stripping the imported `notes` hides the scope caveats other organisations wrote; they
+    stay readable at each record's `aggregated-from` URL. Third-party crates.io `user-login` values (handles) remain
+    in `imports.lock` (ADR-0023 amendment 5). The imported records are factual data and sit under the repository's
+    CC0 label for `supply-chain/`. A plain `cargo vet` that fetches the sets writes the names into the working tree
+    before CI can catch them; a pre-commit hook or a `cargo xtask vet` wrapper that always strips is FT-334.
   - *Build scripts.* `ci/build-scripts.allowlist` is keyed by `name@version`; a version bump of a crate with a build
     script fails CI-PR-09 until the new `build.rs` is read and the line re-blessed (the commit names the re-read
     crates).
@@ -826,7 +836,7 @@ NFR-SEC-19:
     enables both x11-dl and x11rb; no feature keeps X11 without x11-dl), and x11-dl's build script writes the build
     machine's `pkg-config` libdir of 16 X libraries into the binary as a run-time fallback after the soname lookup.
     A distributed Linux build of `elektrawatt` therefore runs with `PKG_CONFIG=false` and no target-specific
-    `PKG_CONFIG_*` override (CI-R-03 asserts both, like `ICU4X_DATA_DIR`, with WP-S6.07), so every libdir is `None`:
+    `PKG_CONFIG_*` override (CI-R-03 asserts both, like `ICU4X_DATA_DIR`, with WP-S6.07: FT-333), so every libdir is `None`:
     the binary carries no build-host path, loads the X libraries by soname only (x11-dl's first attempt anyway), and
     no world-writable build prefix can become a library-planting path on users' machines. The release build also
     runs in the digest-pinned build image, so an independent rebuild sees the same environment. No other build
@@ -986,7 +996,7 @@ gantt
 |---|---|
 | CI-R-01 | Verify the tag signature against `.github/allowed_signers`, a clean tree and version consistency (Cargo, installers, About, manifest); release and migration notes present (NFR-DOC-07; drafted with git-cliff, 19 §6, then edited) |
 | CI-R-02 | Collect gates: a green nightly on this commit (perf, memory, full oracle, fuzz with no open crash), acceptance of every reached milestone row, no unwaived high or critical advisory; from 1.0 the Golden A-R as-built archive passes `sha256sum -c` and veraPDF and validates with the permissive-only reader, and joins the fixture corpus (NFR-REL-10) |
-| CI-R-03 | Hermetic build: `cargo fetch --locked`, then a network-less build on Linux (§10); `cargo auditable build --release --locked` for every target; the build fails if `ICU4X_DATA_DIR` is set (§3.5) |
+| CI-R-03 | Hermetic build: `cargo fetch --locked`, then a network-less build on Linux (§10); `cargo auditable build --release --locked` for every target; the build fails if `ICU4X_DATA_DIR` is set (§3.5), or if `PKG_CONFIG` is not `false` or any `PKG_CONFIG_*` target override is set (§5.4, x11-dl; FT-333) |
 | CI-R-04 | `ew-step-worker` per target with cached OCCT artefacts (1.0) |
 | CI-R-05 | Packaging (§8) |
 | CI-R-06 | Signing and notarisation; `SHA256SUMS` and the update manifest signed (§9) |
@@ -1125,7 +1135,7 @@ only.
 | Lockfile and toolchain | `Cargo.lock` committed; `--locked`; exact toolchain | All |
 | cargo-deny 0.20.2 | **Licences:** the NFR-LIC-04 allowlist, with LGPL-2.1 only for `ew-step-worker`. **Advisories:** vulnerabilities deny; "unmaintained" and "unsound" notices need an owner decision within 90 days. **Bans:** duplicate-version warnings and a list of banned crates (downloader build scripts). **Sources:** crates.io only, git sources allowlisted per crate | CI-PR-09 |
 | cargo-audit 0.22.2 | RUSTSEC on the lockfile per PR and on the shipped binaries' embedded `cargo-auditable` data at release | CI-PR-09, CI-R-07 |
-| cargo-vet 0.10.2 | Every crate in the graph is covered by an audit for the criteria its use needs: the project's own audits in `supply-chain/audits.toml` (the `who` field is the contributor's GitHub handle, never a personal name or e-mail address; AI-assisted audits say so in `notes`), or the imported sets of mozilla, google, bytecode-alliance, embark-studios, zcash and isrg, kept without auditor identities and checked by `cargo xtask check-vet-imports` (ADR-0023 amendment 5; only the built-in criteria count). Exemptions are added per work package (ADR-0023 amendment 4, decision log ID-332): the commit that adds or updates a crate adds one `[[exemptions.<crate>]]` entry per crate and exact version to `supply-chain/config.toml`, `safe-to-deploy` for shipped code and `safe-to-run` for build and test only, and lists the exempted crates in its message; the review checks them, and `cargo vet` fails a crate with neither audit nor exemption. The list is burned down by audits and imports: every exemption is audited, covered or replaced before the first signed release, and until then a work package exempts only the crates it introduces. State after the cycle-20 UI audit (FT-326): 385 exemptions (375 `safe-to-deploy`, 10 `safe-to-run`), down from 485 (472 and 13) | CI-PR-09 |
+| cargo-vet 0.10.2 | Every crate in the graph is covered by an audit for the criteria its use needs: the project's own audits in `supply-chain/audits.toml` (the `who` field is the contributor's GitHub handle, never a personal name or e-mail address; an audit an agent performed says "AI-performed, owner-delegated (date)" in `notes`), or the imported sets of mozilla, google, bytecode-alliance, embark-studios, zcash and isrg, kept without auditor identities and checked by `cargo xtask check-vet-imports` (ADR-0023 amendment 5; only the built-in criteria count). Exemptions are added per work package (ADR-0023 amendment 4, decision log ID-332): the commit that adds or updates a crate adds one `[[exemptions.<crate>]]` entry per crate and exact version to `supply-chain/config.toml`, `safe-to-deploy` for shipped code and `safe-to-run` for build and test only, and lists the exempted crates in its message; the review checks them, and `cargo vet` fails a crate with neither audit nor exemption. The list is burned down by audits and imports: every exemption is audited, covered or replaced before the first signed release, and until then a work package exempts only the crates it introduces. State after the cycle-20 UI audit (FT-326): 384 exemptions (374 `safe-to-deploy`, 10 `safe-to-run`), down from 485 (472 and 13) | CI-PR-09 |
 | Build scripts | `cargo metadata` lists every crate with a `custom-build` target; each must appear in `build-scripts.allowlist` as `name@version` with a review comment, and no entry may be stale, so a new version of a crate with a build script fails `cargo xtask check-build-scripts` until its `build.rs` is read again and `--bless` re-versions the line (bless never adds a crate; ADR-0023 amendment 5). A Linux job builds the whole workspace with all features inside a network namespace without connectivity, so any build-time download fails (C-5) | CI-PR-09, CI-R-03 |
 | Low-adoption crates | Test-only, or vendored with a named owner (C-9) | Review |
 | Licence boundary | For each crate declared permissive in `[workspace.metadata.ew]`, which must list exactly the P crates of ARCH §3 (`ew-units`, `ew-ids`, `ew-mltext`, `ew-rds`, `ew-schema`, `ew-format`, `ew-interop-api`, `ew-dl`, `ew-step-proto`, `ew-memo`, `ew-plcaddr`, `ew-caex`, `ew-devdesc`, `ew-ewpp`; `ew-plugin-wit` and `ew-plugin-sdk` from 1.x), the closure of normal and build dependencies (and dev-dependencies, so that published crates stay self-contained) contains only NFR-MAINT-02 licences and no GPL workspace crate | CI-PR-09 |
@@ -1191,6 +1201,7 @@ flowchart LR
 | TM-14 | Local disclosure through journal, recovery snapshots, crash dumps or logs | User-only permissions; pruning; redacted logs; no automatic upload (NFR-PRIV-04, NFR-PRIV-05) | CI-PR-02 |
 | TM-15 | Signing-key compromise | Incident runbook (§11.4) | Tabletop exercise |
 | TM-16 | User-configured external converter (ODA File Converter for DWG, 1.0) fed a hostile file, or a converter path planted by a received project | The converter path is a user setting, never read from a project; it runs as a separate process on a copy in a temporary directory with a 120 s timeout, and its output is parsed under the DXF limits (14 §11) | Hostile-corpus test with a stub converter that hangs and one that writes a DXF bomb |
+| TM-17 | Unexpected process spawn by a dependency: rfd 0.17.2 starts `zenity` from `PATH` when the XDG desktop portal call fails (no portal service, malformed response), so a same-user process that controls `PATH` or plants a `zenity` earlier on it runs code when the user opens a file dialog. Low risk: it needs same-user access, which already allows more | The portal first (the shell checks for a session bus before calling rfd); a future rfd feature set without the zenity fallback, or a check that the portal answers, removes the spawn (FT-332). The cycle-20 audit records it in rfd's audit note | Review; FT-332 |
 
 ### 11.2 `unsafe` and native code
 

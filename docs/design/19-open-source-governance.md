@@ -356,7 +356,7 @@ drawings, and use the placeholders `<customer>`, `<project ref>` and so on.
 **Dependency audits** (resolved 2026-10-18, open question 18). Every new crates.io dependency passes cargo-deny,
 cargo-vet 0.10.2 and, if it has a build script, the build-script allowlist (ADR-0023). The `who` field of a
 cargo-vet audit is the contributor's GitHub handle, never a personal name or e-mail address (ADR-0023 amendment 3),
-and an AI-assisted audit says so in its `notes`. Since cycle 20 the project imports the published audit sets of
+and an audit an agent performed says "AI-performed, owner-delegated (date)" in its `notes`: such an audit is the project's by delegation until the owner confirms it, and the owner may later confirm and own it. Since cycle 20 the project imports the published audit sets of
 mozilla, google, bytecode-alliance, embark-studios, zcash and isrg, but `imports.lock` keeps no auditor identity:
 `cargo xtask check-vet-imports` fails on auditor names, e-mail addresses and notes, and its `--bless` strips them
 after an import refresh, so the public-repository rule (UD-8 of the decision log) holds (ADR-0023 amendment 5).

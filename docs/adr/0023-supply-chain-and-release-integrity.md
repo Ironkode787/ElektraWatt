@@ -110,8 +110,9 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    (google's `ub-risk-*` and crypto criteria, zcash's `crypto-reviewed` and `license-reviewed`) is mapped, and
    google's `rule-of-two-safe-to-deploy` counts only through its own `implies = "safe-to-deploy"`. Amendment 4's
    "never by imported audit sets" is replaced: the list is burned down by the project's own audits and by the
-   imported sets. The project's own audits keep amendment 3's `who` rule and say in `notes` when they were
-   AI-assisted (19 §3.5). Decision 1's build-script control is made version-exact: `ci/build-scripts.allowlist`
+   imported sets. The project's own audits keep amendment 3's `who` rule; an audit an agent performed says
+   "AI-performed, owner-delegated (date)" in `notes` (19 §3.5). Unsoundness in code that is not compiled for
+   ElektraWatt's targets and features does not block a `safe-to-deploy` audit; it is a caveat in the note. Decision 1's build-script control is made version-exact: `ci/build-scripts.allowlist`
    lists `name@version`, so a new version of a crate with a build script fails `cargo xtask check-build-scripts`
    until its `build.rs` is read again and `--bless` re-versions the line; bless never adds a crate. Trade-off:
    the project now relies on other organisations' review (only for the built-in criteria and only for the
