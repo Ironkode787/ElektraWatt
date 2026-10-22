@@ -23,9 +23,9 @@ use std::collections::BTreeMap;
 use ew_ids::Id;
 use ew_model::AnyKey;
 use ew_schema::{
-    AnyId, Bond, Conductor, Connection, ConnectionKind, Device, ExternalRef, FnDef, FnRole, Function,
-    FunctionKind, IpSpec, Junction, Kind, Page, PotentialDef, Record, ReportBlock, Representation, Section,
-    StructureNode,
+    AnyId, Bond, Channel, Conductor, Connection, ConnectionKind, Device, DeviceLink, Endpoint, ExternalRef,
+    FnDef, FnRole, Function, FunctionKind, IpSpec, Junction, Kind, Page, PlcConfigProject, PotentialDef,
+    Record, ReportBlock, Representation, Section, StructureNode,
 };
 use ew_units::Pt2;
 use serde_json::{Map, Value, json};
@@ -407,8 +407,8 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         Ok((id, function))
     }
 
-    /// The tag members not written by the creating command: `frozen` by `fields.set`, `letter` and
-    /// `counter` by `fields.set` where they differ from `written`; `scheme` is not written.
+    /// The tag members not written by the creating command (those not in `covered`): `frozen` and `scheme`
+    /// by `fields.set`; any other member is noted as not written.
     fn device_tag_rest(&mut self, id: Id<Device>, tag: Option<Value>, covered: &[&str]) -> Result<()> {
         let Some(Value::Object(tag)) = tag else {
             return Ok(());
@@ -417,8 +417,8 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
             if covered.contains(&member.as_str()) {
                 continue;
             }
-            if member == "frozen" {
-                self.set("device", &[id.cast()], "tag.frozen", value)?;
+            if member == "frozen" || member == "scheme" {
+                self.set("device", &[id.cast()], &format!("tag.{member}"), value)?;
             } else {
                 self.not_written(&format!("device.tag.{member}"), 1);
             }
@@ -881,5 +881,156 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         let (id, _) = self.primary::<ReportBlock>("report_block.create", Value::Object(p))?;
         self.set_rest("report_block", id.cast(), m, &[])?;
         Ok(id)
+    }
+
+    /// `assembly.attach` of `children` (device and position) under `parent`.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn attach(&mut self, parent: Id<Device>, children: &[(Id<Device>, Option<u32>)]) -> Result<()> {
+        let children: Vec<Value> = children
+            .iter()
+            .map(|(device, position)| match position {
+                Some(p) => json!({"device": device, "position": p}),
+                None => json!({"device": device}),
+            })
+            .collect();
+        self.run("assembly.attach", json!({"parent": parent, "children": children}))
+            .map(|_| ())
+    }
+
+    /// `valve.add` of a valve child `device` (child tag scheme, its counter equal to its position) on the
+    /// module `module`, with the main function `main`; then `fields.set` of the members `valve.add` does
+    /// not take (`function_text`, `state`, `process_tag`, `tech_data`, `kind`, further part uses).
+    ///
+    /// # Errors
+    ///
+    /// A command's error, or a device that is not a valve child (no position, no part).
+    pub fn valve(
+        &mut self,
+        device: &Device,
+        module: Id<Device>,
+        main: Option<&Function>,
+    ) -> Result<(Id<Device>, Option<Id<Function>>)> {
+        let mut m = members(Record::Device(device.clone()));
+        for k in ["parent", "position"] {
+            m.remove(k);
+        }
+        let (Some(position), Some(first)) = (device.position, device.parts.first()) else {
+            return Err(BuildError {
+                command: "valve.add".into(),
+                params: Value::Null,
+                message: "a valve child has a position and a part".into(),
+            });
+        };
+        let mut p = Map::new();
+        p.insert("module".into(), json!(module));
+        p.insert("position".into(), json!(position));
+        p.insert("part".into(), json!(first));
+        p.insert("letter".into(), json!(device.tag.letter));
+        if let Some(f) = main {
+            p.insert("fndef".into(), json!(f.def));
+        }
+        if let Some(v) = take(&mut m, "structure") {
+            p.insert("structure".into(), v);
+        }
+        let parts = take(&mut m, "parts");
+        let tag = take(&mut m, "tag");
+        let (id, done) = self.primary::<Device>("valve.add", Value::Object(p))?;
+        let function = Self::created::<Function>(&done, Kind::Function).first().copied();
+        if device.parts.len() > 1 {
+            self.set("device", &[id.cast()], "parts", parts.unwrap_or(Value::Null))?;
+        }
+        self.device_tag_rest(id, tag, &["letter", "counter", "scheme"])?;
+        self.set_rest(
+            "device",
+            id.cast(),
+            m,
+            &["function_text", "state", "process_tag", "tech_data", "kind"],
+        )?;
+        if let (Some(f), Some(fid)) = (main, function) {
+            self.function_rest(fid, f)?;
+        }
+        Ok((id, function))
+    }
+
+    /// `fields.set` of one device aspect (`assembly`, `plc_station`, `plc_module`) as a whole; returns what
+    /// the command created (the channels a new `plc_module` instantiates).
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn aspect(&mut self, device: Id<Device>, aspect: &str, value: Value) -> Result<Done> {
+        self.run(
+            "fields.set",
+            json!({"kind": "device", "targets": [device], "path": aspect, "value": value}),
+        )
+    }
+
+    /// `plc.config_project.create`.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn config_project(&mut self, cfg: &PlcConfigProject) -> Result<Id<PlcConfigProject>> {
+        let mut m = members(Record::PlcConfigProject(cfg.clone()));
+        let mut p = Map::new();
+        for k in ["name", "profile", "cpu"] {
+            if let Some(v) = take(&mut m, k) {
+                p.insert(k.into(), v);
+            }
+        }
+        let (id, _) = self.primary::<PlcConfigProject>("plc.config_project.create", Value::Object(p))?;
+        self.set_rest("plc_config_project", id.cast(), m, &[])?;
+        Ok(id)
+    }
+
+    /// `plc.bind_channel` of `channel` to `endpoint` (a CP).
+    ///
+    /// # Errors
+    ///
+    /// The command's error, or an endpoint that is not a CP.
+    pub fn bind_channel(&mut self, channel: Id<Channel>, endpoint: &Endpoint) -> Result<()> {
+        let Endpoint::Cp(f, idx) = endpoint else {
+            return Err(BuildError {
+                command: "plc.bind_channel".into(),
+                params: Value::Null,
+                message: "a channel binding is a CP".into(),
+            });
+        };
+        self.run(
+            "plc.bind_channel",
+            json!({"channel": channel, "endpoint": End::Cp(*f, *idx).param()}),
+        )
+        .map(|_| ())
+    }
+
+    /// `device.link`.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn device_link(&mut self, link: &DeviceLink) -> Result<Id<DeviceLink>> {
+        let mut m = members(Record::DeviceLink(link.clone()));
+        let mut p = Map::new();
+        for k in ["from", "to", "kind"] {
+            if let Some(v) = take(&mut m, k) {
+                p.insert(k.into(), v);
+            }
+        }
+        let (id, _) = self.primary::<DeviceLink>("device.link", Value::Object(p))?;
+        self.set_rest("device_link", id.cast(), m, &[])?;
+        Ok(id)
+    }
+
+    /// `project.supply.set` of one supply member.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn supply(&mut self, path: &str, value: Value) -> Result<()> {
+        self.run("project.supply.set", json!({"path": path, "value": value}))
+            .map(|_| ())
     }
 }

@@ -319,6 +319,23 @@ page-type admission of ID-55 is amended by the owner ruling of cycle 15: MultiLi
 graphic representations (cable markers) and Fluid pages multi-line ones (the CPX black boxes of a valve terminal), as
 the reference drawings show (`allowed_rep_types`; AC-15 path (b), [20](20-golden-project.md) §22).
 
+*As built (cycle 16, lane A; FT-169, FT-270, FT-167).* Seven commands join, all `Edit`, `Preview`, Interactive,
+undoable, with committed schemas; 36 commands are registered. `assembly.attach` (`AttachChildren`: parent and
+children with optional 1-based positions; sets `Device.parent`/`position`; a held position, two children at one
+position or an ancestor as child are refused, no push insert); `valve.add` ([11](11-fluid-power.md) §4.3: module,
+position (default the lowest free), part use, letter (default Q), FnDef of the main function, structure; the valve
+gets the child tag scheme with its counter equal to its position); `device.link` ([11](11-fluid-power.md) §4.3:
+from, to, kind; no self-link, no duplicate); `plc.config_project.create` (name unique, profile `id@version`,
+optional CPU); `plc.bind_channel` ([10](10-plc-and-bus.md) §3.9: channel and a CP of the function's FnDef, or
+`null` to unbind; another channel on the same CP is unbound in the same transaction, FR-PLC-005);
+`project.supply.set` (one whitelisted member path of the supply, such as `origin.source`; a project without a
+supply is refused); `library.embed` (library documents of kind part, symbol, fndef or form, each with its lineage:
+the ID must be the copy identity `v5(NS_LIBCOPY, library_id ‖ item_id)`, the `sha256` must be the item's hash, a
+project-local item or an item already embedded is refused). `fields.set` gains `tag.scheme` and the device aspects
+`assembly`, `plc_station`, `plc_module` (as a whole or member by member; an assembly configuration covers only the
+assembly device or its descendants). Normaliser row 3 (N1) is built (§3.2). The golden builder of AC-15 path (b)
+builds the valve-terminal assembly, the PLC records and the supply origin with them.
+
 | Command (`NAME`) | Parameters (abridged) | Cost | Notes |
 |---|---|---|---|
 | `page.create` | folio, kind, section, structure, title, form?, grid | Interactive | folio proposal §5.6 |
@@ -362,7 +379,10 @@ wire number (rows 8 and 11, FR-NUM-023); if both members carry different assigne
 rather than losing one (ID-60). Row 12 leaves every new connection `Unassigned` until a wire-numbering scheme exists
 (WP-S1.11). The other rows arrive with their owners' work packages. The prevent hook of the validate step stays
 unwired until WP-S1.15, so M1 accepts, for example, duplicate terminal designations; this is a documented known gap
-(ID-58).
+(ID-58). *Cycle 16:* row 3 (N1, `channel_instantiation`) runs between rows 2 and 4: a device of the transaction
+that is new with a `plc_module` aspect, gained one, or changed its parts or `part_use` gets the channels 0 … n−1 of
+its part's channel spec with v5 IDs; existing channels are kept and surplus ones are not removed (FR-PLC-053's
+confirmation is not built).
 
 **Explicit counter edits** (FR-NUM-029; decision log ID-53). Row 4 renumbers only collisions that the edit itself
 creates by placing a new device, moving a main representation or changing a page. A `fields.set` that sets a tag's

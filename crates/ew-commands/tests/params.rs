@@ -131,6 +131,36 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"location": LOC.to_string(), "device": "JE-N1000-03", "connection": "L"}),
         ),
         (
+            "assembly.attach",
+            json!({"parent": DEV_102G1.to_string(), "children": [
+                {"device": DEV_102F2.to_string(), "position": 1},
+                {"device": DEV_101F1.to_string()}
+            ]}),
+        ),
+        (
+            "valve.add",
+            json!({"module": DEV_102F2.to_string(), "position": 2,
+                "part": {"part": {"copy": PART_MCB.to_string()}, "qty": "1"},
+                "letter": "Q", "fndef": FNDEF_MCB.to_string()}),
+        ),
+        (
+            "device.link",
+            json!({"from": DEV_102F2.to_string(), "to": DEV_101F1.to_string(), "kind": "drives"}),
+        ),
+        (
+            "plc.config_project.create",
+            json!({"name": "PLC1", "profile": "siemens-tia-intl@2027.1"}),
+        ),
+        (
+            "plc.bind_channel",
+            json!({"channel": DEV_T1.to_string(), "endpoint": fn_a.clone()}),
+        ),
+        (
+            "project.supply.set",
+            json!({"path": "origin.source", "value": null}),
+        ),
+        ("library.embed", json!({"copies": [{"$k": "form"}]})),
+        (
             "fields.set",
             json!({"kind": "device", "targets": [DEV_102F2.to_string()], "path": "tag.counter", "value": 5}),
         ),
@@ -175,7 +205,7 @@ fn every_registered_command_has_an_example() {
     let registry = CommandRegistry::builtin();
     let registered: BTreeSet<&str> = registry.commands().map(|c| c.meta().name).collect();
     let covered: BTreeSet<&str> = examples().iter().map(|(n, _)| *n).collect();
-    assert_eq!(registered.len(), 29);
+    assert_eq!(registered.len(), 36);
     assert_eq!(registered, covered);
     assert_eq!(examples().len(), covered.len(), "one example per command");
 }

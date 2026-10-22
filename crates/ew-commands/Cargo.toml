@@ -36,6 +36,8 @@ serde.workspace = true
 serde_json = "1.0.154"
 # The JSON Schema of every command's parameters (FR-EXT-015, doc 17 §2.1).
 schemars = "1.2.3"
+# `library.embed` checks a copy's lineage hash (doc 05 §13.2, the rule of EW-CORE-014).
+sha2.workspace = true
 
 [dev-dependencies]
 # The crate's own integration tests read records through `testkit` (`rows`, `Preview::ops`, history ops;

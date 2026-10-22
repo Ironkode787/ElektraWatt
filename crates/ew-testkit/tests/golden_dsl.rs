@@ -127,42 +127,37 @@ fn expected(name: &str) -> String {
         .expect("expected CSV")
 }
 
-/// AC-15 path (b): the acceptance SQL over the command-built project returns the expected CSVs (the parts
-/// list differs only by the assembly that no command builds yet, FT-169), and no
-/// representation of the tables is refused (the page-type rule as amended by the owner ruling on ID-55:
-/// the cable markers are graphic on folios 106 and 3, the CPX black boxes multi-line on 203 … 206).
+/// AC-15 path (b): the acceptance SQL over the command-built project returns the expected CSVs, both
+/// parts lists equal theirs (the valve-terminal assembly is built by `assembly.attach`, `valve.add` and
+/// the `assembly` aspect, FT-169), and no representation of the tables is refused (the page-type rule as
+/// amended by the owner ruling on ID-55: the cable markers are graphic on folios 106 and 3, the CPX black
+/// boxes multi-line on 203 … 206).
 #[test]
 fn path_b_returns_the_expected_csvs() {
     let (session, built) = built(1);
     for (name, csv) in sql_results(&session) {
         assert_eq!(csv, expected(name), "acceptance/{name}.sql over path (b)");
     }
-    // Known gap (FT-169): `bom_parts.csv` differs, because the valve-terminal assembly is not built — the 28
-    // valves (571334) and the mounting plate -UC1-plate (NSYPMM107) are child-scheme devices, and without
-    // `parent`/`position` the seven modules print as a list instead of "-201U3 … -201U8, -202U2". Every
-    // other part number of the expected parts list is there.
-    let bom = session
+    let parts = session
         .export_csv(ew_api::Export::Bom(ew_api::BomMode::Component))
         .expect("the parts list exports");
-    let parts = |text: &str| -> Vec<String> {
-        text.lines()
-            .skip(1)
-            .map(|l| csv_fields(l).get(5).cloned().unwrap_or_default())
-            .collect()
-    };
-    let want: Vec<String> = parts(&expected("bom_parts"))
-        .into_iter()
-        .filter(|p| p != "571334" && p != "NSYPMM107")
-        .collect();
-    assert_ne!(
-        bom,
-        expected("bom_parts"),
-        "the FT-169 gap is closed; compare the whole text"
-    );
     assert_eq!(
-        parts(&bom),
-        want,
-        "the parts list over path (b), without the assembly's parts"
+        parts,
+        expected("bom_parts"),
+        "export bom --mode parts over path (b)"
+    );
+    let assembly = session
+        .export_csv(ew_api::Export::Bom(ew_api::BomMode::Assembly))
+        .expect("the assembly parts list exports");
+    assert_eq!(
+        assembly,
+        expected("bom_assembly"),
+        "export bom --mode assembly over path (b)"
+    );
+    // the fields of the golden dialect still parse the expected rows (the helper stays exercised)
+    assert_eq!(
+        csv_fields(expected("bom_parts").lines().nth(1).unwrap_or_default())[5],
+        "532216"
     );
     assert!(
         !built
@@ -186,18 +181,16 @@ fn path_b_issues_these_commands_and_leaves_out_these_records() {
         .collect();
     assert_eq!(
         commands.join(", "),
-        "bond.create: 1, box.black: 11, cable.create: 3, connection.draw: 87, device.create: 36, \
-         device.place: 48, external_ref.create: 4, fields.set: 125, ip.place: 48, junction.edit: 6, \
-         page.create: 13, potential.define: 19, project.settings.set: 3, report_block.create: 15, \
-         section.create: 3, structure.create_node: 4, terminal.add: 4"
+        "assembly.attach: 2, bond.create: 1, box.black: 11, cable.create: 3, connection.draw: 87, \
+         device.create: 37, device.link: 8, device.place: 76, external_ref.create: 4, fields.set: 204, \
+         ip.place: 48, junction.edit: 6, page.create: 13, plc.bind_channel: 28, \
+         plc.config_project.create: 1, potential.define: 19, project.settings.set: 3, \
+         project.supply.set: 1, report_block.create: 15, section.create: 3, structure.create_node: 4, \
+         terminal.add: 4, valve.add: 28"
     );
     assert_eq!(
         built.unwritten_summary(),
-        "channel: 56, device (child tag scheme: valve-terminal assembly, FT-169): 29, device.assembly: 1, \
-         device.parent: 11, device.plc_module: 7, device.plc_station: 1, device.position: 11, \
-         device_link: 8, function (of a child-scheme device): 28, plc_config_project: 1, \
-         project.supply.origin.source: 1, representation (of a child-scheme device): 28, \
-         revision or other kind without a schema type: 2"
+        "revision or other reserved kind without a schema type (FT-165): 2"
     );
 }
 
@@ -244,9 +237,121 @@ fn the_command_log_replays_and_every_step_undoes() {
     }
     // one undo step per command that changed the model: two of the commands leave the model as it was
     // (a value the record already had), so they leave no step
-    assert_eq!((steps, built.script.len()), (428, 430), "undo steps, commands");
+    assert_eq!((steps, built.script.len()), (604, 606), "undo steps, commands");
     assert!(
         session.world().model.content_eq(&shell_session(1).world().model),
         "undoing every step returns to the shell"
+    );
+}
+
+/// Batch ID text to built ID text over a JSON value, the way the builder remaps a record: a sorted list
+/// of IDs (a set) stays sorted under the new IDs.
+fn remap_value(ids: &BTreeMap<String, String>, v: &mut serde_json::Value) {
+    use serde_json::Value;
+    match v {
+        Value::String(s) => {
+            if let Some(to) = ids.get(s.as_str()) {
+                *s = to.clone();
+            }
+        }
+        Value::Array(items) => {
+            let sorted_ids = items.len() > 1
+                && items
+                    .iter()
+                    .any(|x| x.as_str().is_some_and(|s| ids.contains_key(s)))
+                && items.iter().all(Value::is_string)
+                && items.windows(2).all(|w| w[0].as_str() < w[1].as_str());
+            items.iter_mut().for_each(|x| remap_value(ids, x));
+            if sorted_ids {
+                items.sort_by(|a, b| a.as_str().cmp(&b.as_str()));
+            }
+        }
+        Value::Object(m) => m.values_mut().for_each(|x| remap_value(ids, x)),
+        _ => {}
+    }
+}
+
+/// Every row of a session's model as `kind:id` → its JSON without `source_ref`.
+fn rows_by_key(session: &Session) -> BTreeMap<String, serde_json::Value> {
+    ew_commands::rows::model_lines(&session.world().model)
+        .expect("every row has a JSON form")
+        .into_iter()
+        .map(|(k, text)| {
+            let mut v: serde_json::Value = serde_json::from_str(&text).expect("a JSON row");
+            if let Some(m) = v.as_object_mut() {
+                m.remove("source_ref");
+            }
+            (format!("{}:{}", k.0.name(), k.1), v)
+        })
+        .collect()
+}
+
+/// Path (b) holds the records of path (a) record for record, up to the IDs the commands minted: every
+/// record of the bootstrap (its `source_ref` aside), with its references remapped to the built IDs,
+/// equals the built record under the built ID, and path (b) holds no other record. The import lineage is
+/// path (a)'s own; the revisions are reserved records outside the tables (FT-165).
+#[test]
+fn path_b_equals_path_a_record_by_record_up_to_ids() {
+    use ew_schema::Record;
+    let batch = golden::bootstrap(&repo()).expect("path (a) imports");
+    let project = batch
+        .records
+        .iter()
+        .find_map(|r| match r {
+            Record::Project(p) => Some(p.clone()),
+            _ => None,
+        })
+        .expect("the project row");
+    let records = batch
+        .records
+        .iter()
+        .filter(|r| !matches!(r, Record::Project(_)))
+        .cloned();
+    let a = Session::from_records(project, records, batch.lib.clone(), SessionOptions::default())
+        .expect("path (a) is a valid model");
+    let (b, built) = built(1);
+    let ids: BTreeMap<String, String> = built.ids.clone();
+    let a_rows = rows_by_key(&a);
+    let b_rows = rows_by_key(&b);
+    let built_key = |key: &str| {
+        let (kind, id) = key.split_once(':').expect("kind:id");
+        format!("{kind}:{}", ids.get(id).map_or(id, String::as_str))
+    };
+    let mut differ = Vec::new();
+    let mut only_a = BTreeMap::<String, usize>::new();
+    for (key, v) in &a_rows {
+        let kind = key.split_once(':').map_or("", |(k, _)| k);
+        if kind == "import_lineage" {
+            continue;
+        }
+        let mut v = v.clone();
+        remap_value(&ids, &mut v);
+        if let (true, Some(m)) = (kind == "project", v.as_object_mut()) {
+            m.remove("lineage"); // the import provenance of the project row (path (a) only), if any
+        }
+        match b_rows.get(&built_key(key)) {
+            Some(bv) if *bv == v => {}
+            Some(bv) => differ.push(format!("{}\n  a: {v}\n  b: {bv}", built_key(key))),
+            None => *only_a.entry(kind.to_owned()).or_default() += 1,
+        }
+    }
+    let count = |rows: &BTreeMap<String, serde_json::Value>, kind: &str| {
+        rows.keys().filter(|k| k.starts_with(&format!("{kind}:"))).count()
+    };
+    for (kind, n) in [
+        ("device", 96), // the 28 valves and the mounting plate included
+        ("channel", 56),
+        ("device_link", 8),
+        ("plc_config_project", 1),
+    ] {
+        assert_eq!((kind, count(&b_rows, kind)), (kind, n), "rows of path (b)");
+    }
+    let a_keys: std::collections::BTreeSet<String> = a_rows.keys().map(|k| built_key(k)).collect();
+    let only_b: Vec<&String> = b_rows.keys().filter(|k| !a_keys.contains(*k)).collect();
+    assert!(
+        differ.is_empty() && only_a.is_empty() && only_b.is_empty(),
+        "{} records differ:\n{}\nonly in path (a): {only_a:?}\nonly in path (b): {only_b:?}",
+        differ.len(),
+        differ.join("\n")
     );
 }

@@ -8,27 +8,34 @@
 //! built project. The order:
 //!
 //! 1. the project settings members of [`super::SETTINGS_BY_COMMAND`];
-//! 2. structure nodes (parents first), sections, external references, pages;
-//! 3. devices (with their main normal function), terminals per strip, cables with their conductors;
+//! 2. structure nodes (parents first), sections, external references, the supply's origin
+//!    (`project.supply.set`), pages;
+//! 3. devices (with their main normal function), terminals per strip, cables with their conductors; then
+//!    the device tree (FT-169): `assembly.attach` of every child under its parent with its position,
+//!    `valve.add` of every valve child (child tag scheme, counter = position) on its module; then the PLC
+//!    configuration projects (`plc.config_project.create`), the `plc_station` and `plc_module` aspects
+//!    (`fields.set`; a new module instantiates its channels, normaliser N1) and the `assembly` aspects
+//!    with their configurations and covers (`fields.set`, once the whole tree exists);
 //! 4. representations in batch order: the first representation of a function creates it (`ip.place`,
 //!    `box.black` or `device.place` joining its device), the others place it again;
 //! 5. connections: the three connections of a junction are drawn as one CP-to-CP connection that the
 //!    third connection splits at the junction's point, so the junction is created by `connection.draw`;
 //!    then `junction.edit` gives it its style, wiring and sequence; the other connections are drawn
 //!    directly; then their overrides;
-//! 6. potential definitions, bonds, report blocks.
+//! 6. potential definitions, bonds, report blocks;
+//! 7. channel bindings (`plc.bind_channel`, coil 14 of position p → channel 2p + 1 as drawn) and device
+//!    links (`device.link`).
 //!
-//! Not written (no command yet, FT numbers of doc 20 §20.2 and §23): PLC channels, device links, the PLC
-//! configuration project, revisions, the import lineage (path (a) only), the valve-terminal assembly
-//! (`parent`, `position`, the child tag scheme and the devices that carry it: FT-169) and the PLC aspects.
+//! Not written (no command yet, FT numbers of doc 20 §20.2 and §23): revisions (FT-165: the revision kind
+//! is reserved, not typed) and the import lineage (path (a) only).
 
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
 use ew_import_tables::ew_interop_api::ImportBatch;
 use ew_schema::{
-    Connection, ConnectionKind, Device, Endpoint, FnRole, Function, FunctionKind, Junction, Kind, Record,
-    Representation,
+    AddrSpec, Channel, Connection, ConnectionKind, Device, Endpoint, FnRole, Function, FunctionKind,
+    Junction, Kind, Record, Representation, TagScheme,
 };
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -140,12 +147,57 @@ fn error(command: &str, message: String) -> BuildError {
 /// Terminals of one strip with main functions of one FnDef, in sequence order: one `terminal.add`.
 type TerminalRun<'a> = (Id<ew_schema::FnDef>, Vec<(&'a Device, &'a Function)>);
 
-/// The child tag scheme (`tag.scheme = child`): the valve-terminal assembly's children (FT-169).
-fn child_scheme(d: &Device) -> bool {
-    serde_json::to_value(&d.tag)
-        .ok()
-        .and_then(|t| t.get("scheme").cloned())
-        .is_some_and(|s| s == "child")
+/// A valve child (doc 11 §3.2): child tag scheme, a parent and a position, the counter equal to the
+/// position (normaliser N-FL-2's rule), and a part. `valve.add` creates it.
+fn valve_child(d: &Device) -> bool {
+    d.tag.scheme == TagScheme::Child
+        && d.parent.is_some()
+        && d.position.is_some()
+        && d.tag.counter == d.position
+        && !d.parts.is_empty()
+        && d.aspects.terminal.is_none()
+        && d.aspects.cable.is_none()
+}
+
+/// `d` without the members the device-tree and PLC steps write: `parent`, `position` and the
+/// `assembly`, `plc_station` and `plc_module` aspects.
+fn without_tree(mut d: Device) -> Device {
+    d.parent = None;
+    d.position = None;
+    d.aspects.assembly = None;
+    d.aspects.plc_station = None;
+    d.aspects.plc_module = None;
+    d
+}
+
+/// The channel kind that normaliser N1 instantiates for the module `d`: the `plc.channels` kind of the
+/// part use `plc_module.part_use`, else of the first part use whose part has a channel spec.
+fn module_channel_kind(batch: &ImportBatch, d: &Device) -> Option<ew_schema::ChannelKind> {
+    let spec_of = |i: usize| {
+        let copy = d.parts.get(i)?.part.copy;
+        batch.lib.iter().find_map(|doc| match doc {
+            ew_schema::LibDocument::Part(p) if p.id == copy => p
+                .item
+                .sections
+                .plc
+                .as_ref()
+                .and_then(|s| s.channels.as_ref())
+                .map(|c| c.kind.clone()),
+            _ => None,
+        })
+    };
+    match d.aspects.plc_module.as_ref()?.part_use {
+        Some(i) => spec_of(usize::from(i)),
+        None => (0..d.parts.len()).find_map(spec_of),
+    }
+}
+
+/// The JSON form of one device aspect member (`assembly`, `plc_station`, `plc_module`), if present.
+fn aspect_value(d: &Device, aspect: &str) -> Option<Value> {
+    match serde_json::to_value(Record::Device(d.clone())) {
+        Ok(Value::Object(mut m)) => m.remove(aspect),
+        _ => None,
+    }
 }
 
 /// The reason of a `Rejected { source, reason }` error text without parenthesised IDs and without the
@@ -218,14 +270,6 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
                 b.setting(member, v.clone())?;
             }
         }
-        if project
-            .supply
-            .as_ref()
-            .and_then(|s| s.origin.as_ref())
-            .is_some_and(|o| o.source.is_some())
-        {
-            b.not_written("project.supply.origin.source", 1);
-        }
     }
 
     // 2. Structure, sections, external references, pages.
@@ -255,6 +299,18 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
         let id = b.external_ref(&map.apply(r))?;
         map.insert(r.id, id);
     }
+    // The supply's origin names an external reference (the shell leaves it out).
+    if let Some(source) = of!(Project)
+        .next()
+        .and_then(|p| p.supply.as_ref())
+        .and_then(|s| s.origin.as_ref())
+        .and_then(|o| o.source)
+    {
+        match map.get(source) {
+            Some(built) => b.supply("origin.source", serde_json::json!(built))?,
+            None => b.not_written("project.supply.origin.source (reference not built)", 1),
+        }
+    }
     for p in of!(Page) {
         let id = b.page(&map.apply(p))?;
         map.insert(p.id, id);
@@ -268,17 +324,13 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
             .copied()
             .find(|f| f.device == Some(d) && f.role == FnRole::Main && f.kind == FunctionKind::Normal)
     };
-    let skipped: BTreeSet<Id<Device>> = of!(Device).filter(|d| child_scheme(d)).map(|d| d.id).collect();
-    b.not_written(
-        "device (child tag scheme: valve-terminal assembly, FT-169)",
-        skipped.len(),
-    );
+    let valves: BTreeSet<Id<Device>> = of!(Device).filter(|d| valve_child(d)).map(|d| d.id).collect();
     for d in of!(Device) {
-        if skipped.contains(&d.id) || d.aspects.terminal.is_some() || d.aspects.cable.is_some() {
+        if valves.contains(&d.id) || d.aspects.terminal.is_some() || d.aspects.cable.is_some() {
             continue;
         }
         let main = main_normal(d.id);
-        let (id, f) = b.device(&map.apply(d), main.map(|f| map.apply(f)).as_ref())?;
+        let (id, f) = b.device(&without_tree(map.apply(d)), main.map(|f| map.apply(f)).as_ref())?;
         map.insert(d.id, id);
         if let (Some(main), Some(f)) = (main, f) {
             map.insert(main.id, f);
@@ -311,9 +363,9 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
             }
         }
         for (def, run) in runs {
-            let mapped: Vec<Device> = run.iter().map(|(t, _)| map.apply(*t)).collect();
+            let mapped: Vec<Device> = run.iter().map(|(t, _)| without_tree(map.apply(*t))).collect();
             let refs: Vec<&Device> = mapped.iter().collect();
-            let made = b.terminals(&map.apply(strip_record), strip_built, def, &refs)?;
+            let made = b.terminals(&without_tree(map.apply(strip_record)), strip_built, def, &refs)?;
             for ((t, f), (dev, func)) in run.iter().zip(made) {
                 map.insert(t.id, dev);
                 map.insert(f.id, func);
@@ -323,38 +375,130 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
     }
     let conductors: Vec<&ew_schema::Conductor> = of!(Conductor).collect();
     for d in of!(Device) {
-        if d.aspects.cable.is_none() || skipped.contains(&d.id) {
+        if d.aspects.cable.is_none() {
             continue;
         }
         let own: Vec<&ew_schema::Conductor> =
             conductors.iter().copied().filter(|c| c.cable == d.id).collect();
         let mapped: Vec<ew_schema::Conductor> = own.iter().map(|c| map.apply(*c)).collect();
         let refs: Vec<&ew_schema::Conductor> = mapped.iter().collect();
-        let (id, made) = b.cable(&map.apply(d), &refs)?;
+        let (id, made) = b.cable(&without_tree(map.apply(d)), &refs)?;
         map.insert(d.id, id);
         for (c, m) in own.iter().zip(made) {
             map.insert(c.id, m);
         }
     }
 
-    // 4. Representations.
-    let by_id: BTreeMap<Id<Function>, &Function> = functions.iter().map(|f| (f.id, *f)).collect();
-    let mut skipped_fns: BTreeSet<Id<Function>> = BTreeSet::new();
-    for f in &functions {
-        if f.device.is_some_and(|d| skipped.contains(&d)) {
-            skipped_fns.insert(f.id);
+    // 3b. The device tree (FT-169): every built child under its parent, with its position, one
+    // `assembly.attach` per parent (children by position, then batch order); then the valve children,
+    // parents first.
+    let mut by_parent: BTreeMap<Id<Device>, Vec<&Device>> = BTreeMap::new();
+    for d in of!(Device) {
+        if let (Some(parent), false) = (d.parent, valves.contains(&d.id)) {
+            by_parent.entry(parent).or_default().push(d);
         }
     }
+    for (parent, mut children) in by_parent {
+        children.sort_by_key(|c| c.position.unwrap_or(u32::MAX));
+        let Some(parent_built) = map.get(parent) else {
+            b.not_written("device.parent (parent not built)", children.len());
+            continue;
+        };
+        let mut built_children = Vec::new();
+        for c in children {
+            match map.get(c.id) {
+                Some(id) => built_children.push((id, c.position)),
+                None => b.not_written("device.parent (child not built)", 1),
+            }
+        }
+        if !built_children.is_empty() {
+            b.attach(parent_built, &built_children)?;
+        }
+    }
+    let device_depth = |d: &Device| {
+        let mut n = 0usize;
+        let mut p = d.parent;
+        while let Some(id) = p {
+            n += 1;
+            p = of!(Device).find(|x| x.id == id).and_then(|x| x.parent);
+            if n > 64 {
+                break;
+            }
+        }
+        n
+    };
+    let mut valve_list: Vec<&Device> = of!(Device).filter(|d| valves.contains(&d.id)).collect();
+    valve_list.sort_by_key(|d| device_depth(d));
+    for d in valve_list {
+        let Some(module) = d.parent.and_then(|p| map.get(p)) else {
+            return Err(error(
+                "valve.add",
+                format!("the module of valve {} was not built", d.id),
+            ));
+        };
+        let main = main_normal(d.id);
+        // `valve.add` takes the parent and position itself: only the aspects are stripped
+        let mut record = map.apply(d);
+        record.aspects.assembly = None;
+        record.aspects.plc_station = None;
+        record.aspects.plc_module = None;
+        let (id, f) = b.valve(&record, module, main.map(|f| map.apply(f)).as_ref())?;
+        map.insert(d.id, id);
+        if let (Some(main), Some(f)) = (main, f) {
+            map.insert(main.id, f);
+        }
+    }
+
+    // 3c. PLC configuration projects, station and module aspects (a new module instantiates its channels,
+    // normaliser N1), then the assembly aspects (their covers name the children built above).
+    for cfg in of!(PlcConfigProject) {
+        let id = b.config_project(&map.apply(cfg))?;
+        map.insert(cfg.id, id);
+    }
+    for d in of!(Device) {
+        let Some(built) = map.get(d.id) else {
+            continue;
+        };
+        let mapped = map.apply(d);
+        if let Some(v) = aspect_value(&mapped, "plc_station") {
+            b.aspect(built, "plc_station", v)?;
+        }
+        if let Some(v) = aspect_value(&mapped, "plc_module") {
+            let done = b.aspect(built, "plc_module", v)?;
+            let created: BTreeSet<String> = done
+                .created
+                .iter()
+                .filter(|k| k.0 == Kind::Channel)
+                .map(|k| k.1.to_string())
+                .collect();
+            let part_kind = module_channel_kind(batch, d);
+            for ch in of!(Channel).filter(|c| c.module == d.id) {
+                let id: Id<Channel> = ew_ids::v5::plc_channel_id(built, ch.number);
+                if created.contains(&id.to_string()) {
+                    map.insert(ch.id, id);
+                    if part_kind.as_ref() != Some(&ch.kind) {
+                        b.not_written("channel.kind (other than the part's)", 1);
+                    }
+                } else {
+                    b.not_written("channel (not instantiated from the module's part)", 1);
+                }
+            }
+        }
+    }
+    for d in of!(Device) {
+        if let (Some(built), Some(v)) = (map.get(d.id), aspect_value(&map.apply(d), "assembly")) {
+            b.aspect(built, "assembly", v)?;
+        }
+    }
+
+    // 4. Representations.
+    let by_id: BTreeMap<Id<Function>, &Function> = functions.iter().map(|f| (f.id, *f)).collect();
     for r in of!(Representation) {
         let rep: &Representation = r;
         let [fid] = rep.functions.as_slice() else {
             b.not_written("representation (more than one function)", 1);
             continue;
         };
-        if skipped_fns.contains(fid) {
-            b.not_written("representation (of a child-scheme device)", 1);
-            continue;
-        }
         if !rep.pin_map.as_slice().is_empty() {
             b.not_written("representation.pin_map", 1);
         }
@@ -409,12 +553,8 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
             b.function_details(func, &map.apply(*f))?;
         }
     }
-    let unplaced = functions
-        .iter()
-        .filter(|f| !map.has(f.id) && !skipped_fns.contains(&f.id))
-        .count();
+    let unplaced = functions.iter().filter(|f| !map.has(f.id)).count();
     b.not_written("function (no representation built)", unplaced);
-    b.not_written("function (of a child-scheme device)", skipped_fns.len());
 
     // 5. Connections and junctions.
     let connections: Vec<&Connection> = of!(Connection).collect();
@@ -423,7 +563,7 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
         [&c.a, &c.b]
             .into_iter()
             .filter_map(endpoint_function)
-            .any(|f| skipped_fns.contains(&f) || !by_id.contains_key(&f))
+            .any(|f| !by_id.contains_key(&f))
     };
     let mut done: BTreeSet<Id<Connection>> = BTreeSet::new();
     let end = |map: &Remap, e: &Endpoint| -> Option<End> {
@@ -506,7 +646,7 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
             continue;
         }
         if touches_skipped(c) {
-            b.not_written("connection (to a child-scheme device)", 1);
+            b.not_written("connection (to a function not in the batch)", 1);
             continue;
         }
         let (Some(a), Some(bb)) = (end(&map, &c.a), end(&map, &c.b)) else {
@@ -542,15 +682,45 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
         map.insert(x.id, id);
     }
 
+    // 7. Channel bindings and the channel members N1 does not take from the part; device links.
+    for ch in of!(Channel) {
+        let Some(id) = map.get(ch.id) else {
+            continue; // counted when its module was built
+        };
+        let mapped = map.apply(ch);
+        if let Some(binding) = &mapped.binding {
+            b.bind_channel(id, binding)?;
+        }
+        // N1 instantiates the part's kind with every other member open; a member the batch sets
+        // otherwise has no command yet (`fields.set` does not take channels).
+        let open = [
+            ("designation", mapped.designation.is_some()),
+            ("address", mapped.address != AddrSpec::Auto),
+            ("state", mapped.state.is_some()),
+            ("symbol", mapped.symbol.is_some()),
+            ("comment", !mapped.comment.is_empty()),
+            ("target", mapped.target.is_some()),
+        ];
+        for (member, set) in open {
+            if set {
+                b.not_written(&format!("channel.{member}"), 1);
+            }
+        }
+    }
+    for x in of!(DeviceLink) {
+        let id = b.device_link(&map.apply(x))?;
+        map.insert(x.id, id);
+    }
+
     // Kinds no command writes yet.
     for r in recs {
         let what = match r.kind() {
-            Some(Kind::Channel) => "channel",
-            Some(Kind::DeviceLink) => "device_link",
-            Some(Kind::PlcConfigProject) => "plc_config_project",
             Some(Kind::ImportLineage) | Some(Kind::Project) => continue,
             Some(
-                Kind::StructureNode
+                Kind::Channel
+                | Kind::DeviceLink
+                | Kind::PlcConfigProject
+                | Kind::StructureNode
                 | Kind::Section
                 | Kind::ExternalRef
                 | Kind::Page
@@ -565,7 +735,7 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
                 | Kind::ReportBlock,
             ) => continue,
             Some(_) => "other kind",
-            None => "revision or other kind without a schema type",
+            None => "revision or other reserved kind without a schema type (FT-165)",
         };
         b.not_written(what, 1);
     }

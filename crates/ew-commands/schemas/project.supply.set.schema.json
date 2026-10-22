@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`project.supply.set` (`SetProjectSupply`): sets one member of the project's supply, such as its origin,\nthe external reference the supply comes from (\"J-E-206-L\", doc 20 §4.2).\n\n`path` is one of [`SETTABLE_SUPPLY`] (else invalid at `/path`); `value` is the member's JSON form, read\nback into the supply type (a value it does not accept is invalid at `/value`); `null` removes an\noptional member. Rejected: a project without a supply (a basic or macro project, FR-PRJ-026: the supply\nis part of the project's creation), and an `origin.source` that names no external reference\n([`CmdError::NotFound`]). Only the project record changes. Outcome: none.",
+  "properties": {
+    "path": {
+      "description": "The dotted member path.",
+      "type": "string"
+    },
+    "value": {
+      "description": "The new value; `null` removes an optional member."
+    }
+  },
+  "required": [
+    "path",
+    "value"
+  ],
+  "title": "project.supply.set",
+  "type": "object"
+}

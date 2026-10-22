@@ -1109,13 +1109,19 @@ fn ac15_builder_path(c: &Ctx) -> Outcome {
         .copied()
         .filter(|n| sql_pair(&projection, n).is_err())
         .collect();
-    // Doc 20 §3.2 compares every expected CSV: the six SQL results and the parts list (`ew export bom --mode
-    // parts`). `bom_assembly.csv` is excluded by name until the valve-terminal assembly can be built (FT-169).
-    let parts = match session.export_csv(Export::Bom(BomMode::Component)) {
-        Ok(t) => t,
-        Err(e) => return fail(format!("the parts list of path (b) does not export: {e}")),
-    };
-    let parts_differ = same_as_expected("csv/bom_parts.csv", parts.as_bytes()).is_err();
+    // Doc 20 §3.2 compares every expected CSV: the six SQL results and both parts lists (`ew export bom
+    // --mode parts|assembly`).
+    let mut boms_differ = Vec::new();
+    for (mode, file) in [
+        (BomMode::Component, "bom_parts.csv"),
+        (BomMode::Assembly, "bom_assembly.csv"),
+    ] {
+        match session.export_csv(Export::Bom(mode)) {
+            Ok(t) if same_as_expected(&format!("csv/{file}"), t.as_bytes()).is_ok() => {}
+            Ok(_) => boms_differ.push(file),
+            Err(e) => return fail(format!("{file} of path (b) does not export: {e}")),
+        }
+    }
     // A representation the command layer refuses must never degrade path (b) silently.
     let refused: Vec<String> = built
         .unwritten
@@ -1124,8 +1130,8 @@ fn ac15_builder_path(c: &Ctx) -> Outcome {
         .map(|(k, n)| format!("{n} × {k}"))
         .collect();
     let not_built = format!(
-        "not built by any command yet: {}; the project row (except 4 settings members) and the library copies \
-         come from the shell (FT-167); bom_assembly.csv is not compared until FT-169",
+        "not built by any command yet: {} (not compared by any expected CSV); the project row (except 4 \
+         settings members and the supply origin) and the embedded library copies come from the shell",
         built.unwritten_summary()
     );
     let commands = built.script.len();
@@ -1136,20 +1142,20 @@ fn ac15_builder_path(c: &Ctx) -> Outcome {
             differing.join(".sql, acceptance/")
         ));
     }
-    if parts_differ {
-        problems.push(
-            "export bom --mode parts differs from expected/csv/bom_parts.csv (the valve-terminal assembly's 28 \
-             valves and the mounting plate are not built, FT-169)"
-                .to_owned(),
-        );
+    if !boms_differ.is_empty() {
+        problems.push(format!(
+            "export bom differs from expected/csv/{}",
+            boms_differ.join(", expected/csv/")
+        ));
     }
     if !refused.is_empty() {
         problems.push(format!("the command layer refused {}", refused.join("; ")));
     }
     if problems.is_empty() {
         return pass(format!(
-            "{commands} commands from the project shell; the {} acceptance SQL files and export bom --mode parts \
-             return expected/csv; {not_built}",
+            "{commands} commands from the project shell (the valve-terminal assembly by assembly.attach, valve.add \
+             and fields.set, the 56 channels by normaliser N1 and plc.bind_channel); the {} acceptance SQL files \
+             and export bom --mode parts and --mode assembly return expected/csv; {not_built}",
             names.len()
         ));
     }

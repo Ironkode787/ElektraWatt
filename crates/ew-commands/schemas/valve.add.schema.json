@@ -1,0 +1,229 @@
+{
+  "$defs": {
+    "CmdIdent": {
+      "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "Dec3": {
+      "description": "A canonical decimal string: at most three fraction digits, no trailing fraction zeros, no leading zeros, no plus sign, no \"-0\", no exponent, no white space, no unit (doc 05 §3.2). The pattern bounds the integer part to 16 digits; the exact i64 range of the thousandths (about 9.2 x 10^15) is checked by the reader.",
+      "maxLength": 21,
+      "pattern": "^(?:0|-?[1-9][0-9]{0,15}(?:\\.[0-9]{0,2}[1-9])?|-?0\\.[0-9]{0,2}[1-9])$",
+      "type": "string"
+    },
+    "Ident": {
+      "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "PartRef": {
+      "additionalProperties": true,
+      "description": "A part on a device (doc 03 §7): the embedded copy and an optional part variant (FR-PRT-003).",
+      "properties": {
+        "copy": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The copy ID of the embedded part, `v5(NS_LIBCOPY, library ‖ item)`."
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A variant key of the part."
+        }
+      },
+      "required": [
+        "copy"
+      ],
+      "type": "object"
+    },
+    "PartUse": {
+      "additionalProperties": true,
+      "description": "A part use on a device (ADR-0006): the part and its quantity in the part's order unit.",
+      "properties": {
+        "part": {
+          "$ref": "#/$defs/PartRef",
+          "description": "The part."
+        },
+        "qty": {
+          "$ref": "#/$defs/Dec3",
+          "description": "The quantity in the part's order unit (pieces, metres, sets)."
+        }
+      },
+      "required": [
+        "part",
+        "qty"
+      ],
+      "type": "object"
+    },
+    "Slot": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "const": "none"
+        }
+      ],
+      "description": "A structure slot: a structure node ID or \"none\"; absent means inherit (doc 05 §3.2)."
+    },
+    "StructureAssignment": {
+      "additionalProperties": true,
+      "description": "Which structure node a page, device or structure box belongs to, one slot per aspect (doc 03 §5).\nMembers follow the canonical aspect order of `ew_rds::Aspect`; the product aspect is the device tree and\nhas no slot.\n\n```\nuse ew_schema::StructureAssignment;\n\nlet s: StructureAssignment = serde_json::from_str(\n    r#\"{\"function\":\"7d2c95e0-1f4a-5b38-a6e7-0c93b5d1f284\",\"location\":\"none\"}\"#,\n).unwrap();\nassert!(s.installation_site.is_none()); // absent: inherit\n```",
+      "properties": {
+        "document_kind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`&` (pages only)."
+        },
+        "function": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`=`"
+        },
+        "functional_assignment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`==`"
+        },
+        "installation_site": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`++`"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`+`"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`%`"
+        },
+        "user_defined": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "`#`"
+        }
+      },
+      "type": "object"
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`valve.add` (`AddValve`, doc 11 §4.3 `valve.add{module, position?, part}`): adds a valve child to a\nmodule (sub-base) of a valve terminal.\n\nCreates `Device {tag: {letter, counter: position, scheme: child}, parent: module, position, structure,\nparts: [part]}` (doc 11 §3.2: the child rule prints `{parent}-{letter}{position}`; normaliser N-FL-2\nkeeps the counter equal to the position) and, with `fndef`, its main function `{def: fndef, role: main,\nkind: normal}`. The position is the requested one, else the lowest free position of the module (1, 2,\n…). The module, the part copy and the FnDef copy must exist. Rejected: position 0 (at `/position`); a\nrequested position another child of the module holds (no push insert in v0). Not in v0: the coil\nfunctions from the part's `solenoids` (N-FL-1; give `fndef`), the slot-count bound of the module's part\n(EW-FL-003 is a check) and the coil-to-channel binding by the part's position map (N2: bind with\n`plc.bind_channel`). The state (spare valves) and the function text are set with `fields.set`.\nOutcome: the valve.",
+  "properties": {
+    "fndef": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdUuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The FnDef copy of the valve's main function."
+    },
+    "letter": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdIdent"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The letter code; default `Q` (directional valves in the shipped EN 81346-2:2009 set)."
+    },
+    "module": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The module (sub-base) the valve sits on."
+    },
+    "part": {
+      "$ref": "#/$defs/PartUse",
+      "description": "The valve's part use."
+    },
+    "position": {
+      "description": "The requested position (1-based); default the lowest free one.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "structure": {
+      "$ref": "#/$defs/StructureAssignment",
+      "description": "Own structure assignment; default none (inherited from the parent)."
+    }
+  },
+  "required": [
+    "module",
+    "part"
+  ],
+  "title": "valve.add",
+  "type": "object"
+}

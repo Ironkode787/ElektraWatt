@@ -724,23 +724,28 @@ lock) and check the findings, the counts and the portable file names.
 bootstrap above, and `build(batch, sink)` is path (b), which constructs the same project **through commands
 only**. It starts from the `shell(batch)`: the project row (without its import provenance, the supply's
 external-reference origin and the four settings members that `project.settings.set` edits) and the embedded library
-copies, because no command creates a project row (`ew new`) or embeds a library copy yet (FT-167). Then it issues,
-in dependency order, one command per record, with the bootstrap batch as its typed description (the same source of
-truth as path (a)): `project.settings.set`, `structure.create_node`, `section.create`, `external_ref.create`,
-`page.create`, `device.create`, `terminal.add`, `cable.create`, `device.place`, `box.black`, `ip.place`,
-`connection.draw` (a junction is created by the connection that splits another one at its point),
-`junction.edit`, `potential.define`, `bond.create`, `report_block.create` and `fields.set` for the members the
-creating commands do not take. The commands mint their own IDs, so path (b) agrees with path (a) by content
+copies, because no command creates a project row (`ew new`); `library.embed` exists (cycle 16, FT-167) but the
+shell keeps the copies, which include the project-local parts that are created in the project, not embedded. Then
+it issues, in dependency order, one command per record, with the bootstrap batch as its typed description (the same
+source of truth as path (a)): `project.settings.set`, `structure.create_node`, `section.create`,
+`external_ref.create`, `project.supply.set` (the supply's origin), `page.create`, `device.create`, `terminal.add`,
+`cable.create`, the device tree (`assembly.attach` of the 11 modules under -201U1 and the mounting plate under
+-UC1, `valve.add` of the 28 valves), `plc.config_project.create`, the `plc_station`, `plc_module` and `assembly`
+aspects (`fields.set`; a new module gets its 8 channels from the part data, normaliser N1), `device.place`,
+`box.black`, `ip.place`, `connection.draw` (a junction is created by the connection that splits another one at
+its point), `junction.edit`, `potential.define`, `bond.create`, `report_block.create`, `plc.bind_channel` (coil
+14 of position p → channel 2p + 1, as drawn), `device.link` and `fields.set` for the members the creating
+commands do not take. The commands mint their own IDs, so path (b) agrees with path (a) by content
 (doc 20 §3.2: every column except `id` and `source_ref`); with the same ID source the build is deterministic, and
 its command log (`Built::command_log`, doc 17 §3.5) replays with `ew apply` to the same model.
 
 The builder never injects a record. What no command writes yet is left out and listed (`Built::unwritten`,
-pinned by `crates/ew-testkit/tests/golden_dsl.rs`): the 56 PLC channels, the 8 device links, the PLC configuration
-project, the 2 revisions (FT-165), the valve-terminal assembly (the 29 child-scheme devices with their functions
-and representations, and `parent`, `position`, `plc_module`, `plc_station` of the modules; FT-169) and the supply's
-origin, and the assembly aspect of -201U1. 430 commands build the rest (17 command names; the run takes about a second in a debug build).
+pinned by `crates/ew-testkit/tests/golden_dsl.rs`): only the 2 revisions remain, a reserved kind without a schema
+type that no command can create (FT-165). 606 commands build the rest (23 command names; about two seconds in a
+debug build). The same test file checks that path (b) holds the records of path (a) record for record, up to the
+IDs the commands minted (`source_ref` aside, the import lineage being path (a)'s own).
 
-**Status (AC-15 path (b): `fail` until FT-169).** The six acceptance SQL files over the built project return `expected/csv/`. The entry also compares `bom_parts.csv` (`ew export bom --mode parts`; `bom_assembly.csv` is excluded until FT-169): it lacks the 28 valves (571334) and the mounting plate (NSYPMM107), and prints the seven modules one by one instead of "-201U3 … -201U8, -202U2", because the valve-terminal assembly is not built. The cable markers (representation type graphic on the multi-line folio 106 and the bus-topology folio 3) and the seven CPX black boxes drawn multi-line on the fluid folios 203 … 206 are placed under the owner ruling of cycle 15 that amends decision log ID-55 (doc 06 §2.2): before it, the page-type rule refused them, a cable without its marker had no page and printed `-?W1`, and four of the six files differed.
+**Status (AC-15 path (b): `pass`, cycle 16).** The six acceptance SQL files over the built project return `expected/csv/`, and so do `ew export bom --mode parts` (`bom_parts.csv`) and `--mode assembly` (`bom_assembly.csv`, compared since the valve-terminal assembly is built by commands, FT-169). Until cycle 16 the parts list lacked the 28 valves (571334) and the mounting plate (NSYPMM107) and printed the seven modules one by one. The cable markers (representation type graphic on the multi-line folio 106 and the bus-topology folio 3) and the seven CPX black boxes drawn multi-line on the fluid folios 203 … 206 are placed under the owner ruling of cycle 15 that amends decision log ID-55 (doc 06 §2.2): before it, the page-type rule refused them, a cable without its marker had no page and printed `-?W1`, and four of the six files differed.
 
 ## Variants and command logs
 

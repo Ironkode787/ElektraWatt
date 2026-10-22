@@ -25,7 +25,14 @@ use crate::tx::TxBuilder;
 /// The settable field paths per kind: dotted JSON member paths of the record's serde form (device aspects
 /// are flattened, so `strip.label_mode` is the strip aspect's member). Identity, links that commands own
 /// (`device`, `page`, `functions`, endpoints, `sequence`, `cable`, `strip`), positions and
-/// `source_ref`/`extra` are not settable here; they have their own commands.
+/// `source_ref`/`extra` are not settable here; they have their own commands (`assembly.attach` sets
+/// `parent` and `position`).
+///
+/// The device aspects `assembly`, `plc_station` and `plc_module` are set as a whole (a JSON object adds
+/// or replaces the aspect, `null` removes it) or member by member once they exist (FT-169, FT-270).
+/// Adding a `plc_module` (or changing the module's parts) instantiates its channels from the part data
+/// (normaliser N1, `channel_instantiation`). An assembly configuration's `covers` names the assembly
+/// device itself or its descendants only (doc 03 §7); any other device is rejected.
 pub const SETTABLE: &[(KindName, &[&str])] = &[
     (
         KindName::Device,
@@ -33,6 +40,7 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "tag.letter",
             "tag.counter",
             "tag.frozen",
+            "tag.scheme",
             "kind",
             "parts",
             "function_text",
@@ -52,6 +60,17 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "cable.length",
             "cable.core_id_mode",
             "cable.pre_assembled",
+            "assembly",
+            "assembly.configs",
+            "assembly.bom_basis",
+            "plc_station",
+            "plc_station.config_project",
+            "plc_station.role",
+            "plc_station.order",
+            "plc_module",
+            "plc_module.slot",
+            "plc_module.start",
+            "plc_module.part_use",
         ],
     ),
     (KindName::Function, &["cp_overrides"]),
@@ -109,7 +128,14 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
 ];
 
 /// The aspect members of a device: a path below one of them needs the aspect to exist.
-pub const ASPECTS: &[&str] = &["strip", "terminal", "cable"];
+pub const ASPECTS: &[&str] = &[
+    "strip",
+    "terminal",
+    "cable",
+    "assembly",
+    "plc_station",
+    "plc_module",
+];
 
 /// `fields.set` (`SetFields`): sets one field on one or more records of one kind.
 ///
@@ -198,8 +224,53 @@ impl Command for SetFields {
                 }
             }
         }
+        if self.kind == KindName::Device && (path == "assembly" || path.starts_with("assembly.")) {
+            for t in &self.targets {
+                refuse_foreign_covers(tx, t.cast())?;
+            }
+        }
         Ok(Outcome::default())
     }
+}
+
+/// Doc 03 §7: an assembly configuration covers the assembly device itself or its descendants, each named
+/// explicitly. A covered device outside that subtree is refused at `/value`.
+fn refuse_foreign_covers(tx: &TxBuilder<'_>, device: ew_ids::Id<Device>) -> Result<(), CmdError> {
+    let Some(dev) = tx.get::<Device>(device) else {
+        return Ok(());
+    };
+    let Some(assembly) = &dev.aspects.assembly else {
+        return Ok(());
+    };
+    for config in &assembly.configs {
+        for covered in config.covers.iter() {
+            // walk up from the covered device; the chain is acyclic (EW-INV-009), bounded anyway
+            let mut at = Some(*covered);
+            let mut steps = 0usize;
+            let inside = loop {
+                match at {
+                    Some(d) if d == device => break true,
+                    Some(d) if steps <= 4096 => {
+                        at = tx.get::<Device>(d).and_then(|x| x.parent);
+                        steps += 1;
+                    }
+                    _ => break false,
+                }
+            };
+            if !inside {
+                return Err(CmdError::invalid_params(
+                    SetFields::NAME,
+                    "/value",
+                    format!(
+                        "the configuration {} covers device {covered}, which is neither the assembly device \
+                         {device} nor one of its descendants",
+                        config.order_code
+                    ),
+                ));
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Sets `value` at the dotted `path` of one record: serialise, edit the JSON, read it back, put.
@@ -238,7 +309,7 @@ fn set_one<T: Entity + Serialize + DeserializeOwned>(
     let next: T = serde_json::from_value(json)
         .map_err(|e| CmdError::invalid_params(SetFields::NAME, "/value", e.to_string()))?;
     tx.update::<T>(id, |r| *r = next)?;
-    if T::KIND == Kind::Device && matches!(path, "tag.counter" | "tag.letter") {
+    if T::KIND == Kind::Device && matches!(path, "tag.counter" | "tag.letter" | "tag.scheme") {
         refuse_tag_collision(tx, target.cast())?;
     }
     Ok(())
@@ -283,7 +354,7 @@ fn refuse_tag_collision(tx: &TxBuilder<'_>, device: ew_ids::Id<Device>) -> Resul
 
 /// Sets (or, for `null`, removes) the member at `segments` below `root`, creating intermediate objects
 /// when setting. `false` if an intermediate value exists and is not an object.
-fn set_member(root: &mut Value, segments: &[&str], value: &Value) -> bool {
+pub(crate) fn set_member(root: &mut Value, segments: &[&str], value: &Value) -> bool {
     let Some((last, parents)) = segments.split_last() else {
         return false;
     };

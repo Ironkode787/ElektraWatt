@@ -1,0 +1,47 @@
+{
+  "$defs": {
+    "CmdIdent": {
+      "description": "An identifier: non-empty, one line, NFC, without leading or trailing white space (doc 05 §3.2).",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`plc.config_project.create` (`CreatePlcConfigProject`): a configuration project, the target\nPLC-software project that scopes address and symbol uniqueness (doc 10 §2.2, FR-PLC-002).\n\nCreates `PlcConfigProject {name, profile, cpu}`. Rejected: a name another configuration project has\n(compared exactly); a profile that is not `id@version` with both parts non-empty (at `/profile`). The\nCPU device, when given, must exist. Stations name the configuration project in their `plc_station`\naspect (`fields.set`); while one does, the configuration project cannot be deleted. Outcome: the\nconfiguration project.",
+  "properties": {
+    "cpu": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CmdUuid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The CPU device; absent when the master sits outside the project."
+    },
+    "name": {
+      "$ref": "#/$defs/CmdIdent",
+      "description": "The name (\"PLC1\")."
+    },
+    "profile": {
+      "$ref": "#/$defs/CmdIdent",
+      "description": "The pinned address profile, `id@version` (\"siemens-tia-intl@2027.1\", doc 10 §2.5)."
+    }
+  },
+  "required": [
+    "name",
+    "profile"
+  ],
+  "title": "plc.config_project.create",
+  "type": "object"
+}

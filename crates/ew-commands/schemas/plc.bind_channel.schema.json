@@ -1,0 +1,142 @@
+{
+  "$defs": {
+    "CmdPt2": {
+      "description": "A point or a displacement [x, y] in nanometres, y downwards (doc 05 §3.2).",
+      "items": false,
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        },
+        {
+          "maximum": 9007199254740991,
+          "minimum": -9007199254740991,
+          "type": "integer"
+        }
+      ],
+      "type": "array"
+    },
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "EndpointParam": {
+      "description": "An endpoint named in command parameters: a function CP, a junction, or a point on an existing\nconnection (which splits it and creates a junction there, doc 06 §3.5).\n\nJSON: `{\"cp\": {\"function\": \"…\", \"idx\": 1}}`, `{\"junction\": {\"junction\": \"…\"}}`,\n`{\"on_connection\": {\"connection\": \"…\", \"at\": [x, y]}}`.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "Connection point `idx` of a function.",
+          "properties": {
+            "cp": {
+              "additionalProperties": false,
+              "properties": {
+                "function": {
+                  "$ref": "#/$defs/CmdUuid",
+                  "description": "The function."
+                },
+                "idx": {
+                  "description": "The CP index.",
+                  "format": "uint16",
+                  "maximum": 65535,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "function",
+                "idx"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "cp"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A junction.",
+          "properties": {
+            "junction": {
+              "additionalProperties": false,
+              "properties": {
+                "junction": {
+                  "$ref": "#/$defs/CmdUuid",
+                  "description": "The junction."
+                }
+              },
+              "required": [
+                "junction"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "junction"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A point on an existing connection's route.",
+          "properties": {
+            "on_connection": {
+              "additionalProperties": false,
+              "properties": {
+                "at": {
+                  "$ref": "#/$defs/CmdPt2",
+                  "description": "The point (on the route, if the connection has one)."
+                },
+                "connection": {
+                  "$ref": "#/$defs/CmdUuid",
+                  "description": "The connection to split."
+                }
+              },
+              "required": [
+                "connection",
+                "at"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "on_connection"
+          ],
+          "type": "object"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`plc.bind_channel` (`BindChannel`, doc 10 §3.3, §3.9 `plc.bind_channel{channel, endpoint}`): binds a\nchannel to its signal CP, rebinds it, or unbinds it (FR-PLC-020).\n\nSets `Channel.binding` to the CP (`{\"cp\": {\"function\", \"idx\"}}`: a module pin, or the internal CP of\nthe coil a valve-terminal channel serves) or, with `endpoint: null`, removes it. The channel and the\nfunction exist ([`CmdError::NotFound`]); the CP index must be a CP of the function's FnDef copy (else\nrejected); a junction or a point on a connection is not a signal CP (at `/endpoint`). Another channel\nbound to the same CP is unbound in the same transaction (a CP is in at most one channel, FR-PLC-005),\nand the outcome's notices name it. An explicit binding wins over the solenoid-position map (N2, which\nis not built in v0). Outcome: the channel.",
+  "properties": {
+    "channel": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The channel."
+    },
+    "endpoint": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/EndpointParam"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The signal CP; `null` unbinds."
+    }
+  },
+  "required": [
+    "channel"
+  ],
+  "title": "plc.bind_channel",
+  "type": "object"
+}

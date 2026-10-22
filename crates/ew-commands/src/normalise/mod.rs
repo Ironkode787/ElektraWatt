@@ -9,6 +9,7 @@
 //! | # | ID | Effect |
 //! |---|---|---|
 //! | 2 | `cp_instantiation` | No-op recorder: CPs are derived from the FnDef or part pattern and only overrides persist (doc 06 §3.2 row 2), so there is nothing to store |
+//! | 3 | `channel_instantiation` | N1: a new module, or a device that gained the `plc_module` aspect or changed its parts, gets the channels of its part data with v5 IDs (doc 10 §3.3; surplus channels stay) |
 //! | 4 | `online_numbering` | Gives a placed numbered device without a counter the next free counter of its page scope, and a device whose page-based tag collides (after a move of its main representation) the next free one (FR-NUM-007, FR-NUM-029) |
 //! | 7 | `connection_split` | A new representation whose two CPs lie on one segment of a connection's route splits that connection (FR-CON-008, doc 06 §5.3) |
 //! | 8 | `junction_cleanup` | A junction left with two connections dissolves into one; with one, it is removed together with that connection; with none, it is removed (CI-04) |
@@ -21,12 +22,14 @@
 //! ([`crate::CmdError::Internal`]). Every normaliser breaks ties by ID and is idempotent on its own
 //! output.
 
+mod channel_instantiation;
 mod connection_split;
 mod cp_instantiation;
 mod junction_cleanup;
 mod online_numbering;
 mod wire_numbering;
 
+pub use channel_instantiation::ChannelInstantiation;
 pub use connection_split::{ConnectionSplit, split_connection};
 pub use cp_instantiation::CpInstantiation;
 pub use junction_cleanup::JunctionCleanup;
@@ -47,8 +50,9 @@ pub trait Normaliser: Send + Sync {
 }
 
 /// The registry order within one pass: the IDs of [`registry`], asserted by a test.
-pub const ORDER: [&str; 5] = [
+pub const ORDER: [&str; 6] = [
     "cp_instantiation",
+    "channel_instantiation",
     "online_numbering",
     "connection_split",
     "junction_cleanup",
@@ -62,6 +66,7 @@ pub const MAX_PASSES: usize = 3;
 pub fn registry() -> Vec<Box<dyn Normaliser>> {
     vec![
         Box::new(CpInstantiation),
+        Box::new(ChannelInstantiation),
         Box::new(OnlineNumbering),
         Box::new(ConnectionSplit),
         Box::new(JunctionCleanup),

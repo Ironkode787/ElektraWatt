@@ -35,20 +35,32 @@
 //! | `box.black` | [`PlaceBlackBox`] | Interactive |
 //! | `bond.create` | [`CreateBond`] | Interactive |
 //! | `external_ref.create` | [`CreateExternalRef`] | Interactive |
+//! | `assembly.attach` | [`AttachChildren`] | Interactive |
+//! | `valve.add` | [`AddValve`] | Interactive |
+//! | `device.link` | [`LinkDevices`] | Interactive |
+//! | `plc.config_project.create` | [`CreatePlcConfigProject`] | Interactive |
+//! | `plc.bind_channel` | [`BindChannel`] | Interactive |
+//! | `project.supply.set` | [`SetProjectSupply`] | Interactive |
+//! | `library.embed` | [`EmbedLibraryCopies`] | Interactive |
 //!
 //! Every command is undoable, of exposure class `Edit` and stability `Preview`.
 
+mod assembly;
 pub mod common;
 mod connection;
 mod device;
 mod edit;
 mod fields;
+mod library;
 mod page;
+mod plc;
 mod renumber;
 mod settings;
 mod structure;
+mod supply;
 mod terminal;
 
+pub use assembly::{AddValve, AttachChildren, ChildSpec, LinkDevices};
 pub use common::{EndpointParam, KindName, TargetRef};
 pub use connection::{
     Connect, ContinueIp, CreateBond, DefinePotential, DeleteConnections, EditJunction, PlaceIp,
@@ -60,10 +72,13 @@ pub use device::{
 };
 pub use edit::{BULK_ABOVE, DeleteSelection};
 pub use fields::{ASPECTS, SETTABLE, SetFields};
+pub use library::EmbedLibraryCopies;
 pub use page::{CreatePage, DeletePages, PageScope, RenumberPages};
+pub use plc::{BindChannel, CreatePlcConfigProject};
 pub use renumber::{DeviceScope, NumberingScheme, RenumberDevices, RenumberOptions};
 pub use settings::{SETTABLE_SETTINGS, SetProjectSettings, SettableSetting};
 pub use structure::{CreateExternalRef, CreateReportBlock, CreateSection, CreateStructureNode};
+pub use supply::{SETTABLE_SUPPLY, SetProjectSupply};
 pub use terminal::{
     AddConductors, AddTerminals, ConductorSpec, CreateCable, DesignateTerminals, TerminalDesignation,
     TerminalSpec,
@@ -102,4 +117,11 @@ pub fn register_all(r: &mut CommandRegistry) {
     r.register::<PlaceBlackBox>();
     r.register::<CreateBond>();
     r.register::<CreateExternalRef>();
+    r.register::<AttachChildren>();
+    r.register::<AddValve>();
+    r.register::<LinkDevices>();
+    r.register::<CreatePlcConfigProject>();
+    r.register::<BindChannel>();
+    r.register::<SetProjectSupply>();
+    r.register::<EmbedLibraryCopies>();
 }

@@ -539,6 +539,14 @@ configuration project's profile (prefixes "" and "%"):
 
 **As built (cycle 13; decision log ID-333).** The channel-creating normaliser N1 is not built: channels come only from import (the golden importer reads `channels.csv`, §2.4), and a change of a module's part creates or removes none. `Channel.binding` is stored as an `Endpoint` (a CP of the module or of the served coil); the golden project binds channel 2p + 1 to coil 14 of valve position p + 1, as drawn.
 
+**As built (cycle 16; FT-270).** N1 is built in `ew-commands` (registry row 3 of [06](06-schematic-editor.md) §3.2):
+adding the `plc_module` aspect (`fields.set`), creating a device with it, or changing its parts or `part_use`
+creates the missing channels of the part's channel spec with their v5 IDs and the spec's kind; surplus channels
+stay. `plc.bind_channel` and `plc.config_project.create` are built (§3.9; the latter has no row there: it creates
+the configuration project that `ew new` gives a new project). N2 (the solenoid-position map) and N3 are not built:
+the map is not typed part data yet, so the golden builder binds the 28 coils with explicit `plc.bind_channel`
+commands, which win over the map by definition.
+
 ### 3.4 Symbols, designations and function texts
 
 **Templates** (1.0, FR-PLC-017) are strings over these tokens: `{target.process_tag}`, `{target.dt}` (the derived

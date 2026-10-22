@@ -10,9 +10,9 @@
 //! - **Path (b)**, [`build`]: the [`dsl::Builder`] issues one command per step (`structure.create_node`,
 //!   `page.create`, `device.create`, `terminal.add`, `cable.create`, `device.place`, `box.black`,
 //!   `ip.place`, `connection.draw`, `junction.edit`, `potential.define`, `bond.create`,
-//!   `report_block.create`, `fields.set`, …) against a session, starting from the [`Shell`]: the project
-//!   row and the embedded library copies, which no command creates yet (a new project is `ew new`, and
-//!   embedding a library copy is FT-167). The content comes from the same source of truth as path (a): the
+//!   `report_block.create`, `fields.set`, `assembly.attach`, `valve.add`, `plc.bind_channel`, …) against
+//!   a session, starting from the [`Shell`]: the project row (a new project is `ew new`) and the embedded
+//!   library copies (among them the project-local parts, which are not embedded). The content comes from the same source of truth as path (a): the
 //!   records of the bootstrap batch are the typed description, translated into commands in dependency
 //!   order; the commands mint their own IDs, so path (b) agrees with (a) by content (the acceptance SQL and
 //!   its expected CSVs), never by ID (doc 20 §3.2: "all columns except `id` and `source_ref`").
@@ -94,10 +94,12 @@ pub fn bootstrap(repo: &Path) -> Result<ImportBatch, String> {
 
 /// The starting point of path (b): the project row and the embedded library copies.
 ///
-/// No command creates a project row (a new project is `ew new`) or embeds a library copy yet (FT-167), so
-/// path (b) starts from them. The project row is the bootstrap's without its import provenance and without
-/// the [`SETTINGS_BY_COMMAND`] members, which the builder sets through `project.settings.set`; its ID stays
-/// the bootstrap's, because the project-local parts name the project as their library (doc 05 §13.2).
+/// No command creates a project row (a new project is `ew new`), and the project-local parts among the
+/// copies are created in the project, not embedded (`library.embed` refuses them), so path (b) starts from
+/// them. The project row is the bootstrap's without its import provenance, without the supply's origin
+/// (`project.supply.set`) and without the [`SETTINGS_BY_COMMAND`] members, which the builder sets through
+/// `project.settings.set`; its ID stays the bootstrap's, because the project-local parts name the project as
+/// their library (doc 05 §13.2).
 #[derive(Clone, Debug)]
 pub struct Shell {
     /// The project row.
@@ -121,8 +123,8 @@ pub fn shell(batch: &ImportBatch) -> Shell {
         })
         .expect("a bootstrap batch holds the project row");
     project.source_ref = None;
-    // The supply's origin names an external reference, which the builder creates by command later; no
-    // command sets the supply (path (b) notes it as not written).
+    // The supply's origin names an external reference, which the builder creates by command later and
+    // then names with `project.supply.set`.
     if let Some(origin) = project.supply.as_mut().and_then(|s| s.origin.as_mut()) {
         origin.source = None;
     }

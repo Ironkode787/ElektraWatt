@@ -5,6 +5,17 @@
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
+      "name": "assembly.attach",
+      "params_version": 1,
+      "schema": "assembly.attach.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
       "name": "bond.create",
       "params_version": 1,
       "schema": "bond.create.schema.json",
@@ -85,6 +96,17 @@
       "name": "device.create",
       "params_version": 1,
       "schema": "device.create.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "device.link",
+      "params_version": 1,
+      "schema": "device.link.schema.json",
       "stability": "preview",
       "undoable": true
     },
@@ -170,6 +192,17 @@
     {
       "aliases": [],
       "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "library.embed",
+      "params_version": 1,
+      "schema": "library.embed.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
       "cost": "bulk",
       "exposure": "edit",
       "name": "numbering.renumber",
@@ -216,6 +249,28 @@
       "confirmation": "none",
       "cost": "interactive",
       "exposure": "edit",
+      "name": "plc.bind_channel",
+      "params_version": 1,
+      "schema": "plc.bind_channel.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "plc.config_project.create",
+      "params_version": 1,
+      "schema": "plc.config_project.create.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
       "name": "potential.define",
       "params_version": 1,
       "schema": "potential.define.schema.json",
@@ -230,6 +285,17 @@
       "name": "project.settings.set",
       "params_version": 1,
       "schema": "project.settings.set.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "project.supply.set",
+      "params_version": 1,
+      "schema": "project.supply.set.schema.json",
       "stability": "preview",
       "undoable": true
     },
@@ -318,6 +384,17 @@
       "name": "terminal.designate",
       "params_version": 1,
       "schema": "terminal.designate.schema.json",
+      "stability": "preview",
+      "undoable": true
+    },
+    {
+      "aliases": [],
+      "confirmation": "none",
+      "cost": "interactive",
+      "exposure": "edit",
+      "name": "valve.add",
+      "params_version": 1,
+      "schema": "valve.add.schema.json",
       "stability": "preview",
       "undoable": true
     }

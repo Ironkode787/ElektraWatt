@@ -945,7 +945,7 @@ fn place_fndef(
 }
 
 /// Inserts a normal function of `device` with the given definition and role.
-fn insert_function(
+pub(crate) fn insert_function(
     tx: &mut TxBuilder<'_>,
     device: Option<Id<Device>>,
     def: Id<FnDef>,

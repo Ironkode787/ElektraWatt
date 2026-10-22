@@ -1,0 +1,50 @@
+{
+  "$defs": {
+    "CmdUuid": {
+      "description": "A lower-case hyphenated UUID naming a record (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "DeviceLinkKind": {
+      "description": "The kind of a device link.",
+      "oneOf": [
+        {
+          "const": "drives",
+          "description": "`from` drives `to` (a valve and its field device).",
+          "type": "string"
+        },
+        {
+          "const": "linkage",
+          "description": "A mechanical linkage (FR-SYM-014).",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`device.link` (`LinkDevices`, doc 11 §4.3 `device.link{from, to, Drives}`): a functional link between\ntwo devices, such as a valve that drives a field device (doc 11 §3.3: the PLC overview and the I/O\nlist print the driven device's process tag).\n\nCreates `DeviceLink {from, to, kind}`. Both devices exist ([`CmdError::NotFound`]); rejected: `from =\nto` (at `/to`), and a link of the same kind between the same devices that exists already. Deleting\neither device deletes the link (cascade). Outcome: the link.",
+  "properties": {
+    "from": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The driving or linked device."
+    },
+    "kind": {
+      "$ref": "#/$defs/DeviceLinkKind",
+      "description": "The relation."
+    },
+    "to": {
+      "$ref": "#/$defs/CmdUuid",
+      "description": "The driven or linked device."
+    }
+  },
+  "required": [
+    "from",
+    "to",
+    "kind"
+  ],
+  "title": "device.link",
+  "type": "object"
+}
