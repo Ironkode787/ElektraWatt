@@ -178,6 +178,12 @@ CLI, rhai, MCP and plugins; `ActionMeta` adds only what the GUI needs. The palet
 predicate that fails carries a reason key ("needs a selected device", "project is read-only") shown in the
 palette and in tooltips.
 
+*As built from WP-S2.01 (decision log ID-444):* the toolkit-neutral part of the registry (ID, kind, label key,
+category, default chords as text, the predicate with its reason key) and the shell model that every action is
+dispatched on live in `ew-viewmodel`; `ew-ui` binds keys and paints menus, palette and toolbar from it. The same
+dispatch serves the headless mode `elektrawatt --headless --script`, so CI and agents can drive every action without
+a display (ID-443).
+
 ### 2.5 Settings and view state
 
 | Data | Location | Format | Notes |
