@@ -485,3 +485,115 @@ fn a_page_without_a_form_takes_the_frame_defaults_in_the_page_output() {
         "undo restores the no-grid frame"
     );
 }
+
+/// The ID of the shipped form with `key`.
+fn shipped_id(key: &str) -> serde_json::Value {
+    shipped_forms()
+        .into_iter()
+        .find(|f| f["meta"]["key"] == key)
+        .unwrap_or_else(|| panic!("{key}"))["id"]
+        .clone()
+}
+
+/// A basic project with folio 1 (multi-line, no form of its own), section 1 with a divider, the shipped forms, and
+/// `frames` as its frame defaults, written as records (the shim can name copies the project does not hold, which no
+/// command writes).
+fn with_frames(frames: serde_json::Value) -> Session {
+    let mut built =
+        Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Basic, options(5)).unwrap();
+    run_cmd(
+        &mut built,
+        "section.create",
+        serde_json::json!({"number": 1, "folio_range": [100, 199], "title": "A", "divider": true}),
+    );
+    let mut project = None;
+    let mut records = Vec::new();
+    for (key, line) in ew_commands::rows::model_lines(&built.world().model).unwrap() {
+        let mut v: serde_json::Value = serde_json::from_str(&line).unwrap();
+        if key.0 == ew_schema::Kind::Project {
+            v.as_object_mut().unwrap().remove("$k");
+            v["settings"]["frames"] = frames.clone();
+            project = Some(serde_json::from_value::<ew_schema::Project>(v).unwrap());
+        } else {
+            v["$k"] = serde_json::Value::String(key.0.to_string());
+            records.push(ew_schema::Record::from_value(v).unwrap());
+        }
+    }
+    let lib = shipped_forms()
+        .into_iter()
+        .map(|f| ew_schema::LibDocument::from_value(f).unwrap());
+    Session::from_records(project.unwrap(), records, lib, options(5)).unwrap()
+}
+
+/// The frame key the page output gives each page of the order (`"-"` without a frame), the drawn pages' cell grids
+/// and whether the cell grid fell back to the built-in frame.
+fn frames_of(session: &Session) -> (Vec<String>, Vec<Option<ew_schema::FrameGrid>>, bool) {
+    let mut q = session.query();
+    let order = q.get::<ew_derive::PageOrder>(());
+    let mut keys = Vec::new();
+    let mut grids = Vec::new();
+    for e in &order.entries {
+        let frame = (*q.get::<ew_api::output::PageFrameOf>(e.page)).clone();
+        keys.push(
+            frame
+                .and_then(|f| f.form.meta.key.as_ref().map(|k| k.as_str().to_owned()))
+                .unwrap_or_else(|| "-".to_owned()),
+        );
+        if let ew_derive::PageRef::Drawn(p) = e.page {
+            grids.push((*q.get::<ew_derive::FrameGridOf>(p)).clone());
+        }
+    }
+    let built_in = q
+        .diagnostics()
+        .notes()
+        .contains(&ew_api::DeriveNote::DefaultFrame);
+    (keys, grids, built_in)
+}
+
+/// FT-336 review ruling: a frame-defaults rule that names a copy the project does not hold falls through to the next
+/// rule, identically in the page output and the cell grid (one resolution, `ew_derive::frame_form_of`); a divider
+/// takes the `section_divider` entry.
+#[test]
+fn a_missing_frame_copy_falls_through_in_the_page_output_and_the_cell_grid_alike() {
+    let missing = "0190d1a0-0000-7000-8000-00000000f00d";
+    let (grid, cover) = (
+        shipped_id("ew.frame.qet-a4-landscape-grid"),
+        shipped_id("ew.frame.qet-a4-landscape-cover"),
+    );
+    let grid_form: ew_schema::FrameGrid = serde_json::from_value(
+        shipped_forms().into_iter().find(|f| f["id"] == grid).unwrap()["grid"].clone(),
+    )
+    .unwrap();
+    // The entry of the page's type is missing: the default decides, in both.
+    let s = with_frames(serde_json::json!({"default": grid, "per_page_type": [
+        {"page_type": "multi_line", "form": missing},
+        {"page_type": "section_divider", "form": cover},
+    ]}));
+    let (keys, grids, built_in) = frames_of(&s);
+    assert_eq!(
+        keys,
+        [
+            "ew.frame.qet-a4-landscape-grid",
+            "ew.frame.qet-a4-landscape-cover"
+        ],
+        "folio 1, then the divider of section 1"
+    );
+    assert_eq!(grids, [Some(grid_form.clone())]);
+    assert!(!built_in);
+    // The default is missing too: the built-in frame, in both (the no-grid frame of the page output, the built-in
+    // QET grid of the cell grid); the divider without its entry takes the no-grid frame.
+    let s = with_frames(serde_json::json!({"default": missing, "per_page_type": [
+        {"page_type": "multi_line", "form": missing},
+        {"page_type": "section_divider", "form": missing},
+    ]}));
+    let (keys, grids, built_in) = frames_of(&s);
+    assert_eq!(
+        keys,
+        [
+            "ew.frame.qet-a4-landscape-nogrid",
+            "ew.frame.qet-a4-landscape-nogrid"
+        ]
+    );
+    assert_eq!(grids, [Some(ew_derive::default_frame_grid())]);
+    assert!(built_in, "the cell grid says it used the built-in frame");
+}

@@ -850,12 +850,21 @@ fn the_default_draft_reproduces_the_sample_projects_folio_102() {
 
 /// The source texts of the shaped runs of a page output, in display-list order (the `text` member of each run).
 fn page_texts(pages: &ew_viewmodel::ew_api::output::ExportPages) -> Vec<String> {
-    let debug = format!("{:?}", pages.pages.iter().map(|p| &p.content).collect::<Vec<_>>());
-    debug
-        .split("text: \"")
-        .skip(1)
-        .filter_map(|rest| rest.split_once('"').map(|(t, _)| t.to_owned()))
-        .collect()
+    use ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
+    fn walk(items: &[Item], out: &mut Vec<String>) {
+        for item in items {
+            match &item.kind {
+                ItemKind::Glyphs(run) => out.push(run.text.clone()),
+                ItemKind::Group(group) => walk(&group.items, out),
+                _ => {}
+            }
+        }
+    }
+    let mut out = Vec::new();
+    for page in &pages.pages {
+        walk(&page.content.items, &mut out);
+    }
+    out
 }
 
 /// Folio `folio` of the project in `dir`, rendered through the page output.
@@ -972,13 +981,20 @@ fn the_wizard_writes_the_company_the_frame_and_the_formats() {
         format!("{:?}", other.pages[0].content),
         "the grid frame and the no-grid frame differ"
     );
-    // The grid frame prints its column numbers; the no-grid frame does not.
-    let columns =
-        |p: &ew_viewmodel::ew_api::output::ExportPages| page_texts(p).iter().filter(|t| *t == "16").count();
-    assert!(
-        columns(&folio_1) > columns(&other),
-        "the column labels of the grid frame"
+    // The grid frame labels its 17 columns (0 to 16) and 8 rows (A to H); the no-grid frame does not.
+    let labels: std::collections::BTreeSet<String> = (0..=16)
+        .map(|c| c.to_string())
+        .chain(('A'..='H').map(String::from))
+        .collect();
+    let printed = |p: &ew_viewmodel::ew_api::output::ExportPages| -> std::collections::BTreeSet<String> {
+        page_texts(p).into_iter().filter(|t| labels.contains(t)).collect()
+    };
+    assert_eq!(
+        printed(&folio_1),
+        labels,
+        "the grid frame's column and row labels"
     );
+    assert_ne!(printed(&other), labels, "the no-grid frame has no full label set");
     shell.shutdown();
 }
 

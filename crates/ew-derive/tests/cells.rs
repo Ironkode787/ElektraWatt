@@ -401,14 +401,19 @@ fn form_without_grid_has_no_cells_and_no_default() {
         notes.is_empty(),
         "something is configured: no default ({notes:?})"
     );
-    // A `frames` shim that names a form whose copy is missing from the project (Page.form cannot: EW-INV-001).
+    // A `frames` shim that names a form whose copy is missing from the project (Page.form cannot: EW-INV-001): the
+    // rule falls through to the next, here the built-in frame (FT-336 review ruling, as in the page output).
     let mut fx = golden();
-    fx.project_set("settings", json!({"frames": {"default": uid(0x777)}}));
+    fx.project_set(
+        "settings",
+        json!({"frames": {"default": uid(0x777), "per_page_type": [{"page_type": "multi_line", "form": uid(0x778)}]}}),
+    );
     fx.page(PAGE, 101, None, "multi_line", &[], "P");
+    fx.record(PAGE)["grid"] = json!({"num": 7_937_500, "den": 3});
     let m = fx.build();
     let (cell, notes) = cell_and_notes(&m, PAGE, qet_at(101, 62));
-    assert_eq!(cell, None);
-    assert!(notes.is_empty(), "{notes:?}");
+    assert_eq!(cell.as_deref(), Some("H16"));
+    assert_eq!(notes, vec![DeriveNote::DefaultFrame]);
     // The same through the `frames` shim with a form without a grid.
     let mut fx = golden();
     fx.lib_item(

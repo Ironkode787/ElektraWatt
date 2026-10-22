@@ -10,6 +10,7 @@ use ew_ids::Id;
 use ew_schema::{FormDef, FormKind, LibCopy, PageType};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
 
 use crate::command::{Command, Outcome};
 use crate::error::CmdError;
@@ -37,11 +38,14 @@ pub struct FrameForPageType {
 /// `default`; a section divider takes the entry of `section_divider`; generated report pages keep the form of
 /// their block.
 ///
-/// The parameters are the whole new value `{default?, per_page_type}`, stored as the settings member
-/// [`FRAMES_MEMBER`] with the entries in page-type order; no default and no entry removes the member, so the
-/// built-in frames apply again. Each form must be an embedded form copy (else [`CmdError::NotFound`]) of kind
-/// `frame`, `cover` or `divider` (else invalid at its pointer). Rejected at `/per_page_type/i/page_type`: a page
-/// type named twice, `report` (report pages take their block's form, EW-INV-012) and a type of a newer format.
+/// The parameters are the whole new value of `default` and `per_page_type`, stored in the settings member
+/// [`FRAMES_MEMBER`]: `per_page_type` always (an empty list when there is no entry, doc 03 §5.1), in page-type
+/// order, and `default` when given. The member's other contents (members of a newer format) are kept (doc 05
+/// §10.3); when there is no default, no entry and nothing else, the member is removed, so the built-in frames apply
+/// again. Each form must be an embedded form copy (else [`CmdError::NotFound`]) of kind `frame`, `cover` or
+/// `divider` (else invalid at its pointer). Rejected at `/per_page_type/i/page_type`: a page type named twice,
+/// `report` (report pages take their block's form, EW-INV-012) and a type of a newer format. Rejected: a settings
+/// member [`FRAMES_MEMBER`] that is not an object (a newer or damaged format; it is never overwritten).
 /// The cell mapping of the title block is part of the form copies (`library.embed`); this command does not edit
 /// forms. Only the project record changes. Bulk: one stored value changes the frame of every page that has no
 /// form of its own. Undoable as one step. Outcome: none.
@@ -57,16 +61,7 @@ pub struct SetFrameDefaults {
     pub per_page_type: Vec<FrameForPageType>,
 }
 
-/// The stored form of the frame defaults (doc 03 §5.1): `{default?, per_page_type?: [{form, page_type}]}`.
-#[derive(Serialize)]
-struct Stored {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    default: Option<Id<FormDef>>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    per_page_type: Vec<StoredEntry>,
-}
-
-/// One stored `per_page_type` entry.
+/// One stored `per_page_type` entry (doc 03 §5.1: `{form, page_type}`).
 #[derive(Serialize)]
 struct StoredEntry {
     form: Id<FormDef>,
@@ -139,22 +134,48 @@ impl Command for SetFrameDefaults {
         }
         entries.sort();
         let mut project = (*tx.project()).clone();
-        if self.default.is_none() && entries.is_empty() {
+        let mut frames = match project.settings.extra.get(FRAMES_MEMBER) {
+            None => Map::new(),
+            Some(Value::Object(map)) => map.clone(),
+            Some(_) => {
+                return tx.reject(format!(
+                    "the settings member `{FRAMES_MEMBER}` is not an object (a newer or damaged format); it is \
+                     kept as it is"
+                ));
+            }
+        };
+        let serialise = |e: serde_json::Error| {
+            CmdError::internal(format!(
+                "project.frames.set: cannot serialise the frame defaults ({e})"
+            ))
+        };
+        match self.default {
+            Some(form) => {
+                frames.insert(
+                    "default".to_owned(),
+                    serde_json::to_value(form).map_err(serialise)?,
+                );
+            }
+            None => {
+                frames.remove("default");
+            }
+        }
+        let list: Vec<StoredEntry> = entries
+            .into_iter()
+            .map(|(page_type, form)| StoredEntry { form, page_type })
+            .collect();
+        let empty = self.default.is_none() && list.is_empty();
+        frames.insert(
+            "per_page_type".to_owned(),
+            serde_json::to_value(&list).map_err(serialise)?,
+        );
+        if empty && frames.len() == 1 {
             project.settings.extra.remove(FRAMES_MEMBER);
         } else {
-            let stored = Stored {
-                default: self.default,
-                per_page_type: entries
-                    .into_iter()
-                    .map(|(page_type, form)| StoredEntry { form, page_type })
-                    .collect(),
-            };
-            let value = serde_json::to_value(&stored).map_err(|e| {
-                CmdError::internal(format!(
-                    "project.frames.set: cannot serialise the frame defaults ({e})"
-                ))
-            })?;
-            project.settings.extra.insert(FRAMES_MEMBER.to_owned(), value);
+            project
+                .settings
+                .extra
+                .insert(FRAMES_MEMBER.to_owned(), Value::Object(frames));
         }
         tx.set_project(project)?;
         Ok(Outcome::default())

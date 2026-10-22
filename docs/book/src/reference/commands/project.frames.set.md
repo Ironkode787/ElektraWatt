@@ -7,11 +7,14 @@ FR-PAG-018): the frame form of a drawn page whose `form` is unset is the entry o
 `default`; a section divider takes the entry of `section_divider`; generated report pages keep the form of
 their block.
 
-The parameters are the whole new value `{default?, per_page_type}`, stored as the settings member
-`FRAMES_MEMBER` with the entries in page-type order; no default and no entry removes the member, so the
-built-in frames apply again. Each form must be an embedded form copy (else `CmdError::NotFound`) of kind
-`frame`, `cover` or `divider` (else invalid at its pointer). Rejected at `/per_page_type/i/page_type`: a page
-type named twice, `report` (report pages take their block's form, EW-INV-012) and a type of a newer format.
+The parameters are the whole new value of `default` and `per_page_type`, stored in the settings member
+`FRAMES_MEMBER`: `per_page_type` always (an empty list when there is no entry, doc 03 §5.1), in page-type
+order, and `default` when given. The member's other contents (members of a newer format) are kept (doc 05
+§10.3); when there is no default, no entry and nothing else, the member is removed, so the built-in frames apply
+again. Each form must be an embedded form copy (else `CmdError::NotFound`) of kind `frame`, `cover` or
+`divider` (else invalid at its pointer). Rejected at `/per_page_type/i/page_type`: a page type named twice,
+`report` (report pages take their block's form, EW-INV-012) and a type of a newer format. Rejected: a settings
+member `FRAMES_MEMBER` that is not an object (a newer or damaged format; it is never overwritten).
 The cell mapping of the title block is part of the form copies (`library.embed`); this command does not edit
 forms. Only the project record changes. Bulk: one stored value changes the frame of every page that has no
 form of its own. Undoable as one step. Outcome: none.

@@ -638,11 +638,17 @@ impl Draft {
         })
     }
 
-    /// The company command (`project.company.set`), or `None` when the draft names neither a company nor a notice.
+    /// The company command (`project.company.set`) with the members the draft names (an empty field sends
+    /// nothing, so it leaves the project's value as it is), or `None` when it names neither a company nor a notice.
     fn company_command(&self) -> Option<(&'static str, Value)> {
-        let (name, notice) = (self.get("company_name"), self.get("company_notice"));
-        (!name.is_empty() || !notice.is_empty())
-            .then(|| ("project.company.set", json!({ "name": name, "notice": notice })))
+        let mut params = serde_json::Map::new();
+        for (field, member) in [("company_name", "name"), ("company_notice", "notice")] {
+            let value = self.get(field);
+            if !value.is_empty() {
+                params.insert(member.to_owned(), Value::from(value));
+            }
+        }
+        (!params.is_empty()).then_some(("project.company.set", Value::Object(params)))
     }
 
     /// The frame-defaults command (`project.frames.set`): the frame of the `frame` field for drawn pages, the cover
@@ -1149,6 +1155,27 @@ mod tests {
         e.set("check_scheme", "full").unwrap();
         assert_eq!(e.preview_key(), Draft::default().preview_key());
         assert_eq!(e.commands(), Draft::default().commands());
+    }
+
+    #[test]
+    fn the_company_command_sends_only_the_members_the_draft_names() {
+        // A notice alone must not send an empty name, which would erase the project's panel-builder name.
+        let company = |d: &Draft| {
+            d.preview_commands()
+                .into_iter()
+                .find(|(n, _)| *n == "project.company.set")
+                .map(|(_, p)| p)
+        };
+        let mut d = Draft::default();
+        assert_eq!(company(&d), None);
+        d.set("company_notice", "Property of Example Panels.").unwrap();
+        assert_eq!(
+            company(&d),
+            Some(json!({"notice": "Property of Example Panels."}))
+        );
+        let mut d = Draft::default();
+        d.set("company_name", "Example Panels").unwrap();
+        assert_eq!(company(&d), Some(json!({"name": "Example Panels"})));
     }
 
     #[test]

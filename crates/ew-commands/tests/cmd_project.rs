@@ -235,12 +235,56 @@ fn frames_set_stores_the_frame_defaults_in_page_type_order_and_undoes() {
     assert_eq!(frames.per_page_type.len(), 2);
     let notes = q.diagnostics().notes();
     assert!(notes.is_empty(), "{notes:?}");
+    // A default alone still writes the (empty) entry list, a required member of doc 03 §5.1.
+    commit(&mut e, &any("project.frames.set", json!({"default": form})));
+    assert_eq!(
+        settings_member(&e, "frames"),
+        Some(json!({"default": form, "per_page_type": []}))
+    );
     // No default and no entry removes the member.
     commit(&mut e, &any("project.frames.set", json!({})));
     assert_eq!(settings_member(&e, "frames"), None);
     e.undo().unwrap();
     e.undo().unwrap();
+    e.undo().unwrap();
     assert_eq!(lines(e.model()), before);
+}
+
+/// Doc 05 §10.3: members of a newer format inside `frames` survive the command; a `frames` value that is not an
+/// object is never overwritten.
+#[test]
+fn frames_set_keeps_unknown_members_and_refuses_a_foreign_value() {
+    let form = FORM.to_string();
+    let (mut project, records, _) = mini_golden_parts();
+    project.settings.extra.insert(
+        "frames".into(),
+        json!({"default": form, "per_page_type": [], "ew.newer": {"x": 1}}),
+    );
+    let mut e = engine(Model::from_records(project, records, library()).unwrap());
+    commit(
+        &mut e,
+        &any(
+            "project.frames.set",
+            json!({"per_page_type": [{"page_type": "fluid", "form": form}]}),
+        ),
+    );
+    assert_eq!(
+        settings_member(&e, "frames"),
+        Some(json!({"ew.newer": {"x": 1}, "per_page_type": [{"form": form, "page_type": "fluid"}]})),
+        "the default is the new value's (none), the newer member stays"
+    );
+    // With a newer member, an empty value keeps the member with an empty entry list.
+    commit(&mut e, &any("project.frames.set", json!({})));
+    assert_eq!(
+        settings_member(&e, "frames"),
+        Some(json!({"ew.newer": {"x": 1}, "per_page_type": []}))
+    );
+    let (mut project, records, _) = mini_golden_parts();
+    project.settings.extra.insert("frames".into(), json!("newer"));
+    let mut e = engine(Model::from_records(project, records, library()).unwrap());
+    let reason = rejected(&mut e, &any("project.frames.set", json!({"default": form})));
+    assert!(reason.contains("not an object"), "{reason}");
+    assert_eq!(settings_member(&e, "frames"), Some(json!("newer")));
 }
 
 #[test]

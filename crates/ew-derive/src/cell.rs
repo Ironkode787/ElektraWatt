@@ -222,6 +222,40 @@ pub fn default_frame_grid() -> FrameGrid {
     }
 }
 
+/// The frame form of a page of type `kind` whose own form is `own` (doc 03 §5.1 `FrameDefaults`, FR-PAG-018): the
+/// first of `own`, the frame defaults' entry of the page's type and, when `with_default`, their `default` that names
+/// a form copy the project holds. A rule that names a copy the project does not hold falls through to the next;
+/// `None` when none applies (the built-in frame). The one resolution of the cell grid ([`FrameGridOf`], drawn pages
+/// with `with_default`) and of the page output (`ew_api::output::PageFrameOf`, dividers with the `section_divider`
+/// entry and without the default) (FT-336).
+pub fn frame_form_of(
+    q: &Q,
+    own: Option<Id<FormDef>>,
+    kind: &PageType,
+    with_default: bool,
+) -> Option<Id<FormDef>> {
+    let held = |id: Id<FormDef>| q.forms().get(id).is_some().then_some(id);
+    own.and_then(held).or_else(|| {
+        let settings = q.get::<FrameSettings>(());
+        let name = serde_json::to_value(kind).ok();
+        let of_type = name.as_ref().and_then(Value::as_str).and_then(|name| {
+            settings
+                .per_page_type
+                .iter()
+                .find(|e| e.page_type == name)
+                .and_then(|e| e.form)
+                .and_then(held)
+        });
+        of_type.or_else(|| {
+            if with_default {
+                settings.default.and_then(held)
+            } else {
+                None
+            }
+        })
+    })
+}
+
 /// `frame_grid(page)`: the frame grid of a page, evaluated once per page per [`Q`].
 ///
 /// The frame form is `Page.form`, else the entry of the `frames` shim whose `page_type` is the page's type,
@@ -229,8 +263,9 @@ pub fn default_frame_grid() -> FrameGrid {
 /// to the `default`, a malformed `default` to the built-in default (see [`FrameSettings`]). When no form is
 /// configured at all the built-in default grid applies ([`default_frame_grid`]) and the query pushes
 /// [`DeriveNote::DefaultFrame`], except on title, table-of-contents and divider pages, whose default is the
-/// no-grid frame variant (`None`, no note; doc 03 §5.1). A configured form without a `grid` member, or whose copy is missing, has no
-/// cells (`None`), as has a page that does not exist.
+/// no-grid frame variant (`None`, no note; doc 03 §5.1). A rule that names a form copy the project does not hold
+/// falls through to the next ([`frame_form_of`], FT-336). A configured form without a `grid` member has no cells
+/// (`None`), as has a page that does not exist.
 #[derive(Debug)]
 pub struct FrameGridOf;
 
@@ -244,18 +279,7 @@ impl Query for FrameGridOf {
         let Some(page) = q.pages().get(*key) else {
             return Arc::new(None);
         };
-        let form = page.form.or_else(|| {
-            let settings = q.get::<FrameSettings>(());
-            let kind = serde_json::to_value(&page.kind).ok();
-            let of_type = kind.as_ref().and_then(Value::as_str).and_then(|kind| {
-                settings
-                    .per_page_type
-                    .iter()
-                    .find(|e| e.page_type == kind)
-                    .and_then(|e| e.form)
-            });
-            of_type.or(settings.default)
-        });
+        let form = frame_form_of(q, page.form, &page.kind, true);
         let Some(form) = form else {
             // Title, table-of-contents and divider pages use the no-grid frame variant (doc 03 §5.1).
             if matches!(

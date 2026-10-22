@@ -27,7 +27,7 @@
 //! - **Page IDs** ([`page_uuid`]): a drawn page's ID, a divider's section ID, a generated page's v5 ID
 //!   `v5(block, index)` (`GeneratedPage::id`); every PDF destination is unique.
 //! - **Frame form**: `Page.form`, else the frame defaults of the project settings (doc 03 §5.1 `FrameDefaults`,
-//!   read through `ew_derive::FrameSettings`: the entry of the page's type, else `default`; FT-336), else the
+//!   resolved by `ew_derive::frame_form_of` like the cell grid: the entry of the page's type, else `default`; FT-336), else the
 //!   no-grid frame [`NOGRID_FRAME`] (the form of the project library with that key); a generated page's
 //!   `GeneratedPage::form`, else the no-grid frame; a divider the frame defaults' `section_divider` entry, else the
 //!   no-grid frame (ID-144). A frame-defaults form the project does not hold falls through to the next rule. The
@@ -70,8 +70,9 @@ use ew_derive::ew_ids::{self, Id, Uuid};
 use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_units::Grid;
 use ew_derive::{
-    DisplayedTag, FrameSettings, FunctionCps, GeneratedPage, PageOrder, PageRef, Policy, Q, Query, TbValue,
-    TitleBlockValues, XrefTextOf, main_part, manufacturer_name, order_code_text, tech_data_text,
+    DisplayedTag, FunctionCps, GeneratedPage, PageOrder, PageRef, Policy, Q, Query, TbValue,
+    TitleBlockValues, XrefTextOf, frame_form_of, main_part, manufacturer_name, order_code_text,
+    tech_data_text,
 };
 use ew_dl::Destination;
 use ew_reports::render::{RenderOptions, render};
@@ -202,32 +203,6 @@ fn form_by_key(q: &Q, key: &str) -> Option<Arc<FormDef>> {
         .map(|(_, f)| Arc::new(f.item.clone()))
 }
 
-/// The frame form the frame defaults of the project settings give a page of type `kind` (doc 03 §5.1
-/// `FrameDefaults`): the entry of its type, else `default` when `with_default`; `None` when neither names a form
-/// the project holds.
-fn default_frame(q: &Q, kind: &PageType, with_default: bool) -> Option<Arc<FormDef>> {
-    let settings = q.get::<FrameSettings>(());
-    let name = serde_json::to_value(kind).ok();
-    let of_type = name
-        .as_ref()
-        .and_then(serde_json::Value::as_str)
-        .and_then(|name| {
-            settings
-                .per_page_type
-                .iter()
-                .find(|e| e.page_type == name)
-                .and_then(|e| e.form)
-                .and_then(|id| form(q, id))
-        });
-    of_type.or_else(|| {
-        if with_default {
-            settings.default.and_then(|id| form(q, id))
-        } else {
-            None
-        }
-    })
-}
-
 /// `page_frame(page)`: the frame form of a page of the page order and its title block (see the module
 /// documentation); `None` when the page has no form and the project library holds no no-grid frame.
 #[derive(Debug)]
@@ -241,16 +216,18 @@ impl Query for PageFrameOf {
 
     fn run(q: &Q, key: &PageRef) -> Arc<Option<FrameForms>> {
         let own = match *key {
-            PageRef::Drawn(p) => q.pages().get(p).and_then(|pg| {
-                pg.form
-                    .and_then(|id| form(q, id))
-                    .or_else(|| default_frame(q, &pg.kind, true))
-            }),
+            PageRef::Drawn(p) => q
+                .pages()
+                .get(p)
+                .and_then(|pg| frame_form_of(q, pg.form, &pg.kind, true))
+                .and_then(|id| form(q, id)),
             PageRef::Generated { .. } => q
                 .get::<PageOrder>(())
                 .generated(*key)
                 .and_then(|g| form(q, g.form)),
-            PageRef::Divider(_) => default_frame(q, &PageType::SectionDivider, false),
+            PageRef::Divider(_) => {
+                frame_form_of(q, None, &PageType::SectionDivider, false).and_then(|id| form(q, id))
+            }
         };
         let frame = own
             .or_else(|| form_by_key(q, NOGRID_FRAME))
