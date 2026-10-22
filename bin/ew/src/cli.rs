@@ -996,7 +996,8 @@ fn run_apply(a: &ApplyArgs) -> i32 {
         // 8.3): they are recovered or discarded first.
         eprintln!(
             "error: {}: a crashed session left unsaved changes in its journal; recover or discard them first \
-             (`ew recover`, not built yet, or open the project in ElektraWatt); nothing was applied",
+             (`ew recover` is not built yet, FT-252; ElektraWatt opens such a project read-only with a recovery \
+             banner and cannot discard the journal before FT-313); nothing was applied",
             dir.display()
         );
         session.close();
