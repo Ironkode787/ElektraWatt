@@ -22,7 +22,8 @@ use ew_derive::ew_ids::{Id, IdSource, Uuid, V7Generator, v5};
 use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_units::Grid;
 use ew_schema::{
-    Extra, Folio, Page, PageType, Project, ProjectKind, ProjectSettings, Record, StructureAssignment,
+    Extra, Folio, Page, PageType, Project, ProjectKind, ProjectSettings, Record, SchemaError,
+    StructureAssignment,
 };
 use ew_store::OpenError;
 use ew_store::ew_format::{self, EntryKind, Limits, Manifest};
@@ -189,7 +190,8 @@ fn list_files(root: &Path) -> Result<BTreeMap<String, EntryKind>, OpenError> {
     Ok(out)
 }
 
-/// Reads the typed records of a project directory without opening a store: no lock, no journal.
+/// Reads the typed records of a project directory without opening a store: no lock, no journal. A directory whose
+/// files the format reader could not read in full is an error, not a partial template.
 fn read_records(dir: &Path) -> Result<(Project, Vec<Record>, Vec<ew_schema::LibDocument>), OpenError> {
     let limits = Limits::default();
     let listing = list_files(dir)?;
@@ -199,6 +201,7 @@ fn read_records(dir: &Path) -> Result<(Project, Vec<Record>, Vec<ew_schema::LibD
         Err(_) => None,
     };
     let plan = ew_format::plan(manifest.as_ref(), &listing, &limits);
+    let mut findings = plan.findings;
     let mut files = BTreeMap::new();
     for path in plan.read {
         let full: PathBuf = dir.join(path.as_str());
@@ -206,11 +209,52 @@ fn read_records(dir: &Path) -> Result<(Project, Vec<Record>, Vec<ew_schema::LibD
         files.insert(path, bytes);
     }
     let loaded = ew_format::load(manifest.as_ref(), &files, &limits);
-    let findings = loaded.findings;
+    let unreadable = loaded.read_only;
+    findings.extend(loaded.findings);
+    if unreadable || findings.iter().any(|f| f.kind.forces_read_only()) {
+        let first = findings
+            .iter()
+            .find(|f| f.kind.forces_read_only())
+            .map_or_else(String::new, |f| format!(": {}", f.message));
+        return Err(OpenError::Format(format!(
+            "the basic project has files that cannot be read in full{first}"
+        )));
+    }
     let Some(project) = loaded.project else {
         return Err(OpenError::NoProject(findings));
     };
     Ok((project, loaded.records, loaded.lib))
+}
+
+/// The most unsorted sets one record may need put in order again.
+const MAX_SORTS: usize = 64;
+
+/// Reads `value` back as a record. A set of IDs that the replacement left out of order (a set is sorted by its
+/// elements' JSON text, doc 05 section 3.2) is put in order where the typed reader says so, and nowhere else:
+/// an ordered list (the arms of a junction, the functions of a representation) keeps its order.
+fn read_back(mut value: Value) -> Result<Record, OpenError> {
+    let cannot =
+        |why: String| OpenError::Format(format!("a record of the basic project cannot be copied: {why}"));
+    for _ in 0..MAX_SORTS {
+        match Record::from_value(value.clone()) {
+            Ok(record) => return Ok(record),
+            Err(SchemaError::UnsortedList { path }) => {
+                let parent = path.rsplit_once('/').map_or("", |(parent, _)| parent);
+                let Some(Value::Array(items)) = value.pointer_mut(parent) else {
+                    return Err(cannot(format!("{path} is not in a list")));
+                };
+                let before = items.clone();
+                items.sort_by_key(|i| i.to_string());
+                if *items == before {
+                    return Err(cannot(format!(
+                        "the list at \"{parent}\" is not a set that sorting orders"
+                    )));
+                }
+            }
+            Err(e) => return Err(cannot(e.to_string())),
+        }
+    }
+    Err(cannot("too many lists out of order".to_owned()))
 }
 
 /// Copies a basic project directory into a new project: new project ID, new record IDs, the requested kind.
@@ -219,62 +263,59 @@ fn from_directory(
     new_id: Id<Project>,
     kind: NewProjectKind,
 ) -> Result<(Project, Vec<Record>, Vec<ew_schema::LibDocument>), OpenError> {
-    let (mut project, records, lib) = read_records(dir)?;
+    let (project, records, lib) = read_records(dir)?;
+    let json = |r: &Record| {
+        serde_json::to_value(r)
+            .map_err(|e| OpenError::Format(format!("a record of the basic project cannot be copied: {e}")))
+    };
     // The record IDs to replace: the instantiated records. Library copies and the project itself are not among
     // them (the project record gets `new_id`).
     let mut map: BTreeMap<Uuid, Uuid> = BTreeMap::new();
-    let values: Vec<Value> = records
-        .iter()
-        .map(|r| serde_json::to_value(r).unwrap_or(Value::Null))
-        .collect();
+    let values = records.iter().map(json).collect::<Result<Vec<Value>, _>>()?;
     let id_of = |v: &Value| {
         v.get("id")
             .and_then(Value::as_str)
             .and_then(|s| Uuid::parse_str(s).ok())
     };
-    let is_channel = |v: &Value| v.get("$k").and_then(Value::as_str) == Some("channel");
-    for v in values.iter().filter(|v| !is_channel(v)) {
+    for (v, record) in values.iter().zip(&records) {
+        if matches!(record, Record::Channel(_)) {
+            continue;
+        }
         if let Some(old) = id_of(v) {
             let new: Id<()> = v5::imported_id(new_id.as_uuid(), &old.hyphenated().to_string());
             map.insert(old, new.as_uuid());
         }
     }
     // A PLC channel's ID is derived from its module's: `v5(module, "channel", number)` (ADR-0004 amendment 2).
-    for v in values.iter().filter(|v| is_channel(v)) {
-        let module = v
-            .get("module")
-            .and_then(Value::as_str)
-            .and_then(|s| Uuid::parse_str(s).ok())
-            .and_then(|m| map.get(&m).copied());
-        let number = v
-            .get("number")
-            .and_then(Value::as_u64)
-            .and_then(|n| u16::try_from(n).ok());
-        if let (Some(old), Some(module), Some(number)) = (id_of(v), module, number) {
-            let new: Id<()> = v5::plc_channel_id(Id::<()>::from_uuid(module), number);
+    for (v, record) in values.iter().zip(&records) {
+        let Record::Channel(channel) = record else {
+            continue;
+        };
+        let module = map.get(&channel.module.as_uuid()).copied();
+        if let (Some(old), Some(module)) = (id_of(v), module) {
+            let new: Id<()> = v5::plc_channel_id(Id::<()>::from_uuid(module), channel.number);
             map.insert(old, new.as_uuid());
         }
     }
-    let old_project = project.id.as_uuid();
     let mut out = Vec::with_capacity(values.len());
-    for (record, mut v) in records.into_iter().zip(values) {
+    for mut v in values {
         remap(&mut v, &map);
-        // A record that does not read back from its own JSON (it should not happen) is kept as it was.
-        out.push(serde_json::from_value::<Record>(v).unwrap_or(record));
+        out.push(read_back(v)?);
     }
     // The project record: new identity and kind; references to old record IDs follow the map.
-    let mut pv = serde_json::to_value(&project).unwrap_or(Value::Null);
+    let mut pv = json(&Record::Project(project))?;
     remap(&mut pv, &map);
-    if let Ok(p) = serde_json::from_value::<Project>(pv) {
-        project = p;
-    }
-    debug_assert_ne!(old_project, new_id.as_uuid());
+    let Record::Project(mut project) = read_back(pv)? else {
+        return Err(OpenError::Format(
+            "the project record of the basic project cannot be copied".to_owned(),
+        ));
+    };
     project.id = new_id;
     project.kind = kind_of(kind);
     Ok((project, out, lib))
 }
 
-/// Replaces every string (and object key) that is a mapped UUID.
+/// Replaces every string (and object key) that is a mapped UUID. Arrays keep their order.
 fn remap(v: &mut Value, map: &BTreeMap<Uuid, Uuid>) {
     let swap = |s: &str| -> Option<String> {
         Uuid::parse_str(s)
@@ -288,21 +329,7 @@ fn remap(v: &mut Value, map: &BTreeMap<Uuid, Uuid>) {
                 *s = n;
             }
         }
-        Value::Array(items) => {
-            // A set of IDs is sorted by its elements' text (doc 05 §3.2) and is read strictly: it stays sorted
-            // when its elements are replaced.
-            let strings = |items: &[Value]| -> Option<Vec<String>> {
-                items.iter().map(|i| i.as_str().map(str::to_owned)).collect()
-            };
-            let before = strings(items);
-            items.iter_mut().for_each(|i| remap(i, map));
-            if let (Some(before), Some(after)) = (before, strings(items))
-                && before.windows(2).all(|w| w[0] <= w[1])
-                && before != after
-            {
-                items.sort_by(|a, b| a.as_str().cmp(&b.as_str()));
-            }
-        }
+        Value::Array(items) => items.iter_mut().for_each(|i| remap(i, map)),
         Value::Object(obj) => {
             let keys: Vec<String> = obj.keys().cloned().collect();
             for key in keys {

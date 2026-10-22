@@ -161,14 +161,16 @@ impl Layout {
         let panes = self.panes();
         for (i, p) in panes.iter().enumerate() {
             if panes[i + 1..].contains(p) {
-                return Err(LayoutError::Invalid(format!(
-                    "the pane `{}` appears twice",
-                    p.key()
+                return Err(LayoutError::Invalid(strings::format(
+                    "layout-pane-twice",
+                    &[p.key()],
                 )));
             }
         }
         if !panes.contains(&PaneKind::PageView) {
-            return Err(LayoutError::Invalid("the page view is missing".to_owned()));
+            return Err(LayoutError::Invalid(
+                strings::text("layout-no-page-view").to_owned(),
+            ));
         }
         Ok(())
     }
@@ -200,20 +202,21 @@ impl Layout {
     ///
     /// [`LayoutError`] for text that is not a workspace file or a layout that is not usable.
     pub fn parse(text: &str) -> Result<(String, Layout), LayoutError> {
-        let bad = |m: &str| LayoutError::Malformed(m.to_owned());
-        let value: Value = serde_json::from_str(text).map_err(|e| bad(&format!("not JSON: {e}")))?;
+        let bad = |key: &str| LayoutError::Malformed(strings::text(key).to_owned());
+        let value: Value = serde_json::from_str(text)
+            .map_err(|e| LayoutError::Malformed(strings::format("layout-not-json", &[&e.to_string()])))?;
         let Value::Object(mut file) = value else {
-            return Err(bad("a workspace file is a JSON object"));
+            return Err(bad("layout-not-object"));
         };
         if file.get("$schema").and_then(Value::as_str) != Some(SCHEMA) {
-            return Err(bad("`$schema` is not ew.workspace/1"));
+            return Err(bad("layout-schema"));
         }
         let name = file
             .get("name")
             .and_then(Value::as_str)
-            .ok_or_else(|| bad("`name` is missing"))?
+            .ok_or_else(|| bad("layout-name-missing"))?
             .to_owned();
-        let root = file.remove("root").ok_or_else(|| bad("`root` is missing"))?;
+        let root = file.remove("root").ok_or_else(|| bad("layout-root-missing"))?;
         let mut count = 0;
         let root = read_node(&root, 1, &mut count)?;
         let layout = Layout { root };
@@ -256,35 +259,38 @@ impl Layout {
 }
 
 fn read_node(v: &Value, depth: usize, count: &mut usize) -> Result<LayoutNode, LayoutError> {
-    let bad = |m: String| LayoutError::Malformed(m);
+    let bad = |key: &str| LayoutError::Malformed(strings::text(key).to_owned());
     *count += 1;
     if depth > MAX_DEPTH {
-        return Err(LayoutError::Invalid("the layout is nested too deeply".to_owned()));
+        return Err(LayoutError::Invalid(strings::text("layout-too-deep").to_owned()));
     }
     if *count > MAX_NODES {
-        return Err(LayoutError::Invalid("the layout has too many nodes".to_owned()));
+        return Err(LayoutError::Invalid(strings::text("layout-too-many").to_owned()));
     }
     let Value::Object(obj) = v else {
-        return Err(bad("a node is a JSON object".to_owned()));
+        return Err(bad("layout-node-object"));
     };
     let known = |obj: &Map<String, Value>, allowed: &[&str]| -> Result<(), LayoutError> {
         match obj.keys().find(|k| !allowed.contains(&k.as_str())) {
-            Some(k) => Err(LayoutError::Malformed(format!("unknown member `{k}`"))),
+            Some(k) => Err(LayoutError::Malformed(strings::format(
+                "layout-unknown-member",
+                &[k],
+            ))),
             None => Ok(()),
         }
     };
     if let Some(p) = obj.get("pane") {
         known(obj, &["pane"])?;
-        let key = p.as_str().ok_or_else(|| bad("`pane` is a name".to_owned()))?;
+        let key = p.as_str().ok_or_else(|| bad("layout-pane-name"))?;
         return PaneKind::from_key(key)
             .map(LayoutNode::Pane)
-            .ok_or_else(|| bad(format!("unknown pane `{key}`")));
+            .ok_or_else(|| LayoutError::Malformed(strings::format("layout-unknown-pane", &[key])));
     }
     if let Some(t) = obj.get("tabs") {
         known(obj, &["tabs", "active"])?;
-        let items = t.as_array().ok_or_else(|| bad("`tabs` is a list".to_owned()))?;
+        let items = t.as_array().ok_or_else(|| bad("layout-tabs-list"))?;
         if items.is_empty() {
-            return Err(bad("`tabs` is empty".to_owned()));
+            return Err(bad("layout-tabs-empty"));
         }
         let children = items
             .iter()
@@ -303,19 +309,19 @@ fn read_node(v: &Value, depth: usize, count: &mut usize) -> Result<LayoutNode, L
         let dir = match s.as_str() {
             Some("horizontal") => SplitDir::Horizontal,
             Some("vertical") => SplitDir::Vertical,
-            _ => return Err(bad("`split` is horizontal or vertical".to_owned())),
+            _ => return Err(bad("layout-split-dir")),
         };
         let items = obj
             .get("children")
             .and_then(Value::as_array)
-            .ok_or_else(|| bad("`children` is a list".to_owned()))?;
+            .ok_or_else(|| bad("layout-children-list"))?;
         if items.is_empty() {
-            return Err(bad("`children` is empty".to_owned()));
+            return Err(bad("layout-children-empty"));
         }
         let mut children = Vec::new();
         for item in items {
             let Value::Object(item) = item else {
-                return Err(bad("a child is a JSON object".to_owned()));
+                return Err(bad("layout-child-object"));
             };
             known(item, &["share", "node"])?;
             let share = item
@@ -323,15 +329,13 @@ fn read_node(v: &Value, depth: usize, count: &mut usize) -> Result<LayoutNode, L
                 .and_then(Value::as_u64)
                 .and_then(|s| u32::try_from(s).ok())
                 .filter(|s| *s > 0)
-                .ok_or_else(|| bad("`share` is a positive integer".to_owned()))?;
-            let node = item
-                .get("node")
-                .ok_or_else(|| bad("`node` is missing".to_owned()))?;
+                .ok_or_else(|| bad("layout-share"))?;
+            let node = item.get("node").ok_or_else(|| bad("layout-node-missing"))?;
             children.push((share, read_node(node, depth + 1, count)?));
         }
         return Ok(LayoutNode::Split { dir, children });
     }
-    Err(bad("a node has `pane`, `tabs` or `split`".to_owned()))
+    Err(bad("layout-node-kind"))
 }
 
 #[cfg(test)]

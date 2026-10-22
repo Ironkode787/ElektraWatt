@@ -411,10 +411,10 @@ fn the_wizards_defaults_reproduce_the_sample_pages_and_a_choice_changes_the_prev
     );
     let review = describe(&steps[12]);
     assert!(
-        review.contains("review \"Company name\": \"Example Panels\" (kept in the draft)"),
+        review.contains("review \"Company name\": \"Example Panels\" kept"),
         "{review}"
     );
-    assert!(review.contains("(written to the basic project)"), "{review}");
+    assert!(review.contains("\" written"), "{review}");
     assert!(
         steps[13]["state"]["banner"]
             .as_str()

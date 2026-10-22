@@ -149,6 +149,7 @@ pub fn wait_for_preview(harness: &mut Harness<'_, App>) {
 #[track_caller]
 pub fn assert_named(harness: &Harness<'_, App>) {
     let mut unnamed = Vec::new();
+    let mut splitters = 0;
     for node in harness.root().children_recursive() {
         let node = node.accesskit_node();
         if node.is_hidden() || node.data().is_read_only() {
@@ -160,9 +161,10 @@ pub fn assert_named(harness: &Harness<'_, App>) {
             continue;
         }
         // The one exception: the splitter handles of the dock are egui_tiles' own `interact` areas, which publish
-        // neither a role nor a name (upstream; the dock's panes, titles and tabs are named). A keyboard user moves
-        // panes through View, Workspace instead.
+        // neither a role nor a name (upstream; the dock's panes, titles and tabs are named, a follow-up FT names the
+        // splitters). Exactly as many handles as the dock has splitters are let through, no other unnamed node.
         if node.role() == egui::accesskit::Role::Unknown {
+            splitters += 1;
             continue;
         }
         let named = node.label().is_some_and(|l| !l.trim().is_empty())
@@ -174,5 +176,10 @@ pub fn assert_named(harness: &Harness<'_, App>) {
     assert!(
         unnamed.is_empty(),
         "widgets without an accessible name: {unnamed:#?}"
+    );
+    assert_eq!(
+        splitters,
+        harness.state().splitter_count(),
+        "the unnamed handles are the dock's splitters and nothing else"
     );
 }

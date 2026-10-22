@@ -182,3 +182,199 @@ fn a_directory_that_is_no_project_is_an_error() {
     assert!(matches!(err, ew_api::OpenError::NoProject(_)), "{err}");
     let _ = std::fs::remove_dir_all(&work);
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// The review's rulings on the copy: ordered lists, derived channel IDs, determinism, page texts
+
+fn lines_of(session: &Session) -> Vec<serde_json::Value> {
+    ew_commands::rows::model_lines(&session.world().model)
+        .unwrap()
+        .into_iter()
+        .map(|(key, line)| {
+            let mut v: serde_json::Value = serde_json::from_str(&line).unwrap();
+            // The row text has no `$k`; the key names the kind.
+            v["$k"] = serde_json::Value::from(key.0.name());
+            v
+        })
+        .collect()
+}
+
+fn uuid_of(v: &serde_json::Value, member: &str) -> Option<ew_ids::Uuid> {
+    v.get(member)
+        .and_then(serde_json::Value::as_str)
+        .and_then(|s| s.parse().ok())
+}
+
+/// The ID map of a copy: `v5(new project, old ID)`, and for a PLC channel `plc_channel_id(new module, number)`.
+fn id_map(
+    old: &[serde_json::Value],
+    new_project: ew_ids::Uuid,
+) -> std::collections::BTreeMap<String, String> {
+    let mut map = std::collections::BTreeMap::new();
+    for v in old
+        .iter()
+        .filter(|v| v["$k"] != "channel" && v["$k"] != "project")
+    {
+        if let Some(id) = uuid_of(v, "id") {
+            let new: ew_ids::Id<()> = ew_ids::v5::imported_id(new_project, &id.hyphenated().to_string());
+            map.insert(id.to_string(), new.as_uuid().to_string());
+        }
+    }
+    for v in old.iter().filter(|v| v["$k"] == "channel") {
+        let module = map[&uuid_of(v, "module").unwrap().to_string()].parse().unwrap();
+        let number = u16::try_from(v["number"].as_u64().unwrap()).unwrap();
+        let new: ew_ids::Id<()> = ew_ids::v5::plc_channel_id(ew_ids::Id::<()>::from_uuid(module), number);
+        map.insert(uuid_of(v, "id").unwrap().to_string(), new.as_uuid().to_string());
+    }
+    map
+}
+
+fn copy_of_golden(seed: u64) -> Session {
+    Session::new_project(
+        ProjectTemplate::Directory(Path::new(GOLDEN_A)),
+        NewProjectKind::Schematic,
+        options(seed),
+    )
+    .unwrap()
+}
+
+#[test]
+fn ordered_lists_keep_their_order_in_a_copy() {
+    let (golden, _) = Session::open_read_only(Path::new(GOLDEN_A), "ElektraWatt test").unwrap();
+    let copy = copy_of_golden(4);
+    let (old, new) = (lines_of(&golden), lines_of(&copy));
+    let new_project = uuid_of(new.iter().find(|v| v["$k"] == "project").unwrap(), "id").unwrap();
+    let map = id_map(&old, new_project);
+    let by_id: std::collections::BTreeMap<String, &serde_json::Value> = new
+        .iter()
+        .filter_map(|v| uuid_of(v, "id").map(|id| (id.to_string(), v)))
+        .collect();
+    let mapped = |list: &serde_json::Value| -> Vec<String> {
+        list.as_array()
+            .unwrap()
+            .iter()
+            .map(|e| {
+                map.get(e.as_str().unwrap())
+                    .cloned()
+                    .unwrap_or_else(|| e.as_str().unwrap().to_owned())
+            })
+            .collect()
+    };
+    let (mut checked, mut unsorted_images) = (0, 0);
+    for (kind, member) in [("junction", "sequence"), ("representation", "functions")] {
+        for v in old.iter().filter(|v| v["$k"] == kind && v.get(member).is_some()) {
+            let expected = mapped(&v[member]);
+            let id = map[&uuid_of(v, "id").unwrap().to_string()].clone();
+            let copy_line = by_id
+                .get(&id)
+                .unwrap_or_else(|| panic!("the copy has {kind} {id}"));
+            let got: Vec<String> = copy_line[member]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|e| e.as_str().unwrap().to_owned())
+                .collect();
+            assert_eq!(got, expected, "{kind}.{member} of {id} keeps its order");
+            checked += 1;
+            let mut sorted = expected.clone();
+            sorted.sort();
+            if sorted != expected {
+                unsorted_images += 1;
+            }
+        }
+    }
+    assert!(checked > 50, "{checked} ordered lists compared");
+    assert!(
+        unsorted_images > 0,
+        "the data has an ordered list whose image is not in sorted order, so that this test can catch a re-sort"
+    );
+}
+
+#[test]
+fn plc_channel_ids_are_derived_from_the_new_module() {
+    let copy = copy_of_golden(4);
+    let lines = lines_of(&copy);
+    let channels: Vec<_> = lines.iter().filter(|v| v["$k"] == "channel").collect();
+    assert!(!channels.is_empty(), "the sample has PLC channels");
+    for c in channels {
+        let module = uuid_of(c, "module").unwrap();
+        let number = u16::try_from(c["number"].as_u64().unwrap()).unwrap();
+        let expected: ew_ids::Id<()> =
+            ew_ids::v5::plc_channel_id(ew_ids::Id::<()>::from_uuid(module), number);
+        assert_eq!(
+            uuid_of(c, "id").unwrap(),
+            expected.as_uuid(),
+            "channel {number} of {module}"
+        );
+    }
+}
+
+fn files_of(dir: &Path) -> std::collections::BTreeMap<String, Vec<u8>> {
+    fn walk(base: &Path, dir: &Path, out: &mut std::collections::BTreeMap<String, Vec<u8>>) {
+        for e in std::fs::read_dir(dir).unwrap() {
+            let p = e.unwrap().path();
+            if p.is_dir() {
+                walk(base, &p, out);
+            } else {
+                let name = p.strip_prefix(base).unwrap().to_string_lossy().replace('\\', "/");
+                out.insert(name, std::fs::read(&p).unwrap());
+            }
+        }
+    }
+    let mut out = std::collections::BTreeMap::new();
+    walk(dir, dir, &mut out);
+    out
+}
+
+#[test]
+fn two_copies_with_one_seed_are_byte_equal() {
+    let work = temp("determinism");
+    let mut written = Vec::new();
+    for n in 0..2 {
+        let mut copy = copy_of_golden(9);
+        let dir = work.join(format!("copy-{n}.ew"));
+        copy.create(&dir, store(&work.join("state"))).unwrap();
+        copy.close();
+        written.push(files_of(&dir));
+    }
+    assert!(written[0].len() > 100);
+    assert_eq!(
+        written[0].keys().collect::<Vec<_>>(),
+        written[1].keys().collect::<Vec<_>>()
+    );
+    for (name, bytes) in &written[0] {
+        assert!(
+            bytes == &written[1][name],
+            "{name} differs between the two copies"
+        );
+    }
+    let _ = std::fs::remove_dir_all(&work);
+}
+
+#[test]
+fn a_copy_derives_the_page_texts_of_the_original() {
+    let (golden, _) = Session::open_read_only(Path::new(GOLDEN_A), "ElektraWatt test").unwrap();
+    let copy = copy_of_golden(4);
+    let options = ew_api::output::ExportOptions::default();
+    let (a, b) = (
+        golden.export_pages(&options).unwrap(),
+        copy.export_pages(&options).unwrap(),
+    );
+    assert_eq!(a.pages.len(), b.pages.len());
+    assert!(a.pages.len() > 30);
+    // The page texts: every quoted text of a page's display list (tags, cross references, titles, report rows) as
+    // a sorted list, because the drawing order inside a page may follow record IDs.
+    let texts = |content: &dyn std::fmt::Debug| -> Vec<String> {
+        let debug = format!("{content:?}");
+        let mut out: Vec<String> = debug.split('"').skip(1).step_by(2).map(str::to_owned).collect();
+        out.sort();
+        out
+    };
+    let mut total = 0;
+    for (i, (x, y)) in a.pages.iter().zip(&b.pages).enumerate() {
+        let (tx, ty) = (texts(&x.content), texts(&y.content));
+        total += tx.len();
+        assert_eq!(tx, ty, "the texts of page {i} ({})", golden.page_labels()[i]);
+    }
+    assert!(total > 1000, "{total} texts compared");
+}

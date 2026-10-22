@@ -62,6 +62,14 @@ impl ShellModel {
         names
     }
 
+    /// Whether a workspace exists whose name is `name` in other letter case: on a case-insensitive file system both
+    /// names would be one file.
+    fn differs_only_in_case(&self, name: &str) -> bool {
+        self.workspace_names()
+            .iter()
+            .any(|n| n != name && n.to_lowercase() == name.to_lowercase())
+    }
+
     fn read_workspace(&self, name: &str) -> Result<Layout, ReadError> {
         let file = self.workspaces_dir().map(|d| d.join(format!("{name}.json")));
         let text = match file.as_ref().map(std::fs::read_to_string) {
@@ -105,6 +113,9 @@ impl ShellModel {
         if !valid_workspace_name(&name) {
             return failed("error-bad-param", &["name"]);
         }
+        if self.differs_only_in_case(&name) {
+            return failed("error-workspace-case", &[]);
+        }
         match self.read_workspace(&name) {
             Ok(layout) => {
                 self.layout = layout;
@@ -136,6 +147,10 @@ impl ShellModel {
         if !valid_workspace_name(&name) {
             self.banner = Some(strings::text("error-workspace-name").to_owned());
             return failed("error-workspace-name", &[]);
+        }
+        if self.differs_only_in_case(&name) {
+            self.banner = Some(strings::text("error-workspace-case").to_owned());
+            return failed("error-workspace-case", &[]);
         }
         self.dialog = None;
         if self.write_workspace(&name, &self.layout).is_err() {

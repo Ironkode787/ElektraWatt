@@ -7,9 +7,10 @@
 //! Paint order: the window title, the menu bar with every entry and its enabled state (and reason), the banner,
 //! the first-run flow, the wizard, or the project view (the page list, the page view, the workspace and its
 //! layout), or the start page, the status bar, then the palette or a dialog, then the last documentation request.
-//! Directory names appear, paths never. The structural words are fixed English machine text (decision log ID-474);
-//! part 2 added `first run`, `wizard`, `step`, `choice`, `field`, `review`, `preview`, `quick`, `workspace`,
-//! `layout:` and `help:`.
+//! Directory names appear, paths never. The structural words are fixed English machine text (decision log ID-474):
+//! [`VOCABULARY`] lists every one of them, [`FREE_TEXT_MARKERS`] the markers after which the rest of a line is user
+//! text, and a test checks that no line the describer writes uses a word that is in neither list. Quoted text is
+//! user text (a label, a name) and not part of the vocabulary.
 
 use crate::actions::{self, ActionItem, MenuEntry, PaletteRun};
 use crate::first_run::FirstRunStep;
@@ -18,6 +19,78 @@ use crate::settings::{KEYMAPS, LANGUAGES, THEMES};
 use crate::shell::{Dialog, ShellModel};
 use crate::strings;
 use crate::wizard::{FieldKind, Step, fields_of};
+
+/// The structural words of the describe text: the tokens of a line once the quoted texts, the numbers, the action
+/// IDs (they contain a dot), the shortcuts and the punctuation `( ) [ ] , | %` are taken out. A token with a colon
+/// keeps it. A change here is a reviewed transcript change (decision log ID-474).
+pub const VOCABULARY: &[&str] = &[
+    "title:",
+    "menu",
+    "submenu",
+    "item",
+    "enabled",
+    "disabled",
+    "disabled:",
+    "checked",
+    "banner:",
+    "page",
+    "list",
+    "selected",
+    "view:",
+    "workspace",
+    "layout:",
+    "split",
+    "tabs",
+    "horizontal",
+    "vertical",
+    "shown",
+    "status",
+    "bar:",
+    "start",
+    "button",
+    "label",
+    "recent",
+    "quick",
+    "options:",
+    "first",
+    "run",
+    "step",
+    "of",
+    "choice",
+    "on",
+    "off",
+    "wizard",
+    "field",
+    "review",
+    "written",
+    "kept",
+    "error:",
+    "preview",
+    "ready",
+    "unavailable",
+    "palette",
+    "query",
+    "action",
+    "command",
+    "dialog",
+    "pending",
+    "notices:",
+    "lines",
+    "help:",
+];
+
+/// The markers after which the rest of the line is user text (a title, a banner, an error, a reason, a folio, a
+/// status field, a menu's name), wherever they stand in the line.
+pub const FREE_TEXT_MARKERS: &[&str] = &[
+    "title:",
+    "banner:",
+    "error:",
+    "help:",
+    "view:",
+    "bar:",
+    "disabled:",
+    "menu",
+];
 
 fn item_line(indent: &str, item: &ActionItem) -> String {
     let mut line = format!(
@@ -36,6 +109,11 @@ fn item_line(indent: &str, item: &ActionItem) -> String {
         (false, None) => line.push_str(" disabled"),
     }
     line
+}
+
+/// `"a" | "b"`: the options of a choice, each quoted as user text.
+fn quoted_list(items: impl Iterator<Item = String>) -> String {
+    items.map(|i| format!("\"{i}\"")).collect::<Vec<_>>().join(" | ")
 }
 
 fn quick_label(prefix: &str, value: &str) -> String {
@@ -70,21 +148,13 @@ fn start_page(model: &ShellModel, lines: &mut Vec<String>) {
         "  quick \"{}\": \"{}\" (options: {})",
         strings::text("start-quick-language"),
         quick_label("language", &settings.language),
-        LANGUAGES
-            .iter()
-            .map(|l| quick_label("language", l))
-            .collect::<Vec<_>>()
-            .join(" | ")
+        quoted_list(LANGUAGES.iter().map(|l| quick_label("language", l)))
     ));
     lines.push(format!(
         "  quick \"{}\": \"{}\" (options: {})",
         strings::text("start-quick-keymap"),
         quick_label("keymap", &settings.keymap),
-        KEYMAPS
-            .iter()
-            .map(|k| quick_label("keymap", k))
-            .collect::<Vec<_>>()
-            .join(" | ")
+        quoted_list(KEYMAPS.iter().map(|k| quick_label("keymap", k)))
     ));
     let privacy = if settings.update_check {
         strings::text("start-update-check-on")
@@ -138,11 +208,7 @@ fn first_run(model: &ShellModel, lines: &mut Vec<String>) {
                 "  choice \"{}\": \"{}\" (options: {})",
                 strings::text("firstrun-theme"),
                 quick_label("theme", &s.theme),
-                THEMES
-                    .iter()
-                    .map(|t| quick_label("theme", t))
-                    .collect::<Vec<_>>()
-                    .join(" | ")
+                quoted_list(THEMES.iter().map(|t| quick_label("theme", t)))
             ));
             lines.push(format!(
                 "  choice \"{}\": {}%",
@@ -186,14 +252,10 @@ fn wizard(model: &ShellModel, lines: &mut Vec<String>) {
     if step == Step::Review {
         for line in w.draft().review() {
             lines.push(format!(
-                "  review \"{}\": \"{}\" ({})",
+                "  review \"{}\": \"{}\" {}",
                 line.label,
                 line.value,
-                strings::text(if line.written {
-                    "wizard-written"
-                } else {
-                    "wizard-kept"
-                })
+                if line.written { "written" } else { "kept" }
             ));
         }
     } else {
@@ -201,14 +263,13 @@ fn wizard(model: &ShellModel, lines: &mut Vec<String>) {
             let label = strings::text(f.label_key);
             match f.kind {
                 FieldKind::Choice(choices) => {
-                    let options: Vec<String> = choices
+                    let options = choices
                         .iter()
-                        .map(|c| strings::text(&format!("choice-{}-{c}", f.key)).to_owned())
-                        .collect();
+                        .map(|c| strings::text(&format!("choice-{}-{c}", f.key)).to_owned());
                     lines.push(format!(
                         "  choice \"{label}\": \"{}\" (options: {})",
                         w.draft().display_value(f),
-                        options.join(" | ")
+                        quoted_list(options)
                     ));
                 }
                 FieldKind::Text | FieldKind::Multiline => {
@@ -222,7 +283,7 @@ fn wizard(model: &ShellModel, lines: &mut Vec<String>) {
     }
     let preview = match w.preview_content() {
         Ok(_) => "ready".to_owned(),
-        Err(why) => why,
+        Err(why) => format!("unavailable \"{why}\""),
     };
     lines.push(format!(
         "  preview \"{}\": {preview}",
@@ -265,7 +326,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
         Some(Dialog::About) => {
             lines.push(format!("dialog \"{}\"", strings::text("about-title")));
             for line in crate::about::about_lines(model) {
-                lines.push(format!("  {line}"));
+                lines.push(format!("  label \"{line}\""));
             }
             lines.push(format!("  button \"{}\"", strings::text("about-notices-button")));
             lines.push(format!("  button \"{}\"", strings::text("about-docs-button")));
@@ -294,7 +355,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
         }
         Some(Dialog::ConfirmDiscard { pending }) => {
             lines.push(format!("dialog \"{}\"", strings::text("confirm-title")));
-            lines.push(format!("  {}", strings::text("confirm-text")));
+            lines.push(format!("  label \"{}\"", strings::text("confirm-text")));
             lines.push(format!("  pending {}", pending.action));
             for key in ["dialog-save", "dialog-discard", "dialog-cancel"] {
                 lines.push(format!("  button \"{}\"", strings::text(key)));
@@ -302,7 +363,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
         }
         Some(Dialog::ConfirmJournalDiscard) => {
             lines.push(format!("dialog \"{}\"", strings::text("confirm-journal-title")));
-            lines.push(format!("  {}", strings::text("confirm-journal-text")));
+            lines.push(format!("  label \"{}\"", strings::text("confirm-journal-text")));
             for key in ["dialog-discard", "dialog-cancel"] {
                 lines.push(format!("  button \"{}\"", strings::text(key)));
             }
@@ -362,7 +423,7 @@ pub fn describe(model: &ShellModel) -> String {
         ));
         let entries = model.palette_entries();
         if entries.is_empty() {
-            lines.push(format!("  {}", strings::text("palette-no-match")));
+            lines.push(format!("  label \"{}\"", strings::text("palette-no-match")));
         }
         for (i, entry) in entries.iter().enumerate() {
             let mark = if i == palette.selected { ">" } else { " " };

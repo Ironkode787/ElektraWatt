@@ -277,7 +277,8 @@ pub fn lookup(key: &str) -> Option<&'static str> {
             "Update check: on (this version has none; nothing is sent). Crash reports: none"
         }
         "about-privacy-file" => {
-            "PRIVACY.md lists every data flow; it ships with the installers and is not part of this development build."
+            "PRIVACY.md does not exist yet; it comes with the first release. Until then this version makes no network \
+             connection and sends nothing."
         }
         "about-disclaimer" => {
             "ElektraWatt's checks do not replace engineering verification by a competent person."
@@ -416,6 +417,31 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "wizard-preview-title" => "Preview",
         "wizard-preview-cover" => "Cover",
         "wizard-preview-page" => "Folio 102",
+        "wizard-error-draft-write" => "The draft could not be saved in the configuration directory.",
+        "error-dir-not-empty" => "The directory is not empty; choose a new, empty directory.",
+        "error-workspace-case" => "A workspace whose name differs only in letter case already exists.",
+        "layout-not-json" => "not JSON: {0}",
+        "layout-not-object" => "a workspace file is a JSON object",
+        "layout-schema" => "`$schema` is not ew.workspace/1",
+        "layout-name-missing" => "`name` is missing",
+        "layout-root-missing" => "`root` is missing",
+        "layout-no-page-view" => "the page view is missing",
+        "layout-too-deep" => "the layout is nested too deeply",
+        "layout-too-many" => "the layout has too many nodes",
+        "layout-pane-twice" => "the pane `{0}` appears twice",
+        "layout-node-object" => "a node is a JSON object",
+        "layout-unknown-member" => "unknown member `{0}`",
+        "layout-pane-name" => "`pane` is a name",
+        "layout-unknown-pane" => "unknown pane `{0}`",
+        "layout-tabs-list" => "`tabs` is a list",
+        "layout-tabs-empty" => "`tabs` is empty",
+        "layout-split-dir" => "`split` is horizontal or vertical",
+        "layout-children-list" => "`children` is a list",
+        "layout-children-empty" => "`children` is empty",
+        "layout-child-object" => "a child is a JSON object",
+        "layout-share" => "`share` is a positive integer",
+        "layout-node-missing" => "`node` is missing",
+        "layout-node-kind" => "a node has `pane`, `tabs` or `split`",
         "wizard-preview-no-sample" => "The sample project is not installed; the preview needs it.",
         _ => return None,
     })

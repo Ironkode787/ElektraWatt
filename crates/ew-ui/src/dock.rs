@@ -128,6 +128,20 @@ impl Dock {
         read(&self.tree.tiles, root).map(|root| Layout { root })
     }
 
+    /// The number of splitter handles the tree shows: one between each two neighbours of a split.
+    pub fn splitters(&self) -> usize {
+        fn count(n: &LayoutNode) -> usize {
+            match n {
+                LayoutNode::Pane(_) => 0,
+                LayoutNode::Tabs { children, .. } => children.iter().map(count).sum(),
+                LayoutNode::Split { children, .. } => {
+                    children.len().saturating_sub(1) + children.iter().map(|(_, c)| count(c)).sum::<usize>()
+                }
+            }
+        }
+        self.layout().map_or(0, |l| count(&l.root))
+    }
+
     /// The panes of the tree (tests).
     pub fn panes(&self) -> Vec<PaneKind> {
         self.layout().map(|l| l.panes()).unwrap_or_default()

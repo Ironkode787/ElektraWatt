@@ -995,9 +995,9 @@ fn run_apply(a: &ApplyArgs) -> i32 {
         // A replay on top of a crashed session's unsaved changes would hide them behind a new save (doc 05 section
         // 8.3): they are recovered or discarded first.
         eprintln!(
-            "error: {}: a crashed session left unsaved changes in its journal; recover or discard them first \
-             (`ew recover` is not built yet, FT-252; ElektraWatt opens such a project read-only with a recovery \
-             banner and cannot discard the journal before FT-313); nothing was applied",
+            "error: {}: a crashed session left unsaved changes in its journal; recover or discard them first: \
+             discard it in ElektraWatt (File > Discard unsaved changes of the earlier session) or wait for \
+             `ew recover` (FT-252); nothing was applied",
             dir.display()
         );
         session.close();

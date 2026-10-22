@@ -204,12 +204,16 @@ impl ShellModel {
             return;
         };
         let text = w.draft.to_json(w.step);
+        let failed_text = strings::text("wizard-error-draft-write").to_owned();
         let written = path
             .parent()
             .map_or(Ok(()), std::fs::create_dir_all)
             .and_then(|()| std::fs::write(&path, text));
-        if written.is_err() {
-            self.banner = Some(strings::text("banner-settings-write").to_owned());
+        if written.is_err()
+            && let Some(w) = &mut self.wizard
+        {
+            // The wizard says so itself; it is not the settings file that failed.
+            w.error = Some(failed_text);
         }
     }
 
@@ -354,6 +358,12 @@ impl ShellModel {
             Ok(Some(dir)) => PathBuf::from(dir),
             Ok(None) => return self.need_path("wizard.finish", Prompt::NewFolder, "dir", p),
         };
+        if let Some(outcome) = self.require_free_dir(&dir) {
+            if let Some(w) = &mut self.wizard {
+                w.error = self.banner.clone();
+            }
+            return outcome;
+        }
         let name = dir_name(&dir);
         match self.write_basic_project(&draft, &dir) {
             Ok(()) => {
@@ -393,10 +403,31 @@ impl ShellModel {
     }
 }
 
-/// The `file://` URL of `target` below the built book `dir`.
+/// Percent-encodes every byte of `path` that is not unreserved (`A-Z a-z 0-9 - . _ ~`) or a path separator, a
+/// Windows drive's colon after one letter excepted, so that nothing in a directory name can end the URL or be read as
+/// part of a command line (`&`, `^`, `%`, quotes, spaces, `#`, `?`, non-ASCII).
+fn encode_path(path: &str) -> String {
+    let mut out = String::with_capacity(path.len());
+    for (i, byte) in path.bytes().enumerate() {
+        let drive_colon = byte == b':'
+            && i == 1
+            && path.as_bytes()[0].is_ascii_alphabetic()
+            && matches!(path.as_bytes().get(2), None | Some(b'/'));
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~' | b'/') || drive_colon {
+            out.push(char::from(byte));
+        } else {
+            out.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    out
+}
+
+/// The `file://` URL of `target` (a page and heading of the book, ours and safe) below the built book `dir`.
 fn file_url(dir: &Path, target: &str) -> String {
-    let path = dir.to_string_lossy().replace('\\', "/").replace(' ', "%20");
-    let path = path.trim_end_matches('/');
+    let path = dir.to_string_lossy().replace('\\', "/");
+    // A verbatim Windows path (`\\?\C:\...`, what `canonicalize` gives) is the plain one.
+    let path = path.strip_prefix("//?/").unwrap_or(&path);
+    let path = encode_path(path.trim_end_matches('/'));
     if path.starts_with('/') {
         format!("file://{path}/{target}")
     } else {
@@ -418,5 +449,32 @@ mod tests {
             file_url(Path::new("C:\\Program Files\\EW\\docs"), "x.html"),
             "file:///C:/Program%20Files/EW/docs/x.html"
         );
+        assert_eq!(
+            file_url(Path::new("\\\\?\\C:\\EW\\docs"), "x.html"),
+            "file:///C:/EW/docs/x.html",
+            "a verbatim path is the plain one"
+        );
+    }
+
+    #[test]
+    fn nothing_in_a_directory_name_can_leave_the_url() {
+        let url = file_url(
+            Path::new("/tmp/a&b^c%d \"e\" #f?g'h;i|j<k>l$m`n/\u{e9}"),
+            "p.html#x",
+        );
+        assert_eq!(
+            url,
+            "file:///tmp/a%26b%5Ec%25d%20%22e%22%20%23f%3Fg%27h%3Bi%7Cj%3Ck%3El%24m%60n/%C3%A9/p.html#x"
+        );
+        // Only the unreserved characters, the separators and the target's own `#` are left.
+        let (path, fragment) = url.split_once("p.html#").unwrap();
+        assert!(
+            path.bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b"-._~/%:".contains(&b)),
+            "{url}"
+        );
+        assert_eq!(fragment, "x");
+        assert_eq!(encode_path("C:/x y"), "C:/x%20y");
+        assert_eq!(encode_path("a:b"), "a%3Ab", "a colon is kept only as a drive's");
     }
 }

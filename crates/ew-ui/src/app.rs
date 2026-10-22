@@ -161,6 +161,17 @@ impl App {
         self.preview_view.is_ready()
     }
 
+    /// The number of splitter handles on screen: the dock's while the project view shows, else none (tests: the
+    /// handles are egui_tiles' own areas and have no accessible name, so the walker allows exactly this many).
+    #[doc(hidden)]
+    pub fn splitter_count(&self) -> usize {
+        if self.shell.first_run().is_none() && self.shell.wizard().is_none() && self.shell.has_project() {
+            self.dock.splitters()
+        } else {
+            0
+        }
+    }
+
     /// The panes of the dock tree in layout order (tests).
     pub fn dock_panes(&self) -> Vec<PaneKind> {
         self.dock.panes()

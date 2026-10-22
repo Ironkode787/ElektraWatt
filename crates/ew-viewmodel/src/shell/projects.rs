@@ -48,6 +48,21 @@ impl ShellModel {
             .map(dir_name)
     }
 
+    /// A new project goes into an empty or absent directory (doc 16: "a new, empty directory"): `Some` with the
+    /// failed outcome (and its banner) when `dir` holds anything. Checked before anything is closed or written.
+    pub(super) fn require_free_dir(&mut self, dir: &Path) -> Option<Outcome> {
+        let free = match std::fs::read_dir(dir) {
+            Ok(mut entries) => entries.next().is_none(),
+            Err(e) => e.kind() == std::io::ErrorKind::NotFound,
+        };
+        if free {
+            return None;
+        }
+        let message = strings::text("error-dir-not-empty").to_owned();
+        self.banner = Some(message.clone());
+        Some(Outcome::Failed { message })
+    }
+
     /// Whether the sample project is installed.
     pub fn has_sample(&self) -> bool {
         self.config
@@ -115,6 +130,9 @@ impl ShellModel {
             Ok(Some(dir)) => PathBuf::from(dir),
             Ok(None) => return self.need_path("file.new", Prompt::NewFolder, "dir", p),
         };
+        if let Some(outcome) = self.require_free_dir(&dir) {
+            return outcome;
+        }
         self.close_project();
         let from = match &template {
             Some(d) => ProjectTemplate::Directory(d),
@@ -170,6 +188,9 @@ impl ShellModel {
             Ok(Some(dir)) => PathBuf::from(dir),
             Ok(None) => return self.need_path("help.tutorials", Prompt::NewFolder, "dir", p),
         };
+        if let Some(outcome) = self.require_free_dir(&dir) {
+            return outcome;
+        }
         self.close_project();
         // A fresh copy of the sample project: its records under new identities, in a directory of the user's.
         let session = match Session::new_project(
@@ -212,6 +233,9 @@ impl ShellModel {
             Ok(Some(dir)) => PathBuf::from(dir),
             Ok(None) => return self.need_path("file.import_qet", Prompt::NewFolder, "dir", p),
         };
+        if let Some(outcome) = self.require_free_dir(&dir) {
+            return outcome;
+        }
         let name = file
             .file_name()
             .map_or_else(|| "project.qet".to_owned(), |n| n.to_string_lossy().into_owned());

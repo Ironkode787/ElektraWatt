@@ -75,7 +75,7 @@ use ew_derive::{
 };
 use ew_model::{AnyKey, Model, ModelError, PreventHook};
 use ew_schema::{LibDocument, Project, Record};
-use ew_store::{Changes, LockState, RecoverError, SaveError, SaveReport, Store};
+use ew_store::{Changes, LockState, RecoverError, SaveReport, Store};
 
 pub use cmdlog::{CmdLog, CmdLogError, SCHEMA as CMDLOG_SCHEMA, ScriptDiff};
 /// The check engine (`ew check`, the message panel, the migration report): rules, schemes, findings.
@@ -85,7 +85,7 @@ pub use ew_derive::{BomMode, DeriveNote, MemoStore, Mismatch, NoteSeverity};
 pub use ew_reports::export::{Export, ExportError, Exported};
 /// The read-only SQL projection (`ew sql`, the acceptance SQL, ADR-0017): views, sandbox, results.
 pub use ew_sqlview as sql;
-pub use ew_store::{Access, OpenError, OpenReport, ReadOnlyReason, StoreOptions};
+pub use ew_store::{Access, OpenError, OpenReport, ReadOnlyReason, SaveError, StoreOptions};
 pub use new_project::{NewProjectKind, ProjectTemplate};
 
 pub use ew_commands::{

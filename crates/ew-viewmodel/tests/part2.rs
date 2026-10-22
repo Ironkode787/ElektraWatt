@@ -136,12 +136,71 @@ fn a_new_project_in_an_occupied_directory_fails_without_a_path() {
     done(&mut shell, "file.close", json!({}));
     match run(&mut shell, "file.new", json!({ "dir": path(&dir) })) {
         Outcome::Failed { message } => {
-            assert!(message.contains("already holds a project"), "{message}");
+            assert!(message.contains("not empty"), "{message}");
             assert!(!message.contains(&path(&dir)), "{message}");
         }
         other => panic!("{other:?}"),
     }
     assert!(!shell.has_project());
+}
+
+#[test]
+fn a_directory_with_anything_in_it_is_refused_before_the_open_project_closes() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell();
+    done(
+        &mut shell,
+        "file.new",
+        json!({ "dir": path(&tmp.0.join("open.ew")) }),
+    );
+    let taken = tmp.0.join("taken");
+    std::fs::create_dir_all(&taken).unwrap();
+    std::fs::write(taken.join("notes.txt"), "mine").unwrap();
+    let qet = tmp.0.join("example.qet");
+    std::fs::write(&qet, QET).unwrap();
+    let not_empty = |out: Outcome| match out {
+        Outcome::Failed { message } => {
+            assert!(message.contains("not empty"), "{message}");
+            assert!(!message.contains(&path(&taken)), "{message}");
+        }
+        other => panic!("{other:?}"),
+    };
+    not_empty(run(&mut shell, "file.new", json!({ "dir": path(&taken) })));
+    not_empty(run(&mut shell, "help.tutorials", json!({ "dir": path(&taken) })));
+    not_empty(run(
+        &mut shell,
+        "file.import_qet",
+        json!({ "file": path(&qet), "dir": path(&taken) }),
+    ));
+    assert_eq!(
+        shell.project_name(),
+        Some("open.ew"),
+        "the open project was not closed"
+    );
+    done(&mut shell, "tools.company_standard", json!({}));
+    not_empty(run(&mut shell, "wizard.finish", json!({ "dir": path(&taken) })));
+    assert!(shell.wizard().is_some(), "the wizard stays open");
+    assert!(
+        shell
+            .wizard()
+            .unwrap()
+            .error()
+            .is_some_and(|e| e.contains("not empty"))
+    );
+    assert_eq!(shell.project_name(), Some("open.ew"));
+    // Nothing was written: the directory holds what it held.
+    let names: Vec<_> = std::fs::read_dir(&taken)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    assert_eq!(names, ["notes.txt"]);
+    // An empty directory and an absent one are fine.
+    let empty = tmp.0.join("empty");
+    std::fs::create_dir_all(&empty).unwrap();
+    done(&mut shell, "wizard.cancel", json!({}));
+    done(&mut shell, "file.new", json!({ "dir": path(&empty) }));
+    assert_eq!(shell.project_name(), Some("empty"));
+    shell.shutdown();
 }
 
 #[test]
@@ -638,12 +697,13 @@ fn the_wizard_needs_a_directory_parameter_in_a_script_and_a_prompt_in_the_gui() 
     let blocked = tmp.0.join("blocked.ew");
     std::fs::create_dir_all(&blocked).unwrap();
     std::fs::write(blocked.join("project.jsonl"), "").unwrap();
-    // A directory that already holds a project file is refused by the store.
+    // A directory that already holds a project file is refused.
     let out = run(&mut open, "wizard.finish", json!({ "dir": path(&blocked) }));
-    if let Outcome::Failed { message } = &out {
-        assert!(!message.contains(&path(&tmp.0)), "{message}");
-        assert!(open.wizard().is_some(), "the wizard stays open");
-    }
+    let Outcome::Failed { message } = &out else {
+        panic!("{out:?}");
+    };
+    assert!(!message.contains(&path(&tmp.0)), "{message}");
+    assert!(open.wizard().is_some(), "the wizard stays open");
 }
 
 #[test]
@@ -779,7 +839,7 @@ fn without_the_sample_the_wizard_works_and_the_preview_says_why_it_is_empty() {
     assert!(err.contains("sample project is not installed"), "{err}");
     let describe = shell.describe();
     assert!(
-        describe.contains("preview \"Folio 102\": The sample project is not installed"),
+        describe.contains("preview \"Folio 102\": unavailable \"The sample project is not installed"),
         "{describe}"
     );
 }
@@ -1048,6 +1108,200 @@ fn quick_switches_validate_and_persist() {
 }
 
 #[test]
+fn workspace_names_that_windows_reserves_or_that_differ_only_in_case_are_refused() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell();
+    for bad in ["CON", "nul", "Aux", "COM1", "lpt9"] {
+        assert!(
+            matches!(
+                run(&mut shell, "view.workspace_save", json!({ "name": bad })),
+                Outcome::Failed { .. }
+            ),
+            "{bad}"
+        );
+    }
+    done(&mut shell, "view.workspace_save", json!({"name": "Review"}));
+    match run(&mut shell, "view.workspace_save", json!({"name": "review"})) {
+        Outcome::Failed { message } => assert!(message.contains("letter case"), "{message}"),
+        other => panic!("{other:?}"),
+    }
+    assert!(matches!(
+        run(&mut shell, "view.workspace_load", json!({"name": "REVIEW"})),
+        Outcome::Failed { .. }
+    ));
+    // The name as it is saved still works, and so does Schematic against "schematic".
+    done(&mut shell, "view.workspace_save", json!({"name": "Review"}));
+    assert!(matches!(
+        run(&mut shell, "view.workspace_save", json!({"name": "schematic"})),
+        Outcome::Failed { .. }
+    ));
+}
+
+/// The words of a describe line that are structure: the quoted texts, numbers, action IDs (they have a dot),
+/// shortcuts and punctuation are taken out, and everything after a free-text marker is user text.
+fn structural_words(line: &str, shortcut_keys: &[String]) -> Vec<String> {
+    let mut outside = String::new();
+    let mut quoted = false;
+    for c in line.chars() {
+        if c == '"' {
+            quoted = !quoted;
+            outside.push(' ');
+        } else if !quoted {
+            outside.push(c);
+        }
+    }
+    let outside = outside.replace(['(', ')', '[', ']', ',', '|', '%'], " ");
+    let mut words = Vec::new();
+    for token in outside.split_whitespace() {
+        if ew_viewmodel::describe::FREE_TEXT_MARKERS.contains(&token) {
+            words.push(token.to_owned());
+            break;
+        }
+        let skip = token.chars().all(|c| c.is_ascii_digit())
+            || token.starts_with('#')
+            || token.contains('.')
+            || token.contains('+')
+            || token.chars().all(|c| !c.is_alphanumeric())
+            || shortcut_keys.iter().any(|k| k == token);
+        if !skip {
+            words.push(token.to_owned());
+        }
+    }
+    words
+}
+
+#[test]
+fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
+    let shortcut_keys: Vec<String> = ew_viewmodel::actions::ACTIONS
+        .iter()
+        .flat_map(|a| a.shortcut.iter())
+        .flat_map(|s| s.split(['+', ' ']))
+        .map(str::to_owned)
+        .collect();
+    let tmp = Tmp::new();
+    let mut texts: Vec<String> = Vec::new();
+    // The start page, a first run through all its steps, the wizard through all its steps, and a project with its
+    // dialogs, popups and banners.
+    let mut shell = tmp.gui();
+    texts.push(shell.describe());
+    done(&mut shell, "help.first_run", json!({}));
+    for _ in 0..5 {
+        texts.push(shell.describe());
+        let _ = run(&mut shell, "first_run.next", json!({}));
+    }
+    // The privacy step with the opt-in on.
+    done(&mut shell, "help.first_run", json!({"step": "privacy"}));
+    done(
+        &mut shell,
+        "first_run.set",
+        json!({"field": "update_check", "value": true}),
+    );
+    texts.push(shell.describe());
+    done(
+        &mut shell,
+        "first_run.set",
+        json!({"field": "comes_from", "value": "qet"}),
+    );
+    texts.push(shell.describe());
+    done(&mut shell, "first_run.finish", json!({}));
+    done(&mut shell, "tools.company_standard", json!({}));
+    for step in 0..10 {
+        done(&mut shell, "wizard.goto", json!({ "step": step }));
+        texts.push(shell.describe());
+    }
+    // A refused value shows its reason on the screen (an `error:` line).
+    let refused = run(
+        &mut shell,
+        "wizard.set",
+        json!({"field": "csa_mains", "value": "x"}),
+    );
+    assert!(matches!(refused, Outcome::Failed { .. }));
+    texts.push(shell.describe());
+    done(&mut shell, "wizard.cancel", json!({}));
+    let dir = tmp.0.join("p.ew");
+    done(&mut shell, "file.new", json!({ "dir": path(&dir) }));
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "page.create", "params": {"number": 2}}),
+    );
+    done(&mut shell, "file.save", json!({}));
+    done(&mut shell, "tools.palette", json!({"query": "page"}));
+    texts.push(shell.describe());
+    done(&mut shell, "tools.palette", json!({"query": "zzzz"}));
+    texts.push(shell.describe());
+    done(&mut shell, "ui.dismiss", json!({}));
+    done(&mut shell, "view.workspace_save", json!({}));
+    texts.push(shell.describe());
+    done(&mut shell, "ui.dismiss", json!({}));
+    done(&mut shell, "page.goto", json!({}));
+    texts.push(shell.describe());
+    done(&mut shell, "ui.dismiss", json!({}));
+    done(&mut shell, "file.close", json!({}));
+    texts.push(shell.describe());
+    // A refused open leaves a banner on the start page.
+    let _ = run(
+        &mut shell,
+        "file.open",
+        json!({ "dir": path(&tmp.0.join("missing.ew")) }),
+    );
+    texts.push(shell.describe());
+    done(&mut shell, "file.open", json!({ "dir": path(&dir) }));
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "page.create", "params": {"number": 3}}),
+    );
+    done(&mut shell, "file.close", json!({}));
+    texts.push(shell.describe());
+    done(&mut shell, "ui.dismiss", json!({}));
+    for dialog in ["help.about", "help.notices", "help.shortcuts"] {
+        done(&mut shell, dialog, json!({}));
+        texts.push(shell.describe());
+    }
+    done(&mut shell, "help.documentation", json!({}));
+    texts.push(shell.describe());
+    // A tab layout.
+    let tabbed = r#"{"$schema":"ew.workspace/1","name":"T","root":{"tabs":[{"pane":"page-view"},{"pane":"pages"}],"active":1}}"#;
+    std::fs::create_dir_all(tmp.0.join("config/workspaces")).unwrap();
+    std::fs::write(tmp.0.join("config/workspaces/T.json"), tabbed).unwrap();
+    done(&mut shell, "view.workspace_load", json!({"name": "T"}));
+    texts.push(shell.describe());
+    let vertical = r#"{"$schema":"ew.workspace/1","name":"V","root":{"split":"vertical","children":[{"share":1,"node":{"pane":"page-view"}},{"share":1,"node":{"pane":"pages"}}]}}"#;
+    std::fs::write(tmp.0.join("config/workspaces/V.json"), vertical).unwrap();
+    done(&mut shell, "view.workspace_load", json!({"name": "V"}));
+    texts.push(shell.describe());
+    shell.shutdown();
+    // A wizard whose preview is not available says why.
+    let mut config = tmp.config();
+    config.resources.sample_dir = None;
+    let mut no_sample = ShellModel::new(Mode::Headless, config);
+    done(&mut no_sample, "tools.company_standard", json!({}));
+    texts.push(no_sample.describe());
+
+    let allowed = ew_viewmodel::describe::VOCABULARY;
+    let mut seen = std::collections::BTreeSet::new();
+    for text in &texts {
+        for line in text.lines() {
+            for word in structural_words(line, &shortcut_keys) {
+                assert!(
+                    allowed.contains(&word.as_str()),
+                    "`{word}` is in no word list of describe.rs; line: {line}"
+                );
+                seen.insert(word);
+            }
+        }
+    }
+    // The states above reach most of the vocabulary: a word that nothing emits is a stale entry or a missed state.
+    let unused: Vec<&&str> = allowed.iter().filter(|w| !seen.contains(**w)).collect();
+    // (`disabled` without a reason cannot be reached through the registry today.)
+    assert!(
+        unused.iter().all(|w| **w == "disabled"),
+        "words of the vocabulary no state used: {unused:?}"
+    );
+}
+
+#[test]
 fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
     let tmp = Tmp::new();
     let mut shell = tmp.shell();
@@ -1082,15 +1336,10 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
         "{review}"
     );
     assert!(
-        review.contains(
-            "review \"Cross-reference style\": \"QET style (102-A1)\" (written to the basic project)"
-        ),
+        review.contains("review \"Cross-reference style\": \"QET style (102-A1)\" written"),
         "{review}"
     );
-    assert!(
-        review.contains("review \"Company name\": \"-\" (kept in the draft)"),
-        "{review}"
-    );
+    assert!(review.contains("review \"Company name\": \"-\" kept"), "{review}");
     assert!(
         review.contains("button \"Create the basic project...\""),
         "{review}"
@@ -1112,7 +1361,7 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
     for needle in [
         "Support: pre-release build; only the latest 0.x release is supported.",
         "ElektraWatt's checks do not replace engineering verification by a competent person.",
-        "PRIVACY.md lists every data flow",
+        "PRIVACY.md does not exist yet",
         "button \"Third-party notices\"",
     ] {
         assert!(about.contains(needle), "{needle}\n{about}");

@@ -14,8 +14,8 @@ use std::path::{Path, PathBuf};
 
 use ew_api::output::{ExportOptions, ExportPages, PageSelection};
 use ew_api::{
-    Access, CmdLog, OpenError, OpenReport, Origin, ReadOnlyReason, Recovery, Session, SessionOptions,
-    StoreOptions,
+    Access, CmdLog, OpenError, OpenReport, Origin, ReadOnlyReason, Recovery, SaveError, Session,
+    SessionOptions, StoreOptions,
 };
 use serde_json::{Map, Value, json};
 
@@ -353,21 +353,15 @@ fn open_error_key(e: &OpenError) -> &'static str {
     }
 }
 
-/// The reason key of a save error, from its variant name (`SaveError` is not re-exported by `ew-api`, and
-/// its `Display` carries file system paths that a transcript must not).
-fn save_error_key(e: &dyn std::fmt::Debug) -> &'static str {
-    let text = format!("{e:?}");
-    let variant: String = text
-        .chars()
-        .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
-        .collect();
-    match variant.as_str() {
-        "ReadOnly" => "saveerr-read-only",
-        "LockLost" => "saveerr-lock-lost",
-        "ExternalChange" => "saveerr-external",
-        "Failed" => "saveerr-failed",
-        "Incomplete" => "saveerr-incomplete",
-        "PendingIncomplete" => "saveerr-pending",
+/// The reason key of a save error (its `Display` carries file system paths that a transcript must not).
+fn save_error_key(e: &SaveError) -> &'static str {
+    match e {
+        SaveError::ReadOnly(_) => "saveerr-read-only",
+        SaveError::LockLost(_) => "saveerr-lock-lost",
+        SaveError::ExternalChange => "saveerr-external",
+        SaveError::Failed { .. } => "saveerr-failed",
+        SaveError::Incomplete { .. } => "saveerr-incomplete",
+        SaveError::PendingIncomplete { .. } => "saveerr-pending",
         _ => "saveerr-other",
     }
 }

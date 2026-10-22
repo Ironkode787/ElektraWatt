@@ -277,10 +277,23 @@ fn take_choice(table: &mut toml::Table, key: &str, choices: &[&str]) -> Option<S
     })
 }
 
+/// Whether `name` is a name that Windows reserves for a device (`CON`, `NUL`, `COM1` ...), in any letter case:
+/// a file of that name cannot be made there, so it is no workspace name on any system.
+fn is_windows_device_name(name: &str) -> bool {
+    let upper = name.to_ascii_uppercase();
+    matches!(upper.as_str(), "CON" | "PRN" | "AUX" | "NUL")
+        || ["COM", "LPT"].iter().any(|prefix| {
+            upper
+                .strip_prefix(prefix)
+                .is_some_and(|n| n.len() == 1 && matches!(n.as_bytes()[0], b'1'..=b'9'))
+        })
+}
+
 /// Whether `name` can be a workspace name: 1 to 40 characters, letters, digits, space, `-` and `_`, no leading
 /// or trailing space. The name is the file name of `workspaces/<name>.json`.
 pub fn valid_workspace_name(name: &str) -> bool {
-    !name.is_empty()
+    !is_windows_device_name(name)
+        && !name.is_empty()
         && name.chars().count() <= 40
         && name == name.trim()
         && name
@@ -464,10 +477,34 @@ mod tests {
 
     #[test]
     fn workspace_names_are_file_names() {
-        for good in ["Schematic", "My layout", "a-b_c", "Räume 2"] {
+        for good in [
+            "Schematic",
+            "My layout",
+            "a-b_c",
+            "Räume 2",
+            "COM10",
+            "CONSOLE",
+            "COM0",
+        ] {
             assert!(valid_workspace_name(good), "{good}");
         }
-        for bad in ["", " a", "a ", "a/b", "a\\b", "..", "a.b", &"x".repeat(41)] {
+        for bad in [
+            "",
+            " a",
+            "a ",
+            "a/b",
+            "a\\b",
+            "..",
+            "a.b",
+            "CON",
+            "nul",
+            "Prn",
+            "AUX",
+            "COM1",
+            "com9",
+            "LPT3",
+            &"x".repeat(41),
+        ] {
             assert!(!valid_workspace_name(bad), "{bad:?}");
         }
     }

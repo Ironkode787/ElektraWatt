@@ -157,20 +157,22 @@ impl Platform for RfdPlatform {
 /// Opens `url` (a `file://` URL of the installed user guide) with the system's opener: a user action, no network
 /// traffic. The opener is the one of the platform; its failure is reported to the caller.
 fn open_in_browser(url: &str) -> bool {
-    let mut command = if cfg!(target_os = "windows") {
-        let mut c = std::process::Command::new("cmd");
-        c.args(["/C", "start", ""]).arg(url);
-        c
-    } else if cfg!(target_os = "macos") {
-        let mut c = std::process::Command::new("open");
-        c.arg(url);
-        c
-    } else {
-        let mut c = std::process::Command::new("xdg-open");
-        c.arg(url);
-        c
-    };
-    command.spawn().is_ok()
+    let (program, args) = opener(std::env::consts::OS, url);
+    std::process::Command::new(program).args(args).spawn().is_ok()
+}
+
+/// The program and arguments that open `url` on the operating system `os` (`std::env::consts::OS`). No shell is
+/// involved on any system, so no character of the URL has a meaning to a command line; the URL is percent-encoded
+/// besides (`ew_viewmodel`'s `file_url`).
+fn opener(os: &str, url: &str) -> (&'static str, Vec<String>) {
+    match os {
+        "windows" => (
+            "rundll32",
+            vec!["url.dll,FileProtocolHandler".to_owned(), url.to_owned()],
+        ),
+        "macos" => ("open", vec![url.to_owned()]),
+        _ => ("xdg-open", vec![url.to_owned()]),
+    }
 }
 
 /// The first of `candidates` that is a directory.
@@ -366,6 +368,26 @@ mod tests {
         assert_eq!(parse(&["--help"]), Ok(Cli::Help));
         assert!(parse(&["--nonsense"]).is_err());
         assert!(parse(&["a", "b"]).is_err());
+    }
+
+    #[test]
+    fn the_guide_is_opened_without_a_shell() {
+        let url = "file:///C:/docs/a%26b/x.html#y";
+        assert_eq!(
+            opener("windows", url),
+            (
+                "rundll32",
+                vec!["url.dll,FileProtocolHandler".to_owned(), url.to_owned()]
+            )
+        );
+        assert_eq!(opener("macos", url), ("open", vec![url.to_owned()]));
+        assert_eq!(opener("linux", url), ("xdg-open", vec![url.to_owned()]));
+        for os in ["windows", "macos", "linux", "freebsd"] {
+            assert!(
+                !["cmd", "sh", "bash", "powershell"].contains(&opener(os, url).0),
+                "{os}"
+            );
+        }
     }
 
     #[test]
