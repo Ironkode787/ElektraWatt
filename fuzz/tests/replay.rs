@@ -80,6 +80,29 @@ fn the_migration_chain_seeds_pass_and_rewrite_old_shapes() {
         "{:?}",
         get("old-shape-revisions")
     );
+    // The findings of cycle 22. A BOM before a library copy is a shape: the project opens with the golden model,
+    // and the save rewrites the copy (and the revision whose member order the input changed as well).
+    let bom = open_path::decode(&inputs_named(&seeds, "lib-document-bom"));
+    assert!(bom.ops.iter().all(|op| open_path::shape_only(*op)), "{bom:?}");
+    assert!(
+        matches!(get("lib-document-bom"), Outcome::Reopened { rewritten } if rewritten >= 1),
+        "{:?}",
+        get("lib-document-bom")
+    );
+    assert_eq!(get("lib-document-bom-read-only"), Outcome::ReadOnly);
+    // A swap of two lines inside a library document is no shape (it moved `sha256` into `meta`): the oracle no
+    // longer asks for the golden model, and the project still opens, read-only as the mode byte asks.
+    let swap = open_path::decode(&inputs_named(&seeds, "lib-document-line-swap"));
+    assert!(!swap.ops.iter().all(|op| open_path::shape_only(*op)), "{swap:?}");
+    assert_eq!(get("lib-document-line-swap"), Outcome::ReadOnly);
+}
+
+fn inputs_named(seeds: &[(String, Vec<u8>)], name: &str) -> Vec<u8> {
+    seeds
+        .iter()
+        .find(|(n, _)| n == name)
+        .map(|(_, bytes)| bytes.clone())
+        .unwrap_or_else(|| panic!("no seed {name}"))
 }
 
 #[test]

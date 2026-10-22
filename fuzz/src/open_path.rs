@@ -15,15 +15,18 @@
 //!
 //! - the open never panics (a refusal, [`ew_store::OpenError`], is fine);
 //! - the model it returns passes `Model::integrity_check`;
-//! - an input whose operations change only the shape of the files (member order, line order, CRLF, a BOM, a missing
-//!   final LF, a blank line) opens, with a model equal to the golden project's (`Model::content_eq`): the open of
-//!   an old shape is lossless, not only idempotent;
+//! - an input whose operations change only the shape of the files ([`shape_only`]: member order, the line order of a
+//!   JSON Lines file, CRLF, a BOM, a missing final LF, a blank line; in a JSON Lines file or a library document)
+//!   opens, with a model equal to the golden project's (`Model::content_eq`): the open of an old shape is lossless,
+//!   not only idempotent;
 //! - when the session can edit: a save without an edit succeeds, a reader opens the result with an equal model
 //!   (`Model::content_eq`) and with nothing left to rewrite (no `NonCanonical`, `LineEndings`, `WrongFile` or
 //!   `ForeignEdit` finding), and a second save writes nothing.
 //!
 //! Input: a mode byte (bit 0: leave the manifest stale; bit 1: open read-only), then operations of four bytes
-//! `[file][line][op][argument]`, at most [`MAX_OPS`].
+//! `[file][line][op][argument]`, at most [`MAX_OPS`]. CRLF, a missing final LF and a BOM are properties of a file
+//! that the operations switch on, applied when the file is written out (one BOM, before the first line, whatever
+//! the line operations after it); the other operations change lines.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
@@ -123,13 +126,47 @@ fn lines_of(bytes: &[u8]) -> Vec<Vec<u8>> {
     lines
 }
 
-fn join_lines(lines: &[Vec<u8>]) -> Vec<u8> {
-    let mut out = Vec::new();
-    for line in lines {
-        out.extend_from_slice(line);
-        out.push(b'\n');
+/// A file as the operations see it: its lines without their ends, and how it is encoded. The encoding (a BOM, CRLF,
+/// no final line end) is a property of the file that the operations set, never bytes inside a line, so that a later
+/// line operation cannot move a BOM into the middle of the file, put a second one before the first or leave a CR at
+/// the end of a line: what [`SHAPE_ONLY`] calls a shape stays one, whatever the order of the operations.
+#[derive(Clone, Debug, Default)]
+struct Text {
+    lines: Vec<Vec<u8>>,
+    /// A UTF-8 BOM before the first line (operation 11).
+    bom: bool,
+    /// CRLF line ends (operation 9).
+    crlf: bool,
+    /// No line end after the last line (operation 10).
+    no_final_end: bool,
+}
+
+impl Text {
+    /// A file of the golden project (LF line ends, no BOM): [`Text::bytes`] gives `bytes` back.
+    fn of(bytes: &[u8]) -> Self {
+        Text {
+            lines: lines_of(bytes),
+            no_final_end: !bytes.is_empty() && !bytes.ends_with(b"\n"),
+            ..Text::default()
+        }
     }
-    out
+
+    fn bytes(&self) -> Vec<u8> {
+        let end: &[u8] = if self.crlf { b"\r\n" } else { b"\n" };
+        let mut out = if self.bom {
+            b"\xEF\xBB\xBF".to_vec()
+        } else {
+            Vec::new()
+        };
+        for line in &self.lines {
+            out.extend_from_slice(line);
+            out.extend_from_slice(end);
+        }
+        if self.no_final_end && !self.lines.is_empty() {
+            out.truncate(out.len() - end.len());
+        }
+        out
+    }
 }
 
 /// A JSON value for a `set member` operation.
@@ -159,14 +196,32 @@ fn edit_object(line: &mut Vec<u8>, edit: impl FnOnce(&mut serde_json::Map<String
 }
 
 /// Applies `op` to the files (keyed by path); `deleted` collects the files that are removed afterwards.
-fn apply(files: &mut BTreeMap<String, Vec<u8>>, deleted: &mut BTreeSet<String>, op: Op) {
+fn apply(files: &mut BTreeMap<String, Text>, deleted: &mut BTreeSet<String>, op: Op) {
     let paths = golden::paths();
     let path = &paths[usize::from(op.file) % paths.len()];
-    let Some(bytes) = files.get(path).cloned() else {
+    let at = |n: usize| if n == 0 { 0 } else { usize::from(op.line) % n };
+    if op.op % OP_KINDS == 12 {
+        // Move a line to another JSON Lines file: a record in the wrong file.
+        let target = &paths[usize::from(op.arg) % paths.len()];
+        if !target.ends_with(".jsonl") || target == path || !files.contains_key(target) {
+            return;
+        }
+        let Some(lines) = files.get_mut(path).map(|text| &mut text.lines) else {
+            return;
+        };
+        if lines.is_empty() {
+            return;
+        }
+        let line = lines.remove(at(lines.len()));
+        if let Some(other) = files.get_mut(target) {
+            other.lines.push(line);
+        }
+        return;
+    }
+    let Some(text) = files.get_mut(path) else {
         return;
     };
-    let mut lines = lines_of(&bytes);
-    let at = |n: usize| if n == 0 { 0 } else { usize::from(op.line) % n };
+    let lines = &mut text.lines;
     match op.op % OP_KINDS {
         // The shape of an older build: members in byte-wise key order.
         0 => {
@@ -253,46 +308,11 @@ fn apply(files: &mut BTreeMap<String, Vec<u8>>, deleted: &mut BTreeSet<String>, 
             let keep = lines[i].len() * usize::from(op.arg) / 256;
             lines[i].truncate(keep);
         }
-        9 => {
-            let mut out = Vec::new();
-            for line in &lines {
-                out.extend_from_slice(line);
-                out.extend_from_slice(b"\r\n");
-            }
-            files.insert(path.clone(), out);
-            return;
-        }
-        10 => {
-            let mut out = join_lines(&lines);
-            out.pop();
-            files.insert(path.clone(), out);
-            return;
-        }
-        11 => {
-            let mut out = b"\xEF\xBB\xBF".to_vec();
-            out.extend_from_slice(&join_lines(&lines));
-            files.insert(path.clone(), out);
-            return;
-        }
-        12 => {
-            // Move a line to another file: a record in the wrong file.
-            if lines.is_empty() {
-                return;
-            }
-            let i = at(lines.len());
-            let line = lines.remove(i);
-            let target = &paths[usize::from(op.arg) % paths.len()];
-            if target.ends_with(".jsonl") && target != path {
-                let mut other = lines_of(files.get(target).map_or(&[][..], Vec::as_slice));
-                other.push(line);
-                files.insert(target.clone(), join_lines(&other));
-            } else {
-                lines.insert(i, line);
-            }
-        }
+        9 => text.crlf = true,
+        10 => text.no_final_end = true,
+        11 => text.bom = true,
         13 => {
             deleted.insert(path.clone());
-            return;
         }
         _ => {
             if lines.is_empty() {
@@ -302,16 +322,22 @@ fn apply(files: &mut BTreeMap<String, Vec<u8>>, deleted: &mut BTreeSet<String>, 
             lines.insert(i, Vec::new());
         }
     }
-    files.insert(path.clone(), join_lines(&lines));
 }
 
 /// The project directory of a case, in the in-memory file system, and the root path.
 fn project(case: &Case) -> (Arc<MemVfs>, PathBuf) {
-    let mut files: BTreeMap<String, Vec<u8>> = golden::files().clone();
+    let mut texts: BTreeMap<String, Text> = golden::files()
+        .iter()
+        .map(|(rel, bytes)| (rel.clone(), Text::of(bytes)))
+        .collect();
     let mut deleted = BTreeSet::new();
     for op in &case.ops {
-        apply(&mut files, &mut deleted, *op);
+        apply(&mut texts, &mut deleted, *op);
     }
+    let files: BTreeMap<String, Vec<u8>> = texts
+        .iter()
+        .map(|(rel, text)| (rel.clone(), text.bytes()))
+        .collect();
     let mut manifest = Manifest::parse(&golden::files()["manifest.json"], &Limits::default())
         .expect("the golden manifest parses");
     if case.mode & MODE_STALE_MANIFEST == 0 {
@@ -372,8 +398,25 @@ fn options(vfs: &Arc<MemVfs>, pid: u32, mode: OpenMode) -> StoreOptions {
 }
 
 /// The operations that change only the shape of the files, not what the records say: members in byte-wise order
-/// (0), a swap of two lines (7), CRLF (9), a missing final LF (10), a BOM (11) and a blank line (14).
-const SHAPE_ONLY: [u8; 6] = [0, 7, 9, 10, 11, 14];
+/// (0), a swap of two lines (7), CRLF (9), a missing final LF (10), a BOM (11) and a blank line (14). See
+/// [`shape_only`] for the swap.
+pub const SHAPE_ONLY: [u8; 6] = [0, 7, 9, 10, 11, 14];
+
+/// Whether `op` changes only the shape of the file it selects. A swap of two lines (7) is one in a JSON Lines file,
+/// whose line order means nothing; in a library document (`lib/**.json`, pretty JSON over many lines) it moves a
+/// member into another object, reorders the elements of an array or breaks the syntax, which changes the content
+/// (the fuzz finding of cycle 22: a swap in a part copy moved its `sha256` into `meta`).
+pub fn shape_only(op: Op) -> bool {
+    let kind = op.op % OP_KINDS;
+    if !SHAPE_ONLY.contains(&kind) {
+        return false;
+    }
+    if kind == 7 {
+        let paths = golden::paths();
+        return paths[usize::from(op.file) % paths.len()].ends_with(".jsonl");
+    }
+    true
+}
 
 /// The model of the unchanged golden project, opened once per thread.
 fn golden_model() -> Model {
@@ -425,7 +468,7 @@ pub fn check(input: &[u8]) -> Outcome {
     } else {
         OpenMode::Edit
     };
-    let shape_only = case.ops.iter().all(|op| SHAPE_ONLY.contains(&(op.op % OP_KINDS)));
+    let shape_only = case.ops.iter().all(|op| shape_only(*op));
     let Ok(Opened {
         mut store,
         model,

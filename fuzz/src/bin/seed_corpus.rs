@@ -138,6 +138,21 @@ fn open_path_seeds(dir: &Path) {
             &[op("revisions.jsonl", 0, 0, 0), op("revisions.jsonl", 1, 0, 0)],
         ),
     );
+    // The findings of the first hosted fuzz-smoke run (cycle 22), as libFuzzer wrote them: a BOM before a library
+    // copy (a part copy, then the member order of a revision; edit mode), the same before a function definition
+    // (stale manifest, read-only), and a swap of two lines inside a part copy (not a shape: it moves `sha256` into
+    // `meta`).
+    write(
+        dir,
+        "lib-document-bom",
+        &[0x00, 0x75, 0x73, 0x65, 0x72, 0xa9, 0x01, 0x00, 0x00],
+    );
+    write(dir, "lib-document-bom-read-only", &[0xff, 0xff, 0xff, 0x65, 0x00]);
+    write(
+        dir,
+        "lib-document-line-swap",
+        &[0x2f, 0x73, 0x74, 0x61, 0x74, 0x65],
+    );
     for kind in 0..OP_KINDS {
         // Revisions are leaf records: most changes to them still open (a change to the structure refuses to).
         let target = "revisions.jsonl";
