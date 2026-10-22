@@ -216,9 +216,8 @@ jobs:
               print(f"::error title=nextest {tc.get('classname')}::{tc.get('name')}::{text}")
           print(f"{n} failed test case(s) annotated")
           PY
-      # nextest does not run doctests.
-      - name: cargo test --doc (all features)
-        run: cargo test --doc --workspace --all-features --locked
+      # No doctest step here (FT-353, decision log ID-527): doctests are platform-neutral text and run on Linux and
+      # macOS and in `cargo xtask ci`; the step took 2 min 26 s of the 33 min 20 s of ci run 39797238020.
 
   test-macos:
     name: test-macos

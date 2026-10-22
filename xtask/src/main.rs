@@ -732,6 +732,18 @@ mod tests {
                 "the all-features run runs everything: {line}"
             );
         }
+        // FT-353: the doctests run on Linux and macOS (default features and all features), not on Windows.
+        let doc_runs: Vec<&str> = ci
+            .lines()
+            .map(str::trim)
+            .filter(|l| l.starts_with("run: cargo test --doc"))
+            .collect();
+        let doc_all_features = doc_runs.iter().filter(|l| l.contains("--all-features")).count();
+        assert_eq!(
+            (doc_runs.len() - doc_all_features, doc_all_features),
+            (2, 2),
+            "doctests: test-linux and test-macos only, not test-windows (FT-353): {doc_runs:#?}"
+        );
         let config = std::fs::read_to_string(workspace_root().join(".config/nextest.toml")).unwrap();
         assert!(
             config.contains(&format!("-E '{ONCE_PER_JOB_FILTER}'")),
