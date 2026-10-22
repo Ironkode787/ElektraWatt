@@ -190,6 +190,30 @@ crate = "serde_json"
 feature = "preserve_order"
 allowed_kinds = []
 
+# Doc 18 §3.5, FT-317: identifier and random generators outside the one ID generator (ew-ids, `getrandom` and the
+# seeded `testkit` source). These `uuid` and `rand` features compile `Uuid::new_v4`, `Uuid::now_v7` and an
+# OS-seeded thread generator, whose paths the generated clippy.toml bans with `allow-invalid` (so it only bites
+# once they exist): enabling one is a design change, so it is allowed on dev edges only.
+[[banned_features]]
+crate = "uuid"
+feature = "v4"
+allowed_kinds = ["dev"]
+
+[[banned_features]]
+crate = "uuid"
+feature = "v7"
+allowed_kinds = ["dev"]
+
+[[banned_features]]
+crate = "uuid"
+feature = "fast-rng"
+allowed_kinds = ["dev"]
+
+[[banned_features]]
+crate = "rand"
+feature = "thread_rng"
+allowed_kinds = ["dev"]
+
 # ARCH §3 rule 1, ADR-0002 decision 1: the untracked read API of ew-model. The tracked read layer, the
 # transaction layer and the writer may enable it; any crate may enable it for tests.
 [[banned_features]]
@@ -244,25 +268,29 @@ clippy_config = "clippy.toml"
 exempt_packages = ["xtask"]
 
 # The allows of `disallowed_methods` below are for the wall-clock, environment and randomness list that shares the
-# lint (FT-317, doc 18 §3.5), not for a raw reader: `cargo xtask check-disallowed-methods` reviews each of these
-# sites (ci/disallowed-methods-allow.toml), so a raw-reader suppression added to one of these files shows up there
-# as a new site of the crate.
+# lint (FT-317, doc 18 §3.5), not for a raw reader. Each sits on a one-line helper that wraps the one call, and the
+# entry's `count` is the number of those helpers: a further allow in the file is a finding here, and
+# `cargo xtask check-disallowed-methods` reviews each site (ci/disallowed-methods-allow.toml).
 [[raw_read.allow]]
 path = "bin/ew/src/cli.rs"
 item = "disallowed_methods"
-reason = "the CLI's program-boundary environment reads (SOURCE_DATE_EPOCH, EW_CONTENT_DIR); reviewed in ci/disallowed-methods-allow.toml"
+count = 2
+reason = "the helpers source_date_epoch and content_dir, the CLI's program-boundary environment reads; reviewed in ci/disallowed-methods-allow.toml"
 
 [[raw_read.allow]]
 path = "crates/ew-sqlview/src/sandbox.rs"
 item = "disallowed_methods"
-reason = "the monotonic deadline of a sandboxed query; reviewed in ci/disallowed-methods-allow.toml"
+count = 1
+reason = "the helper deadline_now, the monotonic deadline of a sandboxed query; reviewed in ci/disallowed-methods-allow.toml"
 
 [[raw_read.allow]]
 path = "crates/ew-testkit/src/bench.rs"
 item = "disallowed_methods"
-reason = "the bench harness's class selector and timer; reviewed in ci/disallowed-methods-allow.toml"
+count = 2
+reason = "the helpers class_var and timer_start of the bench harness; reviewed in ci/disallowed-methods-allow.toml"
 
 # [[raw_read.allow]]
 # path = "crates/ew-example/src/lib.rs"   # relative to the workspace root, forward slashes
 # item = "raw_read!"                      # "raw_read!", "raw-read" or "disallowed_methods"
 # reason = "a third-party macro that is not ew-model's"
+# count = 1                             # optional: exactly this many findings in the file; one more fails

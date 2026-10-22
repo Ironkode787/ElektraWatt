@@ -223,10 +223,12 @@ sites in four crates allow the lint, all lookup-only; no hash container whose or
 the generated `clippy.toml` lists, after the raw readers of ADR-0001 amendment 2, `std::time::SystemTime::now` and
 `Instant::now`, `std::env::var`, `var_os`, `vars` and `vars_os`, `std::hash::RandomState::new` and `getrandom::fill`,
 `fill_uninit`, `u32` and `u64` (`DISALLOWED_METHODS` in `xtask/src/raw_read.rs`, reasons citing this section).
-Paths that do not resolve under the workspace's features are not listed, because clippy would only warn: `Uuid::new_v4`
-and `Uuid::now_v7` (`uuid` has the `v5` feature only, so they cannot be called) and the `rand` functions (`rand` 0.10
-without its `thread_rng` feature, which only `proptest` loads); a crate that enables a generator adds its path. The
-rule is not scoped by crate or module ("outside `ew-ids`", "outside the settings module"): every use is allowed with
+`Uuid::new_v4`, `Uuid::now_v7` and the `rand` functions are listed with `allow-invalid = true` (clippy 1.99 accepts
+the key without a warning, in both clippy modes): `uuid` has the `v5` feature only and `rand` 0.10 without its
+`thread_rng` feature is loaded by `proptest` alone, so the paths do not resolve today and bite when a crate enables a
+generator, which `check-features` bans outside dev edges (`uuid/v4`, `v7`, `fast-rng`, `rand/thread_rng`). The
+randomly keyed hasher `std::hash::RandomState` is also a `disallowed-types` entry (the generator of hash order; its one
+use, the lock's session ID, is a reviewed site of `ci/ordered-collections-allow.toml`). The rule is not scoped by crate or module ("outside `ew-ids`", "outside the settings module"): every use is allowed with
 `#[allow(clippy::disallowed_methods)]` and a one-line justification, and `cargo xtask check-disallowed-methods` (the
 `lint` job and `cargo xtask ci`) compares those sites, keyed by crate and item path, with the reviewed list
 `ci/disallowed-methods-allow.toml`; it is the machinery of `check-ordered-collections` with a second rule. The lint
@@ -234,12 +236,15 @@ rule is not scoped by crate or module ("outside `ew-ids`", "outside the settings
 roots, which would have switched the new rule off in `ew-model`, `ew-derive`, `ew-commands` and `ew-store`: for them
 the check does not read allow attributes but scans the source for the calls (`SystemTime::now`, `env::var_os`, also
 in a `use` group) and lists each as a site, so those crates are held to the same justification and review. At the
-introduction 44 sites in 18 crates allow or list a call: 14 in production code (`ew-ids`' `SystemSource`, the one
+introduction 43 sites in 18 crates allow or list a call: 13 in production code (`ew-ids`' `SystemSource`, the one
 clock and entropy source for identity; `ew-store`'s clock, lock record, session ID and state-directory lookup, none of
 which is project data (NFR-REL-07); `ew-sqlview`'s monotonic query deadline; the `ew` CLI's `SOURCE_DATE_EPOCH` and
 `EW_CONTENT_DIR`, with no wall-clock fallback for the creation date; the `ew-testkit` bench harness; `xtask`) and 30 in
 test and bench targets (timers asserted only with `EW_PERF_ASSERT`, bless and diagnostic flags, scratch-directory
-names). No call that reaches a persisted, exported or printed value was found. Not covered: a call through an
+names). In production code each allow is on a one-line helper that wraps the one call (`source_date_epoch`,
+`content_dir`, `deadline_now`, `class_var`, `timer_start`), so it does not also switch off the raw-read guard for a
+whole body. No call reaches project data or an export, except the sanctioned `SOURCE_DATE_EPOCH`; the lock record and
+the journal are persisted by design. Not covered: a call through an
 alias or re-export in a reader crate, and `std::env::temp_dir` and `current_dir`, which read the environment but are
 not in the list.
 

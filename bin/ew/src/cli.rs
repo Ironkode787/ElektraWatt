@@ -768,12 +768,16 @@ fn run_export(a: &ExportArgs) -> i32 {
     0
 }
 
-/// The creation date of `SOURCE_DATE_EPOCH` (doc 17 section 3.1, FR-OUT-026); `Ok(None)` when it is not set.
 // The program boundary: the one environment input of the exports, and there is no wall-clock fallback (no
 // `SOURCE_DATE_EPOCH` means no creation date), so the same input and variable give the same bytes (doc 18 §3.5).
 #[allow(clippy::disallowed_methods)]
+fn source_date_epoch() -> Option<std::ffi::OsString> {
+    std::env::var_os("SOURCE_DATE_EPOCH").filter(|v| !v.is_empty())
+}
+
+/// The creation date of `SOURCE_DATE_EPOCH` (doc 17 section 3.1, FR-OUT-026); `Ok(None)` when it is not set.
 fn source_date() -> Result<Option<ew_api::output::PdfDate>, String> {
-    let Some(v) = std::env::var_os("SOURCE_DATE_EPOCH").filter(|v| !v.is_empty()) else {
+    let Some(v) = source_date_epoch() else {
         return Ok(None);
     };
     let text = v.to_string_lossy();
@@ -1190,12 +1194,14 @@ fn run_check(a: &CheckArgs) -> i32 {
 
 // The program boundary: `EW_CONTENT_DIR` only names the directory of the starter content, as `--content` does.
 #[allow(clippy::disallowed_methods)]
+fn content_dir() -> Option<PathBuf> {
+    std::env::var_os("EW_CONTENT_DIR")
+        .filter(|v| !v.is_empty())
+        .map(PathBuf::from)
+}
+
 fn run_import_qet(a: &ImportQetArgs) -> i32 {
-    let content = a.content.clone().or_else(|| {
-        std::env::var_os("EW_CONTENT_DIR")
-            .filter(|v| !v.is_empty())
-            .map(PathBuf::from)
-    });
+    let content = a.content.clone().or_else(content_dir);
     let library = match &content {
         Some(dir) => match StarterLibrary::from_dir(dir) {
             Ok(l) => l,

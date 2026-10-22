@@ -10,8 +10,8 @@ ElektraWatt release notes. Lines marked TODO are for the lead to complete; nothi
 
 > **This is a source tag, not a binary release.** The tag `m1` marks the source of the M1 spine exit. The nightly
 > `ew` command-line builds of the workflow `cli-artefact.yml` are labelled "unsigned development build, not a
-> release": they carry no version tag and no signature, run only on the CI runners that built them, and are
-> not published. No installer, no signed binary and no download page exist for m1.
+> release": they carry no version tag and no signature, are kept as CI-run artefacts for 90 days and
+> are not a release. No installer, no signed binary and no download page exist for m1.
 
 ## 1. Scope
 
@@ -48,8 +48,8 @@ TODO: refresh these counts from the report of the delivery commit (the committed
 
 TODO: repeat the warning in the words that go on the tag page. The content to keep:
 
-- the nightly artefacts are named `ew-<os>-<arch>-unsigned-dev-<short sha>` and hold the `ew` program, a README
-  and the licence text;
+- the nightly artefacts are named `ew-<os>-<arch>-unsigned-dev-<short sha>` and hold the `ew` program, a README,
+  the licence texts and the third-party notices;
 - they are built by CI in the release profile, are not signed or notarised (Windows and macOS may warn), and
   expire after 90 days;
 - the source tag is signed by the project owner; no binary is signed or published for m1.

@@ -12,12 +12,12 @@
 
 [[allow]]
 crate = "ew"
-item = "fn run_import_qet"
+item = "fn content_dir"
 count = 1
 
 [[allow]]
 crate = "ew"
-item = "fn source_date"
+item = "fn source_date_epoch"
 count = 1
 
 [[allow]]
@@ -102,12 +102,7 @@ count = 1
 
 [[allow]]
 crate = "ew-sqlview"
-item = "impl Reader > fn open"
-count = 1
-
-[[allow]]
-crate = "ew-sqlview"
-item = "impl Reader > fn query"
+item = "fn deadline_now"
 count = 1
 
 [[allow]]
@@ -147,12 +142,12 @@ count = 2
 
 [[allow]]
 crate = "ew-testkit"
-item = "fn class_from_env"
+item = "fn class_var"
 count = 1
 
 [[allow]]
 crate = "ew-testkit"
-item = "fn time"
+item = "fn timer_start"
 count = 1
 
 [[allow]]

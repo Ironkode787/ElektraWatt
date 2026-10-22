@@ -575,7 +575,33 @@ fn has_comment(lines: &[&str], line: usize, own_tail: &str) -> bool {
         .and_then(|n| lines.get(n))
         .copied()
         .unwrap_or("");
-    above.trim_start().starts_with("//") || own_tail.contains("//")
+    above.trim_start().starts_with("//") || has_line_comment(own_tail)
+}
+
+/// Whether `text` holds a `//` comment: a `//` outside string literals (the `//` of `"http://"` is not a
+/// comment). The char literals `'"'` and `'\"'` are skipped so that they do not open a string.
+fn has_line_comment(text: &str) -> bool {
+    let chars: Vec<char> = text.chars().collect();
+    let mut in_string = false;
+    let mut i = 0;
+    while i < chars.len() {
+        match chars[i] {
+            '\\' if in_string => i += 1,
+            '"' => in_string = !in_string,
+            '\'' if !in_string && chars.get(i + 1) == Some(&'"') && chars.get(i + 2) == Some(&'\'') => i += 2,
+            '\'' if !in_string
+                && chars.get(i + 1) == Some(&'\\')
+                && chars.get(i + 2) == Some(&'"')
+                && chars.get(i + 3) == Some(&'\'') =>
+            {
+                i += 3;
+            }
+            '/' if !in_string && chars.get(i + 1) == Some(&'/') => return true,
+            _ => {}
+        }
+        i += 1;
+    }
+    false
 }
 
 /// The allow sites of `krate`'s file `path` with text `text` (for a reader crate under a lexical rule: the
@@ -1154,6 +1180,31 @@ disallowed-types = \"allow\"
 
     fn scan_m(krate: &str, text: &str, is_reader: bool) -> Vec<Found> {
         scan_source(&METHODS, krate, "x.rs", text, is_reader)
+    }
+
+    #[test]
+    fn a_comment_marker_inside_a_string_is_not_a_justification() {
+        assert!(has_line_comment("let x = 1; // why"));
+        assert!(has_line_comment(r#"let x = "a\"b"; // after an escaped quote"#));
+        assert!(!has_line_comment(r#"let url = "http://example.org";"#));
+        assert!(!has_line_comment(r#"let q = '"'; let u = "//";"#));
+        assert!(has_line_comment(
+            r#"let q = '"'; // a char literal does not open a string"#
+        ));
+        assert!(has_line_comment(
+            "fn f<'a>(x: &'a str) {} // a lifetime is not a char literal"
+        ));
+        // As sites: a call and an attribute whose line has a `//` only inside a string.
+        let call = "fn f() {\n    let _ = (\"http://x\", Instant::now());\n}\n";
+        let found = scan_m("ew-store", call, true);
+        assert_eq!(found.len(), 1);
+        assert!(!found[0].justified, "{found:#?}");
+        let attr = "#[allow(clippy::disallowed_methods)] const URL: &str = \"http://x\";\nfn f() {}\n";
+        let found = scan_m("c", attr, false);
+        assert_eq!(found.len(), 1);
+        assert!(!found[0].justified, "{found:#?}");
+        let attr = "#[allow(clippy::disallowed_methods)] // the URL below\nconst URL: &str = \"http://x\";\n";
+        assert!(scan_m("c", attr, false)[0].justified);
     }
 
     #[test]

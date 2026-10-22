@@ -144,6 +144,8 @@ pub fn new_session_id() -> String {
     static COUNTER: AtomicU64 = AtomicU64::new(0);
     let word = |salt: u64| {
         // Randomness and the clock only make the session ID unique (it names the lock and the journal, not a record).
+        #[allow(clippy::disallowed_types)]
+        // The randomly keyed hasher is the source of that uniqueness.
         let mut h = std::collections::hash_map::RandomState::new().build_hasher();
         h.write_u64(salt);
         h.write_u64(COUNTER.fetch_add(1, Ordering::Relaxed));

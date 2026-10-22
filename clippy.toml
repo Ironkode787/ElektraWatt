@@ -73,6 +73,11 @@ disallowed-methods = [
     { path = "getrandom::fill_uninit", reason = "no randomness in model, derive, format or export paths (doc 18 §3.5, determinism; FT-317): ew-ids is the one ID generator, tests seed a generator; allow with a one-line justification that reviewed the site" },
     { path = "getrandom::u32", reason = "no randomness in model, derive, format or export paths (doc 18 §3.5, determinism; FT-317): ew-ids is the one ID generator, tests seed a generator; allow with a one-line justification that reviewed the site" },
     { path = "getrandom::u64", reason = "no randomness in model, derive, format or export paths (doc 18 §3.5, determinism; FT-317): ew-ids is the one ID generator, tests seed a generator; allow with a one-line justification that reviewed the site" },
+    { path = "uuid::Uuid::new_v4", reason = "no randomness in model, derive, format or export paths (doc 18 §3.5, determinism; FT-317): ew-ids is the one ID generator, tests seed a generator; allow with a one-line justification that reviewed the site", allow-invalid = true },
+    { path = "uuid::Uuid::now_v7", reason = "no wall clock in model, derive, format or export paths (doc 18 §3.5, determinism; FT-317): inject a clock, or allow with a one-line justification that reviewed the site", allow-invalid = true },
+    { path = "rand::random", reason = "no randomness in model, derive, format or export paths (doc 18 §3.5, determinism; FT-317): ew-ids is the one ID generator, tests seed a generator; allow with a one-line justification that reviewed the site", allow-invalid = true },
+    { path = "rand::rng", reason = "no randomness in model, derive, format or export paths (doc 18 §3.5, determinism; FT-317): ew-ids is the one ID generator, tests seed a generator; allow with a one-line justification that reviewed the site", allow-invalid = true },
+    { path = "rand::random_range", reason = "no randomness in model, derive, format or export paths (doc 18 §3.5, determinism; FT-317): ew-ids is the one ID generator, tests seed a generator; allow with a one-line justification that reviewed the site", allow-invalid = true },
 ]
 
 disallowed-types = [
@@ -80,4 +85,5 @@ disallowed-types = [
     { path = "imbl::HashSet", reason = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
     { path = "std::collections::HashMap", reason = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
     { path = "std::collections::HashSet", reason = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
+    { path = "std::hash::RandomState", reason = "a randomly keyed hasher is a source of randomness and of hash iteration order (doc 18 §3.5, determinism; FT-317): use a seeded hasher or a BTree container, or allow with a justification" },
 ]

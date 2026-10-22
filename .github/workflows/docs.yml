@@ -11,8 +11,9 @@
 # (NFR-PRIV-09); governance-file presence (NFR-DOC-08); the rustdoc build without warnings (NFR-MAINT-08); and,
 # on pull requests only, the DCO check (NFR-LIC-03) and the RFC reference on pull requests labelled
 # `format-major`, `api-break` or `licence` (NFR-DOC-09). (The LG-2 merge block for non-maintainer pull requests
-# was removed on the owner's ruling of 2026-10-22, decision log ID-454, FT-315.) The pull_request trigger includes `edited`, `labeled` and `unlabeled`
-# so that the last two re-run when a label or the description changes. Policy data: ci/README.md.
+# was removed on the owner's ruling of 2026-10-22, decision log ID-454, FT-315.) The pull_request trigger includes
+# `edited`, `labeled` and `unlabeled`, so that the RFC-reference step re-runs when a label or the description
+# changes (the DCO step reads commits, which those events do not change). Policy data: ci/README.md.
 
 name: docs
 

@@ -51,10 +51,14 @@ pub const CLASS_ENV: &str = "EW_BENCH_CLASS";
 /// # Panics
 ///
 /// If the variable holds anything else.
+pub fn class_from_env() -> SizeClass {
+    parse_class(class_var().as_deref())
+}
+
 // The bench harness reads its class selector at the program boundary; the class is an argument everywhere else.
 #[allow(clippy::disallowed_methods)]
-pub fn class_from_env() -> SizeClass {
-    parse_class(std::env::var(CLASS_ENV).ok().as_deref())
+fn class_var() -> Option<String> {
+    std::env::var(CLASS_ENV).ok()
 }
 
 /// The pure part of [`class_from_env`]: `None` is class S.
@@ -189,12 +193,16 @@ impl fmt::Display for Summary {
 }
 
 /// Runs `f` and returns its result with the elapsed wall-clock time.
-// The timer of the bench harness: its figures go to the bench report, never into a model or an output.
-#[allow(clippy::disallowed_methods)]
 pub fn time<T>(f: impl FnOnce() -> T) -> (T, Duration) {
-    let start = Instant::now();
+    let start = timer_start();
     let out = f();
     (out, start.elapsed())
+}
+
+// The timer of the bench harness: its figures go to the bench report, never into a model or an output.
+#[allow(clippy::disallowed_methods)]
+fn timer_start() -> Instant {
+    Instant::now()
 }
 
 /// Runs `warmup` untimed and then `samples` timed rounds of an operation and returns the timings with the

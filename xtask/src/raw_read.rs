@@ -147,6 +147,24 @@ const ENV_REASON: &str = "no environment access in model, derive, format or expo
 /// The reason clippy prints with a source of randomness.
 const RANDOM_REASON: &str = "no randomness in model, derive, format or export paths (doc 18 §3.5, determinism; FT-317): ew-ids is the one ID generator, tests seed a generator; allow with a one-line justification that reviewed the site";
 
+/// The randomly keyed hasher of the std hash containers, the generator of their iteration order: a `disallowed-types`
+/// entry after [`DISALLOWED_TYPES`] (FT-317). The one use, the session ID of the lock, is a justified site.
+pub const RANDOM_STATE: &str = "std::hash::RandomState";
+
+/// The reason clippy prints with a use of [`RANDOM_STATE`].
+const RANDOM_STATE_REASON: &str = "a randomly keyed hasher is a source of randomness and of hash iteration order (doc 18 §3.5, determinism; FT-317): use a seeded hasher or a BTree container, or allow with a justification";
+
+/// The generators that the workspace's feature sets do not compile today: entries with `allow-invalid = true`, so
+/// that clippy accepts the path while it does not resolve and bans it once a crate enables the generator (the
+/// feature bans of `check-features` keep that from happening unseen).
+pub const OPTIONAL_METHODS: [(&str, &str); 5] = [
+    ("uuid::Uuid::new_v4", RANDOM_REASON),
+    ("uuid::Uuid::now_v7", CLOCK_REASON),
+    ("rand::random", RANDOM_REASON),
+    ("rand::rng", RANDOM_REASON),
+    ("rand::random_range", RANDOM_REASON),
+];
+
 /// The wall-clock, environment and randomness functions of the `disallowed-methods` list of the generated clippy
 /// configuration (FT-317, WP-S6.02, doc 18 §3.5), after the raw readers: the path and the reason clippy prints.
 ///
@@ -236,6 +254,10 @@ pub struct Allow {
     pub item: String,
     /// Why the match is not a use of the raw reader.
     pub reason: String,
+    /// When set, exactly this many findings of the file and item are suppressed: a further one is reported, so
+    /// the entry stays as narrow as the sites that were reviewed.
+    #[serde(default)]
+    pub count: Option<usize>,
 }
 
 /// One declaration of a gated reader in the policy crate.
@@ -1280,14 +1302,14 @@ pub fn manifest_violations(
 /// Applies the allowlist: drops the violations an entry names, and reports entries without a reason and
 /// entries that suppressed nothing.
 fn apply_allow(violations: Vec<Violation>, allow: &[Allow]) -> Vec<Violation> {
-    let mut used = vec![false; allow.len()];
+    let mut used = vec![0usize; allow.len()];
     let mut out: Vec<Violation> = violations
         .into_iter()
         .filter(|v| {
             let mut suppressed = false;
             for (k, a) in allow.iter().enumerate() {
                 if a.path == v.path && a.item == v.item {
-                    used[k] = true;
+                    used[k] += 1;
                     suppressed = true;
                 }
             }
@@ -1303,7 +1325,21 @@ fn apply_allow(violations: Vec<Violation>, allow: &[Allow]) -> Vec<Violation> {
                 format!("allow entry for `{}` in `{}` has no reason", a.item, a.path),
             ));
         }
-        if !used {
+        if let Some(count) = a.count
+            && used > 0
+            && used != count
+        {
+            out.push(Violation::new(
+                POLICY_FILE,
+                1,
+                &a.item,
+                format!(
+                    "allow entry for `{}` in `{}` lists {count} site(s) but the file has {used}: review the change, then update the count",
+                    a.item, a.path
+                ),
+            ));
+        }
+        if used == 0 {
             out.push(Violation::new(
                 POLICY_FILE,
                 1,
@@ -1435,13 +1471,20 @@ pub fn clippy_config(
     for (path, why) in DISALLOWED_METHODS {
         out.push_str(&format!("    {{ path = \"{path}\", reason = \"{why}\" }},\n"));
     }
+    for (path, why) in OPTIONAL_METHODS {
+        out.push_str(&format!(
+            "    {{ path = \"{path}\", reason = \"{why}\", allow-invalid = true }},\n"
+        ));
+    }
     out.push_str("]\n\ndisallowed-types = [\n");
     for path in DISALLOWED_TYPES {
         out.push_str(&format!(
             "    {{ path = \"{path}\", reason = \"{DISALLOWED_TYPES_REASON}\" }},\n"
         ));
     }
-    out.push_str("]\n");
+    out.push_str(&format!(
+        "    {{ path = \"{RANDOM_STATE}\", reason = \"{RANDOM_STATE_REASON}\" }},\n]\n"
+    ));
     Ok(out)
 }
 
@@ -1992,6 +2035,7 @@ disallowed-types = [
     { path = "imbl::HashSet", reason = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
     { path = "std::collections::HashMap", reason = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
     { path = "std::collections::HashSet", reason = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
+@@RANDOM_STATE@@
 ]
 "##;
 
@@ -2002,7 +2046,16 @@ disallowed-types = [
             .iter()
             .map(|(path, why)| format!("    {{ path = \"{path}\", reason = \"{why}\" }},\n"))
             .collect();
-        MODEL_CLIPPY_TEMPLATE.replace("@@METHODS@@\n", &methods)
+        let optional: String = OPTIONAL_METHODS
+            .iter()
+            .map(|(path, why)| {
+                format!("    {{ path = \"{path}\", reason = \"{why}\", allow-invalid = true }},\n")
+            })
+            .collect();
+        let state = format!("    {{ path = \"{RANDOM_STATE}\", reason = \"{RANDOM_STATE_REASON}\" }},\n");
+        MODEL_CLIPPY_TEMPLATE
+            .replace("@@METHODS@@\n", &(methods + &optional))
+            .replace("@@RANDOM_STATE@@\n", &state)
     }
 
     const MODEL_PATH: &str = "crates/ew-model/src/lib.rs";
@@ -2799,6 +2852,7 @@ disallowed-types = [
             path: path.into(),
             item: item.into(),
             reason: reason.into(),
+            count: None,
         };
         let app = package("app", &sources, manifest("app", vec![], &[]), "");
         let run = |entries: Vec<Allow>| {
@@ -2850,6 +2904,7 @@ disallowed-types = [
             path: path.into(),
             item: "disallowed_methods".into(),
             reason: "reviewed".into(),
+            count: None,
         };
         let run = |entries: Vec<Allow>| {
             let mut p = policy();
@@ -2874,6 +2929,32 @@ disallowed-types = [
         assert_eq!(v.len(), 1, "{v:#?}");
         assert!(
             v[0].contains("stale allow entry: `disallowed_methods` in `crates/app/src/other.rs`"),
+            "{v:#?}"
+        );
+    }
+
+    #[test]
+    fn an_allow_entry_with_a_count_suppresses_exactly_that_many_findings() {
+        let finding = |line| Violation::new("a.rs", line, "disallowed_methods", "x".into());
+        let entry = |count| Allow {
+            path: "a.rs".into(),
+            item: "disallowed_methods".into(),
+            reason: "reviewed".into(),
+            count,
+        };
+        // Two findings, two reviewed: clean. No count: any number.
+        assert!(apply_allow(vec![finding(1), finding(9)], &[entry(Some(2))]).is_empty());
+        assert!(apply_allow(vec![finding(1), finding(9)], &[entry(None)]).is_empty());
+        // A third finding in the file is reported (the entry is as narrow as its count), and so is a removed one.
+        let v = apply_allow(vec![finding(1), finding(5), finding(9)], &[entry(Some(2))]);
+        assert_eq!(v.len(), 1, "{v:#?}");
+        assert!(
+            v[0].message.contains("lists 2 site(s) but the file has 3"),
+            "{v:#?}"
+        );
+        let v = apply_allow(vec![finding(1)], &[entry(Some(2))]);
+        assert!(
+            v[0].message.contains("lists 2 site(s) but the file has 1"),
             "{v:#?}"
         );
     }

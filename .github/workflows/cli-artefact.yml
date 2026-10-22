@@ -4,7 +4,7 @@
 # The nightly CLI artefact (FT-299, WP-S6.02, gate criterion G-M1-22; docs/design/18-quality-security-release.md §5.2,
 # CI-N-12): builds the `ew` command-line program in the release profile on ubuntu-24.04, windows-2025 and macos-15
 # and uploads one artefact per platform, named `ew-<os>-<arch>-unsigned-dev-<short sha>`, with a README that says
-# "unsigned development build, not a release". Nothing is signed, notarised or published: there is no release
+# "unsigned development build, not a release" and the licence texts and third-party notices. Nothing is signed, notarised or published: there is no release
 # creation, no tag and no secret, and the artefacts expire after 90 days. Publishing a binary (and signing it) is a
 # release item of WP-S6.07 and the owner's.
 #
@@ -72,6 +72,16 @@ jobs:
         id: rev
         shell: bash
         run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      # The archive is a distribution of the GPL program: it ships the licence texts and the third-party notices
+      # (NFR-LIC-08, ADR-0023), generated here as the supply-chain job of ci.yml does.
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: cargo-about@0.9.2
+      - name: third-party notices
+        shell: bash
+        run: |
+          mkdir -p target
+          cargo about generate -o target/THIRD-PARTY-NOTICES.txt ci/third-party-notices.hbs
       - name: cargo build (release)
         shell: bash
         run: cargo build -p ew --release --locked
@@ -92,7 +102,12 @@ jobs:
           stage="stage/$ARTEFACT"
           mkdir -p "$stage"
           cp "target/release/$EXE" "$stage/$EXE"
-          cp LICENSE.md "$stage/LICENSE.md"
+          # The licence texts and notices themselves (not the map in LICENSE.md, whose links are dead outside the
+          # repository): the program's GPL, the CC-BY-SA symbols and the OFL fonts that it embeds.
+          mkdir -p "$stage/LICENSES"
+          cp LICENSES/GPL-3.0-or-later.txt LICENSES/CC-BY-SA-4.0.txt LICENSES/OFL-1.1.txt "$stage/LICENSES/"
+          cp NOTICE "$stage/NOTICE"
+          cp target/THIRD-PARTY-NOTICES.txt "$stage/THIRD-PARTY-NOTICES.txt"
           cp ci/cli-artefact-README.md "$stage/README.md"
           if command -v sha256sum > /dev/null; then
             digest="$(sha256sum "$stage/$EXE" | cut -d' ' -f1)"

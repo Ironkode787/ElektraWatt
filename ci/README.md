@@ -150,15 +150,16 @@ FT-299, WP-S6.02, gate criterion G-M1-22 (doc 18 §5.2). The nightly workflow
 [`cli-artefact.yml`](../.github/workflows/cli-artefact.yml) (schedule and `workflow_dispatch`) builds the `ew`
 command-line program with `cargo build -p ew --release --locked` on ubuntu-24.04 (x86_64), windows-2025 (x86_64)
 and macos-15 (aarch64), runs `ew --version` and `ew --help` as a smoke test and uploads one artefact per
-platform, named `ew-<os>-<arch>-unsigned-dev-<short sha>`. An artefact holds the program, `LICENSE.md` and a
-`README.md` copied from [`cli-artefact-README.md`](cli-artefact-README.md) (it states that the archive is an
+platform, named `ew-<os>-<arch>-unsigned-dev-<short sha>`. An artefact is a distribution of the GPL program, so it holds the program, the licence texts
+(`LICENSES/GPL-3.0-or-later.txt`, `CC-BY-SA-4.0.txt`, `OFL-1.1.txt`), `NOTICE`, the third-party notices
+(`THIRD-PARTY-NOTICES.txt`, `cargo about generate` with the pinned cargo-about 0.9.2 as in the supply-chain job)
+and a `README.md` copied from [`cli-artefact-README.md`](cli-artefact-README.md) (it states that the archive is an
 `unsigned development build, not a release`) with the commit, runner, toolchain and the SHA-256 of the program
 appended. Retention is 90 days.
 
-What it deliberately does not do: sign or notarise anything, create a tag or a release, publish the binary
-anywhere, or use a secret (the signing identities are a release item of WP-S6.07 and the owner's; publishing waits
-for the owner's decision on the CC-BY-SA symbols, decision log ID-383, accepted as a distribution fact on
-2026-10-22). The three platform jobs do not stop each other (`fail-fast: false`). The upload is not `if: always()`:
+What it deliberately does not do: sign or notarise anything, create a tag or a release, or use a secret; the
+artefacts are kept as CI-run artefacts for 90 days and are not a release. Publishing and signing are WP-S6.07
+release items (the signing identities are the owner's). The three platform jobs do not stop each other (`fail-fast: false`). The upload is not `if: always()`:
 a failed build leaves no artefact to keep, and the job summary step, which is, says so. The first scheduled run is
 the evidence for G-M1-22's nightly part; the `m1` release-notes skeleton is
 [`docs/release-notes/m1-draft.md`](../docs/release-notes/m1-draft.md).
@@ -319,10 +320,13 @@ clock, the process environment or randomness. The check is the machinery of the 
 1. **Clippy.** The generated [`clippy.toml`](../clippy.toml) lists, after the raw readers, `std::time::SystemTime::now`
    and `Instant::now`, `std::env::var`, `var_os`, `vars` and `vars_os`, `std::hash::RandomState::new` and
    `getrandom::fill`, `fill_uninit`, `u32` and `u64` (`DISALLOWED_METHODS` in `xtask/src/raw_read.rs`). `Uuid::new_v4`,
-   `Uuid::now_v7` and the `rand` functions are not listed, because they do not resolve under the workspace's
-   features and clippy would only warn about the path (the `lint` job fails on such a warning): `uuid` has the `v5`
-   feature only, and `rand` 0.10 without `thread_rng` is loaded by `proptest` alone. A crate that enables a
-   generator feature or depends on `rand` adds its paths there. A justified use carries
+   `Uuid::now_v7` and the `rand` functions are listed with `allow-invalid = true` (clippy 1.99 accepts the key
+   without a warning, in both clippy modes), because they do not resolve under the workspace's features: `uuid` has
+   the `v5` feature only, and `rand` 0.10 without `thread_rng` is loaded by `proptest` alone. They bite once a crate
+   enables a generator, and `check-features` bans `uuid/v4`, `uuid/v7`, `uuid/fast-rng` and `rand/thread_rng`
+   outside dev edges (`dep-rules.toml`), so that does not happen unseen. `std::hash::RandomState` (the generator of
+   hash iteration order) is also a `disallowed-types` entry; its one use, the lock's session ID, is a reviewed
+   site of the ordered-collections list. A justified use carries
    `#[allow(clippy::disallowed_methods)]` with a one-line `//` comment above it (or a `reason = "..."`); an
    inner attribute at a test or bench target root is the usual form there. A new use that is not justified is
    replaced by an injected clock, an argument or a seeded generator.
@@ -339,15 +343,18 @@ for the calls (`SystemTime::now`, `env::var_os`, also inside a `use` group; the 
 is not seen) and lists each call as a site (`impl Clock for SystemClock > fn now > call SystemTime::now`), which
 needs a `//` justification on the line above or on the line. In non-test source of a package that reaches `ew-model`,
 an allow of the lint is also a suppression for `check-raw-read` and has an `[[raw_read.allow]]` entry in
-[`dep-rules.toml`](dep-rules.toml) (`bin/ew`, `ew-sqlview`, `ew-testkit`; the reason names this list).
+[`dep-rules.toml`](dep-rules.toml) (`bin/ew`, `ew-sqlview`, `ew-testkit`) with a `count`: the allow is on a one-line
+helper that wraps the one call (`source_date_epoch`, `content_dir`, `deadline_now`, `class_var`, `timer_start`),
+never on a whole body, and a further allow in the file fails `check-raw-read`.
 
-At the introduction (cycle 19) 44 sites in 18 crates are listed: `ew-ids` 1 (`SystemSource`, the one clock and entropy
+At the introduction (cycle 19) 43 sites in 18 crates are listed: `ew-ids` 1 (`SystemSource`, the one clock and entropy
 source for identity), `ew-store` 8 (the `Clock`, the lock record's user, host and start time, the session ID, the
 state directory, and the lock test's scratch names: none is project data, NFR-REL-07), `ew-sqlview` 2 (the monotonic
 deadline of a query), `ew` 2 (`SOURCE_DATE_EPOCH` and `EW_CONTENT_DIR`; no wall-clock fallback for the creation
 date), `ew-testkit` 4, `xtask` 1 (build tooling), and 26 in test and bench targets of other crates (timers asserted
 only with `EW_PERF_ASSERT`, bless and diagnostic flags, scratch-directory names, the private-corpus path). No call
-whose value reaches a persisted, exported or printed result was found. Not covered: `std::env::temp_dir` and
+reaches project data or an export, except the sanctioned `SOURCE_DATE_EPOCH`; the lock record and the journal are
+persisted by design. Not covered: `std::env::temp_dir` and
 `current_dir`, and a call through an alias or re-export in a reader crate.
 
 ## Anonymisation guard (`cargo xtask check-anonymisation [--require-entries]`)

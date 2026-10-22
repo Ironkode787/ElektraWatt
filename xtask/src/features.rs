@@ -673,4 +673,38 @@ mod tests {
         ));
         assert_eq!(check(&rules, &packages).len(), 1);
     }
+
+    /// The generator features of `uuid` and `rand` (FT-317) are banned outside dev edges by the real policy.
+    #[test]
+    fn the_generator_features_are_banned_outside_dev_edges() {
+        let root = crate::workspace_root();
+        let policy = crate::deps::Policy::load(&root.join("ci/dep-rules.toml")).expect("policy loads");
+        let rules = Rules {
+            features: &policy.banned_features,
+            crates: &policy.banned_crates,
+        };
+        for (krate, feature) in [
+            ("uuid", "v4"),
+            ("uuid", "v7"),
+            ("uuid", "fast-rng"),
+            ("rand", "thread_rng"),
+        ] {
+            let normal = check(
+                &rules,
+                &[package("p", vec![dep(krate, Kind::Normal, &[feature])], &[])],
+            );
+            assert_eq!(normal.len(), 1, "{krate}/{feature}: {normal:#?}");
+            assert!(normal[0].contains(&format!("`{krate}/{feature}`")), "{normal:#?}");
+            let build = check(
+                &rules,
+                &[package("p", vec![dep(krate, Kind::Build, &[feature])], &[])],
+            );
+            assert_eq!(build.len(), 1, "{krate}/{feature}: {build:#?}");
+            let dev = check(
+                &rules,
+                &[package("p", vec![dep(krate, Kind::Dev, &[feature])], &[])],
+            );
+            assert!(dev.is_empty(), "{krate}/{feature}: {dev:#?}");
+        }
+    }
 }

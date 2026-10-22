@@ -29,6 +29,11 @@ count = 1
 
 [[allow]]
 crate = "ew-store"
+item = "fn new_session_id > let h"
+count = 1
+
+[[allow]]
+crate = "ew-store"
 item = "impl MemVfs > fn new > field holds"
 count = 1
 
