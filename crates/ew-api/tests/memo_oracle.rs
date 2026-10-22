@@ -19,7 +19,8 @@
 //!   derivation notes, and a second memoising `Q` (mostly memo hits) is equal again, with hits in the
 //!   commit statistics.
 //! - `oracle_finds_no_mismatch_over_every_state` (`MemoMode::Oracle`): the same states with the engine's own
-//!   oracle re-running every memoised read cold; no mismatch and no cycle.
+//!   oracle re-running one memoised read in eight cold; no mismatch and no cycle. Its `#[ignore]`d twin
+//!   `oracle_finds_no_mismatch_over_every_state_on_every_read` re-runs every read (the deep nightly, FT-297).
 //! - `the_family_list_is_the_memo_families` (the guard that a promotion or demotion of a family breaks the
 //!   test loudly).
 //! - `a_cold_q_evaluates_every_query_once` (review cycle 10, finding 1): a cold `Q` evaluates each (family,
@@ -612,18 +613,27 @@ fn memo_equals_cold_over_every_state() {
 
 #[test]
 fn oracle_finds_no_mismatch_over_every_state() {
-    assert_family_list();
-    let batch = golden_common::batch();
-    let mut session = session(&batch, MemoMode::Oracle);
     // `Oracle::Every` (the Session's own setting) re-runs every memoised read cold at every depth: about
     // five minutes over the 20 states in a debug build. One read in `ORACLE_ONE_IN`, counted over all reads
     // of the store (deterministic), keeps the test under a minute.
-    session
-        .memo()
-        .expect("memoising session")
-        .set_oracle(Oracle::OneIn(
-            NonZeroU32::new(ORACLE_ONE_IN).expect("n is not zero"),
-        ));
+    oracle_finds_no_mismatch(Oracle::OneIn(
+        NonZeroU32::new(ORACLE_ONE_IN).expect("n is not zero"),
+    ));
+}
+
+/// The full oracle of the deep nightly (CI-N-02, FT-297; `.github/workflows/deep-nightly.yml`, run with
+/// `--run-ignored all`): the same states, with every memoised read at every depth re-run cold.
+#[test]
+#[ignore = "deep nightly (CI-N-02): the oracle on every read, about five minutes in a debug build"]
+fn oracle_finds_no_mismatch_over_every_state_on_every_read() {
+    oracle_finds_no_mismatch(Oracle::Every);
+}
+
+fn oracle_finds_no_mismatch(oracle: Oracle) {
+    assert_family_list();
+    let batch = golden_common::batch();
+    let mut session = session(&batch, MemoMode::Oracle);
+    session.memo().expect("memoising session").set_oracle(oracle);
     run_states(&mut session, |session, state, _model| {
         let q = session.query();
         sweep(&q, None, state);

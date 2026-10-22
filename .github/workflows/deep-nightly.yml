@@ -1,0 +1,554 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# The deep nightly (FT-297, FT-304, FT-272; docs/design/18-quality-security-release.md §3.6, §3.12, §5.2, CI-N-02 and
+# CI-N-03; ci/README.md "Deep nightly"): what is too slow for a pull request and for a hosted nightly of its own.
+#
+#   full-oracle        the memo oracle over Golden A (`memo_oracle`: every memoised read at every depth re-run cold,
+#                      the `#[ignore]`d twin of the pull-request test, which samples one read in eight) and over
+#                      Golden B (`golden_b`: the script runs with the oracle on), in the release profile with debug
+#                      assertions and overflow checks (as fuzz.yml);
+#   proptest           every test of the core crates (`ew-model`, `ew-commands`, `ew-store`, `ew-format`, `ew-memo`,
+#                      `ew-derive`, `ew-schema`), and so every property test, with PROPTEST_CASES=20000 (the variable
+#                      overrides the case count each test sets); the failing inputs proptest persists are uploaded;
+#   fuzz               the three cargo-fuzz targets of `fuzz/` (the JSONL loader, the migration chain, the command
+#                      sequence), 30 minutes each in parallel jobs, on the nightly toolchain pinned below and in
+#                      `fuzz/rust-toolchain.toml`, under AddressSanitizer (cargo-fuzz's default); the crash inputs and
+#                      the grown corpus are uploaded;
+#   asan-command-fuzz  the seeded command fuzzer `fuzz_long` of `ew-testkit` (the test fuzz.yml runs) built with
+#                      `-Zsanitizer=address` on the same nightly: FT-304, CI-N-02's "command fuzzer 1 h with ASan".
+#                      The nightly is for the fuzz jobs and this job only; every other job uses the stable toolchain.
+#
+# The jobs are independent and run in parallel, so the workflow takes as long as the longest job, below two hours:
+# asan-command-fuzz builds in about 15 minutes, starts no seed after 55 minutes and a seed in flight finishes within
+# about 16 (a seed of 100 steps takes about 15 minutes under ASan, 7.7 times the plain 2 minutes); its step is bounded at
+# 100 minutes and the job at 115. Slot: 06:07 UTC, after perf (02:17), fuzz (03:47,
+# done by about 05:15) and cli-artefact (04:37).
+#
+# RED only for a real finding (a failed test or oracle, a crash, an out-of-memory, a timeout of one input, a leak, an
+# AddressSanitizer report), a failed build, and a hang: a run that ended without its verdict (an input or a seed still
+# in flight when the step ended: the step's `timeout`, a stack overflow, an abort). The status file is written first
+# and the run rewrites it; a status that is still `running` is a hang. Every job uploads what it found with
+# `if: always()`. A fuzz crash input is committed under `fuzz/regressions/<target>/` and reported, never fixed in the
+# change that finds it (fuzz/README.md).
+#
+# Same hardening as ci.yml and fuzz.yml (§5.4, NFR-SEC-19): actions pinned by commit SHA with a version comment,
+# read-only token, no secrets, credentials not persisted by the checkout. Dispatch inputs reach the shell through the
+# environment, never through interpolation into a script.
+
+name: deep-nightly
+
+on:
+  schedule:
+    - cron: "7 6 * * *"
+  workflow_dispatch:
+    inputs:
+      fuzz_minutes:
+        description: "Minutes per cargo-fuzz target"
+        type: string
+        default: "30"
+      proptest_cases:
+        description: "PROPTEST_CASES for the property tests"
+        type: string
+        default: "20000"
+      asan_seeds:
+        description: "Seeds of fuzz_long under ASan: a comma list or ranges such as 1..=40 (empty: a range from the day number)"
+        type: string
+        default: ""
+      asan_steps:
+        description: "Steps per seed of fuzz_long under ASan"
+        type: string
+        default: "100"
+      asan_budget_minutes:
+        description: "No new seed of fuzz_long under ASan starts after this many minutes"
+        type: string
+        default: "55"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deep-nightly
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  # The release profile with the debug-only checks switched on (as fuzz.yml): the debug assertions and the overflow
+  # checks stay part of every oracle.
+  CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS: "true"
+  CARGO_PROFILE_RELEASE_OVERFLOW_CHECKS: "true"
+  # Keep in step with rust-toolchain.toml and ci.yml (a test of xtask compares this one with rust-toolchain.toml).
+  RUST_TOOLCHAIN: "1.99.0"
+  # The nightly of the fuzz jobs and of the ASan job; keep in step with fuzz/rust-toolchain.toml (a test of xtask
+  # compares the two).
+  NIGHTLY_TOOLCHAIN: "nightly-2026-10-08"
+  # cargo-fuzz, pinned (built from source: taiki-e/install-action has no manifest for it).
+  CARGO_FUZZ_VERSION: "0.13.2"
+  # The sanitized binaries link two copies of the bundled SQLite (the C amalgamation of two crates of the dependency
+  # graph), which AddressSanitizer reports as an ODR violation at start-up. cargo-fuzz sets this for `cargo fuzz
+  # run`; the sanitized test binary needs it too.
+  ASAN_OPTIONS: "detect_odr_violation=0"
+
+jobs:
+  # CI-N-02: the full oracle.
+  full-oracle:
+    name: full-oracle
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          shared-key: ew-deep-release
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
+      - name: assert ICU4X_DATA_DIR is unset
+        shell: bash
+        run: test -z "${ICU4X_DATA_DIR:-}"
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: cargo-nextest@0.9.148
+      - name: build the oracle tests
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: cargo nextest run --release --locked --no-run -p ew-api --all-features -E 'binary(memo_oracle) or binary(golden_b)'
+      # `--run-ignored all` adds the ignored twin of the memo-oracle test (every read re-run cold) to the tests of
+      # both binaries; no other test of them is ignored.
+      - name: memo oracle over Golden A and Golden B
+        id: oracle
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p target/deep
+          timeout 75m cargo nextest run --release --locked --profile ci -p ew-api --all-features \
+            -E 'binary(memo_oracle) or binary(golden_b)' --run-ignored all --no-fail-fast \
+            2>&1 | tee target/deep/oracle-log.txt
+          exit "${PIPESTATUS[0]}"
+      - name: verdict and job summary
+        if: always()
+        shell: bash
+        env:
+          BUILD: ${{ steps.build.outcome }}
+          RUN: ${{ steps.oracle.outcome }}
+        run: |
+          {
+            echo "## Full memo oracle (Golden A and Golden B)"
+            echo
+            echo "build: \`$BUILD\`, run: \`$RUN\`"
+            if [ -f target/deep/oracle-log.txt ]; then
+              echo
+              echo '```text'
+              tail -n 40 target/deep/oracle-log.txt
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          red=0
+          if [ "$BUILD" != "success" ]; then
+            echo "::error::the oracle tests did not build: the night has no coverage"
+            red=1
+          elif [ "$RUN" != "success" ]; then
+            echo "::error::the full memo oracle failed or did not finish (a finding or a hang); see the job summary and the artifact deep-oracle-report"
+            red=1
+          fi
+          exit "$red"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: deep-oracle-report
+          path: |
+            target/deep/oracle-log.txt
+            target/nextest/ci/junit.xml
+          if-no-files-found: warn
+          retention-days: 90
+
+  # CI-N-02: the property tests at 20,000 cases.
+  proptest:
+    name: proptest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          shared-key: ew-deep-release
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: assert ICU4X_DATA_DIR is unset
+        shell: bash
+        run: test -z "${ICU4X_DATA_DIR:-}"
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: cargo-nextest@0.9.148
+      - name: build the property tests
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: cargo nextest run --release --locked --no-run -p ew-model -p ew-commands -p ew-store -p ew-format -p ew-memo -p ew-derive -p ew-schema
+      - name: property tests
+        id: props
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        env:
+          INPUT_CASES: ${{ inputs.proptest_cases }}
+        run: |
+          mkdir -p target/deep
+          cases="${INPUT_CASES:-20000}"
+          echo "PROPTEST_CASES=$cases" | tee target/deep/params.txt
+          PROPTEST_CASES="$cases" timeout 95m cargo nextest run --release --locked --profile ci --no-fail-fast \
+            -p ew-model -p ew-commands -p ew-store -p ew-format -p ew-memo -p ew-derive -p ew-schema \
+            2>&1 | tee target/deep/proptest-log.txt
+          exit "${PIPESTATUS[0]}"
+      - name: verdict and job summary
+        if: always()
+        shell: bash
+        env:
+          BUILD: ${{ steps.build.outcome }}
+          RUN: ${{ steps.props.outcome }}
+        run: |
+          {
+            echo "## Property tests"
+            echo
+            if [ -f target/deep/params.txt ]; then
+              echo "Parameters: \`$(cat target/deep/params.txt)\`"
+              echo
+            fi
+            echo "build: \`$BUILD\`, run: \`$RUN\`"
+            if [ -f target/deep/proptest-log.txt ]; then
+              echo
+              echo '```text'
+              tail -n 40 target/deep/proptest-log.txt
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          red=0
+          if [ "$BUILD" != "success" ]; then
+            echo "::error::the property tests did not build: the night has no coverage"
+            red=1
+          elif [ "$RUN" != "success" ]; then
+            echo "::error::a test failed or did not finish (a finding or a hang); see the job summary and the artifact deep-proptest-report (the proptest-regressions files hold the failing inputs)"
+            red=1
+          fi
+          exit "$red"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: deep-proptest-report
+          path: |
+            target/deep/proptest-log.txt
+            target/deep/params.txt
+            target/nextest/ci/junit.xml
+            crates/**/proptest-regressions/**
+          if-no-files-found: warn
+          retention-days: 90
+
+  # CI-N-03: the cargo-fuzz targets, one job each (the three run in parallel).
+  fuzz:
+    name: fuzz (${{ matrix.target }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      # The repository's rust-toolchain.toml names the stable toolchain, which this job does not install; rustup takes
+      # this variable before the file. Keep equal to NIGHTLY_TOOLCHAIN (a test of xtask compares them; the variable
+      # cannot read the workflow's `env` context at job level).
+      RUSTUP_TOOLCHAIN: nightly-2026-10-08
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: jsonl_loader
+            max_len: "65536"
+          - target: migration_chain
+            max_len: "65"
+          - target: command_sequence
+            max_len: "512"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The pinned nightly. Inside `fuzz/` rustup takes the toolchain from fuzz/rust-toolchain.toml, the same date.
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.NIGHTLY_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: fuzz
+          shared-key: ew-fuzz
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: assert ICU4X_DATA_DIR is unset
+        shell: bash
+        run: test -z "${ICU4X_DATA_DIR:-}"
+      - name: install cargo-fuzz
+        shell: bash
+        run: command -v cargo-fuzz >/dev/null || cargo install cargo-fuzz --version "$CARGO_FUZZ_VERSION" --locked
+      # cargo-fuzz has no `--locked`: the committed fuzz/Cargo.lock must already be complete.
+      - name: check the lock file of the fuzz crate
+        shell: bash
+        run: cargo metadata --locked --format-version 1 --manifest-path fuzz/Cargo.toml > /dev/null
+      - name: build the target
+        id: build
+        continue-on-error: true
+        shell: bash
+        working-directory: fuzz
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          rustc -V
+          cargo fuzz build "$TARGET"
+      - name: cargo fuzz run
+        id: fuzz
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        working-directory: fuzz
+        env:
+          TARGET: ${{ matrix.target }}
+          MAX_LEN: ${{ matrix.max_len }}
+          INPUT_MINUTES: ${{ inputs.fuzz_minutes }}
+        run: |
+          mkdir -p ../target/deep "target/corpus/$TARGET"
+          minutes="${INPUT_MINUTES:-30}"
+          echo "target=$TARGET minutes=$minutes max_len=$MAX_LEN" | tee "../target/deep/fuzz-$TARGET-params.txt"
+          # The verdict reads this file: `running` stays when the step is cut short (a hang, an abort).
+          echo "running" > "../target/deep/fuzz-$TARGET-status.txt"
+          # The first corpus directory is the working one; the committed seeds are read from the second. A timeout
+          # of one input (120 s: a hang) is a finding; the step's own `timeout` is the infrastructure bound.
+          set +e
+          timeout "$(( minutes + 20 ))m" \
+            cargo fuzz run "$TARGET" "target/corpus/$TARGET" "corpus/$TARGET" -- \
+              -max_total_time="$(( minutes * 60 ))" -max_len="$MAX_LEN" -timeout=120 -rss_limit_mb=4096 \
+              -print_final_stats=1 2>&1 | tee "../target/deep/fuzz-$TARGET-log.txt"
+          code="${PIPESTATUS[0]}"
+          set -e
+          if [ "$code" -eq 0 ] && grep -q '^Done [0-9]* runs in' "../target/deep/fuzz-$TARGET-log.txt"; then
+            echo "complete" > "../target/deep/fuzz-$TARGET-status.txt"
+          else
+            echo "ended with exit code $code" > "../target/deep/fuzz-$TARGET-status.txt"
+          fi
+          exit "$code"
+      # The verdict: green only when the build succeeded, the run reached its closing line and no crash, out-of-memory,
+      # timeout or leak input was written. Red for any of those and for a status that is still `running` (a hang or an
+      # abort: the log is in the artifact).
+      - name: verdict and job summary
+        if: always()
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+          BUILD: ${{ steps.build.outcome }}
+          RUN: ${{ steps.fuzz.outcome }}
+        run: |
+          status=$(cat "target/deep/fuzz-$TARGET-status.txt" 2>/dev/null || echo "no status")
+          found=$(find "fuzz/artifacts/$TARGET" -maxdepth 1 -type f \( -name 'crash-*' -o -name 'oom-*' -o -name 'timeout-*' -o -name 'leak-*' \) 2>/dev/null | sort || true)
+          {
+            echo "## Fuzz target \`$TARGET\`"
+            echo
+            [ -f "target/deep/fuzz-$TARGET-params.txt" ] && echo "Parameters: \`$(cat "target/deep/fuzz-$TARGET-params.txt")\`" && echo
+            echo "build: \`$BUILD\`, run: \`$RUN\`, status: \`$status\`"
+            echo
+            if [ -n "$found" ]; then
+              echo "### Findings"
+              for f in $found; do
+                echo
+                echo "- \`$f\` ($(wc -c < "$f") bytes); reproduce: \`cd fuzz && cargo fuzz run $TARGET artifacts/$TARGET/$(basename "$f")\`"
+                echo "  base64: \`$(head -c 1024 "$f" | base64 -w 0)\`"
+              done
+              echo
+            fi
+            if [ -f "target/deep/fuzz-$TARGET-log.txt" ]; then
+              echo '```text'
+              tail -n 40 "target/deep/fuzz-$TARGET-log.txt" | cut -c1-300
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          red=0
+          if [ "$BUILD" != "success" ]; then
+            echo "::error::the fuzz target $TARGET did not build: the night has no coverage"
+            red=1
+          fi
+          if [ -n "$found" ]; then
+            echo "::error::the fuzz target $TARGET found a crash, an out-of-memory, a timeout or a leak; the input is in the artifact deep-fuzz-$TARGET and in the job summary"
+            red=1
+          fi
+          case "$status" in
+            complete) ;;
+            running)
+              echo "::error::the fuzz target $TARGET did not finish (a hang or an abort); the log is in the artifact deep-fuzz-$TARGET"
+              red=1
+              ;;
+            *)
+              if [ "$BUILD" = "success" ] && [ -z "$found" ]; then
+                echo "::error::the fuzz target $TARGET ended without a verdict (status: $status)"
+                red=1
+              fi
+              ;;
+          esac
+          exit "$red"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: deep-fuzz-${{ matrix.target }}
+          path: |
+            target/deep/fuzz-${{ matrix.target }}-*
+            fuzz/artifacts/${{ matrix.target }}/**
+          if-no-files-found: warn
+          retention-days: 90
+      # The corpus the run grew, for triage and minimisation (CI-W-02); not needed for a verdict.
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: deep-fuzz-corpus-${{ matrix.target }}
+          path: fuzz/target/corpus/${{ matrix.target }}
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # FT-304 (CI-N-02, "command fuzzer 1 h with ASan"): the nightly test `fuzz_long`, as fuzz.yml runs it, built with
+  # AddressSanitizer on the pinned nightly. The seed range is another one than fuzz.yml's (offset 50 from the day
+  # number), so the two nights explore different streams.
+  asan-command-fuzz:
+    name: asan-command-fuzz
+    runs-on: ubuntu-24.04
+    timeout-minutes: 115
+    env:
+      # The repository's rust-toolchain.toml names the stable toolchain, which this job does not install; rustup takes
+      # this variable before the file. Keep equal to NIGHTLY_TOOLCHAIN (a test of xtask compares them; the variable
+      # cannot read the workflow's `env` context at job level).
+      RUSTUP_TOOLCHAIN: nightly-2026-10-08
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.NIGHTLY_TOOLCHAIN }}
+          targets: x86_64-unknown-linux-gnu
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          shared-key: ew-asan
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: assert ICU4X_DATA_DIR is unset
+        shell: bash
+        run: test -z "${ICU4X_DATA_DIR:-}"
+      # The repository's rust-toolchain.toml names the stable toolchain, so the nightly is named on the command line.
+      # `--target` keeps the build scripts and proc macros out of the sanitized flags.
+      - name: build the fuzzer with AddressSanitizer
+        id: build
+        continue-on-error: true
+        shell: bash
+        env:
+          RUSTFLAGS: -Zsanitizer=address
+        run: |
+          rustc "+$NIGHTLY_TOOLCHAIN" -V
+          cargo "+$NIGHTLY_TOOLCHAIN" test --release --target x86_64-unknown-linux-gnu -p ew-testkit --test command_fuzz --no-run --locked
+      - name: cargo test fuzz_long (AddressSanitizer)
+        id: fuzz
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        env:
+          RUSTFLAGS: -Zsanitizer=address
+          INPUT_SEEDS: ${{ inputs.asan_seeds }}
+          INPUT_STEPS: ${{ inputs.asan_steps }}
+          INPUT_BUDGET: ${{ inputs.asan_budget_minutes }}
+        run: |
+          mkdir -p target/fuzz
+          budget_min="${INPUT_BUDGET:-55}"
+          steps="${INPUT_STEPS:-100}"
+          seeds="${INPUT_SEEDS:-}"
+          if [ -z "$seeds" ]; then
+            # A range from the day number, offset 50 from fuzz.yml's.
+            base=$(( $(date -u +%s) / 86400 * 100 + 50 ))
+            seeds="${base}..=$(( base + 11 ))"
+          fi
+          echo "seeds=$seeds steps=$steps budget=${budget_min}min sanitizer=address" | tee target/fuzz/params.txt
+          # `timeout` is the infrastructure bound (the budget plus a margin for the seed in flight); the test stops
+          # starting seeds at the budget by itself.
+          EW_FUZZ_SEEDS="$seeds" \
+          EW_FUZZ_STEPS="$steps" \
+          EW_FUZZ_BUDGET_SECS="$(( budget_min * 60 ))" \
+          EW_FUZZ_REPORT="$PWD/target/fuzz/findings.md" \
+          timeout "$(( budget_min + 45 ))m" \
+            cargo "+$NIGHTLY_TOOLCHAIN" test --release --target x86_64-unknown-linux-gnu -p ew-testkit --test command_fuzz --locked \
+              fuzz_long -- --ignored --nocapture \
+            2>&1 | tee target/fuzz/log.txt
+          exit "${PIPESTATUS[0]}"
+      # The verdict, as fuzz.yml's: green only when the build succeeded, the report says `complete` or `budget` and
+      # `FINDINGS: 0`. Red for a finding, a failed build, an AddressSanitizer report or a seed in flight
+      # (`running seed N`: the run step ended during it: timeout or abort) and a missing or unfinished report.
+      - name: verdict and job summary
+        if: always()
+        shell: bash
+        env:
+          BUILD: ${{ steps.build.outcome }}
+        run: |
+          {
+            echo "## Command fuzzer under AddressSanitizer"
+            echo
+            [ -f target/fuzz/params.txt ] && echo "Parameters: \`$(cat target/fuzz/params.txt)\`" && echo
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -f target/fuzz/findings.md ]; then
+            cat target/fuzz/findings.md >> "$GITHUB_STEP_SUMMARY"
+            findings=$(sed -n 's/^FINDINGS: \([0-9][0-9]*\)$/\1/p' target/fuzz/findings.md | head -n 1)
+            status=$(sed -n 's/^status: //p' target/fuzz/findings.md | head -n 1)
+          else
+            findings=""
+            status="no report"
+          fi
+          red=0
+          if [ -n "$findings" ] && [ "$findings" -gt 0 ]; then
+            echo "::error::the command fuzzer under ASan has $findings finding(s); see the job summary and the artifact deep-asan-fuzz-report"
+            red=1
+          fi
+          if [ "$BUILD" != "success" ]; then
+            echo "::error::the fuzzer did not build with AddressSanitizer: the night has no coverage"
+            echo "The fuzzer did not build with AddressSanitizer." >> "$GITHUB_STEP_SUMMARY"
+            red=1
+          fi
+          if [ -f target/fuzz/log.txt ] && grep -q 'ERROR: \(AddressSanitizer\|LeakSanitizer\)' target/fuzz/log.txt; then
+            echo "::error::AddressSanitizer reported an error; the report is in the job summary and the log in the artifact deep-asan-fuzz-report"
+            {
+              echo "### AddressSanitizer"
+              echo
+              echo '```text'
+              grep -m1 -A60 'ERROR: \(AddressSanitizer\|LeakSanitizer\)' target/fuzz/log.txt | cut -c1-300
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            red=1
+          fi
+          case "$status" in
+            complete|budget) ;;
+            "running seed "*)
+              echo "::error::seed ${status#running seed } did not finish (hang, timeout or abort): a finding; the log is in the artifact deep-asan-fuzz-report"
+              echo "Seed ${status#running seed } was running when the run ended: a hang, a timeout or an abort (a sanitizer report, a stack overflow, out of memory). That is a finding." >> "$GITHUB_STEP_SUMMARY"
+              red=1
+              ;;
+            *)
+              if [ "$BUILD" = "success" ]; then
+                echo "::error::the fuzz run ended without a verdict line (status: ${status:-none})"
+                echo "The run ended without a verdict line (status: ${status:-none})." >> "$GITHUB_STEP_SUMMARY"
+                red=1
+              fi
+              ;;
+          esac
+          exit "$red"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: deep-asan-fuzz-report
+          path: |
+            target/fuzz/findings.md
+            target/fuzz/params.txt
+            target/fuzz/log.txt
+          if-no-files-found: warn
+          retention-days: 90

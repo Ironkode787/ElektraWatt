@@ -587,6 +587,55 @@ mod tests {
         assert!(v[0].starts_with("ci.yml:8:"), "{v:?}");
     }
 
+    /// The value of the first `key: value` line of `text` (quotes removed).
+    fn setting<'a>(text: &'a str, key: &str) -> &'a str {
+        text.lines()
+            .find_map(|l| l.trim().strip_prefix(key))
+            .unwrap_or_else(|| panic!("no `{key}` line"))
+            .trim()
+            .trim_matches('"')
+    }
+
+    /// FT-297, FT-304: the nightly of the cargo-fuzz crate (`fuzz/rust-toolchain.toml`) and the one the deep
+    /// nightly installs (`NIGHTLY_TOOLCHAIN`) are the same dated toolchain, and the stable one of the deep
+    /// nightly is the workspace's.
+    #[test]
+    fn the_deep_nightly_pins_the_toolchains_of_the_repository() {
+        let root = crate::workspace_root();
+        let read = |p: &str| std::fs::read_to_string(root.join(p)).unwrap_or_else(|e| panic!("{p}: {e}"));
+        let workflow = read(".github/workflows/deep-nightly.yml");
+        let nightly = setting(&workflow, "NIGHTLY_TOOLCHAIN:");
+        assert!(
+            nightly.starts_with("nightly-") && nightly.len() == "nightly-2026-10-08".len(),
+            "NIGHTLY_TOOLCHAIN is a dated nightly, not `{nightly}`"
+        );
+        assert_eq!(
+            setting(&read("fuzz/rust-toolchain.toml"), "channel ="),
+            nightly,
+            "fuzz/rust-toolchain.toml and NIGHTLY_TOOLCHAIN of deep-nightly.yml name different nightlies"
+        );
+        // The jobs that run on the nightly name it for rustup as well (the stable file of the root would otherwise
+        // be resolved, and that toolchain is not installed there).
+        let rustup: Vec<&str> = workflow
+            .lines()
+            .filter_map(|l| l.trim().strip_prefix("RUSTUP_TOOLCHAIN:"))
+            .map(|v| v.trim().trim_matches('"'))
+            .collect();
+        assert!(
+            rustup.len() >= 2,
+            "the nightly jobs set RUSTUP_TOOLCHAIN: {rustup:?}"
+        );
+        assert!(
+            rustup.iter().all(|v| *v == nightly),
+            "RUSTUP_TOOLCHAIN of a job differs from NIGHTLY_TOOLCHAIN ({nightly}): {rustup:?}"
+        );
+        assert_eq!(
+            setting(&workflow, "RUST_TOOLCHAIN:"),
+            setting(&read("rust-toolchain.toml"), "channel ="),
+            "RUST_TOOLCHAIN of deep-nightly.yml is not the workspace's pinned stable"
+        );
+    }
+
     /// The committed workflows pass the lint.
     #[test]
     fn real_workflows_pass() {
