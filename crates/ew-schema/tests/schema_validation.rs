@@ -17,6 +17,8 @@
 mod common;
 
 use std::cell::RefCell;
+// FT-271: the compiled-pattern cache below is keyed lookup only; it is never iterated.
+#[allow(clippy::disallowed_types)]
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use common::fill;
@@ -45,6 +47,8 @@ const ANNOTATIONS: &[&str] = &[
 struct Validator {
     /// The parsed schema files by file name, for `$ref`s between files.
     files: BTreeMap<String, Value>,
+    // FT-271: pattern text to compiled regex, lookup only.
+    #[allow(clippy::disallowed_types)]
     patterns: RefCell<HashMap<String, Regex>>,
 }
 

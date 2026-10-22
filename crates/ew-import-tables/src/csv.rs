@@ -16,6 +16,8 @@
 //! byte; together with the per-table cell budget ([`TableLimits::max_cells`]) this bounds the table's storage
 //! (see [`CsvTable::accounted_bytes`]).
 
+// FT-271: `seen` below only answers "already there?"; it is never iterated.
+#[allow(clippy::disallowed_types)]
 use std::collections::HashSet;
 use std::fmt;
 
@@ -546,6 +548,8 @@ pub fn parse(bytes: &[u8], limits: &TableLimits) -> Result<CsvTable, CsvError> {
         .iter()
         .map(|&c| cell_text(bytes, &sc.owned, c).to_owned())
         .collect();
+    // FT-271: insert-only duplicate check; the order of a set never reaches the error or the table.
+    #[allow(clippy::disallowed_types)]
     let mut seen = HashSet::new();
     for (i, name) in header.iter().enumerate() {
         if name.is_empty() {

@@ -17,6 +17,8 @@
 //!
 //! A process kill, by contrast, loses nothing: the OS page cache survives it.
 
+// FT-271: `State::holds` is looked up and counted down by path; it is never iterated.
+#[allow(clippy::disallowed_types)]
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt;
 use std::io;
@@ -165,6 +167,8 @@ struct State {
     calls: u64,
     fault: Fault,
     dead: bool,
+    // FT-271: lookup by path only (`hold`, `rename`), never iterated.
+    #[allow(clippy::disallowed_types)]
     holds: HashMap<String, u32>,
     read_only: bool,
     noreplace_unsupported: bool,
@@ -356,6 +360,8 @@ impl MemVfs {
                 calls: 0,
                 fault: Fault::None,
                 dead: false,
+                // FT-271: the empty `holds` map above; lookup only.
+                #[allow(clippy::disallowed_types)]
                 holds: HashMap::new(),
                 read_only: false,
                 noreplace_unsupported: false,

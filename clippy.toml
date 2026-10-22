@@ -7,6 +7,10 @@
 # The reader crates (`ew-model`, `ew-derive`, `ew-commands`, `ew-store`) opt out with
 # `#![allow(clippy::disallowed_methods)]` at each target root; no other crate may.
 #
+# The hash containers are listed under `disallowed-types` (FT-271, WP-S6.02); a use site whose iteration
+# order never reaches output is allowed with `#[allow(clippy::disallowed_types)]` and a justification,
+# and `cargo xtask check-ordered-collections` keeps the list of those sites reviewed.
+#
 # The whole file is generated: any other clippy setting would need a change of the generator
 # (xtask/src/raw_read.rs).
 disallowed-methods = [
@@ -53,4 +57,11 @@ disallowed-methods = [
     { path = "ew_model::Table::row", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
     { path = "ew_model::Table::rows", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
     { path = "ew_model::Table::same_rows", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
+]
+
+disallowed-types = [
+    { path = "imbl::HashMap", reason = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
+    { path = "imbl::HashSet", reason = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
+    { path = "std::collections::HashMap", reason = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
+    { path = "std::collections::HashSet", reason = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
 ]

@@ -55,7 +55,7 @@ jobs:
         run: test -z "${ICU4X_DATA_DIR:-}"
       - name: cargo fmt
         run: cargo fmt --all --check
-      # An unresolvable `disallowed-methods` path in the generated clippy.toml is only a warning, which
+      # An unresolvable `disallowed-methods` or `disallowed-types` path in the generated clippy.toml is only a warning, which
       # `-D warnings` does not turn into an error: fail on it here (ADR-0001 amendment 2).
       - name: cargo clippy
         shell: bash
@@ -67,6 +67,10 @@ jobs:
         run: |
           cargo clippy --workspace --all-targets --all-features --locked -- -D warnings 2>&1 | tee clippy.log
           test ${PIPESTATUS[0]} -eq 0 && ! grep -q "does not refer to a reachable" clippy.log
+      # FT-271: the std hash containers are `disallowed-types` in the generated clippy.toml; the sites that allow
+      # them (iteration order never reaches output) are listed in ci/ordered-collections-allow.toml.
+      - name: ordered collections
+        run: cargo xtask check-ordered-collections
 
   # CI-PR-02, CI-PR-03, CI-PR-04
   test-linux:

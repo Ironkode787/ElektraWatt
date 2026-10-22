@@ -16,6 +16,7 @@ mod docs_gen;
 mod features;
 mod governance;
 mod licence;
+mod ordered;
 mod perf;
 mod raw_read;
 mod repo;
@@ -38,6 +39,10 @@ commands:
   check-raw-read [--bless]
                        no raw read of ew-model outside its readers (ci/dep-rules.toml: raw_read): the generated
                        clippy.toml and the lexical rules; --bless (or --write) regenerates clippy.toml first
+  check-ordered-collections [--bless]
+                       the allow sites of the HashMap/HashSet ban (clippy `disallowed-types`, FT-271): prints
+                       them per crate and compares them with ci/ordered-collections-allow.toml (crate and item
+                       path, no line); --bless (or --write) rewrites the list
   check-workflows      actions pinned by commit SHA, read-only default token, no pull_request_target,
                        credential-free checkouts, secrets only in `release` (.github/workflows/)
   check-licence-map    path licences, collective notice, crate licences, permissive-layer licence boundary
@@ -92,6 +97,18 @@ fn main() -> ExitCode {
             Some(other) => {
                 eprint!(
                     "check-raw-read: unknown argument `{other}`
+
+{USAGE}"
+                );
+                Ok(false)
+            }
+        },
+        "check-ordered-collections" => match args.get(1).map(String::as_str) {
+            None => ordered::run(&workspace_root(), false),
+            Some("--bless" | "--write") => ordered::run(&workspace_root(), true),
+            Some(other) => {
+                eprint!(
+                    "check-ordered-collections: unknown argument `{other}`
 
 {USAGE}"
                 );
@@ -258,6 +275,10 @@ fn check_features() -> Result<Violations> {
 
 fn check_raw_read() -> Result<Violations> {
     raw_read::violations(&workspace_root())
+}
+
+fn check_ordered_collections() -> Result<Violations> {
+    ordered::violations(&workspace_root())
 }
 
 fn check_workflows() -> Result<Violations> {
@@ -433,7 +454,7 @@ fn denylist_hash(phrase: &str) {
     }
 }
 
-/// What clippy prints for a `disallowed-methods` path that names no function: only a warning, which
+/// What clippy prints for a `disallowed-methods` or `disallowed-types` path that names nothing: only a warning, which
 /// `-D warnings` does not turn into an error.
 const UNRESOLVED_CLIPPY_PATH: &str = "does not refer to a reachable";
 
@@ -525,10 +546,11 @@ fn ci() -> Result<bool> {
             &["test", "--doc", "--workspace", "--all-features", "--locked"],
         ),
     ];
-    let checks: [Check; 9] = [
+    let checks: [Check; 10] = [
         ("check-deps", check_deps),
         ("check-features", check_features),
         ("check-raw-read", check_raw_read),
+        ("check-ordered-collections", check_ordered_collections),
         ("check-build-scripts", check_build_scripts),
         ("check-workflows", check_workflows),
         ("check-licence-map", check_licence_map),

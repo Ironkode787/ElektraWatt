@@ -15,6 +15,8 @@
 //! Files are decoded by [`decode`]: UTF-16 by its byte-order mark, everything else as lossy UTF-8, binary
 //! files (NUL byte in the first 8 KiB) skipped.
 
+// FT-271: the denylist is only asked `contains` and `is_empty`; it is never iterated.
+#[allow(clippy::disallowed_types)]
 use std::collections::HashSet;
 
 use anyhow::{Result, bail};
@@ -24,12 +26,17 @@ use unicode_normalization::UnicodeNormalization;
 /// A SHA-256 digest.
 pub type Hash = [u8; 32];
 
+/// The digests of the denylist. Membership only: nothing iterates it, so its order never reaches output.
+// FT-271: the one place that names the hash set; the rest of the module uses this alias.
+#[allow(clippy::disallowed_types)]
+pub type Denylist = HashSet<Hash>;
+
 /// The longest n-gram hashed.
 pub const MAX_N: usize = 3;
 
 /// Parses the denylist: one lower-case hex SHA-256 digest per line; `#` comments and blank lines are ignored.
-pub fn parse_denylist(text: &str) -> Result<HashSet<Hash>> {
-    let mut set = HashSet::new();
+pub fn parse_denylist(text: &str) -> Result<Denylist> {
+    let mut set = Denylist::new();
     for (i, raw) in text.lines().enumerate() {
         let line = raw.trim();
         if line.is_empty() || line.starts_with('#') {
@@ -135,7 +142,7 @@ impl Words {
 }
 
 /// The (line, n) of every n-gram of `text` whose digest is in `denylist`.
-pub fn scan(text: &str, denylist: &HashSet<Hash>) -> Vec<(usize, usize)> {
+pub fn scan(text: &str, denylist: &Denylist) -> Vec<(usize, usize)> {
     let words = Words::new(text);
     let mut hits = Vec::new();
     words.for_each_ngram(|i, n, hash| {
@@ -189,7 +196,7 @@ pub fn decode(bytes: &[u8]) -> Option<String> {
 }
 
 /// Checks `files` (path, content) against `denylist`. Files under `LICENSES/` are skipped.
-pub fn check(files: &[(String, String)], denylist: &HashSet<Hash>) -> Vec<String> {
+pub fn check(files: &[(String, String)], denylist: &Denylist) -> Vec<String> {
     let mut v = Vec::new();
     for (path, text) in files {
         if path.starts_with("LICENSES/") {

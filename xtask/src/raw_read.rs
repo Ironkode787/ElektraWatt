@@ -31,6 +31,11 @@
 //! (an identifier inside a `pub use` of its `src/lib.rs`, see [`root_exports`]) and fails with a message that
 //! names the item. Re-export the type, or the guard cannot cover it.
 //!
+//! The same file carries a `disallowed-types` list of the hash containers (`std::collections::HashMap` and
+//! `HashSet`, and `imbl`'s, [`DISALLOWED_TYPES`]: FT-271, WP-S6.02): their iteration order must not reach a persisted,
+//! exported or printed sequence. It is static (not derived from `ew-model`); `check-ordered-collections`
+//! (`ordered.rs`) reviews the use sites that allow the lint.
+//!
 //! The reader crates (`policy.readers`) opt out with `#![allow(clippy::disallowed_methods)]` at each target
 //! root; no other crate may. Clippy finds its configuration by walking up from each package's manifest
 //! directory to the first `clippy.toml`, so the one root file covers every package, unless something shadows
@@ -103,6 +108,25 @@ const REFERENCE: &str = "ADR-0001 amendment 2";
 
 /// Top-level directories of a package whose files are test code (or build output).
 const TEST_DIRS: [&str; 4] = ["tests", "benches", "examples", "target"];
+
+/// The hash containers of the `disallowed-types` list of the generated clippy configuration (FT-271): their
+/// iteration order is unspecified, so it must not reach a persisted, exported or printed sequence (WP-S6.02).
+/// The persistent hash map and set of `imbl` (a dependency of three crates, doc 18 §3.5) are listed too: clippy
+/// ignores a path whose crate a package does not load, and warns about a path that does not resolve in one
+/// that does (which `cargo xtask ci` and the lint job turn into a failure). No workspace crate names
+/// `hashbrown` directly; an entry for it belongs here when one does.
+pub const DISALLOWED_TYPES: [&str; 4] = [
+    "imbl::HashMap",
+    "imbl::HashSet",
+    "std::collections::HashMap",
+    "std::collections::HashSet",
+];
+
+/// The reason clippy prints with a use of one of [`DISALLOWED_TYPES`].
+pub const DISALLOWED_TYPES_REASON: &str = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification";
+
+/// Where the list of types is reasoned (the generated file's header cites it).
+const TYPES_REFERENCE: &str = "FT-271, WP-S6.02";
 
 /// The lint the guard rests on (the item of every suppression finding).
 const GUARD_LINT: &str = "disallowed_methods";
@@ -256,7 +280,7 @@ pub struct Outcome {
 // Lexer
 
 #[derive(Debug, Clone, PartialEq)]
-enum Tk {
+pub(crate) enum Tk {
     Ident(String),
     /// A string literal's content between the quotes (escapes untouched; prefixes `b`, `c`, `r#` dropped).
     Str(String),
@@ -266,9 +290,9 @@ enum Tk {
 }
 
 #[derive(Debug, Clone)]
-struct Token {
-    kind: Tk,
-    line: usize,
+pub(crate) struct Token {
+    pub(crate) kind: Tk,
+    pub(crate) line: usize,
 }
 
 struct Lexer {
@@ -500,20 +524,20 @@ fn lex(text: &str) -> Vec<Token> {
 // Token structure
 
 /// An attribute `#[...]` or `#![...]`.
-struct Attr {
-    inner: bool,
-    open: usize,
-    close: usize,
+pub(crate) struct Attr {
+    pub(crate) inner: bool,
+    pub(crate) open: usize,
+    pub(crate) close: usize,
 }
 
 /// A lexed file with the matching delimiter of every bracket.
-struct Parsed {
-    toks: Vec<Token>,
-    pair: Vec<Option<usize>>,
+pub(crate) struct Parsed {
+    pub(crate) toks: Vec<Token>,
+    pub(crate) pair: Vec<Option<usize>>,
 }
 
 impl Parsed {
-    fn new(text: &str) -> Self {
+    pub(crate) fn new(text: &str) -> Self {
         let toks = lex(text);
         let mut pair = vec![None; toks.len()];
         let mut stack: Vec<usize> = Vec::new();
@@ -540,11 +564,11 @@ impl Parsed {
         Self { toks, pair }
     }
 
-    fn is_p(&self, i: usize, ch: char) -> bool {
+    pub(crate) fn is_p(&self, i: usize, ch: char) -> bool {
         self.toks.get(i).is_some_and(|t| t.kind == Tk::Punct(ch))
     }
 
-    fn ident(&self, i: usize) -> Option<&str> {
+    pub(crate) fn ident(&self, i: usize) -> Option<&str> {
         match self.toks.get(i) {
             Some(Token {
                 kind: Tk::Ident(s), ..
@@ -553,16 +577,16 @@ impl Parsed {
         }
     }
 
-    fn is_ident(&self, i: usize, name: &str) -> bool {
+    pub(crate) fn is_ident(&self, i: usize, name: &str) -> bool {
         self.ident(i) == Some(name)
     }
 
-    fn line(&self, i: usize) -> usize {
+    pub(crate) fn line(&self, i: usize) -> usize {
         self.toks[i].line
     }
 
     /// The attribute starting at token `i`, if one does.
-    fn attr_at(&self, i: usize) -> Option<Attr> {
+    pub(crate) fn attr_at(&self, i: usize) -> Option<Attr> {
         if !self.is_p(i, '#') {
             return None;
         }
@@ -620,7 +644,7 @@ impl Parsed {
     }
 
     /// The index after the attributes that start at `i`.
-    fn skip_attrs(&self, mut i: usize) -> usize {
+    pub(crate) fn skip_attrs(&self, mut i: usize) -> usize {
         while let Some(a) = self.attr_at(i) {
             i = a.close + 1;
         }
@@ -628,7 +652,7 @@ impl Parsed {
     }
 
     /// The index after `pub` and `pub(...)` at `i`.
-    fn skip_visibility(&self, mut i: usize) -> usize {
+    pub(crate) fn skip_visibility(&self, mut i: usize) -> usize {
         if self.is_ident(i, "pub") {
             i += 1;
             if self.is_p(i, '(')
@@ -794,7 +818,7 @@ fn impl_ranges(p: &Parsed) -> Vec<(usize, usize, String)> {
 }
 
 /// The index after the balanced `<...>` that starts at `i` (a `>` of `->` does not close).
-fn skip_angle(p: &Parsed, mut i: usize) -> usize {
+pub(crate) fn skip_angle(p: &Parsed, mut i: usize) -> usize {
     let mut depth = 0usize;
     while i < p.toks.len() {
         if p.is_p(i, '<') {
@@ -812,7 +836,7 @@ fn skip_angle(p: &Parsed, mut i: usize) -> usize {
 
 /// The owner type of an `impl` header in `lo..hi` (after the impl's own generics): the last identifier at
 /// angle depth 0 of the self type, which follows `for` when there is one.
-fn impl_owner(p: &Parsed, lo: usize, hi: usize) -> Option<String> {
+pub(crate) fn impl_owner(p: &Parsed, lo: usize, hi: usize) -> Option<String> {
     let mut depth = 0usize;
     let mut ty_start = lo;
     let mut end = hi;
@@ -1347,6 +1371,10 @@ pub fn clippy_config(
          # The reader crates ({readers}) opt out with\n\
          # `#![allow(clippy::disallowed_methods)]` at each target root; no other crate may.\n\
          #\n\
+         # The hash containers are listed under `disallowed-types` ({TYPES_REFERENCE}); a use site whose iteration\n\
+         # order never reaches output is allowed with `#[allow(clippy::disallowed_types)]` and a justification,\n\
+         # and `cargo xtask check-ordered-collections` keeps the list of those sites reviewed.\n\
+         #\n\
          # The whole file is generated: any other clippy setting would need a change of the generator\n\
          # (xtask/src/raw_read.rs).\n\
          disallowed-methods = [\n",
@@ -1355,6 +1383,12 @@ pub fn clippy_config(
     );
     for path in &paths {
         out.push_str(&format!("    {{ path = \"{path}\", reason = \"{reason}\" }},\n"));
+    }
+    out.push_str("]\n\ndisallowed-types = [\n");
+    for path in DISALLOWED_TYPES {
+        out.push_str(&format!(
+            "    {{ path = \"{path}\", reason = \"{DISALLOWED_TYPES_REASON}\" }},\n"
+        ));
     }
     out.push_str("]\n");
     Ok(out)
@@ -1580,7 +1614,12 @@ pub fn check_workspace(policy: &RawReadPolicy, packages: &[SourcePackage], ws: &
 
 /// Collects the `.rs` files below `dir`: not hidden directories, not `target`, not directories that hold
 /// another package's manifest.
-fn collect_rs(dir: &Path, root: &Path, is_package_root: bool, out: &mut Vec<(String, String)>) -> Result<()> {
+pub(crate) fn collect_rs(
+    dir: &Path,
+    root: &Path,
+    is_package_root: bool,
+    out: &mut Vec<(String, String)>,
+) -> Result<()> {
     let mut entries: Vec<_> = std::fs::read_dir(dir)
         .with_context(|| format!("reading {}", dir.display()))?
         .collect::<std::io::Result<_>>()?;
@@ -1876,6 +1915,10 @@ mod tests {
 # The reader crates (`ew-model`, `ew-derive`, `ew-commands`, `ew-store`) opt out with
 # `#![allow(clippy::disallowed_methods)]` at each target root; no other crate may.
 #
+# The hash containers are listed under `disallowed-types` (FT-271, WP-S6.02); a use site whose iteration
+# order never reaches output is allowed with `#[allow(clippy::disallowed_types)]` and a justification,
+# and `cargo xtask check-ordered-collections` keeps the list of those sites reviewed.
+#
 # The whole file is generated: any other clippy setting would need a change of the generator
 # (xtask/src/raw_read.rs).
 disallowed-methods = [
@@ -1885,6 +1928,13 @@ disallowed-methods = [
     { path = "ew_model::Table::get", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
     { path = "ew_model::Table::len", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
     { path = "ew_model::snapshot_rows", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
+]
+
+disallowed-types = [
+    { path = "imbl::HashMap", reason = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
+    { path = "imbl::HashSet", reason = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
+    { path = "std::collections::HashMap", reason = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
+    { path = "std::collections::HashSet", reason = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
 ]
 "##;
 
@@ -2179,7 +2229,7 @@ disallowed-methods = [
         let v = workspace_violations(&packages, &ws);
         assert_eq!(v.len(), 1, "{v:#?}");
         assert!(
-            v[0].starts_with("clippy.toml:17: `clippy.toml` is stale or was edited by hand")
+            v[0].starts_with("clippy.toml:21: `clippy.toml` is stale or was edited by hand")
                 && v[0].contains("--bless"),
             "{v:#?}"
         );
@@ -2837,7 +2887,10 @@ disallowed-methods = [
         }
         assert!(!generated.contains("Model::apply\"") && !generated.contains("from_records"));
         assert_eq!(
-            generated.lines().filter(|l| l.contains("{ path = ")).count(),
+            generated
+                .lines()
+                .filter(|l| l.contains("reason = \"raw reader"))
+                .count(),
             out.gated_items
         );
 

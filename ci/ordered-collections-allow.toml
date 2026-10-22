@@ -1,0 +1,53 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# The reviewed allow sites of the ordered-collection lint (FT-271, WP-S6.02): every place that allows
+# `clippy::disallowed_types` for `std::collections::HashMap` or `HashSet` because the iteration order
+# never reaches a persisted, exported or printed sequence. Keyed by crate and item path (no file, no
+# line) with the number of sites. `cargo xtask check-ordered-collections` fails when the source and
+# this list differ, so a new allow is reviewed in the change that adds it; `--bless` rewrites the file.
+
+[[allow]]
+crate = "ew-import-tables"
+item = "fn parse > let seen"
+count = 1
+
+[[allow]]
+crate = "ew-import-tables"
+item = "use std::collections::HashSet"
+count = 1
+
+[[allow]]
+crate = "ew-schema"
+item = "struct Validator > field patterns"
+count = 1
+
+[[allow]]
+crate = "ew-schema"
+item = "use std::collections::{BTreeMap, BTreeSet, HashMap}"
+count = 1
+
+[[allow]]
+crate = "ew-store"
+item = "impl MemVfs > fn new > field holds"
+count = 1
+
+[[allow]]
+crate = "ew-store"
+item = "struct State > field holds"
+count = 1
+
+[[allow]]
+crate = "ew-store"
+item = "use std::collections::{BTreeMap, BTreeSet, HashMap}"
+count = 1
+
+[[allow]]
+crate = "xtask"
+item = "type Denylist"
+count = 1
+
+[[allow]]
+crate = "xtask"
+item = "use std::collections::HashSet"
+count = 1
