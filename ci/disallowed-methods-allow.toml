@@ -161,6 +161,11 @@ item = "inner attribute"
 count = 1
 
 [[allow]]
+crate = "ew-viewmodel"
+item = "fn env_path"
+count = 1
+
+[[allow]]
 crate = "xtask"
 item = "inner attribute"
 count = 1

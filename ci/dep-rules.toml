@@ -278,6 +278,12 @@ count = 2
 reason = "the helpers source_date_epoch and content_dir, the CLI's program-boundary environment reads; reviewed in ci/disallowed-methods-allow.toml"
 
 [[raw_read.allow]]
+path = "crates/ew-viewmodel/src/settings.rs"
+item = "disallowed_methods"
+count = 1
+reason = "the helper env_path, the shell's program-boundary environment read (EW_CONFIG_DIR and the platform directories, read once at start-up); reviewed in ci/disallowed-methods-allow.toml"
+
+[[raw_read.allow]]
 path = "crates/ew-sqlview/src/sandbox.rs"
 item = "disallowed_methods"
 count = 1

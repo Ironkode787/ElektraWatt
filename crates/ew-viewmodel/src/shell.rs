@@ -49,7 +49,7 @@ impl ShellConfig {
     /// The configuration of the environment: `EW_CONFIG_DIR` when set (journals then go to its `state`
     /// subdirectory, so a test never writes outside its own directory), else the platform directories.
     pub fn from_env(app_version: &str) -> ShellConfig {
-        let overridden = std::env::var_os("EW_CONFIG_DIR").is_some_and(|v| !v.is_empty());
+        let overridden = config_dir_overridden();
         let config_dir = settings::default_config_dir();
         let state_dir = if overridden {
             config_dir.as_ref().map(|d| d.join("state"))
@@ -294,6 +294,11 @@ fn clears_banner(id: &str) -> bool {
         id,
         "ui.describe" | "ui.dismiss" | "tools.palette" | "help.about" | "help.shortcuts" | "view.snapshot"
     )
+}
+
+/// Whether `EW_CONFIG_DIR` is set.
+fn config_dir_overridden() -> bool {
+    settings::env_path("EW_CONFIG_DIR").is_some()
 }
 
 impl ShellModel {
