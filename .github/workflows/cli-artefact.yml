@@ -9,6 +9,12 @@
 # creation, no tag and no secret, and the artefacts expire after 90 days. Publishing a binary (and signing it) is a
 # release item of WP-S6.07 and the owner's.
 #
+# The second job, `release-check` (FT-333; §5.2, CI-R-03 before WP-S6.07), builds the GUI program `elektrawatt` in
+# the release profile on ubuntu-24.04 with PKG_CONFIG=false and asserts what the release build of CI-R-03 must hold:
+# no pkg-config override in the build environment, no build-host path in the binary, no hard link to libwayland,
+# libxkbcommon or libX11, and no library directory in x11-dl's generated config (ci/release-check.sh). It uploads
+# only its report, never the binary: no binary that links the UI graph is distributed before ID-476's hold lifts.
+#
 # Same hardening as ci.yml (§5.4, NFR-SEC-19): actions pinned by commit SHA with a version comment, read-only default
 # token, no configured secrets, credentials not persisted by the checkout. Policy data: ci/README.md.
 
@@ -145,3 +151,56 @@ jobs:
           path: stage/${{ env.ARTEFACT }}
           if-no-files-found: error
           retention-days: 90
+
+  # CI-R-03 before the release pipeline (FT-333): report-only, a nightly check that gates nothing; red on any hit.
+  release-check:
+    name: release-check (elektrawatt, linux-x86_64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      # x11-dl's build script asks pkg-config for 16 X library directories and writes them into the binary; with
+      # `false` as the pkg-config program every lookup fails and every entry is None (doc 18 §5.4).
+      PKG_CONFIG: "false"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          shared-key: elektrawatt-release-check
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      # The assertions and the build share one shell, so the environment checked is the one cargo inherits.
+      # --remap-path-prefix keeps the registry, toolchain and checkout paths of panic locations out of the binary
+      # (Cargo's `trim-paths` is not stable on the pinned toolchain); the release build of CI-R-03 takes the same flags.
+      - name: cargo build (release, PKG_CONFIG=false)
+        shell: bash
+        run: |
+          cargo_home="${CARGO_HOME:-$HOME/.cargo}"
+          rustup_home="${RUSTUP_HOME:-$HOME/.rustup}"
+          export RUSTFLAGS="--remap-path-prefix=$cargo_home=/cargo --remap-path-prefix=$rustup_home=/rustup --remap-path-prefix=$GITHUB_WORKSPACE=/build"
+          echo "RUSTFLAGS=$RUSTFLAGS" >> "$GITHUB_ENV"
+          bash ci/release-check.sh env
+          cargo build -p elektrawatt --release --locked
+      - name: scan the binary
+        shell: bash
+        run: bash ci/release-check.sh scan target/release/elektrawatt target release-check-report.md
+      - name: job summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f release-check-report.md ]; then
+            cat release-check-report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No release-check report: the environment check or the build failed (see the log)." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      # The report only; the binary is never uploaded (ID-476).
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: release-check-report
+          path: release-check-report.md
+          if-no-files-found: ignore
+          retention-days: 30
