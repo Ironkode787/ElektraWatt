@@ -208,6 +208,18 @@ after Session::commit(tx) in oracle mode:
   `testkit` feature seeds, and the allowlisted tracing wrapper), `rand::thread_rng`, `Uuid::new_v4`, `Uuid::now_v7`
   outside `ew-ids`, and `std::env::var` outside the settings module.
 
+*As built (cycle 18, FT-271, WP-S6.02).* The `disallowed-types` rule is workspace-wide, not limited to the output
+crates, and is part of the generated root `clippy.toml` (`cargo xtask check-raw-read --bless`; the list is
+`DISALLOWED_TYPES` in `xtask/src/raw_read.rs`): `std::collections::HashMap` and `HashSet`, and `imbl::HashMap` and
+`HashSet`. `hashbrown` is not listed, because no workspace crate names it (a path of a crate that a package does not
+load is ignored by clippy, one that does not resolve in a package that loads the crate is a warning that the lint job
+turns into a failure). A use site whose iteration order never reaches a persisted, exported or printed sequence is
+allowed with `#[allow(clippy::disallowed_types)]` and a one-line justification; `cargo xtask check-ordered-collections`
+(the `lint` job and `cargo xtask ci`) compares those sites, keyed by crate and item path, with the reviewed list
+`ci/ordered-collections-allow.toml`, so a new allow is a reviewed change (`ci/README.md`). At the introduction nine
+sites in four crates allow the lint, all lookup-only; no hash container whose order reached output was found. The
+`disallowed-methods` half of the rule (wall clock, random, environment) is not built.
+
 A derive check in `ew-schema` rejects `f32`/`f64` fields in persisted records (ARCH §7.3).
 
 ### 3.6 Command-sequence fuzzer

@@ -16,7 +16,7 @@ The job names are the GitHub status-check names to mark as required.
 
 | ID | Workflow / job | Content | Reproduce locally |
 |---|---|---|---|
-| CI-PR-01 | `ci.yml` / `lint` (ubuntu-24.04) | `cargo fmt --all --check`; `cargo clippy --workspace --all-targets --locked -- -D warnings`, and again with `--all-features` | `cargo fmt --all --check` and both clippy runs |
+| CI-PR-01 | `ci.yml` / `lint` (ubuntu-24.04) | `cargo fmt --all --check`; `cargo clippy --workspace --all-targets --locked -- -D warnings`, and again with `--all-features` (the generated `clippy.toml` also bans the std hash containers: FT-271, below); `cargo xtask check-ordered-collections` | `cargo fmt --all --check`, both clippy runs and `cargo xtask check-ordered-collections` |
 | CI-PR-02 | `ci.yml` / `test-linux` (ubuntu-24.04) | `cargo build --workspace --locked`; `cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'`, and again with `--all-features` and no filter (feature-gated tests such as `ew-ids/testkit`; the headless acceptance tests, about 2 min, and the command fuzzer's `fuzz_smoke`, 15 to 19 s, run once per job, in this second run: FT-268, FT-306); `cargo test --doc --workspace --locked`, and again with `--all-features` (nextest does not run doctests) | `cargo build --workspace --locked`, `cargo nextest run --workspace --locked -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'`, `cargo nextest run --workspace --all-features --locked` and `cargo test --doc --workspace [--all-features] --locked` |
 | CI-PR-03 | `ci.yml` / `test-windows` (windows-2025) | as CI-PR-02 | as CI-PR-02, on Windows |
 | CI-PR-04 | `ci.yml` / `test-macos` (macos-15, arm64) | as CI-PR-02 | as CI-PR-02, on macOS |
@@ -30,8 +30,8 @@ The job names are the GitHub status-check names to mark as required.
 
 `cargo xtask ci` runs fmt, clippy, nextest and the doctests (each with the default features and with `--all-features`;
 the default-features nextest step is labelled `nextest (no acceptance, no fuzzer)` in the summary, and the acceptance
-tests and the command fuzzer run only in the `nextest-all-features` step, as in the jobs) and the nine repository checks (`check-deps`,
-`check-features`, `check-raw-read`, `check-build-scripts`, `check-workflows`, `check-licence-map`,
+tests and the command fuzzer run only in the `nextest-all-features` step, as in the jobs) and the ten repository checks (`check-deps`,
+`check-features`, `check-raw-read`, `check-ordered-collections`, `check-build-scripts`, `check-workflows`, `check-licence-map`,
 `check-anonymisation`, `check-governance-files`, `docs-gen --check`) in sequence and prints a summary: the local
 mirror of the Rust part of the PR set. `check-dco` needs a revision range and is run on its own.
 
@@ -253,6 +253,32 @@ package with a `[features]` entry (not only `default`) that reaches it, directly
 features, is reported as a back door. The untracked read API of `ew-model` (`raw-read`, ARCH §3 rule 1) is
 banned this way: dev edges anywhere, normal edges only in `ew-derive`, `ew-commands` and `ew-store`.
 
+## Ordered collections (`cargo xtask check-ordered-collections [--bless]`)
+
+FT-271, WP-S6.02, NFR-MAINT-12: the iteration order of a hash container must not reach a persisted, exported or
+printed sequence. As built, the ban is workspace-wide (not only in the output crates) and has two halves:
+
+1. **Clippy.** The generated [`clippy.toml`](../clippy.toml) (`cargo xtask check-raw-read --bless` writes it, so the
+   list lives in `xtask/src/raw_read.rs`, `DISALLOWED_TYPES`) has a `disallowed-types` list: `std::collections::HashMap`
+   and `HashSet`, and `imbl::HashMap` and `HashSet`. Both clippy runs of the `lint` job and of `cargo xtask ci` fail on
+   a use. `hashbrown` is not listed: no workspace crate names it. A use whose order provably never reaches output (a
+   lookup-only map, a counter, a set used for `contains`) carries `#[allow(clippy::disallowed_types)]` with a
+   one-line `//` comment above it (or a `reason = "..."` in the attribute); anything else uses `BTreeMap` or
+   `BTreeSet` (or `IndexMap` where the crate has it).
+2. **The review list.** The check scans the Rust source of every workspace package (tests and benches too) for
+   `allow`, `expect` and `cfg_attr` attributes that name `disallowed_types`, prints the sites per crate and compares
+   them with [`ordered-collections-allow.toml`](ordered-collections-allow.toml). A site is keyed by its crate and
+   item path (`fn parse > let seen`, `struct State > field holds`, `use std::collections::HashSet`), never by file
+   or line, with a count, so moving code does not touch the list and a new allow always does. It fails for a site
+   that is not in the list, for a stale entry, for a site without a justification, and for a manifest that sets
+   the lint (`[lints.clippy] disallowed_types = "allow"`). `--bless` rewrites the list after the review; a test of
+   `xtask` (`ordered::tests::the_committed_list_is_current`) keeps it current in `cargo nextest run -p xtask`.
+
+At the introduction (cycle 18) nine sites in four crates allow the lint, all lookup-only: `ew-import-tables` 2
+(the duplicate-column check of the table reader), `ew-schema` 2 (the pattern cache of a test), `ew-store` 3 (the
+fault-injection holds of the in-memory file system) and `xtask` 2 (the denylist of the anonymisation guard). No map
+or set whose order reached output was found.
+
 ## Anonymisation guard (`cargo xtask check-anonymisation [--require-entries]`)
 
 Every committed file that is not binary is scanned: files with a UTF-16 byte-order mark are decoded as UTF-16,
@@ -279,6 +305,7 @@ maintainers switch it on once the list is committed (gate G-M0-06).
 | [`verapdf-check.py`](verapdf-check.py) | CI-N-09 (`docs.yml` / `verapdf`) | The verdict over a veraPDF XML report: PDF/A-2B, compliant, no failed parse, the job count; `--selftest` (FT-294) |
 | [`coverage-summary.py`](coverage-summary.py) | CI-PR-13 (`coverage.yml`) | The line coverage of the six core crates from a cargo-llvm-cov summary, against 80 %, report-only; `--selftest` (FT-296) |
 | [`check-book-links.py`](check-book-links.py) | CI-PR-10 (book) | Link check of the built user-documentation book: no network, no plugin to pin |
+| [`ordered-collections-allow.toml`](ordered-collections-allow.toml) | `cargo xtask check-ordered-collections` | The reviewed sites that allow the hash-container ban of the generated `clippy.toml`, by crate and item path with a count (FT-271, WP-S6.02) |
 | [`perf-baseline.toml`](perf-baseline.toml) | `cargo xtask perf-gate` (nightly `perf.yml`) | The baseline medians and memory estimates per size class, the 15 % threshold, the noise floor and the runner they were taken on (WP-S6.03) |
 | [`ci-times.py`](ci-times.py) | nightly `perf.yml` | The CI-time trend of `ci.yml` against NFR-MAINT-05 (FT-269) |
 | [`../.github/workflows/fuzz.yml`](../.github/workflows/fuzz.yml) | nightly command fuzzer | The seeded `fuzz_long` run, with the findings file as artifact and a verdict step (red for a finding, a failed build or a hang) (WP-S6.02, FT-272) |
