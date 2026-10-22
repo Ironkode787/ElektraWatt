@@ -382,7 +382,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "`report_block.create`: a report block (doc 03 §6, doc 09 §2.2).\n\nCreates a `ReportBlock` with the given members (`manual`, `sort`, `group`, `continuation`, `empty`\ndefault). Rejected with a message: a page-oriented block (no `embedded`) without `first_folio`\n(EW-INV-014): `first_folio` is required unless `embedded` is set. The form copy, the section and the\nembedding page must exist (else not found). Outcome: the new block.",
+  "description": "`report_block.create`: a report block (doc 03 §6, doc 09 §2.2).\n\nCreates a `ReportBlock` with the given members (`manual`, `sort`, `group`, `continuation`, `empty`\ndefault). Rejected with a message: a page-oriented block (no `embedded`) without `first_folio`\n(EW-INV-014): `first_folio` is required unless `embedded` is set. The form copy, the section and the\nembedding page must exist (else not found). Outcome: the new block.\n\n**The form from the library** (FT-341). The block's form is a library item; a project holds it as an embedded\ncopy (doc 05 §13.2). `form_copies`, when given, are the library documents of that item and of its closure (the\ntitle-block form a frame names) in the `lib/` JSON form of `library.embed`, each checked by the same rules at\n`/form_copies/i` (a document of kind form, the copy identity, not a project-local item, the hash of its item,\nnot listed twice); one of them must be `form` (else invalid at `/form`). A copy the project does not hold is\nembedded in the same transaction, so one undo step removes the block and the copies; a copy of an item it holds\nin the same version (the same `sha256`) is used as held; another version is rejected (\"update from library\" is\na previewed command of its own, FR-PRT-014). The lookups are structural reads of the transaction (decision log\nID-525), never derived queries.",
   "properties": {
     "continuation": {
       "$ref": "#/$defs/ContinuationPolicy",
@@ -417,6 +417,11 @@
     "form": {
       "$ref": "#/$defs/CmdUuid",
       "description": "The report form copy."
+    },
+    "form_copies": {
+      "description": "The library documents of the form and of its closure (`lib/` JSON form, kind form), embedded with the block\nwhere the project does not hold them.",
+      "items": true,
+      "type": "array"
     },
     "group": {
       "anyOf": [

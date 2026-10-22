@@ -87,6 +87,7 @@ fn company_set_creates_the_panel_builder_party_and_the_notice_and_undoes() {
         name: Some(MlText::neutral("Example Panels")),
         notice: Some(MlText::neutral("Property of Example Panels.")),
         personal_data: None,
+        logo: None,
     };
     let p = e.preview(&cmd).unwrap();
     assert_eq!(p.diff().len(), 1, "only the project record changes");
@@ -138,6 +139,7 @@ fn company_set_edits_the_existing_party_and_keeps_the_logo() {
             name: Some(MlText::neutral("Example Panels")),
             notice: Some(Default::default()),
             personal_data: Some(false),
+            logo: None,
         },
     );
     let project = e.model().project().clone();
@@ -158,6 +160,7 @@ fn company_set_edits_the_existing_party_and_keeps_the_logo() {
             name: Some(Default::default()),
             notice: None,
             personal_data: None,
+            logo: None,
         },
     );
     assert_eq!(e.model().project().parties.len(), 1);
@@ -190,6 +193,77 @@ fn company_set_refuses_what_it_cannot_do() {
         e.model().project().extra.get(COMPANY_MEMBER),
         Some(&json!("newer"))
     );
+}
+
+/// A placeholder logo: an SVG of 80 × 20 user units (no company's artwork).
+const LOGO_SVG: &[u8] =
+    br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 20"><rect width="80" height="20"/></svg>"#;
+
+/// A PNG signature and `IHDR` of 4 × 2 pixels (enough for the asset store's sniffer).
+fn logo_png() -> Vec<u8> {
+    let mut b = b"\x89PNG\r\n\x1a\n".to_vec();
+    b.extend_from_slice(&13u32.to_be_bytes());
+    b.extend_from_slice(b"IHDR");
+    b.extend_from_slice(&4u32.to_be_bytes());
+    b.extend_from_slice(&2u32.to_be_bytes());
+    b.extend_from_slice(&[8, 6, 0, 0, 0]);
+    b
+}
+
+/// FT-337: the logo joins the asset store and the company member names it by its reference; undo restores the
+/// reference and keeps the bytes; an empty text removes the logo.
+#[test]
+fn company_set_stores_the_logo_as_an_asset_and_undoes() {
+    use sha2::Digest;
+    let mut e = engine(golden_model());
+    let before = lines(e.model());
+    let cmd = any(
+        "project.company.set",
+        json!({"logo": ew_schema::base64_encode(LOGO_SVG)}),
+    );
+    let p = e.preview(&cmd).unwrap();
+    assert!(p.outcome().notices.is_empty(), "an SVG logo has no notice");
+    e.commit(p).unwrap();
+    let logo = ew_schema::company_logo(&e.model().project().extra).expect("a logo");
+    assert_eq!(logo.format, ew_schema::AssetFormat::Svg);
+    assert_eq!(logo.size, Some((80, 20)));
+    assert_eq!(logo.sha256.0, <[u8; 32]>::from(sha2::Sha256::digest(LOGO_SVG)));
+    assert_eq!(
+        e.model().project().extra[COMPANY_MEMBER]["logo"],
+        serde_json::to_value(logo).unwrap()
+    );
+    assert_eq!(&**e.model().asset(&logo.sha256).unwrap().bytes(), LOGO_SVG);
+    e.undo().unwrap();
+    assert_eq!(lines(e.model()), before);
+    assert!(e.model().asset(&logo.sha256).is_some(), "undo keeps the bytes");
+    e.redo().unwrap();
+    assert_eq!(ew_schema::company_logo(&e.model().project().extra), Some(logo));
+    // A raster logo says that it prints rasterised.
+    let p = e
+        .preview(&any(
+            "project.company.set",
+            json!({"logo": ew_schema::base64_encode(&logo_png())}),
+        ))
+        .unwrap();
+    assert_eq!(p.outcome().notices.len(), 1);
+    assert!(p.outcome().notices[0].contains("rasterised"));
+    e.commit(p).unwrap();
+    assert_eq!(
+        ew_schema::company_logo(&e.model().project().extra).map(|r| (r.format, r.size)),
+        Some((ew_schema::AssetFormat::Png, Some((4, 2))))
+    );
+    // Empty removes the logo, and the member with it when nothing else is left.
+    commit(&mut e, &any("project.company.set", json!({"logo": ""})));
+    assert_eq!(e.model().project().extra.get(COMPANY_MEMBER), None);
+}
+
+#[test]
+fn company_set_refuses_a_logo_that_is_no_image() {
+    let mut e = engine(golden_model());
+    for logo in ["not base64!", "R0lGODlh", "PGh0bWw+PC9odG1sPg=="] {
+        let (path, _) = invalid(&mut e, &any("project.company.set", json!({"logo": logo})));
+        assert_eq!(path, "/logo", "{logo}");
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------

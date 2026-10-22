@@ -9,7 +9,8 @@ use ew_mltext::{Ident, MlText};
 use ew_rds::Aspect;
 use ew_schema::{
     ContinuationPolicy, EmbedSpec, EmptyPolicy, ExternalRef, Extra, FormDef, GroupSpec, Kind, LibCopy,
-    ManualSelection, Open, Page, ReportBlock, ReportSource, Section, Set, SortKey, StructureNode,
+    LibDocument, ManualSelection, Open, Page, ReportBlock, ReportSource, Section, Set, SortKey,
+    StructureNode,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -165,6 +166,16 @@ impl Command for CreateSection {
 /// default). Rejected with a message: a page-oriented block (no `embedded`) without `first_folio`
 /// (EW-INV-014): `first_folio` is required unless `embedded` is set. The form copy, the section and the
 /// embedding page must exist (else not found). Outcome: the new block.
+///
+/// **The form from the library** (FT-341). The block's form is a library item; a project holds it as an embedded
+/// copy (doc 05 §13.2). `form_copies`, when given, are the library documents of that item and of its closure (the
+/// title-block form a frame names) in the `lib/` JSON form of `library.embed`, each checked by the same rules at
+/// `/form_copies/i` (a document of kind form, the copy identity, not a project-local item, the hash of its item,
+/// not listed twice); one of them must be `form` (else invalid at `/form`). A copy the project does not hold is
+/// embedded in the same transaction, so one undo step removes the block and the copies; a copy of an item it holds
+/// in the same version (the same `sha256`) is used as held; another version is rejected ("update from library" is
+/// a previewed command of its own, FR-PRT-014). The lookups are structural reads of the transaction (decision log
+/// ID-525), never derived queries.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CreateReportBlock {
@@ -202,6 +213,61 @@ pub struct CreateReportBlock {
     /// Embedding into a drawn page.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub embedded: Option<EmbedSpec>,
+    /// The library documents of the form and of its closure (`lib/` JSON form, kind form), embedded with the block
+    /// where the project does not hold them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub form_copies: Vec<serde_json::Value>,
+}
+
+impl CreateReportBlock {
+    /// Embeds `form_copies` where the project does not hold the same items (see the type's documentation).
+    fn embed_forms(&self, tx: &mut TxBuilder<'_>) -> Result<(), CmdError> {
+        let project = tx.project().id.as_uuid();
+        let mut copies = Vec::with_capacity(self.form_copies.len());
+        let mut seen = std::collections::BTreeSet::new();
+        for (i, value) in self.form_copies.iter().enumerate() {
+            let at = format!("/form_copies/{i}");
+            let (doc, lineage) = crate::commands::library::check_copy(Self::NAME, &at, value, project)?;
+            let LibDocument::Form(copy) = doc else {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    at,
+                    "not a library document of kind form",
+                ));
+            };
+            if !seen.insert(lineage.id) {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    at,
+                    "the item is listed twice",
+                ));
+            }
+            copies.push((copy, lineage.item));
+        }
+        if !copies.iter().any(|(c, _)| c.id == self.form) {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/form",
+                format!("`form` is {}, which none of `form_copies` is", self.form),
+            ));
+        }
+        for (copy, item) in copies {
+            match tx.get::<LibCopy<FormDef>>(copy.id) {
+                Some(held) if held.sha256 == copy.sha256 => {}
+                Some(held) => {
+                    return tx.reject(format!(
+                        "the project holds another version of form {} (item {item}, {}); updating it is \"update \
+                         from library\" (FR-PRT-014)",
+                        copy.id, held.sha256
+                    ));
+                }
+                None => {
+                    tx.insert(copy)?;
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Command for CreateReportBlock {
@@ -216,6 +282,9 @@ impl Command for CreateReportBlock {
             return tx.reject(
                 "a page-oriented report block needs `first_folio` (EW-INV-014); give one or embed it",
             );
+        }
+        if !self.form_copies.is_empty() {
+            self.embed_forms(tx)?;
         }
         tx.require::<LibCopy<FormDef>>(self.form)?;
         if let Some(section) = self.section {

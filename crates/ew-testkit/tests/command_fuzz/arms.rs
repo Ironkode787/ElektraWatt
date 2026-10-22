@@ -1475,7 +1475,34 @@ fn report_block_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     ];
     let form = rng.pick(&live.forms)?;
     let kind = *rng.pick(&KINDS)?;
-    match rng.below(10) {
+    match rng.below(12) {
+        // FT-341: the form from the library with its closure; the golden project holds the same items, so the
+        // held copies are used and only the block is new.
+        10 => {
+            let (nogrid, title_block) = shipped_report_forms();
+            let s = rng.pick(&live.section_info)?;
+            Some(
+                Step::cmd(
+                    "report_block.create",
+                    json!({"source": {"kind": kind}, "form": nogrid["id"], "form_copies": [nogrid, title_block],
+                           "section": s.id, "first_folio": 6100 + rng.below(50)}),
+                )
+                .counts(&[(Table::ReportBlocks, 1)]),
+            )
+        }
+        // Refused: a form copy whose hash is not its item's.
+        11 => {
+            let (mut nogrid, _) = shipped_report_forms();
+            nogrid["sheet"]["width"] = json!(1 + rng.below(1000));
+            Some(
+                Step::cmd(
+                    "report_block.create",
+                    json!({"source": {"kind": kind}, "form": nogrid["id"], "form_copies": [nogrid],
+                           "first_folio": 6200}),
+                )
+                .refuse(),
+            )
+        }
         // Refused: a page-oriented block needs its first folio (EW-INV-014).
         0 => Some(
             Step::cmd(
@@ -1514,6 +1541,19 @@ fn report_block_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             )
         }
     }
+}
+
+/// The shipped frame without the grid and the title block it names (`content/forms`), in the `lib/` JSON form.
+fn shipped_report_forms() -> (Value, Value) {
+    let parse = |text: &str| serde_json::from_str::<Value>(text).expect("a shipped form parses");
+    (
+        parse(include_str!(
+            "../../../../content/forms/ew.frame.qet-a4-landscape-nogrid.json"
+        )),
+        parse(include_str!(
+            "../../../../content/forms/ew.titleblock.qet-a4.json"
+        )),
+    )
 }
 
 fn external_ref_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
@@ -2417,11 +2457,48 @@ fn company_of(q: &ew_derive::Q) -> (Option<String>, Option<Value>) {
     (name, notice)
 }
 
+/// A placeholder logo of `w × h` user units (no company's artwork).
+fn placeholder_logo(w: u32, h: u32) -> Vec<u8> {
+    format!(r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}"><rect width="{w}" height="{h}"/></svg>"#)
+        .into_bytes()
+}
+
 fn project_company_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
-    match rng.below(8) {
+    match rng.below(11) {
         // Refused: no member at all, or a value of the wrong type.
         0 => Some(Step::cmd("project.company.set", json!({})).refuse()),
         1 => Some(Step::cmd("project.company.set", json!({"name": 5})).refuse()),
+        // FT-337: a logo joins the asset store and the company member names it; empty removes it.
+        8 | 9 => {
+            let (w, h) = (1 + rng.below(400) as u32, 1 + rng.below(400) as u32);
+            let bytes = placeholder_logo(w, h);
+            let remove = rng.chance(4);
+            let text = if remove {
+                String::new()
+            } else {
+                ew_schema::base64_encode(&bytes)
+            };
+            Some(
+                Step::cmd("project.company.set", json!({"logo": text}))
+                    .accept()
+                    .check(move |_, after| {
+                        let logo = ew_schema::company_logo(&after.project().extra);
+                        match (remove, logo) {
+                            (true, None) => Ok(()),
+                            (false, Some(r)) if r.size == Some((w, h)) => Ok(()),
+                            (_, other) => Err(format!("the logo is {other:?} (removed: {remove})")),
+                        }
+                    }),
+            )
+        }
+        // Refused: a logo that is no image.
+        10 => Some(
+            Step::cmd(
+                "project.company.set",
+                json!({"logo": ew_schema::base64_encode(rng.word(12).as_bytes())}),
+            )
+            .refuse(),
+        ),
         // Refused: the personal-data flag alone, without a panel-builder party to carry it.
         2 if !live.has_panel_builder => {
             Some(Step::cmd("project.company.set", json!({"personal_data": rng.chance(2)})).refuse())

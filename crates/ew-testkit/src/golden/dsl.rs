@@ -1114,6 +1114,57 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         self.run("project.company.set", Value::Object(p)).map(|_| ())
     }
 
+    /// `project.company.set` with `logo`: the company logo from the bytes of an image file (SVG, PNG or JPEG),
+    /// sent in base64 (FT-337); empty bytes remove the logo.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn company_logo(&mut self, bytes: &[u8]) -> Result<()> {
+        self.run(
+            "project.company.set",
+            json!({"logo": ew_schema::base64_encode(bytes)}),
+        )
+        .map(|_| ())
+    }
+
+    /// `report_block.create` of a block whose form comes from the library: `copies` are the library documents of
+    /// the form and its closure (`lib/` JSON form), embedded with the block where the project does not hold them
+    /// (FT-341).
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn report_block_from_library(
+        &mut self,
+        block: &ReportBlock,
+        copies: &[Value],
+    ) -> Result<Id<ReportBlock>> {
+        let mut m = members(Record::ReportBlock(block.clone()));
+        let mut p = Map::new();
+        for k in [
+            "source",
+            "form",
+            "section",
+            "first_folio",
+            "title",
+            "manual",
+            "sort",
+            "group",
+            "continuation",
+            "empty",
+            "embedded",
+        ] {
+            if let Some(v) = take(&mut m, k) {
+                p.insert(k.into(), v);
+            }
+        }
+        p.insert("form_copies".into(), Value::Array(copies.to_vec()));
+        let (id, _) = self.primary::<ReportBlock>("report_block.create", Value::Object(p))?;
+        self.set_rest("report_block", id.cast(), m, &[])?;
+        Ok(id)
+    }
+
     /// `project.frames.set`: the whole frame defaults `{default?, per_page_type}` (doc 03 §5.1).
     ///
     /// # Errors

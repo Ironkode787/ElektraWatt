@@ -395,6 +395,51 @@ fn rows_by_key(session: &Session) -> BTreeMap<String, serde_json::Value> {
         .collect()
 }
 
+/// FT-337 and FT-341: the DSL verbs for the logo and for a block whose form comes from the library send the
+/// parameters of their commands.
+#[test]
+fn the_logo_and_library_form_verbs_send_their_command_parameters() {
+    use ew_schema::{Kind, ReportBlock, ReportKind, ReportSource};
+    let block_id = ew_ids::Id::<ReportBlock>::from_uuid(ew_ids::Uuid::from_u128(7));
+    let mut sink = |name: &str, _params: serde_json::Value| -> Result<Done, String> {
+        Ok(Done {
+            primary: (name == "report_block.create").then_some((Kind::ReportBlock, block_id.cast())),
+            ..Done::default()
+        })
+    };
+    let mut b = golden::dsl::Builder::new(&mut sink);
+    b.company_logo(b"<svg/>").unwrap();
+    let block = ReportBlock {
+        id: block_id,
+        v: 1,
+        source: ReportSource::Kind(ReportKind::Toc),
+        manual: Default::default(),
+        sort: Vec::new(),
+        group: None,
+        form: ew_ids::Id::from_uuid(ew_ids::Uuid::from_u128(8)),
+        section: None,
+        first_folio: Some(2),
+        continuation: Default::default(),
+        title: Default::default(),
+        empty: Default::default(),
+        embedded: None,
+        source_ref: None,
+        extra: Default::default(),
+    };
+    let copy = serde_json::json!({"$k": "form", "id": "00000000-0000-0000-0000-000000000008"});
+    assert_eq!(
+        b.report_block_from_library(&block, std::slice::from_ref(&copy))
+            .unwrap(),
+        block_id
+    );
+    let script = b.script();
+    assert_eq!(script[0].0, "project.company.set");
+    assert_eq!(script[0].1, serde_json::json!({"logo": "PHN2Zy8+"}));
+    assert_eq!(script[1].0, "report_block.create");
+    assert_eq!(script[1].1["form_copies"], serde_json::json!([copy]));
+    assert_eq!(script[1].1["first_folio"], 2);
+}
+
 /// Path (b) holds the records of path (a) record for record, up to the IDs the commands minted: every
 /// record of the bootstrap (its `source_ref` aside), with its references remapped to the built IDs,
 /// equals the built record under the built ID, and path (b) holds no other record. The import lineage is

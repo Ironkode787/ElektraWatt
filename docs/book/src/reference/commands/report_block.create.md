@@ -9,6 +9,16 @@ default). Rejected with a message: a page-oriented block (no `embedded`) without
 (EW-INV-014): `first_folio` is required unless `embedded` is set. The form copy, the section and the
 embedding page must exist (else not found). Outcome: the new block.
 
+**The form from the library** (FT-341). The block's form is a library item; a project holds it as an embedded
+copy (doc 05 §13.2). `form_copies`, when given, are the library documents of that item and of its closure (the
+title-block form a frame names) in the `lib/` JSON form of `library.embed`, each checked by the same rules at
+`/form_copies/i` (a document of kind form, the copy identity, not a project-local item, the hash of its item,
+not listed twice); one of them must be `form` (else invalid at `/form`). A copy the project does not hold is
+embedded in the same transaction, so one undo step removes the block and the copies; a copy of an item it holds
+in the same version (the same `sha256`) is used as held; another version is rejected ("update from library" is
+a previewed command of its own, FR-PRT-014). The lookups are structural reads of the transaction (decision log
+ID-525), never derived queries.
+
 ## Registry entry
 
 | Item | Value |
@@ -32,6 +42,7 @@ embedding page must exist (else not found). Outcome: the new block.
 | `empty` | [`EmptyPolicy`](#emptypolicy) | no | `"omit_pages"` | What an empty report prints. |
 | `first_folio` | integer (format `uint32`, min 0) or `null` | no |  | The first folio of a page-oriented block. |
 | `form` | [`CmdUuid`](#cmduuid) | yes |  | The report form copy. |
+| `form_copies` | array of any JSON value | no |  | The library documents of the form and of its closure (`lib/` JSON form, kind form), embedded with the block where the project does not hold them. |
 | `group` | [`GroupSpec`](#groupspec) or `null` | no |  | Grouping. |
 | `manual` | [`ManualSelection`](#manualselection) | no |  | Manual inclusions and exclusions. |
 | `section` | [`CmdUuid`](#cmduuid) or `null` | no |  | The section. |

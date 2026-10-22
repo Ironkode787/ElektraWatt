@@ -86,6 +86,7 @@ fn block(first_folio: Option<u32>) -> CreateReportBlock {
         continuation: ContinuationPolicy::default(),
         empty: EmptyPolicy::default(),
         embedded: None,
+        form_copies: Vec::new(),
     }
 }
 
@@ -413,4 +414,111 @@ fn undo_create_report_block() {
     e.execute(&block(Some(907))).unwrap();
     e.undo().unwrap();
     assert_eq!(lines(e.model()), before);
+}
+
+/// The shipped frame without the grid (`content/forms`), the form of the golden report blocks, in the `lib/` JSON
+/// form: a library item the mini golden project does not embed.
+const NOGRID: &str = include_str!("../../../content/forms/ew.frame.qet-a4-landscape-nogrid.json");
+/// The title block that frame names: its closure.
+const TITLE_BLOCK: &str = include_str!("../../../content/forms/ew.titleblock.qet-a4.json");
+
+fn shipped(text: &str) -> (serde_json::Value, Id<ew_schema::FormDef>, ew_model::AnyKey) {
+    let doc: serde_json::Value = serde_json::from_str(text).unwrap();
+    let id: Id<ew_schema::FormDef> = doc["id"].as_str().unwrap().parse().unwrap();
+    let kind = ew_schema::LibDocument::from_value(doc.clone())
+        .unwrap()
+        .kind()
+        .unwrap();
+    (doc, id, (kind, id.cast()))
+}
+
+fn nogrid() -> (serde_json::Value, Id<ew_schema::FormDef>, ew_model::AnyKey) {
+    shipped(NOGRID)
+}
+
+fn with_copy(first_folio: u32, form: Id<ew_schema::FormDef>, copy: &serde_json::Value) -> CreateReportBlock {
+    let mut b = block(Some(first_folio));
+    b.form = form;
+    b.form_copies = vec![copy.clone(), shipped(TITLE_BLOCK).0];
+    b
+}
+
+/// FT-341: the form comes from the library with the block, in one transaction and one undo step; a second block
+/// uses the copy the project holds.
+#[test]
+fn report_block_create_embeds_its_form_from_the_library_in_one_step() {
+    let mut e = engine(golden_model());
+    let before = lines(e.model());
+    let (doc, form, key) = nogrid();
+    let tb = shipped(TITLE_BLOCK).2;
+    assert!(
+        !e.model().contains(&key),
+        "the fixture does not embed the shipped form"
+    );
+    let r = e.execute(&with_copy(950, form, &doc)).unwrap();
+    let block_key = r.outcome.primary.unwrap();
+    assert_eq!(r.created, vec![key, tb, block_key], "the copies, then the block");
+    let b = e
+        .model()
+        .table::<ReportBlock>()
+        .get(&typed(block_key))
+        .unwrap()
+        .clone();
+    assert_eq!(b.form, form);
+    e.undo().unwrap();
+    assert_eq!(
+        lines(e.model()),
+        before,
+        "one undo step removes the block and the copy"
+    );
+    e.redo().unwrap();
+    assert!(e.model().contains(&key) && e.model().contains(&block_key));
+    // The same item again: the held copy is used, nothing is embedded twice.
+    let r = e.execute(&with_copy(960, form, &doc)).unwrap();
+    assert_eq!(r.created.len(), 1, "only the block: {:?}", r.created);
+}
+
+#[test]
+fn report_block_create_refuses_a_form_copy_that_does_not_fit() {
+    let mut e = engine(golden_model());
+    let (doc, form, _) = nogrid();
+    // `form` is not the copy's ID.
+    match e.execute(&with_copy(950, FORM, &doc)) {
+        Err(CmdError::InvalidParams { path, .. }) => assert_eq!(path, "/form"),
+        other => panic!("{other:?}"),
+    }
+    // A copy whose hash is not its item's.
+    let mut forged = doc.clone();
+    forged["sheet"]["width"] = serde_json::json!(1);
+    match e.execute(&with_copy(950, form, &forged)) {
+        Err(CmdError::InvalidParams { path, .. }) => assert_eq!(path, "/form_copies/0/sha256"),
+        other => panic!("{other:?}"),
+    }
+    // A library document of another kind.
+    let symbol: serde_json::Value =
+        serde_json::from_str(include_str!("../../../content/symbols/ew.gen.blackbox.json")).unwrap();
+    let sid: Id<ew_schema::FormDef> = symbol["id"].as_str().unwrap().parse().unwrap();
+    match e.execute(&with_copy(950, sid, &symbol)) {
+        Err(CmdError::InvalidParams { path, .. }) => assert_eq!(path, "/form_copies/0"),
+        other => panic!("{other:?}"),
+    }
+    // The same item twice.
+    let mut twice = with_copy(950, form, &doc);
+    twice.form_copies.push(doc.clone());
+    match e.execute(&twice) {
+        Err(CmdError::InvalidParams { path, .. }) => assert_eq!(path, "/form_copies/2"),
+        other => panic!("{other:?}"),
+    }
+    // Without its closure the frame names a title block the project does not hold (EW-INV-001).
+    let mut alone = with_copy(950, form, &doc);
+    alone.form_copies.truncate(1);
+    assert!(e.execute(&alone).is_err());
+    // Another version of an item the project holds: "update from library".
+    e.execute(&with_copy(950, form, &doc)).unwrap();
+    let mut other = doc.clone();
+    other["sheet"]["width"] = serde_json::json!(420_000_000);
+    let parsed = ew_schema::LibDocument::from_value(other.clone()).unwrap();
+    let hash = ew_commands::commands::library_copy_hash(&parsed).unwrap();
+    other["sha256"] = serde_json::json!(ew_schema::Sha256(hash).to_string());
+    assert!(rejected(e.execute(&with_copy(960, form, &other))).contains("update from library"));
 }

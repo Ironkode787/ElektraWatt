@@ -62,7 +62,7 @@ mod edit;
 mod fields;
 mod frames;
 mod languages;
-mod library;
+pub(crate) mod library;
 mod page;
 mod plc;
 mod renumber;

@@ -47,11 +47,11 @@ pub struct EmbedLibraryCopies {
 }
 
 /// The copy's lineage, kind-erased: copy ID, library, item, sha256 claimed and computed.
-struct Lineage {
-    id: AnyId,
+pub(crate) struct Lineage {
+    pub(crate) id: AnyId,
     library: ew_ids::Uuid,
-    item: ew_ids::Uuid,
-    claimed: Sha256,
+    pub(crate) item: ew_ids::Uuid,
+    pub(crate) claimed: Sha256,
     computed: Option<[u8; 32]>,
 }
 
@@ -84,6 +84,62 @@ fn lineage<T: Serialize>(c: &LibCopy<T>, doc: &LibDocument) -> Lineage {
     }
 }
 
+/// Checks one library document of a command parameter at `at` (the rules of [`EmbedLibraryCopies`]): it reads as
+/// a library document of kind part, symbol, fndef or form; its `id` is the copy identity; its `library_id` is not
+/// the project's (`project`); its `sha256` is the hash of its item. Returns the document and its lineage.
+pub(crate) fn check_copy(
+    command: &'static str,
+    at: &str,
+    value: &Value,
+    project: ew_ids::Uuid,
+) -> Result<(LibDocument, Lineage), CmdError> {
+    let doc = LibDocument::from_value(value.clone())
+        .map_err(|e| CmdError::invalid_params(command, at.to_owned(), e.to_string()))?;
+    let l = match &doc {
+        LibDocument::Part(c) => lineage(c, &doc),
+        LibDocument::Symbol(c) => lineage(c, &doc),
+        LibDocument::Fndef(c) => lineage(c, &doc),
+        LibDocument::Form(c) => lineage(c, &doc),
+        LibDocument::Unknown(_) => {
+            return Err(CmdError::invalid_params(
+                command,
+                at.to_owned(),
+                "not a library document of kind part, symbol, fndef or form",
+            ));
+        }
+    };
+    let identity: Id<()> = v5::lib_copy_id(l.library, l.item);
+    if l.id != identity.cast() {
+        return Err(CmdError::invalid_params(
+            command,
+            format!("{at}/id"),
+            format!(
+                "the copy ID is {}, not the copy identity {identity} = v5(NS_LIBCOPY, library_id ‖ item_id)",
+                l.id
+            ),
+        ));
+    }
+    if l.library == project {
+        return Err(CmdError::invalid_params(
+            command,
+            format!("{at}/library_id"),
+            "a project-local item (library_id = the project ID) is not embedded",
+        ));
+    }
+    if l.computed != Some(l.claimed.0) {
+        return Err(CmdError::invalid_params(
+            command,
+            format!("{at}/sha256"),
+            format!(
+                "{} is not the hash of the item's members (EW-CORE-014); the copy is not consistent \
+                 with the hash it claims",
+                l.claimed
+            ),
+        ));
+    }
+    Ok((doc, l))
+}
+
 impl Command for EmbedLibraryCopies {
     const NAME: &'static str = "library.embed";
 
@@ -104,50 +160,7 @@ impl Command for EmbedLibraryCopies {
         let mut seen = BTreeSet::new();
         for (i, value) in self.copies.iter().enumerate() {
             let at = format!("/copies/{i}");
-            let doc = LibDocument::from_value(value.clone())
-                .map_err(|e| CmdError::invalid_params(Self::NAME, at.clone(), e.to_string()))?;
-            let l = match &doc {
-                LibDocument::Part(c) => lineage(c, &doc),
-                LibDocument::Symbol(c) => lineage(c, &doc),
-                LibDocument::Fndef(c) => lineage(c, &doc),
-                LibDocument::Form(c) => lineage(c, &doc),
-                LibDocument::Unknown(_) => {
-                    return Err(CmdError::invalid_params(
-                        Self::NAME,
-                        at,
-                        "not a library document of kind part, symbol, fndef or form",
-                    ));
-                }
-            };
-            let identity: Id<()> = v5::lib_copy_id(l.library, l.item);
-            if l.id != identity.cast() {
-                return Err(CmdError::invalid_params(
-                    Self::NAME,
-                    format!("{at}/id"),
-                    format!(
-                        "the copy ID is {}, not the copy identity {identity} = v5(NS_LIBCOPY, library_id ‖ item_id)",
-                        l.id
-                    ),
-                ));
-            }
-            if l.library == project {
-                return Err(CmdError::invalid_params(
-                    Self::NAME,
-                    format!("{at}/library_id"),
-                    "a project-local item (library_id = the project ID) is not embedded",
-                ));
-            }
-            if l.computed != Some(l.claimed.0) {
-                return Err(CmdError::invalid_params(
-                    Self::NAME,
-                    format!("{at}/sha256"),
-                    format!(
-                        "{} is not the hash of the item's members (EW-CORE-014); the copy is not consistent \
-                         with the hash it claims",
-                        l.claimed
-                    ),
-                ));
-            }
+            let (doc, l) = check_copy(Self::NAME, &at, value, project)?;
             if !seen.insert(l.id) {
                 return Err(CmdError::invalid_params(
                     Self::NAME,
