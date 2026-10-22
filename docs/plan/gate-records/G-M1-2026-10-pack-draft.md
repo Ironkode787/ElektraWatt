@@ -21,15 +21,18 @@ gates).
 criteria and 6 of 10 must criteria are open, and G-M0 has not been held. Holding G-M1 today would end in *recycle*.
 The owner is asked to:
 
-1. **Take the eight rulings** of the readiness report §8: R1 D-06's property-grid half to G-M2; R2 the date rule;
-   R3 G-M0 before G-M1; R4 G-M1-24 restated and G-M1-25, -26 under the cycle-based plan; R5 the second code owner;
-   R6 where gate records live; R7 FT-87 to FT-92 re-dated to before G-PP; R8 the new tasks FT-294 to FT-301.
+1. **Decide R5, the second code owner** (G-M1-16, ID-424): name a second accountable maintainer, or take the option
+   of moving that requirement to G-M2. The other rulings of the readiness report §8 were taken by delegation on
+   2026-10-22: R1 D-06's property-grid entry at G-M2, R3 G-M0 first, R4 G-M1-24 restated and G-M1-25 not applicable
+   (G-M1-26 waits for the owner's word on funding), R6 `gate-records/`, R7 FT-87 to FT-92 before G-PP, R8 FT-294 to
+   FT-301.
 2. **Start the owner-side items** of the readiness report §5, in that order: LG-5 and the G-M0 decisions first, then
    LG-1, LG-2 (with the CC-BY-SA question ID-383 in the same counsel brief), ADR-0030 with the enrolments, the
    BM-class runner (DEC-034), the second code owner, then the pilot's approvals, acknowledgement, answers and review.
-3. **Adopt the date rule** (ID-421): G-M1 is held within two weeks after the later of the cycle delivery whose
-   repeated readiness run finds no development-side H open (and at most three M), and the day the last owner-side H
-   item is on file, at the earliest seven nights after the BM-class runner is commissioned.
+3. **Confirm or amend the date rule at G-M0** (ID-421, adopted by delegated ruling R2): G-M1 is held within two weeks
+   after the later of the cycle delivery whose repeated readiness run finds no development-side H open (and at most
+   three M), and the day the last owner-side H item is on file, at the earliest seven nights after the BM-class
+   runner is commissioned.
 
 **At T (when the date rule fires): the gate decision.** The chair (project lead) decides go, go with conditions or
 recycle (§3.2 of the gates); the project owner decides PD-7, PD-11 and the opening of community channels; the pilot
@@ -47,7 +50,7 @@ external contributions (LG-2), opening community channels and the re-based plan 
 | GP-04 | Performance and memory report | Not measured at the gate's classes (milestone rule; no BM-class runner) | `perf.yml` artefact `perf-report` `<run id>` (class S, informational) | The G-SP re-test and the BM-class report (G-M1-05, -11, -12) |
 | GP-05 | Forecast | The cycle-based progress view; the human-team reference unchanged | [Global plan §3.8](../01-global-plan.md#38-cycle-based-progress-view-plan-of-record-since-2026-10-20) | The re-plan defined by ruling R4 |
 | GP-06 | Risk register | §6 below | [Risk register](../04-risk-register.md) | Re-score R-014 if R5's fallback is taken |
-| GP-07 | Decision log | Decisions due at G-M1: 26 DEC rows (decision log summary); this run's ID-419 to ID-426 | [Decision log](../06-decision-log.md) | The rulings R1 to R8 recorded |
+| GP-07 | Decision log | Decisions due at G-M1: 26 DEC rows (decision log summary); this run's ID-419 to ID-426 | [Decision log](../06-decision-log.md) | R1 to R4 and R6 to R8 recorded (delegated, 2026-10-22); R5 open for the owner |
 | GP-08 | Legal-gate status | §7 below | This pack; statements with the steward (`legal/`, ST-09) | Statements on file, cited |
 | GP-09 | Pilot report | §8 below | This pack | Pilot log, acknowledgements, review minutes |
 | GP-10 | Usability report | Not required at G-M1 | — | — |
@@ -179,7 +182,7 @@ M met 1 of 10 (2 with conditions, 1 not applicable) · S met 0 of 2.
 | LG-1 | Open | `<>` | `<statement on file, cited>` |
 | LG-3 report | Open | `<>` | `<>` |
 | Channels (Discussions) | Not opened | `<>` | `<>` |
-| Rulings R1 to R8 | Asked at the readiness run | `<>` | ID-419 to ID-426 |
+| Rulings R1 to R8 | R5 open; the others taken by delegation 2026-10-22, R2 to be confirmed at G-M0 | `<>` | ID-419 to ID-425 |
 
 ### 10.5 Conditions (go with conditions only)
 

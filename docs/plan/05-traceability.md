@@ -375,7 +375,7 @@ Source: [golden project](../design/20-golden-project.md) §19 (rule that fires o
 | D-03 | Mixed schemes; "+JE2416" | FR-CHK-025 | WP-S1.16a | G-M1 | ok |
 | D-04 | BOM incomplete, X1031 twice, no quantities | FR-REP-004..006 | WP-S1.06, WP-S3.03 | G-M1 | ok |
 | D-05 | Four revision formats | FR-REV-002..003 | WP-S1.06, WP-S1.18 | G-M1 | ok |
-| D-06 | Description drift on 101 | rules EW-CORE-023; FR-REP-036 | WP-S3.02 | G-M1 | ok |
+| D-06 | Description drift on 101 | rules EW-CORE-023; FR-REP-036 | WP-S3.02 | G-M1 + G-M2 | ok |
 | D-07 | No bookmarks, links, page labels | FR-OUT-004..006 | WP-S3.04 | G-M1 | ok |
 | D-08 | Free-text wire rule | FR-CON-017, FR-REP-038 | WP-S1.07, WP-S3.03 | G-M1 | ok |
 | D-09 | No wire, terminal, cable, PLC, potential reports;… | FR-NUM-019, FR-REP-009..010, FR-REP-012..014, FR-REP-016, FR-REP-019 | WP-S1.11, WP-S3.03, WP-S3.06 | G-M1 | ok |

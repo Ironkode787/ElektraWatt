@@ -1,6 +1,6 @@
 # G-M1 readiness run
 
-**Status:** Final (readiness run; the gate is not convened) · **Date:** 2026-10-22 · **Gate:** G-M1 Spine exit ·
+**Status:** Final (readiness run; the gate is not convened; the delegated rulings of 2026-10-22 are recorded in §8 and the addendum) · **Date:** 2026-10-22 · **Gate:** G-M1 Spine exit ·
 **Commit:** de23b55 (the cycle-16 delivery of `claude/m0-foundations`, equal to `main`) · **Scenario:** the
 cycle-based plan of record ([global plan §3.8](../01-global-plan.md#38-cycle-based-progress-view-plan-of-record-since-2026-10-20),
 decision log ID-271) · **Part of:** ElektraWatt plan, gate records
@@ -39,6 +39,13 @@ criteria open, and (b) the day the last owner-side H item is on file, which for 
 nights after the BM-class runner is commissioned. G-M0 is held first, or in the same meeting (§2.4 of the gates).
 
 **What the owner is asked now:** the eight rulings of §8 and the owner-side items of §5, in the order given there.
+
+**Addendum (rulings of 2026-10-22, delegated; decision log ID-419 to ID-425).** R1, R3, R4, R6, R7 and R8 are
+accepted and R2 adopted, the project owner confirming or amending the date rule at G-M0; R5 is not ruled by
+delegation and stays with the project owner. Effect on §4: G-M1-08 is met once the runner's gate for D-06's
+property-grid entry is applied at the cycle-17 delivery; G-M1-24 is restated and stays open for the owner's re-plan
+decision at T; G-M1-25 is not applicable. The rows below are the snapshot at the run; the next repeated readiness run
+starts from these rulings.
 
 ---
 
@@ -244,16 +251,16 @@ delivered concurrently by lanes A and B and are confirmed at that delivery.
 
 ## 8. Rulings asked of the owner
 
-| # | Ruling | Recommendation | Trade-off | Record |
-|---|---|---|---|---|
-| R1 | D-06's property-grid half | Split D-06 like AC-18 and AC-14: its headless entries stay at G-M1, the property-grid entry (FR-UI-009) moves to G-M2 with AC-18 (GUI); edit §8.2 of the gates and re-run `trace.py` | A UI check leaves a headless gate, against keeping a criterion that no headless build can meet; nothing is dropped, the entry still gates before the first release | ID-422 |
-| R2 | The date rule of §9 | Adopt | A content-triggered gate, against the §3.3 calendar that assumes a known milestone date | ID-421 |
-| R3 | G-M0 before G-M1 | Hold G-M0 as soon as O1 and O2 are done; combine only if both are ready together | One more meeting, against a G-M1 that inherits G-M0's open items | ID-421 |
-| R4 | G-M1-24, -25 and -26 under the cycle-based plan | Restate G-M1-24 as: the cycle-based forecast of M-PP and M2 by content, with the owner-side lead times, replaces the AI scenarios, which retire; the human-team reference stays as reference; levers (a) to (c) and PD-14 are re-confirmed. G-M1-25 not applicable. G-M1-26: the owner states whether any funding is pursued; if none, not applicable | The criterion keeps its intent (a re-based, single plan of record) without inventing person-week actuals | ID-423 |
-| R5 | G-M1-16, the second code owner | Name a second accountable maintainer. Fallback: amend G-M1-16 so that the independent lane reviews count for the review half and the second named owner becomes a G-M2 hard criterion, with R-014 re-scored | The bus factor of the core is real whoever writes the code; the fallback defers it to before the first signed release | ID-424 |
-| R6 | Where gate records live (open question 3 of the gates) | `docs/plan/gate-records/`, as this run does | A dated folder beside the standing documents | ID-419 |
-| R7 | FT-87, FT-88, FT-89, FT-91, FT-92 | Re-date them from "before M1" to "before G-PP": the pilot's first interactive use is where recovery and lenient opening matter, and no G-M1 criterion names them | The reliability work moves behind the headless gate, against holding G-M1 for work it does not check | ID-425 |
-| R8 | The new tasks FT-294 to FT-301 | Accept them into Appendix B with the hosts and dues given | — | ID-425 |
+| # | Ruling asked | Recommendation | Trade-off | Ruling (2026-10-22) | Record |
+|---|---|---|---|---|---|
+| R1 | D-06's property-grid half | Split D-06 like AC-18 and AC-14: its headless entries stay at G-M1, the property-grid entry (FR-UI-009) moves to G-M2 with AC-18 (GUI); edit §8.2 of the gates and re-run `trace.py` | A UI check leaves a headless gate, against keeping a criterion that no headless build can meet; nothing is dropped, the entry still gates before the first release | Accepted (delegated): §8.2 and G-M1-08 edited, `trace.py` regenerated, doc 20 §22 aligned; the runner's gate for the entry is code side, applied at the cycle-17 delivery | ID-422 |
+| R2 | The date rule of §9 | Adopt | A content-triggered gate, against the §3.3 calendar that assumes a known milestone date | Adopted (delegated); the project owner confirms or amends at G-M0; written into §3.3 of the gates | ID-421 |
+| R3 | G-M0 before G-M1 | Hold G-M0 as soon as O1 and O2 are done; combine only if both are ready together | One more meeting, against a G-M1 that inherits G-M0's open items | Accepted (delegated) | ID-421 |
+| R4 | G-M1-24, -25 and -26 under the cycle-based plan | Restate G-M1-24 as: the cycle-based forecast of M-PP and M2 by content, with the owner-side lead times, replaces the AI scenarios, which retire; the human-team reference stays as reference; levers (a) to (c) and PD-14 are re-confirmed. G-M1-25 not applicable. G-M1-26: the owner states whether any funding is pursued; if none, not applicable | The criterion keeps its intent (a re-based, single plan of record) without inventing person-week actuals | Accepted (delegated): G-M1-24 restated in §5.3; G-M1-25 not applicable; G-M1-26 open until the owner states whether funding is pursued | ID-423 |
+| R5 | G-M1-16, the second code owner | Name a second accountable maintainer. Fallback: amend G-M1-16 so that the independent lane reviews count for the review half and the second named owner becomes a G-M2 hard criterion, with R-014 re-scored | The bus factor of the core is real whoever writes the code; the fallback defers it to before the first signed release | Not ruled by delegation: G-M1-16 stays as written; the fallback is an option for the project owner, not a ruling | ID-424 |
+| R6 | Where gate records live (open question 3 of the gates) | `docs/plan/gate-records/`, as this run does | A dated folder beside the standing documents | Accepted (delegated); open question 3 of the gates resolved | ID-419 |
+| R7 | FT-87, FT-88, FT-89, FT-91, FT-92 | Re-date them from "before M1" to "before G-PP": the pilot's first interactive use is where recovery and lenient opening matter, and no G-M1 criterion names them | The reliability work moves behind the headless gate, against holding G-M1 for work it does not check | Accepted (delegated): the five tasks re-dated to before G-PP in Appendix B (FT-89 keeps the lane-B extension) | ID-425 |
+| R8 | The new tasks FT-294 to FT-301 | Accept them into Appendix B with the hosts and dues given | — | Accepted (delegated) | ID-425 |
 
 ## 9. The proposed date rule
 

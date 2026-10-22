@@ -1,6 +1,6 @@
 # Gates
 
-**Status:** Draft v0.5 · **Date:** 2026-10-22 (v0.5: open question 3 in use, the G-M1 readiness run in `gate-records/`, decision log ID-419; v0.4: the blind drafter at G-PP and G-M2, WP-S6.13 in M-PP and the 1.0 month of the plan of record, decision log ID-341, ID-342; the Golden A info total; v0.3: the G-SP gate record of 2026-10-20 and the re-forecast) · **Part of:** ElektraWatt plan
+**Status:** Draft v0.5 · **Date:** 2026-10-22 (v0.5: the G-M1 readiness rulings: D-06 split between G-M1 and G-M2 (§8.2, G-M1-08), G-M1-24 restated and G-M1-25 not applicable under the cycle-based plan, the cycle-based date rule (§3.3), open question 3 resolved, decision log ID-419 to ID-423; v0.4: the blind drafter at G-PP and G-M2, WP-S6.13 in M-PP and the 1.0 month of the plan of record, decision log ID-341, ID-342; the Golden A info total; v0.3: the G-SP gate record of 2026-10-20 and the re-forecast) · **Part of:** ElektraWatt plan
 
 **Purpose.** This document defines the gate system of ElektraWatt (EW): the decision points G-M0 … G-M6 and the
 light gate G-PP of the pilot preview, aligned with the milestones M0 … M6 and M-PP of the
@@ -417,6 +417,15 @@ flowchart LR
 | Record and forecast | T + 2 weeks | Gate record; forecast of the next two milestones; risk register; `ROADMAP.md` | Project lead |
 | Conditions | T + 4 weeks at the latest | Each condition closed and re-checked by the chair; an unclosed condition turns the outcome into *recycle* | Condition owners |
 
+**Under the cycle-based plan of record** (decision log ID-271; the date rule of ID-421, adopted by delegated ruling
+2026-10-22, which the project owner confirms or amends at G-M0). A gate is held within two weeks after the later of
+(a) the cycle delivery at which a repeated readiness run finds no development-side H criterion open and at most three
+M criteria open, each closable within four weeks, and (b) the day the last owner-side H item is on file (for a
+criterion that needs seven green nights, at the earliest the seventh). The readiness run repeats as a delta at every
+cycle delivery until (a) holds, replacing "T − 6 weeks"; the scope freeze is the first re-run at which (a) holds and
+the rulings it asked for are taken; the pack, the record and the conditions keep the rows above. G-M0 is held before
+G-M1; one combined meeting (§2.4) only if both are ready together.
+
 ### 3.4 Outcomes
 
 The [global plan §5.2](01-global-plan.md#52-gate-reviews) names three outcomes (pass, pass with conditions, fail).
@@ -753,7 +762,7 @@ which at month 3 costs little.
 | G-M1-05 | H | **AC-17** on BM: Golden A opens in ≤ 0.5 s, `ew export pdf` ≤ 3 s, a full check ≤ 2 s (with the rules that exist at M1; the MVP packs follow at G-M2 and NFR-PERF-09 is re-measured there) | CI-N-01 report |
 | G-M1-06 | H | **AC-18 (CLI)**: Golden B step B1 previews exactly the 10 tag changes and step B2 exactly the 2 tag and 14 cross-reference changes; no orphan, identical topology and pairing after each commit; each undo restores the previous bytes. **AC-20** the D-01 replay renumbers folio 3 → 4 in every output, writes only that page's file and undoes completely | Runner report |
 | G-M1-07 | H | **AC-39** the anonymisation guard passes on `golden/`, `docs/` and `expected/`; party and person fields hold placeholders | CI-PR-10 |
-| G-M1-08 | H | Every defect regression gated M1 passes (**AC-24**): D-01, D-03 … D-12, D-14, D-17, D-18 (M1 part), D-20, D-22, D-24, D-27, D-29, D-30, D-33, D-35 … D-37, D-41, D-42 | Runner report per D-nn |
+| G-M1-08 | H | Every defect regression gated M1 passes (**AC-24**): D-01, D-03 … D-05, D-06 (headless entries; the property-grid entry, FR-UI-009, gates at G-M2 with AC-18 (GUI), decision log ID-422), D-07 … D-12, D-14, D-17, D-18 (M1 part), D-20, D-22, D-24, D-27, D-29, D-30, D-33, D-35 … D-37, D-41, D-42 | Runner report per D-nn |
 | G-M1-09 | M | The acceptance SQL/CSV pairs pass with the oracle on, still without a GUI; every golden-table change since G-M0 is acknowledged by the pilot user | CI-PR-02; acknowledgement list |
 | G-M1-10 | M | SC-1 headless: criteria 1 … 7 and 9 of the reference analysis §4.15 pass (the folio set from the model alone; criterion 8, the check run, follows at G-M2), and the determinism part of SC-6 holds on Linux | Runner report |
 
@@ -789,8 +798,8 @@ which at month 3 costs little.
 
 | ID | Type | Criterion | Evidence |
 |---|---|---|---|
-| G-M1-24 | H | **PD-11 re-plan done**: the velocity ratio is measured over the spine WPs, clamped 0.6 – 1.5; `schedule.py` is re-run with every remaining estimate divided by the ratio; the AI scenarios retire and the result becomes the single plan of record, its capacity −20 % case the external outer date (GB-9); levers (a), (b), (c) are confirmed or revised; the M-PP scope and the G-PP folios are re-confirmed with the pilot (PD-14); the plan is republished with the ±20 % band; PD-3 is reconsidered (the latest useful start for developer 4 is M1) | Forecast (GP-05); updated global plan |
-| G-M1-25 | M | With a two-developer team: the re-scope decision of [global plan open question 8](01-global-plan.md#open-questions) is taken (§2.3) | Decision record |
+| G-M1-24 | H | **PD-11 re-plan done** (restated for the cycle-based plan of record, decision log ID-271, ID-423): the cycle-based forecast of M-PP and M2 by content, with the owner-side lead times, replaces the AI scenarios, which retire, and becomes the single plan of record; the human-team reference of §2.2 stays as reference; levers (a), (b), (c) are re-confirmed or revised; the M-PP scope and the G-PP folios are re-confirmed with the pilot (PD-14); the plan is republished. *The original wording (a velocity ratio in person-weeks over the spine WPs, clamped 0.6 – 1.5, `schedule.py` re-run with the remaining estimates divided by it) applies again only if a human team takes over* | Forecast (GP-05); updated global plan |
+| G-M1-25 | M | With a two-developer team: the re-scope decision of [global plan open question 8](01-global-plan.md#open-questions) is taken (§2.3). *Not applicable under the cycle-based plan of record* (decision log ID-423) | Decision record |
 | G-M1-26 | M | Funding: NLnet proposal 2 is submitted; the milestone evidence for NL-1 … NL-4 is archived; WBSO renewal for the next year is prepared | Proposal reference; evidence index |
 | G-M1-27 | S | Landscape re-check against [oss-landscape](../research/oss-landscape.md): no other open project has delivered the differentiators of the MVP (derived data, previewed renumbering, check packs) | Note in the pack |
 
@@ -1336,11 +1345,14 @@ The first gate at which the feature that prevents the defect is in scope. All ro
 
 | Gate | D-nn |
 |---|---|
-| **G-M1** (26) | D-01, D-03, D-04, D-05, D-06, D-07, D-08, D-09, D-10, D-11, D-12, D-14, D-17, D-18 (M1 part), D-20, D-22, D-24, D-27, D-29, D-30, D-33, D-35, D-36, D-37, D-41, D-42 |
-| **G-M2** (14) | D-02, D-13, D-15, D-16, D-19, D-21 (MVP part), D-23, D-26, D-28 (MVP part), D-31, D-32, D-34, D-38, D-39 |
+| **G-M1** (26) | D-01, D-03, D-04, D-05, D-06 (headless entries), D-07, D-08, D-09, D-10, D-11, D-12, D-14, D-17, D-18 (M1 part), D-20, D-22, D-24, D-27, D-29, D-30, D-33, D-35, D-36, D-37, D-41, D-42 |
+| **G-M2** (15) | D-02, D-06 (the property-grid entry, FR-UI-009, with AC-18 (GUI)), D-13, D-15, D-16, D-19, D-21 (MVP part), D-23, D-26, D-28 (MVP part), D-31, D-32, D-34, D-38, D-39 |
 | **G-M3** | D-28 (1.0 part: EF-20, EF-21) |
 | **G-M5** | D-18 (1.0 part: FR-CHK-040 lint), D-21 (1.0 part: FR-CHK-029), D-25 |
 | **G-M6** | All rows except D-40 (1.x, a plugin) in the full run |
+
+D-06 is split like AC-18 and AC-14 (decision log ID-422, 2026-10-22): its headless entries gate at G-M1 and the
+property-grid entry at G-M2, because the property grid cannot exist before the UI of M-PP.
 
 ### 8.3 Success criteria by gate
 
@@ -1479,11 +1491,11 @@ PU pilot user, CO counsel, SL steward liaison, UX UX researcher. A role may be h
    for the gates, which collide with the research gap topics G1 … G13 and with the spine exit. All plan documents now use
    G-M0 … G-M6, G-PP and G-SP, and `doccheck.py` fails on the retired forms (§1.4). *Recommendation:* the design
    documents and ADRs adopt the same forms when next edited.
-3. **Where gate records live.** *Recommendation:* `docs/plan/gate-records/<gate>-<yyyy-mm>.md` in the public
-   repository, regenerating `ROADMAP.md` (GV-07). They contain roles, evidence links and decisions, never statements
-   themselves, names or confidential content. Owner to confirm the location. *In use since 2026-10-22:* the G-M1
-   readiness run and its pack draft are the folder's first files
-   ([G-M1-2026-10-readiness.md](gate-records/G-M1-2026-10-readiness.md); decision log ID-419, ruling R6).
+3. **Where gate records live (resolved 2026-10-22).** `docs/plan/gate-records/<gate>-<yyyy-mm>.md` in the public
+   repository, regenerating `ROADMAP.md` (GV-07), with the readiness runs and pack drafts beside the records. They
+   contain roles, evidence links and decisions, never statements themselves, names or confidential content. Decided
+   by delegated ruling R6 of the G-M1 readiness run (decision log ID-419); the first files are the
+   [G-M1 readiness run](gate-records/G-M1-2026-10-readiness.md) and its pack draft.
 4. **Typing of criteria.** H/M/S is introduced here; the global plan's "never waived" list (§5.2) maps to H. A
    criterion's type can be changed only by a reviewed edit of this document (first row of the RACI, §9).
 5. **SC-3 window.** SC-3 closes at G-M3 if the pilot finishes three production projects within six months of 0.1.0
