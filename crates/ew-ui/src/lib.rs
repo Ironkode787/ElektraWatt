@@ -32,4 +32,5 @@ pub mod page_view;
 mod palette;
 mod start_page;
 mod status_bar;
+pub mod tool_view;
 mod wizard;

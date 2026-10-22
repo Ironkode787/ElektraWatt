@@ -15,17 +15,21 @@
 //!
 //! Every frame, per group, in four measured phases:
 //!
-//! 1. **input**: the pane's size, the pointer, the wheel, pinch, drag, a click on a link, the mouse's back and
-//!    forward buttons become registry actions with the group (`view.zoom_to`, `view.pan`, `canvas.pointer`,
-//!    `view.canvas_resize`, `nav.follow`, `nav.back`, `ui.focus`), dispatched by the frame after painting like every
-//!    other input, so a script and the window take the same path;
+//! 1. **input**: the pane's size, the pointer with its modifiers, the primary button's press and release (the
+//!    active tool's input, WP-S2.03 part 2), the wheel, pinch, the middle drag, the mouse's back and forward buttons
+//!    and the pointer's rest become registry actions with the group (`view.zoom_to`, `view.pan`, `canvas.pointer`,
+//!    `canvas.press`, `canvas.release`, `canvas.dwell`, `view.canvas_resize`, `nav.back`, `ui.focus`), dispatched by
+//!    the frame after painting like every other input, so a script and the window take the same path; the rest is
+//!    measured with `ew_render2d::stats::now` and sent after 80 ms and after 300 ms (D11), never kept in the model;
 //! 2. **scene**: the page content of the group's canvas becomes a tile scene once per (session, revision, folio);
 //!    the previous scene's tiles stay visible for the same folio until the new ones arrive;
 //! 3. **render**: on the GPU, one render submitted when the view or the scene changed; on the CPU, the planner's
 //!    plan, collected for the merged submission at the end of the frame;
 //! 4. **paint**: the surround, then the GPU texture or the tiles coarse to fine, then (one code path for both
-//!    backends) the page bounds, the grid dots, the hover outline (a hovered link's rectangle before an entity's),
-//!    the grid cursor and, when View, Frame statistics is on, the statistics.
+//!    backends) the page bounds, the grid dots, the hover outline (a hovered link's rectangle before an entity's,
+//!    while the active tool shows the hover), the selection, the tool's overlay and snap markers, the grid cursor,
+//!    then the overlay's labels and the preview's semantic ghost as chips, the link preview popup (a small canvas of
+//!    the target page drawn from the same tile pool) and, when View, Frame statistics is on, the statistics.
 //!
 //! No raster and no tessellation happens on the UI thread. Each canvas is one focusable AccessKit node with the
 //! role `Canvas`, named `Page <folio>, <title>` and described `<hint>, zoom <zoom>` and, while the grid cursor
@@ -72,11 +76,12 @@ pub const MAX_UPLOAD_BYTES_PER_FRAME: usize = 2 * 1024 * 1024;
 /// The most canvas groups.
 const GROUPS: usize = 2;
 
-/// How far a primary press may travel before its release and still follow a link, in points.
-const CLICK_SLOP_PT: f32 = 3.0;
-
-/// The hover outline of a canvas: the hovered link's rectangle, else the hovered entity's (WP-S2.03 §6.4).
-fn hover_rect(c: &CanvasModel) -> Option<SheetRect> {
+/// The hover outline of a canvas: the hovered link's rectangle, else the hovered entity's (WP-S2.03 §6.4), while the
+/// active tool shows the hover (§7.1).
+fn hover_rect(shell: &ShellModel, c: &CanvasModel) -> Option<SheetRect> {
+    if !shell.tool().wants_hover() {
+        return None;
+    }
     c.hovered_link()
         .map(|l| l.rect)
         .or_else(|| c.hover().map(|(_, r)| r))
@@ -106,14 +111,63 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
     let Some(canvas) = shell.canvas_of(group) else {
         return Err(strings::text("reason-no-page").to_owned());
     };
+    let selected = shell.selected_rects(group);
+    let tool = crate::tool_view::marks_of(shell, group);
+    render_view(
+        canvas,
+        &theme_of(shell),
+        grid_spec(shell, canvas),
+        hover_rect(shell, canvas),
+        &selected,
+        canvas.cursor(),
+        &tool,
+    )
+}
+
+/// `canvas.preview_snapshot` (WP-S2.03 §7.8): the link preview's pane as the popup shows it, by the same rule as
+/// [`snapshot_image`]: the target page's region around the target at the jump view's zoom, the page bounds and a
+/// cursor crosshair at the target.
+///
+/// # Errors
+///
+/// The text of the renderer's error, or of a missing preview.
+pub fn preview_snapshot_image(shell: &ShellModel) -> Result<(ew_render_cpu::RgbaImage, u32), String> {
+    let Some(lp) = shell.link_preview() else {
+        return Err(strings::text("reason-no-preview").to_owned());
+    };
+    render_view(
+        &lp.canvas,
+        &theme_of(shell),
+        None,
+        None,
+        &[],
+        lp.target.at_nm,
+        &[],
+    )
+}
+
+/// The canvas theme of the settings (light for `system`).
+fn theme_of(shell: &ShellModel) -> Theme {
+    match shell.settings().theme.as_str() {
+        "dark" => overlay::DARK,
+        _ => overlay::LIGHT,
+    }
+}
+
+/// The settled pane of `canvas` rendered by `render_region` with the overlays composited (see [`snapshot_image`]).
+fn render_view(
+    canvas: &CanvasModel,
+    theme: &Theme,
+    grid: Option<GridSpec>,
+    hover: Option<SheetRect>,
+    selected: &[SheetRect],
+    cursor: Option<(i64, i64)>,
+    tool: &[ew_render2d::overlay::ToolMark],
+) -> Result<(ew_render_cpu::RgbaImage, u32), String> {
     let view = view_of(canvas);
     let t = view.settled_transform();
     let dpi = view.settled_dpi();
     let (w, h) = view.pane_px_whole();
-    let theme = match shell.settings().theme.as_str() {
-        "dark" => overlay::DARK,
-        _ => overlay::LIGHT,
-    };
     let page = canvas.page();
     let sheet = SheetSize {
         width: Nm(page.sheet.0),
@@ -155,13 +209,13 @@ pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu
         pane_px: (w, h),
         ppp: view.ppp,
         sheet,
-        grid: grid_spec(shell, canvas),
-        hover: hover_rect(canvas),
-        selected: &[],
-        cursor: canvas.cursor(),
-        tool: &[],
+        grid,
+        hover,
+        selected,
+        cursor,
+        tool,
     });
-    overlay::composite(&mut image, &o, &theme);
+    overlay::composite(&mut image, &o, theme);
     Ok((image, dpi))
 }
 
@@ -225,6 +279,8 @@ struct GroupView {
     gpu: GpuHost,
     /// Whether the group drew in this frame.
     drawn: bool,
+    /// Whether the primary button went down on this canvas and has not come up yet (its release is the tool's).
+    pressed: bool,
 }
 
 impl GroupView {
@@ -237,9 +293,38 @@ impl GroupView {
             ready: false,
             gpu,
             drawn: false,
+            pressed: false,
         }
     }
 }
+
+/// The link preview popup's canvas (WP-S2.03 §7.8): drawn from the tile pool like a canvas group, on the CPU path.
+#[derive(Default)]
+struct PopupView {
+    planner: Planner,
+    scene: Option<SceneState>,
+    drawn: bool,
+}
+
+/// What rests: the pointer's and the grid cursor's sheet points.
+type RestKey = (Option<(i64, i64)>, Option<(i64, i64)>);
+
+/// The pointer's or the cursor's rest on the focused canvas (D11): since when, and which dwells were sent.
+struct Rest {
+    group: usize,
+    key: RestKey,
+    since: Instant,
+    sent: u8,
+}
+
+/// The rests the window reports, in milliseconds (doc 06 §4.1, §6).
+const DWELLS_MS: [u32; 2] = [
+    ew_viewmodel::tools::PREVIEW_DWELL_MS,
+    ew_viewmodel::tools::LINK_PREVIEW_DWELL_MS,
+];
+
+/// The group index of the popup in the merged submission (after both canvas groups).
+const POPUP_GROUP: usize = 2;
 
 /// The canvases' state between frames.
 pub struct CanvasHost {
@@ -264,6 +349,10 @@ pub struct CanvasHost {
     memo_at_start: Option<(u64, u64)>,
     counters: CanvasCounters,
     fonts: Arc<dyn FontResolver + Send + Sync>,
+    /// The link preview popup's canvas.
+    popup: PopupView,
+    /// The pointer's rest on the focused canvas.
+    rest: Option<Rest>,
 }
 
 impl Default for CanvasHost {
@@ -350,6 +439,8 @@ impl CanvasHost {
             memo_at_start: None,
             counters: CanvasCounters::default(),
             fonts: Arc::new(BundledFonts(font_bytes())),
+            popup: PopupView::default(),
+            rest: None,
         }
     }
 
@@ -404,11 +495,16 @@ impl CanvasHost {
     }
 
     fn visible_scenes(&self) -> Vec<u64> {
-        self.views
+        let mut out: Vec<u64> = self
+            .views
             .iter()
             .filter(|v| v.drawn)
             .filter_map(|v| v.scene.as_ref().map(|s| s.scene.id()))
-            .collect()
+            .collect();
+        if self.popup.drawn {
+            out.extend(self.popup.scene.as_ref().map(|s| s.scene.id()));
+        }
+        out
     }
 
     /// Starts a frame: the frame counter, the statistics' interval and memo counters, the finished tiles taken from
@@ -425,6 +521,7 @@ impl CanvasHost {
             v.drawn = false;
             v.ready = false;
         }
+        self.popup.drawn = false;
         self.take_arrivals(ctx);
     }
 
@@ -466,6 +563,9 @@ impl CanvasHost {
             return;
         };
         self.map_input(ui, &response, rect, canvas, group, events);
+        if shell.area().map(|a| a.focused) == Some(group) {
+            self.dwell(ui, canvas, group, events);
+        }
         drop(input_span);
         let t_scene = now();
         self.add_phase(Phase::Input, t_scene - started);
@@ -501,17 +601,20 @@ impl CanvasHost {
             overlay::LIGHT
         };
         let pane_px = view.pane_px_whole();
+        let transform = plan.as_ref().map_or_else(|| view.transform(), |p| p.transform);
+        let selected = shell.selected_rects(group);
+        let tool = crate::tool_view::marks_of(shell, group);
         let overlay = overlay::build(&OverlayInput {
-            transform: plan.as_ref().map_or_else(|| view.transform(), |p| p.transform),
+            transform,
             pane_px,
             // The overlay's marks (dot size, outline outset) follow the window's points, UI scale included.
             ppp: canvas.ppp(),
             sheet,
             grid: grid_spec(shell, canvas),
-            hover: hover_rect(canvas),
-            selected: &[],
+            hover: hover_rect(shell, canvas),
+            selected: &selected,
             cursor: canvas.cursor(),
-            tool: &[],
+            tool: &tool,
         });
         match (&plan, gpu) {
             (Some(plan), _) => self.paint(ui, rect, ppp, group, plan, &overlay, &theme),
@@ -520,6 +623,13 @@ impl CanvasHost {
                 self.views[group].ready = ready;
             }
             (None, None) => {}
+        }
+        if shell.area().map(|a| a.focused) == Some(group) {
+            crate::tool_view::paint_labels(ui, rect, rect.min, ppp, &transform, shell.tool_overlay());
+            crate::tool_view::paint_preview(ui, rect, shell);
+            if let Some(lp) = shell.link_preview() {
+                self.paint_popup(ui, rect, ppp, &response, lp, &theme);
+            }
         }
         if shell.frame_stats_shown() {
             self.paint_statistics(ui, rect, shell);
@@ -546,7 +656,14 @@ impl CanvasHost {
                 }
             }
         }
+        // The link preview's page while it shows (WP-S2.03 §7.8).
+        if let Some(lp) = shell.link_preview() {
+            keep.insert(key_of(lp.canvas.page()));
+        }
         self.scenes.retain(|k, _| keep.contains(k));
+        if self.popup.scene.as_ref().is_some_and(|s| !keep.contains(&s.key)) {
+            self.popup.scene = None;
+        }
         let mut ids: Vec<u64> = self.scenes.values().map(|s| s.id()).collect();
         for v in &mut self.views {
             if v.scene.as_ref().is_some_and(|s| !keep.contains(&s.key)) && !v.drawn {
@@ -669,11 +786,14 @@ impl CanvasHost {
         self.scenes.clear();
         self.shown_at.clear();
         self.plans.clear();
+        self.popup = PopupView::default();
+        self.rest = None;
         for v in &mut self.views {
             v.scene = None;
             v.previous = None;
             v.ready = false;
             v.drawn = false;
+            v.pressed = false;
             v.gpu.release();
         }
     }
@@ -694,9 +814,12 @@ impl CanvasHost {
         let recency: Vec<u64> = recency.into_iter().map(|(_, id)| id).collect();
         self.cache
             .evict_hidden_first(self.frame, &[], &recency, HIDDEN_CACHE_BYTES);
+        self.popup.drawn = false;
+        self.rest = None;
         for v in &mut self.views {
             v.ready = false;
             v.drawn = false;
+            v.pressed = false;
             v.gpu.release_frame();
         }
     }
@@ -772,7 +895,9 @@ impl CanvasHost {
         (x.round() as i64, y.round() as i64)
     }
 
-    /// Wheel, pinch, drag, pointer movement, a click on a link and the back and forward buttons as registry actions.
+    /// Wheel, pinch, the middle drag, pointer movement with its modifiers, the primary button's press and release (the
+    /// active tool's input; a click on a link is the Select tool's follow, WP-S2.03 §7.6) and the back and forward
+    /// buttons as registry actions.
     fn map_input(
         &mut self,
         ui: &Ui,
@@ -783,8 +908,22 @@ impl CanvasHost {
         events: &mut Vec<Event>,
     ) {
         let mm = |p: (i64, i64)| (p.0 as f64 / 1e6, p.1 as f64 / 1e6);
+        let mods = ui.input(|i| i.modifiers);
+        // The point of an input action with the modifiers that are held (left out when not held).
+        let point = |p: (i64, i64)| {
+            let (x, y) = mm(p);
+            let mut v = json!({"x_mm": x, "y_mm": y, "group": group});
+            for (name, held) in [("shift", mods.shift), ("ctrl", mods.command), ("alt", mods.alt)] {
+                if held {
+                    v[name] = json!(true);
+                }
+            }
+            v
+        };
+        let space = ui.input(|i| i.key_down(Key::Space));
         // A primary press focuses the group first; the back and forward buttons walk the history.
-        if response.is_pointer_button_down_on() && ui.input(|i| i.pointer.primary_pressed()) {
+        let pressed_here = response.is_pointer_button_down_on() && ui.input(|i| i.pointer.primary_pressed());
+        if pressed_here {
             events.push(Event::Action(
                 "ui.focus",
                 json!({"area": "canvas", "group": group}),
@@ -805,16 +944,19 @@ impl CanvasHost {
             }
         }
         let hover = response.hover_pos();
+        // While the primary button drags from this canvas the pointer keeps reaching the tool beyond the pane.
+        let tracked = hover.or_else(|| {
+            self.views[group]
+                .pressed
+                .then(|| ui.input(|i| i.pointer.latest_pos()))
+                .flatten()
+        });
         // The pointer: `canvas.pointer` when its sheet point changed, without a point when it left.
-        match hover {
+        match tracked {
             Some(pos) => {
                 let p = Self::sheet_point(rect, canvas, pos);
                 if canvas.pointer() != Some(p) {
-                    let (x, y) = mm(p);
-                    events.push(Event::Action(
-                        "canvas.pointer",
-                        json!({"x_mm": x, "y_mm": y, "group": group}),
-                    ));
+                    events.push(Event::Action("canvas.pointer", point(p)));
                 }
             }
             None if canvas.pointer().is_some() => {
@@ -822,23 +964,27 @@ impl CanvasHost {
             }
             None => {}
         }
-        // A primary click (press and release within 3 points, WP-S2.03 §6.4) on a link follows it.
-        let near = ui.input(|i| match (i.pointer.press_origin(), i.pointer.interact_pos()) {
-            (Some(a), Some(b)) => a.distance(b) <= CLICK_SLOP_PT,
-            _ => true,
-        });
-        if response.clicked_by(PointerButton::Primary)
-            && near
-            && let Some(pos) = response.interact_pointer_pos()
+        // The primary button is the tool's (WP-S2.03 §7.9): its press on this canvas and its release, wherever it
+        // happens; Space with the primary button pans instead.
+        if pressed_here
+            && !space
+            && let Some(pos) = ui.input(|i| i.pointer.press_origin()).or(hover)
         {
-            let p = Self::sheet_point(rect, canvas, pos);
-            if canvas.link_at(p).is_some() {
-                let (x, y) = mm(p);
-                events.push(Event::Action(
-                    "nav.follow",
-                    json!({"x_mm": x, "y_mm": y, "group": group}),
-                ));
-            }
+            events.push(Event::Action(
+                "canvas.press",
+                point(Self::sheet_point(rect, canvas, pos)),
+            ));
+            self.views[group].pressed = true;
+        }
+        if self.views[group].pressed
+            && ui.input(|i| i.pointer.primary_released())
+            && let Some(pos) = ui.input(|i| i.pointer.latest_pos())
+        {
+            events.push(Event::Action(
+                "canvas.release",
+                point(Self::sheet_point(rect, canvas, pos)),
+            ));
+            self.views[group].pressed = false;
         }
         let Some(pos) = hover else {
             self.views[group].wheel_lines = 0.0;
@@ -901,7 +1047,6 @@ impl CanvasHost {
         }
         // Scroll in points (trackpads) and the drags pan.
         let mut pan = pan;
-        let space = ui.input(|i| i.key_down(Key::Space));
         if response.dragged_by(PointerButton::Middle)
             || (space && response.dragged_by(PointerButton::Primary))
         {
@@ -915,16 +1060,108 @@ impl CanvasHost {
         }
     }
 
-    /// The tile scene of a group's page content, one per (session, revision, folio) and shared by the groups.
-    fn sync_scene(&mut self, group: usize, canvas: &CanvasModel) -> Arc<Scene> {
-        let page = canvas.page();
-        let key = key_of(page);
-        if let Some(s) = &self.views[group].scene
-            && s.key == key
-        {
-            return Arc::clone(&s.scene);
+    /// The pointer's or the grid cursor's rest on the focused canvas (D11): `canvas.dwell` once after 80 ms and once
+    /// after 300 ms without a move, measured with `ew_render2d::stats::now`; nothing timed reaches the model.
+    fn dwell(&mut self, ui: &Ui, canvas: &CanvasModel, group: usize, events: &mut Vec<Event>) {
+        let key = (canvas.pointer(), canvas.cursor());
+        let at = now();
+        let fresh = !matches!(&self.rest, Some(r) if r.group == group && r.key == key);
+        if fresh {
+            self.rest = Some(Rest {
+                group,
+                key,
+                since: at,
+                sent: 0,
+            });
         }
-        let scene = match self.scenes.get(&key) {
+        let Some(rest) = &mut self.rest else { return };
+        if key == (None, None) {
+            return;
+        }
+        let waited = at.saturating_duration_since(rest.since);
+        for (i, ms) in DWELLS_MS.iter().enumerate() {
+            let n = u8::try_from(i + 1).unwrap_or(u8::MAX);
+            if rest.sent < n && waited >= Duration::from_millis(u64::from(*ms)) {
+                events.push(Event::Action("canvas.dwell", json!({ "ms": ms })));
+                rest.sent = n;
+            }
+        }
+        if let Some(next) = DWELLS_MS.get(usize::from(rest.sent)) {
+            let due = Duration::from_millis(u64::from(*next)).saturating_sub(waited);
+            ui.ctx().request_repaint_after(due);
+        }
+    }
+
+    /// The link preview popup (WP-S2.03 §7.8): a 320 × 200 point canvas of the target page next to the pointer, its
+    /// tiles planned and submitted with the canvases' (on the CPU path, from the same pool and cache), the page
+    /// bounds and a cursor crosshair at the target.
+    fn paint_popup(
+        &mut self,
+        ui: &Ui,
+        rect: Rect,
+        ppp: f32,
+        response: &egui::Response,
+        lp: &ew_viewmodel::tools::LinkPreview,
+        theme: &Theme,
+    ) {
+        let c = &lp.canvas;
+        let size = Vec2::new(c.pane().0 as f32, c.pane().1 as f32);
+        let anchor = response.hover_pos().unwrap_or(rect.center());
+        let mut min = anchor + Vec2::new(16.0, 16.0);
+        if min.x + size.x > rect.max.x {
+            min.x = (anchor.x - 16.0 - size.x).max(rect.min.x);
+        }
+        if min.y + size.y > rect.max.y {
+            min.y = (anchor.y - 16.0 - size.y).max(rect.min.y);
+        }
+        let popup = Rect::from_min_size(min, size);
+        let scene = self.scene_for(c.page());
+        let key = key_of(c.page());
+        if self.popup.scene.as_ref().is_none_or(|s| s.key != key) {
+            self.popup.scene = Some(SceneState {
+                key,
+                scene: Arc::clone(&scene),
+            });
+        }
+        let view = view_of(c);
+        let time = ui.input(|i| i.time);
+        let plan = self.popup.planner.plan(&view, scene.sheet(), scene.id(), time);
+        self.plans.push((POPUP_GROUP, Arc::clone(&scene), plan.clone()));
+        let marks = overlay::build(&OverlayInput {
+            transform: plan.transform,
+            pane_px: view.pane_px_whole(),
+            ppp: c.ppp(),
+            sheet: scene.sheet(),
+            grid: None,
+            hover: None,
+            selected: &[],
+            cursor: lp.target.at_nm,
+            tool: &[],
+        });
+        crate::tool_view::paint_popup_frame(ui, rect, popup, &lp.target.folio);
+        let painter = ui.painter_at(popup.intersect(rect));
+        let origin = popup.min;
+        for &r in &marks.surround {
+            painter.rect_filled(to_points(origin, ppp, r), 0.0, color32(theme.surround));
+        }
+        painter.rect_filled(to_points(origin, ppp, marks.sheet), 0.0, color32(theme.paper));
+        let uv = Rect::from_min_max(Pos2::ZERO, Pos2::new(1.0, 1.0));
+        for layer in &plan.layers {
+            for placed in layer {
+                if let Some(t) = self.cache.get(&placed.key, self.frame) {
+                    painter.image(t.id(), to_points(origin, ppp, placed.rect), uv, Color32::WHITE);
+                }
+            }
+        }
+        paint_marks(&painter, origin, ppp, &marks, theme);
+        self.popup.drawn = true;
+        self.shown_at.insert(scene.id(), self.frame);
+    }
+
+    /// The tile scene of a page's content, one per (session, revision, folio), shared by the groups and the popup.
+    fn scene_for(&mut self, page: &CanvasPage) -> Arc<Scene> {
+        let key = key_of(page);
+        match self.scenes.get(&key) {
             Some(s) => Arc::clone(s),
             None => {
                 let id = self.next_scene;
@@ -934,11 +1171,23 @@ impl CanvasHost {
                     height: Nm(page.sheet.1),
                 };
                 let scene = Scene::new(id, Arc::clone(&page.list), sheet, Arc::clone(&self.fonts));
-                self.scenes.insert(key.clone(), Arc::clone(&scene));
+                self.scenes.insert(key, Arc::clone(&scene));
                 self.counters.scenes += 1;
                 scene
             }
-        };
+        }
+    }
+
+    /// The tile scene of a group's page content, one per (session, revision, folio) and shared by the groups.
+    fn sync_scene(&mut self, group: usize, canvas: &CanvasModel) -> Arc<Scene> {
+        let page = canvas.page();
+        let key = key_of(page);
+        if let Some(s) = &self.views[group].scene
+            && s.key == key
+        {
+            return Arc::clone(&s.scene);
+        }
+        let scene = self.scene_for(page);
         // The same folio of the same session at a new revision: the old tiles stand in until the new ones arrive.
         // Another folio, or another project's session: none.
         let view = &mut self.views[group];

@@ -446,8 +446,9 @@ impl App {
     }
 
     /// The shell's shortcuts. Routing order: a focused text field, then an open popup or dialog, then the
-    /// shortcuts; Escape closes the topmost popup or dialog and otherwise does nothing. F1 is handled at the end of
-    /// the frame, in every state.
+    /// shortcuts; Escape closes the topmost popup or dialog and otherwise goes to the active canvas tool through
+    /// `ui.dismiss` (WP-S2.03 §7.2). F1 is handled at the end of the frame, in every state. While a canvas has the
+    /// focus, `[` and `]` are matched as the physical keys (no AltGr on QWERTZ and AZERTY, doc 16 §4.4).
     fn route_keys(&mut self, ctx: &egui::Context, events: &mut Vec<Event>) {
         let palette_open = self.shell.palette().is_some();
         let dialog_open = self.shell.dialog().is_some();
@@ -459,6 +460,13 @@ impl App {
         if dialog_open || (ctx.text_edit_focused() && !palette_open) {
             return;
         }
+        if !palette_open
+            && self.shell.has_project()
+            && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape))
+        {
+            events.push(Event::Action("ui.dismiss", Value::Null));
+            return;
+        }
         // The focused context's chords first, then the global ones (WP-S2.03 §6.6); while the navigator has the
         // focus its own keys (arrows, Home, End, Enter) stay with it.
         let focused = match self.shell.focus() {
@@ -466,6 +474,33 @@ impl App {
             Some(Focus::Canvas(_)) => Context::Canvas,
             None => Context::Global,
         };
+        if focused == Context::Canvas && !palette_open {
+            let bracket = ctx.input_mut(|i| {
+                let mut hit = None;
+                i.events.retain(|e| match e {
+                    egui::Event::Key {
+                        physical_key: Some(k @ (Key::OpenBracket | Key::CloseBracket)),
+                        pressed: true,
+                        modifiers,
+                        ..
+                    } if hit.is_none() && !modifiers.command && !modifiers.ctrl && !modifiers.alt => {
+                        hit = Some(*k);
+                        false
+                    }
+                    _ => true,
+                });
+                hit
+            });
+            if let Some(k) = bracket {
+                let action = if k == Key::CloseBracket {
+                    "cp.next"
+                } else {
+                    "cp.previous"
+                };
+                events.push(Event::Action(action, Value::Null));
+                return;
+            }
+        }
         // One list over the focused context and the global one, most modifiers first (egui matches an extra Shift
         // or Alt logically, so Alt+Left must be asked before Left), the focused context first on a tie.
         let mut candidates: Vec<&Binding> = self
