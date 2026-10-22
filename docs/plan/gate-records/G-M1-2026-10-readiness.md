@@ -312,8 +312,8 @@ the history by `golden_changes.py`, every listed commit carries a decision ID af
 that had none (ID-550), and its `--check` runs at every delivery gate. **G-M1-09**'s development part is therefore done;
 it stays **met with conditions** until the pilot acknowledges the list, including FT-29, FT-40 and FT-63 (O9, owner
 side only). **G-M1-13**: CI-PR-08's first hosted run, on the cycle-21 delivery, reported a finding in the
-`migration_chain` target (ID-551); lane F's fix is recorded in ID-552 (pending at this pass), and "no open crash" is
-judged over the nights after it, so G-M1-13 stays **open**. FT-353 split the test jobs (ID-548); its first CI proof is
+`migration_chain` target (ID-551); lane F fixed it (a reader defect for a BOM before a library copy, and a harness bug; ID-552), and "no open crash" is
+judged over the nights after the fix, so G-M1-13 stays **open**. FT-353 split the test jobs (ID-548); its first CI proof is
 the cycle-22 delivery run, and the required checks of O12 and FT-325 take the new job names. FT-298, the page tasks and
 the owner side are unchanged. **Recount:** unchanged (6 of 11 applicable hard criteria met, 3 assumed pass, 2 open; of
 7 applicable must criteria 2 met, 1 met with conditions, 4 open). The verdict stays **not ready**. The acceptance

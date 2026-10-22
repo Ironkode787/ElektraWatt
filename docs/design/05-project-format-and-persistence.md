@@ -224,6 +224,8 @@ numbers live in `Connection.number`. A released revision's report snapshots live
 ### 3.1 Files and records
 
 - **Files.** UTF-8 without BOM, LF line endings on every platform, one record per line, a final LF, no blank lines.
+  The reader accepts one leading BOM in a JSONL file and in a library document (§3.4) and the next save rewrites the
+  file without it: a reader tolerance, not a format change (decision log ID-552; no ADR).
   A file that would be empty is not written; if it exists, it is deleted.
 - **Lines.** Each line is a compact JSON object: no whitespace outside strings. String escaping equals serde_json's
   compact output:
@@ -392,6 +394,15 @@ The exception is `lib/profiles/` (1.0): machine and label profiles keep their TO
 over the item's own text equals that of the published item. The copy metadata `{library_id, item_id, version,
 sha256}` is a leading `[copy]` table, which the hash excludes as it excludes the JSON copy metadata
 ([13](13-manufacturing-outputs.md) open question 3).
+
+*Reader tolerance (as built, cycle 22; decision log ID-552).* The writer never writes a BOM (§3.1), but the reader
+forgives one, as it does in a JSONL file: one leading BOM before a library copy is stripped and the copy is marked
+non-canonical, so the next save rewrites it without the BOM; a second BOM is a syntax error and the copy stays opaque.
+A copy with a BOM whose content is malformed is a kept document: it is preserved byte for byte, BOM included, and
+never rewritten. The copy's `sha256` (EW-CORE-014) is computed over the item's compact JSON, so a BOM never changes
+it, while the manifest hash stays over the file's bytes.
+Before this, a BOM made the copy opaque and the project failed to open with an integrity error (EW-INV-001), the
+first finding of the `migration_chain` fuzz target ([18](18-quality-security-release.md) §3.12).
 
 ### 3.5 Example records (golden project)
 
