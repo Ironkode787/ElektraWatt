@@ -16,7 +16,7 @@ use crate::proxy::LangTagS;
 use crate::tx::TxBuilder;
 
 /// `project.languages.set` (`SetProjectLanguages`): sets the project's languages and its printed formats as one
-/// value, the four fields of the wizard's step 8 (doc 16 §9.2):
+/// value, the four fields of the wizard's step 8 (doc 16 §9.2).
 ///
 /// - `source` and `translations` become `Project.languages` (`ProjectLanguages`); without `source` the project
 ///   has no languages member (texts are read in their neutral or first language);

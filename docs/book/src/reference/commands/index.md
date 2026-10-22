@@ -4,7 +4,7 @@
 
 A command is the one way to change a project (`Command` → `Transaction` → `Op`). The same command runs from the user interface, from a command log replayed by `ew apply`, from scripts and from the Session API. Each page below gives the command's registry entry, its parameters with types and constraints, and the exit codes of `ew apply`.
 
-38 commands, from the parameter schemas in [`crates/ew-commands/schemas`](https://github.com/Ironkode787/ElektraWatt/tree/main/crates/ew-commands/schemas). The catalogue of the command registry is [doc 17 §2.1](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#21-command-registry).
+42 commands, from the parameter schemas in [`crates/ew-commands/schemas`](https://github.com/Ironkode787/ElektraWatt/tree/main/crates/ew-commands/schemas). The catalogue of the command registry is [doc 17 §2.1](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#21-command-registry).
 
 | Command | Summary | Cost | Exposure | Stability |
 |---|---|---|---|---|
@@ -34,6 +34,10 @@ A command is the one way to change a project (`Command` → `Transaction` → `O
 | [`plc.config_project.create`](plc.config_project.create.md) | `plc.config_project.create` (`CreatePlcConfigProject`): a configuration project, the target PLC-software project that scopes address and symbol uniqueness (doc 10 §2.2, FR-PLC-002). | interactive | edit | preview |
 | [`plc.set_module_part`](plc.set_module_part.md) | `plc.set_module_part` (`SetModulePart`, FR-PLC-053, doc 10 §3.3 N1, §8 item 3): changes a module's part and removes the channels the new part no longer has, after the confirmation that lists them. | bulk | edit | preview |
 | [`potential.define`](potential.define.md) | names and types a potential at a CP or a junction (FR-CON-010). | interactive | edit | preview |
+| [`project.checks.set`](project.checks.set.md) | `project.checks.set` (`SetCheckSchemes`): names the project's check schemes (doc 03 §15 `CheckSettings`): the online scheme of the message panel (`active_scheme`, default `drafting`) and the scheme of the release gate and `ew check` (`release_scheme`, default `pre-delivery`, doc 15 §3.2). | interactive | human_only | preview |
+| [`project.company.set`](project.company.set.md) | `project.company.set` (`SetCompany`): sets the company of the project, the panel builder (doc 16 §9.2 step 1). | bulk | edit | preview |
+| [`project.frames.set`](project.frames.set.md) | `project.frames.set` (`SetFrameDefaults`): sets the frame defaults of the project (doc 03 §5.1 `FrameDefaults`, FR-PAG-018): the frame form of a drawn page whose `form` is unset is the entry of its page type, else `default`; a section divider takes the entry of `section_divider`; generated report pages keep the form of their block. | bulk | edit | preview |
+| [`project.languages.set`](project.languages.set.md) | `project.languages.set` (`SetProjectLanguages`): sets the project's languages and its printed formats as one value, the four fields of the wizard's step 8 (doc 16 §9.2). | bulk | edit | preview |
 | [`project.settings.set`](project.settings.set.md) | `project.settings.set` (`SetProjectSettings`): sets one member of the project settings. | bulk | edit | preview |
 | [`project.supply.set`](project.supply.set.md) | `project.supply.set` (`SetProjectSupply`): sets one member of the project's supply; in v0 only its origin, the external reference the supply comes from ("J-E-206-L", doc 20 §4.2). | interactive | edit | preview |
 | [`rep.move`](rep.move.md) | moves representations by a delta, optionally to another page (doc 06 §3.4). Moves never change connectivity (FR-CON-004). | interactive | edit | preview |
