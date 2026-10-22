@@ -171,8 +171,16 @@ Amendments 1 to 4 were accepted on 2026-10-18, amendments 5 to 7 on 2026-10-19. 
 
 ## Pending amendments
 
-None. The page-label amendment that was pending here (from
+The page-label amendment that was pending here (from
 [reports, forms and output](../design/09-reports-forms-output.md), open question 11) is settled by amendment 5.
+
+- **The canvas's GPU path** (2026-10-22, lead ruling the owner may reverse; decision log ID-506, ID-507;
+  [WP-S2.02 specification](../plan/specs/WP-S2.02-canvas-renderer.md) §3, §7). Decision 2 changes in two points:
+  `ew-render2d` renders into its own 4× multisampled offscreen texture, shown as an egui native texture, instead of
+  drawing inside an `egui_wgpu` paint callback; and glyphs are tessellated outlines drawn instanced like symbols,
+  instead of a glyph atlas. Until a scene is tessellated, and wherever the switch rule chooses it, the canvas shows a
+  tile pyramid of `ew-render-cpu` rasters (decision 3). The amendment is applied when part 2 of WP-S2.02 is built and
+  reviewed.
 
 ## Alternatives considered
 
