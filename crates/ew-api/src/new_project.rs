@@ -342,3 +342,69 @@ fn remap(v: &mut Value, map: &BTreeMap<Uuid, Uuid>) {
         _ => {}
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    const A: &str = "0190a000-0000-7000-8000-00000000000a";
+    const B: &str = "0190a000-0000-7000-8000-00000000000b";
+    const C: &str = "0190a000-0000-7000-8000-00000000000c";
+    const D: &str = "0190a000-0000-7000-8000-00000000000d";
+
+    /// A report block whose include and exclude sets are given in the order the remap left them.
+    fn block(include: &[&str], exclude: &[&str]) -> Value {
+        json!({
+            "$k": "report_block",
+            "id": "0190a000-0000-7000-8000-0000000000b1",
+            "source": {"kind": "toc"},
+            "manual": {"include": include, "exclude": exclude},
+            // an ordered list beside the sets: its order is data, and it is not sorted
+            "sort": [{"key": "zeta"}, {"key": "alpha"}, {"key": "mid"}],
+            "form": "0190a000-0000-7000-8000-0000000000f1",
+        })
+    }
+
+    /// FT-344: a set of IDs that the remap left unsorted (a report block's include and exclude lists) is put in
+    /// order at the typed reader's JSON pointer, while an ordered list beside it keeps its order.
+    #[test]
+    fn read_back_sorts_an_unsorted_id_set_and_keeps_ordered_lists() {
+        let value = block(&[C, A, B], &[D, B]);
+        // the reader refuses the value as it is: this is the branch under test
+        let Err(SchemaError::UnsortedList { path }) = Record::from_value(value.clone()) else {
+            panic!("the include list is out of order for the strict reader");
+        };
+        // the reader names the second element of whichever set it reads first
+        assert!(
+            ["/manual/include/1", "/manual/exclude/1"].contains(&path.as_str()),
+            "{path}"
+        );
+
+        let Record::ReportBlock(b) = read_back(value).expect("read back") else {
+            panic!("a report block");
+        };
+        let ids = |set: &ew_schema::Set<ew_schema::AnyId>| -> Vec<String> {
+            set.as_slice()
+                .iter()
+                .map(|id| id.as_uuid().hyphenated().to_string())
+                .collect()
+        };
+        assert_eq!(ids(&b.manual.include), [A, B, C], "the include set is sorted");
+        assert_eq!(ids(&b.manual.exclude), [B, D], "the exclude set is sorted too");
+        let keys: Vec<&str> = b.sort.iter().map(|k| k.key.as_str()).collect();
+        assert_eq!(keys, ["zeta", "alpha", "mid"], "the ordered list keeps its order");
+    }
+
+    /// A record whose sets are in order is read as it is, and a value the reader refuses for another reason is
+    /// an error that names the copy, not a panic.
+    #[test]
+    fn read_back_leaves_a_sorted_record_alone_and_reports_other_errors() {
+        let Record::ReportBlock(b) = read_back(block(&[A, B], &[])).expect("read back") else {
+            panic!("a report block");
+        };
+        assert_eq!(b.manual.include.as_slice().len(), 2);
+        let err = read_back(json!({"$k": "report_block", "id": "not an id"})).expect_err("a bad record");
+        assert!(err.to_string().contains("cannot be copied"), "{err}");
+    }
+}
