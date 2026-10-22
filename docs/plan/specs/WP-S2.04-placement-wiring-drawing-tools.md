@@ -1,8 +1,10 @@
 # WP-S2.04: placement, wiring and drawing tools (closed specification)
 
-**Status:** specified in cycle 23 (documents only) for five lead-programmer parts: part 1 (place and arrange, D4),
-part 2 (wiring, D4), part 3 (interruption points and black boxes, D4), part 4 (page items, wire markers and structure
-boxes, D5) and part 5 (images, D4, after FT-337); every part after WP-S2.03 part 2's delivery; Opus review of each ·
+**Status:** specified in cycle 23 (documents only; fix round after the independent Opus design review, whose items
+the owner's delegate ruled) for six lead-programmer parts: part 1 (place and arrange, D4), part 2 (wiring, D4), part 3
+(interruption points and black boxes, D4), part 4a (the page-item and structure-box record kinds, derivation, drawing
+and commands, D5), part 4b (their tools and the G-PP rehearsal, D4) and part 5 (images, D4, after FT-337); every part
+after WP-S2.03 part 2's delivery; Opus review of each ·
 **Date:** 2026-10-22 · **Work package:**
 [WP-S2.04](../02-work-packages.md#wp-s204-placement-wiring-and-drawing-tools) · **Decision log:** to be allocated by the
 cycle-23 design pass (the IDs continue after ID-555; §17.3 lists the entries) · **Part of:** ElektraWatt plan,
@@ -60,8 +62,9 @@ new project made by the company-standard wizard, with exact counts after each fo
 - **No navigators** (device navigator drag source, potential and IP navigators, highlighting): WP-S2.06. A headless
   `place.pick` with a `function` parameter covers the drag of an unplaced function (§7.2).
 - No strip editor, no cable editor (WP-S2.07); no clipboard or paste (WP-S2.05); no macros (WP-S1.19).
-- No change to any exported byte of Golden A, to the committed `golden/` tree, to AC-15's 609 commands or to the
-  acceptance result (88 pass); no new workspace edge; no new external crate in parts 1 to 4.
+- No change to any exported byte of Golden A, to AC-15's 609-command log, to the record logs or to the acceptance result
+  (88 pass); no new workspace edge; no new external crate in parts 1 to 4b. The one permitted change in `golden/` is
+  the reviewed re-bless of AC-16's memo-sweep line (§4.1 rule 5).
 
 ## 2. Inputs
 
@@ -126,7 +129,7 @@ to the lead for this specification and which are recorded as taken. The design p
 
 | # | Decision | Reason and trade-off |
 |---|---|---|
-| D1 | **Five parts.** Part 1 place and arrange (2.4 pw, D4); part 2 wiring (2.4 pw, D4); part 3 interruption points and black boxes (1.9 pw, D4); part 4 page items, wire markers and structure boxes (2.5 pw, D5); part 5 images (0.5 pw, D4, after FT-337 and part 4). Order: 1 → 2 → {3 ∥ 4} → 5 (§17.2) | Each part is one lane-cycle; the cut follows the code: part 4 is the only one that changes the file format and the derivation, so it alone is D5; part 5 waits for FT-337's asset store, which is due before G-PP anyway. Against the cycle's first sketch, free texts, graphics and images leave part 1, and wire markers and structure boxes join part 4, because all of them need the record kinds that part 4 implements |
+| D1 | **Six parts.** Part 1 place and arrange (2.4 pw, D4); part 2 wiring (2.4 pw, D4); part 3 interruption points and black boxes (1.9 pw, D4); part 4a the page-item and structure-box record kinds with derivation, drawing and commands (1.6 pw, D5); part 4b the tools of those kinds and the G-PP rehearsal (0.9 pw, D4); part 5 images (0.5 pw, D4, after FT-337 and part 4a). Order: 1 → 2 → {3 ∥ 4a} → 4b → 5 (§17.2) | Each part is one lane-cycle; the cut follows the code: part 4a is the only one that changes the file format and the derivation, so it alone is D5, and its tools (4b) are split off so the D5 lane stays small (review item 14); part 5 waits for FT-337's asset store, which is due before G-PP anyway. Against the cycle's first sketch, free texts, graphics and images leave part 1, and wire markers and structure boxes join part 4, because all of them need the record kinds that part 4 implements |
 | D2 | **Ruling (delegated): every tool commits through registered commands only, existing or new** (ID-443). No tool, popup or host step writes a record any other way; eight new commands and five amended ones carry this package (§5); each new one has its schema, catalogue row, DSL verb and fuzzer arm | One mutation path, scriptable from `.ewcmd`, MCP and the blind drafter alike; a gesture the headless mode cannot drive does not exist |
 | D3 | **Ruling (delegated): previews use `Session::preview` (WP-S2.03 D9); there is no second preview model.** Every tool's semantic ghost is the derived diff of the preview of the very command it would commit; geometry ghosts are overlay items computed from the page tables | Previews stay exact because they are the real command (NFR-REL-08); a separate model would be a second semantics |
 | D4 | **Ruling (delegated): the autoconnect ghosts are overlay-only until commit.** Proposals are computed in `ew-viewmodel` from the page tables (doc 06 §5.2) and drawn as dashed overlay stubs; they reach the model only as the `connect` hints of the committed `device.place` (ADR-0007), and the 80 ms preview runs that full command with its hints | Autoconnect stays an editing aid, never model semantics; Escape or Alt leaves no trace (FR-CON-003) |
@@ -135,7 +138,7 @@ to the lead for this specification and which are recorded as taken. The design p
 | D7 | **Routing: one pure orthogonal router, used by the tools; the command stores the route it is given.** The A* of doc 06 §5.4 is the pure function `ew_commands::route::auto_route`, re-exported as `ew_api::routing::auto_route`; the Wire tool calls it for the ghost and passes the result as `connection.draw`'s `route`. `connection.draw` keeps its as-built semantics (an empty route stays route-less and is drawn provisionally), so Golden A's output does not change. Split on insert (normaliser 7) works on connections with a stored route, which every connection drawn with the Wire tool has; the route editor's first edit of a route-less connection stores its drawn polyline (§8.4) | A router inside `connection.draw` would change the golden output (every golden connection is route-less) and AC-15; a pure function in `ew-commands` is the one implementation that the commands' re-solve of FT-18 will reuse. Doc 06 §3.2's last paragraph and §5.4 are amended |
 | D8 | **The starter library is the shipped `content/symbols` and `content/fndefs`, compiled into `ew_library::starter`.** The picker lists the project's embedded symbol and part copies and the starter symbols; choosing a starter symbol that is not embedded commits `library.embed` with the symbol and its FnDef (as far as not embedded) as its own undo step, then floats it. The picker shows the `@qet10` symbols on a page whose connection grid is the QET grid and the others elsewhere | A new project has no symbol copies; embedding is a model change (a gesture of its own, like the wizard's form embedding, ID-545), so a first placement costs two undo steps, against a composite command that no other front-end needs |
 | D9 | **Two placement targets join `PlaceTarget`:** `from_part` (part-first placement: the device, its part use and every template function, the chosen one placed, the rest unplaced; FR-UI-017, FR-DEV-017) and `new_terminal` (one terminal of an existing strip, created and placed in one transaction; AC-28's ghost step). A new strip is its own step (`strip.new` → `device.create` with the strip aspect) | One gesture, one transaction (doc 06 §3.9) for the placements the pilot needs on folio 101; the strip editor stays WP-S2.07 |
-| D10 | **Part 4 implements the reserved kinds `page_item` (typed variants `graphic`, `free_text`, `wire_marker`; `image` in part 5; every other variant kept verbatim as an unknown variant) and `structure_box`**, with their invariants, drawing, PDF output and the structure-box containment in `structure_of` (the hook of `ew-derive`'s `structure.rs`). No format-version bump: rank, file and ownership are fixed since WP-S1.02 and an older reader keeps the records verbatim (doc 05 §10.3). Their fields are edited with `fields.set`, which gains the two kinds | FR-SYM-023 to FR-SYM-025 map to this package alone; `fields.set` is the established edit path and gives WP-S2.05's grid the two kinds for free. This closes WP-S1.12's "structure boxes" scope item |
+| D10 | **Part 4a implements the reserved kinds `page_item` (typed variants `graphic`, `free_text`, `wire_marker`; `image` in part 5; every other variant kept verbatim as an unknown variant) and `structure_box`**, with their invariants, drawing, PDF output and the structure-box containment in `structure_of` (the hook of `ew-derive`'s `structure.rs`). No format-version bump, on the basis of ADR-0011 amendment 4 (ID-334): implementing a kind the registry reserves with a rank and an ownership rule is additive within the unreleased format 0.1, `schemas/0.1` re-blessed, and an older build keeps the records verbatim (doc 05 §10.3). The design pass writes the shapes of §10.1 into doc 03 §5 and §6 and doc 05 §2.2 **before part 4a starts** (§17.6). Their fields are edited with `fields.set`, which gains the two kinds | FR-SYM-023 to FR-SYM-025 map to this package alone; `fields.set` is the established edit path and gives WP-S2.05's grid the two kinds for free. This closes WP-S1.12's "structure boxes" scope item |
 | D11 | **No undo coalescing in this package.** Each nudge, rotate press and junction reorder is one undo step, in the window and headless alike | Headless commits go through `run_script`, which carries no coalescing key; equal undo stacks in both front ends weigh more than doc 06 §3.9's merging, which a follow-up restores for both (§17.4) |
 | D12 | **Commands that need derived data take it from the tool.** `ip.arrange` takes the new order; the tool sorts by name or by derived potential name. No new command reads a memoised query inside its transaction | The transaction-read rule (ID-525) |
 | D13 | **Moves are in grid steps.** `rep.move` gains `steps: [kx, ky]`: each moved position becomes the grid point at its index plus the steps, exactly, and routes follow per moved CP (§5.2). The tools always send `steps` | On the QET grid a uniform nm delta cannot keep several representations on `round(k·g)` (D3 of WP-S1.04 refuses them); grid indices are the rule of doc 06 §5.7 and ADR-0005 |
@@ -147,9 +150,11 @@ to the lead for this specification and which are recorded as taken. The design p
 
 ### 4.1 Roles
 
+Part 4 below means part 4a, except the `ew-viewmodel` and `ew-ui` cells, which are part 4b.
+
 | Crate | Layer | Part 1 | Part 2 | Part 3 | Part 4 | Part 5 |
 |---|---|---|---|---|---|---|
-| `ew-viewmodel` | GPL | `tools/{place,picker,move_keys,transform}.rs`, Select's drag rows, framework additions (§6), actions, transcript, describe | `tools/{wire,autoconnect,route_edit,junction_editor}.rs` | `tools/{ip,black_box}.rs` | `tools/{text,graphic,marker,structure_box}.rs` | `tools/image.rs` |
+| `ew-viewmodel` | GPL | `tools/{place,picker,move_keys,transform}.rs`, Select's drag rows, framework additions (§6), actions, transcript, describe | `tools/{wire,autoconnect,route_edit,junction_editor}.rs` | `tools/{ip,black_box}.rs` | `tools/{text,graphic,marker,structure_box}.rs` (4b) | `tools/image.rs` |
 | `ew-commands` | GPL | `PlaceTarget` variants, `rep.move` `steps`, `rep.exchange_symbol` | `route.rs` (the router), `project.drawing.set` | `connection.draw_to_ip`, `ip.arrange`, `box.reshape` | `box.structure`, `item.place`, `marker.place`; `rep.move` `items`; `edit.delete` and `fields.set` kinds; `project.drawing.set` `marker_mode` | `item.place` `image` |
 | `ew-schema` | GPL | — | — | — | `PageItem`, `StructureBox` records; kinds `Implemented` | `PageItemKind::Image` |
 | `ew-model` | GPL | — | — | — | the invariants of §10.1 and the delete policies of the two kinds | — |
@@ -166,15 +171,22 @@ to the lead for this specification and which are recorded as taken. The design p
 `unsafe`; no unordered output; one clock; `ew-render2d` names no egui type):
 1. **Only the public items of §4.3 and the commands of §5** are added below the shell, each first and in its own commit
    with tests. Any other missing item stops the lane.
-2. **No new workspace edge and no new package** in `Cargo.lock` in parts 1 to 4 (`cargo tree -p elektrawatt` package
+2. **No new workspace edge and no new package** in `Cargo.lock` in parts 1 to 4b (`cargo tree -p elektrawatt` package
    count equal before and after, stated in the commit message). Part 5 may add only what FT-337 already added.
 3. **One mutation path.** Every state change of the shell is a registry action on `ShellModel::dispatch`; every model
    change is a command committed by the host (WP-S2.03 §7.3). The picker's embed step and the strip step are commits of
    the host, not of a tool.
 4. **Tools never call the `Session`**; they may call the pure functions `ew_api::routing::auto_route` and
    `ew_api::geometry::*`.
-5. **`golden/` is untouched**, the acceptance result stays at 88 pass, and every new setting is absent in Golden A, so
-   every exported byte of Golden A is unchanged; each part's lane proves it by the existing golden output tests.
+5. **Golden A's outputs do not change.** Every new optional command member and record or view field (`steps`,
+   `items`, `marker_mode`, the page view's crossings field) is `#[serde(default, skip_serializing_if = …)]`, so AC-15's
+   609-command log, the record logs and every exported byte cannot change; every new setting is absent in Golden A;
+   the acceptance result stays at 88 pass, proven by the existing golden output tests. **The one exception** is AC-16's
+   memo-sweep line in `golden/J-E-2416/expected/acceptance_headless.md` ("2231 keys of 69 memoised families"): the new
+   memoised families (`drawing_settings` in part 2; `rep_structure_box` and `ip_structure` in part 4a) change its
+   counts. The lane that adds a family re-blesses **that one line only**, as a reviewed change named in its commit
+   message (the FT-319 precedent, ID-524), and runs `cargo nextest run -p ew` as well, because the CLI prints the
+   family count (ID-470). Nothing else in `golden/` changes.
 
 ### 4.2 Coordinates
 
@@ -188,7 +200,7 @@ checks it (a CP end's vertex equals the CP's position exactly).
 | Part | Crate | Item | Contract |
 |---|---|---|---|
 | 1 | `ew-library` | `pub mod starter` with `pub struct StarterItem { pub key: &'static str, pub kind: StarterKind, pub json: &'static str }`, `pub enum StarterKind { Symbol, Fndef }`, `pub fn items() -> &'static [StarterItem]` | Every file of `content/symbols/*.json`, `content/symbols/qet10/*.json` and `content/fndefs/*.json` compiled in with `include_str!`, in key order; `key` is the file stem. A test pins the count against the directory listing and that each `json` parses as the `lib/` document `library.embed` takes |
-| 1 | `ew-api` | `pub struct PlaceCatalogue { pub symbols: Vec<CatalogueSymbol>, pub parts: Vec<CataloguePart> }`; `pub struct CatalogueSymbol { pub key: String, pub copy: Option<Uuid>, pub fndef_key: String, pub rep_type: String, pub letter: Option<String>, pub black_box: bool, pub terminal: bool, pub allowed: bool }`; `pub struct CataloguePart { pub copy: Uuid, pub part_number: String, pub manufacturer: String, pub functions: Vec<CatalogueTemplateFn> }`; `pub struct CatalogueTemplateFn { pub index: u16, pub fndef_key: String, pub main: bool, pub symbol: Option<String>, pub black_box: bool }`; `pub fn Session::place_catalogue(&self, folio: &str) -> Option<PlaceCatalogue>` | For the page with that folio (`None` for an unknown folio or a generated page). `symbols`: every embedded symbol copy and every starter symbol whose key is not embedded, keeping only the grid family of the page (keys ending `@qet10` on a page whose grid is `7_937_500/3` nm, the others elsewhere), in key order; `copy` the copy ID when embedded; `letter` the project identifier set's letter for the FnDef's first category (`ew-rds` mapping), `None` without a mapping; `black_box` when the FnDef's `contact_kind` is `black_box`; `terminal` when its first category is `Terminal`; `allowed` when the symbol's rep type is one the page type allows (`allowed_rep_types`). `parts`: every embedded part copy with a non-empty `function_template`, by part number; `functions` in template order, `symbol` the key of the first `symbols` row (allowed) that draws that FnDef, else `None` |
+| 1 | `ew-api` | `pub struct PlaceCatalogue { pub symbols: Vec<CatalogueSymbol>, pub parts: Vec<CataloguePart> }`; `pub struct CatalogueSymbol { pub key: String, pub copy: Option<Uuid>, pub fndef_key: String, pub rep_type: String, pub letter: Option<String>, pub black_box: bool, pub terminal: bool, pub allowed: bool }`; `pub struct CataloguePart { pub copy: Uuid, pub part_number: String, pub manufacturer: String, pub functions: Vec<CatalogueTemplateFn> }`; `pub struct CatalogueTemplateFn { pub index: u16, pub fndef_key: String, pub main: bool, pub symbol: Option<String>, pub black_box: bool, pub cps: Vec<(u16, String)> }`; `pub fn Session::place_catalogue(&self, folio: &str) -> Option<PlaceCatalogue>` | For the page with that folio (`None` for an unknown folio or a generated page). `symbols`: every embedded symbol copy and every starter symbol whose key is not embedded, keeping only the grid family of the page (keys ending `@qet10` on a page whose grid is `7_937_500/3` nm, the others elsewhere), in key order; `copy` the copy ID when embedded; `letter` the project identifier set's letter for the FnDef's first category (`ew-rds` mapping), `None` without a mapping; `black_box` when the FnDef's `contact_kind` is `black_box`; `terminal` when its first category is `Terminal`; `allowed` when the symbol's rep type is one the page type allows (`allowed_rep_types`). `parts`: every embedded part copy with a non-empty `function_template`, by part number; `functions` in template order, `symbol` the key of the first `symbols` row (allowed) that draws that FnDef, else `None`; `cps` the entry's `cps` in template order, each with its `cp_pattern` index and designation (what the black box tool lays out, §9.4) |
 | 1 | `ew-api` | `pub fn Session::starter_embed(&self, key: &str) -> Option<serde_json::Value>` | The `library.embed` parameters (`{"copies": [...]}`) for the starter symbol `key` and its FnDef, leaving out what is embedded already; `None` when `key` is not a starter symbol or both are embedded. The host commits it through the normal path (§6.4) |
 | 1 | `ew-api` | `pub struct SymbolShape { pub copy: Uuid, pub key: String, pub cps: Vec<ShapeCp>, pub body: [i64; 4], pub outline: Vec<Vec<(i64, i64)>>, pub rep_type: String, pub fndef: Uuid }`; `pub struct ShapeCp { pub symbol_cp: u16, pub fn_cp: u16, pub at: (i64, i64), pub dir: Dir }`; `pub enum Dir { Up, Down, Left, Right }`; `pub fn Session::symbol_shape(&self, copy: Uuid) -> Option<SymbolShape>` | The embedded symbol copy at orientation A (R0), relative to its insertion point, in page nm: every symbol CP with its FnDef CP and direction; `body` the bounds of its graphics without texts; `outline` every stroked or filled path of its graphics (not texts) flattened to polylines with a tolerance of 50 000 nm, in paint order. `None` for an unknown copy |
 | 1 | `ew-api` | `pub mod geometry` with `pub fn orient_point(o: u8, p: (i64, i64)) -> (i64, i64)`, `pub fn orient_dir(o: u8, d: Dir) -> Dir`, `pub fn orient_then(o: u8, rotate: u8, mirror: bool) -> u8`, `pub fn variant_letter(o: u8) -> char` | Pure functions equal to `ew_units::Orient2`'s mapping (`o` 0..=7 is A..H = R0, R90, R180, R270, M0, M90, M180, M270, doc 06 §2.5; `orient_then` composes as `rep.transform` does). A test pins equality with `Orient2` for all 8 × 4 × 2 combinations |
@@ -210,7 +222,7 @@ grows from 42 to **50** registered commands. Positions are page nm; an `IdS` is 
 | Command (part) | Parameters | Semantics | Rejected |
 |---|---|---|---|
 | `rep.exchange_symbol` (1; FR-SYM-022) | `rep`, `symbol` (an embedded symbol copy), `pin_map?: [{symbol_cp, function_cp}]` | The representation's `symbol` becomes `symbol`, `variant` 0, orientation kept. Without `pin_map` the map is derived: when the new symbol's FnDef is the function's `def`, symbol CP → its `fn_cp`; otherwise by designation (the new FnDef CP's designation equal, ASCII case-insensitively, to a designation of the function's FnDef). Text-slot overrides whose slot index the new symbol has are kept, the others dropped with a notice. Routes of connections at the representation's CPs follow each CP's displacement (`geometry::follow_end`). Function CPs drawn before and not drawn now are listed as notices. Interactive; outcome the representation | A connected function CP (a connection on this page ends there) that the new map does not draw; a rep type the page does not allow; a symbol copy or representation that does not exist; an IP representation |
-| `project.drawing.set` (2; FR-CON-031) | `crossings?: "plain" or "hops"` (part 4 adds `marker_mode`, §5.2) | Writes `settings.extra.drawing` (merging; unknown members kept; `null` removes a member). Absent `crossings` means plain. Interactive (no derived diff: presentation only) | A non-object `drawing` member found in the project; an unknown value; no member given |
+| `project.drawing.set` (2; FR-CON-031) | `crossings?: "plain" or "hops"` (part 4a adds `marker_mode`, §5.2) | Writes `settings.extra.drawing` (merging; unknown members kept; `null` removes a member). Absent `crossings` means plain. Interactive (no derived diff: presentation only) | A non-object `drawing` member found in the project; an unknown value; no member given |
 | `connection.draw_to_ip` (3; doc 06 §4.4 "P") | `a` (`EndpointParam`), `page`, `route` (ending at the IP's CP), `kind?`, `ip: { symbol, fndef?, pos, orient, name, direction, star_source?, sort? }` | One transaction: the IP function and its representation exactly as `ip.place` creates them, then the connection from `a` to the IP's single CP exactly as `connection.draw` creates it (an `on_connection` end splits as there). Outcome the connection | As `ip.place` and `connection.draw`; an IP symbol whose FnDef has not exactly one CP |
 | `ip.arrange` (3; FR-XRF-013) | `ips: [IdS]` (IP functions in the new order, at least two, each with exactly one representation, all on one page), `set_sort: bool` | The slots are the current positions of the given IPs' representations sorted by `(y, x)`; slot `i` goes to `ips[i]`. Routes of connections at moved IP CPs follow (`follow_end`). With `set_sort`, `IpSpec.sort` becomes `i + 1`. Interactive; outcome none | Fewer than two IPs; a function that is not an IP; representations on different pages; an IP listed twice |
 | `box.reshape` (3; FR-DEV-039) | `rep` (a black-box representation with a `box`), `outline: [Pt2]` (relative to `pos`, at least 3 vertices, each on the connection grid in absolute terms), `cps?: [BoxCp]` | Replaces the outline. With `cps`, the CPs are replaced (indices distinct, each on the outline and on the grid). Without, every CP is re-projected: it keeps the index of the edge it lay on and its offset from that edge's first vertex, clamped to the new edge's length and snapped to the grid point along the edge nearest to it; a CP whose edge index no longer exists moves to the nearest grid point on the nearest remaining edge, listed as a notice (doc 06 §8 item 13). Inner graphics are kept. Routes follow each moved CP. Interactive | An outline with fewer than three vertices or an off-grid vertex; a CP off the outline or off the grid; two CPs with one index; a representation without a box |
@@ -234,10 +246,10 @@ schemas, reference pages, DSL verbs and fuzzer arms are updated likewise.
 | Command (part) | Amendment |
 |---|---|
 | `device.place`, `box.black` (1) | `PlaceTarget` gains **`from_part { part: IdS, template: u16, letter: Ident }`**: a device `{tag: {letter, counter: none}, parts: [the part, quantity 1]}` and one function per entry of the part copy's `function_template` (def = the entry's FnDef copy, which must be embedded; role main for `main: true`, else auxiliary; kind `black_box` when the FnDef's `contact_kind` is `black_box`, else normal; CPs per the template's `cps`, doc 03 §7); the representation draws entry `template`; the others stay unplaced. `device.place` requires the symbol's FnDef to equal entry `template`'s and that entry not to be a black box; `box.black` requires entry `template` to be a black box. **`new_terminal { strip: IdS, designation: Ident, seq?: u32 }`** (`device.place` only): one terminal device created as `terminal.add` creates it (letter, counter and structure from the strip, the next sequence number when `seq` is absent) with its main function `{def: the symbol's FnDef}`, then placed. Rejected: a missing part copy or template index; a template FnDef not embedded (hint: embed it); a strip that is not a strip; a used designation or sequence; `new_terminal` on `box.black` |
-| `rep.move` (1; part 4 adds `items`) | **`steps?: [kx, ky]`** (mutually exclusive with a non-zero `delta`): each representation's position becomes `Grid::at(index(pos) + steps)` per axis, exactly; a route vertex coordinate on the grid moves by the same number of steps, a CP-exact coordinate (doc 06 §5.7) moves with its CP; `follow_end` uses the moving CP's own displacement. Rejected: both `steps` and a non-zero `delta`; a representation whose position is not on the grid (it cannot be moved by steps; the message names it). **Part 4: `items?: [IdS]`**: page items and structure boxes translated by `delta`, or by `round(steps × g)` per axis when `steps` is given; `reps` and `items` together name at least one record; every item on the page of the moved representations |
-| `edit.delete` (4) | `KindName` gains `page_item` and `structure_box`. Deleting a connection removes it from every wire marker's list; a wire marker left without connections is deleted in the same plan (§10.1) |
-| `fields.set` (4) | `SETTABLE` gains `page_item`: `kind` (a dotted path below it, such as `kind.free_text.text`, is allowed) and `layer`; and `structure_box`: `outline`, `style`, `caption`, `assigns`, `external` |
-| `project.drawing.set` (4; FR-CON-024) | **`marker_mode?: "all", "deviations", "explicit", "none" or null`**, written to `settings.extra.drawing.marker_mode`; absent means the as-built `show_marker` rule (D16); read by the derivation of §10.2 |
+| `rep.move` (1; part 4a adds `items`) | **`steps?: [kx, ky]`** (mutually exclusive with a non-zero `delta`): each representation's position becomes `Grid::at(index(pos) + steps)` per axis, exactly; a route vertex coordinate on the grid moves by the same number of steps, a CP-exact coordinate (doc 06 §5.7) moves with its CP; `follow_end` uses the moving CP's own displacement; a route coordinate that is neither on the grid nor CP-exact moves by `round_half_away(steps × num / den)` on that axis (as built, `rep.move` does not grid-check routes; FT-18 keeps the re-solve). **`steps` with `page`** (a cross-page move) is rejected: the tools never move across pages, and a script's cross-page move keeps `delta` as built. Rejected also: both `steps` and a non-zero `delta`; a representation whose position is not on the grid (it cannot be moved by steps; the message names it). **Part 4a: `items?: [IdS]`**: page items and structure boxes translated by `delta`, or by `round_half_away(steps × num / den)` per axis when `steps` is given; `reps` and `items` together name at least one record; every item on the page of the moved representations (or on one page when no representation is named). Both new members are `skip_serializing_if` absent (`steps` when `None`, `items` when empty), so every existing log serialises unchanged (§4.1 rule 5) |
+| `edit.delete` (4a) | `KindName` gains `page_item` and `structure_box`. Deleting a connection removes it from every wire marker's list; a wire marker left without connections is deleted in the same plan (§10.1) |
+| `fields.set` (4a) | `SETTABLE` gains, for `page_item`, exactly: `layer`, `kind.graphic.shape`, `kind.graphic.stroke`, `kind.graphic.dash`, `kind.graphic.fill`, `kind.free_text.text`, `kind.free_text.bind`, `kind.free_text.at`, `kind.free_text.angle`, `kind.free_text.style`, `kind.free_text.align`, `kind.wire_marker.at`, `kind.wire_marker.angle` (not `kind` as a whole, not a path of another variant than the record's, and not `kind.wire_marker.connections`: a group is changed by deleting and placing it); for `structure_box`: `outline`, `style`, `caption`, `assigns`, `external`. After the value is read back into the record, the same validation as `item.place`, `marker.place` and `box.structure` applies (degenerate shapes, an unknown `bind`, an empty text without `bind`, fewer than three outline vertices, a node of the wrong aspect, a missing external reference), refused at `/value` |
+| `project.drawing.set` (4a; FR-CON-024) | **`marker_mode?: "all", "deviations", "explicit", "none" or null`**, written to `settings.extra.drawing.marker_mode`; absent means the as-built `show_marker` rule (D16); read by the derivation of §10.2 |
 
 `connection.draw`, `connection.route`, `junction.edit`, `ip.place`, `ip.continue`, `rep.transform` and `library.embed`
 are used as built.
@@ -302,7 +314,7 @@ priorities are the tool's (§8.2). All snapping is on grid indices in `i128` (AD
 ### 6.6 Typed selection and picking
 
 `Selection` items stay `EntityRef`s; `selection_kinds(&PageTables)` resolves each to `Rep`, `Connection`, `Junction`,
-`Item` or `StructureBox` (part 4) and leaves out entities the tables do not hold (frame, texts of generated pages).
+`Item` or `StructureBox` (part 4a) and leaves out entities the tables do not hold (frame, texts of generated pages).
 Picking keeps WP-S2.02's entity rectangles (smallest area containing the point inflated by 4 points, ties to the later
 in paint order); a connection is picked when the exact integer distance from the point to a segment of its `polyline`
 is at most 4 points at the current zoom (ties by smaller distance, then by ID).
@@ -359,21 +371,44 @@ node's live region announces `Place <key>: <target>, variant <letter>, at <cell>
 
 ### 7.3 Moving (Select's drag rows and the keyboard move)
 
-The rows of doc 06 §4.3 join S2.03's Select table (the probe's pattern):
+**Select's merged table.** This table replaces S2.03 §7.6's Select table for the shipped tool; the rows marked S2.03
+are unchanged from there, the others are added by the part named. A press is classified by §6.6's picking in this
+order: a link (S2.03); a segment of a **selected** connection that is neither its first nor its last segment (part
+2); a **movable** entity, that is a representation, and from part 4a a page item or a structure box; any other entity
+(a connection that is not selected or whose end segment is hit, a junction, and before part 4a a page item); empty
+canvas. **The conflict with S2.03 is resolved so:** S2.03's row "pressed → move beyond 3 points → rubber-band" stays
+for a press on a non-movable entity (so a band can still start on a wire), and a press on a movable entity drags it.
 
-| State | Event | Next | Output |
-|---|---|---|---|
-| pressed | move beyond 3 points, the pressed entity a representation | dragging | `Transient`: `Ghost` of the moved entities' rectangles offset by the step displacement, rubber bands and the readout (§6.7). The moved set is the selection when the pressed entity is selected, else the pressed entity alone |
-| dragging | move | dragging | `Transient`; steps `k = round(page displacement × den / num)` per axis (`i128`, half away from zero) |
-| dragging | `Dwell { ms ≥ 80 }` | dragging | `Preview(rep.move { reps, steps: k })` when `k ≠ (0, 0)` |
-| dragging | `Release` | idle | `Commit(rep.move { reps, steps: k })` when `k ≠ (0, 0)`, else `Select` (as a click) |
-| dragging | `Escape` | idle | `Cancel` |
-| any with a selection | `tool.move` (M) | moving | the grid cursor is placed at the primary representation's insertion point when not shown; `Transient` |
-| moving | `CursorMove` | moving | steps = the cursor's grid displacement since entry; `Transient` |
-| moving | `Dwell`, `Activate`, `Escape` | moving, idle, idle | as dragging: `Preview`, `Commit`, `Cancel` |
+| State | Event (condition) | Next | Output | Part |
+|---|---|---|---|---|
+| idle | press on a link | idle | `Follow` on release within 3 points | S2.03 |
+| idle | press on a segment of a selected connection (not its first or last segment) | dragging (segment) | `None` | 2 (§8.4) |
+| idle | press on a movable entity | pressed (movable) | `None` | 1 |
+| idle | press on another entity | pressed (other) | `None` | S2.03 |
+| idle | press on empty canvas | rubber-band | `Transient` (the band) | S2.03 |
+| pressed (either) | release within 3 points | idle | `Select`: replace with the entity; Shift adds; Ctrl toggles | S2.03 |
+| pressed (movable) | move beyond 3 points | dragging (move) | `Transient`: `Ghost` of the moved entities' rectangles offset by the step displacement, rubber bands and the readout (§6.7). The moved set is the movable part of the selection when the pressed entity is selected, else the pressed entity alone (a page item or structure box dragged alone moves alone, `rep.move { reps: [], items: [it], steps }`, part 4a) | 1, 4a |
+| pressed (other) | move beyond 3 points | rubber-band | `Transient` | S2.03 |
+| rubber-band | move; release | rubber-band; idle | as S2.03 | S2.03 |
+| dragging (move) | move | dragging (move) | `Transient`; steps `k = round(page displacement × den / num)` per axis (`i128`, half away from zero) | 1 |
+| dragging (move) | `Dwell { ms ≥ 80 }` | dragging (move) | `Preview(rep.move { reps, items, steps: k })` when `k ≠ (0, 0)` | 1 |
+| dragging (move) | `Release` | idle | `Commit(rep.move { reps, items, steps: k })` when `k ≠ (0, 0)`, else `Select` (as a click) | 1 |
+| dragging (segment) | move | dragging (segment) | `Transient`: the route with the segment moved perpendicular to itself in grid steps, its neighbours stretched, the readout | 2 |
+| dragging (segment) | `Dwell { ms ≥ 80 }` | dragging (segment) | `Preview(connection.route)` | 2 |
+| dragging (segment) | `Release` | idle | `Commit(connection.route { connection, route })` when moved, else `Select` (as a click on the connection) | 2 |
+| dragging (either) | `Escape` | idle | `Cancel` | 1, 2 |
+| idle with a movable selection | `tool.move` (M) | moving | the grid cursor is placed at the primary entity's anchor (a representation's insertion point, an item's first point) when not shown; `Transient` | 1 |
+| moving | `CursorMove` | moving | steps = the cursor's grid displacement since entry; `Transient` | 1 |
+| moving | `Dwell`, `Activate`, `Escape` | moving, idle, idle | as dragging (move): `Preview`, `Commit`, `Cancel` | 1 |
+| idle with a selection | `Key(RotateCw, RotateCcw, MirrorX, MirrorY, NextVariant, NextRepType)` | idle | §7.4 | 1 |
+| idle | `Key(ConnectOnMove)` | idle | `None`; the action is refused `reason-connect-on-place` (§8.3) | 2 |
+| idle | double click on a selected free text | idle | the host opens the text popup (§10.5); `None` | 4b |
+| any | `Activate` | as a press and release at the grid cursor | — | S2.03 |
+| idle | `Escape` | idle | `Cancel` with a selection (cleared by the host), else `None` | S2.03 |
 
-Connections, junctions and (until part 4) page items in a selection are not moved; a selection without representations
-refuses `tool.move` with `reason-nothing-to-move`.
+The state names in the transcript are `idle`, `pressed`, `rubber-band`, `dragging` and `moving`. Connections and
+junctions in a selection are never moved, and page items and structure boxes are moved only from part 4a; a selection
+without a movable entity refuses `tool.move` with `reason-nothing-to-move`.
 
 ### 7.4 Transform and delete on a selection
 
@@ -437,6 +472,9 @@ canvas ghost exchange symbol "test.signal-lamp@qet10" unmapped "3"
 `VOCABULARY` gains `picker`, `rows`, `symbol`, `part`, `function`, `main`, `embedded`, `starter`, `ghost`, `place`,
 `variant`, `rep`, `target`, `new`, `join`, `existing`, `terminal`, `strip`, `letter`, `tag`, `move`, `steps`,
 `exchange`, `unmapped`, `floating`, `dragging`, `moving` and `readout` (28 words); FT-314's harness help lists them.
+The lines above also use `filter` and `row`, which WP-S2.03 part 1 adds (its 27 words, ID-537), and `of`, `at`,
+`mm`, `box` and `item`, which exist; part 1's vocabulary test asserts that every token of these lines is in
+`VOCABULARY`, and if WP-S2.03 part 1 has not added `filter` or `row`, part 1 adds them and states the new count.
 
 ## 8. Part 2: wiring
 
@@ -446,9 +484,11 @@ Input: the two ends (point and leaving direction, `None` for a junction or a spl
 `body` of every representation on the page except those of the two ends, inflated by one grid step), the grid and the
 search area (the bounding box of both ends grown by 4 grid steps, clipped to the page's drawing area). Algorithm: A*
 over grid nodes inside the area, 4-neighbourhood, cost 1 per step and 4 per bend, the heuristic the Manhattan distance
-in steps; a CP end first leaves one step along its direction (the stub; a stub into an obstacle is allowed). Ties are
-broken lexicographically on (bends, length, first-turn direction in the order right, down, left, up), so the result is
-deterministic (NFR-REL-07). Without a path inside the area the fallback is the provisional L route of `ew-scene`'s
+in steps; a CP end first leaves one step along its direction (the stub; a stub into an obstacle is allowed). Among
+the paths of least cost, the router returns the one that is least by (bends, length, move sequence), where the move
+sequence is the whole list of unit moves from `from` to `to`, each move ranked right < down < left < up, compared
+lexicographically move by move (not only the first turn); the A* frontier is ordered by (f, g, that sequence's prefix),
+so the result is deterministic (NFR-REL-07) and independent of the obstacle order. Without a path inside the area the fallback is the provisional L route of `ew-scene`'s
 rule (the corner from the ends' own coordinates). Output: the full vertex list, interior collinear vertices removed,
 interior vertices on the grid, the ends exact. Pure, integer-only, `i128` where products occur; a unit-test table
 covers straight, L, Z, obstacle detours, the fallback and the tie rule.
@@ -482,7 +522,7 @@ Escape cancels` (doc 16 §4.5).
 ### 8.3 Autoconnect proposals (FR-CON-003, FR-CON-008; doc 06 §5.2)
 
 `autoconnect::proposals(shape at pos and orient, tables) -> Vec<Proposal>` in `ew-viewmodel`, used by Place (on every
-move of the ghost) and by Select's drag (shown only; committed only after `Key(ConnectOnMove)`):
+move of the ghost) and by Select's drag (shown only, never committed in this package):
 
 1. On a page type with autoconnect off (doc 06 §2.2) nothing.
 2. For each ghost CP without a connection, ascending symbol CP index: walk from the CP along its direction one grid step
@@ -503,10 +543,11 @@ never committed: **moves never add connections in this package**, and `tool.conn
 
 ### 8.4 Route edit (FR-CON-007)
 
-Select gains a row: a press on a segment of a **selected** connection that is not its first or last segment starts
-`dragging-segment` (state name `dragging`): a horizontal segment moves vertically and a vertical one horizontally, in
-grid steps; its two neighbours stretch; the readout shows the offset; `Release` or `Activate` commits
-`connection.route { connection, route }`, `Escape` cancels. The keyboard form is `tool.route_edit` (Edit ▸ Edit route)
+The pointer form is the `dragging (segment)` rows of Select's merged table (§7.3): a press on a segment of a
+**selected** connection that is not its first or last segment drags it; a horizontal segment moves vertically and a
+vertical one horizontally, in grid steps; its two neighbours stretch; the readout shows the offset; `Release` commits
+`connection.route { connection, route }`, `Escape` cancels. A press on the first or last segment, or on an unselected
+connection, is a press on another entity (selection or rubber band, as S2.03). The keyboard form is `tool.route_edit` (Edit ▸ Edit route)
 on one selected connection: Tab cycles the movable segments, the grid cursor's row or column is the new position,
 Enter commits. On a route-less connection the first edit (pointer or keyboard) starts from its drawn `polyline`, so
 the commit stores it with the moved segment (the remedy of §8.3 item 3).
@@ -524,8 +565,9 @@ orientation), `junction.wiring` with `wiring`. The popup refreshes from the next
 ### 8.6 Crossings as hops (FR-CON-031)
 
 `project.crossings` (Project ▸ Drawing ▸ Show crossings as hops, checked) commits `project.drawing.set { crossings }`.
-`ew-derive` reads `settings.extra.drawing` through a tracked read (`drawing_settings`), and `ew-api`'s page view passes
-the value to `ew-scene`. **`ew-scene::hops`**: for every proper crossing of a horizontal segment of one connection and a
+`ew-derive` reads `settings.extra.drawing` through a tracked read (`drawing_settings`, a new memoised family: the AC-16
+line re-bless of §4.1 rule 5), and `ew-api`'s page view passes the value to `ew-scene` in a new field that is
+`skip_serializing_if` plain, so no serialised view or golden output changes. **`ew-scene::hops`**: for every proper crossing of a horizontal segment of one connection and a
 vertical segment of another (an interior point of both, no shared endpoint or junction there), in connection-ID order,
 the horizontal segment is drawn interrupted on `[x − r, x + r]` with a half circle of radius `r = 1 000 000` nm above it
 (towards −y); a crossing closer than `2r` to another hop on the same segment or to a vertex is drawn plain. Default and
@@ -549,14 +591,15 @@ null}`) after `picker`, and `junction_editor` (`null` or `{"junction": "<uuid>",
 
 ```text
 canvas route from "-102F1:2" bends 1 points 4 end "-102F2:24VDC#1"
-canvas proposals 2 "2 -> 1X1:1" "4 -> 1X1:2"              (while a Place ghost has proposals)
+canvas proposals 2 "2" -> "1X1:1" "4" -> "1X1:2"          (while a Place ghost has proposals)
 canvas junction "<uuid>" style bevel wiring chain sequence "+#1" "-102F1:1" "+#2"
   wire "W20" from "-102G1:+#1" end "-102F1:1"
 canvas crossings hops                                   (only when set)
 ```
 
-`VOCABULARY` gains `route`, `from`, `end`, `bends`, `points`, `proposals`, `junction`, `style`, `wiring`, `sequence`,
-`wire`, `segment`, `routing`, `crossings`, `plain`, `hops`, `dot`, `bevel`, `star`, `chain` and `connect` (21 words).
+`VOCABULARY` gains `route`, `from`, `end`, `bends`, `points`, `proposals`, `->`, `junction`, `style`, `wiring`,
+`sequence`, `wire`, `segment`, `routing`, `crossings`, `plain`, `hops`, `dot`, `bevel`, `star`, `chain` and `connect`
+(22 words; `->` is the token between a proposal's quoted CP and its quoted target).
 
 ## 9. Part 3: interruption points and black boxes
 
@@ -570,7 +613,15 @@ numbered series (`24VDC-1` → `24VDC-2`: the trailing decimal digits after the 
 appended). **Direction default:** `source` when the insertion point lies in the right or bottom quarter of the drawing
 area, `target` in the left or top quarter, else the last used; `Key(ToggleDirection)` (D) cycles source → target →
 undirected. `Key(ToggleStar)` toggles the star source. `Text(s)` (`ip.name`) sets the name. `Dwell` previews and a
-press or `Activate` commits `ip.place { page, symbol, pos, orient, name, direction, star_source }`.
+press or `Activate` commits `ip.place { page, symbol, pos, orient, name, direction, star_source, external }`.
+
+**External connection points** (FR-XRF-012; folio 101's J-E-206-L, J-E-206-N and J-E-206-PE). The tool strip's
+external-reference field (`ip.external` with `external`, an external reference's UUID, or `null` to clear it; the
+GUI offers the project's external references by their printed text) sets `external`. While it is set, the ghost and
+the commit use the catalogue's external-arrow symbol (`ew.gen.external-arrow` of the page's grid family, embedded first
+when needed) instead of `ew.gen.ip`, the star toggle is refused (`reason-external-never-pairs`), the name is the typed
+one (no potential proposal), and the direction default is `target`. The headless form for folio 101 is `ip.external`,
+`ip.name`, `tool.ip_direction` as needed and a press per point.
 
 ### 9.2 Ending a wire in an IP
 
@@ -596,13 +647,19 @@ with `new_device` and the row's letter, or a part function with `black_box` set 
 press or `Activate` fixes the first corner → `outline` (the rectangle to the snapped grid point, `Transient`) → press or
 `Activate` fixes the opposite corner and commits `box.black { page, symbol: the black-box symbol, pos: the top-left
 corner, box: { outline: the rectangle relative to pos, cps, inner: [] }, target }`. **Default CPs** for a part target: the
-part pattern's CPs of the template entry in pattern order, the first `⌈n/2⌉` on the top edge and the rest on the bottom
+template entry's CPs (`CatalogueTemplateFn.cps`) in template order, the first `⌈n/2⌉` on the top edge and the rest on the bottom
 edge, left to right one grid step apart starting one grid step from the left corner, directions up and down; when an
 edge is too short the rectangle grows to the right until they fit (the ghost shows it). Without a part, no CPs. Escape
 cancels from `outline`; `None` from `armed`.
 
-**Grips.** A selected black box shows its corner and edge-midpoint grips and its CPs (overlay markers). Dragging a grip
-(or the keyboard form `box.grip` with `grip` index and the grid cursor) changes the rectangle and commits `box.reshape`
+**Grips.** A selected black box shows its grips and its CPs (overlay markers). **Grip indices:** for an outline of `n`
+vertices `v0 … v(n−1)` in stored order, grips `0 … n−1` are the vertices and grips `n … 2n−1` the midpoints of the edges
+`v0v1, v1v2, …, v(n−1)v0`. On a rectangle outline (four vertices, axis-aligned, as this tool stores it: `v0` top-left,
+then clockwise) a vertex grip moves that corner and keeps the rectangle (its two neighbours each follow on one axis), and
+an edge grip moves that edge perpendicular to itself; on any other outline a vertex grip moves that vertex alone and an
+edge grip translates that edge perpendicular to itself when it is axis-aligned (else it is refused,
+`reason-grip-not-axis`). Positions are grid points. Dragging a grip (or the keyboard form `box.grip` with `grip`: the
+grid cursor's position is the grip's new position, Enter commits) changes the outline and commits `box.reshape`
 without `cps` (re-projection); dragging a CP along the outline commits `box.reshape` with `cps`; `box.add_cp` (Edit) adds
 a CP at the grid cursor on the outline with the next free index. Polygon outlines are a follow-up (§17.4).
 
@@ -617,6 +674,7 @@ From part 3 the picker's black-box rows are enabled and arm this tool instead of
 | `tool.ip` | Insert ▸ Interruption point | P | canvas | — |
 | `tool.ip_direction`, `tool.star_source` | Edit | D, — | canvas | — |
 | `ip.name` | hidden (the tool strip field) | — | canvas | `text` |
+| `ip.external` | hidden (the tool strip field) | — | canvas | `external` (UUID or `null`) |
 | `ip.continue_on` | Edit ▸ Continue on page… | — | canvas | `folio`, optional `x_mm`, `y_mm` |
 | `ip.arrange_selected` | Edit ▸ Arrange interruption points | — | canvas | `by`, `chain_order` |
 | `tool.black_box` | Insert ▸ Black box | B | canvas | as `place.pick` |
@@ -635,7 +693,16 @@ canvas ghost box outline 4 cps 7
 
 ## 10. Part 4: page items, wire markers and structure boxes
 
+**Part 4a** (D5) builds §10.1 to §10.4 and the command of §10.6; **part 4b** (D4) builds the tools of §10.5, the
+actions of §10.6 and §10.7 and the G-PP rehearsal of §13.6. Part 4b starts after part 4a and part 3.
+
 ### 10.1 The record kinds (D10)
+
+**Basis and order.** ADR-0011 amendment 4 (ID-334) applies again: both kinds are reserved with a rank and an ownership
+rule, so their typed tables are additive within format 0.1 (`schemas/0.1` re-blessed, no format or `$v` bump). The
+design pass writes the shapes below into doc 03 §5 and §6 and doc 05 §2.2 **before part 4a starts**, with their
+departures from doc 03's current text named: `Graphic` has no `angle` (shapes carry their own geometry); `FreeText`
+gains `bind` (a bindable name, §10.2) beside `text`; `WireMarker` gains `at` and `angle`; `Image` (part 5) has `rect`.
 
 **`page_item`** (rank 43, page file; doc 03 §6): `{"$k": "page_item", "id", "v", "page", "layer"?: Ident, "kind":
 <variant>}`, the variant an externally tagged object:
@@ -655,7 +722,12 @@ canvas ghost box outline 4 cps 7
 **Invariants** (two new structural entries in ADR-0009's catalogue, numbered by the design pass): a page item's or
 structure box's page exists (cascade: deleting a page deletes them, FR-PAG-025); every connection a wire marker lists
 exists and lies on the marker's page (delete policy: a deleted connection leaves the list; an empty marker is deleted in
-the same plan). `KindStatus` of both kinds becomes `Implemented`; `ew-format` reads and writes them through the
+the same plan). Because a build from before part 4a keeps `page_item` records verbatim and does not enforce that
+delete link, a project can arrive with a wire marker that lists a deleted connection or one on another page: **on load
+this is reported** (a load finding naming the marker and the connection, like the other load findings of
+`Session::load_findings`), the stale entry is ignored by the derivation and the drawing, and the project opens; it is
+not refused as a broken invariant, and the next edit of that marker (or of the connection list by `marker.place`)
+writes a clean list. `KindStatus` of both kinds becomes `Implemented`; `ew-format` reads and writes them through the
 existing record machinery; a migration test reads a page file holding both kinds plus an unknown variant and writes it
 back byte-equal.
 
@@ -669,7 +741,9 @@ back byte-equal.
    representation when the box's `assigns` has a node or `none` for that aspect (`SlotSource::StructureBox`), else the
    page's. **`ip_structure(function)`**: an IP function's structure is its representation's box's slots over its page's;
    every reader of an IP's structure (the pairing scope `location` and the xref `{function}` and `{location}` tokens)
-   reads it. Golden A has no structure box, so no golden output changes.
+   reads it. Golden A has no structure box and no `ip_pairing` setting (pairing scope: the whole project), so no
+   golden output changes; `rep_structure_box` and `ip_structure` are new memoised families (the AC-16 line re-bless of
+   §4.1 rule 5).
 2. **Bound texts** (FR-SYM-024): `bind` names one of `project.description`, `project.document_title`,
    `project.drawing_id`, `page.title`, `page.folio`, `page.full_name`; the printed text is the value the title block
    prints for that placeholder on this page (`title_block`'s resolver), freshness class I.
@@ -694,19 +768,19 @@ outline in the page's wire stroke width and the dash pattern (dotted: 0.5 mm on,
 0.5 mm on, 1 mm off) with the caption in `tag.main` above the outline's top-left vertex. Each is tagged with its
 entity reference, so WP-S2.02's entity rectangles pick it. The PDF writes the same display list.
 
-### 10.4 Commands and amendments of part 4
+### 10.4 Commands and amendments of part 4a
 
 `box.structure`, `item.place`, `marker.place` (§5.1); `rep.move` `items`, `edit.delete` and `fields.set` kinds,
 `project.drawing.set` `marker_mode` (§5.2). From this part on, Select's drag and `tool.move` move page items and
 structure boxes with the representations (`rep.move { reps, items, steps }`), and Delete deletes them.
 
-### 10.5 The tools of part 4
+### 10.5 The tools of part 4b
 
 | Tool | States | Commit |
 |---|---|---|
 | Text (`text`, T) | `armed` → press or `Activate` at the fine-snapped point opens the text field popup (`typing`); `Text(s)` sets the text; Enter (or `tool.finish`) → commit; `Escape` closes the popup and returns to `armed` | `item.place { free_text: { text: s, at, angle, style } }`; with the tool strip's binding chosen (`text.bind` with `bind`), `bind` instead of `text` |
 | Text edit | In Select, a double click (or `text.edit`, F2) on a selected free text opens the popup with its text | `fields.set { kind: page_item, targets: [id], path: "kind.free_text.text", value }` |
-| Graphic (`graphic`, L for a line; Insert ▸ Graphic ▸ line, polyline, rectangle, circle, arc, polygon) | `armed` → `drawing`: line and rectangle by two points; circle by centre and a point on it; arc by centre, start point and end point (sweep clockwise, Shift for anticlockwise); polyline and polygon by points, `Back` removing the last, `tool.finish` ending | `item.place { graphic: { shape } }` |
+| Graphic (`graphic`, L for a line; Insert ▸ Graphic ▸ line, polyline, rectangle, circle, arc, polygon) | `armed` → `drawing`: line and rectangle by two points; circle by centre and a point on it; arc by centre, start point and end point (sweep clockwise by default; Shift held on the end press, or `Key(ToggleDirection)` (D, the keyboard path) before the end press, makes it anticlockwise, and the tool strip and the ghost show the direction); polyline and polygon by points, `Back` removing the last, `tool.finish` ending | `item.place { graphic: { shape } }` |
 | Marker (`marker`, Shift+W; doc 06 §4.5) | `armed` → `crossing`: a rubber line from the press point to the pointer; every connection segment it crosses, in the order along the line, is collected; release or `Activate` → the tool strip's fields (cross-section, colours; `marker.fields` with `csa`, `colours`) → Enter commits | `marker.place { connections, at: the crossing line's midpoint snapped to the fine grid, angle: 90 when the crossed segments are horizontal, csa, colours }` |
 | Structure box (`structure_box`, Shift+B) | `armed` → `outline` (a rectangle by two fine-snapped points; polygon points with `tool.finish`); then the tool strip's style, caption, location node and external reference (`structure_box.fields`) → Enter | `box.structure` |
 
@@ -717,7 +791,7 @@ All previews on a dwell of 80 ms as elsewhere; Escape returns to `armed`, from `
 `project.marker_mode` (Project ▸ Drawing ▸ Wire markers ▸ four checked items and "As set per wire") commits
 `project.drawing.set { marker_mode }`.
 
-### 10.7 Actions, transcript and describe of part 4
+### 10.7 Actions, transcript and describe of part 4b
 
 | ID | Menu | Shortcut | Context | Params (headless) |
 |---|---|---|---|---|
@@ -737,14 +811,14 @@ canvas ghost marker connections 2 text "2.5 BK BU"
 canvas ghost box outline 4
 ```
 
-`VOCABULARY` gains `item`, `text`, `graphic`, `line`, `polyline`, `rect`, `circle`, `arc`, `polygon`, `marker`,
-`connections`, `typing`, `drawing` and `crossing` (14 words). The word `outline`, used by parts 3 and 4, is added by
-whichever of the two integrates first, and the other's list drops it.
+`VOCABULARY` gains `text`, `graphic`, `line`, `polyline`, `rect`, `circle`, `arc`, `polygon`, `marker`,
+`connections`, `typing`, `drawing` and `crossing` (13 words; `item` and `box` exist already, and `outline` comes with
+part 3, which integrates before part 4b).
 
 ## 11. Part 5: images
 
-After FT-337 has delivered the content-addressed asset store and part 4 has been integrated: the `image` variant
-`{"asset": "sha256:…", "rect": [Pt2, Pt2]}` joins `PageItemKind` (records written by part 4's build round-trip as
+After FT-337 has delivered the content-addressed asset store and part 4a has been integrated: the `image` variant
+`{"asset": "sha256:…", "rect": [Pt2, Pt2]}` joins `PageItemKind` (records written by part 4a's build round-trip as
 unknown variants until then), `item.place` takes `{"image": {asset, rect}}` (rejected when the project holds no asset
 with that hash), the Image tool (`image`, Insert ▸ Image…; headless `image.pick` with an asset hash already in the
 project, or a file path in the window only) places it by two fine-snapped corners keeping the asset's aspect ratio
@@ -790,7 +864,7 @@ support (a record, a geometry, a box that is not there) stops the lane for a lea
 | PL6 | AC-28's terminal step: kittest on Golden A, folio 103, add a terminal to -X1031 with the ghost showing the predicted tag after the dwell, commit, undo | `ew-ui` tests | §7.2, AC-28 |
 | PL7 | Transcript and describe of §7.7; the 28 words; the folio-101 placement script of §13.6 (placements only) twice byte-identical; its `--record` log applied with `ew apply` gives equal records | `ew-viewmodel`; `bin/elektrawatt/tests` | §7.7, §12 |
 | PL8 | Exact counts of §12 item 4 for Place, Move and the picker | `ew-ui` test | §12 |
-| PL9 | Golden unchanged: the existing golden output, acceptance and AC-15 tests pass unmodified | lane | §4.1 rule 5 |
+| PL9 | Golden unchanged: the existing golden output, acceptance and AC-15 tests pass unmodified; `rep.move` logs without `steps` serialise byte-equal. In every part: a lane that adds a memoised family (parts 2 and 4a) re-blesses AC-16's one line and runs `cargo nextest run -p ew` (§4.1 rule 5) | lane | §4.1 rule 5 |
 | PL10 | Policy and targeted checks as WP-S2.03's V13 and V14 for the changed crates (`ew-library`, `ew-api`, `ew-commands`, `ew-testkit`, `ew-render2d`, `ew-viewmodel` with and without `testkit`, `ew-ui`, `elektrawatt`), `cargo xtask docs-gen --check`, `check-deps`, `check-features`, `check-raw-read`, `check-licence-map`, `reuse lint`; no new package | lane | testing policy |
 
 ### 13.2 Part 2
@@ -805,7 +879,7 @@ support (a record, a geometry, a box that is not there) stops the lane for a lea
 | WR6 | FR-CON-007's acceptance: a segment of a connection on folio 102 dragged, saved, reopened: the same route to the nm | `bin/elektrawatt/tests` | §8.4 |
 | WR7 | FR-CON-005's acceptance: the junction editor of J1 on folio 101 lists the F55:2 member before E55:L and E56:X2 and the physical wires W13 and W14; a reorder on J4 commits one `junction.edit` and the wires follow; style and wiring toggles | `ew-viewmodel`, `ew-api` tests | §8.5 |
 | WR8 | FR-CON-031's acceptance: `crossings` hops changes folio 103's display list only by the hop arcs (every crossing of the rule hopped), the derived diff is empty and no connection changes; absent and `plain` give Golden A's bytes | `ew-scene`, `ew-api` tests | §8.6 |
-| WR9 | Transcript, describe and the 20 words; the folio-101 and folio-102 wiring scripts of §13.6 twice byte-identical; replay by `ew apply` | `ew-viewmodel`; `bin/elektrawatt/tests` | §8.7, §12 |
+| WR9 | Transcript, describe and the 22 words; the folio-101 and folio-102 wiring scripts of §13.6 twice byte-identical; replay by `ew apply` | `ew-viewmodel`; `bin/elektrawatt/tests` | §8.7, §12 |
 | WR10 | Exact counts for the Wire tool and proposals (one `auto_route` per changed snapped point, no `Session` call); golden unchanged; policy and targeted checks as PL9, PL10 | lane; `ew-ui` test | §12 |
 
 ### 13.3 Part 3
@@ -820,19 +894,21 @@ support (a record, a geometry, a box that is not there) stops the lane for a lea
 | IB6 | FR-DEV-039's acceptance: widening -102G1's box by two grid steps (right-edge grip) keeps its 7 CPs on the outline and all 7 connected | `ew-viewmodel`, `ew-commands` tests | §9.4 |
 | IB7 | Transcript, describe, the 10 words; the IP and black-box steps of the folio scripts (§13.6) twice byte-identical; replay; exact counts; golden unchanged; policy and targeted checks | lane; tests | §9.6, §12 |
 
-### 13.4 Part 4
+### 13.4 Parts 4a and 4b
+
+PI1 to PI6 and PI8 belong to part 4a, PI7, PI9 and the G-PP rehearsal of §13.6 to part 4b.
 
 | # | Check | Where | Proves |
 |---|---|---|---|
 | PI1 | Record kinds: schema round trip of every typed variant and of unknown variants byte-equal; the two invariants and the delete policies; a reader of the previous build keeps the records verbatim (format compatibility test) | `ew-schema`, `ew-model`, `ew-format` tests | §10.1 |
-| PI2 | FR-PRJ-020's acceptance: a structure box assigning `+J-E-206` around the external points of folio 101 on a copy of Golden A: `ip_structure` of the three external points is `+J-E-206`; a device's main representation inside the box takes the box's location with `SlotSource::StructureBox`; moving the point out reverts to `+J-E-2416` | `ew-derive`, `ew-api` tests | §10.2 |
+| PI2 | FR-PRJ-020's acceptance: a structure box assigning `+J-E-206` around the external points of folio 101 on a copy of Golden A: `ip_structure` of the three external points is `+J-E-206`; a device's main representation inside the box takes the box's location with `SlotSource::StructureBox`; moving the point out reverts to `+J-E-2416`. The `box.structure` commit's derived diff is empty for tags and cross-reference texts, and `ip_structure` and `structure_of` evaluated over every function and device before and after the commit differ only for the three external points; a wire marker listing a deleted connection is reported on load and the project opens (§10.1) | `ew-derive`, `ew-api` tests | §10.1, §10.2 |
 | PI3 | FR-SYM-024's acceptance: a free text bound to `project.description` prints the new description after a `fields.set` on the project | `ew-api` tests | §10.2 |
 | PI4 | FR-SYM-023's acceptance: a line drawn onto a CP and the texts "40x60" leave every net, potential and wire row unchanged | `ew-api` tests | §10.1 |
 | PI5 | FR-CON-039's acceptance: `marker.place` over W4 and W5 below S51 on a copy of Golden A prints `2.5 BK BU` once there and no per-connection marker for W4 and W5; a group over four connections prints `1.5 DBU DBU WH WH` | `ew-derive`, `ew-api` tests | §10.2 |
 | PI6 | FR-CON-024's acceptance: on Golden A, `explicit` prints exactly the per-connection markers that the absent setting prints (the four reference groups' ten wires); `none` none; `all` one per wire; `deviations` the wires with a level 3 to 7 value | `ew-api` tests | §10.2 |
 | PI7 | Tools: Text (with binding and edit), Graphic (every shape, Back, finish), Marker (crossing order, fields), Structure box; move and delete of items and boxes with representations in one command | `ew-viewmodel` tests | §10.5 |
 | PI8 | Commands and amendments with every rejection; DSL verbs and fuzzer arms; the catalogue at 50 commands | `ew-commands`, `ew-testkit` tests | §5 |
-| PI9 | Transcript, describe, the 14 words; the folio-101 structure-box and marker steps of §13.6 twice byte-identical; replay; exact counts; golden unchanged; policy and targeted checks, including `check-licence-map` for the touched permissive-boundary crates | lane; tests | §10.7, §12 |
+| PI9 | Transcript, describe, the 13 words; the folio-101 structure-box and marker steps of §13.6 twice byte-identical; replay; exact counts; golden unchanged; policy and targeted checks, including `check-licence-map` for the touched permissive-boundary crates | lane; tests | §10.7, §12 |
 
 ### 13.5 Part 5
 
@@ -856,7 +932,7 @@ IP tool or the Wire tool's P), each drawn connection with the Wire tool from its
 the segment), each junction's style, wiring and sequence through the junction editor, typed tags, parts, potential
 definitions and records no WP-S2.04 tool draws (strip terminals of -X1031 and -X1032, cable cores, bridges) through
 `command.run` with the golden parameters, and, on 101 and 102, the structure box and the four marker groups of doc 08
-§4.5 (part 4). Steps a part does not yet own use `command.run` with the golden parameters, so every part runs the
+§4.5 (part 4b). Steps a part does not yet own use `command.run` with the golden parameters, so every part runs the
 scripts; the report lists the `command.run` steps left.
 
 **Exact counts after each folio** (every part): representations 17, 12 and 23 on 101, 102 and 103; drawn connections
@@ -864,12 +940,31 @@ scripts; the report lists the `command.run` steps left.
 `cell`; every drawn connection's endpoint labels equal its golden row's `a` and `b` (up to orientation); every junction's
 sequence, named by far-end labels, equals the golden one; every cross-reference text whose target lies on 101, 102 or
 103 equals golden §15's (texts whose partner is on another folio are left out, because that folio is not drawn); after
-part 4 the marker texts of 101 and 102 are `2.5 BK BU` twice, `1.5 DBU DBU WH WH` and `1.5 DBU DBU`, and the
-external points of 101 have `ip_structure` `+J-E-206`. **G-PP rehearsal** (after part 4, `bin/elektrawatt/tests/gpp_demo.rs`):
+part 4b the marker texts of 101 and 102 are `2.5 BK BU` twice, `1.5 DBU DBU WH WH` and `1.5 DBU DBU`, and the
+external points of 101 have `ip_structure` `+J-E-206`. **G-PP rehearsal** (after part 4b, `bin/elektrawatt/tests/gpp_demo.rs`):
 the three folios, a save, `ew export pdf` of the project, and the generated parts list 901 equal to golden §14.1
 restricted to the devices on 101 to 103, with each row's quantity counted over those devices only (AC-07 on the new
 project). A difference from the oracle stops the lane for a
 lead ruling.
+
+**The G-PP demo variant of folio 103** (ruling (delegated) 1 of §17.5: the pilot places terminals one by one, the strip
+editor stays WP-S2.07). A second generated script draws 103 without strip segments: the strips `-X1031` and `-X1032`
+are created with `strip.new` (their tags typed through `command.run` `fields.set`), and each terminal that a drawn
+connection of 103 ends at is placed with Place and `new_terminal` (its designation and sequence number as in the golden
+terminal table), its insertion point chosen so that its `a`-side CP lies where the golden strip segment draws that
+terminal's `a`-side CP (the generator solves it from the two shapes; when the `b` side then differs, the wires are
+routed to the terminal symbol's own CPs). By the golden tables these are the 15 terminals `-X1031` 1, 2, 3, 4, 5, 7, 9,
+11, 12, 13, 14 and `-X1032` 1, 2, 3, 4; bridges are created by `command.run` only between placed terminals. **Counts
+on 103:** representations 35 (the 23 of the golden page minus its 3 strip segments plus the 15 terminals), drawn
+connections 20, junctions 0, terminal devices 15 in two strips. **Oracle:** every drawn connection's endpoint labels
+equal its golden row's `a` and `b` (up to orientation; a terminal's CP label prints as on the golden page, for example
+`-X1031:11/a`); and in the G-PP rehearsal run on this variant, the parts list 901 equals golden §14.1 restricted to
+the devices on 101 to 103, with the terminal and bridge rows' quantities counted over the placed terminals and the
+bridges created. The lane reports both variants.
+
+**What these lanes do not prove.** NFR-UX-01 (the moderated usability test with EPLAN and QET users before M2) and its
+1.0 repetition are not proven by any check of this package; they belong to the usability rounds (WP-S2.12, WP-S2.16).
+The G-PP rehearsal shows that the tools can draw the content, not that users can.
 
 The workspace suite, the acceptance runner and the performance runs are not run by the lanes (testing policy, ID-512);
 the integrating session runs `cargo xtask ci` at the cycle delivery.
@@ -890,17 +985,20 @@ and one call in `page.rs`; `crates/ew-api/src/routing.rs`, `output/view.rs` (the
 `crates/ew-viewmodel/src/tools/{wire,autoconnect,route_edit,junction_editor}.rs`; the junction popup in `ew-ui`.
 **Part 3:** `crates/ew-commands/src/commands/connection.rs` (`connection.draw_to_ip`, `ip.arrange`), a new
 `commands/box_reshape.rs`; new `crates/ew-viewmodel/src/tools/{ip,black_box}.rs`.
-**Part 4:** `crates/ew-schema/src/{kind.rs,page.rs}` and a new `page_item.rs`, `crates/ew-schema/schemas` as its tests
+**Part 4a:** `crates/ew-schema/src/{kind.rs,page.rs}` and a new `page_item.rs`, `schemas/0.1` as its tests
 generate them; `crates/ew-model` (the two invariants and delete policies); `crates/ew-derive/src/{structure.rs,wires.rs,title_block.rs}`
 and a new `items.rs`; a new `crates/ew-scene/src/items.rs` and one call in `page.rs`; `crates/ew-commands/src/commands/{edit.rs,fields.rs,common.rs,device.rs}`
 (`rep.move` `items`) and new `commands/{items.rs,structure_box.rs}`; `crates/ew-api` page tables and output;
-`crates/ew-format` tests only; new `crates/ew-viewmodel/src/tools/{text,graphic,marker,structure_box}.rs`; the text
-popup in `ew-ui`.
+`crates/ew-format` tests only; the load finding of §10.1 in `crates/ew-api` (`load_findings`); the AC-16 line of
+`golden/J-E-2416/expected/acceptance_headless.md`. **Part 4b:** new
+`crates/ew-viewmodel/src/tools/{text,graphic,marker,structure_box}.rs`, their actions, transcript and describe; the
+text popup in `ew-ui`; `bin/elektrawatt/tests/gpp_demo.rs` and the folio-103 demo variant's generator.
 **Part 5:** the `image` variant in `ew-schema`, `item.place`, `ew-scene` image drawing, `tools/image.rs`, tests.
 
 Shared append-only files (registry lists, `VOCABULARY`, transcript members, `params.rs`, fuzzer arms, DSL verbs) may be
-touched by every part; when parts 3 and 4 run in parallel the second to integrate rebases onto the first. Read-only for
-the lanes: every other crate, `golden/**`, `ci/**` (except as WP-S2.03's `testkit` entry exists), `deny.toml`,
+touched by every part; when parts 3 and 4a run in parallel the second to integrate rebases onto the first. Part 2 also
+owns the AC-16 line for its new family (§4.1 rule 5). Read-only for the lanes: every other crate, `golden/**` except
+that one line, `ci/**` (except as WP-S2.03's `testkit` entry exists), `deny.toml`,
 `supply-chain/**`, `.github/**`, `docs/**` except the generated reference pages. Each lane commits on its own branch and
 does not merge or push.
 
@@ -923,7 +1021,7 @@ does not merge or push.
 ## 16. Review checklist for the Opus reviewer
 
 1. **Boundaries.** Only the items of §4.3 and the commands of §5 below the shell; no new edge or package in parts 1 to
-   4; no `ew-model` name in `ew-viewmodel` or `ew-ui`; tools call no `Session` method, only the pure functions.
+   4b; in `golden/` only the reviewed AC-16 line; every new optional member `skip_serializing_if`; no `ew-model` name in `ew-viewmodel` or `ew-ui`; tools call no `Session` method, only the pure functions.
 2. **One path.** Every model change is a registered command committed by the host (D2); the embed and strip steps are
    host commits; nothing writes a record otherwise; the headless commit goes through `run_script`.
 3. **Previews.** Only `Session::preview_with`; autoconnect proposals reach the model only as hints of the committed
@@ -932,7 +1030,7 @@ does not merge or push.
    equality in a decision; `i128` where products occur; the committed route equals the ghost.
 5. **The transaction-read rule.** No new command reads `Q`; `ip.arrange` takes its order (D12); `marker.place` and
    `connection.draw_to_ip` derive nothing inside the transaction.
-6. **Format (part 4).** The two kinds round-trip; unknown variants byte-equal; invariants and delete policies in the
+6. **Format (part 4a).** The two kinds round-trip; unknown variants byte-equal; invariants and delete policies in the
    catalogue; no format-version bump and the compatibility test passes; Golden A byte-equal.
 7. **Commands.** Each new command has its doc comment, schema, catalogue row and reference page, DSL verb, fuzzer arm and
    rejection tests; amendments are additive and `params_version` stays 1.
@@ -953,36 +1051,48 @@ transforms and delete 0.3; change symbol (command and tool) 0.25; transcript, de
 **Part 2, 2.4 pw:** router 0.4; Wire tool and keyboard wiring 0.5; autoconnect and split 0.45; route edit 0.25; junction
 editor with `junction_wires` 0.3; crossings with the command and the scene 0.3; tests and scripts 0.2. **Part 3,
 1.9 pw:** IP tool 0.35; `connection.draw_to_ip` 0.25; continue 0.15; arrange (command and tool) 0.3; black box tool 0.3;
-`box.reshape` and grips 0.35; tests 0.2. **Part 4, 2.5 pw:** the two record kinds with invariants and compatibility
-0.45; derivation (containment, `ip_structure`, bound texts, marker modes, group text) 0.4; drawing and PDF 0.35;
-commands and amendments 0.4; the four tools and the text popup 0.6; tests and the G-PP rehearsal 0.3. **Part 5,
-0.5 pw.** The parts sum to 9.7 pw; the **0.6 pw** between them and the PERT is the reserve inside WP-S2.04, drawn on
-for part 4 first. The reserve is thin because the PERT predates the gaps of §2.2 (two record kinds, eight commands,
+`box.reshape` and grips 0.35; tests 0.2. **Part 4a, 1.6 pw:** the two record kinds with invariants, the load finding
+and compatibility 0.45; derivation (containment, `ip_structure`, bound texts, marker modes, group text) 0.4; drawing
+and PDF 0.35; commands and amendments 0.4. **Part 4b, 0.9 pw:** the four tools and the text popup 0.6; tests, the
+G-PP rehearsal and the folio-103 demo variant 0.3. **Part 5, 0.5 pw.** The parts sum to 9.7 pw; the **0.6 pw**
+between them and the PERT is the reserve inside WP-S2.04, drawn on for part 4a first. The reserve is thin because the PERT predates the gaps of §2.2 (two record kinds, eight commands,
 the router); a part that closes more than 20 % over its size triggers a re-estimate at the next design pass.
 
 ### 17.2 Order and routing
 
-Part 1 starts after WP-S2.03 part 2's delivery and review; part 2 after part 1; parts 3 and 4 after part 2, in parallel
-or in either order; part 5 after part 4 and FT-337. Parts 1 to 3 and 5 go to a lead-programmer lane at D4 (`opus`,
-`high`): each adds public items or commands below the shell and sets tool behaviour later work builds on. Part 4 goes to
-a lead-programmer lane at **D5** (`opus`, `xhigh`): it changes the project format (two record kinds) and the derivation
-(structure resolution), where a mistake is expensive and hard to detect (`CLAUDE.md` ladder). Each part has an Opus
-review and is planned as one lane-cycle plus a fix round.
+Part 1 starts after WP-S2.03 part 2's delivery and review; part 2 after part 1; parts 3 and 4a after part 2, in
+parallel or in either order; part 4a only after the design pass has written §10.1's shapes into doc 03 and doc 05;
+part 4b after parts 3 and 4a; part 5 after part 4a and FT-337. Parts 1 to 3, 4b and 5 go to a lead-programmer lane at
+D4 (`opus`, `high`): each adds public items, commands or tool behaviour that later work builds on. Part 4a goes to a
+lead-programmer lane at **D5** (`opus`, `xhigh`): it changes the project format (two record kinds) and the derivation
+(structure resolution), where a mistake is expensive and hard to detect (`CLAUDE.md` ladder); splitting its tools off
+into 4b keeps the D5 lane to about 1.6 pw. Each part has an Opus review and is planned as one lane-cycle plus a fix
+round.
 
 ### 17.3 Proposed decision-log entries (for the design pass; IDs after ID-555)
 
-1. WP-S2.04 specified in five parts with their sizes, order, routing and the thin reserve (D1, §17.1, §17.2).
+1. WP-S2.04 specified in six parts (part 4 split into 4a at D5 and 4b at D4 by the review) with their sizes, order,
+   routing and the thin reserve (D1, §17.1, §17.2); the review's rulings of the fix round.
 2. The four delegated rulings: registered commands only (D2), `Session::preview` only (D3), autoconnect ghosts
    overlay-only until commit (D4), no layout tools and no property grid (D5).
 3. The framework additions and the public items below the shell (D6, §4.3, §6), with the typed selection (D14).
 4. Routing: the pure router, routes passed explicitly, `connection.draw` unchanged, split on insert on routed
    connections (D7).
 5. The starter library and the two placement targets; strips as their own step (D8, D9).
-6. The record kinds `page_item` and `structure_box`, their invariants, the structure-box containment and
-   `ip_structure`, editing through `fields.set`; WP-S1.12's structure-box item closed by part 4 (D10).
-7. The command catalogue 42 → 50 with five amendments; the grid-step move (§5, D13); D12's rule for derived inputs.
+6. The record kinds `page_item` and `structure_box` under ADR-0011 amendment 4 (ID-334) applying again, with the
+   shapes written into doc 03 and doc 05 before part 4a; the **two new ADR-0009 invariants**; the load finding for a
+   wire marker listing a deleted connection; the structure-box containment and `ip_structure` (the IP rule stands,
+   §17.5 ruling 3); editing through `fields.set`; WP-S1.12's structure-box item closed by part 4a (D10).
+7. The command catalogue 42 → 50 with five amendments, every new optional member `skip_serializing_if`; the grid-step
+   move and its cross-page and off-grid rules (§5, D13); D12's rule for derived inputs.
 8. No undo coalescing in this package (D11); marker modes as a project setting with the as-built default (D16).
-9. The headless mode and the 74 new describe words (28, 21, 10, 14, 1; D15; ID-474 extended).
+9. The headless mode and the 74 new describe words (28, 22, 10, 13, 1; `filter` and `row` from WP-S2.03 part 1; D15;
+   ID-474 extended).
+10. **The AC-16 re-bless rule:** a lane that adds a memoised family (`drawing_settings`; `rep_structure_box`,
+    `ip_structure`) re-blesses only AC-16's memo-sweep line of `acceptance_headless.md`, as a reviewed change, and runs
+    `-p ew` (FT-319's precedent, ID-524; ID-470).
+11. The four rulings (delegated) of §17.5, with the owner items they leave: confirm with the pilot that folio 103 is
+    drawn with individually placed terminals at G-PP; PD-2 and ADR-0027 (the native grid) stay with the owner.
 
 ### 17.4 Proposed follow-up tasks (for the design pass; FTs after FT-370)
 
@@ -999,19 +1109,26 @@ review and is planned as one lane-cycle plus a fix round.
 8. **Golden data:** the MICO 4.10 part copy of Golden A has a one-function template (the black box with all ten CPs),
    while doc 06 §9.2 steps 7 and 8 and FR-UI-017's acceptance expect its 13-14 contact as a separate unplaced function;
    reconcile (a golden change needs the owner's acknowledgement; PL2 uses a fixture part meanwhile).
+9. **Owner items, recorded with the design pass:** confirm with the pilot the folio-103 drawing of §17.5 ruling 1;
+   PD-2 with ADR-0027 (the native grid of new pages, §17.5 ruling 2).
 
-### 17.5 Open questions the lead could not close
+### 17.5 The open questions, ruled (delegated)
 
-1. **Folio 103 at G-PP.** Its strips -X1031 and -X1032 are strip segments over terminals that only the strip editor
-   (WP-S2.07, M2) creates interactively; this package places terminals one by one (`new_terminal`) and strip segments of
-   existing strips. The orchestrator decides with the pilot whether G-PP-01 accepts terminal symbols in place of the
-   segments, or whether a minimal "add terminals" dialog joins M-PP.
-2. **The grid of new pages.** The picker follows the page grid (D8); which grid `page.create` gives a page of a wizard
-   project depends on PD-2 and ADR-0027, still with the owner.
-3. **IP structure semantics.** D10's `ip_structure` changes the pairing scope `location` for IPs inside structure boxes;
-   FR-PRJ-020's acceptance text names IPs, which have no device structure. The design pass confirms or narrows it.
-4. **The default CP layout of a black box from a part pattern** (half on top, half on bottom) is a UX choice for R0
-   (WP-S2.12) to validate.
+The first version left four questions open; the review took a position on each, and the owner's delegate ruled them
+as the review wrote them.
+
+1. **Folio 103 at G-PP: individually placed terminals.** At G-PP the pilot draws 103 with terminals placed one by one
+   (`new_terminal`) instead of strip segments; the strip editor stays WP-S2.07 (M2). §13.6's demo variant proves it.
+   **Owner item:** confirm with the pilot that G-PP-01 accepts this drawing of 103.
+2. **The grid of new wizard pages: the golden grid by default.** New pages of a wizard project take the golden QET grid
+   unless set otherwise, which is `page.create`'s as-built default (the QET 10 px grid), so no lane changes it; the
+   rehearsal sets `qet10` explicitly anyway. PD-2 and ADR-0027 (the native grid) stay owner items.
+3. **The structure-box IP rule stands, decided now.** `ip_structure` (§10.2) applies. Golden A has no `ip_pairing`
+   setting (the pairing scope is the whole project) and no structure box, and the external points in cells F0 to H5
+   have no partner, so no golden derived output changes. FR-PRJ-020's text stays, with a note for the design pass that
+   its "external points" are IP functions whose structure `ip_structure` resolves.
+4. **The black-box default CP layout goes to R0.** It is built with this specification's default (§9.4: half on top,
+   half on the bottom), and the R0 usability round (WP-S2.12) validates it.
 
 ### 17.6 Documents the design passes update
 
@@ -1019,12 +1136,15 @@ Named here because D7, D8, D10, D11, D13 and D16 change accepted text: doc 06 §
 containment join as built), §3.1 (the command table and counts: 50, the new rows and amendments), §3.2 (normaliser 7 on
 routed connections; the router is a pure function shared with the commands, D7), §3.5 (markers as built; IP name series
 and direction defaults), §3.8 (page-item kinds as built), §3.9 (no coalescing for now, D11), §4.2 to §4.5 (the tool
-tables as built), §5.2 (proposals on a move shown only), §5.4 (D7), §5.7 (grid-step moves, D13); doc 03 §5 and §6 (the
-`StructureBox` and `PageItem` shapes as built, `WireMarker.at` and `angle`, the bindable names), §5.1 (the
-`settings.extra.drawing` member and its command); doc 05 §2.2 (the two kinds implemented); doc 08 §4.5 (marker modes as
+tables as built), §5.2 (proposals on a move shown only), §5.4 (D7), §5.7 (grid-step moves, D13); **before part 4a starts:** doc 03 §5 and
+§6 (the `StructureBox` and `PageItem` shapes of §10.1 with their departures: `Graphic` without `angle`, `FreeText.bind`
+and the bindable names, `WireMarker.at` and `angle`, `Image.rect`) and doc 05 §2.2 (the two kinds implemented under
+ADR-0011 amendment 4); doc 03 §5.1 (the `settings.extra.drawing` member and its command); doc 02a's FR-PRJ-020 note
+(external points are IP functions resolved by `ip_structure`, §17.5 ruling 3); doc 20 or the acceptance notes for the
+AC-16 re-bless rule; doc 08 §4.5 (marker modes as
 a project setting, the group text); doc 16 §4.4 and §4.5 (the keys and the tool strip as built), §4.8 (the keyboard
 equivalents); doc 17 §2.1 and §2.3 (50 commands, the new rows); doc 18 §3.17 (what the drafter can draw and read back);
-ADR-0009 (two invariants); architecture §9 (the canvas-tools row) and §5.2 (D12 as an example of the transaction-read
+ADR-0009 (two invariants); ADR-0011's amendment 4 annotated as applied again (ID-334); architecture §9 (the canvas-tools row) and §5.2 (D12 as an example of the transaction-read
 rule); plan 02 (WP-S2.04's status, the follow-ups, WP-S1.12's structure-box item), the traceability and the
 glossary (page item, structure box, starter library).
 
