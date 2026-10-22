@@ -1,0 +1,85 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# The table of the CI-PR-08 path filter (ci/fuzz-smoke-targets.py, FT-335): for each cargo-fuzz target of `fuzz/`,
+# its `-max_len`, the direct path dependencies of `ew-fuzz` that its code uses (`roots`) and the path-dependency
+# closure of those (`closure`: every crate whose source the target is built from). A change of a crate in a target's
+# closure runs that target. The closure is not guessed: a test of xtask
+# (`workflows::tests::the_fuzz_smoke_table_is_the_path_dependency_closure_of_each_target`) computes it from the
+# Cargo.toml files of the crates (normal and build dependencies, path dependencies only) and fails when this file
+# differs, when a direct dependency of `ew-fuzz` is the root of no target, or when a target of `fuzz/Cargo.toml` or of
+# the deep nightly's matrix is missing here. A new crate dependency of a target changes the closure and fails the
+# test until the list is regenerated; the `max_len` values are those of the matrix of deep-nightly.yml (the
+# self-test of the script compares them).
+#
+# `jsonl_loader` feeds `ew-format` alone (src/loader.rs); `migration_chain` opens a project directory with `ew-store`
+# (src/open_path.rs); `command_sequence` runs the seeded command generator of `ew-testkit`
+# (crates/ew-testkit/tests/command_fuzz, included as modules) through the `ew-api` facade, so it reaches the
+# whole command, derivation, import and export stack.
+
+[targets.jsonl_loader]
+max_len = 65536
+roots = ["ew-format"]
+closure = ["ew-format", "ew-ids", "ew-mltext", "ew-rds", "ew-schema", "ew-units"]
+
+[targets.migration_chain]
+max_len = 65
+roots = ["ew-format", "ew-model", "ew-store"]
+closure = ["ew-format", "ew-ids", "ew-mltext", "ew-model", "ew-rds", "ew-schema", "ew-store", "ew-units"]
+
+[targets.command_sequence]
+max_len = 512
+roots = [
+    "ew-api",
+    "ew-commands",
+    "ew-derive",
+    "ew-ids",
+    "ew-import-tables",
+    "ew-model",
+    "ew-schema",
+    "ew-store",
+    "ew-testkit",
+    "ew-units",
+]
+closure = [
+    "ew-api",
+    "ew-caex",
+    "ew-checks",
+    "ew-commands",
+    "ew-derive",
+    "ew-devdesc",
+    "ew-dl",
+    "ew-ewpp",
+    "ew-export",
+    "ew-format",
+    "ew-ids",
+    "ew-import-catalog",
+    "ew-import-dxf",
+    "ew-import-eplan",
+    "ew-import-qet",
+    "ew-import-tables",
+    "ew-interop-api",
+    "ew-jobs",
+    "ew-library",
+    "ew-memo",
+    "ew-mfg",
+    "ew-mltext",
+    "ew-model",
+    "ew-panel",
+    "ew-plc",
+    "ew-plcaddr",
+    "ew-plugin-host",
+    "ew-rds",
+    "ew-render-cpu",
+    "ew-reports",
+    "ew-rhai",
+    "ew-scene",
+    "ew-schema",
+    "ew-script",
+    "ew-sqlview",
+    "ew-step-proto",
+    "ew-store",
+    "ew-testkit",
+    "ew-text",
+    "ew-units",
+]

@@ -462,9 +462,12 @@ Memo), the module part's position map applied to its valve children (§2.6), whi
 ID)), `module_channel_ids(module)` (`ModuleChannelIds`, Memo: one module's slice of it, the channels by number with the
 lowest ID where two share a number, read as a cut-off point) and `channels_by_cp()` (`ChannelsByCp`, Memo, incremental:
 every channel bound to a CP, by (function, CP index, ID)). A module reads its channels through its slice and then each
-row by ID, so an edit of one channel re-runs the readers of its own module only; a binding or designation edit changes
-no entry of either index and cuts off. Step 4 asks the CP → channel index whether a coil is bound, and only a module
-whose map claims a channel reads it. In a transaction, N1, N2, N3, `plc.bind_channel` and `plc.set_module_part` read
+row by ID, so an edit of one channel re-runs the readers of its own module only. A designation or symbol edit changes
+no entry of either index and cuts off; a **binding** edit changes an entry of `channels_by_cp` (not of
+`channels_by_module`). Step 4 asks the CP → channel index whether a coil is bound and reads its whole value, so a binding
+edit of any channel re-runs `channel_states` of every module whose position map claims a channel, and of no other module
+(a module whose map claims nothing does not read the index); the counts are pinned by a test. A slice per CP would cut that
+fan-out and is not built. In a transaction, N1, N2, N3, `plc.bind_channel` and `plc.set_module_part` read
 the model's base indexes with read-your-writes (`TxBuilder::channels_of_module`, `channels_at_cp`: the generic
 referrer index of the links `Channel.module` and `Channel.binding`), because a transaction has no memoising `Q` over
 its pending state; no whole-table read of the channel table is left on a binding edit. The designation pattern has one

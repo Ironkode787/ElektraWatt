@@ -322,3 +322,59 @@ fn memoised_claims_equal_cold_claims_across_edits() {
     assert!(!s.contains(&EffectiveState::Reserved), "{s:?}");
     let _: Id<Device> = id(V3);
 }
+
+/// FT-319: step 4 reads the whole CP → channel index (`q.get`, not a slice per CP), so a **binding** edit of any
+/// channel changes `channels_by_cp` and re-runs `channel_states` of every module whose position map claims a
+/// channel; an edit that leaves the CP index equal (a symbol) cuts it off and re-runs no module's states. The counts
+/// are pinned here with the foreign channel of another module, which is an input of the CP index and of no module's
+/// channels.
+#[test]
+fn a_binding_edit_re_runs_the_states_of_the_modules_whose_map_claims_a_channel() {
+    use ew_derive::MemoStore;
+
+    let mut fx = fixture(H1);
+    fx.push({
+        let mut v = serde_json::to_value(foreign_binding(STATION)).expect("serialises");
+        v["$k"] = json!("channel");
+        v
+    });
+    let m0 = fx.build();
+    let store = MemoStore::new(&m0);
+    let _ = states(&store.query());
+
+    let mut model = m0;
+    let mut edit = |build: &dyn Fn(&ew_model::Model) -> Op| {
+        let op = build(&model);
+        let keys = vec![op.key()];
+        model = model
+            .apply_unchecked(&[op], model.rev().next())
+            .expect("the op applies");
+        store.advance(&model, &keys);
+        assert_eq!(
+            states(&store.query()),
+            states(&Q::new(&model)),
+            "memoised equals cold"
+        );
+        store.commit_stats()
+    };
+
+    // a symbol edit of the foreign channel: its row is no input of M1, and the CP index stays equal
+    let stats = edit(&|m| update::<Channel>(m, FOREIGN, |v| v["symbol"] = json!("K")));
+    assert_eq!(stats.family("channel_states").re_executions, 0, "{stats:?}");
+    assert_eq!(stats.family("channels_by_cp").re_executions, 1);
+    assert_eq!(
+        stats.family("channels_by_cp").cut_offs,
+        1,
+        "the index is equal: cut off"
+    );
+
+    // a binding edit of the same channel: another CP, so the index changes and M1's states re-run
+    let stats = edit(&|m| update::<Channel>(m, FOREIGN, |v| v["binding"] = json!({"cp": [uid(F3), 0]})));
+    assert_eq!(
+        stats.family("channel_states").re_executions,
+        1,
+        "the states of the module whose map claims a channel re-run: {stats:?}"
+    );
+    assert_eq!(stats.family("channels_by_cp").re_executions, 1);
+    assert_eq!(stats.family("channels_by_cp").cut_offs, 0, "the index changed");
+}

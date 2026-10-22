@@ -277,6 +277,11 @@ impl HeapBytes for DeriveNote {
             DeriveNote::SchemeNotApplied { scheme, issue } => scheme.heap_bytes() + issue.heap_bytes(),
             DeriveNote::DefaultFrame | DeriveNote::DefaultWireProfile { .. } => 0,
             DeriveNote::MalformedShim { member, detail } => member.heap_bytes() + detail.heap_bytes(),
+            DeriveNote::DesignationPattern {
+                module,
+                pattern,
+                detail,
+            } => module.heap_bytes() + pattern.heap_bytes() + detail.heap_bytes(),
             DeriveNote::ProfileOverlap { shim, rows, detail } => {
                 shim.heap_bytes() + rows.heap_bytes() + detail.heap_bytes()
             }

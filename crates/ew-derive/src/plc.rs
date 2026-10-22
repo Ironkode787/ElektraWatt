@@ -926,10 +926,9 @@ impl Query for ChannelTexts {
                         Ok(text) => (!text.is_empty()).then_some(text),
                         Err(e) => {
                             if !std::mem::replace(&mut noted, true) {
-                                q.note(DeriveNote::MalformedShim {
-                                    member: format!(
-                                        "the channel designation pattern `{pattern}` of the part of module {key}"
-                                    ),
+                                q.note(DeriveNote::DesignationPattern {
+                                    module: key.to_string(),
+                                    pattern: pattern.clone(),
                                     detail: e.to_string(),
                                 });
                             }

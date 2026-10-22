@@ -10,15 +10,19 @@
 //! now go through two **index families** of the pattern of [`crate::index`] (ARCH §6.3 rule 5):
 //!
 //! - [`ChannelsByModule`] `channels_by_module()`: every channel by (module, number, ID), incremental over the
-//!   channel table. A binding or designation edit changes no entry, so the family cuts off and no reader is
-//!   re-run; a channel that is added, removed, renumbered or moved to another module changes the entries of
-//!   its modules.
+//!   channel table. An edit that changes neither a channel's module nor its number (a designation, a symbol, a
+//!   binding) changes no entry, so the family cuts off and no reader is re-run; a channel that is added, removed,
+//!   renumbered or moved to another module changes the entries of its modules.
 //! - [`ModuleChannelIds`] `module_channel_ids(module)`: one module's slice of that index, the channels by number
 //!   with the lowest ID where two channels share a number (as N1 keys them), read as a cut-off point. Readers
 //!   of one module are invalidated only when that module's slice changes, and read the channel rows by ID, so
 //!   an edit of one channel re-runs its own module's families only (ARCH §6.3: the finest key is a module).
 //! - [`ChannelsByCp`] `channels_by_cp()`: every channel bound to a CP by (function, CP index, ID), incremental
-//!   likewise. Step 4 asks it whether a coil is bound (a channel of any module may bind it).
+//!   likewise. Step 4 asks it whether a coil is bound (a channel of any module may bind it). A **binding** edit
+//!   changes an entry of this index, so it is not cut off: step 4 reads the whole value (`q.get`, not a slice per
+//!   CP), and a binding edit of any channel re-runs `channel_states` of every module whose position map claims a
+//!   channel (one test pins the counts, `plc_positions.rs`); an edit that leaves the CP unchanged cuts it off. A
+//!   slice per CP would cut that fan-out and is not built.
 //!
 //! The same lookups in a transaction (N1, N2, N3, `plc.bind_channel`, `plc.set_module_part`) are
 //! `TxBuilder::channels_of_module` and `channels_at_cp`, which read the model's base indexes with

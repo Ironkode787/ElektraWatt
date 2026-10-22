@@ -55,10 +55,15 @@ pub enum IndexRead {
 /// The referrers of `target` through the link `from.field`, in ID order (the generic referrer index serves
 /// the links that have no named index of their own).
 fn referrers_through(idx: &ew_model::BaseIndexes, from: Kind, field: &str, target: AnyKey) -> Vec<AnyId> {
-    let Some(link) = ew_model::LINKS
+    let link = ew_model::LINKS
         .iter()
-        .position(|l| l.from == from && l.field == field)
-    else {
+        .position(|l| l.from == from && l.field == field);
+    // a misspelt field name would answer nothing, silently: the tests below name every link this file reads
+    debug_assert!(
+        link.is_some(),
+        "the link {from:?}.{field} is not declared in ew_model::LINKS"
+    );
+    let Some(link) = link else {
         return Vec::new();
     };
     idx.referrers()
@@ -770,5 +775,35 @@ fn same_opt(a: Option<&AnyRow>, b: Option<&AnyRow>) -> bool {
         (None, None) => true,
         (Some(a), Some(b)) => a.same(b),
         _ => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The links that `IndexRead` reads through the generic referrer index are declared, with the target kind the
+    /// lookup keys on (a misspelt name would make the index answer nothing).
+    #[test]
+    fn the_referrer_links_of_the_channel_reads_exist() {
+        for (field, to) in [("module", Kind::Device), ("binding.cp[0]", Kind::Function)] {
+            let link = ew_model::LINKS
+                .iter()
+                .find(|l| l.from == Kind::Channel && l.field == field)
+                .unwrap_or_else(|| panic!("Channel.{field} is not a declared link"));
+            assert_eq!(link.to, to, "Channel.{field}");
+            assert!(
+                !link.indexed(),
+                "Channel.{field} is served by the generic referrer index"
+            );
+        }
+    }
+
+    #[cfg(debug_assertions)]
+    #[test]
+    #[should_panic(expected = "is not declared in ew_model::LINKS")]
+    fn a_link_name_that_does_not_exist_is_caught_in_debug_builds() {
+        let nowhere: AnyKey = (Kind::Device, Id::<()>::from_uuid(Uuid::nil()));
+        let _ = referrers_through(&ew_model::BaseIndexes::default(), Kind::Channel, "modul", nowhere);
     }
 }

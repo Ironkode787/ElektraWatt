@@ -442,12 +442,13 @@ jobs:
   # CI-PR-08 (FT-335, evidence for G-M1-13): 60 s of every cargo-fuzz target of `fuzz/` that a change of the pull request
   # can reach, on the nightly pinned in fuzz/rust-toolchain.toml, with the committed corpus as seeds. `ci/fuzz-smoke-targets.py`
   # is the path filter (the changed paths of the pull request, or of a push, against the base; a dispatch and a push without a
-  # usable base run every target): `fuzz/` itself, `crates/ew-format`, `crates/ew-store`, `crates/ew-commands`, `crates/ew-model`
-  # and the command generator of `crates/ew-testkit`. A pull request that changes none of them runs the filter and nothing
-  # else, so the job is always there for the required check and costs seconds. RED for a finding (a crash, an out-of-memory, a
-  # leak or a timeout of one input: an artifact of libFuzzer) and for a build that fails, or a run that ends without a verdict;
-  # NOT red when the run's own bound (`timeout`) cuts a run short without a finding: that is a warning. The crash inputs are
-  # uploaded with `if: always()` and committed under fuzz/regressions/<target>/ by the person who reports the finding, never
+  # usable base run every target): a change of `fuzz/` itself or of a crate in the path-dependency closure of a target
+  # (ci/fuzz-smoke-targets.toml, which a test of xtask recomputes from the Cargo.toml files) runs that target. A pull request
+  # that changes none of them runs the filter and nothing else, so the job is always there for the required check and costs
+  # seconds. RED for a finding (a crash, an out-of-memory, a leak or a timeout of one input: an artifact of libFuzzer), for a
+  # build that fails, and for a run that ends without a verdict, the run's own bound (`timeout`, exit code 124) included: libFuzzer's
+  # `-timeout=120` bounds one input, so a target that is still running after the 8 minutes is a hang the oracle missed or a broken
+  # setup, and the job has no evidence. The crash inputs are uploaded with `if: always()` and committed under fuzz/regressions/<target>/ by the person who reports the finding, never
   # fixed in the change that finds it (fuzz/README.md). The nightly is for this job only; the other jobs use the stable one.
   fuzz-smoke:
     name: fuzz-smoke
@@ -572,8 +573,8 @@ jobs:
             echo "$t $code" >> ../target/smoke/results.txt
           done
       # The verdict: green when every target built and ended with exit code 0 and no crash, out-of-memory, timeout or leak
-      # input was written. A target cut short by `timeout` (exit code 124) without such an input is a warning, not a red
-      # job. Anything else, including a missing exit code (the step ended in the middle of a target), is red.
+      # input was written. Anything else is red: an exit code that is not 0, 124 (GNU `timeout` killed the run: no verdict) included,
+      # and a missing exit code (the step ended in the middle of a target).
       - name: verdict and job summary
         if: always() && steps.select.outputs.targets != ''
         shell: bash
@@ -614,7 +615,8 @@ jobs:
               elif [ "$code" = "0" ]; then
                 :
               elif [ "$code" = "124" ]; then
-                echo "::warning::the run of the fuzz target $t was cut short by its time bound without a finding"
+                echo "::error::the fuzz target $t did not end within its time bound (a hang the oracle missed, or a broken setup): no verdict; see the log in the artifact fuzz-smoke"
+                red=1
               else
                 echo "::error::the fuzz target $t ended without a verdict (exit code ${code:-none}); see the log in the artifact fuzz-smoke"
                 red=1

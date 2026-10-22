@@ -143,6 +143,16 @@ pub enum DeriveNote {
         /// What happened and which fallback applied, in English.
         detail: String,
     },
+    /// The designation pattern of a module's part (`ChannelSpec.designation`, doc 10 §2.4, §2.6) does not expand
+    /// (FT-318): the module's channels get no automatic designation, one note per module.
+    DesignationPattern {
+        /// The module device, as text.
+        module: String,
+        /// The pattern.
+        pattern: String,
+        /// Why it does not expand, in English.
+        detail: String,
+    },
 }
 
 /// The integrity code of an unknown pinned derivation profile (doc 05 §6.3, doc 15 §4; decision log ID-72).
@@ -184,7 +194,8 @@ impl DeriveNote {
             }
             DeriveNote::SchemeNotApplied { .. }
             | DeriveNote::MalformedShim { .. }
-            | DeriveNote::ProfileOverlap { .. } => NoteSeverity::Warning,
+            | DeriveNote::ProfileOverlap { .. }
+            | DeriveNote::DesignationPattern { .. } => NoteSeverity::Warning,
             DeriveNote::DefaultFrame | DeriveNote::DefaultWireProfile { .. } => NoteSeverity::Info,
         }
     }
@@ -223,6 +234,15 @@ impl fmt::Display for DeriveNote {
             DeriveNote::DefaultWireProfile { member } => write!(
                 f,
                 "the project has no {member}; wire properties use the built-in defaults of the derivation profile"
+            ),
+            DeriveNote::DesignationPattern {
+                module,
+                pattern,
+                detail,
+            } => write!(
+                f,
+                "the channel designation pattern `{pattern}` of the part of module {module} does not expand ({detail}); \
+                 its channels have no automatic designation"
             ),
             DeriveNote::Connectivity {
                 code,

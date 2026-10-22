@@ -717,6 +717,123 @@ mod tests {
         );
     }
 
+    /// The path-dependency closure of `roots` over the `Cargo.toml` files of `crates/` (normal, build and target
+    /// dependencies; path dependencies only): the crates whose source a target is built from.
+    fn path_closure(root: &std::path::Path, roots: &[String]) -> std::collections::BTreeSet<String> {
+        fn path_deps(manifest: &std::path::Path) -> Vec<String> {
+            let text =
+                std::fs::read_to_string(manifest).unwrap_or_else(|e| panic!("{}: {e}", manifest.display()));
+            let table: toml::Table = text
+                .parse()
+                .unwrap_or_else(|e| panic!("{}: {e}", manifest.display()));
+            let mut tables: Vec<&toml::Table> = Vec::new();
+            for key in ["dependencies", "build-dependencies"] {
+                tables.extend(table.get(key).and_then(toml::Value::as_table));
+            }
+            for target in table
+                .get("target")
+                .and_then(toml::Value::as_table)
+                .into_iter()
+                .flat_map(toml::Table::values)
+            {
+                for key in ["dependencies", "build-dependencies"] {
+                    tables.extend(target.get(key).and_then(toml::Value::as_table));
+                }
+            }
+            let mut out = Vec::new();
+            for deps in tables {
+                for spec in deps.values() {
+                    if let Some(path) = spec.get("path").and_then(toml::Value::as_str) {
+                        let name = std::path::Path::new(path)
+                            .file_name()
+                            .and_then(|n| n.to_str())
+                            .expect("a path dependency names a directory");
+                        out.push(name.to_owned());
+                    }
+                }
+            }
+            out
+        }
+        let mut seen = std::collections::BTreeSet::new();
+        let mut stack: Vec<String> = roots.to_vec();
+        while let Some(name) = stack.pop() {
+            if !seen.insert(name.clone()) {
+                continue;
+            }
+            stack.extend(path_deps(&root.join("crates").join(&name).join("Cargo.toml")));
+        }
+        seen
+    }
+
+    /// FT-335: the table of the path filter (`ci/fuzz-smoke-targets.toml`) is the path-dependency closure of each
+    /// target's roots, recomputed here from the Cargo.toml files, so a new dependency of a crate that a target uses
+    /// fails this test until the table is regenerated. Every direct path dependency of `ew-fuzz` is the root of a
+    /// target, and the targets are those of `fuzz/Cargo.toml`.
+    #[test]
+    fn the_fuzz_smoke_table_is_the_path_dependency_closure_of_each_target() {
+        let root = crate::workspace_root();
+        let read = |p: &str| -> toml::Table {
+            std::fs::read_to_string(root.join(p))
+                .unwrap_or_else(|e| panic!("{p}: {e}"))
+                .parse()
+                .unwrap_or_else(|e| panic!("{p}: {e}"))
+        };
+        let strings = |v: &toml::Value| -> Vec<String> {
+            v.as_array()
+                .expect("an array")
+                .iter()
+                .map(|s| s.as_str().expect("a string").to_owned())
+                .collect()
+        };
+        let table = read("ci/fuzz-smoke-targets.toml");
+        let targets = table["targets"].as_table().expect("[targets]");
+        let mut rooted = std::collections::BTreeSet::new();
+        for (name, spec) in targets {
+            let roots = strings(&spec["roots"]);
+            let committed: std::collections::BTreeSet<String> =
+                strings(&spec["closure"]).into_iter().collect();
+            let computed = path_closure(&root, &roots);
+            assert_eq!(
+                committed, computed,
+                "the closure of `{name}` in ci/fuzz-smoke-targets.toml is not the path-dependency closure of its roots"
+            );
+            rooted.extend(roots);
+        }
+        // every direct path dependency of ew-fuzz is a root of some target
+        let manifest = std::fs::read_to_string(root.join("fuzz/Cargo.toml")).expect("fuzz/Cargo.toml");
+        let fuzz: toml::Table = manifest.parse().expect("fuzz/Cargo.toml parses");
+        let direct: std::collections::BTreeSet<String> = fuzz["dependencies"]
+            .as_table()
+            .expect("[dependencies]")
+            .values()
+            .filter_map(|spec| spec.get("path").and_then(toml::Value::as_str))
+            .filter_map(|p| {
+                std::path::Path::new(p)
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .map(str::to_owned)
+            })
+            .collect();
+        assert_eq!(
+            direct, rooted,
+            "the path dependencies of fuzz/Cargo.toml and the roots of the targets in ci/fuzz-smoke-targets.toml differ"
+        );
+        // the targets are the [[bin]] targets under fuzz_targets/
+        let bins: std::collections::BTreeSet<String> = fuzz["bin"]
+            .as_array()
+            .expect("[[bin]]")
+            .iter()
+            .filter(|b| b["path"].as_str().is_some_and(|p| p.starts_with("fuzz_targets/")))
+            .map(|b| b["name"].as_str().expect("a name").to_owned())
+            .collect();
+        assert_eq!(bins, targets.keys().cloned().collect());
+        // a crate's directory is its package name (the table names crates by directory)
+        for name in targets.values().flat_map(|s| strings(&s["closure"])) {
+            let manifest = read(&format!("crates/{name}/Cargo.toml"));
+            assert_eq!(manifest["package"]["name"].as_str(), Some(name.as_str()));
+        }
+    }
+
     /// The fuzz crate's cargo-deny policy (`fuzz/deny.toml`, run by the deep nightly's `fuzz-deny` job) has the
     /// workspace's licence allowlist; its only addition is the per-crate NCSA exception of libfuzzer-sys.
     #[test]

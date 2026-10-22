@@ -92,7 +92,7 @@ that was fixed.
 
 - The nightly is pinned by date in `rust-toolchain.toml` (and `NIGHTLY_TOOLCHAIN` of `deep-nightly.yml` and of `ci.yml`, for
   the `fuzz-smoke` job; a test of xtask keeps them equal) and advanced by the upgrade train (doc 18 §6.3).
-- A new target is added to the table of `ci/fuzz-smoke-targets.py` (the path filter of CI-PR-08) and to the matrix of
+- A new target is added to the table of `ci/fuzz-smoke-targets.toml` (the path filter of CI-PR-08; a test of xtask recomputes its dependency closures) and to the matrix of
   `deep-nightly.yml`; the filter's self-test fails when the table, `Cargo.toml` and the matrix disagree.
 - A command added to the registry needs a generator arm in `crates/ew-testkit/tests/command_fuzz/arms.rs`
   (`every_registered_command_has_a_generator_arm` fails otherwise); the target picks it up without a change here.

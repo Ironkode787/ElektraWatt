@@ -307,6 +307,11 @@ fn a_designation_pattern_that_does_not_expand_gives_no_designation_and_a_note() 
         let notes = q.diagnostics().notes();
         assert_eq!(notes.len(), 1, "`{pattern}`: one note for the module: {notes:?}");
         assert!(notes[0].to_string().contains(pattern), "{}", notes[0]);
+        assert!(
+            matches!(notes[0], ew_derive::DeriveNote::DesignationPattern { .. }),
+            "its own note kind: {:?}",
+            notes[0]
+        );
     }
 }
 
@@ -613,7 +618,7 @@ fn a_module_finds_its_channels_by_number_whatever_their_id() {
 
 /// The memoised index families equal a cold run after each edit of the channel table: a channel inserted,
 /// a duplicate number with a lower and a higher ID, a renumbering, a move to another module, a binding set
-/// and cleared, a deletion.
+/// and cleared, a deletion, a lowered part count and a deleted module.
 #[test]
 fn the_channel_indexes_equal_a_cold_run_across_edits() {
     use ew_derive::MemoStore;
@@ -676,6 +681,25 @@ fn the_channel_indexes_equal_a_cold_run_across_edits() {
             "the lower duplicate deleted",
             Box::new(|m| vec![Op::delete(row_of(m, Channel::key(id(1))))]),
         ),
+        (
+            "the part's channel count lowered",
+            Box::new(|m| {
+                vec![update::<ew_schema::LibCopy<ew_schema::Part>>(m, PART, |v| {
+                    v["sections"]["plc"]["channels"]["count"] = json!(6)
+                })]
+            }),
+        ),
+        (
+            "a module deleted with its remaining channels",
+            Box::new(|m| {
+                let mut ops: Vec<Op> = [0u16, 2, 3, 4, 5, 6, 7]
+                    .iter()
+                    .map(|n| Op::delete(row_of(m, Channel::key(id(channel(M3, *n))))))
+                    .collect();
+                ops.push(Op::delete(row_of(m, Device::key(id(M3)))));
+                ops
+            }),
+        ),
     ];
     let mut model = m0;
     for (name, edit) in &edits {
@@ -693,11 +717,9 @@ fn the_channel_indexes_equal_a_cold_run_across_edits() {
         );
     }
     let (_, (_, _, slices)) = read(&store.query());
-    // M3 lost channels 0 (renumbered to 12) and 1 (moved to M1)
-    assert_eq!(
-        slices[2].iter().map(|(n, _)| *n).collect::<Vec<_>>(),
-        vec![2, 3, 4, 5, 6, 7, 12]
-    );
+    // M3 is deleted with its channels: its slice is empty (before, it had lost channel 1 to M1 and channel 0 was
+    // renumbered to 12)
+    assert!(slices[2].is_empty(), "{:?}", slices[2]);
     // M1 has its eight, the channel moved from M3 (a second channel 1: one number once) and channel 8
     assert_eq!(slices[0].len(), 9, "{:?}", slices[0]);
 }
