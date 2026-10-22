@@ -32,6 +32,7 @@
 //! `<digest>` the [`content_digest`] of the pages and the bundled fonts.
 
 mod layers;
+mod navigation;
 mod view;
 
 use std::collections::BTreeMap;
@@ -54,6 +55,7 @@ pub use layers::{
     FrameLayer, LabelsLayer, PageLayer, SymbolsLayer, TablesLayer, WiresLayer, page_kind, page_layer,
     page_scene, page_view,
 };
+pub use navigation::{CellLabel, GotoError, GotoTarget, LinkTarget, PageCells, PageRow};
 pub use view::{
     CpTargetsByPage, FrameForms, GENERIC_SYMBOL_SEALS, GENERIC_SYMBOLS_PROFILE, GenericSymbols, NOGRID_FRAME,
     PageBindingsOf, PageConnectionsOf, PageCpTargetsOf, PageEmbeddedOf, PageFrameOf, PageGridOf,
