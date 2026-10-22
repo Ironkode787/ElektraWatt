@@ -25,7 +25,7 @@
 //! - `revision.current.*`: the typed `revision` records (doc 03 §18, FT-165): `label`, `date`, `state`
 //!   (printed as its stored name; a state of a newer format as its text), `author` and `checker`.
 //!   Withdrawal records (state `withdrawn`) are ignored, and so is the revision whose label a withdrawal
-//!   record names in `withdraws` (it stays `released`, EW-INV-020). The current revision is the greatest by (open
+//!   record names by ID in `withdraws` (it stays `released`, EW-INV-020). The current revision is the greatest by (open
 //!   before any other state, undated before dated, `date`, natural order of `label`, `id`): the open
 //!   revision (EW-INV-016: at most one) wins over released ones, and a missing date counts as newest
 //!   within its state. Author and checker are party roles; the first party with that role gives the name.
@@ -52,7 +52,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ew_ids::Id;
-use ew_mltext::{Ident, MlText, NaturalKey, natural_key};
+use ew_mltext::{MlText, NaturalKey, natural_key};
 use ew_rds::{Aspect, RdsSyntax};
 use ew_schema::{Date, Page, Party, PartyRole, Project, Revision, RevisionState, Scale, Sha256, SupplySpec};
 
@@ -339,17 +339,17 @@ fn page_id(v: &serde_json::Value) -> Option<Id<Page>> {
     serde_json::from_value(v.clone()).ok()
 }
 
-/// The revisions that are neither withdrawal records nor withdrawn by one (`withdraws` names the label).
+/// The revisions that are neither withdrawal records nor withdrawn by one (`withdraws` names the ID).
 fn live_revisions(q: &Q) -> Vec<RevisionView<'_>> {
     let table = q.table::<Revision>();
-    let withdrawn: Vec<&Ident> = table
+    let withdrawn: Vec<Id<Revision>> = table
         .iter()
         .filter(|(_, r)| r.state == RevisionState::Withdrawn)
-        .filter_map(|(_, r)| r.withdraws.as_ref())
+        .filter_map(|(_, r)| r.withdraws)
         .collect();
     table
         .iter()
-        .filter(|(_, r)| r.state != RevisionState::Withdrawn && !withdrawn.contains(&&r.label))
+        .filter(|(_, r)| r.state != RevisionState::Withdrawn && !withdrawn.contains(&r.id))
         .map(|(_, r)| RevisionView::read(r))
         .collect()
 }

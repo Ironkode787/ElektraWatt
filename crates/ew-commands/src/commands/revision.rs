@@ -138,6 +138,8 @@ impl Command for CreateRevision {
             }
         }
         if state == RevisionState::Released {
+            // A release record is the `release` member, read from `extra` while it is untyped: this check
+            // moves to the typed member when `revision.release` types the release record.
             if let Some(released) = revisions.iter().find(|r| r.extra.contains_key("release")) {
                 return tx.reject(format!(
                     "revision {} ({}) has a release record; a historic released revision cannot follow a \

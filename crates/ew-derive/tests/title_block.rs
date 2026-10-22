@@ -480,7 +480,7 @@ fn a_revision_named_by_a_withdrawal_record_is_never_current() {
     assert_eq!(label_of(&fx), Some(text("V2.0")));
     fx.push(
         json!({"$k": "revision", "id": uid(3), "label": "V2.0", "date": "2025-05-01",
-        "state": "withdrawn", "withdraws": "V2.0"}),
+        "state": "withdrawn", "withdraws": uid(2)}),
     );
     assert_eq!(label_of(&fx), Some(text("V1.0")));
 }

@@ -396,18 +396,18 @@ fn a_historic_released_revision_needs_only_label_and_state() {
 
 /// The members of doc 03 §18 that later commands write (`purpose`, `sign_off`, `release`, `reason`) are kept
 /// in `extra` and written after the known members in byte-wise order, nested unknown members of a page note
-/// too; `withdraws` (the withdrawn label) is typed.
+/// too; `withdraws` (the ID of the withdrawn revision) is typed.
 #[test]
 fn revision_members_of_later_commands_stay_in_extra() {
     let line = fill(
-        r#"{"$k":"revision","id":"@REV_V2","label":"V2.0","state":"withdrawn","page_notes":[{"page":"@P1","cloud":true}],"withdraws":"V1.0","purpose":"approval","reason":{"en-GB":"wrong customer"},"release":{"changed_pages":["@P1"],"generation":3},"sign_off":{"checker":"checker"}}"#,
+        r#"{"$k":"revision","id":"@REV_V2","label":"V2.0","state":"withdrawn","page_notes":[{"page":"@P1","cloud":true}],"withdraws":"@REV_V1","purpose":"approval","reason":{"en-GB":"wrong customer"},"release":{"changed_pages":["@P1"],"generation":3},"sign_off":{"checker":"checker"}}"#,
     );
     let Record::Revision(r) = assert_canonical(&line) else {
         panic!("a revision");
     };
     let keys: Vec<&str> = r.extra.keys().map(String::as_str).collect();
     assert_eq!(keys, ["purpose", "reason", "release", "sign_off"]);
-    assert_eq!(r.withdraws.as_ref().map(|l| l.as_str()), Some("V1.0"));
+    assert_eq!(r.withdraws.map(|w| w.to_string()), Some(fill("@REV_V1")));
     assert_eq!(
         r.page_notes[0].extra.keys().next().map(String::as_str),
         Some("cloud")

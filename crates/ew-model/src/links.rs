@@ -549,6 +549,7 @@ pub static LINKS: &[LinkDecl] = &[
     link!(ReportBlock."embedded.page" -> Page, Cascade, None, |v, out| opt(v.embedded.as_ref().map(|e| e.page), out)),
     lineage_link!(ReportBlock),
     // revision (`page_notes[].page` is not a link: NOT_LINKS)
+    link!(Revision."withdraws" -> Revision, Forbid, None, |v, out| opt(v.withdraws, out)),
     lineage_link!(Revision),
     // library copies
     link!(Form."title_block" -> Form, Forbid, None, |v, out| opt(v.item.title_block, out)),

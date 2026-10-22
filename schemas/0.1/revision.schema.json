@@ -216,13 +216,13 @@
     "withdraws": {
       "anyOf": [
         {
-          "$ref": "#/$defs/Ident"
+          "$ref": "#/$defs/Uuid"
         },
         {
           "type": "null"
         }
       ],
-      "description": "On a withdrawal record: the label of the released revision it withdraws (FR-REV-009). The withdrawn\nrecord itself stays as it was (EW-INV-020); derivations leave it out."
+      "description": "On a withdrawal record: the released revision it withdraws (doc 03 §18, FR-REV-009). The withdrawn\nrecord itself stays as it was (EW-INV-020); derivations leave it out."
     }
   },
   "required": [
