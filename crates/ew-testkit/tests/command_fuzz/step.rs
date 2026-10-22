@@ -48,6 +48,8 @@ pub enum Table {
     DeviceLinks,
     PlcConfigProjects,
     Forms,
+    Symbols,
+    Fndefs,
     Revisions,
 }
 
@@ -69,6 +71,8 @@ impl Table {
             Table::DeviceLinks => q.table::<ew_schema::DeviceLink>().len(),
             Table::PlcConfigProjects => q.table::<ew_schema::PlcConfigProject>().len(),
             Table::Forms => q.forms().len(),
+            Table::Symbols => q.symbols().len(),
+            Table::Fndefs => q.fndefs().len(),
             Table::Revisions => q.table::<ew_schema::Revision>().len(),
         }
     }

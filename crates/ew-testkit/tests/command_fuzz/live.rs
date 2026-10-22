@@ -59,6 +59,16 @@ pub struct FnDefInfo {
     pub id: Value,
 }
 
+/// A function definition that a live `LibRef` names but the project does not embed.
+pub struct UnembeddedRef {
+    /// The `LibRef`'s library and item.
+    pub library: Value,
+    pub item: Value,
+    /// The function-definition CPs that the symbols naming it draw (`SymbolCp.fn_cp`): a copy embedded for
+    /// it should have them.
+    pub fn_cps: BTreeSet<u16>,
+}
+
 pub struct FuncInfo {
     pub id: Value,
     pub ip: bool,
@@ -124,12 +134,30 @@ pub struct AsmInfo {
 }
 
 /// What the generator reads of the initial project, once per run: the settings the settings command can
-/// restore, the form copies that `library.embed` re-embeds with a new lineage and the project ID.
+/// restore, the form, symbol and function-definition copies that `library.embed` re-embeds with a new lineage
+/// and the project ID.
 pub struct Fixture {
     pub initial_settings: BTreeMap<String, Value>,
     /// (copy ID, the copy in its library-document JSON form with `$k`).
     pub form_json: Vec<(Value, Value)>,
+    /// The symbol copies, likewise.
+    pub symbol_json: Vec<(Value, Value)>,
+    /// The function-definition copies, likewise.
+    pub fndef_json: Vec<(Value, Value)>,
     pub project_id: Value,
+}
+
+/// Every copy of a library table in its library-document JSON form with `$k`.
+fn lib_json<T: serde::Serialize>(
+    rows: impl Iterator<Item = (ew_ids::Id<T>, std::sync::Arc<ew_schema::LibCopy<T>>)>,
+    kind: &str,
+) -> Vec<(Value, Value)> {
+    rows.filter_map(|(id, copy)| {
+        let mut v = serde_json::to_value(&*copy).ok()?;
+        v["$k"] = json!(kind);
+        Some((id_json(id), v))
+    })
+    .collect()
 }
 
 impl Fixture {
@@ -144,18 +172,20 @@ impl Fixture {
                     .map(|v| ((*m).to_owned(), v.clone()))
             })
             .collect();
-        let form_json = q
-            .forms()
-            .iter()
-            .filter_map(|(id, copy)| {
-                let mut v = serde_json::to_value(&**copy).ok()?;
-                v["$k"] = json!("form");
-                Some((id_json(id), v))
-            })
-            .collect();
         Fixture {
             initial_settings,
-            form_json,
+            form_json: lib_json(
+                q.forms().iter().map(|(id, c)| (id, std::sync::Arc::clone(c))),
+                "form",
+            ),
+            symbol_json: lib_json(
+                q.symbols().iter().map(|(id, c)| (id, std::sync::Arc::clone(c))),
+                "symbol",
+            ),
+            fndef_json: lib_json(
+                q.fndefs().iter().map(|(id, c)| (id, std::sync::Arc::clone(c))),
+                "fndef",
+            ),
             project_id: id_json(q.project().id),
         }
     }
@@ -187,6 +217,10 @@ pub struct Live {
     /// (symbol, function definition) pairs of the black boxes drawn now.
     pub bb_syms: Vec<(Value, Value)>,
     pub fndefs: Vec<FnDefInfo>,
+    /// Every `LibRef` of a symbol or a part's function template whose function definition the project does
+    /// not embed (it names nothing), outside the project's own library, by `(library, item)` without repeats:
+    /// what `library.embed` can embed to make the `LibRef` a link (FT-316).
+    pub unembedded_fndef_refs: Vec<UnembeddedRef>,
     pub forms: Vec<Value>,
     pub parts: Vec<Value>,
     pub functions: Vec<FuncInfo>,
@@ -417,6 +451,38 @@ impl Live {
             })
             .collect();
 
+        let project = q.project().id.as_uuid();
+        let mut unembedded: BTreeMap<(ew_ids::Uuid, ew_ids::Uuid), BTreeSet<u16>> = BTreeMap::new();
+        let refs = q
+            .symbols()
+            .iter()
+            .map(|(_, s)| {
+                let cps: BTreeSet<u16> = s.item.cps.as_slice().iter().map(|c| c.fn_cp).collect();
+                (s.item.fndef.clone(), cps)
+            })
+            .chain(q.parts().iter().flat_map(|(_, p)| {
+                p.item
+                    .function_template
+                    .iter()
+                    .map(|t| (t.fndef.clone(), BTreeSet::new()))
+                    .collect::<Vec<_>>()
+            }));
+        for (r, cps) in refs {
+            let (library, item) = (r.library.as_uuid(), r.item.as_uuid());
+            let copy: ew_ids::Id<ew_schema::FnDef> = ew_ids::v5::lib_copy_id(library, item);
+            if library != project && !q.fndefs().contains(copy) {
+                unembedded.entry((library, item)).or_default().extend(cps);
+            }
+        }
+        let unembedded_fndef_refs = unembedded
+            .into_iter()
+            .map(|((library, item), fn_cps)| UnembeddedRef {
+                library: json!(library.hyphenated().to_string()),
+                item: json!(item.hyphenated().to_string()),
+                fn_cps,
+            })
+            .collect();
+
         let mut functions = Vec::new();
         for (id, f) in q.functions().iter() {
             functions.push(FuncInfo {
@@ -551,6 +617,7 @@ impl Live {
             ip_syms,
             bb_syms,
             fndefs,
+            unembedded_fndef_refs,
             forms: q.forms().ids().map(id_json).collect(),
             parts: q.parts().ids().map(id_json).collect(),
             functions,

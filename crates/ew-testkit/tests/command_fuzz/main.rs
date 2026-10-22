@@ -29,7 +29,10 @@
 //!   no `EW-TERM-002` finding that the initial project did not have;
 //! - (d) `ew_api::verify::verify_derived` is clean (every `verify_every` steps and at the end);
 //! - (e) at the end, undo until it refuses: the model equals the initial model (`Model::content_eq`), and a run
-//!   that saved saves once more and reloads the initial model;
+//!   that saved saves once more and reloads the initial model. The `library.embed` arm builds the FT-316 shape
+//!   ("embed then undo": a symbol whose function definition is not embedded, then that function definition),
+//!   whose undo removes a copy that a `LibRef` names; `embed_then_undo_of_a_named_fndef_restores_golden_a` runs
+//!   it deterministically;
 //! - (f) the step's own verdict and checks ([`step::Verdict`], [`step::Post`]).
 //!
 //! A failure panics with the seed, the step index, the oracle and the committed steps as a command log (the
@@ -38,7 +41,8 @@
 //! Tests:
 //! - `fuzz_smoke`: two seeds, 30 steps each.
 //! - `every_registered_command_has_a_generator_arm`, `every_arm_commits_and_refuses_what_it_should`,
-//!   `save_and_reload_of_golden_a_round_trips`, `table_import_oracles_hold`.
+//!   `save_and_reload_of_golden_a_round_trips`, `embed_then_undo_of_a_named_fndef_restores_golden_a`,
+//!   `table_import_oracles_hold`.
 //! - `fuzz_long` (ignored, the nightly body; see the function): `EW_FUZZ_SEEDS` (a comma list, or `a..b` /
 //!   `a..=b`, default 1..=20), `EW_FUZZ_STEPS` (default 300), the cadences `EW_FUZZ_SAMPLE_EVERY`,
 //!   `EW_FUZZ_CHECK_EVERY`, `EW_FUZZ_VERIFY_EVERY`, the step mix `EW_FUZZ_SAVE_WEIGHT` and
@@ -1010,6 +1014,62 @@ fn save_and_reload_of_golden_a_round_trips() {
     disk.round_trip(&mut session, roundtrip::Depth::TitleBlock)
         .unwrap_or_else(|e| panic!("after {committed} commands: {e}"));
     while session.undo().is_ok() {}
+    disk.closing(&mut session, &initial)
+        .unwrap_or_else(|e| panic!("after undo-all: {e}"));
+}
+
+/// FT-316 on the shape the `library.embed` arm builds ("embed then undo"): a symbol whose function definition
+/// is not embedded, then that function definition, both commit as the arm says, with a save in between; undoing
+/// both restores Golden A (the undo-all oracle (e)), although the second undo removes a copy that the symbol
+/// names, and a save after the undo reloads Golden A.
+#[test]
+fn embed_then_undo_of_a_named_fndef_restores_golden_a() {
+    let mut session = open_session(13);
+    session.take_oracle_mismatches();
+    let fixture = Rc::new(Fixture::of(&session.query()));
+    let initial = session.world().model.clone();
+    let mut disk = roundtrip::Disk::new(13);
+    disk.round_trip(&mut session, roundtrip::Depth::Sample)
+        .unwrap_or_else(|e| panic!("the initial project: {e}"));
+    let mut rng = SplitMix64(13);
+    let mut stats = FuzzStats::default();
+    let halves: [fn(&Live, &mut SplitMix64) -> Option<Step>; 2] =
+        [arms::lib_ref_symbol_step, arms::lib_ref_fndef_step];
+    for (i, half) in halves.iter().enumerate() {
+        let live = Live::read(&session.query(), &fixture);
+        if i == 1 {
+            assert_eq!(
+                live.unembedded_fndef_refs.len(),
+                1,
+                "the symbol's LibRef names a function definition that is not embedded"
+            );
+        }
+        let Some(Step::Cmd(c)) = half(&live, &mut rng) else {
+            panic!("half {i} of the shape builds a library.embed step");
+        };
+        assert_eq!((c.name, c.verdict), ("library.embed", Verdict::Accept));
+        let applied = apply(&mut session, &c, &mut stats).unwrap_or_else(|e| panic!("half {i}: {e}"));
+        assert!(applied.changed, "half {i} commits");
+    }
+    assert!(
+        Live::read(&session.query(), &fixture)
+            .unembedded_fndef_refs
+            .is_empty(),
+        "the LibRef is a link now"
+    );
+    disk.round_trip(&mut session, roundtrip::Depth::Sample)
+        .unwrap_or_else(|e| panic!("with the shape: {e}"));
+    session
+        .undo()
+        .expect("FT-316: the undo of the function definition's embedding");
+    session.undo().expect("the undo of the symbol's embedding");
+    let model = session.world().model;
+    assert!(model.content_eq(&initial), "undo-all restores Golden A");
+    model
+        .integrity_check()
+        .unwrap_or_else(|e| panic!("after undo-all: {e:?}"));
+    let mismatches = session.take_oracle_mismatches();
+    assert!(mismatches.is_empty(), "{mismatches:?}");
     disk.closing(&mut session, &initial)
         .unwrap_or_else(|e| panic!("after undo-all: {e}"));
 }

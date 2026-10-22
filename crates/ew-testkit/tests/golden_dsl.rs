@@ -5,8 +5,8 @@
 //! through commands only, from the shell; the acceptance SQL over it is compared with the expected CSVs.
 //!
 //! The acceptance runner (`crates/ew-api/tests/acceptance.rs`, AC-15) reports the comparison; these tests
-//! pin what the builder writes and leaves out, its determinism, the replay of its command log and the
-//! undo of every step.
+//! pin what the builder writes and leaves out, its determinism, the replay of its command log, the undo of
+//! every step and a save after it.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -219,7 +219,8 @@ fn path_b_is_deterministic_and_compares_by_content() {
 }
 
 /// The command log of path (b) replays with `Session::run_script` (`ew apply`) on the shell with the same
-/// ID source to the same model; undoing every step returns to the shell.
+/// ID source to the same model; undoing every step, `library.embed` included (FT-316), returns to the shell,
+/// and a save after the undo reloads the shell.
 #[test]
 fn the_command_log_replays_and_every_step_undoes() {
     let (mut session, built) = built(1);
@@ -233,31 +234,72 @@ fn the_command_log_replays_and_every_step_undoes() {
         replay.world().model.content_eq(&session.world().model),
         "the replay builds the same model"
     );
+    // The built project is saved before the undo, so that the save after it is the incremental one of
+    // every reverted entity (deleted files, the library copies gone).
+    let dir = scratch_dir("undo-all");
+    session
+        .create(&dir, store_options())
+        .unwrap_or_else(|e| panic!("create: {e:?}"));
     let mut steps = 0;
-    while session.undo().is_ok() {
+    let mut last = None;
+    while let Ok(restored) = session.undo() {
         steps += 1;
+        last = Some(restored.label);
     }
-    // one undo step per command that changed the model: two of the commands leave the model as it was
-    // (a value the record already had), so they leave no step
-    assert_eq!((steps, built.script.len()), (606, 609), "undo steps, commands");
-    // KNOWN DEFECT PIN (FT-316): undo stops at `library.embed` (the first command). The shell's
-    // project-local parts name the embedded function definitions (`part.function_template[].fndef`), and
-    // the structural forbid policy on `LibRef` links refuses the undo, although the state before the
-    // embedding is valid (a `LibRef` to a non-embedded item is not dangling). When FT-316 lands, undo
-    // restores the shell: this expectation flips to a full undo (607 steps, `undo()` then fails only
-    // because the history is empty, and the model equals `golden::shell` alone).
-    let refused = session
-        .undo()
-        .expect_err("FT-316: the undo of library.embed is refused while it is a known defect");
-    assert!(format!("{refused:?}").contains("still names it"), "{refused:?}");
-    let batch = golden::bootstrap(&repo()).expect("path (a) imports");
-    let mut start = golden::shell(&batch);
-    start.lib.extend(golden::embedded_copies(&batch));
-    let start = session_over(start, 1);
-    assert!(
-        session.world().model.content_eq(&start.world().model),
-        "FT-316 (known defect): the undo stops at the embedding, at the shell with its library copies"
+    // One undo step per command that changed the model: two of the commands leave the model as it was (a
+    // value the record already had), so they leave no step. FT-316 (cycle 19): the last step undone is the
+    // first command, `library.embed`, although the shell's project-local parts name the embedded function
+    // definitions (`part.function_template[].fndef`): the `LibRef` keep-alive is the delete-time rule
+    // EW-INV-021, which undo skips, so the state before the embedding (a `LibRef` to an item the project
+    // does not embed names nothing) is restored.
+    assert_eq!((steps, built.script.len()), (607, 609), "undo steps, commands");
+    assert_eq!(
+        last.as_deref(),
+        Some("library.embed"),
+        "the first command is undone last"
     );
+    let refused = session.undo().expect_err("the history is empty");
+    assert!(
+        matches!(refused, ew_api::CmdError::History { .. }),
+        "undo stops only because nothing is left: {refused:?}"
+    );
+    let batch = golden::bootstrap(&repo()).expect("path (a) imports");
+    let shell = session_over(golden::shell(&batch), 1).world().model;
+    let model = session.world().model;
+    assert!(model.content_eq(&shell), "undo-all restores the shell");
+    model
+        .integrity_check()
+        .unwrap_or_else(|e| panic!("the shell after undo-all: {e:?}"));
+    // A save after undo-all round-trips: the reloaded project is the shell, without an integrity finding.
+    session
+        .save()
+        .unwrap_or_else(|e| panic!("save after undo-all: {e:?}"));
+    let (reader, report) =
+        Session::open_reader_with(&dir, "ElektraWatt test", "check", ew_api::MemoMode::Off)
+            .unwrap_or_else(|e| panic!("reload: {e:?}"));
+    assert!(report.findings.is_empty(), "{:?}", report.findings);
+    assert!(
+        reader.world().model.content_eq(&shell),
+        "the project saved after undo-all reloads as the shell"
+    );
+    drop((reader, session));
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// A fresh scratch project directory under the test target directory.
+fn scratch_dir(name: &str) -> PathBuf {
+    let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR"))
+        .join(format!("ew-golden-dsl-{name}-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).expect("scratch directory");
+    dir
+}
+
+/// Store options without a journal (the test is not a crash test).
+fn store_options() -> ew_api::StoreOptions {
+    let mut o = ew_api::StoreOptions::new("ElektraWatt test");
+    o.state_dir = None;
+    o
 }
 
 /// FT-278: the shell holds the project row and the project-local parts only; the non-local copies come

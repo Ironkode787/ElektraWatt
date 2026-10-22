@@ -2334,25 +2334,119 @@ fn project_settings_set(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     }
 }
 
+/// A library document `template` (the `lib/` JSON form with `$k`) re-lineaged as the copy of `item` of
+/// `library`: library, item, copy identity `v5(NS_LIBCOPY, library ‖ item)` and hash made consistent.
+fn relineaged(template: &Value, library: &str, item: &str) -> Option<Value> {
+    let mut copy = template.clone();
+    copy["library_id"] = json!(library);
+    copy["item_id"] = json!(item);
+    let lib: ew_ids::Uuid = library.parse().ok()?;
+    let it: ew_ids::Uuid = item.parse().ok()?;
+    let id: ew_ids::Id<()> = ew_ids::v5::lib_copy_id(lib, it);
+    copy["id"] = serde_json::to_value(id).ok()?;
+    let doc = ew_schema::LibDocument::from_value(copy.clone()).ok()?;
+    let hash = ew_commands::commands::library_copy_hash(&doc)?;
+    copy["sha256"] = json!(format!("sha256:{}", hex(&hash)));
+    Some(copy)
+}
+
+/// Whether a symbol or a part's function template of the snapshot names the FnDef copy `id` through a
+/// `LibRef`.
+fn named_through_lib_ref(q: &ew_derive::Q, id: ew_ids::Id<ew_schema::FnDef>) -> bool {
+    let resolves = |r: &ew_schema::LibRef| {
+        ew_ids::v5::lib_copy_id::<ew_schema::FnDef>(r.library.as_uuid(), r.item.as_uuid()) == id
+    };
+    q.symbols().iter().any(|(_, s)| resolves(&s.item.fndef))
+        || q.parts()
+            .iter()
+            .any(|(_, p)| p.item.function_template.iter().any(|t| resolves(&t.fndef)))
+}
+
+/// The first half of the FT-316 shape: a symbol copy with a new lineage whose function definition is a new
+/// item the project does not embed. Well-formed: a `LibRef` to an item that is not embedded names nothing
+/// (NFR-REL-11). A later [`lib_ref_fndef_step`] embeds that function definition.
+pub fn lib_ref_symbol_step(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let (_, template) = rng.pick(&live.fixture.symbol_json)?;
+    let mut template = template.clone();
+    template["fndef"]["library"] = json!(rng.uuid());
+    template["fndef"]["item"] = json!(rng.uuid());
+    let named = (
+        template["fndef"]["library"]
+            .as_str()?
+            .parse::<ew_ids::Uuid>()
+            .ok()?,
+        template["fndef"]["item"].as_str()?.parse::<ew_ids::Uuid>().ok()?,
+    );
+    let copy = relineaged(&template, &rng.uuid(), &rng.uuid())?;
+    let id = copy["id"].clone();
+    Some(
+        Step::cmd("library.embed", json!({"copies": [copy]}))
+            .accept()
+            .counts(&[(Table::Symbols, 1), (Table::Fndefs, 0)])
+            .check(move |_, after| {
+                let id = typed(&id).ok_or("a copy ID")?;
+                if !after.symbols().contains(id) {
+                    return Err("the embedded symbol is not in the project".to_owned());
+                }
+                let fndef: ew_ids::Id<ew_schema::FnDef> = ew_ids::v5::lib_copy_id(named.0, named.1);
+                (!after.fndefs().contains(fndef))
+                    .then_some(())
+                    .ok_or_else(|| "the symbol's function definition is embedded already".to_owned())
+            }),
+    )
+}
+
+/// The CP indices of a function-definition copy in its JSON form.
+fn fndef_cps(copy: &Value) -> std::collections::BTreeSet<u16> {
+    copy["cps"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|c| c["idx"].as_u64().and_then(|i| u16::try_from(i).ok()))
+        .collect()
+}
+
+/// The second half of the FT-316 shape: the function definition that a live `LibRef` names but the project
+/// does not embed, embedded with that lineage (from a template that has every CP the naming symbols draw), so
+/// the `LibRef` becomes a link. Undoing this embedding removes a copy that a record names, which the history
+/// path must allow: the undo-all oracle (e) restores the state before it (ADR-0009 amendment 7). Without such
+/// a `LibRef` the first half is built instead.
+pub fn lib_ref_fndef_step(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
+    let Some(target) = rng.pick(&live.unembedded_fndef_refs) else {
+        return lib_ref_symbol_step(live, rng);
+    };
+    let fitting: Vec<&Value> = live
+        .fixture
+        .fndef_json
+        .iter()
+        .map(|(_, t)| t)
+        .filter(|t| fndef_cps(t).is_superset(&target.fn_cps))
+        .collect();
+    let template = *rng.pick(&fitting)?;
+    let copy = relineaged(template, target.library.as_str()?, target.item.as_str()?)?;
+    let id = copy["id"].clone();
+    Some(
+        Step::cmd("library.embed", json!({"copies": [copy]}))
+            .accept()
+            .counts(&[(Table::Fndefs, 1)])
+            .check(move |_, after| {
+                let id = typed(&id).ok_or("a copy ID")?;
+                if !after.fndefs().contains(id) {
+                    return Err("the embedded function definition is not in the project".to_owned());
+                }
+                named_through_lib_ref(after, id)
+                    .then_some(())
+                    .ok_or_else(|| "no LibRef names the embedded function definition".to_owned())
+            }),
+    )
+}
+
 fn library_embed(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let (_, template) = rng.pick(&live.fixture.form_json)?;
     // A copy of the form with a new lineage: item, library, copy identity and hash made consistent.
-    let consistent = |rng: &mut SplitMix64| -> Option<Value> {
-        let (library, item) = (rng.uuid(), rng.uuid());
-        let mut copy = template.clone();
-        copy["library_id"] = json!(library);
-        copy["item_id"] = json!(item);
-        let lib: ew_ids::Uuid = library.parse().ok()?;
-        let it: ew_ids::Uuid = item.parse().ok()?;
-        let id: ew_ids::Id<ew_schema::FormDef> = ew_ids::v5::lib_copy_id(lib, it);
-        copy["id"] = serde_json::to_value(id).ok()?;
-        copy["$k"] = json!("form");
-        let doc = ew_schema::LibDocument::from_value(copy.clone()).ok()?;
-        let hash = ew_commands::commands::library_copy_hash(&doc)?;
-        copy["sha256"] = json!(format!("sha256:{}", hex(&hash)));
-        Some(copy)
-    };
-    match rng.below(10) {
+    let consistent =
+        |rng: &mut SplitMix64| -> Option<Value> { relineaged(template, &rng.uuid(), &rng.uuid()) };
+    match rng.below(12) {
         // Refused: the hash is not the hash of the item's members (EW-CORE-014).
         0 => {
             let mut c = consistent(rng)?;
@@ -2383,6 +2477,10 @@ fn library_embed(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             Some(Step::cmd("library.embed", json!({"copies": [c.clone(), c]})).refuse())
         }
         5 => Some(Step::cmd("library.embed", json!({"copies": []})).refuse()),
+        // The FT-316 shape: a symbol naming a function definition that is not embedded, then (on a later step)
+        // that function definition; the undo-all oracle undoes both.
+        6 => lib_ref_symbol_step(live, rng),
+        7 => lib_ref_fndef_step(live, rng),
         _ => {
             let c = consistent(rng)?;
             let id = c["id"].clone();
