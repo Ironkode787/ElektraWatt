@@ -6,7 +6,14 @@
 //!
 //! The gate runs the benchmark harness of `ew-testkit` (`benches/spike.rs`, the connectivity, command and memo
 //! families, and `benches/cold_ops.rs`, the cold commands) over the generated fixture classes S and M, parses
-//! the lines they print and compares the **medians** with a committed baseline ([`BASELINE_PATH`]). A median
+//! the lines they print and compares the **medians** with a committed baseline ([`BASELINE_PATH`]). A third
+//! bench, `canvas` of `ew-ui` (WP-S2.02 section 9: the frame cost of the page canvas under a gesture script), is
+//! not a fixture-class bench: it runs **once per gate run**, whatever the classes, in `crates/ew-ui`, and its run
+//! is recorded under the class `GP` of its header. Its families are report-only: they enter the baseline only
+//! by a bless (taken at a milestone on the BM runner), a family the baseline does not have is new and never
+//! fails, only a baseline family can regress or go missing, the families whose name contains `.gpu` (part 2 of
+//! WP-S2.02) never enter a baseline, and the canvas bench's generator version (`0`: it generates no fixture)
+//! is left out of the version a run is compared by. A median
 //! more than 15 % above its baseline is a regression (WP-S6.03); a difference below the noise floor of the
 //! baseline file never is. Memory is gated the same way, with a floor in bytes (16 MiB, 18 §4.4): the
 //! deterministic estimates the benches print (model rows, undo history, memo values and dependency entries) and
@@ -48,8 +55,80 @@ pub const BASELINE_PATH: &str = "ci/perf-baseline.toml";
 /// Where the report goes by default, relative to the workspace root.
 pub const REPORT_PATH: &str = "target/perf/report.md";
 
+/// A bench the gate runs.
+struct BenchSpec {
+    /// The bench target.
+    name: &'static str,
+    /// The package it belongs to (`crates/<package>` is its working directory).
+    package: &'static str,
+    /// `None`: run once per size class of the gate, with `EW_BENCH_CLASS`. `Some(class)`: run once per gate run,
+    /// recorded under this class (the class of its header).
+    once_as: Option<&'static str>,
+}
+
+/// The class the canvas bench records its run under (`class=GP` in its header: the page canvas on the CPU path).
+const CANVAS_CLASS: &str = "GP";
+
 /// The benches the gate runs, in the order of the report.
-const BENCHES: [&str; 2] = ["spike", "cold_ops"];
+const BENCHES: [BenchSpec; 3] = [
+    BenchSpec {
+        name: "spike",
+        package: "ew-testkit",
+        once_as: None,
+    },
+    BenchSpec {
+        name: "cold_ops",
+        package: "ew-testkit",
+        once_as: None,
+    },
+    BenchSpec {
+        name: "canvas",
+        package: "ew-ui",
+        once_as: Some(CANVAS_CLASS),
+    },
+];
+
+/// The lines of the dry run, one per planned run.
+fn planned_lines(classes: &[String], quick: bool) -> Vec<String> {
+    planned_runs(classes)
+        .into_iter()
+        .map(|(bench, class)| {
+            let env = if bench.once_as.is_none() {
+                format!("EW_BENCH_CLASS={class} ")
+            } else {
+                String::new()
+            };
+            let once = if bench.once_as.is_some() {
+                format!(" (once per gate run, class {class}, report-only)")
+            } else {
+                String::new()
+            };
+            format!(
+                "{env}cargo bench -p {} --bench {} --no-run, then the executable with --bench{}{once}",
+                bench.package,
+                bench.name,
+                if quick { " --quick" } else { "" }
+            )
+        })
+        .collect()
+}
+
+/// The bench runs of a gate run, in order: the per-class benches over `classes`, class by class, then the
+/// benches that run once, one run each. The class is the one the run is recorded under.
+fn planned_runs(classes: &[String]) -> Vec<(&'static BenchSpec, String)> {
+    let mut out = Vec::new();
+    for class in classes {
+        for bench in BENCHES.iter().filter(|b| b.once_as.is_none()) {
+            out.push((bench, class.clone()));
+        }
+    }
+    for bench in &BENCHES {
+        if let Some(class) = bench.once_as {
+            out.push((bench, class.to_owned()));
+        }
+    }
+    out
+}
 
 /// The fixture classes of the gate (WP-S6.03: S and M gate; L and XL are measured by hand, 18 §3.11).
 const DEFAULT_CLASSES: [&str; 2] = ["S", "M"];
@@ -183,9 +262,9 @@ pub struct Row {
 /// Everything one bench process printed that the gate reads.
 #[derive(Clone, Debug, PartialEq)]
 pub struct BenchRun {
-    /// `spike` or `cold_ops`.
+    /// `spike`, `cold_ops` or `canvas`.
     pub bench: String,
-    /// `S` or `M`.
+    /// `S` or `M`, or `GP` for the canvas bench.
     pub class: String,
     pub quick: bool,
     pub generator_version: String,
@@ -213,14 +292,17 @@ fn token<'a>(tokens: &[(&'a str, &'a str)], key: &str) -> Option<&'a str> {
     tokens.iter().find(|(k, _)| *k == key).map(|(_, v)| *v)
 }
 
-/// Parses the output of one bench process (`spike` or `cold_ops`).
+/// Parses the output of one bench process (`spike`, `cold_ops` or `canvas`, told by the title line). The
+/// `scene …` lines of the canvas bench and the other lines that are not `bench …` are ignored.
 pub fn parse_output(text: &str) -> Result<BenchRun> {
     let bench = if text.contains("G-SP spike benchmarks") {
         "spike"
     } else if text.contains("cold_ops benchmarks") {
         "cold_ops"
+    } else if text.lines().any(|l| l.starts_with("canvas benchmarks")) {
+        "canvas"
     } else {
-        bail!("not the output of the spike or cold_ops bench (no title line)");
+        bail!("not the output of the spike, cold_ops or canvas bench (no title line)");
     };
     let header = text
         .lines()
@@ -575,7 +657,23 @@ pub struct Provenance {
     pub date: String,
 }
 
-/// A baseline made from the measurements (`--bless`, the candidate file of the nightly job).
+/// Whether a baseline key is a GPU family of the canvas bench (`canvas:render.pan.gpu`): its values depend on the
+/// adapter found, so no baseline holds them.
+fn is_gpu_key(key: &str) -> bool {
+    key.contains(".gpu")
+}
+
+/// `values` without the GPU families.
+fn without_gpu(values: &BTreeMap<String, f64>) -> BTreeMap<String, f64> {
+    values
+        .iter()
+        .filter(|(k, _)| !is_gpu_key(k))
+        .map(|(k, v)| (k.clone(), *v))
+        .collect()
+}
+
+/// A baseline made from the measurements (`--bless`, the candidate file of the nightly job). The families whose
+/// name contains `.gpu` are left out.
 pub fn make_baseline(
     measured: &BTreeMap<String, Measured>,
     runner: &str,
@@ -603,7 +701,7 @@ pub fn make_baseline(
                 (
                     class.clone(),
                     ClassBaseline {
-                        median_ms: m.median_ms.clone(),
+                        median_ms: without_gpu(&m.median_ms),
                         memory: m.memory.clone(),
                         peak_rss_bytes: m.peak_rss_bytes.clone(),
                     },
@@ -614,9 +712,14 @@ pub fn make_baseline(
 }
 
 /// The fixture generator version of the runs: the one version they report, several joined with `+`, or `None`
-/// without a run.
+/// without a run. The canvas bench generates no fixture (its `generator_version=0` is a placeholder), so its run
+/// does not take part.
 pub fn generator_version_of(runs: &[BenchRun]) -> Option<String> {
-    let mut versions: Vec<&str> = runs.iter().map(|r| r.generator_version.as_str()).collect();
+    let mut versions: Vec<&str> = runs
+        .iter()
+        .filter(|r| r.bench != "canvas")
+        .map(|r| r.generator_version.as_str())
+        .collect();
     versions.sort_unstable();
     versions.dedup();
     (!versions.is_empty()).then(|| versions.join("+"))
@@ -1038,17 +1141,17 @@ fn cargo_path() -> String {
     std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_owned())
 }
 
-/// Builds the bench `name` of `ew-testkit` (cargo's bench profile) and returns its executable. Running the
+/// Builds the bench `name` of `package` (cargo's bench profile) and returns its executable. Running the
 /// executable directly, instead of `cargo bench`, makes the process we poll the bench itself. The error is the
 /// reason and the last lines of cargo's output.
-fn build_bench(name: &str) -> std::result::Result<PathBuf, (String, String)> {
+fn build_bench(package: &str, name: &str) -> std::result::Result<PathBuf, (String, String)> {
     let output = Command::new(cargo_path())
         .current_dir(workspace_root())
         .args([
             "bench",
             "--locked",
             "-p",
-            "ew-testkit",
+            package,
             "--bench",
             name,
             "--no-run",
@@ -1117,18 +1220,21 @@ fn drain_lines(source: impl std::io::Read, echo: impl Fn(&str)) -> String {
     captured
 }
 
-/// Runs the bench executable on `class`, echoing its output, and returns what it printed and its peak RSS. A
-/// non-zero exit is not an error here: it is in the outcome, and the caller records it as a bench failure.
-fn run_bench(exe: &Path, class: &str, quick: bool) -> Result<BenchOutcome> {
+/// Runs the executable of `bench`, echoing its output, and returns what it printed and its peak RSS. A bench of
+/// the size classes gets `class` as `EW_BENCH_CLASS`; a bench that runs once gets none. A non-zero exit is not an
+/// error here: it is in the outcome, and the caller records it as a bench failure.
+fn run_bench(exe: &Path, bench: &BenchSpec, class: &str, quick: bool) -> Result<BenchOutcome> {
     let mut command = Command::new(exe);
     // Cargo runs a bench from the package directory and passes `--bench`.
     command
-        .current_dir(workspace_root().join("crates/ew-testkit"))
-        .env("EW_BENCH_CLASS", class)
+        .current_dir(workspace_root().join("crates").join(bench.package))
         .arg("--bench")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    if bench.once_as.is_none() {
+        command.env("EW_BENCH_CLASS", class);
+    }
     if quick {
         command.arg("--quick");
     }
@@ -1296,13 +1402,8 @@ fn run_gate(args: &Args, ctx: &Env) -> Result<bool> {
         );
         println!("  report:      {}", report_path.display());
         if args.from.is_empty() {
-            for class in &args.classes {
-                for bench in BENCHES {
-                    println!(
-                        "  would run:   EW_BENCH_CLASS={class} cargo bench -p ew-testkit --bench {bench} --no-run, then the executable with --bench{}",
-                        if args.quick { " --quick" } else { "" }
-                    );
-                }
+            for line in planned_lines(&args.classes, args.quick) {
+                println!("  would run:   {line}");
             }
         } else {
             for f in &args.from {
@@ -1316,56 +1417,63 @@ fn run_gate(args: &Args, ctx: &Env) -> Result<bool> {
     let mut failures: Vec<BenchFailure> = Vec::new();
     if args.from.is_empty() {
         let mut executables: BTreeMap<&str, PathBuf> = BTreeMap::new();
-        for bench in BENCHES {
-            println!("==> building the {bench} bench");
-            match build_bench(bench) {
+        for bench in &BENCHES {
+            println!("==> building the {} bench", bench.name);
+            match build_bench(bench.package, bench.name) {
                 Ok(exe) => {
-                    executables.insert(bench, exe);
+                    executables.insert(bench.name, exe);
                 }
                 Err((reason, tail)) => failures.push(BenchFailure {
-                    command: format!("cargo bench --locked -p ew-testkit --bench {bench} --no-run"),
+                    command: format!(
+                        "cargo bench --locked -p {} --bench {} --no-run",
+                        bench.package, bench.name
+                    ),
                     reason,
                     tail,
-                    bench: Some(bench.to_owned()),
+                    bench: Some(bench.name.to_owned()),
                     class: None,
                 }),
             }
         }
-        for class in &args.classes {
-            for bench in BENCHES {
-                let Some(exe) = executables.get(bench) else {
-                    continue;
-                };
-                println!(
-                    "==> {bench}, class {class}{}",
-                    if args.quick { " (quick)" } else { "" }
-                );
-                let command = format!(
-                    "EW_BENCH_CLASS={class} {} --bench{}",
-                    exe.file_name()
-                        .map_or_else(|| bench.to_owned(), |n| n.to_string_lossy().into_owned()),
-                    if args.quick { " --quick" } else { "" }
-                );
-                let failure = |reason: String, tail: String| BenchFailure {
-                    command: command.clone(),
-                    reason,
-                    tail,
-                    bench: Some(bench.to_owned()),
-                    class: Some(class.clone()),
-                };
-                match run_bench(exe, class, args.quick) {
-                    Err(e) => failures.push(failure(format!("{e:#}"), String::new())),
-                    Ok(outcome) => {
-                        let tail = || tail_of(&format!("{}{}", outcome.stdout, outcome.stderr));
-                        match (&outcome.problem, parse_output(&outcome.stdout)) {
-                            (Some(problem), _) => failures.push(failure(problem.clone(), tail())),
-                            (None, Err(e)) => {
-                                failures.push(failure(format!("the output could not be read: {e:#}"), tail()))
-                            }
-                            (None, Ok(mut run)) => {
-                                run.peak_rss = outcome.peak;
-                                runs.push(run);
-                            }
+        for (bench, class) in planned_runs(&args.classes) {
+            let name = bench.name;
+            let Some(exe) = executables.get(name) else {
+                continue;
+            };
+            println!(
+                "==> {name}, class {class}{}",
+                if args.quick { " (quick)" } else { "" }
+            );
+            let command = format!(
+                "{}{} --bench{}",
+                if bench.once_as.is_none() {
+                    format!("EW_BENCH_CLASS={class} ")
+                } else {
+                    String::new()
+                },
+                exe.file_name()
+                    .map_or_else(|| name.to_owned(), |n| n.to_string_lossy().into_owned()),
+                if args.quick { " --quick" } else { "" }
+            );
+            let failure = |reason: String, tail: String| BenchFailure {
+                command: command.clone(),
+                reason,
+                tail,
+                bench: Some(name.to_owned()),
+                class: Some(class.clone()),
+            };
+            match run_bench(exe, bench, &class, args.quick) {
+                Err(e) => failures.push(failure(format!("{e:#}"), String::new())),
+                Ok(outcome) => {
+                    let tail = || tail_of(&format!("{}{}", outcome.stdout, outcome.stderr));
+                    match (&outcome.problem, parse_output(&outcome.stdout)) {
+                        (Some(problem), _) => failures.push(failure(problem.clone(), tail())),
+                        (None, Err(e)) => {
+                            failures.push(failure(format!("the output could not be read: {e:#}"), tail()))
+                        }
+                        (None, Ok(mut run)) => {
+                            run.peak_rss = outcome.peak;
+                            runs.push(run);
                         }
                     }
                 }
@@ -1508,6 +1616,25 @@ memory: memo (warm) push index entries=99
 peak RSS: measured externally by the spike run
 
 ## G-SP spike, class S
+";
+
+    /// A captured sample of the output of `cargo bench -p ew-ui --bench canvas` (values invented), with a GPU
+    /// family as part 2 of WP-S2.02 prints it.
+    const CANVAS: &str = "\
+canvas benchmarks
+class=GP generator_version=0 mode=full
+scene golden_a_103 items=412
+bench frame.gesture.pan median=0.250ms p99=0.900ms
+bench frame.gesture.pan.input median=0.001ms p99=0.002ms
+bench frame.gesture.pan.scene median=0.000ms p99=0.000ms
+bench frame.gesture.pan.render median=0.100ms p99=0.400ms
+bench frame.gesture.pan.paint median=0.149ms p99=0.498ms
+bench render.pan.cpu median=12.500ms p99=40.250ms
+bench frame.gesture.point median=0.120ms p99=0.300ms
+scene dense_a3 items=5150
+bench frame.gesture.zoom.dense_a3 median=0.500ms p99=1.500ms
+bench render.zoom.cpu.dense_a3 median=80.000ms p99=240.000ms
+bench render.pan.gpu median=0.700ms p99=1.100ms
 ";
 
     const COLD: &str = "\
@@ -2142,5 +2269,194 @@ memory: model rows 1048576 bytes (1.0 MiB)
         assert!(tail.starts_with("l6\n") && tail.ends_with("l25"));
         assert_eq!(tail_of("a\nb"), "a\nb");
         assert_eq!(tail_of(""), "");
+    }
+
+    #[test]
+    fn the_canvas_output_is_parsed_under_its_own_bench_and_class() {
+        let run = parse_output(CANVAS).unwrap();
+        assert_eq!(
+            (run.bench.as_str(), run.class.as_str(), run.quick),
+            ("canvas", "GP", false)
+        );
+        assert_eq!(run.generator_version, "0");
+        let families: Vec<&str> = run.rows.iter().map(|r| r.family.as_str()).collect();
+        assert_eq!(
+            families,
+            [
+                "frame.gesture.pan",
+                "frame.gesture.pan.input",
+                "frame.gesture.pan.scene",
+                "frame.gesture.pan.render",
+                "frame.gesture.pan.paint",
+                "render.pan.cpu",
+                "frame.gesture.point",
+                "frame.gesture.zoom.dense_a3",
+                "render.zoom.cpu.dense_a3",
+                "render.pan.gpu",
+            ]
+        );
+        let row = |name: &str| run.rows.iter().find(|r| r.family == name).unwrap();
+        assert_eq!(row("render.pan.cpu").median_ms, 12.5);
+        assert_eq!(row("render.pan.cpu").p99_ms, 40.25);
+        assert!(run.rows.iter().all(|r| r.counters.is_none()));
+        assert!(run.memory.is_empty(), "the scene lines are not memory");
+        let quick = parse_output(&CANVAS.replace("mode=full", "mode=quick")).unwrap();
+        assert!(quick.quick);
+        let e = parse_output("class=GP generator_version=0 mode=full\nbench a median=1.000ms p99=1.000ms\n")
+            .unwrap_err()
+            .to_string();
+        assert!(e.contains("no title line"), "{e}");
+        let cut =
+            parse_output("canvas benchmarks\nclass=GP generator_version=0 mode=full\nscene a items=1\n")
+                .unwrap_err()
+                .to_string();
+        assert!(cut.contains("no `bench"), "{cut}");
+    }
+
+    #[test]
+    fn the_canvas_bench_is_planned_once_per_gate_run_not_per_class() {
+        let classes = |names: &[&str]| -> Vec<String> { names.iter().map(|c| (*c).to_owned()).collect() };
+        let plan = |names: &[&str]| -> Vec<(String, String)> {
+            planned_runs(&classes(names))
+                .into_iter()
+                .map(|(b, c)| (b.name.to_owned(), c))
+                .collect()
+        };
+        let pair = |b: &str, c: &str| (b.to_owned(), c.to_owned());
+        assert_eq!(
+            plan(&["S", "M"]),
+            [
+                pair("spike", "S"),
+                pair("cold_ops", "S"),
+                pair("spike", "M"),
+                pair("cold_ops", "M"),
+                pair("canvas", "GP"),
+            ]
+        );
+        assert_eq!(
+            plan(&["S"]),
+            [pair("spike", "S"), pair("cold_ops", "S"), pair("canvas", "GP")]
+        );
+        assert_eq!(plan(&[]), [pair("canvas", "GP")]);
+        // the dry run lists the canvas bench once, of package ew-ui, with the quick flag when asked
+        let lines = planned_lines(&classes(&["S", "M"]), true);
+        assert_eq!(lines.len(), 5);
+        let canvas: Vec<&String> = lines.iter().filter(|l| l.contains("--bench canvas")).collect();
+        assert_eq!(canvas.len(), 1, "{lines:?}");
+        assert!(
+            canvas[0].contains("cargo bench -p ew-ui --bench canvas --no-run"),
+            "{canvas:?}"
+        );
+        assert!(canvas[0].contains("--bench --quick"), "{canvas:?}");
+        assert!(
+            canvas[0].contains("once per gate run, class GP, report-only"),
+            "{canvas:?}"
+        );
+        assert!(!canvas[0].contains("EW_BENCH_CLASS"), "{canvas:?}");
+        assert!(lines[0].starts_with("EW_BENCH_CLASS=S cargo bench -p ew-testkit --bench spike"));
+        assert!(!planned_lines(&classes(&["S"]), false)[0].contains("--quick"));
+    }
+
+    #[test]
+    fn gpu_families_never_enter_a_baseline() {
+        let runs = [parse_output(SPIKE).unwrap(), parse_output(CANVAS).unwrap()];
+        let measured = measured_by_class(&runs);
+        assert!(measured["GP"].median_ms.contains_key("canvas:render.pan.gpu"));
+        let baseline = make_baseline(&measured, "bm", false, "test", None, &prov());
+        let gp = &baseline.classes["GP"].median_ms;
+        assert!(gp.contains_key("canvas:render.pan.cpu"));
+        assert!(gp.contains_key("canvas:render.zoom.cpu.dense_a3"));
+        assert!(!gp.keys().any(|k| k.contains(".gpu")), "{gp:?}");
+        assert_eq!(gp.len(), 9, "every family but the GPU one");
+        assert!(
+            baseline.classes["S"]
+                .median_ms
+                .contains_key("spike:move.commit_potentials")
+        );
+        assert!(!baseline.to_toml().unwrap().contains(".gpu"));
+        // the generator version of the baseline is the fixtures', not the canvas bench's placeholder
+        let provenance = Provenance {
+            generator_version: generator_version_of(&runs).unwrap(),
+            ..prov()
+        };
+        assert_eq!(provenance.generator_version, "2");
+        assert_eq!(generator_version_of(&runs[1..]), None);
+    }
+
+    #[test]
+    fn canvas_families_are_report_only_until_a_bless_puts_them_in_the_baseline() {
+        let dir = scratch_dir("canvas");
+        let spike = dir.join("spike.txt");
+        let canvas = dir.join("canvas.txt");
+        std::fs::write(&spike, SPIKE).unwrap();
+        std::fs::write(&canvas, CANVAS).unwrap();
+        // a baseline of the spike bench only: every canvas family is new, so even the enforced gate passes, and
+        // the canvas bench's generator version 0 does not make the run "not comparable"
+        let mut baseline = runner_baseline(&[("spike:open.session_from_records", 2.0)]);
+        std::fs::write(dir.join("baseline.toml"), baseline.to_toml().unwrap()).unwrap();
+        let runs = [parse_output(SPIKE).unwrap(), parse_output(CANVAS).unwrap()];
+        let evals = evaluate(&baseline, &measured_by_class(&runs));
+        assert_eq!((regressions(&evals), missing(&evals)), (0, 0));
+        let gp = evals.iter().find(|e| e.class == "GP").unwrap();
+        assert!(gp.medians.iter().all(|d| d.change == Change::New));
+        assert!(
+            run_gate(
+                &gate_args(&dir, &[&spike, &canvas], &["--enforce"]),
+                &gate_context()
+            )
+            .unwrap()
+        );
+        let report = std::fs::read_to_string(dir.join("report.md")).unwrap();
+        assert!(!report.contains("not compared"), "{report}");
+        assert!(report.contains("- Verdict: pass"), "{report}");
+        assert!(
+            report.contains("- Class GP has no baseline: all 10 of its values are new."),
+            "{report}"
+        );
+        assert!(report.contains("## Medians, `canvas`, class GP"), "{report}");
+        assert!(
+            report.contains("| `render.pan.cpu` | 12.500 | 40.250 |"),
+            "{report}"
+        );
+
+        // a family the baseline has is compared like the others once a bless put it there ...
+        baseline.classes.insert(
+            "GP".to_owned(),
+            ClassBaseline {
+                median_ms: BTreeMap::from([
+                    ("canvas:render.pan.cpu".to_owned(), 5.0),
+                    ("canvas:render.pan.cpu.gone".to_owned(), 1.0),
+                ]),
+                ..ClassBaseline::default()
+            },
+        );
+        let evals = evaluate(&baseline, &measured_by_class(&runs));
+        assert_eq!((regressions(&evals), missing(&evals)), (1, 1));
+        std::fs::write(dir.join("baseline.toml"), baseline.to_toml().unwrap()).unwrap();
+        assert!(run_gate(&gate_args(&dir, &[&spike, &canvas], &[]), &gate_context()).unwrap());
+        assert!(
+            !run_gate(
+                &gate_args(&dir, &[&spike, &canvas], &["--enforce"]),
+                &gate_context()
+            )
+            .unwrap()
+        );
+        // ... and a canvas run that did not deliver output is the failure, not a family gone missing
+        let cut = dir.join("cut.txt");
+        std::fs::write(
+            &cut,
+            "canvas benchmarks\nclass=GP generator_version=0 mode=full\nscene a items=1\n",
+        )
+        .unwrap();
+        let failures = [BenchFailure {
+            command: "canvas".to_owned(),
+            reason: "exited with 1".to_owned(),
+            tail: String::new(),
+            bench: Some("canvas".to_owned()),
+            class: Some("GP".to_owned()),
+        }];
+        let evals = without_failed(evaluate(&baseline, &measured_by_class(&runs[..1])), &failures);
+        assert_eq!((regressions(&evals), missing(&evals)), (0, 0));
+        assert!(!run_gate(&gate_args(&dir, &[&spike, &cut], &[]), &gate_context()).unwrap());
     }
 }

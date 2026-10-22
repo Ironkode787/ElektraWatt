@@ -38,3 +38,8 @@ skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
 [dev-dependencies]
 # Interaction tests and the accessible-name walker, without rendering (no snapshot or wgpu feature).
 egui_kittest = { version = "=0.37.0", default-features = false }
+
+# The canvas frame-time bench (WP-S2.02 section 9); `cargo xtask perf-gate` runs it once per gate run.
+[[bench]]
+name = "canvas"
+harness = false
