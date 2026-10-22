@@ -46,8 +46,9 @@
 //! `project.logo` and `project.notice` (the basic project's company data, doc 07 §2.8, ID-40) have no
 //! record member yet. **Provisional** source until that decision is made: `Project.extra["ew.company"]`,
 //! an object `{"logo": <AssetRef>, "notice": <MlText JSON>}` (`logo` also in its earlier form, a bare
-//! `"sha256:<64 hex>"`, read as a PNG of unknown size: [`ew_schema::company_logo`]). Each member is parsed on its
-//! own; a missing or malformed member leaves its path absent.
+//! `"sha256:<64 hex>"`, which takes the held asset's format and size, else reads as a PNG of unknown size:
+//! [`ew_schema::company_logo`], [`Q::logo_asset`]). Each member is parsed on its own; a missing or malformed member
+//! leaves its path absent.
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -109,7 +110,7 @@ impl Query for TitleBlockValues {
     fn run(q: &Q, key: &PageRef) -> Arc<TitleBlock> {
         let mut out = Out::default();
         let project = q.project();
-        project_scope(&mut out, project);
+        project_scope(&mut out, q, project);
         party_scope(&mut out, project);
         page_scope(&mut out, q, project, *key);
         revision_scope(&mut out, q, project);
@@ -146,7 +147,7 @@ impl Out {
     }
 }
 
-fn project_scope(out: &mut Out, project: &Project) {
+fn project_scope(out: &mut Out, q: &Q, project: &Project) {
     let master = &project.master;
     out.ml("project.description", &master.description);
     out.ml("project.long_description", &master.long_description);
@@ -170,7 +171,18 @@ fn project_scope(out: &mut Out, project: &Project) {
         out.text("project.supply", &supply_text(s));
     }
     // `project.control_voltage` and `project.consumption`: no canonical text form of `Quantity` yet.
-    if let Some(logo) = ew_schema::company_logo(&project.extra) {
+    if let Some(mut logo) = ew_schema::company_logo(&project.extra) {
+        // The earlier bare-hash form names no format: the held asset's own reference says it.
+        let bare = project
+            .extra
+            .get(ew_schema::COMPANY_MEMBER)
+            .and_then(|c| c.get("logo"))
+            .is_some_and(serde_json::Value::is_string);
+        if bare {
+            if let Some(held) = q.logo_asset(&logo.sha256) {
+                logo = held;
+            }
+        }
         out.0.insert("project.logo".to_owned(), TbValue::Asset(logo));
     }
     if let Some(company) = project.extra.get(ew_schema::COMPANY_MEMBER) {

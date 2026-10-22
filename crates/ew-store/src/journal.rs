@@ -19,17 +19,20 @@
 //! session's segments (NFR-PRIV-05). Snapshot slots (doc 05 §8.1 "Snapshots") are not in v0: recovery
 //! replays the whole segment onto its base generation.
 //!
-//! **Assets** (FT-337). A transaction that brings assets into the model's asset store (doc 05 §13.3) journals
-//! them in `assets`, each with its reference and its bytes in base64, so that a recovery restores the bytes that
-//! its ops name. An asset whose bytes do not hash to its reference, or do not sniff as its format, is dropped on
-//! reading (its line still counts).
+//! **Assets** (FT-337). A `tx` line carries in `assets`, each with its reference and its bytes in base64, every
+//! asset that the records of the model after it name and that is neither on disk with its hash nor journalled in
+//! this segment already (the set is reset when a segment starts). So a recovery restores the bytes of every asset
+//! that its replayed model names, also after a save rotated the segment and an undo named an older asset again. A
+//! transaction without row changes is journalled when it carries such an asset (a logo whose file was lost, picked
+//! again). An asset whose bytes do not hash to its reference, or do not sniff as its format, is dropped on reading
+//! and counted ([`Entry::Tx::damaged_assets`]); the recovery reports it.
 
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
-use ew_format::ew_schema::{AnyId, AssetRef, Kind, base64_decode, base64_encode};
+use ew_format::ew_schema::{AnyId, AssetRef, Kind, Sha256, base64_decode, base64_encode};
 use ew_format::{FilePath, hash_text, sha256};
 use ew_model::{AnyKey, AnyRow, Asset, Model};
 use serde_json::{Map, Value};
@@ -191,8 +194,11 @@ pub enum Entry {
         origin: String,
         /// The row changes.
         ops: Vec<JournalOp>,
-        /// The assets the transaction brought (absent in older segments: none).
+        /// The assets the line carries (absent in older segments: none).
         assets: Vec<Asset>,
+        /// The assets of the line that were dropped on reading: bytes that do not hash to their reference or do
+        /// not sniff as its format.
+        damaged_assets: usize,
     },
     /// A save passed its commit point.
     SaveBegin {
@@ -259,17 +265,19 @@ impl Segment {
                         .map(|a| a.iter().map(JournalOp::from_value).collect())
                         .unwrap_or(None);
                     let Some(ops) = ops else { break };
+                    let listed = v.get("assets").and_then(Value::as_array);
+                    let assets: Vec<Asset> = listed
+                        .map(|a| a.iter().filter_map(asset_from_value).collect())
+                        .unwrap_or_default();
+                    let damaged_assets = listed.map_or(0, Vec::len) - assets.len();
                     Entry::Tx {
                         seq: v.get("seq").and_then(Value::as_u64).unwrap_or(0),
                         t: v.get("t").and_then(Value::as_u64).unwrap_or(0),
                         cmd: v.get("cmd").and_then(Value::as_str).unwrap_or("").to_owned(),
                         origin: v.get("origin").and_then(Value::as_str).unwrap_or("").to_owned(),
                         ops,
-                        assets: v
-                            .get("assets")
-                            .and_then(Value::as_array)
-                            .map(|a| a.iter().filter_map(asset_from_value).collect())
-                            .unwrap_or_default(),
+                        assets,
+                        damaged_assets,
                     }
                 }
                 Some("save-begin") => Entry::SaveBegin {
@@ -343,6 +351,8 @@ pub struct Journal {
     app_version: String,
     segment: Option<PathBuf>,
     seq: u64,
+    /// The assets journalled in the current segment (reset when a segment starts).
+    journalled: std::collections::BTreeSet<Sha256>,
 }
 
 impl Journal {
@@ -367,6 +377,7 @@ impl Journal {
             app_version: app_version.to_owned(),
             segment: None,
             seq: 0,
+            journalled: std::collections::BTreeSet::new(),
         }
     }
 
@@ -414,6 +425,7 @@ impl Journal {
             self.vfs.sync_dir(dir)?;
             parent = dir.parent();
         }
+        self.journalled.clear();
         let old = self.segment.replace(path);
         if let Some(old) = old {
             if Some(&old) != self.segment.as_ref() {
@@ -423,7 +435,10 @@ impl Journal {
         Ok(())
     }
 
-    /// Journals a committed transaction: the field-level diff of `keys` from `before` to `after`.
+    /// Journals a committed transaction: the field-level diff of `keys` from `before` to `after`, and the assets
+    /// that `after` names which are neither on disk (`on_disk`: the asset's file holds its bytes) nor journalled in
+    /// this segment (module documentation). Nothing is written when there is neither.
+    #[allow(clippy::too_many_arguments)]
     pub fn tx(
         &mut self,
         t: SystemTime,
@@ -432,6 +447,7 @@ impl Journal {
         before: &Model,
         after: &Model,
         keys: &[AnyKey],
+        on_disk: &dyn Fn(&AssetRef) -> bool,
     ) -> io::Result<()> {
         let mut ops = Vec::new();
         for key in keys {
@@ -439,13 +455,21 @@ impl Journal {
                 .map_err(io::Error::other)?;
             ops.extend(op.map(|o| o.to_value()));
         }
-        if ops.is_empty() {
+        let mut carried = Vec::new();
+        for sha in after.referenced_assets().keys() {
+            let Some(asset) = after.asset(sha) else {
+                continue;
+            };
+            if !self.journalled.contains(sha) && !on_disk(asset.reference()) {
+                carried.push(asset);
+            }
+        }
+        if ops.is_empty() && carried.is_empty() {
             return Ok(());
         }
-        let assets: Vec<Value> = after
-            .assets()
-            .filter(|a| before.asset(a.sha256()).is_none())
-            .map(asset_to_value)
+        let assets: Vec<Value> = carried
+            .iter()
+            .map(|a| asset_to_value(a))
             .collect::<Result<_, _>>()?;
         self.seq += 1;
         let mut members = vec![
@@ -459,7 +483,9 @@ impl Journal {
         if !assets.is_empty() {
             members.push(("assets", Value::Array(assets)));
         }
-        self.append(&line(&members))
+        self.append(&line(&members))?;
+        self.journalled.extend(carried.iter().map(|a| *a.sha256()));
+        Ok(())
     }
 
     /// Journals that a save of generation `generation` passed its commit point (doc 05 §5.2 step 5).
@@ -641,7 +667,7 @@ pub fn replay(model: &Model, txs: &[&Entry], check: bool) -> Result<(Model, Vec<
                 (None, None) => continue,
             });
         }
-        if !collisions.is_empty() {
+        if !collisions.is_empty() || batch.is_empty() {
             continue;
         }
         let rev = ew_model::Rev(model.rev().0 + 1);

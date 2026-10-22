@@ -263,7 +263,12 @@ impl ShellModel {
             .and_then(|p| std::fs::read_to_string(p).ok())
             .and_then(|t| Draft::from_json(&t));
         let (draft, step) = saved.unwrap_or_else(|| (Draft::default(), Step::Company));
-        self.wizard = Some(Wizard::new(draft, step));
+        let lost = draft.logo_lost();
+        let mut wizard = Wizard::new(draft, step);
+        if lost {
+            wizard.error = Some(strings::text("wizard-notice-logo-gone").to_owned());
+        }
+        self.wizard = Some(wizard);
         self.wizard_prepare_preview();
         Outcome::Done
     }

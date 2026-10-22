@@ -253,6 +253,9 @@ pub struct Engine {
     normalisers: Vec<Box<dyn Normaliser>>,
     changes: Vec<Change>,
     origin: Origin,
+    /// Whether a transaction without ops brought an asset the model did not hold since the last save (a logo
+    /// whose file was lost, picked again): the project is unsaved although no step changed it.
+    assets_unsaved: bool,
 }
 
 impl std::fmt::Debug for Engine {
@@ -281,6 +284,7 @@ impl Engine {
             normalisers: crate::normalise::registry(),
             changes: Vec::new(),
             origin: options.origin,
+            assets_unsaved: false,
         }
     }
 
@@ -315,11 +319,13 @@ impl Engine {
     /// Marks the current state as saved (the dirty flag, ARCH §5.3).
     pub fn mark_saved(&mut self) {
         self.history.mark_saved();
+        self.assets_unsaved = false;
     }
 
-    /// Whether the model differs from the last saved state.
+    /// Whether the model differs from the last saved state: a step since the save, or an asset that arrived in a
+    /// transaction without ops.
     pub fn is_dirty(&self) -> bool {
-        self.history.is_dirty()
+        self.history.is_dirty() || self.assets_unsaved
     }
 
     /// Takes the change feed's entries since the last call.
@@ -420,8 +426,12 @@ impl Engine {
         } = prepared;
         let changed = !ops.is_empty();
         if !changed {
-            // Assets of a transaction without ops (a reference that was there already): the store keeps them.
+            // Assets of a transaction without ops (a reference that was there already, its bytes lost): the store
+            // keeps them, and a new one leaves the project unsaved.
             for asset in assets {
+                if self.model.asset(asset.sha256()).is_none() {
+                    self.assets_unsaved = true;
+                }
                 self.model.put_asset(asset);
             }
         }

@@ -372,6 +372,9 @@ pub struct Recovered {
     pub keys: BTreeSet<AnyKey>,
     /// The number of transactions replayed.
     pub transactions: usize,
+    /// What the replay could not restore (assets the journal carried damaged, EW-CORE-015); the next save's
+    /// report carries them too.
+    pub findings: Vec<Finding>,
 }
 
 /// Why a recovery failed.
@@ -452,6 +455,11 @@ fn is_save_temp(path: &str) -> bool {
         ),
         _ => false,
     }
+}
+
+/// Whether the asset's file is among `opaque` with the asset's hash: its bytes are on disk.
+fn asset_on_disk(opaque: &BTreeMap<FilePath, FileHash>, r: &AssetRef) -> bool {
+    FilePath::new(r.path()).is_ok_and(|path| opaque.get(&path) == Some(&FileHash::Sha256(r.sha256.0)))
 }
 
 /// The asset of an opaque file `path` with `bytes` hashing to `hash`: an `assets/<sha256>.<ext>` file whose name
@@ -549,6 +557,9 @@ pub struct Store {
     pending_removes: Vec<FilePath>,
     /// Findings of roll-forwards completed outside a save, handed out with the next save's report.
     notes: Vec<Finding>,
+    /// Whether the next save writes every asset the model holds, not only the named ones (Save As: kept lines
+    /// and unknown members may name assets that no known record names).
+    all_assets: bool,
     journal: Option<Journal>,
     leftovers: Vec<Segment>,
     recovery: Option<RecoveryInfo>,
@@ -651,6 +662,7 @@ impl Store {
             pending: None,
             pending_removes: Vec::new(),
             notes: Vec::new(),
+            all_assets: false,
             journal: None,
             leftovers: Vec::new(),
             recovery: None,
@@ -1323,9 +1335,10 @@ impl Store {
             let key = LineKey::of(record).unwrap_or_else(LineKey::keyless);
             store.kept.entry(file).or_default().push((key, line.into_bytes()));
         }
-        store
-            .save(model, Changes::All)
-            .map_err(|e| OpenError::Format(e.to_string()))?;
+        store.all_assets = true;
+        let saved = store.save(model, Changes::All);
+        store.all_assets = false;
+        saved.map_err(|e| OpenError::Format(e.to_string()))?;
         store.prepare_journal_dir(Some(model.project().id.cast()));
         if let Some(j) = &mut store.journal {
             if j.start(store.generation, store.manifest_hash.as_ref()).is_err() {
@@ -1372,6 +1385,7 @@ impl Store {
             pending: None,
             pending_removes: Vec::new(),
             notes: Vec::new(),
+            all_assets: false,
             journal: None,
             leftovers: Vec::new(),
             recovery: None,
@@ -1811,9 +1825,15 @@ impl Store {
                 writes.insert(path.clone(), bytes);
             }
         }
-        // The assets the records name that have no file yet (doc 05 §13.3). A save never removes an asset file.
+        // The assets the records name that have no file yet (doc 05 §13.3); in Save As every asset the model
+        // holds. A save never removes an asset file.
         let mut assets = BTreeMap::new();
-        for sha in model.referenced_assets().keys() {
+        let wanted: Vec<Sha256> = if self.all_assets {
+            model.assets().map(|a| *a.sha256()).collect()
+        } else {
+            model.referenced_assets().into_keys().collect()
+        };
+        for sha in &wanted {
             let Some(asset) = model.asset(sha) else {
                 continue; // named but not held: nothing to write (the check reports it)
             };
@@ -1941,8 +1961,11 @@ impl Store {
         origin: &str,
     ) -> io::Result<()> {
         let now = self.opts.clock.now();
+        let opaque = &self.opaque;
         match &mut self.journal {
-            Some(j) => j.tx(now, cmd, origin, before, after, keys),
+            Some(j) => j.tx(now, cmd, origin, before, after, keys, &|r| {
+                asset_on_disk(opaque, r)
+            }),
             None => Ok(()),
         }
     }
@@ -1968,6 +1991,29 @@ impl Store {
         let txs = seg.unsaved(self.generation);
         let (recovered, keys) =
             journal::replay(model, &txs, !info.base_matches).map_err(RecoverError::Replay)?;
+        // Assets the journal carried damaged (EW-CORE-015): their bytes are not recovered.
+        let findings: Vec<Finding> = txs
+            .iter()
+            .filter_map(|e| match e {
+                journal::Entry::Tx {
+                    seq,
+                    cmd,
+                    damaged_assets,
+                    ..
+                } if *damaged_assets > 0 => Some(Finding::new(
+                    FindingKind::AssetMismatch,
+                    None,
+                    None,
+                    format!(
+                        "the journal's transaction {seq} ({cmd}) carried {damaged_assets} asset(s) whose bytes do \
+                         not match their reference; they are not recovered"
+                    ),
+                )),
+                _ => None,
+            })
+            .collect();
+        self.notes.extend(findings.iter().cloned());
+        let opaque = &self.opaque;
         if let Some(j) = &mut self.journal {
             j.tx(
                 self.opts.clock.now(),
@@ -1976,6 +2022,7 @@ impl Store {
                 model,
                 &recovered,
                 &keys,
+                &|r| asset_on_disk(opaque, r),
             )
             .map_err(RecoverError::Io)?;
             j.discard(&self.leftovers);
@@ -1986,6 +2033,7 @@ impl Store {
             model: recovered,
             keys: keys.into_iter().collect(),
             transactions: txs.len(),
+            findings,
         })
     }
 

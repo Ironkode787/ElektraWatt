@@ -295,6 +295,19 @@ fn logo_and_notice_come_from_the_provisional_company_data() {
     );
     assert_eq!(tb.get("project.notice"), Some(&TbValue::Ml(ml("<notice>"))));
 
+    // FT-337 fix round: the bare-hash form takes the format and size of the asset the model holds.
+    let sha: ew_schema::Sha256 = common::sha(7).parse().expect("digest");
+    let held = ew_schema::AssetRef {
+        sha256: sha,
+        format: ew_schema::AssetFormat::Svg,
+        size: Some((40, 10)),
+    };
+    let mut m = fx.build();
+    m.put_asset(ew_model::Asset::new(held, &b"<svg/>"[..]));
+    let q = Q::new(&m);
+    let tb = (*q.get::<TitleBlockValues>(PageRef::Drawn(id(PAGE101)))).clone();
+    assert_eq!(tb.get("project.logo"), Some(&TbValue::Asset(held)));
+
     // A malformed member leaves only its own path absent.
     fx.project_set(
         "ew.company",

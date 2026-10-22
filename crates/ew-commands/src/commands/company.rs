@@ -40,8 +40,8 @@ pub const COMPANY_MEMBER: &str = ew_schema::COMPANY_MEMBER;
 ///   breaks): SVG, or PNG or JPEG (which print rasterised, D-07: the outcome says so in a notice). The bytes join the
 ///   project's asset store (`assets/<sha256>.<ext>`, doc 05 §13.3) and `logo` of [`COMPANY_MEMBER`] names them by
 ///   their reference `{sha256, format, size}`; the title block's logo cell (`project.logo`) draws it. Invalid: text
-///   that is not base64, and bytes that are no SVG, PNG or JPEG file or exceed the size limits (raster 16 MiB, SVG
-///   8 MiB and 100,000 elements). An empty text removes the logo; the asset stays in the store while the session
+///   that is not base64, a logo of more than 512 KiB ([`ew_schema::MAX_LOGO_BYTES`]), and bytes that are no SVG,
+///   PNG or JPEG file (an SVG of at most 100,000 elements). An empty text removes the logo; the asset stays in the store while the session
 ///   lasts (undo brings the reference back) and a save writes only the assets that records name.
 ///
 /// An absent member leaves its value as it is; at least one member must be given (else invalid at the root).
@@ -62,7 +62,7 @@ pub struct SetCompany {
     /// Whether the panel-builder party is personal data (FR-PRJ-024); absent keeps it (`true` for a new party).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub personal_data: Option<bool>,
-    /// The logo image file (SVG, PNG or JPEG) in base64; empty removes it; absent keeps it.
+    /// The logo image file (SVG, PNG or JPEG, at most 512 KiB) in base64; empty removes it; absent keeps it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub logo: Option<String>,
 }
@@ -89,8 +89,25 @@ impl Command for SetCompany {
             None => None,
             Some("") => Some(None),
             Some(text) => {
+                // Checked on the text first, so that an oversized logo is not decoded.
+                let too_large = || {
+                    CmdError::invalid_params(
+                        Self::NAME,
+                        "/logo",
+                        format!(
+                            "the logo is larger than {} KiB (the limit of a company logo)",
+                            ew_schema::MAX_LOGO_BYTES / 1024
+                        ),
+                    )
+                };
+                if text.len() > ew_schema::MAX_LOGO_BYTES.div_ceil(3) * 4 {
+                    return Err(too_large());
+                }
                 let bytes = ew_schema::base64_decode(text)
                     .map_err(|e| CmdError::invalid_params(Self::NAME, "/logo", e.to_string()))?;
+                if bytes.len() > ew_schema::MAX_LOGO_BYTES {
+                    return Err(too_large());
+                }
                 let reference = tx
                     .put_asset(bytes)
                     .map_err(|e| CmdError::invalid_params(Self::NAME, "/logo", e.to_string()))?;

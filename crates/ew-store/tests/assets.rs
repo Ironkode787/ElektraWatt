@@ -164,12 +164,157 @@ fn the_journal_restores_the_assets_of_a_transaction() {
     assert_eq!(asset.reference().format, AssetFormat::Svg);
 }
 
+/// A second placeholder logo.
+const LOGO_Y: &[u8] =
+    br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30"><circle r="15"/></svg>"#;
+
+/// `model` with its project row replaced by `row` (an undo of the project row).
+fn with_row(model: &Model, row: &Arc<ew_store::ew_format::ew_schema::Project>) -> (Model, Vec<AnyKey>) {
+    let mut keys = BTreeSet::new();
+    let next = apply(
+        model,
+        &[Op::update(
+            AnyRow::Project(Arc::clone(model.project())),
+            AnyRow::Project(Arc::clone(row)),
+        )],
+        &mut keys,
+    )
+    .unwrap();
+    (next, keys.into_iter().collect())
+}
+
+/// Fix round, blocking item 1: set logo X, set logo Y, save (writes Y; the segment rotates), undo (X is named
+/// again), crash: the recovery restores X's bytes, which the new segment carries although the model held them before.
+#[test]
+fn an_older_asset_that_an_undo_names_after_a_save_is_journalled() {
+    let (vfs, root) = mem_project(DirSync::Explicit);
+    let o = Store::open(&root, options(&vfs, 1)).expect("the golden project opens");
+    let mut store = o.store;
+    let (x, y) = (logo_asset(LOGO), logo_asset(LOGO_Y));
+    let (m1, k1) = with_logo(&o.model, &x);
+    let k1: Vec<AnyKey> = k1.into_iter().collect();
+    store
+        .journal_commit(&o.model, &m1, &k1, "project.company.set", "test")
+        .unwrap();
+    let (m2, k2) = with_logo(&m1, &y);
+    let k2v: Vec<AnyKey> = k2.iter().copied().collect();
+    store
+        .journal_commit(&m1, &m2, &k2v, "project.company.set", "test")
+        .unwrap();
+    let mut dirty: BTreeSet<AnyKey> = k1.iter().copied().collect();
+    dirty.extend(k2);
+    store.save(&m2, Changes::Keys(&dirty)).expect("the save");
+    let files = project_files(&vfs, &root);
+    assert!(files.contains_key(&y.reference().path()));
+    assert!(!files.contains_key(&x.reference().path()), "X is no longer named");
+    let (m3, k3) = with_row(&m2, m1.project());
+    store.journal_commit(&m2, &m3, &k3, "undo", "test").unwrap();
+    store.crash();
+    let mut o = reopen(&vfs, 2);
+    assert!(o.model.asset(x.sha256()).is_none());
+    let rec = o.store.recover(&o.model).expect("the journal replays");
+    assert!(rec.findings.is_empty(), "{:?}", rec.findings);
+    assert_eq!(rec.model.asset(x.sha256()), Some(&x), "X's bytes come back");
+    assert!(rec.model.content_eq(&m3));
+    o.store
+        .save(&rec.model, Changes::Keys(&rec.keys))
+        .expect("the save");
+    assert_eq!(
+        project_files(&vfs, &root)
+            .get(&x.reference().path())
+            .map(Vec::as_slice),
+        Some(LOGO)
+    );
+}
+
+/// Fix round, item 3: a transaction without row changes that brings the bytes of a named asset is journalled.
+#[test]
+fn an_asset_without_row_changes_is_journalled() {
+    let (vfs, root) = mem_project(DirSync::Explicit);
+    let o = Store::open(&root, options(&vfs, 1)).expect("the golden project opens");
+    let mut store = o.store;
+    let x = logo_asset(LOGO);
+    // The logo is named, its bytes are not held (lost), and that state is saved.
+    let (named, keys) = with_logo(&o.model, &x);
+    let mut bare = o.model.clone();
+    let (bare_named, _) = with_row(&bare, named.project());
+    bare = bare_named;
+    store.save(&bare, Changes::Keys(&keys)).expect("the save");
+    assert!(!project_files(&vfs, &root).contains_key(&x.reference().path()));
+    // The bytes arrive without a row change.
+    let mut refilled = bare.clone();
+    refilled.put_asset(x.clone());
+    store
+        .journal_commit(&bare, &refilled, &[], "project.company.set", "test")
+        .unwrap();
+    store.crash();
+    let mut o = reopen(&vfs, 2);
+    let info = o
+        .report
+        .recovery
+        .clone()
+        .expect("the asset-only line is a leftover");
+    assert_eq!(info.transactions, 1);
+    let rec = o.store.recover(&o.model).expect("the journal replays");
+    assert_eq!(rec.model.asset(x.sha256()), Some(&x));
+}
+
+/// Fix round, item 4: an asset the journal carries damaged is reported, not silently dropped.
+#[test]
+fn a_damaged_journal_asset_is_a_recovery_finding() {
+    use ew_store::Vfs;
+    let (vfs, root) = mem_project(DirSync::Explicit);
+    let o = Store::open(&root, options(&vfs, 1)).expect("the golden project opens");
+    let mut store = o.store;
+    let x = logo_asset(LOGO);
+    let (m1, k1) = with_logo(&o.model, &x);
+    let k1: Vec<AnyKey> = k1.into_iter().collect();
+    store
+        .journal_commit(&o.model, &m1, &k1, "project.company.set", "test")
+        .unwrap();
+    let dir = store.journal_dir().expect("a journal").to_path_buf();
+    store.crash();
+    // Replace the carried bytes by other valid base64: they no longer hash to the reference.
+    let good = ew_store::ew_format::ew_schema::base64_encode(LOGO);
+    let bad = ew_store::ew_format::ew_schema::base64_encode(LOGO_Y);
+    for (name, _) in vfs.list(&dir).unwrap() {
+        let path = dir.join(&name);
+        let text = String::from_utf8(vfs.read(&path).unwrap()).unwrap();
+        if text.contains(&good) {
+            vfs.put(&path, text.replace(&good, &bad).as_bytes());
+        }
+    }
+    let mut o = reopen(&vfs, 2);
+    let rec = o.store.recover(&o.model).expect("the journal replays");
+    assert!(rec.model.asset(x.sha256()).is_none());
+    assert_eq!(rec.findings.len(), 1, "{:?}", rec.findings);
+    assert_eq!(
+        rec.findings[0].kind,
+        ew_store::ew_format::FindingKind::AssetMismatch
+    );
+    let report = o
+        .store
+        .save(&rec.model, Changes::Keys(&rec.keys))
+        .expect("the save");
+    assert!(
+        report
+            .findings
+            .iter()
+            .any(|f| f.kind == ew_store::ew_format::FindingKind::AssetMismatch),
+        "the next save reports it too: {:?}",
+        report.findings
+    );
+}
+
 #[test]
 fn a_new_project_writes_its_assets() {
     let (vfs, root) = mem_project(DirSync::Explicit);
     let o = Store::open(&root, options(&vfs, 1)).expect("the golden project opens");
     let asset = logo_asset(LOGO);
-    let (model, _) = with_logo(&o.model, &asset);
+    let (mut model, _) = with_logo(&o.model, &asset);
+    // Fix round, item 6: Save As also writes an asset no known record names (a kept line may name it).
+    let unnamed = logo_asset(LOGO_Y);
+    model.put_asset(unnamed.clone());
     drop(o);
     let target = std::path::PathBuf::from("/q");
     let mut opts = options(&vfs, 1);
@@ -180,5 +325,9 @@ fn a_new_project_writes_its_assets() {
     assert_eq!(
         files.get(&asset.reference().path()).map(Vec::as_slice),
         Some(LOGO)
+    );
+    assert_eq!(
+        files.get(&unnamed.reference().path()).map(Vec::as_slice),
+        Some(LOGO_Y)
     );
 }

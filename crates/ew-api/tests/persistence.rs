@@ -196,6 +196,51 @@ fn the_journal_recovers_unsaved_commits_after_a_crash() {
     let _ = std::fs::remove_dir_all(&state);
 }
 
+/// `project.company.set` with a logo, previewed and committed (a Bulk command).
+fn set_logo(s: &mut Session, bytes: &[u8]) {
+    let cmd = AnyCommand {
+        name: "project.company.set".into(),
+        params: serde_json::json!({ "logo": ew_api::base64_encode(bytes) }),
+    };
+    let p = s.preview(&cmd).unwrap();
+    s.commit(p).unwrap();
+}
+
+/// FT-337 fix round, blocking item 1: logo X, logo Y, save, undo (X named again), crash: the recovery restores X's
+/// bytes and the next save writes its file.
+#[test]
+fn an_undone_logo_survives_a_crash_after_a_save() {
+    const X: &[u8] = br#"<svg viewBox="0 0 8 2"><rect width="8" height="2"/></svg>"#;
+    const Y: &[u8] = br#"<svg viewBox="0 0 3 3"><circle r="1"/></svg>"#;
+    let state = temp("state");
+    let (mut s, dir) = created(&state);
+    set_logo(&mut s, X);
+    set_logo(&mut s, Y);
+    s.save().unwrap();
+    s.undo().unwrap();
+    let live = lines(&s);
+    drop(s);
+    let (mut r, report) = Session::open(&dir, store_options(&state), options(13), Recovery::Apply).unwrap();
+    assert!(report.recovery.is_some());
+    assert_eq!(lines(&r), live);
+    let x = r
+        .world()
+        .model
+        .assets()
+        .find(|a| &**a.bytes() == X)
+        .map(|a| *a.reference())
+        .expect("X's bytes are recovered");
+    r.save().unwrap();
+    let hex = &x.sha256.to_string()["sha256:".len()..];
+    assert_eq!(
+        std::fs::read(dir.join("assets").join(format!("{hex}.svg"))).unwrap(),
+        X
+    );
+    r.close();
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::remove_dir_all(&state);
+}
+
 #[test]
 fn a_failed_retry_keeps_the_newer_edits_dirty() {
     // Review cycle 8, blocker 1, end to end: save 1 is incomplete (antivirus holds `manifest.json`); the

@@ -1207,6 +1207,7 @@ fn tx_entry(before: &Model, after: &Model, keys: &[AnyKey], cmd: &str) -> Entry 
         origin: "test".into(),
         ops,
         assets: Vec::new(),
+        damaged_assets: 0,
     }
 }
 
@@ -1311,4 +1312,114 @@ fn replay_onto_a_moved_base_collides_on_a_removed_copy_that_a_lib_ref_names() {
     let (back, _) = journal::replay(&moved, &txs.iter().collect::<Vec<_>>(), true)
         .expect("the journal leaves the copy as the moved base has it");
     assert!(!back.contains(&def.key()));
+}
+
+/// A placeholder logo (no company's artwork) for the asset sweeps.
+const LOGO: &[u8] =
+    br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 20"><rect width="80" height="20"/></svg>"#;
+
+/// The golden project opened as pid 1, and `g1`: the project row naming a logo asset that `g1` holds, journalled
+/// as committed (FT-337 fix round).
+fn logo_setup(mode: DirSync) -> (Arc<MemVfs>, Store, Model, BTreeSet<AnyKey>, ew_model::Asset) {
+    use ew_store::ew_format::ew_schema::{AssetRef, COMPANY_MEMBER, sniff};
+    let (vfs, root) = mem_project(mode);
+    let Opened { mut store, model, .. } = Store::open(&root, options(&vfs, 1)).expect("the fixture opens");
+    let (format, size) = sniff(LOGO).expect("an SVG");
+    let asset = ew_model::Asset::new(
+        AssetRef {
+            sha256: Sha256(sha256(LOGO)),
+            format,
+            size,
+        },
+        LOGO,
+    );
+    let before = Arc::clone(model.project());
+    let mut after = (*before).clone();
+    after.extra.insert(
+        COMPANY_MEMBER.to_owned(),
+        serde_json::json!({ "logo": serde_json::to_value(asset.reference()).unwrap() }),
+    );
+    let mut g1 = edited(
+        &model,
+        &[Op::update(
+            AnyRow::Project(before),
+            AnyRow::Project(Arc::new(after)),
+        )],
+    );
+    g1.put_asset(asset.clone());
+    let keys: BTreeSet<AnyKey> = std::iter::once(g1.project().id.cast())
+        .map(|id| (ew_store::ew_format::ew_schema::Kind::Project, id))
+        .collect();
+    let keys_vec: Vec<AnyKey> = keys.iter().copied().collect();
+    store
+        .journal_commit(&model, &g1, &keys_vec, "project.company.set", "test")
+        .expect("the journal accepts the commit");
+    (vfs, store, g1, keys, asset)
+}
+
+/// Fix round, blocking item 1: a kill at every call of a save that writes an asset, the crash between the asset's
+/// rename and the manifest rename included: the project opens at g with the journal restoring the asset's bytes, or
+/// at g1 with the asset on disk; never named without its bytes.
+#[test]
+fn a_kill_at_every_call_of_an_asset_save_keeps_the_assets_bytes() {
+    for mode in MODES {
+        let (vfs, mut store, g1, keys, _) = logo_setup(mode);
+        vfs.set_trace(true);
+        vfs.reset_calls();
+        store.save(&g1, Changes::Keys(&keys)).expect("the dry-run save");
+        let n = vfs.calls();
+        let trace = vfs.trace();
+        assert!(
+            trace.iter().any(|t| t.contains("assets")),
+            "the save writes the asset: {trace:?}"
+        );
+        let failures: Vec<String> = par_map((1..=n).collect(), |k| {
+            let (vfs, mut store, g1, keys, asset) = logo_setup(mode);
+            vfs.reset_calls();
+            vfs.set_fault(Fault::Kill { at: k });
+            let _ = store.save(&g1, Changes::Keys(&keys));
+            store.crash();
+            vfs.restart();
+            let mut o = match try_reopen(&vfs, 2) {
+                Ok(o) => o,
+                Err(e) => return vec![format!("{mode:?} k={k}: {e}")],
+            };
+            let model = match o.report.generation {
+                1 => match o.store.recover(&o.model) {
+                    Ok(r) => r.model,
+                    Err(e) => return vec![format!("{mode:?} k={k}: at g without a recovery: {e:?}")],
+                },
+                2 => o.model.clone(),
+                g => return vec![format!("{mode:?} k={k}: generation {g}")],
+            };
+            let mut out = Vec::new();
+            if !model.content_eq(&g1) {
+                out.push(format!("{mode:?} k={k}: the model is not g1"));
+            }
+            if model.asset(asset.sha256()) != Some(&asset) {
+                out.push(format!(
+                    "{mode:?} k={k} (gen {}): the logo is named without its bytes",
+                    o.report.generation
+                ));
+            }
+            if o.report.generation == 2
+                && project_files(&vfs, &root())
+                    .get(&asset.reference().path())
+                    .map(Vec::as_slice)
+                    != Some(LOGO)
+            {
+                out.push(format!("{mode:?} k={k}: at g1 without the asset file"));
+            }
+            out
+        })
+        .into_iter()
+        .flatten()
+        .collect();
+        assert!(
+            failures.is_empty(),
+            "{} failures:\n{}",
+            failures.len(),
+            failures.join("\n")
+        );
+    }
 }

@@ -18,8 +18,8 @@
   breaks): SVG, or PNG or JPEG (which print rasterised, D-07: the outcome says so in a notice). The bytes join the
   project's asset store (`assets/<sha256>.<ext>`, doc 05 §13.3) and `logo` of `COMPANY_MEMBER` names them by
   their reference `{sha256, format, size}`; the title block's logo cell (`project.logo`) draws it. Invalid: text
-  that is not base64, and bytes that are no SVG, PNG or JPEG file or exceed the size limits (raster 16 MiB, SVG
-  8 MiB and 100,000 elements). An empty text removes the logo; the asset stays in the store while the session
+  that is not base64, a logo of more than 512 KiB (`ew_schema::MAX_LOGO_BYTES`), and bytes that are no SVG,
+  PNG or JPEG file (an SVG of at most 100,000 elements). An empty text removes the logo; the asset stays in the store while the session
   lasts (undo brings the reference back) and a save writes only the assets that records name.
 
 An absent member leaves its value as it is; at least one member must be given (else invalid at the root).
@@ -45,7 +45,7 @@ block, so front-ends preview the change. Undoable as one step. Outcome: none.
 
 | Name | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `logo` | string or `null` | no |  | The logo image file (SVG, PNG or JPEG) in base64; empty removes it; absent keeps it. |
+| `logo` | string or `null` | no |  | The logo image file (SVG, PNG or JPEG, at most 512 KiB) in base64; empty removes it; absent keeps it. |
 | `name` | [`CmdMlText`](#cmdmltext) or `null` | no |  | The company name (the panel-builder party's name); empty removes it; absent keeps it. |
 | `notice` | [`CmdMlText`](#cmdmltext) or `null` | no |  | The title-block notice text (`project.notice`); empty removes it; absent keeps it. |
 | `personal_data` | boolean or `null` | no |  | Whether the panel-builder party is personal data (FR-PRJ-024); absent keeps it (`true` for a new party). |

@@ -435,8 +435,12 @@ pub fn lookup(key: &str) -> Option<&'static str> {
             "The standard layout: TOC 2, parts 901, terminals 903, cables 906, wires 907, PLC 908, potentials 909, tags 910, revisions 911"
         }
         "choice-report_blocks-none" => "None",
-        "wizard-error-logo" => {
-            "The logo must be a readable SVG, PNG or JPEG file (SVG up to 8 MiB, PNG and JPEG up to 16 MiB)."
+        "wizard-error-logo" => "The logo must be a readable SVG, PNG or JPEG file of at most 512 KiB.",
+        "wizard-error-logo-size" => {
+            "The logo file is larger than 512 KiB; choose a smaller file (an SVG logo is usually far smaller)."
+        }
+        "wizard-notice-logo-gone" => {
+            "The logo file of the saved draft could not be read; choose the logo again."
         }
         "wizard-logo-raster" => "{0} (a raster image: it prints rasterised)",
         "choice-frame-qet-grid" => "QET-compatible A4 landscape, with grid",

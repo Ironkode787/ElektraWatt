@@ -554,9 +554,18 @@ struct Logo {
 }
 
 impl Logo {
-    /// Reads and sniffs the logo file at `path` (SVG, PNG or JPEG within the asset store's limits).
+    /// Reads and sniffs the logo file at `path`: an SVG, PNG or JPEG file of at most [`ew_api::MAX_LOGO_BYTES`],
+    /// whose size is checked before the file is read.
     fn read(path: &str) -> Result<Logo, &'static str> {
+        let len = std::fs::metadata(path).map_err(|_| "wizard-error-logo")?.len();
+        if usize::try_from(len).map_or(true, |n| n > ew_api::MAX_LOGO_BYTES) {
+            return Err("wizard-error-logo-size");
+        }
         let bytes = std::fs::read(path).map_err(|_| "wizard-error-logo")?;
+        // The file may have grown since its size was read.
+        if bytes.len() > ew_api::MAX_LOGO_BYTES {
+            return Err("wizard-error-logo-size");
+        }
         let (format, _) = ew_api::sniff_asset(&bytes).map_err(|_| "wizard-error-logo")?;
         let digest = bytes.iter().fold(0xcbf2_9ce4_8422_2325_u64, |h, b| {
             (h ^ u64::from(*b)).wrapping_mul(0x0100_0000_01b3)
@@ -575,6 +584,8 @@ pub struct Draft {
     values: BTreeMap<String, String>,
     /// The file of the `company_logo` field, read when it was set.
     logo: Option<Logo>,
+    /// Whether [`Draft::from_json`] found a logo path whose file could not be read again.
+    logo_lost: bool,
 }
 
 impl Default for Draft {
@@ -585,6 +596,7 @@ impl Default for Draft {
                 .map(|f| (f.key.to_owned(), f.default.to_owned()))
                 .collect(),
             logo: None,
+            logo_lost: false,
         }
     }
 }
@@ -614,6 +626,11 @@ impl Draft {
         }
         self.values.insert(key.to_owned(), value.to_owned());
         Ok(())
+    }
+
+    /// Whether the saved draft named a logo file that could not be read again (the wizard says so when it opens).
+    pub fn logo_lost(&self) -> bool {
+        self.logo_lost
     }
 
     /// Whether the logo is a raster image (PNG, JPEG), which prints rasterised (D-07); `false` without a logo.
@@ -652,6 +669,12 @@ impl Draft {
                     let _ = draft.set(k, v);
                 }
             }
+            // A logo whose file moved or grew is dropped like any value that does not pass, but said.
+            draft.logo_lost = values
+                .get(LOGO_FIELD)
+                .and_then(Value::as_str)
+                .is_some_and(|v| !v.is_empty())
+                && draft.get(LOGO_FIELD).is_empty();
         }
         Some((draft, step))
     }
@@ -1402,6 +1425,32 @@ mod tests {
             Err("wizard-error-logo")
         );
         assert_eq!(d.get(LOGO_FIELD), "", "a refused file leaves the field as it was");
+        // A file above the 512 KiB limit is refused by its size, before it is read.
+        let big = dir.join("big.svg");
+        let mut bytes = b"<svg viewBox='0 0 1 1'>".to_vec();
+        bytes.resize(ew_api::MAX_LOGO_BYTES + 1, b' ');
+        std::fs::write(&big, &bytes).unwrap();
+        assert_eq!(
+            d.set(LOGO_FIELD, &big.to_string_lossy()),
+            Err("wizard-error-logo-size")
+        );
+        bytes.truncate(ew_api::MAX_LOGO_BYTES);
+        std::fs::write(&big, &bytes).unwrap();
+        assert_eq!(
+            d.set(LOGO_FIELD, &big.to_string_lossy()),
+            Ok(()),
+            "the limit itself passes"
+        );
+        d.set(LOGO_FIELD, "").unwrap();
+        // A saved draft whose logo file is gone drops the logo and says so.
+        let gone = Draft::from_json(&format!(
+            "{{\"$schema\":\"{DRAFT_SCHEMA}\",\"step\":0,\"values\":{{\"company_logo\":{}}}}}",
+            json!(dir.join("moved.svg").to_string_lossy())
+        ))
+        .unwrap()
+        .0;
+        assert!(gone.logo_lost() && gone.get(LOGO_FIELD).is_empty());
+        assert!(!Draft::default().logo_lost());
         d.set(LOGO_FIELD, &svg.to_string_lossy()).unwrap();
         assert!(!d.logo_is_raster());
         let company = d

@@ -593,6 +593,15 @@ impl Q {
         self.model.project()
     }
 
+    /// The reference of the held asset with this hash (format, intrinsic size), for the company logo of the earlier
+    /// bare-hash form, which names no format (FT-337). Recorded as a read of the project row: assets are only ever
+    /// added, a file's assets are loaded before any query runs, and the bare form is never written, so the only way
+    /// the answer changes is `project.company.set` writing the logo, which changes the project row.
+    pub fn logo_asset(&self, sha256: &ew_schema::Sha256) -> Option<ew_schema::AssetRef> {
+        self.read(DepKey::Project, self.model.project_row().changed_at());
+        self.model.asset(sha256).map(|a| *a.reference())
+    }
+
     /// The derivation profile the project pins (ADR-0003, ARCH §6.6). A key this build does not ship
     /// falls back to the newest shipped profile; [`Q::profile_status`] says so.
     pub fn profile(&self) -> &'static DerivationProfile {

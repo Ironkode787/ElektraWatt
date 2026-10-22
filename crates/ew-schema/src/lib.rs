@@ -94,8 +94,8 @@ mod track;
 mod value;
 
 pub use asset::{
-    AssetError, AssetFormat, AssetRef, COMPANY_MEMBER, MAX_RASTER_BYTES, MAX_SVG_BYTES, MAX_SVG_NODES,
-    base64_decode, base64_encode, company_logo, sniff,
+    AssetError, AssetFormat, AssetRef, COMPANY_MEMBER, MAX_LOGO_BYTES, MAX_RASTER_BYTES, MAX_SVG_BYTES,
+    MAX_SVG_NODES, base64_decode, base64_encode, company_logo, sniff,
 };
 pub use connect::{
     AcDc, AssignedNumber, BevelSpec, Bond, BondKind, BridgeKind, BridgeSpec, BusLine, CircuitClass,

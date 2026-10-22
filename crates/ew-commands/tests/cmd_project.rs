@@ -257,6 +257,65 @@ fn company_set_stores_the_logo_as_an_asset_and_undoes() {
     assert_eq!(e.model().project().extra.get(COMPANY_MEMBER), None);
 }
 
+/// FT-337 fix round, item 3: picking again a logo whose bytes the model lost changes no row, but brings the asset
+/// and leaves the project unsaved.
+#[test]
+fn a_logo_picked_again_without_row_changes_leaves_the_project_unsaved() {
+    use sha2::Digest;
+    let (mut project, records, _) = mini_golden_parts();
+    let (format, size) = ew_schema::sniff(LOGO_SVG).unwrap();
+    let reference = ew_schema::AssetRef {
+        sha256: ew_schema::Sha256(sha2::Sha256::digest(LOGO_SVG).into()),
+        format,
+        size,
+    };
+    project.extra.insert(
+        COMPANY_MEMBER.into(),
+        json!({"logo": serde_json::to_value(reference).unwrap()}),
+    );
+    let mut e = engine(Model::from_records(project, records, library()).unwrap());
+    assert!(e.model().asset(&reference.sha256).is_none() && !e.is_dirty());
+    let rev = e.model().rev();
+    commit(
+        &mut e,
+        &any(
+            "project.company.set",
+            json!({"logo": ew_schema::base64_encode(LOGO_SVG)}),
+        ),
+    );
+    assert_eq!(e.model().rev(), rev, "no row changed");
+    assert!(e.model().asset(&reference.sha256).is_some());
+    assert!(e.is_dirty(), "the asset arrived: the project is unsaved");
+    e.mark_saved();
+    assert!(!e.is_dirty());
+}
+
+/// FT-337 fix round: a logo above 512 KiB is refused; one of exactly the limit passes.
+#[test]
+fn company_set_refuses_a_logo_above_the_limit() {
+    let mut e = engine(golden_model());
+    let mut bytes = logo_png();
+    bytes.resize(ew_schema::MAX_LOGO_BYTES + 1, 0);
+    let (path, message) = invalid(
+        &mut e,
+        &any(
+            "project.company.set",
+            json!({"logo": ew_schema::base64_encode(&bytes)}),
+        ),
+    );
+    assert_eq!(path, "/logo");
+    assert!(message.contains("512 KiB"), "{message}");
+    bytes.truncate(ew_schema::MAX_LOGO_BYTES);
+    commit(
+        &mut e,
+        &any(
+            "project.company.set",
+            json!({"logo": ew_schema::base64_encode(&bytes)}),
+        ),
+    );
+    assert!(ew_schema::company_logo(&e.model().project().extra).is_some());
+}
+
 #[test]
 fn company_set_refuses_a_logo_that_is_no_image() {
     let mut e = engine(golden_model());

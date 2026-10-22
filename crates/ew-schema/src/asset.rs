@@ -31,6 +31,10 @@ pub const MAX_SVG_BYTES: usize = 8 * 1024 * 1024;
 /// The most elements an SVG asset may have (doc 05 §13.3).
 pub const MAX_SVG_NODES: usize = 100_000;
 
+/// The largest company logo: 512 KiB (FT-337 fix round, owner ruling). The logo travels as base64 inside a command
+/// parameter and a journal line, so it stays well below the command layer's 1 MiB limit of one parameter string.
+pub const MAX_LOGO_BYTES: usize = 512 * 1024;
+
 /// The project-row member that holds the company data of a basic project until `Project` types it (decision log
 /// ID-40, ID-545).
 pub const COMPANY_MEMBER: &str = "ew.company";

@@ -84,7 +84,9 @@ pub use ew_derive::{BomMode, DeriveNote, MemoStore, Mismatch, NoteSeverity};
 /// The row sources of `ew export cables|bom` (doc 17 §3.3): what to export and why it could not.
 pub use ew_reports::export::{Export, ExportError, Exported};
 /// Assets (doc 05 §13.3): the reference a record stores, the sniffer and the base64 form of command parameters.
-pub use ew_schema::{AssetError, AssetFormat, AssetRef, Sha256, base64_encode, sniff as sniff_asset};
+pub use ew_schema::{
+    AssetError, AssetFormat, AssetRef, MAX_LOGO_BYTES, Sha256, base64_encode, sniff as sniff_asset,
+};
 /// The read-only SQL projection (`ew sql`, the acceptance SQL, ADR-0017): views, sandbox, results.
 pub use ew_sqlview as sql;
 pub use ew_store::{Access, OpenError, OpenReport, ReadOnlyReason, SaveError, StoreOptions};
@@ -540,6 +542,14 @@ impl Session {
     fn committed(&mut self, before: &Model, cmd: &str) {
         let changes = self.engine.drain_changes();
         if changes.is_empty() {
+            // A transaction without row changes that brought an asset (a lost logo picked again; assets are only
+            // ever added): journal it, so that a crash before the save does not lose its bytes (FT-337).
+            let arrived = self.engine.model().assets().count() != before.assets().count();
+            if let (true, Some(p)) = (arrived, &mut self.persistence) {
+                let _ = p
+                    .store
+                    .journal_commit(before, self.engine.model(), &[], cmd, &self.origin);
+            }
             return;
         }
         let keys: Vec<AnyKey> = changes
