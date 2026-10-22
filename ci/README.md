@@ -27,7 +27,7 @@ The job names are the GitHub status-check names to mark as required.
 | CI-PR-10 (book) | `docs.yml` / `docs-book` (ubuntu-24.04) | The user-documentation book of `docs/book` (WP-S0.06, NFR-DOC-01, NFR-DOC-06): `cargo xtask docs-gen --check` (the generated command and rule reference pages are current); mdBook 0.5.4, installed from its pinned release archive (SHA-256 checked); `mdbook build docs/book` in an empty network namespace (the build is offline); `ci/check-book-links.py` over the built pages (relative links, anchors, and links into the repository); the built book uploaded as the artifact `user-guide`. A separate job, so that `legal-docs` stays fast | `cargo xtask docs-gen --check`; `mdbook build docs/book` (mdBook 0.5.4); `python3 -I ci/check-book-links.py target/book` |
 | CI-N-09 | `ci.yml` / `verapdf` (ubuntu-24.04) | Builds `ew`, exports the golden PDF in three variants (all pages; dated by `SOURCE_DATE_EPOCH`; `--pages 101-106,901`) and validates each against PDF/A-2b with veraPDF 1.30.3 (the project's `verapdf/cli` image pinned by digest, run with no network); `ci/verapdf-check.py` turns the XML report into the verdict (FT-294, G-M1-02); the report uploaded as the artifact `verapdf-report`. Details: [veraPDF job](#verapdf-job-ci-n-09) | `python3 -I ci/verapdf-check.py --selftest`; with docker: `docker run --rm -v "$PWD/out:/data:ro" verapdf/cli@sha256:… --flavour 2b --format xml /data/golden-all.pdf > out/verapdf-report.xml`, then `python3 -I ci/verapdf-check.py out/verapdf-report.xml` |
 | CI-N-12 | `cli-artefact.yml` / `cli-artefact` (ubuntu-24.04, windows-2025, macos-15; nightly and `workflow_dispatch`) | `cargo build -p ew --release --locked` and a smoke test (`ew --version`, `ew --help`) per platform; uploads `ew-<os>-<arch>-unsigned-dev-<short sha>` (the program, `LICENSE.md` and a README that says "unsigned development build, not a release") with 90-day retention; no signing, no release, no secret (FT-299, G-M1-22). Details: [CLI artefact](#nightly-cli-artefact-cli-artefactyml-ci-n-12) | `cargo build -p ew --release --locked`; `target/release/ew --version` |
-| CI-R-03 (before WP-S6.07) | `cli-artefact.yml` / `release-check` (ubuntu-24.04; nightly and `workflow_dispatch`) | `cargo build -p elektrawatt --release --locked` with `PKG_CONFIG=false` and path remapping; asserts no pkg-config override and no `ICU4X_DATA_DIR` in the build environment, then fails on any build-host path in the binary, any hard link to libwayland, libxkbcommon or libX11, and any library directory in x11-dl's generated config; uploads the report only, never the binary (FT-333, ID-476); report-only. Details: [Release check](#release-check-cli-artefactyml--release-check-ci-r-03-before-wp-s607) | `PKG_CONFIG=false ci/release-check.sh env`; the build; `ci/release-check.sh scan target/release/elektrawatt target report.md` (Linux) |
+| CI-R-03 (before WP-S6.07) | `cli-artefact.yml` / `release-check` (ubuntu-24.04; nightly and `workflow_dispatch`) | `cargo build -p elektrawatt --release --locked` with `PKG_CONFIG=false` and path remapping; asserts no pkg-config override, no `ICU4X_DATA_DIR`, no `CARGO_ENCODED_RUSTFLAGS` and no cargo `[env]` table in the build environment, then fails on any build-host path in the binary (outside a reviewed exception list), any hard link to libwayland, libxkbcommon, libX11, libxcb, libEGL, libGL or libvulkan, and any library directory in x11-dl's generated config; uploads the report only, never the binary (FT-333, ID-476); report-only. Details: [Release check](#release-check-cli-artefactyml--release-check-ci-r-03-before-wp-s607) | `bash ci/release-check.sh env`, the build and `bash ci/release-check.sh scan …` with `PKG_CONFIG=false` and the `RUSTFLAGS` remap, as in the section below (Linux) |
 | CI-N-02, CI-N-03 | `deep-nightly.yml` / `full-oracle`, `proptest`, `fuzz (<target>)` (three jobs), `asan-command-fuzz` (ubuntu-24.04; nightly at 06:07 UTC and `workflow_dispatch`) | The memo oracle on every read over Golden A and Golden B (release profile, debug assertions on); the tests of the seven core crates with `PROPTEST_CASES=20000`; the three cargo-fuzz targets of [`fuzz/`](../fuzz) (`jsonl_loader`, `migration_chain`, `command_sequence`), 30 minutes each, AddressSanitizer, on the nightly pinned by date; the seeded command fuzzer `fuzz_long` under `-Zsanitizer=address` (FT-297, FT-304, FT-272). Red only for a finding, a failed build or a hang. Details: [Deep nightly](#deep-nightly-deep-nightlyyml-ci-n-02-and-ci-n-03) | `cd fuzz && cargo fuzz run <target> -- -max_total_time=60`; `PROPTEST_CASES=2000 cargo nextest run --release -p ew-model -p ew-commands -p ew-store -p ew-format -p ew-memo -p ew-derive -p ew-schema`; `cargo nextest run --release -p ew-api --all-features -E 'binary(memo_oracle) or binary(golden_b)' --run-ignored all` |
 | CI-PR-13 | `coverage.yml` / `coverage` (ubuntu-24.04; weekly and `workflow_dispatch`, not per PR) | cargo-llvm-cov 0.9.1 over the workspace tests (all features, nextest), the line coverage of `ew-model`, `ew-commands`, `ew-memo`, `ew-derive`, `ew-format` and `ew-store` against 80 % (NFR-MAINT-06); **report-only** (FT-296, G-M1-15). Details: [Coverage job](#coverage-job-ci-pr-13) | `cargo llvm-cov nextest --workspace --all-features --locked --no-report`, `cargo llvm-cov report --json --summary-only --output-path summary.json`, `python3 -I ci/coverage-summary.py summary.json` |
 
@@ -239,19 +239,25 @@ parallel with the `ew` artefact jobs and does not hold them up.
 
 What it does, on ubuntu-24.04 with `PKG_CONFIG=false` set for the job:
 
-1. `ci/release-check.sh env`, in the same shell as the build: fails unless `PKG_CONFIG` is `false` and no
+1. `bash ci/release-check.sh env`, in the same shell as the build: fails unless `PKG_CONFIG` is `false` and no
    `PKG_CONFIG_*`, `HOST_PKG_CONFIG*` or `TARGET_PKG_CONFIG*` variable is exported (the pkg-config crate prefers
-   `PKG_CONFIG_<target>` and `HOST_PKG_CONFIG` to `PKG_CONFIG`), and unless `ICU4X_DATA_DIR` is unset. The names come
-   from the environment the shell passes on, so a name such as `PKG_CONFIG_x86_64-unknown-linux-gnu` is caught too.
+   `PKG_CONFIG_<target>` and `HOST_PKG_CONFIG` to `PKG_CONFIG`), unless `ICU4X_DATA_DIR` and `CARGO_ENCODED_RUSTFLAGS`
+   (which would replace `RUSTFLAGS` and drop the remap) are unset, and unless no `.cargo/config.toml` or `.cargo/config`
+   of the checkout or the cargo home has an `[env]` table or `env.` key (cargo hands those to the build scripts; there
+   is none today). The names come from the environment the shell passes on, so a name such as
+   `PKG_CONFIG_x86_64-unknown-linux-gnu` is caught too.
 2. `cargo build -p elektrawatt --release --locked` with `RUSTFLAGS` remapping the cargo home to `/cargo`, the rustup
    home to `/rustup` and the checkout to `/build`: without it the panic locations of registry crates carry
    `/home/runner/.cargo/registry/…`. Cargo's `trim-paths` would do the same but is not stable on Rust 1.99.0.
-3. `ci/release-check.sh scan target/release/elektrawatt target release-check-report.md`: fails on any build-host path
-   in the binary (`strings -a`: `/home/`, `/usr/lib/x86_64-linux-gnu`, `/opt/`, and the checkout, cargo home, rustup
-   home and runner temp directory), on a `NEEDED` entry for `libwayland*`, `libxkbcommon*` or `libX11*`
-   (`readelf -d`; winit and xkbcommon-dl load them with `dlopen`, and the `required_features` guard of
-   `check-features` keeps `wayland-sys/dlopen` on), and on any `Some(..)` library directory in x11-dl's generated
-   `config.rs` (or no such file). The report lists each pattern's hit count with the first hits, the `NEEDED` entries,
+3. `bash ci/release-check.sh scan target/release/elektrawatt target release-check-report.md`: fails on any build-host
+   path in the binary (`strings -a`: `/home/`, `/usr/lib/x86_64-linux-gnu`, `/opt/`, and the checkout, cargo home,
+   rustup home and runner temp directory), on a `NEEDED` entry for `libwayland*`, `libxkbcommon*`, `libX11*`,
+   `libxcb*`, `libEGL*`, `libGL*` or `libvulkan*` (`readelf -d`; all are loaded with `dlopen`, and a hard link to any
+   of them breaks NFR-PLAT-03's fallback chain; the `required_features` guard of `check-features` keeps
+   `wayland-sys/dlopen` on), and on any `Some(..)` library directory in x11-dl's generated `config.rs` (or no such
+   file). A legitimate run-time search-path string that a crate hard-codes can only pass through the script's reviewed
+   exception list `ALLOWED_STRINGS` (exact whole lines, each with a comment naming the crate, the reason and the FT or
+   decision-log ID; empty today). The report lists each pattern's hit count with the first hits, the `NEEDED` entries,
    `ldd` for information, and the verdict; it goes to the job summary and the artifact `release-check-report`
    (30 days).
 
@@ -264,11 +270,19 @@ What the first run must settle: whether the hosted image exports any `PKG_CONFIG
 fails then, and the release build must unset it); whether the remap leaves any `/home/` string (for example from a
 build script that embeds an absolute path through `include!` or `env!`); whether any crate hard-codes
 `/usr/lib/x86_64-linux-gnu` or an `/opt/` path as a run-time search path (a legitimate hit would need a reviewed
-exception in the script, not a weaker pattern); that no `NEEDED` entry names a Wayland, xkbcommon or X11 library;
+exception in `ALLOWED_STRINGS`, not a weaker pattern); that no `NEEDED` entry names a library of the deny-list;
 and the job's cold build time against its 90-minute limit.
 
-Locally (Linux): `PKG_CONFIG=false ci/release-check.sh env`, then the build with the same `RUSTFLAGS`, then
-`ci/release-check.sh scan target/release/elektrawatt target report.md`.
+Locally (Linux; the script is not executable, so it runs through `bash`; without the remap the scan fails on the
+registry paths under `/home/`):
+
+```sh
+export PKG_CONFIG=false
+export RUSTFLAGS="--remap-path-prefix=${CARGO_HOME:-$HOME/.cargo}=/cargo --remap-path-prefix=${RUSTUP_HOME:-$HOME/.rustup}=/rustup --remap-path-prefix=$PWD=/build"
+bash ci/release-check.sh env
+cargo build -p elektrawatt --release --locked
+bash ci/release-check.sh scan target/release/elektrawatt target report.md
+```
 
 ## Headless container job (CI-PR-05)
 

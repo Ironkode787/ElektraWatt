@@ -10,22 +10,40 @@
 #       Run in the shell that starts the release build, right before `cargo build`. Fails unless PKG_CONFIG is
 #       `false` and no variable that the pkg-config crate consults instead is set: `PKG_CONFIG_*` (the target-specific
 #       `PKG_CONFIG_<target>` overrides, `PKG_CONFIG_PATH`, `PKG_CONFIG_LIBDIR`, `PKG_CONFIG_SYSROOT_DIR`, ...),
-#       `HOST_PKG_CONFIG*` and `TARGET_PKG_CONFIG*`; and unless `ICU4X_DATA_DIR` is unset (§3.5). The names are read
-#       from the environment this shell passes to its children, which is what cargo and the build scripts see, so a
-#       name that is no valid shell identifier (`PKG_CONFIG_x86_64-unknown-linux-gnu`) is caught too.
+#       `HOST_PKG_CONFIG*` and `TARGET_PKG_CONFIG*`; unless `ICU4X_DATA_DIR` is unset (§3.5); unless
+#       `CARGO_ENCODED_RUSTFLAGS` is unset (it would replace RUSTFLAGS and drop the path remap); and unless no cargo
+#       configuration file that this build reads (`.cargo/config.toml` or `.cargo/config` here and in the cargo home)
+#       has an `[env]` table or `env.` key (cargo would hand those variables to the build scripts behind this check).
+#       The names are read from the environment this shell passes to its children, which is what cargo and the build
+#       scripts see, so a name that is no valid shell identifier (`PKG_CONFIG_x86_64-unknown-linux-gnu`) is caught too.
 #
 #   release-check.sh scan <binary> <target-dir> <report.md>
 #       After the build. Fails on any hit of
 #       1. a build-host path in the binary (`strings -a`): `/home/`, `/usr/lib/x86_64-linux-gnu`, `/opt/`, and the
 #          values of GITHUB_WORKSPACE, CARGO_HOME, RUSTUP_HOME and RUNNER_TEMP when set;
-#       2. a hard link (`readelf -d` NEEDED) to libwayland*, libxkbcommon* or libX11*: these are dlopen'ed at run time;
+#       2. a hard link (`readelf -d` NEEDED) to libwayland*, libxkbcommon*, libX11*, libxcb*, libEGL*, libGL* or
+#          libvulkan*: these are dlopen'ed at run time, and a hard link to any of them breaks NFR-PLAT-03's fallback
+#          chain (the program must start, and fall back, where the library is missing);
 #       3. a `Some(..)` library directory in x11-dl's generated `config.rs` under <target-dir>/release/build (with
 #          PKG_CONFIG=false every entry is `None`), or no such file at all (the layout changed under the check).
-#       Writes a Markdown report to <report.md> in every case, `ldd` output included for information.
+#       Writes a Markdown report to <report.md> in every case, `ldd` output included for information. Strings listed
+#       in ALLOWED_STRINGS below are not counted as build-host paths.
 #
-# Locally (Linux): PKG_CONFIG=false ci/release-check.sh env && PKG_CONFIG=false cargo build -p elektrawatt --release
-# --locked && ci/release-check.sh scan target/release/elektrawatt target report.md
+# Locally (Linux; the file is not executable, so call it through bash; without the remap the scan fails on the
+# registry paths under /home/):
+#   export PKG_CONFIG=false
+#   export RUSTFLAGS="--remap-path-prefix=${CARGO_HOME:-$HOME/.cargo}=/cargo --remap-path-prefix=${RUSTUP_HOME:-$HOME/.rustup}=/rustup --remap-path-prefix=$PWD=/build"
+#   bash ci/release-check.sh env && cargo build -p elektrawatt --release --locked \
+#     && bash ci/release-check.sh scan target/release/elektrawatt target report.md
 set -euo pipefail
+
+# Reviewed exceptions to scan 1: legitimate run-time search-path strings that a crate hard-codes on purpose (not a
+# path of the build host). Format: one array element per string, the EXACT line as `strings -a` prints it (matched
+# whole-line, never as a pattern), preceded by a comment that names the crate and version, why the path is a run-time
+# search path, and the review (FT or decision-log ID). An exception must never be a prefix or pattern, and a crate
+# upgrade re-checks it. Empty today.
+ALLOWED_STRINGS=(
+)
 
 die() {
   echo "release-check: $*" >&2
@@ -51,12 +69,25 @@ mode_env() {
     failed=1
   fi
   # No `grep -q`: under pipefail its early exit would fail the pipeline through SIGPIPE and hide a hit.
-  if [ -n "$(env_names | grep -x 'ICU4X_DATA_DIR' || true)" ]; then
-    echo "release-check: ICU4X_DATA_DIR is set (doc 18 §3.5)" >&2
-    failed=1
-  fi
+  local name
+  for name in ICU4X_DATA_DIR CARGO_ENCODED_RUSTFLAGS; do
+    if [ -n "$(env_names | grep -x "$name" || true)" ]; then
+      echo "release-check: $name is set" >&2
+      failed=1
+    fi
+  done
+  local config
+  for config in .cargo/config.toml .cargo/config "${CARGO_HOME:-$HOME/.cargo}/config.toml" \
+    "${CARGO_HOME:-$HOME/.cargo}/config"; do
+    if [ -f "$config" ] && grep -nE '^[[:space:]]*(\[env(\]|\.)|env\.)' "$config" > /dev/null; then
+      echo "release-check: $config has an [env] table or env. key; cargo would pass it to the build scripts:" >&2
+      grep -nE '^[[:space:]]*(\[env(\]|\.)|env\.)' "$config" | sed 's/^/  /' >&2
+      failed=1
+    fi
+  done
   [ "$failed" -eq 0 ] || exit 1
-  echo "release-check: environment ok (PKG_CONFIG=false; no PKG_CONFIG_*, HOST_PKG_CONFIG*, TARGET_PKG_CONFIG*; no ICU4X_DATA_DIR)"
+  echo "release-check: environment ok (PKG_CONFIG=false; no PKG_CONFIG_*, HOST_PKG_CONFIG*, TARGET_PKG_CONFIG*," \
+    "ICU4X_DATA_DIR or CARGO_ENCODED_RUSTFLAGS; no [env] in the cargo configuration)"
 }
 
 mode_scan() {
@@ -70,7 +101,18 @@ mode_scan() {
   local failed=0
   strings_file="$(mktemp)"
   trap 'rm -f "$strings_file"' EXIT
-  strings -a "$binary" > "$strings_file"
+  # The reviewed exceptions are removed whole-line before counting; the report says how many lines they removed.
+  local allowed_removed=0
+  if [ "${#ALLOWED_STRINGS[@]}" -gt 0 ]; then
+    local all_strings
+    all_strings="$(mktemp)"
+    strings -a "$binary" > "$all_strings"
+    printf '%s\n' "${ALLOWED_STRINGS[@]}" | grep -vxF -f - "$all_strings" > "$strings_file" || true
+    allowed_removed=$(($(wc -l < "$all_strings") - $(wc -l < "$strings_file")))
+    rm -f "$all_strings"
+  else
+    strings -a "$binary" > "$strings_file"
+  fi
 
   local -a patterns=("/home/" "/usr/lib/x86_64-linux-gnu" "/opt/")
   local var
@@ -87,6 +129,7 @@ mode_scan() {
     echo "- binary: \`$binary\`, $(stat -c %s "$binary") bytes, sha256 \`$(sha256sum "$binary" | cut -d' ' -f1)\`"
     echo "- PKG_CONFIG at scan time: \`${PKG_CONFIG-<unset>}\`"
     echo "- RUSTFLAGS: \`${RUSTFLAGS-<unset>}\`"
+    echo "- reviewed exceptions (ALLOWED_STRINGS): ${#ALLOWED_STRINGS[@]}, removing $allowed_removed string(s)"
     echo
     echo "## 1. Build-host paths in the binary (\`strings -a\`)"
     echo
@@ -114,7 +157,7 @@ mode_scan() {
     echo
   } >> "$report"
   local forbidden
-  forbidden="$(readelf -d "$binary" | grep -F '(NEEDED)' | grep -E '\[lib(wayland|xkbcommon|X11)' || true)"
+  forbidden="$(readelf -d "$binary" | grep -F '(NEEDED)' | grep -E '\[lib(wayland|xkbcommon|X11|xcb|EGL|GL|vulkan)' || true)"
   if [ -n "$forbidden" ]; then
     failed=1
     {
@@ -126,7 +169,7 @@ mode_scan() {
       echo
     } >> "$report"
   else
-    echo "No libwayland*, libxkbcommon* or libX11* is hard-linked." >> "$report"
+    echo "No libwayland*, libxkbcommon*, libX11*, libxcb*, libEGL*, libGL* or libvulkan* is hard-linked." >> "$report"
     echo >> "$report"
   fi
   {

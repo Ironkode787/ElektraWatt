@@ -41,7 +41,7 @@ notes = "AI-performed, owner-delegated (2026-10-22), cycle 20 lead audit: xdg-po
 who = "Ironkode787"
 criteria = "safe-to-deploy"
 version = "30.0.1"
-notes = "AI-performed, owner-delegated (2026-10-23), cycle 21 lead audit of the front end as eframe builds it (wgpu_core backend; webgpu/webgl wasm-only, custom/noop off). build.rs is cfg_aliases only; no fs/net/process; env only WGPU_ADAPTER_NAME in util. Unsafe: as_hal/from_hal/surface pass-throughs, mapped-range slices guarded by MapContext. Discretion: safe Buffer::destroy (and device loss) ignores live BufferViews, so a view held across destroy touches freed memory; egui-wgpu never does that."
+notes = "AI-performed, owner-delegated (2026-10-22), cycle 21 lead audit of the front end as eframe builds it (wgpu_core backend; webgpu/webgl wasm-only, custom/noop off). build.rs is cfg_aliases only; no fs/net/process; env only WGPU_ADAPTER_NAME in util. Unsafe: as_hal/from_hal/surface pass-throughs, mapped-range slices guarded by MapContext. Discretion: safe Buffer::destroy and device loss free the raw buffer without checking map_state (wgpu-core resource.rs:1074), so a BufferView held across them touches freed memory (upstream gfx-rs/wgpu#10256; fixed on trunk by #10307 for v31; v30 backport #10593 open). egui-wgpu 0.37 never calls Buffer::destroy; its only mapped view (capture.rs:219-238) lives inside the map callback and is dropped before unmap; device loss is outside egui-wgpu's control."
 
 [[audits.wgpu-core]]
 who = "Ironkode787"

@@ -12,7 +12,8 @@
 # The second job, `release-check` (FT-333; §5.2, CI-R-03 before WP-S6.07), builds the GUI program `elektrawatt` in
 # the release profile on ubuntu-24.04 with PKG_CONFIG=false and asserts what the release build of CI-R-03 must hold:
 # no pkg-config override in the build environment, no build-host path in the binary, no hard link to libwayland,
-# libxkbcommon or libX11, and no library directory in x11-dl's generated config (ci/release-check.sh). It uploads
+# libxkbcommon, libX11, libxcb, libEGL, libGL or libvulkan, and no library directory in x11-dl's generated config
+# (ci/release-check.sh). It uploads
 # only its report, never the binary: no binary that links the UI graph is distributed before ID-476's hold lifts.
 #
 # Same hardening as ci.yml (§5.4, NFR-SEC-19): actions pinned by commit SHA with a version comment, read-only default
