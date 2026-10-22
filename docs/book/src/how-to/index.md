@@ -1,0 +1,16 @@
+# How-to guides
+
+A how-to guide helps you reach one goal that you already understand: short steps, no background. If you are new to
+EW, start with a [tutorial](../tutorials/index.md) instead.
+
+## Available now
+
+There are no how-to guides yet. The first ones follow the headless workflow of the
+[first tutorial](../tutorials/headless-workflow.md), for example replaying a command log with `ew apply`, checking a
+project in a CI job, and exporting for a single page range.
+
+## Writing a how-to guide
+
+A guide names its goal in the title ("Export one page range as SVG"), lists what you need, gives numbered steps and
+ends when the goal is met. Facts that belong to a command or a rule go to the [reference](../reference/index.md), and
+are linked, not repeated.

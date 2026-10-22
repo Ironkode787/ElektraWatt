@@ -1,0 +1,28 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: CC-BY-4.0
+
+# The ElektraWatt user documentation (NFR-DOC-01, WP-S0.06): an mdBook in the Diátaxis structure. Build it with
+# `mdbook build docs/book` (offline: no preprocessor or renderer that fetches anything); the pinned version is in
+# .github/workflows/docs.yml. docs/book/README.md describes the layout and the generated pages.
+
+[book]
+title = "ElektraWatt User Guide"
+authors = ["The ElektraWatt contributors"]
+description = "Tutorials, how-to guides, reference and explanation for the ElektraWatt electrical control-cabinet design application."
+# The source language. Translations (NFR-I18N-07: Dutch tutorials at MVP, German by 1.0) are PO files produced
+# by mdbook-i18n-helpers and translated in Weblate. Neither is set up yet (owner items: the Weblate project, and
+# pinning mdbook-i18n-helpers once a build of it has been verified); see docs/book/README.md.
+language = "en"
+src = "src"
+
+[build]
+# Under the workspace's ignored target/ directory, so that a local build leaves nothing to commit.
+build-dir = "../../target/book"
+# A page that SUMMARY.md names must exist; never create it silently.
+create-missing = false
+
+[output.html]
+git-repository-url = "https://github.com/Ironkode787/ElektraWatt"
+# The offline build embeds its own search index; nothing is loaded from the network.
+[output.html.search]
+enable = true
