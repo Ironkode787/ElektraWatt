@@ -165,7 +165,8 @@ keeps no aliases:
 [plc-bus-fluid](../research/plc-bus-fluid.md). They appear as "STD XR-04" in the Req. column of §4, beside the
 requirement. Invariant IDs name structural invariants, not rules: CI-nn in [08](08-connections-terminals-cables.md)
 §3.1 and FI-nn in [11](11-fluid-power.md). The structural invariants that `ew-model` enforces take `EW-INV-nnn`
-(`crates/ew-model/invariants.md`, ADR-0009 decision 5), except CI-01 and CI-04, which keep their doc 08 IDs.
+(`crates/ew-model/invariants.md`, ADR-0009 decision 5), except CI-01 and CI-04, which keep their doc 08 IDs; so does
+the model's one delete-time rule, EW-INV-021, the `LibRef` keep-alive (ADR-0009 amendment 7).
 `EW-INV` is not a rule family: it has no code, pack or registry entry, and the registry test above does not treat it
 as a rule ID. A violation found on open is reported as EW-CORE-008 (EW-INV-001, a dangling reference) or
 EW-CORE-012 (any other). Their prevent-class members report through rules: CI-05 → EW-CORE-036,

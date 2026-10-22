@@ -109,6 +109,42 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    revision invariants are EW-INV-016 (at most one open revision), EW-INV-017 (labels unique among the revisions
    not withdrawn) and EW-INV-019 (one page note per page); `Revision.withdraws` is a forbid link (decision 2's first
    bullet).
+7. **The `LibRef` keep-alive is a delete-time rule, not a structural invariant** (2026-10-22, lead programmer, on
+   the project owner's delegated direction for FT-316 at cycle 19; decision log ID-462;
+   [architecture](../design/04-architecture.md) §5.3, §13; `crates/ew-model/invariants.md`). Decision 2's first
+   bullet makes "references resolve, with generated delete policies" structural. For the two `LibRef` links
+   (`symbol.fndef`, `part.function_template[].fndef`) the forbid policy is not a property of a state: a `LibRef`
+   to an item the project does not embed names nothing and is valid (NFR-REL-11), so the state before
+   `library.embed` is valid. Enforcing the keep-alive inside the structural check refused the undo of the
+   embedding and broke `undo(all) ∘ apply(cmds) = id` (ARCH §13). The rulings:
+   - **Two apply paths.** The edit path, `Model::apply_with`, by which every command commits, evaluates the
+     structural invariants, then the model's delete-time rule, then the prevent hook. The history path,
+     `Model::apply`, by which undo and redo restore a committed state, evaluates the structural invariants only
+     (ARCH §5.3: undo and redo skip prevent rules). `Model::delete_plan`, from which every delete command builds
+     its batch, refuses the same removal first.
+   - **The rule.** A new catalogue rule, **EW-INV-021, class delete-time**: an edit does not remove an embedded
+     library copy that a record still names through a `LibRef` link. The refusal is `ModelError::Referenced`,
+     with the same message as before. It is the model's own rule and always strict: no strictness relaxes it,
+     because it guards against the silent loss of a definition that a part or a symbol needs, not a drawing
+     convention. It holds for every writer on the edit path, a command that bypasses the delete plan included.
+     The integrity check never evaluates it. EW-INV-001 no longer covers `LibRef` links, in either half.
+   - **Its ID.** EW-INV-021 takes the next number of the `ew-model` catalogue (decision 5). `EW-INV` stays outside
+     the rule families of doc 15 §2.2: the rule has no code, Fluent message or registry entry, and a refused edit
+     produces no finding.
+   - **The other forbid links stay structural.** Every other forbid link stores its target's ID, so a missing
+     target is a dangling reference in any state (EW-CORE-008 on open): the lineage, structure-node, section,
+     device-parent and terminal-strip links, the station's configuration project, the part copies of
+     `PartRef.copy`, `Function.def`, `Representation.symbol`, the forms of pages, report blocks and forms, and
+     `Revision.withdraws`. No committed state holds a referrer without its target, so their forbid never blocks
+     an undo or a redo. The per-class table is in `crates/ew-model/invariants.md` §4.
+   - **No format change.** The schema and the files are unchanged; a project that opened before opens the same.
+     `edit.delete` takes no library copy, and the purge (`library.purge_unused`, not built) inherits the rule
+     through the delete plan.
+   - **A third place for a rule.** The delete-time class sits beside the structural invariants and the
+     rule-pack prevent rules. It is kept to this one rule; a further delete-time rule needs an amendment.
+
+   The golden build now undoes completely, to the shell (607 steps); the command fuzzer's `library.embed` arm
+   builds the shape, and the undo-all oracle undoes it.
 
 ## Consequences
 

@@ -734,10 +734,10 @@ external-reference origin and the four settings members that `project.settings.s
 parts, because no command creates a project row (`ew new`) and the project-local parts are created in the project,
 not embedded. Its first command is `library.embed` (FT-278, cycle 18) of the 46 non-local library copies (symbols,
 function definitions and forms of `content/`), in one transaction, taken from the bootstrap batch as raw documents
-with their copy identities and hashes (the shell kept them until cycle 17). Known defect (FT-316, cycle 19): undoing
-the whole build stops at that command, because the shell's parts name the embedded function definitions and the
-model refuses to remove them, although the state before the embedding is valid; the test pins this and flips to a
-full undo when FT-316 lands. Then
+with their copy identities and hashes (the shell kept them until cycle 17). Undoing the whole build returns to the
+shell, that command included, although the shell's parts name the embedded function definitions: the `LibRef`
+keep-alive is a delete-time rule that undo skips (FT-316, cycle 19; ADR-0009 amendment 7), and a save after the
+undo reloads the shell. Then
 it issues, in dependency order, one command per record, with the bootstrap batch as its typed description (the same
 source of truth as path (a)): `project.settings.set`, `structure.create_node`, `section.create`,
 `external_ref.create`, `project.supply.set` (the supply's origin), `page.create`, `device.create`, `terminal.add`,

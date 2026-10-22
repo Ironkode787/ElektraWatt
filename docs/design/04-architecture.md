@@ -541,7 +541,7 @@ designations, or renumbering a strip, needs no two-phase rename. This fixes the 
 
 | Class | Invariants | Behaviour |
 |---|---|---|
-| **Structural** (always on) | References resolve, with generated delete policies `cascade`/`unlink`/`forbid` (from D); one main function per device; `Function.device` is None if and only if the kind is `Ip`; assembly graph acyclic; a placement references a device; a channel belongs to exactly one module; connection endpoints exist and differ; a representation's functions exist; a released revision has a checker who is not the author (D-34) | Reject the transaction |
+| **Structural** (always on) | References resolve, with generated delete policies `cascade`/`unlink`/`forbid` (from D; the `forbid` of a `LibRef` link is the delete-time rule EW-INV-021, which edits obey and undo and redo skip, ADR-0009 amendment 7); one main function per device; `Function.device` is None if and only if the kind is `Ip`; assembly graph acyclic; a placement references a device; a channel belongs to exactly one module; connection endpoints exist and differ; a representation's functions exist; a released revision has a checker who is not the author (D-34) | Reject the transaction |
 | **Prevent** (rule-pack configurable) | Terminal designation non-empty (D-11) and unique per strip (D-12); device tag unique within its structure scope; PLC address unique per area; at most one star source per interruption-point name and scope, and in chain mode an even count ordered by sort key (unpaired and ambiguous points are check findings); conductor colours consistent with the cable part | **Strict mode** rejects the transaction. **Lenient mode** (imports, legacy projects) turns a violation into a check message. The migration report lists every message |
 
 The enumerated catalogue (about 40 rules) lives in `ew-model/invariants.md`, with a stable ID per rule, and is
@@ -626,7 +626,8 @@ validated against the command's JSON Schema ([extensibility](17-extensibility.md
   viewport and selection. The stack survives saving, and a saved marker drives the dirty flag. Marker lines count
   towards the 500; the 256 MB counts only the rows the history alone keeps alive, by in-memory size, and one step
   larger than that is kept alone. Undo and redo run the structural invariants but not the prevent rules (ADR-0008
-  amendment 2).
+  amendment 2), nor the model's delete-time rule EW-INV-021 (ADR-0009 amendment 7): they restore a committed state,
+  so the undo of `library.embed` removes copies that `LibRef`s name, which then name nothing again.
 - **Coalescing.** One drag is one step. Typing in one cell merges until focus leaves. A table fill-down or an Excel
   paste is one step.
 - **External reload** arrives as an undoable diff transaction (§7.4), so the stack survives a git pull.
@@ -1575,15 +1576,14 @@ docs = "rules/ew-pot-013"
 | **Performance and memory gate** | Synthetic S/M/L/XL projects and the XL-A estimate case (§6.7), made by replicating the golden model (G6). criterion 0.8.2 measures: open, warm-up, move, draw wire, renumber folio, profile change, BOM, full check, PDF of 500 pages, save, projection build. **Engine statistics** (hits, re-executions, cut-offs per edit) are asserted, not just timed. The memory gate covers memo bytes per family and peak RSS. A nightly job fails on > 15 % regression |
 | **Platforms** | Windows (incl. a DX12 WARP job), macOS arm64, Ubuntu; a CPU-renderer job; a network-sandbox job that fails on any unexpected connection (G12) |
 
-*Known breach of `undo(all) ∘ apply(cmds) = id` (cycle 18; decision log ID-462; FT-316, due cycle 19).* Undoing
-`library.embed` is refused when a project-local part names an embedded function definition through a `LibRef`: the
-`LibRef` keep-alive is enforced as `Policy::Forbid` inside `Model::apply`'s structural check (EW-INV-001), and undo
-applies its inverse ops through that check, although the state before the embedding is valid (a `LibRef` to an item
-the project does not embed is not dangling, NFR-REL-11). The golden build therefore undoes completely only up to its
-first command; a test pins the refusal as a known defect. The fix makes the keep-alive a delete-time prevent check of
-`edit.delete` and the purge, which undo and redo skip (§5.3), with an ADR-0009 amendment and the `ew-model` invariant
-catalogue changed accordingly. Until then the law holds for every command sequence that contains no undo of a
-`library.embed` whose copies are named by a `LibRef`.
+*Closed breach of `undo(all) ∘ apply(cmds) = id` (cycle 18, decision log ID-462; closed in cycle 19 by FT-316).*
+Undoing `library.embed` was refused when a project-local part named an embedded function definition through a
+`LibRef`, because the `LibRef` keep-alive was enforced inside the structural check, through which undo applies its
+inverse ops, although the state before the embedding is valid (a `LibRef` to an item the project does not embed is
+not dangling, NFR-REL-11). Since ADR-0009 amendment 7 the keep-alive is the delete-time rule EW-INV-021: the edit path
+(`Model::apply_with`, and the delete plan of `edit.delete` and the purge) refuses the removal, and the history path of
+undo and redo (`Model::apply`, §5.3) does not evaluate it. The golden build undoes completely to its shell, and the
+command fuzzer's undo-all oracle covers the shape.
 
 **CI pipeline.**
 - **Per PR:**

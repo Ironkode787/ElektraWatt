@@ -375,7 +375,9 @@ Every link field declares a delete policy, generated into `ew-model` (arch §4.6
   library copies (`Representation.symbol`, `Function.def`, `PartRef.copy`), `source_ref.lineage`,
   `Revision.withdraws`, and a `LibRef`
   that resolves to a copy embedded in the project: that copy cannot be deleted or purged while it is referenced
-  ([05](05-project-format-and-persistence.md) §13.2). A `LibRef` into an external library is not a link.
+  ([05](05-project-format-and-persistence.md) §13.2). A `LibRef` into an external library is not a link. The
+  `LibRef` forbid is a delete-time rule (EW-INV-021, ADR-0009 amendment 7): edits obey it, while undo and redo may
+  remove the copy, because the state without it is valid; every other forbid link is structural.
 
 **Lifecycle states.**
 - `Device.state`: `Used`, `Spare`, `Reserved`, `NotFitted` (FR-DEV-026).
