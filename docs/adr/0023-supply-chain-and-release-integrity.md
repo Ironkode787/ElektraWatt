@@ -1,6 +1,6 @@
 # ADR-0023: Supply chain and release integrity
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-21 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-21, 2026-10-22 · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the judge panel)
 
 ## Context
 
@@ -97,6 +97,26 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    2026-10-21). Example: the cycle-13 rusqlite commit exempted cc, fallible-iterator,
    fallible-streaming-iterator, find-msvc-tools, libsqlite3-sys, pkg-config, rusqlite, shlex and vcpkg. Trade-off:
    no audit debt blocks a work package, but the debt is visible and grows with each dependency until audits catch up.
+5. **Imported audit sets without auditor identities; version-keyed build scripts** (2026-10-22, lead programmer,
+   on the project owner's delegated direction for FT-326; [18](../design/18-quality-security-release.md) §5.4).
+   Amendment 3's reason stands (no personal names or e-mail addresses in the public repository), but its means
+   changes: the published sets of mozilla, google, bytecode-alliance, embark-studios, zcash and isrg (the
+   cargo-vet registry names) are imported in `supply-chain/config.toml`, and `supply-chain/imports.lock` keeps
+   no auditor identity. `cargo xtask check-vet-imports` (CI-PR-09, `cargo xtask ci`) fails on any `who`, `notes`
+   or `user-name` key, any e-mail-like token and any publisher comment that carries a name; after a `cargo vet`
+   run that fetches the sets, `cargo xtask check-vet-imports --bless` strips them and runs `cargo vet fmt`
+   (publisher comments then show only the crates.io login, a handle). An imported audit stays traceable through
+   its set name and `aggregated-from` URL. Only cargo-vet's built-in criteria count: no peer's custom criterion
+   (google's `ub-risk-*` and crypto criteria, zcash's `crypto-reviewed` and `license-reviewed`) is mapped, and
+   google's `rule-of-two-safe-to-deploy` counts only through its own `implies = "safe-to-deploy"`. Amendment 4's
+   "never by imported audit sets" is replaced: the list is burned down by the project's own audits and by the
+   imported sets. The project's own audits keep amendment 3's `who` rule and say in `notes` when they were
+   AI-assisted (19 §3.5). Decision 1's build-script control is made version-exact: `ci/build-scripts.allowlist`
+   lists `name@version`, so a new version of a crate with a build script fails `cargo xtask check-build-scripts`
+   until its `build.rs` is read again and `--bless` re-versions the line; bless never adds a crate. Trade-off:
+   the project now relies on other organisations' review (only for the built-in criteria and only for the
+   versions they name), against hundreds of hours of duplicate review; the scrub is a second step after every
+   import refresh, enforced by CI.
 
 ## Consequences
 

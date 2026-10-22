@@ -140,11 +140,15 @@ A new crates.io dependency must pass:
 
 - `cargo deny check` (licence allowlist);
 - `cargo vet`: each new crate gets an audit or an exemption, reviewed by a maintainer;
-- if the crate has a build script, the build-script allowlist (`ci/build-scripts.allowlist`), after you have read
-  its `build.rs`.
+- if the crate has a build script, the build-script allowlist (`ci/build-scripts.allowlist`, one `name@version`
+  per line), after you have read its `build.rs`. A version bump of such a crate fails the check until you have read
+  the new `build.rs` and run `cargo xtask check-build-scripts --bless`; name the re-read crates in the commit
+  message.
 
-The `who` field of a cargo-vet audit is the contributor's GitHub handle, never a personal name or e-mail address.
-Public audit sets are not imported for the same reason: they record auditors' names and addresses.
+The `who` field of a cargo-vet audit is the contributor's GitHub handle, never a personal name or e-mail address;
+say in `notes` if the audit was AI-assisted. The project imports published audit sets, but `supply-chain/imports.lock`
+must not carry the auditors' names or addresses: after any `cargo vet` run that fetches imports, run
+`cargo xtask check-vet-imports --bless`, which strips them (CI fails otherwise).
 
 ## Adding a rule, report, importer or machine profile
 

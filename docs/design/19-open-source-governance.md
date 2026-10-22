@@ -355,10 +355,12 @@ drawings, and use the placeholders `<customer>`, `<project ref>` and so on.
 
 **Dependency audits** (resolved 2026-10-18, open question 18). Every new crates.io dependency passes cargo-deny,
 cargo-vet 0.10.2 and, if it has a build script, the build-script allowlist (ADR-0023). The `who` field of a
-cargo-vet audit is the contributor's GitHub handle, never a personal name or e-mail address, and the project imports
-no public audit sets, because their `imports.lock` entries record auditors' names and addresses, which the
-public-repository rule bans (UD-8 of the decision log). Every audit is therefore the project's own; the rule is
-revisited when a steward exists (ADR-0023 amendment 3). `CONTRIBUTING.md` states it in its dependency section.
+cargo-vet audit is the contributor's GitHub handle, never a personal name or e-mail address (ADR-0023 amendment 3),
+and an AI-assisted audit says so in its `notes`. Since cycle 20 the project imports the published audit sets of
+mozilla, google, bytecode-alliance, embark-studios, zcash and isrg, but `imports.lock` keeps no auditor identity:
+`cargo xtask check-vet-imports` fails on auditor names, e-mail addresses and notes, and its `--bless` strips them
+after an import refresh, so the public-repository rule (UD-8 of the decision log) holds (ADR-0023 amendment 5).
+`CONTRIBUTING.md` states it in its dependency section.
 
 **AI-use policy.** The core team itself works with AI assistance, so the policy regulates use and does not ban it.
 1. **Disclose.** PRs disclose AI assistance in the template. Commits may name the tool in a trailer such as
@@ -875,4 +877,6 @@ as:
     **Resolved** (2026-10-18, project owner (delegated, 2026-10-18); ADR-0023 amendment 3): `who` is the
     contributor's GitHub handle; no public audit sets are imported while the public-repository rule stands, which
     costs reviewer time that imports would save (§3.5). Revisit when a steward exists, for example by importing
-    through a steward-held mirror that strips personal data.
+    through a steward-held mirror that strips personal data. **Revised** (2026-10-22, lead programmer on the owner's
+    delegated direction; ADR-0023 amendment 5): the sets are imported and the personal data is stripped in the
+    repository itself, enforced by `cargo xtask check-vet-imports`.
