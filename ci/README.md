@@ -274,18 +274,21 @@ printed sequence. As built, the ban is workspace-wide (not only in the output cr
    one-line `//` comment above it (or a `reason = "..."` in the attribute); anything else uses `BTreeMap` or
    `BTreeSet` (or `IndexMap` where the crate has it).
 2. **The review list.** The check scans the Rust source of every workspace package (tests and benches too) for
-   `allow`, `expect` and `cfg_attr` attributes that name `disallowed_types`, prints the sites per crate and compares
+   `allow`, `expect` and `cfg_attr` attributes that name `disallowed_types` or a group that contains it
+   (`clippy::style`, `clippy::all`, `warnings`), prints the sites per crate and compares
    them with [`ordered-collections-allow.toml`](ordered-collections-allow.toml). A site is keyed by its crate and
    item path (`fn parse > let seen`, `struct State > field holds`, `use std::collections::HashSet`), never by file
    or line, with a count, so moving code does not touch the list and a new allow always does. It fails for a site
    that is not in the list, for a stale entry, for a site without a justification, and for a manifest that sets
-   the lint (`[lints.clippy] disallowed_types = "allow"`). `--bless` rewrites the list after the review; a test of
+   `disallowed_types`, `style` or `all` (`[lints.clippy]`) or `warnings` (`[lints.rust]`) to `allow`. `--bless` rewrites the list after the review; a test of
    `xtask` (`ordered::tests::the_committed_list_is_current`) keeps it current in `cargo nextest run -p xtask`.
 
 At the introduction (cycle 18) nine sites in four crates allow the lint, all lookup-only: `ew-import-tables` 2
 (the duplicate-column check of the table reader), `ew-schema` 2 (the pattern cache of a test), `ew-store` 3 (the
 fault-injection holds of the in-memory file system) and `xtask` 2 (the denylist of the anonymisation guard). No map
-or set whose order reached output was found.
+or set whose order reached output was found. A use of a type alias is not linted, so an alias of a hash container
+bypasses the ban at every use: the one alias (`Denylist` of `xtask/src/anonymise.rs`) is private to its module and
+listed in the allow file like any other site; a public alias would need the same review.
 
 ## Anonymisation guard (`cargo xtask check-anonymisation [--require-entries]`)
 

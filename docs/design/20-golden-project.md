@@ -1456,8 +1456,10 @@ while "Revision: V2.0" is byte-identical on every page. Headless counts: **94 en
 transaction); the project shell keeps the project row and the 26 project-local parts. Path (b) issues 609 commands
 of 25 names and still equals path (a) record for record (the library copies are rows of both). The report's counts
 are unchanged (94 entries, 88 pass, 0 fail, 0 not_built, 6 not_applicable); the AC-15 path (b) entry names the
-embedding. Undoing the whole build stops at `library.embed`: the shell's parts name the embedded function
-definitions, so the delete policy refuses to remove them.
+embedding. Known defect (FT-316, due cycle 19): undoing the whole build stops at `library.embed`, because the
+shell's parts name the embedded function definitions and the model refuses the undo through a structural forbid
+policy on `LibRef` links, although the state before the embedding is valid; the test pins the stop and flips to a
+full undo when FT-316 lands.
 
 ---
 

@@ -26,8 +26,12 @@
 //! - the list names a key the source has fewer sites of (a stale entry);
 //! - a site has no justification: no `//` comment on the line above or on the attribute's line, and no
 //!   `reason = "..."` in the attribute;
-//! - a `Cargo.toml` of the workspace sets the lint (`[lints.clippy] disallowed_types = "allow"`), which
-//!   would switch the list off without a site to review.
+//! - a `Cargo.toml` of the workspace sets `disallowed_types`, `style` or `all` (`[lints.clippy]`) or `warnings`
+//!   (`[lints.rust]`, also under `[workspace.lints]`) to `allow`, which would switch the ban off without a site
+//!   to review.
+//!
+//! The group lints `clippy::style` (which contains `disallowed_types`), `clippy::all` and `warnings` count as
+//! allow sites like the lint itself, so a group allow cannot switch the ban off unseen.
 //!
 //! The scan is lexical (the lexer of [`crate::raw_read`]): comments and string contents never count. A site
 //! that a macro expands is not seen; the lint itself still fires there, and the macro's definition site is
@@ -49,6 +53,65 @@ const LINT: &str = "disallowed_types";
 
 /// The authority each message cites.
 const REFERENCE: &str = "FT-271, WP-S6.02";
+
+/// Whether `lint` (a lint path as written in an attribute) switches the ban off: `disallowed_types` itself
+/// and the groups that contain it (`clippy::style`, `clippy::all`) or every warning (`warnings`).
+fn is_switch(lint: &str) -> bool {
+    lint == LINT
+        || matches!(
+            lint,
+            "clippy::disallowed_types" | "clippy::style" | "clippy::all" | "warnings"
+        )
+}
+
+/// The manifest keys (`[lints.clippy]`, `[lints.rust]`, also under `[workspace.lints]`) that, set to `allow`,
+/// switch the ban off, with the table they live in.
+const MANIFEST_SWITCHES: [(&str, &[&str]); 2] =
+    [("clippy", &[LINT, "style", "all"]), ("rust", &["warnings"])];
+
+/// The manifest keys of `text` that set a switch of [`MANIFEST_SWITCHES`] to `allow` (as `key = "allow"` or
+/// `key = { level = "allow", .. }`), with the 1-based line of the key.
+fn manifest_switches(text: &str) -> Vec<(String, usize)> {
+    let Ok(doc) = toml::from_str::<toml::Table>(text) else {
+        return Vec::new();
+    };
+    let mut tables = Vec::new();
+    if let Some(l) = doc.get("lints").and_then(toml::Value::as_table) {
+        tables.push(l);
+    }
+    if let Some(l) = doc
+        .get("workspace")
+        .and_then(|w| w.get("lints"))
+        .and_then(toml::Value::as_table)
+    {
+        tables.push(l);
+    }
+    let mut out = Vec::new();
+    for lints in tables {
+        for (group, keys) in MANIFEST_SWITCHES {
+            let Some(table) = lints.get(group).and_then(toml::Value::as_table) else {
+                continue;
+            };
+            for key in keys {
+                let allowed = match table.get(*key) {
+                    Some(toml::Value::String(level)) => level == "allow",
+                    Some(toml::Value::Table(t)) => {
+                        t.get("level").and_then(toml::Value::as_str) == Some("allow")
+                    }
+                    _ => false,
+                };
+                if allowed {
+                    let line = text
+                        .lines()
+                        .position(|l| l.trim_start().starts_with(key))
+                        .map_or(1, |n| n + 1);
+                    out.push((format!("{group}::{key}"), line));
+                }
+            }
+        }
+    }
+    out
+}
 
 /// The key of an allow site: crate and item path (no file, no line).
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -340,7 +403,7 @@ fn names_lint(p: &Parsed, a: &Attr) -> (bool, bool) {
             }
             if lint == "reason" && p.is_p(j, '=') {
                 reason = true;
-            } else if lint == LINT || lint == format!("clippy::{LINT}") {
+            } else if is_switch(&lint) {
                 listed = true;
             }
         }
@@ -463,15 +526,11 @@ pub fn check(packages: &[Package], list: &List) -> Vec<String> {
         }
     }
     for pkg in packages {
-        for (n, line) in pkg.manifest_text.lines().enumerate() {
-            let code = line.split('#').next().unwrap_or("");
-            if code.contains(LINT) || code.contains("disallowed-types") {
-                out.push(format!(
-                    "{}:{}: a manifest sets the lint `{LINT}`; the hash-container ban is set in the generated clippy.toml only ({REFERENCE})",
-                    pkg.manifest,
-                    n + 1
-                ));
-            }
+        for (lint, line) in manifest_switches(&pkg.manifest_text) {
+            out.push(format!(
+                "{}:{line}: a manifest sets the lint `{lint}` to allow, which switches the hash-container ban off (`{LINT}` is in `clippy::style`); the ban is set in the generated clippy.toml only ({REFERENCE})",
+                pkg.manifest
+            ));
         }
     }
     out
@@ -720,6 +779,55 @@ mod tests {
     }
 
     #[test]
+    fn group_lints_are_sites_like_the_lint_itself() {
+        let src = "
+            // style contains the lint
+            #[allow(clippy::style)]
+            fn a() {}
+            // all contains it too
+            #![allow(clippy::all)]
+            // every warning
+            #[allow(warnings)]
+            struct B;
+            // not a switch of the ban
+            #[allow(clippy::pedantic, clippy::too_many_arguments, dead_code)]
+            fn d() {}
+        ";
+        let found = scan_source("c", "x.rs", src);
+        assert_eq!(items(&found), ["fn a", "inner attribute", "struct B"]);
+        assert!(found.iter().all(|f| f.justified));
+    }
+
+    #[test]
+    fn manifests_that_allow_a_group_or_warnings_fail() {
+        for (text, lint) in [
+            ("[lints.clippy]\nstyle = \"allow\"\n", "clippy::style"),
+            (
+                "[workspace.lints.clippy]\nall = { level = \"allow\", priority = 1 }\n",
+                "clippy::all",
+            ),
+            (
+                "[lints.rust]\nmissing_docs = \"warn\"\nwarnings = \"allow\"\n",
+                "rust::warnings",
+            ),
+        ] {
+            let mut p = pkg("c", &[]);
+            p.manifest_text = text.to_owned();
+            let v = check(&[p], &List::default());
+            assert_eq!(v.len(), 1, "{text}: {v:#?}");
+            assert!(
+                v[0].contains(&format!("sets the lint `{lint}` to allow")),
+                "{v:#?}"
+            );
+        }
+        // Warning about a group, or a priority, is the usual form and not a switch.
+        let mut p = pkg("c", &[]);
+        p.manifest_text =
+            "[lints.clippy]\nall = { level = \"warn\", priority = -1 }\nstyle = \"warn\"\n".to_owned();
+        assert!(check(&[p], &List::default()).is_empty());
+    }
+
+    #[test]
     fn a_site_without_a_justification_fails() {
         let src = "#[allow(clippy::disallowed_types)]\nfn f() {}\n";
         let packages = [pkg("c", &[("crates/c/src/lib.rs", src)])];
@@ -785,7 +893,7 @@ mod tests {
         let v = check(&[p], &List::default());
         assert_eq!(v.len(), 1, "{v:#?}");
         assert!(
-            v[0].starts_with("crates/c/Cargo.toml:3: a manifest sets the lint `disallowed_types`"),
+            v[0].starts_with("crates/c/Cargo.toml:3: a manifest sets the lint `clippy::disallowed_types`"),
             "{v:#?}"
         );
     }

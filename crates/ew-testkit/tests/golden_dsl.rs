@@ -240,12 +240,15 @@ fn the_command_log_replays_and_every_step_undoes() {
     // one undo step per command that changed the model: two of the commands leave the model as it was
     // (a value the record already had), so they leave no step
     assert_eq!((steps, built.script.len()), (606, 609), "undo steps, commands");
-    // The last step left is the first command, `library.embed` (FT-278): the shell's project-local parts
-    // name the embedded function definitions (`part.function_template[].fndef`), so removing the copies is
-    // refused (delete policy forbid) and the model stays at the shell plus its library copies.
+    // KNOWN DEFECT PIN (FT-316): undo stops at `library.embed` (the first command). The shell's
+    // project-local parts name the embedded function definitions (`part.function_template[].fndef`), and
+    // the structural forbid policy on `LibRef` links refuses the undo, although the state before the
+    // embedding is valid (a `LibRef` to a non-embedded item is not dangling). When FT-316 lands, undo
+    // restores the shell: this expectation flips to a full undo (607 steps, `undo()` then fails only
+    // because the history is empty, and the model equals `golden::shell` alone).
     let refused = session
         .undo()
-        .expect_err("the copies are named by the project-local parts");
+        .expect_err("FT-316: the undo of library.embed is refused while it is a known defect");
     assert!(format!("{refused:?}").contains("still names it"), "{refused:?}");
     let batch = golden::bootstrap(&repo()).expect("path (a) imports");
     let mut start = golden::shell(&batch);
@@ -253,7 +256,7 @@ fn the_command_log_replays_and_every_step_undoes() {
     let start = session_over(start, 1);
     assert!(
         session.world().model.content_eq(&start.world().model),
-        "undoing every step but the embedding returns to the shell with its library copies"
+        "FT-316 (known defect): the undo stops at the embedding, at the shell with its library copies"
     );
 }
 

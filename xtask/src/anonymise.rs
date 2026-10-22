@@ -27,9 +27,10 @@ use unicode_normalization::UnicodeNormalization;
 pub type Hash = [u8; 32];
 
 /// The digests of the denylist. Membership only: nothing iterates it, so its order never reaches output.
-// FT-271: the one place that names the hash set; the rest of the module uses this alias.
+// FT-271: the one place that names the hash set. The alias is private to this module on purpose: a use of an alias is
+// not linted, so a public alias would let any module use the hash set unseen.
 #[allow(clippy::disallowed_types)]
-pub type Denylist = HashSet<Hash>;
+type Denylist = HashSet<Hash>;
 
 /// The longest n-gram hashed.
 pub const MAX_N: usize = 3;
