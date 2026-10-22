@@ -248,13 +248,13 @@ pub fn check(input: &[u8]) -> Outcome {
             "the library documents changed over the round trip"
         );
     }
-    if let Some(project) = &again.project {
-        if let Ok(files2) = render_records(project, &again.records, &again.lib) {
-            assert_eq!(
-                files1, files2,
-                "the canonical rendering is not a fixpoint of load and render"
-            );
-        }
+    if let Some(project) = &again.project
+        && let Ok(files2) = render_records(project, &again.records, &again.lib)
+    {
+        assert_eq!(
+            files1, files2,
+            "the canonical rendering is not a fixpoint of load and render"
+        );
     }
     outcome
 }

@@ -10,11 +10,15 @@
 #                      assertions and overflow checks (as fuzz.yml);
 #   proptest           every test of the core crates (`ew-model`, `ew-commands`, `ew-store`, `ew-format`, `ew-memo`,
 #                      `ew-derive`, `ew-schema`), and so every property test, with PROPTEST_CASES=20000 (the variable
-#                      overrides the case count each test sets); the failing inputs proptest persists are uploaded;
-#   fuzz               the three cargo-fuzz targets of `fuzz/` (the JSONL loader, the migration chain, the command
+#                      overrides the case count each test sets, and the two hand-built runners of `ew-derive` read it
+#                      through `contextualize_config`); the failing inputs proptest persists are uploaded;
+#   fuzz               (debug assertions and overflow checks come from the CARGO_PROFILE_RELEASE_* variables below, not
+#                      from cargo-fuzz: its release build adds them only with `-a`) the three cargo-fuzz targets of `fuzz/` (the JSONL loader, the migration chain, the command
 #                      sequence), 30 minutes each in parallel jobs, on the nightly toolchain pinned below and in
 #                      `fuzz/rust-toolchain.toml`, under AddressSanitizer (cargo-fuzz's default); the crash inputs and
 #                      the grown corpus are uploaded;
+#   fuzz-deny          `cargo deny check licenses advisories` over the fuzz crate's own dependency graph with the
+#                      fuzz/deny.toml (the workspace's policy plus an NCSA exception for libfuzzer-sys) (the crate is outside the workspace's deny and vet runs); report-only;
 #   asan-command-fuzz  the seeded command fuzzer `fuzz_long` of `ew-testkit` (the test fuzz.yml runs) built with
 #                      `-Zsanitizer=address` on the same nightly: FT-304, CI-N-02's "command fuzzer 1 h with ASan".
 #                      The nightly is for the fuzz jobs and this job only; every other job uses the stable toolchain.
@@ -85,9 +89,13 @@ env:
   NIGHTLY_TOOLCHAIN: "nightly-2026-10-08"
   # cargo-fuzz, pinned (built from source: taiki-e/install-action has no manifest for it).
   CARGO_FUZZ_VERSION: "0.13.2"
-  # The sanitized binaries link two copies of the bundled SQLite (the C amalgamation of two crates of the dependency
-  # graph), which AddressSanitizer reports as an ODR violation at start-up. cargo-fuzz sets this for `cargo fuzz
-  # run`; the sanitized test binary needs it too.
+  # AddressSanitizer reports an ODR violation for the global `aiOff` at start-up of every sanitized binary that links
+  # the bundled SQLite. It is a false positive of the C code, not a second copy of SQLite (both lock files hold one
+  # libsqlite3-sys 0.38.2 and the binary has one `sqlite3_open`): sqlite3.c has two function-local tables
+  # `static const unsigned short aiOff[]` with identical contents (the FTS3 and FTS5 case folders, lines 212454 and
+  # 267267), the linker merges the two read-only symbols (`aiOff.4` and `aiOff.13`) into one address, and the check
+  # sees two globals registered at one place. cargo-fuzz sets this for `cargo fuzz run`; the sanitized test binary
+  # needs it too. The Rust code is not involved.
   ASAN_OPTIONS: "detect_odr_violation=0"
 
 jobs:
@@ -412,6 +420,60 @@ jobs:
           path: fuzz/target/corpus/${{ matrix.target }}
           if-no-files-found: ignore
           retention-days: 14
+
+  # The fuzz crate's dependencies are outside the workspace's cargo-deny and cargo-vet runs (it is its own workspace,
+  # fuzz/Cargo.toml); this job checks them against the fuzz/deny.toml (the workspace policy, ../deny.toml, plus an NCSA exception for libfuzzer-sys), licences and advisories, report-only: a
+  # finding is a warning in the job summary, never a red night (the crate is a development tool that is never
+  # distributed, and the advisory database moves daily).
+  fuzz-deny:
+    name: fuzz-deny
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: cargo-deny@0.20.2
+      - name: cargo deny (fuzz crate)
+        id: deny
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p target/deep
+          cargo deny --locked --manifest-path fuzz/Cargo.toml --config fuzz/deny.toml check licenses advisories 2>&1 | tee target/deep/fuzz-deny-log.txt
+          exit "${PIPESTATUS[0]}"
+      - name: job summary
+        if: always()
+        shell: bash
+        env:
+          RUN: ${{ steps.deny.outcome }}
+        run: |
+          {
+            echo "## cargo deny over the fuzz crate (report-only)"
+            echo
+            echo "outcome: \`$RUN\`"
+            if [ -f target/deep/fuzz-deny-log.txt ]; then
+              echo
+              echo '```text'
+              tail -n 60 target/deep/fuzz-deny-log.txt | cut -c1-300
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$RUN" != "success" ]; then
+            echo "::warning::cargo deny reports on the fuzz crate's dependencies (report-only); see the job summary"
+          fi
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: deep-fuzz-deny-report
+          path: target/deep/fuzz-deny-log.txt
+          if-no-files-found: warn
+          retention-days: 90
 
   # FT-304 (CI-N-02, "command fuzzer 1 h with ASan"): the nightly test `fuzz_long`, as fuzz.yml runs it, built with
   # AddressSanitizer on the pinned nightly. The seed range is another one than fuzz.yml's (offset 50 from the day

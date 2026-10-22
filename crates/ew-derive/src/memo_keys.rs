@@ -420,7 +420,9 @@ mod tests {
     use ew_schema::Project;
     use proptest::collection::vec;
     use proptest::prelude::*;
-    use proptest::test_runner::{Config, RngAlgorithm, TestCaseError, TestRng, TestRunner};
+    use proptest::test_runner::{
+        Config, RngAlgorithm, TestCaseError, TestRng, TestRunner, contextualize_config,
+    };
     use serde_json::{Value, json};
 
     use super::*;
@@ -1257,11 +1259,13 @@ mod tests {
 
     #[test]
     fn touched_covers_every_changed_stamp() {
-        let config = Config {
+        // `contextualize_config` applies the PROPTEST_* variables (the deep nightly's PROPTEST_CASES) that the
+        // `proptest!` macro applies itself and a hand-built runner would otherwise ignore.
+        let config = contextualize_config(Config {
             cases: 128,
             failure_persistence: None,
             ..Config::default()
-        };
+        });
         let mut runner = TestRunner::new_with_rng(config, TestRng::deterministic_rng(RngAlgorithm::ChaCha));
         let changed = Cell::new(0usize);
         runner

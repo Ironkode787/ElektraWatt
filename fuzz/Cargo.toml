@@ -73,6 +73,8 @@ test = false
 doc = false
 bench = false
 
-# Line tables for a finding's stack; overflow checks and debug assertions come from cargo-fuzz's own flags.
+# Line tables for a finding's stack. cargo-fuzz's release build has no debug assertions and no overflow checks unless
+# it is given `-a` (`cargo fuzz run -a <target>`, the README's local command); in CI they come from the
+# CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS and CARGO_PROFILE_RELEASE_OVERFLOW_CHECKS of deep-nightly.yml.
 [profile.release]
 debug = "line-tables-only"

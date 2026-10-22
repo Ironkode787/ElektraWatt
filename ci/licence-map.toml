@@ -199,6 +199,10 @@ glob = "fuzz/rust-toolchain.toml"
 allowed = ["CC0-1.0"]
 
 [[path]]
+glob = "fuzz/deny.toml"
+allowed = ["CC0-1.0"]
+
+[[path]]
 glob = "fuzz/corpus/**"
 allowed = ["CC0-1.0"]
 

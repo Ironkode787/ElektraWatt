@@ -56,6 +56,10 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: |
+            .
+            fuzz
       # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
       - name: assert ICU4X_DATA_DIR is unset
         shell: bash
@@ -75,6 +79,17 @@ jobs:
         run: |
           cargo clippy --workspace --all-targets --all-features --locked -- -D warnings 2>&1 | tee clippy.log
           test ${PIPESTATUS[0]} -eq 0 && ! grep -q "does not refer to a reachable" clippy.log
+      # FT-297: the cargo-fuzz crate is not a workspace member (its own workspace; it runs on a nightly), but it is
+      # formatted, checked and linted here on the stable toolchain. rustup takes the toolchain from the working
+      # directory (the root's rust-toolchain.toml), not from the manifest's directory, so fuzz/rust-toolchain.toml
+      # does not apply; libfuzzer-sys's build script needs a C++ compiler (the runner has one), not a nightly.
+      - name: fuzz crate (fmt, check, clippy)
+        shell: bash
+        run: |
+          cargo fmt --manifest-path fuzz/Cargo.toml --check
+          cargo check --manifest-path fuzz/Cargo.toml --all-targets --locked
+          cargo clippy --manifest-path fuzz/Cargo.toml --all-targets --locked -- -D warnings 2>&1 | tee clippy-fuzz.log
+          test ${PIPESTATUS[0]} -eq 0 && ! grep -q "does not refer to a reachable" clippy-fuzz.log
       # FT-271: the std hash containers are `disallowed-types` in the generated clippy.toml; the sites that allow
       # them (iteration order never reaches output) are listed in ci/ordered-collections-allow.toml.
       - name: ordered collections

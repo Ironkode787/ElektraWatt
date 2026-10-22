@@ -96,19 +96,37 @@ fn the_command_seeds_pass_and_commit_commands() {
     }
 }
 
-/// The reported findings: each input is replayed so that the failure text is on record; nothing is asserted
-/// about the outcome (a finding fails by definition), only that the directory is readable.
+/// The reported findings: each input of `regressions/<target>/` is replayed in this ordinary test process, where a
+/// panic is caught and the generator's own failure text (the seed, the step, the oracle and the command log of
+/// `command_sequence`) is printed, which libFuzzer's aborting panic hook never lets the fuzz target do. Nothing is
+/// asserted about the outcome: a finding fails by definition, until its defect is fixed and the input becomes a plain
+/// test of the crate that was fixed. Run with `--nocapture`.
 #[test]
-fn the_regressions_are_listed() {
-    for dir in [
-        "regressions/jsonl_loader",
-        "regressions/migration_chain",
-        "regressions/command_sequence",
-    ] {
+fn the_regressions_are_replayed_and_reported() {
+    use std::panic::{AssertUnwindSafe, catch_unwind};
+    type Check = fn(&[u8]);
+    let targets: [(&str, Check); 3] = [
+        ("regressions/jsonl_loader", |b| {
+            let _ = loader::check(b);
+        }),
+        ("regressions/migration_chain", |b| {
+            let _ = open_path::check(b);
+        }),
+        ("regressions/command_sequence", |b| {
+            let _ = ew_fuzz::command::check(b);
+        }),
+    ];
+    for (dir, check) in targets {
         for (name, bytes) in inputs(dir) {
+            let failed = catch_unwind(AssertUnwindSafe(|| check(&bytes))).is_err();
             eprintln!(
-                "regression {dir}/{name}: {} bytes (a reported finding, not replayed here)",
-                bytes.len()
+                "regression {dir}/{name}: {} bytes, {}",
+                bytes.len(),
+                if failed {
+                    "fails (a reported finding)"
+                } else {
+                    "passes (fixed: make it a plain test of the crate)"
+                }
             );
         }
     }

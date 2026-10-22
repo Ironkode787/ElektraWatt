@@ -561,7 +561,7 @@ const ONCE_PER_JOB_FILTER: &str =
 /// Runs the local mirror of the per-PR CI set and prints a summary. Every step runs, even after a failure,
 /// so one invocation shows everything that needs fixing.
 fn ci() -> Result<bool> {
-    let cargo_steps: [(&str, &[&str]); 7] = [
+    let cargo_steps: [(&str, &[&str]); 10] = [
         ("fmt", &["fmt", "--all", "--check"]),
         (
             "clippy",
@@ -582,6 +582,35 @@ fn ci() -> Result<bool> {
                 "--workspace",
                 "--all-targets",
                 "--all-features",
+                "--locked",
+                "--",
+                "-D",
+                "warnings",
+            ],
+        ),
+        // The cargo-fuzz crate (FT-297) is its own workspace and is built here on the stable toolchain, as the `lint`
+        // job does (`cargo` takes the toolchain from the working directory, not from fuzz/rust-toolchain.toml).
+        (
+            "fuzz-fmt",
+            &["fmt", "--manifest-path", "fuzz/Cargo.toml", "--check"],
+        ),
+        (
+            "fuzz-check",
+            &[
+                "check",
+                "--manifest-path",
+                "fuzz/Cargo.toml",
+                "--all-targets",
+                "--locked",
+            ],
+        ),
+        (
+            "fuzz-clippy",
+            &[
+                "clippy",
+                "--manifest-path",
+                "fuzz/Cargo.toml",
+                "--all-targets",
                 "--locked",
                 "--",
                 "-D",

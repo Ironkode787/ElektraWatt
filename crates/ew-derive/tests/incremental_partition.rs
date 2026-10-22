@@ -36,7 +36,7 @@ use ew_model::{AnyKey, AnyRow, Entity, Model, Op};
 use ew_schema::{Connection, ConnectionKind, Device, Endpoint, Function, Page, PotentialDef, Representation};
 use proptest::collection::vec;
 use proptest::prelude::*;
-use proptest::test_runner::{Config, RngAlgorithm, TestCaseError, TestRng, TestRunner};
+use proptest::test_runner::{Config, RngAlgorithm, TestCaseError, TestRng, TestRunner, contextualize_config};
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
@@ -772,11 +772,13 @@ fn run_plan(steps: &[Step], cover: &mut Coverage) -> Result<(), TestCaseError> {
 
 #[test]
 fn incremental_partition_equals_cold() {
-    let config = Config {
+    // `contextualize_config` applies the PROPTEST_* variables (the deep nightly's PROPTEST_CASES) that the
+    // `proptest!` macro applies itself and a hand-built runner would otherwise ignore.
+    let config = contextualize_config(Config {
         cases: 36,
         failure_persistence: None,
         ..Config::default()
-    };
+    });
     let mut runner = TestRunner::new_with_rng(config, TestRng::deterministic_rng(RngAlgorithm::ChaCha));
     let cover = RefCell::new(Coverage::default());
     runner

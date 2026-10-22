@@ -636,6 +636,33 @@ mod tests {
         );
     }
 
+    /// The fuzz crate's cargo-deny policy (`fuzz/deny.toml`, run by the deep nightly's `fuzz-deny` job) has the
+    /// workspace's licence allowlist; its only addition is the per-crate NCSA exception of libfuzzer-sys.
+    #[test]
+    fn the_fuzz_deny_policy_is_the_workspaces_plus_one_exception() {
+        let root = crate::workspace_root();
+        let read = |p: &str| -> toml::Table {
+            std::fs::read_to_string(root.join(p))
+                .unwrap_or_else(|e| panic!("{p}: {e}"))
+                .parse()
+                .unwrap_or_else(|e| panic!("{p}: {e}"))
+        };
+        let (workspace, fuzz) = (read("deny.toml"), read("fuzz/deny.toml"));
+        let licences = |t: &toml::Table| t["licenses"].as_table().expect("[licenses]").clone();
+        let (w, f) = (licences(&workspace), licences(&fuzz));
+        assert_eq!(w["allow"], f["allow"], "the licence allowlists differ");
+        assert_eq!(w["confidence-threshold"], f["confidence-threshold"]);
+        assert_eq!(w["private"], f["private"]);
+        let exceptions = f["exceptions"].as_array().expect("exceptions");
+        assert_eq!(exceptions.len(), 1, "{exceptions:?}");
+        assert_eq!(exceptions[0]["crate"].as_str(), Some("libfuzzer-sys"));
+        assert_eq!(exceptions[0]["allow"].as_array().map(Vec::len), Some(1));
+        assert!(
+            w.get("exceptions").is_none(),
+            "the workspace policy has no exceptions"
+        );
+    }
+
     /// The committed workflows pass the lint.
     #[test]
     fn real_workflows_pass() {

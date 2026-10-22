@@ -344,8 +344,9 @@ in a sanitized build. **ASan** (FT-304) is on in two forms, both in `.github/wor
 toolchain pinned by date in `fuzz/rust-toolchain.toml`: the cargo-fuzz targets (AddressSanitizer is cargo-fuzz's
 default) and the test `fuzz_long` itself, built with `RUSTFLAGS=-Zsanitizer=address` for `x86_64-unknown-linux-gnu`
 and run with the seeds, steps and budget variables of `fuzz.yml` (a range offset from `fuzz.yml`'s, 100 steps, 55 minutes: AddressSanitizer makes a seed 7.7 times slower, so a night runs about four). This is
-CI-N-02's "command fuzzer 1 h with ASan". `detect_odr_violation=0` is set because the dependency graph links two copies of
-the bundled SQLite. The job is red for what `fuzz.yml` is red for and for an AddressSanitizer report.
+CI-N-02's "command fuzzer 1 h with ASan". `detect_odr_violation=0` is set because AddressSanitizer reports a false ODR violation for
+`aiOff` of the bundled SQLite (one copy is linked; `sqlite3.c` has two identical function-local `aiOff` tables, the FTS3
+and FTS5 case folders, which the linker merges into one address). The job is red for what `fuzz.yml` is red for and for an AddressSanitizer report.
 
 ### 3.7 Snapshots
 

@@ -52,6 +52,10 @@
 // The command fuzzer (and its modules): seeds, steps and the report path come from EW_FUZZ_* variables, and the step timers feed the report's timing lines only; a finding is a function of the seed.
 #![allow(clippy::disallowed_methods)]
 
+// RULE: these modules are also included, as they are, by the cargo-fuzz crate (`fuzz/src/lib.rs`, through
+// `#[path]`), where this file is a module and not the crate root. Name a sibling module through `super::` (never
+// `crate::`), find files through `repo()`, and use no `env!` that only an integration test has (CARGO_TARGET_TMPDIR
+// is read with `option_env!`); then the modules compile and behave the same in both places.
 mod arms;
 mod import;
 mod live;

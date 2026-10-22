@@ -15,6 +15,9 @@
 //!
 //! - the open never panics (a refusal, [`ew_store::OpenError`], is fine);
 //! - the model it returns passes `Model::integrity_check`;
+//! - an input whose operations change only the shape of the files (member order, line order, CRLF, a BOM, a missing
+//!   final LF, a blank line) opens, with a model equal to the golden project's (`Model::content_eq`): the open of
+//!   an old shape is lossless, not only idempotent;
 //! - when the session can edit: a save without an edit succeeds, a reader opens the result with an equal model
 //!   (`Model::content_eq`) and with nothing left to rewrite (no `NonCanonical`, `LineEndings`, `WrongFile` or
 //!   `ForeignEdit` finding), and a second save writes nothing.
@@ -28,6 +31,7 @@ use std::sync::Arc;
 use std::time::{Duration, UNIX_EPOCH};
 
 use ew_format::{FileHash, FilePath, FindingKind, Limits, Manifest, sha256};
+use ew_model::Model;
 use ew_store::mem::{DirSync, MemVfs};
 use ew_store::{
     Access, Changes, Identity, ManualClock, OpenMode, Opened, ProcessProbe, ProcessState, Store,
@@ -87,13 +91,15 @@ pub fn decode(input: &[u8]) -> Case {
         return Case::default();
     };
     let ops = rest
-        .chunks_exact(4)
+        .as_chunks::<4>()
+        .0
+        .iter()
         .take(MAX_OPS)
-        .map(|c| Op {
-            file: c[0],
-            line: c[1],
-            op: c[2],
-            arg: c[3],
+        .map(|[file, line, op, arg]| Op {
+            file: *file,
+            line: *line,
+            op: *op,
+            arg: *arg,
         })
         .collect();
     Case { mode, ops }
@@ -312,10 +318,10 @@ fn project(case: &Case) -> (Arc<MemVfs>, PathBuf) {
         // The files as written by the older build: its manifest lists them with their own hashes, so that the
         // reader meets the records rather than a foreign edit. A deleted file keeps its listing.
         for (rel, bytes) in &files {
-            if let Ok(path) = FilePath::new(rel.as_str()) {
-                if manifest.files.contains_key(&path) {
-                    manifest.files.insert(path, FileHash::Sha256(sha256(bytes)));
-                }
+            if let Ok(path) = FilePath::new(rel.as_str())
+                && manifest.files.contains_key(&path)
+            {
+                manifest.files.insert(path, FileHash::Sha256(sha256(bytes)));
             }
         }
     }
@@ -365,6 +371,26 @@ fn options(vfs: &Arc<MemVfs>, pid: u32, mode: OpenMode) -> StoreOptions {
     o
 }
 
+/// The operations that change only the shape of the files, not what the records say: members in byte-wise order
+/// (0), a swap of two lines (7), CRLF (9), a missing final LF (10), a BOM (11) and a blank line (14).
+const SHAPE_ONLY: [u8; 6] = [0, 7, 9, 10, 11, 14];
+
+/// The model of the unchanged golden project, opened once per thread.
+fn golden_model() -> Model {
+    thread_local! {
+        static GOLDEN: std::cell::OnceCell<Model> = const { std::cell::OnceCell::new() };
+    }
+    GOLDEN.with(|cell| {
+        cell.get_or_init(|| {
+            let (vfs, root) = project(&Case::default());
+            Store::open(&root, options(&vfs, 1, OpenMode::ReadOnly))
+                .expect("the golden project opens")
+                .model
+        })
+        .clone()
+    })
+}
+
 /// The findings that a saved project must not leave: what the next save is documented to rewrite.
 fn pending_rewrite(kind: FindingKind) -> bool {
     matches!(
@@ -399,16 +425,29 @@ pub fn check(input: &[u8]) -> Outcome {
     } else {
         OpenMode::Edit
     };
+    let shape_only = case.ops.iter().all(|op| SHAPE_ONLY.contains(&(op.op % OP_KINDS)));
     let Ok(Opened {
         mut store,
         model,
         report,
     }) = Store::open(&root, options(&vfs, 1, mode))
     else {
+        assert!(
+            !shape_only,
+            "a project changed only in shape (member order, CRLF, BOM, line order, blank lines) does not open"
+        );
         return Outcome::Refused;
     };
     if let Err(e) = model.integrity_check() {
         panic!("the opened model fails its integrity check: {e:?}");
+    }
+    // The open of an old shape is lossless: the model is the golden project's.
+    if shape_only {
+        assert!(
+            model.content_eq(&golden_model()),
+            "a project changed only in shape opens with a model that differs from the golden project's (findings: {:?})",
+            report.findings
+        );
     }
     if report.access != Access::Edit {
         return Outcome::ReadOnly;

@@ -46,15 +46,29 @@ to the nightly test, not a replacement.
 cargo install cargo-fuzz --version 0.13.2 --locked      # once
 cd fuzz                                                  # the nightly of rust-toolchain.toml applies inside this directory
 mkdir -p target/corpus/jsonl_loader
-cargo fuzz run jsonl_loader target/corpus/jsonl_loader corpus/jsonl_loader -- -max_total_time=60 -max_len=65536
+cargo fuzz run -a jsonl_loader target/corpus/jsonl_loader corpus/jsonl_loader -- -max_total_time=60 -max_len=65536
 ```
 
 The first corpus directory is the working one (libFuzzer writes the inputs that add coverage there; `target/` is ignored);
 the committed seeds under `corpus/<target>/` stay as they are. Useful `max_len` values: `jsonl_loader` 65536,
 `migration_chain` 65, `command_sequence` 512. Run it from `fuzz/`: from the repository root rustup would choose the stable
-toolchain of the workspace and cargo-fuzz would refuse. AddressSanitizer is cargo-fuzz's default; the binaries link two
-copies of the bundled SQLite, which it reports as an ODR violation unless `ASAN_OPTIONS=detect_odr_violation=0` (cargo-fuzz
-sets it for `cargo fuzz run`; export it to run a built binary by hand).
+toolchain of the workspace and cargo-fuzz would refuse. AddressSanitizer is cargo-fuzz's default. A sanitized binary that
+links the bundled SQLite reports an ODR violation for `aiOff` at start-up unless `ASAN_OPTIONS=detect_odr_violation=0`
+(cargo-fuzz sets it for `cargo fuzz run`; export it to run a built binary by hand). This is a false positive of the C code,
+not a second copy of SQLite: both lock files hold one `libsqlite3-sys` 0.38.2 and a binary has one `sqlite3_open`, but
+`sqlite3.c` has two function-local tables `static const unsigned short aiOff[]` with identical contents (the FTS3 and FTS5
+case folders), the linker merges them into one address and the check sees two globals registered there.
+
+`-a` switches on debug assertions and overflow checks, which cargo-fuzz's release build lacks otherwise (the oracles of
+the targets rely on them; CI sets them through `CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS` and `..._OVERFLOW_CHECKS`).
+
+**A crash carries no generator log.** libFuzzer's panic hook aborts the process at the first panic, before the unwind that
+the command generator's `catch_unwind` relies on to print the seed, the step and the command log (what `fuzz_long`
+reports): the crash output is the panic message and the stack. `tests/replay.rs` recovers the context: in an ordinary test
+process the panic is caught, so replaying the crash input there prints the generator's failure text with the command log.
+Copy the crash input to `regressions/<target>/` and run `cargo test --release --test replay -- --nocapture` in `fuzz/`
+(the test replays every file of `regressions/` and reports the outcome without failing, since a finding fails by
+definition).
 
 Reproduce a crash: `cargo fuzz run <target> artifacts/<target>/crash-<hash>` (or a file of `regressions/<target>/`). The
 inputs are byte formats, decoded by `ew_fuzz::loader::decode`, `ew_fuzz::open_path::decode` and `ew_fuzz::command::decode`
@@ -81,4 +95,9 @@ that was fixed.
 - A command added to the registry needs a generator arm in `crates/ew-testkit/tests/command_fuzz/arms.rs`
   (`every_registered_command_has_a_generator_arm` fails otherwise); the target picks it up without a change here.
 - The dependencies of the crate are outside the workspace's `cargo deny` and `cargo vet` runs; they are `libfuzzer-sys`
-  (and its `arbitrary` and `cc`) and the workspace's own path crates.
+  (and its `arbitrary` and `cc`) and the workspace's own path crates. The job `fuzz-deny` of the deep nightly runs
+  `cargo deny check licenses advisories` over the crate's own graph with `fuzz/deny.toml` (the workspace's `deny.toml` policy plus an NCSA exception for libfuzzer-sys, which carries LLVM's libFuzzer runtime), report-only.
+- On every pull request the `lint` job formats, checks and lints the crate on the stable toolchain
+  (`cargo fmt|check|clippy --manifest-path fuzz/Cargo.toml`; from the repository root rustup takes the stable toolchain of
+  the root `rust-toolchain.toml`, because it looks at the working directory, not at the manifest's), and `cargo xtask ci`
+  has the same three steps; only running a target needs the nightly.
