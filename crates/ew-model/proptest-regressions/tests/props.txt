@@ -4,3 +4,4 @@
 # Seeds for failure cases proptest has generated in the past. It is automatically read and these particular
 # cases re-run before any novel cases are generated.
 cc b1da7c02170aa6750b714aa5049f3ab194c90b560d751de7eabb3126f01f8e57 # shrinks to batches = [[AddConductor(0), AddDeviceWithMain(0), AddConductor(0)], [RepointConnectionEndpoint(160992267, 291355, 0, 0), DeleteViaPlan(2529021363)], [AddDeviceWithMain(120502647)], [DeleteViaPlan(3643674618), DeleteViaPlan(4231720252), RepointRepresentationPage(1868763856, 4274953188), AddAuxFunction(3100600842)]]
+cc b80194a0627ca9157b12127882684a3e60844e784dabc2a6d9d8779e0ff3e64e # shrinks to items = [LibRefItem { named_before: true, embed_fndef: true, named_in_batch: false }]

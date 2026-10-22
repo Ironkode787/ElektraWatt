@@ -14,19 +14,20 @@ use ew_mltext::MlText;
 use ew_rds::Aspect;
 use ew_schema::{
     Bond, Conductor, Connection, Device, Endpoint, ExternalRef, FnDef, FnRole, Function, FunctionKind,
-    ImportLineage, Junction, Kind, LibCopy, Open, Page, PotentialDef, Record, ReportBlock, Representation,
-    Section, StructureNode,
+    ImportLineage, Junction, Kind, LibCopy, LibDocument, Open, Page, PotentialDef, Record, ReportBlock,
+    Representation, Section, StructureNode, SymbolDef,
 };
 use ew_units::{Nm, Pt2};
 use proptest::prelude::*;
 use serde_json::json;
 
 use super::fixture::{
-    DEV_3W1, DEV_101F1, DEV_102F2, FNDEF_CONTACT, FNDEF_MCB, LOC, PAGE_101, PAGE_102, conductor, connection,
-    cp, device, function, mini_golden, mini_golden_parts, strip, structure_node,
+    DEV_3W1, DEV_101F1, DEV_102F2, FNDEF_CONTACT, FNDEF_MCB, LIBRARY_X, LOC, PAGE_101, PAGE_102, conductor,
+    connection, cp, device, fndef_copy_for, function, mini_golden, mini_golden_parts, strip, structure_node,
+    symbol_using,
 };
 use crate::entity::{AnyKey, table_keys};
-use crate::{AnyRow, BaseIndexes, Entity, Model, ModelError, Op, Rev, invert_batch};
+use crate::{AnyRow, ApplyOptions, BaseIndexes, Entity, Model, ModelError, Op, Rev, invert_batch};
 
 // ---------------------------------------------------------------------------------------------------------
 // The abstract plan
@@ -691,6 +692,88 @@ proptest! {
         let shuffled = Model::from_records(project, records, lib).expect("a shuffled load succeeds");
         prop_assert!(shuffled.content_eq(&reference));
         prop_assert_eq!(digest(&shuffled), digest(&reference));
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// LibRef shapes: the undo of an embedding (FT-316, EW-INV-021)
+
+/// One library item of the `LibRef` property: whether a symbol embedded before the batch names it, whether
+/// the batch embeds its FnDef copy, and whether the batch embeds a new symbol that names it.
+#[derive(Clone, Copy, Debug)]
+struct LibRefItem {
+    named_before: bool,
+    embed_fndef: bool,
+    named_in_batch: bool,
+}
+
+fn lib_ref_item() -> impl Strategy<Value = LibRefItem> {
+    (any::<bool>(), any::<bool>(), any::<bool>()).prop_map(|(named_before, embed_fndef, named_in_batch)| {
+        LibRefItem {
+            named_before,
+            embed_fndef,
+            named_in_batch,
+        }
+    })
+}
+
+/// The `i`-th item of the `LibRef` property and the IDs of the symbols that name it.
+fn lib_ref_ids(i: usize) -> (Uuid, Id<SymbolDef>, Id<SymbolDef>) {
+    let n = u128::try_from(i).expect("a small index");
+    (
+        Uuid::from_u128(0x9_5000 + n),
+        Id::from_uuid(Uuid::from_u128(0x9_6000 + n)),
+        Id::from_uuid(Uuid::from_u128(0x9_7000 + n)),
+    )
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig { cases: 64, ..ProptestConfig::default() })]
+
+    /// Doc 18 §3.3 `undo(all) ∘ apply(cmds) = id` across `LibRef` shapes (FT-316): a batch that embeds FnDef
+    /// copies and symbols naming them, some of the copies named by symbols embedded before, commits on the
+    /// edit path; its inverse on the history path restores the start, which passes the integrity check. On the
+    /// edit path the same inverse is refused exactly when it removes a copy that a symbol of the start names
+    /// (EW-INV-021), and then with `Referenced`.
+    #[test]
+    fn undo_of_an_embedding_restores_the_start(items in prop::collection::vec(lib_ref_item(), 1..=4)) {
+        let (project, records, mut lib) = mini_golden_parts();
+        for (i, it) in items.iter().enumerate() {
+            let (item, before, _) = lib_ref_ids(i);
+            if it.named_before {
+                lib.push(LibDocument::Symbol(symbol_using(before, LIBRARY_X, item)));
+            }
+        }
+        let m0 = Model::from_records(project, records, lib)
+            .expect("LibRefs to items the project does not embed are valid");
+        let mut ops = Vec::new();
+        for (i, it) in items.iter().enumerate() {
+            let (item, _, in_batch) = lib_ref_ids(i);
+            if it.embed_fndef {
+                ops.push(Op::insert(AnyRow::of(fndef_copy_for(LIBRARY_X, item, &["1"]))));
+            }
+            if it.named_in_batch {
+                ops.push(Op::insert(AnyRow::of(symbol_using(in_batch, LIBRARY_X, item))));
+            }
+        }
+        let edit = ApplyOptions::default();
+        let m1 = m0
+            .apply_with(&ops, m0.rev().next(), &edit)
+            .expect("embedding copies is an accepted edit");
+        let undo = invert_batch(&ops);
+        let refused = items.iter().any(|it| it.named_before && it.embed_fndef);
+        match m1.apply_with(&undo, m1.rev().next(), &edit) {
+            Ok(_) => prop_assert!(!refused, "the edit path removed a copy a symbol of the start names"),
+            Err(e) => {
+                prop_assert!(refused, "the edit path refused a removal it allows: {:?}", e);
+                prop_assert!(matches!(e, ModelError::Referenced { .. }), "{:?}", e);
+            }
+        }
+        let m2 = m1
+            .apply(&undo, m1.rev().next())
+            .expect("the history path restores the start");
+        prop_assert!(m2.content_eq(&m0));
+        prop_assert!(m2.integrity_check().is_ok());
     }
 }
 

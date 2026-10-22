@@ -129,12 +129,23 @@ fn validate(
 }
 
 impl Model {
-    /// Applies a batch of ops as revision `rev` with no prevent rules; see [`Model::apply_with`].
+    /// Applies a batch of ops as revision `rev` on the **history path**: steps 1–4 of
+    /// [`Model::apply_with`], the structural invariants only, no delete-time rule and no prevent rule.
+    ///
+    /// Undo and redo apply the inverse or the recorded ops of a committed transaction through it (ARCH
+    /// §5.3: they run the structural invariants but not the prevent rules). They restore a state that was
+    /// committed, so every structural invariant holds again; a delete-time rule judges an edit's removal,
+    /// not a state, and would refuse a valid restore: the undo of `library.embed` removes copies that the
+    /// records of the state before it name through `LibRef` links, which then name nothing (EW-INV-021,
+    /// ADR-0009 amendment 7, FT-316). Every edit goes through [`Model::apply_with`].
     pub fn apply(&self, ops: &[Op], rev: Rev) -> Result<Model, ModelError> {
-        self.apply_with(ops, rev, &ApplyOptions::default())
+        let (m, scope) = self.apply_rows(ops, rev)?;
+        invariants::check(&m, &scope)?;
+        Ok(m)
     }
 
-    /// Applies a batch of ops as revision `rev` and returns the new snapshot; `self` is unchanged.
+    /// Applies a batch of ops as revision `rev` on the **edit path** and returns the new snapshot; `self` is
+    /// unchanged.
     ///
     /// 1. `rev` must be greater than [`Model::rev`].
     /// 2. The ops run in order. Each op's `before` must be the current row (pointer or value equality),
@@ -147,13 +158,17 @@ impl Model {
     ///    record that a `forbid` link still names is [`ModelError::Referenced`]; `cascade` and `unlink`
     ///    are not executed here (see `Model::delete_plan`, behind `raw-read`), so a remaining referrer is
     ///    a violation of EW-INV-001.
-    /// 5. The prevent hook, if any, checks the candidate against `self`, the base snapshot.
+    /// 5. The delete-time rule of the catalogue: removing an embedded library copy that a record still
+    ///    names through a `LibRef` link is [`ModelError::Referenced`] (EW-INV-021). It holds for every edit,
+    ///    whatever [`ApplyOptions`] say, and never on the history path ([`Model::apply`]).
+    /// 6. The prevent hook, if any, checks the candidate against `self`, the base snapshot.
     ///
     /// `apply(ops)` followed by `apply(invert_batch(ops))` restores every row value and index entry; only
     /// the `changed_at` stamps differ.
     pub fn apply_with(&self, ops: &[Op], rev: Rev, opts: &ApplyOptions<'_>) -> Result<Model, ModelError> {
         let (m, scope) = self.apply_rows(ops, rev)?;
         invariants::check(&m, &scope)?;
+        invariants::check_delete_time(&m, &scope)?;
         if let Some(hook) = opts.prevent {
             let touched: Vec<AnyKey> = scope.keys.iter().copied().collect();
             hook.check(self, &m, &touched)
@@ -168,9 +183,9 @@ impl Model {
 
     raw_read! {
         /// Steps 1–3 of [`Model::apply_with`] only: the ops run with the stale-`before` check and the
-        /// index deltas, but **no** structural invariant and no prevent rule is evaluated. This is the
-        /// planning snapshot of a transaction in progress, whose transient states are legal (ADR-0009
-        /// decision 1): `TxBuilder` plans a removal on it. The result must never be committed; the
+        /// index deltas, but **no** structural invariant, delete-time rule or prevent rule is evaluated.
+        /// This is the planning snapshot of a transaction in progress, whose transient states are legal
+        /// (ADR-0009 decision 1): `TxBuilder` plans a removal on it. The result must never be committed; the
         /// transaction's final batch goes through [`Model::apply_with`].
         fn apply_unchecked(&self, ops: &[Op], rev: Rev) -> Result<Model, ModelError> {
             self.apply_rows(ops, rev).map(|(m, _)| m)

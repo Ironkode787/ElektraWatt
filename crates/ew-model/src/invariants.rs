@@ -3,7 +3,8 @@
 
 //! The structural invariants of ADR-0009 decision 2, evaluated on the candidate snapshot at the end of a
 //! batch, limited to the touched keys and their index neighbours (decision 1), or on every record for the
-//! integrity check (decision 5). The catalogue with its tests is `ew-model/invariants.md`.
+//! integrity check (decision 5), and the model's one delete-time rule (EW-INV-021, ADR-0009 amendment 7),
+//! evaluated by [`Model::apply_with`] only. The catalogue with its tests is `ew-model/invariants.md`.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -19,15 +20,23 @@ use crate::index::EndpointKey;
 use crate::links::{LINKS, Policy, links_from, links_to};
 use crate::model::Model;
 
-/// The class of a catalogue rule. `ew-model` holds the structural class only; prevent rules live in rule
-/// packs (ADR-0019) and reach `apply` through [`crate::PreventHook`].
+/// The class of a catalogue rule. `ew-model` holds the structural class and one delete-time rule; the
+/// configurable prevent rules live in rule packs (ADR-0019) and reach `apply_with` through
+/// [`crate::PreventHook`].
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RuleClass {
-    /// Always on; a violation rejects the transaction.
+    /// Holds in every committed state; always on. A violation rejects the batch, on every path
+    /// ([`Model::apply`] and [`Model::apply_with`]), and the integrity check of a loaded project reports it.
     Structural,
+    /// A prevent rule of the model about a removal, not about a state (ADR-0009 amendment 7): an edit may
+    /// not remove what the rule protects, but a state without it is valid. Evaluated on the edit path
+    /// ([`Model::apply_with`], and by the delete plan before the batch is built), always strict, never by
+    /// the history path ([`Model::apply`]: undo and redo skip prevent rules, ARCH §5.3) and never by the
+    /// integrity check.
+    DeleteTime,
 }
 
-/// One structural invariant of the catalogue.
+/// One rule of the catalogue: a structural invariant or the delete-time rule.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Rule {
     /// The stable ID.
@@ -82,14 +91,19 @@ pub const REVISION_FOUR_EYES: &str = "EW-INV-018";
 pub const REVISION_PAGE_NOTE_UNIQUE: &str = "EW-INV-019";
 /// EW-INV-020: a released or withdrawn revision is not updated.
 pub const REVISION_IMMUTABLE: &str = "EW-INV-020";
+/// EW-INV-021 (delete-time): an edit does not remove an embedded library copy that a record names through a
+/// `LibRef` link.
+pub const LIB_REF_KEEP_ALIVE: &str = "EW-INV-021";
 
-/// The structural catalogue in evaluation order.
+/// The catalogue in evaluation order: the structural invariants, then the delete-time rule.
 pub static RULES: &[Rule] = &[
     Rule {
         id: REFS_RESOLVE,
         class: RuleClass::Structural,
         statement: "Every link field of a record names an existing record of its target kind, and a removed record \
-                    has no referrer left; a referrer through a forbid link makes the removal Referenced",
+                    has no referrer left; a referrer through a forbid link makes the removal Referenced. A LibRef \
+                    link names nothing while its copy is not embedded, so it is not part of either half (its \
+                    keep-alive is the delete-time rule EW-INV-021)",
     },
     Rule {
         id: ONE_MAIN_FUNCTION,
@@ -202,6 +216,13 @@ pub static RULES: &[Rule] = &[
         statement: "A revision that was Released or Withdrawn before the batch is not updated; it may be removed \
                     (the undo of its creation), and an open revision may become Released",
     },
+    Rule {
+        id: LIB_REF_KEEP_ALIVE,
+        class: RuleClass::DeleteTime,
+        statement: "An edit does not remove an embedded library copy that a record still names through a LibRef \
+                    link (the removal is Referenced); undo and redo may, because a LibRef to a copy that is not \
+                    embedded names nothing and is valid",
+    },
 ];
 
 /// The keys to evaluate and the rows they had before the batch.
@@ -279,6 +300,11 @@ pub(crate) fn check(m: &Model, scope: &Scope) -> Result<(), ModelError> {
 }
 
 /// EW-INV-001 with the forbid policy.
+///
+/// A `LibRef` link ([`crate::LinkDecl::lib_ref`]) takes part in neither half: its missing target is not
+/// dangling (NFR-REL-11), so neither is a referrer left behind by the removal of its copy. Its keep-alive is
+/// the delete-time rule EW-INV-021 ([`check_delete_time`]), which the history path does not evaluate: the undo
+/// of `library.embed` restores the state before the embedding, where the `LibRef` named nothing (FT-316).
 fn refs_resolve(m: &Model, scope: &Scope) -> Result<(), ModelError> {
     for key in &scope.keys {
         match get_row(m, key) {
@@ -302,7 +328,7 @@ fn refs_resolve(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                 }
             }
             None => {
-                for (lid, link) in links_to(key.0) {
+                for (lid, link) in links_to(key.0).filter(|(_, l)| !l.lib_ref) {
                     if let Some(src) = m.referrers_via(lid, key).first() {
                         let referrer = (link.from, *src);
                         return Err(if link.policy == Policy::Forbid {
@@ -327,6 +353,36 @@ fn refs_resolve(m: &Model, scope: &Scope) -> Result<(), ModelError> {
                         });
                     }
                 }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Evaluates the delete-time rules of the catalogue (class [`RuleClass::DeleteTime`]) on the candidate of an
+/// edit: [`Model::apply_with`] calls it after [`check`], [`Model::apply`] (the history path) and the integrity
+/// check never do.
+pub(crate) fn check_delete_time(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+    lib_ref_keep_alive(m, scope)
+}
+
+/// EW-INV-021: every record the batch removed (it existed before the batch and does not exist after it) has no
+/// referrer left in the candidate through a `LibRef` link. The first one, in key order, then link order, then
+/// referrer order, is the error: [`ModelError::Referenced`], the same refusal as the delete plan's
+/// (`Model::delete_plan`), which reports it before a delete command builds its batch.
+fn lib_ref_keep_alive(m: &Model, scope: &Scope) -> Result<(), ModelError> {
+    for key in &scope.keys {
+        let removed = matches!(scope.before.get(key), Some(Some(_))) && get_row(m, key).is_none();
+        if !removed {
+            continue;
+        }
+        for (lid, link) in links_to(key.0).filter(|(_, l)| l.lib_ref) {
+            if let Some(src) = m.referrers_via(lid, key).first() {
+                return Err(ModelError::Referenced {
+                    link: link.path(),
+                    target: *key,
+                    referrer: (link.from, *src),
+                });
             }
         }
     }

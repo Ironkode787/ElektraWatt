@@ -12,11 +12,13 @@
 //!
 //! - [`Model`]: one immutable snapshot with a [`Table`] per entity kind ([`Entity`]), the project row,
 //!   the embedded library copies and the [`BaseIndexes`]. Built by [`Model::from_records`], changed only
-//!   by [`Model::apply`], which returns a new snapshot.
+//!   by [`Model::apply_with`] (the edit path) and [`Model::apply`] (the history path of undo and redo),
+//!   which return a new snapshot.
 //! - [`Op`]: an invertible row put; [`invert_batch`] undoes a batch (applied as a new revision).
 //! - [`LINKS`]: every link field with its target kind, delete [`Policy`] and index;
 //!   `Model::delete_plan` (with `raw-read`) computes the cascade and unlink ops a removal needs.
-//! - [`RULES`]: the structural invariants, catalogued in `invariants.md`; prevent rules plug in through
+//! - [`RULES`]: the structural invariants and the one delete-time rule (EW-INV-021, the `LibRef`
+//!   keep-alive), catalogued in `invariants.md`; the configurable prevent rules plug in through
 //!   [`PreventHook`].
 //!
 //! Commands, `TxBuilder` and transactions are `ew-commands` (WP-S1.04); derived data is `ew-derive`;
@@ -134,10 +136,10 @@ pub use error::ModelError;
 pub use index::{BaseIndexes, Bucket, EndpointKey, RevIndex};
 pub use invariants::{
     CONDUCTOR_CABLE, DEVICE_ACYCLIC, DEVICE_IFF_NOT_IP, ENDPOINTS_DIFFER, EXCLUSIVE_ASPECTS,
-    INHERITANCE_ACYCLIC, IP_ONE_REPRESENTATION, JUNCTION_SEQUENCE, NO_STORED_REPORT_PAGE, ONE_MAIN_FUNCTION,
-    ONE_OPEN_REVISION, PIN_MAP_UNIQUE, REFS_RESOLVE, REP_ONE_DEVICE, REPORT_BLOCK_FOLIO, REVISION_FOUR_EYES,
-    REVISION_IMMUTABLE, REVISION_LABEL_UNIQUE, REVISION_PAGE_NOTE_UNIQUE, RULES, Rule, RuleClass,
-    STRUCTURE_ACYCLIC, STRUCTURE_SAME_ASPECT, TERMINAL_STRIP,
+    INHERITANCE_ACYCLIC, IP_ONE_REPRESENTATION, JUNCTION_SEQUENCE, LIB_REF_KEEP_ALIVE, NO_STORED_REPORT_PAGE,
+    ONE_MAIN_FUNCTION, ONE_OPEN_REVISION, PIN_MAP_UNIQUE, REFS_RESOLVE, REP_ONE_DEVICE, REPORT_BLOCK_FOLIO,
+    REVISION_FOUR_EYES, REVISION_IMMUTABLE, REVISION_LABEL_UNIQUE, REVISION_PAGE_NOTE_UNIQUE, RULES, Rule,
+    RuleClass, STRUCTURE_ACYCLIC, STRUCTURE_SAME_ASPECT, TERMINAL_STRIP,
 };
 pub use links::{IndexName, LINKS, LinkDecl, LinkId, NOT_LINKS, Policy};
 pub use model::Model;

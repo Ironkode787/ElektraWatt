@@ -8,19 +8,32 @@ SPDX-License-Identifier: GPL-3.0-or-later
 ## 1. Scope
 
 This file is the catalogue of [ADR-0009](../../docs/adr/0009-invariant-catalogue.md) decision 5 for the
-structural class. It lists every structural invariant that `ew-model` enforces.
+structural class and for the one delete-time rule of `ew-model` (ADR-0009 amendment 7). It lists every
+structural invariant that `ew-model` enforces, and that rule.
 
-Structural invariants are always on. They reject a batch in `Model::apply` with `ModelError::Invariant`,
-or with `ModelError::Referenced` for a forbid link. They are evaluated on the candidate snapshot at the end
-of the batch, limited to the touched keys and their index neighbours. Transient states inside a batch are
-therefore legal. `Model::integrity_check`, run by `Model::from_records`, evaluates them on every record.
+Structural invariants are always on. They hold in every committed state. They reject a batch in
+`Model::apply` and `Model::apply_with` with `ModelError::Invariant`, or with `ModelError::Referenced` for a
+forbid link. They are evaluated on the candidate snapshot at the end of the batch, limited to the touched keys
+and their index neighbours. Transient states inside a batch are therefore legal. `Model::integrity_check`, run
+by `Model::from_records`, evaluates them on every record.
 
-- Structural invariants are listed in section 3.
+The **delete-time rule** EW-INV-021 is a prevent rule of the model. It judges a removal by an edit, not a
+state: a state without what it protects is valid. Two paths apply a batch:
+
+- the **edit path**, `Model::apply_with`, by which every command commits (and the delete plan, which a delete
+  command builds its batch from): structural invariants, then the delete-time rule (always strict), then the
+  prevent hook;
+- the **history path**, `Model::apply`, by which undo and redo restore a committed state: structural
+  invariants only (ARCH §5.3: undo and redo skip prevent rules).
+
+The integrity check never evaluates the delete-time rule.
+
+- Structural invariants and the delete-time rule are listed in section 3.
 - The link table and delete policies are in section 4. Code: [`src/links.rs`](src/links.rs).
 - Structural invariants that are not yet evaluated are listed in section 5.
 - Code: [`src/invariants.rs`](src/invariants.rs).
 
-Prevent rules are not in this file. They are rule-pack rules of `ew-checks`. They cover terminal designations,
+The configurable prevent rules are not in this file. They are rule-pack rules of `ew-checks`. They cover terminal designations,
 tag, PLC address, interruption-point pairing and conductor colours. They plug into `Model::apply_with`
 through `PreventHook` and are governed by `Strictness`. At MVP the shipped prevent rule is EW-TERM-002 (cycle 12, doc 08 §6.8); EW-RDS-004 has no prevent mode at MVP (ADR-0009 amendment 5) and EW-CORE-052's prevent mode is not wired (FT-194).
 
@@ -32,6 +45,11 @@ They therefore take no `EW-<family>` rule ID.
 Doc 08 §3.1 already names two of them, CI-01 and CI-04. Those IDs are reused. The others take `EW-INV-nnn`.
 They are numbered in evaluation order and are never reused.
 
+The delete-time rule takes the next number, EW-INV-021: `apply_with` evaluates it after the structural
+invariants. It is a rule of this catalogue, not of a rule pack. It has no code, Fluent message or registry
+entry and never produces a finding: a refused edit is `ModelError::Referenced`, the refusal of a forbid link.
+`EW-INV` therefore stays outside the rule families of doc 15 §2.2.
+
 A violation found by the integrity check of an opened project is reported as:
 
 - `EW-CORE-008` for a dangling reference, that is `EW-INV-001`;
@@ -39,15 +57,16 @@ A violation found by the integrity check of an opened project is reported as:
 
 This follows doc 05 §6.3 and doc 15 §4.2.
 
-## 3. Structural invariants
+## 3. Structural invariants and the delete-time rule
 
-Every row has the class `Structural`. Test functions live in `src/tests/invariants.rs` unless a module is named
+Every row has the class `Structural`, except EW-INV-021, which has the class `Delete-time`
+(`RuleClass::DeleteTime`). Test functions live in `src/tests/invariants.rs` unless a module is named
 (`ops::name` is `src/tests/ops.rs`). The test `every_catalogue_rule_has_a_test` checks that every rule of `RULES` has
 a row here, and that every test named in its row exists, with at least one accepting and one rejecting test.
 
 | ID | Class | Statement | Touched keys considered | Tests |
 |----|-------|-----------|-------------------------|-------|
-| EW-INV-001 | Structural | Every link field of a record names an existing record of its target kind (link table in section 4). A removed record has no referrer left. A referrer through a forbid link makes the removal `ModelError::Referenced`. A referrer through a cascade or unlink link is a violation: the transaction must include `Model::delete_plan`. | Outgoing links of every touched record. For every removed key, its referrers through each link (named base index or the generic referrer index). | `inv001_refs_resolve_ok`<br>`inv001_refs_resolve_rejected`<br>`inv001_removed_target_with_cascade_referrer_rejected`<br>`inv001_forbid_referenced`<br>`integrity_check_on_load_rejected`<br>`ops::lib_ref_unembedded_target_is_not_a_link`<br>`ops::lib_ref_fndef_copy_in_use_is_referenced`<br>`ops::lib_ref_part_template_fndef_in_use_is_referenced` |
+| EW-INV-001 | Structural | Every link field of a record names an existing record of its target kind (link table in section 4). A removed record has no referrer left. A referrer through a forbid link makes the removal `ModelError::Referenced`. A referrer through a cascade or unlink link is a violation: the transaction must include `Model::delete_plan`. A `LibRef` link takes part in neither half: its missing target is not dangling, and neither is a referrer that the removal of its copy leaves behind (its keep-alive is EW-INV-021). | Outgoing links of every touched record. For every removed key, its referrers through each link other than a `LibRef` link (named base index or the generic referrer index). | `inv001_refs_resolve_ok`<br>`inv001_lib_ref_referrer_left_by_removal_ok`<br>`inv001_refs_resolve_rejected`<br>`inv001_removed_target_with_cascade_referrer_rejected`<br>`inv001_forbid_referenced`<br>`integrity_check_on_load_rejected`<br>`ops::lib_ref_unembedded_target_is_not_a_link` |
 | EW-INV-002 | Structural | A device that has functions has exactly one function of role Main (FR-DEV-004). A device without functions is allowed in v0. | Touched devices. The old and the new `device` of every touched function. | `inv002_one_main_function_ok`<br>`inv002_zero_functions_ok`<br>`inv002_one_main_function_rejected`<br>`inv002_main_moved_away_rejected` |
 | EW-INV-003 | Structural | `Function.device` is None if and only if the function's kind is `Ip` (ADR-0009 amendment 2). | Touched functions. | `inv003_device_iff_not_ip_ok`<br>`inv003_device_iff_not_ip_rejected`<br>`inv003_ip_with_device_rejected` |
 | CI-01 | Structural | Both endpoints of a connection exist and differ. Existence is reported through EW-INV-001 (the endpoint links). | Touched connections. | `ci01_endpoints_differ_ok`<br>`ci01_endpoints_differ_rejected` |
@@ -69,6 +88,7 @@ a row here, and that every test named in its row exists, with at least one accep
 | EW-INV-018 | Structural | A revision's checker, when set, is not its author (four eyes; D-34, FR-REV-005, ADR-0009 decision 2). Author and checker are party roles. That a revision released by EW has a checker at all is the release gate's (EW-REL-001); a historic released revision has neither (section 5). | Touched revisions. | `inv018_revision_four_eyes_ok`<br>`inv018_author_is_checker_rejected` |
 | EW-INV-019 | Structural | The page notes of a revision name each page at most once (FR-REV-012: one optional description per changed page). `page_notes[].page` is not a link (section 4, "Not links"): a note keeps naming a page that a later revision deletes. | Touched revisions. | `inv019_page_notes_unique_ok`<br>`inv019_two_notes_on_one_page_rejected` |
 | EW-INV-020 | Structural | A revision that was `Released` or `Withdrawn` before the batch is not updated (FR-REV-009, doc 03 §18: released revisions are immutable; later edits belong to the next revision, and a withdrawal is a new record that names the withdrawn revision in `withdraws`, a forbid link). Removing it stays possible (the undo of `revision.create` deletes the record), so does an open revision becoming `Released` (the release command, not built) and a new withdrawal record. `fields.set` and `edit.delete` refuse a closed revision before the model does, with a message at the target. | Touched revisions whose row before the batch was released or withdrawn and that the batch did not remove. The integrity check has no rows before it and never reports this rule. | `inv020_released_revision_delete_ok`<br>`inv020_released_revision_update_rejected` |
+| EW-INV-021 | Delete-time | An edit does not remove an embedded library copy that a record still names through a `LibRef` link (`symbol.fndef`, `part.function_template[].fndef`; section 4): the removal is `ModelError::Referenced`, the refusal of a forbid link, whatever the project's strictness. A state without the copy is valid (the `LibRef` names nothing, NFR-REL-11), so the history path does not evaluate the rule: the undo of `library.embed` restores the state before the embedding (FT-316, ADR-0009 amendment 7), and redo embeds again. `Model::delete_plan` refuses the same removal before a delete command (`edit.delete`, the purge) builds its batch, with the same error. | Every key the batch removed (it existed before the batch and not after it), with its referrers through each `LibRef` link (generic referrer index). Edit path only. | `inv021_unnamed_copy_removed_by_an_edit_ok`<br>`inv021_undo_of_an_embedding_restores_the_state_before_ok`<br>`inv021_named_copy_removed_by_an_edit_referenced`<br>`ops::lib_ref_fndef_copy_in_use_is_referenced`<br>`ops::lib_ref_part_template_fndef_in_use_is_referenced` |
 
 ## 4. Link table and delete policies
 
@@ -91,9 +111,11 @@ a `LibRef` resolves to the embedded copy of `(library, item)` (doc 07 §3.1), wh
 item)` (doc 05 §13.2). The link's target is that copy ID, computed from the referring row alone. The field is a link
 exactly while the copy is embedded (`LinkDecl::lib_ref`):
 
-- while the copy exists, removing it is `ModelError::Referenced`;
+- while the copy exists, an **edit** that removes it is `ModelError::Referenced`: the delete plan refuses it, and
+  `Model::apply_with` rejects a batch that removes it anyway (EW-INV-021, a delete-time rule);
 - a `LibRef` to an item the project does not embed is not a dangling reference, so a project opens without its
-  libraries (NFR-REL-11);
+  libraries (NFR-REL-11). The removal of the copy therefore leaves a valid state, and undo and redo
+  (`Model::apply`) may remove it: the undo of `library.embed` restores the state before the embedding (FT-316);
 - a second copy minted by "keep both" (`‖ version`) is never the resolution of a `LibRef`.
 
 The decision is deterministic: the index entry depends on the row only, and the link's state on the snapshot only.
@@ -177,8 +199,29 @@ Fields are written as `kind.path`. "referrers" means the generic referrer index.
 | revision.source_ref.lineage | import_lineage | forbid | referrers |
 | form.title_block | form | forbid | referrers |
 | form.continuation | form | forbid | referrers |
-| symbol.fndef.item (with `.library`) | fndef (copy `v5(NS_LIBCOPY, library ‖ item)`) | forbid, while the copy is embedded | referrers |
-| part.function_template[].fndef.item (with `.library`) | fndef (copy `v5(NS_LIBCOPY, library ‖ item)`) | forbid, while the copy is embedded | referrers |
+| symbol.fndef.item (with `.library`) | fndef (copy `v5(NS_LIBCOPY, library ‖ item)`) | forbid at delete time (EW-INV-021), while the copy is embedded | referrers |
+| part.function_template[].fndef.item (with `.library`) | fndef (copy `v5(NS_LIBCOPY, library ‖ item)`) | forbid at delete time (EW-INV-021), while the copy is embedded | referrers |
+
+**Forbid links: structural or delete-time** (ADR-0009 amendment 7). A forbid link is structural when its missing
+target is a dangling reference in any state: then no committed state holds a referrer without its target, so a
+restore of a committed state (undo, redo) never removes a target that a referrer of that state names, and the
+forbid only chooses the refusal (`Referenced`, not a dangling `Invariant`) and keeps the delete plan from
+cascading. A forbid link is delete-time when its missing target is valid, so that a removal can be wrong while the
+state after it is right. Every forbid link stores its target's ID, except the two `LibRef` links:
+
+| Forbid links | Target | Ruling | Why |
+|-------|--------|--------|-----|
+| `source_ref.lineage` of the 18 kinds that carry it | import_lineage | structural | A stored ID; the lineage anchors the identity (the v5 namespace) of its records |
+| structure_node.parent, external_ref.location, page.structure.* and device.structure.* (seven slots each) | structure_node | structural | Stored IDs; structure and designations derive along them (doc 03 §4.2: merged, never deleted under its users) |
+| page.folio.section, report_block.section | section | structural | Stored IDs; folios and report placement derive from them |
+| device.parent, device.terminal.strip | device | structural | Stored IDs; the device and inheritance graphs (EW-INV-007, EW-INV-009, EW-INV-015) |
+| device.plc_station.config_project | plc_config_project | structural | A stored ID; the station's addressing derives from it |
+| device.parts[].part.copy, device.strip.accessories[].part.copy, device.assembly.configs[].part.copy, connection.overrides.wire_part.copy, potential_def.props.wire_part.copy | part | structural | `PartRef.copy` stores the copy ID; the command that uses a part embeds it in the same transaction (FR-PRT-013), so a part use never names an item that is not embedded |
+| function.def | fndef | structural | A stored copy ID; the function's CPs instantiate from it |
+| representation.symbol | symbol | structural | A stored copy ID; the representation draws it |
+| page.form, report_block.form, form.title_block, form.continuation | form | structural | Stored copy IDs; a form is embedded with the forms it names (the closure of `library.embed`), and a page or report block cannot render without its form |
+| revision.withdraws | revision | structural | History: a withdrawal record names the revision it withdraws (FR-REV-009) |
+| symbol.fndef.item, part.function_template[].fndef.item | fndef | delete-time (EW-INV-021) | `LibRef`: the target ID is computed from the referring row, and a `LibRef` to an item the project does not embed names nothing (NFR-REL-11) |
 
 ### Not links
 

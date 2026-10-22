@@ -9,9 +9,10 @@
 //! - the base indexes ([`crate::BaseIndexes`]): a link with an [`IndexName`] feeds that named index, every
 //!   other link feeds the generic referrer index, so every link can be followed backwards;
 //! - the structural invariant "references resolve" (EW-INV-001): after every batch each touched record's
-//!   links name live records, and a removed record has no referrer left;
-//! - the delete policies: [`Policy::Forbid`] makes [`Model::apply`](crate::Model::apply) reject the
-//!   removal ([`ModelError::Referenced`](crate::ModelError::Referenced)); [`Policy::Cascade`] and
+//!   links name live records, and a removed record has no referrer left (`LibRef` links aside, below);
+//! - the delete policies: [`Policy::Forbid`] makes `Model::delete_plan` refuse the removal and
+//!   [`Model::apply`](crate::Model::apply) reject a batch that removes the target anyway
+//!   ([`ModelError::Referenced`](crate::ModelError::Referenced)); [`Policy::Cascade`] and
 //!   [`Policy::Unlink`] are computed by `Model::delete_plan` (behind `raw-read`), which a transaction
 //!   includes (WP-S1.04), and `apply` only verifies the result.
 //!
@@ -19,11 +20,17 @@
 //! `part.function_template[].fndef` name a library item by `{library, item}`, and within a project such a
 //! reference resolves to the embedded copy of `(library, item)` (doc 07 §3.1), whose ID is
 //! `v5(NS_LIBCOPY, library ‖ item)` (doc 05 §13.2). The target ID is therefore a pure function of the
-//! referring row, and the field is a link exactly while that copy is embedded: an embedded symbol keeps
-//! its FnDef copy alive ([`Policy::Forbid`]), while a reference to an item the project does not carry (an
-//! external library item, a provisional built-in item) names nothing and is not dangling, so a project
-//! still opens without its libraries (NFR-REL-11). Other `LibRef`s (successors, manufacturers) are not
-//! links; see [`NOT_LINKS`].
+//! referring row, and the field is a link exactly while that copy is embedded. A reference to an item the
+//! project does not carry (an external library item, a provisional built-in item) names nothing and is not
+//! dangling, so a project still opens without its libraries (NFR-REL-11). The keep-alive of an embedded
+//! copy ([`Policy::Forbid`]) is therefore a **delete-time** rule, not a structural one (EW-INV-021,
+//! ADR-0009 amendment 7): an edit (`edit.delete`, the purge, any command; `Model::delete_plan` and
+//! [`Model::apply_with`](crate::Model::apply_with)) cannot remove an FnDef copy that an embedded symbol or
+//! part names, while undo and redo ([`Model::apply`](crate::Model::apply)) may, because the state they
+//! restore is valid: the undo of `library.embed` leaves the `LibRef` naming nothing, as before the
+//! embedding (FT-316). Every other forbid link stores the target's ID and is structural: its missing target
+//! is a dangling reference in any state, so no committed state, and no undo, can leave one. Other `LibRef`s
+//! (successors, manufacturers) are not links; see [`NOT_LINKS`].
 //!
 //! [`NOT_LINKS`] lists every other ID-valued member of the persisted schema with the reason it is not a
 //! link. The field-mask test checks `LINKS ∪ NOT_LINKS ∪ {every kind's own id}` against the JSON Schemas
@@ -46,7 +53,9 @@ pub enum Policy {
     /// reverts to a plain wire. A mandatory field that cannot be cleared drops its record ("definition
     /// dropped", doc 03 §4.2).
     Unlink,
-    /// The removal is rejected while a referrer exists.
+    /// The removal is rejected while a referrer exists. For a stored ID this is structural (the referrer
+    /// would dangle); for a `LibRef` link ([`LinkDecl::lib_ref`]) it is the delete-time rule EW-INV-021,
+    /// which only edits obey.
     Forbid,
 }
 
@@ -120,8 +129,10 @@ pub struct LinkDecl {
     pub index: Option<IndexName>,
     /// A `LibRef` link (module documentation): the target is the embedded copy
     /// `v5(NS_LIBCOPY, library ‖ item)`, and the field is a link only while that copy exists. A missing
-    /// target is not a violation of EW-INV-001; removing an existing target that is still named is
-    /// [`ModelError::Referenced`](crate::ModelError::Referenced).
+    /// target is not a violation of EW-INV-001, and neither is a referrer that the removal of its copy
+    /// leaves behind; an **edit** that removes an existing target that is still named is
+    /// [`ModelError::Referenced`](crate::ModelError::Referenced) (the delete-time rule EW-INV-021, which
+    /// undo and redo skip).
     pub lib_ref: bool,
     pub(crate) targets: TargetsFn,
     pub(crate) unlink: Option<UnlinkFn>,
@@ -247,8 +258,8 @@ macro_rules! link {
     };
 }
 
-/// A `LibRef` link to an FnDef copy: forbid, served by the generic referrer index, conditional on the copy
-/// being embedded ([`LinkDecl::lib_ref`]).
+/// A `LibRef` link to an FnDef copy: forbid at delete time (EW-INV-021), served by the generic referrer
+/// index, conditional on the copy being embedded ([`LinkDecl::lib_ref`]).
 macro_rules! fndef_lib_ref_link {
     ($from:ident . $field:literal, |$v:ident, $out:ident| $body:expr) => {
         LinkDecl {

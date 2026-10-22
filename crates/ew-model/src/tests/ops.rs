@@ -644,7 +644,9 @@ fn model_with_symbol_on_fndef() -> (Model, AnyKey, AnyKey) {
     (m, fkey, skey)
 }
 
-/// An FnDef copy that an embedded symbol names through its `LibRef` cannot be removed (forbid link) until the symbol is.
+/// An FnDef copy that an embedded symbol names through its `LibRef` cannot be removed by an edit (forbid link,
+/// the delete-time rule EW-INV-021) until the symbol is: the delete plan refuses it, and so does the edit path
+/// (`apply_with`) for a removal op made by hand.
 #[test]
 fn lib_ref_fndef_copy_in_use_is_referenced() {
     let (m, fkey, skey) = model_with_symbol_on_fndef();
@@ -662,7 +664,7 @@ fn lib_ref_fndef_copy_in_use_is_referenced() {
     }
     let raw = Op::delete(m.row(&fkey).unwrap());
     assert!(matches!(
-        m.apply(&[raw], Rev(1)).unwrap_err(),
+        m.apply_with(&[raw], Rev(1), &ApplyOptions::default()).unwrap_err(),
         ModelError::Referenced { link, .. } if link == "symbol.fndef.item"
     ));
 
@@ -674,7 +676,8 @@ fn lib_ref_fndef_copy_in_use_is_referenced() {
     assert!(m1.apply(&plan, Rev(2)).is_ok());
 }
 
-/// An FnDef copy that an embedded part names in a function template cannot be removed until the part is.
+/// An FnDef copy that an embedded part names in a function template cannot be removed by an edit until the part
+/// is (EW-INV-021).
 #[test]
 fn lib_ref_part_template_fndef_in_use_is_referenced() {
     let copy = fndef_copy_for(LIBRARY_X, ITEM_X, &["1"]);
@@ -696,7 +699,7 @@ fn lib_ref_part_template_fndef_in_use_is_referenced() {
     }
     let raw = Op::delete(m.row(&fkey).unwrap());
     assert!(matches!(
-        m.apply(&[raw], Rev(1)).unwrap_err(),
+        m.apply_with(&[raw], Rev(1), &ApplyOptions::default()).unwrap_err(),
         ModelError::Referenced { link, .. } if link == "part.function_template[].fndef.item"
     ));
 

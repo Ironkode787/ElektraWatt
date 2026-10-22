@@ -6,18 +6,20 @@
 use ew_ids::{Id, Uuid};
 use ew_rds::Aspect;
 use ew_schema::{
-    Connection, Device, FnRole, Function, IpDirection, Junction, KeyedList, PageNote, PageType, PinMapEntry,
-    Record, ReportBlock, Representation, Revision, RevisionState, StructureNode,
+    Connection, Device, FnDef, FnRole, Function, IpDirection, Junction, KeyedList, LibCopy, LibDocument,
+    PageNote, PageType, Part, PinMapEntry, Record, ReportBlock, Representation, Revision, RevisionState,
+    StructureNode, SymbolDef,
 };
 use serde_json::json;
 
 use super::fixture::{
     CON_J5_IN, CON_W22, CON_W27, DEV_3W1, DEV_101F1, DEV_102F2, DEV_102G1, DEV_X1031, FN_101F1, FN_102F2,
-    FN_102F2_AUX, FN_102G1, FN_IP_101, FN_T3, FNDEF_CONTACT, FORM, FUNC_P01, J5, LOC, PAGE_101, PAGE_102,
-    REP_IP_101, SEC1, at_junction, cable, conductor, connection, cp, device, function, ip_function,
-    mini_golden, mini_golden_parts, page, rep, strip, structure_node, terminal,
+    FN_102F2_AUX, FN_102G1, FN_IP_101, FN_T3, FNDEF_CONTACT, FORM, FUNC_P01, ITEM_X, ITEM_Y, J5, LIBRARY_X,
+    LOC, PAGE_101, PAGE_102, REP_IP_101, SEC1, at_junction, cable, conductor, connection, cp, device,
+    fndef_copy_for, function, ip_function, mini_golden, mini_golden_parts, page, part_using, rep, strip,
+    structure_node, symbol_using, terminal,
 };
-use crate::{AnyRow, Entity, Model, ModelError, Op, RULES, Rev, RowId};
+use crate::{AnyKey, AnyRow, ApplyOptions, Entity, Model, ModelError, Op, RULES, Rev, RowId, invert_batch};
 
 fn nid<T>(n: u128) -> Id<T> {
     Id::from_uuid(Uuid::from_u128(n))
@@ -98,6 +100,131 @@ fn integrity_check_on_load_rejected() {
     )));
     let r = Model::from_records(p, records, lib);
     rejected_by(r, crate::REFS_RESOLVE);
+}
+
+/// A `LibRef` referrer that the removal of its copy leaves behind is no violation of EW-INV-001: the history
+/// path (`apply`, which undo and redo use) accepts the removal, and the result passes the integrity check,
+/// because the symbol's `LibRef` then names nothing (NFR-REL-11). That an edit may not remove it is EW-INV-021.
+#[test]
+fn inv001_lib_ref_referrer_left_by_removal_ok() {
+    let (m, fkey, _) = lib_ref_model(true);
+    let op = Op::delete(m.row(&fkey).unwrap());
+    let m1 = apply(&m, &[op]).expect("the history path removes the copy");
+    assert!(m1.row(&fkey).is_none());
+    assert!(m1.integrity_check().is_ok());
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// EW-INV-021 (delete-time): the `LibRef` keep-alive
+
+/// The mini golden project with an embedded symbol copy whose `fndef` names `ITEM_X` of `LIBRARY_X`, with or
+/// without the FnDef copy that the `LibRef` resolves to; the keys of that FnDef copy and of the symbol.
+fn lib_ref_model(embedded: bool) -> (Model, AnyKey, AnyKey) {
+    let copy = fndef_copy_for(LIBRARY_X, ITEM_X, &["1"]);
+    let sym = symbol_using(nid(0x21_000), LIBRARY_X, ITEM_X);
+    let fkey = <LibCopy<FnDef> as Entity>::key(copy.id);
+    let skey = <LibCopy<SymbolDef> as Entity>::key(sym.id);
+    let (project, records, mut lib) = mini_golden_parts();
+    lib.push(LibDocument::Symbol(sym));
+    if embedded {
+        lib.push(LibDocument::Fndef(copy));
+    }
+    let m = Model::from_records(project, records, lib).expect("a valid model");
+    (m, fkey, skey)
+}
+
+/// A batch on the edit path (`apply_with`, as every command commits), with no prevent hook.
+fn edit(m: &Model, ops: &[Op]) -> Result<Model, ModelError> {
+    m.apply_with(ops, m.rev().next(), &ApplyOptions::default())
+}
+
+/// An edit may remove an embedded FnDef copy that no record names, and a copy together with the last record
+/// that names it, in one batch.
+#[test]
+fn inv021_unnamed_copy_removed_by_an_edit_ok() {
+    let (m, fkey, skey) = lib_ref_model(true);
+    let both = [
+        Op::delete(m.row(&skey).unwrap()),
+        Op::delete(m.row(&fkey).unwrap()),
+    ];
+    assert!(edit(&m, &both).is_ok(), "the copy with its referrer");
+    let m1 = edit(&m, &both[..1]).expect("the symbol alone");
+    let op = Op::delete(m1.row(&fkey).unwrap());
+    assert!(edit(&m1, &[op]).is_ok(), "the copy nothing names any more");
+}
+
+/// An edit that removes an FnDef copy which a record still names through a `LibRef` is `Referenced`, for a
+/// symbol's `fndef` and for a part's function template, also when the removal op was made by hand (not by
+/// the delete plan, which refuses it first): the rule is the model's, not a command's.
+#[test]
+fn inv021_named_copy_removed_by_an_edit_referenced() {
+    let (m, fkey, skey) = lib_ref_model(true);
+    let op = Op::delete(m.row(&fkey).unwrap());
+    match edit(&m, std::slice::from_ref(&op)).unwrap_err() {
+        ModelError::Referenced {
+            link,
+            target,
+            referrer,
+        } => assert_eq!(
+            (link.as_str(), target, referrer),
+            ("symbol.fndef.item", fkey, skey)
+        ),
+        other => panic!("expected Referenced, got {other:?}"),
+    }
+    // the same removal with an unrelated change in the batch: still refused
+    let node = structure_node(nid(0x21_001), Aspect::Location, "J2", Some(LOC));
+    assert!(matches!(
+        edit(&m, &[ins(node), op]),
+        Err(ModelError::Referenced { link, .. }) if link == "symbol.fndef.item"
+    ));
+
+    let copy = fndef_copy_for(LIBRARY_X, ITEM_Y, &["1"]);
+    let part = part_using(nid(0x21_002), "TPL-21", LIBRARY_X, ITEM_Y);
+    let pkey = <LibCopy<Part> as Entity>::key(part.id);
+    let fkey = <LibCopy<FnDef> as Entity>::key(copy.id);
+    let m = edit(&m, &[ins(copy), ins(part)]).expect("embedding a part with its FnDef");
+    match edit(&m, &[Op::delete(m.row(&fkey).unwrap())]).unwrap_err() {
+        ModelError::Referenced {
+            link,
+            target,
+            referrer,
+        } => assert_eq!(
+            (link.as_str(), target, referrer),
+            ("part.function_template[].fndef.item", fkey, pkey)
+        ),
+        other => panic!("expected Referenced, got {other:?}"),
+    }
+}
+
+/// FT-316: the history path restores the state before an embedding. A symbol names an FnDef item the project
+/// does not embed (valid); embedding the copy makes the `LibRef` a link. The edit path refuses to remove the
+/// copy again (a user's delete of a named copy), the history path (the undo of the embedding) restores the
+/// state before it, which passes the integrity check, and redo embeds it again.
+#[test]
+fn inv021_undo_of_an_embedding_restores_the_state_before_ok() {
+    let (m0, fkey, skey) = lib_ref_model(false);
+    assert!(
+        m0.integrity_check().is_ok(),
+        "a LibRef to a copy that is not embedded"
+    );
+    let embed = [ins(fndef_copy_for(LIBRARY_X, ITEM_X, &["1"]))];
+    let m1 = edit(&m0, &embed).expect("embedding the FnDef the symbol names");
+    let named: Vec<AnyKey> = m1.referrers(&fkey).into_iter().map(|(_, k)| k).collect();
+    assert_eq!(named, vec![skey], "the LibRef is a link now");
+    let undo = invert_batch(&embed);
+    assert!(
+        matches!(edit(&m1, &undo), Err(ModelError::Referenced { .. })),
+        "an edit may not remove the named copy"
+    );
+    let m2 = m1
+        .apply(&undo, m1.rev().next())
+        .expect("the undo of the embedding");
+    assert!(m2.content_eq(&m0), "undo restores the state before the embedding");
+    assert!(m2.integrity_check().is_ok());
+    let m3 = m2
+        .apply(&embed, m2.rev().next())
+        .expect("the redo of the embedding");
+    assert!(m3.content_eq(&m1));
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -981,14 +1108,14 @@ fn has_test(source: &str, name: &str) -> bool {
         .any(|l| l == "#[test]")
 }
 
-/// Every rule of `RULES` (22 of them) has its table row in `invariants.md`; every test the row names exists
+/// Every rule of `RULES` (23 of them) has its table row in `invariants.md`; every test the row names exists
 /// as a `#[test]` function, with at least one accepting (`_ok`) and one rejecting (`rejected`/`referenced`) test.
 #[test]
 fn every_catalogue_rule_has_a_test() {
     let catalogue = include_str!("../../invariants.md");
     let invariant_tests = include_str!("invariants.rs");
     let ops_tests = include_str!("ops.rs");
-    assert_eq!(RULES.len(), 22);
+    assert_eq!(RULES.len(), 23);
     for rule in RULES {
         let names = catalogue_tests(catalogue, rule.id);
         assert!(!names.is_empty(), "{} names no tests in invariants.md", rule.id);
