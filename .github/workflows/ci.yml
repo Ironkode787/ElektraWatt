@@ -798,7 +798,7 @@ jobs:
                 # FT-370: the class is the prefix of the artefact's name (crash, oom, timeout, leak), so the annotation
                 # tells the classes apart without the job log or the artifact (both need repository admin rights).
                 classes="$(for f in $found; do basename "$f" | sed 's/-.*//'; done | sort -u | paste -sd, -)"
-                echo "::error::the fuzz target $t found an input of class $classes (crash, oom, timeout or leak); the input is in the artifact fuzz-smoke and in the job summary"
+                echo "::error::the fuzz target $t found an input of class $classes; the input is in the artifact fuzz-smoke and in the job summary"
                 red=1
               elif [ "$code" = "0" ]; then
                 :
