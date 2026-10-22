@@ -4,13 +4,9 @@
 //! `Session::new_project` (FT-307, FR-PRJ-009): the built-in basic project, a company basic project directory,
 //! the kind, and the new identities of a copy (doc 07 §2.8).
 
-// The scratch directory is named by the clock and the process; neither reaches a compared byte.
-#![allow(clippy::disallowed_methods)]
-
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::time::SystemTime;
 
 use ew_api::{NewProjectKind, ProjectTemplate, Recovery, Session, SessionOptions, StoreOptions};
 use ew_commands::testkit::seeded_ids;
@@ -19,11 +15,8 @@ const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-24
 
 fn temp(tag: &str) -> PathBuf {
     static N: AtomicU32 = AtomicU32::new(0);
-    let nanos = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .map_or(0, |d| d.as_nanos());
     let dir = std::env::temp_dir().join(format!(
-        "ew-api-newproject-{tag}-{}-{}-{nanos}",
+        "ew-api-newproject-{tag}-{}-{}",
         std::process::id(),
         N.fetch_add(1, Ordering::Relaxed)
     ));
