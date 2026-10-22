@@ -86,10 +86,12 @@ jobs:
           tool: cargo-nextest@0.9.148
       - name: cargo build
         run: cargo build --workspace --locked
-      - name: cargo nextest
-        run: cargo nextest run --workspace --locked --profile ci
+      # The headless acceptance tests (about 2 min) run once per job, in the all-features run below: the filter
+      # is the rule of .config/nextest.toml and is kept equal to xtask's ACCEPTANCE_ONCE_FILTER by a test (FT-268).
+      - name: cargo nextest (without the acceptance tests)
+        run: cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance))'
       # Feature-gated code (for example ew-ids/testkit) is only compiled and tested with its feature on.
-      - name: cargo nextest (all features)
+      - name: cargo nextest (all features, with the acceptance tests)
         run: cargo nextest run --workspace --all-features --locked --profile ci
       # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
       - name: failed tests as annotations
@@ -142,10 +144,12 @@ jobs:
           tool: cargo-nextest@0.9.148
       - name: cargo build
         run: cargo build --workspace --locked
-      - name: cargo nextest
-        run: cargo nextest run --workspace --locked --profile ci
+      # The headless acceptance tests (about 2 min) run once per job, in the all-features run below: the filter
+      # is the rule of .config/nextest.toml and is kept equal to xtask's ACCEPTANCE_ONCE_FILTER by a test (FT-268).
+      - name: cargo nextest (without the acceptance tests)
+        run: cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance))'
       # Feature-gated code (for example ew-ids/testkit) is only compiled and tested with its feature on.
-      - name: cargo nextest (all features)
+      - name: cargo nextest (all features, with the acceptance tests)
         run: cargo nextest run --workspace --all-features --locked --profile ci
       # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
       - name: failed tests as annotations
@@ -198,10 +202,12 @@ jobs:
           tool: cargo-nextest@0.9.148
       - name: cargo build
         run: cargo build --workspace --locked
-      - name: cargo nextest
-        run: cargo nextest run --workspace --locked --profile ci
+      # The headless acceptance tests (about 2 min) run once per job, in the all-features run below: the filter
+      # is the rule of .config/nextest.toml and is kept equal to xtask's ACCEPTANCE_ONCE_FILTER by a test (FT-268).
+      - name: cargo nextest (without the acceptance tests)
+        run: cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance))'
       # Feature-gated code (for example ew-ids/testkit) is only compiled and tested with its feature on.
-      - name: cargo nextest (all features)
+      - name: cargo nextest (all features, with the acceptance tests)
         run: cargo nextest run --workspace --all-features --locked --profile ci
       # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
       - name: failed tests as annotations

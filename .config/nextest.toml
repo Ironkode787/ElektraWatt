@@ -7,6 +7,17 @@
 retries = 0
 fail-fast = false
 
+# The headless acceptance tests (crates/ew-api/tests/acceptance.rs: the report equality test, the derived-CSV test
+# and their helper tests; about 2 min per run) run ONCE per CI test job (FT-268, decision log ID-381). The rule:
+#   - the first nextest run of a job (default features) skips them with the filterset
+#       -E 'not (package(ew-api) and binary(acceptance))'
+#     (the constant ACCEPTANCE_ONCE_FILTER of xtask/src/main.rs; a test of xtask keeps it equal to the filter in
+#     .github/workflows/ci.yml and to the line above);
+#   - the all-features run (`--all-features`, a superset of the default run) runs everything, so they run there.
+# `cargo xtask ci` follows the same rule locally. A single crate is not affected: `cargo nextest run -p ew-api`
+# still runs the acceptance tests. `cargo xtask acceptance` runs the full gate (`gate`, the raster comparison)
+# on its own.
+
 # Used by the CI test jobs: same behaviour, plus a JUnit report at target/nextest/ci/junit.xml.
 [profile.ci]
 retries = 0
