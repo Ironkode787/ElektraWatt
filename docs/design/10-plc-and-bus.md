@@ -202,9 +202,12 @@ pub struct Channel {                     // shard of its module device; id = v5(
 
 **As built (cycle 18; decision log ID-464 to ID-468).** A channel's `kind` is instantiated part data: N1 restores the
 part's channel kind when the module's part changes (FT-276). Its `binding` is set by N2 (a valve coil, by the
-position map), N3 (a module pin, by `pin_of`) or `plc.bind_channel` (§3.3). The automatic designation still replaces
-only a literal `{n}` in the part's pattern; the full pattern language of §2.6 (`"X2:{n+1}"`) prints once one shared
-expander serves both (FT-318). The derivation finds a module's channels by their v5 IDs, while N1 keys them on
+position map), N3 (a module pin, by `pin_of`) or `plc.bind_channel` (§3.3). The automatic designation and `pin_of`
+expand the part's pattern with one shared function, `ew_derive::expand_pattern` (FT-318, cycle 21): every
+`{<expression in n>}` of §2.6 is expanded (`"X2:{n+1}"` prints `X2:1` for channel 0), and a pattern that does not
+expand (an unclosed `{`, a stray `}`, an expression that does not parse, one in `p`, an overflow) gives no
+designation and one derivation note per module, as it gives no pin and a notice in N3. The map language has no
+subtraction, so `{n-1}` does not parse. The derivation finds a module's channels by their v5 IDs, while N1 keys them on
 (module, number); a channels-by-module index makes both agree (FT-319).
 
 ### 2.5 Addresses and address profiles

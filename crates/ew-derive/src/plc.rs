@@ -50,6 +50,8 @@ use ew_schema::{
 };
 
 use crate::Q;
+use crate::note::DeriveNote;
+use crate::pattern::{PatternError, expand_pattern};
 use crate::query::{Policy, Query};
 
 // ---------------------------------------------------------------------------------------------------------
@@ -177,35 +179,25 @@ pub fn solenoid_channel(entry: &SolenoidChannel, p: u32) -> Option<u16> {
 }
 
 /// The pin designation a channel → pin map assigns to channel `number` (doc 10 §3.3, normaliser N3): the
-/// pattern with each `{<expression in n>}` expanded (`"X2:{n+1}"` → `X2:1` for channel 0), or the list
-/// entry at `number`. `None` for an unclosed or unparsable placeholder, an expression in `p`, an overflow,
-/// an index outside the list, an empty result or a form of a newer format.
+/// pattern expanded by [`expand_pattern`] (`"X2:{n+1}"` → `X2:1` for channel 0), or the list entry at
+/// `number`. `None` for a pattern that does not expand, an index outside the list, an empty result or a form
+/// of a newer format; [`pin_pattern_error`] gives the reason of the first.
 pub fn channel_pin(pin_of: &PinMap, number: u16) -> Option<String> {
     let out = match pin_of {
-        PinMap::Pattern(pattern) => {
-            let mut out = String::new();
-            let mut rest = pattern.as_str();
-            while let Some(open) = rest.find('{') {
-                out.push_str(&rest[..open]);
-                let tail = &rest[open + 1..];
-                let close = tail.find('}')?;
-                let expr = MapExpr::parse(&tail[..close])?;
-                if expr.var != MapVar::N {
-                    return None;
-                }
-                out.push_str(&expr.eval(u32::from(number))?.to_string());
-                rest = &tail[close + 1..];
-            }
-            if rest.contains('}') {
-                return None;
-            }
-            out.push_str(rest);
-            out
-        }
+        PinMap::Pattern(pattern) => expand_pattern(pattern, u32::from(number)).ok()?,
         PinMap::List(l) => l.get(usize::from(number))?.as_str().to_owned(),
         PinMap::Unknown(_) => return None,
     };
     (!out.is_empty()).then_some(out)
+}
+
+/// Why a channel → pin map gives no pin for channel `number`, when its pattern does not expand (for the notice
+/// of normaliser N3); `None` for the other reasons ([`channel_pin`]).
+pub fn pin_pattern_error(pin_of: &PinMap, number: u16) -> Option<PatternError> {
+    match pin_of {
+        PinMap::Pattern(pattern) => expand_pattern(pattern, u32::from(number)).err(),
+        _ => None,
+    }
 }
 
 /// The coil CP of solenoid `solenoid` in a function definition: its first CP (by index) whose designation is
@@ -913,17 +905,34 @@ impl Query for ChannelTexts {
     const POLICY: Policy = Policy::Memo;
 
     fn run(q: &Q, key: &Self::Key) -> Arc<Vec<(Id<Channel>, ChannelText)>> {
-        let pattern = module_part(q, *key).and_then(|(_, s)| s.channels.and_then(|c| c.designation));
+        let part = module_part(q, *key);
+        let pattern = part
+            .as_ref()
+            .and_then(|(_, s)| s.channels.as_ref().and_then(|c| c.designation.clone()));
         let targets = q.get::<ChannelTargets>(*key);
         let devices = q.devices();
+        // a pattern that does not expand gives no automatic designation, with one note per module (FT-318)
+        let mut noted = false;
         let out = module_channels(q, *key)
             .iter()
             .map(|c| {
-                let designation = c
-                    .designation
-                    .as_ref()
-                    .map(|d| d.as_str().to_owned())
-                    .or_else(|| pattern.as_ref().map(|p| p.replace("{n}", &c.number.to_string())));
+                let designation = c.designation.as_ref().map(|d| d.as_str().to_owned()).or_else(|| {
+                    let pattern = pattern.as_ref()?;
+                    match expand_pattern(pattern, u32::from(c.number)) {
+                        Ok(text) => (!text.is_empty()).then_some(text),
+                        Err(e) => {
+                            if !std::mem::replace(&mut noted, true) {
+                                q.note(DeriveNote::MalformedShim {
+                                    member: format!(
+                                        "the channel designation pattern `{pattern}` of the part of module {key}"
+                                    ),
+                                    detail: e.to_string(),
+                                });
+                            }
+                            None
+                        }
+                    }
+                });
                 let device = targets.iter().find(|t| t.channel == c.id).and_then(|t| t.device);
                 let own = device.and_then(|d| devices.get(d));
                 let driven = device

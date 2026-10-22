@@ -90,8 +90,10 @@ impl Normaliser for ModulePinBinding {
                 continue; // no physical pins: an internal channel (N2 binds valve coils)
             };
             let Some(pin) = ew_derive::channel_pin(&pin_of, c.number) else {
+                let why = ew_derive::pin_pattern_error(&pin_of, c.number)
+                    .map_or_else(String::new, |e| format!(" ({e})"));
                 tx.notice(format!(
-                    "channel {} of module {} stays unbound: its part's pin map gives no pin for it",
+                    "channel {} of module {} stays unbound: its part's pin map gives no pin for it{why}",
                     c.number, c.module
                 ));
                 continue;

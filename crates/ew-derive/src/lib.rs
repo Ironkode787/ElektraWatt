@@ -67,6 +67,7 @@ mod note;
 mod numbering;
 mod pages;
 mod part_text;
+mod pattern;
 mod plc;
 mod potentials;
 mod profile;
@@ -120,11 +121,12 @@ pub use pages::{
     SectionStructure, folio_label, map_ml, report_pages,
 };
 pub use part_text::{main_part, manufacturer_name, tech_data_text, unit_symbol};
+pub use pattern::{PatternError, expand_pattern};
 pub use plc::{
     ChannelAddr, ChannelAddrEntry, ChannelAddresses, ChannelStates, ChannelTarget, ChannelTargets,
     ChannelText, ChannelTexts, EffectiveState, ModuleOrder, ModuleStart, ModuleStarts, OrderedModule, PlcRow,
     PlcRows, Slot, SolenoidPositions, SolenoidSlot, Start, channel_pin, coil_cp_idx, driven_device, eval_map,
-    module_part, profile_of, solenoid_channel, station_of, stations,
+    module_part, pin_pattern_error, profile_of, solenoid_channel, station_of, stations,
 };
 pub use potentials::{
     Attr, AttrSource, BondLink, Component, NameSource, Partition, Potential, PotentialAttrs, PotentialId,

@@ -38,6 +38,11 @@ const PART: u128 = 0x600;
 const LINK: u128 = 0x700;
 
 fn fixture() -> Fx {
+    fixture_with_designation("{n}")
+}
+
+/// The fixture whose part prints its channel designations from `designation` (FT-318).
+fn fixture_with_designation(designation: &str) -> Fx {
     let mut fx = Fx::new();
     fx.page(PAGE, 203, None, "fluid", &[], "Valve Manifold 1");
     fx.fndef(
@@ -57,7 +62,7 @@ fn fixture() -> Fx {
             "sections": {"plc": {
                 "role": "module",
                 "io": [{"dir": "out", "bits": 8}],
-                "channels": {"count": 8, "kind": "do", "data_type": "Bool", "designation": "{n}"},
+                "channels": {"count": 8, "kind": "do", "data_type": "Bool", "designation": designation},
                 "bit_of": "n",
                 "unbound": "deactivated",
             }},
@@ -249,6 +254,60 @@ fn texts_track_the_driven_process_tag_and_keep_the_manual_function_text() {
     );
     assert_eq!(spare.process_tag, None);
     assert_eq!(t2[0].1.function_text, None);
+}
+
+/// FT-318: the automatic designation expands the whole pattern language of doc 10 §2.6, as `pin_of` does.
+#[test]
+fn the_designation_pattern_expands_every_placeholder_of_the_language() {
+    let designations = |pattern: &str| -> Vec<Option<String>> {
+        let m = fixture_with_designation(pattern).build();
+        let mut q = Q::new(&m);
+        let texts = q.get::<ChannelTexts>(id(M1));
+        assert!(
+            q.diagnostics().notes().is_empty(),
+            "`{pattern}`: no note for a good pattern"
+        );
+        texts.iter().map(|(_, t)| t.designation.clone()).collect()
+    };
+    let some = |v: &[&str]| -> Vec<Option<String>> { v.iter().map(|s| Some((*s).to_owned())).collect() };
+    assert_eq!(
+        designations("{n}"),
+        some(&["0", "1", "2", "3", "4", "5", "6", "7"])
+    );
+    assert_eq!(
+        designations("X2:{n+1}"),
+        some(&["X2:1", "X2:2", "X2:3", "X2:4", "X2:5", "X2:6", "X2:7", "X2:8"])
+    );
+    assert_eq!(designations("{2n+1}")[3], Some("7".to_owned()));
+    assert_eq!(designations("DO {n}.{n+1}")[2], Some("DO 2.3".to_owned()));
+    assert_eq!(designations("COM")[5], Some("COM".to_owned()));
+}
+
+/// FT-318: a pattern that does not expand gives no automatic designation and one note, never a panic; a
+/// manual designation is kept whatever the pattern.
+#[test]
+fn a_designation_pattern_that_does_not_expand_gives_no_designation_and_a_note() {
+    for pattern in ["X{n", "n}", "{n-1}", "{p}", "{}", "{x}"] {
+        let mut fx = fixture_with_designation(pattern);
+        // channel 2 of M1 has a manual designation, which the pattern does not touch
+        let manual = v5::plc_channel_id::<Device, ()>(id(M1), 2).as_uuid().as_u128();
+        fx.record(manual)["designation"] = json!("MANUAL");
+        let m = fx.build();
+        let mut q = Q::new(&m);
+        let texts = q.get::<ChannelTexts>(id(M1));
+        for (_, t) in texts.iter() {
+            let manual = t.designation.as_deref() == Some("MANUAL");
+            assert!(
+                manual || t.designation.is_none(),
+                "`{pattern}`: {:?}",
+                t.designation
+            );
+        }
+        assert_eq!(texts[2].1.designation.as_deref(), Some("MANUAL"));
+        let notes = q.diagnostics().notes();
+        assert_eq!(notes.len(), 1, "`{pattern}`: one note for the module: {notes:?}");
+        assert!(notes[0].to_string().contains(pattern), "{}", notes[0]);
+    }
 }
 
 #[test]

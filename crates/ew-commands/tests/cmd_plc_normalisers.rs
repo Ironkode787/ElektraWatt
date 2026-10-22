@@ -408,6 +408,8 @@ fn n3_reports_missing_held_and_unexpandable_pins() {
     let r = make_module(&mut e, BROKEN);
     assert!((0..4u16).all(|n| binding(&e, n).is_none()));
     assert!(has_notice(&r, "gives no pin"), "{:?}", r.outcome.notices);
+    // the notice names the reason the shared expander gives (FT-318)
+    assert!(has_notice(&r, "a `{` is not closed"), "{:?}", r.outcome.notices);
 }
 
 /// N3 binds only channels created in the transaction: an explicit unbinding of an old channel stays.
