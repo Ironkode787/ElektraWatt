@@ -1056,6 +1056,50 @@ fn apply_refuses_a_project_with_a_crashed_session_journal() {
     assert!(tree(&project) == before, "nothing is applied");
 }
 
+/// FT-336 (ruling 1): `ew project checks set` is the headless human path of the `HumanOnly` command
+/// `project.checks.set`: refused without `--confirm` (exit 1, nothing changed), written with it from the confirmed
+/// CLI origin; a scheme that does not ship is refused (exit 1) and a missing scheme is a usage error (exit 2).
+#[test]
+fn project_checks_set_needs_a_confirmation_and_writes_the_schemes() {
+    let t = Tmp::new();
+    let home = t.0.join("home");
+    let project = golden_copy(&t);
+    let before = tree(&project);
+    let set = |extra: &[&str]| {
+        let mut args: Vec<&std::ffi::OsStr> = vec![
+            "project".as_ref(),
+            "checks".as_ref(),
+            "set".as_ref(),
+            project.as_os_str(),
+        ];
+        args.extend(extra.iter().map(|a| std::ffi::OsStr::new(*a)));
+        ew_isolated(&home, &args)
+    };
+    let o = set(&["--release", "full"]);
+    assert_eq!(o.status.code(), Some(1), "{}{}", stdout(&o), stderr(&o));
+    assert!(stderr(&o).contains("decides check outcomes"), "{}", stderr(&o));
+    assert!(tree(&project) == before, "nothing is changed without --confirm");
+    let o = set(&["--release", "lenient", "--confirm"]);
+    assert_eq!(o.status.code(), Some(1), "{}{}", stdout(&o), stderr(&o));
+    assert!(
+        stderr(&o).contains("not a shipped check scheme"),
+        "{}",
+        stderr(&o)
+    );
+    let o = set(&["--confirm"]);
+    assert_eq!(o.status.code(), Some(2), "{}{}", stdout(&o), stderr(&o));
+    let o = set(&["--active", "drafting", "--release", "full", "--confirm"]);
+    assert_eq!(o.status.code(), Some(0), "{}{}", stdout(&o), stderr(&o));
+    let text = std::fs::read_to_string(project.join("project.jsonl")).unwrap();
+    assert!(
+        text.contains("\"checks\":{\"active_scheme\":\"drafting\",\"release_scheme\":\"full\"}"),
+        "{text}"
+    );
+    // The project stays consistent: the memoised derived values equal the cold ones.
+    let o = ew_isolated(&home, &["verify-derived".as_ref(), project.as_os_str()]);
+    assert_eq!(o.status.code(), Some(0), "{}{}", stdout(&o), stderr(&o));
+}
+
 /// The path of the `ew` binary under test. nextest sets `NEXTEST_BIN_EXE_ew` at run time (the binaries of a
 /// `--archive-file` run are unpacked elsewhere than the compile-time path, FT-353); a plain `cargo test` falls back
 /// to the compile-time path.

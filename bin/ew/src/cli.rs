@@ -26,6 +26,7 @@ pub const USAGE: &str = "usage:
   ew export pdf [<project-dir>] --out <file.pdf> [--pages <folios>] [--threads <n>]
   ew export svg [<project-dir>] --out <dir> [--pages <folios>] [--threads <n>]
   ew apply [<project-dir>] <file.ewcmd> [--preview] [--one-step]
+  ew project checks set [<project-dir>] [--active <scheme>] [--release <scheme>] --confirm
   ew verify-derived [<project-dir>]
   ew help | --help | -h
 
@@ -60,6 +61,12 @@ refused (exit 2) until they are recovered or discarded. Exit 0 when every line c
 domain rule refuses a line, 2 on everything else (usage, a malformed log, an unresolvable reference, a refused
 command, an open, lock or save error). Without `--one-step` the lines before a failing one are saved.
 
+`project checks set` names the project's check schemes (`project.checks.set`): `--active` the online scheme,
+`--release` the scheme of the release gate and `ew check`; a scheme not given returns to its default (`drafting`,
+`pre-delivery`). The check scheme decides check outcomes, so the command is human-only (ADR-0008 amendment 3): it
+runs only with `--confirm`, typed by a person, and is never accepted from a command log or a UI script. Exit 0 when
+written and saved, 1 without `--confirm` or when the command refuses a scheme, 2 on usage, open and save errors.
+
 `verify-derived` opens a project with the memo oracle on, recomputes every derived value cold and compares it with
 the memoised one: exit 0 with no difference, 1 with differences, 2 on usage and open errors.";
 
@@ -88,6 +95,21 @@ pub enum Command {
     ExportPages(ExportPagesArgs),
     /// Replay a command log.
     Apply(ApplyArgs),
+    /// Name the project's check schemes (`project checks set`, a human-only command).
+    ChecksSet(ChecksSetArgs),
+}
+
+/// The arguments of `ew project checks set`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ChecksSetArgs {
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// The online scheme (`--active`).
+    pub active: Option<String>,
+    /// The release scheme (`--release`).
+    pub release: Option<String>,
+    /// Whether a person confirmed it (`--confirm`).
+    pub confirm: bool,
 }
 
 /// The page format of `ew export pdf|svg`.
@@ -259,6 +281,10 @@ pub fn parse<I: IntoIterator<Item = String>>(args: I) -> Result<Command, String>
         "sql" => parse_sql(it),
         "export" => parse_export(it),
         "apply" => parse_apply(it),
+        "project" => match (it.next().as_deref(), it.next().as_deref()) {
+            (Some("checks"), Some("set")) => parse_checks_set(it),
+            _ => Err("`project` takes `checks set`".to_owned()),
+        },
         "verify-derived" => parse_verify(it),
         other => Err(format!("unknown command `{other}`")),
     }
@@ -467,6 +493,29 @@ fn parse_apply(it: impl Iterator<Item = String>) -> Result<Command, String> {
     }))
 }
 
+fn parse_checks_set(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
+    let mut args = ChecksSetArgs {
+        project: None,
+        active: None,
+        release: None,
+        confirm: false,
+    };
+    while let Some(a) = it.next() {
+        match a.as_str() {
+            "--active" => args.active = Some(value(&mut it, "--active")?),
+            "--release" => args.release = Some(value(&mut it, "--release")?),
+            "--confirm" => args.confirm = true,
+            opt if opt.starts_with('-') => return Err(format!("unknown option `{opt}`")),
+            _ if args.project.is_none() => args.project = Some(PathBuf::from(a)),
+            _ => return Err(format!("unexpected argument `{a}`")),
+        }
+    }
+    if args.active.is_none() && args.release.is_none() {
+        return Err("`project checks set` needs `--active <scheme>` or `--release <scheme>`".to_owned());
+    }
+    Ok(Command::ChecksSet(args))
+}
+
 fn parse_verify(mut it: impl Iterator<Item = String>) -> Result<Command, String> {
     let mut project = None;
     for a in it.by_ref() {
@@ -636,6 +685,7 @@ pub fn run(cmd: Command) -> i32 {
         Command::VerifyDerived(a) => run_verify_derived(&a),
         Command::ExportPages(a) => run_export_pages(&a),
         Command::Apply(a) => run_apply(&a),
+        Command::ChecksSet(a) => run_checks_set(&a),
         Command::SqlSchema => {
             print!("{}", ew_api::sql::schema::schema_text());
             0
@@ -968,41 +1018,14 @@ fn run_apply(a: &ApplyArgs) -> i32 {
     if a.preview {
         return run_apply_preview(&dir, &log, &file);
     }
-    let options = ew_api::SessionOptions {
-        origin: ew_api::Origin::Cli {
-            subcommand: "apply".to_owned(),
-            confirmed: false,
-        },
-        ..ew_api::SessionOptions::default()
+    let origin = ew_api::Origin::Cli {
+        subcommand: "apply".to_owned(),
+        confirmed: false,
     };
-    let store = ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION"));
-    let (mut session, opened) = match ew_api::Session::open(&dir, store, options, ew_api::Recovery::Keep) {
-        Ok(r) => r,
-        Err(e) => {
-            eprintln!("error: {}: {e}", dir.display());
-            return 2;
-        }
+    let mut session = match open_for_writing(&dir, origin) {
+        Ok(s) => s,
+        Err(code) => return code,
     };
-    if let ew_api::Access::ReadOnly(reason) = &opened.access {
-        eprintln!(
-            "error: {}: the project opens read-only ({reason:?})",
-            dir.display()
-        );
-        session.close();
-        return 2;
-    }
-    if opened.recovery.is_some() {
-        // A replay on top of a crashed session's unsaved changes would hide them behind a new save (doc 05 section
-        // 8.3): they are recovered or discarded first.
-        eprintln!(
-            "error: {}: a crashed session left unsaved changes in its journal; recover or discard them first: \
-             discard it in ElektraWatt (File > Discard unsaved changes of the earlier session) or wait for \
-             `ew recover` (FT-252); nothing was applied",
-            dir.display()
-        );
-        session.close();
-        return 2;
-    }
     let result = session.run_script(&log, &file);
     let (code, committed) = match &result {
         Ok(receipts) => (0, receipts.len()),
@@ -1030,6 +1053,122 @@ fn run_apply(a: &ApplyArgs) -> i32 {
             2
         }
     }
+}
+
+/// Opens the project in `dir` for writing with `origin`: refused (exit 2) when it opens read-only or a crashed
+/// session left unsaved changes in its journal, which a new save would hide (doc 05 section 8.3).
+fn open_for_writing(dir: &Path, origin: ew_api::Origin) -> Result<ew_api::Session, i32> {
+    let options = ew_api::SessionOptions {
+        origin,
+        ..ew_api::SessionOptions::default()
+    };
+    let store = ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION"));
+    let (session, opened) = match ew_api::Session::open(dir, store, options, ew_api::Recovery::Keep) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {}: {e}", dir.display());
+            return Err(2);
+        }
+    };
+    if let ew_api::Access::ReadOnly(reason) = &opened.access {
+        eprintln!(
+            "error: {}: the project opens read-only ({reason:?})",
+            dir.display()
+        );
+        session.close();
+        return Err(2);
+    }
+    if opened.recovery.is_some() {
+        eprintln!(
+            "error: {}: a crashed session left unsaved changes in its journal; recover or discard them first: \
+             discard it in ElektraWatt (File > Discard unsaved changes of the earlier session) or wait for \
+             `ew recover` (FT-252); nothing was applied",
+            dir.display()
+        );
+        session.close();
+        return Err(2);
+    }
+    Ok(session)
+}
+
+/// `ew project checks set`: `project.checks.set` from a confirmed CLI subcommand, the human origin the command's
+/// exposure class `HumanOnly` accepts (ADR-0008 amendment 3, FT-336); without `--confirm` nothing is opened.
+fn run_checks_set(a: &ChecksSetArgs) -> i32 {
+    if !a.confirm {
+        eprintln!(
+            "error: the check scheme decides check outcomes (which rules the release gate runs), so a person \
+             confirms it: run again with `--confirm`; nothing was changed"
+        );
+        return 1;
+    }
+    let Some(dir) = project_dir(a.project.as_ref()) else {
+        return 2;
+    };
+    let origin = ew_api::Origin::Cli {
+        subcommand: "project checks set".to_owned(),
+        confirmed: true,
+    };
+    let mut session = match open_for_writing(&dir, origin) {
+        Ok(s) => s,
+        Err(code) => return code,
+    };
+    // The command line as one line of a command log (doc 17 section 3.5), read by the parser `ew apply` uses; it runs
+    // with the session's confirmed CLI origin, not as a replayed log.
+    let mut members = Vec::new();
+    if let Some(s) = &a.active {
+        members.push(format!("\"active_scheme\":{}", json_string(s)));
+    }
+    if let Some(s) = &a.release {
+        members.push(format!("\"release_scheme\":{}", json_string(s)));
+    }
+    let text = format!(
+        "{{\"$schema\":\"{}\"}}\n{{\"cmd\":\"project.checks.set\",\"params\":{{{}}}}}\n",
+        ew_api::CMDLOG_SCHEMA,
+        members.join(",")
+    );
+    let log = match CmdLog::parse(&text) {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("error: {e}");
+            session.close();
+            return 2;
+        }
+    };
+    for cmd in log.commands() {
+        if let Err(e) = session.execute(cmd) {
+            eprintln!("error: {e}");
+            session.close();
+            return 1;
+        }
+    }
+    let code = match session.save() {
+        Ok(_) => {
+            println!("check schemes set; saved");
+            0
+        }
+        Err(e) => {
+            eprintln!("error: the save failed: {e:?}");
+            2
+        }
+    };
+    session.close();
+    code
+}
+
+/// `text` as a JSON string literal.
+fn json_string(text: &str) -> String {
+    let mut out = String::with_capacity(text.len() + 2);
+    out.push('"');
+    for c in text.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            c if u32::from(c) < 0x20 => out.push_str(&format!("\\u{:04x}", u32::from(c))),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
 }
 
 /// `ew apply --preview`: the replay on a read-only session (no lock, no journal, never saved), then the changes.
