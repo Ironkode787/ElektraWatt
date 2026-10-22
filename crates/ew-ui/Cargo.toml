@@ -5,7 +5,7 @@
 name = "ew-ui"
 version.workspace = true
 edition.workspace = true
-rust-version = "1.92"
+rust-version = "1.95"
 license = "GPL-3.0-or-later"
 description = "egui widgets, canvas host, tools, command palette, keymaps and the action registry."
 repository.workspace = true

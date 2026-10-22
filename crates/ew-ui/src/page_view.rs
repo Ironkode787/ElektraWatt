@@ -6,7 +6,7 @@
 //!
 //! 1. On the UI thread, [`ShellModel::page_content`] gives the page's sheet display list through the session's memo
 //!    store (the `Session` is not `Send`).
-//! 2. A worker thread runs [`render_page`] and sends the image back over a channel, tagged with
+//! 2. One worker thread (a latest-request-wins slot, so a held Page Down key does not stack renders) runs [`render_page`] and sends the image back over a channel, tagged with
 //!    `(revision, folio, dpi)`. The UI uploads it as a texture; a result whose tag no longer matches is dropped.
 //! 3. The display dpi is the largest multiple of 12 between 36 and 200 at which the sheet fits the pane at the
 //!    current `pixels_per_point`, so a resize re-rasters only when it crosses a step.
@@ -22,6 +22,8 @@ use ew_render_cpu::{RenderOptions, RgbaImage, SheetSize, pixel_size, render};
 use ew_viewmodel::ew_api::output::{ExportPages, font_bytes};
 use ew_viewmodel::shell::ShellModel;
 use ew_viewmodel::strings;
+
+use crate::latest::LatestWorker;
 
 /// The dpi steps of the page view: multiples of 12 from 36 to 192 (the largest multiple of 12 below 200).
 const DPI_MIN: u32 = 36;
@@ -81,6 +83,13 @@ struct Tag {
     dpi: u32,
 }
 
+/// A render for the worker.
+struct Request {
+    tag: Tag,
+    pages: Arc<ExportPages>,
+    ctx: egui::Context,
+}
+
 struct Done {
     tag: Tag,
     image: Result<RgbaImage, String>,
@@ -96,6 +105,8 @@ struct Content {
 pub struct PageView {
     tx: Sender<Done>,
     rx: Receiver<Done>,
+    /// The one render worker (started with the first request): a request replaces one still waiting.
+    worker: Option<LatestWorker<Request>>,
     content: Option<Content>,
     failed: Option<(u64, String, String)>,
     requested: Option<Tag>,
@@ -116,6 +127,7 @@ impl PageView {
         PageView {
             tx,
             rx,
+            worker: None,
             content: None,
             failed: None,
             requested: None,
@@ -209,14 +221,23 @@ impl PageView {
         }
     }
 
-    fn spawn(&self, ctx: &egui::Context, tag: Tag, pages: Arc<ExportPages>) {
+    fn spawn(&mut self, ctx: &egui::Context, tag: Tag, pages: Arc<ExportPages>) {
         let tx = self.tx.clone();
-        let ctx = ctx.clone();
-        std::thread::spawn(move || {
-            let image = render_page(&pages, tag.dpi);
-            // The receiver is gone when the window closed; nothing to do then.
-            let _ = tx.send(Done { tag, image });
-            ctx.request_repaint();
+        let worker = self.worker.get_or_insert_with(|| {
+            LatestWorker::new(move |request: Request| {
+                let image = render_page(&request.pages, request.tag.dpi);
+                // The receiver is gone when the window closed; nothing to do then.
+                let _ = tx.send(Done {
+                    tag: request.tag,
+                    image,
+                });
+                request.ctx.request_repaint();
+            })
+        });
+        worker.submit(Request {
+            tag,
+            pages,
+            ctx: ctx.clone(),
         });
     }
 

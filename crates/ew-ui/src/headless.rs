@@ -36,6 +36,9 @@ pub struct HeadlessArgs {
     pub script: ScriptSource,
     /// `--record <file.ewcmd>`: where to write the committed `command.run` steps as a command log.
     pub record: Option<PathBuf>,
+    /// `--config-dir <dir>`: the settings directory of the run. Without it (and without `EW_CONFIG_DIR`) the run has
+    /// none: it neither reads nor writes the user's settings and recent projects.
+    pub config_dir: Option<PathBuf>,
 }
 
 /// `view.snapshot`: the current page as a PNG at the given dpi through the page view's render path.
@@ -86,12 +89,15 @@ fn snapshot(shell: &ShellModel, params: &Value) -> Outcome {
 /// Runs the headless mode and returns the process exit code. The transcript goes to `out` (one flushed line per
 /// step), diagnostics to `err`.
 pub fn run(
-    config: ShellConfig,
+    mut config: ShellConfig,
     args: &HeadlessArgs,
     stdin: &mut dyn BufRead,
     out: &mut dyn Write,
     err: &mut dyn Write,
 ) -> i32 {
+    if let Some(dir) = &args.config_dir {
+        config = ShellConfig::in_dir(dir, &config.app_version);
+    }
     let mut shell = ShellModel::new(Mode::Headless, config);
     let mut sink = |line: &str| -> io::Result<()> {
         out.write_all(line.as_bytes())?;
@@ -137,6 +143,13 @@ pub fn run(
     if let RunEnd::Usage(e) = &end {
         let _ = writeln!(err, "error: {e}");
     }
+    // A script that ends with unsaved changes did not say what to do with them: exit 1, and the journal is kept
+    // (`shutdown` deletes it only for a clean project). `app.quit` with `discard` ends such a script cleanly.
+    let mut code = end.exit_code();
+    if matches!(end, RunEnd::Completed { .. }) && shell.is_dirty() {
+        let _ = writeln!(err, "error: {}", strings::text("error-unsaved-at-end"));
+        code = 1;
+    }
     if let Some(path) = &args.record
         && let Err(e) = std::fs::write(path, script::record_log(&shell))
     {
@@ -145,7 +158,7 @@ pub fn run(
         return 2;
     }
     shell.shutdown();
-    end.exit_code()
+    code
 }
 
 /// `elektrawatt --smoke <project-dir>` (architecture section 10.1): opens the project read-only, renders its first

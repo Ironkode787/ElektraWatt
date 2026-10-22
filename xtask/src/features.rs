@@ -21,6 +21,10 @@
 //! "Reaches" is followed transitively over the workspace feature graph whose nodes are `(package, feature)`
 //! pairs; a violation prints the chain of hops down to the banned feature.
 //!
+//! `[[required_features]]` is the opposite rule over the resolved graph: a feature that must stay enabled when
+//! its crate is in the build (`wgpu-hal/gles`, which gives `wayland-sys` its `dlopen`), so that no build script
+//! probes `pkg-config` for a system library.
+//!
 //! Building the list of packages from `cargo metadata` is separate from checking it, so the unit tests can
 //! feed synthetic graphs with seeded violations.
 
@@ -44,6 +48,69 @@ pub struct BannedFeature {
     /// Workspace packages that may enable the feature on a dependency edge of any kind.
     #[serde(default)]
     pub allowed_packages: Vec<String>,
+}
+
+/// A feature that must stay enabled somewhere in the resolved dependency graph whenever the crate is in it.
+///
+/// For a feature that keeps the build free of a system library: without `wgpu-hal/gles`, `wayland-sys` loses
+/// its `dlopen` feature and its build script probes `pkg-config` for libwayland (WP-S2.01 spec section 4,
+/// rule 5: no system package on any CI image).
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RequiredFeature {
+    /// The crate that owns the feature.
+    #[serde(rename = "crate")]
+    pub krate: String,
+    /// The feature that must be enabled.
+    pub feature: String,
+    /// Why, in one line (printed with the violation).
+    pub reason: String,
+}
+
+/// A package of the resolved graph with the features cargo enabled on it (unified over all targets).
+#[derive(Debug, Clone)]
+pub struct Resolved {
+    /// Package name.
+    pub name: String,
+    /// The enabled features.
+    pub features: Vec<String>,
+}
+
+/// The resolved packages of `cargo metadata` output (empty without a resolve).
+pub fn resolved_from_metadata(metadata: &cargo_metadata::Metadata) -> Vec<Resolved> {
+    let Some(resolve) = &metadata.resolve else {
+        return Vec::new();
+    };
+    resolve
+        .nodes
+        .iter()
+        .filter_map(|n| {
+            let p = metadata.packages.iter().find(|p| p.id == n.id)?;
+            Some(Resolved {
+                name: p.name.to_string(),
+                features: n.features.iter().map(ToString::to_string).collect(),
+            })
+        })
+        .collect()
+}
+
+/// The violations of the required features: a crate of the graph that lacks one. A crate that is not in the
+/// graph at all is not a violation (the rule only guards builds that contain it).
+pub fn check_required(required: &[RequiredFeature], resolved: &[Resolved]) -> Vec<String> {
+    let mut v = Vec::new();
+    for r in required {
+        for p in resolved.iter().filter(|p| p.name == r.krate) {
+            if !p.features.contains(&r.feature) {
+                v.push(format!(
+                    "required feature: `{}` is in the build without its feature `{}`: {}",
+                    r.krate, r.feature, r.reason
+                ));
+            }
+        }
+    }
+    v.sort();
+    v.dedup();
+    v
 }
 
 /// The policy of the check, borrowed from `ci/dep-rules.toml`.
@@ -706,5 +773,62 @@ mod tests {
             );
             assert!(dev.is_empty(), "{krate}/{feature}: {dev:#?}");
         }
+    }
+
+    fn resolved(name: &str, features: &[&str]) -> Resolved {
+        Resolved {
+            name: name.to_owned(),
+            features: features.iter().map(|f| (*f).to_owned()).collect(),
+        }
+    }
+
+    fn required(krate: &str, feature: &str) -> RequiredFeature {
+        RequiredFeature {
+            krate: krate.to_owned(),
+            feature: feature.to_owned(),
+            reason: "no pkg-config".to_owned(),
+        }
+    }
+
+    #[test]
+    fn a_required_feature_must_be_on_when_the_crate_is_in_the_graph() {
+        let rules = [required("wayland-sys", "dlopen")];
+        assert!(check_required(&rules, &[resolved("wayland-sys", &["client", "dlopen"])]).is_empty());
+        // The crate is not in the graph: nothing to guard.
+        assert!(check_required(&rules, &[resolved("other", &[])]).is_empty());
+        let v = check_required(&rules, &[resolved("wayland-sys", &["client"])]);
+        assert_eq!(v.len(), 1, "{v:#?}");
+        assert!(
+            v[0].contains("`wayland-sys`") && v[0].contains("`dlopen`") && v[0].contains("no pkg-config")
+        );
+    }
+
+    /// The real policy keeps `wgpu-hal/gles` and `wayland-sys/dlopen` on in the real graph, and fails when they go.
+    #[test]
+    fn the_real_graph_keeps_the_gles_and_dlopen_features() {
+        let root = crate::workspace_root();
+        let policy = crate::deps::Policy::load(&root.join("ci/dep-rules.toml")).expect("policy loads");
+        for (krate, feature) in [("wgpu-hal", "gles"), ("wayland-sys", "dlopen")] {
+            assert!(
+                policy
+                    .required_features
+                    .iter()
+                    .any(|r| r.krate == krate && r.feature == feature),
+                "{krate}/{feature} is required by the policy"
+            );
+        }
+        let mut graph = resolved_from_metadata(&crate::metadata().expect("cargo metadata runs"));
+        assert!(
+            graph.iter().any(|p| p.name == "wayland-sys"),
+            "the UI build contains wayland-sys"
+        );
+        assert_eq!(
+            check_required(&policy.required_features, &graph),
+            Vec::<String>::new()
+        );
+        for p in graph.iter_mut().filter(|p| p.name == "wgpu-hal") {
+            p.features.retain(|f| f != "gles");
+        }
+        assert_eq!(check_required(&policy.required_features, &graph).len(), 1);
     }
 }

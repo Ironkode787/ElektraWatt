@@ -18,6 +18,7 @@ pub mod app;
 pub mod fonts;
 pub mod headless;
 pub mod keys;
+mod latest;
 mod menu;
 pub mod page_view;
 mod palette;

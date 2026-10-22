@@ -35,6 +35,9 @@ pub struct Policy {
     /// Features that may only be enabled on the listed dependency kinds (`cargo xtask check-features`).
     #[serde(default)]
     pub banned_features: Vec<crate::features::BannedFeature>,
+    /// Features that must stay enabled when their crate is in the build (`cargo xtask check-features`).
+    #[serde(default)]
+    pub required_features: Vec<crate::features::RequiredFeature>,
     /// Crates that may only be dev-dependencies (`cargo xtask check-features`).
     #[serde(default)]
     pub banned_crates: Vec<String>,

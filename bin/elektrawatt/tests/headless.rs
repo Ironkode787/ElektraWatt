@@ -405,11 +405,13 @@ fn unsaved_changes_need_discard_in_a_script() {
     let lines = transcript(&out);
     assert_eq!(lines[3]["outcome"], "failed");
     assert!(lines[3]["message"].as_str().unwrap().contains("discard"));
+    // The first run kept its journal for `dir`; a fresh copy shows the discard path.
+    let fresh = tmp.golden("g2");
     let out = run_script_file(
         &tmp,
         "discard.jsonl",
         &script(&[
-            ("file.open", json!({"dir": dir.to_string_lossy()})),
+            ("file.open", json!({"dir": fresh.to_string_lossy()})),
             ("command.run", edit),
             ("edit.undo", json!({})),
             ("file.close", json!({"discard": true})),
@@ -452,4 +454,115 @@ fn version_and_help_work() {
     let out = elektrawatt(&tmp, &["--help".as_ref()]);
     assert_eq!(out.status.code(), Some(0));
     assert!(String::from_utf8_lossy(&out.stdout).contains("--headless"));
+}
+
+/// Review ruling 6 (data loss): a script that ends with unsaved changes exits 1 and keeps their journal; the next
+/// open offers it. `app.quit` with `discard` ends a script that edits cleanly.
+#[test]
+fn a_script_that_ends_dirty_exits_one_and_keeps_the_journal() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g");
+    let edit = json!({"cmd": "page.create", "params": {"number": 994}});
+    let out = run_script_file(
+        &tmp,
+        "dirty-end.jsonl",
+        &script(&[
+            ("file.open", json!({"dir": dir.to_string_lossy()})),
+            ("command.run", edit.clone()),
+        ]),
+        &[],
+    );
+    assert_eq!(out.status.code(), Some(1), "{}", stderr(&out));
+    assert!(stderr(&out).contains("unsaved changes"), "{}", stderr(&out));
+    // Every step itself was done: the exit code is about the end of the run.
+    assert!(transcript(&out)[1..].iter().all(|s| s["outcome"] == "done"));
+
+    // The journal is there: the next run opens the project read-only with the recovery banner.
+    let out = run_script_file(
+        &tmp,
+        "after.jsonl",
+        &script(&[("file.open", json!({"dir": dir.to_string_lossy()}))]),
+        &[],
+    );
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+    let lines = transcript(&out);
+    assert_eq!(lines[1]["state"]["access"], "read-only");
+    assert!(
+        lines[1]["state"]["banner"]
+            .as_str()
+            .unwrap()
+            .contains("unsaved changes")
+    );
+
+    // A fresh copy: the explicit discard ends cleanly and leaves no journal.
+    let dir2 = tmp.golden("h");
+    let out = run_script_file(
+        &tmp,
+        "quit.jsonl",
+        &script(&[
+            ("file.open", json!({"dir": dir2.to_string_lossy()})),
+            ("command.run", edit),
+            ("app.quit", json!({"discard": true})),
+            ("help.about", json!({})),
+        ]),
+        &[],
+    );
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+    assert_eq!(
+        transcript(&out).len(),
+        4,
+        "the header and three steps: quit ends the script"
+    );
+    let out = run_script_file(
+        &tmp,
+        "after2.jsonl",
+        &script(&[("file.open", json!({"dir": dir2.to_string_lossy()}))]),
+        &[],
+    );
+    assert_eq!(transcript(&out)[1]["state"]["access"], "edit");
+}
+
+/// Review ruling 7: without `EW_CONFIG_DIR` a headless run has no settings directory of its own choosing: it
+/// neither reads nor writes the user's, and `--config-dir` names one.
+#[test]
+fn a_headless_run_leaves_the_users_settings_alone() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g");
+    let home = tmp.path("home");
+    std::fs::create_dir_all(&home).unwrap();
+    let text = script(&[
+        ("file.open", json!({"dir": dir.to_string_lossy()})),
+        ("file.close", json!({})),
+    ]);
+    let file = tmp.path("s.jsonl");
+    std::fs::write(&file, &text).unwrap();
+    let run = |extra: &[&std::ffi::OsStr]| {
+        Command::new(env!("CARGO_BIN_EXE_elektrawatt"))
+            .args(["--headless", "--script"])
+            .arg(&file)
+            .args(extra)
+            .env_remove("EW_CONFIG_DIR")
+            .env("HOME", &home)
+            .env("APPDATA", &home)
+            .env("LOCALAPPDATA", &home)
+            .env("XDG_CONFIG_HOME", &home)
+            .env("XDG_STATE_HOME", &home)
+            .stdin(Stdio::null())
+            .output()
+            .unwrap()
+    };
+    let out = run(&[]);
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+    assert!(
+        listing(&home).is_empty(),
+        "nothing was written to the user's directories"
+    );
+
+    // `--config-dir` names a directory for the run.
+    let config = tmp.path("chosen");
+    let out = run(&["--config-dir".as_ref(), config.as_os_str()]);
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+    let settings = std::fs::read_to_string(config.join("settings.toml")).unwrap();
+    assert!(settings.contains("recent_projects"), "{settings}");
+    assert!(listing(&home).is_empty());
 }

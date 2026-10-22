@@ -6,7 +6,7 @@
 //!
 //! ```text
 //! elektrawatt [<project-dir>]                          the window; the project opens after the first frame
-//! elektrawatt --headless --script <file|-> [--record <file.ewcmd>]
+//! elektrawatt --headless --script <file|-> [--record <file.ewcmd>] [--config-dir <dir>]
 //!                                                      the same actions from a UI script, no window, no GPU
 //! elektrawatt --smoke <project-dir>                    opens read-only, draws page 1 at 36 dpi, exits
 //! ```
@@ -20,7 +20,8 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use eframe::egui;
-use ew_ui::app::{App, Platform, setup};
+use ew_ui::app::{App, Pick, Platform, setup};
+use ew_ui::ew_viewmodel::settings::env_path;
 use ew_ui::ew_viewmodel::shell::{Mode, Prompt, ShellConfig, ShellModel};
 use ew_ui::ew_viewmodel::strings;
 use ew_ui::headless::{self, HeadlessArgs, ScriptSource};
@@ -43,7 +44,7 @@ enum Cli {
 }
 
 const USAGE: &str = "usage: elektrawatt [<project-dir>]\n\
-       elektrawatt --headless --script <file|-> [--record <file.ewcmd>]\n\
+       elektrawatt --headless --script <file|-> [--record <file.ewcmd>] [--config-dir <dir>]\n\
        elektrawatt --smoke <project-dir>\n\
        elektrawatt --version | --help";
 
@@ -52,6 +53,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
     let mut headless = false;
     let mut script: Option<ScriptSource> = None;
     let mut record: Option<PathBuf> = None;
+    let mut config_dir: Option<PathBuf> = None;
     let mut smoke: Option<PathBuf> = None;
     let mut project: Option<PathBuf> = None;
     while let Some(arg) = args.next() {
@@ -70,6 +72,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
                 });
             }
             "--record" => record = Some(PathBuf::from(value("--record")?)),
+            "--config-dir" => config_dir = Some(PathBuf::from(value("--config-dir")?)),
             "--smoke" => smoke = Some(PathBuf::from(value("--smoke")?)),
             flag if flag.starts_with("--") => return Err(format!("unknown option {flag}")),
             _ => {
@@ -80,11 +83,16 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
         }
     }
     match (headless, script, smoke) {
-        (true, Some(script), None) if project.is_none() => Ok(Cli::Headless(HeadlessArgs { script, record })),
+        (true, Some(script), None) if project.is_none() => Ok(Cli::Headless(HeadlessArgs {
+            script,
+            record,
+            config_dir,
+        })),
         (true, None, _) => Err("--headless needs --script <file|->".to_owned()),
         (true, _, _) => Err("--headless takes a script and no project or --smoke".to_owned()),
         (false, Some(_), _) => Err("--script needs --headless".to_owned()),
         (false, None, _) if record.is_some() => Err("--record needs --headless".to_owned()),
+        (false, None, _) if config_dir.is_some() => Err("--config-dir needs --headless".to_owned()),
         (false, None, Some(dir)) if project.is_none() => Ok(Cli::Smoke(dir)),
         (false, None, Some(_)) => Err("--smoke takes one directory".to_owned()),
         (false, None, None) => Ok(Cli::Gui(project)),
@@ -94,9 +102,20 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
 /// The file dialogs of the operating system through `rfd`.
 struct RfdPlatform;
 
+/// Whether a session bus is there for the xdg desktop portal, which `rfd` talks to on Linux: the address in the
+/// environment, or the bus socket in the runtime directory. Without one `rfd` returns nothing, silently.
+fn session_bus_present(address: Option<PathBuf>, runtime_dir: Option<PathBuf>) -> bool {
+    address.is_some() || runtime_dir.is_some_and(|d| d.join("bus").exists())
+}
+
 impl Platform for RfdPlatform {
-    fn pick(&mut self, prompt: Prompt) -> Option<PathBuf> {
-        match prompt {
+    fn pick(&mut self, prompt: Prompt) -> Pick {
+        if cfg!(target_os = "linux")
+            && !session_bus_present(env_path("DBUS_SESSION_BUS_ADDRESS"), env_path("XDG_RUNTIME_DIR"))
+        {
+            return Pick::Unavailable;
+        }
+        let picked = match prompt {
             Prompt::OpenFolder => rfd::FileDialog::new()
                 .set_title(strings::text("prompt-open-title"))
                 .pick_folder(),
@@ -108,7 +127,8 @@ impl Platform for RfdPlatform {
                 .set_file_name(strings::text("prompt-pdf-name"))
                 .add_filter("PDF", &["pdf"])
                 .save_file(),
-        }
+        };
+        picked.map_or(Pick::Cancelled, Pick::Path)
     }
 }
 
@@ -182,7 +202,7 @@ fn main() {
         Ok(Cli::Headless(args)) => {
             let stdin = std::io::stdin();
             headless::run(
-                ShellConfig::from_env(VERSION),
+                ShellConfig::isolated_from_env(VERSION),
                 &args,
                 &mut stdin.lock(),
                 &mut std::io::stdout(),
@@ -213,16 +233,27 @@ mod tests {
             parse(&["--headless", "--script", "s.jsonl"]),
             Ok(Cli::Headless(HeadlessArgs {
                 script: ScriptSource::File(PathBuf::from("s.jsonl")),
-                record: None
+                record: None,
+                config_dir: None
             }))
         );
         assert_eq!(
             parse(&["--headless", "--script", "-", "--record", "r.ewcmd"]),
             Ok(Cli::Headless(HeadlessArgs {
                 script: ScriptSource::Stdin,
-                record: Some(PathBuf::from("r.ewcmd"))
+                record: Some(PathBuf::from("r.ewcmd")),
+                config_dir: None
             }))
         );
+        assert_eq!(
+            parse(&["--headless", "--script", "s", "--config-dir", "c"]),
+            Ok(Cli::Headless(HeadlessArgs {
+                script: ScriptSource::File(PathBuf::from("s")),
+                record: None,
+                config_dir: Some(PathBuf::from("c"))
+            }))
+        );
+        assert!(parse(&["--config-dir", "c"]).is_err());
         assert!(parse(&["--headless"]).is_err());
         assert!(parse(&["--script", "s"]).is_err());
         assert!(parse(&["--record", "r"]).is_err());
@@ -237,5 +268,17 @@ mod tests {
         assert_eq!(parse(&["--help"]), Ok(Cli::Help));
         assert!(parse(&["--nonsense"]).is_err());
         assert!(parse(&["a", "b"]).is_err());
+    }
+
+    #[test]
+    fn the_portal_needs_a_session_bus() {
+        assert!(session_bus_present(Some(PathBuf::from("unix:path=/x")), None));
+        assert!(!session_bus_present(None, None));
+        let dir = std::env::temp_dir().join(format!("ew-bus-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        assert!(!session_bus_present(None, Some(dir.clone())));
+        std::fs::write(dir.join("bus"), b"").unwrap();
+        assert!(session_bus_present(None, Some(dir.clone())));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

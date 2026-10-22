@@ -504,3 +504,172 @@ fn command_run_refuses_what_a_script_may_not_run() {
     assert!(shell.recorded_commands().is_empty());
     shell.shutdown();
 }
+
+fn recorded(shell: &ShellModel) -> Vec<(String, Value)> {
+    shell
+        .recorded_commands()
+        .iter()
+        .map(|c| (c.cmd.clone(), c.params.clone()))
+        .collect()
+}
+
+/// Review ruling 1: a step discarded by Open (or Open recent) leaves the record, so a reopen of the same
+/// directory does not put it into `--record` (spec section 6.4).
+#[test]
+fn a_discarded_step_leaves_the_record_when_the_directory_is_reopened() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    open(&mut shell, &dir);
+    let run = json!({"cmd": "page.create", "params": {"number": 990}});
+    assert_eq!(shell.dispatch("command.run", &run), Outcome::Done);
+    assert_eq!(recorded(&shell).len(), 1);
+    // Open over the dirty project needs `discard`, in a script.
+    assert!(matches!(
+        shell.dispatch("file.open", &json!({"dir": dir.to_string_lossy()})),
+        Outcome::Failed { .. }
+    ));
+    assert_eq!(
+        shell.dispatch(
+            "file.open",
+            &json!({"dir": dir.to_string_lossy(), "discard": true})
+        ),
+        Outcome::Done
+    );
+    assert!(recorded(&shell).is_empty(), "the discarded step is not recorded");
+    assert!(!shell.page_labels().iter().any(|l| l == "990"));
+
+    // The same through Open recent.
+    shell.dispatch("command.run", &run);
+    assert_eq!(
+        shell.dispatch("file.open_recent", &json!({"index": 0, "discard": true})),
+        Outcome::Done
+    );
+    assert!(recorded(&shell).is_empty());
+    shell.shutdown();
+}
+
+/// Review ruling 1: what is undone past a save is not what the disk holds; the record keeps the steps as saved.
+#[test]
+fn undo_past_a_save_does_not_lose_the_saved_steps_from_the_record() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    open(&mut shell, &dir);
+    let a = json!({"cmd": "page.create", "params": {"number": 991}});
+    let b = json!({"cmd": "page.create", "params": {"number": 992}});
+    shell.dispatch("command.run", &a);
+    shell.dispatch("file.save", &Value::Null);
+    shell.dispatch("command.run", &b);
+    assert_eq!(recorded(&shell).len(), 2);
+    // Undo both: one is past the save.
+    shell.dispatch("edit.undo", &Value::Null);
+    shell.dispatch("edit.undo", &Value::Null);
+    assert!(recorded(&shell).is_empty());
+    // Discarding the close and reopening: the disk holds step a, and the record says so.
+    assert_eq!(
+        shell.dispatch("file.close", &json!({"discard": true})),
+        Outcome::Done
+    );
+    assert_eq!(
+        recorded(&shell),
+        [("page.create".to_owned(), json!({"number": 991}))]
+    );
+    open(&mut shell, &dir);
+    assert!(shell.page_labels().iter().any(|l| l == "991"));
+    assert!(!shell.page_labels().iter().any(|l| l == "992"));
+    assert_eq!(recorded(&shell).len(), 1);
+    shell.shutdown();
+}
+
+/// Review ruling 4: a recent entry goes only when its path is gone.
+#[test]
+fn a_recent_entry_stays_when_the_open_fails_for_another_reason() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    open(&mut shell, &dir);
+    shell.dispatch("file.close", &json!({}));
+    // The directory is there but no longer holds a project.
+    std::fs::remove_dir_all(&dir).unwrap();
+    std::fs::create_dir_all(&dir).unwrap();
+    assert!(matches!(
+        shell.dispatch("file.open_recent", &json!({"index": 0})),
+        Outcome::Failed { .. }
+    ));
+    assert_eq!(shell.recent_names(), ["g.ew"], "the entry stays");
+    assert!(
+        shell.banner().is_some_and(|b| b.contains("Cannot open g.ew")),
+        "{:?}",
+        shell.banner()
+    );
+    std::fs::remove_dir_all(&dir).unwrap();
+    assert!(matches!(
+        shell.dispatch("file.open_recent", &json!({"index": 0})),
+        Outcome::Failed { .. }
+    ));
+    assert!(
+        shell.recent_names().is_empty(),
+        "the path is gone: the entry goes"
+    );
+}
+
+/// Review ruling 6 (data loss): any exit while the project is dirty keeps the journal; a clean exit and an
+/// explicit Discard remove it.
+#[test]
+fn the_journal_survives_a_shutdown_while_the_project_is_dirty() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let run = json!({"cmd": "page.create", "params": {"number": 993}});
+
+    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    open(&mut shell, &dir);
+    shell.dispatch("command.run", &run);
+    shell.shutdown();
+    // The next open finds the journal: read-only with the recovery banner.
+    let mut again = ShellModel::new(Mode::Headless, tmp.config());
+    assert_eq!(open(&mut again, &dir), Outcome::Done);
+    assert!(matches!(again.access(), Some(AccessMode::ReadOnly { .. })));
+    assert!(
+        again.banner().is_some_and(|b| b.contains("unsaved changes")),
+        "{:?}",
+        again.banner()
+    );
+    again.shutdown();
+    // Opening read-only left the journal alone: it is still offered.
+    let mut third = ShellModel::new(Mode::Headless, tmp.config());
+    open(&mut third, &dir);
+    assert!(matches!(third.access(), Some(AccessMode::ReadOnly { .. })));
+    third.shutdown();
+
+    // An explicit Discard is the user's choice: the journal goes (a fresh copy, so nothing is left over).
+    let dir2 = tmp.golden("h.ew");
+    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    open(&mut shell, &dir2);
+    shell.dispatch("command.run", &run);
+    assert_eq!(
+        shell.dispatch("file.close", &json!({"discard": true})),
+        Outcome::Done
+    );
+    let mut after = ShellModel::new(Mode::Headless, tmp.config());
+    open(&mut after, &dir2);
+    assert_eq!(after.access(), Some(AccessMode::Edit), "no journal after Discard");
+    // A clean shutdown removes the journal too: nothing is left to recover.
+    after.shutdown();
+    let mut clean = ShellModel::new(Mode::Headless, tmp.config());
+    open(&mut clean, &dir2);
+    assert_eq!(clean.access(), Some(AccessMode::Edit));
+    clean.shutdown();
+}
+
+/// Review ruling 9: Escape closes a popup or dialog and otherwise does nothing; the banner has a button.
+#[test]
+fn escape_leaves_the_banner_alone() {
+    let tmp = Tmp::new();
+    let mut shell = ShellModel::new(Mode::Headless, tmp.config());
+    shell.show_banner("note");
+    assert_eq!(shell.dispatch("ui.dismiss", &Value::Null), Outcome::Done);
+    assert_eq!(shell.banner(), Some("note"));
+    shell.dismiss_banner();
+    assert_eq!(shell.banner(), None);
+}

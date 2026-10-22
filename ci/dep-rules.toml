@@ -156,6 +156,19 @@ reason = "ARCH §3 rule 3 (GPU)"
 
 # 18 §5.2 CI-PR-09 feature bans: test-only or unsafe features that must never be enabled on a non-test edge.
 # allowed_kinds lists the dependency kinds (normal, dev, build) on which enabling the feature is fine.
+# WP-S2.01 part 1, spec section 4 rule 5: the application build needs no system package. wgpu-hal's `gles`
+# feature turns on `wayland-sys/dlopen`; without it wayland-sys' build script runs pkg-config for libwayland and
+# links it. `cargo xtask check-features` fails when either feature leaves the resolved graph while its crate is in it.
+[[required_features]]
+crate = "wgpu-hal"
+feature = "gles"
+reason = "it gives wayland-sys its dlopen feature (no pkg-config probe, no libwayland at link time)"
+
+[[required_features]]
+crate = "wayland-sys"
+feature = "dlopen"
+reason = "without it the build script probes pkg-config and the binary links libwayland (a system package on the CI image)"
+
 [[banned_features]]
 crate = "ew-ids"
 feature = "testkit"

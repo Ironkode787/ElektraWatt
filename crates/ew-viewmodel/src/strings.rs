@@ -49,7 +49,7 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-command-run" => "Run model command",
         "action-view-snapshot" => "Write page snapshot",
         "action-ui-describe" => "Describe the user interface",
-        "action-ui-dismiss" => "Dismiss popup, dialog or banner",
+        "action-ui-dismiss" => "Dismiss popup or dialog",
 
         // Why an action is disabled.
         "reason-read-only" => "The project is open read-only",
@@ -96,6 +96,12 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "error-export" => "Export failed: {0}.",
         "error-write" => "The file could not be written.",
         "error-unsaved" => "The project has unsaved changes; the step needs \"discard\": true.",
+        "error-unsaved-at-end" => {
+            "The script ended with unsaved changes; their journal was kept for recovery. End a script that edits with              \"app.quit\" and \"discard\": true, or save first."
+        }
+        "banner-no-file-dialog" => {
+            "The file dialog is not available: it needs the xdg-desktop-portal service on the session bus. Start the              portal for your desktop (for example xdg-desktop-portal-gtk or -kde) or open the project as an argument."
+        }
         "error-no-folio" => "No page has the folio {0}.",
         "error-command" => "{0}",
         "error-render" => "The page could not be drawn: {0}",

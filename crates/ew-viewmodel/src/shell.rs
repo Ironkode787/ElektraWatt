@@ -63,6 +63,21 @@ impl ShellConfig {
         }
     }
 
+    /// The configuration of a headless run: `EW_CONFIG_DIR` when set, else no settings directory at all, so
+    /// that a script neither reads nor writes the user's own settings and recent projects (its journals still
+    /// go to the store's default state directory, where recovery looks for them).
+    pub fn isolated_from_env(app_version: &str) -> ShellConfig {
+        if config_dir_overridden() {
+            ShellConfig::from_env(app_version)
+        } else {
+            ShellConfig {
+                config_dir: None,
+                state_dir: None,
+                app_version: app_version.to_owned(),
+            }
+        }
+    }
+
     /// A configuration inside `dir`: settings in `dir`, journals in `dir/state`.
     pub fn in_dir(dir: &Path, app_version: &str) -> ShellConfig {
         ShellConfig {
@@ -181,8 +196,9 @@ struct Record {
     steps: Vec<RecordedCommand>,
     /// Taken back by undo, most recent last; redo restores them.
     undone: Vec<RecordedCommand>,
-    /// How many of `steps` a save has put on disk.
-    saved: usize,
+    /// `steps` as they were at the last save: what the project on disk holds. A close or a discard puts the steps
+    /// back to this, so what a reopen finds is what the record says, whatever was undone past a save.
+    saved_steps: Vec<RecordedCommand>,
 }
 
 /// A project that was opened and its access decided.
@@ -792,7 +808,7 @@ impl ShellModel {
 
     /// Closes the open project (if any) and opens `dir`: a failure leaves the start page with a banner.
     fn open_dir(&mut self, dir: &Path, read_only: bool) -> Outcome {
-        self.close_project(false);
+        self.close_project();
         let name = dir_name(dir);
         let path_text = dir.to_string_lossy().into_owned();
         let version = self.config.app_version.clone();
@@ -811,7 +827,8 @@ impl ShellModel {
             Ok(o) => o,
             Err(e) => {
                 let message = strings::format("error-open", &[&name, strings::text(open_error_key(&e))]);
-                if self.settings.recent_projects.contains(&path_text) {
+                // A recent entry goes only when its path is gone; a held lock or a bad format keeps it.
+                if self.settings.recent_projects.contains(&path_text) && !dir.exists() {
                     self.settings.remove_recent(&path_text);
                     self.save_settings();
                     self.banner = Some(strings::format("banner-recent-removed", &[&name]));
@@ -907,20 +924,27 @@ impl ShellModel {
         })
     }
 
-    fn close_project(&mut self, discard: bool) {
+    /// The clean close of the open project: its journal goes and the lock is released. Callers reach it only for
+    /// a clean project or after the user chose Discard. What a discard loses leaves the record too.
+    fn close_project(&mut self) {
         if let Some(p) = self.project.take() {
-            if discard {
-                self.record.steps.truncate(self.record.saved);
-                self.record.undone.clear();
-            }
+            self.record.steps = self.record.saved_steps.clone();
+            self.record.undone.clear();
             p.session.close();
         }
         self.page_index = 0;
     }
 
-    /// Ends the session cleanly without saving: for the end of a run, so no journal stays behind.
+    /// Ends the shell at the end of a run or of the window (also on a log-off): a clean project is closed, a dirty
+    /// one keeps its journal. The journal of unsaved work is deleted only by a clean close or an explicit Discard;
+    /// any other exit leaves it for the next open to offer (crash-recovery semantics, doc 05 section 8).
     pub fn shutdown(&mut self) {
-        self.close_project(true);
+        match self.project.take() {
+            Some(p) if p.session.is_dirty() => drop(p),
+            Some(p) => p.session.close(),
+            None => {}
+        }
+        self.page_index = 0;
     }
 
     fn save_settings(&mut self) {
@@ -949,7 +973,7 @@ impl ShellModel {
         };
         match p.session.save() {
             Ok(_) => {
-                self.record.saved = self.record.steps.len();
+                self.record.saved_steps = self.record.steps.clone();
                 Outcome::Done
             }
             Err(e) => {
@@ -981,7 +1005,7 @@ impl ShellModel {
                 project.name = dir_name(&dir);
                 project.access = AccessMode::Edit;
                 self.record.dir = Some(dir.clone());
-                self.record.saved = self.record.steps.len();
+                self.record.saved_steps = self.record.steps.clone();
                 self.settings.push_recent(&dir.to_string_lossy());
                 self.save_settings();
                 Outcome::Done
@@ -1025,7 +1049,7 @@ impl ShellModel {
         if let Some(outcome) = self.guard_unsaved("file.close", p) {
             return outcome;
         }
-        self.close_project(flag(p, "discard"));
+        self.close_project();
         Outcome::Done
     }
 
@@ -1033,7 +1057,7 @@ impl ShellModel {
         if let Some(outcome) = self.guard_unsaved("app.quit", p) {
             return outcome;
         }
-        self.close_project(true);
+        self.close_project();
         self.quit = true;
         Outcome::Done
     }
@@ -1051,7 +1075,6 @@ impl ShellModel {
                     && let Some(step) = self.record.steps.pop()
                 {
                     self.record.undone.push(step);
-                    self.record.saved = self.record.saved.min(self.record.steps.len());
                 }
                 self.refresh();
                 Outcome::Done
@@ -1137,12 +1160,18 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// Escape: closes the palette or the dialog; with neither open it does nothing (NFR-UX-07). A banner has a
+    /// button of its own, [`ShellModel::dismiss_banner`].
     fn act_dismiss(&mut self) -> Outcome {
-        if self.palette.take().is_some() || self.dialog.take().is_some() {
-            return Outcome::Done;
+        if self.palette.take().is_none() {
+            self.dialog = None;
         }
-        self.banner = None;
         Outcome::Done
+    }
+
+    /// The banner's own button.
+    pub fn dismiss_banner(&mut self) {
+        self.banner = None;
     }
 
     /// Answers the unsaved-changes dialog with Save (save, then the pending action), Discard (the pending action with

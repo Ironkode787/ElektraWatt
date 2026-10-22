@@ -9,6 +9,7 @@ mod support;
 
 use egui::{Key, Modifiers};
 use egui_kittest::kittest::{NodeT as _, Queryable};
+use ew_ui::app::Pick;
 use ew_ui::ew_viewmodel::shell::{Dialog, Outcome, Prompt};
 use serde_json::json;
 use support::{Scripted, Tmp, harness, settle, wait_for_page};
@@ -156,7 +157,7 @@ fn open_asks_the_file_dialog_and_opens_the_answer() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let platform = Scripted::default();
-    platform.answers.borrow_mut().push_back(Some(dir));
+    platform.answers.borrow_mut().push_back(Pick::Path(dir));
     let mut h = harness(&tmp, platform.clone(), None);
     settle(&mut h);
     h.key_press_modifiers(Modifiers::COMMAND, Key::O);
@@ -285,4 +286,87 @@ fn the_ui_scale_setting_scales_the_frame() {
     settle(&mut h);
     assert_eq!(h.state().shell().settings().ui_scale, 1.5);
     assert_eq!(h.ctx.zoom_factor(), 1.5);
+}
+
+#[test]
+fn escape_does_not_dismiss_the_banner_and_its_button_does() {
+    let tmp = Tmp::new();
+    let mut h = harness(&tmp, Scripted::default(), None);
+    settle(&mut h);
+    h.state_mut().shell_mut().show_banner("Something to read");
+    settle(&mut h);
+    assert!(h.query_by_label("Something to read").is_some());
+    // With nothing else open Escape does nothing (NFR-UX-07).
+    h.key_press(Key::Escape);
+    settle(&mut h);
+    assert!(h.state().shell().banner().is_some(), "the banner stays");
+    h.get_by_label("Dismiss").click();
+    settle(&mut h);
+    assert!(h.state().shell().banner().is_none());
+}
+
+#[test]
+fn a_missing_file_dialog_is_named_in_a_banner() {
+    let tmp = Tmp::new();
+    let platform = Scripted::default();
+    platform.answers.borrow_mut().push_back(Pick::Unavailable);
+    let mut h = harness(&tmp, platform, None);
+    settle(&mut h);
+    h.key_press_modifiers(Modifiers::COMMAND, Key::O);
+    settle(&mut h);
+    let banner = h.state().shell().banner().expect("a banner").to_owned();
+    assert!(banner.contains("xdg-desktop-portal"), "{banner}");
+    assert!(!h.state().shell().has_project());
+}
+
+#[test]
+fn the_zoom_is_set_when_the_setting_changes_not_every_frame() {
+    let tmp = Tmp::new();
+    let mut h = harness(&tmp, Scripted::default(), None);
+    settle(&mut h);
+    // egui's own zoom keys change the factor; the next frames must not reset it.
+    h.ctx.set_zoom_factor(1.2);
+    settle(&mut h);
+    settle(&mut h);
+    assert_eq!(h.ctx.zoom_factor(), 1.2);
+    // A change of the setting applies once.
+    h.state_mut()
+        .shell_mut()
+        .dispatch("view.ui_scale", &json!({"scale": 1.5}));
+    settle(&mut h);
+    assert_eq!(h.ctx.zoom_factor(), 1.5);
+}
+
+/// The status bar shows "Exporting PDF..." in a frame of its own before the export runs.
+#[test]
+fn the_export_label_is_painted_before_the_export_runs() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let pdf = tmp.0.join("out.pdf");
+    let platform = Scripted::default();
+    platform.answers.borrow_mut().push_back(Pick::Path(pdf.clone()));
+    let mut h = harness(&tmp, platform.clone(), Some(dir));
+    settle(&mut h);
+    assert!(h.state().shell().has_project());
+    // Export asks for a path: the shell raises the prompt, the frame that sees it asks the file dialog.
+    h.state_mut()
+        .shell_mut()
+        .dispatch("file.export_pdf", &serde_json::Value::Null);
+    // Frame 1: the prompt is answered and the export deferred.
+    h.step();
+    assert_eq!(platform.asked.borrow().as_slice(), [Prompt::SavePdf]);
+    assert!(!pdf.exists());
+    // Frame 2: the label is painted; the export waits.
+    h.step();
+    assert!(
+        h.query_by_label("Exporting PDF...").is_some(),
+        "the label is on screen"
+    );
+    assert!(!pdf.exists(), "the export waits for the frame after the label");
+    // Frame 3: the export runs.
+    h.step();
+    assert!(pdf.exists(), "the export ran");
+    h.step();
+    assert!(h.query_by_label("Exporting PDF...").is_none());
+    h.state_mut().shell_mut().shutdown();
 }

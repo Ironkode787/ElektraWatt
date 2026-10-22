@@ -16,7 +16,7 @@ use std::time::Duration;
 use egui::Vec2;
 use egui_kittest::Harness;
 use egui_kittest::kittest::NodeT as _;
-use ew_ui::app::{App, Platform, setup};
+use ew_ui::app::{App, Pick, Platform, setup};
 use ew_ui::ew_viewmodel::shell::{Mode, Prompt, ShellConfig, ShellModel};
 
 const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
@@ -68,14 +68,14 @@ fn copy_dir(from: &Path, to: &Path) {
 /// The file dialog of a test: answers are queued by the test, and every prompt is recorded.
 #[derive(Clone, Default)]
 pub struct Scripted {
-    pub answers: Rc<RefCell<VecDeque<Option<PathBuf>>>>,
+    pub answers: Rc<RefCell<VecDeque<Pick>>>,
     pub asked: Rc<RefCell<Vec<Prompt>>>,
 }
 
 impl Platform for Scripted {
-    fn pick(&mut self, prompt: Prompt) -> Option<PathBuf> {
+    fn pick(&mut self, prompt: Prompt) -> Pick {
         self.asked.borrow_mut().push(prompt);
-        self.answers.borrow_mut().pop_front().flatten()
+        self.answers.borrow_mut().pop_front().unwrap_or(Pick::Cancelled)
     }
 }
 

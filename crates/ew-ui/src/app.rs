@@ -39,12 +39,25 @@ pub(crate) enum Event {
     GotoText(String),
     /// Go in the go-to-page dialog.
     GotoGo(String),
+    /// The banner's own button.
+    DismissBanner,
+}
+
+/// What a file dialog came back with.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum Pick {
+    /// The path the user chose.
+    Path(PathBuf),
+    /// The user cancelled.
+    Cancelled,
+    /// There is no file dialog on this system (Linux without an xdg desktop portal): the frame tells the user.
+    Unavailable,
 }
 
 /// The operating system's file dialogs, which the application binary provides (`rfd`) and tests replace.
 pub trait Platform {
-    /// Asks the user for a path: a project directory, a new directory or a PDF file. `None` when cancelled.
-    fn pick(&mut self, prompt: Prompt) -> Option<PathBuf>;
+    /// Asks the user for a path: a project directory, a new directory or a PDF file.
+    fn pick(&mut self, prompt: Prompt) -> Pick;
 }
 
 /// A platform whose dialogs are always cancelled.
@@ -52,9 +65,17 @@ pub trait Platform {
 pub struct NoPlatform;
 
 impl Platform for NoPlatform {
-    fn pick(&mut self, _: Prompt) -> Option<PathBuf> {
-        None
+    fn pick(&mut self, _: Prompt) -> Pick {
+        Pick::Cancelled
     }
+}
+
+/// An action that waits for one painted frame so that the status bar shows it running (the PDF export).
+struct Deferred {
+    action: &'static str,
+    params: Value,
+    /// Whether a frame with the label has been painted.
+    painted: bool,
 }
 
 /// The application frame: the shell model and what the window needs besides it.
@@ -69,7 +90,10 @@ pub struct App {
     dialog_was_open: bool,
     last_page_index: Option<usize>,
     /// An action that waits one frame so that the status bar can show it running (the PDF export).
-    deferred: Option<(&'static str, Value)>,
+    deferred: Option<Deferred>,
+    /// The `ui_scale` last given to egui: the zoom is set when the setting changes, not every frame, so that
+    /// egui's own zoom keys keep working in between.
+    applied_scale: Option<f32>,
 }
 
 /// Prepares an egui context for the shell: installs the bundled fonts. Call it before the first frame (eframe's
@@ -92,6 +116,7 @@ impl App {
             dialog_was_open: false,
             last_page_index: None,
             deferred: None,
+            applied_scale: None,
         }
     }
 
@@ -128,17 +153,26 @@ impl App {
     pub fn ui(&mut self, ui: &mut Ui) {
         let ctx = ui.ctx().clone();
         // `ui_scale` is a factor on the native scale: egui's zoom factor is exactly that, and follows the window
-        // to another monitor.
+        // to another monitor. It is set once when the setting changes.
         let scale = self.shell.settings().ui_scale;
-        if (ctx.zoom_factor() - scale).abs() > 1e-3 {
+        if self.applied_scale != Some(scale) {
             ctx.set_zoom_factor(scale);
+            self.applied_scale = Some(scale);
         }
         if ctx.input(|i| i.viewport().close_requested()) && !self.shell.should_quit() {
             ctx.send_viewport_cmd(ViewportCommand::CancelClose);
             self.dispatch("app.quit", &Value::Null);
         }
-        if let Some((action, params)) = self.deferred.take() {
-            self.dispatch(action, &params);
+        // The export runs in the frame after the one that painted its label.
+        if let Some(d) = self.deferred.as_mut() {
+            if d.painted {
+                if let Some(d) = self.deferred.take() {
+                    self.dispatch(d.action, &d.params);
+                }
+            } else {
+                d.painted = true;
+                ctx.request_repaint();
+            }
         }
         if let Some(dir) = self.initial.take() {
             self.dispatch("file.open", &json!({ "dir": dir.to_string_lossy() }));
@@ -154,7 +188,7 @@ impl App {
                 ui.horizontal(|ui| {
                     ui.label(banner);
                     if ui.button(strings::text("banner-dismiss")).clicked() {
-                        events.push(Event::Action("ui.dismiss", Value::Null));
+                        events.push(Event::DismissBanner);
                     }
                 });
             });
@@ -228,11 +262,11 @@ impl App {
     }
 
     /// The shell's shortcuts. Routing order: a focused text field, then an open popup or dialog, then the
-    /// shortcuts; Escape closes the topmost popup, dialog or banner.
+    /// shortcuts; Escape closes the topmost popup or dialog and otherwise does nothing.
     fn route_keys(&mut self, ctx: &egui::Context, events: &mut Vec<Event>) {
         let palette_open = self.shell.palette().is_some();
         let dialog_open = self.shell.dialog().is_some();
-        let overlay = palette_open || dialog_open || self.shell.banner().is_some();
+        let overlay = palette_open || dialog_open;
         if overlay && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             events.push(Event::Action("ui.dismiss", Value::Null));
             return;
@@ -271,14 +305,20 @@ impl App {
             }
             Event::GotoText(text) => self.shell.set_goto_text(&text),
             Event::GotoGo(folio) => self.dispatch("page.goto", &json!({ "folio": folio })),
+            Event::DismissBanner => self.shell.dismiss_banner(),
         }
     }
 
     /// The file dialogs the shell asked for: their answers are dispatched like any other input.
     fn answer_prompts(&mut self, ctx: &egui::Context) {
         while let Some(request) = self.shell.take_prompt() {
-            let Some(path) = self.platform.pick(request.prompt) else {
-                continue;
+            let path = match self.platform.pick(request.prompt) {
+                Pick::Path(path) => path,
+                Pick::Cancelled => continue,
+                Pick::Unavailable => {
+                    self.shell.show_banner(strings::text("banner-no-file-dialog"));
+                    continue;
+                }
             };
             let mut params = request.params.as_object().cloned().unwrap_or_default();
             params.insert(
@@ -287,7 +327,11 @@ impl App {
             );
             if request.action == "file.export_pdf" {
                 // The export is synchronous in part 1: one frame with the label on screen, then the export.
-                self.deferred = Some((request.action, Value::Object(params)));
+                self.deferred = Some(Deferred {
+                    action: request.action,
+                    params: Value::Object(params),
+                    painted: false,
+                });
                 ctx.request_repaint();
             } else {
                 self.dispatch(request.action, &Value::Object(params));

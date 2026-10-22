@@ -290,7 +290,13 @@ fn check_features() -> Result<Violations> {
         features: &policy.banned_features,
         crates: &policy.banned_crates,
     };
-    Ok(features::check(&rules, &features::from_metadata(&metadata()?)))
+    let metadata = metadata()?;
+    let mut violations = features::check(&rules, &features::from_metadata(&metadata));
+    violations.extend(features::check_required(
+        &policy.required_features,
+        &features::resolved_from_metadata(&metadata),
+    ));
+    Ok(violations)
 }
 
 fn check_raw_read() -> Result<Violations> {
