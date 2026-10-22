@@ -767,6 +767,45 @@ fn non_canonical_library_document_is_rewritten() {
     assert!(loaded.rewrite.contains(&path));
 }
 
+/// A BOM before a library document is a shape, as before a JSON Lines file: the document is read, and rewritten
+/// at the next save. The cargo-fuzz target `migration_chain` found it (cycle 22): the document was a syntax error,
+/// opaque, and the records naming it refused the whole project (`fuzz/corpus/migration_chain/lib-document-bom`).
+#[test]
+fn library_document_with_a_bom_is_read_and_rewritten() {
+    let doc = fndef();
+    let path = lib_file(&doc).unwrap();
+    let text = format!("\u{feff}{}", lib_document_text(&doc).unwrap());
+    let mut files = Files::new();
+    put(&mut files, path.as_str(), &text);
+    let loaded = load_plain(&files);
+    assert_eq!(
+        kinds(&loaded),
+        [FindingKind::NonCanonical],
+        "{:?}",
+        loaded.findings
+    );
+    assert_eq!(loaded.findings[0].file, Some(path.clone()));
+    assert_eq!(loaded.lib, [doc]);
+    assert!(loaded.opaque.is_empty() && loaded.kept_docs.is_empty());
+    assert_eq!(loaded.rewrite.iter().collect::<Vec<_>>(), [&path]);
+    assert!(!loaded.read_only);
+}
+
+/// A BOM is stripped once: a second one is inside the JSON text, a syntax error that keeps the document opaque.
+#[test]
+fn library_document_with_two_boms_is_opaque() {
+    let doc = fndef();
+    let path = lib_file(&doc).unwrap();
+    let text = format!("\u{feff}\u{feff}{}", lib_document_text(&doc).unwrap());
+    let mut files = Files::new();
+    put(&mut files, path.as_str(), &text);
+    let loaded = load_plain(&files);
+    assert_eq!(kinds(&loaded), [FindingKind::JsonSyntax], "{:?}", loaded.findings);
+    assert!(loaded.lib.is_empty());
+    assert_eq!(loaded.opaque[&path], sha256(text.as_bytes()));
+    assert!(loaded.rewrite.is_empty());
+}
+
 #[test]
 fn library_document_of_a_newer_kind_is_opaque_and_in_lib() {
     let id = "5d1ab4de-706a-5b85-b463-8b15311c4f39";

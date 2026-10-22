@@ -708,7 +708,12 @@ impl Loader<'_> {
     // ---- library documents ------------------------------------------------------------------------------
 
     fn lib_document(&mut self, path: &FilePath, bytes: &[u8], hash: [u8; 32]) {
-        let text = match std::str::from_utf8(bytes) {
+        // A leading UTF-8 BOM (an editor's, doc 05 §3.1: the writer never writes one) is a shape, as in a JSON
+        // Lines file: the document is read without it and, being unlike its canonical text, rewritten at the
+        // next save. JSON has no BOM, so without this the document would be a syntax error, opaque, and every
+        // record naming it a dangling reference that refuses the whole project (fuzz finding, cycle 22).
+        let body = bytes.strip_prefix(&[0xEF, 0xBB, 0xBF]).unwrap_or(bytes);
+        let text = match std::str::from_utf8(body) {
             Ok(text) => text,
             Err(e) => {
                 self.find(
