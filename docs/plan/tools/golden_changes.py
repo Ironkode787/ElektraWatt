@@ -23,7 +23,10 @@ Decision IDs of a commit (ID-n, FT-n, DEC-n, ADR-n):
 A commit without any of these reads "no ID - review".
 
 The list is written between `<!-- generated:golden-changes -->` markers. Its stamp is the newest listed commit (not
-HEAD), so that committing the list does not make it stale. Needs a clone with the full history.
+HEAD), so that committing the list does not make it stale. Needs a clone with the full history. The decision log is
+read at HEAD on purpose: when a design pass records an ID for a listed commit, the mapping changes and `--check` goes
+stale until `--write` is run again, so the list follows the log. It runs at every delivery gate, not in CI (a shallow
+checkout lacks the history, and the list embeds commit hashes).
 """
 import csv, io, re, subprocess, sys
 from pathlib import Path

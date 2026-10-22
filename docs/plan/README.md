@@ -33,7 +33,7 @@ Never edit text between `<!-- generated:NAME -->` and `<!-- /generated:NAME -->`
 | [tools/totals.py](tools/totals.py) | `python3 -I docs/plan/tools/totals.py` | `python3 -I docs/plan/tools/totals.py --check` | Effort tables in 01 and 02; CSV and section consistency checks |
 | [tools/schedule.py](tools/schedule.py) | `python3 -I docs/plan/tools/schedule.py` | `python3 -I docs/plan/tools/schedule.py --check` | milestones.csv, wp-schedule.csv, date tables in 01, 02, 03 |
 | [tools/trace.py](tools/trace.py) | `python3 -I docs/plan/tools/trace.py` | `python3 -I docs/plan/tools/trace.py --check` | 05-traceability.md, traceability-matrix.csv |
-| [tools/golden_changes.py](tools/golden_changes.py) | `python -I docs/plan/tools/golden_changes.py --write` | `python -I docs/plan/tools/golden_changes.py --check` (needs the full git history; `--test` is the offline unit test) | [gate-records/golden-change-list.md](gate-records/golden-change-list.md): the golden-table change list for the pilot's acknowledgement (FT-300, G-M1-09) |
+| [tools/golden_changes.py](tools/golden_changes.py) | `python -I docs/plan/tools/golden_changes.py --write` | `python -I docs/plan/tools/golden_changes.py --check` at every delivery gate, not in CI (needs the full git history; a decision-log entry recorded for a listed commit makes it stale until `--write` runs again; `--test` is the offline unit test) | [gate-records/golden-change-list.md](gate-records/golden-change-list.md): the golden-table change list for the pilot's acknowledgement (FT-300, G-M1-09) |
 | [tools/doccheck.py](tools/doccheck.py) | not generative | `python3 -I docs/plan/tools/doccheck.py` | Links and anchors, table columns, WP IDs, gate IDs |
 
 CI runs the three `--check` modes together:
