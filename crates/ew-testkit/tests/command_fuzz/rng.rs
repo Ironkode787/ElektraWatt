@@ -4,15 +4,51 @@
 //! The seeded random source of the fuzzer.
 
 /// SplitMix64 (Steele, Lea and Flood 2014): a 64-bit state, one addition and a mixing function per output.
-pub struct SplitMix64(pub u64);
+///
+/// The cargo-fuzz target (`fuzz/`, FT-297) drives the same generator from its input: with a *tape*
+/// ([`SplitMix64::with_tape`]) every draw is the SplitMix64 output XOR the next eight bytes of the tape
+/// (zero-padded at the end), so an input that changes one tape word changes one draw and the coverage
+/// feedback of libFuzzer steers the generator; an empty tape is the plain seeded stream of the nightly test.
+pub struct SplitMix64 {
+    state: u64,
+    tape: Vec<u8>,
+    at: usize,
+}
 
 impl SplitMix64 {
+    /// The plain seeded stream.
+    pub fn new(seed: u64) -> SplitMix64 {
+        SplitMix64 {
+            state: seed,
+            tape: Vec::new(),
+            at: 0,
+        }
+    }
+
+    /// The seeded stream mixed with `tape` (see the type).
+    #[allow(dead_code)] // used by the cargo-fuzz crate (`fuzz/`), which includes this module
+    pub fn with_tape(seed: u64, tape: &[u8]) -> SplitMix64 {
+        SplitMix64 {
+            state: seed,
+            tape: tape.to_vec(),
+            at: 0,
+        }
+    }
+
     pub fn next(&mut self) -> u64 {
-        self.0 = self.0.wrapping_add(0x9E37_79B9_7F4A_7C15);
-        let mut z = self.0;
+        self.state = self.state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        let mut z = self.state;
         z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
         z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
-        z ^ (z >> 31)
+        z ^= z >> 31;
+        if self.at < self.tape.len() {
+            let end = (self.at + 8).min(self.tape.len());
+            let mut word = [0u8; 8];
+            word[..end - self.at].copy_from_slice(&self.tape[self.at..end]);
+            self.at = end;
+            z ^= u64::from_le_bytes(word);
+        }
+        z
     }
 
     /// A number in `0..n` (`n > 0`); the modulo bias is irrelevant at these sizes.

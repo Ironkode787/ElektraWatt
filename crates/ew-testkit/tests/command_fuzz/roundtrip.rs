@@ -44,7 +44,10 @@ pub struct Disk {
 impl Disk {
     pub fn new(seed: u64) -> Disk {
         static N: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
-        let dir = PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(format!(
+        // The target directory's scratch space when cargo provides one (an integration test), else the system's
+        // (the cargo-fuzz crate, FT-297, which includes this module).
+        let base = option_env!("CARGO_TARGET_TMPDIR").map_or_else(std::env::temp_dir, PathBuf::from);
+        let dir = base.join(format!(
             "ew-fuzz-{}-{seed}-{}",
             std::process::id(),
             N.fetch_add(1, std::sync::atomic::Ordering::Relaxed)

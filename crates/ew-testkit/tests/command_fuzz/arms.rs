@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The generator arms: one per registered command, each building a step from the live records and saying what
-//! the model must do with it (the validity oracle of [`crate::step`]).
+//! the model must do with it (the validity oracle of [`super::step`]).
 //!
 //! [`ARMS`] is the table the coverage test compares with the command registry
 //! (`every_registered_command_has_a_generator_arm`): a new command fails that test until it has an arm here.
@@ -18,9 +18,9 @@
 
 use serde_json::{Value, json};
 
-use crate::live::{Live, PageInfo, id_json, id_text};
-use crate::rng::SplitMix64;
-use crate::step::{Step, Table, typed};
+use super::live::{Live, PageInfo, id_json, id_text};
+use super::rng::SplitMix64;
+use super::step::{Step, Table, typed};
 
 /// The unit of a move: three steps of the page grid in nm (7 937 500 nm, a multiple of the grid of the golden
 /// pages).
@@ -1848,7 +1848,7 @@ fn device_link(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 
 fn assembly_attach(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let (parent, child) = pick2(&live.tree, rng)?;
-    let ancestors = |dev: &crate::live::TreeDev| -> Vec<String> {
+    let ancestors = |dev: &super::live::TreeDev| -> Vec<String> {
         let mut out = Vec::new();
         let mut at = dev.parent.clone();
         while let Some(p) = at {

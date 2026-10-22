@@ -151,12 +151,28 @@ fn gen_step(
 // ---------------------------------------------------------------------------------------------------------
 // The session and the oracles
 
-fn repo() -> std::path::PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+/// The repository root: the nearest ancestor of this package's manifest directory that holds the golden
+/// project. The test crate sits two levels below it (`crates/ew-testkit`), the cargo-fuzz crate (`fuzz/`,
+/// FT-297), which includes these modules, one level below it.
+pub fn repo() -> std::path::PathBuf {
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
+    manifest
+        .ancestors()
+        .find(|dir| dir.join(ew_testkit::golden::GOLDEN_A).is_dir())
+        .unwrap_or(manifest)
+        .to_path_buf()
+}
+
+/// The import batch of path (a), made once per process: a session is opened per seed (and, in the cargo-fuzz
+/// target of FT-297, per input), and the import of the golden tables is the same every time.
+fn golden_batch() -> &'static ew_import_tables::ew_interop_api::ImportBatch {
+    static BATCH: std::sync::OnceLock<ew_import_tables::ew_interop_api::ImportBatch> =
+        std::sync::OnceLock::new();
+    BATCH.get_or_init(|| ew_testkit::golden::bootstrap(&repo()).expect("path (a) imports"))
 }
 
 fn open_session(seed: u64) -> Session {
-    let batch = ew_testkit::golden::bootstrap(&repo()).expect("path (a) imports");
+    let batch = golden_batch();
     let mut project = None;
     let mut records = Vec::new();
     for r in &batch.records {
@@ -527,6 +543,20 @@ impl Default for Cadence {
 
 /// [`run_fuzz`] with every cadence of the costly oracles.
 pub fn run_fuzz_with(seed: u64, steps: usize, cadence: &Cadence) -> FuzzStats {
+    run_fuzz_rng(seed, SplitMix64::new(seed), steps, cadence)
+}
+
+/// The run of the cargo-fuzz target (`fuzz/`, FT-297, FT-272), which includes this module: the random source is
+/// the seeded stream mixed with the bytes of the fuzzer's input ([`SplitMix64::with_tape`]), so that the
+/// coverage-guided mutation of the input steers the draws. `seed` is the identity of the run (the ID source, the
+/// scratch directory, the failure text). Not used by the tests of this crate.
+#[allow(dead_code)]
+pub fn run_fuzz_tape(seed: u64, tape: &[u8], steps: usize, cadence: &Cadence) -> FuzzStats {
+    run_fuzz_rng(seed, SplitMix64::with_tape(seed, tape), steps, cadence)
+}
+
+/// [`run_fuzz_with`] over a random source of the caller.
+fn run_fuzz_rng(seed: u64, mut rng: SplitMix64, steps: usize, cadence: &Cadence) -> FuzzStats {
     let Cadence {
         sample_every,
         check_every,
@@ -543,7 +573,6 @@ pub fn run_fuzz_with(seed: u64, steps: usize, cadence: &Cadence) -> FuzzStats {
     };
     let mut session = open_session(seed);
     let fixture = Rc::new(Fixture::of(&session.query()));
-    let mut rng = SplitMix64(seed);
     let mut stats = FuzzStats::default();
     let mut log: Vec<String> = Vec::new();
     let initial = session.world().model.clone();
@@ -863,7 +892,7 @@ fn every_arm_commits_and_refuses_what_it_should() {
     for (i, arm) in ARMS.iter().enumerate() {
         let (mut committed, mut refused_ok, mut tried) = (0, 0, 0);
         for attempt in 0..60u64 {
-            let mut rng = SplitMix64(1_000 * (i as u64 + 1) + attempt);
+            let mut rng = SplitMix64::new(1_000 * (i as u64 + 1) + attempt);
             let live = Live::read(&session.query(), &fixture);
             let Some(Step::Cmd(c)) = (arm.build)(&live, &mut rng) else {
                 continue;
@@ -916,7 +945,7 @@ fn the_revision_steps_hold_on_golden_a() {
     let mut stats = FuzzStats::default();
     let (mut committed, mut refused) = (0, 0);
     for attempt in 0..400u64 {
-        let mut rng = SplitMix64(9_000 + attempt);
+        let mut rng = SplitMix64::new(9_000 + attempt);
         let live = Live::read(&session.query(), &fixture);
         let step = match attempt % 3 {
             0 => (arms::ARMS
@@ -972,7 +1001,7 @@ fn the_generator_is_reproducible_from_the_seed() {
     let steps = |seed: u64| -> Vec<String> {
         let session = open_session(seed);
         let fixture = Rc::new(Fixture::of(&session.query()));
-        let mut rng = SplitMix64(seed);
+        let mut rng = SplitMix64::new(seed);
         (0..20)
             .map(|_| gen_step(&session, &fixture, &mut rng, false, Mix::default()).line())
             .collect()
@@ -991,7 +1020,7 @@ fn save_and_reload_of_golden_a_round_trips() {
     disk.round_trip(&mut session, roundtrip::Depth::Sample)
         .unwrap_or_else(|e| panic!("the initial project: {e}"));
     let fixture = Rc::new(Fixture::of(&session.query()));
-    let mut rng = SplitMix64(3);
+    let mut rng = SplitMix64::new(3);
     let mut stats = FuzzStats::default();
     let mut committed = 0;
     for _ in 0..40 {
@@ -1031,7 +1060,7 @@ fn embed_then_undo_of_a_named_fndef_restores_golden_a() {
     let mut disk = roundtrip::Disk::new(13);
     disk.round_trip(&mut session, roundtrip::Depth::Sample)
         .unwrap_or_else(|e| panic!("the initial project: {e}"));
-    let mut rng = SplitMix64(13);
+    let mut rng = SplitMix64::new(13);
     let mut stats = FuzzStats::default();
     let halves: [fn(&Live, &mut SplitMix64) -> Option<Step>; 2] =
         [arms::lib_ref_symbol_step, arms::lib_ref_fndef_step];

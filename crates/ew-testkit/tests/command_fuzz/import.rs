@@ -20,7 +20,6 @@
 //!   (path (a)) of the golden builders.
 
 use std::collections::BTreeMap;
-use std::path::Path;
 use std::sync::OnceLock;
 
 use ew_api::{MemoMode, SessionOptions};
@@ -28,7 +27,8 @@ use ew_import_tables::ew_interop_api::{ImportBatch, ImportError, ImportInput, Im
 use ew_import_tables::{BuiltinLibrary, TablesImporter, bootstrap_context};
 use serde_json::{Value, json};
 
-use crate::rng::SplitMix64;
+use super::repo;
+use super::rng::SplitMix64;
 
 /// A damage to the golden tables.
 #[derive(Clone, Debug)]
@@ -78,10 +78,6 @@ impl Damage {
     pub fn describe(&self) -> Value {
         json!(format!("{self:?}"))
     }
-}
-
-fn repo() -> std::path::PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
 /// The golden tables, read once: (file name, text).
