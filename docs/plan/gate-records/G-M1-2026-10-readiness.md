@@ -1,6 +1,6 @@
 # G-M1 readiness run
 
-**Status:** Final (readiness run; the gate is not convened; the delegated rulings of 2026-10-22 are recorded in §8 and the addendum) · **Date:** 2026-10-22 · **Gate:** G-M1 Spine exit ·
+**Status:** Final (readiness run; the gate is not convened; the delegated rulings of 2026-10-22 are recorded in §8 and the addendum; the owner rulings of 2026-10-22 in the second addendum) · **Date:** 2026-10-22 · **Gate:** G-M1 Spine exit ·
 **Commit:** de23b55 (the cycle-16 delivery of `claude/m0-foundations`, equal to `main`) · **Scenario:** the
 cycle-based plan of record ([global plan §3.8](../01-global-plan.md#38-cycle-based-progress-view-plan-of-record-since-2026-10-20),
 decision log ID-271) · **Part of:** ElektraWatt plan, gate records
@@ -46,6 +46,24 @@ delegation and stays with the project owner. Effect on §4: G-M1-08 is met once 
 property-grid entry is applied at the cycle-17 delivery; G-M1-24 is restated and stays open for the owner's re-plan
 decision at T; G-M1-25 is not applicable. The rows below are the snapshot at the run; the next repeated readiness run
 starts from these rulings.
+
+**Addendum (owner rulings of 2026-10-22; decision log ID-450 to ID-455).** The project owner ruled in chat, not by
+delegation: (1) PD-1 and PD-3 are adopted, the cycle-based plan of record is the plan of record, the human-team
+months stay a reference only and there is no fourth developer, so G-M0-01 and G-M0-02 are met (ID-450); (2) the date
+rule of §9 is adopted by the owner (ID-451); (3) a second named code owner is not required, so G-M1-16 is not
+applicable, O7 is removed and R5 is closed (ID-452); (4) no funding is pursued, so G-M1-26 is not applicable (ID-453);
+(5) "Regarding all the licensing, and legal items, this is no longer relevant": LG-1, LG-2 (with the counsel brief and
+ID-383, now owner-accepted as a distribution fact), LG-3, LG-5, ADR-0030 with counsel's CRA opinion and the
+enrolments are no longer gate items, so G-M0-08 and G-M1-18 to G-M1-21 are not applicable and O1, O3, O4, O5 and O13
+are dropped (ID-454). **Recount after these rulings** (ID-455): G-M1 has 11 applicable hard criteria, of which 5 are
+met (G-M1-03, -04, -06, -07, -08) and 6 open: G-M1-01 (development, FT-295), G-M1-02 (the pilot's PNG approval FT-10
+and FT-294), G-M1-05, -11 and -12 (the BM-class runner and the re-test) and G-M1-24 (the PD-11 re-plan at T); of 7
+applicable must criteria 1 is met, 2 are met with conditions and 4 are open (G-M1-13, -17, -22, -23), one more than a
+*go with conditions* allows. G-M0 has 7 applicable hard criteria, of which 4 are met (G-M0-01, -02, -04, -06) and 3
+open (G-M0-03 PD-2, G-M0-05 the boundary demonstration, G-M0-07 the two ADR acceptances). The verdict stays **not
+ready**; what bounds G-M1 on the owner side is now the BM-class runner, the pilot's approvals and answers, PD-2 and
+PD-14, and the re-plan at T. The rows below carry the per-row status edits of these rulings; the narrative is the
+record of the run.
 
 ---
 
@@ -123,14 +141,14 @@ decisions and documents.
 
 | G-M0 H criterion | State at de23b55 | Owner action |
 |---|---|---|
-| G-M0-01 PD-1 recorded | Not recorded; ID-271 changed the plan basis to cycles by a delegated decision, PD-1 itself is open (DEC-001, DEC-081) | Adopt the plan of record as the cycle-based plan with the human-team reference |
-| G-M0-02 PD-3 recorded | Open | Record "developer 4: not in the cycle-based plan" or a decision |
+| G-M0-01 PD-1 recorded | Met: the owner adopted PD-1 on 2026-10-22 (ID-450) | — |
+| G-M0-02 PD-3 recorded | Met: the owner recorded PD-3, no developer 4, on 2026-10-22 (ID-450) | — |
 | G-M0-03 PD-2 recorded | Open (PQ-40 unasked) | Confirm lever (b) with the pilot |
 | G-M0-04 CI on three OSes | Met: `ci.yml` (lint, test-linux, test-windows, test-macos, supply-chain), jobs of about 21 to 23 minutes (doc 18 §3.14); branch protection is a repository setting | Confirm branch protection (with FT-284) |
 | G-M0-05 Licence boundary demonstrated | The check runs in the supply-chain job and `reuse lint` in `legal-docs`; the failing test pull request of the criterion is not on file | Development opens the demonstration pull request at the owner's go |
 | G-M0-06 Anonymisation guard | Met (`cargo xtask check-anonymisation` in `legal-docs`) | — |
 | G-M0-07 ADR-0027 and ADR-0028 Accepted | Both Proposed; their recommendations are in force as defaults since 2026-10-18 (ID-1, ID-2) | The pilot user accepts both (or changes them) |
-| G-M0-08 LG-5 signed | Open, overdue (DEC-013) | The pilot panel builder signs the consent |
+| G-M0-08 LG-5 signed | Not applicable: dropped by owner ruling 2026-10-22 (ID-454) | — |
 
 **Recommendation:** hold G-M0 as soon as these decisions are taken; it is a two-hour meeting with no development
 dependency, and it unblocks the legal track that bounds G-M1. A combined meeting (§2.4 of the gates) is the fallback
@@ -157,17 +175,17 @@ IDs, types and wording as in [§5.3](../03-gates.md#53-g-m1-spine-exit-m1); the 
 | G-M1-13 | M | Oracle differential per PR; 7 nights of CI-N-02; fuzz targets for the JSONL loader, the migration chain and the command sequence (CI-PR-08, CI-N-03) with no open crash | The oracle runs on Golden A in the test jobs (AC-16, 0 mismatches). The command fuzzer is a seeded test covering 11 of 36 commands (doc 18 §3.6); CI-N-02, CI-PR-08, CI-N-03 and the loader and migration-chain targets do not exist. Lane B adds FT-279 and FT-272 in cycle 17 | Open | Development | C17; Cn (FT-297) |
 | G-M1-14 | M | `load(save(m)) = m` byte-stable; determinism lints; incremental saves equal full saves | WP-S1.09 delivered (ID-200 to ID-217): incremental saves byte-identical to a full save, an unchanged project writes nothing; AC-20 writes one page file; AC-14 includes the JSONL files. The ordered-collection lint (FT-271) is not built | Met with conditions | Development (FT-271) | Cn |
 | G-M1-15 | S | Core crates ≥ 80 % line coverage; ≤ 10 quarantined tests | CI-PR-13 does not exist (FT-296); no test is quarantined | Open (dated plan) | Development | Cn |
-| G-M1-16 | H | Two named owners in `CODEOWNERS` for `ew-memo`, the `Op` set, `ew-format`, `ew-derive`; cross-lane review | `.github/CODEOWNERS` names one owner for the critical paths and states that a second is due by M1. Every cycle lane is reviewed independently (the review rulings in the decision log), which covers the review half; a second *named owner* is an accountable person, which agents cannot be | Open | Owner side (ruling R5) | Owner |
+| G-M1-16 | H | Two named owners in `CODEOWNERS` for `ew-memo`, the `Op` set, `ew-format`, `ew-derive`; cross-lane review | `.github/CODEOWNERS` names one owner for the critical paths and states that a second is due by M1. Every cycle lane is reviewed independently (the review rulings in the decision log), which covers the review half; a second *named owner* is an accountable person, which agents cannot be | Not applicable by owner ruling 2026-10-22: a second named owner is not required (ID-452) | Owner side (ruling R5) | Owner |
 | G-M1-17 | M | JSON Schemas generated and published; permissive crates deny missing docs; the permissive-only sample reader reads Golden A; one schema-steward handover | The schemas are generated from code with schema tests (`ew-schema`; the command parameter schemas of `ew-commands`); publication is not evidenced; rustdoc builds without warnings in `legal-docs`; the sample reader does not exist (FT-298); no schema steward is named | Open | Development (FT-298); owner side (name the steward) | Cn; Owner |
-| G-M1-18 | H | LG-1 signed by the pilot panel builder and every other employer whose staff merged code | No statement on file; WP-S0.04 not started | Open | Owner side (pilot user; counsel) | Owner |
-| G-M1-19 | H | LG-2: ADR-0025 Accepted; the plugin and design exceptions in `LICENSES/` and the SPDX headers; the merge block lifted | ADR-0025 Proposed; the exception texts are not in `LICENSES/`. The `legal-docs` job's LG-2 merge block enforces NFR-LIC-12 until then | Open | Owner side (project owner; counsel) | Owner |
-| G-M1-20 | H | ADR-0030 Accepted; counsel's opinion on the CRA scope and on the preview's CRA status; the enrolments on track with receipts | ADR-0030 Proposed; no opinion on file; the enrolments of WP-S0.05a (G-M0-17) are not submitted, and their lead time of at least 12 months starts only at submission | Open | Owner side (project owner; counsel) | Owner |
-| G-M1-21 | M | LG-3 clearance report on file, or the rename decision | The search is not commissioned (WP-S0.05a) | Open | Owner side (steward) | Owner (a typical condition, §5.3) |
+| G-M1-18 | H | LG-1 signed by the pilot panel builder and every other employer whose staff merged code | No statement on file; WP-S0.04 not started | Not applicable: dropped by owner ruling 2026-10-22 (ID-454) | Owner side (pilot user; counsel) | Owner |
+| G-M1-19 | H | LG-2: ADR-0025 Accepted; the plugin and design exceptions in `LICENSES/` and the SPDX headers; the merge block lifted | ADR-0025 Proposed; the exception texts are not in `LICENSES/`. The `legal-docs` job's LG-2 merge block enforces NFR-LIC-12 until then | Not applicable: dropped by owner ruling 2026-10-22 (ID-454) | Owner side (project owner; counsel) | Owner |
+| G-M1-20 | H | ADR-0030 Accepted; counsel's opinion on the CRA scope and on the preview's CRA status; the enrolments on track with receipts | ADR-0030 Proposed; no opinion on file; the enrolments of WP-S0.05a (G-M0-17) are not submitted, and their lead time of at least 12 months starts only at submission | Not applicable: dropped by owner ruling 2026-10-22 (ID-454) | Owner side (project owner; counsel) | Owner |
+| G-M1-21 | M | LG-3 clearance report on file, or the rename decision | The search is not commissioned (WP-S0.05a) | Not applicable: dropped by owner ruling 2026-10-22 (ID-454) | Owner side (steward) | Owner (a typical condition, §5.3) |
 | G-M1-22 | M | Signed source tag `m1` with release notes; nightly CLI builds labelled "unsigned development build"; no binary release | No tag, no nightly CLI artefact; no binary has been published (the negative part holds) | Open | Development (FT-299); owner side (signs the tag) | Cn; T |
 | G-M1-23 | M | The pilot's side-by-side review of the generated PDF; the pilot log started; no pilot question open more than two months | Not held; no pilot log; the kick-off has not been held (2 of 12 P1 questions answered: PQ-01, and PQ-02 in part; ID-272). The review judges content, not style (ID-272, ID-340) | Open | Owner side (pilot user, project lead) | Owner |
 | G-M1-24 | H | PD-11 re-plan: the velocity ratio over the spine WPs, `schedule.py` re-run, the AI scenarios retire, levers and PD-14 re-confirmed, PD-3 reconsidered | The cycle-based plan of record has no actual person-weeks to divide by (ID-271); the criterion needs restating (ruling R4) | Open | Owner side (ruling R4) | Ruling; T |
 | G-M1-25 | M | With a two-developer team: the re-scope decision | There is no two-developer team (ID-271) | Not applicable (owner confirms, R4) | Owner side | Ruling |
-| G-M1-26 | M | NLnet proposal 2 submitted; NL-1 … NL-4 evidence archived; WBSO renewal prepared | Nothing on file; the funding plan describes the human-team reference (ID-271) | Open (applicability is ruling R4) | Owner side | Ruling |
+| G-M1-26 | M | NLnet proposal 2 submitted; NL-1 … NL-4 evidence archived; WBSO renewal prepared | Nothing on file; the funding plan describes the human-team reference (ID-271) | Not applicable: no funding is pursued (owner ruling 2026-10-22, ID-453) | Owner side | Ruling |
 | G-M1-27 | S | Landscape re-check against the OSS landscape | Not done | Open (dated plan) | Development (lead) | Pack |
 
 **Counts.** H met 4 of 15 (G-M1-03, -04, -06, -07); 11 open, of which five are owner-side only (G-M1-16, -18, -19,
@@ -186,20 +204,20 @@ Ordered by what they unblock. "Pack" means on file before T − 7 days; statemen
 
 | # | Item | Owner (role) | What exactly the owner must do | Gate relevance | Date rule |
 |---|---|---|---|---|---|
-| O1 | **LG-5** fixture publication consent (DEC-013, PQ-37) | Pilot user, for the pilot panel builder (and its customer if its contract requires) | Sign the written consent that the anonymised technical content of the reference project is published as CC0 ([governance §3.3](../../design/19-open-source-governance.md#33-legal-and-organisational-gates)); file it with the steward (`legal/`, ST-09) | Blocking for G-M0 (H, overdue); a refusal is KT-2 | Owner, now |
-| O2 | **G-M0 decisions**: PD-1, PD-2, PD-3, PD-14; ADR-0027 and ADR-0028 | Project owner; pilot user for the ADRs and PD-14 | Record PD-1 for the cycle-based plan (DEC-001, DEC-081), PD-2 with the pilot (PQ-40), PD-3; hold the PD-14 scope workshop (PQ-53); accept or change ADR-0027 and ADR-0028 (their defaults are in force) | Blocking for G-M0, which precedes G-M1 | Owner |
-| O3 | **LG-1** employer copyright statement (DEC-014, PQ-38) | Pilot user, for the pilot panel builder; counsel reviews the text | Sign the statement with its parts (a) to (e) of governance §3.3, including the coverage of the repository owner's own work; counsel confirms in writing; file with the steward | Blocking (G-M1-18, H; KT-2) | Owner |
-| O4 | **LG-2** exceptions adopted; with it the **ID-383** question | Project owner; counsel | Counsel finalises the plugin-exception and design-exception texts of ADR-0025 and, in the same brief, confirms that the CC-BY-SA-4.0 symbols compiled into the GPL binary are permitted (ID-383; doc 19 §7 row 3 keeps its **verify** mark until then); the owner accepts ADR-0025; development commits the texts to `LICENSES/` and the SPDX headers, and the `legal-docs` merge block lifts by itself | Blocking (G-M1-19, H). ID-383 is a condition for publishing nightly CLI builds (G-M1-22), which distribute that binary | Owner |
-| O5 | **ADR-0030** and the enrolments (PD-7, PD-7a; WP-S0.05a) | Project owner; counsel | Decide the steward form, the CRA role, the support period and the signing identity; obtain counsel's opinion on the CRA scope (SR-14) and on the CRA status of the pilot preview (CP-15); name the phase-1 identity holder and submit D-U-N-S, the Apple Developer Program as an organisation and the Artifact Signing identity validation, keeping the receipts | Blocking (G-M1-20, H); the 12-month enrolment lead time bounds M2 (SR-6) | Owner |
+| O1 | *Dropped by owner ruling 2026-10-22 (ID-454).* **LG-5** fixture publication consent (DEC-013, PQ-37) | Pilot user, for the pilot panel builder (and its customer if its contract requires) | Sign the written consent that the anonymised technical content of the reference project is published as CC0 ([governance §3.3](../../design/19-open-source-governance.md#33-legal-and-organisational-gates)); file it with the steward (`legal/`, ST-09) | None (dropped) | Owner, now |
+| O2 | **G-M0 decisions**: PD-1, PD-2, PD-3, PD-14; ADR-0027 and ADR-0028 | Project owner; pilot user for the ADRs and PD-14 | *PD-1 and PD-3 done on 2026-10-22 (ID-450); PD-2, PD-14 and the ADR acceptances remain.* Record PD-1 for the cycle-based plan (DEC-001, DEC-081), PD-2 with the pilot (PQ-40), PD-3; hold the PD-14 scope workshop (PQ-53); accept or change ADR-0027 and ADR-0028 (their defaults are in force) | Blocking for G-M0, which precedes G-M1 | Owner |
+| O3 | *Dropped by owner ruling 2026-10-22 (ID-454).* **LG-1** employer copyright statement (DEC-014, PQ-38) | Pilot user, for the pilot panel builder; counsel reviews the text | Sign the statement with its parts (a) to (e) of governance §3.3, including the coverage of the repository owner's own work; counsel confirms in writing; file with the steward | None (dropped) | Owner |
+| O4 | *Dropped by owner ruling 2026-10-22 (ID-454).* ID-383 is owner-accepted as a distribution fact; no counsel brief. **LG-2** exceptions adopted; with it the **ID-383** question | Project owner; counsel | Counsel finalises the plugin-exception and design-exception texts of ADR-0025 and, in the same brief, confirms that the CC-BY-SA-4.0 symbols compiled into the GPL binary are permitted (ID-383; doc 19 §7 row 3 keeps its **verify** mark until then); the owner accepts ADR-0025; development commits the texts to `LICENSES/` and the SPDX headers, and the `legal-docs` merge block lifts by itself | None (dropped) | Owner |
+| O5 | *Dropped by owner ruling 2026-10-22 (ID-454).* **ADR-0030** and the enrolments (PD-7, PD-7a; WP-S0.05a) | Project owner; counsel | Decide the steward form, the CRA role, the support period and the signing identity; obtain counsel's opinion on the CRA scope (SR-14) and on the CRA status of the pilot preview (CP-15); name the phase-1 identity holder and submit D-U-N-S, the Apple Developer Program as an organisation and the Artifact Signing identity validation, keeping the receipts | None (dropped) | Owner |
 | O6 | **DEC-034** the BM-class performance runner | Project owner, as steward | Provide a steward-owned BM-class machine, isolated from secrets, registered as a self-hosted runner that runs only `main` and maintainer pull requests labelled `perf` (doc 18 §5.4); development then re-blesses the baseline on it (FT-291) and the nights count | Blocking (G-M1-05, -11, -12, all H) | BM+7 |
-| O7 | **Second code owner** (NFR-MAINT-07) | Project owner | Name a second accountable maintainer for `ew-memo`, the `Op` set, `ew-format` and `ew-derive`, added to `CODEOWNERS` by handle; or take ruling R5's fallback | Blocking (G-M1-16, H) | Owner |
+| O7 | *Removed by owner ruling 2026-10-22: a second named owner is not required (ID-452).* **Second code owner** (NFR-MAINT-07) | Project owner | Name a second accountable maintainer for `ew-memo`, the `Op` set, `ew-format` and `ew-derive`, added to `CODEOWNERS` by handle; or take ruling R5's fallback | None (removed) | Owner |
 | O8 | **FT-10** the first PNG approval | Pilot user | Review the PNG candidates of `golden/J-E-2416/expected/png/`, checking VR-01 (coil against resistor) and VR-02 (the changeover contact's hook); accept the known gaps of the golden README ("Known gaps for the FT-10 approval": the provisional router's overlapping routes on 101, 102, 103 and 106) as listed deviations or name the pages to wait for the router; development blesses the approved set and runs the raster comparison | Blocking with FT-294 (G-M1-02, H: AC-02's raster row) | Owner |
 | O9 | **Golden acknowledgement** and the pilot having seen the tables | Pilot user | Acknowledge the golden-table change list (FT-300), including FT-29, FT-40 and FT-63 (PD-15), and confirm having seen the tables | Condition (G-M1-09); entry criterion E3 | Owner |
 | O10 | **The pilot's P1 and P2 answers** ([decision log Part C](../06-decision-log.md#42-the-kick-off-agenda-all-p1-questions)) | Pilot user, at the kick-off (WP-S0.08) | Answer the ten open P1 questions (PQ-31, PQ-37 to PQ-42, PQ-53, PQ-06, PQ-07; PQ-01 is answered and PQ-02 in part, ID-272) and the 19 P2 questions, which freeze goldens and defaults; answers are recorded without names (§4.4 of the log) | P1: blocking through O1 to O3 and G-M0; P2: condition (G-M1-23's "no question open more than two months" starts counting when they are asked) | Owner |
 | O11 | **Side-by-side review** and the pilot log | Pilot user with the project lead | Compare the generated PDF with the reference set; the intended deviations are those of golden §3.4, and the pilot's drawings are the content target, never a hard comparison of style (ID-272, ID-340); start the pilot log | Condition (G-M1-23) | Owner |
 | O12 | **FT-284** `docs-book` as a required check; branch protection | Repository owner | The first `docs-book` run on `main` is green (2026-10-22, docs run 39706671506, FT-283 closed): add `docs-book` to the required status checks of `main`; confirm the protection rules of doc 18 §5.4 | Condition (CI-PR-10's docs part; G-M0-04's branch protection) | Owner |
-| O13 | **LG-3** trademark clearance search | Steward | Commission the TMview, EUIPO eSearch and BOIP search (classes 9 and 42) and the domain check; file the report | Condition (G-M1-21) | Owner |
-| O14 | **PD-11** re-plan, G-M1-25 and G-M1-26 | Project owner | Take ruling R4 and, at T, the re-plan decision it defines | Blocking (G-M1-24, H) | Ruling; T |
+| O13 | *Dropped by owner ruling 2026-10-22 (ID-454).* **LG-3** trademark clearance search | Steward | Commission the TMview, EUIPO eSearch and BOIP search (classes 9 and 42) and the domain check; file the report | None (dropped) | Owner |
+| O14 | **PD-11** re-plan, G-M1-25 and G-M1-26 | Project owner | *G-M1-26 not applicable: no funding is pursued (ID-453); the PD-11 re-plan of G-M1-24 remains, at T.* Take ruling R4 and, at T, the re-plan decision it defines | Blocking (G-M1-24, H) | Ruling; T |
 | O15 | **FT-281** Weblate project; **FT-285** website | A maintainer (FT-281); project owner (FT-285) | Create the Weblate project for the guide and the UI strings; commission the website with the download and privacy pages | Follow-up: FT-281 is due before the Dutch tutorials (MVP), FT-285 before the first public download (M-PP) | Their own dues |
 | O16 | **The generated pages' licence** (ID-403) | — | Nothing: the owner ruled the generated reference pages GPL-3.0-or-later; recorded here so that the counsel brief of O4 does not reopen it | None | — |
 
@@ -233,7 +251,8 @@ delivered concurrently by lanes A and B and are confirmed at that delivery.
 ## 7. What is not ready
 
 - **The legal basis.** None of LG-1, LG-2, LG-5 or ADR-0030 is on file; ADR-0025 and ADR-0030 are Proposed; no
-  enrolment is submitted. Nothing on this list moves at the cycle pace, and LG-5 is overdue.
+  enrolment is submitted. Nothing on this list moves at the cycle pace, and LG-5 is overdue. *(Owner ruling
+  2026-10-22, ID-454: no longer gate items.)*
 - **The performance proof.** No BM-class runner exists; G-SP's re-test has not been run since the recycle; the
   nightly gate is report-only on class S. AC-17, G-M1-11 and G-M1-12 are hard criteria without a measurement.
 - **The CI set that the gate names.** Of the jobs §8.5 of the gates requires at G-M1 beyond G-M0's, CI-PR-05, CI-PR-06,
@@ -243,7 +262,8 @@ delivered concurrently by lanes A and B and are confirmed at that delivery.
   not exist.
 - **The pilot's part.** No PNG approval, no golden acknowledgement, no side-by-side review, no kick-off: the pilot's
   answers and approvals, not the engineering, are the acceptance truth (§3.1 of the gates).
-- **Ownership.** One named code owner for the critical crates.
+- **Ownership.** One named code owner for the critical crates. *(Owner ruling 2026-10-22, ID-452: a second named
+  owner is not required.)*
 - **The re-plan.** G-M1-24 asks for a velocity ratio in person-weeks that the cycle-based plan does not produce.
 - **G-M0** has not been held.
 - **D-06's property grid** does not exist and cannot before the UI of M-PP; as gated today it is a hard failure at a
@@ -254,17 +274,17 @@ delivered concurrently by lanes A and B and are confirmed at that delivery.
 | # | Ruling asked | Recommendation | Trade-off | Ruling (2026-10-22) | Record |
 |---|---|---|---|---|---|
 | R1 | D-06's property-grid half | Split D-06 like AC-18 and AC-14: its headless entries stay at G-M1, the property-grid entry (FR-UI-009) moves to G-M2 with AC-18 (GUI); edit §8.2 of the gates and re-run `trace.py` | A UI check leaves a headless gate, against keeping a criterion that no headless build can meet; nothing is dropped, the entry still gates before the first release | Accepted (delegated): §8.2 and G-M1-08 edited, `trace.py` regenerated, doc 20 §22 aligned; the runner's gate for the entry is code side, applied at the cycle-17 delivery | ID-422 |
-| R2 | The date rule of §9 | Adopt | A content-triggered gate, against the §3.3 calendar that assumes a known milestone date | Adopted (delegated); the project owner confirms or amends at G-M0; written into §3.3 of the gates | ID-421 |
+| R2 | The date rule of §9 | Adopt | A content-triggered gate, against the §3.3 calendar that assumes a known milestone date | Adopted (delegated); adopted by the project owner on 2026-10-22 (ID-451); written into §3.3 of the gates | ID-421, ID-451 |
 | R3 | G-M0 before G-M1 | Hold G-M0 as soon as O1 and O2 are done; combine only if both are ready together | One more meeting, against a G-M1 that inherits G-M0's open items | Accepted (delegated) | ID-421 |
-| R4 | G-M1-24, -25 and -26 under the cycle-based plan | Restate G-M1-24 as: the cycle-based forecast of M-PP and M2 by content, with the owner-side lead times, replaces the AI scenarios, which retire; the human-team reference stays as reference; levers (a) to (c) and PD-14 are re-confirmed. G-M1-25 not applicable. G-M1-26: the owner states whether any funding is pursued; if none, not applicable | The criterion keeps its intent (a re-based, single plan of record) without inventing person-week actuals | Accepted (delegated): G-M1-24 restated in §5.3; G-M1-25 not applicable; G-M1-26 open until the owner states whether funding is pursued | ID-423 |
-| R5 | G-M1-16, the second code owner | Name a second accountable maintainer. Fallback: amend G-M1-16 so that the independent lane reviews count for the review half and the second named owner becomes a G-M2 hard criterion, with R-014 re-scored | The bus factor of the core is real whoever writes the code; the fallback defers it to before the first signed release | Not ruled by delegation: G-M1-16 stays as written; the fallback is an option for the project owner, not a ruling | ID-424 |
+| R4 | G-M1-24, -25 and -26 under the cycle-based plan | Restate G-M1-24 as: the cycle-based forecast of M-PP and M2 by content, with the owner-side lead times, replaces the AI scenarios, which retire; the human-team reference stays as reference; levers (a) to (c) and PD-14 are re-confirmed. G-M1-25 not applicable. G-M1-26: the owner states whether any funding is pursued; if none, not applicable | The criterion keeps its intent (a re-based, single plan of record) without inventing person-week actuals | Accepted (delegated): G-M1-24 restated in §5.3; G-M1-25 not applicable; G-M1-26 not applicable since the owner ruled on 2026-10-22 that no funding is pursued (ID-453) | ID-423, ID-453 |
+| R5 | G-M1-16, the second code owner | Name a second accountable maintainer. Fallback: amend G-M1-16 so that the independent lane reviews count for the review half and the second named owner becomes a G-M2 hard criterion, with R-014 re-scored | The bus factor of the core is real whoever writes the code; the fallback defers it to before the first signed release | Not ruled by delegation; closed by the owner on 2026-10-22: not required (ID-452) | ID-424, ID-452 |
 | R6 | Where gate records live (open question 3 of the gates) | `docs/plan/gate-records/`, as this run does | A dated folder beside the standing documents | Accepted (delegated); open question 3 of the gates resolved | ID-419 |
 | R7 | FT-87, FT-88, FT-89, FT-91, FT-92 | Re-date them from "before M1" to "before G-PP": the pilot's first interactive use is where recovery and lenient opening matter, and no G-M1 criterion names them | The reliability work moves behind the headless gate, against holding G-M1 for work it does not check | Accepted (delegated): the five tasks re-dated to before G-PP in Appendix B (FT-89 keeps the lane-B extension) | ID-425 |
 | R8 | The new tasks FT-294 to FT-301 | Accept them into Appendix B with the hosts and dues given | — | Accepted (delegated) | ID-425 |
 
 ## 9. The proposed date rule
 
-*Decision log ID-421 (open: the project owner adopts or amends it).*
+*Decision log ID-421 (adopted by the project owner on 2026-10-22, ID-451).*
 
 1. **Trigger.** G-M1 is held (T) within two weeks after the later of: (a) the cycle delivery at which a repeated
    readiness run finds no development-side H criterion open and at most three M criteria open, each closable within

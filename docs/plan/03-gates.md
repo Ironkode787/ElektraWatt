@@ -1,6 +1,6 @@
 # Gates
 
-**Status:** Draft v0.5 · **Date:** 2026-10-22 (v0.5: the G-M1 readiness rulings: D-06 split between G-M1 and G-M2 (§8.2, G-M1-08), G-M1-24 restated and G-M1-25 not applicable under the cycle-based plan, the cycle-based date rule (§3.3), open question 3 resolved, decision log ID-419 to ID-423; v0.4: the blind drafter at G-PP and G-M2, WP-S6.13 in M-PP and the 1.0 month of the plan of record, decision log ID-341, ID-342; the Golden A info total; v0.3: the G-SP gate record of 2026-10-20 and the re-forecast) · **Part of:** ElektraWatt plan
+**Status:** Draft v0.6 · **Date:** 2026-10-22 (v0.6: the owner rulings of 2026-10-22: PD-1 and PD-3 decided (G-M0-01, -02 met), the date rule adopted by the owner, G-M1-16 amended (no second named owner), G-M1-26 not applicable (no funding), the legal and licensing items retired as gate criteria (G-M0-08, -09, -10, -17, G-M1-18 to -21, G-M2-18, -19, G-M5-11 in part, G-M6-12, -13, KT-2, KT-6 in part; §4.3, §8.4), decision log ID-450 to ID-455; v0.5: the G-M1 readiness rulings: D-06 split between G-M1 and G-M2 (§8.2, G-M1-08), G-M1-24 restated and G-M1-25 not applicable under the cycle-based plan, the cycle-based date rule (§3.3), open question 3 resolved, decision log ID-419 to ID-423; v0.4: the blind drafter at G-PP and G-M2, WP-S6.13 in M-PP and the 1.0 month of the plan of record, decision log ID-341, ID-342; the Golden A info total; v0.3: the G-SP gate record of 2026-10-20 and the re-forecast) · **Part of:** ElektraWatt plan
 
 **Purpose.** This document defines the gate system of ElektraWatt (EW): the decision points G-M0 … G-M6 and the
 light gate G-PP of the pilot preview, aligned with the milestones M0 … M6 and M-PP of the
@@ -417,8 +417,8 @@ flowchart LR
 | Record and forecast | T + 2 weeks | Gate record; forecast of the next two milestones; risk register; `ROADMAP.md` | Project lead |
 | Conditions | T + 4 weeks at the latest | Each condition closed and re-checked by the chair; an unclosed condition turns the outcome into *recycle* | Condition owners |
 
-**Under the cycle-based plan of record** (decision log ID-271; the date rule of ID-421, adopted by delegated ruling
-2026-10-22, which the project owner confirms or amends at G-M0). A gate is held within two weeks after the later of
+**Under the cycle-based plan of record** (decision log ID-271; the date rule of ID-421, adopted by the project owner on
+2026-10-22, ID-451). A gate is held within two weeks after the later of
 (a) the cycle delivery at which a repeated readiness run finds no development-side H criterion open and at most three
 M criteria open, each closable within four weeks, and (b) the day the last owner-side H item is on file (for a
 criterion that needs seven green nights, at the earliest the seventh). The readiness run repeats as a delta at every
@@ -540,28 +540,35 @@ Two correction rules complement the ratio:
 
 Everything below must be *closed* by the gate in the column "Due". "Status" is today (2026-10-18).
 
+**Owner rulings of 2026-10-22** (decision log ID-450 to ID-454): PD-1 and PD-3 are decided; the legal and licensing
+items (LG-1 to LG-6, ADR-0025 and ADR-0030 with counsel, the enrolments and the trademark search as gate items) are
+no longer gate items, in the owner's words: "Regarding all the licensing, and legal items, this is no longer
+relevant." Their rows below are kept as the record of what the gates carried. The signing identities that sign
+release binaries stay a release item of WP-S6.07; the repository's licence rules (REUSE, the licence map, the
+permissive/GPL boundary) are unchanged.
+
 | Item | Status today | Due | Remark |
 |---|---|---|---|
-| **PD-1** adopt the plan of record (3 developers, lean scope; conservative baseline external, AI-moderate internal target only) | Open | G-M0 | Includes the gate system and the §4.2 triggers (DEC-001, DEC-081) |
+| **PD-1** adopt the plan of record (3 developers, lean scope; conservative baseline external, AI-moderate internal target only) | **Decided 2026-10-22** by the project owner: the cycle-based plan of record; the human-team months stay a reference only (ID-450) | G-M0 | Includes the gate system and the §4.2 triggers (DEC-001, DEC-081) |
 | **PD-2** lever (b), QET project migration after the MVP | Open | G-M0 | Asked at the pilot kick-off and confirmed in the pre-G-M0 workshop (CP-14) |
 | **PD-14** M-PP scope and the triage of the MVP Must rows, with the pilot | Open | G-M0 | Pre-G-M0 workshop (CP-14); fixes the G-PP folios; feeds DS-7 (DEC-082) |
-| **PD-3** developer 4 and its funding | Open | G-M0 (decided by month 2) | A "no" is a decision; it moves the plan to the 3-developer dates |
+| **PD-3** developer 4 and its funding | **Decided 2026-10-22**: no developer 4 (ID-450) | G-M0 (decided by month 2) | A "no" is a decision; it moves the plan to the 3-developer dates |
 | **ADR-0027** native grid and QET grid policy (PD-4) | Proposed | G-M0 | Recommendation: 4 mm |
 | **ADR-0028** default drawing fonts (PD-5) | Proposed | G-M0 | Recommendation: Noto Sans |
-| **LG-5** fixture publication consent | Overdue ("now") | G-M0 | The anonymised content is already public in `docs/` |
-| **LG-1** employer copyright statement | Open | G-M0 target; **G-M1 hard**; re-verified at G-M2 | Also needed for WBSO ownership clarity; every other employer before their first merge |
-| **PD-7a** ADR-0030 part 1: the phase-1 identity holder, so that signing enrolment can start | Open | G-M0 (first 90 days) | Enrolment submitted by WP-S0.05a (CP-06) |
+| **LG-5** fixture publication consent | Not a gate item (owner ruling 2026-10-22, ID-454) | G-M0 | The anonymised content is already public in `docs/` |
+| **LG-1** employer copyright statement | Not a gate item (owner ruling 2026-10-22, ID-454) | G-M0 target; **G-M1 hard**; re-verified at G-M2 | Also needed for WBSO ownership clarity; every other employer before their first merge |
+| **PD-7a** ADR-0030 part 1: the phase-1 identity holder, so that signing enrolment can start | Not a gate item (owner ruling 2026-10-22, ID-454) | G-M0 (first 90 days) | Enrolment submitted by WP-S0.05a (CP-06) |
 | **PD-8** performance spike go/fallback | **Closed 2026-10-20: Recycle** | G-SP | Closed by ADR-0002 amendment 4 (decision log ID-218); the re-test follows the recycle |
-| **ADR-0025** plugin exception wording (PD-6, LG-2) | Proposed | G-M1 (before the first non-maintainer merge) | Counsel drafts; engage in the first 90 days |
-| **ADR-0030** steward, CRA role, support, signing (PD-7, LG-4 decision) | Proposed | G-M1 | Part 1 (identity holder, PD-7a) in the first 90 days; enrolment submitted by WP-S0.05a (CP-06) |
-| **LG-3** trademark clearance | Open | Search commissioned at G-M0 (WP-S0.05a); report at G-M1; closed at G-M2; word mark filed by G-M6 | Before any public announcement or logo spend |
+| **ADR-0025** plugin exception wording (PD-6, LG-2) | Not a gate item (owner ruling 2026-10-22, ID-454) | G-M1 (before the first non-maintainer merge) | Counsel drafts; engage in the first 90 days |
+| **ADR-0030** steward, CRA role, support, signing (PD-7, LG-4 decision) | Not a gate item (owner ruling 2026-10-22, ID-454) | G-M1 | Part 1 (identity holder, PD-7a) in the first 90 days; enrolment submitted by WP-S0.05a (CP-06) |
+| **LG-3** trademark clearance | Not a gate item (owner ruling 2026-10-22, ID-454) | Search commissioned at G-M0 (WP-S0.05a); report at G-M1; closed at G-M2; word mark filed by G-M6 | Before any public announcement or logo spend |
 | **PD-11** G-M1 re-plan | – | G-M1 | Measured velocity replaces baseline and AI-moderate target; confirmation of lever (c) |
 | **ADR-0029** network, telemetry, crash reporting (PD-9) | Proposed | Month 37 (CP-07); at the latest G-M2 | Zero by default |
 | **ADR-0007** autoconnect validation (PD-10) | Accepted, to be validated | G-M2 | By R1; R0 on the preview build (G-PP) gives early evidence |
-| **LG-4** steward, identity, repository organisation | Open | G-M2 (hard) | Hard gate before the first signed release (NFR-SEC-12) |
+| **LG-4** steward, identity, repository organisation | Not a gate item (owner ruling 2026-10-22, ID-454) | G-M2 (hard) | Hard gate before the first signed release (NFR-SEC-12) |
 | **PD-12** further descoping | – | Any gate | Ladder DS-4 onwards |
-| **LG-6** steward review | Event-driven | Checked at G-M5; held at G-M6 at the latest | Trigger: more than 3 regular external contributors, more than 50k euro income a year, or 1.0 |
-| **PD-13** phase-2 steward | – | G-M6 | |
+| **LG-6** steward review | Not a gate item (owner ruling 2026-10-22, ID-454) | Checked at G-M5; held at G-M6 at the latest | Trigger: more than 3 regular external contributors, more than 50k euro income a year, or 1.0 |
+| **PD-13** phase-2 steward | Not a gate item (owner ruling 2026-10-22, ID-454) | G-M6 | |
 
 **After G-M2 no ADR remains in the state Proposed.** ADR-0027 and ADR-0028 close at G-M0, ADR-0025 and ADR-0030 at G-M1,
 ADR-0029 at the latest at G-M2. A new ADR proposed later carries its own due gate in the decision log.
@@ -697,23 +704,23 @@ session) on the [spike report](../research/spike-g-sp-2026-10.md) and its indepe
 
 | ID | Type | Criterion | Evidence |
 |---|---|---|---|
-| G-M0-01 | H | **PD-1 recorded**: plan of record (team size, scope lean or full, dates with the ±20 % band, the gate system of this document and the triggers of §4.2) adopted in writing, with the conservative baseline as the external plan and the AI-moderate scenario as the internal target only (DEC-081); levers (b) and (c) decided; if lever (c) is taken, the vision §9 and catalogue edits are merged by their editors | Decision record; merged PRs |
-| G-M0-02 | H | **PD-3 recorded**: developer 4 yes, no or not before a stated month, with the funding route. A "no" moves the plan to the 3-developer dates; a "yes" has a start date and a profile (physical and 3D developer who becomes the second core owner) | Decision record |
+| G-M0-01 | H | **Met 2026-10-22**: the project owner adopted the cycle-based plan of record; the human-team months stay a reference only (decision log ID-450). *Original wording:* **PD-1 recorded**: plan of record (team size, scope lean or full, dates with the ±20 % band, the gate system of this document and the triggers of §4.2) adopted in writing, with the conservative baseline as the external plan and the AI-moderate scenario as the internal target only (DEC-081); levers (b) and (c) decided; if lever (c) is taken, the vision §9 and catalogue edits are merged by their editors | Decision record; merged PRs |
+| G-M0-02 | H | **Met 2026-10-22**: the project owner recorded that there is no developer 4 (decision log ID-450). *Original wording:* **PD-3 recorded**: developer 4 yes, no or not before a stated month, with the funding route. A "no" moves the plan to the 3-developer dates; a "yes" has a start date and a profile (physical and 3D developer who becomes the second core owner) | Decision record |
 | G-M0-03 | H | **PD-2 recorded**: lever (b) confirmed with the pilot, who states that their first EW projects are new projects | Pilot kick-off minutes |
 | G-M0-04 | H | Per-PR CI runs green on Linux, Windows and macOS: CI-PR-01 lint, CI-PR-02 test-linux, CI-PR-03 test-windows, CI-PR-04 test-macos, CI-PR-09 supply-chain, CI-PR-10 legal-docs, CI-PR-15 docs-diagrams; wall time ≤ 30 min (NFR-MAINT-05); committed `Cargo.lock` and pinned toolchain (NFR-SEC-10) | CI run on `main`; branch protection settings |
 | G-M0-05 | H | **Licence boundary demonstrated**: a test PR that adds a GPL dependency to a permissive crate fails CI-PR-09 on all three OSes; `reuse lint` is clean (NFR-LIC-01, NFR-LIC-02); the DCO check is active (NFR-LIC-03); `cargo-deny` allowlist and licence map in place (NFR-LIC-04) | Failing and fixed PR links; CI log |
 | G-M0-06 | H | **Anonymisation guard active** in CI-PR-10: the hashed token list of NFR-PRIV-09 is committed and a seeded violation fails the build | CI log |
 | G-M0-07 | H | **ADR-0027 and ADR-0028 Accepted** (PD-4, PD-5), decided by the pilot user after consulting two EPLAN users; the starter symbol set and text stack work from the decisions | ADR status; consultation record |
-| G-M0-08 | H | **LG-5 signed**: the pilot panel builder (and its customer if its contract requires) consent in writing to publication of the anonymised technical content of the reference project as CC0. It is overdue because the content is already public | Statement on file (ST-09) |
-| G-M0-09 | M | **LG-1**: the employer statement is signed; or counsel has reviewed the final text and a signing date no later than G-M1 is set. LG-1 is a hard gate at G-M1 | Statement on file, or counsel's review and date |
-| G-M0-10 | M | Counsel engaged for ADR-0025 (LG-2), ADR-0030 (LG-4) and the CRA status of a pilot-only preview (CP-15); the trademark clearance search (LG-3) is commissioned (WP-S0.05a) | Engagement confirmation; search order |
+| G-M0-08 | H | **Not applicable** (owner ruling 2026-10-22, decision log ID-454: legal and licensing items are no longer gate items). *Original wording:* **LG-5 signed**: the pilot panel builder (and its customer if its contract requires) consent in writing to publication of the anonymised technical content of the reference project as CC0. It is overdue because the content is already public | Statement on file (ST-09) |
+| G-M0-09 | M | **Not applicable** (owner ruling 2026-10-22, decision log ID-454: legal and licensing items are no longer gate items). *Original wording:* **LG-1**: the employer statement is signed; or counsel has reviewed the final text and a signing date no later than G-M1 is set. LG-1 is a hard gate at G-M1 | Statement on file, or counsel's review and date |
+| G-M0-10 | M | **Not applicable** (owner ruling 2026-10-22, decision log ID-454: legal and licensing items are no longer gate items). *Original wording:* Counsel engaged for ADR-0025 (LG-2), ADR-0030 (LG-4) and the CRA status of a pilot-only preview (CP-15); the trademark clearance search (LG-3) is commissioned (WP-S0.05a) | Engagement confirmation; search order |
 | G-M0-11 | M | **Pilot kick-off held** (WP-S0.08): interviews on AS-1 … AS-3; request for the original `.qet` files and further projects (AS-4) under a private-CI agreement; project-size data of the three largest projects received (CP-03); the golden §23.2 questions handed over; the QET baseline timing of two reference-size projects agreed for SC-3; monthly pilot review in the calendar; a pilot liaison named | Kick-off minutes; private corpus index |
 | G-M0-12 | M | Funding: the WBSO application for 2027 is filed by the employer (deadline **verify**); NLnet proposal 1 is submitted or has a dated call | Filing confirmation; proposal reference |
-| G-M0-13 | M | Ownership prepared: `CODEOWNERS` drafted with a second owner named for `ew-memo`, the `Op` set, `ew-format` and `ew-derive` (NFR-MAINT-07); the first schema steward is named; the synthetic L/XL fixture generator is designed so that the spike can run (G-SP entry) | `CODEOWNERS`; design note |
+| G-M0-13 | M | *The second named owner is not required (owner ruling 2026-10-22, decision log ID-452); the rest of the criterion stands.* Ownership prepared: `CODEOWNERS` drafted with a second owner named for `ew-memo`, the `Op` set, `ew-format` and `ew-derive` (NFR-MAINT-07); the first schema steward is named; the synthetic L/XL fixture generator is designed so that the spike can run (G-SP entry) | `CODEOWNERS`; design note |
 | G-M0-14 | M | First velocity report: WP-S0.01, WP-S0.02 and WP-S1.01 actual against estimate; risk register SR-1 … SR-14 on the board with owners | Velocity report; board |
 | G-M0-15 | S | Progress notes: the monthly progress note exists and states the forecast with the ±20 % band | Project site |
 | G-M0-16 | M | **PD-14 recorded**: the pre-G-M0 scope workshop (CP-14) is held; the triage of the MVP Must rows into "needed for the pilot's first three new projects", "needed later" and "never" is on file as a decision record; the M-PP scope of [global plan §5.3](01-global-plan.md#53-pilot-preview-m-pp-and-gate-g-pp) and the G-PP folios are confirmed or amended; the record is the input of DS-7 | Workshop record; decision record (DEC-082) |
-| G-M0-17 | M | **Signing enrolment submitted** (WP-S0.05a, PD-7a): the phase-1 identity holder is named; D-U-N-S, the Apple Developer Program as an organisation and the Artifact Signing identity validation are submitted; the SignPath fallback is noted. The 12-month lead time starts here (CP-06, SR-6) | Submission receipts on file (cited, not copied) |
+| G-M0-17 | M | **Not applicable as a gate item** (owner ruling 2026-10-22, decision log ID-454); the signing enrolments needed to sign release binaries move to WP-S6.07 as a later release item. *Original wording:* **Signing enrolment submitted** (WP-S0.05a, PD-7a): the phase-1 identity holder is named; D-U-N-S, the Apple Developer Program as an organisation and the Artifact Signing identity validation are submitted; the SignPath fallback is noted. The 12-month lead time starts here (CP-06, SR-6) | Submission receipts on file (cited, not copied) |
 
 **Open decisions closed by G-M0.** PD-1, PD-2, PD-3, PD-4, PD-5, PD-7a, PD-14; LG-5; LG-1 at least dated.
 
@@ -780,17 +787,17 @@ which at month 3 costs little.
 
 | ID | Type | Criterion | Evidence |
 |---|---|---|---|
-| G-M1-16 | H | **NFR-MAINT-07**: two named owners in `CODEOWNERS` for `ew-memo`, the `Op` set, `ew-format` and `ew-derive`; each lane's developer has reviewed the other lane's core crates ([architecture §15.1](../design/04-architecture.md#151-the-spine-two-lanes-from-day-one)) | `CODEOWNERS`; review statistics |
+| G-M1-16 | H | **Amended by the project owner on 2026-10-22** (decision log ID-452): a second named owner in `CODEOWNERS` is **not required**; the independent review of every cycle lane covers the review half; NFR-MAINT-07's second owner and risk R-014 are accepted by the owner. The criterion is not applicable at G-M1. *Original wording:* **NFR-MAINT-07**: two named owners in `CODEOWNERS` for `ew-memo`, the `Op` set, `ew-format` and `ew-derive`; each lane's developer has reviewed the other lane's core crates ([architecture §15.1](../design/04-architecture.md#151-the-spine-two-lanes-from-day-one)) | `CODEOWNERS`; review statistics |
 | G-M1-17 | M | The JSON Schemas of `ew-schema` are generated from code and published; the permissive crates deny missing docs (NFR-MAINT-08); the permissive-only sample reader reads and validates Golden A (prerequisite of SC-11); the schema-steward rotation has had one handover and every format change carried migration, fixture and regenerated schemas (GV-04) | CI-PR-02, CI-PR-10; steward log |
 
 *Legal, governance and release posture*
 
 | ID | Type | Criterion | Evidence |
 |---|---|---|---|
-| G-M1-18 | H | **LG-1** signed by the pilot panel builder, and by every other employer whose staff merged code. This is the hard gate before any external contribution is merged and before the first binary release (NFR-LIC-11) | Statements on file (ST-09); counsel's confirmation |
-| G-M1-19 | H | **LG-2**: ADR-0025 Accepted; the plugin exception and the design exception are in `LICENSES/` and in the SPDX headers of the affected paths; the CI-PR-10 merge block for non-maintainer PRs is lifted. No non-maintainer PR is merged before this holds (NFR-LIC-12) | ADR status; CI-PR-10; counsel's confirmation |
-| G-M1-20 | H | **ADR-0030 Accepted** (PD-7): steward form, CRA role, support period and signing identity are decided; counsel's opinion on the CRA scope (SR-14) and on the CRA status of the pilot preview (CP-15) is on file; the enrolments submitted in the first 90 days (CP-06, G-M0-17) are on track, with receipts on file and calendar dates for the completion of WP-S0.05 (SR-6) | ADR status; opinion on file; plan |
-| G-M1-21 | M | **LG-3**: the clearance report (TMview, EUIPO eSearch, BOIP; Nice classes 9 and 42; a domain check) is on file with no conflict, or the rename decision is taken. Required before opening GitHub Discussions or any public announcement | Report on file |
+| G-M1-18 | H | **Not applicable** (owner ruling 2026-10-22, decision log ID-454: legal and licensing items are no longer gate items). *Original wording:* **LG-1** signed by the pilot panel builder, and by every other employer whose staff merged code. This is the hard gate before any external contribution is merged and before the first binary release (NFR-LIC-11) | Statements on file (ST-09); counsel's confirmation |
+| G-M1-19 | H | **Not applicable** (owner ruling 2026-10-22, decision log ID-454: legal and licensing items are no longer gate items). *Original wording:* **LG-2**: ADR-0025 Accepted; the plugin exception and the design exception are in `LICENSES/` and in the SPDX headers of the affected paths; the CI-PR-10 merge block for non-maintainer PRs is lifted. No non-maintainer PR is merged before this holds (NFR-LIC-12) | ADR status; CI-PR-10; counsel's confirmation |
+| G-M1-20 | H | **Not applicable** (owner ruling 2026-10-22, decision log ID-454: legal and licensing items are no longer gate items). *Original wording:* **ADR-0030 Accepted** (PD-7): steward form, CRA role, support period and signing identity are decided; counsel's opinion on the CRA scope (SR-14) and on the CRA status of the pilot preview (CP-15) is on file; the enrolments submitted in the first 90 days (CP-06, G-M0-17) are on track, with receipts on file and calendar dates for the completion of WP-S0.05 (SR-6) | ADR status; opinion on file; plan |
+| G-M1-21 | M | **Not applicable** (owner ruling 2026-10-22, decision log ID-454: legal and licensing items are no longer gate items). *Original wording:* **LG-3**: the clearance report (TMview, EUIPO eSearch, BOIP; Nice classes 9 and 42; a domain check) is on file with no conflict, or the rename decision is taken. Required before opening GitHub Discussions or any public announcement | Report on file |
 | G-M1-22 | M | The signed source tag `m1` exists with release notes; nightly CLI builds carry the label "unsigned development build"; no binary release has been published | Tag; nightly artefact label |
 | G-M1-23 | M | Pilot: the side-by-side review of the generated PDF with the reference set is held (deviations are the intended ones of golden §3.4); the pilot log has started; no pilot question has been open for more than two months | Review minutes; pilot log |
 
@@ -800,7 +807,7 @@ which at month 3 costs little.
 |---|---|---|---|
 | G-M1-24 | H | **PD-11 re-plan done** (restated for the cycle-based plan of record, decision log ID-271, ID-423): the cycle-based forecast of M-PP and M2 by content, with the owner-side lead times, replaces the AI scenarios, which retire, and becomes the single plan of record; the human-team reference of §2.2 stays as reference; levers (a), (b), (c) are re-confirmed or revised; the M-PP scope and the G-PP folios are re-confirmed with the pilot (PD-14); the plan is republished. *The original wording (a velocity ratio in person-weeks over the spine WPs, clamped 0.6 – 1.5, `schedule.py` re-run with the remaining estimates divided by it) applies again only if a human team takes over* | Forecast (GP-05); updated global plan |
 | G-M1-25 | M | With a two-developer team: the re-scope decision of [global plan open question 8](01-global-plan.md#open-questions) is taken (§2.3). *Not applicable under the cycle-based plan of record* (decision log ID-423) | Decision record |
-| G-M1-26 | M | Funding: NLnet proposal 2 is submitted; the milestone evidence for NL-1 … NL-4 is archived; WBSO renewal for the next year is prepared | Proposal reference; evidence index |
+| G-M1-26 | M | **Not applicable** (owner ruling 2026-10-22, decision log ID-453: no funding is pursued; the funding plan of the global plan §13 is a reference only). *Original wording:* Funding: NLnet proposal 2 is submitted; the milestone evidence for NL-1 … NL-4 is archived; WBSO renewal for the next year is prepared | Proposal reference; evidence index |
 | G-M1-27 | S | Landscape re-check against [oss-landscape](../research/oss-landscape.md): no other open project has delivered the differentiators of the MVP (derived data, previewed renumbering, check packs) | Note in the pack |
 
 **Open decisions closed by G-M1.** PD-6/ADR-0025 (LG-2), PD-7/ADR-0030, PD-8 (already), PD-11; LG-1 signed; LG-3
@@ -925,8 +932,8 @@ plan; the re-forecast of G-M2 … G-M6; the one-row gate record.
 
 | ID | Type | Criterion | Evidence |
 |---|---|---|---|
-| G-M2-18 | H | **LG-1** statements on file for every employer whose staff contributed since G-M1 (re-verified); **LG-3** closed: the clearance report is on file with no conflict | Statements; report |
-| G-M2-19 | H | **LG-4**: the steward exists as a legal person and holds the signing identity (Artifact Signing for an EU organisation; Apple Developer Program enrolment as an organisation; the SignPath Foundation programme is the documented Windows fallback, eligibility **verify**); the repository is in a GitHub organisation controlled by the steward with at least two owners and no release secret depends on a personal account (NFR-COMP-08); the steward checklist **ST-01 … ST-10** is complete with evidence (RC-10) | Counsel's and steward's confirmation; checklist |
+| G-M2-18 | H | **Not applicable** (owner ruling 2026-10-22, decision log ID-454: legal and licensing items are no longer gate items). *Original wording:* **LG-1** statements on file for every employer whose staff contributed since G-M1 (re-verified); **LG-3** closed: the clearance report is on file with no conflict | Statements; report |
+| G-M2-19 | H | **Not applicable as a legal gate** (owner ruling 2026-10-22, decision log ID-454); what remains is a release item of WP-S6.07: the signing identities that sign the release binaries exist and are usable by CI. *Original wording:* **LG-4**: the steward exists as a legal person and holds the signing identity (Artifact Signing for an EU organisation; Apple Developer Program enrolment as an organisation; the SignPath Foundation programme is the documented Windows fallback, eligibility **verify**); the repository is in a GitHub organisation controlled by the steward with at least two owners and no release secret depends on a personal account (NFR-COMP-08); the steward checklist **ST-01 … ST-10** is complete with evidence (RC-10) | Counsel's and steward's confirmation; checklist |
 
 *Usability, documentation and pilot*
 
@@ -1089,7 +1096,7 @@ that folio 907 shows; moving -102G1 marks lengths stale; the `.ewpp` rows equal 
 | G-M5-08 | M | **R2 preparation**: protocol, fixture GP-UT (`variants/gp-ut.ewcmd`), recruitment of at least 5 participants (≥ 2 EPLAN, ≥ 2 QET, ≥ 1 PLC programmer, a wireman for T11), at least one QWERTZ or AZERTY keyboard participant, one GPU-less RDP session, and a moderator, for months 60 … 61 | Recruitment list (roles only) |
 | G-M5-09 | M | Format freeze readiness: no open format change that is not scheduled before 1.0.0-rc.1 (CP-12); the `next-format` feature plan for post-1.0 is written | Format change list |
 | G-M5-10 | M | Documentation 1.0 drafts: tutorials (3) PLC card and addressing and (5) 2D/3D layout and wire list; German translation in progress toward ≥ 95 % (NFR-I18N-01) | Docs build; Weblate |
-| G-M5-11 | S | **SC-13 progress** and LG-6 trigger check: external contributors with merged changes, income per year, regular external contributors (trigger: more than 3 regular contributors, more than 50k euro a year, or 1.0) | Repository statistics |
+| G-M5-11 | S | *The LG-6 trigger check is not applicable (decision log ID-454); the SC-13 progress report stands.* **SC-13 progress** and LG-6 trigger check: external contributors with merged changes, income per year, regular external contributors (trigger: more than 3 regular contributors, more than 50k euro a year, or 1.0) | Repository statistics |
 | G-M5-12 | M | DS-4 triage: every unstarted 1.0 Should row is done, moved to 1.x by recorded decision, or scheduled before rc.1; forecast of G-M6 re-run | Decision log; forecast |
 
 **Open decisions closed by G-M5.** The Should-row list; the LG-6 trigger status; the date of the format freeze.
@@ -1149,8 +1156,8 @@ the demo (the pre-delivery check with the 1.0 packs on Golden A equals §18.1 pl
 
 | ID | Type | Criterion | Evidence |
 |---|---|---|---|
-| G-M6-12 | H | **LG-6**: the steward review is held (1.0 is a trigger): the steward form is re-decided (stichting or continued interim steward) and the transfer commitment for trademark, signing role and donated funds is confirmed; PD-13 is closed | Review record; counsel's confirmation |
-| G-M6-13 | M | The word mark is filed in the steward's name and `TRADEMARKS.md` publishes the use policy (NFR-LIC-13); no ADR is in the state Proposed | Filing receipt; ADR index |
+| G-M6-12 | H | **Not applicable** (owner ruling 2026-10-22, decision log ID-454: legal and licensing items are no longer gate items). *Original wording:* **LG-6**: the steward review is held (1.0 is a trigger): the steward form is re-decided (stichting or continued interim steward) and the transfer commitment for trademark, signing role and donated funds is confirmed; PD-13 is closed | Review record; counsel's confirmation |
+| G-M6-13 | M | **Not applicable** (owner ruling 2026-10-22, decision log ID-454: legal and licensing items are no longer gate items). *Original wording:* The word mark is filed in the steward's name and `TRADEMARKS.md` publishes the use policy (NFR-LIC-13); no ADR is in the state Proposed | Filing receipt; ADR index |
 | G-M6-14 | M | Documentation: tutorials (1) … (6) (NFR-DOC-03); generated references are current (NFR-DOC-06); first manufacturer data pack and content repositories (WP-S7.08); content audit RC-07 | Docs build; CI-PR-10 |
 | G-M6-15 | S | **SC-13** reported: ≥ 5 external contributors with merged changes, UI and docs in English, Dutch and German, ≥ 1 company basic project or library pack from outside. Reported, not gating | Repository statistics |
 
@@ -1189,11 +1196,11 @@ The IDs are KT-1 … KT-8; the K-1 … K-7 of [vision §10](../design/00-vision-
 | ID | Trigger | Measured by | Checked at | First reaction | Decision |
 |---|---|---|---|---|---|
 | **KT-1** | **Acceptance truth lost.** The pilot withdraws and no replacement panel builder with real projects is found within three months; or the pilot is not using EW for production twelve months after 0.1.0 and the cause is not a closable blocker list | Pilot log; kick-off minutes; pilot review attendance (SR-8) | G-M0, G-PP, every pilot review, G-M3 | Out-of-cycle review; search for a replacement pilot; blocker list to the top of the board | Continue with the golden project as the only truth (SC-3, SC-9 cannot close), or Pivot A or B |
-| **KT-2** | **Legal basis lost.** LG-1 or LG-5 is refused or cannot be obtained within four weeks of G-M1; or the exception texts cannot be agreed | Statements on file; counsel's confirmation | G-M0, G-M1 | No merge of that employer's staff contributions; replace public content if LG-5 is refused | Rewrite or drop the affected contributions, re-license path with counsel, or Pivot E |
+| **KT-2** | **Retired** (owner ruling 2026-10-22, decision log ID-454). *Original wording:* **Legal basis lost.** LG-1 or LG-5 is refused or cannot be obtained within four weeks of G-M1; or the exception texts cannot be agreed | Statements on file; counsel's confirmation | G-M0, G-M1 | No merge of that employer's staff contributions; replace public content if LG-5 is refused | Rewrite or drop the affected contributions, re-license path with counsel, or Pivot E |
 | **KT-3** | **Technical viability.** After the G-SP fallback and one recycle, the M-class commit p99 stays above 10 ms or the XL open time above 40 s; or STEP/OCCT cannot be shipped on a target OS. Not triggered at the first G-SP review (2026-10-20, outcome Recycle); re-evaluated after the re-test | Spike and nightly gate; CI-PR-12 | G-SP, G-M1, G-M3 | Architecture review of ADR-0001 and ADR-0002 (or ADR-0016 for OCCT) before further dependent WPs | Redesign the derived-data layer, lower the class bounds, or reduce platforms |
 | **KT-4** | **Schedule viability.** Velocity ratio below 0.67 over three monthly reviews; or forecast G-M2 beyond month 61 or G-M6 beyond month 97 (3 developers; scale by the scenario) | §4.2 | Every monthly review; every gate | Viability review with the options below | Add capacity (PD-3), descope along the ladder, accept the later band, or a pivot |
 | **KT-5** | **Capacity.** Fewer than two committed developers, or the loss of a developer without a replacement within six months | Team roster; SR-4 indicators | G-M0, any time | Re-run the plan with the actual team; the 2-developer re-scope | [Global plan open question 8](01-global-plan.md#open-questions) re-scope, or Pivot A |
-| **KT-6** | **Steward and signing.** The enrolments of WP-S0.05a are not submitted by G-M1; or no steward legal person, no signing identity or no steward-controlled repository organisation exists 12 months before the planned G-M2 (month 29 in the baseline) | CP-06; G-M0-17; LG-4 evidence | G-M0, G-M1, month 29 | Stichting from day one; SignPath for Windows; Apple organisation enrolment; counsel | No binary release without LG-4 (never waived): source-only releases and unsigned nightlies until resolved |
+| **KT-6** | *The steward and legal-person parts are retired (decision log ID-454); the signing identities stay a release risk of WP-S6.07.* **Steward and signing.** The enrolments of WP-S0.05a are not submitted by G-M1; or no steward legal person, no signing identity or no steward-controlled repository organisation exists 12 months before the planned G-M2 (month 29 in the baseline) | CP-06; G-M0-17; LG-4 evidence | G-M0, G-M1, month 29 | Stichting from day one; SignPath for Windows; Apple organisation enrolment; counsel | No binary release without LG-4 (never waived): source-only releases and unsigned nightlies until resolved |
 | **KT-7** | **Employer or funding.** The employer withdraws the staff hours, or the funding that pays developers ends | Employer decision; WBSO and grant status | G-M0, annually | Re-plan with the remaining team (KT-5) | Descope, or Pivot A, B or E |
 | **KT-8** | **Landscape.** Another open project delivers the MVP differentiators (derived data, previewed renumbering, check packs, open format) before G-M2 | Landscape re-check (G-M1-27) | G-M1, G-M3 | Compare scope, licence compatibility and willingness to merge | Contribute upstream or continue with a narrower differentiator (Pivot D) |
 
@@ -1374,6 +1381,9 @@ property-grid entry at G-M2, because the property grid cannot exist before the U
 | SC-13 | Community (Should) | G-M5 | G-M6 (reported) |
 
 ### 8.4 Legal gates by gate
+
+*Retired as gate items by the project owner's ruling of 2026-10-22 (decision log ID-454); the table is kept as the
+record of what the gates carried.*
 
 | Legal gate | G-M0 | G-M1 | G-M2 | G-M6 |
 |---|---|---|---|---|

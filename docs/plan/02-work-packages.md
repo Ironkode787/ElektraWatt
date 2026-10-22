@@ -1,6 +1,6 @@
 # Work breakdown structure
 
-**Status:** Draft v0.13 · **Date:** 2026-10-22 (v0.13: the M-PP kick-off: WP-S2.01 specified for cycle 19 in two parts, FT-307 to FT-314, decision log ID-440 to ID-449; v0.12: the cycle-17 statuses (the typed revision, WP-S1.18 in part; the fuzzer's coverage and nightly form, WP-S6.02), FT-165 and FT-279 closed, FT-272 closed in part, FT-139, FT-207 and FT-286 extended, FT-302 to FT-306; v0.11: the G-M1 readiness run: WP-S0.04's status, FT-294 to FT-301; its rulings: FT-87, FT-88, FT-89, FT-91 and FT-92 re-dated to before G-PP; v0.10: the cycle-16 statuses (the device-tree, PLC, supply and library commands with AC-15 path (b) passing, the user guide and its generated reference, the acceptance tests once per CI job and the nightly performance gate), FT-273 to FT-293 (the lane-B review follow-ups FT-287 to FT-293), FT-169 and FT-256, FT-268, FT-269 closed, FT-167 and FT-270 in part; v0.9: the cycle-15 statuses (the export job, `ew apply`, the assembly aspect, the import modes), the builder DSL and the fuzzer, FT-246 to FT-272, FT-59, FT-156, FT-164, FT-206 and FT-245 closed; v0.8: the cycle-14 statuses, WP-S6.13 (the blind-drafter harness, 124 WPs), FT-233 to FT-245, FT-101 and FT-212 to FT-214 closed; v0.7: the cycle-13 statuses, wire numbering, the SQL projection v0, the PLC record kinds and the DP bus potential, FT-212 to FT-232, FT-100, FT-105, FT-111 and FT-201 closed, FT-80 partly; v0.6: the cycle-12 statuses, Golden C, the check engine, the M1 report and page gaps, FT-164 to FT-211, FT-15, FT-62, FT-65, FT-110 and FT-159 to FT-162 closed; v0.5: the cycle-11 statuses, the QET project import spike, the acceptance runner, Golden B, the symbol rulings, FT-127 to FT-163; v0.4: the cycle-10 statuses, WP-S1.07 part 2 delivered, FT-84, FT-86 and FT-109 closed, FT-117 to FT-126; v0.3: the cycle-9 statuses, WP-S1.07 in two parts, FT-100 to FT-116; v0.2: the estimates of WP-S1.05, WP-S1.07 and WP-S1.08 after G-SP, the cycle-8 statuses and FT-86 to FT-99) · **Part of:** ElektraWatt plan
+**Status:** Draft v0.14 · **Date:** 2026-10-22 (v0.14: the owner rulings of 2026-10-22: WP-S0.04 and the legal parts of WP-S0.05a and WP-S0.05 not pursued, the signing identities a later release item of WP-S6.07, FT-315, decision log ID-450 to ID-455; v0.13: the M-PP kick-off: WP-S2.01 specified for cycle 19 in two parts, FT-307 to FT-314, decision log ID-440 to ID-449; v0.12: the cycle-17 statuses (the typed revision, WP-S1.18 in part; the fuzzer's coverage and nightly form, WP-S6.02), FT-165 and FT-279 closed, FT-272 closed in part, FT-139, FT-207 and FT-286 extended, FT-302 to FT-306; v0.11: the G-M1 readiness run: WP-S0.04's status, FT-294 to FT-301; its rulings: FT-87, FT-88, FT-89, FT-91 and FT-92 re-dated to before G-PP; v0.10: the cycle-16 statuses (the device-tree, PLC, supply and library commands with AC-15 path (b) passing, the user guide and its generated reference, the acceptance tests once per CI job and the nightly performance gate), FT-273 to FT-293 (the lane-B review follow-ups FT-287 to FT-293), FT-169 and FT-256, FT-268, FT-269 closed, FT-167 and FT-270 in part; v0.9: the cycle-15 statuses (the export job, `ew apply`, the assembly aspect, the import modes), the builder DSL and the fuzzer, FT-246 to FT-272, FT-59, FT-156, FT-164, FT-206 and FT-245 closed; v0.8: the cycle-14 statuses, WP-S6.13 (the blind-drafter harness, 124 WPs), FT-233 to FT-245, FT-101 and FT-212 to FT-214 closed; v0.7: the cycle-13 statuses, wire numbering, the SQL projection v0, the PLC record kinds and the DP bus potential, FT-212 to FT-232, FT-100, FT-105, FT-111 and FT-201 closed, FT-80 partly; v0.6: the cycle-12 statuses, Golden C, the check engine, the M1 report and page gaps, FT-164 to FT-211, FT-15, FT-62, FT-65, FT-110 and FT-159 to FT-162 closed; v0.5: the cycle-11 statuses, the QET project import spike, the acceptance runner, Golden B, the symbol rulings, FT-127 to FT-163; v0.4: the cycle-10 statuses, WP-S1.07 part 2 delivered, FT-84, FT-86 and FT-109 closed, FT-117 to FT-126; v0.3: the cycle-9 statuses, WP-S1.07 in two parts, FT-100 to FT-116; v0.2: the estimates of WP-S1.05, WP-S1.07 and WP-S1.08 after G-SP, the cycle-8 statuses and FT-86 to FT-99) · **Part of:** ElektraWatt plan
 
 **Purpose.** This document breaks the full v1 scope of ElektraWatt (EW) into 124 work packages (WPs) in eight
 streams. For every WP it states the objective, scope, deliverables, dependencies, the requirements it delivers,
@@ -656,6 +656,11 @@ ADR-0025 is Proposed and the exception texts are not in `LICENSES/`; the `blocke
 `legal-docs` job (NFR-LIC-12). The owner's actions are items O1, O3 and O4 of the
 [G-M1 readiness report](gate-records/G-M1-2026-10-readiness.md#5-owner-side-items) (decision log ID-420).
 
+*Status (2026-10-22, owner ruling).* **Not pursued** (decision log ID-454): the project owner ruled that the legal
+and licensing items are no longer relevant, so LG-1, LG-2 and LG-5 are not gate items and the work package is not
+executed; its estimate stays in the CSV as reference until the next re-plan. The `blocked:LG-2` merge block is removed
+by FT-315. The repository's licence rules (REUSE headers, the licence map, the permissive/GPL boundary) are unchanged.
+
 #### WP-S0.05a Signing enrolment and trademark search: LG-3, LG-4 start
 
 | Field | Value |
@@ -671,6 +676,12 @@ ADR-0025 is Proposed and the exception texts are not in `LICENSES/`; the `blocke
 | Acceptance | NFR-LIC-13 (clearance-search part) |
 | Owner role | Steward liaison |
 
+*Status (2026-10-22, owner ruling).* **Legal part not pursued** (decision log ID-454): the trademark clearance search
+(LG-3) and the steward and identity-holder decision as a gate item are dropped. The signing enrolments (D-U-N-S, the
+Apple Developer Program, the Windows signing identity) are kept, because binaries cannot be distributed signed without
+them, and move to WP-S6.07 as a later release item; their 12-month lead time still applies before the first signed
+release (§9.2 rule 5 of the global plan). The CSV is unchanged.
+
 #### WP-S0.05 Steward, signing identities and trademark: LG-3, LG-4 close
 
 | Field | Value |
@@ -685,6 +696,10 @@ ADR-0025 is Proposed and the exception texts are not in `LICENSES/`; the `blocke
 | Milestone · release | M2 MVP: pilot release · MVP |
 | Acceptance | NFR-COMP-08 |
 | Owner role | Steward liaison |
+
+*Status (2026-10-22, owner ruling).* **Legal part not pursued** (decision log ID-454): the steward as a legal person,
+ADR-0030 with counsel, the CRA role and the trademark are no longer gate items. The signing identities usable by CI
+stay, as a release item of WP-S6.07. The CSV is unchanged.
 
 #### WP-S0.06 Documentation and website infrastructure
 
@@ -2614,6 +2629,10 @@ S6 implements the test layers, gates, packaging, signing and CRA processes of [q
 | Acceptance | NFR-SEC-12, NFR-SEC-13 |
 | Owner role | Release engineer |
 
+*Note (2026-10-22, owner ruling, decision log ID-454).* WP-S6.07 takes over the signing enrolments of WP-S0.05a and
+the signing identities of WP-S0.05 as a later release item: they are needed to sign the release binaries, not a legal
+gate. Its release checklist drops the LG items.
+
 #### WP-S6.08 MVP release stabilisation and the first signed release
 
 | Field | Value |
@@ -3227,6 +3246,7 @@ CSV and every total are unchanged. A task is closed by the commit that implement
 | FT-312 | Start page completion (doc 16 §3.7): open sample project (NFR-DOC-04), import QET project, create company standard, tutorials, the language and keymap quick switches | WP-S2.01 (part 2) | Before G-PP | ID-442 |
 | FT-313 | PDF export as a job with progress and cooperative cancel off the UI thread (FR-UI-024, NFR-PERF-19), replacing part 1's synchronous export; the crash-recovery dialog (doc 05 §8.3) replacing part 1's read-only open of a project with a leftover journal | WP-S2.09 | With WP-S2.09 | ID-445 |
 | FT-314 | The blind-drafter harness drives the shell through `elektrawatt --headless --script -` (`cargo xtask blind do`), reads `ui.describe` and `view.snapshot`, and keeps the run's `.ewcmd` from `--record` | WP-S6.13 | With WP-S6.13 | ID-443 |
+| FT-315 | Remove the LG-2 merge block from the `legal-docs` job of `.github/workflows/docs.yml` (the step "LG-2 merge block (non-maintainer pull requests)" and its header comment) and the matching rows of doc 18 §5.2 (CI-PR-10) and doc 19; the DCO check, `reuse lint`, the licence map and the other legal-docs steps stay (a CI change for a programmer lane) | WP-S0.02; WP-S0.01 | With the next CI change | ID-454 |
 
 ---
 

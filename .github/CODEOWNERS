@@ -8,8 +8,8 @@
 # Default owner of every path.
 * @Ironkode787
 
-# Critical paths (NFR-MAINT-07). A second named owner is due for each of them by M1 (gate G-M0-13); until then
-# the repository owner is the only code owner.
+# Critical paths (NFR-MAINT-07). The owner decided on 2026-10-22 that a second named owner is not required for M1
+# (decision log ID-452); the repository owner is the only code owner.
 /crates/ew-memo/ @Ironkode787
 /crates/ew-model/ @Ironkode787
 /crates/ew-format/ @Ironkode787

@@ -252,6 +252,13 @@ prose files is NFR-DOC-08.
 
 ### 3.3 Legal and organisational gates
 
+*Owner ruling (2026-10-22; [decision log](../plan/06-decision-log.md) ID-454).* The project owner ruled in chat: "Regarding all the licensing, and legal items, this is no longer relevant." The gates of the [plan](../plan/03-gates.md) no longer carry LG-1 to LG-6 as criteria, and
+the enrolments, counsel's opinions and ADR-0030 are no longer gate items; ID-383 (the CC-BY-SA-4.0 symbols in the GPL
+binary) is accepted by the owner as a distribution fact, without a counsel brief. The text below is kept as the
+record of the design. The repository's licence rules are unchanged: REUSE headers, the licence map (§2.1), the
+permissive/GPL boundary and the dependency checks stay in force. The signing identities that sign release binaries
+stay a release item (WP-S6.07). The `blocked:LG-2` merge block is removed by FT-315.
+
 These gates belong in the global plan as milestone conditions. The release pipeline checks LG-1, LG-4 and the
 steward checklist of §3.10 as checklist items (RC-10 of [18](18-quality-security-release.md); NFR-COMP-01).
 "First binary release" means the first signed installer, 0.1.0 at M2 (MVP). Until LG-4 is met, only unsigned nightlies

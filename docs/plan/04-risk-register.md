@@ -1,6 +1,6 @@
 # Risk register
 
-**Status:** Draft v0.5 · **Date:** 2026-10-21 (v0.5: the plan-of-record 1.0 at month 65 after WP-S6.13, decision log ID-342; v0.4: R-018 read in cycles, decision log ID-271; v0.3: R-018 re-assessed at G-SP, outcome Recycle) · **Part of:** ElektraWatt plan
+**Status:** Draft v0.6 · **Date:** 2026-10-22 (v0.6: R-014 accepted by the project owner and re-scored 3 × 4 → 2 × 4, decision log ID-452; v0.5: the plan-of-record 1.0 at month 65 after WP-S6.13, decision log ID-342; v0.4: R-018 read in cycles, decision log ID-271; v0.3: R-018 re-assessed at G-SP, outcome Recycle) · **Part of:** ElektraWatt plan
 
 **Purpose.** This is the risk register of ElektraWatt (EW). It consolidates the risks that the design documents, the
 research notes and the plan itself name, scores them on one scale, assigns every risk an owner, a mitigation linked
@@ -147,8 +147,8 @@ Score = P × I (1–25).
 | Band | Score | Risks | Share | Treatment |
 |---|---|---|---|---|
 | Critical | 15–25 | 5 | 6 % | Reported at every monthly review; dated mitigation action; project owner informed within a week; decision at the next gate at the latest |
-| High | 10–14 | 32 | 38 % | Owner reviews monthly; every mitigation has an owner and a date; re-scored at the review gate |
-| Medium | 5–9 | 44 | 52 % | Reviewed each quarter and at the review gate; mitigation as planned work |
+| High | 10–14 | 31 | 37 % | Owner reviews monthly; every mitigation has an owner and a date; re-scored at the review gate |
+| Medium | 5–9 | 45 | 54 % | Reviewed each quarter and at the review gate; mitigation as planned work |
 | Low | 1–4 | 3 | 4 % | Reviewed at gates; candidate for closure after two reviews without change |
 
 
@@ -184,13 +184,13 @@ Each cell shows the score, its band and the risks in it. Probability runs left t
 | Impact ↓ / Probability → | 1 Rare | 2 Unlikely | 3 Possible | 4 Likely | 5 Almost certain |
 |---|---|---|---|---|---|
 | 5 Severe | **5** Medium | **10** High<br>R-009, R-015, R-017, R-045, R-056, R-067 | **15** Critical<br>R-003 | **20** Critical | **25** Critical |
-| 4 Major | **4** Low | **8** Medium<br>R-020, R-046, R-051, R-054 | **12** High<br>R-005, R-010, R-013, R-014, R-022, R-025, R-029, R-030, R-033, R-047, R-052, R-053, R-055, R-057, R-064, R-069, R-072 | **16** Critical<br>R-001, R-002, R-018, R-032 | **20** Critical |
+| 4 Major | **4** Low | **8** Medium<br>R-014, R-020, R-046, R-051, R-054 | **12** High<br>R-005, R-010, R-013, R-022, R-025, R-029, R-030, R-033, R-047, R-052, R-053, R-055, R-057, R-064, R-069, R-072 | **16** Critical<br>R-001, R-002, R-018, R-032 | **20** Critical |
 | 3 Moderate | **3** Low | **6** Medium<br>R-049, R-058, R-059, R-060 | **9** Medium<br>R-004, R-006, R-011, R-012, R-016, R-019, R-021, R-023, R-026, R-027, R-031, R-034, R-039, R-040, R-041, R-043, R-048, R-050, R-062, R-063, R-066, R-070, R-073, R-075, R-078, R-079, R-083, R-084 | **12** High<br>R-007, R-008, R-024, R-028, R-038, R-061, R-065, R-068, R-071 | **15** Critical |
 | 2 Minor | **2** Low | **4** Low<br>R-035 | **6** Medium<br>R-042, R-044, R-074, R-076, R-077, R-081 | **8** Medium<br>R-080, R-082 | **10** High |
 | 1 Negligible | **1** Low | **2** Low<br>R-037 | **3** Low<br>R-036 | **4** Low | **5** Medium |
 
 **Reading it.**
-- 31 of 84 risks score 12 or more, and 26 of them sit in two cells: probability 3 × impact 4 and
+- 30 of 84 risks score 12 or more, and 25 of them sit in two cells: probability 3 × impact 4 and
   probability 4 × impact 3. The register has many serious, plausible risks and only a few certain ones.
 - No risk sits in the "almost certain" column. R-001 comes closest; it is rated 4 because the plan of record
   already exists and PD-1 can remove it at M0.
@@ -203,7 +203,7 @@ Each cell shows the score, its band and the risks in it. Probability runs left t
 | Category | Risks | Critical | High | Medium | Low | Highest score |
 |---|---|---|---|---|---|---|
 | Schedule and scope | 12 | 3 | 5 | 4 | 0 | 16 |
-| Staffing and bus factor | 4 | 0 | 3 | 1 | 0 | 12 |
+| Staffing and bus factor | 4 | 0 | 2 | 2 | 0 | 12 |
 | Technical | 21 | 2 | 8 | 8 | 3 | 16 |
 | Dependencies and platform | 7 | 0 | 1 | 6 | 0 | 12 |
 | Legal and licensing | 10 | 0 | 4 | 6 | 0 | 12 |
@@ -212,7 +212,7 @@ Each cell shows the score, its band and the risks in it. Probability runs left t
 | Adoption and community | 11 | 0 | 5 | 6 | 0 | 12 |
 | Funding and money | 2 | 0 | 0 | 2 | 0 | 9 |
 | Process and quality | 5 | 0 | 0 | 5 | 0 | 9 |
-| **Total** | **84** | **5** | **32** | **44** | **3** | **16** |
+| **Total** | **84** | **5** | **31** | **45** | **3** | **16** |
 
 ---
 
@@ -280,7 +280,7 @@ decided in depth (§7.7); standing items are also reviewed monthly or quarterly 
 | ID | Category | Risk statement (cause → event → effect) | P | I | Score | Owner | Mitigation (linked WPs) | Contingency | Early-warning indicator | Review gate |
 |---|---|---|---|---|---|---|---|---|---|---|
 | R-013 | Staffing | **Loss of a key developer.** One of three developers leaves, falls ill for months or is reassigned → a third of capacity and the knowledge of a lane is lost → three months out cost about one month; a permanent loss gives the two-developer dates (MVP 60, 1.0 96) | 3 | 4 | 12 | Project lead | Two owners per critical crate (NFR-MAINT-07); a design note per crate; hire developer 4 (PD-3, §10.3); handover checklist in WP-S0.03 | Re-plan with the remaining team at the next monthly review; contractor for a self-contained WP set (§10.4) | A crate with one reviewer; absence above 4 weeks; resignation signals | Monthly; G-M1 |
-| R-014 | Staffing | **Bus factor in the core crates.** Knowledge of ew-memo, the Op set, ew-format and ew-derive sits with one person (architecture risk 4) → that person is unavailable → derivation and persistence work stops and bugs in the core cannot be fixed | 3 | 4 | 12 | Core developer (S1) | Small v1 engine of 1.5–2.5 kLOC; generic crate with design notes; second owner on ew-memo and the Op set by M1 (pairing in WP-S1.05); two reviewers (GV-02) | Freeze new work in the crate until a second person has reviewed the design note and fixed one bug | Commit share above 70 % in these crates; PRs waiting for the single qualified reviewer for more than a week | G-M1 |
+| R-014 | Staffing | **Bus factor in the core crates.** Knowledge of ew-memo, the Op set, ew-format and ew-derive sits with one person (architecture risk 4) → that person is unavailable → derivation and persistence work stops and bugs in the core cannot be fixed. **Accepted by the project owner on 2026-10-22** (decision log ID-452): a second named code owner is not required; the knowledge is held in the design notes, the decision log and the independently reviewed cycle lanes, which any agent session can pick up; re-scored from 3 × 4 = 12 | 2 | 4 | 8 | Core developer (S1) | Small v1 engine of 1.5–2.5 kLOC; generic crate with design notes; second owner on ew-memo and the Op set by M1 (pairing in WP-S1.05); two reviewers (GV-02) | Freeze new work in the crate until a second person has reviewed the design note and fixed one bug | Commit share above 70 % in these crates; PRs waiting for the single qualified reviewer for more than a week | G-M1 |
 | R-015 | Staffing | **Dependence on one employer.** All developers are employed by or funded through the pilot panel builder → its priorities, finances or ownership change → allocation falls or the LG-1 statement and the interim steward role end → capacity drops to 0–2 developers and release signing pauses | 2 | 5 | 10 | Project owner | Allocation in writing; LG-1 with standing consent (WP-S0.04); transfer commitment to a stichting (LG-6, WP-S0.05); funding mix: WBSO, NLnet, sponsors (WP-S0.07); open licences are irrevocable | Found the stichting early; promote external maintainers; pause to maintenance mode | Employer budget review without EW allocation; reorganisation; allocation below the agreed pw | G-M0; every gate |
 | R-016 | Staffing | **Fatigue over a 64-month plan.** 64 months with three people, no signed release for 41 months, support load and many unglamorous WPs → fatigue and loss of motivation → attrition or a slow-down that the capacity model does not capture | 3 | 3 | 9 | Project lead | Public monthly progress notes; source tag and demo at M1, the pilot preview at M-PP (month 26) and each gate; leave planned inside the 36 pw; rotation of dull WPs; retrospective on workload every iteration | Slow the cadence and tell the pilot; hire developer 4; shorten the iteration load | Declining velocity at constant staffing; unused leave; retrospectives that skip workload | Monthly |
 
@@ -401,7 +401,7 @@ decided in depth (§7.7); standing items are also reviewed monthly or quarterly 
 | Owner | Risks | Critical or High | IDs |
 |---|---|---|---|
 | Project lead | 15 | 8 | R-001, R-002, R-006, R-007, R-009, R-010, R-011, R-013, R-016, R-054, R-068, R-071, R-073, R-077, R-080 |
-| Core developer (S1) | 14 | 4 | R-004, R-012, R-014, R-017, R-018, R-019, R-020, R-021, R-022, R-027, R-031, R-042, R-051, R-079 |
+| Core developer (S1) | 14 | 3 | R-004, R-012, R-014, R-017, R-018, R-019, R-020, R-021, R-022, R-027, R-031, R-042, R-051, R-079 |
 | Release engineer (S6) | 12 | 4 | R-023, R-038, R-043, R-044, R-047, R-056, R-057, R-058, R-060, R-081, R-082, R-083 |
 | Steward liaison | 10 | 4 | R-045, R-046, R-048, R-049, R-050, R-052, R-053, R-055, R-059, R-074 |
 | Output and migration developer (S3, S5) | 9 | 4 | R-024, R-025, R-026, R-032, R-033, R-035, R-036, R-037, R-075 |
@@ -680,7 +680,7 @@ These actions come from the critical and high risks and extend the checklist of 
 | 7 | Decide PD-4 (grid) and PD-5 (fonts) with the pilot, or proceed on the recommended defaults marked provisional | R-011, R-025, R-035 | Project owner | Weeks 2–3 |
 | 8 | Commission the trademark clearance search before any logo spend, name the phase-1 identity holder (PD-7a) and submit the signing enrolments (WP-S0.05a, CP-06) | R-052, R-053 | Steward liaison | Weeks 4–8 |
 | 9 | Licensing, REUSE, DCO, licence-boundary check and the anonymisation guard live in CI | R-051, R-047, R-043 | Release engineer | Weeks 4–8 |
-| 10 | Keep WP-S1.01 … WP-S1.04 uninterrupted; name the second owner of each critical crate in CODEOWNERS | R-004, R-014, R-013 | Project lead | Weeks 0–8 |
+| 10 | Keep WP-S1.01 … WP-S1.04 uninterrupted; name the second owner of each critical crate in CODEOWNERS (not required since the owner's ruling of 2026-10-22, decision log ID-452) | R-004, R-014, R-013 | Project lead | Weeks 0–8 |
 | 11 | File the WBSO application for 2027 (deadline to verify with RVO); draft NLnet proposal 1 | R-077 | Project lead, employer | Before 2026-12-31 |
 | 12 | Design the synthetic L and XL fixture generator so the performance spike can run right after WP-S1.03 | R-018, R-019, R-023 | Core developer | January 2027 |
 | 13 | First quarterly deep review with the owners confirming scores, mitigation dates and indicators; first QET release-note review | all, R-068 | Register keeper | January 2027, with G-M0 |
