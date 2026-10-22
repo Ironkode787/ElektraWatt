@@ -152,7 +152,8 @@ impl eframe::App for ShellApp {
     }
 
     fn on_exit(&mut self) {
-        // A clean close of the session: its journal goes and the project lock is released.
+        // Shutdown at exit: the project lock is released; the journal is kept while the project is dirty
+        // (crash-recovery semantics, doc 05 section 8) and removed only after a clean close.
         self.0.shell_mut().shutdown();
     }
 }
