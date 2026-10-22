@@ -16,8 +16,9 @@
 //! `canvas` (WP-S2.02 section 6.6) is `null` while no page is shown, else an object with, in this order: `folio`,
 //! `zoom` (per cent rounded to 0.1), `view_nm` (`[x0, y0, x1, y1]`, the sheet rectangle the pane shows), `grid`
 //! (`[num_nm, den]`, `null` when off or absent), `pointer_nm` (`[x, y]` or `null`), `hover` (the entity's UUID or
-//! `null`), `backend` (the label) and `statistics` (whether the overlay is shown). Nothing in it depends on time,
-//! process or location: two runs of one script on equal inputs give equal bytes.
+//! `null`), `backend` (the label), `statistics` (whether the overlay is shown) and `renderer` (the `canvas_backend`
+//! setting, `auto` or `cpu`; WP-S2.02 part 2). Nothing in it depends on time, process or location: two runs of one
+//! script on equal inputs give equal bytes.
 //!
 //! The core runner lives here; a [`StepExtension`] adds what needs a renderer (`view.snapshot`).
 
@@ -309,7 +310,13 @@ fn canvas_json(shell: &ShellModel) -> String {
         member("hover", &hover),
         member("backend", &Value::from(shell.canvas_backend().label())),
         member("statistics", &Value::from(shell.frame_stats_shown())),
+        member("renderer", &Value::from(renderer_word(shell))),
     ])
+}
+
+/// The `canvas_backend` setting as the transcript and the describe text name it: `auto` or `cpu`.
+pub fn renderer_word(shell: &ShellModel) -> &'static str {
+    if shell.cpu_canvas_setting() { "cpu" } else { "auto" }
 }
 
 /// What one executed step produced.

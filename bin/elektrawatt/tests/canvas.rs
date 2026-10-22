@@ -407,6 +407,7 @@ fn a8_the_pointer_at_an_entity_hovers_it_in_the_transcript_and_the_describe_text
         "hover",
         "backend",
         "statistics",
+        "renderer",
     ];
     let at: Vec<usize> = keys
         .iter()

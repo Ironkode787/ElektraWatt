@@ -582,6 +582,15 @@ pub static ACTIONS: &[ActionMeta] = &[
         always,
         slot(Menu::View),
     ),
+    act(
+        "view.cpu_canvas",
+        View,
+        "action-view-cpu-canvas",
+        Menu::View,
+        &[],
+        always,
+        slot(Menu::View),
+    ),
     needs_parameters(act(
         "view.ui_scale",
         View,
@@ -953,6 +962,7 @@ fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
         checked: match meta.id {
             "view.grid" => model.grid_on(),
             "view.frame_stats" => model.frame_stats_shown(),
+            "view.cpu_canvas" => model.cpu_canvas_setting(),
             _ => false,
         },
         topic: crate::help::action_topic(meta.id),

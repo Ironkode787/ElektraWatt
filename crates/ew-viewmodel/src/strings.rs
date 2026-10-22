@@ -51,6 +51,14 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "action-view-pan-down" => "Pan down",
         "action-view-grid" => "Grid",
         "action-view-frame-stats" => "Frame statistics",
+        "action-view-cpu-canvas" => "Use the CPU renderer for the canvas",
+        "banner-gpu-init" => "The GPU canvas could not start ({0}); the canvas draws on the CPU.",
+        "banner-gpu-lost" => {
+            "The GPU canvas stopped ({0}); the canvas draws on the CPU for the rest of this session."
+        }
+        "banner-gpu-no-software-adapter" => {
+            "--no-gpu: no software adapter was found, so the window uses {0}; the canvas draws on the CPU."
+        }
         "action-view-zoom-to" => "Zoom to",
         "action-view-pan" => "Pan the canvas",
         "action-view-canvas-resize" => "Resize the canvas",

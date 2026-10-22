@@ -15,6 +15,7 @@ use serde_json::{Map, Value};
 
 use super::{Outcome, ShellModel, failed};
 use crate::canvas::{CanvasBackend, CanvasModel, CanvasPage, nm_of_mm, pane_out_of_bounds};
+use crate::settings::CANVAS_BACKENDS;
 
 /// A positive finite number parameter.
 fn positive(p: &Map<String, Value>, name: &str) -> Result<f64, Outcome> {
@@ -81,6 +82,12 @@ impl ShellModel {
     /// Whether the frame-statistics overlay is shown (View, Frame statistics).
     pub fn frame_stats_shown(&self) -> bool {
         self.frame_stats
+    }
+
+    /// Whether the setting asks for the CPU canvas (`canvas_backend = "cpu"`; View, Use the CPU renderer for the
+    /// canvas).
+    pub fn cpu_canvas_setting(&self) -> bool {
+        self.settings.canvas_backend == CANVAS_BACKENDS[1]
     }
 
     /// Where the canvas draws.
@@ -158,9 +165,33 @@ impl ShellModel {
             Arc::new(first.content),
             grid,
         ));
+        let ui_scale = self.canvas_ui_scale();
         match &mut self.canvas {
             Some(c) if c.page().folio == folio => c.replace_page(page),
-            _ => self.canvas = Some(CanvasModel::new(page, self.canvas_pane, self.canvas_ppp)),
+            _ => {
+                let mut c = CanvasModel::new(page, self.canvas_pane, self.canvas_ppp);
+                c.set_ui_scale(ui_scale);
+                self.canvas = Some(c);
+            }
+        }
+    }
+
+    /// The UI scale of the canvas's points: the setting's in the window, always 1 in the headless mode (FT-349), so
+    /// no transcript, snapshot or golden depends on the UI scale.
+    pub fn canvas_ui_scale(&self) -> f64 {
+        match self.mode {
+            super::Mode::Gui => f64::from(self.settings.ui_scale),
+            super::Mode::Headless => 1.0,
+        }
+    }
+
+    /// Hands a changed UI scale to the canvas (the zoom stays: it is in paper units).
+    pub(super) fn sync_canvas_ui_scale(&mut self) {
+        let ui_scale = self.canvas_ui_scale();
+        if let Some(c) = &mut self.canvas
+            && (c.ui_scale() - ui_scale).abs() > 1e-9
+        {
+            c.set_ui_scale(ui_scale);
         }
     }
 
@@ -262,6 +293,20 @@ impl ShellModel {
 
     pub(super) fn act_frame_stats(&mut self) -> Outcome {
         self.frame_stats = !self.frame_stats;
+        Outcome::Done
+    }
+
+    /// View, Use the CPU renderer for the canvas: flips the `canvas_backend` setting between `auto` and `cpu` and
+    /// saves it. The host applies it in the next frame (the switch rule's row 2, WP-S2.02 section 7.2); in the
+    /// headless mode the canvas is the CPU canvas either way.
+    pub(super) fn act_cpu_canvas(&mut self) -> Outcome {
+        let next = if self.cpu_canvas_setting() {
+            CANVAS_BACKENDS[0]
+        } else {
+            CANVAS_BACKENDS[1]
+        };
+        self.settings.canvas_backend = next.to_owned();
+        self.save_settings();
         Outcome::Done
     }
 }

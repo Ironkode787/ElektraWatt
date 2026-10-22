@@ -83,6 +83,18 @@ fn state(shell: &ShellModel) -> Value {
     serde_json::from_str(&script::state_json(shell)).unwrap()
 }
 
+/// Whether the menu item `id` (a top-level item of a menu) is checked.
+fn checked(shell: &ShellModel, id: &str) -> bool {
+    actions::menu_model(shell)
+        .into_iter()
+        .flat_map(|m| m.entries)
+        .find_map(|e| match e {
+            MenuEntry::Item(i) if i.id == id => Some(i.checked),
+            _ => None,
+        })
+        .unwrap()
+}
+
 #[test]
 fn a2_the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
     for id in [
@@ -96,6 +108,7 @@ fn a2_the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
         "view.pan_down",
         "view.grid",
         "view.frame_stats",
+        "view.cpu_canvas",
         "view.zoom_to",
         "view.pan",
         "view.canvas_resize",
@@ -147,16 +160,6 @@ fn a2_the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
         pan,
         ["view.pan_left", "view.pan_right", "view.pan_up", "view.pan_down"]
     );
-    let checked = |shell: &ShellModel, id: &str| {
-        actions::menu_model(shell)
-            .into_iter()
-            .flat_map(|m| m.entries)
-            .find_map(|e| match e {
-                MenuEntry::Item(i) if i.id == id => Some(i.checked),
-                _ => None,
-            })
-            .unwrap()
-    };
     assert!(checked(&shell, "view.grid"));
     assert!(!checked(&shell, "view.frame_stats"));
     done(&mut shell, "view.grid", json!({}));
@@ -313,6 +316,7 @@ fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
     assert_eq!(c["hover"], Value::Null);
     assert_eq!(c["backend"], "CPU");
     assert_eq!(c["statistics"], false);
+    assert_eq!(c["renderer"], "auto");
     let view = c["view_nm"].as_array().unwrap();
     assert_eq!(view.len(), 4);
     // 1200 points at 156.25 % is 203.2 mm wide, centred on the sheet.
@@ -330,6 +334,7 @@ fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
         "\"hover\"",
         "\"backend\"",
         "\"statistics\"",
+        "\"renderer\"",
     ];
     let at: Vec<usize> = order.iter().map(|k| canvas.find(k).unwrap()).collect();
     assert!(at.windows(2).all(|w| w[0] < w[1]), "{canvas}");
@@ -345,8 +350,9 @@ fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
     assert_eq!(lines[pv + 3], "canvas pointer none");
     assert_eq!(lines[pv + 4], "canvas hover none");
     assert_eq!(lines[pv + 5], "canvas backend \"CPU\"");
+    assert_eq!(lines[pv + 6], "canvas renderer auto");
     assert!(
-        lines[pv + 6].starts_with("workspace "),
+        lines[pv + 7].starts_with("workspace "),
         "no statistics line while off"
     );
     // The pointer at an entity's centre: that entity (or a smaller one there) in hover, its box in the describe line.
@@ -393,7 +399,19 @@ fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
     assert_eq!(s["canvas"]["backend"], "GPU Vulkan");
     let describe = shell.describe();
     assert!(describe.contains("canvas grid off\n"));
-    assert!(describe.contains("canvas backend \"GPU Vulkan\"\ncanvas statistics shown\n"));
+    assert!(
+        describe.contains("canvas backend \"GPU Vulkan\"\ncanvas statistics shown\ncanvas renderer auto\n")
+    );
+    // View, Use the CPU renderer for the canvas: the setting, the transcript member, the describe line and the
+    // checked menu item; the backend label is the host's (it applies the setting in its next frame).
+    done(&mut shell, "view.cpu_canvas", json!({}));
+    assert!(shell.cpu_canvas_setting());
+    assert_eq!(shell.settings().canvas_backend, "cpu");
+    assert_eq!(state(&shell)["canvas"]["renderer"], "cpu");
+    assert!(shell.describe().contains("canvas renderer cpu\n"));
+    assert!(checked(&shell, "view.cpu_canvas"));
+    done(&mut shell, "view.cpu_canvas", json!({}));
+    assert!(!shell.cpu_canvas_setting() && !checked(&shell, "view.cpu_canvas"));
     assert!(shell.status_fields(false).contains(&"Grid off".to_owned()));
     assert!(shell.status_fields(false).contains(&"GPU Vulkan".to_owned()));
     // No page: the member is null.

@@ -5,8 +5,11 @@
 //! window and the headless mode zoom, pan and point through the same `ShellModel::dispatch`.
 //!
 //! **Coordinates.** Sheet nanometres, origin top-left, y down. The zoom is a factor of paper size: at 100 % one
-//! millimetre of paper is 96/25.4 logical points (the CSS convention), so a page keeps its physical size across
-//! monitors (doc 16 section 17 item 7); the pixels per point only change how many pixels that is.
+//! millimetre of paper is 96/25.4 physical pixels times the operating system's scale factor (the CSS convention),
+//! so a page keeps its physical size across monitors (doc 16 section 17 item 7). The UI scale enlarges the chrome
+//! and never the page (decision log ID-521, FT-349): the pane and the pan deltas are in the window's logical points,
+//! which include the UI scale, so the display resolution is `D = zoom × 96 × ppp / ui_scale` and one paper
+//! millimetre at 100 % is `96 / 25.4 / ui_scale` logical points. The headless mode's UI scale is always 1.
 //!
 //! **Zoom ladder** (doc 06 section 6): `2^(k/2)` for `k = −8 … 11` (6.25 % to 4525.5 %), with 5 % and 5000 % as
 //! the clamp ends. Zoom in goes to the smallest ladder value above `zoom × (1 + 1e-9)`, else 5000 %; zoom out to
@@ -162,7 +165,7 @@ pub enum CanvasBackend {
     Cpu,
     /// The GPU path on Direct3D 12's software adapter.
     Warp,
-    /// The GPU path on a hardware adapter, with the wgpu backend's name (`Vulkan`, `Metal`, `Dx12`).
+    /// The GPU path on a hardware adapter, with the graphics API's name (`DX12`, `Metal`, `Vulkan`, `GL`).
     Gpu(String),
 }
 
@@ -230,6 +233,7 @@ pub struct CanvasModel {
     pointer: Option<(i64, i64)>,
     hover: Option<(EntityRef, Rect)>,
     fitted: bool,
+    ui_scale: f64,
 }
 
 impl CanvasModel {
@@ -244,9 +248,45 @@ impl CanvasModel {
             pointer: None,
             hover: None,
             fitted: true,
+            ui_scale: 1.0,
         };
         m.fit();
         m
+    }
+
+    /// The UI scale the pane's logical points include (1.0 headless; WP-S2.02 FT-349).
+    pub fn ui_scale(&self) -> f64 {
+        self.ui_scale
+    }
+
+    /// A new UI scale (a positive finite factor; anything else is 1): the zoom (paper size) and the centre stay; a
+    /// fitted view fits again.
+    pub fn set_ui_scale(&mut self, ui_scale: f64) {
+        self.ui_scale = if ui_scale.is_finite() && ui_scale > 0.0 {
+            ui_scale
+        } else {
+            1.0
+        };
+        if self.fitted {
+            self.fit();
+        } else {
+            self.update_hover();
+        }
+    }
+
+    /// The pane in points without the UI scale (the renderer's view: `pane × ui_scale`).
+    pub fn native_pane(&self) -> (f64, f64) {
+        (self.pane.0 * self.ui_scale, self.pane.1 * self.ui_scale)
+    }
+
+    /// Physical pixels per point without the UI scale (the operating system's scale factor: `ppp / ui_scale`).
+    pub fn native_ppp(&self) -> f64 {
+        self.ppp / self.ui_scale
+    }
+
+    /// The display resolution `D = zoom × 96 × ppp / ui_scale` in dpi.
+    pub fn display_dpi(&self) -> f64 {
+        self.zoom * POINTS_PER_INCH * self.native_ppp()
     }
 
     /// The page on show.
@@ -294,9 +334,9 @@ impl CanvasModel {
         self.fitted
     }
 
-    /// Logical points per nanometre at the current zoom.
+    /// Logical points per nanometre at the current zoom (the UI scale's points: `zoom × 96 / ui_scale` per inch).
     pub fn points_per_nm(&self) -> f64 {
-        self.zoom * POINTS_PER_INCH / NM_PER_INCH
+        self.zoom * POINTS_PER_INCH / NM_PER_INCH / self.ui_scale
     }
 
     /// The sheet rectangle the pane shows, `[x0, y0, x1, y1]` in nm (may extend beyond the sheet).
@@ -320,7 +360,7 @@ impl CanvasModel {
     /// Fits the sheet into the pane with [`FIT_MARGIN_PT`] on each side, centred.
     pub fn fit(&mut self) {
         let (w, h) = self.page.sheet;
-        let pt = POINTS_PER_INCH / NM_PER_INCH;
+        let pt = POINTS_PER_INCH / NM_PER_INCH / self.ui_scale;
         let (sw, sh) = (w as f64 * pt, h as f64 * pt);
         let zx = (self.pane.0 - 2.0 * FIT_MARGIN_PT) / sw;
         let zy = (self.pane.1 - 2.0 * FIT_MARGIN_PT) / sh;
@@ -696,6 +736,34 @@ mod tests {
         assert_eq!(nm_of_mm(f64::INFINITY), None);
         assert_eq!(CanvasBackend::Gpu("Vulkan".into()).label(), "GPU Vulkan");
         assert_eq!(CanvasBackend::default().label(), "CPU");
+    }
+
+    #[test]
+    fn ft_349_the_ui_scale_enlarges_the_chrome_and_never_the_page() {
+        // A window at UI scale 1.5 on a monitor of scale factor 1: egui's points include the 1.5.
+        let mut m = CanvasModel::new(page(Vec::new()), (800.0, 533.0), 1.5);
+        m.set_ui_scale(1.5);
+        m.zoom_about(1.0, m.centre());
+        // 100 % is 96 dpi of paper whatever the UI scale.
+        assert!((m.display_dpi() - 96.0).abs() < 1e-9);
+        assert_eq!(m.native_ppp(), 1.0);
+        assert_eq!(m.native_pane(), (1200.0, 799.5));
+        // The page at 100 %: 297 mm is 1122.5 physical pixels, which is 748.3 of the window's points.
+        let width_pt = 297_000_000.0 * m.points_per_nm();
+        assert!((width_pt * 1.5 - 297.0 / 25.4 * 96.0).abs() < 1e-6, "{width_pt}");
+        // A pan of 15 points moves the content by 15 points (22.5 pixels).
+        let c = m.centre();
+        m.pan_points(15.0, 0.0);
+        let moved_pt = (c.0 - m.centre().0) as f64 * m.points_per_nm();
+        assert!((moved_pt - 15.0).abs() < 1e-3, "{moved_pt}");
+        // The fit leaves 16 points on the tighter side, as at scale 1.
+        m.fit();
+        let height_pt = 210_000_000.0 * m.points_per_nm();
+        assert!((height_pt - (533.0 - 32.0)).abs() < 1e-6, "{height_pt}");
+        // At UI scale 1 the model is unchanged.
+        let one = model();
+        assert_eq!((one.native_pane(), one.native_ppp()), (HEADLESS_PANE, 1.0));
+        assert_eq!(one.display_dpi(), one.zoom() * 96.0);
     }
 
     #[test]

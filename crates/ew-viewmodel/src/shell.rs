@@ -917,6 +917,7 @@ impl ShellModel {
             "view.pan_down" => self.act_pan_step(0.0, 1.0),
             "view.grid" => self.act_grid(),
             "view.frame_stats" => self.act_frame_stats(),
+            "view.cpu_canvas" => self.act_cpu_canvas(),
             "view.zoom_to" => self.act_zoom_to(p),
             "view.pan" => self.act_pan(p),
             "view.canvas_resize" => self.act_canvas_resize(p),
@@ -1368,6 +1369,7 @@ impl ShellModel {
         }
         self.settings.ui_scale = UI_SCALES[scale_index(scale).unwrap_or(0)];
         self.save_settings();
+        self.sync_canvas_ui_scale();
         Outcome::Done
     }
 

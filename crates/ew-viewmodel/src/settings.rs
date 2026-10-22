@@ -6,7 +6,8 @@
 //! `version = 1`, `recent_projects` (at most [`MAX_RECENT`], most recent first, no duplicates), `ui_scale` (one
 //! of [`UI_SCALES`]) and, since part 2, the first-run answers and quick switches: `first_run_done`, `language`,
 //! `keymap`, `theme`, `comes_from`, `update_check` (an opt-in, off by default, NFR-PRIV-03), the default basic
-//! project `basic_project` (FR-PRJ-009) and the active workspace `workspace` (FR-UI-002). Unknown keys are kept
+//! project `basic_project` (FR-PRJ-009), the active workspace `workspace` (FR-UI-002) and, since WP-S2.02 part 2,
+//! the canvas renderer `canvas_backend` (`auto`, or `cpu` for View, Use the CPU renderer). Unknown keys are kept
 //! and written back; a `toml::Table` holds them sorted, so the file is deterministic. An unreadable file yields
 //! the defaults and is copied to `settings.toml.bad-<n>`.
 
@@ -33,6 +34,10 @@ pub const THEMES: [&str; 3] = ["system", "light", "dark"];
 
 /// What the user comes from (first-run step 2, doc 16 section 9.1); the empty text is "not answered".
 pub const ORIGINS: [&str; 4] = ["eplan", "qet", "kicad", "other"];
+
+/// The values of `canvas_backend`: the switch rule decides (`auto`, the default), or always the CPU canvas (`cpu`;
+/// WP-S2.02 §7.2 row 2).
+pub const CANVAS_BACKENDS: [&str; 2] = ["auto", "cpu"];
 
 /// The name of the built-in workspace (doc 16 section 2.6) and the default of `workspace`.
 pub const DEFAULT_WORKSPACE: &str = "Schematic";
@@ -61,6 +66,8 @@ pub struct Settings {
     pub basic_project: Option<String>,
     /// The active workspace (doc 16 section 2.6).
     pub workspace: String,
+    /// The canvas renderer, one of [`CANVAS_BACKENDS`].
+    pub canvas_backend: String,
     /// Keys this version does not know, kept and written back.
     extra: toml::Table,
 }
@@ -78,6 +85,7 @@ impl Default for Settings {
             update_check: false,
             basic_project: None,
             workspace: DEFAULT_WORKSPACE.to_owned(),
+            canvas_backend: CANVAS_BACKENDS[0].to_owned(),
             extra: toml::Table::new(),
         }
     }
@@ -136,6 +144,7 @@ impl Settings {
         let language = take_choice(&mut table, "language", &LANGUAGES)?;
         let keymap = take_choice(&mut table, "keymap", &KEYMAPS)?;
         let theme = take_choice(&mut table, "theme", &THEMES)?;
+        let canvas_backend = take_choice(&mut table, "canvas_backend", &CANVAS_BACKENDS)?;
         let comes_from = match take_string(&mut table, "comes_from")? {
             Some(v) if ORIGINS.contains(&v.as_str()) => v,
             _ => String::new(),
@@ -159,6 +168,7 @@ impl Settings {
             update_check,
             basic_project,
             workspace,
+            canvas_backend,
             extra: table,
         };
         // The list is normalised on read: no duplicates, at most MAX_RECENT, first occurrence wins.
@@ -198,6 +208,7 @@ impl Settings {
             ("theme", &self.theme),
             ("comes_from", &self.comes_from),
             ("workspace", &self.workspace),
+            ("canvas_backend", &self.canvas_backend),
         ] {
             table.insert(key.to_owned(), toml::Value::String(value.clone()));
         }
@@ -447,6 +458,7 @@ mod tests {
             comes_from: "qet".to_owned(),
             basic_project: Some("company.ew".to_owned()),
             workspace: "Review".to_owned(),
+            canvas_backend: "cpu".to_owned(),
             ..Settings::default()
         };
         s.save(&dir).unwrap();
@@ -463,6 +475,10 @@ mod tests {
         assert_eq!(loose.comes_from, "");
         assert_eq!(loose.workspace, DEFAULT_WORKSPACE);
         assert_eq!(loose.basic_project, None);
+        assert_eq!(loose.canvas_backend, "auto");
+        let metal = Settings::parse("canvas_backend = \"metal\"\n").unwrap();
+        assert_eq!(metal.canvas_backend, "auto");
+        assert!(Settings::parse("canvas_backend = 1\n").is_none());
         // A key of the wrong type makes the file bad, like the older keys.
         for text in [
             "first_run_done = \"yes\"\n",

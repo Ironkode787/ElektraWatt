@@ -90,6 +90,10 @@ pub const VOCABULARY: &[&str] = &[
     "none",
     "backend",
     "statistics",
+    // The canvas renderer setting (WP-S2.02 part 2): a reviewed vocabulary change.
+    "renderer",
+    "auto",
+    "cpu",
 ];
 
 /// The markers after which the rest of the line is user text (a title, a banner, an error, a reason, a folio, a
@@ -371,6 +375,7 @@ fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
     if model.frame_stats_shown() {
         lines.push("canvas statistics shown".to_owned());
     }
+    lines.push(format!("canvas renderer {}", crate::script::renderer_word(model)));
 }
 
 fn dialog(model: &ShellModel, lines: &mut Vec<String>) {

@@ -16,7 +16,7 @@ use serde_json::{Map, Value};
 use super::{DocRequest, Outcome, Prompt, ShellModel, dir_name, failed, open_error_key, string_param};
 use crate::first_run::{self, FirstRun, FirstRunStep, START_CHOICES};
 use crate::help;
-use crate::settings::{KEYMAPS, LANGUAGES, ORIGINS, THEMES};
+use crate::settings::{CANVAS_BACKENDS, KEYMAPS, LANGUAGES, ORIGINS, THEMES};
 use crate::strings;
 use crate::wizard::{DRAFT_FILE, Draft, Step, Wizard, run_commands};
 
@@ -45,6 +45,7 @@ impl ShellModel {
             "language" => self.settings.language = choice(&LANGUAGES)?,
             "keymap" => self.settings.keymap = choice(&KEYMAPS)?,
             "theme" => self.settings.theme = choice(&THEMES)?,
+            "canvas_backend" => self.settings.canvas_backend = choice(&CANVAS_BACKENDS)?,
             "comes_from" => {
                 self.settings.comes_from = match text {
                     Some("") => String::new(),

@@ -1296,6 +1296,9 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     done(&mut sample, "view.grid", json!({}));
     done(&mut sample, "canvas.pointer", json!({}));
     texts.push(sample.describe());
+    // The CPU renderer setting (WP-S2.02 part 2).
+    done(&mut sample, "view.cpu_canvas", json!({}));
+    texts.push(sample.describe());
     sample.shutdown();
     // A wizard whose preview is not available says why.
     let mut config = tmp.config();
