@@ -104,9 +104,10 @@ pub enum RowSetStatus {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum NotDerived {
     /// The row query of `ew-derive` it reads does not exist yet (the connectivity queries of Derivation II:
-    /// `terminal_rows`, `cable_rows`, `wire_rows`, `potential_partition`, `plc_rows`).
+    /// `terminal_rows`, `cable_rows`, `wire_rows`, `potential_partition`, `plc_rows`; the revision overview's
+    /// `revision_rows`, FT-207).
     AwaitsQuery(&'static str),
-    /// The model has no record shape for the source data yet (colour and size profiles, revisions).
+    /// The model has no record shape for the source data yet.
     NoRecordShape(&'static str),
     /// The source is not supported in this build: a report kind without a row query, a user SQL report
     /// before 1.0, or a kind of a newer format.

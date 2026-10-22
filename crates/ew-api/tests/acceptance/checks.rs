@@ -1129,11 +1129,17 @@ fn ac15_builder_path(c: &Ctx) -> Outcome {
         .filter(|(k, _)| k.starts_with("representation (refused"))
         .map(|(k, n)| format!("{n} × {k}"))
         .collect();
-    let not_built = format!(
-        "not built by any command yet: {} (not compared by any expected CSV); the project row (except 4 \
-         settings members and the supply origin) and the embedded library copies come from the shell",
-        built.unwritten_summary()
-    );
+    let shell = "the project row (except 4 settings members and the supply origin) and the embedded library \
+                 copies come from the shell";
+    let not_built = if built.unwritten.is_empty() {
+        let revisions = built.by_command.get("revision.create").copied().unwrap_or(0);
+        format!("no record is left unwritten (the {revisions} revisions by revision.create, FT-165); {shell}")
+    } else {
+        format!(
+            "not built by any command yet: {} (not compared by any expected CSV); {shell}",
+            built.unwritten_summary()
+        )
+    };
     let commands = built.script.len();
     let mut problems = Vec::new();
     if !differing.is_empty() {
@@ -1641,6 +1647,11 @@ fn defects(r: &mut Runner) {
         "V2.0 on every page",
         ("AC-04", "every page prints the bound title-block values"),
         "Folio 911 (the revision overview, V1.0 and V2.0) is still a placeholder: the report kind does not read the revision records yet.",
+    );
+    r.entry(
+        "D-05",
+        "no page record holds a revision value; the revisions are typed records",
+        d05_no_page_revision,
     );
     r.entry("D-06", "the project description is one text on every page", |c| {
         let want = "Description: Expansion Control Cabinets";
@@ -3619,6 +3630,73 @@ fn open_findings(s: &Session, rule: &str) -> Vec<ew_api::checks::Finding> {
 
 /// The frozen tags of doc 20 §18.1 EF-15, by device key.
 const EF_15: [&str; 7] = ["S51", "F55", "T55", "E55", "S56", "E56", "1X1"];
+
+/// Whether a JSON value names a per-page revision member at any depth: `revision`, `rev` or QET's
+/// `indexrev` (an imported title-block value, doc 14 §4.9).
+fn names_a_revision(v: &serde_json::Value) -> bool {
+    match v {
+        serde_json::Value::Object(m) => m
+            .iter()
+            .any(|(k, v)| matches!(k.as_str(), "revision" | "rev" | "indexrev") || names_a_revision(v)),
+        serde_json::Value::Array(items) => items.iter().any(names_a_revision),
+        _ => false,
+    }
+}
+
+/// D-05, the second clause of doc 20 §19 ("Page has no revision field"): the page schema has no revision
+/// member, no page record of the golden project keeps one among its unknown members (`extra`, where an
+/// importer keeps a per-page title-block value), and the revision history is the typed records V1.0
+/// (released) and V2.0 (open) that every title block reads (FT-165).
+fn d05_no_page_revision(c: &Ctx) -> Outcome {
+    let schema = ew_schema::kind_schema(ew_schema::Kind::Page).unwrap_or_default();
+    let in_schema: Vec<String> = schema["properties"]
+        .as_object()
+        .map(|m| m.keys().filter(|k| k.contains("rev")).cloned().collect())
+        .unwrap_or_default();
+    let mut on_pages = Vec::new();
+    let mut history = Vec::new();
+    let mut unknown = 0usize;
+    for r in &c.batch.records {
+        match r {
+            Record::Page(p) => {
+                let extra = serde_json::to_value(&p.extra).unwrap_or_default();
+                if names_a_revision(&extra) {
+                    on_pages.push(p.id.to_string());
+                }
+            }
+            Record::Revision(v) => {
+                let state = serde_json::to_value(&v.state).unwrap_or_default();
+                history.push(format!("{} {}", v.label.as_str(), state.as_str().unwrap_or("?")));
+            }
+            Record::Unknown(v) if v.get("$k").and_then(serde_json::Value::as_str) == Some("revision") => {
+                unknown += 1;
+            }
+            _ => {}
+        }
+    }
+    history.sort();
+    let want = ["V1.0 released", "V2.0 open"];
+    if !in_schema.is_empty() {
+        return fail(format!(
+            "the page schema has revision members: {}",
+            in_schema.join(", ")
+        ));
+    }
+    if !on_pages.is_empty() {
+        return fail(format!("pages with a revision value: {}", list(on_pages, 5)));
+    }
+    if unknown > 0 || history != want {
+        return fail(format!(
+            "the revision history is {} typed record(s) {history:?} and {unknown} untyped; expected {want:?}",
+            history.len()
+        ));
+    }
+    pass(format!(
+        "the page schema has no revision member and no page record keeps one in `extra`; the revision history \
+         is the typed records {}, which every title block reads",
+        want.join(" and ")
+    ))
+}
 
 /// The frozen tags that are ▲U-34 test inputs (doc 20 §2.1 rule 1: -XPE, -UC1 and -UC1-plate are frozen too,
 /// standing in for per-class numbering rules that are not modelled). They deviate from the page rule as the

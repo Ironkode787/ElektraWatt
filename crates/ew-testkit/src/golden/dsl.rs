@@ -25,7 +25,7 @@ use ew_model::AnyKey;
 use ew_schema::{
     AnyId, Bond, Channel, Conductor, Connection, ConnectionKind, Device, DeviceLink, Endpoint, ExternalRef,
     FnDef, FnRole, Function, FunctionKind, IpSpec, Junction, Kind, Page, PlcConfigProject, PotentialDef,
-    Record, ReportBlock, Representation, Section, StructureNode,
+    Record, ReportBlock, Representation, Revision, RevisionState, Section, StructureNode,
 };
 use ew_units::Pt2;
 use serde_json::{Map, Value, json};
@@ -1022,6 +1022,38 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         let (id, _) = self.primary::<DeviceLink>("device.link", Value::Object(p))?;
         self.set_rest("device_link", id.cast(), m, &[])?;
         Ok(id)
+    }
+
+    /// `revision.create` (FT-165): the open revision, or a historic released one (no release record, no
+    /// archive). A withdrawal record, or a state of a newer format, is not written (`revision.withdraw` does
+    /// not exist yet): `None`, counted under `revision (withdrawn or newer state)`.
+    ///
+    /// # Errors
+    ///
+    /// The command's error.
+    pub fn revision(&mut self, rev: &Revision) -> Result<Option<Id<Revision>>> {
+        if !matches!(rev.state, RevisionState::Open | RevisionState::Released) {
+            self.not_written("revision (withdrawn or newer state)", 1);
+            return Ok(None);
+        }
+        let mut m = members(Record::Revision(rev.clone()));
+        let mut p = Map::new();
+        for k in [
+            "label",
+            "state",
+            "date",
+            "author",
+            "checker",
+            "description",
+            "page_notes",
+        ] {
+            if let Some(v) = take(&mut m, k) {
+                p.insert(k.into(), v);
+            }
+        }
+        let (id, _) = self.primary::<Revision>("revision.create", Value::Object(p))?;
+        self.set_rest("revision", id.cast(), m, &[])?;
+        Ok(Some(id))
     }
 
     /// `project.supply.set` of one supply member.

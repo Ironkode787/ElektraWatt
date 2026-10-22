@@ -381,13 +381,14 @@ transitive, and each covered device is the assembly device or a descendant of it
 that names an unknown device or part is dropped with EW-IMP-003; a repeated `n` for one assembly, a device listed
 twice or a covered device outside the assembly is dropped with EW-IMP-002.
 
-### `revisions.csv` → reserved `revision` records (doc 20 §4.1, doc 03 §18)
+### `revisions.csv` → `revision` records (doc 20 §4.1, doc 03 §18)
 
 `key` R (the label, `V1.0`), `date` O, `description` O, `state` R (`open`, `released`, `withdrawn`), `author` O and
-`checker` O (a `parties` key or name; the record keeps the party's role string, the only party reference form of
-doc 03 §18 so far), `changed_pages` O (list of `pages` keys; the page notes of the record). The records are
-`Record::Unknown` values of kind `revision` (the kind is reserved in `ew-schema` v0, written to `revisions.jsonl`);
-the title-block query of `ew-derive` reads them leniently (`revision.current.*`).
+`checker` O (a `parties` key or name; the record keeps the party's role, the only party reference form of doc 03
+§18 so far), `changed_pages` O (list of `pages` keys; the page notes of the record). The records are typed
+`Record::Revision` values (since cycle 17, FT-165; written to `revisions.jsonl`): V1.0 is a historic released
+revision without a release record or archive, V2.0 the open one. The title-block query of `ew-derive` reads them
+(`revision.current.*`, `page.last_changed_in`); no page record carries a revision value (D-05).
 
 ### `profiles.csv`, `colour_profile.csv` and `size_profile.csv` → `ProjectSettings.extra["colour_profile"]`, `["size_profile"]` (doc 20 §7.1, §7.2)
 
@@ -740,10 +741,10 @@ commands do not take. The commands mint their own IDs, so path (b) agrees with p
 (doc 20 §3.2: every column except `id` and `source_ref`); with the same ID source the build is deterministic, and
 its command log (`Built::command_log`, doc 17 §3.5) replays with `ew apply` to the same model.
 
-The builder never injects a record. What no command writes yet is left out and listed (`Built::unwritten`,
-pinned by `crates/ew-testkit/tests/golden_dsl.rs`): only the 2 revisions remain, a reserved kind without a schema
-type that no command can create (FT-165). 606 commands build the rest (23 command names; about two seconds in a
-debug build). The same test file checks that path (b) holds the records of path (a) record for record, up to the
+The builder never injects a record. What no command writes yet would be left out and listed (`Built::unwritten`,
+pinned by `crates/ew-testkit/tests/golden_dsl.rs`); since cycle 17 the list is empty: `revision.create` writes the
+historic released V1.0 and the open V2.0 with its page notes (FT-165). 608 commands build the project (24 command
+names; about two seconds in a debug build). The same test file checks that path (b) holds the records of path (a) record for record, up to the
 IDs the commands minted (`source_ref` aside, the import lineage being path (a)'s own).
 
 **Status (AC-15 path (b): `pass`, cycle 16).** The six acceptance SQL files over the built project return `expected/csv/`, and so do `ew export bom --mode parts` (`bom_parts.csv`) and `--mode assembly` (`bom_assembly.csv`, compared since the valve-terminal assembly is built by commands, FT-169). Until cycle 16 the parts list lacked the 28 valves (571334) and the mounting plate (NSYPMM107) and printed the seven modules one by one. The cable markers (representation type graphic on the multi-line folio 106 and the bus-topology folio 3) and the seven CPX black boxes drawn multi-line on the fluid folios 203 … 206 are placed under the owner ruling of cycle 15 that amends decision log ID-55 (doc 06 §2.2): before it, the page-type rule refused them, a cable without its marker had no page and printed `-?W1`, and four of the six files differed.
@@ -849,7 +850,7 @@ of §20.2 that need a command that does not exist:
 | §20.2 step | Edit it would make | Missing |
 |---|---|---|
 | 1, MF-16 | bond `pelv_0v_pe` between -102G1:−#1 and -X1032:2 via W27 | the script line (`bond.create` exists since cycle 15, FT-164 closed; the line is FT-286) |
-| 1, MF-04 | revisions V1.0 and V2.0, per-page values dropped | a revision-create command (FT-165) |
+| 1, MF-04 | revisions V1.0 and V2.0, per-page values dropped | the script lines: `revision.create` exists since cycle 17 (FT-165; two lines, V1.0 `released` and V2.0 `open`, FT-286). The per-folio `indexrev` values stay in `Page.extra["qet.titleblock"]`, which no derivation reads; dropping them is the EW-IMP-104 quick fix with the majority rule (FT-139) |
 | 1, MF-02 | structure nodes =P01 and +J-E-2416 assigned to every device and page | a reference to a node created earlier in the log (`structure.create_node` exists; the `structure:<code>` reference, FT-171) |
 | 1, MF-11 | core colour BR → BN on -106W1, -106W2 | cables with conductors in the import (FT-135) |
 | 1, MF-05 | `description_override` of folio 101 removed | the import keeps the description in `Page.extra` (EW-IMP-104), so there is no override to drop; the importer must map it to `description_override` with EW-IMP-105, after which `fields.set` (`description_override` = null) does it |
@@ -955,10 +956,13 @@ committed as golden files (doc 18 asks for none); its SHA-256 is in the AC-14 re
 change of any SVG byte shows there. The comparison runs on the platform of the run; the gate platform is Linux and
 the cross-platform digests are MVP.
 
-The headless report of this revision: 93 entries, 87 pass, 0 fail, 1 not_built (D-06's property grid, a UI entry
-of M-PP), 5 not_applicable, 0 oracle mismatches (the full run adds the raster comparison as a pass). Cycle 16
-closed AC-15 path (b): 606 commands build the project, both BOM exports included, and only the 2 revisions stay
-unwritten (FT-165). Cycle 15 (FT-59) runs the page output through the
+The headless report of this revision: 94 entries, 88 pass, 0 fail, 1 not_built (D-06's property grid, a UI entry
+of M-PP), 5 not_applicable, 0 oracle mismatches (the full run adds the raster comparison as a pass). Cycle 17
+(FT-165) typed the revisions: path (b) writes every record (608 commands, the 2 revisions by `revision.create`),
+and a second D-05 entry checks that no page record holds a revision value. Folio 911 stays a placeholder whose note
+now reads "awaits the `revision_rows` query" (FT-207), which changed its text CSV, its PNG candidate, the PDF digest
+and the SVG digest of AC-14. Cycle 16 closed AC-15 path (b): 606 commands built the project, both BOM exports
+included, and only the 2 revisions stayed unwritten. Cycle 15 (FT-59) runs the page output through the
 export job: the text CSVs, the PDF, the SVG set, AC-16's page texts and AC-17's PDF time come from
 `ew_api::output`; the new AC-15 entry exports the checked-in fixture as `ew export pdf` does and finds the digest of
 `expected/pdf/sha256.txt`; AC-16 sweeps 65 memoised families (the 14 of the page output and `assembly_break_marks` included). Cycle 15 lane B

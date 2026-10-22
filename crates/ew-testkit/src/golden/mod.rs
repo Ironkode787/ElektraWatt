@@ -10,7 +10,8 @@
 //! - **Path (b)**, [`build`]: the [`dsl::Builder`] issues one command per step (`structure.create_node`,
 //!   `page.create`, `device.create`, `terminal.add`, `cable.create`, `device.place`, `box.black`,
 //!   `ip.place`, `connection.draw`, `junction.edit`, `potential.define`, `bond.create`,
-//!   `report_block.create`, `fields.set`, `assembly.attach`, `valve.add`, `plc.bind_channel`, …) against
+//!   `report_block.create`, `fields.set`, `assembly.attach`, `valve.add`, `plc.bind_channel`,
+//!   `revision.create`, …) against
 //!   a session, starting from the [`Shell`]: the project row (a new project is `ew new`) and the embedded
 //!   library copies (among them the project-local parts, which are not embedded). The content comes from the same source of truth as path (a): the
 //!   records of the bootstrap batch are the typed description, translated into commands in dependency

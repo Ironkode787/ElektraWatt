@@ -24,10 +24,12 @@
 //!    directly; then their overrides;
 //! 6. potential definitions, bonds, report blocks;
 //! 7. channel bindings (`plc.bind_channel`, coil 14 of position p → channel 2p + 1 as drawn) and device
-//!    links (`device.link`).
+//!    links (`device.link`);
+//! 8. revisions (`revision.create`, FT-165): the historic released V1.0 and the open V2.0 with its page
+//!    notes.
 //!
-//! Not written (no command yet, FT numbers of doc 20 §20.2 and §23): revisions (FT-165: the revision kind
-//! is reserved, not typed) and the import lineage (path (a) only).
+//! Not written: the import lineage (path (a) only); a record of a reserved kind without a schema type
+//! (Golden A has none since FT-165) is counted.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -712,6 +714,13 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
         map.insert(x.id, id);
     }
 
+    // 8. Revisions (FT-165), after the pages their notes name.
+    for x in of!(Revision) {
+        if let Some(id) = b.revision(&map.apply(x))? {
+            map.insert(x.id, id);
+        }
+    }
+
     // Kinds no command writes yet.
     for r in recs {
         let what = match r.kind() {
@@ -732,10 +741,11 @@ pub fn build<S: CommandSink + ?Sized>(batch: &ImportBatch, sink: &mut S) -> Resu
                 | Kind::Conductor
                 | Kind::PotentialDef
                 | Kind::Bond
-                | Kind::ReportBlock,
+                | Kind::ReportBlock
+                | Kind::Revision,
             ) => continue,
             Some(_) => "other kind",
-            None => "revision or other reserved kind without a schema type (FT-165)",
+            None => "reserved kind without a schema type",
         };
         b.not_written(what, 1);
     }

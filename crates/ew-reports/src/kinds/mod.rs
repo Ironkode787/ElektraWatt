@@ -12,7 +12,7 @@
 //! Derived from the PLC queries (`plc_rows`, doc 10 §2.10): `plc_overview`. From the tags and wire numbers:
 //! `numbering_report` (frozen values with their rule values, FR-REP-022).
 //! Registered with its columns but **not derived yet** (an empty row set marked [`NotDerived`]):
-//! `revision_overview` (the revision records are reserved, not typed). Other schema kinds are not registered; their blocks report
+//! `revision_overview` (the revision records are typed since FT-165; its row query is FT-207). Other schema kinds are not registered; their blocks report
 //! [`NotDerived::Unsupported`].
 
 use ew_derive::Q;
@@ -108,5 +108,7 @@ pub static REVISION_OVERVIEW: Pending = Pending {
         ("state", CellType::Text, "State"),
         ("pages", CellType::Folios, "Changed pages"),
     ],
-    reason: NotDerived::NoRecordShape("revision"),
+    // The revision records are typed since FT-165; the overview's rows (revisions and their changed pages,
+    // doc 09 §2.1) are FT-207.
+    reason: NotDerived::AwaitsQuery("revision_rows"),
 };

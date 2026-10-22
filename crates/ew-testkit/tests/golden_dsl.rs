@@ -170,7 +170,7 @@ fn path_b_returns_the_expected_csvs() {
 }
 
 /// What path (b) issues and what it cannot write yet (no command): pinned, so that a new command or a
-/// table change shows here.
+/// table change shows here. Since FT-165 path (b) writes every record: nothing is left out.
 #[test]
 fn path_b_issues_these_commands_and_leaves_out_these_records() {
     let (_, built) = built(1);
@@ -185,13 +185,11 @@ fn path_b_issues_these_commands_and_leaves_out_these_records() {
          device.create: 37, device.link: 8, device.place: 76, external_ref.create: 4, fields.set: 204, \
          ip.place: 48, junction.edit: 6, page.create: 13, plc.bind_channel: 28, \
          plc.config_project.create: 1, potential.define: 19, project.settings.set: 3, \
-         project.supply.set: 1, report_block.create: 15, section.create: 3, structure.create_node: 4, \
-         terminal.add: 4, valve.add: 28"
+         project.supply.set: 1, report_block.create: 15, revision.create: 2, section.create: 3, \
+         structure.create_node: 4, terminal.add: 4, valve.add: 28"
     );
-    assert_eq!(
-        built.unwritten_summary(),
-        "revision or other reserved kind without a schema type (FT-165): 2"
-    );
+    assert_eq!(built.unwritten_summary(), "");
+    assert!(built.unwritten.is_empty());
 }
 
 /// The same seed builds the same model; another seed mints other IDs and gives the same SQL results.
@@ -237,7 +235,7 @@ fn the_command_log_replays_and_every_step_undoes() {
     }
     // one undo step per command that changed the model: two of the commands leave the model as it was
     // (a value the record already had), so they leave no step
-    assert_eq!((steps, built.script.len()), (604, 606), "undo steps, commands");
+    assert_eq!((steps, built.script.len()), (606, 608), "undo steps, commands");
     assert!(
         session.world().model.content_eq(&shell_session(1).world().model),
         "undoing every step returns to the shell"
@@ -289,7 +287,7 @@ fn rows_by_key(session: &Session) -> BTreeMap<String, serde_json::Value> {
 /// Path (b) holds the records of path (a) record for record, up to the IDs the commands minted: every
 /// record of the bootstrap (its `source_ref` aside), with its references remapped to the built IDs,
 /// equals the built record under the built ID, and path (b) holds no other record. The import lineage is
-/// path (a)'s own; the revisions are reserved records outside the tables (FT-165).
+/// path (a)'s own. The revisions (typed since FT-165) are compared like every other record.
 #[test]
 fn path_b_equals_path_a_record_by_record_up_to_ids() {
     use ew_schema::Record;
@@ -343,6 +341,7 @@ fn path_b_equals_path_a_record_by_record_up_to_ids() {
         ("channel", 56),
         ("device_link", 8),
         ("plc_config_project", 1),
+        ("revision", 2),
     ] {
         assert_eq!((kind, count(&b_rows, kind)), (kind, n), "rows of path (b)");
     }
