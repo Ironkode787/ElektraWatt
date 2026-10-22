@@ -742,7 +742,14 @@ mod tests {
             }
             let mut out = Vec::new();
             for deps in tables {
-                for spec in deps.values() {
+                for (dep_name, spec) in deps {
+                    // A dependency inherited from the workspace has no `path` key, so it would silently leave the
+                    // closure; the root manifest declares no path dependencies today, and this keeps it that way.
+                    assert!(
+                        !(dep_name.starts_with("ew-")
+                            && spec.get("workspace").and_then(toml::Value::as_bool) == Some(true)),
+                        "{dep_name}: an `ew-*` dependency must use `path = ...`, not `workspace = true`, so the                          fuzz-smoke closure test can see it"
+                    );
                     if let Some(path) = spec.get("path").and_then(toml::Value::as_str) {
                         let name = std::path::Path::new(path)
                             .file_name()
