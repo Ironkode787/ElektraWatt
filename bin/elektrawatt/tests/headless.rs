@@ -228,6 +228,10 @@ fn the_smoke_script_runs_on_golden_a() {
     assert_eq!(state(5)["dirty"], false);
     assert_eq!(state(6)["project"], Value::Null);
     assert_eq!(state(6)["title"], "ElektraWatt");
+    // The canvas member (WP-S2.02): the page on show, null without a project.
+    assert_eq!(state(1)["canvas"]["folio"], "103");
+    assert_eq!(state(1)["canvas"]["backend"], "CPU");
+    assert_eq!(state(6)["canvas"], Value::Null);
     assert_eq!(state(7)["page_count"].as_u64().unwrap(), count + 1);
     let describe = steps[8]["describe"].as_str().unwrap();
     assert!(
