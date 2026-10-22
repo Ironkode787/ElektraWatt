@@ -13,7 +13,7 @@
 use std::cell::Cell;
 use std::path::{Path, PathBuf};
 
-use ew_api::output::{ExportOptions, ExportPages, PageSelection};
+use ew_api::output::{ExportOptions, ExportPages, PageRow, PageSelection};
 use ew_api::{
     Access, CmdLog, OpenError, OpenReport, Origin, ReadOnlyReason, Recovery, SaveError, Session,
     SessionOptions, StoreOptions,
@@ -21,18 +21,23 @@ use ew_api::{
 use serde_json::{Map, Value, json};
 
 use crate::actions::{self, ACTIONS, PaletteEntry, PaletteRun};
-use crate::canvas::{CanvasBackend, CanvasModel, HEADLESS_PANE};
+use crate::area::CanvasArea;
+use crate::canvas::{CanvasBackend, HEADLESS_PANE};
 use crate::first_run::FirstRun;
 use crate::layout::Layout;
+use crate::navigator::PageNavigator;
 use crate::settings::{self, Settings, UI_SCALES, scale_index};
 use crate::status;
 use crate::strings;
 use crate::wizard::Wizard;
 
 mod canvas_actions;
+mod navigation;
 mod onboarding;
 mod projects;
 mod workspaces;
+
+pub use navigation::{Focus, RECENT_PAGES, SessionCalls};
 
 /// Who drives the shell: the window or the headless runner. They share `dispatch`; the modes differ only where a
 /// person can be asked (a dialog) and a script cannot.
@@ -175,7 +180,7 @@ pub enum Dialog {
         /// What runs after the answer.
         pending: Pending,
     },
-    /// Page, Go to page: a folio typed by the user.
+    /// Page, Go to page or cell: a folio or a cell typed by the user.
     GotoPage {
         /// The text of the field.
         text: String,
@@ -282,6 +287,8 @@ struct Project {
     name: String,
     access: AccessMode,
     labels: Vec<String>,
+    /// The rows of the derived page order (`Session::page_rows`), once per revision.
+    rows: Vec<PageRow>,
 }
 
 /// All state of the application shell.
@@ -290,7 +297,6 @@ pub struct ShellModel {
     config: ShellConfig,
     settings: Settings,
     project: Option<Project>,
-    page_index: usize,
     banner: Option<String>,
     palette: Option<PaletteState>,
     dialog: Option<Dialog>,
@@ -311,9 +317,17 @@ pub struct ShellModel {
     doc_request: Option<DocRequest>,
     /// The target of the last documentation request, kept for `ui.describe`.
     last_help: Option<String>,
-    /// The canvas of the page on show (WP-S2.02): its view and the page content it shows.
-    canvas: Option<CanvasModel>,
-    /// The canvas pane in logical points and its pixels per point, kept across pages.
+    /// The open pages as tabs in one or two groups (WP-S2.03): each tab's canvas, view memory and history.
+    area: Option<CanvasArea>,
+    /// The page navigator (WP-S2.03 §6.1).
+    navigator: PageNavigator,
+    /// Where the keyboard focus is.
+    focus: Option<Focus>,
+    /// The page content of the current revision by folio (WP-S2.03 §6.2).
+    cache: navigation::PageCache,
+    /// The viewer's `Session` reads, counted.
+    calls: Cell<SessionCalls>,
+    /// The canvas pane of a new project's first group in logical points and its pixels per point.
     canvas_pane: (f64, f64),
     canvas_ppp: f64,
     /// Whether the page grid is drawn.
@@ -425,6 +439,39 @@ fn clears_banner(id: &str) -> bool {
             | "view.canvas_resize"
             | "canvas.pointer"
             | "canvas.snapshot"
+            // The viewer's navigation leaves a banner standing (WP-S2.03 §6.7); nav.goto, page.goto and tab.open,
+            // which can fail with a message, clear it.
+            | "tab.new"
+            | "tab.close"
+            | "tab.next"
+            | "tab.previous"
+            | "tab.focus_other"
+            | "tab.activate"
+            | "tab.move"
+            | "view.side_by_side"
+            | "nav.back"
+            | "nav.forward"
+            | "nav.follow"
+            | "nav.next_link"
+            | "nav.previous_link"
+            | "cursor.left"
+            | "cursor.right"
+            | "cursor.up"
+            | "cursor.down"
+            | "cursor.cell_left"
+            | "cursor.cell_right"
+            | "cursor.cell_up"
+            | "cursor.cell_down"
+            | "cursor.set"
+            | "pages.mode"
+            | "pages.sort"
+            | "pages.filter"
+            | "pages.toggle"
+            | "pages.row"
+            | "pages.open"
+            | "ui.focus"
+            | "ui.focus_next"
+            | "ui.focus_previous"
     )
 }
 
@@ -453,7 +500,6 @@ impl ShellModel {
             config,
             settings,
             project: None,
-            page_index: 0,
             banner,
             palette: None,
             dialog: None,
@@ -469,7 +515,11 @@ impl ShellModel {
             layout_changed_at: None,
             doc_request: None,
             last_help: None,
-            canvas: None,
+            area: None,
+            navigator: PageNavigator::new(),
+            focus: None,
+            cache: navigation::PageCache::default(),
+            calls: Cell::new(SessionCalls::default()),
             canvas_pane: HEADLESS_PANE,
             canvas_ppp: 1.0,
             grid_on: true,
@@ -549,14 +599,14 @@ impl ShellModel {
         self.page_labels().len()
     }
 
-    /// The 0-based index of the current page.
+    /// The 0-based index of the current page: the focused group's active tab's page in page order.
     pub fn page_index(&self) -> usize {
-        self.page_index
+        self.current_page().and_then(|p| self.row_index(p)).unwrap_or(0)
     }
 
     /// The folio label of the current page.
     pub fn current_folio(&self) -> Option<&str> {
-        self.page_labels().get(self.page_index).map(String::as_str)
+        self.page_labels().get(self.page_index()).map(String::as_str)
     }
 
     /// The revision of the open project's model, which a rendered page image is tagged with.
@@ -873,8 +923,8 @@ impl ShellModel {
             return Outcome::Refused { reason_key };
         }
         let outcome = self.run_action(meta.id, p);
-        // The canvas follows the page and the revision the action left (WP-S2.02 section 6.1).
-        self.sync_canvas();
+        // The canvases follow the pages and the revision the action left (WP-S2.02 section 6.1, WP-S2.03 §6.2).
+        self.sync_views();
         outcome
     }
 
@@ -915,19 +965,52 @@ impl ShellModel {
             "app.quit" => self.act_quit(p),
             "edit.undo" => self.act_undo(),
             "edit.redo" => self.act_redo(),
-            "page.next" => self.go_to_index(self.page_index + 1),
-            "page.previous" => self.go_to_index(self.page_index.saturating_sub(1)),
-            "page.first" => self.go_to_index(0),
-            "page.last" => self.go_to_index(self.page_count().saturating_sub(1)),
-            "page.goto" => self.act_goto(p),
-            "view.fit_page" => self.act_fit_page(),
-            "view.zoom_in" => self.act_zoom_in(),
-            "view.zoom_out" => self.act_zoom_out(),
-            "view.zoom_actual" => self.act_zoom_actual(),
-            "view.pan_left" => self.act_pan_step(-1.0, 0.0),
-            "view.pan_right" => self.act_pan_step(1.0, 0.0),
-            "view.pan_up" => self.act_pan_step(0.0, -1.0),
-            "view.pan_down" => self.act_pan_step(0.0, 1.0),
+            "page.next" => self.walk(self.page_index() + 1),
+            "page.previous" => self.walk(self.page_index().saturating_sub(1)),
+            "page.first" => self.walk(0),
+            "page.last" => self.walk(self.page_count().saturating_sub(1)),
+            "page.goto" => self.act_page_goto(p),
+            "nav.goto" => self.act_nav_goto(p),
+            "nav.back" => self.act_history(true),
+            "nav.forward" => self.act_history(false),
+            "nav.follow" => self.act_follow(p),
+            "nav.next_link" => self.act_link_step(p, true),
+            "nav.previous_link" => self.act_link_step(p, false),
+            "tab.new" => self.act_tab_new(),
+            "tab.close" => self.act_tab_close(),
+            "tab.next" => self.act_tab_cycle(1),
+            "tab.previous" => self.act_tab_cycle(-1),
+            "tab.focus_other" => self.act_focus_other(),
+            "tab.activate" => self.act_tab_activate(p),
+            "tab.move" => self.act_tab_move(p),
+            "tab.open" => self.act_tab_open(p),
+            "view.side_by_side" => self.act_side_by_side(),
+            "cursor.left" => self.act_cursor(p, -1, 0, false),
+            "cursor.right" => self.act_cursor(p, 1, 0, false),
+            "cursor.up" => self.act_cursor(p, 0, -1, false),
+            "cursor.down" => self.act_cursor(p, 0, 1, false),
+            "cursor.cell_left" => self.act_cursor(p, -1, 0, true),
+            "cursor.cell_right" => self.act_cursor(p, 1, 0, true),
+            "cursor.cell_up" => self.act_cursor(p, 0, -1, true),
+            "cursor.cell_down" => self.act_cursor(p, 0, 1, true),
+            "cursor.set" => self.act_cursor_set(p),
+            "pages.mode" => self.act_pages_mode(p),
+            "pages.sort" => self.act_pages_sort(p),
+            "pages.filter" => self.act_pages_filter(p),
+            "pages.toggle" => self.act_pages_toggle(p),
+            "pages.row" => self.act_pages_row(p),
+            "pages.open" => self.act_pages_open(p),
+            "ui.focus" => self.act_focus(p),
+            "ui.focus_next" => self.act_focus_cycle(1),
+            "ui.focus_previous" => self.act_focus_cycle(-1),
+            "view.fit_page" => self.act_fit_page(p),
+            "view.zoom_in" => self.act_zoom_in(p),
+            "view.zoom_out" => self.act_zoom_out(p),
+            "view.zoom_actual" => self.act_zoom_actual(p),
+            "view.pan_left" => self.act_pan_step(p, -1.0, 0.0),
+            "view.pan_right" => self.act_pan_step(p, 1.0, 0.0),
+            "view.pan_up" => self.act_pan_step(p, 0.0, -1.0),
+            "view.pan_down" => self.act_pan_step(p, 0.0, 1.0),
             "view.grid" => self.act_grid(),
             "view.frame_stats" => self.act_frame_stats(),
             "view.cpu_canvas" => self.act_cpu_canvas(),
@@ -1089,8 +1172,9 @@ impl ShellModel {
             name,
             access,
             labels,
+            rows: Vec::new(),
         });
-        self.page_index = 0;
+        self.install_view();
         self.settings.push_recent(&path_text);
         self.save_settings();
         Outcome::Done
@@ -1175,7 +1259,8 @@ impl ShellModel {
             self.record.undone.clear();
             p.session.close();
         }
-        self.page_index = 0;
+        self.area = None;
+        self.focus = None;
     }
 
     /// Ends the shell at the end of a run or of the window (also on a log-off): a clean project is closed, a dirty
@@ -1188,7 +1273,8 @@ impl ShellModel {
             Some(p) => p.session.close(),
             None => {}
         }
-        self.page_index = 0;
+        self.area = None;
+        self.focus = None;
     }
 
     fn save_settings(&mut self) {
@@ -1200,13 +1286,7 @@ impl ShellModel {
     }
 
     fn refresh(&mut self) {
-        let Some(p) = &mut self.project else { return };
-        let folio = p.labels.get(self.page_index).cloned();
-        p.labels = p.session.page_labels();
-        self.page_index = match folio.and_then(|f| p.labels.iter().position(|l| *l == f)) {
-            Some(i) => i,
-            None => self.page_index.min(p.labels.len().saturating_sub(1)),
-        };
+        self.refresh_rows();
     }
 
     fn act_save(&mut self) -> Outcome {
@@ -1345,32 +1425,6 @@ impl ShellModel {
                 Outcome::Done
             }
             Err(e) => failed("error-command", &[&e.to_string()]),
-        }
-    }
-
-    fn go_to_index(&mut self, index: usize) -> Outcome {
-        self.page_index = index.min(self.page_count().saturating_sub(1));
-        Outcome::Done
-    }
-
-    fn act_goto(&mut self, p: &Map<String, Value>) -> Outcome {
-        let folio = match string_param(p, "folio") {
-            Err(e) => return e,
-            Ok(Some(folio)) => folio.to_owned(),
-            Ok(None) => {
-                return match self.mode {
-                    Mode::Headless => failed("error-missing-param", &["folio"]),
-                    Mode::Gui => self.open_dialog(Dialog::GotoPage { text: String::new() }),
-                };
-            }
-        };
-        match self.page_labels().iter().position(|l| *l == folio) {
-            Some(i) => {
-                self.dialog = None;
-                self.page_index = i;
-                Outcome::Done
-            }
-            None => failed("error-no-folio", &[&folio]),
         }
     }
 

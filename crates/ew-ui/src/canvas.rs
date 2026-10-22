@@ -1,28 +1,36 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The egui host of the page canvas (WP-S2.02, spec sections 6.2 to 6.5, 7 and 9): the project view's page pane,
-//! drawn by `ew-render2d`'s GPU path where the switch rule allows ([`crate::gpu`]) and by its CPU tile path
-//! everywhere else, and as the loading state while a GPU scene prepares.
+//! The egui host of the page canvases (WP-S2.02, spec sections 6.2 to 6.5, 7 and 9; WP-S2.03 part 1, §6.8): every
+//! visible canvas group of the project view, drawn by `ew-render2d`'s GPU path where the switch rule allows
+//! ([`crate::gpu`]) and by its CPU tile path everywhere else, and as the loading state while a GPU scene prepares.
 //!
-//! Every frame, in four measured phases:
+//! **Several canvases over one pool.** Every visible canvas (one per group) is served from one `TilePool` and one
+//! `TileCache`; tile scenes are keyed by (session, revision, folio), so two tabs on one page share their tiles. Each
+//! frame the host plans the visible canvases, the focused group's first, and submits one merged plan (the focused
+//! group's tiles first in each priority class: the preview level, the visible wanted tiles, the ring), with the
+//! upload limit of 8 per frame shared. A scene not drawn in the frame is hidden: above the 256 MiB budget hidden
+//! scenes' tiles go first, least recently shown first, and hidden scenes together keep at most a quarter of the
+//! budget (FT-356); a scene no open tab shows any more is dropped at once.
 //!
-//! 1. **input**: the pane's size, the pointer, the wheel, pinch and drag become registry actions (`view.zoom_to`,
-//!    `view.pan`, `canvas.pointer`, `view.canvas_resize`), dispatched by the frame after painting like every other
-//!    input, so a script and the window take the same path;
-//! 2. **scene**: the page content of the shell's canvas becomes a tile scene once per (revision, folio); the
-//!    previous scene's tiles stay visible for the same folio until the new ones arrive;
-//! 3. **render**: on the GPU, the scene asked of the preparation worker and one render submitted when the view or
-//!    the scene changed (an idle frame submits nothing); on the CPU, the planner's plan, finished tiles taken from
-//!    the pool, at most 8 uploads (2 MiB) per frame, the requests for missing tiles (a newer plan drops older
-//!    waiting jobs);
-//! 4. **paint**: the surround, then the GPU texture over the sheet or the paper and the tiles coarse to fine, then
-//!    (one code path for both backends) the page bounds, the grid dots (one mesh), the hover outline and, when
-//!    View, Frame statistics is on, the statistics in the top-right corner.
+//! Every frame, per group, in four measured phases:
 //!
-//! No raster and no tessellation happens on the UI thread. The canvas is one focusable AccessKit node with the role `Canvas`, named
-//! `Page <folio>, <title>` and described `<hint>, zoom <zoom>` (doc 16 section 10.1); its primitives are not
-//! exposed (the navigators are the accessible representation, FR-UI-026).
+//! 1. **input**: the pane's size, the pointer, the wheel, pinch, drag, a click on a link, the mouse's back and
+//!    forward buttons become registry actions with the group (`view.zoom_to`, `view.pan`, `canvas.pointer`,
+//!    `view.canvas_resize`, `nav.follow`, `nav.back`, `ui.focus`), dispatched by the frame after painting like every
+//!    other input, so a script and the window take the same path;
+//! 2. **scene**: the page content of the group's canvas becomes a tile scene once per (session, revision, folio);
+//!    the previous scene's tiles stay visible for the same folio until the new ones arrive;
+//! 3. **render**: on the GPU, one render submitted when the view or the scene changed; on the CPU, the planner's
+//!    plan, collected for the merged submission at the end of the frame;
+//! 4. **paint**: the surround, then the GPU texture or the tiles coarse to fine, then (one code path for both
+//!    backends) the page bounds, the grid dots, the hover outline (a hovered link's rectangle before an entity's),
+//!    the grid cursor and, when View, Frame statistics is on, the statistics.
+//!
+//! No raster and no tessellation happens on the UI thread. Each canvas is one focusable AccessKit node with the
+//! role `Canvas`, named `Page <folio>, <title>` and described `<hint>, zoom <zoom>` and, while the grid cursor
+//! shows, `, cursor <cell> x <x> y <y> mm`; a child node with the role `Status` and polite live updates carries the
+//! cursor (doc 16 section 10.1, WP-S2.03 §6.9).
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
@@ -39,36 +47,60 @@ use ew_render2d::pool::{Scene, TilePool, worker_count};
 use ew_render2d::stats::{FrameSample, FrameStats, Phase, now};
 use ew_render2d::tiles::{DEFAULT_CACHE_BYTES, Plan, Planner, TileCache, TileKey};
 use ew_render2d::view::{PxRect, View};
-use ew_viewmodel::canvas::{CanvasModel, bounded_pane, zoom_in_step, zoom_out_step, zoom_percent_text};
+use ew_viewmodel::canvas::{
+    CanvasModel, CanvasPage, bounded_pane, zoom_in_step, zoom_out_step, zoom_percent_text,
+};
+use ew_viewmodel::ew_api::output::ew_dl::ew_units::Rect as SheetRect;
 use ew_viewmodel::ew_api::output::ew_dl::{Color, FontKey, ew_units::Nm};
 use ew_viewmodel::ew_api::output::font_bytes;
-use ew_viewmodel::shell::ShellModel;
-use ew_viewmodel::strings;
+use ew_viewmodel::shell::{Focus, ShellModel};
+use ew_viewmodel::{status, strings};
 use serde_json::json;
 
 use crate::app::Event;
 use crate::gpu::GpuHost;
 
-/// The share of the tile cache a page pane hidden behind another tab keeps (FT-356): a quarter of 256 MiB.
+/// The share of the tile cache hidden scenes keep (FT-356): a quarter of 256 MiB.
 pub const HIDDEN_CACHE_BYTES: u64 = DEFAULT_CACHE_BYTES / 4;
 
-/// At most this many tile textures are uploaded per frame.
+/// At most this many tile textures are uploaded per frame, over every canvas.
 pub const MAX_UPLOADS_PER_FRAME: usize = 8;
 
 /// At most this many bytes of tile textures are uploaded per frame.
 pub const MAX_UPLOAD_BYTES_PER_FRAME: usize = 2 * 1024 * 1024;
 
-/// `canvas.snapshot` (WP-S2.02 section 6.6): the pane as the canvas shows it once settled, at `pane × ppp` pixels,
-/// and its resolution `round(D)`: `render_region` at that resolution with the view origin on a whole pixel, white
-/// paper and the surround of the settings' theme (light for `system`), then the overlays composited by integer
-/// fills. It never uses tiles or a GPU, so equal inputs give equal bytes on every run of one build target. A pane
-/// wider or taller than 4096 pixels is rendered in regions of at most 4096 pixels and stitched.
+/// The most canvas groups.
+const GROUPS: usize = 2;
+
+/// The hover outline of a canvas: the hovered link's rectangle, else the hovered entity's (WP-S2.03 §6.4).
+fn hover_rect(c: &CanvasModel) -> Option<SheetRect> {
+    c.hovered_link()
+        .map(|l| l.rect)
+        .or_else(|| c.hover().map(|(_, r)| r))
+}
+
+/// The page grid of a canvas as the overlay draws it, when the grid is on.
+fn grid_spec(shell: &ShellModel, c: &CanvasModel) -> Option<GridSpec> {
+    c.page().grid.filter(|_| shell.grid_on()).map(|g| GridSpec {
+        num_nm: g.num_nm,
+        den: g.den,
+        sheet_scale_ppb: g.sheet_scale_ppb,
+        sheet_offset_nm: g.sheet_offset_nm,
+    })
+}
+
+/// `canvas.snapshot` (WP-S2.02 section 6.6) of group `group`: the pane as the canvas shows it once settled, at
+/// `pane × ppp` pixels, and its resolution `round(D)`: `render_region` at that resolution with the view origin on a
+/// whole pixel, white paper and the surround of the settings' theme (light for `system`), then the overlays (the
+/// grid cursor and the link hover outline included, WP-S2.03 §6.8) composited by integer fills. It never uses tiles
+/// or a GPU, so equal inputs give equal bytes on every run of one build target. A pane wider or taller than 4096
+/// pixels is rendered in regions of at most 4096 pixels and stitched.
 ///
 /// # Errors
 ///
 /// The text of the renderer's error, or of a missing canvas.
-pub fn snapshot_image(shell: &ShellModel) -> Result<(ew_render_cpu::RgbaImage, u32), String> {
-    let Some(canvas) = shell.canvas() else {
+pub fn snapshot_image(shell: &ShellModel, group: usize) -> Result<(ew_render_cpu::RgbaImage, u32), String> {
+    let Some(canvas) = shell.canvas_of(group) else {
         return Err(strings::text("reason-no-page").to_owned());
     };
     let view = view_of(canvas);
@@ -115,21 +147,15 @@ pub fn snapshot_image(shell: &ShellModel) -> Result<(ew_render_cpu::RgbaImage, u
             }
         }
     }
-    let grid = page.grid.filter(|_| shell.grid_on()).map(|g| GridSpec {
-        num_nm: g.num_nm,
-        den: g.den,
-        sheet_scale_ppb: g.sheet_scale_ppb,
-        sheet_offset_nm: g.sheet_offset_nm,
-    });
     let o = overlay::build(&OverlayInput {
         transform: t,
         pane_px: (w, h),
         ppp: view.ppp,
         sheet,
-        grid,
-        hover: canvas.hover().map(|(_, r)| r),
+        grid: grid_spec(shell, canvas),
+        hover: hover_rect(canvas),
         selected: &[],
-        cursor: None,
+        cursor: canvas.cursor(),
     });
     overlay::composite(&mut image, &o, &theme);
     Ok((image, dpi))
@@ -144,12 +170,13 @@ impl FontResolver for BundledFonts {
     }
 }
 
-/// The scene on show and what it was made from.
+/// What identifies a page's content: the project session (revisions restart with every session), the revision and
+/// the folio.
+type SceneKey = (u64, u64, String);
+
+/// The scene a group draws and what it was made from.
 struct SceneState {
-    /// The project session (revisions restart with every session).
-    session: u64,
-    rev: u64,
-    folio: String,
+    key: SceneKey,
     scene: Arc<Scene>,
 }
 
@@ -182,29 +209,57 @@ pub struct CanvasCounters {
     pub gpu_submits: u64,
 }
 
-/// The canvas's state between frames.
-pub struct CanvasHost {
-    pool: Option<TilePool>,
-    planner: Planner,
-    cache: TileCache<TextureHandle>,
+/// The state of one canvas group between frames.
+struct GroupView {
     scene: Option<SceneState>,
     /// The scene shown before the current one, for the same folio: its tiles stand in until the new ones arrive.
     previous: Option<u64>,
+    planner: Planner,
+    wheel_lines: f32,
+    ready: bool,
+    /// The GPU side of this group (group 0's host runs the switch rule).
+    gpu: GpuHost,
+    /// Whether the group drew in this frame.
+    drawn: bool,
+}
+
+impl GroupView {
+    fn new(gpu: GpuHost) -> GroupView {
+        GroupView {
+            scene: None,
+            previous: None,
+            planner: Planner::new(),
+            wheel_lines: 0.0,
+            ready: false,
+            gpu,
+            drawn: false,
+        }
+    }
+}
+
+/// The canvases' state between frames.
+pub struct CanvasHost {
+    pool: Option<TilePool>,
+    cache: TileCache<TextureHandle>,
+    views: Vec<GroupView>,
+    /// Every scene a tab may show, by content.
+    scenes: BTreeMap<SceneKey, Arc<Scene>>,
+    /// The frame each scene was last drawn in (the least recently shown hidden scene loses its tiles first).
+    shown_at: BTreeMap<u64, u64>,
     next_scene: u64,
     /// Finished tiles waiting for their upload.
     arrived: VecDeque<(TileKey, ColorImage, u64)>,
     /// The keys last submitted to the pool.
     submitted: Vec<TileKey>,
+    /// The plans of this frame's CPU canvases: group, scene, plan.
+    plans: Vec<(usize, Arc<Scene>, Plan)>,
     frame: u64,
     stats: FrameStats,
     sample: FrameSample,
     frame_started: Option<Instant>,
     memo_at_start: Option<(u64, u64)>,
-    wheel_lines: f32,
-    ready: bool,
     counters: CanvasCounters,
     fonts: Arc<dyn FontResolver + Send + Sync>,
-    gpu: GpuHost,
 }
 
 impl Default for CanvasHost {
@@ -213,7 +268,8 @@ impl Default for CanvasHost {
     }
 }
 
-/// The overlay marks both backends share: the page bounds, the grid dots, the hover and selection outlines.
+/// The overlay marks both backends share: the page bounds, the grid dots, the hover and selection outlines and the
+/// grid cursor (last, above everything).
 fn paint_marks(painter: &egui::Painter, origin: Pos2, ppp: f32, overlay: &Overlay, theme: &Theme) {
     let fill = |rects: &[PxRect], c: Color| {
         if rects.is_empty() {
@@ -244,7 +300,7 @@ fn color32(c: Color) -> Color32 {
     Color32::from_rgba_unmultiplied(c.r, c.g, c.b, c.a)
 }
 
-/// The renderer's view of the shell's canvas: the pane and the pixels per point without the UI scale, so that
+/// The renderer's view of a canvas: the pane and the pixels per point without the UI scale, so that
 /// `D = zoom × 96 × ppp / ui_scale` (FT-349; at UI scale 1, as headless, the model's own pane and ppp).
 fn view_of(c: &CanvasModel) -> View {
     View {
@@ -255,44 +311,58 @@ fn view_of(c: &CanvasModel) -> View {
     }
 }
 
+/// The content key of a page.
+fn key_of(page: &CanvasPage) -> SceneKey {
+    (page.session, page.rev, page.folio.clone())
+}
+
 impl CanvasHost {
-    /// A canvas with nothing on it.
+    /// A canvas host with nothing on it.
     pub fn new() -> CanvasHost {
+        let leader = GpuHost::new();
+        let follower = leader.follower();
         CanvasHost {
             pool: None,
-            planner: Planner::new(),
             cache: TileCache::new(DEFAULT_CACHE_BYTES),
-            scene: None,
-            previous: None,
+            views: vec![GroupView::new(leader), GroupView::new(follower)],
+            scenes: BTreeMap::new(),
+            shown_at: BTreeMap::new(),
             next_scene: 1,
             arrived: VecDeque::new(),
             submitted: Vec::new(),
+            plans: Vec::new(),
             frame: 0,
             stats: FrameStats::new(),
             sample: FrameSample::default(),
             frame_started: None,
             memo_at_start: None,
-            wheel_lines: 0.0,
-            ready: false,
             counters: CanvasCounters::default(),
             fonts: Arc::new(BundledFonts(font_bytes())),
-            gpu: GpuHost::new(),
         }
     }
 
-    /// The GPU side of the canvas.
+    /// The GPU side of the first group's canvas (the switch rule runs there).
     pub fn gpu(&self) -> &GpuHost {
-        &self.gpu
+        &self.views[0].gpu
     }
 
-    /// The GPU side of the canvas, to attach eframe's render state or (tests) to stand in for a device.
+    /// The GPU side of the first group's canvas, to attach eframe's render state or (tests) to stand in for a device.
+    /// Attaching also prepares the second group's host on the same device.
     pub fn gpu_mut(&mut self) -> &mut GpuHost {
-        &mut self.gpu
+        &mut self.views[0].gpu
     }
 
-    /// Whether the last frame drew every visible tile at the wanted resolution of a settled view.
+    /// Gives the second group's GPU side the leader's device (after [`CanvasHost::gpu_mut`]'s `attach`).
+    pub fn sync_followers(&mut self) {
+        let follower = self.views[0].gpu.follower();
+        self.views[1].gpu = follower;
+    }
+
+    /// Whether the last frame drew every visible tile of every visible canvas at the wanted resolution of a settled
+    /// view.
     pub fn is_ready(&self) -> bool {
-        self.ready
+        let drawn: Vec<&GroupView> = self.views.iter().filter(|v| v.drawn).collect();
+        !drawn.is_empty() && drawn.iter().all(|v| v.ready)
     }
 
     /// The frame statistics.
@@ -305,22 +375,67 @@ impl CanvasHost {
         self.counters
     }
 
-    /// Paints the canvas of `shell` into `ui` and adds the actions the user's input asks for to `events`.
-    pub(crate) fn show(&mut self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
+    /// The number of cached tiles (tests: the cache is emptied while no canvas is shown).
+    pub fn cached_tiles(&self) -> usize {
+        self.cache.len()
+    }
+
+    /// The bytes of cached tiles of scenes not drawn in the last frame (tests: FT-356's share).
+    pub fn hidden_bytes(&self) -> u64 {
+        let visible: Vec<u64> = self.visible_scenes();
+        self.cache.hidden_bytes(&visible)
+    }
+
+    /// The number of scenes the host keeps (tests: a scene goes with its last tab).
+    pub fn scene_count(&self) -> usize {
+        self.scenes.len()
+    }
+
+    fn visible_scenes(&self) -> Vec<u64> {
+        self.views
+            .iter()
+            .filter(|v| v.drawn)
+            .filter_map(|v| v.scene.as_ref().map(|s| s.scene.id()))
+            .collect()
+    }
+
+    /// Starts a frame: the frame counter, the statistics' interval and memo counters, the finished tiles taken from
+    /// the pool and at most 8 (2 MiB) uploaded for every canvas together.
+    pub(crate) fn begin_frame(&mut self, ctx: &egui::Context, shell: &ShellModel) {
         let started = now();
         if let Some(previous) = self.frame_started.replace(started) {
             self.sample.set(Phase::Interval, started - previous);
         }
         self.memo_at_start = shell.memo_totals();
         self.frame += 1;
-        self.ready = false;
+        self.plans.clear();
+        for v in &mut self.views {
+            v.drawn = false;
+            v.ready = false;
+        }
+        self.take_arrivals(ctx);
+    }
 
+    /// Paints the canvas of group `group` of `shell` into `ui` and adds the actions the user's input asks for to
+    /// `events`.
+    pub(crate) fn show_group(
+        &mut self,
+        ui: &mut Ui,
+        shell: &ShellModel,
+        group: usize,
+        events: &mut Vec<Event>,
+    ) {
+        if group >= GROUPS {
+            return;
+        }
+        let started = now();
         // Phase 1: input.
         let input_span = tracing::trace_span!("frame.input").entered();
         let (rect, response) = ui.allocate_exact_size(ui.available_size(), Sense::click_and_drag());
         let ppp = ui.ctx().pixels_per_point();
-        self.describe_node(ui, &response, shell);
-        let (pane, model_ppp) = shell.canvas_pane();
+        self.describe_node(ui, &response, shell, group, rect);
+        self.focus_node(ui, &response, shell, group, events);
+        let (pane, model_ppp) = shell.group_pane(group);
         let size = rect.size();
         // The pane within the shell's bounds (a window wider than them shows the canvas in its top-left part).
         let (width, height, want_ppp) = bounded_pane(f64::from(size.x), f64::from(size.y), f64::from(ppp));
@@ -330,96 +445,125 @@ impl CanvasHost {
         {
             events.push(Event::Action(
                 "view.canvas_resize",
-                json!({"width": width, "height": height, "ppp": want_ppp}),
+                json!({"width": width, "height": height, "ppp": want_ppp, "group": group}),
             ));
         }
-        let Some(canvas) = shell.canvas() else {
+        let Some(canvas) = shell.canvas_of(group) else {
             drop(input_span);
             self.no_canvas(ui, rect, shell);
-            self.sample.set(Phase::Input, now() - started);
             return;
         };
-        self.map_input(ui, &response, rect, canvas, events);
+        self.map_input(ui, &response, rect, canvas, group, events);
         drop(input_span);
         let t_scene = now();
-        self.sample.set(Phase::Input, t_scene - started);
+        self.add_phase(Phase::Input, t_scene - started);
 
         // Phase 2: scene.
-        let scene_span = tracing::trace_span!("frame.scene").entered();
-        let scene = self.sync_scene(canvas);
-        drop(scene_span);
+        let scene = self.sync_scene(group, canvas);
         let t_render = now();
-        self.sample.set(Phase::Scene, t_render - t_scene);
+        self.add_phase(Phase::Scene, t_render - t_scene);
 
-        // Phase 3: render (planning, arrivals, uploads, requests).
-        let render_span = tracing::trace_span!("frame.render").entered();
+        // Phase 3: render.
         let view = view_of(canvas);
         let sheet = scene.sheet();
-        let gpu = self.gpu_frame(ui.ctx(), canvas, &view);
+        let gpu = self.gpu_frame(ui.ctx(), group, canvas, &view);
         let plan = if gpu.is_some() {
-            self.stop_tiles(&scene);
             None
         } else {
             let time = ui.input(|i| i.time);
-            let plan = self.planner.plan(&view, sheet, scene.id(), time);
-            self.take_arrivals(ui.ctx(), &scene);
-            self.request(ui.ctx(), &scene, &plan);
+            let plan = self.views[group].planner.plan(&view, sheet, scene.id(), time);
             if let Some(wait) = plan.settle_in {
                 ui.ctx()
                     .request_repaint_after(Duration::from_secs_f64(wait.max(0.0)));
             }
+            self.plans.push((group, Arc::clone(&scene), plan.clone()));
             Some(plan)
         };
-        drop(render_span);
         let t_paint = now();
-        self.sample.set(Phase::Render, t_paint - t_render);
+        self.add_phase(Phase::Render, t_paint - t_render);
 
         // Phase 4: paint.
-        let paint_span = tracing::trace_span!("frame.paint").entered();
         let theme = if ui.visuals().dark_mode {
             overlay::DARK
         } else {
             overlay::LIGHT
         };
         let pane_px = view.pane_px_whole();
-        let grid = canvas.page().grid.filter(|_| shell.grid_on()).map(|g| GridSpec {
-            num_nm: g.num_nm,
-            den: g.den,
-            sheet_scale_ppb: g.sheet_scale_ppb,
-            sheet_offset_nm: g.sheet_offset_nm,
-        });
         let overlay = overlay::build(&OverlayInput {
             transform: plan.as_ref().map_or_else(|| view.transform(), |p| p.transform),
             pane_px,
             // The overlay's marks (dot size, outline outset) follow the window's points, UI scale included.
             ppp: canvas.ppp(),
             sheet,
-            grid,
-            hover: canvas.hover().map(|(_, r)| r),
+            grid: grid_spec(shell, canvas),
+            hover: hover_rect(canvas),
             selected: &[],
-            cursor: None,
+            cursor: canvas.cursor(),
         });
         match (&plan, gpu) {
-            (Some(plan), _) => self.paint(ui, rect, ppp, plan, &overlay, &theme),
+            (Some(plan), _) => self.paint(ui, rect, ppp, group, plan, &overlay, &theme),
             (None, Some((texture, ready))) => {
                 self.paint_gpu(ui, rect, ppp, texture, pane_px, &overlay, &theme);
-                self.ready = ready;
+                self.views[group].ready = ready;
             }
             (None, None) => {}
         }
         if shell.frame_stats_shown() {
             self.paint_statistics(ui, rect, shell);
         }
-        self.cache.evict(self.frame);
-        drop(paint_span);
-        self.sample.set(Phase::Paint, now() - t_paint);
+        self.views[group].drawn = true;
+        self.shown_at.insert(scene.id(), self.frame);
+        self.add_phase(Phase::Paint, now() - t_paint);
     }
 
-    /// Ends the frame: adds the time the frame spent dispatching the canvas's actions to its input phase, the memo
-    /// counters' deltas, and records the sample.
+    fn add_phase(&mut self, phase: Phase, d: Duration) {
+        let total = Duration::from_secs_f64(self.sample.phase(phase) / 1000.0) + d;
+        self.sample.set(phase, total);
+    }
+
+    /// Ends the drawing of the canvases: the merged submission (the focused group's tiles first in each priority
+    /// class), the scenes no tab shows dropped, and the cache evicted with hidden scenes first.
+    pub(crate) fn finish_frame(&mut self, ctx: &egui::Context, shell: &ShellModel) {
+        // The scenes the open tabs show (at the revision their canvas holds), and the stand-ins of the groups.
+        let mut keep: BTreeSet<SceneKey> = BTreeSet::new();
+        if let Some(area) = shell.area() {
+            for (_, _, tab) in area.tabs() {
+                if let Some(c) = &tab.canvas {
+                    keep.insert(key_of(c.page()));
+                }
+            }
+        }
+        self.scenes.retain(|k, _| keep.contains(k));
+        let mut ids: Vec<u64> = self.scenes.values().map(|s| s.id()).collect();
+        for v in &mut self.views {
+            if v.scene.as_ref().is_some_and(|s| !keep.contains(&s.key)) && !v.drawn {
+                v.scene = None;
+                v.previous = None;
+            }
+            ids.extend(v.scene.as_ref().map(|s| s.scene.id()));
+            ids.extend(v.previous);
+        }
+        self.cache.retain_scenes(&ids);
+        self.shown_at.retain(|id, _| ids.contains(id));
+        self.arrived.retain(|(k, _, _)| ids.contains(&k.scene));
+        self.submit(ctx, shell.area().map_or(0, |a| a.focused));
+        let visible = self.visible_scenes();
+        let mut recency: Vec<(u64, u64)> = self.shown_at.iter().map(|(id, f)| (*f, *id)).collect();
+        recency.sort_unstable();
+        let recency: Vec<u64> = recency.into_iter().map(|(_, id)| id).collect();
+        self.cache
+            .evict_hidden_first(self.frame, &visible, &recency, HIDDEN_CACHE_BYTES);
+        for v in &mut self.views {
+            if !v.drawn {
+                v.gpu.release_frame();
+            }
+        }
+    }
+
+    /// Ends the frame's statistics: adds the time the frame spent dispatching the canvas's actions to its input
+    /// phase, the memo counters' deltas, and records the sample.
     pub fn end_frame(&mut self, dispatch: Duration, shell: &ShellModel) {
-        let input = Duration::from_secs_f64(self.sample.phase(Phase::Input) / 1000.0) + dispatch;
-        self.sample.set(Phase::Input, input);
+        self.add_phase(Phase::Input, dispatch);
         if let (Some((h0, r0)), Some((h1, r1))) = (self.memo_at_start, shell.memo_totals()) {
             self.sample.memo_hits = h1.saturating_sub(h0);
             self.sample.memo_re_executions = r1.saturating_sub(r0);
@@ -427,108 +571,158 @@ impl CanvasHost {
         self.stats.push(std::mem::take(&mut self.sample));
     }
 
-    /// The accessible node of the canvas: role `Canvas`, its name and description.
-    fn describe_node(&self, ui: &Ui, response: &egui::Response, shell: &ShellModel) {
-        let (name, description) = match shell.canvas() {
-            Some(c) => (
-                strings::format("canvas-name", &[&c.page().folio, &c.page().title]),
-                strings::format(
-                    "canvas-description",
-                    &[
-                        strings::text("status-hint-view"),
-                        &strings::format("status-zoom", &[&zoom_percent_text(c.zoom())]),
-                    ],
-                ),
-            ),
-            None => (strings::text("pane-page-view").to_owned(), String::new()),
-        };
+    /// The accessible node of a canvas: role `Canvas`, its name and description, and the live cursor child.
+    fn describe_node(
+        &self,
+        ui: &Ui,
+        response: &egui::Response,
+        shell: &ShellModel,
+        group: usize,
+        rect: Rect,
+    ) {
+        let node = status::canvas_node(shell, group);
+        let name = node
+            .as_ref()
+            .map_or_else(|| strings::text("pane-page-view").to_owned(), |n| n.name.clone());
         response.widget_info(move || egui::WidgetInfo::labeled(egui::Role::Canvas, true, &name));
-        if !description.is_empty() {
-            ui.ctx().accesskit_node_builder(response.id, |node| {
-                node.set_description(description);
+        let Some(node) = node else { return };
+        let description = node.description.clone();
+        ui.ctx().accesskit_node_builder(response.id, |n| {
+            n.set_description(description);
+        });
+        if let Some(live) = node.live {
+            // The cursor's polite live region: a child of the canvas that reads its text after each move or jump.
+            let id = response.id.with("cursor");
+            let at = Rect::from_min_size(rect.min, Vec2::splat(1.0));
+            let child = ui.interact(at, id, Sense::hover());
+            let label = strings::text("canvas-cursor-name").to_owned();
+            child.widget_info(move || egui::WidgetInfo::labeled(egui::Role::Status, true, &label));
+            ui.ctx().accesskit_node_builder(id, |n| {
+                n.set_live(egui::accesskit::Live::Polite);
+                n.set_value(live);
             });
+        }
+    }
+
+    /// Keeps egui's keyboard focus on the canvas while the shell's focus is there, and tells the shell when egui's
+    /// own traversal lands on it. The arrow keys stay with the canvas (they move the grid cursor).
+    fn focus_node(
+        &self,
+        ui: &Ui,
+        response: &egui::Response,
+        shell: &ShellModel,
+        group: usize,
+        events: &mut Vec<Event>,
+    ) {
+        let ours = shell.focus() == Some(Focus::Canvas(group));
+        if ours && !response.has_focus() && !ui.ctx().text_edit_focused() && shell.dialog().is_none() {
+            response.request_focus();
+        }
+        if response.has_focus() {
+            ui.memory_mut(|m| {
+                m.set_focus_lock_filter(
+                    response.id,
+                    egui::EventFilter {
+                        horizontal_arrows: true,
+                        vertical_arrows: true,
+                        tab: false,
+                        escape: false,
+                    },
+                );
+            });
+        }
+        if response.gained_focus() && !ours {
+            events.push(Event::Action(
+                "ui.focus",
+                json!({"area": "canvas", "group": group}),
+            ));
         }
     }
 
     /// Lets go of the tiles while no canvas is shown (no page, the project closed, the wizard or the start page in
     /// front): the pool's queue is emptied (a running tile finishes and is dropped) and the cached scenes go.
     pub(crate) fn release(&mut self) {
-        if let (Some(pool), Some(scene)) = (&self.pool, &self.scene) {
-            pool.submit(&scene.scene, &[]);
+        if let Some(pool) = &self.pool {
+            pool.submit_many(&[]);
         }
         self.cache.retain_scenes(&[]);
         self.arrived.clear();
         self.submitted.clear();
-        self.scene = None;
-        self.previous = None;
-        self.ready = false;
-        self.gpu.release();
+        self.scenes.clear();
+        self.shown_at.clear();
+        self.plans.clear();
+        for v in &mut self.views {
+            v.scene = None;
+            v.previous = None;
+            v.ready = false;
+            v.drawn = false;
+            v.gpu.release();
+        }
     }
 
-    /// A page pane hidden behind another tab of the dock while its project stays open (FT-356): the pool stops, the
-    /// scene stays, and the most recently drawn tiles are kept within [`HIDDEN_CACHE_BYTES`], so that returning to
-    /// the tab draws them at once; the GPU canvas keeps its meshes and lets go of its render targets.
+    /// The canvas area hidden behind another tab of the dock while its project stays open (FT-356): the pool stops,
+    /// the scenes stay, and the most recently drawn tiles are kept within [`HIDDEN_CACHE_BYTES`], so that returning
+    /// to the tab draws them at once; the GPU canvases keep their meshes and let go of their render targets.
     pub(crate) fn hide(&mut self) {
-        if let (Some(pool), Some(scene)) = (&self.pool, &self.scene)
+        if let Some(pool) = &self.pool
             && !self.submitted.is_empty()
         {
-            pool.submit(&scene.scene, &[]);
+            pool.submit_many(&[]);
         }
         self.submitted.clear();
         self.arrived.clear();
-        self.cache.trim(HIDDEN_CACHE_BYTES);
-        self.ready = false;
-        self.gpu.release_frame();
+        let mut recency: Vec<(u64, u64)> = self.shown_at.iter().map(|(id, f)| (*f, *id)).collect();
+        recency.sort_unstable();
+        let recency: Vec<u64> = recency.into_iter().map(|(_, id)| id).collect();
+        self.cache
+            .evict_hidden_first(self.frame, &[], &recency, HIDDEN_CACHE_BYTES);
+        for v in &mut self.views {
+            v.ready = false;
+            v.drawn = false;
+            v.gpu.release_frame();
+        }
     }
 
-    /// Applies the switch rule for this frame (WP-S2.02 section 7.2) and sets the shell's backend label.
+    /// Applies the switch rule for this frame (WP-S2.02 section 7.2) and sets the shell's backend label; the second
+    /// group follows the first.
     pub(crate) fn update_backend(&mut self, shell: &mut ShellModel) {
-        self.gpu.update(shell);
+        let (first, rest) = self.views.split_at_mut(1);
+        first[0].gpu.update(shell);
+        for v in rest {
+            if let Some(fault) = v.gpu.follow(&first[0].gpu) {
+                first[0].gpu.inject_fault(fault);
+            }
+        }
     }
 
-    /// The GPU frame of the canvas: its texture and whether it shows the page's current revision; `None` when the
-    /// CPU draws (the switch rule, or no scene of this page yet: the CPU tiles are the loading state).
+    /// The GPU frame of a group: its texture and whether it shows the page's current revision; `None` when the CPU
+    /// draws (the switch rule, or no scene of this page yet: the CPU tiles are the loading state).
     fn gpu_frame(
         &mut self,
         ctx: &egui::Context,
+        group: usize,
         canvas: &CanvasModel,
         view: &View,
     ) -> Option<(TextureId, bool)> {
-        if !self.gpu.drawing() {
+        let fonts = Arc::clone(&self.fonts);
+        let gpu = &mut self.views[group].gpu;
+        if !gpu.drawing() {
             return None;
         }
-        let (has_scene, ready) = self.gpu.sync_scene(ctx, canvas.page(), &self.fonts);
+        let (has_scene, ready) = gpu.sync_scene(ctx, canvas.page(), &fonts);
         if !has_scene {
             return None;
         }
         let target = view.pane_px_whole();
-        let (texture, outcome) = self.gpu.render(&GpuView::of(&view.transform(), target))?;
+        let (texture, outcome) = gpu.render(&GpuView::of(&view.transform(), target))?;
         self.counters.gpu_frames += 1;
         self.counters.gpu_submits += u64::from(outcome.submitted);
         self.counters.fallback_frames += u64::from(!ready);
         Some((texture, ready))
     }
 
-    /// Stops the tile work while the GPU draws: the pool's queue is emptied and the waiting uploads dropped (the
-    /// cached tiles stay as the fallback).
-    fn stop_tiles(&mut self, scene: &Arc<Scene>) {
-        if let Some(pool) = &self.pool
-            && !self.submitted.is_empty()
-        {
-            pool.submit(scene, &[]);
-        }
-        self.submitted.clear();
-        self.arrived.clear();
-    }
-
-    /// The number of cached tiles (tests: the cache is emptied while no canvas is shown).
-    pub fn cached_tiles(&self) -> usize {
-        self.cache.len()
-    }
-
     /// A page without a canvas: its message, or the waiting text.
     fn no_canvas(&mut self, ui: &mut Ui, rect: Rect, shell: &ShellModel) {
-        self.release();
         let text = match (shell.canvas_error(), shell.current_folio()) {
             (Some(message), _) => strings::format("message-no-canvas", &[message]),
             (None, Some(folio)) => strings::format("page-rendering", &[folio]),
@@ -556,39 +750,79 @@ impl CanvasHost {
         (x.round() as i64, y.round() as i64)
     }
 
-    /// Wheel, pinch, drag and pointer movement as registry actions.
+    /// Wheel, pinch, drag, pointer movement, a click on a link and the back and forward buttons as registry actions.
     fn map_input(
         &mut self,
         ui: &Ui,
         response: &egui::Response,
         rect: Rect,
         canvas: &CanvasModel,
+        group: usize,
         events: &mut Vec<Event>,
     ) {
+        let mm = |p: (i64, i64)| (p.0 as f64 / 1e6, p.1 as f64 / 1e6);
+        // A primary press focuses the group first; the back and forward buttons walk the history.
+        if response.is_pointer_button_down_on() && ui.input(|i| i.pointer.primary_pressed()) {
+            events.push(Event::Action(
+                "ui.focus",
+                json!({"area": "canvas", "group": group}),
+            ));
+        }
+        if response.hovered() {
+            let (back, forward) = ui.input(|i| {
+                (
+                    i.pointer.button_clicked(PointerButton::Extra1),
+                    i.pointer.button_clicked(PointerButton::Extra2),
+                )
+            });
+            if back {
+                events.push(Event::Action("nav.back", json!({})));
+            }
+            if forward {
+                events.push(Event::Action("nav.forward", json!({})));
+            }
+        }
         let hover = response.hover_pos();
-        // The pointer: `canvas.pointer` when its sheet point changed, without parameters when it left.
+        // The pointer: `canvas.pointer` when its sheet point changed, without a point when it left.
         match hover {
             Some(pos) => {
                 let p = Self::sheet_point(rect, canvas, pos);
                 if canvas.pointer() != Some(p) {
+                    let (x, y) = mm(p);
                     events.push(Event::Action(
                         "canvas.pointer",
-                        json!({"x_mm": p.0 as f64 / 1e6, "y_mm": p.1 as f64 / 1e6}),
+                        json!({"x_mm": x, "y_mm": y, "group": group}),
                     ));
                 }
             }
-            None if canvas.pointer().is_some() => events.push(Event::Action("canvas.pointer", json!({}))),
+            None if canvas.pointer().is_some() => {
+                events.push(Event::Action("canvas.pointer", json!({"group": group})));
+            }
             None => {}
         }
+        // A primary click (press and release without a drag) on a link follows it.
+        if response.clicked_by(PointerButton::Primary)
+            && let Some(pos) = response.interact_pointer_pos()
+        {
+            let p = Self::sheet_point(rect, canvas, pos);
+            if canvas.link_at(p).is_some() {
+                let (x, y) = mm(p);
+                events.push(Event::Action(
+                    "nav.follow",
+                    json!({"x_mm": x, "y_mm": y, "group": group}),
+                ));
+            }
+        }
         let Some(pos) = hover else {
-            self.wheel_lines = 0.0;
+            self.views[group].wheel_lines = 0.0;
             return;
         };
         let anchor = Self::sheet_point(rect, canvas, pos);
         let zoom_to = |zoom: f64| {
+            let (x, y) = mm(anchor);
             Event::Action(
                 "view.zoom_to",
-                json!({"percent": zoom * 100.0, "x_mm": anchor.0 as f64 / 1e6, "y_mm": anchor.1 as f64 / 1e6}),
+                json!({"percent": zoom * 100.0, "x_mm": x, "y_mm": y, "group": group}),
             )
         };
         let (wheel, pan) = ui.input(|i| {
@@ -615,17 +849,18 @@ impl CanvasHost {
             (lines, pan)
         });
         // One ladder step per whole line, accumulated, about the pointer.
-        self.wheel_lines += wheel;
+        let view = &mut self.views[group];
+        view.wheel_lines += wheel;
         let mut zoom = canvas.zoom();
         let mut stepped = false;
-        while self.wheel_lines >= 1.0 {
+        while view.wheel_lines >= 1.0 {
             zoom = zoom_in_step(zoom);
-            self.wheel_lines -= 1.0;
+            view.wheel_lines -= 1.0;
             stepped = true;
         }
-        while self.wheel_lines <= -1.0 {
+        while view.wheel_lines <= -1.0 {
             zoom = zoom_out_step(zoom);
-            self.wheel_lines += 1.0;
+            view.wheel_lines += 1.0;
             stepped = true;
         }
         // Pinch (and egui's Ctrl+wheel zoom): continuous, about the pointer.
@@ -646,56 +881,66 @@ impl CanvasHost {
             pan += response.drag_delta();
         }
         if pan != Vec2::ZERO {
-            events.push(Event::Action("view.pan", json!({"dx": pan.x, "dy": pan.y})));
+            events.push(Event::Action(
+                "view.pan",
+                json!({"dx": pan.x, "dy": pan.y, "group": group}),
+            ));
         }
     }
 
-    /// The tile scene of the canvas's page content, made once per (revision, folio).
-    fn sync_scene(&mut self, canvas: &CanvasModel) -> Arc<Scene> {
+    /// The tile scene of a group's page content, one per (session, revision, folio) and shared by the groups.
+    fn sync_scene(&mut self, group: usize, canvas: &CanvasModel) -> Arc<Scene> {
         let page = canvas.page();
-        if let Some(s) = &self.scene
-            && s.session == page.session
-            && s.rev == page.rev
-            && s.folio == page.folio
+        let key = key_of(page);
+        if let Some(s) = &self.views[group].scene
+            && s.key == key
         {
             return Arc::clone(&s.scene);
         }
-        let id = self.next_scene;
-        self.next_scene += 1;
-        let sheet = SheetSize {
-            width: Nm(page.sheet.0),
-            height: Nm(page.sheet.1),
+        let scene = match self.scenes.get(&key) {
+            Some(s) => Arc::clone(s),
+            None => {
+                let id = self.next_scene;
+                self.next_scene += 1;
+                let sheet = SheetSize {
+                    width: Nm(page.sheet.0),
+                    height: Nm(page.sheet.1),
+                };
+                let scene = Scene::new(id, Arc::clone(&page.list), sheet, Arc::clone(&self.fonts));
+                self.scenes.insert(key.clone(), Arc::clone(&scene));
+                self.counters.scenes += 1;
+                scene
+            }
         };
-        let scene = Scene::new(id, Arc::clone(&page.list), sheet, Arc::clone(&self.fonts));
         // The same folio of the same session at a new revision: the old tiles stand in until the new ones arrive.
         // Another folio, or another project's session: none.
-        self.previous = self
+        let view = &mut self.views[group];
+        view.previous = view
             .scene
             .as_ref()
-            .filter(|s| s.session == page.session && s.folio == page.folio)
+            .filter(|s| s.key.0 == key.0 && s.key.2 == key.2)
             .map(|s| s.scene.id());
-        let keep: Vec<u64> = std::iter::once(id).chain(self.previous).collect();
-        self.cache.retain_scenes(&keep);
-        self.arrived.retain(|(k, _, _)| keep.contains(&k.scene));
-        self.submitted.clear();
-        self.scene = Some(SceneState {
-            session: page.session,
-            rev: page.rev,
-            folio: page.folio.clone(),
+        view.scene = Some(SceneState {
+            key,
             scene: Arc::clone(&scene),
         });
-        self.counters.scenes += 1;
         scene
     }
 
-    /// Takes the finished tiles of the current scene from the pool and uploads at most 8 (2 MiB) of the waiting ones.
-    fn take_arrivals(&mut self, ctx: &egui::Context, scene: &Arc<Scene>) {
+    /// Takes the finished tiles from the pool and uploads at most 8 (2 MiB) of the waiting ones.
+    fn take_arrivals(&mut self, ctx: &egui::Context) {
         let mut rastered = 0u32;
+        let live: BTreeSet<u64> = self
+            .scenes
+            .values()
+            .map(|s| s.id())
+            .chain(self.views.iter().filter_map(|v| v.previous))
+            .collect();
         if let Some(pool) = &self.pool {
             while let Some(done) = pool.try_recv() {
                 rastered += 1;
-                // A tile of a scene no longer on show is dropped; a failed tile stays missing (its paper shows).
-                if done.key.scene != scene.id() {
+                // A tile of a scene no tab shows any more is dropped; a failed tile stays missing (its paper shows).
+                if !live.contains(&done.key.scene) {
                     continue;
                 }
                 if self.cache.contains(&done.key) {
@@ -736,42 +981,71 @@ impl CanvasHost {
         }
     }
 
-    /// Submits the plan's missing tiles (in its priority order) when they differ from the last submission.
-    fn request(&mut self, ctx: &egui::Context, scene: &Arc<Scene>, plan: &Plan) {
+    /// Submits the missing tiles of this frame's plans as one merged plan when it differs from the last submission:
+    /// for each priority class (the preview level, the visible wanted tiles, the ring), the focused group's tiles,
+    /// then the other's.
+    fn submit(&mut self, ctx: &egui::Context, focused: usize) {
+        let mut plans: Vec<&(usize, Arc<Scene>, Plan)> = self.plans.iter().collect();
+        plans.sort_by_key(|(g, _, _)| usize::from(*g != focused));
+        let class = |plan: &Plan, k: &TileKey| -> u8 {
+            let preview = ew_render2d::tiles::level_dpi(
+                plan.level
+                    .saturating_sub(ew_render2d::tiles::PREVIEW_LEVELS_BELOW),
+            );
+            if k.dpi == preview && k.dpi != plan.wanted_dpi {
+                0
+            } else if plan.layers.last().is_some_and(|l| l.iter().any(|p| p.key == *k)) {
+                1
+            } else {
+                2
+            }
+        };
         let waiting: BTreeSet<TileKey> = self.arrived.iter().map(|(k, _, _)| *k).collect();
-        let cached: BTreeSet<TileKey> = plan
-            .requests
-            .iter()
-            .filter(|k| self.cache.contains(k))
-            .copied()
-            .collect();
-        let wanted: Vec<TileKey> = plan
-            .requests
-            .iter()
-            .filter(|k| !cached.contains(k) && !waiting.contains(k))
-            .copied()
-            .collect();
-        if wanted == self.submitted {
+        let mut seen: BTreeSet<TileKey> = BTreeSet::new();
+        let mut cached = 0u64;
+        let mut wanted: Vec<(Arc<Scene>, TileKey)> = Vec::new();
+        for c in 0..3u8 {
+            for (_, scene, plan) in &plans {
+                for k in plan.requests.iter().filter(|k| class(plan, k) == c) {
+                    if !seen.insert(*k) {
+                        continue;
+                    }
+                    if self.cache.contains(k) {
+                        cached += 1;
+                        continue;
+                    }
+                    if waiting.contains(k) {
+                        continue;
+                    }
+                    wanted.push((Arc::clone(scene), *k));
+                }
+            }
+        }
+        let keys: Vec<TileKey> = wanted.iter().map(|(_, k)| *k).collect();
+        if keys == self.submitted {
+            return;
+        }
+        if keys.is_empty() && self.pool.is_none() {
             return;
         }
         let pool = self.pool.get_or_insert_with(|| {
             let ctx = ctx.clone();
             TilePool::new(worker_count(), Arc::new(move || ctx.request_repaint()))
         });
-        self.counters.skipped_cached += cached.len() as u64;
-        self.counters.requested_while_cached += wanted.iter().filter(|k| cached.contains(k)).count() as u64;
-        self.counters.tiles_requested += wanted.len() as u64;
-        pool.submit(scene, &wanted);
-        self.submitted = wanted;
+        self.counters.skipped_cached += cached;
+        self.counters.requested_while_cached += keys.iter().filter(|k| self.cache.contains(k)).count() as u64;
+        self.counters.tiles_requested += keys.len() as u64;
+        pool.submit_many(&wanted);
+        self.submitted = keys;
     }
 
-    /// The texture of `key`, or of the same tile of the previous scene of this folio (then `true`: an old revision
-    /// stands in).
-    fn texture(&mut self, key: TileKey) -> Option<(egui::TextureId, bool)> {
+    /// The texture of `key`, or of the same tile of the group's previous scene of this folio (then `true`: an old
+    /// revision stands in).
+    fn texture(&mut self, group: usize, key: TileKey) -> Option<(egui::TextureId, bool)> {
         if let Some(t) = self.cache.get(&key, self.frame) {
             return Some((t.id(), false));
         }
-        let previous = self.previous?;
+        let previous = self.views[group].previous?;
         self.cache
             .get(
                 &TileKey {
@@ -783,7 +1057,17 @@ impl CanvasHost {
             .map(|t| (t.id(), true))
     }
 
-    fn paint(&mut self, ui: &Ui, rect: Rect, ppp: f32, plan: &Plan, overlay: &Overlay, theme: &Theme) {
+    #[allow(clippy::too_many_arguments)]
+    fn paint(
+        &mut self,
+        ui: &Ui,
+        rect: Rect,
+        ppp: f32,
+        group: usize,
+        plan: &Plan,
+        overlay: &Overlay,
+        theme: &Theme,
+    ) {
         let painter = ui.painter_at(rect);
         let origin = rect.min;
         for &r in &overlay.surround {
@@ -796,7 +1080,7 @@ impl CanvasHost {
         let last = plan.layers.len().saturating_sub(1);
         for (i, layer) in plan.layers.iter().enumerate() {
             for placed in layer {
-                match self.texture(placed.key) {
+                match self.texture(group, placed.key) {
                     Some((id, old)) => {
                         painter.image(id, to_points(origin, ppp, placed.rect), uv, Color32::WHITE);
                         // A tile of the previous revision on the last layer: the page on show is not drawn yet.
@@ -811,7 +1095,11 @@ impl CanvasHost {
             }
         }
         self.counters.fallback_frames += u64::from(fallback);
-        self.ready = complete;
+        self.views[group].ready = complete;
+        if complete {
+            // The new revision drew: its stand-in is no longer needed.
+            self.views[group].previous = None;
+        }
         paint_marks(&painter, origin, ppp, overlay, theme);
     }
 
@@ -870,4 +1158,9 @@ impl CanvasHost {
         painter.rect_filled(back, 2.0, Color32::from_black_alpha(180));
         painter.galley(at, galley, Color32::WHITE);
     }
+}
+
+/// The zoom text of a canvas as its accessible description reads it (tests).
+pub fn zoom_text(c: &CanvasModel) -> String {
+    strings::format("status-zoom", &[&zoom_percent_text(c.zoom())])
 }

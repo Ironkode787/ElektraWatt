@@ -12,13 +12,18 @@
 //! then one object per step: `step`, `action`, `outcome` (`done`, `refused` or `failed`), `reason` (the key of a
 //! refusal or null), `message` (the text of a failure or null), `state`, and for `ui.describe` the member
 //! `describe`. `state` holds, in this order: `title`, `project` (the directory name, never a path), `access`,
-//! `dirty`, `page`, `page_index` (0-based), `page_count`, `can_undo`, `can_redo`, `banner`, `status`, `canvas`.
+//! `dirty`, `page`, `page_index` (0-based), `page_count`, `can_undo`, `can_redo`, `banner`, `status`, `canvas`, `tabs`,
+//! `focus`, `navigator`.
 //! `canvas` (WP-S2.02 section 6.6) is `null` while no page is shown, else an object with, in this order: `folio`,
 //! `zoom` (per cent rounded to 0.1), `view_nm` (`[x0, y0, x1, y1]`, the sheet rectangle the pane shows), `grid`
 //! (`[num_nm, den]`, `null` when off or absent), `pointer_nm` (`[x, y]` or `null`), `hover` (the entity's UUID or
 //! `null`), `backend` (the label), `statistics` (whether the overlay is shown) and `renderer` (the `canvas_backend`
-//! setting, `auto` or `cpu`; WP-S2.02 part 2). Nothing in it depends on time, process or location: two runs of one
-//! script on equal inputs give equal bytes.
+//! setting, `auto` or `cpu`; WP-S2.02 part 2), then (WP-S2.03 part 1) `cursor_nm` (the grid cursor, `[x, y]` or
+//! `null`), `cell` (the status bar's cursor cell or `null`) and `link` (the hovered link: `{"folio", "cell"}`,
+//! `{"external": true}` or `null`). After `canvas` come `tabs` (`null` without a project, else
+//! `{"focused": [g, i], "groups": [[{"id", "folio", "back", "forward"}, …], …]}`), `focus` (`navigator`, `canvas`
+//! or `null`) and `navigator` (`null`, or `{"mode", "sort", "filter", "row"}`). Nothing in it depends on time,
+//! process or location: two runs of one script on equal inputs give equal bytes.
 //!
 //! The core runner lives here; a [`StepExtension`] adds what needs a renderer (`view.snapshot`).
 
@@ -28,7 +33,7 @@ use std::io;
 use serde_json::{Map, Value};
 
 use crate::actions;
-use crate::shell::{AccessMode, Outcome, ShellModel};
+use crate::shell::{AccessMode, Focus, Outcome, ShellModel};
 use crate::strings;
 
 /// The `$schema` of a script header.
@@ -283,6 +288,16 @@ pub fn state_json(shell: &ShellModel) -> String {
         member("banner", &opt(shell.banner())),
         member("status", &Value::from(shell.status_fields(false))),
         format!("\"canvas\":{}", canvas_json(shell)),
+        format!("\"tabs\":{}", tabs_json(shell)),
+        member(
+            "focus",
+            &match shell.focus() {
+                None => Value::Null,
+                Some(Focus::Navigator) => Value::from("navigator"),
+                Some(Focus::Canvas(_)) => Value::from("canvas"),
+            },
+        ),
+        format!("\"navigator\":{}", navigator_json(shell)),
     ])
 }
 
@@ -301,6 +316,21 @@ fn canvas_json(shell: &ShellModel) -> String {
     let hover = c
         .hover()
         .map_or(Value::Null, |(e, _)| Value::from(e.0.to_string()));
+    let cursor = c.cursor().map_or(Value::Null, |(x, y)| Value::from(vec![x, y]));
+    let cell = shell
+        .shown_point()
+        .and_then(|p| c.page().cell_text(p))
+        .map_or(Value::Null, Value::from);
+    let link = match c.hovered_link() {
+        None => "null".to_owned(),
+        Some(l) => match &l.target {
+            None => object(vec![member("external", &Value::from(true))]),
+            Some(t) => object(vec![
+                member("folio", &Value::from(t.folio.as_str())),
+                member("cell", &t.cell.as_deref().map_or(Value::Null, Value::from)),
+            ]),
+        },
+    };
     object(vec![
         member("folio", &Value::from(c.page().folio.as_str())),
         member("zoom", &Value::from(crate::canvas::round_tenth(c.zoom() * 100.0))),
@@ -311,6 +341,66 @@ fn canvas_json(shell: &ShellModel) -> String {
         member("backend", &Value::from(shell.canvas_backend().label())),
         member("statistics", &Value::from(shell.frame_stats_shown())),
         member("renderer", &Value::from(renderer_word(shell))),
+        member("cursor_nm", &cursor),
+        member("cell", &cell),
+        format!("\"link\":{link}"),
+    ])
+}
+
+/// The `tabs` member as JSON text: `null` without a project, else `{"focused": [g, i], "groups": [[{"id", "folio",
+/// "back", "forward"}, …], …]}` with the members in this order.
+fn tabs_json(shell: &ShellModel) -> String {
+    let Some(area) = shell.area() else {
+        return "null".to_owned();
+    };
+    let groups: Vec<String> = area
+        .groups
+        .iter()
+        .map(|g| {
+            let tabs: Vec<String> = g
+                .tabs
+                .iter()
+                .map(|t| {
+                    object(vec![
+                        member("id", &Value::from(t.id)),
+                        member(
+                            "folio",
+                            &shell
+                                .tab_row(t)
+                                .map_or(Value::Null, |r| Value::from(r.folio.as_str())),
+                        ),
+                        member("back", &Value::from(t.history.back_len())),
+                        member("forward", &Value::from(t.history.forward_len())),
+                    ])
+                })
+                .collect();
+            format!("[{}]", tabs.join(","))
+        })
+        .collect();
+    object(vec![
+        member(
+            "focused",
+            &Value::from(vec![area.focused, area.focused_group().active]),
+        ),
+        format!("\"groups\":[{}]", groups.join(",")),
+    ])
+}
+
+/// The `navigator` member as JSON text: `null` without a project, else `{"mode", "sort", "filter", "row"}`; `row` is
+/// the key the row cursor was moved to, `null` while it follows the current page.
+fn navigator_json(shell: &ShellModel) -> String {
+    if !shell.has_project() {
+        return "null".to_owned();
+    }
+    let nav = shell.navigator();
+    let row = nav
+        .moved_row(&shell.navigator_rows())
+        .map_or(Value::Null, Value::from);
+    object(vec![
+        member("mode", &Value::from(nav.mode.word())),
+        member("sort", &Value::from(nav.sort.word())),
+        member("filter", &Value::from(nav.filter.as_str())),
+        member("row", &row),
     ])
 }
 

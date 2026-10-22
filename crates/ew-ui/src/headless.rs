@@ -62,12 +62,28 @@ fn canvas_snapshot(shell: &ShellModel, params: &Value) -> Outcome {
             message: strings::format("error-missing-param", &["path"]),
         };
     };
-    if shell.canvas().is_none() {
+    let groups = shell.area().map_or(1, |a| a.groups.len());
+    let group = match params.get("group") {
+        None => shell.area().map_or(0, |a| a.focused),
+        Some(v) => match v
+            .as_u64()
+            .and_then(|g| usize::try_from(g).ok())
+            .filter(|g| *g < groups)
+        {
+            Some(g) => g,
+            None => {
+                return Outcome::Failed {
+                    message: strings::format("error-bad-param", &["group"]),
+                };
+            }
+        },
+    };
+    if shell.canvas_of(group).is_none() {
         return Outcome::Refused {
             reason_key: "reason-no-page",
         };
     }
-    let (image, dpi) = match crate::canvas::snapshot_image(shell) {
+    let (image, dpi) = match crate::canvas::snapshot_image(shell, group) {
         Ok(done) => done,
         Err(message) => return Outcome::Failed { message },
     };

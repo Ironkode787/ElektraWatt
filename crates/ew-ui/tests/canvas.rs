@@ -218,18 +218,21 @@ fn a10_view_grid_and_the_cursor_field() {
     settle(&mut h);
     let first = status(&h)
         .into_iter()
-        .find(|f| f.starts_with("x "))
+        .find(|f| f.ends_with(" mm") && f.contains("x "))
         .expect("a cursor field");
     assert!(first.ends_with(" mm"), "{first}");
     assert!(h.query_by_label(&first).is_some());
     h.hover_at(rect.center() + Vec2::new(50.0, 30.0));
     settle(&mut h);
-    let second = status(&h).into_iter().find(|f| f.starts_with("x ")).unwrap();
+    let second = status(&h)
+        .into_iter()
+        .find(|f| f.ends_with(" mm") && f.contains("x "))
+        .unwrap();
     assert_ne!(first, second);
     h.hover_at(Pos2::new(2.0, 2.0));
     settle(&mut h);
     assert!(
-        !status(&h).iter().any(|f| f.starts_with("x ")),
+        !status(&h).iter().any(|f| f.ends_with(" mm") && f.contains("x ")),
         "{:?}",
         status(&h)
     );

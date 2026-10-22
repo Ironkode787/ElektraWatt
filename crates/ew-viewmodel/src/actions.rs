@@ -40,18 +40,21 @@ pub enum Menu {
     Page,
     /// Tools.
     Tools,
+    /// Window: the canvas tabs (WP-S2.03).
+    Window,
     /// Help.
     Help,
 }
 
 impl Menu {
     /// The menus in menu-bar order.
-    pub const ALL: [Menu; 6] = [
+    pub const ALL: [Menu; 7] = [
         Menu::File,
         Menu::Edit,
         Menu::View,
         Menu::Page,
         Menu::Tools,
+        Menu::Window,
         Menu::Help,
     ];
 
@@ -63,6 +66,7 @@ impl Menu {
             Menu::View => "menu-view",
             Menu::Page => "menu-page",
             Menu::Tools => "menu-tools",
+            Menu::Window => "menu-window",
             Menu::Help => "menu-help",
         }
     }
@@ -81,6 +85,8 @@ pub enum Submenu {
     Workspace,
     /// View, Pan: left, right, up, down.
     Pan,
+    /// View, Page navigator: its three views and two sort orders (WP-S2.03).
+    PageNavigator,
 }
 
 impl Submenu {
@@ -92,8 +98,21 @@ impl Submenu {
             Submenu::UiScale => "submenu-ui-scale",
             Submenu::Workspace => "submenu-workspace",
             Submenu::Pan => "submenu-pan",
+            Submenu::PageNavigator => "submenu-page-navigator",
         }
     }
+}
+
+/// Where an action's keyboard shortcuts apply (WP-S2.03 §6.6): the window binds a context's chords only while the
+/// shell's focus is in that context; a context's binding shadows a global one with the same chord.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Context {
+    /// Everywhere.
+    Global,
+    /// While a canvas has the focus (the grid cursor, following links).
+    Canvas,
+    /// While the page navigator has the focus.
+    Navigator,
 }
 
 /// Where an action sits in the menu bar.
@@ -131,6 +150,8 @@ pub struct ActionMeta {
     /// The action is part of a screen's own controls (the wizard, the first-run flow, a setting): no menu entry, no
     /// palette entry, no line in the shortcut list; the window and the headless mode dispatch it.
     pub hidden: bool,
+    /// Where its shortcuts apply.
+    pub context: Context,
 }
 
 impl std::fmt::Debug for ActionMeta {
@@ -240,6 +261,54 @@ fn can_zoom_out(m: &ShellModel) -> Result<(), &'static str> {
     }
 }
 
+fn can_add_tab(m: &ShellModel) -> Result<(), &'static str> {
+    has_pages(m)?;
+    match m.area() {
+        Some(a) if a.tab_count() >= crate::area::MAX_TABS => Err("reason-tabs-full"),
+        _ => Ok(()),
+    }
+}
+
+fn can_close_tab(m: &ShellModel) -> Result<(), &'static str> {
+    has_pages(m)?;
+    match m.area() {
+        Some(a) if a.tab_count() <= 1 => Err("reason-last-tab"),
+        _ => Ok(()),
+    }
+}
+
+fn can_cycle_tabs(m: &ShellModel) -> Result<(), &'static str> {
+    has_pages(m)?;
+    match m.area() {
+        Some(a) if a.focused_group().tabs.len() <= 1 => Err("reason-one-tab"),
+        _ => Ok(()),
+    }
+}
+
+fn two_groups(m: &ShellModel) -> Result<(), &'static str> {
+    has_pages(m)?;
+    match m.area() {
+        Some(a) if a.side_by_side() => Ok(()),
+        _ => Err("reason-one-group"),
+    }
+}
+
+fn can_go_back(m: &ShellModel) -> Result<(), &'static str> {
+    has_pages(m)?;
+    match m.area() {
+        Some(a) if a.current().history.back_len() > 0 => Ok(()),
+        _ => Err("reason-history-empty"),
+    }
+}
+
+fn can_go_forward(m: &ShellModel) -> Result<(), &'static str> {
+    has_pages(m)?;
+    match m.area() {
+        Some(a) if a.current().history.forward_len() > 0 => Ok(()),
+        _ => Err("reason-history-empty"),
+    }
+}
+
 fn can_discard_journal(m: &ShellModel) -> Result<(), &'static str> {
     if m.can_discard_journal() {
         Ok(())
@@ -308,6 +377,7 @@ const fn act(
         headless_only: false,
         needs_parameters: false,
         hidden: false,
+        context: Context::Global,
     }
 }
 
@@ -323,6 +393,16 @@ const fn headless(mut a: ActionMeta) -> ActionMeta {
 
 const fn hidden(mut a: ActionMeta) -> ActionMeta {
     a.hidden = true;
+    a
+}
+
+const fn in_canvas(mut a: ActionMeta) -> ActionMeta {
+    a.context = Context::Canvas;
+    a
+}
+
+const fn in_navigator(mut a: ActionMeta) -> ActionMeta {
+    a.context = Context::Navigator;
     a
 }
 
@@ -416,7 +496,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         Command,
         "action-file-close",
         Menu::File,
-        &["Ctrl+W"],
+        &["Ctrl+Shift+W"],
         project_open,
         slot_sep(Menu::File),
     ),
@@ -484,14 +564,59 @@ pub static ACTIONS: &[ActionMeta] = &[
         slot(Menu::Page),
     ),
     act(
-        "page.goto",
+        "nav.goto",
         View,
-        "action-page-goto",
+        "action-nav-goto",
         Menu::Page,
         &["Ctrl+G"],
         has_pages,
         slot_sep(Menu::Page),
     ),
+    act(
+        "nav.back",
+        View,
+        "action-nav-back",
+        Menu::Page,
+        &["Alt+Arrow Left"],
+        can_go_back,
+        slot(Menu::Page),
+    ),
+    act(
+        "nav.forward",
+        View,
+        "action-nav-forward",
+        Menu::Page,
+        &["Alt+Arrow Right"],
+        can_go_forward,
+        slot(Menu::Page),
+    ),
+    in_canvas(act(
+        "nav.follow",
+        View,
+        "action-nav-follow",
+        Menu::Page,
+        &["F"],
+        has_pages,
+        slot_sep(Menu::Page),
+    )),
+    in_canvas(act(
+        "nav.next_link",
+        View,
+        "action-nav-next-link",
+        Menu::Page,
+        &["Shift+F"],
+        has_pages,
+        slot(Menu::Page),
+    )),
+    in_canvas(act(
+        "nav.previous_link",
+        View,
+        "action-nav-previous-link",
+        Menu::Page,
+        &["Ctrl+Shift+F"],
+        has_pages,
+        slot(Menu::Page),
+    )),
     act(
         "view.zoom_in",
         View,
@@ -564,6 +689,33 @@ pub static ACTIONS: &[ActionMeta] = &[
         has_pages,
         sub(Menu::View, Submenu::Pan, false),
     ),
+    act(
+        "view.side_by_side",
+        View,
+        "action-view-side-by-side",
+        Menu::View,
+        &[],
+        has_pages,
+        slot_sep(Menu::View),
+    ),
+    needs_parameters(act(
+        "pages.mode",
+        View,
+        "action-pages-mode",
+        Menu::View,
+        &[],
+        has_pages,
+        sub(Menu::View, Submenu::PageNavigator, false),
+    )),
+    needs_parameters(act(
+        "pages.sort",
+        View,
+        "action-pages-sort",
+        Menu::View,
+        &[],
+        has_pages,
+        sub(Menu::View, Submenu::PageNavigator, false),
+    )),
     act(
         "view.grid",
         View,
@@ -644,6 +796,51 @@ pub static ACTIONS: &[ActionMeta] = &[
         &[],
         always,
         slot(Menu::Tools),
+    ),
+    act(
+        "tab.new",
+        View,
+        "action-tab-new",
+        Menu::Window,
+        &["Ctrl+T"],
+        can_add_tab,
+        slot(Menu::Window),
+    ),
+    act(
+        "tab.close",
+        View,
+        "action-tab-close",
+        Menu::Window,
+        &["Ctrl+W"],
+        can_close_tab,
+        slot(Menu::Window),
+    ),
+    act(
+        "tab.next",
+        View,
+        "action-tab-next",
+        Menu::Window,
+        &["Ctrl+Tab"],
+        can_cycle_tabs,
+        slot(Menu::Window),
+    ),
+    act(
+        "tab.previous",
+        View,
+        "action-tab-previous",
+        Menu::Window,
+        &["Ctrl+Shift+Tab"],
+        can_cycle_tabs,
+        slot(Menu::Window),
+    ),
+    act(
+        "tab.focus_other",
+        View,
+        "action-tab-focus-other",
+        Menu::Window,
+        &["Ctrl+F6"],
+        two_groups,
+        slot(Menu::Window),
     ),
     act(
         "help.documentation",
@@ -769,6 +966,186 @@ pub static ACTIONS: &[ActionMeta] = &[
         Menu::Tools,
         &[],
         always,
+        None,
+    )),
+    hidden(act(
+        "page.goto",
+        View,
+        "action-page-goto",
+        Menu::Page,
+        &[],
+        has_pages,
+        None,
+    )),
+    hidden(act(
+        "tab.activate",
+        View,
+        "action-tab-activate",
+        Menu::Window,
+        &[],
+        has_pages,
+        None,
+    )),
+    hidden(act(
+        "tab.move",
+        View,
+        "action-tab-move",
+        Menu::Window,
+        &[],
+        has_pages,
+        None,
+    )),
+    hidden(act(
+        "tab.open",
+        View,
+        "action-tab-open",
+        Menu::Window,
+        &[],
+        has_pages,
+        None,
+    )),
+    hidden(in_canvas(act(
+        "cursor.left",
+        View,
+        "action-cursor-left",
+        Menu::Page,
+        &["Arrow Left"],
+        has_pages,
+        None,
+    ))),
+    hidden(in_canvas(act(
+        "cursor.right",
+        View,
+        "action-cursor-right",
+        Menu::Page,
+        &["Arrow Right"],
+        has_pages,
+        None,
+    ))),
+    hidden(in_canvas(act(
+        "cursor.up",
+        View,
+        "action-cursor-up",
+        Menu::Page,
+        &["Arrow Up"],
+        has_pages,
+        None,
+    ))),
+    hidden(in_canvas(act(
+        "cursor.down",
+        View,
+        "action-cursor-down",
+        Menu::Page,
+        &["Arrow Down"],
+        has_pages,
+        None,
+    ))),
+    hidden(in_canvas(act(
+        "cursor.cell_left",
+        View,
+        "action-cursor-cell-left",
+        Menu::Page,
+        &["Shift+Arrow Left"],
+        has_pages,
+        None,
+    ))),
+    hidden(in_canvas(act(
+        "cursor.cell_right",
+        View,
+        "action-cursor-cell-right",
+        Menu::Page,
+        &["Shift+Arrow Right"],
+        has_pages,
+        None,
+    ))),
+    hidden(in_canvas(act(
+        "cursor.cell_up",
+        View,
+        "action-cursor-cell-up",
+        Menu::Page,
+        &["Shift+Arrow Up"],
+        has_pages,
+        None,
+    ))),
+    hidden(in_canvas(act(
+        "cursor.cell_down",
+        View,
+        "action-cursor-cell-down",
+        Menu::Page,
+        &["Shift+Arrow Down"],
+        has_pages,
+        None,
+    ))),
+    hidden(in_canvas(act(
+        "cursor.set",
+        View,
+        "action-cursor-set",
+        Menu::Page,
+        &[],
+        has_pages,
+        None,
+    ))),
+    hidden(act(
+        "pages.filter",
+        View,
+        "action-pages-filter",
+        Menu::View,
+        &[],
+        has_pages,
+        None,
+    )),
+    hidden(in_navigator(act(
+        "pages.toggle",
+        View,
+        "action-pages-toggle",
+        Menu::View,
+        &[],
+        has_pages,
+        None,
+    ))),
+    hidden(in_navigator(act(
+        "pages.row",
+        View,
+        "action-pages-row",
+        Menu::View,
+        &[],
+        has_pages,
+        None,
+    ))),
+    hidden(in_navigator(act(
+        "pages.open",
+        View,
+        "action-pages-open",
+        Menu::View,
+        &[],
+        has_pages,
+        None,
+    ))),
+    hidden(act(
+        "ui.focus",
+        View,
+        "action-ui-focus",
+        Menu::Window,
+        &[],
+        project_open,
+        None,
+    )),
+    hidden(act(
+        "ui.focus_next",
+        View,
+        "action-ui-focus-next",
+        Menu::Window,
+        &["F6"],
+        project_open,
+        None,
+    )),
+    hidden(act(
+        "ui.focus_previous",
+        View,
+        "action-ui-focus-previous",
+        Menu::Window,
+        &["Shift+F6"],
+        project_open,
         None,
     )),
     hidden(act(
@@ -972,6 +1349,7 @@ fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
             "view.grid" => model.grid_on(),
             "view.frame_stats" => model.frame_stats_shown(),
             "view.cpu_canvas" => model.cpu_canvas_setting(),
+            "view.side_by_side" => model.area().is_some_and(crate::area::CanvasArea::side_by_side),
             _ => false,
         },
         topic: crate::help::action_topic(meta.id),
@@ -985,6 +1363,30 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
     };
     match submenu {
         Submenu::Export => vec![item_of(meta, model)],
+        Submenu::PageNavigator => {
+            let nav = model.navigator();
+            let mut items = Vec::new();
+            for meta in metas {
+                if meta.id == "pages.mode" {
+                    for mode in crate::navigator::NavMode::ALL {
+                        let mut item = item_of(meta, model);
+                        item.label = strings::text(&format!("nav-mode-{}", mode.word())).to_owned();
+                        item.params = json!({ "mode": mode.word() });
+                        item.checked = nav.mode == mode;
+                        items.push(item);
+                    }
+                } else if meta.id == "pages.sort" {
+                    for sort in crate::navigator::NavSort::ALL {
+                        let mut item = item_of(meta, model);
+                        item.label = strings::text(&format!("nav-sort-{}", sort.word())).to_owned();
+                        item.params = json!({ "by": sort.word() });
+                        item.checked = nav.sort == sort;
+                        items.push(item);
+                    }
+                }
+            }
+            items
+        }
         Submenu::Pan => metas.iter().map(|m| item_of(m, model)).collect(),
         Submenu::Workspace => {
             let active = model.workspace();
@@ -1042,6 +1444,22 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
     }
 }
 
+/// The Window menu's list of open tabs: one checked item per tab of the focused group, dispatching `tab.activate`
+/// (WP-S2.03 §6.7).
+fn window_tabs(model: &ShellModel, entries: &mut Vec<MenuEntry>) {
+    let Some(area) = model.area() else { return };
+    let Some(meta) = find("tab.activate") else { return };
+    entries.push(MenuEntry::Separator);
+    let g = area.focused;
+    for (i, tab) in area.focused_group().tabs.iter().enumerate() {
+        let mut item = item_of(meta, model);
+        item.label = model.tab_title(tab);
+        item.params = json!({ "group": g, "index": i });
+        item.checked = i == area.focused_group().active;
+        entries.push(MenuEntry::Item(item));
+    }
+}
+
 /// The menu bar generated from the registry, in the state of `model`: File, Edit, View, Page, Tools, Help.
 pub fn menu_model(model: &ShellModel) -> Vec<MenuModel> {
     Menu::ALL
@@ -1079,6 +1497,9 @@ pub fn menu_model(model: &ShellModel) -> Vec<MenuModel> {
                         });
                     }
                 }
+            }
+            if menu == Menu::Window {
+                window_tabs(model, &mut entries);
             }
             MenuModel {
                 menu,

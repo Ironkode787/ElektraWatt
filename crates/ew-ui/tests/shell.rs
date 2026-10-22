@@ -113,8 +113,17 @@ fn a_click_in_the_page_list_goes_to_that_page() {
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
-    let label = h.state().shell().page_labels()[3].clone();
-    h.get_by_label(&label).click();
+    // The navigator's row of the fourth page, by its accessible name (WP-S2.03 §6.1).
+    let shell = h.state().shell();
+    let rows = shell.page_rows().to_vec();
+    let row = shell
+        .navigator_rows()
+        .into_iter()
+        .find(|r| matches!(r.kind, ew_ui::ew_viewmodel::navigator::RowKind::Page(3)))
+        .unwrap();
+    let name =
+        ew_ui::ew_viewmodel::navigator::PageNavigator::accessible_name(&row, &rows, shell.current_page());
+    h.get_by_label(&name).click();
     settle(&mut h);
     assert_eq!(h.state().shell().page_index(), 3);
     h.state_mut().shell_mut().shutdown();
@@ -192,7 +201,8 @@ fn closing_a_dirty_project_asks_and_discard_closes_it() {
         h.query_by_label_contains("*").is_some(),
         "the save state shows unsaved"
     );
-    h.key_press_modifiers(Modifiers::COMMAND, Key::W);
+    // Close project is Ctrl+Shift+W: Ctrl+W closes a canvas tab (WP-S2.03 §6.2).
+    h.key_press_modifiers(Modifiers::COMMAND | Modifiers::SHIFT, Key::W);
     settle(&mut h);
     assert!(matches!(
         h.state().shell().dialog(),
@@ -203,7 +213,7 @@ fn closing_a_dirty_project_asks_and_discard_closes_it() {
     h.get_by_label("Cancel").click();
     settle(&mut h);
     assert!(h.state().shell().has_project());
-    h.key_press_modifiers(Modifiers::COMMAND, Key::W);
+    h.key_press_modifiers(Modifiers::COMMAND | Modifiers::SHIFT, Key::W);
     settle(&mut h);
     h.get_by_label("Discard").click();
     settle(&mut h);
@@ -224,7 +234,10 @@ fn go_to_page_takes_a_folio() {
         h.state().shell().dialog(),
         Some(Dialog::GotoPage { .. })
     ));
-    h.get_by_role(egui::Role::TextInput).type_text(&folio);
+    h.get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().data().placeholder() == Some("Folio or cell"))
+        .expect("the go-to field")
+        .type_text(&folio);
     settle(&mut h);
     h.get_by_label("Go").click();
     settle(&mut h);

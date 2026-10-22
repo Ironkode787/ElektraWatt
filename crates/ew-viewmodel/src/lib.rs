@@ -19,12 +19,14 @@ pub use ew_api;
 
 pub mod about;
 pub mod actions;
+pub mod area;
 pub mod canvas;
 pub mod describe;
 pub mod first_run;
 pub mod help;
+pub mod history;
 pub mod layout;
-pub mod page_list;
+pub mod navigator;
 pub mod script;
 pub mod settings;
 pub mod shell;

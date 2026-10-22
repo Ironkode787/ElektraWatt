@@ -349,10 +349,12 @@ fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
     assert_eq!(lines[pv + 2], "canvas grid on \"QET 10 px\"");
     assert_eq!(lines[pv + 3], "canvas pointer none");
     assert_eq!(lines[pv + 4], "canvas hover none");
-    assert_eq!(lines[pv + 5], "canvas backend \"CPU\"");
-    assert_eq!(lines[pv + 6], "canvas renderer auto");
+    assert_eq!(lines[pv + 5], "canvas cursor none");
+    assert_eq!(lines[pv + 6], "canvas link none");
+    assert_eq!(lines[pv + 7], "canvas backend \"CPU\"");
+    assert_eq!(lines[pv + 8], "canvas renderer auto");
     assert!(
-        lines[pv + 7].starts_with("workspace "),
+        lines[pv + 9].starts_with("workspace "),
         "no statistics line while off"
     );
     // The pointer at an entity's centre: that entity (or a smaller one there) in hover, its box in the describe line.
@@ -382,10 +384,12 @@ fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
         ew_viewmodel::canvas::mm3(x),
         ew_viewmodel::canvas::mm3(y)
     )));
-    // The status bar's cursor field.
+    // The status bar's cursor field: the cell (FT-345), then the millimetres.
     let status = shell.status_fields(false);
     assert!(
-        status.iter().any(|f| f.starts_with("x ") && f.ends_with(" mm")),
+        status
+            .iter()
+            .any(|f| f.starts_with("103-") && f.contains(" · x ") && f.ends_with(" mm")),
         "{status:?}"
     );
     assert!(status.contains(&"156 %".to_owned()), "{status:?}");

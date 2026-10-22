@@ -149,6 +149,54 @@ impl GpuHost {
         }
     }
 
+    /// The GPU side of a second canvas group (WP-S2.03 §6.8, §9: one offscreen target per visible group): the
+    /// leader's render state, flags and adapter; its switch-rule result is mirrored each frame by
+    /// [`GpuHost::follow`], so the rule runs and tells its banners once.
+    pub fn follower(&self) -> GpuHost {
+        GpuHost {
+            render_state: self.render_state.clone(),
+            flags: self.flags,
+            adapter: self.adapter.clone(),
+            ..GpuHost::new()
+        }
+    }
+
+    /// Mirrors the leader's choice for this frame: the canvas of this group is made on the leader's device when the
+    /// GPU draws and released when it does not. A failure of this group's canvas is returned for the leader (which
+    /// then records it as its fault: the CPU canvas for the rest of the session).
+    pub fn follow(&mut self, leader: &GpuHost) -> Option<GpuError> {
+        self.choice = leader.choice.clone();
+        if !leader.drawing() {
+            if self.canvas.is_some() {
+                self.release();
+                self.canvas = None;
+                self.preparer = None;
+            }
+            return None;
+        }
+        if self.canvas.is_none()
+            && let Some(rs) = &self.render_state
+        {
+            match GpuCanvas::new(rs.device.clone(), rs.queue.clone(), sample_count_for(&rs.adapter)) {
+                Ok(c) => self.canvas = Some(c),
+                Err(e) => return Some(e),
+            }
+        }
+        let fault = self
+            .canvas
+            .as_ref()
+            .and_then(GpuCanvas::fault)
+            .or(self.fault.take());
+        if fault.is_some() {
+            self.release_frame();
+            self.canvas = None;
+            self.preparer = None;
+            self.shown = None;
+            self.requested = None;
+        }
+        fault
+    }
+
     /// eframe's render state (`None`: no wgpu, the CPU canvas) and the command line's flags.
     pub fn attach(&mut self, render_state: Option<egui_wgpu::RenderState>, flags: Flags) {
         self.adapter = render_state

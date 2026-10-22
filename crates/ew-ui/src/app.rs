@@ -12,16 +12,19 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
-use egui::{CentralPanel, Key, Modifiers, Panel, ScrollArea, ThemePreference, Ui, ViewportCommand};
+use egui::{CentralPanel, Key, Modifiers, Panel, ThemePreference, Ui, ViewportCommand};
+use ew_viewmodel::actions::Context;
 use ew_viewmodel::layout::PaneKind;
-use ew_viewmodel::shell::{ConfirmAnswer, Outcome, Prompt, ShellModel};
+use ew_viewmodel::shell::{ConfirmAnswer, Focus, Outcome, Prompt, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::{Value, json};
 
 use crate::canvas::{CanvasCounters, CanvasHost};
+use crate::canvas_area::CanvasAreaHost;
 use crate::dock::Dock;
 use crate::gpu::GpuHost;
 use crate::keys::{self, Binding};
+use crate::navigator::NavigatorPane;
 use crate::page_view::PageView;
 use crate::{about, first_run, menu, palette, start_page, status_bar, wizard};
 
@@ -40,9 +43,9 @@ pub(crate) enum Event {
     PaletteMove(isize),
     /// An answer to the unsaved-changes dialog.
     Confirm(ConfirmAnswer),
-    /// The go-to-page field changed.
+    /// The go-to field changed.
     GotoText(String),
-    /// Go in the go-to-page dialog.
+    /// Go in the go-to dialog: a folio or a cell.
     GotoGo(String),
     /// The save-layout field changed.
     WorkspaceText(String),
@@ -96,8 +99,14 @@ struct Deferred {
 pub struct App {
     shell: ShellModel,
     platform: Box<dyn Platform>,
-    /// The page canvas of the project view (WP-S2.02).
+    /// The page canvases of the project view (WP-S2.02, WP-S2.03).
     canvas: CanvasHost,
+    /// The canvas area's nested tab tree (WP-S2.03).
+    canvas_area: CanvasAreaHost,
+    /// The page navigator pane (WP-S2.03).
+    navigator: NavigatorPane,
+    /// The canvas area's splitter handles on screen in the last frame.
+    area_splitters: usize,
     /// The page view of the wizard's preview.
     preview_view: PageView,
     dock: Dock,
@@ -106,7 +115,6 @@ pub struct App {
     title: String,
     palette_was_open: bool,
     dialog_was_open: bool,
-    last_page_index: Option<usize>,
     /// An action that waits one frame so that the status bar can show it running (the PDF export).
     deferred: Option<Deferred>,
     /// The `ui_scale` last given to egui: the zoom is set when the setting changes, not every frame, so that
@@ -133,6 +141,9 @@ impl App {
             shell,
             platform,
             canvas: CanvasHost::new(),
+            canvas_area: CanvasAreaHost::new(),
+            navigator: NavigatorPane::new(),
+            area_splitters: 0,
             preview_view: PageView::new(),
             dock,
             initial,
@@ -140,7 +151,6 @@ impl App {
             title: String::new(),
             palette_was_open: false,
             dialog_was_open: false,
-            last_page_index: None,
             deferred: None,
             applied_scale: None,
             applied_theme: None,
@@ -185,6 +195,7 @@ impl App {
         flags: ew_render2d::gpu::Flags,
     ) {
         self.canvas.gpu_mut().attach(render_state, flags);
+        self.canvas.sync_followers();
     }
 
     /// The GPU side of the canvas (tests: stand in for a device, inject a device loss).
@@ -198,15 +209,28 @@ impl App {
         self.preview_view.is_ready()
     }
 
-    /// The number of splitter handles on screen: the dock's while the project view shows, else none (tests: the
-    /// handles are egui_tiles' own areas and have no accessible name, so the walker allows exactly this many).
+    /// The number of splitter handles on screen: the dock's and the canvas area's while the project view shows,
+    /// else none (tests: the handles are egui_tiles' own areas and have no accessible name, so the walker allows
+    /// exactly this many; FT-338 names them).
     #[doc(hidden)]
     pub fn splitter_count(&self) -> usize {
         if self.shell.first_run().is_none() && self.shell.wizard().is_none() && self.shell.has_project() {
-            self.dock.splitters()
+            self.dock.splitters() + self.area_splitters
         } else {
             0
         }
+    }
+
+    /// The bytes of cached tiles of scenes not drawn in the last frame (tests: FT-356's share).
+    #[doc(hidden)]
+    pub fn canvas_hidden_bytes(&self) -> u64 {
+        self.canvas.hidden_bytes()
+    }
+
+    /// The number of tile scenes the canvases keep (tests).
+    #[doc(hidden)]
+    pub fn canvas_scene_count(&self) -> usize {
+        self.canvas.scene_count()
     }
 
     /// The panes of the dock tree in layout order (tests).
@@ -304,6 +328,12 @@ impl App {
         Panel::bottom("status-bar").show(ui, |ui| status_bar::show(ui, &self.shell, exporting));
         let mut new_layout = None;
         let mut canvas_shown = false;
+        let project_view =
+            self.shell.first_run().is_none() && self.shell.wizard().is_none() && self.shell.has_project();
+        if project_view {
+            self.canvas.begin_frame(&ctx, &self.shell);
+        }
+        self.area_splitters = 0;
         CentralPanel::default().show(ui, |ui| {
             if self.shell.first_run().is_some() {
                 first_run::show(ui, &self.shell, &mut events);
@@ -314,13 +344,16 @@ impl App {
                     shell,
                     dock,
                     canvas,
-                    last_page_index,
+                    canvas_area,
+                    navigator,
+                    area_splitters,
                     ..
                 } = self;
                 dock.show(ui, &mut |ui, pane| match pane {
-                    PaneKind::Pages => page_list(ui, shell, last_page_index, &mut events),
+                    PaneKind::Pages => navigator.show(ui, shell, &mut events),
                     PaneKind::PageView => {
-                        canvas.show(ui, shell, &mut events);
+                        canvas_area.show(ui, shell, canvas, &mut events);
+                        *area_splitters = canvas_area.splitter_count(shell);
                         canvas_shown = true;
                     }
                 });
@@ -350,6 +383,10 @@ impl App {
             events.push(Event::Action("help.documentation", Value::Null));
         }
 
+        if canvas_shown {
+            // The merged tile submission and the hidden-first eviction of every canvas (WP-S2.03 §6.8).
+            self.canvas.finish_frame(&ctx, &self.shell);
+        }
         if !events.is_empty() {
             ctx.request_repaint();
         }
@@ -408,15 +445,30 @@ impl App {
         if dialog_open || (ctx.text_edit_focused() && !palette_open) {
             return;
         }
-        for binding in &self.bindings {
-            if matches!(binding.action, "ui.dismiss" | "help.documentation")
-                || (palette_open && binding.action != "tools.palette")
-            {
-                continue;
-            }
-            if ctx.input_mut(|i| i.consume_shortcut(&binding.shortcut)) {
-                events.push(Event::Action(binding.action, Value::Null));
-                break;
+        // The focused context's chords first, then the global ones (WP-S2.03 §6.6); while the navigator has the
+        // focus its own keys (arrows, Home, End, Enter) stay with it.
+        let focused = match self.shell.focus() {
+            Some(Focus::Navigator) => Context::Navigator,
+            Some(Focus::Canvas(_)) => Context::Canvas,
+            None => Context::Global,
+        };
+        let passes: &[Context] = if focused == Context::Global {
+            &[Context::Global]
+        } else {
+            &[focused, Context::Global]
+        };
+        for &pass in passes {
+            for binding in self.bindings.iter().filter(|b| b.context == pass) {
+                if matches!(binding.action, "ui.dismiss" | "help.documentation")
+                    || (palette_open && binding.action != "tools.palette")
+                    || (focused == Context::Navigator && keys::is_navigator_key(&binding.shortcut))
+                {
+                    continue;
+                }
+                if ctx.input_mut(|i| i.consume_shortcut(&binding.shortcut)) {
+                    events.push(Event::Action(binding.action, Value::Null));
+                    return;
+                }
             }
         }
     }
@@ -440,7 +492,7 @@ impl App {
                 self.report(outcome);
             }
             Event::GotoText(text) => self.shell.set_goto_text(&text),
-            Event::GotoGo(folio) => self.dispatch("page.goto", &json!({ "folio": folio })),
+            Event::GotoGo(text) => self.dispatch("nav.goto", &json!({ "text": text })),
             Event::WorkspaceText(text) => self.shell.set_workspace_text(&text),
             Event::DismissBanner => self.shell.dismiss_banner(),
         }
@@ -489,23 +541,4 @@ impl App {
             }
         }
     }
-}
-
-/// The page list pane: the printed folio labels, the current one selected; a click is `page.goto`.
-fn page_list(ui: &mut Ui, shell: &ShellModel, last_index: &mut Option<usize>, events: &mut Vec<Event>) {
-    let list = ew_viewmodel::page_list::PageList::of(shell);
-    let moved = *last_index != list.current;
-    *last_index = list.current;
-    ScrollArea::vertical().show(ui, |ui| {
-        for (i, label) in list.labels.iter().enumerate() {
-            let selected = list.current == Some(i);
-            let response = ui.selectable_label(selected, label.as_str());
-            if selected && moved {
-                response.scroll_to_me(None);
-            }
-            if response.clicked() {
-                events.push(Event::Action("page.goto", json!({ "folio": label })));
-            }
-        }
-    });
 }

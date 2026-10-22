@@ -32,9 +32,163 @@
 
 use std::sync::Arc;
 
-use ew_api::output::PageGrid;
 use ew_api::output::ew_dl::ew_units::{Nm, Rect};
-use ew_api::output::ew_dl::{DisplayList, EntityRef};
+use ew_api::output::ew_dl::{Destination, DisplayList, EntityRef};
+use ew_api::output::{LinkTarget, PageCells, PageGrid, PageRow};
+
+/// A page of the page order by its stable identity (`PageRow::id`), held as the page's own PDF destination
+/// (`Destination::Page`, `ew:p:<uuid>`): a renumber that changes folios keeps it (WP-S2.03 §6.2).
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub struct PageId(pub Destination);
+
+impl PageId {
+    /// The identity of a page row.
+    pub fn of(row: &PageRow) -> PageId {
+        PageId(Destination::Page(row.id))
+    }
+
+    /// The identity of a link target's page.
+    pub fn of_target(t: &LinkTarget) -> PageId {
+        PageId(Destination::Page(t.page))
+    }
+
+    /// The page's UUID as text (hyphenated, lower case).
+    pub fn uuid_text(&self) -> String {
+        match self.0 {
+            Destination::Page(u) | Destination::Representation(u) | Destination::Cp(u) => u.to_string(),
+        }
+    }
+}
+
+/// A cross-reference link of a page (WP-S2.03 §6.4): its destination, the sheet rectangle it is followed over
+/// (`DisplayList::link_sources`), its resolved target (`None`: another project) and its index in paint order.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PageLink {
+    /// The destination.
+    pub dest: Destination,
+    /// The rectangle on the sheet, nm.
+    pub rect: Rect,
+    /// Where it leads; `None` for a destination outside the project's page order.
+    pub target: Option<LinkTarget>,
+    /// The link's index among the page's link sources in paint order.
+    pub paint: usize,
+}
+
+impl PageLink {
+    /// The status-bar and describe label of the target: its cell, else its folio.
+    pub fn label(&self) -> Option<String> {
+        self.target
+            .as_ref()
+            .map(|t| t.cell.clone().unwrap_or_else(|| t.folio.clone()))
+    }
+}
+
+/// The reading order of a page's links and connection points (WP-S2.03 §6.4): by the cell of a point (column, then
+/// row, by their indices; no cell last), then by `(y, x)`.
+pub fn reading_key(cells: Option<&PageCells>, p: (i64, i64)) -> (u32, u32, i64, i64) {
+    let (c, r) = cells
+        .and_then(|c| c.cell_at(p))
+        .map_or((u32::MAX, u32::MAX), |c| (c.column_index, c.row_index));
+    (c, r, p.1, p.0)
+}
+
+/// Sorts `links` into reading order (ties: paint order).
+pub fn sort_links(links: &mut [PageLink], cells: Option<&PageCells>) {
+    links.sort_by_key(|l| (reading_key(cells, rect_centre(l.rect)), l.paint));
+}
+
+/// `num / den` rounded to the nearest integer, halves away from zero (`den > 0`).
+fn div_round(num: i128, den: i128) -> i128 {
+    let q = num / den;
+    let r = num % den;
+    if 2 * r.abs() >= den { q + num.signum() } else { q }
+}
+
+/// The grid points of a page on the sheet (WP-S2.02's grid overlay, WP-S2.03 §6.6): point `k` of an axis lies at
+/// `offset + scale × k × num / den`, rounded to the nearest nm.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct GridMap {
+    num: i128,
+    den: i128,
+    scale: i128,
+    offset: (i128, i128),
+}
+
+impl GridMap {
+    /// The map of a page grid (a 1 mm grid at scale 1 without one).
+    pub fn of(grid: Option<&PageGrid>) -> GridMap {
+        match grid {
+            Some(g) if g.num_nm > 0 && g.den > 0 && g.sheet_scale_ppb > 0 => GridMap {
+                num: i128::from(g.num_nm),
+                den: i128::from(g.den),
+                scale: i128::from(g.sheet_scale_ppb),
+                offset: (i128::from(g.sheet_offset_nm.0), i128::from(g.sheet_offset_nm.1)),
+            },
+            _ => GridMap {
+                num: 1_000_000,
+                den: 1,
+                scale: 1_000_000_000,
+                offset: (0, 0),
+            },
+        }
+    }
+
+    fn off(&self, axis: usize) -> i128 {
+        if axis == 0 { self.offset.0 } else { self.offset.1 }
+    }
+
+    /// The sheet coordinate of grid index `k` on `axis` (0 x, 1 y).
+    pub fn point(&self, k: i64, axis: usize) -> i64 {
+        let v = self.off(axis) + div_round(i128::from(k) * self.num * self.scale, self.den * 1_000_000_000);
+        i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX })
+    }
+
+    /// The grid index nearest to the sheet coordinate `s` on `axis`.
+    pub fn index(&self, s: i64, axis: usize) -> i64 {
+        let v = div_round(
+            (i128::from(s) - self.off(axis)) * self.den * 1_000_000_000,
+            self.num * self.scale,
+        );
+        i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX })
+    }
+
+    /// The grid index nearest to `s` whose point lies within `0 ..= extent` (the sheet), if any does.
+    fn index_within(&self, s: i64, axis: usize, extent: i64) -> i64 {
+        let mut k = self.index(s.clamp(0, extent.max(0)), axis);
+        if self.point(k, axis) > extent {
+            k -= 1;
+        }
+        if self.point(k, axis) < 0 {
+            k += 1;
+        }
+        k
+    }
+
+    /// The grid point nearest to `p` on a sheet of `sheet` nm.
+    pub fn nearest(&self, p: (i64, i64), sheet: (i64, i64)) -> (i64, i64) {
+        (
+            self.point(self.index_within(p.0, 0, sheet.0), 0),
+            self.point(self.index_within(p.1, 1, sheet.1), 1),
+        )
+    }
+}
+
+/// How far the grid cursor stays inside the pane before the view pans, as a share of each side (WP-S2.03 §6.6).
+pub const AUTO_PAN_INSET: f64 = 0.1;
+
+/// Grid steps of a Shift+Arrow cursor move on a page without cells.
+pub const CELL_STEP_FALLBACK: i64 = 10;
+
+/// The remembered view of a page in a tab (WP-S2.03 §6.2): a fitted view refits to the pane when restored.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub struct Viewport {
+    /// The sheet point at the pane's centre.
+    pub centre: (i64, i64),
+    /// The zoom.
+    pub zoom: f64,
+    /// Whether the view is the fit of the page.
+    pub fitted: bool,
+}
 
 /// Nanometres per inch.
 const NM_PER_INCH: f64 = 25_400_000.0;
@@ -200,6 +354,10 @@ pub struct CanvasPage {
     pub entities: Vec<(EntityRef, Rect)>,
     /// The page's connection grid with its page-to-sheet map.
     pub grid: Option<PageGrid>,
+    /// The page's cross-reference links in reading order, with their resolved targets (WP-S2.03 §6.4).
+    pub links: Vec<PageLink>,
+    /// The page's frame cells (`Session::page_cells`); `None` for a page without a frame grid.
+    pub cells: Option<PageCells>,
 }
 
 impl CanvasPage {
@@ -222,7 +380,15 @@ impl CanvasPage {
             list,
             entities,
             grid,
+            links: Vec::new(),
+            cells: None,
         }
+    }
+
+    /// The cell text of the sheet point `p` in the project's `ip` format (`102-H15`), if the page has a cell there.
+    pub fn cell_text(&self, p: (i64, i64)) -> Option<String> {
+        let cells = self.cells.as_ref()?;
+        cells.cell_at(p).map(|c| cells.text(&c))
     }
 }
 
@@ -238,6 +404,10 @@ pub struct CanvasModel {
     hover: Option<(EntityRef, Rect)>,
     fitted: bool,
     ui_scale: f64,
+    /// The keyboard grid cursor, a sheet point (WP-S2.03 §6.6).
+    cursor: Option<(i64, i64)>,
+    /// The index into the page's links of the link under the pointer.
+    hover_link: Option<usize>,
 }
 
 impl CanvasModel {
@@ -253,6 +423,8 @@ impl CanvasModel {
             hover: None,
             fitted: true,
             ui_scale: 1.0,
+            cursor: None,
+            hover_link: None,
         };
         m.fit();
         m
@@ -438,13 +610,206 @@ impl CanvasModel {
         self.update_hover();
     }
 
-    /// Recomputes the hover pick (see the module documentation).
+    /// Recomputes the hover pick (see the module documentation) and the hovered link.
     fn update_hover(&mut self) {
         self.hover = pick(
             &self.page.entities,
             self.pointer,
             HOVER_SLOP_PT / self.points_per_nm(),
         );
+        self.hover_link = self.pointer.and_then(|p| self.link_at(p));
+    }
+
+    // -------------------------------------------------------------------------------------------------------------
+    // Links, the grid cursor and the view of a jump (WP-S2.03 part 1)
+
+    /// The link whose rectangle, inflated by [`HOVER_SLOP_PT`] at the current zoom, contains `p`: the smallest area
+    /// wins, ties to the later in paint order. An index into the page's links.
+    pub fn link_at(&self, p: (i64, i64)) -> Option<usize> {
+        let slop = HOVER_SLOP_PT / self.points_per_nm();
+        let slop = if slop.is_finite() { slop.max(0.0) } else { 0.0 };
+        let mut best: Option<(i128, usize, usize)> = None;
+        for (i, l) in self.page.links.iter().enumerate() {
+            let (a, b) = (l.rect.min(), l.rect.max());
+            let inside =
+                |v: i64, lo: Nm, hi: Nm| v as f64 >= lo.0 as f64 - slop && v as f64 <= hi.0 as f64 + slop;
+            if !(inside(p.0, a.x, b.x) && inside(p.1, a.y, b.y)) {
+                continue;
+            }
+            let area = i128::from(b.x.0 - a.x.0) * i128::from(b.y.0 - a.y.0);
+            let better = match best {
+                None => true,
+                Some((ba, bp, _)) => area < ba || (area == ba && l.paint > bp),
+            };
+            if better {
+                best = Some((area, l.paint, i));
+            }
+        }
+        best.map(|(_, _, i)| i)
+    }
+
+    /// The link under the pointer.
+    pub fn hovered_link(&self) -> Option<&PageLink> {
+        self.hover_link.and_then(|i| self.page.links.get(i))
+    }
+
+    /// The link at the grid cursor.
+    pub fn cursor_link(&self) -> Option<&PageLink> {
+        self.cursor
+            .and_then(|p| self.link_at(p))
+            .and_then(|i| self.page.links.get(i))
+    }
+
+    /// The entity at the grid cursor (the hover pick at the cursor point).
+    pub fn cursor_entity(&self) -> Option<(EntityRef, Rect)> {
+        pick(
+            &self.page.entities,
+            self.cursor,
+            HOVER_SLOP_PT / self.points_per_nm(),
+        )
+    }
+
+    /// The keyboard grid cursor (a sheet point), when shown.
+    pub fn cursor(&self) -> Option<(i64, i64)> {
+        self.cursor
+    }
+
+    /// The page's grid points on the sheet.
+    pub fn grid_map(&self) -> GridMap {
+        GridMap::of(self.page.grid.as_ref())
+    }
+
+    /// Shows the cursor at `p` exactly (`None` hides it); the view then pans to keep it inside
+    /// ([`CanvasModel::auto_pan`]).
+    pub fn put_cursor(&mut self, p: Option<(i64, i64)>) {
+        self.cursor = p;
+        if p.is_some() {
+            self.auto_pan();
+        }
+    }
+
+    /// Shows the cursor at the grid point nearest to `p`.
+    pub fn place_cursor(&mut self, p: (i64, i64)) {
+        let at = self.grid_map().nearest(p, self.page.sheet);
+        self.put_cursor(Some(at));
+    }
+
+    /// One grid step in the direction `(dx, dy)` (each −1, 0 or 1): without a cursor, the grid point nearest to the
+    /// view centre; else the cursor snaps to its nearest grid point and moves one step, an axis whose step would
+    /// leave the sheet staying.
+    pub fn cursor_step(&mut self, dx: i64, dy: i64) {
+        let Some(at) = self.cursor else {
+            self.place_cursor(self.centre);
+            return;
+        };
+        let g = self.grid_map();
+        let sheet = self.page.sheet;
+        let (x, y) = g.nearest(at, sheet);
+        let step = |v: i64, d: i64, axis: usize, extent: i64| {
+            if d == 0 {
+                return v;
+            }
+            let p = g.point(g.index(v, axis) + d, axis);
+            if (0..=extent.max(0)).contains(&p) { p } else { v }
+        };
+        let next = (step(x, dx, 0, sheet.0), step(y, dy, 1, sheet.1));
+        self.put_cursor(Some(next));
+    }
+
+    /// One cell in the direction `(dx, dy)` (the page's column width or row height on the sheet), then the nearest
+    /// grid point; ten grid steps on a page without cells. Without a cursor, as [`CanvasModel::cursor_step`].
+    pub fn cursor_cell_step(&mut self, dx: i64, dy: i64) {
+        let Some(at) = self.cursor else {
+            self.place_cursor(self.centre);
+            return;
+        };
+        match self.page.cells.as_ref().map(PageCells::pitch_nm) {
+            Some((pw, ph)) => {
+                let (w, h) = self.page.sheet;
+                let p = (
+                    at.0.saturating_add(dx * pw).clamp(0, w.max(0)),
+                    at.1.saturating_add(dy * ph).clamp(0, h.max(0)),
+                );
+                self.place_cursor(p);
+            }
+            None => {
+                for _ in 0..CELL_STEP_FALLBACK {
+                    self.cursor_step(dx, dy);
+                }
+            }
+        }
+    }
+
+    /// Pans the view by the least amount that brings the cursor's screen point inside the pane inset by
+    /// [`AUTO_PAN_INSET`] of each side; the zoom never changes.
+    pub fn auto_pan(&mut self) {
+        let Some((cx, cy)) = self.cursor else { return };
+        let k = self.points_per_nm();
+        if !(k.is_finite() && k > 0.0) {
+            return;
+        }
+        let axis = |c: i64, centre: i64, pane: f64| -> i64 {
+            let s = (c - centre) as f64 * k + pane / 2.0;
+            let (lo, hi) = (pane * AUTO_PAN_INSET, pane * (1.0 - AUTO_PAN_INSET));
+            let target = if s < lo {
+                lo
+            } else if s > hi {
+                hi
+            } else {
+                return centre;
+            };
+            // The centre that puts the cursor at `target`, truncated toward the cursor so that it lands inside.
+            c - ((target - pane / 2.0) / k).trunc() as i64
+        };
+        let next = (
+            axis(cx, self.centre.0, self.pane.0),
+            axis(cy, self.centre.1, self.pane.1),
+        );
+        if next != self.centre {
+            self.centre = next;
+            self.clamp_centre();
+            self.fitted = false;
+            self.update_hover();
+        }
+    }
+
+    /// The zoom at which the page fits this pane ([`CanvasModel::fit`]), without changing the view.
+    pub fn fit_zoom(&self) -> f64 {
+        let mut probe = self.clone();
+        probe.fit();
+        probe.zoom
+    }
+
+    /// The view of a jump to the sheet point `p` (WP-S2.03 §6.3): the zoom `max(previous, 2 × fit)` clamped, `p`
+    /// at the centre (clamped to the sheet).
+    pub fn jump_view(&mut self, p: (i64, i64), previous_zoom: f64) {
+        self.zoom = clamp_zoom(previous_zoom.max(2.0 * self.fit_zoom()));
+        self.centre = p;
+        self.clamp_centre();
+        self.fitted = false;
+        self.update_hover();
+    }
+
+    /// The view as a tab remembers it.
+    pub fn viewport(&self) -> Viewport {
+        Viewport {
+            centre: self.centre,
+            zoom: self.zoom,
+            fitted: self.fitted,
+        }
+    }
+
+    /// Restores a remembered view exactly; a fitted one fits this pane again.
+    pub fn set_viewport(&mut self, v: &Viewport) {
+        if v.fitted {
+            self.fit();
+            return;
+        }
+        self.zoom = clamp_zoom(v.zoom);
+        self.centre = v.centre;
+        self.clamp_centre();
+        self.fitted = false;
+        self.update_hover();
     }
 }
 
@@ -557,6 +922,8 @@ mod tests {
             list: Arc::new(DisplayList::new()),
             entities,
             grid: None,
+            links: Vec::new(),
+            cells: None,
         })
     }
 

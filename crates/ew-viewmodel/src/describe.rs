@@ -5,19 +5,20 @@
 //! element, in paint order. It is what an agent reads instead of a screenshot.
 //!
 //! Paint order: the window title, the menu bar with every entry and its enabled state (and reason), the banner,
-//! the first-run flow, the wizard, or the project view (the page list, the page view and its canvas lines, the
-//! workspace and its layout), or the start page, the status bar, then the palette or a dialog, then the last documentation request.
+//! the first-run flow, the wizard, or the project view (the page navigator, the canvas tabs and the focus, the page
+//! view and its canvas lines, the workspace and its layout), or the start page, the status bar, then the palette or a dialog, then the last documentation request.
 //! Directory names appear, paths never. The structural words are fixed English machine text (decision log ID-474):
 //! [`VOCABULARY`] lists every one of them, [`FREE_TEXT_MARKERS`] the markers after which the rest of a line is user
 //! text, and a test checks that no line the describer writes uses a word that is in neither list. Quoted text is
 //! user text (a label, a name) and not part of the vocabulary.
 
 use crate::actions::{self, ActionItem, MenuEntry, PaletteRun};
+use crate::canvas::PageId;
 use crate::canvas::{mm3, round_tenth};
 use crate::first_run::FirstRunStep;
-use crate::page_list::PageList;
+use crate::navigator::RowKind;
 use crate::settings::{KEYMAPS, LANGUAGES, THEMES};
-use crate::shell::{Dialog, ShellModel};
+use crate::shell::{Dialog, Focus, ShellModel};
 use crate::strings;
 use crate::wizard::{FieldKind, Step, fields_of};
 
@@ -35,7 +36,6 @@ pub const VOCABULARY: &[&str] = &[
     "checked",
     "banner:",
     "page",
-    "list",
     "selected",
     "view:",
     "workspace",
@@ -94,6 +94,34 @@ pub const VOCABULARY: &[&str] = &[
     "renderer",
     "auto",
     "cpu",
+    // The viewer (WP-S2.03 part 1, decision log ID-537): 27 words, a reviewed vocabulary change.
+    "navigator",
+    "mode",
+    "flat",
+    "section",
+    "structure",
+    "sort",
+    "folio",
+    "type",
+    "filter",
+    "row",
+    "level",
+    "expanded",
+    "collapsed",
+    "current",
+    "generated",
+    "badge",
+    "cursor",
+    "tab",
+    "group",
+    "focused",
+    "history",
+    "back",
+    "forward",
+    "focus",
+    "cell",
+    "link",
+    "external",
 ];
 
 /// The markers after which the rest of the line is user text (a title, a banner, an error, a reason, a folio, a
@@ -333,13 +361,81 @@ fn wizard(model: &ShellModel, lines: &mut Vec<String>) {
     lines.push(format!("  button \"{}\"", strings::text("wizard-cancel")));
 }
 
-fn project_view(model: &ShellModel, lines: &mut Vec<String>) {
-    let list = PageList::of(model);
-    lines.push(format!("page list \"{}\"", strings::text("pages-title")));
-    for (i, label) in list.labels.iter().enumerate() {
-        let selected = if list.current == Some(i) { " selected" } else { "" };
-        lines.push(format!("  page \"{label}\"{selected}"));
+/// The navigator lines (WP-S2.03 §6.10): the header, then one line per row on show.
+fn navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
+    let nav = model.navigator();
+    lines.push(format!(
+        "navigator \"{}\" mode {} sort {} filter \"{}\"",
+        strings::text("pages-title"),
+        nav.mode.word(),
+        nav.sort.word(),
+        nav.filter
+    ));
+    let rows = model.page_rows();
+    let current = model.current_page();
+    let cursor = model.navigator_row_key();
+    for row in model.navigator_rows() {
+        let mut line = format!("  row level {}", row.level);
+        match &row.kind {
+            RowKind::Node { label, .. } => {
+                line.push_str(&format!(
+                    " \"{label}\" {}",
+                    if row.expanded { "expanded" } else { "collapsed" }
+                ));
+            }
+            RowKind::Page(i) => {
+                let r = &rows[*i];
+                line.push_str(&format!(" page \"{}\" \"{}\"", r.folio, r.title));
+                if r.generated {
+                    line.push_str(" generated");
+                }
+                if r.qet_grid {
+                    line.push_str(&format!(" badge \"{}\"", strings::text("badge-qet-grid")));
+                }
+                if current == Some(PageId::of(r)) {
+                    line.push_str(" current");
+                }
+            }
+        }
+        if cursor.as_deref() == Some(row.key.as_str()) {
+            line.push_str(" cursor");
+        }
+        lines.push(line);
     }
+}
+
+/// The tab lines (WP-S2.03 §6.10): per group its header, then one line per tab; the selected tab with its history.
+fn tab_lines(model: &ShellModel, lines: &mut Vec<String>) {
+    let Some(area) = model.area() else { return };
+    let n = area.groups.len();
+    for (g, group) in area.groups.iter().enumerate() {
+        let focused = if g == area.focused { " focused" } else { "" };
+        lines.push(format!("tabs group {} of {n}{focused}", g + 1));
+        for (i, tab) in group.tabs.iter().enumerate() {
+            let (folio, title) = model.tab_row(tab).map_or((String::new(), String::new()), |r| {
+                (r.folio.clone(), r.title.clone())
+            });
+            let mut line = format!("  tab \"{folio}\" \"{title}\"");
+            if i == group.active {
+                line.push_str(&format!(
+                    " selected history back {} forward {}",
+                    tab.history.back_len(),
+                    tab.history.forward_len()
+                ));
+            }
+            lines.push(line);
+        }
+    }
+    match model.focus() {
+        Some(Focus::Navigator) => lines.push("focus navigator".to_owned()),
+        Some(Focus::Canvas(g)) => lines.push(format!("focus canvas group {}", g + 1)),
+        None => {}
+    }
+}
+
+fn project_view(model: &ShellModel, lines: &mut Vec<String>) {
+    navigator_lines(model, lines);
+    tab_lines(model, lines);
     match model.current_folio() {
         Some(folio) => lines.push(format!("page view: {folio}")),
         None => lines.push(format!("page view: {}", strings::text("page-no-pages"))),
@@ -367,8 +463,13 @@ fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
     } else {
         lines.push("canvas grid off".to_owned());
     }
+    let cell = |p: (i64, i64)| {
+        c.page()
+            .cell_text(p)
+            .map_or_else(String::new, |t| format!(" cell \"{t}\""))
+    };
     match c.pointer() {
-        Some((x, y)) => lines.push(format!("canvas pointer {} {} mm", mm3(x), mm3(y))),
+        Some((x, y)) => lines.push(format!("canvas pointer {} {} mm{}", mm3(x), mm3(y), cell((x, y)))),
         None => lines.push("canvas pointer none".to_owned()),
     }
     match c.hover() {
@@ -381,6 +482,20 @@ fn canvas_lines(model: &ShellModel, lines: &mut Vec<String>) {
             mm3(r.max().y.0)
         )),
         None => lines.push("canvas hover none".to_owned()),
+    }
+    match c.cursor() {
+        Some((x, y)) => lines.push(format!("canvas cursor {} {} mm{}", mm3(x), mm3(y), cell((x, y)))),
+        None => lines.push("canvas cursor none".to_owned()),
+    }
+    match c.hovered_link() {
+        None => lines.push("canvas link none".to_owned()),
+        Some(l) => match &l.target {
+            None => lines.push("canvas link external".to_owned()),
+            Some(t) => match &t.cell {
+                Some(cell) => lines.push(format!("canvas link \"{cell}\" folio \"{}\"", t.folio)),
+                None => lines.push(format!("canvas link folio \"{}\"", t.folio)),
+            },
+        },
     }
     lines.push(format!("canvas backend \"{}\"", model.canvas_backend().label()));
     if model.frame_stats_shown() {

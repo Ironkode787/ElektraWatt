@@ -354,11 +354,18 @@ fn the_project_view_is_a_dock_and_a_changed_layout_becomes_the_workspace_file() 
         h.state().shell().dialog(),
         Some(Dialog::SaveWorkspace { .. })
     ));
-    h.get_by_role(egui::Role::TextInput).focus();
+    // The dialog's field (the page navigator has a filter field too).
+    h.get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().data().placeholder() == Some("Workspace name"))
+        .expect("the workspace name field")
+        .focus();
     h.run_ok();
     h.key_press_modifiers(Modifiers::COMMAND, Key::A);
     h.run_ok();
-    h.get_by_role(egui::Role::TextInput).type_text("Tabbed");
+    h.get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().data().placeholder() == Some("Workspace name"))
+        .expect("the workspace name field")
+        .type_text("Tabbed");
     settle(&mut h);
     h.get_by_label("Save layout").click();
     settle(&mut h);

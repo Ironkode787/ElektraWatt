@@ -209,6 +209,12 @@ impl egui_tiles::Behavior<PaneKind> for DockBehavior<'_> {
     fn is_tab_closable(&self, _tiles: &Tiles<PaneKind>, _tile_id: TileId) -> bool {
         false
     }
+
+    /// The registry owns Ctrl+Tab (`tab.next`, WP-S2.03 §6.2): egui_tiles' own cycling of the hovered container's tabs
+    /// would act outside `dispatch`.
+    fn cycle_tabs_with_keyboard(&self) -> bool {
+        false
+    }
 }
 
 #[cfg(test)]

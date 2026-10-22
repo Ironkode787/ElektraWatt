@@ -1690,6 +1690,17 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     // The CPU renderer setting (WP-S2.02 part 2).
     done(&mut sample, "view.cpu_canvas", json!({}));
     texts.push(sample.describe());
+    // The page navigator's views, sorts and a collapsed node; side by side and the focus (WP-S2.03 part 1).
+    done(&mut sample, "pages.mode", json!({"mode": "flat"}));
+    texts.push(sample.describe());
+    done(&mut sample, "pages.mode", json!({"mode": "structure"}));
+    done(&mut sample, "pages.sort", json!({"by": "type"}));
+    let first = sample.navigator_rows()[0].key.clone();
+    done(&mut sample, "pages.toggle", json!({"key": first}));
+    done(&mut sample, "view.side_by_side", json!({}));
+    done(&mut sample, "ui.focus", json!({"area": "navigator"}));
+    done(&mut sample, "cursor.right", json!({}));
+    texts.push(sample.describe());
     sample.shutdown();
     // A wizard whose preview is not available says why.
     let mut config = tmp.config();
@@ -1713,9 +1724,10 @@ fn every_structural_word_of_the_describe_text_is_in_the_vocabulary() {
     }
     // The states above reach most of the vocabulary: a word that nothing emits is a stale entry or a missed state.
     let unused: Vec<&&str> = allowed.iter().filter(|w| !seen.contains(**w)).collect();
-    // (`disabled` without a reason cannot be reached through the registry today.)
+    // (`disabled` without a reason cannot be reached through the registry today; `external`, a link to another
+    // project, needs a cross-reference whose target is outside the page order, which Golden A does not draw.)
     assert!(
-        unused.iter().all(|w| **w == "disabled"),
+        unused.iter().all(|w| **w == "disabled" || **w == "external"),
         "words of the vocabulary no state used: {unused:?}"
     );
 }

@@ -9,7 +9,7 @@
 //! shortcuts; Escape closes the topmost popup or dialog and otherwise does nothing.
 
 use egui::{Key, KeyboardShortcut, Modifiers};
-use ew_viewmodel::actions::ACTIONS;
+use ew_viewmodel::actions::{ACTIONS, Context};
 
 /// A binding and the action it runs.
 #[derive(Clone, Copy, Debug)]
@@ -18,6 +18,19 @@ pub struct Binding {
     pub shortcut: KeyboardShortcut,
     /// The action ID.
     pub action: &'static str,
+    /// Where the chord applies (WP-S2.03 §6.6).
+    pub context: Context,
+}
+
+/// Whether `s` is one of the page navigator's own keys (the arrows, Home, End, Enter and Ctrl+Enter), which a global
+/// chord must not take while the navigator has the focus.
+pub fn is_navigator_key(s: &KeyboardShortcut) -> bool {
+    let plain = s.modifiers == Modifiers::NONE;
+    let nav = matches!(
+        s.logical_key,
+        Key::ArrowUp | Key::ArrowDown | Key::ArrowLeft | Key::ArrowRight | Key::Home | Key::End | Key::Enter
+    );
+    nav && (plain || (s.modifiers == Modifiers::COMMAND && s.logical_key == Key::Enter))
 }
 
 /// The shortcut of a binding text such as `Ctrl+Shift+Z` or `Page Down`; `None` for a text with no known key.
@@ -45,6 +58,7 @@ pub fn bindings() -> Vec<Binding> {
                 parse_shortcut(text).map(|shortcut| Binding {
                     shortcut,
                     action: meta.id,
+                    context: meta.context,
                 })
             })
         })

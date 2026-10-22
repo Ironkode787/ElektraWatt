@@ -88,8 +88,9 @@ impl ShellModel {
             name: dir_name(dir),
             access: AccessMode::Edit,
             labels,
+            rows: Vec::new(),
         });
-        self.page_index = 0;
+        self.install_view();
         self.settings.push_recent(&dir.to_string_lossy());
         self.save_settings();
         self.banner = banner;
@@ -341,8 +342,9 @@ impl ShellModel {
                     name,
                     access,
                     labels,
+                    rows: Vec::new(),
                 });
-                self.page_index = 0;
+                self.install_view();
                 self.banner = Some(match banner {
                     Some(b) => b,
                     None => strings::text("banner-journal-discarded").to_owned(),

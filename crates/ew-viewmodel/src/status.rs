@@ -4,8 +4,9 @@
 //! The status-bar model (WP-S2.01 part 1, spec section 5.3; WP-S2.02 part 1, spec section 6.5; UX/UI doc 16
 //! section 3.6).
 //!
-//! Left to right: the hint, the page as `<folio> (<n> of <total>)`, the cursor `x 255.0 y 172.5 mm` (sheet
-//! coordinates, left out while the pointer is outside the canvas), the zoom `156 %`, the grid (`QET 10 px`, a pitch
+//! Left to right: the hint (`Read-only view`, or the hovered link's target), the page as `<folio> (<n> of <total>)`,
+//! the cursor `102-H15 · x 255.0 y 172.5 mm` (the cell where one exists, then sheet coordinates: the pointer over
+//! the focused canvas, else the grid cursor, else left out; WP-S2.03 §6.5, FT-345), the zoom `156 %`, the grid (`QET 10 px`, a pitch
 //! such as `4 mm`, or `Grid off`), the save state (`*` unsaved, `saved`, or `read-only: <reason>`), the canvas
 //! backend (`CPU`, `WARP` or `GPU <backend>`), the UI language, and while an export runs the export label. Without
 //! a project the page and save fields are left out; without a canvas the cursor, zoom and grid.
@@ -27,13 +28,77 @@ pub fn grid_text(model: &ShellModel) -> String {
     }
 }
 
+/// The accessible texts of a canvas (WP-S2.03 §6.9, doc 16 §10.1).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct CanvasNodeText {
+    /// The node's name: `Page <folio>, <title>`.
+    pub name: String,
+    /// Its description: `<hint>, zoom <zoom>`, then `, cursor <cell> x <x> y <y> mm` while the grid cursor shows.
+    pub description: String,
+    /// The polite live region's text while the cursor shows: `<cell>, x <x> y <y> mm`, then `, link to <label>`
+    /// when a link is at the cursor.
+    pub live: Option<String>,
+}
+
+/// The accessible texts of group `group`'s canvas; `None` without a canvas there.
+pub fn canvas_node(model: &ShellModel, group: usize) -> Option<CanvasNodeText> {
+    let c = model.canvas_of(group)?;
+    let page = c.page();
+    let mut description = strings::format(
+        "canvas-description",
+        &[
+            &hint_of(c),
+            &strings::format("status-zoom", &[&zoom_percent_text(c.zoom())]),
+        ],
+    );
+    let live = c.cursor().map(|(x, y)| {
+        let cell = page.cell_text((x, y));
+        description.push_str(&strings::format(
+            "canvas-cursor-description",
+            &[cell.as_deref().unwrap_or(""), &mm1(x), &mm1(y)],
+        ));
+        let mut live = match &cell {
+            Some(cell) => strings::format("canvas-cursor-live", &[cell, &mm1(x), &mm1(y)]),
+            None => strings::format("status-cursor", &[&mm1(x), &mm1(y)]),
+        };
+        if let Some(label) = c.cursor_link().and_then(crate::canvas::PageLink::label) {
+            live.push_str(&strings::format("canvas-cursor-live-link", &[&label]));
+        }
+        live
+    });
+    Some(CanvasNodeText {
+        name: strings::format("canvas-name", &[&page.folio, &page.title]),
+        description: description.replace("cursor  x", "cursor x"),
+        live,
+    })
+}
+
+/// The hint of one canvas: the hovered link's target, else `Read-only view`.
+fn hint_of(c: &crate::canvas::CanvasModel) -> String {
+    match c.hovered_link() {
+        Some(link) => match link.label() {
+            Some(label) => strings::format("status-hint-link", &[&label]),
+            None => strings::text("status-hint-link-external").to_owned(),
+        },
+        None => strings::text("status-hint-view").to_owned(),
+    }
+}
+
+/// The hint field: `Read-only view`, or the hovered link's `Click or F: go to <label>` (WP-S2.03 §6.4).
+pub fn hint(model: &ShellModel) -> String {
+    match model.canvas() {
+        Some(c) => hint_of(c),
+        None => strings::text("status-hint-view").to_owned(),
+    }
+}
+
 /// The status-bar fields of `model`; `exporting` adds the label of a running export.
 pub fn fields(model: &ShellModel, exporting: bool) -> Vec<String> {
     let mut out = Vec::new();
     match model.project_name() {
         None => out.push(strings::text("status-hint-start").to_owned()),
         Some(_) => {
-            out.push(strings::text("status-hint-view").to_owned());
+            out.push(hint(model));
             if let Some(folio) = model.current_folio() {
                 out.push(strings::format(
                     "status-page",
@@ -45,8 +110,11 @@ pub fn fields(model: &ShellModel, exporting: bool) -> Vec<String> {
                 ));
             }
             if let Some(canvas) = model.canvas() {
-                if let Some((x, y)) = canvas.pointer() {
-                    out.push(strings::format("status-cursor", &[&mm1(x), &mm1(y)]));
+                if let Some((x, y)) = model.shown_point() {
+                    out.push(match canvas.page().cell_text((x, y)) {
+                        Some(cell) => strings::format("status-cursor-cell", &[&cell, &mm1(x), &mm1(y)]),
+                        None => strings::format("status-cursor", &[&mm1(x), &mm1(y)]),
+                    });
                 }
                 out.push(strings::format(
                     "status-zoom",
