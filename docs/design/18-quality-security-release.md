@@ -1,6 +1,6 @@
 # Quality engineering, security and release
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1; amended 2026-10-21, cycle-12 design pass: acceptance counts and comparison against doc 20 data in §3.10; amended 2026-10-21, cycle-14 design pass: documents as built in §3.9, §3.10 and §3.16, blind drafter §3.17; amended 2026-10-22, cycle-17 design pass: the acceptance counts in §3.10, the fuzzer's coverage and nightly form in §3.6, the `fuzz_smoke` time in §3.14, CI-N-02 and CI-N-03 in §5.2; amended 2026-10-22, cycle-18 design pass: what the ordered-collection lint misses in §3.5, the pull-failure rule in §3.14, CI-PR-05 and CI-N-09 in §5.2, the image-digest rule in §5.4; amended 2026-10-22, cycle-19 lane C: the `disallowed-methods` rule as built in §3.5, CI-N-12 and the retired LG-2 merge block in §5.2; amended 2026-10-22, cycle-19 design pass: the scan's gaps and the sites at the integration tip in §3.5, the shell's UI tests in §3.11, the CI time after cycle 18 and the Windows cut in §3.14, the headless mode for the blind drafter in §3.17, CI-PR-02 to CI-PR-04 and CI-N-12 in §5.2, the UI crates' `rust-version` in §6.2; amended 2026-10-22, cycle 20 lane C: the supply-chain bullets of §5.4 (audit imports, version-keyed build scripts, the manifest advisory hold, x11-dl and reproducible builds) and the cargo-vet and build-script rows of §10) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1; amended 2026-10-21, cycle-12 design pass: acceptance counts and comparison against doc 20 data in §3.10; amended 2026-10-21, cycle-14 design pass: documents as built in §3.9, §3.10 and §3.16, blind drafter §3.17; amended 2026-10-22, cycle-17 design pass: the acceptance counts in §3.10, the fuzzer's coverage and nightly form in §3.6, the `fuzz_smoke` time in §3.14, CI-N-02 and CI-N-03 in §5.2; amended 2026-10-22, cycle-18 design pass: what the ordered-collection lint misses in §3.5, the pull-failure rule in §3.14, CI-PR-05 and CI-N-09 in §5.2, the image-digest rule in §5.4; amended 2026-10-22, cycle-19 lane C: the `disallowed-methods` rule as built in §3.5, CI-N-12 and the retired LG-2 merge block in §5.2; amended 2026-10-22, cycle-19 design pass: the scan's gaps and the sites at the integration tip in §3.5, the shell's UI tests in §3.11, the CI time after cycle 18 and the Windows cut in §3.14, the headless mode for the blind drafter in §3.17, CI-PR-02 to CI-PR-04 and CI-N-12 in §5.2, the UI crates' `rust-version` in §6.2; amended 2026-10-22, cycle 20 lane C: the supply-chain bullets of §5.4 (audit imports, version-keyed build scripts, the manifest advisory hold, x11-dl and reproducible builds) and the cargo-vet and build-script rows of §10; amended 2026-10-22, cycle-20 lane B: the cargo-fuzz crate, the deep nightly and ASan as built in §3.6, §3.12 and §5.2) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) proves its correctness, performance and security, and
 how it is built, signed, shipped and supported. It turns the architecture's "prove it in CI" principle
@@ -327,11 +327,25 @@ seeds × steps from `EW_FUZZ_SEEDS` and `EW_FUZZ_STEPS` (and the cadences, the s
 overflow checks on, by default 12 seeds × 200 steps from a seed range that changes every night, with no new seed after
 75 minutes; it is red for a finding, a failed build, a seed that was still running when the run ended (a hang or an
 abort) and a missing verdict (`ci/README.md`; decision log ID-434, ID-435). In the catalogue of §5.2 it is the
-command-fuzzer part of CI-N-02, without ASan. The cargo-fuzz target over the same generator is **deferred, not
-declined** (FT-272): it is built in the `fuzz/` crate that FT-297 creates for the loader and migration-chain targets,
-where it is CI-N-03's command-sequence target. ASan on the nightly needs the nightly toolchain (FT-304, with FT-297).
-`fuzz_smoke` takes 15 to 19 s in a debug build (12.5 s before cycle 17), on the Windows test job's critical path
-(§3.14, FT-306).
+command-fuzzer part of CI-N-02; `fuzz.yml` runs it on the stable toolchain without ASan, and the deep nightly runs it
+again under ASan (below). `fuzz_smoke` takes 15 to 19 s in a debug build (12.5 s before cycle 17), on the Windows test
+job's critical path (§3.14, FT-306).
+
+*As built (cycle 20, lane B; FT-297, FT-304, FT-272 closed).* The cargo-fuzz form of the fuzzer is the target
+`command_sequence` of the new crate `fuzz/` (§3.12; `fuzz/README.md`). Its input is a seed, a step count (1 to 8) and a
+tape of bytes: the generator of the test above is included as it is (the modules of `command_fuzz` through
+`#[path]`), and every draw of its SplitMix64 stream is XORed with the next eight tape bytes (`SplitMix64::with_tape`),
+so that libFuzzer's mutation of one byte changes one draw and its coverage feedback steers the sequence; a tape of zeros
+is the plain seeded run. The run is `fuzz_long`'s with a cheap cadence: the structural check after every changing step,
+the validity oracle of every command, the save-and-reload round trip and the closing undo-all (the undo law). The memo
+sample, `verify_derived`, the prevent check and the CSV imports are left to the test (a sample reads the derived values
+cold in oracle mode and costs seconds against the milliseconds of a step), so the target runs about two inputs a second
+in a sanitized build. **ASan** (FT-304) is on in two forms, both in `.github/workflows/deep-nightly.yml` on the nightly
+toolchain pinned by date in `fuzz/rust-toolchain.toml`: the cargo-fuzz targets (AddressSanitizer is cargo-fuzz's
+default) and the test `fuzz_long` itself, built with `RUSTFLAGS=-Zsanitizer=address` for `x86_64-unknown-linux-gnu`
+and run with the seeds, steps and budget variables of `fuzz.yml` (a range offset from `fuzz.yml`'s, 100 steps, 55 minutes: AddressSanitizer makes a seed 7.7 times slower, so a night runs about four). This is
+CI-N-02's "command fuzzer 1 h with ASan". `detect_odr_violation=0` is set because the dependency graph links two copies of
+the bundled SQLite. The job is red for what `fuzz.yml` is red for and for an AddressSanitizer report.
 
 ### 3.7 Snapshots
 
@@ -478,6 +492,21 @@ delivery.
   and a view, and a GP copy whose page file is a symlink (NFR-SEC-16).
 - **Toolchain.** cargo-fuzz needs nightly, so `fuzz/rust-toolchain.toml` pins a dated nightly, advanced by the upgrade
   train (§6.3).
+- **As built (cycle 20, lane B; FT-297).** The crate `fuzz/` (GPL-3.0-or-later, `publish = false`, outside the
+  workspace: its own `[workspace]`, listed under `exclude` in the root manifest, so no stable-toolchain step sees it;
+  `cargo-fuzz` 0.13.2, nightly 2026-10-08) has three targets: `jsonl_loader` (arbitrary bytes through
+  `ew_format::{Manifest::parse, plan, load}`: no panic, a parsed manifest survives its text form, a valid input
+  renders to files that load again without a finding and with the same records, and the canonical rendering is a
+  fixpoint of load and render), `migration_chain` (the golden project with its records changed into the shapes an older
+  build or a hand edit leaves, opened by `ew_store::Store::open`: no panic, the model passes the integrity check, and
+  when the session can edit, a save without an edit succeeds, a second save writes nothing and a reader opens the
+  result with an equal model and nothing left to rewrite) and `command_sequence` (§3.6). The format's own upgrade chain
+  (WP-S1.17) is not built; the target covers the open path that reads an older project of the same format (the typed
+  revisions, ADR-0011 amendment 4) and joins the chain when it exists. Seed corpora of 33 small inputs made from the
+  golden project are under `fuzz/corpus/<target>/`; a finding is committed under `fuzz/regressions/<target>/` and
+  reported, not fixed with the change that finds it. The counting allocator and the 256 MB and 1 s limits per input of
+  the first bullet are partly met: libFuzzer's own limits (`-rss_limit_mb=4096`, `-timeout=120`) bound an input, the
+  counting allocator is not built.
 - **Release rule.** An open fuzz crash blocks the release (RC-02).
 
 ### 3.13 Reliability harnesses
@@ -742,7 +771,7 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 | CI-PR-05 headless | `ew export pdf` and `ew render --page 103 --png` on GP with no display, no GPU, no system fonts and empty library directories (NFR-PLAT-04, NFR-REL-11); the PDF's SHA-256 equals that of the kittest GUI export of CI-PR-07 (FR-OUT-022, FR-EXT-001). *As built (cycle 18, FT-295; in part):* `ci.yml` job `headless` runs `ew export pdf golden/J-E-2416.ew` in a bare `ubuntu:24.04` container (image pinned by digest; `--network none`, a read-only root, no device; `ci/headless-export.sh` proves inside it that there is no display, GPU, font file or user-directory content) on one and four threads and compares both PDFs with `expected/pdf/sha256.txt`. The checks run as root with `DAC_READ_SEARCH` (the font search reads every directory and fails on any read error), and the export runs as the runner's user through `setpriv` with a cleared environment; the job keeps no other capability (decision log ID-457). `ew render --page 103 --png` (FT-254) and the equality with the GUI export wait for their commands and for CI-PR-07 | Linux container | Merge, once in the required checks after three green runs on `main` (FT-325, owner) |
 | CI-PR-06 output | Golden PNGs; PDF structure; veraPDF when `ew-scene`, `ew-export`, fonts or forms change; GPU smoke per backend where available (NFR-PLAT-02) | Linux, Windows | Merge |
 | CI-PR-07 ui-a11y | kittest flows and image snapshots; name walker; CVD renders; contrast lint; pseudo-locale; keymap reachability; 300 % | Linux (lavapipe) | Merge |
-| CI-PR-08 fuzz-smoke | 60 s per changed parser target; 60 s command fuzzer | Linux | Merge |
+| CI-PR-08 fuzz-smoke | 60 s per changed parser target; 60 s command fuzzer. *Status (cycle 20, FT-297):* the targets exist (`fuzz/`, §3.12) but the per-pull-request job is **not built**: it needs a path filter and a job on the pinned nightly; until then the seeded `fuzz_smoke` of every CI test job stands for the command fuzzer's 60 s (§3.6, FT-306) and the parser targets run in the deep nightly only | Linux | Merge |
 | CI-PR-09 supply-chain | cargo-deny; cargo-audit; cargo-vet; build-script allowlist; licence-boundary check over every permissive crate of ARCH §3 (§10); dependency-rule check; `unsafe` allowlist; feature bans over the resolved graph (rhai `unchecked` anywhere, 17 §5.2; serde_json `preserve_order` anywhere, because the canonical writer needs sorted maps, 05 §3.1; egui `inspection`, `egui_mcp`, `ew-ids/testkit` and `ew/test-confirm` in any non-test target); MSRV build of permissive crates (NFR-SEC-10, NFR-MAINT-03) | Linux | Merge |
 | CI-PR-10 legal-docs | `reuse lint` (NFR-LIC-01, NFR-LIC-02; 19 LR-01); licence-map check against `ci/licence-map.toml` (19 LR-02), including the collective copyright notice (NFR-LIC-10); no committed third-party fixture (19 LR-11); DCO (NFR-LIC-03); governance-file presence (NFR-DOC-08); RFC reference on PRs labelled `format-major`, `api-break` or `licence` (NFR-DOC-09); anonymisation guard (NFR-PRIV-09; 20 §3.5, 19 LR-12); mdBook and rustdoc build with link check (NFR-MAINT-08); F1 anchors (NFR-DOC-01); rule pages (NFR-DOC-02); generated references unchanged (NFR-DOC-06) | Linux | Merge |
 | CI-PR-10 docs-book | The user guide (§5.5): `cargo xtask docs-gen --check`; mdBook 0.5.4 from its release archive, pinned by version and SHA-256; `mdbook build docs/book` without network (`unshare --net`); `ci/check-book-links.py` over the built pages; the built book as an artifact (NFR-DOC-01, NFR-DOC-06) | Linux | Merge, once in the required checks (FT-284) |
@@ -752,8 +781,8 @@ The PR set stays within 30 min wall time (NFR-MAINT-05); a monthly CI-duration r
 | CI-PR-14 api-guard | The API compatibility guard of NFR-MAINT-10, implementing the CI guards of 17 §11: command-catalogue snapshot and rename test (FR-EXT-015); query output-schema snapshot; CLI `--help`, exit-code and result-schema snapshots; `api_v1` column snapshot; MCP tool-list snapshot; WIT diff against the last release (1.x); a semver check on the public API of the permissive crates (tool **verify**, e.g. cargo-semver-checks) | Linux | Merge (a reviewed snapshot change is allowed only with the label `api-change` and a release-notes entry) |
 | CI-PR-15 docs-diagrams | Path-filtered on Markdown under `docs/`, `book/` and the root: renders every Mermaid block with a pinned mermaid-cli (container image pinned by digest, never distributed) and fails on any parse or render error, because GitHub shows a broken diagram as an error box without failing anything | Linux container | Merge |
 | CI-N-01 perf | §4 gate, all classes; bisect on red | Dedicated BM runner | Release |
-| CI-N-02 deep | Full oracle; proptest 20,000 cases; command fuzzer 1 h with ASan. *In part since cycle 17:* the command fuzzer runs nightly as `.github/workflows/fuzz.yml` (`fuzz_long`, 12 seeds × 200 steps, 75-minute budget; §3.6, ID-435), without ASan (FT-304); the full oracle and the proptest run are FT-297 | Linux | Release |
-| CI-N-03 fuzz | ≥ 30 min per parser target; crash triage issues. Not built: the loader and migration-chain targets (FT-297) and the command-sequence cargo-fuzz target (FT-272, deferred into FT-297's `fuzz/` crate) | Linux (ClusterFuzzLite-style batch) | Release |
+| CI-N-02 deep | Full oracle; proptest 20,000 cases; command fuzzer 1 h with ASan. *As built (cycle 20, FT-297, FT-304):* `.github/workflows/deep-nightly.yml` (06:07 UTC and on dispatch; four parallel jobs, the workflow under two hours): `full-oracle` (the memo oracle over Golden A with the oracle on every read, `memo_oracle`'s ignored twin, and over Golden B, `golden_b`, in the release profile with debug assertions), `proptest` (every test of `ew-model`, `ew-commands`, `ew-store`, `ew-format`, `ew-memo`, `ew-derive` and `ew-schema` with `PROPTEST_CASES=20000`), the three fuzz jobs of CI-N-03, and `asan-command-fuzz` (`fuzz_long` built with `-Zsanitizer=address` on the nightly pinned by date, 55-minute budget; §3.6). Red only for a finding, a failed build or a hang. The earlier `fuzz.yml` (`fuzz_long`, 12 seeds × 200 steps, 75-minute budget, stable toolchain, no ASan; §3.6, ID-435) stays as the plain run | Linux | Release |
+| CI-N-03 fuzz | ≥ 30 min per parser target; crash triage issues. *As built (cycle 20, FT-297, FT-272):* the crate `fuzz/` (§3.12) with the targets `jsonl_loader`, `migration_chain` and `command_sequence` (the command-sequence cargo-fuzz target of §3.6), 30 minutes each in the three `fuzz` jobs of `deep-nightly.yml` (AddressSanitizer, `-timeout=120`, `-rss_limit_mb=4096`; the crash inputs and the grown corpus are uploaded as artifacts, the status file is written first). The parser targets of §3.12 beyond these three, the counting allocator and the automatic triage issues are not built | Linux (ClusterFuzzLite-style batch) | Release |
 | CI-N-04 digests | GP outputs from all three OSs compared (AC-14, FR-OUT-019, NFR-REL-07) | All | Release |
 | CI-N-05 gpu-less | Windows WARP flows and fps sample; lavapipe 3D smoke (from M4, 12 OQ 9) | Windows, Linux | Release |
 | CI-N-06 network | Network sandbox (§12.2) and listening-socket scan | Linux | Release |

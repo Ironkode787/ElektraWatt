@@ -27,6 +27,7 @@ The job names are the GitHub status-check names to mark as required.
 | CI-PR-10 (book) | `docs.yml` / `docs-book` (ubuntu-24.04) | The user-documentation book of `docs/book` (WP-S0.06, NFR-DOC-01, NFR-DOC-06): `cargo xtask docs-gen --check` (the generated command and rule reference pages are current); mdBook 0.5.4, installed from its pinned release archive (SHA-256 checked); `mdbook build docs/book` in an empty network namespace (the build is offline); `ci/check-book-links.py` over the built pages (relative links, anchors, and links into the repository); the built book uploaded as the artifact `user-guide`. A separate job, so that `legal-docs` stays fast | `cargo xtask docs-gen --check`; `mdbook build docs/book` (mdBook 0.5.4); `python3 -I ci/check-book-links.py target/book` |
 | CI-N-09 | `ci.yml` / `verapdf` (ubuntu-24.04) | Builds `ew`, exports the golden PDF in three variants (all pages; dated by `SOURCE_DATE_EPOCH`; `--pages 101-106,901`) and validates each against PDF/A-2b with veraPDF 1.30.3 (the project's `verapdf/cli` image pinned by digest, run with no network); `ci/verapdf-check.py` turns the XML report into the verdict (FT-294, G-M1-02); the report uploaded as the artifact `verapdf-report`. Details: [veraPDF job](#verapdf-job-ci-n-09) | `python3 -I ci/verapdf-check.py --selftest`; with docker: `docker run --rm -v "$PWD/out:/data:ro" verapdf/cli@sha256:… --flavour 2b --format xml /data/golden-all.pdf > out/verapdf-report.xml`, then `python3 -I ci/verapdf-check.py out/verapdf-report.xml` |
 | CI-N-12 | `cli-artefact.yml` / `cli-artefact` (ubuntu-24.04, windows-2025, macos-15; nightly and `workflow_dispatch`) | `cargo build -p ew --release --locked` and a smoke test (`ew --version`, `ew --help`) per platform; uploads `ew-<os>-<arch>-unsigned-dev-<short sha>` (the program, `LICENSE.md` and a README that says "unsigned development build, not a release") with 90-day retention; no signing, no release, no secret (FT-299, G-M1-22). Details: [CLI artefact](#nightly-cli-artefact-cli-artefactyml-ci-n-12) | `cargo build -p ew --release --locked`; `target/release/ew --version` |
+| CI-N-02, CI-N-03 | `deep-nightly.yml` / `full-oracle`, `proptest`, `fuzz (<target>)` (three jobs), `asan-command-fuzz` (ubuntu-24.04; nightly at 06:07 UTC and `workflow_dispatch`) | The memo oracle on every read over Golden A and Golden B (release profile, debug assertions on); the tests of the seven core crates with `PROPTEST_CASES=20000`; the three cargo-fuzz targets of [`fuzz/`](../fuzz) (`jsonl_loader`, `migration_chain`, `command_sequence`), 30 minutes each, AddressSanitizer, on the nightly pinned by date; the seeded command fuzzer `fuzz_long` under `-Zsanitizer=address` (FT-297, FT-304, FT-272). Red only for a finding, a failed build or a hang. Details: [Deep nightly](#deep-nightly-deep-nightlyyml-ci-n-02-and-ci-n-03) | `cd fuzz && cargo fuzz run <target> -- -max_total_time=60`; `PROPTEST_CASES=2000 cargo nextest run --release -p ew-model -p ew-commands -p ew-store -p ew-format -p ew-memo -p ew-derive -p ew-schema`; `cargo nextest run --release -p ew-api --all-features -E 'binary(memo_oracle) or binary(golden_b)' --run-ignored all` |
 | CI-PR-13 | `coverage.yml` / `coverage` (ubuntu-24.04; weekly and `workflow_dispatch`, not per PR) | cargo-llvm-cov 0.9.1 over the workspace tests (all features, nextest), the line coverage of `ew-model`, `ew-commands`, `ew-memo`, `ew-derive`, `ew-format` and `ew-store` against 80 % (NFR-MAINT-06); **report-only** (FT-296, G-M1-15). Details: [Coverage job](#coverage-job-ci-pr-13) | `cargo llvm-cov nextest --workspace --all-features --locked --no-report`, `cargo llvm-cov report --json --summary-only --output-path summary.json`, `python3 -I ci/coverage-summary.py summary.json` |
 
 `cargo xtask ci` runs fmt, clippy, nextest and the doctests (each with the default features and with `--all-features`;
@@ -114,9 +115,10 @@ command has no arm), next to undo and redo, save-and-reload round trips and stri
 Oracles: the structural check after every changing step, the memo oracle, the prevent rule, `verify_derived`, the
 validity oracle of each command (a well-formed step must commit, a malformed one must be refused and change
 nothing, the checks of what the command created), the equality of the model and of the derived families after a
-reload, and the closing undo-all with its own save and reload. The nightly body is this seeded test; the
-cargo-fuzz target that doc 18 §3.6 and FT-272 list is deferred (FT-272, decision log ID-435): the repository has no
-`fuzz/` crate yet (FT-297 creates it for the parser targets, doc 18 §3.12, and the command target joins it).
+reload, and the closing undo-all with its own save and reload. The nightly body is this seeded test, on the stable
+toolchain without a sanitizer; the same test under AddressSanitizer and the cargo-fuzz form of the generator (the
+target `command_sequence` of [`fuzz/`](../fuzz)) run in the
+[deep nightly](#deep-nightly-deep-nightlyyml-ci-n-02-and-ci-n-03) (FT-297, FT-304, FT-272 closed).
 
 The job builds and runs in the **release profile with debug assertions and overflow checks on**
 (`CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS`, `CARGO_PROFILE_RELEASE_OVERFLOW_CHECKS`): measured on a developer
@@ -143,6 +145,60 @@ Locally: `EW_FUZZ_SEEDS=17 EW_FUZZ_STEPS=200 EW_FUZZ_REPORT=target/fuzz/findings
 slower); the cadences of the costly oracles are `EW_FUZZ_SAMPLE_EVERY`, `EW_FUZZ_CHECK_EVERY` and
 `EW_FUZZ_VERIFY_EVERY`, the step mix `EW_FUZZ_SAVE_WEIGHT` and `EW_FUZZ_IMPORT_WEIGHT`, the wall-clock budget
 `EW_FUZZ_BUDGET_SECS`. `fuzz_smoke` (2 seeds of 30 steps, 15 to 19 s in a debug build) stays in the targeted tests (`cargo nextest run -p ew-testkit`) and runs once per CI test job and in `cargo xtask ci`, in the all-features nextest run (the default-features run skips the `command_fuzz` binary: FT-306, decision log ID-437).
+
+## Deep nightly (`deep-nightly.yml`, CI-N-02 and CI-N-03)
+
+FT-297, FT-304 and FT-272, WP-S6.02, gate criterion G-M1-13 (doc 18 §3.6, §3.12, §5.2). The workflow
+[`deep-nightly.yml`](../.github/workflows/deep-nightly.yml) (schedule 06:07 UTC, after `perf.yml` at 02:17, `fuzz.yml`
+at 03:47 and `cli-artefact.yml` at 04:37, and `workflow_dispatch` with the inputs `fuzz_minutes`, `proptest_cases`,
+`asan_seeds`, `asan_steps` and `asan_budget_minutes`) has four kinds of job, which run in parallel on ubuntu-24.04, so
+the workflow takes as long as the longest, below two hours:
+
+| Job | What it runs | Budget |
+|---|---|---|
+| `full-oracle` | `cargo nextest run --release -p ew-api --all-features -E 'binary(memo_oracle) or binary(golden_b)' --run-ignored all`: the memo oracle over Golden A (`memo_oracle`: the `#[ignore]`d `oracle_finds_no_mismatch_over_every_state_on_every_read` re-runs **every** memoised read cold at every depth, where the pull-request test samples one in eight; the memoised-equals-cold sweep of every family and key) and over Golden B (`golden_b`: the script runs with the oracle on every read) | measured: build 6 minutes, run 3 minutes (24 cores, release); step bound 75 minutes |
+| `proptest` | every test of `ew-model`, `ew-commands`, `ew-store`, `ew-format`, `ew-memo`, `ew-derive` and `ew-schema`, so every property test of them, with `PROPTEST_CASES=20000` (proptest's environment variable overrides the case count each test sets; the pull-request runs keep the 64 to 256 of the tests). The `proptest-regressions` files a failing property writes are uploaded | measured: 2,000 cases take 108 s with four test threads on a 24-core developer machine (the slowest test, `ew-store::incremental incremental_save_equals_full_save`, 82 s); 20,000 cases are estimated at 25 to 40 minutes on the hosted runner; step bound 95 minutes |
+| `fuzz (jsonl_loader)`, `fuzz (migration_chain)`, `fuzz (command_sequence)` | `cargo fuzz run <target> target/corpus/<target> corpus/<target> -- -max_total_time=1800 -max_len=<n> -timeout=120 -rss_limit_mb=4096` in `fuzz/`, with cargo-fuzz 0.13.2 (`cargo install --locked`: taiki-e/install-action has no manifest for it) on the nightly of `fuzz/rust-toolchain.toml`, AddressSanitizer on (cargo-fuzz's default); the seeds are the committed corpus, the working corpus is `fuzz/target/corpus/<target>` | 30 minutes each (CI-N-03's "at least 30 minutes per parser target"); step bound `fuzz_minutes` + 20, job 90 minutes |
+| `asan-command-fuzz` | the test `fuzz_long` of `ew-testkit` (the nightly test of `fuzz.yml`), built with `RUSTFLAGS=-Zsanitizer=address` for `x86_64-unknown-linux-gnu` on the same nightly (`cargo +nightly-… test --release --target x86_64-unknown-linux-gnu -p ew-testkit --test command_fuzz`; `--target` keeps build scripts and proc macros out of the sanitized flags), with the findings file and the seeds and steps of `fuzz.yml` (another seed range: offset 50 from the day number; 100 steps, because a seed of 200 steps would take about 30 minutes under ASan), in the release profile with debug assertions and overflow checks on (FT-304, CI-N-02's "command fuzzer 1 h with ASan") | build about 15 minutes, no new seed after 55 minutes (`EW_FUZZ_BUDGET_SECS`), a seed in flight finishes within about 16 (measured on WSL2: 2 seeds of 30 steps take 89 s plain and 684 s under ASan, 7.7 times as long; a seed of 100 steps is about 15 minutes), step bound 100 minutes, job 115 |
+
+**The nightly toolchain.** FT-304 asks for the nightly toolchain "for that job only, pinned like the stable one":
+`nightly-2026-10-08` (rustc 1.101.0-nightly), named in `fuzz/rust-toolchain.toml` (rustup applies it to every command
+run inside `fuzz/`) and in `NIGHTLY_TOOLCHAIN` of the workflow, and installed by `dtolnay/rust-toolchain` at the commit
+`ci.yml` pins. A test of `xtask` (`workflows::tests::the_deep_nightly_pins_the_toolchains_of_the_repository`) keeps these dates equal and the workflow's stable toolchain equal to `rust-toolchain.toml`'s. The date is advanced by the quarterly
+upgrade train (doc 18 §6.3). The root `rust-toolchain.toml` names the stable toolchain, which the nightly jobs do not
+install, so each of them sets `RUSTUP_TOOLCHAIN` (rustup takes it before the file; the test checks it too) and the ASan job
+also names the nightly on the command line (`cargo +nightly-…`). `ASAN_OPTIONS=detect_odr_violation=0` is set for
+the sanitized test binary (cargo-fuzz sets it itself): the dependency graph links two copies of the bundled SQLite, which
+AddressSanitizer reports as an ODR violation at start-up.
+
+**Red or green.** As `fuzz.yml`: red only for a real finding (a failed test or oracle, a crash, an out-of-memory, a
+timeout of one input, a leak, an AddressSanitizer report), a failed build and a hang. Every job writes a status file
+first (`running`) and rewrites it when the run ends; a status that is still `running` is a hang or an abort. The fuzz jobs
+read the crash artifacts (`crash-*`, `oom-*`, `timeout-*`, `leak-*`; a `slow-unit-*` is not a finding) and the closing
+`Done n runs` line of libFuzzer; `asan-command-fuzz` has `fuzz.yml`'s verdict (the `FINDINGS: n` line, `running seed N`,
+a missing report) and reads an `ERROR: AddressSanitizer` in the log. Every job copies its report into the job summary and
+uploads it as an artifact with `if: always()` (`deep-oracle-report`, `deep-proptest-report`, `deep-fuzz-<target>` with the
+crash inputs, `deep-fuzz-corpus-<target>` with the grown corpus for minimisation, `deep-asan-fuzz-report`). Same hardening
+as the other workflows: pinned actions, read-only token, no secrets, dispatch inputs through the environment.
+
+**Triage of a finding.** Reproduce it (`cd fuzz && cargo fuzz run <target> <crash file>`; for the ASan test the command in
+the findings file), commit the input under `fuzz/regressions/<target>/` with a failing-case description in the report, and
+open a follow-up task; the fix is a separate change that also turns the input into a plain test of the crate. The change
+that builds a target does not fix what it finds (`fuzz/README.md`).
+
+**The fuzz crate.** [`fuzz/`](../fuzz) is not a workspace member (the root manifest lists it under `exclude`, and it has its
+own `[workspace]` table): the nightly-only, sanitizer-instrumented build stays out of `cargo build --workspace`, `cargo xtask
+ci` and the supply-chain jobs (cargo-deny, cargo-vet and the dependency checks of `xtask` read the workspace metadata, so they
+do not see it; its dependencies are `libfuzzer-sys` with `arbitrary` and `cc`, and the workspace's own crates). Its
+`Cargo.lock` was seeded from the root one. The licence map has a rule for it (`fuzz/**` GPL-3.0-or-later; the lock file, the
+toolchain file, the corpora and the regressions CC0-1.0; the README CC-BY-4.0). `cargo xtask check-workflows` covers the
+workflow, `reuse lint` and `check-licence-map` the files. Locally, from `fuzz/`: `cargo test --release` replays the seed
+corpora through the targets' checks (`tests/replay.rs`), `cargo run --release --bin seed_corpus` regenerates them, and
+`cargo fuzz run <target> target/corpus/<target> corpus/<target> -- -max_total_time=60` runs one target for a minute (see
+[`fuzz/README.md`](../fuzz/README.md) for the targets, their properties and their input formats). The local runs of FT-297,
+all with AddressSanitizer on WSL2 and without a finding: `jsonl_loader` 65,544 inputs in 7 minutes (about 155 a second),
+`migration_chain` 637 in 7 minutes (about 1.5 a second: every input opens the 842 KB golden project twice) and
+`command_sequence` 151 in 60 seconds (about 2.5 a second).
 
 ## Nightly CLI artefact (`cli-artefact.yml`, CI-N-12)
 
@@ -407,6 +463,8 @@ again.
 | [`perf-baseline.toml`](perf-baseline.toml) | `cargo xtask perf-gate` (nightly `perf.yml`) | The baseline medians and memory estimates per size class, the 15 % threshold, the noise floor and the runner they were taken on (WP-S6.03) |
 | [`ci-times.py`](ci-times.py) | nightly `perf.yml` | The CI-time trend of `ci.yml` against NFR-MAINT-05 (FT-269) |
 | [`../.github/workflows/fuzz.yml`](../.github/workflows/fuzz.yml) | nightly command fuzzer | The seeded `fuzz_long` run, with the findings file as artifact and a verdict step (red for a finding, a failed build or a hang) (WP-S6.02, FT-272) |
+| [`../.github/workflows/deep-nightly.yml`](../.github/workflows/deep-nightly.yml) | the deep nightly (CI-N-02, CI-N-03) | The full oracle, the 20,000-case property run, the three cargo-fuzz targets and `fuzz_long` under AddressSanitizer, each with a status file and a verdict step (FT-297, FT-304) |
+| [`../fuzz/`](../fuzz) | `cargo fuzz`, `deep-nightly.yml`, `fuzz/tests/replay.rs` | The cargo-fuzz crate (outside the workspace): the targets, the seed corpora, the committed regressions and the pinned nightly `rust-toolchain.toml` (FT-297) |
 
 ## Rules for the workflows
 
