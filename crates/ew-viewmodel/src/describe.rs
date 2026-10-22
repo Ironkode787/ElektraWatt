@@ -5,13 +5,19 @@
 //! element, in paint order. It is what an agent reads instead of a screenshot.
 //!
 //! Paint order: the window title, the menu bar with every entry and its enabled state (and reason), the banner,
-//! the start page or the page list with the page view, the status bar, then the palette or a dialog. Directory
-//! names appear, paths never.
+//! the first-run flow, the wizard, or the project view (the page list, the page view, the workspace and its
+//! layout), or the start page, the status bar, then the palette or a dialog, then the last documentation request.
+//! Directory names appear, paths never. The structural words are fixed English machine text (decision log ID-474);
+//! part 2 added `first run`, `wizard`, `step`, `choice`, `field`, `review`, `preview`, `quick`, `workspace`,
+//! `layout:` and `help:`.
 
 use crate::actions::{self, ActionItem, MenuEntry, PaletteRun};
+use crate::first_run::FirstRunStep;
 use crate::page_list::PageList;
+use crate::settings::{KEYMAPS, LANGUAGES, THEMES};
 use crate::shell::{Dialog, ShellModel};
 use crate::strings;
+use crate::wizard::{FieldKind, Step, fields_of};
 
 fn item_line(indent: &str, item: &ActionItem) -> String {
     let mut line = format!(
@@ -30,6 +36,293 @@ fn item_line(indent: &str, item: &ActionItem) -> String {
         (false, None) => line.push_str(" disabled"),
     }
     line
+}
+
+fn quick_label(prefix: &str, value: &str) -> String {
+    strings::text(&format!("{prefix}-{value}")).to_owned()
+}
+
+fn start_page(model: &ShellModel, lines: &mut Vec<String>) {
+    let button = |key: &str| format!("  button \"{}\"", strings::text(key));
+    lines.push(format!("start page \"{}\"", strings::text("start-title")));
+    lines.push(button("start-new"));
+    lines.push(format!(
+        "  label \"{}\"",
+        match model.default_template_name() {
+            Some(name) => strings::format("start-template", &[&name]),
+            None => strings::text("start-template-builtin").to_owned(),
+        }
+    ));
+    lines.push(button("start-open"));
+    lines.push(format!("  label \"{}\"", strings::text("start-recent")));
+    for (i, name) in model.recent_names().iter().enumerate() {
+        lines.push(format!("  recent {} \"{name}\"", i + 1));
+    }
+    lines.push(button("start-sample"));
+    lines.push(button("start-import-qet"));
+    lines.push(button("start-company-standard"));
+    if model.default_template_name().is_some() {
+        lines.push(button("start-edit-standard"));
+    }
+    lines.push(button("start-tutorials"));
+    let settings = model.settings();
+    lines.push(format!(
+        "  quick \"{}\": \"{}\" (options: {})",
+        strings::text("start-quick-language"),
+        quick_label("language", &settings.language),
+        LANGUAGES
+            .iter()
+            .map(|l| quick_label("language", l))
+            .collect::<Vec<_>>()
+            .join(" | ")
+    ));
+    lines.push(format!(
+        "  quick \"{}\": \"{}\" (options: {})",
+        strings::text("start-quick-keymap"),
+        quick_label("keymap", &settings.keymap),
+        KEYMAPS
+            .iter()
+            .map(|k| quick_label("keymap", k))
+            .collect::<Vec<_>>()
+            .join(" | ")
+    ));
+    let privacy = if settings.update_check {
+        strings::text("start-update-check-on")
+    } else {
+        strings::text("start-update-check")
+    };
+    lines.push(format!("  label \"{privacy}\""));
+    lines.push(button("start-privacy-change"));
+}
+
+fn first_run(model: &ShellModel, lines: &mut Vec<String>) {
+    let Some(run) = model.first_run() else { return };
+    let s = model.settings();
+    lines.push(format!(
+        "first run \"{}\": step {} of {} \"{}\"",
+        strings::text("firstrun-title"),
+        run.step.index() + 1,
+        FirstRunStep::ALL.len(),
+        strings::text(run.step.title_key())
+    ));
+    let text_key = match run.step {
+        FirstRunStep::Language => "firstrun-text-language",
+        FirstRunStep::Origin => "firstrun-text-origin",
+        FirstRunStep::Privacy => "firstrun-text-privacy",
+        FirstRunStep::Appearance => "firstrun-text-appearance",
+        FirstRunStep::Start => "firstrun-text-start",
+    };
+    lines.push(format!("  label \"{}\"", strings::text(text_key)));
+    match run.step {
+        FirstRunStep::Language => lines.push(format!(
+            "  choice \"{}\": \"{}\"",
+            strings::text("firstrun-step-language"),
+            quick_label("language", &s.language)
+        )),
+        FirstRunStep::Origin => lines.push(format!(
+            "  choice \"{}\": \"{}\"",
+            strings::text("firstrun-step-origin"),
+            if s.comes_from.is_empty() {
+                "-".to_owned()
+            } else {
+                quick_label("origin", &s.comes_from)
+            }
+        )),
+        FirstRunStep::Privacy => lines.push(format!(
+            "  choice \"{}\": {}",
+            strings::text("firstrun-update-check"),
+            if s.update_check { "on" } else { "off" }
+        )),
+        FirstRunStep::Appearance => {
+            lines.push(format!(
+                "  choice \"{}\": \"{}\" (options: {})",
+                strings::text("firstrun-theme"),
+                quick_label("theme", &s.theme),
+                THEMES
+                    .iter()
+                    .map(|t| quick_label("theme", t))
+                    .collect::<Vec<_>>()
+                    .join(" | ")
+            ));
+            lines.push(format!(
+                "  choice \"{}\": {}%",
+                strings::text("firstrun-scale"),
+                (s.ui_scale * 100.0).round()
+            ));
+        }
+        FirstRunStep::Start => {
+            for key in [
+                "firstrun-start-wizard",
+                "firstrun-start-sample",
+                "firstrun-start-qet",
+                "firstrun-start-new",
+                "firstrun-start-none",
+            ] {
+                lines.push(format!("  button \"{}\"", strings::text(key)));
+            }
+        }
+    }
+    if run.step != FirstRunStep::Start {
+        lines.push(format!("  button \"{}\"", strings::text("firstrun-skip")));
+        lines.push(format!("  button \"{}\"", strings::text("firstrun-next")));
+    }
+    if run.step != FirstRunStep::Language {
+        lines.push(format!("  button \"{}\"", strings::text("firstrun-back")));
+    }
+}
+
+fn wizard(model: &ShellModel, lines: &mut Vec<String>) {
+    let Some(w) = model.wizard() else { return };
+    let step = w.step();
+    lines.push(format!(
+        "wizard \"{}\": step {} of {} \"{}\" (#{})",
+        strings::text("wizard-title"),
+        step.index() + 1,
+        Step::ALL.len(),
+        strings::text(step.title_key()),
+        step.number()
+    ));
+    lines.push(format!("  label \"{}\"", strings::text(step.hint_key())));
+    if step == Step::Review {
+        for line in w.draft().review() {
+            lines.push(format!(
+                "  review \"{}\": \"{}\" ({})",
+                line.label,
+                line.value,
+                strings::text(if line.written {
+                    "wizard-written"
+                } else {
+                    "wizard-kept"
+                })
+            ));
+        }
+    } else {
+        for f in fields_of(step) {
+            let label = strings::text(f.label_key);
+            match f.kind {
+                FieldKind::Choice(choices) => {
+                    let options: Vec<String> = choices
+                        .iter()
+                        .map(|c| strings::text(&format!("choice-{}-{c}", f.key)).to_owned())
+                        .collect();
+                    lines.push(format!(
+                        "  choice \"{label}\": \"{}\" (options: {})",
+                        w.draft().display_value(f),
+                        options.join(" | ")
+                    ));
+                }
+                FieldKind::Text | FieldKind::Multiline => {
+                    lines.push(format!("  field \"{label}\": \"{}\"", w.draft().display_value(f)));
+                }
+            }
+        }
+    }
+    if let Some(error) = w.error() {
+        lines.push(format!("  error: {error}"));
+    }
+    let preview = match w.preview_content() {
+        Ok(_) => "ready".to_owned(),
+        Err(why) => why,
+    };
+    lines.push(format!(
+        "  preview \"{}\": {preview}",
+        strings::text(if w.preview_is_cover() {
+            "wizard-preview-cover"
+        } else {
+            "wizard-preview-page"
+        })
+    ));
+    if step != Step::Company {
+        lines.push(format!("  button \"{}\"", strings::text("wizard-back")));
+    }
+    if step == Step::Review {
+        lines.push(format!("  button \"{}\"", strings::text("wizard-create")));
+    } else {
+        lines.push(format!("  button \"{}\"", strings::text("wizard-next")));
+    }
+    lines.push(format!("  button \"{}\"", strings::text("wizard-reset")));
+    lines.push(format!("  button \"{}\"", strings::text("wizard-cancel")));
+}
+
+fn project_view(model: &ShellModel, lines: &mut Vec<String>) {
+    let list = PageList::of(model);
+    lines.push(format!("page list \"{}\"", strings::text("pages-title")));
+    for (i, label) in list.labels.iter().enumerate() {
+        let selected = if list.current == Some(i) { " selected" } else { "" };
+        lines.push(format!("  page \"{label}\"{selected}"));
+    }
+    match model.current_folio() {
+        Some(folio) => lines.push(format!("page view: {folio}")),
+        None => lines.push(format!("page view: {}", strings::text("page-no-pages"))),
+    }
+    lines.push(format!("workspace \"{}\"", model.workspace()));
+    lines.push(format!("layout: {}", model.layout().describe()));
+}
+
+fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
+    match model.dialog() {
+        None => {}
+        Some(Dialog::About) => {
+            lines.push(format!("dialog \"{}\"", strings::text("about-title")));
+            for line in crate::about::about_lines(model) {
+                lines.push(format!("  {line}"));
+            }
+            lines.push(format!("  button \"{}\"", strings::text("about-notices-button")));
+            lines.push(format!("  button \"{}\"", strings::text("about-docs-button")));
+            lines.push(format!("  button \"{}\"", strings::text("dialog-close")));
+        }
+        Some(Dialog::Notices) => {
+            lines.push(format!("dialog \"{}\"", strings::text("notices-title")));
+            let text = crate::about::notices_text(model);
+            lines.push(format!("  notices: {} lines", text.lines().count()));
+            lines.push(format!("  button \"{}\"", strings::text("dialog-close")));
+        }
+        Some(Dialog::Shortcuts) => {
+            lines.push(format!("dialog \"{}\"", strings::text("shortcuts-title")));
+            for meta in actions::ACTIONS
+                .iter()
+                .filter(|a| !a.headless_only && !a.hidden && !a.shortcut.is_empty())
+            {
+                lines.push(format!(
+                    "  {} \"{}\" {}",
+                    meta.id,
+                    strings::text(meta.label_key),
+                    meta.shortcut.join(", ")
+                ));
+            }
+            lines.push(format!("  button \"{}\"", strings::text("dialog-close")));
+        }
+        Some(Dialog::ConfirmDiscard { pending }) => {
+            lines.push(format!("dialog \"{}\"", strings::text("confirm-title")));
+            lines.push(format!("  {}", strings::text("confirm-text")));
+            lines.push(format!("  pending {}", pending.action));
+            for key in ["dialog-save", "dialog-discard", "dialog-cancel"] {
+                lines.push(format!("  button \"{}\"", strings::text(key)));
+            }
+        }
+        Some(Dialog::ConfirmJournalDiscard) => {
+            lines.push(format!("dialog \"{}\"", strings::text("confirm-journal-title")));
+            lines.push(format!("  {}", strings::text("confirm-journal-text")));
+            for key in ["dialog-discard", "dialog-cancel"] {
+                lines.push(format!("  button \"{}\"", strings::text(key)));
+            }
+        }
+        Some(Dialog::GotoPage { text }) => {
+            lines.push(format!("dialog \"{}\"", strings::text("goto-title")));
+            lines.push(format!("  field \"{}\": \"{text}\"", strings::text("goto-hint")));
+            lines.push(format!("  button \"{}\"", strings::text("dialog-go")));
+            lines.push(format!("  button \"{}\"", strings::text("dialog-cancel")));
+        }
+        Some(Dialog::SaveWorkspace { text }) => {
+            lines.push(format!("dialog \"{}\"", strings::text("save-workspace-title")));
+            lines.push(format!(
+                "  field \"{}\": \"{text}\"",
+                strings::text("save-workspace-hint")
+            ));
+            lines.push(format!("  button \"{}\"", strings::text("dialog-save-workspace")));
+            lines.push(format!("  button \"{}\"", strings::text("dialog-cancel")));
+        }
+    }
 }
 
 /// The text of the visible user interface of `model`, lines separated by `\n`, without a final newline.
@@ -51,25 +344,14 @@ pub fn describe(model: &ShellModel) -> String {
     if let Some(banner) = model.banner() {
         lines.push(format!("banner: {banner}"));
     }
-    if model.has_project() {
-        let list = PageList::of(model);
-        lines.push(format!("page list \"{}\"", strings::text("pages-title")));
-        for (i, label) in list.labels.iter().enumerate() {
-            let selected = if list.current == Some(i) { " selected" } else { "" };
-            lines.push(format!("  page \"{label}\"{selected}"));
-        }
-        match model.current_folio() {
-            Some(folio) => lines.push(format!("page view: {folio}")),
-            None => lines.push(format!("page view: {}", strings::text("page-no-pages"))),
-        }
+    if model.first_run().is_some() {
+        first_run(model, &mut lines);
+    } else if model.wizard().is_some() {
+        wizard(model, &mut lines);
+    } else if model.has_project() {
+        project_view(model, &mut lines);
     } else {
-        lines.push(format!("start page \"{}\"", strings::text("start-title")));
-        lines.push(format!("  button \"{}\"", strings::text("start-open")));
-        lines.push(format!("  label \"{}\"", strings::text("start-recent")));
-        for (i, name) in model.recent_names().iter().enumerate() {
-            lines.push(format!("  recent {} \"{name}\"", i + 1));
-        }
-        lines.push(format!("  label \"{}\"", strings::text("start-update-check")));
+        start_page(model, &mut lines);
     }
     lines.push(format!("status bar: {}", model.status_fields(false).join(" | ")));
     if let Some(palette) = model.palette() {
@@ -100,52 +382,9 @@ pub fn describe(model: &ShellModel) -> String {
             lines.push(line);
         }
     }
-    match model.dialog() {
-        None => {}
-        Some(Dialog::About) => {
-            lines.push(format!("dialog \"{}\"", strings::text("about-title")));
-            lines.push(format!(
-                "  {}",
-                strings::format("about-version", &[&model.config().app_version])
-            ));
-            lines.push(format!("  {}", strings::text("about-page-view")));
-            lines.push(format!("  {}", strings::text("about-privacy")));
-            lines.push(format!("  {}", strings::text("about-licence")));
-            lines.push(format!(
-                "  {}",
-                strings::format("about-repository", &[env!("CARGO_PKG_REPOSITORY")])
-            ));
-            lines.push(format!("  button \"{}\"", strings::text("dialog-close")));
-        }
-        Some(Dialog::Shortcuts) => {
-            lines.push(format!("dialog \"{}\"", strings::text("shortcuts-title")));
-            for meta in actions::ACTIONS
-                .iter()
-                .filter(|a| !a.headless_only && !a.shortcut.is_empty())
-            {
-                lines.push(format!(
-                    "  {} \"{}\" {}",
-                    meta.id,
-                    strings::text(meta.label_key),
-                    meta.shortcut.join(", ")
-                ));
-            }
-            lines.push(format!("  button \"{}\"", strings::text("dialog-close")));
-        }
-        Some(Dialog::ConfirmDiscard { pending }) => {
-            lines.push(format!("dialog \"{}\"", strings::text("confirm-title")));
-            lines.push(format!("  {}", strings::text("confirm-text")));
-            lines.push(format!("  pending {}", pending.action));
-            for key in ["dialog-save", "dialog-discard", "dialog-cancel"] {
-                lines.push(format!("  button \"{}\"", strings::text(key)));
-            }
-        }
-        Some(Dialog::GotoPage { text }) => {
-            lines.push(format!("dialog \"{}\"", strings::text("goto-title")));
-            lines.push(format!("  field \"{}\": \"{text}\"", strings::text("goto-hint")));
-            lines.push(format!("  button \"{}\"", strings::text("dialog-go")));
-            lines.push(format!("  button \"{}\"", strings::text("dialog-cancel")));
-        }
+    dialog(model, &mut lines);
+    if let Some(target) = model.last_help() {
+        lines.push(format!("help: {target}"));
     }
     lines.join("\n")
 }

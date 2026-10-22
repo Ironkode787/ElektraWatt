@@ -77,6 +77,8 @@ pub enum Submenu {
     Export,
     /// View, UI scale: one item per scale.
     UiScale,
+    /// View, Workspace: one item per workspace, then save and reset.
+    Workspace,
 }
 
 impl Submenu {
@@ -86,6 +88,7 @@ impl Submenu {
             Submenu::OpenRecent => "submenu-open-recent",
             Submenu::Export => "submenu-export",
             Submenu::UiScale => "submenu-ui-scale",
+            Submenu::Workspace => "submenu-workspace",
         }
     }
 }
@@ -122,6 +125,9 @@ pub struct ActionMeta {
     pub headless_only: bool,
     /// The palette cannot supply this action's parameters, so its entry is disabled there.
     pub needs_parameters: bool,
+    /// The action is part of a screen's own controls (the wizard, the first-run flow, a setting): no menu entry, no
+    /// palette entry, no line in the shortcut list; the window and the headless mode dispatch it.
+    pub hidden: bool,
 }
 
 impl std::fmt::Debug for ActionMeta {
@@ -207,10 +213,35 @@ fn has_recent(m: &ShellModel) -> Result<(), &'static str> {
 }
 
 fn page_shown(m: &ShellModel) -> Result<(), &'static str> {
-    if m.page_count() > 0 {
+    // The wizard's preview page is a page on show too (`view.snapshot` writes it).
+    if m.page_count() > 0 || m.wizard().is_some() {
         Ok(())
     } else {
         Err("reason-no-page")
+    }
+}
+
+fn can_discard_journal(m: &ShellModel) -> Result<(), &'static str> {
+    if m.can_discard_journal() {
+        Ok(())
+    } else {
+        Err("reason-no-journal")
+    }
+}
+
+fn wizard_open(m: &ShellModel) -> Result<(), &'static str> {
+    if m.wizard().is_some() {
+        Ok(())
+    } else {
+        Err("reason-no-wizard")
+    }
+}
+
+fn first_run_open(m: &ShellModel) -> Result<(), &'static str> {
+    if m.first_run().is_some() {
+        Ok(())
+    } else {
+        Err("reason-no-first-run")
     }
 }
 
@@ -257,6 +288,7 @@ const fn act(
         menu,
         headless_only: false,
         needs_parameters: false,
+        hidden: false,
     }
 }
 
@@ -270,10 +302,24 @@ const fn headless(mut a: ActionMeta) -> ActionMeta {
     a
 }
 
+const fn hidden(mut a: ActionMeta) -> ActionMeta {
+    a.hidden = true;
+    a
+}
+
 use ActionKind::{Command, View};
 
 /// The registry: the part-1 actions of the spec, section 5.2, in menu order, then the headless-only ones.
 pub static ACTIONS: &[ActionMeta] = &[
+    act(
+        "file.new",
+        Command,
+        "action-file-new",
+        Menu::File,
+        &["Ctrl+N"],
+        always,
+        slot(Menu::File),
+    ),
     act(
         "file.open",
         Command,
@@ -293,6 +339,24 @@ pub static ACTIONS: &[ActionMeta] = &[
         sub(Menu::File, Submenu::OpenRecent, false),
     )),
     act(
+        "file.open_sample",
+        Command,
+        "action-file-open-sample",
+        Menu::File,
+        &[],
+        always,
+        slot(Menu::File),
+    ),
+    act(
+        "file.import_qet",
+        Command,
+        "action-file-import-qet",
+        Menu::File,
+        &[],
+        always,
+        slot(Menu::File),
+    ),
+    act(
         "file.save",
         Command,
         "action-file-save",
@@ -308,6 +372,15 @@ pub static ACTIONS: &[ActionMeta] = &[
         Menu::File,
         &["Ctrl+Shift+S"],
         project_open,
+        slot(Menu::File),
+    ),
+    act(
+        "file.discard_journal",
+        Command,
+        "action-file-discard-journal",
+        Menu::File,
+        &[],
+        can_discard_journal,
         slot(Menu::File),
     ),
     act(
@@ -418,6 +491,33 @@ pub static ACTIONS: &[ActionMeta] = &[
         always,
         sub(Menu::View, Submenu::UiScale, true),
     )),
+    needs_parameters(act(
+        "view.workspace_load",
+        View,
+        "action-view-workspace-load",
+        Menu::View,
+        &[],
+        always,
+        sub(Menu::View, Submenu::Workspace, false),
+    )),
+    act(
+        "view.workspace_save",
+        View,
+        "action-view-workspace-save",
+        Menu::View,
+        &[],
+        always,
+        sub(Menu::View, Submenu::Workspace, false),
+    ),
+    act(
+        "view.workspace_reset",
+        View,
+        "action-view-workspace-reset",
+        Menu::View,
+        &[],
+        always,
+        sub(Menu::View, Submenu::Workspace, false),
+    ),
     act(
         "tools.palette",
         View,
@@ -428,9 +528,54 @@ pub static ACTIONS: &[ActionMeta] = &[
         slot(Menu::Tools),
     ),
     act(
+        "tools.company_standard",
+        Command,
+        "action-tools-company-standard",
+        Menu::Tools,
+        &[],
+        always,
+        slot(Menu::Tools),
+    ),
+    act(
+        "help.documentation",
+        View,
+        "action-help-documentation",
+        Menu::Help,
+        &["F1"],
+        always,
+        slot(Menu::Help),
+    ),
+    act(
+        "help.tutorials",
+        Command,
+        "action-help-tutorials",
+        Menu::Help,
+        &[],
+        always,
+        slot(Menu::Help),
+    ),
+    act(
+        "help.first_run",
+        View,
+        "action-help-first-run",
+        Menu::Help,
+        &[],
+        always,
+        slot_sep(Menu::Help),
+    ),
+    act(
         "help.shortcuts",
         View,
         "action-help-shortcuts",
+        Menu::Help,
+        &[],
+        always,
+        slot(Menu::Help),
+    ),
+    act(
+        "help.notices",
+        View,
+        "action-help-notices",
         Menu::Help,
         &[],
         always,
@@ -472,7 +617,7 @@ pub static ACTIONS: &[ActionMeta] = &[
         always,
         None,
     )),
-    act(
+    hidden(act(
         "ui.dismiss",
         View,
         "action-ui-dismiss",
@@ -480,7 +625,115 @@ pub static ACTIONS: &[ActionMeta] = &[
         &["Escape"],
         always,
         None,
-    ),
+    )),
+    hidden(act(
+        "settings.set",
+        Command,
+        "action-settings-set",
+        Menu::Tools,
+        &[],
+        always,
+        None,
+    )),
+    hidden(act(
+        "first_run.set",
+        View,
+        "action-first-run-set",
+        Menu::Help,
+        &[],
+        first_run_open,
+        None,
+    )),
+    hidden(act(
+        "first_run.next",
+        View,
+        "action-first-run-next",
+        Menu::Help,
+        &[],
+        first_run_open,
+        None,
+    )),
+    hidden(act(
+        "first_run.back",
+        View,
+        "action-first-run-back",
+        Menu::Help,
+        &[],
+        first_run_open,
+        None,
+    )),
+    hidden(act(
+        "first_run.finish",
+        Command,
+        "action-first-run-finish",
+        Menu::Help,
+        &[],
+        first_run_open,
+        None,
+    )),
+    hidden(act(
+        "wizard.set",
+        View,
+        "action-wizard-set",
+        Menu::Tools,
+        &[],
+        wizard_open,
+        None,
+    )),
+    hidden(act(
+        "wizard.next",
+        View,
+        "action-wizard-next",
+        Menu::Tools,
+        &[],
+        wizard_open,
+        None,
+    )),
+    hidden(act(
+        "wizard.back",
+        View,
+        "action-wizard-back",
+        Menu::Tools,
+        &[],
+        wizard_open,
+        None,
+    )),
+    hidden(act(
+        "wizard.goto",
+        View,
+        "action-wizard-goto",
+        Menu::Tools,
+        &[],
+        wizard_open,
+        None,
+    )),
+    hidden(act(
+        "wizard.reset",
+        View,
+        "action-wizard-reset",
+        Menu::Tools,
+        &[],
+        wizard_open,
+        None,
+    )),
+    hidden(act(
+        "wizard.cancel",
+        View,
+        "action-wizard-cancel",
+        Menu::Tools,
+        &[],
+        wizard_open,
+        None,
+    )),
+    hidden(act(
+        "wizard.finish",
+        Command,
+        "action-wizard-finish",
+        Menu::Tools,
+        &[],
+        wizard_open,
+        None,
+    )),
 ];
 
 /// The action with this ID.
@@ -508,8 +761,10 @@ pub struct ActionItem {
     pub enabled: bool,
     /// The reason text of a disabled item.
     pub reason: Option<String>,
-    /// Whether the item shows a check mark (the current UI scale).
+    /// Whether the item shows a check mark (the current UI scale or workspace).
     pub checked: bool,
+    /// The documentation topic of the action ([`crate::help`]): its tooltip ends with "F1: learn more".
+    pub topic: Option<&'static str>,
 }
 
 /// An entry of a menu: an item or a submenu.
@@ -551,12 +806,36 @@ fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
         enabled: state.is_ok(),
         reason: state.err().map(|k| strings::text(k).to_owned()),
         checked: false,
+        topic: crate::help::action_topic(meta.id),
     }
 }
 
-fn submenu_items(submenu: Submenu, meta: &ActionMeta, model: &ShellModel) -> Vec<ActionItem> {
+/// The items of a submenu, from the registry actions that have a slot in it (in registry order).
+fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) -> Vec<ActionItem> {
+    let Some(&meta) = metas.first() else {
+        return Vec::new();
+    };
     match submenu {
         Submenu::Export => vec![item_of(meta, model)],
+        Submenu::Workspace => {
+            let active = model.workspace();
+            let mut items = Vec::new();
+            for meta in metas {
+                if meta.id == "view.workspace_load" {
+                    for name in model.workspace_names() {
+                        let mut item = item_of(meta, model);
+                        item.checked = name == active;
+                        item.params = json!({ "name": name });
+                        item.label = name;
+                        item.shortcut = String::new();
+                        items.push(item);
+                    }
+                } else {
+                    items.push(item_of(meta, model));
+                }
+            }
+            items
+        }
         Submenu::OpenRecent => {
             let names = model.recent_names();
             if names.is_empty() {
@@ -605,20 +884,29 @@ pub fn menu_model(model: &ShellModel) -> Vec<MenuModel> {
                 let Some(s) = meta.menu.filter(|s| s.menu == menu) else {
                     continue;
                 };
+                if let Some(submenu) = s.submenu
+                    && done_submenus.contains(&submenu)
+                {
+                    continue;
+                }
                 if s.separator_before && !entries.is_empty() {
                     entries.push(MenuEntry::Separator);
                 }
                 match s.submenu {
                     None => entries.push(MenuEntry::Item(item_of(meta, model))),
                     Some(submenu) => {
-                        if done_submenus.contains(&submenu) {
-                            continue;
-                        }
                         done_submenus.push(submenu);
+                        let metas: Vec<&ActionMeta> = ACTIONS
+                            .iter()
+                            .filter(|a| {
+                                a.menu
+                                    .is_some_and(|m| m.menu == menu && m.submenu == Some(submenu))
+                            })
+                            .collect();
                         entries.push(MenuEntry::Submenu {
                             submenu,
                             label: strings::text(submenu.label_key()).to_owned(),
-                            items: submenu_items(submenu, meta, model),
+                            items: submenu_items(submenu, &metas, model),
                         });
                     }
                 }
@@ -683,7 +971,12 @@ mod tests {
         for m in Menu::ALL {
             assert!(strings::lookup(m.label_key()).is_some());
         }
-        for s in [Submenu::OpenRecent, Submenu::Export, Submenu::UiScale] {
+        for s in [
+            Submenu::OpenRecent,
+            Submenu::Export,
+            Submenu::UiScale,
+            Submenu::Workspace,
+        ] {
             assert!(strings::lookup(s.label_key()).is_some());
         }
     }
@@ -727,9 +1020,53 @@ mod tests {
     }
 
     #[test]
-    fn headless_only_actions_have_no_menu_slot() {
-        for a in ACTIONS.iter().filter(|a| a.headless_only) {
+    fn headless_only_and_hidden_actions_have_no_menu_slot() {
+        for a in ACTIONS.iter().filter(|a| a.headless_only || a.hidden) {
             assert!(a.menu.is_none(), "{}", a.id);
+        }
+    }
+
+    #[test]
+    fn the_new_actions_are_in_their_menus() {
+        let model = ShellModel::for_tests();
+        let menus = menu_model(&model);
+        let ids = |menu: Menu| -> Vec<&'static str> {
+            let m = menus.iter().find(|m| m.menu == menu).unwrap();
+            m.entries
+                .iter()
+                .flat_map(|e| match e {
+                    MenuEntry::Separator => Vec::new(),
+                    MenuEntry::Item(i) => vec![i.id],
+                    MenuEntry::Submenu { items, .. } => items.iter().map(|i| i.id).collect(),
+                })
+                .collect()
+        };
+        let file = ids(Menu::File);
+        for id in [
+            "file.new",
+            "file.open_sample",
+            "file.import_qet",
+            "file.discard_journal",
+        ] {
+            assert!(file.contains(&id), "{id} in File");
+        }
+        assert!(ids(Menu::Tools).contains(&"tools.company_standard"));
+        let help = ids(Menu::Help);
+        for id in [
+            "help.documentation",
+            "help.tutorials",
+            "help.first_run",
+            "help.notices",
+        ] {
+            assert!(help.contains(&id), "{id} in Help");
+        }
+        let view = ids(Menu::View);
+        for id in [
+            "view.workspace_load",
+            "view.workspace_save",
+            "view.workspace_reset",
+        ] {
+            assert!(view.contains(&id), "{id} in View");
         }
     }
 }

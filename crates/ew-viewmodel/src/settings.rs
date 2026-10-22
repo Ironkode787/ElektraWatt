@@ -3,9 +3,12 @@
 
 //! The application settings file `settings.toml` (WP-S2.01 part 1, spec section 5.1; FR-UI-033, FR-UI-049).
 //!
-//! `version = 1`, `recent_projects` (at most [`MAX_RECENT`], most recent first, no duplicates) and `ui_scale` (one
-//! of [`UI_SCALES`]). Unknown keys are kept and written back; a `toml::Table` holds them sorted, so the file is
-//! deterministic. An unreadable file yields the defaults and is copied to `settings.toml.bad-<n>`.
+//! `version = 1`, `recent_projects` (at most [`MAX_RECENT`], most recent first, no duplicates), `ui_scale` (one
+//! of [`UI_SCALES`]) and, since part 2, the first-run answers and quick switches: `first_run_done`, `language`,
+//! `keymap`, `theme`, `comes_from`, `update_check` (an opt-in, off by default, NFR-PRIV-03), the default basic
+//! project `basic_project` (FR-PRJ-009) and the active workspace `workspace` (FR-UI-002). Unknown keys are kept
+//! and written back; a `toml::Table` holds them sorted, so the file is deterministic. An unreadable file yields
+//! the defaults and is copied to `settings.toml.bad-<n>`.
 
 use std::path::{Path, PathBuf};
 
@@ -18,6 +21,22 @@ pub const UI_SCALES: [f32; 4] = [1.0, 1.25, 1.5, 2.0];
 /// The file name inside the settings directory.
 pub const FILE_NAME: &str = "settings.toml";
 
+/// The UI languages of this version (WP-S2.08 adds the others).
+pub const LANGUAGES: [&str; 1] = ["en"];
+
+/// The keymap presets the settings can name. The EW preset is the only one with bindings today; the KiCad-like
+/// preset is recorded and takes effect with the keymap files of WP-S2.08 (doc 16 section 4.4).
+pub const KEYMAPS: [&str; 2] = ["ew", "kicad"];
+
+/// The themes (egui's own light and dark visuals).
+pub const THEMES: [&str; 3] = ["system", "light", "dark"];
+
+/// What the user comes from (first-run step 2, doc 16 section 9.1); the empty text is "not answered".
+pub const ORIGINS: [&str; 4] = ["eplan", "qet", "kicad", "other"];
+
+/// The name of the built-in workspace (doc 16 section 2.6) and the default of `workspace`.
+pub const DEFAULT_WORKSPACE: &str = "Schematic";
+
 /// The settings.
 #[derive(Clone, PartialEq, Debug)]
 pub struct Settings {
@@ -26,6 +45,22 @@ pub struct Settings {
     pub recent_projects: Vec<String>,
     /// The UI scale, one of [`UI_SCALES`].
     pub ui_scale: f32,
+    /// Whether the first-run flow has been finished or skipped (doc 16 section 9.1).
+    pub first_run_done: bool,
+    /// The UI language, one of [`LANGUAGES`].
+    pub language: String,
+    /// The keymap preset, one of [`KEYMAPS`].
+    pub keymap: String,
+    /// The theme, one of [`THEMES`].
+    pub theme: String,
+    /// What the user comes from, one of [`ORIGINS`], or empty.
+    pub comes_from: String,
+    /// The update-check opt-in (off by default; this version has no update check, NFR-PRIV-03).
+    pub update_check: bool,
+    /// The default basic project (a project directory), if the user made or chose one (FR-PRJ-009).
+    pub basic_project: Option<String>,
+    /// The active workspace (doc 16 section 2.6).
+    pub workspace: String,
     /// Keys this version does not know, kept and written back.
     extra: toml::Table,
 }
@@ -35,6 +70,14 @@ impl Default for Settings {
         Settings {
             recent_projects: Vec::new(),
             ui_scale: 1.0,
+            first_run_done: false,
+            language: LANGUAGES[0].to_owned(),
+            keymap: KEYMAPS[0].to_owned(),
+            theme: THEMES[0].to_owned(),
+            comes_from: String::new(),
+            update_check: false,
+            basic_project: None,
+            workspace: DEFAULT_WORKSPACE.to_owned(),
             extra: toml::Table::new(),
         }
     }
@@ -88,6 +131,19 @@ impl Settings {
             Some(toml::Value::Integer(i)) => i as f32,
             Some(_) => return None,
         };
+        let first_run_done = take_bool(&mut table, "first_run_done")?;
+        let update_check = take_bool(&mut table, "update_check")?;
+        let language = take_choice(&mut table, "language", &LANGUAGES)?;
+        let keymap = take_choice(&mut table, "keymap", &KEYMAPS)?;
+        let theme = take_choice(&mut table, "theme", &THEMES)?;
+        let comes_from = match take_string(&mut table, "comes_from")? {
+            Some(v) if ORIGINS.contains(&v.as_str()) => v,
+            _ => String::new(),
+        };
+        let basic_project = take_string(&mut table, "basic_project")?.filter(|v| !v.is_empty());
+        let workspace = take_string(&mut table, "workspace")?
+            .filter(|v| valid_workspace_name(v))
+            .unwrap_or_else(|| DEFAULT_WORKSPACE.to_owned());
         let mut settings = Settings {
             recent_projects: Vec::new(),
             ui_scale: if scale_index(ui_scale).is_some() {
@@ -95,6 +151,14 @@ impl Settings {
             } else {
                 1.0
             },
+            first_run_done,
+            language,
+            keymap,
+            theme,
+            comes_from,
+            update_check,
+            basic_project,
+            workspace,
             extra: table,
         };
         // The list is normalised on read: no duplicates, at most MAX_RECENT, first occurrence wins.
@@ -123,6 +187,28 @@ impl Settings {
             "ui_scale".to_owned(),
             toml::Value::Float(f64::from(self.ui_scale)),
         );
+        table.insert(
+            "first_run_done".to_owned(),
+            toml::Value::Boolean(self.first_run_done),
+        );
+        table.insert("update_check".to_owned(), toml::Value::Boolean(self.update_check));
+        for (key, value) in [
+            ("language", &self.language),
+            ("keymap", &self.keymap),
+            ("theme", &self.theme),
+            ("comes_from", &self.comes_from),
+            ("workspace", &self.workspace),
+        ] {
+            table.insert(key.to_owned(), toml::Value::String(value.clone()));
+        }
+        match &self.basic_project {
+            Some(path) => {
+                table.insert("basic_project".to_owned(), toml::Value::String(path.clone()));
+            }
+            None => {
+                table.remove("basic_project");
+            }
+        }
         // A table of plain values always serialises.
         toml::to_string(&table).unwrap_or_default()
     }
@@ -162,6 +248,44 @@ impl Settings {
         std::fs::write(&tmp, self.to_toml())?;
         std::fs::rename(&tmp, &path)
     }
+}
+
+/// Removes a boolean key: absent is `false`, another type makes the file bad (`None`).
+fn take_bool(table: &mut toml::Table, key: &str) -> Option<bool> {
+    match table.remove(key) {
+        None => Some(false),
+        Some(toml::Value::Boolean(b)) => Some(b),
+        Some(_) => None,
+    }
+}
+
+/// Removes a string key: `Some(None)` when absent, `None` (a bad file) for another type.
+fn take_string(table: &mut toml::Table, key: &str) -> Option<Option<String>> {
+    match table.remove(key) {
+        None => Some(None),
+        Some(toml::Value::String(s)) => Some(Some(s)),
+        Some(_) => None,
+    }
+}
+
+/// Removes a string key that names one of `choices`; absent or unknown gives the first choice.
+fn take_choice(table: &mut toml::Table, key: &str, choices: &[&str]) -> Option<String> {
+    let value = take_string(table, key)?;
+    Some(match value {
+        Some(v) if choices.contains(&v.as_str()) => v,
+        _ => choices[0].to_owned(),
+    })
+}
+
+/// Whether `name` can be a workspace name: 1 to 40 characters, letters, digits, space, `-` and `_`, no leading
+/// or trailing space. The name is the file name of `workspaces/<name>.json`.
+pub fn valid_workspace_name(name: &str) -> bool {
+    !name.is_empty()
+        && name.chars().count() <= 40
+        && name == name.trim()
+        && name
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == ' ' || c == '-' || c == '_')
 }
 
 /// Copies the bad settings file to `settings.toml.bad-<n>` (the lowest free `n`); the name, or `None` when the
@@ -291,6 +415,61 @@ mod tests {
         assert_eq!(s.recent_projects.len(), MAX_RECENT);
         s.remove_recent("p13");
         assert!(!s.recent_projects.contains(&"p13".to_owned()));
+    }
+
+    #[test]
+    fn the_part_two_keys_round_trip_and_fall_back_to_their_defaults() {
+        let dir = temp_dir("part2");
+        let defaults = Settings::default();
+        assert!(
+            !defaults.first_run_done && !defaults.update_check,
+            "opt-in and not yet run"
+        );
+        assert_eq!(defaults.workspace, DEFAULT_WORKSPACE);
+        let s = Settings {
+            first_run_done: true,
+            update_check: true,
+            keymap: "kicad".to_owned(),
+            theme: "dark".to_owned(),
+            comes_from: "qet".to_owned(),
+            basic_project: Some("company.ew".to_owned()),
+            workspace: "Review".to_owned(),
+            ..Settings::default()
+        };
+        s.save(&dir).unwrap();
+        let back = Settings::load(&dir);
+        assert_eq!(back.bad_copy, None);
+        assert_eq!(back.settings, s);
+        // An unknown choice falls back to the first; a name that cannot be a file name to the default workspace.
+        let loose = Settings::parse(
+            "keymap = \"emacs\"\ntheme = \"purple\"\ncomes_from = \"vi\"\nworkspace = \"../x\"\nbasic_project = \"\"\n",
+        )
+        .unwrap();
+        assert_eq!(loose.keymap, "ew");
+        assert_eq!(loose.theme, "system");
+        assert_eq!(loose.comes_from, "");
+        assert_eq!(loose.workspace, DEFAULT_WORKSPACE);
+        assert_eq!(loose.basic_project, None);
+        // A key of the wrong type makes the file bad, like the older keys.
+        for text in [
+            "first_run_done = \"yes\"\n",
+            "update_check = 1\n",
+            "language = 3\n",
+            "basic_project = true\n",
+        ] {
+            assert!(Settings::parse(text).is_none(), "{text}");
+        }
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn workspace_names_are_file_names() {
+        for good in ["Schematic", "My layout", "a-b_c", "Räume 2"] {
+            assert!(valid_workspace_name(good), "{good}");
+        }
+        for bad in ["", " a", "a ", "a/b", "a\\b", "..", "a.b", &"x".repeat(41)] {
+            assert!(!valid_workspace_name(bad), "{bad:?}");
+        }
     }
 
     #[test]

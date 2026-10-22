@@ -74,8 +74,9 @@ pub fn lookup(key: &str) -> Option<&'static str> {
 
         // Banners and messages.
         "banner-recovery" => {
-            "This project has unsaved changes from a session that ended unexpectedly. It is open read-only; \
-             recovery comes with a later version."
+            "This project has unsaved changes from a session that ended unexpectedly. It is open read-only. \
+             File, Discard unsaved changes of the earlier session deletes them and opens the project for \
+             editing; recovering them comes with a later version."
         }
         "banner-read-only" => "This project is open read-only: {0}.",
         "banner-findings" => "{0} integrity findings were found when the project was opened.",
@@ -166,13 +167,256 @@ pub fn lookup(key: &str) -> Option<&'static str> {
         "about-licence" => "Licence: GPL-3.0-or-later",
         "about-repository" => "Repository: {0}",
         "prompt-open-title" => "Open a project directory",
-        "prompt-save-as-title" => "Save the project as a new directory",
+        "prompt-save-as-title" => "Choose a new, empty directory",
         "prompt-export-title" => "Export PDF",
         "prompt-pdf-name" => "project.pdf",
 
         // The text of the describe output.
         "describe-menu" => "menu {0}",
         "describe-item" => "item {0} \"{1}\"",
+
+        // Part 2: menus, actions and reasons.
+        "submenu-workspace" => "Workspace",
+        "action-file-new" => "New project...",
+        "action-file-open-sample" => "Open sample project",
+        "action-file-import-qet" => "Import QElectroTech project...",
+        "action-file-discard-journal" => "Discard unsaved changes of the earlier session...",
+        "action-view-workspace-load" => "Load workspace",
+        "action-view-workspace-save" => "Save layout as...",
+        "action-view-workspace-reset" => "Reset layout",
+        "action-tools-company-standard" => "Company standard wizard...",
+        "action-help-documentation" => "Documentation",
+        "action-help-tutorials" => "Tutorials",
+        "action-help-first-run" => "First-run setup...",
+        "action-help-notices" => "Third-party notices",
+        "action-settings-set" => "Change a setting",
+        "action-first-run-set" => "Answer a first-run question",
+        "action-first-run-next" => "First run: next step",
+        "action-first-run-back" => "First run: previous step",
+        "action-first-run-finish" => "First run: finish",
+        "action-wizard-set" => "Wizard: set a field",
+        "action-wizard-next" => "Wizard: next step",
+        "action-wizard-back" => "Wizard: previous step",
+        "action-wizard-goto" => "Wizard: go to a step",
+        "action-wizard-reset" => "Wizard: start over",
+        "action-wizard-cancel" => "Wizard: close",
+        "action-wizard-finish" => "Wizard: create the basic project",
+        "reason-no-journal" => "The project has no journal of an earlier session",
+        "reason-no-wizard" => "The company-standard wizard is not open",
+        "reason-no-first-run" => "The first-run setup is not open",
+        "readonly-sample" => "the sample project",
+        "tooltip-learn-more" => "F1: learn more",
+
+        // Part 2: banners and errors.
+        "banner-sample" => {
+            "This is the sample project. It is open read-only; Save as makes a copy of your own."
+        }
+        "banner-tutorial-copy" => "A fresh copy of the sample project was made for the tutorials.",
+        "banner-imported" => "Imported {0}: {1} pages, {2} devices, {3} findings in the migration report.",
+        "banner-import-no-content" => {
+            "The starter library was not found; symbols the project refers to may be missing."
+        }
+        "banner-journal-discarded" => {
+            "The unsaved changes of the earlier session were discarded. The project is open for editing."
+        }
+        "banner-workspace-bad" => {
+            "The workspace file {0} could not be read; the built-in layout is used and the file was left as it is."
+        }
+        "banner-workspace-write" => "The workspace file could not be written.",
+        "banner-wizard-done" => "The company standard was written to {0}. New projects start from it.",
+        "error-new" => "Cannot create the project: {0}.",
+        "error-no-sample" => "The sample project is not installed.",
+        "error-import" => "Cannot import {0}: {1}.",
+        "error-import-read" => "Cannot read {0}.",
+        "error-import-write" => "Cannot write the imported project: {0}.",
+        "error-confirm-needed" => "The step discards unsaved changes and needs \"confirm\": true.",
+        "error-workspace-missing" => "There is no workspace named {0}.",
+        "error-workspace-bad" => "The workspace {0} cannot be used: {1}.",
+        "error-workspace-name" => "A workspace name has 1 to 40 letters, digits, spaces, - or _.",
+        "error-workspace-write" => "The workspace file could not be written.",
+        "error-wizard-write" => "The basic project could not be written: {0}.",
+
+        // Part 2: the start page, the panes and the dialogs.
+        "start-new" => "New project",
+        "start-template-builtin" => "Template: the built-in basic project",
+        "start-template" => "Template: {0}",
+        "start-sample" => "Open sample project",
+        "start-import-qet" => "Import QElectroTech project",
+        "start-company-standard" => "Create company standard",
+        "start-edit-standard" => "Edit company standard",
+        "start-tutorials" => "Tutorials",
+        "start-quick-language" => "Language",
+        "start-quick-keymap" => "Keymap",
+        "start-privacy-change" => "change",
+        "start-update-check-on" => "Update check: on (this version has none)",
+        "language-en" => "English",
+        "keymap-ew" => "EW",
+        "keymap-kicad" => "KiCad-like",
+        "theme-system" => "Follow the system",
+        "theme-light" => "Light",
+        "theme-dark" => "Dark",
+        "origin-eplan" => "EPLAN",
+        "origin-qet" => "QElectroTech",
+        "origin-kicad" => "KiCad",
+        "origin-other" => "Another tool",
+        "pane-pages" => "Pages",
+        "pane-page-view" => "Page view",
+        "dialog-save-workspace" => "Save layout",
+        "save-workspace-title" => "Save layout as",
+        "save-workspace-hint" => "Workspace name",
+        "confirm-journal-title" => "Discard unsaved changes",
+        "confirm-journal-text" => {
+            "An earlier session of this project ended with unsaved changes. Discarding them deletes that work."
+        }
+        "notices-title" => "Third-party notices",
+        "notices-generated-missing" => {
+            "The notices of the Rust crates are generated for every release (THIRD-PARTY-NOTICES.txt next to the \
+             application); this build has none."
+        }
+        "about-privacy-on" => {
+            "Update check: on (this version has none; nothing is sent). Crash reports: none"
+        }
+        "about-privacy-file" => {
+            "PRIVACY.md lists every data flow; it ships with the installers and is not part of this development build."
+        }
+        "about-disclaimer" => {
+            "ElektraWatt's checks do not replace engineering verification by a competent person."
+        }
+        "about-support-prerelease" => "Support: pre-release build; only the latest 0.x release is supported.",
+        "about-support-until" => "Support: security and data-loss fixes until {0}.",
+        "about-support-ended" => "Support: this release line no longer receives security fixes (ended {0}).",
+        "about-notices-button" => "Third-party notices",
+        "about-docs-button" => "Documentation",
+        "doc-missing" => {
+            "The user guide is not installed with this build; build it with mdbook (docs/book) and install it next to the application."
+        }
+        "prompt-open-qet-title" => "Open a QElectroTech project",
+        "prompt-new-project-title" => "Create the project in a new directory",
+        "prompt-basic-project-title" => "Write the basic project to a new directory",
+
+        // Part 2: the first-run flow.
+        "firstrun-title" => "Welcome to ElektraWatt",
+        "firstrun-step-language" => "Language",
+        "firstrun-step-origin" => "I come from",
+        "firstrun-step-privacy" => "Privacy",
+        "firstrun-step-appearance" => "Appearance",
+        "firstrun-step-start" => "Where to start",
+        "firstrun-text-language" => "Choose the language of the application.",
+        "firstrun-text-origin" => {
+            "Which tool do you come from? This sets the keymap preset and the vocabulary of the palette."
+        }
+        "firstrun-text-privacy" => {
+            "ElektraWatt makes no network connection by itself. An optional update check would send the product \
+             version, the operating system and the architecture, at most once a day. Crash reports stay on \
+             this computer."
+        }
+        "firstrun-update-check" => "Check for updates (off by default)",
+        "firstrun-text-appearance" => "Choose the theme and the size of the user interface.",
+        "firstrun-theme" => "Theme",
+        "firstrun-scale" => "Scale",
+        "firstrun-text-start" => "What do you want to do first?",
+        "firstrun-start-wizard" => "Create the company standard",
+        "firstrun-start-sample" => "Open the sample project",
+        "firstrun-start-qet" => "Import a QElectroTech project",
+        "firstrun-start-new" => "New project from the built-in basic project",
+        "firstrun-start-none" => "Start with the start page",
+        "firstrun-skip" => "Skip",
+        "firstrun-next" => "Next",
+        "firstrun-back" => "Back",
+        "firstrun-finish" => "Finish",
+
+        // Part 2: the company-standard wizard.
+        "wizard-title" => "Company standard",
+        "wizard-step-company" => "Company",
+        "wizard-step-frame" => "Frame and title block",
+        "wizard-step-colour" => "Colour profile",
+        "wizard-step-size" => "Size profile",
+        "wizard-step-numbering" => "Identifiers and numbering",
+        "wizard-step-structure" => "Structure and sections",
+        "wizard-step-revisions" => "Revisions",
+        "wizard-step-languages" => "Languages and formats",
+        "wizard-step-reports" => "Reports and checks",
+        "wizard-step-review" => "Review and create",
+        "wizard-hint-company" => {
+            "The panel builder's name and the notice for the title block. Kept in the draft until the project has a command for them."
+        }
+        "wizard-hint-frame" => {
+            "The frame and title block of new pages. Kept in the draft until the project has a command for them."
+        }
+        "wizard-hint-colour" => "The wire colours by voltage class and function, with a stated basis.",
+        "wizard-hint-size" => "The cross section of each circuit class.",
+        "wizard-hint-numbering" => {
+            "How devices and terminal strips are numbered, and how cross references print."
+        }
+        "wizard-hint-structure" => {
+            "The structure nodes of new projects and their sections: one section per line, number, first-last folio, title."
+        }
+        "wizard-hint-revisions" => "The label of the first revision.",
+        "wizard-hint-languages" => {
+            "Source language and formats. Kept in the draft until the project has a command for them."
+        }
+        "wizard-hint-reports" => {
+            "The check scheme of new projects. Kept in the draft until the project has a command for it."
+        }
+        "wizard-hint-review" => "Check the choices, then write the basic project to a new directory.",
+        "wizard-field-company-name" => "Company name",
+        "wizard-field-company-notice" => "Notice text for the title block",
+        "wizard-field-frame" => "Frame and title block",
+        "wizard-field-colour" => "Colour profile",
+        "wizard-field-size" => "Size profile",
+        "wizard-field-csa-control" => "Control circuits (mm2)",
+        "wizard-field-csa-mains" => "Mains circuits (mm2)",
+        "wizard-field-device-format" => "Device numbering format",
+        "wizard-field-strip-format" => "Terminal strip numbering format",
+        "wizard-field-xref" => "Cross-reference style",
+        "wizard-field-function-node" => "Function node (=)",
+        "wizard-field-location-node" => "Location node (+)",
+        "wizard-field-sections" => "Sections",
+        "wizard-field-first-revision" => "First revision label",
+        "wizard-field-language" => "Source language",
+        "wizard-field-date-format" => "Date format",
+        "wizard-field-decimal" => "Decimal separator",
+        "wizard-field-check-scheme" => "Check scheme",
+        "choice-frame-qet-grid" => "QET-compatible A4 landscape, with grid",
+        "choice-frame-qet-nogrid" => "QET-compatible A4 landscape, without grid",
+        "choice-colour-sample" => "DBU/WH 24 V (the sample project's convention)",
+        "choice-colour-default" => "The profile's default",
+        "choice-size-sample" => "0.75/1.5 (the sample project's profiles, with the cross sections below)",
+        "choice-size-default" => "The profile's default",
+        "choice-xref-qet" => "QET style (102-A1)",
+        "choice-xref-eplan" => "EPLAN style (/102.A1)",
+        "choice-language-en" => "English",
+        "choice-date_format-dd_mm_yyyy" => "dd-mm-yyyy",
+        "choice-date_format-iso8601" => "yyyy-mm-dd",
+        "choice-decimal-point" => "0.75",
+        "choice-decimal-comma" => "0,75",
+        "choice-check_scheme-drafting" => "drafting",
+        "choice-check_scheme-pre-delivery" => "pre-delivery",
+        "choice-check_scheme-full" => "full",
+        "wizard-error-field" => "That is not a field of the wizard.",
+        "wizard-error-choice" => "That is not one of the choices.",
+        "wizard-error-csa" => "A cross section is a number above zero, such as 0.75.",
+        "wizard-error-format" => {
+            "A numbering format has {page}, {letter} and {counter}, in any order and with other text between them; braces must pair."
+        }
+        "wizard-error-node" => "A node code has up to 20 letters, digits, - or _.",
+        "wizard-error-sections" => {
+            "One section per line: number, first-last folio, title. Numbers and folio ranges must not repeat or overlap."
+        }
+        "wizard-error-revision" => "A revision label has no spaces and up to 20 characters.",
+        "wizard-error-text" => "That text is too long.",
+        "wizard-error-command" => "The command {0} was refused: {1}",
+        "wizard-written" => "written to the basic project",
+        "wizard-kept" => "kept in the draft",
+        "wizard-next" => "Next",
+        "wizard-back" => "Back",
+        "wizard-cancel" => "Close (the draft is kept)",
+        "wizard-reset" => "Start over",
+        "wizard-create" => "Create the basic project...",
+        "wizard-preview-title" => "Preview",
+        "wizard-preview-cover" => "Cover",
+        "wizard-preview-page" => "Folio 102",
+        "wizard-preview-no-sample" => "The sample project is not installed; the preview needs it.",
         _ => return None,
     })
 }

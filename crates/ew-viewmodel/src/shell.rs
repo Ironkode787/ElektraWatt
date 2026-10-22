@@ -20,9 +20,16 @@ use ew_api::{
 use serde_json::{Map, Value, json};
 
 use crate::actions::{self, ACTIONS, PaletteEntry, PaletteRun};
+use crate::first_run::FirstRun;
+use crate::layout::Layout;
 use crate::settings::{self, Settings, UI_SCALES, scale_index};
 use crate::status;
 use crate::strings;
+use crate::wizard::Wizard;
+
+mod onboarding;
+mod projects;
+mod workspaces;
 
 /// Who drives the shell: the window or the headless runner. They share `dispatch`; the modes differ only where a
 /// person can be asked (a dialog) and a script cannot.
@@ -34,6 +41,21 @@ pub enum Mode {
     Headless,
 }
 
+/// Where the application's read-only resources are (the installation, or the source tree of a development build).
+/// The application binary finds them; a missing one disables only the feature that needs it.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct Resources {
+    /// The sample project directory (`J-E-2416.ew`, CC0, NFR-DOC-04): Open sample project, the tutorials, the
+    /// wizard's live preview.
+    pub sample_dir: Option<PathBuf>,
+    /// The starter content (`fndefs`, `forms`, `symbols`) that the QElectroTech import references.
+    pub content_dir: Option<PathBuf>,
+    /// The built user guide (`index.html` and its pages), which F1 opens in the system browser.
+    pub docs_dir: Option<PathBuf>,
+    /// The generated third-party notices (`THIRD-PARTY-NOTICES.txt`), shown in the notices dialog.
+    pub notices_file: Option<PathBuf>,
+}
+
 /// Where the shell keeps its files outside projects.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ShellConfig {
@@ -43,6 +65,8 @@ pub struct ShellConfig {
     pub state_dir: Option<PathBuf>,
     /// The application version (the store's identity and the transcript header).
     pub app_version: String,
+    /// The read-only resources.
+    pub resources: Resources,
 }
 
 impl ShellConfig {
@@ -60,6 +84,7 @@ impl ShellConfig {
             config_dir,
             state_dir,
             app_version: app_version.to_owned(),
+            resources: Resources::default(),
         }
     }
 
@@ -74,6 +99,7 @@ impl ShellConfig {
                 config_dir: None,
                 state_dir: None,
                 app_version: app_version.to_owned(),
+                resources: Resources::default(),
             }
         }
     }
@@ -84,7 +110,15 @@ impl ShellConfig {
             config_dir: Some(dir.to_path_buf()),
             state_dir: Some(dir.join("state")),
             app_version: app_version.to_owned(),
+            resources: Resources::default(),
         }
+    }
+
+    /// The same configuration with these resources.
+    #[must_use]
+    pub fn with_resources(mut self, resources: Resources) -> ShellConfig {
+        self.resources = resources;
+        self
     }
 }
 
@@ -143,6 +177,16 @@ pub enum Dialog {
         /// The text of the field.
         text: String,
     },
+    /// Help, Third-party notices.
+    Notices,
+    /// Discard the journal of an earlier session that ended with unsaved changes (FT-313's first part): the
+    /// changes in it are lost.
+    ConfirmJournalDiscard,
+    /// View, Workspace, Save layout as: a name typed by the user.
+    SaveWorkspace {
+        /// The text of the field.
+        text: String,
+    },
 }
 
 /// What the file dialog of the window must ask for.
@@ -150,10 +194,21 @@ pub enum Dialog {
 pub enum Prompt {
     /// An existing project directory (Open).
     OpenFolder,
-    /// A new, empty directory (Save As).
+    /// A new, empty directory (Save As, New project, the wizard's basic project).
     NewFolder,
     /// A PDF file name (Export).
     SavePdf,
+    /// An existing QElectroTech project file (Import).
+    OpenQet,
+}
+
+/// A request to the window to open a page of the user guide in the system browser (F1).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct DocRequest {
+    /// The page and heading below the book's output directory (`how-to/application-window.html#start-page`).
+    pub target: String,
+    /// The `file://` URL, when the built book is installed; `None` when it is not.
+    pub url: Option<String>,
 }
 
 /// A request to the window to ask the user for a path and then dispatch `action` again with it as `param`.
@@ -231,6 +286,19 @@ pub struct ShellModel {
     record: Record,
     quit: bool,
     origin_file: String,
+    first_run: Option<FirstRun>,
+    wizard: Option<Wizard>,
+    /// The dock layout of the project view (FT-309) and the workspace it belongs to.
+    layout: Layout,
+    workspace: String,
+    /// Bumped when the shell replaces the layout (a workspace was loaded or reset): the frame rebuilds its tree.
+    layout_version: u64,
+    /// The time (egui seconds) of the last layout change that is not on disk yet.
+    layout_changed_at: Option<f64>,
+    /// The documentation page F1 asked for and the window has not opened yet.
+    doc_request: Option<DocRequest>,
+    /// The target of the last documentation request, kept for `ui.describe`.
+    last_help: Option<String>,
 }
 
 /// The directory's own name, never its path.
@@ -308,7 +376,15 @@ fn save_error_key(e: &dyn std::fmt::Debug) -> &'static str {
 fn clears_banner(id: &str) -> bool {
     !matches!(
         id,
-        "ui.describe" | "ui.dismiss" | "tools.palette" | "help.about" | "help.shortcuts" | "view.snapshot"
+        "ui.describe"
+            | "ui.dismiss"
+            | "tools.palette"
+            | "help.about"
+            | "help.shortcuts"
+            | "help.notices"
+            | "help.documentation"
+            | "file.discard_journal"
+            | "view.snapshot"
     )
 }
 
@@ -331,7 +407,8 @@ impl ShellModel {
             }
             None => Settings::default(),
         };
-        ShellModel {
+        let workspace = settings.workspace.clone();
+        let mut model = ShellModel {
             mode,
             config,
             settings,
@@ -344,7 +421,17 @@ impl ShellModel {
             record: Record::default(),
             quit: false,
             origin_file: "ui-script".to_owned(),
-        }
+            first_run: None,
+            wizard: None,
+            layout: Layout::schematic(),
+            workspace,
+            layout_version: 0,
+            layout_changed_at: None,
+            doc_request: None,
+            last_help: None,
+        };
+        model.load_active_workspace();
+        model
     }
 
     /// A headless shell with settings in a fresh temporary directory (unit tests of this crate).
@@ -460,6 +547,47 @@ impl ShellModel {
     /// The full paths of the recent projects, most recent first (for a tooltip; never in a transcript).
     pub fn recent_paths(&self) -> &[String] {
         &self.settings.recent_projects
+    }
+
+    /// The company-standard wizard, while it is open.
+    pub fn wizard(&self) -> Option<&Wizard> {
+        self.wizard.as_ref()
+    }
+
+    /// The first-run flow, while it is open.
+    pub fn first_run(&self) -> Option<&FirstRun> {
+        self.first_run.as_ref()
+    }
+
+    /// The dock layout of the project view.
+    pub fn layout(&self) -> &Layout {
+        &self.layout
+    }
+
+    /// A number that changes when the shell replaces the layout (a workspace was loaded or reset): the frame
+    /// rebuilds its dock tree from [`ShellModel::layout`] then.
+    pub fn layout_version(&self) -> u64 {
+        self.layout_version
+    }
+
+    /// The open project is read-only because an earlier session left a journal: it can be discarded.
+    pub fn can_discard_journal(&self) -> bool {
+        matches!(
+            self.access(),
+            Some(AccessMode::ReadOnly {
+                reason_key: "readonly-recovery"
+            })
+        )
+    }
+
+    /// The documentation page F1 asked for, taken once by the window.
+    pub fn take_doc_request(&mut self) -> Option<DocRequest> {
+        self.doc_request.take()
+    }
+
+    /// The target of the last documentation request (`how-to/application-window.html#start-page`).
+    pub fn last_help(&self) -> Option<&str> {
+        self.last_help.as_deref()
     }
 
     /// The banner, if one is showing.
@@ -600,10 +728,7 @@ impl ShellModel {
             query.is_empty() || label.to_lowercase().contains(&query) || id.to_lowercase().contains(&query)
         };
         let mut entries: Vec<PaletteEntry> = Vec::new();
-        for meta in ACTIONS
-            .iter()
-            .filter(|a| !a.headless_only && a.id != "ui.dismiss")
-        {
+        for meta in ACTIONS.iter().filter(|a| !a.headless_only && !a.hidden) {
             let label = strings::text(meta.label_key);
             if !matches(label, meta.id) {
                 continue;
@@ -698,6 +823,30 @@ impl ShellModel {
             return Outcome::Refused { reason_key };
         }
         match meta.id {
+            "file.new" => self.act_new(p),
+            "file.open_sample" => self.act_open_sample(p),
+            "file.import_qet" => self.act_import_qet(p),
+            "file.discard_journal" => self.act_discard_journal(p),
+            "view.workspace_load" => self.act_workspace_load(p),
+            "view.workspace_save" => self.act_workspace_save(p),
+            "view.workspace_reset" => self.act_workspace_reset(),
+            "settings.set" => self.act_settings_set(p),
+            "help.documentation" => self.act_documentation(p),
+            "help.tutorials" => self.act_tutorials(p),
+            "help.first_run" => self.act_first_run_open(p),
+            "help.notices" => self.open_dialog(Dialog::Notices),
+            "first_run.set" => self.act_first_run_set(p),
+            "first_run.next" => self.act_first_run_step(1),
+            "first_run.back" => self.act_first_run_step(-1),
+            "first_run.finish" => self.act_first_run_finish(p),
+            "tools.company_standard" => self.act_wizard_open(),
+            "wizard.set" => self.act_wizard_set(p),
+            "wizard.next" => self.act_wizard_step(1),
+            "wizard.back" => self.act_wizard_step(-1),
+            "wizard.goto" => self.act_wizard_goto(p),
+            "wizard.reset" => self.act_wizard_reset(),
+            "wizard.cancel" => self.act_wizard_cancel(),
+            "wizard.finish" => self.act_wizard_finish(p),
             "file.open" => self.act_open(p),
             "file.open_recent" => self.act_open_recent(p),
             "file.save" => self.act_save(),
@@ -871,15 +1020,32 @@ impl ShellModel {
     }
 
     fn open_for_editing(&self, dir: &Path) -> Result<(Session, OpenReport), OpenError> {
+        self.open_for_editing_with(dir, Recovery::Keep)
+    }
+
+    /// The store options of this shell: the application version and the journal directory.
+    fn store_options(&self) -> StoreOptions {
         let mut store = StoreOptions::new(&self.config.app_version);
         if let Some(state) = &self.config.state_dir {
             store.state_dir = Some(state.clone());
         }
-        let options = SessionOptions {
+        store
+    }
+
+    /// The session options of the shell's own sessions: the origin is the GUI.
+    fn session_options() -> SessionOptions {
+        SessionOptions {
             origin: Origin::Gui,
             ..SessionOptions::default()
-        };
-        Session::open(dir, store, options, Recovery::Keep)
+        }
+    }
+
+    fn open_for_editing_with(
+        &self,
+        dir: &Path,
+        recovery: Recovery,
+    ) -> Result<(Session, OpenReport), OpenError> {
+        Session::open(dir, self.store_options(), ShellModel::session_options(), recovery)
     }
 
     /// Decides the access of a freshly opened session: a leftover journal re-opens it read-only.
@@ -939,6 +1105,7 @@ impl ShellModel {
     /// one keeps its journal. The journal of unsaved work is deleted only by a clean close or an explicit Discard;
     /// any other exit leaves it for the next open to offer (crash-recovery semantics, doc 05 section 8).
     pub fn shutdown(&mut self) {
+        self.flush_layout();
         match self.project.take() {
             Some(p) if p.session.is_dirty() => drop(p),
             Some(p) => p.session.close(),
@@ -1177,6 +1344,14 @@ impl ShellModel {
     /// Answers the unsaved-changes dialog with Save (save, then the pending action), Discard (the pending action with
     /// `discard`) or Cancel (nothing).
     pub fn answer_confirm(&mut self, answer: ConfirmAnswer) -> Outcome {
+        if matches!(self.dialog, Some(Dialog::ConfirmJournalDiscard)) {
+            // The question about the earlier session's journal: Discard deletes it, anything else keeps it.
+            self.dialog = None;
+            return match answer {
+                ConfirmAnswer::Discard => self.dispatch("file.discard_journal", &json!({ "confirm": true })),
+                ConfirmAnswer::Save | ConfirmAnswer::Cancel => Outcome::Done,
+            };
+        }
         let Some(Dialog::ConfirmDiscard { pending }) = self.dialog.clone() else {
             return Outcome::Done;
         };

@@ -1,0 +1,1124 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! The shell model of WP-S2.01 part 2 on temporary directories: New project (FT-307), the sample project, the
+//! QElectroTech import and the tutorials copy (FT-312), the journal discard (FT-313's first part), first run, the
+//! company-standard wizard with its preview (FT-308), workspaces (FT-309), F1 and the quick switches (FT-311).
+
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU32, Ordering};
+
+use ew_viewmodel::ew_api::Session;
+use ew_viewmodel::shell::{AccessMode, Dialog, Mode, Outcome, Resources, ShellConfig, ShellModel};
+use serde_json::{Value, json};
+
+const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
+const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
+const VERSION: &str = "0.0.0-test";
+
+static COUNTER: AtomicU32 = AtomicU32::new(0);
+
+/// A fresh temporary directory, removed on drop.
+struct Tmp(PathBuf);
+
+impl Tmp {
+    fn new() -> Tmp {
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+        let dir = std::env::temp_dir().join(format!("ew-vm2-test-{}-{n}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        Tmp(dir)
+    }
+
+    fn resources() -> Resources {
+        Resources {
+            sample_dir: Some(PathBuf::from(GOLDEN_A)),
+            content_dir: Some(PathBuf::from(CONTENT)),
+            docs_dir: None,
+            notices_file: None,
+        }
+    }
+
+    fn config(&self) -> ShellConfig {
+        ShellConfig::in_dir(&self.0.join("config"), VERSION).with_resources(Tmp::resources())
+    }
+
+    fn shell(&self) -> ShellModel {
+        ShellModel::new(Mode::Headless, self.config())
+    }
+
+    fn gui(&self) -> ShellModel {
+        ShellModel::new(Mode::Gui, self.config())
+    }
+}
+
+impl Drop for Tmp {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+fn path(p: &Path) -> String {
+    p.to_string_lossy().into_owned()
+}
+
+fn run(shell: &mut ShellModel, action: &str, params: Value) -> Outcome {
+    shell.dispatch(action, &params)
+}
+
+fn done(shell: &mut ShellModel, action: &str, params: Value) {
+    let out = run(shell, action, params);
+    assert_eq!(out, Outcome::Done, "{action}: {out:?}");
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// FT-307, FT-312: new, sample, import, tutorials
+
+#[test]
+fn a_new_project_starts_from_the_builtin_basic_project_and_is_saved_at_once() {
+    let tmp = Tmp::new();
+    let dir = tmp.0.join("first.ew");
+    let mut shell = tmp.shell();
+    done(&mut shell, "file.new", json!({ "dir": path(&dir) }));
+    assert_eq!(shell.project_name(), Some("first.ew"));
+    assert_eq!(shell.access(), Some(AccessMode::Edit));
+    assert!(!shell.is_dirty());
+    assert_eq!(shell.page_labels(), ["1"]);
+    assert!(!shell.can_undo());
+    assert!(dir.join("manifest.json").is_file(), "written at once");
+    assert_eq!(shell.recent_names(), ["first.ew"]);
+    // The new project edits and saves like any other.
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "page.create", "params": {"number": 2}}),
+    );
+    assert!(shell.is_dirty());
+    done(&mut shell, "file.save", json!({}));
+    assert_eq!(shell.page_labels(), ["1", "2"]);
+    done(&mut shell, "file.close", json!({}));
+    let (reopened, _) = Session::open_read_only(&dir, VERSION).unwrap();
+    assert_eq!(reopened.page_labels(), ["1", "2"]);
+}
+
+#[test]
+fn new_project_asks_for_a_directory_in_the_gui_and_guards_unsaved_changes() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.gui();
+    done(&mut shell, "file.new", json!({}));
+    let prompt = shell.take_prompt().expect("a directory prompt");
+    assert_eq!(prompt.action, "file.new");
+    assert_eq!(prompt.param, "dir");
+    // A dirty project asks first.
+    let first = tmp.0.join("a.ew");
+    done(&mut shell, "file.new", json!({ "dir": path(&first) }));
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "page.create", "params": {"number": 2}}),
+    );
+    assert!(shell.is_dirty());
+    done(
+        &mut shell,
+        "file.new",
+        json!({ "dir": path(&tmp.0.join("b.ew")) }),
+    );
+    assert!(matches!(shell.dialog(), Some(Dialog::ConfirmDiscard { .. })));
+    assert_eq!(shell.project_name(), Some("a.ew"), "nothing happened yet");
+    shell.shutdown();
+}
+
+#[test]
+fn a_new_project_in_an_occupied_directory_fails_without_a_path() {
+    let tmp = Tmp::new();
+    let dir = tmp.0.join("p.ew");
+    let mut shell = tmp.shell();
+    done(&mut shell, "file.new", json!({ "dir": path(&dir) }));
+    done(&mut shell, "file.close", json!({}));
+    match run(&mut shell, "file.new", json!({ "dir": path(&dir) })) {
+        Outcome::Failed { message } => {
+            assert!(message.contains("already holds a project"), "{message}");
+            assert!(!message.contains(&path(&dir)), "{message}");
+        }
+        other => panic!("{other:?}"),
+    }
+    assert!(!shell.has_project());
+}
+
+#[test]
+fn the_sample_project_opens_read_only_and_save_as_makes_a_copy() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell();
+    done(&mut shell, "file.open_sample", json!({}));
+    assert_eq!(shell.project_name(), Some("J-E-2416.ew"));
+    assert!(matches!(
+        shell.access(),
+        Some(AccessMode::ReadOnly {
+            reason_key: "readonly-sample"
+        })
+    ));
+    assert!(shell.banner().unwrap_or_default().contains("sample project"));
+    assert!(shell.recent_names().is_empty(), "the sample is no recent project");
+    assert_eq!(
+        run(&mut shell, "file.save", json!({})),
+        Outcome::Refused {
+            reason_key: "reason-read-only"
+        }
+    );
+    assert!(
+        !Path::new(GOLDEN_A).join(".~ew.lock").exists(),
+        "no lock in the installation"
+    );
+    let copy = tmp.0.join("mine.ew");
+    done(&mut shell, "file.save_as", json!({ "dir": path(&copy) }));
+    assert_eq!(shell.access(), Some(AccessMode::Edit));
+    assert_eq!(shell.project_name(), Some("mine.ew"));
+    shell.shutdown();
+}
+
+#[test]
+fn without_a_sample_the_action_fails_and_the_tutorials_page_still_opens() {
+    let tmp = Tmp::new();
+    let mut config = tmp.config();
+    config.resources.sample_dir = None;
+    let mut shell = ShellModel::new(Mode::Headless, config);
+    assert!(!shell.has_sample());
+    match run(&mut shell, "file.open_sample", json!({})) {
+        Outcome::Failed { message } => assert_eq!(message, "The sample project is not installed."),
+        other => panic!("{other:?}"),
+    }
+    done(&mut shell, "help.tutorials", json!({}));
+    assert_eq!(shell.last_help(), Some("tutorials/index.html"));
+}
+
+#[test]
+fn the_tutorials_open_a_fresh_copy_of_the_sample_project() {
+    let tmp = Tmp::new();
+    let dir = tmp.0.join("tutorial.ew");
+    let mut shell = tmp.shell();
+    done(&mut shell, "help.tutorials", json!({ "dir": path(&dir) }));
+    assert_eq!(shell.access(), Some(AccessMode::Edit));
+    assert_eq!(shell.project_name(), Some("tutorial.ew"));
+    let (sample, _) = Session::open_read_only(Path::new(GOLDEN_A), VERSION).unwrap();
+    assert_eq!(shell.page_labels(), sample.page_labels().as_slice());
+    assert_eq!(shell.last_help(), Some("tutorials/index.html"));
+    shell.shutdown();
+}
+
+const QET: &str = r#"<project version="0.100" title="Example">
+<diagram title="First page" folio="1" cols="17" colsize="60" rows="8" rowsize="80" height="640"/>
+</project>"#;
+
+#[test]
+fn a_qelectrotech_project_is_imported_into_a_new_directory() {
+    let tmp = Tmp::new();
+    let qet = tmp.0.join("example.qet");
+    std::fs::write(&qet, QET).unwrap();
+    let dir = tmp.0.join("imported.ew");
+    let mut shell = tmp.shell();
+    done(
+        &mut shell,
+        "file.import_qet",
+        json!({ "file": path(&qet), "dir": path(&dir) }),
+    );
+    assert_eq!(shell.project_name(), Some("imported.ew"));
+    assert_eq!(shell.access(), Some(AccessMode::Edit));
+    assert!(!shell.is_dirty());
+    assert_eq!(shell.page_count(), 1);
+    let banner = shell.banner().unwrap_or_default().to_owned();
+    assert!(banner.contains("Imported example.qet: 1 pages"), "{banner}");
+    assert!(dir.join("manifest.json").is_file());
+    shell.shutdown();
+}
+
+#[test]
+fn an_import_that_cannot_be_read_fails_without_a_path() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell();
+    let missing = tmp.0.join("nope.qet");
+    match run(
+        &mut shell,
+        "file.import_qet",
+        json!({ "file": path(&missing), "dir": path(&tmp.0.join("x.ew")) }),
+    ) {
+        Outcome::Failed { message } => {
+            assert_eq!(message, "Cannot read nope.qet.");
+        }
+        other => panic!("{other:?}"),
+    }
+    let bad = tmp.0.join("bad.qet");
+    std::fs::write(&bad, "<notaproject/>").unwrap();
+    match run(
+        &mut shell,
+        "file.import_qet",
+        json!({ "file": path(&bad), "dir": path(&tmp.0.join("y.ew")) }),
+    ) {
+        Outcome::Failed { message } => {
+            assert!(message.starts_with("Cannot import bad.qet"), "{message}");
+            assert!(!message.contains(&path(&tmp.0)), "{message}");
+        }
+        other => panic!("{other:?}"),
+    }
+    assert!(!shell.has_project());
+    // The GUI asks for the file first, then for the directory.
+    let mut gui = tmp.gui();
+    done(&mut gui, "file.import_qet", json!({}));
+    let first = gui.take_prompt().unwrap();
+    assert_eq!(first.param, "file");
+    done(&mut gui, "file.import_qet", json!({ "file": path(&bad) }));
+    assert_eq!(gui.take_prompt().unwrap().param, "dir");
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// FT-313's first part: discarding the journal of an earlier session
+
+fn crash_with_an_edit(tmp: &Tmp, dir: &Path) {
+    let mut crashed = tmp.shell();
+    done(&mut crashed, "file.open", json!({ "dir": path(dir) }));
+    done(
+        &mut crashed,
+        "command.run",
+        json!({"cmd": "page.create", "params": {"number": 996}}),
+    );
+    // Dropped without `shutdown`: the journal stays, like after a crash.
+}
+
+fn copy_golden(to: &Path) {
+    fn copy_dir(from: &Path, to: &Path) {
+        std::fs::create_dir_all(to).unwrap();
+        for entry in std::fs::read_dir(from).unwrap() {
+            let entry = entry.unwrap();
+            let target = to.join(entry.file_name());
+            if entry.file_type().unwrap().is_dir() {
+                copy_dir(&entry.path(), &target);
+            } else {
+                std::fs::copy(entry.path(), target).unwrap();
+            }
+        }
+    }
+    copy_dir(Path::new(GOLDEN_A), to);
+}
+
+#[test]
+fn the_journal_of_an_earlier_session_is_discarded_after_a_confirmation() {
+    let tmp = Tmp::new();
+    let dir = tmp.0.join("g.ew");
+    copy_golden(&dir);
+    crash_with_an_edit(&tmp, &dir);
+
+    // The GUI asks.
+    let mut gui = tmp.gui();
+    done(&mut gui, "file.open", json!({ "dir": path(&dir) }));
+    assert!(gui.can_discard_journal());
+    done(&mut gui, "file.discard_journal", json!({}));
+    assert!(matches!(gui.dialog(), Some(Dialog::ConfirmJournalDiscard)));
+    assert!(gui.can_discard_journal(), "asking changes nothing");
+    gui.shutdown();
+
+    // A script must say that it confirms.
+    let mut shell = tmp.shell();
+    done(&mut shell, "file.open", json!({ "dir": path(&dir) }));
+    match run(&mut shell, "file.discard_journal", json!({})) {
+        Outcome::Failed { message } => assert!(message.contains("\"confirm\": true"), "{message}"),
+        other => panic!("{other:?}"),
+    }
+    assert!(shell.can_discard_journal());
+    done(&mut shell, "file.discard_journal", json!({ "confirm": true }));
+    assert_eq!(shell.access(), Some(AccessMode::Edit));
+    assert!(!shell.can_discard_journal());
+    assert!(shell.banner().unwrap_or_default().contains("discarded"));
+    assert!(
+        !shell.page_labels().iter().any(|l| l == "996"),
+        "the edit is gone"
+    );
+    // The project edits now, and the next open finds no journal.
+    done(
+        &mut shell,
+        "command.run",
+        json!({"cmd": "page.create", "params": {"number": 997}}),
+    );
+    done(&mut shell, "file.save", json!({}));
+    done(&mut shell, "file.close", json!({}));
+    done(&mut shell, "file.open", json!({ "dir": path(&dir) }));
+    assert_eq!(shell.access(), Some(AccessMode::Edit));
+    assert!(shell.page_labels().iter().any(|l| l == "997"));
+    shell.shutdown();
+}
+
+#[test]
+fn the_discard_is_refused_without_a_leftover_journal() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell();
+    assert_eq!(
+        run(&mut shell, "file.discard_journal", json!({"confirm": true})),
+        Outcome::Refused {
+            reason_key: "reason-no-journal"
+        }
+    );
+    done(
+        &mut shell,
+        "file.new",
+        json!({ "dir": path(&tmp.0.join("p.ew")) }),
+    );
+    assert_eq!(
+        run(&mut shell, "file.discard_journal", json!({"confirm": true})),
+        Outcome::Refused {
+            reason_key: "reason-no-journal"
+        }
+    );
+    shell.shutdown();
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// FT-308: first run
+
+#[test]
+fn the_first_run_flow_records_its_answers_in_the_settings() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell();
+    assert!(
+        shell.first_run().is_none(),
+        "the headless mode never starts it by itself"
+    );
+    shell.start_first_run_if_needed();
+    assert!(shell.first_run().is_some());
+    done(
+        &mut shell,
+        "first_run.set",
+        json!({"field": "language", "value": "en"}),
+    );
+    done(&mut shell, "first_run.next", json!({}));
+    done(
+        &mut shell,
+        "first_run.set",
+        json!({"field": "comes_from", "value": "kicad"}),
+    );
+    assert_eq!(shell.settings().comes_from, "kicad");
+    assert_eq!(shell.settings().keymap, "kicad", "step 2 sets the keymap preset");
+    done(&mut shell, "first_run.next", json!({}));
+    assert!(
+        !shell.settings().update_check,
+        "the update check is off by default"
+    );
+    done(
+        &mut shell,
+        "first_run.set",
+        json!({"field": "update_check", "value": true}),
+    );
+    done(&mut shell, "first_run.next", json!({}));
+    done(
+        &mut shell,
+        "first_run.set",
+        json!({"field": "theme", "value": "dark"}),
+    );
+    done(
+        &mut shell,
+        "first_run.set",
+        json!({"field": "ui_scale", "value": 1.5}),
+    );
+    done(&mut shell, "first_run.next", json!({}));
+    done(&mut shell, "first_run.next", json!({}));
+    assert_eq!(
+        shell.first_run().unwrap().step,
+        ew_viewmodel::first_run::FirstRunStep::Start,
+        "clamped"
+    );
+    done(&mut shell, "first_run.back", json!({}));
+    done(&mut shell, "first_run.next", json!({}));
+    done(&mut shell, "first_run.finish", json!({"start": "none"}));
+    assert!(shell.first_run().is_none());
+    assert!(shell.settings().first_run_done);
+    assert_eq!(shell.settings().theme, "dark");
+    assert_eq!(shell.settings().ui_scale, 1.5);
+    // A second shell reads the answers, and the flow does not start again.
+    let mut again = tmp.shell();
+    assert_eq!(again.settings().comes_from, "kicad");
+    assert!(again.settings().update_check);
+    again.start_first_run_if_needed();
+    assert!(again.first_run().is_none());
+    // Help, First-run setup runs it again, at a step of the caller's choice.
+    done(&mut again, "help.first_run", json!({"step": "privacy"}));
+    assert_eq!(
+        again.first_run().unwrap().step,
+        ew_viewmodel::first_run::FirstRunStep::Privacy
+    );
+}
+
+#[test]
+fn bad_first_run_answers_are_refused_and_the_flow_ends_where_it_is_told() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell();
+    assert_eq!(
+        run(&mut shell, "first_run.next", json!({})),
+        Outcome::Refused {
+            reason_key: "reason-no-first-run"
+        }
+    );
+    done(&mut shell, "help.first_run", json!({}));
+    for (field, value) in [
+        ("language", json!("xx")),
+        ("comes_from", json!("vi")),
+        ("theme", json!("blue")),
+        ("update_check", json!(3)),
+        ("nope", json!(1)),
+    ] {
+        assert!(
+            matches!(
+                run(
+                    &mut shell,
+                    "first_run.set",
+                    json!({"field": field, "value": value})
+                ),
+                Outcome::Failed { .. }
+            ),
+            "{field}"
+        );
+    }
+    assert!(matches!(
+        run(&mut shell, "first_run.finish", json!({"start": "elsewhere"})),
+        Outcome::Failed { .. }
+    ));
+    // Finishing with a start choice runs that action: the sample opens.
+    done(&mut shell, "first_run.finish", json!({"start": "sample"}));
+    assert_eq!(shell.project_name(), Some("J-E-2416.ew"));
+    assert!(shell.settings().first_run_done);
+    shell.shutdown();
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// FT-308: the wizard
+
+#[test]
+fn the_wizard_keeps_a_draft_until_it_finishes() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell();
+    done(&mut shell, "tools.company_standard", json!({}));
+    assert!(shell.wizard().is_some());
+    done(
+        &mut shell,
+        "wizard.set",
+        json!({"field": "company_name", "value": "Example Panels"}),
+    );
+    done(
+        &mut shell,
+        "wizard.set",
+        json!({"field": "csa_mains", "value": "2.5"}),
+    );
+    done(&mut shell, "wizard.goto", json!({"step": 4}));
+    match run(
+        &mut shell,
+        "wizard.set",
+        json!({"field": "csa_mains", "value": "many"}),
+    ) {
+        Outcome::Failed { message } => assert!(message.contains("number above zero"), "{message}"),
+        other => panic!("{other:?}"),
+    }
+    assert!(shell.wizard().unwrap().error().is_some());
+    done(&mut shell, "wizard.cancel", json!({}));
+    assert!(shell.wizard().is_none());
+    assert!(
+        tmp.0.join("config/wizard-draft.json").is_file(),
+        "the draft stays"
+    );
+    // The next time it resumes where it was, with the answers.
+    done(&mut shell, "tools.company_standard", json!({}));
+    let w = shell.wizard().unwrap();
+    assert_eq!(w.draft().get("company_name"), "Example Panels");
+    assert_eq!(w.draft().get("csa_mains"), "2.5");
+    assert_eq!(w.step(), ew_viewmodel::wizard::Step::Numbering);
+    // Start over deletes it.
+    done(&mut shell, "wizard.reset", json!({}));
+    assert!(!tmp.0.join("config/wizard-draft.json").exists());
+    assert_eq!(shell.wizard().unwrap().draft().get("company_name"), "");
+    done(&mut shell, "wizard.cancel", json!({}));
+}
+
+#[test]
+fn the_wizard_writes_a_basic_project_that_new_projects_start_from() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell();
+    done(&mut shell, "tools.company_standard", json!({}));
+    done(
+        &mut shell,
+        "wizard.set",
+        json!({"field": "company_name", "value": "Example Panels"}),
+    );
+    done(
+        &mut shell,
+        "wizard.set",
+        json!({"field": "device_format", "value": "{page}-{letter}{counter}"}),
+    );
+    done(
+        &mut shell,
+        "wizard.set",
+        json!({"field": "csa_mains", "value": "2.5"}),
+    );
+    done(
+        &mut shell,
+        "wizard.set",
+        json!({"field": "location_node", "value": "J-1"}),
+    );
+    done(
+        &mut shell,
+        "wizard.set",
+        json!({"field": "first_revision", "value": "V0.1"}),
+    );
+    let basic = tmp.0.join("company.ew");
+    done(&mut shell, "wizard.finish", json!({ "dir": path(&basic) }));
+    assert!(shell.wizard().is_none());
+    assert!(
+        !tmp.0.join("config/wizard-draft.json").exists(),
+        "a finished wizard leaves no draft"
+    );
+    assert!(shell.banner().unwrap_or_default().contains("company.ew"));
+    assert_eq!(
+        shell.settings().basic_project.as_deref(),
+        Some(path(&basic).as_str())
+    );
+    // The basic project is a project of kind basic with the settings, the nodes, the sections and the revision.
+    let text = std::fs::read_to_string(basic.join("project.jsonl")).unwrap();
+    assert!(text.contains("\"kind\":\"basic\""), "{text}");
+    assert!(text.contains("company.dbu-wh-24v"), "the sample colour profile");
+    assert!(
+        text.contains("company.0.75-2.5"),
+        "the size profile with the chosen cross section"
+    );
+    assert!(text.contains("{page}-{letter}{counter}"), "the numbering format");
+    let structure = std::fs::read_to_string(basic.join("structure.jsonl")).unwrap();
+    assert!(structure.contains("\"code\":\"P01\"") && structure.contains("\"code\":\"J-1\""));
+    assert_eq!(structure.matches("\"$k\":\"section\"").count(), 3);
+    let revisions = std::fs::read_to_string(basic.join("revisions.jsonl")).unwrap();
+    assert!(revisions.contains("V0.1"), "{revisions}");
+
+    // New project: the default basic project is the template, so the copy has its settings and its sections.
+    assert_eq!(shell.default_template_name().as_deref(), Some("company.ew"));
+    let new = tmp.0.join("job.ew");
+    done(&mut shell, "file.new", json!({ "dir": path(&new) }));
+    let text = std::fs::read_to_string(new.join("project.jsonl")).unwrap();
+    assert!(!text.contains("\"kind\""), "a schematic project: {text}");
+    assert!(text.contains("company.0.75-2.5"));
+    let structure = std::fs::read_to_string(new.join("structure.jsonl")).unwrap();
+    assert_eq!(structure.matches("\"$k\":\"section\"").count(), 3);
+    // `template: builtin` overrides the default.
+    done(&mut shell, "file.close", json!({}));
+    let plain = tmp.0.join("plain.ew");
+    done(
+        &mut shell,
+        "file.new",
+        json!({ "dir": path(&plain), "template": "builtin" }),
+    );
+    assert!(
+        !std::fs::read_to_string(plain.join("project.jsonl"))
+            .unwrap()
+            .contains("company.0.75")
+    );
+    shell.shutdown();
+}
+
+#[test]
+fn the_wizard_needs_a_directory_parameter_in_a_script_and_a_prompt_in_the_gui() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell();
+    done(&mut shell, "tools.company_standard", json!({}));
+    assert!(matches!(
+        run(&mut shell, "wizard.finish", json!({})),
+        Outcome::Failed { .. }
+    ));
+    let mut gui = tmp.gui();
+    done(&mut gui, "tools.company_standard", json!({}));
+    done(&mut gui, "wizard.finish", json!({}));
+    assert_eq!(gui.take_prompt().unwrap().action, "wizard.finish");
+    // A refused command leaves the wizard open with the reason.
+    let mut open = tmp.shell();
+    done(&mut open, "tools.company_standard", json!({}));
+    done(
+        &mut open,
+        "wizard.set",
+        json!({"field": "sections", "value": "1 100-199 A\n2 200-299 B"}),
+    );
+    let blocked = tmp.0.join("blocked.ew");
+    std::fs::create_dir_all(&blocked).unwrap();
+    std::fs::write(blocked.join("project.jsonl"), "").unwrap();
+    // A directory that already holds a project file is refused by the store.
+    let out = run(&mut open, "wizard.finish", json!({ "dir": path(&blocked) }));
+    if let Outcome::Failed { message } = &out {
+        assert!(!message.contains(&path(&tmp.0)), "{message}");
+        assert!(open.wizard().is_some(), "the wizard stays open");
+    }
+}
+
+#[test]
+fn the_preview_follows_the_draft_and_the_default_draft_reproduces_the_sample() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell();
+    done(&mut shell, "tools.company_standard", json!({}));
+    let first = shell.wizard().unwrap().preview_rev();
+    assert!(first > 0, "the preview was built when the wizard opened");
+    assert!(shell.wizard_preview_content().is_ok());
+    // A field that is only kept in the draft does not rebuild the preview.
+    done(
+        &mut shell,
+        "wizard.set",
+        json!({"field": "company_name", "value": "Example"}),
+    );
+    assert_eq!(shell.wizard().unwrap().preview_rev(), first);
+    // A numbering change does.
+    done(
+        &mut shell,
+        "wizard.set",
+        json!({"field": "device_format", "value": "{page}-{letter}{counter}"}),
+    );
+    assert!(shell.wizard().unwrap().preview_rev() > first);
+    // The cover and the sample page are two folios of the same preview.
+    done(
+        &mut shell,
+        "wizard.set",
+        json!({"field": "preview", "value": "cover"}),
+    );
+    assert_eq!(shell.wizard().unwrap().preview_folio(), "1");
+    let cover = shell.wizard_preview_content();
+    assert!(cover.is_ok(), "{:?}", cover.err());
+    done(
+        &mut shell,
+        "wizard.set",
+        json!({"field": "preview", "value": "page"}),
+    );
+    assert_eq!(shell.wizard().unwrap().preview_folio(), "102");
+    assert!(
+        matches!(
+            run(
+                &mut shell,
+                "wizard.set",
+                json!({"field": "preview", "value": "x"})
+            ),
+            Outcome::Failed { .. }
+        ),
+        "bad preview value"
+    );
+    done(&mut shell, "wizard.cancel", json!({}));
+}
+
+#[test]
+fn every_choice_of_the_wizard_is_accepted_by_the_commands() {
+    // The preview applies the settings commands to the sample project, so a refused value shows at once. Every
+    // combination of the choices that reach the commands builds, and the review step can create the project.
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell();
+    done(&mut shell, "tools.company_standard", json!({}));
+    let mut n = 0;
+    for colour in ["sample", "default"] {
+        for size in ["sample", "default"] {
+            for xref in ["qet", "eplan"] {
+                for (field, value) in [("colour", colour), ("size", size), ("xref", xref)] {
+                    done(&mut shell, "wizard.set", json!({"field": field, "value": value}));
+                }
+                let content = shell.wizard_preview_content();
+                assert!(content.is_ok(), "{colour} {size} {xref}: {:?}", content.err());
+                let dir = tmp.0.join(format!("basic-{n}.ew"));
+                n += 1;
+                let out = run(&mut shell, "wizard.finish", json!({ "dir": path(&dir) }));
+                assert_eq!(out, Outcome::Done, "{colour} {size} {xref}: {out:?}");
+                done(&mut shell, "tools.company_standard", json!({}));
+            }
+        }
+    }
+    assert_eq!(n, 8);
+    shell.shutdown();
+}
+
+#[test]
+fn the_default_draft_reproduces_the_sample_projects_folio_102() {
+    // NFR-UX-08 in miniature: the defaults of the wizard are the sample project's conventions, so the settings
+    // commands of the default draft change nothing, and the preview page is the sample's own page.
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell();
+    done(&mut shell, "file.open_sample", json!({}));
+    let folio = "102".to_owned();
+    let sample = shell.page_content(&folio).expect("the sample's folio 102");
+    done(&mut shell, "tools.company_standard", json!({}));
+    let preview = shell.wizard_preview_content().expect("the preview");
+    assert_eq!(
+        format!(
+            "{:?}",
+            preview.pages.iter().map(|p| &p.content).collect::<Vec<_>>()
+        ),
+        format!(
+            "{:?}",
+            sample.pages.iter().map(|p| &p.content).collect::<Vec<_>>()
+        ),
+        "the default draft leaves folio 102 as the sample has it"
+    );
+    // A different numbering format changes the page: the preview shows the current choices.
+    done(
+        &mut shell,
+        "wizard.set",
+        json!({"field": "device_format", "value": "{page}-{letter}{counter}"}),
+    );
+    let changed = shell.wizard_preview_content().expect("the preview");
+    assert_ne!(
+        format!(
+            "{:?}",
+            changed.pages.iter().map(|p| &p.content).collect::<Vec<_>>()
+        ),
+        format!(
+            "{:?}",
+            sample.pages.iter().map(|p| &p.content).collect::<Vec<_>>()
+        ),
+        "the numbering format reaches the device tags on the page"
+    );
+    shell.shutdown();
+}
+
+#[test]
+fn without_the_sample_the_wizard_works_and_the_preview_says_why_it_is_empty() {
+    let tmp = Tmp::new();
+    let mut config = tmp.config();
+    config.resources.sample_dir = None;
+    let mut shell = ShellModel::new(Mode::Headless, config);
+    done(&mut shell, "tools.company_standard", json!({}));
+    let err = shell.wizard_preview_content().unwrap_err();
+    assert!(err.contains("sample project is not installed"), "{err}");
+    let describe = shell.describe();
+    assert!(
+        describe.contains("preview \"Folio 102\": The sample project is not installed"),
+        "{describe}"
+    );
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// FT-309: workspaces
+
+#[test]
+fn workspaces_are_files_in_the_configuration_directory() {
+    let tmp = Tmp::new();
+    let ws_dir = tmp.0.join("config/workspaces");
+    let mut shell = tmp.shell();
+    assert_eq!(shell.workspace(), "Schematic");
+    assert_eq!(shell.workspace_names(), ["Schematic"]);
+    let before = shell.layout().clone();
+    // Save the layout as a named workspace; the file is the layout's text.
+    done(&mut shell, "view.workspace_save", json!({"name": "Review"}));
+    assert_eq!(shell.workspace(), "Review");
+    let text = std::fs::read_to_string(ws_dir.join("Review.json")).unwrap();
+    assert_eq!(text, before.to_json("Review"));
+    assert_eq!(shell.workspace_names(), ["Schematic", "Review"]);
+    assert_eq!(shell.settings().workspace, "Review");
+    // Another layout, as a user drag would make it, is written one second after its last change.
+    let tabbed = ew_viewmodel::layout::Layout {
+        root: ew_viewmodel::layout::LayoutNode::Tabs {
+            children: vec![
+                ew_viewmodel::layout::LayoutNode::Pane(ew_viewmodel::layout::PaneKind::PageView),
+                ew_viewmodel::layout::LayoutNode::Pane(ew_viewmodel::layout::PaneKind::Pages),
+            ],
+            active: 0,
+        },
+    };
+    shell.set_layout(tabbed.clone(), 10.0);
+    assert!(shell.layout_pending());
+    assert!(!shell.persist_layout_if_due(10.5), "not yet");
+    assert_eq!(std::fs::read_to_string(ws_dir.join("Review.json")).unwrap(), text);
+    assert!(shell.persist_layout_if_due(11.0));
+    assert!(!shell.layout_pending());
+    assert_eq!(
+        std::fs::read_to_string(ws_dir.join("Review.json")).unwrap(),
+        tabbed.to_json("Review")
+    );
+    // Loading Schematic restores the built-in layout and bumps the version, so that the frame rebuilds its tree.
+    let v = shell.layout_version();
+    done(&mut shell, "view.workspace_load", json!({"name": "Schematic"}));
+    assert_eq!(shell.layout(), &before);
+    assert!(shell.layout_version() > v);
+    // A new shell starts in the active workspace and finds its layout.
+    done(&mut shell, "view.workspace_load", json!({"name": "Review"}));
+    assert_eq!(shell.layout(), &tabbed);
+    shell.shutdown();
+    let again = tmp.shell();
+    assert_eq!(again.workspace(), "Review");
+    assert_eq!(again.layout(), &tabbed);
+    // Reset goes back to the built-in layout and writes it for the active workspace.
+    let mut again = again;
+    done(&mut again, "view.workspace_reset", json!({}));
+    assert_eq!(again.layout(), &before);
+    again.shutdown();
+    assert_eq!(
+        std::fs::read_to_string(ws_dir.join("Review.json")).unwrap(),
+        before.to_json("Review")
+    );
+}
+
+#[test]
+fn workspace_names_and_files_are_validated() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell();
+    for bad in ["", " x", "x ", "a/b", "..", "a\\b", "x.json"] {
+        assert!(
+            matches!(
+                run(&mut shell, "view.workspace_save", json!({ "name": bad })),
+                Outcome::Failed { .. }
+            ),
+            "save {bad:?}"
+        );
+        assert!(
+            matches!(
+                run(&mut shell, "view.workspace_load", json!({ "name": bad })),
+                Outcome::Failed { .. }
+            ),
+            "load {bad:?}"
+        );
+    }
+    match run(&mut shell, "view.workspace_load", json!({"name": "Nope"})) {
+        Outcome::Failed { message } => assert_eq!(message, "There is no workspace named Nope."),
+        other => panic!("{other:?}"),
+    }
+    // A damaged file is refused with the reason and left as it is; at start it gives the built-in layout.
+    let ws_dir = tmp.0.join("config/workspaces");
+    std::fs::create_dir_all(&ws_dir).unwrap();
+    std::fs::write(ws_dir.join("Broken.json"), "{\"$schema\":\"ew.workspace/1\"}").unwrap();
+    match run(&mut shell, "view.workspace_load", json!({"name": "Broken"})) {
+        Outcome::Failed { message } => assert!(message.contains("cannot be used"), "{message}"),
+        other => panic!("{other:?}"),
+    }
+    assert_eq!(shell.workspace(), "Schematic");
+    shell.settings(); // the active workspace did not change
+    assert!(ws_dir.join("Broken.json").is_file());
+    // The GUI asks for the name; a script must give it.
+    assert!(matches!(
+        run(&mut shell, "view.workspace_save", json!({})),
+        Outcome::Failed { .. }
+    ));
+    let mut gui = tmp.gui();
+    done(&mut gui, "view.workspace_save", json!({}));
+    assert!(matches!(gui.dialog(), Some(Dialog::SaveWorkspace { .. })));
+    gui.set_workspace_text("Mine");
+    match gui.dialog() {
+        Some(Dialog::SaveWorkspace { text }) => assert_eq!(text, "Mine"),
+        other => panic!("{other:?}"),
+    }
+    done(&mut gui, "view.workspace_save", json!({"name": "Mine"}));
+    assert!(gui.dialog().is_none());
+    assert_eq!(gui.workspace(), "Mine");
+}
+
+#[test]
+fn a_headless_run_without_a_configuration_directory_writes_no_workspace() {
+    let config = ShellConfig {
+        config_dir: None,
+        state_dir: None,
+        app_version: VERSION.to_owned(),
+        resources: Resources::default(),
+    };
+    let mut shell = ShellModel::new(Mode::Headless, config);
+    done(&mut shell, "view.workspace_save", json!({"name": "Nowhere"}));
+    done(&mut shell, "view.workspace_reset", json!({}));
+    shell.shutdown();
+    assert_eq!(shell.workspace(), "Nowhere");
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// FT-311, FT-312: F1, the settings quick switches, the describe text
+
+#[test]
+fn f1_resolves_the_context_in_order() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell();
+    let topic_of = |shell: &mut ShellModel| -> String {
+        done(shell, "help.documentation", json!({}));
+        shell.last_help().unwrap().to_owned()
+    };
+    assert_eq!(topic_of(&mut shell), "how-to/application-window.html#start-page");
+    done(
+        &mut shell,
+        "file.new",
+        json!({ "dir": path(&tmp.0.join("p.ew")) }),
+    );
+    assert_eq!(
+        topic_of(&mut shell),
+        "how-to/application-window.html#project-view"
+    );
+    done(&mut shell, "help.shortcuts", json!({}));
+    assert_eq!(
+        topic_of(&mut shell),
+        "how-to/application-window.html#keyboard-shortcuts"
+    );
+    done(&mut shell, "help.about", json!({}));
+    assert_eq!(topic_of(&mut shell), "how-to/application-window.html#about");
+    done(&mut shell, "tools.palette", json!({}));
+    assert_eq!(
+        topic_of(&mut shell),
+        "how-to/application-window.html#command-palette"
+    );
+    done(&mut shell, "tools.company_standard", json!({}));
+    assert_eq!(
+        topic_of(&mut shell),
+        "how-to/application-window.html#company-standard-wizard"
+    );
+    done(&mut shell, "wizard.cancel", json!({}));
+    done(&mut shell, "help.first_run", json!({}));
+    assert_eq!(
+        topic_of(&mut shell),
+        "how-to/application-window.html#first-run-setup"
+    );
+    // A hovered item names its own topic; an unknown topic is refused; the request carries no URL without a book.
+    done(&mut shell, "help.documentation", json!({"topic": "workspaces"}));
+    assert_eq!(
+        shell.last_help(),
+        Some("how-to/application-window.html#workspaces")
+    );
+    let request = shell.take_doc_request().unwrap();
+    assert_eq!(request.url, None);
+    assert!(shell.take_doc_request().is_none(), "taken once");
+    assert!(matches!(
+        run(&mut shell, "help.documentation", json!({"topic": "nope"})),
+        Outcome::Failed { .. }
+    ));
+    shell.shutdown();
+}
+
+#[test]
+fn the_documentation_url_points_into_the_installed_book() {
+    let tmp = Tmp::new();
+    let docs = tmp.0.join("book");
+    std::fs::create_dir_all(&docs).unwrap();
+    let mut config = tmp.config();
+    config.resources.docs_dir = Some(docs.clone());
+    let mut shell = ShellModel::new(Mode::Headless, config);
+    done(&mut shell, "help.documentation", json!({"topic": "tutorials"}));
+    let request = shell.take_doc_request().unwrap();
+    assert_eq!(request.target, "tutorials/index.html");
+    let url = request.url.unwrap();
+    assert!(
+        url.starts_with("file://") && url.ends_with("/book/tutorials/index.html"),
+        "{url}"
+    );
+}
+
+#[test]
+fn quick_switches_validate_and_persist() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell();
+    done(
+        &mut shell,
+        "settings.set",
+        json!({"key": "keymap", "value": "kicad"}),
+    );
+    done(
+        &mut shell,
+        "settings.set",
+        json!({"key": "theme", "value": "light"}),
+    );
+    done(
+        &mut shell,
+        "settings.set",
+        json!({"key": "language", "value": "en"}),
+    );
+    done(
+        &mut shell,
+        "settings.set",
+        json!({"key": "update_check", "value": "on"}),
+    );
+    for (key, value) in [
+        ("keymap", json!("emacs")),
+        ("theme", json!(1)),
+        ("language", json!("xx")),
+        ("update_check", json!("maybe")),
+        ("bogus", json!(1)),
+    ] {
+        assert!(
+            matches!(
+                run(&mut shell, "settings.set", json!({"key": key, "value": value})),
+                Outcome::Failed { .. }
+            ),
+            "{key}"
+        );
+    }
+    assert!(matches!(
+        run(&mut shell, "settings.set", json!({"key": "theme"})),
+        Outcome::Failed { .. }
+    ));
+    let again = tmp.shell();
+    assert_eq!(again.settings().keymap, "kicad");
+    assert_eq!(again.settings().theme, "light");
+    assert!(again.settings().update_check);
+    // The describe text shows the quick switches and the privacy line of the start page.
+    let text = again.describe();
+    assert!(text.contains("quick \"Keymap\": \"KiCad-like\""), "{text}");
+    assert!(
+        text.contains("label \"Update check: on (this version has none)\""),
+        "{text}"
+    );
+}
+
+#[test]
+fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
+    let tmp = Tmp::new();
+    let mut shell = tmp.shell();
+    let start = shell.describe();
+    for needle in [
+        "button \"New project\"",
+        "label \"Template: the built-in basic project\"",
+        "button \"Open sample project\"",
+        "button \"Import QElectroTech project\"",
+        "button \"Create company standard\"",
+        "button \"Tutorials\"",
+        "quick \"Language\": \"English\"",
+        "item file.new \"New project...\" [Ctrl+N] enabled",
+        "item file.discard_journal \"Discard unsaved changes of the earlier session...\" disabled: The project has no journal of an earlier session",
+        "item help.documentation \"Documentation\" [F1] enabled",
+        "item tools.company_standard \"Company standard wizard...\" enabled",
+    ] {
+        assert!(start.contains(needle), "{needle}\n{start}");
+    }
+    done(&mut shell, "tools.company_standard", json!({}));
+    let wizard = shell.describe();
+    assert!(
+        wizard.contains("wizard \"Company standard\": step 1 of 10 \"Company\" (#1)"),
+        "{wizard}"
+    );
+    assert!(wizard.contains("field \"Company name\": \"-\""), "{wizard}");
+    assert!(wizard.contains("preview \"Folio 102\": ready"), "{wizard}");
+    done(&mut shell, "wizard.goto", json!({"step": 9}));
+    let review = shell.describe();
+    assert!(
+        review.contains("wizard \"Company standard\": step 10 of 10 \"Review and create\" (#11)"),
+        "{review}"
+    );
+    assert!(
+        review.contains(
+            "review \"Cross-reference style\": \"QET style (102-A1)\" (written to the basic project)"
+        ),
+        "{review}"
+    );
+    assert!(
+        review.contains("review \"Company name\": \"-\" (kept in the draft)"),
+        "{review}"
+    );
+    assert!(
+        review.contains("button \"Create the basic project...\""),
+        "{review}"
+    );
+    done(&mut shell, "wizard.cancel", json!({}));
+    done(
+        &mut shell,
+        "file.new",
+        json!({ "dir": path(&tmp.0.join("p.ew")) }),
+    );
+    let view = shell.describe();
+    assert!(view.contains("workspace \"Schematic\""), "{view}");
+    assert!(
+        view.contains("layout: split horizontal [\"Pages\" 20%, \"Page view\" 80%]"),
+        "{view}"
+    );
+    done(&mut shell, "help.about", json!({}));
+    let about = shell.describe();
+    for needle in [
+        "Support: pre-release build; only the latest 0.x release is supported.",
+        "ElektraWatt's checks do not replace engineering verification by a competent person.",
+        "PRIVACY.md lists every data flow",
+        "button \"Third-party notices\"",
+    ] {
+        assert!(about.contains(needle), "{needle}\n{about}");
+    }
+    done(&mut shell, "help.notices", json!({}));
+    let notices = shell.describe();
+    assert!(notices.contains("dialog \"Third-party notices\""), "{notices}");
+    shell.shutdown();
+}

@@ -16,11 +16,17 @@
 /// (architecture section 3, rule 7).
 pub use ew_api;
 
+pub mod about;
 pub mod actions;
 pub mod describe;
+pub mod first_run;
+pub mod help;
+pub mod layout;
 pub mod page_list;
 pub mod script;
 pub mod settings;
 pub mod shell;
 pub mod status;
 pub mod strings;
+pub mod wizard;
+mod wizard_data;
