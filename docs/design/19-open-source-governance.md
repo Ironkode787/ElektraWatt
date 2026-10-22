@@ -619,8 +619,6 @@ for crate in cargo metadata --no-deps:
                                                                               #   operand, AND needs all
 if path_exists(ew-plugin-host -> ew-import-qet) or path_exists(L4 -> ew-import-qet)
    or direct_dependents(ew-import-qet) != {ew-api}: FAIL                      # LR-04
-if non_maintainer_pr and not (exists(LICENSES/LicenseRef-ElektraWatt-plugin-exception.txt)
-                              and exists(LICENSES/<design exception>.txt)): BLOCK              # LG-2, NFR-LIC-12
 ```
 
 `reuse lint` (reuse-tool 6.x) runs first. This check adds the path policy, which REUSE does not know. It fails

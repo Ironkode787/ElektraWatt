@@ -9,9 +9,9 @@
 # CI-PR-10 legal-docs (WP-S0.02, WP-S0.03): the plan and document checks; `reuse lint` (NFR-LIC-01, NFR-LIC-02);
 # the licence-map and licence-boundary check (19 §5.1, NFR-LIC-10, NFR-MAINT-02); the anonymisation guard
 # (NFR-PRIV-09); governance-file presence (NFR-DOC-08); the rustdoc build without warnings (NFR-MAINT-08); and,
-# on pull requests only, the DCO check (NFR-LIC-03), the LG-2 merge block for non-maintainer pull requests while
-# the exception texts are missing (NFR-LIC-12) and the RFC reference on pull requests labelled `format-major`,
-# `api-break` or `licence` (NFR-DOC-09). The pull_request trigger includes `edited`, `labeled` and `unlabeled`
+# on pull requests only, the DCO check (NFR-LIC-03) and the RFC reference on pull requests labelled
+# `format-major`, `api-break` or `licence` (NFR-DOC-09). (The LG-2 merge block for non-maintainer pull requests
+# was removed on the owner's ruling of 2026-10-22, decision log ID-454, FT-315.) The pull_request trigger includes `edited`, `labeled` and `unlabeled`
 # so that the last two re-run when a label or the description changes. Policy data: ci/README.md.
 
 name: docs
@@ -89,27 +89,6 @@ jobs:
         run: |
           git fetch --no-tags origin "+refs/heads/${BASE_REF}:refs/remotes/origin/${BASE_REF}"
           cargo xtask check-dco "origin/${BASE_REF}..HEAD"
-      - name: LG-2 merge block (non-maintainer pull requests)
-        if: github.event_name == 'pull_request'
-        env:
-          AUTHOR_ASSOCIATION: ${{ github.event.pull_request.author_association }}
-        run: |
-          case "$AUTHOR_ASSOCIATION" in
-            OWNER|MEMBER|COLLABORATOR)
-              echo "maintainer pull request ($AUTHOR_ASSOCIATION): LG-2 does not apply"
-              exit 0
-              ;;
-          esac
-          # The design exception is either the SPDX-listed KiCad libraries exception or a project text
-          # (ADR-0024 decision 1, 19 LR-07); either file satisfies the check.
-          if [ -f LICENSES/LicenseRef-ElektraWatt-plugin-exception.txt ] \
-            && { [ -f LICENSES/KiCad-libraries-exception.txt ] \
-                 || [ -f LICENSES/LicenseRef-ElektraWatt-design-exception.txt ]; }; then
-            echo "plugin and design exception texts present: LG-2 met"
-            exit 0
-          fi
-          echo "::error::blocked:LG-2 - pull requests from non-maintainers ($AUTHOR_ASSOCIATION) cannot be merged until ADR-0025 is accepted and the plugin and design exception texts are in LICENSES/ (NFR-LIC-12)."
-          exit 1
       - name: RFC reference for format-major, api-break and licence pull requests
         if: github.event_name == 'pull_request'
         run: |
