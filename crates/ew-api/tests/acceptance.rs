@@ -318,3 +318,78 @@ fn the_markdown_has_one_line_per_entry_and_escapes_pipes() {
         "fail and not_built block, not_applicable does not"
     );
 }
+
+/// A veraPDF XML report (the shape of `verapdf --format xml`) of one job per `(profile, isCompliant)` pair, with
+/// a batch summary and the attributes of its `validationReports` count.
+fn verapdf_report(files: &[(&str, &str)], counts: &str) -> String {
+    let jobs: String = files
+        .iter()
+        .map(|(profile, compliant)| {
+            format!(
+                "<job><item size=\"1\"><name>/data/a.pdf</name></item><validationReport jobEndStatus=\"normal\" profileName=\"{profile}\" statement=\"s\" isCompliant=\"{compliant}\"><details passedRules=\"1\" failedRules=\"0\"/></validationReport></job>"
+            )
+        })
+        .collect();
+    format!(
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?><report><jobs>{jobs}</jobs><batchSummary totalJobs=\"{n}\" failedToParse=\"0\" encrypted=\"0\" outOfMemory=\"0\" veraExceptions=\"0\"><validationReports {counts}>{n}</validationReports></batchSummary></report>",
+        n = files.len()
+    )
+}
+
+/// The AC-13 veraPDF entry reads a veraPDF report by the rules of `ci/verapdf-check.py`: compliant PDF/A-2B files
+/// only, no file that failed to parse, counts that agree with the jobs.
+#[test]
+fn the_verapdf_entry_reads_the_report_of_the_job() {
+    let good = ("PDF/A-2B validation profile", "true");
+    let ok = verapdf_report(
+        &[good, good, good],
+        "compliant=\"3\" nonCompliant=\"0\" failedJobs=\"0\"",
+    );
+    let (status, reason) = checks::verapdf_outcome(&ok);
+    assert_eq!(status, Status::Pass, "{reason}");
+    assert!(reason.contains("3 golden PDF export(s)"), "{reason}");
+
+    let counts_ok = "compliant=\"1\" nonCompliant=\"0\" failedJobs=\"0\"";
+    let one = verapdf_report(&[good], counts_ok);
+    let bad = [
+        // a file that is not compliant, with the counts of such a report
+        verapdf_report(
+            &[("PDF/A-2B validation profile", "false")],
+            "compliant=\"0\" nonCompliant=\"1\" failedJobs=\"0\"",
+        ),
+        // the wrong profile
+        verapdf_report(&[("PDF/A-1B validation profile", "true")], counts_ok),
+        // counts that do not match the jobs
+        verapdf_report(&[good], "compliant=\"0\" nonCompliant=\"0\" failedJobs=\"1\""),
+        // a file that did not parse, was encrypted (the summary says so)
+        one.replace("failedToParse=\"0\"", "failedToParse=\"1\""),
+        one.replace("encrypted=\"0\"", "encrypted=\"1\""),
+        // no job, no summary, no XML
+        verapdf_report(&[], "compliant=\"0\" nonCompliant=\"0\" failedJobs=\"0\""),
+        "<report><jobs><job><validationReport profileName=\"PDF/A-2B validation profile\" isCompliant=\"true\"/></job></jobs></report>"
+            .to_owned(),
+        String::new(),
+    ];
+    for report in &bad {
+        let (status, reason) = checks::verapdf_outcome(report);
+        assert_eq!(status, Status::Fail, "{report}: {reason}");
+        assert!(reason.starts_with("veraPDF cross-check failed: "), "{reason}");
+    }
+    // `<jobs>` is not a job: an empty `<jobs>` element is a report without a job.
+    let (_, reason) = checks::verapdf_outcome(&bad[5]);
+    assert!(reason.contains("no job"), "{reason}");
+}
+
+/// Without `EW_VERAPDF_REPORT` the entry is not applicable and its reason names the job that runs the tool; the
+/// committed headless report holds this text.
+#[test]
+fn the_verapdf_entry_names_the_job_without_a_report() {
+    if std::env::var_os(checks::VERAPDF_REPORT_ENV).is_some() {
+        return;
+    }
+    let committed = std::fs::read_to_string(committed_report()).unwrap();
+    assert!(
+        committed.contains("| AC-13 | veraPDF cross-check of PDF/A-2b | not_applicable | veraPDF is an external tool that the runner does not run; the `verapdf` job of .github/workflows/docs.yml (CI-N-09)"),
+        "the committed report names the verapdf job"
+    );
+}

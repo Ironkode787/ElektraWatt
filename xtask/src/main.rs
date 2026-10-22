@@ -74,7 +74,8 @@ commands:
                        one captured bench output instead of running a bench (one file per flag, repeat it)
   ci                   fmt, clippy and nextest (default and all features), doctests and the repository checks
                        above (except check-dco), with a summary; the default-features nextest step is labelled
-                       'nextest (no acceptance)' (the headless acceptance tests run in nextest-all-features)
+                       'nextest (no acceptance, no fuzzer)' (the headless acceptance tests and the command fuzzer
+                       run in nextest-all-features)
   help                 this text
 ";
 
@@ -461,11 +462,14 @@ fn run_echoing_stderr(command: &mut Command) -> Result<(std::process::ExitStatus
     Ok((child.wait()?, captured))
 }
 
-/// The nextest filterset of the first (default-features) run of a CI test job: the headless acceptance tests of
-/// `crates/ew-api/tests/acceptance.rs` (about 2 min) run in the all-features run only, so once per job
-/// (FT-268, decision log ID-381). `.config/nextest.toml` documents the rule and `.github/workflows/ci.yml` repeats
-/// the filter; a test below keeps the three equal.
-const ACCEPTANCE_ONCE_FILTER: &str = "not (package(ew-api) and binary(acceptance))";
+/// The nextest filterset of the first (default-features) run of a CI test job: the two slow test binaries run in
+/// the all-features run only, so once per job. They are the headless acceptance tests of
+/// `crates/ew-api/tests/acceptance.rs` (about 2 min; FT-268, decision log ID-381) and the command fuzzer of
+/// `crates/ew-testkit/tests/command_fuzz` (`fuzz_smoke`, 15 to 19 s in a debug build; FT-306, ID-437).
+/// `.config/nextest.toml` documents the rule and `.github/workflows/ci.yml` repeats the filter; a test below keeps
+/// the three equal.
+const ONCE_PER_JOB_FILTER: &str =
+    "not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))";
 
 /// Runs the local mirror of the per-PR CI set and prints a summary. Every step runs, even after a failure,
 /// so one invocation shows everything that needs fixing.
@@ -497,16 +501,17 @@ fn ci() -> Result<bool> {
                 "warnings",
             ],
         ),
-        // The headless acceptance tests run once, in the all-features run below (FT-268).
+        // The headless acceptance tests and the command fuzzer run once, in the all-features run below (FT-268,
+        // FT-306).
         (
-            "nextest (no acceptance)",
+            "nextest (no acceptance, no fuzzer)",
             &[
                 "nextest",
                 "run",
                 "--workspace",
                 "--locked",
                 "-E",
-                ACCEPTANCE_ONCE_FILTER,
+                ONCE_PER_JOB_FILTER,
             ],
         ),
         (
@@ -578,12 +583,13 @@ fn ci() -> Result<bool> {
 
 #[cfg(test)]
 mod tests {
-    use super::{ACCEPTANCE_ONCE_FILTER, unresolved_clippy_paths, workspace_root};
+    use super::{ONCE_PER_JOB_FILTER, unresolved_clippy_paths, workspace_root};
 
-    /// FT-268: the acceptance tests run once per job. The default-features run of each of the three test jobs
-    /// carries the filter, the all-features run does not, and the nextest config documents the same filter.
+    /// FT-268, FT-306: the acceptance tests and the command fuzzer run once per job. The default-features run of
+    /// each of the three test jobs carries the filter, the all-features run does not, and the nextest config
+    /// documents the same filter.
     #[test]
-    fn the_acceptance_tests_run_once_per_ci_job() {
+    fn the_acceptance_tests_and_the_fuzzer_run_once_per_ci_job() {
         let ci = std::fs::read_to_string(workspace_root().join(".github/workflows/ci.yml")).unwrap();
         let nextest_runs: Vec<&str> = ci
             .lines()
@@ -594,7 +600,7 @@ mod tests {
             nextest_runs.iter().partition(|l| l.contains("--all-features"));
         assert_eq!((default.len(), all_features.len()), (3, 3), "{nextest_runs:#?}");
         for line in default {
-            assert!(line.contains(&format!("-E '{ACCEPTANCE_ONCE_FILTER}'")), "{line}");
+            assert!(line.contains(&format!("-E '{ONCE_PER_JOB_FILTER}'")), "{line}");
         }
         for line in all_features {
             assert!(
@@ -604,7 +610,7 @@ mod tests {
         }
         let config = std::fs::read_to_string(workspace_root().join(".config/nextest.toml")).unwrap();
         assert!(
-            config.contains(&format!("-E '{ACCEPTANCE_ONCE_FILTER}'")),
+            config.contains(&format!("-E '{ONCE_PER_JOB_FILTER}'")),
             "the nextest config documents the filter"
         );
     }

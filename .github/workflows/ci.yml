@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 # Per-PR CI set of gate G-M0 (docs/design/18-quality-security-release.md §5.2): CI-PR-01 lint,
-# CI-PR-02/03/04 tests on Linux, Windows and macOS, CI-PR-09 supply-chain. Job names are the required
-# status checks (ci/README.md). Hardening per §5.4 and NFR-SEC-19: actions pinned by commit SHA with a
+# CI-PR-02/03/04 tests on Linux, Windows and macOS, CI-PR-05 headless (the evidence job of G-M1-01), CI-PR-09
+# supply-chain. Job names are the required status checks (ci/README.md). Hardening per §5.4 and NFR-SEC-19: actions pinned by commit SHA with a
 # version comment (Renovate keeps them current), read-only default token, no secrets, no test retries
 # (NFR-MAINT-13; .config/nextest.toml sets retries = 0).
 
@@ -29,6 +29,10 @@ env:
   # Keep in step with rust-toolchain.toml and the workspace rust-version in Cargo.toml.
   RUST_TOOLCHAIN: "1.99.0"
   RUST_MSRV: "1.85.0"
+  # The headless container of CI-PR-05: ubuntu:24.04, pinned by the digest of its multi-arch image index (Docker Hub,
+  # resolved 2026-10-22). The image has no fonts, no fontconfig, no display or GPU libraries and a glibc (2.39) as
+  # new as the one of the runner that builds `ew`. Update the tag and the digest together.
+  HEADLESS_IMAGE: ubuntu@sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f579aaff33ac
 
 jobs:
   # CI-PR-01
@@ -86,12 +90,13 @@ jobs:
           tool: cargo-nextest@0.9.148
       - name: cargo build
         run: cargo build --workspace --locked
-      # The headless acceptance tests (about 2 min) run once per job, in the all-features run below: the filter
-      # is the rule of .config/nextest.toml and is kept equal to xtask's ACCEPTANCE_ONCE_FILTER by a test (FT-268).
-      - name: cargo nextest (without the acceptance tests)
-        run: cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance))'
+      # The headless acceptance tests (about 2 min) and the command fuzzer's `fuzz_smoke` (15 to 19 s) run once per
+      # job, in the all-features run below: the filter is the rule of .config/nextest.toml and is kept equal to
+      # xtask's ONCE_PER_JOB_FILTER by a test (FT-268, FT-306).
+      - name: cargo nextest (without the acceptance tests and the fuzzer)
+        run: cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'
       # Feature-gated code (for example ew-ids/testkit) is only compiled and tested with its feature on.
-      - name: cargo nextest (all features, with the acceptance tests)
+      - name: cargo nextest (all features, with the acceptance tests and the fuzzer)
         run: cargo nextest run --workspace --all-features --locked --profile ci
       # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
       - name: failed tests as annotations
@@ -144,12 +149,13 @@ jobs:
           tool: cargo-nextest@0.9.148
       - name: cargo build
         run: cargo build --workspace --locked
-      # The headless acceptance tests (about 2 min) run once per job, in the all-features run below: the filter
-      # is the rule of .config/nextest.toml and is kept equal to xtask's ACCEPTANCE_ONCE_FILTER by a test (FT-268).
-      - name: cargo nextest (without the acceptance tests)
-        run: cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance))'
+      # The headless acceptance tests (about 2 min) and the command fuzzer's `fuzz_smoke` (15 to 19 s) run once per
+      # job, in the all-features run below: the filter is the rule of .config/nextest.toml and is kept equal to
+      # xtask's ONCE_PER_JOB_FILTER by a test (FT-268, FT-306).
+      - name: cargo nextest (without the acceptance tests and the fuzzer)
+        run: cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'
       # Feature-gated code (for example ew-ids/testkit) is only compiled and tested with its feature on.
-      - name: cargo nextest (all features, with the acceptance tests)
+      - name: cargo nextest (all features, with the acceptance tests and the fuzzer)
         run: cargo nextest run --workspace --all-features --locked --profile ci
       # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
       - name: failed tests as annotations
@@ -202,12 +208,13 @@ jobs:
           tool: cargo-nextest@0.9.148
       - name: cargo build
         run: cargo build --workspace --locked
-      # The headless acceptance tests (about 2 min) run once per job, in the all-features run below: the filter
-      # is the rule of .config/nextest.toml and is kept equal to xtask's ACCEPTANCE_ONCE_FILTER by a test (FT-268).
-      - name: cargo nextest (without the acceptance tests)
-        run: cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance))'
+      # The headless acceptance tests (about 2 min) and the command fuzzer's `fuzz_smoke` (15 to 19 s) run once per
+      # job, in the all-features run below: the filter is the rule of .config/nextest.toml and is kept equal to
+      # xtask's ONCE_PER_JOB_FILTER by a test (FT-268, FT-306).
+      - name: cargo nextest (without the acceptance tests and the fuzzer)
+        run: cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'
       # Feature-gated code (for example ew-ids/testkit) is only compiled and tested with its feature on.
-      - name: cargo nextest (all features, with the acceptance tests)
+      - name: cargo nextest (all features, with the acceptance tests and the fuzzer)
         run: cargo nextest run --workspace --all-features --locked --profile ci
       # Names every failed nextest case as a check-run annotation (the job log needs admin rights to read).
       - name: failed tests as annotations
@@ -238,6 +245,65 @@ jobs:
         run: cargo test --doc --workspace --locked
       - name: cargo test --doc (all features)
         run: cargo test --doc --workspace --all-features --locked
+
+  # CI-PR-05 (FT-295, evidence for G-M1-01, NFR-PLAT-04, NFR-REL-11): the shipped `ew export pdf` over
+  # golden/J-E-2416.ew inside a bare Linux container (ci/headless-export.sh checks inside it that there is no
+  # display, no GPU, no font file and no user directory content), on one thread and on four, with no network. The PDF
+  # of each run must be byte for byte the committed digest of golden/J-E-2416/expected/pdf/sha256.txt. The PNG export
+  # (`ew render --page 103 --png`, FT-254) joins the job when that command exists. Why a container and what it does
+  # not cover: ci/README.md.
+  headless:
+    name: headless
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
+      - name: assert ICU4X_DATA_DIR is unset
+        shell: bash
+        run: test -z "${ICU4X_DATA_DIR:-}"
+      - name: cargo build ew
+        run: cargo build -p ew --locked
+      - name: pull the container image
+        run: docker pull "$HEADLESS_IMAGE"
+      # The container: no network, a read-only root file system, no capabilities, no device (so no /dev/dri), the
+      # runner's user id so that the output is writable, and the three mounts that ci/headless-export.sh lists.
+      - name: export the golden PDF in the container
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/headless"
+          mkdir -p "$out"
+          docker run --rm --network none --read-only --tmpfs /tmp:rw,mode=1777 --cap-drop ALL \
+            --security-opt no-new-privileges --user "$(id -u):$(id -g)" \
+            --volume "$PWD/target/debug/ew:/ew:ro" \
+            --volume "$PWD/golden/J-E-2416.ew:/project:ro" \
+            --volume "$PWD/ci/headless-export.sh:/headless-export.sh:ro" \
+            --volume "$out:/out" \
+            "$HEADLESS_IMAGE" sh /headless-export.sh
+      - name: the PDFs are the committed digest
+        shell: bash
+        run: |
+          set -euo pipefail
+          want="$(tr -d '\n' < golden/J-E-2416/expected/pdf/sha256.txt)"
+          for threads in 1 4; do
+            got="$(sha256sum "$RUNNER_TEMP/headless/golden-$threads.pdf" | cut -d' ' -f1)"
+            echo "$threads thread(s): $got (committed: $want)"
+            test "$got" = "$want" || { echo "::error::the PDF of the headless container ($threads thread(s)) is not the committed digest of golden/J-E-2416/expected/pdf/sha256.txt"; exit 1; }
+          done
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: headless-pdf
+          path: ${{ runner.temp }}/headless
+          if-no-files-found: warn
+          retention-days: 14
 
   # CI-PR-09
   supply-chain:

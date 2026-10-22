@@ -202,9 +202,7 @@ pub fn all(r: &mut Runner) {
         ac13_text_extraction,
     );
     r.entry("AC-13", "PDF/A-2b validated in process by krilla", ac13_pdfa);
-    r.entry("AC-13", "veraPDF cross-check of PDF/A-2b", |_| {
-        na("veraPDF is an external tool that is not installed in the headless harness; the CI job that has it runs the cross-check")
-    });
+    r.entry("AC-13", "veraPDF cross-check of PDF/A-2b", ac13_verapdf);
 
     // The SQL half of the acceptance pairs (doc 20 §3.1 `acceptance/*.sql`, doc 18 §3.10 steps 2 and 3): the
     // SQL runs under the `ew sql` sandbox profile over the projection of the profiled model.
@@ -384,6 +382,120 @@ fn list(items: impl IntoIterator<Item = String>, limit: usize) -> String {
         all.join(", ")
     } else {
         format!("{}, and {} more", all[..limit].join(", "), all.len() - limit)
+    }
+}
+
+/// The environment variable that names a veraPDF XML report (`verapdf --format xml`) of the golden PDF exports.
+/// The `verapdf` job of `.github/workflows/docs.yml` (CI-N-09, FT-294) writes it and uploads it as the artifact
+/// `verapdf-report`; `EW_VERAPDF_REPORT=<report.xml> cargo xtask acceptance --milestone <report.md>` makes
+/// AC-13's veraPDF entry read it. The committed headless report is made without it, so its entry stays
+/// `not_applicable` (and the ordinary test of the committed report fails when a developer has the variable set).
+pub const VERAPDF_REPORT_ENV: &str = "EW_VERAPDF_REPORT";
+
+/// AC-13's veraPDF entry: the verdict of a veraPDF report when [`VERAPDF_REPORT_ENV`] names one, else not
+/// applicable (the tool is external and is not run by the runner itself).
+fn ac13_verapdf(_: &Ctx) -> Outcome {
+    let Some(path) = std::env::var_os(VERAPDF_REPORT_ENV).filter(|v| !v.is_empty()) else {
+        return na(
+            "veraPDF is an external tool that the runner does not run; the `verapdf` job of .github/workflows/docs.yml (CI-N-09) validates the exported PDFs against PDF/A-2b, and setting EW_VERAPDF_REPORT to the path of its XML report makes this entry read the result",
+        );
+    };
+    match std::fs::read_to_string(&path) {
+        Ok(text) => verapdf_outcome(&text),
+        Err(e) => fail(format!(
+            "{VERAPDF_REPORT_ENV} names a report that cannot be read: {e}"
+        )),
+    }
+}
+
+/// The attribute `name="value"` of one opening tag.
+fn xml_attr<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
+    let key = format!(" {name}=\"");
+    let start = tag.find(&key)? + key.len();
+    let len = tag[start..].find('"')?;
+    Some(&tag[start..start + len])
+}
+
+/// The opening tags `<name ...>` of a document, without the brackets (a scan, not an XML parser: the report is
+/// the machine-readable output of veraPDF, whose tags carry the verdict in attributes).
+fn xml_open_tags<'a>(text: &'a str, name: &str) -> Vec<&'a str> {
+    let open = format!("<{name}");
+    let mut tags = Vec::new();
+    let mut rest = text;
+    while let Some(at) = rest.find(&open) {
+        let after = &rest[at + open.len()..];
+        let Some(end) = after.find('>') else { break };
+        if after.starts_with(|c: char| c.is_whitespace() || c == '>' || c == '/') {
+            tags.push(&after[..end]);
+        }
+        rest = &after[end..];
+    }
+    tags
+}
+
+/// The verdict of a veraPDF XML report, by the rules of `ci/verapdf-check.py` (which the job runs): at least one
+/// job; each job validated against a PDF/A-2B profile and `isCompliant="true"`; the batch summary has no file that
+/// failed to parse, was encrypted, ran out of memory or hit a veraPDF exception, and counts as many compliant files
+/// as jobs and none non-compliant.
+pub fn verapdf_outcome(text: &str) -> Outcome {
+    let mut wrong = Vec::new();
+    let jobs = xml_open_tags(text, "job").len();
+    let reports = xml_open_tags(text, "validationReport");
+    if jobs == 0 {
+        wrong.push("the report has no job".to_owned());
+    }
+    if reports.len() != jobs {
+        wrong.push(format!(
+            "{jobs} job(s) but {} validation report(s)",
+            reports.len()
+        ));
+    }
+    for report in &reports {
+        let profile = xml_attr(report, "profileName").unwrap_or("");
+        if !profile.to_ascii_lowercase().replace('-', "").contains("2b") {
+            wrong.push(format!("validated against `{profile}`, not PDF/A-2B"));
+        }
+        if xml_attr(report, "isCompliant") != Some("true") {
+            wrong.push("a file is not compliant".to_owned());
+        }
+    }
+    match xml_open_tags(text, "batchSummary").first() {
+        None => wrong.push("the report has no batch summary".to_owned()),
+        Some(summary) => {
+            for name in ["failedToParse", "encrypted", "outOfMemory", "veraExceptions"] {
+                if xml_attr(summary, name) != Some("0") {
+                    wrong.push(format!(
+                        "batch summary: {name}={}",
+                        xml_attr(summary, name).unwrap_or("missing")
+                    ));
+                }
+            }
+        }
+    }
+    match xml_open_tags(text, "validationReports").first() {
+        None => wrong.push("the report has no validationReports count".to_owned()),
+        Some(counts) => {
+            let (compliant, non, failed) = (
+                xml_attr(counts, "compliant"),
+                xml_attr(counts, "nonCompliant"),
+                xml_attr(counts, "failedJobs"),
+            );
+            if compliant != Some(jobs.to_string().as_str()) || non != Some("0") || failed != Some("0") {
+                wrong.push(format!(
+                    "counts: compliant={} nonCompliant={} failedJobs={} for {jobs} job(s)",
+                    compliant.unwrap_or("missing"),
+                    non.unwrap_or("missing"),
+                    failed.unwrap_or("missing")
+                ));
+            }
+        }
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "veraPDF reports {jobs} golden PDF export(s) compliant with PDF/A-2B and no file failed to parse (read from {VERAPDF_REPORT_ENV}; the job's own verdict is ci/verapdf-check.py)"
+        ))
+    } else {
+        fail(format!("veraPDF cross-check failed: {}", list(wrong, 4)))
     }
 }
 

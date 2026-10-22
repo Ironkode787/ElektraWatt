@@ -1,0 +1,104 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# CI-PR-13 coverage (FT-296, NFR-MAINT-06; docs/design/18-quality-security-release.md §5.2): cargo-llvm-cov 0.9.1 runs
+# the workspace tests (all features, nextest) with instrumentation and reports the line coverage of the core crates
+# (ew-model, ew-commands, ew-memo, ew-derive, ew-format, ew-store) against the threshold of 80 %. The tests of every
+# crate count for a core crate (the acceptance and fuzz tests exercise ew-commands and ew-derive from outside), which is
+# why the whole workspace runs; the job is slow (the acceptance tests alone take about 2 min uninstrumented) and so
+# runs weekly, not per pull request.
+#
+# REPORT-ONLY: the report is the job summary and the artifact `coverage-report`. The job fails only when the tool
+# fails (cargo-llvm-cov, the report generation, or a summary that does not hold a line of every core crate: the run did
+# not measure it); a crate below the threshold and a test that fails under instrumentation are reported, not red (the
+# test jobs of ci.yml gate the tests). The owner sets the dated plan that makes the 80 % threshold a gate (G-M1-15 in
+# the readiness report); until then CI-PR-13 is not a required check. ci/coverage-summary.py makes the report.
+#
+# Same hardening as ci.yml (§5.4, NFR-SEC-19): actions pinned by commit SHA with a version comment, read-only
+# default token, no secrets; the tools come through install-action, which verifies their checksums.
+
+name: coverage
+
+on:
+  schedule:
+    - cron: "43 3 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: coverage
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  # Keep in step with rust-toolchain.toml and ci.yml.
+  RUST_TOOLCHAIN: "1.99.0"
+
+jobs:
+  coverage:
+    name: coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: llvm-tools
+      # The instrumented build has its own artifacts; the cache key of the job keeps them apart from the test jobs.
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      # NFR-REL-07: ICU4X_DATA_DIR swaps the ICU segmentation data at build time and changes line breaks.
+      - name: assert ICU4X_DATA_DIR is unset
+        shell: bash
+        run: test -z "${ICU4X_DATA_DIR:-}"
+      # install-action verifies the checksums of the prebuilt binaries it downloads.
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        with:
+          tool: cargo-llvm-cov@0.9.1,cargo-nextest@0.9.148
+      - name: coverage-summary self-test
+        run: python3 -I ci/coverage-summary.py --selftest
+      # --no-fail-fast: every test runs and its profile data counts. The exit status is kept for the summary, not for
+      # the job: a failing test is the business of the test jobs.
+      - name: run the instrumented tests
+        id: tests
+        shell: bash
+        run: |
+          set +e
+          cargo llvm-cov nextest --workspace --all-features --locked --no-report --no-fail-fast
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          if [ "$status" -ne 0 ]; then
+            echo "::warning title=coverage::the instrumented test run exited with status $status; the coverage is of what ran (see the log)"
+          fi
+          exit 0
+      # A failure here is a tool failure: the job is red.
+      - name: coverage summary
+        env:
+          TESTS_STATUS: ${{ steps.tests.outputs.status }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/coverage
+          cargo llvm-cov report --json --summary-only --output-path target/coverage/summary.json
+          python3 -I ci/coverage-summary.py target/coverage/summary.json --threshold 80 --out target/coverage/report.md
+          {
+            cat target/coverage/report.md
+            if [ "$TESTS_STATUS" != "0" ]; then
+              echo
+              echo "The instrumented test run exited with status $TESTS_STATUS: the percentages count what ran."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: coverage-report
+          path: |
+            target/coverage/report.md
+            target/coverage/summary.json
+          if-no-files-found: warn
+          retention-days: 90

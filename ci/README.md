@@ -17,17 +17,20 @@ The job names are the GitHub status-check names to mark as required.
 | ID | Workflow / job | Content | Reproduce locally |
 |---|---|---|---|
 | CI-PR-01 | `ci.yml` / `lint` (ubuntu-24.04) | `cargo fmt --all --check`; `cargo clippy --workspace --all-targets --locked -- -D warnings`, and again with `--all-features` | `cargo fmt --all --check` and both clippy runs |
-| CI-PR-02 | `ci.yml` / `test-linux` (ubuntu-24.04) | `cargo build --workspace --locked`; `cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance))'`, and again with `--all-features` and no filter (feature-gated tests such as `ew-ids/testkit`; the headless acceptance tests, about 2 min, run once per job, in this second run: FT-268); `cargo test --doc --workspace --locked`, and again with `--all-features` (nextest does not run doctests) | `cargo build --workspace --locked`, `cargo nextest run --workspace --locked -E 'not (package(ew-api) and binary(acceptance))'`, `cargo nextest run --workspace --all-features --locked` and `cargo test --doc --workspace [--all-features] --locked` |
+| CI-PR-02 | `ci.yml` / `test-linux` (ubuntu-24.04) | `cargo build --workspace --locked`; `cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'`, and again with `--all-features` and no filter (feature-gated tests such as `ew-ids/testkit`; the headless acceptance tests, about 2 min, and the command fuzzer's `fuzz_smoke`, 15 to 19 s, run once per job, in this second run: FT-268, FT-306); `cargo test --doc --workspace --locked`, and again with `--all-features` (nextest does not run doctests) | `cargo build --workspace --locked`, `cargo nextest run --workspace --locked -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'`, `cargo nextest run --workspace --all-features --locked` and `cargo test --doc --workspace [--all-features] --locked` |
 | CI-PR-03 | `ci.yml` / `test-windows` (windows-2025) | as CI-PR-02 | as CI-PR-02, on Windows |
 | CI-PR-04 | `ci.yml` / `test-macos` (macos-15, arm64) | as CI-PR-02 | as CI-PR-02, on macOS |
+| CI-PR-05 | `ci.yml` / `headless` (ubuntu-24.04) | `cargo build -p ew --locked`; `ew export pdf golden/J-E-2416.ew` inside a bare `ubuntu:24.04` container (image pinned by digest; no network, no display, no GPU, no font file, empty user directories), on one thread and on four; both PDFs must be the committed digest of `golden/J-E-2416/expected/pdf/sha256.txt` (FT-295, G-M1-01); the PDFs uploaded as the artifact `headless-pdf`. Details: [Headless container job](#headless-container-job-ci-pr-05) | `cargo build -p ew --locked` and `docker run` as in the job (Linux and docker), or `cargo nextest run -p ew --test cli -E 'test(export_pdf_of_golden_a)'` for the same check without the container |
 | CI-PR-09 | `ci.yml` / `supply-chain` (ubuntu-24.04) | `cargo deny check`; `cargo audit`; `cargo vet`; `cargo xtask check-deps`, `check-features`, `check-build-scripts`, `check-workflows`; third-party notices with cargo-about 0.9.2 (NFR-LIC-08); MSRV check of the permissive crates with Rust 1.85.0 | `cargo deny --locked check`, `cargo audit`, `cargo vet --locked`, the four `cargo xtask` checks, `cargo about generate -o target/THIRD-PARTY-NOTICES.txt ci/third-party-notices.hbs`, and the MSRV commands below |
 | CI-PR-10 | `docs.yml` / `legal-docs` (ubuntu-24.04) | `docs/plan/tools/{totals,schedule,trace}.py --check` and `doccheck.py`; `reuse lint` (reuse-tool 6.2.0; NFR-LIC-01, NFR-LIC-02); `cargo xtask check-licence-map` (licence map, collective notice, crate licences and the licence boundary of the permissive layer: 19 §5.1, NFR-LIC-10, NFR-MAINT-02); `cargo xtask check-anonymisation` (NFR-PRIV-09); `cargo xtask check-governance-files` (NFR-DOC-08); rustdoc build with `-D warnings` (NFR-MAINT-08). On pull requests only: `cargo xtask check-dco` over the PR's commits (NFR-LIC-03); the LG-2 block, which fails a PR from anyone who is not an owner, member or collaborator while the plugin and design exception texts are missing from `LICENSES/` (NFR-LIC-12); and the RFC reference, which fails a PR labelled `format-major`, `api-break` or `licence` whose description does not mention `rfcs/` (NFR-DOC-09) | `python3 -I docs/plan/tools/totals.py --check` (and the other three); `python -m reuse lint`; `cargo xtask check-licence-map`, `check-anonymisation`, `check-governance-files`, `check-dco origin/main..HEAD`; `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked` |
 | CI-PR-15 | `docs.yml` / `docs-diagrams` (ubuntu-24.04) | Renders every Mermaid block under `docs/` and in the root Markdown with mermaid-cli 12.0.0 (container image pinned by digest) and fails on any error | `python3 -I ci/render-mermaid.py --image <image@sha256:…>` (needs docker); `--extract-only` lists the blocks without docker |
 | CI-PR-10 (book) | `docs.yml` / `docs-book` (ubuntu-24.04) | The user-documentation book of `docs/book` (WP-S0.06, NFR-DOC-01, NFR-DOC-06): `cargo xtask docs-gen --check` (the generated command and rule reference pages are current); mdBook 0.5.4, installed from its pinned release archive (SHA-256 checked); `mdbook build docs/book` in an empty network namespace (the build is offline); `ci/check-book-links.py` over the built pages (relative links, anchors, and links into the repository); the built book uploaded as the artifact `user-guide`. A separate job, so that `legal-docs` stays fast | `cargo xtask docs-gen --check`; `mdbook build docs/book` (mdBook 0.5.4); `python3 -I ci/check-book-links.py target/book` |
+| CI-N-09 | `docs.yml` / `verapdf` (ubuntu-24.04) | Builds `ew`, exports the golden PDF in three variants (all pages; dated by `SOURCE_DATE_EPOCH`; `--pages 101-106,901`) and validates each against PDF/A-2b with veraPDF 1.30.3 (the project's `verapdf/cli` image pinned by digest, run with no network); `ci/verapdf-check.py` turns the XML report into the verdict (FT-294, G-M1-02); the report uploaded as the artifact `verapdf-report`. Details: [veraPDF job](#verapdf-job-ci-n-09) | `python3 -I ci/verapdf-check.py --selftest`; with docker: `docker run --rm -v "$PWD/out:/data:ro" verapdf/cli@sha256:… --flavour 2b --format xml /data/golden-all.pdf > out/verapdf-report.xml`, then `python3 -I ci/verapdf-check.py out/verapdf-report.xml` |
+| CI-PR-13 | `coverage.yml` / `coverage` (ubuntu-24.04; weekly and `workflow_dispatch`, not per PR) | cargo-llvm-cov 0.9.1 over the workspace tests (all features, nextest), the line coverage of `ew-model`, `ew-commands`, `ew-memo`, `ew-derive`, `ew-format` and `ew-store` against 80 % (NFR-MAINT-06); **report-only** (FT-296, G-M1-15). Details: [Coverage job](#coverage-job-ci-pr-13) | `cargo llvm-cov nextest --workspace --all-features --locked --no-report`, `cargo llvm-cov report --json --summary-only --output-path summary.json`, `python3 -I ci/coverage-summary.py summary.json` |
 
 `cargo xtask ci` runs fmt, clippy, nextest and the doctests (each with the default features and with `--all-features`;
-the default-features nextest step is labelled `nextest (no acceptance)` in the summary, and the acceptance tests run
-only in the `nextest-all-features` step, as in the jobs) and the nine repository checks (`check-deps`,
+the default-features nextest step is labelled `nextest (no acceptance, no fuzzer)` in the summary, and the acceptance
+tests and the command fuzzer run only in the `nextest-all-features` step, as in the jobs) and the nine repository checks (`check-deps`,
 `check-features`, `check-raw-read`, `check-build-scripts`, `check-workflows`, `check-licence-map`,
 `check-anonymisation`, `check-governance-files`, `docs-gen --check`) in sequence and prints a summary: the local
 mirror of the Rust part of the PR set. `check-dco` needs a revision range and is run on its own.
@@ -138,7 +141,96 @@ Locally: `EW_FUZZ_SEEDS=17 EW_FUZZ_STEPS=200 EW_FUZZ_REPORT=target/fuzz/findings
 --test command_fuzz fuzz_long -- --ignored --nocapture` (or in the dev profile for the debug checks, about seven times
 slower); the cadences of the costly oracles are `EW_FUZZ_SAMPLE_EVERY`, `EW_FUZZ_CHECK_EVERY` and
 `EW_FUZZ_VERIFY_EVERY`, the step mix `EW_FUZZ_SAVE_WEIGHT` and `EW_FUZZ_IMPORT_WEIGHT`, the wall-clock budget
-`EW_FUZZ_BUDGET_SECS`. `fuzz_smoke` (2 seeds of 30 steps) stays in the targeted tests and in `cargo xtask ci`.
+`EW_FUZZ_BUDGET_SECS`. `fuzz_smoke` (2 seeds of 30 steps, 15 to 19 s in a debug build) stays in the targeted tests (`cargo nextest run -p ew-testkit`) and runs once per CI test job and in `cargo xtask ci`, in the all-features nextest run (the default-features run skips the `command_fuzz` binary: FT-306, decision log ID-437).
+
+## Headless container job (CI-PR-05)
+
+FT-295, evidence for G-M1-01 (NFR-PLAT-04, NFR-REL-11). The job `headless` of [`ci.yml`](../.github/workflows/ci.yml)
+builds `ew` (`cargo build -p ew --locked`, a debug build) and runs `ew export pdf golden/J-E-2416.ew` in a Linux
+container, once with `--threads 1` and once with `--threads 4`. The two PDFs must be byte for byte the digest that
+[`golden/J-E-2416/expected/pdf/sha256.txt`](../golden/J-E-2416/expected/pdf/sha256.txt) commits; the job fails
+otherwise and uploads the PDFs as the artifact `headless-pdf`.
+
+**Why a container, and why this image.** "No system fonts" and "no display or GPU libraries" are properties of the file
+system the process sees, and a hosted ubuntu-24.04 runner has fonts, fontconfig and X and GL libraries on it. An
+empty `HOME` and `unshare --net` would hide the user's directories and the network, but not the system fonts, so a
+digest that equals the committed one would not show that `ew` uses the bundled faces only. In a container whose image
+has no font file at all, an export that reached for a system font would find none and the digest would differ. The
+image is `ubuntu:24.04`, pinned by the digest of its image index (`HEADLESS_IMAGE` in `ci.yml`, resolved
+2026-10-22; update the tag and the digest together). It has the same glibc (2.39) as the runner that builds `ew`, so the
+dynamically linked binary, mounted read-only into the container, runs unchanged; a `debian:12-slim` or distroless
+image has glibc 2.36, and a binary built on the runner may need newer symbols. A statically linked musl build would
+remove the dependence, at the price of a second target and of a build that is not the shipped one; it is not decided.
+
+**The container.** `docker run --network none --read-only --tmpfs /tmp --cap-drop ALL --security-opt
+no-new-privileges --user <runner uid>`, with no `--device` (so no `/dev/dri`) and no `--gpus`; the mounts are the `ew`
+binary, the golden project (`golden/J-E-2416.ew`, read-only, which also shows that the export writes nothing into the
+project) and [`ci/headless-export.sh`](headless-export.sh), all read-only, and the output directory. The script runs
+inside and first proves that the container is bare, so that a change of image or flags cannot weaken the job unseen:
+`DISPLAY` and `WAYLAND_DISPLAY` unset; no `/dev/dri`, `/dev/nvidiactl`, `/dev/nvidia0`, `/dev/kfd`; no font file
+(`*.ttf`, `*.otf`, `*.ttc`, `*.otc`, `*.pfb`, `*.pfa`, `*.woff*`, `*.pcf*`) anywhere on the image, no
+`/usr/share/fonts`, `/etc/fonts`, `fc-list` or `fc-cache`; the user directories (`HOME`, `APPDATA`,
+`XDG_STATE_HOME`, `XDG_DATA_HOME`, `XDG_CONFIG_HOME`) point at empty directories. The export then runs under `env -i`,
+so there is no `EW_CONTENT_DIR`, no `SOURCE_DATE_EPOCH` and no locale. The same property is held in process by
+`bin/ew/tests/cli.rs` (`export_pdf_of_golden_a_is_the_committed_pdf`) and by AC-15 of the acceptance runner; the job
+adds the file system the process sees.
+
+**What it does not cover.** `ew` is the debug build of the job's own toolchain, not a release artefact (the PDF is
+independent of the profile; the release pipeline has its own checks, CI-R). The kernel and the CPU are the runner's.
+`ew render --page 103 --png` (FT-254) is not part of the job because the command does not exist yet. The equality of
+this PDF with the kittest GUI export of CI-PR-07 (FR-OUT-022) waits for CI-PR-07.
+
+Locally (Linux with docker): build `ew`, then run the `docker run` of the job with `--volume` mounts for the three
+files and a writable output directory, and compare `sha256sum` of the two PDFs with `sha256.txt`.
+
+## veraPDF job (CI-N-09)
+
+FT-294, evidence for G-M1-02 (AC-13). The doc 18 catalogue lists CI-N-09 as a nightly; it runs as the job `verapdf` of
+[`docs.yml`](../.github/workflows/docs.yml) on every pull request and push to `main`, in parallel with the other jobs,
+so that a PDF/A regression is caught where it is made. It costs one `ew` build and a 53 MB image pull (about 5 minutes
+expected; not measured before the first runs) and does not lengthen the 30-minute wall time of the test jobs.
+
+The job builds `ew`, exports the golden PDF in three variants (all 36 pages with the model's date; the same dated by
+`SOURCE_DATE_EPOCH=1700000000`; `--pages 101-106,901`), checks that the first is the committed digest, and runs
+veraPDF 1.30.3 over the three files with `--flavour 2b --format xml`. veraPDF is the project's own CLI image
+`verapdf/cli`, **pinned by the digest of the image manifest** (`VERAPDF_IMAGE` in `docs.yml`, resolved 2026-10-22 from the
+Docker Hub tag `v1.30.3`; update the version and the digest together), run with `--network none --cap-drop ALL` and the
+PDFs mounted read-only. The Java runtime is inside the image, so the runner's JDK does not matter. The image rather
+than the installer archive, because the project publishes a GPG signature for the archive and no SHA-256, and a digest
+is the checksum of exactly the bytes that run.
+
+The verdict is [`ci/verapdf-check.py`](verapdf-check.py) over the XML report, not veraPDF's exit status (which the
+log prints): the job fails unless there are exactly three jobs, each validated against a PDF/A-2B profile and
+`isCompliant="true"`, with no file that failed to parse, was encrypted, ran out of memory or hit a veraPDF exception.
+The first failed rules of a non-compliant file are printed, and the verdict is the job summary. The report is the
+artifact `verapdf-report` (14 days, with the three PDFs).
+
+**AC-13 reads the result.** The acceptance runner's entry "veraPDF cross-check of PDF/A-2b"
+(`crates/ew-api/tests/acceptance/checks.rs`) reads the report when `EW_VERAPDF_REPORT=<report.xml>` is set and applies
+the same rules (pass, or fail with the reasons); the milestone run takes the artifact of the job:
+`EW_VERAPDF_REPORT=verapdf-report.xml cargo xtask acceptance --milestone <report.md>`. Without the variable the entry
+stays `not_applicable` and its text names the job, which is what the committed headless report
+(`golden/J-E-2416/expected/acceptance_headless.md`) holds, so the job does not run the runner (with the variable set
+the entry would pass and the committed report would differ). `python3 -I ci/verapdf-check.py --selftest` and the test
+`the_verapdf_entry_reads_the_report_of_the_job` check the two readers on the same cases.
+
+## Coverage job (CI-PR-13)
+
+FT-296, G-M1-15 (S criterion: a dated plan). The workflow [`coverage.yml`](../.github/workflows/coverage.yml) runs
+weekly (Sunday 03:43 UTC) and on `workflow_dispatch`, not per pull request: cargo-llvm-cov 0.9.1 (installed by
+`taiki-e/install-action`, which verifies the checksum) runs the **workspace** tests with all features under nextest
+(the acceptance and fuzz tests exercise `ew-commands` and `ew-derive` from outside, so they count) with
+instrumentation, and [`ci/coverage-summary.py`](coverage-summary.py) reads `cargo llvm-cov report --json
+--summary-only` and reports the line coverage of `crates/<name>/src/` for `ew-model`, `ew-commands`, `ew-memo`,
+`ew-derive`, `ew-format` and `ew-store` against 80 % (NFR-MAINT-06), per crate and in total. The report is the job
+summary and the artifact `coverage-report` (90 days).
+
+**Report-only.** A crate below 80 % is listed and does not fail the job. The job is red only when the tool fails:
+cargo-llvm-cov or the report generation fails, or the summary holds no instrumented line of a core crate (the run did
+not measure it). A test that fails under instrumentation is a warning annotation and a note in the summary, not a
+red job (the test jobs of `ci.yml` gate the tests). The owner sets the dated plan that turns the threshold into a gate;
+the readiness report's row G-M1-15 stays open until then. The first run has no number to compare with, and the
+duration is not known (the timeout is 150 minutes).
 
 ## Feature bans (`cargo xtask check-features`)
 
@@ -183,6 +275,9 @@ maintainers switch it on once the list is committed (gate G-M0-06).
 | [`denylist.sha256`](denylist.sha256) | `cargo xtask check-anonymisation` | SHA-256 digests of confidential word n-grams (n ≤ 3), never the tokens themselves (NFR-PRIV-09, 20 §3.5). Committed without entries: the maintainers add them (below); until then the check prints a warning and passes |
 | [`../about.toml`](../about.toml), [`third-party-notices.hbs`](third-party-notices.hbs) | `cargo about generate` (CI-PR-09) | The cargo-about licence allowlist (the deny.toml list; the workspace's own `publish = false` crates are ignored) and the plain-text template of the third-party notice file (NFR-LIC-08). CI only generates the file, so a crate without a usable licence fails; the release pipeline (CI-R-07, WP-S6.07) ships it in every artefact |
 | [`render-mermaid.py`](render-mermaid.py) | CI-PR-15 | Mermaid extraction and rendering |
+| [`headless-export.sh`](headless-export.sh) | CI-PR-05 (`ci.yml` / `headless`) | Runs inside the headless container: proves that there is no display, GPU, font file or user directory content, then runs `ew export pdf` on one and four threads (FT-295) |
+| [`verapdf-check.py`](verapdf-check.py) | CI-N-09 (`docs.yml` / `verapdf`) | The verdict over a veraPDF XML report: PDF/A-2B, compliant, no failed parse, the job count; `--selftest` (FT-294) |
+| [`coverage-summary.py`](coverage-summary.py) | CI-PR-13 (`coverage.yml`) | The line coverage of the six core crates from a cargo-llvm-cov summary, against 80 %, report-only; `--selftest` (FT-296) |
 | [`check-book-links.py`](check-book-links.py) | CI-PR-10 (book) | Link check of the built user-documentation book: no network, no plugin to pin |
 | [`perf-baseline.toml`](perf-baseline.toml) | `cargo xtask perf-gate` (nightly `perf.yml`) | The baseline medians and memory estimates per size class, the 15 % threshold, the noise floor and the runner they were taken on (WP-S6.03) |
 | [`ci-times.py`](ci-times.py) | nightly `perf.yml` | The CI-time trend of `ci.yml` against NFR-MAINT-05 (FT-269) |
@@ -210,7 +305,9 @@ These settings cannot be committed; a repository owner applies them under Settin
 
 - Require status checks to pass before merging, with these required checks: `lint`, `test-linux`,
   `test-windows`, `test-macos`, `supply-chain`, `legal-docs`, `docs-diagrams`, `docs-book`. Require branches to be up to
-  date before merging.
+  date before merging. `headless` and `verapdf` (cycle 18) are not on the list until their first runs on `main` are
+  green; then add them (the owner decides, because they pull images from Docker Hub). `coverage` is a weekly
+  report and is never a required check.
 - Block force pushes and deletions; no direct pushes (changes land through pull requests only, administrators
   included).
 - Require one approving review by someone other than the author; dismiss stale approvals on new commits.
