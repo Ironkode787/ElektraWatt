@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 # Documentation and legal checks of gate G-M0 (docs/design/18-quality-security-release.md §5.2): CI-PR-10
-# legal-docs and CI-PR-15 docs-diagrams. Both jobs run on every pull request: legal-docs holds checks that apply
-# to every change (reuse lint, the licence map, DCO), and a required status check must report on every pull
-# request (a path-filtered workflow is shown as "Expected" and blocks the merge).
+# legal-docs (with its docs-book part) and CI-PR-15 docs-diagrams. All three jobs run on every pull request: legal-docs holds
+# checks that apply to every change (reuse lint, the licence map, DCO), and a required status check must report on
+# every pull request (a path-filtered workflow is shown as "Expected" and blocks the merge).
 #
 # CI-PR-10 legal-docs (WP-S0.02, WP-S0.03): the plan and document checks; `reuse lint` (NFR-LIC-01, NFR-LIC-02);
 # the licence-map and licence-boundary check (19 §5.1, NFR-LIC-10, NFR-MAINT-02); the anonymisation guard
@@ -38,6 +38,12 @@ env:
   # reuse-tool, installed into a virtual environment with a pinned encoding detector.
   REUSE_VERSION: "6.2.0"
   CHARSET_NORMALIZER_VERSION: "3.5.2"
+  # mdBook, the prebuilt Linux release archive of github.com/rust-lang/mdBook, pinned by version and by the SHA-256
+  # that the release publishes for the archive (checked before anything is unpacked; resolved 2026-10-22).
+  # Update the version and the digest together. (The variables are not named MDBOOK_*: mdBook reads that prefix as
+  # configuration overrides.)
+  DOCS_MDBOOK_VERSION: "0.5.4"
+  DOCS_MDBOOK_SHA256: "3f28de05dafca9d0f2eab99c662116b0e37b89b1d96a08f8f430b9eeae958cd7"
 
 jobs:
   # CI-PR-10
@@ -136,3 +142,47 @@ jobs:
         run: docker pull "$MERMAID_CLI_IMAGE"
       - name: render every Mermaid block
         run: python3 -I ci/render-mermaid.py --image "$MERMAID_CLI_IMAGE"
+
+  # CI-PR-10, book part (WP-S0.06, NFR-DOC-01, NFR-DOC-06, NFR-MAINT-08). Doc 18 §5.2 lists the mdBook build and the
+  # generated-reference check with legal-docs; they run here as a job of their own. The job covers the user
+  # documentation book (docs/book, an mdBook in the Diátaxis structure): the generated reference pages must be
+  # current, the book must build with no network (the build runs in an empty network namespace, so a plugin or
+  # theme that fetches fails the job), every link of the built pages must resolve (ci/check-book-links.py: stdlib
+  # only, no network, no plugin to pin), and the built book is uploaded as an artifact (the bundle that the
+  # installers will take offline, NFR-DOC-01).
+  docs-book:
+    name: docs-book
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: generated reference pages are current
+        run: cargo xtask docs-gen --check
+      - name: install mdBook (pinned release, checksum verified)
+        run: |
+          archive="mdbook-v${DOCS_MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+          curl --fail --silent --show-error --location --proto '=https' --tlsv1.2 \
+            --output "$RUNNER_TEMP/$archive" \
+            "https://github.com/rust-lang/mdBook/releases/download/v${DOCS_MDBOOK_VERSION}/${archive}"
+          echo "${DOCS_MDBOOK_SHA256}  $RUNNER_TEMP/$archive" | sha256sum --check --strict -
+          mkdir "$RUNNER_TEMP/mdbook"
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP/mdbook"
+          "$RUNNER_TEMP/mdbook/mdbook" --version
+      - name: build the book offline
+        run: |
+          sudo unshare --net -- "$RUNNER_TEMP/mdbook/mdbook" build docs/book --dest-dir "$RUNNER_TEMP/book"
+      - name: link check of the built book
+        run: python3 -I ci/check-book-links.py "$RUNNER_TEMP/book"
+      - name: upload the built book
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: user-guide
+          path: ${{ runner.temp }}/book
+          if-no-files-found: error
+          retention-days: 14
