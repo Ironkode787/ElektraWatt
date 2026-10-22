@@ -443,36 +443,40 @@ fn page_of(session: u64, rev: u64, folio: &str, list: &Arc<DisplayList>) -> Arc<
     Arc::new(page)
 }
 
-/// Asks `host` for `page` until its scene is ready (bounded at a minute): the last answer of `sync_scene`.
+/// Asks `host` for `page` until its scene is ready, blocking on the worker between the asks (at most a minute per
+/// scene): the last answer of `sync_scene`.
 fn until_ready(
     host: &mut ew_ui::gpu::GpuHost,
     ctx: &egui::Context,
     page: &Arc<CanvasPage>,
     fonts: &ew_render2d::pool::SharedFonts,
 ) -> (bool, bool) {
-    for _ in 0..12_000 {
-        let got = host.sync_scene(ctx, page, fonts);
+    let mut got = host.sync_scene(ctx, page, fonts);
+    for _ in 0..8 {
         if got == (true, true) {
-            return got;
+            break;
         }
-        std::thread::sleep(std::time::Duration::from_millis(5));
+        host.await_scene_for_tests(page, std::time::Duration::from_secs(60));
+        got = host.sync_scene(ctx, page, fonts);
     }
-    host.sync_scene(ctx, page, fonts)
+    got
 }
 
-/// After a change of folio or session the old scene never stands in: nothing is shown until the new scene is in
-/// (a small scene may already be in, then it is the one asked for).
-#[track_caller]
-fn assert_no_stand_in(got: (bool, bool), host: &ew_ui::gpu::GpuHost) {
-    match got {
-        (false, false) => {}
-        (true, true) => assert_eq!(
-            host.canvas().unwrap().scene().map(|s| s.id),
-            host.requested_scene(),
-            "only the new scene may show"
-        ),
-        other => panic!("the old scene stands in: {other:?}"),
-    }
+/// The answer of `sync_scene` for `page` while the worker is held, so that its scene cannot have arrived (asked
+/// twice: the answer does not change while the scene prepares); the worker is released afterwards.
+fn while_preparing(
+    host: &mut ew_ui::gpu::GpuHost,
+    ctx: &egui::Context,
+    page: &Arc<CanvasPage>,
+    fonts: &ew_render2d::pool::SharedFonts,
+) -> (bool, bool) {
+    let hold = host.preparation_hold(ctx);
+    hold.set(true);
+    let first = host.sync_scene(ctx, page, fonts);
+    let second = host.sync_scene(ctx, page, fonts);
+    hold.set(false);
+    assert_eq!(first, second, "the answer holds while the scene prepares");
+    first
 }
 
 /// The GPU scene is keyed by (session, revision, folio): a new revision of the page on show stands in until it is
@@ -502,18 +506,18 @@ fn the_gpu_scene_is_keyed_by_session_revision_and_folio() {
         // Session 1, revision 1, folio 103.
         let p1 = page_of(1, 1, "103", &small);
         assert_eq!(until_ready(&mut host, &ctx, &p1, &fonts), (true, true));
-        // A new revision of the same folio (content the worker has to tessellate): the old scene stands in, not
-        // ready, then the new one is.
+        // A new revision of the same folio: while it prepares (the worker held) the old scene stands in, not ready;
+        // then the new one is.
         let p2 = page_of(1, 2, "103", &folio.list);
-        assert_eq!(host.sync_scene(&ctx, &p2, &fonts), (true, false));
+        assert_eq!(while_preparing(&mut host, &ctx, &p2, &fonts), (true, false));
         assert_eq!(until_ready(&mut host, &ctx, &p2, &fonts), (true, true));
         // Another folio: nothing stands in.
         let p3 = page_of(1, 2, "104", &small);
-        assert_no_stand_in(host.sync_scene(&ctx, &p3, &fonts), &host);
+        assert_eq!(while_preparing(&mut host, &ctx, &p3, &fonts), (false, false));
         assert_eq!(until_ready(&mut host, &ctx, &p3, &fonts), (true, true));
         // Another project at the same revision and folio: a new scene, the old one never stands in.
         let p4 = page_of(2, 2, "104", &folio.list);
-        assert_no_stand_in(host.sync_scene(&ctx, &p4, &fonts), &host);
+        assert_eq!(while_preparing(&mut host, &ctx, &p4, &fonts), (false, false));
         assert_eq!(until_ready(&mut host, &ctx, &p4, &fonts), (true, true));
         let shown = host.canvas().unwrap().scene().unwrap().id;
         assert_eq!(Some(shown), host.requested_scene());
@@ -533,7 +537,7 @@ fn the_gpu_scene_is_keyed_by_session_revision_and_folio() {
         // Releasing (the project closed) forgets the scene: a page of an equal key is asked for again.
         host.release();
         assert!(host.canvas().unwrap().scene().is_none());
-        assert_no_stand_in(host.sync_scene(&ctx, &p5, &fonts), &host);
+        assert_eq!(while_preparing(&mut host, &ctx, &p5, &fonts), (false, false));
         assert!(host.requested_scene() > Some(newest));
     }
 }

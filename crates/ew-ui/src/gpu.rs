@@ -217,6 +217,29 @@ impl GpuHost {
         self.requested.as_ref().map(|r| r.1)
     }
 
+    /// The latch of the preparation worker (tests: hold it to observe the host while a scene prepares, without
+    /// timing). The worker is made here when the host has none yet.
+    #[doc(hidden)]
+    pub fn preparation_hold(&mut self, ctx: &egui::Context) -> Arc<ew_render2d::gpu::Hold> {
+        Arc::clone(self.preparer(ctx).hold())
+    }
+
+    /// Blocks until the worker sends a scene (at most `limit`) and takes it as `sync_scene` would (tests).
+    #[doc(hidden)]
+    pub fn await_scene_for_tests(&mut self, page: &CanvasPage, limit: std::time::Duration) {
+        let received = self.preparer.as_ref().and_then(|p| p.recv_timeout(limit));
+        if let Some(prepared) = received {
+            self.accept(prepared, page);
+        }
+    }
+
+    fn preparer(&mut self, ctx: &egui::Context) -> &Preparer {
+        self.preparer.get_or_insert_with(|| {
+            let ctx = ctx.clone();
+            Preparer::new(Arc::new(move || ctx.request_repaint()))
+        })
+    }
+
     /// Hands a prepared scene to the host as the worker would (tests: a late, older scene).
     #[doc(hidden)]
     pub fn deliver_for_tests(&mut self, prepared: Arc<PreparedScene>, page: &CanvasPage) {

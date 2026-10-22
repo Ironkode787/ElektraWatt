@@ -31,7 +31,7 @@
 use std::collections::BTreeMap;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::mpsc::{Receiver, Sender, channel};
-use std::sync::{Arc, Mutex, PoisonError};
+use std::sync::{Arc, Condvar, Mutex, PoisonError};
 use std::thread;
 
 use ew_dl::ew_units::Rect;
@@ -687,11 +687,36 @@ struct Job {
     fonts: SharedFonts,
 }
 
+/// A latch that holds the preparation worker before its next scene (tests: what the host does while a scene
+/// prepares, observed without timing).
+#[derive(Debug, Default)]
+pub struct Hold {
+    held: Mutex<bool>,
+    changed: Condvar,
+}
+
+impl Hold {
+    /// Holds (`true`) or releases (`false`) the worker.
+    pub fn set(&self, held: bool) {
+        *self.held.lock().unwrap_or_else(PoisonError::into_inner) = held;
+        self.changed.notify_all();
+    }
+
+    /// Blocks while the latch is held.
+    fn wait(&self) {
+        let mut held = self.held.lock().unwrap_or_else(PoisonError::into_inner);
+        while *held {
+            held = self.changed.wait(held).unwrap_or_else(PoisonError::into_inner);
+        }
+    }
+}
+
 /// The preparation worker: one thread with the mesh cache; the newest submitted scene wins.
 pub struct Preparer {
     jobs: Sender<Job>,
     done: Receiver<Arc<PreparedScene>>,
     cache: Arc<Mutex<MeshCache>>,
+    hold: Arc<Hold>,
 }
 
 impl std::fmt::Debug for Preparer {
@@ -707,10 +732,13 @@ impl Preparer {
         let (tx, done) = channel();
         let cache = Arc::new(Mutex::new(MeshCache::default()));
         let worker_cache = Arc::clone(&cache);
+        let hold = Arc::new(Hold::default());
+        let worker_hold = Arc::clone(&hold);
         let spawned = thread::Builder::new()
             .name("ew-gpu-prepare".to_owned())
             .spawn(move || {
                 while let Ok(mut job) = rx.recv() {
+                    worker_hold.wait();
                     // The newest waiting scene wins; older ones are dropped before they start.
                     while let Ok(newer) = rx.try_recv() {
                         job = newer;
@@ -727,7 +755,17 @@ impl Preparer {
             });
         // A worker that cannot start leaves the canvas on its CPU tiles (the loading state never ends).
         drop(spawned);
-        Preparer { jobs, done, cache }
+        Preparer {
+            jobs,
+            done,
+            cache,
+            hold,
+        }
+    }
+
+    /// The latch that holds the worker before its next scene (never held outside tests).
+    pub fn hold(&self) -> &Arc<Hold> {
+        &self.hold
     }
 
     /// Asks for scene `id` of `list`.
