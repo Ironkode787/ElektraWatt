@@ -1,6 +1,6 @@
 # G-M1 readiness run
 
-**Status:** Final (readiness run; the gate is not convened; the delegated rulings of 2026-10-22 are recorded in §8 and the addendum; the owner rulings of 2026-10-22 in the second addendum; the cycle-18 delivery in the addenda of §6 and §10; the cycle-19 and cycle-20 deliveries in the addenda of §6) · **Date:** 2026-10-22 · **Gate:** G-M1 Spine exit ·
+**Status:** Final (readiness run; the gate is not convened; the delegated rulings of 2026-10-22 are recorded in §8 and the addendum; the owner rulings of 2026-10-22 in the second addendum; the cycle-18 delivery in the addenda of §6 and §10; the cycle-19, cycle-20 and cycle-21 deliveries in the addenda of §6; the owner's performance ruling of 2026-10-22 in the fourth addendum, the rows of §4 and §7) · **Date:** 2026-10-22 · **Gate:** G-M1 Spine exit ·
 **Commit:** de23b55 (the cycle-16 delivery of `claude/m0-foundations`, equal to `main`) · **Scenario:** the
 cycle-based plan of record ([global plan §3.8](../01-global-plan.md#38-cycle-based-progress-view-plan-of-record-since-2026-10-20),
 decision log ID-271) · **Part of:** ElektraWatt plan, gate records
@@ -64,6 +64,19 @@ open (G-M0-03 PD-2, G-M0-05 the boundary demonstration, G-M0-07 the two ADR acce
 ready**; what bounds G-M1 on the owner side is now the BM-class runner, the pilot's approvals and answers, PD-2 and
 PD-14, and the re-plan at T. The rows below carry the per-row status edits of these rulings; the narrative is the
 record of the run.
+
+**Addendum (owner ruling of 2026-10-22 on performance runs; decision log ID-512).** The project owner ruled in chat, not
+by delegation: "Why do we need that? Let's skip it. Also for the future. Assume it passed. If we have perf issues we
+can solve it during release." No performance measurement runs during development: not the G-SP re-test, not the
+class-M or class-XL benches, not a local `perf-gate`, not the release-profile timing tests. **G-M1-05, G-M1-11 and
+G-M1-12 are assumed pass (owner ruling 2026-10-22); measured in the release phase**, before a binary release gate, on
+the BM-class runner (DEC-034, now a release-phase item). Their rows in §4 carry the status; the exact engine-statistics
+counts per pull request (part of G-M1-12) are counts, not timings, and stay on every pull request. The class-M run of
+2026-10-22 was stopped without a report; the class-S run of that day stands (ID-501). **Recount** with the cycle-21
+addendum of §6: of 11 applicable hard criteria 6 are met (G-M1-01, -03, -04, -06, -07, -08), 3 are assumed pass
+(G-M1-05, -11, -12) and 2 are open (G-M1-02 on the owner side, G-M1-24); of 7 applicable must criteria 2 are met, 1 is
+met with conditions and 4 are open (G-M1-13, -17, -22, -23). The verdict stays **not ready**, now bounded by the
+pilot's approval (G-M1-02), the re-plan at T (G-M1-24) and the must criteria.
 
 ---
 
@@ -164,14 +177,14 @@ IDs, types and wording as in [§5.3](../03-gates.md#53-g-m1-spine-exit-m1); the 
 | G-M1-02 | H | AC-01 … AC-13 on Golden A | Every AC-01 … AC-13 entry passes except two `not_applicable` rows: AC-02's raster comparison (off headless; the PNGs are candidates awaiting FT-10) and AC-13's veraPDF cross-check (the report says "the CI job that has it runs the cross-check", but no workflow installs veraPDF; krilla's in-process PDF/A-2b validation passes) | Open | Owner side (FT-10) and development (FT-294, the raster run after approval) | Owner; Cn |
 | G-M1-03 | H | AC-14 (Linux): byte-identical across serial and parallel export and shuffled record order | Both AC-14 entries pass (shuffle seed 0x5eedac14; 36 SVG files; 2 and 8 threads); the committed report is compared in every OS test job | Met | Development | Milestone (re-run) |
 | G-M1-04 | H | AC-15 build paths agree; AC-16 scripted edits with the oracle on | AC-15: (a) = (c) by `tests/golden_fixture.rs` (by design not a runner row), SQL over (a) and (c), the PDF over (c) and path (b) pass (606 commands; only the 2 revisions unwritten, FT-165); AC-16: five entries pass, 2,037 keys of 65 memoised families equal their cold values after each edit | Met; FT-165 (lane A) empties path (b)'s `unwritten` list | Development | C17 |
-| G-M1-05 | H | AC-17 on BM: open ≤ 0.5 s, PDF export ≤ 3 s, full check ≤ 2 s | `not_applicable` (BM runner, `cargo xtask acceptance --milestone`); no BM-class runner exists (DEC-034) | Open | Owner side (DEC-034) and development (the milestone run) | BM+7; Milestone |
+| G-M1-05 | H | AC-17 on BM: open ≤ 0.5 s, PDF export ≤ 3 s, full check ≤ 2 s | `not_applicable` (BM runner, `cargo xtask acceptance --milestone`); no BM-class runner exists (DEC-034) | **Assumed pass** (owner ruling 2026-10-22, ID-512); measured in the release phase | Owner side (DEC-034) and development (the milestone run) | Release phase (ID-512); was BM+7; Milestone |
 | G-M1-06 | H | AC-18 (CLI) steps B1 and B2; AC-20 the D-01 replay | Five AC-18 and two AC-20 entries pass | Met | Development | — |
 | G-M1-07 | H | AC-39 the anonymisation guard | `cargo xtask check-anonymisation` green at de23b55 (this run) and in the `legal-docs` job; by design not a runner row | Met | Development | — |
 | G-M1-08 | H | Every D-row gated M1 passes (26 rows, AC-24) | All 26 rows are in the report; 25 pass in every entry; D-06 passes three entries (one description on every page, the per-page override, the info finding EW-CORE-023) and its fourth, "shown in the property grid" (FR-UI-009), is `not_built` | Open; met if ruling R1 moves the property-grid half to G-M2 | Owner side (ruling) | Ruling |
 | G-M1-09 | M | The acceptance SQL/CSV pairs pass with the oracle on; every golden-table change is acknowledged by the pilot | The six SQL entries of AC-08 … AC-11 and the AC-15 SQL entries over paths (a) and (c) pass. No acknowledgement is on file: FT-29, FT-40 and FT-63 wait for it (PD-15), and no change list has been compiled | Met with conditions | Owner side (pilot user); development (FT-300, the list) | Owner; Cn |
 | G-M1-10 | M | SC-1 headless: criteria 1 … 7 and 9 of the reference analysis §4.15; SC-6 determinism on Linux | Mapping of the passing rows: 1 pages → AC-03, AC-04; 2 frame → AC-01; 3 cross-references → AC-05; 4 tags → AC-06, D-03; 5 BOM → AC-07 (both modes); 6 terminals → AC-08, D-11, D-12; 7 wire data → AC-09, D-08; 9 PDF → AC-13, D-07, D-33. SC-6 on Linux → AC-14 | Met | Development | — |
-| G-M1-11 | H | XL opens in ≤ 20 s; commit p99 ≤ 5 ms at M and ≤ 20 ms at XL (NFR-PERF-03, -05) | Not measured since G-SP's recycle (ID-218: cold connectivity missed NFR-PERF-05 by 2.6–3× at S, 25–27× at M; the XL open-time proxy 2.49 s). The recycle's engine is built (WP-S1.07 parts 1 and 2); the re-test is open (FT-26, FT-114 to FT-119); the nightly measures class S only, against an informational baseline (ID-411, ID-414) | Open | Development (the re-test, the XL benches, FT-288) and owner side (DEC-034) | BM+7 |
-| G-M1-12 | H | The gate runs nightly on the dedicated runner with ≥ 7 consecutive green nights; a seeded 20 % slowdown turns it red; engine statistics as exact counts per PR (NFR-PERF-20) | `perf.yml` runs nightly, report-only on the hosted runner (ID-409); the seeded slowdown is proven by a unit test on parsed bench output, not inside the gate (FT-287); the per-PR engine-statistics snapshots of doc 18 §4.5 are not evidenced by this run | Open | Owner side (DEC-034) and development (FT-287, FT-291) | BM+7 |
+| G-M1-11 | H | XL opens in ≤ 20 s; commit p99 ≤ 5 ms at M and ≤ 20 ms at XL (NFR-PERF-03, -05) | Not measured since G-SP's recycle (ID-218: cold connectivity missed NFR-PERF-05 by 2.6–3× at S, 25–27× at M; the XL open-time proxy 2.49 s). The recycle's engine is built (WP-S1.07 parts 1 and 2); the re-test is open (FT-26, FT-114 to FT-119); the nightly measures class S only, against an informational baseline (ID-411, ID-414) | **Assumed pass** (owner ruling 2026-10-22, ID-512); measured in the release phase | Development (the re-test, the XL benches, FT-288) and owner side (DEC-034) | Release phase (ID-512); was BM+7 |
+| G-M1-12 | H | The gate runs nightly on the dedicated runner with ≥ 7 consecutive green nights; a seeded 20 % slowdown turns it red; engine statistics as exact counts per PR (NFR-PERF-20) | `perf.yml` runs nightly, report-only on the hosted runner (ID-409); the seeded slowdown is proven by a unit test on parsed bench output, not inside the gate (FT-287); the per-PR engine-statistics snapshots of doc 18 §4.5 are not evidenced by this run | **Assumed pass** (owner ruling 2026-10-22, ID-512); measured in the release phase; the per-PR engine-statistics counts stay | Owner side (DEC-034) and development (FT-287, FT-291) | Release phase (ID-512); was BM+7 |
 | G-M1-13 | M | Oracle differential per PR; 7 nights of CI-N-02; fuzz targets for the JSONL loader, the migration chain and the command sequence (CI-PR-08, CI-N-03) with no open crash | The oracle runs on Golden A in the test jobs (AC-16, 0 mismatches). The command fuzzer is a seeded test covering 11 of 36 commands (doc 18 §3.6); CI-N-02, CI-PR-08, CI-N-03 and the loader and migration-chain targets do not exist. Lane B adds FT-279 and FT-272 in cycle 17 | Open | Development | C17; Cn (FT-297) |
 | G-M1-14 | M | `load(save(m)) = m` byte-stable; determinism lints; incremental saves equal full saves | WP-S1.09 delivered (ID-200 to ID-217): incremental saves byte-identical to a full save, an unchanged project writes nothing; AC-20 writes one page file; AC-14 includes the JSONL files. The ordered-collection lint (FT-271) is not built | Met with conditions | Development (FT-271) | Cn |
 | G-M1-15 | S | Core crates ≥ 80 % line coverage; ≤ 10 quarantined tests | CI-PR-13 does not exist (FT-296); no test is quarantined | Open (dated plan) | Development | Cn |
@@ -282,6 +295,17 @@ unchanged. **Recount:** unchanged (6 of 11 applicable hard criteria met; of 7 ap
 with conditions, 4 open). The verdict stays **not ready**. The acceptance counts are unchanged (94 entries, 88 pass,
 0 fail, 0 `not_built`, 6 `not_applicable`).
 
+**Addendum (cycle-21 delivery, 2026-10-22; decision log ID-528).** Rows whose state changed, without rewriting the
+run: **FT-335** is built and closed (ID-526): CI-PR-08, the per-pull-request `fuzz-smoke` job, runs 60 s per affected
+cargo-fuzz target; its first hosted run comes with a pull request that reaches a target, or a dispatch. **G-M1-13**
+therefore has every job built; its seven nights of CI-N-02 from the deep nightly's first scheduled run and "no open
+crash" are not yet read, so it stays **open**. FT-318 and FT-319 are closed (ID-523, ID-524); AC-16 sweeps 2231 keys of
+69 families. **The G-SP re-test and WP-S6.03's measurements** leave this list: the owner moved them to the release
+phase (ID-512, the fourth addendum). FT-298, FT-300, the page tasks and the owner side are unchanged. **Recount:** 6
+of 11 applicable hard criteria met, 3 assumed pass, 2 open; of 7 applicable must criteria 2 met, 1 met with
+conditions, 4 open. The verdict stays **not ready**. The acceptance counts are unchanged (94 entries, 88 pass, 0 fail,
+0 `not_built`, 6 `not_applicable`).
+
 ## 7. What is not ready
 
 - **The legal basis.** None of LG-1, LG-2, LG-5 or ADR-0030 is on file; ADR-0025 and ADR-0030 are Proposed; no
@@ -289,6 +313,9 @@ with conditions, 4 open). The verdict stays **not ready**. The acceptance counts
   2026-10-22, ID-454: no longer gate items.)*
 - **The performance proof.** No BM-class runner exists; G-SP's re-test has not been run since the recycle; the
   nightly gate is report-only on class S. AC-17, G-M1-11 and G-M1-12 are hard criteria without a measurement.
+  *(Owner ruling 2026-10-22, ID-512: no performance measurement runs during development; G-M1-05, -11 and -12 are
+  assumed pass and measured in the release phase. The risk that a budget is missed is carried to the release phase,
+  R-018.)*
 - **The CI set that the gate names.** Of the jobs §8.5 of the gates requires at G-M1 beyond G-M0's, CI-PR-05, CI-PR-06,
   CI-PR-08, CI-PR-13, CI-N-02, CI-N-03, CI-N-04 and CI-N-09 do not exist as jobs (part of their test content, the
   golden PNG and PDF-structure comparisons and the seeded fuzzer, runs inside the three test jobs); CI-N-01 exists only

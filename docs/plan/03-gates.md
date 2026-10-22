@@ -1,6 +1,6 @@
 # Gates
 
-**Status:** Draft v0.6 · **Date:** 2026-10-22 (v0.6: the owner rulings of 2026-10-22: PD-1 and PD-3 decided (G-M0-01, -02 met), the date rule adopted by the owner, G-M1-16 amended (no second named owner), G-M1-26 not applicable (no funding), the legal and licensing items retired as gate criteria (G-M0-08, -09, -10, -17, G-M1-18 to -21, G-M2-18, -19, G-M5-11 in part, G-M6-12, -13, KT-2, KT-6 in part; §4.3, §8.4), decision log ID-450 to ID-455; v0.5: the G-M1 readiness rulings: D-06 split between G-M1 and G-M2 (§8.2, G-M1-08), G-M1-24 restated and G-M1-25 not applicable under the cycle-based plan, the cycle-based date rule (§3.3), open question 3 resolved, decision log ID-419 to ID-423; v0.4: the blind drafter at G-PP and G-M2, WP-S6.13 in M-PP and the 1.0 month of the plan of record, decision log ID-341, ID-342; the Golden A info total; v0.3: the G-SP gate record of 2026-10-20 and the re-forecast) · **Part of:** ElektraWatt plan
+**Status:** Draft v0.7 · **Date:** 2026-10-22 (v0.7: the owner ruling that no performance measurement runs during development, performance criteria of a gate that is not a release gate assumed pass until the release phase, §5, decision log ID-512; v0.6: the owner rulings of 2026-10-22: PD-1 and PD-3 decided (G-M0-01, -02 met), the date rule adopted by the owner, G-M1-16 amended (no second named owner), G-M1-26 not applicable (no funding), the legal and licensing items retired as gate criteria (G-M0-08, -09, -10, -17, G-M1-18 to -21, G-M2-18, -19, G-M5-11 in part, G-M6-12, -13, KT-2, KT-6 in part; §4.3, §8.4), decision log ID-450 to ID-455; v0.5: the G-M1 readiness rulings: D-06 split between G-M1 and G-M2 (§8.2, G-M1-08), G-M1-24 restated and G-M1-25 not applicable under the cycle-based plan, the cycle-based date rule (§3.3), open question 3 resolved, decision log ID-419 to ID-423; v0.4: the blind drafter at G-PP and G-M2, WP-S6.13 in M-PP and the 1.0 month of the plan of record, decision log ID-341, ID-342; the Golden A info total; v0.3: the G-SP gate record of 2026-10-20 and the re-forecast) · **Part of:** ElektraWatt plan
 
 **Purpose.** This document defines the gate system of ElektraWatt (EW): the decision points G-M0 … G-M6 and the
 light gate G-PP of the pilot preview, aligned with the milestones M0 … M6 and M-PP of the
@@ -583,6 +583,13 @@ should; §3.4, §3.5), a measurable criterion and the evidence that proves it. "
 [golden project](../design/20-golden-project.md); every criterion that names a CI job means "green on the gated
 commit" unless it says otherwise. Entry criteria are what must be true for the review to be *held*; if they are not
 true the review is postponed (§3.2).
+
+**Performance criteria during development** (owner ruling 2026-10-22, decision log ID-512). No performance
+measurement runs during development. A criterion that needs a timing or memory measurement on BM (at G-M1: G-M1-05,
+G-M1-11 and G-M1-12, and the G-SP re-test; likewise at any later gate that is not a release gate) is **assumed pass; measured in the release
+phase**, that is, before the next binary release gate (G-M2 for MVP 0.1.0, then each later release gate),
+where it is measured as written. Criteria that are counts rather than timings (the engine statistics per pull request)
+stay as written.
 
 ### 5.1 G-SP Performance spike decision
 

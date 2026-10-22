@@ -1,6 +1,6 @@
 # Risk register
 
-**Status:** Draft v0.7 · **Date:** 2026-10-22 (v0.7: R-050 restated after the LG-2 merge block's removal, decision log ID-480; v0.6: R-014 accepted by the project owner and re-scored 3 × 4 → 2 × 4, decision log ID-452; v0.5: the plan-of-record 1.0 at month 65 after WP-S6.13, decision log ID-342; v0.4: R-018 read in cycles, decision log ID-271; v0.3: R-018 re-assessed at G-SP, outcome Recycle) · **Part of:** ElektraWatt plan
+**Status:** Draft v0.8 · **Date:** 2026-10-22 (v0.8: R-018's re-test moved to the release phase by the owner's ruling, decision log ID-512; v0.7: R-050 restated after the LG-2 merge block's removal, decision log ID-480; v0.6: R-014 accepted by the project owner and re-scored 3 × 4 → 2 × 4, decision log ID-452; v0.5: the plan-of-record 1.0 at month 65 after WP-S6.13, decision log ID-342; v0.4: R-018 read in cycles, decision log ID-271; v0.3: R-018 re-assessed at G-SP, outcome Recycle) · **Part of:** ElektraWatt plan
 
 **Purpose.** This is the risk register of ElektraWatt (EW). It consolidates the risks that the design documents, the
 research notes and the plan itself name, scores them on one scale, assigns every risk an owner, a mitigation linked
@@ -36,7 +36,7 @@ gives MVP month 51 and 1.0 month 81).
 | ID | Risk | Score | Why it is critical |
 |---|---|---|---|
 | R-001 | Indicative 15–18 months stay in circulation | 16 | Credibility and pilot trust fall when month 18 passes without a product |
-| R-018 | Interactive latency at L and XL | 16 | Partly materialised at G-SP (2026-10-20, outcome Recycle): the cold global connectivity misses NFR-PERF-05 by 2.6–97×; the recycle (incremental connectivity) is under way: the engine and the memoised `Q` were delivered in cycle 9 (WP-S1.07 part 1) and the incremental partition in cycle 10 (part 2); the score stands until the re-test on a BM-class runner |
+| R-018 | Interactive latency at L and XL | 16 | Partly materialised at G-SP (2026-10-20, outcome Recycle): the cold global connectivity misses NFR-PERF-05 by 2.6–97×; the recycle (incremental connectivity) is under way: the engine and the memoised `Q` were delivered in cycle 9 (WP-S1.07 part 1) and the incremental partition in cycle 10 (part 2); the score stands until the re-test on a BM-class runner, which the owner moved to the release phase (2026-10-22, ID-512: no performance runs during development), so the risk can surface only then |
 | R-002 | Estimates optimistic | 16 | Every +10 % of effort costs 4 months at the MVP and 7 at 1.0 |
 | R-032 | Machine-file formats unavailable or rejected | 16 | SC-7 depends on closed Komax, Rittal WT and Weidmüller formats that are not yet in hand |
 | R-003 | Capacity below 36 pw per developer-year | 15 | A −20 % year costs 10 months at the MVP |
