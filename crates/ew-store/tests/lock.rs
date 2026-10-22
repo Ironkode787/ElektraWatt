@@ -5,6 +5,9 @@
 //! the real file system with a copy of the golden fixture: acquisition, read-only fallback, heartbeat,
 //! lock loss, stale detection, takeover, release and the pruning of `.~ew.lock.stale-*` files.
 
+// Test target: scratch-directory names from the clock, and the lock record's start time from the clock in whole seconds; every compared time is derived from that start (the lock logic itself takes the time as an argument).
+#![allow(clippy::disallowed_methods)]
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -47,6 +50,7 @@ struct Scratch {
 impl Scratch {
     fn new() -> Scratch {
         static COUNTER: AtomicU64 = AtomicU64::new(0);
+        // Only names the scratch directory.
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_or(0, |d| d.as_nanos());
@@ -61,6 +65,7 @@ impl Scratch {
         let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
         copy_dir(&fixture, &project);
         // Whole seconds: the lock record and file times are compared at second precision.
+        // The start of the test's manual clock; every compared time is derived from it.
         let whole = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
         let start = UNIX_EPOCH + Duration::from_secs(whole);
         Scratch {

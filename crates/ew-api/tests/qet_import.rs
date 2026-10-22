@@ -17,6 +17,9 @@
 //!   page order is `101 102 103`, no connection is lost, the wire count is the number of conductors drawn;
 //!   then the metrics of both sides and the difference listing.
 
+// Test target: bless and diagnostic environment flags (EW_*), which only choose whether a committed file is rewritten or a line is printed; the compared result never depends on them.
+#![allow(clippy::disallowed_methods)]
+
 mod golden_common;
 mod qet_synth;
 

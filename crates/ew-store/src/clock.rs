@@ -22,6 +22,8 @@ pub struct SystemClock;
 
 impl Clock for SystemClock {
     fn now(&self) -> SystemTime {
+        // The production clock of the lock and the journal, which are not project data (module doc); the store's
+        // logic takes a `Clock`, and tests inject `ManualClock`.
         SystemTime::now()
     }
 

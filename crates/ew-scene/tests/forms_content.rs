@@ -4,6 +4,9 @@
 //! The built-in QET A4 frames and title block under `content/forms`: strict parse, canonical text, identities,
 //! geometry and cell layout.
 
+// Test target: bless and diagnostic environment flags (EW_*), which only choose whether a committed file is rewritten or a line is printed; the compared result never depends on them.
+#![allow(clippy::disallowed_methods)]
+
 use std::collections::BTreeSet;
 
 use ew_ids::{Id, Uuid};

@@ -125,6 +125,7 @@ pub struct Identity {
 fn env(names: &[&str]) -> Option<String> {
     names
         .iter()
+        // The user and host names of the lock record, which is not project data.
         .find_map(|n| std::env::var(n).ok().filter(|v| !v.trim().is_empty()))
         .map(|v| v.trim().to_owned())
 }
@@ -133,6 +134,7 @@ fn env(names: &[&str]) -> Option<String> {
 /// OS start time needs platform APIs the store does not use yet).
 fn process_started() -> SystemTime {
     static STARTED: OnceLock<SystemTime> = OnceLock::new();
+    // The lock record's `pid_started`: not project data (the project files never carry a time, NFR-REL-07).
     *STARTED.get_or_init(SystemTime::now)
 }
 
@@ -141,10 +143,12 @@ fn process_started() -> SystemTime {
 pub fn new_session_id() -> String {
     static COUNTER: AtomicU64 = AtomicU64::new(0);
     let word = |salt: u64| {
+        // Randomness and the clock only make the session ID unique (it names the lock and the journal, not a record).
         let mut h = std::collections::hash_map::RandomState::new().build_hasher();
         h.write_u64(salt);
         h.write_u64(COUNTER.fetch_add(1, Ordering::Relaxed));
         h.write_u32(std::process::id());
+        // Part of the uniqueness of the session ID (see above).
         let nanos = SystemTime::now()
             .duration_since(SystemTime::UNIX_EPOCH)
             .map_or(0, |d| d.as_nanos());

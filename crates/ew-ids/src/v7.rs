@@ -91,6 +91,9 @@ pub trait IdSource {
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct SystemSource;
 
+// The one place that reads the wall clock and the OS entropy for identity (doc 18 §3.5); the `testkit` feature
+// swaps in a seeded source, and everything else takes an `IdSource` as an argument.
+#[allow(clippy::disallowed_methods)]
 impl IdSource for SystemSource {
     fn now(&mut self) -> UnixTime {
         match SystemTime::now().duration_since(UNIX_EPOCH) {

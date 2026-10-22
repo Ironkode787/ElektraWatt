@@ -16,7 +16,7 @@ The job names are the GitHub status-check names to mark as required.
 
 | ID | Workflow / job | Content | Reproduce locally |
 |---|---|---|---|
-| CI-PR-01 | `ci.yml` / `lint` (ubuntu-24.04) | `cargo fmt --all --check`; `cargo clippy --workspace --all-targets --locked -- -D warnings`, and again with `--all-features` (the generated `clippy.toml` also bans the std hash containers: FT-271, below); `cargo xtask check-ordered-collections` | `cargo fmt --all --check`, both clippy runs and `cargo xtask check-ordered-collections` |
+| CI-PR-01 | `ci.yml` / `lint` (ubuntu-24.04) | `cargo fmt --all --check`; `cargo clippy --workspace --all-targets --locked -- -D warnings`, and again with `--all-features` (the generated `clippy.toml` also bans the std hash containers, FT-271, and the wall clock, environment and randomness, FT-317, below); `cargo xtask check-ordered-collections` and `cargo xtask check-disallowed-methods` | `cargo fmt --all --check`, both clippy runs, `cargo xtask check-ordered-collections` and `check-disallowed-methods` |
 | CI-PR-02 | `ci.yml` / `test-linux` (ubuntu-24.04) | `cargo build --workspace --locked`; `cargo nextest run --workspace --locked --profile ci -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'`, and again with `--all-features` and no filter (feature-gated tests such as `ew-ids/testkit`; the headless acceptance tests, about 2 min, and the command fuzzer's `fuzz_smoke`, 15 to 19 s, run once per job, in this second run: FT-268, FT-306); `cargo test --doc --workspace --locked`, and again with `--all-features` (nextest does not run doctests) | `cargo build --workspace --locked`, `cargo nextest run --workspace --locked -E 'not (package(ew-api) and binary(acceptance)) and not (package(ew-testkit) and binary(command_fuzz))'`, `cargo nextest run --workspace --all-features --locked` and `cargo test --doc --workspace [--all-features] --locked` |
 | CI-PR-03 | `ci.yml` / `test-windows` (windows-2025) | as CI-PR-02 | as CI-PR-02, on Windows |
 | CI-PR-04 | `ci.yml` / `test-macos` (macos-15, arm64) | as CI-PR-02 | as CI-PR-02, on macOS |
@@ -31,8 +31,8 @@ The job names are the GitHub status-check names to mark as required.
 
 `cargo xtask ci` runs fmt, clippy, nextest and the doctests (each with the default features and with `--all-features`;
 the default-features nextest step is labelled `nextest (no acceptance, no fuzzer)` in the summary, and the acceptance
-tests and the command fuzzer run only in the `nextest-all-features` step, as in the jobs) and the ten repository checks (`check-deps`,
-`check-features`, `check-raw-read`, `check-ordered-collections`, `check-build-scripts`, `check-workflows`, `check-licence-map`,
+tests and the command fuzzer run only in the `nextest-all-features` step, as in the jobs) and the eleven repository checks (`check-deps`,
+`check-features`, `check-raw-read`, `check-ordered-collections`, `check-disallowed-methods`, `check-build-scripts`, `check-workflows`, `check-licence-map`,
 `check-anonymisation`, `check-governance-files`, `docs-gen --check`) in sequence and prints a summary: the local
 mirror of the Rust part of the PR set. `check-dco` needs a revision range and is run on its own.
 
@@ -310,6 +310,46 @@ or set whose order reached output was found. A use of a type alias is not linted
 bypasses the ban at every use: the one alias (`Denylist` of `xtask/src/anonymise.rs`) is private to its module and
 listed in the allow file like any other site; a public alias would need the same review.
 
+## Wall clock, environment and randomness (`cargo xtask check-disallowed-methods [--bless]`)
+
+FT-317, WP-S6.02, NFR-MAINT-12, doc 18 §3.5: model, derive, format and export paths must not depend on the wall
+clock, the process environment or randomness. The check is the machinery of the ordered-collections check
+(`xtask/src/ordered.rs`, one `Rule` each) with a second list, and has the same two halves:
+
+1. **Clippy.** The generated [`clippy.toml`](../clippy.toml) lists, after the raw readers, `std::time::SystemTime::now`
+   and `Instant::now`, `std::env::var`, `var_os`, `vars` and `vars_os`, `std::hash::RandomState::new` and
+   `getrandom::fill`, `fill_uninit`, `u32` and `u64` (`DISALLOWED_METHODS` in `xtask/src/raw_read.rs`). `Uuid::new_v4`,
+   `Uuid::now_v7` and the `rand` functions are not listed, because they do not resolve under the workspace's
+   features and clippy would only warn about the path (the `lint` job fails on such a warning): `uuid` has the `v5`
+   feature only, and `rand` 0.10 without `thread_rng` is loaded by `proptest` alone. A crate that enables a
+   generator feature or depends on `rand` adds its paths there. A justified use carries
+   `#[allow(clippy::disallowed_methods)]` with a one-line `//` comment above it (or a `reason = "..."`); an
+   inner attribute at a test or bench target root is the usual form there. A new use that is not justified is
+   replaced by an injected clock, an argument or a seeded generator.
+2. **The review list.** The check compares the allow sites, keyed by crate and item path with a count, with
+   [`disallowed-methods-allow.toml`](disallowed-methods-allow.toml), and fails for a site that is not in the list,
+   for a stale entry, for a site without a justification, and for a manifest that sets `disallowed_methods`, `style`
+   or `all` or `warnings` to `allow`. `--bless` rewrites the list after the review; `ordered::tests::the_committed_methods_list_is_current`
+   keeps it current in `cargo nextest run -p xtask`.
+
+The lint `disallowed_methods` is also the guard of the raw readers (`check-raw-read`, ADR-0001 amendment 2), and
+the reader crates (`ew-model`, `ew-derive`, `ew-commands`, `ew-store`) opt out of it at their target roots, which
+would switch this rule off in exactly those crates. For them the check ignores allow attributes and scans the source
+for the calls (`SystemTime::now`, `env::var_os`, also inside a `use` group; the last two path segments, so an alias
+is not seen) and lists each call as a site (`impl Clock for SystemClock > fn now > call SystemTime::now`), which
+needs a `//` justification on the line above or on the line. In non-test source of a package that reaches `ew-model`,
+an allow of the lint is also a suppression for `check-raw-read` and has an `[[raw_read.allow]]` entry in
+[`dep-rules.toml`](dep-rules.toml) (`bin/ew`, `ew-sqlview`, `ew-testkit`; the reason names this list).
+
+At the introduction (cycle 19) 44 sites in 18 crates are listed: `ew-ids` 1 (`SystemSource`, the one clock and entropy
+source for identity), `ew-store` 8 (the `Clock`, the lock record's user, host and start time, the session ID, the
+state directory, and the lock test's scratch names: none is project data, NFR-REL-07), `ew-sqlview` 2 (the monotonic
+deadline of a query), `ew` 2 (`SOURCE_DATE_EPOCH` and `EW_CONTENT_DIR`; no wall-clock fallback for the creation
+date), `ew-testkit` 4, `xtask` 1 (build tooling), and 26 in test and bench targets of other crates (timers asserted
+only with `EW_PERF_ASSERT`, bless and diagnostic flags, scratch-directory names, the private-corpus path). No call
+whose value reaches a persisted, exported or printed result was found. Not covered: `std::env::temp_dir` and
+`current_dir`, and a call through an alias or re-export in a reader crate.
+
 ## Anonymisation guard (`cargo xtask check-anonymisation [--require-entries]`)
 
 Every committed file that is not binary is scanned: files with a UTF-16 byte-order mark are decoded as UTF-16,
@@ -337,6 +377,7 @@ maintainers switch it on once the list is committed (gate G-M0-06).
 | [`coverage-summary.py`](coverage-summary.py) | CI-PR-13 (`coverage.yml`) | The line coverage of the six core crates from a cargo-llvm-cov summary, against 80 %, report-only; `--selftest` (FT-296) |
 | [`check-book-links.py`](check-book-links.py) | CI-PR-10 (book) | Link check of the built user-documentation book: no network, no plugin to pin |
 | [`ordered-collections-allow.toml`](ordered-collections-allow.toml) | `cargo xtask check-ordered-collections` | The reviewed sites that allow the hash-container ban of the generated `clippy.toml`, by crate and item path with a count (FT-271, WP-S6.02) |
+| [`disallowed-methods-allow.toml`](disallowed-methods-allow.toml) | `cargo xtask check-disallowed-methods` | The reviewed sites that allow the wall-clock, environment and randomness ban, and the calls in the reader crates, by crate and item path with a count (FT-317, WP-S6.02) |
 | [`perf-baseline.toml`](perf-baseline.toml) | `cargo xtask perf-gate` (nightly `perf.yml`) | The baseline medians and memory estimates per size class, the 15 % threshold, the noise floor and the runner they were taken on (WP-S6.03) |
 | [`ci-times.py`](ci-times.py) | nightly `perf.yml` | The CI-time trend of `ci.yml` against NFR-MAINT-05 (FT-269) |
 | [`../.github/workflows/fuzz.yml`](../.github/workflows/fuzz.yml) | nightly command fuzzer | The seeded `fuzz_long` run, with the findings file as artifact and a verdict step (red for a finding, a failed build or a hang) (WP-S6.02, FT-272) |

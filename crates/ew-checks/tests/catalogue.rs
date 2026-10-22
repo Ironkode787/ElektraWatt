@@ -10,6 +10,9 @@
 //! `ew-commands`. The test regenerates the text in memory and fails when the committed file differs;
 //! `EW_CHECKS_BLESS=1 cargo test -p ew-checks --test catalogue` rewrites it.
 
+// Test target: bless and diagnostic environment flags (EW_*), which only choose whether a committed file is rewritten or a line is printed; the compared result never depends on them.
+#![allow(clippy::disallowed_methods)]
+
 use std::path::PathBuf;
 
 use ew_checks::{CheckMode, Modes, SCHEMES, rules};

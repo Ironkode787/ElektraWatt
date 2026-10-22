@@ -1,6 +1,6 @@
 # Quality engineering, security and release
 
-**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1; amended 2026-10-21, cycle-12 design pass: acceptance counts and comparison against doc 20 data in §3.10; amended 2026-10-21, cycle-14 design pass: documents as built in §3.9, §3.10 and §3.16, blind drafter §3.17; amended 2026-10-22, cycle-17 design pass: the acceptance counts in §3.10, the fuzzer's coverage and nightly form in §3.6, the `fuzz_smoke` time in §3.14, CI-N-02 and CI-N-03 in §5.2; amended 2026-10-22, cycle-18 design pass: what the ordered-collection lint misses in §3.5, the pull-failure rule in §3.14, CI-PR-05 and CI-N-09 in §5.2, the image-digest rule in §5.4) · **Part of:** ElektraWatt design document set
+**Status:** Draft v0.1 · **Date:** 2026-10-18 (amended 2026-10-20: §3.16 cross-platform source rules; amended 2026-10-21, cycle-11 design pass: acceptance runner as built in §3.10, timing rule in §3.16 and §4.3, private pilot corpus in §4.1; amended 2026-10-21, cycle-12 design pass: acceptance counts and comparison against doc 20 data in §3.10; amended 2026-10-21, cycle-14 design pass: documents as built in §3.9, §3.10 and §3.16, blind drafter §3.17; amended 2026-10-22, cycle-17 design pass: the acceptance counts in §3.10, the fuzzer's coverage and nightly form in §3.6, the `fuzz_smoke` time in §3.14, CI-N-02 and CI-N-03 in §5.2; amended 2026-10-22, cycle-18 design pass: what the ordered-collection lint misses in §3.5, the pull-failure rule in §3.14, CI-PR-05 and CI-N-09 in §5.2, the image-digest rule in §5.4; amended 2026-10-22, cycle-19 lane C: the `disallowed-methods` rule as built in §3.5, CI-N-12 and the retired LG-2 merge block in §5.2) · **Part of:** ElektraWatt design document set
 
 **Purpose.** This document specifies how ElektraWatt (EW) proves its correctness, performance and security, and
 how it is built, signed, shipped and supported. It turns the architecture's "prove it in CI" principle
@@ -217,8 +217,31 @@ turns into a failure). A use site whose iteration order never reaches a persiste
 allowed with `#[allow(clippy::disallowed_types)]` and a one-line justification; `cargo xtask check-ordered-collections`
 (the `lint` job and `cargo xtask ci`) compares those sites, keyed by crate and item path, with the reviewed list
 `ci/ordered-collections-allow.toml`, so a new allow is a reviewed change (`ci/README.md`). At the introduction nine
-sites in four crates allow the lint, all lookup-only; no hash container whose order reached output was found. The
-`disallowed-methods` half of the rule (wall clock, random, environment) is not built: FT-317, before G-M1.
+sites in four crates allow the lint, all lookup-only; no hash container whose order reached output was found.
+
+*As built (cycle 19, FT-317, WP-S6.02).* The `disallowed-methods` half is built the same way and is workspace-wide:
+the generated `clippy.toml` lists, after the raw readers of ADR-0001 amendment 2, `std::time::SystemTime::now` and
+`Instant::now`, `std::env::var`, `var_os`, `vars` and `vars_os`, `std::hash::RandomState::new` and `getrandom::fill`,
+`fill_uninit`, `u32` and `u64` (`DISALLOWED_METHODS` in `xtask/src/raw_read.rs`, reasons citing this section).
+Paths that do not resolve under the workspace's features are not listed, because clippy would only warn: `Uuid::new_v4`
+and `Uuid::now_v7` (`uuid` has the `v5` feature only, so they cannot be called) and the `rand` functions (`rand` 0.10
+without its `thread_rng` feature, which only `proptest` loads); a crate that enables a generator adds its path. The
+rule is not scoped by crate or module ("outside `ew-ids`", "outside the settings module"): every use is allowed with
+`#[allow(clippy::disallowed_methods)]` and a one-line justification, and `cargo xtask check-disallowed-methods` (the
+`lint` job and `cargo xtask ci`) compares those sites, keyed by crate and item path, with the reviewed list
+`ci/disallowed-methods-allow.toml`; it is the machinery of `check-ordered-collections` with a second rule. The lint
+`disallowed_methods` is also the guard of the raw readers, and the four reader crates opt out of it at their target
+roots, which would have switched the new rule off in `ew-model`, `ew-derive`, `ew-commands` and `ew-store`: for them
+the check does not read allow attributes but scans the source for the calls (`SystemTime::now`, `env::var_os`, also
+in a `use` group) and lists each as a site, so those crates are held to the same justification and review. At the
+introduction 44 sites in 18 crates allow or list a call: 14 in production code (`ew-ids`' `SystemSource`, the one
+clock and entropy source for identity; `ew-store`'s clock, lock record, session ID and state-directory lookup, none of
+which is project data (NFR-REL-07); `ew-sqlview`'s monotonic query deadline; the `ew` CLI's `SOURCE_DATE_EPOCH` and
+`EW_CONTENT_DIR`, with no wall-clock fallback for the creation date; the `ew-testkit` bench harness; `xtask`) and 30 in
+test and bench targets (timers asserted only with `EW_PERF_ASSERT`, bless and diagnostic flags, scratch-directory
+names). No call that reaches a persisted, exported or printed value was found. Not covered: a call through an
+alias or re-export in a reader crate, and `std::env::temp_dir` and `current_dir`, which read the environment but are
+not in the list.
 
 *What the lint does not catch* (decision log ID-463). Group lints (`clippy::all`, `clippy::style`, `warnings`) and the
 lint keys of a manifest, in either spelling, count as allow sites, so a broad allow cannot hide a site. Three gaps

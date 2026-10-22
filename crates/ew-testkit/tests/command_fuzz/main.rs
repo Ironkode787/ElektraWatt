@@ -45,6 +45,9 @@
 //!   `EW_FUZZ_IMPORT_WEIGHT`, the wall-clock budget `EW_FUZZ_BUDGET_SECS` and the findings file
 //!   `EW_FUZZ_REPORT`.
 
+// The command fuzzer (and its modules): seeds, steps and the report path come from EW_FUZZ_* variables, and the step timers feed the report's timing lines only; a finding is a function of the seed.
+#![allow(clippy::disallowed_methods)]
+
 mod arms;
 mod import;
 mod live;

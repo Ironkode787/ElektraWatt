@@ -3,6 +3,9 @@
 
 //! Cell overflow policies, `visible_if`, rotated text and logo placement of `lower_form`.
 
+// A wall-clock timer of this test, asserted only with EW_PERF_ASSERT (the timing rule of doc 18 §3.16); no timestamp reaches a compared result.
+#![allow(clippy::disallowed_methods)]
+
 use std::time::Instant;
 
 use ew_dl::{DisplayList, ImageFormat, ItemKind, ShapedRun, Transform};

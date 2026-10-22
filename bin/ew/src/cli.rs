@@ -769,6 +769,9 @@ fn run_export(a: &ExportArgs) -> i32 {
 }
 
 /// The creation date of `SOURCE_DATE_EPOCH` (doc 17 section 3.1, FR-OUT-026); `Ok(None)` when it is not set.
+// The program boundary: the one environment input of the exports, and there is no wall-clock fallback (no
+// `SOURCE_DATE_EPOCH` means no creation date), so the same input and variable give the same bytes (doc 18 §3.5).
+#[allow(clippy::disallowed_methods)]
 fn source_date() -> Result<Option<ew_api::output::PdfDate>, String> {
     let Some(v) = std::env::var_os("SOURCE_DATE_EPOCH").filter(|v| !v.is_empty()) else {
         return Ok(None);
@@ -1185,6 +1188,8 @@ fn run_check(a: &CheckArgs) -> i32 {
     result.exit_code()
 }
 
+// The program boundary: `EW_CONTENT_DIR` only names the directory of the starter content, as `--content` does.
+#[allow(clippy::disallowed_methods)]
 fn run_import_qet(a: &ImportQetArgs) -> i32 {
     let content = a.content.clone().or_else(|| {
         std::env::var_os("EW_CONTENT_DIR")

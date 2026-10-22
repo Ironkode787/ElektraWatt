@@ -6,6 +6,9 @@
 //! No PDF parser is in the dependency graph, so the structure checks read the object dictionaries
 //! textually: krilla compresses content and font streams only, never dictionaries.
 
+// EW_PDF_DUMP names a file that the test writes the PDF to for inspection; it never changes the compared bytes.
+#![allow(clippy::disallowed_methods)]
+
 use std::collections::BTreeMap;
 use std::sync::Arc;
 

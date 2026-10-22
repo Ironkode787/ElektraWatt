@@ -77,6 +77,9 @@
 //! The commit pipeline (`session.execute`) is included in every `.commit` figure, the `memo.*` total rows
 //! (commit plus memo step) and the cold `*.commit_potentials` rows carry the NFR-PERF-05 budget.
 
+// A bench: it reads the fixture-class selector from the environment and times itself; nothing it measures is persisted or compared.
+#![allow(clippy::disallowed_methods)]
+
 use std::collections::BTreeSet;
 use std::io::Write as _;
 use std::sync::Arc;

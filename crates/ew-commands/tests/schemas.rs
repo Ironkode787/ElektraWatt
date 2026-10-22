@@ -8,6 +8,9 @@
 //! stale; `EW_COMMANDS_BLESS=1 cargo test -p ew-commands --test schemas` rewrites the directory. A second
 //! test checks that every schema is a usable JSON Schema document.
 
+// Test target: bless and diagnostic environment flags (EW_*), which only choose whether a committed file is rewritten or a line is printed; the compared result never depends on them.
+#![allow(clippy::disallowed_methods)]
+
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
@@ -33,6 +36,7 @@ fn committed() -> BTreeMap<String, String> {
 #[test]
 fn committed_schemas_match_the_generated_ones() {
     let generated: BTreeMap<String, String> = CommandRegistry::builtin().schema_files().into_iter().collect();
+    // The bless flag only chooses whether the committed schemas are rewritten.
     if std::env::var_os("EW_COMMANDS_BLESS").is_some() {
         let dir = schema_dir();
         std::fs::create_dir_all(&dir).expect("create schema directory");

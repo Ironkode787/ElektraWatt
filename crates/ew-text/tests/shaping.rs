@@ -5,6 +5,8 @@
 //! rules.
 
 #![cfg(feature = "bundled-fonts")]
+// A wall-clock timer of this test, asserted only with EW_PERF_ASSERT (the timing rule of doc 18 §3.16); no timestamp reaches a compared result.
+#![allow(clippy::disallowed_methods)]
 
 use std::time::Instant;
 

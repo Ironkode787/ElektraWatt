@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `check-ordered-collections`: the review list of the ordered-collection lint (FT-271, WP-S6.02).
+//! `check-ordered-collections` and `check-disallowed-methods`: the review lists of the determinism lints
+//! (FT-271 and FT-317, WP-S6.02, doc 18 §3.5). One machinery, two [`Rule`]s.
 //!
 //! The iteration order of a `HashMap` or `HashSet` is unspecified and differs between runs, so it must not
 //! reach a persisted, exported or printed sequence (NFR on deterministic output, doc 18 §3). Clippy enforces
@@ -9,33 +10,48 @@
 //! the std hash containers under `disallowed-types`. A use site whose iteration order provably never reaches
 //! output (a lookup-only map, a counter, a set used only for `contains`) is allowed with
 //! `#[allow(clippy::disallowed_types)]` and a one-line justification comment (or a `reason = "..."` in the
-//! attribute); anything else uses a `BTreeMap` or `BTreeSet`.
+//! attribute); anything else uses a `BTreeMap` or `BTreeSet`. That is the rule [`TYPES`].
 //!
-//! This check keeps those allow sites reviewed. It scans the Rust source of every workspace package, tests
+//! The same file lists the wall clock, the process environment and randomness under `disallowed-methods`
+//! (`SystemTime::now`, `Instant::now`, `std::env::var` and its siblings, `getrandom::fill`, ...): model, derive,
+//! format and export paths must not depend on them. A justified use site (a bench or test timer, a bless flag,
+//! the one ID generator, the CLI's inputs) is allowed with `#[allow(clippy::disallowed_methods)]` and a
+//! justification. That is the rule [`METHODS`]. It differs in one respect: the lint `disallowed_methods` is also
+//! the guard of the raw readers (`check-raw-read`), and the reader crates opt out of it as a whole at their
+//! target roots, which would switch the new list off exactly in `ew-model`, `ew-derive`, `ew-commands` and
+//! `ew-store`. For the reader crates this check therefore does not look at allow attributes (they say nothing
+//! there) but scans the source lexically for the paths of the list (`SystemTime::now`, `std::env::var_os`, also
+//! inside a `use` group), and every such call is a site that needs a justification and a reviewed entry.
+//!
+//! These checks keep those allow sites reviewed. They scan the Rust source of every workspace package, tests
 //! and benches included, for attributes `#[allow(...)]`, `#![allow(...)]`, `#[expect(...)]` (also inside
-//! `cfg_attr`) that name `disallowed_types` (with or without `clippy::`), derives a key for each site, prints
-//! the sites per crate and compares them with the committed list `ci/ordered-collections-allow.toml`.
+//! `cfg_attr`) that name the lint (with or without `clippy::`), derive a key for each site, print the sites per
+//! crate and compare them with the committed list (`ci/ordered-collections-allow.toml` and
+//! `ci/disallowed-methods-allow.toml`).
 //!
 //! A key is the crate and the item path of the site, never a file or a line: the names of the enclosing
 //! `mod`, `impl`, `fn`, `struct`, `enum` and `trait` items followed by the item the attribute decorates
 //! (`fn parse_denylist`, `use std::collections::HashSet`, `struct Store > field holds`, `impl Store > fn
-//! new`). The list holds the number of sites per key. The check fails when
+//! new`; for a lexical site `call SystemTime::now`). The list holds the number of sites per key. The check
+//! fails when
 //!
 //! - a site is not in the list, or the source has more sites of a key than the list (a new allow must be
 //!   reviewed: add the entry in the same change; `--bless` rewrites the list);
 //! - the list names a key the source has fewer sites of (a stale entry);
-//! - a site has no justification: no `//` comment on the line above or on the attribute's line, and no
-//!   `reason = "..."` in the attribute;
-//! - a `Cargo.toml` of the workspace sets `disallowed_types`, `style` or `all` (`[lints.clippy]`) or `warnings`
+//! - a site has no justification: no `//` comment on the line above or on the attribute's (or call's) line, and
+//!   no `reason = "..."` in the attribute;
+//! - a `Cargo.toml` of the workspace sets the lint, `style` or `all` (`[lints.clippy]`) or `warnings`
 //!   (`[lints.rust]`, also under `[workspace.lints]`) to `allow`, which would switch the ban off without a site
 //!   to review.
 //!
-//! The group lints `clippy::style` (which contains `disallowed_types`), `clippy::all` and `warnings` count as
-//! allow sites like the lint itself, so a group allow cannot switch the ban off unseen.
+//! The group lints `clippy::style` (which contains both lints), `clippy::all` and `warnings` count as allow
+//! sites like the lint itself, so a group allow cannot switch a ban off unseen.
 //!
 //! The scan is lexical (the lexer of [`crate::raw_read`]): comments and string contents never count. A site
 //! that a macro expands is not seen; the lint itself still fires there, and the macro's definition site is
-//! the place to allow it.
+//! the place to allow it. The lexical scan of the reader crates matches the last two segments of a path
+//! (`SystemTime::now`), so an alias (`use std::time::SystemTime as Clock`) or a re-export is not seen there;
+//! the reader crates are few and reviewed, and everywhere else clippy resolves the path itself.
 
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -45,33 +61,109 @@ use serde::Deserialize;
 
 use crate::raw_read::{self, Attr, Parsed, Tk};
 
-/// The committed list of reviewed allow sites, relative to the workspace root.
-pub const LIST_FILE: &str = "ci/ordered-collections-allow.toml";
+/// The policy file that names the reader crates.
+const POLICY_FILE: &str = "ci/dep-rules.toml";
 
-/// The lint of the hash-container ban.
-const LINT: &str = "disallowed_types";
+/// One lint of the family that this module reviews.
+#[derive(Debug)]
+pub struct Rule {
+    /// The subcommand that runs the rule.
+    pub command: &'static str,
+    /// The lint as named in messages (`disallowed_types`).
+    pub lint: &'static str,
+    /// The spellings of the lint in an `allow` or `expect` list (the group lints are added).
+    pub spellings: &'static [&'static str],
+    /// The keys of `[lints.clippy]` whose `allow` switches the ban off (a group is among them).
+    pub manifest_keys: &'static [&'static str],
+    /// The committed list of reviewed sites, relative to the workspace root.
+    pub list_file: &'static str,
+    /// The authority each message cites.
+    pub reference: &'static str,
+    /// What the ban is, in the words of a message.
+    pub ban: &'static str,
+    /// What a justification has to say.
+    pub justification: &'static str,
+    /// The comment block that the generated list starts with, after the licence lines.
+    pub header: &'static str,
+    /// Whether the reader crates are scanned for calls of the banned paths instead of for allow attributes.
+    pub lexical_in_readers: bool,
+}
 
-/// The authority each message cites.
-const REFERENCE: &str = "FT-271, WP-S6.02";
+/// The ordered-collection rule (FT-271): the hash containers are `disallowed-types`.
+pub const TYPES: Rule = Rule {
+    command: "check-ordered-collections",
+    lint: "disallowed_types",
+    spellings: &["disallowed_types", "clippy::disallowed_types"],
+    manifest_keys: &["disallowed_types", "style", "all"],
+    list_file: "ci/ordered-collections-allow.toml",
+    reference: "FT-271, WP-S6.02",
+    ban: "hash-container ban",
+    justification: "says why the iteration order never reaches output",
+    header: "# The reviewed allow sites of the ordered-collection lint (FT-271, WP-S6.02): every place that allows\n\
+             # `clippy::disallowed_types` for `std::collections::HashMap` or `HashSet` because the iteration order\n\
+             # never reaches a persisted, exported or printed sequence. Keyed by crate and item path (no file, no\n\
+             # line) with the number of sites. `cargo xtask check-ordered-collections` fails when the source and\n\
+             # this list differ, so a new allow is reviewed in the change that adds it; `--bless` rewrites the file.\n",
+    lexical_in_readers: false,
+};
 
-/// Whether `lint` (a lint path as written in an attribute) switches the ban off: `disallowed_types` itself
-/// and the groups that contain it (`clippy::style`, `clippy::all`) or every warning (`warnings`).
-fn is_switch(lint: &str) -> bool {
-    lint == LINT
-        || matches!(
-            lint,
-            "clippy::disallowed_types" | "clippy::style" | "clippy::all" | "warnings"
-        )
+/// The wall-clock, environment and randomness rule (FT-317): the functions are `disallowed-methods`.
+pub const METHODS: Rule = Rule {
+    command: "check-disallowed-methods",
+    lint: "disallowed_methods",
+    spellings: &[
+        "disallowed_methods",
+        "clippy::disallowed_methods",
+        "disallowed_method",
+        "clippy::disallowed_method",
+    ],
+    manifest_keys: &["disallowed_methods", "disallowed_method", "style", "all"],
+    list_file: "ci/disallowed-methods-allow.toml",
+    reference: "FT-317, WP-S6.02, doc 18 §3.5",
+    ban: "wall-clock, environment and randomness ban",
+    justification: "says why the value never reaches a persisted, exported or printed result (or why this is the sanctioned source)",
+    header: "# The reviewed allow sites of the wall-clock, environment and randomness lint (FT-317, WP-S6.02, doc 18\n\
+             # §3.5): every place that allows `clippy::disallowed_methods` for `SystemTime::now`, `Instant::now`,\n\
+             # `std::env::var` and its siblings, `RandomState::new` or `getrandom` because the value never reaches a\n\
+             # persisted, exported or printed result, or because the place is a sanctioned source (the ID generator,\n\
+             # the program boundary, a timer of a test or bench). In the reader crates, which opt out of the whole\n\
+             # lint for the raw readers, a site is the call itself, found lexically. Keyed by crate and item path (no\n\
+             # file, no line) with the number of sites. `cargo xtask check-disallowed-methods` fails when the source\n\
+             # and this list differ, so a new allow is reviewed in the change that adds it; `--bless` rewrites the file.\n",
+    lexical_in_readers: true,
+};
+
+/// The functions that the lexical scan of the reader crates looks for: the path segment before the call and
+/// the functions that are banned on it (the list of `raw_read::DISALLOWED_METHODS`, plus the generators that
+/// the workspace's feature sets do not compile today).
+const CALLS: [(&str, &[&str]); 7] = [
+    ("SystemTime", &["now"]),
+    ("Instant", &["now"]),
+    ("env", &["var", "var_os", "vars", "vars_os"]),
+    ("RandomState", &["new"]),
+    ("getrandom", &["fill", "fill_uninit", "u32", "u64"]),
+    (
+        "rand",
+        &["random", "rng", "thread_rng", "random_range", "random_bool"],
+    ),
+    ("Uuid", &["new_v4", "now_v7"]),
+];
+
+/// Whether `lint` (a lint path as written in an attribute) switches the ban of `rule` off: the lint itself and
+/// the groups that contain it (`clippy::style`, `clippy::all`) or every warning (`warnings`).
+fn is_switch(rule: &Rule, lint: &str) -> bool {
+    rule.spellings.contains(&lint) || matches!(lint, "clippy::style" | "clippy::all" | "warnings")
 }
 
 /// The manifest keys (`[lints.clippy]`, `[lints.rust]`, also under `[workspace.lints]`) that, set to `allow`,
-/// switch the ban off, with the table they live in.
-const MANIFEST_SWITCHES: [(&str, &[&str]); 2] =
-    [("clippy", &[LINT, "style", "all"]), ("rust", &["warnings"])];
+/// switch the ban of `rule` off, with the table they live in.
+fn manifest_tables(rule: &Rule) -> [(&'static str, &'static [&'static str]); 2] {
+    [("clippy", rule.manifest_keys), ("rust", &["warnings"])]
+}
 
-/// The manifest keys of `text` that set a switch of [`MANIFEST_SWITCHES`] to `allow` (as `key = "allow"` or
+/// The manifest keys of `text` that set a switch of the rule to `allow` (as `key = "allow"` or
 /// `key = { level = "allow", .. }`), with the 1-based line of the key.
-fn manifest_switches(text: &str) -> Vec<(String, usize)> {
+fn manifest_switches(rule: &Rule, text: &str) -> Vec<(String, usize)> {
     let Ok(doc) = toml::from_str::<toml::Table>(text) else {
         return Vec::new();
     };
@@ -88,7 +180,7 @@ fn manifest_switches(text: &str) -> Vec<(String, usize)> {
     }
     let mut out = Vec::new();
     for lints in tables {
-        for (group, keys) in MANIFEST_SWITCHES {
+        for (group, keys) in manifest_tables(rule) {
             let Some(table) = lints.get(group).and_then(toml::Value::as_table) else {
                 continue;
             };
@@ -134,10 +226,12 @@ pub struct Found {
     pub site: Site,
     /// The workspace-relative file (for messages only).
     pub path: String,
-    /// The 1-based line of the attribute (for messages only).
+    /// The 1-based line of the attribute or call (for messages only).
     pub line: usize,
     /// Whether a comment or a `reason` justifies the site.
     pub justified: bool,
+    /// Whether the site is a call found lexically (a reader crate) and not an allow attribute.
+    pub call: bool,
 }
 
 /// A workspace package as the check sees it.
@@ -151,6 +245,8 @@ pub struct Package {
     pub manifest_text: String,
     /// Every `.rs` file of the package: workspace-relative path and text.
     pub files: Vec<(String, String)>,
+    /// Whether the package is a reader crate of the raw-read policy (it opts out of `disallowed_methods`).
+    pub reader: bool,
 }
 
 /// One entry of the committed list.
@@ -176,18 +272,19 @@ pub struct List {
 }
 
 impl List {
-    /// Parses the list file.
+    /// Parses the list file of `rule`.
     ///
     /// # Errors
     ///
     /// A TOML or schema error, or a key listed twice.
-    pub fn parse(text: &str) -> Result<List> {
-        let list: List = toml::from_str(text).with_context(|| format!("parsing {LIST_FILE}"))?;
+    pub fn parse(rule: &Rule, text: &str) -> Result<List> {
+        let list: List = toml::from_str(text).with_context(|| format!("parsing {}", rule.list_file))?;
         let mut seen = BTreeMap::new();
         for e in &list.allow {
             if seen.insert((e.krate.as_str(), e.item.as_str()), ()).is_some() {
                 anyhow::bail!(
-                    "{LIST_FILE} lists `{}` of {} twice; merge the counts",
+                    "{} lists `{}` of {} twice; merge the counts",
+                    rule.list_file,
                     e.item,
                     e.krate
                 );
@@ -380,9 +477,9 @@ fn describe(p: &Parsed, j: usize) -> String {
     }
 }
 
-/// Whether the attribute names the lint in an `allow(...)` or `expect(...)` list, and whether it carries a
-/// `reason = "..."`.
-fn names_lint(p: &Parsed, a: &Attr) -> (bool, bool) {
+/// Whether the attribute names the lint of `rule` in an `allow(...)` or `expect(...)` list, and whether it
+/// carries a `reason = "..."`.
+fn names_lint(rule: &Rule, p: &Parsed, a: &Attr) -> (bool, bool) {
     let (mut hit, mut reason) = (false, false);
     for k in a.open + 1..a.close {
         if !p.ident(k).is_some_and(|n| matches!(n, "allow" | "expect")) || !p.is_p(k + 1, '(') {
@@ -408,7 +505,7 @@ fn names_lint(p: &Parsed, a: &Attr) -> (bool, bool) {
             }
             if lint == "reason" && p.is_p(j, '=') {
                 reason = true;
-            } else if is_switch(&lint) {
+            } else if is_switch(rule, &lint) {
                 listed = true;
             }
         }
@@ -417,15 +514,97 @@ fn names_lint(p: &Parsed, a: &Attr) -> (bool, bool) {
     (hit, hit && reason)
 }
 
-/// The allow sites of `krate`'s file `path` with text `text`.
-pub fn scan_source(krate: &str, path: &str, text: &str) -> Vec<Found> {
+/// The item path of the site at token `i`: the labels of the enclosing items, then `target`.
+fn item_path(scopes: &[Scope], i: usize, target: &str) -> String {
+    let mut chain: Vec<&Scope> = scopes.iter().filter(|s| s.open < i && i < s.close).collect();
+    chain.sort_by_key(|s| s.open);
+    let mut item = chain
+        .iter()
+        .map(|s| s.label.as_str())
+        .collect::<Vec<_>>()
+        .join(" > ");
+    if !item.is_empty() {
+        item.push_str(" > ");
+    }
+    item.push_str(target);
+    item
+}
+
+/// The calls of the banned paths of [`CALLS`] in the file: the token index of the first segment and the path as
+/// `Segment::function`. A group of a `use` (`use std::env::{args, var}`) counts as a call of each name in it.
+fn call_hits(p: &Parsed) -> Vec<(usize, String)> {
+    let mut out = Vec::new();
+    for i in 0..p.toks.len() {
+        let Some(head) = p.ident(i) else { continue };
+        let Some((_, fns)) = CALLS.iter().find(|(h, _)| *h == head) else {
+            continue;
+        };
+        if !(p.is_p(i + 1, ':') && p.is_p(i + 2, ':')) {
+            continue;
+        }
+        let j = i + 3;
+        if let Some(f) = p.ident(j).filter(|f| fns.contains(f)) {
+            out.push((i, format!("{head}::{f}")));
+        } else if p.is_p(j, '{')
+            && let Some(close) = p.pair[j]
+        {
+            // The names at the top level of the group.
+            let mut k = j + 1;
+            while k < close {
+                if p.is_p(k, '{') {
+                    k = p.pair[k].map_or(close, |m| m + 1);
+                    continue;
+                }
+                if let Some(f) = p.ident(k).filter(|f| fns.contains(f))
+                    && (p.is_p(k - 1, '{') || p.is_p(k - 1, ','))
+                {
+                    out.push((i, format!("{head}::{f}")));
+                }
+                k += 1;
+            }
+        }
+    }
+    out
+}
+
+/// Whether a `//` comment justifies the site on `line` (1-based): one on the line above, or one in `own_tail`,
+/// the text of the site's line that follows the site.
+fn has_comment(lines: &[&str], line: usize, own_tail: &str) -> bool {
+    let above = line
+        .checked_sub(2)
+        .and_then(|n| lines.get(n))
+        .copied()
+        .unwrap_or("");
+    above.trim_start().starts_with("//") || own_tail.contains("//")
+}
+
+/// The allow sites of `krate`'s file `path` with text `text` (for a reader crate under a lexical rule: the
+/// calls of the banned paths).
+pub fn scan_source(rule: &Rule, krate: &str, path: &str, text: &str, reader: bool) -> Vec<Found> {
     let p = Parsed::new(text);
     let scopes = scopes(&p);
     let lines: Vec<&str> = text.lines().collect();
     let mut found = Vec::new();
+    if rule.lexical_in_readers && reader {
+        for (i, call) in call_hits(&p) {
+            let line = p.line(i);
+            let own = lines.get(line - 1).copied().unwrap_or("");
+            found.push(Found {
+                site: Site {
+                    krate: krate.to_owned(),
+                    item: item_path(&scopes, i, &format!("call {call}")),
+                },
+                path: path.to_owned(),
+                line,
+                justified: has_comment(&lines, line, own),
+                call: true,
+            });
+        }
+        return found;
+    }
     for i in 0..p.toks.len() {
         let Some(a) = p.attr_at(i) else { continue };
-        let (hit, reason) = names_lint(&p, &a);
+        let (hit, reason) = names_lint(rule, &p, &a);
         if !hit {
             continue;
         }
@@ -434,47 +613,31 @@ pub fn scan_source(krate: &str, path: &str, text: &str) -> Vec<Found> {
         } else {
             describe(&p, p.skip_attrs(a.close + 1))
         };
-        let mut chain: Vec<&Scope> = scopes.iter().filter(|s| s.open < i && i < s.close).collect();
-        chain.sort_by_key(|s| s.open);
-        let mut item = chain
-            .iter()
-            .map(|s| s.label.as_str())
-            .collect::<Vec<_>>()
-            .join(" > ");
-        if !item.is_empty() {
-            item.push_str(" > ");
-        }
-        item.push_str(&target);
         let line = p.line(i);
         let own = lines.get(line - 1).copied().unwrap_or("");
-        let above = line
-            .checked_sub(2)
-            .and_then(|n| lines.get(n))
-            .copied()
-            .unwrap_or("");
         let after_attr = own.split_once(']').map_or("", |(_, rest)| rest);
-        let justified = reason || above.trim_start().starts_with("//") || after_attr.contains("//");
         found.push(Found {
             site: Site {
                 krate: krate.to_owned(),
-                item,
+                item: item_path(&scopes, i, &target),
             },
             path: path.to_owned(),
             line,
-            justified,
+            justified: reason || has_comment(&lines, line, after_attr),
+            call: false,
         });
     }
     found
 }
 
 /// Every allow site of the workspace packages.
-pub fn found_sites(packages: &[Package]) -> Vec<Found> {
+pub fn found_sites(rule: &Rule, packages: &[Package]) -> Vec<Found> {
     let mut out: Vec<Found> = packages
         .iter()
         .flat_map(|pkg| {
             pkg.files
                 .iter()
-                .flat_map(|(path, text)| scan_source(&pkg.name, path, text))
+                .flat_map(|(path, text)| scan_source(rule, &pkg.name, path, text, pkg.reader))
         })
         .collect();
     out.sort_by(|a, b| (&a.site, &a.path, a.line).cmp(&(&b.site, &b.path, b.line)));
@@ -494,29 +657,37 @@ pub fn tally(found: &[Found]) -> BTreeMap<Site, usize> {
 // Checking and printing
 
 /// The violations of the check: `list` against the sites of `packages`.
-pub fn check(packages: &[Package], list: &List) -> Vec<String> {
-    let found = found_sites(packages);
+pub fn check(rule: &Rule, packages: &[Package], list: &List) -> Vec<String> {
+    let found = found_sites(rule, packages);
     let have = tally(&found);
     let want = list.counts();
+    let (lint, list_file, reference) = (rule.lint, rule.list_file, rule.reference);
     let mut out = Vec::new();
     for f in found.iter().filter(|f| !f.justified) {
-        out.push(format!(
-            "{}:{}: `allow({LINT})` on `{}` has no justification: put a `//` comment on the line above (or a `reason = \"...\"` in the attribute) that says why the iteration order never reaches output ({REFERENCE})",
-            f.path, f.line, f.site.item
-        ));
+        if f.call {
+            out.push(format!(
+                "{}:{}: `{}` in a reader crate has no justification: put a `//` comment on the line above (or on the line) that {} ({reference})",
+                f.path, f.line, f.site.item, rule.justification
+            ));
+        } else {
+            out.push(format!(
+                "{}:{}: `allow({lint})` on `{}` has no justification: put a `//` comment on the line above (or a `reason = \"...\"` in the attribute) that {} ({reference})",
+                f.path, f.line, f.site.item, rule.justification
+            ));
+        }
     }
     for (site, n) in &have {
         match want.get(site) {
             None => out.push(format!(
-                "{}: `{}` allows `{LINT}` ({n} site(s)) and is not in {LIST_FILE}: review it, then add the entry or run `cargo xtask check-ordered-collections --bless` ({REFERENCE})",
-                site.krate, site.item
+                "{}: `{}` allows `{lint}` ({n} site(s)) and is not in {list_file}: review it, then add the entry or run `cargo xtask {} --bless` ({reference})",
+                site.krate, site.item, rule.command
             )),
             Some(m) if m < n => out.push(format!(
-                "{}: `{}` allows `{LINT}` at {n} site(s) but {LIST_FILE} lists {m}: review the new site, then update the count ({REFERENCE})",
+                "{}: `{}` allows `{lint}` at {n} site(s) but {list_file} lists {m}: review the new site, then update the count ({reference})",
                 site.krate, site.item
             )),
             Some(m) if m > n => out.push(format!(
-                "{}: `{}` allows `{LINT}` at {n} site(s) but {LIST_FILE} lists {m}: remove the stale count ({REFERENCE})",
+                "{}: `{}` allows `{lint}` at {n} site(s) but {list_file} lists {m}: remove the stale count ({reference})",
                 site.krate, site.item
             )),
             Some(_) => {}
@@ -525,16 +696,16 @@ pub fn check(packages: &[Package], list: &List) -> Vec<String> {
     for (site, m) in &want {
         if !have.contains_key(site) {
             out.push(format!(
-                "{}: {LIST_FILE} lists `{}` ({m} site(s)) but the source has no such allow: remove the stale entry ({REFERENCE})",
+                "{}: {list_file} lists `{}` ({m} site(s)) but the source has no such allow: remove the stale entry ({reference})",
                 site.krate, site.item
             ));
         }
     }
     for pkg in packages {
-        for (lint, line) in manifest_switches(&pkg.manifest_text) {
+        for (key, line) in manifest_switches(rule, &pkg.manifest_text) {
             out.push(format!(
-                "{}:{line}: a manifest sets the lint `{lint}` to allow, which switches the hash-container ban off (`{LINT}` is in `clippy::style`); the ban is set in the generated clippy.toml only ({REFERENCE})",
-                pkg.manifest
+                "{}:{line}: a manifest sets the lint `{key}` to allow, which switches the {} off (`{lint}` is in `clippy::style`); the ban is set in the generated clippy.toml only ({reference})",
+                pkg.manifest, rule.ban
             ));
         }
     }
@@ -575,17 +746,14 @@ fn toml_string(s: &str) -> String {
 }
 
 /// The committed list for the sites `found` (what `--bless` writes).
-pub fn generate(found: &[Found]) -> String {
+pub fn generate(rule: &Rule, found: &[Found]) -> String {
     // The licence tag is spelled with an escaped hyphen so that REUSE does not read this source line as a tag.
-    let mut out = String::from(
+    let mut out = format!(
         "# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors\n\
          # SPDX-License\u{2d}Identifier: MIT OR Apache-2.0\n\
          \n\
-         # The reviewed allow sites of the ordered-collection lint (FT-271, WP-S6.02): every place that allows\n\
-         # `clippy::disallowed_types` for `std::collections::HashMap` or `HashSet` because the iteration order\n\
-         # never reaches a persisted, exported or printed sequence. Keyed by crate and item path (no file, no\n\
-         # line) with the number of sites. `cargo xtask check-ordered-collections` fails when the source and\n\
-         # this list differ, so a new allow is reviewed in the change that adds it; `--bless` rewrites the file.\n",
+         {}",
+        rule.header
     );
     for (site, n) in &tally(found) {
         out.push_str(&format!(
@@ -602,6 +770,10 @@ pub fn generate(found: &[Found]) -> String {
 
 fn load_packages(root: &Path) -> Result<Vec<Package>> {
     let metadata = crate::metadata()?;
+    let readers = crate::deps::Policy::load(&root.join(POLICY_FILE))?
+        .raw_read
+        .map(|r| r.readers)
+        .unwrap_or_default();
     let mut packages = Vec::new();
     for meta in metadata.workspace_packages() {
         let manifest_dir = meta
@@ -621,6 +793,7 @@ fn load_packages(root: &Path) -> Result<Vec<Package>> {
             manifest_text: std::fs::read_to_string(&meta.manifest_path)
                 .with_context(|| format!("reading {}", meta.manifest_path))?,
             files,
+            reader: readers.iter().any(|r| r == meta.name.as_str()),
         });
     }
     // The workspace manifest is checked like a package's (`[workspace.lints.clippy]`), without sources.
@@ -631,49 +804,50 @@ fn load_packages(root: &Path) -> Result<Vec<Package>> {
         manifest_text: std::fs::read_to_string(&root_manifest)
             .with_context(|| format!("reading {}", root_manifest.display()))?,
         files: Vec::new(),
+        reader: false,
     });
     Ok(packages)
 }
 
-fn load_list(root: &Path) -> Result<List> {
-    let path = root.join(LIST_FILE);
+fn load_list(root: &Path, rule: &Rule) -> Result<List> {
+    let path = root.join(rule.list_file);
     match std::fs::read_to_string(&path) {
-        Ok(text) => List::parse(&text),
+        Ok(text) => List::parse(rule, &text),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(List::default()),
         Err(e) => Err(e).with_context(|| format!("reading {}", path.display())),
     }
 }
 
-/// The violations of the workspace at `root` (the step of `cargo xtask ci`).
+/// The violations of the workspace at `root` under `rule` (the step of `cargo xtask ci`).
 ///
 /// # Errors
 ///
 /// A package or the list that does not load.
-pub fn violations(root: &Path) -> Result<Vec<String>> {
-    Ok(check(&load_packages(root)?, &load_list(root)?))
+pub fn violations(root: &Path, rule: &Rule) -> Result<Vec<String>> {
+    Ok(check(rule, &load_packages(root)?, &load_list(root, rule)?))
 }
 
-/// `cargo xtask check-ordered-collections [--bless]`: prints the allow sites per crate, then the verdict; with
-/// `bless` the list is rewritten first.
+/// `cargo xtask check-ordered-collections|check-disallowed-methods [--bless]`: prints the allow sites per
+/// crate, then the verdict; with `bless` the list is rewritten first.
 ///
 /// # Errors
 ///
 /// A package or the list that does not load, or a list that cannot be written.
-pub fn run(root: &Path, bless: bool) -> Result<bool> {
+pub fn run(root: &Path, rule: &Rule, bless: bool) -> Result<bool> {
     let packages = load_packages(root)?;
-    let found = found_sites(&packages);
+    let found = found_sites(rule, &packages);
     print!("{}", render(&found));
     if bless {
-        std::fs::write(root.join(LIST_FILE), generate(&found))
-            .with_context(|| format!("writing {LIST_FILE}"))?;
-        println!("check-ordered-collections: wrote {LIST_FILE}");
+        std::fs::write(root.join(rule.list_file), generate(rule, &found))
+            .with_context(|| format!("writing {}", rule.list_file))?;
+        println!("{}: wrote {}", rule.command, rule.list_file);
     }
-    let violations = check(&packages, &load_list(root)?);
+    let violations = check(rule, &packages, &load_list(root, rule)?);
     if violations.is_empty() {
-        println!("check-ordered-collections: ok");
+        println!("{}: ok", rule.command);
         Ok(true)
     } else {
-        eprintln!("check-ordered-collections: {} violation(s)", violations.len());
+        eprintln!("{}: {} violation(s)", rule.command, violations.len());
         for v in &violations {
             eprintln!("  - {v}");
         }
@@ -694,11 +868,23 @@ mod tests {
                 .iter()
                 .map(|(p, t)| ((*p).to_owned(), (*t).to_owned()))
                 .collect(),
+            reader: false,
+        }
+    }
+
+    fn reader(name: &str, files: &[(&str, &str)]) -> Package {
+        Package {
+            reader: true,
+            ..pkg(name, files)
         }
     }
 
     fn items(found: &[Found]) -> Vec<String> {
         found.iter().map(|f| f.site.item.clone()).collect()
+    }
+
+    fn scan(krate: &str, path: &str, text: &str) -> Vec<Found> {
+        scan_source(&TYPES, krate, path, text, false)
     }
 
     const SRC: &str = r##"
@@ -742,7 +928,7 @@ mod tests {
 
     #[test]
     fn sites_are_keyed_by_crate_and_item_path_not_by_line() {
-        let found = scan_source("c", "crates/c/src/lib.rs", SRC);
+        let found = scan("c", "crates/c/src/lib.rs", SRC);
         assert_eq!(
             items(&found),
             [
@@ -755,7 +941,7 @@ mod tests {
         );
         assert!(found.iter().all(|f| f.justified), "{found:#?}");
         // Moving the code down changes the lines, not the keys.
-        let shifted = scan_source("c", "crates/c/src/lib.rs", &format!("\n\n\n{SRC}"));
+        let shifted = scan("c", "crates/c/src/lib.rs", &format!("\n\n\n{SRC}"));
         assert_eq!(items(&shifted), items(&found));
         assert_ne!(
             shifted.iter().map(|f| f.line).collect::<Vec<_>>(),
@@ -774,7 +960,7 @@ mod tests {
             #[allow(clippy::all, clippy::disallowed_types)]
             fn c() {}
         ";
-        let found = scan_source("c", "x.rs", src);
+        let found = scan("c", "x.rs", src);
         assert_eq!(items(&found), ["inner attribute", "static A", "fn b", "fn c"]);
         assert_eq!(
             found.iter().map(|f| f.justified).collect::<Vec<_>>(),
@@ -798,7 +984,7 @@ mod tests {
             #[allow(clippy::pedantic, clippy::too_many_arguments, dead_code)]
             fn d() {}
         ";
-        let found = scan_source("c", "x.rs", src);
+        let found = scan("c", "x.rs", src);
         assert_eq!(items(&found), ["fn a", "inner attribute", "struct B"]);
         assert!(found.iter().all(|f| f.justified));
     }
@@ -816,28 +1002,30 @@ mod tests {
                 "rust::warnings",
             ),
         ] {
-            let mut p = pkg("c", &[]);
-            p.manifest_text = text.to_owned();
-            let v = check(&[p], &List::default());
-            assert_eq!(v.len(), 1, "{text}: {v:#?}");
-            assert!(
-                v[0].contains(&format!("sets the lint `{lint}` to allow")),
-                "{v:#?}"
-            );
+            for rule in [&TYPES, &METHODS] {
+                let mut p = pkg("c", &[]);
+                p.manifest_text = text.to_owned();
+                let v = check(rule, &[p], &List::default());
+                assert_eq!(v.len(), 1, "{text}: {v:#?}");
+                assert!(
+                    v[0].contains(&format!("sets the lint `{lint}` to allow")),
+                    "{v:#?}"
+                );
+            }
         }
         // Warning about a group, or a priority, is the usual form and not a switch.
         let mut p = pkg("c", &[]);
         p.manifest_text =
             "[lints.clippy]\nall = { level = \"warn\", priority = -1 }\nstyle = \"warn\"\n".to_owned();
-        assert!(check(&[p], &List::default()).is_empty());
+        assert!(check(&TYPES, &[p], &List::default()).is_empty());
     }
 
     #[test]
     fn a_site_without_a_justification_fails() {
         let src = "#[allow(clippy::disallowed_types)]\nfn f() {}\n";
         let packages = [pkg("c", &[("crates/c/src/lib.rs", src)])];
-        let list = List::parse("[[allow]]\ncrate = \"c\"\nitem = \"fn f\"\ncount = 1\n").unwrap();
-        let v = check(&packages, &list);
+        let list = List::parse(&TYPES, "[[allow]]\ncrate = \"c\"\nitem = \"fn f\"\ncount = 1\n").unwrap();
+        let v = check(&TYPES, &packages, &list);
         assert_eq!(v.len(), 1, "{v:#?}");
         assert!(
             v[0].starts_with(
@@ -857,10 +1045,10 @@ mod tests {
     #[test]
     fn the_list_and_the_source_must_agree() {
         let (packages, list) = one_site(2);
-        assert!(check(&packages, &List::parse(&list).unwrap()).is_empty());
+        assert!(check(&TYPES, &packages, &List::parse(&TYPES, &list).unwrap()).is_empty());
 
         // A site the list does not have.
-        let v = check(&packages, &List::default());
+        let v = check(&TYPES, &packages, &List::default());
         assert_eq!(v.len(), 1, "{v:#?}");
         assert!(v[0].starts_with(
             "c: `fn f` allows `disallowed_types` (2 site(s)) and is not in ci/ordered-collections-allow.toml"
@@ -868,8 +1056,9 @@ mod tests {
 
         // More sites than the list says: a new allow has to be reviewed.
         let v = check(
+            &TYPES,
             &packages,
-            &List::parse(&list.replace("count = 2", "count = 1")).unwrap(),
+            &List::parse(&TYPES, &list.replace("count = 2", "count = 1")).unwrap(),
         );
         assert!(
             v.len() == 1 && v[0].contains("at 2 site(s) but ci/ordered-collections-allow.toml lists 1"),
@@ -878,12 +1067,13 @@ mod tests {
 
         // Fewer sites than the list says, and an entry with no site at all.
         let v = check(
+            &TYPES,
             &packages,
-            &List::parse(&list.replace("count = 2", "count = 3")).unwrap(),
+            &List::parse(&TYPES, &list.replace("count = 2", "count = 3")).unwrap(),
         );
         assert!(v.len() == 1 && v[0].contains("remove the stale count"), "{v:#?}");
         let stale = format!("{list}\n[[allow]]\ncrate = \"c\"\nitem = \"fn gone\"\ncount = 1\n");
-        let v = check(&packages, &List::parse(&stale).unwrap());
+        let v = check(&TYPES, &packages, &List::parse(&TYPES, &stale).unwrap());
         assert!(
             v.len() == 1 && v[0].contains("lists `fn gone` (1 site(s)) but the source has no such allow"),
             "{v:#?}"
@@ -895,7 +1085,7 @@ mod tests {
         let mut p = pkg("c", &[]);
         p.manifest_text =
             "[lints.clippy]\n# disallowed_types is generated\ndisallowed_types = \"allow\"\n".to_owned();
-        let v = check(&[p], &List::default());
+        let v = check(&TYPES, &[p], &List::default());
         assert_eq!(v.len(), 1, "{v:#?}");
         assert!(
             v[0].starts_with("crates/c/Cargo.toml:3: a manifest sets the lint `clippy::disallowed_types`"),
@@ -907,7 +1097,7 @@ mod tests {
 disallowed-types = \"allow\"
 "
         .to_owned();
-        let v = check(&[dashed], &List::default());
+        let v = check(&TYPES, &[dashed], &List::default());
         assert_eq!(v.len(), 1, "{v:#?}");
         assert!(v[0].contains("`clippy::disallowed_types`"), "{v:#?}");
     }
@@ -915,9 +1105,9 @@ disallowed-types = \"allow\"
     #[test]
     fn the_list_round_trips_and_rejects_duplicates_and_unknown_keys() {
         let (packages, _) = one_site(3);
-        let found = found_sites(&packages);
-        let text = generate(&found);
-        let list = List::parse(&text).expect("the generated list parses");
+        let found = found_sites(&TYPES, &packages);
+        let text = generate(&TYPES, &found);
+        let list = List::parse(&TYPES, &text).expect("the generated list parses");
         assert_eq!(
             list.allow,
             [Entry {
@@ -926,47 +1116,245 @@ disallowed-types = \"allow\"
                 count: 3
             }]
         );
-        assert!(check(&packages, &list).is_empty());
+        assert!(check(&TYPES, &packages, &list).is_empty());
         assert!(
-            List::parse(&format!("{text}{text}")).is_err(),
+            List::parse(&TYPES, &format!("{text}{text}")).is_err(),
             "a key listed twice"
         );
-        assert!(List::parse("[[allow]]\ncrate = \"c\"\nitem = \"x\"\ncount = 1\nwhy = \"y\"\n").is_err());
+        assert!(
+            List::parse(
+                &TYPES,
+                "[[allow]]\ncrate = \"c\"\nitem = \"x\"\ncount = 1\nwhy = \"y\"\n"
+            )
+            .is_err()
+        );
     }
 
     #[test]
     fn the_report_counts_per_crate() {
         let src = "// a\n#[allow(clippy::disallowed_types)]\nfn f() {}\n// b\n#[allow(clippy::disallowed_types)]\nfn g() {}\n// c\n#[allow(clippy::disallowed_types)]\nfn f() {}\n";
-        let found = found_sites(&[
-            pkg("c", &[("a.rs", src)]),
-            pkg(
-                "d",
-                &[("b.rs", "// x\n#[allow(clippy::disallowed_types)]\nfn h() {}\n")],
-            ),
-        ]);
+        let found = found_sites(
+            &TYPES,
+            &[
+                pkg("c", &[("a.rs", src)]),
+                pkg(
+                    "d",
+                    &[("b.rs", "// x\n#[allow(clippy::disallowed_types)]\nfn h() {}\n")],
+                ),
+            ],
+        );
         assert_eq!(
             render(&found),
             "c: 3 allow site(s)\n  fn f (x2)\n  fn g\nd: 1 allow site(s)\n  fn h\ntotal: 4 allow site(s) in 2 crate(s)\n"
         );
     }
 
-    /// The real workspace: the committed list is current and every site is justified. `--bless` rewrites it.
+    // -----------------------------------------------------------------------------------------------------
+    // The wall-clock, environment and randomness rule
+
+    fn scan_m(krate: &str, text: &str, is_reader: bool) -> Vec<Found> {
+        scan_source(&METHODS, krate, "x.rs", text, is_reader)
+    }
+
     #[test]
-    fn the_committed_list_is_current() {
+    fn each_rule_sees_only_its_own_lint() {
+        let src = "
+            // order never reaches output
+            #[allow(clippy::disallowed_types)]
+            fn a() {}
+            // a bless flag
+            #[allow(clippy::disallowed_methods)]
+            fn b() {}
+            // the old name of the lint is accepted by clippy
+            #[allow(clippy::disallowed_method)]
+            fn c() {}
+        ";
+        assert_eq!(items(&scan("c", "x.rs", src)), ["fn a"]);
+        assert_eq!(items(&scan_m("c", src, false)), ["fn b", "fn c"]);
+        assert!(scan_m("c", src, false).iter().all(|f| f.justified && !f.call));
+    }
+
+    #[test]
+    fn a_reader_crate_is_scanned_for_calls_and_not_for_attributes() {
+        let src = r##"
+            #![allow(clippy::disallowed_methods)]
+            use std::time::SystemTime;
+
+            struct SystemClock;
+
+            impl SystemClock {
+                fn now(&self) -> SystemTime {
+                    // The production clock; tests inject a manual one.
+                    SystemTime::now()
+                }
+            }
+
+            fn boundary() -> Option<String> {
+                std::env::var("HOME").ok() // the user's home for the config directory
+            }
+
+            fn unreviewed() -> std::time::Instant {
+                std::time::Instant::now()
+            }
+
+            // Names in comments and strings are not calls: SystemTime::now(), "Instant::now()".
+            const TEXT: &str = "std::env::var_os";
+            fn clock() {} // a method called `now` on something else: self.clock.now()
+        "##;
+        let found = scan_m("ew-store", src, true);
+        assert_eq!(
+            items(&found),
+            [
+                "impl SystemClock > fn now > call SystemTime::now",
+                "fn boundary > call env::var",
+                "fn unreviewed > call Instant::now",
+            ]
+        );
+        assert_eq!(
+            found.iter().map(|f| f.justified).collect::<Vec<_>>(),
+            [true, true, false]
+        );
+        assert!(found.iter().all(|f| f.call));
+        // The same source in a crate that is not a reader: the inner allow is the one site.
+        let found = scan_m("ew-other", src, false);
+        assert_eq!(items(&found), ["inner attribute"]);
+        assert!(!found[0].justified, "no comment on the attribute: {found:#?}");
+    }
+
+    #[test]
+    fn use_groups_and_every_listed_function_are_calls() {
+        let src = "
+            // boundary
+            use std::env::{args, var, vars_os};
+            // a nested group is skipped, only the top level names count
+            use std::{env::{var_os}, time::{Instant, SystemTime}};
+            fn f() {
+                // x
+                let _ = (RandomState::new(), getrandom::fill(&mut []), getrandom::u64());
+                // y
+                let _ = (rand::thread_rng(), rand::random::<u8>(), Uuid::new_v4(), Uuid::now_v7());
+                // z
+                let _ = (std::env::vars(), std::env::var_os(\"A\"), SystemTime::now(), Instant::now());
+                // not banned: arguments, the temp directory, a type, a method named `var`
+                let _ = (std::env::args(), std::env::temp_dir(), SystemTime::UNIX_EPOCH, s.var());
+            }
+        ";
+        let found = scan_m("ew-store", src, true);
+        let mut got: Vec<String> = found
+            .iter()
+            .map(|f| f.site.item.rsplit(" > ").next().unwrap().to_owned())
+            .collect();
+        got.sort();
+        let mut want: Vec<String> = [
+            "env::var",
+            "env::vars_os",
+            "RandomState::new",
+            "getrandom::fill",
+            "getrandom::u64",
+            "rand::thread_rng",
+            "rand::random",
+            "Uuid::new_v4",
+            "Uuid::now_v7",
+            "env::var_os",
+            "env::vars",
+            "env::var_os",
+            "SystemTime::now",
+            "Instant::now",
+        ]
+        .iter()
+        .map(|c| format!("call {c}"))
+        .collect();
+        want.sort();
+        assert_eq!(got, want, "{found:#?}");
+    }
+
+    #[test]
+    fn a_call_in_a_reader_crate_needs_a_reviewed_entry_and_a_justification() {
+        let src = "fn t() {\n    let started = Instant::now();\n}\n";
+        let packages = [reader(
+            "ew-commands",
+            &[("crates/ew-commands/tests/perf.rs", src)],
+        )];
+        let list = "[[allow]]\ncrate = \"ew-commands\"\nitem = \"fn t > call Instant::now\"\ncount = 1\n";
+        let v = check(&METHODS, &packages, &List::parse(&METHODS, list).unwrap());
+        assert_eq!(v.len(), 1, "{v:#?}");
+        assert!(
+            v[0].starts_with("crates/ew-commands/tests/perf.rs:2: `fn t > call Instant::now` in a reader crate has no justification"),
+            "{v:#?}"
+        );
+        // Justified, but not listed: the review is the list.
+        let src =
+            "fn t() {\n    // a timer of the test, never asserted\n    let started = Instant::now();\n}\n";
+        let packages = [reader(
+            "ew-commands",
+            &[("crates/ew-commands/tests/perf.rs", src)],
+        )];
+        let v = check(&METHODS, &packages, &List::default());
+        assert_eq!(v.len(), 1, "{v:#?}");
+        assert!(
+            v[0].contains("is not in ci/disallowed-methods-allow.toml")
+                && v[0].contains("cargo xtask check-disallowed-methods --bless"),
+            "{v:#?}"
+        );
+        assert!(check(&METHODS, &packages, &List::parse(&METHODS, list).unwrap()).is_empty());
+    }
+
+    #[test]
+    fn the_methods_list_round_trips_with_its_own_header() {
+        let src = "fn t() {\n    // timer\n    let _ = Instant::now();\n}\n";
+        let packages = [reader("ew-commands", &[("a.rs", src)])];
+        let text = generate(&METHODS, &found_sites(&METHODS, &packages));
+        assert!(
+            text.contains("wall-clock, environment and randomness lint"),
+            "{text}"
+        );
+        let list = List::parse(&METHODS, &text).expect("the generated list parses");
+        assert!(check(&METHODS, &packages, &list).is_empty());
+    }
+
+    fn committed_list_is_current(rule: &Rule) {
         let root = crate::workspace_root();
         let packages = load_packages(&root).expect("the workspace loads");
-        let v = check(&packages, &load_list(&root).expect("the list loads"));
+        let v = check(rule, &packages, &load_list(&root, rule).expect("the list loads"));
         assert_eq!(
             v,
             Vec::<String>::new(),
-            "run `cargo xtask check-ordered-collections --bless` after review"
+            "run `cargo xtask {} --bless` after review",
+            rule.command
         );
-        let found = found_sites(&packages);
-        let text = std::fs::read_to_string(root.join(LIST_FILE)).expect("the list exists");
+        let found = found_sites(rule, &packages);
+        let text = std::fs::read_to_string(root.join(rule.list_file)).expect("the list exists");
         assert_eq!(
             text.replace("\r\n", "\n"),
-            generate(&found),
+            generate(rule, &found),
             "the committed list is the generated one"
         );
+    }
+
+    /// The real workspace: the committed list is current and every site is justified. `--bless` rewrites it.
+    #[test]
+    fn the_committed_list_is_current() {
+        committed_list_is_current(&TYPES);
+    }
+
+    /// The same for the wall-clock, environment and randomness rule.
+    #[test]
+    fn the_committed_methods_list_is_current() {
+        committed_list_is_current(&METHODS);
+    }
+
+    /// The lexical table covers the functions of the generated clippy list, so that a reader crate (which opts
+    /// out of the lint) is held to what the other crates are.
+    #[test]
+    fn the_lexical_table_covers_the_clippy_list() {
+        for (path, _) in raw_read::DISALLOWED_METHODS {
+            let mut segments = path.rsplit("::");
+            let function = segments.next().unwrap();
+            let head = segments.next().unwrap();
+            assert!(
+                CALLS.iter().any(|(h, fns)| *h == head && fns.contains(&function)),
+                "`{path}` is in the clippy list but not in the lexical table"
+            );
+        }
     }
 }

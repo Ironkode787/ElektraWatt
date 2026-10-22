@@ -5,7 +5,8 @@
 //! read-only second session, and journal recovery after a crash (doc 05 §5, §7, §8).
 
 // The tests count rows through the untracked readers (dev-dependency `ew-model/raw-read`; tests are exempt
-// from `cargo xtask check-raw-read`).
+// from `cargo xtask check-raw-read`). The same allow covers the clock-named scratch directory and the lock
+// records' times (the lock logic takes the time as an argument); neither reaches a compared byte.
 #![allow(clippy::disallowed_methods)]
 
 use std::path::{Path, PathBuf};

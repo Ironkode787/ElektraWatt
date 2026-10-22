@@ -7,6 +7,9 @@
 //! from a data file under `ci/`, so the code stays generic and can be copied to another project.
 
 #![forbid(unsafe_code)]
+// Build tooling, not a product path: the perf gate dates its report and reads its runner and assert switches
+// from the environment, `CARGO` names the cargo binary, and tests name scratch directories by the clock.
+#![allow(clippy::disallowed_methods)]
 
 mod anonymise;
 mod build_scripts;
@@ -43,6 +46,11 @@ commands:
                        the allow sites of the HashMap/HashSet ban (clippy `disallowed-types`, FT-271): prints
                        them per crate and compares them with ci/ordered-collections-allow.toml (crate and item
                        path, no line); --bless (or --write) rewrites the list
+  check-disallowed-methods [--bless]
+                       the allow sites of the wall-clock, environment and randomness ban (clippy
+                       `disallowed-methods`, FT-317), and the calls in the reader crates, which opt out of the
+                       lint: prints them per crate and compares them with ci/disallowed-methods-allow.toml;
+                       --bless (or --write) rewrites the list
   check-workflows      actions pinned by commit SHA, read-only default token, no pull_request_target,
                        credential-free checkouts, secrets only in `release` (.github/workflows/)
   check-licence-map    path licences, collective notice, crate licences, permissive-layer licence boundary
@@ -104,11 +112,23 @@ fn main() -> ExitCode {
             }
         },
         "check-ordered-collections" => match args.get(1).map(String::as_str) {
-            None => ordered::run(&workspace_root(), false),
-            Some("--bless" | "--write") => ordered::run(&workspace_root(), true),
+            None => ordered::run(&workspace_root(), &ordered::TYPES, false),
+            Some("--bless" | "--write") => ordered::run(&workspace_root(), &ordered::TYPES, true),
             Some(other) => {
                 eprint!(
                     "check-ordered-collections: unknown argument `{other}`
+
+{USAGE}"
+                );
+                Ok(false)
+            }
+        },
+        "check-disallowed-methods" => match args.get(1).map(String::as_str) {
+            None => ordered::run(&workspace_root(), &ordered::METHODS, false),
+            Some("--bless" | "--write") => ordered::run(&workspace_root(), &ordered::METHODS, true),
+            Some(other) => {
+                eprint!(
+                    "check-disallowed-methods: unknown argument `{other}`
 
 {USAGE}"
                 );
@@ -278,7 +298,11 @@ fn check_raw_read() -> Result<Violations> {
 }
 
 fn check_ordered_collections() -> Result<Violations> {
-    ordered::violations(&workspace_root())
+    ordered::violations(&workspace_root(), &ordered::TYPES)
+}
+
+fn check_disallowed_methods() -> Result<Violations> {
+    ordered::violations(&workspace_root(), &ordered::METHODS)
 }
 
 fn check_workflows() -> Result<Violations> {
@@ -546,11 +570,12 @@ fn ci() -> Result<bool> {
             &["test", "--doc", "--workspace", "--all-features", "--locked"],
         ),
     ];
-    let checks: [Check; 10] = [
+    let checks: [Check; 11] = [
         ("check-deps", check_deps),
         ("check-features", check_features),
         ("check-raw-read", check_raw_read),
         ("check-ordered-collections", check_ordered_collections),
+        ("check-disallowed-methods", check_disallowed_methods),
         ("check-build-scripts", check_build_scripts),
         ("check-workflows", check_workflows),
         ("check-licence-map", check_licence_map),

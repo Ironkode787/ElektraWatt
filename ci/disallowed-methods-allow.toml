@@ -1,0 +1,171 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+# The reviewed allow sites of the wall-clock, environment and randomness lint (FT-317, WP-S6.02, doc 18
+# §3.5): every place that allows `clippy::disallowed_methods` for `SystemTime::now`, `Instant::now`,
+# `std::env::var` and its siblings, `RandomState::new` or `getrandom` because the value never reaches a
+# persisted, exported or printed result, or because the place is a sanctioned source (the ID generator,
+# the program boundary, a timer of a test or bench). In the reader crates, which opt out of the whole
+# lint for the raw readers, a site is the call itself, found lexically. Keyed by crate and item path (no
+# file, no line) with the number of sites. `cargo xtask check-disallowed-methods` fails when the source
+# and this list differ, so a new allow is reviewed in the change that adds it; `--bless` rewrites the file.
+
+[[allow]]
+crate = "ew"
+item = "fn run_import_qet"
+count = 1
+
+[[allow]]
+crate = "ew"
+item = "fn source_date"
+count = 1
+
+[[allow]]
+crate = "ew-api"
+item = "inner attribute"
+count = 9
+
+[[allow]]
+crate = "ew-checks"
+item = "inner attribute"
+count = 1
+
+[[allow]]
+crate = "ew-commands"
+item = "fn check > call env::var_os"
+count = 1
+
+[[allow]]
+crate = "ew-commands"
+item = "fn coalesced_moves_compact_to_one_op_per_key > call Instant::now"
+count = 1
+
+[[allow]]
+crate = "ew-commands"
+item = "fn committed_schemas_match_the_generated_ones > call env::var_os"
+count = 1
+
+[[allow]]
+crate = "ew-commands"
+item = "fn ten_megabyte_string_fails_fast > call Instant::now"
+count = 1
+
+[[allow]]
+crate = "ew-commands"
+item = "fn timed > call Instant::now"
+count = 1
+
+[[allow]]
+crate = "ew-derive"
+item = "fn ten_thousand_targets_are_formatted_without_quadratic_work > call Instant::now"
+count = 1
+
+[[allow]]
+crate = "ew-export"
+item = "inner attribute"
+count = 1
+
+[[allow]]
+crate = "ew-format"
+item = "inner attribute"
+count = 1
+
+[[allow]]
+crate = "ew-ids"
+item = "impl IdSource for SystemSource"
+count = 1
+
+[[allow]]
+crate = "ew-import-qet"
+item = "inner attribute"
+count = 1
+
+[[allow]]
+crate = "ew-import-tables"
+item = "inner attribute"
+count = 1
+
+[[allow]]
+crate = "ew-rds"
+item = "inner attribute"
+count = 1
+
+[[allow]]
+crate = "ew-scene"
+item = "inner attribute"
+count = 3
+
+[[allow]]
+crate = "ew-schema"
+item = "inner attribute"
+count = 1
+
+[[allow]]
+crate = "ew-sqlview"
+item = "impl Reader > fn open"
+count = 1
+
+[[allow]]
+crate = "ew-sqlview"
+item = "impl Reader > fn query"
+count = 1
+
+[[allow]]
+crate = "ew-store"
+item = "fn default_state_dir > call env::var_os"
+count = 1
+
+[[allow]]
+crate = "ew-store"
+item = "fn env > call env::var"
+count = 1
+
+[[allow]]
+crate = "ew-store"
+item = "fn new_session_id > call RandomState::new"
+count = 1
+
+[[allow]]
+crate = "ew-store"
+item = "fn new_session_id > call SystemTime::now"
+count = 1
+
+[[allow]]
+crate = "ew-store"
+item = "fn process_started > call SystemTime::now"
+count = 1
+
+[[allow]]
+crate = "ew-store"
+item = "impl Clock for SystemClock > fn now > call SystemTime::now"
+count = 1
+
+[[allow]]
+crate = "ew-store"
+item = "impl Scratch > fn new > call SystemTime::now"
+count = 2
+
+[[allow]]
+crate = "ew-testkit"
+item = "fn class_from_env"
+count = 1
+
+[[allow]]
+crate = "ew-testkit"
+item = "fn time"
+count = 1
+
+[[allow]]
+crate = "ew-testkit"
+item = "inner attribute"
+count = 2
+
+[[allow]]
+crate = "ew-text"
+item = "inner attribute"
+count = 1
+
+[[allow]]
+crate = "xtask"
+item = "inner attribute"
+count = 1

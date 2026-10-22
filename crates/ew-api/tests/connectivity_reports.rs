@@ -25,6 +25,9 @@
 //!   pages (907 in three) inside the pagination, equal to the rows of a `Q` without the engine.
 //! - `rows_and_pages_do_not_depend_on_the_order_they_are_read_in`.
 
+// Test target: bless and diagnostic environment flags (EW_*), which only choose whether a committed file is rewritten or a line is printed; the compared result never depends on them.
+#![allow(clippy::disallowed_methods)]
+
 mod golden_common;
 
 use ew_derive::{GeneratedPage, PageOrder, Q};

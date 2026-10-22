@@ -9,6 +9,9 @@
 //! with `cargo nextest run -p ew-import-tables --release --run-ignored only --test hostile_shapes`, and assert
 //! ≤ 1 s each at the review sizes (20,000-row chain, 1,000-junction cascade, 20,000 orphans).
 
+// A wall-clock timer of this test, asserted only with EW_PERF_ASSERT (the timing rule of doc 18 §3.16); no timestamp reaches a compared result.
+#![allow(clippy::disallowed_methods)]
+
 mod common;
 
 use std::fmt::Write as _;

@@ -11,6 +11,9 @@
 //! repository. Run it with
 //! `EW_PRIVATE_CORPUS=<dir> cargo nextest run -p ew-api --test qet_private_corpus --run-ignored all --no-capture`.
 
+// EW_PRIVATE_CORPUS names the private corpus directory; the test is ignored by default and the result does not depend on the path.
+#![allow(clippy::disallowed_methods)]
+
 #[path = "page_output/view.rs"]
 #[allow(dead_code)]
 mod view;

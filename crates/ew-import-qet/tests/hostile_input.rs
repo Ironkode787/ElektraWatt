@@ -6,6 +6,9 @@
 //! build must stay below 1 s) so that the tests cannot flake; a quadratic implementation misses them by
 //! orders of magnitude.
 
+// Wall-clock timers of the hostile-input budgets, asserted only with EW_PERF_ASSERT (doc 18 §3.16); no timestamp reaches a compared result.
+#![allow(clippy::disallowed_methods)]
+
 use std::fmt::Write as _;
 use std::time::{Duration, Instant};
 

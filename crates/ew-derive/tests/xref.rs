@@ -866,6 +866,7 @@ fn ten_thousand_targets_are_formatted_without_quadratic_work() {
     }
     let m = fx.build();
     let q = Q::new(&m);
+    // A timer against a generous bound (the no-quadratic-work check); no time reaches the compared text.
     let start = std::time::Instant::now();
     let source = q.get::<XrefTextOf>(rid(0x10));
     assert_eq!(source.links.len(), 9);

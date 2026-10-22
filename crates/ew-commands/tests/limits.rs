@@ -5,6 +5,9 @@
 //! one over is rejected with the JSON Pointer of the offending value, an oversize document is rejected
 //! fast, and messages never quote more than a short excerpt of the instance.
 
+// A wall-clock timer of this test, asserted only with EW_PERF_ASSERT (the timing rule of doc 18 §3.16); no timestamp reaches a compared result.
+#![allow(clippy::disallowed_methods)]
+
 use std::time::{Duration, Instant};
 
 use ew_commands::{
@@ -127,6 +130,7 @@ fn ten_megabyte_string_fails_fast() {
         params: json!({"kind": "device", "targets": [], "path": "function_text",
             "value": "x".repeat(10 * 1024 * 1024)}),
     };
+    // A timer of the fail-fast check; it is compared with a generous bound only.
     let started = Instant::now();
     let result = CommandRegistry::builtin().resolve(&cmd);
     let took = started.elapsed();

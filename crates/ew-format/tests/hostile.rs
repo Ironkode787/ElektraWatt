@@ -10,6 +10,9 @@
 //! instead. The wall-clock budget is a performance test (`CLAUDE.md` testing policy):
 //! `hostile_inputs_load_within_the_budget` is `#[ignore]`d and runs at milestone deliveries only.
 
+// A wall-clock timer of this test, asserted only with EW_PERF_ASSERT (the timing rule of doc 18 §3.16); no timestamp reaches a compared result.
+#![allow(clippy::disallowed_methods)]
+
 use std::collections::BTreeMap;
 use std::time::{Duration, Instant};
 

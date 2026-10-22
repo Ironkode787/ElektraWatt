@@ -79,6 +79,7 @@ fn placed_devices(devices: usize, per_page: usize, letter: &str) -> Vec<Record> 
 /// Runs `cmd` the way the user interface does: `execute` for an interactive command, `preview` then
 /// `commit` for a bulk one. Returns the elapsed time of that call.
 fn timed<C: Command + DynCommand>(e: &mut Engine, cmd: &C) -> Duration {
+    // The timer of the performance test, asserted only with EW_PERF_ASSERT (doc 18 §3.16).
     let start = Instant::now();
     if Command::cost(cmd, e.model()) == Cost::Bulk {
         let p = e.preview(cmd).expect("preview");

@@ -101,6 +101,7 @@ impl StoreOptions {
 /// `~/Library/Application Support/ElektraWatt/state` on macOS, `$XDG_STATE_HOME/elektrawatt` (default
 /// `~/.local/state/elektrawatt`) elsewhere. `None` when the environment names none.
 pub fn default_state_dir() -> Option<PathBuf> {
+    // The per-user state directory (lock, journal) is outside the project; no project byte depends on it.
     let var = |n: &str| std::env::var_os(n).filter(|v| !v.is_empty()).map(PathBuf::from);
     if cfg!(windows) {
         var("LOCALAPPDATA").map(|p| p.join("ElektraWatt").join("state"))

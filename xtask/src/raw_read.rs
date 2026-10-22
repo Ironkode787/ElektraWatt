@@ -36,6 +36,13 @@
 //! exported or printed sequence. It is static (not derived from `ew-model`); `check-ordered-collections`
 //! (`ordered.rs`) reviews the use sites that allow the lint.
 //!
+//! The `disallowed-methods` list also ends with the wall-clock, environment and randomness functions
+//! ([`DISALLOWED_METHODS`]: FT-317, WP-S6.02, doc 18 §3.5), which share the lint `disallowed_methods` with the raw
+//! readers. A use site that is justified is allowed with `#[allow(clippy::disallowed_methods)]`;
+//! `check-disallowed-methods` (`ordered.rs`) reviews those sites, and scans the reader crates, which opt out of the
+//! whole lint, for the calls themselves. In non-test source, an allow in a package that reaches `ew-model` is a
+//! suppression of this guard too and needs an `[[raw_read.allow]]` entry.
+//!
 //! The reader crates (`policy.readers`) opt out with `#![allow(clippy::disallowed_methods)]` at each target
 //! root; no other crate may. Clippy finds its configuration by walking up from each package's manifest
 //! directory to the first `clippy.toml`, so the one root file covers every package, unless something shadows
@@ -127,6 +134,42 @@ pub const DISALLOWED_TYPES_REASON: &str = "iteration order must not reach persis
 
 /// Where the list of types is reasoned (the generated file's header cites it).
 const TYPES_REFERENCE: &str = "FT-271, WP-S6.02";
+
+/// Where the list of wall-clock, environment and randomness functions is reasoned.
+const METHODS_REFERENCE: &str = "FT-317, WP-S6.02, doc 18 §3.5";
+
+/// The reason clippy prints with a call of a wall-clock function of [`DISALLOWED_METHODS`].
+const CLOCK_REASON: &str = "no wall clock in model, derive, format or export paths (doc 18 §3.5, determinism; FT-317): inject a clock, or allow with a one-line justification that reviewed the site";
+
+/// The reason clippy prints with a read of the process environment.
+const ENV_REASON: &str = "no environment access in model, derive, format or export paths (doc 18 §3.5, determinism; FT-317): read it at the program boundary and pass the value in, or allow with a one-line justification that reviewed the site";
+
+/// The reason clippy prints with a source of randomness.
+const RANDOM_REASON: &str = "no randomness in model, derive, format or export paths (doc 18 §3.5, determinism; FT-317): ew-ids is the one ID generator, tests seed a generator; allow with a one-line justification that reviewed the site";
+
+/// The wall-clock, environment and randomness functions of the `disallowed-methods` list of the generated clippy
+/// configuration (FT-317, WP-S6.02, doc 18 §3.5), after the raw readers: the path and the reason clippy prints.
+///
+/// Only paths that resolve in every package that loads their crate are listed (clippy warns about one that does
+/// not, which the lint job turns into a failure, and ignores one whose crate a package does not load).
+/// Not listed, because they do not resolve under the workspace's feature sets: `Uuid::new_v4` and
+/// `Uuid::now_v7` (`uuid` has the `v5` feature only) and `rand::random`, `rand::rng` and `rand::random_range`
+/// (`rand` 0.10 without its `thread_rng` feature, which only `proptest` loads). A crate that enables a generator
+/// feature adds its path here. `check-disallowed-methods` (`ordered.rs`) keeps the allow sites reviewed and
+/// scans the reader crates, which opt out of the whole lint, lexically, and its table names those paths too.
+pub const DISALLOWED_METHODS: [(&str, &str); 11] = [
+    ("std::time::SystemTime::now", CLOCK_REASON),
+    ("std::time::Instant::now", CLOCK_REASON),
+    ("std::env::var", ENV_REASON),
+    ("std::env::var_os", ENV_REASON),
+    ("std::env::vars", ENV_REASON),
+    ("std::env::vars_os", ENV_REASON),
+    ("std::hash::RandomState::new", RANDOM_REASON),
+    ("getrandom::fill", RANDOM_REASON),
+    ("getrandom::fill_uninit", RANDOM_REASON),
+    ("getrandom::u32", RANDOM_REASON),
+    ("getrandom::u64", RANDOM_REASON),
+];
 
 /// The lint the guard rests on (the item of every suppression finding).
 const GUARD_LINT: &str = "disallowed_methods";
@@ -1369,7 +1412,12 @@ pub fn clippy_config(
          # `{feature}` feature ({REFERENCE}). A stale or hand-edited file fails `cargo xtask check-raw-read`.\n\
          #\n\
          # The reader crates ({readers}) opt out with\n\
-         # `#![allow(clippy::disallowed_methods)]` at each target root; no other crate may.\n\
+         # `#![allow(clippy::disallowed_methods)]` at each target root; no other crate may opt out of the raw\n\
+         # readers. The same lint also carries the wall-clock, environment and randomness functions at the end\n\
+         # of the list ({METHODS_REFERENCE}); a justified use site is allowed with\n\
+         # `#[allow(clippy::disallowed_methods)]` and a one-line justification, and\n\
+         # `cargo xtask check-disallowed-methods` keeps the list of those sites reviewed and scans the reader\n\
+         # crates, which opt out of the whole lint, lexically.\n\
          #\n\
          # The hash containers are listed under `disallowed-types` ({TYPES_REFERENCE}); a use site whose iteration\n\
          # order never reaches output is allowed with `#[allow(clippy::disallowed_types)]` and a justification,\n\
@@ -1383,6 +1431,9 @@ pub fn clippy_config(
     );
     for path in &paths {
         out.push_str(&format!("    {{ path = \"{path}\", reason = \"{reason}\" }},\n"));
+    }
+    for (path, why) in DISALLOWED_METHODS {
+        out.push_str(&format!("    {{ path = \"{path}\", reason = \"{why}\" }},\n"));
     }
     out.push_str("]\n\ndisallowed-types = [\n");
     for path in DISALLOWED_TYPES {
@@ -1906,14 +1957,19 @@ mod tests {
     "#;
 
     /// The generated text for the fixture: methods on two owners, one generic owner, one free function.
-    const MODEL_CLIPPY: &str = r##"# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+    const MODEL_CLIPPY_TEMPLATE: &str = r##"# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: CC0-1.0
 
 # Generated by `cargo xtask check-raw-read --bless` from the readers that `ew-model` declares under its
 # `raw-read` feature (ADR-0001 amendment 2). A stale or hand-edited file fails `cargo xtask check-raw-read`.
 #
 # The reader crates (`ew-model`, `ew-derive`, `ew-commands`, `ew-store`) opt out with
-# `#![allow(clippy::disallowed_methods)]` at each target root; no other crate may.
+# `#![allow(clippy::disallowed_methods)]` at each target root; no other crate may opt out of the raw
+# readers. The same lint also carries the wall-clock, environment and randomness functions at the end
+# of the list (FT-317, WP-S6.02, doc 18 §3.5); a justified use site is allowed with
+# `#[allow(clippy::disallowed_methods)]` and a one-line justification, and
+# `cargo xtask check-disallowed-methods` keeps the list of those sites reviewed and scans the reader
+# crates, which opt out of the whole lint, lexically.
 #
 # The hash containers are listed under `disallowed-types` (FT-271, WP-S6.02); a use site whose iteration
 # order never reaches output is allowed with `#[allow(clippy::disallowed_types)]` and a justification,
@@ -1928,6 +1984,7 @@ disallowed-methods = [
     { path = "ew_model::Table::get", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
     { path = "ew_model::Table::len", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
     { path = "ew_model::snapshot_rows", reason = "raw reader of ew-model (raw-read feature, ADR-0001 amendment 2): read through Q in queries or TxBuilder in commands" },
+@@METHODS@@
 ]
 
 disallowed-types = [
@@ -1937,6 +1994,16 @@ disallowed-types = [
     { path = "std::collections::HashSet", reason = "iteration order must not reach persisted, exported or printed sequences (NFR, WP-S6.02, FT-271); use BTreeMap/BTreeSet/IndexMap, or allow with a justification" },
 ]
 "##;
+
+    /// The generated text for the fixture: the template with the static wall-clock, environment and randomness
+    /// entries after the raw readers.
+    fn model_clippy() -> String {
+        let methods: String = DISALLOWED_METHODS
+            .iter()
+            .map(|(path, why)| format!("    {{ path = \"{path}\", reason = \"{why}\" }},\n"))
+            .collect();
+        MODEL_CLIPPY_TEMPLATE.replace("@@METHODS@@\n", &methods)
+    }
 
     const MODEL_PATH: &str = "crates/ew-model/src/lib.rs";
     const APP_LIB: &str = "crates/app/src/lib.rs";
@@ -2148,7 +2215,7 @@ disallowed-types = [
         let items = gated_items(&model, &policy());
         let exports = root_exports(MODEL);
         let text = clippy_config(&policy(), &items, &exports).expect("every owner is re-exported");
-        assert_eq!(text, MODEL_CLIPPY);
+        assert_eq!(text, model_clippy());
         assert!(text.ends_with("]\n") && !text.contains('\r'));
         // The order of the declarations does not matter, and duplicates collapse.
         let mut shuffled = items.clone();
@@ -2156,7 +2223,7 @@ disallowed-types = [
         shuffled.extend(items.iter().take(2).cloned());
         assert_eq!(
             clippy_config(&policy(), &shuffled, &exports).expect("generates"),
-            MODEL_CLIPPY
+            model_clippy()
         );
     }
 
@@ -2189,7 +2256,7 @@ disallowed-types = [
         );
         let ws = WorkspaceFiles {
             root_manifest: "[workspace]\nmembers = [\"crates/*\"]\n".into(),
-            clippy_config: Some(MODEL_CLIPPY.into()),
+            clippy_config: Some(model_clippy()),
             ..WorkspaceFiles::default()
         };
         (vec![model_package(), app], ws)
@@ -2203,9 +2270,9 @@ disallowed-types = [
     fn a_committed_file_equal_to_the_generated_one_passes_even_with_crlf() {
         let (packages, mut ws) = good_workspace();
         assert_eq!(workspace_violations(&packages, &ws), Vec::<String>::new());
-        ws.clippy_config = Some(MODEL_CLIPPY.replace('\n', "\r\n"));
+        ws.clippy_config = Some(model_clippy().replace('\n', "\r\n"));
         assert_eq!(workspace_violations(&packages, &ws), Vec::<String>::new());
-        assert_eq!(generate(&policy(), &packages), Ok(MODEL_CLIPPY.to_owned()));
+        assert_eq!(generate(&policy(), &packages), Ok(model_clippy()));
     }
 
     #[test]
@@ -2221,7 +2288,7 @@ disallowed-types = [
         );
 
         // A reader that the committed file does not list (stale), at the first differing line.
-        let stale = MODEL_CLIPPY.replace(
+        let stale = model_clippy().replace(
             "    { path = \"ew_model::Table::len\"",
             "    # removed\n    { path = \"x\"",
         );
@@ -2229,13 +2296,13 @@ disallowed-types = [
         let v = workspace_violations(&packages, &ws);
         assert_eq!(v.len(), 1, "{v:#?}");
         assert!(
-            v[0].starts_with("clippy.toml:21: `clippy.toml` is stale or was edited by hand")
+            v[0].starts_with("clippy.toml:26: `clippy.toml` is stale or was edited by hand")
                 && v[0].contains("--bless"),
             "{v:#?}"
         );
 
         // A hand-added setting.
-        ws.clippy_config = Some(format!("{MODEL_CLIPPY}msrv = \"1.80\"\n"));
+        ws.clippy_config = Some(format!("{}msrv = \"1.80\"\n", model_clippy()));
         let v = workspace_violations(&packages, &ws);
         assert_eq!(v.len(), 1, "{v:#?}");
         assert!(v[0].contains("stale or was edited by hand"), "{v:#?}");

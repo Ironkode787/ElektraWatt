@@ -19,6 +19,9 @@
 //!    named comparisons with Golden A. [`HOLDS`] lists those that hold today; the test asserts them, so a
 //!    regression of a repaired aspect fails, and a newly holding comparison is added to the list.
 
+// EW_PRIVATE_CORPUS names the private corpus directory; the test is skipped when it is unset and the result does not depend on the path.
+#![allow(clippy::disallowed_methods)]
+
 mod golden_common;
 #[path = "page_output/golden_files.rs"]
 #[allow(dead_code)]

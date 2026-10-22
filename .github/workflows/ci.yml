@@ -79,6 +79,11 @@ jobs:
       # them (iteration order never reaches output) are listed in ci/ordered-collections-allow.toml.
       - name: ordered collections
         run: cargo xtask check-ordered-collections
+      # FT-317: the wall clock, the process environment and randomness are `disallowed-methods` in the same file
+      # (doc 18 §3.5); the sites that allow them, and the calls in the reader crates, which opt out of the lint,
+      # are listed in ci/disallowed-methods-allow.toml.
+      - name: wall clock, environment and randomness
+        run: cargo xtask check-disallowed-methods
 
   # CI-PR-02, CI-PR-03, CI-PR-04
   test-linux:

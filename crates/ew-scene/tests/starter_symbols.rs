@@ -31,6 +31,9 @@
 //! of `serde_json::to_string_pretty` over the typed document). It never touches envelope values and never
 //! the generated `qet10` edition.
 
+// Test target: bless and diagnostic environment flags (EW_*), which only choose whether a committed file is rewritten or a line is printed; the compared result never depends on them.
+#![allow(clippy::disallowed_methods)]
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::fs;

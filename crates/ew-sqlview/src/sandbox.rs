@@ -365,6 +365,9 @@ fn sql_err(e: &rusqlite::Error) -> SqlError {
 
 impl Reader {
     /// Opens a sandboxed connection on a read-only copy of `image` (an SQLite database image).
+    // The deadline of a query is a resource limit on the monotonic clock: a query that finishes inside it returns
+    // the same rows on every run, one that does not is refused with a timeout; no timestamp is in a result.
+    #[allow(clippy::disallowed_methods)]
     pub(crate) fn open(image: &[u8], profile: Profile) -> Result<Reader, SqlError> {
         let flags = OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX;
         let mut conn = Connection::open_in_memory_with_flags(flags).map_err(|e| sql_err(&e))?;
@@ -423,6 +426,8 @@ impl Reader {
     /// # Errors
     ///
     /// [`SqlError`]: the statement gate, the authorizer, the deadline, the result caps or SQLite refused it.
+    // The start of the query's deadline (see `open`): a resource limit, not a value of the result.
+    #[allow(clippy::disallowed_methods)]
     pub fn query(&self, sql: &str) -> Result<ResultSet, SqlError> {
         let word = first_word(sql).ok_or(SqlError::Empty)?;
         if !matches!(word.to_ascii_uppercase().as_str(), "SELECT" | "WITH" | "VALUES") {

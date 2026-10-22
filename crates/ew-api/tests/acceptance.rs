@@ -23,6 +23,8 @@
 
 // The page-output helpers are shared with `tests/page_output.rs`; not every function is used here.
 #![allow(dead_code)]
+// Test target (the acceptance runner): bless, report-path and EW_PERF_ASSERT flags, a scratch-directory name from the clock and the open and export timers; the pass or fail of an entry depends on none of them except the opt-in timing bound (doc 18 §3.16).
+#![allow(clippy::disallowed_methods)]
 
 mod golden_common;
 #[path = "page_output/golden_files.rs"]

@@ -7,6 +7,9 @@
 //! file differs from what the TOML file generates; `EW_RDS_BLESS=1 cargo test -p ew-rds --test
 //! identifier_sets` rewrites it. A second test reads the same TOML file through the public API.
 
+// Test target: bless and diagnostic environment flags (EW_*), which only choose whether a committed file is rewritten or a line is printed; the compared result never depends on them.
+#![allow(clippy::disallowed_methods)]
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::path::PathBuf;

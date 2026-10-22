@@ -5,6 +5,9 @@
 //! folio of `page_order`, through the session's export job (`ew_api::output`: the product's page views and one
 //! memoised `page_display_list` family per layer; `page_output/view.rs` keeps the test-only loading).
 
+// Test target: the bless flag and diagnostic counters (EW_*) only choose whether a committed file is rewritten or a line is printed; the compared result never depends on them.
+#![allow(clippy::disallowed_methods)]
+
 #[path = "page_output/golden_files.rs"]
 mod golden_files;
 #[path = "page_output/pdf_support.rs"]

@@ -4,6 +4,9 @@
 //! The memory bound and the compaction of the undo stack (F8, F15): the budget counts only the rows the
 //! history alone keeps alive, estimated without serialising, and a coalesced step keeps one op per key.
 
+// A wall-clock timer of this test, asserted only with EW_PERF_ASSERT (the timing rule of doc 18 §3.16); no timestamp reaches a compared result.
+#![allow(clippy::disallowed_methods)]
+
 mod common;
 
 use std::collections::BTreeSet;
@@ -70,6 +73,7 @@ fn coalesced_moves_compact_to_one_op_per_key() {
 
     let mut e = engine_with_limits(golden_model(), unlimited());
     let original = lines(e.model());
+    // A timer that only appears in the failure message of the budget check.
     let started = Instant::now();
     for i in 0..N {
         e.execute_with(&move_rep(delta(i)), Submit::from(Origin::Gui).coalescing("drag"))

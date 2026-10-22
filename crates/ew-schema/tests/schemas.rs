@@ -7,6 +7,9 @@
 //! stale; `EW_SCHEMA_BLESS=1 cargo test -p ew-schema --test schemas` rewrites the directory. A second test
 //! checks that every schema is a usable JSON Schema document.
 
+// Test target: bless and diagnostic environment flags (EW_*), which only choose whether a committed file is rewritten or a line is printed; the compared result never depends on them.
+#![allow(clippy::disallowed_methods)]
+
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
