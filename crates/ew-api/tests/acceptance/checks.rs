@@ -1685,8 +1685,8 @@ fn defects(r: &mut Runner) {
         "D-06",
         "an override is reported as info and shown in the property grid",
         |_| {
-            not_built(
-                "the property grid (FR-UI-009) does not exist; the info half is the entry above (EW-CORE-023)",
+            na(
+                "a G-M2 entry since the readiness ruling ID-422: the property grid (FR-UI-009) comes with the UI at M-PP; the info half is the entry above (EW-CORE-023)",
             )
         },
     );

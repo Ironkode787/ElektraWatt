@@ -1,6 +1,6 @@
 # Acceptance report: golden project J-E-2416, gate M1 (headless)
 
-94 entries: 88 pass, 0 fail, 1 not_built, 5 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
+94 entries: 88 pass, 0 fail, 0 not_built, 6 not_applicable. Oracle mismatches: 0. `fail` and `not_built` block the gate; `not_applicable` does not.
 
 | Criterion | Check | Status | Reason |
 |---|---|---|---|
@@ -70,7 +70,7 @@
 | D-06 | the project description is one text on every page | pass | all 36 pages print "Description: Expansion Control Cabinets" |
 | D-06 | an override set on 101 changes the description of 101 only | pass | the description of 101 becomes the override; 102 keeps the project description |
 | D-06 | an override is reported as info (EW-CORE-023) | pass | Golden A reports none; after the override EW-CORE-023 reports one info on folio 101: "folio 101 overrides the project description in its title block with "Override text"" (quick fix "drop override") |
-| D-06 | an override is reported as info and shown in the property grid | not_built | the property grid (FR-UI-009) does not exist; the info half is the entry above (EW-CORE-023) |
+| D-06 | an override is reported as info and shown in the property grid | not_applicable | a G-M2 entry since the readiness ruling ID-422: the property grid (FR-UI-009) comes with the UI at M-PP; the info half is the entry above (EW-CORE-023) |
 | D-07 | outline, 64 cross-reference links and page labels | pass | Same check as AC-13 "PDF structure equals expected/pdf (outline, 92 links, page labels, fonts, SHA-256)": 36 pages: outline, 92 links (64 cross-reference items, 28 PLC overview rows), page labels = folio labels, embedded fonts and SHA-256 equal the committed files; no Tahoma (the folio count of AC-03 is a separate entry) |
 | D-08 | W29 takes 0.75 DBU from the profile, W20 1.5 mm2 from its CDP and DBU from the profile | pass | W29 0.75 DBU from the profile; W20 1.5 mm2 from its CDP, DBU from the profile (the explain output and the one-commit update of folios 1 and 907 are AC-12) |
 | D-09 | W1-W34 are numbered, unique and stable; the cable cores are not numbered | pass | Same check as AC-09 "every wire has a wire number": W1-W34 carry 34 unique `{page}.{counter}` numbers (counters 1..n per page) equal to the "No." column of doc 20 §8.2, with no known deviation (the From ends follow the flow-distance step, FT-101); W35-W44 (cable cores) none; folio 907 prints them; the same numbers with reversed records |
